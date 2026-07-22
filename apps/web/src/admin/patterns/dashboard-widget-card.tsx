@@ -19,17 +19,17 @@ export function DashboardWidgetCard({
   testId,
 }: DashboardWidgetCardProps) {
   return (
-    <article data-denali-dashboard-widget data-denali-surface="card" data-testid={testId}>
-      <header data-denali-dashboard-widget-header>
-        <h2 data-denali-dashboard-widget-title>{title}</h2>
+    <article data-operator-dashboard-widget data-operator-surface="card" data-testid={testId}>
+      <header data-operator-dashboard-widget-header>
+        <h2 data-operator-dashboard-widget-title>{title}</h2>
         {description ? (
-          <p data-denali-dashboard-widget-description>{description}</p>
+          <p data-operator-dashboard-widget-description>{description}</p>
         ) : null}
       </header>
-      <div data-denali-dashboard-widget-body>
-        <div data-denali-dashboard-widget-content>{children}</div>
+      <div data-operator-dashboard-widget-body>
+        <div data-operator-dashboard-widget-content>{children}</div>
         {footer ? (
-          <div data-dashboard-widget-footer data-denali-dashboard-widget-footer>
+          <div data-dashboard-widget-footer data-operator-dashboard-widget-footer>
             {footer}
           </div>
         ) : null}
@@ -45,9 +45,9 @@ type DashboardWidgetFooterLinkProps = {
 
 export function DashboardWidgetFooterLink({ href, children }: DashboardWidgetFooterLinkProps) {
   return (
-    <Link href={href} data-denali-dashboard-widget-footer-link>
-      <span data-denali-dashboard-widget-footer-label>{children}</span>
-      <ChevronRight aria-hidden data-denali-dashboard-widget-footer-chevron />
+    <Link href={href} data-operator-dashboard-widget-footer-link>
+      <span data-operator-dashboard-widget-footer-label>{children}</span>
+      <ChevronRight aria-hidden data-operator-dashboard-widget-footer-chevron />
     </Link>
   );
 }
@@ -60,7 +60,7 @@ type DashboardKpiGridProps = {
 /** Two-column KPI grid inside dashboard widgets. */
 export function DashboardKpiGrid({ children, testId }: DashboardKpiGridProps) {
   return (
-    <div data-denali-dashboard-kpi-grid data-testid={testId}>
+    <div data-operator-dashboard-kpi-grid data-testid={testId}>
       {children}
     </div>
   );
@@ -69,7 +69,7 @@ export function DashboardKpiGrid({ children, testId }: DashboardKpiGridProps) {
 /** Finance widget KPI strip — 1 col mobile, 3 col from sm. */
 export function DashboardFinanceKpiGrid({ children, testId }: DashboardKpiGridProps) {
   return (
-    <div data-denali-dashboard-finance-kpi-grid data-testid={testId}>
+    <div data-operator-dashboard-finance-kpi-grid data-testid={testId}>
       {children}
     </div>
   );
@@ -81,7 +81,7 @@ type DashboardWidgetErrorProps = {
 
 export function DashboardWidgetError({ children }: DashboardWidgetErrorProps) {
   return (
-    <p data-denali-dashboard-widget-error role="alert">
+    <p data-operator-dashboard-widget-error role="alert">
       {children}
     </p>
   );
@@ -92,7 +92,7 @@ type DashboardWidgetRowStackProps = {
 };
 
 export function DashboardWidgetRowStack({ children }: DashboardWidgetRowStackProps) {
-  return <div data-denali-dashboard-widget-row-stack>{children}</div>;
+  return <div data-operator-dashboard-widget-row-stack>{children}</div>;
 }
 
 type DashboardWidgetListProps = {
@@ -102,7 +102,7 @@ type DashboardWidgetListProps = {
 
 export function DashboardWidgetList({ children, testId }: DashboardWidgetListProps) {
   return (
-    <ul data-denali-dashboard-widget-list data-testid={testId}>
+    <ul data-operator-dashboard-widget-list data-testid={testId}>
       {children}
     </ul>
   );
@@ -113,7 +113,7 @@ type DashboardWidgetListEmptyItemProps = {
 };
 
 export function DashboardWidgetListEmptyItem({ children }: DashboardWidgetListEmptyItemProps) {
-  return <li data-denali-dashboard-widget-list-empty>{children}</li>;
+  return <li data-operator-dashboard-widget-list-empty>{children}</li>;
 }
 
 type DashboardTourListRowProps = {
@@ -124,11 +124,11 @@ type DashboardTourListRowProps = {
 
 export function DashboardTourListRow({ href, title, statusLabel }: DashboardTourListRowProps) {
   return (
-    <li data-denali-dashboard-tour-row>
-      <Link href={href} data-denali-dashboard-tour-row-link>
+    <li data-operator-dashboard-tour-row>
+      <Link href={href} data-operator-dashboard-tour-row-link>
         {title}
       </Link>
-      <span data-denali-dashboard-tour-row-status>{statusLabel}</span>
+      <span data-operator-dashboard-tour-row-status>{statusLabel}</span>
     </li>
   );
 }
@@ -143,9 +143,9 @@ export function DashboardRegistrationListRow({
   countLabel,
 }: DashboardRegistrationListRowProps) {
   return (
-    <li data-denali-dashboard-registration-row>
-      <span data-denali-dashboard-registration-row-title>{title}</span>
-      <span data-denali-dashboard-registration-row-count>{countLabel}</span>
+    <li data-operator-dashboard-registration-row>
+      <span data-operator-dashboard-registration-row-title>{title}</span>
+      <span data-operator-dashboard-registration-row-count>{countLabel}</span>
     </li>
   );
 }

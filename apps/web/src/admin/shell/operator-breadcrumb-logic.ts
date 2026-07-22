@@ -29,7 +29,7 @@ const SETTINGS_MODULE_BY_PATH: Record<string, string> = {
   "reconciliation-triage": "reconciliation_triage",
   branding: "workspace_branding",
   integrations: "integrations",
-  urban: "urban.title",
+  "workspace-owner": "workspaceOwner.title",
 };
 
 function normalizePathname(pathname: string): string {

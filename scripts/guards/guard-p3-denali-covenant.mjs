@@ -20,7 +20,7 @@ const FORBIDDEN_PREFIXES = [
 
 const FORBIDDEN_FILES = new Set([
   "src/denali-plugin-adapter.ts",
-  "src/denali.plugin.ts",
+  // Wave F.a.1 — `denali.plugin.ts` is the ./plugin contract façade (Wave D); allow contract edits.
 ]);
 
 function listChangedDenaliPaths() {

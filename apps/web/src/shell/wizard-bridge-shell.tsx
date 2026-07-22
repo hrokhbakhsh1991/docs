@@ -76,7 +76,9 @@ function WizardBridgeShellChrome({
           <div className="wizard-bridge-shell__brand-text">
             <p className="wizard-bridge-shell__brand-title">{title}</p>
             <p className="wizard-bridge-shell__brand-tagline">
-              {usesExtendedCreateChrome ? tApp("denaliTagline") : tApp("operatorWorkspace")}
+              {usesExtendedCreateChrome
+                ? tApp("extendedCreateChromeTagline")
+                : tApp("operatorWorkspace")}
             </p>
           </div>
         </div>

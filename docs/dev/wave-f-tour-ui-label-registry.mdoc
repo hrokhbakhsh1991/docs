@@ -1,0 +1,59 @@
+---
+title: Wave F.c — Tour UI label registry
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-f-shell-i18n-denali.mdoc
+  - docs/dev/wave-b-async-flat-edit-plugin.mdoc
+---
+
+# Wave F.c — Tour UI label registry
+
+## Problem
+
+Hostile audit / thin-shell debt: operator tour surfaces still import `@/wizard/denali/wizard-labels` and call `resolveDenaliTourKindLabel` / `resolveDenaliTourDurationLabel` / `resolveDenaliTransportModeLabel` / `resolveDenaliTourCategoryGroupLabel` / `resolveDenaliFieldLabel*`. That keeps product-named adapters in the shell call graph even though Wave B/D already ship a plugin-id `WizardLabelResolver` via codegen.
+
+## Decision
+
+1. **Single shell API** — tour/admin UI resolves catalog copy through `wizard-label-surface-registry` + generated `resolveGeneratedLabelResolver(pluginId)`.
+2. **Well-known enum paths** — catalog helpers are thin wrappers over `resolveWizardEnumOptionLabel`:
+
+| Helper | Canonical path | Denali message key (via enum candidates) |
+| ------ | -------------- | ---------------------------------------- |
+| `resolveWizardTourKindLabel` | `tour.kind` | `tourKinds.${slug}` (existing candidate) |
+| `resolveWizardTransportModeLabel` | `transport.mode` | `transportModes.${slug}` |
+| `resolveWizardTourDurationLabel` | `tour.duration` | `composites.tourKind.durations.${slug}` |
+| `resolveWizardTourCategoryGroupLabel` | `tour.categoryGroup` | `composites.tourKind.categories.${slug}` |
+
+3. **Denali SoT** — extend `resolveDenaliEnumOptionLabel` with `tour.duration` / `tour.categoryGroup` candidates so the existing `WizardLabelResolver.resolveEnumOptionLabel` covers duration/category without new optional resolver methods.
+4. **i18n namespace** — replace hard-coded `useTranslations("denali")` with `useWorkspaceWizardTranslator(pluginId | editor.messageNamespace)` (codegen namespaces). Convention: current workspace `id` / surface id / `wizardI18n.messageNamespace` align (`denali`, `urban`).
+5. **Wizard template settings** — drop Denali-only `useEditorLabels` branch; always use `resolveWizardTemplateFieldLabel` / `resolveWizardTemplateFieldKindLabel` with the workspace translator.
+6. **Transport page** — pass `session.pluginId` into the client (session already loaded on the server page).
+
+## Out of scope (F.d+)
+
+- ~~Delete or further shrink `apps/web/src/wizard/denali/wizard-labels.ts`~~ → [`wave-f-denali-label-barrel.mdoc`](./wave-f-denali-label-barrel.mdoc)
+- Rename Denali package-local `resolveDenaliTour*` used by `denali-review-step` / transport field.
+- Delete remaining non-label `wizard/denali/` host adapters (flat-edit, localize, catalog prefetch).
+
+## Call sites retargeted
+
+- `apps/web/src/admin/patterns/tour-category-badge.tsx`
+- `apps/web/app/(app)/tours/tours-page-client.tsx`
+- `apps/web/app/(app)/tours/tour-card.tsx`
+- `apps/web/app/(app)/tours/[id]/workspace/transport/*`
+- `apps/web/app/(app)/settings/tour-wizard-template/wizard-template-client.tsx`
+
+## Verify
+
+```bash
+rg '@/wizard/denali/wizard-labels' \
+  apps/web/src/admin/patterns/tour-category-badge.tsx \
+  apps/web/app/\(app\)/tours \
+  apps/web/app/\(app\)/settings/tour-wizard-template
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-f-tour-ui-label-registry.spec.ts \
+  test/wizard-host-boundary.spec.ts \
+  test/workspace-boundary.spec.ts
+pnpm --filter @app-cloud/workspace-denali exec node --import tsx --test test/field-labels.spec.ts
+```

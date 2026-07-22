@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
-import { withFinanceRegistrationQuery } from "@/finance/finance-registration-context";
+import { withFinanceListScopeQuery } from "@/finance/finance-registration-context";
 import {
   FINANCE_LEDGER_TEST_IDS,
   buildFinanceLedgerCsvContent,
@@ -42,6 +42,7 @@ export function FinanceLedgerPanel({
   const tErrors = useTranslations("finance.errors");
   const searchParams = useSearchParams();
   const registrationFilter = searchParams.get("registrationId");
+  const tourFilter = searchParams.get("tourId");
   const [items, setItems] = useState<readonly FinanceLedgerEvent[]>(initialLedger?.items ?? []);
   const [loading, setLoading] = useState(initialLedger === null);
   const [error, setError] = useState<string | null>(null);
@@ -56,10 +57,10 @@ export function FinanceLedgerPanel({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    const path = withFinanceRegistrationQuery(
-      "/api/finance/reports/ledger-events?limit=100",
-      registrationFilter
-    );
+    const path = withFinanceListScopeQuery("/api/finance/reports/ledger-events?limit=100", {
+      registrationId: registrationFilter,
+      tourId: tourFilter,
+    });
     void fetch(path, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) {
@@ -85,7 +86,7 @@ export function FinanceLedgerPanel({
     return () => {
       cancelled = true;
     };
-  }, [fetchNonce, registrationFilter]);
+  }, [fetchNonce, registrationFilter, tourFilter]);
 
   const handleExportCsv = () => {
     const csv = buildFinanceLedgerCsvContent(toFinanceLedgerCsvRows(items));
@@ -129,7 +130,7 @@ export function FinanceLedgerPanel({
         </div>
       </div>
 
-      <Card data-denali-surface="card" className="shadow-sm">
+      <Card data-operator-surface="card" className="shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">{t("eventsTitle")}</CardTitle>
         </CardHeader>

@@ -25,6 +25,11 @@ import {
 } from "@/tours/wizard-template-prefill-logic";
 import { formatWizardTemplateStepLabel } from "@/tours/wizard-template-field-labels";
 import { resolveWizardStepLabel as resolveWizardSurfaceStepLabel } from "./wizard-label-surface-registry";
+import { ensureGeneratedLabelResolver } from "@/bootstrap/wizard-label-bindings.generated";
+import {
+  ensureGeneratedCompositeSurface,
+  ensureGeneratedReviewSurface,
+} from "@/bootstrap/wizard-surface-bindings.generated";
 
 import { canLoadWorkspaceWizard } from "./wizard-access";
 import { DraftSyncSoftLockBanner, shouldShowCreateTourWizardSoftLockBanner } from "@/draft/draft-sync-soft-lock-banner";
@@ -76,7 +81,7 @@ export type WorkspaceWizardHostProps = {
   readonly wizardRuleEvalContext?: unknown;
   /** When false, defer one-time draft resume inference until remote hydration completes. */
   readonly draftHydrated?: boolean;
-  /** Increment after explicit clear-draft to suppress resume re-inference (Denali create). */
+  /** Increment after explicit clear-draft to suppress resume re-inference (create flow). */
   readonly draftResumeEpoch?: number;
   /** When true, host uses saved step only — no furthest-field inference (e.g. freshStart). */
   readonly suppressDraftStepInference?: boolean;
@@ -211,6 +216,27 @@ export function WorkspaceWizardHost({
   const [internalStepIndex, setInternalStepIndex] = useState(0);
   const activeStepIndex = controlledStepIndex ?? internalStepIndex;
   const setActiveStepIndex = onActiveStepIndexChange ?? setInternalStepIndex;
+
+  useEffect(() => {
+    void Promise.all([
+      ensureGeneratedLabelResolver(pluginId),
+      ensureGeneratedCompositeSurface(pluginId),
+      ensureGeneratedReviewSurface(pluginId),
+    ]);
+  }, [pluginId]);
+
+  useEffect(() => {
+    const host = workspacePlugin?.wizardHost;
+    if (host == null) {
+      return;
+    }
+    void Promise.all([
+      ensureGeneratedLabelResolver(host.fieldLabelSurfaceId),
+      ensureGeneratedCompositeSurface(host.compositeSurfaceId),
+      ensureGeneratedReviewSurface(host.reviewSurfaceId),
+      ensureGeneratedReviewSurface(host.validationSurfaceId),
+    ]);
+  }, [workspacePlugin]);
 
   const wizardHost = workspacePlugin?.wizardHost;
   const reviewStepId = wizardHost?.reviewStepId;

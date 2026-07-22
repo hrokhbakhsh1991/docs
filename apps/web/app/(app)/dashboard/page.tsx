@@ -18,7 +18,7 @@ export default async function OperatorDashboardPage() {
   const session = await readOperatorSessionFromCookies();
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
-  const resolved = resolveBootstrapAppSessionForHost(host);
+  const resolved = await resolveBootstrapAppSessionForHost(host);
   const initialPrefetch = await fetchDashboardServerPrefetch();
 
   return (

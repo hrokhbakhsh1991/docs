@@ -19,7 +19,7 @@ describe("surface cohesion cross-surface — SMK-PSC-03", () => {
     for (const rel of [
       "apps/marketing/src/tenant/resolve-marketing-bootstrap.ts",
       "apps/portal/src/tenant/resolve-portal-bootstrap.ts",
-      "apps/web/src/urban/urban-api-base.ts",
+      "apps/web/src/platform/tour-ops-api-base.ts",
       "apps/web/src/tenant/fetch-public-tenant-branding.server.ts",
     ]) {
       const source = read(rel);

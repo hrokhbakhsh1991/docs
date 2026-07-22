@@ -5,28 +5,83 @@
  */
 
 import type { WizardCompositeSurface, WizardReviewSurface } from "@/wizard/wizard-surface-types";
-import { createDenaliCompositeSurface as composite_denali } from "@app-tour/workspace-denali/host/ui/composite-surface";
-import { createDenaliReviewSurface as review_denali } from "@app-tour/workspace-denali/host/ui/review-surface";
-import { createPlatformCompositeSurface as composite_platform } from "@/wizard/platform/platform-composite-surface";
-import { createPlatformReviewSurface as review_platform } from "@/wizard/platform/platform-review-surface";
+import { createPlatformCompositeSurface } from "@/wizard/platform/platform-composite-surface";
+import { createPlatformReviewSurface } from "@/wizard/platform/platform-review-surface";
 
-const COMPOSITE_SURFACES: Readonly<Record<string, WizardCompositeSurface>> = Object.freeze({
-  "denali": composite_denali(),
-  "platform": composite_platform(),
+/** Shell-local platform surfaces — eager (not product workspace packages). */
+const compositeSurfaceCache = new Map<string, WizardCompositeSurface>([
+  ["platform", createPlatformCompositeSurface()],
+]);
+const reviewSurfaceCache = new Map<string, WizardReviewSurface>([
+  ["platform", createPlatformReviewSurface()],
+]);
+
+const COMPOSITE_SURFACE_LOADERS: Readonly<
+  Record<string, () => Promise<WizardCompositeSurface>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/host/ui/composite-surface");
+    return mod.createDenaliCompositeSurface();
+  },
 });
 
-const REVIEW_SURFACES: Readonly<Record<string, WizardReviewSurface>> = Object.freeze({
-  "denali": review_denali(),
-  "platform": review_platform(),
+const REVIEW_SURFACE_LOADERS: Readonly<
+  Record<string, () => Promise<WizardReviewSurface>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/host/ui/review-surface");
+    return mod.createDenaliReviewSurface();
+  },
 });
 
+/** Warm product composite via dynamic import (no static @app-tour/workspace-* fan-in). */
+export async function ensureGeneratedCompositeSurface(
+  surfaceId: string | undefined
+): Promise<WizardCompositeSurface | null> {
+  if (surfaceId == null || surfaceId.trim().length === 0) {
+    return null;
+  }
+  const cached = compositeSurfaceCache.get(surfaceId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = COMPOSITE_SURFACE_LOADERS[surfaceId];
+  if (load == null) {
+    return null;
+  }
+  const surface = await load();
+  compositeSurfaceCache.set(surfaceId, surface);
+  return surface;
+}
+
+/** Warm product review via dynamic import (no static @app-tour/workspace-* fan-in). */
+export async function ensureGeneratedReviewSurface(
+  surfaceId: string | undefined
+): Promise<WizardReviewSurface | null> {
+  if (surfaceId == null || surfaceId.trim().length === 0) {
+    return null;
+  }
+  const cached = reviewSurfaceCache.get(surfaceId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = REVIEW_SURFACE_LOADERS[surfaceId];
+  if (load == null) {
+    return null;
+  }
+  const surface = await load();
+  reviewSurfaceCache.set(surfaceId, surface);
+  return surface;
+}
+
+/** Sync read of warm cache — call ensure* first for product surfaces. */
 export function resolveGeneratedCompositeSurface(
   surfaceId: string | undefined
 ): WizardCompositeSurface | null {
   if (surfaceId == null || surfaceId.trim().length === 0) {
     return null;
   }
-  return COMPOSITE_SURFACES[surfaceId] ?? null;
+  return compositeSurfaceCache.get(surfaceId) ?? null;
 }
 
 export function resolveGeneratedReviewSurface(
@@ -35,5 +90,5 @@ export function resolveGeneratedReviewSurface(
   if (surfaceId == null || surfaceId.trim().length === 0) {
     return null;
   }
-  return REVIEW_SURFACES[surfaceId] ?? null;
+  return reviewSurfaceCache.get(surfaceId) ?? null;
 }

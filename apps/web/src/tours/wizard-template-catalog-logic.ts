@@ -8,7 +8,7 @@ import { formatWizardTemplateStepLabel } from "./wizard-template-field-labels";
 
 export { formatWizardTemplateStepLabel };
 
-/** INV-WIZ-002 — denali Layer C rows carry this tag via `denali-plugin-adapter`. */
+/** INV-WIZ-002 — Layer C overlay-exclude rows carry this tag via plugin adapter. */
 export const WIZARD_OVERLAY_EXCLUDE_TAG = "wizard_overlay_exclude" as const;
 
 /** INV-WIZ-009 — roadmap rows visible in palette but not activatable. */

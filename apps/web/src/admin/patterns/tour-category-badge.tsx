@@ -1,10 +1,9 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-
 import { Badge } from "@/components/ui/badge";
-import { resolveDenaliTourKindLabel } from "@/i18n/denali-wizard-labels";
 import { isTourKindSlug } from "@/features/tours/tour-list-category-logic";
+import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
+import { resolveWizardTourKindLabel } from "@/wizard/wizard-label-surface-registry";
 
 type TourCategoryBadgeProps = {
   readonly pluginId: string;
@@ -12,15 +11,15 @@ type TourCategoryBadgeProps = {
 };
 
 export function TourCategoryBadge({ pluginId, category }: TourCategoryBadgeProps) {
-  const t = useTranslations("denali");
+  const tWorkspace = useWorkspaceWizardTranslator(pluginId);
 
   if (category == null || !isTourKindSlug(pluginId, category)) {
     return null;
   }
 
   return (
-    <Badge variant="outline" data-denali-category-badge>
-      {resolveDenaliTourKindLabel(t, category)}
+    <Badge variant="outline" data-operator-category-badge>
+      {resolveWizardTourKindLabel(pluginId, tWorkspace, category)}
     </Badge>
   );
 }

@@ -11,7 +11,7 @@ describe("wizard-create-boundary.spec.ts (P13-6)", () => {
     assert.ok(source.split("\n").length < 120);
     assert.doesNotMatch(source, /useWorkspaceDraft/);
     assert.doesNotMatch(source, /getDenaliWorkspacePlugin/);
-    assert.match(source, /DenaliCreateTourWizardClient/);
+    assert.match(source, /OperatorCreateTourWizardClient/);
     assert.match(source, /WorkspaceCreateTourWizardShell/);
   });
 });

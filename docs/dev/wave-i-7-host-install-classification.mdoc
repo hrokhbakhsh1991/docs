@@ -1,0 +1,53 @@
+---
+title: Wave I.7 — Bundle isolation install classification (admin host)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-i-0-architecture-guard-matrix.mdoc
+  - docs/dev/wave-c-guest-runtime-product-deps.mdoc
+  - docs/dev/wave-h-manifest-ignore-plugin.mdoc
+---
+
+# Wave I.7 — Bundle isolation: admin host install classification
+
+## Problem
+
+Thin-shell claims on `apps/web` conflict with the **install graph**:
+
+1. `@app-tour/workspace-starter` still sat in **`dependencies`** while denali/urban/guest-club lived in `devDependencies` — dual classification for the same product class.
+2. `guard:host-workspace-deps` (Wave I.0) only blocked **orphans** (declared ∉ manifests). It did **not** require the admin transpile product set to be declared, nor forbid product packages in `dependencies`.
+
+True `optionalDependencies` / filtered installs remain unsafe in this monorepo (dynamic `import("@app-tour/workspace-…")` must resolve). Bundle isolation’s honest next peel is **classification + completeness**, not pretending packages are absent.
+
+## Decision
+
+1. Move `@app-tour/workspace-starter` from `apps/web` `dependencies` → `devDependencies` (same class as other product workspaces).
+2. Extend [`scripts/guards/guard-host-workspace-deps.mjs`](../../scripts/guards/guard-host-workspace-deps.mjs):
+
+| Check | Host | Rule |
+| ----- | ---- | ---- |
+| Orphan | web + api | declared product dep ∉ any manifest `package` → fail (I.0) |
+| Classification | **web only** | any product `@app-tour/workspace-*` (≠ sdk) in `dependencies` → fail |
+| Completeness | **web only** | every package from `collectAdminProductTranspilePackages(manifests)` must appear in deps/devDeps/optionalDeps |
+
+3. Keep IgnorePlugin + `ALLOW_*_WEB_PLUGIN` (Wave H.j) — client graph gate is orthogonal to install classification.
+
+## Out of scope
+
+- Moving products to `optionalDependencies` / removing IgnorePlugin
+- Rewriting `apps/api` product deps into `devDependencies` (API loads handlers at runtime)
+- Requiring **all** manifest packages on web (finance registry-only stay off the product trunk)
+- Codegen rewrite of web `package.json` product keys → [`wave-i-8-admin-web-product-deps.mdoc`](./wave-i-8-admin-web-product-deps.mdoc) (Wave I.8)
+
+## Status
+
+**DONE** — starter reclassified; host guard ratchets classification + admin-transpile completeness.
+
+## Verify
+
+```bash
+pnpm run guard:host-workspace-deps
+pnpm run wave-i0:guard
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-i-7-host-install-classification.spec.ts
+```

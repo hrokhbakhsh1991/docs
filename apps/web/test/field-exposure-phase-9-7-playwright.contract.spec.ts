@@ -33,6 +33,9 @@ describe("field exposure Playwright closure contract (9.7)", () => {
     );
     assert.match(spec, /SETTINGS_HUB_TEST_IDS\.exposurePage/);
     assert.match(spec, /DENALI_WORKSPACE_SURFACES_TEST_IDS/);
+    assert.match(spec, /@app-tour\/workspace-denali\/host\/exposure/);
+    assert.doesNotMatch(spec, /DenaliWorkspaceSurfacesPanel/);
+    assert.doesNotMatch(spec, /denali-workspace-surface-editor-state/);
     assert.match(spec, /href="\/settings\/integrations"/);
     assert.doesNotMatch(spec, /\/\$\{locale\}\/settings/);
   });

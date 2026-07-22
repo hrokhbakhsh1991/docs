@@ -1,0 +1,61 @@
+---
+title: Wave H.m — Workspace-owner shell typing (drop Urban names in apps/web route)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-urban-settings-path.mdoc
+  - docs/dev/wave-h-urban-owner-panel-package.mdoc
+  - docs/phase-8/appendices/CANLOAD-URBAN-SETTINGS.contract.ts
+---
+
+# Wave H.m — Workspace-owner shell typing
+
+## Problem
+
+Wave H.i.b neutralized the **URL** (`/settings/workspace-owner`) but the shell still read as Urban product code:
+
+- File `urban-settings-access.ts`
+- Page export `UrbanSettingsPage`
+- Import `UrbanOwnerSettingsPanel`
+- i18n namespace `settings.urban`
+- Contract render token `"UrbanOwnerSettingsPanel"`
+
+Hostile audit blocker #6: path neutralization without type neutralization is false decoupling.
+
+## Decision
+
+| Concern | Before | After |
+| ------- | ------ | ----- |
+| Access re-export module | `urban-settings-access.ts` | `workspace-owner-settings-access.ts` |
+| Page default export | `UrbanSettingsPage` | `WorkspaceOwnerSettingsPage` |
+| Panel import (shell) | `UrbanOwnerSettingsPanel` | `WorkspaceOwnerSettingsPanel` (package alias) |
+| i18n | `settings.urban` | `settings.workspaceOwner` (product-blind copy) |
+| Contract `URBAN_SETTINGS_ACCESS_MODULE` | `…/urban-settings-access.ts` | `…/workspace-owner-settings-access.ts` |
+| Contract allowed render token | `"UrbanOwnerSettingsPanel"` | `"WorkspaceOwnerSettingsPanel"` |
+
+**Keep Urban-named canLoad policy API** (`canLoadUrbanSettings`, `CANLOAD_URBAN_SETTINGS_PLUGIN_ID`, HTTP `/urban/settings`) — that is product policy, not shell chrome.
+
+Package: export `WorkspaceOwnerSettingsPanel` as alias of `UrbanOwnerSettingsPanel` from the same module (no behavior change).
+
+Legacy i18n key `settings.urban` may remain for a transition; shell page must not call it.
+
+## Out of scope
+
+- Renaming Phase 8 canLoad symbols / CASL surfaces
+- Changing API `/urban/settings`
+- Time-picker / `data-denali-wizard-*` (H.l.b)
+- Install-graph isolation
+
+## Verify
+
+```bash
+test -f apps/web/app/(app)/settings/workspace-owner/workspace-owner-settings-access.ts
+test ! -f apps/web/app/(app)/settings/workspace-owner/urban-settings-access.ts
+rg 'UrbanSettingsPage|settings\.urban|UrbanOwnerSettingsPanel|urban-settings-access' \
+  apps/web/app/\(app\)/settings/workspace-owner
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/urban-owner-access.spec.ts \
+  test/wave-h-urban-settings-path.spec.ts \
+  test/wave-h-urban-settings-colocation.spec.ts \
+  test/wave-h-workspace-owner-shell-typing.spec.ts
+```

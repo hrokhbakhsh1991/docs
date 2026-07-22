@@ -1,0 +1,47 @@
+---
+title: Wave H.k — Audit critical hygiene (namespace transpile + import boundary)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-a-no-app-cloud-imports.mdoc
+  - docs/dev/wave-g-admin-transpile-packages.mdoc
+  - docs/dev/wave-h-manifest-ignore-plugin.mdoc
+---
+
+# Wave H.k — Audit critical hygiene
+
+## Problem
+
+Hostile audit `TEMP/ARCHITECTURE_AUDIT_FINAL.md` (2026-07-21) re-verified repository state and found two **actionable critical/high** failures that contradict “Wave A / thin-shell hygiene closed” claims:
+
+1. **`guard:no-app-cloud-imports` FAIL** — `ADMIN_PLATFORM_TRANSPILE_PACKAGES` in theme codegen still emits `@app-cloud/*` into `admin-transpile-packages.generated.mjs`. Those names **do not resolve** (`@app-tour/*` is canonical). Next `transpilePackages` entries are dead; namespace migration is not closed.
+
+2. **`guard:import-boundary` FAIL** — four `apps/web/test/**` files import Denali adapters via relative `packages/workspaces/denali/src/...` paths (forbidden). Package exports already exist (`@app-tour/workspace-denali/host/ui/adapters/*`).
+
+## Decision
+
+1. Rewrite `ADMIN_PLATFORM_TRANSPILE_PACKAGES` to `@app-tour/*` (same package set as today).
+2. Regenerate registry; require `guard:no-app-cloud-imports` PASS.
+3. Retarget the four web tests to published package subpaths (no relative `packages/workspaces/` specs).
+4. Rewrite Wave F.a i18n spec so the file itself does not contain the substring `@app-cloud/` (construct legacy pattern at runtime) while still asserting no legacy-scope denali imports in `src/i18n`.
+
+## Out of scope
+
+- Install-graph / optionalDependencies isolation (audit blocker #1 — Wave I)
+- Removing Denali wizard firewall from `apps/web` (audit blocker #3)
+- Neutralizing Urban settings types / `data-denali-*` UI chrome
+
+## Verify
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run guard:workspace-registry-fresh
+pnpm run guard:no-app-cloud-imports
+pnpm run guard:import-boundary
+node --test scripts/test/admin-transpile-packages.spec.mjs
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-f-shell-i18n.spec.ts \
+  test/denali-composite-field-label.spec.ts \
+  test/localize-exposure-catalog-fields.spec.ts \
+  test/wizard-template-field-labels.spec.ts
+```

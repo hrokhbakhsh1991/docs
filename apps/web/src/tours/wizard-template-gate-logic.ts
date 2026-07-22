@@ -12,6 +12,7 @@ import type {
   WizardTemplatePayload,
   WizardTemplateStepRef,
 } from "@/features/settings/wizard-template-types";
+import { DEFAULT_WIZARD_PLUGIN_ID } from "@/wizard/draft-shell-runtime";
 
 import { resolveWizardTemplateSeedCanonicalPath } from "./wizard-template-prefill-logic";
 
@@ -31,6 +32,35 @@ export type WizardTemplateGateState = {
   readonly fieldRulesOverlay: Readonly<Record<string, unknown>>;
   readonly workspaceFormProfile: string;
 };
+
+/** Loading placeholder gate before `/api/settings/tour-wizard-template` resolves. */
+export function createLoadingWizardTemplateGateState(
+  workspaceFormProfile: string
+): WizardTemplateGateState {
+  return {
+    loading: true,
+    published: false,
+    allowedCanonicalPaths: [],
+    templateSteps: [],
+    fieldOverlays: new Map(),
+    seedLabel: "",
+    fieldRulesOverlay: {},
+    workspaceFormProfile,
+  };
+}
+
+/**
+ * Idle unpublished gate after template fetch fails / returns non-OK —
+ * same empty overlays as loading, with `loading: false`.
+ */
+export function createUnpublishedWizardTemplateGateState(
+  workspaceFormProfile: string
+): WizardTemplateGateState {
+  return {
+    ...createLoadingWizardTemplateGateState(workspaceFormProfile),
+    loading: false,
+  };
+}
 
 export function buildWizardTemplateFieldOverlays(
   templateSteps: readonly WizardTemplateStepRef[]
@@ -54,11 +84,11 @@ export function buildWizardTemplateFieldOverlays(
   return overlays;
 }
 
-export function buildDenaliWizardTemplateFieldOverlays(
+export function buildExtendedWizardTemplateFieldOverlays(
   templateSteps: readonly WizardTemplateStepRef[]
 ): ReadonlyMap<string, WizardTemplateFieldRef> {
   return augmentWizardTemplateFieldOverlays(
-    "denali",
+    DEFAULT_WIZARD_PLUGIN_ID,
     templateSteps,
     buildWizardTemplateFieldOverlays(templateSteps)
   );

@@ -131,7 +131,7 @@ export function GuideLanguagesClient({ session }: GuideLanguagesClientProps) {
       <SettingsPageHeader title={t("title")} description={t("subtitle")} />
 
       {canManage ? (
-        <Card data-denali-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.guideLanguagesForm}>
+        <Card data-operator-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.guideLanguagesForm}>
           <CardHeader>
             <CardTitle>{t("addTitle")}</CardTitle>
           </CardHeader>
@@ -171,7 +171,7 @@ export function GuideLanguagesClient({ session }: GuideLanguagesClientProps) {
         <p className="text-sm text-destructive">{resolveCodedErrorMessage(tErrors, error)}</p>
       ) : null}
 
-      <Card data-denali-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.guideLanguagesList}>
+      <Card data-operator-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.guideLanguagesList}>
         <CardHeader>
           <CardTitle>{t("listTitle", { count: items.length })}</CardTitle>
         </CardHeader>

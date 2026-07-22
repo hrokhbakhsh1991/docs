@@ -1,0 +1,55 @@
+---
+title: Wave H.r — Operator review BEM (drop denali-review* chrome classes)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-operator-wizard-calendar-bem.mdoc
+  - docs/dev/wave-h-operator-datetime-bem.mdoc
+---
+
+# Wave H.r — Operator review BEM
+
+## Problem
+
+Wizard **review step** chrome still emits Denali-branded BEM while sibling datetime/calendar chrome is already `operator-*`:
+
+| Family | Examples |
+| ------ | -------- |
+| Review shell | `.denali-review`, `__hero`, `__section`, `__photo-grid`, `__gear-*` |
+| Validation panel | `.denali-review-validation`, `__issue-link`, `__group-title` |
+
+These are operator wizard presentation hooks under `body[data-workspace-plugin="denali"]` — not product identity.
+
+## Decision
+
+Rename **CSS class tokens only** (TSX `className` + `wizard-review.css` + theme specs):
+
+| Before | After |
+| ------ | ----- |
+| `denali-review` (+ `__*` / `--*`) | `operator-review` |
+| `denali-review-validation` (+ `__*` / `--*`) | `operator-review-validation` |
+
+**Do not rename** in this wave:
+
+- Files / modules (`denali-review-step.tsx`, `denali-review-test-ids.ts`, …)
+- Exports (`DenaliReviewStep`, `DENALI_REVIEW_*` test ids)
+- Field registry keys (`denali-review-publish-status`)
+
+## Out of scope
+
+- `.denali-wizard-composite*` / picker BEMs
+- Moving review components out of the Denali package
+- Install-graph isolation
+
+## Verify
+
+```bash
+rg 'className=.*denali-review|\.denali-review' \
+  packages/workspaces/denali/src packages/workspaces/denali/theme \
+  --glob '!**/*.generated.*'
+# expect empty
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-h-operator-review-bem.spec.ts \
+  test/denali-wizard-theme.spec.ts \
+  test/denali-review-step.spec.ts
+```

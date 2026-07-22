@@ -7,14 +7,93 @@ import { describe, it } from "node:test";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 describe("Denali workspace surfaces UI contract", () => {
-  it("renders DenaliWorkspaceSurfacesPanel on exposure settings for denali workspaces", () => {
+  it("renders WorkspaceSurfacesPanel via generated resolve on exposure settings", () => {
     const client = readFileSync(
       join(repoRoot, "apps/web/app/(app)/settings/exposure/exposure-settings-client.tsx"),
       "utf8",
     );
-    assert.match(client, /DenaliWorkspaceSurfacesPanel/);
+    assert.match(client, /ensureSettingsExposureSurfacesUiSurface/);
+    assert.match(client, /WorkspaceSurfacesPanel/);
     assert.match(client, /operatorCapabilitySupportsFieldExposureSurfaces/);
     assert.doesNotMatch(client, /workspaceType === "denali"/);
+    assert.doesNotMatch(client, /DenaliWorkspaceSurfacesPanel/);
+  });
+
+  it("locks H1.d generated exposure-surfaces UI binding + package surface", () => {
+    const types = readFileSync(
+      join(
+        repoRoot,
+        "apps/web/src/features/settings/settings-exposure-surfaces-ui-types.ts",
+      ),
+      "utf8",
+    );
+    const generated = readFileSync(
+      join(
+        repoRoot,
+        "apps/web/src/bootstrap/workspace-settings-exposure-surfaces-ui-bindings.generated.ts",
+      ),
+      "utf8",
+    );
+    const packagePanel = readFileSync(
+      join(
+        repoRoot,
+        "packages/workspaces/denali/src/ui/settings/denali-workspace-surfaces-panel.tsx",
+      ),
+      "utf8",
+    );
+    const packageBinding = readFileSync(
+      join(
+        repoRoot,
+        "packages/workspaces/denali/src/ui/settings/settings-exposure-surfaces-ui-binding.ts",
+      ),
+      "utf8",
+    );
+    const packageTypes = readFileSync(
+      join(
+        repoRoot,
+        "packages/workspaces/denali/src/ui/settings/settings-exposure-surfaces-ui-surface.ts",
+      ),
+      "utf8",
+    );
+    const webIo = readFileSync(
+      join(repoRoot, "apps/web/src/exposure/web-settings-exposure-surfaces-io.ts"),
+      "utf8",
+    );
+    const webChrome = readFileSync(
+      join(repoRoot, "apps/web/src/exposure/web-settings-exposure-surfaces-chrome.tsx"),
+      "utf8",
+    );
+    const webSelection = readFileSync(
+      join(repoRoot, "apps/web/src/exposure/web-settings-exposure-surfaces-selection.ts"),
+      "utf8",
+    );
+    const client = readFileSync(
+      join(repoRoot, "apps/web/app/(app)/settings/exposure/exposure-settings-client.tsx"),
+      "utf8",
+    );
+    const manifest = readFileSync(
+      join(repoRoot, "packages/workspaces/denali/workspace.manifest.json"),
+      "utf8",
+    );
+    assert.match(types, /SettingsExposureSurfacesUiSurface/);
+    assert.match(types, /SettingsExposureSurfacesSelection/);
+    assert.match(generated, /ensureSettingsExposureSurfacesUiSurface/);
+    assert.match(generated, /resolveSettingsExposureSurfacesUiSurface/);
+    assert.match(generated, /denaliSettingsExposureSurfacesUiSurface/);
+    assert.match(generated, /AUTO-GENERATED/);
+    assert.match(generated, /await import\(/);
+    assert.match(packagePanel, /selection\.toggleExposureFieldSelection/);
+    assert.match(packagePanel, /io\.loadSurfaces/);
+    assert.doesNotMatch(packagePanel, /from "@\//);
+    assert.match(packageBinding, /denaliSettingsExposureSurfacesUiSurface/);
+    assert.match(packageTypes, /DenaliSettingsExposureSurfacesSelection/);
+    assert.match(webIo, /webSettingsExposureSurfacesIo/);
+    assert.match(webChrome, /webSettingsExposureSurfacesChrome/);
+    assert.match(webSelection, /webSettingsExposureSurfacesSelection/);
+    assert.match(client, /webSettingsExposureSurfacesIo/);
+    assert.match(client, /webSettingsExposureSurfacesChrome/);
+    assert.match(client, /webSettingsExposureSurfacesSelection/);
+    assert.match(manifest, /settingsExposureSurfacesUi/);
   });
 
   it("proxies workspace surface exposure routes through the web BFF", () => {
@@ -34,15 +113,22 @@ describe("Denali workspace surfaces UI contract", () => {
   });
 
   it("uses generic ExposureFieldChecklist without Telegram-specific assumptions", () => {
-    const panel = readFileSync(
-      join(repoRoot, "apps/web/src/exposure/DenaliWorkspaceSurfacesPanel.tsx"),
+    const packagePanel = readFileSync(
+      join(
+        repoRoot,
+        "packages/workspaces/denali/src/ui/settings/denali-workspace-surfaces-panel.tsx",
+      ),
       "utf8",
     );
-    assert.match(panel, /ExposureFieldChecklist/);
-    assert.match(panel, /surfaceDescriptions/);
-    assert.match(panel, /EXPOSURE_FIELD_CHECKLIST_TEST_IDS\.search|fieldChecklist/);
-    assert.match(panel, /settings\.exposure\.fieldChecklist/);
-    assert.doesNotMatch(panel, /telegram/i);
+    const chrome = readFileSync(
+      join(repoRoot, "apps/web/src/exposure/web-settings-exposure-surfaces-chrome.tsx"),
+      "utf8",
+    );
+    assert.match(chrome, /ExposureFieldChecklist/);
+    assert.match(packagePanel, /FieldChecklist/);
+    assert.match(packagePanel, /resolveDenaliOperatorSurfaceDisplayText/);
+    assert.match(packagePanel, /settings\.exposure\.fieldChecklist/);
+    assert.doesNotMatch(packagePanel, /telegram/i);
   });
 
   it("keeps Telegram message editing operator-readable on exposure settings", () => {

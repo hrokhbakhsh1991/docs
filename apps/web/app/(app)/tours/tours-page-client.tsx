@@ -6,9 +6,13 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { DenaliEmptyState } from "@/admin/patterns/denali-empty-state";
+import { OperatorEmptyState } from "@/admin/patterns/operator-empty-state";
 import { PageHeader } from "@/admin/patterns/page-header";
-import { resolveDenaliTourKindLabel, resolveDenaliTourCategoryGroupLabel } from "@/i18n/denali-wizard-labels";
+import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
+import {
+  resolveWizardTourCategoryGroupLabel,
+  resolveWizardTourKindLabel,
+} from "@/wizard/wizard-label-surface-registry";
 import { OPERATOR_WIZARD_PATH } from "@/admin/require-operator-session";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -27,6 +31,7 @@ import {
   tourCategoryFilterGroupsForPlugin,
   type TourCategoryFilter,
 } from "@/features/tours/tour-list-category-logic";
+import { ensureTourListCategorySurface } from "@/bootstrap/workspace-tour-list-category-bindings.generated";
 import { catalogListSupportsServerFilter, resolveCatalogListFeatures } from "@app-tour/workspace-sdk";
 import {
   queryStatusToUiStatus,
@@ -62,7 +67,7 @@ export function OperatorToursPageClient({
   initialToursList = null,
 }: OperatorToursPageClientProps) {
   const t = useTranslations("tours");
-  const tDenali = useTranslations("denali");
+  const tWorkspace = useWorkspaceWizardTranslator(session.pluginId);
   const tErrors = useTranslations("tours.errors");
   const tCommon = useTranslations("common");
   const catalogListFeatures = useMemo(
@@ -71,9 +76,24 @@ export function OperatorToursPageClient({
   );
   const hasCategoryFilter = catalogListSupportsServerFilter(catalogListFeatures, "category");
   const showExtendedCard = hasCategoryFilter;
+  const [categorySurfaceReady, setCategorySurfaceReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void ensureTourListCategorySurface(session.pluginId).then(() => {
+      if (!cancelled) {
+        setCategorySurfaceReady(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session.pluginId]);
   const categoryFilterGroups = useMemo(
-    () => (hasCategoryFilter ? tourCategoryFilterGroupsForPlugin(session.pluginId) : []),
-    [hasCategoryFilter, session.pluginId]
+    () =>
+      hasCategoryFilter && categorySurfaceReady
+        ? tourCategoryFilterGroupsForPlugin(session.pluginId)
+        : [],
+    [hasCategoryFilter, categorySurfaceReady, session.pluginId]
   );
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -292,7 +312,11 @@ export function OperatorToursPageClient({
               {categoryFilterGroups.map((group) => (
                 <div key={group.id} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                   <span className="min-w-20 text-xs font-medium text-muted-foreground">
-                    {resolveDenaliTourCategoryGroupLabel(tDenali, group.id)}
+                    {resolveWizardTourCategoryGroupLabel(
+                      session.pluginId,
+                      tWorkspace,
+                      group.id
+                    )}
                   </span>
                   <div className="flex flex-wrap gap-1">
                     {group.slugs.map((slug) => (
@@ -303,7 +327,7 @@ export function OperatorToursPageClient({
                         variant={query.category === slug ? "default" : "outline"}
                         onClick={() => handleCategoryChange(slug)}
                       >
-                        {resolveDenaliTourKindLabel(tDenali, slug)}
+                        {resolveWizardTourKindLabel(session.pluginId, tWorkspace, slug)}
                       </Button>
                     ))}
                   </div>
@@ -358,7 +382,7 @@ export function OperatorToursPageClient({
       {showEmptyCatalog ? (
         <Card data-testid={TOURS_LIST_TEST_IDS.emptyCatalog}>
           <CardContent className="py-6">
-            <DenaliEmptyState
+            <OperatorEmptyState
               description={t("emptyCatalog")}
               action={
                 showCreate ? (
@@ -378,7 +402,7 @@ export function OperatorToursPageClient({
       {showEmptyFilter ? (
         <Card data-testid={TOURS_LIST_TEST_IDS.empty}>
           <CardContent className="py-6">
-            <DenaliEmptyState description={t("emptyFilter")} icon="map" />
+            <OperatorEmptyState description={t("emptyFilter")} icon="map" />
           </CardContent>
         </Card>
       ) : null}

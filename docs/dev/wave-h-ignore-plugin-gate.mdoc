@@ -1,0 +1,52 @@
+---
+title: Wave H.g — Make admin IgnorePlugin gates real (scope + subpaths)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-g-admin-transpile-packages.mdoc
+  - docs/dev/wave-h-commerce-badge-neutral.mdoc
+---
+
+# Wave H.g — Make admin IgnorePlugin gates real
+
+## Problem
+
+`apps/web/next.config.ts` claimed to strip Denali/Urban from the **client** bundle unless `ALLOW_*_WEB_PLUGIN=true`. Hostile audit correctly called this “hides, does not remove.” On trunk the gate was worse than advertised:
+
+| Defect | Effect |
+| ------ | ------ |
+| Regex used `@app-cloud/…` | Package scope never matched `@app-tour/…` — **IgnorePlugin was a no-op** |
+| Anchored to package **root only** (`…denali$`) | Real client imports are almost all **subpaths** (`…/host/…`, `…/plugin`, `…/settings/…`) and bypassed even a correct root regex |
+
+So `ALLOW_DENALI_WEB_PLUGIN` / `ALLOW_URBAN_WEB_PLUGIN` did not control the client graph.
+
+## Decision (H.g — harden the gate, do not remove it)
+
+1. Fix package scope to `@app-tour`.
+2. Match root **and** subpaths:
+
+```text
+/^@app-tour\/workspace-denali(\/|$)/
+/^@app-tour\/workspace-urban(\/|$)/
+```
+
+3. Centralize the env→regex pairs in `apps/web/src/bootstrap/admin-client-workspace-ignore.mjs` so specs can assert the contract without parsing Next config prose. (**Superseded by Wave H.j** — see [`wave-h-manifest-ignore-plugin.mdoc`](./wave-h-manifest-ignore-plugin.mdoc); artifact is now `admin-client-workspace-ignore.generated.mjs`.)
+4. Keep applying IgnorePlugin **only on the client** (`!isServer`) — server/codegen loaders still resolve packages for SSR/RSC.
+5. Document operational law: product admin client features require `ALLOW_DENALI_WEB_PLUGIN=true` and/or `ALLOW_URBAN_WEB_PLUGIN=true` (smoke scripts + `infra/env/server.web.env.example` already set Denali; add Urban to env examples).
+
+## Out of scope
+
+- Removing IgnorePlugin entirely / `optionalDependencies` install-graph isolation (still breaks monorepo dynamic `import()` — Wave G)
+- Manifest-driven IgnorePlugin list for every workspace id — **done in** [`wave-h-manifest-ignore-plugin.mdoc`](./wave-h-manifest-ignore-plugin.mdoc) (Wave H.j)
+- Changing portal/marketing transpile strategy
+
+## Rationale
+
+True install isolation is a later wave. Until then the env gate must at least **mean what it says**. Fixing the dead `@app-cloud` typo + subpath coverage is the honest thin-shell step; deleting the gate without an install strategy would falsely claim isolation.
+
+## Verify
+
+```bash
+rg '@app-cloud/workspace-(denali|urban)' apps/web/next.config.ts   # must be empty
+node --test apps/web/test/wave-h-ignore-plugin-gate.spec.ts
+```

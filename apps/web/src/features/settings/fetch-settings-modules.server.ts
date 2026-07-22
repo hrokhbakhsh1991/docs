@@ -2,7 +2,8 @@ import { cookies, headers } from "next/headers";
 
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
+import { ensureSettingsHubFallbackPolicy } from "@/bootstrap/workspace-settings-hub-fallback-bindings.generated";
 import {
   guardSettingsModulesAgainstBackend,
   logSettingsModuleUiDesync,
@@ -36,6 +37,7 @@ export async function fetchSettingsModulesServer(): Promise<SettingsModulesListR
     const payload = (await backendRes.json()) as SettingsModulesListResponse;
     const session = await readOperatorSessionFromCookies();
     const pluginId = session?.pluginId ?? "starter";
+    await ensureSettingsHubFallbackPolicy(pluginId);
     const guarded = guardSettingsModulesAgainstBackend(payload.items, pluginId);
     if (guarded.desyncDetected) {
       logSettingsModuleUiDesync({

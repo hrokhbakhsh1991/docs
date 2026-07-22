@@ -4,30 +4,65 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliOperatorUiComponentsSurface as ui_denali } from "@app-tour/workspace-denali/host/ui/operator-ui-components-surface";
-import type { ComponentProps } from "react";
+import type { ComponentType } from "react";
 
-const OPERATOR_UI_COMPONENTS = Object.freeze({
-  "denali": ui_denali,
+export type OperatorUiComponentsSurface = {
+  readonly TimeInput: ComponentType<any>;
+  readonly DifficultyRangeSlider: ComponentType<any>;
+  readonly LocationPickerMap: ComponentType<any>;
+  readonly LocationPickerMapInner: ComponentType<any>;
+  readonly ensureLeafletDefaultIcon: () => void;
+  readonly WizardDatetimePicker: ComponentType<any>;
+};
+
+const OPERATOR_UI_LOADERS: Readonly<
+  Record<string, () => Promise<OperatorUiComponentsSurface>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/host/ui/operator-ui-components-surface");
+    return mod.denaliOperatorUiComponentsSurface as OperatorUiComponentsSurface;
+  },
 });
 
-export function resolveOperatorUiComponentsSurface(pluginId: string) {
-  return OPERATOR_UI_COMPONENTS[pluginId as keyof typeof OPERATOR_UI_COMPONENTS] ?? null;
+const operatorUiCache = new Map<string, OperatorUiComponentsSurface>();
+
+/** Warm operator UI React surface via dynamic import. */
+export async function ensureOperatorUiComponentsSurface(
+  pluginId: string
+): Promise<OperatorUiComponentsSurface | null> {
+  if (pluginId.trim().length === 0) {
+    return null;
+  }
+  const cached = operatorUiCache.get(pluginId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = OPERATOR_UI_LOADERS[pluginId];
+  if (load == null) {
+    return null;
+  }
+  const surface = await load();
+  operatorUiCache.set(pluginId, surface);
+  return surface;
 }
 
-export const DenaliTimeInput = ui_denali.TimeInput;
-export type DenaliTimeInputProps = ComponentProps<typeof DenaliTimeInput>;
-export type DenaliTimeInputAppearance = DenaliTimeInputProps["appearance"];
+export function resolveOperatorUiComponentsSurface(
+  pluginId: string
+): OperatorUiComponentsSurface | null {
+  return operatorUiCache.get(pluginId) ?? null;
+}
 
-export const DenaliDifficultyRangeSlider = ui_denali.DifficultyRangeSlider;
-export type DenaliDifficultyRangeSliderProps = ComponentProps<typeof DenaliDifficultyRangeSlider>;
+function firstWarmOperatorUiSurface(): OperatorUiComponentsSurface | null {
+  for (const surface of operatorUiCache.values()) {
+    return surface;
+  }
+  return null;
+}
 
-export const DenaliLocationPickerMap = ui_denali.LocationPickerMap;
-export const DenaliLocationPickerMapInner = ui_denali.LocationPickerMapInner;
-export const ensureLeafletDefaultIcon = ui_denali.ensureLeafletDefaultIcon;
-export type {
-  DenaliMapCoordinates,
-  DenaliLocationPickerMapInnerProps,
-} from "@app-tour/workspace-denali/host/ui/components/location-picker-map";
-
-export const DenaliWizardDatetimePicker = ui_denali.WizardDatetimePicker;
+export function ensureLeafletDefaultIcon(): void {
+  const surface = firstWarmOperatorUiSurface();
+  if (surface == null) {
+    throw new Error("ensureLeafletDefaultIcon: operator UI cache cold (call ensureOperatorUiComponentsSurface first)");
+  }
+  surface.ensureLeafletDefaultIcon();
+}

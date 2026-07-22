@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { productWorkspaceManifests } from "../codegen/workspace-registry/domains/core-registry.mjs";
 import { discoverManifests } from "../codegen/workspace-registry/manifest-loader.mjs";
 import { collectWorkspacePluginLoadCacheViolations } from "./lib/workspace-plugin-load-cache-guard.mjs";
 
@@ -17,8 +18,8 @@ const GENERATED = path.join(
 );
 const POLICY = path.join(REPO_ROOT, "apps/web/src/bootstrap/workspace-plugin-load-cache.ts");
 
-const manifests = discoverManifests();
-const sortedIds = manifests.map((m) => m.id).sort();
+const product = productWorkspaceManifests(discoverManifests());
+const sortedIds = product.map((m) => m.id).sort();
 const expectedRevision = sortedIds.join(",");
 const expectedMaxEntries = sortedIds.length;
 

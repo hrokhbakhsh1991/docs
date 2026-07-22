@@ -1,0 +1,36 @@
+---
+title: Wave B.a — Denali sync resolve consolidation
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-a-no-app-cloud-imports.mdoc
+  - docs/dev/workspace-scale-hardening.mdoc
+---
+
+# Wave B.a — Denali sync resolve consolidation
+
+## Problem
+
+`apps/web/src/wizard/denali/resolve-sync-workspace-plugin.ts` statically imported `@app-tour/workspace-denali/plugin` for create/flat-edit hooks, **in addition to** the generated draft-shell binding that already exposes `getDenaliWorkspacePluginFromDraftShell` (static host chrome import). The `loadPlugin` callbacks wrapped that sync call in `async` without using the P4.1 allowlisted loader.
+
+## Decision
+
+| API | Implementation |
+| --- | -------------- |
+| `resolveDenaliSyncWorkspacePlugin()` | Delegate to `getDenaliWorkspacePluginFromDraftShell()` (single static product entry already required by draft-shell codegen) |
+| `loadDenaliWorkspacePlugin()` | `loadWorkspacePluginByIdFromRegistry(DENALI_PLUGIN_ID)` — true dynamic import path |
+
+Create/flat-edit hooks use **`loadDenaliWorkspacePlugin`** for `loadPlugin` / gate async paths; sync `useMemo` / initial gate profile may still call the draft-shell sync getter until Wave B.b (async-only gate init).
+
+## Out of scope (Wave B.b+)
+
+- Removing static draft-shell codegen import of denali host chrome
+- Neutralizing `resolve-bootstrap-workspace-plugin.client.ts` Map
+- Deleting `apps/web/src/wizard/denali/` re-export shims
+
+## Verify
+
+```bash
+rg "from \"@app-tour/workspace-denali/plugin\"" apps/web/src/wizard -g '!**/test/**'
+pnpm --filter @apps/web exec node --import tsx --test test/wizard-create-boundary.spec.ts test/wizard-host-boundary.spec.ts
+```

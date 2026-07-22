@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
+import { ADMIN_TRANSPILE_PACKAGES } from "./src/bootstrap/admin-transpile-packages.generated.mjs";
+import { resolveActiveAdminClientWorkspaceIgnoreRules } from "./src/bootstrap/admin-client-workspace-ignore.generated.mjs";
+
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
@@ -12,40 +15,34 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: process.env.STAGING_WEB_BUILD === "1",
   },
   allowedDevOrigins: ["admin.localhost", "*.admin.localhost"],
+  async redirects() {
+    // Wave H.i.b — legacy product URL → product-blind owner settings path.
+    return [
+      {
+        source: "/settings/urban",
+        destination: "/settings/workspace-owner",
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [{ source: "/favicon.ico", destination: "/icon" }];
   },
-  transpilePackages: [
-    "@app-tour/draft-engine",
-    "@app-tour/wizard-navigation",
-    "@app-tour/design-tokens",
-    "@app-tour/platform-core",
-    "@app-tour/theme-react",
-    "@app-tour/ui-primitives",
-    "@app-tour/workspace-sdk",
-    "@app-tour/workspace-starter",
-    "@app-tour/workspace-denali",
-    "@app-tour/workspace-urban",
-  ],
+  /** Wave G.a — product workspace packages from manifests (see admin-transpile-packages.generated.mjs). */
+  transpilePackages: [...ADMIN_TRANSPILE_PACKAGES],
   webpack: (config, { webpack, isServer }) => {
     if (!isServer) {
-      // Client never bundles Node minio; Denali web uses `@app-tour/workspace-denali/plugin` only.
+      // Client never bundles Node minio SDK.
       config.plugins.push(
         new webpack.IgnorePlugin({
           resourceRegExp: /^minio$/,
         })
       );
-      if (process.env.ALLOW_DENALI_WEB_PLUGIN !== "true") {
+      // Wave H.j — product packages (root + subpaths) stay out of the client graph unless ALLOW_*_WEB_PLUGIN=true (manifest adminWeb.clientBundleEnvGate).
+      for (const rule of resolveActiveAdminClientWorkspaceIgnoreRules(process.env)) {
         config.plugins.push(
           new webpack.IgnorePlugin({
-            resourceRegExp: /^@app-tour\/workspace-denali$/,
-          })
-        );
-      }
-      if (process.env.ALLOW_URBAN_WEB_PLUGIN !== "true") {
-        config.plugins.push(
-          new webpack.IgnorePlugin({
-            resourceRegExp: /^@app-tour\/workspace-urban$/,
+            resourceRegExp: rule.resourceRegExp,
           })
         );
       }

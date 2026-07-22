@@ -4,12 +4,94 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardFlatEditChromeSurface as wizard_flat_edit_chrome_denali } from "@app-tour/workspace-denali/host/ui/chrome/wizard-flat-edit-chrome-surface";
+type WizardFlatEditChromeSurface = {
+  readonly useFlatEditPageCore: (input: never) => unknown;
+  readonly loadSubmitCatalog: (...args: never[]) => Promise<unknown>;
+};
 
-export const useDenaliFlatEditPageCore = wizard_flat_edit_chrome_denali.useFlatEditPageCore;
-export const loadDenaliSubmitCatalogIds = wizard_flat_edit_chrome_denali.loadSubmitCatalog;
-export type {
-  DenaliFlatEditTourDetail,
-  DenaliFlatEditTourLoadResult,
-} from "@app-tour/workspace-denali/host/ui/chrome/wizard-flat-edit-chrome-surface";
+const WIZARD_FLAT_EDIT_CHROME_LOADERS: Readonly<
+  Record<string, () => Promise<WizardFlatEditChromeSurface>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/host/ui/chrome/wizard-flat-edit-chrome-surface");
+    return mod.denaliWizardFlatEditChromeSurface;
+  },
+}) as Readonly<Record<string, () => Promise<WizardFlatEditChromeSurface>>>;
 
+const wizardFlatEditChromeCache = new Map<string, WizardFlatEditChromeSurface>();
+
+/** Warm flat-edit chrome surface (hooks + catalog loader) via dynamic import. */
+export async function ensureWizardFlatEditChromeSurface(
+  pluginId: string
+): Promise<WizardFlatEditChromeSurface | null> {
+  if (pluginId.trim().length === 0) {
+    return null;
+  }
+  const cached = wizardFlatEditChromeCache.get(pluginId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = WIZARD_FLAT_EDIT_CHROME_LOADERS[pluginId];
+  if (load == null) {
+    return null;
+  }
+  const surface = await load();
+  wizardFlatEditChromeCache.set(pluginId, surface);
+  return surface;
+}
+
+function requireWizardFlatEditChromeSurface(pluginId: string): WizardFlatEditChromeSurface {
+  const surface = wizardFlatEditChromeCache.get(pluginId);
+  if (surface == null) {
+    throw new Error(
+      `No wizard flat-edit chrome for plugin: ${pluginId} (call ensureWizardFlatEditChromeSurface first)`
+    );
+  }
+  return surface;
+}
+
+/**
+ * Shell hook wrapper — always invokes product hook after warm (no conditional hook calls).
+ * Resolves surface via `input.plugin.id`.
+ */
+export function useDenaliFlatEditPageCore(input: {
+  readonly plugin: { readonly id: string };
+}): unknown {
+  const surface = requireWizardFlatEditChromeSurface(input.plugin.id);
+  return surface.useFlatEditPageCore(input as never);
+}
+
+export async function loadDenaliSubmitCatalogIds(
+  ...args: never[]
+): Promise<unknown> {
+  for (const surface of wizardFlatEditChromeCache.values()) {
+    return surface.loadSubmitCatalog(...args);
+  }
+  throw new Error("loadDenaliSubmitCatalogIds: flat-edit chrome cache cold (call ensure first)");
+}
+
+/** Shell-local mirrors (Gap Closure B.8 — no product type re-export). */
+export type DenaliFlatEditTourDetail = {
+  readonly projection: {
+    readonly title: string;
+    readonly uiStatus: string;
+    readonly priceAmount: number | null;
+    readonly priceCurrency: string | null;
+    readonly departureAt: string | null;
+    readonly acceptedSeats: number;
+    readonly capacity: number | null;
+  };
+};
+
+export type DenaliFlatEditTourLoadResult =
+  | {
+      readonly ok: true;
+      readonly detail: DenaliFlatEditTourDetail;
+      readonly baseline: unknown;
+      readonly rowVersion: number;
+    }
+  | { readonly ok: false; readonly kind: "not-found" | "error"; readonly code: string };
+
+/** Gap Closure B.20 — product-blind aliases for shell facades. */
+export const useOperatorFlatEditPageCore = useDenaliFlatEditPageCore;
+export const loadOperatorSubmitCatalogIds = loadDenaliSubmitCatalogIds;

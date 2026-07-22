@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 import { PageHeader } from "@/admin/patterns/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
+import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
 import {
   descriptionKeyForSettingsModule,
   groupSettingsModulesByNav,
@@ -18,6 +18,7 @@ import {
   guardSettingsModulesAgainstBackend,
   logSettingsModuleUiDesync,
 } from "@/features/settings/settings-module-consistency-guard";
+import { ensureSettingsHubFallbackPolicy } from "@/bootstrap/workspace-settings-hub-fallback-bindings.generated";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import {
   SETTINGS_HUB_TEST_IDS,
@@ -49,8 +50,9 @@ export function SettingsHubClient({
         }
         return (await response.json()) as SettingsModulesListResponse;
       })
-      .then((payload) => {
+      .then(async (payload) => {
         if (!cancelled) {
+          await ensureSettingsHubFallbackPolicy(pluginId);
           const guarded = guardSettingsModulesAgainstBackend(payload.items, pluginId);
           if (guarded.desyncDetected) {
             logSettingsModuleUiDesync({
@@ -84,13 +86,13 @@ export function SettingsHubClient({
 
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2">
-          <DenaliSkeleton size="settings-card" />
-          <DenaliSkeleton size="settings-card" />
+          <OperatorSkeleton size="settings-card" />
+          <OperatorSkeleton size="settings-card" />
         </div>
       ) : null}
 
       {error !== null ? (
-        <Card data-denali-surface="card" className="shadow-sm">
+        <Card data-operator-surface="card" className="shadow-sm">
           <CardContent className="pt-6 text-sm text-destructive">
             {resolveCodedErrorMessage(tErrors, error)}
           </CardContent>
@@ -109,7 +111,7 @@ export function SettingsHubClient({
                   return (
                     <Card
                       key={module.id}
-                      data-denali-surface="card"
+                      data-operator-surface="card"
                       data-testid={SETTINGS_HUB_TEST_IDS.moduleCard}
                       data-module-id={module.id}
                       className="shadow-sm transition-shadow"

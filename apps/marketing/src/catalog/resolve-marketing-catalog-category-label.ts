@@ -1,20 +1,23 @@
 import {
   resolveMarketingCatalogSurface,
 } from "./resolve-marketing-catalog-surface";
-import type { MarketingCategoryGroup } from "./marketing-catalog-surface-types";
+import type {
+  MarketingCatalogSurface,
+  MarketingCategoryGroup,
+} from "./marketing-catalog-surface-types";
 
 /** Chip / pill label for catalog category filter (group or legacy slug). */
-export function resolveMarketingCatalogCategoryFilterLabel(
+export async function resolveMarketingCatalogCategoryFilterLabel(
   category: string,
   translate: (key: string) => string,
   pluginId?: string
-): string {
+): Promise<string> {
   const normalized = category.trim();
   if (normalized.length === 0) {
     return normalized;
   }
 
-  const surface = pluginId != null ? resolveMarketingCatalogSurface(pluginId) : null;
+  const surface = pluginId != null ? await resolveMarketingCatalogSurface(pluginId) : null;
   if (surface != null && surface.isCategoryGroup(normalized)) {
     const groupKey = `list.filters.categoryGroups.${normalized as MarketingCategoryGroup}`;
     const groupLabel = translate(groupKey);
@@ -34,7 +37,7 @@ export function resolveMarketingCatalogCategoryFilterLabel(
 
 function resolveCategoryGroupKey(
   slug: string,
-  surface: ReturnType<typeof resolveMarketingCatalogSurface>
+  surface: MarketingCatalogSurface | null
 ): MarketingCategoryGroup | null {
   if (surface != null) {
     return surface.resolveCategoryFamily(slug);
@@ -49,11 +52,11 @@ function resolveCategoryGroupKey(
 }
 
 /** Localized category line on list/detail cards (wizard slug → fa/en label). */
-export function resolveMarketingCatalogCardCategoryLabel(
+export async function resolveMarketingCatalogCardCategoryLabel(
   categorySlug: string | null | undefined,
   translate: (key: string) => string,
   pluginId?: string
-): string | null {
+): Promise<string | null> {
   const normalized = categorySlug?.trim() ?? "";
   if (normalized.length === 0) {
     return null;
@@ -65,7 +68,7 @@ export function resolveMarketingCatalogCardCategoryLabel(
     return slugLabel;
   }
 
-  const surface = pluginId != null ? resolveMarketingCatalogSurface(pluginId) : null;
+  const surface = pluginId != null ? await resolveMarketingCatalogSurface(pluginId) : null;
   const group = resolveCategoryGroupKey(normalized, surface);
   if (group != null) {
     const groupKey = `list.filters.categoryGroups.${group}`;

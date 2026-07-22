@@ -791,5 +791,15 @@
     "yes": "yes",
     "no": "no",
     "viewCatalog": "View public catalog"
+  },
+  "workspaceOwner": {
+    "title": "Workspace owner settings",
+    "loadError": "Unable to load workspace owner settings ({status}).",
+    "catalogEnabled": "Catalog enabled",
+    "catalogSlug": "Catalog slug",
+    "registrationPolicy": "Registration policy",
+    "yes": "yes",
+    "no": "no",
+    "viewCatalog": "View public catalog"
   }
 }

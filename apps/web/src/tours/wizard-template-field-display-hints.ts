@@ -3,11 +3,13 @@ import type {
   WizardTemplateEditorSurface,
   WizardTemplateFieldDisplayHints,
 } from "@/wizard/wizard-template-editor-types";
+import { DEFAULT_WIZARD_PLUGIN_ID } from "@/wizard/draft-shell-runtime";
 
 type WizardTemplateTranslator = (key: string, values?: Record<string, string | number>) => string;
 
 function compositeIdToSectionTitleKey(compositeId: string): string {
-  const slug = compositeId.replace(/^denali\./, "");
+  const prefix = `${DEFAULT_WIZARD_PLUGIN_ID}.`;
+  const slug = compositeId.startsWith(prefix) ? compositeId.slice(prefix.length) : compositeId;
   const camel = slug.replace(/-([a-z])/g, (_, char: string) => char.toUpperCase());
   return `composites.${camel}.sectionTitle`;
 }
@@ -87,6 +89,3 @@ export function resolveWizardTemplateFieldDisplayHintsFromMeta(
     createTourHint,
   };
 }
-
-/** @deprecated Use resolveWizardTemplateFieldDisplayHintsFromMeta */
-export const resolveDenaliWizardTemplateFieldDisplayHints = resolveWizardTemplateFieldDisplayHintsFromMeta;

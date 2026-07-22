@@ -28,7 +28,7 @@ import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-b
 import { isMarketingSurfaceEnabled } from "@/tenant/marketing-site-surfaces";
 import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
 import { resolveMarketingSiteSurfacesForHost } from "@/tenant/resolve-marketing-site-surfaces";
-import { importGuestMarketingThemeForPlugin } from "@/bootstrap/workspace-guest-theme-stylesheets.generated";
+import { importGuestMarketingThemeForPlugin } from "@app-tour/guest-workspace-runtime/themes/marketing";
 
 import "./globals.css";
 

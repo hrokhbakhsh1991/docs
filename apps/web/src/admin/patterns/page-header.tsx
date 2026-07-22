@@ -8,14 +8,14 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, description, actions }: PageHeaderProps) {
   return (
-    <header data-denali-page-header>
-      <div data-denali-page-header-main>
-        <h1 data-denali-page-header-title>{title}</h1>
+    <header data-operator-page-header>
+      <div data-operator-page-header-main>
+        <h1 data-operator-page-header-title>{title}</h1>
         {description ? (
-          <p data-denali-page-header-description>{description}</p>
+          <p data-operator-page-header-description>{description}</p>
         ) : null}
       </div>
-      {actions ? <div data-denali-page-header-actions>{actions}</div> : null}
+      {actions ? <div data-operator-page-header-actions>{actions}</div> : null}
     </header>
   );
 }

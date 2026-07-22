@@ -115,20 +115,20 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
 
   it("WEB-DENALI-FLAT-EDIT-01 flat edit page applies wizard skin scope root", () => {
     const flatEdit = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "../src/wizard/denali-flat-edit-chrome.tsx"),
+      join(dirname(fileURLToPath(import.meta.url)), "../src/wizard/flat-edit-chrome.tsx"),
       "utf8"
     );
     const pageClient = readFileSync(
       join(
         dirname(fileURLToPath(import.meta.url)),
-        "../app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx"
+        "../app/(app)/tours/[id]/edit/flat-edit-page-client.tsx"
       ),
       "utf8"
     );
     assert.match(flatEdit, /data-new-tour-wizard/);
-    assert.match(flatEdit, /data-denali-flat-edit-page/);
+    assert.match(flatEdit, /data-operator-flat-edit-page/);
     assert.match(flatEdit, /new-tour-wizard-page__header/);
-    assert.match(pageClient, /DenaliFlatEditPageShell/);
-    assert.match(pageClient, /DenaliFlatEditPageHeader/);
+    assert.match(pageClient, /OperatorFlatEditPageShell/);
+    assert.match(pageClient, /OperatorFlatEditPageHeader/);
   });
 });

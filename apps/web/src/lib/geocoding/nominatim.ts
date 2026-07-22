@@ -1,4 +1,4 @@
-/** Nominatim (OpenStreetMap) geocoding result normalized for Denali location zones. */
+/** Nominatim (OpenStreetMap) geocoding result normalized for operator location zones. */
 export type GeocodingSearchResult = {
   displayName: string;
   addressText: string;
@@ -64,7 +64,7 @@ export async function fetchNominatimSearch(
   const res = await fetch(`${NOMINATIM_SEARCH_URL}?${params.toString()}`, {
     headers: {
       Accept: "application/json",
-      "User-Agent": "TourOps-Denali-Wizard/1.0 (location-picker)",
+      "User-Agent": "TourOps-Operator-Wizard/1.0 (location-picker)",
     },
     cache: "no-store",
   });
@@ -89,7 +89,7 @@ export async function fetchNominatimReverse(lat: number, lon: number): Promise<s
     const res = await fetch(`${NOMINATIM_REVERSE_URL}?${params.toString()}`, {
       headers: {
         Accept: "application/json",
-        "User-Agent": "TourOps-Denali-Wizard/1.0 (location-picker-reverse)",
+        "User-Agent": "TourOps-Operator-Wizard/1.0 (location-picker-reverse)",
       },
       cache: "no-store",
     });

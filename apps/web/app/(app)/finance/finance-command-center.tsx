@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
@@ -14,11 +14,13 @@ import {
   parseFinanceTab,
   resolveFinanceOpsCapabilityForHub,
   type FinanceCommandCenterTab,
+  type FinanceOpsCapability,
 } from "@/finance/finance-nav-access";
 import { FinanceOverviewPanel } from "@/finance/finance-overview-panel";
 import { FinancePaymentsPanel } from "@/finance/finance-payments-panel";
 import { FinancePrepaymentsPanel } from "@/finance/finance-prepayments-panel";
 import { FinanceReceiptsPanel } from "@/finance/finance-receipts-panel";
+import { FinanceTourFilter } from "@/finance/finance-tour-filter";
 
 type FinanceCommandCenterProps = {
   readonly session: OperatorSessionContext;
@@ -32,13 +34,23 @@ export function FinanceCommandCenter({ session, theme = null }: FinanceCommandCe
   const pathname = usePathname();
   const router = useRouter();
 
-  const capability = useMemo(
-    () => resolveFinanceOpsCapabilityForHub(theme, session.pluginId),
-    [theme, session.pluginId]
-  );
+  const [capability, setCapability] = useState<FinanceOpsCapability | null | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCapability(undefined);
+    void resolveFinanceOpsCapabilityForHub(theme, session.pluginId).then((next) => {
+      if (!cancelled) {
+        setCapability(next);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [theme, session.pluginId]);
 
   const visibleTabs = useMemo(
-    () => (capability === null ? [] : listVisibleFinanceTabs(capability)),
+    () => (capability === null || capability === undefined ? [] : listVisibleFinanceTabs(capability)),
     [capability]
   );
   const activeTab = useMemo(
@@ -60,7 +72,7 @@ export function FinanceCommandCenter({ session, theme = null }: FinanceCommandCe
     [pathname, router, searchParams]
   );
 
-  if (capability === null) {
+  if (capability === undefined || capability === null) {
     return null;
   }
 
@@ -109,8 +121,32 @@ export function FinanceCommandCenter({ session, theme = null }: FinanceCommandCe
         </div>
       ) : null}
 
+      {searchParams.get("tourId") ? (
+        <div
+          className="flex flex-wrap items-center gap-2 rounded-md border border-dashed px-3 py-2 text-sm"
+          data-testid="finance-tour-filter-banner"
+        >
+          <span className="text-muted-foreground">{t("filteredByTour")}</span>
+          <code className="font-mono text-xs">{searchParams.get("tourId")}</code>
+          <button
+            type="button"
+            className="text-primary underline-offset-2 hover:underline"
+            onClick={() => {
+              const next = new URLSearchParams(searchParams.toString());
+              next.delete("tourId");
+              const qs = next.toString();
+              router.replace(qs.length > 0 ? `${pathname}?${qs}` : pathname, { scroll: false });
+            }}
+          >
+            {t("clearTourFilter")}
+          </button>
+        </div>
+      ) : null}
+
+      <FinanceTourFilter className="rounded-md border bg-muted/20 px-3 py-3" />
+
       <nav
-        data-denali-finance-tabs
+        data-operator-finance-tabs
         className="flex gap-1 overflow-x-auto rounded-lg border bg-muted/40 p-1"
         aria-label={t("tabsAria")}
       >

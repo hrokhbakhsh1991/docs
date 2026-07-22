@@ -15,7 +15,7 @@ const globalsPath = join(repoRoot, "apps/marketing/app/globals.css");
 const layoutPath = join(repoRoot, "apps/marketing/app/layout.tsx");
 const bootstrapPath = join(
   repoRoot,
-  "apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+  "packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.marketing.generated.ts"
 );
 const denaliMarketingSkinPath = join(
   repoRoot,
@@ -55,9 +55,9 @@ describe("guest-theme-stack.spec.ts — marketing", () => {
     assert.match(layout, /data-app-surface="marketing"/);
     assert.match(layout, /data-workspace-plugin=\{bootstrap\.pluginId\}/);
     assert.match(layout, /importGuestMarketingThemeForPlugin/);
-    assert.doesNotMatch(
+    assert.match(
       layout,
-      /import ["']@\/bootstrap\/workspace-guest-theme-stylesheets\.generated["'];\s*$/
+      /from ["']@app-tour\/guest-workspace-runtime\/themes\/marketing["']/
     );
   });
 

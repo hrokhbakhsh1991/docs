@@ -791,5 +791,15 @@
     "yes": "بله",
     "no": "خیر",
     "viewCatalog": "مشاهده کاتالوگ عمومی"
+  },
+  "workspaceOwner": {
+    "title": "تنظیمات مالک workspace",
+    "loadError": "بارگذاری تنظیمات مالک workspace ممکن نشد ({status}).",
+    "catalogEnabled": "کاتالوگ فعال",
+    "catalogSlug": "اسلاگ کاتالوگ",
+    "registrationPolicy": "سیاست ثبت‌نام",
+    "yes": "بله",
+    "no": "خیر",
+    "viewCatalog": "مشاهده کاتالوگ عمومی"
   }
 }

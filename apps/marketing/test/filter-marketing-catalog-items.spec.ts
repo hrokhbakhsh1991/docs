@@ -37,71 +37,71 @@ describe("filter-marketing-catalog-items.spec.ts — HOME-UNIT-07", () => {
     },
   ];
 
-  it("filters by exact category match", () => {
+  it("filters by exact category match", async () => {
     assert.deepEqual(
-      filterMarketingCatalogItems(items, { category: "Peak" }).map((item) => item.id),
+      (await filterMarketingCatalogItems(items, { category: "Peak" })).map((item) => item.id),
       ["1", "3"]
     );
   });
 
-  it("filters by denali category family", () => {
+  it("filters by denali category family", async () => {
     assert.deepEqual(
-      filterMarketingCatalogItems(
+      (await filterMarketingCatalogItems(
         [
           { id: "1", title: "Alpine", category: "mountain_multi" },
           { id: "2", title: "Woods", category: "nature_day" },
         ],
         { category: "mountain" },
         "denali"
-      ).map((item) => item.id),
+      )).map((item) => item.id),
       ["1"]
     );
   });
 
-  it("filters by case-insensitive q against title and category", () => {
+  it("filters by case-insensitive q against title and category", async () => {
     assert.deepEqual(
-      filterMarketingCatalogItems(items, { q: "damavand" }).map((item) => item.id),
+      (await filterMarketingCatalogItems(items, { q: "damavand" })).map((item) => item.id),
       ["3"]
     );
     assert.deepEqual(
-      filterMarketingCatalogItems(items, { q: "peak" }).map((item) => item.id),
+      (await filterMarketingCatalogItems(items, { q: "peak" })).map((item) => item.id),
       ["1", "3"]
     );
   });
 
-  it("filters by description text in q", () => {
+  it("filters by description text in q", async () => {
     assert.deepEqual(
-      filterMarketingCatalogItems(items, { q: "woodland" }).map((item) => item.id),
+      (await filterMarketingCatalogItems(items, { q: "woodland" })).map((item) => item.id),
       ["2"]
     );
   });
 
-  it("filters by difficulty and fitness", () => {
+  it("filters by difficulty and fitness", async () => {
     assert.deepEqual(
-      filterMarketingCatalogItems(items, { difficulty: 4 }).map((item) => item.id),
+      (await filterMarketingCatalogItems(items, { difficulty: 4 })).map((item) => item.id),
       ["1"]
     );
     assert.deepEqual(
-      filterMarketingCatalogItems(items, { fitness: "low" }).map((item) => item.id),
+      (await filterMarketingCatalogItems(items, { fitness: "low" })).map((item) => item.id),
       ["2"]
     );
   });
 
-  it("filters availability=open", () => {
+  it("filters availability=open", async () => {
     assert.deepEqual(
-      filterMarketingCatalogItems(items, { availability: "open" }).map((item) => item.id),
+      (await filterMarketingCatalogItems(items, { availability: "open" })).map((item) => item.id),
       ["1", "3"]
     );
   });
 
-  it("applies category then q", () => {
+  it("applies category then q", async () => {
     assert.deepEqual(
-      filterMarketingCatalogItems(items, { category: "Peak", q: "north" }).map((item) => item.id),
+      (await filterMarketingCatalogItems(items, { category: "Peak", q: "north" })).map((item) => item.id),
       ["1"]
     );
   });
 
-  it("returns all items when filters empty", () => {
-    assert.equal(filterMarketingCatalogItems(items, {}).length, 3);
+  it("returns all items when filters empty", async () => {
+    assert.equal((await filterMarketingCatalogItems(items, {})).length, 3);
   });
 });

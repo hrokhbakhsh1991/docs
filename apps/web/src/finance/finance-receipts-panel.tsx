@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
 import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
-import { withFinanceRegistrationQuery } from "@/finance/finance-registration-context";
+import { withFinanceListScopeQuery } from "@/finance/finance-registration-context";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import { formatFinanceTimestamp } from "@/finance/finance-reports-logic";
 import type { AppLocale } from "@/i18n/routing";
@@ -269,6 +269,7 @@ export function FinanceReceiptsPanel({
   const canManage = isAdminOrOwnerRole(session.role);
   const searchParams = useSearchParams();
   const registrationFilter = searchParams.get("registrationId");
+  const tourFilter = searchParams.get("tourId");
   const [items, setItems] = useState<readonly FinancePendingReceipt[]>(initialReceipts?.items ?? []);
   const [loading, setLoading] = useState(initialReceipts === null);
   const [error, setError] = useState<string | null>(null);
@@ -283,10 +284,10 @@ export function FinanceReceiptsPanel({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    const path = withFinanceRegistrationQuery(
-      "/api/finance/receipts/pending?limit=50",
-      registrationFilter
-    );
+    const path = withFinanceListScopeQuery("/api/finance/receipts/pending?limit=50", {
+      registrationId: registrationFilter,
+      tourId: tourFilter,
+    });
     void fetch(path, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) {
@@ -312,7 +313,7 @@ export function FinanceReceiptsPanel({
     return () => {
       cancelled = true;
     };
-  }, [fetchNonce, registrationFilter]);
+  }, [fetchNonce, registrationFilter, tourFilter]);
 
   const refresh = () => setFetchNonce((value) => value + 1);
 
@@ -326,7 +327,7 @@ export function FinanceReceiptsPanel({
 
   return (
     <div className="space-y-6" data-testid={FINANCE_RECEIPTS_TEST_IDS.panel}>
-      <Card data-denali-surface="card" className="shadow-sm">
+      <Card data-operator-surface="card" className="shadow-sm">
         <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
           <div className="space-y-1">
             <CardTitle className="text-base">{t("listTitle")}</CardTitle>

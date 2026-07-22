@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 type ProxyFinanceOptions = {
   readonly path: string;
@@ -25,19 +25,20 @@ export async function proxyFinanceApiRequest(
 
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${sessionToken}`,
+      host: incoming.host.split(":")[0] ?? "localhost",
+    };
+    if (options.body !== undefined) {
+      headers["Content-Type"] = "application/json";
+    }
+    const idempotencyKey = req.headers.get("idempotency-key");
+    if (idempotencyKey !== null && idempotencyKey.trim().length > 0) {
+      headers["Idempotency-Key"] = idempotencyKey.trim();
+    }
     const backendRes = await fetch(`${apiBase}${options.path}`, {
       method: options.method,
-      headers: {
-        Authorization: `Bearer ${sessionToken}`,
-        host: incoming.host.split(":")[0] ?? "localhost",
-        ...(options.body !== undefined ? { "Content-Type": "application/json" } : {}),
-        ...(() => {
-          const idempotencyKey = req.headers.get("idempotency-key");
-          return idempotencyKey !== null && idempotencyKey.trim().length > 0
-            ? { "Idempotency-Key": idempotencyKey.trim() }
-            : {};
-        })(),
-      },
+      headers,
       ...(options.body !== undefined ? { body: options.body } : {}),
       cache: "no-store",
     });

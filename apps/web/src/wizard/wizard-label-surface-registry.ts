@@ -1,6 +1,14 @@
 import { formatCanonicalPathToLabel } from "@/i18n/format-canonical-path-label";
 import { resolveGeneratedLabelResolver } from "@/bootstrap/wizard-label-bindings.generated";
 
+/** Well-known catalog enum paths for tour/admin UI (Wave F.c). */
+export const WIZARD_CATALOG_ENUM_PATHS = {
+  tourKind: "tour.kind",
+  transportMode: "transport.mode",
+  tourDuration: "tour.duration",
+  tourCategoryGroup: "tour.categoryGroup",
+} as const;
+
 export function resolveWizardFieldLabel(
   surfaceId: string | undefined,
   translate: (key: string) => string,
@@ -36,4 +44,56 @@ export function resolveWizardEnumOptionLabel(
     return resolver.resolveEnumOptionLabel(translate, canonicalPath, value);
   }
   return value;
+}
+
+export function resolveWizardTourKindLabel(
+  surfaceId: string | undefined,
+  translate: (key: string) => string,
+  tourKind: string
+): string {
+  return resolveWizardEnumOptionLabel(
+    surfaceId,
+    translate,
+    WIZARD_CATALOG_ENUM_PATHS.tourKind,
+    tourKind
+  );
+}
+
+export function resolveWizardTransportModeLabel(
+  surfaceId: string | undefined,
+  translate: (key: string) => string,
+  mode: string
+): string {
+  return resolveWizardEnumOptionLabel(
+    surfaceId,
+    translate,
+    WIZARD_CATALOG_ENUM_PATHS.transportMode,
+    mode
+  );
+}
+
+export function resolveWizardTourDurationLabel(
+  surfaceId: string | undefined,
+  translate: (key: string) => string,
+  duration: string
+): string {
+  return resolveWizardEnumOptionLabel(
+    surfaceId,
+    translate,
+    WIZARD_CATALOG_ENUM_PATHS.tourDuration,
+    duration
+  );
+}
+
+export function resolveWizardTourCategoryGroupLabel(
+  surfaceId: string | undefined,
+  translate: (key: string) => string,
+  categoryGroup: string
+): string {
+  return resolveWizardEnumOptionLabel(
+    surfaceId,
+    translate,
+    WIZARD_CATALOG_ENUM_PATHS.tourCategoryGroup,
+    categoryGroup
+  );
 }

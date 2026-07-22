@@ -3,9 +3,10 @@
  * Authority: docs/phase-11/tour-clone-hydration.md
  */
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { before, describe, it } from "node:test";
 
 import { OPERATOR_WIZARD_PATH } from "../src/admin/require-operator-session";
+import { ensureDenaliHostAdapters } from "../src/bootstrap/workspace-host-adapters.generated";
 import type { OperatorTourDetailResponse } from "../src/features/tours/operator-tour-detail-types";
 import {
   buildCloneTourDetailUrl,
@@ -70,6 +71,10 @@ function sampleDetail(title: string): OperatorTourDetailResponse {
 }
 
 describe("tour-clone-hydrate.spec.ts — Phase 11.6 Web", () => {
+  before(async () => {
+    await ensureDenaliHostAdapters();
+  });
+
   it("WEB-9.3-04 duplicate URL + hydrate applies Copy suffix (CP-9.3-L09)", async () => {
     const tourId = "00000000-0000-4000-8000-000000000099";
     const cloneUrl = `${OPERATOR_WIZARD_PATH}?clone=${encodeURIComponent(tourId)}`;

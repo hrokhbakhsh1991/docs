@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import type { CreateTourPayload, TourRecordDto } from "@app-tour/workspace-sdk";
 
 import { readSessionTokenFromCookies } from "@/auth/read-session-token.server";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 import { parseTourApiErrorBody } from "./parse-tour-api-error-body";
 

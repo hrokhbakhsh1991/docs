@@ -1,7 +1,7 @@
 // Phase G3 — generateAllOutputs, OUTPUT_PATHS, CLI (--check, --domain)
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-const { join } = path;
+const { dirname, join } = path;
 
 import {
   assertMemberPortalL4ReferenceWorkspaces,
@@ -59,7 +59,12 @@ import {
   generateWizardTemplateEnforcementBindings,
   generateWizardTemplatePathAliasBindings,
 } from "./domains/settings-api.mjs";
-import { generateWorkspaceOperatorCapabilities } from "./domains/operator.mjs";
+import {
+  generateWorkspaceOperatorCapabilities,
+  generateOperatorShellNavBindings,
+  generateWorkspaceCommerceFreezeBindings,
+  generateWorkspaceOwnerSettingsPanelLoaders,
+} from "./domains/operator.mjs";
 import {
   generateWorkspaceFinanceBindings,
   generateWorkspaceFinanceCapabilities,
@@ -68,6 +73,7 @@ import {
   generateWorkspaceFinanceDependencyBindings,
   generateWorkspaceFinanceEventReactionBindings,
   generateWorkspaceFinanceChartOfAccountsBindings,
+  generateWorkspaceFinanceObligationBindings,
 } from "./domains/finance.mjs";
 import { generateWorkspaceBookingBindings, generateWorkspaceBookingCapabilities, generateWorkspaceBookingDependencyBindings, generateWorkspaceBookingOpsBindings, generateWorkspaceBookingEventReactionBindings } from "./domains/booking.mjs";
 import { generateExposureHostBindings } from "./domains/exposure.mjs";
@@ -87,11 +93,26 @@ import {
   generateAdminThemeStylesheetLoader,
   generateGuestThemeStylesheetLoader,
   generateGuestThemeStylesheets,
+  generateGuestTranspilePackages,
+  generateAdminTranspilePackages,
+  generateAdminClientWorkspaceIgnore,
   generateWorkspaceThemeStylesheets,
+  generateWorkspaceThemeCssAmbientModules,
+  syncGuestWorkspaceRuntimePackageJson,
+  verifyGuestWorkspaceRuntimePackageJson,
+  syncAdminWebPackageJson,
+  verifyAdminWebPackageJson,
 } from "./domains/theme.mjs";
+import {
+  generateManifestBoundaryAllowlist,
+  MANIFEST_BOUNDARY_ALLOWLIST_PATH,
+} from "./domains/boundary-allowlist.mjs";
 import {
   assertCatalogRegistrationFlowManifest,
   assertCatalogRegistrationTransportInitializerManifest,
+  generatePortalRegisterOutputs,
+  portalRegisterOutputKey,
+  selectPortalRegisterManifests,
   generateWorkspaceIntakePluginBootstrap,
   generateWorkspaceRegistrationFlowPlugins,
   generateWorkspaceRegistrationTransportInitializers,
@@ -102,6 +123,7 @@ import {
   generatePhotoUploadErrorsBindings,
   generateSettingsDestinationBindings,
   generateSettingsEquipmentUiBindings,
+  generateSettingsExposureSurfacesUiBindings,
   generateSettingsHubFallbackBindings,
   generateTourActionSubmitBindings,
   generateTourListCategoryBindings,
@@ -109,6 +131,7 @@ import {
   generateWizardCompositeRegistryBindings,
   generateWizardCreateBindings,
   generateWizardCreateChromeBindings,
+  generateDenaliHostAdapterBindings,
   generateWizardCreateViewBindings,
   generateWizardDraftShellBindings,
   generateWizardDraftUnificationBindings,
@@ -130,7 +153,7 @@ import {
 
 /** @type {Record<string, readonly string[]>} */
 export const DOMAIN_OUTPUT_KEYS = {
-  "core-registry": ["sdk", "api", "web"],
+  "core-registry": ["sdk", "api", "web", "manifestBoundaryAllowlist"],
   "tour-api": ["tourWrite", "canonicalTour", "outbox", "catalogRefResolvers", "apiWizardRules"],
   "wizard-admin": [
     "wizardMedia",
@@ -146,6 +169,7 @@ export const DOMAIN_OUTPUT_KEYS = {
     "marketingCatalogBindings",
     "settingsDestinationBindings",
     "settingsEquipmentUiBindings",
+    "settingsExposureSurfacesUiBindings",
     "tourActionSubmitBindings",
     "photoUploadErrorsBindings",
     "tourListCategoryBindings",
@@ -156,6 +180,7 @@ export const DOMAIN_OUTPUT_KEYS = {
     "wizardTemplatePresetBindings",
     "wizardDraftShellBindings",
     "wizardCreateChromeBindings",
+    "denaliHostAdapters",
     "wizardFlatEditChromeBindings",
     "wizardFlatEditFormBindings",
     "wizardFlatEditPageBindings",
@@ -163,7 +188,16 @@ export const DOMAIN_OUTPUT_KEYS = {
     "wizardCompositeRegistryBindings",
     "settingsHubFallbackBindings",
   ],
-  theme: ["themeStylesheets", "guestThemeStylesheetsPortal", "guestThemeStylesheetsMarketing"],
+  theme: [
+    "themeStylesheets",
+    "themeCssAmbientModules",
+    "guestThemeStylesheetsPortal",
+    "guestThemeStylesheetsMarketing",
+    "portalGuestTranspilePackages",
+    "marketingGuestTranspilePackages",
+    "adminTranspilePackages",
+    "adminClientWorkspaceIgnore",
+  ],
   "guest-catalog": [
     "catalogPaths",
     "catalogListFeatures",
@@ -175,15 +209,13 @@ export const DOMAIN_OUTPUT_KEYS = {
     "guestCrossSurfaceNav",
   ],
   registration: [
-    "workspaceIntakePlugins",
-    "registrationFlowPlugins",
-    "registrationTransportInitializers",
+    // P5.1 — portal/host register keys resolved dynamically via resolveRegistrationOutputKeys()
   ],
   member: ["memberProfileCapabilities", "memberPortalContracts", "memberPortalSurfaces"],
   http: ["httpRoutes", "httpHandlerLoaders", "httpErrorMap"],
   "settings-api": ["settingsEnrichers", "devBootstrap", "wizardTemplateEnforcement", "wizardTemplatePathAliases"],
   dev: ["devPluginIds"],
-  operator: ["operatorCapabilities"],
+  operator: ["operatorCapabilities", "operatorShellNav", "ownerSettingsPanelLoaders", "workspaceCommerceFreeze"],
   finance: [
     "workspaceFinance",
     "workspaceFinanceCapabilities",
@@ -192,6 +224,7 @@ export const DOMAIN_OUTPUT_KEYS = {
     "workspaceFinanceDependencies",
     "workspaceFinanceEventReactions",
     "workspaceFinanceChartOfAccounts",
+    "workspaceFinanceObligation",
   ],
   booking: ["workspaceBooking", "workspaceBookingCapabilities", "workspaceBookingDependencies", "workspaceBookingOps", "workspaceBookingEventReactions"],
   exposure: ["exposureHostBindings"],
@@ -202,6 +235,7 @@ export const OUTPUT_KEYS = Object.freeze([
   "sdk",
   "api",
   "web",
+  "manifestBoundaryAllowlist",
   "tourWrite",
   "canonicalTour",
   "wizardMedia",
@@ -214,15 +248,20 @@ export const OUTPUT_KEYS = Object.freeze([
   "wizardCloneRemint",
   "wizardCreate",
   "themeStylesheets",
+  "themeCssAmbientModules",
   "guestThemeStylesheetsPortal",
   "guestThemeStylesheetsMarketing",
-  "workspaceIntakePlugins",
-  "registrationFlowPlugins",
-  "registrationTransportInitializers",
+  "portalGuestTranspilePackages",
+  "marketingGuestTranspilePackages",
+  "adminTranspilePackages",
+  "adminClientWorkspaceIgnore",
   "catalogPaths",
   "catalogListFeatures",
   "catalogDetailSections",
   "operatorCapabilities",
+  "operatorShellNav",
+  "ownerSettingsPanelLoaders",
+  "workspaceCommerceFreeze",
   "workspaceFinance",
   "workspaceFinanceCapabilities",
   "workspaceFinanceNav",
@@ -230,6 +269,7 @@ export const OUTPUT_KEYS = Object.freeze([
   "workspaceFinanceDependencies",
   "workspaceFinanceEventReactions",
   "workspaceFinanceChartOfAccounts",
+  "workspaceFinanceObligation",
   "workspaceBooking",
   "workspaceBookingCapabilities",
   "workspaceBookingDependencies",
@@ -241,6 +281,7 @@ export const OUTPUT_KEYS = Object.freeze([
   "marketingCatalogBindings",
   "settingsDestinationBindings",
   "settingsEquipmentUiBindings",
+  "settingsExposureSurfacesUiBindings",
   "tourActionSubmitBindings",
   "photoUploadErrorsBindings",
   "tourListCategoryBindings",
@@ -251,6 +292,7 @@ export const OUTPUT_KEYS = Object.freeze([
   "wizardTemplatePresetBindings",
   "wizardDraftShellBindings",
   "wizardCreateChromeBindings",
+  "denaliHostAdapters",
   "wizardFlatEditChromeBindings",
   "wizardFlatEditFormBindings",
   "wizardFlatEditPageBindings",
@@ -280,10 +322,18 @@ export function generateAllOutputs(manifests) {
     assertHttpRoutesManifest(manifest);
   }
 
+  // P3.1.b — validate registration manifests; do not emit legacy monolithic *FromManifest files.
+  // P5.1 — emit portal register-*.generated.ts + portal/host register manifests.
+  generateWorkspaceIntakePluginBootstrap(manifests);
+  generateWorkspaceRegistrationFlowPlugins(manifests);
+  generateWorkspaceRegistrationTransportInitializers(manifests);
+
   return {
+    ...generatePortalRegisterOutputs(manifests),
     sdk: generateSdkBindings(manifests),
     api: generateApiRegistry(manifests),
     web: generateWebLoaders(manifests),
+    manifestBoundaryAllowlist: generateManifestBoundaryAllowlist(manifests),
     tourWrite: generateTourWriteBindings(manifests),
     canonicalTour: generateCanonicalTourBindings(manifests),
     wizardMedia: generateWizardMediaBindings(manifests),
@@ -296,15 +346,20 @@ export function generateAllOutputs(manifests) {
     wizardCloneRemint: generateWizardCloneRemintBindings(manifests),
     wizardCreate: generateWizardCreateBindings(manifests),
     themeStylesheets: generateAdminThemeStylesheetLoader(manifests),
+    themeCssAmbientModules: generateWorkspaceThemeCssAmbientModules(manifests),
     guestThemeStylesheetsPortal: generateGuestThemeStylesheetLoader(manifests, "portal"),
     guestThemeStylesheetsMarketing: generateGuestThemeStylesheetLoader(manifests, "marketing"),
-    workspaceIntakePlugins: generateWorkspaceIntakePluginBootstrap(manifests),
-    registrationFlowPlugins: generateWorkspaceRegistrationFlowPlugins(manifests),
-    registrationTransportInitializers: generateWorkspaceRegistrationTransportInitializers(manifests),
+    portalGuestTranspilePackages: generateGuestTranspilePackages(manifests, "portal"),
+    marketingGuestTranspilePackages: generateGuestTranspilePackages(manifests, "marketing"),
+    adminTranspilePackages: generateAdminTranspilePackages(manifests),
+    adminClientWorkspaceIgnore: generateAdminClientWorkspaceIgnore(manifests),
     catalogPaths: generateWorkspaceCatalogPaths(manifests),
     catalogListFeatures: generateWorkspaceCatalogListFeatures(manifests),
     catalogDetailSections: generateWorkspaceCatalogDetailSections(manifests),
     operatorCapabilities: generateWorkspaceOperatorCapabilities(manifests),
+    operatorShellNav: generateOperatorShellNavBindings(manifests),
+    ownerSettingsPanelLoaders: generateWorkspaceOwnerSettingsPanelLoaders(manifests),
+    workspaceCommerceFreeze: generateWorkspaceCommerceFreezeBindings(manifests),
     workspaceFinance: generateWorkspaceFinanceBindings(manifests),
     workspaceFinanceCapabilities: generateWorkspaceFinanceCapabilities(manifests),
     workspaceFinanceNav: generateWorkspaceFinanceNavBindings(manifests),
@@ -312,6 +367,7 @@ export function generateAllOutputs(manifests) {
     workspaceFinanceDependencies: generateWorkspaceFinanceDependencyBindings(manifests),
     workspaceFinanceEventReactions: generateWorkspaceFinanceEventReactionBindings(manifests),
     workspaceFinanceChartOfAccounts: generateWorkspaceFinanceChartOfAccountsBindings(manifests),
+    workspaceFinanceObligation: generateWorkspaceFinanceObligationBindings(manifests),
     workspaceBooking: generateWorkspaceBookingBindings(manifests),
     workspaceBookingCapabilities: generateWorkspaceBookingCapabilities(manifests),
     workspaceBookingDependencies: generateWorkspaceBookingDependencyBindings(manifests),
@@ -323,6 +379,7 @@ export function generateAllOutputs(manifests) {
     marketingCatalogBindings: generateMarketingCatalogBindings(manifests),
     settingsDestinationBindings: generateSettingsDestinationBindings(manifests),
     settingsEquipmentUiBindings: generateSettingsEquipmentUiBindings(manifests),
+    settingsExposureSurfacesUiBindings: generateSettingsExposureSurfacesUiBindings(manifests),
     tourActionSubmitBindings: generateTourActionSubmitBindings(manifests),
     photoUploadErrorsBindings: generatePhotoUploadErrorsBindings(manifests),
     tourListCategoryBindings: generateTourListCategoryBindings(manifests),
@@ -333,6 +390,7 @@ export function generateAllOutputs(manifests) {
     wizardTemplatePresetBindings: generateWizardTemplatePresetBindings(manifests),
     wizardDraftShellBindings: generateWizardDraftShellBindings(manifests),
     wizardCreateChromeBindings: generateWizardCreateChromeBindings(manifests),
+    denaliHostAdapters: generateDenaliHostAdapterBindings(manifests),
     wizardFlatEditChromeBindings: generateWizardFlatEditChromeBindings(manifests),
     wizardFlatEditFormBindings: generateWizardFlatEditFormBindings(manifests),
     wizardFlatEditPageBindings: generateWizardFlatEditPageBindings(manifests),
@@ -365,6 +423,7 @@ export const OUTPUT_PATHS = {
   sdk: join(REPO_ROOT, "packages/workspace-sdk/src/plugin/workspace-manifest-bindings.generated.ts"),
   api: join(REPO_ROOT, "apps/api/src/workspace/workspace-plugin-registry.generated.ts"),
   web: join(REPO_ROOT, "apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts"),
+  manifestBoundaryAllowlist: MANIFEST_BOUNDARY_ALLOWLIST_PATH,
   tourWrite: join(REPO_ROOT, "apps/api/src/tours/workspace-tour-write-bindings.generated.ts"),
   canonicalTour: join(
     REPO_ROOT,
@@ -398,25 +457,33 @@ export const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-theme-stylesheets.generated.ts"
   ),
+  themeCssAmbientModules: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-theme-css-modules.generated.d.ts"
+  ),
   guestThemeStylesheetsPortal: join(
     REPO_ROOT,
-    "apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+    "packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.portal.generated.ts"
   ),
   guestThemeStylesheetsMarketing: join(
     REPO_ROOT,
-    "apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+    "packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.marketing.generated.ts"
   ),
-  workspaceIntakePlugins: join(
+  portalGuestTranspilePackages: join(
     REPO_ROOT,
-    "packages/workspace-plugin-host/src/workspace-intake-plugins.generated.ts"
+    "apps/portal/src/bootstrap/guest-transpile-packages.generated.mjs"
   ),
-  registrationFlowPlugins: join(
+  marketingGuestTranspilePackages: join(
     REPO_ROOT,
-    "packages/workspace-plugin-host/src/workspace-registration-flow-plugins.generated.ts"
+    "apps/marketing/src/bootstrap/guest-transpile-packages.generated.mjs"
   ),
-  registrationTransportInitializers: join(
+  adminTranspilePackages: join(
     REPO_ROOT,
-    "packages/workspace-plugin-host/src/workspace-registration-transport-initializers.generated.ts"
+    "apps/web/src/bootstrap/admin-transpile-packages.generated.mjs"
+  ),
+  adminClientWorkspaceIgnore: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/admin-client-workspace-ignore.generated.mjs"
   ),
   catalogPaths: join(
     REPO_ROOT,
@@ -433,6 +500,18 @@ export const OUTPUT_PATHS = {
   operatorCapabilities: join(
     REPO_ROOT,
     "packages/workspace-sdk/src/operator/workspace-operator-capabilities.generated.ts"
+  ),
+  operatorShellNav: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/operator-shell-nav-bindings.generated.ts"
+  ),
+  ownerSettingsPanelLoaders: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-owner-settings-panel-loaders.generated.ts"
+  ),
+  workspaceCommerceFreeze: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/metadata/workspace-commerce-freeze.generated.ts"
   ),
   workspaceFinance: join(
     REPO_ROOT,
@@ -461,6 +540,10 @@ export const OUTPUT_PATHS = {
   workspaceFinanceChartOfAccounts: join(
     REPO_ROOT,
     "apps/api/src/workspace-finance/workspace-finance-chart-of-accounts-bindings.generated.ts"
+  ),
+  workspaceFinanceObligation: join(
+    REPO_ROOT,
+    "apps/api/src/workspace-finance/workspace-finance-obligation-bindings.generated.ts"
   ),
   workspaceBooking: join(
     REPO_ROOT,
@@ -496,7 +579,7 @@ export const OUTPUT_PATHS = {
   ),
   marketingCatalogBindings: join(
     REPO_ROOT,
-    "apps/marketing/src/bootstrap/workspace-marketing-catalog-bindings.generated.ts"
+    "packages/guest-workspace-runtime/src/workspace-marketing-catalog-bindings.generated.ts"
   ),
   settingsDestinationBindings: join(
     REPO_ROOT,
@@ -505,6 +588,10 @@ export const OUTPUT_PATHS = {
   settingsEquipmentUiBindings: join(
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-settings-equipment-ui-bindings.generated.ts"
+  ),
+  settingsExposureSurfacesUiBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-settings-exposure-surfaces-ui-bindings.generated.ts"
   ),
   tourActionSubmitBindings: join(
     REPO_ROOT,
@@ -545,6 +632,10 @@ export const OUTPUT_PATHS = {
   wizardCreateChromeBindings: join(
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-wizard-create-chrome-bindings.generated.ts"
+  ),
+  denaliHostAdapters: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-host-adapters.generated.ts"
   ),
   wizardFlatEditChromeBindings: join(
     REPO_ROOT,
@@ -642,9 +733,47 @@ export const OUTPUT_PATHS = {
   ),
 };
 
-function readOutputs() {
+/**
+ * P5.1 — portal register paths are membership-dependent (manifest-driven).
+ * @param {ReturnType<typeof discoverManifests>} manifests
+ */
+export function resolveRegistrationOutputKeys(manifests) {
+  const selected = selectPortalRegisterManifests(manifests);
+  return Object.freeze([
+    ...selected.map((m) => portalRegisterOutputKey(m.id)),
+    "portalRegisterManifest",
+    "hostRegisterManifest",
+  ]);
+}
+
+/**
+ * @param {ReturnType<typeof discoverManifests>} manifests
+ * @returns {Record<string, string>}
+ */
+export function resolveOutputPaths(manifests) {
+  /** @type {Record<string, string>} */
+  const paths = { ...OUTPUT_PATHS };
+  for (const m of selectPortalRegisterManifests(manifests)) {
+    paths[portalRegisterOutputKey(m.id)] = join(
+      REPO_ROOT,
+      `packages/guest-workspace-runtime/src/register-${m.id}.generated.ts`
+    );
+  }
+  paths.portalRegisterManifest = join(
+    REPO_ROOT,
+    "packages/guest-workspace-runtime/src/workspace-plugin-register-manifest.generated.ts"
+  );
+  paths.hostRegisterManifest = join(
+    REPO_ROOT,
+    "packages/workspace-plugin-host/src/workspace-plugin-register-manifest.generated.ts"
+  );
+  return paths;
+}
+
+/** @param {Record<string, string>} outputPaths */
+function readOutputs(outputPaths) {
   return Object.fromEntries(
-    Object.entries(OUTPUT_PATHS).map(([key, filePath]) => [key, readFileSync(filePath, "utf8")])
+    Object.entries(outputPaths).map(([key, filePath]) => [key, readFileSync(filePath, "utf8")])
   );
 }
 
@@ -658,10 +787,17 @@ function parseDomainId(argv) {
   return null;
 }
 
-/** @param {string | null} domainId */
-function resolveOutputKeys(domainId) {
+/**
+ * @param {string | null} domainId
+ * @param {ReturnType<typeof discoverManifests>} manifests
+ */
+function resolveOutputKeys(domainId, manifests) {
+  const registrationKeys = resolveRegistrationOutputKeys(manifests);
   if (domainId === null) {
-    return OUTPUT_KEYS;
+    return [...OUTPUT_KEYS, ...registrationKeys];
+  }
+  if (domainId === "registration") {
+    return [...registrationKeys];
   }
   const keys = DOMAIN_OUTPUT_KEYS[domainId];
   if (keys === undefined) {
@@ -677,26 +813,55 @@ export function runWorkspaceRegistryCli(argv = process.argv) {
   const checkOnly = argv.includes("--check");
   const strictWebModules = argv.includes("--strict");
   const domainId = parseDomainId(argv);
-  const keysToSync = resolveOutputKeys(domainId);
 
   const manifests = discoverManifests();
+  const keysToSync = resolveOutputKeys(domainId, manifests);
+  const outputPaths = resolveOutputPaths(manifests);
   assertMemberPortalL4ReferenceWorkspaces(manifests);
   assertWizardI18nAssets(manifests);
   assertManifestWebModules(manifests, { strict: strictWebModules });
   const generated = generateAllOutputs(manifests);
 
   if (checkOnly) {
-    const onDisk = readOutputs();
+    const onDisk = readOutputs(outputPaths);
     const mismatches = [];
     for (const key of keysToSync) {
       if (onDisk[key] !== generated[key]) {
-        mismatches.push(OUTPUT_PATHS[key]);
+        mismatches.push(outputPaths[key]);
       }
     }
     if (mismatches.length > 0) {
       const scope = domainId === null ? "" : ` domain=${domainId}`;
       console.error(`generate:workspace-registry --check${scope}: FAIL (stale generated files)`);
       for (const p of mismatches) console.error(`  ${p}`);
+      console.error("Run: pnpm run generate:workspace-registry");
+      process.exit(1);
+    }
+    const depCheck = verifyGuestWorkspaceRuntimePackageJson(manifests);
+    if (!depCheck.ok) {
+      console.error(
+        "generate:workspace-registry --check: FAIL (guest-workspace-runtime package.json product deps stale)"
+      );
+      console.error(`  expected: ${Object.keys(depCheck.expected).join(", ")}`);
+      console.error(`  actual:   ${Object.keys(depCheck.actual).join(", ")}`);
+      console.error("Run: pnpm run generate:workspace-registry");
+      process.exit(1);
+    }
+    const webDepCheck = verifyAdminWebPackageJson(manifests);
+    if (!webDepCheck.ok) {
+      console.error(
+        "generate:workspace-registry --check: FAIL (apps/web package.json product deps stale)"
+      );
+      console.error(
+        `  expected products: ${Object.keys(webDepCheck.expectedDevDependencies)
+          .filter((n) => n.startsWith("@app-tour/workspace-") && n !== "@app-tour/workspace-sdk")
+          .join(", ")}`
+      );
+      console.error(
+        `  actual products:   ${Object.keys(webDepCheck.actualDevDependencies)
+          .filter((n) => n.startsWith("@app-tour/workspace-") && n !== "@app-tour/workspace-sdk")
+          .join(", ")}`
+      );
       console.error("Run: pnpm run generate:workspace-registry");
       process.exit(1);
     }
@@ -708,7 +873,17 @@ export function runWorkspaceRegistryCli(argv = process.argv) {
   }
 
   for (const key of keysToSync) {
-    writeFileSync(OUTPUT_PATHS[key], generated[key]);
+    const outPath = outputPaths[key];
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, generated[key]);
+  }
+
+  if (syncGuestWorkspaceRuntimePackageJson(manifests)) {
+    console.log("generate:workspace-registry — synced packages/guest-workspace-runtime/package.json product deps");
+  }
+
+  if (syncAdminWebPackageJson(manifests)) {
+    console.log("generate:workspace-registry — synced apps/web/package.json product deps");
   }
 
   console.log(

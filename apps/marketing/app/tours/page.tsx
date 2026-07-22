@@ -90,12 +90,12 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
     limit: fetchLimit,
     filters,
   });
-  const filterOptions = deriveCatalogFilterOptions({
+  const filterOptions = await deriveCatalogFilterOptions({
     pluginId: bootstrap.pluginId,
     items: fetchedItems,
     activeFilters: filters,
   });
-  const { items, matchedCount } = applyMarketingCatalogListPipeline(
+  const { items, matchedCount } = await applyMarketingCatalogListPipeline(
     fetchedItems,
     filters,
     serverListFilters,

@@ -1,0 +1,47 @@
+---
+title: Wave H.l.b — Operator datetime chrome (drop Denali time-picker brand)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-operator-surface-attr.mdoc
+---
+
+# Wave H.l.b — Operator datetime chrome
+
+## Problem
+
+After H.l (`data-operator-surface`), shared datetime chrome still leaked Denali vocabulary:
+
+- CSS/BEM: `denali-time-picker*`, `denali-wizard-time-picker*`
+- DOM: `data-denali-wizard-time-picker`, `data-denali-time-picker`, `data-operator-wizard-calendar*`
+- Shell imports: `DenaliTimeInput`, `DenaliWizardDatetimePicker` from generated operator-ui bindings
+
+Wizard create/edit and settings date/time flows all hit these hooks — including `@app-tour/workspace-denali` `DenaliTimeInput` (primary path via bindings).
+
+## Decision
+
+1. Rename **time/calendar chrome** class + data attributes to `operator-*` / `data-operator-*` in:
+   - `packages/workspaces/denali` time input + time panel (product SoT for picker UI)
+   - `apps/web/src/components/{i18n,ui}` shell copies
+2. Update Denali theme CSS (`wizard-calendar.css`, `wizard-fields.css`) to the new selectors (no dual legacy — E2E/scripts updated in lockstep).
+3. Codegen operator-ui bindings: export **`WorkspaceTimeInput`** / **`WorkspaceWizardDatetimePicker`** as canonical shell names; keep `DenaliTimeInput` / `DenaliWizardDatetimePicker` as **deprecated aliases** (same component) for one wave.
+4. Shell `localized-datetime-picker.tsx` imports the Workspace* names.
+
+## Out of scope
+
+- ~~Renaming `denali-wizard-datetime` / `denali-date-picker` BEM~~ → **done in** [`wave-h-operator-datetime-bem.mdoc`](./wave-h-operator-datetime-bem.mdoc) (Wave H.p)
+- Broader wizard BEM (composite / review / pickers)
+- Removing `apps/web/src/wizard/denali/*` firewall
+- Install-graph isolation
+
+## Verify
+
+```bash
+rg 'data-denali-wizard-time-picker|denali-time-picker' apps/web/src/components packages/workspaces/denali/src/ui/components/time packages/workspaces/denali/src/ui/components/denali-time-input.tsx
+# expect empty (or only comments)
+pnpm run generate:workspace-registry
+pnpm --filter @app-tour/workspace-denali run build
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-h-operator-datetime-chrome.spec.ts \
+  test/denali-wizard-theme.spec.ts
+```

@@ -1,7 +1,8 @@
 /**
  * Phase 8.1 — Web urban settings access guard (CP-8.1-04)
  * Authority: docs/phase-8/appendices/CASL-URBAN-OWNER-SPEC.md § Web layer
- * Implementation target: apps/web/src/urban/urban-settings-access.ts
+ * Implementation target: docs/phase-8/appendices/CANLOAD-URBAN-SETTINGS.contract.ts
+ * Shell route re-exports product-blind aliases only (Gap Closure B.16).
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -13,7 +14,7 @@ import {
   canLoadUrbanSettings,
   resolveUrbanSettingsPageBranch,
   URBAN_SETTINGS_FORBIDDEN_DOM,
-} from "../src/urban/urban-settings-access";
+} from "../../../docs/phase-8/appendices/CANLOAD-URBAN-SETTINGS.contract";
 
 const URBAN_TENANT_ID = "00000000-0000-4000-8000-000000000004";
 const URBAN_WORKSPACE_ID = "00000000-0000-4000-8000-000000000403";

@@ -7,7 +7,7 @@ import {
   type TourListQueryModel,
 } from "@/features/tours/query-model";
 import type { OperatorTourListResponse } from "@/features/tours/operator-tours-types";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 /** Server prefetch for tours list — avoids client-only loading stall. */
 export async function fetchToursListServer(

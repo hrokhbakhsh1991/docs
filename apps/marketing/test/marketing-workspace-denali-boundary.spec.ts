@@ -9,7 +9,6 @@ import { fileURLToPath } from "node:url";
 
 const marketingRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const catalogDir = join(marketingRoot, "src/catalog");
-const bootstrapDir = join(marketingRoot, "src/bootstrap");
 
 const FORBIDDEN_DENALI_FILES = [
   "denali-catalog-filter-config.ts",
@@ -44,12 +43,18 @@ describe("marketing-workspace-denali-boundary.spec.ts — MKT-6", () => {
     }
 
     const bindings = readFileSync(
-      join(bootstrapDir, "workspace-marketing-catalog-bindings.generated.ts"),
+      join(
+        marketingRoot,
+        "../../packages/guest-workspace-runtime/src/workspace-marketing-catalog-bindings.generated.ts"
+      ),
       "utf8"
     );
     assert.match(bindings, /resolveMarketingCatalogSurface/);
+    assert.match(bindings, /hasMarketingCatalogSurface/);
     assert.match(bindings, /denaliMarketingCatalogSurface/);
-    assert.match(bindings, /@app-tour\/workspace-denali\/(?:host\/)?marketing\/marketing-catalog-surface/);
+    assert.match(bindings, /await import\("@app-tour\/workspace-denali\/(?:host\/)?marketing\/marketing-catalog-surface"\)/);
+    assert.doesNotMatch(bindings, /^import \{[^}]*denaliMarketingCatalogSurface/m);
+    assert.doesNotMatch(bindings, /@\/catalog\//);
   });
 
   it("MKT-C3-01 derive and filter catalog helpers delegate to marketing catalog surface", () => {

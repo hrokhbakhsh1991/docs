@@ -21,7 +21,7 @@ type WorkspaceWizardValidationSummaryProps = {
   readonly translateWorkspaceMessage?: (key: string) => string;
 };
 
-/** Platform-default validation panel — workspace-agnostic (Urban/Starter). */
+/** Platform-default validation panel — workspace-agnostic. */
 export function WorkspaceWizardValidationSummary({
   issues,
   stepDescriptors,

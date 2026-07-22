@@ -1,12 +1,18 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { before, describe, it } from "node:test";
 
-import { encodeTourActionSubmitError } from "../src/bootstrap/workspace-tour-action-submit-bindings.generated";
+import {
+  encodeTourActionSubmitError,
+  ensureAllTourActionSubmitCodecs,
+} from "../src/bootstrap/workspace-tour-action-submit-bindings.generated";
 
 import { parsePlatformValidationMessage } from "../src/wizard/parse-platform-validation-segments";
 import { resolveWizardSubmitErrorMessage } from "../src/wizard/resolve-wizard-submit-error-message";
 
 describe("resolve-wizard-submit-error-message.spec.ts", () => {
+  before(async () => {
+    await ensureAllTourActionSubmitCodecs();
+  });
   const t = {
     translate: (key: string, values?: Record<string, string | number>) => {
       const map: Record<string, string> = {

@@ -1,0 +1,53 @@
+---
+title: Wave F.b — Manifest-driven commerce freeze
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-f-shell-i18n-denali.mdoc
+  - docs/phase-18/platform-workspace-commerce.mdoc
+---
+
+# Wave F.b — Manifest-driven commerce freeze
+
+## Problem
+
+Hostile audit blocker #4: API and admin UI hard-code `workspaceType === "denali"` for PC-07 offline_receipt freeze (`resolve-workspace-commerce-for-tenant.ts`, `apply-workspace-commerce-create-default.ts`, `club-commerce-badge.tsx`).
+
+That dual-writes product policy outside `workspace.manifest.json`.
+
+## Decision
+
+1. Denali declares freeze in manifest:
+
+```json
+"commerce": {
+  "frozen": true,
+  "paymentMode": "offline_receipt",
+  "gatewayProvider": null,
+  "currency": "IRR"
+}
+```
+
+2. Codegen emits `packages/workspace-sdk/src/metadata/workspace-commerce-freeze.generated.ts`:
+   - `WORKSPACE_FROZEN_COMMERCE_BY_WORKSPACE_TYPE` — keyed by each `workspaceTypes[]` entry when `commerce.frozen === true`
+   - `resolveFrozenWorkspaceCommerce(workspaceType)` / `isWorkspaceCommerceFrozen(workspaceType)`
+
+3. API commerce resolvers and tour-create apply use the freeze helpers — **no** `=== "denali"` literals.
+4. Web `ClubCommerceBadge` uses `isWorkspaceCommerceFrozen`.
+5. `DENALI_FROZEN_COMMERCE_CONFIG` remains as a **compat alias** of the generated denali row for existing PC-07 specs (derived, not hand-authored policy).
+6. **Wave H.f** removes residual Denali UX literals on the badge (`isDenaliWorkspaceType`, `data-commerce-denali-frozen`, “Denali clubs…” copy) — see [`wave-h-commerce-badge-neutral.mdoc`](./wave-h-commerce-badge-neutral.mdoc).
+
+## Verify
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run guard:workspace-registry-fresh
+rg 'workspaceType.*===.*["'\'']denali["'\'']|=== ["'\'']denali["'\'']' \
+  apps/api/src/workspace-metadata/resolve-workspace-commerce-for-tenant.ts \
+  apps/api/src/tours/apply-workspace-commerce-create-default.ts \
+  apps/web/src/platform/club-commerce-badge.tsx
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/denali-offline-receipt-unchanged.spec.ts \
+  test/tour-create-payment-mode-default.spec.ts \
+  test/workspace-metadata-commerce-inherit.spec.ts
+```

@@ -1,0 +1,83 @@
+---
+title: Wave C.b — Manifest-driven guest transpilePackages
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-c-lazy-marketing-catalog.mdoc
+  - docs/dev/workspace-plugin-bootstrap-resilience.mdoc
+---
+
+# Wave C.b — Manifest-driven guest transpilePackages
+
+## Problem
+
+`apps/portal/next.config.ts` and `apps/marketing/next.config.ts` hard-coded product `@app-tour/workspace-*` entries in `transpilePackages`. Adding a guest-capable workspace required editing Next config by hand (audit §7 / §9 drop-in failure), even though themes/registrars already come from codegen.
+
+## Decision
+
+Codegen emits ESM lists consumed by Next config:
+
+| Surface | Output |
+| ------- | ------ |
+| portal | `apps/portal/src/bootstrap/guest-transpile-packages.generated.mjs` |
+| marketing | `apps/marketing/src/bootstrap/guest-transpile-packages.generated.mjs` |
+
+Each file exports `GUEST_TRANSPILE_PACKAGES: readonly string[]` =
+
+1. **Platform fixed set** (design-tokens, sdk, guest-workspace-runtime, portal catalog packages, …)
+2. **Product packages** derived from manifests:
+   - always `starter` (default L3 skin CSS)
+   - any workspace with `guestThemeStylesheets.<surface>`
+   - portal: union with `selectPortalRegisterManifests`
+   - marketing: union with `marketingCatalog` declarants
+
+`next.config.ts` spreads that array — no hand-maintained denali/urban/guest-club literals.
+
+## Out of scope
+
+Removing product packages from the monorepo install graph via `optionalDependencies` / peers — **deferred** (breaks dynamic import resolution). Wave C.c instead **syncs** required product deps from manifests — see [`wave-c-guest-runtime-product-deps.mdoc`](./wave-c-guest-runtime-product-deps.mdoc).
+
+Admin Next `transpilePackages` hand list → Wave G.a [`wave-g-admin-transpile-packages.mdoc`](./wave-g-admin-transpile-packages.mdoc).
+
+## Gap Closure Phase C.2a
+
+- `guard:transpile-product-ceiling` — product `@app-tour/workspace-*` entries in portal/marketing/admin generated transpile lists ≤ ceiling **4** (decrease only; same set as guest-runtime product deps).
+- `filterProductPackagesByDeployProfile` in theme codegen domain — pure helper for profile-scoped emits.
+- Charter: [`saas-platform-remediation.mdoc`](./saas-platform-remediation.mdoc).
+
+## Gap Closure Phase C.2b
+
+Deploy-scoped transpile emit is **double opt-in** so monorepo codegen cannot accidentally shrink:
+
+| Env | Role |
+| --- | ---- |
+| `WORKSPACE_DEPLOY_PROFILE_APPLY=1` | Required to enable filtering |
+| `WORKSPACE_DEPLOY_PROFILE` | Comma-separated workspace ids or `@app-tour/workspace-*` names (`full` / `*` / empty = no filter) |
+
+Example (image build only — do **not** commit filtered lists from a profiled generate):
+
+```bash
+WORKSPACE_DEPLOY_PROFILE_APPLY=1 WORKSPACE_DEPLOY_PROFILE=urban,starter \
+  pnpm run apply:deploy-profile -- --write
+# restore trunk afterwards:
+pnpm run generate:workspace-registry
+```
+
+Dry-run (no writes):
+
+```bash
+WORKSPACE_DEPLOY_PROFILE_APPLY=1 WORKSPACE_DEPLOY_PROFILE=urban,starter \
+  pnpm run apply:deploy-profile
+```
+
+Guest-runtime product **dependencies** stay full-trunk on default generate. Gap Closure **C.2c** adds `pnpm run sync:guest-runtime-deploy-profile` (requires `WORKSPACE_DEPLOY_PROFILE_APPLY=1`) for image builds only — do not commit filtered deps. Normal generate never shrinks guest-runtime `package.json` from deploy-profile env.
+
+## Verify
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run guard:workspace-registry-fresh
+pnpm run guard:transpile-product-ceiling
+node -e "import('./apps/portal/src/bootstrap/guest-transpile-packages.generated.mjs').then(m=>console.log(m.GUEST_TRANSPILE_PACKAGES))"
+# portal/marketing next.config must import guest-transpile-packages.generated.mjs
+```

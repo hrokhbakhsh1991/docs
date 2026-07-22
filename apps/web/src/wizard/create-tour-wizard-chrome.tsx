@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import type { DraftSchemaIssue, DraftStatus, DraftSyncPayload } from "@app-tour/draft-engine";
 import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
-import type { NewTourWizardDraftEnvelope } from "@/draft/denali-wizard-draft-types";
+import type { NewTourWizardDraftEnvelope } from "@/draft/tour-wizard-draft-envelope";
 import type { WizardSubmitErrorPresentation } from "@/wizard/resolve-wizard-submit-error-message";
 import { WizardSubmitErrorAlert } from "@/wizard/wizard-submit-error-alert";
 import { WorkspaceDraftIndexSummary } from "@/draft/workspace-draft-index-summary";
@@ -147,7 +147,7 @@ export function CreateTourWizardSubmitFooter(props: {
   );
 }
 
-type DenaliDraftSyncChrome = {
+type OperatorDraftSyncChrome = {
   readonly status: DraftStatus;
   readonly schemaIssues: readonly DraftSchemaIssue[];
   readonly navLocked: boolean;
@@ -164,9 +164,9 @@ type DenaliDraftSyncChrome = {
   readonly revertToLastValid: () => void;
 };
 
-export function CreateTourWizardDenaliHeader(props: {
+export function CreateTourWizardHeader(props: {
   readonly currentDraftKey: string;
-  readonly draftSync: DenaliDraftSyncChrome;
+  readonly draftSync: OperatorDraftSyncChrome;
   readonly draftIndex: {
     readonly loading: boolean;
     readonly items: readonly WorkspaceDraftIndexItem[];

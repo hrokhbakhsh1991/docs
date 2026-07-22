@@ -1,0 +1,57 @@
+---
+title: Wave I.1 — Owner-settings panel lazy loader (first thin-shell cut)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-i-0-architecture-guard-matrix.mdoc
+  - docs/dev/wave-h-urban-owner-panel-package.mdoc
+  - docs/dev/wave-h-workspace-owner-shell-typing.mdoc
+---
+
+# Wave I.1 — Owner-settings panel lazy loader
+
+## Problem
+
+Wave H moved the Urban owner settings **panel SoT** into `@app-tour/workspace-urban` and neutralized the route (`/settings/workspace-owner`). The shell page still had a **static** product import:
+
+```ts
+import { WorkspaceOwnerSettingsPanel } from "@app-tour/workspace-urban/host/settings/owner-panel";
+```
+
+That keeps Urban in the admin compile graph even when the tenant is not Urban — the first thin-shell debt for this surface.
+
+## Decision
+
+1. Declare the panel module on the Urban manifest under `operatorShell.ownerSettingsPanel`:
+
+```json
+"ownerSettingsPanel": {
+  "module": "@app-tour/workspace-urban/host/settings/owner-panel",
+  "exportName": "WorkspaceOwnerSettingsPanel"
+}
+```
+
+2. Codegen [`apps/web/src/bootstrap/workspace-owner-settings-panel-loaders.generated.ts`](../../apps/web/src/bootstrap/workspace-owner-settings-panel-loaders.generated.ts) from manifests (same switch/`import()` pattern as plugin loaders).
+
+3. [`apps/web/app/(app)/settings/workspace-owner/page.tsx`](../../apps/web/app/(app)/settings/workspace-owner/page.tsx) loads the panel via `loadWorkspaceOwnerSettingsPanel(pluginId)` — **no** static `@app-tour/workspace-urban` import.
+
+4. Host injection (`apiBaseUrl`, auth headers, i18n labels) and Phase 8 canLoad stay unchanged.
+
+## Out of scope
+
+- Removing `@app-tour/workspace-urban` from `apps/web/package.json` (install isolation — later Wave)
+- Static `@app-tour/workspace-starter` shell imports → [`wave-i-2-sdk-starter-shell.mdoc`](./wave-i-2-sdk-starter-shell.mdoc) (Wave I.2)
+- Deleting `wizard/denali/*` firewall
+- Renaming Urban canLoad policy ids
+
+## Verify
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run guard:workspace-registry-fresh
+pnpm run wave-i0:guard
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-i-1-owner-settings-lazy-loader.spec.ts \
+  test/wave-h-urban-owner-panel-package.spec.ts \
+  test/wave-h-workspace-owner-shell-typing.spec.ts
+```

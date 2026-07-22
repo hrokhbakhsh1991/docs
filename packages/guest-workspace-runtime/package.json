@@ -1,0 +1,48 @@
+{
+  "name": "@app-tour/guest-workspace-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "P5.3 — guest surface product registrars + theme loaders (portal/marketing dep collapse)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./bind-register-invokers": {
+      "types": "./src/bind-workspace-plugin-register-invokers.ts",
+      "default": "./src/bind-workspace-plugin-register-invokers.ts"
+    },
+    "./themes/portal": {
+      "types": "./src/workspace-guest-theme-stylesheets.portal.generated.ts",
+      "default": "./src/workspace-guest-theme-stylesheets.portal.generated.ts"
+    },
+    "./themes/marketing": {
+      "types": "./src/workspace-guest-theme-stylesheets.marketing.generated.ts",
+      "default": "./src/workspace-guest-theme-stylesheets.marketing.generated.ts"
+    },
+    "./marketing-catalog": {
+      "types": "./src/marketing-catalog.ts",
+      "default": "./src/marketing-catalog.ts"
+    }
+  },
+  "scripts": {
+    "lint": "tsc --noEmit",
+    "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
+  },
+  "dependencies": {
+    "@app-tour/catalog-registration-flow-ui": "workspace:*",
+    "@app-tour/workspace-denali": "workspace:*",
+    "@app-tour/workspace-guest-club": "workspace:*",
+    "@app-tour/workspace-plugin-host": "workspace:*",
+    "@app-tour/workspace-sdk": "workspace:*",
+    "@app-tour/workspace-starter": "workspace:*",
+    "@app-tour/workspace-urban": "workspace:*"
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

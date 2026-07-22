@@ -8,6 +8,6 @@ import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
 export async function Phase3ShellLayout({ children }: { children: ReactNode }) {
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
-  const resolved = resolveBootstrapAppSessionForHost(host);
+  const resolved = await resolveBootstrapAppSessionForHost(host);
   return <AppShell pluginId={resolved.session.pluginId}>{children}</AppShell>;
 }

@@ -39,8 +39,8 @@ describe("admin-feature-appearance-ast.spec.ts", () => {
     assert.deepEqual(ADMIN_FEATURE_PURGED_FILES, [
       "apps/web/src/admin/patterns/booking-activity-timeline.tsx",
       "apps/web/src/admin/patterns/dashboard-kpi-cell.tsx",
-      "apps/web/src/admin/patterns/denali-skeleton.tsx",
-      "apps/web/src/admin/patterns/denali-empty-state.tsx",
+      "apps/web/src/admin/patterns/operator-skeleton.tsx",
+      "apps/web/src/admin/patterns/operator-empty-state.tsx",
       "apps/web/src/admin/patterns/page-header.tsx",
       "apps/web/src/admin/patterns/settings-page-header.tsx",
       "apps/web/src/admin/patterns/dashboard-widget-card.tsx",
@@ -48,7 +48,7 @@ describe("admin-feature-appearance-ast.spec.ts", () => {
       "apps/web/src/admin/dashboard/dashboard-overview-widget.tsx",
       "apps/web/src/admin/dashboard/dashboard-tours-widget.tsx",
       "apps/web/src/admin/dashboard/dashboard-registrations-widget.tsx",
-      "apps/web/src/admin/patterns/denali-confirm-dialog.tsx",
+      "apps/web/src/admin/patterns/operator-confirm-dialog.tsx",
       "apps/web/src/admin/onboarding/operator-welcome-dialog.tsx",
       "apps/web/src/admin/patterns/tour-category-badge.tsx",
       "apps/web/src/admin/patterns/operator-profile-avatar.tsx",
@@ -73,23 +73,23 @@ describe("admin-feature-appearance-ast.spec.ts", () => {
     );
     for (const hook of [
       "[data-booking-timeline-dot]",
-      "[data-denali-kpi-label]",
-      "[data-denali-empty-state-action]",
-      "[data-denali-page-header-title]",
-      "[data-denali-settings-back-link]",
-      "[data-denali-dashboard-widget]",
-      "[data-denali-dashboard-kpi-grid]",
-      "[data-denali-dashboard-widget-error]",
-      "[data-denali-dashboard-tour-row]",
-      "[data-denali-dashboard-registration-row]",
-      "[data-denali-confirm-dialog]",
-      "[data-denali-welcome-dialog]",
-      "[data-denali-welcome-bullets]",
-      "[data-denali-profile-avatar]",
+      "[data-operator-kpi-label]",
+      "[data-operator-empty-state-action]",
+      "[data-operator-page-header-title]",
+      "[data-operator-settings-back-link]",
+      "[data-operator-dashboard-widget]",
+      "[data-operator-dashboard-kpi-grid]",
+      "[data-operator-dashboard-widget-error]",
+      "[data-operator-dashboard-tour-row]",
+      "[data-operator-dashboard-registration-row]",
+      "[data-operator-confirm-dialog]",
+      "[data-operator-welcome-dialog]",
+      "[data-operator-welcome-bullets]",
+      "[data-operator-profile-avatar]",
     ]) {
       assert.match(skin, new RegExp(hook.replace(/[[\]]/g, "\\$&")));
     }
-    assert.match(animations, /\[data-denali-skeleton-size="kpi"\]/);
-    assert.match(animations, /\[data-denali-skeleton-size="hero"\]/);
+    assert.match(animations, /\[data-operator-skeleton-size="kpi"\]/);
+    assert.match(animations, /\[data-operator-skeleton-size="hero"\]/);
   });
 });

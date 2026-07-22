@@ -54,7 +54,7 @@ export async function CatalogTourDetailFacts({
       ? resolveMarketingCatalogFitnessLabel(tour.fitnessLevel, t)
       : null;
 
-  const surface = resolveMarketingCatalogSurface(pluginId);
+  const surface = await resolveMarketingCatalogSurface(pluginId);
   const difficultyMax = surface?.difficultyMax ?? 10;
 
   const difficultyValue =
@@ -65,7 +65,7 @@ export async function CatalogTourDetailFacts({
         })
       : null;
 
-  const categoryValue = resolveMarketingCatalogCardCategoryLabel(tour.category, t, pluginId);
+  const categoryValue = await resolveMarketingCatalogCardCategoryLabel(tour.category, t, pluginId);
 
   const facts = buildCatalogTourDetailFacts({
     tour,

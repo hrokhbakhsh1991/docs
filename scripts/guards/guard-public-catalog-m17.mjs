@@ -263,7 +263,7 @@ assertCheck(
 );
 
 const marketingThemeBootstrap = read(
-  "apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+  "packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.marketing.generated.ts"
 );
 assertCheck(
   "m17_marketing_guest_theme_bootstrap",

@@ -2,7 +2,7 @@ import type { WorkspaceWizardDraftEnvelope, WorkspaceWizardDraftMeta } from "@ap
 
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 
-/** Shared operator wizard draft namespace (starter / urban / platform create). */
+/** Shared operator wizard draft namespace (platform create flows). */
 export const PLATFORM_OPERATOR_WIZARD_DRAFT_NAMESPACE = "operator.wizard" as const;
 
 export function platformCreateTourDraftKey(pluginId: string): string {

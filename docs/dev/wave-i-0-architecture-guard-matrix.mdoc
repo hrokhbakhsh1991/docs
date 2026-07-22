@@ -1,0 +1,76 @@
+---
+title: Wave I.0 — Architecture guard matrix + host workspace deps dual-SoT check
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-audit-critical-hygiene.mdoc
+  - docs/dev/wave-c-guest-runtime-product-deps.mdoc
+  - docs/dev/ci-defensive-guards.mdoc
+---
+
+# Wave I.0 — Architecture guard matrix
+
+## Problem
+
+Hostile audit (Verdict C) requires a **trustworthy control plane** before install-graph / thin-shell work:
+
+1. `guard:no-app-cloud-imports` was green after H.k but **not** on any named matrix / defensive path.
+2. Guest-runtime `package.json` is manifest-synced (`guard:guest-runtime-product-deps`), but **`apps/web` and `apps/api` workspace product deps remain hand lists** (audit dual-SoT #7) with no orphan check.
+
+Cosmetic Wave H renames do not move thin-shell / bundle / runtime-plugin outcomes. I.0 locks the guard rails.
+
+## Decision
+
+### Matrix — `pnpm run wave-i0:guard`
+
+Runs (fail-fast):
+
+| Guard | Role |
+| ----- | ---- |
+| `guard:no-app-cloud-imports` | Namespace closure (`@app-tour/` forbidden) |
+| `guard:import-boundary` | AST import boundary |
+| `guard:workspace-peer-import` | Workspace peer isolation |
+| `guard:workspace-registry-fresh` | Codegen ↔ manifests |
+| `guard:api-workspace-isolation` | API host isolation ratchet |
+| `guard:api-host-allowlist-ratchet` | Gap Closure A — API host allowlist size ≤ budget; no new entries |
+| `guard:guest-runtime-product-deps` | Guest-runtime package.json ↔ manifests + product dep ceiling |
+| `guard:plugin-host-neutrality` | plugin-host deps ⊆ workspace-sdk |
+| `guard:transpile-product-ceiling` | Gap Closure C.2a — guest/admin transpile product package counts ≤ ceiling |
+| `guard:deploy-profile-plan` | Gap Closure D.1 — transpile ∩ IgnorePlugin deploy-profile coherence |
+| `test:gap-closure-acceptance` | Gap Closure D.2–D.4 / E.1–E.4a — deploy-profile + staging ALLOW + acme create→generate→contract |
+| `guard:host-workspace-deps` | web/api `@app-tour/workspace-*` orphans |
+| `guard:thin-shell` | **Wave I.3** + Gap Closure A — no non-generated product imports; generated static ≤ budget |
+| `guard:shell-product-tokens` | Gap Closure A — branded product-token hit lines in non-generated shell ≤ budget |
+
+Script: [`scripts/wave-i0-guard.sh`](../../scripts/wave-i0-guard.sh).
+
+Gap Closure charter + budgets: [`saas-platform-remediation.mdoc`](./saas-platform-remediation.mdoc).
+
+### `guard:host-workspace-deps` (check-only)
+
+For [`apps/web/package.json`](../../apps/web/package.json) and [`apps/api/package.json`](../../apps/api/package.json):
+
+- Collect every `@app-tour/workspace-*` except `@app-tour/workspace-sdk` from `dependencies` / `devDependencies` / `optionalDependencies`.
+- Expected set = every manifest `package` string from `discoverManifests()`.
+- **Fail** if any declared host dep is **not** in the expected set (orphan).
+- **Wave I.7 / I.8 (web only):** product workspace deps are codegen-synced into `devDependencies` from `productWorkspaceManifests` (`verifyAdminWebPackageJson`); must not appear in `dependencies`.
+- Orphan check remains for web + api (declared ∉ any manifest).
+
+### Namespace status
+
+H.k closed `@app-tour/` in admin transpile codegen. I.0 **wires** that guard into the matrix so regressions cannot silently return.
+
+## Out of scope
+
+- `optionalDependencies` / removing IgnorePlugin → first peel [`wave-i-7-host-install-classification.mdoc`](./wave-i-7-host-install-classification.mdoc) (Wave I.7); true filtered installs still later
+- Thin-shell owner-settings lazy loader → [`wave-i-1-owner-settings-lazy-loader.mdoc`](./wave-i-1-owner-settings-lazy-loader.mdoc) (Wave I.1)
+- `guard:thin-shell` → [`wave-i-3-thin-shell-guard.mdoc`](./wave-i-3-thin-shell-guard.mdoc) (Wave I.3)
+- Deleting `apps/web/src/wizard/denali/*`
+- Adding `wave-i0:guard` to Husky `pre-commit:fast` (too heavy; run on architecture PRs / explicitly)
+
+## Verify
+
+```bash
+pnpm run wave-i0:guard
+# expect PASS
+```

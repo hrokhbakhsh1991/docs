@@ -2,7 +2,7 @@
  * Booking ops UI capability contract (Phase B1.6).
  *
  * Workspace packages supply concrete defaults via `workspaceBooking.opsManifest`.
- * Generic web depends on this capability type only — never on Denali (or any workspace)
+ * Generic web depends on this capability type only — never on product workspace
  * bookings ops modules. Resolve through generated bindings.
  */
 import type { RegistrationOpsManifest } from "@app-tour/workspace-sdk";

@@ -52,7 +52,7 @@ describe("denali-draft-systemic-closure.spec.ts — Phase 4", () => {
   });
 
   it("WEB-P11-CLOSE-05 flat edit submit validation uses i18n list component", () => {
-    const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
+    const flatEdit = readWebSource("app/(app)/tours/[id]/edit/flat-edit-page-client.tsx");
     const listComponent = readRepoSource(
       "packages/workspaces/denali/src/ui/chrome/denali-flat-edit-validation-list.tsx"
     );
@@ -94,7 +94,7 @@ describe("denali-draft-systemic-closure.spec.ts — Phase 4", () => {
     const quarantine = readWebSource("src/draft/draft-quarantine-banner.tsx");
     assert.match(quarantine, /draft-quarantine-revert/);
     const createChrome = readWebSource("src/wizard/create-tour-wizard-chrome.tsx");
-    const flatEditChrome = readWebSource("src/wizard/denali-flat-edit-chrome.tsx");
+    const flatEditChrome = readWebSource("src/wizard/flat-edit-chrome.tsx");
     assert.match(createChrome, /DraftSyncChrome/);
     assert.match(flatEditChrome, /DraftSyncChrome/);
   });
@@ -121,12 +121,12 @@ describe("denali-draft-systemic-closure.spec.ts — Phase 4", () => {
   it("WEB-P11-CLOSE-12 clear-draft contract harness + sequence module", () => {
     const contract = readFileSync(join(WEB_ROOT, "test/denali-wizard-draft-contract.spec.ts"), "utf8");
     const fixtures = readFileSync(join(WEB_ROOT, "test/helpers/denali-wizard-draft-fixtures.ts"), "utf8");
-    const sequence = readWebSource("src/draft/run-denali-wizard-clear-draft-sequence.ts");
-    const hook = readWebSource("src/draft/use-denali-wizard-clear-draft.tsx");
+    const sequence = readWebSource("src/draft/run-wizard-clear-draft-sequence.ts");
+    const hook = readWebSource("src/draft/use-wizard-clear-draft.tsx");
     assert.match(contract, /DWC-CLR-01/);
     assert.match(contract, /denali-wizard-draft-contract/);
     assert.match(fixtures, /mock-workspace-draft-server/);
-    assert.match(sequence, /runDenaliWizardClearDraftSequence/);
-    assert.match(hook, /runDenaliWizardClearDraftSequence/);
+    assert.match(sequence, /runWizardClearDraftSequence/);
+    assert.match(hook, /runWizardClearDraftSequence/);
   });
 });

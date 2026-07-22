@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { describe, it } from "node:test";
+import { describe, it, before } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { financeBookingHref } from "../src/finance/finance-booking-href";
@@ -13,14 +13,20 @@ import {
   listVisibleFinanceTabs,
   parseFinanceTab,
   resolveFinanceOpsCapabilityForHub,
+  type FinanceCommandCenterTab,
 } from "../src/finance/finance-nav-access";
 
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const DENALI_OPS = resolveFinanceOpsCapabilityForHub(null, "denali");
-assert.ok(DENALI_OPS !== null, "denali must expose finance ops capability");
-const DENALI_VISIBLE = listVisibleFinanceTabs(DENALI_OPS);
+
+let DENALI_VISIBLE: readonly FinanceCommandCenterTab[];
 
 describe("finance-page.spec.ts — Phase 9.7", () => {
+  before(async () => {
+    const ops = await resolveFinanceOpsCapabilityForHub(null, "denali");
+    assert.ok(ops !== null, "denali must expose finance ops capability");
+    DENALI_VISIBLE = listVisibleFinanceTabs(ops);
+  });
+
   it("WEB-9.7-03 command center exposes R1 + R2 tab catalog", () => {
     assert.deepEqual(FINANCE_COMMAND_CENTER_TABS, [
       "overview",
@@ -74,6 +80,19 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
     );
     assert.match(identity, /memberDisplayName/);
     assert.match(identity, /tourTitle/);
+  });
+
+  it("WEB-FC1-01 booking inspection embeds financial strip with filtered finance links", () => {
+    const bookingPage = readFileSync(
+      resolve(WEB_ROOT, "app/(app)/bookings/bookings-page-client.tsx"),
+      "utf8"
+    );
+    const strip = readFileSync(resolve(WEB_ROOT, "src/finance/booking-financial-strip.tsx"), "utf8");
+    assert.match(bookingPage, /BookingFinancialStrip/);
+    assert.match(strip, /withFinanceRegistrationQuery/);
+    assert.ok(strip.includes("/finance?tab=payments"));
+    assert.ok(strip.includes("/finance?tab=receipts"));
+    assert.match(strip, /FinanceInvoiceBalanceCard/);
   });
 
   it("WEB-9.7-07 Phase A: registration links + advanced receipt + audit framing", () => {
@@ -195,8 +214,9 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
     assert.match(ops, /FinanceOpsCapability \| null/);
     assert.match(commandCenter, /session\.pluginId/);
     assert.match(commandCenter, /resolveFinanceOpsCapabilityForHub/);
-    assert.match(commandCenter, /capability === null/);
+    assert.match(commandCenter, /capability === undefined \|\| capability === null/);
     assert.match(commandCenter, /return null/);
+    assert.match(commandCenter, /useEffect/);
     assert.doesNotMatch(enablement, /workspace-denali/);
     assert.match(enablement, /workspace-finance-nav-bindings/);
     assert.doesNotMatch(access, /workspace-denali/);
@@ -207,11 +227,11 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
     assert.doesNotMatch(operatorNav, /workspace-denali|finance-ops-panels/);
   });
 
-  it("WEB-P1.10.1-01 workspace without finance ops capability resolves to null (render nothing)", () => {
-    assert.equal(resolveFinanceOpsCapabilityForHub(null, "urban"), null);
-    assert.equal(resolveFinanceOpsCapabilityForHub(null, "starter"), null);
-    assert.equal(resolveFinanceOpsCapabilityForHub(null, "finance-ws2"), null);
-    assert.equal(resolveFinanceOpsCapabilityForHub(null, ""), null);
-    assert.ok(resolveFinanceOpsCapabilityForHub(null, "denali") !== null);
+  it("WEB-P1.10.1-01 workspace without finance ops capability resolves to null (render nothing)", async () => {
+    assert.equal(await resolveFinanceOpsCapabilityForHub(null, "urban"), null);
+    assert.equal(await resolveFinanceOpsCapabilityForHub(null, "starter"), null);
+    assert.equal(await resolveFinanceOpsCapabilityForHub(null, "finance-ws2"), null);
+    assert.equal(await resolveFinanceOpsCapabilityForHub(null, ""), null);
+    assert.ok((await resolveFinanceOpsCapabilityForHub(null, "denali")) !== null);
   });
 });

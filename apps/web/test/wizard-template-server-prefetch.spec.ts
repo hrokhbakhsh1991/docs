@@ -20,14 +20,21 @@ describe("wizard-template-server-prefetch.spec.ts", () => {
     );
     assert.match(clientSource, /initialTemplateResponse/);
     assert.match(clientSource, /initialLocationsResponse/);
-    assert.match(clientSource, /DenaliCreateTourWizardClient/);
+    assert.match(clientSource, /OperatorCreateTourWizardClient/);
 
     const denaliClientSource = readFileSync(
-      resolve(WEB_ROOT, "app/tours/new/denali-create-tour-wizard-client.tsx"),
+      resolve(WEB_ROOT, "app/tours/new/create-tour-wizard-client.tsx"),
       "utf8"
     );
-    assert.match(denaliClientSource, /DenaliWizardCatalogPrefetchProvider/);
+    assert.match(denaliClientSource, /OperatorCreateTourWizardCatalogShell/);
     assert.match(denaliClientSource, /initialLocationsResponse/);
+
+    const readySource = readFileSync(
+      resolve(WEB_ROOT, "app/tours/new/create-tour-wizard-client-ready.tsx"),
+      "utf8"
+    );
+    assert.match(readySource, /ensureWizardHostAdapters/);
+    assert.match(readySource, /resolveWizardCatalogPrefetchProvider/);
 
     const gateSource = readFileSync(
       resolve(WEB_ROOT, "src/tours/wizard-create-template-gate.ts"),
@@ -44,14 +51,18 @@ describe("wizard-template-server-prefetch.spec.ts", () => {
   });
 
   it("WIZARD-04 destination catalog hook skips first fetch when prefetched", () => {
-    const hookSource = readFileSync(
-      resolve(WEB_ROOT, "src/wizard/denali/use-denali-destination-catalog.ts"),
+    const packageHook = readFileSync(
+      resolve(
+        WEB_ROOT,
+        "../../packages/workspaces/denali/src/ui/hooks/use-destination-catalog.ts"
+      ),
       "utf8"
     );
-    assert.match(hookSource, /skipInitialFetchRef/);
-    assert.match(hookSource, /useDenaliWizardCatalogPrefetch/);
-    assert.match(hookSource, /fetchDenaliDestinationCatalogClient/);
+    assert.match(packageHook, /skipInitialFetchRef/);
+    assert.match(packageHook, /useDenaliWizardCatalogPrefetch/);
+    assert.match(packageHook, /fetchDenaliDestinationCatalogClient/);
   });
+
 
   it("WIZARD-05 flat edit page prefetches locations catalog on the server", () => {
     const pageSource = readFileSync(
@@ -68,8 +79,8 @@ describe("wizard-template-server-prefetch.spec.ts", () => {
       "utf8"
     );
     assert.match(clientSource, /initialLocationsResponse/);
-    assert.match(clientSource, /DenaliWizardCatalogPrefetchProvider/);
-    assert.match(clientSource, /DenaliFlatEditPageClient/);
+    assert.match(clientSource, /TourEditCatalogPrefetchShell|ensureWizardHostAdapters/);
+    assert.match(clientSource, /OperatorFlatEditPageClient/);
   });
 
   it("WIZARD-07 settings template page prefetches template + catalog on the server", () => {
@@ -91,7 +102,7 @@ describe("wizard-template-server-prefetch.spec.ts", () => {
     assert.match(clientSource, /initialTemplateResponse/);
     assert.match(clientSource, /initialCatalog/);
     assert.match(clientSource, /skipInitialTemplateFetchRef/);
-    assert.match(clientSource, /resolveWizardTemplateEditor/);
+    assert.match(clientSource, /ensureWizardTemplateEditor/);
     assert.doesNotMatch(clientSource, /pluginId\s*===\s*["']denali["']/);
     assert.doesNotMatch(clientSource, /@app-tour\/workspace-denali/);
   });

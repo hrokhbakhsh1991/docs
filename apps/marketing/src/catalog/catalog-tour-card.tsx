@@ -30,12 +30,12 @@ export async function CatalogTourCard({ tour, pluginId }: CatalogTourCardProps) 
   const detailHref = resolveMarketingLocalePath(`/tours/${tour.id}`, locale);
   const title = tour.title?.trim() || t("detail.untitled");
   const hasExtendedCatalogLayout = hasMarketingCatalogSurface(pluginId);
-  const summaryLine = buildCatalogListCardSummary(tour, t, { pluginId });
+  const summaryLine = await buildCatalogListCardSummary(tour, t, { pluginId });
   const description =
     !hasExtendedCatalogLayout && summaryLine == null ? formatCatalogCardDescription(tour) : null;
   const datesLine = formatCatalogCardDates(tour, dateLocale, t("detail.datesTba"));
   const categorySlug = tour.category?.trim();
-  const categoryLabel = resolveMarketingCatalogCardCategoryLabel(categorySlug, t);
+  const categoryLabel = await resolveMarketingCatalogCardCategoryLabel(categorySlug, t);
   const showPrice = shouldShowCatalogPrice(tour);
   const priceLine = showPrice
     ? formatCatalogPrice(tour.priceAmount, tour.priceCurrency, dateLocale, t("detail.priceOnRequest"))

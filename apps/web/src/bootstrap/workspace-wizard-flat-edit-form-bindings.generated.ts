@@ -4,12 +4,54 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardFlatEditFormSurface as wizard_flat_edit_form_denali } from "@app-tour/workspace-denali/host/ui/chrome/wizard-flat-edit-form-surface";
+import type { ComponentType } from "react";
 
-export const DenaliFlatEditForm = wizard_flat_edit_form_denali.FlatEditForm;
-export const DENALI_FLAT_EDIT_TEST_IDS = wizard_flat_edit_form_denali.testIds;
-export type {
-  DenaliFlatEditFormProps,
-  DenaliTourWizardDraft,
-} from "@app-tour/workspace-denali/host/ui/chrome/wizard-flat-edit-form-surface";
+export type DenaliTourWizardDraft = { readonly data: Record<string, unknown> };
+export type DenaliFlatEditFormProps = Record<string, unknown>;
 
+export type WizardFlatEditFormSurface = {
+  readonly FlatEditForm: ComponentType<any>;
+  readonly testIds: unknown;
+};
+
+const WIZARD_FLAT_EDIT_FORM_LOADERS: Readonly<
+  Record<string, () => Promise<WizardFlatEditFormSurface>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/host/ui/chrome/wizard-flat-edit-form-surface");
+    return mod.denaliWizardFlatEditFormSurface as WizardFlatEditFormSurface;
+  },
+});
+
+const wizardFlatEditFormCache = new Map<string, WizardFlatEditFormSurface>();
+
+/** Warm flat-edit form React surface via dynamic import. */
+export async function ensureWizardFlatEditFormSurface(
+  pluginId: string
+): Promise<WizardFlatEditFormSurface | null> {
+  if (pluginId.trim().length === 0) {
+    return null;
+  }
+  const cached = wizardFlatEditFormCache.get(pluginId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = WIZARD_FLAT_EDIT_FORM_LOADERS[pluginId];
+  if (load == null) {
+    return null;
+  }
+  const surface = await load();
+  wizardFlatEditFormCache.set(pluginId, surface);
+  return surface;
+}
+
+export function resolveWizardFlatEditFormSurface(
+  pluginId: string
+): WizardFlatEditFormSurface | null {
+  return wizardFlatEditFormCache.get(pluginId) ?? null;
+}
+
+/** Sync test ids from warm surface (call ensure first). */
+export function resolveDenaliFlatEditTestIds(pluginId: string): unknown {
+  return wizardFlatEditFormCache.get(pluginId)?.testIds ?? null;
+}

@@ -36,7 +36,7 @@ describe("portal-member-seo.spec.ts — PS-4", () => {
     const page = readPortal("app/catalog/[tourId]/register/page.tsx");
     assert.match(page, /resolvePortalMemberModuleUrl/);
     assert.match(page, /memberModuleHref/);
-    const flow = readPortal("app/catalog/[tourId]/register/public-catalog-registration-flow.tsx");
+    const flow = readPortal("src/catalog/public-catalog-registration-flow.tsx");
     assert.match(flow, /memberModuleHref/);
   });
 });

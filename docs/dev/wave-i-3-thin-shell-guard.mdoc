@@ -1,0 +1,51 @@
+---
+title: Wave I.3 — guard:thin-shell (forbid product workspace imports outside firewall)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-i-0-architecture-guard-matrix.mdoc
+  - docs/dev/wave-i-1-owner-settings-lazy-loader.mdoc
+  - docs/dev/wave-i-2-sdk-starter-shell.mdoc
+  - docs/dev/wave-h-denali-import-firewall.mdoc
+---
+
+# Wave I.3 — `guard:thin-shell`
+
+## Problem
+
+I.1 / I.2 removed static Urban owner-panel and starter product imports from the operator shell. Without a **machine-checked** rule, the next PR can reintroduce `@app-tour/workspace-denali|urban|…` into `apps/web` routes and wipe that progress.
+
+Hostile audit: thin shell ~35% — directory cleanup is not enough; the **import graph** must stay thin.
+
+## Decision
+
+Add `pnpm run guard:thin-shell` (`scripts/guards/guard-thin-shell.mjs`):
+
+**Scope:** `apps/web/src/**`, `apps/web/app/**` (`.ts` / `.tsx` / `.js` / `.mjs`).
+
+**Forbidden:** any `@app-tour/workspace-*` **except** `@app-tour/workspace-sdk` (static `from` / `import()` / type-only).
+
+**Allowlist (temporary until later Waves):**
+
+| Path | Why |
+| ---- | --- |
+| `**/*.generated.*` | Manifest codegen loaders (dynamic `import()` of products) |
+| `apps/web/src/workspace-theme-css.d.ts` | Ambient CSS module declarations only |
+
+~~`wizard/denali/**`~~ — **removed in Wave I.4** ([`wave-i-4-denali-adapters-codegen.mdoc`](./wave-i-4-denali-adapters-codegen.mdoc)): firewall path stays for stable imports, but must not contain product package imports.
+
+Wire into [`wave-i0:guard`](./wave-i-0-architecture-guard-matrix.mdoc) so the architecture matrix fails closed.
+
+## Out of scope
+
+- Shrinking or deleting `wizard/denali/*` (Wave I.4+)
+- Removing product packages from `apps/web/package.json`
+- Scanning `apps/web/test/**` (tests may still import products)
+
+## Verify
+
+```bash
+pnpm run guard:thin-shell
+pnpm run wave-i0:guard
+# expect PASS
+```

@@ -1,0 +1,50 @@
+---
+title: Wave H.b — Urban settings colocation + catalog out of src/urban
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-platform-tour-ops-api-base.mdoc
+  - docs/phase-8/appendices/CANLOAD-URBAN-SETTINGS.contract.ts
+---
+
+# Wave H.b — Urban settings colocation + catalog out of `src/urban`
+
+## Problem
+
+After H.a, `apps/web/src/urban/` still held product UI (`urban-owner-settings-panel`), a Phase 8 canLoad re-export, catalog fetch client, and intake idempotency helper. Audit thin-shell debt treats that folder as a product host island. The `/settings/urban` **route** itself is legitimate (manifest `operatorShell.phase3NavLinks`); the island is the `src/urban/` tree.
+
+Production grep: catalog clients and intake idempotency had **no** admin app call sites — only tests/guards — so they are safe to relocate without UX churn.
+
+## Decision
+
+1. **Colocate settings** under the route:
+   - `app/(app)/settings/urban/urban-settings-access.ts`
+   - `app/(app)/settings/urban/urban-owner-settings-panel.tsx`
+   - Page imports relative `./…`
+2. Update Phase 8 contract path constant `URBAN_SETTINGS_ACCESS_MODULE` + `phase-8-hardening-artifacts` citation to the colocated module.
+3. **Urban catalog fetch** moves to package SoT:
+   - `packages/workspaces/urban/src/catalog/fetch-urban-catalog.ts`
+   - Export via existing `./host/catalog`
+   - Delete `apps/web/src/urban/urban-catalog-client.ts`
+4. **Intake idempotency** moves to `packages/workspaces/urban/src/catalog/build-urban-intake-idempotency-key.ts`; web test imports package.
+5. Delete emptied `apps/web/src/urban/` directory.
+6. Retarget `guard:surface-cohesion` urban catalog asserts to the package file (not web shim).
+
+## Out of scope
+
+- Deleting `/settings/urban` route or changing manifest nav href (→ Wave H.i keeps path; panel moves to package)
+- Moving `src/denali/denali-catalog-client.ts` (→ Wave H.c)
+- Shrinking `wizard/denali/` (→ Wave H.d)
+
+## Verify
+
+```bash
+test ! -d apps/web/src/urban
+pnpm run guard:surface-cohesion
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/urban-owner-access.spec.ts \
+  test/urban-catalog-access.spec.ts \
+  test/build-urban-intake-idempotency-key.spec.ts \
+  test/operator-shell-nav.spec.ts \
+  test/workspace-boundary.spec.ts
+```

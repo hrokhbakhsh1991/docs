@@ -29,6 +29,18 @@ export function collectWorkspacePluginLoadCacheViolations(
   if (!generated.includes("export { invalidateWorkspacePluginLoadCache }")) {
     violations.push("generated loaders must re-export invalidateWorkspacePluginLoadCache");
   }
+  if (/SYNC_WORKSPACE_PLUGINS/.test(generated)) {
+    violations.push("generated loaders must not define SYNC_WORKSPACE_PLUGINS (P4.1 / I3 async-only)");
+  }
+  if (/resolveSyncWorkspacePluginFromRegistry/.test(generated)) {
+    violations.push("generated loaders must not export resolveSyncWorkspacePluginFromRegistry");
+  }
+  // Allow `import type` from workspace-sdk; forbid value imports of product packages.
+  if (/^import (?!type\b).+from "@app-tour\/workspace-(?!sdk")/m.test(generated)) {
+    violations.push(
+      "generated loaders must not static-import @app-tour/workspace-* product packages (use dynamic import())"
+    );
+  }
 
   const revisionMatch = generated.match(
     /export const WORKSPACE_PLUGIN_REGISTRY_REVISION = "([^"]*)"/

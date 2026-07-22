@@ -38,7 +38,7 @@ export function BookingActivityTimeline({ booking }: BookingActivityTimelineProp
   ] as const;
 
   return (
-    <ol data-denali-booking-timeline>
+    <ol data-operator-booking-timeline>
       {events.map((event, index) => (
         <li key={event.id} data-booking-timeline-item>
           <span data-booking-timeline-marker aria-hidden>

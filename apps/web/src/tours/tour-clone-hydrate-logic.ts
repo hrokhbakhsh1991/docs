@@ -1,11 +1,20 @@
 import type { WizardPhotoRemintPlanEntry, TourCloneHydrator } from "@app-tour/workspace-sdk";
 
-import { parseLocationsResponse } from "@/features/settings/locations-logic";
-import type { DestinationResource } from "@/features/settings/settings-module-types";
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { loadWorkspacePluginById } from "@/wizard/load-workspace-plugin";
 import { resolveWizardCloneRemintBffPath } from "@/wizard/resolve-wizard-clone-remint-bff-path";
+import {
+  readActiveDestinationIds,
+  readActiveEquipmentIds,
+  resolveActiveCatalogIdsFromResourcePayloads,
+} from "@/wizard/host-adapter-runtime";
+
+export {
+  readActiveDestinationIds,
+  readActiveEquipmentIds,
+  resolveActiveCatalogIdsFromResourcePayloads,
+};
 
 export const TOUR_CLONE_HYDRATE_TEST_IDS = {
   loading: "operator-tour-clone-loading",
@@ -40,24 +49,6 @@ export function shouldHydrateDraftFromRemote(
 
 export function buildCloneTourDetailUrl(tourId: string): string {
   return `/api/tours/${encodeURIComponent(tourId)}`;
-}
-
-export function readActiveEquipmentIds(
-  items: readonly { readonly id: string; readonly isActive?: boolean }[]
-): readonly string[] {
-  return items
-    .filter((item) => item.isActive !== false)
-    .map((item) => item.id.trim())
-    .filter((id) => id.length > 0);
-}
-
-export function readActiveDestinationIds(
-  items: readonly Pick<DestinationResource, "id" | "isActive">[]
-): readonly string[] {
-  return items
-    .filter((item) => item.isActive !== false)
-    .map((item) => item.id.trim())
-    .filter((id) => id.length > 0);
 }
 
 export async function loadTourCloneHydrator(pluginId: string): Promise<TourCloneHydrator | null> {
@@ -175,18 +166,16 @@ export async function hydrateCreateTourFromClone(
     throw new Error(`TOUR_CLONE_HTTP_${tourResponse.status}`);
   }
   const detail = (await tourResponse.json()) as OperatorTourDetailResponse;
-  let activeEquipmentIds: readonly string[] | undefined;
-  let activeDestinationIds: readonly string[] | undefined;
-  if (equipmentResponse.ok) {
-    const equipmentPayload = (await equipmentResponse.json()) as {
-      items?: Array<{ id: string; isActive?: boolean }>;
-    };
-    activeEquipmentIds = readActiveEquipmentIds(equipmentPayload.items ?? []);
-  }
-  if (locationsResponse.ok) {
-    const locationsPayload = parseLocationsResponse(await locationsResponse.json());
-    activeDestinationIds = readActiveDestinationIds(locationsPayload.destinations);
-  }
+  const catalogIds = resolveActiveCatalogIdsFromResourcePayloads({
+    ...(equipmentResponse.ok
+      ? { equipmentPayload: await equipmentResponse.json() }
+      : {}),
+    ...(locationsResponse.ok
+      ? { locationsPayload: await locationsResponse.json() }
+      : {}),
+  });
+  const activeEquipmentIds = catalogIds.activeEquipmentIds;
+  const activeDestinationIds = catalogIds.activeDestinationIds;
   const hydrator = await loadTourCloneHydrator(input.pluginId);
   if (hydrator == null) {
     throw new Error("TOUR_CLONE_HYDRATOR_UNAVAILABLE");

@@ -23,11 +23,21 @@ build_web_production() {
   for attempt in 1 2; do
     clean_web_next_artifacts
     if (
+      cd "${DEPLOY_PATH}"
+      if [[ "${WORKSPACE_DEPLOY_PROFILE_APPLY:-}" == "1" ]]; then
+        /usr/local/bin/pnpm run apply:deploy-profile -- --write
+      fi
       cd "${WEB_DIR}"
       export NODE_ENV=production
       export CI=true
       export NEXT_FONT_OFFLINE=1
       /usr/local/bin/pnpm exec next build
+      status=$?
+      if [[ "${WORKSPACE_DEPLOY_PROFILE_APPLY:-}" == "1" ]]; then
+        cd "${DEPLOY_PATH}"
+        /usr/local/bin/pnpm run generate:workspace-registry
+      fi
+      exit $status
     ); then
       return 0
     fi

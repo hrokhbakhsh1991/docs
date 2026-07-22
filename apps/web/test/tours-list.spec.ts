@@ -6,9 +6,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, it } from "node:test";
+import { before, describe, it } from "node:test";
 
 import { OPERATOR_WIZARD_PATH } from "../src/admin/require-operator-session";
+import { ensureTourListCategorySurface } from "../src/bootstrap/workspace-tour-list-category-bindings.generated";
 import {
   DEFAULT_TOUR_LIST_QUERY,
   parseTourListQuery,
@@ -35,6 +36,10 @@ import { formatLocalizedNumber } from "../src/i18n/format-localized-digits";
 const PLUGIN_ID = "denali";
 
 describe("tours-list.spec.ts — Phase 9.3 Web", () => {
+  before(async () => {
+    await ensureTourListCategorySurface(PLUGIN_ID);
+  });
+
   it("WEB-9.3-01 tour list exposes page landmarks (CP-9.3-L06)", () => {
     assert.equal(TOURS_LIST_TEST_IDS.page, "operator-tours-page");
     assert.equal(TOURS_LIST_TEST_IDS.list, "operator-tours-list");
@@ -186,7 +191,7 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
       join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-page-client.tsx"),
       "utf8"
     );
-    assert.match(skeleton, /DenaliSkeleton size="hero"/);
+    assert.match(skeleton, /OperatorSkeleton size="hero"/);
     assert.match(skeleton, /CardHeader/);
     assert.match(skeleton, /CardFooter/);
     assert.match(skeleton, /TOURS_LIST_TEST_IDS\.listSkeleton/);

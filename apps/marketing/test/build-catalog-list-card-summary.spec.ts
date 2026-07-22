@@ -26,7 +26,7 @@ function translate(key: string, values?: Record<string, string | number>): strin
 }
 
 describe("build-catalog-list-card-summary.spec.ts", () => {
-  it("MKT-SUM-01 computes multi-day span", () => {
+  it("MKT-SUM-01 computes multi-day span", async () => {
     assert.equal(
       computeCatalogTourDurationDays(
         "2026-07-01T08:00:00.000Z",
@@ -36,8 +36,8 @@ describe("build-catalog-list-card-summary.spec.ts", () => {
     );
   });
 
-  it("MKT-SUM-02 builds scannable denali summary line", () => {
-    const line = buildCatalogListCardSummary(
+  it("MKT-SUM-02 builds scannable denali summary line", async () => {
+    const line = await buildCatalogListCardSummary(
       {
         id: "1",
         title: "North Ridge",
@@ -59,9 +59,9 @@ describe("build-catalog-list-card-summary.spec.ts", () => {
     assert.doesNotMatch(line ?? "", /Alpine/);
   });
 
-  it("MKT-SUM-03 urban plugin keeps null summary for legacy description path", () => {
+  it("MKT-SUM-03 urban plugin keeps null summary for legacy description path", async () => {
     assert.equal(
-      buildCatalogListCardSummary({ id: "1", title: "Gig" }, translate, {
+      await buildCatalogListCardSummary({ id: "1", title: "Gig" }, translate, {
         pluginId: "urban",
       }),
       null

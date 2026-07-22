@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { before, describe, it } from "node:test";
 
 import { resolveDenaliWizardTemplateCatalogFieldMeta } from "@app-tour/workspace-denali/settings/wizard-template-catalog-meta";
 
-import { resolveWizardTemplateEditor } from "../src/bootstrap/workspace-wizard-template-editor-bindings.generated";
+import {
+  ensureWizardTemplateEditor,
+  resolveWizardTemplateEditor,
+} from "../src/bootstrap/workspace-wizard-template-editor-bindings.generated";
 import { resolveWizardTemplateFieldDisplayHintsFromMeta } from "../src/tours/wizard-template-field-display-hints";
 
 describe("wizard-template-field-display-hints.spec.ts", () => {
+  before(async () => {
+    await ensureWizardTemplateEditor("denali");
+  });
+
   const tSettings = (key: string, values?: Record<string, string | number>) => {
     if (key === "hints.optionalAtCreate") {
       return "optional";

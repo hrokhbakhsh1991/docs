@@ -2,14 +2,29 @@ import { reportWorkspacePluginBootstrapStatus } from "./workspace-plugin-bootstr
 import {
   WORKSPACE_PLUGIN_REGISTER_IDS,
   WORKSPACE_PLUGIN_REGISTER_REVISION,
-  invokeWorkspaceIntakeRegister,
-  invokeWorkspacePluginRegister,
 } from "./workspace-plugin-register-manifest.generated";
 
-type WorkspacePluginRegisterInvoker = (pluginId: string) => Promise<void>;
+export type WorkspacePluginRegisterInvoker = (pluginId: string) => Promise<void>;
 
+let boundInvokeWorkspacePluginRegister: WorkspacePluginRegisterInvoker | undefined;
+let boundInvokeWorkspaceIntakeRegister: WorkspacePluginRegisterInvoker | undefined;
 let testInvokeWorkspacePluginRegister: WorkspacePluginRegisterInvoker | undefined;
 let testInvokeWorkspaceIntakeRegister: WorkspacePluginRegisterInvoker | undefined;
+
+/**
+ * Bind app-owned per-plugin registrars (portal bootstrap). Required before safe register calls.
+ */
+export function setWorkspacePluginRegisterInvokers(
+  invokers:
+    | Readonly<{
+        readonly full?: WorkspacePluginRegisterInvoker;
+        readonly intake?: WorkspacePluginRegisterInvoker;
+      }>
+    | undefined,
+): void {
+  boundInvokeWorkspacePluginRegister = invokers?.full;
+  boundInvokeWorkspaceIntakeRegister = invokers?.intake;
+}
 
 /** @internal test-only — inject per-plugin load failures for chaos/isolation specs */
 export function __test_setWorkspacePluginRegisterInvokers(
@@ -49,6 +64,22 @@ function ensureRevision(): void {
   inflight.clear();
 }
 
+async function invokeFullRegister(pluginId: string): Promise<void> {
+  const invoker = testInvokeWorkspacePluginRegister ?? boundInvokeWorkspacePluginRegister;
+  if (invoker === undefined) {
+    throw new Error("WORKSPACE_PLUGIN_REGISTER_UNBOUND");
+  }
+  await invoker(pluginId);
+}
+
+async function invokeIntakeRegister(pluginId: string): Promise<void> {
+  const invoker = testInvokeWorkspaceIntakeRegister ?? boundInvokeWorkspaceIntakeRegister;
+  if (invoker === undefined) {
+    throw new Error("WORKSPACE_PLUGIN_REGISTER_UNBOUND");
+  }
+  await invoker(pluginId);
+}
+
 /** @internal — tests and dev tooling */
 export function resetWorkspacePluginBootstrapStateForTests(): void {
   if (process.env.NODE_ENV !== "test") {
@@ -59,6 +90,8 @@ export function resetWorkspacePluginBootstrapStateForTests(): void {
   inflight.clear();
   testInvokeWorkspacePluginRegister = undefined;
   testInvokeWorkspaceIntakeRegister = undefined;
+  boundInvokeWorkspacePluginRegister = undefined;
+  boundInvokeWorkspaceIntakeRegister = undefined;
 }
 
 export function getWorkspacePluginBootstrapStatus(
@@ -107,7 +140,7 @@ export async function registerWorkspacePluginSafe(
   const promise = (async (): Promise<WorkspacePluginBootstrapState> => {
     statusByPlugin.set(pluginId, { status: "pending", pluginId });
     try {
-      await (testInvokeWorkspacePluginRegister ?? invokeWorkspacePluginRegister)(pluginId);
+      await invokeFullRegister(pluginId);
       const ready: WorkspacePluginBootstrapState = { status: "ready", pluginId };
       statusByPlugin.set(pluginId, ready);
       emitTerminalBootstrapStatus(ready);
@@ -150,7 +183,7 @@ export async function registerWorkspaceIntakeSafe(
   const promise = (async (): Promise<WorkspacePluginBootstrapState> => {
     statusByPlugin.set(inflightKey, { status: "pending", pluginId });
     try {
-      await (testInvokeWorkspaceIntakeRegister ?? invokeWorkspaceIntakeRegister)(pluginId);
+      await invokeIntakeRegister(pluginId);
       const ready: WorkspacePluginBootstrapState = { status: "ready", pluginId };
       statusByPlugin.set(inflightKey, ready);
       emitTerminalBootstrapStatus(ready);

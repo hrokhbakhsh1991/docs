@@ -1,30 +1,28 @@
 "use client";
 
+import { isWorkspaceCommerceFrozen } from "@app-tour/workspace-sdk/metadata";
+
 export type ClubCommerceBadgeProps = {
   readonly workspaceType: string;
   readonly paymentMode?: "offline_receipt" | "gateway";
   readonly gatewayProvider?: "zibal" | "stripe" | null;
 };
 
-export function isDenaliWorkspaceType(workspaceType: string): boolean {
-  return workspaceType.trim().toLowerCase() === "denali";
-}
-
 export function shouldShowClubCommerceGatewayUi(workspaceType: string): boolean {
-  return !isDenaliWorkspaceType(workspaceType);
+  return !isWorkspaceCommerceFrozen(workspaceType);
 }
 
 /**
  * P5-C-N-006 — Super Admin commerce badge on club workspace tab.
- * Denali clubs: read-only offline_receipt (UI-02). Non-Denali: show payment mode badge.
+ * Frozen commerce workspaces (manifest): read-only offline_receipt (UI-02 · Wave H.f neutral copy).
  */
 export function ClubCommerceBadge({
   workspaceType,
   paymentMode = "offline_receipt",
   gatewayProvider = null,
 }: ClubCommerceBadgeProps) {
-  const denaliFrozen = isDenaliWorkspaceType(workspaceType);
-  const resolvedMode = denaliFrozen ? "offline_receipt" : paymentMode;
+  const commerceFrozen = isWorkspaceCommerceFrozen(workspaceType);
+  const resolvedMode = commerceFrozen ? "offline_receipt" : paymentMode;
   const gatewayUi = shouldShowClubCommerceGatewayUi(workspaceType) ? "visible" : "hidden";
 
   return (
@@ -33,13 +31,13 @@ export function ClubCommerceBadge({
       data-testid="platform-club-commerce-badge"
       data-commerce-payment-mode={resolvedMode}
       data-commerce-gateway-ui={gatewayUi}
-      data-commerce-denali-frozen={denaliFrozen ? "true" : "false"}
+      data-commerce-frozen={commerceFrozen ? "true" : "false"}
     >
       <span className="text-muted-foreground">Club payment</span>
       <span className="font-medium">{resolvedMode.replace("_", " ")}</span>
-      {denaliFrozen ? (
+      {commerceFrozen ? (
         <span className="text-muted-foreground" data-commerce-readonly-note>
-          Denali clubs use offline receipt review only.
+          Frozen commerce workspaces use offline receipt review only.
         </span>
       ) : null}
       {gatewayUi === "visible" && resolvedMode === "gateway" && gatewayProvider ? (
@@ -49,7 +47,7 @@ export function ClubCommerceBadge({
       ) : null}
       {gatewayUi === "hidden" ? (
         <span className="sr-only" data-commerce-gateway-hidden>
-          Gateway configuration hidden for Denali workspace type.
+          Gateway configuration hidden for frozen-commerce workspace type.
         </span>
       ) : null}
     </div>

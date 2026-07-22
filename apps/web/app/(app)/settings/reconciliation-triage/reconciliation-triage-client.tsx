@@ -100,7 +100,7 @@ export function ReconciliationTriageClient({
   if (!canManage) {
     return (
       <div className="space-y-6" data-testid={RECONCILIATION_TRIAGE_TEST_IDS.page}>
-        <Card data-denali-surface="card" className="shadow-sm">
+        <Card data-operator-surface="card" className="shadow-sm">
           <CardContent className="pt-6 text-sm text-muted-foreground">{t("forbidden")}</CardContent>
         </Card>
       </div>
@@ -133,7 +133,7 @@ export function ReconciliationTriageClient({
       ) : null}
 
       {!loading && error === null && !openFindings ? (
-        <Card data-denali-surface="card" data-testid={RECONCILIATION_TRIAGE_TEST_IDS.emptyState} className="shadow-sm">
+        <Card data-operator-surface="card" data-testid={RECONCILIATION_TRIAGE_TEST_IDS.emptyState} className="shadow-sm">
           <CardHeader>
             <CardTitle>{t("allClear.title")}</CardTitle>
             <CardDescription>{t("allClear.description")}</CardDescription>
@@ -149,7 +149,7 @@ export function ReconciliationTriageClient({
           {findings.map((finding) => (
             <li key={finding.id}>
               <Card
-                data-denali-surface="card"
+                data-operator-surface="card"
                 data-testid={RECONCILIATION_TRIAGE_TEST_IDS.findingCard}
                 data-finding-id={finding.id}
                 className="shadow-sm"

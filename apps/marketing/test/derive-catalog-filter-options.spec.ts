@@ -4,8 +4,8 @@ import { describe, it } from "node:test";
 import { deriveCatalogFilterOptions } from "../src/catalog/derive-catalog-filter-options";
 
 describe("derive-catalog-filter-options.spec.ts — PR-21.1 / PR-23", () => {
-  it("denali uses admin-aligned fixed filter options", () => {
-    const options = deriveCatalogFilterOptions({
+  it("denali uses admin-aligned fixed filter options", async () => {
+    const options = await deriveCatalogFilterOptions({
       pluginId: "denali",
       items: [{ id: "1", title: "A", category: "nature_day", difficultyLevel: 2 }],
       activeFilters: {
@@ -20,8 +20,8 @@ describe("derive-catalog-filter-options.spec.ts — PR-21.1 / PR-23", () => {
     assert.deepEqual(options.fitnessLevels, ["low", "medium", "high"]);
   });
 
-  it("urban derives options from batch", () => {
-    const options = deriveCatalogFilterOptions({
+  it("urban derives options from batch", async () => {
+    const options = await deriveCatalogFilterOptions({
       pluginId: "urban",
       items: [{ id: "1", title: "A", category: "concert", difficultyLevel: 2 }],
       activeFilters: { category: "theater" },

@@ -1,0 +1,53 @@
+---
+title: Wave B.b — Flat-edit loading gate + manifest client theme shells
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-b-denali-sync-resolve.mdoc
+  - docs/dev/wave-a-no-app-cloud-imports.mdoc
+---
+
+# Wave B.b — Flat-edit loading gate + manifest client theme shells
+
+## B.b.1 — Flat-edit `INITIAL_GATE`
+
+### Problem
+
+`use-flat-edit-page.ts` called `resolveDenaliSyncWorkspacePlugin()` at **module scope** to seed `INITIAL_GATE`. That forced a Denali plugin normalize solely for a loading placeholder string, before any template fetch.
+
+### Decision
+
+`INITIAL_GATE` uses `createLoadingWizardTemplateGateState("platform_default")` — a shell-neutral loading profile. The real `workspaceFormProfile` arrives from `resolveWizardTemplateGateState` after `io.loadWizardTemplatePayload()`. Unpublished fallback keeps the same neutral profile until the operator refreshes.
+
+Sync `plugin` inside the hook (draft-shell getter) remains for normalize/submit until Wave B.c (async plugin state).
+
+→ **B.c DONE:** see [`wave-b-async-flat-edit-plugin.mdoc`](./wave-b-async-flat-edit-plugin.mdoc) — client loads via `loadDenaliWorkspacePlugin`; hook takes injected `plugin`.
+
+## B.b.2 — Client bootstrap theme shells from admin theme registry
+
+### Problem
+
+`resolve-bootstrap-workspace-plugin.client.ts` hard-coded a `Map` of `denali` / `urban` / `starter` theme shells (stylesheet path literals). New workspaces with `themeStylesheets` in the manifest still fell back to starter unless this file was edited.
+
+### Decision
+
+Drive theme-shell construction from generated `WORKSPACE_ADMIN_THEME_REGISTRY` (`workspace-theme-stylesheets.generated.ts`):
+
+- `starter` → `getStarterWorkspacePlugin()` (full starter plugin; unchanged)
+- any other id present in the registry → clone starter theme shell with `id`, `supportedWorkspaceTypes: [id]`, `optionalStylesheet: sheets[0]`
+- unknown id → starter fallback
+
+No hand-maintained denali/urban functions. Drop-in: add `themeStylesheets` to manifest + regenerate.
+
+Still uses `getStarterWorkspacePlugin()` from **`@app-tour/workspace-sdk`** (reference) on the client hydrate path — **not** `@app-tour/workspace-starter` (Wave I.2). Product packages are **not** statically imported here.
+
+## Verify
+
+```bash
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/create-loading-wizard-template-gate-state.spec.ts \
+  test/resolve-bootstrap-workspace-plugin.client.spec.ts \
+  test/wizard-create-boundary.spec.ts \
+  test/workspace-boundary.spec.ts
+rg "getDenaliClientShellPlugin|DENALI_THEME_ADMIN" apps/web/src/bootstrap
+```

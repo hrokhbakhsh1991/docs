@@ -1,0 +1,49 @@
+---
+title: Wave G.b — Per-package HTTP handler load
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-g-admin-transpile-packages.mdoc
+  - docs/phase-10/subphases/10.3-http-route-registrar.md
+---
+
+# Wave G.b — Per-package HTTP handler load
+
+## Problem
+
+Hostile audit blocker #5: `loadWorkspaceHttpPackageHandlers()` (codegen) **eagerly** `await import`s every product HTTP package (denali host http, finance-http, guest-club, urban) on first call. `apps/api/src/app.ts` awaits that bag before `tryDispatchWorkspaceRoutes`, so the first workspace HTTP request pays multi-product fan-in even when only one package’s route matched.
+
+Wave C/G.a improved transpile **lists**; they do not fix this **runtime** eager load.
+
+## Decision
+
+1. Codegen emits **per-package** loaders plus a handler→package map:
+
+| Export | Role |
+| ------ | ---- |
+| `loadWorkspaceHttpHandlersForPackage(pkg)` | Dynamic `import()` **one** handler package |
+| `ensureWorkspaceHttpHandler(key)` | Resolve one handler via per-package cache |
+| `resetWorkspaceHttpHandlerPackageCache()` | Test reset |
+| `loadWorkspaceHttpPackageHandlers()` | **Compat** — loads all packages (tests / ownership proofs only) |
+
+2. Hot path (`app.ts` → registrar) uses `ensureWorkspaceHttpHandler` after route match — **not** the all-packages loader.
+3. `tryDispatchWorkspaceRoutes` takes `resolveHandler(key) => Promise<fn>` instead of a preloaded `WorkspaceRouteHandlers` bag.
+4. Guards (`guard-api-lazy-plugin-registry`, `guard-guest-api-shell`) require the per-package ensure API on the boot path and forbid `app.ts` calling `loadWorkspaceHttpPackageHandlers`.
+
+## Out of scope
+
+- Removing `loadWorkspaceHttpPackageHandlers` entirely (finance ownership specs still assert import sites in the generated file)
+- Marketplace / remote plugin discovery
+- Changing route path inventory or `HANDLER_DISPATCH_KIND`
+
+## Verify
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run guard:workspace-registry-fresh
+node scripts/guards/guard-api-lazy-plugin-registry.mjs
+node scripts/guards/guard-guest-api-shell.mjs
+node --test scripts/test/http-handler-per-package-load.spec.mjs
+pnpm --filter @apps/api exec node --import tsx --test \
+  src/workspace-finance/finance-http-handlers-ownership.spec.ts
+```

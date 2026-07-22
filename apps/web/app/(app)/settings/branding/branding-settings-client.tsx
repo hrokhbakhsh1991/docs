@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
+import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
 import { BRANDING_SETTINGS_TEST_IDS } from "@/features/settings/branding-types";
 import type { TenantBrandingServerPrefetch } from "@/features/settings/fetch-tenant-branding.server";
@@ -204,9 +204,9 @@ export function BrandingSettingsClient({
       ) : null}
 
       {loading ? (
-        <DenaliSkeleton size="panel-xl" />
+        <OperatorSkeleton size="panel-xl" />
       ) : (
-        <Card data-denali-surface="card" className="shadow-sm">
+        <Card data-operator-surface="card" className="shadow-sm">
           <CardHeader>
             <CardTitle>{t("logoSectionTitle")}</CardTitle>
             <CardDescription>{t("logoSectionDescription")}</CardDescription>

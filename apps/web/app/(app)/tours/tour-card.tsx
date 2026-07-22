@@ -16,7 +16,8 @@ import {
   formatTourPrice,
   formatTourSeats,
 } from "@/features/tours/tour-list-formatters";
-import { resolveDenaliTourDurationLabel } from "@/i18n/denali-wizard-labels";
+import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
+import { resolveWizardTourDurationLabel } from "@/wizard/wizard-label-surface-registry";
 import type { AppLocale } from "@/i18n/routing";
 
 import { TourCategoryBadge } from "@/admin/patterns/tour-category-badge";
@@ -55,7 +56,7 @@ export function TourCard({ pluginId, tour, canManage, showExtendedCard = false }
   const locale = useLocale() as AppLocale;
   const t = useTranslations("tours.card");
   const tFormat = useTranslations("tours.format");
-  const tDenali = useTranslations("denali");
+  const tWorkspace = useWorkspaceWizardTranslator(pluginId);
   const priceLabel = formatTourPrice(tour.priceAmount, tour.priceCurrency, locale);
   const departureLabel = formatTourDeparture(tour.departureAt, locale);
   const seatsLabel = formatTourSeats(tour, {
@@ -65,7 +66,9 @@ export function TourCard({ pluginId, tour, canManage, showExtendedCard = false }
   });
   const durationSlug = showExtendedCard ? resolveTourKindDuration(pluginId, tour.category) : null;
   const durationLabel =
-    durationSlug !== null ? resolveDenaliTourDurationLabel(tDenali, durationSlug) : null;
+    durationSlug !== null
+      ? resolveWizardTourDurationLabel(pluginId, tWorkspace, durationSlug)
+      : null;
 
   const metaParts = [departureLabel, priceLabel, seatsLabel].filter(
     (part): part is string => part !== null && part.length > 0
@@ -73,7 +76,7 @@ export function TourCard({ pluginId, tour, canManage, showExtendedCard = false }
 
   return (
     <Card
-      data-denali-surface="card"
+      data-operator-surface="card"
       className="flex h-full flex-col overflow-hidden shadow-sm transition-shadow"
     >
       <TourCardCover

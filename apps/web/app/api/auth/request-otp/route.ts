@@ -8,7 +8,7 @@ import {
 import { buildIdentityBffHeadersAsync } from "@/auth/identity-bff-headers";
 import { mapOperatorAuthBffCatchError } from "@/auth/operator-auth-bff-error";
 import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 type RequestOtpBody = {
   phone?: unknown;

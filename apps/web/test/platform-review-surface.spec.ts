@@ -28,14 +28,15 @@ describe("platform theme host props (P3-B-N-014)", () => {
 });
 
 describe("generated bindings EPIC exit markers", () => {
-  it("EX-03 bindings contain denali + platform keys", () => {
+  it("EX-03 bindings contain denali dynamic loader + platform eager cache", () => {
     const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
     const source = readFileSync(
       join(webRoot, "src/bootstrap/wizard-surface-bindings.generated.ts"),
       "utf8"
     );
-    assert.match(source, /"denali": composite_denali\(\)/);
-    assert.match(source, /"platform": composite_platform\(\)/);
-    assert.match(source, /"platform": review_platform\(\)/);
+    assert.match(source, /"denali":\s*async\s*\(\)\s*=>/);
+    assert.match(source, /await import\("@app-tour\/workspace-denali\/host\/ui\/composite-surface"\)/);
+    assert.match(source, /\["platform", createPlatformCompositeSurface\(\)\]/);
+    assert.match(source, /\["platform", createPlatformReviewSurface\(\)\]/);
   });
 });

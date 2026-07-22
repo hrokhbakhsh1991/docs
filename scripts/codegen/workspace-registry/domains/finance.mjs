@@ -112,8 +112,6 @@ export function assertFinanceCapabilities(m) {
  * `supported` alone must not be read as Denali-equivalent TourCreated money semantics.
  */
 export function generateWorkspaceFinanceCapabilities(manifests) {
-  /** @type {Set<string>} */
-  const importLines = new Set();
   /** @type {string[]} */
   const capabilityEntries = [];
 
@@ -129,14 +127,24 @@ export function generateWorkspaceFinanceCapabilities(manifests) {
         `workspace.manifest.json ${m.id}: workspaceFinance.supported requires tourWrite.workspaceTypeExport`
       );
     }
+    const workspaceTypes = Array.isArray(m.workspaceTypes) ? m.workspaceTypes : [];
+    if (workspaceTypes.length === 0) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: workspaceTypes required for finance capabilities`
+      );
+    }
     const caps = finance.capabilities;
-    importLines.add(`import { ${tw.workspaceTypeExport} } from "${m.package}";`);
-    capabilityEntries.push(`  [${tw.workspaceTypeExport}]: {
+    for (const wt of workspaceTypes) {
+      if (typeof wt !== "string" || wt.trim().length === 0) {
+        continue;
+      }
+      capabilityEntries.push(`  ${JSON.stringify(wt.trim().toLowerCase())}: {
     supported: true as const,
     ledgerCapture: ${caps.ledgerCapture === true ? "true" : "false"} as const,
     eventReactions: ${JSON.stringify(caps.eventReactions)} as const,
     ops: ${caps.ops === true ? "true" : "false"} as const,
   },`);
+    }
   }
 
   if (capabilityEntries.length === 0) {
@@ -178,8 +186,6 @@ export function financeWorkspaceEventReactionCapability(
   }
 
   return `${BANNER}
-${[...importLines].join("\n")}
-
 export type FinanceEventReactionCapability = "durable-outbox" | "ack-only" | "none";
 
 export type FinanceWorkspaceCapabilities = {
@@ -191,6 +197,7 @@ export type FinanceWorkspaceCapabilities = {
 
 /**
  * Capability matrix — product gate (\`supported\`) vs money-path grades.
+ * Keys are literal workspaceType strings from workspace.manifest.json (P4-D3.d — no product package imports).
  * Denali: durable-outbox TourCreated. finance-ws5: ack-only TourCreated.
  * Both may claim ledgerCapture for HTTP receipt/payment journals.
  */
@@ -201,7 +208,7 @@ ${capabilityEntries.join("\n")}
 export function getFinanceWorkspaceCapabilities(
   workspaceType: string
 ): FinanceWorkspaceCapabilities | null {
-  const key = workspaceType.trim();
+  const key = workspaceType.trim().toLowerCase();
   if (key.length === 0) {
     return null;
   }
@@ -233,8 +240,6 @@ export function financeWorkspaceEventReactionCapability(
 }
 
 export function generateWorkspaceFinanceBindings(manifests) {
-  /** @type {Set<string>} */
-  const importLines = new Set();
   /** @type {string[]} */
   const bindingBlocks = [];
 
@@ -275,14 +280,24 @@ export function generateWorkspaceFinanceBindings(manifests) {
         `workspace.manifest.json ${m.id}: workspaceFinance.supported requires tourWrite.workspaceTypeExport`
       );
     }
-    importLines.add(`import { ${tw.workspaceTypeExport} } from "${m.package}";`);
+    const workspaceTypes = Array.isArray(m.workspaceTypes) ? m.workspaceTypes : [];
+    if (workspaceTypes.length === 0) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: workspaceTypes required for finance bindings`
+      );
+    }
     const defaultField =
       finance.defaultModuleEnabledWhenUnset === true
         ? `\n    defaultModuleEnabledWhenUnset: true as const,`
         : "";
-    bindingBlocks.push(`  {
-    workspaceType: ${tw.workspaceTypeExport},${defaultField}
+    for (const wt of workspaceTypes) {
+      if (typeof wt !== "string" || wt.trim().length === 0) {
+        continue;
+      }
+      bindingBlocks.push(`  {
+    workspaceType: ${JSON.stringify(wt.trim().toLowerCase())},${defaultField}
   },`);
+    }
   }
 
   if (bindingBlocks.length === 0) {
@@ -300,8 +315,6 @@ export function isFinanceDefaultEnabledWhenModulesUnset(_workspaceType: string):
   }
 
   return `${BANNER}
-${[...importLines].join("\n")}
-
 export const WORKSPACE_FINANCE_BINDINGS = [
 ${bindingBlocks.join("\n")}
 ] as const;
@@ -317,11 +330,11 @@ const defaultEnabledWhenUnset = new Set(
 );
 
 export function isFinanceSupportedWorkspace(workspaceType: string): boolean {
-  return supportedWorkspaceTypes.has(workspaceType);
+  return supportedWorkspaceTypes.has(workspaceType.trim().toLowerCase());
 }
 
 export function isFinanceDefaultEnabledWhenModulesUnset(workspaceType: string): boolean {
-  return defaultEnabledWhenUnset.has(workspaceType);
+  return defaultEnabledWhenUnset.has(workspaceType.trim().toLowerCase());
 }
 `;
 }
@@ -354,12 +367,10 @@ export function isFinanceNavPlugin(pluginId: string): boolean {
 }
 
 /**
- * Web finance ops panel defaults — pluginId → workspace ops manifest (Phase 1.9.2).
- * Generic apps/web must resolve via these bindings; never hard-import a workspace package.
+ * Web finance ops panel defaults — pluginId → workspace ops manifest (Phase 1.9.2 / P4-D3.c).
+ * Dynamic import only — generic apps/web must never statically import workspace packages.
  */
 export function generateWorkspaceFinanceOpsBindings(manifests) {
-  /** @type {string[]} */
-  const importLines = [];
   /** @type {string[]} */
   const bindingEntries = [];
 
@@ -386,14 +397,14 @@ export function generateWorkspaceFinanceOpsBindings(manifests) {
       );
     }
     const spec = importSpecifier(m.package, ops.module);
-    const defaultAlias = `${m.id.replace(/[^a-zA-Z0-9]/g, "_")}_opsDefault`;
-    const resolveAlias = `${m.id.replace(/[^a-zA-Z0-9]/g, "_")}_opsResolveFromTheme`;
-    importLines.push(
-      `import {\n  ${ops.defaultExport} as ${defaultAlias},\n  ${ops.resolveFromThemeExport} as ${resolveAlias},\n} from "${spec}";`
-    );
     bindingEntries.push(`  ${JSON.stringify(m.id)}: {
-    defaultManifest: ${defaultAlias},
-    resolveFromTheme: ${resolveAlias},
+    loadManifest: async (theme: unknown = null) => {
+      const mod = await import(${JSON.stringify(spec)});
+      if (theme === null || theme === undefined) {
+        return mod.${ops.defaultExport};
+      }
+      return mod.${ops.resolveFromThemeExport}(theme);
+    },
   },`);
   }
 
@@ -403,14 +414,14 @@ import type { FinanceOpsCapability } from "@/finance/finance-ops-capability-cont
 
 export const WORKSPACE_FINANCE_OPS_PLUGIN_IDS = new Set<string>([]);
 
-export function hasFinanceOpsManifest(pluginId: string): boolean {
+export function hasFinanceOpsManifest(_pluginId: string): boolean {
   return false;
 }
 
-export function resolveWorkspaceFinanceOpsManifest(
+export async function resolveWorkspaceFinanceOpsManifest(
   pluginId: string,
   _theme: unknown = null
-): FinanceOpsCapability {
+): Promise<FinanceOpsCapability> {
   throw new Error(\`Finance ops capability not registered for pluginId=\${pluginId}\`);
 }
 `;
@@ -418,8 +429,6 @@ export function resolveWorkspaceFinanceOpsManifest(
 
   return `${BANNER}
 import type { FinanceOpsCapability } from "@/finance/finance-ops-capability-contract";
-
-${importLines.join("\n\n")}
 
 export const WORKSPACE_FINANCE_OPS_BINDINGS = {
 ${bindingEntries.join("\n")}
@@ -433,18 +442,15 @@ export function hasFinanceOpsManifest(pluginId: string): boolean {
   return pluginId in WORKSPACE_FINANCE_OPS_BINDINGS;
 }
 
-export function resolveWorkspaceFinanceOpsManifest(
+export async function resolveWorkspaceFinanceOpsManifest(
   pluginId: string,
   theme: unknown = null
-): FinanceOpsCapability {
+): Promise<FinanceOpsCapability> {
   const binding = WORKSPACE_FINANCE_OPS_BINDINGS[pluginId as keyof typeof WORKSPACE_FINANCE_OPS_BINDINGS];
   if (binding === undefined) {
     throw new Error(\`Finance ops capability not registered for pluginId=\${pluginId}\`);
   }
-  if (theme === null || theme === undefined) {
-    return binding.defaultManifest;
-  }
-  return binding.resolveFromTheme(theme);
+  return binding.loadManifest(theme);
 }
 `;
 }
@@ -469,12 +475,11 @@ function assertModuleExport(block, workspaceId, field) {
 }
 
 /**
- * API finance dependency factories — workspaceType → ledger + receipt defaults (Phase 1.10).
+ * API finance dependency factories — workspaceType → ledger + receipt defaults (Phase 1.10 / P4-D3.b).
+ * Dynamic import only — no static product package imports (API cold-start).
  * Booking projection stays platform-owned (not generated).
  */
 export function generateWorkspaceFinanceDependencyBindings(manifests) {
-  /** @type {string[]} */
-  const importLines = [];
   /** @type {string[]} */
   const bindingEntries = [];
 
@@ -500,29 +505,22 @@ export function generateWorkspaceFinanceDependencyBindings(manifests) {
       throw new Error(`workspace.manifest.json ${m.id}: workspaceTypes required for finance dependency bindings`);
     }
 
-    const safeId = m.id.replace(/[^a-zA-Z0-9]/g, "_");
-    const ledgerAlias = `${safeId}_LedgerPolicy`;
-    const defaultsAlias = `${safeId}_ReceiptDefaults`;
     const ledgerSpec = importSpecifier(m.package, ledger.module);
     const defaultsSpec = importSpecifier(m.package, defaults.module);
-    if (ledgerSpec === defaultsSpec && ledger.export !== defaults.export) {
-      importLines.push(
-        `import {\n  ${ledger.export} as ${ledgerAlias},\n  ${defaults.export} as ${defaultsAlias},\n} from "${ledgerSpec}";`
-      );
-    } else if (ledgerSpec === defaultsSpec) {
-      importLines.push(`import { ${ledger.export} as ${ledgerAlias} } from "${ledgerSpec}";`);
-    } else {
-      importLines.push(`import { ${ledger.export} as ${ledgerAlias} } from "${ledgerSpec}";`);
-      importLines.push(`import { ${defaults.export} as ${defaultsAlias} } from "${defaultsSpec}";`);
-    }
 
     for (const wt of workspaceTypes) {
       if (typeof wt !== "string" || wt.trim().length === 0) {
         throw new Error(`workspace.manifest.json ${m.id}: invalid workspaceType in finance dependency bindings`);
       }
       bindingEntries.push(`  ${JSON.stringify(wt.trim().toLowerCase())}: {
-    createLedgerPolicy: () => new ${ledgerAlias}(),
-    createReceiptDefaults: () => new ${defaultsAlias}(),
+    createLedgerPolicy: async () => {
+      const mod = await import(${JSON.stringify(ledgerSpec)});
+      return new mod.${ledger.export}();
+    },
+    createReceiptDefaults: async () => {
+      const mod = await import(${JSON.stringify(defaultsSpec)});
+      return new mod.${defaults.export}();
+    },
   },`);
     }
   }
@@ -542,8 +540,6 @@ export function listFinanceDependencyWorkspaceTypes(): readonly string[] {
   }
 
   return `${BANNER}
-${[...new Set(importLines)].join("\n\n")}
-
 export const WORKSPACE_FINANCE_DEPENDENCY_BINDINGS = {
 ${bindingEntries.join("\n")}
 } as const;
@@ -559,12 +555,10 @@ export function listFinanceDependencyWorkspaceTypes(): readonly string[] {
 }
 
 /**
- * TourCreated finance event reaction adapter classes (Phase 1.10).
- * Platform injects Prisma host IO at resolve time.
+ * TourCreated finance event reaction adapter classes (Phase 1.10 / P4-D3.b).
+ * Dynamic import only — platform injects Prisma host IO at resolve time.
  */
 export function generateWorkspaceFinanceEventReactionBindings(manifests) {
-  /** @type {string[]} */
-  const importLines = [];
   /** @type {string[]} */
   const bindingEntries = [];
 
@@ -582,10 +576,7 @@ export function generateWorkspaceFinanceEventReactionBindings(manifests) {
     if (workspaceTypes.length === 0) {
       throw new Error(`workspace.manifest.json ${m.id}: workspaceTypes required for eventReaction`);
     }
-    const safeId = m.id.replace(/[^a-zA-Z0-9]/g, "_");
-    const alias = `${safeId}_EventReaction`;
     const spec = importSpecifier(m.package, declared.module);
-    importLines.push(`import { ${declared.export} as ${alias} } from "${spec}";`);
 
     for (const wt of workspaceTypes) {
       if (typeof wt !== "string" || wt.trim().length === 0) {
@@ -595,12 +586,18 @@ export function generateWorkspaceFinanceEventReactionBindings(manifests) {
       if (requiresHostIo) {
         bindingEntries.push(`  ${key}: {
     requiresHostIo: true as const,
-    create: (hostIo: ConstructorParameters<typeof ${alias}>[0]) => new ${alias}(hostIo),
+    create: async (hostIo: unknown) => {
+      const mod = await import(${JSON.stringify(spec)});
+      return new mod.${declared.export}(hostIo as never);
+    },
   },`);
       } else {
         bindingEntries.push(`  ${key}: {
     requiresHostIo: false as const,
-    create: () => new ${alias}(),
+    create: async () => {
+      const mod = await import(${JSON.stringify(spec)});
+      return new mod.${declared.export}();
+    },
   },`);
       }
     }
@@ -617,8 +614,6 @@ export function isFinanceEventReactionBindingRegistered(_workspaceType: string):
   }
 
   return `${BANNER}
-${[...new Set(importLines)].join("\n\n")}
-
 export const WORKSPACE_FINANCE_EVENT_REACTION_BINDINGS = {
 ${bindingEntries.join("\n")}
 } as const;
@@ -630,12 +625,11 @@ export function isFinanceEventReactionBindingRegistered(workspaceType: string): 
 }
 
 /**
- * Chart of accounts constants — workspaceType → getAccounts() (Phase 1.10).
+ * Chart of accounts constants — workspaceType → loadAccounts() (Phase 1.10 / P4-D3.a).
+ * Dynamic import only — no static product package imports (API cold-start).
  * Required alongside ledgerPolicy/receiptDefaults when either is declared.
  */
 export function generateWorkspaceFinanceChartOfAccountsBindings(manifests) {
-  /** @type {string[]} */
-  const importLines = [];
   /** @type {string[]} */
   const bindingEntries = [];
 
@@ -664,16 +658,16 @@ export function generateWorkspaceFinanceChartOfAccountsBindings(manifests) {
     if (workspaceTypes.length === 0) {
       throw new Error(`workspace.manifest.json ${m.id}: workspaceTypes required for chartOfAccounts`);
     }
-    const safeId = m.id.replace(/[^a-zA-Z0-9]/g, "_");
-    const alias = `${safeId}_ChartOfAccounts`;
     const spec = importSpecifier(m.package, coa.module);
-    importLines.push(`import { ${coa.export} as ${alias} } from "${spec}";`);
     for (const wt of workspaceTypes) {
       if (typeof wt !== "string" || wt.trim().length === 0) {
         continue;
       }
       bindingEntries.push(`  ${JSON.stringify(wt.trim().toLowerCase())}: {
-    getAccounts: () => ${alias},
+    loadAccounts: async () => {
+      const mod = await import(${JSON.stringify(spec)});
+      return mod.${coa.export};
+    },
   },`);
     }
   }
@@ -693,8 +687,6 @@ export function listFinanceChartOfAccountsWorkspaceTypes(): readonly string[] {
   }
 
   return `${BANNER}
-${[...new Set(importLines)].join("\n\n")}
-
 export const WORKSPACE_FINANCE_CHART_OF_ACCOUNTS_BINDINGS = {
 ${bindingEntries.join("\n")}
 } as const;
@@ -705,6 +697,73 @@ export function isFinanceChartOfAccountsBindingRegistered(workspaceType: string)
 
 export function listFinanceChartOfAccountsWorkspaceTypes(): readonly string[] {
   return Object.keys(WORKSPACE_FINANCE_CHART_OF_ACCOUNTS_BINDINGS).sort();
+}
+`;
+}
+
+/**
+ * API finance registration-obligation resolvers (P3.5 / FC-2 / P4-D3.b).
+ * Dynamic import only — pure pricing binds; host adapter stays DI-neutral.
+ */
+export function generateWorkspaceFinanceObligationBindings(manifests) {
+  /** @type {string[]} */
+  const bindingEntries = [];
+
+  for (const m of manifests) {
+    const finance = m.workspaceFinance;
+    if (finance === undefined || finance.registrationObligation === undefined) {
+      continue;
+    }
+    const obligation = assertModuleExport(
+      finance.registrationObligation,
+      m.id,
+      "registrationObligation"
+    );
+    const workspaceTypes = Array.isArray(m.workspaceTypes) ? m.workspaceTypes : [];
+    if (workspaceTypes.length === 0) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: workspaceTypes required for registrationObligation`
+      );
+    }
+    const spec = importSpecifier(m.package, obligation.module);
+    for (const wt of workspaceTypes) {
+      if (typeof wt !== "string" || wt.trim().length === 0) {
+        continue;
+      }
+      bindingEntries.push(`  ${JSON.stringify(wt.trim().toLowerCase())}: {
+    loadResolve: async () => {
+      const mod = await import(${JSON.stringify(spec)});
+      return mod.${obligation.export};
+    },
+  },`);
+    }
+  }
+
+  if (bindingEntries.length === 0) {
+    return `${BANNER}
+export const WORKSPACE_FINANCE_OBLIGATION_BINDINGS = {} as const;
+
+export function isFinanceObligationBindingRegistered(_workspaceType: string): boolean {
+  return false;
+}
+
+export function listFinanceObligationWorkspaceTypes(): readonly string[] {
+  return [];
+}
+`;
+  }
+
+  return `${BANNER}
+export const WORKSPACE_FINANCE_OBLIGATION_BINDINGS = {
+${bindingEntries.join("\n")}
+} as const;
+
+export function isFinanceObligationBindingRegistered(workspaceType: string): boolean {
+  return workspaceType.trim().toLowerCase() in WORKSPACE_FINANCE_OBLIGATION_BINDINGS;
+}
+
+export function listFinanceObligationWorkspaceTypes(): readonly string[] {
+  return Object.keys(WORKSPACE_FINANCE_OBLIGATION_BINDINGS).sort();
 }
 `;
 }

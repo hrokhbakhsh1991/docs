@@ -7,7 +7,7 @@
  * C3: no @app-tour/workspace-denali imports in apps/marketing/src/catalog.
  * @see docs/architecture/platform-architecture-v2.md
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -113,6 +113,9 @@ for (const abs of walkTsFiles(API_ROOT)) {
 
 for (const rel of C2_TARGETS) {
   const abs = path.join(REPO_ROOT, rel);
+  if (!existsSync(abs)) {
+    continue;
+  }
   const lines = readFileSync(abs, "utf8").split("\n");
   for (let i = 0; i < lines.length; i += 1) {
     if (pluginIdPattern.test(lines[i])) {
@@ -123,6 +126,10 @@ for (const rel of C2_TARGETS) {
 
 for (const rel of C4_WEB_TARGETS) {
   const abs = path.join(REPO_ROOT, rel);
+  // Historical allowlist paths may have been deleted/renamed; missing files are not violations.
+  if (!existsSync(abs)) {
+    continue;
+  }
   const lines = readFileSync(abs, "utf8").split("\n");
   for (let i = 0; i < lines.length; i += 1) {
     if (isDenaliOperatorSessionPattern.test(lines[i])) {

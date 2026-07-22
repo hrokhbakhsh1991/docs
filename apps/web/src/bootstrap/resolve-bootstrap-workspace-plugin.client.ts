@@ -1,27 +1,31 @@
 /**
- * Client-safe workspace plugin resolver — no Denali clone / node:crypto graph.
- * Starter and urban resolve via codegen registry; Denali uses a lightweight shell stub.
- * @see docs/workspaces/denali/public-catalog.md — Client bootstrap (M17 P3)
+ * Client-safe workspace plugin resolver — theme shells only.
+ * Does **not** import generated loaders (avoids static product fan-in on hydrate).
+ * Theme stylesheet paths come from manifest codegen (`WORKSPACE_ADMIN_THEME_REGISTRY`).
+ * @see docs/dev/wave-b-thin-shell-bb.mdoc — Wave B.b.2
  */
 import {
   type WorkspacePlugin,
   WORKSPACE_THEME_CSS_VARIABLE,
+  getStarterWorkspacePlugin,
   workspaceThemePresets,
 } from "@app-tour/workspace-sdk";
 
-import { resolveSyncWorkspacePluginFromRegistry } from "./workspace-plugin-loaders.generated";
+import { WORKSPACE_ADMIN_THEME_REGISTRY } from "./workspace-theme-stylesheets.generated";
 
-const DENALI_THEME_ADMIN_STYLESHEET = "theme/denali-admin.css" as const;
+function getStarterClientPlugin(): WorkspacePlugin {
+  return getStarterWorkspacePlugin();
+}
 
-function getDenaliClientShellPlugin(): WorkspacePlugin {
-  const starter = resolveSyncWorkspacePluginFromRegistry("starter");
+function buildThemeShellPlugin(pluginId: string, optionalStylesheet: string): WorkspacePlugin {
+  const starter = getStarterClientPlugin();
   return {
     ...starter,
-    id: "denali",
-    supportedWorkspaceTypes: ["denali"],
+    id: pluginId,
+    supportedWorkspaceTypes: [pluginId],
     theme: {
       ...workspaceThemePresets["platform-primary"],
-      optionalStylesheet: DENALI_THEME_ADMIN_STYLESHEET,
+      optionalStylesheet,
       cssVariables: {
         [WORKSPACE_THEME_CSS_VARIABLE.colorAccent]: "var(--color-primary)",
       },
@@ -29,12 +33,19 @@ function getDenaliClientShellPlugin(): WorkspacePlugin {
   };
 }
 
-const pluginsById = new Map<string, WorkspacePlugin>([
-  ["starter", resolveSyncWorkspacePluginFromRegistry("starter")],
-  ["denali", getDenaliClientShellPlugin()],
-  ["urban", resolveSyncWorkspacePluginFromRegistry("urban")],
-]);
-
+/**
+ * Resolve a hydrate-safe plugin for the active admin `pluginId`.
+ * Unknown ids and missing theme registry rows fall back to starter.
+ */
 export function resolveBootstrapWorkspacePluginClient(pluginId: string): WorkspacePlugin {
-  return pluginsById.get(pluginId) ?? resolveSyncWorkspacePluginFromRegistry("starter");
+  const id = pluginId.trim();
+  if (id.length === 0 || id === "starter") {
+    return getStarterClientPlugin();
+  }
+  const sheets = WORKSPACE_ADMIN_THEME_REGISTRY[id];
+  const optionalStylesheet = sheets?.[0];
+  if (typeof optionalStylesheet !== "string" || optionalStylesheet.length === 0) {
+    return getStarterClientPlugin();
+  }
+  return buildThemeShellPlugin(id, optionalStylesheet);
 }

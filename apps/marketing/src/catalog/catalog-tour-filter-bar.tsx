@@ -44,15 +44,15 @@ function buildCategoryChipHref(
   })}`;
 }
 
-function resolveActiveCategoryGroup(
+async function resolveActiveCategoryGroup(
   filters: CatalogListFilters,
   pluginId: string
-): string {
+): Promise<string> {
   const category = filters.category?.trim() ?? "";
   if (category.length === 0) {
     return "";
   }
-  const surface = resolveMarketingCatalogSurface(pluginId);
+  const surface = await resolveMarketingCatalogSurface(pluginId);
   if (surface != null && surface.isCategoryGroup(category)) {
     return category;
   }
@@ -89,11 +89,21 @@ export async function CatalogTourFilterBar({
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
   const listPath = resolveMarketingLocalePath("/tours", locale);
   const formAction = listPath;
-  const activeCategoryGroup = resolveActiveCategoryGroup(filters, pluginId);
+  const activeCategoryGroup = await resolveActiveCategoryGroup(filters, pluginId);
   const filtersActive = catalogListHasActiveFilters(filters, serverListFilters);
-  const catalogSurface = resolveMarketingCatalogSurface(pluginId);
+  const catalogSurface = await resolveMarketingCatalogSurface(pluginId);
   const hasExtendedCatalogFilters = hasMarketingCatalogSurface(pluginId);
   const difficultyMax = catalogSurface?.difficultyMax ?? 10;
+  const categoryChipLabels = await Promise.all(
+    options.categories.map(async (category) => ({
+      category,
+      label: await resolveMarketingCatalogCategoryFilterLabel(category, t, pluginId),
+    }))
+  );
+  const activeCategoryLabel =
+    activeCategoryGroup.length > 0
+      ? await resolveMarketingCatalogCategoryFilterLabel(activeCategoryGroup, t, pluginId)
+      : "";
 
   return (
     <div data-marketing-catalog-toolbar>
@@ -126,7 +136,7 @@ export async function CatalogTourFilterBar({
             >
               {t("list.filters.allCategories")}
             </Link>
-            {options.categories.map((category) => (
+            {categoryChipLabels.map(({ category, label }) => (
               <Link
                 key={category}
                 href={buildCategoryChipHref(listPath, filters, category)}
@@ -136,7 +146,7 @@ export async function CatalogTourFilterBar({
                   ? { "data-marketing-catalog-category-chip-active": true }
                   : {})}
               >
-                {resolveMarketingCatalogCategoryFilterLabel(category, t, pluginId)}
+                {label}
               </Link>
             ))}
           </div>
@@ -279,7 +289,7 @@ export async function CatalogTourFilterBar({
                 data-marketing-catalog-active-filter-id="category"
               >
                 {t("list.categoryActive", {
-                  category: resolveMarketingCatalogCategoryFilterLabel(activeCategoryGroup, t, pluginId),
+                  category: activeCategoryLabel,
                 })}
               </Link>
             ) : null}

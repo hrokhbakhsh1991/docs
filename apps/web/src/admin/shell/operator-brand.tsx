@@ -18,7 +18,9 @@ export function OperatorBrand({ workspaceLabel, pluginId, displayName }: Operato
   const t = useTranslations("app");
   const usesExtendedCreateChrome = WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(pluginId);
   const title = useTenantBrandTitle(displayName, workspaceLabel);
-  const tagline = usesExtendedCreateChrome ? t("denaliTagline") : t("operatorWorkspace");
+  const tagline = usesExtendedCreateChrome
+    ? t("extendedCreateChromeTagline")
+    : t("operatorWorkspace");
 
   return (
     <div

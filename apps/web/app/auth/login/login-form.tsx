@@ -33,7 +33,7 @@ import { navigateAfterLogin } from "@/auth/navigate-after-auth-session-change";
 type Step = "phone" | "otp";
 
 const RESEND_COOLDOWN_SEC = 45;
-/** Denali dev owner — ASCII in state/API; LocalizedNumericInput shows Persian digits when locale is fa. */
+/** Dev owner login — ASCII in state/API; LocalizedNumericInput shows Persian digits when locale is fa. */
 const DEV_LOGIN_PHONE =
   process.env.NEXT_PUBLIC_DEV_LOGIN_PHONE?.trim() || "+989190082452";
 const DEV_LOGIN_OTP = process.env.NEXT_PUBLIC_DEV_LOGIN_OTP?.trim() || "1234";

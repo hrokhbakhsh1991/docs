@@ -6,23 +6,25 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
-describe("portal member login page — PCMS-03-LOGIN", () => {
-  it("PCMS-LOGIN-01 dedicated /login route exists", () => {
+describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
+  it("PCMS-LOGIN-01 thin /login host auto-opens login modal", () => {
     const page = readFileSync(join(repoRoot, "apps/portal/app/login/page.tsx"), "utf8");
-    assert.match(page, /PortalAuthExperienceShell/);
-    assert.match(page, /pageKind="login"/);
+    assert.match(page, /data-portal-member-login-page/);
+    assert.match(page, /data-member-login-egress/);
+    assert.match(page, /data-portal-return/);
+    assert.match(page, /PortalLoginModalOpener/);
+    assert.match(page, /host="login"/);
     assert.match(page, /loginPageTitle/);
-    assert.match(page, /PublicCatalogRegistrationFlow/);
-    assert.match(page, /memberLoginEgress/);
   });
 
-  it("PCMS-LOGIN-02 register page redirects portalReturn to /login", () => {
+  it("PCMS-LOGIN-02 register page redirects legacy portalReturn to /login", () => {
     const page = readFileSync(
       join(repoRoot, "apps/portal/app/catalog/[tourId]/register/page.tsx"),
       "utf8"
     );
     assert.match(page, /redirect\(`\/login\?portalReturn=/);
-    assert.doesNotMatch(page, /data-member-login-egress/);
+    assert.match(page, /PortalRegisterSignInLink/);
+    assert.match(page, /auth === "login"/);
   });
 
   it("PCMS-LOGIN-03 shared auth shell exposes stable data hooks", () => {
@@ -37,10 +39,25 @@ describe("portal member login page — PCMS-03-LOGIN", () => {
     assert.match(shell, /data-portal-member-login-page/);
   });
 
-  it("PCMS-LOGIN-04 login page canonicalizes portalReturn and redirects existing session", () => {
-    const page = readFileSync(join(repoRoot, "apps/portal/app/login/page.tsx"), "utf8");
-    assert.match(page, /resolvePortalMemberLoginPath/);
-    assert.match(page, /readPublicCatalogSessionFromCookies/);
-    assert.match(page, /"data-portal-return": portalReturn/);
+  it("PCMS-LOGIN-05 flow receives SSR-stable memberLoginEgress prop (no window during render)", () => {
+    const flow = readFileSync(
+      join(repoRoot, "apps/portal/src/catalog/public-catalog-registration-flow.tsx"),
+      "utf8"
+    );
+    assert.match(flow, /memberLoginEgress/);
+    assert.doesNotMatch(flow, /isMemberLoginEgressFromLocation/);
+  });
+
+  it("MEM-LOGIN-MODAL-01 provider wires dialog hooks", () => {
+    const modal = readFileSync(join(repoRoot, "apps/portal/src/auth/portal-login-modal.tsx"), "utf8");
+    const providers = readFileSync(
+      join(repoRoot, "apps/portal/src/shell/portal-providers.tsx"),
+      "utf8"
+    );
+    assert.match(modal, /data-portal-login-modal/);
+    assert.match(modal, /data-portal-login-modal-presentation/);
+    assert.match(modal, /data-portal-login-modal-host/);
+    assert.match(modal, /memberLoginStayOnPage/);
+    assert.match(providers, /PortalLoginModalProvider/);
   });
 });

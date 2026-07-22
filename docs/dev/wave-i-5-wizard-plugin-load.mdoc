@@ -1,0 +1,59 @@
+---
+title: Wave I.5 — Neutral wizard plugin load/resolve (drop loadDenali* shell names)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-i-4-denali-adapters-codegen.mdoc
+  - docs/dev/wave-b-denali-sync-resolve.mdoc
+---
+
+# Wave I.5 — Neutral wizard plugin load / resolve
+
+## Problem
+
+After I.4, `wizard/denali/` no longer imports product packages, but the **shell still speaks Denali** for the universal plugin load path:
+
+| Symbol | File |
+| ------ | ---- |
+| `resolveDenaliSyncWorkspacePlugin` | `wizard/denali/resolve-sync-workspace-plugin.ts` |
+| `loadDenaliWorkspacePlugin` | same |
+
+Create + flat-edit call these as if only Denali exists. The implementation already delegates to draft-shell / `loadWorkspacePluginByIdFromRegistry` — the Denali brand is false coupling.
+
+## Decision
+
+1. Move module to [`apps/web/src/wizard/resolve-wizard-workspace-plugin.ts`](../../apps/web/src/wizard/resolve-wizard-workspace-plugin.ts) (out of the denali firewall folder).
+2. Rename:
+
+| Before | After |
+| ------ | ----- |
+| `resolveDenaliSyncWorkspacePlugin` | `resolveWizardSyncWorkspacePlugin` |
+| `loadDenaliWorkspacePlugin` | `loadWizardWorkspacePlugin(pluginId?)` |
+
+3. `loadWizardWorkspacePlugin` defaults `pluginId` to `DENALI_PLUGIN_ID` until create/edit pass session `pluginId` — **done in** [`wave-i-6-session-plugin-load.mdoc`](./wave-i-6-session-plugin-load.mdoc). Sync resolve still uses draft-shell Denali getter (generated) until multi-workspace draft-shell exists.
+4. Update create/flat-edit call sites + boundary specs; **delete** `wizard/denali/resolve-sync-workspace-plugin.ts`.
+
+## Out of scope
+
+- Renaming `getDenaliWorkspacePluginFromDraftShell` (codegen)
+- Passing session `pluginId` into every load site → **Wave I.6**; create still used sync Denali until **Wave I.9**
+- Removing denali from `package.json` → first peel [`wave-i-7-host-install-classification.mdoc`](./wave-i-7-host-install-classification.mdoc)
+
+
+## Status
+
+**DONE** — module + renames landed; `wizard/denali/` is adapters + `workspace-plugin-id` only.
+
+## Verify
+
+```bash
+rg 'loadDenaliWorkspacePlugin|resolveDenaliSyncWorkspacePlugin|resolve-sync-workspace-plugin' \
+  apps/web --glob '!**/*.generated.*'
+# expect empty in apps/web src/app (tests may assert absence)
+pnpm run wave-i0:guard
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-i-5-wizard-plugin-load.spec.ts \
+  test/workspace-boundary.spec.ts \
+  test/p2-d4-flat-edit-io.spec.ts \
+  test/wave-h-denali-wizard-adapters.spec.ts
+```

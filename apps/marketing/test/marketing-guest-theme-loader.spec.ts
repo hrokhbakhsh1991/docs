@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const bootstrapPath = join(
   repoRoot,
-  "apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+  "packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.marketing.generated.ts"
 );
 const layoutPath = join(repoRoot, "apps/marketing/app/layout.tsx");
 

@@ -8,7 +8,7 @@ import { setSessionCookieOnResponse } from "@/auth/build-session-cookie";
 import { setOperatorWelcomeArmedCookieOnResponse } from "@/auth/operator-welcome-cookie";
 import { normalizeOtpDigits } from "@/features/auth/otp-segment-input.logic";
 import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 type LoginPayload = {
   phone?: unknown;

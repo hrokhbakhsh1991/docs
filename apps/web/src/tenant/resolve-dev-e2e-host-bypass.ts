@@ -1,8 +1,11 @@
-/** Phase 8.4 urban smoke hosts — sync `dev-host-session-profiles.ts` DEV_HOST_SESSION_PROFILES. */
-const DEV_E2E_MIDDLEWARE_BYPASS_HOSTS = new Set(["urban-owner", "urban-member"]);
+/** Phase 8.4 product smoke hosts — sync `dev-host-session-profiles.ts` DEV_HOST_SESSION_PROFILES. */
+const DEV_E2E_MIDDLEWARE_BYPASS_HOSTS = new Set([
+  "workspace-owner-smoke",
+  "workspace-member-smoke",
+]);
 
 /**
- * Dev-only: allow Playwright urban smoke to reach page-level CASL guards without owner cookie.
+ * Dev-only: allow Playwright product smoke to reach page-level CASL guards without owner cookie.
  * Edge middleware may not receive `ALLOW_DEV_WEB_SESSION`; `*.localhost` labels are dev-only.
  */
 export function shouldBypassMiddlewareForDevE2eHost(host: string): boolean {

@@ -1,4 +1,4 @@
-import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
+import { getStarterWorkspacePlugin } from "@app-tour/workspace-sdk";
 import {
   PLATFORM_GENERIC_RENDERER_IDS,
   stripWorkspacePluginToDefinitionPayload,

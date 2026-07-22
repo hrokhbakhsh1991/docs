@@ -1,0 +1,93 @@
+# Gap Closure E.4b — workspace onboard proof (guest-club first).
+# Fast path: frozen install + contract / package build / guest guards.
+# Does NOT run phase-*:gate / test:full / ci:integrity.
+# @see docs/dev/saas-platform-remediation.mdoc
+
+name: gap-closure-e4b
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "scripts/workspace-onboard.mjs"
+      - "scripts/workspace-create.mjs"
+      - "scripts/print-workspace-onboard-plan.mjs"
+      - "scripts/codegen/workspace-registry/**"
+      - "scripts/generate-workspace-registry.mjs"
+      - "scripts/guards/guard-workspace-onboard-contract.mjs"
+      - "scripts/test/gap-closure-acme-scaffold-acceptance.spec.mjs"
+      - "scripts/ci/gap-closure-e4b*.sh"
+      - "scripts/ci/gap-closure-e4b*.mjs"
+      - "packages/workspaces/guest-club/**"
+      - "docs/dev/saas-platform-remediation.mdoc"
+      - ".github/workflows/gap-closure-e4b.yml"
+  push:
+    branches:
+      - main
+      - DEV
+    paths:
+      - "scripts/workspace-onboard.mjs"
+      - "scripts/workspace-create.mjs"
+      - "scripts/ci/gap-closure-e4b*.sh"
+      - "scripts/ci/gap-closure-e4b*.mjs"
+      - "packages/workspaces/guest-club/**"
+      - ".github/workflows/gap-closure-e4b.yml"
+
+concurrency:
+  group: gap-closure-e4b-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e4b-a-contract:
+    name: E.4b-a contract-only (guest-club)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Onboard contract-only
+        run: pnpm run workspace:onboard -- guest-club --guest --skip-install --contract-only
+
+  e4b-b-c-package:
+    name: E.4b-b/c build+test+guest guards (guest-club)
+    needs: e4b-a-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Build SDK for guards
+        run: pnpm run build:workspace-sdk-for-guards
+      - name: Onboard from build (guest)
+        run: pnpm run workspace:onboard -- guest-club --guest --from=build
+
+  e4b-d-create:
+    name: E.4b-d disposable create proof
+    needs: e4b-b-c-package
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Build SDK for disposable package build
+        run: pnpm run build:workspace-sdk-for-guards
+      - name: Disposable create → contract → optional package build
+        run: bash scripts/ci/gap-closure-e4b-create.sh --package-build

@@ -1,0 +1,51 @@
+---
+title: Wave F.a — Shell i18n denali decoupling
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-e-encapsulation-guards.mdoc
+  - docs/dev/wave-b-thin-shell-bb.mdoc
+---
+
+# Wave F.a — Shell i18n Denali decoupling
+
+## Path choice (post-audit)
+
+Hostile audit blocker #1 / smoking gun: `apps/web/src/i18n/wizard-labels.ts` and `format-canonical-path-label.ts` make **platform i18n** look like a Denali host surface.
+
+Wave F continues thin-shell work (outcome lever ~35% → higher). This tranche is the smallest honest cut:
+
+1. Move **neutral** `formatCanonicalPathToLabel` into `@app-tour/workspace-sdk` (no product semantics).
+2. Relocate Denali-named label adapters from `apps/web/src/i18n/` to `apps/web/src/wizard/denali/` (product adapter folder).
+3. Keep Denali package adapters as SoT for Denali-specific resolvers; web barrel only re-exports from there under `wizard/denali`.
+
+## Decision
+
+| Before | After |
+| ------ | ----- |
+| `i18n/format-canonical-path-label.ts` → denali host | Local platform util in `i18n/` (same algorithm as sdk) |
+| `i18n/wizard-labels.ts` Denali barrel in platform i18n | `wizard/denali/wizard-labels.ts` product barrel |
+| No sdk copy of formatter | `@app-tour/workspace-sdk` exports `formatCanonicalPathToLabel` for shared SoT |
+
+Web keeps a **local** formatter implementation so Node tests do not require a rebuilt sdk `dist`. Denali host adapters keep a matching local copy (package-local, not shell import).
+
+## Process unlock (F.a.1)
+
+`guard:p3-denali-covenant` forbade edits to `denali.plugin.ts`. That ratchet conflicts with the `./plugin` contract surface (Wave D). Remove `src/denali.plugin.ts` from the forbidden file set; keep metadata SoT freezes (`field-registry/`, `rules/`, `composites/`, `denali-plugin-adapter.ts`).
+
+## Out of scope (later F slices)
+
+- ~~Retarget tour UI off `resolveDenali*` toward plugin-id registry only~~ → [`wave-f-tour-ui-label-registry.mdoc`](./wave-f-tour-ui-label-registry.mdoc)
+- ~~Manifest-driven commerce freeze (API `workspaceType === "denali"`)~~ → [`wave-f-commerce-freeze.mdoc`](./wave-f-commerce-freeze.mdoc)
+- ~~Delete `wizard/denali` label re-export barrel~~ → [`wave-f-denali-label-barrel.mdoc`](./wave-f-denali-label-barrel.mdoc)
+
+## Verify
+
+```bash
+rg '@app-tour/workspace-denali' apps/web/src/i18n
+pnpm run guard:p3-denali-covenant
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wizard-template-field-labels.spec.ts \
+  test/wizard-host-boundary.spec.ts \
+  test/workspace-boundary.spec.ts
+```

@@ -6,6 +6,15 @@ const monorepoGuardExclude =
       }
     : undefined;
 
+/** P5.2 / P5.2.b — workspace dirs from manifests (keeps web+API rules aligned with loaders). */
+const {
+  DEPCRUISE_WEB_WORKSPACES_NEGATIVE_LOOKAHEAD,
+  DEPCRUISE_WEB_WORKSPACES_ALLOW_ALT,
+  DEPCRUISE_API_WORKSPACES_ALLOW_ALT,
+  DEPCRUISE_API_PRODUCT_WORKSPACES_ALT,
+  DEPCRUISE_API_PLUGIN_REGISTRY_FROM_PATH_NOT,
+} = require("./scripts/codegen/workspace-registry/generated/manifest-boundary-allowlist.generated.cjs");
+
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
@@ -142,10 +151,12 @@ module.exports = {
     {
       name: "apps-web-no-workspaces-except-starter",
       comment:
-        "Web shell: starter always; denali/urban only via workspace-plugin-loaders.generated.ts (Phase 10.2)",
+        "Web shell: product trunk workspaces via loaders only — dirs from manifest-boundary-allowlist.generated.cjs (P5.2)",
       severity: "error",
       from: { path: "^apps/web" },
-      to: { path: "^packages/workspaces/(?!starter|denali|urban|guest-club)" },
+      to: {
+        path: `^packages/workspaces/(?!${DEPCRUISE_WEB_WORKSPACES_NEGATIVE_LOOKAHEAD})`,
+      },
     },
     {
       name: "workspace-starter-no-apps",
@@ -173,11 +184,11 @@ module.exports = {
     {
       name: "apps-web-allowed-packages",
       comment:
-        "Web shell Phase 3+ / 4+ / 19+ allowed packages (denali/urban lazy chunk; tenant-kernel + session-client + guest-surface-host for WRS/PCMS)",
+        "Web shell Phase 3+ / 4+ / 19+ allowed packages; workspace dirs from manifest-boundary-allowlist.generated.cjs (P5.2)",
       severity: "error",
       from: { path: "^apps/web" },
       to: {
-        path: "^packages/(?!design-tokens|platform-core|theme-react|ui-primitives|workspace-sdk|draft-engine|wizard-navigation|tenant-kernel|session-client|guest-surface-host|workspaces/starter|workspaces/denali|workspaces/urban|workspaces/guest-club|config)",
+        path: `^packages/(?!design-tokens|platform-core|theme-react|ui-primitives|workspace-sdk|draft-engine|wizard-navigation|tenant-kernel|session-client|guest-surface-host|${DEPCRUISE_WEB_WORKSPACES_ALLOW_ALT}|config)`,
       },
     },
     {
@@ -197,25 +208,24 @@ module.exports = {
     {
       name: "apps-api-workspace-plugin-registry-only",
       comment:
-        "Phase 10.2 — eager workspace plugin packages only via workspace-plugin-registry.generated.ts",
+        "Phase 10.2 / P5.2.b / P5.2.c — eager product workspace packages only via generated/allowlisted API paths (pathNot + ids from manifest-boundary-allowlist)",
       severity: "error",
       from: {
         path: "^apps/api/src",
-        pathNot:
-          "(workspace-plugin-registry\\.generated|workspace-tour-write-bindings\\.generated|\\.spec\\.ts$|denali-finance|workspace-finance|urban|canonical|internal/provisioning|settings/|tours/|tenant/tenant-branding-storage)",
+        pathNot: DEPCRUISE_API_PLUGIN_REGISTRY_FROM_PATH_NOT,
       },
       to: {
-        path: "^packages/workspaces/(starter|denali|urban)(/plugin)?(/|$)",
+        path: `^packages/workspaces/(${DEPCRUISE_API_PRODUCT_WORKSPACES_ALT})(/plugin)?(/|$)`,
       },
     },
     {
       name: "apps-api-allowed-packages",
       comment:
-        "Phase 3.2+ / 6.5 / 7.3 / 10 API allowed workspace dependencies (starter + denali + urban + guest-club plugin registry)",
+        "Phase 3.2+ / P5.2.b — API allowed workspace dirs from all manifests (incl. registryOnly finance fixtures)",
       severity: "error",
       from: { path: "^apps/api" },
       to: {
-        path: "^packages/(?!workspace-sdk|platform-core|platform-events|tenant-kernel|finance-core|finance-http|finance-http-contracts|booking-http-contracts|workspaces/starter|workspaces/denali|workspaces/urban|workspaces/guest-club|workspaces/finance-ws2|workspaces/finance-ws3|workspaces/finance-ws4|workspaces/booking-ws2|config)",
+        path: `^packages/(?!workspace-sdk|platform-core|platform-events|tenant-kernel|finance-core|finance-http|finance-http-contracts|booking-http-contracts|${DEPCRUISE_API_WORKSPACES_ALLOW_ALT}|config)`,
       },
     },
     {

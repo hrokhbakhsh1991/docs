@@ -218,7 +218,7 @@ async function fillDenaliDatetimeField(
   await expect(host).toBeVisible();
 
   // 1. Set Date
-  await host.locator("[data-denali-date-picker]").click();
+  await host.locator("[data-operator-date-picker]").click();
   const calendar = page.locator('[data-testid="localized-calendar"]');
   await expect(calendar).toBeVisible({ timeout: 10_000 });
   
@@ -230,12 +230,12 @@ async function fillDenaliDatetimeField(
   }
 
   // 2. Set Time (last button inside the control)
-  await host.locator(".denali-wizard-datetime__control button").last().click();
-  const picker = page.locator("[data-denali-wizard-time-picker]");
+  await host.locator(".operator-wizard-datetime__control button").last().click();
+  const picker = page.locator("[data-operator-wizard-time-picker]");
   await expect(picker).toBeVisible({ timeout: 10_000 });
   
   await picker.locator(`[data-time-option="${hourStr}"]`).first().click();
-  await picker.locator(".denali-time-picker__column").last().locator(`[data-time-option="${minuteStr}"]`).click();
+  await picker.locator(".operator-time-picker__column").last().locator(`[data-time-option="${minuteStr}"]`).click();
   
   // Close popover
   await page.keyboard.press("Escape");

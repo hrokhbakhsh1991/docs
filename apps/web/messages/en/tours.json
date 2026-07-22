@@ -67,7 +67,7 @@
   "shell": {
     "home": "Home",
     "catalog": "Catalog",
-    "urbanSettings": "Urban settings"
+    "workspaceOwnerSettings": "Workspace owner settings"
   },
   "nav": {
     "backToTours": "Back to tours",

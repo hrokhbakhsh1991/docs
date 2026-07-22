@@ -1,0 +1,49 @@
+---
+title: Wave I.2 — Shell uses SDK starter reference (drop static workspace-starter imports)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-i-1-owner-settings-lazy-loader.mdoc
+  - docs/dev/wave-b-thin-shell-bb.mdoc
+---
+
+# Wave I.2 — SDK starter for shell (no static `@app-tour/workspace-starter`)
+
+## Problem
+
+After I.1, `apps/web` production source still had **static** product imports of starter:
+
+| File | Why |
+| ---- | --- |
+| `bootstrap/workspace-plugins.ts` | bootstrap plugin list |
+| `bootstrap/resolve-bootstrap-workspace-plugin.client.ts` | client theme shells (Wave B.b.2) |
+| `platform/workspace-builder/builder-draft-state.ts` | builder empty draft base |
+| `platform/workspace-builder/build-preview-plugin-from-draft.ts` | preview overlay |
+
+Wave B.b documented the client hydrate constraint (no generated loaders on client) but still imported the **product package**. `@app-tour/workspace-sdk` already exports the **reference** `getStarterWorkspacePlugin()` (`reference/starter-workspace.plugin.ts`) — kernels must stay free of workspace packages; the shell should use that reference, not `@app-tour/workspace-starter`.
+
+## Decision
+
+1. Replace every static `from "@app-tour/workspace-starter"` in `apps/web/src/**` (non-generated) with `from "@app-tour/workspace-sdk"`.
+2. Keep `@app-tour/workspace-starter` in `apps/web/package.json` — generated plugin/theme loaders still `import()` it (install isolation later).
+3. Keep `workspace-theme-css.d.ts` module declarations for starter CSS paths.
+4. Tests may still import the product package; production shell must not.
+
+## Out of scope
+
+- Removing starter from `package.json` / IgnorePlugin
+- Collapsing `wizard/denali/*`
+- `guard:thin-shell` → [`wave-i-3-thin-shell-guard.mdoc`](./wave-i-3-thin-shell-guard.mdoc) (Wave I.3)
+- Unifying sdk reference vs package starter identity (they already share the reference pattern; loader still uses package entry)
+
+## Verify
+
+```bash
+rg 'from ["'\'']@app-tour/workspace-starter["'\'']' apps/web/src apps/web/app \
+  --glob '!**/*.generated.*'
+# expect empty
+pnpm run wave-i0:guard
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-i-2-sdk-starter-shell.spec.ts \
+  test/resolve-bootstrap-workspace-plugin.client.spec.ts
+```

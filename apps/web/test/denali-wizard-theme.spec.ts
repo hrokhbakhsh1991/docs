@@ -70,13 +70,13 @@ describe("denali-wizard-theme.spec.ts", () => {
 
   it("WEB-DENALI-WIZARD-11 wizard datetime BEM + bridge primitive toggle (WZ-P1)", () => {
     const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
-    assert.match(fields, /\[data-denali-wizard-datetime\]/);
-    assert.match(fields, /denali-wizard-datetime__control/);
-    assert.match(fields, /\[data-denali-time-picker\]/);
-    assert.match(fields, /denali-time-picker-trigger/);
+    assert.match(fields, /\[data-operator-wizard-datetime\]/);
+    assert.match(fields, /operator-wizard-datetime__control/);
+    assert.match(fields, /\[data-operator-time-picker\]/);
+    assert.match(fields, /operator-time-picker-trigger/);
     const calendar = readFileSync(join(DENALI_THEME_DIR, "wizard-calendar.css"), "utf8");
-    assert.match(calendar, /\[data-denali-wizard-time-popover\]/);
-    assert.match(calendar, /denali-time-picker__column/);
+    assert.match(calendar, /\[data-operator-wizard-time-popover\]/);
+    assert.match(calendar, /operator-time-picker__column/);
     const skin = readFileSync(join(DENALI_THEME_DIR, "wizard-skin.css"), "utf8");
     assert.match(skin, /wizard-bridge-shell__theme-toggle/);
     assert.match(skin, /--color-surface:\s*var\(--color-bg-surface\)/);
@@ -87,9 +87,9 @@ describe("denali-wizard-theme.spec.ts", () => {
       ),
       "utf8"
     );
-    assert.match(datetimePicker, /denali-wizard-datetime/);
-    assert.match(datetimePicker, /data-denali-wizard-datetime/);
-    assert.match(datetimePicker, /denali-wizard-datetime__control/);
+    assert.match(datetimePicker, /operator-wizard-datetime/);
+    assert.match(datetimePicker, /data-operator-wizard-datetime/);
+    assert.match(datetimePicker, /operator-wizard-datetime__control/);
     assert.match(datetimePicker, /appearance="inline"/);
     const bridge = readFileSync(
       join(import.meta.dirname, "../src/shell/wizard-bridge-shell.tsx"),
@@ -107,16 +107,16 @@ describe("denali-wizard-theme.spec.ts", () => {
       "utf8"
     );
     assert.match(shellDatetimePicker, /layout === "wizard"/);
-    assert.match(shellDatetimePicker, /DenaliWizardDatetimePicker/);
+    assert.match(shellDatetimePicker, /WorkspaceWizardDatetimePicker/);
   });
 
   it("WEB-DENALI-WIZARD-10 portal calendar skin is body-scoped (WZ-P0)", () => {
     const calendarCss = readFileSync(join(DENALI_THEME_DIR, "wizard-calendar.css"), "utf8");
-    assert.match(calendarCss, /\[data-denali-wizard-calendar\]/);
+    assert.match(calendarCss, /\[data-operator-wizard-calendar\]/);
     assert.match(calendarCss, /button\[aria-pressed="true"\]/);
     assert.match(
       calendarCss,
-      /--denali-wizard-calendar-primary:\s*var\(--color-primary\)/
+      /--operator-wizard-calendar-primary:\s*var\(--color-primary\)/
     );
     const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
     assert.doesNotMatch(fields, /data-selected="true"/);
@@ -127,17 +127,17 @@ describe("denali-wizard-theme.spec.ts", () => {
       ),
       "utf8"
     );
-    assert.match(calendar, /data-denali-wizard-calendar/);
+    assert.match(calendar, /data-operator-wizard-calendar/);
     const picker = readFileSync(
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/components/localized-date-picker.tsx"),
       "utf8"
     );
-    assert.match(picker, /data-denali-wizard-calendar-popover/);
-    assert.match(calendarCss, /denali-wizard-calendar__grid/);
-    assert.match(calendarCss, /denali-wizard-calendar__picker-grid/);
-    assert.match(calendarCss, /denali-wizard-calendar__title-btn/);
-    assert.match(calendarCss, /denali-wizard-calendar__day--disabled/);
-    assert.match(calendarCss, /denali-wizard-calendar__day--today:not\(\[aria-pressed="true"\]\)/);
+    assert.match(picker, /data-operator-wizard-calendar-popover/);
+    assert.match(calendarCss, /operator-wizard-calendar__grid/);
+    assert.match(calendarCss, /operator-wizard-calendar__picker-grid/);
+    assert.match(calendarCss, /operator-wizard-calendar__title-btn/);
+    assert.match(calendarCss, /operator-wizard-calendar__day--disabled/);
+    assert.match(calendarCss, /operator-wizard-calendar__day--today:not\(\[aria-pressed="true"\]\)/);
   });
 
   it("WEB-DENALI-WIZARD-16 social media kind toggle BEM", () => {
@@ -147,7 +147,7 @@ describe("denali-wizard-theme.spec.ts", () => {
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/fields/denali-social-media-link-field.tsx"),
       "utf8"
     );
-    assert.match(social, /data-denali-social-media-link/);
+    assert.match(social, /data-operator-social-media-link/);
     const registry = readFileSync(
       join(REPO_ROOT, "packages/workspaces/denali/src/composites/denali-composite-registry.ts"),
       "utf8"
@@ -163,7 +163,7 @@ describe("denali-wizard-theme.spec.ts", () => {
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/fields/denali-leader-user-ids-field.tsx"),
       "utf8"
     );
-    assert.match(leaders, /data-denali-leader-picker/);
+    assert.match(leaders, /data-operator-leader-picker/);
     assert.doesNotMatch(leaders, /Checkbox/);
   });
 
@@ -174,7 +174,7 @@ describe("denali-wizard-theme.spec.ts", () => {
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/fields/denali-photos-field.tsx"),
       "utf8"
     );
-    assert.match(photos, /data-denali-wizard-photo-grid/);
+    assert.match(photos, /data-operator-wizard-photo-grid/);
   });
 
   it("WEB-DENALI-WIZARD-20 select chevron inset for RTL wizard fields", () => {
@@ -204,19 +204,19 @@ describe("denali-wizard-theme.spec.ts", () => {
     const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
     assert.match(fields, /denali-wizard-composite__subtitle/);
     assert.match(fields, /denali-gear-picker__grid/);
-    assert.match(fields, /\[data-denali-wizard-file-input\]/);
+    assert.match(fields, /\[data-operator-wizard-file-input\]/);
     const photos = readFileSync(
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/fields/denali-photos-field.tsx"),
       "utf8"
     );
     assert.match(photos, /denali-wizard-composite__photo-card/);
     assert.doesNotMatch(photos, /__panel.*__photo-card|__photo-card.*__panel/);
-    assert.match(photos, /data-denali-wizard-file-input/);
+    assert.match(photos, /data-operator-wizard-file-input/);
     const gear = readFileSync(
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/fields/denali-gear-field.tsx"),
       "utf8"
     );
-    assert.match(gear, /data-denali-gear-picker/);
+    assert.match(gear, /data-operator-gear-picker/);
     assert.match(gear, /denali-gear-picker__grid/);
     assert.match(gear, /denali-gear-picker__requirement/);
     assert.match(gear, /resolveEquipmentCatalogSubtitle/);
@@ -275,7 +275,7 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.match(photos, /isDenaliHttpsImageUrl/);
     assert.match(photos, /isDenaliWizardDraftSessionId/);
     const orchestrationHook = readFileSync(
-      join(import.meta.dirname, "../src/wizard/use-denali-create-tour-wizard.ts"),
+      join(import.meta.dirname, "../src/wizard/use-create-tour-wizard.ts"),
       "utf8"
     );
     assert.match(orchestrationHook, /createWizardAssetSessionId/);
@@ -319,7 +319,7 @@ describe("denali-wizard-theme.spec.ts", () => {
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/components/denali-map-preview.tsx"),
       "utf8"
     );
-    assert.match(mapPreview, /data-denali-wizard-map-preview/);
+    assert.match(mapPreview, /data-operator-wizard-map-preview/);
     const interactions = readFileSync(join(DENALI_THEME_DIR, "wizard-interactions.css"), "utf8");
     assert.match(interactions, /prefers-reduced-motion: reduce/);
     assert.match(interactions, /denali-wizard-step-in 0\.18s/);
@@ -343,7 +343,7 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.doesNotMatch(tourKind, /<details/);
     assert.doesNotMatch(tourKind, /<Select/);
     const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
-    assert.match(fields, /\[data-denali-tour-kind\]/);
+    assert.match(fields, /\[data-operator-tour-kind\]/);
     assert.match(fields, /\.denali-tour-kind__current/);
     const chrome = readFileSync(
       join(import.meta.dirname, "../src/wizard/create-tour-wizard-chrome.tsx"),
@@ -352,11 +352,11 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.match(chrome, /wizard-clear-draft/);
     assert.match(chrome, /new-tour-wizard-page__header-main/);
     const client = readFileSync(
-      join(import.meta.dirname, "../app/tours/new/denali-create-tour-wizard-client.tsx"),
+      join(import.meta.dirname, "../app/tours/new/create-tour-wizard-client.tsx"),
       "utf8"
     );
-    assert.match(client, /useDenaliCreateTourWizard/);
-    assert.match(client, /CreateTourWizardDenaliHeader/);
+    assert.match(client, /useOperatorCreateTourWizard/);
+    assert.match(client, /CreateTourWizardHeader/);
     const stepShell = readFileSync(
       join(import.meta.dirname, "../src/wizard/wizard-step-shell.tsx"),
       "utf8"
@@ -392,14 +392,14 @@ describe("denali-wizard-theme.spec.ts", () => {
 
   it("WEB-DENALI-WIZARD-19 review validation panel styles and field focus markers", () => {
     const reviewCss = readFileSync(join(DENALI_THEME_DIR, "wizard-review.css"), "utf8");
-    assert.match(reviewCss, /\.denali-review-validation/);
-    assert.match(reviewCss, /denali-review-validation__issue-link/);
-    assert.match(reviewCss, /\.denali-review__section-header/);
-    assert.match(reviewCss, /\.denali-review__hero-cover/);
-    assert.match(reviewCss, /\.denali-review__photo-grid/);
-    assert.match(reviewCss, /\.denali-review__gear-list/);
+    assert.match(reviewCss, /\.operator-review-validation/);
+    assert.match(reviewCss, /operator-review-validation__issue-link/);
+    assert.match(reviewCss, /\.operator-review__section-header/);
+    assert.match(reviewCss, /\.operator-review__hero-cover/);
+    assert.match(reviewCss, /\.operator-review__photo-grid/);
+    assert.match(reviewCss, /\.operator-review__gear-list/);
     const sectionTitleBlock =
-      reviewCss.match(/\.denali-review__section-title\s*\{[^}]+\}/)?.[0] ?? "";
+      reviewCss.match(/\.operator-review__section-title\s*\{[^}]+\}/)?.[0] ?? "";
     assert.doesNotMatch(sectionTitleBlock, /text-transform:\s*uppercase/);
     const skin = readFileSync(join(DENALI_THEME_DIR, "wizard-skin.css"), "utf8");
     assert.match(skin, /wizard-field--validation-highlight/);

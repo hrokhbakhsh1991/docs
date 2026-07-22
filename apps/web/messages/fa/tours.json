@@ -67,7 +67,7 @@
   "shell": {
     "home": "خانه",
     "catalog": "کاتالوگ",
-    "urbanSettings": "تنظیمات Urban"
+    "workspaceOwnerSettings": "تنظیمات مالک workspace"
   },
   "nav": {
     "backToTours": "بازگشت به تورها",

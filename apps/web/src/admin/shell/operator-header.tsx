@@ -56,9 +56,8 @@ export function OperatorHeader({
         <OperatorBreadcrumb />
         {brandTitle ? (
           <span
-            data-denali-tenant-badge
-            data-tenant-brand-badge
             data-operator-tenant-badge
+            data-tenant-brand-badge
             data-workspace-plugin={pluginId}
           >
             {brandTitle}

@@ -7,11 +7,12 @@ import { describe, it } from "node:test";
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali";
 
 import {
-  denaliMessagesFromAppMessages,
   resolveDenaliFieldKindLabelFromMessages,
   resolveDenaliFieldLabelFromMessages,
   resolveDenaliStepLabelFromMessages,
-} from "../src/i18n/denali-wizard-labels";
+} from "@app-tour/workspace-denali/host/ui/adapters/field-labels-from-messages";
+
+import { denaliMessagesFromAppMessages } from "./helpers/denali-messages-from-app";
 import { loadAppMessages } from "../src/i18n/load-messages";
 import { buildWizardTemplateCatalogFromPlugin } from "../src/tours/wizard-template-catalog-logic";
 import {

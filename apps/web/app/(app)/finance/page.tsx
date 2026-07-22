@@ -24,7 +24,7 @@ export default async function FinancePage() {
 
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
-  const resolved = resolveBootstrapAppSessionForHost(host);
+  const resolved = await resolveBootstrapAppSessionForHost(host);
   if (!isFinanceRouteAllowed(resolved.session.pluginId)) {
     notFound();
   }

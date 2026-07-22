@@ -1,0 +1,46 @@
+---
+title: Wave H.c — Delete Denali catalog web shim (`src/denali/`)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-urban-settings-colocation.mdoc
+  - docs/standards/platform-surface-cohesion.mdoc
+---
+
+# Wave H.c — Delete Denali catalog web shim
+
+## Problem
+
+After H.b emptied `apps/web/src/urban/`, the only remaining product catalog island under admin web is `apps/web/src/denali/denali-catalog-client.ts` — a thin host wiring over `@app-tour/workspace-denali/host/catalog/fetch-denali-catalog-tour` that injects `resolveTourOpsApiBaseUrl` + public tenant headers.
+
+Production grep: **zero** `apps/web` call sites import this shim (only PSC parity + surface-cohesion guards). Keeping the file preserves a fake product dir (`src/denali/`) that the hostile audit flags as shell product coupling.
+
+## Decision
+
+1. **Delete** `apps/web/src/denali/denali-catalog-client.ts` and the emptied `apps/web/src/denali/` directory (no shim, no re-export).
+2. Catalog path SoT remains `packages/workspaces/denali/src/catalog/fetch-denali-catalog-tour.ts` (host injects `apiBaseUrl` + `headers` — same contract as Wave E.b / urban H.b).
+3. Retarget `guard:surface-cohesion` Phase 1d denali asserts to the **package** file only; assert `apps/web/src/denali` is absent.
+4. Retarget `guest-api-base-parity` WEB-PSC-1d-01 to package SoT (mirror urban H.b).
+5. Remove `src/denali/denali-catalog-client.ts` from `workspace-boundary` product-import allowlist.
+
+## Out of scope
+
+- Shrinking `apps/web/src/wizard/denali/` host adapters (→ Wave H.d.a consolidate re-exports)
+- Brand fallback mark kind `"denali"` / IgnorePlugin env gates (→ Wave H.e.a brand; IgnorePlugin still later)
+
+- Changing package export path `./host/catalog/fetch-denali-catalog-tour`
+
+## Rationale
+
+Urban H.b already proved the pattern: when the web shim has no production importers, the package SoT + host-injected deps is enough. Requiring a permanent `src/denali/` folder solely for PSC tests is inverted — tests should lock the package, not invent a shell island.
+
+## Verify
+
+```bash
+test ! -d apps/web/src/denali
+pnpm run guard:surface-cohesion
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/guest-api-base-parity.spec.ts \
+  test/wave-h-denali-catalog-shell.spec.ts \
+  test/workspace-boundary.spec.ts
+```

@@ -1,0 +1,52 @@
+---
+title: Wave F.d — Delete shell Denali label barrel
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-f-tour-ui-label-registry.mdoc
+  - docs/dev/wave-f-shell-i18n-denali.mdoc
+---
+
+# Wave F.d — Delete shell Denali label barrel
+
+## Problem
+
+After Wave F.c, production tour/admin UI no longer imports `@/wizard/denali/wizard-labels`. The file remained as a **fat re-export barrel** (`resolveDenaliTour*`, field/step helpers, nested-string) plus one web-only bridge (`denaliMessagesFromAppMessages`). That barrel still made the shell look like a Denali label host and conflicted with the F.a goal (product adapters live in the package; shell stays thin).
+
+## Decision
+
+1. **Delete** `apps/web/src/wizard/denali/wizard-labels.ts`.
+2. **Tests** import Denali label SoT from package **source** (Node/`tsx` test runner):
+   - `packages/workspaces/denali/src/ui/adapters/field-labels-from-messages.ts`
+   - `packages/workspaces/denali/src/ui/adapters/nested-string.ts`
+   Relative imports avoid depending on pnpm export linking for adapters that were only covered by the `host/ui/adapters/*` wildcard.
+3. **`denaliMessagesFromAppMessages`** moves to a **test-only** helper (`apps/web/test/helpers/denali-messages-from-app.ts`) — it was never used in production after F.c.
+4. Update Wave F.a ratchet: assert the fat barrel is **absent**, not that it re-exports `resolveDenaliFieldLabel`.
+5. **Package exports** — add explicit `package.json` export entries for `host/ui/adapters/field-labels-from-messages` and `host/ui/adapters/nested-string` (bundler/Next consumers; mirrors `photo-upload-errors`).
+
+## Explicitly out of scope
+
+Keep intentional thin host adapters under `wizard/denali/` required by P15-W-C2 / Wave B (not label barrels):
+
+| Keep | Why |
+| ---- | --- |
+| `localize-validation-message.ts` | Boundary shim; submit error path |
+| `workspace-plugin-id.ts` / `resolve-sync-workspace-plugin.ts` | Flat-edit / draft-shell |
+| `build-flat-edit-*`, `map-flat-edit-*`, draft identity, catalog prefetch | Operator edit/create surfaces |
+
+Deleting the whole `wizard/denali/` folder is a later wave (bundle / shell product dirs), not F.d.
+
+## Verify
+
+```bash
+test ! -f apps/web/src/wizard/denali/wizard-labels.ts
+rg 'wizard/denali/wizard-labels' apps/web
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-f-shell-i18n.spec.ts \
+  test/wave-f-denali-label-barrel.spec.ts \
+  test/wave-f-tour-ui-label-registry.spec.ts \
+  test/wizard-template-field-labels.spec.ts \
+  test/denali-composite-field-label.spec.ts \
+  test/localize-exposure-catalog-fields.spec.ts \
+  test/workspace-boundary.spec.ts
+```

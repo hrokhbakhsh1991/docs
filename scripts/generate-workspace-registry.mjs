@@ -75,11 +75,18 @@ import {
   generateWorkspaceThemeStylesheets,
 } from "./codegen/workspace-registry/domains/theme.mjs";
 import {
+  generateManifestBoundaryAllowlist,
+} from "./codegen/workspace-registry/domains/boundary-allowlist.mjs";
+import {
   assertCatalogRegistrationFlowManifest,
   assertCatalogRegistrationTransportInitializerManifest,
+  generatePortalPluginRegister,
+  generatePortalRegisterOutputs,
   generateWorkspaceIntakePluginBootstrap,
   generateWorkspaceRegistrationFlowPlugins,
   generateWorkspaceRegistrationTransportInitializers,
+  portalRegisterOutputKey,
+  selectPortalRegisterManifests,
 } from "./codegen/workspace-registry/domains/registration.mjs";
 import {
   generateMarketingCatalogBindings,
@@ -117,6 +124,8 @@ export {
   OUTPUT_KEYS,
   OUTPUT_PATHS,
   DOMAIN_OUTPUT_KEYS,
+  resolveOutputPaths,
+  resolveRegistrationOutputKeys,
   runWorkspaceRegistryCli,
 } from "./codegen/workspace-registry/orchestrator.mjs";
 
@@ -172,6 +181,11 @@ export {
   generateWorkspaceRegistrationFlowPlugins,
   generateWorkspaceRegistrationTransportInitializers,
   generateWorkspaceIntakePluginBootstrap,
+  generatePortalRegisterOutputs,
+  generatePortalPluginRegister,
+  selectPortalRegisterManifests,
+  portalRegisterOutputKey,
+  generateManifestBoundaryAllowlist,
   generateWizardMediaBindings,
   generateWizardMediaRouteBindings,
   generateWizardMediaBackendRouteBindings,

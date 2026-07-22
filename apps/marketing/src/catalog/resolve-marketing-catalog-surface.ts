@@ -1,7 +1,7 @@
-import { resolveMarketingCatalogSurface } from "@/bootstrap/workspace-marketing-catalog-bindings.generated";
-
-export { resolveMarketingCatalogSurface };
-
-export function hasMarketingCatalogSurface(pluginId: string): boolean {
-  return resolveMarketingCatalogSurface(pluginId) != null;
-}
+/**
+ * App-facing re-export — catalog surface resolution lives in guest-workspace-runtime (P5.3.b).
+ */
+export {
+  hasMarketingCatalogSurface,
+  resolveMarketingCatalogSurface,
+} from "@app-tour/guest-workspace-runtime/marketing-catalog";

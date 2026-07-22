@@ -124,7 +124,7 @@ export function PresetsAdvancedClient({ session }: PresetsAdvancedClientProps) {
       ) : null}
 
       {!loading ? (
-        <Card data-denali-surface="card" className="shadow-sm">
+        <Card data-operator-surface="card" className="shadow-sm">
           <CardHeader>
             <CardTitle>{t("matchingRules.title")}</CardTitle>
             <CardDescription>{t("matchingRules.description")}</CardDescription>

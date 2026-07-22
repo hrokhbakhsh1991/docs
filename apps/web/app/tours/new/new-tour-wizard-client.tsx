@@ -7,7 +7,7 @@ import { useAppSession } from "@/providers/app-session-context";
 import { CreateTourWizardLoadingMessage } from "@/wizard/create-tour-wizard-chrome";
 import { WorkspaceCreateTourWizardShell } from "@/wizard/workspace-create-tour-shell";
 
-import { DenaliCreateTourWizardClient } from "./denali-create-tour-wizard-client";
+import { OperatorCreateTourWizardClient } from "./create-tour-wizard-client";
 
 type NewTourWizardClientProps = {
   readonly initialTemplateResponse?: unknown | null;
@@ -17,7 +17,7 @@ type NewTourWizardClientProps = {
 function NewTourWizardClientInner(props: NewTourWizardClientProps) {
   const session = useAppSession();
   if (WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(session.pluginId)) {
-    return <DenaliCreateTourWizardClient {...props} />;
+    return <OperatorCreateTourWizardClient {...props} />;
   }
   return <WorkspaceCreateTourWizardShell />;
 }

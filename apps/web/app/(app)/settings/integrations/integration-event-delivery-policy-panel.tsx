@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ExposureFieldChecklist } from "@/exposure/ExposureFieldChecklist";
 import { localizeExposureCatalogFields } from "@/exposure/localize-exposure-catalog-fields";
+import { ensureWizardHostAdapters } from "@/wizard/host-adapter-runtime";
 import {
   catalogFieldIdsFromExposureFields,
   resolveEffectiveSelectedFieldIds,
@@ -39,6 +40,7 @@ import type {
 } from "@/integrations/integrations-types";
 import { listDeprecatedEventPolicies } from "@/integrations/integration-connection-load-warnings";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
+import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
 
 export const INTEGRATION_DELIVERY_POLICY_TEST_IDS = {
   panel: "integration-delivery-policy-panel",
@@ -65,6 +67,8 @@ type IntegrationEventDeliveryPolicyPanelProps = {
   readonly exposureCandidateFields: readonly ExposureCatalogField[];
   readonly canEdit: boolean;
   readonly onUpdated: (updated: IntegrationConnectionPublic) => void;
+  /** Workspace plugin id — drives wizard message namespace for field localization. */
+  readonly pluginId: string;
 };
 
 function catalogFieldIds(fields: readonly ExposureCatalogField[]): readonly string[] {
@@ -202,16 +206,32 @@ export function IntegrationEventDeliveryPolicyPanel({
   exposureCandidateFields,
   canEdit,
   onUpdated,
+  pluginId,
 }: IntegrationEventDeliveryPolicyPanelProps) {
   const t = useTranslations("settings.integrations.deliveryPolicy");
   const tChecklist = useTranslations("settings.exposure.fieldChecklist");
-  const tWizard = useTranslations("denali");
+  const tWizard = useWorkspaceWizardTranslator(pluginId);
   const tErrors = useTranslations("settings.integrations.errors");
 
-  const localizedCandidateFields = useMemo(
-    () => localizeExposureCatalogFields(exposureCandidateFields, tWizard),
-    [exposureCandidateFields, tWizard],
-  );
+  const [hostAdaptersWarm, setHostAdaptersWarm] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void ensureWizardHostAdapters().then(() => {
+      if (!cancelled) {
+        setHostAdaptersWarm(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const localizedCandidateFields = useMemo((): readonly ExposureCatalogField[] => {
+    if (!hostAdaptersWarm) {
+      return exposureCandidateFields;
+    }
+    return localizeExposureCatalogFields(exposureCandidateFields, tWizard);
+  }, [exposureCandidateFields, tWizard, hostAdaptersWarm]);
 
   const eventTypes = useMemo(
     () => buildExposureEventTypeList(connection, providerSurface),

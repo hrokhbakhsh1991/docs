@@ -5,9 +5,14 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const require = createRequire(import.meta.url);
+const { PORTAL_REGISTER_GENERATED_RELS } = require(
+  "../codegen/workspace-registry/generated/manifest-boundary-allowlist.generated.cjs"
+);
 
 /** @type {{ label: string; pkgJson: string; generated: string[] }[]} */
 const CONSUMERS = [
@@ -15,9 +20,7 @@ const CONSUMERS = [
     label: "workspace-plugin-host",
     pkgJson: "packages/workspace-plugin-host/package.json",
     generated: [
-      "packages/workspace-plugin-host/src/workspace-intake-plugins.generated.ts",
-      "packages/workspace-plugin-host/src/workspace-registration-flow-plugins.generated.ts",
-      "packages/workspace-plugin-host/src/workspace-registration-transport-initializers.generated.ts",
+      "packages/workspace-plugin-host/src/workspace-plugin-register-manifest.generated.ts",
     ],
   },
   {
@@ -38,14 +41,15 @@ const CONSUMERS = [
     ],
   },
   {
-    label: "apps/portal",
-    pkgJson: "apps/portal/package.json",
-    generated: ["apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"],
-  },
-  {
-    label: "apps/marketing",
-    pkgJson: "apps/marketing/package.json",
-    generated: ["apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"],
+    label: "guest-workspace-runtime",
+    pkgJson: "packages/guest-workspace-runtime/package.json",
+    generated: [
+      ...PORTAL_REGISTER_GENERATED_RELS,
+      "packages/guest-workspace-runtime/src/workspace-plugin-register-manifest.generated.ts",
+      "packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.portal.generated.ts",
+      "packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.marketing.generated.ts",
+      "packages/guest-workspace-runtime/src/workspace-marketing-catalog-bindings.generated.ts",
+    ],
   },
 ];
 
@@ -60,6 +64,7 @@ function readDeclaredDeps(pkgJsonRel) {
   return new Set([
     ...Object.keys(json.dependencies ?? {}),
     ...Object.keys(json.devDependencies ?? {}),
+    ...Object.keys(json.peerDependencies ?? {}),
   ]);
 }
 
@@ -75,6 +80,7 @@ const violations = [];
 
 for (const consumer of CONSUMERS) {
   const deps = readDeclaredDeps(consumer.pkgJson);
+  const selfName = JSON.parse(read(consumer.pkgJson)).name;
   /** @type {Set<string>} */
   const required = new Set();
 
@@ -85,6 +91,9 @@ for (const consumer of CONSUMERS) {
       continue;
     }
     for (const pkg of extractWorkspacePackages(read(generatedRel))) {
+      if (pkg === selfName) {
+        continue; // self-imports via package exports (e.g. register manifest → ./register-denali)
+      }
       required.add(pkg);
     }
   }

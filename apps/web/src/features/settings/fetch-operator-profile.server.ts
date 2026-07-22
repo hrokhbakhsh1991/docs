@@ -2,7 +2,7 @@ import { cookies, headers } from "next/headers";
 
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
 import type { OperatorProfile } from "@/features/settings/profile-settings-logic";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 /** Server prefetch for profile settings — avoids client-only loading stall. */
 export async function fetchOperatorProfileServer(): Promise<OperatorProfile | null> {

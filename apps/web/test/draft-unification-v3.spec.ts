@@ -5,8 +5,8 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
 import {
-  createDenaliDraftOnPushSuccess,
-  resolveDenaliDraftConflictStrategy,
+  createOperatorDraftOnPushSuccess,
+  resolveOperatorDraftConflictStrategy,
 } from "../src/draft/draft-unification-v3-options";
 import { resolveDenaliDraftMerge } from "@app-tour/workspace-denali/host/draft";
 import { resolveDraftUnificationV3Mode } from "../src/draft/draft-unification-v3";
@@ -38,9 +38,9 @@ describe("draft-unification-v3.spec.ts — Track C", () => {
   });
 
   it("WEB-P11-C-03 conflict strategy is SERVER_WINS only when mode is on", () => {
-    assert.equal(resolveDenaliDraftConflictStrategy("off"), "REFETCH_REAPPLY");
-    assert.equal(resolveDenaliDraftConflictStrategy("shadow"), "REFETCH_REAPPLY");
-    assert.equal(resolveDenaliDraftConflictStrategy("on"), "SERVER_WINS");
+    assert.equal(resolveOperatorDraftConflictStrategy("off"), "REFETCH_REAPPLY");
+    assert.equal(resolveOperatorDraftConflictStrategy("shadow"), "REFETCH_REAPPLY");
+    assert.equal(resolveOperatorDraftConflictStrategy("on"), "SERVER_WINS");
   });
 
   it("WEB-P11-C-04 merge function omitted when mode is on", () => {
@@ -100,7 +100,7 @@ describe("draft-unification-v3.spec.ts — Track C", () => {
         schemaVersion: 1,
         lastModified: 100,
       });
-      createDenaliDraftOnPushSuccess("shadow")(wrapPayload(pushed), wrapPayload(server), baseline);
+      createOperatorDraftOnPushSuccess("shadow")(wrapPayload(pushed), wrapPayload(server), baseline);
       await new Promise<void>((resolve) => {
         setImmediate(resolve);
       });

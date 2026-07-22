@@ -37,7 +37,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const cookieStore = await cookies();
   const sessionValidation = validateSessionToken(cookieStore.get(SESSION_TOKEN_COOKIE)?.value);
   if (sessionValidation.status === "valid") {
-    resolved = resolveBootstrapAppSession(
+    resolved = await resolveBootstrapAppSession(
       {
         userId: sessionValidation.userId,
         tenantId: sessionValidation.tenantId,

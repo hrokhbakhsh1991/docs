@@ -5,7 +5,8 @@
 import { chromium } from "@playwright/test";
 
 const BASE = process.env.SMOKE_BASE_URL ?? "http://denali.localhost:3000";
-const OWNER_MOBILE = process.env.OPERATOR_OWNER_MOBILE ?? "+989121000001";
+/** Sync with Denali seed / `DENALI_DEV_OWNER_MOBILE` (override via env). */
+const OWNER_MOBILE = process.env.OPERATOR_OWNER_MOBILE ?? "+15550001001";
 const OTP = "1234";
 const TOUR_TITLE = `تور کوهنوردی یک‌روزه ${Date.now()}`;
 
@@ -44,7 +45,7 @@ async function pickStartDatetime(page) {
   const start = page.getByTestId("denali-composite-datetime-start");
   await start.waitFor({ state: "visible", timeout: 30_000 });
 
-  await start.locator("[data-denali-date-picker]").click();
+  await start.locator("[data-operator-date-picker]").click();
   const calendar = page.locator('[data-testid="localized-calendar"]');
   await calendar.waitFor({ state: "visible", timeout: 10_000 });
   const futureDay = calendar.locator('button[aria-label^="2026-07"]').first();
@@ -54,11 +55,11 @@ async function pickStartDatetime(page) {
     await calendar.getByRole("button", { name: /امروز|today/i }).click();
   }
 
-  await start.locator(".denali-wizard-datetime__control button").last().click();
-  const picker = page.locator("[data-denali-wizard-time-picker]");
+  await start.locator(".operator-wizard-datetime__control button").last().click();
+  const picker = page.locator("[data-operator-wizard-time-picker]");
   await picker.waitFor({ state: "visible", timeout: 10_000 });
   await picker.locator('[data-time-option="08"]').first().click();
-  await picker.locator(".denali-time-picker__column").last().locator('[data-time-option="00"]').click();
+  await picker.locator(".operator-time-picker__column").last().locator('[data-time-option="00"]').click();
   await page.keyboard.press("Escape");
 }
 
@@ -73,30 +74,63 @@ async function clickNext(page) {
   await page.waitForTimeout(600);
 }
 
+async function pickDestination(page) {
+  const destination = page.getByTestId("denali-composite-destination");
+  await destination.waitFor({ state: "visible", timeout: 30_000 });
+
+  const nativeSelect = destination.locator("select").first();
+  if (await nativeSelect.isVisible().catch(() => false)) {
+    const options = await nativeSelect.locator("option").all();
+    for (const opt of options) {
+      const val = await opt.getAttribute("value");
+      if (val && val.length > 4) {
+        await nativeSelect.selectOption(val);
+        return;
+      }
+    }
+    throw new Error("destination select has no usable option");
+  }
+
+  // Searchable combobox (Denali destination catalog)
+  const combo = destination.getByRole("combobox").or(page.getByRole("combobox", { name: /مقصد/i }));
+  await combo.click();
+  const option = page.getByRole("option").first();
+  await option.waitFor({ state: "visible", timeout: 30_000 });
+  await option.click();
+}
+
+async function pickApproximateReturnTime(page) {
+  const root = page.getByTestId("denali-composite-approximate-return-time");
+  if (!(await root.isVisible().catch(() => false))) return;
+  const openBtn = root.locator("button").first();
+  await openBtn.click();
+  const picker = page.locator("[data-operator-wizard-time-picker]");
+  if (await picker.isVisible().catch(() => false)) {
+    await picker.locator('[data-time-option="18"]').first().click();
+    const confirm = page.getByRole("button", { name: /تأیید|confirm/i });
+    if (await confirm.isVisible().catch(() => false)) await confirm.click();
+    else await page.keyboard.press("Escape");
+  }
+}
+
 async function fillMountainDayBasics(page) {
   await page.getByTestId("denali-tour-kind-category-mountain").click();
   await page.getByTestId("denali-tour-kind-duration-single_day").click();
   await fillTextField(page, "title", TOUR_TITLE);
 
-  const destination = page.getByTestId("denali-composite-destination");
-  const select = destination.locator("select").first();
-  await select.waitFor({ state: "visible", timeout: 30_000 });
-  const options = await select.locator("option").all();
-  for (const opt of options) {
-    const val = await opt.getAttribute("value");
-    if (val && val.length > 4) {
-      await select.selectOption(val);
-      break;
-    }
-  }
+  await pickDestination(page);
 
   const peak = field(page, "tripDetails.overview.peakHeight").locator("input").first();
   if (await peak.isVisible().catch(() => false)) {
-    await peak.fill("4200");
-    await peak.blur();
+    const disabled = await peak.isDisabled().catch(() => false);
+    if (!disabled) {
+      await peak.fill("4200");
+      await peak.blur();
+    }
   }
 
   await pickStartDatetime(page);
+  await pickApproximateReturnTime(page);
   await fillTextField(page, "capacityMax", "12");
 
   const socialAutoInfo = page.getByTestId("denali-social-media-telegram-auto-info");
@@ -149,6 +183,14 @@ try {
   await clickNext(page);
   console.log("✓ step denali_logistics");
 
+  const minAge = field(page, "participants.minimumAge").locator("input").first();
+  if (await minAge.isVisible().catch(() => false)) {
+    const current = await minAge.inputValue().catch(() => "");
+    if (!current.trim()) {
+      await minAge.fill("18");
+      await minAge.blur();
+    }
+  }
   await clickNext(page);
   console.log("✓ step denali_pricing");
 

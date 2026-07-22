@@ -1,0 +1,52 @@
+---
+title: Wave I.8 — Codegen-synced apps/web product workspace deps
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-i-7-host-install-classification.mdoc
+  - docs/dev/wave-c-guest-runtime-product-deps.mdoc
+---
+
+# Wave I.8 — Manifest-synced admin host product deps
+
+## Problem
+
+Wave I.7 classified products into `devDependencies` and required admin-transpile completeness, but `apps/web/package.json` product keys were still a **hand list**. Evidence:
+
+- `@app-tour/workspace-finance-ws4` was declared though **no** web codegen/plugin loader imports it (orphan relative to product trunk).
+- Adding a product trunk workspace required editing `package.json` by hand (same dual-SoT class as pre–C.c guest-runtime).
+
+Guest-runtime already rewrites product deps from manifests (`syncGuestWorkspaceRuntimePackageJson`). Admin web did not.
+
+## Decision
+
+1. Product set for web = `productWorkspaceManifests(manifests).map(m => m.package)` (same trunk as plugin loaders / boundary allowlist — excludes `registryOnly` finance/booking fixtures).
+2. Codegen owns **only** those `@app-tour/workspace-*` product keys (not sdk):
+   - Must live in **`devDependencies`** as `workspace:*`
+   - Must **not** appear in `dependencies` / `optionalDependencies`
+   - Exact set match — extras removed, missing added
+3. `pnpm run generate:workspace-registry` syncs; `--check` fails on drift.
+4. `guard:host-workspace-deps` calls the same verify for web (classification + exact product trunk).
+
+## Out of scope
+
+- `optionalDependencies` / IgnorePlugin removal
+- Syncing `apps/api` product deps (different load story)
+- Expanding admin `transpilePackages` to the full product trunk (theme/stylesheet gate stays)
+
+## Status
+
+**DONE** — sync + check wired; finance-ws4 hand dep dropped by sync.
+
+## Verify
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run generate:workspace-registry -- --check
+pnpm run guard:host-workspace-deps
+pnpm run wave-i0:guard
+node --test scripts/test/admin-web-product-deps.spec.mjs
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-i-7-host-install-classification.spec.ts \
+  test/wave-i-8-admin-web-product-deps.spec.ts
+```

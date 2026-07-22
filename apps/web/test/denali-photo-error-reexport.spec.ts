@@ -1,5 +1,6 @@
 /**
- * Photo error codec must stay canonical in workspace-denali (WEB-P11-6-04)
+ * Photo error codec must stay canonical in workspace-denali (WEB-P11-6-04).
+ * Gap Closure B.6 — shell binder uses dynamic import(); no static product fan-in.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -17,8 +18,13 @@ describe("denali-photo-error-reexport.spec.ts", () => {
     );
     assert.match(
       source,
-      /from "@app-tour\/workspace-denali\/host\/ui\/adapters\/photo-upload-errors-surface"/
+      /await import\("@app-tour\/workspace-denali\/host\/ui\/adapters\/photo-upload-errors-surface"\)/
     );
+    assert.doesNotMatch(
+      source,
+      /(?:import|export)\s+\{[^}]*\}\s+from\s+"@app-tour\/workspace-denali\/host\/ui\/adapters\/photo-upload-errors-surface"/
+    );
+    assert.match(source, /ensurePhotoUploadErrorsSurface/);
     assert.doesNotMatch(source, /PHOTO_ERROR_CODE_ALIASES/);
     assert.doesNotMatch(source, /function extractDenaliPhotoApiErrorCode/);
   });

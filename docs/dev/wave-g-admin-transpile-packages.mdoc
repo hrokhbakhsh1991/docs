@@ -1,0 +1,62 @@
+---
+title: Wave G.a — Manifest-driven admin transpilePackages
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-c-guest-transpile-packages.mdoc
+  - docs/dev/wave-f-denali-label-barrel.mdoc
+---
+
+# Wave G.a — Manifest-driven admin transpilePackages
+
+## Path choice (post–Wave F)
+
+Hostile audit blocker #2 / smoking gun #2: guest **and admin** Next graphs still fan-in products. Wave C.b already codegen’d portal/marketing `transpilePackages`. Admin (`apps/web/next.config.ts`) still hand-lists `@app-cloud/workspace-denali` / `urban` / `starter`.
+
+Wave G continues **honest** bundle work (outcome lever ~30% → higher). This tranche mirrors C.b for admin — **drop-in hygiene**, not claiming true optional-dep isolation (still deferred).
+
+## Problem
+
+Adding an operator workspace with `themeStylesheets` required editing `apps/web/next.config.ts` by hand. That diverges from `WORKSPACE_ADMIN_THEME_REGISTRY` / `importAdminThemeForPlugin` codegen (same manifests).
+
+## Decision
+
+1. Codegen emits `apps/web/src/bootstrap/admin-transpile-packages.generated.mjs` exporting `ADMIN_TRANSPILE_PACKAGES`.
+2. **Platform fixed set** (non-product) — canonical scope `@app-tour/*` (Wave H.k closed a residual `@app-cloud/*` drift in this list):
+
+| Package |
+| ------- |
+| `@app-tour/draft-engine` |
+| `@app-tour/wizard-navigation` |
+| `@app-tour/design-tokens` |
+| `@app-tour/platform-core` |
+| `@app-tour/theme-react` |
+| `@app-tour/ui-primitives` |
+| `@app-tour/workspace-sdk` |
+
+3. **Product packages** from manifests:
+   - always `starter` (default L3 skin)
+   - any workspace with non-empty `themeStylesheets` (same membership as admin theme registry)
+   - skip `workspaceFinance.registryOnly` / `workspaceBooking.registryOnly`
+4. `apps/web/next.config.ts` spreads `ADMIN_TRANSPILE_PACKAGES` — no hand-maintained denali/urban/starter literals.
+5. Regenerated via `pnpm run generate:workspace-registry` (freshness guard covers the new artifact).
+
+**Note:** Including `guest-club` when it declares `themeStylesheets` is intentional — admin already dynamic-imports its tokens via `importAdminThemeForPlugin("guest-club")`. Omitting it from transpile was an incomplete hand list.
+
+## Out of scope (later G slices)
+
+- True install-graph isolation (`optionalDependencies` / filtered installs) — still breaks monorepo dynamic `import()`
+- ~~HTTP multi-product eager handler load~~ → [`wave-g-http-handler-per-package.mdoc`](./wave-g-http-handler-per-package.mdoc)
+- Removing webpack `IgnorePlugin` env gates for denali/urban (`ALLOW_*_WEB_PLUGIN`) — **H.g** made the gate real; **H.j** codegen’s the list from `adminWeb.clientBundleEnvGate` ([`wave-h-manifest-ignore-plugin.mdoc`](./wave-h-manifest-ignore-plugin.mdoc)); full removal still deferred
+- Deleting remaining `apps/web/src/{denali,urban,wizard/denali}` product dirs → start [`wave-h-platform-tour-ops-api-base.mdoc`](./wave-h-platform-tour-ops-api-base.mdoc) (API base out of `urban/`)
+
+## Verify
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run guard:workspace-registry-fresh
+rg 'workspace-denali|workspace-urban' apps/web/next.config.ts
+# must not match product literals in transpilePackages array
+node --test scripts/test/admin-transpile-packages.spec.mjs
+node -e "import('./apps/web/src/bootstrap/admin-transpile-packages.generated.mjs').then(m=>console.log(m.ADMIN_TRANSPILE_PACKAGES))"
+```

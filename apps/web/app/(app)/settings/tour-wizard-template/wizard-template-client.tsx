@@ -30,9 +30,10 @@ import {
   countWizardTemplateSelectedFields,
   validateWizardTemplateSavable,
 } from "@/tours/wizard-template-gate-logic";
-import { loadDenaliFullWizardTemplatePreset } from "@/bootstrap/denali-wizard-template-preset";
-import { resolveBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
-import { resolveWizardTemplateEditor } from "@/bootstrap/workspace-wizard-template-editor-bindings.generated";
+import { loadFullWizardTemplatePreset } from "@/bootstrap/workspace-wizard-template-preset-bindings.generated";
+import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
+import { ensureWizardTemplateEditor } from "@/bootstrap/workspace-wizard-template-editor-bindings.generated";
+import type { WizardTemplateEditorSurface } from "@/wizard/wizard-template-editor-types";
 import { WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS } from "@/bootstrap/wizard-create-bindings.generated";
 import {
   applyWizardTemplatePreset,
@@ -46,14 +47,11 @@ import {
   type WizardTemplateCatalogStep,
 } from "@/tours/wizard-template-catalog-logic";
 import {
-  resolveDenaliFieldKindLabel,
-  resolveDenaliFieldLabel,
-} from "@/i18n/denali-wizard-labels";
-import {
-  formatWizardTemplateFieldKindLabel,
+  resolveWizardTemplateFieldKindLabel,
   resolveWizardTemplateFieldLabel,
 } from "@/tours/wizard-template-field-labels";
 import { resolveWizardTemplateFieldDisplayHints } from "@/tours/wizard-template-field-display-hints";
+import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
 
 type WizardTemplateClientProps = {
   readonly session: OperatorSessionContext;
@@ -73,10 +71,9 @@ function createEmptyWizardTemplatePayload(): WizardTemplatePayload {
 
 
 function normalizePublishedWizardTemplatePayload(
-  pluginId: string,
+  editor: WizardTemplateEditorSurface | null,
   payload: WizardTemplatePayload
 ): WizardTemplatePayload {
-  const editor = resolveWizardTemplateEditor(pluginId);
   if (editor == null) {
     return payload;
   }
@@ -94,42 +91,92 @@ function parseInitialWizardTemplatePayload(response: unknown | null | undefined)
   }
 }
 
-export function WizardTemplateClient({
+export function WizardTemplateClient(props: WizardTemplateClientProps) {
+  const { pluginId } = props;
+  const [editor, setEditor] = useState<WizardTemplateEditorSurface | null>(null);
+  const [surfaceReady, setSurfaceReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void ensureWizardTemplateEditor(pluginId).then((next) => {
+      if (!cancelled) {
+        setEditor(next);
+        setSurfaceReady(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pluginId]);
+
+  if (!surfaceReady) {
+    return (
+      <div className="space-y-4" data-testid={WIZARD_TEMPLATE_TEST_IDS.page}>
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    );
+  }
+
+  return <WizardTemplateClientReady {...props} editor={editor} />;
+}
+
+function WizardTemplateClientReady({
   session,
   pluginId,
   initialTemplateResponse = null,
   initialCatalog,
-}: WizardTemplateClientProps) {
+  editor,
+}: WizardTemplateClientProps & {
+  readonly editor: WizardTemplateEditorSurface | null;
+}) {
   const t = useTranslations("settings.wizardTemplate");
-  const tDenali = useTranslations("denali");
   const canManage = isAdminOrOwnerRole(session.role);
-  const editor = useMemo(() => resolveWizardTemplateEditor(pluginId), [pluginId]);
-  const useEditorLabels = editor?.messageNamespace === "denali";
+  const tWorkspace = useWorkspaceWizardTranslator(editor?.messageNamespace ?? pluginId);
   const skipInitialTemplateFetchRef = useRef(initialTemplateResponse != null);
   const [payload, setPayload] = useState<WizardTemplatePayload>(() => {
     const parsed = parseInitialWizardTemplatePayload(initialTemplateResponse);
     if (parsed == null) {
       return createEmptyWizardTemplatePayload();
     }
-    return normalizePublishedWizardTemplatePayload(pluginId, parsed);
+    return normalizePublishedWizardTemplatePayload(editor, parsed);
   });
+  const [catalogFromPlugin, setCatalogFromPlugin] = useState<
+    readonly WizardTemplateCatalogStep[]
+  >([]);
+  useEffect(() => {
+    if (initialCatalog != null) {
+      return;
+    }
+    let cancelled = false;
+    void loadBootstrapWorkspacePlugin(pluginId)
+      .then((plugin) => {
+        if (!cancelled) {
+          setCatalogFromPlugin(buildWizardTemplateCatalogFromPlugin(plugin));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCatalogFromPlugin([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialCatalog, pluginId]);
   const catalog = useMemo(() => {
     if (initialCatalog != null) {
       return initialCatalog;
     }
-    try {
-      return buildWizardTemplateCatalogFromPlugin(resolveBootstrapWorkspacePlugin(pluginId));
-    } catch {
-      return [];
-    }
-  }, [initialCatalog, pluginId]);
+    return catalogFromPlugin;
+  }, [initialCatalog, catalogFromPlugin]);
   const [fieldQuery, setFieldQuery] = useState("");
   const [loading, setLoading] = useState(initialTemplateResponse == null);
   const [saving, setSaving] = useState(false);
   const [loadingPreset, setLoadingPreset] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const showDenaliFullTemplate = WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(pluginId);
+  const showExtendedWizardTemplate = WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(pluginId);
 
   const formatWizardError = useCallback(
     (resolution: WizardTemplateErrorResolution): string => {
@@ -148,14 +195,16 @@ export function WizardTemplateClient({
   const filteredCatalog = useMemo(() => {
     const normalizedQuery = fieldQuery.trim().toLowerCase();
     return filterWizardTemplateCatalog(catalog, fieldQuery, (field, stepLabel) => {
-      const label =
-        useEditorLabels
-          ? resolveDenaliFieldLabel(tDenali, field.canonicalPath)
-          : resolveWizardTemplateFieldLabel(field.canonicalPath, pluginId);
-      const kindLabel =
-        useEditorLabels
-          ? resolveDenaliFieldKindLabel(tDenali, field.kind)
-          : formatWizardTemplateFieldKindLabel(field.kind);
+      const label = resolveWizardTemplateFieldLabel(
+        field.canonicalPath,
+        pluginId,
+        tWorkspace
+      );
+      const kindLabel = resolveWizardTemplateFieldKindLabel(
+        field.kind,
+        pluginId,
+        tWorkspace
+      );
       return (
         field.canonicalPath.toLowerCase().includes(normalizedQuery) ||
         label.toLowerCase().includes(normalizedQuery) ||
@@ -163,7 +212,7 @@ export function WizardTemplateClient({
         kindLabel.toLowerCase().includes(normalizedQuery)
       );
     });
-  }, [catalog, fieldQuery, pluginId, tDenali, useEditorLabels]);
+  }, [catalog, fieldQuery, pluginId, tWorkspace]);
 
   useEffect(() => {
     if (skipInitialTemplateFetchRef.current) {
@@ -183,7 +232,7 @@ export function WizardTemplateClient({
         if (!cancelled) {
           setPayload(
             normalizePublishedWizardTemplatePayload(
-              pluginId,
+              editor,
               parseWizardTemplateResponse(config)
             )
           );
@@ -205,7 +254,7 @@ export function WizardTemplateClient({
   }, [formatWizardError]);
 
   const handleLoadFullTemplate = async () => {
-    if (!canManage || !showDenaliFullTemplate) {
+    if (!canManage || !showExtendedWizardTemplate) {
       return;
     }
 
@@ -214,7 +263,7 @@ export function WizardTemplateClient({
     setSaved(false);
     try {
       const seedLabel = payload.seedLabel.trim();
-      const preset = await loadDenaliFullWizardTemplatePreset(
+      const preset = await loadFullWizardTemplatePreset(pluginId, 
         seedLabel.length > 0 ? seedLabel : undefined
       );
       setPayload((current) => applyWizardTemplatePreset(preset, catalog, current));
@@ -282,7 +331,7 @@ export function WizardTemplateClient({
       ) : null}
 
       {!loading && catalog.length > 0 ? (
-        <Card data-denali-surface="card" className="shadow-sm">
+        <Card data-operator-surface="card" className="shadow-sm">
           <CardHeader>
             <CardTitle>{t("cardTitle")}</CardTitle>
             <CardDescription>{t("cardDescription")}</CardDescription>
@@ -326,7 +375,7 @@ export function WizardTemplateClient({
                 ) : null}
               </div>
 
-              {showDenaliFullTemplate && canManage ? (
+              {showExtendedWizardTemplate && canManage ? (
                 <div className="space-y-2 rounded-md border border-dashed p-3">
                   <p className="text-xs text-muted-foreground">{t("loadFullTemplateHelper")}</p>
                   <Button
@@ -397,14 +446,16 @@ export function WizardTemplateClient({
                     ) : null}
                     <ul className="mt-3 space-y-2">
                       {step.fields.map((field) => {
-                        const fieldLabel =
-                          useEditorLabels
-                            ? resolveDenaliFieldLabel(tDenali, field.canonicalPath)
-                            : resolveWizardTemplateFieldLabel(field.canonicalPath, pluginId);
-                        const kindLabel =
-                          useEditorLabels
-                            ? resolveDenaliFieldKindLabel(tDenali, field.kind)
-                            : formatWizardTemplateFieldKindLabel(field.kind);
+                        const fieldLabel = resolveWizardTemplateFieldLabel(
+                          field.canonicalPath,
+                          pluginId,
+                          tWorkspace
+                        );
+                        const kindLabel = resolveWizardTemplateFieldKindLabel(
+                          field.kind,
+                          pluginId,
+                          tWorkspace
+                        );
                         const stepFieldPaths = step.fields.map((entry) => entry.canonicalPath);
                         const fieldMeta =
                           editor != null
@@ -432,8 +483,9 @@ export function WizardTemplateClient({
                             ? resolveWizardTemplateFieldDisplayHints(
                                 editor,
                                 (key, values) => t(key, values),
-                                tDenali,
-                                (path) => resolveDenaliFieldLabel(tDenali, path),
+                                tWorkspace,
+                                (path) =>
+                                  resolveWizardTemplateFieldLabel(path, pluginId, tWorkspace),
                                 fieldMeta
                               )
                             : null;

@@ -44,7 +44,7 @@ export function LocalizedDatePicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          data-denali-date-picker
+          data-operator-date-picker
           id={id}
           type="button"
           variant="outline"
@@ -62,7 +62,7 @@ export function LocalizedDatePicker({
           <span className="truncate">{displayLabel ?? placeholder ?? t("pickDate")}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="p-0" data-denali-wizard-calendar-popover>
+      <PopoverContent align="start" className="p-0" data-operator-wizard-calendar-popover>
         <Calendar
           value={value}
           onSelect={(iso) => {

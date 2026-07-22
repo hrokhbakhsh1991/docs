@@ -1,0 +1,57 @@
+---
+title: Wave H.o — Operator shell TypeScript names (drop Denali* helper/header brands)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-operator-admin-dom.mdoc
+  - docs/dev/wave-h-denali-wizard-adapters.mdoc
+---
+
+# Wave H.o — Operator shell TypeScript names
+
+## Problem
+
+DOM attrs are largely neutralized (H.l–H.n), but **shell TypeScript** still brands platform helpers as Denali:
+
+| Symbol | Why wrong |
+| ------ | --------- |
+| `resolveDenaliDraftConflictStrategy` | Draft-engine conflict mode — workspace-neutral |
+| `createDenaliDraftOnPushSuccess` | Tombstone shadow logger — workspace-neutral |
+| `CreateTourWizardDenaliHeader` | Create-wizard chrome header used by operator shell |
+| `showDenaliFullTemplate` | Means “extended create template plugins”, not Denali-only |
+
+These are false product coupling: names imply Denali while logic is host/platform.
+
+## Decision
+
+| Before | After |
+| ------ | ----- |
+| `resolveDenaliDraftConflictStrategy` | `resolveOperatorDraftConflictStrategy` |
+| `createDenaliDraftOnPushSuccess` | `createOperatorDraftOnPushSuccess` |
+| `CreateTourWizardDenaliHeader` | `CreateTourWizardHeader` |
+| `DenaliDraftSyncChrome` | `OperatorDraftSyncChrome` |
+| `showDenaliFullTemplate` | `showExtendedWizardTemplate` |
+
+Update all `apps/web` call sites + specs in lockstep (no deprecated aliases — closed rename).
+
+## Out of scope
+
+- `apps/web/src/wizard/denali/*` firewall (`resolveDenaliSyncWorkspacePlugin`, adapters re-exports)
+- Generated draft-shell bindings (`getDenaliWorkspacePluginFromDraftShell`, …)
+- Package `@app-tour/workspace-denali` export names
+- Datetime/date-picker BEM → [`wave-h-operator-datetime-bem.mdoc`](./wave-h-operator-datetime-bem.mdoc) (Wave H.p)
+- Install-graph isolation
+
+## Verify
+
+```bash
+rg 'resolveDenaliDraftConflictStrategy|createDenaliDraftOnPushSuccess|CreateTourWizardDenaliHeader|showDenaliFullTemplate' \
+  apps/web --glob '!**/*.generated.*'
+# expect empty
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-h-operator-shell-ts-names.spec.ts \
+  test/draft-unification-v3.spec.ts \
+  test/denali-draft-unification-closure.spec.ts \
+  test/create-page-split.spec.ts \
+  test/wizard-host-boundary.spec.ts
+```

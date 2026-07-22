@@ -1,0 +1,58 @@
+---
+title: Wave H.i.b — Neutralize Urban owner settings URL path
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-urban-owner-panel-package.mdoc
+  - docs/phase-8/appendices/CANLOAD-URBAN-SETTINGS.contract.ts
+  - docs/dev/wave-d-operator-shell-chrome.mdoc
+---
+
+# Wave H.i.b — Neutralize Urban owner settings URL path
+
+## Problem
+
+After H.i the panel SoT lives in the Urban package, but the **public URL and app folder** remained product-named (`/settings/urban`, `app/(app)/settings/urban/`). Hostile audit item #7/#8 still cites that path as product-specific shell surface. Phase 8 canLoad **policy** stays Urban-specific; only the shell URL/folder should be product-blind.
+
+## Decision
+
+| Concern | Value |
+| ------- | ----- |
+| Canonical URL | `/settings/workspace-owner` |
+| App module | `apps/web/app/(app)/settings/workspace-owner/` |
+| canLoad re-export file | `workspace-owner-settings-access.ts` (Wave H.m; was `urban-settings-access.ts`) |
+| Manifest nav | `operatorShell.phase3NavLinks[].href` → `/settings/workspace-owner` |
+| i18n labelKey | `workspaceOwnerSettings` (replace `urbanSettings` in nav) |
+| Legacy URL | permanent redirect `/settings/urban` → `/settings/workspace-owner` |
+
+Update Phase 8 **normative** path constants in `CANLOAD-URBAN-SETTINGS.contract.ts`:
+
+- `URBAN_SETTINGS_PAGE_PATH`
+- `URBAN_SETTINGS_PAGE_MODULE`
+- `URBAN_SETTINGS_ACCESS_MODULE`
+
+Export `URBAN_SETTINGS_PAGE_PATH_LEGACY = "/settings/urban"` for redirect/docs.
+
+Regenerate operator shell nav bindings via `pnpm run generate:workspace-registry`.
+
+## Out of scope
+
+- Renaming canLoad symbols (`canLoadUrbanSettings`, plugin id `urban`) — still Urban product policy
+- Changing API `/urban/settings`
+- Install-graph isolation
+- Rewriting every historical Phase 8 narrative doc (route matrix web rows + agent router + guards updated; older smoke maps may still mention legacy URL as redirected)
+- ~~Shell file/page/panel/i18n Urban names~~ → **done in** [`wave-h-workspace-owner-shell-typing.mdoc`](./wave-h-workspace-owner-shell-typing.mdoc) (Wave H.m)
+
+## Verify
+
+```bash
+test -d apps/web/app/(app)/settings/workspace-owner
+test ! -d apps/web/app/(app)/settings/urban
+pnpm run generate:workspace-registry
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/urban-owner-access.spec.ts \
+  test/operator-shell-nav.spec.ts \
+  test/wave-h-urban-settings-path.spec.ts \
+  test/wave-h-urban-settings-colocation.spec.ts \
+  test/workspace-boundary.spec.ts
+```

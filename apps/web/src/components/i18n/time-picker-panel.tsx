@@ -56,17 +56,17 @@ export function TimePickerPanel({ value, onChange, onConfirm, className }: TimeP
 
   return (
     <div
-      className={cn("denali-time-picker", className)}
-      data-denali-wizard-time-picker
+      className={cn("operator-time-picker", className)}
+      data-operator-wizard-time-picker
       dir="ltr"
     >
-      <p className="denali-time-picker__hint">{t("timePickerHint")}</p>
-      <div className="denali-time-picker__columns" role="group" aria-label={t("timeLabel")}>
-        <div className="denali-time-picker__column-wrap">
-          <span className="denali-time-picker__column-label">{t("hour")}</span>
+      <p className="operator-time-picker__hint">{t("timePickerHint")}</p>
+      <div className="operator-time-picker__columns" role="group" aria-label={t("timeLabel")}>
+        <div className="operator-time-picker__column-wrap">
+          <span className="operator-time-picker__column-label">{t("hour")}</span>
           <div
             ref={hoursRef}
-            className="denali-time-picker__column"
+            className="operator-time-picker__column"
             role="listbox"
             aria-label={t("hour")}
             tabIndex={0}
@@ -81,8 +81,8 @@ export function TimePickerPanel({ value, onChange, onConfirm, className }: TimeP
                   aria-selected={selected}
                   data-time-option={hour}
                   className={cn(
-                    "denali-time-picker__option",
-                    selected && "denali-time-picker__option--selected"
+                    "operator-time-picker__option",
+                    selected && "operator-time-picker__option--selected"
                   )}
                   onClick={() => selectHour(hour)}
                 >
@@ -92,14 +92,14 @@ export function TimePickerPanel({ value, onChange, onConfirm, className }: TimeP
             })}
           </div>
         </div>
-        <span className="denali-time-picker__separator" aria-hidden>
+        <span className="operator-time-picker__separator" aria-hidden>
           :
         </span>
-        <div className="denali-time-picker__column-wrap">
-          <span className="denali-time-picker__column-label">{t("minute")}</span>
+        <div className="operator-time-picker__column-wrap">
+          <span className="operator-time-picker__column-label">{t("minute")}</span>
           <div
             ref={minutesRef}
-            className="denali-time-picker__column"
+            className="operator-time-picker__column"
             role="listbox"
             aria-label={t("minute")}
             tabIndex={0}
@@ -114,8 +114,8 @@ export function TimePickerPanel({ value, onChange, onConfirm, className }: TimeP
                   aria-selected={selected}
                   data-time-option={minute}
                   className={cn(
-                    "denali-time-picker__option",
-                    selected && "denali-time-picker__option--selected"
+                    "operator-time-picker__option",
+                    selected && "operator-time-picker__option--selected"
                   )}
                   onClick={() => selectMinute(minute)}
                 >
@@ -126,11 +126,11 @@ export function TimePickerPanel({ value, onChange, onConfirm, className }: TimeP
           </div>
         </div>
       </div>
-      <p className="denali-time-picker__preview" aria-live="polite">
+      <p className="operator-time-picker__preview" aria-live="polite">
         {formatOptionLabel(joinClockParts(selectedHour, selectedMinute), locale)}
       </p>
       {onConfirm != null ? (
-        <div className="denali-time-picker__actions">
+        <div className="operator-time-picker__actions">
           <Button type="button" size="sm" className="w-full" onClick={onConfirm}>
             {t("confirmTime")}
           </Button>

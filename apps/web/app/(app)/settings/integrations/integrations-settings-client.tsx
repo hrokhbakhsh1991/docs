@@ -656,7 +656,7 @@ export function IntegrationsSettingsClient({
   if (!canManage) {
     return (
       <div className="space-y-6" data-testid={SETTINGS_HUB_TEST_IDS.integrationsPage}>
-        <Card data-denali-surface="card" className="shadow-sm">
+        <Card data-operator-surface="card" className="shadow-sm">
           <CardContent className="pt-6 text-sm text-muted-foreground">{t("forbidden")}</CardContent>
         </Card>
       </div>
@@ -714,7 +714,7 @@ export function IntegrationsSettingsClient({
 
       {showScenarioCard ? (
         <Card
-          data-denali-surface="card"
+          data-operator-surface="card"
           className="shadow-sm"
           data-testid={INTEGRATIONS_SETTINGS_TEST_IDS.scenario}
           data-scenario={scenario}
@@ -727,7 +727,7 @@ export function IntegrationsSettingsClient({
       ) : null}
 
       {list !== null ? (
-        <Card data-denali-surface="card" className="shadow-sm">
+        <Card data-operator-surface="card" className="shadow-sm">
           <CardHeader>
             <CardTitle>{t("summary.title")}</CardTitle>
             <CardDescription>
@@ -772,7 +772,7 @@ export function IntegrationsSettingsClient({
 
       {showCreateForm ? (
         <Card
-          data-denali-surface="card"
+          data-operator-surface="card"
           className="max-w-5xl shadow-sm"
           data-testid={INTEGRATIONS_SETTINGS_TEST_IDS.addForm}
         >
@@ -854,7 +854,7 @@ export function IntegrationsSettingsClient({
 
       {!loading && error === null && list !== null && list.items.length === 0 ? (
         <Card
-          data-denali-surface="card"
+          data-operator-surface="card"
           data-testid={INTEGRATIONS_SETTINGS_TEST_IDS.emptyState}
           className="shadow-sm"
         >
@@ -868,7 +868,7 @@ export function IntegrationsSettingsClient({
       {!loading && error === null && list !== null && list.items.length > 0 ? (
         <div className="grid max-w-5xl gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           <Card
-            data-denali-surface="card"
+            data-operator-surface="card"
             className="shadow-sm"
             data-testid={INTEGRATIONS_SETTINGS_TEST_IDS.list}
           >
@@ -910,7 +910,7 @@ export function IntegrationsSettingsClient({
           </Card>
 
           <Card
-            data-denali-surface="card"
+            data-operator-surface="card"
             className="shadow-sm"
             data-testid={INTEGRATIONS_SETTINGS_TEST_IDS.detail}
           >

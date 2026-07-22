@@ -6,7 +6,7 @@ type DashboardKpiCellProps = {
   readonly variant?: "default" | "finance";
 };
 
-/** Denali dashboard KPI tile — clamped label + tabular value (overflow-safe). */
+/** Operator dashboard KPI tile — clamped label + tabular value (overflow-safe). */
 export function DashboardKpiCell({
   label,
   value,
@@ -15,11 +15,11 @@ export function DashboardKpiCell({
   return (
     <div
       {...(variant === "finance"
-        ? { "data-denali-finance-kpi": true }
-        : { "data-denali-kpi": true })}
+        ? { "data-operator-finance-kpi": true }
+        : { "data-operator-kpi": true })}
     >
-      <p data-denali-kpi-label>{label}</p>
-      <p data-denali-kpi-value>{value}</p>
+      <p data-operator-kpi-label>{label}</p>
+      <p data-operator-kpi-value>{value}</p>
     </div>
   );
 }

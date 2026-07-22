@@ -1,0 +1,48 @@
+---
+title: Forbidden scope residual closure (Wave A)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/phase-saas-kernel/appendices/SK1_TENANT_AUTHZ_CONTRACTS.md
+---
+
+# Forbidden scope residual closure (Wave A)
+
+## Context
+
+Canonical npm scope is **`@app-tour/*`** (Phase 1). Hostile architecture audit (`TEMP/ARCHITECTURE_AUDIT_FINAL.md`) found remaining **`@app-cloud/*` package imports** on API auth/tenant ingress and a few specs — critical because resolution may depend on stale symlinks or fail under clean `pnpm install`.
+
+This tranche does **not** rename ops paths (`/opt/app-cloud`, k8s namespace labels, `Symbol.for("app-cloud.*")`) — those are deployment/runtime identifiers, not TypeScript module specifiers.
+
+## Goal path (Auditor → target architecture)
+
+| Wave | Focus | Outcome lever |
+| ---- | ----- | ------------- |
+| **A (this)** | Zero `@app-cloud/` **module** imports in `apps/` + `packages/` TS/TSX (+ enforce guard) | Namespace hygiene → ~100% for package specs |
+| **B** | Client bootstrap Map → codegen; kill sync `getDenaliWorkspacePlugin` in web | Thin shell / runtime model |
+| **C** | Portal/marketing `transpilePackages` + guest-runtime dep graph | Bundle isolation |
+| **D** | Plugin export surface + hard-coded `pluginId` branches | Encapsulation / drop-in DX |
+
+## Decision (Wave A)
+
+1. Replace every `@app-cloud/<pkg>` **import specifier** in application/package TypeScript with `@app-tour/<pkg>`.
+2. Align e2e/contract assertions that required the forbidden scope.
+3. Add `pnpm run guard:no-app-cloud-imports` — fails if `@app-cloud/` appears in `apps/**` or `packages/**` for `*.{ts,tsx,js,mjs,cjs}` (exclude `node_modules`, `dist`, `.next`). Allowlist: none for package imports. Docs under `docs/` are out of scope for this guard (historical Markdoc may still mention the typo).
+
+## Verify
+
+```bash
+pnpm run guard:no-app-cloud-imports
+rg '@app-cloud/' apps packages -g '*.{ts,tsx}' -g '!**/node_modules/**'
+node --test scripts/test/p4-cold-path-fan-in.spec.mjs
+```
+
+## Residual (closed in Wave H.k)
+
+Hostile re-audit found codegen still emitting `@app-cloud/*` in admin `transpilePackages` platform set — fixed in [`wave-h-audit-critical-hygiene.mdoc`](./wave-h-audit-critical-hygiene.mdoc).
+
+## Out of scope
+
+- Renaming deploy unit prefixes / Prometheus `namespace="app-cloud"`
+- Changing `Symbol.for("app-cloud.requestJwtSessionVersion")` (would break in-flight session attach across mixed builds)
+- Shell Denali extraction (Wave B+)

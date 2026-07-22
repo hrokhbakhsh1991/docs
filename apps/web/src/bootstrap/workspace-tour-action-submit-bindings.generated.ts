@@ -4,22 +4,62 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import type { TourActionSubmitErrorPayload } from "@app-tour/workspace-denali/host/ui/logic/tour-action-submit-codec-surface";
-import { denaliTourActionSubmitCodec as codec_denali } from "@app-tour/workspace-denali/host/ui/logic/tour-action-submit-codec-surface";
+/** Shell-local wire payload — do not import product package types (Gap Closure B.4). */
+export type TourActionSubmitErrorPayload = {
+  readonly status: number;
+  readonly code: string;
+  readonly message: string;
+  readonly correlationId?: string;
+};
 
-const TOUR_ACTION_SUBMIT_CODECS = Object.freeze({
-  "denali": codec_denali,
+type TourActionSubmitCodec = {
+  readonly encode: (payload: TourActionSubmitErrorPayload) => string;
+  readonly decode: (raw: string) => TourActionSubmitErrorPayload | null;
+};
+
+const TOUR_ACTION_SUBMIT_CODECS_LOADERS: Readonly<
+  Record<string, () => Promise<TourActionSubmitCodec>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/host/ui/logic/tour-action-submit-codec-surface");
+    return mod.denaliTourActionSubmitCodec;
+  },
 });
 
-export type { TourActionSubmitErrorPayload };
+const TOUR_ACTION_SUBMIT_CODECS_CACHE = new Map<string, TourActionSubmitCodec>();
+
+export async function ensureTourActionSubmitCodec(
+  pluginId: string
+): Promise<TourActionSubmitCodec | null> {
+  if (pluginId.trim().length === 0) {
+    return null;
+  }
+  const cached = TOUR_ACTION_SUBMIT_CODECS_CACHE.get(pluginId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = TOUR_ACTION_SUBMIT_CODECS_LOADERS[pluginId];
+  if (load == null) {
+    return null;
+  }
+  const codec = await load();
+  TOUR_ACTION_SUBMIT_CODECS_CACHE.set(pluginId, codec);
+  return codec;
+}
+
+export async function ensureAllTourActionSubmitCodecs(): Promise<void> {
+  await Promise.all(
+    ["denali"].map((pluginId) => ensureTourActionSubmitCodec(pluginId))
+  );
+}
 
 export function encodeTourActionSubmitErrorForPlugin(
   pluginId: string,
   payload: TourActionSubmitErrorPayload
 ): string {
-  const codec = TOUR_ACTION_SUBMIT_CODECS[pluginId as keyof typeof TOUR_ACTION_SUBMIT_CODECS];
+  const codec = TOUR_ACTION_SUBMIT_CODECS_CACHE.get(pluginId);
   if (codec == null) {
-    throw new Error(`No tour action submit codec for plugin: ${pluginId}`);
+    throw new Error(`No tour action submit codec for plugin: ${pluginId} (call ensureTourActionSubmitCodec first)`);
   }
   return codec.encode(payload);
 }
@@ -27,7 +67,7 @@ export function encodeTourActionSubmitErrorForPlugin(
 export function decodeTourActionSubmitError(
   raw: string
 ): TourActionSubmitErrorPayload | null {
-  for (const codec of Object.values(TOUR_ACTION_SUBMIT_CODECS)) {
+  for (const codec of TOUR_ACTION_SUBMIT_CODECS_CACHE.values()) {
     const decoded = codec.decode(raw);
     if (decoded != null) {
       return decoded;
@@ -36,9 +76,9 @@ export function decodeTourActionSubmitError(
   return null;
 }
 
-/** @deprecated Use encodeTourActionSubmitErrorForPlugin — retained for tests */
+/** @deprecated Use encodeTourActionSubmitErrorForPlugin after ensureTourActionSubmitCodec. */
 export function encodeTourActionSubmitError(
   payload: TourActionSubmitErrorPayload
 ): string {
-  return codec_denali.encode(payload);
+  return encodeTourActionSubmitErrorForPlugin("denali", payload);
 }

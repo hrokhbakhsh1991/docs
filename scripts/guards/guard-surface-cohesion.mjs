@@ -129,9 +129,9 @@ assertMatch(
 // --- Web Phase 1a/1b (must pass — GSH parity) ---
 
 assertMatch(
-  "apps/web/src/urban/urban-api-base.ts",
+  "apps/web/src/platform/tour-ops-api-base.ts",
   /from "@app-tour\/guest-surface-host"/,
-  "urban-api-base must re-export resolveTourOpsApiBaseUrl from guest-surface-host"
+  "tour-ops-api-base must re-export resolveTourOpsApiBaseUrl from guest-surface-host (Wave H.a)"
 );
 
 assertNoMatch(
@@ -215,30 +215,39 @@ assertMatch(
 );
 
 // --- Web Phase 1d (must pass — SDK catalog paths) ---
+// Catalog path SoT lives in workspace packages; admin web has no product catalog shim (Wave H.b/H.c).
 
 assertMatch(
-  "apps/web/src/denali/denali-catalog-client.ts",
+  "packages/workspaces/denali/src/catalog/fetch-denali-catalog-tour.ts",
   /resolveCatalogTourApiPath/,
-  "denali catalog client must use workspace-sdk resolveCatalogTourApiPath"
+  "denali catalog package fetch must use workspace-sdk resolveCatalogTourApiPath"
 );
 
 assertMatch(
-  "apps/web/src/urban/urban-catalog-client.ts",
+  "packages/workspaces/urban/src/catalog/fetch-urban-catalog.ts",
   /resolveCatalogListApiPath/,
-  "urban catalog client must use workspace-sdk resolveCatalogListApiPath"
+  "urban catalog package fetch must use workspace-sdk resolveCatalogListApiPath (Wave H.b)"
 );
 
 assertNoMatch(
-  "apps/web/src/denali/denali-catalog-client.ts",
+  "packages/workspaces/denali/src/catalog/fetch-denali-catalog-tour.ts",
   /\/denali\/catalog/,
-  "denali catalog client must not hardcode /denali/catalog path"
+  "denali catalog package fetch must not hardcode /denali/catalog path"
 );
 
 assertNoMatch(
-  "apps/web/src/urban/urban-catalog-client.ts",
+  "packages/workspaces/urban/src/catalog/fetch-urban-catalog.ts",
   /\/urban\/catalog/,
-  "urban catalog client must not hardcode /urban/catalog path"
+  "urban catalog package fetch must not hardcode /urban/catalog path"
 );
+
+if (fileExists("apps/web/src/urban")) {
+  violations.push("apps/web/src/urban/: product island forbidden after Wave H.b — colocate settings + package catalog");
+}
+
+if (fileExists("apps/web/src/denali")) {
+  violations.push("apps/web/src/denali/: product island forbidden after Wave H.c — package catalog SoT only");
+}
 
 const WEB_CATALOG_PATH_PATTERN = /\/denali\/catalog|\/urban\/catalog/;
 

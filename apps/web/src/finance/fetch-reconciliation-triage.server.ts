@@ -7,7 +7,7 @@ import {
   buildReconciliationFindings,
   type ReconciliationFinding,
 } from "@/finance/reconciliation-triage-logic";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 async function fetchFinanceBackendJson(path: string): Promise<unknown | null> {
   const cookieStore = await cookies();

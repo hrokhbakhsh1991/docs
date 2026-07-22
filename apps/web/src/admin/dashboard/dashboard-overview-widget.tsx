@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
-import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
+import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
 import { DashboardKpiCell } from "@/admin/patterns/dashboard-kpi-cell";
 import {
   DashboardKpiGrid,
@@ -106,10 +106,10 @@ export function DashboardOverviewWidget({
     >
       {loading ? (
         <DashboardKpiGrid>
-          <DenaliSkeleton size="kpi" />
-          <DenaliSkeleton size="kpi" />
-          <DenaliSkeleton size="kpi" />
-          <DenaliSkeleton size="kpi" />
+          <OperatorSkeleton size="kpi" />
+          <OperatorSkeleton size="kpi" />
+          <OperatorSkeleton size="kpi" />
+          <OperatorSkeleton size="kpi" />
         </DashboardKpiGrid>
       ) : null}
       {!loading && error ? (

@@ -25,23 +25,28 @@ import {
   sortTransportRosterRows,
   TOUR_WORKSPACE_TRANSPORT_TEST_IDS,
 } from "@/features/tours/tour-workspace-transport-logic";
-import { resolveDenaliTransportModeLabel } from "@/i18n/denali-wizard-labels";
+import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
+import { resolveWizardTransportModeLabel } from "@/wizard/wizard-label-surface-registry";
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
 
 type TourWorkspaceTransportClientProps = {
   readonly tourId: string;
+  readonly pluginId: string;
 };
 
-export function TourWorkspaceTransportClient({ tourId }: TourWorkspaceTransportClientProps) {
+export function TourWorkspaceTransportClient({
+  tourId,
+  pluginId,
+}: TourWorkspaceTransportClientProps) {
   const locale = useLocale() as AppLocale;
-  const tDenali = useTranslations("denali");
+  const tWorkspace = useWorkspaceWizardTranslator(pluginId);
   const tBookings = useTranslations("bookings.status");
   const tBookingsIntake = useTranslations("bookings.intake");
   const t = useTranslations("tours.workspace.transport");
   const tTable = useTranslations("tours.workspace.table");
-  const tWorkspace = useTranslations("tours.workspace");
+  const tWorkspaceCopy = useTranslations("tours.workspace");
   const tErrors = useTranslations("tours.workspace.errors");
   const [modes, setModes] = useState<string[]>([]);
   const [items, setItems] = useState<BookingListItem[]>([]);
@@ -82,7 +87,7 @@ export function TourWorkspaceTransportClient({ tourId }: TourWorkspaceTransportC
   const localizedError = resolveTourErrorMessage(tErrors, error);
 
   return (
-    <Card data-denali-surface="card" data-testid={TOUR_WORKSPACE_TEST_IDS.transportPanel} className="shadow-sm">
+    <Card data-operator-surface="card" data-testid={TOUR_WORKSPACE_TEST_IDS.transportPanel} className="shadow-sm">
       <CardHeader>
         <CardTitle>{t("title")}</CardTitle>
         <CardDescription>{t("description")}</CardDescription>
@@ -95,7 +100,7 @@ export function TourWorkspaceTransportClient({ tourId }: TourWorkspaceTransportC
           <div className="flex flex-wrap gap-2" data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.modes}>
             {modes.map((mode) => (
               <Badge key={mode} variant="secondary">
-                {resolveDenaliTransportModeLabel(tDenali, mode)}
+                {resolveWizardTransportModeLabel(pluginId, tWorkspace, mode)}
               </Badge>
             ))}
           </div>
@@ -109,7 +114,7 @@ export function TourWorkspaceTransportClient({ tourId }: TourWorkspaceTransportC
             <p>{t("empty")}</p>
             <Button asChild variant="link" className="mt-2">
               <Link href={buildTourTransportCommandCenterHref(tourId)}>
-                {tWorkspace("openCommandCenter")}
+                {tWorkspaceCopy("openCommandCenter")}
               </Link>
             </Button>
           </div>

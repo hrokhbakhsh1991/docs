@@ -9,15 +9,15 @@ import {
   type DraftUnificationV3Mode,
 } from "./draft-unification-v3";
 import { logWizardDraftTombstoneShadowMismatch } from "@/bootstrap/workspace-wizard-draft-unification-bindings.generated";
-import type { NewTourWizardDraftEnvelope } from "./denali-wizard-draft-types";
+import type { NewTourWizardDraftEnvelope } from "./tour-wizard-draft-envelope";
 
-export function resolveDenaliDraftConflictStrategy(
+export function resolveOperatorDraftConflictStrategy(
   mode: DraftUnificationV3Mode = resolveDraftUnificationV3Mode(),
 ): ConflictStrategy {
   return isDraftUnificationV3ServerWins(mode) ? "SERVER_WINS" : "REFETCH_REAPPLY";
 }
 
-export function createDenaliDraftOnPushSuccess(
+export function createOperatorDraftOnPushSuccess(
   mode: DraftUnificationV3Mode = resolveDraftUnificationV3Mode(),
 ): (
   localPayload: DraftSyncPayload<NewTourWizardDraftEnvelope>,

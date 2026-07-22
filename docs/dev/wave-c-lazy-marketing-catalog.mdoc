@@ -1,0 +1,52 @@
+---
+title: Wave C.a — Lazy marketing catalog bindings
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-a-no-app-cloud-imports.mdoc
+  - docs/dev/finance-lazy-workspace-bindings.mdoc
+  - docs/dev/p4-d2-cold-path-fan-in-ci.mdoc
+---
+
+# Wave C.a — Lazy marketing catalog bindings
+
+## Problem
+
+`packages/guest-workspace-runtime` collapsed portal/marketing **direct** product deps, but `workspace-marketing-catalog-bindings.generated.ts` still **statically** imported:
+
+```ts
+import { denaliMarketingCatalogSurface } from "@app-tour/workspace-denali/host/marketing/…";
+```
+
+Any import of `@app-tour/guest-workspace-runtime/marketing-catalog` therefore pulls Denali into the marketing cold graph. Theme loaders were already dynamic; catalog was not. Portal/marketing `transpilePackages` lists remain a separate install/transpile concern (Wave C.b).
+
+## Decision
+
+Codegen (`generateMarketingCatalogBindings`) emits:
+
+| Export | Shape |
+| ------ | ----- |
+| `hasMarketingCatalogSurface(pluginId)` | **Sync** — `Set` of manifest ids with `marketingCatalog` (no product import) |
+| `resolveMarketingCatalogSurface(pluginId)` | **Async** — `await import(specifier)` per id, string-literal only |
+
+Marketing app helpers/components that need the surface `await` the resolver (most catalog UI is already async RSC).
+
+Cold-path guard includes the generated bindings file (`staticProductImports === 0`).
+
+## Out of scope (Wave C.b+)
+
+- ~~Codegen of `transpilePackages` arrays (drop-in DX only)~~ → **DONE** in [`wave-c-guest-transpile-packages.mdoc`](./wave-c-guest-transpile-packages.mdoc)
+- Removing product packages from `guest-workspace-runtime/package.json` (pnpm still needs them for dynamic import resolution; shrink requires optional/peer split or per-tenant builds) — **Wave C.c**
+
+## Verify
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run guard:p4-cold-path-fan-in
+pnpm --filter @apps/marketing exec node --import tsx --test \
+  test/marketing-workspace-denali-boundary.spec.ts \
+  test/derive-catalog-filter-options.spec.ts \
+  test/filter-marketing-catalog-items.spec.ts \
+  test/build-catalog-list-card-summary.spec.ts \
+  test/resolve-marketing-catalog-category-label.spec.ts
+```

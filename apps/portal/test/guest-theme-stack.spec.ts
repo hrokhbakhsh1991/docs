@@ -14,7 +14,7 @@ const layoutPath = join(repoRoot, "apps/portal/app/layout.tsx");
 const nextConfigPath = join(repoRoot, "apps/portal/next.config.ts");
 const bootstrapPath = join(
   repoRoot,
-  "apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+  "packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.portal.generated.ts"
 );
 const denaliPortalSkinPath = join(
   repoRoot,
@@ -40,9 +40,9 @@ describe("guest-theme-stack.spec.ts — portal", () => {
     assert.match(layout, /data-workspace-plugin=\{bootstrap\.pluginId\}/);
     assert.match(layout, /importGuestPortalThemeForPlugin/);
     assert.match(layout, /await importGuestPortalThemeForPlugin\(bootstrap\.pluginId\)/);
-    assert.doesNotMatch(
+    assert.match(
       layout,
-      /import ["']@\/bootstrap\/workspace-guest-theme-stylesheets\.generated["'];\s*$/
+      /from ["']@app-tour\/guest-workspace-runtime\/themes\/portal["']/
     );
   });
 

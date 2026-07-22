@@ -4,14 +4,13 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardTemplatePresetSurface as wizard_template_preset_denali } from "@app-tour/workspace-denali/settings/wizard-template-preset-surface";
-
-export function loadFullWizardTemplatePreset(
+export async function loadFullWizardTemplatePreset(
   pluginId: string,
   seedLabel?: string
 ): Promise<import("@/features/settings/wizard-template-types").WizardTemplatePayload> {
-  if (pluginId !== "denali") {
-    return Promise.reject(new Error(`No wizard template preset for plugin: ${pluginId}`));
+  if (pluginId === "denali") {
+    const mod = await import("@app-tour/workspace-denali/settings/wizard-template-preset-surface");
+    return mod.denaliWizardTemplatePresetSurface.buildFullTemplatePreset(seedLabel);
   }
-  return Promise.resolve(wizard_template_preset_denali.buildFullTemplatePreset(seedLabel));
+  throw new Error(`No wizard template preset for plugin: ${pluginId}`);
 }

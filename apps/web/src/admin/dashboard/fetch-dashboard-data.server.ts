@@ -7,7 +7,7 @@ import {
 } from "@/admin/dashboard/dashboard-widgets-logic";
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
 import { parseDashboardFinanceSummary } from "@/finance/finance-dashboard-widget-logic";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 async function fetchBackendJson(path: string): Promise<unknown | null> {
   const cookieStore = await cookies();

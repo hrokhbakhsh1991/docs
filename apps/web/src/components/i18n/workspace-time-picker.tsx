@@ -63,7 +63,7 @@ function ClockSegmentInput({
       disabled={disabled}
       aria-label={ariaLabel}
       placeholder={placeholder}
-      className={cn("denali-wizard-time-picker__segment", localized.className)}
+      className={cn("operator-wizard-time-picker__segment", localized.className)}
       onFocus={(event) => event.target.select()}
       onBlur={onSegmentBlur}
       onKeyDown={onSegmentKeyDown}
@@ -71,7 +71,7 @@ function ClockSegmentInput({
   );
 }
 
-/** Denali wizard clock input — segmented HH:mm with Persian digits and theme-aligned chrome. */
+/** Operator wizard clock input — segmented HH:mm with Persian digits and theme-aligned chrome. */
 export function WorkspaceTimePicker({
   id,
   value,
@@ -142,12 +142,12 @@ export function WorkspaceTimePicker({
       role="group"
       aria-label={ariaLabel ?? t("timeLabel")}
       aria-required={required || undefined}
-      data-denali-wizard-time-picker
+      data-operator-wizard-time-picker
       aria-disabled={disabled || undefined}
-      className={cn("denali-wizard-time-picker", className)}
+      className={cn("operator-wizard-time-picker", className)}
     >
-      <Clock3Icon className="denali-wizard-time-picker__icon" aria-hidden />
-      <div className="denali-wizard-time-picker__segments">
+      <Clock3Icon className="operator-wizard-time-picker__icon" aria-hidden />
+      <div className="operator-wizard-time-picker__segments">
         <ClockSegmentInput
           segment="hours"
           value={segments.hours}
@@ -159,7 +159,7 @@ export function WorkspaceTimePicker({
           onSegmentBlur={handleBlur}
           onSegmentKeyDown={handleHoursKeyDown}
         />
-        <span className="denali-wizard-time-picker__separator" aria-hidden>
+        <span className="operator-wizard-time-picker__separator" aria-hidden>
           :
         </span>
         <ClockSegmentInput

@@ -1,0 +1,50 @@
+---
+title: Wave H.n — Operator admin DOM attrs (drop remaining data-denali-* in shell)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-operator-surface-attr.mdoc
+  - docs/dev/wave-h-operator-datetime-chrome.mdoc
+---
+
+# Wave H.n — Operator admin DOM attrs
+
+## Problem
+
+After H.l / H.l.b, `apps/web` still hosted dozens of **`data-denali-*`** hooks on platform admin chrome:
+
+- dashboard widgets / KPI / registration rows
+- page header, empty state, skeleton, confirm dialog
+- welcome dialog, profile avatar, finance board tabs
+- motion: `data-denali-animate` / `data-denali-animate-delay`
+
+These are **operator shell** contracts, not Denali product fields — yet Denali theme CSS keyed off the product prefix, so every workspace skin path still looked Denali-branded in the DOM.
+
+## Decision
+
+1. Replace every `data-denali-` **attribute name prefix** with `data-operator-` in:
+   - `apps/web/{src,app,test,tests,scripts}`
+   - `packages/workspaces/denali/theme/*.css`
+   - `packages/workspaces/denali/src/**` emitters of the same attrs
+2. Keep broader Denali **BEM** (`.denali-wizard-composite`, pickers, …) for later; datetime/date-picker BEM → [`wave-h-operator-datetime-bem.mdoc`](./wave-h-operator-datetime-bem.mdoc) (Wave H.p). This wave is **data-attribute** neutralization only.
+3. Specs that assert `[data-denali-animate=…]` / confirm-dialog attrs must target `data-operator-*`.
+
+## Out of scope
+
+- Renaming `CreateTourWizardDenaliHeader` / draft `resolveDenali*` shell helpers → [`wave-h-operator-shell-ts-names.mdoc`](./wave-h-operator-shell-ts-names.mdoc) (Wave H.o)
+- Removing `apps/web/src/wizard/denali/*` firewall
+- Install-graph isolation
+- Broader wizard BEM (composite / review / pickers); datetime BEM done in H.p
+
+## Verify
+
+```bash
+rg 'data-denali-' apps/web/src apps/web/app --glob '!**/*.generated.*'
+# expect empty
+rg 'data-denali-' packages/workspaces/denali/theme --glob '*.css'
+# expect empty
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-h-operator-admin-dom.spec.ts \
+  test/denali-admin-theme.spec.ts \
+  test/denali-confirm-dialog.spec.ts
+```

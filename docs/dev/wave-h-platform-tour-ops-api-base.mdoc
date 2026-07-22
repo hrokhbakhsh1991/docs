@@ -1,0 +1,45 @@
+---
+title: Wave H.a — Platform Tour Ops API base (leave urban product dir)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-g-http-handler-per-package.mdoc
+  - docs/standards/platform-surface-cohesion.mdoc
+---
+
+# Wave H.a — Platform Tour Ops API base
+
+## Path choice
+
+Hostile audit / remaining thin-shell checklist: `apps/web/src/urban/` still hosts **platform** BFF egress (`resolveTourOpsApiBaseUrl`) used by ~80 admin server/BFF files. That makes the shell look like an Urban product host when the helper is product-blind (re-export of `@app-cloud/guest-surface-host`).
+
+Wave H continues admin product-dir shrinkage. This tranche is the highest fan-in cut with lowest product-risk.
+
+## Decision
+
+1. Move SoT to `apps/web/src/platform/tour-ops-api-base.ts`:
+   - `resolveTourOpsApiBaseUrl` / `assertGuestBffProductionConfig` from guest-surface-host
+   - `buildPublicTenantHeaders(tenantId)` (neutral name)
+   - Compat aliases removed (Gap Closure B.12); use `buildPublicTenantHeaders` / `resolveTourOpsApiBaseUrl`
+2. Retarget all `@/urban/urban-api-base` (and relative) imports to `@/platform/tour-ops-api-base`.
+3. **Delete** `apps/web/src/urban/urban-api-base.ts` (no shim).
+4. Update PSC parity / catalog access specs to the new path.
+
+## Out of scope (later H)
+
+- Delete remaining `src/urban/*` (catalog client, settings panel, settings route)
+- Delete `src/denali/denali-catalog-client.ts`
+- Shrink `wizard/denali/` host adapters
+- Brand fallback mark kind `"denali"` / IgnorePlugin env gates
+
+## Verify
+
+```bash
+test ! -f apps/web/src/urban/urban-api-base.ts
+rg '@/urban/urban-api-base|urban/urban-api-base' apps/web
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/guest-api-base-parity.spec.ts \
+  test/guest-bff-env.spec.ts \
+  test/urban-catalog-access.spec.ts \
+  test/workspace-boundary.spec.ts
+```

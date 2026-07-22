@@ -6,19 +6,19 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  buildUrbanPublicTenantHeaders,
+  buildPublicTenantHeaders,
   resolveTourOpsApiBaseUrl,
-} from "../src/urban/urban-api-base";
+} from "../src/platform/tour-ops-api-base";
 import {
   URBAN_CATALOG_PAGE_PATH,
   type UrbanCatalogListResponse,
-} from "../src/urban/urban-catalog-client";
+} from "@app-tour/workspace-urban/host/catalog";
 
 const URBAN_TENANT_ID = "00000000-0000-4000-8000-000000000004";
 
 describe("Phase 8.2 web urban catalog access", () => {
   it("WEB-8.2-01 public catalog headers use x-tenant-id only", () => {
-    const headers = buildUrbanPublicTenantHeaders(URBAN_TENANT_ID);
+    const headers = buildPublicTenantHeaders(URBAN_TENANT_ID);
     assert.equal(headers["x-tenant-id"], URBAN_TENANT_ID);
     assert.equal(Object.keys(headers).length, 1);
   });

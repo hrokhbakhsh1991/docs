@@ -53,7 +53,7 @@ const CASL_8_1_ROUTE_SPEC_BINDINGS = Object.freeze([
     ]),
   },
   {
-    route: "/settings/urban",
+    route: "/settings/workspace-owner",
     surface: "urban.settings.read",
     bindings: Object.freeze([
       { caseId: "WEB-8.1-01", specRel: "apps/web/test/urban-owner-access.spec.ts" },

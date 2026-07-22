@@ -26,8 +26,18 @@ pnpm --filter @app-tour/workspace-denali run build || {
 
 (
   cd "$WEB"
-  export NODE_ENV=production CI=true NEXT_FONT_OFFLINE=1 STAGING_WEB_BUILD=1 ALLOW_DENALI_WEB_PLUGIN=true
+  export NODE_ENV=production CI=true NEXT_FONT_OFFLINE=1 STAGING_WEB_BUILD=1
+  # Gap Closure D.5 — optional profiled transpile/guest-runtime rewrite for image builds
+  if [[ "${WORKSPACE_DEPLOY_PROFILE_APPLY:-}" == "1" ]]; then
+    log "apply:deploy-profile --write (APPLY=1)"
+    (cd "$ROOT" && pnpm run apply:deploy-profile -- --write)
+  fi
+  eval "$(node "${ROOT}/scripts/vps-deploy/resolve-staging-web-plugin-allow-env.mjs")"
   pnpm exec next build
+  if [[ "${WORKSPACE_DEPLOY_PROFILE_APPLY:-}" == "1" ]]; then
+    log "restore trunk generate:workspace-registry after profiled build"
+    (cd "$ROOT" && pnpm run generate:workspace-registry)
+  fi
 )
 
 [[ -f "${WEB}/.next/BUILD_ID" ]] || {

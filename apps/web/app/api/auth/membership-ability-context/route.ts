@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { buildIdentityBffHeadersAsync } from "@/auth/identity-bff-headers";
 import { mapOperatorAuthBffCatchError } from "@/auth/operator-auth-bff-error";
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 export async function GET(req: Request): Promise<NextResponse> {
   const sessionToken = readSessionTokenFromRequest(req);

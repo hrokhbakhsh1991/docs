@@ -1,0 +1,46 @@
+---
+title: Wave H.f — Neutralize ClubCommerceBadge Denali UX literals
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-f-commerce-freeze.mdoc
+  - docs/dev/wave-h-brand-fallback-neutral.mdoc
+  - docs/phase-18/platform-workspace-commerce.mdoc
+---
+
+# Wave H.f — Neutralize ClubCommerceBadge Denali UX literals
+
+## Problem
+
+Wave F.b moved commerce **policy** to manifest/`isWorkspaceCommerceFrozen`, but `apps/web/src/platform/club-commerce-badge.tsx` still carries Denali product chrome:
+
+| Residue | Why it matters |
+| -------- | -------------- |
+| `isDenaliWorkspaceType()` alias | Product-named API over a generic freeze helper |
+| `data-commerce-denali-frozen` | DOM contract encodes a product id |
+| Copy “Denali clubs use offline receipt…” | Hard-coded product marketing in platform Super Admin UI |
+
+Hostile audit still lists “commerce badge literals” after F.b because these strings survived.
+
+## Decision
+
+1. Delete `isDenaliWorkspaceType` (no remaining call sites).
+2. Rename attribute to `data-commerce-frozen`.
+3. Replace Denali-specific note with product-blind copy: “Frozen commerce workspaces use offline receipt review only.”
+4. Keep freeze detection via `isWorkspaceCommerceFrozen` / `shouldShowClubCommerceGatewayUi` (unchanged).
+5. Update `platform-club-commerce-badge.spec.ts` assertions to the neutral contract.
+
+## Out of scope
+
+- Webpack `IgnorePlugin` / `ALLOW_*_WEB_PLUGIN` (→ Wave H.g — make gate real; install isolation still later)
+- H.e.b custom brand mark component registry
+- API `DENALI_FROZEN_COMMERCE_CONFIG` compat alias (Wave F.b intentional)
+
+## Verify
+
+```bash
+rg -n 'Denali clubs|data-commerce-denali-frozen|isDenaliWorkspaceType' apps/web
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/platform-club-commerce-badge.spec.ts \
+  test/wave-h-commerce-badge-neutral.spec.ts
+```

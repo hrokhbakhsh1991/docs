@@ -30,7 +30,7 @@ export function WizardDraftsSettingsClient() {
         </p>
       ) : null}
 
-      <Card data-denali-surface="card" className="shadow-sm">
+      <Card data-operator-surface="card" className="shadow-sm">
         <CardHeader>
           <CardTitle>{t("listTitle", { count: items.length })}</CardTitle>
         </CardHeader>

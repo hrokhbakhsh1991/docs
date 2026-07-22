@@ -9,37 +9,14 @@ import {
   getOrCreateWorkspacePluginLoad,
   invalidateWorkspacePluginLoadCache,
 } from "./workspace-plugin-load-cache";
-import { getBookingWs2WorkspacePlugin } from "@app-tour/workspace-booking-ws2/plugin";
-import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
-import { getFinanceWs5WorkspacePlugin } from "@app-tour/workspace-finance-ws5/plugin";
-import { getGuestClubWorkspacePlugin } from "@app-tour/workspace-guest-club/plugin";
-import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
-import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban/plugin";
 
-/** Sorted trunk plugin ids — cache bust when codegen regen changes membership. */
+/** Sorted product trunk plugin ids — cache bust when codegen regen changes membership. */
 export const WORKSPACE_PLUGIN_REGISTRY_REVISION = "booking-ws2,denali,finance-ws5,guest-club,starter,urban";
 
-/** Upper bound for per-process plugin load cache (= trunk plugin count). */
+/** Upper bound for per-process plugin load cache (= product trunk plugin count). */
 export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 6;
 
 export { invalidateWorkspacePluginLoadCache };
-
-const SYNC_WORKSPACE_PLUGINS: Readonly<Record<string, WorkspacePlugin>> = Object.freeze({
-  "booking-ws2": getBookingWs2WorkspacePlugin(),
-  "denali": getDenaliWorkspacePlugin(),
-  "finance-ws5": getFinanceWs5WorkspacePlugin(),
-  "guest-club": getGuestClubWorkspacePlugin(),
-  "starter": getStarterWorkspacePlugin(),
-  "urban": getUrbanWorkspacePlugin(),
-});
-
-export function resolveSyncWorkspacePluginFromRegistry(pluginId: string): WorkspacePlugin {
-  const plugin = SYNC_WORKSPACE_PLUGINS[pluginId];
-  if (plugin == null) {
-    throw new Error(`WORKSPACE_PLUGIN_NOT_FOUND:${pluginId}`);
-  }
-  return plugin;
-}
 
 export async function loadWorkspacePluginByIdFromRegistry(
   pluginId: string

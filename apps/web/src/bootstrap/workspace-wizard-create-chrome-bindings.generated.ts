@@ -4,9 +4,79 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardCreateChromeSurface as wizard_create_chrome_denali } from "@app-tour/workspace-denali/host/ui/chrome/wizard-create-chrome-surface";
+type WizardCreateChromeSurface = {
+  readonly useCreateTourWizardCore: (input: never) => unknown;
+  readonly isDraftEssentiallyEmpty: (draft: never) => boolean;
+};
 
-export const useDenaliCreateTourWizardCore = wizard_create_chrome_denali.useCreateTourWizardCore;
-export const isDraftEssentiallyEmpty = wizard_create_chrome_denali.isDraftEssentiallyEmpty;
-export type { DenaliCreateTourWizardScreen } from "@app-tour/workspace-denali/host/ui/chrome/wizard-create-chrome-surface";
+const WIZARD_CREATE_CHROME_LOADERS: Readonly<
+  Record<string, () => Promise<WizardCreateChromeSurface>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/host/ui/chrome/wizard-create-chrome-surface");
+    return mod.denaliWizardCreateChromeSurface;
+  },
+}) as Readonly<Record<string, () => Promise<WizardCreateChromeSurface>>>;
 
+const wizardCreateChromeCache = new Map<string, WizardCreateChromeSurface>();
+
+/** Warm create-chrome surface (hooks + helpers) via dynamic import. */
+export async function ensureWizardCreateChromeSurface(
+  pluginId: string
+): Promise<WizardCreateChromeSurface | null> {
+  if (pluginId.trim().length === 0) {
+    return null;
+  }
+  const cached = wizardCreateChromeCache.get(pluginId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = WIZARD_CREATE_CHROME_LOADERS[pluginId];
+  if (load == null) {
+    return null;
+  }
+  const surface = await load();
+  wizardCreateChromeCache.set(pluginId, surface);
+  return surface;
+}
+
+function requireWizardCreateChromeSurface(pluginId: string): WizardCreateChromeSurface {
+  const surface = wizardCreateChromeCache.get(pluginId);
+  if (surface == null) {
+    throw new Error(
+      `No wizard create chrome for plugin: ${pluginId} (call ensureWizardCreateChromeSurface first)`
+    );
+  }
+  return surface;
+}
+
+/**
+ * Shell hook wrapper — always invokes product hook after warm (no conditional hook calls).
+ * Resolves surface via `input.session.pluginId`.
+ */
+export function useDenaliCreateTourWizardCore(input: {
+  readonly session: { readonly pluginId: string };
+}): unknown {
+  const surface = requireWizardCreateChromeSurface(input.session.pluginId);
+  return surface.useCreateTourWizardCore(input as never);
+}
+
+export function isDraftEssentiallyEmpty(draft: unknown): boolean {
+  for (const surface of wizardCreateChromeCache.values()) {
+    return surface.isDraftEssentiallyEmpty(draft as never);
+  }
+  throw new Error("isDraftEssentiallyEmpty: create chrome cache cold (call ensure first)");
+}
+
+/** Shell-local mirror of product create-screen union (avoids type-only product import). */
+export type DenaliCreateTourWizardScreen =
+  | "gate-loading"
+  | "clone-loading"
+  | "clone-error"
+  | "not-configured"
+  | "draft-loading"
+  | "ready";
+
+/** Gap Closure B.20 — product-blind aliases for shell facades. */
+export const useOperatorCreateTourWizardCore = useDenaliCreateTourWizardCore;
+export type OperatorCreateTourWizardScreen = DenaliCreateTourWizardScreen;

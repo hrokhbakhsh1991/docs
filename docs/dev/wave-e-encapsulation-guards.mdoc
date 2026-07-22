@@ -1,0 +1,61 @@
+---
+title: Wave E — Encapsulation guard closure
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/workspace-export-encapsulation.mdoc
+  - docs/standards/platform-surface-cohesion.mdoc
+  - docs/phase-10/subphases/10.3-http-route-registrar.md
+---
+
+# Wave E — Encapsulation guard closure
+
+## Problem
+
+After Waves A–D, three encapsulation guards still **FAIL on trunk** (hostile audit §11 / blocker #9):
+
+| Guard | Failure |
+| ----- | ------- |
+| `guard:workspace-export-surface` | Fixture packages kept legacy `./finance` / `./booking` export keys beside `./host/*` |
+| `guard:surface-cohesion` | Still required `resolveCatalogTourApiPath` inside the **web shim**; SoT already moved to `workspace-denali/host/catalog/fetch-denali-catalog-tour` |
+| `guard:guest-api-shell` | `HANDLER_DISPATCH_KIND` missing three finance handlers present on the generated route union |
+
+**Bonus (E.d):** `guard-no-workspace-type-branches` crashed on deleted historical C4 paths (`ENOENT`). Skip missing allowlist files instead of treating absence as a read error.
+
+## Decision
+
+### E.a — Drop legacy short export keys
+
+For `finance-ws2`…`finance-ws6` and `booking-ws2`: remove `./finance` / `./booking` from `package.json` `exports`. Keep `./host/finance` and `./host/booking` (identical targets). No production consumers used the short keys (`rg` empty).
+
+### E.b — Retarget surface-cohesion catalog assert
+
+`guard-surface-cohesion` must assert SDK path usage on the **package catalog fetch** (Denali SoT), and that the web shim only wires API base + headers via the host module — matching `guest-api-base-parity` / PSC-1d.
+
+### E.c — Complete finance handler dispatch map
+
+Add to `HANDLER_DISPATCH_KIND` in `workspace-route-registrar.ts`:
+
+| Handler | Kind |
+| ------- | ---- |
+| `handleFinanceReportByTour` | `finance` |
+| `handleFinanceReceiptUpload` | `finance` |
+| `handleFinancePatchScheduleItem` | `finance-param` |
+
+### E.d — Harden `guard-no-workspace-type-branches`
+
+C2/C4 target lists are historical ratchets. If a listed path no longer exists, **skip** it (`existsSync`) — do not `ENOENT` crash the guest conformance pack.
+
+## Out of scope
+
+- API hard-coded `workspaceType === "denali"` commerce / exposure branches (Wave F)
+- Shrinking product workspace **root** barrels (`index.ts` convenience re-exports)
+
+## Verify
+
+```bash
+pnpm run guard:workspace-export-surface
+pnpm run guard:surface-cohesion
+pnpm run guard:guest-api-shell
+pnpm run guard:guest-plugin-conformance
+```

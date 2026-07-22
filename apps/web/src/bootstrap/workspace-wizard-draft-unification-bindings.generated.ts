@@ -4,19 +4,87 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardDraftUnificationSurface as draft_unification_denali } from "@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface";
+type WizardDraftUnificationSurface = {
+  readonly createTourDraftKey: string;
+  readonly logTombstoneShadowMismatch: (
+    mode: string,
+    baseline: unknown,
+    local: unknown,
+    server: unknown
+  ) => void;
+  readonly readDraftFieldValue: (
+    draft: Record<string, unknown>,
+    canonicalPath: string
+  ) => unknown;
+};
+
+const DRAFT_UNIFICATION_LOADERS: Readonly<
+  Record<
+    string,
+    () => Promise<{
+      createTourDraftKey: string;
+      logTombstoneShadowMismatch: (...args: never[]) => void;
+      readDraftFieldValue: (draft: Record<string, unknown>, canonicalPath: string) => unknown;
+    }>
+  >
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface");
+    return mod.denaliWizardDraftUnificationSurface as {
+      createTourDraftKey: string;
+      logTombstoneShadowMismatch: (...args: never[]) => void;
+      readDraftFieldValue: (draft: Record<string, unknown>, canonicalPath: string) => unknown;
+    };
+  },
+});
+
+const draftUnificationCache = new Map<string, WizardDraftUnificationSurface>();
+
+export async function ensureWizardDraftUnificationSurface(
+  pluginId: string
+): Promise<WizardDraftUnificationSurface | null> {
+  if (pluginId.trim().length === 0) {
+    return null;
+  }
+  const cached = draftUnificationCache.get(pluginId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = DRAFT_UNIFICATION_LOADERS[pluginId];
+  if (load == null) {
+    return null;
+  }
+  const surface = await load();
+  const adapted: WizardDraftUnificationSurface = {
+    createTourDraftKey: surface.createTourDraftKey,
+    logTombstoneShadowMismatch: (mode, baseline, local, server) => {
+      surface.logTombstoneShadowMismatch(
+        mode as never,
+        baseline as never,
+        local as never,
+        server as never
+      );
+    },
+    readDraftFieldValue: surface.readDraftFieldValue,
+  };
+  draftUnificationCache.set(pluginId, adapted);
+  return adapted;
+}
 
 export function logWizardDraftTombstoneShadowMismatch(
-  ...args: Parameters<typeof draft_unification_denali.logTombstoneShadowMismatch>
+  mode: string,
+  baseline: unknown,
+  local: unknown,
+  server: unknown
 ): void {
-  draft_unification_denali.logTombstoneShadowMismatch(...args);
+  for (const surface of draftUnificationCache.values()) {
+    surface.logTombstoneShadowMismatch(mode, baseline, local, server);
+    return;
+  }
 }
 
 export function resolveWizardDraftCreateTourDraftKey(pluginId: string): string | null {
-  if (pluginId === "denali") {
-    return draft_unification_denali.createTourDraftKey;
-  }
-  return null;
+  return draftUnificationCache.get(pluginId)?.createTourDraftKey ?? null;
 }
 
 export function readWizardDraftFieldValueFromRegistry(
@@ -24,8 +92,9 @@ export function readWizardDraftFieldValueFromRegistry(
   draft: Record<string, unknown>,
   canonicalPath: string
 ): unknown | null {
-  if (pluginId === "denali") {
-    return draft_unification_denali.readDraftFieldValue(draft, canonicalPath);
+  const surface = draftUnificationCache.get(pluginId);
+  if (surface == null) {
+    return null;
   }
-  return null;
+  return surface.readDraftFieldValue(draft, canonicalPath);
 }

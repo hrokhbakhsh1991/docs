@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 function readPlatformOpsPhones(): string[] {
   const raw = process.env.PLATFORM_OPS_PHONES?.trim();

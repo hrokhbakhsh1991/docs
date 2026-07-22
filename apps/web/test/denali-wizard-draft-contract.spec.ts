@@ -24,7 +24,7 @@ import {
   resolveDenaliInitialStepIndex,
   resolveDenaliWizardResumeStepIndex,
 } from "@app-tour/workspace-denali/host/wizard/resolve-initial-step-index";
-import { runDenaliWizardClearDraftSequence } from "../src/draft/run-denali-wizard-clear-draft-sequence";
+import { runWizardClearDraftSequence } from "../src/draft/run-wizard-clear-draft-sequence";
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";
 import { sanitizeDenaliWizardDraft } from "@app-tour/workspace-denali/host/ui/chrome/draft-form-adapter";
@@ -191,7 +191,7 @@ describe("denali-wizard-draft-contract", () => {
         const stalePush = engine.flush();
         await sleep(5);
 
-        const clearPromise = runDenaliWizardClearDraftSequence({
+        const clearPromise = runWizardClearDraftSequence({
           clearDraftAndReset: (reset) => engine.clearDraftAndReset(reset),
           buildResetEnvelope: () => denaliFreshStartEnvelope(sessionId),
         });
@@ -226,7 +226,7 @@ describe("denali-wizard-draft-contract", () => {
         await engine.initialize();
         assert.equal(engine.getState().data, null);
 
-        await runDenaliWizardClearDraftSequence({
+        await runWizardClearDraftSequence({
           clearDraftAndReset: (reset) => engine.clearDraftAndReset(reset),
           buildResetEnvelope: () => denaliFreshStartEnvelope(sessionId),
         });
@@ -257,7 +257,7 @@ describe("denali-wizard-draft-contract", () => {
         engine.subscribe((state) => snapshots.push(state.data));
 
         snapshots.length = 0;
-        await runDenaliWizardClearDraftSequence({
+        await runWizardClearDraftSequence({
           clearDraftAndReset: (reset) => engine.clearDraftAndReset(reset),
           buildResetEnvelope: () => denaliFreshStartEnvelope(sessionId),
         });
@@ -274,7 +274,7 @@ describe("denali-wizard-draft-contract", () => {
 
       await assert.rejects(
         () =>
-          runDenaliWizardClearDraftSequence({
+          runWizardClearDraftSequence({
             clearDraftAndReset: async () => {
               throw new Error("WORKSPACE_DRAFT_DELETE_FAILED:502");
             },
@@ -302,7 +302,7 @@ describe("denali-wizard-draft-contract", () => {
         });
 
         await engine.initialize();
-        await runDenaliWizardClearDraftSequence({
+        await runWizardClearDraftSequence({
           clearDraftAndReset: (reset) => engine.clearDraftAndReset(reset),
           buildResetEnvelope: () => denaliFreshStartEnvelope(sessionId),
         });
@@ -392,7 +392,7 @@ describe("denali-wizard-draft-contract", () => {
         });
         await engine.initialize();
 
-        await runDenaliWizardClearDraftSequence({
+        await runWizardClearDraftSequence({
           clearDraftAndReset: (reset) => engine.clearDraftAndReset(reset),
           buildResetEnvelope: () => denaliFreshStartEnvelope(sessionId),
         });

@@ -55,7 +55,7 @@ violations.push(
 violations.push(
   ...collectThemeLoaderViolations({
     surface: "portal",
-    generated: readRepo("apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"),
+    generated: readRepo("packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.portal.generated.ts"),
     layout: readRepo("apps/portal/app/layout.tsx"),
     loaderName: "importGuestPortalThemeForPlugin",
     layoutCallPattern: /await importGuestPortalThemeForPlugin\(bootstrap\.pluginId\)/,
@@ -66,7 +66,7 @@ violations.push(
 violations.push(
   ...collectThemeLoaderViolations({
     surface: "marketing",
-    generated: readRepo("apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"),
+    generated: readRepo("packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.marketing.generated.ts"),
     layout: readRepo("apps/marketing/app/layout.tsx"),
     loaderName: "importGuestMarketingThemeForPlugin",
     layoutCallPattern: /await importGuestMarketingThemeForPlugin\(bootstrap\.pluginId\)/,

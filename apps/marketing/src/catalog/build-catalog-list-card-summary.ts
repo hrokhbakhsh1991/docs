@@ -47,16 +47,16 @@ export type BuildCatalogListCardSummaryOptions = {
  * Scannable at-a-glance line for list cards (Viator/Arival pattern):
  * duration · difficulty · fitness · capacity — not admin long-form copy.
  */
-export function buildCatalogListCardSummary(
+export async function buildCatalogListCardSummary(
   tour: MarketingCatalogCard,
   translate: (key: string, values?: Record<string, string | number>) => string,
   options: BuildCatalogListCardSummaryOptions
-): string | null {
+): Promise<string | null> {
   if (!hasMarketingCatalogSurface(options.pluginId)) {
     return null;
   }
 
-  const surface = resolveMarketingCatalogSurface(options.pluginId);
+  const surface = await resolveMarketingCatalogSurface(options.pluginId);
   if (surface == null) {
     return null;
   }

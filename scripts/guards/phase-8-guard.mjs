@@ -232,7 +232,7 @@ function runP8UrbanNotDenaliRail() {
 
   const urbanSourceTargets = [
     "packages/workspaces/urban/src",
-    "apps/web/src/urban",
+    "apps/web/app/(app)/settings/workspace-owner",
     "apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts",
   ];
 

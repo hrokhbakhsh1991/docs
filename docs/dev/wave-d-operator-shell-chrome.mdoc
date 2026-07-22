@@ -1,0 +1,67 @@
+---
+title: Wave D.c — Manifest-driven operator shell chrome
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-d-denali-plugin-surface.mdoc
+  - docs/dev/wave-d-urban-plugin-surface.mdoc
+---
+
+# Wave D.c — Manifest-driven operator shell chrome
+
+## Problem
+
+Hostile audit blocker #4: hard-coded `pluginId` branches in the admin shell.
+
+| File | Branch | Effect |
+| ---- | ------ | ------ |
+| `apps/web/src/shell/tours-wizard-layout.tsx` | `pluginId === DENALI_PLUGIN_ID` | Wizard Bridge vs Phase 3 AppShell |
+| `apps/web/src/shell/app-shell.tsx` | `pluginId === "urban"` | Extra Catalog + Urban settings nav links |
+
+Those literals block drop-in workspaces and contradict “manifest as SoT”.
+
+## Decision
+
+### 1. Tours wizard layout → extended-create Set
+
+Denali already declares `wizardCreate.extendedChrome: true`, which codegen emits as `WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS` (consumed by `WizardBridgeShell` and `isExtendedOperatorWorkspace`).
+
+`ToursWizardLayout` selects Wizard Bridge when the operator session is present **and** `isExtendedOperatorWorkspace(pluginId)` — no Denali id import.
+
+### 2. Phase 3 AppShell nav → `operatorShell.phase3NavLinks`
+
+Urban (and any future workspace) declares optional Phase 3 header links in `workspace.manifest.json`:
+
+```json
+"operatorShell": {
+  "phase3NavLinks": [
+    { "href": "/catalog", "labelKey": "catalog" },
+    { "href": "/settings/workspace-owner", "labelKey": "workspaceOwnerSettings" }
+  ]
+}
+```
+
+`labelKey` resolves under the existing `tours.shell` next-intl namespace (stable message keys; product copy can stay branded).
+
+Codegen emits `apps/web/src/bootstrap/operator-shell-nav-bindings.generated.ts`:
+
+- `WORKSPACE_OPERATOR_SHELL_NAV` — pluginId → frozen link list
+- `resolveOperatorShellNavLinks(pluginId)` — empty array when unset
+
+`AppShell` maps that list; zero product id literals.
+
+## Out of scope
+
+- ~~Renaming `urbanSettings` i18n key / `/settings/urban` route~~ → Wave H.i.b `/settings/workspace-owner`
+- Hard-coded API `workspaceType === "denali"` commerce branches
+- WizardBridge tagline uses `extendedCreateChromeTagline` when extended chrome is on (Gap Closure B.15; was `denaliTagline`)
+
+## Verify
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run guard:workspace-registry-fresh
+rg 'DENALI_PLUGIN_ID|URBAN_WORKSPACE_PLUGIN_ID|=== \"urban\"|=== \"denali\"' \
+  apps/web/src/shell/app-shell.tsx apps/web/src/shell/tours-wizard-layout.tsx
+pnpm --filter @apps/web exec node --import tsx --test test/operator-shell-nav.spec.ts
+```

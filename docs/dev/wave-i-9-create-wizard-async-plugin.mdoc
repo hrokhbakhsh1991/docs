@@ -1,0 +1,50 @@
+---
+title: Wave I.9 — Create wizard injects session-loaded plugin (drop sync Denali)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-i-6-session-plugin-load.mdoc
+  - docs/dev/wave-b-async-flat-edit-plugin.mdoc
+---
+
+# Wave I.9 — Create wizard async plugin injection
+
+## Problem
+
+Wave I.6 made `loadWizardWorkspacePlugin(session.pluginId)` available, but **create** still did:
+
+```ts
+const wizardPlugin = useMemo(() => resolveWizardSyncWorkspacePlugin(), []);
+```
+
+`resolveWizardSyncWorkspacePlugin` always returns `getDenaliWorkspacePluginFromDraftShell()`. Gate `loadPlugin` could load the session plugin while **orchestration used Denali** for form profile, draft session id, and envelopes — sync/async skew and false multi-workspace claim.
+
+Flat-edit already injects a registry-loaded plugin (Wave B.c / I.6). Create did not.
+
+## Decision
+
+1. `useOperatorCreateTourWizard({ plugin, initialTemplateResponse? })` — **required** `WorkspacePlugin` from the page client.
+2. `OperatorCreateTourWizardClient` loads via `loadWizardWorkspacePlugin(session.pluginId)`, shows loading chrome, then mounts the inner client with `plugin`.
+3. Create path **must not** call `resolveWizardSyncWorkspacePlugin`.
+4. Create client translator + draft key use `session.pluginId` (not hard-coded `"denali"`).
+
+## Out of scope
+
+- Multi-workspace draft-shell codegen (Denali draft helpers remain until workspaces declare `wizardDraftShell`)
+- Renaming `useDenaliCreateTourWizardCore` / view bindings
+- Deleting `resolveWizardSyncWorkspacePlugin` (unused after this wave; delete in a follow-up when zero callers)
+
+## Status
+
+**DONE** — create mirrors flat-edit async inject.
+
+## Verify
+
+```bash
+pnpm run wave-i0:guard
+pnpm --filter @apps/web exec tsc --noEmit -p tsconfig.lint.json
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-i-9-create-wizard-async-plugin.spec.ts \
+  test/wave-i-5-wizard-plugin-load.spec.ts \
+  test/wave-i-6-session-plugin-load.spec.ts
+```

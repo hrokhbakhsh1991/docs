@@ -1,0 +1,55 @@
+---
+title: Wave H.p — Operator datetime/date-picker BEM + drop Denali session alias
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-operator-datetime-chrome.mdoc
+  - docs/dev/wave-h-operator-shell-ts-names.mdoc
+---
+
+# Wave H.p — Operator datetime / date-picker BEM
+
+## Problem
+
+Wave H.l.b neutralized **component names** and **data attrs** for time chrome (`operator-time-picker*`, `data-operator-wizard-time-*`), but CSS/JSX still emitted Denali-branded **BEM** for the sibling date/datetime shells:
+
+| Token family | Status before H.p |
+| ------------ | ----------------- |
+| `.operator-time-picker*` | already operator |
+| `.denali-wizard-datetime*` | still Denali-branded |
+| `.denali-date-picker*` | still Denali-branded |
+
+Separately, `isDenaliOperatorSession` was a deprecated no-op alias of `isExtendedOperatorSession` with **zero production call sites** — leftover false product coupling in the admin session helper.
+
+## Decision
+
+1. Rename BEM (TSX + CSS + e2e/scripts + theme specs) in lockstep:
+
+| Before | After |
+| ------ | ----- |
+| `denali-wizard-datetime` (+ elements) | `operator-wizard-datetime` |
+| `denali-date-picker` (+ elements/modifiers) | `operator-date-picker` |
+
+2. Keep selectors under `body[data-workspace-plugin="denali"]` — skin scoping stays plugin-keyed; only the **class brand** becomes operator-neutral (same pattern as H.l.b time BEM).
+
+3. **Delete** `isDenaliOperatorSession` from `require-operator-session.ts` (callers already use `isExtendedOperatorSession`; `tours-edit.spec` already forbids the Denali name on the edit client).
+
+## Out of scope
+
+- Broader wizard BEM (`.denali-wizard-composite`, pickers, …); review BEM → [`wave-h-operator-review-bem.mdoc`](./wave-h-operator-review-bem.mdoc) (Wave H.r)
+- ~~`denali-wizard-calendar*` BEM~~ → **done in** [`wave-h-operator-wizard-calendar-bem.mdoc`](./wave-h-operator-wizard-calendar-bem.mdoc) (Wave H.q)
+- Package export renames (`buildDenaliCreatePrefilledFormCore`, …)
+- Install-graph isolation / IgnorePlugin removal
+
+## Verify
+
+```bash
+rg 'denali-wizard-datetime|denali-date-picker|isDenaliOperatorSession' \
+  apps/web packages/workspaces/denali --glob '!**/*.generated.*'
+# expect empty (except this ADR / verify lists)
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-h-operator-datetime-bem.spec.ts \
+  test/wave-h-operator-datetime-chrome.spec.ts \
+  test/denali-wizard-theme.spec.ts \
+  test/tours-edit.spec.ts
+```

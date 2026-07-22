@@ -67,16 +67,3 @@ export function matchesTourCategoryFilter(
   }
   return category === filter;
 }
-
-/** @deprecated Use isTourKindSlug(pluginId, value) */
-export function isDenaliTourCategory(pluginId: string, value: string | null): boolean {
-  return isTourKindSlug(pluginId, value);
-}
-
-/** @deprecated Use resolveTourKindDuration(pluginId, category) */
-export function resolveDenaliTourKindDuration(
-  pluginId: string,
-  category: string | null
-): "single_day" | "multi_day" | null {
-  return resolveTourKindDuration(pluginId, category);
-}

@@ -1,6 +1,6 @@
 /**
  * Finance command-center tab helpers (panel visibility within an allowed hub).
- * Hub **availability** is `@/finance/finance-nav-enablement` (capability bindings) — not Denali.
+ * Hub **availability** is `@/finance/finance-nav-enablement` (capability bindings) — product-blind.
  * Ops panel layout: `@/finance/finance-ops-panels` → generated workspace ops bindings.
  */
 import type { FinanceOpsCapability } from "@/finance/finance-ops-capability-contract";

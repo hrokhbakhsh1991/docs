@@ -1,0 +1,47 @@
+---
+title: Wave H.l — Operator surface attribute (drop Denali DOM brand in shell)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-audit-critical-hygiene.mdoc
+  - docs/dev/wave-h-brand-fallback-neutral.mdoc
+---
+
+# Wave H.l — Operator surface attribute
+
+## Problem
+
+Hostile audit scored shared admin UI still branded Denali via `data-denali-surface="card"` (~60+ occurrences under `apps/web`). That attribute is a **product skin hook**, not a platform contract — yet it appears on settings hubs, finance panels, tours cards, and admin patterns used for every workspace plugin.
+
+Denali theme CSS currently selects:
+
+```css
+body[data-workspace-plugin="denali"] … [data-denali-surface="card"]
+```
+
+So the shell was leaking product vocabulary into DOM used by all tenants.
+
+## Decision
+
+1. In **`apps/web`**, replace every `data-denali-surface` with **`data-operator-surface`** (same values, e.g. `"card"`).
+2. Update Denali admin theme selectors to target `data-operator-surface` (keep a temporary comma alias for `data-denali-surface` only where Denali **package** internals still emit the old attr).
+3. Migrate Denali package surfaces that are shared/settings-adjacent to emit `data-operator-surface` when touched; leave deep wizard field chrome for [`wave-h-operator-datetime-chrome.mdoc`](./wave-h-operator-datetime-chrome.mdoc) (Wave H.l.b).
+
+## Out of scope
+
+- ~~Renaming `.denali-time-picker*` / `DenaliTimeInput` / `data-denali-wizard-*`~~ → **done in** [`wave-h-operator-datetime-chrome.mdoc`](./wave-h-operator-datetime-chrome.mdoc)
+- Remaining admin `data-denali-*` (dashboard/welcome/animate) → [`wave-h-operator-admin-dom.mdoc`](./wave-h-operator-admin-dom.mdoc) (Wave H.n)
+- Removing `apps/web/src/wizard/denali/*` firewall
+- Urban settings type neutralization (Wave H.m — done separately)
+
+## Verify
+
+```bash
+rg 'data-denali-surface' apps/web --glob '!**/node_modules/**'
+# must be empty under apps/web
+rg 'data-operator-surface' apps/web packages/workspaces/denali/theme --glob '!**/node_modules/**' | head
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/denali-confirm-dialog.spec.ts \
+  test/denali-admin-theme.spec.ts \
+  test/wave-h-operator-surface-attr.spec.ts
+```

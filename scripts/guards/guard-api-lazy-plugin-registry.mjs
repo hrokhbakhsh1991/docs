@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * I5 — API workspace HTTP handlers must load lazily via generated dynamic imports.
+ * Wave G.b — per-package ensure path (not multi-product eager preload).
  */
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -24,6 +25,7 @@ const pluginRegistry = path.join(
   REPO_ROOT,
   "apps/api/src/workspace/workspace-plugin-registry.generated.ts"
 );
+const appTs = path.join(REPO_ROOT, "apps/api/src/app.ts");
 
 if (!existsSync(generatedLoaders)) {
   violations.push("workspace-http-handler-loaders.generated.ts missing — run generate:workspace-registry");
@@ -32,6 +34,12 @@ if (!existsSync(generatedLoaders)) {
   if (!loaders.includes("export async function loadWorkspaceHttpPackageHandlers")) {
     violations.push("generated loaders must export loadWorkspaceHttpPackageHandlers()");
   }
+  if (!loaders.includes("export async function ensureWorkspaceHttpHandler")) {
+    violations.push("generated loaders must export ensureWorkspaceHttpHandler() (Wave G.b)");
+  }
+  if (!loaders.includes("export async function loadWorkspaceHttpHandlersForPackage")) {
+    violations.push("generated loaders must export loadWorkspaceHttpHandlersForPackage() (Wave G.b)");
+  }
   if (!/await import\("@app-tour\/workspace-/.test(loaders)) {
     violations.push("generated loaders must use await import() for workspace HTTP packages");
   }
@@ -39,21 +47,44 @@ if (!existsSync(generatedLoaders)) {
     violations.push("generated loaders must not static-import workspace HTTP packages at top level");
   }
 }
-
 if (!existsSync(lazyWorkspaceHandlers)) {
   violations.push("lazy-workspace-finance-handlers.ts missing");
 } else {
   const lazy = readFileSync(lazyWorkspaceHandlers, "utf8");
-  if (!lazy.includes("loadWorkspaceHttpPackageHandlers")) {
-    violations.push("lazy-workspace-finance-handlers must call loadWorkspaceHttpPackageHandlers()");
+  if (!lazy.includes("ensureWorkspaceHttpHandler")) {
+    violations.push("lazy-workspace-finance-handlers must call ensureWorkspaceHttpHandler (Wave G.b)");
   }
-  if (!lazy.includes("workspacePackageHandlersPromise")) {
-    violations.push("lazy-workspace-finance-handlers must cache handler promise (lazy on first use)");
+  if (!lazy.includes("resetWorkspaceHttpHandlerPackageCache")) {
+    violations.push("lazy-workspace-finance-handlers must reset per-package handler cache (Wave G.b)");
+  }
+}
+
+if (existsSync(appTs)) {
+  const app = readFileSync(appTs, "utf8");
+  if (app.includes("buildWorkspaceRouteHandlers") || app.includes("loadWorkspaceHttpPackageHandlers")) {
+    violations.push("app.ts must not preload all HTTP handler packages (Wave G.b)");
+  }
+  if (!app.includes("resolveWorkspaceHttpHandler")) {
+    violations.push("app.ts must dispatch via resolveWorkspaceHttpHandler (Wave G.b)");
   }
 }
 
 if (!existsSync(pluginRegistry)) {
   violations.push("workspace-plugin-registry.generated.ts missing");
+} else {
+  const registry = readFileSync(pluginRegistry, "utf8");
+  if (!registry.includes("loadApiWorkspacePluginByIdFromManifest")) {
+    violations.push("plugin registry must export loadApiWorkspacePluginByIdFromManifest()");
+  }
+  if (!/await import\("@app-tour\/workspace-/.test(registry)) {
+    violations.push("plugin registry must use await import() for workspace packages");
+  }
+  if (/^import (?!type\b).+from "@app-tour\/workspace-(?!sdk")/m.test(registry)) {
+    violations.push("plugin registry must not static-import workspace product packages");
+  }
+  if (/listApiWorkspacePluginsFromManifest\(\)\s*:\s*readonly WorkspacePlugin/.test(registry)) {
+    violations.push("plugin registry must not eagerly sync-list WorkspacePlugin[] (P4.2)");
+  }
 }
 
 if (!existsSync(workspacePlugins)) {

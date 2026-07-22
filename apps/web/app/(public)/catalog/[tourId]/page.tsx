@@ -15,8 +15,8 @@ type PageProps = {
   readonly params: Promise<{ readonly tourId: string }>;
 };
 
-/** Urban tour detail — redirected to apps/marketing (M2b). Registration stays on web. */
-export default async function UrbanCatalogTourRedirectPage({ params }: PageProps) {
+/** Public tour detail — redirected to apps/marketing (M2b). Registration stays on web. */
+export default async function CatalogTourRedirectPage({ params }: PageProps) {
   const { tourId } = await params;
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";

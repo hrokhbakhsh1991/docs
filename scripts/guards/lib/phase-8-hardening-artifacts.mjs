@@ -549,9 +549,9 @@ export async function verifyApiSurfaceAlignment() {
   if (/wizard-access\*\.ts.*\|\s*\*\*8\.1\*\*/.test(router)) {
     throw new Error(`${FAIL_PREFIX} router must not list wizard-access*.ts as 8.1 write target`);
   }
-  if (!router.includes("urban-settings-access.ts")) {
+  if (!router.includes("workspace-owner-settings-access.ts")) {
     throw new Error(
-      `${FAIL_PREFIX} router must cite apps/web/src/urban/urban-settings-access.ts for 8.1`
+      `${FAIL_PREFIX} router must cite apps/web/app/(app)/settings/workspace-owner/workspace-owner-settings-access.ts for 8.1`
     );
   }
 

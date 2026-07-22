@@ -43,7 +43,7 @@ export function OperatorWelcomeDialog({
   const workspaceLabel = useTenantBrandTitle();
 
   const tagline = WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(pluginId)
-    ? tApp("denaliTagline")
+    ? tApp("extendedCreateChromeTagline")
     : null;
   const isOwner = role === "owner";
 
@@ -66,45 +66,45 @@ export function OperatorWelcomeDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        data-denali-welcome-dialog
-        data-denali-surface="card"
+        data-operator-welcome-dialog
+        data-operator-surface="card"
         data-testid={OPERATOR_WELCOME_TEST_IDS.dialog}
       >
-        <DialogHeader data-denali-welcome-header>
-          <div data-denali-welcome-brand-row data-testid={OPERATOR_WELCOME_TEST_IDS.brandMark}>
+        <DialogHeader data-operator-welcome-header>
+          <div data-operator-welcome-brand-row data-testid={OPERATOR_WELCOME_TEST_IDS.brandMark}>
             <TenantBrandMark pluginId={pluginId} workspaceLabel={workspaceLabel} />
-            <div data-denali-welcome-brand-copy>
-              <p data-denali-welcome-workspace-label>{workspaceLabel}</p>
+            <div data-operator-welcome-brand-copy>
+              <p data-operator-welcome-workspace-label>{workspaceLabel}</p>
             </div>
           </div>
           <DialogTitle data-testid={OPERATOR_WELCOME_TEST_IDS.title}>
             {isOwner ? t("titleOwner", { displayName }) : t("title", { displayName })}
           </DialogTitle>
-          <DialogDescription data-denali-welcome-description>
-            <span data-denali-welcome-description-line>
+          <DialogDescription data-operator-welcome-description>
+            <span data-operator-welcome-description-line>
               {isOwner
                 ? t("subtitleOwner", { workspaceLabel })
                 : t("subtitle", { workspaceLabel })}
             </span>
-            {tagline ? <span data-denali-welcome-tagline>{tagline}</span> : null}
+            {tagline ? <span data-operator-welcome-tagline>{tagline}</span> : null}
           </DialogDescription>
-          <p data-denali-welcome-lead>{t("lead")}</p>
+          <p data-operator-welcome-lead>{t("lead")}</p>
         </DialogHeader>
 
-        <ul data-denali-welcome-bullets>
+        <ul data-operator-welcome-bullets>
           {content.bullets.map((bullet) => (
-            <li key={bullet.id} data-denali-welcome-bullet>
-              <span aria-hidden data-denali-welcome-bullet-icon>
+            <li key={bullet.id} data-operator-welcome-bullet>
+              <span aria-hidden data-operator-welcome-bullet-icon>
                 ✓
               </span>
-              <span data-denali-welcome-bullet-text>{t(`bullets.${bullet.id}`)}</span>
+              <span data-operator-welcome-bullet-text>{t(`bullets.${bullet.id}`)}</span>
             </li>
           ))}
         </ul>
 
-        <DialogFooter data-denali-welcome-footer>
+        <DialogFooter data-operator-welcome-footer>
           <Button
-            data-denali-welcome-cta
+            data-operator-welcome-cta
             data-testid={OPERATOR_WELCOME_TEST_IDS.dismissCta}
             onClick={requestClose}
             type="button"
@@ -114,7 +114,7 @@ export function OperatorWelcomeDialog({
           </Button>
           <Button
             asChild
-            data-denali-welcome-cta
+            data-operator-welcome-cta
             data-testid={OPERATOR_WELCOME_TEST_IDS.primaryCta}
           >
             <Link href={OPERATOR_WIZARD_PATH} onClick={requestClose}>

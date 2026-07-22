@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { before, test } from "node:test";
 
-import { localizeDenaliValidationIssueMessage } from "../src/wizard/denali/denali-localize-validation-message";
+import {
+  ensureDenaliHostAdapters,
+  localizeDenaliValidationIssueMessage,
+} from "../src/bootstrap/workspace-host-adapters.generated";
 
 const messages: Record<string, string> = {
   "validation.requiredField": "{field} is required.",
@@ -15,6 +18,10 @@ function t(key: string, values?: Record<string, string | number>): string {
   }
   return template.replace(/\{(\w+)\}/g, (_, token: string) => String(values[token] ?? ""));
 }
+
+before(async () => {
+  await ensureDenaliHostAdapters();
+});
 
 test("localizeDenaliValidationIssueMessage maps missing canonical path", () => {
   assert.equal(

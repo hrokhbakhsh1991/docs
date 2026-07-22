@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   fetchPublicTenantContextForHost,
   isDevGuestHostAllowed,
+  PHASE_43_HOST_TENANT_IDS,
   resolvePublicBrandingHost,
   resolveTenantIdFromDevHost,
   resolveTenantIdFromIngressLabel,
@@ -19,6 +20,16 @@ describe("guest-surface-host", () => {
       resolveTenantIdFromIngressLabel("operator"),
       "00000000-0000-4000-8000-000000000014"
     );
+  });
+
+  it("B.19b smoke hosts are canonical; dual-key urban-owner/member removed", () => {
+    const smokeUuid = "00000000-0000-4000-8000-000000000004";
+    assert.equal(resolveTenantIdFromIngressLabel("workspace-owner-smoke"), smokeUuid);
+    assert.equal(resolveTenantIdFromIngressLabel("workspace-member-smoke"), smokeUuid);
+    assert.equal(resolveTenantIdFromIngressLabel("urban-owner"), null);
+    assert.equal(resolveTenantIdFromIngressLabel("urban-member"), null);
+    assert.equal(Object.hasOwn(PHASE_43_HOST_TENANT_IDS, "urban-owner"), false);
+    assert.equal(Object.hasOwn(PHASE_43_HOST_TENANT_IDS, "urban-member"), false);
   });
 
   it("resolveTenantIdFromDevHost marketing shop host", () => {

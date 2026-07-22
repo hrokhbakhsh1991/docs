@@ -4,7 +4,8 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardCompositeRegistrySurface as wizard_composite_registry_denali } from "@app-tour/workspace-denali/host/composites/wizard-composite-registry-surface";
-
-export const DENALI_COMPOSITE_BY_CANONICAL_PATH = wizard_composite_registry_denali.compositeByCanonicalPath;
-
+/**
+ * Gap Closure B.5 — empty shell stub.
+ * Canonical map: `@app-tour/workspace-denali` composites package (not static shell fan-in).
+ */
+export const DENALI_COMPOSITE_BY_CANONICAL_PATH: Readonly<Record<string, string>> = Object.freeze({});

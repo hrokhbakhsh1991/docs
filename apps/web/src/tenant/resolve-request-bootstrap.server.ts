@@ -61,7 +61,7 @@ function mergeAuthenticatedSessionInput(
 export async function resolveRequestBootstrapAppSession(): Promise<ResolvedBootstrapSession> {
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
-  const baseResolved = resolveBootstrapAppSessionForHost(host);
+  const baseResolved = await resolveBootstrapAppSessionForHost(host);
 
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_TOKEN_COOKIE)?.value;
@@ -75,5 +75,5 @@ export async function resolveRequestBootstrapAppSession(): Promise<ResolvedBoots
     return baseResolved;
   }
 
-  return resolveBootstrapAppSession(mergedInput, host);
+  return await resolveBootstrapAppSession(mergedInput, host);
 }

@@ -23,5 +23,5 @@ export default async function TourWorkspaceTransportPage({
     return null;
   }
   const { id } = await params;
-  return <TourWorkspaceTransportClient tourId={id} />;
+  return <TourWorkspaceTransportClient tourId={id} pluginId={session.pluginId} />;
 }

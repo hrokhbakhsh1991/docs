@@ -6,24 +6,24 @@
 
 import type { FinanceOpsCapability } from "@/finance/finance-ops-capability-contract";
 
-import {
-  DEFAULT_FINANCE_OPS_MANIFEST as denali_opsDefault,
-  resolveFinanceOpsManifestFromTheme as denali_opsResolveFromTheme,
-} from "@app-tour/workspace-denali/host/finance/manifest";
-
-import {
-  DEFAULT_FINANCE_OPS_MANIFEST as finance_ws5_opsDefault,
-  resolveFinanceOpsManifestFromTheme as finance_ws5_opsResolveFromTheme,
-} from "@app-tour/workspace-finance-ws5/host/finance/manifest";
-
 export const WORKSPACE_FINANCE_OPS_BINDINGS = {
   "denali": {
-    defaultManifest: denali_opsDefault,
-    resolveFromTheme: denali_opsResolveFromTheme,
+    loadManifest: async (theme: unknown = null) => {
+      const mod = await import("@app-tour/workspace-denali/host/finance/manifest");
+      if (theme === null || theme === undefined) {
+        return mod.DEFAULT_FINANCE_OPS_MANIFEST;
+      }
+      return mod.resolveFinanceOpsManifestFromTheme(theme);
+    },
   },
   "finance-ws5": {
-    defaultManifest: finance_ws5_opsDefault,
-    resolveFromTheme: finance_ws5_opsResolveFromTheme,
+    loadManifest: async (theme: unknown = null) => {
+      const mod = await import("@app-tour/workspace-finance-ws5/host/finance/manifest");
+      if (theme === null || theme === undefined) {
+        return mod.DEFAULT_FINANCE_OPS_MANIFEST;
+      }
+      return mod.resolveFinanceOpsManifestFromTheme(theme);
+    },
   },
 } as const;
 
@@ -35,16 +35,13 @@ export function hasFinanceOpsManifest(pluginId: string): boolean {
   return pluginId in WORKSPACE_FINANCE_OPS_BINDINGS;
 }
 
-export function resolveWorkspaceFinanceOpsManifest(
+export async function resolveWorkspaceFinanceOpsManifest(
   pluginId: string,
   theme: unknown = null
-): FinanceOpsCapability {
+): Promise<FinanceOpsCapability> {
   const binding = WORKSPACE_FINANCE_OPS_BINDINGS[pluginId as keyof typeof WORKSPACE_FINANCE_OPS_BINDINGS];
   if (binding === undefined) {
     throw new Error(`Finance ops capability not registered for pluginId=${pluginId}`);
   }
-  if (theme === null || theme === undefined) {
-    return binding.defaultManifest;
-  }
-  return binding.resolveFromTheme(theme);
+  return binding.loadManifest(theme);
 }

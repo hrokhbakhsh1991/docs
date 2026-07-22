@@ -1,10 +1,5 @@
 import type { SettingsModuleMetadata } from "./settings-module-types";
-import {
-  DENALI_BACKEND_REQUIRED_MODULE_IDS,
-  resolveSettingsHubFallbackPolicy,
-} from "@/bootstrap/workspace-settings-hub-fallback-bindings.generated";
-
-export { DENALI_BACKEND_REQUIRED_MODULE_IDS };
+import { resolveSettingsHubFallbackPolicy } from "@/bootstrap/workspace-settings-hub-fallback-bindings.generated";
 
 export type SettingsModuleConsistencyResult = {
   readonly modules: SettingsModuleMetadata[];

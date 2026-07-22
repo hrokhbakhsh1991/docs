@@ -18,7 +18,7 @@ function hasDisplayableValue(value: unknown): boolean {
   return true;
 }
 
-/** Read canonical draft value with workspace legacy fallbacks (Denali nested form paths, starter title bridge). */
+/** Read canonical draft value with workspace legacy fallbacks (nested form paths, starter title bridge). */
 export function readWizardDraftFieldValue(
   draft: TourWizardDraft,
   canonicalPath: string,

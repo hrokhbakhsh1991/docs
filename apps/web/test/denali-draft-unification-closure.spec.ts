@@ -38,15 +38,15 @@ describe("denali-draft-unification-closure.spec.ts — Tracks A–C", () => {
   });
 
   it("WEB-P11-UNIFY-03 create + flat-edit wire Track C flag helpers", () => {
-    const createHook = readWebSource("src/wizard/use-denali-create-tour-wizard.ts");
+    const createHook = readWebSource("src/wizard/use-create-tour-wizard.ts");
     const createChrome = readWebSource("src/wizard/create-tour-wizard-chrome.tsx");
-    const flatEditHook = readWebSource("src/wizard/use-denali-flat-edit-page.ts");
-    const flatEditChrome = readWebSource("src/wizard/denali-flat-edit-chrome.tsx");
-    const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
+    const flatEditHook = readWebSource("src/wizard/use-flat-edit-page.ts");
+    const flatEditChrome = readWebSource("src/wizard/flat-edit-chrome.tsx");
+    const flatEdit = readWebSource("app/(app)/tours/[id]/edit/flat-edit-page-client.tsx");
     for (const source of [createHook, flatEditHook]) {
-      assert.match(source, /resolveDenaliDraftConflictStrategy/);
+      assert.match(source, /resolveOperatorDraftConflictStrategy/);
       assert.match(source, /resolveDenaliDraftMerge|resolveWizardDraftMerge/);
-      assert.match(source, /createDenaliDraftOnPushSuccess/);
+      assert.match(source, /createOperatorDraftOnPushSuccess/);
     }
     assert.match(createChrome, /conflictReloadNotice=\{props\.draftSync\.conflictReloadNotice\}/);
     assert.match(flatEditChrome, /conflictReloadNotice=\{props\.draftSync\.conflictReloadNotice\}/);
@@ -92,14 +92,14 @@ describe("denali-draft-unification-closure.spec.ts — Tracks A–C", () => {
   });
 
   it("WEB-P11-UNIFY-08 create + flat-edit wire normalizeRemote for B-8", () => {
-    const createHook = readWebSource("src/wizard/use-denali-create-tour-wizard.ts");
-    const flatEditHook = readWebSource("src/wizard/use-denali-flat-edit-page.ts");
-    const normalize = readWebSource("src/draft/denali-draft-normalize-remote.ts");
-    assert.match(normalize, /normalizeDenaliRemoteEnvelope/);
+    const createHook = readWebSource("src/wizard/use-create-tour-wizard.ts");
+    const flatEditHook = readWebSource("src/wizard/use-flat-edit-page.ts");
+    const normalize = readWebSource("src/draft/normalize-wizard-remote-envelope-for-plugin.ts");
+    assert.match(normalize, /normalizeWizardRemoteEnvelopeForPlugin/);
     assert.match(normalize, /normalizeWizardRemoteEnvelope/);
     assert.match(createHook, /normalizeWizardRemoteEnvelope/);
     assert.match(createHook, /normalizeRemote:\s*normalizeRemoteEnvelope/);
-    assert.match(flatEditHook, /normalizeDenaliRemoteEnvelope/);
-    assert.match(flatEditHook, /normalizeRemote:\s*normalizeDenaliRemoteEnvelope/);
+    assert.match(flatEditHook, /normalizeWizardRemoteEnvelopeForPlugin/);
+    assert.match(flatEditHook, /normalizeWizardRemoteEnvelopeForPlugin\(plugin/);
   });
 });

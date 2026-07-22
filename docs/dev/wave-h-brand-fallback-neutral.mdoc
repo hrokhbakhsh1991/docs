@@ -1,0 +1,50 @@
+---
+title: Wave H.e.a — Neutralize Denali brand fallback mark in admin shell
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-denali-wizard-adapters.mdoc
+  - docs/workspaces/tenant-branding.md
+---
+
+# Wave H.e.a — Neutralize Denali brand fallback mark
+
+## Problem
+
+`TenantBrandFallbackMark` still statically imports `./denali-logo-mark` (package SoT under `@app-tour/workspace-denali/host/ui/components/denali-logo-mark`) and branches on `fallbackMark === "denali"`.
+
+Facts:
+
+1. Codegen map `WORKSPACE_WIZARD_CUSTOM_BRAND_FALLBACK_MARKS` is **empty** — no workspace `workspace.manifest.json` currently sets `wizardCreate.customBrandFallbackMark`.
+2. The `"denali"` branch is therefore **dead** in production, but the static import keeps a Denali product module in the admin shell graph (hostile audit: brand fallback / product dirs).
+3. Boundary allowlist still permits `src/admin/shell/denali-logo-mark.tsx` solely for this dead path.
+
+## Decision
+
+1. Rewrite `TenantBrandFallbackMark` to letter-initial fallback only (Level 3), driven by `workspaceLabel`.
+2. Keep reading `WORKSPACE_WIZARD_CUSTOM_BRAND_FALLBACK_MARKS` for **forward compatibility**: if a mark kind is present but no component registry exists yet, fall through to letter initial (no hard-coded `"denali"`).
+3. **Delete** `apps/web/src/admin/shell/denali-logo-mark.tsx`.
+4. Remove it from `workspace-boundary` product-import allowlist.
+5. Update `docs/workspaces/tenant-branding.md` cascade: plugin custom mark requires a future **codegen component registry** (H.e.b), not a shell `=== "denali"` branch.
+
+## Out of scope
+
+- Restoring a Denali SVG mark via manifest (needs H.e.b: `customBrandFallbackMark` → generated component binding, not string switch)
+- Removing webpack `IgnorePlugin` `ALLOW_*_WEB_PLUGIN` gates (install-graph / true client isolation — Wave G out-of-scope)
+- Changing guest (portal/marketing) branding
+
+## Verify
+
+```bash
+test ! -f apps/web/src/admin/shell/denali-logo-mark.tsx
+rg 'DenaliLogoMark|fallbackMark === "denali"' apps/web/src apps/web/app
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/login-tenant-brand.spec.ts \
+  test/wizard-host-boundary.spec.ts \
+  test/workspace-boundary.spec.ts \
+  test/wave-h-brand-fallback-neutral.spec.ts
+```
+
+## Follow-on
+
+Shared admin card DOM hook neutralized in [`wave-h-operator-surface-attr.mdoc`](./wave-h-operator-surface-attr.mdoc) (`data-operator-surface`).

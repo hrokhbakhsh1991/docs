@@ -2,7 +2,7 @@
  * Finance ops UI capability contract (Phase 1.10.1).
  *
  * Workspace packages supply concrete defaults via `workspaceFinance.opsManifest`.
- * Generic web depends on this capability type only — never on Denali (or any workspace)
+ * Generic web depends on this capability type only — never on product workspace
  * finance manifest modules. Resolve through generated bindings.
  */
 export type FinanceOpsCapability = {

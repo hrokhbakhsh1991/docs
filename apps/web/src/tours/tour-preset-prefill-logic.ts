@@ -1,4 +1,4 @@
-import type { TourPresetResource, TourThemeResource } from "@/features/settings/settings-module-types";
+import type { TourPresetResource } from "@/features/settings/settings-module-types";
 
 import {
   getCanonicalStringValue,
@@ -31,14 +31,8 @@ export function findActiveTourPreset(
   return match;
 }
 
-export function readActiveThemeIds(
-  items: readonly Pick<TourThemeResource, "id" | "isActive">[]
-): readonly string[] {
-  return items
-    .filter((item) => item.isActive !== false)
-    .map((item) => item.id.trim())
-    .filter((id) => id.length > 0);
-}
+/** Thin re-export — SoT via host-adapter runtime. */
+export { readActiveThemeIds } from "@/wizard/host-adapter-runtime";
 
 export function applyTourPresetToDraft(
   draft: TourWizardDraft,

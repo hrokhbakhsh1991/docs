@@ -1,5 +1,9 @@
-/** Workspace L3 skin CSS loaded via dynamic import (guest theme stack). */
-declare module "@app-tour/workspace-starter/theme/starter-portal.css";
+/** Guest portal/marketing theme CSS loaded via dynamic import (guest-workspace-runtime). */
 declare module "@app-tour/workspace-denali/theme/denali-portal.css";
+declare module "@app-tour/workspace-denali/theme/denali-marketing.css";
 declare module "@app-tour/workspace-guest-club/theme/guest-club-portal.css";
+declare module "@app-tour/workspace-guest-club/theme/marketing/marketing.css";
+declare module "@app-tour/workspace-starter/theme/starter-portal.css";
+declare module "@app-tour/workspace-starter/theme/starter-marketing.css";
 declare module "@app-tour/workspace-urban/theme/urban-portal.css";
+declare module "@app-tour/workspace-urban/theme/urban-marketing.css";

@@ -1,7 +1,13 @@
 import { decodeTourActionSubmitError } from "@/bootstrap/workspace-tour-action-submit-bindings.generated";
-import { resolveGeneratedLabelResolver } from "@/bootstrap/wizard-label-bindings.generated";
+import {
+  ensureGeneratedLabelResolver,
+  resolveGeneratedLabelResolver,
+} from "@/bootstrap/wizard-label-bindings.generated";
 
-import { localizeDenaliValidationIssueMessage } from "@/wizard/denali/denali-localize-validation-message";
+import {
+  localizeWizardValidationIssueMessage,
+  WIZARD_RULES_NOT_READY_CODE,
+} from "@/wizard/host-adapter-runtime";
 import { resolveWizardValidationIssueMessage } from "@/wizard/resolve-wizard-validation-issue-message";
 import { parsePlatformValidationMessage } from "@/wizard/parse-platform-validation-segments";
 
@@ -95,8 +101,8 @@ function formatValidationSegments(input: {
       },
       fieldLabel
     );
-    return localizeDenaliValidationIssueMessage(
-      (key, values) => input.t.translate(key, values),
+    return localizeWizardValidationIssueMessage(
+      (key: string, values?: Record<string, string | number>) => input.t.translate(key, values),
       issueMessage,
       fieldLabel
     );
@@ -148,7 +154,7 @@ export function resolveWizardSubmitErrorMessage(input: {
     };
   }
 
-  if (raw === "DENALI_RULES_NOT_READY") {
+  if (raw === WIZARD_RULES_NOT_READY_CODE) {
     return { summary: input.t.translate("submit.rulesNotReady") };
   }
 
@@ -194,17 +200,24 @@ export function resolveWizardSubmitErrorMessage(input: {
   };
 }
 
-export function createDenaliWizardSubmitFieldLabelResolver(
-  translateDenali: (key: string) => string
+/**
+ * Field-label translator for submit errors — uses warm label-resolver cache.
+ * Call `ensureGeneratedLabelResolver(surfaceId)` before submit paths for product labels.
+ */
+export function createWizardSubmitFieldLabelResolver(
+  surfaceId: string,
+  translateWorkspace: (key: string) => string
 ): (path: string) => string {
-  const resolver = resolveGeneratedLabelResolver("denali");
   return (path: string) => {
+    const resolver = resolveGeneratedLabelResolver(surfaceId);
     if (resolver?.resolveValidationIssueLabel != null) {
-      return resolver.resolveValidationIssueLabel(translateDenali, path);
+      return resolver.resolveValidationIssueLabel(translateWorkspace, path);
     }
     if (resolver != null) {
-      return resolver.resolveFieldLabel(translateDenali, path);
+      return resolver.resolveFieldLabel(translateWorkspace, path);
     }
     return path;
   };
 }
+
+export { ensureGeneratedLabelResolver };

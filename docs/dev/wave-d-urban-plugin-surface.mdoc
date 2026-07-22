@@ -1,0 +1,32 @@
+---
+title: Wave D.b — Slim Urban ./plugin contract surface
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-d-denali-plugin-surface.mdoc
+  - docs/dev/denali-plugin-encapsulation.mdoc
+---
+
+# Wave D.b — Slim Urban `./plugin` contract surface
+
+## Problem
+
+`guard:urban-plugin-surface` **FAIL**. `urban.plugin.ts` and `internal.ts` were **byte-identical** fat copies — every registry/validation helper was public on `./plugin`.
+
+## Decision
+
+1. **`internal.ts`** remains the single implementation of Urban plugin build + helpers (private barrel).
+2. **`urban.plugin.ts`** becomes a **contract façade** that re-exports only the five allowlisted symbols:
+   - `URBAN_THEME_TOKENS_STYLESHEET`
+   - `URBAN_WORKSPACE_PLUGIN_ID`
+   - `URBAN_WORKSPACE_TYPE`
+   - `createUrbanWorkspacePlugin`
+   - `getUrbanWorkspacePlugin`
+3. Package root `index.ts` and in-package consumers import non-contract symbols from `internal` (or leaf modules), not from `./plugin`.
+
+## Verify
+
+```bash
+pnpm run guard:urban-plugin-surface
+pnpm --filter @app-tour/workspace-urban exec node --import tsx --test test/urban-registry.spec.ts test/theme-tokens.spec.ts
+```

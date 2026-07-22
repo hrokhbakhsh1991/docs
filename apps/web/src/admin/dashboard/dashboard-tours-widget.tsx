@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
-import { DenaliEmptyState } from "@/admin/patterns/denali-empty-state";
-import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
+import { OperatorEmptyState } from "@/admin/patterns/operator-empty-state";
+import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
 import {
   DashboardTourListRow,
   DashboardWidgetCard,
@@ -95,8 +95,8 @@ export function DashboardToursWidget({ initialTours = null }: DashboardToursWidg
     >
       {loading ? (
         <DashboardWidgetRowStack>
-          <DenaliSkeleton size="row" />
-          <DenaliSkeleton size="row" />
+          <OperatorSkeleton size="row" />
+          <OperatorSkeleton size="row" />
         </DashboardWidgetRowStack>
       ) : null}
       {!loading && error ? (
@@ -106,7 +106,7 @@ export function DashboardToursWidget({ initialTours = null }: DashboardToursWidg
         <DashboardWidgetList testId={DASHBOARD_WIDGETS_TEST_IDS.toursList}>
           {recentTours.length === 0 ? (
             <DashboardWidgetListEmptyItem>
-              <DenaliEmptyState
+              <OperatorEmptyState
                 description={t("tours.empty")}
                 action={
                   <Button asChild size="sm">

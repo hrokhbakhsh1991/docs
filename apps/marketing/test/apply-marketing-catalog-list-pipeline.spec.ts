@@ -10,18 +10,18 @@ describe("apply-marketing-catalog-list-pipeline.spec.ts — PR-21.1 / PR-22", ()
     { id: "2", title: "Early", departureAt: "2026-07-01T08:00:00.000Z", category: "b" },
   ];
 
-  it("returns matched and fetched counts", () => {
+  it("returns matched and fetched counts", async () => {
     const filters = parseCatalogListFilters({ category: "b", sort: "departure_asc" });
-    const result = applyMarketingCatalogListPipeline(items, filters);
+    const result = await applyMarketingCatalogListPipeline(items, filters);
     assert.equal(result.fetchedCount, 2);
     assert.equal(result.matchedCount, 1);
     assert.deepEqual(result.items.map((item) => item.id), ["2"]);
   });
 
-  it("applies client filter and sort even when server also handles params", () => {
+  it("applies client filter and sort even when server also handles params", async () => {
     const filters = parseCatalogListFilters({ category: "b", sort: "departure_asc" });
     const serverFilters = ["category", "sort"];
-    const result = applyMarketingCatalogListPipeline(items, filters, serverFilters);
+    const result = await applyMarketingCatalogListPipeline(items, filters, serverFilters);
     assert.equal(result.matchedCount, 1);
     assert.deepEqual(result.items.map((item) => item.id), ["2"]);
   });

@@ -63,7 +63,7 @@ export async function CatalogTourDetail({
   pluginId,
 }: CatalogTourDetailProps) {
   const sections = resolveCatalogDetailSections(pluginId);
-  const catalogSurface = resolveMarketingCatalogSurface(pluginId);
+  const catalogSurface = await resolveMarketingCatalogSurface(pluginId);
   const detailPdpGates =
     catalogSurface?.resolveDetailPdpGates({
       tour,
@@ -88,7 +88,7 @@ export async function CatalogTourDetail({
   const host = headerList.get("host") ?? "localhost:3002";
   const title = tour.title?.trim() || t("detail.defaultTourTitle");
   const description = formatCatalogCardDescription(tour);
-  const categoryLabel = resolveMarketingCatalogCardCategoryLabel(tour.category, t);
+  const categoryLabel = await resolveMarketingCatalogCardCategoryLabel(tour.category, t);
   const metaLine = buildCatalogTourMetaLine(tour, dateLocale, t("detail.datesTba"), {
     categoryLabel,
   });

@@ -3,7 +3,7 @@ import {
   resolveGuestBootstrapRevalidateSeconds,
 } from "@app-tour/guest-surface-host";
 
-import { assertGuestBffProductionConfig, resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { assertGuestBffProductionConfig, resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 export type AdminBootstrap = {
   readonly tenantId: string;

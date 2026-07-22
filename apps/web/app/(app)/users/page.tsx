@@ -50,7 +50,7 @@ export default async function OperatorUsersPage({ searchParams }: OperatorUsersP
 
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
-  const resolved = resolveBootstrapAppSessionForHost(host);
+  const resolved = await resolveBootstrapAppSessionForHost(host);
   if (!isUsersRouteAllowed(resolved.session.pluginId)) {
     notFound();
   }

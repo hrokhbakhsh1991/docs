@@ -1,0 +1,52 @@
+---
+title: Wave H.h — Confine remaining Denali package imports to wizard/denali firewall
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-denali-wizard-adapters.mdoc
+  - docs/dev/wave-h-ignore-plugin-gate.mdoc
+---
+
+# Wave H.h — Confine remaining Denali package imports to `wizard/denali` firewall
+
+## Problem
+
+After H.d.a, product package imports were supposed to live only under `src/wizard/denali/` (+ generated bootstrap). Trunk still had **three** non-generated islands:
+
+| File | Package import |
+| ---- | -------------- |
+| `src/tours/tour-clone-hydrate-logic.ts` | `host/wizard/catalog-sanitize`, `host/ui/adapters/read-active-catalog-ids-from-payload` |
+| `src/tours/tour-preset-prefill-logic.ts` | `host/wizard/catalog-sanitize` (`readActiveThemeIds`) |
+| `src/exposure/localize-exposure-catalog-fields.ts` | `host/ui/adapters/localize-exposure-catalog-fields` |
+
+`workspace-boundary` papered over this with a blanket `src/tours/**` allowlist and a one-off exposure path — so P0-T-161 could not prove the firewall.
+
+## Decision
+
+1. Extend `wizard/denali/adapters.tsx` with the missing package re-exports (catalog sanitize helpers + exposure localize).
+2. Retarget tours/exposure modules to import from `@/wizard/denali/adapters` (or relative `../wizard/denali/adapters`) — **no** `@app-tour/workspace-denali` outside the firewall.
+3. Keep `src/exposure/localize-exposure-catalog-fields.ts` as a **path-stable** re-export of adapters (zero package import) so settings UI import path stays.
+4. Tighten `isWorkspaceProductImportAllowed`:
+   - **Remove** blanket `src/tours/**`
+   - **Remove** special-case exposure package allowlist (exposure shim no longer imports the package)
+   - Keep: generated bootstrap + `src/wizard/denali/**` only
+
+## Out of scope
+
+- Deleting `/settings/urban` product route (Phase 8 contract + manifest nav — separate wave)
+- True install-graph isolation / removing IgnorePlugin
+- ~~Absorbing adapters into more codegen bindings~~ → **done in** [`wave-i-4-denali-adapters-codegen.mdoc`](./wave-i-4-denali-adapters-codegen.mdoc) (Wave I.4)
+
+## Verify
+
+```bash
+rg '@app-tour/workspace-denali' apps/web/src apps/web/app -g '!**/*.generated.*'
+# must only hit wizard/denali/*
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/workspace-boundary.spec.ts \
+  test/tour-clone-hydrate.spec.ts \
+  test/tour-preset-prefill.spec.ts \
+  test/denali-catalog-sanitize.spec.ts \
+  test/localize-exposure-catalog-fields.spec.ts \
+  test/wave-h-denali-import-firewall.spec.ts
+```

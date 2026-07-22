@@ -1,4 +1,4 @@
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 import { readPlatformOpsBearerToken } from "./read-platform-ops-bearer-token";
 import { readPlatformOpsSessionFromRequest } from "./read-platform-session.server";

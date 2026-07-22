@@ -4,7 +4,43 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { augmentDenaliWizardTemplateFieldOverlays as field_overlays_denali } from "@app-tour/workspace-denali/host/wizard/template-field-overlays";
+type WizardTemplateFieldOverlaysAugment = <
+  T extends { readonly canonicalPath: string; readonly hidden?: boolean; readonly defaultValue?: string },
+>(
+  templateSteps: readonly { readonly enabled?: boolean; readonly fields: readonly T[] }[],
+  baseOverlays: ReadonlyMap<string, T>,
+) => ReadonlyMap<string, T>;
+
+const FIELD_OVERLAYS_AUGMENT_LOADERS: Readonly<
+  Record<string, () => Promise<WizardTemplateFieldOverlaysAugment>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/host/wizard/template-field-overlays");
+    return mod.augmentDenaliWizardTemplateFieldOverlays;
+  },
+});
+
+const fieldOverlaysAugmentCache = new Map<string, WizardTemplateFieldOverlaysAugment>();
+
+export async function ensureWizardTemplateFieldOverlaysAugment(
+  pluginId: string
+): Promise<WizardTemplateFieldOverlaysAugment | null> {
+  if (pluginId.trim().length === 0) {
+    return null;
+  }
+  const cached = fieldOverlaysAugmentCache.get(pluginId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = FIELD_OVERLAYS_AUGMENT_LOADERS[pluginId];
+  if (load == null) {
+    return null;
+  }
+  const augment = await load();
+  fieldOverlaysAugmentCache.set(pluginId, augment);
+  return augment;
+}
+
 /** Manifest-derived default step id when publishing an empty wizard template. */
 export const WORKSPACE_WIZARD_TEMPLATE_GATE_DEFAULT_STEP_ID: Readonly<
   Record<string, string>
@@ -25,7 +61,7 @@ export function resolveWizardTemplateGateDefaultPublishedStepId(pluginId: string
   return WORKSPACE_WIZARD_TEMPLATE_GATE_DEFAULT_STEP_ID[pluginId] ?? "basics";
 }
 
-/** Manifest-bound workspace augment for hidden composite template defaults (WEB-WIZ-013). */
+/** Manifest-bound workspace augment — uses warm cache (call ensureWizardTemplateFieldOverlaysAugment first). */
 export function augmentWizardTemplateFieldOverlays<
   T extends { readonly canonicalPath: string; readonly hidden?: boolean; readonly defaultValue?: string },
 >(
@@ -33,10 +69,11 @@ export function augmentWizardTemplateFieldOverlays<
   templateSteps: readonly { readonly enabled?: boolean; readonly fields: readonly T[] }[],
   baseOverlays: ReadonlyMap<string, T>,
 ): ReadonlyMap<string, T> {
-  if (pluginId === "denali") {
-    return field_overlays_denali(templateSteps, baseOverlays);
+  const augment = fieldOverlaysAugmentCache.get(pluginId);
+  if (augment == null) {
+    return baseOverlays;
   }
-  return baseOverlays;
+  return augment(templateSteps, baseOverlays);
 }
 
 const WIZARD_TEMPLATE_PREFER_TEMPLATE_DEFAULTS = new Set<string>(

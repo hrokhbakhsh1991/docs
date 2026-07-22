@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
+import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
 import {
   groupInstallmentsByBoardColumn,
   parseSchedulesListResponse,
@@ -22,13 +22,16 @@ import {
   buildFinanceKpiCards,
   formatFinanceTimestamp,
   formatLedgerEventLabel,
+  parseFinanceByTourReport,
   parseFinanceLedgerListResponse,
   parseFinanceSummary,
   type FinanceAttentionKind,
   type FinanceAttentionSample,
+  type FinanceByTourReport,
   type FinanceLedgerEvent,
   type FinanceSummary,
 } from "@/finance/finance-reports-logic";
+import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import type { AppLocale } from "@/i18n/routing";
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
@@ -65,6 +68,7 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
     initialOverview?.overdueInstallments ?? 0
   );
   const [attentionSamples, setAttentionSamples] = useState<readonly FinanceAttentionSample[]>([]);
+  const [paidByTour, setPaidByTour] = useState<FinanceByTourReport["items"]>([]);
   const skipInitialFetchRef = useRef(initialOverview !== null);
 
   useEffect(() => {
@@ -79,11 +83,12 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
     void Promise.all([
       fetch("/api/finance/reports/summary", { cache: "no-store" }),
       fetch("/api/finance/reports/ledger-events?limit=5", { cache: "no-store" }),
+      fetch("/api/finance/reports/by-tour", { cache: "no-store" }),
       fetch("/api/finance/schedules", { cache: "no-store" }),
       fetch("/api/finance/payments?limit=20", { cache: "no-store" }),
       fetch("/api/finance/receipts/pending?limit=20", { cache: "no-store" }),
     ])
-      .then(async ([summaryRes, ledgerRes, schedulesRes, paymentsRes, receiptsRes]) => {
+      .then(async ([summaryRes, ledgerRes, byTourRes, schedulesRes, paymentsRes, receiptsRes]) => {
         if (!summaryRes.ok) {
           throw new Error(`SUMMARY_HTTP_${summaryRes.status}`);
         }
@@ -92,6 +97,9 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
         }
         const summaryPayload = parseFinanceSummary(await summaryRes.json());
         const ledgerPayload = parseFinanceLedgerListResponse(await ledgerRes.json());
+        const byTourPayload = byTourRes.ok
+          ? parseFinanceByTourReport(await byTourRes.json()).items.slice(0, 5)
+          : [];
         let overdueRows: PaymentScheduleItem[] = [];
         if (schedulesRes.ok) {
           const schedules = parseSchedulesListResponse(await schedulesRes.json());
@@ -117,6 +125,7 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
           setLedgerItems(ledgerPayload.items);
           setOverdueInstallments(overdueRows.length);
           setAttentionSamples(samples);
+          setPaidByTour(byTourPayload);
         }
       })
       .catch((fetchError: unknown) => {
@@ -168,7 +177,7 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
-            <DenaliSkeleton key={index} size="user-card" />
+            <OperatorSkeleton key={index} size="user-card" />
           ))}
         </div>
       ) : null}
@@ -186,7 +195,7 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
             data-testid={FINANCE_OVERVIEW_TEST_IDS.kpiStrip}
           >
             {kpiCards.map((card) => (
-              <Card key={card.id} data-denali-surface="card" data-denali-finance-kpi>
+              <Card key={card.id} data-operator-surface="card" data-operator-finance-kpi>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
                     {tKpi(card.id)}
@@ -219,7 +228,43 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
           </div>
           <p className="text-xs text-muted-foreground">{t("triageStaysInSettings")}</p>
 
-          <Card data-denali-surface="card" className="shadow-sm">
+          <Card data-operator-surface="card" className="shadow-sm" data-testid={FINANCE_OVERVIEW_TEST_IDS.paidByTour}>
+            <CardHeader>
+              <CardTitle className="text-base">{t("paidByTourTitle")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {paidByTour.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t("paidByTourEmpty")}</p>
+              ) : (
+                <ul className="divide-y rounded-md border">
+                  {paidByTour.map((row) => (
+                    <li
+                      key={row.tourId}
+                      className="flex flex-col gap-1 p-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="font-medium">{row.tourTitle}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("paidByTourRow", {
+                            count: row.paidCount,
+                            pending: row.pendingCount,
+                          })}
+                        </p>
+                      </div>
+                      <Link
+                        href={`/finance?tab=payments&tourId=${encodeURIComponent(row.tourId)}`}
+                        className="text-sm text-primary hover:underline"
+                      >
+                        {formatMinorAmount(row.paidMinor, "IRR", locale)}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card data-operator-surface="card" className="shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">{t("attentionTitle")}</CardTitle>
             </CardHeader>
@@ -258,7 +303,7 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
             </CardContent>
           </Card>
 
-          <Card data-denali-surface="card" className="shadow-sm">
+          <Card data-operator-surface="card" className="shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">{t("recentLedger")}</CardTitle>
             </CardHeader>

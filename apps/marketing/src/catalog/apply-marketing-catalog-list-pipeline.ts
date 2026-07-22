@@ -10,14 +10,14 @@ export type MarketingCatalogListPipelineResult = {
 };
 
 /** Apply filter + sort on the fetched batch (always — idempotent with server egress). */
-export function applyMarketingCatalogListPipeline(
+export async function applyMarketingCatalogListPipeline(
   fetchedItems: readonly MarketingCatalogCard[],
   filters: CatalogListFilters,
   serverListFilters: readonly string[] = [],
   pluginId?: string
-): MarketingCatalogListPipelineResult {
+): Promise<MarketingCatalogListPipelineResult> {
   void serverListFilters;
-  const filteredItems = filterMarketingCatalogItems(
+  const filteredItems = await filterMarketingCatalogItems(
     fetchedItems,
     {
       q: filters.q,

@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
 import { denaliPrepareDraftEnvelope } from "@app-tour/workspace-denali";
-import { patchDenaliCanonicalBasics } from "@app-tour/workspace-denali/plugin";
+import { patchDenaliCanonicalBasics } from "@app-tour/workspace-denali/host/adapters/canonical-basics";
 
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 /** Shared BFF proxy for wizard clone photo remint (neutral + legacy routes). */
 export async function proxyWizardCloneRemintPost(req: Request): Promise<NextResponse> {

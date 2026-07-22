@@ -5,19 +5,46 @@
  */
 
 import type { WizardLabelResolver } from "@/wizard/wizard-surface-types";
-import { createDenaliFieldLabelResolver as label_denali } from "@app-tour/workspace-denali/host/ui/field-label-resolver";
 
 export const WORKSPACE_WIZARD_I18N_NAMESPACES = ["wizard","denali","urban"] as const;
 
-const LABEL_RESOLVERS: Readonly<Record<string, WizardLabelResolver>> = Object.freeze({
-  "denali": label_denali(),
+const LABEL_RESOLVER_LOADERS: Readonly<
+  Record<string, () => Promise<WizardLabelResolver>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/host/ui/field-label-resolver");
+    return mod.createDenaliFieldLabelResolver();
+  },
 });
 
+const labelResolverCache = new Map<string, WizardLabelResolver>();
+
+/** Warm cache via dynamic import (no static product package fan-in). */
+export async function ensureGeneratedLabelResolver(
+  surfaceId: string | undefined
+): Promise<WizardLabelResolver | null> {
+  if (surfaceId == null || surfaceId.trim().length === 0) {
+    return null;
+  }
+  const cached = labelResolverCache.get(surfaceId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = LABEL_RESOLVER_LOADERS[surfaceId];
+  if (load == null) {
+    return null;
+  }
+  const resolver = await load();
+  labelResolverCache.set(surfaceId, resolver);
+  return resolver;
+}
+
+/** Sync read of warm cache — call ensureGeneratedLabelResolver first for correct labels. */
 export function resolveGeneratedLabelResolver(
   surfaceId: string | undefined
 ): WizardLabelResolver | null {
   if (surfaceId == null || surfaceId.trim().length === 0) {
     return null;
   }
-  return LABEL_RESOLVERS[surfaceId] ?? null;
+  return labelResolverCache.get(surfaceId) ?? null;
 }

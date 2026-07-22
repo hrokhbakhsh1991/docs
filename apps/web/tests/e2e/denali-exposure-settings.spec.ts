@@ -5,7 +5,7 @@
  */
 import { expect, test } from "@playwright/test";
 
-import { DENALI_WORKSPACE_SURFACES_TEST_IDS } from "../../src/exposure/DenaliWorkspaceSurfacesPanel";
+import { DENALI_WORKSPACE_SURFACES_TEST_IDS } from "@app-tour/workspace-denali/host/exposure";
 import { SETTINGS_HUB_TEST_IDS } from "../../src/features/settings/settings-module-types";
 import { loginOperatorOwner } from "../../test/fixtures/operator-owner-session";
 

@@ -2,7 +2,7 @@ import { cookies, headers } from "next/headers";
 
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
 import type { TenantBrandingState } from "@/features/settings/branding-types";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 export type TenantBrandingServerPrefetch = {
   readonly branding: TenantBrandingState;

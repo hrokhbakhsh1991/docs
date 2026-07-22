@@ -3,10 +3,11 @@
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
-const URBAN_WORKSPACE_PLUGIN_ID = "urban";
+import { resolveOperatorShellNavLinks } from "@/bootstrap/operator-shell-nav-bindings.generated";
 
 /**
  * Phase 3.3 production shell — wraps routes; theme chain lives in AppProviders (layout).
+ * Optional header links come from manifest `operatorShell.phase3NavLinks` (Wave D.c).
  */
 export function AppShell({
   children,
@@ -17,7 +18,7 @@ export function AppShell({
 }) {
   const tApp = useTranslations("app");
   const tTours = useTranslations("tours.shell");
-  const showUrbanCatalog = pluginId === URBAN_WORKSPACE_PLUGIN_ID;
+  const navLinks = resolveOperatorShellNavLinks(pluginId);
 
   return (
     <div className="app-shell" data-shell="phase-3">
@@ -26,8 +27,11 @@ export function AppShell({
         <nav>
           <a href="/">{tTours("home")}</a>
           <a href="/tours/new">{tApp("newTour")}</a>
-          {showUrbanCatalog ? <a href="/catalog">{tTours("catalog")}</a> : null}
-          {showUrbanCatalog ? <a href="/settings/urban">{tTours("urbanSettings")}</a> : null}
+          {navLinks.map((link) => (
+            <a key={link.href} href={link.href}>
+              {tTours(link.labelKey)}
+            </a>
+          ))}
         </nav>
       </header>
       <div className="app-shell__body" data-workspace-plugin={pluginId}>

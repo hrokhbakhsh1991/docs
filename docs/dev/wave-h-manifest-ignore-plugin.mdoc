@@ -1,0 +1,61 @@
+---
+title: Wave H.j — Manifest-driven admin client IgnorePlugin gates
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-ignore-plugin-gate.mdoc
+  - docs/dev/wave-g-admin-transpile-packages.mdoc
+---
+
+# Wave H.j — Manifest-driven admin client IgnorePlugin gates
+
+## Problem
+
+Wave H.g made IgnorePlugin **correct** (`@app-tour` + subpaths) but the env→package pairs still lived in a **hand-maintained** `admin-client-workspace-ignore.mjs` listing only denali/urban. Hostile audit still scores “manifest as SoT” down while IgnorePlugin remains a hand list (same class of debt as pre–Wave G.a transpilePackages).
+
+True install-graph isolation remains deferred. Until then, the gate list must be **codegen’d from manifests**.
+
+## Decision
+
+1. Add optional manifest field:
+
+```json
+"adminWeb": {
+  "clientBundleEnvGate": "ALLOW_DENALI_WEB_PLUGIN"
+}
+```
+
+- `clientBundleEnvGate` must match `/^ALLOW_[A-Z0-9_]+$/`
+- Requires `package` string (npm name)
+
+2. Codegen `apps/web/src/bootstrap/admin-client-workspace-ignore.generated.mjs`:
+   - One rule per manifest that declares the field
+   - `resourceRegExpSource`: `^${escape(package)}(\\/|$)`
+   - `resolveActiveAdminClientWorkspaceIgnoreRules(env)` filters where env≠`"true"` and builds `RegExp`
+
+3. Delete hand-written `admin-client-workspace-ignore.mjs`; `next.config.ts` imports the generated module.
+
+4. Declare the field on **denali** and **urban** manifests (same env keys as today — no smoke churn).
+
+5. Registry freshness (`pnpm run guard:workspace-registry-fresh`) covers the new artifact under the `theme` domain.
+
+## Gap Closure Phase D.1
+
+Deploy profiles compose IgnorePlugin gates with filtered transpile product sets via `buildDeployProfileBundlePlan` (see [`saas-platform-remediation.mdoc`](./saas-platform-remediation.mdoc)). Recommended `ALLOW_*=true` applies only to gated packages **in** the active profile; packages outside the profile stay ignored on the client. Default Next config is unchanged.
+
+## Out of scope
+
+- Removing IgnorePlugin / `optionalDependencies` install isolation (Wave I)
+- Auto-gating every workspace id (guest-club, finance-*) without explicit manifest opt-in
+- Changing portal/marketing client strategy
+
+## Verify
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run guard:workspace-registry-fresh
+test ! -f apps/web/src/bootstrap/admin-client-workspace-ignore.mjs
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-h-ignore-plugin-gate.spec.ts \
+  test/wave-h-manifest-ignore-plugin.spec.ts
+```

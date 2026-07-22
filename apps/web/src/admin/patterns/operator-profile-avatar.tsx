@@ -76,30 +76,16 @@ export function OperatorProfileAvatar({
 
   return (
     <Avatar
-      data-denali-profile-avatar
-      {...(isAccountMenuChrome
-        ? { "data-operator-profile-avatar": true }
-        : { "data-denali-profile-avatar-size": size })}
+      data-operator-profile-avatar={true}
+      {...(isAccountMenuChrome ? {} : { "data-operator-profile-avatar-size": size })}
       data-testid={testId}
     >
       {avatarUrl !== null && avatarUrl.length > 0 ? (
-        <AvatarImage
-          src={avatarUrl}
-          alt=""
-          data-denali-profile-avatar-image
-          data-operator-profile-avatar-image={isAccountMenuChrome ? true : undefined}
-        />
+        <AvatarImage src={avatarUrl} alt="" data-operator-profile-avatar-image={true} />
       ) : null}
-      <AvatarFallback
-        data-denali-profile-avatar-fallback
-        data-operator-profile-avatar-fallback={isAccountMenuChrome ? true : undefined}
-      >
+      <AvatarFallback data-operator-profile-avatar-fallback={true}>
         {showIconFallback ? (
-          <User
-            data-denali-profile-avatar-icon
-            data-operator-profile-avatar-icon={isAccountMenuChrome ? true : undefined}
-            aria-hidden
-          />
+          <User data-operator-profile-avatar-icon={true} aria-hidden />
         ) : (
           fallbackInitials
         )}

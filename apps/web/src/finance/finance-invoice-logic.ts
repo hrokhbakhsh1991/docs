@@ -47,3 +47,29 @@ export function validateInvoiceLookupRegistrationId(
 export function buildInvoiceLookupPath(registrationId: string): string {
   return `/api/finance/invoices/${encodeURIComponent(registrationId)}`;
 }
+
+const UUID_LOOKUP_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** Suggested manual payment / prepayment amount from invoice read model (FC-2). */
+export function resolveSuggestedPaymentAmountMinor(invoice: RegistrationInvoice): string {
+  const due = invoice.balanceDueMinor.trim();
+  if (/^\d+$/.test(due) && BigInt(due) > BigInt(0)) {
+    return due;
+  }
+  return invoice.invoiceTotalMinor;
+}
+
+export async function fetchRegistrationInvoice(
+  registrationId: string
+): Promise<RegistrationInvoice | null> {
+  const normalized = registrationId.trim();
+  if (!UUID_LOOKUP_PATTERN.test(normalized)) {
+    return null;
+  }
+  const response = await fetch(buildInvoiceLookupPath(normalized), { cache: "no-store" });
+  if (!response.ok) {
+    return null;
+  }
+  return parseRegistrationInvoice(await response.json());
+}

@@ -96,7 +96,7 @@ export function TourWorkspaceWaitlistClient({
   const localizedError = resolveTourErrorMessage(tErrors, error);
 
   return (
-    <Card data-denali-surface="card" data-testid={TOUR_WORKSPACE_TEST_IDS.waitlistPanel} className="shadow-sm">
+    <Card data-operator-surface="card" data-testid={TOUR_WORKSPACE_TEST_IDS.waitlistPanel} className="shadow-sm">
       <CardHeader>
         <CardTitle>{t("title")}</CardTitle>
         <CardDescription>{t("description")}</CardDescription>

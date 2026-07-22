@@ -14,5 +14,3 @@ export const OPERATOR_NAV_TEST_IDS = {
   brand: "operator-brand",
   newTourCta: "operator-new-tour-cta",
 } as const;
-
-export const DENALI_PLUGIN_ID = "denali" as const;

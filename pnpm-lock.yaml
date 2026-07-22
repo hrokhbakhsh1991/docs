@@ -147,6 +147,9 @@ importers:
       '@app-tour/guest-surface-host':
         specifier: workspace:*
         version: link:../../packages/guest-surface-host
+      '@app-tour/guest-workspace-runtime':
+        specifier: workspace:*
+        version: link:../../packages/guest-workspace-runtime
       '@app-tour/session-client':
         specifier: workspace:*
         version: link:../../packages/session-client
@@ -159,21 +162,9 @@ importers:
       '@app-tour/ui-primitives':
         specifier: workspace:*
         version: link:../../packages/ui-primitives
-      '@app-tour/workspace-denali':
-        specifier: workspace:*
-        version: link:../../packages/workspaces/denali
-      '@app-tour/workspace-guest-club':
-        specifier: workspace:*
-        version: link:../../packages/workspaces/guest-club
       '@app-tour/workspace-sdk':
         specifier: workspace:*
         version: link:../../packages/workspace-sdk
-      '@app-tour/workspace-starter':
-        specifier: workspace:*
-        version: link:../../packages/workspaces/starter
-      '@app-tour/workspace-urban':
-        specifier: workspace:*
-        version: link:../../packages/workspaces/urban
       '@react-three/drei':
         specifier: ^10.7.7
         version: 10.7.7(@react-three/fiber@9.6.1(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(three@0.185.1))(@types/react@19.2.16)(@types/three@0.185.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(three@0.185.1)
@@ -259,6 +250,9 @@ importers:
       '@app-tour/guest-surface-host':
         specifier: workspace:*
         version: link:../../packages/guest-surface-host
+      '@app-tour/guest-workspace-runtime':
+        specifier: workspace:*
+        version: link:../../packages/guest-workspace-runtime
       '@app-tour/session-client':
         specifier: workspace:*
         version: link:../../packages/session-client
@@ -271,24 +265,12 @@ importers:
       '@app-tour/ui-primitives':
         specifier: workspace:*
         version: link:../../packages/ui-primitives
-      '@app-tour/workspace-denali':
-        specifier: workspace:*
-        version: link:../../packages/workspaces/denali
-      '@app-tour/workspace-guest-club':
-        specifier: workspace:*
-        version: link:../../packages/workspaces/guest-club
       '@app-tour/workspace-plugin-host':
         specifier: workspace:*
         version: link:../../packages/workspace-plugin-host
       '@app-tour/workspace-sdk':
         specifier: workspace:*
         version: link:../../packages/workspace-sdk
-      '@app-tour/workspace-starter':
-        specifier: workspace:*
-        version: link:../../packages/workspaces/starter
-      '@app-tour/workspace-urban':
-        specifier: workspace:*
-        version: link:../../packages/workspaces/urban
       '@tailwindcss/postcss':
         specifier: ^4.3.0
         version: 4.3.0
@@ -699,6 +681,43 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/guest-workspace-runtime:
+    dependencies:
+      '@app-tour/catalog-registration-flow-ui':
+        specifier: workspace:*
+        version: link:../catalog-registration-flow-ui
+      '@app-tour/workspace-denali':
+        specifier: workspace:*
+        version: link:../workspaces/denali
+      '@app-tour/workspace-guest-club':
+        specifier: workspace:*
+        version: link:../workspaces/guest-club
+      '@app-tour/workspace-plugin-host':
+        specifier: workspace:*
+        version: link:../workspace-plugin-host
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../workspace-sdk
+      '@app-tour/workspace-starter':
+        specifier: workspace:*
+        version: link:../workspaces/starter
+      '@app-tour/workspace-urban':
+        specifier: workspace:*
+        version: link:../workspaces/urban
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/platform-core:
     dependencies:
       '@app-tour/workspace-sdk':
@@ -883,27 +902,9 @@ importers:
 
   packages/workspace-plugin-host:
     dependencies:
-      '@app-tour/catalog-registration-flow-ui':
-        specifier: workspace:*
-        version: link:../catalog-registration-flow-ui
-      '@app-tour/workspace-denali':
-        specifier: workspace:*
-        version: link:../workspaces/denali
-      '@app-tour/workspace-finance-ws4':
-        specifier: workspace:*
-        version: link:../workspaces/finance-ws4
-      '@app-tour/workspace-guest-club':
-        specifier: workspace:*
-        version: link:../workspaces/guest-club
       '@app-tour/workspace-sdk':
         specifier: workspace:*
         version: link:../workspace-sdk
-      '@app-tour/workspace-starter':
-        specifier: workspace:*
-        version: link:../workspaces/starter
-      '@app-tour/workspace-urban':
-        specifier: workspace:*
-        version: link:../workspaces/urban
     devDependencies:
       '@app-tour/config':
         specifier: workspace:*

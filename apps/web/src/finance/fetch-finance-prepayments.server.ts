@@ -5,7 +5,7 @@ import {
   parsePrepaymentsListResponse,
   type PrepaymentsListResponse,
 } from "@/finance/finance-prepayments-logic";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 async function fetchFinanceBackendJson(path: string): Promise<unknown | null> {
   const cookieStore = await cookies();

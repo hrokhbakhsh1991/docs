@@ -27,7 +27,11 @@ describe("platform composite registry (P3-B-N-010)", () => {
     assert.notEqual(resolveWizardCompositeSurface("platform"), null);
   });
 
-  it("RG-02 resolveWizardCompositeSurface(denali) still not null", () => {
+  it("RG-02 resolveWizardCompositeSurface(denali) after ensure", async () => {
+    const { ensureGeneratedCompositeSurface } = await import(
+      "../src/bootstrap/wizard-surface-bindings.generated"
+    );
+    await ensureGeneratedCompositeSurface("denali");
     assert.notEqual(resolveWizardCompositeSurface("denali"), null);
   });
 
@@ -50,8 +54,10 @@ describe("platform composite registry (P3-B-N-010)", () => {
     assert.ok(container.querySelector("[data-composite-fallback]"));
   });
 
-  it("RG-04 generated bindings contain platform key", () => {
-    assert.match(bindingsSource, /"platform": composite_platform\(\)/);
+  it("RG-04 generated bindings warm platform eagerly (shell-local)", () => {
+    assert.match(bindingsSource, /\["platform", createPlatformCompositeSurface\(\)\]/);
+    assert.match(bindingsSource, /COMPOSITE_SURFACE_LOADERS/);
+    assert.match(bindingsSource, /await import\(/);
   });
 
   it("RG-05 starter plugin sets compositeSurfaceId platform", () => {

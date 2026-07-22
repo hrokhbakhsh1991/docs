@@ -49,17 +49,17 @@ describe("isDevWebSessionAllowed", () => {
 });
 
 describe("resolveBootstrapAppSession", () => {
-  it("throws when dev web session is not allowed", () => {
+  it("throws when dev web session is not allowed", async () => {
     env.NODE_ENV = "test";
     delete env.ALLOW_DEV_WEB_SESSION;
-    assert.throws(() => resolveBootstrapAppSession(), /WEB_SESSION_NOT_CONFIGURED/);
+    await assert.rejects(() => resolveBootstrapAppSession(), /WEB_SESSION_NOT_CONFIGURED/);
   });
 
-  it("resolves session when dev web session is allowed", () => {
+  it("resolves session when dev web session is allowed", async () => {
     env.NODE_ENV = "development";
     env.ALLOW_DEV_WEB_SESSION = "true";
     env.TOUR_OPS_DEV_TENANT_ID = "tenant-test";
-    const resolved = resolveBootstrapAppSession();
+    const resolved = await resolveBootstrapAppSession();
     assert.equal(resolved.session.tenantId, "tenant-test");
   });
 });

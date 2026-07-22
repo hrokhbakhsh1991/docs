@@ -28,7 +28,7 @@ describe("p6-theming-file-tree.spec.ts — P6-1-N-015", () => {
     const portalBootstrap = readRepo("packages/design-tokens/src/portal-bootstrap.css");
     assert.doesNotMatch(portalBootstrap, /platform-neutral-portal\.css/);
     const guestLoader = readRepo(
-      "apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+      "packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.portal.generated.ts"
     );
     assert.match(guestLoader, /WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN/);
   });
@@ -71,7 +71,7 @@ describe("p6-theming-file-tree.spec.ts — P6-1-N-015", () => {
   it("P6-TREE-05 guest layouts wire bootstrap + workspace plugin + fonts", () => {
     for (const app of ["portal", "marketing"] as const) {
       const layout = readRepo(`apps/${app}/app/layout.tsx`);
-      assert.match(layout, /workspace-guest-theme-stylesheets\.generated/);
+      assert.match(layout, /@app-tour\/guest-workspace-runtime\/themes\//);
       assert.match(layout, /data-workspace-plugin=\{bootstrap\.pluginId\}/);
       assert.match(layout, /resolveAppFontClassName/);
       assert.match(readRepo(`apps/${app}/src/i18n/app-fonts.ts`), /vazirmatn/);
@@ -80,11 +80,11 @@ describe("p6-theming-file-tree.spec.ts — P6-1-N-015", () => {
 
   it("P6-TREE-06 generated guest theme ingress imports denali + urban marketing skins", () => {
     assert.match(
-      readRepo("apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"),
+      readRepo("packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.portal.generated.ts"),
       /denali-portal\.css/
     );
     const marketingBootstrap = readRepo(
-      "apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+      "packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.marketing.generated.ts"
     );
     assert.match(marketingBootstrap, /denali-marketing\.css/);
     assert.match(marketingBootstrap, /urban-marketing\.css/);

@@ -4,20 +4,145 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardDraftShellSurface as wizard_draft_shell_denali } from "@app-tour/workspace-denali/host/ui/chrome/wizard-draft-shell-surface";
+/** Manifest id literal — no product import required. */
+export const DENALI_PLUGIN_ID = "denali";
 
-export const createDenaliWizardDraftSessionId = wizard_draft_shell_denali.createWizardDraftSessionId;
-export const DENALI_CREATE_TOUR_DRAFT_KEY = wizard_draft_shell_denali.createTourDraftKey;
-export const denaliEditTourDraftKey = wizard_draft_shell_denali.editTourDraftKey;
-export const DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE = wizard_draft_shell_denali.operatorDraftNamespace;
-export const createDenaliDraftSchemaGate = wizard_draft_shell_denali.createDraftSchemaGate;
-export const denaliHydrateDraftEnvelope = wizard_draft_shell_denali.hydrateDraftEnvelope;
-export const denaliPrepareDraftEnvelope = wizard_draft_shell_denali.prepareDraftEnvelope;
-export const isDenaliFreshStartEnvelope = wizard_draft_shell_denali.isFreshStartEnvelope;
-export const resolveDenaliDraftMerge = wizard_draft_shell_denali.resolveDraftMerge;
-export const emptyDenaliTourWizardDraft = wizard_draft_shell_denali.emptyTourWizardDraft;
-export const applyDenaliDefaultTourKind = wizard_draft_shell_denali.applyDefaultTourKind;
-export const buildDenaliCreatePrefilledFormCore = wizard_draft_shell_denali.buildCreatePrefilledFormCore;
-export const getDenaliWorkspacePluginFromDraftShell = wizard_draft_shell_denali.getWorkspacePlugin;
-export type { DenaliWizardDraftMeta } from "@app-tour/workspace-denali/host/draft";
+export type DenaliWizardDraftMeta = {
+  readonly currentStepIndex: number;
+  readonly wizardSessionId?: string;
+  /** Set after explicit clear — conflict merge must prefer local template over stale server. */
+  readonly freshStart?: boolean;
+  /** Server-persisted only — stripped on client hydrate/prepare (Track B). */
+  readonly deletedRoots?: readonly string[];
+};
 
+type WizardDraftShellSurface = {
+  readonly pluginId: string;
+  readonly getWorkspacePlugin: () => any;
+  readonly createTourDraftKey: string;
+  readonly editTourDraftKey: (tourId: string) => string;
+  readonly operatorDraftNamespace: string;
+  readonly createWizardDraftSessionId: () => string;
+  readonly createDraftSchemaGate: (...args: any[]) => any;
+  readonly hydrateDraftEnvelope: (...args: any[]) => any;
+  readonly prepareDraftEnvelope: (...args: any[]) => any;
+  readonly isFreshStartEnvelope: (...args: any[]) => boolean;
+  readonly resolveDraftMerge: (...args: any[]) => any;
+  readonly emptyTourWizardDraft: (...args: any[]) => any;
+  readonly applyDefaultTourKind: (...args: any[]) => any;
+  readonly buildCreatePrefilledFormCore: (...args: any[]) => any;
+  readonly buildCreatePrefilledForm: (...args: any[]) => any;
+};
+
+const WIZARD_DRAFT_SHELL_LOADERS: Readonly<
+  Record<string, () => Promise<WizardDraftShellSurface>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/host/ui/chrome/wizard-draft-shell-surface");
+    return mod.denaliWizardDraftShellSurface;
+  },
+}) as Readonly<Record<string, () => Promise<WizardDraftShellSurface>>>;
+
+const wizardDraftShellCache = new Map<string, WizardDraftShellSurface>();
+
+/** Warm draft-shell surface via dynamic import (no static product fan-in). */
+export async function ensureWizardDraftShellSurface(
+  pluginId: string
+): Promise<WizardDraftShellSurface | null> {
+  if (pluginId.trim().length === 0) {
+    return null;
+  }
+  const cached = wizardDraftShellCache.get(pluginId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = WIZARD_DRAFT_SHELL_LOADERS[pluginId];
+  if (load == null) {
+    return null;
+  }
+  const surface = await load();
+  wizardDraftShellCache.set(pluginId, surface);
+  return surface;
+}
+
+function requireWizardDraftShellSurface(pluginId: string = DENALI_PLUGIN_ID): WizardDraftShellSurface {
+  const surface = wizardDraftShellCache.get(pluginId);
+  if (surface == null) {
+    for (const warm of wizardDraftShellCache.values()) {
+      return warm;
+    }
+    throw new Error(
+      `No wizard draft shell for plugin: ${pluginId} (call ensureWizardDraftShellSurface first)`
+    );
+  }
+  return surface;
+}
+
+export function createDenaliWizardDraftSessionId(): string {
+  return requireWizardDraftShellSurface().createWizardDraftSessionId();
+}
+
+/** Known product draft key literal (matches workspace-denali draft binding SOT). */
+export const DENALI_CREATE_TOUR_DRAFT_KEY = "denali-create";
+
+export function denaliEditTourDraftKey(tourId: string): string {
+  return requireWizardDraftShellSurface().editTourDraftKey(tourId);
+}
+
+/** Known product draft namespace literal (matches workspace-denali draft binding SOT). */
+export const DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE = "operator.wizard";
+
+export function createDenaliDraftSchemaGate(...args: any[]): any {
+  return requireWizardDraftShellSurface().createDraftSchemaGate(...args);
+}
+
+export function denaliHydrateDraftEnvelope(...args: any[]): any {
+  return requireWizardDraftShellSurface().hydrateDraftEnvelope(...args);
+}
+
+export function denaliPrepareDraftEnvelope(...args: any[]): any {
+  return requireWizardDraftShellSurface().prepareDraftEnvelope(...args);
+}
+
+export function isDenaliFreshStartEnvelope(...args: any[]): boolean {
+  return requireWizardDraftShellSurface().isFreshStartEnvelope(...args);
+}
+
+export function resolveDenaliDraftMerge(...args: any[]): any {
+  return requireWizardDraftShellSurface().resolveDraftMerge(...args);
+}
+
+export function emptyDenaliTourWizardDraft(...args: any[]): any {
+  return requireWizardDraftShellSurface().emptyTourWizardDraft(...args);
+}
+
+export function applyDenaliDefaultTourKind(...args: any[]): any {
+  return requireWizardDraftShellSurface().applyDefaultTourKind(...args);
+}
+
+export function buildDenaliCreatePrefilledFormCore(...args: any[]): any {
+  return requireWizardDraftShellSurface().buildCreatePrefilledFormCore(...args);
+}
+
+export function buildDenaliCreatePrefilledForm(...args: any[]): any {
+  return requireWizardDraftShellSurface().buildCreatePrefilledForm(...args);
+}
+
+export function getDenaliWorkspacePluginFromDraftShell(): any {
+  return requireWizardDraftShellSurface().getWorkspacePlugin();
+}
+
+/** Gap Closure B.20 — product-blind aliases for shell facades (token ratchet). */
+export const DEFAULT_WIZARD_PLUGIN_ID = DENALI_PLUGIN_ID;
+export const createOperatorWizardDraftSessionId = createDenaliWizardDraftSessionId;
+export const OPERATOR_CREATE_TOUR_DRAFT_KEY = DENALI_CREATE_TOUR_DRAFT_KEY;
+export const OPERATOR_WIZARD_DRAFT_NAMESPACE = DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE;
+export const createOperatorDraftSchemaGate = createDenaliDraftSchemaGate;
+export const hydrateOperatorDraftEnvelope = denaliHydrateDraftEnvelope;
+export const prepareOperatorDraftEnvelope = denaliPrepareDraftEnvelope;
+export const isOperatorFreshStartEnvelope = isDenaliFreshStartEnvelope;
+export const resolveOperatorDraftMerge = resolveDenaliDraftMerge;
+export const applyDefaultTourKind = applyDenaliDefaultTourKind;
+export const buildCreatePrefilledForm = buildDenaliCreatePrefilledForm;
+export const getWorkspacePluginFromDraftShell = getDenaliWorkspacePluginFromDraftShell;
+export type OperatorWizardDraftMeta = DenaliWizardDraftMeta;

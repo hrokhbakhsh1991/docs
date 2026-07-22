@@ -14,7 +14,7 @@ export type { BookingOpsCapability } from "@/features/bookings/booking-ops-capab
 
 /**
  * Resolve booking ops capability for the command center.
- * Unbound / missing `opsManifest` → `null` (no Denali fallback).
+ * Unbound / missing `opsManifest` → `null` (no product fallback).
  */
 export function resolveBookingOpsCapabilityForHub(
   theme: unknown = null,

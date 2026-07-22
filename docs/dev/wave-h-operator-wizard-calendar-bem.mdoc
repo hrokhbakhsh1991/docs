@@ -1,0 +1,47 @@
+---
+title: Wave H.q — Operator wizard-calendar BEM (drop denali-wizard-calendar*)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-operator-datetime-bem.mdoc
+  - docs/dev/wave-h-operator-datetime-chrome.mdoc
+---
+
+# Wave H.q — Operator wizard-calendar BEM
+
+## Problem
+
+After H.l.b / H.p, time + date + datetime chrome use `operator-*` BEM, but the **portal calendar grid** still brands every cell/nav/title as Denali:
+
+- Classes: `.denali-wizard-calendar`, `__day`, `__nav`, `__picker-cell`, …
+- Theme tokens: `--denali-wizard-calendar-primary*` (and hover/fg variants)
+
+These are operator wizard chrome hooks scoped under `body[data-workspace-plugin="denali"]` — product skin, not product identity in the class name.
+
+## Decision
+
+Rename in lockstep (TSX + CSS + theme specs):
+
+| Before | After |
+| ------ | ----- |
+| `denali-wizard-calendar` (+ elements/modifiers) | `operator-wizard-calendar` |
+| `--denali-wizard-calendar-primary*` | `--operator-wizard-calendar-primary*` |
+
+Keep `body[data-workspace-plugin="denali"]` selectors. Keep component file name `denali-calendar.tsx` / export names for a later package rename wave.
+
+## Out of scope
+
+- `.denali-wizard-composite` / `.denali-review*` / picker BEMs → review BEM **done in** [`wave-h-operator-review-bem.mdoc`](./wave-h-operator-review-bem.mdoc) (Wave H.r); composite/pickers remain
+- Token colors (`denali-alpine-600`, `denali-forest-*`) — brand palette, not chrome
+- Install-graph isolation
+
+## Verify
+
+```bash
+rg 'denali-wizard-calendar' packages/workspaces/denali apps/web --glob '!**/*.generated.*'
+# expect empty except ADR / forbid lists
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-h-operator-wizard-calendar-bem.spec.ts \
+  test/denali-wizard-theme.spec.ts \
+  test/wave-h-operator-datetime-bem.spec.ts
+```

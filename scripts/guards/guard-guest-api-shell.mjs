@@ -48,8 +48,13 @@ if (/urbanHandlers|handleGetUrban/.test(workspaceLazySource)) {
     "lazy-workspace-finance-handlers.ts must load handlers only from workspace-http-handler-loaders.generated.ts"
   );
 }
-if (!workspaceLazySource.includes("loadWorkspaceHttpPackageHandlers")) {
-  violations.push("lazy-workspace-finance-handlers.ts must call loadWorkspaceHttpPackageHandlers()");
+if (!workspaceLazySource.includes("ensureWorkspaceHttpHandler")) {
+  violations.push(
+    "lazy-workspace-finance-handlers.ts must call ensureWorkspaceHttpHandler() (Wave G.b)"
+  );
+}
+if (fs.readFileSync(appTs, "utf8").includes("loadWorkspaceHttpPackageHandlers")) {
+  violations.push("apps/api/src/app.ts must not call loadWorkspaceHttpPackageHandlers (Wave G.b)");
 }
 
 const registrarSource = fs.readFileSync(registrar, "utf8");

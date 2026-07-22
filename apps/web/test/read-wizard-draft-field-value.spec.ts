@@ -2,8 +2,9 @@
  * WEB-WIZ-011 — wizard host reads legacy nested draft paths for display.
  */
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { before, describe, it } from "node:test";
 
+import { ensureWizardDraftUnificationSurface } from "../src/bootstrap/workspace-wizard-draft-unification-bindings.generated";
 import {
   readWizardDraftFieldDisplayString,
   readWizardDraftFieldValue,
@@ -11,6 +12,10 @@ import {
 import type { TourWizardDraft } from "../src/tours/tour-wizard-draft";
 
 describe("read-wizard-draft-field-value", () => {
+  before(async () => {
+    await ensureWizardDraftUnificationSurface("denali");
+  });
+
   it("WEB-WIZ-011-01 denali reads legacy nested title", () => {
     const draft = {
       data: {

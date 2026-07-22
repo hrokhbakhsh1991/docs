@@ -7,7 +7,7 @@ import {
 } from "@/auth/bff-login-rate-limit";
 import { buildIdentityBffHeadersAsync } from "@/auth/identity-bff-headers";
 import { mapOperatorAuthBffCatchError } from "@/auth/operator-auth-bff-error";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 type PhonePreflightBody = {
   phone?: unknown;

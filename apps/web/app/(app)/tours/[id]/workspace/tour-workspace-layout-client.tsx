@@ -97,7 +97,7 @@ export function TourWorkspaceLayoutClient({
       {localizedError !== null ? <p className="text-sm text-destructive">{localizedError}</p> : null}
 
       {!loading && detail !== null ? (
-        <Card data-denali-surface="card" className="shadow-sm">
+        <Card data-operator-surface="card" className="shadow-sm">
           <CardHeader className="space-y-2">
             <TourStatusBadge status={detail.projection.uiStatus} />
             <CardTitle className="text-2xl">{detail.projection.title}</CardTitle>

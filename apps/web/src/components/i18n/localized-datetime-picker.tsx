@@ -1,13 +1,17 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 
+import {
+  ensureOperatorUiComponentsSurface,
+  resolveOperatorUiComponentsSurface,
+  type OperatorUiComponentsSurface,
+} from "@/bootstrap/workspace-operator-ui-components-bindings.generated";
 import { joinDatetimeLocal, splitDatetimeLocal } from "@/i18n/datetime-format";
 import type { AppLocale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
-import { DenaliWizardDatetimePicker } from "@/bootstrap/workspace-operator-ui-components-bindings.generated";
-
-import { DenaliTimeInput } from "./denali-time-input";
+import { useAppSession } from "@/providers/app-session-context";
 import { Label } from "../ui/label";
 import { LocalizedDatePicker } from "./localized-date-picker";
 
@@ -22,7 +26,33 @@ export type LocalizedTimeInputProps = {
   readonly "aria-label"?: string;
 };
 
-/** HH:mm — Denali field style (wizard + settings). */
+function useOperatorUiSurface(): OperatorUiComponentsSurface | null {
+  const session = useAppSession();
+  const [surface, setSurface] = useState<OperatorUiComponentsSurface | null>(() =>
+    resolveOperatorUiComponentsSurface(session.pluginId)
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const cached = resolveOperatorUiComponentsSurface(session.pluginId);
+    if (cached != null) {
+      setSurface(cached);
+      return;
+    }
+    void ensureOperatorUiComponentsSurface(session.pluginId).then((next) => {
+      if (!cancelled) {
+        setSurface(next);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session.pluginId]);
+
+  return surface;
+}
+
+/** HH:mm — operator field style (wizard + settings). */
 export function LocalizedTimeInput({
   id,
   value,
@@ -33,23 +63,15 @@ export function LocalizedTimeInput({
   variant = "shadcn",
   "aria-label": ariaLabel,
 }: LocalizedTimeInputProps) {
-  if (variant === "primitive") {
-    return (
-      <DenaliTimeInput
-        id={id}
-        value={value}
-        disabled={disabled}
-        required={required}
-        className={className}
-        aria-label={ariaLabel}
-        appearance="field"
-        onChange={onChange}
-      />
-    );
+  const surface = useOperatorUiSurface();
+  if (surface == null) {
+    return null;
   }
+  const WorkspaceTimeInput = surface.TimeInput;
+  void variant;
 
   return (
-    <DenaliTimeInput
+    <WorkspaceTimeInput
       id={id}
       value={value}
       disabled={disabled}
@@ -89,10 +111,15 @@ export function LocalizedDatetimePicker({
   const locale = useLocale() as AppLocale;
   const t = useTranslations("common.calendar");
   const { date, time } = splitDatetimeLocal(value);
+  const surface = useOperatorUiSurface();
 
   if (layout === "wizard") {
+    if (surface == null) {
+      return null;
+    }
+    const WorkspaceWizardDatetimePicker = surface.WizardDatetimePicker;
     return (
-      <DenaliWizardDatetimePicker
+      <WorkspaceWizardDatetimePicker
         id={id}
         value={value}
         onChange={onChange}

@@ -1,5 +1,5 @@
 import { readSessionProxyContext } from "@/admin/read-session-proxy-context.server";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 import {
   parseWorkspaceIntegrationSurfaceMetaResponse,
   parseWorkspaceIntegrationsListResponse,

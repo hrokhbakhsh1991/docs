@@ -17,6 +17,12 @@ export async function HomeCategories({ categories }: HomeCategoriesProps) {
   const t = await getTranslations("catalog");
   const localeRaw = await getLocale();
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
+  const categoryChips = await Promise.all(
+    categories.map(async (category) => ({
+      category,
+      label: await resolveMarketingCategoryLabel(category, t),
+    }))
+  );
 
   return (
     <section data-marketing-home-categories>
@@ -25,14 +31,14 @@ export async function HomeCategories({ categories }: HomeCategoriesProps) {
         <p>{t("home.full.categories.lead")}</p>
       </header>
       <div data-marketing-home-categories-row>
-        {categories.map((category) => (
+        {categoryChips.map(({ category, label }) => (
           <Link
             key={category}
             href={resolveMarketingToursListPath(locale, { category })}
             data-marketing-home-category-chip
             data-marketing-home-category-chip-id={category}
           >
-            {resolveMarketingCategoryLabel(category, t)}
+            {label}
           </Link>
         ))}
       </div>

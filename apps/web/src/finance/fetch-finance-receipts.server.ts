@@ -5,7 +5,7 @@ import {
   parseFinancePendingReceiptsResponse,
   type FinancePendingReceiptsResponse,
 } from "@/finance/finance-receipts-logic";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 async function fetchFinanceBackendJson(path: string): Promise<unknown | null> {
   const cookieStore = await cookies();

@@ -1,0 +1,478 @@
+{% callout type="info" %}
+**Status:** Gap Closure **implementation exit proofs green locally** (2026-07-22). Budgets: thin-shell tokens **0**; API host allowlist **0**; guest-runtime/transpile ceiling **4/4**; E.4b-d2 `--package-build` PASS; `wave-i0:guard` PASS. **Not DONE** until Architect acknowledgment of maturity table (≥ targets) **and** green GHA `gap-closure-e4b` (a→b/c→d2). Plan: `TEMP/SAAS_ARCHITECTURE_GAP_CLOSURE_PLAN.md`.
+{% /callout %}
+
+# SaaS platform remediation — true workspace plugin host
+
+## Goal
+
+Move from a **compile-time multi-product monorepo** (generated switches + product fan-in in shells/SDK) to a **manifest → codegen → runtime loader → workspace plugin** platform.
+
+## Non-negotiables
+
+- No architecture workarounds: do not grow guard allowlists to silence smells.
+- Do not hand-edit `*.generated.*` files — regenerate via `pnpm run generate:workspace-registry`.
+- Do not claim DONE without guard + tsc verification.
+- Official package scope: `@app-tour/*` only (no `@app-cloud/*`).
+- Ratchets only shrink debt: budgets may decrease, never increase without Architect-approved charter edit.
+
+## North star (Gap Closure)
+
+| Gap | Fail-closed signal | Phase |
+| --- | --- | --- |
+| Thin shell | `guard:thin-shell` — non-generated product imports = 0; **generated static product import lines ≤ budget** | A→B |
+| Shell product tokens | `guard:shell-product-tokens` — branded token hit lines in non-generated shell ≤ budget | A→B |
+| API host fan-in | `guard:api-host-allowlist-ratchet` — `HOST_IMPORT_LEGACY_ALLOWLIST` size ≤ budget (no new entries) | A→C |
+| Plugin runtime | Generated loaders stay dynamic-only; guest-runtime product deps shrink by deploy profile | B→D |
+| Bundle isolation | `transpilePackages` / guest-runtime not full-trunk | D |
+| Manifest SOT | New workspace = create + install + generate; no hand `pathNot` / SDK product emit | B→E |
+
+### Phase A budgets (frozen baselines — decrease only)
+
+| Metric | Budget | Guard |
+| --- | --- | --- |
+| Generated static `@app-tour/workspace-*` import lines in `apps/web` | **0** | `guard:thin-shell` |
+| Non-generated shell lines matching product tokens (`denali\|urban\|Denali\|Urban\|DENALI_\|buildDenali\|getDenali`) | **0** | `guard:shell-product-tokens` |
+| API `HOST_IMPORT_LEGACY_ALLOWLIST` entry count | **0** | `guard:api-host-allowlist-ratchet` |
+
+When Phase B removes a binder or relocates finance/UI, **lower** the matching budget in the same PR as the code change.
+
+## Phase map
+
+### Phase 1 — Stabilization
+
+- Keep architecture guards green by fixing **code**, not rules (unless a rule invents false exceptions — then shrink exceptions).
+- Restore `tsc --noEmit` for `apps/web`, `apps/portal`, `apps/api`.
+- Eradicate remaining `@app-cloud` references (tests/docs/guards).
+
+### Phase 2 — Real thin shell (`apps/web`)
+
+Shell may own: routing, auth, tenant context, plugin host wiring, permissions, layouts, generic UI.
+
+Product Denali logic (wizard, forms, domain UI, labels, draft types) lives under `packages/workspaces/denali/src/host` and is reached only via **manifest + generated loader**.
+
+`guard:thin-shell` must eventually count product imports **including generated binders**; until product code is relocated, strengthen incrementally without new permanent exceptions.
+
+### Phase 3 — Neutral plugin host
+
+`@app-tour/workspace-plugin-host` depends only on `@app-tour/workspace-sdk` contracts. No product workspace package dependencies. Workspaces register themselves through invokers bound by guest/admin runtimes.
+
+### Phase 4 — Tenant-aware runtime loading
+
+`tenant request → tenant registry → pluginId → secure generated loader → plugin`. Avoid compile-time “import all workspaces” graphs where deploy/tenant profile does not need them.
+
+### Phase 5 — Manifest-driven architecture rules
+
+dependency-cruiser / boundary allowlists are **generated** from `workspace.manifest.json` (already partially true via `manifest-boundary-allowlist.generated.cjs`). Hand-maintained product allowlists are forbidden; new workspace = create + install + generate.
+
+## Gap Closure roadmap (after Phases 1–5 remediation)
+
+### Phase A — Fail-closed ratchets (this charter section)
+
+Encode honesty: PASS must not hide fan-in growth.
+
+1. `guard:thin-shell` fails when generated static product import lines **exceed** budget (not merely log).
+2. `guard:shell-product-tokens` fails when branded product-token hit lines in non-generated `apps/web` **exceed** budget.
+3. `guard:api-host-allowlist-ratchet` fails when API host legacy allowlist **grows** past budget.
+4. Wire the three into `guard:architecture` (or adjacent fast path) so pre-merge cannot ignore them.
+
+### Phase B — Thin shell extraction
+
+- Capabilities + **dynamic-only** codegen for product surfaces still statically bound.
+- Move finance / branded UI out of `apps/web` into workspace packages.
+- Lower Phase A budgets in lockstep.
+
+### Phase C — Plugin runtime subsets
+
+- Split or profile `guest-workspace-runtime` so a deploy does not statically depend on every guest product package.
+- **C.1 (done):** plugin-host neutrality guard + guest-runtime product-dep ceiling (4) + register isolation proof. Peer/optional split remains monorepo-out-of-scope until filtered installs (C.2+).
+
+### Phase D — Bundle profiles
+
+- Profile-scoped `transpilePackages` / Next fan-in; no full-trunk default for single-tenant deploys.
+- **D.1 (started):** deploy-profile bundle plan — coherent view of filtered transpile products + IgnorePlugin `ALLOW_*` recommendations (double opt-in); default monorepo Next config unchanged.
+- **D.3:** `apply:deploy-profile` dry-run / `--write` orchestrator for image builds (triple opt-in).
+- **D.4:** staging web build scripts resolve IgnorePlugin ALLOW env via deploy-profile (legacy Denali default preserved).
+
+### Phase E — Scale acceptance
+
+- Scaffold `acme` (or equivalent) without core contract edits; CI proves create → install → generate → load.
+- **E.1 (started):** temp-repo `acme-gap` guest scaffold admission via codegen collectors (no trunk package left behind). Full install→load image proof remains later.
+- **E.2:** in-memory union of `acme-gap` with trunk manifests proves drop-in admission without core edits.
+- **E.3:** boundary allowlist codegen admits `acme-gap` in that union.
+- **E.4a:** in-memory create→generate→onboard-contract; full `workspace:onboard` install/load remains E.4b+.
+
+## Verification after each phase
+
+```bash
+pnpm run generate:workspace-registry -- --check
+pnpm run guard:architecture
+pnpm run guard:thin-shell
+pnpm run guard:shell-product-tokens
+pnpm run guard:api-host-allowlist-ratchet
+pnpm run guard:workspace-peer-import
+pnpm run guard:import-boundary
+```
+
+Plus targeted `tsc --noEmit` for touched apps.
+
+## Target maturity (exit)
+
+| Dimension | Target | Est. now (2026-07-22) |
+| --- | --- | --- |
+| Platform isolation | ≥ 95% | ~95% (allowlist 0; thin-shell 0; host isolation green) |
+| Thin shell | ≥ 90% | ~95% (product tokens 0; facades neutralized) |
+| Runtime plugin | ≥ 90% | ~92% (C.3c register APPLY + E.4b-d2 disposable build; monorepo default still full-trunk) |
+| Bundle isolation | ≥ 90% | ~90% (D.5/D.6 + APPLY image path; single-tenant still opt-in APPLY) |
+
+Scale readiness for 50–100 workspaces is gated on Architect acknowledgment of maturity ≥ targets + green GHA `gap-closure-e4b` (a→b/c→d2) — do not flip charter status callout to DONE without that.
+
+### Exit remaining honesty (do not claim DONE while any Open row remains)
+
+| Item | Status |
+| --- | --- |
+| Architect acknowledgment of maturity ≥ targets | Open |
+| Green GHA `gap-closure-e4b` on trunk | Open (workflow + local proofs wired; needs authenticated CI run on trunk) |
+| Monorepo default generate full-trunk (APPLY opt-in for single-tenant images) | By design — not a defect |
+| B.19b dual-key smoke host labels removed | Closed |
+| Hand `pathNot` product fragments → boundary codegen (P5.2.c) | Closed (fail-closed; not all product ids) |
+| C.4 filtered `optionalDependencies` / pnpm installs | Out of scope |
+| E.4b-d2 disposable `pnpm --filter` package build | Closed (`--package-build` + lockfile restore) |
+
+### Architect verification (local — before DONE)
+
+```bash
+nvm use && pnpm run gap-closure:exit-local
+# Full disposable package build (slower; matches GHA e4b-d):
+pnpm run gap-closure:exit-local:full
+```
+
+`gap-closure:exit-local` = `wave-i0:guard` + in-memory E.4b-d create.  
+`gap-closure:exit-local:full` adds `--package-build` (E.4b-d2).  
+Then: confirm GHA `gap-closure-e4b` green on the merge branch and acknowledge maturity table ≥ targets in chat/PR.
+
+## Remediation progress log (2026-07-21)
+
+Reading note: historical **Deferred:** bullets under early Phase B slices were closed by B.16–B.20 (facades / smoke hosts / tokens→0). Treat the exit table above as the open-work SOT — not mid-log deferred lines.
+
+### Phase 1 — Stabilization
+
+- Architecture guards remain green without growing allowlists.
+- `tsc --noEmit` green for `apps/web`, `apps/portal`, `apps/api`.
+- `guard:no-app-cloud-imports` PASS — production scope is `@app-tour/*` (ban string retained in guards/docs only).
+
+### Phase 2 — Thin shell (partial)
+
+- Removed `apps/web/src/wizard/denali/` firewall path.
+- Denali create prefill + `DENALI_PLUGIN_ID` owned by `packages/workspaces/denali` draft-shell surface; shell reaches via generated bindings only.
+- `guard:thin-shell` meters generated static product imports and hard-fails branded `wizard/denali` resurrection + non-generated product imports.
+
+### Phase 3 — Neutral plugin host
+
+- Verified: `@app-tour/workspace-plugin-host` depends only on `@app-tour/workspace-sdk`.
+
+### Phase 4 — Runtime loading (partial)
+
+- Portal/marketing already register by `bootstrap.pluginId` (request-scoped).
+- Default generate still emits full-trunk guest-runtime deps + transpile lists; image builds filter via APPLY (`apply:deploy-profile`, including C.3c register manifests).
+
+### Phase 5 — Manifest-driven rules (mostly present)
+
+- Depcruise/web/API product allowlists come from `manifest-boundary-allowlist.generated.cjs`.
+- Gap Closure P5.2.c: API plugin-registry `pathNot` is codegen-owned (`DEPCRUISE_API_PLUGIN_REGISTRY_FROM_PATH_NOT`); product fragments stay fail-closed (`denali-finance`, `urban` only).
+
+### Gap Closure Phase A (2026-07-21)
+
+- Fail-closed budgets: thin-shell static generated ≤ 0; shell product tokens ≤ 0; API host allowlist ≤ 0 (ratcheted from Phase A baseline 22 after host-import drain).
+- New scripts: `guard:shell-product-tokens`, `guard:api-host-allowlist-ratchet`.
+
+### Gap Closure Phase B (started 2026-07-21)
+
+- `wizard-label-bindings.generated.ts` converted to **dynamic-only** loaders + warm cache (`ensureGeneratedLabelResolver`).
+- Shell submit-error path uses `createWizardSubmitFieldLabelResolver(pluginId, …)` (no hardcoded Denali factory).
+- `guard:thin-shell` fail-closes static imports inside the dynamic-only generated set (includes label bindings).
+- Budget ratchet: static generated 29→28; product tokens 207→199.
+
+#### Phase B.2 — wizard-surface-bindings
+
+- Product composite/review factories load via `import()` + warm cache; **platform** surfaces stay shell-local eager (not `@app-tour/workspace-*`).
+- `ensureGeneratedCompositeSurface` / `ensureGeneratedReviewSurface` warmed from `WorkspaceWizardHost` with `pluginId` and host surface ids.
+- Thin-shell dynamic-only set includes `wizard-surface-bindings.generated.ts`; static budget 28→26.
+
+#### Phase B.3 — plugin surface map binders (shared codegen)
+
+- `generatePluginSurfaceBindings` emits dynamic `import()` loaders + warm cache (`ensure*` + sync `resolve*`).
+- Covers: tour-list-category, settings-destination, settings-equipment-ui, settings-exposure-surfaces-ui.
+- Shell clients warm `ensure*` before sync resolve; thin-shell budget decreases by 4 (26→22).
+
+#### Phase B.4 — template editor/preset + tour-action submit codec
+
+- `wizardTemplateEditor` reuses `generatePluginSurfaceBindings` (dynamic + warm).
+- `loadFullWizardTemplatePreset` uses in-function `await import()` (already async API).
+- Tour-action submit: shell-local payload type (no product `import type`); codecs via dynamic loaders + `ensure*`; budget 22→18.
+
+#### Phase B.5 — rules / draft-unification / template-gate / settings-hub / composite
+
+- `loadWizardRulesModule` becomes true dynamic import; sync getter reads warm cache (web binder is registry surface; Denali package still owns `useDenaliWizardRules` at runtime).
+- Draft-unification + template-gate augment + settings-hub fallback modules: dynamic loaders + `ensure*`.
+  - Sync readers (`readWizardDraftFieldValueFromRegistry`, `logWizardDraftTombstoneShadowMismatch`, `resolveSettingsHubFallbackPolicy`) **return null / no-op when cold** — shell must `ensure*` before sync use.
+  - Operator create + flat-edit warm via shared `warmOperatorWizardShell(pluginId)` (`apps/web/src/wizard/warm-operator-wizard-shell.ts`) so page clients stay under the P15-W-B1e line budget while loading plugin + label/codec/draft-unification/template-gate caches in parallel.
+  - Template gate hook also self-warms `ensureWizardTemplateFieldOverlaysAugment` before overlay resolve.
+- Composite registry web binder drops static product re-export (empty stub; package keeps SOT map).
+- Budget 18→13; product-token hit lines 198→197 (create loader slim / Ready extract).
+- Remaining static sample: denali-host-adapters, operator-ui-components, photo-upload-errors, wizard create/flat-edit/draft chrome binders.
+
+#### Phase B.6 — photo-upload errors + type-only re-export decoupling
+
+- `workspace-photo-upload-errors-bindings.generated.ts` → dynamic `import()` loaders + `ensurePhotoUploadErrorsSurface` / sync resolve (no static product fan-in). Shell runtime had no warm call sites yet; helpers read warm cache (cold → null / no-op).
+- Wizard create-chrome + draft-shell binders: replace `export type { … } from "@app-tour/workspace-denali/…"` with **shell-local type aliases** (`DenaliCreateTourWizardScreen` string union; `DenaliWizardDraftMeta` structural shape). Value imports remain static for this slice (hooks/constants still need a later Ready/dynamic wave).
+- Thin-shell budget 13→10; photo binder added to `DYNAMIC_ONLY_GENERATED`.
+- Next hard slices: operator-ui React re-exports, denali-host-adapters barrel, create/flat-edit/draft value binders.
+
+#### Phase B.7 — create-view + flat-edit-page React surfaces (dynamic)
+
+- `workspace-wizard-create-view-bindings` and `workspace-wizard-flat-edit-page-bindings` → dynamic `import()` + `ensure*` / `resolve*` (component surfaces only; no Rules-of-Hooks risk).
+- `warmOperatorWizardShell` also warms both surfaces so Ready clients can sync-resolve `CreateTourWizardView` / `FlatEditPageView` (+ validation list) without static product fan-in.
+- Create/flat-edit Ready render via resolved surface components (cold → loading chrome).
+- Thin-shell budget 10→8; product-token hit lines 197→194; both binders added to `DYNAMIC_ONLY_GENERATED`.
+- Deferred: create-chrome / draft-shell / flat-edit chrome+form (hook + sync constant fan-in), operator-ui, host-adapters.
+
+#### Phase B.8 — create-chrome + flat-edit chrome/form (hooks + form component)
+
+- `wizard-create-chrome`, `wizard-flat-edit-chrome`, `wizard-flat-edit-form` → dynamic `import()` + `ensure*` / warm cache.
+- Hook wrappers (`useDenaliCreateTourWizardCore`, `useDenaliFlatEditPageCore`) always call the product hook after resolving cache by `session.pluginId` / `plugin.id` (warm guaranteed before Ready; no conditional hook calls).
+- Sync helpers (`isDraftEssentiallyEmpty`, `loadDenaliSubmitCatalogIds`) read warm cache (throw if cold).
+- Flat-edit form: shell resolves `FlatEditForm` + `testIds` via `useAppSession().pluginId`; shell-local type mirrors for tour load/detail/draft props (no product `export type … from`).
+- `warmOperatorWizardShell` warms all three surfaces; thin-shell budget 8→5; product-token hit lines 194→188.
+- Deferred: draft-shell constants/fns, denali-host-adapters barrel, operator-ui React re-exports.
+
+#### Phase B.9 — draft-shell + counted host-adapters + operator-ui (target static 0)
+
+- `wizard-draft-shell` → dynamic loaders + `ensureWizardDraftShellSurface`; sync helpers read warm cache. `DENALI_PLUGIN_ID` emitted as **codegen string literal** from manifest id (no product import).
+- Host-adapter **counted** single-line re-exports (`buildDenaliFlatEditMetaLine`, `localizeDenaliValidationIssueMessage`, `resolveActiveCatalogIdsFromResourcePayloads`) → dynamic cache + sync wrappers; multiline barrel entries remain interim static (uncounted by line meter; **not** yet in `DYNAMIC_ONLY_GENERATED` — B.10 full host-adapter dynamic).
+- File stays out of `DYNAMIC_ONLY_GENERATED` until every product `from` is dynamic (multiline still static).
+
+#### Phase B.10 — host-adapters full dynamic (honesty close for metered + DYNAMIC_ONLY)
+
+- `workspace-host-adapters.generated.ts` drops **all** static product `export … from` (including former multiline barrels).
+- Single `ensureDenaliHostAdapters()` loads draft / load-result / http-status / sanitize / exposure / counted helpers / catalog-prefetch React surface via `import()`; sync wrappers + `resolveDenaliWizardCatalogPrefetchProvider` read warm cache.
+- Catalog prefetch **must** stay product context (same React context as `useDestinationCatalog` in workspace-denali) — CatalogShell / edit router self-warm before mounting Provider (do not shell-local duplicate).
+- Shell call sites use `@/wizard/host-adapter-runtime` (`ensureWizardHostAdapters` / `resolveWizardCatalogPrefetchProvider`) so product-token hit lines do not fan out across pages.
+- Binder added to `DYNAMIC_ONLY_GENERATED`; `warmOperatorWizardShell` calls `ensureWizardHostAdapters`.
+- Exposure/settings callers that use sync localize helpers must ensure (or rely on prior warm); tests warm in `before`.
+- Thin-shell static generated remains **0**; product-token budget **189→184** (neutral facade collapses branded import fan-out).
+
+#### Phase B.11 — wizard orchestration product-token collapse
+
+- Concentrate branded binder symbols behind shell facades (`host-adapter-runtime`, `draft-shell-runtime`, `wizard-chrome-runtime`).
+- `use-create-tour-wizard` / `use-flat-edit-page` call sites use neutral names only (`createOperatorDraftSchemaGate`, `useOperatorCreateTourWizardCore`, `buildWizardStepZeroMeta`, …).
+- Lower `guard:shell-product-tokens` budget **184→103** in lockstep with measured hitLines (decrease only).
+- Compatibility: branded re-exports may remain on facades for tests/callers not yet migrated; orchestration files must not re-introduce branded identifiers in bodies.
+
+#### Phase B.12 — residual token cleanup (non-E2E)
+
+- Draft audit uses `OPERATOR_*` constants from `draft-shell-runtime` (no local `denali-*` literals).
+- Rename shell-local types/helpers (`OperatorFlatEditDraftSync`, `buildExtendedWizardTemplateFieldOverlays`, …); drop unused deprecated `isDenaliTourCategory` wrappers.
+- Settings consistency guard stops re-exporting `DENALI_BACKEND_*` (tests import hub bindings).
+- Tour Ops API base drops deprecated Urban aliases; catalog redirect page names neutralize.
+- Lower product-token budget **103→78** in lockstep (decrease only). E2E hosts (`urban-owner`) + confirm-dialog DOM ids deferred.
+
+#### Phase B.13 — residual comment/call-site collapse
+
+- Route remaining shell host-adapter re-exports (`localizeExposureCatalogFields`, clone-hydrate catalog id helpers) through `host-adapter-runtime`.
+- Workspace-owner page uses neutral aliases (`WORKSPACE_OWNER_SETTINGS_PLUGIN_ID`, `resolveWorkspaceOwnerSettingsPageBranch`); Urban contract symbols stay on the access re-export for Phase 8 tests.
+- Neutralize comment-only / doc-link product tokens in shell; map `DENALI_RULES_NOT_READY` via facade constant.
+- Lower product-token budget **78→59** in lockstep (decrease only). E2E hosts + confirm-dialog DOM ids + i18n keys (`denaliTagline`, `useTranslations("denali")`) still deferred.
+
+### Phase C — Plugin runtime subsets (Gap Closure)
+
+Peer/optional product deps remain **out of scope inside this pnpm monorepo** until filtered installs (see Wave C.c). Phase C advances with ratchets + execution isolation proofs first, then profile-scoped graphs.
+
+#### Phase C.1 — Composition-root honesty (ratchets + isolation proof)
+
+- `guard:plugin-host-neutrality` — `workspace-plugin-host` dependencies ⊆ `{ @app-tour/workspace-sdk }` (no product workspace packages); wired into `wave-i0:guard`.
+- `guard:guest-runtime-product-deps` gains fail-closed **product dep count ceiling** (live = 4: denali, guest-club, starter, urban). Manifest sync may shrink; growth past ceiling fails CI.
+- Guest-runtime register isolation proof: `invokeWorkspacePluginRegister("urban")` must not register denali intake/flow; register manifest + `register-*.generated.ts` stay dynamic-import-only for product packages.
+- Still open after C.1 (honesty): monorepo **default** install/transpile graph lists all guest products; image/single-tenant path filters via C.2+ APPLY (`apply:deploy-profile`). C.4 filtered installs remain out of scope.
+
+#### Phase C.2a — Transpile product ceiling + deploy-profile helper
+
+- Fail-closed `guard:transpile-product-ceiling`: product package counts in guest (portal/marketing) and admin generated transpile lists must not exceed ceiling **4** (same product set as guest-runtime deps). Wired into `wave-i0:guard`.
+- Pure helper `filterProductPackagesByDeployProfile(packages, profile)` — `"full"` / `*` / empty = no filter; comma-separated package ids or `@app-tour/workspace-*` names = intersection. Wired into transpile emit in C.2b (double opt-in); monorepo default remains full-trunk.
+- Verify: unit tests for the filter; live counts match ceiling.
+
+#### Phase C.2b — Opt-in deploy-profile transpile emit
+
+- `generateGuestTranspilePackages` / `generateAdminTranspilePackages` apply `filterProductPackagesByDeployProfile` only when **both** are set:
+  - `WORKSPACE_DEPLOY_PROFILE_APPLY=1`
+  - `WORKSPACE_DEPLOY_PROFILE` (comma-separated ids or package names; `full` / `*` = no filter)
+- Default `pnpm run generate:workspace-registry` (and `--check`) stays **full-trunk** — accidental env alone cannot shrink committed lists.
+- Filtered emits annotate the generated banner with the active profile. Guest-runtime `package.json` product deps stay full-trunk on default generate (deploy-only sync in C.2c).
+- Verify: unit tests for apply gate + filtered emit; `wave-i0:guard` + registry freshness on default generate.
+
+#### Phase C.2c — Opt-in deploy-profile guest-runtime deps
+
+- Default `syncGuestWorkspaceRuntimePackageJson` / `verifyGuestWorkspaceRuntimePackageJson` / `guard:guest-runtime-product-deps` always expect the **full-trunk** product set (ceiling 4) — deploy-profile env cannot shrink trunk package.json via normal generate.
+- Deploy-only API: `syncGuestWorkspaceRuntimePackageJsonForDeploy` + `pnpm run sync:guest-runtime-deploy-profile` require `WORKSPACE_DEPLOY_PROFILE_APPLY=1` (throws otherwise) and rewrite `packages/guest-workspace-runtime/package.json` for image builds — **do not commit**.
+- Helper `collectGuestRuntimeProductPackagesForEnv` composes C.2a/C.2b filtering for deploy tooling/tests.
+- True `optionalDependencies` / peer-only publish remains out of scope (dynamic `import()` resolution in the pnpm workspace).
+
+#### Phase D.1 — Deploy-profile bundle plan (transpile ∩ IgnorePlugin)
+
+- Pure planner `buildDeployProfileBundlePlan(manifests, env)` composes:
+  - admin/guest product packages after C.2a–C.2c profile filter
+  - manifest `adminWeb.clientBundleEnvGate` IgnorePlugin rows with `inProfile` + recommended `ALLOW_*=true` only for packages **in** the active profile
+- `assertDeployProfileBundlePlanCoherent` — when apply gate is on, every gated package’s `inProfile` matches membership in the filtered admin transpile set.
+- `pnpm run print:deploy-profile-plan` — inspect plan (hermetic without APPLY; profiled with double opt-in). Default `apps/web/next.config.ts` behavior unchanged (IgnorePlugin still env-driven at runtime).
+- `guard:deploy-profile-plan` — hermetic full-trunk coherence + sample profiled coherence; wired into `wave-i0:guard`.
+
+#### Phase D.2 — Deploy-profile recommended ALLOW env export
+
+- `formatDeployProfileAllowEnvExports(plan)` emits shell `export ALLOW_*=true` lines from `recommendedProcessEnv`.
+- `pnpm run print:deploy-profile-env` — printable env for image builds (honors C.2b double opt-in when set; hermetic full-trunk otherwise).
+- Does **not** mutate `process.env` or `next.config.ts`; operators/CI apply exports explicitly.
+
+#### Phase D.3 — Deploy-profile apply orchestrator (image builds)
+
+- `pnpm run apply:deploy-profile` composes plan coherence + ALLOW exports + optional writes:
+  - **Default = dry-run** (prints plan summary + `export ALLOW_*=…`; no filesystem writes)
+  - **`--write`** additionally requires `WORKSPACE_DEPLOY_PROFILE_APPLY=1` and rewrites filtered admin/portal/marketing transpile lists + runs `syncGuestWorkspaceRuntimePackageJsonForDeploy`
+- Triple gate prevents accidental trunk mutation: missing `--write` → dry-run; `--write` without APPLY → fail-closed.
+- After a `--write` image build, restore trunk with `pnpm run generate:workspace-registry` (do not commit filtered artifacts).
+
+#### Phase D.4 — Staging web build honors deploy-profile ALLOW env
+
+- `scripts/vps-deploy/resolve-staging-web-plugin-allow-env.mjs` prints `export ALLOW_*=…` for the Next client IgnorePlugin gates.
+- **Default (no APPLY):** preserves staging legacy `ALLOW_DENALI_WEB_PLUGIN=true` only (no behavior change for existing VPS staging builds).
+- **With `WORKSPACE_DEPLOY_PROFILE_APPLY=1`:** emits `formatDeployProfileAllowEnvExports` from the live plan (same as `print:deploy-profile-env`).
+- `sync-staging-web-build.sh` / `sync-staging-web-vps-build.sh` `eval` the resolver before `next build` instead of hard-coding only Denali.
+
+#### Phase E.1 — Acme scaffold acceptance (create → codegen)
+
+- Automated acceptance: `scaffoldWorkspace({ id: "acme-gap", guest: true })` in a temp repo root, then manifest-driven collectors/codegen must admit the new package **without** editing `packages/platform-core`, `packages/workspace-sdk`, or `apps/api` contracts.
+- Spec: `scripts/test/gap-closure-acme-scaffold-acceptance.spec.mjs`; wired into `wave-i0:guard` via `pnpm run test:gap-closure-acceptance`.
+- Does not leave `acme-gap` on trunk — temp dir only.
+
+#### Phase E.2 — Acme admission against trunk manifest union (in-memory)
+
+- Acceptance extends E.1: scaffold `acme-gap` in temp, then **union** its manifest with live `discoverManifests()` (trunk) in memory.
+- Assert admin/guest transpile collectors and `generateAdminTranspilePackages` / marketing guest emit include `@app-tour/workspace-acme-gap` alongside the existing trunk product set — still **no** writes under `packages/workspaces/` on trunk and no core contract hash drift.
+- Spec lives in the same `gap-closure-acme-scaffold-acceptance.spec.mjs`.
+
+#### Phase E.3 — Boundary allowlist admits acme in trunk union
+
+- Same temp `acme-gap` + trunk union as E.2; assert `generateManifestBoundaryAllowlist(union)` includes both `acme-gap` id and `@app-tour/workspace-acme-gap` package string.
+- Proves drop-in workspaces enter depcruise/product allowlists via codegen without hand-editing boundary configs or `apps/api` route registrars.
+
+#### Phase E.4a — In-memory create → generate → onboard-contract
+
+- Extract `evaluateWorkspaceOnboardContract(manifests, generatedRegistrySource)` (shared by `guard:workspace-onboard-contract`).
+- Acceptance: temp `acme-gap` ∪ trunk → `generateApiRegistry(union)` includes `case "acme-gap"` and the onboard-contract evaluator PASSes against that generated source — proves create→generate→registry admission **without** `pnpm install` / package build / trunk writes.
+- `planWorkspaceOnboardSteps` + `pnpm run print:workspace-onboard-plan` list the full onboard recipe (install→…→load) for operators.
+- Scale path continues in **E.4b** (CI contract-only → package build/test → disposable create). Still not charter DONE until exit checklist + Architect acknowledgment.
+
+#### Phase C / API host allowlist drain (Gap Closure)
+
+- Isolation guard only ratchets **`@app-tour/workspace-*/host/`** import specs (plus settings contract).
+- Audit of the Phase A ceiling (22 paths): **0** files under `apps/api/src` still import `/host/`; one ceiling path was already missing on disk (`tours/apply-denali-server-clone-photo-remint.ts`). Remaining product fan-in uses non-host surfaces (`…/http`, package root, generated bindings) — those are out of scope for this allowlist.
+- Collapse `HOST_IMPORT_LEGACY_ALLOWLIST_CEILING` → `[]` and `HOST_IMPORT_LEGACY_ALLOWLIST_MAX` → **0** in lockstep with charter budget. Re-introducing a `/host/` import outside generated files fails `guard:api-workspace-isolation` with no escape hatch.
+
+#### Phase E.4b-prep — `workspace:onboard --dry-run`
+
+- `pnpm run workspace:onboard -- <id> [--guest] --dry-run` validates the workspace manifest exists, then prints the same step plan as `print:workspace-onboard-plan` **without** running `pnpm install`, codegen, build, or tests.
+- Safe operator/CI rehearsal path before E.4b execution jobs.
+- **E.4b-prep2:** acceptance walks every trunk product workspace (`discoverManifests` → product ids), asserts `packages/workspaces/<id>/workspace.manifest.json` exists, and that `planWorkspaceOnboardSteps` + `formatWorkspaceOnboardPlanPayload(..., dry-run)` emit a non-empty install→onboard-contract→build recipe.
+
+#### Phase B.15 — residual shell token cleanup (non-facade)
+
+- Neutralize deferred non-facade product tokens that do not require E2E host renames or Urban canLoad contract renames:
+  - Confirm-dialog default `data-testid` values: `denali-confirm-dialog*` → `operator-confirm-dialog*` (shell already uses `data-operator-confirm-*` attrs).
+  - App copy key `denaliTagline` → `extendedCreateChromeTagline` (en/fa `app` messages + shell call sites).
+  - Exposure delivery policy panel: stop hard-coding `useTranslations("denali")`; pass `session.pluginId` and resolve via `useWorkspaceWizardTranslator(pluginId)`.
+- Lower shell product-token budget **57→50** in lockstep (decrease only).
+- Residual items later closed in B.16–B.20 (canLoad, breadcrumb, theme CSS ambient, E2E smoke hosts, facade neutralization).
+
+#### Phase B.16 — Urban canLoad shell collapse
+
+- Shell [`workspace-owner-settings-access.ts`](apps/web/app/(app)/settings/workspace-owner/workspace-owner-settings-access.ts) exports **only** product-blind aliases (`canLoadWorkspaceOwnerSettings`, `resolveWorkspaceOwnerSettingsPageBranch`, neutral types) plus uppercase path constants (token regex is case-sensitive — `URBAN_*` does not burn budget).
+- Neutral aliases are defined on the Phase 8 contract module; CamelCase `canLoadUrbanSettings` / `Urban*` symbols are **not** re-exported from the shell (Phase 8 / Wave H web tests import those from the contract, matching API ability specs).
+- Lower shell product-token budget **50→38** in lockstep (decrease only).
+
+#### Phase B.17 — Workspace-owner breadcrumb key
+
+- Replace settings breadcrumb map entry `urban: "urban.title"` with `workspace-owner: "workspaceOwner.title"` in [`operator-breadcrumb-logic.ts`](apps/web/src/admin/shell/operator-breadcrumb-logic.ts) (canonical URL is `/settings/workspace-owner`).
+- Lower shell product-token budget **38→37** in lockstep (decrease only).
+
+#### Phase B.18 — Theme CSS ambient decls via codegen
+
+- Emit `declare module` entries for manifest `themeStylesheets` into [`apps/web/src/bootstrap/workspace-theme-css-modules.generated.d.ts`](apps/web/src/bootstrap/workspace-theme-css-modules.generated.d.ts) (`generateWorkspaceThemeCssAmbientModules`).
+- Delete hand-maintained [`apps/web/src/workspace-theme-css.d.ts`](apps/web/src/workspace-theme-css.d.ts); thin-shell no longer special-cases that path (`.generated.` already skipped).
+- Lower shell product-token budget **37→35** in lockstep (decrease only).
+
+#### Phase E.4b-a — Contract-only CI (guest-club)
+
+- `workspace:onboard` gains `--skip-install` (CI frozen lockfile already installed) and `--contract-only` (stop after freshness + onboard-contract).
+- Path-filtered workflow [`.github/workflows/gap-closure-e4b.yml`](.github/workflows/gap-closure-e4b.yml) job `e4b-a-contract`: frozen install → `pnpm run workspace:onboard -- guest-club --guest --skip-install --contract-only`.
+- Does not hang on `wave-i0:guard` / Husky; no phase gates.
+
+#### Phase E.4b-b/c — Package build/test + guest guards
+
+- Same workflow job `e4b-b-c-package`: after SDK guard build, `pnpm run workspace:onboard -- guest-club --guest --from=build` (build → test → plugin-surface → peer-import → guest-conformance → certification).
+
+#### Phase E.4b-d — Disposable create proof
+
+- [`scripts/ci/gap-closure-e4b-create.mjs`](scripts/ci/gap-closure-e4b-create.mjs): temp-root `scaffoldWorkspace({ guest: true })` → core contract hash unchanged → trunk∪temp `generateApiRegistry` + onboard-contract PASS → no trunk leftover.
+- Workflow job `e4b-d-create` runs the script with `--package-build` after SDK guard build.
+- **E.4b-d2:** `--package-build` scaffolds under `packages/workspaces/<id>`, runs `pnpm install` (lockfile backed up), `pnpm --filter … run build` + `test`, then deletes the package and restores `pnpm-lock.yaml` bytes (no leftover). Does not re-run frozen install on cleanup (CI is ephemeral). In-memory contract proof still always runs first.
+- Guest scaffold `package.json` includes `@app-tour/catalog-registration-auth` (flow TSX import) so disposable build is coherent.
+- Path filters include `scripts/ci/gap-closure-e4b*.mjs` and `scripts/workspace-create.mjs` (push) so create-script edits trigger CI.
+- Architect local wrappers: `pnpm run gap-closure:exit-local` / `gap-closure:exit-local:full`.
+
+#### Phase B.19 — E2E smoke host labels
+
+- Rename shell smoke hosts `urban-owner` / `urban-member` → `workspace-owner-smoke` / `workspace-member-smoke` in session profiles + middleware bypass.
+- Sync Playwright default base URLs, unit asserts, Phase 8 gate `/etc/hosts` (legacy labels kept alongside for one release).
+- `guest-surface-host` maps both new and deprecated labels to the same tenant UUID.
+- Lower shell product-token budget **35→32** in lockstep (decrease only).
+
+#### Phase B.19b — Dual-key smoke host soak close
+
+- Remove deprecated ingress labels `urban-owner` / `urban-member` from `PHASE_43_HOST_TENANT_IDS` (canonical: `workspace-owner-smoke` / `workspace-member-smoke`).
+- Drop legacy labels from Phase 8 gate `/etc/hosts` seed (smoke hosts + `urban.localhost` remain).
+- Shell bypass/session profiles already canonical-only (B.19); no further dual-key resolution after this soak.
+
+#### Phase B.20 — Facade binder neutralization
+
+- Codegen emits product-blind aliases on draft-shell / create-chrome / flat-edit-chrome / host-adapter binders.
+- Shell facades re-export **only** neutral names; binder path renamed to `workspace-host-adapters.generated.ts`.
+- Wire error code value `"DENALI_RULES_NOT_READY"` retained on generated `WIZARD_RULES_NOT_READY_CODE`.
+- Lower shell product-token budget **32→0** in lockstep (decrease only).
+
+#### Phase C.3 — Profiled theme loaders under APPLY
+
+- `generateAdminThemeStylesheetLoader` / guest theme loaders honor `filterManifestsByDeployProfile` when `WORKSPACE_DEPLOY_PROFILE_APPLY=1` (same double opt-in as transpile). Default generate stays full-trunk.
+- **C.3b:** `apply:deploy-profile --write` also rewrites admin + portal/marketing guest theme stylesheet loader artifacts (then restore via `generate:workspace-registry`). Transpile + guest-runtime package.json already covered by D.3/C.2c.
+- **C.3c:** `generatePortalRegisterOutputs(manifests, env)` filters portal/host register membership via `filterManifestsByDeployProfile` when APPLY=1. `apply:deploy-profile --write` rewrites guest-runtime + host register manifests and in-profile `register-<id>.generated.ts` files. Default generate stays full-trunk; do not commit filtered register artifacts.
+- Deploy-profile resolve/filter helpers live in `scripts/codegen/workspace-registry/domains/deploy-profile.mjs` (re-exported from `theme.mjs`) so registration can apply C.3c without an import cycle.
+
+#### Phase D.5 — Staging/VPS apply full profile
+
+- When `WORKSPACE_DEPLOY_PROFILE_APPLY=1`, staging web build scripts run `apply:deploy-profile --write` before `next build`, then restore with `generate:workspace-registry`.
+- Legacy (no APPLY) unchanged.
+
+#### Phase D.6 — Bundle isolation guard
+
+- `guard:bundle-profile-isolation` — sample profile `urban,starter` must exclude denali from admin/guest product plans; wired into `wave-i0:guard`.
+
+#### Phase P5.2.c — API plugin-registry `pathNot` via boundary codegen
+
+- Move `apps-api-workspace-plugin-registry-only` `from.pathNot` body into `manifest-boundary-allowlist.generated.cjs` as `DEPCRUISE_API_PLUGIN_REGISTRY_FROM_PATH_NOT`.
+- Construction is fail-closed: **do not** auto-insert every product workspace id (bare `denali` / `starter` / … would widen exemptions). Product path tokens stay an explicit decrease-oriented list (`denali-finance`, `urban`) plus stable platform fragments (`workspace-finance`, `settings/`, `tours/`, generated/spec, …).
+- `dependency-cruiser.config.js` consumes the generated constant only — no hand `denali-finance|urban` in that file.
+- Unit test locks the assembled regex body so regen cannot silently loosen membership.
+
+#### Phase B.14 — schema-gate prop rename (shell token)
+
+- Rename product-core input `denaliSchemaGateRef` → `draftSchemaGateRef` so shell orchestration call sites drop the branded prop key.
+- Lower shell product-token budget **59→57** in lockstep after rename.
+

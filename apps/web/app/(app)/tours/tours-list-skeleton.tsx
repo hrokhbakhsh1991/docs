@@ -1,4 +1,4 @@
-import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
+import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { TOURS_LIST_TEST_IDS } from "@/features/tours/query-model";
 
@@ -10,28 +10,28 @@ type ToursListToolbarSkeletonProps = {
 export function ToursListToolbarSkeleton({ hasCategoryFilter = false }: ToursListToolbarSkeletonProps) {
   return (
     <div className="space-y-4" data-testid={TOURS_LIST_TEST_IDS.toolbarSkeleton}>
-      <DenaliSkeleton size="search" />
+      <OperatorSkeleton size="search" />
 
       <div className="flex flex-wrap gap-2">
-        <DenaliSkeleton size="chip-xs" />
-        <DenaliSkeleton size="chip-md" />
-        <DenaliSkeleton size="chip-sm" />
-        <DenaliSkeleton size="chip-md" />
+        <OperatorSkeleton size="chip-xs" />
+        <OperatorSkeleton size="chip-md" />
+        <OperatorSkeleton size="chip-sm" />
+        <OperatorSkeleton size="chip-md" />
       </div>
 
       {hasCategoryFilter ? (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <DenaliSkeleton size="label-lg" />
-            <DenaliSkeleton size="chip-sm" />
+            <OperatorSkeleton size="label-lg" />
+            <OperatorSkeleton size="chip-sm" />
           </div>
           {Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-              <DenaliSkeleton size="label-md" />
+              <OperatorSkeleton size="label-md" />
               <div className="flex flex-wrap gap-1">
-                <DenaliSkeleton size="chip-lg" />
-                <DenaliSkeleton size="chip-xl" />
-                <DenaliSkeleton size="chip-md" />
+                <OperatorSkeleton size="chip-lg" />
+                <OperatorSkeleton size="chip-xl" />
+                <OperatorSkeleton size="chip-md" />
               </div>
             </div>
           ))}
@@ -39,11 +39,11 @@ export function ToursListToolbarSkeleton({ hasCategoryFilter = false }: ToursLis
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
-        <DenaliSkeleton size="label-sm" />
-        <DenaliSkeleton size="chip-lg" />
-        <DenaliSkeleton size="chip-xl" />
-        <DenaliSkeleton size="chip-md" />
-        <DenaliSkeleton size="chip-xl" />
+        <OperatorSkeleton size="label-sm" />
+        <OperatorSkeleton size="chip-lg" />
+        <OperatorSkeleton size="chip-xl" />
+        <OperatorSkeleton size="chip-md" />
+        <OperatorSkeleton size="chip-xl" />
       </div>
     </div>
   );
@@ -53,29 +53,29 @@ export function ToursListToolbarSkeleton({ hasCategoryFilter = false }: ToursLis
 export function TourCardSkeleton() {
   return (
     <Card
-      data-denali-surface="card"
+      data-operator-surface="card"
       className="flex h-full flex-col overflow-hidden shadow-sm"
       data-testid={TOURS_LIST_TEST_IDS.cardSkeleton}
     >
-      <DenaliSkeleton size="hero" />
+      <OperatorSkeleton size="hero" />
       <CardHeader className="space-y-3 pb-2">
         <div className="flex flex-wrap items-center gap-2">
-          <DenaliSkeleton size="badge-sm" />
-          <DenaliSkeleton size="badge-lg" />
-          <DenaliSkeleton size="badge-md" />
+          <OperatorSkeleton size="badge-sm" />
+          <OperatorSkeleton size="badge-lg" />
+          <OperatorSkeleton size="badge-md" />
         </div>
-        <DenaliSkeleton size="title" />
-        <DenaliSkeleton size="subtitle" />
+        <OperatorSkeleton size="title" />
+        <OperatorSkeleton size="subtitle" />
       </CardHeader>
       <CardContent className="flex-1 space-y-2">
-        <DenaliSkeleton size="line-full" />
-        <DenaliSkeleton size="line-full" />
-        <DenaliSkeleton size="line-partial" />
+        <OperatorSkeleton size="line-full" />
+        <OperatorSkeleton size="line-full" />
+        <OperatorSkeleton size="line-partial" />
       </CardContent>
       <CardFooter className="flex flex-wrap gap-2">
-        <DenaliSkeleton size="chip-md" />
-        <DenaliSkeleton size="chip-lg" />
-        <DenaliSkeleton size="chip-sm" />
+        <OperatorSkeleton size="chip-md" />
+        <OperatorSkeleton size="chip-lg" />
+        <OperatorSkeleton size="chip-sm" />
       </CardFooter>
     </Card>
   );

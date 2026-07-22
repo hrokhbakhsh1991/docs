@@ -62,7 +62,7 @@ export function Calendar({ value, onSelect, className }: CalendarProps) {
     <div
       className={cn("w-[min(100vw-2rem,20rem)] p-3", className)}
       data-testid="localized-calendar"
-      data-denali-wizard-calendar
+      data-operator-wizard-calendar
     >
       <div className="mb-3 flex items-center justify-between gap-2">
         <Button

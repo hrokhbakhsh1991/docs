@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 
 import { denaliPrepareDraftEnvelope } from "@app-tour/workspace-denali";
 
-import type { NewTourWizardDraftEnvelope } from "../src/draft/denali-wizard-draft-types";
+import type { NewTourWizardDraftEnvelope } from "../src/draft/tour-wizard-draft-envelope";
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";
 import { persistDenaliWizardDraftChange } from "@app-tour/workspace-denali/host/ui/chrome/draft-persist";

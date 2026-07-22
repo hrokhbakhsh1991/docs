@@ -200,11 +200,16 @@ function packageExports(ctx, guest) {
 
 function writePackageJson(dir, ctx, guest) {
   const files = guest ? ["dist", "theme/tokens.css", "theme/marketing.css"] : ["dist", "theme/tokens.css"];
+  /** @type {Record<string, string>} */
   const dependencies = {
     "@app-tour/design-tokens": "workspace:*",
     "@app-tour/platform-core": "workspace:*",
     "@app-tour/workspace-sdk": "workspace:*",
   };
+  if (guest) {
+    dependencies["@app-tour/catalog-registration-auth"] = "workspace:*";
+  }
+  /** @type {Record<string, string>} */
   const devDependencies = {
     "@app-tour/config": "workspace:*",
     "@types/node": "^24.0.0",

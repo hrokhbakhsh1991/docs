@@ -1,6 +1,7 @@
 {
   "pageTitle": "Register — {tourTitle}",
   "loginPageTitle": "Sign in",
+  "loginModalClose": "Close sign in",
   "signInToRegister": "Already registered? Sign in",
   "backToTour": "Back to tour",
   "backToMarketing": "Back",

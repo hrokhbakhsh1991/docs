@@ -1,0 +1,51 @@
+---
+title: Wave H.d.a — Collapse Denali wizard pure re-exports
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-denali-catalog-shell.mdoc
+  - docs/dev/wave-b-denali-sync-resolve.mdoc
+---
+
+# Wave H.d.a — Collapse Denali wizard pure re-exports
+
+## Problem
+
+`apps/web/src/wizard/denali/` still holds **ten** files. Eight of them are one-line re-exports of `@app-tour/workspace-denali/host/*` — the hostile audit calls this a “fake decoupling” island (many paths, same coupling). Workspace-boundary **requires** product imports to stay inside `src/wizard/denali/` (P0-T-161 / P15-W-C2), so deleting the folder or spreading package imports into orchestration hooks would **regress** the thin-shell firewall.
+
+## Decision (H.d.a — consolidate, do not dissolve)
+
+1. Replace the eight pure re-export modules with a single intentional firewall module:
+   - `apps/web/src/wizard/denali/adapters.tsx`
+   - Re-exports: draft meta/identity, flat-edit chrome helpers, catalog prefetch context, localize validation message.
+2. Keep non-trivial host glue separate:
+   - `resolve-sync-workspace-plugin.ts` (draft-shell sync + registry async load — Wave B.a)
+   - `workspace-plugin-id.ts` (constant alias used by sync resolve + shell)
+3. Retarget all `./denali/<shim>` and `@/wizard/denali/<shim>` imports to `./denali/adapters` / `@/wizard/denali/adapters` (or the two glue modules).
+4. Update `workspace-boundary` P15-W-C2 to assert:
+   - `wizard/denali/adapters.tsx` exists and matches package host paths
+   - pure per-symbol shim files are **absent**
+   - folder still exists (firewall preserved)
+5. Cap: `wizard/denali/` file count ≤ **3** after this tranche.
+
+## Out of scope (H.d.b+)
+
+- Deleting `wizard/denali/` entirely
+- Absorbing draft/chrome symbols into more codegen bindings so adapters can shrink further
+- Making create/flat orchestration import `@app-tour/workspace-denali` directly (would expand allowlist into shell)
+- Confining remaining tours/exposure Denali imports into the firewall → [`wave-h-denali-import-firewall.mdoc`](./wave-h-denali-import-firewall.mdoc) (Wave H.h)
+
+## Rationale
+
+Audit debt is **path proliferation**, not the existence of a product-import firewall. One named `adapters.tsx` makes the remaining coupling honest and reviewable; sync resolve stays the only behavioral host entry.
+
+## Verify
+
+```bash
+test $(find apps/web/src/wizard/denali -type f | wc -l) -le 3
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/workspace-boundary.spec.ts \
+  test/denali-localize-validation-message.spec.ts \
+  test/wave-h-denali-wizard-adapters.spec.ts \
+  test/wizard-host-boundary.spec.ts
+```

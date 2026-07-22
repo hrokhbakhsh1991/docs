@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { before, describe, it } from "node:test";
 
+import { ensureSettingsDestinationSurface } from "../src/bootstrap/workspace-settings-destination-bindings.generated";
 import {
   buildDestinationCreateBody,
   buildDestinationPatchBody,
@@ -15,6 +16,9 @@ import type { DestinationResource } from "../src/features/settings/settings-modu
 const PLUGIN_ID = "denali";
 
 describe("destination-form-logic", () => {
+  before(async () => {
+    await ensureSettingsDestinationSurface(PLUGIN_ID);
+  });
   it("buildDestinationCreateBody includes peak metadata when provided", () => {
     const body = buildDestinationCreateBody({
       regionId: "r1",

@@ -46,14 +46,19 @@ export default async function AuthLoginPage({ searchParams }: AuthLoginPageProps
     return (
       <LoginForm
         pluginId="platform"
-        initialBranding={{ displayName: "Platform Control Center", logoUrl: null }}
+        initialBranding={{
+          displayName: "Platform Control Center",
+          logoUrl: null,
+          primaryColor: null,
+          defaultLocale: null,
+        }}
         searchQuery={searchQuery}
       />
     );
   }
 
   const [bootstrap, branding] = await Promise.all([
-    Promise.resolve(resolveBootstrapAppSessionForHost(host)),
+    resolveBootstrapAppSessionForHost(host),
     fetchPublicTenantBrandingForHost(host),
   ]);
   return (

@@ -3,7 +3,7 @@
  * @see docs/standards/platform-surface-cohesion.mdoc
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -11,14 +11,18 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 describe("web guest API base parity — PSC-1a", () => {
-  it("WEB-PSC-1a-01 urban-api-base re-exports guest-surface-host resolver", () => {
+  it("WEB-PSC-1a-01 tour-ops-api-base re-exports guest-surface-host resolver (Wave H.a)", () => {
     const source = readFileSync(
-      join(repoRoot, "apps/web/src/urban/urban-api-base.ts"),
+      join(repoRoot, "apps/web/src/platform/tour-ops-api-base.ts"),
       "utf8"
     );
     assert.match(source, /@app-tour\/guest-surface-host/);
     assert.match(source, /resolveTourOpsApiBaseUrl/);
     assert.doesNotMatch(source, /TOUR_OPS_API_URL_NOT_CONFIGURED/);
+  });
+
+  it("WEB-PSC-1a-01b urban-api-base product path is removed", () => {
+    assert.equal(existsSync(join(repoRoot, "apps/web/src/urban/urban-api-base.ts")), false);
   });
 
   it("WEB-PSC-1a-02 tenant-context uses shared resolver (no local apiBaseUrl)", () => {
@@ -94,18 +98,19 @@ describe("web pluginId resolution — PSC-1c", () => {
 });
 
 describe("web catalog egress — PSC-1d", () => {
-  it("WEB-PSC-1d-01 denali catalog client uses SDK path resolver", () => {
-    const source = readFileSync(
-      join(repoRoot, "apps/web/src/denali/denali-catalog-client.ts"),
+  it("WEB-PSC-1d-01 denali catalog package uses SDK path resolver (Wave H.c)", () => {
+    const packageSot = readFileSync(
+      join(repoRoot, "packages/workspaces/denali/src/catalog/fetch-denali-catalog-tour.ts"),
       "utf8"
     );
-    assert.match(source, /resolveCatalogTourApiPath/);
-    assert.doesNotMatch(source, /\/denali\/catalog/);
+    assert.match(packageSot, /resolveCatalogTourApiPath/);
+    assert.doesNotMatch(packageSot, /\/denali\/catalog/);
+    assert.equal(existsSync(join(repoRoot, "apps/web/src/denali")), false);
   });
 
-  it("WEB-PSC-1d-02 urban catalog client uses SDK path resolver", () => {
+  it("WEB-PSC-1d-02 urban catalog package uses SDK path resolver (Wave H.b)", () => {
     const source = readFileSync(
-      join(repoRoot, "apps/web/src/urban/urban-catalog-client.ts"),
+      join(repoRoot, "packages/workspaces/urban/src/catalog/fetch-urban-catalog.ts"),
       "utf8"
     );
     assert.match(source, /resolveCatalogListApiPath/);
@@ -127,6 +132,6 @@ describe("web dev host session profiles — PSC-2", () => {
     assert.match(kernel, /dev-host-session-profiles/);
     assert.doesNotMatch(kernel, /DEV_HOST_SESSION_PROFILES/);
     assert.match(profiles, /DEV_HOST_SESSION_PROFILES/);
-    assert.match(profiles, /urban-owner/);
+    assert.match(profiles, /workspace-owner-smoke/);
   });
 });

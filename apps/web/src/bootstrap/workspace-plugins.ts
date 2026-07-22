@@ -4,7 +4,7 @@
  * @see docs/phase-3/phase-3-deferred-capabilities.md (GAP-3.3-04)
  */
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
-import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
+import { getStarterWorkspacePlugin } from "@app-tour/workspace-sdk";
 
 const STARTER_PLUGINS: readonly WorkspacePlugin[] = [getStarterWorkspacePlugin()];
 

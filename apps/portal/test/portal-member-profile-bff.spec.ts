@@ -263,7 +263,7 @@ describe("portal-member-profile-bff route (M2)", () => {
     );
     assert.match(hydrate, /\/api\/me\/profile/);
     const flow = readFileSync(
-      join(repoRoot, "apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx"),
+      join(repoRoot, "apps/portal/src/catalog/public-catalog-registration-flow.tsx"),
       "utf8"
     );
     assert.doesNotMatch(flow, /session-profile/);
@@ -273,7 +273,7 @@ describe("portal-member-profile-bff route (M2)", () => {
     const mePaths = [
       "apps/portal/app/me/profile/page.tsx",
       "apps/portal/app/me/profile/member-profile-form.tsx",
-      "apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx",
+      "apps/portal/src/catalog/public-catalog-registration-flow.tsx",
     ];
     for (const relativePath of mePaths) {
       const source = readFileSync(join(repoRoot, relativePath), "utf8");

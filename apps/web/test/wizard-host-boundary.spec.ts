@@ -24,7 +24,7 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     assert.doesNotMatch(source, /from\s+["'].*denali\/denali-review-validation-summary["']/);
     assert.doesNotMatch(source, /DenaliReviewValidationSummary/);
     assert.doesNotMatch(source, /from\s+["'].*denali\/denali-review-step["']/);
-    assert.doesNotMatch(source, /from\s+["']@\/i18n\/denali-wizard-labels["']/);
+    assert.doesNotMatch(source, /from\s+["']@\/i18n\/wizard-labels["']/);
   });
 
   it("WEB-12.1b-01 host has no pluginId === denali branches", () => {
@@ -69,8 +69,10 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
       join(import.meta.dirname, "../src/bootstrap/workspace-wizard-template-editor-bindings.generated.ts"),
       "utf8"
     );
+    assert.match(source, /ensureWizardTemplateEditor/);
     assert.match(source, /resolveWizardTemplateEditor/);
     assert.match(source, /denaliWizardTemplateEditor/);
+    assert.match(source, /await import\(/);
     assert.match(source, /@app-tour\/workspace-denali\/settings\/wizard-template-editor/);
   });
 
@@ -81,7 +83,7 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     );
     assert.doesNotMatch(source, /pluginId\s*===\s*["']denali["']/);
     assert.doesNotMatch(source, /@app-tour\/workspace-denali/);
-    assert.match(source, /resolveWizardTemplateEditor/);
+    assert.match(source, /ensureWizardTemplateEditor/);
     assert.match(source, /WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS/);
   });
 
@@ -119,7 +121,9 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     assert.doesNotMatch(operatorBrand, /pluginId\s*===\s*["']denali["']/);
     assert.doesNotMatch(welcome, /pluginId\s*===\s*["']denali["']/);
     assert.doesNotMatch(fallbackMark, /pluginId\s*===\s*["']denali["']/);
+    assert.doesNotMatch(fallbackMark, /DenaliLogoMark|denali-logo-mark|fallbackMark\s*===\s*["']denali["']/);
     assert.match(fallbackMark, /WORKSPACE_WIZARD_CUSTOM_BRAND_FALLBACK_MARKS/);
+    assert.match(fallbackMark, /data-tenant-brand-initial/);
   });
 
   it("P14-0b-06b resolve-workspace-label uses codegen namespaces", () => {
@@ -165,8 +169,8 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     assert.match(finance, /workspace-finance-nav-bindings/);
     assert.doesNotMatch(finance, /isExtendedOperatorWorkspace/);
     assert.doesNotMatch(finance, /wizard-create-bindings/);
-    assert.doesNotMatch(users, /@app-cloud\/workspace-denali/);
-    assert.doesNotMatch(welcome, /@app-cloud\/workspace-denali/);
+    assert.doesNotMatch(users, /@app-tour\/workspace-denali/);
+    assert.doesNotMatch(welcome, /@app-tour\/workspace-denali/);
     assert.match(users, /isExtendedOperatorWorkspace/);
     assert.match(welcome, /isExtendedOperatorWorkspace/);
   });
@@ -180,9 +184,9 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
       join(import.meta.dirname, "../src/wizard/wizard-label-surface-registry.ts"),
       "utf8"
     );
-    assert.doesNotMatch(labels, /denali-wizard-labels/);
+    assert.doesNotMatch(labels, /@\/i18n\/(?:denali-)?wizard-labels/);
     assert.match(labels, /format-canonical-path-label/);
-    assert.doesNotMatch(registry, /denali-wizard-labels/);
+    assert.doesNotMatch(registry, /@\/i18n\/(?:denali-)?wizard-labels/);
   });
 
   it("P14-1-08 clone remint BFF routes share proxy handler", () => {
@@ -215,15 +219,20 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
 
   it("P15-W-B2 denali create wires resolveDenaliDraftMerge via orchestration hook", () => {
     const createTour = readFileSync(
-      join(import.meta.dirname, "../app/tours/new/denali-create-tour-wizard-client.tsx"),
+      join(import.meta.dirname, "../app/tours/new/create-tour-wizard-client.tsx"),
+      "utf8"
+    );
+    const createReady = readFileSync(
+      join(import.meta.dirname, "../app/tours/new/create-tour-wizard-client-ready.tsx"),
       "utf8"
     );
     const hook = readFileSync(
-      join(import.meta.dirname, "../src/wizard/use-denali-create-tour-wizard.ts"),
+      join(import.meta.dirname, "../src/wizard/use-create-tour-wizard.ts"),
       "utf8"
     );
-    assert.match(createTour, /useDenaliCreateTourWizard/);
-    assert.match(hook, /resolveDenaliDraftMerge/);
+    assert.match(createTour, /OperatorCreateTourWizardClientReady/);
+    assert.match(createReady, /useOperatorCreateTourWizard/);
+    assert.match(hook, /resolveOperatorDraftMerge/);
     assert.doesNotMatch(hook, /mergeDenaliWizardDraftEnvelope/);
   });
 
@@ -233,33 +242,41 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
       "utf8"
     );
     const draftTypes = readFileSync(
-      join(import.meta.dirname, "../src/draft/denali-wizard-draft-types.ts"),
+      join(import.meta.dirname, "../src/draft/tour-wizard-draft-envelope.ts"),
       "utf8"
     );
     const flatEditHook = readFileSync(
-      join(import.meta.dirname, "../src/wizard/use-denali-flat-edit-page.ts"),
+      join(import.meta.dirname, "../src/wizard/use-flat-edit-page.ts"),
       "utf8"
     );
     assert.match(draftTypes, /NewTourWizardDraftEnvelope/);
     assert.match(draftTypes, /WorkspaceWizardDraftEnvelope/);
     assert.match(mergeResolver, /resolveDenaliDraftMerge\(/);
     assert.doesNotMatch(mergeResolver, /denali-wizard-draft-merge/);
-    assert.match(flatEditHook, /resolveDenaliDraftMerge\(resolveDraftUnificationV3Mode\(\)\)/);
+    assert.match(flatEditHook, /resolveOperatorDraftMerge\(resolveDraftUnificationV3Mode\(\)\)/);
   });
 
   it("P15-W-B1e denali create stays slim and delegates B1a hooks to orchestration", () => {
     const createTour = readFileSync(
-      join(import.meta.dirname, "../app/tours/new/denali-create-tour-wizard-client.tsx"),
+      join(import.meta.dirname, "../app/tours/new/create-tour-wizard-client.tsx"),
+      "utf8"
+    );
+    const createReady = readFileSync(
+      join(import.meta.dirname, "../app/tours/new/create-tour-wizard-client-ready.tsx"),
       "utf8"
     );
     const hook = readFileSync(
-      join(import.meta.dirname, "../src/wizard/use-denali-create-tour-wizard.ts"),
+      join(import.meta.dirname, "../src/wizard/use-create-tour-wizard.ts"),
       "utf8"
     );
     assert.ok(createTour.split("\n").length < 150);
-    assert.match(createTour, /DenaliCreateTourWizardView/);
-    assert.match(createTour, /CreateTourWizardDenaliHeader/);
+    assert.match(createTour, /warmOperatorWizardShell/);
+    assert.match(createTour, /OperatorCreateTourWizardClientReady/);
+    assert.match(createReady, /resolveWizardCreateViewSurface/);
+    assert.match(createReady, /CreateTourWizardView/);
+    assert.match(createReady, /CreateTourWizardHeader/);
     assert.doesNotMatch(createTour, /useWorkspaceDraft/);
+    assert.doesNotMatch(createReady, /useWorkspaceDraft/);
     assert.match(hook, /useWizardTemplateGate/);
     assert.match(hook, /useWizardCreateSeedPrefill/);
     assert.match(hook, /hydrateCreateTourFromClone/);
@@ -267,7 +284,7 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
 
   it("P15-W-B1d denali create submit flows through extracted payload helper", () => {
     const hook = readFileSync(
-      join(import.meta.dirname, "../src/wizard/use-denali-create-tour-wizard.ts"),
+      join(import.meta.dirname, "../src/wizard/use-create-tour-wizard.ts"),
       "utf8"
     );
     const createCore = readFileSync(DENALI_CREATE_CORE, "utf8");
@@ -279,7 +296,7 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/chrome/tour-create-payload.ts"),
       "utf8"
     );
-    assert.match(hook, /useDenaliCreateTourWizardCore/);
+    assert.match(hook, /useOperatorCreateTourWizardCore/);
     assert.match(createCore, /runDenaliCreateTourSubmit/);
     assert.match(submitLogic, /submitDenaliCreateTour/);
     assert.match(payload, /loadDenaliSubmitCatalogIds/);
@@ -295,16 +312,16 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
 
   it("P15-W-B1c create and flat-edit share generalized rule-sync hook", () => {
     const createHook = readFileSync(
-      join(import.meta.dirname, "../src/wizard/use-denali-create-tour-wizard.ts"),
+      join(import.meta.dirname, "../src/wizard/use-create-tour-wizard.ts"),
       "utf8"
     );
     const createCore = readFileSync(DENALI_CREATE_CORE, "utf8");
     const flatEdit = readFileSync(
-      join(import.meta.dirname, "../app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx"),
+      join(import.meta.dirname, "../app/(app)/tours/[id]/edit/flat-edit-page-client.tsx"),
       "utf8"
     );
     const flatEditHook = readFileSync(
-      join(import.meta.dirname, "../src/wizard/use-denali-flat-edit-page.ts"),
+      join(import.meta.dirname, "../src/wizard/use-flat-edit-page.ts"),
       "utf8"
     );
     const flatEditCore = readFileSync(DENALI_FLAT_EDIT_CORE, "utf8");
@@ -312,11 +329,11 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/hooks/use-wizard-rule-sync.ts"),
       "utf8"
     );
-    assert.match(createHook, /useDenaliCreateTourWizardCore/);
+    assert.match(createHook, /useOperatorCreateTourWizardCore/);
     assert.match(createCore, /useDenaliWizardRuleSync/);
     assert.match(createCore, /useDenaliWizardRules/);
-    assert.match(flatEditHook, /useDenaliFlatEditPageCore/);
-    assert.match(flatEdit, /useDenaliFlatEditPage/);
+    assert.match(flatEditHook, /useOperatorFlatEditPageCore/);
+    assert.match(flatEdit, /useOperatorFlatEditPage/);
     assert.match(flatEditCore, /useDenaliWizardRuleSync/);
     assert.match(flatEditCore, /useDenaliWizardRules/);
     assert.doesNotMatch(flatEdit, /useDenaliFlatEditRuleSync/);
@@ -338,7 +355,7 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
       "utf8"
     );
     const denaliHook = readFileSync(
-      join(import.meta.dirname, "../src/wizard/use-denali-create-tour-wizard.ts"),
+      join(import.meta.dirname, "../src/wizard/use-create-tour-wizard.ts"),
       "utf8"
     );
     for (const source of [platform, denaliHook]) {
@@ -353,11 +370,11 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
 
   it("P15-W-B1b clone hydrate stays in helper and orchestration hook only", () => {
     const createTour = readFileSync(
-      join(import.meta.dirname, "../app/tours/new/denali-create-tour-wizard-client.tsx"),
+      join(import.meta.dirname, "../app/tours/new/create-tour-wizard-client.tsx"),
       "utf8"
     );
     const hook = readFileSync(
-      join(import.meta.dirname, "../src/wizard/use-denali-create-tour-wizard.ts"),
+      join(import.meta.dirname, "../src/wizard/use-create-tour-wizard.ts"),
       "utf8"
     );
     const hydrateLogic = readFileSync(
@@ -372,18 +389,30 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
 
   it("P15-W-B1e denali draft binding is thin web barrel over package draft", () => {
     const hook = readFileSync(
-      join(import.meta.dirname, "../src/wizard/use-denali-create-tour-wizard.ts"),
+      join(import.meta.dirname, "../src/wizard/use-create-tour-wizard.ts"),
       "utf8"
     );
     const binding = readFileSync(
-      join(import.meta.dirname, "../src/wizard/denali-wizard-draft-shell.ts"),
+      join(import.meta.dirname, "../src/wizard/wizard-draft-shell.ts"),
       "utf8"
     );
-    assert.match(hook, /denali-wizard-draft-shell/);
-    assert.match(hook, /DENALI_CREATE_TOUR_DRAFT_KEY/);
-    assert.match(binding, /workspace-wizard-draft-shell-bindings\.generated/);
-    assert.match(binding, /denali-wizard-draft-types/);
-    assert.match(binding, /resolveDenaliDraftMerge/);
+    const draftRuntime = readFileSync(
+      join(import.meta.dirname, "../src/wizard/draft-shell-runtime.ts"),
+      "utf8"
+    );
+    const hostRuntime = readFileSync(
+      join(import.meta.dirname, "../src/wizard/host-adapter-runtime.ts"),
+      "utf8"
+    );
+    assert.match(hook, /wizard-draft-shell/);
+    assert.match(hook, /host-adapter-runtime/);
+    assert.match(hook, /createTourRemoteDraftIdentity/);
+    assert.match(hook, /buildCreateTourDiscardRemoteDraftInput/);
+    assert.match(binding, /draft-shell-runtime/);
+    assert.match(binding, /tour-wizard-draft-envelope/);
+    assert.match(binding, /resolveOperatorDraftMerge/);
+    assert.match(draftRuntime, /workspace-wizard-draft-shell-bindings\.generated/);
+    assert.match(hostRuntime, /workspace-host-adapters\.generated/);
     assert.doesNotMatch(binding, /denali-wizard-draft-merge/);
   });
 });

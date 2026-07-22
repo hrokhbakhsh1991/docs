@@ -7,15 +7,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
-import { resolveBootstrapWorkspacePlugin } from "../src/bootstrap/resolve-bootstrap-workspace-plugin";
+import { loadBootstrapWorkspacePlugin } from "../src/bootstrap/resolve-bootstrap-workspace-plugin";
 import { hydrateBootstrapSession } from "../src/tenant/hydrate-bootstrap-session.client";
 
 const REPO_ROOT = join(import.meta.dirname, "../../..");
 const DENALI_THEME_DIR = join(REPO_ROOT, "packages/workspaces/denali/theme");
 
 describe("denali-admin-theme.spec.ts", () => {
-  it("WEB-DENALI-THEME-01 resolves denali plugin for bootstrap hydrate", () => {
-    const plugin = resolveBootstrapWorkspacePlugin("denali");
+  it("WEB-DENALI-THEME-01 resolves denali plugin for bootstrap hydrate", async () => {
+    const plugin = await loadBootstrapWorkspacePlugin("denali");
     assert.equal(plugin.id, "denali");
     assert.equal(plugin.theme?.optionalStylesheet, "theme/denali-admin.css");
   });
@@ -35,8 +35,8 @@ describe("denali-admin-theme.spec.ts", () => {
     assert.equal(resolved.session.pluginId, "denali");
   });
 
-  it("WEB-DENALI-THEME-03 urban bootstrap stays isolated from denali plugin", () => {
-    const plugin = resolveBootstrapWorkspacePlugin("urban");
+  it("WEB-DENALI-THEME-03 urban bootstrap stays isolated from denali plugin", async () => {
+    const plugin = await loadBootstrapWorkspacePlugin("urban");
     assert.equal(plugin.id, "urban");
     assert.notEqual(plugin.theme?.optionalStylesheet, "theme/denali-admin.css");
   });
@@ -66,7 +66,7 @@ describe("denali-admin-theme.spec.ts", () => {
 
   it("WEB-DENALI-THEME-06 interactions wire nav + card surfaces", () => {
     const css = readFileSync(join(DENALI_THEME_DIR, "interactions.css"), "utf8");
-    assert.match(css, /\[data-denali-surface="card"\]/);
+    assert.match(css, /\[data-operator-surface="card"\]/);
     assert.match(css, /\[data-operator-nav-link\]/);
     assert.match(css, /\[data-operator-nav-icon\]/);
     assert.match(css, /prefers-reduced-motion: reduce/);
@@ -75,30 +75,30 @@ describe("denali-admin-theme.spec.ts", () => {
   it("WEB-DENALI-THEME-07 animations fade-up is reduced-motion safe", () => {
     const css = readFileSync(join(DENALI_THEME_DIR, "animations.css"), "utf8");
     assert.match(css, /denali-fade-up/);
-    assert.match(css, /\[data-denali-animate="fade-up"\]/);
+    assert.match(css, /\[data-operator-animate="fade-up"\]/);
     assert.match(css, /prefers-reduced-motion: reduce[\s\S]*animation:\s*none/);
   });
 
   it("WEB-DENALI-THEME-08 admin patterns expose denali skeleton + empty state", () => {
     const skeleton = readFileSync(
-      join(import.meta.dirname, "../src/admin/patterns/denali-skeleton.tsx"),
+      join(import.meta.dirname, "../src/admin/patterns/operator-skeleton.tsx"),
       "utf8"
     );
     const empty = readFileSync(
-      join(import.meta.dirname, "../src/admin/patterns/denali-empty-state.tsx"),
+      join(import.meta.dirname, "../src/admin/patterns/operator-empty-state.tsx"),
       "utf8"
     );
-    assert.match(skeleton, /data-denali-skeleton="shimmer"/);
-    assert.match(skeleton, /data-denali-skeleton-size/);
+    assert.match(skeleton, /data-operator-skeleton="shimmer"/);
+    assert.match(skeleton, /data-operator-skeleton-size/);
     assert.doesNotMatch(skeleton, /className=/);
-    assert.match(empty, /data-denali-empty-state/);
+    assert.match(empty, /data-operator-empty-state/);
     assert.doesNotMatch(empty, /className=/);
     const kpiCell = readFileSync(
       join(import.meta.dirname, "../src/admin/patterns/dashboard-kpi-cell.tsx"),
       "utf8"
     );
-    assert.match(kpiCell, /data-denali-kpi/);
-    assert.match(kpiCell, /data-denali-kpi-label/);
+    assert.match(kpiCell, /data-operator-kpi/);
+    assert.match(kpiCell, /data-operator-kpi-label/);
     assert.doesNotMatch(kpiCell, /className=/);
     const pageHeader = readFileSync(
       join(import.meta.dirname, "../src/admin/patterns/page-header.tsx"),
@@ -108,39 +108,39 @@ describe("denali-admin-theme.spec.ts", () => {
       join(import.meta.dirname, "../src/admin/patterns/settings-page-header.tsx"),
       "utf8"
     );
-    assert.match(pageHeader, /data-denali-page-header/);
+    assert.match(pageHeader, /data-operator-page-header/);
     assert.doesNotMatch(pageHeader, /className=/);
-    assert.match(settingsHeader, /data-denali-settings-back-link/);
+    assert.match(settingsHeader, /data-operator-settings-back-link/);
     assert.doesNotMatch(settingsHeader, /className=/);
     const widgetCard = readFileSync(
       join(import.meta.dirname, "../src/admin/patterns/dashboard-widget-card.tsx"),
       "utf8"
     );
-    assert.match(widgetCard, /data-denali-dashboard-widget/);
+    assert.match(widgetCard, /data-operator-dashboard-widget/);
     assert.doesNotMatch(widgetCard, /className=/);
     const skin = readFileSync(join(DENALI_THEME_DIR, "admin-skin.css"), "utf8");
-    assert.match(skin, /\[data-denali-empty-state\]/);
-    assert.match(skin, /\[data-denali-page-header\]/);
-    assert.match(skin, /\[data-denali-dashboard-widget\]/);
+    assert.match(skin, /\[data-operator-empty-state\]/);
+    assert.match(skin, /\[data-operator-page-header\]/);
+    assert.match(skin, /\[data-operator-dashboard-widget\]/);
     assert.match(skin, /\[data-operator-nav-cta\]/);
   });
 
   it("WEB-DENALI-THEME-09 bookings + tours denali patterns wired", () => {
     const skin = readFileSync(join(DENALI_THEME_DIR, "admin-skin.css"), "utf8");
-    assert.match(skin, /\[data-denali-bookings-inbox\]/);
-    assert.match(skin, /\[data-denali-category-badge\]/);
+    assert.match(skin, /\[data-operator-bookings-inbox\]/);
+    assert.match(skin, /\[data-operator-category-badge\]/);
     const timeline = readFileSync(
       join(import.meta.dirname, "../src/admin/patterns/booking-activity-timeline.tsx"),
       "utf8"
     );
-    assert.match(timeline, /data-denali-booking-timeline/);
+    assert.match(timeline, /data-operator-booking-timeline/);
     assert.match(timeline, /data-booking-timeline-detail/);
     assert.doesNotMatch(timeline, /className=/);
     const categoryBadge = readFileSync(
       join(import.meta.dirname, "../src/admin/patterns/tour-category-badge.tsx"),
       "utf8"
     );
-    assert.match(categoryBadge, /data-denali-category-badge/);
+    assert.match(categoryBadge, /data-operator-category-badge/);
   });
 
   it("WEB-DENALI-THEME-10 operator shell exposes workspace plugin attribute", () => {
@@ -174,7 +174,7 @@ describe("denali-admin-theme.spec.ts", () => {
     );
     assert.match(operatorStructure, /\[data-operator-header\][\s\S]*backdrop-filter:\s*blur/);
     assert.match(header, /data-operator-header/);
-    assert.match(header, /data-denali-tenant-badge/);
+    assert.match(header, /data-operator-tenant-badge/);
     assert.match(header, /OperatorBreadcrumb/);
   });
 
@@ -187,23 +187,23 @@ describe("denali-admin-theme.spec.ts", () => {
     );
     assert.match(brand, /TenantBrandMark/);
     const interactions = readFileSync(join(DENALI_THEME_DIR, "interactions.css"), "utf8");
-    assert.match(interactions, /\[data-operator-header\]\[data-denali-header-scrolled\]/);
+    assert.match(interactions, /\[data-operator-header\]\[data-operator-header-scrolled\]/);
   });
 
   it("WEB-DENALI-THEME-12 finance skin wires alpine KPI + date picker", () => {
     const finance = readFileSync(join(DENALI_THEME_DIR, "finance-skin.css"), "utf8");
-    assert.match(finance, /\[data-denali-finance-kpi\]/);
+    assert.match(finance, /\[data-operator-finance-kpi\]/);
     assert.match(finance, /--denali-alpine-600/);
     const overview = readFileSync(
       join(import.meta.dirname, "../src/finance/finance-overview-panel.tsx"),
       "utf8"
     );
-    assert.match(overview, /data-denali-finance-kpi/);
+    assert.match(overview, /data-operator-finance-kpi/);
     const picker = readFileSync(
       join(import.meta.dirname, "../src/components/i18n/localized-date-picker.tsx"),
       "utf8"
     );
-    assert.match(picker, /data-denali-date-picker/);
+    assert.match(picker, /data-operator-date-picker/);
   });
 
   it("WEB-DENALI-THEME-13 root layout exposes data-app-surface admin body contract", () => {

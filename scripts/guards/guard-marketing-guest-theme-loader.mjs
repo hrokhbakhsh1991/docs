@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const BOOTSTRAP = path.join(
   REPO_ROOT,
-  "apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+  "packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.marketing.generated.ts"
 );
 const LAYOUT = path.join(REPO_ROOT, "apps/marketing/app/layout.tsx");
 

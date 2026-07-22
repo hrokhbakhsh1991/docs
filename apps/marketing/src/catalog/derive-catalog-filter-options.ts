@@ -1,6 +1,7 @@
 import type { CatalogListFilters } from "./catalog-list-query";
 import { resolveMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
 import type { MarketingCatalogCard } from "./catalog-types";
+import type { MarketingCatalogSurface } from "./marketing-catalog-surface-types";
 
 export type CatalogFilterOptions = {
   readonly categories: readonly string[];
@@ -21,7 +22,7 @@ function isDeriveCatalogFilterOptionsInput(
 }
 
 function deriveSurfaceFilterOptions(
-  surface: NonNullable<ReturnType<typeof resolveMarketingCatalogSurface>>,
+  surface: MarketingCatalogSurface,
   activeFilters?: Pick<CatalogListFilters, "category" | "difficulty" | "fitness">
 ): CatalogFilterOptions {
   const categories = new Set<string>(surface.categoryGroups);
@@ -79,17 +80,19 @@ function deriveDynamicFilterOptions(
 }
 
 /** Filter controls — workspace surfaces use manifest-aligned fixed options; others derive from batch. */
-export function deriveCatalogFilterOptions(
+export async function deriveCatalogFilterOptions(
   items: readonly MarketingCatalogCard[],
   activeFilters?: Pick<CatalogListFilters, "category" | "difficulty" | "fitness">
-): CatalogFilterOptions;
-export function deriveCatalogFilterOptions(input: DeriveCatalogFilterOptionsInput): CatalogFilterOptions;
-export function deriveCatalogFilterOptions(
+): Promise<CatalogFilterOptions>;
+export async function deriveCatalogFilterOptions(
+  input: DeriveCatalogFilterOptionsInput
+): Promise<CatalogFilterOptions>;
+export async function deriveCatalogFilterOptions(
   itemsOrInput: readonly MarketingCatalogCard[] | DeriveCatalogFilterOptionsInput,
   activeFilters?: Pick<CatalogListFilters, "category" | "difficulty" | "fitness">
-): CatalogFilterOptions {
+): Promise<CatalogFilterOptions> {
   if (isDeriveCatalogFilterOptionsInput(itemsOrInput)) {
-    const surface = resolveMarketingCatalogSurface(itemsOrInput.pluginId);
+    const surface = await resolveMarketingCatalogSurface(itemsOrInput.pluginId);
     if (surface != null) {
       return deriveSurfaceFilterOptions(surface, itemsOrInput.activeFilters);
     }

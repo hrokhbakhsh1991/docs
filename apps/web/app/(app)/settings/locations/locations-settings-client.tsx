@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
+import { ensureSettingsDestinationSurface } from "@/bootstrap/workspace-settings-destination-bindings.generated";
 import {
   buildDestinationCreateBody,
   buildDestinationPatchBody,
@@ -83,7 +84,53 @@ function DestinationMetadataFields({
 
 export function LocationsSettingsClient({ session }: LocationsSettingsClientProps) {
   const pluginId = session.pluginId;
-  const destinationLocationTypes = destinationLocationTypesForPlugin(pluginId);
+  const [destinationLocationTypes, setDestinationLocationTypes] = useState<
+    ReturnType<typeof destinationLocationTypesForPlugin> | null
+  >(null);
+  const [surfaceReady, setSurfaceReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void ensureSettingsDestinationSurface(pluginId).then((surface) => {
+      if (cancelled) {
+        return;
+      }
+      if (surface == null) {
+        setDestinationLocationTypes(null);
+      } else {
+        setDestinationLocationTypes(destinationLocationTypesForPlugin(pluginId));
+      }
+      setSurfaceReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pluginId]);
+
+  if (!surfaceReady || destinationLocationTypes == null) {
+    return (
+      <div className="space-y-4" data-testid={SETTINGS_HUB_TEST_IDS.locationsPage}>
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    );
+  }
+
+  return (
+    <LocationsSettingsClientReady
+      session={session}
+      destinationLocationTypes={destinationLocationTypes}
+    />
+  );
+}
+
+function LocationsSettingsClientReady({
+  session,
+  destinationLocationTypes,
+}: LocationsSettingsClientProps & {
+  readonly destinationLocationTypes: ReturnType<typeof destinationLocationTypesForPlugin>;
+}) {
+  const pluginId = session.pluginId;
   const t = useTranslations("settings.locations");
   const tErrors = useTranslations("settings.errors");
   const tCommon = useTranslations("common");
@@ -290,7 +337,7 @@ export function LocationsSettingsClient({ session }: LocationsSettingsClientProp
       {activeTab === "regions" ? (
         <div className="space-y-4">
           {canManage ? (
-            <Card data-denali-surface="card" className="shadow-sm">
+            <Card data-operator-surface="card" className="shadow-sm">
               <CardHeader>
                 <CardTitle>{t("addRegion")}</CardTitle>
               </CardHeader>
@@ -327,7 +374,7 @@ export function LocationsSettingsClient({ session }: LocationsSettingsClientProp
             </Card>
           ) : null}
 
-          <Card data-denali-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.locationsRegions}>
+          <Card data-operator-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.locationsRegions}>
             <CardHeader>
               <CardTitle>{t("regionsCount", { count: regions.length })}</CardTitle>
             </CardHeader>
@@ -366,7 +413,7 @@ export function LocationsSettingsClient({ session }: LocationsSettingsClientProp
       ) : (
         <div className="space-y-4">
           {canManage ? (
-            <Card data-denali-surface="card" className="shadow-sm">
+            <Card data-operator-surface="card" className="shadow-sm">
               <CardHeader>
                 <CardTitle>
                   {editingDestinationId === null ? t("addDestination") : t("saveDestination")}
@@ -453,7 +500,7 @@ export function LocationsSettingsClient({ session }: LocationsSettingsClientProp
             </Card>
           ) : null}
 
-          <Card data-denali-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.locationsDestinations}>
+          <Card data-operator-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.locationsDestinations}>
             <CardHeader>
               <CardTitle>{t("destinationsCount", { count: destinations.length })}</CardTitle>
             </CardHeader>

@@ -4,7 +4,7 @@ import {
   type PublicTenantContextSnapshot,
 } from "@app-tour/guest-surface-host";
 
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 export type { PublicTenantContextSnapshot };
 

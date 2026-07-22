@@ -14,6 +14,10 @@
       "types": "./dist/register.d.ts",
       "default": "./dist/register.js"
     },
+    "./register-safe": {
+      "types": "./dist/register-safe.d.ts",
+      "default": "./dist/register-safe.js"
+    },
     "./intake-register": {
       "types": "./dist/intake-register.d.ts",
       "default": "./dist/intake-register.js"
@@ -21,22 +25,6 @@
     "./registration-flow": {
       "types": "./dist/registration-flow.d.ts",
       "default": "./dist/registration-flow.js"
-    },
-    "./register-denali": {
-      "types": "./dist/register-denali.generated.d.ts",
-      "default": "./dist/register-denali.generated.js"
-    },
-    "./register-guest-club": {
-      "types": "./dist/register-guest-club.generated.d.ts",
-      "default": "./dist/register-guest-club.generated.js"
-    },
-    "./register-starter": {
-      "types": "./dist/register-starter.generated.d.ts",
-      "default": "./dist/register-starter.generated.js"
-    },
-    "./register-urban": {
-      "types": "./dist/register-urban.generated.d.ts",
-      "default": "./dist/register-urban.generated.js"
     }
   },
   "scripts": {
@@ -45,13 +33,7 @@
     "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
   },
   "dependencies": {
-    "@app-tour/catalog-registration-flow-ui": "workspace:*",
-    "@app-tour/workspace-denali": "workspace:*",
-    "@app-tour/workspace-finance-ws4": "workspace:*",
-    "@app-tour/workspace-guest-club": "workspace:*",
-    "@app-tour/workspace-sdk": "workspace:*",
-    "@app-tour/workspace-starter": "workspace:*",
-    "@app-tour/workspace-urban": "workspace:*"
+    "@app-tour/workspace-sdk": "workspace:*"
   },
   "devDependencies": {
     "@app-tour/config": "workspace:*",

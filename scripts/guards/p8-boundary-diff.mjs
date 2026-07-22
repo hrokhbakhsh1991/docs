@@ -169,7 +169,7 @@ function runSubphase81Mode(subphase, files) {
     const urbanTouch =
       rel.startsWith("packages/workspaces/urban/") ||
       rel === "apps/api/src/http/configure-urban-http-host.ts" ||
-      rel.startsWith("apps/web/src/urban/") ||
+      rel.startsWith("apps/web/app/(app)/settings/workspace-owner/") ||
       rel.startsWith("packages/workspace-sdk/") ||
       rel.startsWith("apps/api/test/urban-") ||
       rel.startsWith("apps/web/test/urban-");

@@ -181,9 +181,23 @@ export function generateWorkspaceHttpHandlerLoaders(manifests) {
 
   if (packageHandlers.size === 0) {
     return `${BANNER}
-import type { WorkspaceRouteHandlers } from "./workspace-route-registrar";
+import type { WorkspaceHttpHandlerFn, WorkspaceRouteHandlers } from "./workspace-route-registrar";
 
 export type WorkspaceHttpPackageHandlers = Pick<WorkspaceRouteHandlers, never>;
+
+export async function loadWorkspaceHttpHandlersForPackage(
+  _pkg: string
+): Promise<Partial<WorkspaceRouteHandlers>> {
+  return {};
+}
+
+export async function ensureWorkspaceHttpHandler(
+  _key: never
+): Promise<WorkspaceHttpHandlerFn> {
+  throw new Error("WORKSPACE_HTTP_HANDLER_EMPTY");
+}
+
+export function resetWorkspaceHttpHandlerPackageCache(): void {}
 
 export async function loadWorkspaceHttpPackageHandlers(): Promise<WorkspaceHttpPackageHandlers> {
   return {};
@@ -191,14 +205,29 @@ export async function loadWorkspaceHttpPackageHandlers(): Promise<WorkspaceHttpP
 `;
   }
 
-  const loadBlocks = [...packageHandlers.entries()].map(([pkg, keys], index) => {
-    const sortedKeys = [...keys].sort();
-    const entries = sortedKeys.map((key) => `    ${key}: mod${index}.${key},`).join("\n");
-    return `  const mod${index} = await import("${pkg}");
-  Object.assign(handlers, {
+  const packagesSorted = [...packageHandlers.keys()].sort((a, b) => a.localeCompare(b));
+
+  /** @type {string[]} */
+  const handlerToPackageEntries = [];
+  for (const pkg of packagesSorted) {
+    const keys = [...packageHandlers.get(pkg)].sort();
+    for (const key of keys) {
+      handlerToPackageEntries.push(`  ${key}: ${JSON.stringify(pkg)},`);
+    }
+  }
+
+  const packageSwitchCases = packagesSorted
+    .map((pkg) => {
+      const keys = [...packageHandlers.get(pkg)].sort();
+      const entries = keys.map((key) => `        ${key}: mod.${key},`).join("\n");
+      return `    case ${JSON.stringify(pkg)}: {
+      const mod = await import(${JSON.stringify(pkg)});
+      return {
 ${entries}
-  });`;
-  });
+      };
+    }`;
+    })
+    .join("\n");
 
   const handlerUnion = [...new Set([...packageHandlers.values()].flatMap((s) => [...s]))]
     .sort()
@@ -206,7 +235,7 @@ ${entries}
     .join("\n");
 
   return `${BANNER}
-import type { WorkspaceRouteHandlers } from "./workspace-route-registrar";
+import type { WorkspaceHttpHandlerFn, WorkspaceRouteHandlers } from "./workspace-route-registrar";
 
 export type WorkspaceHttpPackageHandlerKey =
 ${handlerUnion};
@@ -216,10 +245,60 @@ export type WorkspaceHttpPackageHandlers = Pick<
   WorkspaceHttpPackageHandlerKey
 >;
 
+const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
+${handlerToPackageEntries.join("\n")}
+}) as Readonly<Record<WorkspaceHttpPackageHandlerKey, string>>;
+
+const WORKSPACE_HTTP_HANDLER_PACKAGES = Object.freeze([
+${packagesSorted.map((pkg) => `  ${JSON.stringify(pkg)},`).join("\n")}
+] as const);
+
+/** @type {Map<string, Promise<Partial<WorkspaceRouteHandlers>>>} */
+const workspaceHttpHandlerPackageCache = new Map();
+
+/** Wave G.b — load handlers from a single HTTP handler package. */
+export async function loadWorkspaceHttpHandlersForPackage(
+  pkg: string
+): Promise<Partial<WorkspaceRouteHandlers>> {
+  switch (pkg) {
+${packageSwitchCases}
+    default:
+      throw new Error(\`WORKSPACE_HTTP_HANDLER_PACKAGE_UNKNOWN:\${pkg}\`);
+  }
+}
+
+export function resetWorkspaceHttpHandlerPackageCache(): void {
+  workspaceHttpHandlerPackageCache.clear();
+}
+
+/** Wave G.b — resolve one handler; caches per package (not multi-product eager). */
+export async function ensureWorkspaceHttpHandler(
+  key: WorkspaceHttpPackageHandlerKey
+): Promise<WorkspaceHttpHandlerFn> {
+  const pkg = WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY[key];
+  let pending = workspaceHttpHandlerPackageCache.get(pkg);
+  if (pending === undefined) {
+    pending = loadWorkspaceHttpHandlersForPackage(pkg);
+    workspaceHttpHandlerPackageCache.set(pkg, pending);
+  }
+  const handlers = await pending;
+  const handler = handlers[key];
+  if (handler == null) {
+    throw new Error(\`WORKSPACE_HTTP_HANDLER_MISSING:\${key}\`);
+  }
+  return handler;
+}
+
+/**
+ * Compat — loads **all** HTTP handler packages (tests / ownership proofs).
+ * Hot path must use {@link ensureWorkspaceHttpHandler} instead (Wave G.b).
+ */
 export async function loadWorkspaceHttpPackageHandlers(): Promise<WorkspaceHttpPackageHandlers> {
   /** @type {Partial<WorkspaceRouteHandlers>} */
   const handlers = {};
-${loadBlocks.join("\n")}
+  for (const pkg of WORKSPACE_HTTP_HANDLER_PACKAGES) {
+    Object.assign(handlers, await loadWorkspaceHttpHandlersForPackage(pkg));
+  }
   return handlers as WorkspaceHttpPackageHandlers;
 }
 `;

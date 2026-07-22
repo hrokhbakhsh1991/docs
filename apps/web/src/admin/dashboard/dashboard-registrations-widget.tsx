@@ -3,8 +3,8 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
-import { DenaliEmptyState } from "@/admin/patterns/denali-empty-state";
-import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
+import { OperatorEmptyState } from "@/admin/patterns/operator-empty-state";
+import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
 import {
   DashboardRegistrationListRow,
   DashboardWidgetCard,
@@ -95,8 +95,8 @@ export function DashboardRegistrationsWidget({
     >
       {loading ? (
         <DashboardWidgetRowStack>
-          <DenaliSkeleton size="row" />
-          <DenaliSkeleton size="row" />
+          <OperatorSkeleton size="row" />
+          <OperatorSkeleton size="row" />
         </DashboardWidgetRowStack>
       ) : null}
       {!loading && error ? (
@@ -106,7 +106,7 @@ export function DashboardRegistrationsWidget({
         <DashboardWidgetList>
           {queueChips.length === 0 ? (
             <DashboardWidgetListEmptyItem>
-              <DenaliEmptyState description={t("registrations.empty")} icon="trees" />
+              <OperatorEmptyState description={t("registrations.empty")} icon="trees" />
             </DashboardWidgetListEmptyItem>
           ) : (
             queueChips.map((chip) => (

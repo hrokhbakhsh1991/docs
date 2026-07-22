@@ -4,7 +4,7 @@ import {
 } from "@app-tour/workspace-sdk/auth";
 import type { TenantThemeConfig } from "@app-tour/workspace-sdk";
 
-import { resolveBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
+import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
 import type { AppSession } from "@/session/app-session";
 
 import { isDevWebSessionAllowed } from "./auth-env";
@@ -44,7 +44,7 @@ function resolveDevSessionProfileForHost(host: string) {
 }
 
 /** Per-request bootstrap with optional Host-based tenant override (dev e2e / TH-1). */
-export function resolveBootstrapAppSessionForHost(host: string): ResolvedBootstrapSession {
+export async function resolveBootstrapAppSessionForHost(host: string): Promise<ResolvedBootstrapSession> {
   const base = resolveContextFromEnv();
   const profile = resolveDevSessionProfileForHost(host);
   const withProfile = profile ? { ...base, ...profile } : base;
@@ -79,11 +79,11 @@ export async function resolveBootstrapAppSessionForHostAsync(
 }
 
 /** Per-request bootstrap (call from Server Components only). */
-export function resolveBootstrapAppSession(
+export async function resolveBootstrapAppSession(
   input: TenantKernelResolveInput = resolveContextFromEnv(),
   host?: string,
   options?: { readonly pluginId?: string }
-): ResolvedBootstrapSession {
+): Promise<ResolvedBootstrapSession> {
   const context = resolveTenantContext(input);
   const scoped = createTenantAuthz(context);
   const pluginId = options?.pluginId ?? resolveBootstrapPluginIdForTenant(context.tenantId, host);
@@ -104,7 +104,7 @@ export function resolveBootstrapAppSession(
     context,
     scopedAuthz: scoped,
     workspaceThemeAccess,
-    plugin: resolveBootstrapWorkspacePlugin(pluginId),
+    plugin: await loadBootstrapWorkspacePlugin(pluginId),
   };
 }
 

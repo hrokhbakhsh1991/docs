@@ -5,9 +5,9 @@
 import { expect, type Page } from "@playwright/test";
 
 export const URBAN_OWNER_E2E_BASE_URL =
-  process.env.SMOKE_OWNER_WEB_BASE_URL ?? "http://urban-owner.localhost:3000";
+  process.env.SMOKE_OWNER_WEB_BASE_URL ?? "http://workspace-owner-smoke.localhost:3000";
 
-export const URBAN_OWNER_SETTINGS_PATH = "/settings/urban" as const;
+export const URBAN_OWNER_SETTINGS_PATH = "/settings/workspace-owner" as const;
 
 /** Sync with API `URBAN_SMOKE_E2E` identity seed when `URBAN_SMOKE_E2E_SEED=1`. */
 export const URBAN_OWNER_MOBILE = "+15550004001";

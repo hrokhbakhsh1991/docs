@@ -4,40 +4,19 @@ import { useEffect, useRef, useState } from "react";
 
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
+import { ensureWizardTemplateFieldOverlaysAugment } from "@/bootstrap/workspace-wizard-template-gate-bindings.generated";
+
 import {
+  createLoadingWizardTemplateGateState,
+  createUnpublishedWizardTemplateGateState,
   resolveWizardTemplateGateState,
   type WizardTemplateGateState,
 } from "./wizard-template-gate-logic";
 
-export function createLoadingWizardTemplateGateState(
-  workspaceFormProfile: string
-): WizardTemplateGateState {
-  return {
-    loading: true,
-    published: false,
-    allowedCanonicalPaths: [],
-    templateSteps: [],
-    fieldOverlays: new Map(),
-    seedLabel: "",
-    fieldRulesOverlay: {},
-    workspaceFormProfile,
-  };
-}
-
-export function createUnpublishedWizardTemplateGateState(
-  workspaceFormProfile: string
-): WizardTemplateGateState {
-  return {
-    loading: false,
-    published: false,
-    allowedCanonicalPaths: [],
-    templateSteps: [],
-    fieldOverlays: new Map(),
-    seedLabel: "",
-    fieldRulesOverlay: {},
-    workspaceFormProfile,
-  };
-}
+export {
+  createLoadingWizardTemplateGateState,
+  createUnpublishedWizardTemplateGateState,
+};
 
 type UseWizardTemplateGateInput = {
   readonly pluginId: string;
@@ -50,27 +29,30 @@ type UseWizardTemplateGateInput = {
 /** Phase 15.2 P15-W-B1a — shared tour-wizard-template fetch + gate state. */
 export function useWizardTemplateGate(input: UseWizardTemplateGateInput): WizardTemplateGateState {
   const skipInitialGateFetchRef = useRef(input.initialTemplateResponse != null);
-  const [gate, setGate] = useState<WizardTemplateGateState>(() => {
-    if (input.initialTemplateResponse != null) {
-      try {
-        return resolveWizardTemplateGateState(
-          input.initialTemplateResponse,
-          input.pluginId
-        );
-      } catch {
-        // fall through to loading state
-      }
-    }
-    return createLoadingWizardTemplateGateState(input.initialWorkspaceFormProfile);
-  });
+  const [gate, setGate] = useState<WizardTemplateGateState>(() =>
+    createLoadingWizardTemplateGateState(input.initialWorkspaceFormProfile)
+  );
 
   useEffect(() => {
-    if (skipInitialGateFetchRef.current) {
-      skipInitialGateFetchRef.current = false;
-      return;
-    }
     let cancelled = false;
     void (async () => {
+      await ensureWizardTemplateFieldOverlaysAugment(input.pluginId);
+      if (cancelled) {
+        return;
+      }
+
+      if (skipInitialGateFetchRef.current) {
+        skipInitialGateFetchRef.current = false;
+        if (input.initialTemplateResponse != null) {
+          try {
+            setGate(resolveWizardTemplateGateState(input.initialTemplateResponse, input.pluginId));
+            return;
+          } catch {
+            // fall through to network fetch
+          }
+        }
+      }
+
       try {
         const plugin = await input.loadPlugin();
         const response = await fetch("/api/settings/tour-wizard-template", { cache: "no-store" });

@@ -138,7 +138,7 @@ export function TourPresetsClient({ session }: TourPresetsClientProps) {
     <div className="space-y-6" data-testid={SETTINGS_HUB_TEST_IDS.tourPresetsPage}>
       <SettingsPageHeader title={t("title")} description={t("subtitle")} />
 
-      <Card data-denali-surface="card" className="shadow-sm">
+      <Card data-operator-surface="card" className="shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base">{t("aboutTitle")}</CardTitle>
           <CardDescription className="text-sm leading-relaxed">{t("intro")}</CardDescription>
@@ -162,7 +162,7 @@ export function TourPresetsClient({ session }: TourPresetsClientProps) {
       </Card>
 
       {canManage ? (
-        <Card data-denali-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.tourPresetsForm}>
+        <Card data-operator-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.tourPresetsForm}>
           <CardHeader>
             <CardTitle>{t("addTitle")}</CardTitle>
             <CardDescription>{t("addDescription")}</CardDescription>
@@ -231,7 +231,7 @@ export function TourPresetsClient({ session }: TourPresetsClientProps) {
         <p className="text-sm text-destructive">{resolveCodedErrorMessage(tErrors, error)}</p>
       ) : null}
 
-      <Card data-denali-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.tourPresetsList}>
+      <Card data-operator-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.tourPresetsList}>
         <CardHeader>
           <CardTitle>{t("listTitle", { count: items.length })}</CardTitle>
         </CardHeader>

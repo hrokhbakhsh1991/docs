@@ -1,0 +1,63 @@
+---
+title: Wave I.6 — Session pluginId drives wizard async load
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-i-5-wizard-plugin-load.mdoc
+---
+
+# Wave I.6 — Session `pluginId` → `loadWizardWorkspacePlugin`
+
+## Problem
+
+Wave I.5 neutralized names and accepted an optional `pluginId`, but create + flat-edit still called:
+
+```ts
+loadWizardWorkspacePlugin() // default DENALI_PLUGIN_ID
+```
+
+Meanwhile the template gate already receives `session.pluginId`. Async load ignored the host session and always imported Denali — false coupling and wrong plugin for non-Denali tenants.
+
+## Decision
+
+1. **Create** (`useOperatorCreateTourWizard`):  
+   `loadWizardWorkspacePlugin(session.pluginId)` with `useCallback` deps on `session.pluginId`.
+2. **Flat-edit** (`OperatorFlatEditPageClient`):  
+   `loadWizardWorkspacePlugin(session.pluginId)` inside `useEffect`, deps `[session.pluginId]`.
+3. **Flat-edit translator**: `useWorkspaceWizardTranslator(session.pluginId)` — drop hard-coded `DENALI_PLUGIN_ID` on that path.
+4. Keep `DENALI_PLUGIN_ID` as the **default parameter** on `loadWizardWorkspacePlugin` for stray/test callers; production wizard paths must pass session id (enforced by Wave I.6 specs).
+
+## Out of scope
+
+- Making `resolveWizardSyncWorkspacePlugin` multi-workspace (still draft-shell Denali getter — needs multi draft-shell codegen)
+- Removing Denali from `apps/web/package.json` / install isolation → first peel [`wave-i-7-host-install-classification.mdoc`](./wave-i-7-host-install-classification.mdoc)
+- Renaming Denali-branded UI chrome / draft envelope helpers
+
+## Logic
+
+```mermaid
+sequenceDiagram
+  participant Session as AppSession / OperatorSession
+  participant Hook as create or flat-edit
+  participant Load as loadWizardWorkspacePlugin
+  participant Reg as loadWorkspacePluginByIdFromRegistry
+
+  Session->>Hook: pluginId
+  Hook->>Load: loadWizardWorkspacePlugin(pluginId)
+  Load->>Reg: registry import(pluginId)
+  Note over Hook: Sync resolveWizardSync* still Denali draft-shell (debt)
+```
+
+## Status
+
+**DONE** — create + flat-edit async load and flat-edit translator use `session.pluginId`.
+
+## Verify
+
+```bash
+pnpm run wave-i0:guard
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-i-6-session-plugin-load.spec.ts \
+  test/wave-i-5-wizard-plugin-load.spec.ts \
+  test/p2-d4-flat-edit-io.spec.ts
+```

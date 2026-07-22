@@ -102,7 +102,7 @@ function ScheduleCard({
       ) : null}
       <div
         className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
-        data-denali-finance-progress
+        data-operator-finance-progress
       >
         <div
           className="h-full bg-primary/80 transition-all"
@@ -120,9 +120,7 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
   const canManage = isAdminOrOwnerRole(session.role);
-  const scheduleGenerateEnabled =
-    resolveFinanceOpsCapabilityForHub(null, session.pluginId)?.installmentDefaults?.enabled ===
-    true;
+  const [scheduleGenerateEnabled, setScheduleGenerateEnabled] = useState(false);
   const canGenerateSchedule = canManage && scheduleGenerateEnabled;
   const searchParams = useSearchParams();
   const registrationFilter = searchParams.get("registrationId");
@@ -133,6 +131,18 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [fetchNonce, setFetchNonce] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    void resolveFinanceOpsCapabilityForHub(null, session.pluginId).then((capability) => {
+      if (!cancelled) {
+        setScheduleGenerateEnabled(capability?.installmentDefaults?.enabled === true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session.pluginId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -218,7 +228,7 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
       </div>
 
       {canGenerateSchedule ? (
-        <Card data-denali-surface="card" className="shadow-sm">
+        <Card data-operator-surface="card" className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">{t("generateTitle")}</CardTitle>
           </CardHeader>
@@ -332,13 +342,13 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
       {!loading && !error ? (
         <div
           className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
-          data-denali-finance-board
+          data-operator-finance-board
           data-testid={FINANCE_INSTALLMENTS_TEST_IDS.board}
         >
           {INSTALLMENT_BOARD_COLUMNS.map((column) => (
             <Card
               key={column}
-              data-denali-surface="card"
+              data-operator-surface="card"
               data-board-column={column}
               data-testid={FINANCE_INSTALLMENTS_TEST_IDS.column(column)}
             >

@@ -1,23 +1,29 @@
-import { registerWorkspaceIntakePluginsFromManifest } from "./workspace-intake-plugins.generated";
-import { registerWorkspaceRegistrationFlowPluginsFromManifest } from "./workspace-registration-flow-plugins.generated";
-import { registerWorkspaceRegistrationTransportInitializersFromManifest } from "./workspace-registration-transport-initializers.generated";
+import { WORKSPACE_PLUGIN_REGISTER_IDS } from "./workspace-plugin-register-manifest.generated";
+import {
+  registerAllWorkspacePluginsSafe,
+  registerWorkspaceIntakeSafe,
+} from "./register-safe";
 
-let registered = false;
+let fullRegisterPromise: Promise<void> | null = null;
+let intakeRegisterPromise: Promise<void> | null = null;
 
-/** Idempotent registry bootstrap — import once from portal host shell. */
-export function ensureWorkspacePluginsRegistered(): void {
-  if (registered) {
-    return;
+/**
+ * Idempotent full registration for all trunk plugin ids via per-plugin dynamic import().
+ * Never throws — individual failures are recorded by registerWorkspacePluginSafe.
+ */
+export async function ensureWorkspacePluginsRegistered(): Promise<void> {
+  if (fullRegisterPromise === null) {
+    fullRegisterPromise = registerAllWorkspacePluginsSafe().then(() => undefined);
   }
-  registerWorkspaceRegistrationTransportInitializersFromManifest();
-  registerWorkspaceIntakePluginsFromManifest();
-  registerWorkspaceRegistrationFlowPluginsFromManifest();
-  registered = true;
+  await fullRegisterPromise;
 }
 
-/** @deprecated Use ensureWorkspacePluginsRegistered */
-export function ensureWorkspaceIntakePluginsRegistered(): void {
-  ensureWorkspacePluginsRegistered();
+/** Intake-only bootstrap for all trunk ids (no registration-flow UI graph). */
+export async function ensureWorkspaceIntakePluginsRegistered(): Promise<void> {
+  if (intakeRegisterPromise === null) {
+    intakeRegisterPromise = Promise.all(
+      WORKSPACE_PLUGIN_REGISTER_IDS.map((pluginId) => registerWorkspaceIntakeSafe(pluginId)),
+    ).then(() => undefined);
+  }
+  await intakeRegisterPromise;
 }
-
-ensureWorkspacePluginsRegistered();

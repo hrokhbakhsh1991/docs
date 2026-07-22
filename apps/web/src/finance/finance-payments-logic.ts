@@ -6,6 +6,7 @@ export const FINANCE_PAYMENTS_TEST_IDS = {
   list: "finance-payments-list",
   createForm: "finance-manual-payment-form",
   receiptForm: "finance-submit-receipt-form",
+  receiptUploadInput: "finance-receipt-upload-input",
 } as const;
 
 export type FinancePaymentRow = {
@@ -139,4 +140,29 @@ export function buildSubmitReceiptRequestBody(
     fileKey: value.fileKey,
     ...(value.note.length > 0 ? { note: value.note } : {}),
   };
+}
+
+export async function uploadFinanceReceiptProof(input: {
+  readonly registrationId: string;
+  readonly file: File;
+}): Promise<string | null> {
+  const registrationId = input.registrationId.trim();
+  if (!UUID_PATTERN.test(registrationId)) {
+    return null;
+  }
+  const params = new URLSearchParams({ registrationId });
+  const response = await fetch(`/api/finance/receipts/upload?${params.toString()}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": input.file.type || "application/octet-stream",
+      "X-Receipt-File-Name": input.file.name,
+    },
+    body: input.file,
+  });
+  if (!response.ok) {
+    return null;
+  }
+  const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+  const fileKey = payload?.fileKey;
+  return typeof fileKey === "string" && fileKey.trim().length > 0 ? fileKey.trim() : null;
 }

@@ -18,23 +18,23 @@ function translate(key: string): string {
 }
 
 describe("resolve-marketing-catalog-category-label.spec.ts — PR-23 card", () => {
-  it("MKT-CAT-01 card label uses wizard slug translation", () => {
+  it("MKT-CAT-01 card label uses wizard slug translation", async () => {
     assert.equal(
-      resolveMarketingCatalogCardCategoryLabel("mountain_multi", translate),
+      await resolveMarketingCatalogCardCategoryLabel("mountain_multi", translate),
       "کوهنوردی — چندروزه"
     );
   });
 
-  it("MKT-CAT-02 card label falls back to category family", () => {
+  it("MKT-CAT-02 card label falls back to category family", async () => {
     assert.equal(
-      resolveMarketingCatalogCardCategoryLabel("mountain_day", translate),
+      await resolveMarketingCatalogCardCategoryLabel("mountain_day", translate),
       "کوهنوردی"
     );
   });
 
-  it("MKT-CAT-03 filter chip label still resolves group keys", () => {
+  it("MKT-CAT-03 filter chip label still resolves group keys", async () => {
     assert.equal(
-      resolveMarketingCatalogCategoryFilterLabel("mountain", translate, "denali"),
+      await resolveMarketingCatalogCategoryFilterLabel("mountain", translate, "denali"),
       "کوهنوردی"
     );
   });

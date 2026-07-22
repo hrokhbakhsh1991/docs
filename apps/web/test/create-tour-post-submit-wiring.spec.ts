@@ -20,7 +20,7 @@ function readWeb(rel: string): string {
 
 describe("create-tour-post-submit-wiring.spec.ts", () => {
   it("WEB-P11-6-06 denali shell wires post-submit helper with remote discard", () => {
-    const hook = readWeb("src/wizard/use-denali-create-tour-wizard.ts");
+    const hook = readWeb("src/wizard/use-create-tour-wizard.ts");
     assert.match(hook, /runCreateTourPostSubmitSuccess/);
     assert.match(hook, /discardRemoteDraft/);
     assert.match(hook, /createCreateTourPostSubmitDiscardRemoteDraft/);

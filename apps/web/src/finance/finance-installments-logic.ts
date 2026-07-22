@@ -5,6 +5,8 @@ export const FINANCE_INSTALLMENTS_TEST_IDS = {
   panel: "finance-installments-panel",
   board: "finance-installments-board",
   generateForm: "finance-schedule-generate-form",
+  waiveButton: "finance-schedule-waive-button",
+  rescheduleButton: "finance-schedule-reschedule-button",
   column: (column: InstallmentBoardColumn) => `finance-installments-column-${column}`,
 } as const;
 
@@ -218,4 +220,24 @@ export function installmentProgressPercent(item: PaymentScheduleItem): number {
   }
   const pct = Number((paid * BigInt(100)) / total);
   return Math.min(100, Math.max(0, pct));
+}
+
+export function buildWaiveScheduleItemRequestBody(reason: string): Record<string, unknown> {
+  return { action: "waive", reason: reason.trim() };
+}
+
+export function buildRescheduleScheduleItemRequestBody(dueAt: string): Record<string, unknown> {
+  return { action: "reschedule", dueAt: new Date(dueAt).toISOString() };
+}
+
+export function parseScheduleItemPatchResponse(raw: unknown): PaymentScheduleItem | null {
+  if (raw === null || typeof raw !== "object") {
+    return null;
+  }
+  const record = raw as Record<string, unknown>;
+  const itemRaw = record.item;
+  if (typeof itemRaw !== "object" || itemRaw === null) {
+    return null;
+  }
+  return parseScheduleItem(itemRaw as Record<string, unknown>);
 }

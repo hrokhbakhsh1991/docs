@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
-import { encodeTourActionSubmitErrorForPlugin } from "@/bootstrap/workspace-tour-action-submit-bindings.generated";
+import {
+  encodeTourActionSubmitErrorForPlugin,
+  ensureTourActionSubmitCodec,
+} from "@/bootstrap/workspace-tour-action-submit-bindings.generated";
 import type { WorkspacePlugin, WorkspaceWizardDraftMeta } from "@app-tour/workspace-sdk";
 
 import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
@@ -265,6 +268,7 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
           : { data: draft.data };
       const result = await createTourAction(payload as { data: typeof draft.data });
       if (!result.ok) {
+        await ensureTourActionSubmitCodec(pluginId);
         setSubmitError(
           encodeTourActionSubmitErrorForPlugin(pluginId, {
             status: result.status,

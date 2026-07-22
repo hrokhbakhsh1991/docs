@@ -4,17 +4,98 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliPhotoUploadErrorsSurface as photo_errors_denali } from "@app-tour/workspace-denali/host/ui/adapters/photo-upload-errors-surface";
+type PhotoUploadErrorsSurface = {
+  readonly messageKeys: readonly string[];
+  readonly extractApiErrorCode: (...args: never[]) => unknown;
+  readonly normalizeErrorCode: (...args: never[]) => unknown;
+  readonly parseApiErrorCode: (...args: never[]) => unknown;
+  readonly resolvePhotoUploadError: (
+    t: (key: string, values?: Record<string, string | number>) => string,
+    code: string | null | undefined
+  ) => string | null;
+};
 
-export const PHOTO_UPLOAD_ERROR_MESSAGE_KEYS = photo_errors_denali.messageKeys;
+const PHOTO_UPLOAD_ERRORS_LOADERS: Readonly<
+  Record<string, () => Promise<PhotoUploadErrorsSurface>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/host/ui/adapters/photo-upload-errors-surface");
+    return mod.denaliPhotoUploadErrorsSurface;
+  },
+});
 
-export const extractPhotoApiErrorCode = photo_errors_denali.extractApiErrorCode;
-export const normalizePhotoErrorCode = photo_errors_denali.normalizeErrorCode;
-export const parsePhotoApiErrorCode = photo_errors_denali.parseApiErrorCode;
+const photoUploadErrorsCache = new Map<string, PhotoUploadErrorsSurface>();
+
+/** Warm product photo-error surface via dynamic import (no static fan-in). */
+export async function ensurePhotoUploadErrorsSurface(
+  pluginId: string
+): Promise<PhotoUploadErrorsSurface | null> {
+  if (pluginId.trim().length === 0) {
+    return null;
+  }
+  const cached = photoUploadErrorsCache.get(pluginId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = PHOTO_UPLOAD_ERRORS_LOADERS[pluginId];
+  if (load == null) {
+    return null;
+  }
+  const surface = await load();
+  photoUploadErrorsCache.set(pluginId, surface);
+  return surface;
+}
+
+export function resolvePhotoUploadErrorsSurface(
+  pluginId: string
+): PhotoUploadErrorsSurface | null {
+  return photoUploadErrorsCache.get(pluginId) ?? null;
+}
+
+function firstWarmPhotoUploadErrorsSurface(): PhotoUploadErrorsSurface | null {
+  for (const surface of photoUploadErrorsCache.values()) {
+    return surface;
+  }
+  return null;
+}
 
 export function resolvePhotoUploadError(
   t: (key: string, values?: Record<string, string | number>) => string,
   code: string | null | undefined
 ): string | null {
-  return photo_errors_denali.resolvePhotoUploadError(t, code);
+  const surface = firstWarmPhotoUploadErrorsSurface();
+  if (surface == null) {
+    return null;
+  }
+  return surface.resolvePhotoUploadError(t, code);
+}
+
+export function extractPhotoApiErrorCode(
+  payload: unknown,
+  status?: number
+): unknown {
+  const surface = firstWarmPhotoUploadErrorsSurface();
+  if (surface == null) {
+    return null;
+  }
+  return surface.extractApiErrorCode(payload as never, status as never);
+}
+
+export function normalizePhotoErrorCode(code: unknown): unknown {
+  const surface = firstWarmPhotoUploadErrorsSurface();
+  if (surface == null) {
+    return null;
+  }
+  return surface.normalizeErrorCode(code as never);
+}
+
+export function parsePhotoApiErrorCode(
+  payload: unknown,
+  status?: number
+): unknown {
+  const surface = firstWarmPhotoUploadErrorsSurface();
+  if (surface == null) {
+    return null;
+  }
+  return surface.parseApiErrorCode(payload as never, status as never);
 }

@@ -6,7 +6,7 @@ import {
 } from "@/platform/build-platform-session-cookie";
 import { normalizeOtpDigits } from "@/features/auth/otp-segment-input.logic";
 import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 function readPlatformOpsPhones(): string[] {
   const raw = process.env.PLATFORM_OPS_PHONES?.trim();

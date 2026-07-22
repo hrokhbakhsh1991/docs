@@ -1,6 +1,5 @@
 import type { WorkspaceDefinitionPayload } from "@app-tour/workspace-sdk/metadata";
-import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
-import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
+import { getStarterWorkspacePlugin, type WorkspacePlugin } from "@app-tour/workspace-sdk";
 
 /** Merge starter hook surfaces with draft metadata fields (P3-C preview + publish). */
 export function buildPreviewPluginFromDraft(

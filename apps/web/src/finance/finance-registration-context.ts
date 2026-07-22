@@ -37,3 +37,30 @@ export function withFinanceRegistrationQuery(
   const join = path.includes("?") ? "&" : "?";
   return `${path}${join}registrationId=${encodeURIComponent(id)}`;
 }
+
+/** Append optional tourId filter to a finance BFF path (FC-3). */
+export function withFinanceTourQuery(
+  path: string,
+  tourId: string | null | undefined
+): string {
+  const id = tourId?.trim() ?? "";
+  if (id.length === 0) {
+    return path;
+  }
+  const join = path.includes("?") ? "&" : "?";
+  return `${path}${join}tourId=${encodeURIComponent(id)}`;
+}
+
+/** Combine registration + tour scope query params for finance list fetches. */
+export function withFinanceListScopeQuery(
+  path: string,
+  scope: {
+    readonly registrationId?: string | null;
+    readonly tourId?: string | null;
+  }
+): string {
+  return withFinanceTourQuery(
+    withFinanceRegistrationQuery(path, scope.registrationId),
+    scope.tourId
+  );
+}

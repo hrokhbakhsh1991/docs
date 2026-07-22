@@ -1,0 +1,53 @@
+---
+title: Wave D.a — Slim Denali ./plugin contract surface
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/denali-plugin-encapsulation.mdoc
+  - docs/dev/wave-a-no-app-cloud-imports.mdoc
+---
+
+# Wave D.a — Slim Denali `./plugin` contract surface
+
+## Problem
+
+Hostile audit (`TEMP/ARCHITECTURE_AUDIT_FINAL.md`) blocker #5: `guard:denali-plugin-surface` **FAIL**.  
+`packages/workspaces/denali/src/denali.plugin.ts` re-exported wizard rules, registration validation, template builders, ACL projectors, and surface getters — so hosts importing `@app-tour/workspace-denali/plugin` could pull “everything”.
+
+The package already had the correct split:
+
+| Layer | Location |
+| ----- | -------- |
+| Contract identity + theme paths | `denali-identity.ts` |
+| Frozen field/rule/lifecycle build pieces | `denali-plugin-build.ts` |
+| Private barrel of host helpers | `internal.ts` |
+| Registration validation | `http/registration.validation.ts` |
+
+`denali.plugin.ts` duplicated those symbols as public exports.
+
+## Decision
+
+1. **`denali.plugin.ts` exports only** the six contract symbols enforced by `guard:denali-plugin-surface`:
+   - `DENALI_THEME_TOKENS_STYLESHEET`
+   - `DENALI_THEME_ADMIN_STYLESHEET`
+   - `DENALI_WORKSPACE_PLUGIN_ID`
+   - `DENALI_WORKSPACE_TYPE`
+   - `createDenaliWorkspacePlugin`
+   - `getDenaliWorkspacePlugin`
+2. Plugin factory **imports** build pieces / surfaces; it does **not** re-export them.
+3. Package root `index.ts` continues to expose legacy convenience symbols from `denali-plugin-build`, `internal`, and leaf modules (root barrel is a separate ratchet — not this tranche).
+4. In-package consumers that imported helpers from `../denali.plugin` retarget to `internal` or leaf modules.
+5. External `/plugin` misuse (`patchDenaliCanonicalBasics`) retargets to `@app-tour/workspace-denali/host/adapters/canonical-basics`.
+
+## Out of scope (later)
+
+- ~~Urban `./plugin` slim (`guard:urban-plugin-surface`) — Wave D.b~~ → [`wave-d-urban-plugin-surface.mdoc`](./wave-d-urban-plugin-surface.mdoc)
+- Shrinking package **root** export barrel / `guard:workspace-export-surface` finance-ws keys
+- ~~Hard-coded `pluginId` shell branches (AppShell / ToursWizardLayout) — Wave D.c~~ → [`wave-d-operator-shell-chrome.mdoc`](./wave-d-operator-shell-chrome.mdoc)
+
+## Verify
+
+```bash
+pnpm run guard:denali-plugin-surface
+pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/denali-registration-validation.spec.ts test/plugin-for-wizard-engine.spec.ts test/registry-parity.spec.ts
+```

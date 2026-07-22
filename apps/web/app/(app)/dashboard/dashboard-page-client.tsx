@@ -46,7 +46,7 @@ export function DashboardPageClient({
             : t("pageSubtitle", { brandName })
         }
         actions={
-          <div className="flex flex-wrap gap-2" data-denali-quick-actions>
+          <div className="flex flex-wrap gap-2" data-operator-quick-actions>
             <Button asChild size="sm" className="min-h-9">
               <Link href={OPERATOR_WIZARD_PATH}>{t("quickActions.newTour")}</Link>
             </Button>
@@ -65,7 +65,7 @@ export function DashboardPageClient({
         data-operator-dashboard-grid
         className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-12"
       >
-        <div className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "xl:col-span-4")} data-denali-animate="fade-up">
+        <div className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "xl:col-span-4")} data-operator-animate="fade-up">
           <DashboardOverviewWidget
             initialToursTotal={initialPrefetch?.tours?.total ?? null}
             initialBookingsSummary={initialPrefetch?.bookingsSummary ?? null}
@@ -73,15 +73,15 @@ export function DashboardPageClient({
         </div>
         <div
           className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "xl:col-span-4")}
-          data-denali-animate="fade-up"
-          data-denali-animate-delay="1"
+          data-operator-animate="fade-up"
+          data-operator-animate-delay="1"
         >
           <DashboardToursWidget initialTours={initialPrefetch?.tours ?? null} />
         </div>
         <div
           className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "xl:col-span-4")}
-          data-denali-animate="fade-up"
-          data-denali-animate-delay="2"
+          data-operator-animate="fade-up"
+          data-operator-animate-delay="2"
         >
           <DashboardBookingsWidget
             initialBookingsSummary={initialPrefetch?.bookingsSummary ?? null}
@@ -89,8 +89,8 @@ export function DashboardPageClient({
         </div>
         <div
           className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "md:col-span-1 xl:col-span-6")}
-          data-denali-animate="fade-up"
-          data-denali-animate-delay="3"
+          data-operator-animate="fade-up"
+          data-operator-animate-delay="3"
         >
           <DashboardRegistrationsWidget
             initialBookingsSummary={initialPrefetch?.bookingsSummary ?? null}
@@ -99,8 +99,8 @@ export function DashboardPageClient({
         {showFinanceWidget ? (
           <div
             className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "md:col-span-2 xl:col-span-6")}
-            data-denali-animate="fade-up"
-            data-denali-animate-delay="4"
+            data-operator-animate="fade-up"
+            data-operator-animate-delay="4"
           >
             <FinanceDashboardWidget
               initialFinanceSummary={initialPrefetch?.financeSummary ?? null}

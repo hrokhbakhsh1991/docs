@@ -21,6 +21,14 @@ describe("operator-breadcrumb-logic.spec.ts", () => {
     assert.equal(segments[1]?.key, "modules.equipment.title");
   });
 
+  it("resolves workspace-owner settings module (Gap Closure B.17)", () => {
+    const segments = resolveOperatorBreadcrumbSegments("/settings/workspace-owner");
+    assert.equal(segments.length, 2);
+    assert.equal(segments[0]?.href, "/settings");
+    assert.equal(segments[1]?.namespace, "settings");
+    assert.equal(segments[1]?.key, "workspaceOwner.title");
+  });
+
   it("resolves tours new wizard trail", () => {
     const segments = resolveOperatorBreadcrumbSegments("/tours/new");
     assert.equal(segments.length, 2);

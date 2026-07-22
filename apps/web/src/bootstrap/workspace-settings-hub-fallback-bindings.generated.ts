@@ -6,22 +6,47 @@
 
 import type { SettingsModuleMetadata } from "@/features/settings/settings-module-types";
 import { DENALI_BACKEND_REQUIRED_MODULE_IDS } from "@/features/settings/denali-required-settings-modules.generated";
-import { DENALI_FALLBACK_SETTINGS_MODULES } from "@/features/settings/denali-fallback-settings-modules";
 
 export type SettingsHubFallbackPolicy = {
   readonly requiredModuleIds: readonly string[];
   readonly fallbackModules: Readonly<Record<string, SettingsModuleMetadata>>;
 };
 
-const SETTINGS_HUB_FALLBACK_POLICIES = Object.freeze({
-  "denali": Object.freeze({
-    requiredModuleIds: DENALI_BACKEND_REQUIRED_MODULE_IDS,
-    fallbackModules: DENALI_FALLBACK_SETTINGS_MODULES,
-  }),
+const SETTINGS_HUB_FALLBACK_LOADERS: Readonly<
+  Record<string, () => Promise<SettingsHubFallbackPolicy>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/settings/fallback-modules");
+    return Object.freeze({
+      requiredModuleIds: DENALI_BACKEND_REQUIRED_MODULE_IDS,
+      fallbackModules: mod.DENALI_FALLBACK_SETTINGS_MODULES,
+    });
+  },
 });
 
+const settingsHubFallbackCache = new Map<string, SettingsHubFallbackPolicy>();
+
+export async function ensureSettingsHubFallbackPolicy(
+  pluginId: string
+): Promise<SettingsHubFallbackPolicy | null> {
+  if (pluginId.trim().length === 0) {
+    return null;
+  }
+  const cached = settingsHubFallbackCache.get(pluginId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = SETTINGS_HUB_FALLBACK_LOADERS[pluginId];
+  if (load == null) {
+    return null;
+  }
+  const policy = await load();
+  settingsHubFallbackCache.set(pluginId, policy);
+  return policy;
+}
+
 export function resolveSettingsHubFallbackPolicy(pluginId: string): SettingsHubFallbackPolicy | null {
-  return SETTINGS_HUB_FALLBACK_POLICIES[pluginId as keyof typeof SETTINGS_HUB_FALLBACK_POLICIES] ?? null;
+  return settingsHubFallbackCache.get(pluginId) ?? null;
 }
 
 export { DENALI_BACKEND_REQUIRED_MODULE_IDS };

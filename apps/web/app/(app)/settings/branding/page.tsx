@@ -22,7 +22,7 @@ export default async function BrandingSettingsPage() {
     return null;
   }
   const host = (await headers()).get("host") ?? "localhost:3000";
-  const bootstrap = resolveBootstrapAppSessionForHost(host);
+  const bootstrap = await resolveBootstrapAppSessionForHost(host);
   const initialBranding = await fetchTenantBrandingServer();
 
   return (

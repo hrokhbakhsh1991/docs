@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { setImpersonationSessionCookieOnResponse } from "@/auth/build-impersonation-session-cookie";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 type Payload = {
   sessionToken?: unknown;

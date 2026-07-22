@@ -1,0 +1,42 @@
+---
+title: Wave I.4 — Codegen Denali host adapters (empty product imports under wizard/denali)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-i-3-thin-shell-guard.mdoc
+  - docs/dev/wave-h-denali-import-firewall.mdoc
+---
+
+# Wave I.4 — Codegen Denali host adapters
+
+## Problem
+
+`guard:thin-shell` still **allowlists** `apps/web/src/wizard/denali/**` because [`adapters.tsx`](../../apps/web/src/wizard/denali/adapters.tsx) was a hand barrel of `@app-tour/workspace-denali/host/*` re-exports. That keeps the firewall as a permanent product-import island — thin shell cannot close.
+
+`workspace-plugin-id.ts` also imported `DENALI_WORKSPACE_PLUGIN_ID` from the Denali package solely to alias `"denali"`.
+
+## Decision
+
+1. **Codegen** [`apps/web/src/bootstrap/workspace-host-adapters.generated.ts`](../../apps/web/src/bootstrap/workspace-host-adapters.generated.ts) with the former adapters barrel (same public exports).
+2. [`adapters.tsx`](../../apps/web/src/wizard/denali/adapters.tsx) becomes a **path-stable** re-export of the generated module (zero package imports) so existing `@/wizard/denali/adapters` call sites and Wave H.h path contract stay.
+3. [`workspace-plugin-id.ts`](../../apps/web/src/wizard/denali/workspace-plugin-id.ts) exports `DENALI_PLUGIN_ID = "denali"` locally (same value as package SoT) — **no** package import.
+4. **`guard:thin-shell`:** remove `wizard/denali/**` from the allowlist — that tree must stay free of `@app-tour/workspace-*` product packages (sdk only if ever needed). Product imports live only in `*.generated.*`.
+
+## Out of scope
+
+- Deleting the `wizard/denali/` directory or renaming `loadDenaliWorkspacePlugin` → **renamed in** [`wave-i-5-wizard-plugin-load.mdoc`](./wave-i-5-wizard-plugin-load.mdoc) (Wave I.5)
+- Moving create/edit orchestration into the Denali package (larger thin-shell cut)
+- Removing denali from `apps/web/package.json`
+
+## Verify
+
+```bash
+rg '@app-tour/workspace-denali' apps/web/src/wizard/denali
+# expect empty
+pnpm run generate:workspace-registry
+pnpm run guard:thin-shell
+pnpm run wave-i0:guard
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wave-i-4-denali-adapters-codegen.spec.ts \
+  test/workspace-boundary.spec.ts
+```

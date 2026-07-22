@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 describe("platform-club-commerce-badge (P5-C UI-02)", () => {
-  it("UI-02 badge component hides gateway UI for denali workspace type", () => {
+  it("UI-02 badge component hides gateway UI for frozen commerce workspace types", () => {
     const source = readFileSync(
       new URL("../src/platform/club-commerce-badge.tsx", import.meta.url),
       "utf8"
@@ -16,7 +16,9 @@ describe("platform-club-commerce-badge (P5-C UI-02)", () => {
     assert.match(source, /data-commerce-gateway-ui=\{gatewayUi\}/);
     assert.match(source, /shouldShowClubCommerceGatewayUi/);
     assert.match(source, /data-commerce-gateway-hidden/);
-    assert.match(source, /offline receipt review only/i);
+    assert.match(source, /data-commerce-frozen=/);
+    assert.match(source, /Frozen commerce workspaces use offline receipt review only/);
+    assert.doesNotMatch(source, /Denali clubs|data-commerce-denali-frozen|isDenaliWorkspaceType/);
   });
 
   it("UI-02 workspace tab renders commerce badge with workspace type", () => {
@@ -33,7 +35,7 @@ describe("platform-club-commerce-badge (P5-C UI-02)", () => {
     assert.match(client, /workspaceType=\{detail\.tenant\.workspaceType\}/);
   });
 
-  it("UI-02b non-denali badge exposes gateway provider label", () => {
+  it("UI-02b non-frozen badge exposes gateway provider label", () => {
     const source = readFileSync(
       new URL("../src/platform/club-commerce-badge.tsx", import.meta.url),
       "utf8"

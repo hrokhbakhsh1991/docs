@@ -15,8 +15,8 @@ type PageProps = {
   readonly searchParams: Promise<{ readonly cursor?: string }>;
 };
 
-/** Urban public catalog — redirected to apps/marketing (M2b). */
-export default async function UrbanCatalogRedirectPage({ searchParams }: PageProps) {
+/** Public catalog list — redirected to apps/marketing (M2b). */
+export default async function CatalogRedirectPage({ searchParams }: PageProps) {
   const { cursor } = await searchParams;
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";

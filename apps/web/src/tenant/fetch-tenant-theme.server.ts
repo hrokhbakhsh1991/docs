@@ -1,6 +1,6 @@
 import type { TenantAuthContext, TenantThemeConfig } from "@app-tour/workspace-sdk";
 
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 /**
  * Phase 4.4 — load tenant branding from API (server-only, header auth).

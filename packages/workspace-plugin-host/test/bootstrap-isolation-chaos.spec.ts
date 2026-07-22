@@ -1,21 +1,17 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { afterEach, describe, it } from "node:test";
+import { afterEach, before, describe, it } from "node:test";
 
 import {
   clearWorkspaceIntakePluginRegistryForTests,
   listWorkspaceIntakePluginIds,
 } from "@app-tour/workspace-sdk";
 import {
-  resetWorkspaceRegistryLoadStateForTests,
-  ensureWorkspaceRegistryLoaded,
-} from "@app-tour/workspace-sdk/workspace-registry/server";
-import { workspaceRegistry } from "@app-tour/workspace-sdk/workspace-registry";
-import {
   invokeWorkspaceIntakeRegister,
   invokeWorkspacePluginRegister,
-} from "../src/workspace-plugin-register-manifest.generated";
+} from "../../guest-workspace-runtime/src/workspace-plugin-register-manifest.generated.ts";
+import { bindPortalRegisterInvokersForHostTests } from "./bind-portal-register-invokers";
 import {
   resetWorkspacePluginBootstrapTelemetryForTests,
   setWorkspacePluginBootstrapTelemetrySink,
@@ -44,11 +40,15 @@ function captureBootstrapTelemetry(): {
 
 afterEach(async () => {
   resetWorkspacePluginBootstrapTelemetryForTests();
-  resetWorkspaceRegistryLoadStateForTests();
   clearWorkspaceIntakePluginRegistryForTests();
 
   const { resetWorkspacePluginBootstrapStateForTests } = await import("../src/register-safe");
   resetWorkspacePluginBootstrapStateForTests();
+  bindPortalRegisterInvokersForHostTests();
+});
+
+before(() => {
+  bindPortalRegisterInvokersForHostTests();
 });
 
 describe("workspace plugin bootstrap — import graph audit", () => {
@@ -74,12 +74,21 @@ describe("workspace plugin bootstrap — import graph audit", () => {
   });
 
   it("HOST-AUDIT-02 generated per-plugin registrars use dynamic import() for workspace packages", () => {
+    const RUNTIME_SRC = path.join(
+      import.meta.dirname,
+      "..",
+      "..",
+      "guest-workspace-runtime",
+      "src",
+    );
     const generated = fs
-      .readdirSync(HOST_SRC)
+      .readdirSync(RUNTIME_SRC)
       .filter((name) => name.startsWith("register-") && name.endsWith(".generated.ts"));
 
+    assert.ok(generated.length > 0, "expected register-*.generated.ts under guest-workspace-runtime");
+
     for (const fileName of generated) {
-      const content = fs.readFileSync(path.join(HOST_SRC, fileName), "utf8");
+      const content = fs.readFileSync(path.join(RUNTIME_SRC, fileName), "utf8");
       const lines = content.split("\n");
       for (const [index, line] of lines.entries()) {
         assert.equal(
@@ -151,11 +160,6 @@ describe("workspace plugin bootstrap — fault injection chaos", () => {
     assert.ok(denaliFailureEvents.length >= 1);
     assert.equal(denaliFailureEvents[0]?.code, "WORKSPACE_PLUGIN_LOAD_FAILED");
     assert.match(denaliFailureEvents[0]?.message ?? "", /CHAOS_INJECTION/);
-
-    await ensureWorkspaceRegistryLoaded();
-    assert.ok(workspaceRegistry.get("urban"));
-    assert.ok(workspaceRegistry.get("guest-club"));
-    assert.ok(workspaceRegistry.get("denali"));
 
     telemetry.restore();
   });

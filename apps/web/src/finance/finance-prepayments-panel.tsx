@@ -16,9 +16,13 @@ import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-
 import { FinanceInvoiceBalanceCard } from "@/finance/finance-invoice-balance-card";
 import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
 import { FinanceRegistrationPicker } from "@/finance/finance-registration-picker";
-import { withFinanceRegistrationQuery } from "@/finance/finance-registration-context";
+import {
+  withFinanceListScopeQuery,
+} from "@/finance/finance-registration-context";
 import {
   FINANCE_INVOICE_TEST_IDS,
+  fetchRegistrationInvoice,
+  resolveSuggestedPaymentAmountMinor,
 } from "@/finance/finance-invoice-logic";
 import {
   FINANCE_PREPAYMENTS_TEST_IDS,
@@ -59,6 +63,7 @@ export function FinancePrepaymentsPanel({
   const canManage = isAdminOrOwnerRole(session.role);
   const searchParams = useSearchParams();
   const registrationFilter = searchParams.get("registrationId");
+  const tourFilter = searchParams.get("tourId");
   const [items, setItems] = useState<readonly PrepaymentRecord[]>(initialPrepayments?.items ?? []);
   const [loading, setLoading] = useState(initialPrepayments === null);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +72,7 @@ export function FinancePrepaymentsPanel({
   const [saving, setSaving] = useState(false);
   const [fetchNonce, setFetchNonce] = useState(0);
   const skipInitialFetchRef = useRef(initialPrepayments !== null);
+  const amountPrefilledForRegistrationRef = useRef<string | null>(null);
   const [invoiceLookupId, setInvoiceLookupId] = useState("");
 
   useEffect(() => {
@@ -77,10 +83,10 @@ export function FinancePrepaymentsPanel({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    const path = withFinanceRegistrationQuery(
-      "/api/finance/prepayments?limit=50",
-      registrationFilter
-    );
+    const path = withFinanceListScopeQuery("/api/finance/prepayments?limit=50", {
+      registrationId: registrationFilter,
+      tourId: tourFilter,
+    });
     void fetch(path, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) {
@@ -106,7 +112,43 @@ export function FinancePrepaymentsPanel({
     return () => {
       cancelled = true;
     };
-  }, [fetchNonce, registrationFilter]);
+  }, [fetchNonce, registrationFilter, tourFilter]);
+
+  useEffect(() => {
+    const registrationId = form.registrationId.trim();
+    if (registrationId.length < 32) {
+      amountPrefilledForRegistrationRef.current = null;
+      return;
+    }
+    if (amountPrefilledForRegistrationRef.current === registrationId) {
+      return;
+    }
+    let cancelled = false;
+    void fetchRegistrationInvoice(registrationId)
+      .then((invoice) => {
+        if (cancelled || invoice === null) {
+          return;
+        }
+        amountPrefilledForRegistrationRef.current = registrationId;
+        setForm((current) => {
+          if (
+            current.registrationId.trim() !== registrationId ||
+            current.amountMinor.trim().length > 0
+          ) {
+            return current;
+          }
+          return {
+            ...current,
+            amountMinor: resolveSuggestedPaymentAmountMinor(invoice),
+            currency: invoice.currency,
+          };
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [form.registrationId]);
 
   const refresh = () => setFetchNonce((value) => value + 1);
 
@@ -144,7 +186,7 @@ export function FinancePrepaymentsPanel({
 
   return (
     <div className="space-y-6" data-testid={FINANCE_PREPAYMENTS_TEST_IDS.panel}>
-      <Card data-denali-surface="card" className="shadow-sm">
+      <Card data-operator-surface="card" className="shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">{t("invoiceBalance")}</CardTitle>
         </CardHeader>
@@ -166,7 +208,7 @@ export function FinancePrepaymentsPanel({
       </Card>
 
       {canManage ? (
-        <Card data-denali-surface="card" className="shadow-sm">
+        <Card data-operator-surface="card" className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">{t("recordTitle")}</CardTitle>
           </CardHeader>
@@ -247,7 +289,7 @@ export function FinancePrepaymentsPanel({
         </Card>
       ) : null}
 
-      <Card data-denali-surface="card" className="shadow-sm">
+      <Card data-operator-surface="card" className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">{t("recentTitle")}</CardTitle>
           <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={loading}>

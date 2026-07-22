@@ -63,7 +63,7 @@ export function AuditTrailClient() {
         <p className="text-sm text-destructive">{resolveCodedErrorMessage(tErrors, error)}</p>
       ) : null}
 
-      <Card data-denali-surface="card" className="shadow-sm" data-testid={AUDIT_TRAIL_TEST_IDS.list}>
+      <Card data-operator-surface="card" className="shadow-sm" data-testid={AUDIT_TRAIL_TEST_IDS.list}>
         <CardHeader>
           <CardTitle>{t("eventsTitle", { count: items.length })}</CardTitle>
         </CardHeader>

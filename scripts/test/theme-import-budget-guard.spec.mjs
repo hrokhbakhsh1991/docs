@@ -36,7 +36,7 @@ describe("theme import budget guard (Phase I1)", () => {
 
   it("portal guest loader allows starter base + plugin overlay (2)", () => {
     const generated = readFileSync(
-      join(REPO_ROOT, "apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"),
+      join(REPO_ROOT, "packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.portal.generated.ts"),
       "utf8"
     );
     const body = extractAsyncFunctionBody(generated, "importGuestPortalThemeForPlugin");

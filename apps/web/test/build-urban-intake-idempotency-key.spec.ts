@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { buildUrbanIntakeIdempotencyKey } from "../src/urban/build-urban-intake-idempotency-key";
+import { buildUrbanIntakeIdempotencyKey } from "@app-tour/workspace-urban/host/catalog";
 
 describe("build-urban-intake-idempotency-key.spec.ts", () => {
   it("URB-INTAKE-IDEM-01 same inputs produce same key", () => {

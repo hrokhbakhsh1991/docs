@@ -4,8 +4,47 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardFlatEditPageSurface as wizard_flat_edit_page_denali } from "@app-tour/workspace-denali/host/ui/chrome/wizard-flat-edit-page-surface";
+import type { ComponentType } from "react";
 
-export const DenaliFlatEditPageView = wizard_flat_edit_page_denali.FlatEditPageView;
-export const DenaliFlatEditValidationList = wizard_flat_edit_page_denali.FlatEditValidationList;
+export type WizardFlatEditPageSurface = {
+  readonly FlatEditPageView: ComponentType<any>;
+  readonly FlatEditValidationList: ComponentType<any>;
+};
 
+const WIZARD_FLAT_EDIT_PAGE_LOADERS: Readonly<
+  Record<string, () => Promise<WizardFlatEditPageSurface>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/host/ui/chrome/wizard-flat-edit-page-surface");
+    return mod.denaliWizardFlatEditPageSurface as WizardFlatEditPageSurface;
+  },
+});
+
+const wizardFlatEditPageCache = new Map<string, WizardFlatEditPageSurface>();
+
+/** Warm flat-edit page React surface via dynamic import (no static product fan-in). */
+export async function ensureWizardFlatEditPageSurface(
+  pluginId: string
+): Promise<WizardFlatEditPageSurface | null> {
+  if (pluginId.trim().length === 0) {
+    return null;
+  }
+  const cached = wizardFlatEditPageCache.get(pluginId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = WIZARD_FLAT_EDIT_PAGE_LOADERS[pluginId];
+  if (load == null) {
+    return null;
+  }
+  const surface = await load();
+  wizardFlatEditPageCache.set(pluginId, surface);
+  return surface;
+}
+
+/** Sync read of warm cache — call ensureWizardFlatEditPageSurface first. */
+export function resolveWizardFlatEditPageSurface(
+  pluginId: string
+): WizardFlatEditPageSurface | null {
+  return wizardFlatEditPageCache.get(pluginId) ?? null;
+}

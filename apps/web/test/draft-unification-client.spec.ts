@@ -10,11 +10,12 @@ import { describe, it } from "node:test";
 import {
   denaliHydrateDraftEnvelope,
   denaliPrepareDraftEnvelope,
-  createDenaliDraftSchemaGate,
+  createOperatorDraftSchemaGate,
 } from "@app-tour/workspace-denali/host/draft";
 
 import { mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/host/draft";
-import { normalizeDenaliRemoteEnvelope } from "../src/draft/denali-draft-normalize-remote";
+import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
+import { normalizeWizardRemoteEnvelopeForPlugin } from "../src/draft/normalize-wizard-remote-envelope-for-plugin";
 import { DraftEngine } from "@app-tour/draft-engine";
 import type { DraftSyncPayload } from "@app-tour/draft-engine";
 
@@ -57,7 +58,7 @@ describe("draft-unification-client.spec.ts — Track B", () => {
   });
 
   it("prePush schema gate does not mutate form JSON", () => {
-    const gate = createDenaliDraftSchemaGate(minimalRules(), {
+    const gate = createOperatorDraftSchemaGate(minimalRules(), {
       uiOptions: {},
       ruleSet: "publish",
     } as never);
@@ -75,12 +76,12 @@ describe("draft-unification-client.spec.ts — Track B", () => {
   });
 
   it("regression — create wizard must not import trackDeletedCanonicalRoots", () => {
-    const source = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
+    const source = readWebSource("app/tours/new/create-tour-wizard-client.tsx");
     assert.doesNotMatch(source, /trackDeletedCanonicalRoots/);
   });
 
   it("regression — flat edit must not import trackDeletedCanonicalRoots", () => {
-    const source = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
+    const source = readWebSource("app/(app)/tours/[id]/edit/flat-edit-page-client.tsx");
     assert.doesNotMatch(source, /trackDeletedCanonicalRoots/);
   });
 
@@ -108,7 +109,7 @@ describe("draft-unification-client.spec.ts — Track B", () => {
     assert.match(source, /ensureAckBeforePush/);
   });
 
-  it("normalizeDenaliRemoteEnvelope strips deletedRoots after engine remote hydrate (B-8)", async () => {
+  it("normalizeWizardRemoteEnvelopeForPlugin strips deletedRoots after engine remote hydrate (B-8)", async () => {
     type Envelope = {
       form: { data: Record<string, unknown> };
       meta: { currentStepIndex: number; deletedRoots?: readonly string[] };
@@ -127,7 +128,8 @@ describe("draft-unification-client.spec.ts — Track B", () => {
     const engine = new DraftEngine<Envelope>({
       id: "denali-b8",
       conflictStrategy: "SERVER_WINS",
-      normalizeRemote: normalizeDenaliRemoteEnvelope,
+      normalizeRemote: (envelope) =>
+        normalizeWizardRemoteEnvelopeForPlugin(getDenaliWorkspacePlugin(), envelope as never) as Envelope,
       onFetch: async () => fetched,
       onPush: async (p) => p,
     });

@@ -1,6 +1,6 @@
-import "@app-tour/workspace-plugin-host/intake-register";
-
 import { NextResponse } from "next/server";
+import { registerWorkspaceIntakeSafe } from "@app-tour/workspace-plugin-host/register-safe";
+import { bindWorkspacePluginRegisterInvokers } from "@app-tour/guest-workspace-runtime/bind-register-invokers";
 
 import {
   buildCatalogRegistrationUpstreamRequest,
@@ -30,6 +30,8 @@ type RegistrationBody = {
 export async function POST(req: Request): Promise<NextResponse> {
   const host = resolvePortalIngressHost(req);
   const bootstrap = await resolvePortalBootstrapForHost(host);
+  bindWorkspacePluginRegisterInvokers();
+  await registerWorkspaceIntakeSafe(bootstrap.pluginId);
   const body = (await req.json().catch(() => ({}))) as RegistrationBody;
 
   const tourId = typeof body.tourId === "string" ? body.tourId.trim() : "";

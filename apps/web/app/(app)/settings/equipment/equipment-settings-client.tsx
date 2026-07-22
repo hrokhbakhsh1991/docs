@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { resolveSettingsEquipmentUiSurface } from "@/bootstrap/workspace-settings-equipment-ui-bindings.generated";
+import {
+  ensureSettingsEquipmentUiSurface,
+} from "@/bootstrap/workspace-settings-equipment-ui-bindings.generated";
+import type { SettingsEquipmentUiSurface } from "@/features/settings/settings-equipment-ui-types";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -29,10 +32,42 @@ type EquipmentSettingsClientProps = {
 };
 
 export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProps) {
-  const equipmentUi = resolveSettingsEquipmentUiSurface(session.pluginId);
+  const [equipmentUi, setEquipmentUi] = useState<SettingsEquipmentUiSurface | null>(null);
+  const [surfaceReady, setSurfaceReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void ensureSettingsEquipmentUiSurface(session.pluginId).then((surface) => {
+      if (!cancelled) {
+        setEquipmentUi(surface);
+        setSurfaceReady(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session.pluginId]);
+
+  if (!surfaceReady) {
+    return (
+      <div className="space-y-4" data-testid={SETTINGS_HUB_TEST_IDS.equipmentPage}>
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    );
+  }
+
   if (equipmentUi == null) {
     throw new Error(`No equipment settings UI surface for plugin: ${session.pluginId}`);
   }
+
+  return <EquipmentSettingsClientReady session={session} equipmentUi={equipmentUi} />;
+}
+
+function EquipmentSettingsClientReady({
+  session,
+  equipmentUi,
+}: EquipmentSettingsClientProps & { readonly equipmentUi: SettingsEquipmentUiSurface }) {
   const { EquipmentCatalogAvatar, EquipmentIconPicker } = equipmentUi;
   const t = useTranslations("settings.equipment");
   const tErrors = useTranslations("settings.errors");
@@ -194,7 +229,7 @@ export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProp
       <SettingsPageHeader title={t("title")} description={t("subtitle")} />
 
       {canManage ? (
-        <Card data-denali-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.equipmentForm}>
+        <Card data-operator-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.equipmentForm}>
           <CardHeader>
             <CardTitle>{t("addTitle")}</CardTitle>
           </CardHeader>
@@ -266,7 +301,7 @@ export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProp
         <p className="text-sm text-destructive">{resolveCodedErrorMessage(tErrors, error)}</p>
       ) : null}
 
-      <Card data-denali-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.equipmentList}>
+      <Card data-operator-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.equipmentList}>
         <CardHeader>
           <CardTitle>{t("catalogTitle", { count: items.length })}</CardTitle>
         </CardHeader>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft } from "lucide-react";
+import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 
 import { isExtendedOperatorSession, type OperatorSessionContext } from "@/admin/require-operator-session";
@@ -25,9 +26,12 @@ import {
 } from "@/features/tours/tour-list-formatters";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
-import { DenaliWizardCatalogPrefetchProvider } from "@/wizard/denali/denali-wizard-catalog-prefetch-context";
+import {
+  ensureWizardHostAdapters,
+  resolveWizardCatalogPrefetchProvider,
+} from "@/wizard/host-adapter-runtime";
 
-import { DenaliFlatEditPageClient } from "./denali-flat-edit-page-client";
+import { OperatorFlatEditPageClient } from "./flat-edit-page-client";
 import { TourStatusBadge } from "../../tour-status-badge";
 
 type TourEditPageClientProps = {
@@ -45,12 +49,42 @@ export function TourEditPageClient({
   const canEdit = canMutateTour(session.role);
   if (useFlatEditShell && canEdit) {
     return (
-      <DenaliWizardCatalogPrefetchProvider initialLocationsResponse={initialLocationsResponse}>
-        <DenaliFlatEditPageClient session={session} tourId={tourId} />
-      </DenaliWizardCatalogPrefetchProvider>
+      <TourEditCatalogPrefetchShell initialLocationsResponse={initialLocationsResponse}>
+        <OperatorFlatEditPageClient session={session} tourId={tourId} />
+      </TourEditCatalogPrefetchShell>
     );
   }
   return <TourEditTitlePageClient session={session} tourId={tourId} />;
+}
+
+/** Gap Closure B.10 — self-warm product PrefetchProvider before flat-edit mounts. */
+function TourEditCatalogPrefetchShell({
+  initialLocationsResponse,
+  children,
+}: {
+  readonly initialLocationsResponse?: unknown | null;
+  readonly children: React.ReactNode;
+}) {
+  const [, setWarmTick] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    void ensureWizardHostAdapters().then(() => {
+      if (!cancelled) {
+        setWarmTick((n) => n + 1);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const Provider = resolveWizardCatalogPrefetchProvider();
+  if (Provider == null) {
+    return <>{children}</>;
+  }
+  return (
+    <Provider initialLocationsResponse={initialLocationsResponse}>{children}</Provider>
+  );
 }
 
 function TourEditTitlePageClient({ session, tourId }: TourEditPageClientProps) {
@@ -136,7 +170,7 @@ function TourEditTitlePageClient({ session, tourId }: TourEditPageClientProps) {
 
   if (error === "TOUR_NOT_FOUND" || detail === null) {
     return (
-      <Card data-denali-surface="card" data-testid={TOUR_EDIT_TEST_IDS.page} className="shadow-sm">
+      <Card data-operator-surface="card" data-testid={TOUR_EDIT_TEST_IDS.page} className="shadow-sm">
         <CardContent className="py-10 text-center text-muted-foreground">
           {t("notFound")}
           <div className="mt-4">
@@ -186,7 +220,7 @@ function TourEditTitlePageClient({ session, tourId }: TourEditPageClientProps) {
         ) : null}
       </div>
 
-      <Card data-denali-surface="card" className="shadow-sm">
+      <Card data-operator-surface="card" className="shadow-sm">
         <CardHeader className="space-y-3">
           <TourStatusBadge status={detail.projection.uiStatus} />
           <CardTitle className="text-2xl">{detail.projection.title}</CardTitle>

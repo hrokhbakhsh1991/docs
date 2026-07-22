@@ -5,14 +5,41 @@
  */
 
 import type { DestinationSettingsSurface } from "@/features/settings/destination-settings-surface-types";
-import { denaliDestinationSettingsSurface as destination_surface_denali } from "@app-tour/workspace-denali/settings/destination-settings-surface";
 
-const SETTINGS_DESTINATION_SURFACES: Readonly<Record<string, DestinationSettingsSurface>> = Object.freeze({
-  "denali": destination_surface_denali,
+const SETTINGS_DESTINATION_SURFACES_LOADERS: Readonly<
+  Record<string, () => Promise<DestinationSettingsSurface>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/settings/destination-settings-surface");
+    return mod.denaliDestinationSettingsSurface;
+  },
 });
 
+const SETTINGS_DESTINATION_SURFACES_CACHE = new Map<string, DestinationSettingsSurface>();
+
+/** Warm product surface via dynamic import (no static @app-tour/workspace-* fan-in). */
+export async function ensureSettingsDestinationSurface(
+  pluginId: string
+): Promise<DestinationSettingsSurface | null> {
+  if (pluginId.trim().length === 0) {
+    return null;
+  }
+  const cached = SETTINGS_DESTINATION_SURFACES_CACHE.get(pluginId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = SETTINGS_DESTINATION_SURFACES_LOADERS[pluginId];
+  if (load == null) {
+    return null;
+  }
+  const surface = await load();
+  SETTINGS_DESTINATION_SURFACES_CACHE.set(pluginId, surface);
+  return surface;
+}
+
+/** Sync read of warm cache — call ensureSettingsDestinationSurface first for product surfaces. */
 export function resolveSettingsDestinationSurface(
   pluginId: string
 ): DestinationSettingsSurface | null {
-  return SETTINGS_DESTINATION_SURFACES[pluginId] ?? null;
+  return SETTINGS_DESTINATION_SURFACES_CACHE.get(pluginId) ?? null;
 }

@@ -4,36 +4,55 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardRulesSurface as wizard_rules_denali } from "@app-tour/workspace-denali/host/wizard/wizard-rules-surface";
-
 export type WizardRulesModule = {
-  readonly evaluateFormFieldRule: typeof wizard_rules_denali.evaluateFormFieldRule;
-  readonly applyDenaliInvariantState: typeof wizard_rules_denali.applyDenaliInvariantState;
-  readonly resolveDenaliRuleSetFromTemplate: typeof wizard_rules_denali.resolveDenaliRuleSetFromTemplate;
-  readonly buildDefaultForm: typeof wizard_rules_denali.buildDenaliTourCreateDefaultValues;
-  readonly readCanonicalBasics: typeof wizard_rules_denali.readDenaliCanonicalBasics;
-  readonly canonicalToFormPathMap: typeof wizard_rules_denali.canonicalToFormPathMap;
-  readonly tourKindValues: typeof wizard_rules_denali.tourKindValues;
+  readonly evaluateFormFieldRule: (...args: never[]) => unknown;
+  readonly applyDenaliInvariantState: (...args: never[]) => unknown;
+  readonly resolveDenaliRuleSetFromTemplate: (...args: never[]) => unknown;
+  readonly buildDefaultForm: (...args: never[]) => unknown;
+  readonly readCanonicalBasics: (...args: never[]) => unknown;
+  readonly canonicalToFormPathMap: unknown;
+  readonly tourKindValues: unknown;
 };
 
-let wizardRulesModule: WizardRulesModule | null = null;
+const WIZARD_RULES_LOADERS: Readonly<
+  Record<string, () => Promise<WizardRulesModule>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/host/wizard/wizard-rules-surface");
+    const surface = mod.denaliWizardRulesSurface;
+    return Object.freeze({
+      evaluateFormFieldRule: surface.evaluateFormFieldRule,
+      applyDenaliInvariantState: surface.applyDenaliInvariantState,
+      resolveDenaliRuleSetFromTemplate: surface.resolveDenaliRuleSetFromTemplate,
+      buildDefaultForm: surface.buildDenaliTourCreateDefaultValues,
+      readCanonicalBasics: surface.readDenaliCanonicalBasics,
+      canonicalToFormPathMap: surface.canonicalToFormPathMap,
+      tourKindValues: surface.tourKindValues,
+    });
+  },
+});
 
-export function getWizardRulesModuleSync(pluginId: string): WizardRulesModule {
-  if (pluginId !== "denali") {
+const wizardRulesCache = new Map<string, WizardRulesModule>();
+
+export async function loadWizardRulesModule(pluginId: string): Promise<WizardRulesModule> {
+  const cached = wizardRulesCache.get(pluginId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = WIZARD_RULES_LOADERS[pluginId];
+  if (load == null) {
     throw new Error(`No wizard rules surface for plugin: ${pluginId}`);
   }
-  wizardRulesModule ??= Object.freeze({
-    evaluateFormFieldRule: wizard_rules_denali.evaluateFormFieldRule,
-    applyDenaliInvariantState: wizard_rules_denali.applyDenaliInvariantState,
-    resolveDenaliRuleSetFromTemplate: wizard_rules_denali.resolveDenaliRuleSetFromTemplate,
-    buildDefaultForm: wizard_rules_denali.buildDenaliTourCreateDefaultValues,
-    readCanonicalBasics: wizard_rules_denali.readDenaliCanonicalBasics,
-    canonicalToFormPathMap: wizard_rules_denali.canonicalToFormPathMap,
-    tourKindValues: wizard_rules_denali.tourKindValues,
-  }) as WizardRulesModule;
-  return wizardRulesModule;
+  const module = await load();
+  wizardRulesCache.set(pluginId, module);
+  return module;
 }
 
-export function loadWizardRulesModule(pluginId: string): Promise<WizardRulesModule> {
-  return Promise.resolve(getWizardRulesModuleSync(pluginId));
+/** Sync read of warm cache — call loadWizardRulesModule first. */
+export function getWizardRulesModuleSync(pluginId: string): WizardRulesModule {
+  const cached = wizardRulesCache.get(pluginId);
+  if (cached == null) {
+    throw new Error(`No wizard rules surface for plugin: ${pluginId} (call loadWizardRulesModule first)`);
+  }
+  return cached;
 }

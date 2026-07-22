@@ -2,9 +2,10 @@
  * Exposure catalog label localization — admin UIs surface wizard copy, not registry English.
  */
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { before, describe, it } from "node:test";
 
-import { getNestedStringValue } from "../src/i18n/denali-wizard-labels";
+import { ensureDenaliHostAdapters } from "../src/bootstrap/workspace-host-adapters.generated";
+import { getNestedStringValue } from "@app-tour/workspace-denali/host/ui/adapters/nested-string";
 import { loadAppMessages } from "../src/i18n/load-messages";
 import { localizeExposureCatalogFields } from "../src/exposure/localize-exposure-catalog-fields";
 
@@ -20,6 +21,10 @@ async function namespacedTranslator(locale: "fa" | "en", namespace: string) {
 }
 
 describe("localize-exposure-catalog-fields.spec.ts", () => {
+  before(async () => {
+    await ensureDenaliHostAdapters();
+  });
+
   it("WEB-EXP-LOCALIZE-01 replaces registry English adminLabel with denali fa copy", async () => {
     const translate = await namespacedTranslator("fa", "denali");
     const localized = localizeExposureCatalogFields(

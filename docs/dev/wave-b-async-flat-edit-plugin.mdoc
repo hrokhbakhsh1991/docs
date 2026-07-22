@@ -1,0 +1,35 @@
+---
+title: Wave B.c — Async flat-edit plugin load
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-b-thin-shell-bb.mdoc
+  - docs/dev/wave-b-denali-sync-resolve.mdoc
+---
+
+# Wave B.c — Async flat-edit plugin load
+
+## Problem
+
+`useOperatorFlatEditPage` still called `resolveDenaliSyncWorkspacePlugin()` (draft-shell sync getter) on every mount via `useMemo`, even after B.b neutralized module-scope `INITIAL_GATE`. Create wizard already had an async `loadPlugin` path; flat-edit did not.
+
+## Decision
+
+1. **`OperatorFlatEditPageClient`** loads the plugin with `loadDenaliWorkspacePlugin()` (`loadWorkspacePluginByIdFromRegistry`) in `useEffect`.
+2. Until the plugin resolves, render the existing flat-edit loading chrome (`CreateTourWizardLoadingMessage`).
+3. **`useOperatorFlatEditPage({ plugin, … })`** requires an injected `WorkspacePlugin` — no sync Denali resolve inside the orchestration hook.
+4. Inner ready component mounts only after plugin is non-null (Rules of Hooks).
+
+Draft-shell **generated** imports (`createDenaliWizardDraftSessionId`, merge helpers, flat-edit chrome bindings) remain — those are codegen static host surfaces; removing them is a later tranche (lazy draft-shell bindings).
+
+## Verify
+
+```bash
+rg "resolveDenaliSyncWorkspacePlugin" apps/web/src/wizard/use-flat-edit-page.ts
+rg "loadDenaliWorkspacePlugin" apps/web/app/\(app\)/tours
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/p2-d4-flat-edit-io.spec.ts \
+  test/workspace-boundary.spec.ts \
+  test/wizard-host-boundary.spec.ts \
+  test/denali-flat-edit-sync-chrome.spec.ts
+```

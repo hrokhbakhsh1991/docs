@@ -21,15 +21,20 @@ import {
   paymentStatusTone,
   validateCreateManualPaymentForm,
   validateSubmitReceiptForm,
+  uploadFinanceReceiptProof,
   type CreateManualPaymentFormState,
   type FinancePaymentRow,
   type SubmitReceiptFormState,
   type FinancePaymentsListResponse,
 } from "@/finance/finance-payments-logic";
+import {
+  fetchRegistrationInvoice,
+  resolveSuggestedPaymentAmountMinor,
+} from "@/finance/finance-invoice-logic";
 import { FinanceInvoiceBalanceCard } from "@/finance/finance-invoice-balance-card";
 import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
 import { FinanceRegistrationPicker } from "@/finance/finance-registration-picker";
-import { withFinanceRegistrationQuery } from "@/finance/finance-registration-context";
+import { withFinanceListScopeQuery } from "@/finance/finance-registration-context";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import { formatFinanceTimestamp } from "@/finance/finance-reports-logic";
 import type { AppLocale } from "@/i18n/routing";
@@ -115,6 +120,7 @@ export function FinancePaymentsPanel({
   const canManage = isAdminOrOwnerRole(session.role);
   const searchParams = useSearchParams();
   const registrationFilter = searchParams.get("registrationId");
+  const tourFilter = searchParams.get("tourId");
   const [items, setItems] = useState<readonly FinancePaymentRow[]>(initialPayments?.items ?? []);
   const [loading, setLoading] = useState(initialPayments === null);
   const [error, setError] = useState<string | null>(null);
@@ -124,9 +130,12 @@ export function FinancePaymentsPanel({
   const [receiptFormError, setReceiptFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [receiptSaving, setReceiptSaving] = useState(false);
+  const [receiptUploadBusy, setReceiptUploadBusy] = useState(false);
+  const [receiptUploadError, setReceiptUploadError] = useState<string | null>(null);
   const [fetchNonce, setFetchNonce] = useState(0);
   const [statusFilter, setStatusFilter] = useState<"all" | "Pending" | "Paid" | "Failed">("all");
   const skipInitialFetchRef = useRef(initialPayments !== null);
+  const amountPrefilledForRegistrationRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (skipInitialFetchRef.current) {
@@ -136,10 +145,10 @@ export function FinancePaymentsPanel({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    const path = withFinanceRegistrationQuery(
-      "/api/finance/payments?limit=50",
-      registrationFilter
-    );
+    const path = withFinanceListScopeQuery("/api/finance/payments?limit=50", {
+      registrationId: registrationFilter,
+      tourId: tourFilter,
+    });
     void fetch(path, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) {
@@ -165,7 +174,40 @@ export function FinancePaymentsPanel({
     return () => {
       cancelled = true;
     };
-  }, [fetchNonce, registrationFilter]);
+  }, [fetchNonce, registrationFilter, tourFilter]);
+
+  useEffect(() => {
+    const registrationId = form.registrationId.trim();
+    if (registrationId.length < 32) {
+      amountPrefilledForRegistrationRef.current = null;
+      return;
+    }
+    if (amountPrefilledForRegistrationRef.current === registrationId) {
+      return;
+    }
+    let cancelled = false;
+    void fetchRegistrationInvoice(registrationId)
+      .then((invoice) => {
+        if (cancelled || invoice === null) {
+          return;
+        }
+        amountPrefilledForRegistrationRef.current = registrationId;
+        setForm((current) => {
+          if (current.registrationId.trim() !== registrationId || current.amount.trim().length > 0) {
+            return current;
+          }
+          return {
+            ...current,
+            amount: resolveSuggestedPaymentAmountMinor(invoice),
+            currency: invoice.currency,
+          };
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [form.registrationId]);
 
   const refresh = () => setFetchNonce((value) => value + 1);
 
@@ -257,7 +299,7 @@ export function FinancePaymentsPanel({
   return (
     <div className="space-y-6" data-testid={FINANCE_PAYMENTS_TEST_IDS.panel}>
       {canManage ? (
-        <Card data-denali-surface="card" className="shadow-sm">
+        <Card data-operator-surface="card" className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">{t("createManual")}</CardTitle>
           </CardHeader>
@@ -314,7 +356,7 @@ export function FinancePaymentsPanel({
       ) : null}
 
       {canManage ? (
-        <Card data-denali-surface="card" className="shadow-sm border-dashed">
+        <Card data-operator-surface="card" className="shadow-sm border-dashed">
           <CardHeader>
             <CardTitle className="text-base">{t("submitReceiptAdvanced")}</CardTitle>
             <p className="text-sm font-normal text-muted-foreground">{t("submitReceiptHint")}</p>
@@ -339,6 +381,53 @@ export function FinancePaymentsPanel({
                     }
                     autoComplete="off"
                   />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="receipt-upload">{t("receiptUpload")}</Label>
+                  <Input
+                    id="receipt-upload"
+                    type="file"
+                    accept="image/*,application/pdf"
+                    data-testid={FINANCE_PAYMENTS_TEST_IDS.receiptUploadInput}
+                    disabled={receiptUploadBusy || form.registrationId.trim().length < 32}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      if (file === undefined) {
+                        return;
+                      }
+                      const registrationId = form.registrationId.trim();
+                      if (registrationId.length < 32) {
+                        setReceiptUploadError("REGISTRATION_ID_INVALID");
+                        return;
+                      }
+                      setReceiptUploadError(null);
+                      setReceiptUploadBusy(true);
+                      void uploadFinanceReceiptProof({ registrationId, file })
+                        .then((fileKey) => {
+                          if (fileKey === null) {
+                            throw new Error("RECEIPT_UPLOAD_FAILED");
+                          }
+                          setReceiptForm((current) => ({ ...current, fileKey }));
+                        })
+                        .catch((uploadError: unknown) => {
+                          setReceiptUploadError(
+                            uploadError instanceof Error
+                              ? uploadError.message
+                              : "RECEIPT_UPLOAD_FAILED"
+                          );
+                        })
+                        .finally(() => {
+                          setReceiptUploadBusy(false);
+                        });
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">{t("receiptUploadHint")}</p>
+                  {receiptUploadError !== null ? (
+                    <p className="text-xs text-destructive" role="alert">
+                      {localizeFinanceMessage(tValidation, tErrors, receiptUploadError)}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="receipt-file-key">{t("fileKey")}</Label>
@@ -377,7 +466,7 @@ export function FinancePaymentsPanel({
         </Card>
       ) : null}
 
-      <Card data-denali-surface="card" className="shadow-sm">
+      <Card data-operator-surface="card" className="shadow-sm">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
           <div className="space-y-1">
             <CardTitle className="text-base">{t("listTitle")}</CardTitle>

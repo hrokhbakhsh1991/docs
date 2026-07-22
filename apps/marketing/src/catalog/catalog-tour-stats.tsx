@@ -59,7 +59,7 @@ export async function CatalogTourStats({
       ? ({ "data-marketing-catalog-card-stats": true } as const)
       : ({ "data-marketing-catalog-detail-stats": true } as const);
 
-  const surface = resolveMarketingCatalogSurface(pluginId);
+  const surface = await resolveMarketingCatalogSurface(pluginId);
   const difficultyMax = surface?.difficultyMax ?? 10;
 
   return (

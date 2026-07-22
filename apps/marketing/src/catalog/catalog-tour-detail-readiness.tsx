@@ -21,7 +21,7 @@ export async function CatalogTourDetailReadiness({
   const localizeNumber = (value: number) =>
     toLocalizedDigits(String(value), locale);
 
-  const surface = resolveMarketingCatalogSurface(pluginId);
+  const surface = await resolveMarketingCatalogSurface(pluginId);
   const cells = buildCatalogReadinessCells({
     tour,
     family: surface?.resolveCategoryFamily(tour.category) ?? null,

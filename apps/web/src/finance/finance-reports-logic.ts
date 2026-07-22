@@ -6,6 +6,7 @@ import { parseFinanceRegistrationContext } from "@/finance/finance-registration-
 export const FINANCE_OVERVIEW_TEST_IDS = {
   panel: "finance-overview-panel",
   kpiStrip: "finance-kpi-strip",
+  paidByTour: "finance-paid-by-tour",
   recentLedger: "finance-recent-ledger",
   attentionList: "finance-attention-samples",
   triageLink: "finance-open-reconciliation-triage",
@@ -48,6 +49,39 @@ export type FinanceLedgerEvent = {
 export type FinanceLedgerListResponse = {
   readonly items: readonly FinanceLedgerEvent[];
 };
+
+export type FinanceTourAggregateRow = {
+  readonly tourId: string;
+  readonly tourTitle: string;
+  readonly paidCount: number;
+  readonly paidMinor: string;
+  readonly pendingCount: number;
+};
+
+export type FinanceByTourReport = {
+  readonly items: readonly FinanceTourAggregateRow[];
+};
+
+export function parseFinanceByTourReport(raw: unknown): FinanceByTourReport {
+  if (raw === null || typeof raw !== "object") {
+    return { items: [] };
+  }
+  const record = raw as Record<string, unknown>;
+  if (!Array.isArray(record.items)) {
+    return { items: [] };
+  }
+  const items = record.items
+    .filter((entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null)
+    .map((entry) => ({
+      tourId: String(entry.tourId ?? ""),
+      tourTitle: String(entry.tourTitle ?? ""),
+      paidCount: readCount(entry.paidCount),
+      paidMinor: String(entry.paidMinor ?? "0"),
+      pendingCount: readCount(entry.pendingCount),
+    }))
+    .filter((entry) => entry.tourId.length > 0 && entry.tourTitle.length > 0);
+  return { items };
+}
 
 export function parseFinanceSummary(raw: unknown): FinanceSummary {
   if (raw === null || typeof raw !== "object") {

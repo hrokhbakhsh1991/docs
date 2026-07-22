@@ -30,15 +30,15 @@ function matchesAvailability(
 }
 
 /** Client-side list filters when API has no category/q params (PR-7 / PR-21). */
-export function filterMarketingCatalogItems(
+export async function filterMarketingCatalogItems(
   items: readonly MarketingCatalogCard[],
   filters: Pick<
     CatalogListFilters,
     "q" | "category" | "difficulty" | "fitness" | "availability"
   >,
   pluginId?: string
-): readonly MarketingCatalogCard[] {
-  const surface = pluginId != null ? resolveMarketingCatalogSurface(pluginId) : null;
+): Promise<readonly MarketingCatalogCard[]> {
+  const surface = pluginId != null ? await resolveMarketingCatalogSurface(pluginId) : null;
   let filtered = items;
 
   const category = filters.category?.trim();

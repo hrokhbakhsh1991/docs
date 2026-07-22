@@ -1,0 +1,55 @@
+---
+title: Wave C.c — Manifest-synced guest-runtime product deps
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-c-guest-transpile-packages.mdoc
+  - docs/dev/wave-c-lazy-marketing-catalog.mdoc
+---
+
+# Wave C.c — Manifest-synced guest-runtime product deps
+
+## Problem
+
+`packages/guest-workspace-runtime/package.json` listed product `@app-tour/workspace-*` packages by hand. Portal/marketing apps correctly depend only on guest-runtime, but **adding a guest-capable workspace** still required editing that package.json (and then `pnpm install`) — parallel to the pre–C.b `transpilePackages` problem.
+
+Hostile audit “optional/peer split” would shrink the **logical** install story for published apps, but inside this **pnpm workspace monorepo** removing hard `workspace:*` product deps breaks dynamic `import("@app-tour/workspace-…")` resolution for registrars/themes/catalog. That is **out of scope** until multi-package publish / filtered installs.
+
+## Decision
+
+Treat guest-runtime product deps as **codegen-owned**, same SoT as guest transpile lists:
+
+1. Product set = union of `collectGuestProductTranspilePackages(manifests, "portal" | "marketing")` (starter + guest themes + portal register + marketing catalog).
+2. Non-product deps stay hand-owned: `workspace-sdk`, `workspace-plugin-host`, `catalog-registration-flow-ui`, …
+3. `pnpm run generate:workspace-registry` **rewrites** only `@app-tour/workspace-<product>` keys in guest-runtime `dependencies` to `workspace:*` for that set (sorted).
+4. `generate:workspace-registry --check` **fails** if package.json product deps drift from the manifest set.
+5. Standalone: `pnpm run guard:guest-runtime-product-deps` (same check).
+
+## Out of scope
+
+- `optionalDependencies` / peer-only product packages in the monorepo
+- Removing product packages from the install graph of portal/marketing (they remain transitive via guest-runtime)
+
+## Gap Closure Phase C.1 (ratchet)
+
+`guard:guest-runtime-product-deps` additionally fails when the product workspace dep **count** exceeds ceiling **4** (denali, guest-club, starter, urban). Shrink via deploy profiles / package split (C.2+); never raise without charter edit in `docs/dev/saas-platform-remediation.mdoc`.
+
+## Gap Closure Phase C.2c
+
+Guest-runtime trunk sync stays full-trunk. Deploy image builds use a **separate** entry that hard-requires the apply gate:
+
+```bash
+WORKSPACE_DEPLOY_PROFILE_APPLY=1 WORKSPACE_DEPLOY_PROFILE=urban,starter \
+  pnpm run sync:guest-runtime-deploy-profile
+```
+
+Never commit the rewritten `packages/guest-workspace-runtime/package.json`. Normal `generate:workspace-registry` ignores deploy-profile env for guest-runtime deps (unlike transpile emit in C.2b).
+
+## Verify
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run guard:guest-runtime-product-deps
+pnpm run guard:guest-consumer-deps
+pnpm run guard:workspace-registry-fresh
+```

@@ -5,14 +5,41 @@
  */
 
 import type { TourListCategorySurface } from "@/features/tours/tour-list-category-surface-types";
-import { denaliTourListCategorySurface as tour_list_category_denali } from "@app-tour/workspace-denali/host/tours/tour-list-category-surface";
 
-const TOUR_LIST_CATEGORY_SURFACES: Readonly<Record<string, TourListCategorySurface>> = Object.freeze({
-  "denali": tour_list_category_denali,
+const TOUR_LIST_CATEGORY_SURFACES_LOADERS: Readonly<
+  Record<string, () => Promise<TourListCategorySurface>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/host/tours/tour-list-category-surface");
+    return mod.denaliTourListCategorySurface;
+  },
 });
 
+const TOUR_LIST_CATEGORY_SURFACES_CACHE = new Map<string, TourListCategorySurface>();
+
+/** Warm product surface via dynamic import (no static @app-tour/workspace-* fan-in). */
+export async function ensureTourListCategorySurface(
+  pluginId: string
+): Promise<TourListCategorySurface | null> {
+  if (pluginId.trim().length === 0) {
+    return null;
+  }
+  const cached = TOUR_LIST_CATEGORY_SURFACES_CACHE.get(pluginId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = TOUR_LIST_CATEGORY_SURFACES_LOADERS[pluginId];
+  if (load == null) {
+    return null;
+  }
+  const surface = await load();
+  TOUR_LIST_CATEGORY_SURFACES_CACHE.set(pluginId, surface);
+  return surface;
+}
+
+/** Sync read of warm cache — call ensureTourListCategorySurface first for product surfaces. */
 export function resolveTourListCategorySurface(
   pluginId: string
 ): TourListCategorySurface | null {
-  return TOUR_LIST_CATEGORY_SURFACES[pluginId] ?? null;
+  return TOUR_LIST_CATEGORY_SURFACES_CACHE.get(pluginId) ?? null;
 }

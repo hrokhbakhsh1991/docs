@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
+import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
 import {
   DEFAULT_USERS_DIRECTORY_QUERY,
   INVITABLE_ROLES,
@@ -820,7 +820,7 @@ export function UsersPageClient({
       {bodyState.type === "loading" ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {Array.from({ length: 4 }).map((_, index) => (
-            <DenaliSkeleton key={index} size="user-card" />
+            <OperatorSkeleton key={index} size="user-card" />
           ))}
         </div>
       ) : null}

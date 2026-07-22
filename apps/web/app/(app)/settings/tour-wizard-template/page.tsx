@@ -20,7 +20,7 @@ export default async function TourWizardTemplatePage() {
     return null;
   }
   const host = (await headers()).get("host") ?? "localhost:3000";
-  const bootstrap = resolveBootstrapAppSessionForHost(host);
+  const bootstrap = await resolveBootstrapAppSessionForHost(host);
   const [initialTemplateResponse, initialCatalog] = await Promise.all([
     fetchWizardTemplateServer(),
     Promise.resolve(buildWizardTemplateCatalogFromPlugin(bootstrap.plugin)),

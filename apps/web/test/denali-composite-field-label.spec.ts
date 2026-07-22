@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveDenaliFieldLabelFromMessages } from "../src/i18n/denali-wizard-labels";
+import { resolveDenaliFieldLabelFromMessages } from "@app-tour/workspace-denali/host/ui/adapters/field-labels-from-messages";
 
 const denaliMessages = {
   steps: {},

@@ -10,7 +10,7 @@ import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
+import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
 import { SETTINGS_HUB_TEST_IDS } from "@/features/settings/settings-module-types";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
@@ -35,7 +35,11 @@ import type {
 } from "@/integrations/integrations-types";
 import { IntegrationConnectionLoadWarningsBanner } from "@/integrations/IntegrationConnectionLoadWarningsBanner";
 import { IntegrationEventDeliveryPolicyPanel } from "../integrations/integration-event-delivery-policy-panel";
-import { DenaliWorkspaceSurfacesPanel } from "@/exposure/DenaliWorkspaceSurfacesPanel";
+import { ensureSettingsExposureSurfacesUiSurface } from "@/bootstrap/workspace-settings-exposure-surfaces-ui-bindings.generated";
+import type { SettingsExposureSurfacesUiSurface } from "@/features/settings/settings-exposure-surfaces-ui-types";
+import { webSettingsExposureSurfacesChrome } from "@/exposure/web-settings-exposure-surfaces-chrome";
+import { webSettingsExposureSurfacesIo } from "@/exposure/web-settings-exposure-surfaces-io";
+import { webSettingsExposureSurfacesSelection } from "@/exposure/web-settings-exposure-surfaces-selection";
 
 type ExposureSettingsClientProps = {
   readonly session: OperatorSessionContext;
@@ -70,6 +74,20 @@ export function ExposureSettingsClient({
   const tIntegrations = useTranslations("settings.integrations");
   const tIntegrationErrors = useTranslations("settings.integrations.errors");
   const canManageExposure = isAdminOrOwnerRole(session.role);
+  const [exposureSurfacesUi, setExposureSurfacesUi] =
+    useState<SettingsExposureSurfacesUiSurface | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void ensureSettingsExposureSurfacesUiSurface(session.pluginId).then((surface) => {
+      if (!cancelled) {
+        setExposureSurfacesUi(surface);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session.pluginId]);
+  const WorkspaceSurfacesPanel = exposureSurfacesUi?.WorkspaceSurfacesPanel;
   const [list, setList] = useState<WorkspaceIntegrationsListResponse>(
     initialList ?? EMPTY_INTEGRATIONS_LIST,
   );
@@ -300,7 +318,7 @@ export function ExposureSettingsClient({
           ) : null}
 
           {exposureConnections.length === 0 ? (
-            <Card data-denali-surface="card" className="shadow-sm">
+            <Card data-operator-surface="card" className="shadow-sm">
               <CardHeader>
                 <CardTitle>{t("emptyTitle")}</CardTitle>
                 <CardDescription>{t("emptyDescription")}</CardDescription>
@@ -317,7 +335,7 @@ export function ExposureSettingsClient({
           ) : exposureConnections.length === 1 ? (
             <section className="space-y-4" aria-labelledby="exposure-telegram-section-title">
               <Card
-                data-denali-surface="card"
+                data-operator-surface="card"
                 className="shadow-sm"
                 data-testid={SETTINGS_HUB_TEST_IDS.exposureTelegramPanel}
               >
@@ -338,7 +356,7 @@ export function ExposureSettingsClient({
                 </CardHeader>
                 <CardContent className="pt-6">
                   {loadingDetail || activeItem === null ? (
-                    <DenaliSkeleton size="panel-lg" />
+                    <OperatorSkeleton size="panel-lg" />
                   ) : detailError !== null ? (
                     <p className="text-sm text-muted-foreground">{t("detailLoadFailed")}</p>
                   ) : catalogError !== null || !catalogReady ? (
@@ -348,6 +366,7 @@ export function ExposureSettingsClient({
                       connection={activeItem}
                       providerSurface={activeProviderSurface}
                       exposureCandidateFields={catalog?.fields ?? []}
+                      pluginId={session.pluginId}
                       canEdit={
                         canManageExposure &&
                         activeItem.actionsAllowed.patch &&
@@ -364,7 +383,7 @@ export function ExposureSettingsClient({
             </section>
           ) : (
             <div className="grid gap-6 lg:grid-cols-[minmax(0,240px)_1fr]">
-              <Card data-denali-surface="card" className="h-fit shadow-sm lg:sticky lg:top-6">
+              <Card data-operator-surface="card" className="h-fit shadow-sm lg:sticky lg:top-6">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">{t("connectionsTitle")}</CardTitle>
                   <CardDescription>{t("connectionsDescription")}</CardDescription>
@@ -400,7 +419,7 @@ export function ExposureSettingsClient({
               </Card>
 
               <Card
-                data-denali-surface="card"
+                data-operator-surface="card"
                 className="shadow-sm"
                 data-testid={SETTINGS_HUB_TEST_IDS.exposureTelegramPanel}
               >
@@ -410,7 +429,7 @@ export function ExposureSettingsClient({
                 </CardHeader>
                 <CardContent className="pt-6">
                   {loadingDetail || activeItem === null ? (
-                    <DenaliSkeleton size="panel-lg" />
+                    <OperatorSkeleton size="panel-lg" />
                   ) : detailError !== null ? (
                     <p className="text-sm text-muted-foreground">{t("detailLoadFailed")}</p>
                   ) : catalogError !== null || !catalogReady ? (
@@ -420,6 +439,7 @@ export function ExposureSettingsClient({
                       connection={activeItem}
                       providerSurface={activeProviderSurface}
                       exposureCandidateFields={catalog?.fields ?? []}
+                      pluginId={session.pluginId}
                       canEdit={
                         canManageExposure &&
                         activeItem.actionsAllowed.patch &&
@@ -437,13 +457,17 @@ export function ExposureSettingsClient({
           )}
 
           {!catalogError &&
-          operatorCapabilitySupportsFieldExposureSurfaces(session.pluginId) ? (
+          operatorCapabilitySupportsFieldExposureSurfaces(session.pluginId) &&
+          WorkspaceSurfacesPanel != null ? (
             <>
               <Separator />
-              <DenaliWorkspaceSurfacesPanel
+              <WorkspaceSurfacesPanel
                 workspaceId={workspaceId}
-                exposureCandidateFields={catalog.fields}
+                exposureCandidateFields={catalog?.fields ?? []}
                 canEdit={canManageExposure}
+                io={webSettingsExposureSurfacesIo}
+                chrome={webSettingsExposureSurfacesChrome}
+                selection={webSettingsExposureSurfacesSelection}
               />
             </>
           ) : null}

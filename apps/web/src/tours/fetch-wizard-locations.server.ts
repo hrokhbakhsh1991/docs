@@ -1,7 +1,7 @@
 import { cookies, headers } from "next/headers";
 
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
-import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 /** Server prefetch for wizard destination catalog — avoids client-only loading stall. */
 export async function fetchWizardLocationsServer(): Promise<unknown | null> {

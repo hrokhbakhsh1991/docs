@@ -53,14 +53,14 @@ describe("home-section-gates-v3.spec.ts — HOME-UNIT-06", () => {
     );
   });
 
-  it("resolveMarketingCategoryLabel maps known slugs and humanizes unknown", () => {
+  it("resolveMarketingCategoryLabel maps known slugs and humanizes unknown", async () => {
     assert.equal(
-      resolveMarketingCategoryLabel("mountain_multi", (key) =>
+      await resolveMarketingCategoryLabel("mountain_multi", (key) =>
         key === "home.full.categories.labels.mountain_multi" ? "کوهنوردی — چندروزه" : key
       ),
       "کوهنوردی — چندروزه"
     );
-    assert.equal(resolveMarketingCategoryLabel("custom_slug", (key) => key), "custom slug");
+    assert.equal(await resolveMarketingCategoryLabel("custom_slug", (key) => key), "custom slug");
   });
 
   it("GuestHomeFull wires featured, categories, destinations, hero search", () => {

@@ -37,11 +37,6 @@ export function isExtendedOperatorSession(session: OperatorSessionContext): bool
   );
 }
 
-/** @deprecated Use {@link isExtendedOperatorSession} — Denali-named alias for legacy tests. */
-export function isDenaliOperatorSession(session: OperatorSessionContext): boolean {
-  return isExtendedOperatorSession(session);
-}
-
 export type RequireOperatorSessionWebParams = {
   readonly session: OperatorSessionContext | null;
   readonly pathname: string;

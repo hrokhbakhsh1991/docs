@@ -3,6 +3,7 @@ import {
   normalizeMemberPortalAvailability,
   resolveEffectiveMemberPortalConfig,
 } from "./member-portal.mjs";
+import { assertOperatorShellManifest, assertWorkspaceCommerceManifest } from "./operator.mjs";
 
 const CATALOG_LIST_ROUTE_KEY = /^GET \/[^/]+\/catalog$/;
 const CATALOG_DETAIL_ROUTE_KEY = /^GET \/[^/]+\/catalog\/:tourId$/;
@@ -216,10 +217,13 @@ const GUEST_EXTENSION_MANIFEST_KEYS = [
   "guestLanding",
   "guestConformance",
   "operatorCapabilities",
+  "operatorShell",
+  "commerce",
   "wizardTemplateEditor",
   "marketingCatalog",
   "settingsDestinationSurface",
   "settingsEquipmentUi",
+  "settingsExposureSurfacesUi",
   "tourActionSubmitCodec",
   "photoUploadErrors",
   "tourListCategoryFilter",
@@ -289,6 +293,14 @@ export function assertGuestExtensionsManifest(manifest) {
         throw new Error(`${manifest.id}: operatorCapabilities.${key} must be boolean`);
       }
     }
+  }
+
+  if (manifest.operatorShell !== undefined) {
+    assertOperatorShellManifest(manifest);
+  }
+
+  if (manifest.commerce !== undefined) {
+    assertWorkspaceCommerceManifest(manifest);
   }
 
   if (manifest.wizardTemplateEditor !== undefined) {
@@ -366,6 +378,7 @@ export function assertGuestExtensionsManifest(manifest) {
   for (const key of [
     "settingsDestinationSurface",
     "settingsEquipmentUi",
+    "settingsExposureSurfacesUi",
     "tourActionSubmitCodec",
     "photoUploadErrors",
     "tourListCategoryFilter",

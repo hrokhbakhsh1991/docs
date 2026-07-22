@@ -1,4 +1,622 @@
-import { BANNER } from "../constants.mjs";
+import { BANNER, REPO_ROOT } from "../constants.mjs";
+import { selectPortalRegisterManifests } from "./registration.mjs";
+import { productWorkspaceManifests } from "./core-registry.mjs";
+import {
+  applyDeployProfileToProductPackages,
+  filterManifestsByDeployProfile,
+  filterProductPackagesByDeployProfile,
+  isGuestRuntimeProductWorkspaceDep,
+  resolveWorkspaceDeployProfile,
+} from "./deploy-profile.mjs";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+export {
+  applyDeployProfileToProductPackages,
+  filterManifestsByDeployProfile,
+  filterProductPackagesByDeployProfile,
+  isGuestRuntimeProductWorkspaceDep,
+  resolveWorkspaceDeployProfile,
+} from "./deploy-profile.mjs";
+
+/** Fixed Next transpilePackages for portal (non-workspace product packages). */
+export const PORTAL_PLATFORM_TRANSPILE_PACKAGES = Object.freeze([
+  "@app-tour/design-tokens",
+  "@app-tour/theme-react",
+  "@app-tour/ui-primitives",
+  "@app-tour/workspace-sdk",
+  "@app-tour/workspace-plugin-host",
+  "@app-tour/guest-workspace-runtime",
+  "@app-tour/catalog-intake-ui",
+  "@app-tour/catalog-registration-auth",
+  "@app-tour/catalog-registration-flow-ui",
+]);
+
+/** Fixed Next transpilePackages for marketing (non-workspace product packages). */
+export const MARKETING_PLATFORM_TRANSPILE_PACKAGES = Object.freeze([
+  "@app-tour/design-tokens",
+  "@app-tour/theme-react",
+  "@app-tour/workspace-sdk",
+  "@app-tour/guest-workspace-runtime",
+]);
+
+/** Fixed Next transpilePackages for admin web (non-workspace product packages). */
+export const ADMIN_PLATFORM_TRANSPILE_PACKAGES = Object.freeze([
+  "@app-tour/draft-engine",
+  "@app-tour/wizard-navigation",
+  "@app-tour/design-tokens",
+  "@app-tour/platform-core",
+  "@app-tour/theme-react",
+  "@app-tour/ui-primitives",
+  "@app-tour/workspace-sdk",
+]);
+
+
+/**
+ * Product workspace packages that guest Next apps must transpile (Wave C.b).
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @param {"portal" | "marketing"} surface
+ * @returns {string[]}
+ */
+export function collectGuestProductTranspilePackages(manifests, surface) {
+  if (surface !== "portal" && surface !== "marketing") {
+    throw new Error(`collectGuestProductTranspilePackages: unknown surface ${surface}`);
+  }
+  /** @type {Set<string>} */
+  const packages = new Set();
+  const starter = manifests.find((m) => m.id === "starter");
+  if (starter?.package) {
+    packages.add(starter.package);
+  }
+
+  for (const m of manifests) {
+    if (m.workspaceFinance?.registryOnly === true || m.workspaceBooking?.registryOnly === true) {
+      continue;
+    }
+    if (typeof m.package !== "string" || m.package.length === 0) {
+      continue;
+    }
+    const guest = m.guestThemeStylesheets;
+    if (guest != null && typeof guest === "object" && !Array.isArray(guest)) {
+      const sheets = guest[surface];
+      if (Array.isArray(sheets) && sheets.length > 0) {
+        packages.add(m.package);
+      }
+    }
+    if (surface === "marketing" && m.marketingCatalog !== undefined) {
+      packages.add(m.package);
+    }
+  }
+
+  if (surface === "portal") {
+    for (const m of selectPortalRegisterManifests(manifests)) {
+      if (typeof m.package === "string" && m.package.length > 0) {
+        packages.add(m.package);
+      }
+    }
+  }
+
+  return [...packages].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Product workspace packages that admin Next must transpile (Wave G.a).
+ * Membership mirrors admin theme registry: starter + themeStylesheets declarants.
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @returns {string[]}
+ */
+export function collectAdminProductTranspilePackages(manifests) {
+  /** @type {Set<string>} */
+  const packages = new Set();
+  const starter = manifests.find((m) => m.id === "starter");
+  if (starter?.package) {
+    packages.add(starter.package);
+  }
+
+  for (const m of manifests) {
+    if (m.workspaceFinance?.registryOnly === true || m.workspaceBooking?.registryOnly === true) {
+      continue;
+    }
+    if (typeof m.package !== "string" || m.package.length === 0) {
+      continue;
+    }
+    const sheets = Array.isArray(m.themeStylesheets) ? m.themeStylesheets : [];
+    if (sheets.length > 0) {
+      packages.add(m.package);
+    }
+  }
+
+  return [...packages].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Union of portal + marketing guest product packages for guest-workspace-runtime deps (Wave C.c).
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @returns {string[]}
+ */
+export function collectGuestRuntimeProductPackages(manifests) {
+  /** @type {Set<string>} */
+  const packages = new Set([
+    ...collectGuestProductTranspilePackages(manifests, "portal"),
+    ...collectGuestProductTranspilePackages(manifests, "marketing"),
+  ]);
+  return [...packages].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Gap Closure C.2c — guest-runtime product packages after optional deploy-profile filter.
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env]
+ * @returns {string[]}
+ */
+export function collectGuestRuntimeProductPackagesForEnv(manifests, env = process.env) {
+  const collected = collectGuestRuntimeProductPackages(manifests);
+  return applyDeployProfileToProductPackages(collected, env).packages;
+}
+
+/**
+ * @param {Record<string, string>} dependencies
+ * @param {readonly string[]} productPackages
+ * @returns {Record<string, string>}
+ */
+export function buildGuestRuntimeDependencies(dependencies, productPackages) {
+  /** @type {Record<string, string>} */
+  const next = {};
+  for (const [name, version] of Object.entries(dependencies ?? {})) {
+    if (!isGuestRuntimeProductWorkspaceDep(name)) {
+      next[name] = version;
+    }
+  }
+  for (const pkg of productPackages) {
+    next[pkg] = "workspace:*";
+  }
+  return Object.fromEntries(
+    Object.keys(next)
+      .sort((a, b) => a.localeCompare(b))
+      .map((k) => [k, next[k]])
+  );
+}
+
+/**
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @returns {{ ok: true } | { ok: false; expected: Record<string, string>; actual: Record<string, string> }}
+ */
+export function verifyGuestWorkspaceRuntimePackageJson(manifests) {
+  const pkgPath = join(REPO_ROOT, "packages/guest-workspace-runtime/package.json");
+  const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+  const actual = pkg.dependencies ?? {};
+  const expected = buildGuestRuntimeDependencies(
+    actual,
+    collectGuestRuntimeProductPackages(manifests)
+  );
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    return { ok: false, expected, actual };
+  }
+  return { ok: true };
+}
+
+/**
+ * Rewrite product workspace deps on guest-workspace-runtime to match manifests (Wave C.c).
+ * Always full-trunk — deploy profile filtering uses {@link syncGuestWorkspaceRuntimePackageJsonForDeploy}.
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @returns {boolean} true when package.json was written
+ */
+export function syncGuestWorkspaceRuntimePackageJson(manifests) {
+  const pkgPath = join(REPO_ROOT, "packages/guest-workspace-runtime/package.json");
+  const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+  const expected = buildGuestRuntimeDependencies(
+    pkg.dependencies ?? {},
+    collectGuestRuntimeProductPackages(manifests)
+  );
+  if (JSON.stringify(pkg.dependencies ?? {}) === JSON.stringify(expected)) {
+    return false;
+  }
+  pkg.dependencies = expected;
+  writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
+  return true;
+}
+
+/**
+ * Gap Closure C.2c — deploy-image-only guest-runtime product dep sync (double opt-in required).
+ * Refuses to run unless WORKSPACE_DEPLOY_PROFILE_APPLY=1. Do not use on trunk checkouts intended for commit.
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env]
+ * @returns {{ readonly written: boolean; readonly products: readonly string[]; readonly profile: string }}
+ */
+export function syncGuestWorkspaceRuntimePackageJsonForDeploy(manifests, env = process.env) {
+  const resolved = resolveWorkspaceDeployProfile(env);
+  if (!resolved.applied) {
+    throw new Error(
+      "syncGuestWorkspaceRuntimePackageJsonForDeploy requires WORKSPACE_DEPLOY_PROFILE_APPLY=1"
+    );
+  }
+  const products = collectGuestRuntimeProductPackagesForEnv(manifests, env);
+  const pkgPath = join(REPO_ROOT, "packages/guest-workspace-runtime/package.json");
+  const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+  const expected = buildGuestRuntimeDependencies(pkg.dependencies ?? {}, products);
+  const written = JSON.stringify(pkg.dependencies ?? {}) !== JSON.stringify(expected);
+  if (written) {
+    pkg.dependencies = expected;
+    writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
+  }
+  return { written, products, profile: resolved.profile };
+}
+
+/**
+ * Product trunk packages the admin web host must declare (Wave I.8).
+ * Same set as plugin loaders / boundary PRODUCT_WORKSPACE_PACKAGES.
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @returns {string[]}
+ */
+export function collectAdminHostProductPackages(manifests) {
+  return productWorkspaceManifests(manifests)
+    .map((m) => m.package)
+    .filter((pkg) => typeof pkg === "string" && pkg.length > 0)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * @param {string} name
+ */
+export function isAdminHostProductWorkspaceDep(name) {
+  if (name === "@app-tour/workspace-sdk" || name === "@app-tour/workspace-plugin-host") {
+    return false;
+  }
+  return name.startsWith("@app-tour/workspace-");
+}
+
+/**
+ * Strip product workspace keys from a dependency map (Wave I.8).
+ * @param {Record<string, string>} block
+ * @returns {Record<string, string>}
+ */
+export function stripAdminHostProductWorkspaceDeps(block) {
+  /** @type {Record<string, string>} */
+  const next = {};
+  for (const [name, version] of Object.entries(block ?? {})) {
+    if (!isAdminHostProductWorkspaceDep(name)) {
+      next[name] = version;
+    }
+  }
+  return Object.fromEntries(
+    Object.keys(next)
+      .sort((a, b) => a.localeCompare(b))
+      .map((k) => [k, next[k]])
+  );
+}
+
+/**
+ * Rebuild apps/web devDependencies product keys from manifests (Wave I.8).
+ * @param {Record<string, string>} devDependencies
+ * @param {readonly string[]} productPackages
+ * @returns {Record<string, string>}
+ */
+export function buildAdminWebDevDependencies(devDependencies, productPackages) {
+  /** @type {Record<string, string>} */
+  const next = {};
+  for (const [name, version] of Object.entries(devDependencies ?? {})) {
+    if (!isAdminHostProductWorkspaceDep(name)) {
+      next[name] = version;
+    }
+  }
+  for (const pkg of productPackages) {
+    next[pkg] = "workspace:*";
+  }
+  return Object.fromEntries(
+    Object.keys(next)
+      .sort((a, b) => a.localeCompare(b))
+      .map((k) => [k, next[k]])
+  );
+}
+
+/**
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @returns {{
+ *   ok: true
+ * } | {
+ *   ok: false;
+ *   expectedDependencies: Record<string, string>;
+ *   actualDependencies: Record<string, string>;
+ *   expectedDevDependencies: Record<string, string>;
+ *   actualDevDependencies: Record<string, string>;
+ * }}
+ */
+export function verifyAdminWebPackageJson(manifests) {
+  const pkgPath = join(REPO_ROOT, "apps/web/package.json");
+  const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+  const products = collectAdminHostProductPackages(manifests);
+  const expectedDependencies = stripAdminHostProductWorkspaceDeps(pkg.dependencies ?? {});
+  const expectedDevDependencies = buildAdminWebDevDependencies(pkg.devDependencies ?? {}, products);
+  const actualDependencies = pkg.dependencies ?? {};
+  const actualDevDependencies = pkg.devDependencies ?? {};
+  if (
+    JSON.stringify(actualDependencies) !== JSON.stringify(expectedDependencies) ||
+    JSON.stringify(actualDevDependencies) !== JSON.stringify(expectedDevDependencies)
+  ) {
+    return {
+      ok: false,
+      expectedDependencies,
+      actualDependencies,
+      expectedDevDependencies,
+      actualDevDependencies,
+    };
+  }
+  return { ok: true };
+}
+
+/**
+ * Rewrite apps/web product workspace deps to match product trunk (Wave I.8).
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @returns {boolean} true when package.json was written
+ */
+export function syncAdminWebPackageJson(manifests) {
+  const pkgPath = join(REPO_ROOT, "apps/web/package.json");
+  const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+  const products = collectAdminHostProductPackages(manifests);
+  const expectedDependencies = stripAdminHostProductWorkspaceDeps(pkg.dependencies ?? {});
+  const expectedDevDependencies = buildAdminWebDevDependencies(pkg.devDependencies ?? {}, products);
+  if (
+    JSON.stringify(pkg.dependencies ?? {}) === JSON.stringify(expectedDependencies) &&
+    JSON.stringify(pkg.devDependencies ?? {}) === JSON.stringify(expectedDevDependencies)
+  ) {
+    return false;
+  }
+  pkg.dependencies = expectedDependencies;
+  pkg.devDependencies = expectedDevDependencies;
+  if (pkg.optionalDependencies && typeof pkg.optionalDependencies === "object") {
+    pkg.optionalDependencies = stripAdminHostProductWorkspaceDeps(pkg.optionalDependencies);
+  }
+  writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
+  return true;
+}
+
+/**
+ * ESM module for apps/{portal|marketing} next.config transpilePackages (Wave C.b).
+ * Gap Closure C.2b — optional deploy-profile filter (double opt-in via env).
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @param {"portal" | "marketing"} surface
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env]
+ */
+export function generateGuestTranspilePackages(manifests, surface, env = process.env) {
+  const platform =
+    surface === "portal"
+      ? PORTAL_PLATFORM_TRANSPILE_PACKAGES
+      : MARKETING_PLATFORM_TRANSPILE_PACKAGES;
+  const collected = collectGuestProductTranspilePackages(manifests, surface);
+  const { packages: products, profileNote } = applyDeployProfileToProductPackages(collected, env);
+  const merged = [...platform, ...products.filter((pkg) => !platform.includes(pkg))];
+  const profileLine = profileNote != null ? `\n * ${profileNote}` : "";
+
+  return `${BANNER}/** Wave C.b — portal/marketing Next transpilePackages from workspace manifests.${profileLine} */
+
+/** @type {readonly string[]} */
+export const GUEST_TRANSPILE_PACKAGES = Object.freeze([
+${merged.map((pkg) => `  ${JSON.stringify(pkg)},`).join("\n")}
+]);
+`;
+}
+
+/**
+ * ESM module for apps/web next.config transpilePackages (Wave G.a).
+ * Gap Closure C.2b — optional deploy-profile filter (double opt-in via env).
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env]
+ */
+export function generateAdminTranspilePackages(manifests, env = process.env) {
+  const collected = collectAdminProductTranspilePackages(manifests);
+  const { packages: products, profileNote } = applyDeployProfileToProductPackages(collected, env);
+  const merged = [
+    ...ADMIN_PLATFORM_TRANSPILE_PACKAGES,
+    ...products.filter((pkg) => !ADMIN_PLATFORM_TRANSPILE_PACKAGES.includes(pkg)),
+  ];
+  const profileLine = profileNote != null ? `\n * ${profileNote}` : "";
+
+  return `${BANNER}/** Wave G.a — admin Next transpilePackages from workspace manifests.${profileLine} */
+
+/** @type {readonly string[]} */
+export const ADMIN_TRANSPILE_PACKAGES = Object.freeze([
+${merged.map((pkg) => `  ${JSON.stringify(pkg)},`).join("\n")}
+]);
+`;
+}
+
+/**
+ * Escape a package name for use inside a RegExp source (Wave H.j).
+ * @param {string} packageName
+ */
+function escapePackageNameForRegExpSource(packageName) {
+  return packageName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Wave H.j — validate optional adminWeb.clientBundleEnvGate.
+ * @param {{ id: string; package?: unknown; adminWeb?: unknown }} manifest
+ */
+export function assertAdminWebManifest(manifest) {
+  if (manifest.adminWeb === undefined) {
+    return;
+  }
+  const adminWeb = manifest.adminWeb;
+  if (typeof adminWeb !== "object" || adminWeb === null || Array.isArray(adminWeb)) {
+    throw new Error(`${manifest.id}: adminWeb must be an object`);
+  }
+  const gate = /** @type {{ clientBundleEnvGate?: unknown }} */ (adminWeb).clientBundleEnvGate;
+  if (gate === undefined) {
+    return;
+  }
+  if (typeof gate !== "string" || !/^ALLOW_[A-Z0-9_]+$/.test(gate)) {
+    throw new Error(
+      `${manifest.id}: adminWeb.clientBundleEnvGate must match /^ALLOW_[A-Z0-9_]+$/`
+    );
+  }
+  if (typeof manifest.package !== "string" || manifest.package.trim().length === 0) {
+    throw new Error(`${manifest.id}: adminWeb.clientBundleEnvGate requires package string`);
+  }
+}
+
+/**
+ * Wave H.j / Gap Closure D.1 — IgnorePlugin gate rows from manifests.
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @returns {{ id: string; packageName: string; envKey: string }[]}
+ */
+export function collectAdminClientWorkspaceIgnoreRows(manifests) {
+  /** @type {{ id: string; packageName: string; envKey: string }[]} */
+  const rows = [];
+  for (const manifest of manifests) {
+    assertAdminWebManifest(manifest);
+    const gate = manifest.adminWeb?.clientBundleEnvGate;
+    if (typeof gate !== "string") {
+      continue;
+    }
+    rows.push({
+      id: manifest.id,
+      packageName: /** @type {string} */ (manifest.package),
+      envKey: gate,
+    });
+  }
+  rows.sort((a, b) => a.id.localeCompare(b.id));
+  return rows;
+}
+
+/**
+ * Gap Closure D.1 — deploy-profile bundle plan (transpile products ∩ IgnorePlugin gates).
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env]
+ */
+export function buildDeployProfileBundlePlan(manifests, env = process.env) {
+  const resolved = resolveWorkspaceDeployProfile(env);
+  const adminTranspileProducts = applyDeployProfileToProductPackages(
+    collectAdminProductTranspilePackages(manifests),
+    env
+  ).packages;
+  const guestRuntimeProducts = collectGuestRuntimeProductPackagesForEnv(manifests, env);
+  const ignoreRows = collectAdminClientWorkspaceIgnoreRows(manifests);
+  const adminSet = new Set(adminTranspileProducts);
+  const clientIgnore = ignoreRows.map((row) => {
+    const inProfile = adminSet.has(row.packageName);
+    return {
+      id: row.id,
+      packageName: row.packageName,
+      envKey: row.envKey,
+      inProfile,
+      recommendedAllowEnv: inProfile ? "true" : null,
+    };
+  });
+  /** @type {Record<string, string>} */
+  const recommendedProcessEnv = {};
+  for (const row of clientIgnore) {
+    if (row.recommendedAllowEnv === "true") {
+      recommendedProcessEnv[row.envKey] = "true";
+    }
+  }
+  return {
+    applied: resolved.applied,
+    profile: resolved.profile,
+    adminTranspileProducts,
+    guestRuntimeProducts,
+    clientIgnore,
+    recommendedProcessEnv,
+  };
+}
+
+/**
+ * @param {ReturnType<typeof buildDeployProfileBundlePlan>} plan
+ * @returns {{ ok: true } | { ok: false; errors: string[] }}
+ */
+export function assertDeployProfileBundlePlanCoherent(plan) {
+  /** @type {string[]} */
+  const errors = [];
+  const adminSet = new Set(plan.adminTranspileProducts);
+  for (const row of plan.clientIgnore) {
+    const expected = adminSet.has(row.packageName);
+    if (row.inProfile !== expected) {
+      errors.push(
+        `${row.packageName}: inProfile=${row.inProfile} but admin transpile membership=${expected}`
+      );
+    }
+    if (row.inProfile && plan.recommendedProcessEnv[row.envKey] !== "true") {
+      errors.push(`${row.envKey}: in-profile package missing recommended ALLOW=true`);
+    }
+    if (!row.inProfile && plan.recommendedProcessEnv[row.envKey] === "true") {
+      errors.push(`${row.envKey}: out-of-profile package must not recommend ALLOW=true`);
+    }
+  }
+  if (!plan.applied) {
+    // Full-trunk: guest runtime product count should match unfiltered collect (caller may compare).
+  } else if (plan.profile !== "full" && plan.profile !== "*") {
+    for (const pkg of plan.adminTranspileProducts) {
+      const gated = plan.clientIgnore.find((row) => row.packageName === pkg);
+      if (gated && gated.recommendedAllowEnv !== "true") {
+        errors.push(`${pkg}: in filtered admin set but IgnorePlugin allow not recommended`);
+      }
+    }
+  }
+  return errors.length === 0 ? { ok: true } : { ok: false, errors };
+}
+
+/**
+ * Gap Closure D.2 — shell exports for recommended IgnorePlugin allow envs.
+ * @param {{ readonly recommendedProcessEnv: Record<string, string> }} plan
+ * @returns {string}
+ */
+export function formatDeployProfileAllowEnvExports(plan) {
+  const keys = Object.keys(plan.recommendedProcessEnv ?? {}).sort((a, b) => a.localeCompare(b));
+  if (keys.length === 0) {
+    return "# deploy-profile: no ALLOW_* recommendations (empty profile or no clientBundleEnvGate rows)\n";
+  }
+  return `${keys.map((key) => `export ${key}=${JSON.stringify(plan.recommendedProcessEnv[key])}`).join("\n")}\n`;
+}
+
+/**
+ * ESM module for apps/web IgnorePlugin env gates (Wave H.j).
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ */
+export function generateAdminClientWorkspaceIgnore(manifests) {
+  const rows = collectAdminClientWorkspaceIgnoreRows(manifests);
+
+  const ruleLines = rows.map((row) => {
+    const source = `^${escapePackageNameForRegExpSource(row.packageName)}(\\/|$)`;
+    return `  Object.freeze({
+    envKey: ${JSON.stringify(row.envKey)},
+    resourceRegExpSource: ${JSON.stringify(source)},
+    label: ${JSON.stringify(row.id)},
+    packageName: ${JSON.stringify(row.packageName)},
+  }),`;
+  });
+
+  return `${BANNER}/** Wave H.j — admin client IgnorePlugin gates from workspace manifests (adminWeb.clientBundleEnvGate). */
+
+/**
+ * @typedef {{
+ *   readonly envKey: string;
+ *   readonly resourceRegExpSource: string;
+ *   readonly label: string;
+ *   readonly packageName: string;
+ * }} AdminClientWorkspaceIgnoreRuleDef
+ */
+
+/** @type {readonly AdminClientWorkspaceIgnoreRuleDef[]} */
+export const ADMIN_CLIENT_WORKSPACE_IGNORE_RULES = Object.freeze([
+${ruleLines.join("\n")}
+]);
+
+/**
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env]
+ * @returns {readonly { envKey: string; resourceRegExp: RegExp; label: string; packageName: string }[]}
+ */
+export function resolveActiveAdminClientWorkspaceIgnoreRules(env = process.env) {
+  return ADMIN_CLIENT_WORKSPACE_IGNORE_RULES.filter((rule) => env[rule.envKey] !== "true").map(
+    (rule) =>
+      Object.freeze({
+        envKey: rule.envKey,
+        label: rule.label,
+        packageName: rule.packageName,
+        resourceRegExp: new RegExp(rule.resourceRegExpSource),
+      })
+  );
+}
+`;
+}
 
 export function generateWorkspaceThemeStylesheets(manifests) {
   /** @type {Set<string>} */
@@ -22,10 +640,11 @@ ${[...importLines].sort().join("\n")}
  * Per-plugin dynamic admin CSS loader — no eager import of all workspace admin skins.
  * @param {import("./generate-workspace-registry.mjs").WorkspaceManifest[]} manifests
  */
-export function generateAdminThemeStylesheetLoader(manifests) {
+export function generateAdminThemeStylesheetLoader(manifests, env = process.env) {
   /** @type {{ id: string; package: string; sheets: string[] }[]} */
   const entries = [];
-  for (const m of manifests) {
+  const scoped = filterManifestsByDeployProfile(manifests, env);
+  for (const m of scoped) {
     const sheets = Array.isArray(m.themeStylesheets) ? m.themeStylesheets : [];
     if (sheets.length === 0) {
       continue;
@@ -72,6 +691,33 @@ ${switchCases}
 `;
 }
 
+/**
+ * Ambient TypeScript module decls for workspace admin CSS packages (Gap Closure B.18).
+ * Emitted as `*.generated.d.ts` so shell product-token ratchet does not count package path tokens.
+ * @param {import("../manifest-loader.mjs").discoverManifests extends (...args: any) => infer R ? R : never} manifests
+ */
+export function generateWorkspaceThemeCssAmbientModules(manifests) {
+  /** @type {Set<string>} */
+  const modules = new Set();
+  for (const m of manifests) {
+    const sheets = Array.isArray(m.themeStylesheets) ? m.themeStylesheets : [];
+    for (const sheet of sheets) {
+      if (typeof sheet !== "string" || sheet.trim().length === 0) {
+        throw new Error(`${m.id}: themeStylesheets entries must be non-empty strings`);
+      }
+      modules.add(`${m.package}/${sheet}`);
+    }
+  }
+  const decls = [...modules]
+    .sort()
+    .map((spec) => `declare module ${JSON.stringify(spec)};`)
+    .join("\n");
+  return `${BANNER}
+/** Workspace L3 admin skin CSS loaded via dynamic import (operator theme stack). */
+${decls}
+`;
+}
+
 export function generateGuestThemeStylesheets(manifests, surface) {
   if (typeof surface !== "string" || surface.trim().length === 0) {
     throw new Error("generateGuestThemeStylesheets: surface is required");
@@ -112,7 +758,7 @@ ${[...importLines].sort().join("\n")}
  * @param {import("./generate-workspace-registry.mjs").WorkspaceManifest[]} manifests
  * @param {string} surface
  */
-export function generateGuestThemeStylesheetLoader(manifests, surface) {
+export function generateGuestThemeStylesheetLoader(manifests, surface, env = process.env) {
   if (typeof surface !== "string" || surface.trim().length === 0) {
     throw new Error("generateGuestThemeStylesheetLoader: surface is required");
   }
@@ -124,8 +770,9 @@ export function generateGuestThemeStylesheetLoader(manifests, surface) {
 
   /** @type {{ id: string; package: string; sheets: string[] }[]} */
   const entries = [];
+  const scoped = filterManifestsByDeployProfile(manifests, env);
 
-  for (const m of manifests) {
+  for (const m of scoped) {
     const guest = m.guestThemeStylesheets;
     if (guest === undefined || guest === null) {
       continue;

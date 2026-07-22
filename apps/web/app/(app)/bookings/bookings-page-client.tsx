@@ -9,8 +9,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BookingActivityTimeline } from "@/admin/patterns/booking-activity-timeline";
-import { DenaliEmptyState } from "@/admin/patterns/denali-empty-state";
-import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
+import { OperatorEmptyState } from "@/admin/patterns/operator-empty-state";
+import { OperatorSkeleton } from "@/admin/patterns/operator-skeleton";
 import { PageHeader } from "@/admin/patterns/page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge, badgeVariants } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ import {
   toggleTourChipFilter,
 } from "@/features/bookings/bookings-command-center-logic";
 import { BookingRegistrationIntakeDetails } from "@/features/bookings/booking-registration-intake-details";
+import { BookingFinancialStrip } from "@/finance/booking-financial-strip";
 import {
   BOOKINGS_COMMAND_CENTER_TEST_IDS,
   BOOKING_STATUS_FILTER_OPTIONS,
@@ -392,8 +393,8 @@ export function BookingsPageClient({
 
       {bodyState.type === "loading" ? (
         <div className="space-y-3">
-          <DenaliSkeleton size="block" />
-          <DenaliSkeleton size="panel" />
+          <OperatorSkeleton size="block" />
+          <OperatorSkeleton size="panel" />
         </div>
       ) : null}
 
@@ -408,18 +409,18 @@ export function BookingsPageClient({
       {bodyState.type === "empty" ? (
         <Card>
           <CardContent className="pt-6">
-            <DenaliEmptyState description={t("emptyFiltered")} icon="trees" />
+            <OperatorEmptyState description={t("emptyFiltered")} icon="trees" />
           </CardContent>
         </Card>
       ) : null}
 
       {bodyState.type === "ready" && listData !== null ? (
         <div className="grid gap-4 lg:grid-cols-[3fr_2fr]" data-density="compact">
-          <Card data-denali-bookings-inbox data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.inbox}>
-            <CardHeader data-denali-inbox-header>
+          <Card data-operator-bookings-inbox data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.inbox}>
+            <CardHeader data-operator-inbox-header>
               <CardTitle>{t("inbox", { count: listData.total })}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2" data-denali-booking-list>
+            <CardContent className="space-y-2" data-operator-booking-list>
               {listData.items.map((item) => (
                 <BookingRow
                   key={item.id}
@@ -462,6 +463,7 @@ export function BookingsPageClient({
                     </dd>
                   </dl>
                   <BookingRegistrationIntakeDetails booking={selectedBooking} />
+                  <BookingFinancialStrip registrationId={selectedBooking.id} />
                   <BookingActivityTimeline booking={selectedBooking} />
                   {canManageOps &&
                   (selectedBooking.status === "pending" ||

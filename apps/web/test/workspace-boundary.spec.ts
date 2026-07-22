@@ -11,10 +11,10 @@ const SRC_DIR = join(WEB_ROOT, "src");
 const APP_DIR = join(WEB_ROOT, "app");
 
 const DENALI_SHELL_ORCHESTRATION = [
-  "use-denali-create-tour-wizard.ts",
-  "use-denali-flat-edit-page.ts",
-  "denali-wizard-draft-shell.ts",
-  "denali-flat-edit-form-shell.tsx",
+  "use-create-tour-wizard.ts",
+  "use-flat-edit-page.ts",
+  "wizard-draft-shell.ts",
+  "flat-edit-form-shell.tsx",
 ] as const;
 
 const WORKSPACE_LAZY_LOAD_ALLOWLIST = new Set([
@@ -26,6 +26,7 @@ const WORKSPACE_LAZY_LOAD_ALLOWLIST = new Set([
   join(SRC_DIR, "bootstrap", "workspace-wizard-template-editor-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-settings-destination-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-settings-equipment-ui-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-settings-exposure-surfaces-ui-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-tour-action-submit-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-photo-upload-errors-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-tour-list-category-bindings.generated.ts"),
@@ -35,6 +36,7 @@ const WORKSPACE_LAZY_LOAD_ALLOWLIST = new Set([
   join(SRC_DIR, "bootstrap", "workspace-wizard-template-preset-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-wizard-draft-shell-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-wizard-create-chrome-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-host-adapters.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-wizard-flat-edit-chrome-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-wizard-flat-edit-form-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-wizard-flat-edit-page-bindings.generated.ts"),
@@ -44,6 +46,7 @@ const WORKSPACE_LAZY_LOAD_ALLOWLIST = new Set([
   join(SRC_DIR, "bootstrap", "workspace-finance-ops-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-finance-nav-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-booking-ops-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-settings-hub-fallback-bindings.generated.ts"),
 ]);
 
 function isWorkspaceProductImportAllowed(file: string): boolean {
@@ -51,7 +54,8 @@ function isWorkspaceProductImportAllowed(file: string): boolean {
     return true;
   }
   const rel = file.slice(WEB_ROOT.length + 1);
-  if (rel.startsWith("src/tours/")) {
+  // Generated binders/loaders are the only remaining product fan-in path (manifest codegen).
+  if (rel.includes(".generated.")) {
     return true;
   }
   return false;
@@ -147,6 +151,13 @@ describe("Phase 3.3 workspace boundary", () => {
       "src/wizard/denali/denali-wizard-ui-context.ts",
       "src/wizard/denali/denali-wizard-conditional-logic.ts",
       "src/wizard/denali/denali-itinerary-types.ts",
+      "src/features/settings/denali-fallback-settings-modules.ts",
+      "src/wizard/denali/fetch-denali-destination-catalog.client.ts",
+      "src/wizard/denali/use-denali-destination-catalog.ts",
+      "src/wizard/denali/to-denali-flat-edit-tour-detail.ts",
+      "src/exposure/denali-operator-surface-order.ts",
+      "src/exposure/denali-workspace-surface-editor-state.ts",
+      "src/exposure/DenaliWorkspaceSurfacesPanel.tsx",
     ]) {
       assert.ok(!existsSync(join(WEB_ROOT, rel)), `deprecated shim still present: ${rel}`);
     }
@@ -192,11 +203,13 @@ describe("Phase 3.3 workspace boundary", () => {
 
   it("P15-W-C1 catalog readers import from workspace-denali package (web adapters allowed)", () => {
     const flatEditHook = readFileSync(
-      join(SRC_DIR, "wizard/use-denali-flat-edit-page.ts"),
+      join(SRC_DIR, "wizard/use-flat-edit-page.ts"),
       "utf8"
     );
-    assert.match(flatEditHook, /workspace-wizard-flat-edit-chrome-bindings\.generated/);
-    assert.match(flatEditHook, /loadDenaliSubmitCatalogIds/);
+    assert.match(flatEditHook, /wizard-chrome-runtime/);
+    assert.match(flatEditHook, /loadOperatorSubmitCatalogIds/);
+    const chromeRuntime = readFileSync(join(SRC_DIR, "wizard/wizard-chrome-runtime.ts"), "utf8");
+    assert.match(chromeRuntime, /workspace-wizard-flat-edit-chrome-bindings\.generated/);
     assert.ok(
       existsSync(
         join(REPO_ROOT, "packages/workspaces/denali/src/wizard/denali-wizard-catalog-sanitize.ts")
@@ -204,39 +217,64 @@ describe("Phase 3.3 workspace boundary", () => {
     );
   });
 
-  it("P15-W-C2 denali web adapters live under wizard/denali", () => {
-    assert.ok(existsSync(join(SRC_DIR, "wizard/denali")));
+  it("P15-W-C2 denali web adapters live only via generated host barrel (no wizard/denali)", () => {
+    assert.equal(existsSync(join(SRC_DIR, "wizard/denali")), false);
+    assert.ok(existsSync(join(SRC_DIR, "wizard/resolve-wizard-workspace-plugin.ts")));
     assert.ok(
       existsSync(
         join(REPO_ROOT, "packages/workspaces/denali/src/wizard/denali-wizard-catalog-sanitize.ts")
       )
     );
-    assert.ok(existsSync(join(SRC_DIR, "wizard/denali/denali-localize-validation-message.ts")));
+    assert.ok(
+      existsSync(
+        join(REPO_ROOT, "packages/workspaces/denali/src/wizard/localize-denali-validation-message.ts")
+      )
+    );
+    const generated = readFileSync(
+      join(SRC_DIR, "bootstrap/workspace-host-adapters.generated.ts"),
+      "utf8"
+    );
+    assert.match(generated, /@app-tour\/workspace-denali\/host\/wizard\/localize-validation-message/);
+    assert.match(generated, /@app-tour\/workspace-denali\/host\/draft/);
+    const draftShell = readFileSync(
+      join(SRC_DIR, "bootstrap/workspace-wizard-draft-shell-bindings.generated.ts"),
+      "utf8"
+    );
+    assert.match(draftShell, /export const DENALI_PLUGIN_ID = /);
   });
 
   it("P15-W-C2 denali shell avoids self-referential @/wizard/denali imports", () => {
     for (const rel of [
-      "wizard/use-denali-create-tour-wizard.ts",
-      "wizard/use-denali-flat-edit-page.ts",
-      "wizard/denali-wizard-draft-shell.ts",
-      "wizard/denali-flat-edit-form-shell.tsx",
+      "wizard/use-create-tour-wizard.ts",
+      "wizard/use-flat-edit-page.ts",
+      "wizard/wizard-draft-shell.ts",
+      "wizard/flat-edit-form-shell.tsx",
     ]) {
       const source = readFileSync(join(SRC_DIR, rel), "utf8");
       assert.doesNotMatch(source, /from "@\/wizard\/denali\//);
     }
-    const binding = readFileSync(join(SRC_DIR, "wizard/denali-wizard-draft-shell.ts"), "utf8");
-    assert.match(binding, /workspace-wizard-draft-shell-bindings\.generated/);
-    const flatEdit = readFileSync(join(SRC_DIR, "wizard/denali-flat-edit-form-shell.tsx"), "utf8");
+    const binding = readFileSync(join(SRC_DIR, "wizard/wizard-draft-shell.ts"), "utf8");
+    assert.match(binding, /draft-shell-runtime/);
+    const draftRuntime = readFileSync(join(SRC_DIR, "wizard/draft-shell-runtime.ts"), "utf8");
+    assert.match(draftRuntime, /workspace-wizard-draft-shell-bindings\.generated/);
+    const flatEdit = readFileSync(join(SRC_DIR, "wizard/flat-edit-form-shell.tsx"), "utf8");
     assert.match(flatEdit, /workspace-wizard-flat-edit-form-bindings\.generated/);
-    const createClient = readFileSync(join(APP_DIR, "tours/new/denali-create-tour-wizard-client.tsx"), "utf8");
-    assert.match(createClient, /workspace-wizard-create-view-bindings\.generated/);
+    const createClient = readFileSync(join(APP_DIR, "tours/new/create-tour-wizard-client.tsx"), "utf8");
+    assert.match(createClient, /create-tour-wizard-client-ready/);
+    const createReady = readFileSync(
+      join(APP_DIR, "tours/new/create-tour-wizard-client-ready.tsx"),
+      "utf8"
+    );
+    assert.match(createReady, /workspace-wizard-create-view-bindings\.generated/);
     const flatEditClient = readFileSync(
-      join(APP_DIR, "(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx"),
+      join(APP_DIR, "(app)/tours/[id]/edit/flat-edit-page-client.tsx"),
       "utf8"
     );
     assert.match(flatEditClient, /workspace-wizard-flat-edit-page-bindings\.generated/);
-    const flatEditHook = readFileSync(join(SRC_DIR, "wizard/use-denali-flat-edit-page.ts"), "utf8");
-    assert.match(flatEditHook, /workspace-wizard-flat-edit-chrome-bindings\.generated/);
+    const flatEditHook = readFileSync(join(SRC_DIR, "wizard/use-flat-edit-page.ts"), "utf8");
+    assert.match(flatEditHook, /wizard-chrome-runtime/);
+    const chromeRuntime = readFileSync(join(SRC_DIR, "wizard/wizard-chrome-runtime.ts"), "utf8");
+    assert.match(chromeRuntime, /workspace-wizard-flat-edit-chrome-bindings\.generated/);
   });
 
   it("P15-W-C2 denali package fields use local adapters (no shell @/ imports)", () => {
@@ -268,14 +306,15 @@ describe("Phase 3.3 workspace boundary", () => {
     for (const name of DENALI_SHELL_ORCHESTRATION) {
       const source = readFileSync(join(SRC_DIR, "wizard", name), "utf8");
       assert.doesNotMatch(source, /from "@\/wizard\/use-latest-wizard-draft"/, name);
-      assert.doesNotMatch(source, /from "@\/i18n\/denali-wizard-labels"/, name);
+      assert.doesNotMatch(source, /from "@\/wizard\/denali\/wizard-labels"/, name);
+      assert.doesNotMatch(source, /from "@\/i18n\/wizard-labels"/, name);
       assert.doesNotMatch(source, /from "@\/i18n\/resolve-coded-error-message"/, name);
       assert.doesNotMatch(source, /from "@\/i18n\/resolve-denali-photo-upload-error"/, name);
-      if (name !== "use-denali-flat-edit-page.ts") {
+      if (name !== "use-flat-edit-page.ts") {
         assert.doesNotMatch(source, /from "@\/features\/settings\//, name);
       }
       assert.doesNotMatch(source, /from "@\/features\/users\//, name);
-      if (name !== "denali-flat-edit-form-shell.tsx") {
+      if (name !== "flat-edit-form-shell.tsx") {
         assert.doesNotMatch(source, /from "@\/components\//, name);
       }
       assert.doesNotMatch(source, /from "@\/i18n\/routing"/, name);
@@ -284,8 +323,8 @@ describe("Phase 3.3 workspace boundary", () => {
     }
   });
 
-  it("P15-W-C2b denali shell orchestration at wizard root + wizard/denali adapters (T-096)", () => {
-    assert.ok(existsSync(join(SRC_DIR, "wizard/denali")));
+  it("P15-W-C2b denali shell orchestration at wizard root without wizard/denali (T-096)", () => {
+    assert.equal(existsSync(join(SRC_DIR, "wizard/denali")), false);
     for (const name of DENALI_SHELL_ORCHESTRATION) {
       assert.ok(existsSync(join(SRC_DIR, "wizard", name)), `missing ${name}`);
     }
@@ -301,8 +340,8 @@ describe("Phase 3.3 workspace boundary", () => {
   });
 
   it("P15-W-B3 draft unification wiring is present (ops smoke remains manual)", () => {
-    const binding = readFileSync(join(SRC_DIR, "wizard/denali-wizard-draft-shell.ts"), "utf8");
-    assert.match(binding, /resolveDenaliDraftConflictStrategy/);
+    const binding = readFileSync(join(SRC_DIR, "wizard/wizard-draft-shell.ts"), "utf8");
+    assert.match(binding, /resolveOperatorDraftConflictStrategy/);
     assert.match(binding, /draft-unification-v3-options/);
     const options = readFileSync(join(SRC_DIR, "draft/draft-unification-v3-options.ts"), "utf8");
     assert.match(options, /logWizardDraftTombstoneShadowMismatch/);

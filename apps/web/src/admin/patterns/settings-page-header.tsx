@@ -21,9 +21,9 @@ export function SettingsPageHeader({
   const label = backLabel ?? t("backToHub");
 
   return (
-    <div data-denali-settings-page-header>
-      <Link href={backHref} data-denali-settings-back-link>
-        <ArrowLeft aria-hidden data-denali-settings-back-icon />
+    <div data-operator-settings-page-header>
+      <Link href={backHref} data-operator-settings-back-link>
+        <ArrowLeft aria-hidden data-operator-settings-back-icon />
         {label}
       </Link>
       <PageHeader title={title} description={description} />

@@ -42,11 +42,11 @@ describe("denali-draft-hermetic-closure.spec.ts — Phase 5A", () => {
   });
 
   it("WEB-P11-HERMETIC-03b create-tour wires schemaGate via useWorkspaceDraft", () => {
-    const hook = readWebSource("src/wizard/use-denali-create-tour-wizard.ts");
-    const chrome = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
-    assert.match(hook, /createDenaliDraftSchemaGate/);
-    assert.match(hook, /schemaGate:\s*denaliSchemaGate/);
-    assert.match(chrome, /CreateTourWizardDenaliHeader/);
+    const hook = readWebSource("src/wizard/use-create-tour-wizard.ts");
+    const chrome = readWebSource("app/tours/new/create-tour-wizard-client-ready.tsx");
+    assert.match(hook, /createOperatorDraftSchemaGate/);
+    assert.match(hook, /schemaGate:\s*draftSchemaGate/);
+    assert.match(chrome, /CreateTourWizardHeader/);
     assert.match(readWebSource("src/wizard/create-tour-wizard-chrome.tsx"), /DraftSyncChrome/);
   });
 
@@ -59,7 +59,7 @@ describe("denali-draft-hermetic-closure.spec.ts — Phase 5A", () => {
   });
 
   it("WEB-P11-HERMETIC-05 create-tour does not track deletedRoots on edit (Track B)", () => {
-    const hook = readWebSource("src/wizard/use-denali-create-tour-wizard.ts");
+    const hook = readWebSource("src/wizard/use-create-tour-wizard.ts");
     assert.doesNotMatch(hook, /trackDeletedCanonicalRoots/);
   });
 });

@@ -39,7 +39,7 @@ async function fillWizardNumber(page: Page, canonicalPath: string, value: string
 
 async function pickWizardDate(page: Page, canonicalPath: string, isoDate: string): Promise<void> {
   const picker = wizardField(page, canonicalPath)
-    .locator("[data-wizard-date-picker] [data-denali-date-picker], [data-wizard-date-picker] button")
+    .locator("[data-wizard-date-picker] [data-operator-date-picker], [data-wizard-date-picker] button")
     .first();
   await picker.waitFor({ state: "visible", timeout: 30_000 });
   await picker.click();

@@ -1,0 +1,46 @@
+---
+title: Wave H.i — Move Urban owner settings panel into workspace package
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/wave-h-urban-settings-colocation.mdoc
+  - docs/dev/wave-h-denali-import-firewall.mdoc
+  - docs/phase-8/appendices/CANLOAD-URBAN-SETTINGS.contract.ts
+---
+
+# Wave H.i — Move Urban owner settings panel into workspace package
+
+## Problem
+
+Hostile audit still flags `/settings/urban` as a product app route. H.b correctly kept the **path** (Phase 8 `URBAN_SETTINGS_PAGE_PATH` + manifest `phase3NavLinks`). What remained product-heavy was the **panel implementation** in `apps/web/app/(app)/settings/urban/urban-owner-settings-panel.tsx` (fetch `/urban/settings`, product DOM, copy wiring).
+
+Deleting the route would break Phase 8 canLoad contracts and e2e. The honest thin-shell cut is: route + canLoad stay in the shell; panel SoT moves to the Urban package with host-injected API base + headers + labels.
+
+## Decision
+
+1. Add `packages/workspaces/urban/src/settings/urban-owner-settings-panel.tsx`:
+   - Host injects `apiBaseUrl`, `headers`, `labels`, optional `catalogHref` / `fetchImpl`
+   - GET path from package constant `URBAN_OWNER_SETTINGS_HTTP_PATH` (`/urban/settings` — same as HTTP route manifest)
+2. Export `@app-tour/workspace-urban/host/settings/owner-panel`.
+3. Replace web panel with a thin host adapter that wires `resolveTourOpsApiBaseUrl`, `buildTourAuthHeaders`, and `next-intl` labels — **or** inline that wiring in `page.tsx` and delete the web panel file.
+4. Keep `/settings/urban` path, canLoad re-export, and Phase 8 contract module paths unchanged.
+5. Allowlist `app/(app)/settings/urban/**` for Urban package imports in `workspace-boundary` (product settings surface — parallel to `wizard/denali` firewall).
+
+## Out of scope
+
+- Renaming `/settings/urban` → generic `/settings/workspace-owner` — **done in** [`wave-h-urban-settings-path.mdoc`](./wave-h-urban-settings-path.mdoc) (Wave H.i.b)
+- Install-graph isolation
+- Moving canLoad contract out of `docs/phase-8`
+
+## Verify
+
+```bash
+test ! -f apps/web/app/(app)/settings/urban/urban-owner-settings-panel.tsx
+pnpm --filter @app-tour/workspace-urban run build
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/urban-owner-access.spec.ts \
+  test/wave-h-urban-settings-colocation.spec.ts \
+  test/wave-h-urban-owner-panel-package.spec.ts \
+  test/workspace-boundary.spec.ts \
+  test/operator-shell-nav.spec.ts
+```

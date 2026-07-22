@@ -32,7 +32,7 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
   const pathname = headerList.get("x-pathname") ?? "/dashboard";
-  const bootstrap = resolveBootstrapAppSessionForHost(host);
+  const bootstrap = await resolveBootstrapAppSessionForHost(host);
   const devSmokeHost =
     isDevWebSessionAllowed() && hasDevHostSmokeSessionProfile(host);
 

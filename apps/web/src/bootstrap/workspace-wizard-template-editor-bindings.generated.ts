@@ -5,14 +5,41 @@
  */
 
 import type { WizardTemplateEditorSurface } from "@/wizard/wizard-template-editor-types";
-import { denaliWizardTemplateEditor as editor_denali } from "@app-tour/workspace-denali/settings/wizard-template-editor";
 
-const WIZARD_TEMPLATE_EDITORS: Readonly<Record<string, WizardTemplateEditorSurface>> = Object.freeze({
-  "denali": editor_denali,
+const WIZARD_TEMPLATE_EDITORS_LOADERS: Readonly<
+  Record<string, () => Promise<WizardTemplateEditorSurface>>
+> = Object.freeze({
+  "denali": async () => {
+    const mod = await import("@app-tour/workspace-denali/settings/wizard-template-editor");
+    return mod.denaliWizardTemplateEditor;
+  },
 });
 
+const WIZARD_TEMPLATE_EDITORS_CACHE = new Map<string, WizardTemplateEditorSurface>();
+
+/** Warm product surface via dynamic import (no static @app-tour/workspace-* fan-in). */
+export async function ensureWizardTemplateEditor(
+  pluginId: string
+): Promise<WizardTemplateEditorSurface | null> {
+  if (pluginId.trim().length === 0) {
+    return null;
+  }
+  const cached = WIZARD_TEMPLATE_EDITORS_CACHE.get(pluginId);
+  if (cached != null) {
+    return cached;
+  }
+  const load = WIZARD_TEMPLATE_EDITORS_LOADERS[pluginId];
+  if (load == null) {
+    return null;
+  }
+  const surface = await load();
+  WIZARD_TEMPLATE_EDITORS_CACHE.set(pluginId, surface);
+  return surface;
+}
+
+/** Sync read of warm cache — call ensureWizardTemplateEditor first for product surfaces. */
 export function resolveWizardTemplateEditor(
   pluginId: string
 ): WizardTemplateEditorSurface | null {
-  return WIZARD_TEMPLATE_EDITORS[pluginId] ?? null;
+  return WIZARD_TEMPLATE_EDITORS_CACHE.get(pluginId) ?? null;
 }

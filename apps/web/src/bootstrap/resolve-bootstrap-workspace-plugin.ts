@@ -1,15 +1,15 @@
 /**
- * Sync workspace plugin resolver for host bootstrap (server + client hydrate).
- * Delegates to codegen registry map — no direct workspace package imports here.
+ * Async workspace plugin resolver for host bootstrap (server).
+ * Delegates to codegen dynamic-import registry — no sync fan-in.
  */
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
-import { resolveSyncWorkspacePluginFromRegistry } from "./workspace-plugin-loaders.generated";
+import { loadWorkspacePluginByIdFromRegistry } from "./workspace-plugin-loaders.generated";
 
-export function resolveBootstrapWorkspacePlugin(pluginId: string): WorkspacePlugin {
+export async function loadBootstrapWorkspacePlugin(pluginId: string): Promise<WorkspacePlugin> {
   try {
-    return resolveSyncWorkspacePluginFromRegistry(pluginId);
+    return await loadWorkspacePluginByIdFromRegistry(pluginId);
   } catch {
-    return resolveSyncWorkspacePluginFromRegistry("starter");
+    return loadWorkspacePluginByIdFromRegistry("starter");
   }
 }

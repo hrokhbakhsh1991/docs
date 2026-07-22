@@ -37,13 +37,31 @@ rsync -az "${RSYNC_EX[@]}" \
   "${VPS_USER}@${VPS_HOST}:${DEPLOY_PATH}/apps/web/"
 
 log "next build on VPS"
+PLUGIN_ALLOW="$(node "${ROOT}/scripts/vps-deploy/resolve-staging-web-plugin-allow-env.mjs" | grep '^export ' || true)"
+APPLY_BLOCK=""
+if [[ "${WORKSPACE_DEPLOY_PROFILE_APPLY:-}" == "1" ]]; then
+  APPLY_BLOCK="$(cat <<'APPLY'
+export WORKSPACE_DEPLOY_PROFILE_APPLY=1
+export WORKSPACE_DEPLOY_PROFILE="${WORKSPACE_DEPLOY_PROFILE:-}"
+pnpm run apply:deploy-profile -- --write
+APPLY
+)"
+  APPLY_BLOCK="${APPLY_BLOCK//\$\{WORKSPACE_DEPLOY_PROFILE:-\}/$(printf '%q' "${WORKSPACE_DEPLOY_PROFILE:-}")}"
+fi
 ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" bash -s <<EOF
 set -euo pipefail
+cd "${DEPLOY_PATH}"
+${APPLY_BLOCK}
 cd "${DEPLOY_PATH}/apps/web"
-export NODE_ENV=production CI=true NEXT_FONT_OFFLINE=1 STAGING_WEB_BUILD=1 ALLOW_DENALI_WEB_PLUGIN=true
+export NODE_ENV=production CI=true NEXT_FONT_OFFLINE=1 STAGING_WEB_BUILD=1
+${PLUGIN_ALLOW}
 rm -rf .next
 pnpm exec next build
 test -f .next/BUILD_ID
+if [[ "${WORKSPACE_DEPLOY_PROFILE_APPLY:-}" == "1" ]]; then
+  cd "${DEPLOY_PATH}"
+  pnpm run generate:workspace-registry
+fi
 systemctl restart ${UNIT}
 sleep 3
 systemctl is-active ${UNIT}

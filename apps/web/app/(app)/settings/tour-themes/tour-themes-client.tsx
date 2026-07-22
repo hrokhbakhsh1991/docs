@@ -125,7 +125,7 @@ export function TourThemesClient({ session }: TourThemesClientProps) {
       <SettingsPageHeader title={t("title")} description={t("subtitle")} />
 
       {canManage ? (
-        <Card data-denali-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.tourThemesForm}>
+        <Card data-operator-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.tourThemesForm}>
           <CardHeader>
             <CardTitle>{t("addTitle")}</CardTitle>
           </CardHeader>
@@ -165,7 +165,7 @@ export function TourThemesClient({ session }: TourThemesClientProps) {
         <p className="text-sm text-destructive">{resolveCodedErrorMessage(tErrors, error)}</p>
       ) : null}
 
-      <Card data-denali-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.tourThemesList}>
+      <Card data-operator-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.tourThemesList}>
         <CardHeader>
           <CardTitle>{t("listTitle", { count: items.length })}</CardTitle>
         </CardHeader>
