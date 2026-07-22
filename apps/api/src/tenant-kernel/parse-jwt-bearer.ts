@@ -1,5 +1,5 @@
-import type { ActorRole, MembershipStatus, TenantAuthContext } from "@app-cloud/workspace-sdk";
-import { parseTenantAuthContext } from "@app-cloud/workspace-sdk";
+import type { ActorRole, MembershipStatus, TenantAuthContext } from "@app-tour/workspace-sdk";
+import { parseTenantAuthContext } from "@app-tour/workspace-sdk";
 import { jwtVerify, type JWTPayload } from "jose";
 
 import { UNAUTHORIZED_INVALID_BEARER_TOKEN } from "./auth-errors";

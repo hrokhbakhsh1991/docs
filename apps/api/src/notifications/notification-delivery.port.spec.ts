@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
-import { BOOKING_APPROVE_OUTBOX_EVENT_TYPE } from "@app-cloud/booking-http-contracts";
+import { BOOKING_APPROVE_OUTBOX_EVENT_TYPE } from "@app-tour/booking-http-contracts";
 
 import {
   getInAppNotificationAdapterForTests,

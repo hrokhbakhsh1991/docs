@@ -1,5 +1,5 @@
 import type { IncomingMessage } from "node:http";
-import type { TenantAuthContext } from "@app-cloud/workspace-sdk";
+import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { readRequestAuthHeaders } from "../auth/read-request-headers";
 import { assertRequiredAuthHeaders } from "../tenant-kernel/assert-required-headers";

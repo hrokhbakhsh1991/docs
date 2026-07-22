@@ -3,7 +3,7 @@
  * Gated by `TenantFeatureFlags.inAppRegistrationApprovedNotify` (SK3).
  */
 
-import { BOOKING_APPROVE_OUTBOX_EVENT_TYPE } from "@app-cloud/booking-http-contracts";
+import { BOOKING_APPROVE_OUTBOX_EVENT_TYPE } from "@app-tour/booking-http-contracts";
 
 import { resolveTenantFeatureFlags } from "../tenant/resolve-tenant-feature-flags";
 import type { TenantFeatureFlags } from "../tenant/resolve-tenant-feature-flags";

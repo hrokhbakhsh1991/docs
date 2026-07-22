@@ -1,5 +1,5 @@
 /**
- * SK1.C — freeze @app-cloud/tenant-kernel public barrel.
+ * SK1.C — freeze @app-tour/tenant-kernel public barrel.
  * @see docs/phase-saas-kernel/appendices/SK1_TENANT_AUTHZ_CONTRACTS.md §3 / §5 SK1.C
  */
 import assert from "node:assert/strict";

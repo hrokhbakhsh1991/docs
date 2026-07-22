@@ -25,7 +25,7 @@ import {
   preparePostgresOutboxIsolation,
   quiesceStaleOutboxProcessing,
 } from "./test-helpers";
-import { resetDomainEventBusForTests } from "@app-cloud/platform-events";
+import { resetDomainEventBusForTests } from "@app-tour/platform-events";
 
 const hasDatabase =
   Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());

@@ -1,4 +1,4 @@
-import type { TenantRouteRow, TenantTier } from "@app-cloud/tenant-kernel";
+import type { TenantRouteRow, TenantTier } from "@app-tour/tenant-kernel";
 import { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../db/with-tenant-rls";
