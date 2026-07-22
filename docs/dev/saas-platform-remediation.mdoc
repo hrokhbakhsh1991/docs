@@ -1,5 +1,5 @@
 {% callout type="info" %}
-**Status:** Gap Closure **implementation exit proofs green locally** (2026-07-22). Budgets: thin-shell tokens **0**; API host allowlist **0**; guest-runtime/transpile ceiling **4/4**; E.4b-d2 `--package-build` PASS; `wave-i0:guard` PASS. **Not DONE** until Architect acknowledgment of maturity table (≥ targets) **and** green GHA `gap-closure-e4b` (a→b/c→d2). Plan: `TEMP/SAAS_ARCHITECTURE_GAP_CLOSURE_PLAN.md`.
+**Status:** Gap Closure **implementation exit proofs green** (2026-07-22). Budgets: thin-shell tokens **0**; API host allowlist **0**; guest-runtime/transpile ceiling **4/4**; E.4b-d2 `--package-build` PASS; `wave-i0:guard` PASS; GHA [`gap-closure-e4b`](https://github.com/hrokhbakhsh1991/docs/actions/runs/29943879967) **green** on [PR #23](https://github.com/hrokhbakhsh1991/docs/pull/23) (a→b/c→d2). **Not DONE** until Architect acknowledgment of maturity table (≥ targets). Plan: `TEMP/SAAS_ARCHITECTURE_GAP_CLOSURE_PLAN.md`.
 {% /callout %}
 
 # SaaS platform remediation — true workspace plugin host
@@ -132,7 +132,7 @@ Scale readiness for 50–100 workspaces is gated on Architect acknowledgment of 
 | Item | Status |
 | --- | --- |
 | Architect acknowledgment of maturity ≥ targets | Open |
-| Green GHA `gap-closure-e4b` on trunk | Open (workflow + local proofs wired; needs authenticated CI run on trunk) |
+| Green GHA `gap-closure-e4b` on trunk | Closed ([PR #23](https://github.com/hrokhbakhsh1991/docs/pull/23) run [29943879967](https://github.com/hrokhbakhsh1991/docs/actions/runs/29943879967) — a→b/c→d2 green) |
 | Monorepo default generate full-trunk (APPLY opt-in for single-tenant images) | By design — not a defect |
 | B.19b dual-key smoke host labels removed | Closed |
 | Hand `pathNot` product fragments → boundary codegen (P5.2.c) | Closed (fail-closed; not all product ids) |
