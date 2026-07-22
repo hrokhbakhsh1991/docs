@@ -4,9 +4,6 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
-import { FINANCE_WS5_WORKSPACE_TYPE } from "@app-tour/workspace-finance-ws5";
-
 export type FinanceEventReactionCapability = "durable-outbox" | "ack-only" | "none";
 
 export type FinanceWorkspaceCapabilities = {
@@ -18,17 +15,18 @@ export type FinanceWorkspaceCapabilities = {
 
 /**
  * Capability matrix — product gate (`supported`) vs money-path grades.
+ * Keys are literal workspaceType strings from workspace.manifest.json (P4-D3.d — no product package imports).
  * Denali: durable-outbox TourCreated. finance-ws5: ack-only TourCreated.
  * Both may claim ledgerCapture for HTTP receipt/payment journals.
  */
 export const WORKSPACE_FINANCE_CAPABILITIES = {
-  [DENALI_WORKSPACE_TYPE]: {
+  "denali": {
     supported: true as const,
     ledgerCapture: true as const,
     eventReactions: "durable-outbox" as const,
     ops: true as const,
   },
-  [FINANCE_WS5_WORKSPACE_TYPE]: {
+  "finance-ws5": {
     supported: true as const,
     ledgerCapture: true as const,
     eventReactions: "ack-only" as const,
@@ -39,7 +37,7 @@ export const WORKSPACE_FINANCE_CAPABILITIES = {
 export function getFinanceWorkspaceCapabilities(
   workspaceType: string
 ): FinanceWorkspaceCapabilities | null {
-  const key = workspaceType.trim();
+  const key = workspaceType.trim().toLowerCase();
   if (key.length === 0) {
     return null;
   }

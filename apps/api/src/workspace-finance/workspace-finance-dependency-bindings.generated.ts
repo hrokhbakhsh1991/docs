@@ -4,60 +4,66 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import {
-  DenaliFinanceLedgerPolicyAdapter as denali_LedgerPolicy,
-  DenaliFinanceReceiptDefaultsAdapter as denali_ReceiptDefaults,
-} from "@app-tour/workspace-denali/host/finance";
-
-import {
-  FinanceWs2LedgerPolicyAdapter as finance_ws2_LedgerPolicy,
-  FinanceWs2ReceiptDefaultsAdapter as finance_ws2_ReceiptDefaults,
-} from "@app-tour/workspace-finance-ws2/host/finance";
-
-import {
-  FinanceWs3LedgerPolicyAdapter as finance_ws3_LedgerPolicy,
-  FinanceWs3ReceiptDefaultsAdapter as finance_ws3_ReceiptDefaults,
-} from "@app-tour/workspace-finance-ws3/host/finance";
-
-import {
-  FinanceWs4LedgerPolicyAdapter as finance_ws4_LedgerPolicy,
-  FinanceWs4ReceiptDefaultsAdapter as finance_ws4_ReceiptDefaults,
-} from "@app-tour/workspace-finance-ws4/host/finance";
-
-import {
-  FinanceWs5LedgerPolicyAdapter as finance_ws5_LedgerPolicy,
-  FinanceWs5ReceiptDefaultsAdapter as finance_ws5_ReceiptDefaults,
-} from "@app-tour/workspace-finance-ws5/host/finance";
-
-import {
-  FinanceWs6LedgerPolicyAdapter as finance_ws6_LedgerPolicy,
-  FinanceWs6ReceiptDefaultsAdapter as finance_ws6_ReceiptDefaults,
-} from "@app-tour/workspace-finance-ws6/host/finance";
-
 export const WORKSPACE_FINANCE_DEPENDENCY_BINDINGS = {
   "denali": {
-    createLedgerPolicy: () => new denali_LedgerPolicy(),
-    createReceiptDefaults: () => new denali_ReceiptDefaults(),
+    createLedgerPolicy: async () => {
+      const mod = await import("@app-tour/workspace-denali/host/finance");
+      return new mod.DenaliFinanceLedgerPolicyAdapter();
+    },
+    createReceiptDefaults: async () => {
+      const mod = await import("@app-tour/workspace-denali/host/finance");
+      return new mod.DenaliFinanceReceiptDefaultsAdapter();
+    },
   },
   "finance-ws2": {
-    createLedgerPolicy: () => new finance_ws2_LedgerPolicy(),
-    createReceiptDefaults: () => new finance_ws2_ReceiptDefaults(),
+    createLedgerPolicy: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws2/host/finance");
+      return new mod.FinanceWs2LedgerPolicyAdapter();
+    },
+    createReceiptDefaults: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws2/host/finance");
+      return new mod.FinanceWs2ReceiptDefaultsAdapter();
+    },
   },
   "finance-ws3": {
-    createLedgerPolicy: () => new finance_ws3_LedgerPolicy(),
-    createReceiptDefaults: () => new finance_ws3_ReceiptDefaults(),
+    createLedgerPolicy: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws3/host/finance");
+      return new mod.FinanceWs3LedgerPolicyAdapter();
+    },
+    createReceiptDefaults: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws3/host/finance");
+      return new mod.FinanceWs3ReceiptDefaultsAdapter();
+    },
   },
   "finance-ws4": {
-    createLedgerPolicy: () => new finance_ws4_LedgerPolicy(),
-    createReceiptDefaults: () => new finance_ws4_ReceiptDefaults(),
+    createLedgerPolicy: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws4/host/finance");
+      return new mod.FinanceWs4LedgerPolicyAdapter();
+    },
+    createReceiptDefaults: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws4/host/finance");
+      return new mod.FinanceWs4ReceiptDefaultsAdapter();
+    },
   },
   "finance-ws5": {
-    createLedgerPolicy: () => new finance_ws5_LedgerPolicy(),
-    createReceiptDefaults: () => new finance_ws5_ReceiptDefaults(),
+    createLedgerPolicy: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws5/host/finance");
+      return new mod.FinanceWs5LedgerPolicyAdapter();
+    },
+    createReceiptDefaults: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws5/host/finance");
+      return new mod.FinanceWs5ReceiptDefaultsAdapter();
+    },
   },
   "finance-ws6": {
-    createLedgerPolicy: () => new finance_ws6_LedgerPolicy(),
-    createReceiptDefaults: () => new finance_ws6_ReceiptDefaults(),
+    createLedgerPolicy: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws6/host/finance");
+      return new mod.FinanceWs6LedgerPolicyAdapter();
+    },
+    createReceiptDefaults: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws6/host/finance");
+      return new mod.FinanceWs6ReceiptDefaultsAdapter();
+    },
   },
 } as const;
 

@@ -4,36 +4,42 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { LEDGER_ACCOUNTS as denali_ChartOfAccounts } from "@app-tour/workspace-denali/host/finance";
-
-import { FINANCE_WS2_LEDGER_ACCOUNTS as finance_ws2_ChartOfAccounts } from "@app-tour/workspace-finance-ws2/host/finance";
-
-import { FINANCE_WS3_LEDGER_ACCOUNTS as finance_ws3_ChartOfAccounts } from "@app-tour/workspace-finance-ws3/host/finance";
-
-import { FINANCE_WS4_LEDGER_ACCOUNTS as finance_ws4_ChartOfAccounts } from "@app-tour/workspace-finance-ws4/host/finance";
-
-import { FINANCE_WS5_LEDGER_ACCOUNTS as finance_ws5_ChartOfAccounts } from "@app-tour/workspace-finance-ws5/host/finance";
-
-import { FINANCE_WS6_LEDGER_ACCOUNTS as finance_ws6_ChartOfAccounts } from "@app-tour/workspace-finance-ws6/host/finance";
-
 export const WORKSPACE_FINANCE_CHART_OF_ACCOUNTS_BINDINGS = {
   "denali": {
-    getAccounts: () => denali_ChartOfAccounts,
+    loadAccounts: async () => {
+      const mod = await import("@app-tour/workspace-denali/host/finance");
+      return mod.LEDGER_ACCOUNTS;
+    },
   },
   "finance-ws2": {
-    getAccounts: () => finance_ws2_ChartOfAccounts,
+    loadAccounts: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws2/host/finance");
+      return mod.FINANCE_WS2_LEDGER_ACCOUNTS;
+    },
   },
   "finance-ws3": {
-    getAccounts: () => finance_ws3_ChartOfAccounts,
+    loadAccounts: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws3/host/finance");
+      return mod.FINANCE_WS3_LEDGER_ACCOUNTS;
+    },
   },
   "finance-ws4": {
-    getAccounts: () => finance_ws4_ChartOfAccounts,
+    loadAccounts: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws4/host/finance");
+      return mod.FINANCE_WS4_LEDGER_ACCOUNTS;
+    },
   },
   "finance-ws5": {
-    getAccounts: () => finance_ws5_ChartOfAccounts,
+    loadAccounts: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws5/host/finance");
+      return mod.FINANCE_WS5_LEDGER_ACCOUNTS;
+    },
   },
   "finance-ws6": {
-    getAccounts: () => finance_ws6_ChartOfAccounts,
+    loadAccounts: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws6/host/finance");
+      return mod.FINANCE_WS6_LEDGER_ACCOUNTS;
+    },
   },
 } as const;
 

@@ -5,20 +5,74 @@
  */
 
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
-import { getBookingWs2WorkspacePlugin } from "@app-tour/workspace-booking-ws2/plugin";
-import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
-import { getFinanceWs5WorkspacePlugin } from "@app-tour/workspace-finance-ws5/plugin";
-import { getGuestClubWorkspacePlugin } from "@app-tour/workspace-guest-club/plugin";
-import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
-import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban/plugin";
 
-export function listApiWorkspacePluginsFromManifest(): readonly WorkspacePlugin[] {
-  return [
-    getBookingWs2WorkspacePlugin(),
-    getDenaliWorkspacePlugin(),
-    getFinanceWs5WorkspacePlugin(),
-    getGuestClubWorkspacePlugin(),
-    getStarterWorkspacePlugin(),
-    getUrbanWorkspacePlugin(),
-  ];
+/** Product trunk plugin ids from workspace.manifest.json (excludes registryOnly fixtures). */
+export const API_WORKSPACE_PLUGIN_IDS = [
+  "booking-ws2",
+  "denali",
+  "finance-ws5",
+  "guest-club",
+  "starter",
+  "urban",
+] as const;
+
+export type ApiWorkspacePluginId = (typeof API_WORKSPACE_PLUGIN_IDS)[number];
+
+export function listApiWorkspacePluginIdsFromManifest(): readonly ApiWorkspacePluginId[] {
+  return API_WORKSPACE_PLUGIN_IDS;
+}
+
+const apiPluginLoadCache = new Map<string, Promise<WorkspacePlugin>>();
+
+export async function loadApiWorkspacePluginByIdFromManifest(
+  pluginId: string
+): Promise<WorkspacePlugin> {
+  const cached = apiPluginLoadCache.get(pluginId);
+  if (cached) {
+    return cached;
+  }
+  const load = (async (): Promise<WorkspacePlugin> => {
+    switch (pluginId) {
+    case "booking-ws2": {
+      const mod = await import("@app-tour/workspace-booking-ws2/plugin");
+      return mod.getBookingWs2WorkspacePlugin();
+    }
+    case "denali": {
+      const mod = await import("@app-tour/workspace-denali/plugin");
+      return mod.getDenaliWorkspacePlugin();
+    }
+    case "finance-ws5": {
+      const mod = await import("@app-tour/workspace-finance-ws5/plugin");
+      return mod.getFinanceWs5WorkspacePlugin();
+    }
+    case "guest-club": {
+      const mod = await import("@app-tour/workspace-guest-club/plugin");
+      return mod.getGuestClubWorkspacePlugin();
+    }
+    case "starter": {
+      const mod = await import("@app-tour/workspace-starter");
+      return mod.getStarterWorkspacePlugin();
+    }
+    case "urban": {
+      const mod = await import("@app-tour/workspace-urban/plugin");
+      return mod.getUrbanWorkspacePlugin();
+    }
+      default:
+        throw new Error(`WORKSPACE_PLUGIN_NOT_FOUND:${pluginId}`);
+    }
+  })();
+  apiPluginLoadCache.set(pluginId, load);
+  try {
+    return await load;
+  } catch (error) {
+    apiPluginLoadCache.delete(pluginId);
+    throw error;
+  }
+}
+
+/** Warm/admin helper — prefer {@link loadApiWorkspacePluginByIdFromManifest} on request paths. */
+export async function listApiWorkspacePluginsFromManifest(): Promise<readonly WorkspacePlugin[]> {
+  return Promise.all(
+    API_WORKSPACE_PLUGIN_IDS.map((id) => loadApiWorkspacePluginByIdFromManifest(id))
+  );
 }

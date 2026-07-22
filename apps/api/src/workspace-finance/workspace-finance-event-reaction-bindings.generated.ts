@@ -4,18 +4,20 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { DenaliTourCreatedFinanceReactionAdapter as denali_EventReaction } from "@app-tour/workspace-denali/host/finance";
-
-import { FinanceWs5TourCreatedFinanceReactionAdapter as finance_ws5_EventReaction } from "@app-tour/workspace-finance-ws5/host/finance";
-
 export const WORKSPACE_FINANCE_EVENT_REACTION_BINDINGS = {
   "denali": {
     requiresHostIo: true as const,
-    create: (hostIo: ConstructorParameters<typeof denali_EventReaction>[0]) => new denali_EventReaction(hostIo),
+    create: async (hostIo: unknown) => {
+      const mod = await import("@app-tour/workspace-denali/host/finance");
+      return new mod.DenaliTourCreatedFinanceReactionAdapter(hostIo as never);
+    },
   },
   "finance-ws5": {
     requiresHostIo: false as const,
-    create: () => new finance_ws5_EventReaction(),
+    create: async () => {
+      const mod = await import("@app-tour/workspace-finance-ws5/host/finance");
+      return new mod.FinanceWs5TourCreatedFinanceReactionAdapter();
+    },
   },
 } as const;
 

@@ -4,7 +4,7 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import type { WorkspaceRouteHandlers } from "./workspace-route-registrar";
+import type { WorkspaceHttpHandlerFn, WorkspaceRouteHandlers } from "./workspace-route-registrar";
 
 export type WorkspaceHttpPackageHandlerKey =
   | "handleFinanceCreateManualPayment"
@@ -43,50 +43,140 @@ export type WorkspaceHttpPackageHandlers = Pick<
   WorkspaceHttpPackageHandlerKey
 >;
 
+const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
+  handleFinanceCreateManualPayment: "@app-tour/finance-http",
+  handleFinanceGenerateSchedule: "@app-tour/finance-http",
+  handleFinanceGetRegistrationInvoice: "@app-tour/finance-http",
+  handleFinanceGetSchedule: "@app-tour/finance-http",
+  handleFinanceLedgerEvents: "@app-tour/finance-http",
+  handleFinanceListBookingSyncDegraded: "@app-tour/finance-http",
+  handleFinanceListPayments: "@app-tour/finance-http",
+  handleFinanceListPrepayments: "@app-tour/finance-http",
+  handleFinanceListSchedules: "@app-tour/finance-http",
+  handleFinanceOpenPayments: "@app-tour/finance-http",
+  handleFinancePendingReceipts: "@app-tour/finance-http",
+  handleFinanceReceiptUrl: "@app-tour/finance-http",
+  handleFinanceRecordPrepayment: "@app-tour/finance-http",
+  handleFinanceRetryBookingSync: "@app-tour/finance-http",
+  handleFinanceReviewReceipt: "@app-tour/finance-http",
+  handleFinanceSubmitReceipt: "@app-tour/finance-http",
+  handleFinanceSummary: "@app-tour/finance-http",
+  handleGetDenaliCatalog: "@app-tour/workspace-denali/host/http",
+  handleGetDenaliCatalogTour: "@app-tour/workspace-denali/host/http",
+  handleGetDenaliDashboardTour: "@app-tour/workspace-denali/host/http",
+  handleGetDenaliReminderFeed: "@app-tour/workspace-denali/host/http",
+  handlePostDenaliRegistration: "@app-tour/workspace-denali/host/http",
+  handleGetGuestClubCatalog: "@app-tour/workspace-guest-club/host/http",
+  handleGetGuestClubCatalogTour: "@app-tour/workspace-guest-club/host/http",
+  handlePostGuestClubRegistration: "@app-tour/workspace-guest-club/host/http",
+  handleGetUrbanCatalog: "@app-tour/workspace-urban/host/http",
+  handleGetUrbanCatalogTour: "@app-tour/workspace-urban/host/http",
+  handleGetUrbanSettings: "@app-tour/workspace-urban/host/http",
+  handlePatchUrbanSettings: "@app-tour/workspace-urban/host/http",
+  handlePostUrbanRegistration: "@app-tour/workspace-urban/host/http",
+}) as Readonly<Record<WorkspaceHttpPackageHandlerKey, string>>;
+
+const WORKSPACE_HTTP_HANDLER_PACKAGES = Object.freeze([
+  "@app-tour/finance-http",
+  "@app-tour/workspace-denali/host/http",
+  "@app-tour/workspace-guest-club/host/http",
+  "@app-tour/workspace-urban/host/http",
+] as const);
+
+/** @type {Map<string, Promise<Partial<WorkspaceRouteHandlers>>>} */
+const workspaceHttpHandlerPackageCache = new Map();
+
+/** Wave G.b — load handlers from a single HTTP handler package. */
+export async function loadWorkspaceHttpHandlersForPackage(
+  pkg: string
+): Promise<Partial<WorkspaceRouteHandlers>> {
+  switch (pkg) {
+    case "@app-tour/finance-http": {
+      const mod = await import("@app-tour/finance-http");
+      return {
+        handleFinanceCreateManualPayment: mod.handleFinanceCreateManualPayment,
+        handleFinanceGenerateSchedule: mod.handleFinanceGenerateSchedule,
+        handleFinanceGetRegistrationInvoice: mod.handleFinanceGetRegistrationInvoice,
+        handleFinanceGetSchedule: mod.handleFinanceGetSchedule,
+        handleFinanceLedgerEvents: mod.handleFinanceLedgerEvents,
+        handleFinanceListBookingSyncDegraded: mod.handleFinanceListBookingSyncDegraded,
+        handleFinanceListPayments: mod.handleFinanceListPayments,
+        handleFinanceListPrepayments: mod.handleFinanceListPrepayments,
+        handleFinanceListSchedules: mod.handleFinanceListSchedules,
+        handleFinanceOpenPayments: mod.handleFinanceOpenPayments,
+        handleFinancePendingReceipts: mod.handleFinancePendingReceipts,
+        handleFinanceReceiptUrl: mod.handleFinanceReceiptUrl,
+        handleFinanceRecordPrepayment: mod.handleFinanceRecordPrepayment,
+        handleFinanceRetryBookingSync: mod.handleFinanceRetryBookingSync,
+        handleFinanceReviewReceipt: mod.handleFinanceReviewReceipt,
+        handleFinanceSubmitReceipt: mod.handleFinanceSubmitReceipt,
+        handleFinanceSummary: mod.handleFinanceSummary,
+      };
+    }
+    case "@app-tour/workspace-denali/host/http": {
+      const mod = await import("@app-tour/workspace-denali/host/http");
+      return {
+        handleGetDenaliCatalog: mod.handleGetDenaliCatalog,
+        handleGetDenaliCatalogTour: mod.handleGetDenaliCatalogTour,
+        handleGetDenaliDashboardTour: mod.handleGetDenaliDashboardTour,
+        handleGetDenaliReminderFeed: mod.handleGetDenaliReminderFeed,
+        handlePostDenaliRegistration: mod.handlePostDenaliRegistration,
+      };
+    }
+    case "@app-tour/workspace-guest-club/host/http": {
+      const mod = await import("@app-tour/workspace-guest-club/host/http");
+      return {
+        handleGetGuestClubCatalog: mod.handleGetGuestClubCatalog,
+        handleGetGuestClubCatalogTour: mod.handleGetGuestClubCatalogTour,
+        handlePostGuestClubRegistration: mod.handlePostGuestClubRegistration,
+      };
+    }
+    case "@app-tour/workspace-urban/host/http": {
+      const mod = await import("@app-tour/workspace-urban/host/http");
+      return {
+        handleGetUrbanCatalog: mod.handleGetUrbanCatalog,
+        handleGetUrbanCatalogTour: mod.handleGetUrbanCatalogTour,
+        handleGetUrbanSettings: mod.handleGetUrbanSettings,
+        handlePatchUrbanSettings: mod.handlePatchUrbanSettings,
+        handlePostUrbanRegistration: mod.handlePostUrbanRegistration,
+      };
+    }
+    default:
+      throw new Error(`WORKSPACE_HTTP_HANDLER_PACKAGE_UNKNOWN:${pkg}`);
+  }
+}
+
+export function resetWorkspaceHttpHandlerPackageCache(): void {
+  workspaceHttpHandlerPackageCache.clear();
+}
+
+/** Wave G.b — resolve one handler; caches per package (not multi-product eager). */
+export async function ensureWorkspaceHttpHandler(
+  key: WorkspaceHttpPackageHandlerKey
+): Promise<WorkspaceHttpHandlerFn> {
+  const pkg = WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY[key];
+  let pending = workspaceHttpHandlerPackageCache.get(pkg);
+  if (pending === undefined) {
+    pending = loadWorkspaceHttpHandlersForPackage(pkg);
+    workspaceHttpHandlerPackageCache.set(pkg, pending);
+  }
+  const handlers = await pending;
+  const handler = handlers[key];
+  if (handler == null) {
+    throw new Error(`WORKSPACE_HTTP_HANDLER_MISSING:${key}`);
+  }
+  return handler;
+}
+
+/**
+ * Compat — loads **all** HTTP handler packages (tests / ownership proofs).
+ * Hot path must use {@link ensureWorkspaceHttpHandler} instead (Wave G.b).
+ */
 export async function loadWorkspaceHttpPackageHandlers(): Promise<WorkspaceHttpPackageHandlers> {
   /** @type {Partial<WorkspaceRouteHandlers>} */
   const handlers = {};
-  const mod0 = await import("@app-tour/workspace-denali/host/http");
-  Object.assign(handlers, {
-    handleGetDenaliCatalog: mod0.handleGetDenaliCatalog,
-    handleGetDenaliCatalogTour: mod0.handleGetDenaliCatalogTour,
-    handleGetDenaliDashboardTour: mod0.handleGetDenaliDashboardTour,
-    handleGetDenaliReminderFeed: mod0.handleGetDenaliReminderFeed,
-    handlePostDenaliRegistration: mod0.handlePostDenaliRegistration,
-  });
-  const mod1 = await import("@app-tour/finance-http");
-  Object.assign(handlers, {
-    handleFinanceCreateManualPayment: mod1.handleFinanceCreateManualPayment,
-    handleFinanceGenerateSchedule: mod1.handleFinanceGenerateSchedule,
-    handleFinanceGetRegistrationInvoice: mod1.handleFinanceGetRegistrationInvoice,
-    handleFinanceGetSchedule: mod1.handleFinanceGetSchedule,
-    handleFinanceLedgerEvents: mod1.handleFinanceLedgerEvents,
-    handleFinanceListBookingSyncDegraded: mod1.handleFinanceListBookingSyncDegraded,
-    handleFinanceListPayments: mod1.handleFinanceListPayments,
-    handleFinanceListPrepayments: mod1.handleFinanceListPrepayments,
-    handleFinanceListSchedules: mod1.handleFinanceListSchedules,
-    handleFinanceOpenPayments: mod1.handleFinanceOpenPayments,
-    handleFinancePendingReceipts: mod1.handleFinancePendingReceipts,
-    handleFinanceReceiptUrl: mod1.handleFinanceReceiptUrl,
-    handleFinanceRecordPrepayment: mod1.handleFinanceRecordPrepayment,
-    handleFinanceRetryBookingSync: mod1.handleFinanceRetryBookingSync,
-    handleFinanceReviewReceipt: mod1.handleFinanceReviewReceipt,
-    handleFinanceSubmitReceipt: mod1.handleFinanceSubmitReceipt,
-    handleFinanceSummary: mod1.handleFinanceSummary,
-  });
-  const mod2 = await import("@app-tour/workspace-guest-club/host/http");
-  Object.assign(handlers, {
-    handleGetGuestClubCatalog: mod2.handleGetGuestClubCatalog,
-    handleGetGuestClubCatalogTour: mod2.handleGetGuestClubCatalogTour,
-    handlePostGuestClubRegistration: mod2.handlePostGuestClubRegistration,
-  });
-  const mod3 = await import("@app-tour/workspace-urban/host/http");
-  Object.assign(handlers, {
-    handleGetUrbanCatalog: mod3.handleGetUrbanCatalog,
-    handleGetUrbanCatalogTour: mod3.handleGetUrbanCatalogTour,
-    handleGetUrbanSettings: mod3.handleGetUrbanSettings,
-    handlePatchUrbanSettings: mod3.handlePatchUrbanSettings,
-    handlePostUrbanRegistration: mod3.handlePostUrbanRegistration,
-  });
+  for (const pkg of WORKSPACE_HTTP_HANDLER_PACKAGES) {
+    Object.assign(handlers, await loadWorkspaceHttpHandlersForPackage(pkg));
+  }
   return handlers as WorkspaceHttpPackageHandlers;
 }

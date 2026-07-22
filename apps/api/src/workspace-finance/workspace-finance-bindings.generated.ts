@@ -4,16 +4,13 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
-import { FINANCE_WS5_WORKSPACE_TYPE } from "@app-tour/workspace-finance-ws5";
-
 export const WORKSPACE_FINANCE_BINDINGS = [
   {
-    workspaceType: DENALI_WORKSPACE_TYPE,
+    workspaceType: "denali",
     defaultModuleEnabledWhenUnset: true as const,
   },
   {
-    workspaceType: FINANCE_WS5_WORKSPACE_TYPE,
+    workspaceType: "finance-ws5",
     defaultModuleEnabledWhenUnset: true as const,
   },
 ] as const;
@@ -29,9 +26,9 @@ const defaultEnabledWhenUnset = new Set(
 );
 
 export function isFinanceSupportedWorkspace(workspaceType: string): boolean {
-  return supportedWorkspaceTypes.has(workspaceType);
+  return supportedWorkspaceTypes.has(workspaceType.trim().toLowerCase());
 }
 
 export function isFinanceDefaultEnabledWhenModulesUnset(workspaceType: string): boolean {
-  return defaultEnabledWhenUnset.has(workspaceType);
+  return defaultEnabledWhenUnset.has(workspaceType.trim().toLowerCase());
 }

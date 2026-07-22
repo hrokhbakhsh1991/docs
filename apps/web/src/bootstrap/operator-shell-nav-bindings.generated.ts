@@ -14,10 +14,7 @@ export type OperatorShellNavLink = {
 export const WORKSPACE_OPERATOR_SHELL_NAV: Readonly<
   Record<string, readonly OperatorShellNavLink[]>
 > = Object.freeze({
-  "urban": Object.freeze([
-    Object.freeze({ href: "/catalog", labelKey: "catalog" }),
-    Object.freeze({ href: "/settings/workspace-owner", labelKey: "workspaceOwnerSettings" }),
-  ]),
+
 });
 
 export function resolveOperatorShellNavLinks(pluginId: string): readonly OperatorShellNavLink[] {
