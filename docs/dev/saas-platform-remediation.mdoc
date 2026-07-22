@@ -1,5 +1,5 @@
-{% callout type="info" %}
-**Status:** Gap Closure **implementation exit proofs green** (2026-07-22). Budgets: thin-shell tokens **0**; API host allowlist **0**; guest-runtime/transpile ceiling **4/4**; E.4b-d2 `--package-build` PASS; `wave-i0:guard` PASS; GHA [`gap-closure-e4b`](https://github.com/hrokhbakhsh1991/docs/actions/runs/29943879967) **green** on [PR #23](https://github.com/hrokhbakhsh1991/docs/pull/23) (a→b/c→d2). **Not DONE** until Architect acknowledgment of maturity table (≥ targets). Plan: `TEMP/SAAS_ARCHITECTURE_GAP_CLOSURE_PLAN.md`.
+{% callout type="success" %}
+**Status:** Gap Closure **DONE** (2026-07-22). Architect acknowledgment: maturity ≥ targets (platform isolation ~95%; thin shell ~95%; runtime plugin ~92%; bundle isolation ~90%). Budgets: thin-shell tokens **0**; API host allowlist **0**; guest-runtime/transpile ceiling **4/4**. Local: `wave-i0:guard` + `gap-closure:exit-local` / `:full` PASS. GHA [`gap-closure-e4b`](https://github.com/hrokhbakhsh1991/docs/actions/runs/29944050542) **green** on [PR #23](https://github.com/hrokhbakhsh1991/docs/pull/23) (a→b/c→d2). Plan: `TEMP/SAAS_ARCHITECTURE_GAP_CLOSURE_PLAN.md`. Out of scope unchanged: C.4 filtered installs; monorepo full-trunk default (APPLY opt-in).
 {% /callout %}
 
 # SaaS platform remediation — true workspace plugin host
@@ -125,21 +125,21 @@ Plus targeted `tsc --noEmit` for touched apps.
 | Runtime plugin | ≥ 90% | ~92% (C.3c register APPLY + E.4b-d2 disposable build; monorepo default still full-trunk) |
 | Bundle isolation | ≥ 90% | ~90% (D.5/D.6 + APPLY image path; single-tenant still opt-in APPLY) |
 
-Scale readiness for 50–100 workspaces is gated on Architect acknowledgment of maturity ≥ targets + green GHA `gap-closure-e4b` (a→b/c→d2) — do not flip charter status callout to DONE without that.
+Scale readiness exit gates (Architect maturity ≥ targets + green GHA `gap-closure-e4b` a→b/c→d2) are **Closed** — charter status callout is **DONE**. Residual items below (full-trunk default, C.4) are by design / out of scope, not Gap Closure Open rows.
 
-### Exit remaining honesty (do not claim DONE while any Open row remains)
+### Exit remaining honesty
 
 | Item | Status |
 | --- | --- |
-| Architect acknowledgment of maturity ≥ targets | Open |
-| Green GHA `gap-closure-e4b` on trunk | Closed ([PR #23](https://github.com/hrokhbakhsh1991/docs/pull/23) run [29943879967](https://github.com/hrokhbakhsh1991/docs/actions/runs/29943879967) — a→b/c→d2 green) |
+| Architect acknowledgment of maturity ≥ targets | Closed (2026-07-22 — Architect ack in chat; est. ≥ targets) |
+| Green GHA `gap-closure-e4b` on trunk | Closed ([PR #23](https://github.com/hrokhbakhsh1991/docs/pull/23) run [29944050542](https://github.com/hrokhbakhsh1991/docs/actions/runs/29944050542) — a→b/c→d2 green) |
 | Monorepo default generate full-trunk (APPLY opt-in for single-tenant images) | By design — not a defect |
 | B.19b dual-key smoke host labels removed | Closed |
 | Hand `pathNot` product fragments → boundary codegen (P5.2.c) | Closed (fail-closed; not all product ids) |
 | C.4 filtered `optionalDependencies` / pnpm installs | Out of scope |
 | E.4b-d2 disposable `pnpm --filter` package build | Closed (`--package-build` + lockfile restore) |
 
-### Architect verification (local — before DONE)
+### Architect verification (local — post-DONE regression)
 
 ```bash
 nvm use && pnpm run gap-closure:exit-local
