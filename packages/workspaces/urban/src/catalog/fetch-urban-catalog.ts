@@ -2,6 +2,8 @@ import { resolveCatalogListApiPath, resolveCatalogTourApiPath } from "@app-tour/
 
 const URBAN_PLUGIN_ID = "urban" as const;
 
+const URBAN_PLUGIN_ID = "urban" as const;
+
 export const URBAN_CATALOG_PAGE_PATH = "/catalog" as const;
 
 export type UrbanCatalogCard = {

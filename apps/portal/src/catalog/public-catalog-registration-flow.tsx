@@ -8,7 +8,10 @@ import {
   type RegistrationFlowContext,
 } from "@app-tour/workspace-sdk";
 import { getWorkspaceRegistrationFlowSteps } from "@app-tour/workspace-plugin-host/registration-flow";
-import { hydrateCatalogRegistrationIntakeAfterSession } from "@app-tour/catalog-registration-flow-ui";
+import {
+  hydrateCatalogRegistrationIntakeAfterSession,
+  isMemberLoginEgressFromLocation,
+} from "@app-tour/catalog-registration-flow-ui";
 import {
   assertCatalogRegistrationFlowState,
   createCatalogRegistrationFlowRuntimeState,
@@ -134,6 +137,10 @@ export function PublicCatalogRegistrationFlow({
       return;
     }
     if (state.currentStep !== "phone") {
+      return;
+    }
+    if (isMemberLoginEgressFromLocation()) {
+      setSessionResumeStatus("ready");
       return;
     }
     let cancelled = false;

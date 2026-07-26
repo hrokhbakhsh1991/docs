@@ -8,6 +8,8 @@ import type {
   WizardTemplateFieldRef,
 } from "@/features/settings/wizard-template-types";
 
+import { resolveWizardTemplatePreferTemplateDefaults } from "@/bootstrap/workspace-wizard-template-gate-bindings.generated";
+
 import { getCanonicalStringValue, setCanonicalStringValue } from "./tour-wizard-draft-path";
 import type { TourWizardDraft } from "./tour-wizard-draft";
 

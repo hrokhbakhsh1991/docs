@@ -83,6 +83,29 @@
             "type": "array",
             "items": { "type": "string" },
             "description": "Optional filter; omit = all supportedWorkspaceTypes"
+          },
+          "hostSideEffect": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["adapterModule", "export"],
+            "properties": {
+              "adapterModule": {
+                "type": "string",
+                "description": "Host adapter module under package (maps to @pkg/host/*)"
+              },
+              "export": {
+                "type": "string",
+                "description": "Side-effect runner export (e.g. runTourCreatedFinanceSideEffect)"
+              },
+              "registerExport": {
+                "type": "string",
+                "description": "Boot-time deps registrar (e.g. registerTourCreatedFinanceSideEffectDeps)"
+              },
+              "rowTypeExport": {
+                "type": "string",
+                "description": "Row type re-export for outbox processors"
+              }
+            }
           }
         }
       }
@@ -237,6 +260,44 @@
         }
       }
     },
+    "wizardTemplateEnforcement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "assertFrozenFieldsExport", "normalizeStepsExport"],
+      "properties": {
+        "module": { "type": "string" },
+        "assertFrozenFieldsExport": { "type": "string" },
+        "normalizeStepsExport": { "type": "string" }
+      }
+    },
+    "wizardTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pathAliases", "aliasCatalogWorkspaceType"],
+      "properties": {
+        "pathAliases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Canonical paths accepted via aliasCatalogWorkspaceType catalog (starter bridge)"
+        },
+        "aliasCatalogWorkspaceType": {
+          "type": "string",
+          "description": "Workspace type whose field registry validates aliased paths"
+        }
+      }
+    },
+    "exposureHost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module"],
+      "properties": {
+        "module": { "type": "string" },
+        "surfaceDefaultFieldIdsExport": { "type": "string" },
+        "mapSurfaceToFieldPolicyExport": { "type": "string" },
+        "reminderOffsetsExport": { "type": "string" },
+        "exposureCoordinateTypeExport": { "type": "string" }
+      }
+    },
     "pluginApiVersion": {
       "type": "integer",
       "minimum": 1,
@@ -377,6 +438,39 @@
         "readConfigExport": {
           "type": "string",
           "description": "Read object storage config from env (null when unset)"
+        }
+      }
+    },
+    "wizardTemplateGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["defaultPublishedStepId"],
+      "properties": {
+        "defaultPublishedStepId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Default wizard template step id when publishing with zero selected fields"
+        },
+        "fieldOverlaysAugment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["module", "export"],
+          "properties": {
+            "module": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Package subpath for hidden composite template overlay augment (maps to @pkg/host/*)"
+            },
+            "export": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Augment function export (e.g. augmentDenaliWizardTemplateFieldOverlays)"
+            }
+          }
+        },
+        "preferTemplateDefaultsOnPrefill": {
+          "type": "boolean",
+          "description": "When true, template defaultValue overwrites non-empty draft paths on create prefill"
         }
       }
     }

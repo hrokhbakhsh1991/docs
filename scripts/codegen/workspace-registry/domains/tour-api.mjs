@@ -116,6 +116,9 @@ export function generateOutboxSideEffects(manifests) {
   /** @type {Map<string, Set<string>>} */
   const reexportsBySpecifier = new Map();
 
+  /** @type {Map<string, Set<string>>} */
+  const reexportsBySpecifier = new Map();
+
   for (const m of manifests) {
     if (!Array.isArray(m.events) || m.events.length === 0) continue;
     for (const ev of m.events) {
