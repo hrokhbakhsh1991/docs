@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 
+import { MemberLogoutButton } from "@/me/member-logout-button";
+
 import type { PortalMemberNavItem } from "./portal-member-nav.types";
 import { PORTAL_MEMBER_SHELL_TEST_IDS } from "./portal-member-nav.types";
 import { PortalNavIcon } from "./portal-nav-icon";
@@ -12,6 +14,10 @@ export type PortalMemberBottomNavProps = {
   readonly items: readonly PortalMemberNavItem[];
 };
 
+/**
+ * Primary member nav (thumb bar / side rail) + desktop logout footer (PS-VIS-5f).
+ * Mobile hides `[data-portal-shell-nav-footer]` — logout lives on profile session card.
+ */
 export function PortalMemberBottomNav({ items }: PortalMemberBottomNavProps) {
   const pathname = usePathname();
   const t = useTranslations("portalMember.nav");
@@ -46,6 +52,9 @@ export function PortalMemberBottomNav({ items }: PortalMemberBottomNavProps) {
           );
         })}
       </ul>
+      <div data-portal-shell-nav-footer>
+        <MemberLogoutButton />
+      </div>
     </nav>
   );
 }

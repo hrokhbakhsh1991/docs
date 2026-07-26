@@ -27,6 +27,10 @@ export {
 } from "./host/parse-custom-apex-host";
 export { resolveMemberSessionCookieDomain } from "./host/resolve-member-session-cookie-domain";
 export {
+  isLegacyClubPortalHost,
+  toCanonicalClubPortalHost,
+} from "./host/canonicalize-club-portal-host";
+export {
   isClubAdminHost,
   isPlatformAdminHost,
   parseMultiLevelTenantHost,

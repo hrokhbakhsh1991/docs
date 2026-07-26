@@ -1,6 +1,6 @@
 "use client";
 
-import { isPublicRegistrationMobileValid } from "@app-tour/catalog-registration-auth";
+import { isPublicRegistrationMobileValid, normalizePublicRegistrationMobile } from "@app-tour/catalog-registration-auth";
 import { Input } from "@app-tour/ui-primitives/input";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -18,7 +18,7 @@ type MemberProfileMobileChangeProps = {
 type MobileChangeStep = "view" | "phone" | "otp";
 
 function normalizePhone(value: string): string {
-  return value.replace(/\D/g, "");
+  return normalizePublicRegistrationMobile(value);
 }
 
 function resolveMobileChangeErrorMessage(

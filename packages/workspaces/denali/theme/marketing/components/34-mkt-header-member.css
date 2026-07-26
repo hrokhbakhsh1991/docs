@@ -3,7 +3,7 @@
  * Scoped to login state via [data-marketing-member-authenticated].
  */
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   [data-marketing-member-authenticated]
   a[data-marketing-header-member] {
   gap: var(--space-2);
@@ -17,7 +17,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     inset 0 0 0 1px rgba(255, 255, 255, 0.35);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   [data-marketing-member-authenticated]
   a[data-marketing-header-member]:hover {
   border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
@@ -28,14 +28,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     inset 0 0 0 1px rgba(255, 255, 255, 0.45);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   [data-marketing-member-authenticated]
   a[data-marketing-header-member]:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   [data-marketing-member-authenticated]
   span[data-marketing-header-member-avatar-wrap] {
   display: inline-flex;
@@ -49,7 +49,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary) 55%, white);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   [data-marketing-member-authenticated]
   img[data-marketing-header-member-avatar] {
   width: 2rem;
@@ -58,7 +58,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   object-fit: cover;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   [data-marketing-member-authenticated]
   svg[data-marketing-header-member-icon] {
   width: 1.125rem;
@@ -66,7 +66,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   color: var(--primary);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   [data-marketing-member-authenticated]
   span[data-marketing-header-member-meta] {
   display: flex;
@@ -77,7 +77,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   line-height: 1.2;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   [data-marketing-member-authenticated]
   span[data-marketing-header-member-label] {
   display: block;
@@ -90,7 +90,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   color: var(--foreground);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   [data-marketing-member-authenticated]
   span[data-marketing-header-member-hint] {
   display: block;
@@ -104,7 +104,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   color: var(--muted-foreground);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   [data-marketing-member-authenticated]
   a[data-marketing-header-member] {
@@ -116,7 +116,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   [data-marketing-member-authenticated]
   a[data-marketing-header-member]:hover {
@@ -124,21 +124,21 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   border-color: rgba(255, 255, 255, 0.42);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   [data-marketing-member-authenticated]
   span[data-marketing-header-member-label] {
   color: var(--mkt-on-overlay);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   [data-marketing-member-authenticated]
   span[data-marketing-header-member-hint] {
   color: rgba(255, 255, 255, 0.72);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   [data-marketing-member-authenticated]
   span[data-marketing-header-member-avatar-wrap] {
@@ -146,14 +146,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   [data-marketing-member-authenticated]
   svg[data-marketing-header-member-icon] {
   color: var(--mkt-on-overlay);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   nav[data-marketing-nav-drawer-panel]
   a[data-marketing-header-member]
   span[data-marketing-header-member-meta] {
@@ -162,7 +162,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   gap: 0.125rem;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   nav[data-marketing-nav-drawer-panel]
   a[data-marketing-header-member]
   span[data-marketing-header-member-hint] {
@@ -171,20 +171,20 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 @media (max-width: 1023px) {
-  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  :is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
     [data-marketing-member-authenticated]
     a[data-marketing-header-member] {
     max-width: min(100%, 10.5rem);
     padding-inline-end: var(--space-2);
   }
 
-  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  :is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
     [data-marketing-member-authenticated]
     span[data-marketing-header-member-hint] {
     display: none;
   }
 
-  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  :is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
     [data-marketing-member-authenticated]
     span[data-marketing-header-member-label] {
     max-width: 5.5rem;
@@ -193,7 +193,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 @media (min-width: 1024px) {
-  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  :is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
     [data-marketing-member-authenticated]
     a[data-marketing-header-member] {
     padding-block: var(--space-2);

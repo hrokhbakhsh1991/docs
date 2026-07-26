@@ -11,10 +11,17 @@ describe("resolveMemberSessionCookieDomain", () => {
     );
   });
 
-  it("PCMS-COOK-02 platform portal localhost returns undefined", () => {
+  it("PCMS-COOK-02 legacy platform portal localhost returns undefined", () => {
     assert.equal(
       resolveMemberSessionCookieDomain("alpine.portal.localhost:3003", "localhost"),
       undefined
+    );
+  });
+
+  it("PCMS-COOK-03 inverted portal localhost returns club.localhost share parent", () => {
+    assert.equal(
+      resolveMemberSessionCookieDomain("portal.denali.localhost:3003", "localhost"),
+      "denali.localhost"
     );
   });
 

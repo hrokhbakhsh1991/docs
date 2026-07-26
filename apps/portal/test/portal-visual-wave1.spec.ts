@@ -1,5 +1,5 @@
 /**
- * PS-VIS Wave 1 — registration chrome + member shell locale
+ * PS-VIS Wave 1 — registration chrome + minimal member header
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -39,15 +39,23 @@ describe("portal-visual-wave1.spec.ts", () => {
     assert.match(skin, /\[data-portal-registration-back\]/);
   });
 
-  it("VIS-SHELL-01 member header wires logo without locale switcher", () => {
+  it("VIS-SHELL-01 member header is minimal (brand + chip; logout elsewhere)", () => {
     const layout = readPortal("app/me/layout.tsx");
     assert.match(layout, /logoUrl=/);
+    assert.match(layout, /marketingHomeUrl=/);
     const header = readPortal("src/shell/portal-member-header.tsx");
     assert.match(header, /data-portal-shell-logo/);
+    assert.match(header, /data-marketing-header/);
+    assert.match(header, /data-portal-member-header-minimal/);
+    assert.doesNotMatch(header, /MemberLogoutButton/);
     assert.doesNotMatch(header, /PortalLocaleSwitcher/);
+    assert.doesNotMatch(header, /data-marketing-header-nav/);
+    const bottomNav = readPortal("src/shell/portal-member-bottom-nav.tsx");
+    assert.match(bottomNav, /data-portal-shell-nav-footer/);
+    assert.match(bottomNav, /MemberLogoutButton/);
   });
 
-  it("VIS-SHELL-02 locale switcher uses cookie + refresh", () => {
+  it("VIS-SHELL-02 locale switcher component remains available (not in member header)", () => {
     const switcher = readPortal("src/i18n/portal-locale-switcher.tsx");
     assert.match(switcher, /LOCALE_COOKIE_NAME/);
     assert.match(switcher, /router\.refresh\(\)/);

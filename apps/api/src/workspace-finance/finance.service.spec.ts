@@ -224,6 +224,9 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
       async raisePaidInTx(tx, input) {
         return new BookingPaymentAdapter(getBookingsRepository()).raisePaidInTx(tx, input);
       },
+      async raisePaidInTx(tx, input) {
+        return new BookingPaymentAdapter().raisePaidInTx(tx, input);
+      },
       async memberOwnsRegistration(input) {
         return new BookingPaymentAdapter(getBookingsRepository()).memberOwnsRegistration(input);
       },

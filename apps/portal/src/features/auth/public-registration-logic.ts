@@ -8,6 +8,7 @@ export {
   initialPublicRegistrationOtp,
   initialPublicRegistrationPhone,
   isPublicRegistrationMobileValid,
+  normalizePublicRegistrationMobile,
   readPublicRegistrationErrorCode,
 } from "@app-tour/catalog-registration-auth";
 

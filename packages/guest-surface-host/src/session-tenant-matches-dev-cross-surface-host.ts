@@ -3,8 +3,6 @@ import { isLocalhostIngressHost } from "./is-localhost-ingress-host";
 import { PHASE_43_HOST_TENANT_IDS } from "./phase-43-host-tenant-ids";
 import { resolveTenantIdFromDevHost } from "./resolve-tenant-id-from-dev-host";
 
-const LOCALHOST_PAIRED_HOST_SUFFIXES = [".localhost", ".portal.localhost"] as const;
-
 function resolveClubLabelsForTenantId(tenantId: string): readonly string[] {
   const normalized = tenantId.trim();
   if (normalized.length === 0) {
@@ -14,6 +12,15 @@ function resolveClubLabelsForTenantId(tenantId: string): readonly string[] {
     .filter(([, id]) => id.trim() === normalized)
     .map(([label]) => label.trim().toLowerCase())
     .filter((label) => label.length > 0);
+}
+
+/** Marketing + portal siblings for a club label on localhost (PCMS-COOK-03). */
+function pairedLocalhostHostsForClub(club: string): readonly string[] {
+  return [
+    `${club}.localhost`,
+    `portal.${club}.localhost`,
+    `${club}.portal.localhost`,
+  ];
 }
 
 /**
@@ -45,8 +52,7 @@ export function sessionTenantMatchesDevCrossSurfaceHost(
   }
 
   for (const club of resolveClubLabelsForTenantId(normalized)) {
-    for (const suffix of LOCALHOST_PAIRED_HOST_SUFFIXES) {
-      const pairedHost = `${club}${suffix}`;
+    for (const pairedHost of pairedLocalhostHostsForClub(club)) {
       for (const surface of ["marketing", "portal"] as const) {
         const pairedTenantId = resolveTenantIdFromDevHost(pairedHost, surface);
         if (pairedTenantId !== null && normalized === pairedTenantId.trim()) {

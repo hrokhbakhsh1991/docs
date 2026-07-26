@@ -82,9 +82,12 @@ test("SMK-PTL-04 member uploads offline receipt on registration detail (VS-05)",
   ]);
   const uploadBody = await uploadRes.text();
   expect(uploadRes.ok(), `receipt upload ${uploadRes.status()} ${uploadBody.slice(0, 300)}`).toBe(true);
-  await expect(page.locator("[data-portal-member-receipt-success]")).toBeVisible({
+  await expect(page.locator("[data-portal-member-receipt-waiting]")).toBeVisible({
     timeout: 60_000,
   });
+  await expect(page.locator("[data-portal-member-receipt-submit]")).toHaveCount(0);
+  await expect(page.locator("[data-portal-member-receipt-back-trips]")).toBeVisible();
+  await expect(page.locator("[data-portal-member-receipt-view-tour]")).toBeVisible();
 });
 
 test("SMK-PTL-06 member logout clears session and blocks /me area", async ({ page }) => {
@@ -101,9 +104,25 @@ test("SMK-PTL-06 member logout clears session and blocks /me area", async ({ pag
   await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({
     timeout: 60_000,
   });
-  const logoutButton = page.locator(
-    '[data-public-auth-logout][data-public-auth-logout-ready="true"]'
+
+  // PS-VIS-5f: desktop rail footer or (mobile) profile session card
+  const railLogout = page.locator(
+    '[data-portal-shell-nav-footer] [data-public-auth-logout][data-public-auth-logout-ready="true"]'
   );
+  const profileLogout = page.locator(
+    '[data-member-profile-session] [data-public-auth-logout][data-public-auth-logout-ready="true"]'
+  );
+  if (await railLogout.isVisible().catch(() => false)) {
+    // desktop side rail
+  } else {
+    await page.goto("/me/profile");
+    await expect(page.locator("[data-portal-member-profile]")).toBeVisible({
+      timeout: 60_000,
+    });
+  }
+  const logoutButton = (await railLogout.isVisible().catch(() => false))
+    ? railLogout
+    : profileLogout;
   await expect(logoutButton).toBeEnabled({ timeout: 60_000 });
 
   const [logoutResponse] = await Promise.all([

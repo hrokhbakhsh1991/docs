@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { normalizePublicRegistrationMobile } from "@app-tour/catalog-registration-auth";
+
 import { bffCodedError } from "@/auth/bff-coded-error";
 import { mapPublicAuthBffCatchError } from "@/auth/public-auth-bff-error";
 import { buildIdentityBffHeadersAsync } from "@/auth/resolve-identity-bff-tenant";
@@ -15,7 +17,9 @@ type VerifyOtpBody = {
 
 export async function POST(req: Request): Promise<NextResponse> {
   const body = (await req.json().catch(() => ({}))) as VerifyOtpBody;
-  const phone = typeof body.phone === "string" ? body.phone.trim() : "";
+  const phone = normalizePublicRegistrationMobile(
+    typeof body.phone === "string" ? body.phone.trim() : ""
+  );
   const otp = typeof body.otp === "string" ? body.otp.trim() : "";
   const challengeId =
     typeof body.challenge_id === "string" ? body.challenge_id.trim() : "";

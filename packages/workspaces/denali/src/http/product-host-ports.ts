@@ -17,6 +17,7 @@ export type DenaliProductRouteDeps = {
     tenantId: string,
     userId: string
   ) => Promise<{
+    readonly displayName?: string | null;
     readonly nationalId?: string | null;
     readonly fatherName?: string | null;
     readonly birthDate?: string | null;
@@ -25,6 +26,7 @@ export type DenaliProductRouteDeps = {
     tenantId: string,
     userId: string,
     patch: {
+      readonly displayName?: string;
       readonly nationalId?: string;
       readonly fatherName?: string;
       readonly birthDate?: string;

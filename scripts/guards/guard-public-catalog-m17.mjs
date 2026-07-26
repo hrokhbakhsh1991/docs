@@ -44,6 +44,7 @@ const REQUIRED_FILES = [
   "apps/api/src/identity/public-auth.routes.ts",
   "apps/api/src/openapi/public-auth-openapi.ts",
   "apps/api/test/public-auth.spec.ts",
+  "apps/portal/src/catalog/public-catalog-registration-flow.tsx",
   "apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx",
   "apps/portal/app/api/catalog/registrations/route.ts",
   "apps/portal/playwright.portal.config.ts",
@@ -240,8 +241,9 @@ const portalNextConfig = read("apps/portal/next.config.ts");
 assertCheck(
   "m17_portal_allowed_dev_origins",
   portalNextConfig.includes("allowedDevOrigins") &&
-    portalNextConfig.includes("*.portal.localhost"),
-  "portal next.config must allow *.portal.localhost for Playwright smokes",
+    portalNextConfig.includes("*.portal.localhost") &&
+    portalNextConfig.includes("portal.denali.localhost"),
+  "portal next.config must allow *.portal.localhost and portal.denali.localhost for Playwright / M↔P",
 );
 
 const publicCatalogDoc = read("docs/workspaces/denali/public-catalog.md");

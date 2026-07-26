@@ -101,8 +101,23 @@ if (!registerPage.includes("buildRegistrationResumeInitialState")) {
 }
 
 const portalSessionCookie = readRepo("apps/portal/src/auth/build-session-cookie.ts");
-if (!portalSessionCookie.includes('domain: "localhost"')) {
-  violations.push("portal build-session-cookie: missing dev localhost Domain for cross-surface member session");
+if (
+  portalSessionCookie.includes('domain: ".localhost"') ||
+  portalSessionCookie.includes('domain: "localhost"')
+) {
+  violations.push(
+    "portal build-session-cookie: Domain=.localhost / Domain=localhost forbidden (PSL); use custom apex Domain via resolveMemberSessionCookieDomain"
+  );
+}
+if (!portalSessionCookie.includes("resolveMemberSessionCookieDomain")) {
+  violations.push(
+    "portal build-session-cookie: missing resolveMemberSessionCookieDomain (PCMS-COOK-01 apex Domain)"
+  );
+}
+if (!portalSessionCookie.includes("shouldRefreshDevMemberSessionCookieDomain")) {
+  violations.push(
+    "portal build-session-cookie: missing shouldRefreshDevMemberSessionCookieDomain (PCMS-COOK-03 apex refresh)"
+  );
 }
 
 const forbiddenMarketingPatterns = [

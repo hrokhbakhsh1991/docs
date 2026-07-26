@@ -235,6 +235,37 @@ function mapMemberReceiptUploadError(res: ServerResponse, error: unknown): boole
   return false;
 }
 
+function readHeader(req: IncomingMessage, name: string): string {
+  const raw = req.headers[name.toLowerCase()];
+  if (raw === undefined) {
+    return "";
+  }
+  return (Array.isArray(raw) ? raw[0] : raw)?.trim() ?? "";
+}
+
+function isJsonReceiptContentType(contentType: string): boolean {
+  const normalized = contentType.trim().toLowerCase();
+  return normalized.includes("application/json") || normalized.length === 0;
+}
+
+function mapMemberReceiptUploadError(res: ServerResponse, error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message === "MINIO_NOT_CONFIGURED") {
+    sendHttpError(res, 503, { error: "service_unavailable", code: "MINIO_NOT_CONFIGURED" });
+    return true;
+  }
+  if (
+    message === "RECEIPT_PROOF_EMPTY" ||
+    message === "RECEIPT_PROOF_TOO_LARGE" ||
+    message === "RECEIPT_PROOF_CONTENT_TYPE_INVALID" ||
+    message === "RECEIPT_PROOF_KEY_SCOPE_INVALID"
+  ) {
+    sendHttpError(res, 400, { error: "invalid_body", code: message });
+    return true;
+  }
+  return false;
+}
+
 export async function handlePostBookingReceipt(
   req: IncomingMessage,
   res: ServerResponse,
@@ -303,6 +334,35 @@ export async function handlePostBookingReceipt(
     );
   } catch (error) {
     if (mapMemberReceiptUploadError(res, error)) {
+      return;
+    }
+    if (mapMemberReceiptUploadError(res, error)) {
+      return;
+    }
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleGetBookingReceiptStatus(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const financeService = await resolveFinanceServiceForTenant(auth.tenantId);
+        const status = await financeService.getMemberReceiptStatusForRegistration(auth, bookingId);
+        sendJson(res, 200, status);
+      },
+      { rateLimit: "read" }
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message === "BOOKINGS_FORBIDDEN") {
+      sendHttpError(res, 403, { error: "forbidden", code: "BOOKINGS_FORBIDDEN" });
       return;
     }
     handleHttpError(res, error);

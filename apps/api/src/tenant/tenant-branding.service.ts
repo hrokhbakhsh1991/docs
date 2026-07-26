@@ -194,7 +194,7 @@ export async function resolvePublicTenantBrandingBySubdomain(subdomain: string):
   if (tenant === null) {
     throw new Error("TENANT_NOT_FOUND");
   }
-  const theme = tenant.theme;
+  const theme = await readMergedTheme(tenant.id);
   let logoUrl: string | null = null;
   const storageKey = theme.logo?.storageKey?.trim() ?? "";
   if (storageKey.length > 0) {

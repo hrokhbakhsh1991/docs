@@ -1,5 +1,5 @@
 /**
- * PS-VIS-5 — desktop centered app frame
+ * PS-VIS-5c — desktop page shell + side rail + settings profile
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -15,18 +15,23 @@ describe("portal-visual-wave5.spec.ts", () => {
     const skin = readFileSync(join(denaliThemeRoot, "denali-portal.css"), "utf8");
     assert.match(skin, /portal\/member-shell-desktop\.css/);
     assert.match(skin, /portal\/member-pages-desktop\.css/);
+    assert.match(skin, /portal\/marketing-header-parity\.css/);
   });
 
-  it("DESK-02 member-shell-desktop.css frames shell and contains nav", () => {
+  it("DESK-02 member-shell-desktop.css uses page grid + side rail", () => {
     const css = readFileSync(join(denaliThemeRoot, "portal/member-shell-desktop.css"), "utf8");
     assert.match(css, /@media \(min-width: 48rem\)/);
     assert.match(css, /:has\(\[data-portal-shell\]\)/);
     assert.match(css, /\[data-portal-shell\]:not\(\[data-embedded-host\]\)/);
     assert.match(css, /max-height:\s*calc\(100dvh - 2rem\)/);
     assert.match(css, /overflow-y:\s*auto/);
-    assert.match(css, /position:\s*absolute/);
+    assert.match(css, /grid-template-areas/);
+    assert.match(css, /"main nav"/);
+    assert.match(css, /max-width:\s*64rem/);
     assert.match(css, /border-radius/);
     assert.match(css, /box-shadow/);
+    assert.match(css, /data-portal-shell-nav-footer/);
+    assert.match(css, /margin-top:\s*auto/);
   });
 
   it("DESK-03 embedded host excluded from desktop frame", () => {
@@ -44,6 +49,41 @@ describe("portal-visual-wave5.spec.ts", () => {
     assert.match(css, /repeat\(2,/);
   });
 
+  it("DESK-08 profile uses sectioned settings layout (PS-VIS-5g)", () => {
+    const profile = readFileSync(join(denaliThemeRoot, "portal/member-profile.css"), "utf8");
+    const form = readFileSync(
+      join(repoRoot, "apps/portal/app/me/profile/member-profile-form.tsx"),
+      "utf8"
+    );
+    assert.match(profile, /Desktop settings \(PS-VIS-5g\)/);
+    assert.match(profile, /\[data-member-profile-card\]/);
+    assert.match(profile, /\[data-member-profile-actions\]/);
+    assert.match(profile, /\[data-member-profile-discard\]/);
+    assert.match(profile, /data-member-profile-layout="sectioned"/);
+    assert.match(profile, /flex-direction:\s*row/);
+    assert.match(form, /data-member-profile-layout="sectioned"/);
+    assert.match(form, /data-member-profile-card/);
+    assert.match(form, /data-member-profile-discard/);
+    assert.match(form, /data-member-profile-actions/);
+    assert.match(form, /data-member-profile-session/);
+    assert.match(profile, /\[data-member-profile-session\]/);
+    assert.doesNotMatch(profile, /grid-template-columns:\s*15\.5rem/);
+  });
+
+  it("DESK-09 desktop frame doc documents side rail + sectioned profile", () => {
+    const doc = readFileSync(
+      join(repoRoot, "docs/workspaces/denali/portal-member-desktop-frame.md"),
+      "utf8"
+    );
+    assert.match(doc, /PS-VIS-5c/);
+    assert.match(doc, /Side rail/);
+    assert.match(doc, /sectioned/i);
+    assert.match(doc, /64rem/);
+    assert.match(doc, /PS-VIS-5f/);
+    assert.match(doc, /PS-VIS-5g/);
+    assert.match(doc, /data-portal-shell-nav-footer/);
+  });
+
   it("DESK-05 login-page.css widens and vertically centers auth on desktop", () => {
     const css = readFileSync(join(denaliThemeRoot, "portal/login-page.css"), "utf8");
     assert.match(css, /Desktop auth frame \(PS-VIS-5\)/);
@@ -57,8 +97,8 @@ describe("portal-visual-wave5.spec.ts", () => {
       join(repoRoot, "docs/workspaces/denali/portal-member-desktop-frame.md"),
       "utf8"
     );
-    assert.match(doc, /Centered App Frame/);
-    assert.match(doc, /In-frame scroll/);
+    assert.match(doc, /alpine backdrop/i);
+    assert.match(doc, /side rail/i);
   });
 
   it("DESK-07 portal-shell-visual E2E includes desktop frame screenshot", () => {

@@ -21,8 +21,13 @@ describe("parseMultiLevelTenantHost", () => {
     assert.deepEqual(outcome, { kind: "club_admin", subdomain: "alborz" });
   });
 
-  it("club portal", () => {
+  it("club portal legacy", () => {
     const outcome = parseMultiLevelTenantHost("alborz.portal.localhost", "localhost", reserved);
+    assert.deepEqual(outcome, { kind: "club_portal", subdomain: "alborz" });
+  });
+
+  it("club portal inverted (portal.{club}.{root})", () => {
+    const outcome = parseMultiLevelTenantHost("portal.alborz.localhost", "localhost", reserved);
     assert.deepEqual(outcome, { kind: "club_portal", subdomain: "alborz" });
   });
 

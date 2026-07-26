@@ -17,6 +17,17 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-slot="shel
   box-shadow: 0 1px 0 color-mix(in oklab, var(--color-primary) 6%, transparent);
 }
 
+/* Marketing-parity header owns its chrome — skip legacy portal header paint */
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  header[data-portal-shell-header][data-marketing-header],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  header[data-slot="shell-header"][data-marketing-header] {
+  border-bottom: none;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-brand],
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-slot="shell-brand"] {
   gap: var(--space-3);
@@ -179,4 +190,11 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-nav-link][data-active="true"]
   [data-portal-shell-nav-label] {
   color: var(--color-primary);
+}
+
+/* PS-VIS-5f — mobile: logout on profile only; hide rail footer from thumb bar */
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell-bottom-nav]
+  [data-portal-shell-nav-footer] {
+  display: none;
 }

@@ -9,8 +9,10 @@ extends:
   - docs/standards/member-session-portal-authority.mdoc
 code_sot:
   - packages/tenant-kernel/src/host/parse-multi-level-tenant-host.ts
+  - packages/tenant-kernel/src/host/canonicalize-club-portal-host.ts
   - packages/tenant-kernel/src/host/build-dev-portal-public-base-url.ts
   - packages/tenant-kernel/src/host/build-dev-marketing-public-base-url.ts
+  - apps/portal/middleware.ts
   - packages/guest-surface-host/src/resolve-marketing-public-base-url.ts
   - packages/guest-surface-host/src/resolve-portal-public-base-url.ts
   - packages/tenant-kernel/src/host/parse-custom-apex-host.ts
@@ -69,12 +71,17 @@ Parser order (`parseMultiLevelTenantHost` — only SoT):
 ```text
 1. admin.{root}              → platform_admin
 2. {club}.admin.{root}       → club_admin
-3. {club}.portal.{root}      → club_portal
-4. {club}.{root}             → club_apex
-5. {root}                    → apex (platform mother)
+3. {club}.portal.{root}      → club_portal (legacy platform portal)
+4. portal.{club}.{root}      → club_portal (canonical local + prod-shaped)
+5. {club}.{root}             → club_apex
+6. {root}                    → apex (platform mother)
 ```
 
 Dev ports: web 3000 · api 3001 · marketing 3002 · portal 3003.
+
+**Local M↔P cookie share (PCMS-COOK-03):** Canonical local portal is `portal.{club}.localhost`. Chromium accepts `Domain={club}.localhost` only from that inverted host.
+
+**WRS-PORTAL-LEGACY-308 (localhost):** Legacy `{club}.portal.localhost` remains parseable as `club_portal` but is **not** a stable session host. `apps/portal` middleware 308-redirects it to `portal.{club}.localhost` (path/query/port preserved; all matched routes including `/api/*`) via `toCanonicalClubPortalHost` — see PCMS-COOK-05. Custom apex and non-localhost platform portal shapes are out of scope for this redirect.
 
 ### 3.2 Custom apex (production)
 
@@ -92,15 +99,15 @@ portal.denali.club       → user portal
 admin.denali.club        → operator panel
 ```
 
-### 3.3 Dev vs prod naming (intentional asymmetry)
+### 3.3 Dev vs prod naming
 
-| Surface | Dev | Prod |
-| ------- | --- | ---- |
-| Public | `denali.localhost:3002` | `denali.club` |
-| User | `denali.portal.localhost:3003` | `portal.denali.club` |
-| Admin | `denali.admin.localhost:3000` | `admin.denali.club` |
+| Surface | Dev (canonical) | Prod (custom apex) | Legacy local (still parsed) |
+| ------- | --------------- | ------------------ | --------------------------- |
+| Public | `denali.localhost:3002` | `denali.club` | — |
+| User | `portal.denali.localhost:3003` | `portal.denali.club` | `denali.portal.localhost:3003` |
+| Admin | `denali.admin.localhost:3000` | `admin.denali.club` | — |
 
-WRS-D-ASYM-01: Platform wildcard TLS uses `{club}.portal.{root}` in dev; customer DNS uses `portal.{apex}` in prod. Same surfaces, different label order.
+WRS-D-ASYM-01: **Admin** still uses platform `{club}.admin.{root}` in dev vs `admin.{apex}` in prod. **Portal** on localhost mirrors prod label order (`portal.{club}.localhost`) so PCMS member cookies can share with marketing. Legacy `{club}.portal.localhost` is temporarily accepted and **308-redirected** to the inverted host (WRS-PORTAL-LEGACY-308). Non-localhost platform roots may still emit `{club}.portal.{root}` from URL builders until wildcard TLS is updated (no middleware rewrite for those roots in this gate).
 
 ---
 
@@ -198,7 +205,7 @@ WRS-URL-03: NEVER prepend `shop.` on egress.
 | Legacy | Canonical | Sunset |
 | ------ | --------- | ------ |
 | shop.{club}.{root}:3002 | {club}.{root}:3002 | Phase 4 |
-| {club}.{root}:3003 | {club}.portal.{root}:3003 | ingress-only |
+| {club}.{root}:3003 | portal.{club}.{root}:3003 (legacy: {club}.portal.{root}) | ingress-only |
 | {club}.{root}:3000 | {club}.admin.{root}:3000 | ingress-only |
 
 ---

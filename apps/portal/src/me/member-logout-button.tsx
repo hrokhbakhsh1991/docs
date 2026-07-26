@@ -1,5 +1,6 @@
 "use client";
 
+import { LogOut } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState, type JSX } from "react";
 
@@ -33,7 +34,10 @@ export function MemberLogoutButton(): JSX.Element {
       disabled={loading || !ready}
       onClick={() => void handleLogout()}
     >
-      {loading ? t("loggingOut") : t("logout")}
+      <LogOut aria-hidden="true" data-public-auth-logout-icon />
+      <span data-public-auth-logout-label>
+        {loading ? t("loggingOut") : t("logout")}
+      </span>
     </button>
   );
 }

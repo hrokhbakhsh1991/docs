@@ -20,7 +20,8 @@ describe("portal-member-receipt-bff", () => {
     assert.match(route, /headers\.Authorization === undefined/);
     assert.match(route, /AUTH_UNAUTHENTICATED/);
     assert.match(route, /\/bookings\/\$\{encodeURIComponent\(registrationId\)\}\/receipts/);
-    assert.match(route, /fileKey/);
+    assert.match(route, /x-receipt-file-name/);
+    assert.match(route, /Content-Type/);
     assert.doesNotMatch(route, /\/finance\/receipts/);
   });
 
@@ -31,6 +32,31 @@ describe("portal-member-receipt-bff", () => {
     );
     assert.match(route, /FILE_REQUIRED/);
     assert.match(route, /status: 400/);
+  });
+
+  it("MEM-BFF-03c GET route proxies receipt status upstream", () => {
+    const route = readFileSync(
+      join(repoRoot, "apps/portal/app/api/me/registrations/[id]/receipt/route.ts"),
+      "utf8"
+    );
+    assert.match(route, /export async function GET/);
+    assert.match(route, /RECEIPT_STATUS_FAILED/);
+    assert.match(route, /parseMemberReceiptStatus/);
+    assert.match(route, /ok: true, status:/);
+  });
+
+  it("MEM-BFF-03d shared receipt status type is client-safe", () => {
+    const shared = readFileSync(
+      join(repoRoot, "apps/portal/src/me/member-receipt-status.ts"),
+      "utf8"
+    );
+    const form = readFileSync(
+      join(repoRoot, "apps/portal/app/me/registrations/[id]/member-receipt-upload-form.tsx"),
+      "utf8"
+    );
+    assert.match(shared, /export type MemberReceiptStatus/);
+    assert.match(shared, /parseMemberReceiptStatus/);
+    assert.match(form, /@\/me\/member-receipt-status/);
   });
 
   it("MEM-BFF-04 member headers forward x-workspace-id from session", () => {

@@ -19,7 +19,9 @@ describe("portal-member-shell.spec.ts — PS-1", () => {
     const layout = readPortal("app/me/layout.tsx");
     assert.match(layout, /PortalMemberShell/);
     assert.doesNotMatch(layout, /<nav/);
-    assert.doesNotMatch(layout, /href="\/me\/registrations"/);
+    assert.match(layout, /marketingHomeUrl=/);
+    assert.doesNotMatch(layout, /tripsHref=/);
+    assert.doesNotMatch(layout, /marketingToursUrl=/);
   });
 
   it("PS1-SHELL-02 shell package exposes canonical landmarks", () => {
@@ -31,11 +33,20 @@ describe("portal-member-shell.spec.ts — PS-1", () => {
     assert.doesNotMatch(shell, /data-portal-member-shell/);
     assert.match(shell, /data-portal-shell-main/);
     assert.match(shell, /data-portal-shell-skip-link/);
+    assert.match(shell, /data-marketing-member-authenticated/);
     assert.match(header, /data-portal-shell-header/);
+    assert.match(header, /data-marketing-header/);
     assert.match(header, /data-slot="shell-header"/);
     assert.match(header, /data-portal-shell-brand/);
+    assert.match(header, /data-portal-member-header-minimal/);
+    assert.match(header, /data-marketing-header-member/);
+    assert.doesNotMatch(header, /MemberLogoutButton/);
     assert.doesNotMatch(header, /PortalLocaleSwitcher/);
+    assert.doesNotMatch(header, /data-marketing-header-nav/);
+    assert.doesNotMatch(header, /data-marketing-nav-drawer/);
     assert.match(bottomNav, /data-portal-shell-bottom-nav/);
+    assert.match(bottomNav, /data-portal-shell-nav-footer/);
+    assert.match(bottomNav, /MemberLogoutButton/);
     assert.match(bottomNav, /data-portal-shell-nav-link/);
     assert.match(bottomNav, /data-portal-shell-nav-icon/);
     assert.match(bottomNav, /PortalNavIcon/);
@@ -89,9 +100,9 @@ describe("portal-member-shell.spec.ts — PS-2 registry nav", () => {
     const layout = readPortal("app/me/layout.tsx");
     assert.match(layout, /resolvePortalMemberNavForPlugin/);
     assert.match(layout, /bottomNav=/);
-    assert.match(layout, /userMenuNav=/);
-    assert.doesNotMatch(layout, /href="\/me\/registrations"/);
-    assert.doesNotMatch(layout, /href="\/me\/profile"/);
+    assert.match(layout, /memberHeader=/);
+    assert.match(layout, /marketingHomeUrl=/);
+    assert.doesNotMatch(layout, /userMenuNav=/);
   });
 
   it("PS2-SHELL-02 bottom nav consumes registry items prop", () => {

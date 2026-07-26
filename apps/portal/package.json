@@ -7,7 +7,7 @@
     "guard:import-boundary": "node ../../scripts/guards/import-boundary-ast.mjs",
     "guard:portal-member-profile-boundary": "node ../../scripts/guards/guard-portal-member-profile-boundary.mjs",
     "guard:architecture-truth": "node ../../scripts/guards/architecture-truth-guard.mjs",
-    "predev": "pnpm run guard:import-boundary && pnpm run guard:portal-member-profile-boundary && pnpm run guard:architecture-truth",
+    "predev": "pnpm run guard:import-boundary && pnpm run guard:portal-member-profile-boundary && pnpm run guard:architecture-truth && pnpm --filter @app-tour/catalog-registration-flow-ui run build",
     "dev": "next dev --port 3003",
     "prebuild": "pnpm run guard:import-boundary && pnpm run guard:portal-member-profile-boundary && pnpm run guard:architecture-truth && rm -rf .next",
     "build": "bash ../../scripts/next-build-with-retry.sh",

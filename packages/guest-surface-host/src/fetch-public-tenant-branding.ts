@@ -34,9 +34,10 @@ export async function fetchPublicTenantBrandingForHost(
   const revalidate = options.nextRevalidate ?? resolveGuestBrandingRevalidateSeconds();
 
   try {
+    const isDev = process.env.NODE_ENV === "development";
     const init: RequestInit & { next?: { revalidate: number } } = {
       headers: { "x-forwarded-host": brandingHost },
-      next: { revalidate },
+      ...(isDev ? { cache: "no-store" } : { next: { revalidate } }),
     };
     const res = await fetch(url, init);
     if (!res.ok) {

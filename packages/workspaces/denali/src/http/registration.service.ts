@@ -23,12 +23,14 @@ function readTourCapacity(canonical: CanonicalDocument): number | null {
 }
 
 export type DenaliGuestMembershipSnapshot = {
+  readonly displayName?: string | null;
   readonly nationalId?: string | null;
   readonly fatherName?: string | null;
   readonly birthDate?: string | null;
 };
 
 export type DenaliGuestProfilePatch = {
+  readonly displayName?: string;
   readonly nationalId?: string;
   readonly fatherName?: string;
   readonly birthDate?: string;
@@ -76,6 +78,7 @@ export async function createDenaliRegistration(params: {
   const profileNationalId = guestMembership?.nationalId?.trim() ?? "";
   const profileFatherName = guestMembership?.fatherName?.trim() ?? "";
   const profileBirthDate = guestMembership?.birthDate?.trim() ?? "";
+  const profileDisplayName = guestMembership?.displayName?.trim() ?? "";
   const registrantTarget = params.body.registrantTarget ?? "self";
 
   validateDenaliRegistrationPayload(
@@ -152,7 +155,11 @@ export async function createDenaliRegistration(params: {
     const intakeNationalId = params.body.contact.nationalId?.trim() ?? "";
     const intakeFatherName = params.body.contact.fatherName?.trim() ?? "";
     const intakeBirthDate = params.body.contact.birthDate?.trim() ?? "";
+    const intakeFullName = params.body.contact.fullName.trim();
     const profilePatch: DenaliGuestProfilePatch = {
+      ...(profileDisplayName.length === 0 && intakeFullName.length > 0
+        ? { displayName: intakeFullName }
+        : {}),
       ...(card.nationalIdRequired === true &&
       profileNationalId.length === 0 &&
       intakeNationalId.length > 0

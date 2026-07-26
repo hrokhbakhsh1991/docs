@@ -7,8 +7,10 @@
 
 | ID | Hook / selector | Surface | Wave |
 |----|-----------------|---------|------|
-| SH-01 | `[data-portal-shell-header]` + `[data-portal-shell-logo]` | Member shell | 1 |
-| SH-02 | `[data-portal-locale-switcher]` | Member shell | 1 |
+| SH-01 | `[data-portal-shell-header]` + `[data-portal-member-header-minimal]` + brand/logo | Member shell | 1 |
+| SH-02 | `[data-marketing-header-member]` (chip → profile; no header logout) | Member header identity | 1 / 5e |
+| SH-02b | `[data-portal-shell-nav-footer]` `[data-public-auth-logout]` | Desktop side-rail logout | 5f |
+| SH-02c | `[data-member-profile-session]` `[data-public-auth-logout]` | Mobile profile logout | 5f |
 | SH-03 | `[data-portal-shell-bottom-nav]` + `[data-portal-shell-nav-icon]` | Bottom nav icons (incl. profile when entitled) | 2 |
 | SH-05 | `[data-portal-shell-main]` alpine canvas | Member shell page bg | 4 |
 | SH-06 | `[data-portal-shell-user-menu]` profile chip + icon | Header user cluster | 4 |

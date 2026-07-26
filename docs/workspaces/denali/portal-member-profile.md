@@ -103,6 +103,20 @@ Direct URL: `/me/profile`.
 
 Shared storage: `GET/PATCH /identity/me` · `membershipMetadata`. Portal must use `/api/me/profile` BFF only (INV-MP-01). Marketing has no settings page (PCMS-001).
 
+### Desktop layout (PS-VIS-5g · sectioned · 2026-07-17)
+
+Mobile profile chrome stays the single-column **card** + sticky save (thumb zone). At `≥48rem`, Denali applies a **Linear / Vercel-style sectioned** settings layout (not nested admin cards, not a second settings sidebar — the shell side rail already owns portal IA):
+
+1. Member shell: **side rail** + wide page ([portal-member-desktop-frame.md](./portal-member-desktop-frame.md)).
+2. Form root: `data-member-profile-layout="sectioned"` — sections keep `data-member-profile-card` hooks for E2E, but desktop skin **flattens** borders/shadows into hairline dividers.
+3. Avatar is a **horizontal** identity row (preview + actions), not a framed photo card.
+4. Fieldsets: 2-column field grid; `mobile` OTP spans full width; legends are section titles with a bottom rule.
+5. Footer `data-member-profile-actions`: Discard + Save (sticky, end-aligned).
+
+**Non-goals:** nested settings sidebar inside profile, RHF rewrite, importing marketing CSS into profile.
+
+Authority: `member-profile.css` (skin) + `member-profile-form.tsx` (structure/hooks only). Smoke hooks preserved.
+
 ### Current implementation (post-M6 · repo truth)
 
 | Piece | Today | Governance |
@@ -132,6 +146,10 @@ Shared storage: `GET/PATCH /identity/me` · `membershipMetadata`. Portal must us
 | `data-member-profile-avatar-remove` | Remove avatar button |
 | `data-member-profile-field="gender"` | Gender select (`OPERATOR_PROFILE_GENDERS`) |
 | `data-member-profile-save` | Save button (`type="button"` · `PATCH /api/me/profile`) |
+| `data-member-profile-discard` | Reset dirty fields to last loaded profile |
+| `data-member-profile-actions` | Desktop/mobile actions row (discard + save) |
+| `data-member-profile-card` | Section surface hook (photo + each fieldset + session); desktop flattens to sectioned dividers |
+| `data-member-profile-layout="sectioned"` | Form layout contract for Denali desktop skin (PS-VIS-5g) |
 
 Smoke warmup: `apps/portal/tests/e2e/portal-smoke-global-setup.ts` pre-compiles `/catalog/{210,212}/register` before Playwright navigation (first dev compile can exceed 90s).
 

@@ -1,7 +1,9 @@
 /**
- * Denali portal — desktop centered app frame (PS-VIS-5).
+ * Denali portal — desktop member shell (PS-VIS-5c).
  * Mobile (<48rem): no rules — member-shell.css authority.
  * Embedded host: excluded — keeps full-bleed mobile chrome.
+ *
+ * Desktop: wide page + side rail (same bottom-nav hooks, vertical).
  */
 
 @media (min-width: 48rem) {
@@ -26,9 +28,14 @@
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-slot="shell"]:not([data-embedded-host]) {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    max-width: 32rem;
+    display: grid;
+    /* Default: nav on inline-end (right) — Denali FA/RTL-first; LTR flips below */
+    grid-template-columns: minmax(0, 1fr) 12.5rem;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "header header"
+      "main nav";
+    max-width: 64rem;
     max-height: calc(100dvh - 2rem);
     min-height: calc(100dvh - 2rem);
     margin: 1rem auto;
@@ -43,21 +50,48 @@
     isolation: isolate;
   }
 
+  /* LTR: nav on inline-start (left) */
+  html[dir="ltr"]
+    body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]:not([data-embedded-host]),
+  html[dir="ltr"]
+    body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-slot="shell"]:not([data-embedded-host]),
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]:dir(ltr)
+    [data-portal-shell]:not([data-embedded-host]),
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]:dir(ltr)
+    [data-slot="shell"]:not([data-embedded-host]) {
+    grid-template-columns: 12.5rem minmax(0, 1fr);
+    grid-template-areas:
+      "header header"
+      "nav main";
+  }
+
+  /* RTL override removed — default is RTL-first (nav end / right) */
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]:not([data-embedded-host])
+    [data-portal-shell-header],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-slot="shell"]:not([data-embedded-host])
+    [data-slot="shell-header"] {
+    grid-area: header;
+  }
+
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-portal-shell]:not([data-embedded-host])
     [data-portal-shell-main],
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-slot="shell"]:not([data-embedded-host])
     [data-slot="shell-main"] {
-    flex: 1 1 auto;
+    grid-area: main;
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: var(--space-6) var(--space-5) var(--space-6);
+    padding: var(--space-6) var(--space-6) var(--space-8);
     background:
       radial-gradient(
         ellipse 100% 40% at 50% 0%,
-        color-mix(in oklab, var(--color-primary) 7%, transparent),
+        color-mix(in oklab, var(--color-primary) 6%, transparent),
         transparent 58%
       ),
       var(--color-bg-page);
@@ -69,11 +103,31 @@
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-slot="shell"]:not([data-embedded-host])
     [data-slot="shell-nav"] {
-    position: absolute;
-    inset-inline: 0;
-    inset-block-end: 0;
-    padding-inline: var(--space-4);
-    border-radius: 0 0 calc(var(--radius) * 1.5) calc(var(--radius) * 1.5);
+    grid-area: nav;
+    position: relative;
+    inset: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--space-4) var(--space-3);
+    border-top: none;
+    border-inline-start: 1px solid color-mix(in oklab, var(--color-border-subtle) 85%, transparent);
+    border-radius: 0;
+    background: color-mix(in oklab, var(--color-bg-muted) 35%, var(--color-bg-surface));
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  html[dir="ltr"]
+    body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]:not([data-embedded-host])
+    [data-portal-shell-bottom-nav],
+  html[dir="ltr"]
+    body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-slot="shell"]:not([data-embedded-host])
+    [data-slot="shell-nav"] {
+    border-inline-start: none;
+    border-inline-end: 1px solid color-mix(in oklab, var(--color-border-subtle) 85%, transparent);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -84,7 +138,101 @@
     [data-slot="shell"]:not([data-embedded-host])
     [data-slot="shell-nav"]
     ul {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
     max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]:not([data-embedded-host])
+    [data-portal-shell-bottom-nav]
+    [data-portal-shell-nav-link],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-slot="shell"]:not([data-embedded-host])
+    [data-slot="shell-nav"]
+    [data-portal-shell-nav-link] {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--space-3);
+    min-height: 2.75rem;
+    padding: var(--space-2) var(--space-3);
+    width: 100%;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]:not([data-embedded-host])
+    [data-portal-shell-bottom-nav]
+    [data-portal-shell-nav-label],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-slot="shell"]:not([data-embedded-host])
+    [data-slot="shell-nav"]
+    [data-portal-shell-nav-label] {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  /* PS-VIS-5f — pin logout to side-rail foot */
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]:not([data-embedded-host])
+    [data-portal-shell-bottom-nav]
+    [data-portal-shell-nav-footer] {
+    display: flex;
+    flex-direction: column;
+    margin-top: auto;
+    padding-top: var(--space-3);
+    border-top: 1px solid color-mix(in oklab, var(--color-border-subtle) 85%, transparent);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]:not([data-embedded-host])
+    [data-portal-shell-bottom-nav]
+    [data-portal-shell-nav-footer]
+    [data-public-auth-logout] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-3);
+    width: 100%;
+    min-height: 2.75rem;
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    border: none;
+    border-radius: calc(var(--radius) * 1.1);
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]:not([data-embedded-host])
+    [data-portal-shell-bottom-nav]
+    [data-portal-shell-nav-footer]
+    [data-public-auth-logout]:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--color-danger, #b42318) 8%, var(--color-bg-surface));
+    color: var(--color-danger, #b42318);
+    text-decoration: none;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]:not([data-embedded-host])
+    [data-portal-shell-bottom-nav]
+    [data-portal-shell-nav-footer]
+    [data-public-auth-logout-icon] {
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
   }
 }
 
@@ -93,6 +241,24 @@
     [data-portal-shell]:not([data-embedded-host]),
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-slot="shell"]:not([data-embedded-host]) {
-    max-width: 40rem;
+    max-width: 72rem;
+    grid-template-columns: minmax(0, 1fr) 14rem;
+  }
+
+  html[dir="ltr"]
+    body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]:not([data-embedded-host]),
+  html[dir="ltr"]
+    body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-slot="shell"]:not([data-embedded-host]) {
+    grid-template-columns: 14rem minmax(0, 1fr);
+  }
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]:not([data-embedded-host])
+    [data-portal-shell-main],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-slot="shell"]:not([data-embedded-host])
+    [data-slot="shell-main"] {
+    padding-inline: var(--space-8);
   }
 }

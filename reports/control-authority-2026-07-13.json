@@ -1,0 +1,50 @@
+{
+  "ctl_status": "ACTIVE",
+  "ctl_state": "GOVERNING",
+  "governing": true,
+  "completed": false,
+  "policy": "failure-first",
+  "global_state": "SAFE",
+  "execution_allowed": true,
+  "execution_decision": "PROCEED",
+  "blockers": [],
+  "coverage": {
+    "control_coverage_pct": 149,
+    "enforced_invariants": 36,
+    "total_invariants": 19,
+    "ci_authority_wired": true,
+    "critical_detectors_active": 5,
+    "critical_detectors_total": 5
+  },
+  "packs": [
+    {
+      "pack": "marketing-control-pack",
+      "status": "PASS",
+      "ctl_state": "GOVERNING",
+      "execution_allowed": true,
+      "blockers": []
+    },
+    {
+      "pack": "portal-control-pack",
+      "status": "PASS",
+      "ctl_state": "GOVERNING",
+      "execution_allowed": true,
+      "blockers": []
+    },
+    {
+      "pack": "admin-control-pack",
+      "status": "PASS",
+      "ctl_state": "GOVERNING",
+      "execution_allowed": true,
+      "blockers": []
+    },
+    {
+      "pack": "platform-control-pack",
+      "status": "PASS",
+      "ctl_state": "GOVERNING",
+      "execution_allowed": true,
+      "blockers": []
+    }
+  ],
+  "date": "2026-07-13"
+}

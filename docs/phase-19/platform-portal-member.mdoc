@@ -10,7 +10,7 @@ extends: platform-portal-member-profile.mdoc
 
 # Portal member session contract
 
-Guest **registration** (P6-1) and member **self-service** (P6-3) share the same public-auth session on the **portal host** (`{club}.portal.{root}`).
+Guest **registration** (P6-1) and member **self-service** (P6-3) share the same public-auth session on the **portal host** (`portal.{club}.localhost` locally for M↔P cookie share; legacy `{club}.portal.{root}` still parses).
 
 **Profile architecture (frozen):** [platform-portal-member-profile.mdoc](./platform-portal-member-profile.mdoc) — canonical BFF, SDK capabilities, migration from current split paths.
 
@@ -18,7 +18,8 @@ Guest **registration** (P6-1) and member **self-service** (P6-3) share the same 
 
 | Env | Portal member base |
 | --- | ------------------ |
-| Dev (canonical) | `http://{club}.portal.localhost:3003` |
+| Dev (canonical M↔P) | `http://portal.{club}.localhost:3003` |
+| Dev (legacy) | `http://{club}.portal.localhost:3003` |
 | Prod (platform) | `https://{club}.portal.{root}` |
 | Prod (custom) | `https://portal.{apex}` via `tenant_domains` · `surface=portal` |
 
@@ -54,9 +55,10 @@ Portal `/me` is **not** the operator admin panel (`apps/web`). Product rule: ope
 | Route | Auth | Purpose |
 | ----- | ---- | ------- |
 | `/me/registrations` | member session | List own tour registrations |
-| `/me/registrations/[id]` | member session | Detail + receipt upload |
+| `/me/registrations/[id]` | member session | Detail + offline receipt panel (upload / waiting / paid) |
 | `/me/profile` | member session | Edit profile fields (capability-driven · see freeze doc) |
-| `GET /api/me/registrations` | member session | BFF list proxy |
+| `GET /api/me/registrations` | member session | BFF list proxy (forwards `tourId` from bookings) |
+| `GET /api/me/registrations/[id]/receipt` | member session | Receipt status for detail SSR / refresh |
 | `POST /api/me/registrations/[id]/receipt` | member session | Upload offline receipt proof |
 | `GET/PATCH /api/me/profile` | member session | **Landed M2** — sole profile BFF |
 | `POST /api/public-auth/logout` | none (idempotent) | Clear `atour_mb_session` · **Landed** 2026-07-02 |
@@ -65,19 +67,22 @@ API upstream (frozen — reuse Phase 9.5 member filter + PS-5 entitlements):
 
 | BFF route | Upstream API | Scope |
 | --------- | ------------ | ----- |
-| `GET /api/me/registrations` | `GET /bookings?view=mine` | session user + tenant RLS |
-| `POST /api/me/registrations/[id]/receipt` | `POST /bookings/{registrationId}/receipts` | member-only; ensures pending manual payment then `POST /finance/receipts` |
+| `GET /api/me/registrations` | `GET /bookings?view=mine` | session user + tenant RLS · includes `tourId` |
+| `GET /api/me/registrations/[id]/receipt` | `GET /bookings/{registrationId}/receipts` | member-only · `{ status: none\|pending\|rejected\|paid }` |
+| `POST /api/me/registrations/[id]/receipt` | `POST /bookings/{registrationId}/receipts` | member-only; ensures pending manual payment then receipt |
 | `GET /api/me/entitlements` | `GET /identity/me/entitlements` | Registry effective modules for tenant workspace (bootstrap grant-all) |
 | `GET /api/me/home` | Portal-composed | Registry + entitlements aggregate (bootstrap) |
 
-**BFF steps (frozen):**
+**POST receipt BFF steps (2026-07-17 — bytes to MinIO):**
 
-1. Read multipart `file` from member.
-2. Build `fileKey`: `receipts/{registrationId}/{sanitizedFileName}` (dev/smoke — no MinIO in memory E2E).
-3. `POST /bookings/{registrationId}/receipts` with JSON `{ fileKey }` and member session headers (`Authorization`, `x-workspace-id` from JWT `workspace_id`).
-4. API verifies booking `submittedByUserId === auth.userId`, ensures pending manual payment (creates default offline debt if none), submits receipt.
+1. Read multipart `file` from member (image/* or PDF).
+2. Forward **raw file bytes** to `POST /bookings/{registrationId}/receipts` with the file `Content-Type` and `x-receipt-file-name` (not JSON-only `fileKey`).
+3. API stores the object in MinIO under `receipts/{tenantId}/{registrationId}/{sanitizedFileName}`, ensures pending manual payment, creates receipt with that `fileKey`.
+4. **Legacy/smoke JSON path** still accepted: `Content-Type: application/json` + `{ fileKey }` (no object write — memory E2E).
 
-**Do not** POST multipart to `/finance/receipts` — finance API expects JSON `{ paymentId, fileKey }` only.
+**Operator proof preview:** `GET /finance/receipts/{id}/url` returns a **presigned MinIO** `https?://…` URL when storage is configured. Admin BFF rewrites to same-origin `/api/finance/receipts/{id}/file` for `<img>` (avoids MinIO CORS on `*.admin.localhost`).
+
+**Do not** POST multipart to `/finance/receipts` — operator finance upload remains JSON `{ paymentId, fileKey }` only.
 
 ---
 

@@ -18,7 +18,8 @@ export type BuildDevPortalPublicBaseUrlInput = {
 
 /**
  * Map marketing/admin ingress host to portal public base URL (dev).
- * Canonical: `{club}.portal.{root}:{port}` from `club_apex` or `shop.{club}` marketing hosts.
+ * Localhost canonical: `portal.{club}.localhost` (PCMS-COOK-03 M↔P cookie share).
+ * Other roots: `{club}.portal.{root}` until platform TLS wildcards flip.
  */
 export function buildDevPortalPublicBaseUrl(input: BuildDevPortalPublicBaseUrlInput): string {
   const configured = input.configuredBaseUrl?.trim();
@@ -35,6 +36,9 @@ export function buildDevPortalPublicBaseUrl(input: BuildDevPortalPublicBaseUrlIn
   const outcome = parseMultiLevelTenantHost(withoutShop, root, reserved);
 
   if (outcome.kind === "club_apex") {
+    if (root === "localhost") {
+      return `http://portal.${outcome.subdomain}.localhost:${port}`;
+    }
     return `http://${outcome.subdomain}.portal.${root}:${port}`;
   }
 

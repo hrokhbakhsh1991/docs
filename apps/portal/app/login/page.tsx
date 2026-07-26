@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
-import { isSafePortalReturnPath } from "@app-tour/catalog-registration-flow-ui";
-import { isMemberPortalEnabled } from "@app-tour/workspace-sdk";
+import { isSafePortalReturnPath } from "@app-cloud/catalog-registration-flow-ui";
+import { isMemberPortalEnabled } from "@app-cloud/workspace-sdk";
 import {
   resolveMemberLoginCatalogTourId,
   resolvePortalMemberLoginPath,
   resolvePortalMemberModuleUrl,
-} from "@app-tour/guest-surface-host";
+} from "@app-cloud/guest-surface-host";
 
 import { PortalLoginModalOpener } from "@/auth/portal-login-modal-opener";
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";

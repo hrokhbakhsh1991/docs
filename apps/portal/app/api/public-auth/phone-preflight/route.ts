@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { normalizePublicRegistrationMobile } from "@app-tour/catalog-registration-auth";
+
 import { bffCodedError } from "@/auth/bff-coded-error";
 import {
   checkBffLoginRateLimit,
@@ -15,7 +17,9 @@ type PhonePreflightBody = {
 
 export async function POST(req: Request): Promise<NextResponse> {
   const body = (await req.json().catch(() => ({}))) as PhonePreflightBody;
-  const phone = typeof body.phone === "string" ? body.phone.trim() : "";
+  const phone = normalizePublicRegistrationMobile(
+    typeof body.phone === "string" ? body.phone.trim() : ""
+  );
   if (phone.length === 0) {
     return bffCodedError("MOBILE_REQUIRED", 400);
   }
