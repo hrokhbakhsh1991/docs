@@ -1,7 +1,8 @@
 /**
- * Finance dependency registry — apps/api composition layer (Phase 1.10).
+ * Finance dependency registry — apps/api composition layer (Phase 1.10 / P4-D3.b).
  *
- * Workspace ledger policy + receipt defaults: generated from workspace.manifest.json.
+ * Workspace ledger policy + receipt defaults: generated from workspace.manifest.json
+ * via async dynamic import (no static product fan-in).
  * Booking projection remains platform-owned (not workspace-declared).
  */
 
@@ -19,8 +20,8 @@ import { createBookingPaymentPort } from "../bookings/create-booking-payment-por
 export const FINANCE_BOOT_WORKSPACE_TYPE_REQUIRED = "FINANCE_BOOT_WORKSPACE_TYPE_REQUIRED";
 
 export type FinanceWorkspaceDependencyFactories = {
-  readonly createLedgerPolicy: () => FinanceLedgerPolicyPort;
-  readonly createReceiptDefaults: () => FinanceReceiptDefaultsPort;
+  readonly createLedgerPolicy: () => Promise<FinanceLedgerPolicyPort>;
+  readonly createReceiptDefaults: () => Promise<FinanceReceiptDefaultsPort>;
   readonly createBookingPayments: () => IBookingPaymentPort;
 };
 
@@ -108,11 +109,18 @@ export function listRegisteredFinanceWorkspaceTypes(): readonly string[] {
   return listFinanceDependencyWorkspaceTypes();
 }
 
-export function resolveFinanceLedgerPolicy(workspaceType: string): FinanceLedgerPolicyPort {
-  return requireRegisteredFactories(workspaceType, "FINANCE_LEDGER_POLICY_UNSUPPORTED").createLedgerPolicy();
+export async function resolveFinanceLedgerPolicy(
+  workspaceType: string
+): Promise<FinanceLedgerPolicyPort> {
+  return requireRegisteredFactories(
+    workspaceType,
+    "FINANCE_LEDGER_POLICY_UNSUPPORTED"
+  ).createLedgerPolicy();
 }
 
-export function resolveFinanceReceiptDefaults(workspaceType: string): FinanceReceiptDefaultsPort {
+export async function resolveFinanceReceiptDefaults(
+  workspaceType: string
+): Promise<FinanceReceiptDefaultsPort> {
   return requireRegisteredFactories(
     workspaceType,
     "FINANCE_RECEIPT_DEFAULTS_UNSUPPORTED"
@@ -126,17 +134,21 @@ export function resolveFinanceBookingPayments(workspaceType: string): IBookingPa
   ).createBookingPayments();
 }
 
-export function resolveFinanceWorkspaceDependencies(
+export async function resolveFinanceWorkspaceDependencies(
   workspaceType: string
-): FinanceWorkspaceDependencies {
+): Promise<FinanceWorkspaceDependencies> {
   const factories = requireRegisteredFactories(
     workspaceType,
     "FINANCE_WORKSPACE_DEPENDENCIES_UNSUPPORTED"
   );
+  const [ledgerPolicy, receiptDefaults] = await Promise.all([
+    factories.createLedgerPolicy(),
+    factories.createReceiptDefaults(),
+  ]);
   return {
     workspaceType: normalizeWorkspaceType(workspaceType),
-    ledgerPolicy: factories.createLedgerPolicy(),
-    receiptDefaults: factories.createReceiptDefaults(),
+    ledgerPolicy,
+    receiptDefaults,
     bookingPayments: factories.createBookingPayments(),
   };
 }

@@ -32,6 +32,7 @@ legacy/apps/web/.memlab/
 # Local scratch (never commit)
 TEMP/
 legacy/reports/phase-0-environment-*
+reports/p4-cold-path-fan-in.json
 
 # Local planning scratch (optional — uncomment to keep TEMP out of git)
 # TEMP/

@@ -1,5 +1,6 @@
 import {
   DEFAULT_WORKSPACE_COMMERCE_CONFIG,
+  resolveFrozenWorkspaceCommerce,
   type WorkspaceCommerceConfig,
 } from "@app-tour/workspace-sdk/metadata";
 
@@ -18,25 +19,25 @@ import { mergeCommerceIntoWorkspaceDefinitionPayload } from "./persist-commerce-
 import { readTenantWorkspaceMetadataBinding } from "./read-tenant-workspace-metadata-binding.ts";
 import { WorkspaceDefinitionRepository } from "./workspace-definition.repository.ts";
 
-export const DENALI_FROZEN_COMMERCE_CONFIG: WorkspaceCommerceConfig = Object.freeze({
-  paymentMode: "offline_receipt",
-  gatewayProvider: null,
-  currency: "IRR",
-});
-
-function isDenaliWorkspaceType(workspaceType: string): boolean {
-  return workspaceType.trim().toLowerCase() === "denali";
-}
+/** Compat alias — SoT is manifest `commerce.frozen` via codegen (Wave F.b / PC-07). */
+export const DENALI_FROZEN_COMMERCE_CONFIG: WorkspaceCommerceConfig =
+  resolveFrozenWorkspaceCommerce("denali") ??
+  Object.freeze({
+    paymentMode: "offline_receipt",
+    gatewayProvider: null,
+    currency: "IRR",
+  });
 
 /**
  * P5-C-N-004 — resolve workspace commerce from metadata binding or package default.
- * Denali tenants always return offline_receipt (PC-07).
+ * Frozen workspace types (manifest commerce.frozen) always return offline_receipt (PC-07).
  */
 export async function resolveWorkspaceCommerceConfigForTenant(
   input: ResolveWorkspacePluginForTenantInput
 ): Promise<WorkspaceCommerceConfig> {
-  if (isDenaliWorkspaceType(input.workspaceType)) {
-    return DENALI_FROZEN_COMMERCE_CONFIG;
+  const frozen = resolveFrozenWorkspaceCommerce(input.workspaceType);
+  if (frozen !== null) {
+    return frozen;
   }
 
   if (!isWorkspaceMetadataEnabled() || !input.metadataBinding?.definitionId) {
@@ -112,8 +113,9 @@ export type ResolveWorkspaceCommerceFromBindingInput = {
 export function resolveWorkspaceCommerceFromBinding(
   input: ResolveWorkspaceCommerceFromBindingInput
 ): WorkspaceCommerceConfig {
-  if (isDenaliWorkspaceType(input.workspaceType)) {
-    return DENALI_FROZEN_COMMERCE_CONFIG;
+  const frozen = resolveFrozenWorkspaceCommerce(input.workspaceType);
+  if (frozen !== null) {
+    return frozen;
   }
   if (!input.metadataBinding?.definitionId) {
     return DEFAULT_WORKSPACE_COMMERCE_CONFIG;

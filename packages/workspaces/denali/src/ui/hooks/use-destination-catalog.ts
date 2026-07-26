@@ -1,24 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { parseLocationsResponse } from "../adapters/catalog-parse";
-import type { DestinationResource } from "../adapters/catalog-types";
-import type { SelectOption } from "../adapters/platform-primitives";
+import {
+  resolveInitialDenaliDestinationCatalogState,
+  type DenaliDestinationCatalogState,
+  type DestinationResource,
+} from "../adapters/build-denali-destination-catalog-state";
+import { fetchDenaliDestinationCatalogClient } from "../adapters/fetch-denali-destination-catalog";
+import { useDenaliWizardCatalogPrefetch } from "./denali-wizard-catalog-prefetch-context";
 
-export type DenaliDestinationCatalogState = {
-  readonly options: readonly SelectOption[];
-  readonly destinationById: ReadonlyMap<string, DestinationResource>;
-  readonly loading: boolean;
-  readonly error: string | null;
-};
-
-const EMPTY_STATE: DenaliDestinationCatalogState = {
-  options: [],
-  destinationById: new Map(),
-  loading: true,
-  error: null,
-};
+export type { DenaliDestinationCatalogState, DestinationResource };
 
 let patchDestinationCatalogCache: ((destination: DestinationResource) => void) | null = null;
 
@@ -26,30 +18,16 @@ export function patchDenaliDestinationCatalogCache(destination: DestinationResou
   patchDestinationCatalogCache?.(destination);
 }
 
-function buildDestinationCatalogState(
-  payload: ReturnType<typeof parseLocationsResponse>
-): DenaliDestinationCatalogState {
-  const regionById = new Map(payload.regions.map((region) => [region.id, region.name]));
-  const byId = new Map(payload.destinations.map((destination) => [destination.id, destination]));
-  return {
-    options: payload.destinations
-      .filter((destination) => destination.isActive)
-      .map((destination) => {
-        const regionName = regionById.get(destination.regionId);
-        const suffix = regionName ? ` (${regionName})` : "";
-        return {
-          value: destination.id,
-          label: `${destination.name}${suffix}`,
-        };
-      }),
-    destinationById: byId,
-    loading: false,
-    error: null,
-  };
-}
-
+/**
+ * Operator destination catalog — supports optional server prefetch via
+ * {@link DenaliWizardCatalogPrefetchProvider}; otherwise fetches `/api/settings/resources/locations`.
+ */
 export function useDenaliDestinationCatalog(): DenaliDestinationCatalogState {
-  const [state, setState] = useState<DenaliDestinationCatalogState>(EMPTY_STATE);
+  const { initialLocationsResponse } = useDenaliWizardCatalogPrefetch();
+  const skipInitialFetchRef = useRef(initialLocationsResponse !== null);
+  const [state, setState] = useState(() =>
+    resolveInitialDenaliDestinationCatalogState(initialLocationsResponse)
+  );
 
   useEffect(() => {
     patchDestinationCatalogCache = (destination) => {
@@ -65,30 +43,16 @@ export function useDenaliDestinationCatalog(): DenaliDestinationCatalogState {
   }, []);
 
   useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      return;
+    }
     let cancelled = false;
-    void fetch("/api/settings/resources/locations", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`LOCATIONS_HTTP_${response.status}`);
-        }
-        return parseLocationsResponse(await response.json());
-      })
-      .then((payload) => {
-        if (cancelled) {
-          return;
-        }
-        setState(buildDestinationCatalogState(payload));
-      })
-      .catch((fetchError: unknown) => {
-        if (!cancelled) {
-          setState({
-            options: [],
-            destinationById: new Map(),
-            loading: false,
-            error: fetchError instanceof Error ? fetchError.message : "LOCATIONS_LOAD_FAILED",
-          });
-        }
-      });
+    void fetchDenaliDestinationCatalogClient().then((next) => {
+      if (!cancelled) {
+        setState(next);
+      }
+    });
 
     return () => {
       cancelled = true;

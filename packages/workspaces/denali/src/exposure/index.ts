@@ -1,9 +1,11 @@
 export {
   buildDenaliRelativeTimeTrigger,
+  compareDenaliOperatorSettingsSurfaces,
   DENALI_DELIVERABLE_FIELD_IDS,
   DENALI_EXPOSURE_AUDIENCE,
   DENALI_EXPOSURE_SURFACE,
   DENALI_EXPOSURE_SURFACE_DEFINITIONS,
+  DENALI_OPERATOR_SETTINGS_SURFACE_DISPLAY_ORDER,
   DENALI_PUBLIC_DETAILS_FIELD_IDS,
   DENALI_PUBLIC_LIST_FIELD_IDS,
   DENALI_REMINDER_FEED_FIELD_IDS,
@@ -11,11 +13,29 @@ export {
   DENALI_USER_DASHBOARD_FIELD_IDS,
   resolveDenaliExposureCoordinate,
   resolveDenaliSurfaceDefaultFieldIds,
+  sortDenaliOperatorSettingsSurfaces,
   type DenaliExposureAudience,
   type DenaliExposureCoordinate,
   type DenaliExposureSurface,
   type DenaliReminderOffset,
 } from "./denali-exposure-surfaces";
+export {
+  buildDenaliWorkspaceSurfaceEditorState,
+  buildDenaliWorkspaceSurfaceEditorStatesMap,
+  buildDenaliWorkspaceSurfacePatchInput,
+  denaliOperatorSurfaceMessageKey,
+  mergeDenaliWorkspaceSurfaceEditorState,
+  patchDenaliWorkspaceSurfaceEditorStatesMap,
+  resolveDenaliOperatorSurfaceDisplayText,
+  DENALI_WORKSPACE_SURFACES_TEST_IDS,
+  type DenaliOperatorSurfaceDisplayKind,
+  type DenaliOperatorSurfaceMessageLookup,
+  type DenaliWorkspaceSurfaceEditorSelectionPatch,
+  type DenaliWorkspaceSurfaceEditorSource,
+  type DenaliWorkspaceSurfaceEditorState,
+  type DenaliWorkspaceSurfaceIntentInput,
+  type DenaliWorkspaceSurfacePatchInput,
+} from "./denali-workspace-surface-editor-state";
 export { mapDenaliExposureSurfaceToFieldPolicySurface } from "./map-denali-field-policy-surface";
 export {
   denaliExposureSurface,

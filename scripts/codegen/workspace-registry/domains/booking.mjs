@@ -543,95 +543,13 @@ export function resolveBookingWorkspaceDependencies(workspaceType: string) {
 }
 
 /**
- * Web Booking ops UI metadata — pluginId → workspace ops manifest (Phase B1.6).
- * Generic apps/web must resolve via these bindings; never hard-import a workspace package.
+ * Web Booking ops UI binder — retired Phase 4bf.
+ * Runtime SoT: capabilities.bookingOps.resolveManifest (dual-SOT with workspaceBooking.opsManifest packaging).
  */
-export function generateWorkspaceBookingOpsBindings(manifests) {
-  /** @type {string[]} */
-  const importLines = [];
-  /** @type {string[]} */
-  const bindingEntries = [];
-
-  for (const m of manifests) {
-    const ops = m.workspaceBooking?.opsManifest;
-    if (ops === undefined) {
-      continue;
-    }
-    if (typeof ops.module !== "string" || ops.module.length === 0) {
-      throw new Error(`workspace.manifest.json ${m.id}: workspaceBooking.opsManifest.module required`);
-    }
-    if (typeof ops.defaultExport !== "string" || ops.defaultExport.length === 0) {
-      throw new Error(
-        `workspace.manifest.json ${m.id}: workspaceBooking.opsManifest.defaultExport required`
-      );
-    }
-    if (typeof ops.resolveFromThemeExport !== "string" || ops.resolveFromThemeExport.length === 0) {
-      throw new Error(
-        `workspace.manifest.json ${m.id}: workspaceBooking.opsManifest.resolveFromThemeExport required`
-      );
-    }
-    const spec = importSpecifier(m.package, ops.module);
-    const defaultAlias = `${m.id.replace(/[^a-zA-Z0-9]/g, "_")}_bookingOpsDefault`;
-    const resolveAlias = `${m.id.replace(/[^a-zA-Z0-9]/g, "_")}_bookingOpsResolveFromTheme`;
-    importLines.push(
-      `import {\n  ${ops.defaultExport} as ${defaultAlias},\n  ${ops.resolveFromThemeExport} as ${resolveAlias},\n} from "${spec}";`
-    );
-    bindingEntries.push(`  ${JSON.stringify(m.id)}: {
-    defaultManifest: ${defaultAlias},
-    resolveFromTheme: ${resolveAlias},
-  },`);
-  }
-
-  if (bindingEntries.length === 0) {
-    return `${BANNER}
-import type { BookingOpsCapability } from "@/features/bookings/booking-ops-capability-contract";
-
-export const WORKSPACE_BOOKING_OPS_PLUGIN_IDS = new Set<string>([]);
-
-export function hasBookingOpsManifest(pluginId: string): boolean {
-  return false;
-}
-
-export function resolveWorkspaceBookingOpsManifest(
-  pluginId: string,
-  _theme: unknown = null
-): BookingOpsCapability {
-  throw new Error(\`Booking ops capability not registered for pluginId=\${pluginId}\`);
-}
-`;
-  }
-
-  return `${BANNER}
-import type { BookingOpsCapability } from "@/features/bookings/booking-ops-capability-contract";
-
-${[...new Set(importLines)].join("\n\n")}
-
-export const WORKSPACE_BOOKING_OPS_BINDINGS = {
-${bindingEntries.join("\n")}
-} as const;
-
-export const WORKSPACE_BOOKING_OPS_PLUGIN_IDS = new Set<string>(
-  Object.keys(WORKSPACE_BOOKING_OPS_BINDINGS)
-);
-
-export function hasBookingOpsManifest(pluginId: string): boolean {
-  return pluginId in WORKSPACE_BOOKING_OPS_BINDINGS;
-}
-
-export function resolveWorkspaceBookingOpsManifest(
-  pluginId: string,
-  theme: unknown = null
-): BookingOpsCapability {
-  const binding = WORKSPACE_BOOKING_OPS_BINDINGS[pluginId as keyof typeof WORKSPACE_BOOKING_OPS_BINDINGS];
-  if (binding === undefined) {
-    throw new Error(\`Booking ops capability not registered for pluginId=\${pluginId}\`);
-  }
-  if (theme === null || theme === undefined) {
-    return binding.defaultManifest;
-  }
-  return binding.resolveFromTheme(theme);
-}
-`;
+export function generateWorkspaceBookingOpsBindings(_manifests) {
+  throw new Error(
+    "Phase 4bf — workspaceBookingOps web binder codegen removed; capabilities.bookingOps owns ops panel resolve"
+  );
 }
 
 /**

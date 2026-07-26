@@ -196,7 +196,7 @@ export async function seedDefaultEventPoliciesForConnectionInTransaction(
     readonly workspaceType: string | null;
   }
 ): Promise<void> {
-  const defaults = defaultIntegrationEventTypesForProvider({
+  const defaults = await defaultIntegrationEventTypesForProvider({
     workspaceType: input.workspaceType,
     providerId: input.provider,
   });

@@ -14,6 +14,15 @@ export type FinanceSummaryRow = {
   readonly failedPayments: number;
 };
 
+/** FC-3 — tour-level payment rollup (read-only; host SQL). */
+export type FinanceTourPaymentAggregateRow = {
+  readonly tourId: string;
+  readonly tourTitle: string;
+  readonly paidCount: number;
+  readonly paidMinor: string;
+  readonly pendingCount: number;
+};
+
 export type FinanceOpenPaymentRow = {
   readonly id: string;
   readonly registrationId: string;
@@ -161,6 +170,12 @@ export interface FinanceRepositoryPort {
   listOpenPayments(tenantId: string, limit: number): Promise<FinanceOpenPaymentRow[]>;
 
   listPayments(tenantId: string, limit: number): Promise<FinancePaymentRow[]>;
+
+  /** FC-3 — aggregate payments by tour via operator_registrations join. */
+  listPaymentsByTourAggregate(
+    tenantId: string,
+    tourId?: string
+  ): Promise<readonly FinanceTourPaymentAggregateRow[]>;
 
   listLedgerEvents(tenantId: string, limit: number): Promise<FinanceLedgerOutboxRow[]>;
 

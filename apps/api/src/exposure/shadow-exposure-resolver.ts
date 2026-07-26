@@ -57,9 +57,9 @@ export type ResolveShadowExposureFromDeliveryInput = {
  * Mirrors the current integration delivery result into Exposure-shaped metadata.
  * It does not call providers, schedule jobs, or change authoritative delivery fields.
  */
-export function resolveShadowExposureFromDelivery(
+export async function resolveShadowExposureFromDelivery(
   input: ResolveShadowExposureFromDeliveryInput,
-): ShadowExposureDecision | null {
+): Promise<ShadowExposureDecision | null> {
   if (input.deliveryPolicy === null) {
     return null;
   }
@@ -71,7 +71,7 @@ export function resolveShadowExposureFromDelivery(
     fieldValues,
     messageTemplate: input.templateOverrideId,
   };
-  const { renderedMessage, renderedParity } = resolveShadowRenderedDeliveryParity({
+  const { renderedMessage, renderedParity } = await resolveShadowRenderedDeliveryParity({
     workspaceType: input.context.workspaceType,
     eventType: input.eventType,
     basePayload: input.basePayload,

@@ -8,4 +8,4 @@ export {
   DEFAULT_FINANCE_OPS_MANIFEST,
   resolveFinanceOpsManifestFromTheme,
 } from "./finance";
-export { getFinanceWs5WorkspacePlugin } from "./plugin";
+export { getFinanceWs5WorkspacePlugin, getWorkspacePlugin } from "./plugin";

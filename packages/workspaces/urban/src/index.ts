@@ -5,9 +5,15 @@ export {
 } from "./settings/urbanMinimalWizardTemplate";
 export { URBAN_SMOKE_SUBDOMAIN, URBAN_SMOKE_TENANT_ID } from "./smoke/phase-7-urban-smoke-tenant";
 export {
-  createUrbanValidationHooks,
   createUrbanWorkspacePlugin,
   getUrbanWorkspacePlugin,
+  getWorkspacePlugin,
+  URBAN_THEME_TOKENS_STYLESHEET,
+  URBAN_WORKSPACE_PLUGIN_ID,
+  URBAN_WORKSPACE_TYPE,
+} from "./urban.plugin";
+export {
+  createUrbanValidationHooks,
   validateUrbanCatalogFieldValue,
   validateUrbanRegistrationPayload,
   type UrbanRegistrationPayload,
@@ -16,9 +22,6 @@ export {
   URBAN_LIFECYCLE,
   URBAN_REGISTRY_CANONICAL_PATHS,
   URBAN_RULE_SET,
-  URBAN_THEME_TOKENS_STYLESHEET,
   URBAN_WIZARD_SURFACE,
-  URBAN_WORKSPACE_PLUGIN_ID,
-  URBAN_WORKSPACE_TYPE,
   urbanWorkspacePlugin,
-} from "./urban.plugin";
+} from "./internal";

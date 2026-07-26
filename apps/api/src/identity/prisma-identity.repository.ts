@@ -85,6 +85,13 @@ function toMembershipRecord(row: {
     ...(metadata.portalModuleGrants !== undefined && metadata.portalModuleGrants.length > 0
       ? { portalModuleGrants: metadata.portalModuleGrants }
       : {}),
+    ...(metadata.portalPlanCode !== undefined ? { portalPlanCode: metadata.portalPlanCode } : {}),
+    ...(metadata.portalCapabilityFlags !== undefined
+      ? { portalCapabilityFlags: metadata.portalCapabilityFlags }
+      : {}),
+    ...(metadata.portalEntitlementsRevision !== undefined
+      ? { portalEntitlementsRevision: metadata.portalEntitlementsRevision }
+      : {}),
   };
 }
 
@@ -676,6 +683,38 @@ export class PrismaIdentityRepository implements IdentityRepository {
           membershipMetadata: mergeMembershipMetadata(row.membershipMetadata, {
             avatar,
           } as Parameters<typeof mergeMembershipMetadata>[1]),
+        },
+      });
+    });
+    return toMembershipRecord(updated);
+  }
+
+  async updateMembershipPortalEntitlements(
+    tenantId: string,
+    userId: string,
+    patch: {
+      readonly portalModuleGrants: readonly string[];
+      readonly portalPlanCode: string;
+      readonly portalCapabilityFlags: Readonly<Record<string, boolean>>;
+      readonly portalEntitlementsRevision: number;
+    }
+  ): Promise<IdentityMembershipRecord> {
+    const updated = await withTenantRls(tenantId, async (tx) => {
+      const row = await tx.userTenant.findUnique({
+        where: { userId_tenantId: { userId, tenantId } },
+      });
+      if (row === null) {
+        throw new MembershipNotFoundError(userId);
+      }
+      return tx.userTenant.update({
+        where: { userId_tenantId: { userId, tenantId } },
+        data: {
+          membershipMetadata: mergeMembershipMetadata(row.membershipMetadata, {
+            portalModuleGrants: patch.portalModuleGrants,
+            portalPlanCode: patch.portalPlanCode,
+            portalCapabilityFlags: patch.portalCapabilityFlags,
+            portalEntitlementsRevision: patch.portalEntitlementsRevision,
+          }),
         },
       });
     });

@@ -33,10 +33,10 @@ export type WorkspaceIntegrationSurfaceMetaResponse = {
   readonly exposureCandidateFields: readonly ExposureCandidateFieldMeta[];
 };
 
-export function buildWorkspaceIntegrationSurfaceMeta(
+export async function buildWorkspaceIntegrationSurfaceMeta(
   workspaceType: string | null
-): WorkspaceIntegrationSurfaceMetaResponse {
-  const surface = resolveIntegrationSurfaceForWorkspaceType(workspaceType);
+): Promise<WorkspaceIntegrationSurfaceMetaResponse> {
+  const surface = await resolveIntegrationSurfaceForWorkspaceType(workspaceType);
   if (surface === null) {
     return {
       workspaceType,
@@ -44,7 +44,7 @@ export function buildWorkspaceIntegrationSurfaceMeta(
       exposureCandidateFields: [],
     };
   }
-  const exposureCandidateFields = buildExposureSelectableFieldCatalog(workspaceType);
+  const exposureCandidateFields = await buildExposureSelectableFieldCatalog(workspaceType);
 
   return {
     workspaceType,

@@ -29,7 +29,7 @@ Phase 6 P2 briefly moved settings modules under `./host/settings/*`. That couple
 | ------ | ------ |
 | `@app-tour/workspace-denali/host/settings/*` | `@app-tour/workspace-denali/settings/*` |
 | `@app-tour/workspace-denali` (finance, photos, draft, acl, smoke) | `@app-tour/workspace-denali/host/<module>` |
-| `@app-tour/workspace-denali` (`getDenaliWorkspacePlugin`) | `@app-tour/workspace-denali/plugin` |
+| `@app-tour/workspace-denali` (`getWorkspacePlugin` / legacy `getDenaliWorkspacePlugin`) | `@app-tour/workspace-denali/plugin` |
 | `@app-tour/workspace-urban` (`URBAN_SMOKE_*`, validation) | `@app-tour/workspace-urban/host/smoke/*` or `/host/http` |
 | `@app-tour/workspace-urban` (`getUrbanWorkspacePlugin`) | `@app-tour/workspace-urban/plugin` |
 
@@ -37,7 +37,7 @@ Codemod: `node scripts/codemods/retarget-denali-urban-root-imports.mjs`
 
 ## CI
 
-- `pnpm run guard:workspace-export-surface` — export key allowlist
+- `pnpm run guard:workspace-export-surface` — export key allowlist (contract + `./settings/*` + `./host/*` only; Wave E.a dropped legacy `./finance` / `./booking` on finance/booking fixture workspaces — see [`wave-e-encapsulation-guards.mdoc`](./wave-e-encapsulation-guards.mdoc))
 - `pnpm run guard:denali-plugin-surface` / `guard:urban-plugin-surface` — `./plugin` symbol allowlist
 
 See also: [`denali-plugin-encapsulation.mdoc`](denali-plugin-encapsulation.mdoc) for codegen `importSpecifier()` rules and migration map.

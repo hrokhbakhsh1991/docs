@@ -1,9 +1,12 @@
 /**
- * Phase 8.1 contract — canonical source for apps/web/src/urban/urban-settings-access.ts
+ * Phase 8.1 contract — canonical source for apps/web/app/(app)/settings/workspace-owner/workspace-owner-settings-access.ts
  * Authority: docs/phase-8/appendices/CASL-URBAN-OWNER-SPEC.md § Web layer · DEC-P8-004
  *
- * Implementation law: apps/web/src/urban/urban-settings-access.ts MUST re-export this module
+ * Implementation law: apps/web/app/(app)/settings/workspace-owner/workspace-owner-settings-access.ts MUST re-export this module
  * (or identical signatures) — do not duplicate canLoadUrbanSettings logic in web.
+ * Wave H.b: colocated under the settings route (no apps/web/src/urban/ island).
+ * Wave H.i.b: product-blind URL `/settings/workspace-owner` (legacy `/settings/urban` redirects).
+ * Wave H.m: product-blind access filename + shell panel/page/i18n names (canLoad API stays Urban policy).
  */
 /** Structural slice of `TenantAuthz` — no workspace-sdk import (web tsc compiles this file via re-export). */
 export type UrbanOwnerAuthz = {
@@ -57,11 +60,16 @@ export function canLoadUrbanSettings(
   );
 }
 
-export const URBAN_SETTINGS_PAGE_PATH = "/settings/urban" as const;
+export const URBAN_SETTINGS_PAGE_PATH = "/settings/workspace-owner" as const;
 
-export const URBAN_SETTINGS_PAGE_MODULE = "apps/web/app/(app)/settings/urban/page.tsx" as const;
+/** Legacy product URL — admin redirects permanently to {@link URBAN_SETTINGS_PAGE_PATH} (Wave H.i.b). */
+export const URBAN_SETTINGS_PAGE_PATH_LEGACY = "/settings/urban" as const;
 
-export const URBAN_SETTINGS_ACCESS_MODULE = "apps/web/src/urban/urban-settings-access.ts" as const;
+export const URBAN_SETTINGS_PAGE_MODULE =
+  "apps/web/app/(app)/settings/workspace-owner/page.tsx" as const;
+
+export const URBAN_SETTINGS_ACCESS_MODULE =
+  "apps/web/app/(app)/settings/workspace-owner/workspace-owner-settings-access.ts" as const;
 
 export const WIZARD_ACCESS_DENIED_MODULE = "apps/web/src/wizard/wizard-access-denied.tsx" as const;
 
@@ -80,22 +88,22 @@ export const URBAN_SETTINGS_FORBIDDEN_DOM: UrbanSettingsForbiddenDomContract = {
 };
 
 export type UrbanSettingsPageRenderBranch =
-  | { readonly kind: "allowed"; readonly render: "UrbanOwnerSettingsPanel" }
+  | { readonly kind: "allowed"; readonly render: "WorkspaceOwnerSettingsPanel" }
   | { readonly kind: "forbidden"; readonly render: "WizardAccessDenied" };
 
 export function resolveUrbanSettingsPageBranch(
   params: CanLoadUrbanSettingsParams
 ): UrbanSettingsPageRenderBranch {
   if (canLoadUrbanSettings(params)) {
-    return { kind: "allowed", render: "UrbanOwnerSettingsPanel" };
+    return { kind: "allowed", render: "WorkspaceOwnerSettingsPanel" };
   }
   return { kind: "forbidden", render: "WizardAccessDenied" };
 }
 
 /**
- * apps/web/app/(app)/settings/urban/page.tsx — frozen render contract
+ * apps/web/app/(app)/settings/workspace-owner/page.tsx — frozen render contract
  *
- * export default async function UrbanSettingsPage() {
+ * export default async function WorkspaceOwnerSettingsPage() {
  *   const session = await resolveWebTenantSession();
  *   const authz = buildTenantAuthz(session.auth);
  *   const workspaceType = await resolveWorkspaceTypeForTenant(session.auth.tenantId);
@@ -109,7 +117,7 @@ export function resolveUrbanSettingsPageBranch(
  *   if (branch.kind === "forbidden") {
  *     return <WizardAccessDenied />;
  *   }
- *   return <UrbanOwnerSettingsPanel />;
+ *   return <WorkspaceOwnerSettingsPanel />;
  * }
  */
 
@@ -121,3 +129,11 @@ export const URBAN_SETTINGS_FORBIDDEN_RULES = {
   forbiddenDomSelector: "[data-workspace-wizard-forbidden]",
   forbiddenStatusAttribute: "[data-status-code='403']",
 } as const;
+
+/** Product-blind aliases for the admin shell route (Gap Closure B.16). */
+export const WORKSPACE_OWNER_SETTINGS_PLUGIN_ID = CANLOAD_URBAN_SETTINGS_PLUGIN_ID;
+export const canLoadWorkspaceOwnerSettings = canLoadUrbanSettings;
+export const resolveWorkspaceOwnerSettingsPageBranch = resolveUrbanSettingsPageBranch;
+export type CanLoadWorkspaceOwnerSettingsParams = CanLoadUrbanSettingsParams;
+export type CanLoadWorkspaceOwnerSettingsResult = CanLoadUrbanSettingsResult;
+export type WorkspaceOwnerSettingsPageRenderBranch = UrbanSettingsPageRenderBranch;

@@ -2,7 +2,8 @@
 
 import { PlatformWizardEngine } from "@app-tour/platform-core";
 import type { RenderFieldPlan, RenderStepPlan } from "@app-tour/platform-core";
-import { denaliPluginForWizardEngine, getDenaliWorkspacePlugin } from "../../denali.plugin";
+import { getDenaliWorkspacePlugin } from "../../denali.plugin";
+import { denaliPluginForWizardEngine } from "../../plugin-for-wizard-engine";
 import { DENALI_FLAT_EDIT_SECTIONS_FULL } from "../../edit";
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 import { useTranslations } from "next-intl";
@@ -210,20 +211,20 @@ export function DenaliFlatEditForm({
 
   if (error != null) {
     return (
-      <p role="alert" data-denali-flat-edit-error>
+      <p role="alert" data-operator-flat-edit-error>
         {tWizard("host.loadError", { error })}
       </p>
     );
   }
 
   if (visibleSteps == null) {
-    return <p data-denali-flat-edit-loading>{tWizard("host.loading")}</p>;
+    return <p data-operator-flat-edit-loading>{tWizard("host.loading")}</p>;
   }
 
   return (
     <form
       className="denali-flat-edit-form space-y-6"
-      data-denali-flat-edit-form
+      data-operator-flat-edit-form
       data-testid={DENALI_FLAT_EDIT_TEST_IDS.form}
       onSubmit={(event) => event.preventDefault()}
     >
@@ -241,8 +242,8 @@ export function DenaliFlatEditForm({
           return (
             <section
               key={step.stepId}
-              data-denali-surface="card"
-              data-denali-flat-edit-section={step.stepId}
+              data-operator-surface="card"
+              data-operator-flat-edit-section={step.stepId}
               data-testid={DENALI_FLAT_EDIT_TEST_IDS.section(step.stepId)}
               className="rounded-xl border bg-card text-card-foreground shadow-sm"
             >

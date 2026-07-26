@@ -1,0 +1,74 @@
+---
+title: Thin Shell — Dual-SOT derivation spike
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/saas-platform-remediation.mdoc
+  - TEMP/THIN_SHELL_STRUCTURAL_PATH_VERDICT.md
+---
+
+# Thin Shell — Dual-SOT derivation spike
+
+Phase **4bu** locks the dual-SOT inventory and derivation **rules** without emitting capability codegen yet.
+
+Until derivation lands, packages **must dual-publish**: manifest packaging keys stay for API/admission/codegen; shell runtime enablement comes only from `plugin.capabilities.*`.
+
+## Layers (unchanged covenant)
+
+| Layer | Role |
+| --- | --- |
+| **Shell runtime SOT** | `plugin.capabilities.*` after plugin load / warm |
+| **Package packaging** | `workspace.manifest.json` keys — API, admission, legacy codegen |
+
+**Rule:** declaring a packaging enablement flag that formerly drove a deleted web binder requires the matching capability in the **same** change. Manifest alone does not admit shell behavior.
+
+## Dual-SOT inventory (shell-facing)
+
+Pairs where packaging and capability must stay aligned:
+
+| Manifest signal | Capability slot | Shape check (spike) | Exemplars |
+| --- | --- | --- | --- |
+| `wizardCreate.extendedChrome === true` | `wizardCreate` | `extendedChrome === true` | denali |
+| `workspaceFinance.supported === true` | `financeNav` | `supported === true` | denali, finance-ws5 |
+| `workspaceFinance.capabilities.ops === true` **or** `workspaceFinance.opsManifest` present | `financeOps` | `typeof resolveManifest === "function"` | denali, finance-ws5 |
+| `workspaceBooking.opsManifest` present | `bookingOps` | `typeof resolveManifest === "function"` | denali, booking-ws2 |
+| `operatorShell.phase3NavLinks` non-empty | `operatorShellNav` | `links.length === phase3NavLinks.length` | urban |
+
+**Out of scope for derivation (not dual-SOT packaging gates):** Pattern B `ensureReady` UI surfaces, draftShell/chrome bags, opaque §2.4 loaders/media/i18n allowlist.
+
+## Derivation rules (future codegen contract)
+
+When Architect scopes codegen, emit **stubs only** for rows above:
+
+1. Read `workspace.manifest.json`.
+2. For each row whose manifest signal is true, ensure the plugin factory publishes the capability with the shape check.
+3. Do **not** delete packaging keys in the same slice as first derivation — API/admission may still consume them.
+4. Prefer pure Pattern A stubs (`{ supported: true }`, `{ resolveManifest }`, `{ links }`, `{ extendedChrome: true }`). Never put React on derived stubs.
+
+```text
+manifest signal true
+        │
+        ▼
+codegen / helper asserts capability present
+        │
+        ▼
+plugin.capabilities.<slot>  == shell runtime SOT
+```
+
+## Spike boundaries (4bu)
+
+| In | Out |
+| --- | --- |
+| Inventory doc + arch consistency tests | Full codegen of capability stubs |
+| Freeze derivation **rules** | Dropping manifest keys |
+| Prove denali / finance-ws5 / booking-ws2 / urban / negatives | Rewriting plugin factories to “derive-only” |
+
+## Guards / tests
+
+- `apps/web/test/thin-shell-dual-sot-derivation.spec.ts` — TS-4BU-* consistency locks
+
+## Related
+
+- Dual-SOT covenant in [`saas-platform-remediation.mdoc`](./saas-platform-remediation.mdoc)
+- [`thin-shell-pattern-b-registry.mdoc`](./thin-shell-pattern-b-registry.mdoc) (orthogonal Pattern B Map work)
+- `TEMP/PHASE_4BU_REPORT.md`

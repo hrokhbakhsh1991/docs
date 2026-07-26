@@ -71,6 +71,7 @@ export function useWizardCreateSeedPrefill<TEnvelope, TForm extends TourWizardDr
 }
 
 type UseWizardCreatePresetPrefillInput<TEnvelope, TForm extends TourWizardDraft> = {
+  readonly pluginId: string;
   readonly presetId: string | null;
   readonly gate: WizardTemplateGateState;
   readonly cloneTourId: string | null;
@@ -115,7 +116,7 @@ export function useWizardCreatePresetPrefill<TEnvelope, TForm extends TourWizard
         if (preset == null) {
           return null;
         }
-        const activeThemeIds = readActiveThemeIds(themesPayload.items ?? []);
+        const activeThemeIds = readActiveThemeIds(input.pluginId, themesPayload.items ?? []);
         return { preset, activeThemeIds };
       })
       .then((resolved) => {
@@ -151,6 +152,7 @@ export function useWizardCreatePresetPrefill<TEnvelope, TForm extends TourWizard
       cancelled = true;
     };
   }, [
+    input.pluginId,
     input.presetId,
     input.gate,
     input.cloneTourId,

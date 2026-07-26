@@ -46,7 +46,8 @@ constraints:
 | Enablement | `supported` (+ optional `defaultModuleEnabledWhenUnset`) | `workspace-booking-bindings.generated.ts` | `isBookingSupportedWorkspace` |
 | Public / capacity / validation | `publicBooking`, `capacityPolicy`, `validationPolicy` | `workspace-booking-dependency-bindings.generated.ts` | Injected into `BookingsService` via composition |
 | Event names / hooks | `eventReaction` | `workspace-booking-event-reaction-bindings.generated.ts` | `resolveWorkspaceBookingEventReaction` → approve path |
-| Ops UI | `opsManifest` | `workspace-booking-ops-bindings.generated.ts` (web) | `resolveBookingOpsCapabilityForHub` |
+| Ops UI | `opsManifest` (packaging) + `capabilities.bookingOps` (runtime; Phase 4bf) | ~~web binder deleted~~ | `resolveBookingOpsCapabilityForHub` |
+
 
 ## Codegen completeness (Phase B1.8 + audit)
 

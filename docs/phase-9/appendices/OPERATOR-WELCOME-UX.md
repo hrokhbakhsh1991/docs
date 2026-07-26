@@ -58,7 +58,7 @@ AND profile fetch succeeded
 - Radix Dialog (`apps/web/src/components/ui/dialog.tsx`) — same primitive family as Sheet
 - Denali surfaces: `data-denali-surface="card"`, existing `denali-admin.css` tokens
 - Copy: `messages/{locale}/dashboard.json` → `welcome.*`
-- Denali tagline: `app.denaliTagline` when `pluginId === denali`
+- Extended-create chrome tagline: `app.extendedCreateChromeTagline` when extended chrome is active (Gap Closure B.15; was `app.denaliTagline`)
 - Tenant brand mark: `TenantBrandMark` in dialog header (`operator-welcome-brand-mark`)
 
 ## 6. Completion proofs

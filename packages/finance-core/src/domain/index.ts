@@ -7,7 +7,7 @@ export type {
   PaymentScheduleItem,
   PrepaymentRecord,
 } from "./schedule";
-export { buildPaymentScheduleItems } from "./schedule";
+export { buildPaymentScheduleItems, reschedulePaymentScheduleItem, waivePaymentScheduleItem } from "./schedule";
 export {
   compileRegistrationInvoice,
   type CompileInvoiceBalancesInput,
@@ -16,5 +16,6 @@ export {
 export {
   attachFinanceRegistrationContext,
   filterRowsByRegistrationId,
+  filterRowsByTourId,
   type FinanceRegistrationContext,
 } from "./finance-registration-context";

@@ -48,15 +48,15 @@ function ReviewGrid({ rows }: { readonly rows: readonly DenaliReviewRow[] }) {
     return null;
   }
   return (
-    <dl className="denali-review__grid">
+    <dl className="operator-review__grid">
       {rows.map((row) => (
-        <div key={`${row.label}:${row.value}`} className="denali-review__row">
-          <dt className="denali-review__term">{row.label}</dt>
+        <div key={`${row.label}:${row.value}`} className="operator-review__row">
+          <dt className="operator-review__term">{row.label}</dt>
           <dd
             className={
               row.multiline
-                ? "denali-review__value denali-review__value--multiline"
-                : "denali-review__value"
+                ? "operator-review__value operator-review__value--multiline"
+                : "operator-review__value"
             }
           >
             {row.value}
@@ -80,27 +80,27 @@ function ReviewPhotoGrid({
     return null;
   }
   return (
-    <div className="denali-review__photo-grid" data-testid={DENALI_REVIEW_STEP_TEST_IDS.photoGrid}>
+    <div className="operator-review__photo-grid" data-testid={DENALI_REVIEW_STEP_TEST_IDS.photoGrid}>
       {photos.map((photo, index) => {
         const caption = photo.label?.trim();
         const day = photo.day;
         return (
           <figure
             key={photo.id ?? `photo-${index}`}
-            className="denali-review__photo-card"
-            data-denali-review-photo={photo.id ?? String(index)}
+            className="operator-review__photo-card"
+            data-operator-review-photo={photo.id ?? String(index)}
           >
             <DenaliPhotoPreview
               photo={photo}
               altFallback={altFallback}
-              className="denali-review__photo-img"
+              className="operator-review__photo-img"
               readOnly
             />
             {caption || day != null ? (
-              <figcaption className="denali-review__photo-caption">
-                {caption ? <span className="denali-review__photo-label">{caption}</span> : null}
+              <figcaption className="operator-review__photo-caption">
+                {caption ? <span className="operator-review__photo-label">{caption}</span> : null}
                 {day != null ? (
-                  <span className="denali-review__photo-day">{dayLabel(day)}</span>
+                  <span className="operator-review__photo-day">{dayLabel(day)}</span>
                 ) : null}
               </figcaption>
             ) : null}
@@ -126,14 +126,14 @@ function ReviewGearList({
     return null;
   }
   return (
-    <ul className="denali-review__gear-list" aria-label="gear">
+    <ul className="operator-review__gear-list" aria-label="gear">
       {gearItems.map((item) => (
         <li
           key={item.equipmentId ?? item.name}
-          className="denali-review__gear-item"
-          data-denali-review-gear={item.equipmentId ?? item.name}
+          className="operator-review__gear-item"
+          data-operator-review-gear={item.equipmentId ?? item.name}
         >
-          <div className="denali-review__gear-main">
+          <div className="operator-review__gear-main">
             <EquipmentCatalogAvatar
               id={item.equipmentId || item.name}
               name={item.name}
@@ -142,15 +142,15 @@ function ReviewGearList({
                   ? equipmentIconKeyById.get(item.equipmentId) ?? null
                   : null
               }
-              className="denali-review__gear-avatar"
+              className="operator-review__gear-avatar"
             />
-            <span className="denali-review__gear-name">{item.name}</span>
+            <span className="operator-review__gear-name">{item.name}</span>
           </div>
           <span
             className={
               item.isRequired
-                ? "denali-review__gear-badge denali-review__gear-badge--required"
-                : "denali-review__gear-badge denali-review__gear-badge--optional"
+                ? "operator-review__gear-badge operator-review__gear-badge--required"
+                : "operator-review__gear-badge operator-review__gear-badge--optional"
             }
           >
             {item.isRequired ? gearRequiredLabel : gearOptionalLabel}
@@ -171,29 +171,29 @@ function ReviewHero({
   const hasMeta =
     hero.destination.trim().length > 0 || hero.schedule.trim().length > 0;
   return (
-    <header className="denali-review__hero" data-testid={DENALI_REVIEW_STEP_TEST_IDS.hero}>
+    <header className="operator-review__hero" data-testid={DENALI_REVIEW_STEP_TEST_IDS.hero}>
       {hero.coverPhoto != null ? (
-        <div className="denali-review__hero-media">
+        <div className="operator-review__hero-media">
           <DenaliPhotoPreview
             photo={hero.coverPhoto}
             altFallback={displayTitle}
-            className="denali-review__hero-cover"
+            className="operator-review__hero-cover"
             testId={DENALI_REVIEW_STEP_TEST_IDS.heroCover}
             readOnly
           />
         </div>
       ) : null}
-      <div className="denali-review__hero-content">
+      <div className="operator-review__hero-content">
         {hero.categoryLabel.trim().length > 0 ? (
-          <div className="denali-review__hero-badges">
-            <span className="denali-review__badge">{hero.categoryLabel}</span>
+          <div className="operator-review__hero-badges">
+            <span className="operator-review__badge">{hero.categoryLabel}</span>
           </div>
         ) : null}
-        <h3 className="denali-review__hero-title" data-testid={DENALI_REVIEW_STEP_TEST_IDS.title}>
+        <h3 className="operator-review__hero-title" data-testid={DENALI_REVIEW_STEP_TEST_IDS.title}>
           {displayTitle}
         </h3>
         {hasMeta ? (
-          <p className="denali-review__hero-meta">
+          <p className="operator-review__hero-meta">
             {hero.destination.trim().length > 0 ? (
               <span data-testid={DENALI_REVIEW_STEP_TEST_IDS.destinationName}>
                 {hero.destination}
@@ -238,16 +238,16 @@ function ReviewSectionBlock({
 
   return (
     <article
-      className="denali-review__section"
+      className="operator-review__section"
       data-testid={DENALI_REVIEW_STEP_TEST_IDS.section(section.stepId)}
-      data-denali-review-section={section.stepId}
+      data-operator-review-section={section.stepId}
     >
-      <div className="denali-review__section-header">
-        <h4 className="denali-review__section-title">{section.title}</h4>
+      <div className="operator-review__section-header">
+        <h4 className="operator-review__section-title">{section.title}</h4>
         {onNavigateToStep != null ? (
           <button
             type="button"
-            className="denali-review__section-edit"
+            className="operator-review__section-edit"
             data-testid={DENALI_REVIEW_STEP_TEST_IDS.editSection(section.stepId)}
             onClick={() => onNavigateToStep(section.stepId)}
           >
@@ -255,7 +255,7 @@ function ReviewSectionBlock({
           </button>
         ) : null}
       </div>
-      <div className="denali-review__section-body">
+      <div className="operator-review__section-body">
         <ReviewGrid rows={section.rows} />
         {section.photos != null && section.photos.length > 0 ? (
           <ReviewPhotoGrid
@@ -273,40 +273,40 @@ function ReviewSectionBlock({
           />
         ) : null}
         {section.chips != null && section.chips.length > 0 ? (
-          <ul className="denali-review__chips" aria-label={section.title}>
+          <ul className="operator-review__chips" aria-label={section.title}>
             {section.chips.map((chip) => (
-              <li key={chip} className="denali-review__chip">
+              <li key={chip} className="operator-review__chip">
                 {chip}
               </li>
             ))}
           </ul>
         ) : null}
         {section.cards != null && section.cards.length > 0 ? (
-          <div className="denali-review__cards" role="list">
+          <div className="operator-review__cards" role="list">
             {section.cards.map((card, index) => (
               <article
                 key={`${card.title}:${index}`}
                 role="listitem"
                 className={
                   card.variant === "self"
-                    ? "denali-review__card denali-review__card--self"
-                    : "denali-review__card"
+                    ? "operator-review__card operator-review__card--self"
+                    : "operator-review__card"
                 }
-                data-denali-review-card={card.kind ?? "text"}
+                data-operator-review-card={card.kind ?? "text"}
               >
                 {card.meta ? (
                   <p
                     className={
                       card.variant === "self"
-                        ? "denali-review__card-meta denali-review__card-meta--muted"
-                        : "denali-review__card-meta"
+                        ? "operator-review__card-meta operator-review__card-meta--muted"
+                        : "operator-review__card-meta"
                     }
                   >
                     {card.meta}
                   </p>
                 ) : null}
-                <h5 className="denali-review__card-title">{card.title}</h5>
-                {card.body ? <p className="denali-review__card-body">{card.body}</p> : null}
+                <h5 className="operator-review__card-title">{card.title}</h5>
+                {card.body ? <p className="operator-review__card-body">{card.body}</p> : null}
               </article>
             ))}
           </div>
@@ -375,13 +375,13 @@ export function DenaliReviewStep({
     hero.title.trim().length > 0 ? hero.title : t("review.untitledTour");
 
   return (
-    <section className="denali-review" data-testid={DENALI_REVIEW_STEP_TEST_IDS.panel}>
-      <p className="denali-review__intro">{t("review.intro")}</p>
-      {loading ? <p className="denali-review__status">{t("review.loading")}</p> : null}
+    <section className="operator-review" data-testid={DENALI_REVIEW_STEP_TEST_IDS.panel}>
+      <p className="operator-review__intro">{t("review.intro")}</p>
+      {loading ? <p className="operator-review__status">{t("review.loading")}</p> : null}
 
       <ReviewHero hero={hero} displayTitle={displayTitle} />
 
-      <div className="denali-review__sections">
+      <div className="operator-review__sections">
         {sections.map((section) => (
           <ReviewSectionBlock
             key={section.stepId}

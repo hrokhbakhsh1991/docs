@@ -143,7 +143,7 @@ Same API spine; different apps and post-login path:
 | | Operator admin | Guest portal (P6-1) |
 | --- | ---------------- | ------------------- |
 | App | `apps/web` `:3000` | `apps/portal` `:3003` |
-| UI | `auth/login/login-form.tsx` | `catalog/.../register/public-catalog-registration-flow.tsx` |
+| UI | `auth/login/login-form.tsx` | `src/catalog/public-catalog-registration-flow.tsx` |
 | BFF | `/api/auth/*` (owner session) | `/api/public-auth/*` |
 | API | `/auth/*` | `/public/auth/*` |
 | Dev OTP | `1234` (`otp.service.ts`) | **Same** |

@@ -3,7 +3,8 @@ import { describe, it } from "node:test";
 
 import { PlatformWizardEngine } from "@app-tour/platform-core";
 
-import { denaliPluginForWizardEngine, getDenaliWorkspacePlugin } from "../src/denali.plugin";
+import { getDenaliWorkspacePlugin } from "../src/denali.plugin";
+import { denaliPluginForWizardEngine } from "../src/plugin-for-wizard-engine";
 
 describe("plugin-for-wizard-engine.spec.ts", () => {
   it("DENALI-INGRESS-01 strips callable surfaces before PlatformWizardEngine.create", () => {

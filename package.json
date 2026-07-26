@@ -275,7 +275,7 @@
     "print:deploy-profile-plan": "node scripts/print-deploy-profile-plan.mjs",
     "print:deploy-profile-env": "node scripts/print-deploy-profile-env.mjs",
     "apply:deploy-profile": "node scripts/apply-deploy-profile.mjs",
-    "test:gap-closure-acceptance": "node --test scripts/test/gap-closure-acme-scaffold-acceptance.spec.mjs scripts/test/admin-transpile-packages.spec.mjs scripts/test/guest-transpile-packages.spec.mjs scripts/test/apply-deploy-profile.spec.mjs scripts/test/resolve-staging-web-plugin-allow-env.spec.mjs scripts/test/boundary-allowlist-pathnot.spec.mjs",
+    "test:gap-closure-acceptance": "node --test scripts/test/gap-closure-acme-scaffold-acceptance.spec.mjs scripts/test/thin-shell-acme-web-admission.spec.mjs scripts/test/thin-shell-trunk-acme-admission.spec.mjs scripts/test/admin-transpile-packages.spec.mjs scripts/test/guest-transpile-packages.spec.mjs scripts/test/apply-deploy-profile.spec.mjs scripts/test/resolve-staging-web-plugin-allow-env.spec.mjs scripts/test/boundary-allowlist-pathnot.spec.mjs",
     "sync:guest-runtime-deploy-profile": "node scripts/sync-guest-runtime-deploy-profile.mjs",
     "wave-i0:guard": "bash scripts/wave-i0-guard.sh",
     "gap-closure:exit-local": "bash scripts/gap-closure-exit-local.sh",

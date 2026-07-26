@@ -104,9 +104,9 @@ export function DenaliTimeInput({
     <div
       ref={rootRef}
       className={cn(
-        "denali-time-picker-host",
-        appearance === "inline" && "denali-time-picker-host--inline",
-        appearance === "field" && "denali-time-picker-host--field"
+        "operator-time-picker-host",
+        appearance === "inline" && "operator-time-picker-host--inline",
+        appearance === "field" && "operator-time-picker-host--field"
       )}
     >
       <Button
@@ -114,8 +114,8 @@ export function DenaliTimeInput({
         type="button"
         variant={appearance === "inline" ? "ghost" : "secondary"}
         disabled={disabled}
-        data-denali-time-picker
-        data-denali-time-appearance={appearance}
+        data-operator-time-picker
+        data-operator-time-appearance={appearance}
         data-testid={dataTestId}
         dir="ltr"
         aria-label={ariaLabel ?? t("pickTime")}
@@ -126,20 +126,20 @@ export function DenaliTimeInput({
           openPicker();
         }}
         className={cn(
-          "denali-time-picker-trigger",
+          "operator-time-picker-trigger",
           appearance === "inline"
-            ? "denali-time-picker-trigger--inline"
-            : "denali-time-picker-trigger--field",
-          !displayLabel && "denali-time-picker-trigger--placeholder",
+            ? "operator-time-picker-trigger--inline"
+            : "operator-time-picker-trigger--field",
+          !displayLabel && "operator-time-picker-trigger--placeholder",
           className
         )}
       >
-        <ClockIcon className="denali-time-picker-trigger__icon" />
-        <span className="denali-time-picker-trigger__label">{displayLabel ?? t("pickTime")}</span>
+        <ClockIcon className="operator-time-picker-trigger__icon" />
+        <span className="operator-time-picker-trigger__label">{displayLabel ?? t("pickTime")}</span>
       </Button>
       {open ? (
         <div
-          data-denali-wizard-time-popover
+          data-operator-wizard-time-popover
           onPointerDown={(event) => event.stopPropagation()}
           onMouseDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}

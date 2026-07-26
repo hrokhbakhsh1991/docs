@@ -7,7 +7,7 @@
   ],
   "plugin": {
     "entry": "./plugin",
-    "export": "getBookingWs2WorkspacePlugin"
+    "export": "getWorkspacePlugin"
   },
   "workspaceBooking": {
     "supported": true,

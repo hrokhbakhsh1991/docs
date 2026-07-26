@@ -13,7 +13,8 @@ import { listDenaliRegistryCanonicalPaths } from "../src/field-registry/DenaliFi
 import { denaliWizardSteps } from "../src/layout/stepIds";
 import type { DenaliCreateTourWizardForm } from "../src/schemas/denaliCore.schema";
 import { evaluateFormRules } from "../src/rules/evaluateFormRules";
-import { denaliPluginForWizardEngine, getDenaliWorkspacePlugin } from "../src/denali.plugin";
+import { getDenaliWorkspacePlugin } from "../src/denali.plugin";
+import { denaliPluginForWizardEngine } from "../src/plugin-for-wizard-engine";
 
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const GOLDEN_DIR = join(PACKAGE_ROOT, "test/fixtures/golden");

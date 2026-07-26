@@ -18,6 +18,9 @@ export type MembershipMetadataFields = {
   readonly avatar?: OperatorMembershipAvatar;
   /** PS-6 — explicit hidden-tier module grants (module ids). */
   readonly portalModuleGrants?: readonly string[];
+  readonly portalPlanCode?: string;
+  readonly portalCapabilityFlags?: Readonly<Record<string, boolean>>;
+  readonly portalEntitlementsRevision?: number;
 };
 
 function readRewards(metadata: Prisma.JsonValue | undefined): MembershipRewardsRecord | undefined {
@@ -108,6 +111,16 @@ export function readMembershipMetadata(
       ? record.gender
       : undefined;
   const portalModuleGrants = readPortalModuleGrantsArray(record.portalModuleGrants);
+  const portalPlanCode =
+    typeof record.portalPlanCode === "string" && record.portalPlanCode.trim().length > 0
+      ? record.portalPlanCode.trim()
+      : undefined;
+  const portalCapabilityFlags = readPortalCapabilityFlags(record.portalCapabilityFlags);
+  const portalEntitlementsRevision =
+    typeof record.portalEntitlementsRevision === "number" &&
+    Number.isFinite(record.portalEntitlementsRevision)
+      ? Math.trunc(record.portalEntitlementsRevision)
+      : undefined;
   return {
     ...(displayName !== undefined ? { displayName } : {}),
     ...(email !== undefined ? { email } : {}),
@@ -118,6 +131,9 @@ export function readMembershipMetadata(
     ...(rewards !== undefined ? { rewards } : {}),
     ...(avatar !== undefined ? { avatar } : {}),
     ...(portalModuleGrants.length > 0 ? { portalModuleGrants } : {}),
+    ...(portalPlanCode !== undefined ? { portalPlanCode } : {}),
+    ...(portalCapabilityFlags !== undefined ? { portalCapabilityFlags } : {}),
+    ...(portalEntitlementsRevision !== undefined ? { portalEntitlementsRevision } : {}),
   };
 }
 
@@ -127,6 +143,19 @@ function readPortalModuleGrantsArray(raw: unknown): readonly string[] {
   }
   const moduleIds = raw.filter((entry): entry is string => typeof entry === "string" && entry.length > 0);
   return Object.freeze([...new Set(moduleIds)]);
+}
+
+function readPortalCapabilityFlags(raw: unknown): Readonly<Record<string, boolean>> | undefined {
+  if (raw === null || raw === undefined || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+  const flags: Record<string, boolean> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === "boolean" && key.trim().length > 0) {
+      flags[key] = value;
+    }
+  }
+  return Object.keys(flags).length > 0 ? Object.freeze(flags) : undefined;
 }
 
 function writeRewards(rewards: MembershipRewardsRecord): Prisma.InputJsonObject {
@@ -170,6 +199,15 @@ export function writeMembershipMetadata(input: MembershipMetadataFields): Prisma
     ...(input.portalModuleGrants !== undefined && input.portalModuleGrants.length > 0
       ? { portalModuleGrants: [...input.portalModuleGrants] }
       : {}),
+    ...(input.portalPlanCode !== undefined && input.portalPlanCode.length > 0
+      ? { portalPlanCode: input.portalPlanCode }
+      : {}),
+    ...(input.portalCapabilityFlags !== undefined
+      ? { portalCapabilityFlags: { ...input.portalCapabilityFlags } }
+      : {}),
+    ...(input.portalEntitlementsRevision !== undefined
+      ? { portalEntitlementsRevision: input.portalEntitlementsRevision }
+      : {}),
   };
 }
 
@@ -194,6 +232,17 @@ export function mergeMembershipMetadata(
     rewards: patch.rewards !== undefined ? patch.rewards : current.rewards,
     ...(nextGender !== undefined ? { gender: nextGender } : {}),
     ...(nextAvatar !== undefined ? { avatar: nextAvatar } : {}),
+    portalModuleGrants:
+      patch.portalModuleGrants !== undefined ? patch.portalModuleGrants : current.portalModuleGrants,
+    portalPlanCode: patch.portalPlanCode !== undefined ? patch.portalPlanCode : current.portalPlanCode,
+    portalCapabilityFlags:
+      patch.portalCapabilityFlags !== undefined
+        ? patch.portalCapabilityFlags
+        : current.portalCapabilityFlags,
+    portalEntitlementsRevision:
+      patch.portalEntitlementsRevision !== undefined
+        ? patch.portalEntitlementsRevision
+        : current.portalEntitlementsRevision,
   });
 }
 

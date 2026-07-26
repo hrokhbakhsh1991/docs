@@ -1,6 +1,9 @@
-import { WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS } from "@/bootstrap/wizard-create-bindings.generated";
+/**
+ * Workspaces with extended operator chrome (finance, team, welcome, flat-edit create).
+ * Runtime SoT: capabilities.wizardCreate (Phase 4bg) — warm cache after ensure/seed.
+ */
+import { isWizardExtendedCreatePlugin } from "@/workspace/wizard-create-registry";
 
-/** Workspaces with extended operator chrome (finance, team, welcome flows). */
 export function isExtendedOperatorWorkspace(pluginId: string): boolean {
-  return WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(pluginId);
+  return isWizardExtendedCreatePlugin(pluginId);
 }

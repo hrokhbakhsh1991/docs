@@ -69,14 +69,14 @@ export function mapExposurePolicyForEngine(input: {
   };
 }
 
-export function buildFieldExposureEngineInputSnapshot(input: {
+export async function buildFieldExposureEngineInputSnapshot(input: {
   readonly workspaceType: string;
   readonly eventType: string;
   readonly trigger?: string;
   readonly normalizedTrigger?: NormalizedExposureTrigger;
   readonly payload: Readonly<Record<string, unknown>>;
-}): FieldExposureEngineInputSnapshot {
-  const plugin = resolveWorkspacePluginForType(input.workspaceType);
+}): Promise<FieldExposureEngineInputSnapshot> {
+  const plugin = await resolveWorkspacePluginForType(input.workspaceType);
   const entityState = buildDeliveryFieldPolicyEntityState({
     payload: input.payload,
     eventType: input.eventType,
@@ -84,7 +84,7 @@ export function buildFieldExposureEngineInputSnapshot(input: {
   });
   const trigger =
     input.normalizedTrigger ?? normalizeIntegrationEventType(input.trigger ?? input.eventType);
-  const registryCatalog = buildExposureFieldCatalog(input.workspaceType);
+  const registryCatalog = await buildExposureFieldCatalog(input.workspaceType);
   const fieldIds = registryCatalog.map((field) => field.id);
   const adaptedFieldPolicy =
     plugin.fieldPolicy == null
@@ -160,7 +160,7 @@ export function buildFieldExposureEngineDecisionInput(input: {
   };
 }
 
-export function buildFieldExposureEngineDecisionMap(input: {
+export async function buildFieldExposureEngineDecisionMap(input: {
   readonly tenantId: string;
   readonly workspaceType: string;
   readonly eventType: string;
@@ -172,8 +172,8 @@ export function buildFieldExposureEngineDecisionMap(input: {
   readonly payload: Readonly<Record<string, unknown>>;
   readonly exposureIntent?: ExposureIntent | null;
   readonly exposureProfile?: Pick<ExposureProfile, "id" | "defaultFieldIds"> | null;
-}): ReadonlyMap<string, ExposureDecision> {
-  const snapshot = buildFieldExposureEngineInputSnapshot({
+}): Promise<ReadonlyMap<string, ExposureDecision>> {
+  const snapshot = await buildFieldExposureEngineInputSnapshot({
     workspaceType: input.workspaceType,
     eventType: input.eventType,
     ...(input.trigger === undefined ? {} : { trigger: input.trigger }),

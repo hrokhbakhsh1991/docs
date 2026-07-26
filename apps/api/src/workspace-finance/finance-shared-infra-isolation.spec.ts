@@ -25,7 +25,7 @@ import {
   getBookingsRepository,
   resetBookingsRepositoryForTests,
 } from "../bookings/create-bookings-repository.ts";
-import { FinanceService } from "./finance.service.ts";
+import { createFinanceService, FinanceService } from "./finance.service.ts";
 import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter.ts";
 import { BookingRegistrationDisplayAdapter } from "./infrastructure/booking-registration-display.adapter.ts";
 import {
@@ -111,14 +111,14 @@ function createWorkspaceFinanceService(input: {
   readonly bookingPayments: IBookingPaymentPort;
 }): FinanceService {
   const isDenali = input.workspaceType === DENALI;
-  return new FinanceService(
+  return createFinanceService(
     isDenali ? new DenaliFinanceLedgerPolicyAdapter() : new FinanceWs5LedgerPolicyAdapter(),
     input.repository,
     input.bookingPayments,
     isDenali
       ? new DenaliFinanceReceiptDefaultsAdapter()
       : new FinanceWs5ReceiptDefaultsAdapter(),
-    new BookingRegistrationDisplayAdapter(),
+    new BookingRegistrationDisplayAdapter(getBookingsRepository()),
     fakeNoopMetrics,
     fakeMemoryPersistenceMode,
     fakeReceiptProofUrl,

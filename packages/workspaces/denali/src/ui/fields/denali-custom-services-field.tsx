@@ -58,7 +58,7 @@ export function DenaliCustomServicesField({
   return (
     <div
       className="denali-wizard-composite"
-      data-denali-wizard-surface="section"
+      data-operator-wizard-surface="section"
       data-testid={DENALI_CUSTOM_SERVICES_TEST_IDS.customServices}
     >
       <div className="denali-wizard-composite__header">

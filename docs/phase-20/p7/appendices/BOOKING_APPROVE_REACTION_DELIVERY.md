@@ -67,7 +67,7 @@ approveBooking
 
 ## Runtime contract constants
 
-`@app-cloud/booking-http-contracts`:
+`@app-tour/booking-http-contracts`:
 
 - `BOOKING_APPROVE_OUTBOX_DELIVERY`
 - `BOOKING_APPROVE_REACTION_DELIVERY`

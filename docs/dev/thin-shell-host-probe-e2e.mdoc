@@ -1,0 +1,60 @@
+---
+title: Thin Shell — Host-probe Playwright E2E
+format: markdoc
+doc_role: runbook
+extends:
+  - docs/dev/saas-platform-remediation.mdoc
+  - TEMP/THIN_SHELL_STRUCTURAL_PATH_VERDICT.md
+---
+
+# Thin Shell — Host-probe Playwright E2E
+
+Phase **4by** adds an **opt-in** Playwright suite for `GET /workspace-host-probe?pluginId=…`.
+
+Unit contracts (TS-4S-01…06) remain the default gate. Browser E2E is **not** wired into CI full gates or `pre-commit:fast`.
+
+## Why opt-in
+
+Starting Next + API for Playwright is multi-minute and needs Postgres / host DNS (`*.localhost`). Thin-shell DoD does not require that loop on every commit.
+
+## Route contract (browser)
+
+| Request | Expected `data-testid` |
+| --- | --- |
+| `/workspace-host-probe` (no `pluginId`) | `workspace-host-probe-missing-id` |
+| `?pluginId=acme` | `workspace-host-probe` + `workspace-host-probe-plugin-id` |
+| `?pluginId=denali` | `workspace-host-probe-capability-missing` |
+| `?pluginId=no-such-workspace-plugin` | `workspace-host-probe-not-found` |
+
+The route is **public** (not owner-panel protected). Use an operator-capable host (e.g. `denali.localhost`) so middleware host gates pass.
+
+## Run
+
+```bash
+# Terminal A — Next already running (example)
+cd apps/web && pnpm exec next dev --port 3000 --hostname 127.0.0.1
+
+# Terminal B — browser suite (explicit opt-in)
+cd apps/web
+HOST_PROBE_E2E=1 \
+PW_EXTERNAL_SERVERS=1 \
+HOST_PROBE_BASE_URL=http://denali.localhost:3000 \
+  pnpm run test:e2e:host-probe
+```
+
+| Env | Role |
+| --- | --- |
+| `HOST_PROBE_E2E=1` | Required — suite skips entirely otherwise |
+| `PW_EXTERNAL_SERVERS=1` | Required — no embedded webServer in this config |
+| `HOST_PROBE_BASE_URL` | Base URL (default `http://denali.localhost:3000`) |
+
+## Files
+
+- `apps/web/playwright.host-probe.config.ts`
+- `apps/web/tests/e2e/workspace-host-probe.spec.ts`
+- Arch lock: `apps/web/test/thin-shell-host-probe-e2e.spec.ts` (TS-4BY-*)
+
+## Related
+
+- `apps/web/test/thin-shell-acme-host-probe.spec.ts` (unit)
+- `TEMP/PHASE_4BY_REPORT.md`

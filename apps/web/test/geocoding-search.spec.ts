@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { mergeGeocodingResults } from "../src/lib/geocoding/geocoding-search";
-import { searchIranMountainLandmarks } from "../src/lib/geocoding/iran-mountain-landmarks";
+import { searchIranMountainLandmarks } from "@app-tour/iran-mountain-landmarks";
 import { parseNominatimRows } from "../src/lib/geocoding/nominatim";
 import {
   createEmptyDenaliGatheringPoint,

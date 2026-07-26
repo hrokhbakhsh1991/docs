@@ -11,7 +11,8 @@ authority:
 constraints:
   - UI metadata only (views / columns / actions / filters / KPIs)
   - NO authorization / persistence / approve logic moves
-  - generic web resolves via generated bindings — never hard-import workspace packages
+  - generic web resolves via plugin capability — never hard-import workspace packages
+  - Phase 4bf: web binder deleted; runtime SoT = capabilities.bookingOps (dual-SOT with opsManifest packaging)
 ```
 
 ## Manifest
@@ -24,19 +25,13 @@ workspaceBooking:
     resolveFromThemeExport: "resolveBookingOpsManifestFromTheme"
 ```
 
-## Generated
+## Runtime (Phase 4bf)
 
-`apps/web/src/bootstrap/workspace-booking-ops-bindings.generated.ts`
+Generated web binder **deleted**. Shell hub:
 
-| Export | Role |
-| ------ | ---- |
-| `WORKSPACE_BOOKING_OPS_BINDINGS` | pluginId → default + resolveFromTheme |
-| `hasBookingOpsManifest(pluginId)` | presence |
-| `resolveWorkspaceBookingOpsManifest(pluginId, theme?)` | throws if unbound |
+`resolveBookingOpsCapabilityForHub(theme, pluginId)` → loads plugin → `capabilities.bookingOps.resolveManifest(theme)` → `BookingOpsCapability | null`
 
-Hub soft-resolve (Finance mirror):
-
-`resolveBookingOpsCapabilityForHub(theme, pluginId)` → `BookingOpsCapability | null`
+Packaging still declares `opsManifest` for admission/dual-SOT (see remediation dual-SOT covenant).
 
 ## Capability type
 

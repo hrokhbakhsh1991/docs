@@ -4,10 +4,12 @@ import { describe, it } from "node:test";
 import {
   buildDenaliRelativeTimeTrigger,
   DENALI_EXPOSURE_SURFACE,
+  DENALI_OPERATOR_SETTINGS_SURFACE_DISPLAY_ORDER,
   DENALI_PUBLIC_DETAILS_FIELD_IDS,
   DENALI_PUBLIC_LIST_FIELD_IDS,
   resolveDenaliExposureCoordinate,
   resolveDenaliSurfaceDefaultFieldIds,
+  sortDenaliOperatorSettingsSurfaces,
 } from "../src/exposure/denali-exposure-surfaces";
 
 describe("denali exposure surfaces", () => {
@@ -45,5 +47,23 @@ describe("denali exposure surfaces", () => {
       trigger: { kind: "always" },
     });
     assert.deepEqual(listIds, DENALI_PUBLIC_LIST_FIELD_IDS);
+  });
+
+  it("orders operator settings surfaces without telegram", () => {
+    assert.deepEqual(
+      [...DENALI_OPERATOR_SETTINGS_SURFACE_DISPLAY_ORDER],
+      ["public_list", "public_details", "user_dashboard", "reminder_feed"]
+    );
+    assert.ok(!DENALI_OPERATOR_SETTINGS_SURFACE_DISPLAY_ORDER.includes(DENALI_EXPOSURE_SURFACE.telegram));
+    const sorted = sortDenaliOperatorSettingsSurfaces([
+      { surface: "reminder_feed" },
+      { surface: "unknown_surface" },
+      { surface: "public_list" },
+      { surface: "public_details" },
+    ]);
+    assert.deepEqual(
+      sorted.map((row) => row.surface),
+      ["public_list", "public_details", "reminder_feed", "unknown_surface"]
+    );
   });
 });

@@ -43,6 +43,7 @@ function isPublicPath(pathname: string): boolean {
     pathname === OPERATOR_LOGIN_ALIAS_PATH ||
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/catalog") ||
+    pathname === "/workspace-host-probe" ||
     pathname === "/"
   );
 }

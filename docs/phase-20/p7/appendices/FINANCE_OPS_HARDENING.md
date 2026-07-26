@@ -53,6 +53,71 @@ See `deploy/alerts/finance-ops.yaml`:
 
 Platform outbox alerts (`AppTourOutbox*`) remain complementary.
 
+## Auto-repair guardrail (FC-0)
+
+To prevent booking/payment projection drift from staying open in production:
+
+| Guardrail | Rule |
+| --------- | ---- |
+| Runtime signal | When finance recon starts with `FINANCE_RECON_AUTO_REPAIR` disabled, host logs `finance.recon.auto_repair_disabled`. |
+| Operator action | Enable `FINANCE_RECON_AUTO_REPAIR=1` in durable Prisma environments unless explicitly waived by incident policy. |
+| Verification | Use startup logs + first recon scan event (`finance.recon.scan`) to confirm `auto_repaired` is non-zero when eligible findings exist. |
+
+## Tour-level reporting (FC-3)
+
+Host read-only dimension for multi-workspace finance ops:
+
+| Surface | Contract |
+| ------- | -------- |
+| List scope | `?registrationId=` + `?tourId=` on payments, ledger, receipts, prepayments, schedules |
+| Aggregate | `GET /finance/reports/by-tour?tourId=` — SQL join `payments` ↔ `operator_registrations` |
+| Web | `FinanceTourFilter` (bookings summary tour chips) + overview `paidByTour` strip |
+
+Proof: `apps/api/test/finance-reports-by-tour.spec.ts`, `apps/web/test/finance-tour-filter.spec.ts`.
+
+## Commercial obligation bind (FC-2)
+
+| Step | Enforcement |
+| ---- | ----------- |
+| Manual payment create | Warn log `finance.obligation.manual_amount_override` when amount > obligation + tolerance |
+| Receipt approve | Block with `FINANCE_OBLIGATION_OVERPAY` when payment > obligation + tolerance |
+| Invoice compile | `obligationMinor` after schedule sum, before payment-sum fallback |
+
+Denali resolver: `resolveDenaliRegistrationObligationMinor` (`pricing.basePricePerPerson × partySize`, `offline_receipt` only).  
+Host factory: `createFinanceObligationPort(workspaceType)` → `RegistrationFinanceObligationAdapter` when codegen `registrationObligation` binding exists (denali today), null port otherwise (P3.5).
+
+Proof: `packages/workspaces/denali/test/finance-obligation.spec.ts`, `apps/api/test/finance-obligation-denali.spec.ts`.
+
+Manual payment / prepayment forms pre-fill `amount` from invoice `balanceDueMinor` when registration is selected (falls back to `invoiceTotalMinor` when due is zero). Proof: `apps/web/test/finance-invoice-prefill.spec.ts`.
+
+## Receipt media upload (FC-5)
+
+Operator / portal happy path avoids raw `fileKey` entry:
+
+| Step | Contract |
+| ---- | -------- |
+| Upload | `POST /finance/receipts/upload?registrationId=` — binary body, `Content-Type`, optional `X-Receipt-File-Name` |
+| Storage | Host `putMemberReceiptProof` → tenant-scoped MinIO key under `receipts/{tenantId}/{registrationId}/` |
+| Submit | Existing `POST /finance/receipts` with returned `fileKey` |
+| Web BFF | `apps/web/app/api/finance/receipts/upload/route.ts` proxies bytes + headers |
+
+Proof: `apps/api/test/finance-receipt-upload.spec.ts`, payments panel file input (replaces advanced file-key-only path for ops).
+
+## Schedule item mutate (FC-4)
+
+| Method | Path | Action |
+| ------ | ---- | ------ |
+| PATCH | `/finance/schedules/{registrationId}/items/{itemId}` | `action: waive` (admin + reason) or `action: reschedule` (+ ISO `dueAt`) |
+
+Domain rules (finance-core):
+
+- Sum of `amountMinor` across items unchanged after mutate (waive sets `status=waived` only).
+- Waive blocked when item is `paid`.
+- Reschedule recalculates `overdue` ↔ `scheduled` from new `dueAt`; no ledger mutation.
+- Host emits durable outbox `finance.schedule.item_waived` with reason + actor on waive.
+
+Proof: `apps/api/test/finance-schedule-mutate.spec.ts`, `apps/web/test/finance-installments-panel.spec.ts` (waive/reschedule wiring).
+
 ## Recovery design (boundaries preserved)
 
 | Scenario | Detection | Action | Owner |

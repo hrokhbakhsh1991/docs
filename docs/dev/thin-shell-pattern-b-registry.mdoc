@@ -1,0 +1,73 @@
+---
+title: Thin Shell — Pattern B registry keying
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/saas-platform-remediation.mdoc
+  - TEMP/THIN_SHELL_STRUCTURAL_PATH_VERDICT.md
+---
+
+# Thin Shell — Pattern B registry keying
+
+Phase **4bl** locks how package-owned React/UI surfaces reach the shell without generated binders.
+Phases **4bm–4bs** migrate every Pattern B singleton → `Map<pluginId, Surface>`.
+Phase **4bt** retires host-adapter **active-pluginId** transitional: shell sync helpers take `pluginId` first; `app-cloud.wizardHostAdapterActivePluginId` is removed.
+
+**Pattern B honesty closed for Map keying + host-adapter sync threading** (4bs + 4bt).
+
+## Contract
+
+1. Capability on the frozen plugin exposes **only** `ensureReady` (no React).
+2. Package `ensureReady` string-key `import()`s UI and publishes on a product-blind `globalThis` key.
+3. Shell registry peeks that key — never imports product UI statically.
+4. **Publish/peek key = `pluginId`** via `Map<string, Surface>` on the global key.
+5. Host-adapter sync helpers (`buildWizardFreshStartMeta`, catalog sanitize, localize, etc.) take **`pluginId` as the first argument** and fail closed when cold / unknown — no ambient active-id.
+
+```text
+ensureReady()
+    │
+    ▼
+import("../ui/…")  // string-keyed
+    │
+    ▼
+globalThis[KEY].set(pluginId, surface)
+    │
+    ▼
+shell peek(pluginId) → surface | null   // fail-closed when cold / unknown id
+```
+
+## Inventory (4bl–4bs) — all Map-keyed
+
+| Global key | Capability | Phase |
+| --- | --- | --- |
+| `app-cloud.wizardCreateChromeSurface` | `createChrome` | 4bl |
+| `app-cloud.wizardFlatEditChromeSurface` | `flatEditChrome` | 4bm |
+| `app-cloud.wizardCreateViewSurface` | `createView` | 4bn |
+| `app-cloud.wizardFlatEditFormSurface` | `flatEditForm` | 4bo |
+| `app-cloud.wizardFlatEditPageSurface` | `flatEditPage` | 4bp |
+| `app-cloud.operatorUiComponentsSurface` | `operatorUi` | 4bq |
+| `app-cloud.wizardHostAdapterSurface` | `wizardHost` adapters | 4br + **4bt** (sync `pluginId`) |
+| `app-cloud.settingsEquipmentUiSurface` | `settingsEquipmentUi` | **4bs** |
+| `app-cloud.settingsExposureSurfacesUiSurface` | `settingsExposureSurfacesUi` | **4bs** |
+| `app-cloud.wizardLabelResolverCache` | `labels` | earlier Map |
+| `app-cloud.wizardCompositeSurfaceCache` | `wizardSurfaces` | earlier Map |
+| `app-cloud.wizardReviewSurfaceCache` | `wizardSurfaces` | earlier Map |
+| `app-cloud.wizardCreateCache` | `wizardCreate` | membership |
+
+### Singleton debt
+
+**None** (closed in 4bs).
+
+### Active-pluginId debt
+
+**None** (closed in 4bt — key deleted; sync helpers require `pluginId`).
+
+## Guards / tests
+
+- `apps/web/test/thin-shell-pattern-b-registry.spec.ts` — inventory + Map contracts (4bl–4bt)
+- Do not delete opaque §2.4 loaders to “fix” Pattern B
+
+## Related
+
+- [`thin-shell-generated-bootstrap-inventory.mdoc`](./thin-shell-generated-bootstrap-inventory.mdoc)
+- `TEMP/PHASE_4BL_REPORT.md` … `TEMP/PHASE_4BT_REPORT.md`

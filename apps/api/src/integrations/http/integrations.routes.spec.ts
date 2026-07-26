@@ -10,7 +10,7 @@ import {
 } from "../infrastructure/integration-secret-store";
 
 describe("integrations control plane secrets", () => {
-  it("maskSecretRef never exposes full ref", () => {
+  it("maskSecretRef never exposes full ref", async () => {
     const masked = maskSecretRef("integration-connection:01234567-89ab-cdef");
     assert.ok(masked !== null);
     assert.equal(masked?.includes("botToken"), false);

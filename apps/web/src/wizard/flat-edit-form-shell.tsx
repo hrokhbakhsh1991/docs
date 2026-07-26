@@ -1,6 +1,6 @@
 "use client";
 
-import { resolveWizardFlatEditFormSurface } from "@/bootstrap/workspace-wizard-flat-edit-form-bindings.generated";
+import { resolveWizardFlatEditFormSurface } from "@/wizard/wizard-flat-edit-form-registry";
 import { useAppSession } from "@/providers/app-session-context";
 import {
   applyWizardTemplateToRenderPlan,

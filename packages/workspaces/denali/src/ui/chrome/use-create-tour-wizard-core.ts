@@ -7,9 +7,11 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { createDenaliDraftSchemaGate } from "../../draft/create-denali-draft-schema-gate";
-import type {
-  DenaliWizardDraftEnvelope,
-  DenaliWizardDraftMeta,
+import {
+  buildDenaliWizardFreshStartMeta,
+  buildDenaliWizardStepZeroMeta,
+  type DenaliWizardDraftEnvelope,
+  type DenaliWizardDraftMeta,
 } from "../../draft/denali-wizard-draft-binding";
 import {
   emptyDenaliTourWizardDraft,
@@ -108,7 +110,7 @@ export type DenaliCreateTourWizardCoreInput = {
     form: DenaliTourWizardDraft,
     meta: DenaliWizardDraftMeta
   ) => DenaliCreateTourWizardDraftEnvelope;
-  readonly denaliSchemaGateRef: React.MutableRefObject<DraftSchemaGate<DenaliCreateTourWizardDraftEnvelope> | null>;
+  readonly draftSchemaGateRef: React.MutableRefObject<DraftSchemaGate<DenaliCreateTourWizardDraftEnvelope> | null>;
   readonly hydrateCreateTourFromClone: (input: {
     readonly cloneTourId: string;
     readonly pluginId: string;
@@ -180,10 +182,10 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
           clearDraft: () => draftSyncRef.current.clearDraft(),
           applyHydratedDraft: (hydratedDraft) => {
             draftSyncRef.current.setData(
-              prepareEnvelopeRef.current(hydratedDraft, {
-                currentStepIndex: 0,
-                wizardSessionId: input.wizardSessionId,
-              })
+              prepareEnvelopeRef.current(
+                hydratedDraft,
+                buildDenaliWizardStepZeroMeta(input.wizardSessionId)
+              )
             );
           },
         });
@@ -247,11 +249,12 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
     }
     emptyDraftResetRef.current = true;
     draftSyncRef.current.setData(
-      prepareEnvelopeRef.current(envelope.form, {
-        currentStepIndex: 0,
-        wizardSessionId: envelope.meta.wizardSessionId ?? input.wizardSessionId,
-        freshStart: true,
-      })
+      prepareEnvelopeRef.current(
+        envelope.form,
+        buildDenaliWizardFreshStartMeta(
+          envelope.meta.wizardSessionId ?? input.wizardSessionId
+        )
+      )
     );
   }, [
     input.gate.published,
@@ -288,7 +291,7 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
     themeCatalog,
   });
 
-  input.denaliSchemaGateRef.current =
+  input.draftSchemaGateRef.current =
     denaliRules != null && wizardRuleEvalContext !== undefined
       ? createDenaliDraftSchemaGate(
           denaliRules as unknown as StrictDenaliWizardRulesModule,
@@ -330,7 +333,7 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
           return;
         }
         if (outcome.failure.kind === "rules-not-ready") {
-          setSubmitError("DENALI_RULES_NOT_READY");
+          setSubmitError("WIZARD_RULES_NOT_READY");
           return;
         }
         setSubmitError(outcome.failure.code);

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { OPERATOR_WIZARD_PATH } from "@/admin/require-operator-session";
-import { WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS } from "@/bootstrap/wizard-create-bindings.generated";
+import { isExtendedOperatorWorkspace } from "@/workspace/is-extended-operator-workspace";
 import { TenantBrandMark } from "@/admin/shell/tenant-brand-mark";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,7 +42,7 @@ export function OperatorWelcomeDialog({
   const tApp = useTranslations("app");
   const workspaceLabel = useTenantBrandTitle();
 
-  const tagline = WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(pluginId)
+  const tagline = isExtendedOperatorWorkspace(pluginId)
     ? tApp("extendedCreateChromeTagline")
     : null;
   const isOwner = role === "owner";

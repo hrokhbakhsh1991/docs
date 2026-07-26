@@ -34,7 +34,7 @@ export function DenaliMapPreview({ latitude, longitude }: DenaliMapPreviewProps)
   return (
     <div
       className="denali-wizard-composite__map-wrap"
-      data-denali-wizard-map-preview
+      data-operator-wizard-map-preview
       data-testid={DENALI_COMPOSITE_TEST_IDS.mapPreview}
     >
       {!loaded ? <div className="denali-wizard-composite__map-skeleton" aria-hidden /> : null}

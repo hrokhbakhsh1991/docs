@@ -1,0 +1,50 @@
+---
+title: P2-D4 wizard orchestration I/O ports
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/p2-d3-shell-operator-symbol-rename.mdoc
+---
+
+# P2-D4 — Wizard orchestration I/O ports
+
+Residual **P2-D4** keeps create/flat **orchestration hooks in the web shell**. Moving whole hooks into `@app-tour/workspace-denali` without ports would drag Next/BFF/`fetch` into the package (boundary violation).
+
+Copy the exposure H1.c.1 pattern: **inject I/O**, keep React wiring in web.
+
+## Tranche P2-D4.a — Flat-edit page I/O (this slice)
+
+| Piece | Role |
+| ----- | ---- |
+| `OperatorFlatEditPageIo` | Shell contract: template load, tour baseline load, update tour |
+| `webOperatorFlatEditPageIo` | Default BFF adapter (`/api/…` + `updateTourAction`) |
+| `useOperatorFlatEditPage` | Accepts optional `io` (defaults to web adapter) |
+
+```text
+useOperatorFlatEditPage
+  → io.loadWizardTemplatePayload()
+  → io.loadTourBaseline({ tourId, plugin })
+  → io.updateTour(tourId, payload)
+  → useOperatorFlatEditPageCore (generated package chrome)
+```
+
+Hook source must not embed `/api/tours/` or `/api/settings/tour-wizard-template` string literals — those live in the web adapter.
+
+## Non-goals
+
+| Item | Disposition |
+| ---- | ----------- |
+| Moving `useOperatorFlatEditPage` / `useOperatorCreateTourWizard` into the package | Deferred — needs fuller port + chrome surface |
+| Create-wizard I/O ports | **P2-D4.b** |
+| Chrome React (`OperatorFlatEditPageShell`) | Stay shell UI |
+| Changing package `useFlatEditPageCore` signature | Unchanged — still receives callbacks |
+
+## Verify
+
+```bash
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/wizard-host-boundary.spec.ts \
+  test/p2-d4-flat-edit-io.spec.ts
+```
+
+Authority: `TEMP/phases/P2-denali-extraction-plan.md` § P2-D4.a.

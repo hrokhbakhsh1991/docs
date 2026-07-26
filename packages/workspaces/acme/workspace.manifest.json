@@ -1,0 +1,16 @@
+{
+  "id": "acme",
+  "version": 1,
+  "package": "@app-tour/workspace-acme",
+  "workspaceTypes": [
+    "acme"
+  ],
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  },
+  "web": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  }
+}

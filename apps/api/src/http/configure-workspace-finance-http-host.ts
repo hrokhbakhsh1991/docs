@@ -2,6 +2,8 @@ import { configureFinanceHttpHost } from "@app-tour/finance-http";
 
 import { resolveFinanceServiceForTenant } from "../boot/lazy-finance-service";
 import type { FinanceService } from "../workspace-finance/finance.service";
+import { enqueueScheduleItemWaivedAudit } from "../workspace-finance/enqueue-finance-schedule-audit";
+import { uploadOperatorReceiptProof } from "../workspace-finance/finance-receipt-upload";
 import { handleHttpError } from "../middleware/error-interceptor";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
 import { runWithHttpRequestContext } from "./bind-request-context";
@@ -33,4 +35,6 @@ configureFinanceHttpHost({
   hashIdempotentRequest,
   runIdempotentHttpMutation,
   idempotencyKeyRequiredCode: IDEMPOTENCY_KEY_REQUIRED,
+  uploadOperatorReceiptProof,
+  enqueueScheduleItemWaivedAudit,
 });

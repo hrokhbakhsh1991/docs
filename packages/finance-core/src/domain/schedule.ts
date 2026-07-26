@@ -109,3 +109,80 @@ export function buildPaymentScheduleItems(input: {
 
   return items;
 }
+
+export function assertScheduleAmountSumInvariant(
+  items: readonly PaymentScheduleItem[],
+  expectedTotalMinor: string
+): void {
+  const sum = items.reduce((acc, row) => acc + BigInt(row.amountMinor), BigInt(0));
+  if (sum !== BigInt(expectedTotalMinor)) {
+    throw new Error("SCHEDULE_INVOICE_MISMATCH");
+  }
+}
+
+function recalcStatusAfterReschedule(
+  item: PaymentScheduleItem,
+  dueAt: string
+): InstallmentItemStatus {
+  if (item.status === "waived" || item.status === "paid" || item.status === "partial") {
+    return item.status;
+  }
+  const due = new Date(dueAt);
+  if (Number.isNaN(due.getTime())) {
+    throw new Error("SCHEDULE_INVALID_DUE_AT");
+  }
+  const now = new Date();
+  if (due.getTime() < now.getTime()) {
+    return "overdue";
+  }
+  if (item.status === "overdue") {
+    return "scheduled";
+  }
+  return item.status;
+}
+
+export function waivePaymentScheduleItem(
+  items: readonly PaymentScheduleItem[],
+  itemId: string
+): PaymentScheduleItem[] {
+  const index = items.findIndex((row) => row.id === itemId);
+  if (index < 0) {
+    throw new Error("SCHEDULE_ITEM_NOT_FOUND");
+  }
+  const item = items[index]!;
+  if (item.status === "paid") {
+    throw new Error("SCHEDULE_ITEM_ALREADY_PAID");
+  }
+  if (item.status === "waived") {
+    return [...items];
+  }
+  const next = [...items];
+  next[index] = { ...item, status: "waived" };
+  return next;
+}
+
+export function reschedulePaymentScheduleItem(
+  items: readonly PaymentScheduleItem[],
+  itemId: string,
+  dueAt: string
+): PaymentScheduleItem[] {
+  const index = items.findIndex((row) => row.id === itemId);
+  if (index < 0) {
+    throw new Error("SCHEDULE_ITEM_NOT_FOUND");
+  }
+  const item = items[index]!;
+  if (item.status === "paid" || item.status === "waived") {
+    throw new Error("SCHEDULE_ITEM_NOT_MUTABLE");
+  }
+  const parsedDue = new Date(dueAt);
+  if (Number.isNaN(parsedDue.getTime())) {
+    throw new Error("SCHEDULE_INVALID_DUE_AT");
+  }
+  const next = [...items];
+  next[index] = {
+    ...item,
+    dueAt: parsedDue.toISOString(),
+    status: recalcStatusAfterReschedule(item, parsedDue.toISOString()),
+  };
+  return next;
+}

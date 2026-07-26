@@ -47,20 +47,20 @@ describe("finance-ws5 production-capable", () => {
     assert.match(ops, /finance-ws5/);
   });
 
-  it("dependencies resolve WS5 adapters (not Denali)", () => {
-    const deps = resolveFinanceWorkspaceDependencies("finance-ws5");
+  it("dependencies resolve WS5 adapters (not Denali)", async () => {
+    const deps = await resolveFinanceWorkspaceDependencies("finance-ws5");
     assert.ok(deps.ledgerPolicy instanceof FinanceWs5LedgerPolicyAdapter);
     assert.ok(deps.receiptDefaults instanceof FinanceWs5ReceiptDefaultsAdapter);
     assert.deepEqual(deps.receiptDefaults.offlineReceiptPaymentDefaults(), {
       amountMinor: "12500",
       currency: "CAD",
     });
-    const accounts = resolveFinanceChartOfAccounts("finance-ws5");
+    const accounts = await resolveFinanceChartOfAccounts("finance-ws5");
     assert.equal(accounts.OPERATOR_CASH_CLEARING, FINANCE_WS5_LEDGER_ACCOUNTS.OPERATOR_CASH_CLEARING);
   });
 
   it("TourCreated reaction is observable (handles tour aggregate)", async () => {
-    const reaction = resolveWorkspaceFinanceEventReaction("finance-ws5");
+    const reaction = await resolveWorkspaceFinanceEventReaction("finance-ws5");
     assert.ok(reaction instanceof FinanceWs5TourCreatedFinanceReactionAdapter);
     const handled = await reaction.reactToPublishedRow({
       tenantId: "00000000-0000-4000-8000-000000000099",

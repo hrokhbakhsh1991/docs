@@ -161,7 +161,7 @@ function runMicrotaskValidationBurst(tenantId: string, count: number): Promise<v
 
 function runSyncValidationBurst(tenantId: string, count: number): void {
   for (let index = 0; index < count; index += 1) {
-    validateCanonicalBeforePersistSync(validationInput(tenantId, index));
+    await validateCanonicalBeforePersistSync(validationInput(tenantId, index));
   }
 }
 

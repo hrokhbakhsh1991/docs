@@ -347,119 +347,18 @@ export function isFinanceDefaultEnabledWhenModulesUnset(workspaceType: string): 
  * Registry fixture `finance-ws2` must not appear here until a real workspace package
  * declares `workspaceFinance.supported` (fixture ≠ production enablement).
  */
-export function generateWorkspaceFinanceNavBindings(manifests) {
-  /** @type {Set<string>} */
-  const ids = new Set(
-    manifests.filter((m) => m.workspaceFinance?.supported === true).map((m) => m.id)
+export function generateWorkspaceFinanceNavBindings(_manifests) {
+  throw new Error(
+    "Phase 4bd — workspaceFinanceNav codegen removed; capabilities.financeNav owns finance hub visibility"
   );
-  const pluginIds = [...ids].sort().map((id) => `  ${JSON.stringify(id)},`);
-
-  return `${BANNER}
-/** Plugin ids with workspaceFinance.supported — finance hub enablement (Phase 1.2). */
-export const WORKSPACE_FINANCE_NAV_PLUGIN_IDS = new Set<string>([
-${pluginIds.join("\n")}
-]);
-
-export function isFinanceNavPlugin(pluginId: string): boolean {
-  return WORKSPACE_FINANCE_NAV_PLUGIN_IDS.has(pluginId);
-}
-`;
 }
 
-/**
- * Web finance ops panel defaults — pluginId → workspace ops manifest (Phase 1.9.2 / P4-D3.c).
- * Dynamic import only — generic apps/web must never statically import workspace packages.
- */
-export function generateWorkspaceFinanceOpsBindings(manifests) {
-  /** @type {string[]} */
-  const bindingEntries = [];
-
-  for (const m of manifests) {
-    const finance = m.workspaceFinance;
-    if (finance === undefined || finance.supported !== true) {
-      continue;
-    }
-    const ops = finance.opsManifest;
-    if (ops === undefined) {
-      continue;
-    }
-    if (typeof ops.module !== "string" || ops.module.length === 0) {
-      throw new Error(`workspace.manifest.json ${m.id}: workspaceFinance.opsManifest.module required`);
-    }
-    if (typeof ops.defaultExport !== "string" || ops.defaultExport.length === 0) {
-      throw new Error(
-        `workspace.manifest.json ${m.id}: workspaceFinance.opsManifest.defaultExport required`
-      );
-    }
-    if (typeof ops.resolveFromThemeExport !== "string" || ops.resolveFromThemeExport.length === 0) {
-      throw new Error(
-        `workspace.manifest.json ${m.id}: workspaceFinance.opsManifest.resolveFromThemeExport required`
-      );
-    }
-    const spec = importSpecifier(m.package, ops.module);
-    bindingEntries.push(`  ${JSON.stringify(m.id)}: {
-    loadManifest: async (theme: unknown = null) => {
-      const mod = await import(${JSON.stringify(spec)});
-      if (theme === null || theme === undefined) {
-        return mod.${ops.defaultExport};
-      }
-      return mod.${ops.resolveFromThemeExport}(theme);
-    },
-  },`);
-  }
-
-  if (bindingEntries.length === 0) {
-    return `${BANNER}
-import type { FinanceOpsCapability } from "@/finance/finance-ops-capability-contract";
-
-export const WORKSPACE_FINANCE_OPS_PLUGIN_IDS = new Set<string>([]);
-
-export function hasFinanceOpsManifest(_pluginId: string): boolean {
-  return false;
+export function generateWorkspaceFinanceOpsBindings(_manifests) {
+  throw new Error(
+    "Phase 4be — workspaceFinanceOps web binder codegen removed; capabilities.financeOps owns ops panel resolve"
+  );
 }
 
-export async function resolveWorkspaceFinanceOpsManifest(
-  pluginId: string,
-  _theme: unknown = null
-): Promise<FinanceOpsCapability> {
-  throw new Error(\`Finance ops capability not registered for pluginId=\${pluginId}\`);
-}
-`;
-  }
-
-  return `${BANNER}
-import type { FinanceOpsCapability } from "@/finance/finance-ops-capability-contract";
-
-export const WORKSPACE_FINANCE_OPS_BINDINGS = {
-${bindingEntries.join("\n")}
-} as const;
-
-export const WORKSPACE_FINANCE_OPS_PLUGIN_IDS = new Set<string>(
-  Object.keys(WORKSPACE_FINANCE_OPS_BINDINGS)
-);
-
-export function hasFinanceOpsManifest(pluginId: string): boolean {
-  return pluginId in WORKSPACE_FINANCE_OPS_BINDINGS;
-}
-
-export async function resolveWorkspaceFinanceOpsManifest(
-  pluginId: string,
-  theme: unknown = null
-): Promise<FinanceOpsCapability> {
-  const binding = WORKSPACE_FINANCE_OPS_BINDINGS[pluginId as keyof typeof WORKSPACE_FINANCE_OPS_BINDINGS];
-  if (binding === undefined) {
-    throw new Error(\`Finance ops capability not registered for pluginId=\${pluginId}\`);
-  }
-  return binding.loadManifest(theme);
-}
-`;
-}
-
-/**
- * @param {unknown} block
- * @param {string} workspaceId
- * @param {string} field
- */
 function assertModuleExport(block, workspaceId, field) {
   if (block === undefined || typeof block !== "object" || block === null) {
     throw new Error(`workspace.manifest.json ${workspaceId}: workspaceFinance.${field} required`);
@@ -474,11 +373,6 @@ function assertModuleExport(block, workspaceId, field) {
   return { module: rec.module, export: rec.export };
 }
 
-/**
- * API finance dependency factories — workspaceType → ledger + receipt defaults (Phase 1.10 / P4-D3.b).
- * Dynamic import only — no static product package imports (API cold-start).
- * Booking projection stays platform-owned (not generated).
- */
 export function generateWorkspaceFinanceDependencyBindings(manifests) {
   /** @type {string[]} */
   const bindingEntries = [];

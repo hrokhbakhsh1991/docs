@@ -148,10 +148,10 @@ flowchart TB
 
 ### SK4.C / SK4.D — Implementation (demand-driven)
 
-| Action | Gate |
-| ------ | ---- |
-| Introduce `AuditAppendPort` + one adapter backing tour **or** settings | Same PR as second writer migration |
-| Introduce `TenantObjectStoragePort` wrapping existing S3 helpers | Same PR migrating ≥2 put/sign call sites |
+| Action | Gate | Status |
+| ------ | ---- | ------ |
+| Introduce `AuditAppendPort` + one adapter backing tour **or** settings | Same PR as second writer migration | Waiting — `YES — IMPL-SK4-AUDIT` |
+| Introduce `TenantObjectStoragePort` wrapping existing S3 helpers | Same PR migrating ≥2 put/sign call sites | **DONE** — `YES — IMPL-SK4-OBJ` — [SK4_OBJ_IMPLEMENTATION.md](./SK4_OBJ_IMPLEMENTATION.md) (`tenant-path-isolation`) |
 
 ### Non-goals
 

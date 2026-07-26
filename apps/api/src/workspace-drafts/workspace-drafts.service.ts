@@ -107,7 +107,7 @@ export async function patchWorkspaceDraft(
   if (ENVELOPE_TOMBSTONE_PATCH_NAMESPACES.has(params.draftNamespace)) {
     const existing = await repo.get(key);
     const workspaceType = getActiveWorkspaceType() ?? "starter";
-    const plugin = resolveWorkspacePluginForType(workspaceType);
+    const plugin = await resolveWorkspacePluginForType(workspaceType);
     dataToPersist = reapplyServerEnvelopeTombstones(
       existing?.data,
       body.data,

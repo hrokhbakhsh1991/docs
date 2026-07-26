@@ -1,6 +1,6 @@
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 
-import { validateDenaliRegistrationPayload } from "../denali.plugin";
+import { validateDenaliRegistrationPayload } from "./registration.validation";
 import { isDenaliTourPublished } from "../catalog/denali-publish-status";
 import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";
 

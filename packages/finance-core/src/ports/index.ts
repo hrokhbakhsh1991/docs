@@ -44,6 +44,8 @@ export type {
 } from "./finance-persistence-mode.port";
 export type {
   FinanceOfflineReceiptDefaults,
+  FinanceObligationPort,
+  FinanceRegistrationObligation,
   FinanceReceiptDefaultsPort,
 } from "./finance-receipt-defaults.port";
 export type {
@@ -64,6 +66,7 @@ export type {
   FinanceReceiptRow,
   FinanceRepositoryPort,
   FinanceSummaryRow,
+  FinanceTourPaymentAggregateRow,
   PrepaymentBookingSyncDegradedRow,
   RecordPrepaymentAtomicInput,
   RecordPrepaymentAtomicResult,

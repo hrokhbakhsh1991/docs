@@ -10,7 +10,7 @@ code_changes_this_doc: none
 prerequisite: SK0 maturity inventory filed
 ```
 
-**Principle:** Harden **contracts and ownership**, do not invent a second Tenant Kernel beside Phase 4, and do not move JWT/request ingress into `@app-cloud/tenant-kernel` without an explicit extraction ADR.
+**Principle:** Harden **contracts and ownership**, do not invent a second Tenant Kernel beside Phase 4, and do not move JWT/request ingress into `@app-tour/tenant-kernel` without an explicit extraction ADR.
 
 ---
 
@@ -18,7 +18,7 @@ prerequisite: SK0 maturity inventory filed
 
 Make tenant boundary and authorization **consumable and unambiguous** across surfaces:
 
-- One package SoT for **host/RLS/route** (`@app-cloud/tenant-kernel`)
+- One package SoT for **host/RLS/route** (`@app-tour/tenant-kernel`)
 - One host SoT for **API request identity ingress** (`apps/api/src/tenant-kernel/`)
 - One member-session SoT (**PCMS** / portal)
 - Operator and ops-service auth remain separate actors
@@ -36,7 +36,7 @@ Phase 4.1 already states JWT / `resolveTenantContextFromRequest` are **not** in 
 
 ```mermaid
 flowchart LR
-  subgraph pkg ["@app-cloud/tenant-kernel"]
+  subgraph pkg ["@app-tour/tenant-kernel"]
     Host[Host / apex parse]
     RLS[RLS SQL constants]
     Route[resolveTenantRoute]
@@ -64,7 +64,7 @@ flowchart LR
 
 ---
 
-## 3. Frozen public contract — `@app-cloud/tenant-kernel`
+## 3. Frozen public contract — `@app-tour/tenant-kernel`
 
 **Allowed exports (current `src/index.ts` — treat as freeze baseline):**
 
@@ -129,7 +129,7 @@ flowchart LR
 
 ### SK1.E — Out of scope for SK1
 
-- Moving JWT ingress into `@app-cloud/tenant-kernel`  
+- Moving JWT ingress into `@app-tour/tenant-kernel`  
 - Entitlement productization (SK3)  
 - Notification providers (SK2)  
 - Blind merge `origin/DEV`  

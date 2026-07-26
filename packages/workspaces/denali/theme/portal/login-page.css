@@ -657,3 +657,109 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     width: min(100%, 40rem);
   }
 }
+
+/* ── Login modal (PCMS-UX-MODAL) ───────────────────────────────────────────── */
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-login-modal] {
+  border: none;
+  padding: 0;
+  background: transparent;
+  max-width: none;
+  max-height: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-login-modal]::backdrop {
+  background: rgb(4 47 46 / 0.45);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-login-modal-panel] {
+  box-sizing: border-box;
+  width: min(100vw - 2rem, 28rem);
+  max-height: min(90dvh, 40rem);
+  overflow: auto;
+  margin: auto;
+  border-radius: calc(var(--radius) * 1.25);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--color-primary) 5%, transparent),
+    0 20px 40px rgb(4 47 46 / 0.12);
+  padding: var(--space-4);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-login-modal-header] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-login-modal-header]
+  h2 {
+  margin: 0;
+  font-family: var(--font-heading, inherit);
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-login-modal-close] {
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  padding: var(--space-1);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-register-sign-in-link]
+  button {
+  font: inherit;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page]
+  [data-portal-login-host-lede] {
+  width: min(100%, 28rem);
+  margin: var(--space-8) auto 0;
+  padding-inline: var(--space-4);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+/* Mobile bottom sheet */
+@media (max-width: 47.99rem) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-login-modal][data-portal-login-modal-presentation="sheet"] {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    align-self: end;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-login-modal][data-portal-login-modal-presentation="sheet"]
+    [data-portal-login-modal-panel] {
+    width: 100%;
+    max-width: none;
+    max-height: min(92dvh, 44rem);
+    margin: 0;
+    border-radius: calc(var(--radius) * 1.5) calc(var(--radius) * 1.5) 0 0;
+    padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  }
+}

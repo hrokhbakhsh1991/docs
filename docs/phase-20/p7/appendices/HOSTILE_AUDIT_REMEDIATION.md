@@ -50,3 +50,4 @@ source: hostile production review of HEAD f607c376 + dirty WT
 | Portal login modal on WIP only | P1 product | **PARKED (C9)** | [STABILIZATION_C9_C10_PARKED.md](./STABILIZATION_C9_C10_PARKED.md) |
 | Package-boundary allowlist rubber-stamp | P1 process | **PARKED (C10)** | Isolation via import-boundary AST, not package.json equality |
 | Tours without `capacityMax` intake fallback | P1 residual | **CLOSED (C8)** | Prodlike/production fail-closed; test/dev fixture path retained |
+| Atomic tour create `tenant: { connect }` under `tenants` FORCE deny | P0 runtime | **CLOSED** | Unchecked `tenantId` + contract test — [TOUR_CREATE_TENANTS_RLS_FK.md](./TOUR_CREATE_TENANTS_RLS_FK.md) |

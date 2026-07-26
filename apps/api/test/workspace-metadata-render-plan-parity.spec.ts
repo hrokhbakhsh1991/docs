@@ -18,7 +18,7 @@ export function buildParityRenderPlans(): {
   readonly metadataPlan: ReturnType<PlatformWizardEngine["buildRenderPlan"]>;
   readonly seedPayload: ReturnType<typeof loadDenaliSeedExport>["payload"];
 } {
-  const packagePlugin = resolveWorkspacePluginForType("denali");
+  const packagePlugin = await resolveWorkspacePluginForType("denali");
   const seed = loadDenaliSeedExport();
   const metadataPlugin = adaptMetadataPayloadToWorkspacePlugin(seed.payload, packagePlugin);
 
@@ -50,7 +50,7 @@ function compositeIds(plan: ReturnType<PlatformWizardEngine["buildRenderPlan"]>)
 }
 
 describe("workspace-metadata-render-plan-parity", () => {
-  it("RP-01 same total visible field count per step", () => {
+  it("RP-01 same total visible field count per step", async () => {
     const { packagePlan, metadataPlan } = buildParityRenderPlans();
     assert.equal(packagePlan.length, metadataPlan.length);
     for (let index = 0; index < packagePlan.length; index += 1) {
@@ -58,18 +58,18 @@ describe("workspace-metadata-render-plan-parity", () => {
     }
   });
 
-  it("RP-02 same ordered fieldId list per step", () => {
+  it("RP-02 same ordered fieldId list per step", async () => {
     const { packagePlan, metadataPlan } = buildParityRenderPlans();
     assert.deepEqual(visibleFieldIds(metadataPlan), visibleFieldIds(packagePlan));
   });
 
-  it("RP-03 same uiHints.compositeId for composite fields", () => {
+  it("RP-03 same uiHints.compositeId for composite fields", async () => {
     const { packagePlan, metadataPlan } = buildParityRenderPlans();
     assert.deepEqual(compositeIds(metadataPlan), compositeIds(packagePlan));
     assert.ok(compositeIds(packagePlan).some((id) => id.startsWith("denali.")));
   });
 
-  it("RP-04 denali seed retains denali.* composite ids", () => {
+  it("RP-04 denali seed retains denali.* composite ids", async () => {
     const { seedPayload } = buildParityRenderPlans();
     const compositeIdsInSeed = seedPayload.fieldRegistry.fields
       .filter((field) => field.kind === "composite" || field.id !== field.canonicalPath)

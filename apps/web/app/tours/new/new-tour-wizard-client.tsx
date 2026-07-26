@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 
-import { WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS } from "@/bootstrap/wizard-create-bindings.generated";
+import { isExtendedOperatorWorkspace } from "@/workspace/is-extended-operator-workspace";
 import { useAppSession } from "@/providers/app-session-context";
 import { CreateTourWizardLoadingMessage } from "@/wizard/create-tour-wizard-chrome";
 import { WorkspaceCreateTourWizardShell } from "@/wizard/workspace-create-tour-shell";
@@ -16,7 +16,7 @@ type NewTourWizardClientProps = {
 
 function NewTourWizardClientInner(props: NewTourWizardClientProps) {
   const session = useAppSession();
-  if (WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(session.pluginId)) {
+  if (isExtendedOperatorWorkspace(session.pluginId)) {
     return <OperatorCreateTourWizardClient {...props} />;
   }
   return <WorkspaceCreateTourWizardShell />;

@@ -14,6 +14,10 @@ import { OperatorHeader } from "./operator-header";
 import { OperatorNav } from "./operator-nav";
 import { OperatorSheetTitle } from "./operator-sheet-title";
 import { OPERATOR_NAV_TEST_IDS, type OperatorNavItem } from "./operator-nav.types";
+import {
+  seedWizardCreate,
+  type WizardCreateCacheEntry,
+} from "@/workspace/wizard-create-registry";
 
 export type OperatorShellProps = {
   readonly session: OperatorSessionContext;
@@ -22,6 +26,8 @@ export type OperatorShellProps = {
   readonly operatorProfileDisplayName?: string | null;
   readonly operatorProfileAvatarUrl?: string | null;
   readonly pluginId: string;
+  /** Server-ensured wizard-create flags — seeded into warm cache for client sync reads. */
+  readonly wizardCreate: WizardCreateCacheEntry;
   readonly navItems: readonly OperatorNavItem[];
   readonly impersonationReadonly?: boolean;
   readonly children: ReactNode;
@@ -34,10 +40,12 @@ export function OperatorShell({
   operatorProfileDisplayName = null,
   operatorProfileAvatarUrl = null,
   pluginId,
+  wizardCreate,
   navItems,
   impersonationReadonly = false,
   children,
 }: OperatorShellProps) {
+  seedWizardCreate(pluginId, wizardCreate);
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [headerScrolled, setHeaderScrolled] = useState(false);

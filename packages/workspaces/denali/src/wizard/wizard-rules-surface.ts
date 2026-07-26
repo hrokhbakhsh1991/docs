@@ -6,7 +6,7 @@ import {
   evaluateFormFieldRule,
   readDenaliCanonicalBasics,
   resolveDenaliRuleSetFromTemplate,
-} from "../denali.plugin";
+} from "../internal";
 
 export type DenaliWizardRulesSurface = {
   readonly evaluateFormFieldRule: typeof evaluateFormFieldRule;

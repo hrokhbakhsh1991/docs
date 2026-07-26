@@ -33,7 +33,7 @@ describe("wizard-template-server-prefetch.spec.ts", () => {
       resolve(WEB_ROOT, "app/tours/new/create-tour-wizard-client-ready.tsx"),
       "utf8"
     );
-    assert.match(readySource, /ensureWizardHostAdapters/);
+    assert.match(readySource, /ensureWizardHostReady|wizardHost\?\.ensureReady|loadWizardWorkspacePlugin/);
     assert.match(readySource, /resolveWizardCatalogPrefetchProvider/);
 
     const gateSource = readFileSync(
@@ -79,7 +79,7 @@ describe("wizard-template-server-prefetch.spec.ts", () => {
       "utf8"
     );
     assert.match(clientSource, /initialLocationsResponse/);
-    assert.match(clientSource, /TourEditCatalogPrefetchShell|ensureWizardHostAdapters/);
+    assert.match(clientSource, /TourEditCatalogPrefetchShell|ensureWizardHostReady|wizardHost\?\.ensureReady|loadWizardWorkspacePlugin/);
     assert.match(clientSource, /OperatorFlatEditPageClient/);
   });
 

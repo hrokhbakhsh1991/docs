@@ -3,7 +3,7 @@
 ```yaml
 surface: apps/api/src/tenant-kernel
 role: host_request_identity_ingress
-not_the_same_as: "@app-cloud/tenant-kernel"
+not_the_same_as: "@app-tour/tenant-kernel"
 kernel_design: docs/phase-saas-kernel/appendices/SK1_TENANT_AUTHZ_CONTRACTS.md
 ```
 
@@ -20,7 +20,7 @@ It produces `TenantAuthContext` for downstream identity/authz (CASL, membership 
 
 | Not this | Use instead |
 | -------- | ----------- |
-| Host/RLS/route package | `@app-cloud/tenant-kernel` (`packages/tenant-kernel`) |
+| Host/RLS/route package | `@app-tour/tenant-kernel` (`packages/tenant-kernel`) |
 | Member session cookie writer | Portal / **PCMS-001** (`atour_mb_session`) |
 | Ops service scopes | `internal/verify-ops-service-jwt` |
 

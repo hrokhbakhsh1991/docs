@@ -1,5 +1,5 @@
 import type { SettingsModuleMetadata } from "./settings-module-types";
-import { resolveSettingsHubFallbackPolicy } from "@/bootstrap/workspace-settings-hub-fallback-bindings.generated";
+import { resolveSettingsHubFallbackPolicy } from "@/features/settings/settings-hub-fallback-registry";
 
 export type SettingsModuleConsistencyResult = {
   readonly modules: SettingsModuleMetadata[];

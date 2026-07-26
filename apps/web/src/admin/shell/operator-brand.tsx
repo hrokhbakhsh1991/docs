@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-import { WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS } from "@/bootstrap/wizard-create-bindings.generated";
+import { isExtendedOperatorWorkspace } from "@/workspace/is-extended-operator-workspace";
 import { useTenantBrandTitle } from "@/tenant/tenant-branding-context";
 
 import { TenantBrandMark } from "./tenant-brand-mark";
@@ -16,7 +16,7 @@ type OperatorBrandProps = {
 
 export function OperatorBrand({ workspaceLabel, pluginId, displayName }: OperatorBrandProps) {
   const t = useTranslations("app");
-  const usesExtendedCreateChrome = WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(pluginId);
+  const usesExtendedCreateChrome = isExtendedOperatorWorkspace(pluginId);
   const title = useTenantBrandTitle(displayName, workspaceLabel);
   const tagline = usesExtendedCreateChrome
     ? t("extendedCreateChromeTagline")

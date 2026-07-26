@@ -40,7 +40,7 @@ subject: workspace-finance-ws6 (package + manifest + adapters + codegen)
 | **Receipt defaults** | **GREEN** | AUD/`9900` defaults resolve via registry |
 | **Chart of accounts** | **GREEN** | `FINANCE_WS6_LEDGER_ACCOUNTS` / `ws6:` accounts registered |
 | **Event reactions** | **YELLOW** | Bound with `requiresHostIo: false`; Denali uses `requiresHostIo: true` + fuller HostIo (claim/log). ws6 reaction is fixture-grade, not Denali-parity |
-| **Navigation (hub link)** | **GREEN** | `WORKSPACE_FINANCE_NAV_PLUGIN_IDS` includes `"finance-ws6"` |
+| **Navigation (hub link)** | **GREEN** | `isFinanceNavPlugin("finance-ws6")` (manifest `workspaceFinance.supported`; Set private Phase 4c) |
 | **HTTP exposure** | **YELLOW** | Shared `/finance/*` via `@app-tour/finance-http` works for any tenant once type resolves — but route **registration is Denali manifest-owned** (`DENALI_FINANCE_HTTP_ROUTE_MANIFEST_*` in generated routes). ws6 declares **no** `httpRoutes` |
 | **Reports (API summary/lists)** | **GREEN** | Same finance-http handlers → `FinanceService` for tenant’s type — no Denali-only report API |
 | **Ops panels** | **RED** | No `opsManifest` → `hasFinanceOpsManifest("finance-ws6")` false → `resolveFinanceOpsCapabilityForHub` → **`null`** (empty command center). Only `denali` + `finance-ws5` in ops bindings |

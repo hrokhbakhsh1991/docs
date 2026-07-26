@@ -242,7 +242,7 @@ export class CanonicalTourService {
 
     assertTourPublishLifecycleOnUpdate({
       workspaceType: input.workspaceType,
-      lifecycle: resolveWorkspacePluginForType(input.workspaceType).lifecycle,
+      lifecycle: (await resolveWorkspacePluginForType(input.workspaceType)).lifecycle,
       before: existing.canonical,
       after: canonical,
     });

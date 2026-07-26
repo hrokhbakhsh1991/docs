@@ -7,7 +7,7 @@ description: Repository RLS discipline and CI automation to prevent tenant-scope
 
 Codifies **Postgres RLS session binding** rules for `@apps/api` repository layers and the CI guard that catches drift before merge.
 
-Related: [`list-projection-guards.mdoc`](list-projection-guards.mdoc) (AP5 bookings two-step) · [`error-handling-standard.mdoc`](error-handling-standard.mdoc) (AP14).
+Related: [`list-projection-guards.mdoc`](list-projection-guards.mdoc) (AP5 bookings two-step) · [`error-handling-standard.mdoc`](error-handling-standard.mdoc) (AP14) · [`wave-i-0-architecture-guard-matrix.mdoc`](wave-i-0-architecture-guard-matrix.mdoc) (`pnpm run wave-i0:guard` — namespace + dual-SoT host deps matrix).
 
 ## RLS policy contract (tenant-scoped tables)
 
@@ -252,7 +252,7 @@ The AP14/AP15 guards below are bundled in **`phase-6:defensive-guards`** ([`scri
 
 **Bundle contents:** `guard:import-boundary`, denali/urban plugin surfaces, `guard:workspace-plugin-surface` (via guest-plugin-conformance), workspace export surface, `guard:api-workspace-isolation`, field-policy, unbounded-list, repository-n-plus-one, `audit:findmany-scan`, list-projection-openapi, catch-error-leak (all `apps/api/src/**`), repository-rls, bookings-getbyid-tenant-scope, service-n-plus-one, **identity directory static specs** (`operator-avatar-batch`, `service-batch-patterns`, `identity-directory-pagination`, `bookings-member-summary-projection`), WRS/PCMS, guest-plugin-conformance (includes `guard:workspace-peer-import`), `guard:workspace-onboard-contract`, `guard:workspace-certification`, `guard:admin-inline-color`, `guard:todo-debt-budget`, `phase-6:guard`.
 
-**Workspace onboarding:** `pnpm run workspace:onboard -- <id> [--guest]` runs install, codegen, domain checks, build, test, and conformance guards ([`scripts/workspace-onboard.mjs`](../../scripts/workspace-onboard.mjs)).
+**Workspace onboarding:** `pnpm run workspace:onboard -- <id> [--guest]` runs install, codegen, domain checks, build, test, and conformance guards ([`scripts/workspace-onboard.mjs`](../../scripts/workspace-onboard.mjs)). Add `--dry-run` to validate the manifest and print the step plan without install/build (E.4b-prep).
 
 **Import boundary:** `IMPORT_BOUNDARY_SCAN_ROOTS` includes all of `packages/workspaces/`; relative `types/legacy/` imports within a workspace package are allowed (Denali product types, not monorepo `legacy/`).
 

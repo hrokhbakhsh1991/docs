@@ -60,7 +60,7 @@ async function resolveExposureProfile(input: {
   readonly workspaceType: string;
   readonly effectiveContext: FieldExposureRuntimeCoordinate;
 }): Promise<ExposureProfile | null> {
-  const seededProfile = resolveLegacyDeliveryExposureProfile({
+  const seededProfile = await resolveLegacyDeliveryExposureProfile({
     workspaceType: input.workspaceType,
     provider: input.effectiveContext.surface,
     eventType: input.effectiveContext.trigger,
@@ -100,7 +100,7 @@ function summarizeDecisions(
   return { visibleCount, hiddenCount, blockedCount };
 }
 
-export function buildDeterministicExposureEnginePreview(input: {
+export async function buildDeterministicExposureEnginePreview(input: {
   readonly tenantId: string;
   readonly workspaceType: string;
   readonly provider: string;
@@ -109,8 +109,8 @@ export function buildDeterministicExposureEnginePreview(input: {
   readonly trigger?: string;
   readonly exposureIntent: ExposureIntent | null;
   readonly exposureProfile: ExposureProfile | null;
-}): ExposureEnginePreviewResponse {
-  const catalog = buildExposureFieldCatalog(input.workspaceType);
+}): Promise<ExposureEnginePreviewResponse> {
+  const catalog = await buildExposureFieldCatalog(input.workspaceType);
   const payload = resolveDeterministicExposurePreviewPayload(input.eventType);
   if (catalog.length === 0) {
     return {
@@ -120,7 +120,7 @@ export function buildDeterministicExposureEnginePreview(input: {
     };
   }
 
-  const snapshot = buildFieldExposureEngineInputSnapshot({
+  const snapshot = await buildFieldExposureEngineInputSnapshot({
     workspaceType: input.workspaceType,
     eventType: input.eventType,
     ...(input.trigger === undefined ? {} : { trigger: input.trigger }),
@@ -191,7 +191,7 @@ export async function getExposureEnginePreview(
     provider: connection.provider,
     eventType,
   });
-  const defaultSeededProfile = resolveLegacyDeliveryExposureProfile({
+  const defaultSeededProfile = await resolveLegacyDeliveryExposureProfile({
     workspaceType,
     provider: defaultContext.surface,
     eventType: defaultContext.trigger,
@@ -213,7 +213,7 @@ export async function getExposureEnginePreview(
     effectiveContext,
   });
 
-  return buildDeterministicExposureEnginePreview({
+  return await buildDeterministicExposureEnginePreview({
     tenantId: auth.tenantId,
     workspaceType,
     provider: effectiveContext.surface,

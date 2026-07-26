@@ -20,7 +20,7 @@ import { WORKSPACE_BOOKING_EVENT_REACTION_BINDINGS } from "./workspace-booking-e
 const here = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(here, "../../../..");
 const WORKSPACES_DIR = join(REPO_ROOT, "packages/workspaces");
-const WEB_OPS = join(
+const WEB_OPS_BINDER = join(
   REPO_ROOT,
   "apps/web/src/bootstrap/workspace-booking-ops-bindings.generated.ts"
 );
@@ -95,16 +95,19 @@ describe("BK-B1.8 booking manifest completeness", () => {
     assert.deepEqual(Object.keys(WORKSPACE_BOOKING_DEPENDENCY_BINDINGS).sort(), expectedTypes);
   });
 
-  it("generated dependency / eventReaction / ops artifacts contain manifest export names", () => {
+  it("generated dependency / eventReaction artifacts contain manifest export names; web ops binder deleted", () => {
     const depsSrc = readGenerated("workspace-booking-dependency-bindings.generated.ts");
     const reactionSrc = readGenerated("workspace-booking-event-reaction-bindings.generated.ts");
-    const opsSrc = readFileSync(WEB_OPS, "utf8");
     const gateSrc = readGenerated("workspace-booking-bindings.generated.ts");
 
     assert.match(depsSrc, /AUTO-GENERATED/);
     assert.match(reactionSrc, /AUTO-GENERATED/);
-    assert.match(opsSrc, /AUTO-GENERATED/);
     assert.match(gateSrc, /AUTO-GENERATED/);
+    assert.equal(
+      existsSync(WEB_OPS_BINDER),
+      false,
+      "Phase 4bf — booking-ops web binder retired; capabilities.bookingOps owns hub resolve"
+    );
 
     for (const m of loadBookingManifests()) {
       const booking = m.workspaceBooking;
@@ -140,24 +143,38 @@ describe("BK-B1.8 booking manifest completeness", () => {
         }
       }
 
-      if (booking.opsManifest?.defaultExport !== undefined) {
+      // Dual-SOT: packaging still declares opsManifest; runtime is capabilities.bookingOps.
+      if (booking.opsManifest !== undefined) {
+        const ops = booking.opsManifest;
+        assert.ok(typeof ops.module === "string" && ops.module.length > 0, `${m.id} opsManifest.module`);
+        assert.ok(
+          typeof ops.defaultExport === "string" && ops.defaultExport.length > 0,
+          `${m.id} opsManifest.defaultExport`
+        );
+        assert.ok(
+          typeof ops.resolveFromThemeExport === "string" && ops.resolveFromThemeExport.length > 0,
+          `${m.id} opsManifest.resolveFromThemeExport`
+        );
+        const pkgDir = join(WORKSPACES_DIR, m.id);
+        const modulePathCandidates = [
+          join(pkgDir, "src", `${ops.module}.ts`),
+          join(pkgDir, "src", ops.module, "index.ts"),
+          join(pkgDir, "src", "bookings", "ops-manifest.ts"),
+        ];
+        const moduleSrcPath = modulePathCandidates.find((p) => existsSync(p));
+        assert.ok(moduleSrcPath, `${m.id} opsManifest module file missing`);
+        const moduleSrc = readFileSync(moduleSrcPath!, "utf8");
         assert.match(
-          opsSrc,
-          new RegExp(booking.opsManifest.defaultExport.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
-          `${m.id}.opsManifest.defaultExport missing from ops bindings`
+          moduleSrc,
+          new RegExp(ops.defaultExport!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+          `${m.id}.opsManifest.defaultExport missing from package module`
+        );
+        assert.match(
+          moduleSrc,
+          new RegExp(ops.resolveFromThemeExport!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+          `${m.id}.opsManifest.resolveFromThemeExport missing from package module`
         );
       }
-      if (booking.opsManifest?.resolveFromThemeExport !== undefined) {
-        assert.match(
-          opsSrc,
-          new RegExp(
-            booking.opsManifest.resolveFromThemeExport.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-          ),
-          `${m.id}.opsManifest.resolveFromThemeExport missing from ops bindings`
-        );
-      }
-
-      assert.match(opsSrc, new RegExp(JSON.stringify(m.id)));
     }
   });
 

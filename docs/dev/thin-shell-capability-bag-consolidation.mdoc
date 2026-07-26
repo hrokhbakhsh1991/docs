@@ -1,0 +1,89 @@
+---
+title: Thin Shell — Capability bag consolidation map
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/saas-platform-remediation.mdoc
+  - TEMP/THIN_SHELL_STRUCTURAL_PATH_VERDICT.md
+  - TEMP/THIN_SHELL_TARGET_ARCHITECTURE_PLAN.md
+---
+
+# Thin Shell — Capability bag consolidation map
+
+Phase **4bv** freezes the **as-built fine-grained** `WorkspacePluginCapabilities` bag and the optional **coarse-domain** fold sketch from plan §2.3 / §2.3.1.
+
+**No SDK type fold in this slice.** Consolidation is doc-only until Architect scopes a code migration.
+
+## Why fine-grained stays
+
+Wave 3–4 deleted binders one surface at a time. Matching one binder → one capability kept PRs reversible and architecture tests cheap. Plan §2.3’s coarse domains (`settings`, `forms`, `navigation`, …) remain a **valid future** grouping — not a defect in the live bag.
+
+## As-built inventory (locked)
+
+Slots on `WorkspacePluginCapabilities` (SDK) — order mirrors the type:
+
+| Slot | Pattern | Notes |
+| --- | --- | --- |
+| `wizardHost` | hooks + `ensureReady` | Dual with top-level until fully migrated |
+| `hostProbe` | A (data) | Generic `/workspace-host-probe` |
+| `draftShell` | A (pure helpers) | Identity + draft helpers |
+| `createChrome` | B | Map-keyed UI surface |
+| `flatEditChrome` | B | Map-keyed UI surface |
+| `createView` | B | Map-keyed UI surface |
+| `flatEditForm` | B | Map-keyed UI surface |
+| `flatEditPage` | B | Map-keyed UI surface |
+| `templateGate` | A | Gate defaults / overlays |
+| `operatorUi` | B | Map-keyed UI surface |
+| `tourActionSubmit` | A | Encode/decode |
+| `labels` | B | Map-keyed resolver cache |
+| `wizardSurfaces` | B | Composite + review caches |
+| `templatePreset` | A | Preset builder |
+| `settingsHubFallback` | A | Required modules policy |
+| `templateEditor` | A | Editor surface |
+| `tourListCategory` | A | List filters |
+| `settingsDestination` | A | Destination settings |
+| `settingsEquipmentUi` | B | Map-keyed UI |
+| `settingsExposureSurfacesUi` | B | Map-keyed UI |
+| `operatorShellNav` | A | Phase 3 links |
+| `financeNav` | A | Dual-SOT |
+| `financeOps` | A | Dual-SOT |
+| `bookingOps` | A | Dual-SOT |
+| `wizardCreate` | A | Dual-SOT + warm/seed |
+
+**Count:** 25 fine-grained slots (as-built).
+
+## Optional coarse fold sketch (future only)
+
+| Coarse domain (plan §2.3) | Candidate fine slots | Fold only when |
+| --- | --- | --- |
+| `tourCreation` / `forms` | `createChrome`, `flatEditChrome`, `createView`, `flatEditForm`, `flatEditPage`, `wizardCreate`, parts of `draftShell` | Single call-graph owner + zero hydration regressions |
+| `settings` | `settingsHubFallback`, `settingsDestination`, `settingsEquipmentUi`, `settingsExposureSurfacesUi`, `templateEditor`, `templatePreset`, `templateGate` | Settings hub no longer warms slots independently |
+| `ops` | `financeNav`, `financeOps`, `bookingOps` | Dual-SOT derivation (4bu+) already green for all three |
+| `navigation` | `operatorShellNav` (+ future nav slots) | More than one nav capability exists |
+| `messages` / labels | `labels`, wizard i18n allowlist (not a capability) | Do **not** fold opaque §2.4 i18n into the bag |
+
+```text
+fine slots (locked now)
+        │
+        ▼  Architect YES + migration plan
+coarse domain object on capabilities
+        │
+        ▼
+shell resolvers updated; fine keys deprecated then removed
+```
+
+## Rules
+
+1. **Default:** keep fine-grained; new surfaces add a new slot (or extend the nearest Pattern A/B slot).
+2. **Fold requires Architect YES** plus: SDK doc, dual-publish window, arch tests updated in the same PR.
+3. **Forbidden:** mega-refactor “to match the plan diagram”; deleting slots to chase hostile score; folding Pattern B React warm into coarse bags without Map keying.
+4. **Orthogonal:** Dual-SOT (`thin-shell-dual-sot-derivation.mdoc`) and Pattern B Maps (`thin-shell-pattern-b-registry.mdoc`) — consolidation does not reopen those.
+
+## Guards / tests
+
+- `apps/web/test/thin-shell-capability-bag-consolidation.spec.ts` — TS-4BV-* locks slot inventory + doc map
+
+## Related
+
+- Plan §2.3.1 — fine-grained = accepted evolution
+- `TEMP/PHASE_4BV_REPORT.md`

@@ -18,5 +18,7 @@ describe("catalog-registration-auth-steps — PCMS-UX polish", () => {
     assert.match(authSteps, /data-phone-hint/);
     assert.match(authSteps, /existingMemberTitle/);
     assert.match(authSteps, /refreshPhoneHint/);
+    assert.match(authSteps, /readMemberLoginEgress/);
+    assert.doesNotMatch(authSteps, /isMemberLoginEgressFromLocation/);
   });
 });

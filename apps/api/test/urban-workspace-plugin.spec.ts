@@ -24,26 +24,26 @@ const URBAN_GOLDEN = join(
 );
 
 describe("urban-workspace-plugin.spec.ts (REQ-P7-009, REQ-P7-010, REQ-P7-011)", () => {
-  it('REQ-P7-009: resolveWorkspacePluginIdForType("urban") === "urban"', () => {
+  it('REQ-P7-009: resolveWorkspacePluginIdForType("urban") === "urban"', async () => {
     assert.equal(
       resolveWorkspacePluginIdForType("urban", DEFAULT_WORKSPACE_TYPE_BINDINGS),
       "urban"
     );
   });
 
-  it("REQ-P7-009: resolveWorkspacePluginForType(urban) returns urban plugin", () => {
-    const plugin = resolveWorkspacePluginForType("urban");
+  it("REQ-P7-009: await resolveWorkspacePluginForType(urban) returns urban plugin", async () => {
+    const plugin = await resolveWorkspacePluginForType("urban");
     assert.equal(plugin.id, "urban");
     assert.equal(plugin.id, getUrbanWorkspacePlugin().id);
     assert.notEqual(plugin.id, getStarterWorkspacePlugin().id);
   });
 
-  it("REQ-P7-009: starter workspace_type still resolves starter plugin", () => {
-    const plugin = resolveWorkspacePluginForType("starter");
+  it("REQ-P7-009: starter workspace_type still resolves starter plugin", async () => {
+    const plugin = await resolveWorkspacePluginForType("starter");
     assert.equal(plugin.id, getStarterWorkspacePlugin().id);
   });
 
-  it("REQ-P7-012: validateCanonicalBeforePersistSync accepts urban golden minimal", () => {
+  it("REQ-P7-012: validateCanonicalBeforePersistSync accepts urban golden minimal", async () => {
     resetValidationEngineCacheForTests();
     const golden = JSON.parse(readFileSync(URBAN_GOLDEN, "utf8")) as {
       roots: string[];
@@ -51,8 +51,8 @@ describe("urban-workspace-plugin.spec.ts (REQ-P7-009, REQ-P7-010, REQ-P7-011)", 
       schemaVersion: number;
     };
     const tenantId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
-    getOrCreateValidationEngine(tenantId, "urban");
-    const document = validateCanonicalBeforePersistSync({
+    await getOrCreateValidationEngine(tenantId, "urban");
+    const document = await validateCanonicalBeforePersistSync({
       body: {
         roots: golden.roots,
         data: golden.data,
@@ -65,14 +65,14 @@ describe("urban-workspace-plugin.spec.ts (REQ-P7-009, REQ-P7-010, REQ-P7-011)", 
     assert.equal((document.data.tour as { title?: string }).title, "Berlin city highlights");
   });
 
-  it("REQ-P7-011: urban plugin rail is urban_base not denali", () => {
+  it("REQ-P7-011: urban plugin rail is urban_base not denali", async () => {
     const plugin = getUrbanWorkspacePlugin();
     assert.equal(plugin.wizard.railId, "urban_base");
     assert.notEqual(plugin.wizard.railId, "denali_base");
   });
 
-  it("P15-15-03: urban plugin exposes tourList.extractTourListProjection", () => {
-    const plugin = resolveWorkspacePluginForType("urban");
+  it("P15-15-03: urban plugin exposes tourList.extractTourListProjection", async () => {
+    const plugin = await resolveWorkspacePluginForType("urban");
     assert.equal(typeof plugin.tourList?.extractTourListProjection, "function");
   });
 });

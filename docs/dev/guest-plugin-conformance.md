@@ -33,9 +33,9 @@ Runtime resolver: `resolveGuestConformanceLevelForPlugin(pluginId)` — fail-clo
 | `workspace-production-certification.generated.ts` | `resolveProductionCertificationForPlugin()` (Phase H) |
 | `workspace-guest-seo.generated.ts` | `resolveGuestSeoForPlugin()` (ADR-GP-004) |
 | `workspace-dev-plugin-ids.generated.ts` | `resolveDevPluginIdForTenantId()` (dev) |
-| `workspace-registration-flow-plugins.generated.ts` | `registerWorkspaceRegistrationFlowPluginsFromManifest()` |
-| `workspace-registration-transport-initializers.generated.ts` | `registerWorkspaceRegistrationTransportInitializersFromManifest()` |
-| `workspace-intake-plugins.generated.ts` | `registerWorkspaceIntakePluginsFromManifest()` |
+| `register-{id}.generated.ts` | `registerWorkspacePlugin*FromManifest()` (async, per plugin) |
+| *(transport)* | Wired inside per-plugin `registerWorkspacePlugin*FromManifest` |
+| `register-{id}.generated.ts` | `registerWorkspaceIntake*FromManifest()` (async, per plugin) |
 
 ## Schema Admission (PF-1.8)
 

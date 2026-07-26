@@ -34,6 +34,8 @@ import { getBookingsRepository } from "../bookings/create-bookings-repository";
 
 /** workspaceType → FinanceService (workspace policies differ; platform I/O is shared). */
 const financeServiceByWorkspaceType = new Map<string, FinanceService>();
+/** First-hit in-flight compose promises — avoids duplicate services under concurrent HTTP. */
+const financeServiceInflightByWorkspaceType = new Map<string, Promise<FinanceService>>();
 
 /**
  * Platform-owned persistence + booking projection — intentionally process-wide.
@@ -72,6 +74,7 @@ function getPlatformFinanceRepository(): FinanceRepositoryPort {
 
 export function resetLazyFinanceServiceForTests(): void {
   financeServiceByWorkspaceType.clear();
+  financeServiceInflightByWorkspaceType.clear();
   platformBookingPayments = null;
   platformFinanceRepository = null;
   sharedRegistrationDisplay = null;
@@ -105,10 +108,12 @@ export function getPlatformFinanceCompositionSnapshot(): PlatformFinanceComposit
 }
 
 /**
- * Create or reuse FinanceService for a registry-registered workspaceType.
+ * Create or reuse FinanceService for a registry-registered workspaceType (P4-D3.b async).
  * Platform booking + repository are process singletons; policies come from the workspace registry.
  */
-export function getOrCreateFinanceServiceForWorkspaceType(workspaceType: string): FinanceService {
+export async function getOrCreateFinanceServiceForWorkspaceType(
+  workspaceType: string
+): Promise<FinanceService> {
   const normalized = workspaceType.trim().toLowerCase();
   if (normalized.length === 0) {
     throw new Error("FINANCE_WORKSPACE_TYPE_REQUIRED: workspaceType is required");
@@ -117,57 +122,70 @@ export function getOrCreateFinanceServiceForWorkspaceType(workspaceType: string)
   if (existing !== undefined) {
     return existing;
   }
-
-  const deps = resolveFinanceWorkspaceDependencies(normalized);
-  // Explicit platform ports — ignore deps.bookingPayments (avoids first-wins / per-call instances).
-  const bookingPayments = getPlatformBookingPayments();
-  const repository = getPlatformFinanceRepository();
-
-  if (sharedRegistrationDisplay === null) {
-    sharedRegistrationDisplay = new BookingRegistrationDisplayAdapter(getBookingsRepository());
-  }
-  if (sharedMetrics === null) {
-    sharedMetrics = new HostFinanceMetricsAdapter();
-  }
-  if (sharedStorageDriver === null) {
-    sharedStorageDriver = new HostFinancePersistenceModeAdapter();
-  }
-  if (sharedReceiptProofStorage === null) {
-    sharedReceiptProofStorage = new HostFinanceReceiptProofUrlAdapter();
-  }
-  if (sharedCapability === null) {
-    sharedCapability = new HostFinanceCapabilityAdapter();
-  }
-  if (sharedAuthorization === null) {
-    sharedAuthorization = new HostFinanceAccessAdapter();
-  }
-  if (sharedSchedules === null) {
-    sharedSchedules = new HostFinanceScheduleAdapter();
-  }
-  if (sharedLogger === null) {
-    sharedLogger = new HostFinanceLogAdapter();
-  }
-  if (sharedClock === null) {
-    sharedClock = new HostFinanceClockAdapter();
+  const inflight = financeServiceInflightByWorkspaceType.get(normalized);
+  if (inflight !== undefined) {
+    return inflight;
   }
 
-  const service = createFinanceService(
-    deps.ledgerPolicy,
-    repository,
-    bookingPayments,
-    deps.receiptDefaults,
-    sharedRegistrationDisplay,
-    sharedMetrics,
-    sharedStorageDriver,
-    sharedReceiptProofStorage,
-    sharedCapability,
-    sharedAuthorization,
-    sharedSchedules,
-    sharedLogger,
-    sharedClock
-  );
-  financeServiceByWorkspaceType.set(normalized, service);
-  return service;
+  const compose = (async (): Promise<FinanceService> => {
+    const deps = await resolveFinanceWorkspaceDependencies(normalized);
+    // Explicit platform ports — ignore deps.bookingPayments (avoids first-wins / per-call instances).
+    const bookingPayments = getPlatformBookingPayments();
+    const repository = getPlatformFinanceRepository();
+
+    if (sharedRegistrationDisplay === null) {
+      sharedRegistrationDisplay = new BookingRegistrationDisplayAdapter(getBookingsRepository());
+    }
+    if (sharedMetrics === null) {
+      sharedMetrics = new HostFinanceMetricsAdapter();
+    }
+    if (sharedStorageDriver === null) {
+      sharedStorageDriver = new HostFinancePersistenceModeAdapter();
+    }
+    if (sharedReceiptProofStorage === null) {
+      sharedReceiptProofStorage = new HostFinanceReceiptProofUrlAdapter();
+    }
+    if (sharedCapability === null) {
+      sharedCapability = new HostFinanceCapabilityAdapter();
+    }
+    if (sharedAuthorization === null) {
+      sharedAuthorization = new HostFinanceAccessAdapter();
+    }
+    if (sharedSchedules === null) {
+      sharedSchedules = new HostFinanceScheduleAdapter();
+    }
+    if (sharedLogger === null) {
+      sharedLogger = new HostFinanceLogAdapter();
+    }
+    if (sharedClock === null) {
+      sharedClock = new HostFinanceClockAdapter();
+    }
+
+    const service = createFinanceService(
+      deps.ledgerPolicy,
+      repository,
+      bookingPayments,
+      deps.receiptDefaults,
+      sharedRegistrationDisplay,
+      sharedMetrics,
+      sharedStorageDriver,
+      sharedReceiptProofStorage,
+      sharedCapability,
+      sharedAuthorization,
+      sharedSchedules,
+      sharedLogger,
+      sharedClock
+    );
+    financeServiceByWorkspaceType.set(normalized, service);
+    return service;
+  })();
+
+  financeServiceInflightByWorkspaceType.set(normalized, compose);
+  try {
+    return await compose;
+  } finally {
+    financeServiceInflightByWorkspaceType.delete(normalized);
+  }
 }
 
 /**

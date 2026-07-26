@@ -10,14 +10,16 @@
   "adminWeb": {
     "clientBundleEnvGate": "ALLOW_URBAN_WEB_PLUGIN"
   },
-  "workspaceTypes": ["urban"],
+  "workspaceTypes": [
+    "urban"
+  ],
   "plugin": {
     "entry": "./plugin",
-    "export": "getUrbanWorkspacePlugin"
+    "export": "getWorkspacePlugin"
   },
   "web": {
     "entry": "./plugin",
-    "export": "getUrbanWorkspacePlugin"
+    "export": "getWorkspacePlugin"
   },
   "http": {
     "prefix": "/urban",
@@ -59,11 +61,15 @@
     "messageNamespace": "urban"
   },
   "devBootstrap": {
-    "pluginTenantIds": ["00000000-0000-4000-8000-000000000004"],
+    "pluginTenantIds": [
+      "00000000-0000-4000-8000-000000000004"
+    ],
     "wizardTemplate": {
       "module": "./settings/urbanMinimalWizardTemplate",
       "buildExport": "buildUrbanMinimalWizardTemplatePayload",
-      "tenantIds": ["00000000-0000-4000-8000-000000000004"],
+      "tenantIds": [
+        "00000000-0000-4000-8000-000000000004"
+      ],
       "minPublishedSteps": 2
     },
     "smokeTenant": {
@@ -93,24 +99,32 @@
       "status": 403
     }
   ],
-  "themeStylesheets": ["theme/tokens.css"],
+  "themeStylesheets": [
+    "theme/tokens.css"
+  ],
   "guestThemeStylesheets": {
-    "marketing": ["theme/urban-marketing.css"],
-    "portal": ["theme/urban-portal.css"]
+    "marketing": [
+      "theme/urban-marketing.css"
+    ],
+    "portal": [
+      "theme/urban-portal.css"
+    ]
   },
   "catalogRegistrationFlow": {
     "surfaceExport": "urbanCatalogRegistrationFlowSurface",
     "steps": {
       "mode": "compose",
-    "reuseAuthStepsFrom": "shared",
-    "components": {
+      "reuseAuthStepsFrom": "shared",
+      "components": {
         "intake": "UrbanIntakeStep",
         "done": "UrbanDoneStep"
       }
     }
   },
   "catalogPresentation": {
-    "listFeatures": { "cityFilter": true },
+    "listFeatures": {
+      "cityFilter": true
+    },
     "detailSections": {
       "difficulty": false,
       "fitness": false,
@@ -119,12 +133,19 @@
     }
   },
   "memberProfile": {
-    "editableFields": ["displayName"],
-    "readOnlyFields": ["email"],
+    "editableFields": [
+      "displayName"
+    ],
+    "readOnlyFields": [
+      "email"
+    ],
     "sections": [
       {
         "id": "identity",
-        "fields": ["displayName", "email"]
+        "fields": [
+          "displayName",
+          "email"
+        ]
       }
     ]
   },
@@ -136,19 +157,19 @@
       "latestToursLimit": 0,
       "trust": false,
       "finalCta": false,
-    "faq": false,
-    "footer": false,
-    "whyDenali": false,
-    "journey": false,
-    "testimonials": false,
-    "featuredTours": false,
-    "featuredToursLimit": 0,
-    "categories": false,
-    "destinations": false,
-    "heroSearch": false,
-    "gallery": false,
-    "equipment": false,
-    "blogTeaser": false
+      "faq": false,
+      "footer": false,
+      "whyDenali": false,
+      "journey": false,
+      "testimonials": false,
+      "featuredTours": false,
+      "featuredToursLimit": 0,
+      "categories": false,
+      "destinations": false,
+      "heroSearch": false,
+      "gallery": false,
+      "equipment": false,
+      "blogTeaser": false
     },
     "i18nProfile": "minimal"
   },
@@ -160,12 +181,23 @@
       "listDescriptionKey": "seo.toursDescription",
       "jsonLd": {
         "required": true,
-        "schemaTypes": ["Event"],
+        "schemaTypes": [
+          "Event"
+        ],
         "builderExport": "buildUrbanEventJsonLd",
         "richResultsProfile": "event-v1"
       },
-      "sitemap": { "changefreq": "weekly", "priority": 0.8, "includeImages": true },
-      "pagination": { "noindexQueryParams": ["cursor", "city"] }
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": 0.8,
+        "includeImages": true
+      },
+      "pagination": {
+        "noindexQueryParams": [
+          "cursor",
+          "city"
+        ]
+      }
     }
   },
   "memberPortal": {
@@ -177,5 +209,21 @@
     "usersDirectory": false,
     "reconciliationTriage": false,
     "fieldExposureSurfaces": false
+  },
+  "operatorShell": {
+    "phase3NavLinks": [
+      {
+        "href": "/catalog",
+        "labelKey": "catalog"
+      },
+      {
+        "href": "/settings/workspace-owner",
+        "labelKey": "workspaceOwnerSettings"
+      }
+    ],
+    "ownerSettingsPanel": {
+      "module": "@app-tour/workspace-urban/host/settings/owner-panel",
+      "exportName": "WorkspaceOwnerSettingsPanel"
+    }
   }
 }

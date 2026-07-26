@@ -155,13 +155,13 @@ function getOrCreateValidationEngineWithPlugin(
 }
 
 /** Cached per tenant + workspaceType + variant + metadata fingerprint (DEC-030 / P3-A-N-011). */
-export function getOrCreateValidationEngine(
+export async function getOrCreateValidationEngine(
   tenantId: string,
   workspaceType: string,
   validationVariant: "default" | "basic" = "default"
-): PlatformWizardEngine {
+): Promise<PlatformWizardEngine> {
   const key = buildValidationEngineCacheKey(tenantId, workspaceType, validationVariant);
-  return getOrCreateValidationEngineWithPlugin(key, resolveWorkspacePluginForType(workspaceType));
+  return getOrCreateValidationEngineWithPlugin(key, await resolveWorkspacePluginForType(workspaceType));
 }
 
 /** Tenant-aware engine cache miss — used when {@link WORKSPACE_METADATA_ENABLED} is on. */
@@ -206,14 +206,14 @@ function defaultCanonicalData(pluginRoots: readonly string[]): Record<string, un
   return data;
 }
 
-function resolveValidationPluginForPersist(
+async function resolveValidationPluginForPersist(
   input: ValidateBeforePersistInput,
   plugin: WorkspacePlugin
-): {
+): Promise<{
   readonly validationPlugin: WorkspacePlugin;
   readonly validationWorkspaceType: string;
   readonly useStarterValidation: boolean;
-} {
+}> {
   const useStarterValidation = shouldUseStarterValidationForDenaliCreate(
     input.workspaceType,
     input.tenantId,
@@ -222,7 +222,7 @@ function resolveValidationPluginForPersist(
   return {
     useStarterValidation,
     validationWorkspaceType: useStarterValidation ? "starter" : input.workspaceType,
-    validationPlugin: useStarterValidation ? resolveWorkspacePluginForType("starter") : plugin,
+    validationPlugin: useStarterValidation ? await resolveWorkspacePluginForType("starter") : plugin,
   };
 }
 
@@ -336,14 +336,14 @@ function validateCanonicalDocumentWithEngine(
  * RULE-003 / RULE-005 — assertCanonicalDocument + validateCanonical before any persist.
  * Sync path — used in worker threads and when {@link P5_VALIDATION_WORKERS_ENABLED}=false.
  */
-export function validateCanonicalBeforePersistSync(
+export async function validateCanonicalBeforePersistSync(
   input: ValidateBeforePersistInput
-): CanonicalDocument {
-  const plugin = resolveWorkspacePluginForType(input.workspaceType);
+): Promise<CanonicalDocument> {
+  const plugin = await resolveWorkspacePluginForType(input.workspaceType);
   const { validationPlugin, validationWorkspaceType, useStarterValidation } =
-    resolveValidationPluginForPersist(input, plugin);
+    await resolveValidationPluginForPersist(input, plugin);
   const validationVariant = input.validationVariant ?? "default";
-  const engine = getOrCreateValidationEngine(
+  const engine = await getOrCreateValidationEngine(
     input.tenantId,
     validationWorkspaceType,
     validationVariant
@@ -372,10 +372,10 @@ export async function validateCanonicalBeforePersistAsync(
       deps
     );
     const { validationPlugin, validationWorkspaceType, useStarterValidation } =
-      resolveValidationPluginForPersist(input, plugin);
+      await resolveValidationPluginForPersist(input, plugin);
     const validationVariant = input.validationVariant ?? "default";
     const engine = useStarterValidation
-      ? getOrCreateValidationEngine(input.tenantId, validationWorkspaceType, validationVariant)
+      ? await getOrCreateValidationEngine(input.tenantId, validationWorkspaceType, validationVariant)
       : await getOrCreateValidationEngineAsync(
           input.tenantId,
           validationWorkspaceType,

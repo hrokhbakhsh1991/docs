@@ -2,17 +2,21 @@ import { createHash } from "node:crypto";
 
 import type {
   CreateManualPaymentBody,
+  FinanceObligationPort,
   GenerateScheduleBody,
+  PatchScheduleItemBody,
   RecordPrepaymentBody,
   ReviewReceiptBody,
   SubmitReceiptBody,
 } from "@app-tour/finance-http-contracts";
 
 import { compileRegistrationInvoice } from "../domain/compile-invoice-balances";
-import { buildPaymentScheduleItems } from "../domain/schedule";
+import { buildPaymentScheduleItems, reschedulePaymentScheduleItem, waivePaymentScheduleItem, type PaymentScheduleItem } from "../domain/schedule";
 import {
   attachFinanceRegistrationContext,
   filterRowsByRegistrationId,
+  filterRowsByTourId,
+  type FinanceRegistrationContext,
 } from "../domain/finance-registration-context";
 import type { IBookingPaymentPort } from "../ports/booking-payment.port";
 import type { FinanceActorContext, FinanceActorRole } from "../ports/finance-actor-context";
@@ -32,6 +36,7 @@ import type { FinanceLedgerOutboxRow, FinanceSummaryRow } from "../ports/finance
 import type { FinanceRepositoryPort } from "../ports/finance-repository.port";
 import type { FinanceSchedulePort } from "../ports/finance-schedule.port";
 import type { RegistrationDisplayPort } from "../ports/registration-display.port";
+import { nullFinanceObligationPort } from "../ports/null-finance-obligation.port";
 import {
   FINANCE_LATENCY_BUDGET_MS,
   FINANCE_METRIC,
@@ -81,6 +86,10 @@ function assertManualPaymentDebtAllowed(statuses: readonly string[]): void {
   }
 }
 
+function parseMinorDigits(value: string): bigint {
+  return BigInt(value.replace(/\D/g, "") || "0");
+}
+
 function mapLedgerEventRow(row: FinanceLedgerOutboxRow): Record<string, unknown> {
   const payload =
     row.payload !== null && typeof row.payload === "object"
@@ -125,7 +134,9 @@ export class FinanceService {
     private readonly authorization: FinanceAuthorizationPort,
     private readonly schedules: FinanceSchedulePort,
     private readonly logger: FinanceLoggerPort,
-    private readonly clock: FinanceClockPort
+    private readonly clock: FinanceClockPort,
+    private readonly obligation: FinanceObligationPort,
+    private readonly obligationToleranceMinor: string = "0"
   ) {
     assertCompositionDep("ledgerPolicy", ledgerPolicy);
     assertCompositionDep("repository", repository);
@@ -140,6 +151,7 @@ export class FinanceService {
     assertCompositionDep("schedules", schedules);
     assertCompositionDep("logger", logger);
     assertCompositionDep("clock", clock);
+    assertCompositionDep("obligation", obligation);
   }
 
   private async gate(auth: FinanceActorContext): Promise<FinanceWorkspaceGateResult> {
@@ -210,6 +222,23 @@ export class FinanceService {
     };
   }
 
+  private async filterListRowsByScope<T extends { readonly registrationId: string }>(
+    tenantId: string,
+    rows: readonly T[],
+    registrationId?: string,
+    tourId?: string
+  ): Promise<{ rows: readonly T[]; contexts: ReadonlyMap<string, FinanceRegistrationContext> }> {
+    let filtered = filterRowsByRegistrationId(rows, registrationId);
+    const contexts = await this.registrationDisplay.getByRegistrationIds(
+      tenantId,
+      filtered.map((row) => row.registrationId)
+    );
+    if (tourId !== undefined) {
+      filtered = filterRowsByTourId(filtered, tourId, contexts);
+    }
+    return { rows: filtered, contexts };
+  }
+
   async getSummary(auth: FinanceActorContext) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
@@ -219,52 +248,73 @@ export class FinanceService {
     return this.repository.getSummary(auth.tenantId);
   }
 
-  async listOpenPayments(auth: FinanceActorContext, limit: number, registrationId?: string) {
+  async getReportByTour(auth: FinanceActorContext, tourId?: string) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
-    const rows = filterRowsByRegistrationId(
-      await this.repository.listOpenPayments(auth.tenantId, limit),
-      registrationId
-    );
-    const contexts = await this.registrationDisplay.getByRegistrationIds(
+    if (!this.storageDriver.isDatabaseConfigured()) {
+      return { items: [] as const };
+    }
+    const items = await this.repository.listPaymentsByTourAggregate(auth.tenantId, tourId);
+    return { items };
+  }
+
+  async listOpenPayments(
+    auth: FinanceActorContext,
+    limit: number,
+    registrationId?: string,
+    tourId?: string
+  ) {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+    const scoped = await this.filterListRowsByScope(
       auth.tenantId,
-      rows.map((row) => row.registrationId)
+      await this.repository.listOpenPayments(auth.tenantId, limit),
+      registrationId,
+      tourId
     );
-    return rows.map((row) =>
+    return scoped.rows.map((row) =>
       attachFinanceRegistrationContext(
         {
           ...row,
           createdAt: row.createdAt.toISOString(),
         },
-        contexts
+        scoped.contexts
       )
     );
   }
 
-  async listPayments(auth: FinanceActorContext, limit: number, registrationId?: string) {
+  async listPayments(
+    auth: FinanceActorContext,
+    limit: number,
+    registrationId?: string,
+    tourId?: string
+  ) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
-    const rows = filterRowsByRegistrationId(
-      await this.repository.listPayments(auth.tenantId, limit),
-      registrationId
-    );
-    const contexts = await this.registrationDisplay.getByRegistrationIds(
+    const scoped = await this.filterListRowsByScope(
       auth.tenantId,
-      rows.map((row) => row.registrationId)
+      await this.repository.listPayments(auth.tenantId, limit),
+      registrationId,
+      tourId
     );
-    return rows.map((row) =>
+    return scoped.rows.map((row) =>
       attachFinanceRegistrationContext(
         {
           ...row,
           createdAt: row.createdAt.toISOString(),
           paidAt: row.paidAt?.toISOString() ?? null,
         },
-        contexts
+        scoped.contexts
       )
     );
   }
 
-  async listLedgerEvents(auth: FinanceActorContext, limit: number, registrationId?: string) {
+  async listLedgerEvents(
+    auth: FinanceActorContext,
+    limit: number,
+    registrationId?: string,
+    tourId?: string
+  ) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
     const mapped = (await this.repository.listLedgerEvents(auth.tenantId, limit)).map(
@@ -274,10 +324,22 @@ export class FinanceService {
       (row): row is typeof row & { registrationId: string } =>
         typeof row.registrationId === "string" && row.registrationId.length > 0
     );
-    const filtered =
+    let filtered =
       registrationId === undefined
         ? mapped
         : mapped.filter((row) => row.registrationId === registrationId);
+    if (tourId !== undefined) {
+      const contexts = await this.registrationDisplay.getByRegistrationIds(
+        auth.tenantId,
+        withRegistration.map((row) => row.registrationId)
+      );
+      filtered = filtered.filter((row) => {
+        if (typeof row.registrationId !== "string" || row.registrationId.length === 0) {
+          return false;
+        }
+        return contexts.get(row.registrationId)?.tourId === tourId;
+      });
+    }
     const contexts = await this.registrationDisplay.getByRegistrationIds(
       auth.tenantId,
       withRegistration.map((row) => row.registrationId)
@@ -295,7 +357,12 @@ export class FinanceService {
     });
   }
 
-  async listPendingReceipts(auth: FinanceActorContext, limit: number, registrationId?: string) {
+  async listPendingReceipts(
+    auth: FinanceActorContext,
+    limit: number,
+    registrationId?: string,
+    tourId?: string
+  ) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
     const rows = await this.repository.listPendingReceipts(auth.tenantId, limit);
@@ -315,19 +382,24 @@ export class FinanceService {
           }
         : null,
     }));
-    const filtered = filterRowsByRegistrationId(
-      mapped.filter((row) => row.registrationId.length > 0),
-      registrationId
-    );
-    // Keep receipts without payment when no registration filter (edge); when filtering, only matched.
-    const list =
-      registrationId === undefined
-        ? mapped
-        : filtered;
-    const contexts = await this.registrationDisplay.getByRegistrationIds(
+    const withRegistration = mapped.filter((row) => row.registrationId.length > 0);
+    const scoped = await this.filterListRowsByScope(
       auth.tenantId,
-      list.map((row) => row.registrationId).filter((id) => id.length > 0)
+      withRegistration,
+      registrationId,
+      tourId
     );
+    const list =
+      registrationId === undefined && tourId === undefined
+        ? mapped
+        : scoped.rows;
+    const contexts =
+      registrationId === undefined && tourId === undefined
+        ? await this.registrationDisplay.getByRegistrationIds(
+            auth.tenantId,
+            withRegistration.map((row) => row.registrationId)
+          )
+        : scoped.contexts;
     return list.map((row) => {
       const { registrationId: _drop, ...rest } = row;
       if (row.registrationId.length === 0) {
@@ -383,6 +455,25 @@ export class FinanceService {
       body.registrationId
     );
     assertManualPaymentDebtAllowed(statuses);
+    const obligation = await this.obligation.resolveRegistrationObligation({
+      tenantId: auth.tenantId,
+      registrationId: body.registrationId,
+    });
+    if (obligation !== null) {
+      const maxAllowed =
+        parseMinorDigits(obligation.obligationMinor) + parseMinorDigits(this.obligationToleranceMinor);
+      if (parseMinorDigits(body.amount) > maxAllowed) {
+        this.logger.warn({
+          event: "finance.obligation.manual_amount_override",
+          tenantId: auth.tenantId,
+          registrationId: body.registrationId,
+          amountMinor: body.amount,
+          obligationMinor: obligation.obligationMinor,
+          toleranceMinor: this.obligationToleranceMinor,
+          source: obligation.source,
+        });
+      }
+    }
     const payment = await this.repository.createManualPayment({
       tenantId: auth.tenantId,
       registrationId: body.registrationId,
@@ -586,6 +677,20 @@ export class FinanceService {
       );
     }
 
+    if (body.decision === "approve") {
+      const obligation = await this.obligation.resolveRegistrationObligation({
+        tenantId: auth.tenantId,
+        registrationId: payment.registrationId,
+      });
+      if (obligation !== null) {
+        const maxAllowed =
+          parseMinorDigits(obligation.obligationMinor) + parseMinorDigits(this.obligationToleranceMinor);
+        if (parseMinorDigits(payment.amount) > maxAllowed) {
+          throw new Error("FINANCE_OBLIGATION_OVERPAY");
+        }
+      }
+    }
+
     if (body.decision === "reject") {
       const updated = await this.repository.updateReceiptReview(auth.tenantId, receiptId, {
         status: "Rejected",
@@ -717,18 +822,21 @@ export class FinanceService {
     }
   }
 
-  async listPrepayments(auth: FinanceActorContext, limit: number, registrationId?: string) {
+  async listPrepayments(
+    auth: FinanceActorContext,
+    limit: number,
+    registrationId?: string,
+    tourId?: string
+  ) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
-    const rows = filterRowsByRegistrationId(
-      await this.repository.listPrepayments(auth.tenantId, limit),
-      registrationId
-    );
-    const contexts = await this.registrationDisplay.getByRegistrationIds(
+    const scoped = await this.filterListRowsByScope(
       auth.tenantId,
-      rows.map((row) => row.registrationId)
+      await this.repository.listPrepayments(auth.tenantId, limit),
+      registrationId,
+      tourId
     );
-    return rows.map((row) => attachFinanceRegistrationContext(row, contexts));
+    return scoped.rows.map((row) => attachFinanceRegistrationContext(row, scoped.contexts));
   }
 
   async recordPrepayment(
@@ -832,15 +940,20 @@ export class FinanceService {
     return { registrationId, paymentStatus, recovered: true };
   }
 
-  async listPaymentSchedules(auth: FinanceActorContext, registrationId?: string) {
+  async listPaymentSchedules(
+    auth: FinanceActorContext,
+    registrationId?: string,
+    tourId?: string
+  ) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
-    const rows = filterRowsByRegistrationId(await this.schedules.listAllSchedules(auth.tenantId), registrationId);
-    const contexts = await this.registrationDisplay.getByRegistrationIds(
+    const scoped = await this.filterListRowsByScope(
       auth.tenantId,
-      rows.map((row) => row.registrationId)
+      await this.schedules.listAllSchedules(auth.tenantId),
+      registrationId,
+      tourId
     );
-    return rows.map((row) => attachFinanceRegistrationContext(row, contexts));
+    return scoped.rows.map((row) => attachFinanceRegistrationContext(row, scoped.contexts));
   }
 
   async getPaymentSchedule(auth: FinanceActorContext, registrationId: string) {
@@ -860,6 +973,54 @@ export class FinanceService {
     return { registrationId: body.registrationId, items };
   }
 
+  async patchPaymentScheduleItem(
+    auth: FinanceActorContext,
+    registrationId: string,
+    itemId: string,
+    body: PatchScheduleItemBody
+  ) {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+    const normalizedRegistrationId = registrationId.trim();
+    const normalizedItemId = itemId.trim();
+    const existing = await this.schedules.getSchedule(auth.tenantId, normalizedRegistrationId);
+    if (existing.length === 0) {
+      throw new Error("SCHEDULE_NOT_FOUND");
+    }
+
+    let nextItems: readonly PaymentScheduleItem[];
+    if (body.action === "waive") {
+      this.assertAdminAccess(auth);
+      nextItems = waivePaymentScheduleItem(existing, normalizedItemId);
+    } else {
+      nextItems = reschedulePaymentScheduleItem(existing, normalizedItemId, body.dueAt);
+    }
+
+    await this.schedules.putSchedule(auth.tenantId, normalizedRegistrationId, nextItems);
+    const updated = nextItems.find((row) => row.id === normalizedItemId);
+    if (updated === undefined) {
+      throw new Error("SCHEDULE_ITEM_NOT_FOUND");
+    }
+    return {
+      registrationId: normalizedRegistrationId,
+      item: updated,
+      audit:
+        body.action === "waive"
+          ? {
+              eventType: "finance.schedule.item_waived" as const,
+              reason: body.reason,
+              actorUserId: auth.userId,
+            }
+          : null,
+    };
+  }
+
+  private assertAdminAccess(auth: FinanceActorContext): void {
+    if (auth.role !== "admin" && auth.role !== "owner") {
+      throw new Error("FORBIDDEN_ADMIN_REQUIRED");
+    }
+  }
+
   async getRegistrationInvoice(auth: FinanceActorContext, registrationId: string) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
@@ -869,6 +1030,10 @@ export class FinanceService {
       normalizedRegistrationId
     );
     const scheduleItems = await this.schedules.getSchedule(auth.tenantId, normalizedRegistrationId);
+    const obligation = await this.obligation.resolveRegistrationObligation({
+      tenantId: auth.tenantId,
+      registrationId: normalizedRegistrationId,
+    });
     return compileRegistrationInvoice({
       registrationId: normalizedRegistrationId,
       currency: facts.currency,
@@ -876,6 +1041,7 @@ export class FinanceService {
       paidPaymentsMinor: facts.paidPaymentsMinor,
       paymentAmountsMinor: facts.paymentAmountsMinor,
       scheduleAmountsMinor: scheduleItems.map((item) => item.amountMinor),
+      ...(obligation !== null ? { obligationMinor: obligation.obligationMinor } : {}),
     });
   }
 
@@ -1018,7 +1184,9 @@ export function createFinanceService(
   authorization: FinanceAuthorizationPort,
   schedules: FinanceSchedulePort,
   logger: FinanceLoggerPort,
-  clock: FinanceClockPort
+  clock: FinanceClockPort,
+  obligation: FinanceObligationPort = nullFinanceObligationPort,
+  obligationToleranceMinor = "0"
 ): FinanceService {
   return new FinanceService(
     ledgerPolicy,
@@ -1033,6 +1201,8 @@ export function createFinanceService(
     authorization,
     schedules,
     logger,
-    clock
+    clock,
+    obligation,
+    obligationToleranceMinor
   );
 }

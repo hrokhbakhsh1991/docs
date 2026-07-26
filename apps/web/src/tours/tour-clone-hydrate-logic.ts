@@ -8,7 +8,7 @@ import {
   readActiveDestinationIds,
   readActiveEquipmentIds,
   resolveActiveCatalogIdsFromResourcePayloads,
-} from "@/wizard/host-adapter-runtime";
+} from "@/wizard/wizard-host-adapter-registry";
 
 export {
   readActiveDestinationIds,
@@ -166,7 +166,7 @@ export async function hydrateCreateTourFromClone(
     throw new Error(`TOUR_CLONE_HTTP_${tourResponse.status}`);
   }
   const detail = (await tourResponse.json()) as OperatorTourDetailResponse;
-  const catalogIds = resolveActiveCatalogIdsFromResourcePayloads({
+  const catalogIds = resolveActiveCatalogIdsFromResourcePayloads(input.pluginId, {
     ...(equipmentResponse.ok
       ? { equipmentPayload: await equipmentResponse.json() }
       : {}),

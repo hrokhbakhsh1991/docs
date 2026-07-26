@@ -247,11 +247,18 @@ describe("denali-wizard-theme.spec.ts", () => {
       "utf8"
     );
     assert.match(compositeRegistry, /resolveGeneratedCompositeSurface/);
-    const generatedSurfaces = readFileSync(
-      join(import.meta.dirname, "../src/bootstrap/wizard-surface-bindings.generated.ts"),
+    const shellSurfaceRegistry = readFileSync(
+      join(import.meta.dirname, "../src/wizard/wizard-surface-registry.ts"),
       "utf8"
     );
-    assert.match(generatedSurfaces, /@app-tour\/workspace-denali\/host\/ui\/composite-surface/);
+    assert.match(shellSurfaceRegistry, /resolveWizardSurfacesCapability/);
+    assert.match(shellSurfaceRegistry, /createPlatformCompositeSurface/);
+    const packageSurfaces = readFileSync(
+      join(REPO_ROOT, "packages/workspaces/denali/src/wizard/wizard-surfaces-surface.ts"),
+      "utf8"
+    );
+    assert.match(packageSurfaces, /composite-surface/);
+    assert.match(packageSurfaces, /ensureWizardSurfacesPackageSurface/);
     const wizardField = readFileSync(
       join(import.meta.dirname, "../src/wizard/wizard-field.tsx"),
       "utf8"
@@ -415,11 +422,17 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.match(host, /resolveWizardValidationSurface/);
     assert.match(registry, /resolveGeneratedReviewSurface/);
     assert.match(registry, /renderValidationSummary/);
-    const generatedSurfaces = readFileSync(
-      join(import.meta.dirname, "../src/bootstrap/wizard-surface-bindings.generated.ts"),
+    const shellSurfaceRegistry = readFileSync(
+      join(import.meta.dirname, "../src/wizard/wizard-surface-registry.ts"),
       "utf8"
     );
-    assert.match(generatedSurfaces, /@app-tour\/workspace-denali\/host\/ui\/review-surface/);
+    assert.match(shellSurfaceRegistry, /createPlatformReviewSurface/);
+    assert.match(shellSurfaceRegistry, /ensureGeneratedReviewSurface/);
+    const packageSurfaces = readFileSync(
+      join(REPO_ROOT, "packages/workspaces/denali/src/wizard/wizard-surfaces-surface.ts"),
+      "utf8"
+    );
+    assert.match(packageSurfaces, /review-surface/);
   });
 
   it("WEB-DENALI-WIZARD-08 composites avoid tailwind utility classes", () => {

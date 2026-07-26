@@ -66,10 +66,12 @@ Returns the latest migration consistency report JSON. Auth: ops JWT in productio
 
 After `GET /settings/modules` (server prefetch and client refresh):
 
-- For Denali plugin, required backend module ids come from
-  `denali-required-settings-modules.generated.ts`, generated from the Denali settings manifest
-  inventory (`pnpm run generate:denali-settings-modules` → reads
-  `packages/workspaces/denali/src/settings/denali-settings.manifest.ts`)
+- For Denali plugin, required backend module ids come from the workspace package
+  (`DENALI_BACKEND_REQUIRED_MODULE_IDS` on
+  `packages/workspaces/denali/src/settings/denali-settings.manifest.ts`, re-exported from
+  `settings/fallback-modules`). Shell `ensureSettingsHubFallbackPolicy` loads them via
+  dynamic import only. `pnpm run generate:denali-settings-modules --check` verifies package
+  ownership (does **not** emit into `apps/web`).
 - If manifest-expected id is absent from backend payload → log `CONSISTENCY_UI_DESYNC` / `UI-BACKEND DESYNC DETECTED`
 - Inject Denali fallback metadata for missing hub-critical modules (`workspace_branding`, `integrations`, `exposure`) so the Settings hub keeps the **اتصال‌ها / Connections** card and `/settings/integrations` link during stale API processes or pre-restart gate drift
 

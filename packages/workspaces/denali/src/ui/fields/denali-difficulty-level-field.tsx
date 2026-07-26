@@ -71,8 +71,8 @@ export function DenaliDifficultyLevelField({
   return (
     <div
       className="denali-wizard-composite"
-      data-denali-wizard-surface="section"
-      data-denali-difficulty-level
+      data-operator-wizard-surface="section"
+      data-operator-difficulty-level
       data-testid={DENALI_DIFFICULTY_TEST_IDS.difficulty}
     >
       <div className="denali-wizard-composite__header">

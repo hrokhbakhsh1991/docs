@@ -39,7 +39,7 @@ describe("workspace-metadata-cutover-allowlist", () => {
         throw new Error("should not load metadata when flag off");
       },
     });
-    assert.equal(plugin.id, resolveWorkspacePluginForType("starter").id);
+    assert.equal(plugin.id, (await resolveWorkspacePluginForType("starter")).id);
   });
 
   it("CO-02 flag on with empty allowlist uses metadata path when binding set", async () => {
@@ -75,11 +75,11 @@ describe("workspace-metadata-cutover-allowlist", () => {
         throw new Error("should not load metadata for blocked tenant");
       },
     });
-    assert.equal(plugin.id, resolveWorkspacePluginForType("starter").id);
+    assert.equal(plugin.id, (await resolveWorkspacePluginForType("starter")).id);
     assert.equal(isWorkspaceMetadataEnabledForTenant("blocked-tenant"), false);
   });
 
-  it("CO-04 rollback binding shape is null", () => {
+  it("CO-04 rollback binding shape is null", async () => {
     assert.equal(
       toTenantWorkspaceMetadataBinding({
         workspaceDefinitionId: null,
@@ -107,7 +107,7 @@ describe("workspace-metadata-cutover-allowlist", () => {
         },
       ],
     };
-    const packagePlugin = resolveWorkspacePluginForType("starter");
+    const packagePlugin = await resolveWorkspacePluginForType("starter");
     const loadPublishedVersion = async () => ({
       id: "00000000-0000-4000-8000-000000000021",
       definitionId: "starter-shell",
@@ -156,7 +156,7 @@ describe("workspace-metadata-cutover-allowlist", () => {
     );
   });
 
-  it("documents rollback steps in runbook comment", () => {
+  it("documents rollback steps in runbook comment", async () => {
     assert.equal(isWorkspaceMetadataEnabled(), false);
   });
 });

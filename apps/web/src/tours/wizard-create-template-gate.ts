@@ -2,9 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
-
-import { ensureWizardTemplateFieldOverlaysAugment } from "@/bootstrap/workspace-wizard-template-gate-bindings.generated";
+import type { WorkspacePlugin } from "@app-cloud/workspace-sdk";
 
 import {
   createLoadingWizardTemplateGateState,
@@ -36,16 +34,21 @@ export function useWizardTemplateGate(input: UseWizardTemplateGateInput): Wizard
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      await ensureWizardTemplateFieldOverlaysAugment(input.pluginId);
-      if (cancelled) {
-        return;
-      }
-
       if (skipInitialGateFetchRef.current) {
         skipInitialGateFetchRef.current = false;
         if (input.initialTemplateResponse != null) {
           try {
-            setGate(resolveWizardTemplateGateState(input.initialTemplateResponse, input.pluginId));
+            const plugin = await input.loadPlugin();
+            if (cancelled) {
+              return;
+            }
+            setGate(
+              resolveWizardTemplateGateState(
+                input.initialTemplateResponse,
+                input.pluginId,
+                plugin
+              )
+            );
             return;
           } catch {
             // fall through to network fetch

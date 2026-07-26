@@ -1,4 +1,4 @@
-import { resolveSettingsDestinationSurface } from "@/bootstrap/workspace-settings-destination-bindings.generated";
+import { resolveSettingsDestinationSurface } from "@/features/settings/settings-destination-registry";
 
 import { normalizeNumericInputValue, toAsciiDigits } from "@/i18n/format-localized-digits";
 

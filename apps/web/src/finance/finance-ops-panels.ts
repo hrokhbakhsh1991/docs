@@ -1,32 +1,41 @@
 /**
  * Finance **ops panel** capability resolution — not hub availability.
- * Availability SoT: `@/finance/finance-nav-enablement` → workspaceFinance nav bindings.
- * Ops SoT: workspace `workspaceFinance.opsManifest` → generated bindings (Phase 1.10.1 / P4-D3.c).
+ * Availability SoT: `@/finance/finance-nav-enablement` → capabilities.financeNav.
+ * Ops SoT: capabilities.financeOps.resolveManifest (Phase 4be) — no generated binder.
  *
  * Generic web depends on {@link FinanceOpsCapability} only — never imports workspace packages.
- * Resolve is async (dynamic import) so admin cold graph stays O(1) product packages.
  */
 import {
-  hasFinanceOpsManifest,
-  resolveWorkspaceFinanceOpsManifest,
-} from "@/bootstrap/workspace-finance-ops-bindings.generated";
+  resolveFinanceOpsCapability,
+} from "@app-cloud/workspace-sdk";
+
+import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
 import type { FinanceOpsCapability } from "@/finance/finance-ops-capability-contract";
 
 export type { FinanceOpsCapability, FinanceOpsManifest } from "@/finance/finance-ops-capability-contract";
 
 /**
  * Resolve finance ops capability for the command center.
- * Unbound / missing `opsManifest` → `null` (host renders nothing — no product fallback).
+ * Unbound / missing financeOps capability → `null` (host renders nothing — no product fallback).
  */
 export async function resolveFinanceOpsCapabilityForHub(
   theme: unknown = null,
   pluginId: string
 ): Promise<FinanceOpsCapability | null> {
   const id = pluginId.trim();
-  if (id.length === 0 || !hasFinanceOpsManifest(id)) {
+  if (id.length === 0) {
     return null;
   }
-  return resolveWorkspaceFinanceOpsManifest(id, theme);
+  try {
+    const plugin = await loadBootstrapWorkspacePlugin(id);
+    const financeOps = resolveFinanceOpsCapability(plugin);
+    if (financeOps == null) {
+      return null;
+    }
+    return financeOps.resolveManifest(theme) as FinanceOpsCapability;
+  } catch {
+    return null;
+  }
 }
 
 /**

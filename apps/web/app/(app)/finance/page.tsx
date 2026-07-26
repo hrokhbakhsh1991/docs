@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
-import { isFinanceRouteAllowed } from "@/finance/finance-nav-enablement";
+import { ensureFinanceRouteAllowed } from "@/finance/finance-nav-enablement";
 import { buildFinancePageMetadata } from "@/i18n/finance-page-metadata";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
 
@@ -25,7 +25,7 @@ export default async function FinancePage() {
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
   const resolved = await resolveBootstrapAppSessionForHost(host);
-  if (!isFinanceRouteAllowed(resolved.session.pluginId)) {
+  if (!(await ensureFinanceRouteAllowed(resolved.session.pluginId))) {
     notFound();
   }
 

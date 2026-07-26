@@ -4,4 +4,4 @@
 export {
   localizeExposureCatalogFields,
   type ExposureCatalogFieldForLocalization,
-} from "@/wizard/host-adapter-runtime";
+} from "@/wizard/wizard-host-adapter-registry";

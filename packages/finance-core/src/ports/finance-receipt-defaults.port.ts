@@ -3,5 +3,7 @@
  */
 export type {
   FinanceOfflineReceiptDefaults,
+  FinanceObligationPort,
+  FinanceRegistrationObligation,
   FinanceReceiptDefaultsPort,
 } from "@app-tour/finance-http-contracts";

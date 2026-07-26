@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { before, describe, it } from "node:test";
 
 import { OPERATOR_WIZARD_PATH } from "../src/admin/require-operator-session";
-import { ensureTourListCategorySurface } from "../src/bootstrap/workspace-tour-list-category-bindings.generated";
+import { ensureTourListCategorySurface } from "../src/features/tours/tour-list-category-registry";
 import {
   DEFAULT_TOUR_LIST_QUERY,
   parseTourListQuery,

@@ -39,7 +39,7 @@ There is **no** `GET /bookings/{bookingId}` today — **detail** wire shape is `
 
 ## Schema SoT
 
-`apps/api/src/openapi/booking-openapi.ts` mirrors `@app-cloud/booking-http-contracts` DTOs:
+`apps/api/src/openapi/booking-openapi.ts` mirrors `@app-tour/booking-http-contracts` DTOs:
 
 `BookingStatus`, `BookingPaymentStatus`, `BookingsListView`, `BookingListItem`, `BookingsListResponse`, `BookingsSummaryResponse`, `BookingTourChip`, `CreateBookingRequest`, `CreateBookingResponse`, `ApproveBookingResponse`, `RejectBookingRequest`, `RejectBookingResponse`, `WaitlistBookingResponse`, `CancelBookingResponse`, `BulkApproveBookingsRequest`, `BulkApproveBookingsResponse`, `BookingMemberReceiptJsonBody`, `BookingMemberReceiptStatusResponse`, `BookingHttpError`, `BookingIdPathParam`.
 

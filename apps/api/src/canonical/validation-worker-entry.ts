@@ -36,16 +36,18 @@ function serializeError(error: unknown): WorkerFailure["error"] {
 }
 
 parentPort?.on("message", (message: WorkerRequest) => {
-  try {
-    const document = validateCanonicalBeforePersistSync(message.input);
-    const response: WorkerSuccess = { jobId: message.jobId, ok: true, document };
-    parentPort?.postMessage(response);
-  } catch (error) {
-    const response: WorkerFailure = {
-      jobId: message.jobId,
-      ok: false,
-      error: serializeError(error),
-    };
-    parentPort?.postMessage(response);
-  }
+  void (async () => {
+    try {
+      const document = await validateCanonicalBeforePersistSync(message.input);
+      const response: WorkerSuccess = { jobId: message.jobId, ok: true, document };
+      parentPort?.postMessage(response);
+    } catch (error) {
+      const response: WorkerFailure = {
+        jobId: message.jobId,
+        ok: false,
+        error: serializeError(error),
+      };
+      parentPort?.postMessage(response);
+    }
+  })();
 });

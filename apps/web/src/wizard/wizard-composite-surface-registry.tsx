@@ -1,7 +1,7 @@
 "use client";
 
 import type { WizardCompositeSurface } from "./wizard-surface-types";
-import { resolveGeneratedCompositeSurface } from "@/bootstrap/wizard-surface-bindings.generated";
+import { resolveGeneratedCompositeSurface } from "@/wizard/wizard-surface-registry";
 
 export type {
   WizardCompositeFieldRenderProps,

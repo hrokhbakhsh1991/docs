@@ -1,4 +1,4 @@
-import { buildDenaliFullWizardTemplatePayload } from "../denali.plugin";
+import { buildDenaliFullWizardTemplatePayload } from "./denaliFullWizardTemplate";
 
 export type DenaliWizardTemplatePresetSurface = {
   readonly buildFullTemplatePreset: typeof buildDenaliFullWizardTemplatePayload;

@@ -431,10 +431,10 @@ This section removes ambiguity. **Appearance** = anything a user perceives as lo
 | `wizardMediaBackendRoutes` | `apps/web/src/bootstrap/wizard-media-backend-route-bindings.generated.ts` |
 | `wizardSurfaces` | `apps/web/src/bootstrap/wizard-surface-bindings.generated.ts` |
 | `wizardLabels` | `apps/web/src/bootstrap/wizard-label-bindings.generated.ts` |
-| `wizardI18nTranslators` | `apps/web/src/bootstrap/wizard-i18n-translator-hooks.generated.ts` |
+| `wizardI18nTranslators` | `apps/web/src/bootstrap/wizard-i18n-translator-hooks.generated.ts` (Phase 4bh: namespace allowlist only) |
 | `workspaceWizardMessages` | `apps/web/src/bootstrap/workspace-wizard-message-loads.generated.ts` |
 | `wizardCloneRemint` | `apps/api/src/tours/workspace-wizard-clone-remint-bindings.generated.ts` |
-| `wizardCreate` | `apps/web/src/bootstrap/wizard-create-bindings.generated.ts` |
+| `wizardCreate` | **deleted (Phase 4bg)** — runtime `capabilities.wizardCreate`; packaging key remains in manifest |
 | `themeStylesheets` | `apps/web/src/bootstrap/workspace-theme-stylesheets.generated.ts` |
 | `guestThemeStylesheetsPortal` | `apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts` |
 | `guestThemeStylesheetsMarketing` | `apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts` |
@@ -806,8 +806,8 @@ Full conflict inventory, C4 mitigation (F9-4), and guards: [dtcg-pipeline-spec.m
 
 **Sprint 2 (2026-07-06):**
 
-- Tour edit flat-shell router (`tour-edit-page-client.tsx`) uses `isExtendedOperatorSession` — lookup against codegen `WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS` (same set as extended create chrome); `isDenaliOperatorSession` retained as deprecated alias for tests only.
-- Guard extended: `tour-edit-page-client.tsx` must not import `isDenaliOperatorSession` or bind `isDenali` locals.
+- Tour edit flat-shell router (`tour-edit-page-client.tsx`) uses `isExtendedOperatorSession` — warm-cache membership via `capabilities.wizardCreate` (Phase 4bg); `isDenaliOperatorSession` removed (Wave H.p); use `isExtendedOperatorSession`.
+- Guard extended: `tour-edit-page-client.tsx` must not import removed `isDenaliOperatorSession` or bind `isDenali` locals.
 
 **Sprint 3 (2026-07-06) — C3 marketing catalog:**
 
@@ -864,9 +864,16 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 - `resolve-bootstrap-workspace-plugin` delegates to `resolveSyncWorkspacePluginFromRegistry` with starter fallback.
 - `resolve-bootstrap-workspace-plugin.client` uses codegen for starter/urban; Denali keeps lightweight shell stub (no crypto graph).
 
+**P4.1 / I3 (2026-07-21) — async-only web plugin loaders:**
+
+- `workspace-plugin-loaders.generated.ts` no longer defines `SYNC_WORKSPACE_PLUGINS` or `resolveSyncWorkspacePluginFromRegistry`; only `loadWorkspacePluginByIdFromRegistry` (allowlisted dynamic `import()` + I2 cache).
+- Server bootstrap: `loadBootstrapWorkspacePlugin` + async `resolveBootstrapAppSession*`.
+- Client hydrate: theme shells only (does not import generated loaders).
+- Denali create/flat-edit sync path imports `@app-tour/workspace-denali/plugin` directly (wizard allowlist).
+
 **Sprint 11 (2026-07-06) — C4 wizard/denali adapter purge:**
 
-- `wizardCompositeRegistry` manifest → `workspace-wizard-composite-registry-bindings.generated.ts`.
+- `wizardCompositeRegistry` manifest → Denali package composite registry (shell binder **deleted** Phase 4a; no `apps/web` emit).
 - `denali-validation-issue-label` uses composite registry bindings (no direct `@app-tour/workspace-denali/composites`).
 - Removed dead web duplicates: flat-edit-form, tour-create-payload, draft-form-adapter, tour-kind-labels, review-surface, field-focus-registry.
 

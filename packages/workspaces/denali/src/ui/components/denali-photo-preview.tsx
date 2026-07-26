@@ -107,7 +107,7 @@ export function DenaliPhotoPreview({
           alt={alt}
           className={className}
           data-testid={testId}
-          data-denali-photo-preview={isUploading ? "uploading" : "ready"}
+          data-operator-photo-preview={isUploading ? "uploading" : "ready"}
           onError={() => {
             if (localUrl.length > 0) {
               return;
@@ -137,10 +137,10 @@ export function DenaliPhotoPreview({
   return (
     <div
       data-testid={DENALI_PHOTO_PREVIEW_FALLBACK_TEST_ID}
-      className={readOnly ? "denali-review__photo-fallback" : undefined}
+      className={readOnly ? "operator-review__photo-fallback" : undefined}
     >
       <p
-        className={readOnly ? "denali-review__photo-fallback-text" : "denali-wizard-composite__error"}
+        className={readOnly ? "operator-review__photo-fallback-text" : "denali-wizard-composite__error"}
         role="alert"
       >
         {fallbackMessage}

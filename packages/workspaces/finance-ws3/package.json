@@ -2,7 +2,7 @@
   "name": "@app-tour/workspace-finance-ws3",
   "version": "0.1.0",
   "private": true,
-  "description": "Finance-ws3 drop-in onboarding proof \u2014 package + manifest + codegen",
+  "description": "Finance-ws3 drop-in onboarding proof — package + manifest + codegen",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -13,10 +13,6 @@
     "./plugin": {
       "types": "./dist/plugin.d.ts",
       "default": "./dist/plugin.js"
-    },
-    "./finance": {
-      "types": "./dist/finance/index.d.ts",
-      "default": "./dist/finance/index.js"
     },
     "./host/finance": {
       "types": "./dist/finance/index.d.ts",

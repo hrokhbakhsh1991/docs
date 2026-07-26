@@ -2,10 +2,12 @@
   "id": "finance-ws5",
   "version": 1,
   "package": "@app-tour/workspace-finance-ws5",
-  "workspaceTypes": ["finance-ws5"],
+  "workspaceTypes": [
+    "finance-ws5"
+  ],
   "plugin": {
     "entry": "./plugin",
-    "export": "getFinanceWs5WorkspacePlugin"
+    "export": "getWorkspacePlugin"
   },
   "tourWrite": {
     "module": "./tours",

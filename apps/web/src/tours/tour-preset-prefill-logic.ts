@@ -32,7 +32,7 @@ export function findActiveTourPreset(
 }
 
 /** Thin re-export — SoT via host-adapter runtime. */
-export { readActiveThemeIds } from "@/wizard/host-adapter-runtime";
+export { readActiveThemeIds } from "@/wizard/wizard-host-adapter-registry";
 
 export function applyTourPresetToDraft(
   draft: TourWizardDraft,

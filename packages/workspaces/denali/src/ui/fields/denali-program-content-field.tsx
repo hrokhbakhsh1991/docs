@@ -140,8 +140,8 @@ export function DenaliProgramContentField({
   return (
     <div
       className="denali-wizard-composite"
-      data-denali-wizard-surface="section"
-      data-denali-theme-picker
+      data-operator-wizard-surface="section"
+      data-operator-theme-picker
       data-testid={DENALI_PROGRAM_CONTENT_TEST_IDS.themes}
     >
       <label
@@ -214,7 +214,7 @@ export function DenaliProgramContentField({
                 type="button"
                 role="listitem"
                 data-testid={DENALI_PROGRAM_CONTENT_TEST_IDS.card}
-                data-denali-theme-card
+                data-operator-theme-card
                 aria-pressed={isSelected}
                 aria-label={theme.name}
                 className={

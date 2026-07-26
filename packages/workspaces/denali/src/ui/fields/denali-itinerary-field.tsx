@@ -141,7 +141,7 @@ export function DenaliItineraryField({
   return (
     <div
       className="denali-wizard-composite denali-wizard-composite--itinerary"
-      data-denali-wizard-surface="section"
+      data-operator-wizard-surface="section"
       data-testid={DENALI_ITINERARY_TEST_IDS.itinerary}
     >
       <div className="denali-wizard-composite__header">

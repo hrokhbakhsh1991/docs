@@ -3,19 +3,25 @@
   "version": 1,
   "pluginApiVersion": 1,
   "package": "@app-tour/workspace-starter",
-  "workspaceTypes": ["starter"],
+  "workspaceTypes": [
+    "starter"
+  ],
   "plugin": {
     "entry": ".",
-    "export": "getStarterWorkspacePlugin"
+    "export": "getWorkspacePlugin"
   },
   "web": {
     "entry": ".",
-    "export": "getStarterWorkspacePlugin"
+    "export": "getWorkspacePlugin"
   },
   "wizardCreate": {},
-  "themeStylesheets": ["theme/tokens.css"],
+  "themeStylesheets": [
+    "theme/tokens.css"
+  ],
   "wizardTemplate": {
-    "pathAliases": ["title"],
+    "pathAliases": [
+      "title"
+    ],
     "aliasCatalogWorkspaceType": "denali"
   }
 }

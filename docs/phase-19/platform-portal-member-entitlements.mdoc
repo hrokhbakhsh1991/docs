@@ -21,7 +21,7 @@ implementation_status: bootstrap
 **Decision:** DL-09, DL-17, DL-21  
 **Phase:** PS-5 / BP-5  
 **Route:** `GET /api/me/entitlements`  
-**Implementation status:** **PS-6 partial (2026-07-05)** — tier-based default grants, membership `portalModuleGrants`, BFF 30s private cache (DL-17); plan tables / webhooks deferred to BP-7.
+**Implementation status:** **BP-7 landed (2026-07-21)** — PS-6 grants + BFF cache remain; tenant-scoped `portal_member_plans` + ops JWT apply-plan webhook write `portalModuleGrants` / plan metadata. No platform SKUs / no commerce UI.
 
 ---
 
@@ -64,6 +64,11 @@ type MemberEntitlementsResponse = {
     key: string;
     reason: "not_entitled" | "module_disabled" | "plan_limit";
   }>;
+  /** BP-7 — present after apply-plan; tenant-defined code, not a platform SKU */
+  planCode?: string;
+  entitlementsRevision?: number;
+  /** Optional capability flags from plan (`member.module.{id}.*` keys → bool) */
+  capabilities?: Record<string, boolean>;
 };
 ```
 
@@ -154,7 +159,36 @@ Deep link to unauthorized module (DL-21): in-portal 403 page — not marketing r
 | Profile PATCH | Member session | Same helper after successful upstream patch |
 | `POST /api/me/entitlements/invalidate` | Member session (PCMS-SEC-01) | Explicit BFF cache bust — bootstrap for BP-7 billing webhooks |
 
-BP-7 billing may call the same invalidation helper server-side after updating `portalModuleGrants`; external service auth is out of scope for PS-6 bootstrap.
+### 5.2 BP-7 plan tables + apply webhook (2026-07-21)
+
+**Logic:** Plan codes are **tenant-defined rows** in `portal_member_plans` (not hard-coded `basic`/`pro` SKUs). Ops JWT scope `portal:entitlements` upserts a plan, then `apply-plan` copies that plan’s `moduleGrants` / `capabilityFlags` onto `UserTenant.membership_metadata` and bumps `portalEntitlementsRevision`.
+
+```mermaid
+sequenceDiagram
+  participant Billing as Billing/ops
+  participant API as apps/api internal
+  participant Plans as portal_member_plans
+  participant UT as user_tenants.membership_metadata
+  participant Me as GET /identity/me/entitlements
+  Billing->>API: POST .../plans/upsert (ops JWT portal:entitlements)
+  API->>Plans: upsert (tenantId, planCode, grants, flags)
+  Billing->>API: POST .../apply-plan {tenantId,userId,planCode}
+  API->>Plans: findActiveByCode
+  API->>UT: portalModuleGrants + planCode + flags + revision++
+  Me->>UT: read grants/revision
+  Me-->>Me: evaluateMemberPortalEntitlements (SDK)
+```
+
+| Method | Path | Auth |
+| ------ | ---- | ---- |
+| `POST` | `/internal/portal-member-entitlements/plans/upsert` | ops JWT `portal:entitlements` (prod/prodlike); provisioning guard in non-prod |
+| `POST` | `/internal/portal-member-entitlements/apply-plan` | same |
+
+`apply-plan` body (strict): `{ "tenantId": "<uuid>", "userId": "<uuid>", "planCode": "<tenant-defined>" }`.
+
+**Paths:** `apps/api/prisma` `PortalMemberPlan`, `apps/api/src/identity/portal-member-plan.*`, `apps/api/src/routes/internal/portal-member-entitlements.ts`, evidence [SK3_BP7_IMPLEMENTATION.md](../phase-saas-kernel/appendices/SK3_BP7_IMPLEMENTATION.md).
+
+BFF still TTL-caps at 30s (DL-17). Apply bumps API revision; members may call `POST /api/me/entitlements/invalidate` for session-scoped bust. No Stripe / plan catalog UI.
 
 ---
 
@@ -173,10 +207,11 @@ BP-7 billing may call the same invalidation helper server-side after updating `p
 
 | Extension | Phase | Notes |
 | --------- | ----- | ----- |
-| Per-module capability flags | BP-7 | Sub-keys under `member.module.{id}.*` |
-| Webhook invalidation | BP-7 | Membership plan changes |
-| Plan tables / billing webhooks | BP-7 | Populate `portalModuleGrants` from subscription service |
-| Membership mutation webhooks | BP-7 | `POST /api/me/entitlements/invalidate` (session-scoped, PS-6 bootstrap) |
+| Per-module capability flags | **BP-7 landed** | Copied onto membership as `portalCapabilityFlags`; exposed as `capabilities` on me/entitlements |
+| Apply-plan webhook | **BP-7 landed** | Internal ops JWT `portal:entitlements` — see §5.2 |
+| Plan tables | **BP-7 landed** | Tenant-scoped `portal_member_plans` — codes are data, not platform SKUs |
+| Membership mutation webhooks | BP-7 / ops | BFF invalidate remains session-scoped; billing calls apply-plan then optional invalidate |
+| Commerce / Stripe / plan UI | **Non-goal** | Out of Kernel scope |
 
 ### 7.1 Home aggregate (shipped bootstrap)
 

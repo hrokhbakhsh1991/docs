@@ -8,6 +8,8 @@ import {
   type OperatorSessionContext,
 } from "@/admin/require-operator-session";
 import { OperatorShell } from "@/admin/shell/operator-shell";
+import { ensureFinanceNavSupported } from "@/finance/finance-nav-enablement";
+import { ensureWizardCreate } from "@/workspace/wizard-create-registry";
 import { resolveOperatorNav } from "@/admin/shell/resolve-operator-nav";
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
 import { decodeJwtPayload } from "@app-tour/session-client";
@@ -64,6 +66,8 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   const tenantTheme = await fetchTenantThemeForContext(bootstrap.context, host);
   const operatorProfile = await fetchOperatorProfileServer();
   const tWorkspaces = await getTranslations("app.workspaces");
+  await ensureFinanceNavSupported(bootstrap.session.pluginId);
+  const wizardCreate = await ensureWizardCreate(bootstrap.session.pluginId);
   const navItems = resolveOperatorNav({
     session: session!,
     pluginId: bootstrap.session.pluginId,
@@ -82,6 +86,7 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
       operatorProfileDisplayName={operatorProfile?.displayName ?? null}
       operatorProfileAvatarUrl={operatorProfile?.avatarUrl ?? null}
       pluginId={bootstrap.session.pluginId}
+      wizardCreate={wizardCreate}
       navItems={navItems}
       impersonationReadonly={impersonationReadonly}
     >

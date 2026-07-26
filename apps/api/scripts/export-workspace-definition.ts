@@ -73,7 +73,7 @@ async function main(): Promise<void> {
     workspaceType: defaults?.workspaceType ?? args.workspace,
   };
 
-  const plugin = resolveWorkspacePluginForType(meta.workspaceType);
+  const plugin = await resolveWorkspacePluginForType(meta.workspaceType);
   const exported = buildWorkspaceDefinitionExport({ plugin, meta });
 
   await mkdir(dirname(args.out), { recursive: true });

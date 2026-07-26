@@ -7,7 +7,7 @@ import {
   ensureOperatorUiComponentsSurface,
   resolveOperatorUiComponentsSurface,
   type OperatorUiComponentsSurface,
-} from "@/bootstrap/workspace-operator-ui-components-bindings.generated";
+} from "@/wizard/operator-ui-components-registry";
 import { joinDatetimeLocal, splitDatetimeLocal } from "@/i18n/datetime-format";
 import type { AppLocale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
@@ -37,7 +37,6 @@ function useOperatorUiSurface(): OperatorUiComponentsSurface | null {
     const cached = resolveOperatorUiComponentsSurface(session.pluginId);
     if (cached != null) {
       setSurface(cached);
-      return;
     }
     void ensureOperatorUiComponentsSurface(session.pluginId).then((next) => {
       if (!cancelled) {

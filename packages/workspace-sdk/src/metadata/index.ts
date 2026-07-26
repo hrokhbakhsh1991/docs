@@ -17,6 +17,11 @@ export {
   type WorkspacePaymentMode,
 } from "./commerce-schema.js";
 export {
+  WORKSPACE_FROZEN_COMMERCE_BY_WORKSPACE_TYPE,
+  isWorkspaceCommerceFrozen,
+  resolveFrozenWorkspaceCommerce,
+} from "./workspace-commerce-freeze.generated.js";
+export {
   assertWorkspaceDefinitionPayload,
   stripWorkspacePluginToDefinitionPayload,
   validateWorkspaceDefinitionPayload,

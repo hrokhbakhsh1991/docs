@@ -263,7 +263,7 @@ describe("integration-policy-engine", () => {
     });
   });
 
-  it("resolves the current profile/intent exposure coordinate without normalizing trigger", () => {
+  it("resolves the current profile/intent exposure coordinate without normalizing trigger", async () => {
     assert.deepEqual(
       resolveIntegrationPolicyExposureCoordinate({
         provider: "telegram",

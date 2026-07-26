@@ -23,7 +23,7 @@ export function loadDenaliSeedExport(): WorkspaceDefinitionExportFile {
 }
 
 export function buildLiveDenaliExport(): WorkspaceDefinitionExportFile {
-  const plugin = resolveWorkspacePluginForType("denali");
+  const plugin = await resolveWorkspacePluginForType("denali");
   return buildWorkspaceDefinitionExport({
     plugin,
     meta: DEFAULT_WORKSPACE_DEFINITION_EXPORTS.denali,

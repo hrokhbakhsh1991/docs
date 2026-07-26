@@ -21,7 +21,7 @@ export function LeaderPickerAvatar({
 
   if (hasLeaderPickerAvatarUrl(avatarUrl)) {
     return (
-      <span className={classNames} aria-hidden data-denali-leader-avatar="photo">
+      <span className={classNames} aria-hidden data-operator-leader-avatar="photo">
         <img
           src={avatarUrl}
           alt=""
@@ -37,7 +37,7 @@ export function LeaderPickerAvatar({
     <span
       className={classNames}
       aria-hidden
-      data-denali-leader-avatar="icon"
+      data-operator-leader-avatar="icon"
       title={displayName}
     >
       <User className="denali-leader-picker__avatar-icon" aria-hidden />

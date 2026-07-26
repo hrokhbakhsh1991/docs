@@ -322,6 +322,7 @@ const urbanTheme = {
 } as const;
 
 export function createUrbanWorkspacePlugin(): WorkspacePlugin {
+  const wizardHost = deepFreezeValue({ ...urbanWizardHostHooks });
   return deepFreezeValue({
     id: URBAN_WORKSPACE_PLUGIN_ID,
     version: 1,
@@ -341,7 +342,16 @@ export function createUrbanWorkspacePlugin(): WorkspacePlugin {
     tourList: deepFreezeValue({
       extractTourListProjection: extractUrbanTourListProjection,
     }),
-    wizardHost: deepFreezeValue({ ...urbanWizardHostHooks }),
+    wizardHost,
+    capabilities: deepFreezeValue({
+      wizardHost,
+      operatorShellNav: {
+        links: [
+          { href: "/catalog", labelKey: "catalog" },
+          { href: "/settings/workspace-owner", labelKey: "workspaceOwnerSettings" },
+        ],
+      },
+    }),
     draftTombstone: noopWorkspaceDraftTombstoneBinding,
     operatorSettings: deepFreezeValue({ ...urbanOperatorSettingsSurface }),
     exposureSurface: deepFreezeValue({ ...urbanExposureSurface }),
@@ -354,4 +364,9 @@ export const urbanWorkspacePlugin = Object.freeze(createUrbanWorkspacePlugin()) 
 
 export function getUrbanWorkspacePlugin(): typeof urbanWorkspacePlugin {
   return urbanWorkspacePlugin;
+}
+
+/** Canonical host-contract getter (manifest plugin/web.export; Phase 4p). */
+export function getWorkspacePlugin(): typeof urbanWorkspacePlugin {
+  return getUrbanWorkspacePlugin();
 }

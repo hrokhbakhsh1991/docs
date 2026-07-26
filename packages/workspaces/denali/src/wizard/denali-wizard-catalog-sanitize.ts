@@ -206,6 +206,12 @@ export function readActiveGuideLanguageIds(
   return readActiveThemeIds(items);
 }
 
+export function readActiveEquipmentIds(
+  items: ReadonlyArray<{ id: string; isActive?: boolean }>
+): readonly string[] {
+  return readActiveThemeIds(items);
+}
+
 export function readActiveDestinationIds(
   items: ReadonlyArray<{ id: string; isActive?: boolean }>
 ): readonly string[] {
@@ -253,7 +259,7 @@ export function aggregateDenaliSubmitCatalogIds(input: {
 }): DenaliSubmitCatalogIds {
   return {
     ...(input.equipmentItems !== undefined
-      ? { activeEquipmentIds: readActiveThemeIds(input.equipmentItems) }
+      ? { activeEquipmentIds: readActiveEquipmentIds(input.equipmentItems) }
       : {}),
     ...(input.themeItems !== undefined ? { activeThemeIds: readActiveThemeIds(input.themeItems) } : {}),
     ...(input.guideLanguageItems !== undefined

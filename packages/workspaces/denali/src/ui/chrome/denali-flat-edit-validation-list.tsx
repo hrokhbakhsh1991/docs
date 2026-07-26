@@ -39,7 +39,7 @@ export function DenaliFlatEditValidationList({
     <ul
       className="denali-flat-edit-validation__list"
       data-testid={DENALI_FLAT_EDIT_VALIDATION_TEST_IDS.list}
-      data-denali-flat-edit-validation
+      data-operator-flat-edit-validation
     >
       {issues.map((issue) => {
         const fieldLabel = resolveDenaliWizardValidationFieldLabel({

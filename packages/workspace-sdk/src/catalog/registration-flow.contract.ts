@@ -19,6 +19,18 @@ export type RegistrationFlowContext = {
   readonly backHref: string;
   /** GSH-resolved member module URL — workspace done steps MUST use this (DL-38). */
   readonly memberModuleHref: string | null;
+  /**
+   * SSR-stable login egress — set by portal login host / login modal; never derive from `window`
+   * during render (PCMS-UX-HYDRATE). Stepper: phone → otp → profile only.
+   */
+  readonly memberLoginEgress?: boolean;
+  /**
+   * When true with `memberLoginEgress`, after cookie probe call `onMemberLoginSessionReady`
+   * instead of `location.assign(portalReturn)` (register-host modal — PCMS-UX-MODAL-03).
+   */
+  readonly memberLoginStayOnPage?: boolean;
+  /** Register-host modal success — close modal + resume intake on page. */
+  readonly onMemberLoginSessionReady?: () => void | Promise<void>;
 };
 
 export type IntakeFlowDefinition = {

@@ -6,6 +6,7 @@ import { auditWorkspacePluginSurface, isAllowedPluginSurfaceExport } from "../gu
 
 test("isAllowedPluginSurfaceExport accepts contract exports", () => {
   assert.equal(isAllowedPluginSurfaceExport("getDenaliWorkspacePlugin"), true);
+  assert.equal(isAllowedPluginSurfaceExport("getWorkspacePlugin"), true);
   assert.equal(isAllowedPluginSurfaceExport("createUrbanWorkspacePlugin"), true);
   assert.equal(isAllowedPluginSurfaceExport("DENALI_WORKSPACE_PLUGIN_ID"), true);
   assert.equal(isAllowedPluginSurfaceExport("denaliHydrateTourCloneDraft"), false);

@@ -101,6 +101,33 @@ export function parseOptionalRegistrationId(raw: string | null): string | undefi
   return result.data;
 }
 
+/** Optional UUID filter for tour-scoped finance lists (FC-3). Empty → undefined. */
+export function parseOptionalTourId(raw: string | null): string | undefined {
+  if (raw === null || raw.trim() === "") {
+    return undefined;
+  }
+  const result = uuidSchema.safeParse(raw.trim());
+  if (!result.success) {
+    throw new Error(`ZOD_VALIDATION_FAILED: tourId: ${result.error.issues[0]?.message ?? "invalid"}`);
+  }
+  return result.data;
+}
+
+/** Host read-model scope for finance list endpoints (FC-3). */
+export type FinanceListScope = {
+  readonly registrationId?: string;
+  readonly tourId?: string;
+};
+
+export function parseFinanceListScope(searchParams: {
+  get(name: string): string | null;
+}): FinanceListScope {
+  return {
+    registrationId: parseOptionalRegistrationId(searchParams.get("registrationId")),
+    tourId: parseOptionalTourId(searchParams.get("tourId")),
+  };
+}
+
 export const recordPrepaymentBodySchema = z
   .object({
     registrationId: uuidSchema,
@@ -131,6 +158,24 @@ export const generateScheduleBodySchema = z
 
 export type GenerateScheduleBody = z.infer<typeof generateScheduleBodySchema>;
 
+export const patchScheduleItemBodySchema = z
+  .discriminatedUnion("action", [
+    z
+      .object({
+        action: z.literal("waive"),
+        reason: z.string().min(1).max(2000),
+      })
+      .strict(),
+    z
+      .object({
+        action: z.literal("reschedule"),
+        dueAt: z.string().datetime(),
+      })
+      .strict(),
+  ]);
+
+export type PatchScheduleItemBody = z.infer<typeof patchScheduleItemBodySchema>;
+
 export function parseRecordPrepaymentBody(raw: unknown): RecordPrepaymentBody {
   const result = recordPrepaymentBodySchema.safeParse(raw);
   if (!result.success) {
@@ -141,6 +186,14 @@ export function parseRecordPrepaymentBody(raw: unknown): RecordPrepaymentBody {
 
 export function parseGenerateScheduleBody(raw: unknown): GenerateScheduleBody {
   const result = generateScheduleBodySchema.safeParse(raw);
+  if (!result.success) {
+    throw new Error(`ZOD_VALIDATION_FAILED: ${formatZodError(result.error)}`);
+  }
+  return result.data;
+}
+
+export function parsePatchScheduleItemBody(raw: unknown): PatchScheduleItemBody {
+  const result = patchScheduleItemBodySchema.safeParse(raw);
   if (!result.success) {
     throw new Error(`ZOD_VALIDATION_FAILED: ${formatZodError(result.error)}`);
   }

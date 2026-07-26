@@ -13,6 +13,7 @@ export type {
   FinanceReceiptRow,
   FinanceRepositoryPort,
   FinanceSummaryRow,
+  FinanceTourPaymentAggregateRow,
   PrepaymentBookingSyncDegradedRow,
   RecordPrepaymentAtomicInput,
   RecordPrepaymentAtomicResult,

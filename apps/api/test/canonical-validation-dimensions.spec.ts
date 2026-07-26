@@ -16,8 +16,8 @@ const SYNC_SOURCE = readFileSync(
 );
 
 describe("canonical-validation-dimensions.spec.ts (P13-3)", () => {
-  it("P13-3-01 denali uses wizardHost.resolveMatrixDimensionsFromDraft", () => {
-    const plugin = resolveWorkspacePluginForType("denali");
+  it("P13-3-01 denali uses wizardHost.resolveMatrixDimensionsFromDraft", async () => {
+    const plugin = await resolveWorkspacePluginForType("denali");
     assert.equal(plugin.id, getDenaliWorkspacePlugin().id);
     assert.deepEqual(resolveValidationDimensions(plugin, "default", {}), {
       category: "mountain",
@@ -29,18 +29,18 @@ describe("canonical-validation-dimensions.spec.ts (P13-3)", () => {
     );
   });
 
-  it("P13-3-02 starter uses validation variant matrix", () => {
+  it("P13-3-02 starter uses validation variant matrix", async () => {
     const plugin = getStarterWorkspacePlugin();
     assert.deepEqual(resolveValidationDimensions(plugin, "default", {}), { variant: "default" });
     assert.deepEqual(resolveValidationDimensions(plugin, "basic", {}), { variant: "basic" });
   });
 
-  it("P13-3-03 urban resolves tourType from wizardHost hook", () => {
-    const plugin = resolveWorkspacePluginForType("urban");
+  it("P13-3-03 urban resolves tourType from wizardHost hook", async () => {
+    const plugin = await resolveWorkspacePluginForType("urban");
     assert.deepEqual(resolveValidationDimensions(plugin, "default", {}), { tourType: "city" });
   });
 
-  it("P13-3-04 sync module has no denali product branch", () => {
+  it("P13-3-04 sync module has no denali product branch", async () => {
     assert.equal(/plugin\.id === ["']denali["']/.test(SYNC_SOURCE), false);
     assert.equal(/@app-tour\/workspace-denali/.test(SYNC_SOURCE), false);
   });

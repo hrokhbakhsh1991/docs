@@ -4,27 +4,18 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-"use client";
+/** Manifest + platform wizard message namespaces (private; Phase 4i / 4aq; slimmed Phase 4bh). */
+const WORKSPACE_WIZARD_I18N_NAMESPACES = ["wizard","denali","urban"] as const;
 
-import { useTranslations } from "next-intl";
-import { useMemo } from "react";
+export type WorkspaceWizardI18nNamespace = (typeof WORKSPACE_WIZARD_I18N_NAMESPACES)[number];
 
-import { WORKSPACE_WIZARD_I18N_NAMESPACES } from "./wizard-label-bindings.generated";
+export function isWorkspaceWizardI18nNamespace(
+  value: string
+): value is WorkspaceWizardI18nNamespace {
+  return (WORKSPACE_WIZARD_I18N_NAMESPACES as readonly string[]).includes(value);
+}
 
-/** Codegen hook map — one useTranslations call per WORKSPACE_WIZARD_I18N_NAMESPACES entry. */
-export function useGeneratedWorkspaceWizardTranslators() {
-  const t_wizard = useTranslations("wizard");
-  const t_denali = useTranslations("denali");
-  const t_urban = useTranslations("urban");
-  return useMemo(
-    () =>
-      ({
-      "wizard": t_wizard,
-      "denali": t_denali,
-      "urban": t_urban,
-      }) as const satisfies Partial<
-        Record<(typeof WORKSPACE_WIZARD_I18N_NAMESPACES)[number], ReturnType<typeof useTranslations>>
-      >,
-    [t_wizard, t_denali, t_urban]
-  );
+/** Declared wizard i18n namespaces (tests / label resolvers). */
+export function listWorkspaceWizardI18nNamespaces(): readonly WorkspaceWizardI18nNamespace[] {
+  return WORKSPACE_WIZARD_I18N_NAMESPACES;
 }

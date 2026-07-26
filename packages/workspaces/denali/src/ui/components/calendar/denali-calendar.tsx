@@ -154,14 +154,14 @@ export function DenaliCalendar({ value, onSelect, minIsoDate, className }: Denal
 
   const headerTitle =
     viewMode === "years" ? (
-      <p className="denali-wizard-calendar__title denali-wizard-calendar__title--range">
+      <p className="operator-wizard-calendar__title operator-wizard-calendar__title--range">
         {formatCalendarYearLabel(yearPage[0]!, locale)} –{" "}
         {formatCalendarYearLabel(yearPage[yearPage.length - 1]!, locale)}
       </p>
     ) : viewMode === "months" ? (
       <button
         type="button"
-        className="denali-wizard-calendar__title-btn denali-wizard-calendar__title-btn--solo"
+        className="operator-wizard-calendar__title-btn operator-wizard-calendar__title-btn--solo"
         aria-label={t("pickYear")}
         onClick={(event) => {
           event.stopPropagation();
@@ -172,10 +172,10 @@ export function DenaliCalendar({ value, onSelect, minIsoDate, className }: Denal
         {formatCalendarYearLabel(viewYear, locale)}
       </button>
     ) : (
-      <div className="denali-wizard-calendar__title-group">
+      <div className="operator-wizard-calendar__title-group">
         <button
           type="button"
-          className="denali-wizard-calendar__title-btn"
+          className="operator-wizard-calendar__title-btn"
           aria-label={t("pickMonth")}
           onClick={(event) => {
             event.stopPropagation();
@@ -186,7 +186,7 @@ export function DenaliCalendar({ value, onSelect, minIsoDate, className }: Denal
         </button>
         <button
           type="button"
-          className="denali-wizard-calendar__title-btn"
+          className="operator-wizard-calendar__title-btn"
           aria-label={t("pickYear")}
           onClick={(event) => {
             event.stopPropagation();
@@ -205,48 +205,48 @@ export function DenaliCalendar({ value, onSelect, minIsoDate, className }: Denal
 
   return (
     <div
-      className={cn("denali-wizard-calendar", className)}
+      className={cn("operator-wizard-calendar", className)}
       data-testid="localized-calendar"
-      data-denali-wizard-calendar
-      data-denali-wizard-calendar-view={viewMode}
+      data-operator-wizard-calendar
+      data-operator-wizard-calendar-view={viewMode}
       onPointerDown={stopPickerEvent}
       onMouseDown={stopPickerEvent}
       onClick={stopPickerEvent}
     >
-      <div className="denali-wizard-calendar__header">
+      <div className="operator-wizard-calendar__header">
         <Button
           type="button"
           variant="ghost"
           aria-label={viewMode === "years" ? t("previousYears") : t("previousMonth")}
-          className="denali-wizard-calendar__nav"
+          className="operator-wizard-calendar__nav"
           disabled={!canGoPrev}
           onClick={() => goMonth(-1)}
         >
-          <ChevronLeftIcon className="denali-wizard-calendar__nav-icon" />
+          <ChevronLeftIcon className="operator-wizard-calendar__nav-icon" />
         </Button>
         {headerTitle}
         <Button
           type="button"
           variant="ghost"
           aria-label={viewMode === "years" ? t("nextYears") : t("nextMonth")}
-          className="denali-wizard-calendar__nav"
+          className="operator-wizard-calendar__nav"
           onClick={() => goMonth(1)}
         >
-          <ChevronRightIcon className="denali-wizard-calendar__nav-icon" />
+          <ChevronRightIcon className="operator-wizard-calendar__nav-icon" />
         </Button>
       </div>
 
       {viewMode === "days" ? (
         <>
-          <div className="denali-wizard-calendar__weekdays">
+          <div className="operator-wizard-calendar__weekdays">
             {weekdays.map((label: string) => (
-              <span key={label} className="denali-wizard-calendar__weekday">
+              <span key={label} className="operator-wizard-calendar__weekday">
                 {label}
               </span>
             ))}
           </div>
 
-          <div className="denali-wizard-calendar__grid">
+          <div className="operator-wizard-calendar__grid">
             {cells.map((cell) => (
               <button
                 key={cell.iso}
@@ -257,10 +257,10 @@ export function DenaliCalendar({ value, onSelect, minIsoDate, className }: Denal
                 aria-current={cell.isToday && !cell.isSelected ? "date" : undefined}
                 disabled={cell.isDisabled}
                 className={cn(
-                  "denali-wizard-calendar__day",
-                  !cell.inCurrentMonth && "denali-wizard-calendar__day--outside",
-                  cell.isToday && "denali-wizard-calendar__day--today",
-                  cell.isDisabled && "denali-wizard-calendar__day--disabled"
+                  "operator-wizard-calendar__day",
+                  !cell.inCurrentMonth && "operator-wizard-calendar__day--outside",
+                  cell.isToday && "operator-wizard-calendar__day--today",
+                  cell.isDisabled && "operator-wizard-calendar__day--disabled"
                 )}
                 onClick={() => selectDay(cell.iso)}
               >
@@ -270,7 +270,7 @@ export function DenaliCalendar({ value, onSelect, minIsoDate, className }: Denal
           </div>
         </>
       ) : (
-        <div className="denali-wizard-calendar__picker-grid">
+        <div className="operator-wizard-calendar__picker-grid">
           {viewMode === "months"
             ? Array.from({ length: 12 }, (_, index) => {
                 const month = index + 1;
@@ -285,9 +285,9 @@ export function DenaliCalendar({ value, onSelect, minIsoDate, className }: Denal
                     disabled={disabled}
                     aria-pressed={selected}
                     className={cn(
-                      "denali-wizard-calendar__picker-cell",
-                      selected && "denali-wizard-calendar__picker-cell--selected",
-                      disabled && "denali-wizard-calendar__picker-cell--disabled"
+                      "operator-wizard-calendar__picker-cell",
+                      selected && "operator-wizard-calendar__picker-cell--selected",
+                      disabled && "operator-wizard-calendar__picker-cell--disabled"
                     )}
                     onClick={() => selectMonth(month)}
                   >
@@ -306,9 +306,9 @@ export function DenaliCalendar({ value, onSelect, minIsoDate, className }: Denal
                     disabled={disabled}
                     aria-pressed={selected}
                     className={cn(
-                      "denali-wizard-calendar__picker-cell",
-                      selected && "denali-wizard-calendar__picker-cell--selected",
-                      disabled && "denali-wizard-calendar__picker-cell--disabled"
+                      "operator-wizard-calendar__picker-cell",
+                      selected && "operator-wizard-calendar__picker-cell--selected",
+                      disabled && "operator-wizard-calendar__picker-cell--disabled"
                     )}
                     onClick={() => selectYear(year)}
                   >
@@ -320,7 +320,7 @@ export function DenaliCalendar({ value, onSelect, minIsoDate, className }: Denal
       )}
 
       {viewMode === "days" ? (
-        <div className="denali-wizard-calendar__footer">
+        <div className="operator-wizard-calendar__footer">
           <Button
             type="button"
             variant="ghost"

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { URBAN_FIELD_REGISTRY } from "../src/urban.plugin";
+import { URBAN_FIELD_REGISTRY } from "../src/internal";
 import {
   buildUrbanMinimalWizardTemplatePayload,
   buildUrbanMinimalWizardTemplateSteps,

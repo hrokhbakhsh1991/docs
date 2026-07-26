@@ -85,7 +85,7 @@ export type RunForwardFieldExposureDecisionEngineShadowInput = {
   readonly exposureProfile?: Pick<ExposureProfile, "id" | "defaultFieldIds"> | null;
 };
 
-function resolveForwardEngineDecisionMap(input: {
+async function resolveForwardEngineDecisionMap(input: {
   readonly tenantId: string;
   readonly eventType: string;
   readonly workspaceType: string;
@@ -95,7 +95,7 @@ function resolveForwardEngineDecisionMap(input: {
   readonly payload: Readonly<Record<string, unknown>>;
   readonly exposureIntent?: ExposureIntent | null;
   readonly exposureProfile?: Pick<ExposureProfile, "id" | "defaultFieldIds"> | null;
-}): ReadonlyMap<string, ReturnType<typeof resolveFieldExposureDecision>> {
+}): Promise<ReadonlyMap<string, ReturnType<typeof resolveFieldExposureDecision>>> {
   return buildFieldExposureEngineDecisionMap(input);
 }
 
@@ -108,11 +108,13 @@ export function runForwardFieldExposureDecisionEngineShadow(
   if (input.workspaceType === null || input.workspaceType.trim().length === 0) {
     return;
   }
+  const workspaceType = input.workspaceType;
 
+  void (async () => {
   try {
-    const plugin = resolveWorkspacePluginForType(input.workspaceType);
-    const snapshot = buildFieldExposureEngineInputSnapshot({
-      workspaceType: input.workspaceType,
+    const plugin = await resolveWorkspacePluginForType(workspaceType);
+    const snapshot = await buildFieldExposureEngineInputSnapshot({
+      workspaceType,
       eventType: input.eventType,
       ...(input.trigger === undefined ? {} : { trigger: input.trigger }),
       payload: input.payload,
@@ -142,7 +144,7 @@ export function runForwardFieldExposureDecisionEngineShadow(
       const decision = resolveFieldExposureDecision(
         buildFieldExposureEngineDecisionInput({
           tenantId: input.tenantId,
-          workspaceType: input.workspaceType,
+          workspaceType,
           surface: input.surface,
           ...(input.audience === undefined ? {} : { audience: input.audience }),
           fieldId: field.id,
@@ -162,7 +164,7 @@ export function runForwardFieldExposureDecisionEngineShadow(
     }
 
     const parityReport = adjustShadowParityForIntentionalMismatches({
-      workspaceType: input.workspaceType,
+      workspaceType,
       eventType: input.eventType,
       surface: input.surface,
       report: compareShadowVsLegacy({
@@ -176,7 +178,7 @@ export function runForwardFieldExposureDecisionEngineShadow(
       event: "field_exposure.shadow_parity_summary",
       tenantId: input.tenantId,
       eventType: input.eventType,
-      workspaceType: input.workspaceType,
+      workspaceType,
       surface: input.surface,
       matches: parityReport.matches,
       mismatchCount: parityReport.mismatchCount,
@@ -247,7 +249,7 @@ export function runForwardFieldExposureDecisionEngineShadow(
         event: "field_exposure.shadow_parity",
         tenantId: input.tenantId,
         eventType: input.eventType,
-        workspaceType: input.workspaceType,
+        workspaceType,
         surface: input.surface,
         fieldId: report.fieldId,
         shadowState: report.shadowState,
@@ -288,7 +290,7 @@ export function runForwardFieldExposureDecisionEngineShadow(
       event: "field_exposure.observed_model",
       tenantId: input.tenantId,
       eventType: input.eventType,
-      workspaceType: input.workspaceType,
+      workspaceType,
       surface: input.surface,
       observedExposureModel,
     });
@@ -300,6 +302,7 @@ export function runForwardFieldExposureDecisionEngineShadow(
       err: error instanceof Error ? error.message : String(error),
     });
   }
+  })();
 }
 
 export function isIntegrationDeliveryDispatcherEnabled(): boolean {
@@ -324,7 +327,7 @@ function deliveryFieldPolicyPayload(
   messageTemplate: string | null,
   fieldDecorations: ExposureFieldDecorations | null,
   fieldExposureDecision: FieldExposureDecision,
-  shadowExposure: ReturnType<typeof resolveFieldExposureShadowDiagnostics>,
+  shadowExposure: Awaited<ReturnType<typeof resolveFieldExposureShadowDiagnostics>>,
   runtimeMetadata: FieldExposureRuntimeMetadata,
   activeFieldIds: readonly string[],
 ): Record<string, unknown> {
@@ -411,9 +414,9 @@ export async function dispatchIntegrationDomainEvent(
     const engineDecisions =
       workspaceType === null
         ? undefined
-        : (() => {
+        : await (async () => {
             try {
-              return buildEngineDecisionMap({
+              return await buildEngineDecisionMap({
                 tenantId: row.tenantId,
                 eventType: row.eventType,
                 workspaceType,
@@ -438,7 +441,7 @@ export async function dispatchIntegrationDomainEvent(
     const resolvedExposure =
       profile === null
         ? null
-        : resolveExposure({
+        : await resolveExposure({
             tenantId: row.tenantId,
             workspaceType,
             eventType: row.eventType,
@@ -553,7 +556,7 @@ export async function dispatchIntegrationDomainEvent(
     const shadowExposure =
       runtimeMode === "cutover"
         ? null
-        : resolveFieldExposureShadowDiagnostics({
+        : await resolveFieldExposureShadowDiagnostics({
             workspaceType,
             surface: decision.exposureCoordinate.surface,
             eventType: row.eventType,

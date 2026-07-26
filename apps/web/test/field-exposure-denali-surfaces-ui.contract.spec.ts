@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 describe("Denali workspace surfaces UI contract", () => {
-  it("renders WorkspaceSurfacesPanel via generated resolve on exposure settings", () => {
+  it("renders WorkspaceSurfacesPanel via capability registry on exposure settings", () => {
     const client = readFileSync(
       join(repoRoot, "apps/web/app/(app)/settings/exposure/exposure-settings-client.tsx"),
       "utf8",
@@ -19,7 +19,7 @@ describe("Denali workspace surfaces UI contract", () => {
     assert.doesNotMatch(client, /DenaliWorkspaceSurfacesPanel/);
   });
 
-  it("locks H1.d generated exposure-surfaces UI binding + package surface", () => {
+  it("locks H1.d exposure-surfaces UI via capability registry + package surface", () => {
     const types = readFileSync(
       join(
         repoRoot,
@@ -27,10 +27,17 @@ describe("Denali workspace surfaces UI contract", () => {
       ),
       "utf8",
     );
-    const generated = readFileSync(
+    const registry = readFileSync(
       join(
         repoRoot,
-        "apps/web/src/bootstrap/workspace-settings-exposure-surfaces-ui-bindings.generated.ts",
+        "apps/web/src/features/settings/settings-exposure-surfaces-ui-registry.ts",
+      ),
+      "utf8",
+    );
+    const packageWarm = readFileSync(
+      join(
+        repoRoot,
+        "packages/workspaces/denali/src/settings/settings-exposure-surfaces-ui-package-surface.ts",
       ),
       "utf8",
     );
@@ -77,11 +84,14 @@ describe("Denali workspace surfaces UI contract", () => {
     );
     assert.match(types, /SettingsExposureSurfacesUiSurface/);
     assert.match(types, /SettingsExposureSurfacesSelection/);
-    assert.match(generated, /ensureSettingsExposureSurfacesUiSurface/);
-    assert.match(generated, /resolveSettingsExposureSurfacesUiSurface/);
-    assert.match(generated, /denaliSettingsExposureSurfacesUiSurface/);
-    assert.match(generated, /AUTO-GENERATED/);
-    assert.match(generated, /await import\(/);
+    assert.match(registry, /ensureSettingsExposureSurfacesUiSurface/);
+    assert.match(registry, /resolveSettingsExposureSurfacesUiSurface/);
+    assert.match(registry, /resolveSettingsExposureSurfacesUiCapability/);
+    assert.match(registry, /app-cloud\.settingsExposureSurfacesUiSurface/);
+    assert.doesNotMatch(registry, /workspace-settings-exposure-surfaces-ui-bindings/);
+    assert.match(packageWarm, /ensureSettingsExposureSurfacesUiPackageSurface/);
+    assert.match(packageWarm, /const specifier = "/);
+    assert.doesNotMatch(packageWarm, /from \"\.\.\/ui\/settings\/settings-exposure-surfaces-ui-binding\"/);
     assert.match(packagePanel, /selection\.toggleExposureFieldSelection/);
     assert.match(packagePanel, /io\.loadSurfaces/);
     assert.doesNotMatch(packagePanel, /from "@\//);
@@ -90,9 +100,11 @@ describe("Denali workspace surfaces UI contract", () => {
     assert.match(webIo, /webSettingsExposureSurfacesIo/);
     assert.match(webChrome, /webSettingsExposureSurfacesChrome/);
     assert.match(webSelection, /webSettingsExposureSurfacesSelection/);
+    assert.match(client, /settings-exposure-surfaces-ui-registry/);
     assert.match(client, /webSettingsExposureSurfacesIo/);
     assert.match(client, /webSettingsExposureSurfacesChrome/);
     assert.match(client, /webSettingsExposureSurfacesSelection/);
+    assert.doesNotMatch(client, /workspace-settings-exposure-surfaces-ui-bindings/);
     assert.match(manifest, /settingsExposureSurfacesUi/);
   });
 

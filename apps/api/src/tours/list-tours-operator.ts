@@ -105,7 +105,7 @@ export async function listToursOperator(
 ): Promise<OperatorTourListResult> {
   ensureDevMemoryTourSeedForTenant(tenantId, store);
   const workspaceType = await resolveWorkspaceTypeForTenant(tenantId);
-  const plugin = resolveWorkspacePluginForType(workspaceType);
+  const plugin = await resolveWorkspacePluginForType(workspaceType);
   const extract =
     plugin.tourList?.extractTourListProjection ?? defaultExtractTourListProjection;
 

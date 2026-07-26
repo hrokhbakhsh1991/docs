@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
 
-import {
-  encodeTourActionSubmitError,
-  ensureAllTourActionSubmitCodecs,
-} from "../src/bootstrap/workspace-tour-action-submit-bindings.generated";
+import { DENALI_WORKSPACE_PLUGIN_ID } from "@app-cloud/workspace-denali";
+import { ensureWizardHostAdapterSurface } from "@app-cloud/workspace-denali/host/wizard/host-adapter-surface";
+
+import { encodeTourActionSubmitError } from "../src/wizard/tour-action-submit-codec";
 
 import { parsePlatformValidationMessage } from "../src/wizard/parse-platform-validation-segments";
 import { resolveWizardSubmitErrorMessage } from "../src/wizard/resolve-wizard-submit-error-message";
 
 describe("resolve-wizard-submit-error-message.spec.ts", () => {
   before(async () => {
-    await ensureAllTourActionSubmitCodecs();
+    await ensureWizardHostAdapterSurface(DENALI_WORKSPACE_PLUGIN_ID);
   });
   const t = {
     translate: (key: string, values?: Record<string, string | number>) => {
@@ -48,6 +48,7 @@ describe("resolve-wizard-submit-error-message.spec.ts", () => {
         'CANONICAL_VALIDATION_FAILED: No value at canonical path "title"; Canonical path "startPoint" expects kind "text" but got object',
     });
     const presentation = resolveWizardSubmitErrorMessage({
+      pluginId: DENALI_WORKSPACE_PLUGIN_ID,
       raw,
       context: "create",
       translateFieldLabel: (path) => `Label:${path}`,
@@ -67,6 +68,7 @@ describe("resolve-wizard-submit-error-message.spec.ts", () => {
       correlationId: "8104fe81-3909-4563-b29f-97414e10abfa",
     });
     const presentation = resolveWizardSubmitErrorMessage({
+      pluginId: DENALI_WORKSPACE_PLUGIN_ID,
       raw,
       context: "create",
       translateFieldLabel: (path) => path,
@@ -87,6 +89,7 @@ describe("resolve-wizard-submit-error-message.spec.ts", () => {
       message: "TOUR_LIFECYCLE_TRANSITION_REJECTED:OPEN->DRAFT",
     });
     const presentation = resolveWizardSubmitErrorMessage({
+      pluginId: DENALI_WORKSPACE_PLUGIN_ID,
       raw,
       context: "edit",
       translateFieldLabel: (path) => path,

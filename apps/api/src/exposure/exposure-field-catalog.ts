@@ -19,12 +19,12 @@ export type ExposureFieldCatalogEntry = {
 
 export const DELIVERABLE_REGISTRY_TAG = "deliverable" as const;
 
-function resolveWorkspacePluginSafely(workspaceType: string | null) {
+async function resolveWorkspacePluginSafely(workspaceType: string | null) {
   if (workspaceType === null || workspaceType.trim().length === 0) {
     return null;
   }
   try {
-    return resolveWorkspacePluginForType(workspaceType);
+    return await resolveWorkspacePluginForType(workspaceType);
   } catch {
     return null;
   }
@@ -33,10 +33,10 @@ function resolveWorkspacePluginSafely(workspaceType: string | null) {
 /**
  * Phase 4 exposure catalog — full workspace field registry projection.
  */
-export function buildExposureFieldCatalog(
+export async function buildExposureFieldCatalog(
   workspaceType: string | null,
-): readonly ExposureFieldCatalogEntry[] {
-  const plugin = resolveWorkspacePluginSafely(workspaceType);
+): Promise<readonly ExposureFieldCatalogEntry[]> {
+  const plugin = await resolveWorkspacePluginSafely(workspaceType);
   if (plugin === null) {
     return [];
   }
@@ -62,19 +62,19 @@ export function buildExposureFieldCatalog(
  * Selectable exposure fields — registry entries tagged `deliverable` only.
  * Wizard-only or internal fields stay out of admin delivery checklists.
  */
-export function buildExposureSelectableFieldCatalog(
+export async function buildExposureSelectableFieldCatalog(
   workspaceType: string | null,
-): readonly ExposureFieldCatalogEntry[] {
-  return buildExposureFieldCatalog(workspaceType).filter(
+): Promise<readonly ExposureFieldCatalogEntry[]> {
+  return (await buildExposureFieldCatalog(workspaceType)).filter(
     (field) => field.tags?.includes(DELIVERABLE_REGISTRY_TAG) === true,
   );
 }
 
-export function exposureSelectableFieldIds(workspaceType: string | null): readonly string[] {
-  return buildExposureSelectableFieldCatalog(workspaceType).map((field) => field.id);
+export async function exposureSelectableFieldIds(workspaceType: string | null): Promise<readonly string[]> {
+  return (await buildExposureSelectableFieldCatalog(workspaceType)).map((field) => field.id);
 }
 
 /** Full registry catalog ids — used by engine runtime and cutover definition adaptation. */
-export function exposureCatalogFieldIds(workspaceType: string | null): readonly string[] {
-  return buildExposureFieldCatalog(workspaceType).map((field) => field.id);
+export async function exposureCatalogFieldIds(workspaceType: string | null): Promise<readonly string[]> {
+  return (await buildExposureFieldCatalog(workspaceType)).map((field) => field.id);
 }

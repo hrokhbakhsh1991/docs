@@ -81,7 +81,9 @@ describe("workspace registry drop-in (P7-T06)", () => {
     const manifests = discoverManifests();
     const generated = generateAdminThemeStylesheetLoader(manifests);
     assert.match(generated, /importAdminThemeForPlugin/);
-    assert.match(generated, /WORKSPACE_ADMIN_THEME_REGISTRY/);
+    assert.match(generated, /resolveAdminThemeStylesheets/);
+    assert.match(generated, /listAdminThemeRegistryPluginIds/);
+    assert.doesNotMatch(generated, /export const WORKSPACE_ADMIN_THEME_REGISTRY/);
     assert.match(generated, /@app-tour\/workspace-denali\/theme\/denali-admin\.css/);
     assert.doesNotMatch(generated, /^import ["']@app-tour\/workspace-/m);
     assert.throws(

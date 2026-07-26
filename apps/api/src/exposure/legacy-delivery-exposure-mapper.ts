@@ -15,10 +15,10 @@ export type LegacyDeliveryExposureContextInput = {
  * Resolves the seeded exposure profile for a legacy integration delivery context.
  * Shared by Phase 2 read-path adapter and Phase 7b write bridge.
  */
-export function resolveLegacyDeliveryExposureProfile(
+export async function resolveLegacyDeliveryExposureProfile(
   input: LegacyDeliveryExposureContextInput,
-): ExposureProfile | null {
-  return resolveRegistrySeededExposureProfile({
+): Promise<ExposureProfile | null> {
+  return await resolveRegistrySeededExposureProfile({
     workspaceType: input.workspaceType,
     entityType: input.entityType ?? LEGACY_DELIVERY_DEFAULT_ENTITY_TYPE,
     surface: input.provider,

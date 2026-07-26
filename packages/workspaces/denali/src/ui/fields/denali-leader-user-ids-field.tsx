@@ -166,9 +166,9 @@ export function DenaliLeaderUserIdsField({
   return (
     <div
       className="denali-wizard-composite"
-      data-denali-wizard-surface="section"
-      data-denali-leader-picker
-      data-denali-leader-picker-expanded={pickerExpanded ? "true" : "false"}
+      data-operator-wizard-surface="section"
+      data-operator-leader-picker
+      data-operator-leader-picker-expanded={pickerExpanded ? "true" : "false"}
       data-testid={DENALI_LEADERS_TEST_IDS.leaders}
     >
       <div className="denali-wizard-composite__header denali-leader-picker__header">
@@ -292,7 +292,7 @@ export function DenaliLeaderUserIdsField({
                       type="button"
                       role="listitem"
                       data-testid={DENALI_LEADERS_TEST_IDS.card}
-                      data-denali-leader-card
+                      data-operator-leader-card
                       aria-pressed={isSelected}
                       aria-label={user.displayName}
                       className={

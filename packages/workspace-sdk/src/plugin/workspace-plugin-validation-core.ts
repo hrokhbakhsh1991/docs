@@ -337,6 +337,7 @@ const DEFINITION_FORBIDDEN_TOP_LEVEL_KEYS = [
   "validation",
   "lifecycle",
   "wizardHost",
+  "capabilities",
   "wizardMedia",
   "registrationOps",
   "operatorSettings",

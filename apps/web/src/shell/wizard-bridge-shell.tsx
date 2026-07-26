@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
-import { WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS } from "@/bootstrap/wizard-create-bindings.generated";
+import { isExtendedOperatorWorkspace } from "@/workspace/is-extended-operator-workspace";
+import { seedWizardCreate } from "@/workspace/wizard-create-registry";
 import { TenantBrandMark } from "@/admin/shell/tenant-brand-mark";
 import { TenantBrandingProvider, useTenantBrandTitle } from "@/tenant/tenant-branding-context";
 
@@ -33,6 +34,8 @@ export function WizardBridgeShell({
   pluginId,
   displayName,
 }: WizardBridgeShellProps) {
+  // Tours layout only mounts this shell for extendedChrome workspaces — seed before children.
+  seedWizardCreate(pluginId, { extendedChrome: true });
   return (
     <TenantBrandingProvider
       pluginId={pluginId}
@@ -58,7 +61,7 @@ function WizardBridgeShellChrome({
 }: WizardBridgeShellProps) {
   const tApp = useTranslations("app");
   const tWizard = useTranslations("wizard.bridge");
-  const usesExtendedCreateChrome = WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(pluginId);
+  const usesExtendedCreateChrome = isExtendedOperatorWorkspace(pluginId);
   const title = useTenantBrandTitle(displayName, workspaceLabel);
 
   return (

@@ -1,4 +1,4 @@
-import { URBAN_FIELD_REGISTRY } from "../urban.plugin";
+import { URBAN_FIELD_REGISTRY } from "../internal";
 
 export type UrbanWizardTemplateFieldRef = {
   readonly canonicalPath: string;

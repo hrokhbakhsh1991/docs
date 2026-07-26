@@ -30,7 +30,7 @@ describe("wizard-template-prefill.spec.ts — SMK-P9-05", () => {
       "operator-wizard-template-seed-prefill"
     );
 
-    const draft = applyWizardTemplateSeedToDraft(emptyTourWizardDraft(), "SMK-P9-SEED");
+    const draft = applyWizardTemplateSeedToDraft(emptyTourWizardDraft(), "SMK-P9-SEED", "starter");
     assert.equal(getCanonicalStringValue(draft, "basics.title"), "SMK-P9-SEED");
     assert.equal(shouldAttachSeedPrefillTestId("basics.title"), true);
     assert.equal(shouldAttachSeedPrefillTestId("details.summary"), false);
@@ -51,8 +51,8 @@ describe("wizard-template-prefill.spec.ts — SMK-P9-05", () => {
   });
 
   it("WEB-9.6-SMK-P9-05 does not overwrite existing title", () => {
-    const seeded = applyWizardTemplateSeedToDraft(emptyTourWizardDraft(), "SMK-P9-SEED");
-    const again = applyWizardTemplateSeedToDraft(seeded, "OTHER-SEED");
+    const seeded = applyWizardTemplateSeedToDraft(emptyTourWizardDraft(), "SMK-P9-SEED", "starter");
+    const again = applyWizardTemplateSeedToDraft(seeded, "OTHER-SEED", "starter");
     assert.equal(getCanonicalStringValue(again, "basics.title"), "SMK-P9-SEED");
   });
 

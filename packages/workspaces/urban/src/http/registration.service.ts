@@ -1,4 +1,4 @@
-import { validateUrbanRegistrationPayload } from "../urban.plugin";
+import { validateUrbanRegistrationPayload } from "../internal";
 
 import { UrbanRegistrationDuplicateError } from "./errors/urban-registration-conflict.error";
 import { UrbanRegistrationClosedError } from "./errors/urban-registration-closed.error";

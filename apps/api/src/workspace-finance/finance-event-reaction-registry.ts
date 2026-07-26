@@ -101,12 +101,12 @@ export function isWorkspaceFinanceEventReactionRegistered(workspaceType: string)
 }
 
 /**
- * Resolve workspace finance event reaction capability.
+ * Resolve workspace finance event reaction capability (P4-D3.b — async dynamic import).
  * @throws `FINANCE_EVENT_REACTION_UNSUPPORTED` when workspaceType is not registered.
  */
-export function resolveWorkspaceFinanceEventReaction(
+export async function resolveWorkspaceFinanceEventReaction(
   workspaceType: string
-): WorkspaceFinanceEventReactionPort {
+): Promise<WorkspaceFinanceEventReactionPort> {
   const normalized = normalizeWorkspaceType(workspaceType);
   if (normalized.length === 0) {
     throw new Error(

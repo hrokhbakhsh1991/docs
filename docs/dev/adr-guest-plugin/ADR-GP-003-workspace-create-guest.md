@@ -30,3 +30,9 @@ Guest packages use a **split TypeScript project**: `tsconfig.json` excludes `cat
 
 After promoting a guest workspace to trunk, wire `@app-tour/workspace-<id>` on codegen consumers — see [10.7 — consumer dependencies](../../phase-10/subphases/10.7-enforcement-dx.md#guest-workspace-scaffold-guest-pf-3). Enforced by `guard-guest-consumer-deps.mjs`.
 
+## Thin Shell follow-through (Phase 4n)
+
+Scaffolded packages export **canonical** `getWorkspacePlugin` (manifest `plugin.export` /
+`web.export`) plus a branded alias `get<Pascal>WorkspacePlugin` for local tests.
+Generated web loaders call the canonical name only.
+

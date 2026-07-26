@@ -10,8 +10,8 @@ import { registerWorkspaceRegistrationFlowSteps } from "@app-tour/workspace-plug
 
 /** Intake registrar for "guest-club" — plugin entry only (no registration-flow UI graph). */
 export async function registerWorkspaceIntakeGUEST_CLUBFromManifest(): Promise<void> {
-  const { getGuestClubWorkspacePlugin } = await import("@app-tour/workspace-guest-club/plugin");
-  const plugin = getGuestClubWorkspacePlugin();
+  const { getWorkspacePlugin } = await import("@app-tour/workspace-guest-club/plugin");
+  const plugin = getWorkspacePlugin();
   if (plugin.catalogIntake !== undefined) {
     registerWorkspaceIntakePlugin({
       id: plugin.id,
@@ -22,8 +22,8 @@ export async function registerWorkspaceIntakeGUEST_CLUBFromManifest(): Promise<v
 
 /** Full registrar for "guest-club" — intake, transport, and registration-flow surfaces. */
 export async function registerWorkspacePluginGUEST_CLUBFromManifest(): Promise<void> {
-  const { getGuestClubWorkspacePlugin } = await import("@app-tour/workspace-guest-club/plugin");
-  const plugin = getGuestClubWorkspacePlugin();
+  const { getWorkspacePlugin } = await import("@app-tour/workspace-guest-club/plugin");
+  const plugin = getWorkspacePlugin();
   if (plugin.catalogIntake !== undefined) {
     registerWorkspaceIntakePlugin({
       id: plugin.id,

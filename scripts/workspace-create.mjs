@@ -45,8 +45,8 @@ function writeBaseManifest(dir, ctx) {
     version: 1,
     package: ctx.pkgName,
     workspaceTypes: [ctx.id],
-    plugin: { entry: `./${ctx.id}.plugin`, export: ctx.exportFn },
-    web: { entry: `./${ctx.id}.plugin`, export: ctx.exportFn },
+    plugin: { entry: "./plugin", export: ctx.canonicalExportFn },
+    web: { entry: "./plugin", export: ctx.canonicalExportFn },
   });
 }
 
@@ -65,8 +65,8 @@ export function buildGuestManifestObject(id) {
     guestExtensionsVersion: 1,
     package: ctx.pkgName,
     workspaceTypes: [ctx.id],
-    plugin: { entry: `./${ctx.id}.plugin`, export: ctx.exportFn },
-    web: { entry: `./${ctx.id}.plugin`, export: ctx.exportFn },
+    plugin: { entry: "./plugin", export: ctx.canonicalExportFn },
+    web: { entry: "./plugin", export: ctx.canonicalExportFn },
     guestConformance: {
       productionTier: "stub",
     },
@@ -167,12 +167,14 @@ export function buildGuestManifestObject(id) {
 }
 
 function packageExports(ctx, guest) {
+  const pluginExport = {
+    types: `./dist/${ctx.id}.plugin.d.ts`,
+    default: `./dist/${ctx.id}.plugin.js`,
+  };
   const exports = {
     ".": { types: "./dist/index.d.ts", default: "./dist/index.js" },
-    [`./${ctx.id}.plugin`]: {
-      types: `./dist/${ctx.id}.plugin.d.ts`,
-      default: `./dist/${ctx.id}.plugin.js`,
-    },
+    "./plugin": pluginExport,
+    [`./${ctx.id}.plugin`]: pluginExport,
     "./theme/tokens.css": "./theme/tokens.css",
   };
   if (guest) {
@@ -260,7 +262,9 @@ function writeTsconfig(dir, guest) {
     "noEmit": false${jsxOpts}
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.spec.ts", "test/**/*.spec.ts"${guest ? "," : ""}
+  "exclude": [
+    "src/**/*.spec.ts",
+    "test/**/*.spec.ts",
 ${excludeTsx}
   ]
 }
@@ -301,13 +305,18 @@ function writePlugin(dir, ctx, guest) {
 export const ${ctx.pluginIdConst} = ${JSON.stringify(ctx.id)} as const;
 export const ${ctx.typeConst} = ${JSON.stringify(ctx.id)} as const;
 
-export function ${ctx.exportFn}(): WorkspacePlugin {
+export function ${ctx.canonicalExportFn}(): WorkspacePlugin {
   const base = createStarterWorkspacePlugin(workspaceThemePresets["platform-primary"]);
   return Object.freeze({
     ...base,
     id: ${ctx.pluginIdConst},
     supportedWorkspaceTypes: [${ctx.typeConst}],${intakeProperty}
   });
+}
+
+/** Branded alias — same singleton factory as {@link ${ctx.canonicalExportFn}}. */
+export function ${ctx.exportFn}(): WorkspacePlugin {
+  return ${ctx.canonicalExportFn}();
 }
 `
   );
@@ -319,7 +328,7 @@ function writeIndex(dir, ctx, guest) {
     : "";
   writeFileSync(
     join(dir, "src", "index.ts"),
-    `export { ${ctx.exportFn}, ${ctx.pluginIdConst}, ${ctx.typeConst} } from "./${ctx.id}.plugin";
+    `export { ${ctx.canonicalExportFn}, ${ctx.exportFn}, ${ctx.pluginIdConst}, ${ctx.typeConst} } from "./${ctx.id}.plugin";
 ${smokeExports}`
   );
 }
@@ -331,13 +340,18 @@ function writeScaffoldSpec(dir, ctx) {
 import { describe, it } from "node:test";
 
 import { isWorkspacePlugin } from "@app-tour/workspace-sdk";
-import { ${ctx.exportFn}, ${ctx.pluginIdConst} } from "../src/${ctx.id}.plugin";
+import {
+  ${ctx.canonicalExportFn},
+  ${ctx.exportFn},
+  ${ctx.pluginIdConst},
+} from "../src/${ctx.id}.plugin";
 
 describe("${ctx.id} workspace scaffold", () => {
-  it("exports a valid WorkspacePlugin", () => {
-    const plugin = ${ctx.exportFn}();
+  it("exports a valid WorkspacePlugin via canonical getWorkspacePlugin", () => {
+    const plugin = ${ctx.canonicalExportFn}();
     assert.equal(isWorkspacePlugin(plugin), true);
     assert.equal(plugin.id, ${ctx.pluginIdConst});
+    assert.equal(${ctx.exportFn}().id, plugin.id);
   });
 });
 `
@@ -698,6 +712,9 @@ function createContext(id) {
     pascal,
     camel,
     pkgName: `@app-tour/workspace-${id}`,
+    /** Canonical host-contract getter (manifest plugin/web.export; Phase 4n). */
+    canonicalExportFn: "getWorkspacePlugin",
+    /** Branded alias for local tests / package ergonomics. */
     exportFn: `get${pascal}WorkspacePlugin`,
     pluginIdConst: `${constPrefix}_WORKSPACE_PLUGIN_ID`,
     typeConst: `${constPrefix}_WORKSPACE_TYPE`,

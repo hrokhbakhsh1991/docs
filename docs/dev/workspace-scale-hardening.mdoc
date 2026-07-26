@@ -104,15 +104,15 @@ const pluginLoadCache = new Map<string, Promise<WorkspacePlugin>>();
 ```
 
 - **Per-process** memoization of dynamic import promise — good for single-flight.
-- **Sync** `SYNC_WORKSPACE_PLUGINS` eagerly constructs all trunk plugins at module load — scales O(workspaces) at boot.
+- **Sync** `SYNC_WORKSPACE_PLUGINS` eagerly constructs all trunk plugins at module load — scales O(workspaces) at boot. **Removed in P4.1 / I3** — web loaders are async-only (`loadWorkspacePluginByIdFromRegistry`).
 
 ### Target policy (I2)
 
 | Env | Policy |
 | --- | ------ |
-| **Production** | Promise cache via `workspace-plugin-load-cache.ts`; max entries = trunk `pluginId` count; key = `pluginId` only (no tenant bleed) |
+| **Production** | Promise cache via `workspace-plugin-load-cache.ts`; max entries = **product** trunk `pluginId` count (excludes `registryOnly` finance/booking fixtures); key = `pluginId` only (no tenant bleed) |
 | **Dev (Next HMR)** | Cache bust when `WORKSPACE_PLUGIN_REGISTRY_REVISION` changes (codegen regen) or via `invalidateWorkspacePluginLoadCache()` |
-| **Codegen** | `generateWebLoaders` imports cache module; emits revision + max-entry constants (deferred sub-slice I2b: lazy sync map) |
+| **Codegen** | `generateWebLoaders` emits dynamic `import()` switch only — **no** top-level `@app-tour/workspace-*` static imports and **no** `SYNC_WORKSPACE_PLUGINS` (I3 / P4.1) |
 
 **Invariant:** Phase G per-domain `--check` unchanged; I2 must not edit generated loaders by hand.
 
@@ -121,10 +121,12 @@ const pluginLoadCache = new Map<string, Promise<WorkspacePlugin>>();
 | Check | Rule |
 | ----- | ---- |
 | Generated loaders | Must use `getOrCreateWorkspacePluginLoad` — no inline `pluginLoadCache` Map |
-| Max entries | `WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES` === manifest `pluginId` count |
-| Revision | `WORKSPACE_PLUGIN_REGISTRY_REVISION` = sorted trunk plugin ids (comma-joined) |
+| Max entries | `WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES` === **product** manifest `pluginId` count |
+| Revision | `WORKSPACE_PLUGIN_REGISTRY_REVISION` = sorted **product** trunk plugin ids (comma-joined) |
+| No static fan-in | Generated loaders must not `import … from "@app-cloud/workspace-…"` at top level; must not define `SYNC_WORKSPACE_PLUGINS` |
 | Invalidation | `invalidateWorkspacePluginLoadCache()` exported from generated bootstrap |
 | CI | `pnpm run guard:workspace-plugin-load-cache` in `phase-10:guard` + `phase-i:fast-track` + `phase-10-guard.yml` |
+| Cold-path fan-in budget (P4-D2) | `pnpm run guard:p4-cold-path-fan-in` — numeric report `reports/p4-cold-path-fan-in.json`; see [`p4-d2-cold-path-fan-in-ci.mdoc`](./p4-d2-cold-path-fan-in-ci.mdoc) |
 
 ## Slice plan
 
@@ -133,7 +135,7 @@ const pluginLoadCache = new Map<string, Promise<WorkspacePlugin>>();
 | **I0 (doc)** | This document + architecture § Phase I cross-link | ✅ |
 | **I1** | `guard:theme-import-budget` + layout/spec proof | ✅ |
 | **I2** | Loader cache policy module + dev invalidation + doc | ✅ |
-| **I3 (optional)** | Lazy sync plugin registry codegen | Architect YES — bundle size win |
+| **I3** | Async-only web plugin loaders (drop SYNC eager map) — SaaS P4.1 | ✅ (2026-07-21) |
 
 ## Verification (each slice)
 
@@ -171,7 +173,7 @@ Full monorepo gate (`ci:integrity`) deferred per Architect YES policy — I clos
 
 **Budget enforced:** admin ≤1 `await import()` per path; guest (portal/marketing) ≤2 (starter base + plugin overlay).
 
-**Next slice:** **I3 (optional)** — lazy sync plugin registry codegen (Architect YES).
+**I3:** Closed via SaaS Phase 4.1 — see `TEMP/phases/P4-dynamic-workspace-loading-plan.md`.
 
 ## I2 status (2026-07-07)
 
@@ -184,7 +186,16 @@ Full monorepo gate (`ci:integrity`) deferred per Architect YES policy — I clos
 | `apps/web/test/workspace-plugin-load-cache.spec.ts` | ✅ |
 | Wired in `phase-i:fast-track` + `phase-10-guard.yml` | ✅ |
 
-**Policy:** per-process promise cache keyed by `pluginId`; max entries = trunk count; revision bust on codegen regen; `invalidateWorkspacePluginLoadCache()` for tests/dev.
+**Policy:** per-process promise cache keyed by `pluginId`; max entries = product trunk count; revision bust on codegen regen; `invalidateWorkspacePluginLoadCache()` for tests/dev.
+
+## I3 status (2026-07-21) — SaaS P4.1
+
+| Artifact | Status |
+| -------- | ------ |
+| `generateWebLoaders` async-only (no `SYNC_WORKSPACE_PLUGINS`, no static workspace imports) | ✅ |
+| Client bootstrap theme shells (no generated loader import) | ✅ |
+| Server `resolveBootstrapAppSession*` awaits `loadBootstrapWorkspacePlugin` | ✅ |
+| Load-cache guard: product manifests + no-static-import rules | ✅ |
 
 ## Phase I closure (I0–I2)
 
@@ -200,4 +211,4 @@ Full monorepo gate (`ci:integrity`) deferred per Architect YES policy — I clos
 
 **Trunk:** merged via [#19](https://github.com/hrokhbakhsh1991/docs/pull/19) (`6b27d9f6`).
 
-**Deferred:** I3 lazy sync registry · `ci:integrity` full gate (Architect YES only).
+**Follow-on:** SaaS P4.2 API lazy registry · `ci:integrity` full gate (Architect YES only).

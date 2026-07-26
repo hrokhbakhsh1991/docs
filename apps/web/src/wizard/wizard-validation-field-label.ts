@@ -1,4 +1,4 @@
-import { resolveGeneratedLabelResolver } from "@/bootstrap/wizard-label-bindings.generated";
+import { resolveGeneratedLabelResolver } from "@/wizard/wizard-label-registry";
 
 /** Resolve a human field label for validation issue rows (falls back to canonical path). */
 export function resolveWizardValidationFieldLabel(input: {

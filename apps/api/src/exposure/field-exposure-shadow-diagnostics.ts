@@ -33,14 +33,14 @@ export type ResolveFieldExposureShadowDiagnosticsInput = {
 /**
  * Phase 8e — optional shadow parity metadata for local diagnostics only.
  */
-export function resolveFieldExposureShadowDiagnostics(
+export async function resolveFieldExposureShadowDiagnostics(
   input: ResolveFieldExposureShadowDiagnosticsInput,
-): ShadowExposureDecision | null {
+): Promise<ShadowExposureDecision | null> {
   if (!isFieldExposureShadowDiagnosticsEnabled()) {
     return null;
   }
 
-  return resolveShadowExposureFromDelivery({
+  return await resolveShadowExposureFromDelivery({
     context: {
       workspaceType: input.workspaceType,
       surface: input.surface,

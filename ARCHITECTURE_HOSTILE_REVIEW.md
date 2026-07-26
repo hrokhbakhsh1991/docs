@@ -145,7 +145,7 @@ Must be closed before any production traffic or external security audit sign-off
 | **P1-04** | Header-only ingress still in `requireOperatorSession` / kernel for non-production | Easy to misdeploy `NODE_ENV` |
 | **P1-05** | Only `denali` in `WORKSPACE_PRODUCTION_CERTIFICATION` = `certified` | Second enterprise product type blocked; urban/booking-ws2 stubs |
 | **P1-06** | Booking `eventReaction` Option A off on Denali + booking-ws2 | “Supported booking” ≠ durable reactions |
-| **P1-07** | Generated HTTP/settings still import `@app-cloud/workspace-denali/...` | Peer workspaces are not equal; Denali is still the gravity well |
+| **P1-07** | Generated HTTP/settings still import `@app-tour/workspace-denali/...` | Peer workspaces are not equal; Denali is still the gravity well |
 | **P1-08** | Files/storage smoke paths keyed to `OPERATOR_DENALI_SMOKE_TENANT_ID` | Multi-tenant file assumptions fragile |
 | **P1-09** | P6 docs/traceability still cite `bookings-ops` as SoT | Doc/runtime drift after TODO-008 WT change |
 | **P1-10** | Capability maturity doc `status: LANDED` while grades intentionally incomplete | Audit will call this false advertising |

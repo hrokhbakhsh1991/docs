@@ -42,6 +42,10 @@
       "types": "./dist/catalog/index.d.ts",
       "default": "./dist/catalog/index.js"
     },
+    "./host/settings/owner-panel": {
+      "types": "./dist/settings/urban-owner-settings-panel.d.ts",
+      "default": "./dist/settings/urban-owner-settings-panel.js"
+    },
     "./host/exposure": {
       "types": "./dist/exposure/index.d.ts",
       "default": "./dist/exposure/index.js"

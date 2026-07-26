@@ -10,8 +10,8 @@ import { registerWorkspaceRegistrationFlowSteps } from "@app-tour/workspace-plug
 
 /** Intake registrar for "denali" — plugin entry only (no registration-flow UI graph). */
 export async function registerWorkspaceIntakeDENALIFromManifest(): Promise<void> {
-  const { getDenaliWorkspacePlugin } = await import("@app-tour/workspace-denali/plugin");
-  const plugin = getDenaliWorkspacePlugin();
+  const { getWorkspacePlugin } = await import("@app-tour/workspace-denali/plugin");
+  const plugin = getWorkspacePlugin();
   if (plugin.catalogIntake !== undefined) {
     registerWorkspaceIntakePlugin({
       id: plugin.id,
@@ -22,8 +22,8 @@ export async function registerWorkspaceIntakeDENALIFromManifest(): Promise<void>
 
 /** Full registrar for "denali" — intake, transport, and registration-flow surfaces. */
 export async function registerWorkspacePluginDENALIFromManifest(): Promise<void> {
-  const { getDenaliWorkspacePlugin } = await import("@app-tour/workspace-denali/plugin");
-  const plugin = getDenaliWorkspacePlugin();
+  const { getWorkspacePlugin } = await import("@app-tour/workspace-denali/plugin");
+  const plugin = getWorkspacePlugin();
   if (plugin.catalogIntake !== undefined) {
     registerWorkspaceIntakePlugin({
       id: plugin.id,

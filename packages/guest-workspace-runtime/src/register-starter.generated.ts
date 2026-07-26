@@ -9,8 +9,8 @@ import { registerWorkspaceIntakePlugin } from "@app-tour/workspace-sdk";
 
 /** Intake registrar for "starter" — plugin entry only (no registration-flow UI graph). */
 export async function registerWorkspaceIntakeSTARTERFromManifest(): Promise<void> {
-  const { getStarterWorkspacePlugin } = await import("@app-tour/workspace-starter");
-  const plugin = getStarterWorkspacePlugin();
+  const { getWorkspacePlugin } = await import("@app-tour/workspace-starter");
+  const plugin = getWorkspacePlugin();
   if (plugin.catalogIntake !== undefined) {
     registerWorkspaceIntakePlugin({
       id: plugin.id,
@@ -21,8 +21,8 @@ export async function registerWorkspaceIntakeSTARTERFromManifest(): Promise<void
 
 /** Full registrar for "starter" — intake, transport, and registration-flow surfaces. */
 export async function registerWorkspacePluginSTARTERFromManifest(): Promise<void> {
-  const { getStarterWorkspacePlugin } = await import("@app-tour/workspace-starter");
-  const plugin = getStarterWorkspacePlugin();
+  const { getWorkspacePlugin } = await import("@app-tour/workspace-starter");
+  const plugin = getWorkspacePlugin();
   if (plugin.catalogIntake !== undefined) {
     registerWorkspaceIntakePlugin({
       id: plugin.id,

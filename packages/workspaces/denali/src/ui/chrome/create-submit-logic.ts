@@ -40,7 +40,7 @@ export async function runDenaliCreateTourSubmit(input: {
   if (input.denaliRules == null) {
     return {
       ok: false,
-      failure: { kind: "rules-not-ready", code: "DENALI_RULES_NOT_READY" },
+      failure: { kind: "rules-not-ready", code: "WIZARD_RULES_NOT_READY" },
     };
   }
 
@@ -55,7 +55,7 @@ export async function runDenaliCreateTourSubmit(input: {
   if (validationResult.kind === "rules-not-ready") {
     return {
       ok: false,
-      failure: { kind: "rules-not-ready", code: "DENALI_RULES_NOT_READY" },
+      failure: { kind: "rules-not-ready", code: "WIZARD_RULES_NOT_READY" },
     };
   }
 

@@ -8,7 +8,7 @@ import type {
   WizardValidationSurface,
   WizardValidationSurfaceRenderProps,
 } from "./wizard-surface-types";
-import { resolveGeneratedReviewSurface } from "@/bootstrap/wizard-surface-bindings.generated";
+import { resolveGeneratedReviewSurface } from "@/wizard/wizard-surface-registry";
 
 function renderPlatformValidationSummary(props: WizardValidationSurfaceRenderProps): ReactNode {
   return <WorkspaceWizardValidationSummary {...props} />;

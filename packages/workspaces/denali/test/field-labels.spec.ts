@@ -32,4 +32,18 @@ describe("field-labels.spec.ts — enum + has", () => {
       "رسید آفلاین"
     );
   });
+
+  it("DEN-LBL-03 resolveDenaliEnumOptionLabel maps tour catalog paths (Wave F.c)", () => {
+    const t = createTranslator({
+      "tourKinds.nature": "طبیعت",
+      "composites.tourKind.durations.multi_day": "چندروزه",
+      "composites.tourKind.categories.adventure": "ماجراجویی",
+    });
+    assert.equal(resolveDenaliEnumOptionLabel(t, "tour.kind", "nature"), "طبیعت");
+    assert.equal(resolveDenaliEnumOptionLabel(t, "tour.duration", "multi_day"), "چندروزه");
+    assert.equal(
+      resolveDenaliEnumOptionLabel(t, "tour.categoryGroup", "adventure"),
+      "ماجراجویی"
+    );
+  });
 });

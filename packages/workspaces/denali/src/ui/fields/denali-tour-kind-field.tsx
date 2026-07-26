@@ -105,7 +105,7 @@ export function DenaliTourKindField({
   return (
     <div
       className="denali-wizard-composite denali-tour-kind"
-      data-denali-tour-kind
+      data-operator-tour-kind
       data-testid={DENALI_TOUR_KIND_TEST_IDS.tourKind}
     >
       <div className="denali-wizard-composite__header">

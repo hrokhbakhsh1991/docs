@@ -6,6 +6,7 @@ import {
   DENALI_SUBMIT_CATALOG_BFF_PATHS,
   isWizardLeaderCandidate,
   readActiveDestinationIds,
+  readActiveEquipmentIds,
   readActiveGuideLanguageIds,
   readActiveThemeIds,
   readSelectableLeaderUserIds,
@@ -31,6 +32,17 @@ describe("denali-wizard-catalog-ids.spec.ts (P15-W-C1)", () => {
         { id: "d2", isActive: false },
       ]),
       ["d1"]
+    );
+  });
+
+  it("readActiveEquipmentIds matches theme/destination active-id filter", () => {
+    assert.deepEqual(
+      readActiveEquipmentIds([
+        { id: " eq-1 ", isActive: true },
+        { id: "eq-2", isActive: false },
+        { id: "", isActive: true },
+      ]),
+      ["eq-1"]
     );
   });
 

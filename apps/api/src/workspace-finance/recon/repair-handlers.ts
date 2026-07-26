@@ -56,7 +56,7 @@ export async function handlePaidNoLedger(
 
   const expectedId = paymentLedgerCaptureDomainEventId(payment.id);
   const workspaceType = await resolveFinanceWorkspaceTypeForTenant(finding.tenantId);
-  const policy = resolveFinanceLedgerPolicy(workspaceType);
+  const policy = await resolveFinanceLedgerPolicy(workspaceType);
   const plan = policy.buildPaymentCaptureJournal({
     tenantId: finding.tenantId,
     paymentId: payment.id,
@@ -287,7 +287,7 @@ export async function handlePrepayNoLedger(
   }
 
   const workspaceType = await resolveFinanceWorkspaceTypeForTenant(finding.tenantId);
-  const policy = resolveFinanceLedgerPolicy(workspaceType);
+  const policy = await resolveFinanceLedgerPolicy(workspaceType);
   const plan = policy.buildPrepaymentJournal({
     tenantId: finding.tenantId,
     registrationId,

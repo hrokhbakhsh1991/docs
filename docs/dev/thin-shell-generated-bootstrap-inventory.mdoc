@@ -1,0 +1,48 @@
+---
+title: Thin Shell — generated bootstrap inventory (closure lock)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/saas-platform-remediation.mdoc
+  - TEMP/THIN_SHELL_TARGET_ARCHITECTURE_PLAN.md
+---
+
+# Thin Shell — generated bootstrap inventory
+
+Phase **4bj** locks what remains under `apps/web/src/bootstrap/*.generated.ts` after product binder retirement.
+
+## Inventory (exact set)
+
+### TypeScript registries (`*.generated.ts`)
+
+| File | Role | Product imports | Retire? |
+| --- | --- | --- | --- |
+| `workspace-plugin-loaders.generated.ts` | Opaque `pluginId` → dynamic `import(…/plugin)` + `getWorkspacePlugin()` | Dynamic only | **No** — plan §2.4 registry |
+| `workspace-theme-stylesheets.generated.ts` | Theme CSS loaders by plugin id | Dynamic only | **No** — registry |
+| `workspace-wizard-message-loads.generated.ts` | Wizard message JSON loaders by namespace | Dynamic only | **No** — registry |
+| `workspace-owner-settings-panel-loaders.generated.ts` | Owner settings panel loaders | Dynamic only | **No** — registry |
+| `wizard-media-route-bindings.generated.ts` | Opaque `mediaRouteKey` → BFF path | None | **No** — §2.4 opaque table |
+| `wizard-media-backend-route-bindings.generated.ts` | Opaque `mediaRouteKey` → API paths | None | **No** — §2.4 opaque table |
+| `wizard-i18n-translator-hooks.generated.ts` | Namespace allowlist (`is`/`list` only) | None | **No** — Phase 4bh slim |
+
+### Next / tooling support (not product binders)
+
+| File | Role |
+| --- | --- |
+| `admin-transpile-packages.generated.mjs` | `transpilePackages` list for `next.config.ts` |
+| `admin-client-workspace-ignore.generated.mjs` | IgnorePlugin rules + `ALLOW_*` gates |
+| `workspace-theme-css-modules.generated.d.ts` | Ambient CSS module types |
+
+Any **new** product binder (`*bindings*.generated.ts` membership/ensure maps) requires a Thin Shell charter phase + architecture test update.
+
+## Guards
+
+- `guard:thin-shell` — non-generated product imports = 0; generated static product import lines = 0
+- `apps/web/test/thin-shell-generated-bootstrap-inventory.spec.ts` — exact file set + role contracts
+
+## Related
+
+- Deploy images: [`deploy-profile-operator-quickref.mdoc`](./deploy-profile-operator-quickref.mdoc)
+- Hostile audits: `TEMP/THIN_SHELL_HOSTILE_AUDIT_V5.md` → `V6`
+- Path honesty: `TEMP/THIN_SHELL_STRUCTURAL_PATH_VERDICT.md` (Phase 4bk — binder closed ≠ delete these registries)
+- Pattern B keying: [`thin-shell-pattern-b-registry.mdoc`](./thin-shell-pattern-b-registry.mdoc) (Phase 4bl)

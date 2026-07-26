@@ -44,7 +44,7 @@ function renderDenaliReviewChrome(props: WizardReviewSurfaceRenderProps): ReactN
         contentSteps={props.contentSteps}
         onNavigateToStep={props.onNavigateToStep}
       />
-      <div className="denali-review__publish">
+      <div className="operator-review__publish">
         <DenaliPublishStatusField draft={props.draft} onDraftChange={props.onDraftChange} />
       </div>
     </>

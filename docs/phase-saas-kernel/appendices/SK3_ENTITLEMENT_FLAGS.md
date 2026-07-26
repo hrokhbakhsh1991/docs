@@ -121,7 +121,7 @@ flowchart TB
 | Action | Status |
 | ------ | ------ |
 | Grow `TenantFeatureFlags` — `inAppRegistrationApprovedNotify` | **DONE** — [SK3_FLAGS_IMPLEMENTATION.md](./SK3_FLAGS_IMPLEMENTATION.md) |
-| Plan tables / webhooks (BP-7) | Still deferred — needs `YES — IMPL-SK3-BP7` |
+| Plan tables / webhooks (BP-7) | **DONE** — `YES — IMPL-SK3-BP7` — [SK3_BP7_IMPLEMENTATION.md](./SK3_BP7_IMPLEMENTATION.md) |
 | Export freeze test for entitlement evaluate API | If public surface churns; sdk already has unit specs |
 
 ### SK3.D — Non-goals

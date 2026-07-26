@@ -150,7 +150,7 @@ function contextsDiffer(
   );
 }
 
-function buildEnginePreview(input: {
+async function buildEnginePreview(input: {
   readonly tenantId: string;
   readonly workspaceType: string;
   readonly eventType: string;
@@ -160,9 +160,9 @@ function buildEnginePreview(input: {
   readonly payload: Readonly<Record<string, unknown>>;
   readonly exposureIntent: ExposureIntent | null;
   readonly exposureProfile: ExposureProfile | null;
-}): ExposureControlPlaneEventContext["enginePreview"] {
+}): Promise<ExposureControlPlaneEventContext["enginePreview"]> {
   try {
-    const decisionMap = buildFieldExposureEngineDecisionMap({
+    const decisionMap = await buildFieldExposureEngineDecisionMap({
       tenantId: input.tenantId,
       workspaceType: input.workspaceType,
       eventType: input.eventType,
@@ -207,13 +207,13 @@ function buildEnginePreview(input: {
   }
 }
 
-function collectLegacyIntentContextKeys(input: {
+async function collectLegacyIntentContextKeys(input: {
   readonly tenantId: string;
   readonly workspaceType: string;
   readonly connections: readonly IntegrationConnectionPublicDto[];
   readonly defaultEventTypes: readonly string[];
   readonly intentsByConnection: ReadonlyMap<string, readonly ExposureIntent[]>;
-}): ExposureIntentContextKey[] {
+}): Promise<ExposureIntentContextKey[]> {
   const keys: ExposureIntentContextKey[] = [];
   const seen = new Set<string>();
 
@@ -232,7 +232,7 @@ function collectLegacyIntentContextKeys(input: {
         continue;
       }
 
-      const defaultSeededProfile = resolveLegacyDeliveryExposureProfile({
+      const defaultSeededProfile = await resolveLegacyDeliveryExposureProfile({
         workspaceType: input.workspaceType,
         provider: defaultContext.surface,
         eventType: defaultContext.trigger,
@@ -264,14 +264,14 @@ function collectLegacyIntentContextKeys(input: {
   return keys;
 }
 
-function collectProfileSeedsForConnections(input: {
+async function collectProfileSeedsForConnections(input: {
   readonly tenantId: string;
   readonly workspaceType: string;
   readonly connections: readonly IntegrationConnectionPublicDto[];
   readonly defaultEventTypes: readonly string[];
   readonly intentsByConnection: ReadonlyMap<string, readonly ExposureIntent[]>;
   readonly legacyIntentLookup: ReadonlyMap<string, ExposureIntent>;
-}): ExposureProfile[] {
+}): Promise<ExposureProfile[]> {
   const seeds: ExposureProfile[] = [];
   const seen = new Set<string>();
 
@@ -284,7 +284,7 @@ function collectProfileSeedsForConnections(input: {
         provider: connection.provider,
         eventType,
       });
-      const defaultSeededProfile = resolveLegacyDeliveryExposureProfile({
+      const defaultSeededProfile = await resolveLegacyDeliveryExposureProfile({
         workspaceType: input.workspaceType,
         provider: defaultContext.surface,
         eventType: defaultContext.trigger,
@@ -301,7 +301,7 @@ function collectProfileSeedsForConnections(input: {
         legacyIntentLookup: input.legacyIntentLookup,
       });
       const effectiveContext = intentResolution.effectiveContext;
-      const seededProfile = resolveLegacyDeliveryExposureProfile({
+      const seededProfile = await resolveLegacyDeliveryExposureProfile({
         workspaceType: input.workspaceType,
         provider: effectiveContext.surface,
         eventType: effectiveContext.trigger,
@@ -310,7 +310,7 @@ function collectProfileSeedsForConnections(input: {
         continue;
       }
 
-      const registrySeed = resolveRegistrySeededExposureProfile({
+      const registrySeed = await resolveRegistrySeededExposureProfile({
         workspaceType: input.workspaceType,
         entityType: seededProfile.entityType,
         surface: effectiveContext.surface,
@@ -328,7 +328,7 @@ function collectProfileSeedsForConnections(input: {
   return seeds;
 }
 
-function buildConnectionContextsFromPrefetch(input: {
+async function buildConnectionContextsFromPrefetch(input: {
   readonly tenantId: string;
   readonly workspaceType: string;
   readonly connection: IntegrationConnectionPublicDto;
@@ -336,7 +336,7 @@ function buildConnectionContextsFromPrefetch(input: {
   readonly connectionIntents: readonly ExposureIntent[];
   readonly legacyIntentLookup: ReadonlyMap<string, ExposureIntent>;
   readonly profileById: ReadonlyMap<string, ExposureProfile>;
-}): readonly ExposureControlPlaneEventContext[] {
+}): Promise<readonly ExposureControlPlaneEventContext[]> {
   const eventTypes = buildEventTypeList(input.connection, input.defaultEventTypes);
   const contexts: ExposureControlPlaneEventContext[] = [];
 
@@ -345,7 +345,7 @@ function buildConnectionContextsFromPrefetch(input: {
       provider: input.connection.provider,
       eventType,
     });
-    const defaultSeededProfile = resolveLegacyDeliveryExposureProfile({
+    const defaultSeededProfile = await resolveLegacyDeliveryExposureProfile({
       workspaceType: input.workspaceType,
       provider: defaultContext.surface,
       eventType: defaultContext.trigger,
@@ -362,7 +362,7 @@ function buildConnectionContextsFromPrefetch(input: {
       legacyIntentLookup: input.legacyIntentLookup,
     });
     const effectiveContext = intentResolution.effectiveContext;
-    const seededProfile = resolveLegacyDeliveryExposureProfile({
+    const seededProfile = await resolveLegacyDeliveryExposureProfile({
       workspaceType: input.workspaceType,
       provider: effectiveContext.surface,
       eventType: effectiveContext.trigger,
@@ -396,7 +396,7 @@ function buildConnectionContextsFromPrefetch(input: {
       activeExposureIntent,
       enginePreview:
         input.connection.backingSource === "integration_connection"
-          ? buildEnginePreview({
+          ? await buildEnginePreview({
               tenantId: input.tenantId,
               workspaceType: input.workspaceType,
               eventType,
@@ -420,7 +420,7 @@ export async function getWorkspaceExposureControlPlane(
 ): Promise<WorkspaceExposureControlPlaneResponse> {
   const workspaceType = await resolveWorkspaceTypeForRoute(auth, workspaceId);
   const integrations = await listWorkspaceIntegrations(auth, workspaceId);
-  const meta = buildWorkspaceIntegrationSurfaceMeta(workspaceType);
+  const meta = await buildWorkspaceIntegrationSurfaceMeta(workspaceType);
   const defaultEventTypes =
     meta.providers.flatMap((provider) =>
       provider.defaultEventPolicies.map((policy) => policy.eventType),
@@ -438,7 +438,7 @@ export async function getWorkspaceExposureControlPlane(
     connectionIds: enabledConnections.map((connection) => connection.id),
   });
 
-  const legacyIntentKeys = collectLegacyIntentContextKeys({
+  const legacyIntentKeys = await collectLegacyIntentContextKeys({
     tenantId: auth.tenantId,
     workspaceType,
     connections: enabledConnections,
@@ -447,7 +447,7 @@ export async function getWorkspaceExposureControlPlane(
   });
   const legacyIntentLookup = await intentRepository.findForContexts(legacyIntentKeys);
 
-  const profileSeeds = collectProfileSeedsForConnections({
+  const profileSeeds = await collectProfileSeedsForConnections({
     tenantId: auth.tenantId,
     workspaceType,
     connections: enabledConnections,
@@ -460,21 +460,23 @@ export async function getWorkspaceExposureControlPlane(
     seeds: profileSeeds,
   });
 
-  const connections = enabledConnections.map((connection) => ({
-    connectionId: connection.id,
-    provider: connection.provider,
-    enabled: connection.enabled,
-    backingSource: connection.backingSource,
-    contexts: buildConnectionContextsFromPrefetch({
-      tenantId: auth.tenantId,
-      workspaceType,
-      connection,
-      defaultEventTypes,
-      connectionIntents: intentsByConnection.get(connection.id) ?? [],
-      legacyIntentLookup,
-      profileById,
-    }),
-  }));
+  const connections = await Promise.all(
+    enabledConnections.map(async (connection) => ({
+      connectionId: connection.id,
+      provider: connection.provider,
+      enabled: connection.enabled,
+      backingSource: connection.backingSource,
+      contexts: await buildConnectionContextsFromPrefetch({
+        tenantId: auth.tenantId,
+        workspaceType,
+        connection,
+        defaultEventTypes,
+        connectionIntents: intentsByConnection.get(connection.id) ?? [],
+        legacyIntentLookup,
+        profileById,
+      }),
+    })),
+  );
 
   return {
     workspaceType,

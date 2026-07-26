@@ -1,9 +1,18 @@
 export {
+  buildDenaliCreateTourDiscardRemoteDraftInput,
+  buildDenaliWizardFreshStartMeta,
+  buildDenaliWizardStepZeroMeta,
+  denaliCreateTourRemoteDraftIdentity,
   DENALI_CREATE_TOUR_DRAFT_KEY,
+  DENALI_CREATE_TOUR_SUPPORTS_CLONE,
   DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
   denaliEditTourDraftKey,
+  denaliEditTourRemoteDraftIdentity,
   denaliHydrateDraftEnvelope,
   denaliPrepareDraftEnvelope,
+  prepareDenaliCreateTourFreshStartEnvelope,
+  type DenaliCreateTourRemoteDraftIdentity,
+  type DenaliEditTourRemoteDraftIdentity,
   type DenaliWizardDraftEnvelope,
   type DenaliWizardDraftMeta,
 } from "./denali-wizard-draft-binding";
@@ -28,3 +37,14 @@ export {
   logDenaliTombstoneShadowMismatch,
   type DenaliDraftTombstoneShadowMode,
 } from "./tombstone-shadow-log";
+export {
+  applyDenaliDefaultTourKind,
+  DENALI_DEFAULT_TOUR_KIND,
+} from "./denali-default-tour-kind";
+export {
+  applyDenaliTemplateGatePrefill,
+  buildDenaliCreatePrefilledForm,
+  DENALI_CREATE_PREFILL_PLUGIN_ID,
+  type ApplyDenaliTemplatePrefill,
+  type DenaliTemplateGatePrefill,
+} from "./denali-create-prefill";

@@ -46,32 +46,32 @@ export function DenaliReviewValidationSummary({
 
   return (
     <section
-      className="denali-review-validation"
+      className="operator-review-validation"
       role="alert"
       aria-live="polite"
       data-testid={DENALI_REVIEW_VALIDATION_TEST_IDS.panel}
     >
-      <header className="denali-review-validation__header">
-        <span className="denali-review-validation__icon" aria-hidden="true">
+      <header className="operator-review-validation__header">
+        <span className="operator-review-validation__icon" aria-hidden="true">
           <AlertCircle size={20} strokeWidth={2.25} />
         </span>
-        <div className="denali-review-validation__header-text">
-          <h3 className="denali-review-validation__heading">{t("review.validationHeading")}</h3>
-          <p className="denali-review-validation__count">
+        <div className="operator-review-validation__header-text">
+          <h3 className="operator-review-validation__heading">{t("review.validationHeading")}</h3>
+          <p className="operator-review-validation__count">
             {t("review.validationCount", { count: issues.length })}
           </p>
         </div>
       </header>
-      <div className="denali-review-validation__groups">
+      <div className="operator-review-validation__groups">
         {groups.map((group) => (
           <section
             key={group.stepId}
-            className="denali-review-validation__group"
+            className="operator-review-validation__group"
             data-testid={`${DENALI_REVIEW_VALIDATION_TEST_IDS.stepGroup}-${group.stepId}`}
           >
             <button
               type="button"
-              className="denali-review-validation__group-title"
+              className="operator-review-validation__group-title"
               aria-label={t("review.validationGoToStep", { step: group.label })}
               onClick={() => {
                 const first = group.issues[0];
@@ -80,15 +80,15 @@ export function DenaliReviewValidationSummary({
                 }
               }}
             >
-              <span className="denali-review-validation__group-label">
+              <span className="operator-review-validation__group-label">
                 {t("review.validationStepGroup", {
                   step: group.label,
                   count: group.issues.length,
                 })}
               </span>
-              <StepChevron className="denali-review-validation__group-chevron" aria-hidden="true" />
+              <StepChevron className="operator-review-validation__group-chevron" aria-hidden="true" />
             </button>
-            <ul className="denali-review-validation__issue-list">
+            <ul className="operator-review-validation__issue-list">
               {group.issues.map((issue) => {
                 const fieldLabel = resolveDenaliWizardValidationFieldLabel({
                   canonicalPath: issue.path,
@@ -103,13 +103,13 @@ export function DenaliReviewValidationSummary({
                   <li key={`${issue.path}:${issue.code ?? issue.message}`}>
                     <button
                       type="button"
-                      className="denali-review-validation__issue-link"
+                      className="operator-review-validation__issue-link"
                       data-testid={`${DENALI_REVIEW_VALIDATION_TEST_IDS.issueLink}-${issue.path.replace(/\./g, "-")}`}
                       aria-label={t("review.validationIssueAction", { field: fieldLabel })}
                       onClick={() => onFocusIssue(group.stepId, issue.path)}
                     >
-                      <span className="denali-review-validation__issue-field">{fieldLabel}</span>
-                      <span className="denali-review-validation__issue-message">{issueMessage}</span>
+                      <span className="operator-review-validation__issue-field">{fieldLabel}</span>
+                      <span className="operator-review-validation__issue-message">{issueMessage}</span>
                     </button>
                   </li>
                 );

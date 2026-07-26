@@ -142,6 +142,9 @@ export function createExternalRepository(): FinanceRepositoryPort {
     async listPayments() {
       return [];
     },
+    async listPaymentsByTourAggregate() {
+      return [];
+    },
     async listLedgerEvents() {
       return [];
     },

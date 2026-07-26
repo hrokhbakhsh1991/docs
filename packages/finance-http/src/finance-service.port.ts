@@ -11,20 +11,27 @@ import type {
 /** Finance domain port — implemented by API `FinanceService` (Prisma adapters stay in host). */
 export type FinanceServicePort = {
   readonly getSummary: (auth: TenantAuthContext) => Promise<unknown>;
+  readonly getReportByTour: (
+    auth: TenantAuthContext,
+    tourId?: string
+  ) => Promise<unknown>;
   readonly listOpenPayments: (
     auth: TenantAuthContext,
     limit: number,
-    registrationId?: string
+    registrationId?: string,
+    tourId?: string
   ) => Promise<readonly unknown[]>;
   readonly listLedgerEvents: (
     auth: TenantAuthContext,
     limit: number,
-    registrationId?: string
+    registrationId?: string,
+    tourId?: string
   ) => Promise<readonly unknown[]>;
   readonly listPayments: (
     auth: TenantAuthContext,
     limit: number,
-    registrationId?: string
+    registrationId?: string,
+    tourId?: string
   ) => Promise<readonly unknown[]>;
   readonly createManualPayment: (
     auth: TenantAuthContext,
@@ -45,12 +52,14 @@ export type FinanceServicePort = {
   readonly listPendingReceipts: (
     auth: TenantAuthContext,
     limit: number,
-    registrationId?: string
+    registrationId?: string,
+    tourId?: string
   ) => Promise<readonly unknown[]>;
   readonly listPrepayments: (
     auth: TenantAuthContext,
     limit: number,
-    registrationId?: string
+    registrationId?: string,
+    tourId?: string
   ) => Promise<readonly unknown[]>;
   readonly recordPrepayment: (
     auth: TenantAuthContext,
@@ -67,7 +76,8 @@ export type FinanceServicePort = {
   ) => Promise<Record<string, unknown>>;
   readonly listPaymentSchedules: (
     auth: TenantAuthContext,
-    registrationId?: string
+    registrationId?: string,
+    tourId?: string
   ) => Promise<readonly unknown[]>;
   readonly getPaymentSchedule: (
     auth: TenantAuthContext,
@@ -77,6 +87,20 @@ export type FinanceServicePort = {
     auth: TenantAuthContext,
     body: GenerateScheduleBody
   ) => Promise<unknown>;
+  readonly patchPaymentScheduleItem: (
+    auth: TenantAuthContext,
+    registrationId: string,
+    itemId: string,
+    body: import("@app-tour/finance-http-contracts").PatchScheduleItemBody
+  ) => Promise<{
+    readonly registrationId: string;
+    readonly item: { readonly id: string };
+    readonly audit: {
+      readonly eventType: "finance.schedule.item_waived";
+      readonly reason: string;
+      readonly actorUserId: string;
+    } | null;
+  }>;
   readonly getRegistrationInvoice: (
     auth: TenantAuthContext,
     registrationId: string

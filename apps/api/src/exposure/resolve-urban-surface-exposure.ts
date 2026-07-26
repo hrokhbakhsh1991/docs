@@ -112,7 +112,7 @@ export async function resolveUrbanSurfaceVisibleFieldIds(
           scope: { tourSurface: input.coordinate.surface },
         });
 
-  const decisionMap = buildFieldExposureEngineDecisionMap({
+  const decisionMap = await buildFieldExposureEngineDecisionMap({
     tenantId: auth.tenantId,
     workspaceType: input.workspaceType,
     eventType: "TourPublished",

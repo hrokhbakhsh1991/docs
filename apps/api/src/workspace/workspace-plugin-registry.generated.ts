@@ -8,6 +8,7 @@ import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
 /** Product trunk plugin ids from workspace.manifest.json (excludes registryOnly fixtures). */
 export const API_WORKSPACE_PLUGIN_IDS = [
+  "acme",
   "booking-ws2",
   "denali",
   "finance-ws5",
@@ -33,29 +34,33 @@ export async function loadApiWorkspacePluginByIdFromManifest(
   }
   const load = (async (): Promise<WorkspacePlugin> => {
     switch (pluginId) {
+    case "acme": {
+      const mod = await import("@app-tour/workspace-acme/plugin");
+      return mod.getWorkspacePlugin();
+    }
     case "booking-ws2": {
       const mod = await import("@app-tour/workspace-booking-ws2/plugin");
-      return mod.getBookingWs2WorkspacePlugin();
+      return mod.getWorkspacePlugin();
     }
     case "denali": {
       const mod = await import("@app-tour/workspace-denali/plugin");
-      return mod.getDenaliWorkspacePlugin();
+      return mod.getWorkspacePlugin();
     }
     case "finance-ws5": {
       const mod = await import("@app-tour/workspace-finance-ws5/plugin");
-      return mod.getFinanceWs5WorkspacePlugin();
+      return mod.getWorkspacePlugin();
     }
     case "guest-club": {
       const mod = await import("@app-tour/workspace-guest-club/plugin");
-      return mod.getGuestClubWorkspacePlugin();
+      return mod.getWorkspacePlugin();
     }
     case "starter": {
       const mod = await import("@app-tour/workspace-starter");
-      return mod.getStarterWorkspacePlugin();
+      return mod.getWorkspacePlugin();
     }
     case "urban": {
       const mod = await import("@app-tour/workspace-urban/plugin");
-      return mod.getUrbanWorkspacePlugin();
+      return mod.getWorkspacePlugin();
     }
       default:
         throw new Error(`WORKSPACE_PLUGIN_NOT_FOUND:${pluginId}`);

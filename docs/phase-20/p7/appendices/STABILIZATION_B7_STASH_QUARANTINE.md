@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: STABILIZATION_B7_STASH_QUARANTINE
-status: QUARANTINED
+status: QUARANTINED — reclaim tickets 0–9 CLOSED (2026-07-21); stashes retained
 date: "2026-07-21"
 canonical_branch: booking/capacity-concurrency-cert
 policy: never auto-pop; reclaim only with Architect-named ticket
@@ -21,16 +21,16 @@ policy: never auto-pop; reclaim only with Architect-named ticket
 
 | Ref | Base branch (message) | Scale | Risk | Recommendation |
 | --- | --------------------- | ----- | ---- | -------------- |
-| `stash@{0}` | `finance/phase-1-platform-boundaries` — HostIo+WS3+docs | 27 files / +335−110 | Medium | Finance reclaim ticket only; diff vs tip finance-core first |
-| `stash@{1}` | `finance/phase-0-ownership-enforcement` — phase-1 isolation | 16 files / +130−75 | Medium | Likely superseded by tip ownership specs — verify before apply |
-| `stash@{2}` | `wip/portal-psc-20260718` — before finance phase-0 | 9 files / +136−47 | Medium | Overlaps C9 portal WIP; do not mix with capacity tip |
-| `stash@{3}` | `DEV` — local uncommitted | **509 files** / +8661−4872 | **Critical** | **Hard quarantine** — never pop; archaeological extract only |
-| `stash@{4}` | `DEV` — WIP @ `dab1a510` | 3 files | Low | Historical CI/guard noise; lowest priority |
-| `stash@{5}` | `feat/next-change` — hero-3d damavand | 12 files / large CSS+lock | Medium | Product/design branch work; separate marketing ticket |
-| `stash@{6}` | `DEV` — clean-start 20260621 | 5 files | Low | design-tokens WIP; likely stale |
-| `stash@{7}` | `feat/denali-draft-systemic-fixes` | **372 files** / large deletions | High | Draft-era; treat as dead unless ticket proves otherwise |
-| `stash@{8}` | `feat/denali-draft-systemic-fixes` — p0 wizard wt | 82 files | High | Gate/script spike; quarantine |
-| `stash@{9}` | `feat/denali-draft-systemic-fixes` — p0 isolate | 13 files | Medium | Denali manifest/theme; product ticket only |
+| `stash@{0}` | `finance/phase-1-platform-boundaries` — HostIo+WS3+docs | 27 files / +335−110 | Medium | **RECLAIMED_SUPERSEDED** (2026-07-21) — tip already has HostIo/WS3; no apply — [STABILIZATION_B7_STASH_RECLAIM_0.md](./STABILIZATION_B7_STASH_RECLAIM_0.md) |
+| `stash@{1}` | `finance/phase-0-ownership-enforcement` — phase-1 isolation | 16 files / +130−75 | Medium | **RECLAIMED_SUPERSEDED** (2026-07-21) — tip past registry isolation; no apply — [STABILIZATION_B7_STASH_RECLAIM_1.md](./STABILIZATION_B7_STASH_RECLAIM_1.md) |
+| `stash@{2}` | `wip/portal-psc-20260718` — before finance phase-0 | 9 files / +136−47 | Medium | **RECLAIMED_SUPERSEDED** (2026-07-21) — finance payment-port WIP (not modal); tip has Option C; no apply — [STABILIZATION_B7_STASH_RECLAIM_2.md](./STABILIZATION_B7_STASH_RECLAIM_2.md) |
+| `stash@{3}` | `DEV` — local uncommitted | **509 files** / +8661−4872 | **Critical** | **RECLAIMED_ARCHAEOLOGY_NO_LAND** (2026-07-21) — never pop; unique Damavand TSX parked unwired — [STABILIZATION_B7_STASH_RECLAIM_3.md](./STABILIZATION_B7_STASH_RECLAIM_3.md) |
+| `stash@{4}` | `DEV` — WIP @ `dab1a510` | 3 files | Low | **RECLAIMED_SUPERSEDED** (2026-07-21) — tip already uses build-workspace-sdk-for-guards — [STABILIZATION_B7_STASH_RECLAIM_4.md](./STABILIZATION_B7_STASH_RECLAIM_4.md) |
+| `stash@{5}` | `feat/next-change` — hero-3d damavand | 12 files / large CSS+lock | Medium | **RECLAIMED_ARCHAEOLOGY_NO_LAND** (2026-07-21) — tip uses hero-static; stash CSS monolith incompatible — [STABILIZATION_B7_STASH_RECLAIM_5.md](./STABILIZATION_B7_STASH_RECLAIM_5.md) |
+| `stash@{6}` | `DEV` — clean-start 20260621 | 5 files | Low | **RECLAIMED_SUPERSEDED** (2026-07-21) — guest-shell already on tip — [STABILIZATION_B7_STASH_RECLAIM_6.md](./STABILIZATION_B7_STASH_RECLAIM_6.md) |
+| `stash@{7}` | `feat/denali-draft-systemic-fixes` | **372 files** / large deletions | High | **RECLAIMED_ARCHAEOLOGY_NO_LAND** (2026-07-21) — tip modular codegen supersedes; never apply — [STABILIZATION_B7_STASH_RECLAIM_7.md](./STABILIZATION_B7_STASH_RECLAIM_7.md) |
+| `stash@{8}` | `feat/denali-draft-systemic-fixes` — p0 wizard wt | 82 files | High | **RECLAIMED_SUPERSEDED** (2026-07-21) — P4 club-product already on tip — [STABILIZATION_B7_STASH_RECLAIM_8.md](./STABILIZATION_B7_STASH_RECLAIM_8.md) |
+| `stash@{9}` | `feat/denali-draft-systemic-fixes` — p0 isolate | 13 files | Medium | **RECLAIMED_SUPERSEDED** (2026-07-21) — tip Denali wizard/host exports ahead — [STABILIZATION_B7_STASH_RECLAIM_9.md](./STABILIZATION_B7_STASH_RECLAIM_9.md) |
 
 ## Explicit non-actions
 
@@ -48,3 +48,18 @@ policy: never auto-pop; reclaim only with Architect-named ticket
 5. Run targeted guards for touched packages only
 6. Update this ledger + OPEN_WORK_LEDGER
 ```
+
+## Reclaim log
+
+| Ticket | Result | Evidence |
+| ------ | ------ | -------- |
+| `YES — STASH-RECLAIM-0` | **SUPERSEDED** — no apply / no drop | [STABILIZATION_B7_STASH_RECLAIM_0.md](./STABILIZATION_B7_STASH_RECLAIM_0.md) |
+| `YES — STASH-RECLAIM-1` | **SUPERSEDED** — no apply / no drop | [STABILIZATION_B7_STASH_RECLAIM_1.md](./STABILIZATION_B7_STASH_RECLAIM_1.md) |
+| `YES — STASH-RECLAIM-2` | **SUPERSEDED** — no apply / no drop | [STABILIZATION_B7_STASH_RECLAIM_2.md](./STABILIZATION_B7_STASH_RECLAIM_2.md) |
+| `YES — STASH-RECLAIM-3` | **NO_LAND** — archaeology only; stash retained | [STABILIZATION_B7_STASH_RECLAIM_3.md](./STABILIZATION_B7_STASH_RECLAIM_3.md) |
+| `YES — STASH-RECLAIM-4` | **SUPERSEDED** — no apply / no drop | [STABILIZATION_B7_STASH_RECLAIM_4.md](./STABILIZATION_B7_STASH_RECLAIM_4.md) |
+| `YES — STASH-RECLAIM-5` | **NO_LAND** — archaeology; stash retained | [STABILIZATION_B7_STASH_RECLAIM_5.md](./STABILIZATION_B7_STASH_RECLAIM_5.md) |
+| `YES — STASH-RECLAIM-6` | **SUPERSEDED** — no apply / no drop | [STABILIZATION_B7_STASH_RECLAIM_6.md](./STABILIZATION_B7_STASH_RECLAIM_6.md) |
+| `YES — STASH-RECLAIM-7` | **NO_LAND** — draft-era; stash retained | [STABILIZATION_B7_STASH_RECLAIM_7.md](./STABILIZATION_B7_STASH_RECLAIM_7.md) |
+| `YES — STASH-RECLAIM-8` | **SUPERSEDED** — no apply / no drop | [STABILIZATION_B7_STASH_RECLAIM_8.md](./STABILIZATION_B7_STASH_RECLAIM_8.md) |
+| `YES — STASH-RECLAIM-9` | **SUPERSEDED** — series complete; stash retained | [STABILIZATION_B7_STASH_RECLAIM_9.md](./STABILIZATION_B7_STASH_RECLAIM_9.md) |

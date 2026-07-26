@@ -67,6 +67,16 @@ LIMIT 100;
 
 Join pending receipts on `payment_id`.
 
+### 2.5 Booking payment drift (`D-PAID-BOOKING-DRIFT`)
+
+Symptom: finance shows `Paid` payment but booking `payment_status` still `unpaid`/`partial`.
+
+1. Open recon triage: `/settings/reconciliation-triage` or query `finance_recon_findings` where `code = 'D-PAID-BOOKING-DRIFT'`.  
+2. Confirm payment `Paid` + receipt `Approved` + ledger capture outbox present.  
+3. **Auto-heal:** set `FINANCE_RECON_AUTO_REPAIR=1` (dev default in `.env.example`; enable in prod Prisma env). Next R3 scan (~15m) runs allowlisted repair for `D-PAID-BOOKING-DRIFT` and `D-PAID-NO-LEDGER`.  
+4. **Manual:** use recon repair API/UI with `mode=manual` when auto-repair is intentionally off.  
+5. Verify booking row `payment_status = paid` and finding `status = resolved`.
+
 ## 3. Recovery
 
 ### 3.1 Failed ledger retry (Paid, missing capture)

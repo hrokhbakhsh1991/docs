@@ -714,7 +714,7 @@ sequenceDiagram
 | Locale home href guard | `scripts/guards/guard-marketing-locale-home-hrefs.mjs` |
 | Tenant default locale | `packages/workspace-sdk/src/theme/tenant-theme.contract.ts` (`defaultLocale`) |
 | Denali registration API | `packages/workspaces/denali/src/http/registration.service.ts` |
-| Public OTP portal flow | `apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx` |
+| Public OTP portal flow | `apps/portal/src/catalog/public-catalog-registration-flow.tsx` |
 | Denali portal skin | `packages/workspaces/denali/theme/denali-portal.css` (tokens: `design-system/denali-club/MASTER.md`) |
 | Portal guest theme bootstrap | `apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts` |
 | Portal dev origins | `apps/portal/next.config.ts` (`allowedDevOrigins: *.portal.localhost`) |

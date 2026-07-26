@@ -30,11 +30,11 @@ import {
   countWizardTemplateSelectedFields,
   validateWizardTemplateSavable,
 } from "@/tours/wizard-template-gate-logic";
-import { loadFullWizardTemplatePreset } from "@/bootstrap/workspace-wizard-template-preset-bindings.generated";
+import { loadFullWizardTemplatePreset } from "@/features/settings/wizard-template-preset";
 import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
-import { ensureWizardTemplateEditor } from "@/bootstrap/workspace-wizard-template-editor-bindings.generated";
+import { ensureWizardTemplateEditor } from "@/wizard/wizard-template-editor-registry";
 import type { WizardTemplateEditorSurface } from "@/wizard/wizard-template-editor-types";
-import { WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS } from "@/bootstrap/wizard-create-bindings.generated";
+import { isExtendedOperatorWorkspace } from "@/workspace/is-extended-operator-workspace";
 import {
   applyWizardTemplatePreset,
   buildWizardTemplateCatalogFromPlugin,
@@ -176,7 +176,7 @@ function WizardTemplateClientReady({
   const [loadingPreset, setLoadingPreset] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const showExtendedWizardTemplate = WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(pluginId);
+  const showExtendedWizardTemplate = isExtendedOperatorWorkspace(pluginId);
 
   const formatWizardError = useCallback(
     (resolution: WizardTemplateErrorResolution): string => {
@@ -486,7 +486,8 @@ function WizardTemplateClientReady({
                                 tWorkspace,
                                 (path) =>
                                   resolveWizardTemplateFieldLabel(path, pluginId, tWorkspace),
-                                fieldMeta
+                                fieldMeta,
+                                pluginId
                               )
                             : null;
                         return (

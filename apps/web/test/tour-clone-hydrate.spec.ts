@@ -6,7 +6,8 @@ import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
 
 import { OPERATOR_WIZARD_PATH } from "../src/admin/require-operator-session";
-import { ensureDenaliHostAdapters } from "../src/bootstrap/workspace-host-adapters.generated";
+import { DENALI_WORKSPACE_PLUGIN_ID } from "@app-cloud/workspace-denali";
+import { ensureWizardHostAdapterSurface } from "@app-cloud/workspace-denali/host/wizard/host-adapter-surface";
 import type { OperatorTourDetailResponse } from "../src/features/tours/operator-tour-detail-types";
 import {
   buildCloneTourDetailUrl,
@@ -72,7 +73,7 @@ function sampleDetail(title: string): OperatorTourDetailResponse {
 
 describe("tour-clone-hydrate.spec.ts — Phase 11.6 Web", () => {
   before(async () => {
-    await ensureDenaliHostAdapters();
+    await ensureWizardHostAdapterSurface(DENALI_WORKSPACE_PLUGIN_ID);
   });
 
   it("WEB-9.3-04 duplicate URL + hydrate applies Copy suffix (CP-9.3-L09)", async () => {
@@ -91,7 +92,7 @@ describe("tour-clone-hydrate.spec.ts — Phase 11.6 Web", () => {
   });
 
   it("WEB-P11-6-05 readActiveEquipmentIds skips inactive rows", () => {
-    const ids = readActiveEquipmentIds([
+    const ids = readActiveEquipmentIds(DENALI_WORKSPACE_PLUGIN_ID, [
       { id: "eq-1", isActive: true },
       { id: "eq-2", isActive: false },
     ]);
@@ -99,7 +100,7 @@ describe("tour-clone-hydrate.spec.ts — Phase 11.6 Web", () => {
   });
 
   it("P15-W-B1b readActiveDestinationIds skips inactive rows", () => {
-    const ids = readActiveDestinationIds([
+    const ids = readActiveDestinationIds(DENALI_WORKSPACE_PLUGIN_ID, [
       { id: "dest-1", isActive: true },
       { id: "dest-2", isActive: false },
     ]);

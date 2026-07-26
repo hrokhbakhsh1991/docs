@@ -7,7 +7,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   ensureSettingsEquipmentUiSurface,
-} from "@/bootstrap/workspace-settings-equipment-ui-bindings.generated";
+} from "@/features/settings/settings-equipment-ui-registry";
 import type { SettingsEquipmentUiSurface } from "@/features/settings/settings-equipment-ui-types";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 

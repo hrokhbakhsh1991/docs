@@ -1,4 +1,7 @@
-import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
+import {
+  resolveWizardHostCapability,
+  type WorkspacePlugin,
+} from "@app-cloud/workspace-sdk";
 
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
 
@@ -19,7 +22,7 @@ export function hydrateTourEditDraft(
     readonly activeDestinationIds?: readonly string[];
   }
 ): TourWizardDraft | null {
-  const hydrate = plugin.wizardHost?.hydrateEditDraft;
+  const hydrate = resolveWizardHostCapability(plugin)?.hydrateEditDraft;
   if (hydrate == null) {
     return null;
   }

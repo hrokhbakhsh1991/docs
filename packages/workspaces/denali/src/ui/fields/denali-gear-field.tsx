@@ -190,8 +190,8 @@ export function DenaliGearField({ draft, onDraftChange }: DenaliGearFieldProps) 
   return (
     <div
       className="denali-wizard-composite"
-      data-denali-wizard-surface="section"
-      data-denali-gear-picker
+      data-operator-wizard-surface="section"
+      data-operator-gear-picker
       data-testid={DENALI_GEAR_TEST_IDS.gear}
     >
       <div className="denali-wizard-composite__header">
@@ -238,7 +238,7 @@ export function DenaliGearField({ draft, onDraftChange }: DenaliGearFieldProps) 
               <div
                 className="denali-gear-picker__grid"
                 role="list"
-                data-denali-wizard-gear-list
+                data-operator-wizard-gear-list
               >
                 {filteredCatalog.map((item) => {
                   const entry = selectedById.get(item.id);
@@ -250,7 +250,7 @@ export function DenaliGearField({ draft, onDraftChange }: DenaliGearFieldProps) 
                       key={item.id}
                       role="listitem"
                       data-testid={DENALI_GEAR_TEST_IDS.card}
-                      data-denali-gear-card
+                      data-operator-gear-card
                       className={
                         isSelected
                           ? "denali-gear-picker__card denali-gear-picker__card--selected"

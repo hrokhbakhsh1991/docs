@@ -24,6 +24,7 @@ const REQUIRED_RUNTIME = [
   "compileRegistrationInvoice",
   "attachFinanceRegistrationContext",
   "filterRowsByRegistrationId",
+  "filterRowsByTourId",
   "FINANCE_METRIC",
   "FINANCE_LATENCY_BUDGET_MS",
 ] as const;

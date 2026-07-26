@@ -72,7 +72,7 @@ describe("finance supported workspace capability matrix (B2.3)", () => {
     }
   });
 
-  it("every claimed capability has a matching runtime binding (no hollow claims)", () => {
+  it("every claimed capability has a matching runtime binding (no hollow claims)", async () => {
     for (const workspaceType of listFinanceCapableWorkspaceTypes()) {
       const caps = WORKSPACE_FINANCE_CAPABILITIES[
         workspaceType as keyof typeof WORKSPACE_FINANCE_CAPABILITIES
@@ -90,12 +90,12 @@ describe("finance supported workspace capability matrix (B2.3)", () => {
           true,
           `${workspaceType} claims ledgerCapture but has no CoA binding`
         );
-        const deps = resolveFinanceWorkspaceDependencies(workspaceType);
+        const deps = await resolveFinanceWorkspaceDependencies(workspaceType);
         const plan = deps.ledgerPolicy.buildPaymentCaptureJournal(CAPTURE_INPUT);
         assert.ok(plan.journalId.length > 0);
         assert.ok(plan.lines.length >= 2, `${workspaceType} ledgerCapture must post double-entry`);
         assert.ok(plan.domainEventId.includes("ledger-capture"));
-        const coa = resolveFinanceChartOfAccounts(workspaceType);
+        const coa = await resolveFinanceChartOfAccounts(workspaceType);
         assert.ok(Object.keys(coa).length > 0);
       }
 
@@ -132,7 +132,7 @@ describe("finance supported workspace capability matrix (B2.3)", () => {
     assert.equal(financeWorkspaceEventReactionCapability("finance-ws5"), "ack-only");
     assert.equal(financeWorkspaceEventReactionCapability("denali"), "durable-outbox");
 
-    const ws5 = resolveWorkspaceFinanceEventReaction("finance-ws5");
+    const ws5 = await resolveWorkspaceFinanceEventReaction("finance-ws5");
     assert.ok(ws5 instanceof FinanceWs5TourCreatedFinanceReactionAdapter);
     const batch = await ws5.consumePendingForTenant("00000000-0000-4000-8000-000000000014");
     assert.deepEqual(batch, { handled: 0, skipped: 0 });

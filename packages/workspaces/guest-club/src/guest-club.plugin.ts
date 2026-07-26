@@ -17,3 +17,9 @@ export function getGuestClubWorkspacePlugin(): WorkspacePlugin {
     catalogIntake: guestClubCatalogIntakeSurface,
   });
 }
+
+/** Canonical host-contract getter (manifest plugin/web.export; Phase 4p). */
+export function getWorkspacePlugin(): WorkspacePlugin {
+  return getGuestClubWorkspacePlugin();
+}
+

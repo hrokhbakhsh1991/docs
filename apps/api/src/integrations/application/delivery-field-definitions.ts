@@ -65,9 +65,9 @@ export function buildDeliveryFieldPolicyEntityState(
       };
 }
 
-function resolveWorkspacePluginSafely(workspaceType: string) {
+async function resolveWorkspacePluginSafely(workspaceType: string) {
   try {
-    return resolveWorkspacePluginForType(workspaceType);
+    return await resolveWorkspacePluginForType(workspaceType);
   } catch {
     return null;
   }
@@ -77,19 +77,19 @@ function resolveWorkspacePluginSafely(workspaceType: string) {
  * Phase E — definitions-only adapter for cutover enrichment.
  * Uses the full exposure catalog; does not compute legacy eligible/candidate ids.
  */
-export function resolveDeliveryFieldDefinitions(
+export async function resolveDeliveryFieldDefinitions(
   input: Omit<ResolveDeliveryFieldPolicyInput, "requestedFieldIds">,
-): readonly FieldDefinition[] | null {
+): Promise<readonly FieldDefinition[] | null> {
   if (input.workspaceType === null || input.workspaceType.trim().length === 0) {
     return null;
   }
 
-  const plugin = resolveWorkspacePluginSafely(input.workspaceType);
+  const plugin = await resolveWorkspacePluginSafely(input.workspaceType);
   if (plugin === null || plugin.fieldPolicy === undefined) {
     return null;
   }
 
-  const candidateFieldIds = exposureCatalogFieldIds(input.workspaceType);
+  const candidateFieldIds = await exposureCatalogFieldIds(input.workspaceType);
   if (candidateFieldIds.length === 0) {
     return [];
   }

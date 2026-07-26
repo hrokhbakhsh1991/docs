@@ -46,7 +46,7 @@ describe("resolveTenantExposureSelectableCatalog", () => {
 
     assert.deepEqual(
       catalog.fields.map((field) => field.id),
-      buildExposureSelectableFieldCatalog("denali").map((field) => field.id),
+      await buildExposureSelectableFieldCatalog("denali").map((field) => field.id),
     );
     assert.equal(catalog.source, "registry_deliverable_migration_seed");
   });
@@ -74,12 +74,12 @@ describe("resolveTenantExposureSelectableCatalog", () => {
     });
 
     assert.equal(catalog.source, PUBLISHED_WIZARD_TEMPLATE_EXPOSURE_CATALOG_SOURCE);
-    assert.ok(catalog.fields.length > buildExposureSelectableFieldCatalog("denali").length);
+    assert.ok(catalog.fields.length > await buildExposureSelectableFieldCatalog("denali").length);
     assert.ok(catalog.fields.some((field) => field.canonicalPath === "transport.mode"));
   });
 
-  it("rejects selected field ids outside tenant catalog", () => {
-    const deliverableIds = new Set(exposureSelectableFieldIds("denali"));
+  it("rejects selected field ids outside tenant catalog", async () => {
+    const deliverableIds = new Set(await exposureSelectableFieldIds("denali"));
     assert.throws(
       () => assertExposureSelectedFieldsAllowed(["not-a-real-field"], deliverableIds),
       ExposureCatalogFieldNotAllowedError,

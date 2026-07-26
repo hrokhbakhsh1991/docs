@@ -1,28 +1,36 @@
 /**
  * Booking **ops UI** capability resolution — metadata only (Phase B1.6).
- * Ops SoT: workspace `workspaceBooking.opsManifest` → generated bindings.
+ * Ops SoT: capabilities.bookingOps.resolveManifest (Phase 4bf) — no generated binder.
  *
  * Generic web depends on {@link BookingOpsCapability} only — never imports workspace packages.
  */
-import {
-  hasBookingOpsManifest,
-  resolveWorkspaceBookingOpsManifest,
-} from "@/bootstrap/workspace-booking-ops-bindings.generated";
+import { resolveBookingOpsCapability } from "@app-cloud/workspace-sdk";
+
+import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
 import type { BookingOpsCapability } from "@/features/bookings/booking-ops-capability-contract";
 
 export type { BookingOpsCapability } from "@/features/bookings/booking-ops-capability-contract";
 
 /**
  * Resolve booking ops capability for the command center.
- * Unbound / missing `opsManifest` → `null` (no product fallback).
+ * Unbound / missing bookingOps capability → `null` (no product fallback).
  */
-export function resolveBookingOpsCapabilityForHub(
+export async function resolveBookingOpsCapabilityForHub(
   theme: unknown = null,
   pluginId: string
-): BookingOpsCapability | null {
+): Promise<BookingOpsCapability | null> {
   const id = pluginId.trim();
-  if (id.length === 0 || !hasBookingOpsManifest(id)) {
+  if (id.length === 0) {
     return null;
   }
-  return resolveWorkspaceBookingOpsManifest(id, theme);
+  try {
+    const plugin = await loadBootstrapWorkspacePlugin(id);
+    const bookingOps = resolveBookingOpsCapability(plugin);
+    if (bookingOps == null) {
+      return null;
+    }
+    return bookingOps.resolveManifest(theme);
+  } catch {
+    return null;
+  }
 }

@@ -82,7 +82,7 @@ export function DenaliGuideLanguageIdsField({
   return (
     <div
       className="denali-wizard-composite"
-      data-denali-wizard-surface="section"
+      data-operator-wizard-surface="section"
       data-testid={DENALI_GUIDE_LANGUAGES_TEST_IDS.guideLanguages}
     >
       <div className="denali-wizard-composite__header">

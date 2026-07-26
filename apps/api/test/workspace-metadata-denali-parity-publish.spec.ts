@@ -125,7 +125,7 @@ describe("workspace-metadata-denali-parity-publish (P5-B RP-01..04)", () => {
     delete env.WORKSPACE_METADATA_TENANT_ALLOWLIST;
 
     const seed = loadDenaliSeedExport();
-    const packagePlugin = resolveWorkspacePluginForType("denali");
+    const packagePlugin = await resolveWorkspacePluginForType("denali");
     const metadataPlugin = await resolveMetadataDenaliPluginForTenant();
     assert.deepEqual(metadataPlugin.fieldRegistry, seed.payload.fieldRegistry);
     assert.equal(metadataPlugin.validation, packagePlugin.validation);
@@ -148,7 +148,7 @@ describe("workspace-metadata-denali-parity-publish (P5-B RP-01..04)", () => {
     delete env.WORKSPACE_METADATA_TENANT_ALLOWLIST;
 
     const metadataPlugin = await resolveMetadataDenaliPluginForTenant();
-    const packagePlugin = resolveWorkspacePluginForType("denali");
+    const packagePlugin = await resolveWorkspacePluginForType("denali");
 
     const packagePlan = PlatformWizardEngine.create(
       denaliPluginForWizardEngine(packagePlugin)
@@ -165,7 +165,7 @@ describe("workspace-metadata-denali-parity-publish (P5-B RP-01..04)", () => {
     delete env.WORKSPACE_METADATA_TENANT_ALLOWLIST;
 
     const metadataPlugin = await resolveMetadataDenaliPluginForTenant();
-    const packagePlugin = resolveWorkspacePluginForType("denali");
+    const packagePlugin = await resolveWorkspacePluginForType("denali");
 
     const packagePlan = PlatformWizardEngine.create(
       denaliPluginForWizardEngine(packagePlugin)

@@ -128,7 +128,7 @@ async function resolveExposureProfile(input: {
   readonly workspaceType: string;
   readonly effectiveContext: FieldExposureRuntimeCoordinate;
 }): Promise<ExposureProfile | null> {
-  const seededProfile = resolveLegacyDeliveryExposureProfile({
+  const seededProfile = await resolveLegacyDeliveryExposureProfile({
     workspaceType: input.workspaceType,
     provider: input.effectiveContext.surface,
     eventType: input.effectiveContext.trigger,
@@ -231,7 +231,7 @@ async function resolveExposureSimulationRouteContext(
     provider: connection.provider,
     eventType: input.eventType,
   });
-  const defaultSeededProfile = resolveLegacyDeliveryExposureProfile({
+  const defaultSeededProfile = await resolveLegacyDeliveryExposureProfile({
     workspaceType,
     provider: defaultContext.surface,
     eventType: defaultContext.trigger,
@@ -318,7 +318,7 @@ export async function simulateExposure(
           persistedIntent: routeContext.exposureIntent,
           draftIntent: request.draftIntent,
         });
-  const preview = buildDeterministicExposureEnginePreview({
+  const preview = await buildDeterministicExposureEnginePreview({
     tenantId: auth.tenantId,
     workspaceType: routeContext.workspaceType,
     provider: routeContext.effectiveContext.surface,

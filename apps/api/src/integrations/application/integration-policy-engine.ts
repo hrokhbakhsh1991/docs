@@ -58,7 +58,7 @@ export class IntegrationPolicyEngine {
   }): Promise<readonly IntegrationPolicyDecision[]> {
     const repository = this.repository();
     const exposureIntentRepository = this.exposureRepository();
-    const mappings = integrationMappingsForEvent(input.eventType, input.workspaceType);
+    const mappings = await integrationMappingsForEvent(input.eventType, input.workspaceType);
     if (mappings.length === 0) {
       return [];
     }
@@ -122,7 +122,7 @@ export class IntegrationPolicyEngine {
 
     if (connection.syntheticLegacyConnection === true) {
       return {
-        allowed: isDefaultIntegrationEventEnabled({
+        allowed: await isDefaultIntegrationEventEnabled({
           workspaceType: connection.workspaceType,
           providerId: connection.provider,
           eventType,
@@ -149,7 +149,7 @@ export class IntegrationPolicyEngine {
 
     if (policies.length === 0) {
       return {
-        allowed: isDefaultIntegrationEventEnabled({
+        allowed: await isDefaultIntegrationEventEnabled({
           workspaceType: connection.workspaceType,
           providerId: connection.provider,
           eventType,
@@ -179,7 +179,7 @@ export class IntegrationPolicyEngine {
     readonly exposureIntent: ExposureIntent | null;
     readonly exposureCoordinate: FieldExposureRuntimeCoordinate;
   }> {
-    const profile = resolveRegistrySeededExposureProfile({
+    const profile = await resolveRegistrySeededExposureProfile({
       workspaceType: input.workspaceType,
       entityType: "tour",
       surface: input.exposureCoordinate.surface,

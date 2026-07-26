@@ -18,6 +18,7 @@ const ALLOWED_EXPORTS = new Set([
   "DENALI_WORKSPACE_TYPE",
   "createDenaliWorkspacePlugin",
   "getDenaliWorkspacePlugin",
+  "getWorkspacePlugin",
 ]);
 
 /**

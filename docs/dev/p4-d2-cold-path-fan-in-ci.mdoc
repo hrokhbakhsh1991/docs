@@ -1,0 +1,89 @@
+---
+title: Cold-path fan-in CI (P4-D2)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/workspace-scale-hardening.mdoc
+  - docs/dev/finance-lazy-workspace-bindings.mdoc
+---
+
+# Cold-path fan-in CI (P4-D2)
+
+Phase 4 made product workspace packages **lazy** on web/API/guest cold paths (dynamic `import()`, no SYNC fan-in, finance loaders async). P4.5 recorded that as a **qualitative** import-graph SoT. **P4-D2** turns the invariant into a **fast numeric CI guard** so regressions (static product fan-in returning to generated entrypoints) fail in seconds — without a full Next webpack analyzer on every PR.
+
+## Problem
+
+Qualitative before/after tables drift unless enforced. A future codegen change can reintroduce:
+
+```ts
+import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
+```
+
+at module eval of loaders/registries/finance bindings. That restores **O(N)** product packages on every boot, undoing P4.1–P4.2 / P4-D3.
+
+Full `@next/bundle-analyzer` HTML reports need a production build (~minutes) and are a poor default PR gate under the Development Speed Protocol.
+
+## Decision
+
+| Layer | Role | Runtime |
+| ----- | ---- | ------- |
+| **`pnpm run guard:p4-cold-path-fan-in`** | **CI SoT** — static analysis of cold-path generated entrypoints | Target &lt; 5s |
+| **Numeric report** | `reports/p4-cold-path-fan-in.json` — per-file static/dynamic product import counts | Written on each guard run |
+| **Next bundle analyzer** | **Optional local** only — not wired as default CI | Full `pnpm --filter @apps/web build` with `ANALYZE=1` after installing `@next/bundle-analyzer` |
+
+### Budget
+
+For every file in the cold-path allowlist:
+
+- **`staticProductImports === 0`** — no value `import … from "@app-tour/workspace-<product>[/…]"` ( `import type` from `@app-tour/workspace-sdk` remains allowed).
+- **Dynamic** `import("@app-tour/workspace-…")` counts are **informational** (and must be ≥ product trunk size on web loaders + API registry).
+
+Product package list comes from the generated allowlist fragment (`PRODUCT_WORKSPACE_PACKAGES`) so trunk growth updates the budget automatically after `generate:workspace-registry`.
+
+### Cold-path allowlist (generated entrypoints)
+
+| Surface | Path |
+| ------- | ---- |
+| Web plugin loaders | `apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts` |
+| Web admin themes | `apps/web/src/bootstrap/workspace-theme-stylesheets.generated.ts` |
+| Web finance ops | `apps/web/src/bootstrap/workspace-finance-ops-bindings.generated.ts` |
+| API plugin registry | `apps/api/src/workspace/workspace-plugin-registry.generated.ts` |
+| API HTTP handlers | `apps/api/src/http/workspace-http-handler-loaders.generated.ts` |
+| API finance\* | `apps/api/src/workspace-finance/workspace-finance-*-bindings.generated.ts` (+ capabilities) |
+| Guest register router | `packages/guest-workspace-runtime/src/workspace-plugin-register-manifest.generated.ts` |
+| Guest per-plugin registrars | `packages/guest-workspace-runtime/src/register-*.generated.ts` |
+| Guest theme loaders | `packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.*.generated.ts` |
+
+\*Finance nav bindings are id-set only (no product imports) — included for completeness.
+
+```mermaid
+flowchart LR
+  subgraph cold [Cold module eval]
+    L[web loaders]
+    R[API registry]
+    F[finance generated]
+    G[guest register manifest]
+  end
+  subgraph hot [First resolve / request]
+    D["await import(workspace-*)"]
+  end
+  Guard[guard:p4-cold-path-fan-in] -->|static count must be 0| cold
+  cold -->|0 product packages| HotPath[process ready]
+  HotPath --> D
+```
+
+## Out of scope
+
+- Collapsing portal/marketing `package.json` product deps (P4.3 / P5 guest-runtime — already closed for registration ownership).
+- Forcing HTTP handler loaders to per-id lazy (still one function with sequential `await import` — no **static** fan-in; residual scale ticket if needed).
+- Adding `@next/bundle-analyzer` as a monorepo dependency or PR required check.
+
+## Verify
+
+```bash
+pnpm run guard:p4-cold-path-fan-in
+# optional unit:
+node --test scripts/test/p4-cold-path-fan-in.spec.mjs
+```
+
+Authority: [`TEMP/phases/P4-dynamic-workspace-loading-plan.md`](../../TEMP/phases/P4-dynamic-workspace-loading-plan.md) · I3 / P4.1 notes in [`workspace-scale-hardening.mdoc`](./workspace-scale-hardening.mdoc).

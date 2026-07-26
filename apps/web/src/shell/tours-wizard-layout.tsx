@@ -9,6 +9,7 @@ import { WizardBridgeShell } from "@/shell/wizard-bridge-shell";
 import { fetchTenantThemeForContext } from "@/tenant/fetch-tenant-theme.server";
 import { resolveBootstrapAppSessionForHostAsync } from "@/tenant/tenant-kernel";
 import { isExtendedOperatorWorkspace } from "@/workspace/is-extended-operator-workspace";
+import { ensureWizardCreate } from "@/workspace/wizard-create-registry";
 
 /**
  * `/tours/*` — workspaces with `wizardCreate.extendedChrome` get Wizard Bridge;
@@ -20,6 +21,8 @@ export async function ToursWizardLayout({ children }: { children: ReactNode }) {
   const resolved = await resolveBootstrapAppSessionForHostAsync(host);
   const pluginId = resolved.session.pluginId;
   const session = await readOperatorSessionFromCookies();
+
+  await ensureWizardCreate(pluginId);
 
   if (session !== null && isExtendedOperatorWorkspace(pluginId)) {
     const tWorkspaces = await getTranslations("app.workspaces");

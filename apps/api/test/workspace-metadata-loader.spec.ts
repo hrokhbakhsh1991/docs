@@ -23,12 +23,12 @@ afterEach(() => {
 });
 
 describe("isWorkspaceMetadataEnabled", () => {
-  it("defaults false", () => {
+  it("defaults false", async () => {
     delete env.WORKSPACE_METADATA_ENABLED;
     assert.equal(isWorkspaceMetadataEnabled(), false);
   });
 
-  it("accepts true/1/yes", () => {
+  it("accepts true/1/yes", async () => {
     env.WORKSPACE_METADATA_ENABLED = "true";
     assert.equal(isWorkspaceMetadataEnabled(), true);
     env.WORKSPACE_METADATA_ENABLED = "1";
@@ -37,7 +37,7 @@ describe("isWorkspaceMetadataEnabled", () => {
 });
 
 describe("adaptMetadataPayloadToWorkspacePlugin", () => {
-  it("overlays data core onto package hooks", () => {
+  it("overlays data core onto package hooks", async () => {
     const overlay = getStarterWorkspacePlugin();
     const payload = stripWorkspacePluginToDefinitionPayload(overlay);
     const adapted = adaptMetadataPayloadToWorkspacePlugin(payload, overlay);
@@ -51,13 +51,13 @@ describe("resolveWorkspacePluginForTenant", () => {
   it("returns package plugin when flag off", async () => {
     delete env.WORKSPACE_METADATA_ENABLED;
     const plugin = await resolveWorkspacePluginForTenant({ workspaceType: "starter" });
-    assert.equal(plugin.id, resolveWorkspacePluginForType("starter").id);
+    assert.equal(plugin.id, (await resolveWorkspacePluginForType("starter")).id);
   });
 
   it("returns package plugin when flag on but no binding", async () => {
     env.WORKSPACE_METADATA_ENABLED = "true";
     const plugin = await resolveWorkspacePluginForTenant({ workspaceType: "starter" });
-    assert.equal(plugin.id, resolveWorkspacePluginForType("starter").id);
+    assert.equal(plugin.id, (await resolveWorkspacePluginForType("starter")).id);
   });
 
   it("loads metadata payload when flag and binding set", async () => {

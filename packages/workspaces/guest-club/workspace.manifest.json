@@ -12,11 +12,11 @@
   ],
   "plugin": {
     "entry": "./plugin",
-    "export": "getGuestClubWorkspacePlugin"
+    "export": "getWorkspacePlugin"
   },
   "web": {
     "entry": "./plugin",
-    "export": "getGuestClubWorkspacePlugin"
+    "export": "getWorkspacePlugin"
   },
   "http": {
     "prefix": "/guest-club",
@@ -105,19 +105,19 @@
       "latestToursLimit": 0,
       "trust": false,
       "finalCta": false,
-    "faq": false,
-    "footer": false,
-    "whyDenali": false,
-    "journey": false,
-    "testimonials": false,
-    "featuredTours": false,
-    "featuredToursLimit": 0,
-    "categories": false,
-    "destinations": false,
-    "heroSearch": false,
-    "gallery": false,
-    "equipment": false,
-    "blogTeaser": false
+      "faq": false,
+      "footer": false,
+      "whyDenali": false,
+      "journey": false,
+      "testimonials": false,
+      "featuredTours": false,
+      "featuredToursLimit": 0,
+      "categories": false,
+      "destinations": false,
+      "heroSearch": false,
+      "gallery": false,
+      "equipment": false,
+      "blogTeaser": false
     },
     "i18nProfile": "minimal"
   },
@@ -129,12 +129,22 @@
       "listDescriptionKey": "seo.toursDescription",
       "jsonLd": {
         "required": true,
-        "schemaTypes": ["Event"],
+        "schemaTypes": [
+          "Event"
+        ],
         "builderExport": "buildGuestClubEventJsonLd",
         "richResultsProfile": "event-stub-v1"
       },
-      "sitemap": { "changefreq": "weekly", "priority": 0.8, "includeImages": false },
-      "pagination": { "noindexQueryParams": ["cursor"] }
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": 0.8,
+        "includeImages": false
+      },
+      "pagination": {
+        "noindexQueryParams": [
+          "cursor"
+        ]
+      }
     }
   },
   "memberPortal": {

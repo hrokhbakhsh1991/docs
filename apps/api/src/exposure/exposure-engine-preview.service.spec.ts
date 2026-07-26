@@ -33,8 +33,8 @@ describe("getExposureEnginePreview", () => {
 });
 
 describe("buildDeterministicExposureEnginePreview", () => {
-  it("runs platform-core engine over the full catalog with deterministic payload", () => {
-    const seededProfile = resolveRegistrySeededExposureProfile({
+  it("runs platform-core engine over the full catalog with deterministic payload", async () => {
+    const seededProfile = await resolveRegistrySeededExposureProfile({
       workspaceType: "starter",
       ...resolveDeliveryExposureProfileContext("TourCreated"),
       surface: "telegram",

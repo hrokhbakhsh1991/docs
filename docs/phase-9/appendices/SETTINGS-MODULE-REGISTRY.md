@@ -304,7 +304,7 @@ type DestinationResource = {
 
 1. **Build time:** SDK exports types + `validateSettingsManifest(modules)`.
 2. **API boot:** `getDenaliWorkspacePlugin().operatorSettings` → frozen registry Map.
-3. **Web runtime:** `loadDenaliWorkspacePlugin()` → `useOperatorSettingsModules()` filters by CASL + host workspace.
+3. **Web runtime:** `loadWizardWorkspacePlugin()` (Wave I.5; formerly `loadDenaliWorkspacePlugin`) → `useOperatorSettingsModules()` filters by CASL + host workspace.
 4. **Reject unknown:** API returns **404** `SETTINGS_MODULE_UNKNOWN` if `moduleId` ∉ registry for resolved plugin.
 
 ---

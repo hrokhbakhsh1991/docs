@@ -23,7 +23,7 @@ Portal catalog registration must survive **per-workspace plugin load failures** 
 | Per-plugin isolation | `registerWorkspacePluginSafe(pluginId)` wraps dynamic `import()` in try/catch |
 | Idempotent registration | SDK registries (`registerWorkspaceIntakePlugin`, etc.) tolerate repeat calls |
 | `catalogIntake` skip | Workspaces without `catalogIntake` on `WorkspacePlugin` omit intake registration |
-| Degraded boot | Portal layout registers **active** `pluginId` only; instrumentation warms all plugins inside error boundary |
+| Degraded boot | Portal layout registers **active** `pluginId` only; instrumentation **does not** warm-all by default (P4.4); opt-in `PORTAL_WARM_ALL_PLUGINS=1` |
 
 ## Codegen outputs
 
@@ -32,12 +32,22 @@ Portal catalog registration must survive **per-workspace plugin load failures** 
 | `register-{id}.generated.ts` | Async registrar for one workspace: `registerWorkspaceIntake*` (plugin entry only) + `registerWorkspacePlugin*` (full flow) |
 | `workspace-plugin-register-manifest.generated.ts` | `invokeWorkspacePluginRegister` + `invokeWorkspaceIntakeRegister` |
 
-Legacy monolithic `workspace-*-plugins.generated.ts` files are **removed**.
+Legacy monolithic `workspace-*-plugins.generated.ts` files are **removed** (P3.1.b). Runtime uses `register-{id}.generated.ts` + `register-safe`.
+
+### Portal wiring (P3.1.a)
+
+| Surface | Call |
+| ------- | ---- |
+| `apps/portal/instrumentation.ts` | Binds invokers; warm-all only when `PORTAL_WARM_ALL_PLUGINS=1` (P4.4) |
+| `apps/portal/app/layout.tsx` | `await registerWorkspacePluginSafe(bootstrap.pluginId)` |
+| register page | `await registerWorkspacePluginSafe(workspace)` |
+| intake API route | `await registerWorkspaceIntakeSafe(pluginId)` |
+
 
 ## Portal wiring
 
 ```text
-instrumentation.ts → registerAllWorkspacePluginsSafe() (try/catch, non-fatal)
+instrumentation.ts → bind registrars; optional registerAllWorkspacePluginsSafe() if PORTAL_WARM_ALL_PLUGINS=1
 register page      → await registerWorkspacePluginSafe(workspace)  // full flow
 intake API route   → await registerWorkspaceIntakeSafe(pluginId)   // plugin entry only
 ```
@@ -64,3 +74,30 @@ setWorkspacePluginBootstrapTelemetrySink((event: WorkspacePluginBootstrapTelemet
 ```
 
 Failed loads use code `WORKSPACE_PLUGIN_LOAD_FAILED`; unknown plugin ids use `WORKSPACE_PLUGIN_REGISTER_UNKNOWN`.
+
+## Host package dependencies (P3.2.b)
+
+`@app-tour/workspace-plugin-host` depends only on `@app-tour/workspace-sdk` (contracts). Per-plugin registrars live under `packages/guest-workspace-runtime/src/register-*.generated.ts` (P5.3) and are bound via `setWorkspacePluginRegisterInvokers` / `bindWorkspacePluginRegisterInvokers()` from `@app-tour/guest-workspace-runtime/bind-register-invokers`.
+
+| Layer | Owns |
+| ----- | ---- |
+| Host | `register-safe`, registration-flow step registry, plugin id revision list |
+| Portal | product `import()` registrars + invoker binding |
+
+## Admin web loaders (P4.1 / I3)
+
+`apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts` is **async-only**: `loadWorkspacePluginByIdFromRegistry(pluginId)` uses allowlisted `await import()` + I2 cache. There is no `SYNC_WORKSPACE_PLUGINS` map. Client hydrate uses theme shells in `resolve-bootstrap-workspace-plugin.client.ts` and must not import the generated loaders module.
+
+## Portal package.json product deps (P4.3 → P5.3)
+
+Portal and marketing depend on `@app-tour/guest-workspace-runtime` (not individual product workspace packages). That package declares product deps and owns allowlisted `import("@app-tour/workspace-…")` for registrars, guest theme loaders, and marketing catalog bindings — enforced by `guard-guest-consumer-deps`. Layout still registers one `pluginId`. **P4-D1 closed** in P5.3.a+b.
+
+Architecture depcruise workspace dirs for web/API are **manifest-generated** (`manifest-boundary-allowlist.generated.cjs`, P5.2 / P5.2.b). Host package.json must not list workspace product packages (`guard-guest-frozen-shell`, P5.4).
+
+## Portal instrumentation warm (P4.4)
+
+Default: bind registrars only. Warm-all via `registerAllWorkspacePluginsSafe()` only when `PORTAL_WARM_ALL_PLUGINS` is `1` / `true` / `yes` (non-fatal try/catch).
+
+## Phase 4 metrics (P4.5)
+
+Product trunk **N = 6**. Web/API generated loaders evaluate with **zero** product package static imports; each `load*(pluginId)` touches **one** allowlisted package. Portal instrumentation default touches **zero** products (layout registers active `pluginId` only). See `TEMP/phases/P4-dynamic-workspace-loading-plan.md` §P4.5.

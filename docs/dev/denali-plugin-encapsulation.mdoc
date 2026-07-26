@@ -22,7 +22,8 @@ All four workspaces (`denali`, `urban`, `starter`, `guest-club`) follow the same
 
 | Symbol | Purpose |
 | ------ | ------- |
-| `getDenaliWorkspacePlugin` | Manifest `plugin.export` — returns frozen `WorkspacePlugin` |
+| `getWorkspacePlugin` | **Canonical** manifest `plugin.export` / `web.export` — returns frozen `WorkspacePlugin` (Phase 4m; shell loaders call this) |
+| `getDenaliWorkspacePlugin` | Legacy alias of `getWorkspacePlugin` — package internals + existing tests; not referenced by generated web loaders |
 | `createDenaliWorkspacePlugin` | Factory for tests and fresh instances |
 | `DENALI_WORKSPACE_PLUGIN_ID` | Stable plugin id (`"denali"`) |
 | `DENALI_WORKSPACE_TYPE` | Workspace-type binding |
@@ -71,12 +72,20 @@ Example manifest → import:
 
 | Guard | Scope |
 | ----- | ----- |
-| `pnpm run guard:denali-plugin-surface` | `./plugin` export allowlist (6 symbols) |
+| `pnpm run guard:denali-plugin-surface` | `./plugin` export allowlist (7 symbols; includes `getWorkspacePlugin`) |
 | `pnpm run guard:urban-plugin-surface` | `./plugin` export allowlist (5 symbols) |
 | `pnpm run guard:workspace-export-surface` | All workspace `package.json` — contract + `./settings/*` + `./host/*` keys |
 | `pnpm run guard:api-workspace-isolation` | `apps/api/src/**` — settings contract + host import ratchet |
 
 Wired into `phase-6:fast-track`.
+
+### Wave D.a — `denali.plugin.ts` contract-only
+
+As of Wave D.a, `denali.plugin.ts` must not re-export wizard/rules/registration/template helpers. Those live under leaf modules + `internal.ts`; see [`wave-d-denali-plugin-surface.mdoc`](./wave-d-denali-plugin-surface.mdoc).
+
+### Wave D.b — `urban.plugin.ts` contract-only
+
+Urban mirrors Denali: `urban.plugin.ts` is a five-symbol façade over `internal.ts`; see [`wave-d-urban-plugin-surface.mdoc`](./wave-d-urban-plugin-surface.mdoc).
 
 ## Migration map (pre-P2 → post-P2)
 

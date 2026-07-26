@@ -16,7 +16,8 @@ export async function processWorkspaceFinanceTourCreatedRow(
   row: WorkspaceFinanceTourCreatedRow
 ): Promise<boolean> {
   const workspaceType = await resolveFinanceWorkspaceTypeForTenant(row.tenantId);
-  return resolveWorkspaceFinanceEventReaction(workspaceType).reactToPublishedRow(row);
+  const reaction = await resolveWorkspaceFinanceEventReaction(workspaceType);
+  return reaction.reactToPublishedRow(row);
 }
 
 /**
@@ -26,5 +27,6 @@ export async function processWorkspaceFinanceOutboxForTenant(
   tenantId: string
 ): Promise<WorkspaceFinanceReactionBatchResult> {
   const workspaceType = await resolveFinanceWorkspaceTypeForTenant(tenantId);
-  return resolveWorkspaceFinanceEventReaction(workspaceType).consumePendingForTenant(tenantId);
+  const reaction = await resolveWorkspaceFinanceEventReaction(workspaceType);
+  return reaction.consumePendingForTenant(tenantId);
 }

@@ -33,7 +33,7 @@ describe("form-profile-strip (P5-B VAL-02b)", () => {
     resetValidationEngineCacheForTests();
   });
 
-  it("VAL-02b-01 strips top-level tour-kind alias ghosts on denali submit data", () => {
+  it("VAL-02b-01 strips top-level tour-kind alias ghosts on denali submit data", async () => {
     const stripped = stripFormProfileFieldsFromCanonicalData("denali", {
       category: "mountain_day",
       duration: "single_day",
@@ -57,7 +57,7 @@ describe("form-profile-strip (P5-B VAL-02b)", () => {
     assert.equal((stripped.program as Record<string, unknown>).shortDescription, "خلاصه");
   });
 
-  it("VAL-02b-02 non-denali workspace is a no-op", () => {
+  it("VAL-02b-02 non-denali workspace is a no-op", async () => {
     const input = {
       duration: "single_day",
       basics: { title: "Starter tour" },
@@ -65,7 +65,7 @@ describe("form-profile-strip (P5-B VAL-02b)", () => {
     assert.equal(stripFormProfileFieldsFromCanonicalData("starter", input), input);
   });
 
-  it("VAL-02b-03 stripFormProfileForSubmit rebuilds canonical document data", () => {
+  it("VAL-02b-03 stripFormProfileForSubmit rebuilds canonical document data", async () => {
     const document = createCanonicalDocument({
       schemaVersion: 1,
       roots: ["category", "duration", "title"],
@@ -82,8 +82,8 @@ describe("form-profile-strip (P5-B VAL-02b)", () => {
     assert.equal(stripped.data.title, "Forest walk");
   });
 
-  it("VAL-02b-04 plugin ingress roots drop composite-dependent ghosts after strip", () => {
-    const plugin = resolveWorkspacePluginForType("denali");
+  it("VAL-02b-04 plugin ingress roots drop composite-dependent ghosts after strip", async () => {
+    const plugin = await resolveWorkspacePluginForType("denali");
     const raw = {
       category: "mountain_day",
       duration: "single_day",
@@ -100,7 +100,7 @@ describe("form-profile-strip (P5-B VAL-02b)", () => {
     assert.ok(roots.includes("category"));
   });
 
-  it("VAL-02b-05 canonical-validation-sync imports strip helper", () => {
+  it("VAL-02b-05 canonical-validation-sync imports strip helper", async () => {
     const source = readFileSync(
       join(apiRoot, "src/tours/canonical-validation-sync.ts"),
       "utf8"

@@ -4,7 +4,12 @@ import React from "react";
 import type { DraftStatus } from "@app-tour/draft-engine";
 import { PlatformWizardEngine } from "@app-tour/platform-core";
 import type { RenderStepPlan } from "@app-tour/platform-core";
-import type { ScopedTenantAuthz, TenantAuthz, WorkspacePlugin } from "@app-tour/workspace-sdk";
+import {
+  resolveWizardHostCapability,
+  type ScopedTenantAuthz,
+  type TenantAuthz,
+  type WorkspacePlugin,
+} from "@app-cloud/workspace-sdk";
 import { mapValidationResultToIssues, wizardFieldPathAttributes, type ValidationIssue } from "@app-tour/wizard-navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -25,11 +30,11 @@ import {
 } from "@/tours/wizard-template-prefill-logic";
 import { formatWizardTemplateStepLabel } from "@/tours/wizard-template-field-labels";
 import { resolveWizardStepLabel as resolveWizardSurfaceStepLabel } from "./wizard-label-surface-registry";
-import { ensureGeneratedLabelResolver } from "@/bootstrap/wizard-label-bindings.generated";
+import { ensureGeneratedLabelResolver } from "@/wizard/wizard-label-registry";
 import {
   ensureGeneratedCompositeSurface,
   ensureGeneratedReviewSurface,
-} from "@/bootstrap/wizard-surface-bindings.generated";
+} from "@/wizard/wizard-surface-registry";
 
 import { canLoadWorkspaceWizard } from "./wizard-access";
 import { DraftSyncSoftLockBanner, shouldShowCreateTourWizardSoftLockBanner } from "@/draft/draft-sync-soft-lock-banner";
@@ -123,7 +128,7 @@ function resolveWizardDimensions(
   rulesModule: unknown,
   validationVariant: "default" | "basic" = "default"
 ): Record<string, string> {
-  const hooks = plugin.wizardHost;
+  const hooks = resolveWizardHostCapability(plugin);
   if (hooks?.resolveMatrixDimensionsFromDraft != null) {
     return { ...hooks.resolveMatrixDimensionsFromDraft(draft as unknown as Record<string, unknown>, rulesModule) };
   }
@@ -132,9 +137,7 @@ function resolveWizardDimensions(
   if (matrix.includes("variant")) {
     return { variant: validationVariant };
   }
-  if (matrix.includes("category") && matrix.includes("duration")) {
-    return { category: "mountain", duration: "single_day" };
-  }
+  // Prefer ruleSet.defaultCell — never invent product coords (e.g. mountain) in the shell.
   const defaultCell = plugin.ruleSet.cells.find(
     (cell) => cell.cellId === plugin.ruleSet.defaultCellId
   );
@@ -160,6 +163,7 @@ function pluginForWizardEngine(plugin: WorkspacePlugin): WorkspacePlugin {
     tourClone: _tourClone,
     publicCatalog: _publicCatalog,
     wizardHost: _wizardHost,
+    capabilities: _capabilities,
     draftTombstone: _draftTombstone,
     ...wizardPlugin
   } = plugin;
@@ -169,7 +173,7 @@ function pluginForWizardEngine(plugin: WorkspacePlugin): WorkspacePlugin {
 /**
  * Workspace wizard host — CASL gate before plugin load; deny-by-default (no wizard DOM on 403).
  * Field binding follows {@link RenderFieldPlan} from the platform engine (canonicalPath, kind, hidden).
- * Workspace wizard host — matrix dimensions and contextual rules come from plugin.wizardHost hooks.
+ * Workspace wizard host — matrix dimensions and contextual rules come from resolveWizardHostCapability hooks.
  */
 export function WorkspaceWizardHost({
   pluginId,
@@ -226,7 +230,7 @@ export function WorkspaceWizardHost({
   }, [pluginId]);
 
   useEffect(() => {
-    const host = workspacePlugin?.wizardHost;
+    const host = workspacePlugin != null ? resolveWizardHostCapability(workspacePlugin) : undefined;
     if (host == null) {
       return;
     }
@@ -238,7 +242,8 @@ export function WorkspaceWizardHost({
     ]);
   }, [workspacePlugin]);
 
-  const wizardHost = workspacePlugin?.wizardHost;
+  const wizardHost =
+    workspacePlugin != null ? resolveWizardHostCapability(workspacePlugin) : undefined;
   const reviewStepId = wizardHost?.reviewStepId;
   const translateWorkspaceMessage = useWorkspaceWizardTranslator(wizardHost?.wizardMessageNamespace);
   const resolveDefaultStepLabel = useCallback(
@@ -302,7 +307,7 @@ export function WorkspaceWizardHost({
           tenantId,
           metadataBinding,
         });
-        const hooks = plugin.wizardHost;
+        const hooks = resolveWizardHostCapability(plugin);
         const rules =
           hooks?.loadRulesModule != null ? await hooks.loadRulesModule() : null;
         const engine = PlatformWizardEngine.create(pluginForWizardEngine(plugin));

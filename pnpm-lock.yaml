@@ -344,6 +344,9 @@ importers:
       '@app-tour/guest-surface-host':
         specifier: workspace:*
         version: link:../../packages/guest-surface-host
+      '@app-tour/iran-mountain-landmarks':
+        specifier: workspace:*
+        version: link:../../packages/iran-mountain-landmarks
       '@app-tour/platform-core':
         specifier: workspace:*
         version: link:../../packages/platform-core
@@ -429,6 +432,9 @@ importers:
       '@app-tour/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@app-tour/workspace-acme':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/acme
       '@app-tour/workspace-booking-ws2':
         specifier: workspace:*
         version: link:../../packages/workspaces/booking-ws2
@@ -715,6 +721,18 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/iran-mountain-landmarks:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/platform-core:
     dependencies:
       '@app-tour/workspace-sdk':
@@ -946,6 +964,31 @@ importers:
       '@casl/ability':
         specifier: ^6.7.3
         version: 6.8.1
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/workspaces/acme:
+    dependencies:
+      '@app-tour/design-tokens':
+        specifier: workspace:*
+        version: link:../../design-tokens
+      '@app-tour/platform-core':
+        specifier: workspace:*
+        version: link:../../platform-core
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../../config
       '@types/node':
         specifier: ^24.0.0
         version: 24.12.4

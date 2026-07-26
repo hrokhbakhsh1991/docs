@@ -1,0 +1,57 @@
+---
+title: Thin Shell — Package Operator naming inventory
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/saas-platform-remediation.mdoc
+  - TEMP/THIN_SHELL_STRUCTURAL_PATH_VERDICT.md
+---
+
+# Thin Shell — Package Operator naming inventory
+
+Phase **4bx** locks the honesty claim: **shell is Operator-named**; package surfaces may keep product `Denali*` identifiers until Architect scopes rename waves.
+
+## Verdict
+
+| Layer | Naming | Status |
+| --- | --- | --- |
+| `apps/web` hand-written (`src/`, `app/`) | Operator / product-blind | **Clean** — no `Denali*` symbols; no static `@app-cloud/workspace-denali` imports outside generated bootstrap |
+| Generated §2.4 loaders / themes / i18n | Opaque package paths | **Intentional** — not a naming defect |
+| `packages/workspaces/denali` | Product namespace `Denali*` | **Accepted** — ~310 export decls; rename is polish, not thin-shell DoD |
+
+## Why not big-bang rename
+
+1. Shell already consumes package UI via Pattern B registries + Operator facades.
+2. Renaming ~310 exports touches UI, wizard, HTTP, finance, tests, and package `exports` map — high churn / low architectural leverage.
+3. Product tokens inside a product package are allowed; the thin-shell rule forbids them in the **host**.
+
+## Inventory (as-built snapshot)
+
+Approximate `export … Denali*` declarations under `packages/workspaces/denali/src` (Phase 4bx count):
+
+| Area | ~Count |
+| --- | --- |
+| `ui/` | ~151 |
+| `http/` | ~23 |
+| `rules/` / `wizard/` / `field-registry/` / … | remaining → **~310 total** |
+
+Exact counts drift; arch tests lock the **shell-clean** rule, not the package count.
+
+## Optional rename waves (Architect YES only)
+
+| Wave | Scope | Rule |
+| --- | --- | --- |
+| W1 | Chrome/view surfaces already mirrored as Operator in shell | Alias `Operator*` = `Denali*` then delete Denali export after consumers migrate |
+| W2 | Pure helpers dual-published on capabilities | Prefer capability symbols; keep package helpers private |
+| W3 | Deep UI widgets | Rename only when editing those files anyway |
+
+**Forbidden:** renaming package symbols to chase hostile score; introducing shell `Denali*` imports during rename.
+
+## Guards / tests
+
+- `apps/web/test/thin-shell-operator-naming-inventory.spec.ts` — TS-4BX-*
+
+## Related
+
+- [`thin-shell-pattern-b-registry.mdoc`](./thin-shell-pattern-b-registry.mdoc)
+- `TEMP/PHASE_4BX_REPORT.md`

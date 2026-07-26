@@ -16,7 +16,7 @@ export async function listSettingsModuleMetadataForTenant(
   tenantId: string
 ): Promise<readonly SettingsModuleManifest[]> {
   const workspaceType = await resolveWorkspaceTypeForTenant(tenantId);
-  const plugin = resolveWorkspacePluginForType(workspaceType);
+  const plugin = await resolveWorkspacePluginForType(workspaceType);
   const modules = plugin.operatorSettings?.modules;
   return modules ?? [];
 }

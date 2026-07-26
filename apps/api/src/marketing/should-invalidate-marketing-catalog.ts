@@ -6,12 +6,12 @@ import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-pl
  * True when a canonical write may change marketing catalog HTML (M11).
  * Revalidates if the tour was or is published — covers publish, unpublish, and in-catalog edits.
  */
-export function shouldInvalidateMarketingCatalog(
+export async function shouldInvalidateMarketingCatalog(
   workspaceType: string,
   before: CanonicalDocument | null,
   after: CanonicalDocument
-): boolean {
-  const isPublished = resolveWorkspacePluginForType(workspaceType).publicCatalog?.isPublished;
+): Promise<boolean> {
+  const isPublished = (await resolveWorkspacePluginForType(workspaceType)).publicCatalog?.isPublished;
   if (isPublished === undefined) {
     return false;
   }

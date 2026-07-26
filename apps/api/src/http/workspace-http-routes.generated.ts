@@ -26,9 +26,12 @@ export type WorkspaceHttpHandlerKey =
   | "handleFinanceListPrepayments"
   | "handleFinanceListSchedules"
   | "handleFinanceOpenPayments"
+  | "handleFinancePatchScheduleItem"
   | "handleFinancePendingReceipts"
+  | "handleFinanceReceiptUpload"
   | "handleFinanceReceiptUrl"
   | "handleFinanceRecordPrepayment"
+  | "handleFinanceReportByTour"
   | "handleFinanceRetryBookingSync"
   | "handleFinanceReviewReceipt"
   | "handleFinanceSubmitReceipt"
@@ -92,9 +95,11 @@ const DENALI_FINANCE_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "GET /finance/reports/summary": "handleFinanceSummary",
   "GET /finance/reports/open-payments": "handleFinanceOpenPayments",
   "GET /finance/reports/ledger-events": "handleFinanceLedgerEvents",
+  "GET /finance/reports/by-tour": "handleFinanceReportByTour",
   "GET /finance/payments": "handleFinanceListPayments",
   "POST /finance/payments/manual": "handleFinanceCreateManualPayment",
   "POST /finance/receipts": "handleFinanceSubmitReceipt",
+  "POST /finance/receipts/upload": "handleFinanceReceiptUpload",
   "GET /finance/receipts/pending": "handleFinancePendingReceipts",
   "GET /finance/prepayments": "handleFinanceListPrepayments",
   "POST /finance/prepayments": "handleFinanceRecordPrepayment",
@@ -125,7 +130,8 @@ const DENALI_FINANCE_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
   "PATCH /finance/receipts/:receiptId/review": "handleFinanceReviewReceipt",
   "GET /finance/receipts/:receiptId/url": "handleFinanceReceiptUrl",
   "GET /finance/invoices/:registrationId": "handleFinanceGetRegistrationInvoice",
-  "GET /finance/schedules/:registrationId": "handleFinanceGetSchedule"
+  "GET /finance/schedules/:registrationId": "handleFinanceGetSchedule",
+  "PATCH /finance/schedules/:registrationId/items/:itemId": "handleFinancePatchScheduleItem"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 const GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {

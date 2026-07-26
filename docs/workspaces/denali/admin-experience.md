@@ -57,7 +57,7 @@ Roadmap draft used `html[data-workspace="denali"]`. Implementation uses **`body[
 
 | Attribute | Use |
 |-----------|-----|
-| `data-denali-surface="card"` | KPI/settings cards — hover lift |
+| `data-operator-surface="card"` | KPI/settings cards — hover lift (Wave H.l; was `data-denali-surface`) |
 | `data-denali-animate="fade-up"` | Dashboard stagger entrance |
 | `data-denali-skeleton="shimmer"` | Loading placeholders (`DenaliSkeleton` — `size` prop → `data-denali-skeleton-size`) |
 | `data-denali-empty-state` | Illustrated empty blocks (`DenaliEmptyState`) |
@@ -82,7 +82,7 @@ Roadmap draft used `html[data-workspace="denali"]`. Implementation uses **`body[
 | `data-denali-kpi` | Dashboard widget KPI cells — forest accent (overflow-safe labels) |
 | `data-denali-finance-board` | Installments kanban — column tint by `data-board-column` |
 | `data-denali-finance-progress` | Installment paid-ratio bar (alpine → forest gradient) |
-| `data-denali-date-picker` | Admin + wizard date trigger / calendar popover skin |
+| `data-operator-date-picker` | Admin + wizard date trigger / calendar popover skin |
 | `data-denali-flat-edit-page` | Flat edit page root — pairs with `data-new-tour-wizard` for wizard composite skin under `(app)/` |
 
 ## Operator sidebar layout
@@ -160,7 +160,7 @@ Dev DB tenant branding should resolve to `#059669` after D1 — re-run `pnpm --f
 | `admin-skin.css` + `interactions.css` + `animations.css` | Shipped in `denali-admin.css` |
 | `body[data-workspace-plugin="denali"]` host wiring | `layout.tsx` + `operator-shell` |
 | Dark mode dual cascade (html.dark + `.theme-dark`) | `admin-skin.css` |
-| Dashboard stagger + card surfaces | `data-denali-animate`, `data-denali-surface` |
+| Dashboard stagger + card surfaces | `data-denali-animate`, `data-operator-surface` (Wave H.l) |
 | Playwright theme smoke | `SMK-P9-DENALI-THEME`, `SMK-P9-WIZARD-THEME` |
 | Urban isolation | `WEB-DENALI-THEME-03`, TH-1 e2e unchanged |
 | Dashboard quick actions + skeleton/empty patterns | `DenaliSkeleton`, `DenaliEmptyState`, `data-denali-quick-actions` |

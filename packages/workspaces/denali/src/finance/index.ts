@@ -29,6 +29,8 @@ export {
   handleTourCreatedLedgerEvent,
   type TourCreatedLedgerPayload,
 } from "./handlers/tour-created-ledger";
+export { resolveDenaliRegistrationObligationMinor } from "./resolve-denali-registration-obligation";
+export type { DenaliRegistrationObligation } from "./resolve-denali-registration-obligation";
 export { DenaliFinanceLedgerPolicyAdapter } from "./adapters/denali-finance-ledger-policy.adapter";
 export { DenaliFinanceReceiptDefaultsAdapter } from "./adapters/denali-finance-receipt-defaults.adapter";
 export {

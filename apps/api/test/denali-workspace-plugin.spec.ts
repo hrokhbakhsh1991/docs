@@ -29,31 +29,31 @@ function buildDenaliCanonicalData(roots: readonly string[]): Record<string, unkn
 }
 
 describe("denali-workspace-plugin.spec.ts (REQ-P6-013, REQ-P6-024, REQ-P6-025, REQ-P6-026)", () => {
-  it('REQ-P6-026: resolveWorkspacePluginIdForType("denali") === "denali"', () => {
+  it('REQ-P6-026: resolveWorkspacePluginIdForType("denali") === "denali"', async () => {
     assert.equal(
       resolveWorkspacePluginIdForType("denali", DEFAULT_WORKSPACE_TYPE_BINDINGS),
       "denali"
     );
   });
 
-  it("REQ-P6-013: resolveWorkspacePluginForType(denali) returns denali plugin", () => {
-    const plugin = resolveWorkspacePluginForType("denali");
+  it("REQ-P6-013: await resolveWorkspacePluginForType(denali) returns denali plugin", async () => {
+    const plugin = await resolveWorkspacePluginForType("denali");
     assert.equal(plugin.id, "denali");
     assert.equal(plugin.id, getDenaliWorkspacePlugin().id);
   });
 
-  it("REQ-P6-025: starter workspace_type still resolves starter plugin", () => {
-    const plugin = resolveWorkspacePluginForType("starter");
+  it("REQ-P6-025: starter workspace_type still resolves starter plugin", async () => {
+    const plugin = await resolveWorkspacePluginForType("starter");
     assert.equal(plugin.id, getStarterWorkspacePlugin().id);
   });
 
-  it("REQ-P6-007: validateCanonicalBeforePersistSync uses denali registry for workspace_type=denali", () => {
+  it("REQ-P6-007: validateCanonicalBeforePersistSync uses denali registry for workspace_type=denali", async () => {
     resetValidationEngineCacheForTests();
     const denaliPlugin = getDenaliWorkspacePlugin();
     const tenantId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
-    getOrCreateValidationEngine(tenantId, "denali");
-    assert.throws(
+    await getOrCreateValidationEngine(tenantId, "denali");
+    await assert.rejects(
       () =>
         validateCanonicalBeforePersistSync({
           body: {
@@ -71,7 +71,7 @@ describe("denali-workspace-plugin.spec.ts (REQ-P6-013, REQ-P6-024, REQ-P6-025, R
     );
   });
 
-  it("REQ-P6-024: SHADOW_VALIDATE_DENALI is disabled in production config", () => {
+  it("REQ-P6-024: SHADOW_VALIDATE_DENALI is disabled in production config", async () => {
     const priorNodeEnv = process.env.NODE_ENV;
     const priorShadow = process.env[SHADOW_VALIDATE_DENALI_ENV];
     try {

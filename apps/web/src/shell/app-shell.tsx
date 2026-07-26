@@ -1,13 +1,16 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
-import { resolveOperatorShellNavLinks } from "@/bootstrap/operator-shell-nav-bindings.generated";
+import {
+  ensureOperatorShellNavLinks,
+  type OperatorShellNavLink,
+} from "@/shell/operator-shell-nav-registry";
 
 /**
  * Phase 3.3 production shell — wraps routes; theme chain lives in AppProviders (layout).
- * Optional header links come from manifest `operatorShell.phase3NavLinks` (Wave D.c).
+ * Optional header links come from capabilities.operatorShellNav (Phase 4bc).
  */
 export function AppShell({
   children,
@@ -18,7 +21,19 @@ export function AppShell({
 }) {
   const tApp = useTranslations("app");
   const tTours = useTranslations("tours.shell");
-  const navLinks = resolveOperatorShellNavLinks(pluginId);
+  const [navLinks, setNavLinks] = useState<readonly OperatorShellNavLink[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void ensureOperatorShellNavLinks(pluginId).then((links) => {
+      if (!cancelled) {
+        setNavLinks(links);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pluginId]);
 
   return (
     <div className="app-shell" data-shell="phase-3">

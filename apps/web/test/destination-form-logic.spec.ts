@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
 
-import { ensureSettingsDestinationSurface } from "../src/bootstrap/workspace-settings-destination-bindings.generated";
+import { ensureSettingsDestinationSurface } from "../src/features/settings/settings-destination-registry";
 import {
   buildDestinationCreateBody,
   buildDestinationPatchBody,

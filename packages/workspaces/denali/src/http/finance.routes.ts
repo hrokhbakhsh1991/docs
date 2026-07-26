@@ -19,5 +19,7 @@ export {
   handleFinanceGetSchedule,
   handleFinanceGenerateSchedule,
   handleFinanceGetRegistrationInvoice,
+  handleFinancePatchScheduleItem,
+  handleFinanceReceiptUpload,
   type FinanceRouteDeps,
 } from "@app-tour/finance-http";

@@ -1,4 +1,4 @@
-import { resolveTourListCategorySurface } from "@/bootstrap/workspace-tour-list-category-bindings.generated";
+import { resolveTourListCategorySurface } from "@/features/tours/tour-list-category-registry";
 
 import type { TourListCategoryFilterGroup } from "./tour-list-category-surface-types";
 

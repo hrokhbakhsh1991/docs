@@ -76,6 +76,7 @@ const ALLOWED_ROOT_EXPORTS = new Set([
   "FinanceStorageDriverPort",
   "FinanceStoragePort",
   "FinanceSummaryRow",
+  "FinanceTourPaymentAggregateRow",
   "FinanceTransaction",
   "FinanceTransactionPort",
   "FinanceWorkspaceGateResult",
@@ -99,6 +100,7 @@ const ALLOWED_ROOT_EXPORTS = new Set([
   "compileRegistrationInvoice",
   "createFinanceService",
   "filterRowsByRegistrationId",
+  "filterRowsByTourId",
   "hashFinanceHttpIdempotencyKey",
 ]);
 
@@ -150,6 +152,7 @@ if (!fs.existsSync(DIST_INDEX)) {
     "compileRegistrationInvoice",
     "attachFinanceRegistrationContext",
     "filterRowsByRegistrationId",
+    "filterRowsByTourId",
   ]) {
     if (typeof mod[runtime] === "undefined") {
       errors.push(`missing required runtime export: ${runtime}`);

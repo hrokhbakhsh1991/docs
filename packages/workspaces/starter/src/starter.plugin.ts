@@ -12,14 +12,16 @@ const starterWizardHostHooks = createPlatformWizardHostHooks({
 });
 
 function attachStarterWizardHost(plugin: WorkspacePlugin): WorkspacePlugin {
+  const wizardHost = Object.freeze({
+    ...starterWizardHostHooks,
+    compositeSurfaceId: "platform",
+    reviewSurfaceId: "platform",
+  });
   return Object.freeze({
     ...plugin,
     exposureSurface: Object.freeze({ ...starterExposureSurface }),
-    wizardHost: Object.freeze({
-      ...starterWizardHostHooks,
-      compositeSurfaceId: "platform",
-      reviewSurfaceId: "platform",
-    }),
+    wizardHost,
+    capabilities: Object.freeze({ wizardHost }),
   });
 }
 
@@ -31,6 +33,11 @@ const starterWorkspacePlugin = attachStarterWizardHost(getSdkStarterWorkspacePlu
  */
 export function getStarterWorkspacePlugin(): typeof starterWorkspacePlugin {
   return starterWorkspacePlugin;
+}
+
+/** Canonical host-contract getter (manifest plugin/web.export; Phase 4p). */
+export function getWorkspacePlugin(): typeof starterWorkspacePlugin {
+  return getStarterWorkspacePlugin();
 }
 
 export { STARTER_THEME_TOKENS_STYLESHEET };

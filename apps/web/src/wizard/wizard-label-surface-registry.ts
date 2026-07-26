@@ -1,5 +1,13 @@
 import { formatCanonicalPathToLabel } from "@/i18n/format-canonical-path-label";
-import { resolveGeneratedLabelResolver } from "@/bootstrap/wizard-label-bindings.generated";
+import { resolveGeneratedLabelResolver } from "@/wizard/wizard-label-registry";
+
+/** Well-known catalog enum paths for tour/admin UI (Wave F.c). */
+export const WIZARD_CATALOG_ENUM_PATHS = {
+  tourKind: "tour.kind",
+  transportMode: "transport.mode",
+  tourDuration: "tour.duration",
+  tourCategoryGroup: "tour.categoryGroup",
+} as const;
 
 /** Well-known catalog enum paths for tour/admin UI (Wave F.c). */
 export const WIZARD_CATALOG_ENUM_PATHS = {

@@ -10,8 +10,8 @@ import { registerWorkspaceRegistrationFlowSteps } from "@app-tour/workspace-plug
 
 /** Intake registrar for "urban" — plugin entry only (no registration-flow UI graph). */
 export async function registerWorkspaceIntakeURBANFromManifest(): Promise<void> {
-  const { getUrbanWorkspacePlugin } = await import("@app-tour/workspace-urban/plugin");
-  const plugin = getUrbanWorkspacePlugin();
+  const { getWorkspacePlugin } = await import("@app-tour/workspace-urban/plugin");
+  const plugin = getWorkspacePlugin();
   if (plugin.catalogIntake !== undefined) {
     registerWorkspaceIntakePlugin({
       id: plugin.id,
@@ -22,8 +22,8 @@ export async function registerWorkspaceIntakeURBANFromManifest(): Promise<void> 
 
 /** Full registrar for "urban" — intake, transport, and registration-flow surfaces. */
 export async function registerWorkspacePluginURBANFromManifest(): Promise<void> {
-  const { getUrbanWorkspacePlugin } = await import("@app-tour/workspace-urban/plugin");
-  const plugin = getUrbanWorkspacePlugin();
+  const { getWorkspacePlugin } = await import("@app-tour/workspace-urban/plugin");
+  const plugin = getWorkspacePlugin();
   if (plugin.catalogIntake !== undefined) {
     registerWorkspaceIntakePlugin({
       id: plugin.id,

@@ -11,10 +11,10 @@ import {
 } from "./workspace-plugin-load-cache";
 
 /** Sorted product trunk plugin ids — cache bust when codegen regen changes membership. */
-export const WORKSPACE_PLUGIN_REGISTRY_REVISION = "booking-ws2,denali,finance-ws5,guest-club,starter,urban";
+export const WORKSPACE_PLUGIN_REGISTRY_REVISION = "acme,booking-ws2,denali,finance-ws5,guest-club,starter,urban";
 
 /** Upper bound for per-process plugin load cache (= product trunk plugin count). */
-export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 6;
+export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 7;
 
 export { invalidateWorkspacePluginLoadCache };
 
@@ -25,29 +25,33 @@ export async function loadWorkspacePluginByIdFromRegistry(
     pluginId,
     async () => {
       switch (pluginId) {
+    case "acme": {
+      const mod = await import("@app-tour/workspace-acme/plugin");
+      return mod.getWorkspacePlugin();
+    }
     case "booking-ws2": {
       const mod = await import("@app-tour/workspace-booking-ws2/plugin");
-      return mod.getBookingWs2WorkspacePlugin();
+      return mod.getWorkspacePlugin();
     }
     case "denali": {
       const mod = await import("@app-tour/workspace-denali/plugin");
-      return mod.getDenaliWorkspacePlugin();
+      return mod.getWorkspacePlugin();
     }
     case "finance-ws5": {
       const mod = await import("@app-tour/workspace-finance-ws5/plugin");
-      return mod.getFinanceWs5WorkspacePlugin();
+      return mod.getWorkspacePlugin();
     }
     case "guest-club": {
       const mod = await import("@app-tour/workspace-guest-club/plugin");
-      return mod.getGuestClubWorkspacePlugin();
+      return mod.getWorkspacePlugin();
     }
     case "starter": {
       const mod = await import("@app-tour/workspace-starter");
-      return mod.getStarterWorkspacePlugin();
+      return mod.getWorkspacePlugin();
     }
     case "urban": {
       const mod = await import("@app-tour/workspace-urban/plugin");
-      return mod.getUrbanWorkspacePlugin();
+      return mod.getWorkspacePlugin();
     }
         default:
           throw new Error(`WORKSPACE_PLUGIN_NOT_FOUND:${pluginId}`);

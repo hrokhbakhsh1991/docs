@@ -32,27 +32,27 @@ function buildDenaliCanonicalShell(roots: readonly string[]): Record<string, unk
 }
 
 describe("workspace-metadata-denali-parity", () => {
-  it("DP-01 live export checksum matches denali-v1.json", () => {
+  it("DP-01 live export checksum matches denali-v1.json", async () => {
     const seed = loadDenaliSeedExport();
     const live = buildLiveDenaliExport();
     assert.equal(live.checksum, seed.checksum);
   });
 
-  it("DP-02 fieldRegistry field ids match package strip vs seed payload", () => {
+  it("DP-02 fieldRegistry field ids match package strip vs seed payload", async () => {
     const seed = loadDenaliSeedExport();
-    const packagePlugin = resolveWorkspacePluginForType("denali");
+    const packagePlugin = await resolveWorkspacePluginForType("denali");
     assert.deepEqual(listFieldIds(stripDataSurfaces(packagePlugin)), listFieldIds(seed.payload));
   });
 
-  it("DP-03 ruleSet matches package strip vs seed payload", () => {
+  it("DP-03 ruleSet matches package strip vs seed payload", async () => {
     const seed = loadDenaliSeedExport();
-    const packagePlugin = resolveWorkspacePluginForType("denali");
+    const packagePlugin = await resolveWorkspacePluginForType("denali");
     assert.deepEqual(stripDataSurfaces(packagePlugin).ruleSet, stripDataSurfacesFromPayload(seed.payload).ruleSet);
   });
 
-  it("DP-04 wizard roots railId wizardMode match package strip vs seed", () => {
+  it("DP-04 wizard roots railId wizardMode match package strip vs seed", async () => {
     const seed = loadDenaliSeedExport();
-    const packagePlugin = resolveWorkspacePluginForType("denali");
+    const packagePlugin = await resolveWorkspacePluginForType("denali");
     const packageWizard = stripDataSurfaces(packagePlugin).wizard;
     const seedWizard = stripDataSurfacesFromPayload(seed.payload).wizard;
     assert.equal(seedWizard.railId, packageWizard.railId);
@@ -60,8 +60,8 @@ describe("workspace-metadata-denali-parity", () => {
     assert.deepEqual(seedWizard.roots, packageWizard.roots);
   });
 
-  it("DP-05 golden tour-publish-ready validates same violation field ids", () => {
-    const packagePlugin = resolveWorkspacePluginForType("denali");
+  it("DP-05 golden tour-publish-ready validates same violation field ids", async () => {
+    const packagePlugin = await resolveWorkspacePluginForType("denali");
     const seed = loadDenaliSeedExport();
     const metadataPlugin = adaptMetadataPayloadToWorkspacePlugin(seed.payload, packagePlugin);
 
@@ -93,23 +93,23 @@ describe("workspace-metadata-denali-parity", () => {
     assert.deepEqual(metadataFieldIds, packageFieldIds);
   });
 
-  it("DP-06 adaptMetadataPayloadToWorkspacePlugin preserves overlay.validation reference", () => {
-    const packagePlugin = resolveWorkspacePluginForType("denali");
+  it("DP-06 adaptMetadataPayloadToWorkspacePlugin preserves overlay.validation reference", async () => {
+    const packagePlugin = await resolveWorkspacePluginForType("denali");
     const seed = loadDenaliSeedExport();
     const adapted = adaptMetadataPayloadToWorkspacePlugin(seed.payload, packagePlugin);
     assert.equal(adapted.validation, packagePlugin.validation);
   });
 
-  it("DP-07 wizard.inactiveFieldGroups match package strip vs seed payload", () => {
+  it("DP-07 wizard.inactiveFieldGroups match package strip vs seed payload", async () => {
     const seed = loadDenaliSeedExport();
-    const packagePlugin = resolveWorkspacePluginForType("denali");
+    const packagePlugin = await resolveWorkspacePluginForType("denali");
     assert.deepEqual(
       stripDataSurfaces(packagePlugin).wizard.inactiveFieldGroups,
       stripDataSurfacesFromPayload(seed.payload).wizard.inactiveFieldGroups
     );
   });
 
-  it("loads tour-publish-ready golden fixture for smoke reference", () => {
+  it("loads tour-publish-ready golden fixture for smoke reference", async () => {
     const raw = readFileSync(join(GOLDEN_DIR, "tour-publish-ready.json"), "utf8");
     assert.ok(raw.includes("basicInfo"));
   });

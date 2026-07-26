@@ -1,3 +1,7 @@
+import {
+  compositeIdToSectionTitleMessageKey,
+  DENALI_COMPOSITE_LABEL_CANONICAL_PATH,
+} from "./denali-composite-label-paths";
 import { formatCanonicalPathToLabel } from "./format-canonical-path-label";
 
 export type DenaliTranslator = ((
@@ -7,11 +11,11 @@ export type DenaliTranslator = ((
   readonly has?: (key: string) => boolean;
 };
 
-function canonicalPathToFieldMessageKey(canonicalPath: string): string {
+export function canonicalPathToFieldMessageKey(canonicalPath: string): string {
   return `fields.${canonicalPath}`;
 }
 
-function resolveDenaliStepLabelFallback(stepId: string): string {
+export function resolveDenaliStepLabelFallback(stepId: string): string {
   return stepId
     .replace(/^denali_/, "")
     .split("_")
@@ -20,7 +24,33 @@ function resolveDenaliStepLabelFallback(stepId: string): string {
     .join(" ");
 }
 
+/**
+ * Resolve a Denali field label for a translator — composite renderer ids map to
+ * section titles / anchor canonical paths before `fields.*` lookup.
+ */
 export function resolveDenaliFieldLabel(t: DenaliTranslator, canonicalPath: string): string {
+  if (canonicalPath.startsWith("denali.")) {
+    const mapped = DENALI_COMPOSITE_LABEL_CANONICAL_PATH[canonicalPath];
+    if (mapped !== undefined) {
+      return resolveDenaliFieldLabel(t, mapped);
+    }
+    const sectionKey = compositeIdToSectionTitleMessageKey(canonicalPath);
+    if (typeof t.has === "function") {
+      if (t.has(sectionKey)) {
+        return t(sectionKey);
+      }
+    } else {
+      try {
+        const sectionLabel = t(sectionKey);
+        if (sectionLabel !== sectionKey && sectionLabel.length > 0) {
+          return sectionLabel;
+        }
+      } catch {
+        // Fall through to fields.* / formatted path.
+      }
+    }
+  }
+
   const key = canonicalPathToFieldMessageKey(canonicalPath);
   if (typeof t.has === "function") {
     if (t.has(key)) {
@@ -70,6 +100,12 @@ export function resolveDenaliEnumOptionLabel(
     canonicalPath === "pricing.paymentMode" ? `paymentModes.${slug}` : null,
     canonicalPath === "publishStatus" || canonicalPath.endsWith(".publishStatus")
       ? `review.publishStatus.${slug}`
+      : null,
+    canonicalPath === "tour.duration"
+      ? `composites.tourKind.durations.${slug}`
+      : null,
+    canonicalPath === "tour.categoryGroup"
+      ? `composites.tourKind.categories.${slug}`
       : null,
     `tourKinds.${slug}`,
   ].filter((entry): entry is string => entry != null);
@@ -130,4 +166,46 @@ export function resolveDenaliPublishStatusLabel(t: DenaliTranslator, status: str
     // Missing message keys fall back to slug.
   }
   return status;
+}
+
+export function resolveDenaliFieldKindLabel(t: DenaliTranslator, kind: string): string {
+  try {
+    const label = t(`fieldKinds.${kind}`);
+    if (label !== `fieldKinds.${kind}` && label.length > 0) {
+      return label;
+    }
+  } catch {
+    // Missing message keys fall back to raw kind.
+  }
+  return kind;
+}
+
+export function resolveDenaliTourCategoryGroupLabel(
+  t: DenaliTranslator,
+  category: string
+): string {
+  try {
+    const label = t(`composites.tourKind.categories.${category}`);
+    if (label !== `composites.tourKind.categories.${category}` && label.length > 0) {
+      return label;
+    }
+  } catch {
+    // Missing message keys fall back to slug.
+  }
+  return category.replace(/_/g, " ");
+}
+
+export function resolveDenaliTourDurationLabel(
+  t: DenaliTranslator,
+  duration: "single_day" | "multi_day"
+): string {
+  try {
+    const label = t(`composites.tourKind.durations.${duration}`);
+    if (label !== `composites.tourKind.durations.${duration}` && label.length > 0) {
+      return label;
+    }
+  } catch {
+    // Missing message keys fall back to slug.
+  }
+  return duration.replace(/_/g, " ");
 }

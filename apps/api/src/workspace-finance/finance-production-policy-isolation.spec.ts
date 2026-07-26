@@ -29,9 +29,9 @@ describe("finance production policy isolation (denali vs finance-ws5)", () => {
     assert.equal(isFinanceSupportedWorkspace("finance-ws3"), false);
   });
 
-  it("same process: receipt defaults differ; ledger accounts differ; no shared adapter identity", () => {
-    const denali = resolveFinanceWorkspaceDependencies("denali");
-    const ws5 = resolveFinanceWorkspaceDependencies("finance-ws5");
+  it("same process: receipt defaults differ; ledger accounts differ; no shared adapter identity", async () => {
+    const denali = await resolveFinanceWorkspaceDependencies("denali");
+    const ws5 = await resolveFinanceWorkspaceDependencies("finance-ws5");
 
     assert.notEqual(denali.ledgerPolicy, ws5.ledgerPolicy);
     assert.notEqual(denali.receiptDefaults, ws5.receiptDefaults);
@@ -42,8 +42,8 @@ describe("finance production policy isolation (denali vs finance-ws5)", () => {
     assert.equal(ws5Defaults.currency, "CAD");
     assert.notEqual(denaliDefaults.amountMinor, ws5Defaults.amountMinor);
 
-    const denaliCoa = resolveFinanceChartOfAccounts("denali");
-    const ws5Coa = resolveFinanceChartOfAccounts("finance-ws5");
+    const denaliCoa = await resolveFinanceChartOfAccounts("denali");
+    const ws5Coa = await resolveFinanceChartOfAccounts("finance-ws5");
     assert.equal(denaliCoa.REGISTRATION_LEADER_PAYMENT_CLEARING, "gl:leader-registration-payment-clearing");
     assert.equal(ws5Coa.OPERATOR_CASH_CLEARING, "ws5:gl:operator-cash-clearing");
     assert.notEqual(
@@ -65,8 +65,8 @@ describe("finance production policy isolation (denali vs finance-ws5)", () => {
   });
 
   it("TourCreated reaction: WS5 handles observably; state does not leak to Denali port", async () => {
-    const ws5 = resolveWorkspaceFinanceEventReaction("finance-ws5");
-    const denali = resolveWorkspaceFinanceEventReaction("denali");
+    const ws5 = await resolveWorkspaceFinanceEventReaction("finance-ws5");
+    const denali = await resolveWorkspaceFinanceEventReaction("denali");
     assert.ok(ws5 instanceof FinanceWs5TourCreatedFinanceReactionAdapter);
 
     const row = {

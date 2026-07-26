@@ -5,4 +5,4 @@ export {
   BookingWs2PublicAdapter,
   BookingWs2ValidationPolicyAdapter,
 } from "./booking";
-export { getBookingWs2WorkspacePlugin } from "./plugin";
+export { getBookingWs2WorkspacePlugin, getWorkspacePlugin } from "./plugin";

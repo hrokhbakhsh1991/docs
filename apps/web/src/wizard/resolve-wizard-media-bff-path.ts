@@ -1,8 +1,6 @@
 /** Phase 13.2 / P15-W-B6 — opaque mediaRouteKey → web BFF path (DEC-P13-004). */
 
-import {
-  WIZARD_MEDIA_ROUTE_BFF_PATHS,
-} from "@/bootstrap/wizard-media-route-bindings.generated";
+import { lookupWizardMediaRouteBffPath } from "@/bootstrap/wizard-media-route-bindings.generated";
 
 /** Client-facing upload URL. Known keys use manifest legacy alias; unknown → neutral BFF. */
 export function resolveWizardMediaBffPath(mediaRouteKey: string): string {
@@ -10,7 +8,7 @@ export function resolveWizardMediaBffPath(mediaRouteKey: string): string {
   if (normalized.length === 0) {
     return resolveWizardMediaBffPath("wizard-photos");
   }
-  const known = WIZARD_MEDIA_ROUTE_BFF_PATHS[normalized];
+  const known = lookupWizardMediaRouteBffPath(normalized);
   if (known !== undefined) {
     return known;
   }

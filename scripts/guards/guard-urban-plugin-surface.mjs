@@ -16,6 +16,7 @@ const ALLOWED_EXPORTS = new Set([
   "URBAN_WORKSPACE_TYPE",
   "createUrbanWorkspacePlugin",
   "getUrbanWorkspacePlugin",
+  "getWorkspacePlugin",
 ]);
 
 /**

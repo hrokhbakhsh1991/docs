@@ -139,7 +139,7 @@ Full Legacy `sanitizeDenaliWizardDraftSnapshot` port deferred — trunk form is 
 
 `new-tour-wizard-client.tsx`:
 
-1. `useWorkspaceDraft<NewTourWizardDraftEnvelope>` with `resolveDenaliDraftConflictStrategy()` + `resolveDenaliDraftMerge()` (Track C flag)
+1. `useWorkspaceDraft<NewTourWizardDraftEnvelope>` with `resolveOperatorDraftConflictStrategy()` + `resolveDenaliDraftMerge()` (Track C flag)
 2. `WorkspaceWizardHost` — controlled `activeStepIndex` from `meta`
 3. `DraftSyncIndicator` + `DraftConflictBanner` in page header
 4. `clearDraft()` after successful `createTourAction`

@@ -1,0 +1,104 @@
+---
+title: Finance lazy workspace bindings (P4-D3)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/phase-20/p7/appendices/FINANCE_PLATFORM_EVOLUTION_PLAN.md
+  - docs/dev/workspace-registry-codegen-modularization.mdoc
+---
+
+# Finance lazy workspace bindings (P4-D3)
+
+API and admin-web finance codegen must not **statically** import every `@app-tour/workspace-*` host/finance module at process load. Static fan-in pulls product adapters into the cold graph even when no tenant uses that workspace.
+
+## Problem
+
+| Generated file | Pre-lazy shape | Cost |
+| -------------- | -------------- | ---- |
+| `workspace-finance-chart-of-accounts-bindings.generated.ts` | `import { LEDGER_ACCOUNTS } from "@app-tour/workspace-denali/host/finance"` × N | Eager CoA constants |
+| `workspace-finance-dependency-bindings.generated.ts` | Static adapter class imports + `() => new Adapter()` | Eager ledger/receipt factories |
+| `workspace-finance-event-reaction-bindings.generated.ts` | Static reaction class imports + `create(hostIo?)` | Eager TourCreated reaction graph |
+| `workspace-finance-obligation-bindings.generated.ts` | Static `resolveDenaliRegistrationObligationMinor` import | Eager pricing bind |
+| `workspace-finance-ops-bindings.generated.ts` (web) | Static `DEFAULT_FINANCE_OPS_MANIFEST` + theme resolvers | Eager admin ops panels |
+| `workspace-finance-bindings.generated.ts` / `…-capabilities.generated.ts` | `import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali"` | Eager package root for string constants |
+
+At N workspaces this is O(N) product packages on every API / finance-hub boot path that touches any finance generated module.
+
+## Decision
+
+Emitters in `scripts/codegen/workspace-registry/domains/finance.mjs` produce **data + async loaders** only — no top-level `import` from product packages.
+
+```text
+resolve(workspaceType | pluginId)
+  → lookup binding (sync, fail-closed / soft-null)
+  → await import(specifier)   // Node / bundler module cache after first hit
+  → construct / return export
+```
+
+| Slice | Status | Loader shape | Runtime API |
+| ----- | ------ | ------------ | ----------- |
+| **P4-D3.a** CoA | DONE | `loadAccounts: async () => (await import(spec)).EXPORT` | `resolveFinanceChartOfAccounts` → **async** |
+| **P4-D3.b** deps | DONE | `createLedgerPolicy` / `createReceiptDefaults` async factories | `resolveFinanceLedgerPolicy` / `ReceiptDefaults` / `resolveFinanceWorkspaceDependencies` → **async** |
+| **P4-D3.b** event reaction | DONE | `create: async (hostIo?) => new (await import(spec)).Export(...)` | `resolveWorkspaceFinanceEventReaction` → **async** |
+| **P4-D3.b** obligation | DONE | `loadResolve: async () => (await import(spec)).EXPORT` | `createFinanceObligationPort` → **async** |
+| **P4-D3.c** web ops | DONE | `loadManifest: async (theme?) => …` | `resolveWorkspaceFinanceOpsManifest` / `resolveFinanceOpsCapabilityForHub` → **async** |
+| **P4-D3.d** bindings / capabilities | DONE | JSON string literals from `workspaceTypes` (no product package import) | `isFinanceSupportedWorkspace` / `getFinanceWorkspaceCapabilities` stay **sync** |
+
+```mermaid
+sequenceDiagram
+  participant Host as HTTP / outbox / recon / finance hub
+  participant Reg as finance-* registry / ops panels
+  participant Gen as *.generated.ts
+  participant WS as workspace-*/host/finance
+
+  Host->>Reg: await resolve*(id)
+  Reg->>Gen: binding lookup (sync)
+  alt unregistered
+    Reg-->>Host: throw FINANCE_*_UNSUPPORTED / null (ops soft)
+  else registered
+    Gen->>WS: await import(specifier)
+    WS-->>Gen: module exports
+    Gen-->>Reg: port / manifest
+    Reg-->>Host: ready
+  end
+```
+
+## Composition root (API)
+
+`getOrCreateFinanceServiceForWorkspaceType` is **async** and awaits dependency resolve before `createFinanceService`. Concurrent first-hit for the same `workspaceType` shares one in-flight promise so two HTTP requests cannot compose duplicate services.
+
+`resolveFinanceServiceForTenant` / `resolveLazyFinanceService` already returned `Promise<FinanceService>` — they now correctly await the async getOrCreate path.
+
+## Admin web (ops)
+
+`FinanceCommandCenter` and `FinanceInstallmentsPanel` resolve ops capability in `useEffect` (async), not `useMemo`. Soft-null for unbound `pluginId` is unchanged — loading and unbound both render nothing until a capability arrives.
+
+## Invariants
+
+1. **Fail-closed (API)** — empty / unknown `workspaceType` still throws before import (same error codes).
+2. **Soft-null (web ops)** — unbound `pluginId` → `null` (no Denali fallback).
+3. **No computed dynamic import** — string literals only (`import("@app-tour/workspace-…")`) for import-boundary / depcruise.
+4. **Platform booking projection** remains host-owned (`createBookingPaymentPort`) — not workspace-declared.
+5. **`requiresHostIo`** stays a sync discriminant on event-reaction bindings; only `create` is async.
+6. **`hasFinanceOpsManifest(pluginId)`** stays sync (id set only — no product import).
+7. **Bindings / capabilities** use literal `workspaceType` strings from the manifest — importing `DENALI_WORKSPACE_TYPE` (or peers) is forbidden in those generated files.
+
+## Regenerate / verify
+
+```bash
+pnpm run generate:workspace-registry
+# API:
+pnpm --filter @apps/api exec node --import tsx --test \
+  src/workspace-finance/finance-dependency-registry.spec.ts \
+  src/workspace-finance/finance-capability-certification.spec.ts \
+  src/workspace-finance/finance-outbox-ownership.spec.ts \
+  test/finance-obligation-denali.spec.ts
+# Web:
+pnpm --filter @apps/web exec node --import tsx --test test/finance-page.spec.ts
+```
+
+## CI regression (P4-D2)
+
+Finance generated files are on the cold-path allowlist for `pnpm run guard:p4-cold-path-fan-in` (static product imports must stay **0**). See [`p4-d2-cold-path-fan-in-ci.mdoc`](./p4-d2-cold-path-fan-in-ci.mdoc).
+
+Authority: TEMP plan [`TEMP/phases/P4-dynamic-workspace-loading-plan.md`](../../TEMP/phases/P4-dynamic-workspace-loading-plan.md) · Phase 1.10 table in [FINANCE_PLATFORM_EVOLUTION_PLAN.md](../phase-20/p7/appendices/FINANCE_PLATFORM_EVOLUTION_PLAN.md).

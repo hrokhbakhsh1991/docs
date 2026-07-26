@@ -61,21 +61,18 @@ import {
 } from "./domains/settings-api.mjs";
 import {
   generateWorkspaceOperatorCapabilities,
-  generateOperatorShellNavBindings,
   generateWorkspaceCommerceFreezeBindings,
   generateWorkspaceOwnerSettingsPanelLoaders,
 } from "./domains/operator.mjs";
 import {
   generateWorkspaceFinanceBindings,
   generateWorkspaceFinanceCapabilities,
-  generateWorkspaceFinanceNavBindings,
-  generateWorkspaceFinanceOpsBindings,
   generateWorkspaceFinanceDependencyBindings,
   generateWorkspaceFinanceEventReactionBindings,
   generateWorkspaceFinanceChartOfAccountsBindings,
   generateWorkspaceFinanceObligationBindings,
 } from "./domains/finance.mjs";
-import { generateWorkspaceBookingBindings, generateWorkspaceBookingCapabilities, generateWorkspaceBookingDependencyBindings, generateWorkspaceBookingOpsBindings, generateWorkspaceBookingEventReactionBindings } from "./domains/booking.mjs";
+import { generateWorkspaceBookingBindings, generateWorkspaceBookingCapabilities, generateWorkspaceBookingDependencyBindings, generateWorkspaceBookingEventReactionBindings } from "./domains/booking.mjs";
 import { generateExposureHostBindings } from "./domains/exposure.mjs";
 import { generateWorkspaceIntegrationCapabilities } from "./domains/integration.mjs";
 import {
@@ -119,35 +116,11 @@ import {
 } from "./domains/registration.mjs";
 import {
   generateMarketingCatalogBindings,
-  generateOperatorUiComponentsBindings,
-  generatePhotoUploadErrorsBindings,
-  generateSettingsDestinationBindings,
-  generateSettingsEquipmentUiBindings,
-  generateSettingsExposureSurfacesUiBindings,
-  generateSettingsHubFallbackBindings,
-  generateTourActionSubmitBindings,
-  generateTourListCategoryBindings,
   generateWizardCloneRemintBindings,
-  generateWizardCompositeRegistryBindings,
-  generateWizardCreateBindings,
-  generateWizardCreateChromeBindings,
-  generateDenaliHostAdapterBindings,
-  generateWizardCreateViewBindings,
-  generateWizardDraftShellBindings,
-  generateWizardDraftUnificationBindings,
-  generateWizardFlatEditChromeBindings,
-  generateWizardFlatEditFormBindings,
-  generateWizardFlatEditPageBindings,
   generateWizardI18nTranslatorHooks,
-  generateWizardLabelBindings,
   generateWizardMediaBackendRouteBindings,
   generateWizardMediaBindings,
   generateWizardMediaRouteBindings,
-  generateWizardRulesBindings,
-  generateWizardSurfaceBindings,
-  generateWizardTemplateEditorBindings,
-  generateWizardTemplateGateBindings,
-  generateWizardTemplatePresetBindings,
   generateWorkspaceWizardMessageLoads,
 } from "./domains/wizard-admin.mjs";
 
@@ -159,34 +132,10 @@ export const DOMAIN_OUTPUT_KEYS = {
     "wizardMedia",
     "wizardMediaRoutes",
     "wizardMediaBackendRoutes",
-    "wizardSurfaces",
-    "wizardLabels",
     "wizardI18nTranslators",
     "workspaceWizardMessages",
     "wizardCloneRemint",
-    "wizardCreate",
-    "wizardTemplateEditorBindings",
     "marketingCatalogBindings",
-    "settingsDestinationBindings",
-    "settingsEquipmentUiBindings",
-    "settingsExposureSurfacesUiBindings",
-    "tourActionSubmitBindings",
-    "photoUploadErrorsBindings",
-    "tourListCategoryBindings",
-    "operatorUiComponentsBindings",
-    "wizardDraftUnificationBindings",
-    "wizardRulesBindings",
-    "wizardTemplateGateBindings",
-    "wizardTemplatePresetBindings",
-    "wizardDraftShellBindings",
-    "wizardCreateChromeBindings",
-    "denaliHostAdapters",
-    "wizardFlatEditChromeBindings",
-    "wizardFlatEditFormBindings",
-    "wizardFlatEditPageBindings",
-    "wizardCreateViewBindings",
-    "wizardCompositeRegistryBindings",
-    "settingsHubFallbackBindings",
   ],
   theme: [
     "themeStylesheets",
@@ -215,18 +164,16 @@ export const DOMAIN_OUTPUT_KEYS = {
   http: ["httpRoutes", "httpHandlerLoaders", "httpErrorMap"],
   "settings-api": ["settingsEnrichers", "devBootstrap", "wizardTemplateEnforcement", "wizardTemplatePathAliases"],
   dev: ["devPluginIds"],
-  operator: ["operatorCapabilities", "operatorShellNav", "ownerSettingsPanelLoaders", "workspaceCommerceFreeze"],
+  operator: ["operatorCapabilities", "ownerSettingsPanelLoaders", "workspaceCommerceFreeze"],
   finance: [
     "workspaceFinance",
     "workspaceFinanceCapabilities",
-    "workspaceFinanceNav",
-    "workspaceFinanceOps",
     "workspaceFinanceDependencies",
     "workspaceFinanceEventReactions",
     "workspaceFinanceChartOfAccounts",
     "workspaceFinanceObligation",
   ],
-  booking: ["workspaceBooking", "workspaceBookingCapabilities", "workspaceBookingDependencies", "workspaceBookingOps", "workspaceBookingEventReactions"],
+  booking: ["workspaceBooking", "workspaceBookingCapabilities", "workspaceBookingDependencies", "workspaceBookingEventReactions"],
   exposure: ["exposureHostBindings"],
   integration: ["integrationCapabilities"],
 };
@@ -241,12 +188,9 @@ export const OUTPUT_KEYS = Object.freeze([
   "wizardMedia",
   "wizardMediaRoutes",
   "wizardMediaBackendRoutes",
-  "wizardSurfaces",
-  "wizardLabels",
   "wizardI18nTranslators",
   "workspaceWizardMessages",
   "wizardCloneRemint",
-  "wizardCreate",
   "themeStylesheets",
   "themeCssAmbientModules",
   "guestThemeStylesheetsPortal",
@@ -259,13 +203,10 @@ export const OUTPUT_KEYS = Object.freeze([
   "catalogListFeatures",
   "catalogDetailSections",
   "operatorCapabilities",
-  "operatorShellNav",
   "ownerSettingsPanelLoaders",
   "workspaceCommerceFreeze",
   "workspaceFinance",
   "workspaceFinanceCapabilities",
-  "workspaceFinanceNav",
-  "workspaceFinanceOps",
   "workspaceFinanceDependencies",
   "workspaceFinanceEventReactions",
   "workspaceFinanceChartOfAccounts",
@@ -273,32 +214,10 @@ export const OUTPUT_KEYS = Object.freeze([
   "workspaceBooking",
   "workspaceBookingCapabilities",
   "workspaceBookingDependencies",
-  "workspaceBookingOps",
   "workspaceBookingEventReactions",
   "integrationCapabilities",
   "exposureHostBindings",
-  "wizardTemplateEditorBindings",
   "marketingCatalogBindings",
-  "settingsDestinationBindings",
-  "settingsEquipmentUiBindings",
-  "settingsExposureSurfacesUiBindings",
-  "tourActionSubmitBindings",
-  "photoUploadErrorsBindings",
-  "tourListCategoryBindings",
-  "operatorUiComponentsBindings",
-  "wizardDraftUnificationBindings",
-  "wizardRulesBindings",
-  "wizardTemplateGateBindings",
-  "wizardTemplatePresetBindings",
-  "wizardDraftShellBindings",
-  "wizardCreateChromeBindings",
-  "denaliHostAdapters",
-  "wizardFlatEditChromeBindings",
-  "wizardFlatEditFormBindings",
-  "wizardFlatEditPageBindings",
-  "wizardCreateViewBindings",
-  "wizardCompositeRegistryBindings",
-  "settingsHubFallbackBindings",
   "devPluginIds",
   "memberProfileCapabilities",
   "memberPortalContracts",
@@ -339,12 +258,9 @@ export function generateAllOutputs(manifests) {
     wizardMedia: generateWizardMediaBindings(manifests),
     wizardMediaRoutes: generateWizardMediaRouteBindings(manifests),
     wizardMediaBackendRoutes: generateWizardMediaBackendRouteBindings(manifests),
-    wizardSurfaces: generateWizardSurfaceBindings(manifests),
-    wizardLabels: generateWizardLabelBindings(manifests),
     wizardI18nTranslators: generateWizardI18nTranslatorHooks(manifests),
     workspaceWizardMessages: generateWorkspaceWizardMessageLoads(manifests),
     wizardCloneRemint: generateWizardCloneRemintBindings(manifests),
-    wizardCreate: generateWizardCreateBindings(manifests),
     themeStylesheets: generateAdminThemeStylesheetLoader(manifests),
     themeCssAmbientModules: generateWorkspaceThemeCssAmbientModules(manifests),
     guestThemeStylesheetsPortal: generateGuestThemeStylesheetLoader(manifests, "portal"),
@@ -357,13 +273,10 @@ export function generateAllOutputs(manifests) {
     catalogListFeatures: generateWorkspaceCatalogListFeatures(manifests),
     catalogDetailSections: generateWorkspaceCatalogDetailSections(manifests),
     operatorCapabilities: generateWorkspaceOperatorCapabilities(manifests),
-    operatorShellNav: generateOperatorShellNavBindings(manifests),
     ownerSettingsPanelLoaders: generateWorkspaceOwnerSettingsPanelLoaders(manifests),
     workspaceCommerceFreeze: generateWorkspaceCommerceFreezeBindings(manifests),
     workspaceFinance: generateWorkspaceFinanceBindings(manifests),
     workspaceFinanceCapabilities: generateWorkspaceFinanceCapabilities(manifests),
-    workspaceFinanceNav: generateWorkspaceFinanceNavBindings(manifests),
-    workspaceFinanceOps: generateWorkspaceFinanceOpsBindings(manifests),
     workspaceFinanceDependencies: generateWorkspaceFinanceDependencyBindings(manifests),
     workspaceFinanceEventReactions: generateWorkspaceFinanceEventReactionBindings(manifests),
     workspaceFinanceChartOfAccounts: generateWorkspaceFinanceChartOfAccountsBindings(manifests),
@@ -371,32 +284,10 @@ export function generateAllOutputs(manifests) {
     workspaceBooking: generateWorkspaceBookingBindings(manifests),
     workspaceBookingCapabilities: generateWorkspaceBookingCapabilities(manifests),
     workspaceBookingDependencies: generateWorkspaceBookingDependencyBindings(manifests),
-    workspaceBookingOps: generateWorkspaceBookingOpsBindings(manifests),
     workspaceBookingEventReactions: generateWorkspaceBookingEventReactionBindings(manifests),
     integrationCapabilities: generateWorkspaceIntegrationCapabilities(manifests),
     exposureHostBindings: generateExposureHostBindings(manifests),
-    wizardTemplateEditorBindings: generateWizardTemplateEditorBindings(manifests),
     marketingCatalogBindings: generateMarketingCatalogBindings(manifests),
-    settingsDestinationBindings: generateSettingsDestinationBindings(manifests),
-    settingsEquipmentUiBindings: generateSettingsEquipmentUiBindings(manifests),
-    settingsExposureSurfacesUiBindings: generateSettingsExposureSurfacesUiBindings(manifests),
-    tourActionSubmitBindings: generateTourActionSubmitBindings(manifests),
-    photoUploadErrorsBindings: generatePhotoUploadErrorsBindings(manifests),
-    tourListCategoryBindings: generateTourListCategoryBindings(manifests),
-    operatorUiComponentsBindings: generateOperatorUiComponentsBindings(manifests),
-    wizardDraftUnificationBindings: generateWizardDraftUnificationBindings(manifests),
-    wizardRulesBindings: generateWizardRulesBindings(manifests),
-    wizardTemplateGateBindings: generateWizardTemplateGateBindings(manifests),
-    wizardTemplatePresetBindings: generateWizardTemplatePresetBindings(manifests),
-    wizardDraftShellBindings: generateWizardDraftShellBindings(manifests),
-    wizardCreateChromeBindings: generateWizardCreateChromeBindings(manifests),
-    denaliHostAdapters: generateDenaliHostAdapterBindings(manifests),
-    wizardFlatEditChromeBindings: generateWizardFlatEditChromeBindings(manifests),
-    wizardFlatEditFormBindings: generateWizardFlatEditFormBindings(manifests),
-    wizardFlatEditPageBindings: generateWizardFlatEditPageBindings(manifests),
-    wizardCreateViewBindings: generateWizardCreateViewBindings(manifests),
-    wizardCompositeRegistryBindings: generateWizardCompositeRegistryBindings(manifests),
-    settingsHubFallbackBindings: generateSettingsHubFallbackBindings(manifests),
     devPluginIds: generateWorkspaceDevPluginIds(manifests),
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
     memberPortalContracts: generateWorkspaceMemberPortalContracts(manifests),
@@ -438,8 +329,6 @@ export const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/web/src/bootstrap/wizard-media-backend-route-bindings.generated.ts"
   ),
-  wizardSurfaces: join(REPO_ROOT, "apps/web/src/bootstrap/wizard-surface-bindings.generated.ts"),
-  wizardLabels: join(REPO_ROOT, "apps/web/src/bootstrap/wizard-label-bindings.generated.ts"),
   wizardI18nTranslators: join(
     REPO_ROOT,
     "apps/web/src/bootstrap/wizard-i18n-translator-hooks.generated.ts"
@@ -452,7 +341,6 @@ export const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/api/src/tours/workspace-wizard-clone-remint-bindings.generated.ts"
   ),
-  wizardCreate: join(REPO_ROOT, "apps/web/src/bootstrap/wizard-create-bindings.generated.ts"),
   themeStylesheets: join(
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-theme-stylesheets.generated.ts"
@@ -501,10 +389,6 @@ export const OUTPUT_PATHS = {
     REPO_ROOT,
     "packages/workspace-sdk/src/operator/workspace-operator-capabilities.generated.ts"
   ),
-  operatorShellNav: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/operator-shell-nav-bindings.generated.ts"
-  ),
   ownerSettingsPanelLoaders: join(
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-owner-settings-panel-loaders.generated.ts"
@@ -520,14 +404,6 @@ export const OUTPUT_PATHS = {
   workspaceFinanceCapabilities: join(
     REPO_ROOT,
     "apps/api/src/workspace-finance/workspace-finance-capabilities.generated.ts"
-  ),
-  workspaceFinanceNav: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-finance-nav-bindings.generated.ts"
-  ),
-  workspaceFinanceOps: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-finance-ops-bindings.generated.ts"
   ),
   workspaceFinanceDependencies: join(
     REPO_ROOT,
@@ -557,10 +433,6 @@ export const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/api/src/bookings/workspace-booking-dependency-bindings.generated.ts"
   ),
-  workspaceBookingOps: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-booking-ops-bindings.generated.ts"
-  ),
   workspaceBookingEventReactions: join(
     REPO_ROOT,
     "apps/api/src/bookings/workspace-booking-event-reaction-bindings.generated.ts"
@@ -573,93 +445,9 @@ export const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/api/src/exposure/workspace-exposure-host-bindings.generated.ts"
   ),
-  wizardTemplateEditorBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-wizard-template-editor-bindings.generated.ts"
-  ),
   marketingCatalogBindings: join(
     REPO_ROOT,
     "packages/guest-workspace-runtime/src/workspace-marketing-catalog-bindings.generated.ts"
-  ),
-  settingsDestinationBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-settings-destination-bindings.generated.ts"
-  ),
-  settingsEquipmentUiBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-settings-equipment-ui-bindings.generated.ts"
-  ),
-  settingsExposureSurfacesUiBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-settings-exposure-surfaces-ui-bindings.generated.ts"
-  ),
-  tourActionSubmitBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-tour-action-submit-bindings.generated.ts"
-  ),
-  photoUploadErrorsBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-photo-upload-errors-bindings.generated.ts"
-  ),
-  tourListCategoryBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-tour-list-category-bindings.generated.ts"
-  ),
-  operatorUiComponentsBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-operator-ui-components-bindings.generated.ts"
-  ),
-  wizardDraftUnificationBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-wizard-draft-unification-bindings.generated.ts"
-  ),
-  wizardRulesBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-wizard-rules-bindings.generated.ts"
-  ),
-  wizardTemplateGateBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-wizard-template-gate-bindings.generated.ts"
-  ),
-  wizardTemplatePresetBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-wizard-template-preset-bindings.generated.ts"
-  ),
-  wizardDraftShellBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-wizard-draft-shell-bindings.generated.ts"
-  ),
-  wizardCreateChromeBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-wizard-create-chrome-bindings.generated.ts"
-  ),
-  denaliHostAdapters: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-host-adapters.generated.ts"
-  ),
-  wizardFlatEditChromeBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-wizard-flat-edit-chrome-bindings.generated.ts"
-  ),
-  wizardFlatEditFormBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-wizard-flat-edit-form-bindings.generated.ts"
-  ),
-  wizardFlatEditPageBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-wizard-flat-edit-page-bindings.generated.ts"
-  ),
-  wizardCreateViewBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-wizard-create-view-bindings.generated.ts"
-  ),
-  wizardCompositeRegistryBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-wizard-composite-registry-bindings.generated.ts"
-  ),
-  settingsHubFallbackBindings: join(
-    REPO_ROOT,
-    "apps/web/src/bootstrap/workspace-settings-hub-fallback-bindings.generated.ts"
   ),
   devPluginIds: join(
     REPO_ROOT,

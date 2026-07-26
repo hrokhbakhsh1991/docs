@@ -18,7 +18,7 @@ export function DenaliLocationZonesField({ draft, onDraftChange }: DenaliLocatio
   return (
     <div
       className="denali-wizard-composite"
-      data-denali-wizard-surface="section"
+      data-operator-wizard-surface="section"
       data-testid={DENALI_COMPOSITE_TEST_IDS.locationZones}
     >
       <h3 className="denali-wizard-composite__title">{title}</h3>

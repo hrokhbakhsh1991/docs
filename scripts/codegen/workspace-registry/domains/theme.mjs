@@ -675,10 +675,26 @@ export function generateAdminThemeStylesheetLoader(manifests, env = process.env)
     .join("\n\n");
 
   return `${BANNER}
-/** Manifest paths per workspace plugin (documentation / guards). */
-export const WORKSPACE_ADMIN_THEME_REGISTRY = Object.freeze({
+/** Manifest paths per workspace plugin (private; Phase 4h). */
+const WORKSPACE_ADMIN_THEME_REGISTRY = Object.freeze({
 ${registryLines}
 }) as Readonly<Record<string, readonly string[]>>;
+
+/** Stylesheet path list for pluginId, if declared in manifest themeStylesheets. */
+export function resolveAdminThemeStylesheets(
+  pluginId: string
+): readonly string[] | undefined {
+  const id = pluginId.trim();
+  if (id.length === 0) {
+    return undefined;
+  }
+  return WORKSPACE_ADMIN_THEME_REGISTRY[id];
+}
+
+/** Plugin ids that declare admin themeStylesheets (tests / admission). */
+export function listAdminThemeRegistryPluginIds(): readonly string[] {
+  return Object.freeze(Object.keys(WORKSPACE_ADMIN_THEME_REGISTRY));
+}
 
 /** Load workspace admin skin CSS for the active plugin only (dynamic import). */
 export async function importAdminThemeForPlugin(pluginId: string): Promise<void> {

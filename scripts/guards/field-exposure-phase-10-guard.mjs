@@ -20,7 +20,11 @@ const CONTRACT = join(
   "apps/api/test/field-exposure-phase-10-denali-product.contract.spec.ts",
 );
 const GENERATE_SCRIPT = join(REPO_ROOT, "scripts/generate-denali-settings-modules.mjs");
-const GENERATED_MODULES = join(
+const DENALI_SETTINGS_MANIFEST = join(
+  REPO_ROOT,
+  "packages/workspaces/denali/src/settings/denali-settings.manifest.ts",
+);
+const FORBIDDEN_SHELL_REQUIRED_MODULES = join(
   REPO_ROOT,
   "apps/web/src/features/settings/denali-required-settings-modules.generated.ts",
 );
@@ -116,8 +120,18 @@ function main() {
     }
   }
 
-  if (!existsSync(GENERATED_MODULES)) {
-    failures.push("missing denali-required-settings-modules.generated.ts");
+  if (!existsSync(DENALI_SETTINGS_MANIFEST)) {
+    failures.push("missing denali-settings.manifest.ts");
+  } else {
+    const manifest = readText(DENALI_SETTINGS_MANIFEST);
+    if (!manifest?.includes("export const DENALI_BACKEND_REQUIRED_MODULE_IDS")) {
+      failures.push("denali-settings.manifest.ts must export DENALI_BACKEND_REQUIRED_MODULE_IDS");
+    }
+  }
+  if (existsSync(FORBIDDEN_SHELL_REQUIRED_MODULES)) {
+    failures.push(
+      "forbidden apps/web denali-required-settings-modules.generated.ts (Phase 3c — package-owned)",
+    );
   }
 
   const dispatchRoutes = readText(DISPATCH_ROUTES);

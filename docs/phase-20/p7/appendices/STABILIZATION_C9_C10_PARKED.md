@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: STABILIZATION_C9_C10_PARKED
-status: PARKED
+status: C9_RECLAIMED — C10 still PARKED
 date: "2026-07-21"
 canonical_branch: booking/capacity-concurrency-cert
 ```
@@ -12,13 +12,13 @@ canonical_branch: booking/capacity-concurrency-cert
 | Field | Value |
 | ----- | ----- |
 | Severity | P1 product |
-| Location | Branch `wip/portal-psc-20260718` @ `25f995c7` (+ related `stash@{2}`) |
-| On capacity tip? | **No** |
-| Stabilization verdict | **Parked** — not part of capacity/hostile train |
-| Reclaim rule | Explicit product ticket; do not cherry into tip without UX owner review |
+| Source | Branch `wip/portal-psc-20260718` @ `25f995c7` (+ related `stash@{2}`) |
+| On capacity tip? | **Yes** — reclaimed 2026-07-21 under `YES — IMPL-PORTAL-MODAL` |
+| Stabilization verdict | **RECLAIMED** (modal-only; finance/header/middleware left on WIP) |
+| Evidence | [STABILIZATION_C9_PORTAL_MODAL_RECLAIM.md](./STABILIZATION_C9_PORTAL_MODAL_RECLAIM.md) |
 | Related | [STABILIZATION_WP0_DEV_RECONCILE.md](./STABILIZATION_WP0_DEV_RECONCILE.md) §5 |
 
-**Why parked:** Modal work lives on a PSC WIP branch. Pulling it into the capacity tip would mix product UX with concurrency/authority hardening and re-open DEV asymmetry.
+**Reclaim note:** Only PCMS login modal surfaces landed. Finance/booking, member-header redesign, and middleware cookie-host spikes from the WIP snapshot remain out of scope.
 
 ## C10 — Package-boundary allowlist “rubber-stamp”
 
@@ -35,5 +35,5 @@ canonical_branch: booking/capacity-concurrency-cert
 
 ## Explicit non-work
 
-- Do not start portal modal implementation on this tip under Stabilization continue.
+- Portal modal reclaim completed — see [STABILIZATION_C9_PORTAL_MODAL_RECLAIM.md](./STABILIZATION_C9_PORTAL_MODAL_RECLAIM.md).
 - Do not rewrite package-boundary allowlists without Architect `YES` + codegen impact analysis.

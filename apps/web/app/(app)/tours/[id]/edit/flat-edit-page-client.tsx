@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
-import { resolveWizardFlatEditPageSurface } from "@/bootstrap/workspace-wizard-flat-edit-page-bindings.generated";
+import { resolveWizardFlatEditPageSurface } from "@/wizard/wizard-flat-edit-page-registry";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import {
   OperatorFlatEditPageHeader,
   OperatorFlatEditPageShell,
 } from "@/wizard/flat-edit-chrome";
-import { buildFlatEditMetaLine } from "@/wizard/host-adapter-runtime";
+import { buildFlatEditMetaLine } from "@/wizard/wizard-host-adapter-registry";
 import { OperatorFlatEditForm } from "@/wizard/flat-edit-form-shell";
 import {
   createWizardSubmitFieldLabelResolver,
@@ -37,7 +37,7 @@ import { createWizardSubmitErrorTranslator } from "@/wizard/create-wizard-submit
 import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
 import { WizardSubmitErrorAlert } from "@/wizard/wizard-submit-error-alert";
 import {
-  createOperatorDraftSchemaGate,
+  createDraftSchemaGateForPlugin,
   useOperatorFlatEditPage,
 } from "@/wizard/use-flat-edit-page";
 import { warmOperatorWizardShell } from "@/wizard/warm-operator-wizard-shell";
@@ -130,6 +130,7 @@ function OperatorFlatEditPageClientReady({
         renderReady: ({ core: readyCore, detail, tourId: readyTourId }: any) => {
           const loadError = resolveTourErrorMessage(tErrors, readyCore.error);
           const submitPresentation = resolveWizardSubmitErrorMessage({
+            pluginId: session.pluginId,
             raw: readyCore.submitError,
             context: "edit",
             translateFieldLabel: createWizardSubmitFieldLabelResolver(session.pluginId, (key) =>
@@ -144,7 +145,11 @@ function OperatorFlatEditPageClientReady({
           );
           const departureLabel = formatTourDeparture(detail.projection.departureAt, locale);
           const seatsLabel = formatSeats(detail.projection);
-          const metaLine = buildFlatEditMetaLine([departureLabel, priceLabel, seatsLabel]);
+          const metaLine = buildFlatEditMetaLine(session.pluginId, [
+            departureLabel,
+            priceLabel,
+            seatsLabel,
+          ]);
 
           return (
             <OperatorFlatEditPageShell testId={TOUR_EDIT_TEST_IDS.page}>
@@ -252,4 +257,4 @@ function OperatorFlatEditPageClientReady({
   );
 }
 
-export { createOperatorDraftSchemaGate };
+export { createDraftSchemaGateForPlugin };

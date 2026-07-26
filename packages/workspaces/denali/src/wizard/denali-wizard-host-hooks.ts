@@ -38,8 +38,32 @@ import {
   sanitizeDenaliWizardDraftFromHostInput,
 } from "./denali-wizard-submit-payload";
 import { normalizeDenaliWizardTemplateGate } from "./normalize-denali-wizard-template-gate";
+import { ensureWizardHostAdapterSurface } from "./host-adapter-surface";
+import { ensureWizardCreateChromePackageSurface } from "./create-chrome-surface";
+import { ensureWizardFlatEditChromePackageSurface } from "./flat-edit-chrome-surface";
+import { ensureWizardCreateViewPackageSurface } from "./create-view-surface";
+import { ensureWizardFlatEditFormPackageSurface } from "./flat-edit-form-surface";
+import { ensureWizardFlatEditPagePackageSurface } from "./flat-edit-page-surface";
+import { ensureOperatorUiComponentsPackageSurface } from "./operator-ui-surface";
+import { ensureWizardLabelResolverPackageSurface } from "./label-resolver-surface";
+import { ensureWizardSurfacesPackageSurface } from "./wizard-surfaces-surface";
 
 export type { DenaliWizardRulesModule } from "./denali-wizard-rules-module";
+
+/** Thin Shell Phase 2b/4ab–4af/4ao/4aq/4as — ensureReady fills host-adapter + chrome + operator UI + labels + surfaces. */
+async function ensureDenaliWizardHostReady(): Promise<void> {
+  await Promise.all([
+    ensureWizardHostAdapterSurface(),
+    ensureWizardCreateChromePackageSurface(),
+    ensureWizardFlatEditChromePackageSurface(),
+    ensureWizardCreateViewPackageSurface(),
+    ensureWizardFlatEditFormPackageSurface(),
+    ensureWizardFlatEditPagePackageSurface(),
+    ensureOperatorUiComponentsPackageSurface(),
+    ensureWizardLabelResolverPackageSurface(),
+    ensureWizardSurfacesPackageSurface(),
+  ]);
+}
 
 function asDraftEnvelope(draft: Readonly<Record<string, unknown>>): CanonicalWizardDraftEnvelope {
   if (draft.data != null && typeof draft.data === "object" && !Array.isArray(draft.data)) {
@@ -93,6 +117,9 @@ function applyContextualFieldRules(input: {
 
 /** Phase 12.0 — Denali reference implementation of generic wizard host hooks. */
 export const denaliWizardHostHooks = Object.freeze({
+  ensureReady: async () => {
+    await ensureDenaliWizardHostReady();
+  },
   reviewStepId: "review",
   reviewSurfaceId: "denali",
   validationSurfaceId: "denali",
@@ -104,7 +131,7 @@ export const denaliWizardHostHooks = Object.freeze({
   usesStepValidation: true,
   usesReviewStep: true,
   reviewFieldCanonicalPath: "publishStatus",
-  hostRootDataAttributes: Object.freeze({ "data-denali-wizard-host": "true" }),
+  hostRootDataAttributes: Object.freeze({ "data-operator-wizard-host": "true" }),
   loadRulesModule: loadDenaliWizardRulesModule,
   resolveMatrixDimensionsFromDraft: resolveDenaliMatrixDimensionsFromDraft,
   applyContextualFieldRules,

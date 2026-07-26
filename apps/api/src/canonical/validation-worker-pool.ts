@@ -274,7 +274,7 @@ export async function runValidationOffThread(
   input: ValidateBeforePersistInput
 ): Promise<CanonicalDocument> {
   if (!isValidationWorkersEnabled() || requiresValidationSync(input.workspaceType)) {
-    return validateCanonicalBeforePersistSync(input);
+    return await validateCanonicalBeforePersistSync(input);
   }
   return getValidationWorkerPool().run(input);
 }

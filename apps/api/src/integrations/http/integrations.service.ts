@@ -332,17 +332,17 @@ function readCredentialCandidate(record: Record<string, unknown>, fieldId: strin
   return undefined;
 }
 
-function normalizeIntegrationCreateFromSurface(input: {
+async function normalizeIntegrationCreateFromSurface(input: {
   readonly workspaceType: string | null;
   readonly provider: IntegrationProviderId;
   readonly rawConfig: Record<string, unknown>;
   readonly record: Record<string, unknown>;
-}): {
+}): Promise<{
   readonly config: Record<string, unknown>;
   readonly credentials: Record<string, string>;
   readonly defaultCapabilities: readonly string[];
-} {
-  const providerSurface = resolveIntegrationProviderSurface({
+}> {
+  const providerSurface = await resolveIntegrationProviderSurface({
     workspaceType: input.workspaceType,
     providerId: input.provider,
   });
@@ -383,12 +383,12 @@ function normalizeIntegrationCreateFromSurface(input: {
   };
 }
 
-function normalizeIntegrationPatchConfigFromSurface(input: {
+async function normalizeIntegrationPatchConfigFromSurface(input: {
   readonly workspaceType: string | null;
   readonly provider: IntegrationProviderId;
   readonly rawConfig: Record<string, unknown>;
-}): Record<string, unknown> {
-  const providerSurface = resolveIntegrationProviderSurface({
+}): Promise<Record<string, unknown>> {
+  const providerSurface = await resolveIntegrationProviderSurface({
     workspaceType: input.workspaceType,
     providerId: input.provider,
   });
@@ -411,12 +411,12 @@ function normalizeIntegrationPatchConfigFromSurface(input: {
   return config;
 }
 
-function normalizePatchCredentialsFromSurface(input: {
+async function normalizePatchCredentialsFromSurface(input: {
   readonly workspaceType: string | null;
   readonly provider: IntegrationProviderId;
   readonly record: Record<string, unknown>;
-}): Record<string, string> {
-  const providerSurface = resolveIntegrationProviderSurface({
+}): Promise<Record<string, string>> {
+  const providerSurface = await resolveIntegrationProviderSurface({
     workspaceType: input.workspaceType,
     providerId: input.provider,
   });
@@ -464,13 +464,13 @@ async function hasTelegramIntegrationConnectionRow(
   });
 }
 
-function resolvePublicEventPolicies(input: {
+async function resolvePublicEventPolicies(input: {
   readonly workspaceType: string | null;
   readonly provider: IntegrationProviderId;
   readonly persistedPolicies: readonly { readonly eventType: string; readonly enabled: boolean }[];
 }) {
   return mapEffectiveCatalogToPublicEventPolicies(
-    resolveEffectiveIntegrationEventCatalog({
+    await resolveEffectiveIntegrationEventCatalog({
       workspaceType: input.workspaceType,
       providerId: input.provider,
       persistedPolicies: input.persistedPolicies,
@@ -478,11 +478,11 @@ function resolvePublicEventPolicies(input: {
   );
 }
 
-function legacyTelegramToPublicDto(
+async function legacyTelegramToPublicDto(
   legacy: LegacyTelegramBotInspection,
   input: { readonly fallbackSuppressed: boolean }
-): IntegrationConnectionPublicDto {
-  const eventPolicies = resolvePublicEventPolicies({
+): Promise<IntegrationConnectionPublicDto> {
+  const eventPolicies = await resolvePublicEventPolicies({
     workspaceType: legacy.workspaceType,
     provider: "telegram",
     persistedPolicies: [],
@@ -617,7 +617,7 @@ async function toPublicDto(
     config: row.config,
     hasSecret: row.secretRef !== null && row.secretRef.length > 0,
     secretRefMasked: maskSecretRef(row.secretRef),
-    eventPolicies: resolvePublicEventPolicies({
+    eventPolicies: await resolvePublicEventPolicies({
       workspaceType: row.workspaceType,
       provider: row.provider,
       persistedPolicies: policies.map((policy) => ({
@@ -654,7 +654,7 @@ export async function createWorkspaceIntegration(
     typeof record.config === "object" && record.config !== null
       ? (record.config as Record<string, unknown>)
       : {};
-  const normalized = normalizeIntegrationCreateFromSurface({
+  const normalized = await normalizeIntegrationCreateFromSurface({
     workspaceType,
     provider,
     rawConfig,
@@ -720,7 +720,7 @@ export async function createWorkspaceIntegration(
     workspaceType,
   });
 
-  return toPublicDto(auth.tenantId, {
+  return await toPublicDto(auth.tenantId, {
     ...mapRow(created),
     createdAt: created.createdAt,
     updatedAt: created.updatedAt,
@@ -733,7 +733,7 @@ export async function getWorkspaceIntegrationMeta(
 ): Promise<WorkspaceIntegrationSurfaceMetaResponse> {
   await assertWorkspaceScope(auth, workspaceId);
   const workspaceType = await resolveWorkspaceTypeForRoute(auth.tenantId, workspaceId);
-  return buildWorkspaceIntegrationSurfaceMeta(workspaceType);
+  return await buildWorkspaceIntegrationSurfaceMeta(workspaceType);
 }
 
 export async function listWorkspaceIntegrations(
@@ -762,12 +762,11 @@ export async function listWorkspaceIntegrations(
       ? await hasTelegramIntegrationConnectionRow(auth.tenantId, workspaceType)
       : false;
 
-  const items = [
-    ...connectionItems,
-    ...(legacyBot !== null
-      ? [legacyTelegramToPublicDto(legacyBot, { fallbackSuppressed: legacySuppressed })]
-      : []),
-  ];
+  const legacyItems =
+    legacyBot !== null
+      ? [await legacyTelegramToPublicDto(legacyBot, { fallbackSuppressed: legacySuppressed })]
+      : [];
+  const items = [...connectionItems, ...legacyItems];
 
   const annotated = annotateActiveDeliverySource(items);
   return {
@@ -790,7 +789,7 @@ export async function getIntegrationDetail(
       auth.tenantId,
       legacy.workspaceType
     );
-    const dto = legacyTelegramToPublicDto(legacy, { fallbackSuppressed });
+    const dto = await legacyTelegramToPublicDto(legacy, { fallbackSuppressed });
     return annotateActiveDeliverySource([dto])[0]!;
   }
 
@@ -834,7 +833,7 @@ export async function patchIntegration(
 
     const config =
       typeof record.config === "object" && record.config !== null
-        ? (normalizeIntegrationPatchConfigFromSurface({
+        ? (await normalizeIntegrationPatchConfigFromSurface({
             workspaceType: existing.workspaceType,
             provider: existing.provider as IntegrationProviderId,
             rawConfig: record.config as Record<string, unknown>,
@@ -845,7 +844,7 @@ export async function patchIntegration(
         ? (parseCapabilities(record.capabilities) as Prisma.InputJsonValue)
         : undefined;
 
-    const secretPayload = normalizePatchCredentialsFromSurface({
+    const secretPayload = await normalizePatchCredentialsFromSurface({
       workspaceType: existing.workspaceType,
       provider: existing.provider as IntegrationProviderId,
       record,
@@ -857,7 +856,7 @@ export async function patchIntegration(
     }
 
     if (Array.isArray(record.eventPolicies)) {
-      const meta = buildWorkspaceIntegrationSurfaceMeta(existing.workspaceType);
+      const meta = await buildWorkspaceIntegrationSurfaceMeta(existing.workspaceType);
       const providerMeta = meta.providers.find((provider) => provider.id === existing.provider);
       const allowedEventTypes = new Set(
         providerMeta?.defaultEventPolicies.map((policy) => policy.eventType) ?? []
@@ -885,7 +884,7 @@ export async function patchIntegration(
     });
   });
 
-  return toPublicDto(auth.tenantId, {
+  return await toPublicDto(auth.tenantId, {
     ...mapRow(updated),
     createdAt: updated.createdAt,
     updatedAt: updated.updatedAt,
@@ -920,7 +919,7 @@ export async function patchIntegrationEventPolicy(
   }
   await assertTenantOwnsWorkspaceType(auth, existing.workspaceType);
 
-  const meta = buildWorkspaceIntegrationSurfaceMeta(existing.workspaceType);
+  const meta = await buildWorkspaceIntegrationSurfaceMeta(existing.workspaceType);
   const providerMeta = meta.providers.find((provider) => provider.id === existing.provider);
   const eventDeclared =
     providerMeta?.defaultEventPolicies.some((policy) => policy.eventType === eventType) === true;
@@ -1082,7 +1081,7 @@ export async function patchConnectionExposureIntentForIntegration(
   }
   await assertTenantOwnsWorkspaceType(auth, existing.workspaceType);
 
-  const meta = buildWorkspaceIntegrationSurfaceMeta(existing.workspaceType);
+  const meta = await buildWorkspaceIntegrationSurfaceMeta(existing.workspaceType);
   const providerMeta = meta.providers.find((provider) => provider.id === existing.provider);
   const allowedEventTypes =
     providerMeta?.defaultEventPolicies.map((policy) => policy.eventType) ?? [];
@@ -1113,7 +1112,7 @@ export async function patchConnectionExposureIntentForIntegration(
     selectedFieldIds: enabled ? selectedFieldIds : [],
   });
 
-  const upsertPreview = buildConnectionExposureIntentUpsert({
+  const upsertPreview = await buildConnectionExposureIntentUpsert({
     tenantId: auth.tenantId,
     workspaceType: existing.workspaceType,
     provider: existing.provider,
@@ -1222,7 +1221,7 @@ async function setIntegrationEnabled(
     });
   });
 
-  return toPublicDto(auth.tenantId, {
+  return await toPublicDto(auth.tenantId, {
     ...mapRow(updated),
     createdAt: updated.createdAt,
     updatedAt: updated.updatedAt,

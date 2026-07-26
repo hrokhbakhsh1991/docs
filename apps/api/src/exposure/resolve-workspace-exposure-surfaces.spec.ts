@@ -11,9 +11,9 @@ import {
 } from "./resolve-workspace-exposure-surfaces";
 
 describe("resolve-workspace-exposure-surfaces", () => {
-  it("lists operator-visible denali surfaces from plugin manifest", () => {
+  it("lists operator-visible denali surfaces from plugin manifest", async () => {
     const plugin = getDenaliWorkspacePlugin();
-    const visible = listOperatorVisibleExposureSurfaceDefinitions("denali");
+    const visible = await listOperatorVisibleExposureSurfaceDefinitions("denali");
     assert.ok(visible.length >= 4);
     assert.equal(
       visible.some((entry) => entry.surface === "telegram"),
@@ -25,26 +25,26 @@ describe("resolve-workspace-exposure-surfaces", () => {
     ).length);
   });
 
-  it("lists starter public_list surface from plugin manifest", () => {
-    const surfaces = listOperatorVisibleExposureSurfaceDefinitions("starter");
+  it("lists starter public_list surface from plugin manifest", async () => {
+    const surfaces = await listOperatorVisibleExposureSurfaceDefinitions("starter");
     assert.equal(surfaces.length, 1);
     assert.equal(surfaces[0]?.surface, "public_list");
     assert.deepEqual(surfaces[0]?.defaultFieldIds, ["basics.title", "details.summary"]);
   });
 
-  it("finds surface definition by id", () => {
-    const publicList = findWorkspaceExposureSurfaceDefinition("denali", "public_list");
+  it("finds surface definition by id", async () => {
+    const publicList = await findWorkspaceExposureSurfaceDefinition("denali", "public_list");
     assert.ok(publicList !== null);
     assert.equal(publicList?.triggerStorageKey, "always");
 
-    const urbanPublicList = findWorkspaceExposureSurfaceDefinition("urban", "public_list");
+    const urbanPublicList = await findWorkspaceExposureSurfaceDefinition("urban", "public_list");
     assert.ok(urbanPublicList !== null);
     assert.equal(urbanPublicList?.triggerStorageKey, "always");
   });
 
-  it("detects workspace exposure support", () => {
-    assert.equal(workspaceSupportsExposureSurfaces("denali"), true);
-    assert.equal(workspaceSupportsExposureSurfaces("starter"), true);
-    assert.equal(workspaceSupportsExposureSurfaces("urban"), true);
+  it("detects workspace exposure support", async () => {
+    assert.equal(await workspaceSupportsExposureSurfaces("denali"), true);
+    assert.equal(await workspaceSupportsExposureSurfaces("starter"), true);
+    assert.equal(await workspaceSupportsExposureSurfaces("urban"), true);
   });
 });

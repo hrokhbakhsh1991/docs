@@ -14,6 +14,8 @@ export type CompileInvoiceBalancesInput = {
   readonly paidPaymentsMinor: string;
   readonly paymentAmountsMinor: readonly string[];
   readonly scheduleAmountsMinor: readonly string[];
+  /** FC-2 — workspace obligation; after schedule, before payment-sum fallback. */
+  readonly obligationMinor?: string;
 };
 
 function sumMinorStrings(values: readonly string[]): bigint {
@@ -30,6 +32,12 @@ function deriveInvoiceTotalMinor(input: CompileInvoiceBalancesInput): bigint {
   const scheduleTotal = sumMinorStrings(input.scheduleAmountsMinor);
   if (scheduleTotal > BigInt(0)) {
     return scheduleTotal;
+  }
+  if (input.obligationMinor !== undefined) {
+    const obligationTotal = sumMinorStrings([input.obligationMinor]);
+    if (obligationTotal > BigInt(0)) {
+      return obligationTotal;
+    }
   }
   const paymentTotal = sumMinorStrings(input.paymentAmountsMinor);
   if (paymentTotal > BigInt(0)) {

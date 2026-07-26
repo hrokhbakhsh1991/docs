@@ -12,7 +12,7 @@ function renderPlatformValidationSummary(props: WizardValidationSurfaceRenderPro
   return <WorkspaceWizardValidationSummary {...props} />;
 }
 
-/** P3-B — platform review/validation surface factory for wizard-surface-bindings codegen. */
+/** P3-B / Phase 4as — shell-local platform review surface (eager in wizard-surface-registry). */
 export function createPlatformReviewSurface(): WizardReviewSurface {
   return Object.freeze({
     renderValidationSummary: renderPlatformValidationSummary,

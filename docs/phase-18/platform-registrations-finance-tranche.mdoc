@@ -87,7 +87,7 @@ Spec: `apps/api/test/paid-tour-open-gate.spec.ts`
 Implementation (Phase 1.13): capability registry + HostIo —
 `process-workspace-finance-outbox.ts` → `resolveWorkspaceFinanceEventReaction` →
 workspace `eventReaction` adapter (`DenaliTourCreatedFinanceReactionAdapter`).
-Denali ledger runner: `@app-cloud/workspace-denali/host/finance/api-tour-created-adapter`
+Denali ledger runner: `@app-tour/workspace-denali/host/finance/api-tour-created-adapter`
 (`runTourCreatedFinanceSideEffect(row, deps)`). No apps/api Denali boot registrar.
 
 | Assert | Behavior |

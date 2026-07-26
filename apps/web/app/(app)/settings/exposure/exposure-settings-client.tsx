@@ -35,7 +35,7 @@ import type {
 } from "@/integrations/integrations-types";
 import { IntegrationConnectionLoadWarningsBanner } from "@/integrations/IntegrationConnectionLoadWarningsBanner";
 import { IntegrationEventDeliveryPolicyPanel } from "../integrations/integration-event-delivery-policy-panel";
-import { ensureSettingsExposureSurfacesUiSurface } from "@/bootstrap/workspace-settings-exposure-surfaces-ui-bindings.generated";
+import { ensureSettingsExposureSurfacesUiSurface } from "@/features/settings/settings-exposure-surfaces-ui-registry";
 import type { SettingsExposureSurfacesUiSurface } from "@/features/settings/settings-exposure-surfaces-ui-types";
 import { webSettingsExposureSurfacesChrome } from "@/exposure/web-settings-exposure-surfaces-chrome";
 import { webSettingsExposureSurfacesIo } from "@/exposure/web-settings-exposure-surfaces-io";

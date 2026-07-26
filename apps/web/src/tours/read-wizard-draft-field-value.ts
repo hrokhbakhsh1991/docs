@@ -1,4 +1,5 @@
-import { readWizardDraftFieldValueFromRegistry } from "@/bootstrap/workspace-wizard-draft-unification-bindings.generated";
+import type { WorkspacePlugin } from "@app-cloud/workspace-sdk";
+import { resolveDraftShellCapability } from "@app-cloud/workspace-sdk";
 
 import type { TourWizardDraft } from "./tour-wizard-draft";
 import { getCanonicalValue } from "./tour-wizard-draft-path";
@@ -18,20 +19,22 @@ function hasDisplayableValue(value: unknown): boolean {
   return true;
 }
 
-/** Read canonical draft value with workspace legacy fallbacks (nested form paths, starter title bridge). */
+/**
+ * Read canonical draft value with workspace legacy fallbacks.
+ * Phase 4am: prefer `capabilities.draftShell.readDraftFieldValue` when plugin in hand.
+ */
 export function readWizardDraftFieldValue(
   draft: TourWizardDraft,
   canonicalPath: string,
-  pluginId?: string
+  plugin?: WorkspacePlugin
 ): unknown {
-  if (pluginId !== undefined) {
-    const fromRegistry = readWizardDraftFieldValueFromRegistry(
-      pluginId,
-      draft as Record<string, unknown>,
-      canonicalPath
-    );
-    if (fromRegistry !== null) {
-      return fromRegistry;
+  if (plugin != null) {
+    const fromCap = resolveDraftShellCapability(plugin)?.readDraftFieldValue;
+    if (fromCap != null) {
+      const value = fromCap(draft as Record<string, unknown>, canonicalPath);
+      if (hasDisplayableValue(value)) {
+        return value;
+      }
     }
   }
 
@@ -55,9 +58,9 @@ export function readWizardDraftFieldDisplayString(
   draft: TourWizardDraft,
   kind: string,
   canonicalPath: string,
-  pluginId?: string
+  plugin?: WorkspacePlugin
 ): string {
-  const raw = readWizardDraftFieldValue(draft, canonicalPath, pluginId);
+  const raw = readWizardDraftFieldValue(draft, canonicalPath, plugin);
   if (kind === "number") {
     if (raw === undefined || raw === null) {
       return "";

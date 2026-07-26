@@ -67,6 +67,20 @@ export interface FinanceReceiptDefaultsPort {
   offlineReceiptPaymentDefaults(): FinanceOfflineReceiptDefaults;
 }
 
+/** Workspace resolves what the registration owes (minor units) — FC-2. */
+export type FinanceRegistrationObligation = {
+  readonly currency: string;
+  readonly obligationMinor: string;
+  readonly source: "tour_canonical" | "schedule" | "operator_override" | "unknown";
+};
+
+export interface FinanceObligationPort {
+  resolveRegistrationObligation(input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+  }): Promise<FinanceRegistrationObligation | null>;
+}
+
 export type WorkspaceFinanceReactionBatchResult = {
   readonly handled: number;
   readonly skipped: number;

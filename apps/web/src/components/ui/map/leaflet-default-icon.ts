@@ -1,11 +1,11 @@
 import {
   ensureOperatorUiComponentsSurface,
   resolveOperatorUiComponentsSurface,
-} from "@/bootstrap/workspace-operator-ui-components-bindings.generated";
+} from "@/wizard/operator-ui-components-registry";
 
 /**
- * Gap Closure B.9 — leaflet icon helper from warm operator-ui surface.
- * Prefer calling after ensureOperatorUiComponentsSurface(pluginId).
+ * Gap Closure B.9 / Thin Shell Phase 4ao — leaflet icon helper from warm operator-ui surface.
+ * Prefer calling after operatorUi.ensureReady / warmOperatorWizardShell.
  */
 export async function ensureLeafletDefaultIcon(pluginId: string): Promise<void> {
   const surface =

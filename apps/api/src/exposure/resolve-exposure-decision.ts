@@ -110,15 +110,15 @@ export function resolveEngineSelectedFieldIds(input: {
 /**
  * Phase 8d — authoritative exposure resolver consumed by integration dispatch.
  */
-export function resolveExposureDecision(
+export async function resolveExposureDecision(
   input: ResolveExposureDecisionInput,
-): ResolvedExposureDecision {
+): Promise<ResolvedExposureDecision> {
   const resolveDefinitions = input.resolveDeliveryFieldDefinitions ?? resolveDeliveryFieldDefinitions;
   const selection = resolveSelection({ exposureIntent: input.exposureIntent });
   const profileDefaultFieldIds =
     selection.requestedFieldIds ?? input.profile.defaultFieldIds;
   const engineCandidateFieldIds = resolveEngineCandidateFieldIds(input.engineDecisions);
-  const catalogFieldIds = engineCandidateFieldIds ?? exposureSelectableFieldIds(input.workspaceType);
+  const catalogFieldIds = engineCandidateFieldIds ?? await exposureSelectableFieldIds(input.workspaceType);
   const restrictedCandidateFieldIds =
     engineCandidateFieldIds !== undefined
       ? engineCandidateFieldIds
@@ -130,13 +130,13 @@ export function resolveExposureDecision(
           });
 
   const definitions =
-    resolveDefinitions({
+    (await resolveDefinitions({
       tenantId: input.tenantId,
       workspaceType: input.workspaceType,
       eventType: input.eventType,
       exposureSurface: input.exposureSurface,
       payload: input.payload,
-    }) ?? [];
+    })) ?? [];
 
   // Profile defaultTemplateId mirrors the integration-surface header seed only — not a custom
   // delivery override. formatIntegrationDeliveryMessage reads the surface header directly.

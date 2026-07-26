@@ -38,13 +38,13 @@ export function DenaliWizardDatetimePicker({
 
   return (
     <div
-      className={cn("denali-wizard-datetime", className)}
-      data-denali-wizard-datetime
+      className={cn("operator-wizard-datetime", className)}
+      data-operator-wizard-datetime
       data-testid={dataTestId}
       dir={locale === "fa" ? "rtl" : "ltr"}
     >
-      <div className="denali-wizard-datetime__control">
-        <div className="denali-wizard-datetime__date">
+      <div className="operator-wizard-datetime__control">
+        <div className="operator-wizard-datetime__date">
           <LocalizedDatePicker
             id={id}
             value={date}
@@ -52,11 +52,11 @@ export function DenaliWizardDatetimePicker({
             disabled={disabled}
             required={required}
             aria-label={ariaLabel ?? t("pickDate")}
-            className="denali-wizard-datetime__date-trigger"
+            className="operator-wizard-datetime__date-trigger"
             onChange={(nextDate) => onChange(joinDatetimeLocal(nextDate, time))}
           />
         </div>
-        <div className="denali-wizard-datetime__divider" aria-hidden />
+        <div className="operator-wizard-datetime__divider" aria-hidden />
         <DenaliTimeInput
           appearance="inline"
           value={time}

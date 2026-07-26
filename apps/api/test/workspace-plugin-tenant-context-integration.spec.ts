@@ -38,7 +38,7 @@ describe("resolveWorkspacePluginForTenantContext (P3-A-N-011)", () => {
     delete env.WORKSPACE_METADATA_ENABLED;
     const tenantId = "00000000-0000-4000-8000-000000000020";
     const plugin = await resolveWorkspacePluginForTenantContext(tenantId, "denali");
-    const packagePlugin = resolveWorkspacePluginForType("denali");
+    const packagePlugin = await resolveWorkspacePluginForType("denali");
     assert.deepEqual(plugin.fieldRegistry, packagePlugin.fieldRegistry);
     assert.equal(plugin.id, packagePlugin.id);
   });
@@ -49,7 +49,7 @@ describe("resolveWorkspacePluginForTenantContext (P3-A-N-011)", () => {
       "00000000-0000-4000-8000-000000000021",
       "starter"
     );
-    const packagePlugin = resolveWorkspacePluginForType("starter");
+    const packagePlugin = await resolveWorkspacePluginForType("starter");
     assert.equal(typeof plugin.validation?.checkCapacity, "function");
     assert.equal(plugin.validation, packagePlugin.validation);
   });
@@ -102,24 +102,24 @@ describe("resolveWorkspacePluginForTenantContext (P3-A-N-011)", () => {
       tenantRepository: repository,
       loadPublishedVersion,
     });
-    const packagePlugin = resolveWorkspacePluginForType("starter");
+    const packagePlugin = await resolveWorkspacePluginForType("starter");
     assert.notDeepEqual(plugin.fieldRegistry.fields, packagePlugin.fieldRegistry.fields);
     assert.equal(plugin.fieldRegistry, payload.fieldRegistry);
   });
 });
 
 describe("P0 ingress wiring (P3-A-N-012 static asserts)", () => {
-  it("IG-03 canonical-validation-sync imports tenant context resolve", () => {
+  it("IG-03 canonical-validation-sync imports tenant context resolve", async () => {
     const source = readSource("src/tours/canonical-validation-sync.ts");
     assert.match(source, /resolveWorkspacePluginForTenantContext/);
   });
 
-  it("IG-04 build-clone-tour-body imports tenant context resolve", () => {
+  it("IG-04 build-clone-tour-body imports tenant context resolve", async () => {
     const source = readSource("src/tours/build-clone-tour-body.ts");
     assert.match(source, /resolveWorkspacePluginForTenantContext/);
   });
 
-  it("IG-05 wizard-template-catalog imports tenant context resolve", () => {
+  it("IG-05 wizard-template-catalog imports tenant context resolve", async () => {
     const source = readSource("src/settings/wizard-template-catalog.ts");
     assert.match(source, /resolveWorkspacePluginForTenantContext/);
   });

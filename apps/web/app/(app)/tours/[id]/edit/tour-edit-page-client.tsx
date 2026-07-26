@@ -26,10 +26,9 @@ import {
 } from "@/features/tours/tour-list-formatters";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
-import {
-  ensureWizardHostAdapters,
-  resolveWizardCatalogPrefetchProvider,
-} from "@/wizard/host-adapter-runtime";
+import { resolveWizardCatalogPrefetchProvider } from "@/wizard/wizard-host-adapter-registry";
+import { loadWizardWorkspacePlugin } from "@/wizard/resolve-wizard-workspace-plugin";
+import { ensureWizardHostReady } from "@app-cloud/workspace-sdk";
 
 import { OperatorFlatEditPageClient } from "./flat-edit-page-client";
 import { TourStatusBadge } from "../../tour-status-badge";
@@ -49,7 +48,10 @@ export function TourEditPageClient({
   const canEdit = canMutateTour(session.role);
   if (useFlatEditShell && canEdit) {
     return (
-      <TourEditCatalogPrefetchShell initialLocationsResponse={initialLocationsResponse}>
+      <TourEditCatalogPrefetchShell
+        session={session}
+        initialLocationsResponse={initialLocationsResponse}
+      >
         <OperatorFlatEditPageClient session={session} tourId={tourId} />
       </TourEditCatalogPrefetchShell>
     );
@@ -57,28 +59,32 @@ export function TourEditPageClient({
   return <TourEditTitlePageClient session={session} tourId={tourId} />;
 }
 
-/** Gap Closure B.10 — self-warm product PrefetchProvider before flat-edit mounts. */
+/** Thin Shell Phase 2b / 4r — warm via ensureWizardHostReady before flat-edit mounts. */
 function TourEditCatalogPrefetchShell({
+  session,
   initialLocationsResponse,
   children,
 }: {
+  readonly session: OperatorSessionContext;
   readonly initialLocationsResponse?: unknown | null;
   readonly children: React.ReactNode;
 }) {
   const [, setWarmTick] = useState(0);
   useEffect(() => {
     let cancelled = false;
-    void ensureWizardHostAdapters().then(() => {
-      if (!cancelled) {
-        setWarmTick((n) => n + 1);
-      }
-    });
+    void loadWizardWorkspacePlugin(session.pluginId)
+      .then((plugin) => ensureWizardHostReady(plugin))
+      .then(() => {
+        if (!cancelled) {
+          setWarmTick((n) => n + 1);
+        }
+      });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [session.pluginId]);
 
-  const Provider = resolveWizardCatalogPrefetchProvider();
+  const Provider = resolveWizardCatalogPrefetchProvider(session.pluginId);
   if (Provider == null) {
     return <>{children}</>;
   }

@@ -46,7 +46,7 @@ redesign: none
 │ 11. resolveFinanceServiceForTenant → registry adapters          │
 │ 12. Capability gate (supported + theme modules)                 │
 │ 13. HTTP /finance/* (shared finance-http; see §HTTP)            │
-│ 14. Nav (WORKSPACE_FINANCE_NAV_PLUGIN_IDS)                      │
+│ 14. Nav (isFinanceNavPlugin / workspaceFinance.supported)       │
 │ 15. Ops panels (only if opsManifest bound)                      │
 │ 16. Event reaction (generated binding + optional HostIo)        │
 └───────────────────────────┬─────────────────────────────────────┘
@@ -150,7 +150,7 @@ New workspace must **not** invent parallel `/finance` handlers in finance-core.
 | With `opsManifest` + `apps/web` dep | Panels resolve via generated ops bindings |
 | ---------------------------------- | ---------------------------------------- |
 | Without `opsManifest` (e.g. ws6) | `resolveWorkspaceFinanceOpsManifest` → unbound → **host renders nothing** |
-| Nav only | `supported: true` → plugin id in `WORKSPACE_FINANCE_NAV_PLUGIN_IDS` |
+| Nav only | `supported: true` → `isFinanceNavPlugin(pluginId)` |
 
 **Human for full ops UX:** implement ops manifest module + add `@app-tour/workspace-<id>` to **`apps/web/package.json`** (codegen static imports; today web lists denali, ws4, ws5 — **not** ws6).
 

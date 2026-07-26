@@ -1,5 +1,6 @@
-import type { ConflictStrategy, DraftSyncPayload } from "@app-tour/draft-engine";
-import type { WorkspaceWizardDraftEnvelope } from "@app-tour/workspace-sdk";
+import type { ConflictStrategy, DraftSyncPayload } from "@app-cloud/draft-engine";
+import type { WorkspacePlugin, WorkspaceWizardDraftEnvelope } from "@app-cloud/workspace-sdk";
+import { resolveDraftShellCapability } from "@app-cloud/workspace-sdk";
 
 import { mergeWizardDraftEnvelope } from "@/wizard/wizard-draft-envelope-hooks";
 
@@ -8,28 +9,31 @@ import {
   resolveDraftUnificationV3Mode,
   type DraftUnificationV3Mode,
 } from "./draft-unification-v3";
-import { logWizardDraftTombstoneShadowMismatch } from "@/bootstrap/workspace-wizard-draft-unification-bindings.generated";
 import type { NewTourWizardDraftEnvelope } from "./tour-wizard-draft-envelope";
 
 export function resolveOperatorDraftConflictStrategy(
-  mode: DraftUnificationV3Mode = resolveDraftUnificationV3Mode(),
+  mode: DraftUnificationV3Mode = resolveDraftUnificationV3Mode()
 ): ConflictStrategy {
   return isDraftUnificationV3ServerWins(mode) ? "SERVER_WINS" : "REFETCH_REAPPLY";
 }
 
+/**
+ * Phase 4am — tombstone shadow log via `capabilities.draftShell` (no unification binder).
+ */
 export function createOperatorDraftOnPushSuccess(
-  mode: DraftUnificationV3Mode = resolveDraftUnificationV3Mode(),
+  plugin: WorkspacePlugin,
+  mode: DraftUnificationV3Mode = resolveDraftUnificationV3Mode()
 ): (
   localPayload: DraftSyncPayload<NewTourWizardDraftEnvelope>,
   serverPayload: DraftSyncPayload<NewTourWizardDraftEnvelope>,
-  baselineData: NewTourWizardDraftEnvelope | undefined,
+  baselineData: NewTourWizardDraftEnvelope | undefined
 ) => void {
   return (localPayload, serverPayload, baselineData) => {
-    logWizardDraftTombstoneShadowMismatch(
+    resolveDraftShellCapability(plugin)?.logTombstoneShadowMismatch?.(
       mode,
       baselineData,
       localPayload.data,
-      serverPayload.data,
+      serverPayload.data
     );
   };
 }
@@ -39,12 +43,12 @@ export function resolveWizardDraftMerge<TForm>(
   mode: DraftUnificationV3Mode = resolveDraftUnificationV3Mode(),
   fallback?: (
     local: WorkspaceWizardDraftEnvelope<TForm>,
-    server: WorkspaceWizardDraftEnvelope<TForm>,
+    server: WorkspaceWizardDraftEnvelope<TForm>
   ) => WorkspaceWizardDraftEnvelope<TForm>
 ):
   | ((
       local: WorkspaceWizardDraftEnvelope<TForm>,
-      server: WorkspaceWizardDraftEnvelope<TForm>,
+      server: WorkspaceWizardDraftEnvelope<TForm>
     ) => WorkspaceWizardDraftEnvelope<TForm>)
   | undefined {
   if (isDraftUnificationV3ServerWins(mode)) {

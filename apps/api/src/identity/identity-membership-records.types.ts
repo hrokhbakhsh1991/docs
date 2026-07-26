@@ -33,6 +33,9 @@ export type IdentityMembershipRecord = {
   readonly rewards?: MembershipRewardsRecord;
   readonly avatar?: OperatorMembershipAvatar;
   readonly portalModuleGrants?: readonly string[];
+  readonly portalPlanCode?: string;
+  readonly portalCapabilityFlags?: Readonly<Record<string, boolean>>;
+  readonly portalEntitlementsRevision?: number;
 };
 
 export type MembershipWithUserRecord = {

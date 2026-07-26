@@ -43,7 +43,7 @@ export function DenaliPricingPaymentField({
   return (
     <div
       className="denali-wizard-composite"
-      data-denali-wizard-surface="section"
+      data-operator-wizard-surface="section"
       data-testid={DENALI_PRICING_TEST_IDS.pricing}
     >
       <label className="denali-wizard-composite__field-row">

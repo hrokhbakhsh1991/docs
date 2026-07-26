@@ -97,51 +97,12 @@ export function assertOperatorShellManifest(manifest) {
  * Wave D.c — Phase 3 AppShell nav links from operatorShell.phase3NavLinks.
  * @param {readonly { id: string; operatorShell?: { phase3NavLinks?: readonly { href: string; labelKey: string }[] } }}[]} manifests
  */
-export function generateOperatorShellNavBindings(manifests) {
-  for (const manifest of manifests) {
-    assertOperatorShellManifest(manifest);
-  }
-
-  /** @type {string[]} */
-  const entries = [];
-  for (const manifest of [...manifests].sort((a, b) => a.id.localeCompare(b.id))) {
-    const links = manifest.operatorShell?.phase3NavLinks;
-    if (!Array.isArray(links) || links.length === 0) {
-      continue;
-    }
-    const linkLiterals = links
-      .map(
-        (link) =>
-          `    Object.freeze({ href: ${JSON.stringify(link.href)}, labelKey: ${JSON.stringify(link.labelKey)} }),`
-      )
-      .join("\n");
-    entries.push(`  ${JSON.stringify(manifest.id)}: Object.freeze([\n${linkLiterals}\n  ]),`);
-  }
-
-  return `${BANNER}
-/** Phase 3 AppShell nav link — href + tours.shell message key (Wave D.c). */
-export type OperatorShellNavLink = {
-  readonly href: string;
-  readonly labelKey: string;
-};
-
-/** pluginId → optional Phase 3 header links from operatorShell.phase3NavLinks. */
-export const WORKSPACE_OPERATOR_SHELL_NAV: Readonly<
-  Record<string, readonly OperatorShellNavLink[]>
-> = Object.freeze({
-${entries.join("\n")}
-});
-
-export function resolveOperatorShellNavLinks(pluginId: string): readonly OperatorShellNavLink[] {
-  return WORKSPACE_OPERATOR_SHELL_NAV[pluginId] ?? [];
-}
-`;
+export function generateOperatorShellNavBindings(_manifests) {
+  throw new Error(
+    "Phase 4bc — operatorShellNav codegen removed; capabilities.operatorShellNav owns Phase 3 AppShell links"
+  );
 }
 
-/**
- * Wave I.1 — owner settings panel lazy loaders from operatorShell.ownerSettingsPanel.
- * @param {readonly { id: string; operatorShell?: { ownerSettingsPanel?: { module: string; exportName: string } } }}[]} manifests
- */
 export function generateWorkspaceOwnerSettingsPanelLoaders(manifests) {
   for (const manifest of manifests) {
     assertOperatorShellManifest(manifest);

@@ -53,6 +53,15 @@
         "export": { "type": "string", "minLength": 1 }
       }
     },
+    "settingsExposureSurfacesUi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
     "tourActionSubmitCodec": {
       "type": "object",
       "additionalProperties": false,

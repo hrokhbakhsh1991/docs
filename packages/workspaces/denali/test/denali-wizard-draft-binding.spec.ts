@@ -2,9 +2,18 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  buildDenaliCreateTourDiscardRemoteDraftInput,
+  buildDenaliWizardFreshStartMeta,
+  buildDenaliWizardStepZeroMeta,
+  denaliCreateTourRemoteDraftIdentity,
   denaliEditTourDraftKey,
+  denaliEditTourRemoteDraftIdentity,
   denaliHydrateDraftEnvelope,
   denaliPrepareDraftEnvelope,
+  DENALI_CREATE_TOUR_DRAFT_KEY,
+  DENALI_CREATE_TOUR_SUPPORTS_CLONE,
+  DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
+  prepareDenaliCreateTourFreshStartEnvelope,
 } from "../src/draft/denali-wizard-draft-binding";
 
 describe("denali-wizard-draft-binding.spec.ts — Phase 11.5", () => {
@@ -75,5 +84,51 @@ describe("denali-wizard-draft-binding.spec.ts — Phase 11.5", () => {
     );
     assert.equal(hydrated.meta.deletedRoots, undefined);
     assert.equal(hydrated.meta.currentStepIndex, 2);
+  });
+
+  it("P2-C.7 step-zero and freshStart meta builders", () => {
+    assert.deepEqual(buildDenaliWizardStepZeroMeta("ws-1"), {
+      currentStepIndex: 0,
+      wizardSessionId: "ws-1",
+    });
+    assert.deepEqual(buildDenaliWizardFreshStartMeta("ws-2"), {
+      currentStepIndex: 0,
+      wizardSessionId: "ws-2",
+      freshStart: true,
+    });
+  });
+
+  it("P2-C.13 create tour remote draft identity and discard input", () => {
+    assert.deepEqual(denaliCreateTourRemoteDraftIdentity(), {
+      namespace: DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
+      draftKey: DENALI_CREATE_TOUR_DRAFT_KEY,
+    });
+    assert.deepEqual(buildDenaliCreateTourDiscardRemoteDraftInput("ws-9"), {
+      workspaceId: "ws-9",
+      namespace: "operator.wizard",
+      draftKey: "denali-create",
+    });
+  });
+
+  it("P2-C.14 supports-clone flag and fresh-start envelope helper", () => {
+    assert.equal(DENALI_CREATE_TOUR_SUPPORTS_CLONE, true);
+    const form = { data: { basics: { title: "Seed" } } };
+    const envelope = prepareDenaliCreateTourFreshStartEnvelope(
+      denaliPrepareDraftEnvelope,
+      form,
+      "ws-fresh"
+    );
+    assert.equal(envelope.meta.currentStepIndex, 0);
+    assert.equal(envelope.meta.wizardSessionId, "ws-fresh");
+    assert.equal(envelope.meta.freshStart, true);
+    assert.equal(envelope.form.data.basics.title, "Seed");
+  });
+
+  it("P2-C.15 edit tour remote draft identity scopes key per tour", () => {
+    assert.deepEqual(denaliEditTourRemoteDraftIdentity("abc-123"), {
+      namespace: DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
+      draftKey: "denali-edit:abc-123",
+    });
+    assert.equal(denaliEditTourRemoteDraftIdentity("  ").draftKey, "denali-edit:unknown");
   });
 });

@@ -1,13 +1,13 @@
-import { decodeTourActionSubmitError } from "@/bootstrap/workspace-tour-action-submit-bindings.generated";
+import { decodeTourActionSubmitError } from "@/wizard/tour-action-submit-codec";
 import {
   ensureGeneratedLabelResolver,
   resolveGeneratedLabelResolver,
-} from "@/bootstrap/wizard-label-bindings.generated";
+} from "@/wizard/wizard-label-registry";
 
 import {
   localizeWizardValidationIssueMessage,
   WIZARD_RULES_NOT_READY_CODE,
-} from "@/wizard/host-adapter-runtime";
+} from "@/wizard/wizard-host-adapter-registry";
 import { resolveWizardValidationIssueMessage } from "@/wizard/resolve-wizard-validation-issue-message";
 import { parsePlatformValidationMessage } from "@/wizard/parse-platform-validation-segments";
 
@@ -79,6 +79,7 @@ function buildHttpSubmitErrorDetails(
 }
 
 function formatValidationSegments(input: {
+  readonly pluginId: string;
   readonly message: string;
   readonly t: WizardSubmitErrorTranslator;
   readonly translateFieldLabel: (path: string) => string;
@@ -102,6 +103,7 @@ function formatValidationSegments(input: {
       fieldLabel
     );
     return localizeWizardValidationIssueMessage(
+      input.pluginId,
       (key: string, values?: Record<string, string | number>) => input.t.translate(key, values),
       issueMessage,
       fieldLabel
@@ -136,6 +138,7 @@ function parseLegacyActionSubmitError(raw: string): { status: number; code: stri
 
 /** Map wizard submit error tokens to operator-facing copy (create + flat edit). */
 export function resolveWizardSubmitErrorMessage(input: {
+  readonly pluginId: string;
   readonly raw: string | null | undefined;
   readonly t: WizardSubmitErrorTranslator;
   readonly translateFieldLabel: (path: string) => string;
@@ -170,6 +173,7 @@ export function resolveWizardSubmitErrorMessage(input: {
     message.startsWith("CANONICAL_VALIDATION_FAILED")
   ) {
     return formatValidationSegments({
+      pluginId: input.pluginId,
       message,
       t: input.t,
       translateFieldLabel: input.translateFieldLabel,
@@ -178,6 +182,7 @@ export function resolveWizardSubmitErrorMessage(input: {
 
   if (payload.code === "VALIDATION_FAILURE" && message.length > 0) {
     return formatValidationSegments({
+      pluginId: input.pluginId,
       message,
       t: input.t,
       translateFieldLabel: input.translateFieldLabel,

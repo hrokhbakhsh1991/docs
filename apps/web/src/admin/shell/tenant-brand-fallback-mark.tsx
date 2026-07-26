@@ -1,4 +1,4 @@
-import { WORKSPACE_WIZARD_CUSTOM_BRAND_FALLBACK_MARKS } from "@/bootstrap/wizard-create-bindings.generated";
+import { resolveWizardCustomBrandFallbackMark } from "@/workspace/wizard-create-registry";
 
 type TenantBrandFallbackMarkProps = {
   readonly pluginId: string;
@@ -8,7 +8,7 @@ type TenantBrandFallbackMarkProps = {
 
 /**
  * Level 3 brand fallback — letter initial.
- * Manifest may declare `wizardCreate.customBrandFallbackMark` (codegen map), but SVG/component
+ * Manifest/capability may declare `customBrandFallbackMark`, but SVG/component
  * rendering requires Wave H.e.b registry — string kinds alone must not hard-code product imports.
  * @see docs/dev/wave-h-brand-fallback-neutral.mdoc
  */
@@ -17,8 +17,8 @@ export function TenantBrandFallbackMark({
   workspaceLabel,
   className,
 }: TenantBrandFallbackMarkProps) {
-  // Touch codegen map so regenerations stay wired; H.e.b will resolve components by kind.
-  const _declaredKind = WORKSPACE_WIZARD_CUSTOM_BRAND_FALLBACK_MARKS[pluginId];
+  // Touch capability resolve so warm/seed stays wired; H.e.b will resolve components by kind.
+  const _declaredKind = resolveWizardCustomBrandFallbackMark(pluginId);
   void _declaredKind;
 
   return (

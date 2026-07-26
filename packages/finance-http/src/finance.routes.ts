@@ -11,7 +11,10 @@ import {
   parseGenerateScheduleBody,
   parseLedgerEventsLimit,
   parseOpenPaymentsLimit,
+  parseFinanceListScope,
   parseOptionalRegistrationId,
+  parseOptionalTourId,
+  parsePatchScheduleItemBody,
   parseRecordPrepaymentBody,
   parseReviewReceiptBody,
   parseSubmitReceiptBody,
@@ -42,6 +45,31 @@ export async function handleFinanceSummary(
   }
 }
 
+export async function handleFinanceReportByTour(
+  req: IncomingMessage,
+  res: ServerResponse,
+  deps: FinanceRouteDeps
+): Promise<void> {
+  const host = getFinanceHttpHost();
+  try {
+    const auth = await host.resolveTenantContextFromRequest(req);
+    const url = new URL(req.url ?? "/", "http://127.0.0.1");
+    const tourId = parseOptionalTourId(url.searchParams.get("tourId"));
+    const financeService = await host.resolveFinanceService(deps, auth);
+    await host.runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const report = await financeService.getReportByTour(auth, tourId);
+        host.sendJson(res, 200, report);
+      },
+      { rateLimit: "read" }
+    );
+  } catch (error) {
+    host.handleHttpError(res, error);
+  }
+}
+
 export async function handleFinanceOpenPayments(
   req: IncomingMessage,
   res: ServerResponse,
@@ -52,13 +80,18 @@ export async function handleFinanceOpenPayments(
     const auth = await host.resolveTenantContextFromRequest(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseOpenPaymentsLimit(url.searchParams.get("limit"));
-    const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
+    const scope = parseFinanceListScope(url.searchParams);
     const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const rows = await financeService.listOpenPayments(auth, limit, registrationId);
+        const rows = await financeService.listOpenPayments(
+          auth,
+          limit,
+          scope.registrationId,
+          scope.tourId
+        );
         host.sendJson(res, 200, { items: rows });
       },
       { rateLimit: "read" }
@@ -78,13 +111,18 @@ export async function handleFinanceLedgerEvents(
     const auth = await host.resolveTenantContextFromRequest(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseLedgerEventsLimit(url.searchParams.get("limit"));
-    const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
+    const scope = parseFinanceListScope(url.searchParams);
     const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const rows = await financeService.listLedgerEvents(auth, limit, registrationId);
+        const rows = await financeService.listLedgerEvents(
+          auth,
+          limit,
+          scope.registrationId,
+          scope.tourId
+        );
         host.sendJson(res, 200, { items: rows });
       },
       { rateLimit: "read" }
@@ -104,13 +142,18 @@ export async function handleFinanceListPayments(
     const auth = await host.resolveTenantContextFromRequest(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseOpenPaymentsLimit(url.searchParams.get("limit"));
-    const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
+    const scope = parseFinanceListScope(url.searchParams);
     const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const rows = await financeService.listPayments(auth, limit, registrationId);
+        const rows = await financeService.listPayments(
+          auth,
+          limit,
+          scope.registrationId,
+          scope.tourId
+        );
         host.sendJson(res, 200, { items: rows });
       },
       { rateLimit: "read" }
@@ -284,13 +327,18 @@ export async function handleFinancePendingReceipts(
     const auth = await host.resolveTenantContextFromRequest(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseOpenPaymentsLimit(url.searchParams.get("limit"));
-    const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
+    const scope = parseFinanceListScope(url.searchParams);
     const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const rows = await financeService.listPendingReceipts(auth, limit, registrationId);
+        const rows = await financeService.listPendingReceipts(
+          auth,
+          limit,
+          scope.registrationId,
+          scope.tourId
+        );
         host.sendJson(res, 200, { items: rows });
       },
       { rateLimit: "read" }
@@ -310,13 +358,18 @@ export async function handleFinanceListPrepayments(
     const auth = await host.resolveTenantContextFromRequest(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseOpenPaymentsLimit(url.searchParams.get("limit"));
-    const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
+    const scope = parseFinanceListScope(url.searchParams);
     const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const rows = await financeService.listPrepayments(auth, limit, registrationId);
+        const rows = await financeService.listPrepayments(
+          auth,
+          limit,
+          scope.registrationId,
+          scope.tourId
+        );
         host.sendJson(res, 200, { items: rows });
       },
       { rateLimit: "read" }
@@ -432,13 +485,17 @@ export async function handleFinanceListSchedules(
   try {
     const auth = await host.resolveTenantContextFromRequest(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
-    const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
+    const scope = parseFinanceListScope(url.searchParams);
     const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const items = await financeService.listPaymentSchedules(auth, registrationId);
+        const items = await financeService.listPaymentSchedules(
+          auth,
+          scope.registrationId,
+          scope.tourId
+        );
         host.sendJson(res, 200, { items });
       },
       { rateLimit: "read" }
@@ -515,6 +572,93 @@ export async function handleFinanceGetRegistrationInvoice(
         host.sendJson(res, 200, invoice);
       },
       { rateLimit: "read" }
+    );
+  } catch (error) {
+    host.handleHttpError(res, error);
+  }
+}
+
+export async function handleFinanceReceiptUpload(
+  req: IncomingMessage,
+  res: ServerResponse,
+  deps: FinanceRouteDeps
+): Promise<void> {
+  const host = getFinanceHttpHost();
+  try {
+    const auth = await host.resolveTenantContextFromRequest(req);
+    const url = new URL(req.url ?? "/", "http://127.0.0.1");
+    const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
+    if (registrationId === undefined) {
+      throw new Error("ZOD_VALIDATION_FAILED: registrationId is required");
+    }
+    const financeService = await host.resolveFinanceService(deps, auth);
+    await host.runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        await financeService.getRegistrationInvoice(auth, registrationId);
+        const uploaded = await host.uploadOperatorReceiptProof({
+          req,
+          auth,
+          registrationId,
+        });
+        host.sendJson(res, 201, uploaded);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    host.handleHttpError(res, error);
+  }
+}
+
+function parseScheduleItemIdFromPath(pathname: string): string {
+  const match = pathname.match(/\/items\/([^/]+)$/);
+  const itemId = match?.[1]?.trim() ?? "";
+  if (itemId.length === 0) {
+    throw new Error("ZOD_VALIDATION_FAILED: itemId is required");
+  }
+  return decodeURIComponent(itemId);
+}
+
+export async function handleFinancePatchScheduleItem(
+  req: IncomingMessage,
+  res: ServerResponse,
+  deps: FinanceRouteDeps,
+  registrationId: string
+): Promise<void> {
+  const host = getFinanceHttpHost();
+  try {
+    const { parsedBody } = await host.readFinanceRequestBody(req);
+    const body = parsePatchScheduleItemBody(parsedBody);
+    const pathname = new URL(req.url ?? "/", "http://127.0.0.1").pathname;
+    const itemId = parseScheduleItemIdFromPath(pathname);
+    const auth = await host.resolveTenantContextFromRequest(req);
+    const financeService = await host.resolveFinanceService(deps, auth);
+    await host.runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await financeService.patchPaymentScheduleItem(
+          auth,
+          registrationId,
+          itemId,
+          body
+        );
+        if (result.audit !== null) {
+          await host.enqueueScheduleItemWaivedAudit({
+            tenantId: auth.tenantId,
+            registrationId: result.registrationId,
+            itemId: result.item.id,
+            reason: result.audit.reason,
+            actorUserId: result.audit.actorUserId,
+          });
+        }
+        host.sendJson(res, 200, {
+          registrationId: result.registrationId,
+          item: result.item,
+        });
+      },
+      { rateLimit: "write" }
     );
   } catch (error) {
     host.handleHttpError(res, error);

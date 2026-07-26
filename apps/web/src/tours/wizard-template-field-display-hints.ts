@@ -3,12 +3,11 @@ import type {
   WizardTemplateEditorSurface,
   WizardTemplateFieldDisplayHints,
 } from "@/wizard/wizard-template-editor-types";
-import { DEFAULT_WIZARD_PLUGIN_ID } from "@/wizard/draft-shell-runtime";
 
 type WizardTemplateTranslator = (key: string, values?: Record<string, string | number>) => string;
 
-function compositeIdToSectionTitleKey(compositeId: string): string {
-  const prefix = `${DEFAULT_WIZARD_PLUGIN_ID}.`;
+function compositeIdToSectionTitleKey(compositeId: string, pluginId: string): string {
+  const prefix = `${pluginId}.`;
   const slug = compositeId.startsWith(prefix) ? compositeId.slice(prefix.length) : compositeId;
   const camel = slug.replace(/-([a-z])/g, (_, char: string) => char.toUpperCase());
   return `composites.${camel}.sectionTitle`;
@@ -17,13 +16,14 @@ function compositeIdToSectionTitleKey(compositeId: string): string {
 export function resolveTemplateCompositeSectionLabel(
   editor: WizardTemplateEditorSurface,
   tWorkspace: WizardTemplateTranslator,
-  anchorCanonicalPath: string
+  anchorCanonicalPath: string,
+  pluginId: string
 ): string | null {
   const compositeId = editor.resolveCompositeRendererIdForAnchor(anchorCanonicalPath);
   if (compositeId == null) {
     return null;
   }
-  const sectionKey = compositeIdToSectionTitleKey(compositeId);
+  const sectionKey = compositeIdToSectionTitleKey(compositeId, pluginId);
   try {
     const label = tWorkspace(sectionKey);
     if (label !== sectionKey && label.length > 0) {
@@ -40,7 +40,8 @@ export function resolveWizardTemplateFieldDisplayHints(
   tSettings: WizardTemplateTranslator,
   tWorkspace: WizardTemplateTranslator,
   resolveFieldLabel: (canonicalPath: string) => string,
-  meta: WizardTemplateCatalogFieldMeta
+  meta: WizardTemplateCatalogFieldMeta,
+  pluginId: string
 ): WizardTemplateFieldDisplayHints | null {
   if (editor == null) {
     return null;
@@ -50,7 +51,8 @@ export function resolveWizardTemplateFieldDisplayHints(
     tSettings,
     tWorkspace,
     resolveFieldLabel,
-    meta
+    meta,
+    pluginId
   );
 }
 
@@ -59,13 +61,18 @@ export function resolveWizardTemplateFieldDisplayHintsFromMeta(
   tSettings: WizardTemplateTranslator,
   tWorkspace: WizardTemplateTranslator,
   resolveFieldLabel: (canonicalPath: string) => string,
-  meta: WizardTemplateCatalogFieldMeta
+  meta: WizardTemplateCatalogFieldMeta,
+  pluginId: string
 ): WizardTemplateFieldDisplayHints {
   let parentLabel: string | null = null;
   if (meta.parentCanonicalPath != null) {
     parentLabel =
-      resolveTemplateCompositeSectionLabel(editor, tWorkspace, meta.parentCanonicalPath) ??
-      resolveFieldLabel(meta.parentCanonicalPath);
+      resolveTemplateCompositeSectionLabel(
+        editor,
+        tWorkspace,
+        meta.parentCanonicalPath,
+        pluginId
+      ) ?? resolveFieldLabel(meta.parentCanonicalPath);
   }
 
   const includesLabels = meta.compositeChildPaths.map((path) => resolveFieldLabel(path));

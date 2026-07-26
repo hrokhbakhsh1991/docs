@@ -59,7 +59,7 @@ function listRepository(intents: readonly ExposureIntent[]): ExposureIntentRepos
 }
 
 describe("connection exposure intent scope", () => {
-  it("stores route event type separately from exposure trigger", () => {
+  it("stores route event type separately from exposure trigger", async () => {
     assert.deepEqual(
       buildConnectionExposureIntentScope({
         connectionId: "conn-1",

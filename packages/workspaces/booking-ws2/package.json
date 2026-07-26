@@ -14,10 +14,6 @@
       "types": "./dist/plugin.d.ts",
       "default": "./dist/plugin.js"
     },
-    "./booking": {
-      "types": "./dist/booking/index.d.ts",
-      "default": "./dist/booking/index.js"
-    },
     "./host/booking": {
       "types": "./dist/booking/index.d.ts",
       "default": "./dist/booking/index.js"
@@ -27,7 +23,9 @@
       "default": "./dist/bookings/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tsc --noEmit",

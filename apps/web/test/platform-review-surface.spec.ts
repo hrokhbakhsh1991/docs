@@ -4,11 +4,11 @@ import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { resolveGeneratedReviewSurface } from "../src/bootstrap/wizard-surface-bindings.generated";
+import { resolveGeneratedReviewSurface } from "../src/wizard/wizard-surface-registry";
 import { createPlatformReviewSurface } from "../src/wizard/platform/platform-review-surface";
 
 describe("platform review surface (P3-B-N-012)", () => {
-  it("RV-01 resolveGeneratedReviewSurface(platform) non-null after codegen", () => {
+  it("RV-01 resolveGeneratedReviewSurface(platform) non-null after shell registry", () => {
     assert.notEqual(resolveGeneratedReviewSurface("platform"), null);
   });
 
@@ -27,16 +27,15 @@ describe("platform theme host props (P3-B-N-014)", () => {
   });
 });
 
-describe("generated bindings EPIC exit markers", () => {
-  it("EX-03 bindings contain denali dynamic loader + platform eager cache", () => {
+describe("wizard surface registry EPIC exit markers", () => {
+  it("EX-03 shell registry keeps platform eager + capability ensure path", () => {
     const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-    const source = readFileSync(
-      join(webRoot, "src/bootstrap/wizard-surface-bindings.generated.ts"),
-      "utf8"
-    );
-    assert.match(source, /"denali":\s*async\s*\(\)\s*=>/);
-    assert.match(source, /await import\("@app-tour\/workspace-denali\/host\/ui\/composite-surface"\)/);
-    assert.match(source, /\["platform", createPlatformCompositeSurface\(\)\]/);
-    assert.match(source, /\["platform", createPlatformReviewSurface\(\)\]/);
+    const source = readFileSync(join(webRoot, "src/wizard/wizard-surface-registry.ts"), "utf8");
+    assert.match(source, /createPlatformCompositeSurface/);
+    assert.match(source, /createPlatformReviewSurface/);
+    assert.match(source, /resolveWizardSurfacesCapability/);
+    assert.match(source, /ensureGeneratedCompositeSurface/);
+    assert.match(source, /ensureGeneratedReviewSurface/);
+    assert.doesNotMatch(source, /wizard-surface-bindings/);
   });
 });

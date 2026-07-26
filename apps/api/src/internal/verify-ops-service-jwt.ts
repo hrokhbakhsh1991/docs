@@ -11,6 +11,8 @@ export const OPS_SCOPE_CACHE_INVALIDATE = "cache:invalidate";
 export const OPS_SCOPE_METRICS_READ = "metrics:read";
 /** Finance recon/repair — must not equal metrics:read (hostile audit P0). */
 export const OPS_SCOPE_FINANCE_RECON = "finance:recon";
+/** Portal member plan / entitlements internal routes. */
+export const OPS_SCOPE_PORTAL_ENTITLEMENTS = "portal:entitlements";
 
 /** @deprecated Use {@link UNAUTHORIZED_OPS_SERVICE_JWT} */
 export const UNAUTHORIZED_CACHE_INVALIDATE_SERVICE_JWT = UNAUTHORIZED_OPS_SERVICE_JWT;

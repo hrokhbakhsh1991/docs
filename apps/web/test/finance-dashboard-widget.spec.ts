@@ -11,9 +11,12 @@ import {
   parseDashboardFinanceSummary,
   shouldShowFinanceDashboardWidget,
 } from "../src/finance/finance-dashboard-widget-logic";
+import { ensureFinanceNavSupported } from "../src/finance/finance-nav-enablement";
 
 describe("finance-dashboard-widget.spec.ts — Phase 9.7 R1", () => {
-  it("WEB-9.7-DASH-01 shouldShowFinanceDashboardWidget is denali admin/owner only", () => {
+  it("WEB-9.7-DASH-01 shouldShowFinanceDashboardWidget is denali admin/owner only", async () => {
+    await ensureFinanceNavSupported("denali");
+    await ensureFinanceNavSupported("urban");
     assert.equal(shouldShowFinanceDashboardWidget("denali", "owner"), true);
     assert.equal(shouldShowFinanceDashboardWidget("denali", "member"), false);
     assert.equal(shouldShowFinanceDashboardWidget("urban", "owner"), false);

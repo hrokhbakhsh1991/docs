@@ -64,16 +64,22 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     assert.match(source, /data-wizard-composite-loading/);
   });
 
-  it("P14-0b-04b wizard template editor bindings are codegen-only", () => {
-    const source = readFileSync(
-      join(import.meta.dirname, "../src/bootstrap/workspace-wizard-template-editor-bindings.generated.ts"),
+  it("P14-0b-04b/4aw wizard template editor binder deleted; registry owns surface", () => {
+    assert.equal(
+      existsSync(
+        join(import.meta.dirname, "../src/bootstrap/workspace-wizard-template-editor-bindings.generated.ts")
+      ),
+      false
+    );
+    const registry = readFileSync(
+      join(import.meta.dirname, "../src/wizard/wizard-template-editor-registry.ts"),
       "utf8"
     );
-    assert.match(source, /ensureWizardTemplateEditor/);
-    assert.match(source, /resolveWizardTemplateEditor/);
-    assert.match(source, /denaliWizardTemplateEditor/);
-    assert.match(source, /await import\(/);
-    assert.match(source, /@app-tour\/workspace-denali\/settings\/wizard-template-editor/);
+    assert.match(registry, /ensureWizardTemplateEditor/);
+    assert.match(registry, /resolveWizardTemplateEditor/);
+    assert.match(registry, /resolveTemplateEditorCapability/);
+    assert.doesNotMatch(registry, /workspace-wizard-template-editor-bindings/);
+    assert.doesNotMatch(registry, /@app-cloud\/workspace-denali/);
   });
 
   it("P14-0b-04 wizard-template-client has no pluginId denali branches", () => {
@@ -84,7 +90,8 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     assert.doesNotMatch(source, /pluginId\s*===\s*["']denali["']/);
     assert.doesNotMatch(source, /@app-tour\/workspace-denali/);
     assert.match(source, /ensureWizardTemplateEditor/);
-    assert.match(source, /WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS/);
+    assert.match(source, /isExtendedOperatorWorkspace/);
+    assert.doesNotMatch(source, /WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS/);
   });
 
   it("P14-0b-06 translator hook uses codegen namespaces", () => {
@@ -92,8 +99,12 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
       join(import.meta.dirname, "../src/wizard/use-workspace-wizard-translator.ts"),
       "utf8"
     );
-    assert.match(source, /WORKSPACE_WIZARD_I18N_NAMESPACES/);
-    assert.match(source, /useGeneratedWorkspaceWizardTranslators/);
+    assert.match(source, /isWorkspaceWizardI18nNamespace/);
+    assert.doesNotMatch(source, /WORKSPACE_WIZARD_I18N_NAMESPACES/);
+    assert.match(source, /useTranslations\(activeNamespace\)/);
+    assert.doesNotMatch(source, /useGeneratedWorkspaceWizardTranslators/);
+    assert.doesNotMatch(source, /useTranslations\(["']denali["']\)/);
+    assert.doesNotMatch(source, /useTranslations\(["']urban["']\)/);
   });
 
   it("P14-3-04 wizard-bridge-shell uses extended create binding", () => {
@@ -102,7 +113,8 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
       "utf8"
     );
     assert.doesNotMatch(source, /pluginId\s*===\s*["']denali["']/);
-    assert.match(source, /WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS/);
+    assert.match(source, /isExtendedOperatorWorkspace/);
+    assert.doesNotMatch(source, /WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS/);
   });
 
   it("P14-3-04b operator chrome uses extended create binding not denali fork", () => {
@@ -120,9 +132,14 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     );
     assert.doesNotMatch(operatorBrand, /pluginId\s*===\s*["']denali["']/);
     assert.doesNotMatch(welcome, /pluginId\s*===\s*["']denali["']/);
+    assert.match(operatorBrand, /isExtendedOperatorWorkspace/);
+    assert.match(welcome, /isExtendedOperatorWorkspace/);
+    assert.doesNotMatch(operatorBrand, /WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS/);
+    assert.doesNotMatch(welcome, /WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS/);
     assert.doesNotMatch(fallbackMark, /pluginId\s*===\s*["']denali["']/);
     assert.doesNotMatch(fallbackMark, /DenaliLogoMark|denali-logo-mark|fallbackMark\s*===\s*["']denali["']/);
-    assert.match(fallbackMark, /WORKSPACE_WIZARD_CUSTOM_BRAND_FALLBACK_MARKS/);
+    assert.match(fallbackMark, /resolveWizardCustomBrandFallbackMark/);
+    assert.doesNotMatch(fallbackMark, /WORKSPACE_WIZARD_CUSTOM_BRAND_FALLBACK_MARKS/);
     assert.match(fallbackMark, /data-tenant-brand-initial/);
   });
 
@@ -132,7 +149,9 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
       "utf8"
     );
     assert.doesNotMatch(source, /pluginId\s*===\s*["']denali["']/);
-    assert.match(source, /WORKSPACE_WIZARD_I18N_NAMESPACES/);
+    assert.match(source, /listWorkspaceWizardI18nNamespaces/);
+    assert.match(source, /isWorkspaceWizardI18nNamespace/);
+    assert.doesNotMatch(source, /WORKSPACE_WIZARD_I18N_NAMESPACES/);
   });
 
   it("P14-0b-08 wizard-template-gate spec has no denali invariant imports", () => {
@@ -166,7 +185,8 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
       join(import.meta.dirname, "../src/admin/onboarding/resolve-operator-welcome.ts"),
       "utf8"
     );
-    assert.match(finance, /workspace-finance-nav-bindings/);
+    assert.match(finance, /finance-nav-registry|finance-nav-enablement/);
+    assert.doesNotMatch(finance, /workspace-finance-nav-bindings/);
     assert.doesNotMatch(finance, /isExtendedOperatorWorkspace/);
     assert.doesNotMatch(finance, /wizard-create-bindings/);
     assert.doesNotMatch(users, /@app-tour\/workspace-denali/);
@@ -232,7 +252,8 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     );
     assert.match(createTour, /OperatorCreateTourWizardClientReady/);
     assert.match(createReady, /useOperatorCreateTourWizard/);
-    assert.match(hook, /resolveOperatorDraftMerge/);
+    assert.match(hook, /resolveDraftMergeForPlugin/);
+    assert.doesNotMatch(hook, /resolveOperatorDraftMerge/);
     assert.doesNotMatch(hook, /mergeDenaliWizardDraftEnvelope/);
   });
 
@@ -253,7 +274,8 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     assert.match(draftTypes, /WorkspaceWizardDraftEnvelope/);
     assert.match(mergeResolver, /resolveDenaliDraftMerge\(/);
     assert.doesNotMatch(mergeResolver, /denali-wizard-draft-merge/);
-    assert.match(flatEditHook, /resolveOperatorDraftMerge\(resolveDraftUnificationV3Mode\(\)\)/);
+    assert.match(flatEditHook, /resolveDraftMergeForPlugin/);
+    assert.doesNotMatch(flatEditHook, /resolveOperatorDraftMerge\(plugin\.id/);
   });
 
   it("P15-W-B1e denali create stays slim and delegates B1a hooks to orchestration", () => {
@@ -396,23 +418,34 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
       join(import.meta.dirname, "../src/wizard/wizard-draft-shell.ts"),
       "utf8"
     );
-    const draftRuntime = readFileSync(
-      join(import.meta.dirname, "../src/wizard/draft-shell-runtime.ts"),
-      "utf8"
-    );
     const hostRuntime = readFileSync(
-      join(import.meta.dirname, "../src/wizard/host-adapter-runtime.ts"),
+      join(import.meta.dirname, "../src/wizard/wizard-host-adapter-registry.ts"),
       "utf8"
     );
     assert.match(hook, /wizard-draft-shell/);
-    assert.match(hook, /host-adapter-runtime/);
+    assert.match(hook, /wizard-host-adapter-registry/);
     assert.match(hook, /createTourRemoteDraftIdentity/);
     assert.match(hook, /buildCreateTourDiscardRemoteDraftInput/);
-    assert.match(binding, /draft-shell-runtime/);
-    assert.match(binding, /tour-wizard-draft-envelope/);
-    assert.match(binding, /resolveOperatorDraftMerge/);
-    assert.match(draftRuntime, /workspace-wizard-draft-shell-bindings\.generated/);
-    assert.match(hostRuntime, /workspace-host-adapters\.generated/);
+    assert.match(hook, /wizard-create-chrome-registry/);
+    assert.doesNotMatch(hook, /workspace-wizard-create-chrome-bindings\.generated/);
+    assert.match(binding, /resolveDraftShellCapability/);
+    assert.match(binding, /createWizardDraftSessionIdForPlugin/);
+    assert.match(binding, /resolveDraftMergeForPlugin/);
+    assert.doesNotMatch(binding, /workspace-wizard-draft-shell-bindings\.generated/);
+    assert.doesNotMatch(binding, /getWorkspacePluginFromDraftShell/);
+    assert.match(hostRuntime, /WIZARD_HOST_ADAPTER_SURFACE_KEY|app-cloud\.wizardHostAdapterSurface/);
+    assert.equal(
+      existsSync(join(import.meta.dirname, "../src/wizard/host-adapter-runtime.ts")),
+      false
+    );
+    assert.equal(
+      existsSync(join(import.meta.dirname, "../src/wizard/draft-shell-runtime.ts")),
+      false
+    );
+    assert.equal(
+      existsSync(join(import.meta.dirname, "../src/wizard/wizard-chrome-runtime.ts")),
+      false
+    );
     assert.doesNotMatch(binding, /denali-wizard-draft-merge/);
   });
 });

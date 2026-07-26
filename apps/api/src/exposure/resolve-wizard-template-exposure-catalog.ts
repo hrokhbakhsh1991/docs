@@ -65,15 +65,15 @@ function resolveRegistryEntryForTemplatePath(
   return registryById.get(canonicalPath) ?? null;
 }
 
-export function buildWizardTemplateExposureCatalog(input: {
+export async function buildWizardTemplateExposureCatalog(input: {
   readonly workspaceType: string | null;
   readonly wizardTemplatePayload: WizardTemplateExposurePayload;
-}): readonly ExposureFieldCatalogEntry[] {
+}): Promise<readonly ExposureFieldCatalogEntry[]> {
   if (!isWizardTemplatePublishedForExposure(input.wizardTemplatePayload)) {
     return [];
   }
 
-  const registryFields = buildExposureFieldCatalog(input.workspaceType);
+  const registryFields = await buildExposureFieldCatalog(input.workspaceType);
   if (registryFields.length === 0) {
     return [];
   }

@@ -14,7 +14,7 @@ Tracked ledger: [OPEN_WORK_LEDGER.md](./OPEN_WORK_LEDGER.md) · Unlock: [ARCHITE
 
 | ID | Result |
 | -- | ------ |
-| B4 | `@app-cloud/tenant-kernel` / `finance-core` build PASS; `@apps/api` `tsc --noEmit` PASS |
+| B4 | `@app-tour/tenant-kernel` / `finance-core` build PASS; `@apps/api` `tsc --noEmit` PASS |
 | B5 | `test:booking-capacity-stress` — **3/3 PASS** |
 | B6 | DEV asymmetry **DECIDED** — no merge |
 | B7 | 10 stashes **QUARANTINED** |

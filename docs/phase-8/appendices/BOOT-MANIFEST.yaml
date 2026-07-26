@@ -251,7 +251,7 @@ hot_paths:
   - path: apps/web/app/(public)/catalog/
     subphase: "8.2"
     touch: public catalog · registration pages
-  - path: apps/web/app/(app)/settings/urban/
+  - path: apps/web/app/(app)/settings/workspace-owner/
     subphase: "8.2"
     touch: settings UI shell — guards from 8.1
   - path: infra/sql/004_urban_product_delta.sql

@@ -106,6 +106,11 @@ const DENALI_SETTINGS_MODULES = Object.freeze([
 
 validateSettingsManifest(DENALI_SETTINGS_MODULES);
 
+/** Hub consistency: backend must surface these module ids (order = manifest inventory). */
+export const DENALI_BACKEND_REQUIRED_MODULE_IDS = Object.freeze(
+  DENALI_SETTINGS_MODULES.map((module) => module.id)
+);
+
 export const denaliOperatorSettingsSurface = Object.freeze({
   manifestVersion: 1 as const,
   modules: DENALI_SETTINGS_MODULES,

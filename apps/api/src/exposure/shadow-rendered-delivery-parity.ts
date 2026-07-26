@@ -26,7 +26,7 @@ export function buildIntegrationDeliveryRenderPayload(input: {
 /**
  * Phase 3 rendered-template parity — shadow render vs authoritative delivery render.
  */
-export function resolveShadowRenderedDeliveryParity(input: {
+export async function resolveShadowRenderedDeliveryParity(input: {
   readonly workspaceType: string | null;
   readonly eventType: string;
   readonly basePayload: Record<string, unknown>;
@@ -42,10 +42,10 @@ export function resolveShadowRenderedDeliveryParity(input: {
     readonly fieldValues: Readonly<Record<string, string>>;
     readonly messageTemplate: string | null;
   };
-}): {
+}): Promise<{
   readonly renderedMessage: string;
   readonly renderedParity: ShadowRenderedParity;
-} {
+}> {
   const shadowPayload = buildIntegrationDeliveryRenderPayload({
     basePayload: input.basePayload,
     candidateFieldIds: input.shadowFields.candidateFieldIds,
@@ -61,12 +61,12 @@ export function resolveShadowRenderedDeliveryParity(input: {
     messageTemplate: input.authoritativeFields.messageTemplate,
   });
 
-  const renderedMessage = formatIntegrationDeliveryMessage({
+  const renderedMessage = await formatIntegrationDeliveryMessage({
     workspaceType: input.workspaceType,
     eventType: input.eventType,
     payload: shadowPayload,
   });
-  const authoritativeRendered = formatIntegrationDeliveryMessage({
+  const authoritativeRendered = await formatIntegrationDeliveryMessage({
     workspaceType: input.workspaceType,
     eventType: input.eventType,
     payload: authoritativePayload,

@@ -129,7 +129,7 @@ Urban **registration intake** is §B (`POST /urban/registrations`). Do not confu
 
 ## Web routes (`@apps/web`)
 
-Target tree: `apps/web/app/(public)/` + `apps/web/app/(app)/settings/urban/`  
+Target tree: `apps/web/app/(public)/` + `apps/web/app/(app)/settings/workspace-owner/`  
 Shell: `force-dynamic` on owner settings (TQ-P8-008). Public catalog may use ISR **only** when `catalog.publicEnabled=true` and session not required — default **dynamic**.
 
 ### G. Public catalog (anonymous)
@@ -154,11 +154,12 @@ Legacy reference (read-only): `legacy/apps/web/app/(public)/catalog/page.tsx`.
 
 | METHOD | PATH              | ACTOR                      | CASL / GUARD                                                                                                                                                   | EXPECTED STATUS   | RATE LIMIT BOUNDARY |
 | ------ | ----------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | ------------------- |
-| GET    | `/settings/urban` | Owner                      | [`CANLOAD-URBAN-SETTINGS.contract.ts`](CANLOAD-URBAN-SETTINGS.contract.ts) — `canLoadUrbanSettings` → `canPerformUrbanOwnerMutation(..., urban.settings.read)` | **200**           | Session-bound       |
-| GET    | `/settings/urban` | Member / Admin             | `WizardAccessDenied` or **403** page                                                                                                                           | **403** UI        | —                   |
-| GET    | `/settings/urban` | Anonymous                  | Redirect login or **403**                                                                                                                                      | **401** / **403** | —                   |
-| PATCH  | `/settings/urban` | Owner                      | Same guard + server action → `PATCH /urban/settings`                                                                                                           | **200** · **403** | Session-bound       |
-| PATCH  | `/settings/urban` | Member / Admin / Anonymous | —                                                                                                                                                              | **403**           | —                   |
+| GET    | `/settings/workspace-owner` | Owner                      | [`CANLOAD-URBAN-SETTINGS.contract.ts`](CANLOAD-URBAN-SETTINGS.contract.ts) — `canLoadUrbanSettings` → `canPerformUrbanOwnerMutation(..., urban.settings.read)` | **200**           | Session-bound · Wave H.i.b |
+| GET    | `/settings/workspace-owner` | Member / Admin             | `WizardAccessDenied` or **403** page                                                                                                                           | **403** UI        | —                   |
+| GET    | `/settings/workspace-owner` | Anonymous                  | Redirect login or **403**                                                                                                                                      | **401** / **403** | —                   |
+| PATCH  | `/settings/workspace-owner` | Owner                      | Same guard + server action → `PATCH /urban/settings`                                                                                                           | **200** · **403** | Session-bound       |
+| PATCH  | `/settings/workspace-owner` | Member / Admin / Anonymous | —                                                                                                                                                              | **403**           | —                   |
+| GET    | `/settings/urban` (legacy)  | any                        | Permanent redirect → `/settings/workspace-owner`                                                                                                               | **308**           | Wave H.i.b          |
 
 Target guard module: `apps/web/src/urban/urban-settings-access.ts` (8.1).
 

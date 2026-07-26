@@ -11,10 +11,14 @@ import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import { resolveWizardCompositeSurface } from "../src/wizard/wizard-composite-surface-registry";
 import { PlatformCompositeField } from "../src/wizard/platform/platform-composite-field";
 import { resolvePlatformCompositeRenderer } from "../src/wizard/platform/platform-composite-renderers";
+import {
+  ensureGeneratedCompositeSurface,
+  resolveGeneratedCompositeSurface,
+} from "../src/wizard/wizard-surface-registry";
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const bindingsSource = readFileSync(
-  join(webRoot, "src/bootstrap/wizard-surface-bindings.generated.ts"),
+const shellRegistrySource = readFileSync(
+  join(webRoot, "src/wizard/wizard-surface-registry.ts"),
   "utf8"
 );
 const starterPluginSource = readFileSync(
@@ -28,9 +32,6 @@ describe("platform composite registry (P3-B-N-010)", () => {
   });
 
   it("RG-02 resolveWizardCompositeSurface(denali) after ensure", async () => {
-    const { ensureGeneratedCompositeSurface } = await import(
-      "../src/bootstrap/wizard-surface-bindings.generated"
-    );
     await ensureGeneratedCompositeSurface("denali");
     assert.notEqual(resolveWizardCompositeSurface("denali"), null);
   });
@@ -54,10 +55,11 @@ describe("platform composite registry (P3-B-N-010)", () => {
     assert.ok(container.querySelector("[data-composite-fallback]"));
   });
 
-  it("RG-04 generated bindings warm platform eagerly (shell-local)", () => {
-    assert.match(bindingsSource, /\["platform", createPlatformCompositeSurface\(\)\]/);
-    assert.match(bindingsSource, /COMPOSITE_SURFACE_LOADERS/);
-    assert.match(bindingsSource, /await import\(/);
+  it("RG-04 shell registry warms platform eagerly (shell-local)", () => {
+    assert.notEqual(resolveGeneratedCompositeSurface("platform"), null);
+    assert.match(shellRegistrySource, /createPlatformCompositeSurface/);
+    assert.match(shellRegistrySource, /resolveWizardSurfacesCapability/);
+    assert.doesNotMatch(shellRegistrySource, /COMPOSITE_SURFACE_LOADERS/);
   });
 
   it("RG-05 starter plugin sets compositeSurfaceId platform", () => {

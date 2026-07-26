@@ -10,7 +10,7 @@ const DenaliCompositeField = dynamic(
   () => import("./composite-field").then((mod) => mod.DenaliCompositeField),
   {
     ssr: false,
-    loading: () => <p data-denali-wizard-composite-loading aria-busy="true" />,
+    loading: () => <p data-operator-wizard-composite-loading aria-busy="true" />,
   }
 );
 

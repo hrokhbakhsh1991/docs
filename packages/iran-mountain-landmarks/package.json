@@ -1,0 +1,27 @@
+{
+  "name": "@app-tour/iran-mountain-landmarks",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static Iranian mountaineering landmark dictionary for geocoding fallback (Thin Shell Phase 4bi \u2014 out of apps/web)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc --noEmit",
+    "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

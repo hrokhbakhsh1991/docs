@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
-import { ensureSettingsDestinationSurface } from "@/bootstrap/workspace-settings-destination-bindings.generated";
+import { ensureSettingsDestinationSurface } from "@/features/settings/settings-destination-registry";
 import {
   buildDestinationCreateBody,
   buildDestinationPatchBody,

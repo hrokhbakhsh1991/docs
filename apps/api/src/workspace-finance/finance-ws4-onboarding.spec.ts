@@ -35,8 +35,8 @@ describe("finance-ws4 demoted registry-only", () => {
     assert.doesNotMatch(nav, /finance-ws4/);
   });
 
-  it("dependency registry still resolves ledger + receipt (registry-only)", () => {
-    const deps = resolveFinanceWorkspaceDependencies("finance-ws4");
+  it("dependency registry still resolves ledger + receipt (registry-only)", async () => {
+    const deps = await resolveFinanceWorkspaceDependencies("finance-ws4");
     assert.ok(deps.ledgerPolicy instanceof FinanceWs4LedgerPolicyAdapter);
     assert.ok(deps.receiptDefaults instanceof FinanceWs4ReceiptDefaultsAdapter);
   });

@@ -32,10 +32,10 @@ function normalizeOptionalExposureDimension(value: string | undefined): string |
   return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
 }
 
-export function buildConnectionExposureIntentUpsert(
+export async function buildConnectionExposureIntentUpsert(
   input: PatchConnectionExposureIntentInput,
-): UpsertExposureIntentInput | null {
-  const legacyProfile = resolveLegacyDeliveryExposureProfile({
+): Promise<UpsertExposureIntentInput | null> {
+  const legacyProfile = await resolveLegacyDeliveryExposureProfile({
     workspaceType: input.workspaceType,
     provider: input.provider,
     eventType: input.eventType,
@@ -50,7 +50,7 @@ export function buildConnectionExposureIntentUpsert(
   const trigger = normalizeOptionalExposureDimension(input.trigger) ?? input.eventType;
 
   const effectiveProfile =
-    resolveRegistrySeededExposureProfile({
+    await resolveRegistrySeededExposureProfile({
       workspaceType: input.workspaceType,
       entityType: legacyProfile.entityType,
       surface,
@@ -93,7 +93,7 @@ export function buildConnectionExposureIntentUpsert(
 export async function patchConnectionExposureIntent(
   input: PatchConnectionExposureIntentInput,
 ): Promise<void> {
-  const upsertInput = buildConnectionExposureIntentUpsert(input);
+  const upsertInput = await buildConnectionExposureIntentUpsert(input);
   if (upsertInput === null) {
     return;
   }

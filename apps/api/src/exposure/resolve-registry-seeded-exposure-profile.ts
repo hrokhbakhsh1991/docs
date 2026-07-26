@@ -7,12 +7,12 @@ import {
   type ExposureProfileContext,
 } from "./exposure-profile";
 
-function resolveWorkspaceMessageTemplateSeed(
+async function resolveWorkspaceMessageTemplateSeed(
   workspaceType: string,
   eventType: string,
-): string | null {
+): Promise<string | null> {
   try {
-    const plugin = resolveWorkspacePluginForType(workspaceType);
+    const plugin = await resolveWorkspacePluginForType(workspaceType);
     const template = plugin.integrationSurface?.messageTemplates?.[eventType];
     return typeof template === "string" && template.trim().length > 0 ? template.trim() : null;
   } catch {
@@ -34,15 +34,15 @@ export function resolveDeliveryExposureProfileContext(
   };
 }
 
-export function resolveRegistrySeededExposureProfile(
+export async function resolveRegistrySeededExposureProfile(
   context: ExposureProfileContext,
-): ExposureProfile | null {
+): Promise<ExposureProfile | null> {
   if (context.workspaceType === null || context.workspaceType.trim().length === 0) {
     return null;
   }
 
-  const defaultFieldIds = exposureSelectableFieldIds(context.workspaceType);
-  const defaultTemplateId = resolveWorkspaceMessageTemplateSeed(
+  const defaultFieldIds = await exposureSelectableFieldIds(context.workspaceType);
+  const defaultTemplateId = await resolveWorkspaceMessageTemplateSeed(
     context.workspaceType,
     context.trigger,
   );
@@ -58,11 +58,11 @@ export function resolveRegistrySeededExposureProfile(
   });
 }
 
-export function resolveExposureProfileDefaultFieldIds(
+export async function resolveExposureProfileDefaultFieldIds(
   workspaceType: string | null,
   context: Partial<ExposureProfileContext> = {},
-): readonly string[] {
-  const profile = resolveRegistrySeededExposureProfile({
+): Promise<readonly string[]> {
+  const profile = await resolveRegistrySeededExposureProfile({
     workspaceType,
     entityType: context.entityType ?? "tour",
     surface: context.surface ?? "telegram",
@@ -72,13 +72,13 @@ export function resolveExposureProfileDefaultFieldIds(
   return profile?.defaultFieldIds ?? [];
 }
 
-export function resolveExposureRequestedFieldIds(
+export async function resolveExposureRequestedFieldIds(
   adminSelectedFieldIds: readonly string[] | null | undefined,
   workspaceType: string | null,
   context: Partial<ExposureProfileContext> = {},
-): readonly string[] {
+): Promise<readonly string[]> {
   if (adminSelectedFieldIds != null) {
     return adminSelectedFieldIds;
   }
-  return resolveExposureProfileDefaultFieldIds(workspaceType, context);
+  return await resolveExposureProfileDefaultFieldIds(workspaceType, context);
 }

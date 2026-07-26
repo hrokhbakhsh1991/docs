@@ -2,11 +2,10 @@ import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
 
 import type { SettingsModuleMetadata } from "@/features/settings/settings-module-types";
-import {
-  DENALI_BACKEND_REQUIRED_MODULE_IDS,
-  ensureSettingsHubFallbackPolicy,
-} from "@/bootstrap/workspace-settings-hub-fallback-bindings.generated";
+import { ensureSettingsHubFallbackPolicy } from "../src/features/settings/settings-hub-fallback-registry";
 import { guardSettingsModulesAgainstBackend } from "@/features/settings/settings-module-consistency-guard";
+
+let DENALI_BACKEND_REQUIRED_MODULE_IDS: readonly string[] = [];
 
 const integrationsModule: SettingsModuleMetadata = {
   id: "integrations",
@@ -42,7 +41,10 @@ function moduleForId(id: string): SettingsModuleMetadata {
 
 describe("settings-module-consistency-guard", () => {
   before(async () => {
-    await ensureSettingsHubFallbackPolicy("denali");
+    const policy = await ensureSettingsHubFallbackPolicy("denali");
+    assert.ok(policy != null);
+    DENALI_BACKEND_REQUIRED_MODULE_IDS = policy.requiredModuleIds;
+    assert.ok(DENALI_BACKEND_REQUIRED_MODULE_IDS.length > 0);
   });
 
   it("passes through modules when Denali backend includes manifest-required modules", () => {

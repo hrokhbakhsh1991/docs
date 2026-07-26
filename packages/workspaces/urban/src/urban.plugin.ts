@@ -9,4 +9,5 @@ export {
   URBAN_WORKSPACE_TYPE,
   createUrbanWorkspacePlugin,
   getUrbanWorkspacePlugin,
+  getWorkspacePlugin,
 } from "./internal";

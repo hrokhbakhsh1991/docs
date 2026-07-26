@@ -60,7 +60,7 @@ describe("canonical-validation-draft-vs-publish (P5-B VAL-01..03)", () => {
     resetValidationEngineCacheForTests();
   });
 
-  it("VAL-01 draft create relaxed — publish gate skipped in draft mode", () => {
+  it("VAL-01 draft create relaxed — publish gate skipped in draft mode", async () => {
     const plugin = getDenaliWorkspacePlugin();
     const form = loadGoldenForm("tour-minimal.json");
     (form.basicInfo as Record<string, unknown>).publishStatus = "active";
@@ -74,7 +74,7 @@ describe("canonical-validation-draft-vs-publish (P5-B VAL-01..03)", () => {
     assert.notEqual(runValidationModePublishGate(plugin, document, "publish"), null);
   });
 
-  it("VAL-02 publish strict on golden — publish-ready passes publish gate", () => {
+  it("VAL-02 publish strict on golden — publish-ready passes publish gate", async () => {
     const plugin = getDenaliWorkspacePlugin();
     const form = loadGoldenForm("tour-publish-ready.json");
     (form.basicInfo as Record<string, unknown>).publishStatus = "active";
@@ -87,12 +87,11 @@ describe("canonical-validation-draft-vs-publish (P5-B VAL-01..03)", () => {
     assert.equal(runValidationModePublishGate(plugin, document, "publish"), null);
   });
 
-  it("VAL-02 publish strict — tour-minimal active fails publish readiness", () => {
+  it("VAL-02 publish strict — tour-minimal active fails publish readiness", async () => {
     const form = loadGoldenForm("tour-minimal.json");
     (form.basicInfo as Record<string, unknown>).publishStatus = "active";
 
-    assert.throws(
-      () =>
+    await assert.rejects(() =>
         validateCanonicalBeforePersistSync({
           tenantId: "val-02b-tenant",
           workspaceType: "denali",
@@ -107,7 +106,7 @@ describe("canonical-validation-draft-vs-publish (P5-B VAL-01..03)", () => {
     );
   });
 
-  it("VAL-03m metadata-adapted plugin matches package publish gate", () => {
+  it("VAL-03m metadata-adapted plugin matches package publish gate", async () => {
     const packagePlugin = getDenaliWorkspacePlugin();
     const seedPayload = stripWorkspacePluginToDefinitionPayload(packagePlugin);
     const metadataPlugin = adaptMetadataPayloadToWorkspacePlugin(seedPayload, packagePlugin);
@@ -136,11 +135,11 @@ describe("canonical-validation-draft-vs-publish (P5-B VAL-01..03)", () => {
     assert.equal(metadataViolation?.code, packageViolation?.code);
   });
 
-  it("VAL-04 publish-ready golden passes full validateCanonicalBeforePersistSync", () => {
+  it("VAL-04 publish-ready golden passes full validateCanonicalBeforePersistSync", async () => {
     const form = loadGoldenForm("tour-publish-ready.json");
     (form.basicInfo as Record<string, unknown>).publishStatus = "active";
 
-    const document = validateCanonicalBeforePersistSync({
+    const document = await validateCanonicalBeforePersistSync({
       tenantId: "val-04-tenant",
       workspaceType: "denali",
       body: denaliCreateBody(form),
@@ -150,7 +149,7 @@ describe("canonical-validation-draft-vs-publish (P5-B VAL-01..03)", () => {
     assert.equal((document.data as Record<string, unknown>).title, "صعود به قله دماوند - جبهه جنوبی");
   });
 
-  it("VAL-05 INV-DENALI-INGRESS-002 — scalar composite rich storage passes engine filter", () => {
+  it("VAL-05 INV-DENALI-INGRESS-002 — scalar composite rich storage passes engine filter", async () => {
     const form = loadGoldenForm("tour-publish-ready.json");
     const basicInfo = form.basicInfo as Record<string, unknown>;
     basicInfo.publishStatus = "active";
@@ -163,7 +162,7 @@ describe("canonical-validation-draft-vs-publish (P5-B VAL-01..03)", () => {
     participantRequirements.minRequiredPeaks = 3;
 
     assert.doesNotThrow(() =>
-      validateCanonicalBeforePersistSync({
+      await validateCanonicalBeforePersistSync({
         tenantId: "val-05-tenant",
         workspaceType: "denali",
         body: denaliCreateBody(form),
@@ -172,7 +171,7 @@ describe("canonical-validation-draft-vs-publish (P5-B VAL-01..03)", () => {
     );
   });
 
-  it("resolveValidationMode infers publish from active publishStatus", () => {
+  it("resolveValidationMode infers publish from active publishStatus", async () => {
     const form = loadGoldenForm("tour-publish-ready.json");
     (form.basicInfo as Record<string, unknown>).publishStatus = "active";
     const body = denaliCreateBody(form);

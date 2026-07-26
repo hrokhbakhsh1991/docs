@@ -54,7 +54,7 @@ async function resolveWorkspaceTypeForRoute(
 function buildExposureSurfaceIntentPrefetch(input: {
   readonly tenantId: string;
   readonly workspaceType: string;
-  readonly definitions: ReturnType<typeof listOperatorVisibleExposureSurfaceDefinitions>;
+  readonly definitions: Awaited<ReturnType<typeof listOperatorVisibleExposureSurfaceDefinitions>>;
 }): {
   readonly contextKeys: ExposureIntentContextKey[];
   readonly profilesByIndex: Array<ReturnType<typeof resolveSeededExposureProfile>>;
@@ -90,7 +90,7 @@ function buildExposureSurfaceIntentPrefetch(input: {
 
 function assembleWorkspaceExposureSurfaces(input: {
   readonly tenantId: string;
-  readonly definitions: ReturnType<typeof listOperatorVisibleExposureSurfaceDefinitions>;
+  readonly definitions: Awaited<ReturnType<typeof listOperatorVisibleExposureSurfaceDefinitions>>;
   readonly profilesByIndex: Array<ReturnType<typeof resolveSeededExposureProfile>>;
   readonly intentLookup: ReadonlyMap<string, ExposureIntent>;
 }): WorkspaceExposureSurfaceDefinition[] {
@@ -141,12 +141,12 @@ export async function getWorkspaceExposureSurfaces(
 ): Promise<WorkspaceExposureSurfacesResponse> {
   await assertWorkspaceExposureModuleAccess(auth, "read");
   const workspaceType = await resolveWorkspaceTypeForRoute(auth, workspaceId);
-  if (!workspaceSupportsExposureSurfaces(workspaceType)) {
+  if (!await workspaceSupportsExposureSurfaces(workspaceType)) {
     return { workspaceType, surfaces: Object.freeze([]) };
   }
 
   const repository = createExposureIntentRepository();
-  const definitions = listOperatorVisibleExposureSurfaceDefinitions(workspaceType);
+  const definitions = await listOperatorVisibleExposureSurfaceDefinitions(workspaceType);
   const { contextKeys, profilesByIndex } = buildExposureSurfaceIntentPrefetch({
     tenantId: auth.tenantId,
     workspaceType,
@@ -182,7 +182,7 @@ export async function patchWorkspaceSurfaceExposureIntent(
 ) {
   await assertWorkspaceExposureModuleAccess(auth, "mutate");
   const workspaceType = await resolveWorkspaceTypeForRoute(auth, workspaceId);
-  const definition = findWorkspaceExposureSurfaceDefinition(workspaceType, input.surface);
+  const definition = await findWorkspaceExposureSurfaceDefinition(workspaceType, input.surface);
   if (definition === null || definition.operatorSettingsVisible === false) {
     throw new ExposureWorkspaceForbiddenError();
   }

@@ -22,6 +22,7 @@ import type {
   FinanceReceiptRow,
   FinanceRepositoryPort,
   FinanceSummaryRow,
+  FinanceTourPaymentAggregateRow,
   FinanceTransactionPort,
   IBookingPaymentPort,
   PrepaymentBookingSyncDegradedRow,
@@ -214,6 +215,51 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
         },
       });
       return rows.map(toFinancePaymentRow);
+    });
+  }
+
+  async listPaymentsByTourAggregate(
+    tenantId: string,
+    tourId?: string
+  ): Promise<readonly FinanceTourPaymentAggregateRow[]> {
+    return withTenantRls(tenantId, async (tx) => {
+      const tourFilter =
+        tourId !== undefined && tourId.trim().length > 0
+          ? Prisma.sql`AND r.tour_id = ${tourId.trim()}::uuid`
+          : Prisma.empty;
+      const rows = await tx.$queryRaw<
+        Array<{
+          tour_id: string;
+          tour_title: string;
+          paid_count: bigint;
+          paid_minor: string;
+          pending_count: bigint;
+        }>
+      >(Prisma.sql`
+        SELECT
+          r.tour_id,
+          COALESCE(MAX(r.tour_title), '') AS tour_title,
+          COUNT(*) FILTER (WHERE p.status = 'Paid')::bigint AS paid_count,
+          COALESCE(
+            SUM(CASE WHEN p.status = 'Paid' THEN p.amount::numeric ELSE 0 END),
+            0
+          )::text AS paid_minor,
+          COUNT(*) FILTER (WHERE p.status = 'Pending')::bigint AS pending_count
+        FROM payments p
+        INNER JOIN operator_registrations r
+          ON r.id = p.registration_id AND r.tenant_id = p.tenant_id
+        WHERE p.tenant_id = ${tenantId}::uuid
+          ${tourFilter}
+        GROUP BY r.tour_id
+        ORDER BY r.tour_id ASC
+      `);
+      return rows.map((row) => ({
+        tourId: row.tour_id,
+        tourTitle: row.tour_title,
+        paidCount: Number(row.paid_count),
+        paidMinor: row.paid_minor,
+        pendingCount: Number(row.pending_count),
+      }));
     });
   }
 

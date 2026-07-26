@@ -13,7 +13,7 @@ const PlatformCompositeField = dynamic(
   }
 );
 
-/** P3-B — platform composite surface factory for wizard-surface-bindings codegen. */
+/** P3-B / Phase 4as — shell-local platform composite surface (eager in wizard-surface-registry). */
 export function createPlatformCompositeSurface(): WizardCompositeSurface {
   return Object.freeze({
     renderCompositeField: (props: WizardCompositeFieldRenderProps): ReactNode => (

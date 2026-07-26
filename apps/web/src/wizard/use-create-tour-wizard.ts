@@ -21,6 +21,7 @@ import {
   shouldHydrateDraftFromRemote,
 } from "@/tours/tour-clone-hydrate-logic";
 import { resolvePresetId } from "@/tours/tour-preset-prefill-logic";
+import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import {
   resolveInitialWorkspaceFormProfile,
   type WizardTemplateGateState,
@@ -36,15 +37,15 @@ import {
   prepareWizardDraftEnvelope,
 } from "./wizard-draft-envelope-hooks";
 import {
-  buildCreatePrefilledForm,
-  createOperatorDraftSchemaGate,
+  buildCreatePrefilledFormForPlugin,
+  createDraftSchemaGateForPlugin,
   createOperatorDraftOnPushSuccess,
-  createOperatorWizardDraftSessionId,
-  hydrateOperatorDraftEnvelope,
-  prepareOperatorDraftEnvelope,
-  isOperatorFreshStartEnvelope,
+  createWizardDraftSessionIdForPlugin,
+  isDraftEssentiallyEmptyForPlugin,
+  isFreshStartEnvelopeForPlugin,
+  resolveCreateTourDraftIdentityForPlugin,
+  resolveDraftMergeForPlugin,
   resolveOperatorDraftConflictStrategy,
-  resolveOperatorDraftMerge,
   type OperatorWizardDraftMeta,
   type NewTourWizardDraftEnvelope,
 } from "./wizard-draft-shell";
@@ -54,15 +55,13 @@ import {
   buildWizardFreshStartMeta,
   buildWizardStepZeroMeta,
   buildCreateTourDiscardRemoteDraftInput,
-  CREATE_TOUR_SUPPORTS_CLONE,
   createTourRemoteDraftIdentity,
   prepareCreateTourFreshStartEnvelope,
-} from "./host-adapter-runtime";
+} from "./wizard-host-adapter-registry";
 import {
-  isDraftEssentiallyEmpty,
   useOperatorCreateTourWizardCore,
   type OperatorCreateTourWizardScreen,
-} from "./wizard-chrome-runtime";
+} from "./wizard-create-chrome-registry";
 
 type OperatorCreateTourWizardCoreState = // eslint-disable-next-line @typescript-eslint/no-explicit-any
   any;
@@ -84,6 +83,7 @@ export function useOperatorCreateTourWizard(options: {
   const cloneTourId = useMemo(() => resolveCloneTourId(searchParams.get("clone")), [searchParams]);
   const presetId = useMemo(() => resolvePresetId(searchParams.get("preset")), [searchParams]);
   const wizardPlugin = options.plugin;
+  const supportsTourClone = wizardPlugin.tourClone != null;
   const loadWizardPlugin = useCallback(
     async () => loadWizardWorkspacePlugin(session.pluginId),
     [session.pluginId]
@@ -100,25 +100,28 @@ export function useOperatorCreateTourWizard(options: {
   const [presetApplied, setPresetApplied] = useState(false);
 
   const wizardSessionId = useMemo(
-    () => createWizardAssetSessionId(wizardPlugin, createOperatorWizardDraftSessionId),
+    () =>
+      createWizardAssetSessionId(wizardPlugin, () =>
+        createWizardDraftSessionIdForPlugin(wizardPlugin)
+      ),
     [wizardPlugin]
   );
   const prepareEnvelope = useCallback(
-    (form: ReturnType<typeof buildCreatePrefilledForm>, meta: OperatorWizardDraftMeta) =>
-      prepareWizardDraftEnvelope(wizardPlugin, form, meta, (nextForm, nextMeta) =>
-        prepareOperatorDraftEnvelope(nextForm, nextMeta as OperatorWizardDraftMeta)
-      ) as NewTourWizardDraftEnvelope,
+    (form: TourWizardDraft, meta: OperatorWizardDraftMeta) =>
+      prepareWizardDraftEnvelope(wizardPlugin, form, meta, () => {
+        throw new Error(
+          `wizardHost.prepareDraftEnvelope missing for plugin ${wizardPlugin.id}`
+        );
+      }) as NewTourWizardDraftEnvelope,
     [wizardPlugin]
   );
   const normalizeRemoteEnvelope = useCallback(
     (envelope: NewTourWizardDraftEnvelope) =>
-      normalizeWizardRemoteEnvelope(wizardPlugin, envelope, (remote) =>
-        hydrateOperatorDraftEnvelope(
-          remote as unknown as Parameters<typeof hydrateOperatorDraftEnvelope>[0],
-          remote.form,
-          remote.meta as OperatorWizardDraftMeta
-        ) as NewTourWizardDraftEnvelope
-      ),
+      normalizeWizardRemoteEnvelope(wizardPlugin, envelope, () => {
+        throw new Error(
+          `wizardHost.normalizeRemoteEnvelope missing for plugin ${wizardPlugin.id}`
+        );
+      }),
     [wizardPlugin]
   );
   const draftSchemaGateRef = useRef<DraftSchemaGate<NewTourWizardDraftEnvelope> | null>(null);
@@ -127,8 +130,13 @@ export function useOperatorCreateTourWizard(options: {
     []
   );
 
-  const draftMergeFn = resolveOperatorDraftMerge(resolveDraftUnificationV3Mode());
-  const createTourDraftIdentity = createTourRemoteDraftIdentity();
+  const draftMergeFn = resolveDraftMergeForPlugin(
+    wizardPlugin,
+    resolveDraftUnificationV3Mode()
+  );
+  const createTourDraftIdentity =
+    resolveCreateTourDraftIdentityForPlugin(wizardPlugin) ??
+    createTourRemoteDraftIdentity(wizardPlugin.id);
 
   const draftSync = useWorkspaceDraft<NewTourWizardDraftEnvelope>({
     workspaceId: session.workspaceId,
@@ -139,11 +147,12 @@ export function useOperatorCreateTourWizard(options: {
       ? (local, server) =>
           draftMergeFn(local as never, server as never) as NewTourWizardDraftEnvelope
       : undefined,
-    onPushSuccess: createOperatorDraftOnPushSuccess(),
-    hydrateFromRemote: shouldHydrateDraftFromRemote(cloneTourId, CREATE_TOUR_SUPPORTS_CLONE),
+    onPushSuccess: createOperatorDraftOnPushSuccess(wizardPlugin),
+    hydrateFromRemote: shouldHydrateDraftFromRemote(cloneTourId, supportsTourClone),
     schemaGate: draftSchemaGate,
     normalizeRemote: normalizeRemoteEnvelope,
-    shouldBypassServerVersionAdoption: isOperatorFreshStartEnvelope,
+    shouldBypassServerVersionAdoption: (envelope) =>
+      isFreshStartEnvelopeForPlugin(wizardPlugin, envelope),
   });
 
   const draftSyncDataRef = useRef(draftSync.data);
@@ -156,11 +165,12 @@ export function useOperatorCreateTourWizard(options: {
   const buildClearResetEnvelope = useCallback(
     () =>
       prepareCreateTourFreshStartEnvelope(
+        wizardPlugin.id,
         prepareEnvelope as never,
-        buildCreatePrefilledForm(gate),
+        buildCreatePrefilledFormForPlugin(wizardPlugin, gate) as TourWizardDraft,
         wizardSessionId
       ),
-    [gate, wizardSessionId, prepareEnvelope]
+    [gate, wizardSessionId, prepareEnvelope, wizardPlugin]
   );
 
   const clearDraft = useWizardClearDraft({
@@ -170,20 +180,21 @@ export function useOperatorCreateTourWizard(options: {
   });
 
   const buildPrefilled = useCallback(
-    (gateState: WizardTemplateGateState) => buildCreatePrefilledForm(gateState),
-    []
+    (gateState: WizardTemplateGateState) =>
+      buildCreatePrefilledFormForPlugin(wizardPlugin, gateState) as TourWizardDraft,
+    [wizardPlugin]
   );
   const buildSeedMeta = useCallback(
-    () => buildWizardFreshStartMeta(wizardSessionId),
-    [wizardSessionId]
+    () => buildWizardFreshStartMeta(wizardPlugin.id, wizardSessionId),
+    [wizardPlugin.id, wizardSessionId]
   );
   const buildPresetMeta = useCallback(
-    () => buildWizardStepZeroMeta(wizardSessionId),
-    [wizardSessionId]
+    () => buildWizardStepZeroMeta(wizardPlugin.id, wizardSessionId),
+    [wizardPlugin.id, wizardSessionId]
   );
 
   const prepareEnvelopeForPrefill = useCallback(
-    (form: ReturnType<typeof buildCreatePrefilledForm>, meta: WorkspaceWizardDraftMeta) =>
+    (form: TourWizardDraft, meta: WorkspaceWizardDraftMeta) =>
       prepareEnvelope(form, meta as OperatorWizardDraftMeta),
     [prepareEnvelope]
   );
@@ -191,7 +202,7 @@ export function useOperatorCreateTourWizard(options: {
   useWizardCreateSeedPrefill({
     gate,
     cloneTourId,
-    supportsTourClone: CREATE_TOUR_SUPPORTS_CLONE,
+    supportsTourClone,
     draftSync,
     prepareEnvelope: prepareEnvelopeForPrefill,
     buildPrefilledForm: buildPrefilled,
@@ -200,6 +211,7 @@ export function useOperatorCreateTourWizard(options: {
   });
 
   useWizardCreatePresetPrefill({
+    pluginId: wizardPlugin.id,
     presetId,
     gate,
     cloneTourId,
@@ -217,11 +229,11 @@ export function useOperatorCreateTourWizard(options: {
         tourId,
         navigate: (url) => router.replace(url),
         discardRemoteDraft: createCreateTourPostSubmitDiscardRemoteDraft(
-          buildCreateTourDiscardRemoteDraftInput(session.workspaceId)
+          buildCreateTourDiscardRemoteDraftInput(wizardPlugin.id, session.workspaceId)
         ),
       });
     },
-    [router, session.workspaceId]
+    [router, session.workspaceId, wizardPlugin.id]
   );
 
   return useOperatorCreateTourWizardCore({
@@ -245,10 +257,11 @@ export function useOperatorCreateTourWizard(options: {
     draftSchemaGateRef,
     hydrateCreateTourFromClone,
     createTourAction,
-    isDraftEssentiallyEmpty,
+    isDraftEssentiallyEmpty: (form: Record<string, unknown>) =>
+      isDraftEssentiallyEmptyForPlugin(wizardPlugin, form),
     draftResumeEpoch,
     onCreateSuccess,
   } as unknown as Parameters<typeof useOperatorCreateTourWizardCore>[0]);
 }
 
-export { createOperatorDraftSchemaGate };
+export { createDraftSchemaGateForPlugin };

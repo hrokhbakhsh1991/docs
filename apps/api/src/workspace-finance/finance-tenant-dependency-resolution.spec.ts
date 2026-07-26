@@ -81,8 +81,8 @@ describe("finance-tenant-dependency-resolution.spec.ts — Phase 1.5 C1", { conc
     );
   });
 
-  it("FIN-P1.5-03 resolveFinanceWorkspaceDependencies bundles policy+defaults+booking", () => {
-    const denali = resolveFinanceWorkspaceDependencies(DENALI);
+  it("FIN-P1.5-03 resolveFinanceWorkspaceDependencies bundles policy+defaults+booking", async () => {
+    const denali = await resolveFinanceWorkspaceDependencies(DENALI);
     assert.equal(denali.workspaceType, DENALI);
     assert.ok(denali.ledgerPolicy instanceof DenaliFinanceLedgerPolicyAdapter);
     assert.ok(denali.receiptDefaults instanceof DenaliFinanceReceiptDefaultsAdapter);
@@ -92,7 +92,7 @@ describe("finance-tenant-dependency-resolution.spec.ts — Phase 1.5 C1", { conc
       currency: "IRR",
     });
 
-    const ws2 = resolveFinanceWorkspaceDependencies(WS2);
+    const ws2 = await resolveFinanceWorkspaceDependencies(WS2);
     assert.equal(ws2.workspaceType, WS2);
     assert.ok(ws2.ledgerPolicy instanceof FinanceWs2LedgerPolicyAdapter);
     assert.ok(ws2.receiptDefaults instanceof FinanceWs2ReceiptDefaultsAdapter);
@@ -125,7 +125,7 @@ describe("finance-tenant-dependency-resolution.spec.ts — Phase 1.5 C1", { conc
     // Prove composition selected Denali defaults path via offline receipt literals on a fresh engine:
     // service is opaque; resolve deps for denali and confirm boot type still denali.
     assert.equal(resolveBootFinanceWorkspaceType(), DENALI);
-    assert.ok(resolveFinanceLedgerPolicy(DENALI) instanceof DenaliFinanceLedgerPolicyAdapter);
+    assert.ok((await resolveFinanceLedgerPolicy(DENALI)) instanceof DenaliFinanceLedgerPolicyAdapter);
     assert.equal(typeof service.getSummary, "function");
     assert.deepEqual(listRegisteredFinanceWorkspaceTypes(), [
       DENALI,

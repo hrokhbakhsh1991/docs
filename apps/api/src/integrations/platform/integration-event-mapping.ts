@@ -9,11 +9,11 @@ export type IntegrationEventMapping = {
   readonly providers: readonly IntegrationProviderId[];
 };
 
-export function integrationMappingsForEvent(
+export async function integrationMappingsForEvent(
   eventType: string,
   workspaceType: string | null
-): readonly IntegrationEventMapping[] {
-  const surface = resolveIntegrationSurfaceForWorkspaceType(workspaceType);
+): Promise<readonly IntegrationEventMapping[]> {
+  const surface = await resolveIntegrationSurfaceForWorkspaceType(workspaceType);
   if (surface === null) {
     return [];
   }

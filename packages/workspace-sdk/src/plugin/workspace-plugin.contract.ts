@@ -22,9 +22,19 @@ import type {
 } from "./workspace-wizard-draft-envelope";
 import type { WorkspaceDraftTombstoneBinding } from "../draft/workspace-draft-tombstone-binding";
 import type { WorkspaceCatalogIntakeSurface } from "../catalog/workspace-catalog-intake-surface";
+import type {
+  WorkspacePluginCapabilities,
+  WorkspaceHostProbeCapability,
+  WorkspaceDraftShellCapability,
+} from "./workspace-plugin-capabilities";
 
 export type { WorkspaceWizardMediaHooks };
 export type { WorkspaceWizardDraftEnvelope, WorkspaceWizardDraftMeta };
+export type {
+  WorkspacePluginCapabilities,
+  WorkspaceHostProbeCapability,
+  WorkspaceDraftShellCapability,
+};
 
 /**
  * Workspace plugin contract.
@@ -63,6 +73,12 @@ export interface WorkspacePlugin {
   readonly tourClone?: TourCloneHydrator;
   /** Phase 12.0 — generic web wizard host behavior (DEC-P12-001). Denali first implementer. */
   readonly wizardHost?: WorkspaceWizardHostHooks;
+  /**
+   * Thin Shell Phase 4r — host-facing capability bag (additive).
+   * Prefer `capabilities.wizardHost` via {@link import("./workspace-plugin-capabilities").resolveWizardHostCapability};
+   * legacy top-level `wizardHost` remains until callers finish migrating.
+   */
+  readonly capabilities?: WorkspacePluginCapabilities;
   /** Phase 11 Track A — server PATCH tombstone diff (workspace-specific root set). */
   readonly draftTombstone?: WorkspaceDraftTombstoneBinding;
   /** Public catalog registration intake — schema + upstream dispatch (portal Track A). */

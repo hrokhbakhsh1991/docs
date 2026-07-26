@@ -1,4 +1,6 @@
 import {
+  applyDenaliDefaultTourKind,
+  buildDenaliCreatePrefilledForm,
   createDenaliDraftSchemaGate,
   createDenaliWizardDraftSessionId,
   DENALI_CREATE_TOUR_DRAFT_KEY,
@@ -10,11 +12,11 @@ import {
   resolveDenaliDraftMerge,
 } from "../../draft";
 import { emptyDenaliTourWizardDraft } from "../../draft/denali-tour-wizard-draft";
+import { DENALI_WORKSPACE_PLUGIN_ID } from "../../denali-identity";
 import { getDenaliWorkspacePlugin } from "../../denali.plugin";
-import { buildDenaliCreatePrefilledForm as buildDenaliCreatePrefilledFormCore } from "./draft-binding";
-import { applyDenaliDefaultTourKind } from "../logic/denali-default-tour-kind";
 
 export type DenaliWizardDraftShellSurface = {
+  readonly pluginId: typeof DENALI_WORKSPACE_PLUGIN_ID;
   readonly getWorkspacePlugin: typeof getDenaliWorkspacePlugin;
   readonly createTourDraftKey: typeof DENALI_CREATE_TOUR_DRAFT_KEY;
   readonly editTourDraftKey: typeof denaliEditTourDraftKey;
@@ -27,10 +29,12 @@ export type DenaliWizardDraftShellSurface = {
   readonly resolveDraftMerge: typeof resolveDenaliDraftMerge;
   readonly emptyTourWizardDraft: typeof emptyDenaliTourWizardDraft;
   readonly applyDefaultTourKind: typeof applyDenaliDefaultTourKind;
-  readonly buildCreatePrefilledFormCore: typeof buildDenaliCreatePrefilledFormCore;
+  readonly buildCreatePrefilledFormCore: typeof buildDenaliCreatePrefilledForm;
+  readonly buildCreatePrefilledForm: typeof buildDenaliCreatePrefilledForm;
 };
 
 export const denaliWizardDraftShellSurface: DenaliWizardDraftShellSurface = Object.freeze({
+  pluginId: DENALI_WORKSPACE_PLUGIN_ID,
   getWorkspacePlugin: getDenaliWorkspacePlugin,
   createTourDraftKey: DENALI_CREATE_TOUR_DRAFT_KEY,
   editTourDraftKey: denaliEditTourDraftKey,
@@ -43,5 +47,6 @@ export const denaliWizardDraftShellSurface: DenaliWizardDraftShellSurface = Obje
   resolveDraftMerge: resolveDenaliDraftMerge,
   emptyTourWizardDraft: emptyDenaliTourWizardDraft,
   applyDefaultTourKind: applyDenaliDefaultTourKind,
-  buildCreatePrefilledFormCore: buildDenaliCreatePrefilledFormCore,
+  buildCreatePrefilledFormCore: buildDenaliCreatePrefilledForm,
+  buildCreatePrefilledForm: buildDenaliCreatePrefilledForm,
 });

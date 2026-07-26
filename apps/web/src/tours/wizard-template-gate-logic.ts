@@ -1,9 +1,8 @@
-import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
-
 import {
-  augmentWizardTemplateFieldOverlays,
-  resolveWizardTemplateGateDefaultPublishedStepId,
-} from "@/bootstrap/workspace-wizard-template-gate-bindings.generated";
+  resolveTemplateGateCapability,
+  resolveWizardHostCapability,
+  type WorkspacePlugin,
+} from "@app-cloud/workspace-sdk";
 
 import { parseWizardTemplateResponse } from "@/features/settings/wizard-template-logic";
 import type {
@@ -12,9 +11,37 @@ import type {
   WizardTemplatePayload,
   WizardTemplateStepRef,
 } from "@/features/settings/wizard-template-types";
-import { DEFAULT_WIZARD_PLUGIN_ID } from "@/wizard/draft-shell-runtime";
-
 import { resolveWizardTemplateSeedCanonicalPath } from "./wizard-template-prefill-logic";
+
+/** Product-blind default when `capabilities.templateGate` is absent (Phase 4an). */
+const PLATFORM_DEFAULT_PUBLISHED_STEP_ID = "basics";
+
+function resolveWizardTemplateGateDefaultPublishedStepId(
+  plugin?: Pick<WorkspacePlugin, "capabilities">
+): string {
+  return (
+    resolveTemplateGateCapability(plugin ?? {})?.defaultPublishedStepId ??
+    PLATFORM_DEFAULT_PUBLISHED_STEP_ID
+  );
+}
+
+function augmentWizardTemplateFieldOverlays<
+  T extends {
+    readonly canonicalPath: string;
+    readonly hidden?: boolean;
+    readonly defaultValue?: string;
+  },
+>(
+  plugin: Pick<WorkspacePlugin, "capabilities"> | undefined,
+  templateSteps: readonly { readonly enabled?: boolean; readonly fields: readonly T[] }[],
+  baseOverlays: ReadonlyMap<string, T>
+): ReadonlyMap<string, T> {
+  const augment = resolveTemplateGateCapability(plugin ?? {})?.augmentFieldOverlays;
+  if (augment == null) {
+    return baseOverlays;
+  }
+  return augment(templateSteps, baseOverlays);
+}
 
 export const WIZARD_TEMPLATE_GATE_TEST_IDS = {
   emptyState: "operator-wizard-template-empty-state",
@@ -85,10 +112,11 @@ export function buildWizardTemplateFieldOverlays(
 }
 
 export function buildExtendedWizardTemplateFieldOverlays(
+  plugin: Pick<WorkspacePlugin, "capabilities"> | undefined,
   templateSteps: readonly WizardTemplateStepRef[]
 ): ReadonlyMap<string, WizardTemplateFieldRef> {
   return augmentWizardTemplateFieldOverlays(
-    DEFAULT_WIZARD_PLUGIN_ID,
+    plugin,
     templateSteps,
     buildWizardTemplateFieldOverlays(templateSteps)
   );
@@ -178,10 +206,10 @@ export function resolveWizardTemplateAllowedPaths(
 
 export function buildDefaultPublishedWizardSteps(
   pluginId: string,
-  plugin?: Pick<WorkspacePlugin, "fieldRegistry">
+  plugin?: Pick<WorkspacePlugin, "fieldRegistry" | "capabilities">
 ): readonly WizardTemplateStepRef[] {
   const titlePath = resolveWizardTemplateSeedCanonicalPath(pluginId, plugin);
-  const stepId = resolveWizardTemplateGateDefaultPublishedStepId(pluginId);
+  const stepId = resolveWizardTemplateGateDefaultPublishedStepId(plugin);
   return [
     {
       stepId,
@@ -195,7 +223,7 @@ export function buildDefaultPublishedWizardSteps(
 export function ensureWizardTemplatePublishablePayload(
   payload: WizardTemplatePayload,
   pluginId: string,
-  plugin?: Pick<WorkspacePlugin, "fieldRegistry">
+  plugin?: Pick<WorkspacePlugin, "fieldRegistry" | "capabilities">
 ): WizardTemplatePayload {
   if (!payload.published) {
     return payload;
@@ -211,9 +239,9 @@ export function ensureWizardTemplatePublishablePayload(
 }
 
 export function resolveInitialWorkspaceFormProfile(
-  plugin?: Pick<WorkspacePlugin, "wizardHost">
+  plugin?: Pick<WorkspacePlugin, "wizardHost" | "capabilities">
 ): string {
-  const normalize = plugin?.wizardHost?.normalizeWizardTemplateGate;
+  const normalize = resolveWizardHostCapability(plugin ?? {})?.normalizeWizardTemplateGate;
   if (normalize == null) {
     return "platform_default";
   }
@@ -230,7 +258,7 @@ export function resolveInitialWorkspaceFormProfile(
 export function resolveWizardTemplateGateState(
   response: unknown,
   pluginId: string,
-  plugin?: Pick<WorkspacePlugin, "wizardHost" | "fieldRegistry">
+  plugin?: Pick<WorkspacePlugin, "wizardHost" | "capabilities" | "fieldRegistry">
 ): WizardTemplateGateState {
   const payload = parseWizardTemplatePayloadRecord(response);
   const published = isWizardTemplatePublished(payload);
@@ -253,7 +281,7 @@ export function resolveWizardTemplateGateState(
   let allowedCanonicalPaths: readonly string[] = allowedPathsRaw;
   let workspaceFormProfile = workspaceFormProfileBase;
 
-  const normalize = plugin?.wizardHost?.normalizeWizardTemplateGate;
+  const normalize = resolveWizardHostCapability(plugin ?? {})?.normalizeWizardTemplateGate;
   if (normalize != null && published) {
     const normalized = normalize({
       published,
@@ -274,7 +302,7 @@ export function resolveWizardTemplateGateState(
     allowedCanonicalPaths,
     templateSteps,
     fieldOverlays: augmentWizardTemplateFieldOverlays(
-      pluginId,
+      plugin,
       templateSteps,
       buildWizardTemplateFieldOverlays(templateSteps)
     ),

@@ -11,7 +11,7 @@ import {
   getUrbanWorkspacePlugin,
   URBAN_FORBIDDEN_CANONICAL_PREFIXES,
   URBAN_REGISTRY_CANONICAL_PATHS,
-} from "../src/urban.plugin";
+} from "../src/internal";
 
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const GOLDEN_DIR = join(PACKAGE_ROOT, "test/fixtures/golden");

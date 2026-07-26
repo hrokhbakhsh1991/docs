@@ -17,9 +17,11 @@ export {
 export { hydrateCatalogRegistrationIntakeAfterSession } from "./hydrate-intake-after-session";
 export {
   completeMemberLoginEgress,
+  completeMemberLoginEgressAfterSession,
   completeMemberLoginEgressIfPresent,
   isMemberLoginEgressFromLocation,
   isSafePortalReturnPath,
   readPortalReturnFromLocation,
   resolveMemberLoginEgressPath,
+  waitForMemberSessionCookie,
 } from "./read-portal-return";

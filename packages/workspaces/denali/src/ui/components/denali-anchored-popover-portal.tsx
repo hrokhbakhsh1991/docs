@@ -88,7 +88,7 @@ export function DenaliAnchoredPopoverPortal({
       ref={panelRef}
       className={className}
       data-new-tour-wizard
-      data-denali-wizard-anchored-popover
+      data-operator-wizard-anchored-popover
       data-testid={dataTestId}
       style={style}
     >

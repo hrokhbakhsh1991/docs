@@ -56,7 +56,7 @@ Opt-out example:
 
 ## Explicit non-goals
 
-- BP-7 plan tables (`YES — IMPL-SK3-BP7`)  
+- BP-7 plan tables (`YES — IMPL-SK3-BP7`) — **DONE** — [SK3_BP7_IMPLEMENTATION.md](./SK3_BP7_IMPLEMENTATION.md)  
 - Hollow entitlement package  
 - Collapsing flags into portal entitlements  
 - Inventing unrelated flag keys  

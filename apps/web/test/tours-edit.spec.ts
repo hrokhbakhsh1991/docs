@@ -13,6 +13,7 @@ import {
   canMutateTour,
 } from "../src/features/tours/build-tour-title-patch";
 import { isExtendedOperatorSession } from "../src/admin/require-operator-session";
+import { seedWizardCreate } from "../src/workspace/wizard-create-registry";
 import { TOUR_EDIT_TEST_IDS } from "../src/features/tours/operator-tour-detail-types";
 import type { OperatorTourDetailResponse } from "../src/features/tours/operator-tour-detail-types";
 
@@ -78,6 +79,8 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
   });
 
   it("WEB-9.3-E05 extended operator session routes to flat edit shell", () => {
+    seedWizardCreate("denali", { extendedChrome: true });
+    seedWizardCreate("starter", { extendedChrome: false });
     assert.equal(
       isExtendedOperatorSession({
         userId: "u1",

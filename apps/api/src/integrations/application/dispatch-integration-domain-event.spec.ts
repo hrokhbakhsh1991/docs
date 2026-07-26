@@ -41,7 +41,7 @@ function emptyDeliveryRepository(
 async function resolveSeededPersistedExposureProfile(
   input: Parameters<typeof resolvePersistedExposureProfileForContext>[0],
 ) {
-  return resolveRegistrySeededExposureProfile(input.context);
+  return await resolveRegistrySeededExposureProfile(input.context);
 }
 
 function dispatchDeps(
@@ -131,7 +131,7 @@ describe("dispatch-integration-domain-event", () => {
     }
   });
 
-  it("keeps forward shadow engine disabled by default", () => {
+  it("keeps forward shadow engine disabled by default", async () => {
     delete process.env[FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV];
     assert.equal(isFieldExposureDecisionEngineShadowEnabled(), false);
   });
@@ -327,7 +327,7 @@ describe("dispatch-integration-domain-event", () => {
     assert.equal(shadowCalls, 0);
   });
 
-  it("is disabled by default env", () => {
+  it("is disabled by default env", async () => {
     delete process.env.INTEGRATION_DELIVERY_ENABLED;
     assert.equal(isIntegrationDeliveryDispatcherEnabled(), false);
   });
@@ -1402,7 +1402,7 @@ describe("dispatch-integration-domain-event", () => {
     );
   });
 
-  it("keeps Telegram formatter output unchanged for eligible field placeholders", () => {
+  it("keeps Telegram formatter output unchanged for eligible field placeholders", async () => {
     const message = formatIntegrationDeliveryMessage({
       workspaceType: "denali",
       eventType: "TourCreated",

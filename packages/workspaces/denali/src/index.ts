@@ -1,18 +1,25 @@
 export {
   createDenaliWorkspacePlugin,
+  DENALI_THEME_ADMIN_STYLESHEET,
+  DENALI_THEME_TOKENS_STYLESHEET,
+  DENALI_WORKSPACE_PLUGIN_ID,
+  DENALI_WORKSPACE_TYPE,
+  getDenaliWorkspacePlugin,
+  getWorkspacePlugin,
+} from "./denali.plugin";
+export {
   DENALI_FIELD_REGISTRY,
   DENALI_LIFECYCLE,
   DENALI_RULE_SET,
-  DENALI_THEME_ADMIN_STYLESHEET,
-  DENALI_THEME_TOKENS_STYLESHEET,
   DENALI_WIZARD_SURFACE,
-  DENALI_WORKSPACE_PLUGIN_ID,
-  DENALI_WORKSPACE_TYPE,
-  denaliWorkspacePlugin,
-  denaliPluginForWizardEngine,
-  getDenaliFinanceOpsManifest,
-  getDenaliWorkspacePlugin,
-} from "./denali.plugin";
+} from "./denali-plugin-build";
+export { denaliPluginForWizardEngine } from "./plugin-for-wizard-engine";
+export { getDenaliFinanceOpsManifest } from "./finance/get-denali-finance-ops-manifest";
+
+import { getDenaliWorkspacePlugin } from "./denali.plugin";
+
+/** Frozen singleton — same instance as {@link getDenaliWorkspacePlugin}. */
+export const denaliWorkspacePlugin = getDenaliWorkspacePlugin();
 export {
   getDenaliCompositeRegistry,
   resolveDenaliFieldRenderer,

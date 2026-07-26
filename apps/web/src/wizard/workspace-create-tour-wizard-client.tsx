@@ -6,9 +6,12 @@ import { useTranslations } from "next-intl";
 
 import {
   encodeTourActionSubmitErrorForPlugin,
-  ensureTourActionSubmitCodec,
-} from "@/bootstrap/workspace-tour-action-submit-bindings.generated";
-import type { WorkspacePlugin, WorkspaceWizardDraftMeta } from "@app-tour/workspace-sdk";
+} from "@/wizard/tour-action-submit-codec";
+import {
+  resolveWizardHostCapability,
+  type WorkspacePlugin,
+  type WorkspaceWizardDraftMeta,
+} from "@app-cloud/workspace-sdk";
 
 import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
 import { resolveDraftUnificationV3Mode } from "@/draft/draft-unification-v3";
@@ -91,12 +94,13 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
   const resolveSubmitError = useCallback(
     (code: string) =>
       resolveWizardSubmitErrorMessage({
+        pluginId,
         raw: code,
         context: "create",
         translateFieldLabel: (path) => path,
         t: createWizardSubmitErrorTranslator(t),
       }),
-    [t]
+    [t, pluginId]
   );
   const [createdTourId, setCreatedTourId] = useState<string | null>(null);
   const [presetApplied, setPresetApplied] = useState(false);
@@ -195,6 +199,7 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
   });
 
   useWizardCreatePresetPrefill({
+    pluginId,
     presetId,
     gate,
     cloneTourId,
@@ -255,9 +260,10 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
     setSubmitError(null);
     startTransition(async () => {
       const plugin = workspacePlugin ?? (await loadWorkspacePluginById(pluginId));
+      const wizardHost = resolveWizardHostCapability(plugin);
       const payload =
-        plugin.wizardHost?.prepareSubmitPayload != null
-          ? plugin.wizardHost.prepareSubmitPayload({
+        wizardHost?.prepareSubmitPayload != null
+          ? wizardHost.prepareSubmitPayload({
               plugin,
               draft: draft as unknown as Readonly<Record<string, unknown>>,
               rulesModule: null,
@@ -268,9 +274,8 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
           : { data: draft.data };
       const result = await createTourAction(payload as { data: typeof draft.data });
       if (!result.ok) {
-        await ensureTourActionSubmitCodec(pluginId);
         setSubmitError(
-          encodeTourActionSubmitErrorForPlugin(pluginId, {
+          encodeTourActionSubmitErrorForPlugin(plugin, {
             status: result.status,
             code: result.code,
             message: result.message,

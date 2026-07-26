@@ -7,7 +7,7 @@ date: "2026-07-21"
 canonical_branch: booking/capacity-concurrency-cert
 tip_at_decision: d60b88d2
 compared_to: origin/DEV @ 2f9bf664
-decision: NO_MERGE — tip remains canonical; origin/DEV is historical until Architect YES
+decision: NO_MERGE — tip remains canonical; origin/DEV pointer moved under YES — DEV-POINTER (see STABILIZATION_B6_DEV_POINTER_MOVE.md)
 ```
 
 **Depends on:** [STABILIZATION_WP0_DEV_RECONCILE.md](./STABILIZATION_WP0_DEV_RECONCILE.md)
@@ -29,18 +29,18 @@ Ahead count grew from WP0’s 66 → 81 because Stabilization/Kernel design comm
 | Blind `git merge origin/DEV` → tip | **Forbidden** |
 | Re-cherry the 4 `git cherry +` commits | **Forbidden** — tip twins exist; patch drift is base-context only |
 | Leave dual tips indefinitely | **Accepted short-term** — tip is product SoT; DEV is archaeology |
-| Fast-forward / reset `origin/DEV` → tip | **Parked** — requires explicit Architect `YES — DEV-POINTER` |
+| Fast-forward / reset `origin/DEV` → tip | **EXECUTED** — `YES — DEV-POINTER` → [STABILIZATION_B6_DEV_POINTER_MOVE.md](./STABILIZATION_B6_DEV_POINTER_MOVE.md) |
 
-## 3. Owner next action (not auto)
+## 3. Owner next action — **DONE**
 
-When Architect wants a single tip:
+Architect pasted `YES — DEV-POINTER` (2026-07-21). Evidence: [STABILIZATION_B6_DEV_POINTER_MOVE.md](./STABILIZATION_B6_DEV_POINTER_MOVE.md).
 
 ```bash
-# After YES — DEV-POINTER only
-git push origin HEAD:DEV   # or open PR tip → DEV and merge
+# Executed (non-FF → force-with-lease)
+git push --force-with-lease=refs/heads/DEV:2f9bf664 origin HEAD:DEV
 ```
 
-Until then: agents treat `booking/capacity-concurrency-cert` as canonical; never merge DEV “to catch up.”
+Agents still treat `booking/capacity-concurrency-cert` as the working branch name; `origin/DEV` now tracks the same tip. Never merge old DEV archaeology back into tip.
 
 ## 4. Explicit non-claims
 

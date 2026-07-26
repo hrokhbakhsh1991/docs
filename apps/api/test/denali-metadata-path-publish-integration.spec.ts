@@ -143,7 +143,7 @@ describe("denali-metadata-path-publish-integration (P5-B E2E-01..03)", () => {
     const publishDoc = canonicalFromGoldenForm(withPublishStatus(golden, "active"));
 
     const metadataPlugin = await resolveMetadataDenaliPluginForTenant();
-    const packagePlugin = resolveWorkspacePluginForType("denali");
+    const packagePlugin = await resolveWorkspacePluginForType("denali");
     assert.equal(metadataPlugin.validation, packagePlugin.validation);
 
     assert.equal(
@@ -227,7 +227,7 @@ describe("denali-metadata-path-publish-integration (P5-B E2E-01..03)", () => {
     assert.equal(pricing?.paymentMode, "offline_receipt");
 
     const metadataPlugin = await resolveMetadataDenaliPluginForTenant();
-    const packagePlugin = resolveWorkspacePluginForType("denali");
+    const packagePlugin = await resolveWorkspacePluginForType("denali");
     assert.equal(metadataPlugin.validation, packagePlugin.validation);
     assert.equal(
       runValidationModePublishGate(metadataPlugin, publishDoc, "publish"),

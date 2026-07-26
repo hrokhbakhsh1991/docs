@@ -36,9 +36,9 @@ const TOUR_ROW = {
   payload: { tenantId: "00000000-0000-4000-8000-000000000014" },
 };
 
-function assertWorkspacePolicyDivergence(): void {
-  const denaliDeps = resolveFinanceWorkspaceDependencies(DENALI);
-  const ws5Deps = resolveFinanceWorkspaceDependencies(WS5);
+async function assertWorkspacePolicyDivergence(): Promise<void> {
+  const denaliDeps = await resolveFinanceWorkspaceDependencies(DENALI);
+  const ws5Deps = await resolveFinanceWorkspaceDependencies(WS5);
 
   assert.notEqual(denaliDeps.ledgerPolicy, ws5Deps.ledgerPolicy);
   assert.notEqual(denaliDeps.receiptDefaults, ws5Deps.receiptDefaults);
@@ -52,8 +52,8 @@ function assertWorkspacePolicyDivergence(): void {
     currency: "CAD",
   });
 
-  const denaliCoa = resolveFinanceChartOfAccounts(DENALI);
-  const ws5Coa = resolveFinanceChartOfAccounts(WS5);
+  const denaliCoa = await resolveFinanceChartOfAccounts(DENALI);
+  const ws5Coa = await resolveFinanceChartOfAccounts(WS5);
   assert.notEqual(
     denaliCoa.REGISTRATION_LEADER_PAYMENT_CLEARING,
     ws5Coa.OPERATOR_CASH_CLEARING
@@ -61,8 +61,8 @@ function assertWorkspacePolicyDivergence(): void {
 }
 
 async function assertEventReactionDivergence(): Promise<void> {
-  const ws5 = resolveWorkspaceFinanceEventReaction(WS5);
-  const denali = resolveWorkspaceFinanceEventReaction(DENALI);
+  const ws5 = await resolveWorkspaceFinanceEventReaction(WS5);
+  const denali = await resolveWorkspaceFinanceEventReaction(DENALI);
   assert.ok(ws5 instanceof FinanceWs5TourCreatedFinanceReactionAdapter);
 
   assert.equal(await ws5.reactToPublishedRow(TOUR_ROW), true);
@@ -71,7 +71,10 @@ async function assertEventReactionDivergence(): Promise<void> {
   assert.ok(!("handledDomainEventIds" in denali));
 }
 
-function assertPlatformCompositionShared(denaliService: object, ws5Service: object): void {
+async function assertPlatformCompositionShared(
+  denaliService: object,
+  ws5Service: object
+): Promise<void> {
   assert.notEqual(denaliService, ws5Service);
   const snap = getPlatformFinanceCompositionSnapshot();
   assert.ok(snap !== null);
@@ -79,7 +82,7 @@ function assertPlatformCompositionShared(denaliService: object, ws5Service: obje
   assert.deepEqual(snap!.cachedWorkspaceTypes, [DENALI, WS5].sort());
 
   // Registry resolve still allocates fresh booking adapters — composition must not use them.
-  const registryDenali = resolveFinanceWorkspaceDependencies(DENALI);
+  const registryDenali = await resolveFinanceWorkspaceDependencies(DENALI);
   assert.notEqual(
     registryDenali.bookingPayments,
     snap!.bookingPayments,
@@ -131,30 +134,30 @@ describe("FIN-B2.2 finance composition isolation", { concurrency: false }, () =>
   });
 
   it("Scenario A: denali then finance-ws5 — policy/reaction diverge; platform ports shared", async () => {
-    const denaliService = getOrCreateFinanceServiceForWorkspaceType(DENALI);
+    const denaliService = await getOrCreateFinanceServiceForWorkspaceType(DENALI);
     const snapAfterDenali = getPlatformFinanceCompositionSnapshot();
     assert.ok(snapAfterDenali !== null);
 
-    const ws5Service = getOrCreateFinanceServiceForWorkspaceType(WS5);
+    const ws5Service = await getOrCreateFinanceServiceForWorkspaceType(WS5);
     const snapAfterBoth = getPlatformFinanceCompositionSnapshot();
     assert.ok(snapAfterBoth !== null);
 
     assert.equal(snapAfterBoth!.bookingPayments, snapAfterDenali!.bookingPayments);
     assert.equal(snapAfterBoth!.repository, snapAfterDenali!.repository);
-    assert.equal(denaliService, getOrCreateFinanceServiceForWorkspaceType(DENALI));
-    assert.equal(ws5Service, getOrCreateFinanceServiceForWorkspaceType(WS5));
+    assert.equal(denaliService, await getOrCreateFinanceServiceForWorkspaceType(DENALI));
+    assert.equal(ws5Service, await getOrCreateFinanceServiceForWorkspaceType(WS5));
 
-    assertPlatformCompositionShared(denaliService, ws5Service);
-    assertWorkspacePolicyDivergence();
+    await assertPlatformCompositionShared(denaliService, ws5Service);
+    await assertWorkspacePolicyDivergence();
     await assertEventReactionDivergence();
   });
 
   it("Scenario B: finance-ws5 then denali — same shared ports (order-independent)", async () => {
-    const ws5Service = getOrCreateFinanceServiceForWorkspaceType(WS5);
+    const ws5Service = await getOrCreateFinanceServiceForWorkspaceType(WS5);
     const snapAfterWs5 = getPlatformFinanceCompositionSnapshot();
     assert.ok(snapAfterWs5 !== null);
 
-    const denaliService = getOrCreateFinanceServiceForWorkspaceType(DENALI);
+    const denaliService = await getOrCreateFinanceServiceForWorkspaceType(DENALI);
     const snapAfterBoth = getPlatformFinanceCompositionSnapshot();
     assert.ok(snapAfterBoth !== null);
 
@@ -162,30 +165,30 @@ describe("FIN-B2.2 finance composition isolation", { concurrency: false }, () =>
     assert.equal(snapAfterBoth!.repository, snapAfterWs5!.repository);
     assert.notEqual(denaliService, ws5Service);
 
-    assertPlatformCompositionShared(denaliService, ws5Service);
-    assertWorkspacePolicyDivergence();
+    await assertPlatformCompositionShared(denaliService, ws5Service);
+    await assertWorkspacePolicyDivergence();
     await assertEventReactionDivergence();
   });
 
   it("workspaceType cache does not leak mutable reaction state across services", async () => {
-    getOrCreateFinanceServiceForWorkspaceType(DENALI);
-    getOrCreateFinanceServiceForWorkspaceType(WS5);
+    await getOrCreateFinanceServiceForWorkspaceType(DENALI);
+    await getOrCreateFinanceServiceForWorkspaceType(WS5);
 
-    const ws5a = resolveWorkspaceFinanceEventReaction(WS5);
+    const ws5a = await resolveWorkspaceFinanceEventReaction(WS5);
     assert.ok(ws5a instanceof FinanceWs5TourCreatedFinanceReactionAdapter);
     await ws5a.reactToPublishedRow({ ...TOUR_ROW, domainEventId: "leak-probe-1" });
     assert.deepEqual(ws5a.handledDomainEventIds, ["leak-probe-1"]);
 
     // Fresh resolve from registry creates a new adapter instance (no process cache on reactions).
-    const ws5b = resolveWorkspaceFinanceEventReaction(WS5);
+    const ws5b = await resolveWorkspaceFinanceEventReaction(WS5);
     assert.ok(ws5b instanceof FinanceWs5TourCreatedFinanceReactionAdapter);
     assert.notEqual(ws5a, ws5b);
     assert.deepEqual(ws5b.handledDomainEventIds, []);
 
     // FinanceService instances remain distinct and cached by workspaceType only.
-    const d1 = getOrCreateFinanceServiceForWorkspaceType(DENALI);
-    const d2 = getOrCreateFinanceServiceForWorkspaceType(DENALI);
-    const w1 = getOrCreateFinanceServiceForWorkspaceType(WS5);
+    const d1 = await getOrCreateFinanceServiceForWorkspaceType(DENALI);
+    const d2 = await getOrCreateFinanceServiceForWorkspaceType(DENALI);
+    const w1 = await getOrCreateFinanceServiceForWorkspaceType(WS5);
     assert.equal(d1, d2);
     assert.notEqual(d1, w1);
   });

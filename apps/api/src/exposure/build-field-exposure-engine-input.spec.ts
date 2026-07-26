@@ -11,8 +11,8 @@ import {
 import { NATIVE_EXPOSURE_INTENT_SOURCE } from "./exposure-intent";
 
 describe("buildFieldExposureEngineInputSnapshot", () => {
-  it("builds registry and delivery FieldPolicy snapshots from the starter plugin", () => {
-    const snapshot = buildFieldExposureEngineInputSnapshot({
+  it("builds registry and delivery FieldPolicy snapshots from the starter plugin", async () => {
+    const snapshot = await buildFieldExposureEngineInputSnapshot({
       workspaceType: "starter",
       eventType: "TourCreated",
       payload: { status: "published", title: "Alpine Day" },
@@ -26,8 +26,8 @@ describe("buildFieldExposureEngineInputSnapshot", () => {
     assert.equal(snapshot.adaptedFieldPolicy?.surface, "delivery");
   });
 
-  it("normalizes a caller-supplied effective trigger instead of always using eventType", () => {
-    const snapshot = buildFieldExposureEngineInputSnapshot({
+  it("normalizes a caller-supplied effective trigger instead of always using eventType", async () => {
+    const snapshot = await buildFieldExposureEngineInputSnapshot({
       workspaceType: "starter",
       eventType: "TourCreated",
       trigger: "BookingConfirmed",
@@ -42,8 +42,8 @@ describe("buildFieldExposureEngineInputSnapshot", () => {
 });
 
 describe("buildFieldExposureEngineDecisionInput", () => {
-  it("passes caller-supplied audience into the engine input", () => {
-    const snapshot = buildFieldExposureEngineInputSnapshot({
+  it("passes caller-supplied audience into the engine input", async () => {
+    const snapshot = await buildFieldExposureEngineInputSnapshot({
       workspaceType: "starter",
       eventType: "TourCreated",
       payload: { status: "published", title: "Alpine Day" },
@@ -63,7 +63,7 @@ describe("buildFieldExposureEngineDecisionInput", () => {
 });
 
 describe("mapExposureIntentForEngine", () => {
-  it("maps native override intents with selected field ids", () => {
+  it("maps native override intents with selected field ids", async () => {
     const mapped = mapExposureIntentForEngine({
       workspaceType: "denali",
       scope: { connectionId: "conn-1" },
@@ -80,14 +80,14 @@ describe("mapExposureIntentForEngine", () => {
     });
   });
 
-  it("returns undefined for absent intents", () => {
+  it("returns undefined for absent intents", async () => {
     assert.equal(mapExposureIntentForEngine(null), undefined);
     assert.equal(mapExposureIntentForEngine(undefined), undefined);
   });
 });
 
 describe("mapExposurePolicyForEngine", () => {
-  it("maps profile defaultFieldIds for inherit_profile intents", () => {
+  it("maps profile defaultFieldIds for inherit_profile intents", async () => {
     const mapped = mapExposurePolicyForEngine({
       profile: { id: "profile-1", defaultFieldIds: ["basics.title", "details.summary"] },
       exposureIntent: {
@@ -106,7 +106,7 @@ describe("mapExposurePolicyForEngine", () => {
     });
   });
 
-  it("maps override_fields selectedFieldIds and omits policy when disabled", () => {
+  it("maps override_fields selectedFieldIds and omits policy when disabled", async () => {
     assert.deepEqual(
       mapExposurePolicyForEngine({
         profile: { id: "profile-1", defaultFieldIds: ["basics.title"] },
@@ -144,7 +144,7 @@ describe("mapExposurePolicyForEngine", () => {
 });
 
 describe("buildFieldExposureEngineDecisionMap", () => {
-  it("applies override_fields intent constraints in engine decisions", () => {
+  it("applies override_fields intent constraints in engine decisions", async () => {
     const decisions = buildFieldExposureEngineDecisionMap({
       tenantId: "tenant-a",
       workspaceType: "starter",
@@ -166,7 +166,7 @@ describe("buildFieldExposureEngineDecisionMap", () => {
     assert.equal(decisions.get("details.summary")?.state, "hidden");
   });
 
-  it("applies profile defaultFieldIds for inherit_profile engine decisions", () => {
+  it("applies profile defaultFieldIds for inherit_profile engine decisions", async () => {
     const decisions = buildFieldExposureEngineDecisionMap({
       tenantId: "tenant-a",
       workspaceType: "starter",
@@ -191,7 +191,7 @@ describe("buildFieldExposureEngineDecisionMap", () => {
     assert.equal(decisions.get("details.summary")?.state, "hidden");
   });
 
-  it("normalizes effective trigger when building decision maps", () => {
+  it("normalizes effective trigger when building decision maps", async () => {
     const decisions = buildFieldExposureEngineDecisionMap({
       tenantId: "tenant-a",
       workspaceType: "starter",

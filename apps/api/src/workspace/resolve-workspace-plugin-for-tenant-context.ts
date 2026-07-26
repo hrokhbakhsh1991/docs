@@ -14,7 +14,7 @@ export async function resolveWorkspacePluginForTenantContext(
   deps: ResolveWorkspacePluginForTenantByIdDeps = {}
 ): Promise<WorkspacePlugin> {
   if (!isWorkspaceMetadataEnabled()) {
-    return resolveWorkspacePluginForType(workspaceType);
+    return await resolveWorkspacePluginForType(workspaceType);
   }
   return resolveWorkspacePluginForTenantById(tenantId, deps);
 }

@@ -8,7 +8,7 @@ import {
 import { exposureCatalogFieldIds } from "../../exposure/exposure-field-catalog";
 
 describe("buildDeliveryFieldPolicyEntityState", () => {
-  it("falls back to lifecycle initialStatus on TourCreated when payload has no status", () => {
+  it("falls back to lifecycle initialStatus on TourCreated when payload has no status", async () => {
     assert.deepEqual(
       buildDeliveryFieldPolicyEntityState({
         payload: { tenantId: "tenant-a", tourId: "tour-1" },
@@ -19,7 +19,7 @@ describe("buildDeliveryFieldPolicyEntityState", () => {
     );
   });
 
-  it("prefers explicit payload status over lifecycle fallback", () => {
+  it("prefers explicit payload status over lifecycle fallback", async () => {
     assert.deepEqual(
       buildDeliveryFieldPolicyEntityState({
         payload: { status: "OPEN" },
@@ -32,11 +32,11 @@ describe("buildDeliveryFieldPolicyEntityState", () => {
 });
 
 describe("resolveDeliveryFieldDefinitions", () => {
-  it("adapts definitions from the full exposure catalog without legacy eligibility", () => {
-    const catalogIds = exposureCatalogFieldIds("starter");
+  it("adapts definitions from the full exposure catalog without legacy eligibility", async () => {
+    const catalogIds = await exposureCatalogFieldIds("starter");
     assert.ok(catalogIds.length > 2);
 
-    const definitions = resolveDeliveryFieldDefinitions({
+    const definitions = await resolveDeliveryFieldDefinitions({
       tenantId: "tenant-a",
       workspaceType: "starter",
       eventType: "TourCreated",
@@ -48,9 +48,9 @@ describe("resolveDeliveryFieldDefinitions", () => {
     assert.ok(definitions?.some((definition) => definition.id === "basics.title"));
   });
 
-  it("returns null for unbound workspace types", () => {
+  it("returns null for unbound workspace types", async () => {
     assert.equal(
-      resolveDeliveryFieldDefinitions({
+      await resolveDeliveryFieldDefinitions({
         tenantId: "tenant-a",
         workspaceType: "unknown-workspace",
         eventType: "TourCreated",

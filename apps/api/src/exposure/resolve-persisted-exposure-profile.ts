@@ -17,7 +17,7 @@ export async function resolvePersistedExposureProfileForContext(
     readonly repository?: ExposureProfileRepository;
   } = {},
 ): Promise<ExposureProfile | null> {
-  const seed = resolveRegistrySeededExposureProfile(input.context);
+  const seed = await resolveRegistrySeededExposureProfile(input.context);
   if (seed === null) {
     return null;
   }

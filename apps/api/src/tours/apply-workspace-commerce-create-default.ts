@@ -1,6 +1,8 @@
-import type { WorkspaceCommerceConfig } from "@app-tour/workspace-sdk/metadata";
+import {
+  resolveFrozenWorkspaceCommerce,
+  type WorkspaceCommerceConfig,
+} from "@app-tour/workspace-sdk/metadata";
 
-import { DENALI_FROZEN_COMMERCE_CONFIG } from "../workspace-metadata/resolve-workspace-commerce-for-tenant.ts";
 import type { CreateTourBody } from "./create-tour.schema";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -13,17 +15,18 @@ function isPartialStarterLegacyCreateBody(data: Record<string, unknown>): boolea
 
 /**
  * P5-C-N-005 — apply workspace commerce paymentMode default on tour create ingress.
+ * Frozen workspace types force paymentMode from manifest commerce.frozen (Wave F.b / PC-07).
  */
 export function applyWorkspaceCommercePaymentModeToCreateData(
   workspaceType: string,
   data: Record<string, unknown>,
   commerce: WorkspaceCommerceConfig
 ): Record<string, unknown> {
-  const isDenali = workspaceType.trim().toLowerCase() === "denali";
-  const paymentMode = isDenali ? DENALI_FROZEN_COMMERCE_CONFIG.paymentMode : commerce.paymentMode;
+  const frozen = resolveFrozenWorkspaceCommerce(workspaceType);
+  const paymentMode = frozen?.paymentMode ?? commerce.paymentMode;
   const pricing = isRecord(data.pricing) ? { ...data.pricing } : {};
 
-  if (isDenali) {
+  if (frozen !== null) {
     return {
       ...data,
       pricing: {

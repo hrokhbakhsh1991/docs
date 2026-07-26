@@ -178,7 +178,7 @@ describe("health priority ingress (NN-08)", () => {
     resetHealthProbeLatencyMonitorForTests();
   });
 
-  it("isHealthGetRequest matches GET /health only", () => {
+  it("isHealthGetRequest matches GET /health only", async () => {
     assert.equal(
       isHealthGetRequest({ method: "GET", url: "/health" } as http.IncomingMessage),
       true
@@ -197,13 +197,13 @@ describe("health priority ingress (NN-08)", () => {
     );
   });
 
-  it("main.ts wires createHealthAwareServerListener at createServer root", () => {
+  it("main.ts wires createHealthAwareServerListener at createServer root", async () => {
     const source = readFileSync(mainPath, "utf8");
     assert.match(source, /createServer\(createHealthAwareServerListener/);
     assert.doesNotMatch(source, /createServer\s*\(\s*withRequestLogging/);
   });
 
-  it("createHealthAwareServerListener keeps /health off the logging wrapper", () => {
+  it("createHealthAwareServerListener keeps /health off the logging wrapper", async () => {
     const source = readFileSync(ingressPath, "utf8");
     const listenerStart = source.indexOf("export function createHealthAwareServerListener");
     assert.ok(listenerStart >= 0);
@@ -274,7 +274,7 @@ describe("health priority ingress (NN-08)", () => {
     const storm = (async () => {
       while (stormActive) {
         for (let i = 0; i < VALIDATION_STORM_TICK; i += 1) {
-          validateCanonicalBeforePersistSync(validationInput(stormIndex));
+          await validateCanonicalBeforePersistSync(validationInput(stormIndex));
           stormIndex += 1;
         }
         await waitMs(0);

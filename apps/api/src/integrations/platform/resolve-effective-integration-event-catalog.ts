@@ -28,11 +28,11 @@ export type IntegrationConnectionPublicEventPolicy = {
   readonly supersededBy?: string;
 };
 
-function isDeprecatedIntegrationEvent(input: {
+async function isDeprecatedIntegrationEvent(input: {
   readonly eventType: string;
   readonly workspaceType: string | null;
   readonly providerId: string;
-}): string | undefined {
+}): Promise<string | undefined> {
   const supersededBy = resolveIntegrationDeprecatedEventSupersededBy(
     input.workspaceType,
     input.providerId,
@@ -41,29 +41,29 @@ function isDeprecatedIntegrationEvent(input: {
   if (supersededBy === undefined) {
     return undefined;
   }
-  if (integrationMappingsForEvent(input.eventType, input.workspaceType).length > 0) {
+  if ((await integrationMappingsForEvent(input.eventType, input.workspaceType)).length > 0) {
     return undefined;
   }
   return supersededBy;
 }
 
-function routingActiveForEvent(
+async function routingActiveForEvent(
   eventType: string,
   workspaceType: string | null,
-): boolean {
-  return integrationMappingsForEvent(eventType, workspaceType).length > 0;
+): Promise<boolean> {
+  return (await integrationMappingsForEvent(eventType, workspaceType)).length > 0;
 }
 
 /**
  * Stripe-style effective catalog: surface declares product events; persisted policies
  * override enablement. Deprecated persisted rows remain visible for migration UX.
  */
-export function resolveEffectiveIntegrationEventCatalog(input: {
+export async function resolveEffectiveIntegrationEventCatalog(input: {
   readonly workspaceType: string | null;
   readonly providerId: IntegrationProviderId | string;
   readonly persistedPolicies: readonly PersistedIntegrationEventPolicy[];
-}): readonly EffectiveIntegrationEventCatalogEntry[] {
-  const providerSurface = resolveIntegrationProviderSurface({
+}): Promise<readonly EffectiveIntegrationEventCatalogEntry[]> {
+  const providerSurface = await resolveIntegrationProviderSurface({
     workspaceType: input.workspaceType,
     providerId: input.providerId,
   });
@@ -88,7 +88,7 @@ export function resolveEffectiveIntegrationEventCatalog(input: {
       continue;
     }
     const persisted = persistedByEvent.get(eventType);
-    const supersededBy = isDeprecatedIntegrationEvent({
+    const supersededBy = await isDeprecatedIntegrationEvent({
       eventType,
       workspaceType: input.workspaceType,
       providerId: input.providerId,
@@ -99,7 +99,7 @@ export function resolveEffectiveIntegrationEventCatalog(input: {
       enabled: persisted?.enabled ?? declared.enabled,
       deprecated: supersededBy !== undefined,
       ...(supersededBy === undefined ? {} : { supersededBy }),
-      routingActive: routingActiveForEvent(eventType, input.workspaceType),
+      routingActive: await routingActiveForEvent(eventType, input.workspaceType),
     });
   }
 
@@ -107,7 +107,7 @@ export function resolveEffectiveIntegrationEventCatalog(input: {
     if (entries.has(persisted.eventType)) {
       continue;
     }
-    const supersededBy = isDeprecatedIntegrationEvent({
+    const supersededBy = await isDeprecatedIntegrationEvent({
       eventType: persisted.eventType,
       workspaceType: input.workspaceType,
       providerId: input.providerId,
@@ -118,7 +118,7 @@ export function resolveEffectiveIntegrationEventCatalog(input: {
       enabled: persisted.enabled,
       deprecated: supersededBy !== undefined,
       ...(supersededBy === undefined ? {} : { supersededBy }),
-      routingActive: routingActiveForEvent(persisted.eventType, input.workspaceType),
+      routingActive: await routingActiveForEvent(persisted.eventType, input.workspaceType),
     });
   }
 

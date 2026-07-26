@@ -61,7 +61,7 @@ export async function buildOperatorTourDetailResponse(
   tenantId: string
 ): Promise<OperatorTourDetailResponse> {
   const workspaceType = await resolveWorkspaceTypeForTenant(tenantId);
-  const plugin = resolveWorkspacePluginForType(workspaceType);
+  const plugin = await resolveWorkspacePluginForType(workspaceType);
   const extract =
     plugin.tourList?.extractTourListProjection ?? defaultExtractTourListProjection;
   const baseProjection = buildTourListProjection(

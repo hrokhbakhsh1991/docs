@@ -15,7 +15,7 @@ import { OPERATOR_SMOKE_TENANT_ID } from "../src/settings/seed-operator-smoke-ca
 import { createCanonicalDocument } from "@app-tour/workspace-sdk";
 
 describe("denali-operator-create-bridge.spec.ts", () => {
-  it("BRIDGE-01 starter validation path enriches denali list projection fields", () => {
+  it("BRIDGE-01 starter validation path enriches denali list projection fields", async () => {
     assert.equal(
       shouldUseStarterValidationForDenaliCreate("denali", OPERATOR_SMOKE_TENANT_ID, {
         data: {
@@ -43,8 +43,8 @@ describe("denali-operator-create-bridge.spec.ts", () => {
     );
   });
 
-  it("BRIDGE-02 starter-shaped ingress validates for operator smoke tenant", () => {
-    const document = validateCanonicalBeforePersistSync({
+  it("BRIDGE-02 starter-shaped ingress validates for operator smoke tenant", async () => {
+    const document = await validateCanonicalBeforePersistSync({
       tenantId: OPERATOR_SMOKE_TENANT_ID,
       workspaceType: "denali",
       body: {
@@ -59,7 +59,7 @@ describe("denali-operator-create-bridge.spec.ts", () => {
     assert.equal(document.data.basics?.title, "Operator list seed");
   });
 
-  it("BRIDGE-03 title-only ingress skips starter validation bridge", () => {
+  it("BRIDGE-03 title-only ingress skips starter validation bridge", async () => {
     assert.equal(
       isStarterShapedDenaliCreateBody({
         data: { basics: { title: "Incomplete" } },
@@ -72,8 +72,7 @@ describe("denali-operator-create-bridge.spec.ts", () => {
       }),
       false
     );
-    assert.throws(
-      () =>
+    await assert.rejects(() =>
         validateCanonicalBeforePersistSync({
           tenantId: OPERATOR_SMOKE_TENANT_ID,
           workspaceType: "denali",

@@ -84,7 +84,7 @@ P7 path boundary: edit **`apps/api/src/workspace-finance/`** only; `apps/api/src
 ### 1.4 Current architecture boundaries
 
 ```text
-HTTP /finance/*     ← @app-cloud/finance-http (+ Denali re-export façade)
+HTTP /finance/*     ← @app-tour/finance-http (+ Denali re-export façade)
         ↓
 apps/api boot       ← lazy-finance-service + capability registries
         ↓
@@ -248,7 +248,7 @@ Codegen targets (future implementation):
 
 - `WORKSPACE_FINANCE_BINDINGS` (exists)
 - Policy / defaults loaders (new)
-- `WORKSPACE_FINANCE_NAV_PLUGIN_IDS` (replace wizard `extendedChrome` finance gate)
+- `isFinanceNavPlugin` / `shouldShowFinanceNav` from manifest `workspaceFinance.supported` (replace wizard `extendedChrome` finance gate; Set private Phase 4c)
 
 Boot: `resolveLazyFinanceService` selects policy + defaults by tenant `workspaceType`.
 
@@ -288,7 +288,7 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 | -- | -- |
 | **Goal** | Finance hub / route visibility owned by finance capability codegen — **not** wizard chrome |
 | **Before** | `pluginId` → `isExtendedOperatorWorkspace` (`wizardCreate.extendedChrome`) → finance nav |
-| **After** | `pluginId` → `WORKSPACE_FINANCE_NAV_PLUGIN_IDS` (`workspaceFinance.supported`) → finance nav |
+| **After** | `pluginId` → `isFinanceNavPlugin` (`workspaceFinance.supported`) → finance nav |
 | **Codegen** | `generateWorkspaceFinanceNavBindings` in `scripts/codegen/workspace-registry/domains/finance.mjs` → `apps/web/src/bootstrap/workspace-finance-nav-bindings.generated.ts` |
 | **Runtime** | `finance-nav-enablement.ts` (`shouldShowFinanceNav` / `isFinanceRouteAllowed`) is the only enablement gate; operator nav, dashboard widget, and `/finance` page import it |
 | **Preserved** | Denali still `supported: true` → nav visible; Denali `financeOps` panels via `finance-ops-panels.ts` → `@app-tour/workspace-denali/host/finance/manifest` (ops layout only — **not** hub availability) |
@@ -356,7 +356,7 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 
 | | |
 | -- | -- |
-| **Goal** | Remove Denali ownership of finance request DTOs/schemas; `FinanceService` must not import `@app-cloud/workspace-denali/http` |
+| **Goal** | Remove Denali ownership of finance request DTOs/schemas; `FinanceService` must not import `@app-tour/workspace-denali/http` |
 | **SoT** | `@app-tour/finance-http-contracts` (`packages/finance-http-contracts`) — zod schemas, inferred types, `parse*` helpers only |
 | **Denali compat** | `packages/workspaces/denali/src/http/schemas/finance-request.schemas.ts` re-exports the contracts package; route handlers + codegen `handlerPackage` unchanged |
 | **Shared (unchanged)** | Approve/prepay workflows, Phase 3A/3B identities, idempotency leases, ledger CoA, booking TX semantics |
@@ -547,7 +547,7 @@ Outbox Relay
 
 | | |
 | -- | -- |
-| **Goal** | Generic finance runtime (`process-workspace-finance-outbox`, `workspace-tour-created-dispatcher`, `app` boot) has **zero** `@app-cloud/workspace-denali` imports and **no** `register-workspace-finance-deps` side-effect boot |
+| **Goal** | Generic finance runtime (`process-workspace-finance-outbox`, `workspace-tour-created-dispatcher`, `app` boot) has **zero** `@app-tour/workspace-denali` imports and **no** `register-workspace-finance-deps` side-effect boot |
 | **Mechanism** | `PlatformFinanceEventReactionHostIo` injects claim + outbox writer + processed store + failure log at `resolveWorkspaceFinanceEventReaction` time |
 | **Denali adapter** | `DenaliTourCreatedFinanceReactionAdapter` passes HostIo deps into `runTourCreatedFinanceSideEffect(row, deps)` — no module singleton in production |
 | **Deleted** | `apps/api/src/workspace-finance/register-workspace-finance-deps.ts`; Denali re-export façade `tour-created-finance-side-effect.ts` |
@@ -706,6 +706,7 @@ FinanceService(ledgerPolicy, repository, bookingPayments, receiptDefaults, regis
 | **Manifest** | `workspaceFinance.ledgerPolicy` / `receiptDefaults` / `chartOfAccounts` / optional `eventReaction` / optional `opsManifest`; `supported: true` requires ledger+defaults (+ chart); optional `registryOnly: true` for fixture packages (dependency + CoA bindings only — no nav/gate/plugin registry) |
 | **Codegen** | `workspace-finance-dependency-bindings.generated.ts`; `workspace-finance-chart-of-accounts-bindings.generated.ts`; `workspace-finance-event-reaction-bindings.generated.ts`; `workspace-finance-ops-bindings.generated.ts` (web) |
 | **Runtime** | Thin `finance-dependency-registry` / `finance-chart-of-accounts-registry` / `finance-event-reaction-registry` / web ops resolve via generated maps; unknown workspaceType / pluginId **fail-closed** |
+| **Lazy load (P4-D3)** | CoA / dependency / event-reaction / obligation generated files use **dynamic** `import()` only (no static product fan-in). Resolve APIs are **async** — see [`docs/dev/finance-lazy-workspace-bindings.mdoc`](../../../dev/finance-lazy-workspace-bindings.mdoc) |
 | **Platform-owned** | `BookingPaymentAdapter`, repo, Prisma outbox IO injection, `BOOT_FINANCE_WORKSPACE_TYPE`, FinanceService |
 | **Unchanged** | Payment invariants, approve TX, RLS, identity formulas; **no finance-core** |
 | **Commit** | `feat(finance): make capabilities manifest-driven` |
@@ -714,11 +715,12 @@ FinanceService(ledgerPolicy, repository, bookingPayments, receiptDefaults, regis
 
 | Capability | Manifest field | Generated artifact | Runtime |
 | --- | --- | --- | --- |
-| Ledger policy | `ledgerPolicy` | dependency bindings | `resolveFinanceLedgerPolicy` |
-| Receipt defaults | `receiptDefaults` | dependency bindings | `resolveFinanceReceiptDefaults` |
-| Chart of accounts | `chartOfAccounts` | CoA bindings | `resolveFinanceChartOfAccounts` |
-| Event reaction | `eventReaction` | event-reaction bindings | `resolveWorkspaceFinanceEventReaction` |
-| Ops UI | `opsManifest` | web ops bindings | `resolveFinanceOpsCapabilityForHub(pluginId)` → `null` when unbound |
+| Ledger policy | `ledgerPolicy` | dependency bindings (async factories) | `await resolveFinanceLedgerPolicy` |
+| Receipt defaults | `receiptDefaults` | dependency bindings (async factories) | `await resolveFinanceReceiptDefaults` |
+| Chart of accounts | `chartOfAccounts` | CoA bindings (`loadAccounts`) | `await resolveFinanceChartOfAccounts` |
+| Event reaction | `eventReaction` | event-reaction bindings (async `create`) | `await resolveWorkspaceFinanceEventReaction` |
+| Registration obligation | `registrationObligation` | obligation bindings (`loadResolve`) | `await createFinanceObligationPort` |
+| Ops UI | `opsManifest` | web ops bindings (`loadManifest`, P4-D3.c) | `await resolveFinanceOpsCapabilityForHub(pluginId)` → `null` when unbound |
 | Nav / enablement | `supported` | finance + nav bindings | `isFinanceSupportedWorkspace` / `shouldShowFinanceNav` |
 
 **Phase 1.10 checklist:**
@@ -807,7 +809,7 @@ NEW:
 | ------ | ---- | ------------------------- |
 | `finance-registration-context` | Pure list identity helpers | Domain / Application (kept) |
 | `compile-invoice-balances` | Pure domain calculator | Domain (kept) |
-| `@app-cloud/finance-http-contracts` | HTTP DTO types | Application (kept) |
+| `@app-tour/finance-http-contracts` | HTTP DTO types | Application (kept) |
 | `node:crypto` | Idempotency hashing | External (kept) |
 | Host adapters (composition root only) | metrics · storage · receipt proof · access · schedules · log · DB configured | Host Infrastructure — **not** imported by `FinanceService` |
 
@@ -859,7 +861,7 @@ AFTER:
 | -- | -- |
 | **Goal** | `FinanceService` depends only on domain helpers, HTTP contract DTOs, and **ports** — zero host modules, env, console, Prisma, or `workspace-*` imports |
 | **Ports (canonical names)** | `FinanceMetricsPort` · `FinanceStorageDriverPort` · `FinanceAuthorizationPort` · `FinanceSchedulePort` · `ReceiptProofStoragePort` · `FinanceLoggerPort` (+ ledger/receipt-defaults/booking/display/repository) |
-| **Auth type** | `FinanceActorContext` in application ports (structurally compatible with host `TenantAuthContext`; service must not import `@app-cloud/workspace-sdk`) |
+| **Auth type** | `FinanceActorContext` in application ports (structurally compatible with host `TenantAuthContext`; service must not import `@app-tour/workspace-sdk`) |
 | **Composition** | `lazy-finance-service.ts` wires host adapters |
 | **Unchanged** | Approve/prepay identities, RLS TX ownership, error codes |
 | **Acceptance** | `rg 'apps/api\|Prisma\|workspace-\|process\\.env\|console' finance.service.ts` → empty |
@@ -873,7 +875,7 @@ FinanceService
   ├── resolveStorageDriver()             (apps/api storage + process.env)
   ├── process.env.DATABASE_URL           (host env)
   ├── console.warn / console.error       (host I/O)
-  ├── assertFinanceWorkspaceGate / auth  (host gate + @app-cloud/workspace-sdk TenantAuthContext)
+  ├── assertFinanceWorkspaceGate / auth  (host gate + @app-tour/workspace-sdk TenantAuthContext)
   ├── finance-schedule-store             (Prisma/RLS)
   ├── receipt-proof-storage              (MinIO/storage)
   ├── FinanceRepositoryPort / booking / ledger / receiptDefaults / display
@@ -905,7 +907,7 @@ FinanceService (pure application)
   ├── FinanceReceiptDefaultsPort
   ├── RegistrationDisplayPort
   ├── FinanceActorContext                (ports — not workspace-sdk)
-  └── domain helpers + @app-cloud/finance-http-contracts DTOs
+  └── domain helpers + @app-tour/finance-http-contracts DTOs
 ```
 
 ### Phase 1.17 — Finance gate from generated workspace capability
@@ -1098,7 +1100,7 @@ apps/api
   createFinanceRepository ──▶ FinanceRepositoryPort
        ├─ PrismaFinanceRepository (withTenantRls + atomics + outbox order)
        └─ InMemoryFinanceRepository (test fake)
-  finance.repository.ts / ports/* ──types-only──▶ @app-cloud/finance-core
+  finance.repository.ts / ports/* ──types-only──▶ @app-tour/finance-core
 ```
 
 ### Phase 2.2.1 — finance-core boundary enforcement

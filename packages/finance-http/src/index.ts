@@ -15,6 +15,7 @@ export {
 export { FINANCE_HTTP_ROUTE_MANIFEST, type WorkspaceHttpMethod } from "./routes-manifest";
 export {
   handleFinanceSummary,
+  handleFinanceReportByTour,
   handleFinanceOpenPayments,
   handleFinanceLedgerEvents,
   handleFinanceListPayments,
@@ -31,4 +32,6 @@ export {
   handleFinanceGetSchedule,
   handleFinanceGenerateSchedule,
   handleFinanceGetRegistrationInvoice,
+  handleFinancePatchScheduleItem,
+  handleFinanceReceiptUpload,
 } from "./finance.routes";

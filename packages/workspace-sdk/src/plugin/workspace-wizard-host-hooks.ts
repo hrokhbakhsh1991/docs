@@ -29,6 +29,11 @@ export type WorkspaceWizardHostPluginContext = {
  * Platform web host reads these from WorkspacePlugin instead of hardcoding plugin ids.
  */
 export type WorkspaceWizardHostHooks = {
+  /**
+   * Thin Shell Phase 2a — warm workspace-owned host adapters before sync shell helpers run.
+   * Shell calls this on the loaded plugin; must not require product id switches in apps/web.
+   */
+  readonly ensureReady?: () => Promise<void>;
   /** Review/read-back step id (e.g. Denali `"review"`). Host reserves UX for this step. */
   readonly reviewStepId?: string;
   /** Show completion / quality header above the stepper. */

@@ -45,7 +45,7 @@ function parseDefinitionPayload(row: WorkspaceDefinitionVersionRow): WorkspaceDe
 export async function resolveWorkspacePluginForTenant(
   input: ResolveWorkspacePluginForTenantInput
 ): Promise<ReturnType<typeof resolveWorkspacePluginForType>> {
-  const packagePlugin = resolveWorkspacePluginForType(input.workspaceType);
+  const packagePlugin = await resolveWorkspacePluginForType(input.workspaceType);
 
   if (!isWorkspaceMetadataEnabled() || !input.metadataBinding?.definitionId) {
     return packagePlugin;

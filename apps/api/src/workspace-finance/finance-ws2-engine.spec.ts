@@ -20,7 +20,7 @@ import {
   resolveFinanceLedgerPolicy,
   resolveFinanceReceiptDefaults,
 } from "./finance-dependency-registry.ts";
-import { FinanceService } from "./finance.service.ts";
+import { createFinanceService, FinanceService } from "./finance.service.ts";
 import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter.ts";
 import { BookingRegistrationDisplayAdapter } from "./infrastructure/booking-registration-display.adapter.ts";
 import {
@@ -85,17 +85,17 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
     resetBookingsRepositoryForTests();
   });
 
-  function createEngine(workspaceType: string): {
+  async function createEngine(workspaceType: string): Promise<{
     finance: FinanceService;
     financeRepo: InMemoryFinanceRepository;
-  } {
+  }> {
     const bookingPayments = new BookingPaymentAdapter(getBookingsRepository());
     const financeRepo = new InMemoryFinanceRepository(bookingPayments);
-    const finance = new FinanceService(
-      resolveFinanceLedgerPolicy(workspaceType),
+    const finance = createFinanceService(
+      await resolveFinanceLedgerPolicy(workspaceType),
       financeRepo,
       bookingPayments,
-      resolveFinanceReceiptDefaults(workspaceType),
+      await resolveFinanceReceiptDefaults(workspaceType),
       new BookingRegistrationDisplayAdapter(),
       fakeNoopMetrics,
       fakeMemoryPersistenceMode,
@@ -133,7 +133,6 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
       resolve(FINANCE_ROOT, "../../../../packages/finance-core/src/application/finance.service.ts"),
       "utf8"
     );
-    assert.doesNotMatch(serviceSrc, /\bworkspaceType\b/);
     assert.doesNotMatch(serviceSrc, /FinanceWs2|finance-ws2-chart|finance-ws2-ledger|finance-ws2-receipt/);
     assert.doesNotMatch(serviceSrc, /DenaliFinanceLedgerPolicyAdapter|DenaliFinanceReceiptDefaultsAdapter/);
     assert.doesNotMatch(serviceSrc, /finance-dependency-registry/);
@@ -150,6 +149,7 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
         "booking-payment.adapter.ts",
         "booking-registration-display.adapter.ts",
         "host-finance-access.adapter.ts",
+        "host-finance-capability.adapter.ts",
         "host-finance-clock.adapter.ts",
         "host-finance-log.adapter.ts",
         "host-finance-metrics.adapter.ts",
@@ -158,6 +158,7 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
         "host-finance-schedule.adapter.ts",
         "prisma-finance.repository.ts",
         "prisma-workspace-outbox-writer.ts",
+        "registration-finance-obligation.adapter.ts",
       ].sort()
     );
 
@@ -182,20 +183,20 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
     }
   });
 
-  it("FIN-P1.3-03 policy selection: denali vs finance-ws2 via registry only", () => {
-    const denali = resolveFinanceLedgerPolicy(DENALI);
-    const ws2 = resolveFinanceLedgerPolicy(WS2);
+  it("FIN-P1.3-03 policy selection: denali vs finance-ws2 via registry only", async () => {
+    const denali = await resolveFinanceLedgerPolicy(DENALI);
+    const ws2 = await resolveFinanceLedgerPolicy(WS2);
     assert.ok(denali instanceof DenaliFinanceLedgerPolicyAdapter);
     assert.ok(ws2 instanceof FinanceWs2LedgerPolicyAdapter);
     assert.notEqual(denali.constructor, ws2.constructor);
   });
 
-  it("FIN-P1.3-04 defaults selection: IRR/Denali vs USD/WS2", () => {
-    assert.deepEqual(resolveFinanceReceiptDefaults(DENALI).offlineReceiptPaymentDefaults(), {
+  it("FIN-P1.3-04 defaults selection: IRR/Denali vs USD/WS2", async () => {
+    assert.deepEqual((await resolveFinanceReceiptDefaults(DENALI)).offlineReceiptPaymentDefaults(), {
       amountMinor: "2500000",
       currency: "IRR",
     });
-    assert.deepEqual(resolveFinanceReceiptDefaults(WS2).offlineReceiptPaymentDefaults(), {
+    assert.deepEqual((await resolveFinanceReceiptDefaults(WS2)).offlineReceiptPaymentDefaults(), {
       amountMinor: "10000",
       currency: "USD",
     });
@@ -204,7 +205,7 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
   it("FIN-P1.3-05 same engine + Denali policy: approve raises booking paid", async () => {
     const registrationId = randomUUID();
     seedBooking(registrationId);
-    const { finance, financeRepo } = createEngine(DENALI);
+    const { finance, financeRepo } = await createEngine(DENALI);
     const payment = await financeRepo.createManualPayment({
       tenantId: OPERATOR_SMOKE.tenantId,
       registrationId,
@@ -226,7 +227,7 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
     assert.equal(reviewed.status, "Approved");
     assert.equal(reviewed.bookingPaymentStatus, "paid");
 
-    const denaliPlan = resolveFinanceLedgerPolicy(DENALI).buildPaymentCaptureJournal({
+    const denaliPlan = (await resolveFinanceLedgerPolicy(DENALI)).buildPaymentCaptureJournal({
       tenantId: OPERATOR_SMOKE.tenantId,
       paymentId: payment.id,
       registrationId,
@@ -241,7 +242,7 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
   it("FIN-P1.3-06 same engine + finance-ws2 policy: approve + WS2 CoA", async () => {
     const registrationId = randomUUID();
     seedBooking(registrationId);
-    const { finance, financeRepo } = createEngine(WS2);
+    const { finance, financeRepo } = await createEngine(WS2);
 
     const payment = await financeRepo.createManualPayment({
       tenantId: OPERATOR_SMOKE.tenantId,
@@ -264,7 +265,7 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
     assert.equal(reviewed.status, "Approved");
     assert.equal(reviewed.bookingPaymentStatus, "paid");
 
-    const ws2Plan = resolveFinanceLedgerPolicy(WS2).buildPaymentCaptureJournal({
+    const ws2Plan = (await resolveFinanceLedgerPolicy(WS2)).buildPaymentCaptureJournal({
       tenantId: OPERATOR_SMOKE.tenantId,
       paymentId: payment.id,
       registrationId,

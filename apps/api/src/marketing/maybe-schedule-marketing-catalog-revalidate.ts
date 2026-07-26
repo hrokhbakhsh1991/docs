@@ -13,8 +13,14 @@ export function maybeScheduleMarketingCatalogRevalidate(input: {
   after: CanonicalDocument;
   tenantId: string;
 }): void {
-  if (!shouldInvalidateMarketingCatalog(input.workspaceType, input.before, input.after)) {
-    return;
-  }
-  scheduleMarketingCatalogRevalidate(input.tenantId);
+  void (async () => {
+    try {
+      if (!(await shouldInvalidateMarketingCatalog(input.workspaceType, input.before, input.after))) {
+        return;
+      }
+      scheduleMarketingCatalogRevalidate(input.tenantId);
+    } catch {
+      // fail-open
+    }
+  })();
 }

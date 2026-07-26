@@ -98,8 +98,8 @@ export function DenaliSocialMediaLinkField({
   return (
     <div
       className="denali-wizard-composite"
-      data-denali-wizard-surface="section"
-      data-denali-social-media-link
+      data-operator-wizard-surface="section"
+      data-operator-social-media-link
       data-social-media-kind={kind}
       data-testid={DENALI_SOCIAL_MEDIA_TEST_IDS.root}
     >

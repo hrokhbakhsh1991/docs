@@ -79,7 +79,7 @@ export type DenaliFlatEditPageCoreInput = {
   readonly runtimeGates?: DenaliWizardRuntimeGates;
   readonly plugin: WorkspacePlugin;
   readonly draftSync: DenaliFlatEditDraftSync;
-  readonly denaliSchemaGateRef: React.MutableRefObject<DraftSchemaGate<DenaliFlatEditDraftEnvelope> | null>;
+  readonly draftSchemaGateRef: React.MutableRefObject<DraftSchemaGate<DenaliFlatEditDraftEnvelope> | null>;
   readonly envelopeMeta: DenaliWizardDraftMeta;
   readonly wizardSessionId: string;
   readonly loadTourBaseline: (tourId: string) => Promise<DenaliFlatEditTourLoadResult>;
@@ -200,7 +200,7 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
     input.draftSync.setData(denaliPrepareDraftEnvelope(tourBaseline, input.envelopeMeta));
   }, [input.gate.published, tourBaseline, input.draftSync, input.envelopeMeta]);
 
-  input.denaliSchemaGateRef.current =
+  input.draftSchemaGateRef.current =
     denaliRules != null && wizardRuleEvalContext !== undefined
       ? createDenaliDraftSchemaGate(
           denaliRules as unknown as StrictDenaliWizardRulesModule,

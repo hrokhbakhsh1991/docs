@@ -26,6 +26,10 @@
       "types": "./dist/catalog/registration-flow/index.d.ts",
       "default": "./dist/catalog/registration-flow/index.js"
     },
+    "./host/catalog/fetch-denali-catalog-tour": {
+      "types": "./dist/catalog/fetch-denali-catalog-tour.d.ts",
+      "default": "./dist/catalog/fetch-denali-catalog-tour.js"
+    },
     "./host/catalog-registration-flow/react": {
       "types": "./dist/catalog/registration-flow/react.d.ts",
       "default": "./dist/catalog/registration-flow/react.js"
@@ -78,6 +82,10 @@
       "types": "./dist/settings/destination-settings-surface.d.ts",
       "default": "./dist/settings/destination-settings-surface.js"
     },
+    "./settings/fallback-modules": {
+      "types": "./dist/settings/denali-fallback-settings-modules.d.ts",
+      "default": "./dist/settings/denali-fallback-settings-modules.js"
+    },
     "./settings/wizard-template-long-description": {
       "types": "./dist/settings/denali-wizard-template-long-description.d.ts",
       "default": "./dist/settings/denali-wizard-template-long-description.js"
@@ -126,6 +134,10 @@
       "types": "./dist/wizard/denali-wizard-catalog-sanitize.d.ts",
       "default": "./dist/wizard/denali-wizard-catalog-sanitize.js"
     },
+    "./host/wizard/localize-validation-message": {
+      "types": "./dist/wizard/localize-denali-validation-message.d.ts",
+      "default": "./dist/wizard/localize-denali-validation-message.js"
+    },
     "./host/wizard/template-invariants": {
       "types": "./dist/wizard/ensure-tour-kind-template-field.d.ts",
       "default": "./dist/wizard/ensure-tour-kind-template-field.js"
@@ -157,6 +169,10 @@
     "./host/wizard/host-hooks": {
       "types": "./dist/wizard/denali-wizard-host-hooks.d.ts",
       "default": "./dist/wizard/denali-wizard-host-hooks.js"
+    },
+    "./host/wizard/host-adapter-surface": {
+      "types": "./dist/wizard/host-adapter-surface.d.ts",
+      "default": "./dist/wizard/host-adapter-surface.js"
     },
     "./host/wizard/contextual": {
       "types": "./dist/wizard/contextual.d.ts",
@@ -296,6 +312,10 @@
     "./host/ui/settings/settings-equipment-ui-surface": {
       "types": "./dist/ui/settings/settings-equipment-ui-surface.d.ts",
       "default": "./dist/ui/settings/settings-equipment-ui-surface.js"
+    },
+    "./host/ui/settings/settings-exposure-surfaces-ui-surface": {
+      "types": "./dist/ui/settings/settings-exposure-surfaces-ui-binding.d.ts",
+      "default": "./dist/ui/settings/settings-exposure-surfaces-ui-binding.js"
     },
     "./host/ui/chrome/wizard-draft-shell-surface": {
       "types": "./dist/ui/chrome/wizard-draft-shell-surface.d.ts",
@@ -461,6 +481,22 @@
       "types": "./dist/ui/adapters/photo-upload-errors.d.ts",
       "default": "./dist/ui/adapters/photo-upload-errors.js"
     },
+    "./host/ui/adapters/field-labels-from-messages": {
+      "types": "./dist/ui/adapters/field-labels-from-messages.d.ts",
+      "default": "./dist/ui/adapters/field-labels-from-messages.js"
+    },
+    "./host/ui/adapters/nested-string": {
+      "types": "./dist/ui/adapters/nested-string.d.ts",
+      "default": "./dist/ui/adapters/nested-string.js"
+    },
+    "./host/ui/adapters/build-denali-destination-catalog-state": {
+      "types": "./dist/ui/adapters/build-denali-destination-catalog-state.d.ts",
+      "default": "./dist/ui/adapters/build-denali-destination-catalog-state.js"
+    },
+    "./host/ui/adapters/fetch-denali-destination-catalog": {
+      "types": "./dist/ui/adapters/fetch-denali-destination-catalog.d.ts",
+      "default": "./dist/ui/adapters/fetch-denali-destination-catalog.js"
+    },
     "./host/ui/adapters/wizard-media-bff-path": {
       "types": "./dist/ui/adapters/wizard-media-bff-path.d.ts",
       "default": "./dist/ui/adapters/wizard-media-bff-path.js"
@@ -492,6 +528,10 @@
     "./host/ui/components/denali-time-input": {
       "types": "./dist/ui/components/denali-time-input.d.ts",
       "default": "./dist/ui/components/denali-time-input.js"
+    },
+    "./host/ui/components/denali-logo-mark": {
+      "types": "./dist/ui/components/denali-logo-mark.d.ts",
+      "default": "./dist/ui/components/denali-logo-mark.js"
     },
     "./host/ui/hooks/*": {
       "types": "./dist/ui/hooks/*.d.ts",
@@ -564,6 +604,22 @@
     "./host/ui/chrome/use-flat-edit-page-core": {
       "types": "./dist/ui/chrome/use-flat-edit-page-core.d.ts",
       "default": "./dist/ui/chrome/use-flat-edit-page-core.js"
+    },
+    "./host/ui/chrome/to-denali-flat-edit-tour-detail": {
+      "types": "./dist/ui/chrome/to-denali-flat-edit-tour-detail.d.ts",
+      "default": "./dist/ui/chrome/to-denali-flat-edit-tour-detail.js"
+    },
+    "./host/ui/chrome/map-denali-flat-edit-tour-http-status": {
+      "types": "./dist/ui/chrome/map-denali-flat-edit-tour-http-status.d.ts",
+      "default": "./dist/ui/chrome/map-denali-flat-edit-tour-http-status.js"
+    },
+    "./host/ui/chrome/build-denali-flat-edit-tour-load-result": {
+      "types": "./dist/ui/chrome/build-denali-flat-edit-tour-load-result.d.ts",
+      "default": "./dist/ui/chrome/build-denali-flat-edit-tour-load-result.js"
+    },
+    "./host/ui/chrome/build-denali-flat-edit-meta-line": {
+      "types": "./dist/ui/chrome/build-denali-flat-edit-meta-line.d.ts",
+      "default": "./dist/ui/chrome/build-denali-flat-edit-meta-line.js"
     },
     "./host/ui/test-ids/denali-flat-edit-test-ids": {
       "types": "./dist/ui/test-ids/denali-flat-edit-test-ids.d.ts",

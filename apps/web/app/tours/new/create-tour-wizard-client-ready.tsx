@@ -4,13 +4,10 @@ import { useTranslations } from "next-intl";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 
-import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
+import { ensureWizardHostReady, type WorkspacePlugin } from "@app-cloud/workspace-sdk";
 
-import { resolveWizardCreateViewSurface } from "@/bootstrap/workspace-wizard-create-view-bindings.generated";
-import {
-  ensureWizardHostAdapters,
-  resolveWizardCatalogPrefetchProvider,
-} from "@/wizard/host-adapter-runtime";
+import { resolveWizardCreateViewSurface } from "@/wizard/wizard-create-view-registry";
+import { resolveWizardCatalogPrefetchProvider } from "@/wizard/wizard-host-adapter-registry";
 import { useAppSession } from "@/providers/app-session-context";
 import {
   CreateTourWizardCloneError,
@@ -27,6 +24,7 @@ import {
   createWizardSubmitFieldLabelResolver,
   resolveWizardSubmitErrorMessage,
 } from "@/wizard/resolve-wizard-submit-error-message";
+import { loadWizardWorkspacePlugin } from "@/wizard/resolve-wizard-workspace-plugin";
 import { useOperatorCreateTourWizard } from "@/wizard/use-create-tour-wizard";
 import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
 import { WorkspaceWizardHost } from "@/wizard/workspace-wizard-host";
@@ -49,6 +47,7 @@ export function OperatorCreateTourWizardClientReady({
   const resolveSubmitError = useCallback(
     (code: string) =>
       resolveWizardSubmitErrorMessage({
+        pluginId: session.pluginId,
         raw: code,
         context: "create",
         translateFieldLabel: createWizardSubmitFieldLabelResolver(session.pluginId, (key) =>
@@ -142,7 +141,7 @@ export function OperatorCreateTourWizardClientReady({
 }
 
 /** Prefetch wrapper kept with Ready so the loader file stays under P15-W-B1e.
- * Gap Closure B.10 — self-warm product PrefetchProvider (same React context as destination catalog).
+ * Thin Shell Phase 2b/2c / 4r — warm via ensureWizardHostReady (capabilities → legacy).
  */
 export function OperatorCreateTourWizardCatalogShell({
   initialLocationsResponse,
@@ -151,20 +150,23 @@ export function OperatorCreateTourWizardCatalogShell({
   readonly initialLocationsResponse?: unknown | null;
   readonly children: React.ReactNode;
 }) {
+  const session = useAppSession();
   const [, setWarmTick] = useState(0);
   useEffect(() => {
     let cancelled = false;
-    void ensureWizardHostAdapters().then(() => {
-      if (!cancelled) {
-        setWarmTick((n) => n + 1);
-      }
-    });
+    void loadWizardWorkspacePlugin(session.pluginId)
+      .then((plugin) => ensureWizardHostReady(plugin))
+      .then(() => {
+        if (!cancelled) {
+          setWarmTick((n) => n + 1);
+        }
+      });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [session.pluginId]);
 
-  const Provider = resolveWizardCatalogPrefetchProvider();
+  const Provider = resolveWizardCatalogPrefetchProvider(session.pluginId);
   if (Provider == null) {
     return <>{children}</>;
   }

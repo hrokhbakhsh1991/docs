@@ -4,7 +4,7 @@
 doc_role: temporary_work_ledger
 created: 2026-07-21
 updated: 2026-07-21
-tip: e40dd92a
+tip: e4e58665
 canonical_branch: booking/capacity-concurrency-cert
 ```
 
@@ -27,15 +27,15 @@ Status legend: `DONE` · `PARTIAL` · `OPEN` · `BLOCKED_ON_ARCHITECT` · `PARKE
 | -- | ---- | ------ | ----- |
 | B4 | Targeted tsc/build for touched packages | **DONE** | tenant-kernel / finance-core build; `@apps/api` tsc --noEmit |
 | B5 | `test:booking-capacity-stress` on tip | **DONE** | 3/3 PASS |
-| B6 | DEV asymmetry decision (19 behind) | **DECIDED** | No merge; pointer move needs `YES — DEV-POINTER` |
-| B7 | Stash quarantine / reclaim tickets | **DONE** | Quarantine filed; reclaim needs `YES — STASH-RECLAIM-{n}` |
+| B6 | DEV asymmetry decision (19 behind) | **DONE** | Pointer moved — `YES — DEV-POINTER` → tip `e4e58665` ([STABILIZATION_B6_DEV_POINTER_MOVE.md](../../phase-20/p7/appendices/STABILIZATION_B6_DEV_POINTER_MOVE.md)) |
+| B7 | Stash quarantine / reclaim tickets | **DONE** | Tickets `0`–`9` closed — superseded or archaeology NO_LAND; **no stash dropped** ([STABILIZATION_B7_STASH_RECLAIM_9.md](../../phase-20/p7/appendices/STABILIZATION_B7_STASH_RECLAIM_9.md)) |
 
 ## C — Hostile / product residuals (P1)
 
 | ID | Item | Status | Notes |
 | -- | ---- | ------ | ----- |
 | C8 | Tours without `capacityMax` intake fallback | **DONE** | Prodlike/production fail-closed; test fixture path retained |
-| C9 | Portal login modal on `wip/portal-psc-*` | **PARKED** | Needs `YES — IMPL-PORTAL-MODAL` |
+| C9 | Portal login modal on `wip/portal-psc-*` | **DONE** | `YES — IMPL-PORTAL-MODAL` — [STABILIZATION_C9_PORTAL_MODAL_RECLAIM.md](../../phase-20/p7/appendices/STABILIZATION_C9_PORTAL_MODAL_RECLAIM.md) |
 | C10 | Package-boundary allowlist rubber-stamp | **PARKED** | Isolation via AST guards — not a tip code defect |
 
 ## D — Kernel implementation
@@ -44,6 +44,8 @@ Status legend: `DONE` · `PARTIAL` · `OPEN` · `BLOCKED_ON_ARCHITECT` · `PARKE
 | -- | ---- | ------ | ----- |
 | D-SK2.C | NotificationDeliveryPort + first adapter | **DONE** | `registration.approved` / `in_app` — [SK2_C_IMPLEMENTATION.md](./SK2_C_IMPLEMENTATION.md) |
 | D-SK3-FLAGS | `inAppRegistrationApprovedNotify` on TenantFeatureFlags | **DONE** | [SK3_FLAGS_IMPLEMENTATION.md](./SK3_FLAGS_IMPLEMENTATION.md) |
+| D-SK3-BP7 | Portal member plan tables + apply-plan webhook | **DONE** | `YES — IMPL-SK3-BP7` — [SK3_BP7_IMPLEMENTATION.md](./SK3_BP7_IMPLEMENTATION.md); MPS-ENT §5.2 |
+| D-SK4-OBJ | `TenantObjectStoragePort` + shared ACL | **DONE** | `YES — IMPL-SK4-OBJ` — policy `tenant-path-isolation` — [SK4_OBJ_IMPLEMENTATION.md](./SK4_OBJ_IMPLEMENTATION.md) |
 | D-* (rest) | Other `IMPL-SK*` rows | BLOCKED_ON_ARCHITECT | Unlock menu — not this continue |
 
 ## E — Explicit non-work
@@ -58,4 +60,4 @@ Status legend: `DONE` · `PARTIAL` · `OPEN` · `BLOCKED_ON_ARCHITECT` · `PARKE
 
 | ID | Item | Status |
 | -- | ---- | ------ |
-| F1 | Full monorepo `pnpm build` | OPEN until `YES — FULL-MONOREPO-BUILD` (WP4 deferred_clear) |
+| F1 | Full monorepo `pnpm build` | **DONE** — `YES — FULL-MONOREPO-BUILD` @ tip `e4e58665` (2026-07-21); `pnpm build` → `BUILD_EXIT=0` (~136s); `guard:artifact-surface` PASS; WP4 honesty gap closed |

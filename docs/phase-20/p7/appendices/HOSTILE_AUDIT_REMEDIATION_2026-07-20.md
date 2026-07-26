@@ -25,6 +25,7 @@ Closes findings from the Principal hostile retrospective (`PREV-AUD-001`…`016`
 - **`users` (no tenant column):** SELECT only when membership exists for current GUC tenant; INSERT/UPDATE/DELETE only via `DATABASE_URL_ADMIN` (identity admin client)
 - **`mobile_otp_challenges`:** no app_cloud policies (deny); OTP via admin client
 - **Platform catalog / domains:** already admin-client; FORCE RLS deny for `app_cloud`
+- **`tenants` (FORCE RLS, no `app_cloud` policy):** deny SELECT/DML for app role. Atomic tour create **must not** use Prisma `tenant: { connect }` (that SELECT fails → `P2025` / `RECORD_NOT_FOUND`). Use unchecked `tenantId` scalar — see [TOUR_CREATE_TENANTS_RLS_FK.md](./TOUR_CREATE_TENANTS_RLS_FK.md).
 
 ## Diagram
 

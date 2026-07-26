@@ -18,7 +18,7 @@ import {
   guardSettingsModulesAgainstBackend,
   logSettingsModuleUiDesync,
 } from "@/features/settings/settings-module-consistency-guard";
-import { ensureSettingsHubFallbackPolicy } from "@/bootstrap/workspace-settings-hub-fallback-bindings.generated";
+import { ensureSettingsHubFallbackPolicy } from "@/features/settings/settings-hub-fallback-registry";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import {
   SETTINGS_HUB_TEST_IDS,
@@ -27,10 +27,10 @@ import {
 
 export function SettingsHubClient({
   initialModules = null,
-  pluginId = "starter",
+  pluginId,
 }: {
   readonly initialModules?: SettingsModulesListResponse | null;
-  readonly pluginId?: string;
+  readonly pluginId: string;
 }) {
   const t = useTranslations("settings");
   const tErrors = useTranslations("settings.errors");

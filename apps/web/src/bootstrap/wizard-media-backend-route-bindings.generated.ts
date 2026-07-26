@@ -9,8 +9,8 @@ export type WizardMediaBackendPaths = {
   readonly signedUrl: string;
 };
 
-/** Manifest-driven mediaRouteKey → API backend proxy paths (server-only). */
-export const WIZARD_MEDIA_ROUTE_BACKEND_PATHS = Object.freeze({
+/** Manifest-driven mediaRouteKey → API backend proxy paths (private; Phase 4f). */
+const WIZARD_MEDIA_ROUTE_BACKEND_PATHS = Object.freeze({
   "wizard-photos": Object.freeze({
     upload: "/tours/wizard-photos",
     signedUrl: "/tours/wizard-photos/url",
@@ -19,4 +19,11 @@ export const WIZARD_MEDIA_ROUTE_BACKEND_PATHS = Object.freeze({
 
 export function isKnownWizardMediaRouteBackendKey(mediaRouteKey: string): boolean {
   return mediaRouteKey.trim() in WIZARD_MEDIA_ROUTE_BACKEND_PATHS;
+}
+
+/** Manifest backend paths for key, if declared. */
+export function lookupWizardMediaRouteBackendPaths(
+  mediaRouteKey: string
+): WizardMediaBackendPaths | undefined {
+  return WIZARD_MEDIA_ROUTE_BACKEND_PATHS[mediaRouteKey.trim()];
 }

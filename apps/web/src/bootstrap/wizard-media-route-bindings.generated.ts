@@ -4,11 +4,16 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-/** Manifest-driven mediaRouteKey → web BFF path (legacy alias or neutral). */
-export const WIZARD_MEDIA_ROUTE_BFF_PATHS = Object.freeze({
+/** Manifest-driven mediaRouteKey → web BFF path (private; Phase 4f). */
+const WIZARD_MEDIA_ROUTE_BFF_PATHS = Object.freeze({
   "wizard-photos": "/api/wizard-media/wizard-photos",
 }) as Readonly<Record<string, string>>;
 
 export function isKnownWizardMediaRouteBffKey(mediaRouteKey: string): boolean {
   return mediaRouteKey.trim() in WIZARD_MEDIA_ROUTE_BFF_PATHS;
+}
+
+/** Manifest BFF path for key, if declared. */
+export function lookupWizardMediaRouteBffPath(mediaRouteKey: string): string | undefined {
+  return WIZARD_MEDIA_ROUTE_BFF_PATHS[mediaRouteKey.trim()];
 }

@@ -1,5 +1,5 @@
 import { GeocodingProviderError, isProviderFailStatus } from "./geocoding-provider-error";
-import { searchIranMountainLandmarks } from "./iran-mountain-landmarks";
+import { searchIranMountainLandmarks } from "@app-tour/iran-mountain-landmarks";
 import { fetchMapIrSearch } from "./map-ir";
 import { fetchNeshanSearch } from "./neshan";
 import {

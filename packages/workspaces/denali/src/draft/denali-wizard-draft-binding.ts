@@ -3,9 +3,51 @@
 export const DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE = "operator.wizard" as const;
 export const DENALI_CREATE_TOUR_DRAFT_KEY = "denali-create" as const;
 
+/** Namespace + draftKey for Denali operator create-tour remote draft. */
+export type DenaliCreateTourRemoteDraftIdentity = {
+  readonly namespace: typeof DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE;
+  readonly draftKey: typeof DENALI_CREATE_TOUR_DRAFT_KEY;
+};
+
+export function denaliCreateTourRemoteDraftIdentity(): DenaliCreateTourRemoteDraftIdentity {
+  return {
+    namespace: DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
+    draftKey: DENALI_CREATE_TOUR_DRAFT_KEY,
+  };
+}
+
+/**
+ * Input for host `createCreateTourPostSubmitDiscardRemoteDraft` after successful create.
+ */
+export function buildDenaliCreateTourDiscardRemoteDraftInput(
+  workspaceId: string
+): DenaliCreateTourRemoteDraftIdentity & { readonly workspaceId: string } {
+  return {
+    workspaceId,
+    ...denaliCreateTourRemoteDraftIdentity(),
+  };
+}
+
+export const DENALI_CREATE_TOUR_SUPPORTS_CLONE = true as const;
+
 export function denaliEditTourDraftKey(tourId: string): string {
   const trimmed = tourId.trim();
   return trimmed.length > 0 ? `denali-edit:${trimmed}` : "denali-edit:unknown";
+}
+
+/** Namespace + per-tour draftKey for Denali operator flat-edit remote draft. */
+export type DenaliEditTourRemoteDraftIdentity = {
+  readonly namespace: typeof DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE;
+  readonly draftKey: string;
+};
+
+export function denaliEditTourRemoteDraftIdentity(
+  tourId: string
+): DenaliEditTourRemoteDraftIdentity {
+  return {
+    namespace: DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
+    draftKey: denaliEditTourDraftKey(tourId),
+  };
 }
 
 export type DenaliWizardDraftMeta = {
@@ -17,10 +59,38 @@ export type DenaliWizardDraftMeta = {
   readonly deletedRoots?: readonly string[];
 };
 
+/**
+ * Step-0 meta for create preset prefill, flat-edit envelope, and clone hydrate apply.
+ */
+export function buildDenaliWizardStepZeroMeta(wizardSessionId: string): DenaliWizardDraftMeta {
+  return { currentStepIndex: 0, wizardSessionId };
+}
+
+/**
+ * Step-0 + freshStart for seed prefill, clear-draft reset, and empty-draft reset.
+ */
+export function buildDenaliWizardFreshStartMeta(wizardSessionId: string): DenaliWizardDraftMeta {
+  return { currentStepIndex: 0, wizardSessionId, freshStart: true };
+}
+
 export type DenaliWizardDraftEnvelope<TForm> = {
   readonly form: TForm;
   readonly meta: DenaliWizardDraftMeta;
 };
+
+/**
+ * Clear-draft / fresh-start envelope: prepare with step-0 + `freshStart: true` meta.
+ */
+export function prepareDenaliCreateTourFreshStartEnvelope<TForm>(
+  prepareEnvelope: (
+    form: TForm,
+    meta: DenaliWizardDraftMeta
+  ) => DenaliWizardDraftEnvelope<TForm>,
+  form: TForm,
+  wizardSessionId: string
+): DenaliWizardDraftEnvelope<TForm> {
+  return prepareEnvelope(form, buildDenaliWizardFreshStartMeta(wizardSessionId));
+}
 
 function clientMetaFromInput(meta: DenaliWizardDraftMeta): DenaliWizardDraftMeta {
   return {

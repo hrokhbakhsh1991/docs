@@ -27,6 +27,38 @@ export const DENALI_EXPOSURE_SURFACE = Object.freeze({
 export type DenaliExposureSurface =
   (typeof DENALI_EXPOSURE_SURFACE)[keyof typeof DENALI_EXPOSURE_SURFACE];
 
+/**
+ * Operator settings UI order for Denali workspace surfaces (excludes `telegram`,
+ * which is owned by integrations delivery policy, not the surfaces panel).
+ */
+export const DENALI_OPERATOR_SETTINGS_SURFACE_DISPLAY_ORDER = Object.freeze([
+  DENALI_EXPOSURE_SURFACE.publicList,
+  DENALI_EXPOSURE_SURFACE.publicDetails,
+  DENALI_EXPOSURE_SURFACE.userDashboard,
+  DENALI_EXPOSURE_SURFACE.reminderFeed,
+] as const);
+
+export function compareDenaliOperatorSettingsSurfaces(
+  leftSurface: string,
+  rightSurface: string
+): number {
+  const order = DENALI_OPERATOR_SETTINGS_SURFACE_DISPLAY_ORDER as readonly string[];
+  const leftIndex = order.indexOf(leftSurface);
+  const rightIndex = order.indexOf(rightSurface);
+  return (
+    (leftIndex === -1 ? Number.MAX_SAFE_INTEGER : leftIndex) -
+    (rightIndex === -1 ? Number.MAX_SAFE_INTEGER : rightIndex)
+  );
+}
+
+export function sortDenaliOperatorSettingsSurfaces<T extends { readonly surface: string }>(
+  surfaces: readonly T[]
+): T[] {
+  return [...surfaces].sort((left, right) =>
+    compareDenaliOperatorSettingsSurfaces(left.surface, right.surface)
+  );
+}
+
 export const DENALI_EXPOSURE_AUDIENCE = Object.freeze({
   externalChannel: "external_channel",
   public: "public",

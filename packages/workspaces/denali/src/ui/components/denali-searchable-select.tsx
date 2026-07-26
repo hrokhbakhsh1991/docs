@@ -161,7 +161,7 @@ export function DenaliSearchableSelect({
       ref={rootRef}
       className={cn("denali-searchable-select", className)}
       data-testid={testId}
-      data-denali-searchable-select
+      data-operator-searchable-select
     >
       <button
         id={fieldId}

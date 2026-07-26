@@ -17,6 +17,7 @@ import type {
   FinanceReceiptRow,
   FinanceRepositoryPort,
   FinanceSummaryRow,
+  FinanceTourPaymentAggregateRow,
   PrepaymentBookingSyncDegradedRow,
   RecordPrepaymentAtomicInput,
   RegistrationInvoiceFacts,
@@ -96,6 +97,10 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
 
   async listPayments(tenantId: string, limit: number): Promise<FinancePaymentRow[]> {
     return [...paymentsById.values()].filter((row) => row.tenantId === tenantId).slice(0, limit);
+  }
+
+  async listPaymentsByTourAggregate(): Promise<readonly FinanceTourPaymentAggregateRow[]> {
+    return [];
   }
 
   async listLedgerEvents(tenantId: string, limit: number): Promise<FinanceLedgerOutboxRow[]> {

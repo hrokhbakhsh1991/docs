@@ -170,6 +170,16 @@ export type IdentityRepository = {
     userId: string,
     avatar: OperatorMembershipAvatar | null
   ): Promise<IdentityMembershipRecord>;
+  updateMembershipPortalEntitlements(
+    tenantId: string,
+    userId: string,
+    patch: {
+      readonly portalModuleGrants: readonly string[];
+      readonly portalPlanCode: string;
+      readonly portalCapabilityFlags: Readonly<Record<string, boolean>>;
+      readonly portalEntitlementsRevision: number;
+    }
+  ): Promise<IdentityMembershipRecord>;
   transferWorkspaceOwnership(
     tenantId: string,
     previousOwnerUserId: string,
@@ -635,6 +645,32 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     }
     const updated: IdentityMembershipRecord =
       avatar === null ? (({ avatar: _removed, ...rest }) => rest)({ ...row }) : { ...row, avatar };
+    this.memberships.set(key, updated);
+    return updated;
+  }
+
+  async updateMembershipPortalEntitlements(
+    tenantId: string,
+    userId: string,
+    patch: {
+      readonly portalModuleGrants: readonly string[];
+      readonly portalPlanCode: string;
+      readonly portalCapabilityFlags: Readonly<Record<string, boolean>>;
+      readonly portalEntitlementsRevision: number;
+    }
+  ): Promise<IdentityMembershipRecord> {
+    const key = membershipKey(userId, tenantId);
+    const row = this.memberships.get(key);
+    if (row === undefined) {
+      throw new MembershipNotFoundError(userId);
+    }
+    const updated: IdentityMembershipRecord = {
+      ...row,
+      portalModuleGrants: [...patch.portalModuleGrants],
+      portalPlanCode: patch.portalPlanCode,
+      portalCapabilityFlags: { ...patch.portalCapabilityFlags },
+      portalEntitlementsRevision: patch.portalEntitlementsRevision,
+    };
     this.memberships.set(key, updated);
     return updated;
   }

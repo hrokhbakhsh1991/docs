@@ -44,26 +44,26 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-conte
   transition: width 180ms ease;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review {
   display: flex;
   flex-direction: column;
   gap: var(--space-5, 1.25rem);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__intro {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__intro {
   margin: 0;
   font-size: 0.875rem;
   line-height: 1.55;
   color: var(--color-text-secondary);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__status {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__status {
   margin: 0;
   font-size: 0.875rem;
   color: var(--color-text-muted);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__hero {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__hero {
   display: grid;
   gap: var(--space-4, 1rem);
   padding: 0;
@@ -75,24 +75,24 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__hero
 }
 
 @media (min-width: 640px) {
-  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__hero {
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__hero {
     grid-template-columns: minmax(9rem, 11rem) minmax(0, 1fr);
     align-items: stretch;
   }
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__hero-media {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__hero-media {
   min-height: 7rem;
   background: color-mix(in oklch, var(--color-bg-muted) 70%, var(--color-bg-surface));
 }
 
 @media (min-width: 640px) {
-  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__hero-media {
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__hero-media {
     min-height: 100%;
   }
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__hero-cover {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__hero-cover {
   display: block;
   width: 100%;
   height: 100%;
@@ -105,13 +105,13 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__hero
 }
 
 @media (min-width: 640px) {
-  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__hero-cover {
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__hero-cover {
     min-height: 100%;
     max-height: none;
   }
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__hero-content {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__hero-content {
   display: flex;
   flex-direction: column;
   gap: var(--space-3, 0.75rem);
@@ -123,13 +123,13 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__hero
   );
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__hero-badges {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__hero-badges {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2, 0.5rem);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__badge {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__badge {
   display: inline-flex;
   align-items: center;
   padding: 0.2rem 0.65rem;
@@ -142,7 +142,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__badg
   line-height: 1.35;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__hero-title {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__hero-title {
   margin: 0;
   font-size: 1.375rem;
   font-weight: 700;
@@ -151,7 +151,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__hero
   color: var(--color-text-primary);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__hero-meta {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__hero-meta {
   display: flex;
   flex-direction: column;
   gap: var(--space-1, 0.25rem);
@@ -161,13 +161,13 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__hero
   color: var(--color-text-secondary);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__sections {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__sections {
   display: flex;
   flex-direction: column;
   gap: var(--space-4, 1rem);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__section {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__section {
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg, 0.75rem);
   background: var(--color-bg-surface);
@@ -175,7 +175,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__sect
   box-shadow: var(--denali-shadow-card, 0 1px 2px rgb(15 23 42 / 0.04));
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__section-title {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__section-title {
   margin: 0;
   font-size: 0.9375rem;
   font-weight: 700;
@@ -183,7 +183,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__sect
   color: var(--color-text-primary);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__section-header {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -193,7 +193,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__sect
   background: color-mix(in oklch, var(--color-bg-muted) 55%, var(--color-bg-surface));
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__section-edit {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__section-edit {
   flex-shrink: 0;
   padding: 0.35rem 0.75rem;
   border: 1px solid var(--color-border-default);
@@ -210,42 +210,42 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__sect
     border-color 0.15s ease;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__section-edit:hover {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__section-edit:hover {
   border-color: color-mix(in oklch, var(--color-primary) 35%, var(--color-border-default));
   background: color-mix(in oklch, var(--color-primary) 6%, var(--color-bg-surface));
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__section-edit:focus-visible {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__section-edit:focus-visible {
   outline: 2px solid var(--color-focus-ring, var(--color-primary));
   outline-offset: 2px;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__section-body {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__section-body {
   display: flex;
   flex-direction: column;
   gap: var(--space-4, 1rem);
   padding: var(--space-4, 1rem);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__grid {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__grid {
   display: grid;
   gap: var(--space-3, 0.75rem);
   margin: 0;
 }
 
 @media (min-width: 640px) {
-  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__grid {
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__grid {
     grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr);
     column-gap: var(--space-4, 1rem);
     row-gap: var(--space-3, 0.75rem);
   }
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__row {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__row {
   display: contents;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__term {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__term {
   margin: 0;
   font-size: 0.8125rem;
   font-weight: 600;
@@ -253,7 +253,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__term
   color: var(--color-text-muted);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__value {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__value {
   margin: 0;
   font-size: 0.9375rem;
   font-weight: 500;
@@ -262,11 +262,11 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__valu
   word-break: break-word;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__value--multiline {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__value--multiline {
   white-space: pre-wrap;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__chips {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__chips {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2, 0.5rem);
@@ -275,7 +275,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__chip
   list-style: none;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__chip {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__chip {
   display: inline-flex;
   align-items: center;
   padding: 0.35rem 0.75rem;
@@ -288,13 +288,13 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__chip
   color: var(--color-text-primary);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__cards {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__cards {
   display: grid;
   gap: var(--space-2, 0.5rem);
   grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__card {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__card {
   display: flex;
   flex-direction: column;
   gap: var(--space-1, 0.25rem);
@@ -304,12 +304,12 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__card
   background: color-mix(in oklch, var(--color-bg-muted) 35%, var(--color-bg-surface));
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__card--self {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__card--self {
   border-style: dashed;
   background: var(--color-bg-surface);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__card-title {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__card-title {
   margin: 0;
   font-size: 0.875rem;
   font-weight: 600;
@@ -317,7 +317,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__card
   color: var(--color-text-primary);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__card-body {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__card-body {
   margin: 0;
   font-size: 0.8125rem;
   line-height: 1.45;
@@ -325,7 +325,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__card
   white-space: pre-wrap;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__card-meta {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__card-meta {
   margin: 0;
   font-size: 0.75rem;
   font-weight: 600;
@@ -333,29 +333,29 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__card
   color: var(--color-primary);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__card-meta--muted {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__card-meta--muted {
   color: var(--color-text-muted);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__photo-grid {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__photo-grid {
   display: grid;
   gap: var(--space-3, 0.75rem);
   grid-template-columns: minmax(0, 1fr);
 }
 
 @media (min-width: 640px) {
-  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__photo-grid {
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__photo-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 960px) {
-  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__photo-grid {
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__photo-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__photo-card {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__photo-card {
   display: flex;
   flex-direction: column;
   gap: var(--space-2, 0.5rem);
@@ -366,7 +366,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__phot
   background: color-mix(in oklch, var(--color-bg-muted) 30%, var(--color-bg-surface));
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__photo-img {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__photo-img {
   display: block;
   aspect-ratio: 4 / 3;
   width: 100%;
@@ -376,7 +376,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__phot
   background: var(--color-bg-muted);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__photo-caption {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__photo-caption {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -386,12 +386,12 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__phot
   line-height: 1.4;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__photo-label {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__photo-label {
   font-weight: 600;
   color: var(--color-text-primary);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__photo-day {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__photo-day {
   padding: 0.1rem 0.45rem;
   border-radius: 999px;
   border: 1px solid var(--color-border-subtle);
@@ -401,7 +401,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__phot
   color: var(--color-text-muted);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__photo-fallback {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__photo-fallback {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -415,14 +415,14 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__phot
   text-align: center;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__photo-fallback-text {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__photo-fallback-text {
   margin: 0;
   font-size: 0.75rem;
   line-height: 1.45;
   color: var(--color-text-muted);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__gear-list {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__gear-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-2, 0.5rem);
@@ -431,7 +431,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__gear
   list-style: none;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__gear-item {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__gear-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -442,27 +442,27 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__gear
   background: var(--color-bg-surface);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__gear-main {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__gear-main {
   display: flex;
   align-items: center;
   gap: var(--space-2, 0.5rem);
   min-width: 0;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__gear-avatar {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__gear-avatar {
   width: 2rem;
   height: 2rem;
   font-size: 0.75rem;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__gear-name {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__gear-name {
   font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.4;
   color: var(--color-text-primary);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__gear-badge {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__gear-badge {
   flex-shrink: 0;
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
@@ -471,19 +471,19 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__gear
   line-height: 1.35;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__gear-badge--required {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__gear-badge--required {
   border: 1px solid color-mix(in oklch, var(--color-primary) 30%, var(--color-border-default));
   background: color-mix(in oklch, var(--color-primary) 8%, var(--color-bg-surface));
   color: var(--color-primary);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__gear-badge--optional {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__gear-badge--optional {
   border: 1px solid var(--color-border-subtle);
   background: var(--color-bg-muted);
   color: var(--color-text-muted);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__publish {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__publish {
   margin-top: var(--space-2, 0.5rem);
   padding: var(--space-4, 1rem);
   border: 1px solid var(--color-border-default);
@@ -492,8 +492,8 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review__publ
 }
 
 /* Review validation — grouped issues with jump-to-step links */
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation,
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard__step-validation .denali-review-validation {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation,
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard__step-validation .operator-review-validation {
   display: flex;
   flex-direction: column;
   gap: var(--space-4, 1rem);
@@ -504,13 +504,13 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard__s
   box-shadow: var(--denali-shadow-card, 0 1px 2px rgb(15 23 42 / 0.04));
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__header {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__header {
   display: flex;
   align-items: flex-start;
   gap: var(--space-3, 0.75rem);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__icon {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__icon {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
@@ -522,14 +522,14 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-valid
   color: var(--color-danger);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__header-text {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__header-text {
   display: flex;
   flex-direction: column;
   gap: var(--space-1, 0.25rem);
   min-width: 0;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__heading {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__heading {
   margin: 0;
   font-size: 0.9375rem;
   font-weight: 700;
@@ -537,7 +537,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-valid
   color: var(--color-text-primary);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__count {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__count {
   margin: 0;
   font-size: 0.8125rem;
   line-height: 1.45;
@@ -545,20 +545,20 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-valid
   font-weight: 600;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__groups {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__groups {
   display: flex;
   flex-direction: column;
   gap: var(--space-3, 0.75rem);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__group {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__group {
   overflow: hidden;
   border: 1px solid color-mix(in oklch, var(--color-danger) 22%, var(--color-border-default));
   border-radius: var(--radius-md, 0.375rem);
   background: var(--color-bg-surface);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__group-title {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__group-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -578,33 +578,33 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-valid
   transition: background-color 0.15s ease;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__group-title:hover {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__group-title:hover {
   background: color-mix(in oklch, var(--color-primary) 6%, var(--color-bg-surface));
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__group-title:focus-visible {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__group-title:focus-visible {
   outline: 2px solid var(--color-focus-ring, var(--color-primary));
   outline-offset: -2px;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__group-label {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__group-label {
   min-width: 0;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__group-chevron {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__group-chevron {
   flex-shrink: 0;
   width: 1rem;
   height: 1rem;
   color: var(--color-text-muted);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__issue-list {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__issue-list {
   margin: 0;
   padding: var(--space-2, 0.5rem);
   list-style: none;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__issue-link {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__issue-link {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
@@ -620,23 +620,23 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-valid
   transition: background-color 0.15s ease;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__issue-link:hover {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__issue-link:hover {
   background: color-mix(in oklch, var(--color-primary) 8%, var(--color-bg-surface));
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__issue-link:focus-visible {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__issue-link:focus-visible {
   outline: 2px solid var(--color-focus-ring, var(--color-primary));
   outline-offset: 0;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__issue-field {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__issue-field {
   font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.4;
   color: var(--color-text-primary);
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-review-validation__issue-message {
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review-validation__issue-message {
   font-size: 0.8125rem;
   line-height: 1.45;
   color: var(--color-danger);

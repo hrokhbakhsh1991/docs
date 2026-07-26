@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 
 import { OperatorWelcomeGate } from "@/admin/onboarding/operator-welcome-gate";
 import { OPERATOR_WIZARD_PATH } from "@/admin/require-operator-session";
@@ -14,6 +15,7 @@ import { DashboardRegistrationsWidget } from "@/admin/dashboard/dashboard-regist
 import { DashboardToursWidget } from "@/admin/dashboard/dashboard-tours-widget";
 import type { DashboardServerPrefetch } from "@/admin/dashboard/dashboard-widgets-logic";
 import { shouldShowFinanceDashboardWidget } from "@/finance/finance-dashboard-widget-logic";
+import { ensureFinanceNavSupported } from "@/finance/finance-nav-enablement";
 import { FinanceDashboardWidget } from "@/finance/finance-dashboard-widget";
 import { useTenantBrandTitle } from "@/tenant/tenant-branding-context";
 import { cn } from "@/lib/utils";
@@ -33,7 +35,19 @@ export function DashboardPageClient({
 }: DashboardPageClientProps) {
   const t = useTranslations("dashboard");
   const brandName = useTenantBrandTitle();
-  const showFinanceWidget = shouldShowFinanceDashboardWidget(pluginId, role);
+  const [showFinanceWidget, setShowFinanceWidget] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void ensureFinanceNavSupported(pluginId).then(() => {
+      if (!cancelled) {
+        setShowFinanceWidget(shouldShowFinanceDashboardWidget(pluginId, role));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pluginId, role]);
 
   return (
     <section data-operator-dashboard className="space-y-6">

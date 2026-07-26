@@ -83,7 +83,7 @@ Production: real OTP from `createMobileOtpChallenge` (SMS/log per `otp-delivery.
 
 | File | Role |
 | ---- | ---- |
-| `apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx` | Step machine |
+| `apps/portal/src/catalog/public-catalog-registration-flow.tsx` | Step machine |
 | `apps/portal/app/api/public-auth/*` | BFF → `apps/api` `/public/auth/*` |
 | `apps/api/src/identity/public-auth.routes.ts` | verify + register-complete |
 | `apps/api/src/identity/otp.service.ts` | dev static `1234` |

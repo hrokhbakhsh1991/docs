@@ -41,13 +41,13 @@ describe("denali-flat-edit-sync-chrome.spec.ts — Phase 5B", () => {
       "utf8"
     );
     assert.match(flatEdit, /navLocked=\{readyCore\.draftSync\.navLocked\}/);
-    assert.match(formShim, /workspace-wizard-flat-edit-form-bindings\.generated/);
+    assert.match(formShim, /wizard-flat-edit-form-registry/);
     assert.match(form, /fieldset disabled=\{navLocked\}/);
   });
 
   it("WEB-P11-SYMM-04 flat-edit wires schemaGate like create-tour", () => {
     const flatEditHook = readWebSource("src/wizard/use-flat-edit-page.ts");
-    assert.match(flatEditHook, /createOperatorDraftSchemaGate/);
+    assert.match(flatEditHook, /createDraftSchemaGateForPlugin/);
     assert.match(flatEditHook, /schemaGate:\s*draftSchemaGate/);
   });
 

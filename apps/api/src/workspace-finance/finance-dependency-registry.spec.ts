@@ -26,13 +26,13 @@ const DENALI = "denali";
 const WS2 = FINANCE_WS2_WORKSPACE_TYPE;
 
 describe("finance-dependency-registry", { concurrency: false }, () => {
-  it("FIN-REG-01 denali resolves DenaliFinanceLedgerPolicyAdapter", () => {
-    const policy = resolveFinanceLedgerPolicy(DENALI);
+  it("FIN-REG-01 denali resolves DenaliFinanceLedgerPolicyAdapter", async () => {
+    const policy = await resolveFinanceLedgerPolicy(DENALI);
     assert.ok(policy instanceof DenaliFinanceLedgerPolicyAdapter);
   });
 
-  it("FIN-REG-02 denali receipt defaults match prior offline literals (IRR / 2500000)", () => {
-    const defaults = resolveFinanceReceiptDefaults(DENALI);
+  it("FIN-REG-02 denali receipt defaults match prior offline literals (IRR / 2500000)", async () => {
+    const defaults = await resolveFinanceReceiptDefaults(DENALI);
     assert.ok(defaults instanceof DenaliFinanceReceiptDefaultsAdapter);
     assert.deepEqual(defaults.offlineReceiptPaymentDefaults(), {
       amountMinor: "2500000",
@@ -60,8 +60,8 @@ describe("finance-dependency-registry", { concurrency: false }, () => {
     }
   });
 
-  it("FIN-REG-04 unknown workspaceType fails clearly for ledger policy", () => {
-    assert.throws(
+  it("FIN-REG-04 unknown workspaceType fails clearly for ledger policy", async () => {
+    await assert.rejects(
       () => resolveFinanceLedgerPolicy("urban"),
       (error: unknown) =>
         error instanceof Error &&
@@ -70,8 +70,8 @@ describe("finance-dependency-registry", { concurrency: false }, () => {
     );
   });
 
-  it("FIN-REG-05 unknown workspaceType fails clearly for receipt defaults", () => {
-    assert.throws(
+  it("FIN-REG-05 unknown workspaceType fails clearly for receipt defaults", async () => {
+    await assert.rejects(
       () => resolveFinanceReceiptDefaults("not-a-workspace"),
       (error: unknown) =>
         error instanceof Error &&
@@ -79,21 +79,21 @@ describe("finance-dependency-registry", { concurrency: false }, () => {
     );
   });
 
-  it("FIN-REG-06 empty workspaceType fails with FINANCE_WORKSPACE_TYPE_REQUIRED", () => {
-    assert.throws(
+  it("FIN-REG-06 empty workspaceType fails with FINANCE_WORKSPACE_TYPE_REQUIRED", async () => {
+    await assert.rejects(
       () => resolveFinanceLedgerPolicy("   "),
       (error: unknown) =>
         error instanceof Error && error.message.startsWith("FINANCE_WORKSPACE_TYPE_REQUIRED:")
     );
-    assert.throws(
+    await assert.rejects(
       () => resolveFinanceReceiptDefaults(""),
       (error: unknown) =>
         error instanceof Error && error.message.startsWith("FINANCE_WORKSPACE_TYPE_REQUIRED:")
     );
   });
 
-  it("FIN-REG-07 denali ledger capture domainEventId formula unchanged", () => {
-    const policy = resolveFinanceLedgerPolicy(DENALI);
+  it("FIN-REG-07 denali ledger capture domainEventId formula unchanged", async () => {
+    const policy = await resolveFinanceLedgerPolicy(DENALI);
     const paymentId = "11111111-1111-4111-8111-111111111111";
     const capture = policy.buildPaymentCaptureJournal({
       tenantId: "00000000-0000-4000-8000-000000000001",
@@ -106,26 +106,26 @@ describe("finance-dependency-registry", { concurrency: false }, () => {
     assert.equal(capture.domainEventId, `payment:${paymentId}:ledger-capture-anchor`);
   });
 
-  it("FIN-REG-08 finance-ws2 resolves WS2 adapters (not Denali)", () => {
-    const policy = resolveFinanceLedgerPolicy(WS2);
-    const defaults = resolveFinanceReceiptDefaults(WS2);
+  it("FIN-REG-08 finance-ws2 resolves WS2 adapters (not Denali)", async () => {
+    const policy = await resolveFinanceLedgerPolicy(WS2);
+    const defaults = await resolveFinanceReceiptDefaults(WS2);
     assert.ok(policy instanceof FinanceWs2LedgerPolicyAdapter);
     assert.ok(defaults instanceof FinanceWs2ReceiptDefaultsAdapter);
     assert.ok(!(policy instanceof DenaliFinanceLedgerPolicyAdapter));
     assert.ok(!(defaults instanceof DenaliFinanceReceiptDefaultsAdapter));
   });
 
-  it("FIN-REG-09 finance-ws2 receipt defaults are USD / 10000 (not Denali IRR)", () => {
-    assert.deepEqual(resolveFinanceReceiptDefaults(WS2).offlineReceiptPaymentDefaults(), {
+  it("FIN-REG-09 finance-ws2 receipt defaults are USD / 10000 (not Denali IRR)", async () => {
+    assert.deepEqual((await resolveFinanceReceiptDefaults(WS2)).offlineReceiptPaymentDefaults(), {
       amountMinor: "10000",
       currency: "USD",
     });
   });
 
-  it("FIN-REG-10 finance-ws2 capture uses WS2 CoA — no Denali account leakage", () => {
+  it("FIN-REG-10 finance-ws2 capture uses WS2 CoA — no Denali account leakage", async () => {
     const registrationId = "33333333-3333-4333-8333-333333333333";
     const paymentId = "44444444-4444-4444-8444-444444444444";
-    const capture = resolveFinanceLedgerPolicy(WS2).buildPaymentCaptureJournal({
+    const capture = (await resolveFinanceLedgerPolicy(WS2)).buildPaymentCaptureJournal({
       tenantId: "00000000-0000-4000-8000-000000000001",
       registrationId,
       paymentId,

@@ -99,12 +99,12 @@ function renderAutomaticDeliveryFieldLines(payload: Record<string, unknown>): st
   return lines.length > 0 ? lines.join("\n") : null;
 }
 
-function renderSurfaceHeaderTemplate(input: {
+async function renderSurfaceHeaderTemplate(input: {
   readonly workspaceType: string | null;
   readonly eventType: string;
   readonly payload: Record<string, unknown>;
-}): string {
-  const surface = resolveIntegrationSurfaceForWorkspaceType(input.workspaceType);
+}): Promise<string> {
+  const surface = await resolveIntegrationSurfaceForWorkspaceType(input.workspaceType);
   const template =
     surface?.messageTemplates?.[input.eventType] ?? `${input.eventType}: {{title}}`;
   return template
@@ -117,10 +117,10 @@ function renderSurfaceHeaderTemplate(input: {
  * Resolves `{{field:<canonicalId>}}` placeholders against delivery-eligible field policy metadata.
  * Non-eligible or absent field ids redact to an empty string — field policy is the only gate.
  */
-export function applyFieldPolicyPlaceholders(
+export async function applyFieldPolicyPlaceholders(
   template: string,
   payload: Record<string, unknown>,
-): string {
+): Promise<string> {
   if (!template.includes("{{field:")) {
     return template;
   }
@@ -136,11 +136,11 @@ export function applyFieldPolicyPlaceholders(
   });
 }
 
-export function formatIntegrationDeliveryMessage(input: {
+export async function formatIntegrationDeliveryMessage(input: {
   readonly workspaceType: string | null;
   readonly eventType: string;
   readonly payload: Record<string, unknown>;
-}): string {
+}): Promise<string> {
   const overrideTemplate =
     typeof input.payload.integrationDeliveryMessageTemplate === "string" &&
     input.payload.integrationDeliveryMessageTemplate.trim().length > 0
@@ -148,7 +148,8 @@ export function formatIntegrationDeliveryMessage(input: {
       : null;
 
   if (overrideTemplate !== null) {
-    return applyFieldPolicyPlaceholders(overrideTemplate, input.payload)
+    const resolved = await applyFieldPolicyPlaceholders(overrideTemplate, input.payload);
+    return resolved
       .replaceAll("{{title}}", resolveDeliveryTitle(input.payload))
       .replaceAll("{{aggregateId}}", resolveDeliveryAggregateId(input.payload))
       .replaceAll("{{eventType}}", input.eventType);
@@ -156,16 +157,16 @@ export function formatIntegrationDeliveryMessage(input: {
 
   const automaticFieldLines = renderAutomaticDeliveryFieldLines(input.payload);
   if (automaticFieldLines !== null) {
-    const header = renderSurfaceHeaderTemplate(input);
+    const header = await renderSurfaceHeaderTemplate(input);
     return `${header}\n${automaticFieldLines}`;
   }
 
+  const surface = await resolveIntegrationSurfaceForWorkspaceType(input.workspaceType);
   const template =
-    resolveIntegrationSurfaceForWorkspaceType(input.workspaceType)?.messageTemplates?.[
-      input.eventType
-    ] ?? "{{eventType}}: {{title}}";
+    surface?.messageTemplates?.[input.eventType] ?? "{{eventType}}: {{title}}";
 
-  return applyFieldPolicyPlaceholders(template, input.payload)
+  const resolved = await applyFieldPolicyPlaceholders(template, input.payload);
+  return resolved
     .replaceAll("{{title}}", resolveDeliveryTitle(input.payload))
     .replaceAll("{{aggregateId}}", resolveDeliveryAggregateId(input.payload))
     .replaceAll("{{eventType}}", input.eventType);

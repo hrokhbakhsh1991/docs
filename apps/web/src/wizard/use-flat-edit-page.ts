@@ -25,18 +25,19 @@ import {
 import { useAppSession } from "@/providers/app-session-context";
 import { useWorkspaceIntegrationRuntimeState } from "@/integrations/use-workspace-integration-runtime-state";
 import {
-  createOperatorDraftSchemaGate,
-  createOperatorWizardDraftSessionId,
-  resolveOperatorDraftMerge,
-} from "./draft-shell-runtime";
+  createDraftSchemaGateForPlugin,
+  createWizardDraftSessionIdForPlugin,
+  resolveDraftMergeForPlugin,
+  resolveEditTourDraftIdentityForPlugin,
+} from "./wizard-draft-shell";
 import {
   buildWizardStepZeroMeta,
   editTourRemoteDraftIdentity,
-} from "./host-adapter-runtime";
+} from "./wizard-host-adapter-registry";
 import {
   loadOperatorSubmitCatalogIds,
   useOperatorFlatEditPageCore,
-} from "./wizard-chrome-runtime";
+} from "./wizard-flat-edit-chrome-registry";
 import type { OperatorFlatEditPageIo } from "./operator-flat-edit-page-io";
 import { webOperatorFlatEditPageIo } from "./web-operator-flat-edit-page-io";
 
@@ -67,14 +68,19 @@ export function useOperatorFlatEditPage({
 } {
   const appSession = useAppSession();
   const router = useRouter();
-  const wizardSessionId = useMemo(() => createOperatorWizardDraftSessionId(), []);
+  const wizardSessionId = useMemo(
+    () => createWizardDraftSessionIdForPlugin(plugin),
+    [plugin]
+  );
   const editTourDraftIdentity = useMemo(
-    () => editTourRemoteDraftIdentity(tourId),
-    [tourId]
+    () =>
+      resolveEditTourDraftIdentityForPlugin(plugin, tourId) ??
+      editTourRemoteDraftIdentity(plugin.id, tourId),
+    [plugin, tourId]
   );
   const envelopeMeta = useMemo(
-    () => buildWizardStepZeroMeta(wizardSessionId),
-    [wizardSessionId]
+    () => buildWizardStepZeroMeta(plugin.id, wizardSessionId),
+    [plugin.id, wizardSessionId]
   );
   const draftSchemaGateRef = useRef<DraftSchemaGate<NewTourWizardDraftEnvelope> | null>(null);
   const draftSchemaGate = useMemo(
@@ -82,7 +88,7 @@ export function useOperatorFlatEditPage({
     []
   );
 
-  const draftMergeFn = resolveOperatorDraftMerge(resolveDraftUnificationV3Mode());
+  const draftMergeFn = resolveDraftMergeForPlugin(plugin, resolveDraftUnificationV3Mode());
 
   const draftSync = useWorkspaceDraft<NewTourWizardDraftEnvelope>({
     workspaceId: appSession.workspaceId,
@@ -93,7 +99,7 @@ export function useOperatorFlatEditPage({
       ? (local, server) =>
           draftMergeFn(local as never, server as never) as NewTourWizardDraftEnvelope
       : undefined,
-    onPushSuccess: createOperatorDraftOnPushSuccess(),
+    onPushSuccess: createOperatorDraftOnPushSuccess(plugin),
     schemaGate: draftSchemaGate,
     normalizeRemote: (envelope) => normalizeWizardRemoteEnvelopeForPlugin(plugin, envelope),
   });
@@ -107,7 +113,7 @@ export function useOperatorFlatEditPage({
       .loadWizardTemplatePayload()
       .then((payload) => {
         if (!cancelled) {
-          setGate(resolveWizardTemplateGateState(payload, session.pluginId));
+          setGate(resolveWizardTemplateGateState(payload, session.pluginId, plugin));
         }
       })
       .catch(() => {
@@ -120,7 +126,7 @@ export function useOperatorFlatEditPage({
     return () => {
       cancelled = true;
     };
-  }, [io, session.pluginId]);
+  }, [io, session.pluginId, plugin]);
 
   const loadTourBaseline = useCallback(
     async (loadTourId: string) => io.loadTourBaseline({ tourId: loadTourId, plugin }),
@@ -136,6 +142,11 @@ export function useOperatorFlatEditPage({
     router.refresh();
   }, [router]);
 
+  const loadSubmitCatalog = useCallback(
+    (...args: never[]) => loadOperatorSubmitCatalogIds(plugin.id, ...args),
+    [plugin.id]
+  );
+
   const core = useOperatorFlatEditPageCore({
     tourId,
     tenantId: session.tenantId,
@@ -149,11 +160,11 @@ export function useOperatorFlatEditPage({
     wizardSessionId,
     loadTourBaseline,
     updateTour,
-    loadSubmitCatalog: loadOperatorSubmitCatalogIds,
+    loadSubmitCatalog,
     onAfterPatchSuccess,
   } as unknown as Parameters<typeof useOperatorFlatEditPageCore>[0]) as OperatorFlatEditPageCoreState;
 
   return { ...core, draftSyncEngine: draftSync };
 }
 
-export { createOperatorDraftSchemaGate };
+export { createDraftSchemaGateForPlugin };

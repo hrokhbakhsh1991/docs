@@ -88,7 +88,7 @@ Each row is one future `--check --domain=<id>` boundary. Keys match `generateAll
 | --------- | ----------- | ------------------- |
 | `core-registry` | `sdk`, `api`, `web` | workspace-sdk bindings, API plugin registry, web plugin loaders |
 | `tour-api` | `tourWrite`, `canonicalTour`, `outbox` | apps/api tours + workspace outbox |
-| `wizard-admin` | `wizardMedia`, `wizardMediaRoutes`, `wizardMediaBackendRoutes`, `wizardSurfaces`, `wizardLabels`, `wizardI18nTranslators`, `workspaceWizardMessages`, `wizardCloneRemint`, `wizardCreate`, `wizardTemplateEditorBindings`, `marketingCatalogBindings`, `settingsDestinationBindings`, `settingsEquipmentUiBindings`, `tourActionSubmitBindings`, `photoUploadErrorsBindings`, `tourListCategoryBindings`, `operatorUiComponentsBindings`, `wizardDraftUnificationBindings`, `wizardRulesBindings`, `wizardTemplatePresetBindings`, `wizardDraftShellBindings`, `wizardCreateChromeBindings`, `wizardFlatEditChromeBindings`, `wizardFlatEditFormBindings`, `wizardFlatEditPageBindings`, `wizardCreateViewBindings`, `wizardCompositeRegistryBindings`, `settingsHubFallbackBindings` | apps/web bootstrap |
+| `wizard-admin` | `wizardMedia`, `wizardMediaRoutes`, `wizardMediaBackendRoutes`, `wizardI18nTranslators` (Phase 4bh: translators = **namespace allowlist only** — no product `useTranslations` in generated hooks), `workspaceWizardMessages`, `wizardCloneRemint`, `marketingCatalogBindings` (Phase 4ag–4bb: settings-* UI binders removed; Phase 4bg: **wizardCreate** removed; opaque media route tables retained per §2.4; API `apiWizardRules` remains) | apps/web bootstrap |
 | `theme` | `themeStylesheets`, `guestThemeStylesheetsPortal`, `guestThemeStylesheetsMarketing` | web / portal / marketing theme loaders |
 | `guest-catalog` | `catalogPaths`, `catalogListFeatures`, `catalogDetailSections`, `guestConformance`, `productionCertification`, `guestSeo`, `guestLanding`, `guestCrossSurfaceNav` | workspace-sdk catalog + guest-surface-host |
 | `registration` | `workspaceIntakePlugins`, `registrationFlowPlugins`, `registrationTransportInitializers` | workspace-plugin-host |
@@ -96,7 +96,9 @@ Each row is one future `--check --domain=<id>` boundary. Keys match `generateAll
 | `http` | `httpRoutes`, `httpHandlerLoaders`, `httpErrorMap` | apps/api http + middleware |
 | `settings-api` | `settingsEnrichers`, `devBootstrap` | apps/api settings |
 | `dev` | `devPluginIds` | guest-surface-host dev map |
-| `operator` | `operatorCapabilities` | workspace-sdk operator |
+| `operator` | `operatorCapabilities`, `ownerSettingsPanelLoaders`, `workspaceCommerceFreeze` (Phase 4bc: **operatorShellNav** removed — capability owns Phase 3 links) | workspace-sdk operator + web bootstrap |
+| `finance` | `workspaceFinance`, `workspaceFinanceCapabilities`, `workspaceFinanceOps` (API), … (Phase 4bd: **workspaceFinanceNav** removed; Phase 4be: **web finance-ops binder** removed — `capabilities.financeOps` owns hub panels resolve) | API finance + web via capability |
+| `booking` | `workspaceBooking`, `workspaceBookingCapabilities`, `workspaceBookingDependencies`, `workspaceBookingEventReactions` (Phase 4bf: **workspaceBookingOps** web binder removed — `capabilities.bookingOps` owns hub resolve) | API booking + web via capability |
 
 ## Pre-emit validation (shared)
 
@@ -198,10 +200,45 @@ Orchestrator imports the above; entry script re-exports test-facing symbols. **~
 | `domains/operator.mjs` | `generateWorkspaceOperatorCapabilities` | ✅ |
 | `domains/member.mjs` | `assertMemberProfileManifest`, `generateWorkspaceMemberProfileCapabilities` | ✅ |
 | `domains/theme.mjs` | admin + guest theme loaders | ✅ |
-| `domains/registration.mjs` | catalog registration flow + intake + transport | ✅ |
+| `domains/registration.mjs` | catalog registration flow + intake + transport + portal registrars (P5.1) | ✅ |
+| `domains/boundary-allowlist.mjs` | `generateManifestBoundaryAllowlist` → CJS fragment for depcruise + guards (P5.2+) | ✅ |
 | `domains/wizard-admin.mjs` | wizard surfaces, media, chrome, settings UI bindings | ✅ |
 
 **G2 complete (2026-07-07).** Domain modules ~3,570 lines.
+
+## Guest workspace runtime (P5.3.a)
+
+`@app-tour/guest-workspace-runtime` owns portal/marketing **product** dynamic registrars and guest theme loaders. Codegen writes:
+
+- `packages/guest-workspace-runtime/src/register-*.generated.ts`
+- `workspace-plugin-register-manifest.generated.ts`
+- `workspace-guest-theme-stylesheets.{portal,marketing}.generated.ts`
+
+Apps import `@app-tour/guest-workspace-runtime` (portal) / themes + marketing-catalog (marketing). **P5.3.b:** marketing no longer declares product workspace packages — catalog bindings and `MarketingCatalogSurface` types live in the runtime package.
+
+## Manifest boundary allowlist (P5.2 / P5.2.b / P5.4)
+
+Codegen emits `scripts/codegen/workspace-registry/generated/manifest-boundary-allowlist.generated.cjs` so workspace membership is not hand-copied into architecture guards.
+
+```mermaid
+flowchart LR
+  M["workspace.manifest.json"] --> G["generateManifestBoundaryAllowlist"]
+  G --> F["manifest-boundary-allowlist.generated.cjs"]
+  F --> W["dependency-cruiser web rules"]
+  F --> A["dependency-cruiser API rules"]
+  F --> C["guard-guest-consumer-deps"]
+  F --> B["guard-generated-banner"]
+  F --> S["guard-guest-frozen-shell"]
+```
+
+| Export | Meaning |
+| ------ | ------- |
+| `PRODUCT_WORKSPACE_*` | Trunk plugins (excludes finance/booking `registryOnly`) |
+| `ALL_WORKSPACE_*` | Every discovered manifest (API allowlist + frozen-shell forbid list) |
+| `DEPCRUISE_WEB_*` / `DEPCRUISE_API_*` | Regex alternations consumed by `dependency-cruiser.config.js` |
+| `PORTAL_REGISTER_GENERATED_RELS` | Portal `register-*.generated.ts` paths |
+
+**TEMP-P0:** hand-synced finance-ws entries in depcruise are **closed** — regenerated from manifests. Remaining API `HOST_IMPORT_LEGACY_ALLOWLIST` is a permanent shrink-ratchet, not a TEMP ticket. Guest product-dep collapse remains **P5.3** (`guest-workspace-runtime`, Architect YES).
 
 ## G3 status (2026-07-07)
 

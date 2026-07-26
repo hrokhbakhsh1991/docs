@@ -248,7 +248,7 @@ export function DenaliPhotosField({
   };
 
   return (
-    <div className="denali-wizard-composite" data-denali-wizard-surface="section" data-testid={DENALI_PHOTOS_TEST_IDS.photos}>
+    <div className="denali-wizard-composite" data-operator-wizard-surface="section" data-testid={DENALI_PHOTOS_TEST_IDS.photos}>
       <div className="denali-wizard-composite__header">
         <h3 className="denali-wizard-composite__title">{label}</h3>
         {multiDay ? (
@@ -266,7 +266,7 @@ export function DenaliPhotosField({
         <p className="denali-wizard-composite__helper">{t("composites.photos.noPhotos")}</p>
       ) : null}
 
-      <div className="denali-wizard-composite__photos-layout" data-denali-wizard-photo-grid>
+      <div className="denali-wizard-composite__photos-layout" data-operator-wizard-photo-grid>
         {photos.map((photo, index) => {
           const photoId = photo.id?.trim() ?? "";
           const localPreviewUrl = photoId.length > 0 ? (localPreviews[photoId] ?? null) : null;
@@ -276,7 +276,7 @@ export function DenaliPhotosField({
             <section
               key={photo.id ?? `photo-${index}`}
               className="denali-wizard-composite__photo-card"
-              data-denali-photo-uploading={isUploading ? "true" : undefined}
+              data-operator-photo-uploading={isUploading ? "true" : undefined}
             >
               <DenaliPhotoPreview
                 photo={photo}
@@ -318,7 +318,7 @@ export function DenaliPhotosField({
                     }}
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
-                    data-denali-wizard-file-input
+                    data-operator-wizard-file-input
                     data-testid={DENALI_PHOTOS_TEST_IDS.uploadInput}
                     disabled={isUploading || photoId.length === 0}
                     onChange={(event) => void handleFileSelected(photoId, event.target.files?.[0])}

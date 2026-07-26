@@ -1,5 +1,6 @@
 import { DENALI_COMPOSITE_BY_CANONICAL_PATH } from "../../composites";
 
+import { compositeIdToSectionTitleMessageKey } from "./denali-composite-label-paths";
 import { resolveDenaliFieldLabel } from "./field-labels";
 
 type DenaliTranslator = ((key: string) => string) & {
@@ -19,12 +20,6 @@ function tryTranslateSectionTitle(t: DenaliTranslator, sectionKey: string): stri
     // Fall through to canonical anchor lookup.
   }
   return null;
-}
-
-function compositeIdToSectionTitleMessageKey(compositeId: string): string {
-  const slug = compositeId.replace(/^denali\./, "");
-  const camel = slug.replace(/-([a-z])/g, (_, char: string) => char.toUpperCase());
-  return `composites.${camel}.sectionTitle`;
 }
 
 /**

@@ -80,7 +80,7 @@ export async function resolveTenantExposureSelectableCatalog(input: {
 }> {
   const wizardTemplatePayload = await loadTenantWizardTemplatePayload(input.tenantId);
   if (wizardTemplatePayload != null) {
-    const wizardTemplateFields = buildWizardTemplateExposureCatalog({
+    const wizardTemplateFields = await buildWizardTemplateExposureCatalog({
       workspaceType: input.workspaceType,
       wizardTemplatePayload,
     });
@@ -93,7 +93,7 @@ export async function resolveTenantExposureSelectableCatalog(input: {
   }
 
   return {
-    fields: buildExposureSelectableFieldCatalog(input.workspaceType),
+    fields: await buildExposureSelectableFieldCatalog(input.workspaceType),
     source: REGISTRY_DELIVERABLE_EXPOSURE_PROFILE_SEED,
   };
 }

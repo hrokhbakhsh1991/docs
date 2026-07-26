@@ -78,11 +78,11 @@ export function listWizardTemplateCatalogPaths(plugin: WorkspacePlugin): Readonl
 }
 
 /** Manifest `wizardTemplate.pathAliases` — starter may alias paths against another workspace catalog. */
-function isKnownWizardTemplatePath(
+async function isKnownWizardTemplatePath(
   canonicalPath: string,
   workspaceType: string,
   primaryCatalog: ReadonlySet<string>
-): boolean {
+): Promise<boolean> {
   if (primaryCatalog.has(canonicalPath)) {
     return true;
   }
@@ -90,7 +90,7 @@ function isKnownWizardTemplatePath(
   if (aliasBinding === undefined || !aliasBinding.pathAliases.has(canonicalPath)) {
     return false;
   }
-  const aliasPlugin = resolveWorkspacePluginForType(aliasBinding.aliasCatalogWorkspaceType);
+  const aliasPlugin = await resolveWorkspacePluginForType(aliasBinding.aliasCatalogWorkspaceType);
   return listWizardTemplateCatalogPaths(aliasPlugin).has(canonicalPath);
 }
 
@@ -121,7 +121,7 @@ export async function assertWizardTemplateFieldsKnown(
       ) {
         throw new SettingsWizardRoadmapFieldError(path);
       }
-      if (!isKnownWizardTemplatePath(path, workspaceType, catalog)) {
+      if (!(await isKnownWizardTemplatePath(path, workspaceType, catalog))) {
         throw new SettingsWizardUnknownFieldError(path);
       }
     }

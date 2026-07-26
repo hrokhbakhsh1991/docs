@@ -8,15 +8,15 @@ import {
 } from "./resolve-integration-surface";
 
 describe("resolve integration surface", () => {
-  it("resolves Denali telegram provider surface", () => {
-    const surface = resolveIntegrationSurfaceForWorkspaceType("denali");
+  it("resolves Denali telegram provider surface", async () => {
+    const surface = await resolveIntegrationSurfaceForWorkspaceType("denali");
     assert.ok(surface !== null);
     assert.equal(surface.manifestVersion, 1);
     const telegram = surface.providers.find((provider) => provider.id === "telegram");
     assert.ok(telegram !== undefined);
     assert.deepEqual(telegram.defaultCapabilities, ["message.send"]);
     assert.equal(
-      isDefaultIntegrationEventEnabled({
+      await isDefaultIntegrationEventEnabled({
         workspaceType: "denali",
         providerId: "telegram",
         eventType: "TourPublished",
@@ -24,7 +24,7 @@ describe("resolve integration surface", () => {
       true
     );
     assert.deepEqual(
-      defaultIntegrationEventTypesForProvider({
+      await defaultIntegrationEventTypesForProvider({
         workspaceType: "denali",
         providerId: "telegram",
       }),
@@ -32,8 +32,8 @@ describe("resolve integration surface", () => {
     );
   });
 
-  it("returns null for workspaces without integration surface", () => {
-    assert.equal(resolveIntegrationSurfaceForWorkspaceType("starter"), null);
-    assert.equal(resolveIntegrationSurfaceForWorkspaceType(null), null);
+  it("returns null for workspaces without integration surface", async () => {
+    assert.equal(await resolveIntegrationSurfaceForWorkspaceType("starter"), null);
+    assert.equal(await resolveIntegrationSurfaceForWorkspaceType(null), null);
   });
 });

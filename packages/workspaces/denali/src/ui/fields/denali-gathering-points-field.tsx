@@ -94,7 +94,7 @@ export function DenaliGatheringPointsField({
   return (
     <div
       className="denali-wizard-composite"
-      data-denali-wizard-surface="section"
+      data-operator-wizard-surface="section"
       data-testid={DENALI_COMPOSITE_TEST_IDS.gatheringPoints}
     >
       <div className="denali-wizard-composite__header">

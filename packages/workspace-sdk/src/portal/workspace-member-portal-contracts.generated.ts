@@ -20,6 +20,7 @@ export type MemberPortalContractRow =
 export const WORKSPACE_MEMBER_PORTAL_CONTRACTS: Readonly<
   Record<string, MemberPortalContractRow>
 > = Object.freeze({
+  "acme": Object.freeze({ availability: "off" as const }),
   "booking-ws2": Object.freeze({ availability: "off" as const }),
   "denali": Object.freeze({
     availability: "full",

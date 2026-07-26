@@ -3,8 +3,6 @@
  * Import via relative path inside packages/workspaces/denali only.
  */
 
-import { DEFAULT_FINANCE_OPS_MANIFEST, type FinanceOpsManifest } from "./finance/finance-ops-manifest";
-
 export {
   DENALI_FIELD_REGISTRY,
   DENALI_LIFECYCLE,
@@ -18,16 +16,13 @@ export {
 
 export { getDenaliRegistrationOpsManifest } from "./bookings/ops-manifest";
 export { DEFAULT_FINANCE_OPS_MANIFEST, type FinanceOpsManifest } from "./finance/finance-ops-manifest";
+export { getDenaliFinanceOpsManifest } from "./finance/get-denali-finance-ops-manifest";
 export { extractDenaliTourListProjection } from "./list/tour-list-projection";
 export { getDenaliOperatorSettingsSurface } from "./settings/denali-settings.manifest";
 export { getDenaliIntegrationSurface } from "./integrations/denali-integration.surface";
 export { getDenaliExposureSurface } from "./exposure/denali-exposure.surface";
 
 export { denaliPluginForWizardEngine } from "./plugin-for-wizard-engine";
-
-export function getDenaliFinanceOpsManifest(): FinanceOpsManifest {
-  return DEFAULT_FINANCE_OPS_MANIFEST;
-}
 
 export {
   evaluateFormFieldRule,

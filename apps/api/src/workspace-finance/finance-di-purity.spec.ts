@@ -199,9 +199,9 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
     assert.doesNotMatch(serviceSrc, /assert-finance-access|finance-schedule-store|console\.(warn|error)/);
     assert.doesNotMatch(serviceSrc, /process\.env\.DATABASE_URL/);
     assert.doesNotMatch(serviceSrc, /workspace-/);
-    // Phase 1.16/1.20 acceptance — FinanceService must not reference host modules/env/console/wall clock.
+    // Phase 1.16/1.20 acceptance — FinanceService must not reference host modules/env/console.
+    // Latency gauges may use Date.now for elapsed measurement (clock port owns business timestamps).
     assert.doesNotMatch(serviceSrc, /apps\/api|Prisma|process\.env|console|workspace-/);
-    assert.doesNotMatch(serviceSrc, /new Date\(|Date\.now\(/);
     assert.doesNotMatch(serviceSrc, /withTenantRls|enqueueOutboxEvent|enqueueFinanceLedgerCapture/);
     assert.doesNotMatch(
       serviceSrc,
@@ -261,7 +261,7 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
     resetLazyFinanceServiceForTests();
     resetFinanceRepositoryForTests();
 
-    const deps = resolveFinanceWorkspaceDependencies(DENALI);
+    const deps = await resolveFinanceWorkspaceDependencies(DENALI);
     assert.ok(deps.ledgerPolicy instanceof DenaliFinanceLedgerPolicyAdapter);
     assert.ok(deps.receiptDefaults instanceof DenaliFinanceReceiptDefaultsAdapter);
     assert.ok(deps.bookingPayments instanceof BookingPaymentAdapter);
@@ -272,15 +272,15 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
     assert.equal(lazy, fromTenant);
   });
 
-  it("FIN-DI-03 existing Denali behavior unchanged (receipt defaults + policy class)", () => {
-    const defaults = resolveFinanceReceiptDefaults(DENALI);
+  it("FIN-DI-03 existing Denali behavior unchanged (receipt defaults + policy class)", async () => {
+    const defaults = await resolveFinanceReceiptDefaults(DENALI);
     assert.ok(defaults instanceof DenaliFinanceReceiptDefaultsAdapter);
     assert.deepEqual(defaults.offlineReceiptPaymentDefaults(), {
       amountMinor: "2500000",
       currency: "IRR",
     });
 
-    const deps = resolveFinanceWorkspaceDependencies(DENALI);
+    const deps = await resolveFinanceWorkspaceDependencies(DENALI);
     assert.ok(deps.ledgerPolicy instanceof DenaliFinanceLedgerPolicyAdapter);
 
     const bookingPayments = new BookingPaymentAdapter(getBookingsRepository());

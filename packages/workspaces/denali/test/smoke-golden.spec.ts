@@ -10,7 +10,8 @@ import { createCanonicalDocument } from "@app-tour/workspace-sdk";
 import type { DenaliCreateTourWizardForm } from "../src/schemas/denaliCore.schema";
 import { evaluateFormRules } from "../src/rules/evaluateFormRules";
 import { denaliWizardSteps } from "../src/layout/stepIds";
-import { denaliPluginForWizardEngine, getDenaliWorkspacePlugin } from "../src/denali.plugin";
+import { getDenaliWorkspacePlugin } from "../src/denali.plugin";
+import { denaliPluginForWizardEngine } from "../src/plugin-for-wizard-engine";
 
 const GOLDEN_DIR = join(dirname(fileURLToPath(import.meta.url)), "fixtures/golden");
 

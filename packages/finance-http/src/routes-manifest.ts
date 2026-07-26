@@ -8,9 +8,11 @@ export const FINANCE_HTTP_ROUTE_MANIFEST: readonly {
   { method: "GET", path: "/finance/reports/summary" },
   { method: "GET", path: "/finance/reports/open-payments" },
   { method: "GET", path: "/finance/reports/ledger-events" },
+  { method: "GET", path: "/finance/reports/by-tour" },
   { method: "GET", path: "/finance/payments" },
   { method: "POST", path: "/finance/payments/manual" },
   { method: "POST", path: "/finance/receipts" },
+  { method: "POST", path: "/finance/receipts/upload" },
   { method: "GET", path: "/finance/receipts/pending" },
   { method: "PATCH", path: "/finance/receipts/:receiptId/review" },
   { method: "GET", path: "/finance/receipts/:receiptId/url" },
@@ -22,4 +24,5 @@ export const FINANCE_HTTP_ROUTE_MANIFEST: readonly {
   { method: "GET", path: "/finance/schedules" },
   { method: "GET", path: "/finance/schedules/:registrationId" },
   { method: "POST", path: "/finance/schedules/generate" },
+  { method: "PATCH", path: "/finance/schedules/:registrationId/items/:itemId" },
 ] as const;

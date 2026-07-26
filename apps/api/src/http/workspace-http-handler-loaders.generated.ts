@@ -17,9 +17,12 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handleFinanceListPrepayments"
   | "handleFinanceListSchedules"
   | "handleFinanceOpenPayments"
+  | "handleFinancePatchScheduleItem"
   | "handleFinancePendingReceipts"
+  | "handleFinanceReceiptUpload"
   | "handleFinanceReceiptUrl"
   | "handleFinanceRecordPrepayment"
+  | "handleFinanceReportByTour"
   | "handleFinanceRetryBookingSync"
   | "handleFinanceReviewReceipt"
   | "handleFinanceSubmitReceipt"
@@ -54,9 +57,12 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
   handleFinanceListPrepayments: "@app-tour/finance-http",
   handleFinanceListSchedules: "@app-tour/finance-http",
   handleFinanceOpenPayments: "@app-tour/finance-http",
+  handleFinancePatchScheduleItem: "@app-tour/finance-http",
   handleFinancePendingReceipts: "@app-tour/finance-http",
+  handleFinanceReceiptUpload: "@app-tour/finance-http",
   handleFinanceReceiptUrl: "@app-tour/finance-http",
   handleFinanceRecordPrepayment: "@app-tour/finance-http",
+  handleFinanceReportByTour: "@app-tour/finance-http",
   handleFinanceRetryBookingSync: "@app-tour/finance-http",
   handleFinanceReviewReceipt: "@app-tour/finance-http",
   handleFinanceSubmitReceipt: "@app-tour/finance-http",
@@ -104,9 +110,12 @@ export async function loadWorkspaceHttpHandlersForPackage(
         handleFinanceListPrepayments: mod.handleFinanceListPrepayments,
         handleFinanceListSchedules: mod.handleFinanceListSchedules,
         handleFinanceOpenPayments: mod.handleFinanceOpenPayments,
+        handleFinancePatchScheduleItem: mod.handleFinancePatchScheduleItem,
         handleFinancePendingReceipts: mod.handleFinancePendingReceipts,
+        handleFinanceReceiptUpload: mod.handleFinanceReceiptUpload,
         handleFinanceReceiptUrl: mod.handleFinanceReceiptUrl,
         handleFinanceRecordPrepayment: mod.handleFinanceRecordPrepayment,
+        handleFinanceReportByTour: mod.handleFinanceReportByTour,
         handleFinanceRetryBookingSync: mod.handleFinanceRetryBookingSync,
         handleFinanceReviewReceipt: mod.handleFinanceReviewReceipt,
         handleFinanceSubmitReceipt: mod.handleFinanceSubmitReceipt,

@@ -8,7 +8,7 @@ import {
 } from "./exposure-control-plane.service";
 
 describe("getWorkspaceExposureControlPlane", () => {
-  it("reports legacy mirror instrumentation only when its diagnostics flag is enabled", () => {
+  it("reports legacy mirror instrumentation only when its diagnostics flag is enabled", async () => {
     assert.equal(
       resolveExposureControlPlaneParityInstrumentation({
         forwardEngineShadowEnabled: false,

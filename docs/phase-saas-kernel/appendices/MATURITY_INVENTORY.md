@@ -17,9 +17,9 @@ date: 2026-07-20
 | Tenant Kernel | `packages/tenant-kernel` (host/RLS/route); Phase 4 docs + Postgres RLS; provision/smoke | **High** | Reuse Phase 4; no parallel package |
 | Tenant request ingress | `apps/api/src/tenant-kernel/` (JWT/dev-bearer/headers) — **not** the npm package | **High (host)** | Keep split; rename deferred (see SK1) |
 | Authorization | `apps/api` identity + CASL patterns; operator session; PCMS (`docs/standards/member-session-portal-authority.mdoc`) | **Medium–High** | Extract contracts where duplication hurts; portal remains member-session SoT |
-| Entitlement | `workspace-sdk` portal entitlements; `me.entitlements.*`; MPS-ENT-001 | **Low–Medium** | **SK3 design** — plan tables still BP-7 |
+| Entitlement | `workspace-sdk` portal entitlements; `me.entitlements.*`; MPS-ENT-001; **BP-7 plan tables** | **Medium** | SK3.C BP-7 landed — [SK3_BP7_IMPLEMENTATION.md](./SK3_BP7_IMPLEMENTATION.md) |
 | Notification | Outbox + relay (Stabilization P0 hardened); no unified Email/SMS/in-app platform | **Medium transport / Low product** | **SK2 design filed** — providers only with first adapter PR |
-| File Service | Tour aggregate store ≠ blob media; receipt/branding/avatar/media | **Medium (domain-scoped)** | **SK4 design** — `TenantObjectStoragePort` on demand |
+| File Service | Tour aggregate store ≠ blob media; branding/avatar/receipt via `TenantObjectStoragePort` | **Medium** | SK4.D **DONE** — ACL `tenant-path-isolation` — [SK4_OBJ_IMPLEMENTATION.md](./SK4_OBJ_IMPLEMENTATION.md) |
 | Feature Flags | `resolve-tenant-feature-flags` + freeze helpers | **Low–Medium** | **SK3 design** — expand fields only with real need |
 | Audit | Tour/settings/platform/outbox/recon streams | **Low–Medium** | **SK4 design** — unify only with second consumer |
 | Shared Infrastructure | `platform-events`; outbox; metrics; ad hoc jobs | **Medium** | Ownership map; avoid mega-bus rewrite |

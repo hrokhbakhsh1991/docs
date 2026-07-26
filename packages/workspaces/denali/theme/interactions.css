@@ -52,25 +52,25 @@ body[data-workspace-plugin="denali"] .theme-dark .bg-primary:hover {
   box-shadow: 0 2px 8px rgb(94 234 212 / 0.28);
 }
 
-body[data-workspace-plugin="denali"] [data-denali-surface="card"] {
+body[data-workspace-plugin="denali"] [data-operator-surface="card"] {
   transition:
     box-shadow var(--motion-surface),
     border-color var(--motion-surface);
 }
 
-body[data-workspace-plugin="denali"] [data-denali-surface="card"]:hover {
+body[data-workspace-plugin="denali"] [data-operator-surface="card"]:hover {
   box-shadow: var(--denali-shadow-card-hover);
   border-color: rgb(15 118 110 / 0.12);
 }
 
-body[data-workspace-plugin="denali"] [data-denali-kpi] {
+body[data-workspace-plugin="denali"] [data-operator-kpi] {
   border-top: 3px solid var(--denali-forest-500);
   transition:
     box-shadow var(--motion-surface),
     transform var(--motion-surface);
 }
 
-body[data-workspace-plugin="denali"] [data-denali-kpi]:hover {
+body[data-workspace-plugin="denali"] [data-operator-kpi]:hover {
   box-shadow: var(--denali-shadow-card-hover);
 }
 
@@ -116,6 +116,6 @@ body[data-workspace-plugin="denali"] [data-operator-header] {
     border-color var(--motion-surface);
 }
 
-body[data-workspace-plugin="denali"] [data-operator-header][data-denali-header-scrolled] {
+body[data-workspace-plugin="denali"] [data-operator-header][data-operator-header-scrolled] {
   border-color: color-mix(in srgb, var(--color-border-default) 80%, transparent);
 }

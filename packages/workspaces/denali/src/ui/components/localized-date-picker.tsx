@@ -82,9 +82,9 @@ export function LocalizedDatePicker({
   }, [open]);
 
   return (
-    <div ref={rootRef} className="denali-date-picker">
+    <div ref={rootRef} className="operator-date-picker">
       <Button
-        data-denali-date-picker
+        data-operator-date-picker
         id={id ?? triggerId}
         type="button"
         variant="ghost"
@@ -98,17 +98,17 @@ export function LocalizedDatePicker({
           setOpen(true);
         }}
         className={cn(
-          "denali-date-picker-trigger",
-          !displayLabel && "denali-date-picker-trigger--placeholder",
+          "operator-date-picker-trigger",
+          !displayLabel && "operator-date-picker-trigger--placeholder",
           className
         )}
       >
-        <CalendarIcon className="denali-date-picker-trigger__icon" />
-        <span className="denali-date-picker-trigger__label">{displayLabel ?? placeholder ?? t("pickDate")}</span>
+        <CalendarIcon className="operator-date-picker-trigger__icon" />
+        <span className="operator-date-picker-trigger__label">{displayLabel ?? placeholder ?? t("pickDate")}</span>
       </Button>
       {open ? (
         <div
-          data-denali-wizard-calendar-popover
+          data-operator-wizard-calendar-popover
           onPointerDown={(event) => event.stopPropagation()}
           onMouseDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}

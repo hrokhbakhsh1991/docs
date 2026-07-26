@@ -1,0 +1,43 @@
+---
+title: P2-D3 shell orchestration symbol rename
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/denali-plugin-encapsulation.mdoc
+---
+
+# P2-D3 — Shell orchestration symbol rename
+
+Phase 2 Lane R neutralized **filenames**. Residual **P2-D3** renames remaining **hand-written shell** exports that still carry `Denali*` / `useDenali*` while behaving as generic operator wizard chrome.
+
+## Tranche P2-D3.a (this slice)
+
+Rename map (shell only):
+
+| Legacy | New |
+| ------ | --- |
+| `DenaliCreateTourWizardClient` | `OperatorCreateTourWizardClient` |
+| `DenaliFlatEditPageClient` | `OperatorFlatEditPageClient` |
+| `useDenaliCreateTourWizard` | `useOperatorCreateTourWizard` |
+| `useDenaliFlatEditPage` | `useOperatorFlatEditPage` |
+| `DenaliFlatEditPageShell` / `DenaliFlatEditPageHeader` | `OperatorFlatEditPageShell` / `OperatorFlatEditPageHeader` |
+| Shell wrapper `DenaliFlatEditForm` | `OperatorFlatEditForm` |
+
+Routers (`NewTourWizardClient`, `TourEditPageClient`) keep plugin-id branching; they now call `Operator*` clients.
+
+## Non-goals (deferred at P2-D3.a; status)
+
+- Generated bootstrap chrome symbols — **Phase 4j:** create/flat-edit chrome binders export
+  `useOperator*` / `loadOperator*` / `Operator*` only (no shell `useDenali*` chrome aliases).
+  Residual generated product tokens may remain on other binders (forms, views) until capability host.
+- `DENALI_PLUGIN_ID` / tenant fixtures — product identity
+- `DenaliLogoMark` — P2-D2
+- `messages.denali` — P2-D3.b
+- Package exports under `@app-cloud/workspace-denali`
+
+## Invariant
+
+Shell public chrome API is `Operator*`. Product packages may still export `Denali*` internals;
+shell codegen must not dual-export Denali+Operator aliases for the same wrapper.
+
+Authority: `TEMP/phases/P2-denali-extraction-plan.md` § P2-D3.a.

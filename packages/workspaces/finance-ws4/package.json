@@ -14,10 +14,6 @@
       "types": "./dist/plugin.d.ts",
       "default": "./dist/plugin.js"
     },
-    "./finance": {
-      "types": "./dist/finance/index.d.ts",
-      "default": "./dist/finance/index.js"
-    },
     "./host/finance": {
       "types": "./dist/finance/index.d.ts",
       "default": "./dist/finance/index.js"
@@ -27,7 +23,9 @@
       "default": "./dist/tours/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tsc --noEmit",

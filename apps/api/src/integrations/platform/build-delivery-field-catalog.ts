@@ -20,16 +20,16 @@ export type DeliveryFieldCatalogEntry = ExposureFieldCatalogEntry;
 export const buildDeliveryFieldCatalog = buildExposureFieldCatalog;
 export const buildDeliverySelectableFieldCatalog = buildExposureSelectableFieldCatalog;
 
-export function getDefaultDeliveryFields(workspaceType: string | null): readonly string[] {
-  return resolveExposureProfileDefaultFieldIds(workspaceType);
+export async function getDefaultDeliveryFields(workspaceType: string | null): Promise<readonly string[]> {
+  return await resolveExposureProfileDefaultFieldIds(workspaceType);
 }
 
-export function resolveRequestedDeliveryFieldIds(
+export async function resolveRequestedDeliveryFieldIds(
   adminSelectedFieldIds: readonly string[] | null | undefined,
   workspaceType: string | null,
   eventType?: string,
-): readonly string[] {
-  return resolveExposureRequestedFieldIds(
+): Promise<readonly string[]> {
+  return await resolveExposureRequestedFieldIds(
     adminSelectedFieldIds,
     workspaceType,
     resolveDeliveryExposureProfileContext(eventType),

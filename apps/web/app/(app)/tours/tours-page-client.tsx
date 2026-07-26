@@ -31,7 +31,7 @@ import {
   tourCategoryFilterGroupsForPlugin,
   type TourCategoryFilter,
 } from "@/features/tours/tour-list-category-logic";
-import { ensureTourListCategorySurface } from "@/bootstrap/workspace-tour-list-category-bindings.generated";
+import { ensureTourListCategorySurface } from "@/features/tours/tour-list-category-registry";
 import { catalogListSupportsServerFilter, resolveCatalogListFeatures } from "@app-tour/workspace-sdk";
 import {
   queryStatusToUiStatus,

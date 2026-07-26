@@ -1,0 +1,91 @@
+---
+title: Deploy-profile operator quickref (Gap Closure D)
+format: markdoc
+doc_role: runbook
+extends:
+  - docs/dev/saas-platform-remediation.mdoc
+  - docs/dev/wave-i-7-host-install-classification.mdoc
+  - docs/dev/wave-c-guest-transpile-packages.mdoc
+---
+
+# Deploy-profile operator quickref
+
+Thin Shell Phase **4bj** — operator-facing path for **image / single-tenant** builds. Phase **4bw** expands **staging ops** (Gap Closure D.4 / D.5) without changing monorepo defaults.
+
+The monorepo **default** install stays full-trunk (Wave I.7/I.8 honesty).
+
+## When to use
+
+| Context | Action |
+| --- | --- |
+| Local / CI monorepo | Do **nothing** — full trunk |
+| Single-tenant image / staging web | Opt in with deploy-profile APPLY |
+
+## Commands (inspect / apply)
+
+```bash
+# Inspect (hermetic full-trunk without APPLY)
+pnpm run print:deploy-profile-plan
+pnpm run print:deploy-profile-env
+
+# Image / staging — triple opt-in (see remediation Gap Closure D)
+WORKSPACE_DEPLOY_PROFILE_APPLY=1 \
+WORKSPACE_DEPLOY_PROFILE=denali \
+  pnpm run apply:deploy-profile -- --write
+# … next build …
+pnpm run generate:workspace-registry   # restore full-trunk artifacts — do not commit filtered outputs
+```
+
+## Staging ops (Phase 4bw)
+
+Staging web builds already honor deploy-profile when **APPLY=1**. Operators should treat these scripts as the SOT for VPS staging — do not hand-edit IgnorePlugin env in production unit files.
+
+### Env gates
+
+| Env | Role |
+| --- | --- |
+| `WORKSPACE_DEPLOY_PROFILE_APPLY=1` | Enables profiled ALLOW env + optional `--write` apply |
+| `WORKSPACE_DEPLOY_PROFILE` | Comma-separated workspace ids / package names (`full` / `*` = no filter) |
+| *(unset APPLY)* | Legacy staging: `ALLOW_DENALI_WEB_PLUGIN=true` only (D.4) |
+
+### Scripts
+
+| Script | Behavior with APPLY=1 |
+| --- | --- |
+| `scripts/vps-deploy/resolve-staging-web-plugin-allow-env.mjs` | Prints `export ALLOW_*=…` from live plan (D.4) |
+| `scripts/vps-deploy/sync-staging-web-build.sh` | Local `next build` → rsync `.next`; runs `apply:deploy-profile --write` then restores registry (D.5) |
+| `scripts/vps-deploy/sync-staging-web-vps-build.sh` | Rsync source → VPS `next build`; same apply/restore on remote (D.5) |
+| `scripts/vps-deploy/build-operator-vps.sh` | Operator VPS image path — apply/restore when APPLY=1 |
+
+### Staging recipe (single product)
+
+```bash
+export WORKSPACE_DEPLOY_PROFILE_APPLY=1
+export WORKSPACE_DEPLOY_PROFILE=denali   # or urban,starter,…
+# Local build + rsync .next:
+bash scripts/vps-deploy/sync-staging-web-build.sh
+# Or build on VPS after rsync source:
+bash scripts/vps-deploy/sync-staging-web-vps-build.sh
+```
+
+After APPLY builds: scripts restore via `pnpm run generate:workspace-registry`. **Never commit** filtered transpile / guest-runtime / register artifacts.
+
+### Verify without VPS
+
+```bash
+pnpm run print:deploy-profile-plan
+pnpm run print:deploy-profile-env
+node --test scripts/test/resolve-staging-web-plugin-allow-env.spec.mjs
+node --test scripts/test/staging-deploy-profile-ops.spec.mjs
+```
+
+## Do not
+
+- Delete product packages from default `apps/web` `devDependencies` to “look thinner”
+- Commit filtered transpile / guest-runtime / register artifacts from APPLY runs
+- Treat opaque plugin loaders as defects — they are the §2.4 registry
+- Skip registry restore after APPLY `--write` (leaves trunk dirty)
+
+## Thin Shell link
+
+Product binders are retired; remaining generated bootstrap files are inventoried in [`thin-shell-generated-bootstrap-inventory.mdoc`](./thin-shell-generated-bootstrap-inventory.mdoc).

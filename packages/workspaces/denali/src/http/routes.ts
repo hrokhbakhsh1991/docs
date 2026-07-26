@@ -46,4 +46,6 @@ export {
   handleFinanceGetSchedule,
   handleFinanceGenerateSchedule,
   handleFinanceGetRegistrationInvoice,
+  handleFinancePatchScheduleItem,
+  handleFinanceReceiptUpload,
 } from "./finance.routes";

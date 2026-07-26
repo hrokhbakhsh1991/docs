@@ -6,7 +6,7 @@ import { resolveDenaliWizardTemplateCatalogFieldMeta } from "@app-tour/workspace
 import {
   ensureWizardTemplateEditor,
   resolveWizardTemplateEditor,
-} from "../src/bootstrap/workspace-wizard-template-editor-bindings.generated";
+} from "../src/wizard/wizard-template-editor-registry";
 import { resolveWizardTemplateFieldDisplayHintsFromMeta } from "../src/tours/wizard-template-field-display-hints";
 
 describe("wizard-template-field-display-hints.spec.ts", () => {
@@ -37,7 +37,8 @@ describe("wizard-template-field-display-hints.spec.ts", () => {
       tSettings,
       () => "section",
       (path) => path,
-      meta
+      meta,
+      "denali"
     );
     assert.equal(hints.parentLabel, "section");
     assert.equal(hints.createTourHint, "optional");
@@ -56,7 +57,8 @@ describe("wizard-template-field-display-hints.spec.ts", () => {
       tSettings,
       () => "section",
       (path) => path,
-      meta
+      meta,
+      "denali"
     );
     assert.equal(hints.createTourHint, "hints.templateFrozen");
   });

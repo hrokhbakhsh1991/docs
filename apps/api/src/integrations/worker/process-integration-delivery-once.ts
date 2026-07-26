@@ -69,7 +69,7 @@ export async function executeIntegrationDeliveryJob(
     }
     const result = await adapter.sendMessage(ctx, {
       channelId,
-      text: formatIntegrationDeliveryMessage({
+      text: await formatIntegrationDeliveryMessage({
         workspaceType,
         eventType: job.eventType,
         payload: job.payload,

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { validateDenaliRegistrationPayload } from "../src/denali.plugin";
+import { validateDenaliRegistrationPayload } from "../src/http/registration.validation";
 
 describe("denali-registration-validation", () => {
   it("DN-REG-V01 self may satisfy national id from profile", () => {

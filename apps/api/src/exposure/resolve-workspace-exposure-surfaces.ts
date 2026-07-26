@@ -2,10 +2,10 @@ import type { WorkspaceExposureSurfaceDefinition } from "@app-tour/workspace-sdk
 
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
 
-export function listOperatorVisibleExposureSurfaceDefinitions(
+export async function listOperatorVisibleExposureSurfaceDefinitions(
   workspaceType: string,
-): readonly WorkspaceExposureSurfaceDefinition[] {
-  const manifest = resolveWorkspacePluginForType(workspaceType).exposureSurface;
+): Promise<readonly WorkspaceExposureSurfaceDefinition[]> {
+  const manifest = (await resolveWorkspacePluginForType(workspaceType)).exposureSurface;
   if (manifest === undefined) {
     return Object.freeze([]);
   }
@@ -14,17 +14,17 @@ export function listOperatorVisibleExposureSurfaceDefinitions(
   );
 }
 
-export function findWorkspaceExposureSurfaceDefinition(
+export async function findWorkspaceExposureSurfaceDefinition(
   workspaceType: string,
   surface: string,
-): WorkspaceExposureSurfaceDefinition | null {
-  const manifest = resolveWorkspacePluginForType(workspaceType).exposureSurface;
+): Promise<WorkspaceExposureSurfaceDefinition | null> {
+  const manifest = (await resolveWorkspacePluginForType(workspaceType)).exposureSurface;
   if (manifest === undefined) {
     return null;
   }
   return manifest.definitions.find((definition) => definition.surface === surface) ?? null;
 }
 
-export function workspaceSupportsExposureSurfaces(workspaceType: string): boolean {
-  return listOperatorVisibleExposureSurfaceDefinitions(workspaceType).length > 0;
+export async function workspaceSupportsExposureSurfaces(workspaceType: string): Promise<boolean> {
+  return (await listOperatorVisibleExposureSurfaceDefinitions(workspaceType)).length > 0;
 }

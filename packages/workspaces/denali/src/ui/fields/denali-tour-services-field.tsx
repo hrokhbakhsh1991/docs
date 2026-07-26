@@ -92,7 +92,7 @@ function ServiceColumn({
   return (
     <section
       className={`denali-tour-services__column ${toneClass}`}
-      data-denali-tour-services-column={bucket}
+      data-operator-tour-services-column={bucket}
       aria-label={title}
     >
       <header className="denali-tour-services__column-header">
@@ -216,8 +216,8 @@ export function DenaliTourServicesField({ draft, onDraftChange }: DenaliTourServ
   return (
     <div
       className="denali-wizard-composite"
-      data-denali-wizard-surface="section"
-      data-denali-tour-services
+      data-operator-wizard-surface="section"
+      data-operator-tour-services
       data-testid={DENALI_TOUR_SERVICES_TEST_IDS.panel}
     >
       <div className="denali-wizard-composite__header">

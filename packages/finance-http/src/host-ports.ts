@@ -37,6 +37,20 @@ export type FinanceHttpHostPorts = {
     options?: { readonly statusCode?: number }
   ) => Promise<T>;
   readonly idempotencyKeyRequiredCode: string;
+  /** FC-5 — operator receipt proof upload (binary body + MinIO put). */
+  readonly uploadOperatorReceiptProof: (input: {
+    readonly req: IncomingMessage;
+    readonly auth: TenantAuthContext;
+    readonly registrationId: string;
+  }) => Promise<{ readonly fileKey: string }>;
+  /** FC-4 — durable audit row after schedule item waive. */
+  readonly enqueueScheduleItemWaivedAudit: (input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+    readonly itemId: string;
+    readonly reason: string;
+    readonly actorUserId: string;
+  }) => Promise<void>;
 };
 
 /** @deprecated Alias — Denali compat (Phase 1.4 Commit 2). */

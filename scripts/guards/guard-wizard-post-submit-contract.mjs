@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * Phase 11 — wizard post-submit must redirect to /tours without engine clearDraft.
+ * Phase 4ay — photo-upload errors live on package surface (web binder deleted).
  * @see docs/phase-11/tour-clone-hydration.md
  */
 import fs from "node:fs";
@@ -27,30 +28,48 @@ function assertNoMatch(label, source, pattern) {
   }
 }
 
-const denaliHook = read("apps/web/src/wizard/use-denali-create-tour-wizard.ts");
+const createHook = read("apps/web/src/wizard/use-create-tour-wizard.ts");
 const workspaceClient = read("apps/web/src/wizard/workspace-create-tour-wizard-client.tsx");
 const denaliCore = read("packages/workspaces/denali/src/ui/chrome/use-create-tour-wizard-core.ts");
 const postSubmit = read("apps/web/src/tours/run-create-tour-post-submit-success.ts");
 const postSubmitDiscard = read("apps/web/src/tours/create-tour-post-submit-discard.ts");
-const photoBindings = read(
+const photoBinder = path.join(
+  REPO_ROOT,
   "apps/web/src/bootstrap/workspace-photo-upload-errors-bindings.generated.ts"
 );
+const photoSurface = read(
+  "packages/workspaces/denali/src/ui/adapters/photo-upload-errors-surface.ts"
+);
 
-assertMatch("denali hook uses runCreateTourPostSubmitSuccess", denaliHook, /runCreateTourPostSubmitSuccess/);
+assertMatch("create hook uses runCreateTourPostSubmitSuccess", createHook, /runCreateTourPostSubmitSuccess/);
 assertMatch(
-  "denali hook uses shared discard factory",
-  denaliHook,
+  "create hook uses shared discard factory",
+  createHook,
   /createCreateTourPostSubmitDiscardRemoteDraft/
 );
-assertMatch("denali hook passes discardRemoteDraft", denaliHook, /discardRemoteDraft/);
-assertNoMatch("denali hook does not call draftSync.clearDraft on create success", denaliHook, /clearDraft:\s*\(\)\s*=>\s*draftSync\.clearDraft\(\)/);
-
-assertMatch(
-  "photo bindings delegate to denali codec surface",
-  photoBindings,
-  /@app-tour\/workspace-denali\/(?:host\/)?ui\/adapters\/photo-upload-errors-surface/
+assertMatch("create hook passes discardRemoteDraft", createHook, /discardRemoteDraft/);
+assertNoMatch(
+  "create hook does not call draftSync.clearDraft on create success",
+  createHook,
+  /clearDraft:\s*\(\)\s*=>\s*draftSync\.clearDraft\(\)/
 );
-assertNoMatch("photo bindings have no duplicated alias table", photoBindings, /PHOTO_ERROR_CODE_ALIASES/);
+
+if (fs.existsSync(photoBinder)) {
+  console.error(
+    "guard-wizard-post-submit-contract: FAIL photo binder must stay deleted (Phase 4ay)"
+  );
+  process.exit(1);
+}
+assertMatch(
+  "photo codec SOT remains package surface",
+  photoSurface,
+  /denaliPhotoUploadErrorsSurface/
+);
+assertNoMatch(
+  "package photo surface has no shell alias table copy",
+  photoSurface,
+  /PHOTO_ERROR_CODE_ALIASES/
+);
 
 assertMatch("workspace client uses runCreateTourPostSubmitSuccess", workspaceClient, /runCreateTourPostSubmitSuccess/);
 assertMatch(
@@ -71,7 +90,7 @@ assertMatch(
   postSubmitDiscard,
   /deleteWorkspaceDraftSnapshot/
 );
-assertNoMatch("denali hook inlines deleteWorkspaceDraftSnapshot", denaliHook, /deleteWorkspaceDraftSnapshot/);
+assertNoMatch("create hook inlines deleteWorkspaceDraftSnapshot", createHook, /deleteWorkspaceDraftSnapshot/);
 assertNoMatch(
   "workspace client inlines deleteWorkspaceDraftSnapshot",
   workspaceClient,

@@ -54,7 +54,7 @@ export function DenaliPricingParticipantsField({
   return (
     <div
       className="denali-wizard-composite"
-      data-denali-wizard-surface="section"
+      data-operator-wizard-surface="section"
       data-testid={DENALI_PRICING_PARTICIPANTS_TEST_IDS.participants}
     >
       <h3 className="denali-wizard-composite__title">{t("composites.pricingParticipants.sectionTitle")}</h3>

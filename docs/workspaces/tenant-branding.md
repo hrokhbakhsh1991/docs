@@ -80,11 +80,22 @@ Registered in Denali + starter manifests. Registry row: [SETTINGS-MODULE-REGISTR
 
 ```text
 tenant logo (signed URL)
-  → workspace plugin mark (Denali / initial)
+  → workspace custom mark (codegen component registry — H.e.b; none registered on trunk)
   → first letter of workspace label
 ```
 
 Shared fallback: `TenantBrandFallbackMark` — used by `TenantBrandMark` and login `LoginTenantBrand`.
+
+### Wave H.e.a (admin shell)
+
+| Rule | Detail |
+| ---- | ------ |
+| No static Denali mark | `denali-logo-mark.tsx` deleted; shell must not import `@app-tour/workspace-denali/.../denali-logo-mark` |
+| No `"denali"` switch | `TenantBrandFallbackMark` must not branch on literal `"denali"` |
+| Manifest map | `resolveWizardCustomBrandFallbackMark` (codegen from `wizardCreate.customBrandFallbackMark`; empty on trunk; map private Phase 4e) |
+| Future custom marks | H.e.b — generate a **component** binding map from manifest (lazy import), not a string kind switch in shell |
+
+ADR: [`docs/dev/wave-h-brand-fallback-neutral.mdoc`](../dev/wave-h-brand-fallback-neutral.mdoc).
 
 ## Web production closure (2026-06-10)
 

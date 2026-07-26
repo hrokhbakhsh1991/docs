@@ -110,7 +110,7 @@ Progress + fields inside host:
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-workspace-wizard]
 ```
 
-**Portal exception (calendar):** Radix `Popover` renders on `document.body`, outside `[data-new-tour-wizard]`. Calendar skin uses **body-level** selectors on `data-denali-wizard-calendar` / `data-denali-wizard-calendar-popover` — see `wizard-calendar.css`.
+**Portal exception (calendar):** Radix `Popover` renders on `document.body`, outside `[data-new-tour-wizard]`. Calendar skin uses **body-level** selectors on `data-operator-wizard-calendar` / `data-operator-wizard-calendar-popover` — see `wizard-calendar.css`.
 
 ## Flat edit skin bridge
 
@@ -145,10 +145,10 @@ Authority: [`docs/phase-12/subphases/12.4-denali-flat-edit-form.md`](../../phase
 | `data-denali-review-card`                    | Itinerary / excluded-service card (`itinerary` \| `excluded` \| `text`)                                                |
 | `data-denali-wizard-gear-list`               | Equipment catalog compact list (replaces per-item panels)                                                              |
 | `data-denali-wizard-file-input`              | Styled file upload in photos composite                                                                                 |
-| `data-denali-wizard-calendar`                | `Calendar` root inside date popover — portal-safe teal `--primary`                                                     |
-| `data-denali-wizard-calendar-popover`        | `PopoverContent` wrapping calendar                                                                                     |
+| `data-operator-wizard-calendar`                | `Calendar` root inside date popover — portal-safe teal `--primary`                                                     |
+| `data-operator-wizard-calendar-popover`        | `PopoverContent` wrapping calendar                                                                                     |
 | `data-wizard-date-picker`                    | Trigger wrapper (`wizard-field` date kind, `denali-datetime-field`)                                                    |
-| `data-denali-wizard-datetime`                | `LocalizedDatetimePicker` with `layout="wizard"` — BEM grid + primitive clock                                          |
+| `data-operator-wizard-datetime`                | `LocalizedDatetimePicker` with `layout="wizard"` — BEM grid + primitive clock                                          |
 | `wizard-bridge-shell__theme-toggle`          | Bridge header theme control (`ui-primitives` ghost)                                                                    |
 
 ## Token bridge
@@ -188,18 +188,18 @@ Imported via [`denali-admin.css`](../../../packages/workspaces/denali/theme/dena
 
 | Layer          | Scoping                                                                                                                                                                             |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Trigger        | `data-wizard-date-picker` on host + `data-denali-date-picker` on shadcn trigger — `wizard-fields.css` under `[data-new-tour-wizard]`                                                |
-| Datetime bar   | `denali-wizard-datetime__control` — single bordered row; date + time triggers stretch full height (`justify-content: flex-start`); popovers use `overflow: visible` on control      |
-| Popover + grid | `data-denali-wizard-calendar-popover` + BEM `denali-wizard-calendar__*` grid/header/day — **`wizard-calendar.css` on `body[data-workspace-plugin="denali"]`** (not under page root) |
+| Trigger        | `data-wizard-date-picker` on host + `data-operator-date-picker` on shadcn trigger — `wizard-fields.css` under `[data-new-tour-wizard]`                                                |
+| Datetime bar   | `operator-wizard-datetime__control` — single bordered row; date + time triggers stretch full height (`justify-content: flex-start`); popovers use `overflow: visible` on control      |
+| Popover + grid | `data-operator-wizard-calendar-popover` + BEM `operator-wizard-calendar__*` grid/header/day — **`wizard-calendar.css` on `body[data-workspace-plugin="denali"]`** (not under page root) |
 
-Selected day uses `aria-pressed="true"` (not `data-selected`). Dark mode re-binds `--denali-wizard-calendar-primary` via the same dual cascade as admin (`html.dark:has(body…)` + `body… .theme-dark`).
+Selected day uses `aria-pressed="true"` (not `data-selected`). Dark mode re-binds `--operator-wizard-calendar-primary` via the same dual cascade as admin (`html.dark:has(body…)` + `body… .theme-dark`).
 
 **Calendar UX (tour schedule):**
 
 | Behavior                | Contract                                                                                                                                                                                                                                                                                                               |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Day pick                | Clicking a day selects it and **closes** the popover (`LocalizedDatePicker` → `setOpen(false)`).                                                                                                                                                                                                                       |
-| Month / year drill-down | Header month and year are buttons (`denali-wizard-calendar__title-btn`); month view = 3×4 grid, year view = 12-year page with nav. `data-denali-wizard-calendar-view` = `days` \| `months` \| `years`.                                                                                                                 |
+| Month / year drill-down | Header month and year are buttons (`operator-wizard-calendar__title-btn`); month view = 3×4 grid, year view = 12-year page with nav. `data-operator-wizard-calendar-view` = `days` \| `months` \| `years`.                                                                                                                 |
 | Tour start min date     | `startDateTime` only — `resolveDenaliDatetimeFieldMinIsoDate` in `src/ui/logic/denali-schedule-date-policy.ts` wires `minIsoDate={today}` into `DenaliDatetimeField` → `DenaliWizardDatetimePicker` → `LocalizedDatePicker` → `DenaliCalendar`. Past calendar days/months/years render `--disabled` and ignore clicks. |
 | Submit guard            | `mergeDenaliScheduleDateViolations` in `denali-wizard-validation.ts` emits `DENALI_TOUR_START_BEFORE_TODAY` when stored ISO datetime's **local calendar day** is before today.                                                                                                                                         |
 
@@ -212,7 +212,7 @@ Selected day uses `aria-pressed="true"` (not `data-selected`). Dark mode re-bind
 | Panel    | BEM `denali-searchable-select__*` in `wizard-fields.css`; search input reuses `denali-wizard-picker__search` + scroll list `denali-wizard-picker__scroll`.                                             |
 | Test ids | `denali-searchable-select-trigger`, `denali-searchable-select-search`, `denali-searchable-select-option-{id}`.                                                                                         |
 
-**Datetime (phase 2):** `LocalizedDatetimePicker layout="wizard"` renders BEM `denali-wizard-datetime*` and `LocalizedTimeInput variant="primitive"`. Admin/finance paths keep default shadcn layout.
+**Datetime (phase 2):** `LocalizedDatetimePicker layout="wizard"` renders BEM `operator-wizard-datetime*` and `LocalizedTimeInput variant="primitive"`. Admin/finance paths keep default shadcn layout.
 
 **Composite UX (phase 3):** Photos use single `__photo-card` surface (no nested `__panel`). Gear catalog uses `__list` / `__gear-item`. Section headings use `h3`; day blocks use `__subtitle`. File inputs use `data-denali-wizard-file-input`.
 

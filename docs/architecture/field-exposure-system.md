@@ -339,13 +339,17 @@ Fields that never appear on the catalog card must **not** be listed (no no-op bi
 
 Unit: `packages/workspaces/denali/test/denali-catalog-exposure.spec.ts` (binding inventory)
 
-### Phase 10.5 — Denali settings manifest codegen (M3)
+### Phase 10.5 — Denali settings required-module ownership (M3) / Phase 3c thin-shell
 
-`pnpm run generate:denali-settings-modules` emits
-`apps/web/src/features/settings/denali-required-settings-modules.generated.ts` from
-`packages/workspaces/denali/src/settings/denali-settings.manifest.ts`.
+Required settings module ids are exported from
+`packages/workspaces/denali/src/settings/denali-settings.manifest.ts` as
+`DENALI_BACKEND_REQUIRED_MODULE_IDS` (derived from `DENALI_SETTINGS_MODULES`) and
+re-exported from `settings/fallback-modules`. The shell settings-hub binder loads them
+via dynamic import with fallback modules — **no** `apps/web` generated product constant file.
 
-Run after manifest module id changes; consumed by `settings-module-consistency-guard.ts`.
+`pnpm run generate:denali-settings-modules --check` verifies package ownership + absence of
+the former shell emit path. Consumed at runtime by `settings-module-consistency-guard.ts`
+through `ensureSettingsHubFallbackPolicy(pluginId).requiredModuleIds`.
 
 ### Phase 10.6 — OpenAPI inventory (M3)
 
