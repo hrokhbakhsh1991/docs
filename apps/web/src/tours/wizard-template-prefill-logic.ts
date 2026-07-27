@@ -8,13 +8,11 @@ import type {
   WizardTemplateFieldRef,
 } from "@/features/settings/wizard-template-types";
 
-import { resolveWizardTemplatePreferTemplateDefaults } from "@/bootstrap/workspace-wizard-template-gate-bindings.generated";
-
 import { getCanonicalStringValue, setCanonicalStringValue } from "./tour-wizard-draft-path";
 import type { TourWizardDraft } from "./tour-wizard-draft";
 
 export const WIZARD_TEMPLATE_SEED_CANONICAL_PATH = "basics.title" as const;
-export const WIZARD_TEMPLATE_SEED_CANONICAL_PATH_DENALI = "title" as const;
+export const WIZARD_TEMPLATE_SEED_CANONICAL_PATH_TITLE = "title" as const;
 
 export const WIZARD_TEMPLATE_PREFILL_TEST_IDS = {
   seedPrefillField: "operator-wizard-template-seed-prefill",
@@ -157,6 +155,6 @@ export function shouldAttachSeedPrefillTestId(
   }
   return (
     canonicalPath === WIZARD_TEMPLATE_SEED_CANONICAL_PATH ||
-    canonicalPath === WIZARD_TEMPLATE_SEED_CANONICAL_PATH_DENALI
+    canonicalPath === WIZARD_TEMPLATE_SEED_CANONICAL_PATH_TITLE
   );
 }

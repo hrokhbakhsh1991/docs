@@ -15,6 +15,7 @@ export const FINANCE_OVERVIEW_TEST_IDS = {
 export const FINANCE_LEDGER_TEST_IDS = {
   panel: "finance-ledger-panel",
   list: "finance-ledger-list",
+  emptyState: "finance-ledger-empty",
   exportCsv: "finance-ledger-export-csv",
 } as const;
 

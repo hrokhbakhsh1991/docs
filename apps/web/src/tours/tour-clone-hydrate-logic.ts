@@ -72,6 +72,8 @@ export type TourCloneHydrateOptions = {
 export type TourCloneHydrateResult = {
   readonly draft: TourWizardDraft;
   readonly photoRemintPlan?: readonly WizardPhotoRemintPlanEntry[];
+  /** True when a remint plan was attempted and at least one batch failed (non-blocking). */
+  readonly photoRemintFailed?: boolean;
 };
 
 export function hydrateTourCloneDraft(
@@ -112,17 +114,27 @@ export function chunkTourClonePhotoRemintPlan(
   return chunks;
 }
 
+export type TourClonePhotoRemintResult = {
+  readonly ok: boolean;
+  readonly attempted: number;
+  readonly failed: number;
+};
+
 /**
  * Best-effort MinIO copy for wizard clone — failures must not block draft hydration.
  * API accepts at most {@link TOUR_CLONE_PHOTO_REMINT_BATCH_SIZE} entries per request.
+ * Callers may surface a non-blocking warning when `ok` is false.
  */
 export async function executeTourClonePhotoRemintPlan(
   plan: readonly WizardPhotoRemintPlanEntry[]
-): Promise<void> {
+): Promise<TourClonePhotoRemintResult> {
   if (plan.length === 0) {
-    return;
+    return { ok: true, attempted: 0, failed: 0 };
   }
+  let attempted = 0;
+  let failed = 0;
   for (const batch of chunkTourClonePhotoRemintPlan(plan)) {
+    attempted += 1;
     try {
       const response = await fetch(resolveWizardCloneRemintBffPath(), {
         method: "POST",
@@ -130,21 +142,25 @@ export async function executeTourClonePhotoRemintPlan(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan: batch }),
       });
-      if (response.status === 503 || response.status === 401) {
-        return;
-      }
-      if (!response.ok) {
+      if (response.status === 503 || response.status === 401 || !response.ok) {
+        failed += 1;
         console.warn(
           `[tour-clone] photo remint skipped for batch of ${batch.length}: HTTP ${response.status}`,
         );
+        if (response.status === 503 || response.status === 401) {
+          break;
+        }
+        continue;
       }
     } catch (error: unknown) {
+      failed += 1;
       console.warn(
         `[tour-clone] photo remint skipped for batch of ${batch.length}:`,
         error instanceof Error ? error.message : String(error),
       );
     }
   }
+  return { ok: failed === 0, attempted, failed };
 }
 
 export type HydrateCreateTourFromCloneInput = {
@@ -187,7 +203,11 @@ export async function hydrateCreateTourFromClone(
     tenantId: detail.tenantId,
   });
   if (hydrated.photoRemintPlan !== undefined && hydrated.photoRemintPlan.length > 0) {
-    void executeTourClonePhotoRemintPlan(hydrated.photoRemintPlan);
+    const remint = await executeTourClonePhotoRemintPlan(hydrated.photoRemintPlan);
+    return {
+      ...hydrated,
+      ...(remint.ok ? {} : { photoRemintFailed: true }),
+    };
   }
   return hydrated;
 }

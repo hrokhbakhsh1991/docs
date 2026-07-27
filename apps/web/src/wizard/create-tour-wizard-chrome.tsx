@@ -61,7 +61,7 @@ export function CreateTourWizardCloneError(props: {
 }) {
   const t = useTranslations("wizard");
   return (
-    <div data-new-tour-wizard>
+    <div data-new-tour-wizard className="space-y-4">
       <p
         className="new-tour-wizard-page__empty-desc"
         role="alert"
@@ -69,6 +69,21 @@ export function CreateTourWizardCloneError(props: {
       >
         {t("clone.error", { error: props.error })}
       </p>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          data-testid="operator-tour-clone-retry"
+          onClick={() => {
+            window.location.reload();
+          }}
+        >
+          {t("clone.retry")}
+        </Button>
+        <Button asChild variant="ghost" data-testid="operator-tour-clone-back">
+          <Link href="/tours">{t("clone.backToTours")}</Link>
+        </Button>
+      </div>
     </div>
   );
 }
@@ -103,6 +118,22 @@ export function CreateTourWizardSeedBanner(props: { readonly seedLabel: string }
       data-seed-label={props.seedLabel}
     >
       {t("seedApplied", { label: props.seedLabel })}
+    </p>
+  );
+}
+
+/** Non-blocking notice when clone photo remint batches fail (storage soft-skip). */
+export function CreateTourWizardClonePhotoRemintWarning(props: {
+  readonly testId: string;
+}) {
+  const t = useTranslations("wizard");
+  return (
+    <p
+      className="new-tour-wizard-page__seed-banner"
+      role="status"
+      data-testid={props.testId}
+    >
+      {t("clone.photoRemintWarning")}
     </p>
   );
 }

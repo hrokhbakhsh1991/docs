@@ -19,9 +19,8 @@ type OperatorCreateTourWizardClientProps = {
 
 /**
  * Wave I.9 — load plugin via registry (session.pluginId), then mount orchestration.
- * Gap Closure B.5 — warm dynamic binders via `warmOperatorWizardShell`.
+ * Warm via `warmOperatorWizardShell` → registry load + wizardHost.ensureReady.
  * @see docs/dev/wave-i-9-create-wizard-async-plugin.mdoc
- * @see docs/dev/saas-platform-remediation.mdoc
  */
 export function OperatorCreateTourWizardClient({
   initialTemplateResponse = null,

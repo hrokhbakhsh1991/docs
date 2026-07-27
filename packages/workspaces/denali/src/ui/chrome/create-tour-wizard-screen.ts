@@ -40,4 +40,5 @@ export function resolveDenaliCreateTourWizardScreen(input: {
 export const DENALI_CREATE_TOUR_CLONE_TEST_IDS = {
   loading: "operator-tour-clone-loading",
   error: "operator-tour-clone-error",
+  photoRemintWarning: "operator-tour-clone-photo-remint-warning",
 } as const;

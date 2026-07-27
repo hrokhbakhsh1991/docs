@@ -1,5 +1,10 @@
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 
+import {
+  assertDenaliCreateValid,
+  buildDenaliBookingCreatePolicyContext,
+} from "../booking";
+
 import { validateDenaliRegistrationPayload } from "./registration.validation";
 import { isDenaliTourPublished } from "../catalog/denali-publish-status";
 import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";
@@ -147,6 +152,24 @@ export async function createDenaliRegistration(params: {
     (err as Error & { details?: unknown }).details = { tourId: ["TOUR_DEPARTURE_NOT_SET"] };
     throw err;
   }
+
+  // Phase 1 booking domain — fail closed on Denali create shape before host pending create.
+  // Occupancy capacity remains host-locked via booking capacityPolicy adapters.
+  assertDenaliCreateValid(
+    buildDenaliBookingCreatePolicyContext({
+      tenantId: params.tenantId,
+      tourId: params.body.tourId,
+      tourTitle: card.title,
+      guestLabel,
+      ...(email.length > 0 ? { guestEmail: email } : {}),
+      ...(params.body.contact.phone !== undefined
+        ? { guestPhone: params.body.contact.phone }
+        : {}),
+      partySize: params.body.partySize,
+      departureAt,
+      tourCapacityMax: capacity,
+    })
+  );
 
   if (
     registrantTarget === "self" &&

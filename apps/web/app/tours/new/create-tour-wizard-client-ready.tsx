@@ -11,6 +11,7 @@ import { resolveWizardCatalogPrefetchProvider } from "@/wizard/wizard-host-adapt
 import { useAppSession } from "@/providers/app-session-context";
 import {
   CreateTourWizardCloneError,
+  CreateTourWizardClonePhotoRemintWarning,
   CreateTourWizardHeader,
   CreateTourWizardLoadingMessage,
   CreateTourWizardNotConfigured,
@@ -98,6 +99,10 @@ export function OperatorCreateTourWizardClientReady({
         ),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- product view slot props
         renderSeedBanner: (props: any) => <CreateTourWizardSeedBanner {...props} />,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- product view slot props
+        renderClonePhotoRemintWarning: (props: any) => (
+          <CreateTourWizardClonePhotoRemintWarning {...props} />
+        ),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- product view slot props
         renderPresetBanner: (props: any) => <CreateTourWizardPresetBanner {...props} />,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- product view slot props

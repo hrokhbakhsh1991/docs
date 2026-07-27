@@ -49,6 +49,7 @@ export type DenaliCreateTourWizardViewSlots = {
     readonly clearDraftConfirmDialog: DenaliCreateTourWizardCoreState["clearDraft"]["clearDraftConfirmDialog"];
   }) => ReactNode;
   readonly renderSeedBanner: (props: { readonly seedLabel: string }) => ReactNode;
+  readonly renderClonePhotoRemintWarning: (props: { readonly testId: string }) => ReactNode;
   readonly renderPresetBanner: (props: { readonly presetId: string }) => ReactNode;
   readonly renderSubmitFooter: (props: {
     readonly pending: boolean;
@@ -110,6 +111,11 @@ export function DenaliCreateTourWizardView({
       })}
       {wizard.showSeedBanner ? (
         slots.renderSeedBanner({ seedLabel: wizard.gate.seedLabel })
+      ) : null}
+      {wizard.clonePhotoRemintWarning ? (
+        slots.renderClonePhotoRemintWarning({
+          testId: wizard.clonePhotoRemintWarningTestId,
+        })
       ) : null}
       {wizard.presetApplied && wizard.presetId ? (
         slots.renderPresetBanner({ presetId: wizard.presetId })

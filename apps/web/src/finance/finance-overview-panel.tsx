@@ -69,7 +69,6 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
   );
   const [attentionSamples, setAttentionSamples] = useState<readonly FinanceAttentionSample[]>([]);
   const [paidByTour, setPaidByTour] = useState<FinanceByTourReport["items"]>([]);
-  const skipInitialFetchRef = useRef(initialOverview !== null);
 
   useEffect(() => {
     let cancelled = false;

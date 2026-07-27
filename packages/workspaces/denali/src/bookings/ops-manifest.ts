@@ -2,6 +2,10 @@
  * Phase 9.5 — Denali Registration Command Center default manifest (DEC-P9-011).
  * Phase B1.6 — also exposed as workspaceBooking.opsManifest (Finance ops mirror).
  * @see docs/phase-9/appendices/BOOKINGS-OPS-UX.md §5
+ *
+ * Status vocabulary must stay aligned with `src/booking` lifecycle
+ * (`DENALI_BOOKING_STATUS_PIPELINE`). Transition rules live in booking domain —
+ * this file only declares operator UX (views, actions, abilities).
  */
 import {
   validateRegistrationOpsManifest,

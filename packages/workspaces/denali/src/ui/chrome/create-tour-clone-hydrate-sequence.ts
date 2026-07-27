@@ -13,15 +13,22 @@ export type CreateTourCloneHydrateSequenceInput<TDraft> = {
     readonly cloneTourId: string;
     readonly pluginId: string;
     readonly wizardSessionId: string;
-  }) => Promise<{ readonly draft: TDraft }>;
+  }) => Promise<{
+    readonly draft: TDraft;
+    readonly photoRemintFailed?: boolean;
+  }>;
   readonly clearDraft: () => Promise<void>;
   readonly applyHydratedDraft: (draft: TDraft) => void;
+};
+
+export type CreateTourCloneHydrateSequenceResult = {
+  readonly photoRemintFailed: boolean;
 };
 
 /** Phase 15.2 — hydrate clone, clear remote draft, then apply envelope (no effect deps on draftSync). */
 export async function runCreateTourCloneHydrateSequence<TDraft>(
   input: CreateTourCloneHydrateSequenceInput<TDraft>
-): Promise<void> {
+): Promise<CreateTourCloneHydrateSequenceResult> {
   const hydrated = await input.hydrateCreateTourFromClone({
     cloneTourId: input.cloneTourId,
     pluginId: input.pluginId,
@@ -29,4 +36,5 @@ export async function runCreateTourCloneHydrateSequence<TDraft>(
   });
   await input.clearDraft();
   input.applyHydratedDraft(hydrated.draft);
+  return { photoRemintFailed: hydrated.photoRemintFailed === true };
 }

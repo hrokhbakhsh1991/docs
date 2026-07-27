@@ -115,7 +115,10 @@ export type DenaliCreateTourWizardCoreInput = {
     readonly cloneTourId: string;
     readonly pluginId: string;
     readonly wizardSessionId: string;
-  }) => Promise<{ readonly draft: DenaliTourWizardDraft }>;
+  }) => Promise<{
+    readonly draft: DenaliTourWizardDraft;
+    readonly photoRemintFailed?: boolean;
+  }>;
   readonly createTourAction: (payload: CreateTourPayload) => Promise<
     | { readonly ok: true; readonly record: { readonly id: string } }
     | {
@@ -135,6 +138,7 @@ export type DenaliCreateTourWizardCoreInput = {
 export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreInput) {
   const [cloneStatus, setCloneStatus] = useState<TourCloneHydrateStatus>("idle");
   const [cloneError, setCloneError] = useState<string | null>(null);
+  const [clonePhotoRemintWarning, setClonePhotoRemintWarning] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitValidationIssues, setSubmitValidationIssues] = useState<
     readonly ValidationIssue[] | null
@@ -158,6 +162,7 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
       cloneHydratedKeyRef.current = null;
       setCloneStatus("idle");
       setCloneError(null);
+      setClonePhotoRemintWarning(false);
       return;
     }
 
@@ -171,9 +176,10 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
     let cancelled = false;
     setCloneStatus("loading");
     setCloneError(null);
+    setClonePhotoRemintWarning(false);
     void (async () => {
       try {
-        await runCreateTourCloneHydrateSequence({
+        const sequence = await runCreateTourCloneHydrateSequence({
           cloneTourId: input.cloneTourId!,
           pluginId: input.session.pluginId,
           wizardSessionId: input.wizardSessionId,
@@ -194,6 +200,7 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
         }
         cloneHydratedKeyRef.current = hydrateKey;
         setCloneStatus("ready");
+        setClonePhotoRemintWarning(sequence.photoRemintFailed);
       } catch (error: unknown) {
         if (cancelled) {
           return;
@@ -201,6 +208,7 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
         cloneHydratedKeyRef.current = null;
         setCloneStatus("error");
         setCloneError(error instanceof Error ? error.message : "TOUR_CLONE_FAILED");
+        setClonePhotoRemintWarning(false);
       }
     })();
     return () => {
@@ -391,6 +399,8 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
     cloneError,
     cloneLoadingTestId: DENALI_CREATE_TOUR_CLONE_TEST_IDS.loading,
     cloneErrorTestId: DENALI_CREATE_TOUR_CLONE_TEST_IDS.error,
+    clonePhotoRemintWarning,
+    clonePhotoRemintWarningTestId: DENALI_CREATE_TOUR_CLONE_TEST_IDS.photoRemintWarning,
     gate: input.gate,
     presetId: input.presetId,
     presetApplied: input.presetApplied,

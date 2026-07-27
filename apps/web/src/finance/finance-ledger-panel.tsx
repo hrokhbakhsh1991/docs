@@ -147,7 +147,12 @@ export function FinanceLedgerPanel({
             </p>
           ) : null}
           {!loading && !error && items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("empty")}</p>
+            <p
+              className="text-sm text-muted-foreground"
+              data-testid={FINANCE_LEDGER_TEST_IDS.emptyState}
+            >
+              {t("empty")}
+            </p>
           ) : null}
           {!loading && !error && items.length > 0 ? (
             <ul className="divide-y rounded-md border" data-testid={FINANCE_LEDGER_TEST_IDS.list}>

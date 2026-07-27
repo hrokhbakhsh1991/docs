@@ -1,18 +1,20 @@
 /**
- * Denali Booking capability adapters — executable validation + capacity.
+ * Denali Booking capability adapters — HTTP contract ports over Denali domain policy.
  */
 
 import {
   BOOKING_APPROVE_OUTBOX_EVENT_TYPE,
-  assertBookingBaseCreateShape,
-  assertBookingStandardCapacity,
   type BookingApproveReactionInput,
   type BookingCapacityPolicyPort,
   type BookingCreatePolicyContext,
   type BookingPublicCapabilityPort,
   type BookingValidationPolicyPort,
   type WorkspaceBookingEventReactionPort,
-} from "@app-tour/booking-http-contracts";
+} from "@app-cloud/booking-http-contracts";
+
+import { assertDenaliCreateCapacity } from "./availability";
+import { DEFAULT_DENALI_CAPACITY_RULE } from "./capacity-rule";
+import { assertDenaliCreateValid } from "./validation";
 
 export class DenaliBookingPublicAdapter implements BookingPublicCapabilityPort {
   readonly kind = "denali-booking-public" as const;
@@ -26,7 +28,7 @@ export class DenaliBookingCapacityPolicyAdapter implements BookingCapacityPolicy
   readonly kind = "denali-booking-capacity-policy" as const;
 
   assertCreateCapacity(ctx: BookingCreatePolicyContext): void {
-    assertBookingStandardCapacity(ctx);
+    assertDenaliCreateCapacity(ctx, DEFAULT_DENALI_CAPACITY_RULE);
   }
 }
 
@@ -34,7 +36,7 @@ export class DenaliBookingValidationPolicyAdapter implements BookingValidationPo
   readonly kind = "denali-booking-validation-policy" as const;
 
   assertCreateValid(ctx: BookingCreatePolicyContext): void {
-    assertBookingBaseCreateShape(ctx);
+    assertDenaliCreateValid(ctx, DEFAULT_DENALI_CAPACITY_RULE);
   }
 }
 

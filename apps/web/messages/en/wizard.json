@@ -2,7 +2,10 @@
   "loading": "Loading tour wizard…",
   "clone": {
     "loading": "Loading tour to duplicate…",
-    "error": "Could not load tour to duplicate ({error})."
+    "error": "Could not load tour to duplicate ({error}).",
+    "retry": "Try again",
+    "backToTours": "Back to tours",
+    "photoRemintWarning": "Tour draft loaded, but some photos could not be copied. Re-upload photos before publishing if images are missing."
   },
   "notConfigured": {
     "title": "Tour wizard not configured",

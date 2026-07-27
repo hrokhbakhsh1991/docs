@@ -15,6 +15,19 @@ export type {
   DenaliFinanceOutboxConsumer,
   FinanceOutboxConsumerResult,
 } from "./finance-outbox-consumer";
+export { buildDenaliTourCreatedFinancePayload } from "./build-tour-created-finance-payload";
+export type {
+  BuildDenaliTourCreatedFinancePayloadInput,
+  BuildDenaliTourCreatedFinancePayloadResult,
+} from "./build-tour-created-finance-payload";
+export {
+  buildDenaliFinanceLedgerVisibility,
+  verifyDenaliTourCreatedFinanceChain,
+} from "./verify-tour-created-finance-chain";
+export type {
+  DenaliFinanceLedgerVisibility,
+  DenaliTourCreatedFinanceChainResult,
+} from "./verify-tour-created-finance-chain";
 export { emitFinanceLedgerDoubleEntryAppliedOutbox } from "./emit-finance-ledger-journal-outbox";
 export { LEDGER_ACCOUNTS, bookingWalletId } from "./ledger-accounts";
 export type { LedgerJournalLine } from "./ledger-journal-line";
