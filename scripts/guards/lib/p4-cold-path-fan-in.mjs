@@ -71,8 +71,6 @@ export function listColdPathRelativeFiles() {
   return Object.freeze([
     "apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts",
     "apps/web/src/bootstrap/workspace-theme-stylesheets.generated.ts",
-    "apps/web/src/bootstrap/workspace-finance-ops-bindings.generated.ts",
-    "apps/web/src/bootstrap/workspace-finance-nav-bindings.generated.ts",
     "apps/api/src/workspace/workspace-plugin-registry.generated.ts",
     "apps/api/src/http/workspace-http-handler-loaders.generated.ts",
     "apps/api/src/workspace-finance/workspace-finance-bindings.generated.ts",

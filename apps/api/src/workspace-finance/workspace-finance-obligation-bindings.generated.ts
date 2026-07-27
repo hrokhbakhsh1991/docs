@@ -4,12 +4,19 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-export const WORKSPACE_FINANCE_OBLIGATION_BINDINGS = {} as const;
+export const WORKSPACE_FINANCE_OBLIGATION_BINDINGS = {
+  "denali": {
+    loadResolve: async () => {
+      const mod = await import("@app-tour/workspace-denali/host/finance");
+      return mod.resolveDenaliRegistrationObligationMinor;
+    },
+  },
+} as const;
 
-export function isFinanceObligationBindingRegistered(_workspaceType: string): boolean {
-  return false;
+export function isFinanceObligationBindingRegistered(workspaceType: string): boolean {
+  return workspaceType.trim().toLowerCase() in WORKSPACE_FINANCE_OBLIGATION_BINDINGS;
 }
 
 export function listFinanceObligationWorkspaceTypes(): readonly string[] {
-  return [];
+  return Object.keys(WORKSPACE_FINANCE_OBLIGATION_BINDINGS).sort();
 }

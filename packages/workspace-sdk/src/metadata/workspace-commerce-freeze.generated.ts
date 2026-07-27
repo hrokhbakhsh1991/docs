@@ -10,7 +10,7 @@ import type { WorkspaceCommerceConfig } from "./commerce-schema.js";
 export const WORKSPACE_FROZEN_COMMERCE_BY_WORKSPACE_TYPE: Readonly<
   Record<string, WorkspaceCommerceConfig>
 > = Object.freeze({
-
+  "denali": Object.freeze({ paymentMode: "offline_receipt", gatewayProvider: null, currency: "IRR" }),
 });
 
 export function resolveFrozenWorkspaceCommerce(
