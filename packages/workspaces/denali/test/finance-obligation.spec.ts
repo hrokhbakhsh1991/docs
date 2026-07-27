@@ -43,4 +43,44 @@ describe("finance-obligation.spec.ts — FC-2 Denali", () => {
     });
     assert.equal(resolved, null);
   });
+
+  it("DEN-FC2-04 currency override uppercases and replaces default IRR", () => {
+    const resolved = resolveDenaliRegistrationObligationMinor({
+      tourCanonical: {
+        pricing: { basePricePerPerson: 1000, paymentMode: "offline_receipt" },
+      },
+      partySize: 3,
+      currency: "usd",
+    });
+    assert.ok(resolved !== null);
+    assert.equal(resolved.currency, "USD");
+    assert.equal(resolved.obligationMinor, "3000");
+  });
+
+  it("DEN-FC2-05 partySize < 1 or non-finite yields null", () => {
+    const canonical = {
+      pricing: { basePricePerPerson: 1000, paymentMode: "offline_receipt" },
+    };
+    assert.equal(
+      resolveDenaliRegistrationObligationMinor({ tourCanonical: canonical, partySize: 0 }),
+      null
+    );
+    assert.equal(
+      resolveDenaliRegistrationObligationMinor({ tourCanonical: canonical, partySize: -1 }),
+      null
+    );
+    assert.equal(
+      resolveDenaliRegistrationObligationMinor({ tourCanonical: canonical, partySize: Number.NaN }),
+      null
+    );
+  });
+
+  it("DEN-FC2-06 missing paymentMode still resolves when price present (offline default path)", () => {
+    const resolved = resolveDenaliRegistrationObligationMinor({
+      tourCanonical: { pricing: { basePricePerPerson: 250 } },
+      partySize: 2,
+    });
+    assert.ok(resolved !== null);
+    assert.equal(resolved.obligationMinor, "500");
+  });
 });

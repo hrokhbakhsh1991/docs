@@ -199,11 +199,11 @@ describe("tour-clone-hydrate.spec.ts — Phase 11.6 Web", () => {
     assert.equal(chunks[1]?.length, 3);
   });
 
-  it("WEB-P11-13-03 remint HTTP failure does not throw", async () => {
+  it("WEB-P11-13-03 remint HTTP failure does not throw and reports failed", async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async () => new Response("forbidden", { status: 403 });
     try {
-      await executeTourClonePhotoRemintPlan([
+      const result = await executeTourClonePhotoRemintPlan([
         {
           sourceStorageKey: "tenant/tours/a/photos/old",
           destStorageKey: "tenant/wizard-drafts/session/photos/new",
@@ -211,6 +211,9 @@ describe("tour-clone-hydrate.spec.ts — Phase 11.6 Web", () => {
           newPhotoId: "new",
         },
       ]);
+      assert.equal(result.ok, false);
+      assert.equal(result.attempted, 1);
+      assert.equal(result.failed, 1);
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -254,6 +257,7 @@ describe("tour-clone-hydrate.spec.ts — Phase 11.6 Web", () => {
       assert.equal(getCanonicalStringValue(result.draft, "title"), "Photo clone (Copy)");
       const photos = result.draft.data.photos as Array<{ id: string }>;
       assert.notEqual(photos[0]?.id, "photo-old");
+      assert.equal(result.photoRemintFailed, true);
     } finally {
       globalThis.fetch = originalFetch;
     }

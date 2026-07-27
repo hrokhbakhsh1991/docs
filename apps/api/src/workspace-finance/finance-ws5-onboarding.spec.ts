@@ -2,7 +2,7 @@
  * Production-capable finance-ws5 — supported with real ledger/receipt/CoA/ops/TourCreated.
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -29,22 +29,20 @@ const here = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(here, "../../../..");
 
 describe("finance-ws5 production-capable", () => {
-  it("capability + nav + ops + reaction are registered", () => {
+  it("capability + reaction registered; web finance product binders retired", () => {
     assert.equal(FINANCE_WS5_WORKSPACE_TYPE, "finance-ws5");
     assert.equal(isFinanceSupportedWorkspace("finance-ws5"), true);
     assert.equal(isFinanceDefaultEnabledWhenModulesUnset("finance-ws5"), true);
     assert.equal(isWorkspaceFinanceEventReactionRegistered("finance-ws5"), true);
     assert.equal(isFinanceChartOfAccountsRegistered("finance-ws5"), true);
-    const nav = readFileSync(
-      join(REPO_ROOT, "apps/web/src/bootstrap/workspace-finance-nav-bindings.generated.ts"),
-      "utf8"
+    assert.equal(
+      existsSync(join(REPO_ROOT, "apps/web/src/bootstrap/workspace-finance-nav-bindings.generated.ts")),
+      false
     );
-    assert.match(nav, /finance-ws5/);
-    const ops = readFileSync(
-      join(REPO_ROOT, "apps/web/src/bootstrap/workspace-finance-ops-bindings.generated.ts"),
-      "utf8"
+    assert.equal(
+      existsSync(join(REPO_ROOT, "apps/web/src/bootstrap/workspace-finance-ops-bindings.generated.ts")),
+      false
     );
-    assert.match(ops, /finance-ws5/);
   });
 
   it("dependencies resolve WS5 adapters (not Denali)", async () => {

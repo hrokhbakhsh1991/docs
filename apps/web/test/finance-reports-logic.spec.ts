@@ -80,6 +80,7 @@ describe("finance-reports-logic.spec.ts — Phase 9.7 R1", () => {
 
   it("WEB-9.7-R4-02 ledger export landmarks and filename are stable", () => {
     assert.equal(FINANCE_LEDGER_TEST_IDS.exportCsv, "finance-ledger-export-csv");
+    assert.equal(FINANCE_LEDGER_TEST_IDS.emptyState, "finance-ledger-empty");
     assert.equal(
       buildFinanceLedgerCsvFilename("00000000", new Date("2026-06-09T12:00:00.000Z")),
       "finance-ledger-00000000-2026-06-09.csv"

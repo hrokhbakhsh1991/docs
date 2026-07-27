@@ -18,13 +18,13 @@ import {
   shouldAttachSeedPrefillTestId,
   WIZARD_TEMPLATE_PREFILL_TEST_IDS,
   WIZARD_TEMPLATE_SEED_CANONICAL_PATH,
-  WIZARD_TEMPLATE_SEED_CANONICAL_PATH_DENALI,
+  WIZARD_TEMPLATE_SEED_CANONICAL_PATH_TITLE,
 } from "../src/tours/wizard-template-prefill-logic";
 
 describe("wizard-template-prefill.spec.ts — SMK-P9-05", () => {
   it("WEB-9.6-SMK-P9-05 seed maps to basics.title when empty", () => {
     assert.equal(WIZARD_TEMPLATE_SEED_CANONICAL_PATH, "basics.title");
-    assert.equal(WIZARD_TEMPLATE_SEED_CANONICAL_PATH_DENALI, "title");
+    assert.equal(WIZARD_TEMPLATE_SEED_CANONICAL_PATH_TITLE, "title");
     assert.equal(
       WIZARD_TEMPLATE_PREFILL_TEST_IDS.seedPrefillField,
       "operator-wizard-template-seed-prefill"

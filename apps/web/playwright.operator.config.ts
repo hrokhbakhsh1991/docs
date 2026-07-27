@@ -28,6 +28,10 @@ export default defineConfig({
   testMatch: [
     "operator-smoke.spec.ts",
     "denali-itinerary-wizard.spec.ts",
+    "denali-finance-confidence.spec.ts",
+    "denali-booking-confidence.spec.ts",
+    "denali-edit-confidence.spec.ts",
+    "denali-clone-confidence.spec.ts",
     "p6-admin-publish-smoke.spec.ts",
     "p6-operator-receipt-approve-smoke.spec.ts",
     "p6-vertical-slice-browser-chain.spec.ts",

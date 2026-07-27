@@ -8,6 +8,7 @@ import {
   denaliRegistrationOpsManifest,
   getDenaliRegistrationOpsManifest,
 } from "../src/bookings/ops-manifest";
+import { DENALI_BOOKING_STATUS_PIPELINE } from "../src/booking/status";
 import { getDenaliWorkspacePlugin } from "../src/denali.plugin";
 
 describe("bookings-ops-manifest.spec.ts — workspace-denali", () => {
@@ -17,5 +18,12 @@ describe("bookings-ops-manifest.spec.ts — workspace-denali", () => {
     assert.ok(manifest.views.includes("inbox_table"));
     assert.deepEqual(manifest.columns.inbox_table, denaliRegistrationOpsManifest.columns.inbox_table);
     assert.equal(getDenaliWorkspacePlugin().registrationOps?.manifest.id, "denali_registration_ops");
+  });
+
+  it("DN-B1-OPS-01 statusPipeline aligned with booking domain lifecycle", () => {
+    assert.deepEqual(
+      [...denaliRegistrationOpsManifest.statusPipeline],
+      [...DENALI_BOOKING_STATUS_PIPELINE]
+    );
   });
 });

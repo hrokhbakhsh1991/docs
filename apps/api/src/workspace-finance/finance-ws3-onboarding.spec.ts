@@ -2,7 +2,7 @@
  * Registry-only finance-ws3 — demoted from supported (no product gate / nav / TourCreated).
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -28,11 +28,10 @@ describe("finance-ws3 demoted registry-only", () => {
     assert.equal(isFinanceSupportedWorkspace("finance-ws3"), false);
     assert.equal(isFinanceDefaultEnabledWhenModulesUnset("finance-ws3"), false);
     assert.equal(isWorkspaceFinanceEventReactionRegistered("finance-ws3"), false);
-    const nav = readFileSync(
-      join(REPO_ROOT, "apps/web/src/bootstrap/workspace-finance-nav-bindings.generated.ts"),
-      "utf8"
+    assert.equal(
+      existsSync(join(REPO_ROOT, "apps/web/src/bootstrap/workspace-finance-nav-bindings.generated.ts")),
+      false
     );
-    assert.doesNotMatch(nav, /finance-ws3/);
   });
 
   it("dependency registry still resolves ledger + receipt (registry-only)", async () => {

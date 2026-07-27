@@ -17,7 +17,7 @@ describe("create-tour-clone-hydrate-sequence.spec.ts — P15 clone orchestration
 
   it("P15-CLONE-02 runCreateTourCloneHydrateSequence clears draft before apply", async () => {
     const events: string[] = [];
-    await runCreateTourCloneHydrateSequence({
+    const result = await runCreateTourCloneHydrateSequence({
       cloneTourId: "tour-1",
       pluginId: "denali",
       wizardSessionId: "session-1",
@@ -33,6 +33,7 @@ describe("create-tour-clone-hydrate-sequence.spec.ts — P15 clone orchestration
       },
     });
     assert.deepEqual(events, ["hydrate", "clear", "apply"]);
+    assert.equal(result.photoRemintFailed, false);
   });
 
   it("P15-CLONE-03 hydrate failure skips clear and apply", async () => {
@@ -57,5 +58,20 @@ describe("create-tour-clone-hydrate-sequence.spec.ts — P15 clone orchestration
       /TOUR_CLONE_HTTP_404/
     );
     assert.deepEqual(events, ["hydrate"]);
+  });
+
+  it("P15-CLONE-04 photoRemintFailed propagates from hydrate result", async () => {
+    const result = await runCreateTourCloneHydrateSequence({
+      cloneTourId: "tour-1",
+      pluginId: "denali",
+      wizardSessionId: "session-1",
+      hydrateCreateTourFromClone: async () => ({
+        draft: { data: { title: "Clone" } },
+        photoRemintFailed: true,
+      }),
+      clearDraft: async () => {},
+      applyHydratedDraft: () => {},
+    });
+    assert.equal(result.photoRemintFailed, true);
   });
 });
