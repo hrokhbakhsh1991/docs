@@ -26,13 +26,22 @@ Phase **4bz** records that the **post-binder optional polish list is empty** (th
 | Host-probe opt-in Playwright | 4by |
 | Checklist stale-row cleanup | **4bz** |
 
+## Platform closure wave (2026-07-26)
+
+Final honesty pass before Denali product development:
+
+- `warmOperatorWizardShell` → `loadWorkspacePluginByIdFromRegistry` + `ensureWizardHostReady`
+- B.20 facades deleted (`host-adapter-runtime`, `draft-shell-runtime`, `wizard-chrome-runtime`)
+- Orphan web product binders deleted (host-adapters, finance-ops/nav, operator-shell-nav, settings-exposure UI)
+- Accepted Build-time registries retained (plugin/theme/message/owner-settings loaders + opaque media/i18n)
+
 ## Progress (honest)
 
 | Axis | Estimate |
 | --- | --- |
-| Binder DoD | **100%** closed |
+| Binder DoD | **100%** closed (re-verified platform closure wave) |
 | Post-binder optional polish | **100%** closed (4bl–4by) |
-| Full platform / open plugin bus | ~**96–97%** — remaining is Architect-scoped, not binder reopen |
+| Build-time Capability Host (platform stop) | **100%** — continue Denali product work |
 | Hostile V6 | **88/100** — re-score only after material architecture change |
 
 ## Architect YES only (do not start casually)

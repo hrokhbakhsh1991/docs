@@ -39,8 +39,8 @@ describe("thin-shell-flat-edit-chrome-capability — Phase 4ac/4ah", () => {
       "utf8"
     );
 
-    assert.match(warm, /resolveFlatEditChromeCapability/);
-    assert.match(warm, /ensureFlatEditChromeWarm/);
+    assert.match(warm, /ensureWizardHostReady/);
+    assert.match(warm, /loadWorkspacePluginByIdFromRegistry/);
     assert.doesNotMatch(warm, /ensureWizardFlatEditChromeSurfaceFallback/);
     assert.doesNotMatch(warm, /workspace-wizard-flat-edit-chrome-bindings/);
 

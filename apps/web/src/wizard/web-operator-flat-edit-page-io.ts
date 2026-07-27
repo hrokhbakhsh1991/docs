@@ -2,7 +2,7 @@ import type { OperatorFlatEditPageIo } from "@/wizard/operator-flat-edit-page-io
 import {
   finalizeFlatEditTourLoad,
   mapFlatEditTourHttpStatus,
-} from "@/wizard/host-adapter-runtime";
+} from "@/wizard/wizard-host-adapter-registry";
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
 import { resolveActiveCatalogIdsFromResourcePayloads } from "@/tours/tour-clone-hydrate-logic";
 import { hydrateTourEditDraft } from "@/tours/tour-edit-hydrate-logic";
@@ -10,6 +10,7 @@ import { updateTourAction } from "@/tours/update-tour.server";
 
 /**
  * Default web BFF adapter for {@link OperatorFlatEditPageIo} (P2-D4.a).
+ * Host-adapter helpers come from Pattern B registry after wizardHost.ensureReady.
  */
 export const webOperatorFlatEditPageIo: OperatorFlatEditPageIo = Object.freeze({
   async loadWizardTemplatePayload() {
@@ -26,12 +27,12 @@ export const webOperatorFlatEditPageIo: OperatorFlatEditPageIo = Object.freeze({
       fetch("/api/settings/resources/equipment", { cache: "no-store" }),
       fetch("/api/settings/resources/locations", { cache: "no-store" }),
     ]);
-    const httpFailure = mapFlatEditTourHttpStatus(tourResponse.status);
+    const httpFailure = mapFlatEditTourHttpStatus(plugin.id, tourResponse.status);
     if (httpFailure != null) {
       return httpFailure;
     }
     const tourDetail = (await tourResponse.json()) as OperatorTourDetailResponse;
-    const catalogIds = resolveActiveCatalogIdsFromResourcePayloads({
+    const catalogIds = resolveActiveCatalogIdsFromResourcePayloads(plugin.id, {
       ...(equipmentResponse.ok ? { equipmentPayload: await equipmentResponse.json() } : {}),
       ...(locationsResponse.ok ? { locationsPayload: await locationsResponse.json() } : {}),
     });
@@ -39,7 +40,7 @@ export const webOperatorFlatEditPageIo: OperatorFlatEditPageIo = Object.freeze({
       activeEquipmentIds: catalogIds.activeEquipmentIds,
       activeDestinationIds: catalogIds.activeDestinationIds,
     });
-    return finalizeFlatEditTourLoad({
+    return finalizeFlatEditTourLoad(plugin.id, {
       tourDetail,
       baseline: hydrated,
     });

@@ -46,8 +46,8 @@ describe("thin-shell-operator-ui-capability — Phase 4ao", () => {
       "utf8"
     );
 
-    assert.match(warm, /resolveOperatorUiCapability/);
-    assert.match(warm, /ensureOperatorUiWarm/);
+    assert.match(warm, /ensureWizardHostReady/);
+    assert.match(warm, /loadWorkspacePluginByIdFromRegistry/);
     assert.doesNotMatch(warm, /workspace-operator-ui-components-bindings/);
 
     assert.match(registry, /app-cloud\.operatorUiComponentsSurface/);

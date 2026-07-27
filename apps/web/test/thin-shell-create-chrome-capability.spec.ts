@@ -40,8 +40,8 @@ describe("thin-shell-create-chrome-capability — Phase 4ab/4ag", () => {
     );
     const draftShell = readFileSync(resolve(WEB_ROOT, "src/wizard/wizard-draft-shell.ts"), "utf8");
 
-    assert.match(warm, /resolveCreateChromeCapability/);
-    assert.match(warm, /ensureCreateChromeWarm/);
+    assert.match(warm, /ensureWizardHostReady/);
+    assert.match(warm, /loadWorkspacePluginByIdFromRegistry/);
     assert.doesNotMatch(warm, /ensureWizardCreateChromeSurfaceFallback/);
     assert.doesNotMatch(warm, /workspace-wizard-create-chrome-bindings/);
 

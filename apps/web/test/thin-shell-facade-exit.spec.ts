@@ -110,7 +110,7 @@ describe("thin-shell-facade-exit — Phase 3b–3d locks", () => {
     assert.doesNotMatch(resolveLabel, /WORKSPACE_WIZARD_I18N_NAMESPACES/);
     assert.doesNotMatch(resolveLabel, /wizard-label-bindings/);
     const warm = readFileSync(join(WEB_ROOT, "src/wizard/warm-operator-wizard-shell.ts"), "utf8");
-    assert.match(warm, /resolveLabelsCapability/);
+    assert.match(warm, /ensureWizardHostReady/);
     assert.doesNotMatch(warm, /wizard-label-bindings/);
   });
 

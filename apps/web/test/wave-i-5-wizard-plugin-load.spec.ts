@@ -14,7 +14,8 @@ describe("Wave I.5 — wizard plugin load", () => {
     const path = join(WEB, "src/wizard/resolve-wizard-workspace-plugin.ts");
     assert.equal(existsSync(path), true);
     const source = readFileSync(path, "utf8");
-    assert.match(source, /export function resolveWizardSyncWorkspacePlugin/);
+    assert.doesNotMatch(source, /resolveWizardSyncWorkspacePlugin/);
+    assert.doesNotMatch(source, /draft-shell-runtime/);
     assert.match(source, /export async function loadWizardWorkspacePlugin/);
     assert.doesNotMatch(source, /loadDenaliWorkspacePlugin|resolveDenaliSyncWorkspacePlugin/);
   });
@@ -30,7 +31,7 @@ describe("Wave I.5 — wizard plugin load", () => {
       join(WEB, "app/(app)/tours/[id]/edit/flat-edit-page-client.tsx"),
       "utf8"
     );
-    assert.match(flat, /loadWizardWorkspacePlugin/);
+    assert.match(flat, /warmOperatorWizardShell/);
     assert.doesNotMatch(flat, /loadDenaliWorkspacePlugin/);
   });
 

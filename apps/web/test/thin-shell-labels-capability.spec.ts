@@ -40,8 +40,8 @@ describe("thin-shell-labels-capability — Phase 4aq", () => {
       "utf8"
     );
 
-    assert.match(warm, /resolveLabelsCapability/);
-    assert.match(warm, /ensureLabelsWarm/);
+    assert.match(warm, /ensureWizardHostReady/);
+    assert.match(warm, /loadWorkspacePluginByIdFromRegistry/);
     assert.doesNotMatch(warm, /wizard-label-bindings/);
 
     assert.match(registry, /app-cloud\.wizardLabelResolverCache/);

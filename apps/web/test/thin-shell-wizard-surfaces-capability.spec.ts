@@ -43,8 +43,8 @@ describe("thin-shell-wizard-surfaces-capability — Phase 4as", () => {
       "utf8"
     );
 
-    assert.match(warm, /resolveWizardSurfacesCapability/);
-    assert.match(warm, /ensureWizardSurfacesWarm/);
+    assert.match(warm, /ensureWizardHostReady/);
+    assert.match(warm, /loadWorkspacePluginByIdFromRegistry/);
     assert.doesNotMatch(warm, /wizard-surface-bindings/);
 
     assert.match(shellRegistry, /app-cloud\.wizardCompositeSurfaceCache/);

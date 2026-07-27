@@ -9,14 +9,6 @@ export const WIZARD_CATALOG_ENUM_PATHS = {
   tourCategoryGroup: "tour.categoryGroup",
 } as const;
 
-/** Well-known catalog enum paths for tour/admin UI (Wave F.c). */
-export const WIZARD_CATALOG_ENUM_PATHS = {
-  tourKind: "tour.kind",
-  transportMode: "transport.mode",
-  tourDuration: "tour.duration",
-  tourCategoryGroup: "tour.categoryGroup",
-} as const;
-
 export function resolveWizardFieldLabel(
   surfaceId: string | undefined,
   translate: (key: string) => string,

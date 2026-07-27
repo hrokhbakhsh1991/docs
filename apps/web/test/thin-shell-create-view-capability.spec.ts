@@ -42,8 +42,8 @@ describe("thin-shell-create-view-capability — Phase 4ad/4ak", () => {
       "utf8"
     );
 
-    assert.match(warm, /resolveCreateViewCapability/);
-    assert.match(warm, /ensureCreateViewWarm/);
+    assert.match(warm, /ensureWizardHostReady/);
+    assert.match(warm, /loadWorkspacePluginByIdFromRegistry/);
     assert.doesNotMatch(warm, /ensureWizardCreateViewSurfaceFallback/);
     assert.doesNotMatch(warm, /workspace-wizard-create-view-bindings/);
 

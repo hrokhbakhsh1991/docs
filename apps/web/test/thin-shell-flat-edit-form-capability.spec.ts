@@ -39,8 +39,8 @@ describe("thin-shell-flat-edit-form-capability — Phase 4ae/4ai", () => {
       "utf8"
     );
 
-    assert.match(warm, /resolveFlatEditFormCapability/);
-    assert.match(warm, /ensureFlatEditFormWarm/);
+    assert.match(warm, /ensureWizardHostReady/);
+    assert.match(warm, /loadWorkspacePluginByIdFromRegistry/);
     assert.doesNotMatch(warm, /ensureWizardFlatEditFormSurfaceFallback/);
     assert.doesNotMatch(warm, /workspace-wizard-flat-edit-form-bindings/);
 

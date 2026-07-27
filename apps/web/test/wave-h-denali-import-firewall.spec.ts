@@ -1,6 +1,6 @@
 /**
- * Wave H.h — non-generated apps/web sources must not import @app-tour/workspace-denali.
- * Product package reachability is only via *.generated.* binders/loaders.
+ * Wave H.h — non-generated apps/web sources must not import @app-cloud/workspace-denali.
+ * Product reachability is via generated plugin loaders + wizardHost.ensureReady / Pattern B registries.
  */
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -9,7 +9,7 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const DENALI_IMPORT = /from\s+['"]@app-tour\/workspace-denali/;
+const DENALI_IMPORT = /from\s+['"]@app-cloud\/workspace-denali/;
 
 function listTs(dir: string, out: string[] = []): string[] {
   for (const ent of readdirSync(dir, { withFileTypes: true })) {
@@ -21,7 +21,7 @@ function listTs(dir: string, out: string[] = []): string[] {
 }
 
 describe("Wave H.h — denali import firewall", () => {
-  it("H.h-01 no non-generated apps/web source imports @app-tour/workspace-denali", () => {
+  it("H.h-01 no non-generated apps/web source imports @app-cloud/workspace-denali", () => {
     const hits: string[] = [];
     for (const root of [join(WEB_ROOT, "src"), join(WEB_ROOT, "app")]) {
       for (const file of listTs(root)) {
@@ -33,15 +33,16 @@ describe("Wave H.h — denali import firewall", () => {
     assert.deepEqual(hits, []);
   });
 
-  it("H.h-02 tours/exposure reach Denali via generated host adapters only", () => {
+  it("H.h-02 tours/exposure reach host adapters via Pattern B registry only", () => {
     for (const rel of [
       "src/tours/tour-clone-hydrate-logic.ts",
       "src/tours/tour-preset-prefill-logic.ts",
       "src/exposure/localize-exposure-catalog-fields.ts",
     ]) {
       const source = readFileSync(join(WEB_ROOT, rel), "utf8");
-      assert.doesNotMatch(source, /@app-tour\/workspace-denali/);
-      assert.match(source, /workspace-host-adapters\.generated/);
+      assert.doesNotMatch(source, /@app-cloud\/workspace-denali/);
+      assert.match(source, /wizard-host-adapter-registry/);
+      assert.doesNotMatch(source, /workspace-host-adapters\.generated/);
     }
   });
 });

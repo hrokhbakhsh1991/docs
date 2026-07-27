@@ -42,8 +42,8 @@ describe("thin-shell-flat-edit-page-capability — Phase 4af/4aj", () => {
       "utf8"
     );
 
-    assert.match(warm, /resolveFlatEditPageCapability/);
-    assert.match(warm, /ensureFlatEditPageWarm/);
+    assert.match(warm, /ensureWizardHostReady/);
+    assert.match(warm, /loadWorkspacePluginByIdFromRegistry/);
     assert.doesNotMatch(warm, /ensureWizardFlatEditPageSurfaceFallback/);
     assert.doesNotMatch(warm, /workspace-wizard-flat-edit-page-bindings/);
 

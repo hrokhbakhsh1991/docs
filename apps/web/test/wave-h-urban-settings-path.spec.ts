@@ -23,7 +23,7 @@ describe("Wave H.i.b — workspace-owner settings path", () => {
     assert.equal(existsSync(join(WEB_ROOT, "app/(app)/settings/urban")), false);
   });
 
-  it("H.i.b-02 manifest nav + generated bindings use workspace-owner", () => {
+  it("H.i.b-02 manifest nav + operatorShellNav capability use workspace-owner", () => {
     const manifest = readFileSync(
       join(REPO_ROOT, "packages/workspaces/urban/workspace.manifest.json"),
       "utf8"
@@ -31,11 +31,14 @@ describe("Wave H.i.b — workspace-owner settings path", () => {
     assert.match(manifest, /\/settings\/workspace-owner/);
     assert.match(manifest, /workspaceOwnerSettings/);
     assert.doesNotMatch(manifest, /\/settings\/urban"/);
-    const generated = readFileSync(
-      join(WEB_ROOT, "src/bootstrap/operator-shell-nav-bindings.generated.ts"),
+    assert.equal(
+      existsSync(join(WEB_ROOT, "src/bootstrap/operator-shell-nav-bindings.generated.ts")),
+      false
+    );
+    const registry = readFileSync(
+      join(WEB_ROOT, "src/shell/operator-shell-nav-registry.ts"),
       "utf8"
     );
-    assert.match(generated, /\/settings\/workspace-owner/);
-    assert.match(generated, /workspaceOwnerSettings/);
+    assert.match(registry, /resolveOperatorShellNavCapability/);
   });
 });

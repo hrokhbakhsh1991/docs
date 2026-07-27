@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * Thin shell guard — apps/web must not statically import product workspace packages
- * outside generated loaders/binders (and those are metered for ratchet honesty).
+ * outside generated loaders (Build-time Capability Host registries).
  * @see docs/dev/wave-i-3-thin-shell-guard.mdoc
- * @see docs/dev/saas-platform-remediation.mdoc
+ * @see docs/dev/thin-shell-generated-bootstrap-inventory.mdoc
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -18,47 +18,22 @@ const EXT = new Set([".ts", ".tsx", ".js", ".mjs", ".cjs"]);
 const SKIP_DIR = new Set(["node_modules", "dist", ".next", "coverage"]);
 
 /** Product workspace package scope — sdk is allowed. */
-const PRODUCT_PKG = /@app-tour\/workspace-([a-z0-9-]+)/g;
+const PRODUCT_PKG = /@app-cloud\/workspace-([a-z0-9-]+)/g;
 
 /**
- * Generated files that may only use dynamic import() for product packages.
- * Static `from "@app-tour/workspace-*"` here is fail-closed (Gap Closure B).
+ * Accepted Build-time Capability Host generated files that may only use
+ * dynamic import() for product packages (no static `from` product imports).
  */
 const DYNAMIC_ONLY_GENERATED = new Set([
   "apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts",
   "apps/web/src/bootstrap/workspace-theme-stylesheets.generated.ts",
   "apps/web/src/bootstrap/workspace-wizard-message-loads.generated.ts",
   "apps/web/src/bootstrap/workspace-owner-settings-panel-loaders.generated.ts",
-  "apps/web/src/bootstrap/workspace-finance-ops-bindings.generated.ts",
-  "apps/web/src/bootstrap/wizard-label-bindings.generated.ts",
-  "apps/web/src/bootstrap/wizard-surface-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-tour-list-category-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-settings-destination-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-settings-equipment-ui-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-settings-exposure-surfaces-ui-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-wizard-template-editor-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-wizard-template-preset-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-tour-action-submit-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-wizard-rules-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-wizard-draft-unification-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-wizard-template-gate-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-settings-hub-fallback-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-wizard-composite-registry-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-photo-upload-errors-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-wizard-create-view-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-wizard-flat-edit-page-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-wizard-create-chrome-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-wizard-flat-edit-chrome-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-wizard-flat-edit-form-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-wizard-draft-shell-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-operator-ui-components-bindings.generated.ts",
-  "apps/web/src/bootstrap/workspace-host-adapters.generated.ts",
 ]);
 
 /**
- * Gap Closure Phase A/B — generated static product import line budget.
+ * Generated static product import line budget.
  * Decrease when binders become dynamic-only; never raise without charter edit.
- * @see docs/dev/saas-platform-remediation.mdoc
  */
 const MAX_STATIC_GENERATED_PRODUCT_IMPORTS = 0;
 
@@ -97,10 +72,10 @@ function lineHasStaticProductImport(line) {
     return false;
   }
   // Dynamic import() is allowed in loaders.
-  if (/import\s*\(\s*['"`]@app-tour\/workspace-/.test(line)) {
+  if (/import\s*\(\s*['"`]@app-cloud\/workspace-/.test(line)) {
     return false;
   }
-  return /(?:import|export)\s/.test(line) && /from\s+['"`]@app-tour\/workspace-/.test(line);
+  return /(?:import|export)\s/.test(line) && /from\s+['"`]@app-cloud\/workspace-/.test(line);
 }
 
 /**
@@ -128,7 +103,7 @@ function walk(absDir, relDir) {
 
     const text = fs.readFileSync(abs, "utf8");
     const isGenerated = relPosix.includes(".generated.");
-    if (!text.includes("@app-tour/workspace-")) continue;
+    if (!text.includes("@app-cloud/workspace-")) continue;
     const lines = text.split("\n");
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -163,8 +138,8 @@ for (const absRoot of ROOTS) {
 
 if (hits.length > 0) {
   console.error("guard-thin-shell: FAIL — product workspace imports outside allowlist");
-  console.error("Allowed: @app-tour/workspace-sdk; *.generated.* (metered)");
-  console.error("See docs/dev/saas-platform-remediation.mdoc");
+  console.error("Allowed: @app-cloud/workspace-sdk; *.generated.* (metered)");
+  console.error("See docs/dev/thin-shell-generated-bootstrap-inventory.mdoc");
   for (const h of hits.slice(0, 40)) {
     console.error(` - ${h}`);
   }
@@ -178,7 +153,7 @@ if (staticCount > MAX_STATIC_GENERATED_PRODUCT_IMPORTS) {
   console.error(
     `  staticLines=${staticCount} budget=${MAX_STATIC_GENERATED_PRODUCT_IMPORTS} (decrease via dynamic-only codegen)`
   );
-  console.error("  See docs/dev/saas-platform-remediation.mdoc (Gap Closure Phase A)");
+  console.error("  See docs/dev/thin-shell-generated-bootstrap-inventory.mdoc");
   for (const h of staticGeneratedHits.slice(0, 40)) {
     console.error(` - ${h}`);
   }
@@ -192,12 +167,6 @@ console.log(
   `guard-thin-shell: PASS (non-generated product imports=0; generated static product import lines=${staticCount}/${MAX_STATIC_GENERATED_PRODUCT_IMPORTS})`
 );
 console.log(
-  "guard-thin-shell: NOTE — generated static binders remain; ratchet target is dynamic-only loaders:",
+  "guard-thin-shell: NOTE — accepted Build-time registries (dynamic product import only):",
   [...DYNAMIC_ONLY_GENERATED].join(", ")
 );
-if (staticCount > 0) {
-  console.log(`guard-thin-shell: sample static generated hits (first 5):`);
-  for (const h of staticGeneratedHits.slice(0, 5)) {
-    console.log(` - ${h}`);
-  }
-}
