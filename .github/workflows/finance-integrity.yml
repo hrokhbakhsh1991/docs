@@ -65,20 +65,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Verify Node.js engine
-        run: node scripts/guards/check-node-engine.mjs
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup platform toolchain
+        uses: ./.github/actions/setup-platform
 
       - name: Build finance-http-contracts (finance-core dependency only)
         run: pnpm --filter @app-tour/finance-http-contracts run build
@@ -108,20 +96,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Verify Node.js engine
-        run: node scripts/guards/check-node-engine.mjs
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup platform toolchain
+        uses: ./.github/actions/setup-platform
 
       - name: Golden architecture guard (fail-build)
         run: pnpm run guard:finance-golden
