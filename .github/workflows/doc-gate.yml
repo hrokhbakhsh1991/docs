@@ -35,17 +35,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup platform toolchain
+        uses: ./.github/actions/setup-platform
         with:
           node-version: "24"
-          cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          engine-check-enabled: "false"
 
       - name: Install ripgrep (audit-boundary)
         run: sudo apt-get update && sudo apt-get install -y ripgrep
