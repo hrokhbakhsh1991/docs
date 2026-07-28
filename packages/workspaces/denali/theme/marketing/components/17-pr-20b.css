@@ -207,7 +207,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 /* PR-20C — latest compact discovery feed (scoped) */
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section[data-marketing-home-latest]:not([hidden]):not([aria-hidden="true"]) {
   background: transparent;
   border: none;
@@ -399,7 +399,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section[data-marketing-home-latest]:not([hidden]):not([aria-hidden="true"]) {
     padding-block: var(--space-8) calc(var(--space-6) + var(--space-4));
   }

@@ -126,7 +126,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section
   > header {
   margin-block-end: var(--mkt-section-header-gap);
@@ -211,13 +211,13 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 @supports (animation-timeline: view()) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero]) {
     animation: none;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero])
     > * {
     animation: var(--mkt-section-reveal-keyframes, mkt-section-reveal-rise)
@@ -227,28 +227,28 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero])
     > *:nth-child(1) {
     animation-range: entry 2% cover 26%;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero])
     > *:nth-child(2) {
     animation-range: entry 10% cover 34%;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero])
     > *:nth-child(3) {
     animation-range: entry 18% cover 42%;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero])
     > *:nth-child(n + 4) {
     animation-range: entry 24% cover 48%;
@@ -257,13 +257,13 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 @supports not (animation-timeline: view()) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero]) {
     animation: none;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero])
     > * {
     animation: var(--mkt-section-reveal-keyframes, mkt-section-reveal-rise)
@@ -271,21 +271,21 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero])
     > *:nth-child(2) {
     animation-delay: var(--mkt-stagger-step);
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero])
     > *:nth-child(3) {
     animation-delay: calc(var(--mkt-stagger-step) * 2);
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero])
     > *:nth-child(n + 4) {
     animation-delay: calc(var(--mkt-stagger-step) * 3);
@@ -401,7 +401,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero])
     > * {
     animation: none;

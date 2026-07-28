@@ -1,7 +1,7 @@
 /* PR-16.5 — landing UI completion & visual consistency */
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section
   > header {
   display: flex;
@@ -12,7 +12,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section
   > header
   h2 {
@@ -26,7 +26,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section
   > header
   p {
@@ -38,7 +38,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section
   > header
   a {
@@ -61,7 +61,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section
   > header
   a:hover {
@@ -71,7 +71,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section
   > header
   a:focus-visible {
@@ -81,7 +81,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 @media (min-width: 640px) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section
     > header:has(a) {
     flex-direction: row;

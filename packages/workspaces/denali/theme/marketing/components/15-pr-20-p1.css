@@ -9,7 +9,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section
   > header
   h2::before {

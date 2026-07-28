@@ -209,7 +209,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
    PR-20A negative margins pulled flagship card over section title. Normal document flow restored. */
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section[data-marketing-home-featured]:not([hidden]):not([aria-hidden="true"]) {
   margin-block-start: 0;
   padding-block: calc(var(--space-8) + var(--space-2)) calc(var(--space-8) + var(--space-4));
@@ -241,7 +241,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 @media (min-width: 768px) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section[data-marketing-home-featured]:not([hidden]):not([aria-hidden="true"]) {
     margin-block-start: 0;
     padding-block: calc(var(--space-8) + var(--space-4)) calc(var(--space-8) + var(--space-6));

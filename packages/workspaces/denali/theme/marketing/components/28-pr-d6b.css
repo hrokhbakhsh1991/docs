@@ -254,16 +254,16 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 /* PR-25b — section view-all closure (must load last; neutralizes PR-20 legacy) */
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   div[data-marketing-home-section-header-row],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   div[data-marketing-home-featured-header-row],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   div[data-marketing-home-latest-header-row],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   div[data-marketing-home-gallery-header-row] {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -274,16 +274,16 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   a[data-marketing-home-section-view-all],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   a[data-marketing-home-featured-view-all],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   a[data-marketing-home-latest-view-all],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   a[data-marketing-home-gallery-view-all] {
   display: inline-flex;
   align-items: center;
@@ -309,7 +309,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   div[data-marketing-home-section-header-row]
   > h2,
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]

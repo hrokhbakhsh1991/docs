@@ -85,7 +85,7 @@
 
 @media (min-width: 640px) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero]):not([data-marketing-home-trust]):not(
       [data-marketing-home-final-cta]
     ) {
@@ -127,7 +127,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section
     > header,
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]

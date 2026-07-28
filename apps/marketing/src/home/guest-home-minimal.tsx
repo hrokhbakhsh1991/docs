@@ -19,12 +19,12 @@ export async function GuestHomeMinimal({ branding }: GuestHomeMinimalProps) {
   const siteName = branding.displayName ?? t("nav.defaultSiteName");
 
   return (
-    <main data-marketing-home>
+    <div data-marketing-home>
       <h1 data-marketing-home-title>{t("home.minimal.title", { siteName })}</h1>
       <p data-marketing-home-lead>{t("home.minimal.lead")}</p>
       <Link href={toursHref} data-marketing-home-cta>
         {t("home.minimal.cta")}
       </Link>
-    </main>
+    </div>
   );
 }

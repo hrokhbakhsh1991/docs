@@ -30,7 +30,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
   --mkt-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"] main[data-marketing-home] {
+body[data-app-surface="marketing"][data-workspace-plugin="denali"] [data-marketing-home] {
   max-width: none;
   padding: 0;
   gap: 0;

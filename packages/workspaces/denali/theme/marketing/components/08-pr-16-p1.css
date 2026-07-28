@@ -151,7 +151,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section:not([data-marketing-home-hero]) {
   width: 100%;
   max-width: var(--catalog-page-max-width);
@@ -425,7 +425,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 @supports (animation-timeline: view()) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero]) {
     animation: mkt-home-reveal var(--mkt-motion-reveal) var(--mkt-ease-out) both;
     animation-timeline: view();
@@ -435,7 +435,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 @supports not (animation-timeline: view()) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero]) {
     animation: mkt-home-reveal var(--mkt-motion-reveal) var(--mkt-ease-out) both;
   }
@@ -471,7 +471,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero]),
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     article[data-marketing-home-destination-card]:hover,

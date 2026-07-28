@@ -125,7 +125,7 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
       : t("list.resultsCount", { count: matchedCount });
 
   return (
-    <main data-marketing-catalog data-slot="page-catalog">
+    <div data-marketing-catalog data-slot="page-catalog">
       <header data-marketing-catalog-header>
         <h1 data-marketing-catalog-title>{t("list.title")}</h1>
         <p data-marketing-catalog-lead>{t("list.lead")}</p>
@@ -178,6 +178,6 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
           dangerouslySetInnerHTML={{ __html: serializeMarketingJsonLd(listJsonLd) }}
         />
       ) : null}
-    </main>
+    </div>
   );
 }

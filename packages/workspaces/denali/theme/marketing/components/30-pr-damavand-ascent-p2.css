@@ -1,6 +1,6 @@
 /* PR-30b — Damavand ascent visual, waypoint card, responsive */
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   div[data-marketing-home-ascent-visual] {
   position: relative;
@@ -17,7 +17,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   div[data-marketing-home-ascent-visual]::before {
   position: absolute;
@@ -33,7 +33,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   div[data-marketing-home-ascent-mountain-frame] {
   position: relative;
@@ -43,7 +43,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   div[data-marketing-home-ascent-mountain] {
   width: 100%;
@@ -51,7 +51,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   svg[data-marketing-home-ascent-mountain-svg] {
   display: block;
@@ -61,7 +61,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   .mkt-ascent-pin-pulse {
   transform-origin: center;
@@ -69,7 +69,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   .mkt-ascent-summit-active {
   transform: scale(1.15) translateY(-2px);
@@ -78,14 +78,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   path[data-marketing-home-ascent-route] {
   opacity: calc(0.35 + var(--mkt-ascent-progress, 0) * 0.65);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   div[data-marketing-home-ascent-waypoint-card] {
   position: absolute;
@@ -107,7 +107,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   div[data-marketing-home-ascent-waypoint-card][data-marketing-home-ascent-waypoint-card-visible="true"] {
   opacity: 1;
@@ -116,7 +116,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   div[data-marketing-home-ascent-waypoint-card-header] {
   display: flex;
@@ -128,7 +128,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   div[data-marketing-home-ascent-waypoint-card]
   h3 {
@@ -139,7 +139,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   div[data-marketing-home-ascent-waypoint-card]
   span {
@@ -152,7 +152,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   div[data-marketing-home-ascent-waypoint-card]
   p {
@@ -163,7 +163,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   div[data-marketing-home-ascent-waypoint-warning] {
   display: flex;
@@ -180,7 +180,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-ascent]
   div[data-marketing-home-ascent-waypoint-warning]
   svg {
@@ -192,7 +192,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 @media (min-width: 1024px) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent]
     div[data-marketing-home-ascent-layout] {
     grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
@@ -200,7 +200,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent]
     div[data-marketing-home-ascent-sidebar] {
     min-height: 37.5rem;
@@ -208,7 +208,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent]
     div[data-marketing-home-ascent-visual] {
     min-height: 37.5rem;
@@ -221,7 +221,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent]
     div[data-marketing-home-ascent-layout] {
     grid-template-rows: auto minmax(15rem, 38svh);
@@ -229,7 +229,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent]
     div[data-marketing-home-ascent-visual] {
     min-height: 15rem;
@@ -238,14 +238,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent]
     div[data-marketing-home-ascent-sidebar] {
     gap: var(--space-4);
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent]
     div[data-marketing-home-ascent-mountain-frame] {
     width: 100%;
@@ -255,14 +255,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent]
     p[data-marketing-home-ascent-lead] {
     display: none;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent]
     div[data-marketing-home-ascent-pin] {
     align-items: center;
@@ -270,7 +270,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent]
     div[data-marketing-home-ascent-waypoint-card] {
     inset-block-start: var(--space-3);
@@ -280,7 +280,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent]
     aside[data-marketing-home-ascent-hud] {
     padding: var(--space-4);
@@ -290,13 +290,13 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 @media (prefers-reduced-motion: reduce) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent] {
     height: auto;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent]
     div[data-marketing-home-ascent-pin] {
     position: relative;
@@ -305,18 +305,18 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent]
     .mkt-ascent-pin-pulse {
     animation: none;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent]
     path[data-marketing-home-ascent-route],
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-ascent]
     div[data-marketing-home-ascent-hud-progress-fill] {
     transition: none;

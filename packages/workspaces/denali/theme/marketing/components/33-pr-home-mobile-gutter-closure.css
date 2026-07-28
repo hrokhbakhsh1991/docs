@@ -11,26 +11,26 @@
 
   /* Section inline gutter — one source of truth (main has padding:0; sections own gutters) */
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero]) {
     padding-inline: var(--catalog-page-padding-x);
     box-sizing: border-box;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section[data-marketing-home-trust],
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section[data-marketing-home-latest],
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section[data-marketing-home-final-cta] {
     padding-inline: var(--catalog-page-padding-x);
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero]):not([data-marketing-home-trust]):not(
       [data-marketing-home-final-cta]
     ) {
@@ -38,13 +38,13 @@
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section[data-marketing-home-trust] {
     padding-block: var(--mkt-section-pad-y);
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section[data-marketing-home-final-cta]:not([hidden]):not([aria-hidden="true"]) {
     padding-block: calc(var(--space-8) + var(--space-4));
   }
@@ -70,7 +70,7 @@
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     div[data-marketing-home-gallery-filmstrip],
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     div[data-marketing-home-gallery-support] {
     margin-inline: 0;
     padding-inline: 0;
@@ -95,14 +95,14 @@
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-destinations]
     article[data-marketing-home-destination-card] {
     flex: 0 0 min(var(--mkt-home-scroll-card-width), 15.75rem);
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-destinations]
     article[data-marketing-home-destination-card][data-marketing-home-destination-id="damavand"] {
     flex: 0 0 min(calc(100% - var(--space-4)), 18rem);
@@ -118,13 +118,13 @@
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     button[data-marketing-home-gallery-scroll-prev] {
     inset-inline-start: var(--space-2);
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     button[data-marketing-home-gallery-scroll-next] {
     inset-inline-end: var(--space-2);
   }

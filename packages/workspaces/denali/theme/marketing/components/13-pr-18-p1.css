@@ -96,7 +96,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section:not([data-marketing-home-hero]):not([data-marketing-home-trust]):not(
     [data-marketing-home-final-cta]
   ) {
@@ -104,7 +104,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section
   > header
   h2 {
@@ -113,7 +113,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section
   > header
   h2::before {
@@ -134,7 +134,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]:lang(fa)
-  main[data-marketing-home]
+  [data-marketing-home]
   > section
   > header
   h2::before {
@@ -143,7 +143,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]:lang(fa)
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section
   > header {
   margin-block-end: var(--mkt-section-header-gap);
@@ -388,14 +388,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 @supports (animation-timeline: view()) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section:not([data-marketing-home-hero])
     > * {
     animation: none;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section
     > header {
     animation: mkt-reveal-heading-draw var(--mkt-motion-reveal-child) var(--mkt-ease-out) both;

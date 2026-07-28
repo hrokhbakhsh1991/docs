@@ -209,7 +209,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section[data-marketing-home-featured]:not([hidden]):not([aria-hidden="true"]) {
   position: relative;
   z-index: 4;
@@ -222,7 +222,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section[data-marketing-home-featured]:not([hidden]):not([aria-hidden="true"])
   > header {
   position: relative;
@@ -233,7 +233,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section[data-marketing-home-featured]:not([hidden]):not([aria-hidden="true"])
   p[data-marketing-home-featured-kicker] {
   font-size: var(--mkt-text-meta);
@@ -244,7 +244,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section[data-marketing-home-featured]:not([hidden]):not([aria-hidden="true"])
   > header
   h2 {
@@ -257,7 +257,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section[data-marketing-home-featured]:not([hidden]):not([aria-hidden="true"])
   > header
   a {
@@ -305,7 +305,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section[data-marketing-home-featured]:not([hidden]):not([aria-hidden="true"]) {
     margin-block-start: calc(-1 * (var(--mkt-act2-space-lg) + var(--mkt-act2-space-lg)));
     padding-block: calc(var(--mkt-act2-space-lg) + var(--space-6))

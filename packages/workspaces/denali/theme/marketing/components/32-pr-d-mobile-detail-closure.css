@@ -7,8 +7,8 @@
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-catalog-detail-page] {
-    /* Same gutter contract as main[data-marketing-catalog] — no full-bleed breakout */
+    [data-marketing-catalog-detail-page] {
+    /* Same gutter contract as [data-marketing-catalog] — no full-bleed breakout */
     padding-block: var(--catalog-page-padding-y);
     padding-block-end: max(var(--catalog-page-padding-y), env(safe-area-inset-bottom, 0px));
     padding-inline: var(--catalog-page-padding-x);

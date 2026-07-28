@@ -166,6 +166,7 @@
     "@app-tour/finance-core": "workspace:*",
     "@app-tour/finance-http": "workspace:*",
     "@app-tour/tenant-kernel": "workspace:*",
+    "@app-tour/workspace-acme": "workspace:*",
     "@app-tour/workspace-sdk": "workspace:*",
     "@app-tour/workspace-booking-ws2": "workspace:*",
     "@app-tour/workspace-denali": "workspace:*",

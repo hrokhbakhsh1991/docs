@@ -14,10 +14,6 @@
       "types": "./dist/acme.plugin.d.ts",
       "default": "./dist/acme.plugin.js"
     },
-    "./acme.plugin": {
-      "types": "./dist/acme.plugin.d.ts",
-      "default": "./dist/acme.plugin.js"
-    },
     "./theme/tokens.css": "./theme/tokens.css"
   },
   "files": [

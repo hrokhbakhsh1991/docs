@@ -49,7 +49,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   border-color: var(--primary);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"] main[data-marketing-home] {
+body[data-app-surface="marketing"][data-workspace-plugin="denali"] [data-marketing-home] {
   box-sizing: border-box;
   width: 100%;
   max-width: var(--catalog-detail-max-width);
@@ -98,7 +98,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-catalog-detail-page] {
+  [data-marketing-catalog-detail-page] {
   box-sizing: border-box;
   width: 100%;
   max-width: var(--catalog-detail-max-width);

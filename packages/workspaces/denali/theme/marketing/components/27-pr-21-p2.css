@@ -49,7 +49,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   div[data-marketing-home-destinations-row] {
   display: flex;
@@ -68,14 +68,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   div[data-marketing-home-destinations-row]::-webkit-scrollbar {
   display: none;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   article[data-marketing-home-destination-card] {
   display: flex;
@@ -96,7 +96,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   article[data-marketing-home-destination-card]::before {
   transition:
@@ -105,7 +105,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   article[data-marketing-home-destination-card]:focus-visible {
   box-shadow:
@@ -114,7 +114,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   div[data-marketing-home-destination-card-body] {
   position: relative;
@@ -137,7 +137,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   div[data-marketing-home-destination-card-body]
   h3 {
@@ -151,7 +151,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   p[data-marketing-home-destination-tagline] {
   margin: 0;
@@ -163,15 +163,15 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   p[data-marketing-home-destination-description],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   p[data-marketing-home-destination-meta],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   a[data-marketing-home-destination-link] {
   margin: 0;
@@ -186,7 +186,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   p[data-marketing-home-destination-description] {
   font-size: var(--mkt-text-small);
@@ -195,7 +195,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   p[data-marketing-home-destination-meta] {
   display: flex;
@@ -209,14 +209,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   span[data-marketing-home-destination-meta-sep] {
   opacity: 0.65;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   a[data-marketing-home-destination-link] {
   align-self: flex-start;
@@ -234,7 +234,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   article[data-marketing-home-destination-card]:is(:hover, :focus-within, :active)
   ::before {
@@ -243,7 +243,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   article[data-marketing-home-destination-card]:is(:hover, :focus-within, :active)
   div[data-marketing-home-destination-card-body] {
@@ -256,12 +256,12 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   article[data-marketing-home-destination-card]:is(:hover, :focus-within, :active)
   p[data-marketing-home-destination-description],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   article[data-marketing-home-destination-card]:is(:hover, :focus-within, :active)
   p[data-marketing-home-destination-meta] {
@@ -271,7 +271,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   article[data-marketing-home-destination-card]:is(:hover, :focus-within, :active)
   a[data-marketing-home-destination-link] {
@@ -281,7 +281,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   section[data-marketing-home-destinations]
   article[data-marketing-home-destination-card]:is(:hover, :focus-within)
   a[data-marketing-home-destination-link]:hover {
@@ -294,7 +294,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-destinations]
     div[data-marketing-home-destinations-row] {
     display: grid;
@@ -306,7 +306,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-destinations]
     article[data-marketing-home-destination-card] {
     flex: initial;
@@ -320,7 +320,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-destinations]
     div[data-marketing-home-destinations-row] {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -330,7 +330,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 @media (hover: none) and (pointer: coarse) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-destinations]
     article[data-marketing-home-destination-card]:is(:active, :focus-within)
     ::before {
@@ -339,7 +339,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-destinations]
     article[data-marketing-home-destination-card]:is(:active, :focus-within)
     div[data-marketing-home-destination-card-body] {
@@ -352,12 +352,12 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-destinations]
     article[data-marketing-home-destination-card]:is(:active, :focus-within)
     p[data-marketing-home-destination-description],
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-destinations]
     article[data-marketing-home-destination-card]:is(:active, :focus-within)
     p[data-marketing-home-destination-meta] {
@@ -365,7 +365,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-destinations]
     article[data-marketing-home-destination-card]:is(:active, :focus-within)
     a[data-marketing-home-destination-link] {
@@ -375,14 +375,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 @media (prefers-reduced-motion: reduce) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-destinations]
     article[data-marketing-home-destination-card]::before {
     transition: filter 0.2s ease;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-destinations]
     article[data-marketing-home-destination-card]:is(:hover, :focus-within, :active)
     ::before {
@@ -390,15 +390,15 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-destinations]
     p[data-marketing-home-destination-description],
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-destinations]
     p[data-marketing-home-destination-meta],
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     section[data-marketing-home-destinations]
     a[data-marketing-home-destination-link] {
     max-height: none;

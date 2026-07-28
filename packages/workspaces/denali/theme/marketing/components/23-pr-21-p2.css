@@ -1,14 +1,14 @@
 @media (prefers-reduced-motion: reduce) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     figure[data-marketing-home-gallery-item]
     img,
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     figure[data-marketing-home-gallery-item]:hover
     img,
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     div[data-marketing-home-gallery-support]
     figure[data-marketing-home-gallery-item]:hover
     img {
@@ -17,7 +17,7 @@
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     div[data-marketing-home-gallery-support]
     figcaption[data-marketing-home-gallery-caption] {
     opacity: 1;
@@ -28,17 +28,17 @@
 /* PR-23 — static showcase gallery: hero carousel + lightbox (no tour links) — active */
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   div[data-marketing-home-gallery-hero-controls] {
   position: relative;
   height: 100%;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   button[data-marketing-home-gallery-hero-prev],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   button[data-marketing-home-gallery-hero-next] {
   position: absolute;
   top: 50%;
@@ -60,19 +60,19 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   button[data-marketing-home-gallery-hero-prev] {
   inset-inline-start: var(--space-3);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   button[data-marketing-home-gallery-hero-next] {
   inset-inline-end: var(--space-3);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   button[data-marketing-catalog-detail-photo-trigger][data-marketing-catalog-detail-photo-trigger-overlay] {
   display: block;
   width: 100%;
@@ -85,7 +85,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   span[data-marketing-home-gallery-zoom-hint] {
   position: absolute;
   inset-block-end: var(--space-4);
@@ -103,7 +103,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   button[data-marketing-home-gallery-thumb] {
   display: block;
   width: 100%;
@@ -116,7 +116,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   figure[data-marketing-home-gallery-item-active="true"] {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
@@ -125,7 +125,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 /* PR-25 — unified section «همه تورها» header row + pill control — active */
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   div[data-marketing-home-section-header-row] {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -137,7 +137,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   div[data-marketing-home-section-header-row]
   > h2 {
   grid-column: 1;
@@ -150,7 +150,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   a[data-marketing-home-section-view-all] {
   grid-column: 2;
   grid-row: 1;
@@ -182,7 +182,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   a[data-marketing-home-section-view-all]:hover {
   background: color-mix(in srgb, var(--color-primary) 10%, var(--background));
   border-color: color-mix(in srgb, var(--color-primary) 55%, var(--border));
@@ -191,7 +191,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   a[data-marketing-home-section-view-all]:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
@@ -199,7 +199,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 @media (prefers-reduced-motion: reduce) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     a[data-marketing-home-section-view-all]:hover {
     transform: none;
   }
@@ -222,7 +222,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
    Supersedes PR-20A/20B/20E featured visual conflicts. */
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section[data-marketing-home-featured]:not([hidden]):not([aria-hidden="true"]) {
   position: relative;
   z-index: 4;

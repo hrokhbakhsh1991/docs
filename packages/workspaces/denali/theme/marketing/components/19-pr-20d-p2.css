@@ -7,7 +7,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section[data-marketing-home-final-cta]:not([hidden]):not([aria-hidden="true"]) {
   display: block;
   position: relative;
@@ -108,7 +108,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 @media (min-width: 640px) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section[data-marketing-home-final-cta]:not([hidden]):not([aria-hidden="true"]) {
     padding-block: var(--mkt-finale-space-y-lg);
   }
@@ -140,7 +140,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  main[data-marketing-home]
+  [data-marketing-home]
   > section[data-marketing-home-gallery]:not([hidden]):not([aria-hidden="true"]) {
   background: transparent;
   border: none;
@@ -368,7 +368,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 @media (min-width: 1024px) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    main[data-marketing-home]
+    [data-marketing-home]
     > section[data-marketing-home-gallery]:not([hidden]):not([aria-hidden="true"]) {
     padding-block: calc(var(--mkt-gallery-space-y) + var(--space-2))
       calc(var(--space-8) + var(--space-4));
