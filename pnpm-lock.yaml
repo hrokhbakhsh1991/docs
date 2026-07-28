@@ -62,6 +62,9 @@ importers:
       '@app-tour/tenant-kernel':
         specifier: workspace:*
         version: link:../../packages/tenant-kernel
+      '@app-tour/workspace-acme':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/acme
       '@app-tour/workspace-booking-ws2':
         specifier: workspace:*
         version: link:../../packages/workspaces/booking-ws2
