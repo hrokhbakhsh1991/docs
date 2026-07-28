@@ -218,12 +218,21 @@ Phase 1+ adds `@apps/web` specs `guest-api-base-parity.spec.ts`, `urban-catalog-
 pnpm run phase-psc:fast-track
 ```
 
-**CI / fresh checkout:** build SDK before app tests when generated artifacts may be stale (`PSC-C-07`):
+**CI / fresh checkout:** build SDK before app tests when generated artifacts may be stale (`PSC-C-07`).
+
+`@app-cloud/workspace-sdk` imports `@app-cloud/catalog-registration-auth`. Auth `dist/` is gitignored, so a fresh CI checkout must emit auth types **before** `workspace-sdk` `tsc`. Order:
+
+1. `@app-cloud/catalog-registration-auth` build
+2. `@app-cloud/workspace-sdk` build
+
+`packages/workspace-sdk` `build` runs `pnpm --dir ../catalog-registration-auth run build` then `tsc`; `scripts/monorepo-build.sh` builds auth then sdk via `--dir` from the repo root. Guard-only helper (same order):
 
 ```bash
 pnpm run build:workspace-sdk-for-guards
-pnpm --filter @app-tour/guest-surface-host build   # when GSH TS sources changed
+pnpm --filter @app-cloud/guest-surface-host build   # when GSH TS sources changed
 ```
+
+Without auth-first, Phase 0 / Phase 1 gates fail with `TS2307: Cannot find module '@app-cloud/catalog-registration-auth'`.
 
 ---
 

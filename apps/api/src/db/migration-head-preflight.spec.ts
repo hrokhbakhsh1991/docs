@@ -8,10 +8,10 @@ import {
 } from "./migration-head-preflight";
 
 describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
-  it("expected head matches tip migration folder (hostile_audit_tenant_rls_closure)", () => {
+  it("expected head matches tip migration folder (tour_create_drop_tenants_select_bandage)", () => {
     assert.equal(
       EXPECTED_PRISMA_MIGRATION_HEAD,
-      "20260720170000_operator_registration_active_guest_phone_unique"
+      "20260721120000_tour_create_drop_tenants_select_bandage"
     );
   });
 

@@ -20,6 +20,16 @@
 
 See [`reports/phase-0-optional-closure-2026-06-03.md`](../../reports/phase-0-optional-closure-2026-06-03.md).
 
+## Build order (CI / fresh checkout)
+
+`workspace-sdk` depends on `@app-cloud/catalog-registration-auth`. Auth `dist/` is gitignored, so package `build` runs `pnpm --dir ../catalog-registration-auth run build` then `tsc`. Equivalent helper used by guards:
+
+```bash
+pnpm run build:workspace-sdk-for-guards
+```
+
+See [platform-surface-cohesion.mdoc](../../docs/standards/platform-surface-cohesion.mdoc) (`PSC-C-07`).
+
 ## Commands
 
 ```bash

@@ -2,12 +2,14 @@ import { PrismaClient } from "@prisma/client";
 
 /** Must match latest prisma/migrations folder name (DEC-097 / MR-P0-003). */
 export const EXPECTED_PRISMA_MIGRATION_HEAD =
-  "20260720170000_operator_registration_active_guest_phone_unique";
+  "20260721120000_tour_create_drop_tenants_select_bandage";
 
 /** Required intermediate migrations that must exist even if tip row is present. */
 export const REQUIRED_PRISMA_MIGRATION_NAMES = [
   "20260720150000_operator_registration_active_guest_uniques",
   "20260720160000_hostile_audit_tenant_rls_closure",
+  "20260720170000_operator_registration_active_guest_phone_unique",
+  "20260721100000_portal_member_plans_bp7",
   EXPECTED_PRISMA_MIGRATION_HEAD,
 ] as const;
 

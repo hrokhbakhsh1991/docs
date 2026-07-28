@@ -11,6 +11,6 @@ if [[ -f packages/workspace-sdk/dist/index.js ]]; then
 fi
 
 echo "build-workspace-sdk-for-guards: catalog-registration-auth → workspace-sdk"
-pnpm --filter @app-tour/catalog-registration-auth run build
-pnpm --filter @app-tour/workspace-sdk run build
+pnpm --dir packages/catalog-registration-auth run build
+pnpm --dir packages/workspace-sdk run build
 echo "build-workspace-sdk-for-guards: PASS"

@@ -68,7 +68,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "pnpm --dir ../catalog-registration-auth run build && tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
     "test": "NODE_ENV=test node --import ./test/register-server-only-stub.mjs --import tsx --test \"test/**/*.spec.ts\"",
     "test:phase-0": "pnpm run build && NODE_ENV=test LEGACY_IMPORT_SCAN_SCOPE=foundation node --import ./test/register-server-only-stub.mjs --import tsx --test test/phase-0.contract.spec.ts",
