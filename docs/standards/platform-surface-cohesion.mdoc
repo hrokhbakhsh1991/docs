@@ -234,7 +234,7 @@ pnpm --filter @app-cloud/guest-surface-host build   # when GSH TS sources change
 
 Without auth-first, Phase 0 / Phase 1 gates fail with `TS2307: Cannot find module '@app-tour/catalog-registration-auth'`.
 
-**Monorepo `pnpm build` (`scripts/monorepo-build.sh`):** packages whose `exports` point at `dist/` must be built before consumers. Prefer `pnpm --dir packages/<name> run build` over bare `--filter @scope/name` (filter can no-op with exit 0). Before `@app-tour/workspace-denali`, emit at least: `booking-http-contracts`, `finance-http-contracts`, `finance-http`, `platform-core`, `draft-engine`, `wizard-navigation`, and catalog UI packages the workspace imports. `@apps/api` `prebuild` uses the same `--dir` chain via `scripts/ci/build-api-workspace-deps.sh`.
+**Monorepo `pnpm build` (`scripts/monorepo-build.sh`):** packages whose `exports` point at `dist/` must be built before consumers. Prefer `pnpm --dir packages/<name> run build` over bare `--filter @scope/name` (filter can no-op with exit 0). Before `@app-tour/workspace-denali`, emit at least: `booking-http-contracts`, `finance-http-contracts`, `finance-http`, `platform-core`, `draft-engine`, `wizard-navigation`, and catalog UI packages the workspace imports. `@apps/api` `prebuild` and booking-postgres-gate use `scripts/ci/build-api-workspace-deps.sh`, which builds shared dist packages then **every** `packages/workspaces/*/ ` package with a `build` script (registry + generated tour/booking bindings).
 
 ---
 
