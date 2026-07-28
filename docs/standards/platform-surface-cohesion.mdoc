@@ -220,10 +220,10 @@ pnpm run phase-psc:fast-track
 
 **CI / fresh checkout:** build SDK before app tests when generated artifacts may be stale (`PSC-C-07`).
 
-`@app-cloud/workspace-sdk` imports `@app-cloud/catalog-registration-auth`. Auth `dist/` is gitignored, so a fresh CI checkout must emit auth types **before** `workspace-sdk` `tsc`. Order:
+`@app-tour/workspace-sdk` imports `@app-tour/catalog-registration-auth`. Auth `dist/` is gitignored, so a fresh CI checkout must emit auth types **before** `workspace-sdk` `tsc`. Order:
 
-1. `@app-cloud/catalog-registration-auth` build
-2. `@app-cloud/workspace-sdk` build
+1. `@app-tour/catalog-registration-auth` build
+2. `@app-tour/workspace-sdk` build
 
 `packages/workspace-sdk` `build` runs `pnpm --dir ../catalog-registration-auth run build` then `tsc`; `scripts/monorepo-build.sh` builds auth then sdk via `--dir` from the repo root. Guard-only helper (same order):
 
@@ -232,7 +232,9 @@ pnpm run build:workspace-sdk-for-guards
 pnpm --filter @app-cloud/guest-surface-host build   # when GSH TS sources changed
 ```
 
-Without auth-first, Phase 0 / Phase 1 gates fail with `TS2307: Cannot find module '@app-cloud/catalog-registration-auth'`.
+Without auth-first, Phase 0 / Phase 1 gates fail with `TS2307: Cannot find module '@app-tour/catalog-registration-auth'`.
+
+**Monorepo `pnpm build` (`scripts/monorepo-build.sh`):** packages whose `exports` point at `dist/` must be built before consumers. Prefer `pnpm --dir packages/<name> run build` over bare `--filter @scope/name` (filter can no-op with exit 0). Before `@app-tour/workspace-denali`, emit at least: `booking-http-contracts`, `finance-http-contracts`, `finance-http`, `platform-core`, `draft-engine`, `wizard-navigation`, and catalog UI packages the workspace imports. `@apps/api` `prebuild` uses the same `--dir` chain via `scripts/ci/build-api-workspace-deps.sh`.
 
 ---
 
