@@ -41,17 +41,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup platform toolchain
+        uses: ./.github/actions/setup-platform
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          engine-check-enabled: "false"
 
       - name: Install ripgrep (audit-boundary)
         run: sudo apt-get update && sudo apt-get install -y ripgrep
