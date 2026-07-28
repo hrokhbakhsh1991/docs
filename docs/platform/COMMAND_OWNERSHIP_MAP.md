@@ -6,6 +6,8 @@
 
 This document is the **tracked** source of truth for which root commands are canonical, which are legacy aliases, and what is required before any removal.
 
+Finance GitHub Actions consolidation (S4): see [`FINANCE_CI_MIGRATION_STATUS.md`](./FINANCE_CI_MIGRATION_STATUS.md) — canonical workflow `finance-integrity.yml`; legacy finance YAML files are deprecated (manual `workflow_dispatch` / rollback only).
+
 ---
 
 ## How to use this map

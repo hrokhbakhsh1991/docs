@@ -4,6 +4,8 @@
 
 Canonical command ownership (verify/guard aliases, deprecations, removal rules): [`docs/platform/COMMAND_OWNERSHIP_MAP.md`](../platform/COMMAND_OWNERSHIP_MAP.md).
 
+Finance CI workflow ownership (S4 cutover): [`docs/platform/FINANCE_CI_MIGRATION_STATUS.md`](../platform/FINANCE_CI_MIGRATION_STATUS.md).
+
 Preferred local discovery commands: `pnpm verify:fast`, `pnpm verify:product`, `pnpm verify:full`, plus family runners `pnpm guard:marketing|workspace|field-exposure|guest`.
 
 ## Tiers

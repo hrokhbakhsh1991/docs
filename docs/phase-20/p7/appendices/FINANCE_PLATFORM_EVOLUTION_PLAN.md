@@ -1132,9 +1132,10 @@ apps/api
 | | |
 | -- | -- |
 | **Goal** | PRs that touch finance-core / finance contracts fail CI on boundary breaches without a full monorepo build |
-| **Workflow** | `.github/workflows/finance-core-boundary.yml` |
+| **Canonical workflow (S4)** | `.github/workflows/finance-integrity.yml` — job check `Finance-core boundary (guard + test + build)` (same step set) |
+| **Legacy workflow (historical / deprecated / rollback)** | `.github/workflows/finance-core-boundary.yml` — original Phase 2.2.3 landing; automatic PR/push disabled (Stage B); `workflow_dispatch` only. See [`FINANCE_CI_MIGRATION_STATUS.md`](../../../platform/FINANCE_CI_MIGRATION_STATUS.md) |
 | **Required steps** | `pnpm run guard:finance-core-boundary`; `pnpm --filter @app-tour/finance-core test`; `pnpm --filter @app-tour/finance-core build` |
-| **Path filter** | `packages/finance-core/**`, `packages/finance-http-contracts/**`, guard script, workflow file |
+| **Path filter** | Under integrity: union with golden finance paths; historically (legacy file): `packages/finance-core/**`, `packages/finance-http-contracts/**`, guard script, workflow file |
 | **Build scope** | Only `finance-http-contracts` (dep) + `finance-core` — **not** full monorepo `pnpm build` |
 | **Acceptance** | `import { PrismaClient } from "@prisma/client"` in finance-core src → guard FAIL → CI red |
 | **Commit** | `ci(finance): Phase 2.2.3 finance-core boundary PR workflow` |

@@ -47,12 +47,19 @@ pnpm --filter @apps/api exec node --import tsx --test src/workspace-finance/fina
 
 ## CI
 
-Workflow [`.github/workflows/finance-golden-architecture.yml`](../../../.github/workflows/finance-golden-architecture.yml) runs on changes to:
+**Canonical workflow (S4):** [`.github/workflows/finance-integrity.yml`](../../../../.github/workflows/finance-integrity.yml)
 
-- `packages/finance-core/**`
-- `packages/finance-http-contracts/**`
-- `apps/api/src/workspace-finance/**`
-- golden guard script / this doc / dependency-cruiser config
+That workflow co-locates two GitHub check jobs (names preserved for continuity):
+
+| Job check `name:` | What it runs |
+| --- | --- |
+| `Finance golden architecture (G1–G7)` | `pnpm run guard:finance-golden` + API `finance-golden-architecture.spec.ts` mirror |
+| `Finance-core boundary (guard + test + build)` | finance-core boundary / portability / build / test (+ golden guard) |
+
+Path filter is the **union** of the former finance-core and finance-golden path sets (packages, `apps/api/src/workspace-finance/**`, dispatcher, guards, depcruise, this doc, workflow self-watches). See [`docs/platform/FINANCE_CI_MIGRATION_STATUS.md`](../../../platform/FINANCE_CI_MIGRATION_STATUS.md).
+
+**Legacy (deprecated — historical / rollback only):**  
+[`.github/workflows/finance-golden-architecture.yml`](../../../../.github/workflows/finance-golden-architecture.yml) originally owned the golden check alone. After Stage B it has **no** automatic `pull_request`/`push` triggers; `workflow_dispatch` remains for rollback verification. Do not treat it as the primary CI entrypoint.
 
 ## Non-goals
 
@@ -64,3 +71,4 @@ Workflow [`.github/workflows/finance-golden-architecture.yml`](../../../.github/
 
 - [`FINANCE_PLATFORM_DEVELOPER_GUIDE.md`](./FINANCE_PLATFORM_DEVELOPER_GUIDE.md) §9–§10
 - [`adr/INDEX.md`](./adr/INDEX.md)
+- [`docs/platform/FINANCE_CI_MIGRATION_STATUS.md`](../../../platform/FINANCE_CI_MIGRATION_STATUS.md) — S4 cutover stages
