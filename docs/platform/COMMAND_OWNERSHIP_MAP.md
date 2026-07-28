@@ -61,7 +61,12 @@ Execution behavior is **unchanged**. Prefer canonical names in new docs and deve
 
 | Legacy alias | Resolves to | Migration status | Owner intent | Removal requirements |
 | --- | --- | --- | --- | --- |
-| `guard:documentation-sync` | same body as `guard:doc-sync` | **Deprecated alias** | Older long name | Grep docs/scripts; prefer `guard:doc-sync` |
+| `guard:documentation-sync` | `pnpm run guard:doc-sync` | **Deprecated alias (S3.3 consolidated)** | Older long name; now routes through canonical | Grep docs; remove only after zero refs |
+
+
+### S3.3 consolidation note
+
+`guard:documentation-sync` remains as a compatibility alias but now executes `pnpm run guard:doc-sync` (single implementation entry). No aliases deleted.
 
 ### Other thin wrappers (documented; not all notice-tagged in S3.2)
 
