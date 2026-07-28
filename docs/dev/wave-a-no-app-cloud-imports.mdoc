@@ -46,3 +46,7 @@ Hostile re-audit found codegen still emitting `@app-cloud/*` in admin `transpile
 - Renaming deploy unit prefixes / Prometheus `namespace="app-cloud"`
 - Changing `Symbol.for("app-cloud.requestJwtSessionVersion")` (would break in-flight session attach across mixed builds)
 - Shell Denali extraction (Wave B+)
+
+## CI regression note (required gates)
+
+Stale local `node_modules/@app-cloud/*` symlinks can mask forbidden imports on developer machines. Fresh CI has only `@app-tour/*` links from `package.json`, so any remaining `@app-cloud/` specifier fails with `TS2307` during `workspace-denali` / plugin builds (Phase 0 integration, Phase 1, booking-postgres-gate). Prefer `pnpm run guard:no-app-cloud-imports` before relying on a green local `tsc`.

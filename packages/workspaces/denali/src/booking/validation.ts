@@ -5,7 +5,7 @@
 import {
   assertBookingBaseCreateShape,
   type BookingCreatePolicyContext,
-} from "@app-cloud/booking-http-contracts";
+} from "@app-tour/booking-http-contracts";
 
 import {
   DEFAULT_DENALI_CAPACITY_RULE,

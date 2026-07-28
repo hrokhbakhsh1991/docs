@@ -2,7 +2,7 @@ import {
   createStarterWorkspacePlugin,
   type WorkspacePlugin,
   workspaceThemePresets,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 export const ACME_WORKSPACE_PLUGIN_ID = "acme" as const;
 export const ACME_WORKSPACE_TYPE = "acme" as const;

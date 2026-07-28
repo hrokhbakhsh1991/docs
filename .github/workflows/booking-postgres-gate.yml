@@ -93,11 +93,12 @@ jobs:
 
       - name: Build Booking contract packages
         run: |
+          pnpm --dir packages/catalog-registration-auth run build
+          pnpm --dir packages/workspace-sdk run build
           pnpm --dir packages/booking-http-contracts run build
           pnpm --dir packages/platform-core run build
           pnpm --dir packages/platform-events run build
           pnpm --dir packages/tenant-kernel run build
-          pnpm --dir packages/workspace-sdk run build
           pnpm --dir packages/workspaces/booking-ws2 run build
 
       - name: Touch optional env files for node --env-file
@@ -194,6 +195,8 @@ jobs:
 
       - name: Build runtime packages for createRequestListener
         run: |
+          pnpm --dir packages/catalog-registration-auth run build
+          pnpm --dir packages/workspace-sdk run build
           pnpm --dir packages/booking-http-contracts run build
           pnpm --dir packages/finance-http-contracts run build
           pnpm --dir packages/finance-core run build
@@ -202,10 +205,8 @@ jobs:
           pnpm --dir packages/platform-events run build
           pnpm --dir packages/tenant-kernel run build
           pnpm --dir packages/design-tokens run build
-          pnpm --dir packages/workspace-sdk run build
           pnpm --dir packages/draft-engine run build
           pnpm --dir packages/wizard-navigation run build
-          pnpm --dir packages/catalog-registration-auth run build
           pnpm --dir packages/catalog-registration-flow-ui run build
           pnpm --dir packages/catalog-intake-ui run build
           pnpm --dir packages/ui-primitives run build

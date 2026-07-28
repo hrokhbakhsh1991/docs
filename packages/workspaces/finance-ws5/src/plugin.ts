@@ -5,7 +5,7 @@ import {
   createStarterWorkspacePlugin,
   workspaceThemePresets,
   type WorkspacePlugin,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import {
   DEFAULT_FINANCE_OPS_MANIFEST,

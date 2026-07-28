@@ -9,13 +9,15 @@ import {
 } from "./status";
 
 /** Allowed edges (from → to[]). Terminal statuses have no outbound edges. */
-const DENALI_BOOKING_TRANSITIONS = {
+const DENALI_BOOKING_TRANSITIONS: {
+  readonly [K in DenaliBookingStatus]: readonly DenaliBookingStatus[];
+} = {
   pending: ["approved", "waitlisted", "rejected", "cancelled"],
   waitlisted: ["approved", "rejected", "cancelled"],
   approved: ["cancelled"],
   rejected: [],
   cancelled: [],
-} as const satisfies Record<DenaliBookingStatus, readonly DenaliBookingStatus[]>;
+};
 
 export type DenaliBookingTransitionAction =
   | "create"
@@ -58,9 +60,7 @@ export function canTransitionDenaliBooking(
   if (isDenaliBookingTerminalStatus(from)) {
     return false;
   }
-  return (DENALI_BOOKING_TRANSITIONS[from] as readonly DenaliBookingStatus[]).includes(
-    to
-  );
+  return DENALI_BOOKING_TRANSITIONS[from].includes(to);
 }
 
 export function assertCanTransitionDenaliBooking(

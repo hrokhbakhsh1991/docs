@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import type { BookingCreatePolicyContext } from "@app-cloud/booking-http-contracts";
+import type { BookingCreatePolicyContext } from "@app-tour/booking-http-contracts";
 
 import {
   DEFAULT_DENALI_CAPACITY_RULE,

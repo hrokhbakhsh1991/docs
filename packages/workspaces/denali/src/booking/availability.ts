@@ -2,8 +2,8 @@
  * Denali availability + create/approve capacity decisions (pure).
  */
 
-import type { BookingCreatePolicyContext } from "@app-cloud/booking-http-contracts";
-import { BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE } from "@app-cloud/booking-http-contracts";
+import type { BookingCreatePolicyContext } from "@app-tour/booking-http-contracts";
+import { BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE } from "@app-tour/booking-http-contracts";
 
 import {
   DEFAULT_DENALI_CAPACITY_RULE,

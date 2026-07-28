@@ -3,7 +3,7 @@
  * Pure domain; host persists via existing booking repository lifecycle.
  */
 
-import type { BookingCreatePolicyContext } from "@app-cloud/booking-http-contracts";
+import type { BookingCreatePolicyContext } from "@app-tour/booking-http-contracts";
 
 import { assertDenaliTransitionCapacity, denaliWaitlistAllowed } from "./availability";
 import {

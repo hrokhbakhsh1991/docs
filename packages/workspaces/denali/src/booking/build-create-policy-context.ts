@@ -2,7 +2,7 @@
  * Build BookingCreatePolicyContext for Denali domain asserts (orchestration helpers).
  */
 
-import type { BookingCreatePolicyContext } from "@app-cloud/booking-http-contracts";
+import type { BookingCreatePolicyContext } from "@app-tour/booking-http-contracts";
 
 export type BuildDenaliBookingCreatePolicyContextInput = {
   readonly tenantId: string;

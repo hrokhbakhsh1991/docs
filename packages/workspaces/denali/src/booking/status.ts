@@ -4,7 +4,7 @@
  * @see src/bookings/ops-manifest.ts statusPipeline
  */
 
-import type { BookingStatus } from "@app-cloud/booking-http-contracts";
+import type { BookingStatus } from "@app-tour/booking-http-contracts";
 
 export type DenaliBookingStatus = BookingStatus;
 

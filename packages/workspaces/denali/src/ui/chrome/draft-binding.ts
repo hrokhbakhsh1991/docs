@@ -1,6 +1,6 @@
 /**
  * Re-export shim — Phase 4y moved create-prefill into `draft/denali-create-prefill`.
- * Keep this path for `@app-cloud/workspace-denali/host/ui/chrome/draft-binding` imports.
+ * Keep this path for `@app-tour/workspace-denali/host/ui/chrome/draft-binding` imports.
  */
 export {
   applyDenaliTemplateGatePrefill,

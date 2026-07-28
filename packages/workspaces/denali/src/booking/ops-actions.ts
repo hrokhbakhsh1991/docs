@@ -3,7 +3,7 @@
  * Ops manifest (`bookings/`) declares UX; this module keeps the mapping explicit.
  */
 
-import type { BookingCreatePolicyContext } from "@app-cloud/booking-http-contracts";
+import type { BookingCreatePolicyContext } from "@app-tour/booking-http-contracts";
 
 import {
   DEFAULT_DENALI_CAPACITY_RULE,

@@ -6,7 +6,7 @@ import {
   createStarterWorkspacePlugin,
   workspaceThemePresets,
   type WorkspacePlugin,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import {
   DEFAULT_BOOKING_OPS_MANIFEST,

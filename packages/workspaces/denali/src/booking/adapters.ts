@@ -10,7 +10,7 @@ import {
   type BookingPublicCapabilityPort,
   type BookingValidationPolicyPort,
   type WorkspaceBookingEventReactionPort,
-} from "@app-cloud/booking-http-contracts";
+} from "@app-tour/booking-http-contracts";
 
 import { assertDenaliCreateCapacity } from "./availability";
 import { DEFAULT_DENALI_CAPACITY_RULE } from "./capacity-rule";
