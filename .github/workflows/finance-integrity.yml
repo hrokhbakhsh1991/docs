@@ -1,0 +1,130 @@
+# Finance integrity — S4.1b SHADOW consolidation candidate.
+#
+# PURPOSE:
+#   Co-locate finance-core boundary + finance golden architecture checks in one
+#   workflow file while OLD workflows remain authoritative until parity is proven:
+#     - finance-core-boundary.yml
+#     - finance-golden-architecture.yml
+#
+# SAFETY:
+#   - Does NOT delete or disable the legacy workflows
+#   - Preserves both GitHub check job `name:` strings exactly
+#   - Path filter is the UNION of both legacy workflows (+ this file)
+#   - Same triggers / setup / fail-fast semantics / timeouts
+#
+# Authority:
+#   - docs/phase-20/p7/appendices/FINANCE_PLATFORM_EVOLUTION_PLAN.md Phase 2.3
+#   - docs/phase-20/p7/appendices/FINANCE_GOLDEN_ARCHITECTURE_TESTS.md
+#   - TEMP/FINANCE_CI_CONSOLIDATION_PLAN.md (local)
+
+name: finance-integrity
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/finance-core/**"
+      - "packages/finance-http-contracts/**"
+      - "apps/api/src/workspace-finance/**"
+      - "apps/api/src/workspace/workspace-tour-created-dispatcher.ts"
+      - "scripts/guards/guard-finance-core-boundary.mjs"
+      - "scripts/guards/guard-finance-golden-architecture.mjs"
+      - "dependency-cruiser.config.js"
+      - "docs/phase-20/p7/appendices/FINANCE_GOLDEN_ARCHITECTURE_TESTS.md"
+      - ".github/workflows/finance-core-boundary.yml"
+      - ".github/workflows/finance-golden-architecture.yml"
+      - ".github/workflows/finance-integrity.yml"
+  pull_request:
+    paths:
+      - "packages/finance-core/**"
+      - "packages/finance-http-contracts/**"
+      - "apps/api/src/workspace-finance/**"
+      - "apps/api/src/workspace/workspace-tour-created-dispatcher.ts"
+      - "scripts/guards/guard-finance-core-boundary.mjs"
+      - "scripts/guards/guard-finance-golden-architecture.mjs"
+      - "dependency-cruiser.config.js"
+      - "docs/phase-20/p7/appendices/FINANCE_GOLDEN_ARCHITECTURE_TESTS.md"
+      - ".github/workflows/finance-core-boundary.yml"
+      - ".github/workflows/finance-golden-architecture.yml"
+      - ".github/workflows/finance-integrity.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: finance-integrity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Exact check context name preserved from finance-core-boundary.yml
+  finance-core-boundary:
+    name: Finance-core boundary (guard + test + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Verify Node.js engine
+        run: node scripts/guards/check-node-engine.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build finance-http-contracts (finance-core dependency only)
+        run: pnpm --filter @app-tour/finance-http-contracts run build
+
+      - name: Guard finance-core boundary
+        run: pnpm run guard:finance-core-boundary
+
+      - name: Guard finance golden architecture (G1–G7)
+        run: pnpm run guard:finance-golden
+
+      - name: Guard finance-core portability
+        run: pnpm --filter @app-tour/finance-core run guard:portability
+
+      - name: Build finance-core
+        run: pnpm --filter @app-tour/finance-core run build
+
+      - name: Test finance-core
+        run: pnpm --filter @app-tour/finance-core run test
+
+  # Exact check context name preserved from finance-golden-architecture.yml
+  finance-golden:
+    name: Finance golden architecture (G1–G7)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Verify Node.js engine
+        run: node scripts/guards/check-node-engine.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Golden architecture guard (fail-build)
+        run: pnpm run guard:finance-golden
+
+      - name: Golden architecture node:test mirror
+        run: pnpm --filter @apps/api exec node --import tsx --test src/workspace-finance/finance-golden-architecture.spec.ts
