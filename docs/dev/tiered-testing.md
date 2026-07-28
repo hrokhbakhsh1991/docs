@@ -2,6 +2,10 @@
 
 > **Goal:** Keep Husky pre-commit under ~60s while preserving a full verification path for PR closure and Phase 4 RLS.
 
+Canonical command ownership (verify/guard aliases, deprecations, removal rules): [`docs/platform/COMMAND_OWNERSHIP_MAP.md`](../platform/COMMAND_OWNERSHIP_MAP.md).
+
+Preferred local discovery commands: `pnpm verify:fast`, `pnpm verify:product`, `pnpm verify:full`, plus family runners `pnpm guard:marketing|workspace|field-exposure|guest`.
+
 ## Tiers
 
 | Tier                             | Command                                      | When                                                       | What runs                                                                                                                                                                            |
