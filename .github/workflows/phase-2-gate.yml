@@ -3,20 +3,7 @@
 name: phase-2-gate
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    paths:
-      - "packages/design-tokens/**"
-      - "packages/ui-primitives/**"
-      - "packages/theme-react/**"
-      - "packages/workspaces/**/theme/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "scripts/guards/**"
-      - "scripts/validate-design-tokens.mjs"
-      - ".github/workflows/phase-2-gate.yml"
+  workflow_dispatch:
 
 concurrency:
   group: phase-2-gate-${{ github.ref }}

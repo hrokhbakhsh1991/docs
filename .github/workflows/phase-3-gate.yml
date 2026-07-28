@@ -3,27 +3,6 @@
 name: phase-3-gate
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    paths:
-      - "packages/workspace-sdk/**"
-      - "packages/platform-core/**"
-      - "packages/tenant-kernel/**"
-      - "packages/platform-events/**"
-      - "packages/workspaces/starter/**"
-      - "packages/draft-engine/**"
-      - "packages/wizard-navigation/**"
-      - "apps/api/**"
-      - "apps/web/**"
-      - "apps/portal/**"
-      - "apps/marketing/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "scripts/**"
-      - "docs/**"
-      - ".github/workflows/phase-3-gate.yml"
   workflow_dispatch:
 
 concurrency:

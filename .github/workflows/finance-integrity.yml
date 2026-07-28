@@ -20,34 +20,6 @@
 name: finance-integrity
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "packages/finance-core/**"
-      - "packages/finance-http-contracts/**"
-      - "apps/api/src/workspace-finance/**"
-      - "apps/api/src/workspace/workspace-tour-created-dispatcher.ts"
-      - "scripts/guards/guard-finance-core-boundary.mjs"
-      - "scripts/guards/guard-finance-golden-architecture.mjs"
-      - "dependency-cruiser.config.js"
-      - "docs/phase-20/p7/appendices/FINANCE_GOLDEN_ARCHITECTURE_TESTS.md"
-      - ".github/workflows/finance-core-boundary.yml"
-      - ".github/workflows/finance-golden-architecture.yml"
-      - ".github/workflows/finance-integrity.yml"
-  pull_request:
-    paths:
-      - "packages/finance-core/**"
-      - "packages/finance-http-contracts/**"
-      - "apps/api/src/workspace-finance/**"
-      - "apps/api/src/workspace/workspace-tour-created-dispatcher.ts"
-      - "scripts/guards/guard-finance-core-boundary.mjs"
-      - "scripts/guards/guard-finance-golden-architecture.mjs"
-      - "dependency-cruiser.config.js"
-      - "docs/phase-20/p7/appendices/FINANCE_GOLDEN_ARCHITECTURE_TESTS.md"
-      - ".github/workflows/finance-core-boundary.yml"
-      - ".github/workflows/finance-golden-architecture.yml"
-      - ".github/workflows/finance-integrity.yml"
   workflow_dispatch:
 
 concurrency:

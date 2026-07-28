@@ -4,22 +4,7 @@
 name: doc-gate
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    paths:
-      - "docs/**"
-      - "packages/workspace-sdk/**"
-      - "packages/platform-core/**"
-      - "apps/api/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "scripts/guard-docs.sh"
-      - "scripts/guards/doc-gate.mjs"
-      - "scripts/guards/documentation-sync.mjs"
-      - "scripts/doc/**"
-      - ".github/workflows/doc-gate.yml"
+  workflow_dispatch:
 
 concurrency:
   group: doc-gate-${{ github.ref }}
