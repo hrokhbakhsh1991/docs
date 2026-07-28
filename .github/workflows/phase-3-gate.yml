@@ -49,20 +49,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Verify Node.js engine
-        run: node scripts/guards/check-node-engine.mjs
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup platform toolchain
+        uses: ./.github/actions/setup-platform
 
       - name: Install ripgrep (doc-gate audit-boundary)
         run: sudo apt-get update && sudo apt-get install -y ripgrep
