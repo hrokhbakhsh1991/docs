@@ -207,10 +207,10 @@ jobs:
           pnpm --dir packages/design-tokens run build
           pnpm --dir packages/draft-engine run build
           pnpm --dir packages/wizard-navigation run build
-          pnpm --dir packages/catalog-registration-flow-ui run build
-          pnpm --dir packages/catalog-intake-ui run build
           pnpm --dir packages/ui-primitives run build
           pnpm --dir packages/theme-react run build
+          pnpm --dir packages/catalog-registration-flow-ui run build
+          pnpm --dir packages/catalog-intake-ui run build
           pnpm --dir packages/workspaces/starter run build
           pnpm --dir packages/workspaces/booking-ws2 run build
           pnpm --dir packages/workspaces/finance-ws2 run build

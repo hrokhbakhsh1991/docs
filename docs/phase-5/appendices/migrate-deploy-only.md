@@ -94,3 +94,7 @@ cd apps/api
 pnpm run guard:migrate-deploy-only
 pnpm run phase-5:evolution-gate
 ```
+
+## Schema sync for BP-7 portal member plans
+
+Migration `20260721100000_portal_member_plans_bp7` creates `portal_member_plans`. Prisma model **`PortalMemberPlan`** in `apps/api/prisma/schema.prisma` must stay aligned so `prisma generate` exposes `tx.portalMemberPlan` for `PrismaPortalMemberPlanRepository`. Adding SQL without the model breaks API `tsc` on clean CI.

@@ -13,6 +13,7 @@ pnpm --dir packages/platform-core run build
 pnpm --dir packages/booking-http-contracts run build
 pnpm --dir packages/finance-http-contracts run build
 pnpm --dir packages/finance-http run build
+pnpm --dir packages/finance-core run build
 pnpm --dir packages/design-tokens run build
 pnpm --dir packages/ui-primitives run build
 pnpm --dir packages/theme-react run build
@@ -24,3 +25,9 @@ pnpm --dir packages/tenant-kernel run build
 pnpm --dir packages/workspaces/denali run build
 pnpm --dir packages/workspaces/urban run build
 pnpm --dir packages/workspaces/guest-club run build
+pnpm --dir packages/workspaces/booking-ws2 run build
+pnpm --dir packages/workspaces/finance-ws2 run build
+pnpm --dir packages/workspaces/finance-ws3 run build
+pnpm --dir packages/workspaces/finance-ws4 run build
+pnpm --dir packages/workspaces/finance-ws5 run build
+pnpm --dir packages/workspaces/finance-ws6 run build

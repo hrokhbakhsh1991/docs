@@ -50,6 +50,7 @@ model Tenant {
   exposureProfiles            ExposureProfile[]
   exposureIntents             ExposureIntent[]
   integrationSecrets          IntegrationSecret[]
+  portalMemberPlans           PortalMemberPlan[]
   subscription                TenantSubscription?
   workspaceDefinitionId       String?                      @map("workspace_definition_id")
   workspaceDefinitionVersion  Int?                         @map("workspace_definition_version")
@@ -663,6 +664,24 @@ model PlatformAuditEvent {
 
   @@index([action, createdAt])
   @@map("platform_audit_events")
+}
+
+/// SK3 BP-7 — tenant-scoped portal member plans (MPS-ENT).
+model PortalMemberPlan {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  planCode         String   @map("plan_code")
+  displayName      String   @map("display_name")
+  moduleGrants     Json     @default("[]") @map("module_grants")
+  capabilityFlags  Json     @default("{}") @map("capability_flags")
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, planCode], map: "uq_portal_member_plans_tenant_code")
+  @@index([tenantId, active], map: "idx_portal_member_plans_tenant_active")
+  @@map("portal_member_plans")
 }
 
 model PlatformPlan {

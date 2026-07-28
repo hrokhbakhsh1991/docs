@@ -27,6 +27,13 @@ bash scripts/with-monorepo-build-lock.sh bash -c '
   pnpm --dir packages/workspaces/urban run build
   pnpm --dir packages/workspaces/guest-club run build
   pnpm --dir packages/platform-events run build
+  pnpm --dir packages/finance-core run build
+  pnpm --dir packages/workspaces/booking-ws2 run build
+  pnpm --dir packages/workspaces/finance-ws2 run build
+  pnpm --dir packages/workspaces/finance-ws3 run build
+  pnpm --dir packages/workspaces/finance-ws4 run build
+  pnpm --dir packages/workspaces/finance-ws5 run build
+  pnpm --dir packages/workspaces/finance-ws6 run build
   pnpm --dir apps/api run build
   pnpm --dir apps/marketing run build
   pnpm --dir apps/portal run build

@@ -25,20 +25,6 @@ function resolveLeaseHeartbeatMs(reclaimMs: number): number {
   return Math.max(10, Math.floor(reclaimMs / 3));
 }
 
-const PRISMA_CLAIM_ATTEMPTS = 3;
-
-function resolveLeaseHeartbeatMs(reclaimMs: number): number {
-  // Must stay strictly inside the lease window (reclaim suite uses short TTLs).
-  return Math.max(10, Math.floor(reclaimMs / 3));
-}
-
-const PRISMA_CLAIM_ATTEMPTS = 3;
-
-function resolveLeaseHeartbeatMs(reclaimMs: number): number {
-  // Must stay strictly inside the lease window (reclaim suite uses short TTLs).
-  return Math.max(10, Math.floor(reclaimMs / 3));
-}
-
 export const IDEMPOTENCY_PAYLOAD_MISMATCH = "IDEMPOTENCY_PAYLOAD_MISMATCH";
 export const IDEMPOTENCY_IN_PROGRESS = "IDEMPOTENCY_IN_PROGRESS";
 export const HTTP_IDEMPOTENCY_TENANT_MISMATCH = "HTTP_IDEMPOTENCY_TENANT_MISMATCH";
