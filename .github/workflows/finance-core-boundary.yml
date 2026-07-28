@@ -4,28 +4,19 @@
 # Does NOT run full monorepo build or phase gates.
 #
 # Authority: docs/phase-20/p7/appendices/FINANCE_PLATFORM_EVOLUTION_PLAN.md Phase 2.3
+#
+# S4 Stage B (DISABLED for automatic CI):
+#   push/pull_request triggers removed so this file no longer emits duplicate
+#   check names alongside finance-integrity.yml.
+#   File preserved (not deleted). Manual workflow_dispatch retained for rollback
+#   verification. Canonical automatic gate: .github/workflows/finance-integrity.yml
+#   See docs/platform/FINANCE_CI_MIGRATION_STATUS.md
 
 name: finance-core-boundary
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "packages/finance-core/**"
-      - "packages/finance-http-contracts/**"
-      - "scripts/guards/guard-finance-core-boundary.mjs"
-      - "scripts/guards/guard-finance-golden-architecture.mjs"
-      - "dependency-cruiser.config.js"
-      - ".github/workflows/finance-core-boundary.yml"
-  pull_request:
-    paths:
-      - "packages/finance-core/**"
-      - "packages/finance-http-contracts/**"
-      - "scripts/guards/guard-finance-core-boundary.mjs"
-      - "scripts/guards/guard-finance-golden-architecture.mjs"
-      - "dependency-cruiser.config.js"
-      - ".github/workflows/finance-core-boundary.yml"
+  # Automatic PR/push disabled (S4 Stage B). Restore push+pull_request path filters
+  # from git history to roll back dual-run. Manual run only:
   workflow_dispatch:
 
 concurrency:
