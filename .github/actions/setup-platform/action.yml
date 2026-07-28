@@ -1,0 +1,70 @@
+name: Setup platform
+description: >-
+  Shared monorepo toolchain bootstrap — pnpm, Node (.nvmrc or explicit version),
+  optional pnpm cache, optional engine check, optional frozen-lockfile install.
+  Checkout remains the caller’s responsibility.
+
+inputs:
+  node-version-file:
+    description: File passed to actions/setup-node when node-version is empty
+    required: false
+    default: ".nvmrc"
+  node-version:
+    description: Explicit Node version; when non-empty, overrides node-version-file
+    required: false
+    default: ""
+  cache-enabled:
+    description: When "true", pass cache: pnpm to setup-node
+    required: false
+    default: "true"
+  engine-check-enabled:
+    description: When "true", run scripts/guards/check-node-engine.mjs
+    required: false
+    default: "true"
+  install-dependencies:
+    description: When "true", run pnpm install --frozen-lockfile
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      # No version: — action reads packageManager from package.json
+
+    - name: Setup Node.js
+      if: ${{ inputs.node-version != '' && inputs.cache-enabled == 'true' }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: pnpm
+
+    - name: Setup Node.js
+      if: ${{ inputs.node-version != '' && inputs.cache-enabled != 'true' }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Setup Node.js
+      if: ${{ inputs.node-version == '' && inputs.cache-enabled == 'true' }}
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: ${{ inputs.node-version-file }}
+        cache: pnpm
+
+    - name: Setup Node.js
+      if: ${{ inputs.node-version == '' && inputs.cache-enabled != 'true' }}
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: ${{ inputs.node-version-file }}
+
+    - name: Verify Node.js engine
+      if: ${{ inputs.engine-check-enabled == 'true' }}
+      shell: bash
+      run: node scripts/guards/check-node-engine.mjs
+
+    - name: Install dependencies
+      if: ${{ inputs.install-dependencies == 'true' }}
+      shell: bash
+      run: pnpm install --frozen-lockfile
