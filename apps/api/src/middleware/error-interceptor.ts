@@ -326,12 +326,16 @@ function logInternalServerError(error: unknown, correlationId: string): void {
     metricsRegistry.increment("http_internal_error_log_suppressed_total");
     return;
   }
+  const errMessage =
+    error instanceof Error ? error.message.slice(0, 240) : String(error).slice(0, 240);
   logger.error(
     {
       event: "http.error.internal",
       correlation_id: correlationId,
       tenant_hash: hashTenantIdForLog(getActiveTenantId()),
       error_code: resolveInternalErrorCode(error),
+      // Short message only (no stack) — required to diagnose CI certification 500s.
+      err_message: errMessage,
     },
     "unhandled request error"
   );

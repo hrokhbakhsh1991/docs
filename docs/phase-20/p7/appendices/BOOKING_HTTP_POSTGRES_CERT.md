@@ -49,3 +49,7 @@ HTTP
 `apps/api/test/bookings-http-postgres.spec.ts` — only `createRequestListener` + header auth; asserts `PrismaBookingsRepository`.
 
 See also: [`BOOKING_CAPACITY_CONCURRENCY_CERT.md`](./BOOKING_CAPACITY_CONCURRENCY_CERT.md), [`BOOKING_HTTP_ERROR_MATRIX.md`](./BOOKING_HTTP_ERROR_MATRIX.md).
+
+## Active submitter uniqueness (MR-P0-011 / hostile audit)
+
+Postgres enforces `uq_operator_reg_active_user` on `(tenant_id, tour_id, submitted_by_user_id)` for non-terminal statuses. Certification helpers must not reuse the same operator user id for multiple active creates on one tour — `createPending` defaults to a fresh `randomUUID()` submitter.

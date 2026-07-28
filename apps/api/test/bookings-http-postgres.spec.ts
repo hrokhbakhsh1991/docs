@@ -243,7 +243,9 @@ describe(
       readonly userId?: string;
     }): Promise<string> {
       const tenantId = input.tenantId ?? tenantA;
-      const userId = input.userId ?? operatorA;
+      // uq_operator_reg_active_user: one active registration per (tenant, tour, submitter).
+      // Default a fresh submitter so suite cases do not collide on the shared operatorA.
+      const userId = input.userId ?? randomUUID();
       const response = await httpCreate(tenantId, userId, createBody(input));
       assert.equal(response.status, 201, JSON.stringify(response.body));
       assert.equal(response.body.status, "pending");
