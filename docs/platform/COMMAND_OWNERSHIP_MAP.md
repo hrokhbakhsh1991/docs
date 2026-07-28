@@ -8,6 +8,8 @@ This document is the **tracked** source of truth for which root commands are can
 
 Finance GitHub Actions consolidation (S4): see [`FINANCE_CI_MIGRATION_STATUS.md`](./FINANCE_CI_MIGRATION_STATUS.md) — canonical workflow `finance-integrity.yml`; legacy finance YAML files are deprecated (manual `workflow_dispatch` / rollback only).
 
+CI composite setup consolidation (S5.1): see [`CI_COMPOSITE_SETUP.md`](./CI_COMPOSITE_SETUP.md) — Stage A docs only; Wave 0 pilot is `finance-integrity.yml`; required gates (`phase-0`, `phase-1`, `booking-postgres`) deferred.
+
 ---
 
 ## How to use this map
@@ -133,4 +135,5 @@ Until then: **KEEP wrappers; do not delete.**
 | --- | --- |
 | **S3.2 (this)** | Ownership map + safe deprecation notices + status report |
 | **S3.3 (next)** | Optional docs sweep of AGENTS/tiered-testing examples; still no CI retarget / no deletions |
-| **S4** | CI matrix simplification (separate initiative) |
+| **S4** | CI matrix simplification (finance integrity cutover) |
+| **S5.1** | Composite CI setup (`CI_COMPOSITE_SETUP.md`) — docs → unused action → finance pilot → expand |
