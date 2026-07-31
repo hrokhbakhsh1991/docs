@@ -1,6 +1,9 @@
 import { configureUrbanHttpHost } from "@app-tour/workspace-urban/http";
 import type { UrbanProductRouteDeps } from "@app-tour/workspace-urban/http";
 
+/** Re-export for host AppDeps — keeps branded type import inside product-adapter. */
+export type { UrbanProductRouteDeps };
+
 import { buildUrbanExposureResolverPort } from "../exposure/resolve-urban-surface-exposure";
 
 import type { TourStorageRepository as DbTourStorageRepository } from "../db/tour.repository";

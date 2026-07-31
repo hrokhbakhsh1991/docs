@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: 980a918a
+verified_sha: pending-psr-4b-host-imports-2
 supersedes: []
 superseded_by: null
 evidence:
@@ -28,8 +28,9 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-4b-defaults.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-host-imports.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-2.mdoc
 program_id: PSR-001
-current_wave: PSR-4b-host-imports-partial
+current_wave: PSR-4b-host-imports-2-partial
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -39,27 +40,33 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-host-imports — بسته / partial)
+## 0. وضعیت موج جاری (PSR-4b-host-imports-2 — بسته / partial)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b-host-imports-2** — shrink host-source (**partial 8→4**) |
+| Exit gate | GREEN — ceiling ۴؛ smoke seeds + app.ts type خنثی |
+| Snapshot | [`psr-4b-host-imports-2.mdoc`](../audits/snapshots/2026-07-31/psr-4b-host-imports-2.mdoc) |
+
+| Change | Detail |
+| --- | --- |
+| Smoke seeds (3) | `DENALI_SMOKE_TENANT_ID` از host re-export |
+| `app.ts` | `UrbanProductRouteDeps` از product-adapter |
+| Host-source ceiling | 8 → **4** |
+
+**عمداً خارج / باقی‌مانده:** finance ledger exclusive، migrate denali constants،
+urban exposure، equipment-icon contract.
+
+**Next:** PSR-4b-host-imports-3 (finance/migrate) یا PSR-4b-api-deps.
+
+### 0.00 PSR-4b-host-imports (بسته / partial)
 
 | Field | Value |
 | --- | --- |
 | Wave | **PSR-4b-host-imports** — shrink host-source branded imports (**partial 11→8**) |
-| Exit gate | GREEN — ceiling ۸؛ photos/template/tour-write خنثی‌سازی شدند |
 | Snapshot | [`psr-4b-host-imports.mdoc`](../audits/snapshots/2026-07-31/psr-4b-host-imports.mdoc) |
 | Land commit | `980a918a` |
 | SHA close | `18d99163` |
-
-| Change | Detail |
-| --- | --- |
-| Photo routes | operator key via `wizardMedia` binding |
-| Wizard template catalog | duck-type frozen error by `code` |
-| Tour write dispatch | drop Urban type import |
-| Host-source ceiling | 11 → **8** |
-
-**عمداً خارج / باقی‌مانده:** smoke seeds، finance ledger exclusive، migrate denali constants،
-urban exposure، `app.ts` configure side-effects.
-
-**Next:** PSR-4b-host-imports-2 (finance/migrate) یا PSR-4b-api-deps.
 
 ### 0.00 PSR-4b-defaults (بسته)
 

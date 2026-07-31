@@ -13,8 +13,8 @@ import {
   buildOperatorSmokeTransportSharedCarsTour,
   DENALI_CLUB_DEV_PUBLISHED_TOUR_ID,
 } from "../fixtures/operator-smoke-published-tour.fixture";
-import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
 import { OPERATOR_SMOKE_TENANT_ID } from "./seed-operator-smoke-catalog";
+import { DENALI_SMOKE_TENANT_ID } from "./resolve-workspace-dev-smoke-tenant";
 import { getPrismaAdmin } from "../db/prisma";
 import { logger } from "../observability/logger";
 import { PrismaTourRepository } from "../storage/prisma-tour.repository";

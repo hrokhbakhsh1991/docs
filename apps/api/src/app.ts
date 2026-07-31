@@ -79,7 +79,7 @@ import {
   handlePutTourWizardTemplateAlias,
 } from "./settings/settings.routes";
 import type { ToursRouteDeps } from "./tours/tours.routes";
-import type { UrbanProductRouteDeps } from "@app-tour/workspace-urban/http";
+import type { UrbanProductRouteDeps } from "./http/configure-urban-http-host";
 import {
   handleDeleteWorkspaceDraft,
   handleGetWorkspaceDraft,

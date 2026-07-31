@@ -1,0 +1,59 @@
+---
+id: PSR-4B-HOST-IMPORTS-2
+title: PSR-4b-host-imports-2 shrink host-source via smoke-tenant + adapter re-export
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending-psr-4b-host-imports-2
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-host-imports.mdoc
+program_id: PSR-001
+wave: PSR-4b-host-imports-2
+---
+
+# PSR-4b-host-imports-2 — careful shrink (8 → 4)
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| Smoke seeds use host `DENALI_SMOKE_TENANT_ID` re-export | Yes |
+| `app.ts` Urban deps type via product-adapter re-export | Yes |
+| Finance ledger exclusive denali imports | **No** |
+| Migrate-canonical denali schema constants | **No** |
+| Urban exposure surface helpers | **No** |
+| Equipment icon settings contract | **No** (keep) |
+
+## Changes
+
+| File | Before | After |
+| --- | --- | --- |
+| `settings/seed-operator-smoke-catalog.ts` | `@app-tour/workspace-denali` | `./resolve-workspace-dev-smoke-tenant` |
+| `settings/bootstrap-denali-dev-smoke-fixtures.ts` | `@app-tour/workspace-denali` | `./resolve-workspace-dev-smoke-tenant` |
+| `settings/seed-operator-smoke-published-tour.ts` | `@app-tour/workspace-denali` | `./resolve-workspace-dev-smoke-tenant` |
+| `app.ts` | type from `@app-tour/workspace-urban/http` | type from `./http/configure-urban-http-host` |
+| `http/configure-urban-http-host.ts` | — | `export type { UrbanProductRouteDeps }` |
+
+## Metrics
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Host-source branded files | 8 | **4** |
+| Product defaults | 0 | 0 |
+
+Remaining host-source (deferred): migrate-canonical constants, urban exposure,
+equipment-icon contract, finance ledger exclusive.
+
+## Exit gate
+
+| Check | Result |
+| --- | --- |
+| Host-source ceiling ≤4 | required |
+| Operator smoke catalog specs green | required |
+| Dev smoke tenant resolve specs green | required |
+| No product-default regression | required |

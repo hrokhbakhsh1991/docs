@@ -1,8 +1,8 @@
 schema_version: 1
 program_id: PSR-001
-wave: PSR-4b-host-imports
+wave: PSR-4b-host-imports-2
 updated: '2026-07-31'
-verified_sha: 980a918a
+verified_sha: pending-psr-4b-host-imports-2
 policy:
   inventory_and_ratchet_only: false
   no_runtime_default_change_in_this_wave: false
@@ -18,16 +18,16 @@ policy:
   defaults_fail_closed: true
 metrics:
   api_workspace_package_deps: 13
-  branded_import_sites: 79
+  branded_import_sites: 75
   bucket_counts:
-    host-source: 8
+    host-source: 4
     generated: 51
     test: 18
     product-adapter: 2
   product_default_sites: 0
   codegen_branded_script_files: 8
-  host_source_unique_files: 8
-  host_source_ceiling: 8
+  host_source_unique_files: 4
+  host_source_ceiling: 4
 apps_api_workspace_deps:
 - '@app-tour/workspace-acme'
 - '@app-tour/workspace-booking-ws2'
@@ -44,14 +44,8 @@ apps_api_workspace_deps:
 - '@app-tour/workspace-urban'
 product_defaults: []
 host_source_remediation_cohorts:
-  approved-side-effect-import:
-  - apps/api/src/app.ts
   contract-settings-import:
   - apps/api/src/settings/parse-equipment-icon-key.ts
-  dev-smoke-seed:
-  - apps/api/src/settings/bootstrap-denali-dev-smoke-fixtures.ts
-  - apps/api/src/settings/seed-operator-smoke-catalog.ts
-  - apps/api/src/settings/seed-operator-smoke-published-tour.ts
   move-to-generated-or-finance-port:
   - apps/api/src/workspace-finance/tour-created-paid-ledger-exclusive.ts
   product-adapter-exposure:
@@ -68,13 +62,6 @@ codegen_branded_scripts:
 - scripts/generate-denali-settings-modules.mjs
 - scripts/test/workspace-registry-drop-in.spec.mjs
 branded_imports:
-- file: apps/api/src/app.ts
-  import: '@app-tour/workspace-urban/http'
-  bucket: host-source
-  product: urban
-  remediation_status: approved-side-effect-import
-  remediation_notes: Side-effect imports of configure-* adapters; UrbanProductRouteDeps type import — keep until loader registry
-    absorbs configure registration
 - file: apps/api/src/tours/workspace-tour-write-bindings.generated.ts
   import: '@app-tour/workspace-denali'
   bucket: generated
@@ -406,18 +393,6 @@ branded_imports:
   product: urban
   remediation_status: ok-generated
   remediation_notes: Generated/test allowed under SoT
-- file: apps/api/src/settings/seed-operator-smoke-published-tour.ts
-  import: '@app-tour/workspace-denali'
-  bucket: host-source
-  product: denali
-  remediation_status: dev-smoke-seed
-  remediation_notes: Operator smoke seed
-- file: apps/api/src/settings/bootstrap-denali-dev-smoke-fixtures.ts
-  import: '@app-tour/workspace-denali'
-  bucket: host-source
-  product: denali
-  remediation_status: dev-smoke-seed
-  remediation_notes: Dev/smoke seed — keep product-named; exclude from production neutrality gate
 - file: apps/api/src/settings/workspace-wizard-template-enforcement-bindings.generated.ts
   import: '@app-tour/workspace-denali'
   bucket: generated
@@ -442,12 +417,6 @@ branded_imports:
   product: denali
   remediation_status: ok-generated
   remediation_notes: Generated/test allowed under SoT
-- file: apps/api/src/settings/seed-operator-smoke-catalog.ts
-  import: '@app-tour/workspace-denali'
-  bucket: host-source
-  product: denali
-  remediation_status: dev-smoke-seed
-  remediation_notes: Operator smoke seed
 - file: apps/api/src/settings/parse-equipment-icon-key.ts
   import: '@app-tour/workspace-denali/settings/equipment-icon-registry'
   bucket: host-source
@@ -552,13 +521,16 @@ follow_on_slices:
 - id: PSR-4b-host-imports
   work: Move remaining host-source denali/urban imports to generated/settings/ports
   status: partial
-  note: 11→8 host-source; photos/template/tour-write cleared; 8 remain
+  note: 11→8 then continued in host-imports-2
 - id: PSR-4b-api-deps
   work: Generate or sync apps/api package.json workspace membership from manifests
 - id: PSR-4b-whyDenali
   work: Rename guest landing whyDenali to product-neutral section id in codegen+manifest
 - id: PSR-4b-exports
   work: Begin host-visible Denali export contraction (−9) with per-export proof from PSR-4a
+- id: PSR-4b-host-imports-2
+  status: partial
+  note: 8→4; 4 remain (finance/migrate/urban/equipment)
 product_defaults_remediated:
 - file: apps/api/src/canonical/migrate-canonical-workspace.service.ts
   was: workspaceType ?? "denali"
@@ -567,13 +539,9 @@ product_defaults_remediated:
   was: '`${workspaceType ?? "denali"}.telegram.TourPublished`'
   now: throw TOUR_PUBLISHED_REMAP_WORKSPACE_TYPE_REQUIRED when profileId lacks .TourCreated suffix
 host_source_remaining:
-- apps/api/src/app.ts
 - apps/api/src/canonical/migrate-canonical-workspace.service.ts
 - apps/api/src/exposure/resolve-urban-surface-exposure.ts
-- apps/api/src/settings/bootstrap-denali-dev-smoke-fixtures.ts
 - apps/api/src/settings/parse-equipment-icon-key.ts
-- apps/api/src/settings/seed-operator-smoke-catalog.ts
-- apps/api/src/settings/seed-operator-smoke-published-tour.ts
 - apps/api/src/workspace-finance/tour-created-paid-ledger-exclusive.ts
 completed_host_import_clears:
 - file: apps/api/src/settings/wizard-template-catalog.ts
@@ -582,3 +550,11 @@ completed_host_import_clears:
   wave: PSR-4b-host-imports
 - file: apps/api/src/tours/workspace-tour-write-dispatch.ts
   wave: PSR-4b-host-imports
+- file: apps/api/src/app.ts
+  wave: PSR-4b-host-imports-2
+- file: apps/api/src/settings/bootstrap-denali-dev-smoke-fixtures.ts
+  wave: PSR-4b-host-imports-2
+- file: apps/api/src/settings/seed-operator-smoke-catalog.ts
+  wave: PSR-4b-host-imports-2
+- file: apps/api/src/settings/seed-operator-smoke-published-tour.ts
+  wave: PSR-4b-host-imports-2

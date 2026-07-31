@@ -3,7 +3,7 @@
  * Denali dev tenant (…000003) uses a separate id namespace — global PK on settings rows.
  * @see docs/phase-11/subphases/11.0-smoke-workspace-alignment.md
  */
-import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
+import { DENALI_SMOKE_TENANT_ID } from "./resolve-workspace-dev-smoke-tenant";
 
 export { DENALI_SMOKE_TENANT_ID };
 

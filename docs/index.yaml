@@ -1,10 +1,10 @@
-# Active documentation registry (PSR-4b-host-imports)
+# Active documentation registry (PSR-4b-host-imports-2)
 # Sole machine registry for active authority. Absence ≠ delete; see DOC-META-001.
 schema_version: 1
 program_id: PSR-001
-wave: PSR-4b-host-imports
+wave: PSR-4b-host-imports-2
 updated: 2026-07-31
-verified_sha: 980a918a
+verified_sha: pending-psr-4b-host-imports-2
 roles:
   - canonical
   - standard
@@ -42,7 +42,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: 980a918a
+    verified_sha: pending-psr-4b-host-imports-2
     supersedes: []
     superseded_by: null
     evidence:
@@ -64,6 +64,7 @@ documents:
       - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
       - docs/audits/snapshots/2026-07-31/psr-4b-defaults.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-host-imports.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-2.mdoc
 
   - id: DG-REM-001
     path: docs/architecture/denali-gravity-remediation.mdoc
@@ -392,6 +393,18 @@ documents:
     status: active
     last_verified: 2026-07-31
     verified_sha: 980a918a
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
+
+  - id: PSR-4B-HOST-IMPORTS-2
+    path: docs/audits/snapshots/2026-07-31/psr-4b-host-imports-2.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: pending-psr-4b-host-imports-2
     supersedes: []
     superseded_by: null
     evidence:

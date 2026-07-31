@@ -1,4 +1,4 @@
-import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
+import { DENALI_SMOKE_TENANT_ID } from "./resolve-workspace-dev-smoke-tenant";
 
 import { isProductionAuthMode } from "../tenant-kernel/auth-env";
 import { logger } from "../observability/logger";
