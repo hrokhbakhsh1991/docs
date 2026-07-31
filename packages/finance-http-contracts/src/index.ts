@@ -35,6 +35,7 @@ export type {
   FinanceLedgerCapturePlan,
   BuildPaymentCaptureJournalInput,
   BuildPrepaymentJournalInput,
+  BuildTourCreatedPaidJournalInput,
   FinanceLedgerPolicyPort,
   FinanceOfflineReceiptDefaults,
   FinanceObligationPort,

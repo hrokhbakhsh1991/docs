@@ -55,6 +55,7 @@ export type {
   BookingPaymentSyncStatusInput,
   BuildPaymentCaptureJournalInput,
   BuildPrepaymentJournalInput,
+  BuildTourCreatedPaidJournalInput,
   CreatePaymentInput,
   CreateReceiptInput,
   FinanceActorContext,

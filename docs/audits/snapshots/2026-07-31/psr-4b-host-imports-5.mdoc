@@ -1,0 +1,62 @@
+---
+id: PSR-4B-HOST-IMPORTS-5
+title: PSR-4b-host-imports-5 TourCreated Path B via ledger policy port
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending-psr-4b-host-imports-5
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-4.mdoc
+program_id: PSR-001
+wave: PSR-4b-host-imports-5
+---
+
+# PSR-4b-host-imports-5 — careful shrink (2 → 1)
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| Optional `FinanceLedgerPolicyPort.buildTourCreatedPaidJournal` | Yes |
+| Denali adapter implements Path B journal (same CoA/idempotency) | Yes |
+| Host exclusive uses `resolveFinanceLedgerPolicy` + `enqueueFinanceLedgerCaptureOutbox` | Yes |
+| Remove direct `@app-tour/workspace-denali` from exclusive file | Yes |
+| Equipment icon settings contract | **No** (keep — intentional) |
+| Require method on finance-ws* adapters | **No** (optional) |
+
+## Design (fine grain)
+
+1. **Contracts** (`finance-http-contracts`): add `BuildTourCreatedPaidJournalInput`;
+   optional method on `FinanceLedgerPolicyPort` so fixture workspaces stay unchanged.
+2. **Denali** `DenaliFinanceLedgerPolicyAdapter.buildTourCreatedPaidJournal`:
+   - seed ids via `stableLedgerIdentifiersFromSeed(domainEventId, "tour-created-ledger")`
+   - debit `REGISTRATION_LEADER_PAYMENT_CLEARING` / credit `bookingWalletId`
+   - idempotency `tour-created:${domainEventId}`
+   - `domainEventId` = `finance.ledger:${registrationId}:${idempotencyKey}` (≤128)
+3. **Host** `emitTourCreatedPaidLedgerExclusive`:
+   - resolve workspace via `resolveFinanceWorkspaceTypeForTenant`
+   - resolve policy via generated finance dependency loader
+   - fail-closed if method missing (`FINANCE_TOUR_CREATED_LEDGER_UNSUPPORTED`)
+   - keep advisory lock + wallet-credit skip
+   - enqueue via platform `enqueueFinanceLedgerCaptureOutbox` (no denali OutboxWriter type)
+
+## Metrics
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Host-source branded files | 2 | **1** |
+
+Remaining: `parse-equipment-icon-key.ts` (documented settings contract).
+
+## Exit gate
+
+| Check | Result |
+| --- | --- |
+| Host-source ceiling ≤1 | required |
+| Finance dependency + adapter identity specs green | required |
+| No product-default regression | required |

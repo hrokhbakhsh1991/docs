@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: 4325d4de
+verified_sha: pending-psr-4b-host-imports-5
 supersedes: []
 superseded_by: null
 evidence:
@@ -35,8 +35,9 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-4.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-5.mdoc
 program_id: PSR-001
-current_wave: PSR-4b-host-imports-4-partial
+current_wave: PSR-4b-host-imports-5-partial
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -46,24 +47,33 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-host-imports-4 — بسته / partial)
+## 0. وضعیت موج جاری (PSR-4b-host-imports-5 — بسته / partial)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b-host-imports-5** — Path B ledger via policy port (**partial 2→1**) |
+| Exit gate | GREEN — ceiling ۱؛ exclusive بدون import مستقیم denali |
+| Snapshot | [`psr-4b-host-imports-5.mdoc`](../audits/snapshots/2026-07-31/psr-4b-host-imports-5.mdoc) |
+
+| Change | Detail |
+| --- | --- |
+| Contracts | optional `buildTourCreatedPaidJournal` |
+| Denali adapter | Path B journal + stable domainEventId |
+| Host exclusive | policy loader + `enqueueFinanceLedgerCaptureOutbox` |
+| Host-source ceiling | 2 → **1** |
+
+**عمداً خارج / باقی‌مانده:** `parse-equipment-icon-key.ts` (قرارداد settings).
+
+**Next:** PSR-4b-exports (−۹) یا mark equipment as approved-contract (ceiling 0 با allowlist).
+
+### 0.00 PSR-4b-host-imports-4 (بسته / partial)
 
 | Field | Value |
 | --- | --- |
 | Wave | **PSR-4b-host-imports-4** — migrate surface via canonicalTour (**partial 3→2**) |
-| Exit gate | GREEN — ceiling ۲؛ migrate بدون import مستقیم denali |
 | Snapshot | [`psr-4b-host-imports-4.mdoc`](../audits/snapshots/2026-07-31/psr-4b-host-imports-4.mdoc) |
 | Land commit | `4325d4de` |
 | SHA close | `9aed350c` |
-
-| Change | Detail |
-| --- | --- |
-| Migrate service | SoT/schema/wrap از generated binding |
-| Host-source ceiling | 3 → **2** |
-
-**عمداً خارج / باقی‌مانده:** finance ledger exclusive؛ equipment-icon contract (حفظ).
-
-**Next:** PSR-4b-host-imports-5 (finance) یا PSR-4b-exports (−۹).
 
 ### 0.00 PSR-4b-whyDenali (بسته)
 

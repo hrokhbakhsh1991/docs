@@ -7,5 +7,6 @@ export type {
   FinanceLedgerCapturePlan,
   BuildPaymentCaptureJournalInput,
   BuildPrepaymentJournalInput,
+  BuildTourCreatedPaidJournalInput,
   FinanceLedgerPolicyPort,
 } from "@app-tour/finance-http-contracts";

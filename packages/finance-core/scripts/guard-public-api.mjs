@@ -34,6 +34,7 @@ const ALLOWED_ROOT_EXPORTS = new Set([
   "BookingPaymentSyncStatusInput",
   "BuildPaymentCaptureJournalInput",
   "BuildPrepaymentJournalInput",
+  "BuildTourCreatedPaidJournalInput",
   "CompileInvoiceBalancesInput",
   "CreatePaymentInput",
   "CreateReceiptInput",

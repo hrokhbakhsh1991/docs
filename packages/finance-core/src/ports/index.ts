@@ -30,6 +30,7 @@ export type { FinanceClockPort } from "./finance-clock.port";
 export type {
   BuildPaymentCaptureJournalInput,
   BuildPrepaymentJournalInput,
+  BuildTourCreatedPaidJournalInput,
   FinanceLedgerCapturePlan,
   FinanceLedgerJournalLine,
   FinanceLedgerPolicyPort,

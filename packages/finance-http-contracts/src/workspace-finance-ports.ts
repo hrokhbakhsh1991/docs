@@ -50,12 +50,27 @@ export type BuildPrepaymentJournalInput = {
   readonly journalSeed: string;
 };
 
+/** Path B — TourCreated paid settlement journal (optional workspace capability). */
+export type BuildTourCreatedPaidJournalInput = {
+  readonly tenantId: string;
+  readonly registrationId: string;
+  readonly paidAmountMinor: string;
+  readonly currency: string;
+  readonly tourCreatedDomainEventId: string;
+};
+
 /**
  * Workspace-supplied accounting policy (chart, wallet id, journal materialization).
  */
 export interface FinanceLedgerPolicyPort {
   buildPaymentCaptureJournal(input: BuildPaymentCaptureJournalInput): FinanceLedgerCapturePlan;
   buildPrepaymentJournal(input: BuildPrepaymentJournalInput): FinanceLedgerCapturePlan;
+  /**
+   * Optional — TourCreated Path B paid ledger. Denali implements; fixture workspaces omit.
+   */
+  buildTourCreatedPaidJournal?(
+    input: BuildTourCreatedPaidJournalInput
+  ): FinanceLedgerCapturePlan;
 }
 
 export type FinanceOfflineReceiptDefaults = {

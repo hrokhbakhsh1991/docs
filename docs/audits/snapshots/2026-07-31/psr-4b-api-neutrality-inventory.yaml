@@ -1,8 +1,8 @@
 schema_version: 1
 program_id: PSR-001
-wave: PSR-4b-host-imports-4
+wave: PSR-4b-host-imports-5
 updated: '2026-07-31'
-verified_sha: 4325d4de
+verified_sha: pending-psr-4b-host-imports-5
 policy:
   inventory_and_ratchet_only: false
   no_runtime_default_change_in_this_wave: false
@@ -18,16 +18,16 @@ policy:
   defaults_fail_closed: true
 metrics:
   api_workspace_package_deps: 13
-  branded_import_sites: 74
+  branded_import_sites: 73
   bucket_counts:
-    host-source: 2
+    host-source: 1
     generated: 51
     test: 18
     product-adapter: 3
   product_default_sites: 0
   codegen_branded_script_files: 8
-  host_source_unique_files: 2
-  host_source_ceiling: 2
+  host_source_unique_files: 1
+  host_source_ceiling: 1
 apps_api_workspace_deps:
 - '@app-tour/workspace-acme'
 - '@app-tour/workspace-booking-ws2'
@@ -46,8 +46,6 @@ product_defaults: []
 host_source_remediation_cohorts:
   contract-settings-import:
   - apps/api/src/settings/parse-equipment-icon-key.ts
-  move-to-generated-or-finance-port:
-  - apps/api/src/workspace-finance/tour-created-paid-ledger-exclusive.ts
 codegen_branded_scripts:
 - scripts/codegen/denali-semantic-slices.mjs
 - scripts/codegen/lib/denali-dtcg-resolve.mjs
@@ -455,12 +453,6 @@ branded_imports:
   product: denali
   remediation_status: ok-generated
   remediation_notes: Generated/test allowed under SoT
-- file: apps/api/src/workspace-finance/tour-created-paid-ledger-exclusive.ts
-  import: '@app-tour/workspace-denali'
-  bucket: host-source
-  product: denali
-  remediation_status: move-to-generated-or-finance-port
-  remediation_notes: Direct denali import — finance dependency bindings should own product policy
 - file: apps/api/src/workspace-finance/finance-ws2-engine.spec.ts
   import: '@app-tour/workspace-denali'
   bucket: test
@@ -532,7 +524,10 @@ follow_on_slices:
   status: deferred
 - id: PSR-4b-host-imports-4
   status: partial
-  note: 3→2 migrate via canonicalTour; finance+equipment remain
+  note: 3→2; continued in host-imports-5
+- id: PSR-4b-host-imports-5
+  status: partial
+  note: 2→1 Path B via ledger policy; equipment contract remains
 product_defaults_remediated:
 - file: apps/api/src/canonical/migrate-canonical-workspace.service.ts
   was: workspaceType ?? "denali"
@@ -542,7 +537,6 @@ product_defaults_remediated:
   now: throw TOUR_PUBLISHED_REMAP_WORKSPACE_TYPE_REQUIRED when profileId lacks .TourCreated suffix
 host_source_remaining:
 - apps/api/src/settings/parse-equipment-icon-key.ts
-- apps/api/src/workspace-finance/tour-created-paid-ledger-exclusive.ts
 completed_host_import_clears:
 - file: apps/api/src/settings/wizard-template-catalog.ts
   wave: PSR-4b-host-imports
@@ -563,3 +557,5 @@ completed_host_import_clears:
   moved_to: apps/api/src/http/configure-urban-surface-exposure.ts
 - file: apps/api/src/canonical/migrate-canonical-workspace.service.ts
   wave: PSR-4b-host-imports-4
+- file: apps/api/src/workspace-finance/tour-created-paid-ledger-exclusive.ts
+  wave: PSR-4b-host-imports-5

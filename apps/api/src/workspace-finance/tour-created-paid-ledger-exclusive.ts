@@ -1,21 +1,17 @@
 /**
  * Path B exclusive emit — TourCreated paid ledger under registration wallet-credit lock.
+ * Journal materialization comes from workspace FinanceLedgerPolicyPort (generated loader);
+ * outbox enqueue stays platform-owned.
  */
-import {
-  bookingWalletId,
-  emitFinanceLedgerDoubleEntryAppliedOutbox,
-  LEDGER_ACCOUNTS,
-  postDoubleEntryJournal,
-  stableLedgerIdentifiersFromSeed,
-} from "@app-tour/workspace-denali";
-import type { OutboxWriter } from "@app-tour/workspace-denali";
-
 import { withTenantRls } from "../db/with-tenant-rls";
+import { enqueueFinanceLedgerCaptureOutbox } from "./enqueue-finance-ledger-capture";
+import { resolveFinanceLedgerPolicy } from "./finance-dependency-registry";
 import { createTxScopedOutboxWriter } from "./infrastructure/prisma-workspace-outbox-writer";
 import {
   advisoryLockRegistrationWalletCredit,
   registrationHasBookingWalletCredit,
 } from "./registration-booking-wallet-credit";
+import { resolveFinanceWorkspaceTypeForTenant } from "./resolve-finance-workspace-type-for-tenant";
 
 export type TourCreatedPaidLedgerExclusiveInput = {
   readonly tenantId: string;
@@ -42,6 +38,14 @@ export async function emitTourCreatedPaidLedgerExclusive(
     return "skipped";
   }
 
+  const workspaceType = await resolveFinanceWorkspaceTypeForTenant(input.tenantId);
+  const policy = await resolveFinanceLedgerPolicy(workspaceType);
+  if (typeof policy.buildTourCreatedPaidJournal !== "function") {
+    throw new Error(
+      `FINANCE_TOUR_CREATED_LEDGER_UNSUPPORTED: workspaceType=${workspaceType}`
+    );
+  }
+
   return withTenantRls(input.tenantId, async (tx) => {
     await advisoryLockRegistrationWalletCredit(tx, input.tenantId, registrationId);
     if (await registrationHasBookingWalletCredit(tx, input.tenantId, registrationId)) {
@@ -49,33 +53,21 @@ export async function emitTourCreatedPaidLedgerExclusive(
     }
 
     const currency = input.currency.trim() || "USD";
-    const stableIds = stableLedgerIdentifiersFromSeed(
-      tourCreatedDomainEventId,
-      "tour-created-ledger"
-    );
-    const { lines } = postDoubleEntryJournal({
+    const capture = policy.buildTourCreatedPaidJournal!({
       tenantId: input.tenantId,
-      debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
-      creditAccount: bookingWalletId(registrationId),
-      amount_minor: paidAmountMinor,
+      registrationId,
+      paidAmountMinor,
       currency,
-      correlationId: tourCreatedDomainEventId,
-      idempotencyKey: `tour-created:${tourCreatedDomainEventId}`,
-      stableJournalAndLineIds: stableIds,
-      metadata: {
-        kind: "tour_created_paid_settlement",
-        registrationId,
-        source: "tour_created",
-      },
+      tourCreatedDomainEventId,
     });
 
     const writer = createTxScopedOutboxWriter(tx);
-    await emitFinanceLedgerDoubleEntryAppliedOutbox({
-      outboxWriter: writer as unknown as OutboxWriter,
+    const inserted = await enqueueFinanceLedgerCaptureOutbox({
+      outboxWriter: writer,
       tenantId: input.tenantId,
       registrationId,
-      lines,
+      capture,
     });
-    return "emitted";
+    return inserted ? "emitted" : "skipped";
   });
 }

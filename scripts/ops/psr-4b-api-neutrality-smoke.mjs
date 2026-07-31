@@ -10,7 +10,7 @@ import { spawnSync } from "node:child_process";
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const apiSrc = join(root, "apps/api/src");
 
-const HOST_SOURCE_FILE_CEILING = 2;
+const HOST_SOURCE_FILE_CEILING = 1;
 /** After PSR-4b-defaults: zero `workspaceType ?? "denali"` in apps/api/src. */
 const PRODUCT_DEFAULT_CEILING = 0;
 
@@ -97,6 +97,7 @@ const ALLOWED_WAVES = new Set([
   "PSR-4b-host-imports-2",
   "PSR-4b-host-imports-3",
   "PSR-4b-host-imports-4",
+  "PSR-4b-host-imports-5",
 ]);
 if (!ALLOWED_WAVES.has(inv.wave)) {
   fail("inventory wave must be PSR-4b*");

@@ -1,6 +1,7 @@
 import type {
   BuildPaymentCaptureJournalInput,
   BuildPrepaymentJournalInput,
+  BuildTourCreatedPaidJournalInput,
   FinanceLedgerCapturePlan,
   FinanceLedgerPolicyPort,
 } from "@app-tour/finance-http-contracts";
@@ -66,5 +67,36 @@ export class DenaliFinanceLedgerPolicyAdapter implements FinanceLedgerPolicyPort
       domainEventId: input.ledgerDomainEventId,
       lines,
     };
+  }
+
+  /** Path B — same CoA/idempotency as historic host exclusive + handleTourCreatedLedgerEvent. */
+  buildTourCreatedPaidJournal(input: BuildTourCreatedPaidJournalInput): FinanceLedgerCapturePlan {
+    const registrationId = input.registrationId.trim();
+    const paidAmountMinor = input.paidAmountMinor.trim();
+    const tourCreatedDomainEventId = input.tourCreatedDomainEventId.trim();
+    const currency = input.currency.trim() || "USD";
+    const stableIds = stableLedgerIdentifiersFromSeed(
+      tourCreatedDomainEventId,
+      "tour-created-ledger"
+    );
+    const idempotencyKey = `tour-created:${tourCreatedDomainEventId}`;
+    const { journalId, lines } = postDoubleEntryJournal({
+      tenantId: input.tenantId,
+      debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
+      creditAccount: bookingWalletId(registrationId),
+      amount_minor: paidAmountMinor,
+      currency,
+      correlationId: tourCreatedDomainEventId,
+      idempotencyKey,
+      stableJournalAndLineIds: stableIds,
+      metadata: {
+        kind: "tour_created_paid_settlement",
+        registrationId,
+        source: "tour_created",
+      },
+    });
+    const domainRaw = `finance.ledger:${registrationId}:${idempotencyKey}`;
+    const domainEventId = domainRaw.length > 128 ? domainRaw.slice(0, 128) : domainRaw;
+    return { journalId, domainEventId, lines };
   }
 }
