@@ -26,10 +26,11 @@ metrics:
   narrative_docs: 5
   # must match live whyDenali-smoke count (not owned by this wave)
   manifests_with_whySection: 4
-deferred:
-  - id: PSR-4b-whyDenali-alias-expiry
-    work: Remove whyDenali dual-read in guest-catalog codegen after compatibility window
+deferred: []
 completed_follow_ons:
   - id: PSR-4b-whyDenali-docs-narrative
     closed_by: PSR-4b-whyDenali-docs
     snapshot: docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-docs.mdoc
+  - id: PSR-4b-whyDenali-alias-expiry
+    closed_by: PSR-4b-whyDenali-alias-expiry
+    snapshot: docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-alias-expiry.mdoc

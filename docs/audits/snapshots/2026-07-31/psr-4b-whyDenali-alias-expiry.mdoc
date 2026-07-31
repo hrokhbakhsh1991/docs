@@ -1,0 +1,63 @@
+---
+id: PSR-4B-WHYDENALI-ALIAS-EXPIRY
+title: PSR-4b-whyDenali-alias-expiry — remove whyDenali dual-read
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-alias-expiry-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-docs.mdoc
+  - scripts/codegen/workspace-registry/domains/guest-catalog.mjs
+program_id: PSR-001
+wave: PSR-4b-whyDenali-alias-expiry
+---
+
+# PSR-4b-whyDenali-alias-expiry — dual-read closed
+
+## Prerequisite proof
+
+| Check | Result |
+| --- | --- |
+| All guestLanding manifests use `whySection` | Yes (denali, urban, guest-club, harbor) |
+| Any manifest still declares `whyDenali` | **None** |
+| Narrative docs teach `whySection` | Yes ([`psr-4b-whyDenali-docs`](./psr-4b-whyDenali-docs.mdoc)) |
+
+Compatibility window is therefore closed without breaking live manifests.
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| `resolveGuestLandingWhySectionGate` — require `whySection` only | Yes |
+| Reject manifests that still declare `whyDenali` | Yes |
+| Smoke: forbid `whyDenali` key under guestLanding.sections | Yes |
+| Unit coverage for reject/accept paths | Yes |
+| CSS `data-marketing-home-why*` rename | **No** (already product-neutral) |
+
+## Gate resolver after this wave
+
+```text
+whySection boolean required
+whyDenali present → fail closed (alias expired)
+neither → fail closed
+```
+
+## Ratchet
+
+```bash
+node scripts/ops/psr-4b-whyDenali-alias-expiry-smoke.mjs
+node scripts/ops/psr-4b-whyDenali-smoke.mjs
+node --test scripts/test/guest-landing-why-section-gate.spec.mjs
+```
+
+## Explicit non-goals
+
+- Fixture finance/booking API dep split
+- PSR-5 data authority
+- Rewriting ENTERPRISE_AUDIT_REPORT historical findings

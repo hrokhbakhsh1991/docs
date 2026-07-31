@@ -1,0 +1,22 @@
+schema_version: 1
+program_id: PSR-001
+wave: PSR-4b-whyDenali-alias-expiry
+updated: "2026-07-31"
+policy:
+  whySection_required: true
+  whyDenali_forbidden_in_manifests: true
+  dual_read_removed: true
+metrics:
+  manifests_with_whySection: 4
+  manifests_with_whyDenali: 0
+  dual_read_sites_in_codegen: 0
+code_changes:
+  - path: scripts/codegen/workspace-registry/domains/guest-catalog.mjs
+    symbol: resolveGuestLandingWhySectionGate
+    change: whySection-only; reject whyDenali key
+smoke: scripts/ops/psr-4b-whyDenali-alias-expiry-smoke.mjs
+unit_spec: scripts/test/guest-landing-why-section-gate.spec.mjs
+completed_follow_ons:
+  - id: PSR-4b-whyDenali-alias-expiry
+    closed_by: PSR-4b-whyDenali-alias-expiry
+    snapshot: docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-alias-expiry.mdoc

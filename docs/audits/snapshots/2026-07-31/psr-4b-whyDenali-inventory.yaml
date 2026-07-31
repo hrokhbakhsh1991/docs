@@ -27,10 +27,11 @@ manifests_updated:
   - packages/workspaces/urban/workspace.manifest.json
   - packages/workspaces/guest-club/workspace.manifest.json
   - packages/workspaces/harbor/workspace.manifest.json
-follow_on:
-  - id: PSR-4b-whyDenali-alias-expiry
-    work: Remove whyDenali dual-read after compatibility window
+follow_on: []
 completed_follow_ons:
   - id: PSR-4b-whyDenali-docs-narrative
     closed_by: PSR-4b-whyDenali-docs
     snapshot: docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-docs.mdoc
+  - id: PSR-4b-whyDenali-alias-expiry
+    closed_by: PSR-4b-whyDenali-alias-expiry
+    snapshot: docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-alias-expiry.mdoc

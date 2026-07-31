@@ -26,13 +26,12 @@ wave: PSR-4b-whyDenali
 | Update product manifests + workspace-create scaffold | Yes |
 | Narrative docs teach `whySection` as canonical | **Yes** — see [`psr-4b-whyDenali-docs.mdoc`](./psr-4b-whyDenali-docs.mdoc) |
 | Rename CSS `data-marketing-home-*` hooks | **No** (already product-neutral) |
-| Expire `whyDenali` dual-read | **No** → alias-expiry |
+| Expire `whyDenali` dual-read | **Yes** — see [`psr-4b-whyDenali-alias-expiry.mdoc`](./psr-4b-whyDenali-alias-expiry.mdoc) |
 
 ## Design
 
 - Canonical boolean: `guestLanding.sections.whySection`
-- Deprecated alias: `whyDenali` accepted only when `whySection` absent
-- Conflict (both present, unequal) → fail closed
+- Deprecated alias `whyDenali`: **expired** (PSR-4b-whyDenali-alias-expiry) — fail closed if present
 - Generated SDK type emits **only** `whySection`
 
 ## Exit gate

@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: 6b3dd6bf
+verified_sha: pending
 supersedes: []
 superseded_by: null
 evidence:
@@ -51,7 +51,7 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-http-alias.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-http-alias-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-4b-whyDenali-docs
+current_wave: PSR-4b-whyDenali-alias-expiry
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -61,26 +61,35 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-whyDenali-docs — narrative `whySection`)
+## 0. وضعیت موج جاری (PSR-4b-whyDenali-alias-expiry — dual-read closed)
 
 | Field | Value |
 | --- | --- |
-| Wave | **PSR-4b-whyDenali-docs** — teach `whySection` as canonical in live narrative docs (**complete**) |
-| Exit gate | GREEN — ۵ narrative doc؛ smoke docs + whyDenali runtime |
-| Snapshot | [`psr-4b-whyDenali-docs.mdoc`](../audits/snapshots/2026-07-31/psr-4b-whyDenali-docs.mdoc) |
-| Inventory | [`psr-4b-whyDenali-docs-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-whyDenali-docs-inventory.yaml) |
-| Smoke | `node scripts/ops/psr-4b-whyDenali-docs-smoke.mjs` |
-| Land commit | `6b3dd6bf` |
-| SHA close | `ec61573c` |
+| Wave | **PSR-4b-whyDenali-alias-expiry** — remove `whyDenali` dual-read (**complete**) |
+| Exit gate | GREEN — manifests whyDenali=۰؛ dual_read=۰؛ unit gate 4/4 |
+| Snapshot | [`psr-4b-whyDenali-alias-expiry.mdoc`](../audits/snapshots/2026-07-31/psr-4b-whyDenali-alias-expiry.mdoc) |
+| Inventory | [`psr-4b-whyDenali-alias-expiry-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-whyDenali-alias-expiry-inventory.yaml) |
+| Smoke | `node scripts/ops/psr-4b-whyDenali-alias-expiry-smoke.mjs` |
+| Land commit | pending |
+| SHA close | pending |
 
 | Change | Detail |
 | --- | --- |
-| Retarget | marketing-landing · plan · public-catalog · ADR-GP-005 · design-system home |
-| Keep | codegen dual-read `whyDenali`؛ CSS `data-marketing-home-why*` |
+| Codegen | `resolveGuestLandingWhySectionGate` → whySection-only; reject whyDenali |
+| Ratchet | manifests forbid whyDenali key |
 
-**عمداً خارج:** alias expiry؛ CSS rename؛ ENTERPRISE_AUDIT_REPORT.
+**عمداً خارج:** fixture-split؛ PSR-5؛ CSS rename.
 
-**Next:** PSR-4b-whyDenali-alias-expiry یا PSR-4b-api-deps-fixture-split یا PSR-5+.
+**Next:** PSR-4b-api-deps-fixture-split یا PSR-5+.
+
+### 0.00 PSR-4b-whyDenali-docs (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b-whyDenali-docs** — narrative `whySection` (**complete**) |
+| Snapshot | [`psr-4b-whyDenali-docs.mdoc`](../audits/snapshots/2026-07-31/psr-4b-whyDenali-docs.mdoc) |
+| Land commit | `6b3dd6bf` |
+| SHA close | `ec61573c` |
 
 ### 0.00 PSR-4b-configure-3b (بسته)
 

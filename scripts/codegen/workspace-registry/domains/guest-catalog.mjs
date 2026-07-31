@@ -660,25 +660,21 @@ export function assertCatalogPresentationManifest(manifest) {
 }
 
 /**
- * PSR-4b-whyDenali — prefer `whySection`; accept deprecated `whyDenali` alias.
+ * PSR-4b-whyDenali-alias-expiry — `whySection` only; `whyDenali` alias expired.
  * @param {Record<string, unknown>} sections
  * @param {string} manifestId
  * @returns {boolean}
  */
 export function resolveGuestLandingWhySectionGate(sections, manifestId) {
-  const hasNeutral = typeof sections.whySection === "boolean";
-  const hasLegacy = typeof sections.whyDenali === "boolean";
-  if (hasNeutral && hasLegacy && sections.whySection !== sections.whyDenali) {
+  if (Object.prototype.hasOwnProperty.call(sections, "whyDenali")) {
     throw new Error(
-      `${manifestId}: guestLanding.sections.whySection conflicts with deprecated whyDenali`,
+      `${manifestId}: guestLanding.sections.whyDenali alias expired — use whySection only`,
     );
   }
-  if (!hasNeutral && !hasLegacy) {
-    throw new Error(
-      `${manifestId}: guestLanding.sections.whySection must be boolean (deprecated alias: whyDenali)`,
-    );
+  if (typeof sections.whySection !== "boolean") {
+    throw new Error(`${manifestId}: guestLanding.sections.whySection must be boolean`);
   }
-  return /** @type {boolean} */ (hasNeutral ? sections.whySection : sections.whyDenali);
+  return sections.whySection;
 }
 
 /**

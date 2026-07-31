@@ -72,6 +72,8 @@ documents:
       - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-inventory.yaml
       - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-docs.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-docs-inventory.yaml
+      - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-alias-expiry.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-alias-expiry-inventory.yaml
       - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-4.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-5.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-close.mdoc
@@ -564,6 +566,20 @@ documents:
     evidence:
       - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-inventory.yaml
 
+
+
+  - id: PSR-4B-WHYDENALI-ALIAS-EXPIRY
+    path: docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-alias-expiry.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: pending
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-alias-expiry-inventory.yaml
+      - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali.mdoc
 
   - id: PSR-4B-WHYDENALI-DOCS
     path: docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-docs.mdoc

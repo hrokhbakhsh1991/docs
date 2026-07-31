@@ -54,8 +54,8 @@ for (const name of readdirSync(manifestsDir)) {
     );
     if (!m.guestLanding?.sections) continue;
     const sec = m.guestLanding.sections;
-    if ("whyDenali" in sec && !("whySection" in sec)) {
-      fail(`${name}: still uses whyDenali without whySection`);
+    if ("whyDenali" in sec) {
+      fail(`${name}: guestLanding.sections still declares expired whyDenali`);
     }
     if ("whySection" in sec) whySectionManifests += 1;
   } catch {
