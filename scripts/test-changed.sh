@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Git-aware workspace tests — only packages touched (and dependents) since base ref.
-# Pre-commit: staged + unstaged only (not full branch vs main).
-# Pre-commit mode uses staged files only — validates what is being committed.
+# Pre-commit: staged files only (not full branch vs main or the dirty worktree).
 # CI: origin/main...HEAD, full dependency expansion, full workspace test scripts.
-# Cache: .cache/test-changed/<filter>.sha — skip when diff hash unchanged.
+# Cache: .cache/test-changed/<filter>.sha — content-addressed, not HEAD-addressed.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -22,7 +21,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-CACHE_DIR="$ROOT/.cache/test-changed"
+CACHE_DIR="${TEST_CHANGED_CACHE_DIR:-$ROOT/.cache/test-changed}"
 mkdir -p "$CACHE_DIR"
 
 resolve_base() {
@@ -172,9 +171,51 @@ if [ -z "$(echo "$TARGETS" | tr -d '[:space:]')" ]; then
   exit 0
 fi
 
+hash_paths() {
+  local paths="$1"
+  local path content_hash
+  while IFS= read -r path; do
+    [ -z "$path" ] && continue
+    printf "path=%s\n" "$path"
+    if [ "$MODE" = "pre-commit" ]; then
+      if git cat-file -e ":$path" 2>/dev/null; then
+        content_hash="$(git show ":$path" | sha256sum | awk '{print $1}')"
+        printf "content=%s\n" "$content_hash"
+      else
+        echo "content=DELETED"
+      fi
+    elif git cat-file -e "HEAD:$path" 2>/dev/null; then
+      content_hash="$(git show "HEAD:$path" | sha256sum | awk '{print $1}')"
+      printf "content=%s\n" "$content_hash"
+    else
+      echo "content=DELETED"
+    fi
+  done <<<"$paths"
+}
+
+hash_file_if_present() {
+  local path="$1"
+  local content_hash
+  printf "support=%s:" "$path"
+  if [ "$MODE" = "pre-commit" ]; then
+    if git cat-file -e ":$path" 2>/dev/null; then
+      content_hash="$(git show ":$path" | sha256sum | awk '{print $1}')"
+      echo "$content_hash"
+    else
+      echo "MISSING"
+    fi
+  elif git cat-file -e "HEAD:$path" 2>/dev/null; then
+    content_hash="$(git show "HEAD:$path" | sha256sum | awk '{print $1}')"
+    echo "$content_hash"
+  else
+    echo "MISSING"
+  fi
+}
+
 hash_pkg() {
   local pkg="$1"
   local prefix=""
+  local relevant_paths=""
   case "$pkg" in
     @app-tour/workspace-sdk) prefix="packages/workspace-sdk" ;;
     @app-tour/platform-core) prefix="packages/platform-core" ;;
@@ -195,25 +236,39 @@ hash_pkg() {
     @apps/marketing) prefix="apps/marketing" ;;
     *) return 1 ;;
   esac
+  if [ "$MODE" = "pre-commit" ]; then
+    relevant_paths="$(echo "$CHANGED" | grep "^${prefix}/" || true)"
+  else
+    # CI targets may be selected because an upstream dependency changed.
+    relevant_paths="$CHANGED"
+  fi
   {
-    echo "base=$BASE"
     echo "mode=$MODE"
     echo "pkg=$pkg"
-    git rev-parse HEAD 2>/dev/null || true
-    echo "$CHANGED" | grep "^${prefix}/" || true
+    hash_paths "$relevant_paths"
+    hash_file_if_present "$prefix/package.json"
+    hash_file_if_present "pnpm-lock.yaml"
+    hash_file_if_present "scripts/test-changed.sh"
+    hash_file_if_present "scripts/lib/resolve-api-test-specs.mjs"
+    hash_file_if_present "scripts/lib/resolve-web-test-specs.mjs"
   } | sha256sum | awk '{print $1}'
 }
 
-hash_api_specs() {
+hash_target_specs() {
   local specs_json="$1"
+  local pkg="$2"
+  local prefix="$3"
   {
-    echo "base=$BASE"
     echo "mode=$MODE"
-    echo "pkg=@apps/api"
+    echo "pkg=$pkg"
     echo "spec-level"
-    git rev-parse HEAD 2>/dev/null || true
     echo "$specs_json"
-    echo "$CHANGED" | grep '^apps/api/' || true
+    hash_paths "$(echo "$CHANGED" | grep "^${prefix}/" || true)"
+    hash_file_if_present "$prefix/package.json"
+    hash_file_if_present "pnpm-lock.yaml"
+    hash_file_if_present "scripts/test-changed.sh"
+    hash_file_if_present "scripts/lib/resolve-api-test-specs.mjs"
+    hash_file_if_present "scripts/lib/resolve-web-test-specs.mjs"
   } | sha256sum | awk '{print $1}'
 }
 
@@ -251,12 +306,16 @@ pkg_dir() {
 
 run_api_tests() {
   if [ "$MODE" = "pre-commit" ]; then
-    local resolve_json specs_list fallback safe_specs
+    local resolve_json specs_list fallback
     resolve_json="$(printf '%s\n' "$CHANGED" | node "$ROOT/scripts/lib/resolve-api-test-specs.mjs")"
-    fallback="$(node -e "process.stdout.write(JSON.parse(process.argv[1]).fallbackFullSuite?'yes':'no')" "$resolve_json")"
+    fallback="$(node -e "process.stdout.write(JSON.parse(process.argv[1]).fallbackBaseline?'yes':'no')" "$resolve_json")"
     if [ "$fallback" = "yes" ]; then
-      echo "test-changed: RUN pnpm --filter @apps/api test (spec map fallback)"
-      pnpm --filter @apps/api test
+      echo "test-changed: WARN unmapped API production path; full API suite deferred to checkpoint/CI"
+      echo "test-changed: RUN @apps/api baseline fallback (3 memory specs)"
+      pnpm --filter @apps/api run test:file \
+        test/package-boundary.spec.ts \
+        test/resolve-workspace-type.spec.ts \
+        test/tours-operator.spec.ts
       return $?
     fi
     specs_list="$(node -e "
@@ -264,9 +323,8 @@ run_api_tests() {
       if (!specs.length) process.exit(2);
       process.stdout.write(specs.join(' '));
     " "$resolve_json")" || {
-      echo "test-changed: RUN pnpm --filter @apps/api test (no specs resolved)"
-      pnpm --filter @apps/api test
-      return $?
+      echo "test-changed: no runnable API specs resolved — skip"
+      return 0
     }
     echo "test-changed: RUN pnpm --filter @apps/api run test:file ${specs_list}"
     # shellcheck disable=SC2086
@@ -275,6 +333,32 @@ run_api_tests() {
   fi
   echo "test-changed: RUN pnpm --filter @apps/api test"
   pnpm --filter @apps/api test
+}
+
+run_web_tests() {
+  local resolve_json specs_list fallback
+  resolve_json="$(printf '%s\n' "$CHANGED" | node "$ROOT/scripts/lib/resolve-web-test-specs.mjs")"
+  fallback="$(node -e "process.stdout.write(JSON.parse(process.argv[1]).fallbackBaseline?'yes':'no')" "$resolve_json")"
+  if [ "$fallback" = "yes" ]; then
+    echo "test-changed: WARN unmapped web production path; full web suite deferred to checkpoint/CI"
+    echo "test-changed: RUN @apps/web baseline fallback (3 memory specs)"
+    pnpm --filter @apps/web run test:file \
+      test/barrel-hunt.spec.ts \
+      test/dashboard-smoke.spec.ts \
+      test/phase-9.contract.spec.ts
+    return $?
+  fi
+  specs_list="$(node -e "
+    const specs = JSON.parse(process.argv[1]).specs;
+    if (!specs.length) process.exit(2);
+    process.stdout.write(specs.join(' '));
+  " "$resolve_json")" || {
+    echo "test-changed: no runnable web specs resolved — skip"
+    return 0
+  }
+  echo "test-changed: RUN pnpm --filter @apps/web run test:file ${specs_list}"
+  # shellcheck disable=SC2086
+  pnpm --filter @apps/web run test:file ${specs_list}
 }
 
 FAILED=0
@@ -286,14 +370,18 @@ for pkg in $TARGETS; do
   fi
   safe_name="$(echo "$pkg" | tr '/:@' '___')"
 
-  if [ "$pkg" = "@apps/api" ] && [ "$MODE" = "pre-commit" ]; then
-    resolve_json="$(printf '%s\n' "$CHANGED" | node "$ROOT/scripts/lib/resolve-api-test-specs.mjs")"
-    fallback="$(node -e "process.stdout.write(JSON.parse(process.argv[1]).fallbackFullSuite?'yes':'no')" "$resolve_json")"
+  if { [ "$pkg" = "@apps/api" ] || [ "$pkg" = "@apps/web" ]; } && [ "$MODE" = "pre-commit" ]; then
+    if [ "$pkg" = "@apps/api" ]; then
+      resolve_json="$(printf '%s\n' "$CHANGED" | node "$ROOT/scripts/lib/resolve-api-test-specs.mjs")"
+    else
+      resolve_json="$(printf '%s\n' "$CHANGED" | node "$ROOT/scripts/lib/resolve-web-test-specs.mjs")"
+    fi
+    fallback="$(node -e "process.stdout.write(JSON.parse(process.argv[1]).fallbackBaseline?'yes':'no')" "$resolve_json")"
     if [ "$fallback" = "yes" ]; then
       digest="$(hash_pkg "$pkg" || echo "none")"
       cache_file="$CACHE_DIR/${safe_name}.sha"
     else
-      digest="$(hash_api_specs "$resolve_json" || echo "none")"
+      digest="$(hash_target_specs "$resolve_json" "$pkg" "$dir" || echo "none")"
       cache_file="$CACHE_DIR/${safe_name}-specs.sha"
     fi
   else
@@ -308,6 +396,12 @@ for pkg in $TARGETS; do
 
   if [ "$pkg" = "@apps/api" ]; then
     if run_api_tests; then
+      echo "$digest" >"$cache_file"
+    else
+      FAILED=1
+    fi
+  elif [ "$pkg" = "@apps/web" ] && [ "$MODE" = "pre-commit" ]; then
+    if run_web_tests; then
       echo "$digest" >"$cache_file"
     else
       FAILED=1

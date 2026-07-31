@@ -42,6 +42,7 @@ const FAMILIES = {
     "guard-marketing-skin-size.mjs",
   ],
   workspace: [
+    "guard-denali-gravity-workspace-roles.mjs",
     "guard-workspace-certification.mjs",
     "guard-workspace-export-surface.mjs",
     "guard-workspace-master.mjs",

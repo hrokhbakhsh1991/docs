@@ -45,6 +45,11 @@ describe("workspace:create --guest", () => {
       });
       assert.deepEqual(manifest.memberProfile.editableFields, ["displayName"]);
       assert.deepEqual(manifest.memberProfile.readOnlyFields, ["email"]);
+      assert.deepEqual(manifest.operatorCapabilities, {
+        usersDirectory: false,
+        reconciliationTriage: false,
+        fieldExposureSurfaces: false,
+      });
       assert.equal(manifest.httpRoutes.handlerPackage, "@app-tour/workspace-alpine-club/http");
 
       assert.ok(existsSync(join(dir, "src/catalog/registration-flow/registration-flow.steps.tsx")));
@@ -52,11 +57,38 @@ describe("workspace:create --guest", () => {
       assert.ok(existsSync(join(dir, "theme/marketing.css")));
       assert.ok(existsSync(join(dir, "design-language/MASTER.md")));
 
+      assert.ok(existsSync(join(dir, "src/catalog/alpine-club-smoke-catalog.fixture.ts")));
+      assert.ok(existsSync(join(dir, "src/http/alpine-club-catalog-http.ts")));
+      const catalogHttpTs = readFileSync(join(dir, "src/http/alpine-club-catalog-http.ts"), "utf8");
+      assert.match(catalogHttpTs, /createWorkspaceGuestSmokeHttpHandlers/);
+      assert.match(catalogHttpTs, /ALPINE_CLUB_SMOKE_E2E_SEED/);
+      assert.doesNotMatch(catalogHttpTs, /sendWorkspaceGuestStub/);
+      const routesTs = readFileSync(join(dir, "src/http/routes.ts"), "utf8");
+      assert.match(routesTs, /alpine-club-catalog-http/);
+      assert.doesNotMatch(routesTs, /function sendGuestStub/);
+      const routesManifestTs = readFileSync(join(dir, "src/http/routes-manifest.ts"), "utf8");
+      assert.match(routesManifestTs, /WorkspaceHttpMethod/);
+      const catalogIndexTs = readFileSync(join(dir, "src/catalog/index.ts"), "utf8");
+      assert.match(catalogIndexTs, /buildAlpineClubSmokeCatalogCard/);
+
+      assert.ok(existsSync(join(dir, "test/guest-smoke-http.spec.ts")));
+      assert.ok(existsSync(join(dir, "test/guest-clone-budget.spec.ts")));
+      const smokeHttpSpec = readFileSync(join(dir, "test/guest-smoke-http.spec.ts"), "utf8");
+      assert.match(smokeHttpSpec, /ALPINE_CLUB_SMOKE_E2E_SEED/);
+      assert.match(smokeHttpSpec, /WORKSPACE_GUEST_STUB/);
+      assert.match(smokeHttpSpec, /handleGetAlpineClubCatalog/);
+      const cloneBudgetSpec = readFileSync(join(dir, "test/guest-clone-budget.spec.ts"), "utf8");
+      assert.match(cloneBudgetSpec, /workspace-denali/);
+      assert.match(cloneBudgetSpec, /httpFiles\.length <= 6/);
+
       const packageJson = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
-      assert.ok(packageJson.exports["./catalog-registration-flow"]);
-      assert.ok(packageJson.exports["./catalog-registration-flow/react"]);
-      assert.ok(packageJson.exports["./http"]);
+      assert.ok(packageJson.exports["./host/catalog-registration-flow"]);
+      assert.ok(packageJson.exports["./host/catalog-registration-flow/react"]);
+      assert.ok(packageJson.exports["./host/http"]);
       assert.ok(packageJson.exports["./theme/marketing.css"]);
+      assert.equal(packageJson.exports["./alpine-club.plugin"], undefined);
+      assert.equal(packageJson.exports["./catalog"], undefined);
+      assert.equal(packageJson.exports["./http"], undefined);
 
       assert.match(generateWorkspaceCatalogPaths([manifest]), /"alpine-club": "\/alpine-club\/catalog"/);
       assert.match(

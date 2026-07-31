@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Map changed apps/api paths → trunk spec files for pre-commit test:file runs.
- * Prints JSON: { specs: string[], fallbackFullSuite: boolean }
+ * Prints JSON: { specs: string[], fallbackBaseline: boolean }
  * @see docs/dev/tiered-testing.md
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -24,10 +24,7 @@ const PREFIX_SPECS = [
   { prefix: "apps/api/src/finance/", patterns: ["test/finance-*.spec.ts"] },
   {
     prefix: "apps/api/src/exposure/",
-    patterns: [
-      "test/field-exposure-*.spec.ts",
-      "test/4-integration/field-exposure-*.spec.ts",
-    ],
+    patterns: ["test/field-exposure-*.spec.ts", "test/4-integration/field-exposure-*.spec.ts"],
   },
   {
     prefix: "apps/api/src/integrations/",
@@ -56,9 +53,7 @@ function resolvePattern(pattern) {
   const dir = subdir ? join(TEST_ROOT, subdir) : TEST_ROOT;
   if (!existsSync(dir)) return [];
 
-  const re = new RegExp(
-    `^${fileGlob.replace(/\./g, "\\.").replace(/\*/g, ".*")}$`
-  );
+  const re = new RegExp(`^${fileGlob.replace(/\./g, "\\.").replace(/\*/g, ".*")}$`);
   /** @type {string[]} */
   const found = [];
   for (const name of readdirSync(dir)) {
@@ -102,7 +97,10 @@ function specsForPath(path) {
 
 function main() {
   const input = readFileSync(0, "utf8");
-  const paths = input.split("\n").map((l) => l.trim()).filter(Boolean);
+  const paths = input
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
   /** @type {Set<string>} */
   const specs = new Set();
   let hasResolvableApi = false;
@@ -117,7 +115,7 @@ function main() {
 
   const result = {
     specs: [...specs].sort(),
-    fallbackFullSuite: hasResolvableApi && specs.size === 0,
+    fallbackBaseline: hasResolvableApi && specs.size === 0,
   };
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }

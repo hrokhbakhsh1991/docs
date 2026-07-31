@@ -107,10 +107,24 @@ for (const consumer of CONSUMERS) {
 
 const apiPkg = JSON.parse(read("apps/api/package.json"));
 const prebuild = typeof apiPkg.scripts?.prebuild === "string" ? apiPkg.scripts.prebuild : "";
-for (const pkg of extractWorkspacePackages(read("apps/api/src/http/workspace-http-routes.generated.ts"))) {
-  const filter = `--filter ${pkg}...`;
-  if (!prebuild.includes(filter)) {
-    violations.push(`apps/api: prebuild must include ${filter} (HTTP route manifest import ${pkg})`);
+const delegatedWorkspaceBuild = "scripts/ci/build-api-workspace-deps.sh";
+const delegatesAllWorkspaceBuilds = prebuild.includes(delegatedWorkspaceBuild);
+if (delegatesAllWorkspaceBuilds) {
+  const delegatedSource = read(delegatedWorkspaceBuild);
+  if (
+    !/for dir in packages\/workspaces\/\*\//.test(delegatedSource) ||
+    !/pnpm --dir "\$dir" run build/.test(delegatedSource)
+  ) {
+    violations.push(
+      `apps/api: ${delegatedWorkspaceBuild} must build every workspace package with pnpm --dir`,
+    );
+  }
+} else {
+  for (const pkg of extractWorkspacePackages(read("apps/api/src/http/workspace-http-routes.generated.ts"))) {
+    const filter = `--filter ${pkg}...`;
+    if (!prebuild.includes(filter)) {
+      violations.push(`apps/api: prebuild must include ${filter} (HTTP route manifest import ${pkg})`);
+    }
   }
 }
 
