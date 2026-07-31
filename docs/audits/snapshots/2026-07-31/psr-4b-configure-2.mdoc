@@ -1,0 +1,84 @@
+---
+id: PSR-4B-CONFIGURE-2
+title: PSR-4b-configure-2 — fold Urban surface exposure into Urban HTTP host configure
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-configure-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-configure.mdoc
+  - docs/architecture/field-exposure-system.md
+program_id: PSR-001
+wave: PSR-4b-configure-2
+---
+
+# PSR-4b-configure-2 — Urban exposure fold (product-named 3→2)
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| Inventory product-named configure adapters | Yes (from PSR-4b-configure) |
+| Absorb `configure-urban-surface-exposure.ts` into `configure-urban-http-host.ts` | Yes |
+| Fix broken `./` relative imports → `../exposure/…` | Yes (latent host-imports-3 defect) |
+| Delete standalone Urban surface-exposure configure file | Yes |
+| Retarget m17 guard + contract spec + marketing-guard path | Yes |
+| Delete denali/urban product HTTP configure entirely | **No** — needs generated bootstrap |
+| Generated `workspace-product-http-host-bindings` | Deferred → **PSR-4b-configure-3** |
+
+Machine inventory (shared ratchet file, updated in place):
+[`psr-4b-configure-inventory.yaml`](./psr-4b-configure-inventory.yaml)
+
+## Why this slice (not full absorption)
+
+SoT §PSR-4.4 wants product-named configure modules gone. Full deletion of
+denali/urban HTTP configure would move branded workspace imports into a
+non-allowlisted host file unless the replacement is **generated** (or stays
+under `http/configure-*`). Neutrality allowlist still requires branded imports
+in `apps/api/src` to live in: `*.generated.ts`, tests, `http/configure-*`, or
+the settings allowlist.
+
+Folding Urban exposure into the Urban HTTP configure file:
+
+1. Removes one product-named configure file (**ceiling 3→2**) without violating neutrality.
+2. Keeps exposure + HTTP port wiring as one product adapter (single branded surface).
+3. Fixes the broken relative imports introduced when the file was relocated from
+   `exposure/` → `http/` in host-imports-3 (`./build-field-exposure-engine-input`
+   etc. do not exist under `http/` — `tsc` already reported TS2307).
+
+## Classification after this wave
+
+| Path | Class |
+| --- | --- |
+| `configure-finance-http-host.ts` | `platform-neutral` |
+| `configure-workspace-denali-product-http-host.ts` | `product-named` |
+| `configure-urban-http-host.ts` | `product-named` (HTTP host **+** Urban exposure resolver) |
+
+## Latent defect closed
+
+| Before | After |
+| --- | --- |
+| `configure-urban-surface-exposure.ts` imported `./build-field-exposure-engine-input` (missing under `http/`) | Same symbols imported from `../exposure/…` inside `configure-urban-http-host.ts` |
+
+## Ratchet
+
+```bash
+node scripts/ops/psr-4b-configure-smoke.mjs
+```
+
+| Metric | Ceiling |
+| --- | ---: |
+| product-named configure files | **2** |
+| configure-*.ts file count | **3** |
+| bare `/http` imports inside configure-* | **0** |
+
+## Explicit non-goals
+
+- Deleting denali/urban HTTP configure (configure-3 / generated bindings)
+- Moving exposure logic into `workspace-urban` package body
+- Changing Denali exposure path (`resolve-denali-surface-exposure.ts` stays under `exposure/`)

@@ -2,9 +2,11 @@ schema_version: 1
 program_id: PSR-001
 wave: PSR-4b-configure
 updated: "2026-07-31"
+# Inventory shared by PSR-4b-configure + PSR-4b-configure-2 smokes.
+# Wave id stays PSR-4b-configure so scripts/ops/psr-4b-configure-smoke.mjs stays stable.
 policy:
-  # Product-named host configure files remaining after this wave (denali + urban×2).
-  product_named_configure_ceiling: 3
+  # Product-named host configure files after configure-2 fold (denali + urban).
+  product_named_configure_ceiling: 2
   # All http/configure-*.ts must be listed here.
   exact_configure_set_required: true
   # Configure adapters must not use bare package `/http` subpaths (use ./host/http).
@@ -22,32 +24,30 @@ adapters:
     branded_imports:
       - "@app-tour/workspace-denali/host/http"
     wires: configureDenaliProductHttpHost
-    notes: "Import retargeted /http → /host/http; absorption deferred"
+    notes: "Import retargeted /http → /host/http; full absorption deferred to configure-3"
   - path: apps/api/src/http/configure-urban-http-host.ts
     class: product-named
     branded_imports:
       - "@app-tour/workspace-urban/host/http"
-    wires: configureUrbanHttpHost
-    notes: "Import retargeted /http → /host/http; absorption deferred"
-  - path: apps/api/src/http/configure-urban-surface-exposure.ts
-    class: product-named
-    branded_imports:
       - "@app-tour/workspace-urban/exposure"
       - "@app-tour/workspace-sdk"
-    wires: buildUrbanExposureResolverPort
-    notes: "Folded from exposure/ in host-imports-3; absorption deferred"
+    wires: configureUrbanHttpHost + buildUrbanExposureResolverPort
+    notes: "PSR-4b-configure-2 folded configure-urban-surface-exposure into this file; fixed ../exposure imports"
 metrics:
-  configure_files: 4
-  product_named: 3
+  configure_files: 3
+  product_named: 2
   platform_neutral: 1
   bare_http_imports_in_configure: 0
 deferred:
-  - id: PSR-4b-configure-2
-    work: Absorb denali/urban configure into generated bootstrap or neutral ports; delete product-named files
+  - id: PSR-4b-configure-3
+    work: Generate workspace-product-http-host-bindings; delete denali + urban product-named configure files
 completed_follow_ons:
   - id: PSR-4b-configure-http-alias-expiry
     closed_by: PSR-4b-http-alias
     snapshot: docs/audits/snapshots/2026-07-31/psr-4b-http-alias.mdoc
+  - id: PSR-4b-configure-2
+    closed_by: PSR-4b-configure-2
+    snapshot: docs/audits/snapshots/2026-07-31/psr-4b-configure-2.mdoc
 tsconfig_compat_aliases_retained: []
 tsconfig_host_http_paths_added:
   - "@app-tour/workspace-denali/host/http"

@@ -29,6 +29,7 @@ wave: PSR-4b-configure
 | Add tsconfig `host/http` path mappings | Yes |
 | Delete denali/urban product-named configure files | **No** |
 | Expire tsconfig bare `/http` aliases (tests) | **Yes** — see [`psr-4b-http-alias.mdoc`](./psr-4b-http-alias.mdoc) |
+| Fold Urban surface-exposure configure | **Yes** — see [`psr-4b-configure-2.mdoc`](./psr-4b-configure-2.mdoc) |
 
 Land commit: `86e22b6d`
 
@@ -42,7 +43,9 @@ Machine inventory:
 | `configure-finance-http-host.ts` | `platform-neutral` | Wires `@app-tour/finance-http` only |
 | `configure-workspace-denali-product-http-host.ts` | `product-named` | Denali HTTP host ports |
 | `configure-urban-http-host.ts` | `product-named` | Urban HTTP host ports |
-| `configure-urban-surface-exposure.ts` | `product-named` | Urban exposure resolver |
+| `configure-urban-surface-exposure.ts` | `product-named` | Urban exposure resolver (**folded in configure-2**) |
+
+Post-configure-2 live set: finance + denali + urban HTTP only (ceiling **2**).
 
 ## Why finance rename counts
 
@@ -71,7 +74,7 @@ node scripts/ops/psr-4b-configure-smoke.mjs
 
 | Metric | Ceiling |
 | --- | ---: |
-| product-named configure files | **3** |
+| product-named configure files | **2** (was 3; configure-2 fold) |
 | bare `/http` imports inside configure-* | **0** |
 
 ## Explicit non-goals
