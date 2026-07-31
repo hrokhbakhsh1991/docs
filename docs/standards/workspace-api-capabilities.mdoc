@@ -94,7 +94,7 @@ Manifest `integrationCapabilities.<providerId>` codegen → `workspace-integrati
 
 Manifest `wizardTemplateEnforcement` → `resolveWizardTemplateEnforcementBinding(workspaceType)` replaces `workspaceType !== "denali"` in settings wizard template catalog paths.
 
-Manifest `wizardTemplate.pathAliases` + `aliasCatalogWorkspaceType` → `resolveWizardTemplatePathAliasBinding(workspaceType)` (starter `title` alias against denali catalog).
+Manifest `wizardTemplate.pathAliases` + `aliasCatalogWorkspaceType` → `resolveWizardTemplatePathAliasBinding(workspaceType)` — **optional** bridge for scaffolds that accept foreign catalog paths. **DG-2.1:** starter no longer aliases `title` against `denali`; starter templates use starter-owned paths (`basics.title`). Web draft display bridges (`title` ↔ `basics.title`) are separate and remain.
 
 Manifest `exposureHost` → `workspace-exposure-host-bindings.generated.ts` re-exports scheduler + surface resolver host surface (allowlist **0**).
 

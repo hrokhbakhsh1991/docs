@@ -17,6 +17,7 @@ The default scaffold creates an L0 workspace plugin. Guest-ready workspaces need
 - shared-auth compose registration flow;
 - intake surface;
 - member profile visibility;
+- explicit fail-closed `operatorCapabilities` for certification-guard parity;
 - guest marketing theme;
 - smoke tenant exports.
 
@@ -35,4 +36,3 @@ After promoting a guest workspace to trunk, wire `@app-tour/workspace-<id>` on c
 Scaffolded packages export **canonical** `getWorkspacePlugin` (manifest `plugin.export` /
 `web.export`) plus a branded alias `get<Pascal>WorkspacePlugin` for local tests.
 Generated web loaders call the canonical name only.
-

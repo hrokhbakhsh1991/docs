@@ -25,6 +25,10 @@ hooks:
     description: Marketing CTA → portal OTP → intake chain
     spec: apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts
     command: pnpm --filter @apps/marketing run test:smoke
+  - id: SMK-MKT-HARBOR-01
+    description: Harbor catalog browse, Event detail, and portal registration intake
+    spec: apps/marketing/tests/e2e/marketing-harbor-catalog-smoke.spec.ts
+    command: pnpm --filter @apps/marketing run test:smoke:harbor
   - id: DEN-PROF-01
     description: Denali portal /me/profile participant fields visible
     spec: apps/portal/tests/e2e/portal-member-profile-smoke.spec.ts

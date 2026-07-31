@@ -128,7 +128,7 @@ Postgres bootstrap in CI always uses `DATABASE_URL_ADMIN` (postgres role) for `p
 
 1. **`guard-docs`** — always (no-op unless protected core paths staged without `docs/`).
 2. **Path-gated static guards** — only when staged paths match:
-   - **Field exposure (phases 0–11):** `apps/api/`, `packages/platform-core/`, `packages/workspace-sdk/`, `packages/workspaces/`, `apps/web/src/exposure/`, exposure settings pages, exposure docs, `scripts/guards/field-exposure-*`, `scripts/pre-commit-fast.sh`. A manifest comment block lists all `field-exposure-phase-N-guard.mjs` filenames for guard contract checks.
+   - **Field exposure (phases 0–11):** exposure/integration API paths, exposure API tests and Prisma contracts, web exposure/integration surfaces, workspace exposure/plugin/settings contracts, exposure docs, `scripts/guards/field-exposure-*`, and `scripts/pre-commit-fast.sh`. Unrelated workspace, SDK, platform-core, and API changes no longer trigger all 12 guards. A manifest comment block lists all `field-exposure-phase-N-guard.mjs` filenames for guard contract checks.
    - **Wizard post-submit:** `apps/web/src/wizard/`, `apps/web/src/tours/`, `packages/workspaces/denali/src/ui/chrome/`, wizard bootstrap bindings.
    - **CSS globals:** `apps/{portal,marketing,web}/app/globals.css` or any staged `globals.css`.
 3. **`check-node-engine`** — always.
@@ -166,30 +166,64 @@ bash scripts/test-changed.sh --mode pre-commit     # staged files only (Husky)
 2. **Early exit:** no staged files → skip (no tests).
 3. **Direct packages only** — no `expand_pkg` fan-out (e.g. sdk edit runs sdk tests only, not api + web).
 4. **`docs/` / `scripts/` changes** — **no tests** on commit (guards/doc-gate handle policy).
-5. **`@apps/api`:** spec-level via `scripts/lib/resolve-api-test-specs.mjs` → `pnpm --filter @apps/api run test:file <specs>`. Paths under `apps/api/scripts/` and `apps/api/docs/` are ignored. Fallback to full `@apps/api test` only when resolvable production paths yield **zero** specs.
-6. **Workspaces:** includes `@apps/portal`, `@apps/marketing`, urban, guest-club, and other mapped packages.
-7. **Cache:** `.cache/test-changed/@apps___api-specs.sha` for spec lists; package-level `.sha` for other workspaces.
+5. **`@apps/api`:** spec-level via `scripts/lib/resolve-api-test-specs.mjs` → `pnpm --filter @apps/api run test:file <specs>`. Paths under `apps/api/scripts/` and `apps/api/docs/` are ignored. When a production path yields **zero** mapped specs, pre-commit warns, runs the bounded memory baseline (`package-boundary`, `resolve-workspace-type`, `tours-operator`), and defers the full API suite to checkpoint/CI.
+6. **`@apps/web`:** directly referenced unit/contract specs via `scripts/lib/resolve-web-test-specs.mjs` → `pnpm --filter @apps/web run test:file <specs>`. An unmapped production path warns and runs the bounded baseline (`barrel-hunt`, `dashboard-smoke`, `phase-9.contract`); the full web suite remains in checkpoint/CI.
+7. **Workspaces:** includes `@apps/portal`, `@apps/marketing`, urban, guest-club, and other mapped packages.
+8. **Cache:** `.cache/test-changed/@apps___api-specs.sha` / `@apps___web-specs.sha` for spec lists; package-level `.sha` for other workspaces. Keys hash staged index content plus the package manifest, lockfile, and test runner sources; unrelated commit identity does not invalidate a warm pre-commit cache.
+
+### Fast-path timing report
+
+Every manual `pnpm run pre-commit:fast` run records per-step
+`RUN`/`SKIP`/`PASS`/`FAIL` timing in
+`.cache/pre-commit-fast/latest.tsv`. The default budget is 60 seconds
+(`FAST_PATH_BUDGET_SECONDS` overrides it). Exceeding the budget emits a warning
+but does not change a correct exit status.
+
+Before re-enabling a suspended hook, stage one representative change for each
+scenario and run:
+
+```bash
+bash scripts/benchmark-pre-commit-fast.sh docs         # 3×, <=10s
+bash scripts/benchmark-pre-commit-fast.sh ui           # 3×, <=30s
+bash scripts/benchmark-pre-commit-fast.sh package-api  # 3×, <=60s
+```
+
+Each command uses an isolated temporary cache: run 1 is cold and runs 2–3 are
+warm. The suspension marker may be removed only after all three scenarios pass.
 
 ### API spec resolver (`scripts/lib/resolve-api-test-specs.mjs`)
 
-| Changed path prefix                                      | Specs run                                                                       |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `apps/api/test/*.spec.ts` or `apps/api/src/**/*.spec.ts` | that file                                                                       |
-| `apps/api/src/identity/`                                 | `test/identity-*.spec.ts`                                                       |
-| `apps/api/src/settings/`                                 | `test/settings-*.spec.ts`                                                       |
-| `apps/api/src/bookings/`                                 | `test/bookings-*.spec.ts`                                                       |
-| `apps/api/src/tours/`                                    | `test/tours-*.spec.ts`                                                          |
-| `apps/api/src/finance/`                                  | `test/finance-*.spec.ts`                                                        |
-| `apps/api/src/exposure/`                                 | `test/field-exposure-*.spec.ts`, `test/4-integration/field-exposure-*.spec.ts`  |
-| `apps/api/src/integrations/`                             | `test/integrations-*.spec.ts`, `test/field-exposure-*.spec.ts`                  |
-| `apps/api/prisma/`                                       | `test/phase-9-persistence.integration.spec.ts`                                  |
-| other `apps/api/**` (production)                         | **fallback:** full trunk `pnpm --filter @apps/api test` when zero specs resolve |
-| `apps/api/scripts/**`, `apps/api/docs/**`                | ignored (no tests, no fallback)                                                 |
+| Changed path prefix                                      | Specs run                                                                        |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `apps/api/test/*.spec.ts` or `apps/api/src/**/*.spec.ts` | that file                                                                        |
+| `apps/api/src/identity/`                                 | `test/identity-*.spec.ts`                                                        |
+| `apps/api/src/settings/`                                 | `test/settings-*.spec.ts`                                                        |
+| `apps/api/src/bookings/`                                 | `test/bookings-*.spec.ts`                                                        |
+| `apps/api/src/tours/`                                    | `test/tours-*.spec.ts`                                                           |
+| `apps/api/src/finance/`                                  | `test/finance-*.spec.ts`                                                         |
+| `apps/api/src/exposure/`                                 | `test/field-exposure-*.spec.ts`, `test/4-integration/field-exposure-*.spec.ts`   |
+| `apps/api/src/integrations/`                             | `test/integrations-*.spec.ts`, `test/field-exposure-*.spec.ts`                   |
+| `apps/api/prisma/`                                       | `test/phase-9-persistence.integration.spec.ts`                                   |
+| other `apps/api/**` (production)                         | **fallback:** three memory baseline specs + warning; full suite at checkpoint/CI |
+| `apps/api/scripts/**`, `apps/api/docs/**`                | ignored (no tests, no fallback)                                                  |
 
 Dry-run resolver:
 
 ```bash
 git diff --cached --name-only | node scripts/lib/resolve-api-test-specs.mjs
+```
+
+### Web spec resolver (`scripts/lib/resolve-web-test-specs.mjs`)
+
+The web resolver runs a changed spec directly or finds unit/contract specs that
+reference the changed `apps/web` path. It excludes `test/e2e/`. If a production
+path has no direct mapping, it emits the bounded three-spec baseline described
+above and leaves the full web suite to `test:changed` checkpoint/CI.
+
+Dry-run resolver:
+
+```bash
+git diff --cached --name-only | node scripts/lib/resolve-web-test-specs.mjs
 ```
 
 ## Database fast reset (RLS loops)

@@ -278,11 +278,11 @@
         "pathAliases": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Canonical paths accepted via aliasCatalogWorkspaceType catalog (starter bridge)"
+          "description": "Optional foreign canonical paths validated via aliasCatalogWorkspaceType catalog (scaffold bridge; prefer owning paths in the workspace field registry — DG-2)"
         },
         "aliasCatalogWorkspaceType": {
           "type": "string",
-          "description": "Workspace type whose field registry validates aliased paths"
+          "description": "Workspace type whose field registry validates aliased paths (optional; unused after DG-2.1 starter alias removal)"
         }
       }
     },
