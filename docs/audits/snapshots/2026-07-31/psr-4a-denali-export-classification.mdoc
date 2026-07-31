@@ -1,0 +1,105 @@
+---
+id: PSR-4A-EXPORT-CLASS
+title: PSR-4a Denali export classification and deprecation map
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending-psr-4a
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml
+  - docs/dev/denali-plugin-encapsulation.mdoc
+  - docs/architecture/denali-gravity-remediation.mdoc
+program_id: PSR-001
+wave: PSR-4a
+---
+
+# PSR-4a — Denali export classification + deprecation map
+
+## Scope
+
+| Work | In this wave | Deferred to PSR-4b+ |
+| --- | --- | --- |
+| Classify all Denali `package.json` exports | Yes (162) | — |
+| Publish deprecation cohorts | Yes | — |
+| Delete / move / rename exports | **No** | After compatibility window |
+| API branded-import neutrality | **No** | PSR-4b |
+| Product-default / codegen neutrality | **No** | PSR-4b |
+
+Machine map:
+[`psr-4a-denali-export-classification.yaml`](./psr-4a-denali-export-classification.yaml)
+
+Encapsulation covenant:
+[`docs/dev/denali-plugin-encapsulation.mdoc`](../../dev/denali-plugin-encapsulation.mdoc)
+
+## Taxonomy (SoT §PSR-4)
+
+| Class | Meaning |
+| --- | --- |
+| `public-contract` | `.`, `./plugin`, manifest-bound `./settings/*`, `./theme/*` |
+| `host-private` | `./host/*` consumed by hosts, packages, scripts, or manifest/codegen |
+| `test-only` | External consumers are tests only |
+| `compatibility` | Transitional alias (none in this snapshot) |
+| `product-internal` | No external consumer found — **shrink candidate** (not proof of dead code) |
+
+## Snapshot metrics (2026-07-31)
+
+| Class | Count | Target |
+| --- | ---: | ---: |
+| `public-contract` | **14** | ≤15 public |
+| `host-private` | **39** | ≤30 host-visible |
+| `test-only` | 29 | move/fixture later |
+| `product-internal` | 80 | primary shrink pool |
+| **Total** | **162** | — |
+
+| Gap | Value |
+| --- | ---: |
+| Public over budget | **0** |
+| Host-visible over budget | **9** |
+
+Reference surfaces: Urban=18, Harbor=9, starter=5, guest-club=10.
+
+## Deprecation map (cohorts)
+
+| Status | Count | Intent |
+| --- | ---: | --- |
+| `retain-public` | 14 | Keep; already within ≤15 |
+| `retain-host-visible` | 39 | Keep for now; peel −9 in PSR-4b |
+| `move-candidate` | 29 | Prefer fixture / smoke isolation |
+| `shrink-candidate` | 80 | Stop exporting after re-verify (manifest, sync script, dynamic) |
+
+**Important:** `product-internal` / `shrink-candidate` is a **discovery class**, not
+removal approval. Many paths may still be reached via relative imports inside
+Denali or future manifest entries. Removal requires per-export proof.
+
+## Method
+
+1. Read `packages/workspaces/denali/package.json` `exports` keys (162).
+2. Scan repo for `@app-tour/workspace-denali/<subpath>` consumers (excluding
+   Denali `dist/`).
+3. Cross-link `workspace.manifest.json` path strings to export keys.
+4. Assign class + deprecation cohort per taxonomy above.
+
+Validator:
+
+```bash
+node scripts/ops/psr-4a-export-classification-smoke.mjs
+```
+
+## Exit gate
+
+| Check | Result |
+| --- | --- |
+| Every Denali export has exactly one class | required |
+| Classes ⊆ SoT taxonomy | required |
+| No `package.json` export keys added/removed | required |
+| Targets + gaps documented | required |
+| Harbor/Urban counts recorded as reference | required |
+
+## Next (PSR-4b)
+
+API/codegen/product-default neutrality; begin host-visible contraction (−9) and
+test-only moves **only** with per-export consumer proof — not bulk delete.

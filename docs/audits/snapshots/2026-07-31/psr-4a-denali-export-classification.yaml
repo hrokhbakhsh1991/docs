@@ -1,0 +1,1345 @@
+schema_version: 1
+program_id: PSR-001
+wave: PSR-4a
+updated: '2026-07-31'
+verified_sha: pending-psr-4a
+workspace: '@app-tour/workspace-denali'
+package_json: packages/workspaces/denali/package.json
+policy:
+  classification_only: true
+  no_export_deletion_in_this_wave: true
+  taxonomy:
+  - public-contract
+  - host-private
+  - test-only
+  - compatibility
+  - product-internal
+  targets:
+    public_contract_max: 15
+    host_visible_max: 30
+  reference_workspaces:
+    urban: 18
+    harbor: 9
+    starter: 5
+    guest-club: 10
+summary:
+  public-contract: 14
+  host-private: 39
+  test-only: 29
+  product-internal: 80
+  compatibility: 0
+gaps_vs_targets:
+  public_contract_over: 0
+  host_private_over: 9
+  note: Public already ≤15; host-visible needs −9 via PSR-4b peel after compatibility window.
+deprecation_cohorts:
+  move-candidate:
+    count: 29
+    exports:
+    - ./host/adapters/canonical-basics
+    - ./host/draft/tour-wizard
+    - ./settings/wizard-template-long-description
+    - ./settings/wizard-template-catalog-meta
+    - ./host/wizard/rules-loader
+    - ./host/wizard/submit
+    - ./host/wizard/catalog-sanitize
+    - ./host/edit
+    - ./host/wizard/host-hooks
+    - ./host/wizard/contextual
+    - ./host/wizard/resolve-initial-step-index
+    - ./host/ui
+    - ./host/ui/composite-ids
+    - ./host/ui/field-label-resolver
+    - ./host/ui/fields/tour-kind
+    - ./host/ui/components/denali-itinerary-segment-destination-field
+    - ./host/ui/components/denali-searchable-select
+    - ./host/ui/components/denali-itinerary-segment-photo-picker
+    - ./host/ui/adapters/photo-upload-client
+    - ./host/ui/adapters/photo-upload-errors
+    - ./host/ui/adapters/field-labels-from-messages
+    - ./host/ui/chrome/draft-form-adapter
+    - ./host/ui/chrome/draft-persist
+    - ./host/ui/chrome/tour-create-payload
+    - ./host/ui/chrome/wizard-validation
+    - ./host/ui/chrome/flat-edit-plan
+    - ./host/ui/chrome/draft-binding
+    - ./host/ui/test-ids/denali-flat-edit-test-ids
+    - ./host/ui/adapters/submit-catalog-fetch
+  retain-host-visible:
+    count: 39
+    exports:
+    - ./host/plugin-for-wizard-engine
+    - ./host/catalog-registration-flow
+    - ./host/catalog-registration-flow/react
+    - ./host/composites
+    - ./host/draft
+    - ./host/draft/wizard-draft-unification-surface
+    - ./host/acl
+    - ./host/wizard/wizard-rules-surface
+    - ./host/wizard/template-field-overlays
+    - ./host/wizard/template-invariants
+    - ./host/clone/hydration
+    - ./host/clone
+    - ./host/tours
+    - ./host/tours/tour-list-category-surface
+    - ./host/photos
+    - ./host/finance
+    - ./host/finance/manifest
+    - ./host/booking
+    - ./host/bookings
+    - ./host/finance/api-tour-created-adapter
+    - ./host/smoke/phase-6-denali-smoke-tenant
+    - ./host/denali-plugin-build
+    - ./host/http
+    - ./host/http/routes
+    - ./host/exposure
+    - ./host/marketing
+    - ./host/marketing/marketing-catalog-surface
+    - ./host/messages/fa/wizard.json
+    - ./host/messages/en/wizard.json
+    - ./host/ui/settings/settings-equipment-ui-surface
+    - ./host/ui/settings/settings-exposure-surfaces-ui-surface
+    - ./host/ui/chrome/wizard-draft-shell-surface
+    - ./host/ui/chrome/wizard-create-chrome-surface
+    - ./host/ui/chrome/wizard-flat-edit-chrome-surface
+    - ./host/ui/chrome/wizard-flat-edit-form-surface
+    - ./host/ui/chrome/wizard-flat-edit-page-surface
+    - ./host/ui/chrome/wizard-create-view-surface
+    - ./host/composites/wizard-composite-registry-surface
+    - ./host/ui/operator-ui-components-surface
+  retain-public:
+    count: 14
+    exports:
+    - .
+    - ./plugin
+    - ./settings/theme-compatible-categories
+    - ./settings/equipment-compatible-categories
+    - ./settings/equipment-icon-registry
+    - ./settings/destination-settings-surface
+    - ./settings/wizard-template-editor
+    - ./settings/wizard-template-preset-surface
+    - ./settings/denaliFullWizardTemplate
+    - ./theme/tokens.css
+    - ./theme/denali-admin.css
+    - ./theme/denali-portal.css
+    - ./theme/denali-marketing.css
+    - ./theme/admin-skin.css
+  shrink-candidate:
+    count: 80
+    exports:
+    - ./host/catalog/fetch-denali-catalog-tour
+    - ./host/schemas/file-asset
+    - ./settings/equipment-compatible-themes
+    - ./settings/destination-location-types
+    - ./settings/fallback-modules
+    - ./settings/wizard-template-roadmap
+    - ./host/wizard/build-field-step-resolver
+    - ./host/wizard/validation
+    - ./host/wizard/localize-validation-message
+    - ./host/wizard/host-adapter-surface
+    - ./host/wizard/canonical-form-sync
+    - ./host/program/itinerary
+    - ./host/ui/composite-renderers
+    - ./host/ui/composite-field
+    - ./host/ui/composite-surface
+    - ./host/ui/review-surface
+    - ./host/ui/review-surface-impl
+    - ./host/ui/review/denali-review-step
+    - ./host/ui/review/denali-review-validation-summary
+    - ./host/ui/review/denali-wizard-content-quality-header
+    - ./host/ui/components/difficulty-range-slider
+    - ./host/ui/components/location-picker-map
+    - ./host/ui/adapters/*
+    - ./host/ui/logic/*
+    - ./host/ui/test-ids/*
+    - ./host/ui/fields/difficulty-level
+    - ./host/ui/fields/transport-mode
+    - ./host/ui/fields/elevation-gain
+    - ./host/ui/fields/approximate-return-time
+    - ./host/ui/fields/publish-status
+    - ./host/ui/fields/peak-experience
+    - ./host/ui/fields/social-media-link
+    - ./host/ui/fields/pricing-participants
+    - ./host/ui/fields/pricing-payment
+    - ./host/ui/fields/custom-services
+    - ./host/ui/fields/tour-services
+    - ./host/ui/fields/guide-language-ids
+    - ./host/ui/fields/leader-user-ids
+    - ./host/ui/fields/gear
+    - ./host/ui/fields/program-content
+    - ./host/ui/fields/datetime
+    - ./host/ui/fields/datetime-end
+    - ./host/ui/fields/destination
+    - ./host/ui/fields/gathering-points
+    - ./host/ui/fields/location-zones
+    - ./host/ui/fields/photos
+    - ./host/ui/fields/itinerary
+    - ./host/ui/components/denali-photo-preview
+    - ./host/ui/components/denali-map-preview
+    - ./host/ui/components/equipment-catalog-avatar
+    - ./host/ui/components/equipment-icon-picker
+    - ./host/ui/adapters/nested-string
+    - ./host/ui/adapters/build-denali-destination-catalog-state
+    - ./host/ui/adapters/fetch-denali-destination-catalog
+    - ./host/ui/adapters/wizard-media-bff-path
+    - ./host/ui/components/denali-location-address-picker
+    - ./host/ui/components/denali-location-point-editor
+    - ./host/ui/components/localized-date-picker
+    - ./host/ui/components/localized-datetime-picker
+    - ./host/ui/components/calendar/denali-calendar
+    - ./host/ui/components/localized-numeric-input
+    - ./host/ui/components/denali-time-input
+    - ./host/ui/components/denali-logo-mark
+    - ./host/ui/hooks/*
+    - ./host/ui/chrome/create-submit-logic
+    - ./host/ui/chrome/denali-flat-edit-validation-list
+    - ./host/ui/chrome/create-tour-wizard-screen
+    - ./host/ui/chrome/use-create-tour-wizard-core
+    - ./host/ui/chrome/denali-create-tour-wizard-view
+    - ./host/ui/create-wizard
+    - ./host/ui/flat-edit
+    - ./host/ui/chrome/denali-flat-edit-form
+    - ./host/ui/chrome/flat-edit-page-screen
+    - ./host/ui/chrome/flat-edit-patch-logic
+    - ./host/ui/chrome/use-flat-edit-page-core
+    - ./host/ui/chrome/to-denali-flat-edit-tour-detail
+    - ./host/ui/chrome/map-denali-flat-edit-tour-http-status
+    - ./host/ui/chrome/build-denali-flat-edit-tour-load-result
+    - ./host/ui/chrome/build-denali-flat-edit-meta-line
+    - ./host/ui/adapters/theme-catalog-fetch
+exports:
+- export: .
+  class: public-contract
+  evidence:
+  - api
+  - docs
+  - marketing
+  - other
+  - packages
+  - portal
+  - scripts
+  - test
+  - web
+  consumer_file_count: 116
+  deprecation_status: retain-public
+  deprecation_notes: ≤15 public-contract target
+- export: ./plugin
+  class: public-contract
+  evidence:
+  - api
+  - docs
+  - manifest
+  - other
+  - packages
+  - scripts
+  - test
+  - web
+  consumer_file_count: 34
+  deprecation_status: retain-public
+  deprecation_notes: ≤15 public-contract target
+- export: ./host/plugin-for-wizard-engine
+  class: host-private
+  evidence:
+  - scripts
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/adapters/canonical-basics
+  class: test-only
+  evidence:
+  - docs
+  - test
+  consumer_file_count: 3
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/catalog-registration-flow
+  class: host-private
+  evidence:
+  - docs
+  - other
+  - packages
+  consumer_file_count: 5
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/catalog/fetch-denali-catalog-tour
+  class: product-internal
+  evidence:
+  - docs
+  consumer_file_count: 1
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/catalog-registration-flow/react
+  class: host-private
+  evidence:
+  - other
+  - packages
+  consumer_file_count: 3
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/composites
+  class: host-private
+  evidence:
+  - api
+  - manifest
+  consumer_file_count: 2
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/draft
+  class: host-private
+  evidence:
+  - scripts
+  - test
+  consumer_file_count: 9
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/draft/wizard-draft-unification-surface
+  class: host-private
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/draft/tour-wizard
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/acl
+  class: host-private
+  evidence:
+  - api
+  - manifest
+  - other
+  - scripts
+  - test
+  consumer_file_count: 5
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/schemas/file-asset
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./settings/theme-compatible-categories
+  class: public-contract
+  evidence:
+  - api
+  - docs
+  - manifest
+  consumer_file_count: 3
+  deprecation_status: retain-public
+  deprecation_notes: ≤15 public-contract target
+- export: ./settings/equipment-compatible-categories
+  class: public-contract
+  evidence:
+  - api
+  - docs
+  - manifest
+  consumer_file_count: 4
+  deprecation_status: retain-public
+  deprecation_notes: ≤15 public-contract target
+- export: ./settings/equipment-icon-registry
+  class: public-contract
+  evidence:
+  - api
+  - docs
+  consumer_file_count: 3
+  deprecation_status: retain-public
+  deprecation_notes: ≤15 public-contract target
+- export: ./settings/equipment-compatible-themes
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./settings/destination-location-types
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./settings/destination-settings-surface
+  class: public-contract
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-public
+  deprecation_notes: ≤15 public-contract target
+- export: ./settings/fallback-modules
+  class: product-internal
+  evidence:
+  - other
+  consumer_file_count: 1
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./settings/wizard-template-long-description
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./settings/wizard-template-catalog-meta
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./settings/wizard-template-editor
+  class: public-contract
+  evidence:
+  - docs
+  - manifest
+  consumer_file_count: 2
+  deprecation_status: retain-public
+  deprecation_notes: ≤15 public-contract target
+- export: ./settings/wizard-template-preset-surface
+  class: public-contract
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-public
+  deprecation_notes: ≤15 public-contract target
+- export: ./settings/wizard-template-roadmap
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/wizard/rules-loader
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 5
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/wizard/wizard-rules-surface
+  class: host-private
+  evidence:
+  - api
+  - docs
+  - manifest
+  - other
+  consumer_file_count: 4
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/wizard/build-field-step-resolver
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/wizard/template-field-overlays
+  class: host-private
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/wizard/validation
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/wizard/submit
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 5
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/wizard/catalog-sanitize
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 3
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/wizard/localize-validation-message
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/wizard/template-invariants
+  class: host-private
+  evidence:
+  - api
+  - manifest
+  - scripts
+  consumer_file_count: 3
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/clone/hydration
+  class: host-private
+  evidence:
+  - scripts
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/clone
+  class: host-private
+  evidence:
+  - api
+  - manifest
+  - other
+  - scripts
+  consumer_file_count: 4
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/edit
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/tours
+  class: host-private
+  evidence:
+  - api
+  - manifest
+  - other
+  - test
+  consumer_file_count: 5
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/tours/tour-list-category-surface
+  class: host-private
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/photos
+  class: host-private
+  evidence:
+  - api
+  - manifest
+  - other
+  - scripts
+  consumer_file_count: 4
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/wizard/host-hooks
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/wizard/host-adapter-surface
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/wizard/contextual
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/wizard/canonical-form-sync
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/program/itinerary
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/wizard/resolve-initial-step-index
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/finance
+  class: host-private
+  evidence:
+  - api
+  - docs
+  - manifest
+  - other
+  - scripts
+  - test
+  consumer_file_count: 17
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/finance/manifest
+  class: host-private
+  evidence:
+  - docs
+  - manifest
+  - other
+  consumer_file_count: 4
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/booking
+  class: host-private
+  evidence:
+  - api
+  - docs
+  - manifest
+  - test
+  consumer_file_count: 5
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/bookings
+  class: host-private
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/finance/api-tour-created-adapter
+  class: host-private
+  evidence:
+  - docs
+  - manifest
+  - other
+  - test
+  consumer_file_count: 5
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/smoke/phase-6-denali-smoke-tenant
+  class: host-private
+  evidence:
+  - scripts
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./settings/denaliFullWizardTemplate
+  class: public-contract
+  evidence:
+  - docs
+  - manifest
+  - scripts
+  consumer_file_count: 3
+  deprecation_status: retain-public
+  deprecation_notes: ≤15 public-contract target
+- export: ./host/denali-plugin-build
+  class: host-private
+  evidence:
+  - scripts
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/http
+  class: host-private
+  evidence:
+  - api
+  - docs
+  - other
+  - test
+  consumer_file_count: 10
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/http/routes
+  class: host-private
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/exposure
+  class: host-private
+  evidence:
+  - api
+  - manifest
+  - test
+  consumer_file_count: 4
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./theme/tokens.css
+  class: public-contract
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: retain-public
+  deprecation_notes: ≤15 public-contract target
+- export: ./theme/denali-admin.css
+  class: public-contract
+  evidence:
+  - docs
+  - other
+  - web
+  consumer_file_count: 5
+  deprecation_status: retain-public
+  deprecation_notes: ≤15 public-contract target
+- export: ./theme/denali-portal.css
+  class: public-contract
+  evidence:
+  - docs
+  - other
+  - packages
+  - portal
+  consumer_file_count: 4
+  deprecation_status: retain-public
+  deprecation_notes: ≤15 public-contract target
+- export: ./theme/denali-marketing.css
+  class: public-contract
+  evidence:
+  - other
+  - packages
+  - portal
+  consumer_file_count: 3
+  deprecation_status: retain-public
+  deprecation_notes: ≤15 public-contract target
+- export: ./host/marketing
+  class: host-private
+  evidence:
+  - docs
+  - other
+  - packages
+  consumer_file_count: 4
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/marketing/marketing-catalog-surface
+  class: host-private
+  evidence:
+  - manifest
+  - other
+  - packages
+  consumer_file_count: 4
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./theme/admin-skin.css
+  class: public-contract
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: retain-public
+  deprecation_notes: ≤15 public-contract target
+- export: ./host/messages/fa/wizard.json
+  class: host-private
+  evidence:
+  - web
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/messages/en/wizard.json
+  class: host-private
+  evidence:
+  - web
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/ui
+  class: test-only
+  evidence:
+  - docs
+  - other
+  - test
+  consumer_file_count: 41
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/composite-ids
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 2
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/composite-renderers
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/composite-field
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/composite-surface
+  class: product-internal
+  evidence:
+  - docs
+  consumer_file_count: 1
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/review-surface
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/review-surface-impl
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/review/denali-review-step
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/review/denali-review-validation-summary
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/review/denali-wizard-content-quality-header
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/field-label-resolver
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/components/difficulty-range-slider
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/components/location-picker-map
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/adapters/*
+  class: product-internal
+  evidence:
+  - docs
+  consumer_file_count: 1
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/logic/*
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/settings/settings-equipment-ui-surface
+  class: host-private
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/ui/settings/settings-exposure-surfaces-ui-surface
+  class: host-private
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/ui/chrome/wizard-draft-shell-surface
+  class: host-private
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/ui/chrome/wizard-create-chrome-surface
+  class: host-private
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/ui/chrome/wizard-flat-edit-chrome-surface
+  class: host-private
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/ui/chrome/wizard-flat-edit-form-surface
+  class: host-private
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/ui/chrome/wizard-flat-edit-page-surface
+  class: host-private
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/ui/chrome/wizard-create-view-surface
+  class: host-private
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/composites/wizard-composite-registry-surface
+  class: host-private
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/ui/operator-ui-components-surface
+  class: host-private
+  evidence:
+  - manifest
+  consumer_file_count: 1
+  deprecation_status: retain-host-visible
+  deprecation_notes: ≤30 host-visible target
+- export: ./host/ui/test-ids/*
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/tour-kind
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/fields/difficulty-level
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/transport-mode
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/elevation-gain
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/approximate-return-time
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/publish-status
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/peak-experience
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/social-media-link
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/pricing-participants
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/pricing-payment
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/custom-services
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/tour-services
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/guide-language-ids
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/leader-user-ids
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/gear
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/program-content
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/datetime
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/datetime-end
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/destination
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/gathering-points
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/location-zones
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/photos
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/fields/itinerary
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/components/denali-photo-preview
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/components/denali-map-preview
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/components/denali-itinerary-segment-destination-field
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/components/denali-searchable-select
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 2
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/components/equipment-catalog-avatar
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/components/equipment-icon-picker
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/components/denali-itinerary-segment-photo-picker
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/adapters/photo-upload-client
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/adapters/photo-upload-errors
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/adapters/field-labels-from-messages
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 3
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/adapters/nested-string
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/adapters/build-denali-destination-catalog-state
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/adapters/fetch-denali-destination-catalog
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/adapters/wizard-media-bff-path
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/components/denali-location-address-picker
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/components/denali-location-point-editor
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/components/localized-date-picker
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/components/localized-datetime-picker
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/components/calendar/denali-calendar
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/components/localized-numeric-input
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/components/denali-time-input
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/components/denali-logo-mark
+  class: product-internal
+  evidence:
+  - docs
+  consumer_file_count: 1
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/hooks/*
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/chrome/draft-form-adapter
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 4
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/chrome/draft-persist
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 2
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/chrome/create-submit-logic
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/chrome/tour-create-payload
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/chrome/wizard-validation
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 2
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/chrome/flat-edit-plan
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/chrome/denali-flat-edit-validation-list
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/chrome/draft-binding
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/chrome/create-tour-wizard-screen
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/chrome/use-create-tour-wizard-core
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/chrome/denali-create-tour-wizard-view
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/create-wizard
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/flat-edit
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/chrome/denali-flat-edit-form
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/chrome/flat-edit-page-screen
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/chrome/flat-edit-patch-logic
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/chrome/use-flat-edit-page-core
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/chrome/to-denali-flat-edit-tour-detail
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/chrome/map-denali-flat-edit-tour-http-status
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/chrome/build-denali-flat-edit-tour-load-result
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/chrome/build-denali-flat-edit-meta-line
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead
+- export: ./host/ui/test-ids/denali-flat-edit-test-ids
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/adapters/submit-catalog-fetch
+  class: test-only
+  evidence:
+  - test
+  consumer_file_count: 1
+  deprecation_status: move-candidate
+  deprecation_notes: fixture package or keep under ./host/smoke/* until PSR-4b
+- export: ./host/ui/adapters/theme-catalog-fetch
+  class: product-internal
+  evidence: []
+  consumer_file_count: 0
+  deprecation_status: shrink-candidate
+  deprecation_notes: stop exporting; use package-internal imports or delete if dead

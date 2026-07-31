@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: a80c0f9a
+verified_sha: pending-psr-4a
 supersedes: []
 superseded_by: null
 evidence:
@@ -22,8 +22,10 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-3b-ci-reuse-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry.mdoc
   - docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml
 program_id: PSR-001
-current_wave: PSR-3c-complete
+current_wave: PSR-4a-complete
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -33,7 +35,28 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-3c — بسته)
+## 0. وضعیت موج جاری (PSR-4a — بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4a** — Denali export classification + deprecation map (**complete**) |
+| Exit gate | GREEN — ۱۶۲ export طبقه‌بندی؛ بدون حذف؛ اهداف ≤۱۵/≤۳۰ مستند |
+| Snapshot | [`psr-4a-denali-export-classification.mdoc`](../audits/snapshots/2026-07-31/psr-4a-denali-export-classification.mdoc) |
+| Machine map | [`psr-4a-denali-export-classification.yaml`](../audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml) |
+
+| Class | Count | Target |
+| --- | ---: | ---: |
+| `public-contract` | 14 | ≤15 |
+| `host-private` | 39 | ≤30 (−۹ gap) |
+| `test-only` | 29 | move later |
+| `product-internal` | 80 | shrink pool (discovery only) |
+
+**عمداً خارج از این موج:** حذف/جابه‌جایی export؛ API branded-import neutrality؛
+codegen/product-default (PSR-4b).
+
+**Next:** PSR-4b — API/codegen/product-default neutrality (+ host-visible contraction با proof).
+
+### 0.0 PSR-3c (بسته)
 
 | Field | Value |
 | --- | --- |
@@ -43,19 +66,9 @@ doc_role: canonical
 
 | Change | Detail |
 | --- | --- |
-| Removed | `guard:documentation-sync` → `guard:doc-sync` |
-| Removed | `phase-3:doc-scaffold` → `doc-gate` |
-| Retained | `phase-0:foundation-gate` (CI)، `test:contract`، covenant/trunk |
-| Phase archival | inventory-only (~۱۰۵؛ ۲۱ نام در workflows) |
-| Net executable | −۲ (۳۱۰→۳۰۸) |
+| Removed | `guard:documentation-sync`، `phase-3:doc-scaffold` |
 | Land commit | `a80c0f9a` |
 | SHA close | `29ceac9b` |
-| Required checks | بدون تغییر |
-
-**عمداً خارج از این موج:** حذف `phase-0:foundation-gate`؛ retarget کامل
-`docs/phase-0/**`؛ حذف فله‌ای phase commands.
-
-**Next:** PSR-4a — export classification و deprecation map.
 
 ### 0.0 PSR-3b (بسته)
 

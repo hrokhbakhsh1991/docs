@@ -1,10 +1,10 @@
-# Active documentation registry (PSR-3c alias expiry)
+# Active documentation registry (PSR-4a export classification)
 # Sole machine registry for active authority. Absence ≠ delete; see DOC-META-001.
 schema_version: 1
 program_id: PSR-001
-wave: PSR-3c
+wave: PSR-4a
 updated: 2026-07-31
-verified_sha: a80c0f9a
+verified_sha: pending-psr-4a
 roles:
   - canonical
   - standard
@@ -18,6 +18,7 @@ notes:
   - ROOT_COMMAND analysis surface remains baseline + classification + remediation.
   - PSR-3a adds ROOT_COMMAND_FRONT_DOORS as the public command contract map.
   - PSR-3c removes two more docs-only aliases; phase archival is inventory-only.
+  - PSR-4a classifies all 162 Denali exports; no export deletion in that wave.
   - Phase pack trees remain on disk; bulk move to docs/archive is a follow-on slice.
   - Deferred PSR-0b dirty docs were committed in e9f9f930.
 documents:
@@ -39,7 +40,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: a80c0f9a
+    verified_sha: pending-psr-4a
     supersedes: []
     superseded_by: null
     evidence:
@@ -55,6 +56,8 @@ documents:
       - docs/audits/snapshots/2026-07-31/psr-3b-ci-reuse-inventory.yaml
       - docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry.mdoc
       - docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry-inventory.yaml
+      - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml
 
   - id: DG-REM-001
     path: docs/architecture/denali-gravity-remediation.mdoc
@@ -68,6 +71,7 @@ documents:
     evidence:
       - docs/architecture/denali-gravity-product-profile.example.mdoc
       - docs/architecture/denali-gravity-remediation-map.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.mdoc
 
   - id: DG-PROF-EX-001
     path: docs/architecture/denali-gravity-product-profile.example.mdoc
@@ -336,3 +340,16 @@ documents:
     evidence:
       - docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry-inventory.yaml
       - docs/platform/COMMAND_OWNERSHIP_MAP.md
+
+  - id: PSR-4A-EXPORT-CLASS
+    path: docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: pending-psr-4a
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml
+      - docs/dev/denali-plugin-encapsulation.mdoc
