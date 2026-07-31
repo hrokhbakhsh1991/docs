@@ -660,6 +660,28 @@ export function assertCatalogPresentationManifest(manifest) {
 }
 
 /**
+ * PSR-4b-whyDenali — prefer `whySection`; accept deprecated `whyDenali` alias.
+ * @param {Record<string, unknown>} sections
+ * @param {string} manifestId
+ * @returns {boolean}
+ */
+export function resolveGuestLandingWhySectionGate(sections, manifestId) {
+  const hasNeutral = typeof sections.whySection === "boolean";
+  const hasLegacy = typeof sections.whyDenali === "boolean";
+  if (hasNeutral && hasLegacy && sections.whySection !== sections.whyDenali) {
+    throw new Error(
+      `${manifestId}: guestLanding.sections.whySection conflicts with deprecated whyDenali`,
+    );
+  }
+  if (!hasNeutral && !hasLegacy) {
+    throw new Error(
+      `${manifestId}: guestLanding.sections.whySection must be boolean (deprecated alias: whyDenali)`,
+    );
+  }
+  return /** @type {boolean} */ (hasNeutral ? sections.whySection : sections.whyDenali);
+}
+
+/**
  * @param {ReturnType<typeof discoverManifests>[number]} manifest
  */
 export function assertGuestLandingManifest(manifest) {
@@ -686,7 +708,6 @@ export function assertGuestLandingManifest(manifest) {
     "finalCta",
     "faq",
     "footer",
-    "whyDenali",
     "journey",
     "testimonials",
     "featuredTours",
@@ -701,6 +722,7 @@ export function assertGuestLandingManifest(manifest) {
       throw new Error(`${manifest.id}: guestLanding.sections.${key} must be boolean`);
     }
   }
+  const whySection = resolveGuestLandingWhySectionGate(sections, manifest.id);
   const limit = sections.latestToursLimit;
   if (typeof limit !== "number" || !Number.isInteger(limit) || limit < 0 || limit > 12) {
     throw new Error(`${manifest.id}: guestLanding.sections.latestToursLimit must be 0..12`);
@@ -722,7 +744,7 @@ export function assertGuestLandingManifest(manifest) {
       sections.finalCta ||
       sections.faq ||
       sections.footer ||
-      sections.whyDenali ||
+      whySection ||
       sections.journey ||
       sections.testimonials ||
       sections.featuredTours ||
@@ -1147,6 +1169,7 @@ export function generateWorkspaceGuestLanding(manifests) {
     const landing = manifest.guestLanding;
     const content = normalizeGuestLandingContent(landing);
     const shellChrome = normalizeGuestLandingShellChrome(landing);
+    const whySection = resolveGuestLandingWhySectionGate(landing.sections, manifest.id);
     landingByPlugin[manifest.id] = Object.freeze({
       variant: landing.variant,
       whySectionAnchor: content.whySectionAnchor,
@@ -1160,7 +1183,7 @@ export function generateWorkspaceGuestLanding(manifests) {
         finalCta: landing.sections.finalCta,
         faq: landing.sections.faq,
         footer: landing.sections.footer,
-        whyDenali: landing.sections.whyDenali,
+        whySection,
         journey: landing.sections.journey,
         testimonials: landing.sections.testimonials,
         featuredTours: landing.sections.featuredTours,
@@ -1197,7 +1220,7 @@ export function generateWorkspaceGuestLanding(manifests) {
       finalCta: ${value.sections.finalCta},
       faq: ${value.sections.faq},
       footer: ${value.sections.footer},
-      whyDenali: ${value.sections.whyDenali},
+      whySection: ${value.sections.whySection},
       journey: ${value.sections.journey},
       testimonials: ${value.sections.testimonials},
       featuredTours: ${value.sections.featuredTours},
@@ -1234,7 +1257,7 @@ export type GuestLandingFeatures = Readonly<{
     readonly finalCta: boolean;
     readonly faq: boolean;
     readonly footer: boolean;
-    readonly whyDenali: boolean;
+    readonly whySection: boolean;
     readonly journey: boolean;
     readonly testimonials: boolean;
     readonly featuredTours: boolean;

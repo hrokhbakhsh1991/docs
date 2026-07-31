@@ -30,7 +30,7 @@ describe("home-section-gates-v3.spec.ts — HOME-UNIT-06", () => {
       categories: true,
       destinations: true,
       trust: false,
-      whyDenali: false,
+      whySection: false,
       journey: false,
       testimonials: false,
       gallery: false,

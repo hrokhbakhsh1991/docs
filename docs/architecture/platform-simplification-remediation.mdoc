@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: a908ab08
+verified_sha: pending-psr-4b-whyDenali
 supersedes: []
 superseded_by: null
 evidence:
@@ -32,8 +32,10 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-3.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-api-deps.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-4b-api-deps-complete
+current_wave: PSR-4b-whyDenali-complete
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -43,28 +45,34 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-api-deps — بسته)
+## 0. وضعیت موج جاری (PSR-4b-whyDenali — بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b-whyDenali** — guest landing gate → `whySection` (**complete**) |
+| Exit gate | GREEN — generated/marketing/manifests روی whySection؛ alias whyDenali خوانا |
+| Snapshot | [`psr-4b-whyDenali.mdoc`](../audits/snapshots/2026-07-31/psr-4b-whyDenali.mdoc) |
+| Inventory | [`psr-4b-whyDenali-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-whyDenali-inventory.yaml) |
+
+| Change | Detail |
+| --- | --- |
+| Canonical key | `guestLanding.sections.whySection` |
+| Alias | `whyDenali` dual-read تا expiry |
+| Manifests | denali/urban/guest-club/harbor |
+| Consumers | marketing gates + guest-home-full + codegen |
+
+**عمداً خارج:** sweep docs روایی؛ حذف alias؛ finance/migrate host-imports.
+
+**Next:** PSR-4b-host-imports-4 (finance/migrate) یا PSR-4b-exports (−۹) یا alias-expiry.
+
+### 0.00 PSR-4b-api-deps (بسته)
 
 | Field | Value |
 | --- | --- |
 | Wave | **PSR-4b-api-deps** — API membership inventory + exact-set ratchet (**complete**) |
-| Exit gate | GREEN — ۱۲ product dep = ۱۲ manifest؛ بدون rewrite |
 | Snapshot | [`psr-4b-api-deps.mdoc`](../audits/snapshots/2026-07-31/psr-4b-api-deps.mdoc) |
-| Inventory | [`psr-4b-api-deps-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-api-deps-inventory.yaml) |
 | Land commit | `a908ab08` |
 | SHA close | `b9aed6ce` |
-
-| Change | Detail |
-| --- | --- |
-| Classification | platform / product-trunk / registry-fixture |
-| Guard | `guard-host-workspace-deps` — API completeness (missing deps) |
-| Smoke | `scripts/ops/psr-4b-api-deps-smoke.mjs` |
-| Ceiling | api product deps ≤ **12** (exact) |
-
-**عمداً خارج:** codegen rewrite `apps/api/package.json`؛ حذف finance/booking fixture deps؛
-host-imports باقی‌مانده (۳).
-
-**Next:** PSR-4b-host-imports-4 (finance/migrate) یا PSR-4b-api-deps-sync یا PSR-4b-whyDenali.
 
 ### 0.00 PSR-4b-host-imports-3 (بسته / partial)
 

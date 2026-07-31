@@ -1,0 +1,43 @@
+---
+id: PSR-4B-WHYDENALI
+title: PSR-4b-whyDenali rename guest landing gate to whySection
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending-psr-4b-whyDenali
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-inventory.yaml
+program_id: PSR-001
+wave: PSR-4b-whyDenali
+---
+
+# PSR-4b-whyDenali — neutral `whySection` gate
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| Rename generated/marketing gate `whyDenali` → `whySection` | Yes |
+| Dual-read deprecated `whyDenali` in assert/codegen | Yes |
+| Update product manifests + workspace-create scaffold | Yes |
+| Rename CSS `data-marketing-home-*` / narrative docs sweep | **No** |
+
+## Design
+
+- Canonical boolean: `guestLanding.sections.whySection`
+- Deprecated alias: `whyDenali` accepted only when `whySection` absent
+- Conflict (both present, unequal) → fail closed
+- Generated SDK type emits **only** `whySection`
+
+## Exit gate
+
+| Check | Result |
+| --- | --- |
+| Generated has `whySection`, not `whyDenali` | required |
+| Four guestLanding manifests use `whySection` | required |
+| Marketing/SDK section gate specs green | required |
+| Smoke `psr-4b-whyDenali-smoke.mjs` green | required |

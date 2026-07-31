@@ -526,6 +526,8 @@ follow_on_slices:
   note: exact-set ratchet; package.json rewrite deferred to PSR-4b-api-deps-sync
 - id: PSR-4b-whyDenali
   work: Rename guest landing whyDenali to product-neutral section id in codegen+manifest
+  status: complete
+  note: whySection canonical; whyDenali dual-read alias retained
 - id: PSR-4b-exports
   work: Begin host-visible Denali export contraction (−9) with per-export proof from PSR-4a
 - id: PSR-4b-host-imports-2

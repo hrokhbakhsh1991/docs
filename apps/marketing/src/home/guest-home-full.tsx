@@ -71,7 +71,7 @@ export async function GuestHomeFull({
           branding={branding}
           showSearch={sections.heroSearch}
           heroImageUrl={heroImageUrl}
-          whySectionHref={sections.whyDenali ? whySectionHref : undefined}
+          whySectionHref={sections.whySection ? whySectionHref : undefined}
           destinationSlugs={landing.destinationSlugs}
           destinationImageStems={landing.destinationImageStems}
         />
@@ -85,7 +85,7 @@ export async function GuestHomeFull({
         <HomeDestinations destinationSlugs={landing.destinationSlugs} />
       ) : null}
       {sections.trust ? <HomeTrust branding={branding} /> : null}
-      {sections.whyDenali ? (
+      {sections.whySection ? (
         <HomeWhy branding={branding} whySectionAnchor={whySectionAnchor} />
       ) : null}
       {sections.journey ? <HomeJourney /> : null}

@@ -45,7 +45,7 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
       categories: true,
       destinations: true,
       trust: true,
-      whyDenali: true,
+      whySection: true,
       journey: true,
       testimonials: true,
       gallery: true,

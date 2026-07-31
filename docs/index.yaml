@@ -1,10 +1,10 @@
-# Active documentation registry (PSR-4b-api-deps)
+# Active documentation registry (PSR-4b-whyDenali)
 # Sole machine registry for active authority. Absence ≠ delete; see DOC-META-001.
 schema_version: 1
 program_id: PSR-001
-wave: PSR-4b-api-deps
+wave: PSR-4b-whyDenali
 updated: 2026-07-31
-verified_sha: a908ab08
+verified_sha: pending-psr-4b-whyDenali
 roles:
   - canonical
   - standard
@@ -42,7 +42,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: a908ab08
+    verified_sha: pending-psr-4b-whyDenali
     supersedes: []
     superseded_by: null
     evidence:
@@ -68,6 +68,8 @@ documents:
       - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-3.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-api-deps.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-inventory.yaml
+      - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-inventory.yaml
 
   - id: DG-REM-001
     path: docs/architecture/denali-gravity-remediation.mdoc
@@ -444,6 +446,29 @@ documents:
     status: active
     last_verified: 2026-07-31
     verified_sha: a908ab08
+    supersedes: []
+    superseded_by: null
+    evidence: []
+
+  - id: PSR-4B-WHYDENALI
+    path: docs/audits/snapshots/2026-07-31/psr-4b-whyDenali.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: pending-psr-4b-whyDenali
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-inventory.yaml
+
+  - id: PSR-4B-WHYDENALI-INV
+    path: docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-inventory.yaml
+    role: evidence
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: pending-psr-4b-whyDenali
     supersedes: []
     superseded_by: null
     evidence: []

@@ -1,0 +1,34 @@
+schema_version: 1
+program_id: PSR-001
+wave: PSR-4b-whyDenali
+updated: '2026-07-31'
+verified_sha: pending-psr-4b-whyDenali
+policy:
+  rename_to_neutral_section_id: true
+  deprecated_alias_whyDenali_read: true
+  no_css_selector_rename_in_this_wave: true
+  note: >
+    Canonical gate is guestLanding.sections.whySection. Codegen still accepts
+    deprecated whyDenali when whySection is absent (and rejects conflicts).
+metrics:
+  manifests_with_whySection: 4
+  generated_field: whySection
+  marketing_gate_field: whySection
+canonical_key: whySection
+deprecated_alias: whyDenali
+consumers_updated:
+  - scripts/codegen/workspace-registry/domains/guest-catalog.mjs
+  - packages/workspace-sdk/src/catalog/workspace-guest-landing.generated.ts
+  - apps/marketing/src/home/home-section-gates.ts
+  - apps/marketing/src/home/guest-home-full.tsx
+  - scripts/workspace-create.mjs
+manifests_updated:
+  - packages/workspaces/denali/workspace.manifest.json
+  - packages/workspaces/urban/workspace.manifest.json
+  - packages/workspaces/guest-club/workspace.manifest.json
+  - packages/workspaces/harbor/workspace.manifest.json
+follow_on:
+  - id: PSR-4b-whyDenali-docs-narrative
+    work: Sweep long-form denali marketing docs/ADR still naming whyDenali as current
+  - id: PSR-4b-whyDenali-alias-expiry
+    work: Remove whyDenali dual-read after compatibility window

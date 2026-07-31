@@ -128,7 +128,7 @@ export function buildGuestManifestObject(id) {
         finalCta: false,
         faq: false,
         footer: false,
-        whyDenali: false,
+        whySection: false,
         journey: false,
         testimonials: false,
         featuredTours: false,

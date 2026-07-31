@@ -87,7 +87,6 @@
       "finalCta": false,
       "faq": false,
       "footer": false,
-      "whyDenali": false,
       "journey": false,
       "testimonials": false,
       "featuredTours": false,
@@ -97,7 +96,8 @@
       "heroSearch": false,
       "gallery": false,
       "equipment": false,
-      "blogTeaser": false
+      "blogTeaser": false,
+      "whySection": false
     },
     "i18nProfile": "minimal"
   },

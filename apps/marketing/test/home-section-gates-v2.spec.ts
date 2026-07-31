@@ -1,5 +1,5 @@
 /**
- * HOME-UNIT-05 — PR-6 section gates (whyDenali, journey, testimonials).
+ * HOME-UNIT-05 — PR-6 section gates (whySection, journey, testimonials).
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -27,7 +27,7 @@ const STORY_DISABLED: GuestLandingFeatures = {
     finalCta: true,
     faq: true,
     footer: true,
-    whyDenali: false,
+    whySection: false,
     journey: false,
     testimonials: false,
     ...PR7_SECTIONS_OFF,
@@ -50,7 +50,7 @@ const STORY_ENABLED: GuestLandingFeatures = {
     finalCta: true,
     faq: true,
     footer: true,
-    whyDenali: true,
+    whySection: true,
     journey: true,
     testimonials: true,
     ...PR7_SECTIONS_OFF,
@@ -70,7 +70,7 @@ describe("home-section-gates-v2.spec.ts — HOME-UNIT-05", () => {
       categories: false,
       destinations: false,
       trust: true,
-      whyDenali: false,
+      whySection: false,
       journey: false,
       testimonials: false,
       gallery: false,
@@ -88,7 +88,7 @@ describe("home-section-gates-v2.spec.ts — HOME-UNIT-05", () => {
       categories: false,
       destinations: false,
       trust: true,
-      whyDenali: true,
+      whySection: true,
       journey: true,
       testimonials: true,
       gallery: false,
@@ -104,7 +104,7 @@ describe("home-section-gates-v2.spec.ts — HOME-UNIT-05", () => {
       join(repoRoot, "apps/marketing/src/home/guest-home-full.tsx"),
       "utf8"
     );
-    assert.match(fullSource, /sections\.whyDenali/);
+    assert.match(fullSource, /sections\.whySection/);
     assert.match(fullSource, /landing\.destinationSlugs/);
     assert.match(fullSource, /whySectionAnchor/);
     assert.match(

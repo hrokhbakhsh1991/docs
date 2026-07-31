@@ -359,7 +359,6 @@
       "finalCta": true,
       "faq": true,
       "footer": true,
-      "whyDenali": true,
       "journey": true,
       "testimonials": true,
       "featuredTours": true,
@@ -369,7 +368,8 @@
       "heroSearch": true,
       "gallery": true,
       "equipment": true,
-      "blogTeaser": false
+      "blogTeaser": false,
+      "whySection": true
     },
     "i18nProfile": "full",
     "shellChrome": {

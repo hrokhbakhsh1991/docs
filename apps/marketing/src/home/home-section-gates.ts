@@ -8,7 +8,7 @@ export type HomeSectionVisibility = Readonly<{
   readonly categories: boolean;
   readonly destinations: boolean;
   readonly trust: boolean;
-  readonly whyDenali: boolean;
+  readonly whySection: boolean;
   readonly journey: boolean;
   readonly testimonials: boolean;
   readonly gallery: boolean;
@@ -38,7 +38,7 @@ export function resolveHomeSectionVisibility(
     categories: sections.categories && categoriesCount > 0,
     destinations: sections.destinations,
     trust: sections.trust,
-    whyDenali: sections.whyDenali,
+    whySection: sections.whySection,
     journey: sections.journey,
     testimonials: sections.testimonials,
     gallery: sections.gallery && galleryPhotosCount > 0,

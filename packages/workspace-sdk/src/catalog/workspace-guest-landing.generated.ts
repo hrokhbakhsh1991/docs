@@ -19,7 +19,7 @@ export type GuestLandingFeatures = Readonly<{
     readonly finalCta: boolean;
     readonly faq: boolean;
     readonly footer: boolean;
-    readonly whyDenali: boolean;
+    readonly whySection: boolean;
     readonly journey: boolean;
     readonly testimonials: boolean;
     readonly featuredTours: boolean;
@@ -55,7 +55,7 @@ export const WORKSPACE_GUEST_LANDING: Readonly<
       finalCta: true,
       faq: true,
       footer: true,
-      whyDenali: true,
+      whySection: true,
       journey: true,
       testimonials: true,
       featuredTours: true,
@@ -86,7 +86,7 @@ export const WORKSPACE_GUEST_LANDING: Readonly<
       finalCta: false,
       faq: false,
       footer: false,
-      whyDenali: false,
+      whySection: false,
       journey: false,
       testimonials: false,
       featuredTours: false,
@@ -117,7 +117,7 @@ export const WORKSPACE_GUEST_LANDING: Readonly<
       finalCta: false,
       faq: false,
       footer: false,
-      whyDenali: false,
+      whySection: false,
       journey: false,
       testimonials: false,
       featuredTours: false,
@@ -148,7 +148,7 @@ export const WORKSPACE_GUEST_LANDING: Readonly<
       finalCta: false,
       faq: false,
       footer: false,
-      whyDenali: false,
+      whySection: false,
       journey: false,
       testimonials: false,
       featuredTours: false,
