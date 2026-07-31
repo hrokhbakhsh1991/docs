@@ -6,7 +6,7 @@ role: audit_snapshot
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: 004c0afa
+verified_sha: 3d4f25d2
 supersedes: []
 superseded_by: null
 evidence:
@@ -48,21 +48,24 @@ node scripts/ops/psr-2b-no-temp-authority.mjs
 node scripts/ops/psr-2c-no-temp-doc-links.mjs
 ```
 
-## Exit gate (this slice)
-
-| Criterion | Target |
-| --- | --- |
-| `psr-2c-no-temp-doc-links` PASS | Pass |
-| Active ROOT_COMMAND files ≤3 | Pass |
-| Archive policy present | Pass |
-| TEMP trees not deleted | Pass |
-| Full phase archive move | Not required for this slice |
-
 ## Commit ledger
 
 | Item | Status | Commit |
 | --- | --- | --- |
-| TEMP doc-link unlink | pending | — |
-| ROOT_COMMAND archive + policy | pending | — |
-| Deferred dirty docs | pending | — |
-| Index/SoT/snapshot close | pending | — |
+| TEMP doc-link unlink | done | `aca46afb` |
+| ROOT_COMMAND archive + policy + validator | done | `3d4f25d2` |
+| Deferred dirty docs | done | `e9f9f930` |
+| Index/SoT/snapshot close | in this commit | — |
+
+## Exit gate (this slice)
+
+| Criterion | Result |
+| --- | --- |
+| `psr-2c-no-temp-doc-links` PASS | Pass (1226 docs files) |
+| Active ROOT_COMMAND files ≤3 | Pass |
+| Archive policy present | Pass |
+| TEMP trees not deleted | Pass |
+| Deferred dirty docs cleared | Pass |
+| Full phase archive move | Deferred (follow-on) |
+
+**PSR-2c slice gate: GREEN.**

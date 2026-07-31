@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: da9e75ca
+verified_sha: e9f9f930
 supersedes: []
 superseded_by: null
 evidence:
@@ -16,8 +16,9 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-2a-docs-authority.mdoc
   - docs/audits/snapshots/2026-07-31/psr-2b-docs-temp-authority.mdoc
   - docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-2c-docs-compaction.mdoc
 program_id: PSR-001
-current_wave: PSR-2b-complete
+current_wave: PSR-2c-slice-complete
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -27,74 +28,54 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-2b — بسته)
+## 0. وضعیت موج جاری (PSR-2c slice — بسته)
 
 | Field | Value |
 | --- | --- |
-| Wave | **PSR-2b** — TEMP authority unlink (**complete** for active scope) |
-| Exit gate | GREEN — architecture/standards/index بدون لینک ignored-scratch |
-| Registry | [`docs/index.yaml`](../index.yaml) |
+| Wave | **PSR-2c** — docs compaction slice (**complete** for scoped goals) |
+| Exit gate | GREEN — صفر markdown link به TEMP در `docs/**`؛ ROOT_COMMAND ≤3 |
+| Snapshot | [`psr-2c-docs-compaction.mdoc`](../audits/snapshots/2026-07-31/psr-2c-docs-compaction.mdoc) |
+| Archive | [`docs/archive/`](../archive/README.mdoc) |
+
+| Slice commit | SHA |
+| --- | --- |
+| TEMP doc-link unlink (+ renames) | `aca46afb` |
+| ROOT_COMMAND archive + validator | `3d4f25d2` |
+| Deferred dirty docs | `e9f9f930` |
+
+**عمداً خارج از این slice:** move فله‌ای `docs/phase-*`؛ extract دامنه phase-5/20؛
+scrub SSH/secret absolute links.
+
+**Next:** PSR-3a — canonical command front doors (aliasها حفظ؛ بدون ادغام
+fast/full/adversarial).
+
+### 0.1 PSR-2b (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | PSR-2b — TEMP authority unlink (active scope) |
 | Snapshot | [`psr-2b-docs-temp-authority.mdoc`](../audits/snapshots/2026-07-31/psr-2b-docs-temp-authority.mdoc) |
-| Inventory | [`psr-2b-temp-authority-inventory.yaml`](../audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml) |
+| Promote commit | `292ca22f` |
 
-**Promoted:** Gravity map → `DG-MAP-001`؛ PSC roadmap → `PSC-ROADMAP-ARCH-001`.
-
-**باقی:** ۳۷ فایل phase/dev با لینک TEMP → PSR-2c؛ ۸ سند defer dirty → همراه ۲c.
-
-**Next:** PSR-2c — archive phase packs + بازنویسی لینک‌های باقی‌مانده (بدون wipe TEMP).
-
-### 0.1 PSR-2a (بسته)
+### 0.2 PSR-2a (بسته)
 
 | Field | Value |
 | --- | --- |
-| Wave | PSR-2a — docs manifest + metadata schema (**complete**) |
-| Exit gate | GREEN — index seed + DOC-META-001 + validator PASS |
-| Registry | [`docs/index.yaml`](../index.yaml) |
+| Wave | PSR-2a — docs manifest + metadata schema |
 | Schema | [`DOC-META-001`](../standards/doc-authority-metadata.schema.mdoc) |
-| Snapshot | [`psr-2a-docs-authority.mdoc`](../audits/snapshots/2026-07-31/psr-2a-docs-authority.mdoc) |
 | Commit | `7c9e4740` |
 
-### 0.2 PSR-1 (بسته)
+### 0.3 PSR-1 / PSR-0b
 
-| Field | Value |
-| --- | --- |
-| Wave | PSR-1 — hygiene containment (**complete**) |
-| Hygiene proof | [`psr-1-hygiene.mdoc`](../audits/snapshots/2026-07-31/psr-1-hygiene.mdoc) |
-| PSR-1a | `1b6d576c` |
-| PSR-1b | `13f102e6` |
-| Deploy canonical | `scripts/vps-deploy/` only |
-
-### 0.3 PSR-0b (بسته)
-
-| Field | Value |
-| --- | --- |
-| Wave | PSR-0b — split/commit change trains (**complete**) |
-| Train log | [`psr-0b-train-log.mdoc`](../audits/snapshots/2026-07-31/psr-0b-train-log.mdoc) |
-
-## 0.1 PSR-0a (بسته)
-
-| Field | Value |
-| --- | --- |
-| Wave | PSR-0a — inventory + ownership (complete) |
-| Exit gate | GREEN — zero unclassified; zero missing owner/class; staged=0 |
-| Snapshot | [`docs/audits/snapshots/2026-07-31/`](../audits/snapshots/2026-07-31/) |
-
-Artifacts:
-
-- [`psr-0a-recovery-baseline.mdoc`](../audits/snapshots/2026-07-31/psr-0a-recovery-baseline.mdoc)
-- [`psr-0a-worktree-inventory.yaml`](../audits/snapshots/2026-07-31/psr-0a-worktree-inventory.yaml)
-- [`psr-0a-change-trains.mdoc`](../audits/snapshots/2026-07-31/psr-0a-change-trains.mdoc)
-- Generator (ops): `scripts/ops/psr-0a-inventory.mjs`
-
-Expanded dirty inventory at PSR-0a close (`-uall`): **256** rows — 158 `M`,
-10 `D`, 88 `??`; **28** generated; `unclassified_train=0`. Compact porcelain at
-baseline capture was **210**.
+Hygiene `1b6d576c` / `13f102e6`؛ train ledger
+[`psr-0b-train-log.mdoc`](../audits/snapshots/2026-07-31/psr-0b-train-log.mdoc).
 
 ## 1. حکم اجرایی
 
 این سند تنها **پیشنهاد مسیر اصلاحی** است. ایجاد آن مجوز حذف، جابه‌جایی، بازنویسی
 کد، تغییر manifest، demote/promote کردن workspace، یا اجرای cleanup نیست.
-موج PSR-0a فقط inventory بود؛ PSR-0b فقط تفکیک commit بدون cleanup است.
+موج‌های PSR-0…2 فقط طبق ledger snapshot اجرا شده‌اند؛ cleanup فله‌ای مجاز نیست.
+
 
 هدف، تبدیل repository فعلی از یک workbench پرجزئیات و phase-driven به یک
 پلتفرم استاندارد، قابل‌فهم، قابل‌بازتولید از fresh clone و آماده‌ی تصمیم‌گیری
@@ -363,12 +344,23 @@ path-specific؛ صفر TEMP wipe.
 **Gate خروج PSR-2b:** سبز برای scope فعال (architecture + standards + index).
 صفر کردن لینک‌های phase/dev → PSR-2c. TEMP روی دیسک wipe نشد.
 
-#### PSR-2c — بعدی
+#### PSR-2c — انجام‌شده (compaction slice)
 
-Archive phase packs؛ بازنویسی ~۳۷ لینک TEMP باقی‌مانده؛ کاهش ROOT_COMMAND_*؛
-ادامهٔ metadata روی corpus.
+1. صفر markdown link از `docs/**` به `TEMP/`/`temp/`/`docs/temp/`
+   (`aca46afb` + validator `psr-2c-no-temp-doc-links`).
+2. ROOT_COMMAND_* فعال ≤۳؛ ۱۵ worksheet →
+   [`docs/archive/psr-001/root-command/`](../archive/psr-001/root-command/)
+   (`3d4f25d2`).
+3. Archive scaffold + [`ARCHIVE-POLICY-001`](../archive/README.mdoc).
+4. ۸ سند defer PSR-0b commit شد (`e9f9f930`).
 
-اقدامات باقی‌ماندهٔ برنامه:
+**عمداً خارج از slice:** move فله‌ای `docs/phase-*`؛ extract دامنه phase-5/20؛
+secret/SSH scrub.
+
+**Gate خروج PSR-2c slice:** سبز برای unlink سراسری docs + ROOT_COMMAND compact.
+Follow-on archive moves جداگانه زمان‌بندی می‌شوند.
+
+اقدامات باقی‌ماندهٔ برنامه (پس از این slice):
 
 1. `docs/index.yaml` تنها registry شود. **(bootstrap انجام شد؛ corpus کامل نه)**
 2. هر سند فعال metadata DOC-META-001 را داشته باشد.
