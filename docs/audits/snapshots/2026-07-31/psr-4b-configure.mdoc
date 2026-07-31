@@ -1,0 +1,79 @@
+---
+id: PSR-4B-CONFIGURE
+title: PSR-4b-configure inventory + finance rename + host/http retarget
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-configure-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-close.mdoc
+  - docs/dev/denali-plugin-encapsulation.mdoc
+program_id: PSR-001
+wave: PSR-4b-configure
+---
+
+# PSR-4b-configure — product-adapter hygiene (partial)
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| Inventory all `apps/api/src/http/configure-*.ts` | Yes (4) |
+| Rename finance wiring to platform-neutral filename | Yes |
+| Retarget denali/urban configure imports `/http` → `/host/http` | Yes |
+| Add tsconfig `host/http` path mappings | Yes |
+| Delete denali/urban product-named configure files | **No** |
+| Expire tsconfig bare `/http` aliases (tests) | **No** |
+
+Machine inventory:
+[`psr-4b-configure-inventory.yaml`](./psr-4b-configure-inventory.yaml)
+
+## Classification
+
+| Path | Class | Why |
+| --- | --- | --- |
+| `configure-finance-http-host.ts` | `platform-neutral` | Wires `@app-tour/finance-http` only |
+| `configure-workspace-denali-product-http-host.ts` | `product-named` | Denali HTTP host ports |
+| `configure-urban-http-host.ts` | `product-named` | Urban HTTP host ports |
+| `configure-urban-surface-exposure.ts` | `product-named` | Urban exposure resolver |
+
+## Why finance rename counts
+
+SoT §PSR-4.4: product-named configure modules should leave the host.
+Finance was already **content-neutral** (`@app-tour/finance-http`) but still named
+`configure-workspace-finance-http-host`. Rename removes false product gravity
+without moving host infrastructure into workspace packages.
+
+## Why denali/urban not deleted this wave
+
+Those adapters inject host ports (`TourStorageDbAdapter`, idempotency, tenant
+kernel, booking public adapter). True absorption needs a generated bootstrap or
+neutral port registry — deferred to **PSR-4b-configure-2**.
+
+## Bare `/http` vs `/host/http`
+
+Encapsulation already maps `@app-tour/workspace-*/http` → `/host/http`.
+Configure adapters now follow that map. `apps/api/tsconfig.json` still carries
+compat aliases for **tests** that import bare `/http`; expiry is a follow-on.
+
+## Ratchet
+
+```bash
+node scripts/ops/psr-4b-configure-smoke.mjs
+```
+
+| Metric | Ceiling |
+| --- | ---: |
+| product-named configure files | **3** |
+| bare `/http` imports inside configure-* | **0** |
+
+## Explicit non-goals
+
+- Harbor configure (none today)
+- Moving exposure logic into `workspace-urban` package
+- Deleting tsconfig `/http` aliases while tests still use them

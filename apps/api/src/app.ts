@@ -19,7 +19,7 @@ import type { TourStorageRepository } from "./db/tour.repository";
 import { handleHealth } from "./health/health.routes";
 import "./http/configure-urban-http-host";
 import "./http/configure-workspace-denali-product-http-host";
-import "./http/configure-workspace-finance-http-host";
+import "./http/configure-finance-http-host";
 import { tryDispatchPlatformRoutes } from "./http/platform-route-registrar";
 import { rejectRequestDuringShutdown } from "./http/shutdown-ingress";
 import { tryDispatchWorkspaceRoutes } from "./http/workspace-route-registrar";

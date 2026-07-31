@@ -1,5 +1,5 @@
-import { configureUrbanHttpHost } from "@app-tour/workspace-urban/http";
-import type { UrbanProductRouteDeps } from "@app-tour/workspace-urban/http";
+import { configureUrbanHttpHost } from "@app-tour/workspace-urban/host/http";
+import type { UrbanProductRouteDeps } from "@app-tour/workspace-urban/host/http";
 
 /** Re-export for host AppDeps — keeps branded type import inside product-adapter. */
 export type { UrbanProductRouteDeps };
@@ -115,7 +115,7 @@ configureUrbanHttpHost({
         idempotencyKey,
         requestHash,
         finish as () => Promise<Record<string, unknown>>,
-      )) as import("@app-tour/workspace-urban/http").UrbanHttpHostPorts["registration"]["runIdempotentHttpMutation"],
+      )) as import("@app-tour/workspace-urban/host/http").UrbanHttpHostPorts["registration"]["runIdempotentHttpMutation"],
     idempotencyKeyRequiredCode: IDEMPOTENCY_KEY_REQUIRED,
     decideRegistrationStatus: (input) =>
       assertRegistrationCapacityDecision(resolveRegistrationCapacityDecision(input)),

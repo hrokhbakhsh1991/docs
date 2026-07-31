@@ -91,16 +91,16 @@ const denaliShimHits = denaliFinanceShimFiles.filter((rel) =>
 assertCheck(
   "p10_denali_finance_shims_removed",
   denaliShimHits.length === 0,
-  `denali-finance re-export shims removed — use http/configure-workspace-finance-http-host.ts + @app-tour/workspace-denali/http (${denaliShimHits.join(", ")})`
+  `denali-finance re-export shims removed — use http/configure-finance-http-host.ts + @app-tour/finance-http (${denaliShimHits.join(", ")})`
 );
 const workspaceFinanceHost = path.join(
   REPO_ROOT,
-  "apps/api/src/http/configure-workspace-finance-http-host.ts"
+  "apps/api/src/http/configure-finance-http-host.ts"
 );
 assertCheck(
   "p10_workspace_finance_host_present",
   fs.existsSync(workspaceFinanceHost),
-  "apps/api/src/http/configure-workspace-finance-http-host.ts must exist"
+  "apps/api/src/http/configure-finance-http-host.ts must exist"
 );
 
 /** DEC-P10-006 — host infra only; no new product shims in workspace-finance/ */

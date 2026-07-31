@@ -1,11 +1,11 @@
-import { configureDenaliProductHttpHost } from "@app-tour/workspace-denali/http";
+import { configureDenaliProductHttpHost } from "@app-tour/workspace-denali/host/http";
 import { buildDenaliExposureResolverPort } from "../exposure/resolve-denali-surface-exposure";
 import { buildDenaliReminderFeedPort } from "../exposure/denali-reminder-activation.repository";
 import type {
   DenaliProductRouteDeps,
   BookingPublicPort,
   DenaliPublicDestinationPort,
-} from "@app-tour/workspace-denali/http";
+} from "@app-tour/workspace-denali/host/http";
 
 import { createHostBookingPublicAdapter } from "../bookings/infrastructure/host-booking-public.adapter";
 import type { TourStorageRepository as DbTourStorageRepository } from "../db/tour.repository";

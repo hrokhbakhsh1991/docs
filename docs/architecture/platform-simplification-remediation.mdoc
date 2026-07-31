@@ -43,8 +43,10 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-exports-2-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-configure.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-configure-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-4b-api-deps-sync
+current_wave: PSR-4b-configure
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -54,27 +56,34 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-api-deps-sync — generate writer)
+## 0. وضعیت موج جاری (PSR-4b-configure — partial)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b-configure** — inventory + finance rename + `/host/http` (**partial**) |
+| Exit gate | IN PROGRESS — product-named configure ≤**۳**؛ bare `/http` در configure = **۰** |
+| Snapshot | [`psr-4b-configure.mdoc`](../audits/snapshots/2026-07-31/psr-4b-configure.mdoc) |
+| Inventory | [`psr-4b-configure-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-configure-inventory.yaml) |
+| Smoke | `node scripts/ops/psr-4b-configure-smoke.mjs` |
+
+| Change | Detail |
+| --- | --- |
+| Finance | `configure-workspace-finance-http-host` → `configure-finance-http-host` |
+| Denali/Urban configure | import `/http` → `/host/http` |
+| tsconfig | add `host/http` paths؛ keep bare `/http` for tests |
+
+**عمداً خارج:** حذف denali/urban configure؛ expiry alias تست‌ها.
+
+**Next:** PSR-4b-configure-2 (absorb product-named) یا PSR-5+.
+
+### 0.00 PSR-4b-api-deps-sync (بسته)
 
 | Field | Value |
 | --- | --- |
 | Wave | **PSR-4b-api-deps-sync** — `apps/api` deps generate/sync (**complete**) |
-| Exit gate | GREEN — writer + guard verify + `--check` |
 | Snapshot | [`psr-4b-api-deps-sync.mdoc`](../audits/snapshots/2026-07-31/psr-4b-api-deps-sync.mdoc) |
-| Inventory | [`psr-4b-api-deps-sync-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-api-deps-sync-inventory.yaml) |
-| Smoke | `node scripts/ops/psr-4b-api-deps-smoke.mjs` |
 | Land commit | `393f4b0d` |
 | SHA close | `b4f397fd` |
-
-| Change | Detail |
-| --- | --- |
-| Writer | `syncApiPackageJson` / `verifyApiPackageJson` (I.8 mirror) |
-| Set | all manifests incl. registryOnly fixtures |
-| Wire | `generate:workspace-registry` + host-workspace-deps guard |
-
-**عمداً خارج:** fixture dep deletion؛ configure-* absorption.
-
-**Next:** PSR-4b-configure (product-named `http/configure-*`) یا PSR-5+.
 
 ### 0.00 PSR-4b-exports-2 (بسته — host-private ≤۳۰)
 

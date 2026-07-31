@@ -154,7 +154,7 @@ describe("finance-tenant-dependency-resolution.spec.ts — Phase 1.5 C1", { conc
 
   it("FIN-P1.5-C2A-01 finance HTTP host wires resolveFinanceServiceForTenant", () => {
     const host = readFileSync(
-      resolve(REPO_ROOT, "apps/api/src/http/configure-workspace-finance-http-host.ts"),
+      resolve(REPO_ROOT, "apps/api/src/http/configure-finance-http-host.ts"),
       "utf8"
     );
     assert.match(host, /resolveFinanceServiceForTenant/);
