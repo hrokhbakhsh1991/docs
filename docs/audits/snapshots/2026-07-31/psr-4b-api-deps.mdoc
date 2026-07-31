@@ -1,0 +1,75 @@
+---
+id: PSR-4B-API-DEPS
+title: PSR-4b-api-deps API package membership inventory + exact-set ratchet
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending-psr-4b-api-deps
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
+program_id: PSR-001
+wave: PSR-4b-api-deps
+---
+
+# PSR-4b-api-deps — API membership inventory + ratchet
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| Inventory `apps/api` `@app-tour/workspace-*` deps vs manifests | Yes |
+| Exact-set completeness ratchet (no orphans / no missing) | Yes |
+| Extend `guard:host-workspace-deps` for API missing deps | Yes |
+| Dedicated ops smoke | Yes |
+| Codegen rewrite of `apps/api/package.json` | **No** (deferred) |
+| Delete fixture finance/booking deps | **No** |
+
+## Baseline (verified)
+
+| Metric | Value |
+| --- | ---: |
+| Manifest packages | 12 |
+| API product deps (`≠ sdk`) | **12** (exact match) |
+| API + sdk | 13 |
+| Orphans | 0 |
+| Missing | 0 |
+
+### Classes
+
+| Class | Packages |
+| --- | --- |
+| Platform | `@app-tour/workspace-sdk` |
+| Product trunk | acme, denali, guest-club, harbor, starter, urban |
+| Registry fixture | booking-ws2, finance-ws2…ws6 |
+
+## Guard change
+
+`guard-host-workspace-deps` previously blocked **orphans** on web+api and
+**web completeness** via I.8 verify. PSR-4b-api-deps adds **API completeness**:
+every `workspace.manifest.json` `package` must appear in `apps/api` deps.
+
+## Why no package.json rewrite this wave
+
+Membership is already exact. A generate writer (web I.8 analogue) would be
+pure ceremony until drift appears. Follow-on: `PSR-4b-api-deps-sync`.
+
+## Local smoke
+
+```bash
+node scripts/ops/psr-4b-api-deps-smoke.mjs
+pnpm run guard:host-workspace-deps
+```
+
+## Exit gate
+
+| Check | Result |
+| --- | --- |
+| Inventory classifies all API workspace deps | required |
+| Exact-set smoke + host guard green | required |
+| No package.json mutation | required |
+| No fixture dep deletion | required |

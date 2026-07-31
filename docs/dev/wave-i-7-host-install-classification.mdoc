@@ -51,3 +51,11 @@ pnpm run wave-i0:guard
 pnpm --filter @apps/web exec node --import tsx --test \
   test/wave-i-7-host-install-classification.spec.ts
 ```
+
+## PSR-4b-api-deps extension (2026-07-31)
+
+API host now also requires **completeness**: every `workspace.manifest.json`
+`package` must be declared on `apps/api/package.json` (exact set with orphan
+check). See [`psr-4b-api-deps.mdoc`](../audits/snapshots/2026-07-31/psr-4b-api-deps.mdoc).
+Codegen rewrite of API `package.json` remains deferred (`PSR-4b-api-deps-sync`).
+

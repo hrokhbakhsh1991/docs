@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: 4bf6e4c3
+verified_sha: pending-psr-4b-api-deps
 supersedes: []
 superseded_by: null
 evidence:
@@ -30,8 +30,10 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-host-imports.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-2.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-3.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-deps.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-4b-host-imports-3-partial
+current_wave: PSR-4b-api-deps-complete
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -41,25 +43,35 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-host-imports-3 — بسته / partial)
+## 0. وضعیت موج جاری (PSR-4b-api-deps — بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b-api-deps** — API membership inventory + exact-set ratchet (**complete**) |
+| Exit gate | GREEN — ۱۲ product dep = ۱۲ manifest؛ بدون rewrite |
+| Snapshot | [`psr-4b-api-deps.mdoc`](../audits/snapshots/2026-07-31/psr-4b-api-deps.mdoc) |
+| Inventory | [`psr-4b-api-deps-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-api-deps-inventory.yaml) |
+
+| Change | Detail |
+| --- | --- |
+| Classification | platform / product-trunk / registry-fixture |
+| Guard | `guard-host-workspace-deps` — API completeness (missing deps) |
+| Smoke | `scripts/ops/psr-4b-api-deps-smoke.mjs` |
+| Ceiling | api product deps ≤ **12** (exact) |
+
+**عمداً خارج:** codegen rewrite `apps/api/package.json`؛ حذف finance/booking fixture deps؛
+host-imports باقی‌مانده (۳).
+
+**Next:** PSR-4b-host-imports-4 (finance/migrate) یا PSR-4b-api-deps-sync یا PSR-4b-whyDenali.
+
+### 0.00 PSR-4b-host-imports-3 (بسته / partial)
 
 | Field | Value |
 | --- | --- |
 | Wave | **PSR-4b-host-imports-3** — fold urban exposure to product-adapter (**partial 4→3**) |
-| Exit gate | GREEN — ceiling ۳؛ urban exposure زیر `http/configure-*` |
 | Snapshot | [`psr-4b-host-imports-3.mdoc`](../audits/snapshots/2026-07-31/psr-4b-host-imports-3.mdoc) |
 | Land commit | `4bf6e4c3` |
 | SHA close | `d712ead6` |
-
-| Change | Detail |
-| --- | --- |
-| Urban exposure | `exposure/resolve-urban-*` → `http/configure-urban-surface-exposure.ts` |
-| Host-source ceiling | 4 → **3** |
-
-**عمداً خارج / باقی‌مانده:** finance ledger exclusive، migrate denali constants،
-equipment-icon contract (حفظ).
-
-**Next:** PSR-4b-host-imports-4 (finance یا migrate) یا PSR-4b-api-deps.
 
 ### 0.00 PSR-4b-host-imports-2 (بسته / partial)
 

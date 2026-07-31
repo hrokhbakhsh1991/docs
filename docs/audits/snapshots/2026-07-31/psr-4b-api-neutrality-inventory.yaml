@@ -521,7 +521,9 @@ follow_on_slices:
   status: partial
   note: 11→8 then continued in host-imports-2
 - id: PSR-4b-api-deps
-  work: Generate or sync apps/api package.json workspace membership from manifests
+  work: Inventory + exact-set completeness for apps/api vs manifests
+  status: complete
+  note: exact-set ratchet; package.json rewrite deferred to PSR-4b-api-deps-sync
 - id: PSR-4b-whyDenali
   work: Rename guest landing whyDenali to product-neutral section id in codegen+manifest
 - id: PSR-4b-exports
@@ -532,6 +534,9 @@ follow_on_slices:
 - id: PSR-4b-host-imports-3
   status: partial
   note: 4→3 urban folded to product-adapter; 3 remain
+- id: PSR-4b-api-deps-sync
+  work: Optional generate/sync writer for apps/api/package.json (web I.8 pattern)
+  status: deferred
 product_defaults_remediated:
 - file: apps/api/src/canonical/migrate-canonical-workspace.service.ts
   was: workspaceType ?? "denali"

@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
- * Wave I.0 / I.7 / I.8 — apps/web + apps/api workspace product deps vs manifests.
+ * Wave I.0 / I.7 / I.8 / PSR-4b-api-deps — apps/web + apps/api workspace product deps vs manifests.
  * @see docs/dev/wave-i-0-architecture-guard-matrix.mdoc
  * @see docs/dev/wave-i-7-host-install-classification.mdoc
  * @see docs/dev/wave-i-8-admin-web-product-deps.mdoc
+ * @see docs/audits/snapshots/2026-07-31/psr-4b-api-deps.mdoc
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -13,10 +14,9 @@ import { verifyAdminWebPackageJson } from "../codegen/workspace-registry/domains
 import { REPO_ROOT } from "../codegen/workspace-registry/constants.mjs";
 
 const SDK_PACKAGE = "@app-tour/workspace-sdk";
-const HOST_PACKAGE_JSON = Object.freeze([
-  join(REPO_ROOT, "apps/web/package.json"),
-  join(REPO_ROOT, "apps/api/package.json"),
-]);
+const API_PACKAGE_JSON = join(REPO_ROOT, "apps/api/package.json");
+const WEB_PACKAGE_JSON = join(REPO_ROOT, "apps/web/package.json");
+const HOST_PACKAGE_JSON = Object.freeze([WEB_PACKAGE_JSON, API_PACKAGE_JSON]);
 
 /**
  * @param {unknown} pkg
@@ -76,10 +76,27 @@ for (const packageJsonPath of HOST_PACKAGE_JSON) {
   }
 }
 
+/** PSR-4b-api-deps — API must declare every manifest package (exact set; no generate rewrite yet). */
+{
+  const apiPkg = JSON.parse(readFileSync(API_PACKAGE_JSON, "utf8"));
+  const declared = new Set(collectWorkspaceProductDeps(apiPkg));
+  const missing = [...expected]
+    .filter((name) => !declared.has(name))
+    .sort((a, b) => a.localeCompare(b));
+  if (missing.length > 0) {
+    failures.push(
+      "apps/api/package.json: missing workspace product deps (manifest package not declared) — PSR-4b-api-deps:",
+    );
+    for (const name of missing) {
+      failures.push(`  ${name}`);
+    }
+  }
+}
+
 const webCheck = verifyAdminWebPackageJson(manifests);
 if (!webCheck.ok) {
   failures.push(
-    "apps/web/package.json: product workspace deps drift from product trunk (Wave I.8)."
+    "apps/web/package.json: product workspace deps drift from product trunk (Wave I.8).",
   );
   failures.push("  Run: pnpm run generate:workspace-registry");
 }
@@ -90,14 +107,17 @@ if (failures.length > 0) {
     console.error(line);
   }
   console.error(
-    "Remove the orphan dep, or run generate:workspace-registry to sync apps/web product deps."
+    "Remove the orphan dep, add the missing API dep, or run generate:workspace-registry to sync apps/web product deps.",
   );
   process.exit(1);
 }
 
-const pkg = JSON.parse(readFileSync(join(REPO_ROOT, "apps/web/package.json"), "utf8"));
+const pkg = JSON.parse(readFileSync(WEB_PACKAGE_JSON, "utf8"));
 const webProducts = collectWorkspaceProductDeps(pkg);
+const apiProducts = collectWorkspaceProductDeps(
+  JSON.parse(readFileSync(API_PACKAGE_JSON, "utf8")),
+);
 
 console.log(
-  `guard-host-workspace-deps: PASS (${HOST_PACKAGE_JSON.length} hosts, ${expected.size} manifest packages, ${webProducts.length} web product trunk deps)`
+  `guard-host-workspace-deps: PASS (${HOST_PACKAGE_JSON.length} hosts, ${expected.size} manifest packages, ${webProducts.length} web product trunk deps, ${apiProducts.length} api product deps exact)`,
 );
