@@ -77,6 +77,8 @@ documents:
       - docs/audits/snapshots/2026-07-31/psr-4b-exports-inventory.yaml
       - docs/audits/snapshots/2026-07-31/psr-4b-exports-2.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-exports-2-inventory.yaml
+      - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync-inventory.yaml
 
   - id: DG-REM-001
     path: docs/architecture/denali-gravity-remediation.mdoc
@@ -442,7 +444,7 @@ documents:
     last_verified: 2026-07-31
     verified_sha: a908ab08
     supersedes: []
-    superseded_by: null
+    superseded_by: docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync.mdoc
     evidence:
       - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-inventory.yaml
 
@@ -454,8 +456,22 @@ documents:
     last_verified: 2026-07-31
     verified_sha: a908ab08
     supersedes: []
-    superseded_by: null
+    superseded_by: docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync-inventory.yaml
     evidence: []
+
+  - id: PSR-4B-API-DEPS-SYNC
+    path: docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: pending
+    supersedes:
+      - docs/audits/snapshots/2026-07-31/psr-4b-api-deps.mdoc
+    superseded_by: null
+    evidence:
+      - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync-inventory.yaml
+      - docs/dev/wave-i-8-admin-web-product-deps.mdoc
 
   - id: PSR-4B-WHYDENALI
     path: docs/audits/snapshots/2026-07-31/psr-4b-whyDenali.mdoc

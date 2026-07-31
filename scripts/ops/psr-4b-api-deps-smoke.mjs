@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * PSR-4b-api-deps — ratchet apps/api workspace product membership vs manifests.
- * Inventory-only generate rewrite deferred; this smoke locks exact-set equality.
+ * PSR-4b-api-deps / PSR-4b-api-deps-sync — ratchet apps/api workspace product
+ * membership vs manifests + generate/sync writer verify.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -79,8 +79,11 @@ if (declared.length !== expected.length) {
   fail(`api product deps count ${declared.length} != manifest count ${expected.length}`);
 }
 
-const inv = loadYaml(join(root, "docs/audits/snapshots/2026-07-31/psr-4b-api-deps-inventory.yaml"));
-if (inv.wave !== "PSR-4b-api-deps") fail("inventory wave must be PSR-4b-api-deps");
+const inv = loadYaml(
+  join(root, "docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync-inventory.yaml"),
+);
+if (inv.wave !== "PSR-4b-api-deps-sync") fail("inventory wave must be PSR-4b-api-deps-sync");
+if (!inv.policy?.generate_sync_writer) fail("policy.generate_sync_writer must be true");
 if ((inv.metrics?.api_product_deps ?? -1) !== declared.length) {
   fail(`inventory metrics.api_product_deps ${inv.metrics?.api_product_deps} != ${declared.length}`);
 }
@@ -98,8 +101,20 @@ if (guard.status !== 0) {
   fail(`guard-host-workspace-deps failed:\n${guard.stderr || guard.stdout}`);
 }
 
+const check = spawnSync(
+  "node",
+  [join(root, "scripts/generate-workspace-registry.mjs"), "--check"],
+  { cwd: root, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 },
+);
+if (check.status !== 0) {
+  fail(`generate:workspace-registry --check failed:\n${check.stderr || check.stdout}`);
+}
+
 if (!process.exitCode) {
   console.log("psr-4b-api-deps-smoke: PASS");
   console.log(`  api product deps: ${declared.length}/${API_PRODUCT_DEP_CEILING} (exact manifests)`);
-  console.log(`  includes sdk separately: ${Boolean(apiPkg.dependencies?.[SDK] || apiPkg.devDependencies?.[SDK])}`);
+  console.log(
+    `  includes sdk separately: ${Boolean(apiPkg.dependencies?.[SDK] || apiPkg.devDependencies?.[SDK])}`,
+  );
+  console.log("  generate --check: PASS (api + web writers)");
 }

@@ -1,0 +1,79 @@
+---
+id: PSR-4B-API-DEPS-SYNC
+title: PSR-4b-api-deps-sync generate writer for apps/api workspace deps
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending
+supersedes:
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-deps.mdoc
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-deps.mdoc
+  - docs/dev/wave-i-8-admin-web-product-deps.mdoc
+program_id: PSR-001
+wave: PSR-4b-api-deps-sync
+---
+
+# PSR-4b-api-deps-sync — API package.json generate/sync writer
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| Inventory + exact-set ratchet (prior wave) | Yes ([`psr-4b-api-deps`](./psr-4b-api-deps.mdoc)) |
+| `syncApiPackageJson` / `verifyApiPackageJson` (I.8 mirror) | Yes |
+| Wire into `generate:workspace-registry` (+ `--check`) | Yes |
+| Guard uses verify writer (sorted exact deps) | Yes |
+| Unit spec for helpers | Yes |
+| Delete fixture finance/booking deps | **No** (deferred) |
+| Absorb `http/configure-*` | **No** (PSR-4b-configure) |
+
+## Why this wave
+
+PSR-4 §5: `apps/api/package.json` product membership should generate/sync from
+manifests. Prior wave locked exact-set equality without a writer. Membership was
+already correct; this wave removes the manual edit path.
+
+## API vs admin web
+
+| Host | Product set | Dep section |
+| --- | --- | --- |
+| `apps/web` (I.8) | Product trunk only (skips `registryOnly`) | `devDependencies` |
+| `apps/api` (this wave) | **All** manifest packages (includes fixtures) | `dependencies` |
+
+`workspace-sdk` is preserved on both; never treated as a product dep.
+
+## Writer behavior
+
+1. Strip `@app-tour/workspace-*` except `workspace-sdk` / `workspace-plugin-host`.
+2. Add every `workspace.manifest.json` `package` as `workspace:*`.
+3. Sort dependency keys deterministically.
+4. Idempotent — no write when already synced.
+
+**Side effect of first sync:** `apps/api/package.json` previously contained a
+duplicate `scripts.prebuild` key (invalid JSON; Node kept the last value —
+`build-api-workspace-deps.sh` + `generate:workspace-registry`). Rewrite emits a
+single `prebuild` entry matching that effective value.
+
+## Local verification
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run generate:workspace-registry -- --check
+node scripts/ops/psr-4b-api-deps-smoke.mjs
+pnpm run guard:host-workspace-deps
+node --test scripts/test/api-host-product-deps.spec.mjs
+```
+
+## Exit gate
+
+| Check | Result |
+| --- | --- |
+| generate sync + `--check` green | required |
+| guard + smoke green | required |
+| unit helpers green | required |
+| No fixture dep deletion | required |

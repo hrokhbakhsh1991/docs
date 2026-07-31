@@ -1,16 +1,21 @@
 #!/usr/bin/env node
 /**
- * Wave I.0 / I.7 / I.8 / PSR-4b-api-deps — apps/web + apps/api workspace product deps vs manifests.
+ * Wave I.0 / I.7 / I.8 / PSR-4b-api-deps / PSR-4b-api-deps-sync —
+ * apps/web + apps/api workspace product deps vs manifests.
  * @see docs/dev/wave-i-0-architecture-guard-matrix.mdoc
  * @see docs/dev/wave-i-7-host-install-classification.mdoc
  * @see docs/dev/wave-i-8-admin-web-product-deps.mdoc
  * @see docs/audits/snapshots/2026-07-31/psr-4b-api-deps.mdoc
+ * @see docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync.mdoc
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { discoverManifests } from "../codegen/workspace-registry/manifest-loader.mjs";
-import { verifyAdminWebPackageJson } from "../codegen/workspace-registry/domains/theme.mjs";
+import {
+  verifyAdminWebPackageJson,
+  verifyApiPackageJson,
+} from "../codegen/workspace-registry/domains/theme.mjs";
 import { REPO_ROOT } from "../codegen/workspace-registry/constants.mjs";
 
 const SDK_PACKAGE = "@app-tour/workspace-sdk";
@@ -76,20 +81,14 @@ for (const packageJsonPath of HOST_PACKAGE_JSON) {
   }
 }
 
-/** PSR-4b-api-deps — API must declare every manifest package (exact set; no generate rewrite yet). */
+/** PSR-4b-api-deps-sync — API dependencies must match generate/sync writer (exact sorted set). */
 {
-  const apiPkg = JSON.parse(readFileSync(API_PACKAGE_JSON, "utf8"));
-  const declared = new Set(collectWorkspaceProductDeps(apiPkg));
-  const missing = [...expected]
-    .filter((name) => !declared.has(name))
-    .sort((a, b) => a.localeCompare(b));
-  if (missing.length > 0) {
+  const apiCheck = verifyApiPackageJson(manifests);
+  if (!apiCheck.ok) {
     failures.push(
-      "apps/api/package.json: missing workspace product deps (manifest package not declared) — PSR-4b-api-deps:",
+      "apps/api/package.json: workspace product deps drift from manifests (PSR-4b-api-deps-sync).",
     );
-    for (const name of missing) {
-      failures.push(`  ${name}`);
-    }
+    failures.push("  Run: pnpm run generate:workspace-registry");
   }
 }
 
@@ -107,7 +106,7 @@ if (failures.length > 0) {
     console.error(line);
   }
   console.error(
-    "Remove the orphan dep, add the missing API dep, or run generate:workspace-registry to sync apps/web product deps.",
+    "Remove the orphan dep, or run generate:workspace-registry to sync apps/web + apps/api product deps.",
   );
   process.exit(1);
 }

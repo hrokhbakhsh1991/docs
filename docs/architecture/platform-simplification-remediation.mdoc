@@ -41,8 +41,10 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-exports-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-4b-exports-2.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-exports-2-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-4b-exports-2
+current_wave: PSR-4b-api-deps-sync
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -52,28 +54,34 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-exports-2 — host-private ≤۳۰)
+## 0. وضعیت موج جاری (PSR-4b-api-deps-sync — generate writer)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b-api-deps-sync** — `apps/api` deps generate/sync (**complete**) |
+| Exit gate | GREEN — writer + guard verify + `--check` |
+| Snapshot | [`psr-4b-api-deps-sync.mdoc`](../audits/snapshots/2026-07-31/psr-4b-api-deps-sync.mdoc) |
+| Inventory | [`psr-4b-api-deps-sync-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-api-deps-sync-inventory.yaml) |
+| Smoke | `node scripts/ops/psr-4b-api-deps-smoke.mjs` |
+
+| Change | Detail |
+| --- | --- |
+| Writer | `syncApiPackageJson` / `verifyApiPackageJson` (I.8 mirror) |
+| Set | all manifests incl. registryOnly fixtures |
+| Wire | `generate:workspace-registry` + host-workspace-deps guard |
+
+**عمداً خارج:** fixture dep deletion؛ configure-* absorption.
+
+**Next:** PSR-4b-configure (product-named `http/configure-*`) یا PSR-5+.
+
+### 0.00 PSR-4b-exports-2 (بسته — host-private ≤۳۰)
 
 | Field | Value |
 | --- | --- |
 | Wave | **PSR-4b-exports-2** — draft/http/composites/messages (**complete ≤۳۰**) |
-| Exit gate | GREEN — host-private **۳۰**/≤۳۰؛ total exports **۱۵۳** |
 | Snapshot | [`psr-4b-exports-2.mdoc`](../audits/snapshots/2026-07-31/psr-4b-exports-2.mdoc) |
-| Inventory | [`psr-4b-exports-2-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-exports-2-inventory.yaml) |
-| Smoke | `node scripts/ops/psr-4b-exports-smoke.mjs` |
 | Land commit | `e99ad595` |
 | SHA close | `a3323a1b` |
-
-| Change | Detail |
-| --- | --- |
-| `./host/draft` | retarget → unification surface (+ SchemaGate rename fix) |
-| `./host/http/routes` | `http.module` → `./http` |
-| `./host/composites` | ghost paths → registry surface + codegen |
-| messages fa/en | collapse → `./host/messages/*/wizard.json` |
-
-**عمداً خارج:** Urban/Harbor routes peel؛ configure-*؛ api-deps-sync؛ product-internal pool.
-
-**Next:** PSR-4 باقی — optional configure absorption؛ api-deps-sync؛ یا PSR-5+.
 
 ### 0.00 PSR-4b-exports (بسته / partial −۵)
 

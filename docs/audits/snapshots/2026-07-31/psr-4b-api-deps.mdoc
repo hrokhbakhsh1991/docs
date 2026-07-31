@@ -8,7 +8,7 @@ status: active
 last_verified: 2026-07-31
 verified_sha: a908ab08
 supersedes: []
-superseded_by: null
+superseded_by: docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync.mdoc
 evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
@@ -26,7 +26,7 @@ wave: PSR-4b-api-deps
 | Exact-set completeness ratchet (no orphans / no missing) | Yes |
 | Extend `guard:host-workspace-deps` for API missing deps | Yes |
 | Dedicated ops smoke | Yes |
-| Codegen rewrite of `apps/api/package.json` | **No** (deferred) |
+| Codegen rewrite of `apps/api/package.json` | **Follow-on complete** — see [`psr-4b-api-deps-sync.mdoc`](./psr-4b-api-deps-sync.mdoc) |
 | Delete fixture finance/booking deps | **No** |
 
 ## Baseline (verified)
@@ -56,7 +56,8 @@ every `workspace.manifest.json` `package` must appear in `apps/api` deps.
 ## Why no package.json rewrite this wave
 
 Membership is already exact. A generate writer (web I.8 analogue) would be
-pure ceremony until drift appears. Follow-on: `PSR-4b-api-deps-sync`.
+pure ceremony until drift appears. Follow-on: **`PSR-4b-api-deps-sync`**
+([`psr-4b-api-deps-sync.mdoc`](./psr-4b-api-deps-sync.mdoc)) — **complete**.
 
 ## Local smoke
 

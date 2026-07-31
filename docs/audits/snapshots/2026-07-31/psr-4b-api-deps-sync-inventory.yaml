@@ -1,0 +1,39 @@
+schema_version: 1
+program_id: PSR-001
+wave: PSR-4b-api-deps-sync
+updated: "2026-07-31"
+supersedes_inventory: docs/audits/snapshots/2026-07-31/psr-4b-api-deps-inventory.yaml
+policy:
+  generate_sync_writer: true
+  exact_set_equality_required: true
+  includes_registry_only_fixtures: true
+  preserves_workspace_sdk: true
+  sorts_dependency_keys: true
+  note: >
+    Mirror of Wave I.8 admin-web product deps sync for apps/api.
+    Unlike web (product trunk only), API declares every workspace.manifest.json package
+    including registryOnly finance/booking fixtures.
+metrics:
+  api_workspace_deps_including_sdk: 13
+  api_product_deps: 12
+  api_product_dep_ceiling: 12
+  manifest_packages: 12
+  orphans: 0
+  missing: 0
+sync:
+  helper_module: scripts/codegen/workspace-registry/domains/theme.mjs
+  functions:
+    - collectApiHostManifestPackages
+    - buildApiDependencies
+    - verifyApiPackageJson
+    - syncApiPackageJson
+  wired_into:
+    - scripts/codegen/workspace-registry/orchestrator.mjs (generate + --check)
+    - scripts/guards/guard-host-workspace-deps.mjs
+smoke: scripts/ops/psr-4b-api-deps-smoke.mjs
+unit_spec: scripts/test/api-host-product-deps.spec.mjs
+deferred:
+  - id: PSR-4b-api-deps-fixture-split
+    work: Decide whether finance/booking fixture packages stay on API install graph
+  - id: PSR-4b-configure
+    work: Absorb/rename product-named http/configure-* adapters

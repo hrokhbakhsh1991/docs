@@ -99,6 +99,8 @@ import {
   verifyGuestWorkspaceRuntimePackageJson,
   syncAdminWebPackageJson,
   verifyAdminWebPackageJson,
+  syncApiPackageJson,
+  verifyApiPackageJson,
 } from "./domains/theme.mjs";
 import {
   generateManifestBoundaryAllowlist,
@@ -661,6 +663,24 @@ export function runWorkspaceRegistryCli(argv = process.argv) {
       console.error("Run: pnpm run generate:workspace-registry");
       process.exit(1);
     }
+    const apiDepCheck = verifyApiPackageJson(manifests);
+    if (!apiDepCheck.ok) {
+      console.error(
+        "generate:workspace-registry --check: FAIL (apps/api package.json workspace product deps stale)"
+      );
+      console.error(
+        `  expected products: ${Object.keys(apiDepCheck.expectedDependencies)
+          .filter((n) => n.startsWith("@app-tour/workspace-") && n !== "@app-tour/workspace-sdk")
+          .join(", ")}`
+      );
+      console.error(
+        `  actual products:   ${Object.keys(apiDepCheck.actualDependencies)
+          .filter((n) => n.startsWith("@app-tour/workspace-") && n !== "@app-tour/workspace-sdk")
+          .join(", ")}`
+      );
+      console.error("Run: pnpm run generate:workspace-registry");
+      process.exit(1);
+    }
     const scope = domainId === null ? "" : ` domain=${domainId}`;
     console.log(
       `generate:workspace-registry --check${scope}: PASS (${manifests.length} manifest(s))`
@@ -680,6 +700,10 @@ export function runWorkspaceRegistryCli(argv = process.argv) {
 
   if (syncAdminWebPackageJson(manifests)) {
     console.log("generate:workspace-registry — synced apps/web/package.json product deps");
+  }
+
+  if (syncApiPackageJson(manifests)) {
+    console.log("generate:workspace-registry — synced apps/api/package.json workspace product deps");
   }
 
   console.log(

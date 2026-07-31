@@ -371,6 +371,137 @@ export function syncAdminWebPackageJson(manifests) {
 }
 
 /**
+ * All manifest `package` names the API host must declare (PSR-4b-api-deps-sync).
+ * Includes registryOnly finance/booking fixtures (unlike admin web product trunk).
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @returns {string[]}
+ */
+export function collectApiHostManifestPackages(manifests) {
+  /** @type {Set<string>} */
+  const packages = new Set();
+  for (const m of manifests) {
+    if (typeof m.package === "string" && m.package.length > 0) {
+      packages.add(m.package);
+    }
+  }
+  return [...packages].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * @param {string} name
+ */
+export function isApiHostProductWorkspaceDep(name) {
+  if (name === "@app-tour/workspace-sdk" || name === "@app-tour/workspace-plugin-host") {
+    return false;
+  }
+  return name.startsWith("@app-tour/workspace-");
+}
+
+/**
+ * Strip API product workspace keys (keeps workspace-sdk).
+ * @param {Record<string, string>} block
+ * @returns {Record<string, string>}
+ */
+export function stripApiHostProductWorkspaceDeps(block) {
+  /** @type {Record<string, string>} */
+  const next = {};
+  for (const [name, version] of Object.entries(block ?? {})) {
+    if (!isApiHostProductWorkspaceDep(name)) {
+      next[name] = version;
+    }
+  }
+  return Object.fromEntries(
+    Object.keys(next)
+      .sort((a, b) => a.localeCompare(b))
+      .map((k) => [k, next[k]])
+  );
+}
+
+/**
+ * Rebuild apps/api dependencies product keys from all manifests (PSR-4b-api-deps-sync).
+ * @param {Record<string, string>} dependencies
+ * @param {readonly string[]} manifestPackages
+ * @returns {Record<string, string>}
+ */
+export function buildApiDependencies(dependencies, manifestPackages) {
+  /** @type {Record<string, string>} */
+  const next = {};
+  for (const [name, version] of Object.entries(dependencies ?? {})) {
+    if (!isApiHostProductWorkspaceDep(name)) {
+      next[name] = version;
+    }
+  }
+  for (const pkg of manifestPackages) {
+    next[pkg] = "workspace:*";
+  }
+  return Object.fromEntries(
+    Object.keys(next)
+      .sort((a, b) => a.localeCompare(b))
+      .map((k) => [k, next[k]])
+  );
+}
+
+/**
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @returns {{
+ *   ok: true
+ * } | {
+ *   ok: false;
+ *   expectedDependencies: Record<string, string>;
+ *   actualDependencies: Record<string, string>;
+ * }}
+ */
+export function verifyApiPackageJson(manifests) {
+  const pkgPath = join(REPO_ROOT, "apps/api/package.json");
+  const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+  const products = collectApiHostManifestPackages(manifests);
+  const expectedDependencies = buildApiDependencies(pkg.dependencies ?? {}, products);
+  const actualDependencies = pkg.dependencies ?? {};
+  if (JSON.stringify(actualDependencies) !== JSON.stringify(expectedDependencies)) {
+    return {
+      ok: false,
+      expectedDependencies,
+      actualDependencies,
+    };
+  }
+  return { ok: true };
+}
+
+/**
+ * Rewrite apps/api workspace product deps to match all manifests (PSR-4b-api-deps-sync).
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @returns {boolean} true when package.json was written
+ */
+export function syncApiPackageJson(manifests) {
+  const pkgPath = join(REPO_ROOT, "apps/api/package.json");
+  const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+  const products = collectApiHostManifestPackages(manifests);
+  const expectedDependencies = buildApiDependencies(pkg.dependencies ?? {}, products);
+  const expectedDevDependencies = stripApiHostProductWorkspaceDeps(pkg.devDependencies ?? {});
+  const expectedOptional =
+    pkg.optionalDependencies && typeof pkg.optionalDependencies === "object"
+      ? stripApiHostProductWorkspaceDeps(pkg.optionalDependencies)
+      : undefined;
+  const depsSame = JSON.stringify(pkg.dependencies ?? {}) === JSON.stringify(expectedDependencies);
+  const devSame =
+    JSON.stringify(pkg.devDependencies ?? {}) === JSON.stringify(expectedDevDependencies);
+  const optSame =
+    expectedOptional === undefined
+      ? true
+      : JSON.stringify(pkg.optionalDependencies ?? {}) === JSON.stringify(expectedOptional);
+  if (depsSame && devSame && optSame) {
+    return false;
+  }
+  pkg.dependencies = expectedDependencies;
+  pkg.devDependencies = expectedDevDependencies;
+  if (expectedOptional !== undefined) {
+    pkg.optionalDependencies = expectedOptional;
+  }
+  writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
+  return true;
+}
+
+/**
  * ESM module for apps/{portal|marketing} next.config transpilePackages (Wave C.b).
  * Gap Closure C.2b — optional deploy-profile filter (double opt-in via env).
  * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
