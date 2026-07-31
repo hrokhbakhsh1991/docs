@@ -8,6 +8,8 @@ package_json: packages/workspaces/denali/package.json
 policy:
   classification_only: true
   no_export_deletion_in_this_wave: true
+  # Historical classification map — live package.json may shrink via PSR-4b-exports.
+  frozen_snapshot: true
   taxonomy:
   - public-contract
   - host-private

@@ -73,6 +73,8 @@ documents:
       - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-4.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-5.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-close.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-4b-exports.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-4b-exports-inventory.yaml
 
   - id: DG-REM-001
     path: docs/architecture/denali-gravity-remediation.mdoc
@@ -511,3 +513,16 @@ documents:
     superseded_by: null
     evidence:
       - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
+
+  - id: PSR-4B-EXPORTS
+    path: docs/audits/snapshots/2026-07-31/psr-4b-exports.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: pending
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/audits/snapshots/2026-07-31/psr-4b-exports-inventory.yaml
+      - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml

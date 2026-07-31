@@ -59,8 +59,15 @@ if (!inv.policy?.no_export_deletion_in_this_wave) {
 }
 
 const rows = inv.exports || [];
-if (rows.length !== exportKeys.length) {
+// After PSR-4b-exports, package.json may shrink; 4a snapshot stays frozen.
+const frozen = inv.policy?.frozen_snapshot === true;
+if (!frozen && rows.length !== exportKeys.length) {
   fail(`row count ${rows.length} != package exports ${exportKeys.length}`);
+}
+if (frozen && rows.length < exportKeys.length) {
+  fail(
+    `frozen 4a rows ${rows.length} < live exports ${exportKeys.length} (unexpected growth)`,
+  );
 }
 
 const seen = new Set();
@@ -76,11 +83,18 @@ for (const row of rows) {
   summary[row.class] = (summary[row.class] || 0) + 1;
 }
 
-for (const key of exportKeys) {
-  if (!seen.has(key)) fail(`package export missing from inventory: ${key}`);
-}
-for (const key of seen) {
-  if (!exportKeys.includes(key)) fail(`inventory export not in package.json: ${key}`);
+if (!frozen) {
+  for (const key of exportKeys) {
+    if (!seen.has(key)) fail(`package export missing from inventory: ${key}`);
+  }
+  for (const key of seen) {
+    if (!exportKeys.includes(key)) fail(`inventory export not in package.json: ${key}`);
+  }
+} else {
+  // Live package may only remove keys (peel); must not invent exports unknown to 4a.
+  for (const key of exportKeys) {
+    if (!seen.has(key)) fail(`live export not in frozen 4a inventory: ${key}`);
+  }
 }
 
 const claimed = inv.summary || {};

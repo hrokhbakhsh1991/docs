@@ -1,0 +1,80 @@
+---
+id: PSR-4B-EXPORTS
+title: PSR-4b-exports Denali host-private peel (−5 proven-dead)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-exports-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml
+  - docs/dev/denali-plugin-encapsulation.mdoc
+program_id: PSR-001
+wave: PSR-4b-exports
+---
+
+# PSR-4b-exports — host-private contraction (partial)
+
+## Scope
+
+| Work | In this wave | Deferred |
+| --- | --- | --- |
+| Peel host-private exports with **zero** external consumers | Yes (−۵) | — |
+| Touch manifest-bound `./host/*` surfaces | **No** | Later waves |
+| Retarget `./host/draft` web tests → package root | **No** | PSR-4b-exports-2 |
+| Reach ≤30 host-visible | Partial (۳۹→۳۴) | Remaining −۴ |
+
+Machine inventory:
+[`psr-4b-exports-inventory.yaml`](./psr-4b-exports-inventory.yaml)
+
+Classification baseline (frozen):
+[`psr-4a-denali-export-classification.yaml`](./psr-4a-denali-export-classification.yaml)
+
+## Method (per-export proof)
+
+A host-private export may be removed only when **all** hold:
+
+1. **Not manifest-bound** — no `workspace.manifest.json` module path that
+   `importSpecifier()` maps to this `./host/*` key.
+2. **Zero live exact-path consumers** under `apps/`, `packages/`, `scripts/`
+   (PCRE2 `(?!/)` so longer subpaths do not false-positive; `codemods/` excluded).
+3. **Replacement path documented** — root `.`, sibling `./host/<parent>`, or
+   remaining leaf export.
+
+## Peeled this wave (−۵)
+
+| Export | Replacement | Why safe |
+| --- | --- | --- |
+| `./host/plugin-for-wizard-engine` | `@app-tour/workspace-denali` | Root still exports; only historical codemod |
+| `./host/denali-plugin-build` | `@app-tour/workspace-denali` | Root still exports; only historical codemod |
+| `./host/clone/hydration` | `./host/clone` | Parent re-exports hydration symbols |
+| `./host/smoke/phase-6-denali-smoke-tenant` | package root | `devBootstrap.smokeTenant` codegen uses `m.package` |
+| `./host/marketing` | `./host/marketing/marketing-catalog-surface` | Parent barrel unused |
+
+## Metrics
+
+| Metric | PSR-4a | After this wave | Target |
+| --- | ---: | ---: | ---: |
+| host-private | 39 | **34** | ≤30 |
+| total Denali exports | 162 | **157** | — |
+| remaining gap | 9 | **4** | 0 |
+
+## Ratchet
+
+`scripts/ops/psr-4b-exports-smoke.mjs`:
+
+- peeled keys absent from `package.json`
+- zero live consumers for peeled keys
+- `host_private ≤ policy.host_private_ceiling` (34 this wave)
+- inventory metrics match live package.json
+
+## Explicit non-goals
+
+- Do **not** delete manifest-bound chrome/settings/finance/http surfaces.
+- Do **not** bulk-delete the 80 `product-internal` shrink candidates without
+  separate proof (they are not the host-visible −۹ gap).
+- `configure-*` product adapters remain (host-imports train).

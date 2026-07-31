@@ -37,8 +37,10 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-4.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-5.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-close.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-exports.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-exports-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-4b-host-imports-close-complete
+current_wave: PSR-4b-exports
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -48,7 +50,27 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-host-imports-close — بسته)
+## 0. وضعیت موج جاری (PSR-4b-exports — partial −۵)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b-exports** — host-private peel با per-export proof (**partial ۳۹→۳۴**) |
+| Exit gate | IN PROGRESS — ceiling ۳۴؛ target ≤۳۰ (gap −۴) |
+| Snapshot | [`psr-4b-exports.mdoc`](../audits/snapshots/2026-07-31/psr-4b-exports.mdoc) |
+| Inventory | [`psr-4b-exports-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-exports-inventory.yaml) |
+| Smoke | `node scripts/ops/psr-4b-exports-smoke.mjs` |
+
+| Change | Detail |
+| --- | --- |
+| Peeled (−۵) | `plugin-for-wizard-engine`, `denali-plugin-build`, `clone/hydration`, `smoke/phase-6-denali-smoke-tenant`, `marketing` |
+| host-private | **۳۴** / ≤۳۰ |
+| total exports | **۱۵۷** (was ۱۶۲) |
+
+**عمداً خارج این موج:** manifest-bound surfaces؛ `./host/draft` test retarget؛ configure-*؛ api-deps-sync.
+
+**Next:** PSR-4b-exports-2 (draft→root سپس peel؛ ادامه −۴ تا ≤۳۰).
+
+### 0.00 PSR-4b-host-imports-close (بسته)
 
 | Field | Value |
 | --- | --- |
@@ -65,10 +87,6 @@ doc_role: canonical
 | Authority | [`denali-plugin-encapsulation.mdoc`](../dev/denali-plugin-encapsulation.mdoc) |
 
 **Host-imports train:** کامل برای gate خنثی‌سازی import.
-
-**عمداً خارج (PSR-4 باقی):** export −۹؛ حذف/جذب configure-*؛ api-deps-sync.
-
-**Next:** PSR-4b-exports (−۹ host-visible) .
 
 ### 0.00 PSR-4b-host-imports-5 (بسته / partial)
 

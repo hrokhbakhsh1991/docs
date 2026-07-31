@@ -2,7 +2,7 @@
   "name": "@app-tour/workspace-denali",
   "version": "0.1.0",
   "private": true,
-  "description": "Denali workspace plugin — registry, rules, composites, finance hooks (Phase 6)",
+  "description": "Denali workspace plugin \u2014 registry, rules, composites, finance hooks (Phase 6)",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -13,10 +13,6 @@
     "./plugin": {
       "types": "./dist/denali.plugin.d.ts",
       "default": "./dist/denali.plugin.js"
-    },
-    "./host/plugin-for-wizard-engine": {
-      "types": "./dist/plugin-for-wizard-engine.d.ts",
-      "default": "./dist/plugin-for-wizard-engine.js"
     },
     "./host/adapters/canonical-basics": {
       "types": "./dist/adapters/canonical-basics.d.ts",
@@ -142,10 +138,6 @@
       "types": "./dist/wizard/ensure-tour-kind-template-field.d.ts",
       "default": "./dist/wizard/ensure-tour-kind-template-field.js"
     },
-    "./host/clone/hydration": {
-      "types": "./dist/clone/denali-tour-clone-hydration.d.ts",
-      "default": "./dist/clone/denali-tour-clone-hydration.js"
-    },
     "./host/clone": {
       "types": "./dist/clone/index.d.ts",
       "default": "./dist/clone/index.js"
@@ -210,17 +202,9 @@
       "types": "./dist/finance/api-tour-created-adapter.d.ts",
       "default": "./dist/finance/api-tour-created-adapter.js"
     },
-    "./host/smoke/phase-6-denali-smoke-tenant": {
-      "types": "./dist/smoke/phase-6-denali-smoke-tenant.d.ts",
-      "default": "./dist/smoke/phase-6-denali-smoke-tenant.js"
-    },
     "./settings/denaliFullWizardTemplate": {
       "types": "./dist/settings/denaliFullWizardTemplate.d.ts",
       "default": "./dist/settings/denaliFullWizardTemplate.js"
-    },
-    "./host/denali-plugin-build": {
-      "types": "./dist/denali-plugin-build.d.ts",
-      "default": "./dist/denali-plugin-build.js"
     },
     "./host/http": {
       "types": "./dist/http/index.d.ts",
@@ -238,10 +222,6 @@
     "./theme/denali-admin.css": "./theme/denali-admin.css",
     "./theme/denali-portal.css": "./theme/denali-portal.css",
     "./theme/denali-marketing.css": "./theme/denali-marketing.css",
-    "./host/marketing": {
-      "types": "./dist/marketing/index.d.ts",
-      "default": "./dist/marketing/index.js"
-    },
     "./host/marketing/marketing-catalog-surface": {
       "types": "./dist/marketing/marketing-catalog-surface.d.ts",
       "default": "./dist/marketing/marketing-catalog-surface.js"

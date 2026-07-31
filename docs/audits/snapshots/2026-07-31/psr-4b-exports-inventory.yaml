@@ -1,0 +1,45 @@
+schema_version: 1
+program_id: PSR-001
+wave: PSR-4b-exports
+updated: "2026-07-31"
+workspace: "@app-tour/workspace-denali"
+package_json: packages/workspaces/denali/package.json
+policy:
+  target_host_private_max: 30
+  # Partial peel this wave; remaining gap closed in follow-on export waves.
+  host_private_ceiling: 34
+  peel_requires_zero_external_consumers: true
+  peel_requires_not_manifest_bound: true
+  replacement_paths:
+    "./host/plugin-for-wizard-engine": "@app-tour/workspace-denali"
+    "./host/denali-plugin-build": "@app-tour/workspace-denali"
+    "./host/clone/hydration": "@app-tour/workspace-denali/host/clone"
+    "./host/smoke/phase-6-denali-smoke-tenant": "@app-tour/workspace-denali"
+    "./host/marketing": "@app-tour/workspace-denali/host/marketing/marketing-catalog-surface"
+baseline_psr4a:
+  host_private: 39
+  total_exports: 162
+metrics:
+  host_private: 34
+  total_exports: 157
+  peeled_this_wave: 5
+  remaining_gap_to_target: 4
+peeled:
+  - export: "./host/plugin-for-wizard-engine"
+    proof: "zero live imports outside denali; only historical codemod map; root `.` still exports denaliPluginForWizardEngine"
+    replacement: "@app-tour/workspace-denali"
+  - export: "./host/denali-plugin-build"
+    proof: "zero live imports outside denali; only historical codemod map; root `.` still exports lifecycle symbols"
+    replacement: "@app-tour/workspace-denali"
+  - export: "./host/clone/hydration"
+    proof: "zero live imports outside denali; symbols re-exported via ./host/clone"
+    replacement: "@app-tour/workspace-denali/host/clone"
+  - export: "./host/smoke/phase-6-denali-smoke-tenant"
+    proof: "devBootstrap.smokeTenant codegen imports package root, not ./host/smoke/*"
+    replacement: "@app-tour/workspace-denali"
+  - export: "./host/marketing"
+    proof: "zero exact-path consumers; catalog uses ./host/marketing/marketing-catalog-surface"
+    replacement: "@app-tour/workspace-denali/host/marketing/marketing-catalog-surface"
+remaining_host_private_gap_notes:
+  - "./host/draft is test+ignore-guard only — candidate to retarget to package root then peel"
+  - "further −3 requires per-export proof (no bulk delete of manifest-bound surfaces)"
