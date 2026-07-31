@@ -1,4 +1,5 @@
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
+import { detectWorkspaceTourPublishTransition } from "@app-tour/workspace-sdk";
 
 import { isUrbanTourPublished } from "../http/publish-status";
 
@@ -25,7 +26,7 @@ function normalizeUrbanPublishStatus(raw: unknown): UrbanTourPublishStatus | und
 }
 
 export function readUrbanTourPublishStatusFromCanonical(
-  canonical: CanonicalDocument
+  canonical: CanonicalDocument,
 ): UrbanTourPublishStatus | undefined {
   const tour = readTourRecord(canonical.data);
   if (tour === undefined) {
@@ -37,7 +38,7 @@ export function readUrbanTourPublishStatusFromCanonical(
 /** Detect owner publish/unpublish transition from merged canonical before/after PATCH. */
 export function detectUrbanTourPublishTransition(
   beforeData: Readonly<Record<string, unknown>>,
-  afterData: Readonly<Record<string, unknown>>
+  afterData: Readonly<Record<string, unknown>>,
 ): UrbanTourPublishTransition | null {
   const beforeTour = beforeData.tour;
   const afterTour = afterData.tour;
@@ -52,13 +53,8 @@ export function detectUrbanTourPublishTransition(
     data: { tour: afterTour },
   } satisfies CanonicalDocument;
 
-  const wasPublished = isUrbanTourPublished(beforeCanonical);
-  const isPublished = isUrbanTourPublished(afterCanonical);
-  if (!wasPublished && isPublished) {
-    return "published";
-  }
-  if (wasPublished && !isPublished) {
-    return "unpublished";
-  }
-  return null;
+  return detectWorkspaceTourPublishTransition(
+    isUrbanTourPublished(beforeCanonical),
+    isUrbanTourPublished(afterCanonical),
+  );
 }

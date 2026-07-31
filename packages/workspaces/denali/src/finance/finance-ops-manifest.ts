@@ -1,3 +1,7 @@
+import { assertWorkspaceTypeOrThrow } from "@app-tour/workspace-sdk";
+
+import { DENALI_WORKSPACE_TYPE } from "../denali-identity";
+
 /**
  * Phase 9.7 — Denali finance operator manifest (DEC-P9-016).
  * @see docs/phase-9/appendices/FINANCE-OPS-UX.md §7
@@ -108,7 +112,9 @@ export function resolveFinanceOpsManifestFromTheme(theme: unknown): FinanceOpsMa
 }
 
 export function assertDenaliFinanceWorkspace(workspaceType: string): void {
-  if (workspaceType !== "denali") {
-    throw new Error("FINANCE_WORKSPACE_UNSUPPORTED");
-  }
+  assertWorkspaceTypeOrThrow(
+    workspaceType,
+    DENALI_WORKSPACE_TYPE,
+    () => new Error("FINANCE_WORKSPACE_UNSUPPORTED"),
+  );
 }

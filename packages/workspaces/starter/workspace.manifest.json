@@ -17,11 +17,5 @@
   "wizardCreate": {},
   "themeStylesheets": [
     "theme/tokens.css"
-  ],
-  "wizardTemplate": {
-    "pathAliases": [
-      "title"
-    ],
-    "aliasCatalogWorkspaceType": "denali"
-  }
+  ]
 }

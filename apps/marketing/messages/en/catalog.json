@@ -300,7 +300,8 @@
           "event_reading": "Event — reading (single day)",
           "event_reading_multi": "Event — reading (multi day)",
           "event_cinema": "Event — cinema (single day)",
-          "event_cinema_multi": "Event — cinema (multi day)"
+          "event_cinema_multi": "Event — cinema (multi day)",
+          "city_sail": "City — sailing"
         }
       },
       "destinations": {

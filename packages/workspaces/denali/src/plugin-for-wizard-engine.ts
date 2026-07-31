@@ -1,18 +1,10 @@
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
+import { stripWorkspacePluginForWizardEngine } from "@app-tour/platform-core";
 
 /**
- * Operator/marketing callable surfaces are not plain JSON — strip before
- * `PlatformWizardEngine.create` (workspace-sdk ingress rejects functions).
+ * Strip callable host surfaces before `PlatformWizardEngine.create` (DG-3.5).
+ * Thin alias of platform-core `stripWorkspacePluginForWizardEngine`.
  */
 export function denaliPluginForWizardEngine(plugin: WorkspacePlugin): WorkspacePlugin {
-  const {
-    tourList: _tourList,
-    tourClone: _tourClone,
-    publicCatalog: _publicCatalog,
-    catalogIntake: _catalogIntake,
-    wizardHost: _wizardHost,
-    draftTombstone: _draftTombstone,
-    ...wizardPlugin
-  } = plugin;
-  return wizardPlugin as WorkspacePlugin;
+  return stripWorkspacePluginForWizardEngine(plugin);
 }

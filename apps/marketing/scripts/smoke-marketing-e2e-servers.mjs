@@ -174,6 +174,10 @@ delete apiEnv.DATABASE_URL_ADMIN;
 
 const portalEnv = {
   ...process.env,
+  // Must match API ephemeral RS256 pair — otherwise middleware
+  // validateSessionTokenAsync → invalid_signature → clears atour_mb_session
+  // and P3-E2E-D01 /me after register-complete fails (DG-4.7.2).
+  ...jwtEnv,
   NODE_ENV: "development",
   ALLOW_DEV_WEB_SESSION: "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",

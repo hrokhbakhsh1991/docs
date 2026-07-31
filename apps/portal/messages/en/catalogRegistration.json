@@ -97,6 +97,7 @@
     "PUBLIC_CATALOG_TENANT_UNRESOLVED": "Registration is temporarily unavailable for this site.",
     "URBAN_REGISTRATION_DUPLICATE": "You already registered for this tour with this email.",
     "URBAN_REGISTRATION_CLOSED": "Registration is closed for this workspace.",
+    "REGISTRATION_CLOSED": "Registration is closed for this workspace.",
     "DENALI_REGISTRATION_DUPLICATE": "You already registered for this tour.",
     "network": "Something went wrong. Try again."
   },

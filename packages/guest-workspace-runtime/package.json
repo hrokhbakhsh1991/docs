@@ -2,7 +2,7 @@
   "name": "@app-tour/guest-workspace-runtime",
   "version": "0.1.0",
   "private": true,
-  "description": "P5.3 — guest surface product registrars + theme loaders (portal/marketing dep collapse)",
+  "description": "P5.3 \u2014 guest surface product registrars + theme loaders (portal/marketing dep collapse)",
   "type": "module",
   "exports": {
     ".": {
@@ -24,6 +24,10 @@
     "./marketing-catalog": {
       "types": "./src/marketing-catalog.ts",
       "default": "./src/marketing-catalog.ts"
+    },
+    "./ensure-registration-flow-client": {
+      "types": "./src/ensure-registration-flow.client.ts",
+      "default": "./src/ensure-registration-flow.client.ts"
     }
   },
   "scripts": {
@@ -34,6 +38,7 @@
     "@app-tour/catalog-registration-flow-ui": "workspace:*",
     "@app-tour/workspace-denali": "workspace:*",
     "@app-tour/workspace-guest-club": "workspace:*",
+    "@app-tour/workspace-harbor": "workspace:*",
     "@app-tour/workspace-plugin-host": "workspace:*",
     "@app-tour/workspace-sdk": "workspace:*",
     "@app-tour/workspace-starter": "workspace:*",

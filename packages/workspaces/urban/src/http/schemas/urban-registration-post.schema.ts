@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  WORKSPACE_REGISTRATION_EMAIL_PATTERN,
+  WORKSPACE_REGISTRATION_PHONE_PATTERN,
+  parseWorkspaceZodOrThrow,
+} from "@app-tour/workspace-sdk";
 
 const emailSchema = z
   .string()
@@ -6,7 +11,7 @@ const emailSchema = z
   .min(3)
   .max(320)
   .email()
-  .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+  .regex(WORKSPACE_REGISTRATION_EMAIL_PATTERN);
 
 export const urbanRegistrationPostSchema = z.object({
   tourId: z.string().uuid(),
@@ -17,7 +22,7 @@ export const urbanRegistrationPostSchema = z.object({
       .string()
       .trim()
       .max(32)
-      .regex(/^[\d+\-().\s]*$/)
+      .regex(WORKSPACE_REGISTRATION_PHONE_PATTERN)
       .optional(),
   }),
   partySize: z.number().int().min(1).optional(),
@@ -27,11 +32,5 @@ export const urbanRegistrationPostSchema = z.object({
 export type UrbanRegistrationPostBody = z.infer<typeof urbanRegistrationPostSchema>;
 
 export function parseUrbanRegistrationPostBody(input: unknown): UrbanRegistrationPostBody {
-  const parsed = urbanRegistrationPostSchema.safeParse(input);
-  if (!parsed.success) {
-    const err = new Error("ZOD_VALIDATION_FAILED");
-    (err as Error & { details?: unknown }).details = parsed.error.flatten();
-    throw err;
-  }
-  return parsed.data;
+  return parseWorkspaceZodOrThrow(urbanRegistrationPostSchema.safeParse(input));
 }

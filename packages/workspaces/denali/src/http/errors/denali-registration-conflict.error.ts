@@ -1,22 +1,15 @@
-export const DENALI_REGISTRATION_DUPLICATE = "DENALI_REGISTRATION_DUPLICATE" as const;
+import { defineWorkspaceCodedError } from "@app-tour/workspace-sdk";
 
-export class DenaliRegistrationDuplicateError extends Error {
-  readonly code = DENALI_REGISTRATION_DUPLICATE;
-  readonly httpStatus = 409 as const;
+const defined = defineWorkspaceCodedError({
+  code: "DENALI_REGISTRATION_DUPLICATE",
+  name: "DenaliRegistrationDuplicateError",
+  httpStatus: 409,
+});
 
-  constructor() {
-    super(DENALI_REGISTRATION_DUPLICATE);
-    this.name = "DenaliRegistrationDuplicateError";
-  }
-}
-
+export const DENALI_REGISTRATION_DUPLICATE = defined.code as "DENALI_REGISTRATION_DUPLICATE";
+export const DenaliRegistrationDuplicateError = defined.ErrorClass;
 export function isDenaliRegistrationDuplicateError(
-  error: unknown
-): error is DenaliRegistrationDuplicateError {
-  return (
-    error instanceof DenaliRegistrationDuplicateError ||
-    (typeof error === "object" &&
-      error !== null &&
-      (error as { code?: string }).code === DENALI_REGISTRATION_DUPLICATE)
-  );
+  error: unknown,
+): error is InstanceType<typeof DenaliRegistrationDuplicateError> {
+  return defined.isError(error);
 }

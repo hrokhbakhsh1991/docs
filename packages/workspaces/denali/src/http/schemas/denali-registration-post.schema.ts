@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  WORKSPACE_REGISTRATION_EMAIL_PATTERN,
+  WORKSPACE_REGISTRATION_PHONE_PATTERN,
+  parseWorkspaceZodOrThrow,
+} from "@app-tour/workspace-sdk";
 
 import {
   denaliRegistrationTransportIntakeSchema,
@@ -11,7 +16,7 @@ const optionalEmailSchema = z
   .min(3)
   .max(320)
   .email()
-  .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
+  .regex(WORKSPACE_REGISTRATION_EMAIL_PATTERN)
   .optional();
 
 const nationalIdSchema = z
@@ -38,7 +43,7 @@ export const denaliRegistrationPostSchema = z.object({
       .string()
       .trim()
       .max(32)
-      .regex(/^[\d+\-().\s]*$/)
+      .regex(WORKSPACE_REGISTRATION_PHONE_PATTERN)
       .optional(),
     nationalId: nationalIdSchema,
     fatherName: fatherNameSchema,
@@ -51,11 +56,5 @@ export const denaliRegistrationPostSchema = z.object({
 export type DenaliRegistrationPostBody = z.infer<typeof denaliRegistrationPostSchema>;
 
 export function parseDenaliRegistrationPostBody(input: unknown): DenaliRegistrationPostBody {
-  const parsed = denaliRegistrationPostSchema.safeParse(input);
-  if (!parsed.success) {
-    const err = new Error("ZOD_VALIDATION_FAILED");
-    (err as Error & { details?: unknown }).details = parsed.error.flatten();
-    throw err;
-  }
-  return parsed.data;
+  return parseWorkspaceZodOrThrow(denaliRegistrationPostSchema.safeParse(input));
 }

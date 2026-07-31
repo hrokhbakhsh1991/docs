@@ -1,4 +1,4 @@
-import type { WorkspaceHttpMethod } from "./workspace-http-method";
+import type { WorkspaceHttpMethod } from "@app-tour/workspace-sdk";
 
 /** Declarative denali public catalog HTTP inventory — marketing app (ADR-MKT-002). */
 export const CATALOG_HTTP_ROUTE_MANIFEST: readonly {

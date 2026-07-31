@@ -1,3 +1,8 @@
+import {
+  workspaceTourPatchTouchesPublishFields,
+  type WorkspaceTourPatchBody,
+} from "@app-tour/workspace-sdk";
+
 export const URBAN_TOUR_PUBLISH_PROTECTED_PATHS = [
   "publishStatus",
   "tour.status",
@@ -5,19 +10,7 @@ export const URBAN_TOUR_PUBLISH_PROTECTED_PATHS = [
   "tour.publishStatus",
 ] as const;
 
-export type UrbanTourPatchBody = {
-  readonly roots?: readonly string[];
-  readonly data?: Record<string, unknown>;
-};
-
-function pathSetIncludesProtectedPath(paths: readonly string[]): boolean {
-  for (const path of paths) {
-    if ((URBAN_TOUR_PUBLISH_PROTECTED_PATHS as readonly string[]).includes(path)) {
-      return true;
-    }
-  }
-  return false;
-}
+export type UrbanTourPatchBody = WorkspaceTourPatchBody;
 
 function dataObjectTouchesPublishFields(data: Record<string, unknown>): boolean {
   if ("publishStatus" in data) {
@@ -34,11 +27,8 @@ function dataObjectTouchesPublishFields(data: Record<string, unknown>): boolean 
 }
 
 export function urbanTourPatchTouchesPublishFields(body: UrbanTourPatchBody): boolean {
-  if (body.roots !== undefined && pathSetIncludesProtectedPath(body.roots)) {
-    return true;
-  }
-  if (body.data !== undefined && dataObjectTouchesPublishFields(body.data)) {
-    return true;
-  }
-  return false;
+  return workspaceTourPatchTouchesPublishFields(body, {
+    protectedPaths: URBAN_TOUR_PUBLISH_PROTECTED_PATHS,
+    dataTouchesPublishFields: dataObjectTouchesPublishFields,
+  });
 }

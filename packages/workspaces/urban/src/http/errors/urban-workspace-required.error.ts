@@ -1,20 +1,15 @@
-export const URBAN_WORKSPACE_REQUIRED = "URBAN_WORKSPACE_REQUIRED" as const;
+import { defineWorkspaceCodedError } from "@app-tour/workspace-sdk";
 
-export class UrbanWorkspaceRequiredError extends Error {
-  readonly code = URBAN_WORKSPACE_REQUIRED;
-  readonly httpStatus = 404 as const;
+const defined = defineWorkspaceCodedError({
+  code: "URBAN_WORKSPACE_REQUIRED",
+  name: "UrbanWorkspaceRequiredError",
+  httpStatus: 404,
+});
 
-  constructor() {
-    super(URBAN_WORKSPACE_REQUIRED);
-    this.name = "UrbanWorkspaceRequiredError";
-  }
-}
-
-export function isUrbanWorkspaceRequiredError(error: unknown): error is UrbanWorkspaceRequiredError {
-  return (
-    error instanceof UrbanWorkspaceRequiredError ||
-    (typeof error === "object" &&
-      error !== null &&
-      (error as { code?: string }).code === URBAN_WORKSPACE_REQUIRED)
-  );
+export const URBAN_WORKSPACE_REQUIRED = defined.code as "URBAN_WORKSPACE_REQUIRED";
+export const UrbanWorkspaceRequiredError = defined.ErrorClass;
+export function isUrbanWorkspaceRequiredError(
+  error: unknown,
+): error is InstanceType<typeof UrbanWorkspaceRequiredError> {
+  return defined.isError(error);
 }

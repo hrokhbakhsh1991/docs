@@ -1,0 +1,151 @@
+{
+  "id": "harbor",
+  "version": 1,
+  "pluginApiVersion": 1,
+  "guestExtensionsVersion": 1,
+  "package": "@app-tour/workspace-harbor",
+  "workspaceTypes": [
+    "harbor"
+  ],
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  },
+  "web": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  },
+  "guestConformance": {
+    "productionTier": "certified"
+  },
+  "http": {
+    "prefix": "/harbor",
+    "module": "./http/routes"
+  },
+  "httpRoutes": {
+    "handlerPackage": "@app-tour/workspace-harbor/host/http",
+    "loadHandlersFromPackage": true,
+    "groups": [
+      {
+        "manifestExport": "HARBOR_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /harbor/catalog": "handleGetHarborCatalog",
+          "POST /harbor/registrations": "handlePostHarborRegistration"
+        },
+        "paramHandlers": {
+          "GET /harbor/catalog/:tourId": "handleGetHarborCatalogTour"
+        }
+      }
+    ]
+  },
+  "devBootstrap": {
+    "pluginTenantIds": [
+      "fbdcae8a-2cd8-4c2c-898c-f408bd51321a"
+    ],
+    "smokeTenant": {
+      "tenantIdExport": "HARBOR_SMOKE_TENANT_ID",
+      "subdomainExport": "HARBOR_SMOKE_SUBDOMAIN"
+    }
+  },
+  "themeStylesheets": [
+    "theme/tokens.css"
+  ],
+  "guestThemeStylesheets": {
+    "marketing": [
+      "theme/marketing.css"
+    ]
+  },
+  "catalogRegistrationFlow": {
+    "surfaceExport": "harborCatalogRegistrationFlowSurface",
+    "steps": {
+      "mode": "compose",
+      "reuseAuthStepsFrom": "shared",
+      "components": {
+        "intake": "HarborIntakeStep",
+        "done": "HarborDoneStep"
+      }
+    }
+  },
+  "catalogPresentation": {
+    "listFeatures": {
+      "cityFilter": true
+    },
+    "detailSections": {
+      "difficulty": false,
+      "fitness": false,
+      "itinerary": false,
+      "policies": true
+    }
+  },
+  "guestLanding": {
+    "variant": "minimal",
+    "sections": {
+      "hero": false,
+      "latestTours": false,
+      "latestToursLimit": 0,
+      "trust": false,
+      "finalCta": false,
+      "faq": false,
+      "footer": false,
+      "whyDenali": false,
+      "journey": false,
+      "testimonials": false,
+      "featuredTours": false,
+      "featuredToursLimit": 0,
+      "categories": false,
+      "destinations": false,
+      "heroSearch": false,
+      "gallery": false,
+      "equipment": false,
+      "blogTeaser": false
+    },
+    "i18nProfile": "minimal"
+  },
+  "memberProfile": {
+    "editableFields": [
+      "displayName"
+    ],
+    "readOnlyFields": [
+      "email"
+    ],
+    "sections": [
+      {
+        "id": "identity",
+        "fields": [
+          "displayName",
+          "email"
+        ]
+      }
+    ]
+  },
+  "guestSeo": {
+    "marketing": {
+      "homeTitleKey": "seo.homeTitle",
+      "homeDescriptionKey": "seo.homeDescription",
+      "listTitleKey": "seo.toursTitle",
+      "listDescriptionKey": "seo.toursDescription",
+      "jsonLd": {
+        "required": true,
+        "schemaTypes": [
+          "Event"
+        ],
+        "builderExport": "buildHarborEventJsonLd",
+        "richResultsProfile": "event-stub-v1"
+      },
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": 0.8
+      },
+      "pagination": {
+        "noindexQueryParams": [
+          "cursor"
+        ]
+      }
+    }
+  },
+  "operatorCapabilities": {
+    "usersDirectory": false,
+    "reconciliationTriage": false,
+    "fieldExposureSurfaces": false
+  }
+}

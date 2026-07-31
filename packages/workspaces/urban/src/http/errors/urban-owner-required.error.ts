@@ -1,21 +1,15 @@
-export const URBAN_OWNER_REQUIRED = "URBAN_OWNER_REQUIRED" as const;
+import { defineWorkspaceCodedError } from "@app-tour/workspace-sdk";
 
-export class UrbanOwnerRequiredError extends Error {
-  readonly code = URBAN_OWNER_REQUIRED;
-  readonly surface: string;
+const defined = defineWorkspaceCodedError({
+  code: "URBAN_OWNER_REQUIRED",
+  name: "UrbanOwnerRequiredError",
+  withSurface: true,
+});
 
-  constructor(surface: string) {
-    super(URBAN_OWNER_REQUIRED);
-    this.name = "UrbanOwnerRequiredError";
-    this.surface = surface;
-  }
-}
-
-export function isUrbanOwnerRequiredError(error: unknown): error is UrbanOwnerRequiredError {
-  return (
-    error instanceof UrbanOwnerRequiredError ||
-    (typeof error === "object" &&
-      error !== null &&
-      (error as { code?: string }).code === URBAN_OWNER_REQUIRED)
-  );
+export const URBAN_OWNER_REQUIRED = defined.code as "URBAN_OWNER_REQUIRED";
+export const UrbanOwnerRequiredError = defined.ErrorClass;
+export function isUrbanOwnerRequiredError(
+  error: unknown,
+): error is InstanceType<typeof UrbanOwnerRequiredError> {
+  return defined.isError(error);
 }

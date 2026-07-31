@@ -1,4 +1,5 @@
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
+import { detectWorkspaceTourPublishTransition } from "@app-tour/workspace-sdk";
 
 import {
   DENALI_TOUR_PUBLISH_ACTIVE_STATUS,
@@ -14,7 +15,7 @@ export type DenaliTourPublishStatus =
 export type DenaliTourPublishTransition = "published" | "unpublished";
 
 function readPublishStatusFromData(
-  data: Record<string, unknown> | undefined
+  data: Record<string, unknown> | undefined,
 ): DenaliTourPublishStatus | undefined {
   if (data === undefined) {
     return undefined;
@@ -37,7 +38,7 @@ function readPublishStatusFromData(
 }
 
 export function readDenaliTourPublishStatusFromCanonical(
-  canonical: CanonicalDocument
+  canonical: CanonicalDocument,
 ): DenaliTourPublishStatus | undefined {
   const data = canonical.data;
   if (data == null || typeof data !== "object" || Array.isArray(data)) {
@@ -49,15 +50,12 @@ export function readDenaliTourPublishStatusFromCanonical(
 /** Detect owner publish/unpublish transition from merged canonical before/after PATCH. */
 export function detectDenaliTourPublishTransition(
   beforeData: Readonly<Record<string, unknown>>,
-  afterData: Readonly<Record<string, unknown>>
+  afterData: Readonly<Record<string, unknown>>,
 ): DenaliTourPublishTransition | null {
   const before = readPublishStatusFromData(beforeData) ?? DENALI_TOUR_PUBLISH_DRAFT_STATUS;
   const after = readPublishStatusFromData(afterData) ?? DENALI_TOUR_PUBLISH_DRAFT_STATUS;
-  if (before !== DENALI_TOUR_PUBLISH_ACTIVE_STATUS && after === DENALI_TOUR_PUBLISH_ACTIVE_STATUS) {
-    return "published";
-  }
-  if (before === DENALI_TOUR_PUBLISH_ACTIVE_STATUS && after !== DENALI_TOUR_PUBLISH_ACTIVE_STATUS) {
-    return "unpublished";
-  }
-  return null;
+  return detectWorkspaceTourPublishTransition(
+    before === DENALI_TOUR_PUBLISH_ACTIVE_STATUS,
+    after === DENALI_TOUR_PUBLISH_ACTIVE_STATUS,
+  );
 }

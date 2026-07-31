@@ -1,5 +1,11 @@
 import type { PublicCatalogTourInput } from "@app-tour/workspace-sdk";
 import {
+  applyWorkspaceCatalogCardExposure,
+  assertWorkspaceTypeOrThrow,
+  loadWorkspaceTourIfPublished,
+  normalizeWorkspaceTypeKey,
+} from "@app-tour/workspace-sdk";
+import {
   DENALI_EXPOSURE_SURFACE,
   resolveDenaliExposureCoordinate,
 } from "../exposure/denali-exposure-surfaces";
@@ -8,6 +14,7 @@ import { applyDenaliCatalogCardExposure } from "../catalog/denali-catalog-exposu
 import { isDenaliTourPublished } from "../catalog/denali-publish-status";
 import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";
 import { collectItinerarySegmentDestinationIds } from "../catalog/project-denali-catalog-itinerary";
+import { DENALI_WORKSPACE_TYPE } from "../denali-identity";
 import { DenaliWorkspaceRequiredError } from "./errors/denali-workspace-required.error";
 import type { DenaliExposureResolverPort } from "./ports/exposure-resolver.port";
 import type { DenaliPublicDestinationPort } from "./ports/public-destination.port";
@@ -51,15 +58,22 @@ export async function getDenaliDashboardTour(params: {
   readonly exposurePort?: DenaliExposureResolverPort;
   readonly tourId: string;
 }) {
-  if (params.workspaceType.trim().toLowerCase() !== "denali") {
-    throw new DenaliWorkspaceRequiredError();
-  }
+  assertWorkspaceTypeOrThrow(
+    normalizeWorkspaceTypeKey(params.workspaceType),
+    DENALI_WORKSPACE_TYPE,
+    () => new DenaliWorkspaceRequiredError(),
+  );
 
-  const record = await params.store.findFirst({
-    tenantId: params.tenantId,
-    id: params.tourId,
+  const record = await loadWorkspaceTourIfPublished({
+    findFirst: () =>
+      params.store.findFirst({
+        tenantId: params.tenantId,
+        id: params.tourId,
+      }),
+    isPublished: isDenaliTourPublished,
+    getCanonical: (row) => row.canonical,
   });
-  if (record === null || !isDenaliTourPublished(record.canonical)) {
+  if (record === null) {
     return null;
   }
 
@@ -77,15 +91,14 @@ export async function getDenaliDashboardTour(params: {
     destinationNameById === undefined ? undefined : { destinationNameById },
   );
 
-  if (params.exposurePort === undefined) {
-    return card;
-  }
-
-  const visibleFieldIds = await params.exposurePort.resolveVisibleFieldIds({
+  return applyWorkspaceCatalogCardExposure({
     tenantId: params.tenantId,
     tourId: tour.id,
     canonical: tour.canonical,
-    coordinate: resolveDenaliExposureCoordinate({ surface: DENALI_EXPOSURE_SURFACE.userDashboard }),
+    card,
+    exposurePort: params.exposurePort,
+    resolveCoordinate: () =>
+      resolveDenaliExposureCoordinate({ surface: DENALI_EXPOSURE_SURFACE.userDashboard }),
+    applyExposure: applyDenaliCatalogCardExposure,
   });
-  return applyDenaliCatalogCardExposure(card, new Set(visibleFieldIds));
 }

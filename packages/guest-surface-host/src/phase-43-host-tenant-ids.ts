@@ -9,6 +9,7 @@ export const PHASE_43_HOST_TENANT_IDS: Readonly<Record<string, string>> = {
   "workspace-member-smoke": "00000000-0000-4000-8000-000000000004",
   operator: "00000000-0000-4000-8000-000000000014",
   "guest-club": "eb29a07b-40bb-4e06-9e35-522cb22dab02",
+  harbor: "fbdcae8a-2cd8-4c2c-898c-f408bd51321a",
 };
 
 export function resolveTenantIdFromIngressLabel(label: string): string | null {

@@ -1,4 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import {
+  buildWorkspaceCatalogListSuccessBody,
+  buildWorkspaceSuccessDataBody,
+  parseWorkspaceCatalogCursorLimitQuery,
+  WORKSPACE_HTTP_ERROR_NOT_FOUND,
+} from "@app-tour/workspace-sdk";
 
 import { getDenaliCatalogTour, listDenaliCatalog } from "./catalog.service";
 import { parseDenaliCatalogListQuery } from "../catalog/filter-denali-catalog-list";
@@ -12,11 +18,8 @@ import { resolveDenaliRegisteredAuth } from "./resolve-denali-registered-auth";
 import { parseDenaliRegistrationPostBody } from "./schemas/denali-registration-post.schema";
 
 function parseCatalogListQuery(url: URL) {
-  const limitRaw = url.searchParams.get("limit");
-  const limit = limitRaw === null ? undefined : Number.parseInt(limitRaw, 10);
   return {
-    cursor: url.searchParams.get("cursor") ?? undefined,
-    limit: Number.isFinite(limit) ? limit : undefined,
+    ...parseWorkspaceCatalogCursorLimitQuery(url),
     listQuery: parseDenaliCatalogListQuery({
       q: url.searchParams.get("q") ?? undefined,
       category: url.searchParams.get("category") ?? undefined,
@@ -59,11 +62,14 @@ export async function handleGetDenaliCatalog(
           limit: query.limit,
           listQuery: query.listQuery,
         });
-        host.sendJson(res, 200, {
-          success: true,
-          data: { items: result.items },
-          metadata: { nextCursor: result.nextCursor },
-        });
+        host.sendJson(
+          res,
+          200,
+          buildWorkspaceCatalogListSuccessBody({
+            items: result.items,
+            nextCursor: result.nextCursor,
+          }),
+        );
       },
       { rateLimit: "read" }
     );
@@ -101,10 +107,10 @@ export async function handleGetDenaliCatalogTour(
           tourId,
         });
         if (card === null) {
-          host.sendHttpError(res, 404, { error: "not_found", code: "NOT_FOUND" });
+          host.sendHttpError(res, 404, WORKSPACE_HTTP_ERROR_NOT_FOUND);
           return;
         }
-        host.sendJson(res, 200, { success: true, data: card });
+        host.sendJson(res, 200, buildWorkspaceSuccessDataBody(card));
       },
       { rateLimit: "read" }
     );
@@ -145,7 +151,7 @@ export async function handlePostDenaliRegistration(
             ? { saveGuestProfileFields: deps.saveGuestProfileFields }
             : {}),
         });
-        host.sendJson(res, 201, { success: true, data: created });
+        host.sendJson(res, 201, buildWorkspaceSuccessDataBody(created));
       },
       { rateLimit: "write" }
     );
@@ -181,10 +187,10 @@ export async function handleGetDenaliDashboardTour(
           tourId,
         });
         if (card === null) {
-          host.sendHttpError(res, 404, { error: "not_found", code: "NOT_FOUND" });
+          host.sendHttpError(res, 404, WORKSPACE_HTTP_ERROR_NOT_FOUND);
           return;
         }
-        host.sendJson(res, 200, { success: true, data: card });
+        host.sendJson(res, 200, buildWorkspaceSuccessDataBody(card));
       },
       { rateLimit: "read" },
     );
@@ -228,7 +234,7 @@ export async function handleGetDenaliReminderFeed(
           exposurePort,
           limit: parseReminderFeedLimit(url),
         });
-        host.sendJson(res, 200, { success: true, data: { items } });
+        host.sendJson(res, 200, buildWorkspaceSuccessDataBody({ items }));
       },
       { rateLimit: "read" },
     );

@@ -16,6 +16,7 @@ import {
   assertCatalogRegistrationFlowState,
   createCatalogRegistrationFlowRuntimeState,
 } from "@app-tour/catalog-registration-auth";
+import { ensureWorkspaceRegistrationFlowClient } from "@app-tour/guest-workspace-runtime/ensure-registration-flow-client";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 
@@ -64,6 +65,7 @@ export function PublicCatalogRegistrationFlow({
   onMemberLoginSessionReady,
 }: PublicCatalogRegistrationFlowProps) {
   const t = useTranslations("catalogRegistration");
+  ensureWorkspaceRegistrationFlowClient(workspace);
   const flowPlugin = getWorkspaceRegistrationFlowPlugin(workspace);
   const steps = getWorkspaceRegistrationFlowSteps(workspace);
 

@@ -1,18 +1,19 @@
+import { createWorkspaceHttpHostSlot } from "@app-tour/workspace-sdk";
+
 import type { DenaliProductHttpHostPorts } from "./product-host-ports";
 
-let configuredPorts: DenaliProductHttpHostPorts | null = null;
+const slot = createWorkspaceHttpHostSlot<DenaliProductHttpHostPorts>({
+  notConfiguredCode: "DENALI_PRODUCT_HTTP_HOST_NOT_CONFIGURED",
+});
 
 export function configureDenaliProductHttpHost(ports: DenaliProductHttpHostPorts): void {
-  configuredPorts = ports;
+  slot.configure(ports);
 }
 
 export function resetDenaliProductHttpHostForTests(): void {
-  configuredPorts = null;
+  slot.resetForTests();
 }
 
 export function getDenaliProductHttpHost(): DenaliProductHttpHostPorts {
-  if (configuredPorts === null) {
-    throw new Error("DENALI_PRODUCT_HTTP_HOST_NOT_CONFIGURED");
-  }
-  return configuredPorts;
+  return slot.get();
 }

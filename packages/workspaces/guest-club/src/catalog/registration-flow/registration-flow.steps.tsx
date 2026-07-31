@@ -1,3 +1,5 @@
+"use client";
+
 import { readCatalogRegistrationFlowState } from "@app-tour/catalog-registration-auth";
 import {
   mergeFlowState,

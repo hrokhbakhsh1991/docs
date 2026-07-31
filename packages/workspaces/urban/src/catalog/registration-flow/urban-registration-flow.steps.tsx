@@ -1,3 +1,5 @@
+"use client";
+
 import { createCatalogRegistrationFlowInitialData } from "@app-tour/catalog-registration-auth";
 import { RenderIntakeForm } from "@app-tour/catalog-intake-ui";
 import {

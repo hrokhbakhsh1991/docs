@@ -1,6 +1,6 @@
 "use client";
 
-import { PlatformThemeProvider } from "@app-cloud/theme-react";
+import { PlatformThemeProvider } from "@app-tour/theme-react";
 import type { ReactNode } from "react";
 
 import { PortalLoginModalProvider } from "@/auth/portal-login-modal";

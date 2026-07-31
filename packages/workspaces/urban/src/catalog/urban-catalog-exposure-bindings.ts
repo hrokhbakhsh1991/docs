@@ -1,17 +1,15 @@
 import type { UrbanPublicCatalogEgress } from "./urban-public-catalog-surface";
+import {
+  applyWorkspaceCatalogCardFieldBindings,
+  clearWorkspaceCatalogCardStringField,
+  omitWorkspaceCatalogCardKey,
+} from "@app-tour/workspace-sdk";
 import { refreshUrbanCatalogStructuredData } from "./build-urban-event-jsonld";
 
 export type UrbanCatalogCardExposureBinding = {
   readonly fieldId: string;
   readonly applyHidden: (card: UrbanPublicCatalogEgress) => UrbanPublicCatalogEgress;
 };
-
-function clearStringField(
-  card: UrbanPublicCatalogEgress,
-  key: keyof UrbanPublicCatalogEgress,
-): UrbanPublicCatalogEgress {
-  return Object.freeze({ ...card, [key]: null });
-}
 
 function joinListSubtitle(city: string | null | undefined, venueName: string | null | undefined): string | null {
   const parts = [city, venueName].filter((part): part is string => part != null && part.length > 0);
@@ -29,42 +27,51 @@ function recomputeDerivedPresentation(card: UrbanPublicCatalogEgress): UrbanPubl
   });
 }
 
-function clearStructuredData(card: UrbanPublicCatalogEgress): UrbanPublicCatalogEgress {
-  const next = { ...card };
-  delete (next as { structuredData?: unknown }).structuredData;
-  return Object.freeze(next);
-}
-
 /** Maps urban registry field ids to public catalog card redaction steps. */
 export const URBAN_CATALOG_CARD_EXPOSURE_BINDINGS: readonly UrbanCatalogCardExposureBinding[] =
   Object.freeze([
     {
       fieldId: "tour.city",
-      applyHidden: (card) => clearStringField(clearStringField(card, "city"), "category"),
+      applyHidden: (card) =>
+        clearWorkspaceCatalogCardStringField(
+          clearWorkspaceCatalogCardStringField(card, "city"),
+          "category",
+        ),
     },
     {
       fieldId: "tour.venueName",
-      applyHidden: (card) => clearStringField(card, "venueName"),
+      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "venueName"),
     },
     {
       fieldId: "tour.startDate",
-      applyHidden: (card) => clearStringField(clearStringField(card, "startDate"), "departureAt"),
+      applyHidden: (card) =>
+        clearWorkspaceCatalogCardStringField(
+          clearWorkspaceCatalogCardStringField(card, "startDate"),
+          "departureAt",
+        ),
     },
     {
       fieldId: "tour.endDate",
-      applyHidden: (card) => clearStringField(clearStringField(card, "endDate"), "endAt"),
+      applyHidden: (card) =>
+        clearWorkspaceCatalogCardStringField(
+          clearWorkspaceCatalogCardStringField(card, "endDate"),
+          "endAt",
+        ),
     },
     {
       fieldId: "tour.catalogSummary",
       applyHidden: (card) =>
-        clearStringField(
-          clearStringField(clearStringField(card, "catalogSummary"), "listDescription"),
+        clearWorkspaceCatalogCardStringField(
+          clearWorkspaceCatalogCardStringField(
+            clearWorkspaceCatalogCardStringField(card, "catalogSummary"),
+            "listDescription",
+          ),
           "shortDescription",
         ),
     },
     {
       fieldId: "tour.coverImageUrl",
-      applyHidden: (card) => clearStringField(card, "coverImageUrl"),
+      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "coverImageUrl"),
     },
     {
       fieldId: "tour.description",
@@ -72,7 +79,7 @@ export const URBAN_CATALOG_CARD_EXPOSURE_BINDINGS: readonly UrbanCatalogCardExpo
     },
     {
       fieldId: "tour.capacity",
-      applyHidden: (card) => clearStringField(card, "totalCapacity"),
+      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "totalCapacity"),
     },
   ]);
 
@@ -80,15 +87,14 @@ export function applyUrbanCatalogCardExposure(
   card: UrbanPublicCatalogEgress,
   visibleFieldIds: ReadonlySet<string>,
 ): UrbanPublicCatalogEgress {
-  let next = card;
-  for (const binding of URBAN_CATALOG_CARD_EXPOSURE_BINDINGS) {
-    if (!visibleFieldIds.has(binding.fieldId)) {
-      next = binding.applyHidden(next);
-    }
-  }
+  let next = applyWorkspaceCatalogCardFieldBindings(
+    card,
+    visibleFieldIds,
+    URBAN_CATALOG_CARD_EXPOSURE_BINDINGS,
+  );
   if (!visibleFieldIds.has("tour.title")) {
     next = Object.freeze({ ...next, title: "Untitled tour" });
-    next = clearStructuredData(next);
+    next = omitWorkspaceCatalogCardKey(next, "structuredData");
   } else if ("structuredData" in next) {
     next = refreshUrbanCatalogStructuredData(next);
   }

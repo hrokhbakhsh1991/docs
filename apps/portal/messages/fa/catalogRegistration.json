@@ -97,6 +97,7 @@
     "PUBLIC_CATALOG_TENANT_UNRESOLVED": "ثبت‌نام در این سایت موقتاً در دسترس نیست.",
     "URBAN_REGISTRATION_DUPLICATE": "با این ایمیل قبلاً برای این تور ثبت‌نام کرده‌اید.",
     "URBAN_REGISTRATION_CLOSED": "ثبت‌نام در این workspace بسته است.",
+    "REGISTRATION_CLOSED": "ثبت‌نام در این workspace بسته است.",
     "DENALI_REGISTRATION_DUPLICATE": "قبلاً برای این تور ثبت‌نام کرده‌اید.",
     "network": "خطایی رخ داد. دوباره تلاش کنید."
   },

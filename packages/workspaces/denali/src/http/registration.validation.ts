@@ -1,3 +1,7 @@
+import {
+  assertWorkspaceRegistrationContactBasics,
+} from "@app-tour/workspace-sdk";
+
 export type DenaliRegistrationPayload = {
   readonly registrantTarget?: "self" | "other";
   readonly contact: {
@@ -15,9 +19,6 @@ export type DenaliRegistrationPayload = {
   };
 };
 
-const DENALI_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const DENALI_PHONE_PATTERN = /^[\d+\-().\s]*$/;
-
 export function validateDenaliRegistrationPayload(
   payload: DenaliRegistrationPayload,
   context: {
@@ -30,27 +31,18 @@ export function validateDenaliRegistrationPayload(
     readonly profileBirthDate?: string | null;
   },
 ): void {
-  const email = payload.contact.email?.trim() ?? "";
-  if (
-    email.length > 0 &&
-    (email.length < 3 || email.length > 320 || !DENALI_EMAIL_PATTERN.test(email))
-  ) {
-    throw new Error("DENALI_REGISTRATION_INVALID");
-  }
-  const fullName = payload.contact.fullName.trim();
-  if (fullName.length < 1 || fullName.length > 200) {
-    throw new Error("DENALI_REGISTRATION_INVALID");
-  }
-  if (payload.contact.phone !== undefined) {
-    const phone = payload.contact.phone.trim();
-    if (phone.length > 32 || !DENALI_PHONE_PATTERN.test(phone)) {
-      throw new Error("DENALI_REGISTRATION_INVALID");
-    }
-  }
-  if (!Number.isInteger(payload.partySize) || payload.partySize < 1) {
-    throw new Error("DENALI_REGISTRATION_INVALID");
-  }
-  // Capacity / occupancy SoT is Booking capacityPolicy (hybrid: Denali supplies max only).
+  assertWorkspaceRegistrationContactBasics({
+    email: payload.contact.email,
+    emailRequired: false,
+    fullName: payload.contact.fullName,
+    ...(payload.contact.phone === undefined ? {} : { phone: payload.contact.phone }),
+    partySize: payload.partySize,
+    partySizeRequired: true,
+    capacity: context.capacity,
+    // Capacity / occupancy SoT is Booking capacityPolicy (hybrid: product supplies max only).
+    enforcePartySizeCapacity: false,
+    createInvalidError: () => new Error("DENALI_REGISTRATION_INVALID"),
+  });
 
   if (context.nationalIdRequired === true) {
     const profileNationalId = context.profileNationalId?.trim() ?? "";

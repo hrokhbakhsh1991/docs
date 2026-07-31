@@ -1,9 +1,16 @@
-import type { CanonicalDocument } from "@app-tour/workspace-sdk";
+import {
+  assertWorkspaceTypeOrThrow,
+  createTourDepartureNotSetValidationError,
+  readWorkspaceCanonicalCapacityByPath,
+  requireWorkspacePublishedTour,
+  WORKSPACE_PUBLIC_CATALOG_GUEST_USER_ID,
+} from "@app-tour/workspace-sdk";
 
 import {
   assertDenaliCreateValid,
   buildDenaliBookingCreatePolicyContext,
 } from "../booking";
+import { DENALI_WORKSPACE_TYPE } from "../denali-identity";
 
 import { validateDenaliRegistrationPayload } from "./registration.validation";
 import { isDenaliTourPublished } from "../catalog/denali-publish-status";
@@ -15,17 +22,6 @@ import type { BookingPublicPort } from "./ports/public-booking.port";
 import type { DenaliTourStorePort } from "./ports/tour-store.port";
 import type { DenaliRegistrationPostBody } from "./schemas/denali-registration-post.schema";
 import { normalizeDenaliRegistrationTransportIntake } from "./resolve-denali-registration-transport";
-
-function readTourCapacity(canonical: CanonicalDocument): number | null {
-  const data = canonical.data;
-  if (data === null || typeof data !== "object" || Array.isArray(data)) {
-    return null;
-  }
-  const capacityMax = (data as Record<string, unknown>).capacityMax;
-  return typeof capacityMax === "number" && Number.isFinite(capacityMax)
-    ? Math.trunc(capacityMax)
-    : null;
-}
 
 export type DenaliGuestMembershipSnapshot = {
   readonly displayName?: string | null;
@@ -41,7 +37,7 @@ export type DenaliGuestProfilePatch = {
   readonly birthDate?: string;
 };
 
-const PUBLIC_CATALOG_GUEST_USER_ID = "00000000-0000-4000-0000-000000000001";
+const PUBLIC_CATALOG_GUEST_USER_ID = WORKSPACE_PUBLIC_CATALOG_GUEST_USER_ID;
 
 export async function createDenaliRegistration(params: {
   readonly tenantId: string;
@@ -60,21 +56,24 @@ export async function createDenaliRegistration(params: {
     patch: DenaliGuestProfilePatch
   ) => Promise<void>;
 }): Promise<{ readonly id: string; readonly status: string }> {
-  if (params.workspaceType !== "denali") {
-    throw new DenaliWorkspaceRequiredError();
-  }
+  assertWorkspaceTypeOrThrow(
+    params.workspaceType,
+    DENALI_WORKSPACE_TYPE,
+    () => new DenaliWorkspaceRequiredError(),
+  );
 
-  const tour = await params.store.findFirst({
-    tenantId: params.tenantId,
-    id: params.body.tourId,
+  const tour = await requireWorkspacePublishedTour({
+    findFirst: () =>
+      params.store.findFirst({
+        tenantId: params.tenantId,
+        id: params.body.tourId,
+      }),
+    isPublished: isDenaliTourPublished,
+    getCanonical: (row) => row.canonical,
   });
-  if (tour === null || !isDenaliTourPublished(tour.canonical)) {
-    const err = new Error("ZOD_VALIDATION_FAILED");
-    (err as Error & { details?: unknown }).details = { tourId: ["TOUR_NOT_PUBLISHED"] };
-    throw err;
-  }
 
-  const capacity = readTourCapacity(tour.canonical);
+  const capacityRaw = readWorkspaceCanonicalCapacityByPath(tour.canonical, ["capacityMax"]);
+  const capacity = capacityRaw === null ? null : Math.trunc(capacityRaw);
   const card = toDenaliCatalogCard(tour);
   const guestMembership =
     params.resolveGuestMembership === undefined
@@ -148,9 +147,7 @@ export async function createDenaliRegistration(params: {
 
   const departureAt = card.departureAt?.trim();
   if (departureAt === undefined || departureAt.length === 0) {
-    const err = new Error("ZOD_VALIDATION_FAILED");
-    (err as Error & { details?: unknown }).details = { tourId: ["TOUR_DEPARTURE_NOT_SET"] };
-    throw err;
+    throw createTourDepartureNotSetValidationError();
   }
 
   // Phase 1 booking domain — fail closed on Denali create shape before host pending create.
@@ -173,7 +170,8 @@ export async function createDenaliRegistration(params: {
 
   if (
     registrantTarget === "self" &&
-    params.saveGuestProfileFields !== undefined
+    params.saveGuestProfileFields !== undefined &&
+    params.guestUserId !== PUBLIC_CATALOG_GUEST_USER_ID
   ) {
     const intakeNationalId = params.body.contact.nationalId?.trim() ?? "";
     const intakeFatherName = params.body.contact.fatherName?.trim() ?? "";

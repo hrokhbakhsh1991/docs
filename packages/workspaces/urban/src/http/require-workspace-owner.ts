@@ -1,4 +1,8 @@
-import { buildTenantAuthz, type TenantAuthContext, type TenantAuthz } from "@app-tour/workspace-sdk";
+import {
+  assertWorkspaceOwnerMutation,
+  type TenantAuthContext,
+  type TenantAuthz,
+} from "@app-tour/workspace-sdk";
 import { canPerformUrbanOwnerMutation, type UrbanOwnerSurface } from "../auth";
 
 import { UrbanOwnerRequiredError } from "./errors/urban-owner-required.error";
@@ -15,22 +19,17 @@ export function assertWorkspaceOwner(params: AssertWorkspaceOwnerParams): void {
     throw new Error("INTERNAL_SERVER_ERROR");
   }
 
-  let authz = params.authz;
-  if (authz === undefined) {
-    if (process.env.URBAN_TEST_INJECT_AUTHZ_BUILD_THROW === "1") {
-      throw new UrbanOwnerRequiredError(params.surface);
-    }
-    authz = buildTenantAuthz(params.auth);
-  }
-
-  if (
-    !canPerformUrbanOwnerMutation(
-      authz,
-      params.auth.tenantId,
-      params.surface,
-      params.workspaceType
-    )
-  ) {
+  if (params.authz === undefined && process.env.URBAN_TEST_INJECT_AUTHZ_BUILD_THROW === "1") {
     throw new UrbanOwnerRequiredError(params.surface);
   }
+
+  assertWorkspaceOwnerMutation({
+    auth: params.auth,
+    workspaceType: params.workspaceType,
+    surface: params.surface,
+    ...(params.authz === undefined ? {} : { authz: params.authz }),
+    canPerform: canPerformUrbanOwnerMutation,
+    createOwnerRequiredError: (surface: UrbanOwnerSurface) =>
+      new UrbanOwnerRequiredError(surface),
+  });
 }

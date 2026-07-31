@@ -1,18 +1,19 @@
+import { createWorkspaceHttpHostSlot } from "@app-tour/workspace-sdk";
+
 import type { UrbanHttpHostPorts } from "./host-ports";
 
-let configuredPorts: UrbanHttpHostPorts | null = null;
+const slot = createWorkspaceHttpHostSlot<UrbanHttpHostPorts>({
+  notConfiguredCode: "URBAN_HTTP_HOST_NOT_CONFIGURED",
+});
 
 export function configureUrbanHttpHost(ports: UrbanHttpHostPorts): void {
-  configuredPorts = ports;
+  slot.configure(ports);
 }
 
 export function resetUrbanHttpHostForTests(): void {
-  configuredPorts = null;
+  slot.resetForTests();
 }
 
 export function getUrbanHttpHost(): UrbanHttpHostPorts {
-  if (configuredPorts === null) {
-    throw new Error("URBAN_HTTP_HOST_NOT_CONFIGURED");
-  }
-  return configuredPorts;
+  return slot.get();
 }

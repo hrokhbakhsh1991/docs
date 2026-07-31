@@ -1,5 +1,6 @@
 import {
   PlatformWizardEngine,
+  stripWorkspacePluginForWizardEngine,
   type RenderFieldPlan,
   type RenderStepPlan,
   type ValidationResult,
@@ -65,14 +66,7 @@ function asDraftEnvelope(draft: Readonly<Record<string, unknown>>): CanonicalWiz
 
 /** Strip callable host hooks before platform wizard engine bootstrap. */
 function pluginForWizardEngine(plugin: WorkspacePlugin): WorkspacePlugin {
-  const {
-    tourList: _tourList,
-    tourClone: _tourClone,
-    publicCatalog: _publicCatalog,
-    wizardHost: _wizardHost,
-    ...wizardPlugin
-  } = plugin;
-  return wizardPlugin as WorkspacePlugin;
+  return stripWorkspacePluginForWizardEngine(plugin);
 }
 
 function isEmptyHiddenShellValue(value: unknown): boolean {

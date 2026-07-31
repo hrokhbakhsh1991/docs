@@ -1,20 +1,19 @@
-export const URBAN_REGISTRATION_CLOSED = "URBAN_REGISTRATION_CLOSED" as const;
+import { defineWorkspaceCodedError, isWorkspaceCodedError } from "@app-tour/workspace-sdk";
 
-export class UrbanRegistrationClosedError extends Error {
-  readonly code = URBAN_REGISTRATION_CLOSED;
+const defined = defineWorkspaceCodedError({
+  code: "URBAN_REGISTRATION_CLOSED",
+  name: "UrbanRegistrationClosedError",
+});
 
-  constructor() {
-    super(URBAN_REGISTRATION_CLOSED);
-    this.name = "UrbanRegistrationClosedError";
-  }
-}
+export const URBAN_REGISTRATION_CLOSED = defined.code as "URBAN_REGISTRATION_CLOSED";
+export const UrbanRegistrationClosedError = defined.ErrorClass;
 
-export function isUrbanRegistrationClosedError(error: unknown): error is UrbanRegistrationClosedError {
+export function isUrbanRegistrationClosedError(
+  error: unknown,
+): error is InstanceType<typeof UrbanRegistrationClosedError> {
   return (
-    error instanceof UrbanRegistrationClosedError ||
+    defined.isError(error) ||
     (error instanceof Error && error.message === URBAN_REGISTRATION_CLOSED) ||
-    (typeof error === "object" &&
-      error !== null &&
-      (error as { code?: string }).code === URBAN_REGISTRATION_CLOSED)
+    isWorkspaceCodedError(error, URBAN_REGISTRATION_CLOSED)
   );
 }

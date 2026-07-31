@@ -151,6 +151,7 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
       const email = (merged.email ?? data.sessionEmail).trim();
       const res = await fetch("/api/catalog/registrations", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tourId: context.tourId,

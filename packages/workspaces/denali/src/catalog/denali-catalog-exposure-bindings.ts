@@ -1,4 +1,9 @@
 import type { PublicCatalogCard } from "@app-tour/workspace-sdk";
+import {
+  applyWorkspaceCatalogCardFieldBindings,
+  clearWorkspaceCatalogCardStringField,
+  omitWorkspaceCatalogCardKey,
+} from "@app-tour/workspace-sdk";
 
 import { refreshDenaliCatalogStructuredData } from "./denali-catalog-card";
 
@@ -7,28 +12,14 @@ export type DenaliCatalogCardExposureBinding = {
   readonly applyHidden: (card: PublicCatalogCard) => PublicCatalogCard;
 };
 
-function clearStringField(
-  card: PublicCatalogCard,
-  key: keyof PublicCatalogCard,
-): PublicCatalogCard {
-  return Object.freeze({ ...card, [key]: null });
-}
-
 function clearGatheringFields(card: PublicCatalogCard): PublicCatalogCard {
   const next = { ...card, gatheringPoint: null, meetingPointText: null };
   return Object.freeze(next);
 }
 
-function clearStructuredData(card: PublicCatalogCard): PublicCatalogCard {
-  const next = { ...card };
-  delete (next as { structuredData?: unknown }).structuredData;
-  return Object.freeze(next);
-}
-
 function clearPhotos(card: PublicCatalogCard): PublicCatalogCard {
-  const next = { ...clearStringField(card, "coverImageUrl") };
-  delete (next as { photoUrls?: unknown }).photoUrls;
-  return Object.freeze(next);
+  const next = { ...clearWorkspaceCatalogCardStringField(card, "coverImageUrl") };
+  return omitWorkspaceCatalogCardKey(next, "photoUrls");
 }
 
 /** Maps registry field ids to catalog card redaction steps. */
@@ -39,25 +30,25 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
       fieldId: "denali.destination",
       applyHidden: (card) =>
         Object.freeze({
-          ...clearStringField(card, "category"),
+          ...clearWorkspaceCatalogCardStringField(card, "category"),
           destinationLabel: null,
         }),
     },
     {
       fieldId: "denali.datetime",
-      applyHidden: (card) => clearStringField(card, "departureAt"),
+      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "departureAt"),
     },
     {
       fieldId: "denali.datetime-end",
-      applyHidden: (card) => clearStringField(card, "endAt"),
+      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "endAt"),
     },
     {
       fieldId: "denali.pricing-participants",
-      applyHidden: (card) => clearStringField(card, "priceAmount"),
+      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "priceAmount"),
     },
     {
       fieldId: "denali.pricing-payment",
-      applyHidden: (card) => clearStringField(card, "paymentMode"),
+      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "paymentMode"),
     },
     {
       fieldId: "denali.photos",
@@ -65,7 +56,7 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
     },
     {
       fieldId: "capacityMax",
-      applyHidden: (card) => clearStringField(card, "totalCapacity"),
+      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "totalCapacity"),
     },
     {
       fieldId: "meetingPoint",
@@ -73,7 +64,7 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
     },
     {
       fieldId: "startPointLocationText",
-      applyHidden: (card) => clearStringField(card, "meetingPointText"),
+      applyHidden: (card) => clearWorkspaceCatalogCardStringField(card, "meetingPointText"),
     },
   ]);
 
@@ -81,14 +72,13 @@ export function applyDenaliCatalogCardExposure(
   card: PublicCatalogCard,
   visibleFieldIds: ReadonlySet<string>,
 ): PublicCatalogCard {
-  let next = card;
-  for (const binding of DENALI_CATALOG_CARD_EXPOSURE_BINDINGS) {
-    if (!visibleFieldIds.has(binding.fieldId)) {
-      next = binding.applyHidden(next);
-    }
-  }
+  let next = applyWorkspaceCatalogCardFieldBindings(
+    card,
+    visibleFieldIds,
+    DENALI_CATALOG_CARD_EXPOSURE_BINDINGS,
+  );
   if (!visibleFieldIds.has("title")) {
-    next = clearStructuredData(next);
+    next = omitWorkspaceCatalogCardKey(next, "structuredData");
   } else if ("structuredData" in next) {
     next = refreshDenaliCatalogStructuredData(next);
   }

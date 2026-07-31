@@ -1,4 +1,11 @@
+import {
+  assertWorkspaceTypeOrThrow,
+  readWorkspaceCanonicalCapacityByPath,
+  requireWorkspacePublishedTour,
+} from "@app-tour/workspace-sdk";
+
 import { validateUrbanRegistrationPayload } from "../internal";
+import { URBAN_WORKSPACE_TYPE } from "../urban.plugin";
 
 import { UrbanRegistrationDuplicateError } from "./errors/urban-registration-conflict.error";
 import { UrbanRegistrationClosedError } from "./errors/urban-registration-closed.error";
@@ -12,15 +19,6 @@ import {
 } from "./registration.repository";
 import type { UrbanRegistrationPostBody } from "./schemas/urban-registration-post.schema";
 
-function tourCapacity(canonical: { readonly data: Record<string, unknown> }): number | null {
-  const tour = canonical.data.tour;
-  if (tour === null || typeof tour !== "object" || Array.isArray(tour)) {
-    return null;
-  }
-  const capacity = (tour as Record<string, unknown>).capacity;
-  return typeof capacity === "number" && Number.isFinite(capacity) ? capacity : null;
-}
-
 export async function createUrbanRegistration(params: {
   readonly tenantId: string;
   readonly workspaceType: string;
@@ -29,40 +27,42 @@ export async function createUrbanRegistration(params: {
   readonly registrationRepo?: UrbanRegistrationRepository;
   readonly registrationPolicy?: "open" | "waitlist" | "closed";
 }): Promise<{ readonly id: string; readonly status: string }> {
-  if (params.workspaceType !== "urban") {
-    throw new UrbanWorkspaceRequiredError();
-  }
+  assertWorkspaceTypeOrThrow(
+    params.workspaceType,
+    URBAN_WORKSPACE_TYPE,
+    () => new UrbanWorkspaceRequiredError(),
+  );
 
   const policy = params.registrationPolicy ?? "open";
   if (policy === "closed") {
     throw new UrbanRegistrationClosedError();
   }
 
-  const tour = await params.store.findFirst({
-    tenantId: params.tenantId,
-    id: params.body.tourId,
+  const tour = await requireWorkspacePublishedTour({
+    findFirst: () =>
+      params.store.findFirst({
+        tenantId: params.tenantId,
+        id: params.body.tourId,
+      }),
+    isPublished: isUrbanTourPublished,
+    getCanonical: (row) => row.canonical,
   });
-  if (tour === null || !isUrbanTourPublished(tour.canonical)) {
-    const err = new Error("ZOD_VALIDATION_FAILED");
-    (err as Error & { details?: unknown }).details = { tourId: ["TOUR_NOT_PUBLISHED"] };
-    throw err;
-  }
 
-  const capacity = tourCapacity(tour.canonical);
+  const capacity = readWorkspaceCanonicalCapacityByPath(tour.canonical, ["tour", "capacity"]);
   validateUrbanRegistrationPayload(
     {
       contact: params.body.contact,
       partySize: params.body.partySize,
       notes: params.body.notes,
     },
-    { capacity }
+    { capacity },
   );
 
   const repo = params.registrationRepo ?? getUrbanRegistrationRepository();
   const existing = await repo.findByTenantTourEmail(
     params.tenantId,
     params.body.tourId,
-    params.body.contact.email
+    params.body.contact.email,
   );
   if (existing !== null) {
     throw new UrbanRegistrationDuplicateError();

@@ -1,5 +1,14 @@
 import type { PublicCatalogTourInput } from "@app-tour/workspace-sdk";
 import {
+  applyWorkspaceCatalogCardExposure,
+  assertWorkspaceTypeOrThrow,
+  clampWorkspaceCatalogPageLimit,
+  filterWorkspacePublishedTours,
+  loadWorkspaceTourIfPublished,
+  mapWorkspaceCatalogSliceAsync,
+  sliceWorkspaceCatalogByIdCursor,
+} from "@app-tour/workspace-sdk";
+import {
   DENALI_EXPOSURE_SURFACE,
   resolveDenaliExposureCoordinate,
 } from "../exposure/denali-exposure-surfaces";
@@ -16,6 +25,7 @@ import {
   type DenaliCatalogListQuery,
 } from "../catalog/filter-denali-catalog-list";
 import { collectItinerarySegmentDestinationIds } from "../catalog/project-denali-catalog-itinerary";
+import { DENALI_WORKSPACE_TYPE } from "../denali-identity";
 import { DenaliWorkspaceRequiredError } from "./errors/denali-workspace-required.error";
 import type { DenaliExposureResolverPort } from "./ports/exposure-resolver.port";
 import type { BookingPublicPort } from "./ports/public-booking.port";
@@ -68,16 +78,15 @@ async function applyCatalogExposure(params: {
   readonly surface: (typeof DENALI_EXPOSURE_SURFACE)[keyof typeof DENALI_EXPOSURE_SURFACE];
   readonly exposurePort?: DenaliExposureResolverPort;
 }): Promise<ReturnType<typeof toDenaliCatalogCard>> {
-  if (params.exposurePort === undefined) {
-    return params.card;
-  }
-  const visibleFieldIds = await params.exposurePort.resolveVisibleFieldIds({
+  return applyWorkspaceCatalogCardExposure({
     tenantId: params.tenantId,
     tourId: params.tour.id,
     canonical: params.tour.canonical,
-    coordinate: resolveDenaliExposureCoordinate({ surface: params.surface }),
+    card: params.card,
+    exposurePort: params.exposurePort,
+    resolveCoordinate: () => resolveDenaliExposureCoordinate({ surface: params.surface }),
+    applyExposure: applyDenaliCatalogCardExposure,
   });
-  return applyDenaliCatalogCardExposure(params.card, new Set(visibleFieldIds));
 }
 
 async function mapTourToExposureAwareCard(params: {
@@ -147,18 +156,23 @@ export async function listDenaliCatalog(params: {
   readonly cursor?: string;
   readonly listQuery?: DenaliCatalogListQuery;
 }): Promise<DenaliCatalogListResult> {
-  if (params.workspaceType !== "denali") {
-    throw new DenaliWorkspaceRequiredError();
-  }
+  assertWorkspaceTypeOrThrow(
+    params.workspaceType,
+    DENALI_WORKSPACE_TYPE,
+    () => new DenaliWorkspaceRequiredError(),
+  );
 
-  const limit = Math.min(Math.max(params.limit ?? 20, 1), 50);
+  const limit = clampWorkspaceCatalogPageLimit({ limit: params.limit });
   const listQuery = params.listQuery ?? {};
   const page = await params.store.listPage(
     { tenantId: params.tenantId },
     { limit: Number.MAX_SAFE_INTEGER }
   );
 
-  let published = page.items.filter((tour) => isDenaliTourPublished(tour.canonical));
+  let published = filterWorkspacePublishedTours(page.items, {
+    isPublished: isDenaliTourPublished,
+    getCanonical: (tour) => tour.canonical,
+  });
   published = [...filterDenaliCatalogTourRecords(published, listQuery)];
   published = [
     ...(await filterDenaliCatalogTourAvailability(published, {
@@ -169,33 +183,24 @@ export async function listDenaliCatalog(params: {
   ];
   published = [...sortDenaliCatalogTourRecords(published, listQuery.sort ?? "newest")];
 
-  let startIdx = 0;
-  if (params.cursor !== undefined) {
-    const cursorIdx = published.findIndex((tour) => tour.id === params.cursor);
-    if (cursorIdx >= 0) {
-      startIdx = cursorIdx + 1;
-    }
-  }
-
-  const slice = published.slice(startIdx, startIdx + limit);
-  const hasMore = startIdx + slice.length < published.length;
+  const { slice, nextCursor } = sliceWorkspaceCatalogByIdCursor(published, {
+    limit,
+    ...(params.cursor === undefined ? {} : { cursor: params.cursor }),
+  });
   const destinationNameById = await resolveDestinationNameById({
     tenantId: params.tenantId,
     tours: slice,
     destinationPort: params.destinationPort,
   });
-  const cards: Awaited<ReturnType<typeof mapTourToExposureAwareCard>>[] = [];
-  for (const tour of slice) {
-    cards.push(
-      await mapTourToExposureAwareCard({
-        tenantId: params.tenantId,
-        tour,
-        destinationNameById,
-        surface: DENALI_EXPOSURE_SURFACE.publicList,
-        exposurePort: params.exposurePort,
-      }),
-    );
-  }
+  const cards = await mapWorkspaceCatalogSliceAsync(slice, (tour) =>
+    mapTourToExposureAwareCard({
+      tenantId: params.tenantId,
+      tour,
+      destinationNameById,
+      surface: DENALI_EXPOSURE_SURFACE.publicList,
+      exposurePort: params.exposurePort,
+    }),
+  );
   const items = await enrichCatalogCardsWithSpots({
     tenantId: params.tenantId,
     cards,
@@ -203,7 +208,7 @@ export async function listDenaliCatalog(params: {
   });
   return {
     items,
-    nextCursor: hasMore && slice.length > 0 ? slice[slice.length - 1]!.id : null,
+    nextCursor,
   };
 }
 
@@ -216,11 +221,17 @@ export async function getDenaliCatalogTour(params: {
   readonly exposurePort?: DenaliExposureResolverPort;
   readonly tourId: string;
 }) {
-  if (params.workspaceType !== "denali") {
-    throw new DenaliWorkspaceRequiredError();
-  }
-  const tour = await params.store.findFirst({ tenantId: params.tenantId, id: params.tourId });
-  if (tour === null || !isDenaliTourPublished(tour.canonical)) {
+  assertWorkspaceTypeOrThrow(
+    params.workspaceType,
+    DENALI_WORKSPACE_TYPE,
+    () => new DenaliWorkspaceRequiredError(),
+  );
+  const tour = await loadWorkspaceTourIfPublished({
+    findFirst: () => params.store.findFirst({ tenantId: params.tenantId, id: params.tourId }),
+    isPublished: isDenaliTourPublished,
+    getCanonical: (row) => row.canonical,
+  });
+  if (tour === null) {
     return null;
   }
   const destinationNameById = await resolveDestinationNameById({

@@ -1,22 +1,15 @@
-export const URBAN_REGISTRATION_DUPLICATE = "URBAN_REGISTRATION_DUPLICATE" as const;
+import { defineWorkspaceCodedError } from "@app-tour/workspace-sdk";
 
-export class UrbanRegistrationDuplicateError extends Error {
-  readonly code = URBAN_REGISTRATION_DUPLICATE;
-  readonly httpStatus = 409 as const;
+const defined = defineWorkspaceCodedError({
+  code: "URBAN_REGISTRATION_DUPLICATE",
+  name: "UrbanRegistrationDuplicateError",
+  httpStatus: 409,
+});
 
-  constructor() {
-    super(URBAN_REGISTRATION_DUPLICATE);
-    this.name = "UrbanRegistrationDuplicateError";
-  }
-}
-
+export const URBAN_REGISTRATION_DUPLICATE = defined.code as "URBAN_REGISTRATION_DUPLICATE";
+export const UrbanRegistrationDuplicateError = defined.ErrorClass;
 export function isUrbanRegistrationDuplicateError(
-  error: unknown
-): error is UrbanRegistrationDuplicateError {
-  return (
-    error instanceof UrbanRegistrationDuplicateError ||
-    (typeof error === "object" &&
-      error !== null &&
-      (error as { code?: string }).code === URBAN_REGISTRATION_DUPLICATE)
-  );
+  error: unknown,
+): error is InstanceType<typeof UrbanRegistrationDuplicateError> {
+  return defined.isError(error);
 }

@@ -1,5 +1,10 @@
 import type { PublicCatalogTourInput } from "@app-tour/workspace-sdk";
 import {
+  assertWorkspaceTypeOrThrow,
+  loadWorkspaceTourIfPublished,
+  normalizeWorkspaceTypeKey,
+} from "@app-tour/workspace-sdk";
+import {
   buildDenaliRelativeTimeTrigger,
   DENALI_EXPOSURE_SURFACE,
   type DenaliReminderOffset,
@@ -8,6 +13,7 @@ import {
 import { applyDenaliCatalogCardExposure } from "../catalog/denali-catalog-exposure-bindings";
 import { isDenaliTourPublished } from "../catalog/denali-publish-status";
 import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";
+import { DENALI_WORKSPACE_TYPE } from "../denali-identity";
 import { DenaliWorkspaceRequiredError } from "./errors/denali-workspace-required.error";
 import type { DenaliExposureResolverPort } from "./ports/exposure-resolver.port";
 import type { DenaliReminderFeedPort } from "./ports/reminder-feed.port";
@@ -34,9 +40,11 @@ export async function listDenaliReminderFeed(params: {
   readonly exposurePort?: DenaliExposureResolverPort;
   readonly limit?: number;
 }): Promise<readonly DenaliReminderFeedEntry[]> {
-  if (params.workspaceType.trim().toLowerCase() !== "denali") {
-    throw new DenaliWorkspaceRequiredError();
-  }
+  assertWorkspaceTypeOrThrow(
+    normalizeWorkspaceTypeKey(params.workspaceType),
+    DENALI_WORKSPACE_TYPE,
+    () => new DenaliWorkspaceRequiredError(),
+  );
   if (params.reminderPort === undefined) {
     return Object.freeze([]);
   }
@@ -52,11 +60,16 @@ export async function listDenaliReminderFeed(params: {
     if (offset === null) {
       continue;
     }
-    const record = await params.store.findFirst({
-      tenantId: params.tenantId,
-      id: activation.tourId,
+    const record = await loadWorkspaceTourIfPublished({
+      findFirst: () =>
+        params.store.findFirst({
+          tenantId: params.tenantId,
+          id: activation.tourId,
+        }),
+      isPublished: isDenaliTourPublished,
+      getCanonical: (row) => row.canonical,
     });
-    if (record === null || !isDenaliTourPublished(record.canonical)) {
+    if (record === null) {
       continue;
     }
     const tour: PublicCatalogTourInput = {

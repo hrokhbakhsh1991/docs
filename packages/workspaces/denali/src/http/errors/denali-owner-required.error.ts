@@ -1,21 +1,15 @@
-export const DENALI_OWNER_REQUIRED = "DENALI_OWNER_REQUIRED" as const;
+import { defineWorkspaceCodedError } from "@app-tour/workspace-sdk";
 
-export class DenaliOwnerRequiredError extends Error {
-  readonly code = DENALI_OWNER_REQUIRED;
-  readonly surface: string;
+const defined = defineWorkspaceCodedError({
+  code: "DENALI_OWNER_REQUIRED",
+  name: "DenaliOwnerRequiredError",
+  withSurface: true,
+});
 
-  constructor(surface: string) {
-    super(DENALI_OWNER_REQUIRED);
-    this.name = "DenaliOwnerRequiredError";
-    this.surface = surface;
-  }
-}
-
-export function isDenaliOwnerRequiredError(error: unknown): error is DenaliOwnerRequiredError {
-  return (
-    error instanceof DenaliOwnerRequiredError ||
-    (typeof error === "object" &&
-      error !== null &&
-      (error as { code?: string }).code === DENALI_OWNER_REQUIRED)
-  );
+export const DENALI_OWNER_REQUIRED = defined.code as "DENALI_OWNER_REQUIRED";
+export const DenaliOwnerRequiredError = defined.ErrorClass;
+export function isDenaliOwnerRequiredError(
+  error: unknown,
+): error is InstanceType<typeof DenaliOwnerRequiredError> {
+  return defined.isError(error);
 }

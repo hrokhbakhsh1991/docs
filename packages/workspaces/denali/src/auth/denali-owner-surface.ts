@@ -1,4 +1,7 @@
-import type { WorkspaceAuthSurface } from "@app-tour/workspace-sdk";
+import {
+  isWorkspaceAuthSurfaceInAllowlist,
+  type WorkspaceAuthSurface,
+} from "@app-tour/workspace-sdk";
 
 export type DenaliOwnerSurface = "denali.tour.publish_fields";
 
@@ -7,5 +10,5 @@ export const DENALI_OWNER_SURFACE_ALLOWLIST: ReadonlySet<DenaliOwnerSurface> = n
 ]);
 
 export function isDenaliOwnerSurface(surface: WorkspaceAuthSurface): surface is DenaliOwnerSurface {
-  return DENALI_OWNER_SURFACE_ALLOWLIST.has(surface as DenaliOwnerSurface);
+  return isWorkspaceAuthSurfaceInAllowlist(surface, DENALI_OWNER_SURFACE_ALLOWLIST);
 }

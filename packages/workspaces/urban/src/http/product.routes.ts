@@ -1,4 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import {
+  buildWorkspaceCatalogListSuccessBody,
+  buildWorkspaceSuccessDataBody,
+  parseWorkspaceCatalogCursorLimitQuery,
+  WORKSPACE_HTTP_ERROR_NOT_FOUND,
+} from "@app-tour/workspace-sdk";
 
 import { listUrbanCatalog, getUrbanCatalogTour } from "./catalog.service";
 import { getUrbanHttpHost } from "./host-runtime";
@@ -9,12 +15,10 @@ import { createUrbanRegistration } from "./registration.service";
 import { readUrbanRegistrationPolicyForTenant } from "./settings.service";
 
 function parseCatalogListQuery(url: URL) {
-  const limitRaw = url.searchParams.get("limit");
-  const limit = limitRaw === null ? undefined : Number.parseInt(limitRaw, 10);
+  const city = url.searchParams.get("city") ?? undefined;
   return {
-    cursor: url.searchParams.get("cursor") ?? undefined,
-    limit: Number.isFinite(limit) ? limit : undefined,
-    city: url.searchParams.get("city") ?? undefined,
+    ...parseWorkspaceCatalogCursorLimitQuery(url),
+    ...(city === undefined ? {} : { city }),
   };
 }
 
@@ -43,11 +47,14 @@ export async function handleGetUrbanCatalog(
           exposurePort,
           ...query,
         });
-        host.sendJson(res, 200, {
-          success: true,
-          data: { items: result.items },
-          metadata: { nextCursor: result.nextCursor },
-        });
+        host.sendJson(
+          res,
+          200,
+          buildWorkspaceCatalogListSuccessBody({
+            items: result.items,
+            nextCursor: result.nextCursor,
+          }),
+        );
       },
       { rateLimit: "read" }
     );
@@ -81,10 +88,10 @@ export async function handleGetUrbanCatalogTour(
           tourId,
         });
         if (card === null) {
-          host.sendHttpError(res, 404, { error: "not_found", code: "NOT_FOUND" });
+          host.sendHttpError(res, 404, WORKSPACE_HTTP_ERROR_NOT_FOUND);
           return;
         }
-        host.sendJson(res, 200, { success: true, data: card });
+        host.sendJson(res, 200, buildWorkspaceSuccessDataBody(card));
       },
       { rateLimit: "read" }
     );
@@ -139,7 +146,7 @@ export async function handlePostUrbanRegistration(
               store,
               registrationPolicy,
             });
-            return { success: true as const, data: created };
+            return buildWorkspaceSuccessDataBody(created);
           }
         );
         host.sendJson(res, 201, responseBody);

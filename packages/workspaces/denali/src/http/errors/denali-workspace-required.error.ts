@@ -1,8 +1,9 @@
-export class DenaliWorkspaceRequiredError extends Error {
-  readonly code = "DENALI_WORKSPACE_REQUIRED" as const;
+import { defineWorkspaceCodedError } from "@app-tour/workspace-sdk";
 
-  constructor() {
-    super("DENALI_WORKSPACE_REQUIRED");
-    this.name = "DenaliWorkspaceRequiredError";
-  }
-}
+const defined = defineWorkspaceCodedError({
+  code: "DENALI_WORKSPACE_REQUIRED",
+  name: "DenaliWorkspaceRequiredError",
+});
+
+export const DENALI_WORKSPACE_REQUIRED = defined.code as "DENALI_WORKSPACE_REQUIRED";
+export const DenaliWorkspaceRequiredError = defined.ErrorClass;

@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
-import { isSafePortalReturnPath } from "@app-cloud/catalog-registration-flow-ui";
-import { isMemberPortalEnabled } from "@app-cloud/workspace-sdk";
+import { isSafePortalReturnPath } from "@app-tour/catalog-registration-flow-ui";
+import { isMemberPortalEnabled } from "@app-tour/workspace-sdk";
 import {
   resolveMemberLoginCatalogTourId,
   resolvePortalMemberLoginPath,
   resolvePortalMemberModuleUrl,
-} from "@app-cloud/guest-surface-host";
+} from "@app-tour/guest-surface-host";
 
 import { PortalLoginModalOpener } from "@/auth/portal-login-modal-opener";
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
@@ -56,7 +56,7 @@ export default async function PortalMemberLoginPage({ searchParams }: PageProps)
     redirect(portalReturn);
   }
 
-  await fetchPublicTenantBrandingForHost(host);
+  const branding = await fetchPublicTenantBrandingForHost(host);
   const backHref = resolvePortalLoginBackHref(host);
   const memberModuleHref = resolvePortalMemberModuleUrl(host);
   const t = await getTranslations("catalogRegistration");
@@ -67,11 +67,10 @@ export default async function PortalMemberLoginPage({ searchParams }: PageProps)
     pluginId: bootstrap.pluginId,
     tourId,
   });
-  if (tour === null) {
-    notFound();
-  }
-
-  const tourTitle = tour.title || "Tour";
+  // Member-login egress only needs tourId/title as OTP modal context. Operator smoke
+  // (denali plugin + tenant …0014) may lack denali.club login tour …0220 — do not 404.
+  const tourTitle =
+    tour?.title?.trim() || branding.displayName?.trim() || bootstrap.pluginId || "Tour";
   const workspace = bootstrap.pluginId;
 
   return (

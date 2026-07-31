@@ -300,7 +300,8 @@
           "event_reading": "رویداد — کتابخوانی (تک‌روزه)",
           "event_reading_multi": "رویداد — کتابخوانی (چندروزه)",
           "event_cinema": "رویداد — سینما (تک‌روزه)",
-          "event_cinema_multi": "رویداد — سینما (چندروزه)"
+          "event_cinema_multi": "رویداد — سینما (چندروزه)",
+          "city_sail": "شهری — قایق‌رانی"
         }
       },
       "destinations": {

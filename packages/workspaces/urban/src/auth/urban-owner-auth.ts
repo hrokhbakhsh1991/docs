@@ -1,4 +1,4 @@
-import type { TenantAuthz } from "@app-tour/workspace-sdk";
+import { createCanPerformWorkspaceOwnerMutation } from "@app-tour/workspace-sdk";
 
 import { URBAN_WORKSPACE_TYPE } from "../urban.plugin";
 import {
@@ -6,21 +6,7 @@ import {
   type UrbanOwnerSurface,
 } from "./urban-owner-surface";
 
-const URBAN_OWNER_MUTATION_POLICY = {
+export const canPerformUrbanOwnerMutation = createCanPerformWorkspaceOwnerMutation<UrbanOwnerSurface>({
   requiredWorkspaceType: URBAN_WORKSPACE_TYPE,
   allowedSurfaces: URBAN_OWNER_SURFACE_ALLOWLIST,
-} as const;
-
-export function canPerformUrbanOwnerMutation(
-  authz: TenantAuthz,
-  tenantId: string,
-  surface: UrbanOwnerSurface,
-  workspaceType: string
-): boolean {
-  return authz.canPerformWorkspaceOwnerMutation(
-    tenantId,
-    surface,
-    workspaceType,
-    URBAN_OWNER_MUTATION_POLICY
-  );
-}
+});

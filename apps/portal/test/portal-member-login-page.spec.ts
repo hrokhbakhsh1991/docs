@@ -17,6 +17,16 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
     assert.match(page, /loginPageTitle/);
   });
 
+  it("PCMS-LOGIN-01b missing login catalog tour does not notFound the host", () => {
+    const page = readFileSync(join(repoRoot, "apps/portal/app/login/page.tsx"), "utf8");
+    assert.match(page, /fetchCatalogTour/);
+    assert.match(page, /tour\?\.title/);
+    assert.doesNotMatch(
+      page,
+      /fetchCatalogTour[\s\S]*?if \(tour === null\) \{\s*notFound\(\);/
+    );
+  });
+
   it("PCMS-LOGIN-02 register page redirects legacy portalReturn to /login", () => {
     const page = readFileSync(
       join(repoRoot, "apps/portal/app/catalog/[tourId]/register/page.tsx"),
@@ -45,7 +55,12 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
       "utf8"
     );
     assert.match(flow, /memberLoginEgress/);
-    assert.doesNotMatch(flow, /isMemberLoginEgressFromLocation/);
+    // Location probe is allowed inside useEffect (client resume); must not gate render.
+    assert.match(flow, /isMemberLoginEgressFromLocation/);
+    assert.doesNotMatch(
+      flow,
+      /if \(isMemberLoginEgressFromLocation\(\)\) \{\s*return /
+    );
   });
 
   it("MEM-LOGIN-MODAL-01 provider wires dialog hooks", () => {

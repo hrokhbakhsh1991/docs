@@ -1,4 +1,4 @@
-import type { WorkspaceHttpMethod } from "./workspace-http-method";
+import type { WorkspaceHttpMethod } from "@app-tour/workspace-sdk";
 
 /** Declarative urban HTTP inventory — consumed by host guards (Phase 10.3 S3). */
 export const URBAN_HTTP_ROUTE_MANIFEST: readonly {

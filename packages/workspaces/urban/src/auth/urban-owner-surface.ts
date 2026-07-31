@@ -1,4 +1,7 @@
-import type { WorkspaceAuthSurface } from "@app-tour/workspace-sdk";
+import {
+  isWorkspaceAuthSurfaceInAllowlist,
+  type WorkspaceAuthSurface,
+} from "@app-tour/workspace-sdk";
 
 export type UrbanOwnerSurface =
   | "urban.settings.read"
@@ -22,5 +25,5 @@ export const URBAN_OWNER_SURFACE_ALLOWLIST: ReadonlySet<UrbanOwnerSurface> = new
 ]);
 
 export function isUrbanOwnerSurface(surface: WorkspaceAuthSurface): surface is UrbanOwnerSurface {
-  return URBAN_OWNER_SURFACE_ALLOWLIST.has(surface as UrbanOwnerSurface);
+  return isWorkspaceAuthSurfaceInAllowlist(surface, URBAN_OWNER_SURFACE_ALLOWLIST);
 }

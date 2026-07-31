@@ -1,5 +1,6 @@
 import { createPlatformWizardHostHooks } from "@app-tour/platform-core";
 import {
+  assertWorkspaceRegistrationContactBasics,
   type WorkspacePlugin,
   type WorkspaceValidationHooks,
   type WorkspaceViolation,
@@ -49,36 +50,23 @@ export type UrbanRegistrationPayload = {
   readonly notes?: string;
 };
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const COVER_URL_PATTERN = /^https?:\/\//;
-const PHONE_PATTERN = /^[\d+\-().\s]*$/;
 
 export function validateUrbanRegistrationPayload(
   payload: UrbanRegistrationPayload,
   context: { readonly capacity: number | null }
 ): void {
-  const email = payload.contact.email.trim();
-  if (email.length < 3 || email.length > 320 || !EMAIL_PATTERN.test(email)) {
-    throw new Error("URBAN_REGISTRATION_INVALID");
-  }
-  const fullName = payload.contact.fullName.trim();
-  if (fullName.length < 1 || fullName.length > 200) {
-    throw new Error("URBAN_REGISTRATION_INVALID");
-  }
-  if (payload.contact.phone !== undefined) {
-    const phone = payload.contact.phone.trim();
-    if (phone.length > 32 || !PHONE_PATTERN.test(phone)) {
-      throw new Error("URBAN_REGISTRATION_INVALID");
-    }
-  }
-  if (payload.partySize !== undefined) {
-    if (!Number.isInteger(payload.partySize) || payload.partySize < 1) {
-      throw new Error("URBAN_REGISTRATION_INVALID");
-    }
-    if (context.capacity !== null && payload.partySize > context.capacity) {
-      throw new Error("URBAN_REGISTRATION_INVALID");
-    }
-  }
+  assertWorkspaceRegistrationContactBasics({
+    email: payload.contact.email,
+    emailRequired: true,
+    fullName: payload.contact.fullName,
+    ...(payload.contact.phone === undefined ? {} : { phone: payload.contact.phone }),
+    ...(payload.partySize === undefined ? {} : { partySize: payload.partySize }),
+    partySizeRequired: false,
+    capacity: context.capacity,
+    enforcePartySizeCapacity: true,
+    createInvalidError: () => new Error("URBAN_REGISTRATION_INVALID"),
+  });
   if (payload.notes !== undefined && payload.notes.trim().length > 2000) {
     throw new Error("URBAN_REGISTRATION_INVALID");
   }
