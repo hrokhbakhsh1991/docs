@@ -1,0 +1,81 @@
+---
+title: PSR-0a recovery baseline
+format: markdoc
+doc_role: audit_snapshot
+status: active
+program_id: PSR-001
+wave: PSR-0a
+captured_at: 2026-07-31T16:47:46Z
+verified_sha: 30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf
+branch: thin
+owner: platform-architecture
+---
+
+# PSR-0a — Recovery baseline
+
+Immutable snapshot of the dirty worktree **before** change-train split (PSR-0b)
+and **before** any hygiene deletion (PSR-1). This file is evidence, not a license
+to clean or reset.
+
+## Captured identity
+
+| Field | Value |
+| --- | --- |
+| Branch | `thin` |
+| `HEAD` (full) | `30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf` |
+| `HEAD` (short) | `30aa98e8` |
+| Captured at (UTC) | `2026-07-31T16:47:46Z` |
+| Staged files | `0` |
+
+## Porcelain counts at capture
+
+Compact `git status --porcelain` (directories collapsed):
+
+| Status | Count |
+| --- | ---: |
+| Modified (`M`) | 158 |
+| Deleted (`D`) | 10 |
+| Untracked (`??`) | 42 |
+| **Total porcelain records** | **210** |
+| Generated sources in dirty set (`.generated.`) | 28 |
+
+Expanded inventory uses `git status --porcelain -uall` so untracked package
+trees (Harbor, SDK `src/http`, audit snapshot files) are one row per file.
+After PSR-0a artifact creation the expanded total is recorded in
+[`psr-0a-worktree-inventory.yaml`](./psr-0a-worktree-inventory.yaml) (`totals`).
+
+## Recovery rules
+
+Use these only to restore a **single path** or to re-read baseline truth. Do not
+treat them as a bulk cleanup procedure.
+
+```bash
+# Re-read committed content of a modified/deleted tracked path
+git show 30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf:<path>
+
+# Restore one tracked path to HEAD (destroys uncommitted edits on that path)
+git checkout 30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf -- <path>
+
+# List dirty set as inventoried
+git status --porcelain
+```
+
+Untracked paths are **not** recoverable from `HEAD`. Their `content_sha256` in
+[`psr-0a-worktree-inventory.yaml`](./psr-0a-worktree-inventory.yaml) is the
+recovery fingerprint for this snapshot moment only. Copy those files aside
+before any deletion in later waves.
+
+## Explicitly forbidden in PSR-0a / before inventory gate
+
+- `git clean -fdX` or any recursive ignored-file wipe
+- Hard reset of the branch (`git reset --hard`)
+- Deleting `TEMP/`, `temp/`, or `docs/temp/` as a batch
+- Combining all dirty paths into one “cleanup” commit
+- Starting PSR-1 delete candidates before inventory exit gate is green
+
+## Related artifacts
+
+- Inventory (machine-readable): [`psr-0a-worktree-inventory.yaml`](./psr-0a-worktree-inventory.yaml)
+- Change-train summary: [`psr-0a-change-trains.mdoc`](./psr-0a-change-trains.mdoc)
+- Program SoT: [`../../architecture/platform-simplification-remediation.mdoc`](../../architecture/platform-simplification-remediation.mdoc)
+- Generator script (ops, not a public root command): `scripts/ops/psr-0a-inventory.mjs`

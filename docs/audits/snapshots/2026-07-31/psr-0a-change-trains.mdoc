@@ -1,0 +1,120 @@
+---
+title: PSR-0a change trains
+format: markdoc
+doc_role: audit_snapshot
+status: active
+program_id: PSR-001
+wave: PSR-0a
+captured_at: 2026-07-31T16:47:46Z
+verified_sha: 30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf
+branch: thin
+owner: platform-architecture
+related:
+  - ./psr-0a-recovery-baseline.mdoc
+  - ./psr-0a-worktree-inventory.yaml
+  - ../../architecture/platform-simplification-remediation.mdoc
+---
+
+# PSR-0a — Change-train map and exit gate
+
+This snapshot assigns every dirty path to exactly one change train so PSR-0b can
+split commits without a bulk cleanup. Machine-readable rows live in
+[`psr-0a-worktree-inventory.yaml`](./psr-0a-worktree-inventory.yaml). Regenerate
+with:
+
+```bash
+node scripts/ops/psr-0a-inventory.mjs
+```
+
+## Exit gate (PSR-0a)
+
+| Criterion | Result |
+| --- | --- |
+| Every entry has `owner` and `class` | Pass (`missing_owner=0`, `missing_class=0`) |
+| `change_train: unclassified` count | Pass (`0`) |
+| Accidental staged files | Pass (`staged_count=0`) |
+| Generated dirty paths listed with `regenerate-then-commit` | Pass (28 paths) |
+| Recovery baseline documented | Pass — [`psr-0a-recovery-baseline.mdoc`](./psr-0a-recovery-baseline.mdoc) |
+
+**PSR-0a gate: GREEN.** No product cleanup, regenerate, or train commit was
+performed in this wave.
+
+## Change trains (final counts)
+
+Expanded `-uall` inventory after all PSR-0a artifacts (`porcelain_records: 256`):
+
+| change_train | Count | Typical `psr0b_action` |
+| --- | ---: | --- |
+| `denali-gravity-harbor` | 114 | `commit-with-train` |
+| `sdk-generated-registry` | 59 | `commit-with-train` / `regenerate-then-commit` (28 generated) |
+| `api-platform-behavior` | 31 | `commit-with-train` |
+| `root-command-analysis` | 26 | `commit-with-train` |
+| `documentation-cleanup` | 16 | `commit-with-train` / `defer` for roadmap drift |
+| `local-scratch-artifact` | 10 | `keep-untracked-until-psr1` |
+| `unclassified` | 0 | — |
+
+| Role summary | |
+| --- | --- |
+| `denali-gravity-harbor` | Harbor package, Denali/Urban gravity adapters, guest/marketing/portal Harbor smoke, gravity guards |
+| `sdk-generated-registry` | `workspace-sdk` (incl. new `src/http`), plugin-host, root/API package membership, lockfile, **all `*.generated.*`** |
+| `api-platform-behavior` | Non-generated `apps/api` behavior, finance nav/access, portal session cookie |
+| `root-command-analysis` | `docs/platform/ROOT_COMMAND_*`, DX scripts (`pre-commit-fast`, `test-changed`), inventory ops script |
+| `documentation-cleanup` | Architecture remediation SoTs, Harbor certification doc, audit snapshots |
+| `local-scratch-artifact` | Root ad-hoc helpers (deleted tracked + untracked `tmp-*`), pycache, ignore-policy deferrals |
+
+Re-run `node scripts/ops/psr-0a-inventory.mjs` after any porcelain drift before
+starting PSR-0b.
+
+## Generated regenerate list (28)
+
+All `class: generated` rows use `psr0b_action: regenerate-then-commit` and
+`owner: codegen`. Do **not** hand-edit them in PSR-0b; refresh via
+`pnpm run generate:workspace-registry` (or the owning generator) and diff
+against manifest before commit.
+
+Exact paths are enumerated under `generated_paths` in the YAML inventory.
+
+## Border-path overrides (manual)
+
+These paths can span trains; overrides are encoded in
+`scripts/ops/psr-0a-inventory.mjs` (`OVERRIDES`):
+
+| Path | Assigned train | Rationale |
+| --- | --- | --- |
+| `package.json` / `pnpm-lock.yaml` | `sdk-generated-registry` | Membership/lockfile follow generate |
+| `apps/api/package.json` | `sdk-generated-registry` | Workspace membership ↔ manifest |
+| `dependency-cruiser.config.js` | `sdk-generated-registry` | Boundary allowlists track workspace add |
+| Portal login / providers / catalog flow | `denali-gravity-harbor` | Guest product surface |
+| `apps/portal/src/auth/build-session-cookie.ts` | `api-platform-behavior` | Auth platform, not branding |
+| Finance web pages / nav access | `api-platform-behavior` | Finance host UX |
+| `.github/workflows/phase-0-gate.yml` | `root-command-analysis` | `defer` into PSR-3 unless blocking |
+| Root delete candidates (`bootstrap-server.sh`, …) | `local-scratch-artifact` | PSR-1b after consumer proof |
+
+## Ignored scratch (not porcelain)
+
+On-disk counts at inventory time (excluding `node_modules` / `dist`):
+
+| Tree | Present | File count |
+| --- | --- | ---: |
+| `TEMP/` | yes | 334 |
+| `temp/` | yes | 28 |
+| `docs/temp/` | yes | 1 |
+| `tmp/` | yes | 1 |
+
+These remain **out of scope** for deletion until PSR-2 promotion / PSR-1
+allowlist cleanup. Tracked docs that reference them are a later wave.
+
+## PSR-0b handoff (do not execute in PSR-0a)
+
+Suggested commit order (one train per commit/PR; no cleanup mix):
+
+1. `documentation-cleanup` — remediation + snapshot docs (this folder)
+2. `sdk-generated-registry` — SDK/http + **regenerate** generated sources + lockfile/membership
+3. `denali-gravity-harbor` — Harbor + gravity product surfaces
+4. `api-platform-behavior` — API/finance/session behavior
+5. `root-command-analysis` — ROOT_COMMAND evidence + DX scripts (or defer pack to PSR-2/3)
+6. Leave `local-scratch-artifact` dirty until PSR-1
+
+Rollback for any train commit: revert that commit; recovery of pre-split dirty
+state uses [`psr-0a-recovery-baseline.mdoc`](./psr-0a-recovery-baseline.mdoc)
+plus untracked content hashes in the YAML.

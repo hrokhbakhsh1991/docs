@@ -1,0 +1,567 @@
+---
+title: Platform simplification and open-source readiness remediation
+format: markdoc
+doc_role: remediation_sot
+status: active
+program_id: PSR-001
+current_wave: PSR-0b
+created: 2026-07-31
+owner: platform-architecture
+scope: new-platform-only
+execution_authority: explicit-approval-required
+psr0a_snapshot: docs/audits/snapshots/2026-07-31/
+verified_sha: 30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf
+---
+
+# مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
+
+## 0. وضعیت موج جاری (PSR-0b)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-0b** — split/commit change trains (in progress) |
+| Prior gate | PSR-0a GREEN — [`snapshots/2026-07-31/`](../audits/snapshots/2026-07-31/) |
+| Recovery HEAD | `30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf` (`thin`) |
+| Train log | [`psr-0b-train-log.mdoc`](../audits/snapshots/2026-07-31/psr-0b-train-log.mdoc) |
+
+**قواعد PSR-0b:** یک commit per `change_train`؛ بدون cleanup؛ `defer` و
+`local-scratch-artifact` استیج نمی‌شوند؛ ۲۸ generated فقط از generator.
+
+**Next after PSR-0b:** PSR-1a/b hygiene (فقط پس از سبز شدن ledger).
+
+## 0.1 PSR-0a (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | PSR-0a — inventory + ownership (complete) |
+| Exit gate | GREEN — zero unclassified; zero missing owner/class; staged=0 |
+| Snapshot | [`docs/audits/snapshots/2026-07-31/`](../audits/snapshots/2026-07-31/) |
+
+Artifacts:
+
+- [`psr-0a-recovery-baseline.mdoc`](../audits/snapshots/2026-07-31/psr-0a-recovery-baseline.mdoc)
+- [`psr-0a-worktree-inventory.yaml`](../audits/snapshots/2026-07-31/psr-0a-worktree-inventory.yaml)
+- [`psr-0a-change-trains.mdoc`](../audits/snapshots/2026-07-31/psr-0a-change-trains.mdoc)
+- Generator (ops): `scripts/ops/psr-0a-inventory.mjs`
+
+Expanded dirty inventory at PSR-0a close (`-uall`): **256** rows — 158 `M`,
+10 `D`, 88 `??`; **28** generated; `unclassified_train=0`. Compact porcelain at
+baseline capture was **210**.
+
+## 1. حکم اجرایی
+
+این سند تنها **پیشنهاد مسیر اصلاحی** است. ایجاد آن مجوز حذف، جابه‌جایی، بازنویسی
+کد، تغییر manifest، demote/promote کردن workspace، یا اجرای cleanup نیست.
+موج PSR-0a فقط inventory بود؛ PSR-0b فقط تفکیک commit بدون cleanup است.
+
+هدف، تبدیل repository فعلی از یک workbench پرجزئیات و phase-driven به یک
+پلتفرم استاندارد، قابل‌فهم، قابل‌بازتولید از fresh clone و آماده‌ی تصمیم‌گیری
+برای انتشار عمومی است؛ بدون از دست دادن guardهای امنیتی، شواهد تاریخی یا کار
+تکمیل‌نشده‌ی کاربر.
+
+ترتیب اجباری برنامه:
+
+```text
+Truth snapshot
+  → safe worktree separation
+  → hygiene containment
+  → documentation authority
+  → command/CI simplification
+  → plugin + codegen contraction
+  → data/storage authority
+  → honest second-product production proof
+  → security/release proof
+  → legacy/publication boundary
+  → clean-clone closure
+```
+
+هیچ موجی حق ندارد برای بهتر کردن یک عدد، رفتار مفید یا مرز امنیتی را حذف کند.
+
+## 2. خط مبنای راستی‌آزمایی‌شده در 2026-07-31
+
+| سطح | وضعیت فعلی | پیام |
+| --- | ---: | --- |
+| Worktree | Compact baseline: 158 `M`، 10 `D`، 42 `??`، 0 staged → expanded `-uall` inventory: 256 rows (see PSR-0a snapshot) | bulk cleanup ممنوع؛ مالکیت در PSR-0a ثبت شد |
+| Tracked diff | 160 فایل، `+2193/-1402` | چند change train هم‌زمان در یک tree قرار دارد |
+| Generated source در dirty set | 28 فایل | build artifact نیستند؛ باید با manifest و generator همگام شوند |
+| Root commands | 313 script key | سطح عمومی command بسیار بزرگ است |
+| Package scripts، بدون legacy | 666 script در 43 `package.json` | discovery و ownership دشوار است |
+| GitHub workflows | 27 | setup و gate orchestration پراکنده است |
+| Tracked docs | 1,209 فایل؛ 972 `.md` و 172 `.mdoc` | active knowledge از evidence تاریخی جدا نشده است |
+| Phase material | 1,008 فایل زیر 25 پوشه‌ی `docs/phase-*` | دانش دامنه به شماره‌ی فاز گره خورده است |
+| Ignored scratch | `TEMP/`=334، `temp/`=28، `tmp/`=1 فایل | scratch به knowledge layer تبدیل شده است |
+| Tracked references to TEMP/temp | 132 فایل tracked | fresh clone بخشی از authority ادعاشده را ندارد |
+| Root tracked files | 39؛ شامل 22 سند Markdown | root نقش archive و scratch گرفته است |
+| Denali exports | 162؛ Urban=18، Harbor=9 | public/private contract دنالی بیش‌ازحد پهن است |
+| Generated registry outputs | 69 فایل در scan جاری | تعداد مسئله‌ی اصلی نیست؛ ownership و neutrality مهم است |
+| Direct branded API imports | حداقل 18 محل non-test/non-generated | host هنوز بخشی از product wiring را می‌داند |
+| `getPrismaAdmin()` | 106 reference در `apps/api/src` خارج از specها | control-plane و tenant-plane باید از هم تفکیک شوند |
+| Harbor runtime | بدون `HARBOR_SMOKE_E2E_SEED=1` پاسخ 501؛ store حافظه‌ای | certification فعلی proof معماری است، نه production data path |
+| Legacy | حدود 1010MB و 2,529 فایل TS/TSX | هنوز در active repository هزینه‌ی clone/install/search دارد |
+| Local build/test artifacts | حدود 1.26GiB | قابل‌بازتولیدند، اما cleanup باید allowlist-based باشد |
+| Dependency directories | حدود 1.46GiB؛ venv بازاریابی حدود 855MB | cleanup محلی جدا از source cleanup انجام شود |
+| Open-source governance | LICENSE/CONTRIBUTING/SECURITY/CODEOWNERS/GOVERNANCE موجود نیست | repository هنوز publishable نیست |
+
+### 2.1 یافته‌های مثبت که باید حفظ شوند
+
+- مرز `workspace-sdk`/`platform-core` و workspace packageها روشن است.
+- manifest → codegen spine واقعی است و registry freshness قابل‌اجرا دارد.
+- Denali Gravity clone ratchet و adapter budget ارزشمندند.
+- migration-head، production auth harness، `sess_ver` و rollback governance نسبت
+  به audit قدیمی اصلاح شده‌اند.
+- Harbor ثابت کرده است که محصول دوم می‌تواند بدون یک جنگل rename-clone ساخته
+  شود.
+- RLS و fail-closed posture روی مسیرهای audit‌شده نباید قربانی ساده‌سازی شوند.
+
+## 3. ریشه‌های پیچیدگی
+
+### 3.1 اجرای پروژه با namespace فازها
+
+شماره‌ی فاز به namespace دائمی سند، command، workflow و guard تبدیل شده است.
+فازهای 19 تا 23 دوباره P6 تا P10 نام گرفته‌اند، در حالی که phase-6 تا phase-10
+قبلاً وجود دارند. registry اسناد فقط فازهای 0 تا 5 را می‌شناسد، اما روی دیسک
+فازهای 0 تا 23 و `phase-saas-kernel` وجود دارند.
+
+نتیجه: دانستن «کدام سند فعلی است؟» به حافظه‌ی تیم وابسته شده است.
+
+### 3.2 چند source of truth
+
+- roadmap در `MIGRATION.md`، `MIGRATION-MAP.md`، phase registryها و TEMP تکرار
+  شده است.
+- برای چند فاز `.md` و `.mdoc` هر دو نقش canonical دارند و در بعضی موارد drift
+  کرده‌اند.
+- اسناد tracked به فایل‌های ignored در `TEMP/`، `temp/` و `docs/temp/` ارجاع
+  می‌دهند.
+- manifest منبع اصلی workspace است، اما dev tenant map، API dependencies،
+  product defaults و تعدادی codegen template هنوز SoTهای جانبی‌اند.
+
+### 3.3 public surface بدون lifecycle
+
+command، export، guard و workflow پس از پایان نیاز انتقالی باقی می‌مانند؛ aliasها
+expiry ندارند و leaf diagnostics هم‌سطح entrypoint عمومی دیده می‌شوند.
+
+### 3.4 certification جلوتر از runtime truth
+
+Harbor از نظر contract و smoke، G1 را اثبات می‌کند؛ ولی handler واقعی در حالت
+پیش‌فرض 501 است و داده‌ی smoke در `Map` حافظه‌ای نگه‌داری می‌شود. بنابراین
+`productionTier: certified` در تعریف فعلی از production persistence ضعیف‌تر
+است. این شکاف باید صریحاً بسته شود، نه اینکه با سند پنهان بماند.
+
+### 3.5 archive و source در یک درخت فعال
+
+گزارش‌های audit قدیمی، راهنماهای SSH، execution logs، stash-reclaim reports و
+نسخه‌های FINAL/V2/V3/V4 کنار اسناد جاری هستند. این محتوا گاهی مفید است، اما
+بدون `verified_sha` و `superseded_by` مانند حقیقت جاری دیده می‌شود.
+
+## 4. اصول غیرقابل‌مذاکره
+
+1. **Delete by proof:** صفر reference به‌تنهایی مجوز حذف نیست؛ consumer پویا،
+   CI، runbook، عملیات دستی و rollback نیز بررسی می‌شوند.
+2. **یک authority برای هر concern:** canonical، generated view، evidence و
+   archive نقش‌های متفاوت و machine-readable دارند.
+3. **Fresh-clone truth:** هیچ سند tracked، build یا gate به فایل ignored محلی
+   وابسته نیست.
+4. **No product IDs in platform policy:** product identity فقط در manifest،
+   workspace package و fixture صریح مجاز است.
+5. **Memory is not production:** memory adapter برای unit/dev مجاز است؛ در
+   prod/prodlike باید fail-closed باشد.
+6. **Generated is owned, not hand-edited:** هر generated file دقیقاً یک generator
+   و freshness check دارد.
+7. **Compatibility expires:** هر alias یا export انتقالی owner، replacement و
+   removal date دارد.
+8. **Historical evidence is immutable:** archive حذف نمی‌شود تا زمانی که retention
+   و legal/security review اجازه دهد.
+9. **Open by boundary, not by accident:** قبل از public شدن، license، secrets،
+   privacy، third-party rights و publication boundary تعیین می‌شوند.
+10. **یک change train در هر PR:** docs cleanup، generated refresh، behavior،
+    storage migration و deletion در PR واحد مخلوط نمی‌شوند.
+
+## 5. توپولوژی هدف
+
+```text
+/
+├── README.md
+├── AGENTS.md
+├── LICENSE
+├── CONTRIBUTING.md
+├── SECURITY.md
+├── CODE_OF_CONDUCT.md
+├── GOVERNANCE.md
+├── package.json
+├── apps/
+├── packages/
+│   ├── platform-*/
+│   ├── workspace-sdk/
+│   └── workspaces/<id>/
+├── scripts/
+│   ├── cli/                  # entrypoints کم و پایدار
+│   ├── generators/
+│   ├── guards/               # leaf assertions؛ نه public namespace
+│   └── ops/                  # external side effects جدا
+└── docs/
+    ├── index.yaml            # تنها registry اسناد فعال
+    ├── roadmap/current.mdoc  # تنها roadmap جاری
+    ├── architecture/
+    ├── standards/
+    ├── decisions/
+    ├── runbooks/
+    ├── workspaces/<id>/
+    ├── audits/snapshots/YYYY-MM-DD/
+    ├── evidence/<release-or-gate>/
+    ├── archive/<program>/
+    └── _scratch/             # ignored؛ inbound tracked reference ممنوع
+```
+
+`legacy/` در end-state داخل repository عمومی فعال نمی‌ماند. پس از استخراج
+قراردادها و referenceهای لازم، در یک tag یا archive repository جدا نگه‌داری
+می‌شود.
+
+## 6. برنامه‌ی اجرایی مرحله‌بندی‌شده
+
+### PSR-0 — Freeze، مالکیت و recovery baseline
+
+**هدف:** جلوگیری از حذف کار کاربر و تبدیل dirty tree به change trainهای قابل
+بررسی.
+
+#### PSR-0a — انجام‌شده (2026-07-31)
+
+1. inventory کامل modified/deleted/untracked با hash و owner در
+   [`psr-0a-worktree-inventory.yaml`](../audits/snapshots/2026-07-31/psr-0a-worktree-inventory.yaml).
+2. هر فایل یکی از کلاس‌های
+   `product-change | generated | canonical-doc | evidence | archive | scratch |
+   rebuildable-artifact | secret-review` را دارد (`unclassified=0`).
+3. change trainها نقشه‌برداری شدند:
+   [`psr-0a-change-trains.mdoc`](../audits/snapshots/2026-07-31/psr-0a-change-trains.mdoc).
+4. recovery baseline روی `HEAD=30aa98e8` ثبت شد (بدون hard reset / بدون
+   `git clean`).
+5. خلاصه ignored scratch روی دیسک: `TEMP/`=334، `temp/`=28، `docs/temp/`=1،
+   `tmp/`=1 — حذف نشده‌اند.
+
+**Gate خروج PSR-0a:** سبز (owner/class کامل؛ staged=0؛ 28 generated با
+`regenerate-then-commit`؛ recovery مستند).
+
+#### PSR-0b — بعدی (اجرا نشده)
+
+1. تفکیک/commit هر change train جداگانه؛ بدون cleanup.
+2. 28 generated source را regenerate و با manifest diff تطبیق دهید.
+3. registry freshness را روی همان train اثبات کنید.
+
+**ممنوع (هنوز):** `git clean -fdX`، reset گسترده، حذف TEMP، یا ترکیب همه‌ی
+تغییرها در یک «cleanup commit».
+
+### PSR-1 — Hygiene containment و root cleanup
+
+**هدف:** جدا کردن source، scratch، artifact و عملیات.
+
+#### Delete candidate پس از اثبات
+
+| Candidate | دلیل | شرط حذف |
+| --- | --- | --- |
+| `tmp-restart-denali-api.mjs` | ad-hoc، untracked، log/PID محلی | صفر مصرف + جایگزین smoke رسمی |
+| `tmp-restart-memory-api.mjs` | ad-hoc، untracked | صفر مصرف + جایگزین رسمی |
+| `fix-route.js` | helper یک‌بارمصرف با مسیر absolute | تأیید اعمال‌شدن تغییر و صفر consumer |
+| `make-jpeg.js` و `test.jpg` | fixture دستی بدون مصرف محصول | تست‌ها fixture رسمی داشته باشند |
+| `test-proxy.js` | سرور debug دستی | runbook یا test رسمی جایگزین باشد |
+| root `bootstrap-server.sh` | نسخه‌ی قدیمی مسیر canonical | همه‌ی consumerها به `scripts/vps-deploy/` مهاجرت کنند |
+| root `remote-deploy.sh` | فاقد hardening نسخه‌ی canonical | consumer و rollback docs مهاجرت کنند |
+
+#### Artifactهای rebuildable
+
+پاک‌سازی فقط با allowlist دقیق برای `.next`، `dist`، `coverage`،
+`test-results`، `playwright-report`، `.turbo` و `*.tsbuildinfo` انجام شود.
+`node_modules`، venv و cacheها cleanup محلی جداگانه دارند و نباید با source
+deletion مخلوط شوند.
+
+`legacy/backups`، `legacy/logs`، `.env*` و هر dump هرگز هدف cleanup عمومی
+نیستند.
+
+**Gate خروج:** root فقط entrypointهای conventional دارد؛ یک deploy path؛ صفر
+helper hardcoded؛ صفر build artifact tracked؛ ignore policy path-specific.
+
+### PSR-2 — Documentation authority reset
+
+**هدف:** حداکثر 150 سند فعال با نقش صریح؛ تاریخچه در archive قابل‌جست‌وجو.
+
+1. `docs/index.yaml` تنها registry شود.
+2. هر سند فعال این metadata را داشته باشد:
+   `id`, `role`, `owner`, `status`, `last_verified`, `verified_sha`,
+   `supersedes`, `superseded_by`, `evidence`.
+3. نقش‌ها محدود شوند به:
+   `canonical | standard | adr | runbook | audit_snapshot | evidence | archive`.
+4. همه‌ی tracked → ignored scratch referenceها به صفر برسند:
+   - محتوای معتبر promote؛
+   - evidence تاریخی archive؛
+   - لینک بی‌ارزش حذف؛
+   - scratch بدون inbound link بماند.
+5. `.mdoc` برای canonical انتخاب شود؛ mirrorهای `.md` یا خودکار تولید شوند یا
+   حذف شوند. mirror دستی ممنوع است.
+6. phase packهای بسته به `docs/archive/<program>/` منتقل شوند. دانش domain از
+   phase-5 و phase-20 به architecture/standards/runbooks استخراج شود.
+7. phase numbering از namespace دانش حذف و با `program_id` یکتا جایگزین شود.
+8. root auditها به snapshot immutable با تاریخ/SHA/verdict منتقل و به وضعیت
+   جاری `superseded_by` متصل شوند.
+9. 18 سند `ROOT_COMMAND_*` به حداکثر سه artifact کاهش یابد:
+   baseline، classification machine state و remediation/status.
+10. راهنماهای SSH و absolute local links secret/privacy review شوند.
+
+Guard هدف:
+
+- `guard:docs-manifest`
+- `guard:no-temp-authority`
+- `guard:single-canonical`
+- `guard:doc-frontmatter`
+- `guard:doc-links --all`
+- `guard:audit-freshness`
+- `guard:archive-immutability`
+- `guard:root-hygiene`
+- `guard:doc-secrets`
+
+Markdoc gate باید `Markdoc.validate` را واقعاً اجرا کند؛ parse/transform تنها
+اعتبارسنجی محتوایی نیست.
+
+**Gate خروج:** یک roadmap جاری، یک scorecard جاری، صفر mirror دستی، صفر لینک
+absolute، صفر authority در TEMP، و fresh clone با Doc-Gate کامل سبز.
+
+### PSR-3 — Command، guard و CI contraction
+
+**هدف:** کاهش cognitive surface بدون کاهش پوشش.
+
+Commandهای عمومی هدف:
+
+```text
+dev
+build
+lint
+typecheck
+test
+verify:fast
+verify:product
+verify:full
+generate
+workspace:create
+db:migrate
+release:verify
+```
+
+جزئیات:
+
+1. baseline موجود root-command دوباره تولید شود؛ عدد 311/305 قبلی با 313
+   command فعلی drift کرده است.
+2. leaf guards از root `package.json` خارج و زیر runner declarative بمانند.
+3. familyها (`workspace`, `guest`, `marketing`, `field-exposure`) یک registry و
+   runner مشترک داشته باشند؛ assertionها حفظ شوند.
+4. aliasها یک compatibility window داشته باشند و پس از telemetry/consumer scan
+   حذف شوند.
+5. fast، product، full، adversarial، live smoke و external mutation با هم ادغام
+   نشوند؛ authority آن‌ها متفاوت است.
+6. ops commands در namespace و CLI جدا قرار گیرند و side effect را قبل از اجرا
+   اعلام کنند.
+7. workflow setup در reusable workflow/composite action جمع شود؛ required check
+   name در موج اول ثابت بماند.
+8. phase gates داده‌محور شوند؛ public phase aliases فقط یک release window عمر
+   کنند.
+9. هر guard جدید باید یا یک guard قبلی را جایگزین کند یا عضو family موجود شود؛
+   افزودن root command جدید نیازمند حذف/ادغام معادل است.
+
+**بودجه‌ی هدف:** حداکثر 12 command عمومی، حداکثر 60 root script شامل compatibility
+و ops، و حداکثر 12 workflow فعال عمومی/ضروری؛ scheduled reliability جدا شمرده
+می‌شود.
+
+**Gate خروج:** parity تست‌شده، required checks بدون drift، و زمان/خروجی
+`verify:*` مستند و قابل‌پیش‌بینی.
+
+### PSR-4 — Plugin surface و codegen neutrality
+
+**هدف:** host فقط capability/manifest را بشناسد؛ workspace جزئیات محصول را.
+
+1. 162 export دنالی طبقه‌بندی شود:
+   `public-contract | host-private | test-only | compatibility | product-internal`.
+2. public contract دنالی به plugin contract و تعداد کمی `./host/*` محدود شود؛
+   test-only export به fixture package یا internal test path منتقل شود.
+3. target: public export دنالی حداکثر 15 و کل host-visible حداکثر 30، پس از
+   compatibility window.
+4. API branded imports به generated capability loaders یا neutral application
+   ports منتقل شوند؛ product-named configure modules در host حذف شوند.
+5. `apps/api/package.json` product membership از manifest generate/sync شود یا
+   loader architecture بدون manual membership انتخاب شود.
+6. static dev tenant map از product registry جدا و به seed data/manifest dev
+   bootstrap منتقل شود.
+7. defaultهای `workspaceType ?? "denali"` و product fallback حذف و unknown
+   workspace fail-closed شود.
+8. codegen templateهای `Denali*`, `Urban*`, `whyDenali` و smoke pathهای product-id
+   review شوند؛ فقط product-owned output اجازه‌ی نام محصول دارد.
+9. تعداد generated files صرفاً برای کم‌شدن ادغام نشود. معیار، یک generator
+   owner، deterministic output، no hand edit و no branded platform policy است.
+10. adapter budget محصول جدید حداکثر 15 باقی بماند و clone overlap رشد نکند.
+
+**Gate خروج:** صفر direct branded import در host source خارج از generated loader
+و explicitly approved product adapter؛ صفر product default در platform؛ add
+workspace از مسیر manifest + package + generate + tests انجام شود.
+
+### PSR-5 — Data authority و admin-access reduction
+
+**هدف:** یک production SoT و مرز روشن control-plane/tenant-plane.
+
+1. تمام memory/prisma factoryها فهرست و با environment matrix طبقه‌بندی شوند.
+2. memory فقط `test|development` باشد؛ `production|prodlike` با memory boot نشود.
+3. `getPrismaAdmin()`های non-test به سه گروه تقسیم شوند:
+   - platform control-plane مشروع؛
+   - background/repair با audit trail؛
+   - tenant request path نامشروع.
+4. tenant request path مستقیماً admin client نگیرد؛ repository/port scoped و RLS
+   context اجباری باشد.
+5. control-plane admin access از طریق interface نام‌دار، capability، audit event
+   و reason code انجام شود.
+6. dual storeهایی که تنها برای scaffold مانده‌اند حذف یا صریحاً test adapter
+   شوند.
+7. migration، restore، RLS probe و outbox effect روی همان release SHA اجرا شوند.
+
+**Gate خروج:** صفر admin Prisma مستقیم در tenant HTTP path؛ یک production driver؛
+تمام bypassهای باقی‌مانده allowlist کوچک با owner/reason/expiry و audit coverage.
+
+### PSR-6 — Harbor production truth
+
+**هدف:** دومین محصول واقعاً production-viable، نه smoke-only certified.
+
+دو مسیر مجاز است؛ مسیر خاکستری مجاز نیست:
+
+#### گزینه‌ی پیشنهادی A — ابتدا demote، سپس productionize
+
+1. Harbor تا زمان persistence واقعی به `stub`/`candidate` برگردد.
+2. catalog list/detail و registration به persistent platform ports متصل شوند.
+3. production fixture/env switch حذف شود؛ seed فقط test/dev بماند.
+4. restart durability، concurrency/idempotency، RLS isolation، migration و
+   rollback اثبات شوند.
+5. سپس CERT-01…05 با live evidence روی release SHA دوباره اجرا شود.
+
+#### گزینه‌ی B — بدون demote، فوراً gap را ببندید
+
+این گزینه فقط وقتی مجاز است که تا قبل از هر production onboarding، persistent
+path، default non-501 behavior و release evidence تکمیل شود. در این فاصله هیچ
+ادعای «محصول قابل‌فروش» منتشر نشود.
+
+سطح G1 همچنان operator/finance/memberApp را الزام نمی‌کند؛ اما catalog و
+registration اعلام‌شده باید durable و production-backed باشند.
+
+**Gate خروج:** Harbor در default production path پاسخ واقعی دارد، داده پس از
+restart باقی می‌ماند، tenant isolation و duplicate registration اثبات شده و
+certification به SHA و evidence pack متصل است.
+
+### PSR-7 — Security و release readiness
+
+**هدف:** بستن فاصله‌ی «کد درست» تا «انتشار اثبات‌شده».
+
+1. shared platform-ops bearer با هویت کوتاه‌عمر، scopeدار و قابل‌rotation
+   جایگزین شود؛ actor identity و audit اجباری است.
+2. branch protection و required checks از API واقعی GitHub روی release SHA
+   اثبات شوند، نه فقط از config محلی.
+3. deploy واقعی staging شامل migrate، four-process smoke، Harbor smoke، failure
+   injection و rollback+restore drill باشد.
+4. secret scan روی tracked files و history انجام شود؛ به‌خصوص SSH guides، legacy
+   env و absolute machine paths.
+5. SBOM، dependency/license scan و provenance artifact برای release تولید شود.
+6. release evidence immutable و machine-readable باشد.
+
+**Gate خروج:** یک release candidate تمیز با required checks، staging deploy،
+rollback restore، secret scan و SBOM سبز.
+
+### PSR-8 — Legacy extraction و publication boundary
+
+**هدف:** کوچک‌شدن repository فعال و تعیین دقیق آنچه عمومی می‌شود.
+
+1. تمام import/referenceهای new platform به `legacy/` به صفر تأیید شوند.
+2. fixture، migration knowledge و contractهای واقعاً لازم استخراج شوند.
+3. legacy با tag و checksum در archive repository یا cold storage قرار گیرد.
+4. `legacy/`، node_modules، build output، backups و credential-bearing history
+   وارد public repository نشوند.
+5. مدل انتشار تصمیم‌گیری شود:
+   - full open source؛ یا
+   - open core برای SDK/core/scaffold، با ops/product private؛ یا
+   - source-available.
+6. انتخاب license با بررسی حقوقی انجام شود؛ package metadata، repository URL،
+   contribution flow، security disclosure و governance تکمیل شوند.
+7. public clone نباید به domain خصوصی، secret، VPS شخصی، absolute path یا فایل
+   ignored وابسته باشد.
+
+**پیشنهاد:** ابتدا `workspace-sdk`, platform contracts, generator و starter به
+عنوان open core آماده شوند؛ Denali/ops فقط پس از privacy و licensing review وارد
+publication boundary شوند.
+
+**Gate خروج:** install/build/test از public fresh clone؛ صفر legacy runtime
+dependency؛ governance کامل؛ license و security policy معتبر.
+
+### PSR-9 — Closure و جلوگیری از بازگشت
+
+Closure فقط با یک clean SHA و جدول زیر مجاز است:
+
+| معیار | خط مبنا | هدف closure |
+| --- | ---: | ---: |
+| Dirty worktree در release | 243 record | 0 |
+| Root public commands | 313 script key کل | ≤12 public؛ ≤60 کل |
+| Active workflows | 27 | ≤12 + scheduled explicit |
+| Active docs | بیش از 1,000 phase-bound | ≤150 |
+| Root documentation | 22 Markdown | ≤5 project docs، جدا از governance |
+| Tracked → ignored scratch refs | 132 فایل | 0 |
+| Manual `.md/.mdoc` canonical mirrors | موجود | 0 |
+| Absolute local doc links | 20 occurrence | 0 |
+| Denali exports | 162 | ≤15 public؛ ≤30 host-visible |
+| Branded host imports | حداقل 18 محل API | 0 خارج از generated/approved adapter |
+| Product defaults in platform | موجود | 0 |
+| Direct admin Prisma in tenant HTTP | نیازمند classification | 0 |
+| Harbor default production response | 501 | durable non-stub path |
+| Legacy in active/public repo | 1010MB | 0 runtime tree |
+| Open-source governance files | 0 | کامل |
+
+## 7. ترتیب PRها
+
+برای کاهش ریسک، ترتیب پیشنهادی PRها چنین است:
+
+1. `PSR-0a` — inventory و ownership فقط.
+2. `PSR-0b` — تفکیک/commit change train فعلی؛ بدون cleanup.
+3. `PSR-1a` — rebuildable artifacts و ignore policy.
+4. `PSR-1b` — root ad-hoc/duplicate removal با consumer proof.
+5. `PSR-2a` — docs manifest و metadata schema.
+6. `PSR-2b` — TEMP promotion و صفرکردن ignored authority.
+7. `PSR-2c` — phase/archive و root audit consolidation.
+8. `PSR-3a` — canonical command front doors؛ aliasها حفظ شوند.
+9. `PSR-3b` — family runners و workflow reuse.
+10. `PSR-3c` — alias expiry و phase command archival.
+11. `PSR-4a` — export classification و deprecation map.
+12. `PSR-4b` — API/codegen/product-default neutrality.
+13. `PSR-5` — data/admin-access authority.
+14. `PSR-6` — Harbor durable G1 recertification.
+15. `PSR-7` — security/release evidence.
+16. `PSR-8` — legacy extraction و publication readiness.
+17. `PSR-9` — fresh-clone closure audit.
+
+هر PR باید یک rollback path، before/after metric و proof متناسب داشته باشد.
+
+## 8. چیزهایی که نباید انجام شوند
+
+- حذف کل TEMP پیش از inventory و promotion.
+- حذف generated source چون نام آن generated است.
+- کوچک‌کردن guard count با حذف assertion امنیتی.
+- ادغام fast/full/live/adversarial در یک command مبهم.
+- تغییر هم‌زمان storage، API contract و docs archive.
+- حفظ `certified` صرفاً برای خوب ماندن scorecard.
+- انتقال blind کد legacy به core.
+- انتشار repository پیش از secret/history/license review.
+- استفاده از تعداد تست یا تعداد guard به‌عنوان معیار کیفیت مستقل.
+- ایجاد roadmap موازی جدید پس از پذیرش این سند.
+
+## 9. تعریف پایان برنامه
+
+پروژه زمانی از «lab پیشرفته» به «پلتفرم استاندارد و آماده‌ی انتشار» نزدیک شده
+است که یک توسعه‌دهنده‌ی جدید بتواند از clone تمیز:
+
+1. authority اسناد و roadmap جاری را در کمتر از ده دقیقه پیدا کند؛
+2. با کمتر از دوازده command عمومی build/test/verify کند؛
+3. یک workspace جدید را بدون branch محصولی در host اضافه کند؛
+4. تفاوت test adapter و production store را بدون دانش ضمنی بفهمد؛
+5. Harbor را روی storage پایدار و tenant-isolated اجرا کند؛
+6. release و rollback را از evidence همان SHA بازسازی کند؛
+7. بدون legacy، فایل محلی، credential یا مسیر ماشین نویسنده پروژه را بسازد؛
+8. بداند چه چیزی public API، چه چیزی internal و چه چیزی archive است.
+
+تا آن زمان، score و تعداد فازها معیار پایان نیستند؛ **fresh-clone reproducibility،
+production truth، سطح عمومی کوچک و یک source of truth** معیار پایان‌اند.

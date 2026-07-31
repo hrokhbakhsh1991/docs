@@ -1,0 +1,73 @@
+---
+title: PSR-0b change-train commit log
+format: markdoc
+doc_role: audit_snapshot
+status: active
+program_id: PSR-001
+wave: PSR-0b
+verified_sha_base: 30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf
+branch: thin
+owner: platform-architecture
+related:
+  - ./psr-0a-change-trains.mdoc
+  - ./psr-0a-worktree-inventory.yaml
+  - ../../architecture/platform-simplification-remediation.mdoc
+---
+
+# PSR-0b — Change-train commit log
+
+One commit per inventory `change_train`. No cleanup, no scratch deletion, no
+mixing of trains. Protected-package trains (`workspace-sdk`, `platform-core`,
+`apps/api`) include an update to this log so `guard-docs` stays satisfied.
+
+## Rules
+
+1. Stage only paths whose inventory `psr0b_action` is `commit-with-train` or
+   `regenerate-then-commit` for that train.
+2. Leave `defer` and `keep-untracked-until-psr1` unstaged.
+3. Regenerated `*.generated.*` must come from the generator, not hand edits.
+4. Rollback: `git revert <commit>`; pre-split recovery still uses
+   [`psr-0a-recovery-baseline.mdoc`](./psr-0a-recovery-baseline.mdoc).
+
+## Commit ledger
+
+| Order | change_train | Status | Commit | Notes |
+| --- | --- | --- | --- | --- |
+| 1 | `documentation-cleanup` | pending | — | SoT + PSR-0a snapshot; exclude inventory `defer` docs |
+| 2 | `sdk-generated-registry` | pending | — | Regenerate 28 generated; SDK http + membership |
+| 3 | `denali-gravity-harbor` | pending | — | Harbor package + gravity + guest smoke |
+| 4 | `api-platform-behavior` | pending | — | Non-generated API + portal session cookie |
+| 5 | `root-command-analysis` | pending | — | ROOT_COMMAND evidence + DX scripts |
+| — | `local-scratch-artifact` | deferred | — | Remains dirty until PSR-1 |
+
+## Technical detail — train boundaries
+
+```text
+documentation-cleanup
+  docs/architecture/*remediation*
+  docs/audits/snapshots/2026-07-31/*
+  docs/workspaces/harbor/certification.md
+  (NOT deferred phase/dev/standards drift files)
+
+sdk-generated-registry
+  packages/workspace-sdk/** (incl. src/http)
+  packages/platform-core/**
+  *.generated.* via pnpm run generate:workspace-registry
+  package.json + pnpm-lock.yaml + apps/api/package.json
+
+denali-gravity-harbor
+  packages/workspaces/{harbor,denali,urban,guest-club,starter,finance-ws3}
+  guest runtime/host Harbor wiring
+  marketing/portal Harbor smoke
+
+api-platform-behavior
+  apps/api/src|test (non-generated)
+  apps/portal/src/auth/build-session-cookie.ts
+
+root-command-analysis
+  docs/platform/ROOT_COMMAND_*
+  scripts/{pre-commit-fast,test-changed,ops/psr-0a-inventory,...}
+
+local-scratch-artifact
+  root ad-hoc deletes + tmp-restart-*.mjs — DO NOT COMMIT in PSR-0b
+```

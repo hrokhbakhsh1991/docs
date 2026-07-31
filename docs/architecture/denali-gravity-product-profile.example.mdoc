@@ -1,0 +1,131 @@
+---
+title: Denali Gravity — Product Profile example (G1)
+format: markdoc
+doc_role: architecture_example
+status: active
+created: 2026-07-31
+extends:
+  - docs/architecture/denali-gravity-remediation.mdoc
+related_temp: temp/DENALI_GRAVITY_REMEDIATION_MAP.md
+---
+
+# Product Profile example (DG-2.2)
+
+Worked example for **Path B / product #2 at rung G1** (guest-viable stub). Shows what belongs in **C** (manifest) vs **thin W** vs **forbidden clone**. Not a live `pluginId` — a template for DG-4.
+
+## Scenario
+
+| Role | Example | Maturity |
+| ---- | ------- | -------- |
+| Reference G3 | `denali` (mountain / adventure) | certified |
+| Proof stub | `urban` (city) | Phase 7 proof — not the default DG-4 vehicle |
+| Scaffold | `starter` | G0 — owns `basics.*` paths (DG-2.1: no Denali catalog alias) |
+| **Product #2 (target)** | new `pluginId` e.g. `harbor` (waterfront city club) | **G1 stub** — scaffolded in **DG-4.0** (`packages/workspaces/harbor`) |
+
+Business intent stays **OD-1 = 1b** (new pluginId). Do not re-charter Urban as the second certified family unless Architect flips OD-1.
+
+## C — manifest deltas only (city/harbor vs mountain)
+
+Express G1 differences in `workspace.manifest.json` (+ theme CSS), **not** by forking Denali HTTP forests.
+
+| Concern | Mountain (`denali`) pattern | Harbor G1 profile (C) | Notes |
+| ------- | --------------------------- | --------------------- | ----- |
+| HTTP prefix | `/denali` | `/harbor` | `http.prefix` + route manifest paths |
+| Production tier | `certified` | `stub` | Fail-closed for prod provision |
+| Catalog list filters | server filters: `q`, difficulty, fitness, … | `cityFilter: true` **or** minimal filters | `catalogPresentation.listFeatures` |
+| Catalog detail | itinerary / difficulty / fitness on | city venue / policies off until G2 | `catalogPresentation.detailSections` |
+| Registration flow | Denali transport + profile fields | compose shared auth steps + thin intake/done | `catalogRegistrationFlow.steps.mode: compose` (see guest-club) |
+| Member profile | nationalId, fatherName, birthDate, … | `displayName` (+ email read-only) | `memberProfile.editableFields` |
+| Guest landing | rich Denali sections | `variant: minimal`, sections mostly false | `guestLanding` |
+| SEO | Denali marketing keys | harbor i18n keys only | `guestSeo` + message namespace |
+| Theme | Denali tokens | harbor `theme/tokens.css` + guest stylesheets | `themeStylesheets` / `guestThemeStylesheets` |
+| Wizard field paths | Denali `title`, frozen paths | **Own** registry paths (`basics.title` style) | **Never** `aliasCatalogWorkspaceType: "denali"` |
+| Wizard template alias | — | omit `wizardTemplate` alias block | DG-2.1 |
+
+### Illustrative C snippet (not checked in as a package)
+
+```json
+{
+  "id": "harbor",
+  "guestConformance": { "productionTier": "stub" },
+  "http": { "prefix": "/harbor", "module": "./http/routes" },
+  "catalogPresentation": {
+    "listFeatures": { "cityFilter": true },
+    "detailSections": {
+      "difficulty": false,
+      "fitness": false,
+      "itinerary": false,
+      "policies": true
+    }
+  },
+  "catalogRegistrationFlow": {
+    "surfaceExport": "harborCatalogRegistrationFlowSurface",
+    "steps": {
+      "mode": "compose",
+      "reuseAuthStepsFrom": "shared",
+      "components": { "intake": "HarborIntakeStep", "done": "HarborDoneStep" }
+    }
+  },
+  "memberProfile": {
+    "editableFields": ["displayName"],
+    "readOnlyFields": ["email"]
+  },
+  "guestLanding": { "variant": "minimal", "i18nProfile": "minimal" }
+}
+```
+
+## Thin W — required adapters (budget)
+
+Target **≤ 15** new modules for G1 (TEMP DG-4 metric). Prefer P-lib calls; keep product literals in W.
+
+**Count rule (DG-6.5):** count TypeScript source files under `src/`, excluding
+neutral barrel/loader basenames `index.ts`, `react.ts`, and `routes.ts`. Keep
+`routes-manifest.ts` in the count because it is workspace configuration. Harbor
+currently measures **10 / 15** by this reproducible rule.
+
+| # | Adapter (W) | Calls | Must not contain |
+| - | ----------- | ----- | ---------------- |
+| 1 | `workspace.manifest.json` + messages | codegen | — |
+| 2 | `*.plugin.ts` + field registry | SDK plugin contract | Denali field ids |
+| 3 | `http/routes-manifest.ts` | `WorkspaceHttpMethod` | hand-rolled method unions |
+| 4 | `http/routes.ts` + `product.routes.ts` | P-lib envelopes / public-auth / catalog list helpers | copy of Denali dashboard/reminder/finance |
+| 5 | `http/catalog.service.ts` | clamp/cursor/exposure P-lib | Denali filter/photo/spots pipeline |
+| 6 | `http/registration.service.ts` | type-gate / capacity / not-published P-lib | Denali booking-port orchestration |
+| 7 | `http/host-ports.ts` + `host-runtime.ts` | `createWorkspaceHttpHostSlot` | second hand-rolled slot |
+| 8 | `resolve-*-public-auth.ts` | `resolveWorkspacePublicAuthFromRequest` | local header parsers |
+| 9 | coded errors | `defineWorkspaceCodedError` | ad-hoc Error subclasses without code |
+| 10 | publish transition + field-gate | DG-1.4 P-lib | duplicate boolean matrices |
+| 11 | intake/done UI steps | compose registration flow | Denali profile form clones |
+| 12 | theme CSS | tokens only | Denali marketing section CSS dumps |
+| 13 | exposure surfaces (minimal) | SDK exposure types | Denali reminder/offset matrix |
+| 14–15 | tests + smoke fixtures | package specs | apps/api product branches |
+
+**P-lib already available (DG-1):** public auth, catalog list/page/envelope, owner mutation, publish transition/field-gate, host slot, coded errors, registration guards, success/404 envelopes.
+
+## Explicit non-goals for this profile
+
+| Do not | Why |
+| ------ | --- |
+| Copy `packages/workspaces/denali/src/http/**` forest | Clone detector FAIL |
+| `aliasCatalogWorkspaceType: "denali"` | Reopens gravity (fixed in DG-2.1 for starter) |
+| Certify at G3 parity | OD-5 = G1 or G2 |
+| Move handlers into `apps/api` | Host stays loader/codegen-only |
+| Finance / ledger / equipment in G1 | DG-F / G2+ |
+
+## Verification checklist (when DG-4 implements harbor)
+
+```text
+pnpm run generate:workspace-registry --check
+pnpm --filter @app-tour/workspace-sdk test   # product-neutral
+# G1 smoke: marketing catalog → portal register (env-dependent)
+# Clone detector: no large rename-parallel stem set vs denali/urban
+```
+
+## Relation to live workspaces
+
+| Workspace | Role in this example |
+| --------- | -------------------- |
+| `denali` | G3 reference — peel later (DG-3), do not clone |
+| `urban` | City-shaped **proof**, not OD-1 default product #2 |
+| `guest-club` | Compose registration + minimal presentation pattern to copy |
+| `starter` | Scaffold field paths + theme; **no** Denali wizard catalog alias |
