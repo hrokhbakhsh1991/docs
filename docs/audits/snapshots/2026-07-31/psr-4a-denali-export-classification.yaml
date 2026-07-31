@@ -2,7 +2,7 @@ schema_version: 1
 program_id: PSR-001
 wave: PSR-4a
 updated: '2026-07-31'
-verified_sha: pending-psr-4a
+verified_sha: 527a65d5
 workspace: '@app-tour/workspace-denali'
 package_json: packages/workspaces/denali/package.json
 policy:
