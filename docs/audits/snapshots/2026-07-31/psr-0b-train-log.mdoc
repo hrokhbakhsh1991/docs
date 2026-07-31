@@ -37,8 +37,22 @@ mixing of trains. Protected-package trains (`workspace-sdk`, `platform-core`,
 | 2 | `sdk-generated-registry` | done | `990e8201` | Regenerated via `pnpm run generate:workspace-registry`; SDK http + membership |
 | 3 | `denali-gravity-harbor` | done | `d0dd1a34` | Harbor package + gravity + guest smoke |
 | 4 | `api-platform-behavior` | done | `1e3dac53` | Non-generated API + portal session cookie |
-| 5 | `root-command-analysis` | in this commit | — | ROOT_COMMAND evidence + DX scripts |
+| 5 | `root-command-analysis` | done | `e9388ba7` | ROOT_COMMAND evidence + DX scripts |
 | — | `local-scratch-artifact` | deferred | — | Remains dirty until PSR-1 |
+| — | deferred docs (`psr0b_action: defer`) | deferred | — | phase/dev/standards drift → PSR-2 |
+
+## Exit gate (PSR-0b)
+
+| Criterion | Result |
+| --- | --- |
+| One commit per product/docs/command train | Pass (5 commits) |
+| No scratch committed | Pass (10 paths still dirty) |
+| No inventory `defer` docs committed | Pass (8 paths still dirty) |
+| Generated sources regenerated before sdk commit | Pass (`generate:workspace-registry`) |
+| No bulk cleanup / `git clean` | Pass |
+
+**PSR-0b gate: GREEN.** Next: PSR-1a (rebuildable artifacts + ignore policy) then
+PSR-1b (root ad-hoc delete candidates with consumer proof).
 
 ## Technical detail — train boundaries
 

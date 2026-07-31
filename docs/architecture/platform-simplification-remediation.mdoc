@@ -4,7 +4,7 @@ format: markdoc
 doc_role: remediation_sot
 status: active
 program_id: PSR-001
-current_wave: PSR-0b
+current_wave: PSR-0b-complete
 created: 2026-07-31
 owner: platform-architecture
 scope: new-platform-only
@@ -15,19 +15,28 @@ verified_sha: 30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-0b)
+## 0. وضعیت موج جاری (PSR-0b — بسته)
 
 | Field | Value |
 | --- | --- |
-| Wave | **PSR-0b** — split/commit change trains (in progress) |
+| Wave | **PSR-0b** — split/commit change trains (**complete**) |
+| Exit gate | GREEN — 5 train commits; scratch+defer still dirty |
 | Prior gate | PSR-0a GREEN — [`snapshots/2026-07-31/`](../audits/snapshots/2026-07-31/) |
-| Recovery HEAD | `30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf` (`thin`) |
+| Recovery HEAD (pre-split) | `30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf` (`thin`) |
 | Train log | [`psr-0b-train-log.mdoc`](../audits/snapshots/2026-07-31/psr-0b-train-log.mdoc) |
 
-**قواعد PSR-0b:** یک commit per `change_train`؛ بدون cleanup؛ `defer` و
-`local-scratch-artifact` استیج نمی‌شوند؛ ۲۸ generated فقط از generator.
+| Train | Commit |
+| --- | --- |
+| `documentation-cleanup` | `1f135aea` |
+| `sdk-generated-registry` | `990e8201` |
+| `denali-gravity-harbor` | `d0dd1a34` |
+| `api-platform-behavior` | `1e3dac53` |
+| `root-command-analysis` | `e9388ba7` |
 
-**Next after PSR-0b:** PSR-1a/b hygiene (فقط پس از سبز شدن ledger).
+**باقی‌ماندهٔ عمدی dirty:** `local-scratch-artifact` (۱۰ path) + docs با
+`psr0b_action: defer` (۸ path). حذف/ارشیو در PSR-1 / PSR-2.
+
+**Next:** PSR-1a — rebuildable artifacts و ignore policy (بدون TEMP wipe).
 
 ## 0.1 PSR-0a (بسته)
 
@@ -240,11 +249,15 @@ Harbor از نظر contract و smoke، G1 را اثبات می‌کند؛ ولی
 **Gate خروج PSR-0a:** سبز (owner/class کامل؛ staged=0؛ 28 generated با
 `regenerate-then-commit`؛ recovery مستند).
 
-#### PSR-0b — بعدی (اجرا نشده)
+#### PSR-0b — انجام‌شده (2026-07-31)
 
-1. تفکیک/commit هر change train جداگانه؛ بدون cleanup.
-2. 28 generated source را regenerate و با manifest diff تطبیق دهید.
-3. registry freshness را روی همان train اثبات کنید.
+1. تفکیک/commit هر change train جداگانه؛ بدون cleanup — ledger:
+   [`psr-0b-train-log.mdoc`](../audits/snapshots/2026-07-31/psr-0b-train-log.mdoc).
+2. ۲۸ generated source با `pnpm run generate:workspace-registry` regenerate و در
+   commit `990e8201` آمده‌اند.
+3. `local-scratch-artifact` و docs با `defer` عمداً dirty مانده‌اند.
+
+**Gate خروج PSR-0b:** سبز (۵ train commit؛ صفر scratch در تاریخچهٔ trainها).
 
 **ممنوع (هنوز):** `git clean -fdX`، reset گسترده، حذف TEMP، یا ترکیب همه‌ی
 تغییرها در یک «cleanup commit».
