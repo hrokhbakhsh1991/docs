@@ -2,7 +2,7 @@ schema_version: 1
 program_id: PSR-001
 wave: PSR-4b-api-deps
 updated: '2026-07-31'
-verified_sha: pending-psr-4b-api-deps
+verified_sha: a908ab08
 policy:
   inventory_and_ratchet_only: true
   no_package_json_rewrite_in_this_wave: true
