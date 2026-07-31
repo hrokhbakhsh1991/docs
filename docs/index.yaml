@@ -4,7 +4,7 @@ schema_version: 1
 program_id: PSR-001
 wave: PSR-2b
 updated: 2026-07-31
-verified_sha: da9e75ca
+verified_sha: 292ca22f
 roles:
   - canonical
   - standard
@@ -175,7 +175,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: da9e75ca
+    verified_sha: 292ca22f
     supersedes: []
     superseded_by: null
     evidence:
@@ -187,7 +187,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: da9e75ca
+    verified_sha: 292ca22f
     supersedes: []
     superseded_by: null
     evidence: []
