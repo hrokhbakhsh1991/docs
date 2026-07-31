@@ -1,0 +1,54 @@
+# PSR-3b — CI composite / family-runner inventory (machine state)
+schema_version: 1
+program_id: PSR-001
+wave: PSR-3b
+updated: 2026-07-31
+verified_sha: pending-psr-3b
+policy:
+  required_check_names_frozen: true
+  required_checks_source: scripts/ops/main-branch-required-checks.mjs
+  no_merge_of:
+    - verify:fast
+    - verify:product
+    - verify:full
+    - test:adversarial
+    - live smoke
+  family_runners:
+    status: already_consolidated
+    shared_implementation: scripts/guards/run-guard-family.mjs
+    public_commands:
+      - guard:marketing
+      - guard:workspace
+      - guard:field-exposure
+      - guard:guest
+    decision: >-
+      R3 closed with no further adapter merge. Leaf guards retained for
+      path-gated CI and diagnosis.
+workflow_reuse:
+  composite: .github/actions/setup-platform/action.yml
+  pilot:
+    workflow: .github/workflows/portal-control-guard.yml
+    job_id: portal-control
+    business_step: pnpm run control:ci
+    engine_check_enabled: "false"
+    rationale: >-
+      Narrow path filter; not in MAIN_BRANCH_REQUIRED_CHECKS; pre-pilot had
+      no engine step so composite must pass engine-check-enabled false.
+  deferred_required:
+    - phase-0-gate.yml
+    - phase-1-gate.yml
+    - booking-postgres-gate.yml
+inventory_after_pilot:
+  uses_setup_platform:
+    - api-nightly.yml
+    - doc-gate.yml
+    - finance-integrity.yml
+    - phase-2-gate.yml
+    - phase-3-gate.yml
+    - portal-control-guard.yml
+  direct_full_bootstrap_count: 17
+  other_non_bootstrap:
+    - deploy-vps.yml
+    - p10-staging-gate.yml
+    - p7-staging-gate.yml
+    - phase-g-h-create-pr.yml

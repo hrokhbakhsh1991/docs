@@ -214,9 +214,10 @@ Archival requires:
 | Select pilot         | Evidence-backed first migration             | Complete    |
 | Approve baseline     | Owner/architect decision                    | Pending     |
 | Public front doors   | PSR-3a twelve discoverable entry points     | Complete    |
+| Family + CI reuse    | PSR-3b R3 accept + portal composite pilot   | Complete    |
 | Execute pilot        | Consumer migration and compatibility window | Not started |
-| Consolidate families | Shared runners with parity (PSR-3b)         | Not started |
-| Consolidate CI       | Reusable orchestration, check parity        | Not started |
+| Consolidate families | Shared runners with parity (accepted R3)    | Complete    |
+| Consolidate CI       | Reusable orchestration; required names frozen | Partial (pilot) |
 | Consolidate gates    | Declarative graph with stable front doors   | Not started |
 | Archive safely       | Approved removals only (PSR-3c+)            | Partial (2 aliases) |
 

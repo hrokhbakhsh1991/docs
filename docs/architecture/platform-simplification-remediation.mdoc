@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: 1a5cac95
+verified_sha: pending-psr-3b
 supersedes: []
 superseded_by: null
 evidence:
@@ -18,8 +18,10 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-2c-docs-compaction.mdoc
   - docs/audits/snapshots/2026-07-31/psr-3a-front-doors.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-3b-ci-reuse.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-3b-ci-reuse-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-3a-complete
+current_wave: PSR-3b-complete
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -29,7 +31,30 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-3a — بسته)
+## 0. وضعیت موج جاری (PSR-3b — بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-3b** — family runners + CI composite pilot (**complete**) |
+| Exit gate | GREEN — R3 پذیرفته؛ پایلوت `portal-control-guard`؛ required checks فریز |
+| Snapshot | [`psr-3b-ci-reuse.mdoc`](../audits/snapshots/2026-07-31/psr-3b-ci-reuse.mdoc) |
+| CI contract | [`CI_COMPOSITE_SETUP.md`](../platform/CI_COMPOSITE_SETUP.md) |
+
+| Change | Detail |
+| --- | --- |
+| Family runners | بدون refactor — `run-guard-family.mjs` قبلاً مشترک |
+| Pilot workflow | `portal-control-guard.yml` → `setup-platform` |
+| Engine parity | `engine-check-enabled: "false"` (پیش از پایلوت engine نداشت) |
+| Composite callers | ۵ → **۶** |
+| Required checks | `MAIN_BRANCH_REQUIRED_CHECKS` بدون تغییر |
+| Deferred | phase-0/1/booking gates؛ گسترش فله‌ای workflows |
+
+**عمداً خارج از این موج:** rename required CI checks؛ ادغام verify/adversarial؛
+حذف leaf guardها؛ مهاجرت phase-0/1/booking.
+
+**Next:** PSR-3c — alias expiry / phase command archival (پس از consumer scan).
+
+### 0.0 PSR-3a (بسته)
 
 | Field | Value |
 | --- | --- |
@@ -43,16 +68,11 @@ doc_role: canonical
 | Added | `dev`, `typecheck`, `generate`, `db:migrate`, `release:verify` |
 | Removed | `contract:test`, `test:contract:foundation` (CI refs = 0) |
 | Net executable | +3 (307 → 310) |
-| `db:migrate` | side effect = `db:migrate:deploy` |
-| `release:verify` | → `verify:product` only (نه full/adversarial/live) |
 | Land commit | `1a5cac95` |
 | SHA close | `296e0f03` |
 
 **عمداً خارج از این موج:** ادغام family runners؛ rename required CI checks؛
 حذف گسترده aliasها.
-
-**Next:** PSR-3b — family runners / workflow reuse (required check names frozen).
-
 ### 0.0 PSR-2c (بسته)
 
 | Field | Value |

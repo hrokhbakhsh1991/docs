@@ -1,0 +1,86 @@
+---
+id: PSR-3B-CI-REUSE
+title: PSR-3b family runners acceptance and CI composite pilot
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending-psr-3b
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-3b-ci-reuse-inventory.yaml
+  - docs/platform/CI_COMPOSITE_SETUP.md
+  - docs/archive/psr-001/root-command/ROOT_COMMAND_R3_FAMILY_ASSESSMENT.md
+  - docs/archive/psr-001/root-command/ROOT_COMMAND_R4_CI_ASSESSMENT.md
+program_id: PSR-001
+wave: PSR-3b
+---
+
+# PSR-3b — Family runners + workflow reuse (careful slice)
+
+## Scope
+
+| Work | In this wave | Deferred |
+| --- | --- | --- |
+| Accept R3 family-runner consolidation | Yes (no code merge) | Adapter deletion |
+| Reconcile `CI_COMPOSITE_SETUP.md` with repo reality | Yes | — |
+| Migrate `portal-control-guard.yml` → `setup-platform` | Yes | Bulk workflow migration |
+| Touch required-check names / branch protection | **No** | Later approved wave |
+| Migrate phase-0/1/booking gates | **No** | Required-check wave |
+
+## Family runners (R3)
+
+Public commands already share `scripts/guards/run-guard-family.mjs`:
+
+`guard:marketing` · `guard:workspace` · `guard:field-exposure` · `guard:guest`
+
+Leaf guards remain for path-gated CI. Control-pack adapters and
+`control:authority` stay separate. **No runner refactor in PSR-3b.**
+
+## CI composite pilot (R4)
+
+```yaml
+- uses: actions/checkout@v4
+- uses: ./.github/actions/setup-platform
+  with:
+    engine-check-enabled: "false"
+- run: pnpm run control:ci
+```
+
+`engine-check-enabled: "false"` is mandatory for parity: the pre-pilot workflow
+did not run `check-node-engine.mjs`. Enabling it would silently strengthen CI.
+
+Machine inventory:
+[`psr-3b-ci-reuse-inventory.yaml`](./psr-3b-ci-reuse-inventory.yaml)
+
+Authority doc:
+[`CI_COMPOSITE_SETUP.md`](../../platform/CI_COMPOSITE_SETUP.md)
+
+## Metrics
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Workflows on `setup-platform` | 5 | **6** |
+| Direct full bootstrap stacks | 18 | **17** |
+| `MAIN_BRANCH_REQUIRED_CHECKS` length | 5 | **5** (byte-stable) |
+
+## Local smoke
+
+```bash
+node scripts/ops/psr-3b-ci-reuse-smoke.mjs
+```
+
+Does **not** claim hosted Actions cache/parity. Expansion beyond this pilot
+needs external Actions-run evidence (R4).
+
+## Exit gate
+
+| Check | Result |
+| --- | --- |
+| Family runners still share one implementation | required |
+| Portal pilot on composite with engine false | required |
+| Required trio workflows untouched | required |
+| Required-check registry unchanged | required |
+| `verify:*` tiers unmerged | required |
