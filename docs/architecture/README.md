@@ -2,11 +2,15 @@
 
 Authoritative architecture documents for cross-cutting platform capabilities.
 
+**Active registry (PSR-2a):** [`docs/index.yaml`](../index.yaml) — machine list of
+active authority. Schema: [`DOC-META-001`](../standards/doc-authority-metadata.schema.mdoc).
+
 | Document | Scope |
 | --- | --- |
+| [Platform simplification remediation](./platform-simplification-remediation.mdoc) | PSR-001 program SoT |
 | [Field Exposure System](./field-exposure-system.md) | Surface, audience, trigger, profiles, intents, exposure resolver. **Phase 0 complete. Phase 1 complete. Phase 2 complete. Phase 3 complete. Phase 4 complete. Phase 5 complete. Phase 6 complete. Phase 7 complete. Phase 8 complete.** Enterprise milestones M1–M4 documented in the same doc. |
 | [Field Policy System](./field-policy-system.md) | Entity/workspace field state (PDP); separate from exposure/publication. |
-| [Denali Gravity remediation](./denali-gravity-remediation.mdoc) | Path B: stop second-product clone forests — P-contract/P-lib, maturity ladder G0–G3, DG-0…DG-6 (+ optional DG-F). Working TEMP map: `temp/DENALI_GRAVITY_REMEDIATION_MAP.md`. |
+| [Denali Gravity remediation](./denali-gravity-remediation.mdoc) | Path B: stop second-product clone forests — P-contract/P-lib, maturity ladder G0–G3, DG-0…DG-6 (+ optional DG-F). Working TEMP map flagged for PSR-2b (`related_temp`). |
 | [Denali Gravity — Product Profile example](./denali-gravity-product-profile.example.mdoc) | DG-2.2: C-only G1 deltas + thin W adapter budget for product #2 (fictional `harbor`); anchors guest-club/starter/urban. |
 
 Verification:

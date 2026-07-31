@@ -1,0 +1,64 @@
+---
+id: PSR-2A-BOOTSTRAP
+title: PSR-2a documentation authority bootstrap
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: 8513c5a6f0d150bfddb8de1f34e93d45f9521db5
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/index.yaml
+  - docs/standards/doc-authority-metadata.schema.mdoc
+program_id: PSR-001
+wave: PSR-2a
+---
+
+# PSR-2a — Documentation authority bootstrap
+
+## Goal
+
+Stand up **`docs/index.yaml`** as the sole active-doc registry and lock the
+metadata schema (**DOC-META-001**) without TEMP promotion, phase archival, or
+bulk frontmatter migration of the historical corpus.
+
+## Delivered
+
+| Artifact | Role |
+| --- | --- |
+| [`docs/standards/doc-authority-metadata.schema.mdoc`](../../standards/doc-authority-metadata.schema.mdoc) | `standard` — required fields + role enum |
+| [`docs/index.yaml`](../../index.yaml) | Machine registry (seed = 10 active docs) |
+| `scripts/ops/psr-2a-validate-docs-index.mjs` | Ops validator (no new public root command) |
+
+## Seed set (active authority only)
+
+Program remediation, Denali Gravity canonical + example, PSR-0/1/2a snapshots,
+and the metadata schema. Phase packs and deferred dirty docs are **not** seeded.
+
+## Explicit non-goals (later waves)
+
+| Wave | Work |
+| --- | --- |
+| PSR-2b | Zero tracked→ignored TEMP/temp authority; promote or drop links |
+| PSR-2c | Archive closed phase packs; ROOT_COMMAND consolidation ≤3 |
+| PSR-3 | Public `guard:docs-manifest` via family merge (not net-new root cmd) |
+
+## Commit ledger
+
+| Item | Status | Commit |
+| --- | --- | --- |
+| Schema + index + validator + seed frontmatter | done | (this wave) |
+
+## Exit gate
+
+| Criterion | Result |
+| --- | --- |
+| `docs/index.yaml` exists with `schema_version: 1` | Pass |
+| Seed docs have DOC-META-001 frontmatter | Pass (10 indexed) |
+| `node scripts/ops/psr-2a-validate-docs-index.mjs` exits 0 | Pass |
+| TEMP/temp untouched; defer docs unstaged | Pass |
+| No new public root `package.json` script | Pass |
+
+**PSR-2a gate: GREEN.**

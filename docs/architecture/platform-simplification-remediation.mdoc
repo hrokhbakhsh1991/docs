@@ -1,36 +1,59 @@
 ---
+id: PSR-001
 title: Platform simplification and open-source readiness remediation
 format: markdoc
-doc_role: remediation_sot
-status: active
-program_id: PSR-001
-current_wave: PSR-1-complete
-created: 2026-07-31
+role: canonical
 owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: 8513c5a6f0d150bfddb8de1f34e93d45f9521db5
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-0a-worktree-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-0b-train-log.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-1-hygiene.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-2a-docs-authority.mdoc
+program_id: PSR-001
+current_wave: PSR-2a-complete
+created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
 psr0a_snapshot: docs/audits/snapshots/2026-07-31/
-verified_sha: 30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf
+doc_role: canonical
 ---
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-1 — بسته)
+## 0. وضعیت موج جاری (PSR-2a — بسته)
 
 | Field | Value |
 | --- | --- |
-| Wave | **PSR-1** — hygiene containment (**complete**) |
+| Wave | **PSR-2a** — docs manifest + metadata schema (**complete**) |
+| Exit gate | GREEN — index seed + DOC-META-001 + validator PASS |
+| Registry | [`docs/index.yaml`](../index.yaml) |
+| Schema | [`DOC-META-001`](../standards/doc-authority-metadata.schema.mdoc) |
+| Snapshot | [`psr-2a-docs-authority.mdoc`](../audits/snapshots/2026-07-31/psr-2a-docs-authority.mdoc) |
+
+**Next:** PSR-2b — صفر کردن tracked→ignored TEMP authority (بدون wipe کور TEMP).
+
+**قواعد رعایت‌شده:** بدون TEMP wipe؛ بدون archive فله‌ای phase؛ بدون استیج ۸ سند
+defer؛ بدون root command جدید.
+
+### 0.1 PSR-1 (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | PSR-1 — hygiene containment (**complete**) |
 | Exit gate | GREEN — ignore policy + root ad-hoc removed; TEMP untouched |
 | Hygiene proof | [`psr-1-hygiene.mdoc`](../audits/snapshots/2026-07-31/psr-1-hygiene.mdoc) |
 | PSR-1a | `1b6d576c` |
 | PSR-1b | `13f102e6` |
 | Deploy canonical | `scripts/vps-deploy/` only |
 
-**باقی‌ماندهٔ عمدی dirty:** ۸ سند `defer` از PSR-0b → PSR-2 (docs authority).
+**باقی‌ماندهٔ عمدی dirty:** ۸ سند `defer` از PSR-0b → بعد از seed در PSR-2b/2c.
 
-**Next:** PSR-2a — `docs/index.yaml` + metadata schema (بدون TEMP wipe).
-
-### 0.1 PSR-0b (بسته)
+### 0.2 PSR-0b (بسته)
 
 | Field | Value |
 | --- | --- |
@@ -316,10 +339,24 @@ path-specific؛ صفر TEMP wipe.
 
 **هدف:** حداکثر 150 سند فعال با نقش صریح؛ تاریخچه در archive قابل‌جست‌وجو.
 
-1. `docs/index.yaml` تنها registry شود.
-2. هر سند فعال این metadata را داشته باشد:
-   `id`, `role`, `owner`, `status`, `last_verified`, `verified_sha`,
-   `supersedes`, `superseded_by`, `evidence`.
+#### PSR-2a — انجام‌شده (bootstrap)
+
+1. Schema: [`DOC-META-001`](../standards/doc-authority-metadata.schema.mdoc)
+2. Registry: [`docs/index.yaml`](../index.yaml) — ۱۰ سند seed فعال
+3. Validator ops: `node scripts/ops/psr-2a-validate-docs-index.mjs` (بدون root command جدید)
+4. Snapshot: [`psr-2a-docs-authority.mdoc`](../audits/snapshots/2026-07-31/psr-2a-docs-authority.mdoc)
+
+**Gate خروج PSR-2a:** سبز (index + schema + validator PASS؛ TEMP و defer دست‌نخورده).
+
+#### PSR-2b / PSR-2c — بعدی
+
+2b: صفر کردن tracked→ignored TEMP authority (از جمله `related_temp` در DG docs).
+2c: archive phase packs؛ کاهش ROOT_COMMAND_*؛ ادامهٔ metadata روی corpus.
+
+اقدامات باقی‌ماندهٔ برنامه:
+
+1. `docs/index.yaml` تنها registry شود. **(bootstrap انجام شد؛ corpus کامل نه)**
+2. هر سند فعال metadata DOC-META-001 را داشته باشد.
 3. نقش‌ها محدود شوند به:
    `canonical | standard | adr | runbook | audit_snapshot | evidence | archive`.
 4. همه‌ی tracked → ignored scratch referenceها به صفر برسند:
@@ -338,7 +375,7 @@ path-specific؛ صفر TEMP wipe.
    baseline، classification machine state و remediation/status.
 10. راهنماهای SSH و absolute local links secret/privacy review شوند.
 
-Guard هدف:
+Guard هدف (پس از family merge در PSR-3 — نه root command جدید خالص):
 
 - `guard:docs-manifest`
 - `guard:no-temp-authority`
@@ -353,8 +390,8 @@ Guard هدف:
 Markdoc gate باید `Markdoc.validate` را واقعاً اجرا کند؛ parse/transform تنها
 اعتبارسنجی محتوایی نیست.
 
-**Gate خروج:** یک roadmap جاری، یک scorecard جاری، صفر mirror دستی، صفر لینک
-absolute، صفر authority در TEMP، و fresh clone با Doc-Gate کامل سبز.
+**Gate خروج PSR-2 کامل:** یک roadmap جاری، یک scorecard جاری، صفر mirror دستی،
+صفر لینک absolute، صفر authority در TEMP، و fresh clone با Doc-Gate کامل سبز.
 
 ### PSR-3 — Command، guard و CI contraction
 

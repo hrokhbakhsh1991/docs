@@ -1,0 +1,107 @@
+---
+id: DOC-META-001
+title: Documentation authority metadata schema
+format: markdoc
+role: standard
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: 8513c5a6f0d150bfddb8de1f34e93d45f9521db5
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/architecture/platform-simplification-remediation.mdoc
+program_id: PSR-001
+wave: PSR-2a
+---
+
+# Documentation authority metadata schema (DOC-META-001)
+
+## Purpose
+
+PSR-2a establishes the **machine-readable contract** for active documentation.
+[`docs/index.yaml`](../index.yaml) is the sole registry of active docs. Historical
+phase packs remain on disk until PSR-2c archive moves; they are **not** active
+authority unless listed in the index with `status: active`.
+
+## Required frontmatter fields (active docs)
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| `id` | string | Stable doc id (`PSR-001`, `DOC-META-001`, `DG-REM-001`, …) |
+| `role` | enum | Exactly one of the roles below |
+| `owner` | string | Team/role accountable for correctness |
+| `status` | enum | `active` \| `draft` \| `deprecated` \| `archived` |
+| `last_verified` | date | ISO date `YYYY-MM-DD` of last human/machine verification |
+| `verified_sha` | string | Full or short git SHA when content was verified |
+| `supersedes` | string[] | Doc ids or paths this replaces (may be empty) |
+| `superseded_by` | string \| null | Successor id/path when deprecated/archived |
+| `evidence` | string[] | Paths to proofs, snapshots, or related evidence (may be empty) |
+
+Optional but recommended: `title`, `format`, `program_id`, `wave`.
+
+### Compatibility
+
+Legacy `doc_role` may remain during transition. When both are present, **`role`
+wins**. New docs must not invent `doc_role` values outside the role map below.
+
+## Allowed `role` values
+
+| role | Meaning |
+| --- | --- |
+| `canonical` | Current source of truth for a concern (architecture, remediation program) |
+| `standard` | Normative contract / schema / platform standard |
+| `adr` | Architecture decision record |
+| `runbook` | Operational procedure |
+| `audit_snapshot` | Immutable dated audit / inventory / train ledger |
+| `evidence` | Supporting proof, example, classification pack (not sole authority) |
+| `archive` | Explicitly historical; not active authority |
+
+## `docs/index.yaml` shape
+
+```yaml
+schema_version: 1
+program_id: PSR-001
+updated: YYYY-MM-DD
+verified_sha: <sha>
+roles: [canonical, standard, adr, runbook, audit_snapshot, evidence, archive]
+documents:
+  - id: DOC-META-001
+    path: docs/standards/doc-authority-metadata.schema.mdoc
+    role: standard
+    owner: platform-architecture
+    status: active
+    last_verified: YYYY-MM-DD
+    verified_sha: <sha>
+    supersedes: []
+    superseded_by: null
+    evidence: []
+```
+
+Rules:
+
+1. Every `status: active` document used as authority **must** appear in
+   `documents`.
+2. Paths are repo-relative and must exist.
+3. `id` values are unique within the index.
+4. Index `role`/`status` must match file frontmatter for seeded docs.
+5. Absence from the index does **not** delete a file; it means the file is not
+   yet claimed as active authority (PSR-2c will archive closed packs).
+
+## Validation
+
+```bash
+node scripts/ops/psr-2a-validate-docs-index.mjs
+```
+
+Ops-only (not a new public root command). Exit `0` on pass; non-zero lists
+violations. Full `guard:docs-manifest` / `guard:doc-frontmatter` land when PSR-2
+contracts the active set further and can replace or join an existing guard
+family (PSR-3 rule: no net-new root command without merge).
+
+## Out of scope for PSR-2a
+
+- TEMP promotion / zero tracked→ignored refs (PSR-2b)
+- Phase pack moves to `docs/archive/` (PSR-2c)
+- ROOT_COMMAND_* consolidation to ≤3 artifacts (PSR-2c)
+- Committing the eight deferred dirty docs from PSR-0b without classification

@@ -1,0 +1,143 @@
+# Active documentation registry (PSR-2a)
+# Sole machine registry for active authority. Absence ≠ delete; see DOC-META-001.
+schema_version: 1
+program_id: PSR-001
+wave: PSR-2a
+updated: 2026-07-31
+verified_sha: 8513c5a6f0d150bfddb8de1f34e93d45f9521db5
+roles:
+  - canonical
+  - standard
+  - adr
+  - runbook
+  - audit_snapshot
+  - evidence
+  - archive
+notes:
+  - Deferred dirty docs from PSR-0b are not seeded until classified (PSR-2b/2c).
+  - Phase packs remain on disk but are not active authority via this index yet.
+  - Tracked→TEMP links (e.g. Denali Gravity related_temp) are inventoried for PSR-2b.
+documents:
+  - id: DOC-META-001
+    path: docs/standards/doc-authority-metadata.schema.mdoc
+    role: standard
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: 8513c5a6f0d150bfddb8de1f34e93d45f9521db5
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/architecture/platform-simplification-remediation.mdoc
+
+  - id: PSR-001
+    path: docs/architecture/platform-simplification-remediation.mdoc
+    role: canonical
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: 8513c5a6f0d150bfddb8de1f34e93d45f9521db5
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/audits/snapshots/2026-07-31/psr-0a-worktree-inventory.yaml
+      - docs/audits/snapshots/2026-07-31/psr-0b-train-log.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-1-hygiene.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-2a-docs-authority.mdoc
+
+  - id: DG-REM-001
+    path: docs/architecture/denali-gravity-remediation.mdoc
+    role: canonical
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: 8513c5a6f0d150bfddb8de1f34e93d45f9521db5
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/architecture/denali-gravity-product-profile.example.mdoc
+    psr2b_flags:
+      - tracked_to_ignored_temp_ref
+
+  - id: DG-PROF-EX-001
+    path: docs/architecture/denali-gravity-product-profile.example.mdoc
+    role: evidence
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: 8513c5a6f0d150bfddb8de1f34e93d45f9521db5
+    supersedes: []
+    superseded_by: null
+    evidence: []
+    psr2b_flags:
+      - tracked_to_ignored_temp_ref
+
+  - id: PSR-0A-RECOVERY
+    path: docs/audits/snapshots/2026-07-31/psr-0a-recovery-baseline.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: 30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf
+    supersedes: []
+    superseded_by: null
+    evidence: []
+
+  - id: PSR-0A-TRAINS
+    path: docs/audits/snapshots/2026-07-31/psr-0a-change-trains.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: 30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/audits/snapshots/2026-07-31/psr-0a-worktree-inventory.yaml
+
+  - id: PSR-0A-INVENTORY
+    path: docs/audits/snapshots/2026-07-31/psr-0a-worktree-inventory.yaml
+    role: evidence
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: 30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf
+    supersedes: []
+    superseded_by: null
+    evidence: []
+    frontmatter: none
+
+  - id: PSR-0B-LEDGER
+    path: docs/audits/snapshots/2026-07-31/psr-0b-train-log.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: 1bbe491e
+    supersedes: []
+    superseded_by: null
+    evidence: []
+
+  - id: PSR-1-HYGIENE
+    path: docs/audits/snapshots/2026-07-31/psr-1-hygiene.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: 13f102e6
+    supersedes: []
+    superseded_by: null
+    evidence: []
+
+  - id: PSR-2A-BOOTSTRAP
+    path: docs/audits/snapshots/2026-07-31/psr-2a-docs-authority.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: 8513c5a6f0d150bfddb8de1f34e93d45f9521db5
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/index.yaml
+      - docs/standards/doc-authority-metadata.schema.mdoc
