@@ -314,6 +314,22 @@
         "exposureCoordinateTypeExport": { "type": "string" }
       }
     },
+    "productHttpHost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "configureExport"],
+      "description": "PSR-4b-configure-3 — codegen façade for product HTTP host configure + route deps types (isolation-legal /host imports)",
+      "properties": {
+        "module": { "type": "string" },
+        "configureExport": { "type": "string" },
+        "routeDepsTypeExport": { "type": "string" },
+        "portsTypeExport": { "type": "string" },
+        "extraTypeExports": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
     "pluginApiVersion": {
       "type": "integer",
       "minimum": 1,

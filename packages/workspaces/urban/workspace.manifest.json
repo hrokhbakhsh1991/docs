@@ -43,6 +43,18 @@
       }
     ]
   },
+  "exposureHost": {
+    "module": "./exposure",
+    "surfaceDefaultFieldIdsExport": "resolveUrbanSurfaceDefaultFieldIds",
+    "mapSurfaceToFieldPolicyExport": "mapUrbanExposureSurfaceToFieldPolicySurface",
+    "exposureCoordinateTypeExport": "UrbanExposureCoordinate"
+  },
+  "productHttpHost": {
+    "module": "./http",
+    "configureExport": "configureUrbanHttpHost",
+    "routeDepsTypeExport": "UrbanProductRouteDeps",
+    "portsTypeExport": "UrbanHttpHostPorts"
+  },
   "tourWrite": {
     "module": "./tours",
     "workspaceTypeExport": "URBAN_WORKSPACE_TYPE",

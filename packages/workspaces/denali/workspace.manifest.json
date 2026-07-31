@@ -226,6 +226,12 @@
     "reminderOffsetsExport": "DENALI_REMINDER_OFFSETS",
     "exposureCoordinateTypeExport": "DenaliExposureCoordinate"
   },
+  "productHttpHost": {
+    "module": "./http",
+    "configureExport": "configureDenaliProductHttpHost",
+    "routeDepsTypeExport": "DenaliProductRouteDeps",
+    "extraTypeExports": ["BookingPublicPort", "DenaliPublicDestinationPort"]
+  },
   "wizardMedia": {
     "module": "./photos",
     "workspaceTypeExport": "DENALI_WORKSPACE_TYPE",

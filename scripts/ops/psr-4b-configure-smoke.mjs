@@ -76,15 +76,24 @@ if ((inv.metrics?.configure_files ?? -1) !== live.length) {
 
 const BARE_HTTP_RE =
   /@app-tour\/workspace-(?:denali|urban|harbor)\/http(?!\/)/;
+const HOST_PATH_RE =
+  /@app-tour\/workspace-(?:denali|urban|harbor)\/host\//;
 const BRANDED_RE = /@app-tour\/workspace-(?:denali|urban|harbor)(?:\/[^"'\s]+)?/;
 
 let bareHits = 0;
+let hostPathHits = 0;
 for (const row of inv.adapters || []) {
   const abs = join(root, row.path);
   const text = readFileSync(abs, "utf8");
   if (BARE_HTTP_RE.test(text)) {
     bareHits += 1;
-    fail(`${row.path} still imports bare workspace */http (use /host/http)`);
+    fail(`${row.path} still imports bare workspace */http (use /host/http via generated façade)`);
+  }
+  if (HOST_PATH_RE.test(text)) {
+    hostPathHits += 1;
+    fail(
+      `${row.path} still imports workspace */host/* directly (use workspace-product-http-host-bindings.generated.ts)`,
+    );
   }
   if (row.class === "platform-neutral") {
     const branded = [...text.matchAll(new RegExp(BRANDED_RE, "g"))].map((m) => m[0]);
@@ -104,10 +113,15 @@ if ((inv.metrics?.bare_http_imports_in_configure ?? -1) !== bareHits) {
     `metrics.bare_http_imports_in_configure ${inv.metrics?.bare_http_imports_in_configure} != ${bareHits}`,
   );
 }
+if ((inv.metrics?.direct_host_path_imports_in_configure ?? -1) !== hostPathHits) {
+  fail(
+    `metrics.direct_host_path_imports_in_configure ${inv.metrics?.direct_host_path_imports_in_configure} != ${hostPathHits}`,
+  );
+}
 
 if (!process.exitCode) {
   console.log("psr-4b-configure-smoke: PASS");
   console.log(
-    `  configure_files=${live.length} product_named=${productNamed.length}/${ceiling} platform_neutral=${live.length - productNamed.length} bare_http=${bareHits}`,
+    `  configure_files=${live.length} product_named=${productNamed.length}/${ceiling} platform_neutral=${live.length - productNamed.length} bare_http=${bareHits} direct_host=${hostPathHits}`,
   );
 }

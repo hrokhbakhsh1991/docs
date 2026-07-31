@@ -2,15 +2,17 @@ schema_version: 1
 program_id: PSR-001
 wave: PSR-4b-configure
 updated: "2026-07-31"
-# Inventory shared by PSR-4b-configure + PSR-4b-configure-2 smokes.
+# Inventory shared by PSR-4b-configure + configure-2 + configure-3 smokes.
 # Wave id stays PSR-4b-configure so scripts/ops/psr-4b-configure-smoke.mjs stays stable.
 policy:
   # Product-named host configure files after configure-2 fold (denali + urban).
   product_named_configure_ceiling: 2
   # All http/configure-*.ts must be listed here.
   exact_configure_set_required: true
-  # Configure adapters must not use bare package `/http` subpaths (use ./host/http).
+  # Configure adapters must not use bare package `/http` subpaths.
   forbid_bare_http_subpath_in_configure: true
+  # Configure adapters must not import `/host/*` directly (use generated façade).
+  forbid_direct_host_path_in_configure: true
   # Platform finance wiring is not a product-named adapter.
   finance_configure_must_be_platform_neutral: true
 adapters:
@@ -21,26 +23,23 @@ adapters:
     notes: "Renamed from configure-workspace-finance-http-host (PSR-4b-configure)"
   - path: apps/api/src/http/configure-workspace-denali-product-http-host.ts
     class: product-named
-    branded_imports:
-      - "@app-tour/workspace-denali/host/http"
-    wires: configureDenaliProductHttpHost
-    notes: "Import retargeted /http → /host/http; full absorption deferred to configure-3"
+    branded_imports: []
+    wires: configureDenaliProductHttpHost via workspace-product-http-host-bindings.generated
+    notes: "PSR-4b-configure-3 — no direct /host/http; façade only; deletion deferred to configure-3b"
   - path: apps/api/src/http/configure-urban-http-host.ts
     class: product-named
-    branded_imports:
-      - "@app-tour/workspace-urban/host/http"
-      - "@app-tour/workspace-urban/exposure"
-      - "@app-tour/workspace-sdk"
-    wires: configureUrbanHttpHost + buildUrbanExposureResolverPort
-    notes: "PSR-4b-configure-2 folded configure-urban-surface-exposure into this file; fixed ../exposure imports"
+    branded_imports: []
+    wires: configureUrbanHttpHost via workspace-product-http-host-bindings.generated
+    notes: "PSR-4b-configure-3 — exposure via workspace-exposure-host-bindings.generated; deletion deferred to configure-3b"
 metrics:
   configure_files: 3
   product_named: 2
   platform_neutral: 1
   bare_http_imports_in_configure: 0
+  direct_host_path_imports_in_configure: 0
 deferred:
-  - id: PSR-4b-configure-3
-    work: Generate workspace-product-http-host-bindings; delete denali + urban product-named configure files
+  - id: PSR-4b-configure-3b
+    work: Move denali/urban configure port wiring into generated or neutral builders; delete product-named configure files (ceiling → 0)
 completed_follow_ons:
   - id: PSR-4b-configure-http-alias-expiry
     closed_by: PSR-4b-http-alias
@@ -48,7 +47,15 @@ completed_follow_ons:
   - id: PSR-4b-configure-2
     closed_by: PSR-4b-configure-2
     snapshot: docs/audits/snapshots/2026-07-31/psr-4b-configure-2.mdoc
+  - id: PSR-4b-configure-3
+    closed_by: PSR-4b-configure-3
+    snapshot: docs/audits/snapshots/2026-07-31/psr-4b-configure-3.mdoc
 tsconfig_compat_aliases_retained: []
 tsconfig_host_http_paths_added:
   - "@app-tour/workspace-denali/host/http"
   - "@app-tour/workspace-urban/host/http"
+tsconfig_aliases_expired:
+  - "@app-tour/workspace-urban/exposure"
+generated_facades:
+  - apps/api/src/http/workspace-product-http-host-bindings.generated.ts
+  - apps/api/src/exposure/workspace-exposure-host-bindings.generated.ts

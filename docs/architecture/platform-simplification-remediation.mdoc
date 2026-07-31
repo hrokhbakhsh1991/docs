@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: 69a96286
+verified_sha: pending
 supersedes: []
 superseded_by: null
 evidence:
@@ -45,11 +45,12 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-4b-configure.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-configure-2.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-configure-3.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-configure-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-4b-http-alias.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-http-alias-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-4b-configure-2
+current_wave: PSR-4b-configure-3
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -59,27 +60,36 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-configure-2 — Urban exposure fold)
+## 0. وضعیت موج جاری (PSR-4b-configure-3 — generated `/host/http` façade)
 
 | Field | Value |
 | --- | --- |
-| Wave | **PSR-4b-configure-2** — fold Urban surface exposure into Urban HTTP configure (**complete**) |
-| Exit gate | GREEN — product-named configure **۲**/۲؛ configure files **۳**؛ latent `../exposure` import fix |
-| Snapshot | [`psr-4b-configure-2.mdoc`](../audits/snapshots/2026-07-31/psr-4b-configure-2.mdoc) |
+| Wave | **PSR-4b-configure-3** — product HTTP host generated façade (**partial / isolation GREEN**) |
+| Exit gate | GREEN — isolation PASS؛ configure direct `/host` = **۰**؛ product-named هنوز **۲** |
+| Snapshot | [`psr-4b-configure-3.mdoc`](../audits/snapshots/2026-07-31/psr-4b-configure-3.mdoc) |
 | Inventory | [`psr-4b-configure-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-configure-inventory.yaml) |
-| Smoke | `node scripts/ops/psr-4b-configure-smoke.mjs` |
-| Land commit | `69a96286` |
-| SHA close | `99bf31ce` |
+| Smoke | `node scripts/ops/psr-4b-configure-smoke.mjs` + `guard-api-workspace-isolation` |
+| Land commit | pending |
+| SHA close | pending |
 
 | Change | Detail |
 | --- | --- |
-| Fold | `configure-urban-surface-exposure.ts` → `configure-urban-http-host.ts` |
-| Fix | broken `./build-field-exposure-*` imports → `../exposure/…` |
-| Ratchet | product-named ceiling **۳→۲** |
+| Codegen | `productHttpHost` manifest → `workspace-product-http-host-bindings.generated.ts` |
+| Urban | `exposureHost` → exposure bindings؛ expire bare `/exposure` tsconfig alias |
+| Retarget | denali/urban configure import façade only (no package `/host/http`) |
 
-**عمداً خارج:** حذف denali/urban HTTP configure (نیاز به generated bootstrap — **configure-3**).
+**عمداً خارج:** حذف product-named configure (**configure-3b**).
 
-**Next:** PSR-4b-configure-3 یا PSR-5+ / fixture-split / whyDenali.
+**Next:** PSR-4b-configure-3b یا PSR-5+ / fixture-split / whyDenali.
+
+### 0.00 PSR-4b-configure-2 (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b-configure-2** — fold Urban surface exposure (**complete**) |
+| Snapshot | [`psr-4b-configure-2.mdoc`](../audits/snapshots/2026-07-31/psr-4b-configure-2.mdoc) |
+| Land commit | `69a96286` |
+| SHA close | `99bf31ce` |
 
 ### 0.00 PSR-4b-http-alias (بسته)
 

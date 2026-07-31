@@ -74,6 +74,7 @@ import {
 } from "./domains/finance.mjs";
 import { generateWorkspaceBookingBindings, generateWorkspaceBookingCapabilities, generateWorkspaceBookingDependencyBindings, generateWorkspaceBookingEventReactionBindings } from "./domains/booking.mjs";
 import { generateExposureHostBindings } from "./domains/exposure.mjs";
+import { generateProductHttpHostBindings } from "./domains/product-http-host.mjs";
 import { generateWorkspaceIntegrationCapabilities } from "./domains/integration.mjs";
 import {
   generateApiWizardRulesBindings,
@@ -163,7 +164,7 @@ export const DOMAIN_OUTPUT_KEYS = {
     // P5.1 — portal/host register keys resolved dynamically via resolveRegistrationOutputKeys()
   ],
   member: ["memberProfileCapabilities", "memberPortalContracts", "memberPortalSurfaces"],
-  http: ["httpRoutes", "httpHandlerLoaders", "httpErrorMap"],
+  http: ["httpRoutes", "httpHandlerLoaders", "httpErrorMap", "productHttpHostBindings"],
   "settings-api": ["settingsEnrichers", "devBootstrap", "wizardTemplateEnforcement", "wizardTemplatePathAliases"],
   dev: ["devPluginIds"],
   operator: ["operatorCapabilities", "ownerSettingsPanelLoaders", "workspaceCommerceFreeze"],
@@ -241,6 +242,7 @@ export const OUTPUT_KEYS = Object.freeze([
   "httpRoutes",
   "httpHandlerLoaders",
   "httpErrorMap",
+  "productHttpHostBindings",
 ]);
 
 export function generateAllOutputs(manifests) {
@@ -295,6 +297,7 @@ export function generateAllOutputs(manifests) {
     workspaceBookingEventReactions: generateWorkspaceBookingEventReactionBindings(manifests),
     integrationCapabilities: generateWorkspaceIntegrationCapabilities(manifests),
     exposureHostBindings: generateExposureHostBindings(manifests),
+    productHttpHostBindings: generateProductHttpHostBindings(manifests),
     marketingCatalogBindings: generateMarketingCatalogBindings(manifests),
     devPluginIds: generateWorkspaceDevPluginIds(manifests),
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
@@ -528,6 +531,10 @@ export const OUTPUT_PATHS = {
   httpErrorMap: join(
     REPO_ROOT,
     "apps/api/src/middleware/workspace-http-error-map.generated.ts"
+  ),
+  productHttpHostBindings: join(
+    REPO_ROOT,
+    "apps/api/src/http/workspace-product-http-host-bindings.generated.ts"
   ),
 };
 

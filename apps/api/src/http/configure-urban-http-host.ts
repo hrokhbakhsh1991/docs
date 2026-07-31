@@ -1,11 +1,14 @@
-import { configureUrbanHttpHost } from "@app-tour/workspace-urban/host/http";
-import type { UrbanProductRouteDeps } from "@app-tour/workspace-urban/host/http";
+import {
+  configureUrbanHttpHost,
+  type UrbanHttpHostPorts,
+  type UrbanProductRouteDeps,
+} from "./workspace-product-http-host-bindings.generated";
 import type { CanonicalDocument, TenantAuthContext } from "@app-tour/workspace-sdk";
 import {
   mapUrbanExposureSurfaceToFieldPolicySurface,
   resolveUrbanSurfaceDefaultFieldIds,
   type UrbanExposureCoordinate,
-} from "@app-tour/workspace-urban/exposure";
+} from "../exposure/workspace-exposure-host-bindings.generated";
 
 /** Re-export for host AppDeps — keeps branded type import inside product-adapter. */
 export type { UrbanProductRouteDeps };
@@ -277,7 +280,7 @@ configureUrbanHttpHost({
         idempotencyKey,
         requestHash,
         finish as () => Promise<Record<string, unknown>>,
-      )) as import("@app-tour/workspace-urban/host/http").UrbanHttpHostPorts["registration"]["runIdempotentHttpMutation"],
+      )) as UrbanHttpHostPorts["registration"]["runIdempotentHttpMutation"],
     idempotencyKeyRequiredCode: IDEMPOTENCY_KEY_REQUIRED,
     decideRegistrationStatus: (input) =>
       assertRegistrationCapacityDecision(resolveRegistrationCapacityDecision(input)),

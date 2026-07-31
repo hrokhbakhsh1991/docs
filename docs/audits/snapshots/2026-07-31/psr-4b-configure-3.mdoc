@@ -1,0 +1,73 @@
+---
+id: PSR-4B-CONFIGURE-3
+title: PSR-4b-configure-3 — generated product HTTP host façade (isolation GREEN)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-configure-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-configure-2.mdoc
+  - docs/dev/denali-plugin-encapsulation.mdoc
+  - scripts/guards/guard-api-workspace-isolation.mjs
+program_id: PSR-001
+wave: PSR-4b-configure-3
+---
+
+# PSR-4b-configure-3 — generated `/host/http` façade (partial)
+
+## Problem proved before this wave
+
+After PSR-4b-configure retargeted adapters to
+`@app-tour/workspace-*/host/http`, `guard-api-workspace-isolation` failed on the
+hand-written configure files: allowlist ceiling is **0**, and only `*.generated.ts`
+may import `/host/*`.
+
+SoT §PSR-4.4 still wants product-named configure deleted. Full deletion in one
+wave would relocate ~400 lines of host port wiring into a generated body (or a
+neutral builder + generated call sites) while also relocating Urban exposure
+(branded symbols) without violating neutrality. That is **configure-3b**.
+
+## Scope (this land)
+
+| Work | Done |
+| --- | --- |
+| Inventory why isolation fails on configure | Yes |
+| Add Urban `exposureHost` to manifest → exposure bindings | Yes |
+| Add `productHttpHost` manifest + schema → HTTP host bindings | Yes |
+| Generate `workspace-product-http-host-bindings.generated.ts` | Yes |
+| Retarget denali/urban configure to import façade (not package `/host/http`) | Yes |
+| Retarget Urban exposure imports via exposure generated bindings | Yes |
+| Expire tsconfig bare `@app-tour/workspace-urban/exposure` alias | Yes |
+| Delete product-named configure files | **No** → configure-3b |
+| Move port wiring body into generated file | **No** → configure-3b |
+
+## Architecture (after this wave)
+
+```text
+app.ts
+  → side-effect import configure-urban / configure-denali / configure-finance
+configure-*-http-host.ts  (hand-written adapters; product-named count still 2)
+  → import configure* + types from workspace-product-http-host-bindings.generated.ts
+  → (urban) exposure symbols from workspace-exposure-host-bindings.generated.ts
+*.generated.ts
+  → only place with @app-tour/workspace-*/host/* imports
+```
+
+## Ratchet
+
+| Check | Expect |
+| --- | --- |
+| `node scripts/ops/psr-4b-configure-smoke.mjs` | product-named **2**/2; configure files **3** |
+| `node scripts/guards/guard-api-workspace-isolation.mjs` | **PASS** |
+| `node scripts/ops/psr-4b-api-neutrality-smoke.mjs` | unapproved host-source **0** |
+
+## Explicit non-goals
+
+- Collapsing product-named ceiling to 0
+- Changing finance configure (already platform-neutral)
+- Harbor product HTTP host (none today)
