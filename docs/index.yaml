@@ -4,7 +4,7 @@ schema_version: 1
 program_id: PSR-001
 wave: PSR-3c
 updated: 2026-07-31
-verified_sha: pending-psr-3c
+verified_sha: a80c0f9a
 roles:
   - canonical
   - standard
@@ -39,7 +39,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: pending-psr-3c
+    verified_sha: a80c0f9a
     supersedes: []
     superseded_by: null
     evidence:
@@ -330,7 +330,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: pending-psr-3c
+    verified_sha: a80c0f9a
     supersedes: []
     superseded_by: null
     evidence:
