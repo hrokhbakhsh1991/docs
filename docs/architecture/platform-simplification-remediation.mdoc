@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: 8513c5a6f0d150bfddb8de1f34e93d45f9521db5
+verified_sha: da9e75ca
 supersedes: []
 superseded_by: null
 evidence:
@@ -14,8 +14,10 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-0b-train-log.mdoc
   - docs/audits/snapshots/2026-07-31/psr-1-hygiene.mdoc
   - docs/audits/snapshots/2026-07-31/psr-2a-docs-authority.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-2b-docs-temp-authority.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-2a-complete
+current_wave: PSR-2b-complete
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -25,50 +27,49 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-2a — بسته)
+## 0. وضعیت موج جاری (PSR-2b — بسته)
 
 | Field | Value |
 | --- | --- |
-| Wave | **PSR-2a** — docs manifest + metadata schema (**complete**) |
+| Wave | **PSR-2b** — TEMP authority unlink (**complete** for active scope) |
+| Exit gate | GREEN — architecture/standards/index بدون لینک ignored-scratch |
+| Registry | [`docs/index.yaml`](../index.yaml) |
+| Snapshot | [`psr-2b-docs-temp-authority.mdoc`](../audits/snapshots/2026-07-31/psr-2b-docs-temp-authority.mdoc) |
+| Inventory | [`psr-2b-temp-authority-inventory.yaml`](../audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml) |
+
+**Promoted:** Gravity map → `DG-MAP-001`؛ PSC roadmap → `PSC-ROADMAP-ARCH-001`.
+
+**باقی:** ۳۷ فایل phase/dev با لینک TEMP → PSR-2c؛ ۸ سند defer dirty → همراه ۲c.
+
+**Next:** PSR-2c — archive phase packs + بازنویسی لینک‌های باقی‌مانده (بدون wipe TEMP).
+
+### 0.1 PSR-2a (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | PSR-2a — docs manifest + metadata schema (**complete**) |
 | Exit gate | GREEN — index seed + DOC-META-001 + validator PASS |
 | Registry | [`docs/index.yaml`](../index.yaml) |
 | Schema | [`DOC-META-001`](../standards/doc-authority-metadata.schema.mdoc) |
 | Snapshot | [`psr-2a-docs-authority.mdoc`](../audits/snapshots/2026-07-31/psr-2a-docs-authority.mdoc) |
+| Commit | `7c9e4740` |
 
-**Next:** PSR-2b — صفر کردن tracked→ignored TEMP authority (بدون wipe کور TEMP).
-
-**قواعد رعایت‌شده:** بدون TEMP wipe؛ بدون archive فله‌ای phase؛ بدون استیج ۸ سند
-defer؛ بدون root command جدید.
-
-### 0.1 PSR-1 (بسته)
+### 0.2 PSR-1 (بسته)
 
 | Field | Value |
 | --- | --- |
 | Wave | PSR-1 — hygiene containment (**complete**) |
-| Exit gate | GREEN — ignore policy + root ad-hoc removed; TEMP untouched |
 | Hygiene proof | [`psr-1-hygiene.mdoc`](../audits/snapshots/2026-07-31/psr-1-hygiene.mdoc) |
 | PSR-1a | `1b6d576c` |
 | PSR-1b | `13f102e6` |
 | Deploy canonical | `scripts/vps-deploy/` only |
 
-**باقی‌ماندهٔ عمدی dirty:** ۸ سند `defer` از PSR-0b → بعد از seed در PSR-2b/2c.
-
-### 0.2 PSR-0b (بسته)
+### 0.3 PSR-0b (بسته)
 
 | Field | Value |
 | --- | --- |
 | Wave | PSR-0b — split/commit change trains (**complete**) |
-| Exit gate | GREEN — 5 train commits |
 | Train log | [`psr-0b-train-log.mdoc`](../audits/snapshots/2026-07-31/psr-0b-train-log.mdoc) |
-
-| Train | Commit |
-| --- | --- |
-| `documentation-cleanup` | `1f135aea` |
-| `sdk-generated-registry` | `990e8201` |
-| `denali-gravity-harbor` | `d0dd1a34` |
-| `api-platform-behavior` | `1e3dac53` |
-| `root-command-analysis` | `e9388ba7` |
-| ledger close | `1bbe491e` |
 
 ## 0.1 PSR-0a (بسته)
 
@@ -342,16 +343,30 @@ path-specific؛ صفر TEMP wipe.
 #### PSR-2a — انجام‌شده (bootstrap)
 
 1. Schema: [`DOC-META-001`](../standards/doc-authority-metadata.schema.mdoc)
-2. Registry: [`docs/index.yaml`](../index.yaml) — ۱۰ سند seed فعال
+2. Registry: [`docs/index.yaml`](../index.yaml) — seed فعال
 3. Validator ops: `node scripts/ops/psr-2a-validate-docs-index.mjs` (بدون root command جدید)
 4. Snapshot: [`psr-2a-docs-authority.mdoc`](../audits/snapshots/2026-07-31/psr-2a-docs-authority.mdoc)
 
-**Gate خروج PSR-2a:** سبز (index + schema + validator PASS؛ TEMP و defer دست‌نخورده).
+**Gate خروج PSR-2a:** سبز.
 
-#### PSR-2b / PSR-2c — بعدی
+#### PSR-2b — انجام‌شده (authority unlink)
 
-2b: صفر کردن tracked→ignored TEMP authority (از جمله `related_temp` در DG docs).
-2c: archive phase packs؛ کاهش ROOT_COMMAND_*؛ ادامهٔ metadata روی corpus.
+1. Promote: `temp/DENALI_GRAVITY_REMEDIATION_MAP.md` →
+   [`denali-gravity-remediation-map.mdoc`](./denali-gravity-remediation-map.mdoc)
+2. Promote/archive: `temp/platform-surface-cohesion-roadmap.md` →
+   [`platform-surface-cohesion-roadmap.archive.mdoc`](../standards/platform-surface-cohesion-roadmap.archive.mdoc)
+3. حذف `related_temp` و لینک‌های ignored-scratch از architecture/standards فعال
+4. Validator: `node scripts/ops/psr-2b-no-temp-authority.mjs`
+5. Inventory باقی‌مانده:
+   [`psr-2b-temp-authority-inventory.yaml`](../audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)
+
+**Gate خروج PSR-2b:** سبز برای scope فعال (architecture + standards + index).
+صفر کردن لینک‌های phase/dev → PSR-2c. TEMP روی دیسک wipe نشد.
+
+#### PSR-2c — بعدی
+
+Archive phase packs؛ بازنویسی ~۳۷ لینک TEMP باقی‌مانده؛ کاهش ROOT_COMMAND_*؛
+ادامهٔ metadata روی corpus.
 
 اقدامات باقی‌ماندهٔ برنامه:
 

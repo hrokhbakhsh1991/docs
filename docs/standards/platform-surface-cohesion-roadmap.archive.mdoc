@@ -1,0 +1,41 @@
+---
+id: PSC-ROADMAP-ARCH-001
+title: PSC-001 historical roadmap (phases 0–4)
+format: markdoc
+role: archive
+owner: platform-architecture
+status: archived
+last_verified: 2026-07-31
+verified_sha: da9e75ca
+supersedes:
+  - temp/platform-surface-cohesion-roadmap.md
+superseded_by: docs/standards/platform-surface-cohesion.mdoc
+evidence:
+  - docs/standards/platform-surface-cohesion.mdoc
+program_id: PSR-001
+wave: PSR-2b
+doc_role: archive
+---
+
+# PSC-001 — historical roadmap (Phases 0–4)
+
+**Status:** Closed on branch `feat/psc-001-platform-surface-cohesion`  
+**Authority:** [`docs/standards/platform-surface-cohesion.mdoc`](./platform-surface-cohesion.mdoc)
+
+For work targeting **≥90/100 enterprise maturity**, use:
+
+**→ EPH-001 enterprise hardening plan** (promote separately if still required; not linked from ignored scratch).
+
+## PSC phases 0–4 (done)
+
+| Phase | Scope |
+| ----- | ----- |
+| 0 | Doc + `guard:surface-cohesion` |
+| 1a–1d | Web → GSH/SDK |
+| 2 | `operatorCapabilities` + certification guard |
+| 3 | SMK-PSC smoke matrix |
+| 4 | Doc closure; platform-core deferred → **EPH Track III** |
+
+```bash
+pnpm run phase-psc:fast-track
+```

@@ -1,0 +1,974 @@
+---
+id: DG-MAP-001
+title: Denali Gravity remediation map
+format: markdoc
+role: evidence
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: da9e75ca
+supersedes:
+  - temp/DENALI_GRAVITY_REMEDIATION_MAP.md
+superseded_by: null
+evidence:
+  - docs/architecture/denali-gravity-remediation.mdoc
+program_id: PSR-001
+wave: PSR-2b
+doc_role: evidence
+---
+
+# Denali Gravity — Remediation Map
+
+> **Promoted (PSR-2b):** formerly `temp/DENALI_GRAVITY_REMEDIATION_MAP.md` (rev 2).
+> Canonical program narrative remains [`denali-gravity-remediation.mdoc`](./denali-gravity-remediation.mdoc).
+> This file is the detailed phased map / hostile-review evidence — not ignored scratch.
+
+> **Purpose:** Precise phased path to fix **Denali gravity** — only Denali has production shape; Urban/starter/finance are stubs/fixtures; second product today ≈ package clone, not config.
+>
+> **Scope of this file:** Planning map only. No code. **Rev 2** incorporates hostile review (§R).
+>
+> This promoted map does not replace `guard-docs` for protected package commits.
+
+---
+
+## 0. Problem statement (frozen)
+
+| Claim | Evidence (2026-07-31) | Verdict |
+| ----- | --------------------- | ------- |
+| Only Denali has production shape | `guestConformance.productionTier: "certified"` + `memberApp: true`; ~541 ts/tsx, ~44 121 LOC; ~162 package exports; manifest ~18 KB / ~59 top keys | **True** |
+| Urban is stub | `productionTier: "stub"`; ~71 files / ~3 816 LOC (~8.6% of Denali); no `ui/`, `wizard/`, `finance/`, `booking/`, `rules/`, `field-registry/` | **True** |
+| starter is stub/scaffold | ~14 files / ~526 LOC; wizard host only; `aliasCatalogWorkspaceType: "denali"` | **True** |
+| finance-ws* are fixtures | ~7–10 files each; `workspaceFinance.supported: false` / registryOnly; tour-write no-op stubs | **True** |
+| Second product ≈ clone, not config | Urban mirrors Denali with ~35 parallel stems (`denali-*` → `urban-*`); shared module dirs only; zero Urban-only product layers | **True** |
+
+### Two paths that must not be conflated
+
+| Path | Meaning | Status |
+| ---- | ------- | ------ |
+| **A — Second club (tenant)** | New tenant on **same** certified workspace type (`denali`) | Mostly ready (P10 + Phase H) |
+| **B — Second product family** | New workspace type without cloning Denali package tree | **Open gap — this map** |
+
+This map remediates **Path B**. Path A stays operational and must not be blocked by B work.
+
+---
+
+
+---
+
+## R. Hostile review of this map (2026-07-31) — corrections applied below
+
+This section records **weaknesses, inconsistencies, and fixes** found when checking the map against trunk architecture. Numbered items marked **FIXED IN MAP** were applied in §§1–10 of this revision (`rev: 2`).
+
+### R.1 Critical — DG-1 “host kit” vs handler ownership (architecture clash)
+
+| Issue | Detail |
+| ----- | ------ |
+| Clash | Trunk already mandates `httpRoutes.loadHandlersFromPackage: true` and `handlerPackage: @app-tour/workspace-<id>/host/http`. Handlers are **workspace-owned**, dispatched via codegen. |
+| Map error (rev1) | “Lift catalog/registration HTTP skeleton to platform” read like moving handlers into `apps/api` / `platform-core`. That **violates** P5/P8 and guest API shell guards. |
+| **Correction** | Split **P** into **P-contract** (SDK shapes, ports) and **P-lib** (shared pure/helpers package **imported by** workspace handlers). Workspaces keep thin `handleGet*`; duplication dies inside W packages via shared lib — not by host owning product HTTP. |
+| Kit home (OD-2) | Prefer new `@app-tour/workspace-guest-http` (or sdk subpath) **or** shared module under an existing neutral package. **Do not** dump HTTP handlers into `platform-core` (wizard host already lives there; different concern). |
+
+### R.2 Critical — “Config-only second product” overclaims
+
+| Issue | Detail |
+| ----- | ------ |
+| Overclaim | Mountain (itinerary, gear, photos) vs city (venue, capacity) is not expressible as theme+flags alone; field registry / validation / composites remain **W**. |
+| Honest north star | Second product = **C (manifest) + thin W adapters + P-lib**. Not “JSON only”. |
+| Clone detector still valid | Parallel *rename forests* are the smell; legitimate small W modules are not. |
+
+### R.3 High — Guest slice ≠ full product (DG-4 under-scoped for “product #2”)
+
+| Issue | Detail |
+| ----- | ------ |
+| Gap | DG-4 only proves marketing catalog → portal register. Denali production shape also includes admin wizard depth, finance, booking, L4 member portal. |
+| Urban today | L3 guest + `memberPortal.availability: minimal` — intentionally not Denali. |
+| **Correction** | Introduce **product maturity ladder** (G0→G3). DG-4 exits at **G1 (guest-viable stub)**. “Second certified product” at DG-5 must declare which rung (guest-only certified vs operator-complete). Do not equate G1 with Denali parity. |
+
+**Maturity ladder (normative):**
+
+| Rung | Name | Minimum | Typical tier |
+| ---- | ---- | ------- | ------------ |
+| G0 | Scaffold | manifest + theme + codegen loads | stub |
+| G1 | Guest-viable | catalog HTTP + registration + landing/SEO + smoke | stub (DG-4 exit) |
+| G2 | Operator-viable | tour-write + publish + minimal admin create/list | stub or certified (Architect) |
+| G3 | Reference-class | wizard depth and/or finance/booking + L4 member as required by product | certified |
+
+Denali today ≈ **G3**. Urban today ≈ **G1−** (guest pieces present, still mirror-shaped). Path B success ≠ cloning G3.
+
+### R.4 High — Urban as DG-4 vehicle conflicts with Phase 7 intent
+
+| Issue | Detail |
+| ----- | ------ |
+| Phase 7 | Urban is **starter-plus proof of genericity**, explicitly *not* a second Denali (`URBAN-MINIMAL-SCOPE.md`). |
+| Risk of 1a | “Rebuild Urban into product #2” blurs proof workspace with commercial product; can regress Phase 7 contract (“zero urban-specific platform-core PRs”). |
+| **Correction** | Default OD-1 → **1b** (new `pluginId` for product #2). Keep `urban` as permanent **proof/stub** unless Architect explicitly re-charters Phase 7. Option 1a only with written Phase 7 amendment. |
+
+### R.5 High — Sequencing thrash (DG-1 ∥ DG-3 on same files)
+
+| Issue | Detail |
+| ----- | ------ |
+| Rev1 | Allowed DG-3 peel of Denali HTTP in parallel with DG-1 Urban rewire of the same patterns. |
+| Risk | Two PRs rewrite the same stems twice; merge conflict + behavior drift on certified Denali. |
+| **Correction** | **Serialize extract:** (1) extract P-lib from *one* reference (prefer Denali or a third shared module), (2) switch Urban **or** guest-club first (non-certified), (3) only then peel Denali onto P-lib (DG-3 P0). DG-3 P0 **blocked** until DG-1 consumer #1 green. |
+
+### R.6 High — Finance gravity is a separate axis (underweighted)
+
+| Issue | Detail |
+| ----- | ------ |
+| Fact | Shared `@app-tour/finance-http` exists; **route group registration still hangs on Denali manifest** (`FINANCE_WORKSPACE_ONBOARDING_LIFECYCLE.md`). finance-ws* are registry fixtures, not products. |
+| Map gap | DG-1 catalog kit does not fix “second product with finance”. |
+| **Correction** | Add explicit track **DG-F** (optional, after G2): finance route registration becomes platform/capability-owned (or any `workspaceFinance.supported: true` workspace can declare the shared finance-http group), not Denali-only. Default for Path B G1: **finance out of scope**. |
+
+### R.7 Medium — Already-shared pieces understated (false greenfield)
+
+Rev1 treated shared kits as net-new. Trunk already has:
+
+| Existing shared piece | Implication for DG-1 |
+| --------------------- | -------------------- |
+| `catalogRegistrationFlow` compose + `reuseAuthStepsFrom: "shared"` | Portal registration **steps** already shared — do not rebuild |
+| `defineCatalogRegistrationFlowSurface` / SDK registration registry | Extend; don’t fork |
+| `createPlatformWizardHostHooks` (urban + starter) | Wizard host lift partially done — DG-3 P1 is continuation, not invention |
+| Manifest `httpRoutes` codegen + lazy handler loaders | Host dispatch is already generic — duplication is **inside** W packages |
+| `@app-tour/finance-http` | Pattern to copy for guest HTTP P-lib (shared impl, W re-export/adapters) |
+
+**Correction:** DG-1 = **collapse W-level rename clones onto P-lib**, not invent a second registration platform.
+
+### R.8 Medium — First consumer should be lowest-risk stub
+
+| Issue | Detail |
+| ----- | ------ |
+| Rev1 | “Wire Urban first”. |
+| Risk | Urban carries Phase 7 semantics + more HTTP surface; breakage looks like product regression. |
+| **Correction** | Prefer **guest-club** (or a throwaway spike workspace) as **first** P-lib consumer; Urban second; Denali third (DG-3). |
+
+### R.9 Medium — Starter `aliasCatalogWorkspaceType: "denali"` misplaced in DG-1
+
+| Issue | Detail |
+| ----- | ------ |
+| Risk | Removing alias before a **neutral field/wizard catalog** exists breaks starter wizard scaffold. |
+| **Correction** | Move to **DG-2** exit (requires substitute catalog). DG-1 must not depend on breaking the alias. |
+
+### R.10 Medium — Weak success metric (“≪ 10% of Denali LOC”)
+
+| Issue | Detail |
+| ----- | ------ |
+| Why weak | Urban is already ~8.6% of full Denali LOC while still a clone structurally. Absolute LOC ratio does not measure clone-ness. |
+| **Correction** | Primary metrics: (1) parallel stem count for shared patterns → 0, (2) new W files for G1 slice below budget (e.g. ≤15 adapter files), (3) no new `src/http` forest. LOC ratio optional only vs **Denali guest-equivalent subset**, not whole Denali. |
+
+### R.11 Medium — Certification rules already exist; map must align
+
+| Issue | Detail |
+| ----- | ------ |
+| Phase H | `certified` needs L3+; with `memberApp: true` needs L4. Default omitted tier = stub. |
+| Map | DG-5 must choose: guest-only product (`memberApp` false, L3 certified) vs Denali-like L4. |
+| **Correction** | OD-5 added. Do not assume product #2 needs `memberApp: true`. |
+
+### R.12 Medium — Doc-first covenant under-specified
+
+| Issue | Detail |
+| ----- | ------ |
+| Rule | Changes to `platform-core` / `workspace-sdk` / `apps/api` require Markdoc update in `docs/` before code (`guard-docs` / .cursorrules). |
+| **Correction** | Each DG phase that touches protected packages opens with **doc PR / Markdoc section** (even if SOT still TEMP-promoted). TEMP map alone does **not** satisfy `guard-docs` on commit. |
+
+### R.13 Low — Path A regression not checklisted
+
+DG work on shared libs can break Denali catalog/registration. **Correction:** every DG-1/DG-3 PR lists Path A smoke: Denali guest catalog + register + (if touched) finance summary path — fast-track only.
+
+### R.14 Low — Consistency with saas-platform-remediation (DONE)
+
+That charter closed thin-shell / host allowlist. Gravity map must **not** re-open “move Denali UI into apps” or grow allowlists. Aligns if P-lib is workspace-importable shared code and apps stay loader-only.
+
+### R.15 Open product question (not a map bug)
+
+Is “product #2” a **city-event vertical** (Urban semantics, G2) or a **second outdoor club brand** (would be Path A / config on Denali)? If the business need is only second brand, **Path B is the wrong program** — cancel after DG-0 Option 2.
+
+---
+
+## 1. North star (rev 2 — honest)
+
+```text
+Second product family (Path B)
+  = C (manifest/profile) + thin W adapters + P-lib/P-contract
+  ≠ fork/rename of packages/workspaces/denali
+  ≠ “JSON-only” with zero W code
+  ≠ Denali G3 parity on day one (ladder G1 → G2 → optional G3)
+```
+
+### Ownership rule (rev 2)
+
+| Bucket | Owner | May contain | Must not contain |
+| ------ | ----- | ----------- | ---------------- |
+| **P-contract** | `workspace-sdk` (+ codegen) | Ports, surface types, registration compose contracts | Product field lists, Denali UI |
+| **P-lib** | Neutral shared package (OD-2) | Reusable catalog/registration HTTP helpers, mappers used by ≥2 workspaces | `pluginId` branches; apps/api handlers |
+| **C** | `workspace.manifest.json` | Routes prefixes, presentation flags, theme, SEO, capabilities, tier | Executable business rules |
+| **W** | `packages/workspaces/<id>` | Thin handlers calling P-lib; domain schema/UI/rules/finance policy | Copy-paste forests of another workspace |
+
+### Clone detector (rev 2)
+
+**FAIL** if G1 onboarding adds a large rename-parallel tree (`*-catalog.service`, `*-registration.service`, …) instead of P-lib calls.
+
+**PASS** if G1 is mostly C + ≤ budget adapter files + P-lib.
+
+
+---
+
+## 2. Baseline inventory (precise)
+
+### 2.1 Workspace roles
+
+| `pluginId` | Approx LOC | `productionTier` | Role | Treat as product? |
+| ---------- | ---------- | ---------------- | ---- | ----------------- |
+| `denali` | ~44 121 | **certified** | Reference + only prod product | **Yes** |
+| `urban` | ~3 816 | stub | Phase 7 genericity proof (starter-plus) | **No** (until DG-4 rebuild) |
+| `guest-club` | ~535 | stub | `workspace:create --guest` scaffold | **No** |
+| `starter` | ~526 | stub (default) | Operator wizard scaffold | **No** — never guest-certifiable |
+| `finance-ws2`…`ws6` | ~250–430 each | — | Finance registry / codegen fixtures | **No** — fixtures |
+| `acme` | ~53 | — | Probe | **No** |
+| `booking-ws2` | ~166 | — | Booking ops probe | **No** |
+
+### 2.2 Capability presence (top-level `src/`)
+
+| Capability dir | denali | urban | starter | guest-club | finance-ws* |
+| -------------- | ------ | ----- | ------- | ---------- | ----------- |
+| `ui` | Y (~15 110 LOC) | — | — | — | — |
+| `wizard` | Y (~3 222) | — | hooks only via plugin | — | — |
+| `http` | Y | Y (mirror) | — | thin | — |
+| `catalog` | Y | Y (mirror) | — | thin | — |
+| `finance` | Y (~1 250) | — | — | — | adapter-only |
+| `booking` / `bookings` | Y | — | — | — | — |
+| `rules` / `field-registry` | Y | — | — | — | — |
+| `exposure` | Y | Y (mirror) | thin | — | — |
+| `draft` / `schemas` / `composites` / `acl` | Y | — | — | — | — |
+
+### 2.3 Documented Urban parallel stems (clone signal)
+
+Normalized stem overlaps Denali ↔ Urban (non-exhaustive; ~35 total):
+
+- `canonical-patch-merge`, `catalog-exposure-bindings`, `catalog-intake`
+- `catalog.service`, `exposure-surfaces`, `exposure.surface`, `map-field-policy-surface`
+- `host-ports`, `host-runtime`, `product.routes`, `routes`, `routes-manifest`
+- `owner-auth`, `owner-surface`, `require-workspace-owner`, `resolve-public-auth`
+- `registration.service`, `registration-post.schema`, `registration-flow.steps`, `registration-flow.surface`
+- `tour-write-hooks`, `tour-publish-transition`, `tour-publish-field-gate`, `tour-list-projection`
+- errors: `owner-required`, `workspace-required`, `registration-conflict`
+
+### 2.4 Platform coupling snapshot
+
+| Location | Denali refs (approx) | Urban refs (approx) | Note |
+| -------- | -------------------- | ------------------- | ---- |
+| `apps/api/src` | ~1606 hits / 176 files | ~337 / 43 | Heavy: finance, exposure, seed, tours + generated |
+| `apps/web/src` | low (thin shell progress) | low | Prefer keep |
+| `apps/portal` / `marketing` | low | low | Prefer keep |
+| `starter` wizard catalog | aliases **denali** | — | Config debt: `aliasCatalogWorkspaceType: "denali"` |
+
+### 2.5 What already closed (do not redo)
+
+| Item | Doc | Status |
+| ---- | --- | ------ |
+| Stub ≠ certified for prod onboarding | Phase H / `workspace-certification.mdoc` | Done |
+| Thin shell / plugin host gap closure | `saas-platform-remediation.mdoc` | Done |
+| Manifest codegen modularization | Phase G | Done |
+| Second **tenant** on Denali staging | P10 second club runbook | Path A — keep separate |
+
+---
+
+## 3. Target architecture (after DG-5) — rev 2
+
+```text
+                    ┌─────────────────────────────────────┐
+                    │  apps/* (hosts) — loaders only       │
+                    └─────────────────┬───────────────────┘
+                                      │
+              ┌───────────────────────┼───────────────────────┐
+              │                       │                       │
+    ┌─────────▼─────────┐   ┌─────────▼─────────┐   ┌─────────▼─────────┐
+    │ P-contract (SDK)  │   │ P-lib (neutral)   │   │ C manifest/codegen│
+    │ ports / compose   │   │ guest HTTP helpers│   │ profiles / tiers  │
+    └─────────┬─────────┘   └─────────┬─────────┘   └─────────┬─────────┘
+              │                       │                       │
+              └───────────────────────┼───────────────────────┘
+                                      │
+        ┌─────────────────────────────┼─────────────────────────────┐
+        │                             │                             │
+┌───────▼────────┐          ┌─────────▼────────┐          ┌─────────▼────────┐
+│ denali G3      │          │ product-2 G1→G2  │          │ urban / starter /│
+│ certified      │          │ certify per OD-5 │          │ guest-club /     │
+│ W deep domain  │          │ thin W + C heavy │          │ finance-ws*      │
+│ handlers→P-lib │          │ handlers→P-lib   │          │ proof / fixture  │
+└────────────────┘          └──────────────────┘          └──────────────────┘
+```
+
+**Mental model:** registry peers ≠ product peers. Fixtures/proofs stay stub. Only `certified` backs prod onboarding. Product #2 climbs the maturity ladder; it does not inherit Denali G3 by cloning.
+
+---
+
+## 4. Phase map (DG-0 … DG-6 + DG-F) — rev 2
+
+### Dependency graph (serialized where required)
+
+```text
+DG-0 doctrine + OD-1/2/5 lock + Path A vs B confirmation
+        │
+        ├─► DG-1 P-lib extract + consumer #1 (guest-club or spike)
+        │         │
+        │         ├─► consumer #2 (urban proof rewire) —— still stub
+        │         │
+        │         └─► DG-3 P0 Denali peel onto P-lib  [BLOCKED until consumer #1 green]
+        │
+        ├─► DG-2 config/catalog neutrality (∥ late DG-1; owns starter alias break)
+        │
+        └─► DG-4 G1 product #2 proof (new pluginId default)  [needs DG-1 + DG-2]
+                  │
+                  ├─► (optional) G2 operator-viable slice
+                  │
+                  ▼
+             DG-5 certify at agreed rung (OD-5)
+                  │
+                  ├─► DG-F finance registration neutrality (optional; G2+ only)
+                  │
+                  ▼
+             DG-6 cleanup / clone-detector ratchet
+```
+
+**Hard rules (rev 2)**
+
+1. Do **not** start DG-4 before DG-1 has ≥1 non-Denali consumer on P-lib.
+2. Do **not** start DG-3 P0 (Denali HTTP peel) before that consumer is green.
+3. Do **not** break starter Denali catalog alias in DG-1 — that is DG-2.
+4. Do **not** treat DG-4 G1 as Denali parity.
+5. Default product #2 vehicle = **new pluginId (1b)**; Urban stays Phase 7 proof.
+
+**Parallel safe:** DG-2 ∥ late DG-1; DG-3 P1/P2 (wizard/seeds) ∥ DG-4 after P0 policy clear; DG-F only after finance in scope.
+
+---
+
+### DG-0 — Doctrine & inventory lock
+
+| Field | Value |
+| ----- | ----- |
+| Duration | 1–2 days |
+| Code? | **No** |
+| Owner | Architect |
+
+**Work**
+
+1. Freeze §2.1 roles + maturity ladder (§R.3 / §1).
+2. Confirm business intent: Path B city vertical vs Path A brand-only (if brand-only → Option 2 stop).
+3. Lock OD-1 (default **1b**), OD-2 (P-lib package home), OD-5 (certify rung).
+4. Bans unchanged: no certify Urban as-is; no Denali fork for club #2; finance-ws* ≠ products.
+5. Doc plan: which Markdoc SOT receives promotion of this map (OD-3).
+
+**Exit criteria**
+
+- [ ] Architect sign-off on OD-1/2/5 + Path A/B intent
+- [ ] This TEMP map rev 2 accepted as charter input
+- [ ] No product code under DG-0
+
+---
+
+### DG-1 — P-lib for guest catalog + registration (collapse clones)
+
+| Field | Value |
+| ----- | ----- |
+| Duration | 2–3 weeks |
+| Focus | W-level rename clones in catalog HTTP + registration services |
+| First consumer | **guest-club** (or spike) → then **urban** |
+| Denali | **Not** peeled in DG-1 (wait DG-3 P0) |
+
+**What DG-1 is**
+
+- Extract shared helpers used by ≥2 workspaces into **P-lib** (ports already in SDK where possible).
+- Rewire first consumer handlers to call P-lib; delete dead parallel helpers in that package.
+- Keep `handleGet*` / `handlePost*` exports on workspace `handlerPackage` (codegen unchanged).
+
+**What DG-1 is not**
+
+- Not moving handlers into `apps/api`
+- Not rebuilding registration-flow compose (already shared)
+- Not breaking starter alias
+- Not certifying anyone
+- Not lifting Denali `ui/` / finance / booking
+
+**Lift candidates (from mirror stems) → P-lib**
+
+| Pattern | Target |
+| ------- | ------ |
+| Catalog list/detail service guts | P-lib + W ports for store/exposure |
+| Registration service guts | P-lib + W schema/policy hooks |
+| Owner assert / public auth resolve helpers | P-lib or SDK contract helpers |
+| Repeated error class boilerplate | shared error factories (optional) |
+
+**Stay in W:** route manifest prefixes, workspace-specific schemas, intake step components, JSON-LD builders.
+
+**Exit criteria**
+
+- [x] P-lib package/module exists under `workspace-sdk` `src/http` (+ auth owner factory); **no** `pluginId ===` product branches (product-neutral contract green)
+- [x] Consumer #1 (guest-club) uses P-lib JSON helpers; urban+denali consume P-lib for auth/catalog list/guards (full registration/catalog *domain* peel still DG-3)
+- [x] Parallel stem metric **recorded** (DG-1.8): exact basename overlap under `src/{http,auth,tours,catalog,exposure}` Urban↔Denali = **16** (method documented in mdoc; stem *deletion* is DG-3/DG-6, not DG-1 boilerplate peel)
+- [x] Path A smoke checklist green (Denali catalog + register) on fast-track — SMK-MKT-03 green (2026-07-31 DG-4.7.1); D01 /me member list still open
+- [x] Doc-first: `docs/architecture/denali-gravity-remediation.mdoc` (DG-1.1…1.7 slices)
+- [x] Urban rewired as consumer #2 on P-lib (still stub / Phase 7 proof) — DG-1.x thin wiring
+
+**Anti-goals:** Denali peel; starter alias break; finance; full gates without YES.
+
+---
+
+### DG-2 — Config surface & catalog neutrality
+
+| Field | Value |
+| ----- | ----- |
+| Duration | ~2 weeks (∥ late DG-1) |
+| Owns | starter `aliasCatalogWorkspaceType` removal |
+
+**Work**
+
+1. Neutral/platform wizard field catalog (or starter-owned minimal catalog) so starter **stops aliasing Denali**.
+2. Ensure manifest can express G1 profile deltas (presentation, intake, landing, SEO, prefixes) for city vs mountain **without** hand app branches.
+3. Product Profile example doc (C-only differences + explicit list of required thin W adapters).
+
+**Exit criteria**
+
+- [x] Starter no longer requires `aliasCatalogWorkspaceType: "denali"` (DG-2.1 — alias block removed; bindings empty)
+- [x] Profile example committed — `docs/architecture/denali-gravity-product-profile.example.mdoc` (DG-2.2)
+- [x] Codegen `--check` for touched domains (settings-api + full registry fresh after DG-2.1/2.2 — no new alias manifests)
+
+---
+
+### DG-3 — Peel Denali onto P-lib (certified path preserved)
+
+| Field | Value |
+| ----- | ----- |
+| Duration | 3–4 weeks phased |
+| Gate | DG-1 consumer #1 green before **P0** |
+
+**Peel priority**
+
+| Pri | Module | When | Action |
+| --- | ------ | ---- | ------ |
+| P0 | catalog/http/registration shared guts | After DG-1 | Denali handlers → P-lib; delete duplicate impl |
+| P0 | tour-write/publish/exposure binders that are generic | After or with P0 | Contracts + thin adapters |
+| P1 | Wizard host glue still generic | ∥ OK | Continue `createPlatformWizardHostHooks` adoption |
+| P1 | Denali-named API seeds/bootstrap | ∥ OK | manifest `devBootstrap` / pluginId maps only |
+| P2 | ui, rules, field-registry, finance, booking, photos, composites | Never in DG-3 | Stay W |
+
+**Ratchet:** shared capability → P-contract/P-lib first; never only under `workspace-denali`.
+
+**Exit criteria**
+
+- [x] Denali guest HTTP paths use P-lib (no large private duplicate of Urban/guest-club guts) — DG-3.0…3.6
+- [ ] Before/after count of non-generated `denali` hits in `apps/api/src` recorded if seeds touched
+- [ ] Path A + Denali certified smokes fast-track green
+- [ ] No new shared logic added only in Denali package
+
+---
+
+### DG-4 — Prove product #2 at rung G1 (stub)
+
+| Field | Value |
+| ----- | ----- |
+| Duration | 2–3 weeks |
+| Prerequisite | DG-1 P-lib + DG-2 profile expressible |
+| Default vehicle | **1b new pluginId** (OD-1) |
+| Exit rung | **G1 guest-viable**, `productionTier: stub` |
+
+**Green path**
+
+1. `workspace:create` + manifest profile (C)
+2. tokens + landing + SEO + catalog presentation
+3. Thin handlers via P-lib — **no** HTTP rename forest
+4. Smoke: marketing catalog → portal register
+5. Explicit backlog for G2 (operator) — do not sneak Denali wizard clone
+
+**Metrics (primary)**
+
+- Parallel stems for shared patterns: ~0 vs Denali/Urban
+- Adapter file budget: target **≤ 15** new W modules for G1 (adjust in DG-0 if needed)
+- Optional: LOC vs Denali **guest-equivalent subset** only
+
+**Exit criteria**
+
+- [x] G1 E2E green in dev/staging (harbor SMK-MKT-HARBOR-01 3/3, 2026-07-31)
+- [x] Clone detector PASS (lite) — harbor http ≤6 modules + no workspace-denali imports (DG-4.2); full cross-workspace stem ratchet still DG-6
+- [x] Docs: `harbor` candidate product stub (DG-4.0); Urban remains Phase 7 proof (OD-1=1b)
+- [x] Path A unaffected by DG-4.x harbor slices (no Denali handler/manifest edits in DG-4.0–4.2 scope)
+
+**If OD-1 = 2 (defer Path B):** stop here; mark Path B cancelled in map header.
+
+---
+
+### DG-5 — Certify product #2 at agreed rung
+
+| Field | Value |
+| ----- | ----- |
+| Duration | 1–2 weeks |
+| Prerequisite | DG-4 G1 green + Architect YES + OD-5 |
+
+**OD-5 choices**
+
+| Choice | Meaning | Phase H implication |
+| ------ | ------- | ------------------- |
+| Certify G1 guest-only | L3+, `memberApp` false/omitted | Allowed if proof matrix for guest surfaces |
+| Certify G2 operator | + tour-write/admin smoke | Stronger matrix |
+| Wait for G3 | Near Denali | Likely wrong for “second family”; prefer grow ladder |
+
+**Work:** proof matrix, `productionTier: certified`, provision path, fixture labeling, runbook.
+
+**Exit criteria**
+
+- [ ] ≥2 certified types **or** explicit defer recorded
+- [ ] Stubs still fail-closed for prod provision
+- [ ] `guard:workspace-certification` green
+- [ ] Onboarding runbook for product #2
+
+---
+
+### DG-F — Finance registration neutrality (optional track)
+
+| Field | Value |
+| ----- | ----- |
+| When | Only if product #2 needs finance **or** platform wants Denali-unhooked finance mounts |
+| Prerequisite | Prefer after G2; never blocks G1 |
+
+**Work:** any `workspaceFinance.supported: true` workspace (or platform capability pack) can declare shared `@app-tour/finance-http` route group — Denali not sole registrar.
+
+**Exit:** finance onboarding doc no longer says “routes owned by Denali manifest” as hard dependency for monorepo second product.
+
+**Non-goal:** rewriting Denali ledger policy; finance-ws* remain fixtures until packs replace them.
+
+---
+
+### DG-6 — Cleanup & scale
+
+- Delete residual mirrors; optional clone-detector guard; capability packs vs finance-ws* proliferation; time-to-G1 metric.
+
+**Exit:** mirrors ~0; fixtures labeled; scale story = C+P-lib+thin W.
+
+---
+
+
+## 5. Explicit non-goals / bans (rev 2)
+
+| Ban | Why |
+| --- | --- |
+| Certify Urban as-is | False equality; incomplete product; Phase 7 proof |
+| Fork Denali for club #2 | Path A already covers second tenant |
+| Treat finance-ws* as products | Registry fixtures only |
+| Copy Denali `ui/wizard` before P-lib exists | Guarantees clone |
+| Move workspace HTTP handlers into `apps/api` / host | Violates loadHandlersFromPackage + thin shell |
+| `pluginId` branches inside P-lib | Reintroduces gravity in shared layer |
+| Claim G1 == Denali production parity | Maturity ladder; honesty |
+| Break starter Denali catalog alias in DG-1 | Belongs to DG-2 with substitute |
+| Full `ci:integrity` / phase gates without Architect YES | Velocity policy |
+| Hand-edit `*.generated.*` | Codegen SOT |
+| Grow guard allowlists to hide fan-in | saas-platform-remediation non-negotiables |
+| Use TEMP map alone as `guard-docs` satisfaction | Need Markdoc under `docs/` when touching protected pkgs |
+
+---
+
+## 6. Success metrics (rev 2)
+
+| Metric | Baseline (2026-07-31) | Target |
+| ------ | --------------------- | ------ |
+| `certified` workspace types | 1 (`denali`) | ≥ 2 **or** Path B cancelled (OD-1=2) |
+| G1 onboarding shape | Clone package | C + P-lib + ≤ adapter budget |
+| Parallel stems (shared HTTP/catalog/reg patterns) | ~35 Urban↔Denali | ~0 across Urban/guest-club/product-2 |
+| starter → Denali catalog alias | **No** (DG-2.1) | No (after DG-2) |
+| Path A second Denali club | Possible | Preserved (smoke on DG-1/3 PRs) |
+| Denali maturity | G3 reference | G3 remains; shared guts peeled to P-lib |
+| Product #2 maturity at DG-4 exit | — | **G1 stub** (not G3) |
+| Finance route registrar | Denali manifest | DG-F: capability-neutral (optional) |
+| Absolute LOC ≪ 10% Denali | (rev1 metric) | **Deprecated** as primary — optional vs guest-equivalent subset only |
+
+---
+
+## 7. Suggested first execution week (rev 2)
+
+| Day | Action |
+| --- | ------ |
+| 1 | Architect: DG-0 — OD-1 (default 1b), OD-2, OD-5, Path A vs B intent |
+| 1–2 | Confirm Markdoc promotion target (OD-3); do not code protected pkgs without docs update |
+| 3–5 | DG-1 spike: extract **one** P-lib helper from catalog **or** registration; wire **guest-club** (not Urban first); Path A smoke |
+| — | Do **not** peel Denali, break starter alias, open DG-4, or certify |
+
+---
+
+## 8. Verification policy (all DG phases)
+
+Default:
+
+```text
+pnpm run pre-commit:fast
+pnpm run guard:import-boundary   # when boundaries touched
+pnpm run test:changed            # when behavior changed and inspection insufficient
+```
+
+**Path A regression checklist** (DG-1 / DG-3 P0 PRs):
+
+- Denali public catalog list/detail reachable for smoke tenant
+- Denali portal registration happy path (or equivalent API/contract test if browser out of scope)
+- If finance files touched: Denali finance summary route still dispatches
+
+Forbidden without explicit Architect **YES** in chat:
+
+- `phase-5:gate`, `phase-6:gate`, `test:full`, `ci:integrity`, full monorepo `pnpm build` / `pnpm test`
+
+See `docs/dev/tiered-testing.md`.
+
+---
+
+## 9. Promotion path for this document
+
+| Step | Action |
+| ---- | ------ |
+| Now | Lives at `docs/architecture/denali-gravity-remediation-map.mdoc` (promoted PSR-2b) |
+| After DG-0 YES | Optionally promote to `docs/architecture/denali-gravity-remediation.mdoc` (Markdoc SOT) |
+| During DG-1+ | Update exit checkboxes in the SOT; keep TEMP as scratch if needed |
+| After DG-5 | Mark map **CLOSED**; leave metrics in architecture confidence section |
+
+---
+
+## 10. Open decisions (Architect) — rev 2
+
+| ID | Decision | Options | Default recommendation | Blocks |
+| -- | -------- | ------- | ---------------------- | ------ |
+| OD-1 | Product #2 vehicle | 1a re-charter Urban / **1b new pluginId** / 2 defer Path B | **1b** | DG-4 |
+| OD-2 | P-lib home | new `@app-tour/workspace-guest-http` / sdk subpath / other neutral pkg | **new guest-http pkg or sdk subpath** — not platform-core handlers | DG-1 |
+| OD-3 | Promote TEMP → `docs/architecture/*.mdoc` | now / after DG-1 spike | after spike **or** minimal Markdoc stub now for guard-docs | Doc covenant |
+| OD-4 | Clone-detector enforcement | guard / checklist | checklist in DG-1–5; guard optional DG-6 | DG-6 |
+| OD-5 | Certify rung for product #2 | G1 guest-only / G2 operator / wait G3 | **G1 or G2** — not G3 parity | DG-5 |
+| OD-6 | Business intent | Path B new vertical vs Path A brand-only | must answer in DG-0 | whole program |
+
+---
+
+## 11. Denali LOC peel reference (for DG-3 prioritization)
+
+| `src/` dir | Files | LOC (approx) | Peel? |
+| ---------- | ----- | ------------ | ----- |
+| `ui` | 173 | 15110 | Stay W (P2) |
+| `wizard` | 32 | 3222 | Partial → P (P1 generic host) |
+| `catalog` | 19 | 2121 | Shared skeleton → P (P0) |
+| `rules` | 19 | 2018 | Stay W |
+| `field-registry` | 8 | 1694 | Stay W |
+| `http` | 31 | 1625 | Shared skeleton → P (P0) |
+| `finance` | 19 | 1250 | Stay W (product) |
+| `settings` | 20 | 1223 | Mixed — review |
+| `schemas` | 7 | 834 | Stay W |
+| `draft` | 12 | 773 | Stay W / host draft contracts |
+| `booking` | 11 | 743 | Stay W |
+| `exposure` | 5 | 504 | Binder → P; map stays W |
+
+---
+
+## 12. Consistency matrix (map ↔ trunk)
+
+| Trunk fact | Map alignment (rev 2) |
+| ---------- | --------------------- |
+| Handlers in workspace packages + codegen | P-lib behind W handlers — OK |
+| Registration compose already shared | DG-1 does not rebuild portal flow platform | 
+| Wizard host hooks already in platform-core | DG-3 P1 continuation — OK |
+| Phase H stub/certified | DG-5 uses same axis — OK |
+| Phase 7 Urban = proof not 2nd Denali | OD-1 default 1b — OK |
+| Finance-http shared; routes on Denali manifest | DG-F optional — OK |
+| P10 second club = Denali tenant | Path A separate — OK |
+| saas remediation thin shell DONE | No UI back into apps — OK |
+| Doc-first + guard-docs | Markdoc required when coding protected pkgs — OK |
+| Urban mirror ~35 stems | Clone detector primary metric — OK |
+
+---
+
+*End of TEMP map — Denali Gravity remediation (rev 2).*
+
+## DG stamp — DG-1.6 (2026-07-31)
+
+- P-lib: `normalizeWorkspaceTypeKey` + catalog/dashboard/reminder type-gates via `assertWorkspaceTypeOrThrow`.
+- Wired: urban+denali `catalog.service`; denali `dashboard.service` + `reminder-feed.service`.
+- Skipped: registration.repository peel (Urban-only in-memory; Denali booking ports).
+- Verify: SDK P-lib + product-neutral green; denali `tsc --noEmit`.
+
+## DG stamp — DG-1.7 (2026-07-31)
+
+- P-lib: `resolveWorkspacePublicAuthFromHeaders` / `FromRequest`, header reader, guest UUID + error codes, `assertWorkspaceRegisteredUserOrThrow`.
+- Wired: urban public-auth thin wrap (stable aliases); denali public + registered auth; denali `product-host-runtime` → `createWorkspaceHttpHostSlot`; `assertDenaliFinanceWorkspace` → `assertWorkspaceTypeOrThrow`.
+- Verify: SDK 27/27 + product-neutral; urban auth + denali finance specs; urban/denali `tsc --noEmit`; guest-club 3/3.
+
+## DG audit — DG-1.1…1.7 wiring review (2026-07-31)
+
+Static audit of claimed slices vs code:
+
+| Slice | Verdict | Notes |
+| ----- | ------- | ----- |
+| DG-1.1 | **OK** | `WorkspaceHttpMethod` re-exports; guest-club JSON helpers; urban+denali `assertWorkspaceOwnerMutation` |
+| DG-1.2 | **OK** | urban host-slot; denali product-host-slot (completed in 1.7); coded errors; patch-merge; generic ports |
+| DG-1.3 | **OK** | catalog clamp/cursor/map/exposure wired urban+denali |
+| DG-1.4 | **OK** | publish transition + field-gate wired urban+denali |
+| DG-1.5 | **OK** | owner-mutation factory + registration guards; doc had wrong symbol name (fixed → `isWorkspaceAuthSurfaceInAllowlist`) |
+| DG-1.6 | **OK** | catalog/dashboard/reminder type-gates; no leftover `workspaceType !==` in urban/denali http services |
+| DG-1.7 | **OK + fix** | public-auth P-lib; registered assert; finance type-gate; **fixed** denali `registration.service` hard-coded guest UUID → `WORKSPACE_PUBLIC_CATALOG_GUEST_USER_ID` |
+
+Still intentionally open (not کم‌کاری): DG-3 catalog/registration domain peel · DG-5 certify product #2 · DG-F finance registrar · host-ports shape unification. (DG-2 + DG-4.0–4.6 scaffold/smoke/store port done; live E2E still open.)
+
+Stamps DG-1.1…1.5 were not individually written to this TEMP earlier; this audit row is the backfill verification.
+
+## DG stamp — DG-1.8 (2026-07-31)
+
+- P-lib: `parseWorkspaceCatalogCursorLimitQuery` + `buildWorkspaceCatalogListSuccessBody`.
+- Wired: urban+denali `product.routes` catalog list.
+- Stem metric recorded: exact basename overlap = 16 (see mdoc DG-1.8).
+- Verify: SDK P-lib + product-neutral; urban/denali `tsc`; targeted urban/denali/guest tests.
+- Path A full E2E smoke: still deferred (no Architect YES / env).
+
+## DG stamp — DG-1.9 (2026-07-31)
+
+- P-lib: `buildWorkspaceSuccessDataBody` + `WORKSPACE_HTTP_ERROR_NOT_FOUND`.
+- Wired: urban+denali `product.routes` detail/create/dashboard/reminder envelopes.
+- DG-2 deferred: starter alias needs catalog+codegen (documented in mdoc).
+- Verify: SDK P-lib + product-neutral; urban/denali `tsc`; guest + targeted specs.
+
+## DG stamp — DG-2.1 (2026-07-31)
+
+- Removed starter `wizardTemplate.pathAliases` / `aliasCatalogWorkspaceType: "denali"`.
+- Regenerated `workspace-wizard-template-path-alias-bindings.generated.ts` → empty bindings.
+- Docs: denali-gravity DG-2.1 + workspace-api-capabilities + manifest schema descriptions.
+- Kept web draft shell `title` ↔ `basics.title` (not Denali catalog import).
+- Verify: settings-api `--check` PASS; starter tests; product-neutral.
+
+## DG stamp — DG-2.2 (2026-07-31)
+
+- Product Profile example: `docs/architecture/denali-gravity-product-profile.example.mdoc` (C deltas + ≤15 thin W budget for fictional `harbor` G1).
+- Indexed from `docs/architecture/README.md` + DG-2.2 section in denali-gravity-remediation.mdoc.
+- DG-2 exit criteria: profile example + codegen check marked done.
+- Verify: `guard:workspace-registry-domain-settings-api` + `guard:workspace-registry-fresh`.
+
+## DG stamp — DG-4.0 (2026-07-31)
+
+- Scaffolded `@app-tour/workspace-harbor` via `workspace:create -- harbor --guest`.
+- C aligned: `cityFilter: true`, `policies: true`; HTTP stubs on P-lib (`sendWorkspaceGuestStub` + `WorkspaceHttpMethod`).
+- Ratchet: `scripts/workspace-create.mjs` guest HTTP no longer hand-rolls 501; argv tolerates pnpm `--`.
+- Registry: 12 manifests, `--check` PASS; harbor build+test green; create-guest spec green.
+- Clone shape: harbor http ≈3 files (vs denali ~31) — PASS for G1 stub budget.
+
+## DG stamp — DG-4.1 (2026-07-31)
+
+- Harbor smoke catalog fixture + `harbor-catalog-http.ts` (env `HARBOR_SMOKE_E2E_SEED=1`).
+- P-lib: list/detail/register envelopes; default remains 501 stub.
+- Tests: fixture + stub/seed HTTP; harbor build green.
+- Path A / Denali: untouched this slice.
+
+## DG stamp — DG-4.2 (2026-07-31)
+
+- Harbor smoke list honors `?city=` (card.city=`bandar`); empty list on mismatch.
+- Uses `parseWorkspaceCatalogCursorLimitQuery` for optional limit slice.
+- Clone-budget tests: http ≤6 + no denali imports.
+- G2 backlog recorded in mdoc (operator/finance out of G1).
+
+## DG stamp — DG-4.3 (2026-07-31)
+
+- P-lib: `createWorkspaceGuestSmokeHttpHandlers` (list/detail/register + optional filter/limit).
+- Rewired: harbor + guest-club thin wrappers; smoke fixtures stay in W.
+- Verify: SDK P-lib + product-neutral; harbor/guest-club build+test.
+
+## DG stamp — DG-4.4 (2026-07-31)
+
+- `workspace:create --guest` emits smoke fixture + `createWorkspaceGuestSmokeHttpHandlers` thin HTTP (env `<CONST>_SMOKE_E2E_SEED=1`).
+- Spec: create-guest asserts factory + fixture files (no hand-rolled stub-only routes).
+- Existing harbor/guest-club unchanged this slice; create-guest + harbor 10/10 + guest-club 3/3 green.
+- Next careful options: Path A/harbor live E2E (needs Architect YES) · DG-3 Denali peel · store-backed harbor catalog (thin).
+
+## DG stamp — DG-4.5 (2026-07-31)
+
+- `workspace:create --guest` emits `guest-smoke-http.spec.ts` + `guest-clone-budget.spec.ts`.
+- Smoke: stub when seed off; list/detail/register when `<CONST>_SMOKE_E2E_SEED=1`.
+- Clone lite: http ≤6 + no workspace-denali imports.
+- Verify: create-guest 1/1; harbor/guest-club unchanged.
+- Still open: DG-3 · DG-5. (G1 E2E + store-backed harbor: done)
+
+## DG stamp — DG-4.6 (2026-07-31)
+
+- P-lib: optional `catalogPort` on guest-smoke handlers (`listPublished` / `getPublished` / `createRegistration`).
+- Harbor: thin in-memory `HarborSmokeCatalogStore` + HTTP wires port (resolve per call for test reset).
+- guest-club stays fixture-only path (no port).
+- Verify: SDK http-plib + product-neutral 32/32; harbor 11/11; guest-club 3/3; harbor build green.
+- Note: full SDK package `contract.spec` root-barrel allowlist still dirty from prior DG-1 export surface (pre-existing; not introduced by port types).
+- Still open: DG-3 · DG-5. (G1 E2E + Path A SMK-MKT-03 + D01 /me done — DG-4.7.2)
+
+
+
+## DG stamp — DG-4.7.2 (2026-07-31)
+
+- Root cause: `smoke-marketing-e2e-servers` portalEnv missing ephemeral `jwtEnv` → middleware `invalid_signature` cleared `atour_mb_session` after register-complete → `/me` → `/login` → login tour `…0220` missing on operator tenant → Next 404.
+- Fix: spread `...jwtEnv` into portalEnv (parity with harbor / smoke-portal-e2e-servers).
+- Verify: P3-E2E-D01 + SMK-MKT-03 **2/2**; harbor smoke **3/3**.
+- Still open: DG-3 Denali catalog/registration domain peel · DG-5 certify (needs Architect YES / OD-5) · optional login `notFound` harden when denali login tour absent on operator tenant.
+
+
+
+## DG stamp — DG-4.7.3 + DG-3.0 (2026-07-31)
+
+- DG-4.7.3: `/login` host no longer `notFound()` when configured login tour missing (operator tenant lacks denali.club `…0220`); fallback title chain; portal login contracts 6/6.
+- DG-3.0: Denali `listDenaliCatalog` → `mapWorkspaceCatalogSliceAsync` (Urban parity); denali tsc green. Registration.service peel still later.
+- Still open: DG-3 P0 deeper catalog/registration guts · DG-5 certify (Architect YES + OD-5) · DG-F.
+
+
+
+## DG stamp — DG-3.1 (2026-07-31)
+
+- P-lib: `readWorkspaceCanonicalCapacityByPath` + `createTourDepartureNotSetValidationError` on `workspace-registration-guards`.
+- Wired: denali registration `["capacityMax"]` + departure helper; urban `["tour","capacity"]`.
+- Verify: http-plib-dg1 33/33; denali/urban tsc; contract root-barrel allowlist refreshed (252) + 5/5 (cleared pre-existing DG-1 allowlist drift).
+- Still open: deeper DG-3 catalog filter/photo/spots peel · registration orchestration (booking vs repo) · DG-5 certify (YES+OD-5) · DG-F.
+
+DG-3.2 (2026-07-31)
+
+- P-lib: `loadWorkspaceTourIfPublished` + `requireWorkspacePublishedTour` (+ `WorkspacePublishedTourLoadParams`); publish predicates stay W.
+- Wired: denali+urban `get*CatalogTour` + `create*Registration`.
+- Verify: http-plib DG-1.5 load/require tests; contract 5/5 (allowlist +2); product-neutral (scrubbed product literals from P-lib comments); denali/urban tsc.
+- Still open: list filter/photo/spots · registration orchestration · DG-5 certify (YES+OD-5) · DG-F.
+
+## DG stamp — DG-3.3 (2026-07-31)
+
+- P-lib: `applyWorkspaceCatalogCardFieldBindings` + `WorkspaceCatalogCardFieldBinding` on exposure apply module.
+- Wired: denali+urban `apply*CatalogCardExposure` loop → P-lib; binding tables + structuredData/derived post-steps stay W.
+- Verify: http-plib field-bindings test; contract allowlist +1; product-neutral; denali/urban tsc.
+- Still open: catalog list domain (filter/photo/spots) · registration orchestration · DG-5 (YES+OD-5) · DG-F · optional wizard P1.
+
+## DG stamp — DG-3.4 (2026-07-31)
+
+- P-lib: `filterWorkspacePublishedTours`; `assertWorkspaceRegistrationContactBasics` + email/phone patterns.
+- Wired: denali+urban catalog list filter; denali+urban registration contact validation; denali dashboard + reminder → `loadWorkspaceTourIfPublished`.
+- Verify: http-plib filter/contact tests; contract allowlist +4; product-neutral; denali/urban tsc.
+- Still open: catalog list domain (filter/photo/spots) · registration orchestration · DG-5 (YES+OD-5) · DG-F · optional wizard P1.
+
+## DG stamp — DG-3.5 (2026-07-31)
+
+- P-lib: `parseWorkspaceZodOrThrow`; registration schemas reuse `WORKSPACE_REGISTRATION_*_PATTERN`.
+- platform-core: export `stripWorkspacePluginForWizardEngine`; shared by engine + host hooks; denali `denaliPluginForWizardEngine` + wizard-validation thin wrappers.
+- Verify: http-plib zod test; contract allowlist +1; product-neutral; denali plugin-for-wizard 1/1; denali/urban tsc.
+- Note: Guest HTTP P0 isomorphic peel substantially complete. Still open: catalog domain W · registration orchestration W · wizardHost custom P1 continuation · DG-5 (YES+OD-5) · DG-F.
+
+## DG stamp — DG-3.6 (2026-07-31)
+
+- P-lib: `clearWorkspaceCatalogCardStringField` + `omitWorkspaceCatalogCardKey`.
+- Wired: denali+urban exposure-bindings; denali dashboard → `applyWorkspaceCatalogCardExposure`.
+- Verify: http-plib clear/omit test; contract allowlist +2; product-neutral; denali/urban tsc.
+- Guest HTTP/catalog exposure P0 closeout. Still open: catalog domain W · registration orchestration W · wizardHost custom P1 · DG-5 (YES+OD-5) · DG-F.
+
+## DG stamp — DG-5.0 readiness (2026-07-31)
+
+- Duplicate-work audit: DG-3 P0 already closed; remaining catalog/registration
+  behavior is W-domain, and Denali wizardHost already shares the platform plugin
+  strip helper.
+- Registered `SMK-MKT-HARBOR-01` in the canonical guest E2E hook manifest.
+- Added `docs/workspaces/harbor/certification.md` with G1 guest-only CERT
+  readiness and promotion checklist.
+- Harbor remains `productionTier: stub`; proof-manifest row + tier promotion
+  still require Architect YES on OD-5 and a fresh live smoke.
+
+## DG stamp — DG-6.0 scaffold certification ratchet (2026-07-31)
+
+- Audit found Harbor's missing `operatorCapabilities` originated in
+  `workspace:create --guest`, not only the Harbor manifest.
+- Guest generator now emits `usersDirectory`, `reconciliationTriage`, and
+  `fieldExposureSurfaces` as explicit `false`; scaffold spec asserts the shape.
+- Updated guest-scaffold ADR and Phase 10 enforcement documentation.
+- No operator capability or production tier was enabled.
+
+## DG stamp — DG-6.1 host-port base contract (2026-07-31)
+
+- Audited the 16 exact Urban↔Denali basenames; most are thin adapters or
+  intentionally different W-domain services.
+- Added SDK `WorkspaceProductHttpHostBasePorts` for the five truly identical
+  request-context/response/error/workspace-type contracts.
+- Urban and Denali host-port types extend the base; product store, registration,
+  settings, booking, destination, exposure, and reminder ports remain W.
+
+## DG stamp — DG-6.2 cross-workspace clone ratchet (2026-07-31)
+
+- Added `guard:denali-gravity-clones` across HTTP/auth/tours/catalog/exposure.
+- Harbor + guest-club allow only neutral loader/compose basename overlap with
+  Denali; product-stem overlap must remain zero.
+- Urban's audited 16-stem proof baseline may shrink but cannot grow.
+- Added the guard to `verify:product` and a direct guard contract test.
+
+## DG stamp — DG-6.3 HTTP method mirror removal (2026-07-31)
+
+- Confirmed Urban/Denali `workspace-http-method.ts` files were private one-line
+  SDK re-exports with no package export contract.
+- Route manifests now import `WorkspaceHttpMethod` directly from workspace-sdk;
+  deleted both mirrors.
+- Exact Urban↔Denali basename overlap reduced 16 → 15; guard allowlist and
+  ceiling were lowered to 15 so the deleted mirror cannot return.
+
+## DG stamp — DG-6.4 strict post-cleanup ratchet (2026-07-31)
+
+- Corrected the DG-6.3 guard baseline from 16 to the new measured value 15.
+- Removed `workspace-http-method.ts` from Urban's audited allowlist.
+- Guard contract now requires `urban=15/15 max`; reintroduction fails.
+
+## DG stamp — DG-6.5 executable G1 metric (2026-07-31)
+
+- Defined adapter modules as TS/TSX under `src` excluding neutral `index.ts`,
+  `react.ts`, and `routes.ts`; `routes-manifest.ts` remains counted.
+- Harbor measures 10/15; central clone guard now enforces the ≤15 budget.
+- Recorded scaffold-to-green G1 as same-day (2026-07-31), explicitly not yet a
+  multi-product lead-time benchmark.
+
+## DG stamp — DG-6.6 workspace-role ratchet (2026-07-31)
+
+- Corrected broad `finance-ws* = fixtures`: ws2/3/4/6 are registry-only
+  fixtures; finance-ws5 is a supported finance capability proof; booking-ws2 is
+  a supported booking capability proof.
+- Added `guard:denali-gravity-workspace-roles` to `verify:product`.
+- Capability proofs remain fail-closed against implicit guest certification.
+
+## DG stamp — DG-6.7 standard guard wiring (2026-07-31)
+
+- Audit found `verify:product` was not sufficient coverage for common phase
+  fast-tracks.
+- Clone ratchet added to `guard:guest-plugin-conformance`.
+- Workspace-role ratchet added to the `guard:workspace` family.
+
+## DG stamp — DG-6.8 guest export encapsulation (2026-07-31)
+
+- Workspace guard exposed stale Harbor short exports and the same defect in
+  `workspace:create --guest`.
+- Harbor handlerPackage moved to `/host/http`; short HTTP/catalog/registration
+  aliases and branded plugin alias removed.
+- Generator + scaffold spec now emit/enforce contract + `./host/*` paths only.
+
+## DG stamp — DG-6.9 full guest-conformance gaps (2026-07-31)
+
+- Harbor registration flow now delegates merge/transition to
+  `applyCatalogRegistrationFlowEvent`.
+- Consumer-deps guard now recognizes API's delegated all-workspace prebuild only
+  when the script proves the workspace loop + `pnpm --dir` build contract.
+
+## DG stamp — DG-6.10 hostile guard proofs (2026-07-31)
+
+- Clone guard negative fixture injects Harbor `catalog.service.ts` parallel to
+  Denali and must fail.
+- Role guard negative fixture implicitly certifies finance-ws5 and must fail.
+- Guards retain normal repo-root behavior; isolated workspace-root override is
+  used only by subprocess contract tests.
+
+## DG stamp — DG-6.11 residual classification + technical close (2026-07-31)
+
+- Urban's 15 exact basenames classified: 4 infrastructure, 8 thin adapters,
+  3 W-domain, 0 unclassified implementation clones.
+- Clone guard reports/enforces the classification; new unexplained stems fail.
+- DG-6 technical cleanup CLOSED: clone ratchet, adapter/time metric, role labels,
+  export/generator cleanup, standard guard wiring, and hostile proofs are green.
+- DG-5 Architect YES received: Harbor promoted at G1 guest-only after fresh
+  browse/detail/register smoke 3/3, proof-matrix addition, tier/codegen sync,
+  guest conformance, certification guard, and API provisioning checks.
+- Required remediation path CLOSED. DG-F remains optional/out of G1.
+
+## DG stamp — DG-5.1 Harbor G1 certification (2026-07-31)
+
+- OD-5 resolved by Architect YES at G1 guest-only; no `memberApp` or operator
+  capability expansion.
+- Added missing `city_sail` English/Persian labels; fresh Harbor smoke 3/3.
+- Harbor tier `certified`; CERT-01…05 proof row and registry regenerated (12
+  manifests / 67 outputs).
+- Guards: registry freshness, guest conformance 24/24, workspace certification
+  PASS; targeted API provisioning/list/error suite 14/14 after Harbor assertions.
+- DG-5 CLOSED; required Denali Gravity remediation CLOSED. DG-F optional.

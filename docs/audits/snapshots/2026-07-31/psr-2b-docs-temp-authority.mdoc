@@ -1,0 +1,69 @@
+---
+id: PSR-2B-TEMP
+title: PSR-2b TEMP authority unlink
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: da9e75ca
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml
+program_id: PSR-001
+wave: PSR-2b
+---
+
+# PSR-2b — TEMP / ignored-scratch authority unlink
+
+## Goal
+
+Stop **active authority** documents from treating ignored `TEMP/` / `temp/` /
+`docs/temp/` trees as fresh-clone truth. Promote the two live companions that
+architecture/standards still pointed at; inventory the rest for PSR-2c.
+
+**Not in scope:** deleting TEMP trees, rewriting all phase pack links, committing
+the eight deferred dirty docs from PSR-0b.
+
+## Promoted
+
+| From (ignored) | To (tracked) | id | role |
+| --- | --- | --- | --- |
+| `temp/DENALI_GRAVITY_REMEDIATION_MAP.md` | [`denali-gravity-remediation-map.mdoc`](../../architecture/denali-gravity-remediation-map.mdoc) | `DG-MAP-001` | evidence |
+| `temp/platform-surface-cohesion-roadmap.md` | [`platform-surface-cohesion-roadmap.archive.mdoc`](../../standards/platform-surface-cohesion-roadmap.archive.mdoc) | `PSC-ROADMAP-ARCH-001` | archive |
+
+Local ignored copies keep a banner pointer only (not committed).
+
+## Authority gate
+
+```bash
+node scripts/ops/psr-2b-no-temp-authority.mjs
+```
+
+Hard-fails markdown links / `related_temp` under:
+
+- every `docs/index.yaml` entry
+- `docs/architecture/**`
+- `docs/standards/**`
+
+## Remaining (deferred to PSR-2c)
+
+Machine inventory:
+[`psr-2b-temp-authority-inventory.yaml`](./psr-2b-temp-authority-inventory.yaml)
+
+At capture: **37** phase/dev files still hold markdown links into TEMP/temp.
+Those packs are not active index authority; PSR-2c will archive or rewrite them
+when phase material moves under `docs/archive/`.
+
+## Exit gate
+
+| Criterion | Result |
+| --- | --- |
+| Active architecture/standards/index: no ignored-scratch links | Pass (validator) |
+| Gravity map + PSC roadmap promoted | Pass |
+| TEMP/temp directories not wiped | Pass |
+| Deferred dirty docs unstaged | Pass |
+| Remaining phase TEMP links inventoried | Pass |
+
+**PSR-2b gate: GREEN** for authority-scope unlink (full corpus zero = PSR-2c).

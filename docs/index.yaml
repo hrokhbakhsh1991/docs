@@ -1,10 +1,10 @@
-# Active documentation registry (PSR-2a)
+# Active documentation registry (PSR-2a bootstrap; PSR-2b authority unlink)
 # Sole machine registry for active authority. Absence ≠ delete; see DOC-META-001.
 schema_version: 1
 program_id: PSR-001
-wave: PSR-2a
+wave: PSR-2b
 updated: 2026-07-31
-verified_sha: 8513c5a6f0d150bfddb8de1f34e93d45f9521db5
+verified_sha: da9e75ca
 roles:
   - canonical
   - standard
@@ -14,9 +14,10 @@ roles:
   - evidence
   - archive
 notes:
-  - Deferred dirty docs from PSR-0b are not seeded until classified (PSR-2b/2c).
+  - Deferred dirty docs from PSR-0b are not seeded until classified (PSR-2c).
   - Phase packs remain on disk but are not active authority via this index yet.
-  - Tracked→TEMP links (e.g. Denali Gravity related_temp) are inventoried for PSR-2b.
+  - PSR-2b cleared ignored-scratch authority links under docs/architecture + docs/standards + index entries.
+  - Remaining phase/dev TEMP markdown links are inventoried for PSR-2c (see psr-2b-temp-authority-inventory.yaml).
 documents:
   - id: DOC-META-001
     path: docs/standards/doc-authority-metadata.schema.mdoc
@@ -36,7 +37,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: 8513c5a6f0d150bfddb8de1f34e93d45f9521db5
+    verified_sha: da9e75ca
     supersedes: []
     superseded_by: null
     evidence:
@@ -44,6 +45,8 @@ documents:
       - docs/audits/snapshots/2026-07-31/psr-0b-train-log.mdoc
       - docs/audits/snapshots/2026-07-31/psr-1-hygiene.mdoc
       - docs/audits/snapshots/2026-07-31/psr-2a-docs-authority.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-2b-docs-temp-authority.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml
 
   - id: DG-REM-001
     path: docs/architecture/denali-gravity-remediation.mdoc
@@ -51,13 +54,12 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: 8513c5a6f0d150bfddb8de1f34e93d45f9521db5
+    verified_sha: da9e75ca
     supersedes: []
     superseded_by: null
     evidence:
       - docs/architecture/denali-gravity-product-profile.example.mdoc
-    psr2b_flags:
-      - tracked_to_ignored_temp_ref
+      - docs/architecture/denali-gravity-remediation-map.mdoc
 
   - id: DG-PROF-EX-001
     path: docs/architecture/denali-gravity-product-profile.example.mdoc
@@ -65,12 +67,37 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: 8513c5a6f0d150bfddb8de1f34e93d45f9521db5
+    verified_sha: da9e75ca
     supersedes: []
     superseded_by: null
-    evidence: []
-    psr2b_flags:
-      - tracked_to_ignored_temp_ref
+    evidence:
+      - docs/architecture/denali-gravity-remediation-map.mdoc
+
+  - id: DG-MAP-001
+    path: docs/architecture/denali-gravity-remediation-map.mdoc
+    role: evidence
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: da9e75ca
+    supersedes:
+      - temp/DENALI_GRAVITY_REMEDIATION_MAP.md
+    superseded_by: null
+    evidence:
+      - docs/architecture/denali-gravity-remediation.mdoc
+
+  - id: PSC-ROADMAP-ARCH-001
+    path: docs/standards/platform-surface-cohesion-roadmap.archive.mdoc
+    role: archive
+    owner: platform-architecture
+    status: archived
+    last_verified: 2026-07-31
+    verified_sha: da9e75ca
+    supersedes:
+      - temp/platform-surface-cohesion-roadmap.md
+    superseded_by: docs/standards/platform-surface-cohesion.mdoc
+    evidence:
+      - docs/standards/platform-surface-cohesion.mdoc
 
   - id: PSR-0A-RECOVERY
     path: docs/audits/snapshots/2026-07-31/psr-0a-recovery-baseline.mdoc
@@ -135,9 +162,33 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: 8513c5a6f0d150bfddb8de1f34e93d45f9521db5
+    verified_sha: 7c9e4740
     supersedes: []
     superseded_by: null
     evidence:
       - docs/index.yaml
       - docs/standards/doc-authority-metadata.schema.mdoc
+
+  - id: PSR-2B-TEMP
+    path: docs/audits/snapshots/2026-07-31/psr-2b-docs-temp-authority.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: da9e75ca
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml
+
+  - id: PSR-2B-INVENTORY
+    path: docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml
+    role: evidence
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: da9e75ca
+    supersedes: []
+    superseded_by: null
+    evidence: []
+    frontmatter: none
