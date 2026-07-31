@@ -3,7 +3,7 @@ schema_version: 1
 program_id: PSR-001
 wave: PSR-3b
 updated: 2026-07-31
-verified_sha: pending-psr-3b
+verified_sha: 9db431a8
 policy:
   required_check_names_frozen: true
   required_checks_source: scripts/ops/main-branch-required-checks.mjs
