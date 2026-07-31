@@ -465,7 +465,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: pending
+    verified_sha: 393f4b0d
     supersedes:
       - docs/audits/snapshots/2026-07-31/psr-4b-api-deps.mdoc
     superseded_by: null
