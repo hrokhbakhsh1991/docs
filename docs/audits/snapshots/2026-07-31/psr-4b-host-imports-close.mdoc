@@ -1,0 +1,72 @@
+---
+id: PSR-4B-HOST-IMPORTS-CLOSE
+title: PSR-4b-host-imports-close approve settings-contract; unapproved host-source = 0
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending-psr-4b-host-imports-close
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-5.mdoc
+  - docs/dev/denali-plugin-encapsulation.mdoc
+program_id: PSR-001
+wave: PSR-4b-host-imports-close
+---
+
+# PSR-4b-host-imports-close — unapproved host-source → 0
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| Classify remaining equipment import as approved settings-contract | Yes |
+| Ratchet: unapproved host-source ceiling = **0** | Yes |
+| Exact allowlist of approved settings-contract files | Yes (1 file) |
+| Rewrite/delete `parse-equipment-icon-key.ts` | **No** (intentional keep) |
+| Denali export −۹ / remove configure-* adapters | **No** (PSR-4b-exports / later) |
+
+## Why equipment stays
+
+[`denali-plugin-encapsulation.mdoc`](../../../dev/denali-plugin-encapsulation.mdoc):
+operator settings modules export as `./settings/<module>` — **not** `./host/settings/*` —
+so API settings dispatch (`parse-equipment-icon-key.ts`) stays on a stable platform
+contract. Moving it under `configure-*` would mislabel a settings validator as an HTTP
+product adapter.
+
+Allowlisted path:
+
+`apps/api/src/settings/parse-equipment-icon-key.ts`
+→ `@app-tour/workspace-denali/settings/equipment-icon-registry`
+
+## Ratchet model (after this wave)
+
+| Bucket | Counted toward unapproved ceiling? |
+| --- | --- |
+| `*.generated.ts` | No |
+| `*.spec.ts` / `test/` | No |
+| `http/configure-*` | No (approved product adapters) |
+| Approved settings-contract allowlist | No (exact set; must remain present) |
+| Any other host branded import | **Yes — must be 0** |
+
+## Metrics
+
+| Metric | Value |
+| --- | ---: |
+| Unapproved host-source | **0** |
+| Approved settings-contract files | **1** |
+| Product defaults | **0** |
+
+## Exit gate (host-imports train)
+
+| Check | Result |
+| --- | --- |
+| Unapproved host-source = 0 | required |
+| Allowlist exact (present, no extras) | required |
+| Smoke + inventory metrics aligned | required |
+
+Host-imports train is **complete** for the neutrality import gate. Remaining PSR-4 work:
+export contraction (−۹), optional configure absorption, api-deps-sync.

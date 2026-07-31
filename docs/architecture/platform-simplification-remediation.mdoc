@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: 7b27fc79
+verified_sha: pending-psr-4b-host-imports-close
 supersedes: []
 superseded_by: null
 evidence:
@@ -36,8 +36,9 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-4.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-5.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-close.mdoc
 program_id: PSR-001
-current_wave: PSR-4b-host-imports-5-partial
+current_wave: PSR-4b-host-imports-close-complete
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -47,26 +48,34 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-host-imports-5 — بسته / partial)
+## 0. وضعیت موج جاری (PSR-4b-host-imports-close — بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b-host-imports-close** — unapproved host-source = **0** (**complete**) |
+| Exit gate | GREEN — فقط settings-contract تأییدشده + configure/generated |
+| Snapshot | [`psr-4b-host-imports-close.mdoc`](../audits/snapshots/2026-07-31/psr-4b-host-imports-close.mdoc) |
+
+| Change | Detail |
+| --- | --- |
+| Allowlist | `parse-equipment-icon-key.ts` → approved-settings-contract |
+| Unapproved ceiling | **0** |
+| Authority | [`denali-plugin-encapsulation.mdoc`](../dev/denali-plugin-encapsulation.mdoc) |
+
+**Host-imports train:** کامل برای gate خنثی‌سازی import.
+
+**عمداً خارج (PSR-4 باقی):** export −۹؛ حذف/جذب configure-*؛ api-deps-sync.
+
+**Next:** PSR-4b-exports (−۹ host-visible) .
+
+### 0.00 PSR-4b-host-imports-5 (بسته / partial)
 
 | Field | Value |
 | --- | --- |
 | Wave | **PSR-4b-host-imports-5** — Path B ledger via policy port (**partial 2→1**) |
-| Exit gate | GREEN — ceiling ۱؛ exclusive بدون import مستقیم denali |
 | Snapshot | [`psr-4b-host-imports-5.mdoc`](../audits/snapshots/2026-07-31/psr-4b-host-imports-5.mdoc) |
 | Land commit | `7b27fc79` |
 | SHA close | `4383f1f3` |
-
-| Change | Detail |
-| --- | --- |
-| Contracts | optional `buildTourCreatedPaidJournal` |
-| Denali adapter | Path B journal + stable domainEventId |
-| Host exclusive | policy loader + `enqueueFinanceLedgerCaptureOutbox` |
-| Host-source ceiling | 2 → **1** |
-
-**عمداً خارج / باقی‌مانده:** `parse-equipment-icon-key.ts` (قرارداد settings).
-
-**Next:** PSR-4b-exports (−۹) یا mark equipment as approved-contract (ceiling 0 با allowlist).
 
 ### 0.00 PSR-4b-host-imports-4 (بسته / partial)
 

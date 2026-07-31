@@ -36,6 +36,11 @@ Urban mirrors the same six-symbol contract (`guard:urban-plugin-surface`). Guest
 
 Manifest-bound **operator settings** modules (`settingsEnrichers`, `devBootstrap.wizardTemplate`, `web.surfaces` for settings UI) export as `./settings/<module>` keys — **not** under `./host/settings/*`. This keeps `apps/api` settings dispatch (`workspace-settings-enrichers.generated.ts`, `parse-equipment-icon-key.ts`) on a stable platform contract instead of Denali host internals.
 
+**PSR-4b-host-imports-close (2026-07-31):** `parse-equipment-icon-key.ts` is the sole
+`approved-settings-contract` allowlist entry for API host branded imports — excluded from the
+unapproved host-source ceiling (must stay 0). See
+[`psr-4b-host-imports-close.mdoc`](../audits/snapshots/2026-07-31/psr-4b-host-imports-close.mdoc).
+
 | Manifest field | Example `module` | Generated import |
 | -------------- | ---------------- | ---------------- |
 | `settingsEnrichers[].module` | `./settings/theme-compatible-categories` | `@app-tour/workspace-denali/settings/theme-compatible-categories` |
