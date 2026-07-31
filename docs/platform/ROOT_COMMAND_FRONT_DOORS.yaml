@@ -3,7 +3,7 @@ schema_version: 1
 program_id: PSR-001
 wave: PSR-3a
 updated: 2026-07-31
-verified_sha: pending-psr-3a
+verified_sha: 1a5cac95
 policy:
   aliases_preserved: true
   required_check_names_frozen: true
