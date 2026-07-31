@@ -1,0 +1,60 @@
+schema_version: 1
+program_id: PSR-001
+wave: PSR-3c
+updated: '2026-07-31'
+verified_sha: pending-psr-3c
+policy:
+  no_bulk_phase_deletion: true
+  required_check_names_frozen: true
+  ci_bound_aliases_frozen:
+  - phase-0:foundation-gate
+removed_executables:
+- name: guard:documentation-sync
+  canonical: guard:doc-sync
+  consumers_retargeted:
+  - docs/README.md
+  - docs/MIGRATION-MAP.md
+- name: phase-3:doc-scaffold
+  canonical: doc-gate
+  consumers_retargeted:
+  - AGENTS.md
+retained_aliases:
+- name: test:contract
+  reason: phase-0 docs still cite pnpm run test:contract
+- name: phase-0:covenant-gate
+  reason: reports + phase-0-ci docs
+- name: phase-0:trunk-gate
+  reason: reports + phase-0-ci docs
+- name: phase-0:foundation-gate
+  reason: CI workflow phase-0-gate.yml + foundation-scope-assert
+phase_command_archival:
+  status: inventory_only
+  root_phase_ish_count: 105
+  names_referenced_in_github_workflows:
+  - p6:e2e-gate
+  - p6:gate
+  - p6:staging-gate
+  - p7:staging-gate
+  - p8:gate
+  - phase-0:foundation-gate
+  - phase-0:integration-gate
+  - phase-10:guard
+  - phase-1:gate
+  - phase-2:gate
+  - phase-3:gate
+  - phase-4:gate
+  - phase-5:gate
+  - phase-6:fast-closure
+  - phase-6:gate
+  - phase-7:adversarial-gate
+  - phase-7:platform-gate
+  - phase-8:gate
+  - phase-8:guard
+  - phase-eph:fast-track
+  - phase-psc:fast-track
+  note: No phase-* executables deleted in PSR-3c. Future archival requires per-command
+    consumer proof.
+metrics:
+  executable_before: 310
+  executable_after: 308
+  comment_keys_after: 7

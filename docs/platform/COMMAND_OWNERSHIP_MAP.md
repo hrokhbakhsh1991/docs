@@ -8,7 +8,7 @@ This document is the **tracked** source of truth for which root commands are can
 
 Finance GitHub Actions consolidation (S4): see [`FINANCE_CI_MIGRATION_STATUS.md`](./FINANCE_CI_MIGRATION_STATUS.md) — canonical workflow `finance-integrity.yml`; legacy finance YAML files are deprecated (manual `workflow_dispatch` / rollback only).
 
-CI composite setup consolidation (S5.1): see [`CI_COMPOSITE_SETUP.md`](./CI_COMPOSITE_SETUP.md) — Stage A docs only; Wave 0 pilot is `finance-integrity.yml`; required gates (`phase-0`, `phase-1`, `booking-postgres`) deferred.
+CI composite setup consolidation (S5.1 / PSR-3b): see [`CI_COMPOSITE_SETUP.md`](./CI_COMPOSITE_SETUP.md) — composite live; portal pilot migrated; required gates deferred.
 
 ---
 
@@ -41,43 +41,46 @@ CI composite setup consolidation (S5.1): see [`CI_COMPOSITE_SETUP.md`](./CI_COMP
 | `guard:guest` | Orchestrate all `guard-guest-*` leafs | **Canonical family** | Same |
 | `pre-commit:fast` | Husky fast path (broader than `verify:fast`) | **Canonical hook path** | Do not replace with `verify:fast` |
 | `test:phase-0` | Phase 0 SDK contract suite | **Canonical foundation suite** | CI `phase-0:foundation-gate` still depends on this chain |
-| `guard:doc-sync` | Preferred name for documentation-sync guard | **Canonical name** | Keep; alias `guard:documentation-sync` deprecated |
+| `guard:doc-sync` | Preferred name for documentation-sync guard | **Canonical name** | Keep |
+| `doc-gate` | Full Docs-as-Code gate | **Canonical** | Keep |
 | `ci:integrity` | Integrity chain used by CI / `verify:full` | **Canonical heavy** | CI workflows own callers |
 | Leaf `guard:*` used by CI | Targeted safety leaves | **Required until CI migrates** | Zero CI + docs refs before deprecate |
 
 ---
 
-## Legacy aliases (compatibility retained)
+## Legacy aliases (compatibility)
 
-Execution behavior is **unchanged**. Prefer canonical names in new docs and developer workflows.
+Prefer canonical names in new docs and developer workflows.
 
 ### Foundation / contract aliases → `test:phase-0`
 
 | Legacy alias | Resolves to | Migration status | Owner intent | Removal requirements |
 | --- | --- | --- | --- | --- |
-| `test:contract` | `test:phase-0` | **Deprecated alias** | Historical contract naming | `git grep` + docs clean; no CI callers |
+| `test:contract` | `test:phase-0` | **Deprecated alias** (retained PSR-3c) | Historical contract naming; phase-0 docs still cite | Consumer retarget then remove |
 | `test:contract:foundation` | `test:phase-0` | **Removed executable (PSR-3a)** | Comment marker only | Prefer `test:phase-0` |
 | `contract:test` | `test:phase-0` | **Removed executable (PSR-3a)** | Comment marker only | Prefer `test:phase-0` |
-| `phase-0:covenant-gate` | `test:phase-0` | **Deprecated alias** | Phase-0 naming | Docs + mental model migration |
+| `phase-0:covenant-gate` | `test:phase-0` | **Deprecated alias** (retained PSR-3c) | Phase-0 naming in reports | Docs + mental model migration |
 | `phase-0:foundation-gate` | `test:phase-0` | **Deprecated alias** (CI still uses name) | CI `phase-0-gate.yml` entry | **Retarget CI first**, then remove |
 
-### Doc-sync duplicate name
+### Doc-sync / doc-gate aliases
 
 | Legacy alias | Resolves to | Migration status | Owner intent | Removal requirements |
 | --- | --- | --- | --- | --- |
-| `guard:documentation-sync` | `pnpm run guard:doc-sync` | **Deprecated alias (S3.3 consolidated)** | Older long name; now routes through canonical | Grep docs; remove only after zero refs |
+| `guard:documentation-sync` | `guard:doc-sync` | **Removed executable (PSR-3c)** | Comment marker only | Prefer `guard:doc-sync` |
+| `phase-3:doc-scaffold` | `doc-gate` | **Removed executable (PSR-3c)** | Comment marker only | Prefer `doc-gate` |
 
-
-### S3.3 consolidation note
-
-`guard:documentation-sync` remains as a compatibility alias but now executes `pnpm run guard:doc-sync` (single implementation entry). No aliases deleted.
-
-### Other thin wrappers (documented; not all notice-tagged in S3.2)
+### Other thin wrappers (retained)
 
 | Legacy alias | Resolves to | Migration status | Removal requirements |
 | --- | --- | --- | --- |
-| `phase-3:doc-scaffold` | `doc-gate` | Deprecated discovery | Grep docs |
-| `phase-0:trunk-gate` | `phase-0:integration-gate` | Deprecated discovery | Grep docs |
+| `phase-0:trunk-gate` | `phase-0:integration-gate` | Deprecated discovery (retained) | Grep docs/reports |
+
+### PSR-3c note
+
+`guard:documentation-sync` and `phase-3:doc-scaffold` executables removed after
+consumer retarget (`docs/README.md`, `docs/MIGRATION-MAP.md`, `AGENTS.md`).
+`foundation-scope-assert.mjs` still forbids the old doc-sync name string inside
+the `phase-0:foundation-gate` script body (negative assertion, not a caller).
 
 ---
 
@@ -101,10 +104,11 @@ Do **not** treat these as interchangeable:
 
 Non-breaking notices live as `package.json` script comment keys (`//…`) adjacent to aliases. They do **not** alter command bodies.
 
-Tagged in S3.2:
+Tagged in S3.2 / PSR removals:
 
 - foundation/contract aliases listed above
-- `guard:documentation-sync`
+- `guard:documentation-sync` (executable removed PSR-3c; `//` marker retained)
+- `phase-3:doc-scaffold` (executable removed PSR-3c; `//` marker retained)
 
 Not tagged yet (deferred — CI or semantics risk):
 

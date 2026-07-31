@@ -18,7 +18,7 @@ Architecture documentation lives in this directory and is **gated** like applica
 
 ```bash
 pnpm run doc-gate                  # full Doc-Gate (required before Phase 3.1 merge)
-pnpm run guard:documentation-sync  # registry + link validation
+pnpm run guard:doc-sync            # registry + link validation
 pnpm run doc:markdoc:validate      # parse docs/**/*.mdoc
 pnpm run audit-boundary            # barrel / import boundary (included in doc-gate)
 ```

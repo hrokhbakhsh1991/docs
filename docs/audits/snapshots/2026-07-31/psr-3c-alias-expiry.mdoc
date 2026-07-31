@@ -1,0 +1,81 @@
+---
+id: PSR-3C-ALIAS-EXPIRY
+title: PSR-3c alias expiry and phase archival inventory
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending-psr-3c
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry-inventory.yaml
+  - docs/platform/COMMAND_OWNERSHIP_MAP.md
+  - docs/platform/ROOT_COMMAND_BASELINE.md
+program_id: PSR-001
+wave: PSR-3c
+---
+
+# PSR-3c — Alias expiry + phase archival inventory
+
+## Scope
+
+| Work | In this wave | Deferred |
+| --- | --- | --- |
+| Consumer scan of COMPAT_ALIAS candidates | Yes | — |
+| Remove zero-CI aliases after retarget | Yes (2) | — |
+| Retarget AGENTS / docs command lists | Yes | Full phase-0 doc pack rewrite |
+| Delete CI-bound `phase-0:foundation-gate` | **No** | Separate CI migration |
+| Remove `test:contract` / covenant / trunk | **No** | Phase-0 doc + report retarget |
+| Bulk delete / archive `phase-*` commands | **No** | Per-command proof later |
+
+## Removed executables
+
+| Alias | Canonical | Consumers retargeted |
+| --- | --- | --- |
+| `guard:documentation-sync` | `guard:doc-sync` | `docs/README.md`, `docs/MIGRATION-MAP.md` |
+| `phase-3:doc-scaffold` | `doc-gate` | `AGENTS.md` |
+
+`//…` comment markers retained in root `package.json`.
+
+## Retained (with reason)
+
+| Alias | Why retained |
+| --- | --- |
+| `phase-0:foundation-gate` | `.github/workflows/phase-0-gate.yml` + foundation assert |
+| `test:contract` | `docs/phase-0/**` still document `pnpm run test:contract` |
+| `phase-0:covenant-gate` | reports + `docs/phase-0/phase-0-ci.md` |
+| `phase-0:trunk-gate` | reports + `docs/phase-0/phase-0-ci.md` |
+
+## Phase command archival
+
+Inventory only — see
+[`psr-3c-alias-expiry-inventory.yaml`](./psr-3c-alias-expiry-inventory.yaml).
+
+~105 root `phase-*` / `pN*` commands remain. Names referenced from
+`.github/workflows` are listed in the YAML. **No phase gate deleted.**
+
+## Metrics
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Executable root scripts | 310 | **308** |
+| Comment keys | 6 | **7** (`//phase-3:doc-scaffold` added) |
+| Aliases removed (PSR-3a+3c) | 2 | **4** |
+
+## Local smoke
+
+```bash
+node scripts/ops/psr-3c-alias-expiry-smoke.mjs
+```
+
+## Exit gate
+
+| Check | Result |
+| --- | --- |
+| Removed aliases absent from `package.json` executables | required |
+| Canonical targets present | required |
+| `phase-0:foundation-gate` still present | required |
+| `MAIN_BRANCH_REQUIRED_CHECKS` unchanged | required |
+| No bulk `phase-*` deletion | required |

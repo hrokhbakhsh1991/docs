@@ -108,14 +108,16 @@ R1 must not alter the implementation of `doc-gate`.
 
 Process the remaining exact wrappers one at a time:
 
-- `guard:documentation-sync`;
-- `test:contract`;
+- `test:contract` (phase-0 docs still cite);
 - `phase-0:covenant-gate`;
 - `phase-0:trunk-gate`.
 
-**PSR-3a completed for root scope:** `test:contract:foundation` and
-`contract:test` executables removed (comment markers retained). Remaining R2
-items stay for PSR-3c after consumer scan.
+**Completed:**
+- PSR-3a: `test:contract:foundation`, `contract:test`
+- PSR-3c: `guard:documentation-sync`, `phase-3:doc-scaffold`
+
+CI-bound `phase-0:foundation-gate` is excluded until workflow and
+branch-protection consumers are migrated deliberately.
 
 CI-bound `phase-0:foundation-gate` is excluded until workflow and
 branch-protection consumers are migrated deliberately.
@@ -219,7 +221,7 @@ Archival requires:
 | Consolidate families | Shared runners with parity (accepted R3)    | Complete    |
 | Consolidate CI       | Reusable orchestration; required names frozen | Partial (pilot) |
 | Consolidate gates    | Declarative graph with stable front doors   | Not started |
-| Archive safely       | Approved removals only (PSR-3c+)            | Partial (2 aliases) |
+| Archive safely       | Approved removals only (PSR-3c+)            | Partial (4 aliases) |
 
 The analysis/design path is complete. Implementation should start at R1 only
 after approval; skipping directly to bulk script removal would violate the

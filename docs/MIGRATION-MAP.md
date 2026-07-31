@@ -1678,7 +1678,7 @@ A feature or phase sub-milestone is **not Done** until:
 
 ```bash
 pnpm run doc-gate              # full Doc-Gate (required before Phase 3.1 merge)
-pnpm run guard:documentation-sync   # registry + links only (subset)
+pnpm run guard:doc-sync        # registry + links only (subset)
 pnpm run doc:markdoc:validate  # parse all docs/**/*.mdoc
 pnpm run audit-boundary        # import/barrel parity (also inside doc-gate)
 ```

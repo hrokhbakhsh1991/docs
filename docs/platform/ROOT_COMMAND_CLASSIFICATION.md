@@ -94,18 +94,18 @@ ownership of every implementation invoked by it.
 
 | Command                    | Primary class  | Owner               | Canonical target                   | Risk note                            |
 | -------------------------- | -------------- | ------------------- | ---------------------------------- | ------------------------------------ |
-| `guard:documentation-sync` | `COMPAT_ALIAS` | Documentation       | `guard:doc-sync`                   | Active docs still reference old name |
-| `phase-3:doc-scaffold`     | `COMPAT_ALIAS` | Documentation       | `doc-gate`                         | First migration pilot                |
 | `test:contract`            | `COMPAT_ALIAS` | Workspace SDK       | `test:phase-0`                     | Historical contract terminology      |
 | `phase-0:covenant-gate`    | `COMPAT_ALIAS` | Platform Foundation | `test:phase-0`                     | Domain terminology in phase docs     |
 | `phase-0:trunk-gate`       | `COMPAT_ALIAS` | Platform Foundation | `phase-0:integration-gate`         | Domain terminology in phase docs     |
 
-### Removed in PSR-3a (comment markers only)
+### Removed executables (comment markers only)
 
-| Former command             | Replacement        | Proof |
-| -------------------------- | ------------------ | --- |
-| `test:contract:foundation` | `test:phase-0`     | Zero CI/workflow refs; `//test:contract:foundation` retained |
-| `contract:test`            | `test:phase-0`     | Zero CI/workflow refs; `//contract:test` retained |
+| Former command             | Replacement        | Wave | Proof |
+| -------------------------- | ------------------ | ---- | --- |
+| `test:contract:foundation` | `test:phase-0`     | PSR-3a | Zero CI/workflow refs |
+| `contract:test`            | `test:phase-0`     | PSR-3a | Zero CI/workflow refs |
+| `guard:documentation-sync` | `guard:doc-sync`   | PSR-3c | Docs retargeted; assert keeps negative string check |
+| `phase-3:doc-scaffold`     | `doc-gate`         | PSR-3c | AGENTS retargeted; zero workflow refs |
 
 ### CI compatibility contract
 
@@ -140,11 +140,11 @@ root leaf.
 
 ## Cohort decision
 
-- Cohort 1 names that remain executable exist in the current root `package.json`.
-- PSR-3a added public front doors and removed two docs-only exact aliases
-  (`contract:test`, `test:contract:foundation`) with zero workflow callers.
-- No name has more than one primary classification in this cohort.
-- Required CI check names and `verify:fast` / `verify:product` / `verify:full`
-  / adversarial authorities were not merged.
-- Next implementation wave: **PSR-3b** family runners / workflow reuse (required
-  names frozen). Further alias expiry remains **PSR-3c**.
+- Remaining cohort aliases exist in root `package.json` unless listed as removed.
+- PSR-3a removed `contract:test` and `test:contract:foundation`.
+- PSR-3c removed `guard:documentation-sync` and `phase-3:doc-scaffold` after
+  consumer retarget; CI-bound `phase-0:foundation-gate` retained.
+- Required CI check names and `verify:*` / adversarial authorities were not merged.
+- Phase command **archival** in PSR-3c is inventory-only (no bulk `phase-*` deletion).
+- Next: PSR-4a export classification (or a follow-on alias wave for `test:contract`
+  / covenant / trunk after phase-0 doc retarget).

@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: 9db431a8
+verified_sha: pending-psr-3c
 supersedes: []
 superseded_by: null
 evidence:
@@ -20,8 +20,10 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-3a-front-doors.mdoc
   - docs/audits/snapshots/2026-07-31/psr-3b-ci-reuse.mdoc
   - docs/audits/snapshots/2026-07-31/psr-3b-ci-reuse-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-3b-complete
+current_wave: PSR-3c-complete
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -31,7 +33,29 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-3b — بسته)
+## 0. وضعیت موج جاری (PSR-3c — بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-3c** — alias expiry + phase archival inventory (**complete**) |
+| Exit gate | GREEN — −۲ alias؛ CI-bound حفظ؛ بدون حذف فله‌ای `phase-*` |
+| Snapshot | [`psr-3c-alias-expiry.mdoc`](../audits/snapshots/2026-07-31/psr-3c-alias-expiry.mdoc) |
+
+| Change | Detail |
+| --- | --- |
+| Removed | `guard:documentation-sync` → `guard:doc-sync` |
+| Removed | `phase-3:doc-scaffold` → `doc-gate` |
+| Retained | `phase-0:foundation-gate` (CI)، `test:contract`، covenant/trunk |
+| Phase archival | inventory-only (~۱۰۵؛ ۲۱ نام در workflows) |
+| Net executable | −۲ (۳۱۰→۳۰۸) |
+| Required checks | بدون تغییر |
+
+**عمداً خارج از این موج:** حذف `phase-0:foundation-gate`؛ retarget کامل
+`docs/phase-0/**`؛ حذف فله‌ای phase commands.
+
+**Next:** PSR-4a — export classification و deprecation map.
+
+### 0.0 PSR-3b (بسته)
 
 | Field | Value |
 | --- | --- |
@@ -44,17 +68,11 @@ doc_role: canonical
 | --- | --- |
 | Family runners | بدون refactor — `run-guard-family.mjs` قبلاً مشترک |
 | Pilot workflow | `portal-control-guard.yml` → `setup-platform` |
-| Engine parity | `engine-check-enabled: "false"` (پیش از پایلوت engine نداشت) |
 | Composite callers | ۵ → **۶** |
-| Required checks | `MAIN_BRANCH_REQUIRED_CHECKS` بدون تغییر |
 | Land commit | `9db431a8` |
 | SHA close | `72bbee7b` |
-| Deferred | phase-0/1/booking gates؛ گسترش فله‌ای workflows |
 
-**عمداً خارج از این موج:** rename required CI checks؛ ادغام verify/adversarial؛
-حذف leaf guardها؛ مهاجرت phase-0/1/booking.
-
-**Next:** PSR-3c — alias expiry / phase command archival (پس از consumer scan).
+**عمداً خارج از این موج:** rename required CI checks؛ مهاجرت phase-0/1/booking.
 
 ### 0.0 PSR-3a (بسته)
 

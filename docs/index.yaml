@@ -1,10 +1,10 @@
-# Active documentation registry (PSR-3b CI reuse)
+# Active documentation registry (PSR-3c alias expiry)
 # Sole machine registry for active authority. Absence ≠ delete; see DOC-META-001.
 schema_version: 1
 program_id: PSR-001
-wave: PSR-3b
+wave: PSR-3c
 updated: 2026-07-31
-verified_sha: 9db431a8
+verified_sha: pending-psr-3c
 roles:
   - canonical
   - standard
@@ -17,7 +17,7 @@ notes:
   - PSR-2c neutralized all docs/** markdown links into TEMP/temp/docs/temp.
   - ROOT_COMMAND analysis surface remains baseline + classification + remediation.
   - PSR-3a adds ROOT_COMMAND_FRONT_DOORS as the public command contract map.
-  - PSR-3b accepts R3 family runners; portal-control-guard uses setup-platform.
+  - PSR-3c removes two more docs-only aliases; phase archival is inventory-only.
   - Phase pack trees remain on disk; bulk move to docs/archive is a follow-on slice.
   - Deferred PSR-0b dirty docs were committed in e9f9f930.
 documents:
@@ -39,7 +39,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: 9db431a8
+    verified_sha: pending-psr-3c
     supersedes: []
     superseded_by: null
     evidence:
@@ -53,6 +53,8 @@ documents:
       - docs/audits/snapshots/2026-07-31/psr-3a-front-doors.mdoc
       - docs/audits/snapshots/2026-07-31/psr-3b-ci-reuse.mdoc
       - docs/audits/snapshots/2026-07-31/psr-3b-ci-reuse-inventory.yaml
+      - docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry-inventory.yaml
 
   - id: DG-REM-001
     path: docs/architecture/denali-gravity-remediation.mdoc
@@ -321,3 +323,16 @@ documents:
     evidence:
       - docs/audits/snapshots/2026-07-31/psr-3b-ci-reuse-inventory.yaml
       - docs/platform/CI_COMPOSITE_SETUP.md
+
+  - id: PSR-3C-ALIAS-EXPIRY
+    path: docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: pending-psr-3c
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry-inventory.yaml
+      - docs/platform/COMMAND_OWNERSHIP_MAP.md

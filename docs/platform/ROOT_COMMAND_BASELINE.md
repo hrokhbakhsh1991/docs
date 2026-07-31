@@ -4,6 +4,7 @@
 **Captured:** 2026-07-29  
 **Last compacted:** 2026-07-31 (PSR-2c)  
 **Last front-door wave:** 2026-07-31 (PSR-3a)  
+**Last alias-expiry wave:** 2026-07-31 (PSR-3c)  
 **Initiative:** Platform Simplification  
 **Scope:** Root `package.json` command surface only  
 **Authority:** Complements [`COMMAND_OWNERSHIP_MAP.md`](./COMMAND_OWNERSHIP_MAP.md)  
@@ -16,42 +17,29 @@ This is the living baseline for root command growth. Classification worksheets
 remain three active analysis artifacts. PSR-3a adds a separate **public front
 door** contract without merging `verify:*` tiers or renaming required CI checks.
 
-## Current baseline (post PSR-3a)
+## Current baseline (post PSR-3c)
 
 | Metric                                         | Current |
 | ---------------------------------------------- | ------: |
-| Root `scripts` entries                         |     316 |
-| Executable root commands                       |     310 |
-| Deprecation comment keys (`//...`)             |       6 |
+| Root `scripts` entries                         |     315 |
+| Executable root commands                       |     308 |
+| Deprecation comment keys (`//...`)             |       7 |
 | Public front doors (discoverable)              |      12 |
-| `guard:*` commands, including `audit-boundary` |     117 |
-| Phase/release commands (`phase-*`, `pN:*`)     |     106 |
-| Test commands                                  |      19 |
-| Smoke commands                                 |       6 |
-| Ops/deploy/seed/database/infra commands        |      14 |
-| Verify/control/CI commands                     |       8 |
-| Generate/workspace commands                    |       7 |
-| Other commands                                 |      31 |
-| Exact one-command wrappers                     |       7 |
+| `guard:*` commands, including `audit-boundary` |     116 |
+| Phase/release commands (`phase-*`, `pN:*`)     |     105 |
+| Exact one-command wrappers (remaining)         |       5 |
 | GitHub Actions workflows                       |      27 |
-| Top-level shell scripts under `scripts/`       |     112 |
-| Direct guard files under `scripts/guards/`     |     165 |
 
-### PSR-3a delta vs HEAD `c2e63013`
+### PSR-3a → PSR-3c executable delta vs `c2e63013`
 
-| Change | Names |
-| --- | --- |
-| Added (`CANONICAL` front doors) | `dev`, `typecheck`, `generate`, `db:migrate`, `release:verify` |
-| Removed (docs-only deprecated aliases) | `contract:test`, `test:contract:foundation` |
-| Net executable | **+3** |
+| Wave | Change | Net |
+| --- | --- | ---: |
+| PSR-3a | +5 front doors / −2 aliases | +3 (307→310) |
+| PSR-3c | −2 aliases (`guard:documentation-sync`, `phase-3:doc-scaffold`) | −2 (310→308) |
+| Combined | | **+1** vs pre-3a HEAD |
 
-`db:migrate` is a **database side-effect** front door (alias of
-`db:migrate:deploy`). `release:verify` points at `verify:product` only — not
-`verify:full`, adversarial, or live smoke.
-
-Guard and phase/release commands remain the majority of the executable surface.
-The primary problem is still lifecycle and discoverability, not merely
-duplicate bodies.
+`db:migrate` remains a **database side-effect** front door. `release:verify`
+points at `verify:product` only.
 
 ## Previous-baseline drift
 
@@ -91,15 +79,23 @@ Every executable root command must ultimately receive one primary class.
 | Wrapper                    | Target                     | Current class                      |
 | -------------------------- | -------------------------- | ---------------------------------- |
 | `postbuild`                | `guard:artifact-surface`   | `LIFECYCLE`                        |
-| `guard:documentation-sync` | `guard:doc-sync`           | `COMPAT_ALIAS`                     |
-| `phase-3:doc-scaffold`     | `doc-gate`                 | `COMPAT_ALIAS`                     |
 | `test:contract`            | `test:phase-0`             | `COMPAT_ALIAS`                     |
 | `phase-0:covenant-gate`    | `test:phase-0`             | `COMPAT_ALIAS`; domain terminology |
 | `phase-0:trunk-gate`       | `phase-0:integration-gate` | `COMPAT_ALIAS`; domain terminology |
 | `phase-0:foundation-gate`  | `test:phase-0`             | `CI_ONLY` compatibility contract   |
 
+Removed executables (markers only): `contract:test`, `test:contract:foundation`
+(PSR-3a); `guard:documentation-sync`, `phase-3:doc-scaffold` (PSR-3c).
+
 This is not a deletion list. `postbuild` is implicit and
 `phase-0:foundation-gate` is still a CI contract.
+
+## First migration pilot (closed)
+
+```text
+phase-3:doc-scaffold -> doc-gate   (removed PSR-3c)
+guard:documentation-sync -> guard:doc-sync   (removed PSR-3c)
+```
 
 ## Growth freeze
 
@@ -128,25 +124,16 @@ A command becomes `REMOVAL_CANDIDATE` only after:
 6. the compatibility window has elapsed;
 7. rollback and architecture approval are recorded.
 
-## First migration pilot
-
-```text
-phase-3:doc-scaffold -> doc-gate
-```
-
-It is behavior-identical, absent from CI, has one active execution example in
-`AGENTS.md`, and is already deprecated in the ownership map. Removal remains
-deferred until consumer migration and the compatibility window complete.
-
 ## Phase 0 exit checklist
 
 - [x] Current aggregate baseline captured in tracked documentation.
 - [x] Stale local baseline demoted from current authority.
 - [x] Unsafe zero-reference inference documented.
 - [x] Command taxonomy, growth freeze, and removal proof defined.
-- [ ] All 305 executable commands assigned a class and owner.
+- [x] R1/R2 doc aliases removed where consumer-proofed (PSR-3a/3c).
+- [ ] Remaining executable commands fully class/owner complete.
 - [ ] Dynamic and lifecycle consumers represented in the inventory.
 - [ ] Active versus historical phase/release commands reviewed by owners.
-- [ ] Inventory approved before pilot migration.
+- [ ] Inventory approved before further phase-command archival.
 
-Phase 0 remains open until the unchecked items are complete.
+Phase command bulk archival remains open; PSR-3c only inventories candidates.

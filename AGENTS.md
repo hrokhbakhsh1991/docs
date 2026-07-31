@@ -20,10 +20,10 @@ pnpm install
 pnpm build && pnpm test && pnpm run guard:architecture && pnpm run guard:import-boundary
 pnpm run phase-1:gate   # phase 1 full gate (recommended before PR)
 pnpm run phase-2:gate   # phase 2 design-system gate (build, test, contracts, p2_* guards)
-pnpm run test:contract            # KS-02/04: dist surface + no-legacy-imports (depcruise)
-pnpm run phase-0:covenant-gate      # Phase 0 covenant (alias: phase-0:foundation-gate)
-pnpm run phase-0:trunk-gate         # trunk integrity (alias: phase-0:integration-gate)
-pnpm run phase-0:gate               # covenant-gate then trunk-gate
+pnpm run test:phase-0               # Phase 0 foundation contract (prefer over legacy aliases)
+pnpm run phase-0:foundation-gate    # CI-bound name → test:phase-0 (do not remove yet)
+pnpm run phase-0:integration-gate   # trunk integrity (prefer over phase-0:trunk-gate)
+pnpm run phase-0:gate               # foundation-gate then integration-gate
 pnpm run pre-commit:fast            # same as Husky fast path (<60s target)
 pnpm run guard:wrs-routing          # WRS-001 — no shop.* egress in app src
 pnpm run guard:wrs-stale-docs       # WRS-001 — docs/playwright must not regress to shop.operator canonical
@@ -59,7 +59,7 @@ pnpm run phase-4:gate               # full Phase 4 closure (includes phase-3:gat
 pnpm run check:node-engine  # Node 24 required (.nvmrc / engines)
 pnpm run baseline:metrics
 pnpm run doc-gate              # Docs-as-Code Doc-Gate (MAP §19) — required before Phase 3.1 merge
-pnpm run phase-3:doc-scaffold  # alias for doc-gate
+pnpm run guard:doc-sync        # documentation sync guard (canonical)
 ```
 
 ## Pre-commit (Husky)
