@@ -423,6 +423,10 @@
           "type": "string",
           "description": "Returns true when storageKey is readable for tenant wizard draft"
         },
+        "isOperatorReadKeyAllowedExport": {
+          "type": "string",
+          "description": "Optional — returns true when operator may signed-read draft or tour photo keys"
+        },
         "putDraftPhotoExport": {
           "type": "string",
           "description": "Upload provisional wizard draft photo to object storage"

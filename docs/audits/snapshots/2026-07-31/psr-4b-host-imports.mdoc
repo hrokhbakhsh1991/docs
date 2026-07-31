@@ -1,0 +1,62 @@
+---
+id: PSR-4B-HOST-IMPORTS
+title: PSR-4b-host-imports shrink host-source branded imports
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending-psr-4b-host-imports
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-defaults.mdoc
+program_id: PSR-001
+wave: PSR-4b-host-imports
+---
+
+# PSR-4b-host-imports — careful shrink (11 → 8)
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| Route operator photo key via wizardMedia binding | Yes |
+| Remove Denali frozen-error instanceof from settings catalog | Yes |
+| Neutralize UrbanTourPatchBody type on tour-write dispatch | Yes |
+| Rewrite smoke seeds / finance ledger / migrate constants | **No** |
+| Delete Denali exports | **No** |
+
+## Changes
+
+| File | Before | After |
+| --- | --- | --- |
+| `tours/tour-wizard-photos.routes.ts` | direct `isDenaliOperatorTourPhotoReadKeyAllowed` | `media.isOperatorReadKeyAllowed` from generated binding |
+| `settings/wizard-template-catalog.ts` | `instanceof DenaliWizardTemplateFrozenFieldMissingError` | match stable `code` + `canonicalPath` |
+| `tours/workspace-tour-write-dispatch.ts` | `UrbanTourPatchBody` type import | `unknown` gate body |
+
+### Manifest / codegen
+
+- `wizardMedia.isOperatorReadKeyAllowedExport` (optional) on Denali manifest
+- `WORKSPACE-MANIFEST.schema.json` documents the optional property
+- `generateWizardMediaBindings` emits `isOperatorReadKeyAllowed` when set
+
+## Metrics
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Host-source branded files | 11 | **8** |
+| Product defaults | 0 | 0 |
+
+Remaining host-source (deferred): `app.ts`, migrate-canonical constants, urban exposure,
+3 smoke seeds, equipment-icon settings contract, finance ledger exclusive.
+
+## Exit gate
+
+| Check | Result |
+| --- | --- |
+| Host-source ceiling ≤8 | required |
+| Photo GET still uses operator key semantics | required |
+| No product-default regression | required |
+| Tour-write dispatch specs green | required |

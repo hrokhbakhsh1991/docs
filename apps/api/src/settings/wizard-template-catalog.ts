@@ -1,8 +1,5 @@
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
-import {
-  DenaliWizardTemplateFrozenFieldMissingError,
-} from "@app-tour/workspace-denali";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { resolveWorkspacePluginForTenantContext } from "../workspace/resolve-workspace-plugin-for-tenant-context";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
@@ -143,8 +140,18 @@ export async function assertDenaliWizardTemplateFrozenFieldsForTenant(
   try {
     binding.assertFrozenFields(payload);
   } catch (error) {
-    if (error instanceof DenaliWizardTemplateFrozenFieldMissingError) {
-      throw new SettingsWizardFrozenFieldMissingError(error.canonicalPath);
+    // Workspace bindings may throw product-named errors; match by stable code.
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: unknown }).code === "SETTINGS_WIZARD_FROZEN_FIELD_MISSING" &&
+      "canonicalPath" in error &&
+      typeof (error as { canonicalPath: unknown }).canonicalPath === "string"
+    ) {
+      throw new SettingsWizardFrozenFieldMissingError(
+        (error as { canonicalPath: string }).canonicalPath,
+      );
     }
     throw error;
   }

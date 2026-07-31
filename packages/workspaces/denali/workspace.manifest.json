@@ -228,6 +228,7 @@
     "maxUploadBytesExport": "DENALI_MAX_PHOTO_UPLOAD_BYTES",
     "isSessionIdExport": "isDenaliWizardDraftSessionId",
     "isDraftReadKeyAllowedExport": "isDenaliWizardDraftPhotoReadKeyAllowed",
+    "isOperatorReadKeyAllowedExport": "isDenaliOperatorTourPhotoReadKeyAllowed",
     "putDraftPhotoExport": "putDenaliWizardDraftPhoto",
     "getSignedReadUrlExport": "getDenaliTourPhotoSignedReadUrl",
     "ensureBucketExport": "ensureMinioPhotoBucket",

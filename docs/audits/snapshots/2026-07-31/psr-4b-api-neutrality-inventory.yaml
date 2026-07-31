@@ -1,8 +1,8 @@
 schema_version: 1
 program_id: PSR-001
-wave: PSR-4b-defaults
+wave: PSR-4b-host-imports
 updated: '2026-07-31'
-verified_sha: 9ea15024
+verified_sha: pending-psr-4b-host-imports
 policy:
   inventory_and_ratchet_only: false
   no_runtime_default_change_in_this_wave: false
@@ -18,15 +18,16 @@ policy:
   defaults_fail_closed: true
 metrics:
   api_workspace_package_deps: 13
-  branded_import_sites: 82
+  branded_import_sites: 79
   bucket_counts:
-    host-source: 11
+    host-source: 8
     generated: 51
     test: 18
     product-adapter: 2
   product_default_sites: 0
   codegen_branded_script_files: 8
-  host_source_unique_files: 11
+  host_source_unique_files: 8
+  host_source_ceiling: 8
 apps_api_workspace_deps:
 - '@app-tour/workspace-acme'
 - '@app-tour/workspace-booking-ws2'
@@ -51,18 +52,12 @@ host_source_remediation_cohorts:
   - apps/api/src/settings/bootstrap-denali-dev-smoke-fixtures.ts
   - apps/api/src/settings/seed-operator-smoke-catalog.ts
   - apps/api/src/settings/seed-operator-smoke-published-tour.ts
-  move-to-generated-binding:
-  - apps/api/src/tours/tour-wizard-photos.routes.ts
   move-to-generated-or-finance-port:
   - apps/api/src/workspace-finance/tour-created-paid-ledger-exclusive.ts
-  move-to-generated-or-settings-contract:
-  - apps/api/src/settings/wizard-template-catalog.ts
   product-adapter-exposure:
   - apps/api/src/exposure/resolve-urban-surface-exposure.ts
   product-default + branded-hook:
   - apps/api/src/canonical/migrate-canonical-workspace.service.ts
-  type-only-urban:
-  - apps/api/src/tours/workspace-tour-write-dispatch.ts
 codegen_branded_scripts:
 - scripts/codegen/denali-semantic-slices.mjs
 - scripts/codegen/lib/denali-dtcg-resolve.mjs
@@ -80,18 +75,6 @@ branded_imports:
   remediation_status: approved-side-effect-import
   remediation_notes: Side-effect imports of configure-* adapters; UrbanProductRouteDeps type import — keep until loader registry
     absorbs configure registration
-- file: apps/api/src/tours/workspace-tour-write-dispatch.ts
-  import: '@app-tour/workspace-urban/tours'
-  bucket: host-source
-  product: urban
-  remediation_status: type-only-urban
-  remediation_notes: UrbanTourPatchBody type import; runtime via generated bindings — prefer sdk-neutral patch body type
-- file: apps/api/src/tours/tour-wizard-photos.routes.ts
-  import: '@app-tour/workspace-denali'
-  bucket: host-source
-  product: denali
-  remediation_status: move-to-generated-binding
-  remediation_notes: isDenaliOperatorTourPhotoReadKeyAllowed from denali root — use wizard-media generated binding
 - file: apps/api/src/tours/workspace-tour-write-bindings.generated.ts
   import: '@app-tour/workspace-denali'
   bucket: generated
@@ -459,12 +442,6 @@ branded_imports:
   product: denali
   remediation_status: ok-generated
   remediation_notes: Generated/test allowed under SoT
-- file: apps/api/src/settings/wizard-template-catalog.ts
-  import: '@app-tour/workspace-denali'
-  bucket: host-source
-  product: denali
-  remediation_status: move-to-generated-or-settings-contract
-  remediation_notes: Direct denali root import — prefer settings/wizardTemplate binding
 - file: apps/api/src/settings/seed-operator-smoke-catalog.ts
   import: '@app-tour/workspace-denali'
   bucket: host-source
@@ -574,6 +551,8 @@ follow_on_slices:
   status: complete
 - id: PSR-4b-host-imports
   work: Move remaining host-source denali/urban imports to generated/settings/ports
+  status: partial
+  note: 11→8 host-source; photos/template/tour-write cleared; 8 remain
 - id: PSR-4b-api-deps
   work: Generate or sync apps/api package.json workspace membership from manifests
 - id: PSR-4b-whyDenali
@@ -587,3 +566,19 @@ product_defaults_remediated:
 - file: apps/api/src/integrations/migration/tour-published-exposure-remap-plan.ts
   was: '`${workspaceType ?? "denali"}.telegram.TourPublished`'
   now: throw TOUR_PUBLISHED_REMAP_WORKSPACE_TYPE_REQUIRED when profileId lacks .TourCreated suffix
+host_source_remaining:
+- apps/api/src/app.ts
+- apps/api/src/canonical/migrate-canonical-workspace.service.ts
+- apps/api/src/exposure/resolve-urban-surface-exposure.ts
+- apps/api/src/settings/bootstrap-denali-dev-smoke-fixtures.ts
+- apps/api/src/settings/parse-equipment-icon-key.ts
+- apps/api/src/settings/seed-operator-smoke-catalog.ts
+- apps/api/src/settings/seed-operator-smoke-published-tour.ts
+- apps/api/src/workspace-finance/tour-created-paid-ledger-exclusive.ts
+completed_host_import_clears:
+- file: apps/api/src/settings/wizard-template-catalog.ts
+  wave: PSR-4b-host-imports
+- file: apps/api/src/tours/tour-wizard-photos.routes.ts
+  wave: PSR-4b-host-imports
+- file: apps/api/src/tours/workspace-tour-write-dispatch.ts
+  wave: PSR-4b-host-imports

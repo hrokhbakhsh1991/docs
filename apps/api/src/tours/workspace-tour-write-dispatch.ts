@@ -1,5 +1,4 @@
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
-import type { UrbanTourPatchBody } from "@app-tour/workspace-urban/tours";
 
 import { WORKSPACE_TOUR_WRITE_BINDINGS } from "./workspace-tour-write-bindings.generated";
 
@@ -10,7 +9,8 @@ type TourPatchMerger = (
   patch: CanonicalPatchData | undefined
 ) => CanonicalPatchData;
 
-type TourPublishFieldGate = (body: UrbanTourPatchBody) => boolean;
+/** Workspace publish-field gates accept product-specific bodies via generated bindings. */
+type TourPublishFieldGate = (body: unknown) => boolean;
 
 type PublishFieldOwnerAssert = (params: {
   readonly auth: TenantAuthContext;
@@ -95,7 +95,7 @@ export function mergeCanonicalPatchDataForWorkspace(
 
 export function tourPatchTouchesProtectedPublishFields(
   workspaceType: string,
-  body: UrbanTourPatchBody
+  body: unknown
 ): boolean {
   const gate = publishFieldGates[workspaceType];
   return gate !== undefined ? gate(body) : false;

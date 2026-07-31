@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: 9ea15024
+verified_sha: pending-psr-4b-host-imports
 supersedes: []
 superseded_by: null
 evidence:
@@ -27,8 +27,9 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-4b-defaults.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-host-imports.mdoc
 program_id: PSR-001
-current_wave: PSR-4b-defaults-complete
+current_wave: PSR-4b-host-imports-partial
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -38,26 +39,34 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-defaults — بسته)
+## 0. وضعیت موج جاری (PSR-4b-host-imports — بسته / partial)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b-host-imports** — shrink host-source branded imports (**partial 11→8**) |
+| Exit gate | GREEN — ceiling ۸؛ photos/template/tour-write خنثی‌سازی شدند |
+| Snapshot | [`psr-4b-host-imports.mdoc`](../audits/snapshots/2026-07-31/psr-4b-host-imports.mdoc) |
+
+| Change | Detail |
+| --- | --- |
+| Photo routes | operator key via `wizardMedia` binding |
+| Wizard template catalog | duck-type frozen error by `code` |
+| Tour write dispatch | drop Urban type import |
+| Host-source ceiling | 11 → **8** |
+
+**عمداً خارج / باقی‌مانده:** smoke seeds، finance ledger exclusive، migrate denali constants،
+urban exposure، `app.ts` configure side-effects.
+
+**Next:** PSR-4b-host-imports-2 (finance/migrate) یا PSR-4b-api-deps.
+
+### 0.00 PSR-4b-defaults (بسته)
 
 | Field | Value |
 | --- | --- |
 | Wave | **PSR-4b-defaults** — remove `workspaceType ?? "denali"` (**complete**) |
-| Exit gate | GREEN — صفر product-default در `apps/api/src`؛ fail-closed |
 | Snapshot | [`psr-4b-defaults.mdoc`](../audits/snapshots/2026-07-31/psr-4b-defaults.mdoc) |
-
-| Site | Result |
-| --- | --- |
-| `migrate-canonical-workspace.service.ts` | throw `MIGRATE_CANONICAL_WORKSPACE_TYPE_REQUIRED` |
-| `tour-published-exposure-remap-plan.ts` | throw `TOUR_PUBLISHED_REMAP_WORKSPACE_TYPE_REQUIRED` |
-| Ratchet | `product_defaults` ceiling = **0** |
-
 | Land commit | `9ea15024` |
 | SHA close | `099084e5` |
-
-**عمداً خارج:** host-import rewrite؛ api package.json generate؛ whyDenali؛ export −۹.
-
-**Next:** PSR-4b-host-imports — shrink ۱۱ host-source branded import file.
 
 ### 0.0 PSR-4b inventory (بسته)
 

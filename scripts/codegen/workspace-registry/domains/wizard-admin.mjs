@@ -26,6 +26,9 @@ export const WORKSPACE_WIZARD_MEDIA_BINDINGS = [] as const;
       wm.ensureBucketExport,
       wm.readConfigExport,
     ];
+    if (wm.isOperatorReadKeyAllowedExport != null) {
+      exportNames.push(wm.isOperatorReadKeyAllowedExport);
+    }
     if (wm.createPhotoClientExport != null) {
       exportNames.push(wm.createPhotoClientExport);
     }
@@ -40,6 +43,9 @@ export const WORKSPACE_WIZARD_MEDIA_BINDINGS = [] as const;
       `ensurePhotoBucket: ${wm.ensureBucketExport}`,
       `readPhotoConfigFromEnv: ${wm.readConfigExport}`,
     ];
+    if (wm.isOperatorReadKeyAllowedExport != null) {
+      bindingProps.push(`isOperatorReadKeyAllowed: ${wm.isOperatorReadKeyAllowedExport}`);
+    }
     if (wm.createPhotoClientExport != null) {
       bindingProps.push(`createPhotoClient: ${wm.createPhotoClientExport}`);
     }

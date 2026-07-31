@@ -10,7 +10,7 @@ import { spawnSync } from "node:child_process";
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const apiSrc = join(root, "apps/api/src");
 
-const HOST_SOURCE_FILE_CEILING = 11;
+const HOST_SOURCE_FILE_CEILING = 8;
 /** After PSR-4b-defaults: zero `workspaceType ?? "denali"` in apps/api/src. */
 const PRODUCT_DEFAULT_CEILING = 0;
 
@@ -90,7 +90,12 @@ if (hostSourceFiles.size > HOST_SOURCE_FILE_CEILING) {
 const inv = loadYaml(
   join(root, "docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml"),
 );
-if (inv.wave !== "PSR-4b" && inv.wave !== "PSR-4b-defaults") {
+const ALLOWED_WAVES = new Set([
+  "PSR-4b",
+  "PSR-4b-defaults",
+  "PSR-4b-host-imports",
+]);
+if (!ALLOWED_WAVES.has(inv.wave)) {
   fail("inventory wave must be PSR-4b*");
 }
 if ((inv.product_defaults || []).length !== PRODUCT_DEFAULT_CEILING) {

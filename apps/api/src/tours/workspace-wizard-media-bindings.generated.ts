@@ -4,7 +4,7 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { DENALI_WORKSPACE_TYPE, DENALI_MAX_PHOTO_UPLOAD_BYTES, isDenaliWizardDraftSessionId, isDenaliWizardDraftPhotoReadKeyAllowed, putDenaliWizardDraftPhoto, getDenaliTourPhotoSignedReadUrl, ensureMinioPhotoBucket, readMinioPhotoConfigFromEnv, createMinioPhotoClient } from "@app-tour/workspace-denali";
+import { DENALI_WORKSPACE_TYPE, DENALI_MAX_PHOTO_UPLOAD_BYTES, isDenaliWizardDraftSessionId, isDenaliWizardDraftPhotoReadKeyAllowed, putDenaliWizardDraftPhoto, getDenaliTourPhotoSignedReadUrl, ensureMinioPhotoBucket, readMinioPhotoConfigFromEnv, isDenaliOperatorTourPhotoReadKeyAllowed, createMinioPhotoClient } from "@app-tour/workspace-denali";
 
 export const WORKSPACE_WIZARD_MEDIA_BINDINGS = [
   {
@@ -16,6 +16,7 @@ export const WORKSPACE_WIZARD_MEDIA_BINDINGS = [
     getSignedReadUrl: getDenaliTourPhotoSignedReadUrl,
     ensurePhotoBucket: ensureMinioPhotoBucket,
     readPhotoConfigFromEnv: readMinioPhotoConfigFromEnv,
+    isOperatorReadKeyAllowed: isDenaliOperatorTourPhotoReadKeyAllowed,
     createPhotoClient: createMinioPhotoClient,
   },
 ] as const;
