@@ -3,39 +3,54 @@
 **Status:** Active — Phase 0 baseline and growth freeze  
 **Captured:** 2026-07-29  
 **Last compacted:** 2026-07-31 (PSR-2c)  
+**Last front-door wave:** 2026-07-31 (PSR-3a)  
 **Initiative:** Platform Simplification  
 **Scope:** Root `package.json` command surface only  
 **Authority:** Complements [`COMMAND_OWNERSHIP_MAP.md`](./COMMAND_OWNERSHIP_MAP.md)  
-**Active trio:** baseline · [`CLASSIFICATION`](./ROOT_COMMAND_CLASSIFICATION.md) · [`REMEDIATION_PLAN`](./ROOT_COMMAND_REMEDIATION_PLAN.md)
+**Active analysis trio:** baseline · [`CLASSIFICATION`](./ROOT_COMMAND_CLASSIFICATION.md) · [`REMEDIATION_PLAN`](./ROOT_COMMAND_REMEDIATION_PLAN.md)  
+**Public front doors:** [`ROOT_COMMAND_FRONT_DOORS.mdoc`](./ROOT_COMMAND_FRONT_DOORS.mdoc) + [`.yaml`](./ROOT_COMMAND_FRONT_DOORS.yaml)
 
 ## Purpose
 
-This is the current baseline before alias removal, CI retargeting, phase-gate
-flattening, or runner consolidation. Phase 0 changes no command behavior, CI
-workflow, required-check name, or product code.
+This is the living baseline for root command growth. Classification worksheets
+remain three active analysis artifacts. PSR-3a adds a separate **public front
+door** contract without merging `verify:*` tiers or renaming required CI checks.
 
-## Current baseline
+## Current baseline (post PSR-3a)
 
 | Metric                                         | Current |
 | ---------------------------------------------- | ------: |
-| Root `scripts` entries                         |     311 |
-| Executable root commands                       |     305 |
+| Root `scripts` entries                         |     316 |
+| Executable root commands                       |     310 |
 | Deprecation comment keys (`//...`)             |       6 |
+| Public front doors (discoverable)              |      12 |
 | `guard:*` commands, including `audit-boundary` |     117 |
 | Phase/release commands (`phase-*`, `pN:*`)     |     106 |
-| Test commands                                  |      21 |
+| Test commands                                  |      19 |
 | Smoke commands                                 |       6 |
-| Ops/deploy/seed/database/infra commands        |      13 |
-| Verify/control/CI commands                     |       7 |
-| Generate/workspace commands                    |       6 |
-| Other commands                                 |      29 |
-| Exact one-command wrappers                     |       9 |
+| Ops/deploy/seed/database/infra commands        |      14 |
+| Verify/control/CI commands                     |       8 |
+| Generate/workspace commands                    |       7 |
+| Other commands                                 |      31 |
+| Exact one-command wrappers                     |       7 |
 | GitHub Actions workflows                       |      27 |
 | Top-level shell scripts under `scripts/`       |     112 |
 | Direct guard files under `scripts/guards/`     |     165 |
 
-Guard and phase/release commands are 223 of 305 executable entries (about
-73%). The primary problem is lifecycle and discoverability, not merely
+### PSR-3a delta vs HEAD `c2e63013`
+
+| Change | Names |
+| --- | --- |
+| Added (`CANONICAL` front doors) | `dev`, `typecheck`, `generate`, `db:migrate`, `release:verify` |
+| Removed (docs-only deprecated aliases) | `contract:test`, `test:contract:foundation` |
+| Net executable | **+3** |
+
+`db:migrate` is a **database side-effect** front door (alias of
+`db:migrate:deploy`). `release:verify` points at `verify:product` only — not
+`verify:full`, adversarial, or live smoke.
+
+Guard and phase/release commands remain the majority of the executable surface.
+The primary problem is still lifecycle and discoverability, not merely
 duplicate bodies.
 
 ## Previous-baseline drift
@@ -79,8 +94,6 @@ Every executable root command must ultimately receive one primary class.
 | `guard:documentation-sync` | `guard:doc-sync`           | `COMPAT_ALIAS`                     |
 | `phase-3:doc-scaffold`     | `doc-gate`                 | `COMPAT_ALIAS`                     |
 | `test:contract`            | `test:phase-0`             | `COMPAT_ALIAS`                     |
-| `test:contract:foundation` | `test:phase-0`             | `COMPAT_ALIAS`                     |
-| `contract:test`            | `test:contract`            | `COMPAT_ALIAS`; wrapper chain      |
 | `phase-0:covenant-gate`    | `test:phase-0`             | `COMPAT_ALIAS`; domain terminology |
 | `phase-0:trunk-gate`       | `phase-0:integration-gate` | `COMPAT_ALIAS`; domain terminology |
 | `phase-0:foundation-gate`  | `test:phase-0`             | `CI_ONLY` compatibility contract   |

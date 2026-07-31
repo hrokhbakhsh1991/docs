@@ -110,10 +110,12 @@ Process the remaining exact wrappers one at a time:
 
 - `guard:documentation-sync`;
 - `test:contract`;
-- `test:contract:foundation`;
-- `contract:test`;
 - `phase-0:covenant-gate`;
 - `phase-0:trunk-gate`.
+
+**PSR-3a completed for root scope:** `test:contract:foundation` and
+`contract:test` executables removed (comment markers retained). Remaining R2
+items stay for PSR-3c after consumer scan.
 
 CI-bound `phase-0:foundation-gate` is excluded until workflow and
 branch-protection consumers are migrated deliberately.
@@ -208,14 +210,15 @@ Archival requires:
 | Stage                | Definition                                  | Current     |
 | -------------------- | ------------------------------------------- | ----------- |
 | Diagnose             | Baseline, root causes, risks                | Complete    |
-| Classify             | 305 commands, owner, class                  | Complete    |
+| Classify             | Root commands, owner, class                 | Complete    |
 | Select pilot         | Evidence-backed first migration             | Complete    |
 | Approve baseline     | Owner/architect decision                    | Pending     |
+| Public front doors   | PSR-3a twelve discoverable entry points     | Complete    |
 | Execute pilot        | Consumer migration and compatibility window | Not started |
-| Consolidate families | Shared runners with parity                  | Not started |
+| Consolidate families | Shared runners with parity (PSR-3b)         | Not started |
 | Consolidate CI       | Reusable orchestration, check parity        | Not started |
 | Consolidate gates    | Declarative graph with stable front doors   | Not started |
-| Archive safely       | Approved removals only                      | Not started |
+| Archive safely       | Approved removals only (PSR-3c+)            | Partial (2 aliases) |
 
 The analysis/design path is complete. Implementation should start at R1 only
 after approval; skipping directly to bulk script removal would violate the

@@ -1,0 +1,72 @@
+---
+id: ROOT-CMD-FRONT-DOORS
+title: Root command public front doors (PSR-3a)
+format: markdoc
+role: evidence
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending-psr-3a
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/platform/ROOT_COMMAND_FRONT_DOORS.yaml
+  - docs/platform/ROOT_COMMAND_BASELINE.md
+program_id: PSR-001
+wave: PSR-3a
+---
+
+# Root command public front doors (PSR-3a)
+
+## Goal
+
+Expose **twelve** discoverable public commands without deleting compatibility
+aliases, without renaming required CI checks, and without merging
+`verify:fast` / `verify:product` / `verify:full` / adversarial / live smoke.
+
+Machine map: [`ROOT_COMMAND_FRONT_DOORS.yaml`](./ROOT_COMMAND_FRONT_DOORS.yaml)
+
+## Public front doors
+
+| Command | Points at | Authority / notes |
+| --- | --- | --- |
+| `dev` | `scripts/ops/dev-front-door.mjs` | Usage printer (exit 1); pick api/web/portal/marketing |
+| `build` | `scripts/monorepo-build.sh` | Artifact build |
+| `lint` | existing root lint | Includes package `tsc --noEmit` |
+| `typecheck` | `pnpm run lint` | Honest alias — lint scripts are typecheck here |
+| `test` | existing root test | Unit/contract aggregation (not full integrity) |
+| `verify:fast` | unchanged | Daily invariants |
+| `verify:product` | unchanged | Product/workspace static bundle |
+| `verify:full` | unchanged | Product + architecture + `ci:integrity` (heavy) |
+| `generate` | `generate:workspace-registry` | Regenerates registry outputs |
+| `workspace:create` | unchanged | Scaffold workspace package |
+| `db:migrate` | `db:migrate:deploy` | **DB side effect** — same as deploy migrate |
+| `release:verify` | `verify:product` | Release-candidate static bar only |
+
+## Explicit non-goals (later)
+
+| Wave | Work |
+| --- | --- |
+| PSR-3b | Family runners + workflow reuse (required check names frozen) |
+| PSR-3c | Alias expiry / phase command archival after consumer scan |
+
+## Net script change (this wave)
+
+| Change | Count |
+| --- | ---: |
+| Front doors added | +5 (`dev`, `typecheck`, `generate`, `db:migrate`, `release:verify`) |
+| Deprecated exact aliases removed | −2 (`contract:test`, `test:contract:foundation`) |
+| Net | +3 |
+
+`//…` deprecation comment keys for the removed aliases remain as historical
+markers. CI must not have required those executable names (docs-only refs).
+
+## Smoke (fast)
+
+```bash
+node -e "const s=require('./package.json').scripts; for (const k of ['dev','build','lint','typecheck','test','verify:fast','verify:product','verify:full','generate','workspace:create','db:migrate','release:verify']) { if (!s[k]) { console.error('missing',k); process.exit(1);} } console.log('front-doors: present');"
+pnpm run typecheck --if-present 2>/dev/null || pnpm run typecheck
+# resolve-only checks (do not run verify:full / db:migrate here):
+node -e "console.log(require('./package.json').scripts['release:verify'])"
+node -e "console.log(require('./package.json').scripts.generate)"
+```

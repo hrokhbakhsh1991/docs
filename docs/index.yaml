@@ -1,10 +1,10 @@
-# Active documentation registry (PSR-2c compaction slice)
+# Active documentation registry (PSR-3a front doors)
 # Sole machine registry for active authority. Absence ≠ delete; see DOC-META-001.
 schema_version: 1
 program_id: PSR-001
-wave: PSR-2c
+wave: PSR-3a
 updated: 2026-07-31
-verified_sha: e9f9f930
+verified_sha: pending-psr-3a
 roles:
   - canonical
   - standard
@@ -15,7 +15,8 @@ roles:
   - archive
 notes:
   - PSR-2c neutralized all docs/** markdown links into TEMP/temp/docs/temp.
-  - ROOT_COMMAND active surface compacted to baseline + classification + remediation.
+  - ROOT_COMMAND analysis surface remains baseline + classification + remediation.
+  - PSR-3a adds ROOT_COMMAND_FRONT_DOORS as the public command contract map.
   - Phase pack trees remain on disk; bulk move to docs/archive is a follow-on slice.
   - Deferred PSR-0b dirty docs were committed in e9f9f930.
 documents:
@@ -37,7 +38,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: e9f9f930
+    verified_sha: pending-psr-3a
     supersedes: []
     superseded_by: null
     evidence:
@@ -48,6 +49,7 @@ documents:
       - docs/audits/snapshots/2026-07-31/psr-2b-docs-temp-authority.mdoc
       - docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml
       - docs/audits/snapshots/2026-07-31/psr-2c-docs-compaction.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-3a-front-doors.mdoc
 
   - id: DG-REM-001
     path: docs/architecture/denali-gravity-remediation.mdoc
@@ -236,7 +238,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: 3d4f25d2
+    verified_sha: pending-psr-3a
     supersedes: []
     superseded_by: null
     evidence: []
@@ -248,7 +250,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: 3d4f25d2
+    verified_sha: pending-psr-3a
     supersedes: []
     superseded_by: null
     evidence: []
@@ -260,8 +262,33 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: 3d4f25d2
+    verified_sha: pending-psr-3a
     supersedes: []
     superseded_by: null
     evidence: []
     frontmatter: none
+
+  - id: ROOT-CMD-FRONT-DOORS
+    path: docs/platform/ROOT_COMMAND_FRONT_DOORS.mdoc
+    role: evidence
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: pending-psr-3a
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/platform/ROOT_COMMAND_FRONT_DOORS.yaml
+      - docs/audits/snapshots/2026-07-31/psr-3a-front-doors.mdoc
+
+  - id: PSR-3A-FRONT-DOORS
+    path: docs/audits/snapshots/2026-07-31/psr-3a-front-doors.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: pending-psr-3a
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/platform/ROOT_COMMAND_FRONT_DOORS.mdoc

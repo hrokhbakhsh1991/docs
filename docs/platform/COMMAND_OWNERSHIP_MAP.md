@@ -56,8 +56,8 @@ Execution behavior is **unchanged**. Prefer canonical names in new docs and deve
 | Legacy alias | Resolves to | Migration status | Owner intent | Removal requirements |
 | --- | --- | --- | --- | --- |
 | `test:contract` | `test:phase-0` | **Deprecated alias** | Historical contract naming | `git grep` + docs clean; no CI callers |
-| `test:contract:foundation` | `test:phase-0` | **Deprecated alias** | Same | Same |
-| `contract:test` | `test:contract` → `test:phase-0` | **Deprecated alias** (S1 discovery) | Discovery synonym | Same |
+| `test:contract:foundation` | `test:phase-0` | **Removed executable (PSR-3a)** | Comment marker only | Prefer `test:phase-0` |
+| `contract:test` | `test:phase-0` | **Removed executable (PSR-3a)** | Comment marker only | Prefer `test:phase-0` |
 | `phase-0:covenant-gate` | `test:phase-0` | **Deprecated alias** | Phase-0 naming | Docs + mental model migration |
 | `phase-0:foundation-gate` | `test:phase-0` | **Deprecated alias** (CI still uses name) | CI `phase-0-gate.yml` entry | **Retarget CI first**, then remove |
 

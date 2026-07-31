@@ -1,10 +1,12 @@
 # Root Command Classification
 
-**Status:** Active — classification ledger (PSR-2c compacted)  
+**Status:** Active — classification ledger (PSR-2c compacted; PSR-3a front doors)  
 **Captured:** 2026-07-29  
 **Last compacted:** 2026-07-31 (PSR-2c)  
+**Last front-door wave:** 2026-07-31 (PSR-3a)  
 **Baseline:** [`ROOT_COMMAND_BASELINE.md`](./ROOT_COMMAND_BASELINE.md)  
 **Remediation / status:** [`ROOT_COMMAND_REMEDIATION_PLAN.md`](./ROOT_COMMAND_REMEDIATION_PLAN.md)  
+**Public front doors:** [`ROOT_COMMAND_FRONT_DOORS.mdoc`](./ROOT_COMMAND_FRONT_DOORS.mdoc)  
 **Dynamic evidence (archived):** [`ROOT_COMMAND_DYNAMIC_CONSUMERS.md`](../archive/psr-001/root-command/ROOT_COMMAND_DYNAMIC_CONSUMERS.md)
 
 ## Active surface (≤3 artifacts)
@@ -52,19 +54,25 @@ ownership of every implementation invoked by it.
 
 | Command                       | Primary class | Owner                | Contract                               |
 | ----------------------------- | ------------- | -------------------- | -------------------------------------- |
+| `dev`                         | `CANONICAL`   | Developer Experience | Surface picker (usage printer; exit 1) |
 | `build`                       | `CANONICAL`   | Platform Build       | Monorepo build entry                   |
 | `test`                        | `CANONICAL`   | Platform Quality     | Root test aggregation                  |
 | `lint`                        | `CANONICAL`   | Platform Quality     | Root lint aggregation                  |
+| `typecheck`                   | `CANONICAL`   | Platform Quality     | Alias of `lint` (tsc --noEmit path)    |
 | `verify:fast`                 | `CANONICAL`   | Platform Quality     | Daily invariant loop                   |
 | `verify:product`              | `CANONICAL`   | Platform Quality     | Product/workspace static bundle        |
 | `verify:full`                 | `CANONICAL`   | Platform Quality     | Explicit heavy verification            |
+| `release:verify`              | `CANONICAL`   | Platform Quality     | Release static bar → `verify:product`  |
 | `pre-commit:fast`             | `CANONICAL`   | Developer Experience | Husky fast path                        |
 | `test:phase-0`                | `CANONICAL`   | Workspace SDK        | Foundation contract suite              |
 | `doc-gate`                    | `CANONICAL`   | Documentation        | Full docs-as-code gate                 |
 | `guard:doc-sync`              | `CANONICAL`   | Documentation        | Documentation synchronization guard    |
 | `ci:integrity`                | `CANONICAL`   | Platform CI          | Heavy CI integrity chain               |
+| `generate`                    | `CANONICAL`   | Workspace Platform   | Front door → `generate:workspace-registry` |
 | `generate:workspace-registry` | `CANONICAL`   | Workspace Platform   | Registry code generation               |
+| `workspace:create`            | `CANONICAL`   | Workspace Platform   | Scaffold `packages/workspaces/<id>`    |
 | `workspace:onboard`           | `CANONICAL`   | Workspace Platform   | Post-scaffold onboarding orchestration |
+| `db:migrate`                  | `CANONICAL`   | Platform Data        | Front door → `db:migrate:deploy` (**DB mutate**) |
 
 ### Family entry points
 
@@ -89,10 +97,15 @@ ownership of every implementation invoked by it.
 | `guard:documentation-sync` | `COMPAT_ALIAS` | Documentation       | `guard:doc-sync`                   | Active docs still reference old name |
 | `phase-3:doc-scaffold`     | `COMPAT_ALIAS` | Documentation       | `doc-gate`                         | First migration pilot                |
 | `test:contract`            | `COMPAT_ALIAS` | Workspace SDK       | `test:phase-0`                     | Historical contract terminology      |
-| `test:contract:foundation` | `COMPAT_ALIAS` | Workspace SDK       | `test:phase-0`                     | No known active execution reference  |
-| `contract:test`            | `COMPAT_ALIAS` | Workspace SDK       | `test:phase-0` via `test:contract` | Wrapper chain; migration candidate   |
 | `phase-0:covenant-gate`    | `COMPAT_ALIAS` | Platform Foundation | `test:phase-0`                     | Domain terminology in phase docs     |
 | `phase-0:trunk-gate`       | `COMPAT_ALIAS` | Platform Foundation | `phase-0:integration-gate`         | Domain terminology in phase docs     |
+
+### Removed in PSR-3a (comment markers only)
+
+| Former command             | Replacement        | Proof |
+| -------------------------- | ------------------ | --- |
+| `test:contract:foundation` | `test:phase-0`     | Zero CI/workflow refs; `//test:contract:foundation` retained |
+| `contract:test`            | `test:phase-0`     | Zero CI/workflow refs; `//contract:test` retained |
 
 ### CI compatibility contract
 
@@ -127,10 +140,11 @@ root leaf.
 
 ## Cohort decision
 
-- All 39 names exist in the current root `package.json`.
+- Cohort 1 names that remain executable exist in the current root `package.json`.
+- PSR-3a added public front doors and removed two docs-only exact aliases
+  (`contract:test`, `test:contract:foundation`) with zero workflow callers.
 - No name has more than one primary classification in this cohort.
-- No command body, workflow, hook, or product implementation changed.
-- No row is a removal approval.
-- The next cohort should classify operations and environment commands before
-  historical phase commands, because low textual usage is expected for manual
-  operations.
+- Required CI check names and `verify:fast` / `verify:product` / `verify:full`
+  / adversarial authorities were not merged.
+- Next implementation wave: **PSR-3b** family runners / workflow reuse (required
+  names frozen). Further alias expiry remains **PSR-3c**.

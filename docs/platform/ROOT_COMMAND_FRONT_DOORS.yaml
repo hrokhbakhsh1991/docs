@@ -1,0 +1,83 @@
+# PSR-3a — public command front doors (machine state)
+schema_version: 1
+program_id: PSR-001
+wave: PSR-3a
+updated: 2026-07-31
+verified_sha: pending-psr-3a
+policy:
+  aliases_preserved: true
+  required_check_names_frozen: true
+  no_merge_of:
+    - verify:fast
+    - verify:product
+    - verify:full
+    - test:adversarial
+    - live smoke
+    - external mutation
+  net_new_repayment:
+    removed_executable_aliases:
+      - contract:test
+      - test:contract:foundation
+    note: >-
+      Five front doors added; two already-deprecated exact aliases removed.
+      Remaining repayment tracked for PSR-3c alias expiry.
+front_doors:
+  - name: dev
+    class: CANONICAL
+    implementation: node scripts/ops/dev-front-door.mjs
+    side_effect: none (prints usage; exit 1)
+    notes: Multi-surface repo — does not start all apps.
+  - name: build
+    class: CANONICAL
+    implementation: bash scripts/monorepo-build.sh
+    side_effect: writes dist/.next artifacts
+  - name: lint
+    class: CANONICAL
+    implementation: existing root lint (sdk + platform-core tsc --noEmit + eslint)
+    side_effect: none
+  - name: typecheck
+    class: CANONICAL
+    implementation: pnpm run lint
+    side_effect: none
+    notes: In this monorepo package lint scripts are tsc --noEmit; front door aliases lint.
+  - name: test
+    class: CANONICAL
+    implementation: existing root test aggregation
+    side_effect: none (unit/contract; not full CI integrity)
+  - name: verify:fast
+    class: CANONICAL
+    implementation: existing verify:fast
+    side_effect: none
+    authority: daily invariants
+  - name: verify:product
+    class: CANONICAL
+    implementation: existing verify:product
+    side_effect: none
+    authority: product/workspace static bundle
+  - name: verify:full
+    class: CANONICAL
+    implementation: existing verify:full
+    side_effect: none (runs ci:integrity — heavy)
+    authority: full integrity; do not use as default local loop
+  - name: generate
+    class: CANONICAL
+    implementation: pnpm run generate:workspace-registry
+    side_effect: rewrites generated sources
+    compatibility_alias: generate:workspace-registry
+  - name: workspace:create
+    class: CANONICAL
+    implementation: node scripts/workspace-create.mjs
+    side_effect: scaffolds packages/workspaces/<id>
+  - name: db:migrate
+    class: CANONICAL
+    implementation: pnpm run db:migrate:deploy
+    side_effect: database schema mutate (deploy migrations)
+    compatibility_alias: db:migrate:deploy
+    notes: Announce side effect before production use; same body as db:migrate:deploy in PSR-3a.
+  - name: release:verify
+    class: CANONICAL
+    implementation: pnpm run verify:product
+    side_effect: none
+    notes: >-
+      Release-candidate static bar. Does NOT run verify:full / ci:integrity /
+      adversarial / live smoke. Those remain separate authorities.

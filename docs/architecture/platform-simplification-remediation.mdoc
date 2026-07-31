@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: e9f9f930
+verified_sha: pending-psr-3a
 supersedes: []
 superseded_by: null
 evidence:
@@ -17,8 +17,9 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-2b-docs-temp-authority.mdoc
   - docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-2c-docs-compaction.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-3a-front-doors.mdoc
 program_id: PSR-001
-current_wave: PSR-2c-slice-complete
+current_wave: PSR-3a-complete
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -28,12 +29,34 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-2c slice — بسته)
+## 0. وضعیت موج جاری (PSR-3a — بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-3a** — public command front doors (**complete**) |
+| Exit gate | GREEN — ۱۲ front door؛ `verify:*` ادغام‌نشده؛ −۲ alias docs-only |
+| Snapshot | [`psr-3a-front-doors.mdoc`](../audits/snapshots/2026-07-31/psr-3a-front-doors.mdoc) |
+| Contract | [`ROOT_COMMAND_FRONT_DOORS.mdoc`](../platform/ROOT_COMMAND_FRONT_DOORS.mdoc) |
+
+| Change | Detail |
+| --- | --- |
+| Added | `dev`, `typecheck`, `generate`, `db:migrate`, `release:verify` |
+| Removed | `contract:test`, `test:contract:foundation` (CI refs = 0) |
+| Net executable | +3 (307 → 310) |
+| `db:migrate` | side effect = `db:migrate:deploy` |
+| `release:verify` | → `verify:product` only (نه full/adversarial/live) |
+
+**عمداً خارج از این موج:** ادغام family runners؛ rename required CI checks؛
+حذف گسترده aliasها.
+
+**Next:** PSR-3b — family runners / workflow reuse (required check names frozen).
+
+### 0.0 PSR-2c (بسته)
 
 | Field | Value |
 | --- | --- |
 | Wave | **PSR-2c** — docs compaction slice (**complete** for scoped goals) |
-| Exit gate | GREEN — صفر markdown link به TEMP در `docs/**`؛ ROOT_COMMAND ≤3 |
+| Exit gate | GREEN — صفر markdown link به TEMP در `docs/**`؛ ROOT_COMMAND analysis ≤3 |
 | Snapshot | [`psr-2c-docs-compaction.mdoc`](../audits/snapshots/2026-07-31/psr-2c-docs-compaction.mdoc) |
 | Archive | [`docs/archive/`](../archive/README.mdoc) |
 
@@ -45,10 +68,6 @@ doc_role: canonical
 
 **عمداً خارج از این slice:** move فله‌ای `docs/phase-*`؛ extract دامنه phase-5/20؛
 scrub SSH/secret absolute links.
-
-**Next:** PSR-3a — canonical command front doors (aliasها حفظ؛ بدون ادغام
-fast/full/adversarial).
-
 ### 0.1 PSR-2b (بسته)
 
 | Field | Value |

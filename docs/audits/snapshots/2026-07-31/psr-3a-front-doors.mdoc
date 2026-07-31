@@ -1,0 +1,81 @@
+---
+id: PSR-3A-FRONT-DOORS
+title: PSR-3a public command front doors
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending-psr-3a
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/platform/ROOT_COMMAND_FRONT_DOORS.mdoc
+  - docs/platform/ROOT_COMMAND_FRONT_DOORS.yaml
+  - docs/platform/ROOT_COMMAND_BASELINE.md
+program_id: PSR-001
+wave: PSR-3a
+---
+
+# PSR-3a — Public command front doors
+
+## Scope
+
+Expose **twelve** discoverable root commands without:
+
+- merging `verify:fast` / `verify:product` / `verify:full` / adversarial / live smoke;
+- renaming required CI check names;
+- deleting the broader compatibility alias surface (except two docs-only exact aliases).
+
+Machine map: [`ROOT_COMMAND_FRONT_DOORS.yaml`](../../platform/ROOT_COMMAND_FRONT_DOORS.yaml)  
+Human contract: [`ROOT_COMMAND_FRONT_DOORS.mdoc`](../../platform/ROOT_COMMAND_FRONT_DOORS.mdoc)
+
+Analysis trio (≤3 worksheets) remains baseline / classification / remediation.
+Front-doors artifacts are the **public contract map**, not a fourth classification worksheet.
+
+## Front doors
+
+`dev` · `build` · `lint` · `typecheck` · `test` · `verify:fast` ·
+`verify:product` · `verify:full` · `generate` · `workspace:create` ·
+`db:migrate` · `release:verify`
+
+### Side-effect callouts
+
+| Door | Effect |
+| --- | --- |
+| `db:migrate` | Mutates DB schema via `db:migrate:deploy` |
+| `generate` | Rewrites registry-generated sources |
+| `release:verify` | Static only (`verify:product`) — not full integrity |
+
+## Net change vs `c2e63013`
+
+| | Count |
+| --- | ---: |
+| Added | +5 |
+| Removed executables | −2 (`contract:test`, `test:contract:foundation`) |
+| Net executable | **+3** (307 → 310) |
+
+## Smoke (no heavy gates)
+
+```bash
+node -e "const s=require('./package.json').scripts; for (const k of ['dev','build','lint','typecheck','test','verify:fast','verify:product','verify:full','generate','workspace:create','db:migrate','release:verify']) { if (!s[k]) { console.error('missing',k); process.exit(1);} } console.log('front-doors: present');"
+pnpm run dev; test $? -eq 1
+# resolve-only — do not run verify:full / db:migrate in this smoke:
+node -e "const s=require('./package.json').scripts; console.log(s['release:verify'], s.generate, s['db:migrate'], s.typecheck);"
+```
+
+## Explicit non-goals
+
+| Deferred | Wave |
+| --- | --- |
+| Family runners + workflow reuse | PSR-3b |
+| Broader alias expiry | PSR-3c |
+
+## Exit gate
+
+| Check | Result |
+| --- | --- |
+| 12 front-door keys present | required |
+| `verify:*` tiers unmerged | required |
+| No CI required-name rename | required |
+| Net repayment recorded (−2 aliases) | required |
