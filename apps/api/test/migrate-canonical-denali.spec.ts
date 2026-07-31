@@ -37,8 +37,8 @@ describe("migrate-canonical-denali.spec.ts (REQ-P6-017, RULE-P6-010)", () => {
 
   it("buildLegacyTripDetailsCanonicalEnvelope stages trip_details under single root", () => {
     const legacy = { basicInfo: { title: "legacy-only" } };
-    const envelope = buildLegacyTripDetailsCanonicalEnvelope(legacy);
-    assert.equal(isLegacyTripDetailsSchemaVersion(envelope.schemaVersion), true);
+    const envelope = buildLegacyTripDetailsCanonicalEnvelope(legacy, "denali");
+    assert.equal(isLegacyTripDetailsSchemaVersion(envelope.schemaVersion, "denali"), true);
     assert.deepEqual(envelope.roots, [LEGACY_TRIP_DETAILS_SOT_ROOT]);
   });
 
@@ -68,7 +68,7 @@ describe("migrate-canonical-denali integration", { skip: !hasDatabase, concurren
     const legacy = JSON.parse(
       readFileSync(join(GOLDEN_DIR, "tour-minimal.json"), "utf8")
     ) as Record<string, unknown>;
-    const envelope = buildLegacyTripDetailsCanonicalEnvelope(legacy);
+    const envelope = buildLegacyTripDetailsCanonicalEnvelope(legacy, "denali");
 
     await admin.tenant.createMany({
       data: [

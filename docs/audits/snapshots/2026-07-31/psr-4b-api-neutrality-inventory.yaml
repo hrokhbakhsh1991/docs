@@ -1,8 +1,8 @@
 schema_version: 1
 program_id: PSR-001
-wave: PSR-4b-host-imports-3
+wave: PSR-4b-host-imports-4
 updated: '2026-07-31'
-verified_sha: 4bf6e4c3
+verified_sha: pending-psr-4b-host-imports-4
 policy:
   inventory_and_ratchet_only: false
   no_runtime_default_change_in_this_wave: false
@@ -18,16 +18,16 @@ policy:
   defaults_fail_closed: true
 metrics:
   api_workspace_package_deps: 13
-  branded_import_sites: 75
+  branded_import_sites: 74
   bucket_counts:
-    host-source: 3
+    host-source: 2
     generated: 51
     test: 18
     product-adapter: 3
   product_default_sites: 0
   codegen_branded_script_files: 8
-  host_source_unique_files: 3
-  host_source_ceiling: 3
+  host_source_unique_files: 2
+  host_source_ceiling: 2
 apps_api_workspace_deps:
 - '@app-tour/workspace-acme'
 - '@app-tour/workspace-booking-ws2'
@@ -48,8 +48,6 @@ host_source_remediation_cohorts:
   - apps/api/src/settings/parse-equipment-icon-key.ts
   move-to-generated-or-finance-port:
   - apps/api/src/workspace-finance/tour-created-paid-ledger-exclusive.ts
-  product-default + branded-hook:
-  - apps/api/src/canonical/migrate-canonical-workspace.service.ts
 codegen_branded_scripts:
 - scripts/codegen/denali-semantic-slices.mjs
 - scripts/codegen/lib/denali-dtcg-resolve.mjs
@@ -174,13 +172,6 @@ branded_imports:
   product: urban
   remediation_status: ok-generated
   remediation_notes: Generated/test allowed under SoT
-- file: apps/api/src/canonical/migrate-canonical-workspace.service.ts
-  import: '@app-tour/workspace-denali'
-  bucket: host-source
-  product: denali
-  remediation_status: product-default + branded-hook
-  remediation_notes: workspaceType ?? "denali" + denali migrate hook — require explicit workspaceType (fail-closed) in follow-on
-    slice
 - file: apps/api/src/canonical/workspace-canonical-tour-bindings.generated.ts
   import: '@app-tour/workspace-denali'
   bucket: generated
@@ -535,10 +526,13 @@ follow_on_slices:
   note: 8→4; continued in host-imports-3
 - id: PSR-4b-host-imports-3
   status: partial
-  note: 4→3 urban folded to product-adapter; 3 remain
+  note: 4→3; continued in host-imports-4
 - id: PSR-4b-api-deps-sync
   work: Optional generate/sync writer for apps/api/package.json (web I.8 pattern)
   status: deferred
+- id: PSR-4b-host-imports-4
+  status: partial
+  note: 3→2 migrate via canonicalTour; finance+equipment remain
 product_defaults_remediated:
 - file: apps/api/src/canonical/migrate-canonical-workspace.service.ts
   was: workspaceType ?? "denali"
@@ -547,7 +541,6 @@ product_defaults_remediated:
   was: '`${workspaceType ?? "denali"}.telegram.TourPublished`'
   now: throw TOUR_PUBLISHED_REMAP_WORKSPACE_TYPE_REQUIRED when profileId lacks .TourCreated suffix
 host_source_remaining:
-- apps/api/src/canonical/migrate-canonical-workspace.service.ts
 - apps/api/src/settings/parse-equipment-icon-key.ts
 - apps/api/src/workspace-finance/tour-created-paid-ledger-exclusive.ts
 completed_host_import_clears:
@@ -568,3 +561,5 @@ completed_host_import_clears:
 - file: apps/api/src/exposure/resolve-urban-surface-exposure.ts
   wave: PSR-4b-host-imports-3
   moved_to: apps/api/src/http/configure-urban-surface-exposure.ts
+- file: apps/api/src/canonical/migrate-canonical-workspace.service.ts
+  wave: PSR-4b-host-imports-4

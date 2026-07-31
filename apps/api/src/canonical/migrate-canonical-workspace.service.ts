@@ -1,10 +1,4 @@
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
-import {
-  DENALI_CURRENT_CANONICAL_SCHEMA_VERSION,
-  DENALI_LEGACY_TRIP_DETAILS_SCHEMA_VERSION,
-  LEGACY_TRIP_DETAILS_SOT_ROOT,
-  wrapLegacyTripDetailsForMigration,
-} from "@app-tour/workspace-denali";
 import type { Prisma, PrismaClient } from "@prisma/client";
 
 import { deriveTourProjections } from "./projection-sync";
@@ -18,6 +12,44 @@ export type MigrateCanonicalWorkspaceResult = {
   readonly migratedTourIds: readonly string[];
   readonly skippedTourIds: readonly string[];
 };
+
+type CanonicalMigrationSurface = {
+  readonly legacySoTRoot: string;
+  readonly currentSchemaVersion: number;
+  readonly legacySchemaVersion: number;
+  readonly wrapLegacyCanonical: (legacyForm: Record<string, unknown>) => CanonicalDocument;
+};
+
+function resolveCanonicalMigrationSurface(
+  workspaceType: string
+): CanonicalMigrationSurface | undefined {
+  const binding = WORKSPACE_CANONICAL_TOUR_BINDINGS.find(
+    (entry) => entry.workspaceType === workspaceType
+  );
+  if (
+    binding === undefined ||
+    !("legacySoTRoot" in binding) ||
+    !("currentSchemaVersion" in binding) ||
+    !("legacySchemaVersion" in binding) ||
+    !("wrapLegacyCanonical" in binding)
+  ) {
+    return undefined;
+  }
+  return {
+    legacySoTRoot: binding.legacySoTRoot as string,
+    currentSchemaVersion: binding.currentSchemaVersion as number,
+    legacySchemaVersion: binding.legacySchemaVersion as number,
+    wrapLegacyCanonical: binding.wrapLegacyCanonical as CanonicalMigrationSurface["wrapLegacyCanonical"],
+  };
+}
+
+function requireCanonicalMigrationSurface(workspaceType: string): CanonicalMigrationSurface {
+  const surface = resolveCanonicalMigrationSurface(workspaceType);
+  if (surface === undefined) {
+    throw new Error(`MIGRATE_CANONICAL_SURFACE_UNAVAILABLE:${workspaceType}`);
+  }
+  return surface;
+}
 
 export function parseMigrateCanonicalTenantAllowlist(
   raw: string | undefined = process.env[MIGRATE_CANONICAL_TENANT_IDS_ENV]
@@ -67,30 +99,38 @@ function asCanonicalRecord(value: Prisma.JsonValue): CanonicalDocument | null {
   };
 }
 
-function needsDenaliTripDetailsMigration(canonical: CanonicalDocument): boolean {
-  if (canonical.schemaVersion >= DENALI_CURRENT_CANONICAL_SCHEMA_VERSION) {
+function needsLegacyTripDetailsMigration(
+  canonical: CanonicalDocument,
+  surface: CanonicalMigrationSurface
+): boolean {
+  if (canonical.schemaVersion >= surface.currentSchemaVersion) {
     return false;
   }
-  if (canonical.roots.includes(LEGACY_TRIP_DETAILS_SOT_ROOT)) {
+  if (canonical.roots.includes(surface.legacySoTRoot)) {
     return true;
   }
-  const legacyRoot = canonical.data[LEGACY_TRIP_DETAILS_SOT_ROOT];
+  const legacyRoot = canonical.data[surface.legacySoTRoot];
   return legacyRoot != null && typeof legacyRoot === "object" && !Array.isArray(legacyRoot);
 }
 
-function assertNoDualWriteSoT(canonical: CanonicalDocument): void {
-  if (canonical.data[LEGACY_TRIP_DETAILS_SOT_ROOT] != null) {
+function assertNoDualWriteSoT(
+  canonical: CanonicalDocument,
+  surface: CanonicalMigrationSurface
+): void {
+  if (canonical.data[surface.legacySoTRoot] != null) {
     throw new Error("MIGRATE_DENALI_DUAL_WRITE_SOT");
   }
-  if (canonical.roots.includes(LEGACY_TRIP_DETAILS_SOT_ROOT)) {
+  if (canonical.roots.includes(surface.legacySoTRoot)) {
     throw new Error("MIGRATE_DENALI_DUAL_WRITE_SOT");
   }
 }
 
+/** Stages a legacy form under the workspace migrate surface (requires migrate meta binding). */
 export function buildLegacyTripDetailsCanonicalEnvelope(
-  legacyForm: Record<string, unknown>
+  legacyForm: Record<string, unknown>,
+  workspaceType: string
 ): CanonicalDocument {
-  return wrapLegacyTripDetailsForMigration(legacyForm);
+  return requireCanonicalMigrationSurface(workspaceType).wrapLegacyCanonical(legacyForm);
 }
 
 /**
@@ -117,6 +157,7 @@ export async function migrateWorkspaceCanonicalForTenant(
   if (!workspaceSupportsCanonicalMigration(workspaceType)) {
     return { tenantId, migratedTourIds: [], skippedTourIds: [] };
   }
+  const surface = requireCanonicalMigrationSurface(workspaceType);
   const migrateHook = resolveMigrateCanonicalHook(workspaceType);
 
   const tours = await prisma.tour.findMany({
@@ -129,13 +170,13 @@ export async function migrateWorkspaceCanonicalForTenant(
 
   for (const tour of tours) {
     const stored = asCanonicalRecord(tour.canonical);
-    if (stored == null || !needsDenaliTripDetailsMigration(stored)) {
+    if (stored == null || !needsLegacyTripDetailsMigration(stored, surface)) {
       skippedTourIds.push(tour.id);
       continue;
     }
 
     const migrated = migrateHook(stored.schemaVersion, stored.data);
-    assertNoDualWriteSoT(migrated);
+    assertNoDualWriteSoT(migrated, surface);
 
     const projections = deriveTourProjections(migrated);
     await prisma.tour.update({
@@ -157,6 +198,11 @@ export async function migrateWorkspaceCanonicalForTenant(
 }
 
 /** Test helper — detect legacy staging envelope without persisting. */
-export function isLegacyTripDetailsSchemaVersion(schemaVersion: number): boolean {
-  return schemaVersion === DENALI_LEGACY_TRIP_DETAILS_SCHEMA_VERSION;
+export function isLegacyTripDetailsSchemaVersion(
+  schemaVersion: number,
+  workspaceType: string
+): boolean {
+  return (
+    schemaVersion === requireCanonicalMigrationSurface(workspaceType).legacySchemaVersion
+  );
 }

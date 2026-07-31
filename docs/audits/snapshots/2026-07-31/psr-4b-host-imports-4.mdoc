@@ -1,0 +1,55 @@
+---
+id: PSR-4B-HOST-IMPORTS-4
+title: PSR-4b-host-imports-4 migrate surface via canonicalTour binding
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending-psr-4b-host-imports-4
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-3.mdoc
+program_id: PSR-001
+wave: PSR-4b-host-imports-4
+---
+
+# PSR-4b-host-imports-4 — careful shrink (3 → 2)
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| Route migrate SoT/schema/wrap via `canonicalTour` binding | Yes |
+| Remove denali import from `migrate-canonical-workspace.service.ts` | Yes |
+| Finance ledger exclusive denali imports | **No** |
+| Equipment icon settings contract | **No** (keep) |
+
+## Binding surface (Denali)
+
+Optional `canonicalTour` exports (same `./acl` module as migrate):
+
+- `legacySoTRootExport`
+- `currentSchemaVersionExport`
+- `legacySchemaVersionExport`
+- `wrapLegacyExport`
+
+Host resolves these by `workspaceType`; batch migrate and envelope helpers no longer import `@app-tour/workspace-denali` directly.
+
+## Metrics
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Host-source branded files | 3 | **2** |
+
+Remaining: `parse-equipment-icon-key.ts`, `tour-created-paid-ledger-exclusive.ts`.
+
+## Exit gate
+
+| Check | Result |
+| --- | --- |
+| Host-source ceiling ≤2 | required |
+| Migrate unit specs green | required |
+| No product-default regression | required |

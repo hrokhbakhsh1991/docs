@@ -28,8 +28,29 @@ export const WORKSPACE_CANONICAL_TOUR_BINDINGS = [] as const;
     let migrateField = "";
     if (ct.migrateModule !== undefined && ct.migrateExport !== undefined) {
       const migrateSpec = importSpecifier(m.package, ct.migrateModule);
-      importLines.add(`import { ${ct.migrateExport} } from "${migrateSpec}";`);
-      migrateField = `\n    migrateCanonical: ${ct.migrateExport},`;
+      /** @type {string[]} */
+      const migrateImports = [ct.migrateExport];
+      let migrateSurfaceFields = "";
+      if (
+        ct.legacySoTRootExport != null &&
+        ct.currentSchemaVersionExport != null &&
+        ct.legacySchemaVersionExport != null &&
+        ct.wrapLegacyExport != null
+      ) {
+        migrateImports.push(
+          ct.legacySoTRootExport,
+          ct.currentSchemaVersionExport,
+          ct.legacySchemaVersionExport,
+          ct.wrapLegacyExport,
+        );
+        migrateSurfaceFields = `
+    legacySoTRoot: ${ct.legacySoTRootExport},
+    currentSchemaVersion: ${ct.currentSchemaVersionExport},
+    legacySchemaVersion: ${ct.legacySchemaVersionExport},
+    wrapLegacyCanonical: ${ct.wrapLegacyExport},`;
+      }
+      importLines.add(`import { ${migrateImports.join(", ")} } from "${migrateSpec}";`);
+      migrateField = `\n    migrateCanonical: ${ct.migrateExport},${migrateSurfaceFields}`;
     }
     let formProfileGhostPathsField = "";
     if (ct.formProfileGhostPathsModule !== undefined && ct.formProfileGhostPathsExport !== undefined) {

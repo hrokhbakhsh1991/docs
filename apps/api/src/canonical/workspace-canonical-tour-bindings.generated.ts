@@ -6,7 +6,7 @@
 
 import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
 import { readDenaliTourPublishStatusFromCanonical, detectDenaliTourPublishTransition } from "@app-tour/workspace-denali/host/tours";
-import { migrateDenaliCanonical } from "@app-tour/workspace-denali/host/acl";
+import { migrateDenaliCanonical, LEGACY_TRIP_DETAILS_SOT_ROOT, DENALI_CURRENT_CANONICAL_SCHEMA_VERSION, DENALI_LEGACY_TRIP_DETAILS_SCHEMA_VERSION, wrapLegacyTripDetailsForMigration } from "@app-tour/workspace-denali/host/acl";
 import { DENALI_FORM_PROFILE_GHOST_PATHS } from "@app-tour/workspace-denali/host/composites";
 import { URBAN_WORKSPACE_TYPE } from "@app-tour/workspace-urban";
 import { readUrbanTourPublishStatusFromCanonical, detectUrbanTourPublishTransition } from "@app-tour/workspace-urban/host/tours";
@@ -17,6 +17,10 @@ export const WORKSPACE_CANONICAL_TOUR_BINDINGS = [
     readPublishStatusFromCanonical: readDenaliTourPublishStatusFromCanonical,
     detectPublishTransition: detectDenaliTourPublishTransition,
     migrateCanonical: migrateDenaliCanonical,
+    legacySoTRoot: LEGACY_TRIP_DETAILS_SOT_ROOT,
+    currentSchemaVersion: DENALI_CURRENT_CANONICAL_SCHEMA_VERSION,
+    legacySchemaVersion: DENALI_LEGACY_TRIP_DETAILS_SCHEMA_VERSION,
+    wrapLegacyCanonical: wrapLegacyTripDetailsForMigration,
     formProfileGhostPaths: DENALI_FORM_PROFILE_GHOST_PATHS,
     validationSyncOnly: true as const,
     catalogRefEnrichment: true as const,

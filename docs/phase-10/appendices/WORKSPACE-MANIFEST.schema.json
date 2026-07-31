@@ -168,6 +168,22 @@
         "publishTransitionExport": { "type": "string" },
         "migrateModule": { "type": "string" },
         "migrateExport": { "type": "string" },
+        "legacySoTRootExport": {
+          "type": "string",
+          "description": "Optional — legacy staging SoT root constant for host migrate surface"
+        },
+        "currentSchemaVersionExport": {
+          "type": "string",
+          "description": "Optional — current canonical schema version constant"
+        },
+        "legacySchemaVersionExport": {
+          "type": "string",
+          "description": "Optional — legacy staging schema version constant"
+        },
+        "wrapLegacyExport": {
+          "type": "string",
+          "description": "Optional — wrap legacy form into staging canonical envelope"
+        },
         "formProfileGhostPathsModule": { "type": "string" },
         "formProfileGhostPathsExport": { "type": "string" },
         "validationSyncOnly": { "type": "boolean" },
