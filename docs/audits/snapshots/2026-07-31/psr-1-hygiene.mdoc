@@ -83,15 +83,17 @@ test ! -e tmp-restart-memory-api.mjs
 
 | Order | Wave | Status | Commit | Notes |
 | --- | --- | --- | --- | --- |
-| 1 | PSR-1a | pending | — | `.gitignore` + this proof doc + SoT pointer |
-| 2 | PSR-1b | pending | — | git rm root ad-hoc + pycache; rm untracked tmp-restart |
+| 1 | PSR-1a | done | `1b6d576c` | `.gitignore` + this proof doc + SoT pointer |
+| 2 | PSR-1b | in this commit | — | git rm root ad-hoc + pycache; rm untracked tmp-restart |
 
 ## Exit gate
 
-| Criterion | Target |
+| Criterion | Result |
 | --- | --- |
-| One deploy path | `scripts/vps-deploy/` only |
-| Zero root ad-hoc helpers on disk | Pass after 1b |
-| Zero tracked rebuildable bytecode for candidates | Pass after 1b |
+| One deploy path | Pass — `scripts/vps-deploy/` (CI + README) |
+| Zero root ad-hoc helpers on disk | Pass after 1b (`tmp-restart-*` removed) |
+| Zero tracked rebuildable bytecode for candidates | Pass — pycache deletions staged |
 | TEMP/temp untouched | Pass |
-| Deferred docs still dirty | Pass |
+| Deferred docs still dirty | Pass (8 paths) |
+
+**PSR-1 gate: GREEN** once this commit lands.

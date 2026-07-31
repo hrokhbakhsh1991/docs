@@ -4,7 +4,7 @@ format: markdoc
 doc_role: remediation_sot
 status: active
 program_id: PSR-001
-current_wave: PSR-1
+current_wave: PSR-1-complete
 created: 2026-07-31
 owner: platform-architecture
 scope: new-platform-only
@@ -15,23 +15,26 @@ verified_sha: 30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-1)
+## 0. وضعیت موج جاری (PSR-1 — بسته)
 
 | Field | Value |
 | --- | --- |
-| Wave | **PSR-1** — hygiene containment (in progress) |
-| Prior | PSR-0b GREEN — train ledger [`psr-0b-train-log.mdoc`](../audits/snapshots/2026-07-31/psr-0b-train-log.mdoc) |
+| Wave | **PSR-1** — hygiene containment (**complete**) |
+| Exit gate | GREEN — ignore policy + root ad-hoc removed; TEMP untouched |
 | Hygiene proof | [`psr-1-hygiene.mdoc`](../audits/snapshots/2026-07-31/psr-1-hygiene.mdoc) |
+| PSR-1a | `1b6d576c` |
+| Deploy canonical | `scripts/vps-deploy/` only |
 
-**قواعد:** بدون `git clean -fdX`؛ بدون حذف TEMP؛ docs با `defer` استیج نمی‌شوند؛
-deploy canonical فقط `scripts/vps-deploy/`.
+**باقی‌ماندهٔ عمدی dirty:** ۸ سند `defer` از PSR-0b → PSR-2 (docs authority).
+
+**Next:** PSR-2a — `docs/index.yaml` + metadata schema (بدون TEMP wipe).
 
 ### 0.1 PSR-0b (بسته)
 
 | Field | Value |
 | --- | --- |
 | Wave | PSR-0b — split/commit change trains (**complete**) |
-| Exit gate | GREEN — 5 train commits; scratch+defer intentionally dirty |
+| Exit gate | GREEN — 5 train commits |
 | Train log | [`psr-0b-train-log.mdoc`](../audits/snapshots/2026-07-31/psr-0b-train-log.mdoc) |
 
 | Train | Commit |
@@ -271,17 +274,29 @@ Harbor از نظر contract و smoke، G1 را اثبات می‌کند؛ ولی
 
 **هدف:** جدا کردن source، scratch، artifact و عملیات.
 
-#### Delete candidate پس از اثبات
+#### PSR-1a — انجام‌شده
+
+Ignore policy path-specific برای rebuildable artifacts (`.turbo`،
+`playwright-report`، `test-results`، `__pycache__`, deny-list root ad-hoc) در
+commit `1b6d576c` — جزئیات:
+[`psr-1-hygiene.mdoc`](../audits/snapshots/2026-07-31/psr-1-hygiene.mdoc).
+
+#### PSR-1b — انجام‌شده
+
+Root duplicates و helpers پس از consumer proof حذف شدند؛ canonical deploy فقط
+`scripts/vps-deploy/`. TEMP/temp دست‌نخورده؛ docs با `defer` عمداً dirty مانده‌اند.
+
+#### Delete candidate (اثبات‌شده)
 
 | Candidate | دلیل | شرط حذف |
 | --- | --- | --- |
-| `tmp-restart-denali-api.mjs` | ad-hoc، untracked، log/PID محلی | صفر مصرف + جایگزین smoke رسمی |
-| `tmp-restart-memory-api.mjs` | ad-hoc، untracked | صفر مصرف + جایگزین رسمی |
-| `fix-route.js` | helper یک‌بارمصرف با مسیر absolute | تأیید اعمال‌شدن تغییر و صفر consumer |
-| `make-jpeg.js` و `test.jpg` | fixture دستی بدون مصرف محصول | تست‌ها fixture رسمی داشته باشند |
-| `test-proxy.js` | سرور debug دستی | runbook یا test رسمی جایگزین باشد |
-| root `bootstrap-server.sh` | نسخه‌ی قدیمی مسیر canonical | همه‌ی consumerها به `scripts/vps-deploy/` مهاجرت کنند |
-| root `remote-deploy.sh` | فاقد hardening نسخه‌ی canonical | consumer و rollback docs مهاجرت کنند |
+| `tmp-restart-denali-api.mjs` | ad-hoc، untracked، log/PID محلی | صفر مصرف + جایگزین smoke رسمی — **done** |
+| `tmp-restart-memory-api.mjs` | ad-hoc، untracked | صفر مصرف + جایگزین رسمی — **done** |
+| `fix-route.js` | helper یک‌بارمصرف با مسیر absolute | تأیید اعمال‌شدن تغییر و صفر consumer — **done** |
+| `make-jpeg.js` و `test.jpg` | fixture دستی بدون مصرف محصول | تست‌ها fixture رسمی داشته باشند — **done** |
+| `test-proxy.js` | سرور debug دستی | runbook یا test رسمی جایگزین باشد — **done** |
+| root `bootstrap-server.sh` | نسخه‌ی قدیمی مسیر canonical | همه‌ی consumerها به `scripts/vps-deploy/` مهاجرت کنند — **done** |
+| root `remote-deploy.sh` | فاقد hardening نسخه‌ی canonical | consumer و rollback docs مهاجرت کنند — **done** |
 
 #### Artifactهای rebuildable
 
@@ -293,8 +308,8 @@ deletion مخلوط شوند.
 `legacy/backups`، `legacy/logs`، `.env*` و هر dump هرگز هدف cleanup عمومی
 نیستند.
 
-**Gate خروج:** root فقط entrypointهای conventional دارد؛ یک deploy path؛ صفر
-helper hardcoded؛ صفر build artifact tracked؛ ignore policy path-specific.
+**Gate خروج PSR-1:** سبز — root بدون helper ad-hoc؛ یک deploy path؛ ignore
+path-specific؛ صفر TEMP wipe.
 
 ### PSR-2 — Documentation authority reset
 
