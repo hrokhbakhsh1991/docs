@@ -119,7 +119,7 @@ GuestHomeFull (page order):
     {categories && <HomeCategories categories />}
     {destinations && <HomeDestinations />}
     {trust && <HomeTrust />}
-    {whyDenali && <HomeWhy />}
+    {whySection && <HomeWhy />}
     {journey && <HomeJourney />}
     {testimonials && <HomeTestimonials />}
     {faq && <HomeFaq />}
@@ -644,7 +644,7 @@ Add to each `packages/workspaces/*/workspace.manifest.json`:
     "finalCta": true,
     "faq": true,
     "footer": true,
-    "whyDenali": true,
+    "whySection": true,
     "journey": true,
     "testimonials": true,
     "featuredTours": true,
@@ -673,7 +673,7 @@ Add to each `packages/workspaces/*/workspace.manifest.json`:
     "finalCta": false,
     "faq": false,
     "footer": false,
-    "whyDenali": false,
+    "whySection": false,
     "journey": false,
     "testimonials": false,
     "featuredTours": false,
@@ -691,7 +691,7 @@ Add to each `packages/workspaces/*/workspace.manifest.json`:
 
 **PR-5 sections (2026-07-04):** `faq` · `footer` — hooks: `data-marketing-home-faq` · `data-marketing-footer` · `data-marketing-nav-drawer`.
 
-**PR-6 sections (2026-07-04):** `whyDenali` · `journey` · `testimonials` — hooks: `data-marketing-home-why` · `-journey` · `-testimonials`. See [`marketing-landing-complete-plan.mdoc`](./marketing-landing-complete-plan.mdoc) PR-6.
+**PR-6 sections (2026-07-04):** `whySection` · `journey` · `testimonials` — hooks: `data-marketing-home-why` · `-journey` · `-testimonials`. See [`marketing-landing-complete-plan.mdoc`](./marketing-landing-complete-plan.mdoc) PR-6.
 
 **PR-7 sections (2026-07-04):** `featuredTours` · `featuredToursLimit` · `categories` · `destinations` · `heroSearch` — hooks: `data-marketing-home-featured` · `-categories` · `-destinations` · `-search`. Catalog fetch uses **one** fail-soft call with `limit = max(latestToursLimit, featuredToursLimit, 12 when categories)`; featured uses **same catalog sort** as latest (R10 — no curation API). Categories derive from card `category` field; `/tours?category=` filters client-side post-fetch. Destinations are static i18n seed until exposure API exists. Hero search is GET `/tours?q=` (Urban may also pass `city` when list features allow).
 
@@ -753,7 +753,7 @@ export type GuestLandingFeatures = Readonly<{
     readonly finalCta: boolean;
     readonly faq: boolean;
     readonly footer: boolean;
-    readonly whyDenali: boolean;
+    readonly whySection: boolean;
     readonly journey: boolean;
     readonly testimonials: boolean;
     readonly featuredTours: boolean;

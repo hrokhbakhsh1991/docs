@@ -497,7 +497,7 @@ Workspace guest skin: `packages/workspaces/denali/theme/denali-marketing.css` (s
 | `guestLanding.whySectionAnchor` | Fragment id for why section + hero secondary CTA (default `why-us`) |
 | `guestLanding.destinationSlugs` | Slugs driving destination cards when `sections.destinations` is true |
 | `guestLanding.destinationImageStems` | Optional slug → static asset stem map for `/home/destinations/{stem}.webp` (hero carousel + theme parity) |
-| `sections.whyDenali` | Legacy gate name — boolean only; anchor text is tenant-driven via i18n |
+| `sections.whySection` | Boolean gate for why/brand-story band; anchor text is tenant-driven via i18n (deprecated alias: `whyDenali`) |
 
 Denali declares `destinationSlugs: ["alborz", "damavand", "zardkuh"]` with `destinationImageStems.zardkuh: "zardkooh"`; urban/guest-club minimal variants omit slugs.
 

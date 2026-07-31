@@ -91,7 +91,7 @@ Lighthouse CI: `lighthouserc.json` collects `/` + `/tours`.
 ## PR-6 implementation (2026-07-04)
 
 - `HomeWhy` · `HomeJourney` · `HomeTestimonials`
-- Gates: `whyDenali` · `journey` · `testimonials`
+- Gates: `whySection` · `journey` · `testimonials`
 
 ---
 

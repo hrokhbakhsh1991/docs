@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: 7305b210
+verified_sha: pending
 supersedes: []
 superseded_by: null
 evidence:
@@ -51,7 +51,7 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-http-alias.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-http-alias-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-4b-configure-3b
+current_wave: PSR-4b-whyDenali-docs
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -61,28 +61,35 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-configure-3b — product-named ceiling → 0)
+## 0. وضعیت موج جاری (PSR-4b-whyDenali-docs — narrative `whySection`)
 
 | Field | Value |
 | --- | --- |
-| Wave | **PSR-4b-configure-3b** — merge denali+urban wiring؛ delete product-named configure (**complete**) |
-| Exit gate | GREEN — product-named **۰**/۰؛ configure files **۲** (finance + product)； isolation PASS |
-| Snapshot | [`psr-4b-configure-3b.mdoc`](../audits/snapshots/2026-07-31/psr-4b-configure-3b.mdoc) |
-| Inventory | [`psr-4b-configure-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-configure-inventory.yaml) |
-| Smoke | `node scripts/ops/psr-4b-configure-smoke.mjs` + isolation + neutrality |
-| Land commit | `7305b210` |
-| SHA close | `1b02aa61` |
+| Wave | **PSR-4b-whyDenali-docs** — teach `whySection` as canonical in live narrative docs (**complete**) |
+| Exit gate | GREEN — ۵ narrative doc؛ smoke docs + whyDenali runtime |
+| Snapshot | [`psr-4b-whyDenali-docs.mdoc`](../audits/snapshots/2026-07-31/psr-4b-whyDenali-docs.mdoc) |
+| Inventory | [`psr-4b-whyDenali-docs-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-whyDenali-docs-inventory.yaml) |
+| Smoke | `node scripts/ops/psr-4b-whyDenali-docs-smoke.mjs` |
+| Land commit | pending |
+| SHA close | pending |
 
 | Change | Detail |
 | --- | --- |
-| Extract | Urban exposure → `resolve-urban-surface-exposure.ts` |
-| Share | `resolve-product-tour-store.ts` |
-| Merge | `configure-product-http-hosts.ts` (platform-neutral) |
-| Delete | denali + urban product-named configure files |
+| Retarget | marketing-landing · plan · public-catalog · ADR-GP-005 · design-system home |
+| Keep | codegen dual-read `whyDenali`؛ CSS `data-marketing-home-why*` |
 
-**عمداً خارج:** stuffing wiring into codegen emitter body.
+**عمداً خارج:** alias expiry؛ CSS rename؛ ENTERPRISE_AUDIT_REPORT.
 
-**Next:** PSR-5+ / fixture-split / whyDenali / Harbor.
+**Next:** PSR-4b-whyDenali-alias-expiry یا PSR-4b-api-deps-fixture-split یا PSR-5+.
+
+### 0.00 PSR-4b-configure-3b (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b-configure-3b** — product-named configure ceiling → **۰** (**complete**) |
+| Snapshot | [`psr-4b-configure-3b.mdoc`](../audits/snapshots/2026-07-31/psr-4b-configure-3b.mdoc) |
+| Land commit | `7305b210` |
+| SHA close | `1b02aa61` |
 
 ### 0.00 PSR-4b-configure-3 (بسته / partial façade)
 

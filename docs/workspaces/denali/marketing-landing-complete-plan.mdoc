@@ -87,7 +87,7 @@ Urban / guest-club **minimal** (unchanged until P16): Shell + title + lead + sin
 |-------|--------------|-----------|---------------------|
 | **PR-4** | Cinematic MVP visual | None | hero.webp, card covers, CSS polish |
 | **PR-5** | Chrome + trust + SEO base | `sections.faq` · `footer` | ✅ drawer, FAQ, footer |
-| **PR-6** | Brand story | `sections.whyDenali` · `journey` · `testimonials` | ✅ done 2026-07-04 |
+| **PR-6** | Brand story | `sections.whySection` · `journey` · `testimonials` | ✅ done 2026-07-04 |
 | **PR-7** | Discovery | **guestLanding v2** + catalog API | ✅ featured, categories, destinations, hero search |
 | **PR-8** | Premium + excellence | SEO manifest | ✅ gallery, equipment, skip link, home JSON-LD, Lighthouse `/` |
 
@@ -150,7 +150,8 @@ Urban / guest-club **minimal** (unchanged until P16): Shell + title + lead + sin
 
 **Motion:** CSS-only reveals; `prefers-reduced-motion` required. One motion language doc in `design-system/denali-club/pages/home.md`.
 
-**SDK:** `guestLanding.sections` += `whyDenali`, `journey`, `testimonials`
+**SDK:** `guestLanding.sections` += `whySection`, `journey`, `testimonials`
+(canonical gate renamed from deprecated `whyDenali` — see PSR-4b-whyDenali)
 
 **Tests:** HOME-UNIT-05 (section gates) · SMK-MKT-HOME-05 unchanged for urban
 
@@ -205,7 +206,7 @@ Extend denali manifest; urban stays minimal (all false).
     "featuredLayout": "carousel",
     "categories": false,
     "destinations": false,
-    "whyDenali": false,
+    "whySection": false,
     "journey": false,
     "testimonials": false,
     "gallery": false,

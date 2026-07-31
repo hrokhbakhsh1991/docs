@@ -1,0 +1,59 @@
+---
+id: PSR-4B-WHYDENALI-DOCS
+title: PSR-4b-whyDenali-docs — narrative docs use whySection as canonical
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-docs-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-inventory.yaml
+program_id: PSR-001
+wave: PSR-4b-whyDenali-docs
+---
+
+# PSR-4b-whyDenali-docs — narrative SoT alignment
+
+## Prerequisite
+
+[`psr-4b-whyDenali.mdoc`](./psr-4b-whyDenali.mdoc) renamed the **runtime** gate to
+`guestLanding.sections.whySection` and dual-reads deprecated `whyDenali`.
+Follow-on from that inventory: long-form docs still taught `whyDenali` as current.
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| Inventory live narrative docs still teaching `whyDenali` as canonical | Yes |
+| Retarget marketing-landing / plan / ADR / design-system / public-catalog | Yes |
+| Smoke ratchet over the retargeted set | Yes |
+| Expire codegen dual-read of `whyDenali` | **No** → `PSR-4b-whyDenali-alias-expiry` |
+| Rename CSS `data-marketing-home-why*` hooks | **No** (already product-neutral) |
+| Rewrite ENTERPRISE_AUDIT_REPORT historical findings | **No** (frozen forensic text) |
+
+## Canonical rule after this wave
+
+| Layer | Token |
+| --- | --- |
+| Manifest / generated SDK | `whySection` |
+| Docs teaching current contract | `whySection` |
+| Codegen dual-read | `whyDenali` accepted only when `whySection` absent |
+| CSS hooks | `data-marketing-home-why` (unchanged) |
+
+## Ratchet
+
+```bash
+node scripts/ops/psr-4b-whyDenali-docs-smoke.mjs
+node scripts/ops/psr-4b-whyDenali-smoke.mjs
+```
+
+## Explicit non-goals
+
+- Removing deprecated alias acceptance in `guest-catalog.mjs`
+- CSS selector renames
+- Changing marketing React props beyond what prior whyDenali wave already did

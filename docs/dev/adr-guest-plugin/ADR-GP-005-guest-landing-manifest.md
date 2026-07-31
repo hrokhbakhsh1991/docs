@@ -115,7 +115,7 @@ PR-5..7 extend `guestLanding.sections` with boolean gates (and `featuredToursLim
 | Phase | Fields |
 | ----- | ------ |
 | PR-5 | `faq`, `footer` |
-| PR-6 | `whyDenali`, `journey`, `testimonials` |
+| PR-6 | `whySection`, `journey`, `testimonials` (deprecated alias: `whyDenali`) |
 | PR-7 | `featuredTours`, `featuredToursLimit`, `categories`, `destinations`, `heroSearch` |
 | PR-8 | `gallery`, `equipment`, `blogTeaser` |
 

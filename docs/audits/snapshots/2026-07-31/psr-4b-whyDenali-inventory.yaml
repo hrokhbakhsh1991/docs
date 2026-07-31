@@ -28,7 +28,9 @@ manifests_updated:
   - packages/workspaces/guest-club/workspace.manifest.json
   - packages/workspaces/harbor/workspace.manifest.json
 follow_on:
-  - id: PSR-4b-whyDenali-docs-narrative
-    work: Sweep long-form denali marketing docs/ADR still naming whyDenali as current
   - id: PSR-4b-whyDenali-alias-expiry
     work: Remove whyDenali dual-read after compatibility window
+completed_follow_ons:
+  - id: PSR-4b-whyDenali-docs-narrative
+    closed_by: PSR-4b-whyDenali-docs
+    snapshot: docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-docs.mdoc

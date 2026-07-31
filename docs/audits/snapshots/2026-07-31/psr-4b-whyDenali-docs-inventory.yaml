@@ -1,0 +1,35 @@
+schema_version: 1
+program_id: PSR-001
+wave: PSR-4b-whyDenali-docs
+updated: "2026-07-31"
+policy:
+  # Live narrative docs must teach whySection as the current gate name.
+  require_whySection_in_narrative: true
+  # These paths must not present whyDenali as the current sections key.
+  forbid_canonical_whyDenali_in_narrative: true
+  # Historical forensic reports are out of scope.
+  leave_enterprise_audit_report: true
+  # Codegen dual-read remains until alias-expiry wave.
+  keep_codegen_whyDenali_dual_read: true
+narrative_docs:
+  - path: docs/workspaces/denali/marketing-landing.mdoc
+    notes: section gates + SDK type samples
+  - path: docs/workspaces/denali/marketing-landing-complete-plan.mdoc
+    notes: PR-6 table + rollout JSON
+  - path: docs/workspaces/denali/public-catalog.md
+    notes: home content neutrality table
+  - path: docs/dev/adr-guest-plugin/ADR-GP-005-guest-landing-manifest.md
+    notes: amendments field list
+  - path: design-system/denali-club/pages/home.md
+    notes: PR-6 gates line
+metrics:
+  narrative_docs: 5
+  # must match live whyDenali-smoke count (not owned by this wave)
+  manifests_with_whySection: 4
+deferred:
+  - id: PSR-4b-whyDenali-alias-expiry
+    work: Remove whyDenali dual-read in guest-catalog codegen after compatibility window
+completed_follow_ons:
+  - id: PSR-4b-whyDenali-docs-narrative
+    closed_by: PSR-4b-whyDenali-docs
+    snapshot: docs/audits/snapshots/2026-07-31/psr-4b-whyDenali-docs.mdoc
