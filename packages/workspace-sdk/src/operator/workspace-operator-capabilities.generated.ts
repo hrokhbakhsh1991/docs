@@ -17,5 +17,6 @@ export const WORKSPACE_OPERATOR_CAPABILITIES: Readonly<
 > = Object.freeze({
   "denali": Object.freeze({ usersDirectory: true, reconciliationTriage: true, fieldExposureSurfaces: true }),
   "guest-club": Object.freeze({ usersDirectory: false, reconciliationTriage: false, fieldExposureSurfaces: false }),
+  "harbor": Object.freeze({ usersDirectory: false, reconciliationTriage: false, fieldExposureSurfaces: false }),
   "urban": Object.freeze({ usersDirectory: false, reconciliationTriage: false, fieldExposureSurfaces: false }),
 });

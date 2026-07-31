@@ -17,6 +17,7 @@ export const WORKSPACE_PRODUCTION_CERTIFICATION: Readonly<
   "finance-ws5": "stub",
   "finance-ws6": "stub",
   "guest-club": "stub",
+  "harbor": "certified",
   "starter": "stub",
   "urban": "stub",
 });

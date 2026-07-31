@@ -33,12 +33,15 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handleGetDenaliReminderFeed"
   | "handleGetGuestClubCatalog"
   | "handleGetGuestClubCatalogTour"
+  | "handleGetHarborCatalog"
+  | "handleGetHarborCatalogTour"
   | "handleGetUrbanCatalog"
   | "handleGetUrbanCatalogTour"
   | "handleGetUrbanSettings"
   | "handlePatchUrbanSettings"
   | "handlePostDenaliRegistration"
   | "handlePostGuestClubRegistration"
+  | "handlePostHarborRegistration"
   | "handlePostUrbanRegistration";
 
 export type WorkspaceHttpPackageHandlers = Pick<
@@ -75,6 +78,9 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
   handleGetGuestClubCatalog: "@app-tour/workspace-guest-club/host/http",
   handleGetGuestClubCatalogTour: "@app-tour/workspace-guest-club/host/http",
   handlePostGuestClubRegistration: "@app-tour/workspace-guest-club/host/http",
+  handleGetHarborCatalog: "@app-tour/workspace-harbor/host/http",
+  handleGetHarborCatalogTour: "@app-tour/workspace-harbor/host/http",
+  handlePostHarborRegistration: "@app-tour/workspace-harbor/host/http",
   handleGetUrbanCatalog: "@app-tour/workspace-urban/host/http",
   handleGetUrbanCatalogTour: "@app-tour/workspace-urban/host/http",
   handleGetUrbanSettings: "@app-tour/workspace-urban/host/http",
@@ -86,6 +92,7 @@ const WORKSPACE_HTTP_HANDLER_PACKAGES = Object.freeze([
   "@app-tour/finance-http",
   "@app-tour/workspace-denali/host/http",
   "@app-tour/workspace-guest-club/host/http",
+  "@app-tour/workspace-harbor/host/http",
   "@app-tour/workspace-urban/host/http",
 ] as const);
 
@@ -138,6 +145,14 @@ export async function loadWorkspaceHttpHandlersForPackage(
         handleGetGuestClubCatalog: mod.handleGetGuestClubCatalog,
         handleGetGuestClubCatalogTour: mod.handleGetGuestClubCatalogTour,
         handlePostGuestClubRegistration: mod.handlePostGuestClubRegistration,
+      };
+    }
+    case "@app-tour/workspace-harbor/host/http": {
+      const mod = await import("@app-tour/workspace-harbor/host/http");
+      return {
+        handleGetHarborCatalog: mod.handleGetHarborCatalog,
+        handleGetHarborCatalogTour: mod.handleGetHarborCatalogTour,
+        handlePostHarborRegistration: mod.handlePostHarborRegistration,
       };
     }
     case "@app-tour/workspace-urban/host/http": {

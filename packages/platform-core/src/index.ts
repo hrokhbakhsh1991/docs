@@ -2,7 +2,7 @@ export const PLATFORM_CORE_VERSION = 1 as const;
 
 export type PlatformCoreVersion = typeof PLATFORM_CORE_VERSION;
 
-export { PlatformWizardEngine, type PlatformWizardEngineOptions } from "./engine/platform-wizard.engine";
+export { PlatformWizardEngine, stripWorkspacePluginForWizardEngine, type PlatformWizardEngineOptions } from "./engine/platform-wizard.engine";
 
 export {
   PlatformCoreError,

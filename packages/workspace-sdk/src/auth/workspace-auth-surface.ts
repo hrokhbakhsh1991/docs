@@ -12,3 +12,11 @@ export function isWorkspaceAuthSurfaceAllowed(
 ): boolean {
   return allowlist.has(surface);
 }
+
+/** Type-narrowing allowlist check for product owner surface unions (DG-1.5). */
+export function isWorkspaceAuthSurfaceInAllowlist<T extends string>(
+  surface: WorkspaceAuthSurface,
+  allowlist: ReadonlySet<T>,
+): surface is T {
+  return allowlist.has(surface as T);
+}

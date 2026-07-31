@@ -45,6 +45,16 @@ export const WORKSPACE_MEMBER_PROFILE_CAPABILITIES: Readonly<
       }),
     ])
   }),
+  "harbor": Object.freeze({
+    editableFields: Object.freeze(["displayName"] as const satisfies readonly MemberProfileFieldId[]),
+    readOnlyFields: Object.freeze(["email"] as const satisfies readonly MemberProfileFieldId[]),
+    sections: Object.freeze([
+      Object.freeze({
+        id: "identity",
+        fields: Object.freeze(["displayName","email"] as const satisfies readonly MemberProfileFieldId[]),
+      }),
+    ])
+  }),
   "urban": Object.freeze({
     editableFields: Object.freeze(["displayName"] as const satisfies readonly MemberProfileFieldId[]),
     readOnlyFields: Object.freeze(["email"] as const satisfies readonly MemberProfileFieldId[]),

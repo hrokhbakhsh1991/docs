@@ -13,6 +13,7 @@ const PRODUCT_WORKSPACE_IDS = Object.freeze([
   "denali",
   "finance-ws5",
   "guest-club",
+  "harbor",
   "starter",
   "urban"
 ]);
@@ -24,6 +25,7 @@ const PRODUCT_WORKSPACE_PACKAGES = Object.freeze([
   "@app-tour/workspace-denali",
   "@app-tour/workspace-finance-ws5",
   "@app-tour/workspace-guest-club",
+  "@app-tour/workspace-harbor",
   "@app-tour/workspace-starter",
   "@app-tour/workspace-urban"
 ]);
@@ -40,6 +42,7 @@ const ALL_WORKSPACE_IDS = Object.freeze([
   "finance-ws5",
   "finance-ws6",
   "guest-club",
+  "harbor",
   "starter",
   "urban"
 ]);
@@ -55,6 +58,7 @@ const ALL_WORKSPACE_PACKAGES = Object.freeze([
   "@app-tour/workspace-finance-ws5",
   "@app-tour/workspace-finance-ws6",
   "@app-tour/workspace-guest-club",
+  "@app-tour/workspace-harbor",
   "@app-tour/workspace-starter",
   "@app-tour/workspace-urban"
 ]);
@@ -63,25 +67,25 @@ const ALL_WORKSPACE_PACKAGES = Object.freeze([
  * Alternation for `packages/workspaces/(?!…)` (apps-web-no-workspaces-except-starter).
  * @type {string}
  */
-const DEPCRUISE_WEB_WORKSPACES_NEGATIVE_LOOKAHEAD = "acme|booking-ws2|denali|finance-ws5|guest-club|starter|urban";
+const DEPCRUISE_WEB_WORKSPACES_NEGATIVE_LOOKAHEAD = "acme|booking-ws2|denali|finance-ws5|guest-club|harbor|starter|urban";
 
 /**
  * Alternation for `workspaces/<id>` inside apps-web-allowed-packages negative package set.
  * @type {string}
  */
-const DEPCRUISE_WEB_WORKSPACES_ALLOW_ALT = "workspaces/acme|workspaces/booking-ws2|workspaces/denali|workspaces/finance-ws5|workspaces/guest-club|workspaces/starter|workspaces/urban";
+const DEPCRUISE_WEB_WORKSPACES_ALLOW_ALT = "workspaces/acme|workspaces/booking-ws2|workspaces/denali|workspaces/finance-ws5|workspaces/guest-club|workspaces/harbor|workspaces/starter|workspaces/urban";
 
 /**
  * Alternation for `workspaces/<id>` inside apps-api-allowed-packages (all manifests).
  * @type {string}
  */
-const DEPCRUISE_API_WORKSPACES_ALLOW_ALT = "workspaces/acme|workspaces/booking-ws2|workspaces/denali|workspaces/finance-ws2|workspaces/finance-ws3|workspaces/finance-ws4|workspaces/finance-ws5|workspaces/finance-ws6|workspaces/guest-club|workspaces/starter|workspaces/urban";
+const DEPCRUISE_API_WORKSPACES_ALLOW_ALT = "workspaces/acme|workspaces/booking-ws2|workspaces/denali|workspaces/finance-ws2|workspaces/finance-ws3|workspaces/finance-ws4|workspaces/finance-ws5|workspaces/finance-ws6|workspaces/guest-club|workspaces/harbor|workspaces/starter|workspaces/urban";
 
 /**
  * Alternation for apps-api-workspace-plugin-registry-only `to.path` product dirs.
  * @type {string}
  */
-const DEPCRUISE_API_PRODUCT_WORKSPACES_ALT = "acme|booking-ws2|denali|finance-ws5|guest-club|starter|urban";
+const DEPCRUISE_API_PRODUCT_WORKSPACES_ALT = "acme|booking-ws2|denali|finance-ws5|guest-club|harbor|starter|urban";
 
 /**
  * Gap Closure P5.2.c — `from.pathNot` for apps-api-workspace-plugin-registry-only.
@@ -99,12 +103,13 @@ const DEPCRUISE_API_PLUGIN_REGISTRY_PRODUCT_PATH_NOT_FRAGMENTS = Object.freeze([
  * Alternation for product workspace ids (guards scanning source for package imports).
  * @type {string}
  */
-const PRODUCT_WORKSPACE_ID_ALT = "acme|booking-ws2|denali|finance-ws5|guest-club|starter|urban";
+const PRODUCT_WORKSPACE_ID_ALT = "acme|booking-ws2|denali|finance-ws5|guest-club|harbor|starter|urban";
 
 /** @type {readonly string[]} */
 const PORTAL_REGISTER_GENERATED_RELS = Object.freeze([
   "packages/guest-workspace-runtime/src/register-denali.generated.ts",
   "packages/guest-workspace-runtime/src/register-guest-club.generated.ts",
+  "packages/guest-workspace-runtime/src/register-harbor.generated.ts",
   "packages/guest-workspace-runtime/src/register-starter.generated.ts",
   "packages/guest-workspace-runtime/src/register-urban.generated.ts"
 ]);

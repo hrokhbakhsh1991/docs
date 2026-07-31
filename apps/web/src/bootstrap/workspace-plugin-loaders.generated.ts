@@ -11,10 +11,10 @@ import {
 } from "./workspace-plugin-load-cache";
 
 /** Sorted product trunk plugin ids — cache bust when codegen regen changes membership. */
-export const WORKSPACE_PLUGIN_REGISTRY_REVISION = "acme,booking-ws2,denali,finance-ws5,guest-club,starter,urban";
+export const WORKSPACE_PLUGIN_REGISTRY_REVISION = "acme,booking-ws2,denali,finance-ws5,guest-club,harbor,starter,urban";
 
 /** Upper bound for per-process plugin load cache (= product trunk plugin count). */
-export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 7;
+export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 8;
 
 export { invalidateWorkspacePluginLoadCache };
 
@@ -43,6 +43,10 @@ export async function loadWorkspacePluginByIdFromRegistry(
     }
     case "guest-club": {
       const mod = await import("@app-tour/workspace-guest-club/plugin");
+      return mod.getWorkspacePlugin();
+    }
+    case "harbor": {
+      const mod = await import("@app-tour/workspace-harbor/plugin");
       return mod.getWorkspacePlugin();
     }
     case "starter": {

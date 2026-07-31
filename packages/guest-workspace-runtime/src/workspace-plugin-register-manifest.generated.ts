@@ -6,11 +6,12 @@
  */
 
 /** Sorted trunk plugin ids — cache bust when codegen regen changes membership. */
-export const WORKSPACE_PLUGIN_REGISTER_REVISION = "denali,guest-club,starter,urban";
+export const WORKSPACE_PLUGIN_REGISTER_REVISION = "denali,guest-club,harbor,starter,urban";
 
 export const WORKSPACE_PLUGIN_REGISTER_IDS = Object.freeze([
   "denali",
   "guest-club",
+  "harbor",
   "starter",
   "urban",
 ]) as readonly string[];
@@ -26,6 +27,11 @@ export async function invokeWorkspacePluginRegister(pluginId: string): Promise<v
     case "guest-club": {
       const mod = await import("./register-guest-club.generated");
       await mod.registerWorkspacePluginGUEST_CLUBFromManifest();
+      return;
+    }
+    case "harbor": {
+      const mod = await import("./register-harbor.generated");
+      await mod.registerWorkspacePluginHARBORFromManifest();
       return;
     }
     case "starter": {
@@ -54,6 +60,11 @@ export async function invokeWorkspaceIntakeRegister(pluginId: string): Promise<v
     case "guest-club": {
       const mod = await import("./register-guest-club.generated");
       await mod.registerWorkspaceIntakeGUEST_CLUBFromManifest();
+      return;
+    }
+    case "harbor": {
+      const mod = await import("./register-harbor.generated");
+      await mod.registerWorkspaceIntakeHARBORFromManifest();
       return;
     }
     case "starter": {

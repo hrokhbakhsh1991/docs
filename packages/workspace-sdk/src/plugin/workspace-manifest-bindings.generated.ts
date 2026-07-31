@@ -16,6 +16,7 @@ export const WORKSPACE_MANIFEST_BINDINGS: readonly {
   { workspaceType: "denali", pluginId: "denali" },
   { workspaceType: "finance-ws5", pluginId: "finance-ws5" },
   { workspaceType: "guest-club", pluginId: "guest-club" },
+  { workspaceType: "harbor", pluginId: "harbor" },
   { workspaceType: "starter", pluginId: "starter" },
   { workspaceType: "urban", pluginId: "urban" },
 ];

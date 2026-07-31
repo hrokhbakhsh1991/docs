@@ -17,6 +17,7 @@ export const WORKSPACE_GUEST_CONFORMANCE_LEVELS: Readonly<
   "finance-ws5": "L0",
   "finance-ws6": "L0",
   "guest-club": "L3",
+  "harbor": "L3",
   "starter": "L0",
   "urban": "L3",
 });

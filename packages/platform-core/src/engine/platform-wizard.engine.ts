@@ -47,6 +47,16 @@ type WizardRuntime = {
 };
 
 function stripNonIngressPluginSurfaces(plugin: WorkspacePlugin): WorkspacePlugin {
+  return stripWorkspacePluginForWizardEngine(plugin);
+}
+
+/**
+ * Strip callable / non-ingress plugin surfaces before wizard engine bootstrap (DG-3.5).
+ * Shared by PlatformWizardEngine, platform host hooks, and workspace thin wrappers.
+ */
+export function stripWorkspacePluginForWizardEngine(
+  plugin: WorkspacePlugin,
+): WorkspacePlugin {
   const {
     tourList: _tourList,
     tourClone: _tourClone,
@@ -56,6 +66,8 @@ function stripNonIngressPluginSurfaces(plugin: WorkspacePlugin): WorkspacePlugin
     draftTombstone: _draftTombstone,
     operatorSettings: _operatorSettings,
     exposureSurface: _exposureSurface,
+    // Runtime capability bags hold ensureReady / UI hooks — not plain ingress data.
+    capabilities: _capabilities,
     ...wizardPlugin
   } = plugin;
   return wizardPlugin as WorkspacePlugin;

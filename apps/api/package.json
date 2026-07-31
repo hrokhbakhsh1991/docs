@@ -176,6 +176,7 @@
     "@app-tour/workspace-finance-ws5": "workspace:*",
     "@app-tour/workspace-finance-ws6": "workspace:*",
     "@app-tour/workspace-guest-club": "workspace:*",
+    "@app-tour/workspace-harbor": "workspace:*",
     "@app-tour/workspace-starter": "workspace:*",
     "@app-tour/workspace-urban": "workspace:*",
     "@casl/ability": "^6.7.3",

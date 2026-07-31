@@ -62,6 +62,10 @@
       "types": "./dist/wizard/index.d.ts",
       "default": "./dist/wizard/index.js"
     },
+    "./http": {
+      "types": "./dist/http/index.d.ts",
+      "default": "./dist/http/index.js"
+    },
     "./workspace-registry": {
       "types": "./dist/workspace-registry/index.d.ts",
       "default": "./dist/workspace-registry/index.js"

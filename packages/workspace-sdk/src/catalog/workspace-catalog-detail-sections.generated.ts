@@ -28,6 +28,12 @@ export const WORKSPACE_CATALOG_DETAIL_SECTIONS: Readonly<
     itinerary: false,
     policies: false,
   }),
+  "harbor": Object.freeze({
+    difficulty: false,
+    fitness: false,
+    itinerary: false,
+    policies: true,
+  }),
   "urban": Object.freeze({
     difficulty: false,
     fitness: false,

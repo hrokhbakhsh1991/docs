@@ -4,16 +4,8 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-export const WORKSPACE_WIZARD_TEMPLATE_PATH_ALIAS_BINDINGS = [
-  {
-    workspaceType: "starter",
-    pathAliases: new Set(["title"]),
-    aliasCatalogWorkspaceType: "denali",
-  },
-] as const;
+export const WORKSPACE_WIZARD_TEMPLATE_PATH_ALIAS_BINDINGS = [] as const;
 
-export function resolveWizardTemplatePathAliasBinding(workspaceType: string) {
-  return WORKSPACE_WIZARD_TEMPLATE_PATH_ALIAS_BINDINGS.find(
-    (entry) => entry.workspaceType === workspaceType
-  );
+export function resolveWizardTemplatePathAliasBinding(_workspaceType: string) {
+  return undefined;
 }

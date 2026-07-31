@@ -8,6 +8,7 @@
 const WORKSPACE_ADMIN_THEME_REGISTRY = Object.freeze({
   "denali": Object.freeze(["theme/denali-admin.css"]),
   "guest-club": Object.freeze(["theme/tokens.css"]),
+  "harbor": Object.freeze(["theme/tokens.css"]),
   "starter": Object.freeze(["theme/tokens.css"]),
   "urban": Object.freeze(["theme/tokens.css"]),
 }) as Readonly<Record<string, readonly string[]>>;
@@ -37,6 +38,10 @@ export async function importAdminThemeForPlugin(pluginId: string): Promise<void>
 
     case "guest-club":
       await import("@app-tour/workspace-guest-club/theme/tokens.css");
+      return;
+
+    case "harbor":
+      await import("@app-tour/workspace-harbor/theme/tokens.css");
       return;
 
     case "starter":

@@ -89,6 +89,27 @@ export const WORKSPACE_GUEST_SEO: Readonly<Record<string, WorkspaceGuestSeoConfi
       }),
     }),
   }),
+  "harbor": Object.freeze({
+    marketing: Object.freeze({
+      listTitleKey: "seo.toursTitle",
+      listDescriptionKey: "seo.toursDescription",
+      homeTitleKey: "seo.homeTitle",
+      homeDescriptionKey: "seo.homeDescription",
+      jsonLd: Object.freeze({
+        required: true,
+        schemaTypes: Object.freeze(["Event"]),
+        builderExport: "buildHarborEventJsonLd",
+        richResultsProfile: "event-stub-v1",
+      }),
+      sitemap: Object.freeze({
+        changefreq: "weekly",
+        priority: 0.8,
+      }),
+      pagination: Object.freeze({
+        noindexQueryParams: Object.freeze(["cursor"]),
+      }),
+    }),
+  }),
   "urban": Object.freeze({
     marketing: Object.freeze({
       listTitleKey: "seo.toursTitle",

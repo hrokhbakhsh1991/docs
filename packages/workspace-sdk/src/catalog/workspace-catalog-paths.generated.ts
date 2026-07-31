@@ -8,5 +8,6 @@
 export const WORKSPACE_CATALOG_LIST_PATHS: Readonly<Record<string, string>> = Object.freeze({
   "denali": "/denali/catalog",
   "guest-club": "/guest-club/catalog",
+  "harbor": "/harbor/catalog",
   "urban": "/urban/catalog",
 });

@@ -18,6 +18,7 @@ export const GUEST_TRANSPILE_PACKAGES = Object.freeze([
   "@app-tour/catalog-registration-flow-ui",
   "@app-tour/workspace-denali",
   "@app-tour/workspace-guest-club",
+  "@app-tour/workspace-harbor",
   "@app-tour/workspace-starter",
   "@app-tour/workspace-urban",
 ]);

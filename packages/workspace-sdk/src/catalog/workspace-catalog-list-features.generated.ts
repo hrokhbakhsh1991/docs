@@ -13,5 +13,6 @@ export const WORKSPACE_CATALOG_LIST_FEATURES: Readonly<
 > = Object.freeze({
   "denali": Object.freeze({ cityFilter: false, serverListFilters: Object.freeze(["availability", "category", "difficulty", "fitness", "q", "sort"]) }),
   "guest-club": Object.freeze({ cityFilter: false, serverListFilters: Object.freeze([]) }),
+  "harbor": Object.freeze({ cityFilter: true, serverListFilters: Object.freeze([]) }),
   "urban": Object.freeze({ cityFilter: true, serverListFilters: Object.freeze([]) }),
 });

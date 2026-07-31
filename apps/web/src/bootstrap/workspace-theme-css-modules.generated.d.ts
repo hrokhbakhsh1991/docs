@@ -7,5 +7,6 @@
 /** Workspace L3 admin skin CSS loaded via dynamic import (operator theme stack). */
 declare module "@app-tour/workspace-denali/theme/denali-admin.css";
 declare module "@app-tour/workspace-guest-club/theme/tokens.css";
+declare module "@app-tour/workspace-harbor/theme/tokens.css";
 declare module "@app-tour/workspace-starter/theme/tokens.css";
 declare module "@app-tour/workspace-urban/theme/tokens.css";

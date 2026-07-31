@@ -2,28 +2,16 @@ import { createCanonicalDocument } from "@app-tour/workspace-sdk/canonical";
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk/plugin-types";
 import type { WorkspaceWizardHostHooks } from "@app-tour/workspace-sdk/plugin";
 
-import { PlatformWizardEngine } from "../engine/platform-wizard.engine";
+import {
+  PlatformWizardEngine,
+  stripWorkspacePluginForWizardEngine,
+} from "../engine/platform-wizard.engine";
 import type { RenderStepPlan } from "../types/render-plan";
 import type { ValidationResult } from "../types/validation-result";
 
 export type PlatformWizardHostHooksOptions = {
   readonly dimensions: Readonly<Record<string, string>>;
 };
-
-function stripWizardHostForEngine(plugin: WorkspacePlugin): WorkspacePlugin {
-  const {
-    tourList: _tourList,
-    tourClone: _tourClone,
-    publicCatalog: _publicCatalog,
-    catalogIntake: _catalogIntake,
-    wizardHost: _wizardHost,
-    draftTombstone: _draftTombstone,
-    operatorSettings: _operatorSettings,
-    exposureSurface: _exposureSurface,
-    ...wizardPlugin
-  } = plugin;
-  return wizardPlugin as WorkspacePlugin;
-}
 
 function readDraftData(draft: Readonly<Record<string, unknown>>): Record<string, unknown> {
   if (draft.data != null && typeof draft.data === "object" && !Array.isArray(draft.data)) {
@@ -92,7 +80,7 @@ export function createPlatformWizardHostHooks(
     resolveMatrixDimensionsFromDraft: () => dimensions,
     validateDraftSync: (input) => {
       const plugin = input.plugin as WorkspacePlugin;
-      const engine = PlatformWizardEngine.create(stripWizardHostForEngine(plugin));
+      const engine = PlatformWizardEngine.create(stripWorkspacePluginForWizardEngine(plugin));
       engine.init();
       const document = draftToCanonicalDocument(input.draft, plugin);
       const result = engine.validateCanonical(document, {

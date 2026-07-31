@@ -163,6 +163,11 @@ export function buildGuestManifestObject(id) {
         pagination: { noindexQueryParams: ["cursor"] },
       },
     },
+    operatorCapabilities: {
+      usersDirectory: false,
+      reconciliationTriage: false,
+      fieldExposureSurfaces: false,
+    },
   };
 }
 
@@ -174,24 +179,23 @@ function packageExports(ctx, guest) {
   const exports = {
     ".": { types: "./dist/index.d.ts", default: "./dist/index.js" },
     "./plugin": pluginExport,
-    [`./${ctx.id}.plugin`]: pluginExport,
     "./theme/tokens.css": "./theme/tokens.css",
   };
   if (guest) {
-    exports["./catalog"] = {
+    exports["./host/catalog"] = {
       types: "./dist/catalog/index.d.ts",
       default: "./dist/catalog/index.js",
     };
-    exports["./catalog-registration-flow"] = {
+    exports["./host/catalog-registration-flow"] = {
       types: "./dist/catalog/registration-flow/index.d.ts",
       default: "./dist/catalog/registration-flow/index.js",
     };
-    exports["./catalog-registration-flow/react"] = {
+    exports["./host/catalog-registration-flow/react"] = {
       types: "./dist/catalog/registration-flow/react.d.ts",
       default: "./dist/catalog/registration-flow/react.js",
     };
-    exports["./http"] = { types: "./dist/http/index.d.ts", default: "./dist/http/index.js" };
-    exports["./http/routes"] = {
+    exports["./host/http"] = { types: "./dist/http/index.d.ts", default: "./dist/http/index.js" };
+    exports["./host/http/routes"] = {
       types: "./dist/http/routes.d.ts",
       default: "./dist/http/routes.js",
     };
@@ -628,13 +632,75 @@ export function ${ctx.doneStepExport}({ context }: RegistrationFlowStepProps): J
   );
 }
 
+function deterministicTourId(id) {
+  const hex = createHash("sha256").update(`workspace:create:smoke-tour:${id}`).digest("hex");
+  const variant = ((Number.parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-${variant}${hex.slice(
+    17,
+    20
+  )}-${hex.slice(20, 32)}`;
+}
+
 function writeGuestHttp(dir, ctx) {
   const httpDir = join(dir, "src", "http");
+  const catalogDir = join(dir, "src", "catalog");
   mkdirSync(httpDir, { recursive: true });
+  mkdirSync(catalogDir, { recursive: true });
+
+  writeFileSync(
+    join(catalogDir, ctx.smokeFixtureFile),
+    `import type { PublicCatalogCard } from "@app-tour/workspace-sdk";
+
+/** Opt-in guest smoke catalog card — enable with ${ctx.smokeEnvConst}=1. */
+export const ${ctx.smokeTourIdConst} = ${JSON.stringify(ctx.smokeTourId)} as const;
+export const ${ctx.smokeTourTitleConst} = ${JSON.stringify(`${ctx.pascal} smoke sail`)} as const;
+
+export function ${ctx.smokeBuildCardFn}(): PublicCatalogCard {
+  const card: PublicCatalogCard = Object.freeze({
+    id: ${ctx.smokeTourIdConst},
+    title: ${ctx.smokeTourTitleConst},
+    shortDescription: ${JSON.stringify(`${ctx.id} smoke catalog event`)},
+    category: "guest_event",
+    departureAt: "2026-10-01T10:00:00.000Z",
+    endAt: "2026-10-01T18:00:00.000Z",
+    priceAmount: 1_000_000,
+    priceCurrency: "IRR",
+    coverImageUrl: null,
+    totalCapacity: 20,
+    catalogUpdatedAt: "2026-07-31T12:00:00.000Z",
+  });
+  return Object.freeze({
+    ...card,
+    structuredData: Object.freeze({
+      "@context": "https://schema.org",
+      "@type": "Event",
+      name: card.title,
+      eventStatus: "https://schema.org/EventScheduled",
+      dateModified: card.catalogUpdatedAt,
+    }) as unknown as Readonly<Record<string, unknown>>,
+  });
+}
+`
+  );
+
+  // Keep intake export and append smoke fixture exports.
+  writeFileSync(
+    join(catalogDir, "index.ts"),
+    `export { ${ctx.catalogIntakeExport} } from "./catalog-intake";
+export {
+  ${ctx.smokeBuildCardFn},
+  ${ctx.smokeTourIdConst},
+  ${ctx.smokeTourTitleConst},
+} from "./${ctx.smokeFixtureFile.replace(/\\.ts$/, "")}";
+`
+  );
+
   writeFileSync(
     join(httpDir, "routes-manifest.ts"),
-    `export const ${ctx.httpRouteManifestConst}: readonly {
-  readonly method: "GET" | "POST";
+    `import type { WorkspaceHttpMethod } from "@app-tour/workspace-sdk";
+
+export const ${ctx.httpRouteManifestConst}: readonly {
+  readonly method: WorkspaceHttpMethod;
   readonly path: string;
 }[] = [
   { method: "GET", path: "/${ctx.id}/catalog" },
@@ -643,43 +709,65 @@ function writeGuestHttp(dir, ctx) {
 ] as const;
 `
   );
+
   writeFileSync(
-    join(httpDir, "routes.ts"),
+    join(httpDir, ctx.catalogHttpFile),
     `import type { IncomingMessage, ServerResponse } from "node:http";
 
-import { ${ctx.httpRouteManifestConst} } from "./routes-manifest";
+import { createWorkspaceGuestSmokeHttpHandlers } from "@app-tour/workspace-sdk";
 
-function sendGuestStub(res: ServerResponse): void {
-  res.statusCode = 501;
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.end(JSON.stringify({ success: false, code: "WORKSPACE_GUEST_STUB" }));
+import {
+  ${ctx.smokeBuildCardFn},
+  ${ctx.smokeTourIdConst},
+} from "../catalog/${ctx.smokeFixtureFile.replace(/\\.ts$/, "")}";
+
+function isSmokeSeedEnabled(): boolean {
+  return process.env.${ctx.smokeEnvConst} === "1";
+}
+
+const handlers = createWorkspaceGuestSmokeHttpHandlers({
+  isSeedEnabled: isSmokeSeedEnabled,
+  publishedTourId: ${ctx.smokeTourIdConst},
+  buildCard: ${ctx.smokeBuildCardFn},
+});
+
+export async function ${ctx.registrationPostHandler}(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  return handlers.handleRegister(req, res);
 }
 
 export async function ${ctx.catalogListHandler}(
-  _req: IncomingMessage,
+  req: IncomingMessage,
   res: ServerResponse
 ): Promise<void> {
-  sendGuestStub(res);
+  return handlers.handleList(req, res);
 }
 
 export async function ${ctx.catalogDetailHandler}(
-  _req: IncomingMessage,
+  req: IncomingMessage,
   res: ServerResponse,
-  _tourId: string
+  tourId: string
 ): Promise<void> {
-  sendGuestStub(res);
+  return handlers.handleDetail(req, res, tourId);
 }
+`
+  );
 
-export async function ${ctx.registrationPostHandler}(
-  _req: IncomingMessage,
-  res: ServerResponse
-): Promise<void> {
-  sendGuestStub(res);
-}
+  writeFileSync(
+    join(httpDir, "routes.ts"),
+    `import { ${ctx.httpRouteManifestConst} } from "./routes-manifest";
 
+export {
+  ${ctx.catalogListHandler},
+  ${ctx.catalogDetailHandler},
+  ${ctx.registrationPostHandler},
+} from "./${ctx.catalogHttpFile.replace(/\\.ts$/, "")}";
 export { ${ctx.httpRouteManifestConst} };
 `
   );
+
   writeFileSync(
     join(httpDir, "index.ts"),
     `export {
@@ -699,6 +787,178 @@ function writeGuestSmoke(dir, ctx) {
     join(smokeDir, "tenant.ts"),
     `export const ${ctx.smokeSubdomainConst} = ${JSON.stringify(ctx.id)} as const;
 export const ${ctx.smokeTenantIdConst} = ${JSON.stringify(ctx.smokeTenantId)} as const;
+`
+  );
+}
+
+function writeGuestPackageTests(dir, ctx) {
+  const catalogHttpModule = ctx.catalogHttpFile.replace(/\.ts$/, "");
+  const fixtureModule = ctx.smokeFixtureFile.replace(/\.ts$/, "");
+
+  writeFileSync(
+    join(dir, "test", "guest-smoke-http.spec.ts"),
+    `import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { describe, it } from "node:test";
+
+import {
+  ${ctx.catalogListHandler},
+  ${ctx.catalogDetailHandler},
+  ${ctx.registrationPostHandler},
+} from "../src/http/${catalogHttpModule}";
+import {
+  ${ctx.smokeBuildCardFn},
+  ${ctx.smokeTourIdConst},
+  ${ctx.smokeTourTitleConst},
+} from "../src/catalog/${fixtureModule}";
+
+function mockRes(): ServerResponse & {
+  readonly body: string;
+  readonly status: number;
+} {
+  let body = "";
+  let status = 0;
+  const res = {
+    get body() {
+      return body;
+    },
+    get status() {
+      return status;
+    },
+    set statusCode(value: number) {
+      status = value;
+    },
+    get statusCode() {
+      return status;
+    },
+    setHeader() {},
+    end(chunk?: string) {
+      body = chunk ?? "";
+    },
+  };
+  return res as unknown as ServerResponse & { readonly body: string; readonly status: number };
+}
+
+function mockJsonReq(payload: unknown): IncomingMessage {
+  const req = new EventEmitter() as IncomingMessage & EventEmitter;
+  queueMicrotask(() => {
+    req.emit("data", Buffer.from(JSON.stringify(payload), "utf8"));
+    req.emit("end");
+  });
+  return req;
+}
+
+describe("${ctx.id} guest smoke catalog fixture", () => {
+  it("builds an Event card with stable id", () => {
+    const card = ${ctx.smokeBuildCardFn}();
+    assert.equal(card.id, ${ctx.smokeTourIdConst});
+    assert.equal(card.title, ${ctx.smokeTourTitleConst});
+    assert.equal(
+      (card.structuredData as { readonly "@type"?: string } | undefined)?.["@type"],
+      "Event",
+    );
+  });
+});
+
+describe("${ctx.id} guest catalog HTTP", () => {
+  it("defaults to guest stub when smoke seed disabled", async () => {
+    delete process.env.${ctx.smokeEnvConst};
+    const res = mockRes();
+    await ${ctx.catalogListHandler}({ url: "/${ctx.id}/catalog" } as IncomingMessage, res);
+    assert.equal(res.status, 501);
+    assert.match(res.body, /WORKSPACE_GUEST_STUB/);
+  });
+
+  it("lists smoke card when seed enabled", async () => {
+    process.env.${ctx.smokeEnvConst} = "1";
+    const res = mockRes();
+    await ${ctx.catalogListHandler}({ url: "/${ctx.id}/catalog" } as IncomingMessage, res);
+    assert.equal(res.status, 200);
+    const parsed = JSON.parse(res.body) as {
+      success: boolean;
+      data: { items: Array<{ id: string }> };
+      metadata: { nextCursor: null };
+    };
+    assert.equal(parsed.success, true);
+    assert.equal(parsed.data.items[0]?.id, ${ctx.smokeTourIdConst});
+    assert.equal(parsed.metadata.nextCursor, null);
+    delete process.env.${ctx.smokeEnvConst};
+  });
+
+  it("returns detail and accepts registration under seed", async () => {
+    process.env.${ctx.smokeEnvConst} = "1";
+    const detail = mockRes();
+    await ${ctx.catalogDetailHandler}({} as IncomingMessage, detail, ${ctx.smokeTourIdConst});
+    assert.equal(detail.status, 200);
+
+    const created = mockRes();
+    await ${ctx.registrationPostHandler}(
+      mockJsonReq({
+        tourId: ${ctx.smokeTourIdConst},
+        contact: { fullName: "Ada Guest", email: "ada@example.com" },
+        partySize: 2,
+      }),
+      created,
+    );
+    assert.equal(created.status, 201);
+    const parsed = JSON.parse(created.body) as {
+      success: boolean;
+      data: { tourId: string; status: string };
+    };
+    assert.equal(parsed.success, true);
+    assert.equal(parsed.data.tourId, ${ctx.smokeTourIdConst});
+    assert.equal(parsed.data.status, "pending");
+    delete process.env.${ctx.smokeEnvConst};
+  });
+});
+`
+  );
+
+  writeFileSync(
+    join(dir, "test", "guest-clone-budget.spec.ts"),
+    `import assert from "node:assert/strict";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, it } from "node:test";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+function listTsFiles(dir: string): string[] {
+  const out: string[] = [];
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name);
+    const st = statSync(full);
+    if (st.isDirectory()) {
+      out.push(...listTsFiles(full));
+    } else if (name.endsWith(".ts") && !name.endsWith(".d.ts")) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
+describe("${ctx.id} guest clone detector lite", () => {
+  it("keeps HTTP surface tiny vs Denali-scale forests", () => {
+    const httpFiles = listTsFiles(join(root, "src/http"));
+    assert.ok(
+      httpFiles.length <= 6,
+      \`expected ≤6 ${ctx.id} http modules, got \${httpFiles.length}\`,
+    );
+  });
+
+  it("does not import workspace-denali from ${ctx.id} src", () => {
+    for (const file of listTsFiles(join(root, "src"))) {
+      const text = readFileSync(file, "utf8");
+      assert.doesNotMatch(
+        text,
+        /@app-tour\\/workspace-denali/,
+        \`denali import in \${file}\`,
+      );
+    }
+  });
+});
 `
   );
 }
@@ -729,6 +989,13 @@ function createContext(id) {
     smokeTenantId: deterministicTenantId(id),
     smokeTenantIdConst: `${constPrefix}_SMOKE_TENANT_ID`,
     smokeSubdomainConst: `${constPrefix}_SMOKE_SUBDOMAIN`,
+    smokeTourId: deterministicTourId(id),
+    smokeTourIdConst: `${constPrefix}_SMOKE_TOUR_ID`,
+    smokeTourTitleConst: `${constPrefix}_SMOKE_TOUR_TITLE`,
+    smokeBuildCardFn: `build${pascal}SmokeCatalogCard`,
+    smokeEnvConst: `${constPrefix}_SMOKE_E2E_SEED`,
+    smokeFixtureFile: `${id}-smoke-catalog.fixture.ts`,
+    catalogHttpFile: `${id}-catalog-http.ts`,
   };
 }
 
@@ -762,6 +1029,7 @@ export function scaffoldWorkspace({ repoRoot = REPO_ROOT, id, guest = false }) {
     writeGuestRegistrationFlow(dir, ctx);
     writeGuestHttp(dir, ctx);
     writeGuestSmoke(dir, ctx);
+    writeGuestPackageTests(dir, ctx);
   }
   return { dir, pkgName: ctx.pkgName, guest };
 }
@@ -773,9 +1041,10 @@ function usage() {
 }
 
 function main(argv) {
-  const id = argv[2]?.trim();
+  const args = argv.slice(2).filter((arg) => arg !== "--");
+  const id = args[0]?.trim();
   if (!id || id.startsWith("-")) usage();
-  const flags = new Set(argv.slice(3));
+  const flags = new Set(args.slice(1));
   const unknown = [...flags].filter((flag) => flag !== "--guest");
   if (unknown.length > 0) {
     console.error(`Unknown option: ${unknown.join(", ")}`);

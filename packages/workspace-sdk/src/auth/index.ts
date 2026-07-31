@@ -10,7 +10,11 @@ export type {
   WorkspaceAuthSurface,
   WorkspaceOwnerMutationPolicy,
 } from "./workspace-auth-surface";
-export { isWorkspaceAuthSurfaceAllowed } from "./workspace-auth-surface";
+export { isWorkspaceAuthSurfaceAllowed, isWorkspaceAuthSurfaceInAllowlist } from "./workspace-auth-surface";
+export {
+  createCanPerformWorkspaceOwnerMutation,
+  type CanPerformWorkspaceOwnerMutation,
+} from "./create-can-perform-workspace-owner-mutation";
 
 export {
   createTenantAuthz,

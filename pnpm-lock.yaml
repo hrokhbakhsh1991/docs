@@ -89,6 +89,9 @@ importers:
       '@app-tour/workspace-guest-club':
         specifier: workspace:*
         version: link:../../packages/workspaces/guest-club
+      '@app-tour/workspace-harbor':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/harbor
       '@app-tour/workspace-sdk':
         specifier: workspace:*
         version: link:../../packages/workspace-sdk
@@ -165,6 +168,9 @@ importers:
       '@app-tour/ui-primitives':
         specifier: workspace:*
         version: link:../../packages/ui-primitives
+      '@app-tour/workspace-harbor':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/harbor
       '@app-tour/workspace-sdk':
         specifier: workspace:*
         version: link:../../packages/workspace-sdk
@@ -268,6 +274,9 @@ importers:
       '@app-tour/ui-primitives':
         specifier: workspace:*
         version: link:../../packages/ui-primitives
+      '@app-tour/workspace-harbor':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/harbor
       '@app-tour/workspace-plugin-host':
         specifier: workspace:*
         version: link:../../packages/workspace-plugin-host
@@ -450,6 +459,9 @@ importers:
       '@app-tour/workspace-guest-club':
         specifier: workspace:*
         version: link:../../packages/workspaces/guest-club
+      '@app-tour/workspace-harbor':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/harbor
       '@app-tour/workspace-starter':
         specifier: workspace:*
         version: link:../../packages/workspaces/starter
@@ -698,6 +710,9 @@ importers:
       '@app-tour/workspace-guest-club':
         specifier: workspace:*
         version: link:../workspaces/guest-club
+      '@app-tour/workspace-harbor':
+        specifier: workspace:*
+        version: link:../workspaces/harbor
       '@app-tour/workspace-plugin-host':
         specifier: workspace:*
         version: link:../workspace-plugin-host
@@ -1252,6 +1267,49 @@ importers:
       next-intl:
         specifier: ^4.11.1
         version: 4.13.0(next@15.5.19(@playwright/test@1.60.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.7
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/workspaces/harbor:
+    dependencies:
+      '@app-tour/catalog-registration-auth':
+        specifier: workspace:*
+        version: link:../../catalog-registration-auth
+      '@app-tour/catalog-registration-flow-ui':
+        specifier: workspace:*
+        version: link:../../catalog-registration-flow-ui
+      '@app-tour/design-tokens':
+        specifier: workspace:*
+        version: link:../../design-tokens
+      '@app-tour/platform-core':
+        specifier: workspace:*
+        version: link:../../platform-core
+      '@app-tour/workspace-plugin-host':
+        specifier: workspace:*
+        version: link:../../workspace-plugin-host
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../../workspace-sdk
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.7(react@19.2.7)
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.16
       react:
         specifier: ^19.0.0
         version: 19.2.7
