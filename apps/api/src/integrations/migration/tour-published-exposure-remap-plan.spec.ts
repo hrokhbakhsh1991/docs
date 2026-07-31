@@ -93,4 +93,18 @@ describe("tour-published-exposure-remap-plan", () => {
     );
     assert.equal(rewriteTourPublishedTemplateOverride("Keep me"), "Keep me");
   });
+
+  it("PSR-4b-defaults: refuses synthetic profileId without workspaceType", () => {
+    assert.throws(
+      () =>
+        buildTourPublishedRemapUpsert(
+          candidate({
+            workspaceType: null,
+            profileId: "legacy-without-suffix",
+            trigger: "TourCreated",
+          }),
+        ),
+      /TOUR_PUBLISHED_REMAP_WORKSPACE_TYPE_REQUIRED/,
+    );
+  });
 });

@@ -95,6 +95,7 @@ export function buildLegacyTripDetailsCanonicalEnvelope(
 
 /**
  * Controlled batch migration — allowlisted tenants only (REQ-P6-017 / DEC-P6-007).
+ * PSR-4b-defaults: `workspaceType` is required (no product default).
  */
 export async function migrateWorkspaceCanonicalForTenant(
   prisma: PrismaClient,
@@ -109,7 +110,10 @@ export async function migrateWorkspaceCanonicalForTenant(
     return { tenantId, migratedTourIds: [], skippedTourIds: [] };
   }
 
-  const workspaceType = options.workspaceType ?? "denali";
+  const workspaceType = options.workspaceType?.trim() ?? "";
+  if (workspaceType.length === 0) {
+    throw new Error("MIGRATE_CANONICAL_WORKSPACE_TYPE_REQUIRED");
+  }
   if (!workspaceSupportsCanonicalMigration(workspaceType)) {
     return { tenantId, migratedTourIds: [], skippedTourIds: [] };
   }

@@ -1,11 +1,11 @@
 schema_version: 1
 program_id: PSR-001
-wave: PSR-4b
+wave: PSR-4b-defaults
 updated: '2026-07-31'
-verified_sha: d5b26181
+verified_sha: pending-psr-4b-defaults
 policy:
-  inventory_and_ratchet_only: true
-  no_runtime_default_change_in_this_wave: true
+  inventory_and_ratchet_only: false
+  no_runtime_default_change_in_this_wave: false
   no_bulk_branded_import_rewrite: true
   no_host_visible_export_deletion: true
   approved_product_adapters:
@@ -14,6 +14,8 @@ policy:
   host_import_legacy_allowlist_max: 0
   note: Isolation guard already forbids /host/* outside generated; this wave tracks root/settings/http branded imports + product
     defaults.
+  product_defaults_removed: true
+  defaults_fail_closed: true
 metrics:
   api_workspace_package_deps: 13
   branded_import_sites: 82
@@ -22,7 +24,7 @@ metrics:
     generated: 51
     test: 18
     product-adapter: 2
-  product_default_sites: 2
+  product_default_sites: 0
   codegen_branded_script_files: 8
   host_source_unique_files: 11
 apps_api_workspace_deps:
@@ -39,19 +41,7 @@ apps_api_workspace_deps:
 - '@app-tour/workspace-sdk'
 - '@app-tour/workspace-starter'
 - '@app-tour/workspace-urban'
-product_defaults:
-- file: apps/api/src/canonical/migrate-canonical-workspace.service.ts
-  line: 112
-  match: workspaceType ?? "denali"
-  bucket: host-source
-  remediation: require-explicit-workspaceType-fail-closed
-  deferred_to: PSR-4b-defaults
-- file: apps/api/src/integrations/migration/tour-published-exposure-remap-plan.ts
-  line: 79
-  match: workspaceType ?? "denali"
-  bucket: host-source
-  remediation: require-explicit-workspaceType-fail-closed
-  deferred_to: PSR-4b-defaults
+product_defaults: []
 host_source_remediation_cohorts:
   approved-side-effect-import:
   - apps/api/src/app.ts
@@ -581,6 +571,7 @@ branded_imports:
 follow_on_slices:
 - id: PSR-4b-defaults
   work: Remove workspaceType ?? "denali" (2 sites); fail-closed
+  status: complete
 - id: PSR-4b-host-imports
   work: Move remaining host-source denali/urban imports to generated/settings/ports
 - id: PSR-4b-api-deps
@@ -589,3 +580,10 @@ follow_on_slices:
   work: Rename guest landing whyDenali to product-neutral section id in codegen+manifest
 - id: PSR-4b-exports
   work: Begin host-visible Denali export contraction (−9) with per-export proof from PSR-4a
+product_defaults_remediated:
+- file: apps/api/src/canonical/migrate-canonical-workspace.service.ts
+  was: workspaceType ?? "denali"
+  now: throw MIGRATE_CANONICAL_WORKSPACE_TYPE_REQUIRED
+- file: apps/api/src/integrations/migration/tour-published-exposure-remap-plan.ts
+  was: '`${workspaceType ?? "denali"}.telegram.TourPublished`'
+  now: throw TOUR_PUBLISHED_REMAP_WORKSPACE_TYPE_REQUIRED when profileId lacks .TourCreated suffix

@@ -1,10 +1,10 @@
-# Active documentation registry (PSR-4b API neutrality)
+# Active documentation registry (PSR-4b-defaults)
 # Sole machine registry for active authority. Absence ≠ delete; see DOC-META-001.
 schema_version: 1
 program_id: PSR-001
-wave: PSR-4b
+wave: PSR-4b-defaults
 updated: 2026-07-31
-verified_sha: d5b26181
+verified_sha: pending-psr-4b-defaults
 roles:
   - canonical
   - standard
@@ -20,6 +20,7 @@ notes:
   - PSR-3c removes two more docs-only aliases; phase archival is inventory-only.
   - PSR-4a classifies all 162 Denali exports; no export deletion in that wave.
   - PSR-4b inventories API branded imports + freezes two product-default sites.
+  - PSR-4b-defaults removes the two workspaceType ?? denali sites (fail-closed).
   - Phase pack trees remain on disk; bulk move to docs/archive is a follow-on slice.
   - Deferred PSR-0b dirty docs were committed in e9f9f930.
 documents:
@@ -41,7 +42,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: d5b26181
+    verified_sha: pending-psr-4b-defaults
     supersedes: []
     superseded_by: null
     evidence:
@@ -61,6 +62,7 @@ documents:
       - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml
       - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
+      - docs/audits/snapshots/2026-07-31/psr-4b-defaults.mdoc
 
   - id: DG-REM-001
     path: docs/architecture/denali-gravity-remediation.mdoc
@@ -369,3 +371,15 @@ documents:
     evidence:
       - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
       - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.mdoc
+
+  - id: PSR-4B-DEFAULTS
+    path: docs/audits/snapshots/2026-07-31/psr-4b-defaults.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: pending-psr-4b-defaults
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml

@@ -46,6 +46,16 @@ describe("migrate-canonical-denali.spec.ts (REQ-P6-017, RULE-P6-010)", () => {
     assert.equal(workspaceSupportsCanonicalMigration("denali"), true);
     assert.equal(workspaceSupportsCanonicalMigration("urban"), false);
   });
+
+  it("PSR-4b-defaults: migrateWorkspaceCanonicalForTenant requires workspaceType", async () => {
+    await assert.rejects(
+      () =>
+        migrateWorkspaceCanonicalForTenant({} as never, "tenant-x", {
+          allowlist: new Set(["tenant-x"]),
+        }),
+      /MIGRATE_CANONICAL_WORKSPACE_TYPE_REQUIRED/,
+    );
+  });
 });
 
 describe("migrate-canonical-denali integration", { skip: !hasDatabase, concurrency: false }, () => {
@@ -118,6 +128,7 @@ describe("migrate-canonical-denali integration", { skip: !hasDatabase, concurren
     const allowlist = new Set([allowlistedTenantId]);
     const result = await migrateWorkspaceCanonicalForTenant(admin, allowlistedTenantId, {
       allowlist,
+      workspaceType: "denali",
     });
 
     assert.equal(result.migratedTourIds.length, 1);
@@ -139,6 +150,7 @@ describe("migrate-canonical-denali integration", { skip: !hasDatabase, concurren
     const allowlist = new Set([allowlistedTenantId]);
     const result = await migrateWorkspaceCanonicalForTenant(admin, controlTenantId, {
       allowlist,
+      workspaceType: "denali",
     });
 
     assert.equal(result.migratedTourIds.length, 0);

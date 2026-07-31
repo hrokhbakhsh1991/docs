@@ -74,9 +74,17 @@ export function buildTourPublishedRemapUpsert(
 ): UpsertExposureIntentInput {
   const connectionId =
     typeof source.scope.connectionId === "string" ? source.scope.connectionId : undefined;
-  const profileId = source.profileId.endsWith(".TourCreated")
-    ? source.profileId.replace(/\.TourCreated$/, ".TourPublished")
-    : `${source.workspaceType ?? "denali"}.telegram.TourPublished`;
+  let profileId: string;
+  if (source.profileId.endsWith(".TourCreated")) {
+    profileId = source.profileId.replace(/\.TourCreated$/, ".TourPublished");
+  } else {
+    const workspaceType = source.workspaceType?.trim() ?? "";
+    if (workspaceType.length === 0) {
+      // PSR-4b-defaults: no product fallback — callers must supply workspaceType.
+      throw new Error("TOUR_PUBLISHED_REMAP_WORKSPACE_TYPE_REQUIRED");
+    }
+    profileId = `${workspaceType}.telegram.TourPublished`;
+  }
 
   return {
     tenantId: source.tenantId,

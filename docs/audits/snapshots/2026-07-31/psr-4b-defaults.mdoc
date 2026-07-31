@@ -1,0 +1,57 @@
+---
+id: PSR-4B-DEFAULTS
+title: PSR-4b-defaults product-default fail-closed
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending-psr-4b-defaults
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality.mdoc
+program_id: PSR-001
+wave: PSR-4b-defaults
+---
+
+# PSR-4b-defaults — remove `workspaceType ?? "denali"`
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| `migrateWorkspaceCanonicalForTenant` require explicit `workspaceType` | Yes |
+| `buildTourPublishedRemapUpsert` fail-closed without type on synthetic profileId | Yes |
+| Update callers/tests | Yes |
+| Host-import rewrites / export deletion | **No** (later slices) |
+
+## Changes
+
+| Site | Before | After |
+| --- | --- | --- |
+| `canonical/migrate-canonical-workspace.service.ts` | `options.workspaceType ?? "denali"` | throw `MIGRATE_CANONICAL_WORKSPACE_TYPE_REQUIRED` |
+| `integrations/migration/tour-published-exposure-remap-plan.ts` | `` `${workspaceType ?? "denali"}.telegram…` `` | throw `TOUR_PUBLISHED_REMAP_WORKSPACE_TYPE_REQUIRED` |
+
+`.TourCreated` → `.TourPublished` rewrite path unchanged (no default needed).
+
+## Tests
+
+- Unit: missing `workspaceType` rejects on migrate helper
+- Unit: synthetic remap profile without type throws
+- Integration migrate specs pass `workspaceType: "denali"` explicitly
+
+## Ratchet
+
+`psr-4b-api-neutrality-smoke.mjs` now enforces **0** `workspaceType ?? "denali"` in
+`apps/api/src` and empty `product_defaults` in the inventory YAML.
+
+## Exit gate
+
+| Check | Result |
+| --- | --- |
+| Zero `?? "denali"` product defaults in API src | required |
+| Fail-closed errors documented | required |
+| Host-source ceiling unchanged (11) | required |
+| No Denali export deletion | required |

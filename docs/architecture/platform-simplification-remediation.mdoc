@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: d5b26181
+verified_sha: pending-psr-4b-defaults
 supersedes: []
 superseded_by: null
 evidence:
@@ -26,8 +26,9 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml
   - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-defaults.mdoc
 program_id: PSR-001
-current_wave: PSR-4b-complete
+current_wave: PSR-4b-defaults-complete
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -37,32 +38,32 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b — بسته / inventory+ratchet)
+## 0. وضعیت موج جاری (PSR-4b-defaults — بسته)
 
 | Field | Value |
 | --- | --- |
-| Wave | **PSR-4b** — API/codegen/product-default neutrality inventory (**complete** for scoped slice) |
-| Exit gate | GREEN — ۸۲ import site؛ ۲ product-default فریز؛ بدون runtime rewrite |
+| Wave | **PSR-4b-defaults** — remove `workspaceType ?? "denali"` (**complete**) |
+| Exit gate | GREEN — صفر product-default در `apps/api/src`؛ fail-closed |
+| Snapshot | [`psr-4b-defaults.mdoc`](../audits/snapshots/2026-07-31/psr-4b-defaults.mdoc) |
+
+| Site | Result |
+| --- | --- |
+| `migrate-canonical-workspace.service.ts` | throw `MIGRATE_CANONICAL_WORKSPACE_TYPE_REQUIRED` |
+| `tour-published-exposure-remap-plan.ts` | throw `TOUR_PUBLISHED_REMAP_WORKSPACE_TYPE_REQUIRED` |
+| Ratchet | `product_defaults` ceiling = **0** |
+
+**عمداً خارج:** host-import rewrite؛ api package.json generate؛ whyDenali؛ export −۹.
+
+**Next:** PSR-4b-host-imports — shrink ۱۱ host-source branded import file.
+
+### 0.0 PSR-4b inventory (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b** — API neutrality inventory + ratchet (**complete**) |
 | Snapshot | [`psr-4b-api-neutrality.mdoc`](../audits/snapshots/2026-07-31/psr-4b-api-neutrality.mdoc) |
-| Machine map | [`psr-4b-api-neutrality-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml) |
-
-| Metric | Count |
-| --- | ---: |
-| Branded import sites | 82 (generated 51 / test 18 / adapter 2 / host-source 11) |
-| `?? "denali"` defaults | **2** (frozen ratchet) |
-| `apps/api` workspace deps | 13 (manual membership) |
-| `/host/*` allowlist max | **0** (unchanged) |
-
 | Land commit | `d5b26181` |
 | SHA close | `8514eab2` |
-
-**عمداً خارج از این slice:** fail-closed کردن defaults؛ rewrite فله‌ای host imports؛
-حذف export دنالی؛ generate کردن deps از manifest؛ rename `whyDenali`.
-
-**Follow-ons:** `PSR-4b-defaults` → `PSR-4b-host-imports` → `PSR-4b-api-deps` →
-`PSR-4b-whyDenali` → `PSR-4b-exports`.
-
-**Next program wave after 4b follow-ons:** PSR-5 — data authority / admin-access.
 
 ### 0.0 PSR-4a (بسته)
 
