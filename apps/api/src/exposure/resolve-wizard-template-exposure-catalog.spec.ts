@@ -48,7 +48,7 @@ describe("resolve-wizard-template-exposure-catalog", () => {
     assert.ok(programStep != null);
 
     const difficulty = wizardCatalog.find(
-      (field) => field.canonicalPath === "program.difficultyLevel",
+      (field) => field.canonicalPath === "program.difficultyLevel"
     );
     assert.equal(difficulty?.group, programStep.label);
   });
@@ -63,13 +63,15 @@ describe("resolve-wizard-template-exposure-catalog", () => {
         workspaceType: "denali",
         wizardTemplatePayload: payload,
       }),
-      [],
+      []
     );
   });
 
   it("only includes registry-backed fields", async () => {
     const payload = buildDenaliTenantWizardTemplatePayload();
-    const registryIds = new Set(await buildExposureFieldCatalog("denali").map((field) => field.id));
+    const registryIds = new Set(
+      (await buildExposureFieldCatalog("denali")).map((field) => field.id)
+    );
     const wizardCatalog = await buildWizardTemplateExposureCatalog({
       workspaceType: "denali",
       wizardTemplatePayload: payload,

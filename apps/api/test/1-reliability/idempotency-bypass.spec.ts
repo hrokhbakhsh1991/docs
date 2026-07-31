@@ -158,7 +158,8 @@ describe("1-reliability — idempotency bypass (security research)", () => {
       const tenantId = integrationTenantId();
       const store = new CreateCountingRepository();
       const service = new ToursService(
-        new CanonicalTourService(new TourStorageDbAdapter(store), new LegacyCanonicalAdapter())
+        new CanonicalTourService(new TourStorageDbAdapter(store), new LegacyCanonicalAdapter()),
+        { resolveWorkspaceType: async () => "starter" }
       );
       const auth = authForTenant(tenantId);
 

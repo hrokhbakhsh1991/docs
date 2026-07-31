@@ -2,8 +2,8 @@ import {
   createSessionCookieHelpers,
   SESSION_COOKIE_NAMES,
   type SessionCookieWriteOptions,
-} from "@app-cloud/session-client";
-import { resolveMemberSessionCookieDomain } from "@app-cloud/tenant-kernel";
+} from "@app-tour/session-client";
+import { resolveMemberSessionCookieDomain } from "@app-tour/tenant-kernel";
 
 export const SESSION_TOKEN_COOKIE = SESSION_COOKIE_NAMES.member;
 

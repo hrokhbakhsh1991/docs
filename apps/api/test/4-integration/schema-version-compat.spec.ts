@@ -236,7 +236,9 @@ describe("4-integration — schema version compatibility (memory)", () => {
       new TourStorageDbAdapter(store),
       new LegacyCanonicalAdapter()
     );
-    toursService = new ToursService(canonicalService);
+    toursService = new ToursService(canonicalService, {
+      resolveWorkspaceType: async () => "starter",
+    });
     listener = createRequestListener({ toursService });
   });
 
@@ -380,11 +382,11 @@ describe("4-integration — schema version compatibility (memory)", () => {
     assert.ok(after);
     assert.equal(
       (after.canonical.data?.basics as { title?: string } | undefined)?.title,
-      "PATCH partial — no details root",
+      "PATCH partial — no details root"
     );
     assert.equal(
       (after.canonical.data?.details as { summary?: string } | undefined)?.summary,
-      "seed",
+      "seed"
     );
   });
 

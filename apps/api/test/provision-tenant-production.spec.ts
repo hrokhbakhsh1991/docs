@@ -45,6 +45,10 @@ describe("Phase H2: assertProductionCertifiedWorkspaceType", () => {
     assert.doesNotThrow(() => assertProductionCertifiedWorkspaceType("denali"));
   });
 
+  it("allows harbor (certified G1 guest-only workspace)", () => {
+    assert.doesNotThrow(() => assertProductionCertifiedWorkspaceType("harbor"));
+  });
+
   it("rejects urban stub workspace", () => {
     assert.throws(
       () => assertProductionCertifiedWorkspaceType("urban"),

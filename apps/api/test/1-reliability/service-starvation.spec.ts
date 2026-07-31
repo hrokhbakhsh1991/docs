@@ -159,17 +159,17 @@ function runMicrotaskValidationBurst(tenantId: string, count: number): Promise<v
   return Promise.all(tasks).then(() => undefined);
 }
 
-function runSyncValidationBurst(tenantId: string, count: number): void {
+async function runSyncValidationBurst(tenantId: string, count: number): Promise<void> {
   for (let index = 0; index < count; index += 1) {
     await validateCanonicalBeforePersistSync(validationInput(tenantId, index));
   }
 }
 
 /** Timer-based stall detector — catches long synchronous stretches without setImmediate yields. */
-function measureSyncValidationStall(
+async function measureSyncValidationStall(
   tenantId: string,
   count: number
-): { readonly syncWallMs: number; readonly maxTimerGapMs: number } {
+): Promise<{ readonly syncWallMs: number; readonly maxTimerGapMs: number }> {
   let lastTick = performance.now();
   let maxTimerGapMs = 0;
   const timer = setInterval(() => {
@@ -179,7 +179,7 @@ function measureSyncValidationStall(
   }, 5);
 
   const syncStarted = performance.now();
-  runSyncValidationBurst(tenantId, count);
+  await runSyncValidationBurst(tenantId, count);
   const syncWallMs = performance.now() - syncStarted;
   maxTimerGapMs = Math.max(maxTimerGapMs, performance.now() - lastTick);
   clearInterval(timer);
@@ -329,7 +329,7 @@ describe("1-reliability — ToursService vs rule validation (event-loop starvati
 
     await new Promise<void>((resolve) => setImmediate(resolve));
 
-    const { syncWallMs, maxTimerGapMs } = measureSyncValidationStall(
+    const { syncWallMs, maxTimerGapMs } = await measureSyncValidationStall(
       validationTenant,
       SYNC_VALIDATION_BURST
     );

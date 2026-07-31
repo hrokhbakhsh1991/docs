@@ -34,7 +34,7 @@ function buildDenaliCanonicalShell(roots: readonly string[]): Record<string, unk
 describe("workspace-metadata-denali-parity", () => {
   it("DP-01 live export checksum matches denali-v1.json", async () => {
     const seed = loadDenaliSeedExport();
-    const live = buildLiveDenaliExport();
+    const live = await buildLiveDenaliExport();
     assert.equal(live.checksum, seed.checksum);
   });
 
@@ -47,7 +47,10 @@ describe("workspace-metadata-denali-parity", () => {
   it("DP-03 ruleSet matches package strip vs seed payload", async () => {
     const seed = loadDenaliSeedExport();
     const packagePlugin = await resolveWorkspacePluginForType("denali");
-    assert.deepEqual(stripDataSurfaces(packagePlugin).ruleSet, stripDataSurfacesFromPayload(seed.payload).ruleSet);
+    assert.deepEqual(
+      stripDataSurfaces(packagePlugin).ruleSet,
+      stripDataSurfacesFromPayload(seed.payload).ruleSet
+    );
   });
 
   it("DP-04 wizard roots railId wizardMode match package strip vs seed", async () => {

@@ -6,7 +6,10 @@ import {
   ExposureEnginePreviewInvalidQueryError,
   getExposureEnginePreview,
 } from "./exposure-engine-preview.service";
-import { resolveRegistrySeededExposureProfile, resolveDeliveryExposureProfileContext } from "./resolve-registry-seeded-exposure-profile";
+import {
+  resolveRegistrySeededExposureProfile,
+  resolveDeliveryExposureProfileContext,
+} from "./resolve-registry-seeded-exposure-profile";
 
 describe("getExposureEnginePreview", () => {
   it("rejects missing connectionId before loading integration", async () => {
@@ -14,9 +17,9 @@ describe("getExposureEnginePreview", () => {
       () =>
         getExposureEnginePreview(
           { tenantId: "tenant-a", userId: "user-a", roles: ["admin"] },
-          { connectionId: "", eventType: "TourCreated" },
+          { connectionId: "", eventType: "TourCreated" }
         ),
-      ExposureEnginePreviewInvalidQueryError,
+      ExposureEnginePreviewInvalidQueryError
     );
   });
 
@@ -25,9 +28,9 @@ describe("getExposureEnginePreview", () => {
       () =>
         getExposureEnginePreview(
           { tenantId: "tenant-a", userId: "user-a", roles: ["admin"] },
-          { connectionId: "conn-1", eventType: "" },
+          { connectionId: "conn-1", eventType: "" }
         ),
-      ExposureEnginePreviewInvalidQueryError,
+      ExposureEnginePreviewInvalidQueryError
     );
   });
 });
@@ -41,7 +44,7 @@ describe("buildDeterministicExposureEnginePreview", () => {
     });
     assert.ok(seededProfile !== null);
 
-    const preview = buildDeterministicExposureEnginePreview({
+    const preview = await buildDeterministicExposureEnginePreview({
       tenantId: "tenant-a",
       workspaceType: "starter",
       provider: "telegram",
@@ -56,7 +59,9 @@ describe("buildDeterministicExposureEnginePreview", () => {
       status: "published",
       title: "Engine preview",
     });
-    assert.ok(preview.summary.visibleCount + preview.summary.hiddenCount + preview.summary.blockedCount > 0);
+    assert.ok(
+      preview.summary.visibleCount + preview.summary.hiddenCount + preview.summary.blockedCount > 0
+    );
 
     const firstFieldId = fieldIds[0]!;
     const firstDecision = preview.fields[firstFieldId];

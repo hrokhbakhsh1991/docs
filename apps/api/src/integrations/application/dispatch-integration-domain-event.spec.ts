@@ -8,7 +8,10 @@ import {
   FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV,
 } from "./dispatch-integration-domain-event";
 import { getDefaultDeliveryFields } from "../platform/build-delivery-field-catalog";
-import type { IntegrationPolicyDecision, IntegrationPolicyEngine } from "./integration-policy-engine";
+import type {
+  IntegrationPolicyDecision,
+  IntegrationPolicyEngine,
+} from "./integration-policy-engine";
 import type { IntegrationDeliveryRepository } from "../infrastructure/prisma-integration-delivery.repository";
 import { NATIVE_EXPOSURE_INTENT_SOURCE } from "../../exposure/exposure-intent";
 import { resolveRegistrySeededExposureProfile } from "../../exposure/resolve-registry-seeded-exposure-profile";
@@ -21,9 +24,7 @@ import {
   resetMetricsRegistryForTests,
 } from "../../observability/metrics";
 
-function emptyDeliveryRepository(
-  enqueued: unknown[] = [],
-): IntegrationDeliveryRepository {
+function emptyDeliveryRepository(enqueued: unknown[] = []): IntegrationDeliveryRepository {
   return {
     async enqueueJob(input) {
       enqueued.push(input);
@@ -39,13 +40,13 @@ function emptyDeliveryRepository(
 }
 
 async function resolveSeededPersistedExposureProfile(
-  input: Parameters<typeof resolvePersistedExposureProfileForContext>[0],
+  input: Parameters<typeof resolvePersistedExposureProfileForContext>[0]
 ) {
   return await resolveRegistrySeededExposureProfile(input.context);
 }
 
 function dispatchDeps(
-  overrides: Parameters<typeof dispatchIntegrationDomainEvent>[1] = {},
+  overrides: Parameters<typeof dispatchIntegrationDomainEvent>[1] = {}
 ): Parameters<typeof dispatchIntegrationDomainEvent>[1] {
   const policyEngine =
     overrides.policyEngine === undefined
@@ -165,7 +166,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository: emptyDeliveryRepository(enqueuedShadowOff),
         resolveWorkspaceType: async () => "starter",
-      }),
+      })
     );
 
     process.env[FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV] = "true";
@@ -176,7 +177,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository: emptyDeliveryRepository(enqueuedShadowOn),
         resolveWorkspaceType: async () => "starter",
-      }),
+      })
     );
 
     const shadowOffPayload = (enqueuedShadowOff[0] as { payload: Record<string, unknown> }).payload;
@@ -184,7 +185,7 @@ describe("dispatch-integration-domain-event", () => {
 
     assert.deepEqual(
       deliverySelectionPayload(shadowOnPayload),
-      deliverySelectionPayload(shadowOffPayload),
+      deliverySelectionPayload(shadowOffPayload)
     );
   });
 
@@ -222,11 +223,11 @@ describe("dispatch-integration-domain-event", () => {
           policyEngine,
           deliveryRepository: emptyDeliveryRepository(),
           resolveWorkspaceType: async () => "starter",
-        }),
+        })
       );
 
       const summaries = infoCalls.filter(
-        (call) => call.event === "field_exposure.shadow_parity_summary",
+        (call) => call.event === "field_exposure.shadow_parity_summary"
       );
       assert.equal(summaries.length, 1);
       const mismatchCount = summaries[0]?.mismatchCount as number;
@@ -241,7 +242,7 @@ describe("dispatch-integration-domain-event", () => {
           event_type: "TourCreated",
           surface: "telegram",
         }) ?? 0,
-        mismatchCount > 0 ? mismatchCount : 0,
+        mismatchCount > 0 ? mismatchCount : 0
       );
     } finally {
       (logger.info as unknown as (...args: unknown[]) => void) = originalInfo;
@@ -281,7 +282,7 @@ describe("dispatch-integration-domain-event", () => {
         runFieldExposureDecisionEngineShadow: () => {
           throw new Error("shadow_failed");
         },
-      }),
+      })
     );
 
     assert.equal(count, 1);
@@ -321,7 +322,7 @@ describe("dispatch-integration-domain-event", () => {
         runFieldExposureDecisionEngineShadow: () => {
           shadowCalls += 1;
         },
-      }),
+      })
     );
 
     assert.equal(shadowCalls, 0);
@@ -368,7 +369,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository: emptyDeliveryRepository(enqueued),
         resolveWorkspaceType: async () => "denali",
-      }),
+      })
     );
 
     assert.equal(count, 2);
@@ -423,7 +424,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository: emptyDeliveryRepository(enqueued),
         resolveWorkspaceType: async () => "denali",
-      }),
+      })
     );
 
     assert.equal(count, 1);
@@ -483,7 +484,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository,
         resolveWorkspaceType: async () => "denali",
-      }),
+      })
     );
     const second = await dispatchIntegrationDomainEvent(
       row,
@@ -491,7 +492,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository,
         resolveWorkspaceType: async () => "denali",
-      }),
+      })
     );
 
     assert.equal(first, 1);
@@ -528,7 +529,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository: emptyDeliveryRepository(enqueued),
         resolveWorkspaceType: async () => "starter",
-      }),
+      })
     );
 
     const first = enqueued[0] as {
@@ -557,7 +558,7 @@ describe("dispatch-integration-domain-event", () => {
     };
     assert.deepEqual(
       first.payload.integrationDeliveryCandidateFieldIds,
-      first.payload.fieldExposureDecision.candidateFieldIds,
+      first.payload.fieldExposureDecision.candidateFieldIds
     );
     assert.equal(first.payload.fieldExposureShadow.parity.matches, true);
     assert.deepEqual(first.payload.fieldExposureRuntime, {
@@ -568,11 +569,11 @@ describe("dispatch-integration-domain-event", () => {
     });
     assert.equal(
       first.payload.fieldExposureShadow.renderedMessage,
-      formatIntegrationDeliveryMessage({
+      await formatIntegrationDeliveryMessage({
         workspaceType: "starter",
         eventType: "TourCreated",
         payload: first.payload as Record<string, unknown>,
-      }),
+      })
     );
     assert.equal(first.payload.fieldExposureShadow.parity.matches, true);
   });
@@ -609,7 +610,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository: emptyDeliveryRepository(enqueued),
         resolveWorkspaceType: async () => "denali",
-      }),
+      })
     );
 
     const first = enqueued[0] as {
@@ -654,7 +655,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository: emptyDeliveryRepository(enqueued),
         resolveWorkspaceType: async () => "denali",
-      }),
+      })
     );
 
     const first = enqueued[0] as {
@@ -663,7 +664,10 @@ describe("dispatch-integration-domain-event", () => {
         integrationDeliveryFieldValues?: Readonly<Record<string, string>>;
       };
     };
-    assert.deepEqual(first.payload.integrationDeliveryFieldIds, getDefaultDeliveryFields("denali"));
+    assert.deepEqual(
+      first.payload.integrationDeliveryFieldIds,
+      await getDefaultDeliveryFields("denali")
+    );
     assert.deepEqual(first.payload.integrationDeliveryFieldValues, { title: "Alpine Day" });
   });
 
@@ -695,7 +699,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository: emptyDeliveryRepository(enqueued),
         resolveWorkspaceType: async () => "denali",
-      }),
+      })
     );
 
     const first = enqueued[0] as {
@@ -741,7 +745,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository: emptyDeliveryRepository(enqueued),
         resolveWorkspaceType: async () => "denali",
-      }),
+      })
     );
 
     const first = enqueued[0] as {
@@ -819,7 +823,7 @@ describe("dispatch-integration-domain-event", () => {
           messageTemplate: null,
           definitions: [],
         }),
-      }),
+      })
     );
 
     const first = enqueued[0] as {
@@ -861,7 +865,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository: emptyDeliveryRepository(enqueued),
         resolveWorkspaceType: async () => "denali",
-      }),
+      })
     );
 
     const first = enqueued[0] as {
@@ -877,7 +881,7 @@ describe("dispatch-integration-domain-event", () => {
     assert.ok(Array.isArray(first.payload.fieldExposureDecision.engineSelectedFieldIds));
     assert.deepEqual(
       first.payload.integrationDeliveryFieldIds,
-      first.payload.fieldExposureDecision.engineSelectedFieldIds,
+      first.payload.fieldExposureDecision.engineSelectedFieldIds
     );
   });
 
@@ -932,7 +936,7 @@ describe("dispatch-integration-domain-event", () => {
             messageTemplate: null,
             definitions: [],
           }),
-        }),
+        })
       );
 
       const parity = infoCalls.find((call) => call.event === "field_exposure.selector_parity");
@@ -1009,7 +1013,7 @@ describe("dispatch-integration-domain-event", () => {
           messageTemplate: null,
           definitions: [],
         }),
-      }),
+      })
     );
 
     const first = enqueued[0] as {
@@ -1090,7 +1094,7 @@ describe("dispatch-integration-domain-event", () => {
           messageTemplate: null,
           definitions: [],
         }),
-      }),
+      })
     );
 
     const first = enqueued[0] as {
@@ -1159,7 +1163,7 @@ describe("dispatch-integration-domain-event", () => {
           messageTemplate: null,
           definitions: [],
         }),
-      }),
+      })
     );
 
     const first = enqueued[0] as {
@@ -1204,7 +1208,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository: emptyDeliveryRepository(enqueued),
         resolveWorkspaceType: async () => "denali",
-      }),
+      })
     );
 
     const first = enqueued[0] as { payload: { fieldExposureShadow?: unknown } };
@@ -1240,7 +1244,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository: emptyDeliveryRepository(enqueued),
         resolveWorkspaceType: async () => "denali",
-      }),
+      })
     );
 
     const first = enqueued[0] as {
@@ -1256,15 +1260,15 @@ describe("dispatch-integration-domain-event", () => {
 
     assert.deepEqual(
       first.payload.integrationDeliveryCandidateFieldIds,
-      first.payload.fieldExposureDecision.candidateFieldIds,
+      first.payload.fieldExposureDecision.candidateFieldIds
     );
+    const defaultDeliveryFields = await getDefaultDeliveryFields("denali");
     assert.ok(
-      first.payload.integrationDeliveryCandidateFieldIds.length >=
-        getDefaultDeliveryFields("denali").length,
+      first.payload.integrationDeliveryCandidateFieldIds.length >= defaultDeliveryFields.length
     );
     assert.deepEqual(
       first.payload.integrationDeliveryFieldIds,
-      first.payload.fieldExposureDecision.engineSelectedFieldIds,
+      first.payload.fieldExposureDecision.engineSelectedFieldIds
     );
   });
 
@@ -1296,7 +1300,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository: emptyDeliveryRepository(),
         resolveWorkspaceType: async () => "denali",
-      }),
+      })
     );
 
     assert.equal(
@@ -1308,7 +1312,7 @@ describe("dispatch-integration-domain-event", () => {
         selection_source: "exposure_profile_defaults",
         native_intent_missing: "true",
       }),
-      1,
+      1
     );
   });
 
@@ -1340,7 +1344,7 @@ describe("dispatch-integration-domain-event", () => {
         policyEngine,
         deliveryRepository: emptyDeliveryRepository(),
         resolveWorkspaceType: async () => "denali",
-      }),
+      })
     );
 
     assert.equal(
@@ -1352,7 +1356,7 @@ describe("dispatch-integration-domain-event", () => {
         selection_source: "native_exposure_intent",
         native_intent_missing: "false",
       }),
-      1,
+      1
     );
     assert.equal(
       metricsRegistry.getMetric("field_exposure_cutover_selection_total", {
@@ -1362,14 +1366,13 @@ describe("dispatch-integration-domain-event", () => {
         selection_source: "native_exposure_intent",
         native_intent_missing: "false",
       }),
-      1,
+      1
     );
   });
 
   it("wires recordFieldExposureShadowParityMismatch for shadow parity audit", async () => {
-    const { resolveShadowDeliveryFieldParity } = await import(
-      "../../exposure/shadow-delivery-field-parity"
-    );
+    const { resolveShadowDeliveryFieldParity } =
+      await import("../../exposure/shadow-delivery-field-parity");
     const parity = resolveShadowDeliveryFieldParity({
       shadow: {
         candidateFieldIds: ["title"],
@@ -1398,12 +1401,12 @@ describe("dispatch-integration-domain-event", () => {
         provider: "telegram",
         mismatch_count: "1",
       }),
-      1,
+      1
     );
   });
 
   it("keeps Telegram formatter output unchanged for eligible field placeholders", async () => {
-    const message = formatIntegrationDeliveryMessage({
+    const message = await formatIntegrationDeliveryMessage({
       workspaceType: "denali",
       eventType: "TourCreated",
       payload: {

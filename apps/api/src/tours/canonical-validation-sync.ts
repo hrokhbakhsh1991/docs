@@ -138,6 +138,8 @@ function createValidationEngineFromPlugin(plugin: WorkspacePlugin): PlatformWiza
     publicCatalog: _publicCatalog,
     wizardHost: _wizardHost,
     draftTombstone: _draftTombstone,
+    // Capability bag includes ensureReady hooks — PlatformWizardEngine ingress rejects functions.
+    capabilities: _capabilities,
     ...pluginForEngine
   } = plugin;
   return PlatformWizardEngine.create(pluginForEngine);

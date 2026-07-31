@@ -26,9 +26,8 @@ import type { UpdateTourBody } from "./update-tour.schema";
  * HTTP ingress validates JSON + Zod at the route boundary ({@link readTourRequestBody} + schema parsers).
  */
 export type ToursServiceDeps = {
-  readonly resolveCommerce?: (
-    tenantId: string
-  ) => Promise<WorkspaceCommerceConfig>;
+  readonly resolveCommerce?: (tenantId: string) => Promise<WorkspaceCommerceConfig>;
+  readonly resolveWorkspaceType?: (tenantId: string) => Promise<string>;
 };
 
 export class ToursService {
@@ -37,19 +36,28 @@ export class ToursService {
     private readonly deps: ToursServiceDeps = {}
   ) {}
 
+  resolveWorkspaceType(tenantId: string): Promise<string> {
+    const resolve = this.deps.resolveWorkspaceType ?? resolveWorkspaceTypeForTenant;
+    return resolve(tenantId);
+  }
+
   async createTour(auth: TenantAuthContext, body: CreateTourBody): Promise<TourRecord> {
     const ability = createApiAbility(auth);
 
     assertTenantClaimMatchesAuth(body.tenantId, auth);
 
-    const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
+    const workspaceType = await this.resolveWorkspaceType(auth.tenantId);
     const featureFlags = await resolveTenantFeatureFlags(auth.tenantId);
     const validationVariant = validationVariantForFeatureFlags(featureFlags);
     const resolveCommerce =
       this.deps.resolveCommerce ?? resolveWorkspaceCommerceConfigForTenantById;
     const commerce = await resolveCommerce(auth.tenantId);
     assertWorkspaceCommerceGatewayActivationAllowed(commerce);
-    const bodyWithCommerce = applyWorkspaceCommerceDefaultToCreateBody(workspaceType, body, commerce);
+    const bodyWithCommerce = applyWorkspaceCommerceDefaultToCreateBody(
+      workspaceType,
+      body,
+      commerce
+    );
     return this.canonical.writeTour({
       ability,
       tenantId: auth.tenantId,
@@ -110,7 +118,7 @@ export class ToursService {
     body: UpdateTourBody
   ): Promise<TourRecord> {
     const ability = createApiAbility(auth);
-    const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
+    const workspaceType = await this.resolveWorkspaceType(auth.tenantId);
     const featureFlags = await resolveTenantFeatureFlags(auth.tenantId);
     const validationVariant = validationVariantForFeatureFlags(featureFlags);
     const resolveCommerce =

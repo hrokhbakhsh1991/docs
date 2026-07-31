@@ -14,6 +14,10 @@ import {
 import { getActiveTenantId } from "../tenant/tenant-request-context";
 import { integrationTenantId } from "../../test/test-helpers";
 
+const TEST_CONTEXT_OPTIONS = {
+  resolveWorkspaceType: async () => "starter",
+} as const;
+
 function fakeAuth(tenantId: string): TenantAuthContext {
   return {
     tenantId,
@@ -31,9 +35,14 @@ describe("runWithHttpRequestContext trace bind (TRACE-REGEN-01 / DEC-044)", () =
 
     await runWithTraceContext(outerTrace, async () => {
       const req = { headers: {} } as IncomingMessage;
-      await runWithHttpRequestContext(req, fakeAuth(integrationTenantId()), async () => {
-        innerTraceIds.push(requireActiveTraceId());
-      });
+      await runWithHttpRequestContext(
+        req,
+        fakeAuth(integrationTenantId()),
+        async () => {
+          innerTraceIds.push(requireActiveTraceId());
+        },
+        TEST_CONTEXT_OPTIONS
+      );
       assert.equal(getActiveTraceId(), outerTrace, "outer trace must survive inner bind");
     });
 
@@ -47,9 +56,14 @@ describe("runWithHttpRequestContext trace bind (TRACE-REGEN-01 / DEC-044)", () =
       headers: { "x-correlation-id": headerTrace },
     } as IncomingMessage;
 
-    await runWithHttpRequestContext(req, fakeAuth(integrationTenantId()), async () => {
-      assert.equal(requireActiveTraceId(), headerTrace);
-    });
+    await runWithHttpRequestContext(
+      req,
+      fakeAuth(integrationTenantId()),
+      async () => {
+        assert.equal(requireActiveTraceId(), headerTrace);
+      },
+      TEST_CONTEXT_OPTIONS
+    );
 
     assert.equal(getActiveTraceId(), undefined, "trace ALS must clear after bind settles");
   });
@@ -59,11 +73,16 @@ describe("runWithHttpRequestContext trace bind (TRACE-REGEN-01 / DEC-044)", () =
     const snapshots: Array<string | undefined> = [];
     const req = { headers: {} } as IncomingMessage;
 
-    await runWithHttpRequestContext(req, fakeAuth(tenantId), async () => {
-      snapshots.push(getActiveTenantId());
-      await Promise.resolve();
-      snapshots.push(getActiveTenantId());
-    });
+    await runWithHttpRequestContext(
+      req,
+      fakeAuth(tenantId),
+      async () => {
+        snapshots.push(getActiveTenantId());
+        await Promise.resolve();
+        snapshots.push(getActiveTenantId());
+      },
+      TEST_CONTEXT_OPTIONS
+    );
 
     assert.deepEqual(snapshots, [tenantId, tenantId]);
   });

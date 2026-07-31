@@ -21,9 +21,11 @@ describe("resolveDeliveryExposureProfileContext", () => {
 });
 
 describe("Denali telegram tour published profile parity", () => {
-  it("matches documented telegram_tour_published slug and template seed", () => {
-    const selectableIds = buildExposureSelectableFieldCatalog("denali").map((field) => field.id);
-    const profile = resolveRegistrySeededExposureProfile({
+  it("matches documented telegram_tour_published slug and template seed", async () => {
+    const selectableIds = (await buildExposureSelectableFieldCatalog("denali")).map(
+      (field) => field.id
+    );
+    const profile = await resolveRegistrySeededExposureProfile({
       workspaceType: "denali",
       ...resolveDeliveryExposureProfileContext("TourPublished"),
       entityType: "tour",

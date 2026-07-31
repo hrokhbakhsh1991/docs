@@ -123,7 +123,7 @@ describe("mapExposurePolicyForEngine", () => {
       {
         allowedFieldIds: ["details.summary"],
         profileId: "profile-1",
-      },
+      }
     );
 
     assert.equal(
@@ -138,14 +138,14 @@ describe("mapExposurePolicyForEngine", () => {
           version: "1",
         },
       }),
-      undefined,
+      undefined
     );
   });
 });
 
 describe("buildFieldExposureEngineDecisionMap", () => {
   it("applies override_fields intent constraints in engine decisions", async () => {
-    const decisions = buildFieldExposureEngineDecisionMap({
+    const decisions = await buildFieldExposureEngineDecisionMap({
       tenantId: "tenant-a",
       workspaceType: "starter",
       eventType: "TourCreated",
@@ -167,7 +167,7 @@ describe("buildFieldExposureEngineDecisionMap", () => {
   });
 
   it("applies profile defaultFieldIds for inherit_profile engine decisions", async () => {
-    const decisions = buildFieldExposureEngineDecisionMap({
+    const decisions = await buildFieldExposureEngineDecisionMap({
       tenantId: "tenant-a",
       workspaceType: "starter",
       eventType: "TourCreated",
@@ -192,7 +192,7 @@ describe("buildFieldExposureEngineDecisionMap", () => {
   });
 
   it("normalizes effective trigger when building decision maps", async () => {
-    const decisions = buildFieldExposureEngineDecisionMap({
+    const decisions = await buildFieldExposureEngineDecisionMap({
       tenantId: "tenant-a",
       workspaceType: "starter",
       eventType: "TourCreated",

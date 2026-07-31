@@ -23,6 +23,8 @@ export type HttpRequestContextOptions = {
   readonly rateLimit?: boolean | TenantRateLimitTier;
   /** Cap concurrent in-flight POST /tours per tenant (DEC-064 / SCAL-DEBT-09). */
   readonly tourWriteConcurrency?: boolean;
+  /** Optional route-composition resolver; production defaults to the tenant registry. */
+  readonly resolveWorkspaceType?: (tenantId: string) => Promise<string>;
 };
 
 /**
@@ -49,8 +51,9 @@ export async function runWithHttpRequestContext<T>(
       : undefined;
 
   const executeWithinTenantContext = async (): Promise<T> => {
+    const resolveWorkspaceType = options?.resolveWorkspaceType ?? resolveWorkspaceTypeForTenant;
     const [workspaceType, tenantRoute] = await Promise.all([
-      resolveWorkspaceTypeForTenant(auth.tenantId),
+      resolveWorkspaceType(auth.tenantId),
       getTenantConnectionRouter().resolveRoute(auth.tenantId),
     ]);
 

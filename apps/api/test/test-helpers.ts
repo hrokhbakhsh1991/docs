@@ -19,6 +19,10 @@ import { resetTenantRouteLookupCacheForTests } from "../src/tenant/tenant-route-
 import { resetTenantRegistryCacheForTests } from "../src/tenant/tenant-registry-cache";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { ToursService } from "../src/tours/tours.service";
+import {
+  resolveWorkspaceTypeForTenant,
+  WORKSPACE_TYPE_UNRESOLVED,
+} from "../src/tenant/resolve-workspace-type";
 
 /**
  * Postgres integration tenant id — UUID v4 whose first hex digit is a letter (platform-core RuleContext).
@@ -40,7 +44,22 @@ export function createTestToursService(
     store.ensureUrbanPhase81PublishedTour();
   }
   return new ToursService(
-    new CanonicalTourService(new TourStorageDbAdapter(store), new LegacyCanonicalAdapter())
+    new CanonicalTourService(new TourStorageDbAdapter(store), new LegacyCanonicalAdapter()),
+    {
+      resolveWorkspaceType: async (tenantId) => {
+        try {
+          return await resolveWorkspaceTypeForTenant(tenantId);
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            error.message === `${WORKSPACE_TYPE_UNRESOLVED}:${tenantId}`
+          ) {
+            return "starter";
+          }
+          throw error;
+        }
+      },
+    }
   );
 }
 

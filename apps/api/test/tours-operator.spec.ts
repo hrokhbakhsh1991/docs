@@ -8,6 +8,7 @@ import { before, describe, it } from "node:test";
 import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
 
 import { createRequestListener } from "../src/app";
+import { DENALI_CLUB_DEV_PUBLISHED_TOUR_ID } from "../src/fixtures/operator-smoke-published-tour.fixture";
 import { OPERATOR_SMOKE } from "./fixtures/operator-smoke-e2e-tenant";
 import {
   operatorAuthHeaders,
@@ -244,11 +245,11 @@ describe("tours-operator.spec.ts — Phase 9.3 API", () => {
   it("API-9.3-03 GET /tours/:id seeds denali memory smoke tour without prior list (FE-14/TR-09)", async () => {
     const detail = await client.requestJson<OperatorListResponse>(
       "GET",
-      `/tours/${OPERATOR_SMOKE.seedTourId}`,
+      `/tours/${DENALI_CLUB_DEV_PUBLISHED_TOUR_ID}`,
       { headers: denaliSmokeAuthHeaders() }
     );
     assert.equal(detail.status, 200);
-    assert.equal(detail.body.id, OPERATOR_SMOKE.seedTourId);
+    assert.equal(detail.body.id, DENALI_CLUB_DEV_PUBLISHED_TOUR_ID);
     assert.equal(detail.body.tenantId, DENALI_SMOKE_TENANT_ID);
     assert.equal(typeof detail.body.projection, "object");
   });

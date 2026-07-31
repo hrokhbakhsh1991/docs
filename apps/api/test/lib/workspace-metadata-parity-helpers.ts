@@ -22,7 +22,7 @@ export function loadDenaliSeedExport(): WorkspaceDefinitionExportFile {
   return parseWorkspaceDefinitionExportFile(raw);
 }
 
-export function buildLiveDenaliExport(): WorkspaceDefinitionExportFile {
+export async function buildLiveDenaliExport(): Promise<WorkspaceDefinitionExportFile> {
   const plugin = await resolveWorkspacePluginForType("denali");
   return buildWorkspaceDefinitionExport({
     plugin,
@@ -42,7 +42,9 @@ export function stripDataSurfaces(plugin: WorkspacePlugin): {
   };
 }
 
-export function stripDataSurfacesFromPayload(payload: ReturnType<typeof stripWorkspacePluginToDefinitionPayload>) {
+export function stripDataSurfacesFromPayload(
+  payload: ReturnType<typeof stripWorkspacePluginToDefinitionPayload>
+) {
   return {
     fieldRegistry: payload.fieldRegistry,
     ruleSet: payload.ruleSet,

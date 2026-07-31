@@ -4,8 +4,8 @@ import { describe, it } from "node:test";
 import { buildWorkspaceIntegrationSurfaceMeta } from "./integration-surface-meta";
 
 describe("integration surface meta", () => {
-  it("exposes Denali provider fields without secret values", () => {
-    const meta = buildWorkspaceIntegrationSurfaceMeta("denali");
+  it("exposes Denali provider fields without secret values", async () => {
+    const meta = await buildWorkspaceIntegrationSurfaceMeta("denali");
     const telegram = meta.providers.find((provider) => provider.id === "telegram");
 
     assert.ok(telegram);
@@ -16,7 +16,9 @@ describe("integration surface meta", () => {
       { id: "botToken", kind: "secret", requiredOnCreate: true },
     ]);
     assert.deepEqual(telegram.defaultCapabilities, ["message.send"]);
-    assert.deepEqual(telegram.defaultEventPolicies, [{ eventType: "TourPublished", enabled: true }]);
+    assert.deepEqual(telegram.defaultEventPolicies, [
+      { eventType: "TourPublished", enabled: true },
+    ]);
 
     const catalogIds = meta.exposureCandidateFields.map((field) => field.id);
     assert.ok(catalogIds.includes("title"));
@@ -25,12 +27,12 @@ describe("integration surface meta", () => {
     assert.equal(
       (meta as Record<string, unknown>).deliveryCandidateFields,
       undefined,
-      "Phase 7g: legacy delivery alias must not be emitted",
+      "Phase 7g: legacy delivery alias must not be emitted"
     );
   });
 
-  it("returns no providers for workspaces without an integration surface", () => {
-    assert.deepEqual(buildWorkspaceIntegrationSurfaceMeta("starter"), {
+  it("returns no providers for workspaces without an integration surface", async () => {
+    assert.deepEqual(await buildWorkspaceIntegrationSurfaceMeta("starter"), {
       workspaceType: "starter",
       providers: [],
       exposureCandidateFields: [],

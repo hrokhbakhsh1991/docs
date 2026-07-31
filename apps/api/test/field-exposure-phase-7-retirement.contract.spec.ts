@@ -12,7 +12,7 @@ const GUARD_SCRIPT = join(REPO_ROOT, "scripts/guards/field-exposure-phase-7-guar
 const SCHEMA = join(REPO_ROOT, "apps/api/prisma/schema.prisma");
 const SURFACE_META = join(
   REPO_ROOT,
-  "apps/api/src/integrations/platform/integration-surface-meta.ts",
+  "apps/api/src/integrations/platform/integration-surface-meta.ts"
 );
 const WEB_TYPES = join(REPO_ROOT, "apps/web/src/integrations/integrations-types.ts");
 const EXPOSURE_PAGE = join(REPO_ROOT, "apps/web/app/(app)/settings/exposure/page.tsx");
@@ -31,22 +31,25 @@ describe("field exposure phase 7 retirement contract (7e–7i)", () => {
     const schema = readFileSync(SCHEMA, "utf8");
     const model = schema.match(/model IntegrationEventPolicy \{[\s\S]*?\n\}/)?.[0] ?? "";
     assert.ok(model.length > 0, "IntegrationEventPolicy model must exist");
-    assert.doesNotMatch(model, /selected_field_ids|selectedFieldIds|message_template|messageTemplate/);
+    assert.doesNotMatch(
+      model,
+      /selected_field_ids|selectedFieldIds|message_template|messageTemplate/
+    );
     assert.doesNotMatch(schema, /model IntegrationDeliveryIntent/);
   });
 
-  it("7f — integration surface-meta serves the exposure-owned catalog", () => {
+  it("7f — integration surface-meta serves the exposure-owned catalog", async () => {
     const source = readFileSync(SURFACE_META, "utf8");
     assert.match(source, /buildExposureSelectableFieldCatalog/);
 
-    const meta = buildWorkspaceIntegrationSurfaceMeta("denali");
+    const meta = await buildWorkspaceIntegrationSurfaceMeta("denali");
     const ids = meta.exposureCandidateFields.map((field) => field.id);
     assert.ok(ids.includes("title"));
     assert.ok(ids.includes("denali.destination"));
   });
 
-  it("7g — deliveryCandidateFields alias is removed from API response", () => {
-    const meta = buildWorkspaceIntegrationSurfaceMeta("denali") as Record<string, unknown>;
+  it("7g — deliveryCandidateFields alias is removed from API response", async () => {
+    const meta = (await buildWorkspaceIntegrationSurfaceMeta("denali")) as Record<string, unknown>;
     assert.equal(meta.deliveryCandidateFields, undefined);
     assert.ok(Array.isArray(meta.exposureCandidateFields));
   });

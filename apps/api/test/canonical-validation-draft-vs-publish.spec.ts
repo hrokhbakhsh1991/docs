@@ -8,9 +8,7 @@ import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import {
-  projectDenaliWizardFormToCanonicalIngressData,
-} from "@app-tour/workspace-denali";
+import { projectDenaliWizardFormToCanonicalIngressData } from "@app-tour/workspace-denali";
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali";
 import { stripWorkspacePluginToDefinitionPayload } from "@app-tour/workspace-sdk/metadata";
 
@@ -91,7 +89,8 @@ describe("canonical-validation-draft-vs-publish (P5-B VAL-01..03)", () => {
     const form = loadGoldenForm("tour-minimal.json");
     (form.basicInfo as Record<string, unknown>).publishStatus = "active";
 
-    await assert.rejects(() =>
+    await assert.rejects(
+      () =>
         validateCanonicalBeforePersistSync({
           tenantId: "val-02b-tenant",
           workspaceType: "denali",
@@ -120,16 +119,8 @@ describe("canonical-validation-draft-vs-publish (P5-B VAL-01..03)", () => {
       data,
     });
 
-    const packageViolation = runValidationModePublishGate(
-      packagePlugin,
-      document,
-      "publish"
-    );
-    const metadataViolation = runValidationModePublishGate(
-      metadataPlugin,
-      document,
-      "publish"
-    );
+    const packageViolation = runValidationModePublishGate(packagePlugin, document, "publish");
+    const metadataViolation = runValidationModePublishGate(metadataPlugin, document, "publish");
 
     assert.ok(packageViolation != null);
     assert.equal(metadataViolation?.code, packageViolation?.code);
@@ -146,7 +137,10 @@ describe("canonical-validation-draft-vs-publish (P5-B VAL-01..03)", () => {
       validationMode: "publish",
     });
 
-    assert.equal((document.data as Record<string, unknown>).title, "صعود به قله دماوند - جبهه جنوبی");
+    assert.equal(
+      (document.data as Record<string, unknown>).title,
+      "صعود به قله دماوند - جبهه جنوبی"
+    );
   });
 
   it("VAL-05 INV-DENALI-INGRESS-002 — scalar composite rich storage passes engine filter", async () => {
@@ -161,8 +155,8 @@ describe("canonical-validation-draft-vs-publish (P5-B VAL-01..03)", () => {
     const participantRequirements = form.participantRequirements as Record<string, unknown>;
     participantRequirements.minRequiredPeaks = 3;
 
-    assert.doesNotThrow(() =>
-      await validateCanonicalBeforePersistSync({
+    await assert.doesNotReject(() =>
+      validateCanonicalBeforePersistSync({
         tenantId: "val-05-tenant",
         workspaceType: "denali",
         body: denaliCreateBody(form),
@@ -182,10 +176,7 @@ describe("canonical-validation-draft-vs-publish (P5-B VAL-01..03)", () => {
     });
 
     assert.equal(
-      resolveValidationMode(
-        { tenantId: "t", workspaceType: "denali", body },
-        document
-      ),
+      resolveValidationMode({ tenantId: "t", workspaceType: "denali", body }, document),
       "publish"
     );
   });

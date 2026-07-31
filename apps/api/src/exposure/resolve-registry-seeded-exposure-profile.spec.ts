@@ -22,12 +22,14 @@ describe("resolveRegistrySeededExposureProfile", () => {
         audience: "external_channel",
         trigger: "TourCreated",
       }),
-      null,
+      null
     );
   });
 
   it("seeds Denali telegram TourPublished defaults from deliverable registry tags", async () => {
-    const selectableIds = await buildExposureSelectableFieldCatalog("denali").map((field) => field.id);
+    const selectableIds = (await buildExposureSelectableFieldCatalog("denali")).map(
+      (field) => field.id
+    );
     const profile = await resolveRegistrySeededExposureProfile({
       workspaceType: "denali",
       entityType: "tour",
@@ -44,7 +46,7 @@ describe("resolveRegistrySeededExposureProfile", () => {
     assert.equal(profile?.defaultTemplateId, "Tour published: {{title}}");
     assert.equal(
       `${profile?.workspaceType}.${profile?.surface}.${profile?.trigger}`,
-      "denali.telegram.TourPublished",
+      "denali.telegram.TourPublished"
     );
     assert.equal(DENALI_TELEGRAM_TOUR_PUBLISHED_PROFILE_SLUG, "telegram_tour_published");
   });
@@ -52,7 +54,7 @@ describe("resolveRegistrySeededExposureProfile", () => {
   it("resolveExposureProfileDefaultFieldIds matches legacy deliverable defaults", async () => {
     assert.deepEqual(
       await resolveExposureProfileDefaultFieldIds("denali"),
-      await buildExposureSelectableFieldCatalog("denali").map((field) => field.id),
+      (await buildExposureSelectableFieldCatalog("denali")).map((field) => field.id)
     );
     assert.deepEqual(await resolveExposureProfileDefaultFieldIds("starter"), [
       "basics.title",
@@ -61,7 +63,7 @@ describe("resolveRegistrySeededExposureProfile", () => {
   });
 
   it("resolveExposureRequestedFieldIds prefers admin selection over profile defaults", async () => {
-    const defaults = await buildExposureSelectableFieldCatalog("denali").map((field) => field.id);
+    const defaults = (await buildExposureSelectableFieldCatalog("denali")).map((field) => field.id);
     assert.deepEqual(await resolveExposureRequestedFieldIds(["title"], "denali"), ["title"]);
     assert.deepEqual(await resolveExposureRequestedFieldIds(null, "denali"), defaults);
     assert.deepEqual(await resolveExposureRequestedFieldIds(undefined, "denali"), defaults);

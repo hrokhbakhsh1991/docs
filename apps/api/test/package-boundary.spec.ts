@@ -16,6 +16,7 @@ const ALLOWED_RUNTIME_DEPS = new Set([
   "@app-tour/platform-core",
   "@app-tour/platform-events",
   "@app-tour/tenant-kernel",
+  "@app-tour/workspace-acme",
   "@app-tour/workspace-booking-ws2",
   "@app-tour/workspace-denali",
   "@app-tour/workspace-finance-ws2",

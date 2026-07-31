@@ -9,9 +9,7 @@ import {
 import { sendJson } from "../http/json";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
 import { requireOperatorSession } from "../identity/require-operator-session";
-import {
-  resolveTenantContextFromRequest,
-} from "../tenant-kernel/tenant-kernel";
+import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import {
   assertTourPublishFieldOwner,
@@ -29,7 +27,18 @@ import { parseUpdateTourBody } from "./update-tour.schema";
 
 export type ToursRouteDeps = {
   readonly toursService: ToursService;
+  readonly resolveWorkspaceType?: (tenantId: string) => Promise<string>;
 };
+
+function resolveRouteWorkspaceType(deps: ToursRouteDeps, tenantId: string): Promise<string> {
+  if (deps.resolveWorkspaceType !== undefined) {
+    return deps.resolveWorkspaceType(tenantId);
+  }
+  if (typeof deps.toursService.resolveWorkspaceType === "function") {
+    return deps.toursService.resolveWorkspaceType(tenantId);
+  }
+  return resolveWorkspaceTypeForTenant(tenantId);
+}
 
 export async function handleCreateTour(
   req: IncomingMessage,
@@ -70,7 +79,11 @@ export async function handleCreateTour(
         );
         sendJson(res, 201, responseBody);
       },
-      { rateLimit: "write", tourWriteConcurrency: true }
+      {
+        rateLimit: "write",
+        tourWriteConcurrency: true,
+        resolveWorkspaceType: (tenantId) => resolveRouteWorkspaceType(deps, tenantId),
+      }
     );
   } catch (error) {
     handleHttpError(res, error);
@@ -87,7 +100,7 @@ export async function handlePatchTour(
     const { parsedBody } = await readTourRequestBody(req);
     const body = parseUpdateTourBody(parsedBody);
     const auth = await resolveTenantContextFromRequest(req);
-    const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
+    const workspaceType = await resolveRouteWorkspaceType(deps, auth.tenantId);
     if (auth.role === "member" && operatorMemberTourPatchForbidden(workspaceType)) {
       sendHttpError(res, 403, { error: "forbidden", code: "OPERATOR_TOUR_WRITE_FORBIDDEN" });
       return;
@@ -115,7 +128,10 @@ export async function handlePatchTour(
           rowVersion: record.rowVersion,
         });
       },
-      { rateLimit: "write" }
+      {
+        rateLimit: "write",
+        resolveWorkspaceType: (tenantId) => resolveRouteWorkspaceType(deps, tenantId),
+      }
     );
   } catch (error) {
     handleHttpError(res, error);
@@ -140,7 +156,10 @@ export async function handleListTours(
           const result = await deps.toursService.listTours(auth, query);
           sendJson(res, 200, result);
         },
-        { rateLimit: "read" }
+        {
+          rateLimit: "read",
+          resolveWorkspaceType: (tenantId) => resolveRouteWorkspaceType(deps, tenantId),
+        }
       );
       return;
     }
@@ -159,7 +178,10 @@ export async function handleListTours(
         const result = await deps.toursService.listToursOperator(auth, operatorQuery);
         sendJson(res, 200, result);
       },
-      { rateLimit: "read" }
+      {
+        rateLimit: "read",
+        resolveWorkspaceType: (tenantId) => resolveRouteWorkspaceType(deps, tenantId),
+      }
     );
   } catch (error) {
     handleHttpError(res, error);
@@ -188,7 +210,11 @@ export async function handleCloneTour(
           canonical: record.canonical,
         });
       },
-      { rateLimit: "write", tourWriteConcurrency: true }
+      {
+        rateLimit: "write",
+        tourWriteConcurrency: true,
+        resolveWorkspaceType: (tenantId) => resolveRouteWorkspaceType(deps, tenantId),
+      }
     );
   } catch (error) {
     handleHttpError(res, error);
@@ -214,7 +240,10 @@ export async function handleGetTour(
         }
         sendJson(res, 200, detail);
       },
-      { rateLimit: "read" }
+      {
+        rateLimit: "read",
+        resolveWorkspaceType: (tenantId) => resolveRouteWorkspaceType(deps, tenantId),
+      }
     );
   } catch (error) {
     handleHttpError(res, error);

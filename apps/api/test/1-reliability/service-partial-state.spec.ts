@@ -130,7 +130,8 @@ function createPartialStateHarness(): PartialStateHarness {
   const store = new FaultAfterValidationRepository();
   const legacy = new LegacyCanonicalAdapter();
   const service = new ToursService(
-    new CanonicalTourService(new TourStorageDbAdapter(store), legacy)
+    new CanonicalTourService(new TourStorageDbAdapter(store), legacy),
+    { resolveWorkspaceType: async () => "starter" }
   );
   const capturedEvents: DomainEventEnvelope<TourCreatedPayload>[] = [];
   subscribeDomainEvent<TourCreatedPayload>("TourCreated", (evt) => {
@@ -297,7 +298,8 @@ describe("1-reliability — ToursService partial state (validation → persist f
     const tenantId = integrationTenantId();
     const store = new CreateCountingRepository();
     const service = new ToursService(
-      new CanonicalTourService(new TourStorageDbAdapter(store), new LegacyCanonicalAdapter())
+      new CanonicalTourService(new TourStorageDbAdapter(store), new LegacyCanonicalAdapter()),
+      { resolveWorkspaceType: async () => "starter" }
     );
 
     await service.createTour(authForTenant(tenantId), { ...VALID_TOUR_BODY });

@@ -56,17 +56,16 @@ import { resolveIntegrationDispatchPayload } from "./resolve-integration-dispatc
 export const FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV =
   "FIELD_EXPOSURE_DECISION_ENGINE_SHADOW" as const;
 
-export const FIELD_EXPOSURE_ENGINE_FAIL_CLOSED_ENV =
-  "FIELD_EXPOSURE_ENGINE_FAIL_CLOSED" as const;
+export const FIELD_EXPOSURE_ENGINE_FAIL_CLOSED_ENV = "FIELD_EXPOSURE_ENGINE_FAIL_CLOSED" as const;
 
 export function isFieldExposureEngineFailClosedEnabled(
-  value: string | null | undefined = process.env[FIELD_EXPOSURE_ENGINE_FAIL_CLOSED_ENV],
+  value: string | null | undefined = process.env[FIELD_EXPOSURE_ENGINE_FAIL_CLOSED_ENV]
 ): boolean {
   return value?.trim().toLowerCase() === "true";
 }
 
 export function isFieldExposureDecisionEngineShadowEnabled(
-  value: string | null | undefined = process.env[FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV],
+  value: string | null | undefined = process.env[FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV]
 ): boolean {
   return value?.trim().toLowerCase() === "true";
 }
@@ -99,9 +98,9 @@ async function resolveForwardEngineDecisionMap(input: {
   return buildFieldExposureEngineDecisionMap(input);
 }
 
-export function runForwardFieldExposureDecisionEngineShadow(
-  input: RunForwardFieldExposureDecisionEngineShadowInput,
-): void {
+export async function runForwardFieldExposureDecisionEngineShadow(
+  input: RunForwardFieldExposureDecisionEngineShadowInput
+): Promise<void> {
   if (!isFieldExposureDecisionEngineShadowEnabled()) {
     return;
   }
@@ -110,7 +109,6 @@ export function runForwardFieldExposureDecisionEngineShadow(
   }
   const workspaceType = input.workspaceType;
 
-  void (async () => {
   try {
     const plugin = await resolveWorkspacePluginForType(workspaceType);
     const snapshot = await buildFieldExposureEngineInputSnapshot({
@@ -120,8 +118,7 @@ export function runForwardFieldExposureDecisionEngineShadow(
       payload: input.payload,
     });
     const trigger = snapshot.trigger;
-    const normalizedTriggerName =
-      trigger.kind === "event" ? trigger.name : trigger.kind;
+    const normalizedTriggerName = trigger.kind === "event" ? trigger.name : trigger.kind;
     const registryCatalog = snapshot.registryCatalog;
     const registryById = new Map(registryCatalog.map((field) => [field.id, field]));
     const fieldPolicySnapshot = {
@@ -135,10 +132,7 @@ export function runForwardFieldExposureDecisionEngineShadow(
     };
     const eligibleSet = new Set(input.legacyEligibleFieldIds);
     const candidateSet = new Set(input.legacyCandidateFieldIds);
-    const shadowDecisionMap = new Map<
-      string,
-      ReturnType<typeof resolveFieldExposureDecision>
-    >();
+    const shadowDecisionMap = new Map<string, ReturnType<typeof resolveFieldExposureDecision>>();
 
     for (const field of registryCatalog) {
       const decision = resolveFieldExposureDecision(
@@ -151,7 +145,7 @@ export function runForwardFieldExposureDecisionEngineShadow(
           snapshot,
           exposureIntent: input.exposureIntent,
           exposureProfile: input.exposureProfile,
-        }),
+        })
       );
 
       shadowDecisionMap.set(field.id, {
@@ -302,7 +296,6 @@ export function runForwardFieldExposureDecisionEngineShadow(
       err: error instanceof Error ? error.message : String(error),
     });
   }
-  })();
 }
 
 export function isIntegrationDeliveryDispatcherEnabled(): boolean {
@@ -329,7 +322,7 @@ function deliveryFieldPolicyPayload(
   fieldExposureDecision: FieldExposureDecision,
   shadowExposure: Awaited<ReturnType<typeof resolveFieldExposureShadowDiagnostics>>,
   runtimeMetadata: FieldExposureRuntimeMetadata,
-  activeFieldIds: readonly string[],
+  activeFieldIds: readonly string[]
 ): Record<string, unknown> {
   const compatibilityCandidateFieldIds = fieldExposureDecision.candidateFieldIds;
 
@@ -360,7 +353,7 @@ function deliveryFieldPolicyPayload(
  */
 export async function dispatchIntegrationDomainEvent(
   row: WorkspaceOutboxPublishedRow,
-  deps: DispatchIntegrationDomainEventDeps = {},
+  deps: DispatchIntegrationDomainEventDeps = {}
 ): Promise<number> {
   if (!isIntegrationDeliveryDispatcherEnabled()) {
     return 0;
@@ -373,7 +366,8 @@ export async function dispatchIntegrationDomainEvent(
   const policyEngine = deps.policyEngine ?? createIntegrationPolicyEngine();
   const deliveryRepository = deps.deliveryRepository ?? createIntegrationDeliveryRepository();
   const resolveWorkspaceType = deps.resolveWorkspaceType ?? resolveWorkspaceTypeForTenant;
-  const enrichDeliveryPayload = deps.enrichCanonicalDeliveryPayload ?? enrichCanonicalDeliveryPayload;
+  const enrichDeliveryPayload =
+    deps.enrichCanonicalDeliveryPayload ?? enrichCanonicalDeliveryPayload;
   const resolveReferenceDisplayValues =
     deps.resolveDeliveryReferenceDisplayValues ?? resolveDeliveryReferenceDisplayValues;
   const resolvePersistedProfile =
@@ -573,7 +567,7 @@ export async function dispatchIntegrationDomainEvent(
       recordFieldExposureShadowParityMismatch({
         tenantId: row.tenantId,
         eventType: row.eventType,
-          provider: decision.exposureCoordinate.surface,
+        provider: decision.exposureCoordinate.surface,
         mismatchCount: shadowExposure.parity.mismatches.length,
       });
     }
@@ -607,7 +601,7 @@ export async function dispatchIntegrationDomainEvent(
 
     if (runtimeMode === "shadow") {
       try {
-        runShadow({
+        await runShadow({
           tenantId: row.tenantId,
           eventType: row.eventType,
           workspaceType,
@@ -653,7 +647,7 @@ export async function dispatchIntegrationDomainEvent(
               fieldExposureDecision,
               shadowExposure,
               exposureRuntime,
-              activeDeliveryFieldIds.fieldIds,
+              activeDeliveryFieldIds.fieldIds
             )),
       },
     });
