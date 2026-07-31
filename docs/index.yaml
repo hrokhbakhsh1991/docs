@@ -496,7 +496,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: pending
+    verified_sha: 7ffa0774
     supersedes: []
     superseded_by: null
     evidence:
