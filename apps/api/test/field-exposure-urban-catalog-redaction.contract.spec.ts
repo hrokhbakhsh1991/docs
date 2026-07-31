@@ -46,7 +46,7 @@ describe("field exposure Urban catalog redaction contract", () => {
 
   it("falls back to seeded defaults when Prisma unavailable (DB-less smoke)", () => {
     const resolver = readFileSync(
-      join(REPO_ROOT, "apps/api/src/exposure/resolve-urban-surface-exposure.ts"),
+      join(REPO_ROOT, "apps/api/src/http/configure-urban-surface-exposure.ts"),
       "utf8",
     );
     assert.match(resolver, /tryResolvePersistedExposureProfile/);

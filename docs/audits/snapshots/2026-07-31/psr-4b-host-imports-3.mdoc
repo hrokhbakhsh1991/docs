@@ -1,0 +1,57 @@
+---
+id: PSR-4B-HOST-IMPORTS-3
+title: PSR-4b-host-imports-3 fold urban exposure into product-adapter path
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending-psr-4b-host-imports-3
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-2.mdoc
+program_id: PSR-001
+wave: PSR-4b-host-imports-3
+---
+
+# PSR-4b-host-imports-3 — careful shrink (4 → 3)
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| Move urban surface exposure into `http/configure-*` product-adapter | Yes |
+| Finance ledger exclusive denali imports | **No** |
+| Migrate-canonical denali schema constants | **No** |
+| Equipment icon settings contract | **No** (keep — documented platform contract) |
+
+## Changes
+
+| Before | After |
+| --- | --- |
+| `apps/api/src/exposure/resolve-urban-surface-exposure.ts` | `apps/api/src/http/configure-urban-surface-exposure.ts` |
+
+Path rename is intentional: smoke/host-source ratchet already treats
+`/http/configure-*` as approved product adapters (same cohort as
+`configure-urban-http-host.ts`). Urban exposure was only wired from that adapter.
+
+Callers / docs / guards updated to the new path.
+
+## Metrics
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Host-source branded files | 4 | **3** |
+| Product defaults | 0 | 0 |
+
+Remaining host-source: migrate-canonical, equipment-icon contract, finance ledger exclusive.
+
+## Exit gate
+
+| Check | Result |
+| --- | --- |
+| Host-source ceiling ≤3 | required |
+| Urban exposure contract path tests green | required |
+| No product-default regression | required |

@@ -308,7 +308,7 @@ surface `public_website` via `mapUrbanExposureSurfaceToFieldPolicySurface`.
 Contract: `apps/api/test/field-exposure-urban-catalog-redaction.contract.spec.ts`
 Unit (workspace): `packages/workspaces/urban/test/urban-catalog-exposure.spec.ts`
 
-**DB-less smoke fallback:** `resolveUrbanSurfaceVisibleFieldIds` (`resolve-urban-surface-exposure.ts`) wraps Prisma-backed profile/intent lookups in try/catch — falls back to registry-seeded defaults when `DATABASE_URL` is unset (SMK-MKT-05 · unit tests).
+**DB-less smoke fallback:** `resolveUrbanSurfaceVisibleFieldIds` (`configure-urban-surface-exposure.ts`) wraps Prisma-backed profile/intent lookups in try/catch — falls back to registry-seeded defaults when `DATABASE_URL` is unset (SMK-MKT-05 · unit tests).
 
 Host wiring: `configure-urban-http-host.ts` → `buildUrbanExposureResolverPort`.
 Workspace HTTP: `packages/workspaces/urban/src/http/catalog.service.ts` → `applyCatalogExposure`.

@@ -1,8 +1,8 @@
 schema_version: 1
 program_id: PSR-001
-wave: PSR-4b-host-imports-2
+wave: PSR-4b-host-imports-3
 updated: '2026-07-31'
-verified_sha: f94bded0
+verified_sha: pending-psr-4b-host-imports-3
 policy:
   inventory_and_ratchet_only: false
   no_runtime_default_change_in_this_wave: false
@@ -20,14 +20,14 @@ metrics:
   api_workspace_package_deps: 13
   branded_import_sites: 75
   bucket_counts:
-    host-source: 4
+    host-source: 3
     generated: 51
     test: 18
-    product-adapter: 2
+    product-adapter: 3
   product_default_sites: 0
   codegen_branded_script_files: 8
-  host_source_unique_files: 4
-  host_source_ceiling: 4
+  host_source_unique_files: 3
+  host_source_ceiling: 3
 apps_api_workspace_deps:
 - '@app-tour/workspace-acme'
 - '@app-tour/workspace-booking-ws2'
@@ -48,8 +48,6 @@ host_source_remediation_cohorts:
   - apps/api/src/settings/parse-equipment-icon-key.ts
   move-to-generated-or-finance-port:
   - apps/api/src/workspace-finance/tour-created-paid-ledger-exclusive.ts
-  product-adapter-exposure:
-  - apps/api/src/exposure/resolve-urban-surface-exposure.ts
   product-default + branded-hook:
   - apps/api/src/canonical/migrate-canonical-workspace.service.ts
 codegen_branded_scripts:
@@ -333,12 +331,12 @@ branded_imports:
   product: urban
   remediation_status: ok-generated
   remediation_notes: Generated/test allowed under SoT
-- file: apps/api/src/exposure/resolve-urban-surface-exposure.ts
+- file: apps/api/src/http/configure-urban-surface-exposure.ts
   import: '@app-tour/workspace-urban/exposure'
-  bucket: host-source
+  bucket: product-adapter
   product: urban
-  remediation_status: product-adapter-exposure
-  remediation_notes: Urban exposure resolver — mirror Denali exposure adapter pattern or generate
+  remediation_status: approved-product-adapter
+  remediation_notes: 'PSR-4b-host-imports-3: folded under http/configure-* product-adapter path'
 - file: apps/api/src/exposure/resolve-workspace-exposure-surfaces.spec.ts
   import: '@app-tour/workspace-denali'
   bucket: test
@@ -530,7 +528,10 @@ follow_on_slices:
   work: Begin host-visible Denali export contraction (−9) with per-export proof from PSR-4a
 - id: PSR-4b-host-imports-2
   status: partial
-  note: 8→4; 4 remain (finance/migrate/urban/equipment)
+  note: 8→4; continued in host-imports-3
+- id: PSR-4b-host-imports-3
+  status: partial
+  note: 4→3 urban folded to product-adapter; 3 remain
 product_defaults_remediated:
 - file: apps/api/src/canonical/migrate-canonical-workspace.service.ts
   was: workspaceType ?? "denali"
@@ -540,7 +541,6 @@ product_defaults_remediated:
   now: throw TOUR_PUBLISHED_REMAP_WORKSPACE_TYPE_REQUIRED when profileId lacks .TourCreated suffix
 host_source_remaining:
 - apps/api/src/canonical/migrate-canonical-workspace.service.ts
-- apps/api/src/exposure/resolve-urban-surface-exposure.ts
 - apps/api/src/settings/parse-equipment-icon-key.ts
 - apps/api/src/workspace-finance/tour-created-paid-ledger-exclusive.ts
 completed_host_import_clears:
@@ -558,3 +558,6 @@ completed_host_import_clears:
   wave: PSR-4b-host-imports-2
 - file: apps/api/src/settings/seed-operator-smoke-published-tour.ts
   wave: PSR-4b-host-imports-2
+- file: apps/api/src/exposure/resolve-urban-surface-exposure.ts
+  wave: PSR-4b-host-imports-3
+  moved_to: apps/api/src/http/configure-urban-surface-exposure.ts
