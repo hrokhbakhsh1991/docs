@@ -2,7 +2,7 @@ schema_version: 1
 program_id: PSR-001
 wave: PSR-4b-host-imports-close
 updated: '2026-07-31'
-verified_sha: pending-psr-4b-host-imports-close
+verified_sha: 068de5fc
 policy:
   inventory_and_ratchet_only: false
   no_runtime_default_change_in_this_wave: false
