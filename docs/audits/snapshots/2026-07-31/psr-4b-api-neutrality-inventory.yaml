@@ -1,0 +1,591 @@
+schema_version: 1
+program_id: PSR-001
+wave: PSR-4b
+updated: '2026-07-31'
+verified_sha: pending-psr-4b
+policy:
+  inventory_and_ratchet_only: true
+  no_runtime_default_change_in_this_wave: true
+  no_bulk_branded_import_rewrite: true
+  no_host_visible_export_deletion: true
+  approved_product_adapters:
+  - apps/api/src/http/configure-workspace-denali-product-http-host.ts
+  - apps/api/src/http/configure-urban-http-host.ts
+  host_import_legacy_allowlist_max: 0
+  note: Isolation guard already forbids /host/* outside generated; this wave tracks root/settings/http branded imports + product
+    defaults.
+metrics:
+  api_workspace_package_deps: 13
+  branded_import_sites: 82
+  bucket_counts:
+    host-source: 11
+    generated: 51
+    test: 18
+    product-adapter: 2
+  product_default_sites: 2
+  codegen_branded_script_files: 8
+  host_source_unique_files: 11
+apps_api_workspace_deps:
+- '@app-tour/workspace-acme'
+- '@app-tour/workspace-booking-ws2'
+- '@app-tour/workspace-denali'
+- '@app-tour/workspace-finance-ws2'
+- '@app-tour/workspace-finance-ws3'
+- '@app-tour/workspace-finance-ws4'
+- '@app-tour/workspace-finance-ws5'
+- '@app-tour/workspace-finance-ws6'
+- '@app-tour/workspace-guest-club'
+- '@app-tour/workspace-harbor'
+- '@app-tour/workspace-sdk'
+- '@app-tour/workspace-starter'
+- '@app-tour/workspace-urban'
+product_defaults:
+- file: apps/api/src/canonical/migrate-canonical-workspace.service.ts
+  line: 112
+  match: workspaceType ?? "denali"
+  bucket: host-source
+  remediation: require-explicit-workspaceType-fail-closed
+  deferred_to: PSR-4b-defaults
+- file: apps/api/src/integrations/migration/tour-published-exposure-remap-plan.ts
+  line: 79
+  match: workspaceType ?? "denali"
+  bucket: host-source
+  remediation: require-explicit-workspaceType-fail-closed
+  deferred_to: PSR-4b-defaults
+host_source_remediation_cohorts:
+  approved-side-effect-import:
+  - apps/api/src/app.ts
+  contract-settings-import:
+  - apps/api/src/settings/parse-equipment-icon-key.ts
+  dev-smoke-seed:
+  - apps/api/src/settings/bootstrap-denali-dev-smoke-fixtures.ts
+  - apps/api/src/settings/seed-operator-smoke-catalog.ts
+  - apps/api/src/settings/seed-operator-smoke-published-tour.ts
+  move-to-generated-binding:
+  - apps/api/src/tours/tour-wizard-photos.routes.ts
+  move-to-generated-or-finance-port:
+  - apps/api/src/workspace-finance/tour-created-paid-ledger-exclusive.ts
+  move-to-generated-or-settings-contract:
+  - apps/api/src/settings/wizard-template-catalog.ts
+  product-adapter-exposure:
+  - apps/api/src/exposure/resolve-urban-surface-exposure.ts
+  product-default + branded-hook:
+  - apps/api/src/canonical/migrate-canonical-workspace.service.ts
+  type-only-urban:
+  - apps/api/src/tours/workspace-tour-write-dispatch.ts
+codegen_branded_scripts:
+- scripts/codegen/denali-semantic-slices.mjs
+- scripts/codegen/lib/denali-dtcg-resolve.mjs
+- scripts/codegen/workspace-registry/domains/guest-catalog.mjs
+- scripts/codegen/workspace-registry/domains/registration.mjs
+- scripts/codegen/workspace-registry/domains/tour-api.mjs
+- scripts/codegen/workspace-registry/domains/wizard-admin.mjs
+- scripts/generate-denali-settings-modules.mjs
+- scripts/test/workspace-registry-drop-in.spec.mjs
+branded_imports:
+- file: apps/api/src/app.ts
+  import: '@app-tour/workspace-urban/http'
+  bucket: host-source
+  product: urban
+  remediation_status: approved-side-effect-import
+  remediation_notes: Side-effect imports of configure-* adapters; UrbanProductRouteDeps type import — keep until loader registry
+    absorbs configure registration
+- file: apps/api/src/tours/workspace-tour-write-dispatch.ts
+  import: '@app-tour/workspace-urban/tours'
+  bucket: host-source
+  product: urban
+  remediation_status: type-only-urban
+  remediation_notes: UrbanTourPatchBody type import; runtime via generated bindings — prefer sdk-neutral patch body type
+- file: apps/api/src/tours/tour-wizard-photos.routes.ts
+  import: '@app-tour/workspace-denali'
+  bucket: host-source
+  product: denali
+  remediation_status: move-to-generated-binding
+  remediation_notes: isDenaliOperatorTourPhotoReadKeyAllowed from denali root — use wizard-media generated binding
+- file: apps/api/src/tours/workspace-tour-write-bindings.generated.ts
+  import: '@app-tour/workspace-denali'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/tours/workspace-tour-write-bindings.generated.ts
+  import: '@app-tour/workspace-denali/host/tours'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/tours/workspace-tour-write-bindings.generated.ts
+  import: '@app-tour/workspace-urban'
+  bucket: generated
+  product: urban
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/tours/workspace-tour-write-bindings.generated.ts
+  import: '@app-tour/workspace-urban/host/http'
+  bucket: generated
+  product: urban
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/tours/workspace-tour-write-bindings.generated.ts
+  import: '@app-tour/workspace-urban/host/tours'
+  bucket: generated
+  product: urban
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/tours/workspace-wizard-media-bindings.generated.ts
+  import: '@app-tour/workspace-denali'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/tours/workspace-wizard-rules-bindings.generated.ts
+  import: '@app-tour/workspace-denali'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/tours/workspace-wizard-rules-bindings.generated.ts
+  import: '@app-tour/workspace-denali/host/wizard/wizard-rules-surface'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/tours/workspace-wizard-clone-remint-bindings.generated.ts
+  import: '@app-tour/workspace-denali'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/tours/workspace-wizard-clone-remint-bindings.generated.ts
+  import: '@app-tour/workspace-denali/host/clone'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/tours/workspace-wizard-clone-remint-bindings.generated.ts
+  import: '@app-tour/workspace-denali/host/photos'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/bookings/workspace-booking-event-reaction-bindings.generated.ts
+  import: '@app-tour/workspace-denali/host/booking'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/bookings/workspace-booking-dependency-bindings.generated.ts
+  import: '@app-tour/workspace-denali/host/booking'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/bookings/workspace-booking-capabilities.generated.ts
+  import: '@app-tour/workspace-denali'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/bookings/workspace-booking-bindings.generated.ts
+  import: '@app-tour/workspace-denali'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/bookings/booking-capacity-ownership.spec.ts
+  import: '@app-tour/workspace-denali/plugin'
+  bucket: test
+  product: denali
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/bookings/booking-event-ownership.spec.ts
+  import: '@app-tour/workspace-denali/host/booking'
+  bucket: test
+  product: denali
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/middleware/workspace-http-error-map.generated.ts
+  import: '@app-tour/workspace-denali/host/http'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/middleware/workspace-http-error-map.generated.ts
+  import: '@app-tour/workspace-urban/host/http'
+  bucket: generated
+  product: urban
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/canonical/migrate-canonical-workspace.service.ts
+  import: '@app-tour/workspace-denali'
+  bucket: host-source
+  product: denali
+  remediation_status: product-default + branded-hook
+  remediation_notes: workspaceType ?? "denali" + denali migrate hook — require explicit workspaceType (fail-closed) in follow-on
+    slice
+- file: apps/api/src/canonical/workspace-canonical-tour-bindings.generated.ts
+  import: '@app-tour/workspace-denali'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/canonical/workspace-canonical-tour-bindings.generated.ts
+  import: '@app-tour/workspace-denali/host/acl'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/canonical/workspace-canonical-tour-bindings.generated.ts
+  import: '@app-tour/workspace-denali/host/composites'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/canonical/workspace-canonical-tour-bindings.generated.ts
+  import: '@app-tour/workspace-denali/host/tours'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/canonical/workspace-canonical-tour-bindings.generated.ts
+  import: '@app-tour/workspace-urban'
+  bucket: generated
+  product: urban
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/canonical/workspace-canonical-tour-bindings.generated.ts
+  import: '@app-tour/workspace-urban/host/tours'
+  bucket: generated
+  product: urban
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/canonical/workspace-catalog-ref-allowlist-resolvers.generated.ts
+  import: '@app-tour/workspace-denali'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/http/workspace-http-routes.generated.ts
+  import: '@app-tour/workspace-denali/host/http'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/http/workspace-http-routes.generated.ts
+  import: '@app-tour/workspace-guest-club/host/http'
+  bucket: generated
+  product: guest-club
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/http/workspace-http-routes.generated.ts
+  import: '@app-tour/workspace-harbor/host/http'
+  bucket: generated
+  product: harbor
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/http/workspace-http-routes.generated.ts
+  import: '@app-tour/workspace-urban/host/http'
+  bucket: generated
+  product: urban
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/http/configure-workspace-denali-product-http-host.ts
+  import: '@app-tour/workspace-denali/http'
+  bucket: product-adapter
+  product: denali
+  remediation_status: approved-product-adapter
+  remediation_notes: Explicit Denali product HTTP host adapter
+- file: apps/api/src/http/workspace-http-handler-loaders.generated.ts
+  import: '@app-tour/workspace-denali/host/http'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/http/workspace-http-handler-loaders.generated.ts
+  import: '@app-tour/workspace-guest-club/host/http'
+  bucket: generated
+  product: guest-club
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/http/workspace-http-handler-loaders.generated.ts
+  import: '@app-tour/workspace-harbor/host/http'
+  bucket: generated
+  product: harbor
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/http/workspace-http-handler-loaders.generated.ts
+  import: '@app-tour/workspace-urban/host/http'
+  bucket: generated
+  product: urban
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/http/configure-urban-http-host.ts
+  import: '@app-tour/workspace-urban/http'
+  bucket: product-adapter
+  product: urban
+  remediation_status: approved-product-adapter
+  remediation_notes: Explicit Urban product HTTP host adapter
+- file: apps/api/src/workspace/resolve-workspace-plugin.spec.ts
+  import: '@app-tour/workspace-denali'
+  bucket: test
+  product: denali
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace/resolve-workspace-plugin.spec.ts
+  import: '@app-tour/workspace-starter'
+  bucket: test
+  product: starter
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace/resolve-workspace-plugin.spec.ts
+  import: '@app-tour/workspace-urban'
+  bucket: test
+  product: urban
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace/workspace-plugin-registry.generated.ts
+  import: '@app-tour/workspace-denali/plugin'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace/workspace-plugin-registry.generated.ts
+  import: '@app-tour/workspace-guest-club/plugin'
+  bucket: generated
+  product: guest-club
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace/workspace-plugin-registry.generated.ts
+  import: '@app-tour/workspace-harbor/plugin'
+  bucket: generated
+  product: harbor
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace/workspace-plugin-registry.generated.ts
+  import: '@app-tour/workspace-starter'
+  bucket: generated
+  product: starter
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace/workspace-plugin-registry.generated.ts
+  import: '@app-tour/workspace-urban/plugin'
+  bucket: generated
+  product: urban
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/exposure/resolve-urban-surface-exposure.ts
+  import: '@app-tour/workspace-urban/exposure'
+  bucket: host-source
+  product: urban
+  remediation_status: product-adapter-exposure
+  remediation_notes: Urban exposure resolver — mirror Denali exposure adapter pattern or generate
+- file: apps/api/src/exposure/resolve-workspace-exposure-surfaces.spec.ts
+  import: '@app-tour/workspace-denali'
+  bucket: test
+  product: denali
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/exposure/resolve-workspace-exposure-surfaces.spec.ts
+  import: '@app-tour/workspace-starter'
+  bucket: test
+  product: starter
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/exposure/workspace-exposure-host-bindings.generated.ts
+  import: '@app-tour/workspace-denali/host/exposure'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/exposure/resolve-wizard-template-exposure-catalog.spec.ts
+  import: '@app-tour/workspace-denali'
+  bucket: test
+  product: denali
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/exposure/resolve-tenant-exposure-selectable-catalog.spec.ts
+  import: '@app-tour/workspace-denali'
+  bucket: test
+  product: denali
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/settings/workspace-dev-bootstrap-bindings.generated.ts
+  import: '@app-tour/workspace-denali'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/settings/workspace-dev-bootstrap-bindings.generated.ts
+  import: '@app-tour/workspace-guest-club'
+  bucket: generated
+  product: guest-club
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/settings/workspace-dev-bootstrap-bindings.generated.ts
+  import: '@app-tour/workspace-harbor'
+  bucket: generated
+  product: harbor
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/settings/workspace-dev-bootstrap-bindings.generated.ts
+  import: '@app-tour/workspace-urban'
+  bucket: generated
+  product: urban
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/settings/seed-operator-smoke-published-tour.ts
+  import: '@app-tour/workspace-denali'
+  bucket: host-source
+  product: denali
+  remediation_status: dev-smoke-seed
+  remediation_notes: Operator smoke seed
+- file: apps/api/src/settings/bootstrap-denali-dev-smoke-fixtures.ts
+  import: '@app-tour/workspace-denali'
+  bucket: host-source
+  product: denali
+  remediation_status: dev-smoke-seed
+  remediation_notes: Dev/smoke seed — keep product-named; exclude from production neutrality gate
+- file: apps/api/src/settings/workspace-wizard-template-enforcement-bindings.generated.ts
+  import: '@app-tour/workspace-denali'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/settings/workspace-wizard-template-enforcement-bindings.generated.ts
+  import: '@app-tour/workspace-denali/host/wizard/template-invariants'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/settings/workspace-settings-enrichers.generated.ts
+  import: '@app-tour/workspace-denali/settings/equipment-compatible-categories'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/settings/workspace-settings-enrichers.generated.ts
+  import: '@app-tour/workspace-denali/settings/theme-compatible-categories'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/settings/wizard-template-catalog.ts
+  import: '@app-tour/workspace-denali'
+  bucket: host-source
+  product: denali
+  remediation_status: move-to-generated-or-settings-contract
+  remediation_notes: Direct denali root import — prefer settings/wizardTemplate binding
+- file: apps/api/src/settings/seed-operator-smoke-catalog.ts
+  import: '@app-tour/workspace-denali'
+  bucket: host-source
+  product: denali
+  remediation_status: dev-smoke-seed
+  remediation_notes: Operator smoke seed
+- file: apps/api/src/settings/parse-equipment-icon-key.ts
+  import: '@app-tour/workspace-denali/settings/equipment-icon-registry'
+  bucket: host-source
+  product: denali
+  remediation_status: contract-settings-import
+  remediation_notes: ./settings/* is Plugin Contract per encapsulation SoT; migrate to generated settings enricher only if
+    multi-product icons diverge
+- file: apps/api/src/workspace-finance/finance-http-handlers-ownership.spec.ts
+  import: '@app-tour/workspace-denali/http'
+  bucket: test
+  product: denali
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace-finance/finance-tenant-dependency-resolution.spec.ts
+  import: '@app-tour/workspace-denali'
+  bucket: test
+  product: denali
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace-finance/workspace-finance-obligation-bindings.generated.ts
+  import: '@app-tour/workspace-denali/host/finance'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace-finance/adapter-identity-stability.spec.ts
+  import: '@app-tour/workspace-denali'
+  bucket: test
+  product: denali
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace-finance/finance-di-purity.spec.ts
+  import: '@app-tour/workspace-denali'
+  bucket: test
+  product: denali
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace-finance/finance-shared-infra-isolation.spec.ts
+  import: '@app-tour/workspace-denali'
+  bucket: test
+  product: denali
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace-finance/workspace-finance-event-reaction-bindings.generated.ts
+  import: '@app-tour/workspace-denali/host/finance'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace-finance/tour-created-paid-ledger-exclusive.ts
+  import: '@app-tour/workspace-denali'
+  bucket: host-source
+  product: denali
+  remediation_status: move-to-generated-or-finance-port
+  remediation_notes: Direct denali import — finance dependency bindings should own product policy
+- file: apps/api/src/workspace-finance/finance-ws2-engine.spec.ts
+  import: '@app-tour/workspace-denali'
+  bucket: test
+  product: denali
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace-finance/finance-dependency-registry.spec.ts
+  import: '@app-tour/workspace-denali'
+  bucket: test
+  product: denali
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace-finance/finance-http-contracts.spec.ts
+  import: '@app-tour/workspace-denali/http'
+  bucket: test
+  product: denali
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace-finance/workspace-finance-chart-of-accounts-bindings.generated.ts
+  import: '@app-tour/workspace-denali/host/finance'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace-finance/workspace-finance-dependency-bindings.generated.ts
+  import: '@app-tour/workspace-denali/host/finance'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/workspace-finance/finance.service.spec.ts
+  import: '@app-tour/workspace-denali'
+  bucket: test
+  product: denali
+  remediation_status: ok-test
+  remediation_notes: Generated/test allowed under SoT
+- file: apps/api/src/integrations/platform/workspace-integration-capabilities.generated.ts
+  import: '@app-tour/workspace-denali/plugin'
+  bucket: generated
+  product: denali
+  remediation_status: ok-generated
+  remediation_notes: Generated/test allowed under SoT
+follow_on_slices:
+- id: PSR-4b-defaults
+  work: Remove workspaceType ?? "denali" (2 sites); fail-closed
+- id: PSR-4b-host-imports
+  work: Move remaining host-source denali/urban imports to generated/settings/ports
+- id: PSR-4b-api-deps
+  work: Generate or sync apps/api package.json workspace membership from manifests
+- id: PSR-4b-whyDenali
+  work: Rename guest landing whyDenali to product-neutral section id in codegen+manifest
+- id: PSR-4b-exports
+  work: Begin host-visible Denali export contraction (−9) with per-export proof from PSR-4a

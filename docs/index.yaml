@@ -1,10 +1,10 @@
-# Active documentation registry (PSR-4a export classification)
+# Active documentation registry (PSR-4b API neutrality)
 # Sole machine registry for active authority. Absence ≠ delete; see DOC-META-001.
 schema_version: 1
 program_id: PSR-001
-wave: PSR-4a
+wave: PSR-4b
 updated: 2026-07-31
-verified_sha: 527a65d5
+verified_sha: pending-psr-4b
 roles:
   - canonical
   - standard
@@ -19,6 +19,7 @@ notes:
   - PSR-3a adds ROOT_COMMAND_FRONT_DOORS as the public command contract map.
   - PSR-3c removes two more docs-only aliases; phase archival is inventory-only.
   - PSR-4a classifies all 162 Denali exports; no export deletion in that wave.
+  - PSR-4b inventories API branded imports + freezes two product-default sites.
   - Phase pack trees remain on disk; bulk move to docs/archive is a follow-on slice.
   - Deferred PSR-0b dirty docs were committed in e9f9f930.
 documents:
@@ -40,7 +41,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: 527a65d5
+    verified_sha: pending-psr-4b
     supersedes: []
     superseded_by: null
     evidence:
@@ -58,6 +59,8 @@ documents:
       - docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry-inventory.yaml
       - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml
+      - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
 
   - id: DG-REM-001
     path: docs/architecture/denali-gravity-remediation.mdoc
@@ -353,3 +356,16 @@ documents:
     evidence:
       - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml
       - docs/dev/denali-plugin-encapsulation.mdoc
+
+  - id: PSR-4B-API-NEUTRALITY
+    path: docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: pending-psr-4b
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
+      - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.mdoc

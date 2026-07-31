@@ -1,0 +1,101 @@
+---
+id: PSR-4B-API-NEUTRALITY
+title: PSR-4b API/codegen/product-default neutrality inventory
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending-psr-4b
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.mdoc
+  - docs/dev/denali-plugin-encapsulation.mdoc
+program_id: PSR-001
+wave: PSR-4b
+---
+
+# PSR-4b — API / codegen / product-default neutrality (careful slice)
+
+## Scope
+
+| Work | In this wave | Deferred |
+| --- | --- | --- |
+| Inventory branded imports in `apps/api/src` | Yes | — |
+| Inventory `workspaceType ?? "denali"` product defaults | Yes (2 sites) | Runtime fail-closed |
+| Inventory codegen branded scripts (`whyDenali`, …) | Yes | Rename/landing migration |
+| List `apps/api` workspace package deps | Yes | Generate from manifests |
+| Rewrite host imports / delete configure adapters | **No** | PSR-4b-host-imports |
+| Delete Denali exports (−9 host-visible) | **No** | PSR-4b-exports after proof |
+| Change required CI checks | **No** | — |
+
+Machine map:
+[`psr-4b-api-neutrality-inventory.yaml`](./psr-4b-api-neutrality-inventory.yaml)
+
+## Snapshot metrics (2026-07-31)
+
+| Metric | Count |
+| --- | ---: |
+| Branded import sites (`apps/api/src`) | 82 |
+| Generated | 51 |
+| Test | 18 |
+| Product adapters (`configure-*`) | 2 |
+| Host-source (non-generated) | 11 files / 11 import rows |
+| Product defaults `?? "denali"` | **2** |
+| `apps/api` `@app-tour/workspace-*` deps | 13 |
+| Codegen scripts with branded tokens | 8 |
+
+`/host/*` isolation allowlist ceiling remains **0**
+([`api-host-import-allowlist.mjs`](../../../scripts/guards/lib/api-host-import-allowlist.mjs)).
+Remaining debt is mostly **root / settings / http / tours** package imports,
+not illegal `/host/` paths.
+
+## Product defaults (frozen for ratchet)
+
+| File | Match | Follow-on |
+| --- | --- | --- |
+| `canonical/migrate-canonical-workspace.service.ts` | `workspaceType ?? "denali"` | Require explicit type |
+| `integrations/migration/tour-published-exposure-remap-plan.ts` | `` `${workspaceType ?? "denali"}.telegram…` `` | Fail-closed if missing |
+
+## Approved product adapters (retain)
+
+- `http/configure-workspace-denali-product-http-host.ts`
+- `http/configure-urban-http-host.ts`
+
+## Host-source remediation cohorts
+
+See YAML `host_source_remediation_cohorts`. High priority non-smoke items:
+
+- `tours/tour-wizard-photos.routes.ts` → generated wizard-media binding
+- `settings/wizard-template-catalog.ts` → settings contract / generated
+- `workspace-finance/tour-created-paid-ledger-exclusive.ts` → finance port/bindings
+- Urban type-only imports → sdk-neutral types when available
+
+## Follow-on slices (ordered)
+
+1. **PSR-4b-defaults** — remove the two `?? "denali"` sites (fail-closed)
+2. **PSR-4b-host-imports** — shrink host-source branded imports
+3. **PSR-4b-api-deps** — sync `apps/api/package.json` membership from manifests
+4. **PSR-4b-whyDenali** — neutral guest-landing section id in codegen
+5. **PSR-4b-exports** — Denali host-visible −9 with PSR-4a proof
+
+## Local smoke
+
+```bash
+node scripts/ops/psr-4b-api-neutrality-smoke.mjs
+```
+
+Ratchet: product-default site count must stay ≤2; host-source unique files ≤11;
+no new `?? "denali"` / `?? 'denali'` outside the frozen pair.
+
+## Exit gate
+
+| Check | Result |
+| --- | --- |
+| Inventory covers all branded import sites | required |
+| Product defaults listed with file:line | required |
+| Runtime defaults unchanged this wave | required |
+| Export deletion skipped | required |
+| Smoke ratchet green | required |

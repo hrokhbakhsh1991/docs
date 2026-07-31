@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: 527a65d5
+verified_sha: pending-psr-4b
 supersedes: []
 superseded_by: null
 evidence:
@@ -24,8 +24,10 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-3c-alias-expiry-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-4a-complete
+current_wave: PSR-4b-complete
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -35,29 +37,44 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4a — بسته)
+## 0. وضعیت موج جاری (PSR-4b — بسته / inventory+ratchet)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b** — API/codegen/product-default neutrality inventory (**complete** for scoped slice) |
+| Exit gate | GREEN — ۸۲ import site؛ ۲ product-default فریز؛ بدون runtime rewrite |
+| Snapshot | [`psr-4b-api-neutrality.mdoc`](../audits/snapshots/2026-07-31/psr-4b-api-neutrality.mdoc) |
+| Machine map | [`psr-4b-api-neutrality-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-api-neutrality-inventory.yaml) |
+
+| Metric | Count |
+| --- | ---: |
+| Branded import sites | 82 (generated 51 / test 18 / adapter 2 / host-source 11) |
+| `?? "denali"` defaults | **2** (frozen ratchet) |
+| `apps/api` workspace deps | 13 (manual membership) |
+| `/host/*` allowlist max | **0** (unchanged) |
+
+**عمداً خارج از این slice:** fail-closed کردن defaults؛ rewrite فله‌ای host imports؛
+حذف export دنالی؛ generate کردن deps از manifest؛ rename `whyDenali`.
+
+**Follow-ons:** `PSR-4b-defaults` → `PSR-4b-host-imports` → `PSR-4b-api-deps` →
+`PSR-4b-whyDenali` → `PSR-4b-exports`.
+
+**Next program wave after 4b follow-ons:** PSR-5 — data authority / admin-access.
+
+### 0.0 PSR-4a (بسته)
 
 | Field | Value |
 | --- | --- |
 | Wave | **PSR-4a** — Denali export classification + deprecation map (**complete**) |
 | Exit gate | GREEN — ۱۶۲ export طبقه‌بندی؛ بدون حذف؛ اهداف ≤۱۵/≤۳۰ مستند |
 | Snapshot | [`psr-4a-denali-export-classification.mdoc`](../audits/snapshots/2026-07-31/psr-4a-denali-export-classification.mdoc) |
-| Machine map | [`psr-4a-denali-export-classification.yaml`](../audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml) |
 
 | Class | Count | Target |
 | --- | ---: | ---: |
 | `public-contract` | 14 | ≤15 |
 | `host-private` | 39 | ≤30 (−۹ gap) |
-| `test-only` | 29 | move later |
-| `product-internal` | 80 | shrink pool (discovery only) |
-
 | Land commit | `527a65d5` |
 | SHA close | `6cbf05a2` |
-
-**عمداً خارج از این موج:** حذف/جابه‌جایی export؛ API branded-import neutrality؛
-codegen/product-default (PSR-4b).
-
-**Next:** PSR-4b — API/codegen/product-default neutrality (+ host-visible contraction با proof).
 
 ### 0.0 PSR-3c (بسته)
 
