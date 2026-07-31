@@ -44,11 +44,11 @@ metrics:
 deferred:
   - id: PSR-4b-configure-2
     work: Absorb denali/urban configure into generated bootstrap or neutral ports; delete product-named files
+completed_follow_ons:
   - id: PSR-4b-configure-http-alias-expiry
-    work: Retarget tests off tsconfig `@app-tour/workspace-*/http` aliases; then remove aliases
-tsconfig_compat_aliases_retained:
-  - "@app-tour/workspace-denali/http"
-  - "@app-tour/workspace-urban/http"
+    closed_by: PSR-4b-http-alias
+    snapshot: docs/audits/snapshots/2026-07-31/psr-4b-http-alias.mdoc
+tsconfig_compat_aliases_retained: []
 tsconfig_host_http_paths_added:
   - "@app-tour/workspace-denali/host/http"
   - "@app-tour/workspace-urban/host/http"

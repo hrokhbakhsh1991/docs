@@ -13,7 +13,7 @@ import { createRequestListener } from "../src/app";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { resetHttpIdempotencyMemoryForTests } from "../src/http/http-idempotency";
 import { resetPublicRegistrationThrottleForTests } from "../src/registrations/public-registration-throttle.ts";
-import { resetUrbanRegistrationRepositoryForTests } from "@app-tour/workspace-urban/http";
+import { resetUrbanRegistrationRepositoryForTests } from "@app-tour/workspace-urban/host/http";
 import { setCachedTenantThemeById } from "../src/tenant/tenant-registry-cache";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 

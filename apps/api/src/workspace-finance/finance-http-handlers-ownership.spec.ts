@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
 import { FINANCE_HTTP_ROUTE_MANIFEST } from "@app-tour/finance-http";
-import { FINANCE_HTTP_ROUTE_MANIFEST as DENALI_FINANCE_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-denali/http";
+import { FINANCE_HTTP_ROUTE_MANIFEST as DENALI_FINANCE_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-denali/host/http";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 

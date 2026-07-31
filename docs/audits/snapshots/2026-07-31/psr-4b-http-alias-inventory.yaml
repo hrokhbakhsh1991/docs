@@ -1,0 +1,38 @@
+schema_version: 1
+program_id: PSR-001
+wave: PSR-4b-http-alias
+updated: "2026-07-31"
+supersedes_deferred: PSR-4b-configure-http-alias-expiry
+policy:
+  bare_http_code_ceiling: 0
+  # Historical docs/audits may still mention bare /http; code under apps|packages|scripts must not.
+  scan_roots:
+    - apps
+    - packages
+    - scripts
+  forbid_pattern: '@app-tour/workspace-(denali|urban)/http(?!/)'
+  require_host_http_tsconfig_paths: true
+  forbid_bare_http_tsconfig_paths: true
+retargeted:
+  - apps/api/src/workspace-finance/finance-http-contracts.spec.ts
+  - apps/api/src/workspace-finance/finance-http-handlers-ownership.spec.ts
+  - apps/api/test/registration-capacity.spec.ts
+  - apps/api/test/urban-catalog-registration.spec.ts
+  - apps/api/test/urban-e2e-http.spec.ts
+  - apps/api/test/urban-owner-ability.spec.ts
+  - apps/api/test/urban-settings-patch.spec.ts
+  - apps/api/test/urban-tours-bypass-gate.spec.ts
+  - apps/api/test/workspace-http-error-map.spec.ts
+  - scripts/guards/phase-10-guard.mjs
+tsconfig_removed:
+  - "@app-tour/workspace-denali/http"
+  - "@app-tour/workspace-urban/http"
+tsconfig_retained:
+  - "@app-tour/workspace-denali/host/http"
+  - "@app-tour/workspace-urban/host/http"
+metrics:
+  bare_http_code_hits: 0
+  retargeted_files: 10
+deferred:
+  - id: PSR-4b-configure-2
+    work: Absorb denali/urban product-named configure adapters

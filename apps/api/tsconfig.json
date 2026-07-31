@@ -13,7 +13,6 @@
     "paths": {
       "@app-tour/workspace-denali": ["../../packages/workspaces/denali/dist/index"],
       "@app-tour/workspace-denali/plugin": ["../../packages/workspaces/denali/dist/denali.plugin"],
-      "@app-tour/workspace-denali/http": ["../../packages/workspaces/denali/dist/http/index"],
       "@app-tour/workspace-denali/host/http": ["../../packages/workspaces/denali/dist/http/index"],
       "@app-tour/workspace-denali/wizard/validation": [
         "../../packages/workspaces/denali/dist/wizard/denali-wizard-validation"
@@ -26,7 +25,6 @@
       ],
       "@app-tour/workspace-denali/tours": ["../../packages/workspaces/denali/dist/tours/index"],
       "@app-tour/workspace-urban/plugin": ["../../packages/workspaces/urban/dist/urban.plugin"],
-      "@app-tour/workspace-urban/http": ["../../packages/workspaces/urban/dist/http/index"],
       "@app-tour/workspace-urban/host/http": ["../../packages/workspaces/urban/dist/http/index"],
       "@app-tour/workspace-urban/catalog": ["../../packages/workspaces/urban/dist/catalog/index"],
       "@app-tour/workspace-urban/exposure": ["../../packages/workspaces/urban/dist/exposure/index"],

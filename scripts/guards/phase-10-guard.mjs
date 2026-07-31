@@ -77,7 +77,7 @@ const urbanShimDir = path.join(REPO_ROOT, "apps/api/src/urban");
 assertCheck(
   "p10_urban_api_shims_removed",
   !fs.existsSync(urbanShimDir),
-  "apps/api/src/urban/ shims removed — use @app-tour/workspace-urban/http"
+  "apps/api/src/urban/ shims removed — use @app-tour/workspace-urban/host/http"
 );
 
 const denaliFinanceShimFiles = [

@@ -1,0 +1,67 @@
+---
+id: PSR-4B-HTTP-ALIAS
+title: PSR-4b-http-alias expire bare workspace /http imports
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-http-alias-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-configure.mdoc
+  - docs/dev/denali-plugin-encapsulation.mdoc
+program_id: PSR-001
+wave: PSR-4b-http-alias
+---
+
+# PSR-4b-http-alias — expire bare `/http` subpath
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| Retarget code consumers `…/http` → `…/host/http` | Yes (10 files) |
+| Remove `apps/api/tsconfig.json` bare `/http` path aliases | Yes |
+| Keep `host/http` tsconfig paths | Yes |
+| Rewrite historical audit YAML mentions | **No** (frozen snapshots) |
+| Absorb product-named configure adapters | **No** (PSR-4b-configure-2) |
+
+Closes deferred item `PSR-4b-configure-http-alias-expiry` from
+[`psr-4b-configure-inventory.yaml`](./psr-4b-configure-inventory.yaml).
+
+## Why
+
+Encapsulation SoT already maps:
+
+| Former | Canonical |
+| --- | --- |
+| `@app-tour/workspace-denali/http` | `…/host/http` |
+| `@app-tour/workspace-urban/http` | `…/host/http` |
+
+Configure adapters were retargeted in PSR-4b-configure; tests and one guard
+string still used the bare alias via tsconfig. This wave removes that escape
+hatch so package `exports` (`./host/http`) are the only resolution path.
+
+## Retargeted
+
+Nine API specs/tests + `scripts/guards/phase-10-guard.mjs` messaging.
+
+## Ratchet
+
+```bash
+node scripts/ops/psr-4b-http-alias-smoke.mjs
+```
+
+| Check | Ceiling |
+| --- | ---: |
+| bare `/http` under `apps|packages|scripts` | **0** |
+| tsconfig bare `/http` paths | **0** |
+| tsconfig `host/http` paths present | required |
+
+## Explicit non-goals
+
+- Deleting denali/urban `http/configure-*` product adapters
+- Editing frozen PSR-4b neutrality inventory rows that record old import strings

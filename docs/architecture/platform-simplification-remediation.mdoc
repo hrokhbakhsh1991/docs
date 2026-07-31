@@ -45,8 +45,10 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-4b-configure.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-configure-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-http-alias.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-http-alias-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-4b-configure
+current_wave: PSR-4b-http-alias
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -56,27 +58,33 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-configure — partial)
+## 0. وضعیت موج جاری (PSR-4b-http-alias — bare `/http` expiry)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b-http-alias** — expire bare `…/http` (**complete**) |
+| Exit gate | GREEN — code bare `/http` = **۰**؛ tsconfig alias حذف |
+| Snapshot | [`psr-4b-http-alias.mdoc`](../audits/snapshots/2026-07-31/psr-4b-http-alias.mdoc) |
+| Inventory | [`psr-4b-http-alias-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-http-alias-inventory.yaml) |
+| Smoke | `node scripts/ops/psr-4b-http-alias-smoke.mjs` |
+
+| Change | Detail |
+| --- | --- |
+| Retarget | ۱۰ فایل (۹ test/spec + phase-10-guard message) |
+| tsconfig | remove bare `/http`؛ keep `host/http` |
+
+**عمداً خارج:** rewrite audit YAML تاریخی؛ configure-2 absorption.
+
+**Next:** PSR-4b-configure-2 یا PSR-5+.
+
+### 0.00 PSR-4b-configure (بسته / partial)
 
 | Field | Value |
 | --- | --- |
 | Wave | **PSR-4b-configure** — inventory + finance rename + `/host/http` (**partial**) |
-| Exit gate | IN PROGRESS — product-named configure ≤**۳**؛ bare `/http` در configure = **۰** |
 | Snapshot | [`psr-4b-configure.mdoc`](../audits/snapshots/2026-07-31/psr-4b-configure.mdoc) |
-| Inventory | [`psr-4b-configure-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-configure-inventory.yaml) |
-| Smoke | `node scripts/ops/psr-4b-configure-smoke.mjs` |
 | Land commit | `86e22b6d` |
 | SHA close | `e2f1915c` |
-
-| Change | Detail |
-| --- | --- |
-| Finance | `configure-workspace-finance-http-host` → `configure-finance-http-host` |
-| Denali/Urban configure | import `/http` → `/host/http` |
-| tsconfig | add `host/http` paths؛ keep bare `/http` for tests |
-
-**عمداً خارج:** حذف denali/urban configure؛ expiry alias تست‌ها.
-
-**Next:** PSR-4b-configure-2 (absorb product-named) یا PSR-5+.
 
 ### 0.00 PSR-4b-api-deps-sync (بسته)
 

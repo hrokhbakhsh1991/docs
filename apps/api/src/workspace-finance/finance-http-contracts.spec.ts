@@ -26,7 +26,7 @@ import {
   parseRecordPrepaymentBody as parseRecordPrepaymentBodyDenali,
   parseReviewReceiptBody as parseReviewReceiptBodyDenali,
   parseSubmitReceiptBody as parseSubmitReceiptBodyDenali,
-} from "@app-tour/workspace-denali/http";
+} from "@app-tour/workspace-denali/host/http";
 
 import {
   getBookingsRepository,

@@ -14,7 +14,7 @@ import {
   assertWorkspaceOwner,
   URBAN_OWNER_REQUIRED,
   UrbanOwnerRequiredError,
-} from "@app-tour/workspace-urban/http";
+} from "@app-tour/workspace-urban/host/http";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
 import { canLoadUrbanSettings } from "../../../docs/phase-8/appendices/CANLOAD-URBAN-SETTINGS.contract";

@@ -10,7 +10,7 @@ import { before, beforeEach, describe, it } from "node:test";
 import { createRequestListener } from "../src/app";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { encodeDevBearerToken } from "../src/tenant-kernel/parse-bearer";
-import { getUrbanRegistrationRepository, resetUrbanRegistrationRepositoryForTests } from "@app-tour/workspace-urban/http";
+import { getUrbanRegistrationRepository, resetUrbanRegistrationRepositoryForTests } from "@app-tour/workspace-urban/host/http";
 import { URBAN_SMOKE_E2E } from "./fixtures/urban-smoke-e2e-tenant";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 

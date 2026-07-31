@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { DenaliOwnerRequiredError } from "@app-tour/workspace-denali/host/http";
-import { UrbanRegistrationDuplicateError } from "@app-tour/workspace-urban/http";
+import { UrbanRegistrationDuplicateError } from "@app-tour/workspace-urban/host/http";
 
 import {
   resolveWorkspaceHttpErrorCodeStatus,
