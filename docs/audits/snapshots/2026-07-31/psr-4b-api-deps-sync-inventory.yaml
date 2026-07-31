@@ -32,8 +32,12 @@ sync:
     - scripts/guards/guard-host-workspace-deps.mjs
 smoke: scripts/ops/psr-4b-api-deps-smoke.mjs
 unit_spec: scripts/test/api-host-product-deps.spec.mjs
-deferred:
+deferred: []
+completed_follow_ons:
   - id: PSR-4b-api-deps-fixture-split
-    work: Decide whether finance/booking fixture packages stay on API install graph
+    closed_by: PSR-4b-api-deps-fixture-split
+    snapshot: docs/audits/snapshots/2026-07-31/psr-4b-api-deps-fixture-split.mdoc
+    decision: retain
   - id: PSR-4b-configure
-    work: Absorb/rename product-named http/configure-* adapters
+    closed_by: PSR-4b-configure-3b
+    snapshot: docs/audits/snapshots/2026-07-31/psr-4b-configure-3b.mdoc

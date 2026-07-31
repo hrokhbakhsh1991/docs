@@ -371,8 +371,21 @@ export function syncAdminWebPackageJson(manifests) {
 }
 
 /**
+ * True when the manifest is a finance/booking registry-only certification fixture
+ * (skipped by admin-web product trunk; **retained** on API — PSR-4b-api-deps-fixture-split).
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest} manifest
+ */
+export function isApiHostRegistryOnlyFixtureManifest(manifest) {
+  return (
+    manifest.workspaceFinance?.registryOnly === true ||
+    manifest.workspaceBooking?.registryOnly === true
+  );
+}
+
+/**
  * All manifest `package` names the API host must declare (PSR-4b-api-deps-sync).
  * Includes registryOnly finance/booking fixtures (unlike admin web product trunk).
+ * Decision: fixtures stay — see PSR-4b-api-deps-fixture-split.
  * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
  * @returns {string[]}
  */
@@ -385,6 +398,36 @@ export function collectApiHostManifestPackages(manifests) {
     }
   }
   return [...packages].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Partition API host packages into registryOnly fixtures vs everything else.
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @returns {{
+ *   all: string[];
+ *   registryOnlyFixtures: string[];
+ *   nonRegistryOnly: string[];
+ * }}
+ */
+export function partitionApiHostManifestPackages(manifests) {
+  /** @type {Set<string>} */
+  const fixtures = new Set();
+  /** @type {Set<string>} */
+  const nonFixtures = new Set();
+  for (const m of manifests) {
+    if (typeof m.package !== "string" || m.package.length === 0) continue;
+    if (isApiHostRegistryOnlyFixtureManifest(m)) {
+      fixtures.add(m.package);
+    } else {
+      nonFixtures.add(m.package);
+    }
+  }
+  const sort = (a, b) => a.localeCompare(b);
+  return {
+    all: collectApiHostManifestPackages(manifests),
+    registryOnlyFixtures: [...fixtures].sort(sort),
+    nonRegistryOnly: [...nonFixtures].sort(sort),
+  };
 }
 
 /**

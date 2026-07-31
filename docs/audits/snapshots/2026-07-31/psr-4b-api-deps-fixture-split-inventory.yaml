@@ -1,0 +1,47 @@
+schema_version: 1
+program_id: PSR-001
+wave: PSR-4b-api-deps-fixture-split
+updated: "2026-07-31"
+policy:
+  retain_registry_fixtures_on_api: true
+  forbid_deleting_fixture_deps: true
+  exact_set_still_all_manifests: true
+  note: >
+    Admin web skips registryOnly; API must keep them because generated finance/booking
+    bindings and certification specs import the packages.
+decision: retain
+metrics:
+  api_product_deps: 12
+  product_trunk: 6
+  finance_registry_only_fixtures: 4
+  certification_non_registry_only: 2
+  generated_binding_hits_with_fixture_imports: required_nonzero
+classes:
+  product_trunk:
+    - "@app-tour/workspace-acme"
+    - "@app-tour/workspace-denali"
+    - "@app-tour/workspace-guest-club"
+    - "@app-tour/workspace-harbor"
+    - "@app-tour/workspace-starter"
+    - "@app-tour/workspace-urban"
+  finance_registry_only:
+    - "@app-tour/workspace-finance-ws2"
+    - "@app-tour/workspace-finance-ws3"
+    - "@app-tour/workspace-finance-ws4"
+    - "@app-tour/workspace-finance-ws6"
+  certification_non_registry_only:
+    - "@app-tour/workspace-booking-ws2"
+    - "@app-tour/workspace-finance-ws5"
+proof_consumers:
+  - apps/api/src/workspace-finance/workspace-finance-dependency-bindings.generated.ts
+  - apps/api/src/workspace-finance/workspace-finance-chart-of-accounts-bindings.generated.ts
+  - apps/api/src/bookings/workspace-booking-dependency-bindings.generated.ts
+  - apps/api/src/workspace/workspace-plugin-registry.generated.ts
+  - apps/api/src/tours/workspace-tour-write-bindings.generated.ts
+helpers:
+  module: scripts/codegen/workspace-registry/domains/theme.mjs
+  functions:
+    - isApiHostRegistryOnlyFixtureManifest
+    - partitionApiHostManifestPackages
+smoke: scripts/ops/psr-4b-api-deps-fixture-split-smoke.mjs
+unit_spec: scripts/test/api-host-product-deps.spec.mjs

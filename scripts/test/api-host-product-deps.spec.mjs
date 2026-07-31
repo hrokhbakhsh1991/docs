@@ -7,6 +7,8 @@ import { describe, it } from "node:test";
 import {
   buildApiDependencies,
   collectApiHostManifestPackages,
+  isApiHostRegistryOnlyFixtureManifest,
+  partitionApiHostManifestPackages,
   stripApiHostProductWorkspaceDeps,
 } from "../codegen/workspace-registry/domains/theme.mjs";
 
@@ -40,6 +42,20 @@ describe("api host product deps codegen (PSR-4b-api-deps-sync)", () => {
       "@app-tour/workspace-finance-ws2",
       "@app-tour/workspace-starter",
     ]);
+  });
+
+  it("partitionApiHostManifestPackages separates registryOnly fixtures (retain-on-API)", () => {
+    const parts = partitionApiHostManifestPackages(FIXTURES);
+    assert.deepEqual(parts.registryOnlyFixtures, [
+      "@app-tour/workspace-booking-ws2",
+      "@app-tour/workspace-finance-ws2",
+    ]);
+    assert.deepEqual(parts.nonRegistryOnly, [
+      "@app-tour/workspace-denali",
+      "@app-tour/workspace-starter",
+    ]);
+    assert.equal(isApiHostRegistryOnlyFixtureManifest(FIXTURES[2]), true);
+    assert.equal(isApiHostRegistryOnlyFixtureManifest(FIXTURES[0]), false);
   });
 
   it("buildApiDependencies syncs all manifests and keeps platform + sdk", () => {

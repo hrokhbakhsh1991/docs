@@ -6,7 +6,7 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: 8d64664c
+verified_sha: pending
 supersedes: []
 superseded_by: null
 evidence:
@@ -43,6 +43,8 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-exports-2-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-fixture-split.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-fixture-split-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-4b-configure.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-configure-2.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-configure-3.mdoc
@@ -51,7 +53,7 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-http-alias.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-http-alias-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-4b-whyDenali-alias-expiry
+current_wave: PSR-4b-api-deps-fixture-split
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -61,26 +63,36 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-whyDenali-alias-expiry — dual-read closed)
+## 0. وضعیت موج جاری (PSR-4b-api-deps-fixture-split — retain fixtures)
 
 | Field | Value |
 | --- | --- |
-| Wave | **PSR-4b-whyDenali-alias-expiry** — remove `whyDenali` dual-read (**complete**) |
-| Exit gate | GREEN — manifests whyDenali=۰؛ dual_read=۰؛ unit gate 4/4 |
-| Snapshot | [`psr-4b-whyDenali-alias-expiry.mdoc`](../audits/snapshots/2026-07-31/psr-4b-whyDenali-alias-expiry.mdoc) |
-| Inventory | [`psr-4b-whyDenali-alias-expiry-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-whyDenali-alias-expiry-inventory.yaml) |
-| Smoke | `node scripts/ops/psr-4b-whyDenali-alias-expiry-smoke.mjs` |
-| Land commit | `8d64664c` |
-| SHA close | `ec194e89` |
+| Wave | **PSR-4b-api-deps-fixture-split** — decision retain registry fixtures on API (**complete**) |
+| Exit gate | GREEN — decision=retain؛ registryOnly=۴ روی deps؛ generated binding hits>۰ |
+| Snapshot | [`psr-4b-api-deps-fixture-split.mdoc`](../audits/snapshots/2026-07-31/psr-4b-api-deps-fixture-split.mdoc) |
+| Inventory | [`psr-4b-api-deps-fixture-split-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-api-deps-fixture-split-inventory.yaml) |
+| Smoke | `node scripts/ops/psr-4b-api-deps-fixture-split-smoke.mjs` |
+| Land commit | pending |
+| SHA close | pending |
 
 | Change | Detail |
 | --- | --- |
-| Codegen | `resolveGuestLandingWhySectionGate` → whySection-only; reject whyDenali |
-| Ratchet | manifests forbid whyDenali key |
+| Decision | **retain** — fixtures required by generated finance/booking bindings + specs |
+| Helpers | `partitionApiHostManifestPackages` / `isApiHostRegistryOnlyFixtureManifest` |
+| Delete deps | **forbidden** |
 
-**عمداً خارج:** fixture-split؛ PSR-5؛ CSS rename.
+**عمداً خارج:** حذف fixture از `apps/api`؛ تغییر registryOnly flags؛ PSR-5.
 
-**Next:** PSR-4b-api-deps-fixture-split یا PSR-5+.
+**Next:** PSR-5+ (memory/prisma inventory) یا Harbor.
+
+### 0.00 PSR-4b-whyDenali-alias-expiry (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b-whyDenali-alias-expiry** — dual-read closed (**complete**) |
+| Snapshot | [`psr-4b-whyDenali-alias-expiry.mdoc`](../audits/snapshots/2026-07-31/psr-4b-whyDenali-alias-expiry.mdoc) |
+| Land commit | `8d64664c` |
+| SHA close | `ec194e89` |
 
 ### 0.00 PSR-4b-whyDenali-docs (بسته)
 

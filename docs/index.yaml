@@ -83,6 +83,8 @@ documents:
       - docs/audits/snapshots/2026-07-31/psr-4b-exports-2-inventory.yaml
       - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync-inventory.yaml
+      - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-fixture-split.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-fixture-split-inventory.yaml
       - docs/audits/snapshots/2026-07-31/psr-4b-configure.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-configure-2.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-configure-3.mdoc
@@ -469,6 +471,20 @@ documents:
     supersedes: []
     superseded_by: docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync-inventory.yaml
     evidence: []
+
+
+  - id: PSR-4B-API-DEPS-FIXTURE-SPLIT
+    path: docs/audits/snapshots/2026-07-31/psr-4b-api-deps-fixture-split.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: pending
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-fixture-split-inventory.yaml
+      - docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync.mdoc
 
   - id: PSR-4B-API-DEPS-SYNC
     path: docs/audits/snapshots/2026-07-31/psr-4b-api-deps-sync.mdoc
