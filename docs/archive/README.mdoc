@@ -1,0 +1,50 @@
+---
+id: ARCHIVE-POLICY-001
+title: Documentation archive policy
+format: markdoc
+role: standard
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: 004c0afa
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/architecture/platform-simplification-remediation.mdoc
+program_id: PSR-001
+wave: PSR-2c
+---
+
+# Documentation archive policy (ARCHIVE-POLICY-001)
+
+## Purpose
+
+`docs/archive/<program_id>/` holds **immutable historical** documentation that
+must remain searchable but is **not** active authority. Active authority lives
+only in [`docs/index.yaml`](../index.yaml).
+
+## Rules
+
+1. **No bulk blind moves.** Phase trees move program-by-program with an
+   inventory row and `superseded_by` on the replacement (or an explicit
+   `status: archived` index entry).
+2. **Archive is immutable.** Do not edit archived content except to fix
+   broken relative links after a move (link-fix commits only).
+3. **Inbound links from active docs** may point at archive for history; they
+   must not treat archive as the sole SoT for a live concern.
+4. **Ignored scratch (`TEMP/`, `temp/`)** is never archive. Promote first
+   (PSR-2b) or drop authority links (PSR-2c); do not `git add` TEMP.
+5. **PSR-2c pilot:** root-command satellite worksheets →
+   [`psr-001/root-command/`](./psr-001/root-command/). Full `docs/phase-*`
+   relocation remains a follow-on slice after link hygiene is green.
+
+## Layout
+
+```text
+docs/archive/
+  README.mdoc                 # this index pointer
+  ARCHIVE-POLICY via standard above
+  psr-001/
+    root-command/             # 15 ROOT_COMMAND_* worksheets (PSR-2c)
+    # future: phase-N/ … when scheduled
+```

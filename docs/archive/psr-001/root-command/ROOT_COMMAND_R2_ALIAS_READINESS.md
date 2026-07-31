@@ -3,7 +3,7 @@
 **Status:** Read-only analysis complete; execution blocked by workspace patch
 infrastructure  
 **Captured:** 2026-07-29  
-**Parent plan:** [`ROOT_COMMAND_REMEDIATION_PLAN.md`](./ROOT_COMMAND_REMEDIATION_PLAN.md)
+**Parent plan:** [`ROOT_COMMAND_REMEDIATION_PLAN.md`](../../../platform/ROOT_COMMAND_REMEDIATION_PLAN.md)
 
 ## Decision
 

@@ -2,7 +2,7 @@
 
 **Status:** Active — Phase 0 evidence  
 **Captured:** 2026-07-29  
-**Parent baseline:** [`ROOT_COMMAND_BASELINE.md`](./ROOT_COMMAND_BASELINE.md)
+**Parent baseline:** [`ROOT_COMMAND_BASELINE.md`](../../../platform/ROOT_COMMAND_BASELINE.md)
 
 ## Purpose
 

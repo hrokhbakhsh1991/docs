@@ -1,9 +1,38 @@
 # Root Command Classification
 
-**Status:** Active — Phase 0 classification ledger  
+**Status:** Active — classification ledger (PSR-2c compacted)  
 **Captured:** 2026-07-29  
+**Last compacted:** 2026-07-31 (PSR-2c)  
 **Baseline:** [`ROOT_COMMAND_BASELINE.md`](./ROOT_COMMAND_BASELINE.md)  
-**Dynamic evidence:** [`ROOT_COMMAND_DYNAMIC_CONSUMERS.md`](./ROOT_COMMAND_DYNAMIC_CONSUMERS.md)
+**Remediation / status:** [`ROOT_COMMAND_REMEDIATION_PLAN.md`](./ROOT_COMMAND_REMEDIATION_PLAN.md)  
+**Dynamic evidence (archived):** [`ROOT_COMMAND_DYNAMIC_CONSUMERS.md`](../archive/psr-001/root-command/ROOT_COMMAND_DYNAMIC_CONSUMERS.md)
+
+## Active surface (≤3 artifacts)
+
+| Artifact | Role |
+| --- | --- |
+| [`ROOT_COMMAND_BASELINE.md`](./ROOT_COMMAND_BASELINE.md) | Metric baseline / growth freeze |
+| [`ROOT_COMMAND_CLASSIFICATION.md`](./ROOT_COMMAND_CLASSIFICATION.md) | This ledger — machine-oriented cohort state |
+| [`ROOT_COMMAND_REMEDIATION_PLAN.md`](./ROOT_COMMAND_REMEDIATION_PLAN.md) | Remediation + status decisions |
+
+Detailed cohort worksheets live under
+[`docs/archive/psr-001/root-command/`](../archive/psr-001/root-command/) and are
+**not** active authority.
+
+### Archived cohort worksheets
+
+| File | Topic |
+| --- | --- |
+| `ROOT_COMMAND_CLASSIFICATION_GUARDS_A.md` … `_E.md` + erratum | Guard cohorts |
+| `ROOT_COMMAND_CLASSIFICATION_OPS.md` | Ops commands |
+| `ROOT_COMMAND_CLASSIFICATION_PHASE_GATES.md` | Phase gates |
+| `ROOT_COMMAND_CLASSIFICATION_TESTS_TOOLS.md` | Tests/tools |
+| `ROOT_COMMAND_CLASSIFICATION_CONTROL_SMOKE.md` | Control smoke |
+| `ROOT_COMMAND_CLASSIFICATION_FINAL_TOOLS.md` | Final tools |
+| `ROOT_COMMAND_R2_ALIAS_READINESS.md` | Alias readiness |
+| `ROOT_COMMAND_R3_FAMILY_ASSESSMENT.md` | Family runners |
+| `ROOT_COMMAND_R4_CI_ASSESSMENT.md` | CI assessment |
+| `ROOT_COMMAND_DYNAMIC_CONSUMERS.md` | Dynamic consumers |
 
 ## Classification policy
 

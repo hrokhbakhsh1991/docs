@@ -2,7 +2,7 @@
 
 **Status:** Active — Phase 0 classification ledger, cohort 3E  
 **Captured:** 2026-07-29  
-**Parent ledger:** [`ROOT_COMMAND_CLASSIFICATION.md`](./ROOT_COMMAND_CLASSIFICATION.md)
+**Parent ledger:** [`ROOT_COMMAND_CLASSIFICATION.md`](../../../platform/ROOT_COMMAND_CLASSIFICATION.md)
 
 ## Cohort result
 

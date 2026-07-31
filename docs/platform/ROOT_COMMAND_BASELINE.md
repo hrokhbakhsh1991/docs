@@ -2,9 +2,11 @@
 
 **Status:** Active — Phase 0 baseline and growth freeze  
 **Captured:** 2026-07-29  
+**Last compacted:** 2026-07-31 (PSR-2c)  
 **Initiative:** Platform Simplification  
 **Scope:** Root `package.json` command surface only  
-**Authority:** Complements [`COMMAND_OWNERSHIP_MAP.md`](./COMMAND_OWNERSHIP_MAP.md)
+**Authority:** Complements [`COMMAND_OWNERSHIP_MAP.md`](./COMMAND_OWNERSHIP_MAP.md)  
+**Active trio:** baseline · [`CLASSIFICATION`](./ROOT_COMMAND_CLASSIFICATION.md) · [`REMEDIATION_PLAN`](./ROOT_COMMAND_REMEDIATION_PLAN.md)
 
 ## Purpose
 

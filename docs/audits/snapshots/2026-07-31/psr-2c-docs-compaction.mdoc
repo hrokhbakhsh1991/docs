@@ -1,0 +1,68 @@
+---
+id: PSR-2C-SLICE
+title: PSR-2c documentation compaction slice
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: 004c0afa
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/archive/README.mdoc
+  - docs/standards/doc-authority-metadata.schema.mdoc
+program_id: PSR-001
+wave: PSR-2c
+---
+
+# PSR-2c — Compaction slice (careful)
+
+## Scope of this slice
+
+| Work | Done in this slice | Deferred |
+| --- | --- | --- |
+| Zero markdown links `docs/**` → TEMP/temp | Yes | — |
+| ROOT_COMMAND_* → ≤3 active artifacts | Yes (15 archived) | — |
+| `docs/archive/` scaffold + policy | Yes | Full `phase-*` tree moves |
+| Deferred dirty docs (8) | Commit with classification | — |
+| SSH/secret absolute-link scrub | No | Later secret review |
+| Domain extract from phase-5/20 | No | Follow-on extract PRs |
+
+**Forbidden still:** TEMP wipe, single cleanup commit mixing product code,
+blind move of all `docs/phase-*`.
+
+## ROOT_COMMAND active trio
+
+1. [`docs/platform/ROOT_COMMAND_BASELINE.md`](../../platform/ROOT_COMMAND_BASELINE.md)
+2. [`docs/platform/ROOT_COMMAND_CLASSIFICATION.md`](../../platform/ROOT_COMMAND_CLASSIFICATION.md)
+3. [`docs/platform/ROOT_COMMAND_REMEDIATION_PLAN.md`](../../platform/ROOT_COMMAND_REMEDIATION_PLAN.md)
+
+Archived worksheets: [`docs/archive/psr-001/root-command/`](../../archive/psr-001/root-command/)
+
+## Validators
+
+```bash
+node scripts/ops/psr-2a-validate-docs-index.mjs
+node scripts/ops/psr-2b-no-temp-authority.mjs
+node scripts/ops/psr-2c-no-temp-doc-links.mjs
+```
+
+## Exit gate (this slice)
+
+| Criterion | Target |
+| --- | --- |
+| `psr-2c-no-temp-doc-links` PASS | Pass |
+| Active ROOT_COMMAND files ≤3 | Pass |
+| Archive policy present | Pass |
+| TEMP trees not deleted | Pass |
+| Full phase archive move | Not required for this slice |
+
+## Commit ledger
+
+| Item | Status | Commit |
+| --- | --- | --- |
+| TEMP doc-link unlink | pending | — |
+| ROOT_COMMAND archive + policy | pending | — |
+| Deferred dirty docs | pending | — |
+| Index/SoT/snapshot close | pending | — |

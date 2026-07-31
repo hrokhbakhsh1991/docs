@@ -2,7 +2,7 @@
 
 **Status:** Analysis complete — migration expansion requires parity evidence  
 **Captured:** 2026-07-29  
-**Parent plan:** [`ROOT_COMMAND_REMEDIATION_PLAN.md`](./ROOT_COMMAND_REMEDIATION_PLAN.md)  
+**Parent plan:** [`ROOT_COMMAND_REMEDIATION_PLAN.md`](../../../platform/ROOT_COMMAND_REMEDIATION_PLAN.md)  
 **Existing design:** [`CI_COMPOSITE_SETUP.md`](./CI_COMPOSITE_SETUP.md)
 
 ## Current state

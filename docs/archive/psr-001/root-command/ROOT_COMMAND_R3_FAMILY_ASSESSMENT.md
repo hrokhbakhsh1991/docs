@@ -2,7 +2,7 @@
 
 **Status:** Complete — existing consolidation accepted; no refactor proposed  
 **Captured:** 2026-07-29  
-**Parent plan:** [`ROOT_COMMAND_REMEDIATION_PLAN.md`](./ROOT_COMMAND_REMEDIATION_PLAN.md)
+**Parent plan:** [`ROOT_COMMAND_REMEDIATION_PLAN.md`](../../../platform/ROOT_COMMAND_REMEDIATION_PLAN.md)
 
 ## Outcome
 

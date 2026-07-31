@@ -2,9 +2,11 @@
 
 **Status:** Analysis complete — implementation requires staged approval  
 **Captured:** 2026-07-29  
+**Last compacted:** 2026-07-31 (PSR-2c — satellite docs archived)  
 **Scope:** Root `package.json` command surface  
 **Baseline:** [`ROOT_COMMAND_BASELINE.md`](./ROOT_COMMAND_BASELINE.md)  
-**Classification:** [`ROOT_COMMAND_CLASSIFICATION.md`](./ROOT_COMMAND_CLASSIFICATION.md)
+**Classification:** [`ROOT_COMMAND_CLASSIFICATION.md`](./ROOT_COMMAND_CLASSIFICATION.md)  
+**Archived worksheets:** [`docs/archive/psr-001/root-command/`](../archive/psr-001/root-command/)
 
 ## Outcome
 
