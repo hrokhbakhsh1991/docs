@@ -39,8 +39,10 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-close.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-exports.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-exports-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-exports-2.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4b-exports-2-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-4b-exports
+current_wave: PSR-4b-exports-2
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -50,27 +52,35 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-exports — partial −۵)
+## 0. وضعیت موج جاری (PSR-4b-exports-2 — host-private ≤۳۰)
 
 | Field | Value |
 | --- | --- |
-| Wave | **PSR-4b-exports** — host-private peel با per-export proof (**partial ۳۹→۳۴**) |
-| Exit gate | IN PROGRESS — ceiling ۳۴؛ target ≤۳۰ (gap −۴) |
-| Snapshot | [`psr-4b-exports.mdoc`](../audits/snapshots/2026-07-31/psr-4b-exports.mdoc) |
-| Inventory | [`psr-4b-exports-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-exports-inventory.yaml) |
+| Wave | **PSR-4b-exports-2** — draft/http/composites/messages (**complete ≤۳۰**) |
+| Exit gate | GREEN — host-private **۳۰**/≤۳۰؛ total exports **۱۵۳** |
+| Snapshot | [`psr-4b-exports-2.mdoc`](../audits/snapshots/2026-07-31/psr-4b-exports-2.mdoc) |
+| Inventory | [`psr-4b-exports-2-inventory.yaml`](../audits/snapshots/2026-07-31/psr-4b-exports-2-inventory.yaml) |
 | Smoke | `node scripts/ops/psr-4b-exports-smoke.mjs` |
-| Land commit | `7a6147e5` |
-| SHA close | `6f720dee` |
 
 | Change | Detail |
 | --- | --- |
-| Peeled (−۵) | `plugin-for-wizard-engine`, `denali-plugin-build`, `clone/hydration`, `smoke/phase-6-denali-smoke-tenant`, `marketing` |
-| host-private | **۳۴** / ≤۳۰ |
-| total exports | **۱۵۷** (was ۱۶۲) |
+| `./host/draft` | retarget → unification surface (+ SchemaGate rename fix) |
+| `./host/http/routes` | `http.module` → `./http` |
+| `./host/composites` | ghost paths → registry surface + codegen |
+| messages fa/en | collapse → `./host/messages/*/wizard.json` |
 
-**عمداً خارج این موج:** manifest-bound surfaces؛ `./host/draft` test retarget؛ configure-*؛ api-deps-sync.
+**عمداً خارج:** Urban/Harbor routes peel؛ configure-*؛ api-deps-sync؛ product-internal pool.
 
-**Next:** PSR-4b-exports-2 (draft→root سپس peel؛ ادامه −۴ تا ≤۳۰).
+**Next:** PSR-4 باقی — optional configure absorption؛ api-deps-sync؛ یا PSR-5+.
+
+### 0.00 PSR-4b-exports (بسته / partial −۵)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-4b-exports** — host-private peel (**partial ۳۹→۳۴**) |
+| Snapshot | [`psr-4b-exports.mdoc`](../audits/snapshots/2026-07-31/psr-4b-exports.mdoc) |
+| Land commit | `7a6147e5` |
+| SHA close | `6f720dee` |
 
 ### 0.00 PSR-4b-host-imports-close (بسته)
 

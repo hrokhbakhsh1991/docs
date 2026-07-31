@@ -10,10 +10,10 @@ import { describe, it } from "node:test";
 import {
   denaliHydrateDraftEnvelope,
   denaliPrepareDraftEnvelope,
-  createOperatorDraftSchemaGate,
-} from "@app-tour/workspace-denali/host/draft";
+  createDenaliDraftSchemaGate,
+} from "@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface";
 
-import { mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/host/draft";
+import { mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface";
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
 import { normalizeWizardRemoteEnvelopeForPlugin } from "../src/draft/normalize-wizard-remote-envelope-for-plugin";
 import { DraftEngine } from "@app-tour/draft-engine";
@@ -58,7 +58,7 @@ describe("draft-unification-client.spec.ts — Track B", () => {
   });
 
   it("prePush schema gate does not mutate form JSON", () => {
-    const gate = createOperatorDraftSchemaGate(minimalRules(), {
+    const gate = createDenaliDraftSchemaGate(minimalRules(), {
       uiOptions: {},
       ruleSet: "publish",
     } as never);

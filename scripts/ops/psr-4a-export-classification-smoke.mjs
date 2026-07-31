@@ -91,9 +91,21 @@ if (!frozen) {
     if (!exportKeys.includes(key)) fail(`inventory export not in package.json: ${key}`);
   }
 } else {
-  // Live package may only remove keys (peel); must not invent exports unknown to 4a.
+  // Live package may shrink (peel) and may add keys listed in PSR-4b exports inventory.
+  let allowedNew = [];
+  try {
+    const exp2 = loadYaml(
+      join(root, "docs/audits/snapshots/2026-07-31/psr-4b-exports-2-inventory.yaml"),
+    );
+    allowedNew = exp2.policy?.allowed_new_exports || [];
+  } catch {
+    allowedNew = [];
+  }
+  const allowedNewSet = new Set(allowedNew);
   for (const key of exportKeys) {
-    if (!seen.has(key)) fail(`live export not in frozen 4a inventory: ${key}`);
+    if (!seen.has(key) && !allowedNewSet.has(key)) {
+      fail(`live export not in frozen 4a inventory: ${key}`);
+    }
   }
 }
 

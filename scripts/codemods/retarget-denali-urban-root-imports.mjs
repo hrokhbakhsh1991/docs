@@ -46,7 +46,7 @@ const DENALI_SYMBOL_TARGETS = {
   DENALI_LEGACY_TRIP_DETAILS_SCHEMA_VERSION: "@app-tour/workspace-denali/host/acl",
   LEGACY_TRIP_DETAILS_SOT_ROOT: "@app-tour/workspace-denali/host/acl",
   wrapLegacyTripDetailsForMigration: "@app-tour/workspace-denali/host/acl",
-  denaliPrepareDraftEnvelope: "@app-tour/workspace-denali/host/draft",
+  denaliPrepareDraftEnvelope: "@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface",
   denaliPluginForWizardEngine: "@app-tour/workspace-denali",
   DENALI_LIFECYCLE: "@app-tour/workspace-denali",
   buildDenaliFullWizardTemplatePayload: "@app-tour/workspace-denali/settings/denaliFullWizardTemplate",

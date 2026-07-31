@@ -40,7 +40,7 @@
   ],
   "http": {
     "prefix": "/finance",
-    "module": "./http/routes"
+    "module": "./http"
   },
   "httpRoutes": {
     "handlerPackage": "@app-tour/workspace-denali/host/http",
@@ -107,7 +107,7 @@
     "currentSchemaVersionExport": "DENALI_CURRENT_CANONICAL_SCHEMA_VERSION",
     "legacySchemaVersionExport": "DENALI_LEGACY_TRIP_DETAILS_SCHEMA_VERSION",
     "wrapLegacyExport": "wrapLegacyTripDetailsForMigration",
-    "formProfileGhostPathsModule": "./composites",
+    "formProfileGhostPathsModule": "./composites/wizard-composite-registry-surface",
     "formProfileGhostPathsExport": "DENALI_FORM_PROFILE_GHOST_PATHS",
     "validationSyncOnly": true,
     "catalogRefEnrichment": true

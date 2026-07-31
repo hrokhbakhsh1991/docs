@@ -16,7 +16,7 @@ import { DraftEngine } from "@app-tour/draft-engine";
 import { denaliPrepareDraftEnvelope } from "@app-tour/workspace-denali";
 
 import { loadDenaliWizardRulesModule } from "@app-tour/workspace-denali/host/wizard/rules-loader";
-import { mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/host/draft";
+import { mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface";
 import {
   hasNonEmptyCanonicalValue,
   isDraftEssentiallyEmpty,

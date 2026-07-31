@@ -75,6 +75,8 @@ documents:
       - docs/audits/snapshots/2026-07-31/psr-4b-host-imports-close.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-exports.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-exports-inventory.yaml
+      - docs/audits/snapshots/2026-07-31/psr-4b-exports-2.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-4b-exports-2-inventory.yaml
 
   - id: DG-REM-001
     path: docs/architecture/denali-gravity-remediation.mdoc
@@ -522,7 +524,21 @@ documents:
     last_verified: 2026-07-31
     verified_sha: 7a6147e5
     supersedes: []
-    superseded_by: null
+    superseded_by: docs/audits/snapshots/2026-07-31/psr-4b-exports-2.mdoc
     evidence:
       - docs/audits/snapshots/2026-07-31/psr-4b-exports-inventory.yaml
+      - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml
+
+  - id: PSR-4B-EXPORTS-2
+    path: docs/audits/snapshots/2026-07-31/psr-4b-exports-2.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: pending
+    supersedes:
+      - docs/audits/snapshots/2026-07-31/psr-4b-exports.mdoc
+    superseded_by: null
+    evidence:
+      - docs/audits/snapshots/2026-07-31/psr-4b-exports-2-inventory.yaml
       - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml

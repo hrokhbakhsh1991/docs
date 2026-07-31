@@ -39,7 +39,7 @@ describe("admin client workspace ignore codegen (Wave H.j)", () => {
     // Round-trip: JSON-escaped source compiles to the same matcher as H.g hand rules
     const denaliRe = new RegExp("^@app-tour/workspace-denali(\\/|$)");
     assert.equal(denaliRe.test("@app-tour/workspace-denali"), true);
-    assert.equal(denaliRe.test("@app-tour/workspace-denali/host/draft"), true);
+    assert.equal(denaliRe.test("@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface"), true);
     assert.equal(denaliRe.test("@app-tour/workspace-starter"), false);
   });
 

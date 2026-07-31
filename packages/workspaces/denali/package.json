@@ -30,14 +30,6 @@
       "types": "./dist/catalog/registration-flow/react.d.ts",
       "default": "./dist/catalog/registration-flow/react.js"
     },
-    "./host/composites": {
-      "types": "./dist/composites/index.d.ts",
-      "default": "./dist/composites/index.js"
-    },
-    "./host/draft": {
-      "types": "./dist/draft/index.d.ts",
-      "default": "./dist/draft/index.js"
-    },
     "./host/draft/wizard-draft-unification-surface": {
       "types": "./dist/draft/wizard-draft-unification-surface.d.ts",
       "default": "./dist/draft/wizard-draft-unification-surface.js"
@@ -210,10 +202,6 @@
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"
     },
-    "./host/http/routes": {
-      "types": "./dist/http/routes.d.ts",
-      "default": "./dist/http/routes.js"
-    },
     "./host/exposure": {
       "types": "./dist/exposure/index.d.ts",
       "default": "./dist/exposure/index.js"
@@ -226,9 +214,8 @@
       "types": "./dist/marketing/marketing-catalog-surface.d.ts",
       "default": "./dist/marketing/marketing-catalog-surface.js"
     },
+    "./host/messages/*/wizard.json": "./messages/*/wizard.json",
     "./theme/admin-skin.css": "./theme/admin-skin.css",
-    "./host/messages/fa/wizard.json": "./messages/fa/wizard.json",
-    "./host/messages/en/wizard.json": "./messages/en/wizard.json",
     "./host/ui": {
       "types": "./dist/ui/index.d.ts",
       "default": "./dist/ui/index.js"

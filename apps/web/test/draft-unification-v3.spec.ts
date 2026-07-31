@@ -8,10 +8,10 @@ import {
   createOperatorDraftOnPushSuccess,
   resolveOperatorDraftConflictStrategy,
 } from "../src/draft/draft-unification-v3-options";
-import { resolveDenaliDraftMerge } from "@app-tour/workspace-denali/host/draft";
+import { resolveDenaliDraftMerge } from "@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface";
 import { resolveDraftUnificationV3Mode } from "../src/draft/draft-unification-v3";
-import { logDenaliTombstoneShadowMismatch } from "@app-tour/workspace-denali/host/draft";
-import { mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/host/draft";
+import { logDenaliTombstoneShadowMismatch } from "@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface";
+import { mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface";
 
 const ENV_KEYS = ["DRAFT_UNIFICATION_V3", "NEXT_PUBLIC_DRAFT_UNIFICATION_V3"] as const;
 

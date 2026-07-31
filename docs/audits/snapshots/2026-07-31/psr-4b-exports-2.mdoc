@@ -1,0 +1,82 @@
+---
+id: PSR-4B-EXPORTS-2
+title: PSR-4b-exports-2 host-private ≤30 (draft/http/composites/messages)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending
+supersedes:
+  - docs/audits/snapshots/2026-07-31/psr-4b-exports.mdoc
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-exports-2-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-exports.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-4a-denali-export-classification.yaml
+  - docs/dev/denali-plugin-encapsulation.mdoc
+program_id: PSR-001
+wave: PSR-4b-exports-2
+---
+
+# PSR-4b-exports-2 — host-private ≤30
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| Retarget `./host/draft` consumers → unification surface | Yes |
+| Peel `./host/draft` | Yes |
+| Fold `http.module` → `./http`; peel `./host/http/routes` | Yes |
+| Move ghost paths → composite registry surface; peel `./host/composites` | Yes |
+| Collapse message locale keys → `./host/messages/*/wizard.json` | Yes |
+| Reach ≤30 host-visible | **Yes (۳۰)** |
+
+Machine inventory:
+[`psr-4b-exports-2-inventory.yaml`](./psr-4b-exports-2-inventory.yaml)
+
+## Method notes
+
+### Draft (not root barrel)
+
+Encapsulation prefers `/host/<module>` over widening package root. Tests now import
+`@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface`, which re-exports
+merge/hydrate/schema-gate helpers. Latent typo fixed:
+`createOperatorDraftSchemaGate` → `createDenaliDraftSchemaGate`.
+
+### http/routes
+
+`http/index.ts` already re-exports `./routes`. Denali
+`workspace.manifest.json` `http.module` retargeted to `./http`.
+
+### composites
+
+Only consumer was generated canonical binding. Manifest
+`formProfileGhostPathsModule` now points at
+`./composites/wizard-composite-registry-surface` (named export
+`DENALI_FORM_PROFILE_GHOST_PATHS`).
+
+### messages wildcard
+
+Two host-private keys collapsed to one pattern export. Codegen import paths
+(`…/host/messages/{fa,en}/wizard.json`) unchanged — served by the wildcard.
+
+## Metrics
+
+| Metric | PSR-4a | After exports-1 | After exports-2 | Target |
+| --- | ---: | ---: | ---: | ---: |
+| host-private | 39 | 34 | **30** | ≤30 |
+| total Denali exports | 162 | 157 | **153** | — |
+| gap | 9 | 4 | **0** | 0 |
+
+## Ratchet
+
+`node scripts/ops/psr-4b-exports-smoke.mjs` → inventory
+`psr-4b-exports-2-inventory.yaml`.
+
+## Explicit non-goals
+
+- Urban/Harbor/guest-club `http/routes` peels (Denali-only this wave)
+- `configure-*` absorption
+- api-deps-sync
+- product-internal shrink pool (80)

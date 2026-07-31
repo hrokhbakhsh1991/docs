@@ -7,7 +7,7 @@
 import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
 import { readDenaliTourPublishStatusFromCanonical, detectDenaliTourPublishTransition } from "@app-tour/workspace-denali/host/tours";
 import { migrateDenaliCanonical, LEGACY_TRIP_DETAILS_SOT_ROOT, DENALI_CURRENT_CANONICAL_SCHEMA_VERSION, DENALI_LEGACY_TRIP_DETAILS_SCHEMA_VERSION, wrapLegacyTripDetailsForMigration } from "@app-tour/workspace-denali/host/acl";
-import { DENALI_FORM_PROFILE_GHOST_PATHS } from "@app-tour/workspace-denali/host/composites";
+import { DENALI_FORM_PROFILE_GHOST_PATHS } from "@app-tour/workspace-denali/host/composites/wizard-composite-registry-surface";
 import { URBAN_WORKSPACE_TYPE } from "@app-tour/workspace-urban";
 import { readUrbanTourPublishStatusFromCanonical, detectUrbanTourPublishTransition } from "@app-tour/workspace-urban/host/tours";
 

@@ -1,0 +1,69 @@
+schema_version: 1
+program_id: PSR-001
+wave: PSR-4b-exports-2
+updated: "2026-07-31"
+workspace: "@app-tour/workspace-denali"
+package_json: packages/workspaces/denali/package.json
+supersedes_inventory: docs/audits/snapshots/2026-07-31/psr-4b-exports-inventory.yaml
+policy:
+  target_host_private_max: 30
+  host_private_ceiling: 30
+  peel_requires_zero_external_consumers: true
+  # Collapse peels may keep the same import path when a replacement export serves it.
+  allow_consumer_paths_when_collapse_into: true
+  peel_requires_not_manifest_bound: true
+  allowed_new_exports:
+    - "./host/messages/*/wizard.json"
+baseline_psr4a:
+  host_private: 39
+  total_exports: 162
+prior_wave_psr4b_exports:
+  host_private: 34
+  total_exports: 157
+metrics:
+  host_private: 30
+  total_exports: 153
+  peeled_this_wave: 5
+  remaining_gap_to_target: 0
+  new_host_private_keys: 1
+peeled_this_wave:
+  - export: "./host/draft"
+    proof: "retarget web tests + ignore-spec string to ./host/draft/wizard-draft-unification-surface; fix stale createOperatorDraftSchemaGate → createDenaliDraftSchemaGate"
+    replacement: "@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface"
+  - export: "./host/http/routes"
+    proof: "zero exact-path consumers; denali workspace.manifest.json http.module → ./http (index re-exports routes)"
+    replacement: "@app-tour/workspace-denali/host/http"
+  - export: "./host/composites"
+    proof: "only generated consumer; formProfileGhostPathsModule → ./composites/wizard-composite-registry-surface"
+    replacement: "@app-tour/workspace-denali/host/composites/wizard-composite-registry-surface"
+  - export: "./host/messages/fa/wizard.json"
+    proof: "collapse into wildcard; codegen import path unchanged"
+    collapse_into: "./host/messages/*/wizard.json"
+    allow_consumers: true
+  - export: "./host/messages/en/wizard.json"
+    proof: "collapse into wildcard; codegen import path unchanged"
+    collapse_into: "./host/messages/*/wizard.json"
+    allow_consumers: true
+# Cumulative peeled keys (wave 1 + wave 2) — must stay absent from package.json
+peeled:
+  - export: "./host/plugin-for-wizard-engine"
+  - export: "./host/denali-plugin-build"
+  - export: "./host/clone/hydration"
+  - export: "./host/smoke/phase-6-denali-smoke-tenant"
+  - export: "./host/marketing"
+  - export: "./host/draft"
+  - export: "./host/http/routes"
+  - export: "./host/composites"
+  - export: "./host/messages/fa/wizard.json"
+  - export: "./host/messages/en/wizard.json"
+replacement_paths:
+  "./host/plugin-for-wizard-engine": "@app-tour/workspace-denali"
+  "./host/denali-plugin-build": "@app-tour/workspace-denali"
+  "./host/clone/hydration": "@app-tour/workspace-denali/host/clone"
+  "./host/smoke/phase-6-denali-smoke-tenant": "@app-tour/workspace-denali"
+  "./host/marketing": "@app-tour/workspace-denali/host/marketing/marketing-catalog-surface"
+  "./host/draft": "@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface"
+  "./host/http/routes": "@app-tour/workspace-denali/host/http"
+  "./host/composites": "@app-tour/workspace-denali/host/composites/wizard-composite-registry-surface"
+  "./host/messages/fa/wizard.json": "./host/messages/*/wizard.json"
+  "./host/messages/en/wizard.json": "./host/messages/*/wizard.json"
