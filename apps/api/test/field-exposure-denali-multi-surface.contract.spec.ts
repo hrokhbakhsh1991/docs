@@ -63,7 +63,7 @@ describe("Denali multi-surface exposure contract", () => {
 
   it("wires exposure resolver and reminder ports in denali product host", () => {
     const host = readFileSync(
-      join(repoRoot, "apps/api/src/http/configure-workspace-denali-product-http-host.ts"),
+      join(repoRoot, "apps/api/src/http/configure-product-http-hosts.ts"),
       "utf8",
     );
     assert.match(host, /buildDenaliExposureResolverPort/);

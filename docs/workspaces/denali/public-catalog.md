@@ -332,7 +332,7 @@ Playwright smoke: **SMK-MKT-01** (`operator.localhost:3002/tours` · legacy `sho
 
 List catalog HTTP applies exposure redaction **sequentially** per page (not `Promise.all`) so Postgres dev hosts (`denali.localhost:3002`, `urban.localhost:3002`) stay under per-tenant DB budget (`TENANT_DB_BUDGET_EXCEEDED` / 503).
 
-Denali and Urban exposure resolvers (`resolve-denali-surface-exposure.ts`, Urban resolver in `configure-urban-http-host.ts`) catch Prisma failures when `DATABASE_URL` is unset and fall back to registry-seeded field defaults — required for DB-less Playwright smokes (SMK-MKT-03 portal register, SMK-MKT-05 urban catalog).
+Denali and Urban exposure resolvers (`resolve-denali-surface-exposure.ts`, `resolve-urban-surface-exposure.ts`) catch Prisma failures when `DATABASE_URL` is unset and fall back to registry-seeded field defaults — required for DB-less Playwright smokes (SMK-MKT-03 portal register, SMK-MKT-05 urban catalog).
 
 ### SEO metadata (M8)
 
@@ -653,7 +653,7 @@ sequenceDiagram
 | Urban catalog HTTP (API) | `apps/api/src/urban/urban.routes.ts` → `@app-tour/workspace-urban/http` `catalog.service.ts` |
 | Urban catalog exposure bindings | `packages/workspaces/urban/src/catalog/urban-catalog-exposure-bindings.ts` |
 | Urban exposure surfaces | `packages/workspaces/urban/src/exposure/urban-exposure-surfaces.ts` |
-| Urban exposure resolver (API) | `apps/api/src/http/configure-urban-http-host.ts` (`buildUrbanExposureResolverPort`) |
+| Urban exposure resolver (API) | `apps/api/src/exposure/resolve-urban-surface-exposure.ts` (`buildUrbanExposureResolverPort`) |
 | Denali card | `packages/workspaces/denali/src/catalog/denali-catalog-card.ts` |
 | Catalog service | `packages/workspaces/denali/src/http/catalog.service.ts` |
 | HTTP handlers | `packages/workspaces/denali/src/http/product.routes.ts` |

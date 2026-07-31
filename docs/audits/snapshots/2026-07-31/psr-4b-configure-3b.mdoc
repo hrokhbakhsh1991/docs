@@ -1,0 +1,88 @@
+---
+id: PSR-4B-CONFIGURE-3B
+title: PSR-4b-configure-3b — delete product-named configure (ceiling → 0)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: pending
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-4b-configure-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-4b-configure-3.mdoc
+  - scripts/ops/psr-4b-configure-smoke.mjs
+  - scripts/guards/guard-api-workspace-isolation.mjs
+program_id: PSR-001
+wave: PSR-4b-configure-3b
+---
+
+# PSR-4b-configure-3b — product-named configure ceiling → 0
+
+## Prerequisite
+
+[`psr-4b-configure-3.mdoc`](./psr-4b-configure-3.mdoc) already moved `/host/*`
+imports behind `workspace-product-http-host-bindings.generated.ts`. Isolation was
+GREEN; product-named count was still **2**.
+
+## Scope
+
+| Work | Done |
+| --- | --- |
+| Extract Urban exposure → `exposure/resolve-urban-surface-exposure.ts` | Yes |
+| Share tour-store resolver → `http/resolve-product-tour-store.ts` | Yes |
+| Merge denali+urban wiring → `configure-product-http-hosts.ts` | Yes |
+| Classify product wire as `platform-neutral` (zero branded package imports) | Yes |
+| Delete `configure-workspace-denali-product-http-host.ts` | Yes |
+| Delete `configure-urban-http-host.ts` | Yes |
+| Retarget app.ts / contracts / m17 / marketing-guard | Yes |
+| Ratchet product-named ceiling **2→0** | Yes |
+| Stuff full wiring into codegen template | **No** — hand-written neutral adapter is enough |
+
+## Why this is still SoT-faithful
+
+SoT §PSR-4.4: *product-named* configure modules leave the host; branded imports
+live in generated loaders (or approved adapters).
+
+After this wave:
+
+| Path | Class | Branded `@app-tour/workspace-*` |
+| --- | --- | --- |
+| `configure-finance-http-host.ts` | platform-neutral | none (`@app-tour/finance-http`) |
+| `configure-product-http-hosts.ts` | platform-neutral | none (types/configure via `*.generated.ts` only) |
+| `workspace-product-http-host-bindings.generated.ts` | generated | `/host/http` |
+| `resolve-urban-surface-exposure.ts` | host exposure | none (via exposure generated bindings) |
+
+## Boot path
+
+```text
+app.ts
+  → configure-product-http-hosts.ts   (side-effect: denali + urban)
+  → configure-finance-http-host.ts
+configure-product-http-hosts.ts
+  → workspace-product-http-host-bindings.generated.ts
+  → resolve-urban-surface-exposure / resolve-denali-surface-exposure
+  → resolve-product-tour-store
+```
+
+## Ratchet
+
+```bash
+node scripts/ops/psr-4b-configure-smoke.mjs
+node scripts/guards/guard-api-workspace-isolation.mjs
+node scripts/ops/psr-4b-api-neutrality-smoke.mjs
+```
+
+| Metric | Ceiling |
+| --- | ---: |
+| product-named configure files | **0** |
+| configure-*.ts file count | **2** |
+| bare `/http` in configure | **0** |
+| direct `/host/*` in configure | **0** |
+
+## Explicit non-goals
+
+- Moving port wiring into the codegen emitter body
+- Renaming finance configure again
+- Harbor product HTTP host

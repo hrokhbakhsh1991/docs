@@ -86,7 +86,7 @@ const REQUIRED_FILES = [
   "apps/marketing/playwright.marketing-home.config.ts",
   "apps/marketing/scripts/smoke-marketing-urban-e2e-servers.mjs",
   "apps/api/src/exposure/resolve-denali-surface-exposure.ts",
-  "apps/api/src/http/configure-urban-http-host.ts",
+  "apps/api/src/exposure/resolve-urban-surface-exposure.ts",
   "packages/workspace-sdk/src/catalog/resolve-catalog-list-features.ts",
   "packages/workspace-sdk/src/catalog/resolve-catalog-detail-sections.ts",
   "packages/workspace-sdk/src/catalog/resolve-catalog-registration-support.ts",
@@ -283,7 +283,7 @@ assertCheck(
   "Denali exposure resolver must catch Prisma failures for DB-less smokes (SMK-MKT-03)"
 );
 
-const urbanExposureResolver = read("apps/api/src/http/configure-urban-http-host.ts");
+const urbanExposureResolver = read("apps/api/src/exposure/resolve-urban-surface-exposure.ts");
 assertCheck(
   "m17_urban_exposure_db_less_fallback",
   urbanExposureResolver.includes("tryResolvePersistedExposureProfile") &&

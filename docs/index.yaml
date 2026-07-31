@@ -82,6 +82,7 @@ documents:
       - docs/audits/snapshots/2026-07-31/psr-4b-configure.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-configure-2.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-configure-3.mdoc
+      - docs/audits/snapshots/2026-07-31/psr-4b-configure-3b.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-configure-inventory.yaml
       - docs/audits/snapshots/2026-07-31/psr-4b-http-alias.mdoc
       - docs/audits/snapshots/2026-07-31/psr-4b-http-alias-inventory.yaml
@@ -519,6 +520,21 @@ documents:
       - docs/audits/snapshots/2026-07-31/psr-4b-configure-inventory.yaml
       - docs/audits/snapshots/2026-07-31/psr-4b-configure-2.mdoc
       - docs/dev/denali-plugin-encapsulation.mdoc
+      - scripts/guards/guard-api-workspace-isolation.mjs
+
+  - id: PSR-4B-CONFIGURE-3B
+    path: docs/audits/snapshots/2026-07-31/psr-4b-configure-3b.mdoc
+    role: audit_snapshot
+    owner: platform-architecture
+    status: active
+    last_verified: 2026-07-31
+    verified_sha: pending
+    supersedes: []
+    superseded_by: null
+    evidence:
+      - docs/audits/snapshots/2026-07-31/psr-4b-configure-inventory.yaml
+      - docs/audits/snapshots/2026-07-31/psr-4b-configure-3.mdoc
+      - scripts/ops/psr-4b-configure-smoke.mjs
       - scripts/guards/guard-api-workspace-isolation.mjs
 
   - id: PSR-4B-HTTP-ALIAS

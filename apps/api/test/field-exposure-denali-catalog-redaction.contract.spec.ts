@@ -14,7 +14,7 @@ const CATALOG_SERVICE = join(
 );
 const DENALI_HOST = join(
   REPO_ROOT,
-  "apps/api/src/http/configure-workspace-denali-product-http-host.ts",
+  "apps/api/src/http/configure-product-http-hosts.ts",
 );
 const EXPOSURE_DOC = join(REPO_ROOT, "docs/architecture/field-exposure-system.md");
 

@@ -17,8 +17,7 @@ import { resolveLazyToursService } from "./boot/lazy-tours-service";
 import { resolveWorkspaceHttpHandler } from "./boot/lazy-workspace-finance-handlers";
 import type { TourStorageRepository } from "./db/tour.repository";
 import { handleHealth } from "./health/health.routes";
-import "./http/configure-urban-http-host";
-import "./http/configure-workspace-denali-product-http-host";
+import "./http/configure-product-http-hosts";
 import "./http/configure-finance-http-host";
 import { tryDispatchPlatformRoutes } from "./http/platform-route-registrar";
 import { rejectRequestDuringShutdown } from "./http/shutdown-ingress";
@@ -79,7 +78,7 @@ import {
   handlePutTourWizardTemplateAlias,
 } from "./settings/settings.routes";
 import type { ToursRouteDeps } from "./tours/tours.routes";
-import type { UrbanProductRouteDeps } from "./http/configure-urban-http-host";
+import type { UrbanProductRouteDeps } from "./http/configure-product-http-hosts";
 import {
   handleDeleteWorkspaceDraft,
   handleGetWorkspaceDraft,

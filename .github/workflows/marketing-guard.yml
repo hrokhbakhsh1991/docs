@@ -58,7 +58,7 @@ on:
       - "packages/workspaces/urban/theme/urban-marketing.css"
       - "packages/workspaces/denali/theme/denali-marketing.css"
       - "apps/api/src/exposure/resolve-denali-surface-exposure.ts"
-      - "apps/api/src/http/configure-urban-http-host.ts"
+      - "apps/api/src/exposure/resolve-urban-surface-exposure.ts"
       - "apps/marketing/playwright.marketing-urban.config.ts"
       - "apps/marketing/scripts/smoke-marketing-urban-e2e-servers.mjs"
       - "apps/marketing/tests/e2e/marketing-urban-catalog-smoke.spec.ts"

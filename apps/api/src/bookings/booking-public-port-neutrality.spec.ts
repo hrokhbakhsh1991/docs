@@ -83,7 +83,7 @@ describe("BK-B1.4 BookingPublicPort neutrality", () => {
 
   it("host composition owns adapter selection; Denali is consumer not port owner", () => {
     const host = readFileSync(
-      join(here, "../http/configure-workspace-denali-product-http-host.ts"),
+      join(here, "../http/configure-product-http-hosts.ts"),
       "utf8"
     );
     assert.match(host, /createHostBookingPublicAdapter/);

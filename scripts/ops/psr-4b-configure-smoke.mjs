@@ -97,12 +97,16 @@ for (const row of inv.adapters || []) {
   }
   if (row.class === "platform-neutral") {
     const branded = [...text.matchAll(new RegExp(BRANDED_RE, "g"))].map((m) => m[0]);
-    // workspace-sdk is ok for types in some adapters; finance should have none
+    // workspace-sdk is ok for types in some adapters; product packages must be zero
     const productBranded = branded.filter((s) => !s.includes("workspace-sdk"));
     if (productBranded.length > 0) {
       fail(`${row.path} platform-neutral but has branded imports: ${productBranded.join(", ")}`);
     }
-    if (!row.path.endsWith("configure-finance-http-host.ts")) {
+    const allowedNeutral = new Set([
+      "apps/api/src/http/configure-finance-http-host.ts",
+      "apps/api/src/http/configure-product-http-hosts.ts",
+    ]);
+    if (!allowedNeutral.has(row.path)) {
       fail(`unexpected platform-neutral adapter: ${row.path}`);
     }
   }

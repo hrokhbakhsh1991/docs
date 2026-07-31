@@ -12,7 +12,7 @@ const CATALOG_SERVICE = join(
   REPO_ROOT,
   "packages/workspaces/urban/src/http/catalog.service.ts",
 );
-const URBAN_HOST = join(REPO_ROOT, "apps/api/src/http/configure-urban-http-host.ts");
+const URBAN_HOST = join(REPO_ROOT, "apps/api/src/http/configure-product-http-hosts.ts");
 const EXPOSURE_DOC = join(REPO_ROOT, "docs/architecture/field-exposure-system.md");
 
 describe("field exposure Urban catalog redaction contract", () => {
@@ -41,12 +41,12 @@ describe("field exposure Urban catalog redaction contract", () => {
   it("wires Urban exposure resolver port in product HTTP host", () => {
     const host = readFileSync(URBAN_HOST, "utf8");
     assert.match(host, /buildUrbanExposureResolverPort/);
-    assert.match(host, /resolveExposureResolverPort/);
+    assert.match(host, /resolveUrbanExposureResolverPort|resolveExposureResolverPort/);
   });
 
   it("falls back to seeded defaults when Prisma unavailable (DB-less smoke)", () => {
     const resolver = readFileSync(
-      join(REPO_ROOT, "apps/api/src/http/configure-urban-http-host.ts"),
+      join(REPO_ROOT, "apps/api/src/exposure/resolve-urban-surface-exposure.ts"),
       "utf8",
     );
     assert.match(resolver, /tryResolvePersistedExposureProfile/);

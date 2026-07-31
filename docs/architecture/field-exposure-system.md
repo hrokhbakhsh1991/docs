@@ -308,9 +308,9 @@ surface `public_website` via `mapUrbanExposureSurfaceToFieldPolicySurface`.
 Contract: `apps/api/test/field-exposure-urban-catalog-redaction.contract.spec.ts`
 Unit (workspace): `packages/workspaces/urban/test/urban-catalog-exposure.spec.ts`
 
-**DB-less smoke fallback:** `resolveUrbanSurfaceVisibleFieldIds` (in `configure-urban-http-host.ts`, folded from `configure-urban-surface-exposure.ts` in PSR-4b-configure-2) wraps Prisma-backed profile/intent lookups in try/catch — falls back to registry-seeded defaults when `DATABASE_URL` is unset (SMK-MKT-05 · unit tests).
+**DB-less smoke fallback:** `resolveUrbanSurfaceVisibleFieldIds` (`exposure/resolve-urban-surface-exposure.ts`; folded through configure-2/3b from the former configure-urban-surface-exposure module) wraps Prisma-backed profile/intent lookups in try/catch — falls back to registry-seeded defaults when `DATABASE_URL` is unset (SMK-MKT-05 · unit tests).
 
-Host wiring: `configure-urban-http-host.ts` → `buildUrbanExposureResolverPort`.
+Host wiring: `configure-product-http-hosts.ts` → `buildUrbanExposureResolverPort`.
 Workspace HTTP: `packages/workspaces/urban/src/http/catalog.service.ts` → `applyCatalogExposure`.
 Production ingress: `apps/api/src/urban/urban.routes.ts` delegates to workspace catalog service.
 
@@ -2757,11 +2757,11 @@ rules map through `mapDenaliExposureSurfaceToFieldPolicySurface()`:
   - `DenaliExposureResolverPort` — resolved in `apps/api` via `resolveDenaliSurfaceVisibleFieldIds`
   - `DenaliReminderFeedPort` — reads `denali_exposure_reminder_activations`
 - Denali must **not** import `apps/api` internals. Host wiring lives in
-  `configure-workspace-denali-product-http-host.ts`.
+  `configure-product-http-hosts.ts`.
 - `@app-tour/workspace-urban` declares `public_list` / `public_details` surfaces, catalog redaction
   bindings (`applyUrbanCatalogCardExposure`), and HTTP consumers via `UrbanExposureResolverPort`
   (`resolveUrbanSurfaceVisibleFieldIds` in `apps/api`). Host wiring:
-  `configure-urban-http-host.ts` → `buildUrbanExposureResolverPort`.
+  `configure-product-http-hosts.ts` → `buildUrbanExposureResolverPort`.
 
 ### Relative-time reminder scheduler
 
