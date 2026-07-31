@@ -4,7 +4,7 @@ schema_version: 1
 program_id: PSR-001
 wave: PSR-4b-defaults
 updated: 2026-07-31
-verified_sha: pending-psr-4b-defaults
+verified_sha: 9ea15024
 roles:
   - canonical
   - standard
@@ -42,7 +42,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: pending-psr-4b-defaults
+    verified_sha: 9ea15024
     supersedes: []
     superseded_by: null
     evidence:
@@ -378,7 +378,7 @@ documents:
     owner: platform-architecture
     status: active
     last_verified: 2026-07-31
-    verified_sha: pending-psr-4b-defaults
+    verified_sha: 9ea15024
     supersedes: []
     superseded_by: null
     evidence:

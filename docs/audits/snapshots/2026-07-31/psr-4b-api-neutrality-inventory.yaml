@@ -2,7 +2,7 @@ schema_version: 1
 program_id: PSR-001
 wave: PSR-4b-defaults
 updated: '2026-07-31'
-verified_sha: pending-psr-4b-defaults
+verified_sha: 9ea15024
 policy:
   inventory_and_ratchet_only: false
   no_runtime_default_change_in_this_wave: false
