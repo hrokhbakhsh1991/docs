@@ -1,0 +1,97 @@
+---
+title: PSR-1 hygiene containment
+format: markdoc
+doc_role: audit_snapshot
+status: active
+program_id: PSR-001
+wave: PSR-1
+verified_sha_base: 1bbe491e
+branch: thin
+owner: platform-architecture
+related:
+  - ./psr-0b-train-log.mdoc
+  - ../../architecture/platform-simplification-remediation.mdoc
+---
+
+# PSR-1 — Hygiene containment proof
+
+## Scope
+
+| Wave | Work | Forbidden |
+| --- | --- | --- |
+| **PSR-1a** | Path-specific ignore for rebuildable artifacts | TEMP wipe, `git clean -fdX`, defer-docs commit |
+| **PSR-1b** | Root ad-hoc / duplicate delete after consumer proof | Mixing product trains, deleting `scripts/vps-deploy/*` |
+
+Deferred PSR-0b docs (`docs/dev/*`, `docs/phase-*`, `docs/standards/*` dirty
+set) stay unstaged until PSR-2.
+
+## PSR-1a — Ignore policy
+
+Allowlisted rebuildable patterns reinforced in `.gitignore`:
+
+- `.next/` (already `apps/*/.next/`)
+- `dist/`, `coverage/`, `*.tsbuildinfo` (already root-wide)
+- `test-results/`, `playwright-report/` (broadened beyond legacy-only)
+- `.turbo/`
+- `__pycache__/`, `*.pyc`
+- Root ad-hoc helpers: `tmp-restart-*.mjs` (never re-commit)
+
+**Not** ignore-targets: `node_modules` cleanup mixed into this wave, `legacy/backups`,
+`legacy/logs`, `.env*`, TEMP content deletion.
+
+## PSR-1b — Delete candidates (consumer proof)
+
+| Candidate | Working-tree state at proof | Live consumer of **root** path | Canonical replacement | Verdict |
+| --- | --- | --- | --- | --- |
+| `bootstrap-server.sh` (root) | already deleted vs HEAD | none — CI/README use `scripts/vps-deploy/bootstrap-server.sh` | `scripts/vps-deploy/bootstrap-server.sh` | **delete from git** |
+| `remote-deploy.sh` (root) | already deleted vs HEAD | none — `.github/workflows/deploy-vps.yml` calls `scripts/vps-deploy/remote-deploy.sh` | `scripts/vps-deploy/remote-deploy.sh` | **delete from git** |
+| `fix-route.js` | already deleted vs HEAD | zero product/test import | n/a (one-off) | **delete from git** |
+| `make-jpeg.js` | already deleted vs HEAD | zero | n/a | **delete from git** |
+| `test.jpg` | already deleted vs HEAD | zero | fixtures live under package tests | **delete from git** |
+| `test-proxy.js` | already deleted vs HEAD | zero | formal smoke/servers under `apps/*/scripts` | **delete from git** |
+| `tmp-restart-denali-api.mjs` | untracked on disk | zero (inventory/docs only) | marketing/API smoke scripts | **rm; gitignore** |
+| `tmp-restart-memory-api.mjs` | untracked on disk | zero | same | **rm; gitignore** |
+| `__pycache__/*.pyc` (cursor skill) | deleted vs HEAD | rebuildable bytecode | ignore `__pycache__/` | **delete from git** |
+
+Historical docs that mention bare `bootstrap-server.sh` / `remote-deploy.sh`
+(phase-21 audits, root `PRODUCTION_RELEASE_AUDIT.md`) are shorthand for the
+**vps-deploy** scripts; they are not importers of the root duplicates. Rewriting
+those archives is PSR-2, not a blocker for deleting root copies.
+
+### Proof commands (re-runnable)
+
+```bash
+# Canonical deploy still present
+test -f scripts/vps-deploy/bootstrap-server.sh
+test -f scripts/vps-deploy/remote-deploy.sh
+
+# CI entrypoint is vps-deploy, not root
+rg -n "scripts/vps-deploy/remote-deploy" .github/workflows/deploy-vps.yml
+
+# No remaining root helper files on disk after PSR-1b
+test ! -e bootstrap-server.sh
+test ! -e remote-deploy.sh
+test ! -e fix-route.js
+test ! -e make-jpeg.js
+test ! -e test-proxy.js
+test ! -e test.jpg
+test ! -e tmp-restart-denali-api.mjs
+test ! -e tmp-restart-memory-api.mjs
+```
+
+## Commit ledger
+
+| Order | Wave | Status | Commit | Notes |
+| --- | --- | --- | --- | --- |
+| 1 | PSR-1a | pending | — | `.gitignore` + this proof doc + SoT pointer |
+| 2 | PSR-1b | pending | — | git rm root ad-hoc + pycache; rm untracked tmp-restart |
+
+## Exit gate
+
+| Criterion | Target |
+| --- | --- |
+| One deploy path | `scripts/vps-deploy/` only |
+| Zero root ad-hoc helpers on disk | Pass after 1b |
+| Zero tracked rebuildable bytecode for candidates | Pass after 1b |
+| TEMP/temp untouched | Pass |
+| Deferred docs still dirty | Pass |

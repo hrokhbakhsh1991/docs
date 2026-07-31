@@ -6,12 +6,16 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
+.turbo/
+**/.turbo/
 .DS_Store
 .env
 .env.*
 !.env.example
 !.env.local.example
 *.log
+**/__pycache__/
+*.pyc
 
 legacy/node_modules/
 legacy/.next/
@@ -23,6 +27,9 @@ legacy/.aider.*
 legacy/apps/web/.next/
 apps/*/.next/
 apps/*/test-results/
+**/test-results/
+apps/*/playwright-report/
+**/playwright-report/
 apps/marketing/.lighthouseci/
 legacy/apps/web/playwright-report/
 legacy/apps/web/test-results/
@@ -31,8 +38,18 @@ legacy/apps/web/.memlab/
 
 # Local scratch (never commit)
 TEMP/
+docs/temp/
 legacy/reports/phase-0-environment-*
 reports/p4-cold-path-fan-in.json
+
+# Root ad-hoc helpers (PSR-1 — use scripts/vps-deploy + formal smoke instead)
+/tmp-restart-*.mjs
+/fix-route.js
+/make-jpeg.js
+/test-proxy.js
+/test.jpg
+/bootstrap-server.sh
+/remote-deploy.sh
 
 # Local planning scratch (optional — uncomment to keep TEMP out of git)
 # TEMP/

@@ -4,7 +4,7 @@ format: markdoc
 doc_role: remediation_sot
 status: active
 program_id: PSR-001
-current_wave: PSR-0b-complete
+current_wave: PSR-1
 created: 2026-07-31
 owner: platform-architecture
 scope: new-platform-only
@@ -15,14 +15,23 @@ verified_sha: 30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-0b — بسته)
+## 0. وضعیت موج جاری (PSR-1)
 
 | Field | Value |
 | --- | --- |
-| Wave | **PSR-0b** — split/commit change trains (**complete**) |
-| Exit gate | GREEN — 5 train commits; scratch+defer still dirty |
-| Prior gate | PSR-0a GREEN — [`snapshots/2026-07-31/`](../audits/snapshots/2026-07-31/) |
-| Recovery HEAD (pre-split) | `30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf` (`thin`) |
+| Wave | **PSR-1** — hygiene containment (in progress) |
+| Prior | PSR-0b GREEN — train ledger [`psr-0b-train-log.mdoc`](../audits/snapshots/2026-07-31/psr-0b-train-log.mdoc) |
+| Hygiene proof | [`psr-1-hygiene.mdoc`](../audits/snapshots/2026-07-31/psr-1-hygiene.mdoc) |
+
+**قواعد:** بدون `git clean -fdX`؛ بدون حذف TEMP؛ docs با `defer` استیج نمی‌شوند؛
+deploy canonical فقط `scripts/vps-deploy/`.
+
+### 0.1 PSR-0b (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | PSR-0b — split/commit change trains (**complete**) |
+| Exit gate | GREEN — 5 train commits; scratch+defer intentionally dirty |
 | Train log | [`psr-0b-train-log.mdoc`](../audits/snapshots/2026-07-31/psr-0b-train-log.mdoc) |
 
 | Train | Commit |
@@ -32,11 +41,7 @@ verified_sha: 30aa98e8df1d34aa1d372ad1e0e1a14750ec63cf
 | `denali-gravity-harbor` | `d0dd1a34` |
 | `api-platform-behavior` | `1e3dac53` |
 | `root-command-analysis` | `e9388ba7` |
-
-**باقی‌ماندهٔ عمدی dirty:** `local-scratch-artifact` (۱۰ path) + docs با
-`psr0b_action: defer` (۸ path). حذف/ارشیو در PSR-1 / PSR-2.
-
-**Next:** PSR-1a — rebuildable artifacts و ignore policy (بدون TEMP wipe).
+| ledger close | `1bbe491e` |
 
 ## 0.1 PSR-0a (بسته)
 
