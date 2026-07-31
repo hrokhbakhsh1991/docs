@@ -2,7 +2,7 @@
 
 > **Status:** DONE — 2026-06-18  
 > **Prerequisite:** Phase 13 DONE  
-> **Roadmap:** [`temp/wizard_plugin_plan.md`](../../temp/wizard_plugin_plan.md)
+> **Roadmap:** `temp/wizard_plugin_plan.md` (historical local scratch `wizard_plugin_plan.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)
 
 ## Goal
 

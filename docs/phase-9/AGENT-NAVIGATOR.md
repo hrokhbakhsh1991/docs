@@ -103,7 +103,7 @@ START
 
 | Symptom                                       | Cause                      | Fix                                                                        |
 | --------------------------------------------- | -------------------------- | -------------------------------------------------------------------------- |
-| `phase-9:guard` fails `p9_spec_path_registry` | T-9.1 not promoted         | [`TEMP/phase9-wip-specs/README.md`](../../TEMP/phase9-wip-specs/README.md) |
+| `phase-9:guard` fails `p9_spec_path_registry` | T-9.1 not promoted         | `TEMP/phase9-wip-specs/README.md` (historical local scratch `README.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml) |
 | prove_with command exits ENOENT               | spec on trunk absent       | promote train · do not skip guard                                          |
 | Built finance under `(app)/finance` only      | ignored DEC-P9-017 interim | use `app/finance/**` until CP-9.2-11                                       |
 | Added RBAC role `leader`                      | violated DEC-P9-015        | actor = admin + tour ACL                                                   |

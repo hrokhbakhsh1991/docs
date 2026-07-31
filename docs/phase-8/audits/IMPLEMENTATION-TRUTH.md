@@ -249,7 +249,7 @@ subphase_8_1:
 
 ## Scaffold promote table (trunk vs WIP)
 
-> **SoT:** [`TEMP/phase8-wip-specs/README.md`](../../../TEMP/phase8-wip-specs/README.md) · [`SPEC-REGISTRY-8.1.yaml`](../appendices/SPEC-REGISTRY-8.1.yaml)
+> **SoT:** `TEMP/phase8-wip-specs/README.md` (historical local scratch `README.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml) · [`SPEC-REGISTRY-8.1.yaml`](../appendices/SPEC-REGISTRY-8.1.yaml)
 
 | Trunk path                                                | Status       | WIP source                                                        | Promote train |
 | --------------------------------------------------------- | ------------ | ----------------------------------------------------------------- | ------------- |

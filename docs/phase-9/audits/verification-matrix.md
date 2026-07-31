@@ -14,7 +14,7 @@ sole_router: ../phase-9-agent-router.md
 
 Rows reference **TARGET** paths until implementation lands. Status `ABSENT` in [`IMPLEMENTATION-TRUTH.md`](IMPLEMENTATION-TRUTH.md) means commands may fail until subphase closes.
 
-**Scaffold policy (2026-06-08):** **T-9.1** scaffolds are **ON_TRUNK** — `pnpm run phase-9:guard` → **32/32 PASS**. Trains **T-9.2+** may still reference [`TEMP/phase9-wip-specs/README.md`](../../../TEMP/phase9-wip-specs/README.md) until promoted.
+**Scaffold policy (2026-06-08):** **T-9.1** scaffolds are **ON_TRUNK** — `pnpm run phase-9:guard` → **32/32 PASS**. Trains **T-9.2+** may still reference `TEMP/phase9-wip-specs/README.md` (historical local scratch `README.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml) until promoted.
 
 ---
 

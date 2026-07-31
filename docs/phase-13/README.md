@@ -2,7 +2,7 @@
 
 > **Status:** DONE — 2026-06-18  
 > **Prerequisite:** Phase 12 DONE · platform-core `fieldUsesCompositeRenderer` DONE  
-> **Roadmap:** [`TEMP/wizard-plugin-neutral-roadmap.md`](../../TEMP/wizard-plugin-neutral-roadmap.md)
+> **Roadmap:** `TEMP/wizard-plugin-neutral-roadmap.md` (historical local scratch `wizard-plugin-neutral-roadmap.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)
 
 ## Goal
 

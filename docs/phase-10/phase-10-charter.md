@@ -38,4 +38,4 @@ pnpm run guard:architecture               # depcruise
 ## References
 
 - RFC: [`workspace-host-contract-v2.md`](workspace-host-contract-v2.md)
-- Execution roadmap: [`TEMP/platform-plugin-native-remediation-roadmap.md`](../../TEMP/platform-plugin-native-remediation-roadmap.md)
+- Execution roadmap: `TEMP/platform-plugin-native-remediation-roadmap.md` (historical local scratch `platform-plugin-native-remediation-roadmap.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)

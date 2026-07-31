@@ -2,8 +2,8 @@
 
 > **وضعیت:** DONE — **11.0–11.18** (2026-06-11)  
 > **هدف:** زیرساخت reusable (draft-engine، wizard-navigation) + binder نازک Denali — **بدون** تغییر semantics قوانین تأییدشده مشتری  
-> **نقشه اجرا:** [`TEMP/wizard-platform-implementation-roadmap.md`](../../TEMP/wizard-platform-implementation-roadmap.md)  
-> **شکاف‌ها:** [`TEMP/wizard-template-settings-gaps.md`](../../TEMP/wizard-template-settings-gaps.md)
+> **نقشه اجرا:** `TEMP/wizard-platform-implementation-roadmap.md` (historical local scratch `wizard-platform-implementation-roadmap.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)  
+> **شکاف‌ها:** `TEMP/wizard-template-settings-gaps.md` (historical local scratch `wizard-template-settings-gaps.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)
 
 ## پیش‌نیاز
 

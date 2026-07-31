@@ -36,7 +36,7 @@ pnpm run p6:gate                         # daily (~8s) — or see TEMP/FOR YOU.m
 P6_FAST_CLOSE=1 pnpm run p6:closure      # skip slow staging-preflight
 ```
 
-Long commands (install, build, VPS gates): **[TEMP/FOR YOU.md](../../../TEMP/FOR%20YOU.md)**
+Long commands (install, build, VPS gates): **TEMP/FOR YOU.md (historical local scratch `FOR YOU.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)**
 
 Machine state → [AGENT-CURRENT-PHASE.yaml](AGENT-CURRENT-PHASE.yaml) · [p6-fast-close.yaml](p6-fast-close.yaml)
 

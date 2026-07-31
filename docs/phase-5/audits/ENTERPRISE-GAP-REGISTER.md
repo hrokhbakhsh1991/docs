@@ -1,7 +1,7 @@
 # Enterprise gap register (TEMP sprint — closed)
 
 > **Sprint status:** **CLOSED** 2026-06-05 (Phase 4–5 enterprise hardening; Phase 6 entry items done)  
-> **Archive:** [`TEMP/enterprise-gap-priority-list.md`](../../../TEMP/enterprise-gap-priority-list.md)  
+> **Archive:** `TEMP/enterprise-gap-priority-list.md` (historical local scratch `enterprise-gap-priority-list.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)  
 > **Official gap tracking:** [`PHASE-5-GAP-REGISTER.md`](PHASE-5-GAP-REGISTER.md)  
 > **Decisions:** [`../appendices/IMPLEMENTATION-DECISIONS.md`](../appendices/IMPLEMENTATION-DECISIONS.md)
 

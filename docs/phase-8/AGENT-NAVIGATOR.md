@@ -96,7 +96,7 @@ START
 
 | Symptom                                       | Cause                          | Fix                                                                        |
 | --------------------------------------------- | ------------------------------ | -------------------------------------------------------------------------- |
-| `phase-8:guard` fails `p8_spec_path_registry` | T-8.1 not promoted             | [`TEMP/phase8-wip-specs/README.md`](../../TEMP/phase8-wip-specs/README.md) |
+| `phase-8:guard` fails `p8_spec_path_registry` | T-8.1 not promoted             | `TEMP/phase8-wip-specs/README.md` (historical local scratch `README.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml) |
 | prove_with exits ENOENT                       | spec absent on trunk           | promote train · do not invent paths                                        |
 | Wrote `lazy-urban-plugin.ts` in 8.1 PR        | violated PHASE-BOUNDARY-MATRIX | revert · defer to 8.2                                                      |
 | Wrote `packages/workspaces/urban/**` in 8.1   | TG-P8-002 boundary             | revert · 8.1 = auth rail only                                              |

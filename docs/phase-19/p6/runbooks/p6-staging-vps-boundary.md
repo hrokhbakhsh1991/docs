@@ -37,7 +37,7 @@ hostname: tourapp
 Units need `Environment=DEPLOY_PATH` and `Environment=ENV_DIR` in systemd (templates updated) — or start scripts default to prod paths.
 
 **Fast wiring (no build):** `bash /opt/app-tour-staging/scripts/vps-deploy/bootstrap-staging.sh`  
-**Long steps:** [TEMP/FOR YOU.md](../../../../TEMP/FOR%20YOU.md)
+**Long steps:** TEMP/FOR YOU.md (historical local scratch `FOR YOU.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)
 
 ## QA sandbox to remove (Track E1)
 

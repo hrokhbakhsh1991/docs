@@ -2,7 +2,7 @@
 
 Platform metadata production pilot + Denali operator parity on metadata path.
 
-**Canonical sync:** [`TEMP/p5/DOC-SYNC-INDEX.md`](../../TEMP/p5/DOC-SYNC-INDEX.md) · **Integrity spec:** `p5-doc-integrity.spec.ts`
+**Canonical sync:** `TEMP/p5/DOC-SYNC-INDEX.md` (historical local scratch `DOC-SYNC-INDEX.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml) · **Integrity spec:** `p5-doc-integrity.spec.ts`
 
 | Doc | EPIC | Required | execution_spec |
 |-----|------|----------|----------------|
@@ -12,4 +12,4 @@ Platform metadata production pilot + Denali operator parity on metadata path.
 | [platform-integrations-plane.mdoc](./platform-integrations-plane.mdoc) | P5-D | optional | TEMP/p5/p5-d-integrations-plane.md |
 | [platform-registrations-finance-tranche.mdoc](./platform-registrations-finance-tranche.mdoc) | P5-E | optional | TEMP/p5/p5-e-registrations-finance.md |
 
-**Execution:** [`TEMP/p5/AGENT-START.md`](../../TEMP/p5/AGENT-START.md) · **Preservation:** [`TEMP/p5/PRESERVATION-CHECKLIST.md`](../../TEMP/p5/PRESERVATION-CHECKLIST.md)
+**Execution:** `TEMP/p5/AGENT-START.md` (historical local scratch `AGENT-START.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml) · **Preservation:** `TEMP/p5/PRESERVATION-CHECKLIST.md` (historical local scratch `PRESERVATION-CHECKLIST.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)

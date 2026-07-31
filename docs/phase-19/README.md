@@ -21,7 +21,7 @@ long_commands: ../TEMP/FOR YOU.md
 
 → [p6/AGENT-START.md](p6/AGENT-START.md) · **status:** CLOSED_FAST · **P7** unblocked
 
-Long VPS/build/gate commands: **[TEMP/FOR YOU.md](../TEMP/FOR%20YOU.md)**
+Long VPS/build/gate commands: **TEMP/FOR YOU.md (historical local scratch `FOR YOU.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)**
 
 ## Umbrella
 
@@ -98,7 +98,7 @@ Architecture promotion from Blueprint v9. **Implementation landed on `DEV`; gove
 | [../dev/guard-member-portal-registry.md](../dev/guard-member-portal-registry.md) | Guard specifications |
 | [../standards/member-session-portal-authority.mdoc](../standards/member-session-portal-authority.mdoc) | PCMS-003 Phase 3 follow-up §5.1 |
 
-Source blueprint (temporary): [../temp/DENALI-PORTAL-SHELL-NAVIGATION-BLUEPRINT.md](../temp/DENALI-PORTAL-SHELL-NAVIGATION-BLUEPRINT.md)
+Source blueprint (temporary): DENALI-PORTAL-SHELL-NAVIGATION-BLUEPRINT.md (historical local scratch `DENALI-PORTAL-SHELL-NAVIGATION-BLUEPRINT.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)
 
 ## Superseded (v1.0)
 

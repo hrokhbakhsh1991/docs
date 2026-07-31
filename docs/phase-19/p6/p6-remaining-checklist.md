@@ -103,14 +103,14 @@ bash scripts/vps-deploy/bootstrap-staging.sh
 ssh root@89.45.89.206 'TOUR_OPS_API_URL=http://127.0.0.1:23001 node /opt/app-tour-staging/scripts/smoke-p6-host-bind.mjs'
 ```
 
-**Long steps (install, build, gates):** [TEMP/FOR YOU.md](../../../TEMP/FOR%20YOU.md)
+**Long steps (install, build, gates):** TEMP/FOR YOU.md (historical local scratch `FOR YOU.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)
 
 ---
 
 ## References
 
 - [p6-fast-close.yaml](p6-fast-close.yaml)
-- [TEMP/FOR YOU.md](../../../TEMP/FOR%20YOU.md)
+- TEMP/FOR YOU.md (historical local scratch `FOR YOU.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)
 - [runbooks/host-subdomain-map.md](runbooks/host-subdomain-map.md)
 - [runbooks/p6-staging-vps-boundary.md](runbooks/p6-staging-vps-boundary.md)
 - [appendices/IMPLEMENTATION-TRUTH-P6.md](appendices/IMPLEMENTATION-TRUTH-P6.md)

@@ -1,7 +1,7 @@
 # Phase 12 — Wizard platform decouple & Denali product closure
 
 > **Status:** DONE (2026-06-11)  
-> **Authority:** [`TEMP/denali-wizard-enterprise-roadmap.md`](../../TEMP/denali-wizard-enterprise-roadmap.md)  
+> **Authority:** `TEMP/denali-wizard-enterprise-roadmap.md` (historical local scratch `denali-wizard-enterprise-roadmap.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)  
 > **Prerequisite:** Phase 11 WEP closed (11.0–11.18)
 
 ## Goal

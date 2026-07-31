@@ -289,7 +289,7 @@ Exit rubric: [P7-EXIT-CRITERIA-98.md](../../phase-20/p7/appendices/P7-EXIT-CRITE
 | A Staging deploy | Infra done (lite) · A7/A8 full gates **P7** |
 | B VS gaps | deferred **P7** |
 | C/D Honest ticks + hollow specs | deferred **P10** |
-| Long commands | [TEMP/FOR YOU.md](../../../TEMP/FOR%20YOU.md) |
+| Long commands | TEMP/FOR YOU.md (historical local scratch `FOR YOU.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml) |
 
 **Bootstrap (fast, no build):** `bash scripts/vps-deploy/bootstrap-staging.sh` on VPS after rsync.
 

@@ -205,7 +205,7 @@ See [`appendices/MIGRATION-MAP-PLUGIN-HOST.md`](appendices/MIGRATION-MAP-PLUGIN-
 P0 doc (this RFC) → P1 events → P2 manifest → P3 HTTP → P4+ (see TEMP roadmap)
 ```
 
-Detailed tasks: [`TEMP/platform-plugin-native-remediation-roadmap.md`](../../TEMP/platform-plugin-native-remediation-roadmap.md).
+Detailed tasks: `TEMP/platform-plugin-native-remediation-roadmap.md` (historical local scratch `platform-plugin-native-remediation-roadmap.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml).
 
 ---
 

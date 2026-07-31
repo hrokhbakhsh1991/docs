@@ -2,7 +2,7 @@
 
 > **وضعیت:** فاز ۱–۷ DONE (2026-06-08) · charter: [`phase-10-charter.md`](phase-10-charter.md)  
 > **هدف:** تبدیل trunk از Product-Aware به Plugin Host — **بدون** تغییر `packages/platform-core`  
-> **منبع اجرا:** [`TEMP/platform-plugin-native-remediation-roadmap.md`](../../TEMP/platform-plugin-native-remediation-roadmap.md)
+> **منبع اجرا:** `TEMP/platform-plugin-native-remediation-roadmap.md` (historical local scratch `platform-plugin-native-remediation-roadmap.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml)
 
 ## سندهای این فاز
 

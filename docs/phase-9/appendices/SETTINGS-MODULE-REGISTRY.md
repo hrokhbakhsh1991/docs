@@ -643,7 +643,7 @@ settings.config.put   — resourceId = config_key (wizard_template | presets_adv
 | **S9-R7** | `/settings/me` split                 | identity specs                          |
 | **S9-R8** | Wizard builder + audit explorer      | SMK-P9-05                               |
 
-Detailed checklist: [`TEMP/phase9-settings-registry-roadmap.md`](../../../TEMP/phase9-settings-registry-roadmap.md).
+Detailed checklist: `TEMP/phase9-settings-registry-roadmap.md` (historical local scratch `phase9-settings-registry-roadmap.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml).
 
 ---
 

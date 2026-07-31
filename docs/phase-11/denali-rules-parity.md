@@ -5,7 +5,7 @@
 
 ## هدف
 
-بستن شکاف‌های §۱۲ [`TEMP/wizard-template-settings-gaps.md`](../../TEMP/wizard-template-settings-gaps.md) **بدون تغییر semantics** قوانین domain — فقط wire، invariant engine، و parity UI.
+بستن شکاف‌های §۱۲ `TEMP/wizard-template-settings-gaps.md` (historical local scratch `wizard-template-settings-gaps.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml) **بدون تغییر semantics** قوانین domain — فقط wire، invariant engine، و parity UI.
 
 ## معماری
 

@@ -132,4 +132,4 @@ required:
 | P1-19 | Bulk import API                    | Deferred    | Phase 6+ product scope                                                      |
 | P2-5  | Per-tenant DB connection semaphore | Design only | [`connection-budget.md`](../appendices/connection-budget.md) — code Phase 7 |
 
-**Closed sprint ledger:** [`ENTERPRISE-GAP-REGISTER.md`](ENTERPRISE-GAP-REGISTER.md) · archive [`TEMP/enterprise-gap-priority-list.md`](../../../TEMP/enterprise-gap-priority-list.md).
+**Closed sprint ledger:** [`ENTERPRISE-GAP-REGISTER.md`](ENTERPRISE-GAP-REGISTER.md) · archive `TEMP/enterprise-gap-priority-list.md` (historical local scratch `enterprise-gap-priority-list.md`; not fresh-clone authority — see docs/audits/snapshots/2026-07-31/psr-2b-temp-authority-inventory.yaml).
