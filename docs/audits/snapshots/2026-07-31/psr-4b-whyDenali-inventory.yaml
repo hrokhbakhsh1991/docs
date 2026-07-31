@@ -2,7 +2,7 @@ schema_version: 1
 program_id: PSR-001
 wave: PSR-4b-whyDenali
 updated: '2026-07-31'
-verified_sha: pending-psr-4b-whyDenali
+verified_sha: 73a869e6
 policy:
   rename_to_neutral_section_id: true
   deprecated_alias_whyDenali_read: true
