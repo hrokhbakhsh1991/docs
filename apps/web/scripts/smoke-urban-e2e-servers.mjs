@@ -25,7 +25,12 @@ const apiEnv = {
   PORT: "3001",
   TENANT_RATE_LIMIT_ENABLED: "false",
   AUTH_ALLOW_DEV_STATIC_OTP: "true",
+  // Dev bearer is test-only (AUTH_DEV_BEARER_FORBIDDEN_OUTSIDE_TEST). Must not
+  // start via `pnpm run dev` which hardcodes NODE_ENV=development.
+  AUTH_ALLOW_DEV_BEARER: "true",
 };
+delete apiEnv.DATABASE_URL;
+delete apiEnv.DATABASE_URL_ADMIN;
 
 const webEnv = {
   ...process.env,
@@ -135,8 +140,9 @@ async function start() {
   }
 
   if (apiStatus !== 200) {
-    const api = spawn("pnpm", ["--filter", "@apps/api", "run", "dev"], {
-      cwd: repoRoot,
+    // Honor apiEnv.NODE_ENV=test — do not use `pnpm run dev` (forces development).
+    const api = spawn("node", ["--import", "tsx", "--env-file=.env", "--env-file=.env.local", "src/main.ts"], {
+      cwd: path.join(repoRoot, "apps/api"),
       env: apiEnv,
       stdio: "inherit",
     });
