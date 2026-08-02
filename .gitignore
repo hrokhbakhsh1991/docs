@@ -57,6 +57,7 @@ reports/psr/
 # TEMP/
 # Lowercase scratch dir: git-ignored but Cursor-readable (not in .cursorignore)
 .tmp/
+tmp/
 temp/
 .aider*
 .venv/

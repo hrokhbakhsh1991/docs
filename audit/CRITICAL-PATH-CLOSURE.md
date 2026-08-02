@@ -4,7 +4,7 @@
 **Scope:** فازهای ۱–۴ remediation roadmap  
 **وضعیت:** **CLOSED** (کد + docs + guards + specs)
 
-> فازهای ۵–۷ (defensive guards، export encapsulation، DTCG/CSS) خارج از این closure — در [`CRITICAL-PATH-REMEDIATION-PLAN.tmp.md`](CRITICAL-PATH-REMEDIATION-PLAN.tmp.md) باقی می‌مانند.
+> فازهای ۵–۷ (defensive guards، export encapsulation، DTCG/CSS) خارج از این closure — در [`CRITICAL-PATH-REMEDIATION-PLAN.md`](CRITICAL-PATH-REMEDIATION-PLAN.md) باقی می‌مانند.
 
 ---
 
@@ -79,7 +79,7 @@ cd apps/api && pnpm run test:file -- \
 | SMK-PTL-04 staging smoke | دستی post-deploy | Ops |
 | `pnpm run phase-5:gate` / `ci:integrity` | فقط با YES Architect | — |
 
-**فاز ۵–۷ (2026-07-07):** defensive guards، export encapsulation، DTCG/CSS apps/web — **CLOSED**. See [`CRITICAL-PATH-REMEDIATION-PLAN.tmp.md`](CRITICAL-PATH-REMEDIATION-PLAN.tmp.md).
+**فاز ۵–۷ (2026-07-07):** defensive guards، export encapsulation، DTCG/CSS apps/web — **CLOSED**. See [`CRITICAL-PATH-REMEDIATION-PLAN.md`](CRITICAL-PATH-REMEDIATION-PLAN.md).
 
 ---
 
