@@ -66,13 +66,13 @@ export default async function MarketingTourDetailPage({ params }: PageProps) {
   const tourSignInUrl = resolveWebRegistrationLoginUrl(host, tourId, bootstrap.pluginId);
 
   return (
-    <main data-marketing-catalog-detail-page data-slot="page-catalog-detail">
+    <div data-marketing-catalog-detail-page data-slot="page-catalog-detail">
       <CatalogTourDetail
         tour={tour}
         registrationUrl={registrationUrl}
         tourSignInUrl={tourSignInUrl}
         pluginId={bootstrap.pluginId}
       />
-    </main>
+    </div>
   );
 }

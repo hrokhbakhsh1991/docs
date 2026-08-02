@@ -43,7 +43,7 @@ Existing `data-*` hooks are never removed — `data-slot` is additive only.
 
 ## Page-level `data-slot` landmarks (marketing MKT-20)
 
-Page roots inside `shell-main` expose a single **`<main>`** landmark with page slot + product hook:
+**Shell owns the document landmark** (`data-slot="shell-main"` / `#main-content` in `marketing-shell.tsx`). Tenant page roots must **not** nest `<main>` (hard guard: `scripts/guards/guard-marketing-landmark.mjs` / MKT-LANDMARK-01). Page identity is carried by `data-slot="page-*"` on a non-`<main>` root (typically `<div>`):
 
 | Slot | Marketing hook | Source |
 | ---- | -------------- | ------ |
@@ -51,7 +51,7 @@ Page roots inside `shell-main` expose a single **`<main>`** landmark with page s
 | `page-catalog` | `data-marketing-catalog` | `apps/marketing/app/tours/page.tsx` |
 | `page-catalog-detail` | `data-marketing-catalog-detail-page` | `apps/marketing/app/tours/[tourId]/page.tsx` |
 
-Contract proof: `apps/marketing/test/marketing-page-landmarks.spec.ts` (`MKT-20-01` / `MKT-20-02`) — asserts `<main … data-slot="page-*">` (not a wrapping `<div>`). Workspace skins should prefer attribute selectors (`[data-slot="page-home"]` / `[data-marketing-home]`) so element tag changes do not break appearance.
+Contract proof: `apps/marketing/test/marketing-page-landmarks.spec.ts` (`MKT-20-01` / `MKT-20-02`) — asserts `data-slot="page-*"` presence and **forbids** nested `<main>`. Workspace skins should prefer attribute selectors (`[data-slot="page-home"]` / `[data-marketing-home]`) so element tag changes do not break appearance.
 
 ## Shell forbidden in TSX
 
