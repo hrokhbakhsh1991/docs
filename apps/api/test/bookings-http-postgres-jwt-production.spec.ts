@@ -191,18 +191,19 @@ describe(
       );
 
       // Production integrity fail-closes on tour SoT capacityMax — client intake alone is rejected.
+      // Column publish_status CHECK allows draft|published (not Denali-canonical "active").
       await admin.tour.create({
         data: {
           id: tourId,
           tenantId,
           title: "JWT Prod Cert Tour",
-          publishStatus: "active",
+          publishStatus: "published",
           canonical: {
             schemaVersion: 1,
             roots: ["basics"],
             data: {
               title: "JWT Prod Cert Tour",
-              publishStatus: "active",
+              publishStatus: "published",
               capacityMax: 20,
             },
           },

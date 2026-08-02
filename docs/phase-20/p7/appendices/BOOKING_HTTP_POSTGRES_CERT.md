@@ -81,7 +81,7 @@ BookingsService.resolveEffectiveTourCapacityMax
   → tour.canonical.data.capacityMax
 ```
 
-When `productionGradeIntegrity` is on (production / prodlike), a missing tour `capacityMax` rejects with `BOOKING_CAPACITY_REJECTED: tourCapacityMax required` even if the client sends `registrationIntake.tourCapacityMax`. The JWT cert therefore **seeds a `tours` row** with `canonical.data.capacityMax` before `POST /bookings` — client intake alone is not a valid production ceiling.
+When `productionGradeIntegrity` is on (production / prodlike), a missing tour `capacityMax` rejects with `BOOKING_CAPACITY_REJECTED: tourCapacityMax required` even if the client sends `registrationIntake.tourCapacityMax`. The JWT cert therefore **seeds a `tours` row** with `canonical.data.capacityMax` before `POST /bookings` — client intake alone is not a valid production ceiling. Seed `publish_status` as `published` (Postgres `chk_tours_publish_status`); Denali-canonical `active` is not a column-legal value.
 
 See also: [`BOOKING_CAPACITY_CONCURRENCY_CERT.md`](./BOOKING_CAPACITY_CONCURRENCY_CERT.md), [`BOOKING_HTTP_ERROR_MATRIX.md`](./BOOKING_HTTP_ERROR_MATRIX.md), [`BOOKING_REMEDIATION_TODO_001_HARNESS.md`](./BOOKING_REMEDIATION_TODO_001_HARNESS.md).
 
