@@ -38,9 +38,10 @@ After a failed `migrate deploy`, the DB schema may sit at migration **N-1** whil
 | `20260720140000_finance_recon_rls` | MR-P0-003 | Finance recon findings RLS + tip head sync |
 | `20260720170000_operator_registration_active_guest_phone_unique` | MR-P0-003 | Operator registration active guest phone unique |
 | `20260721100000_portal_member_plans_bp7` | MR-P0-003 | Portal member plans (BP-7); required intermediate |
-| `20260721120000_tour_create_drop_tenants_select_bandage` | MR-P0-003 | Tour `CREATE`/`DROP` tenants SELECT bandage (current tip) |
+| `20260721120000_tour_create_drop_tenants_select_bandage` | MR-P0-003 | Tour `CREATE`/`DROP` tenants SELECT bandage |
+| `20260802140000_tenant_routes_tours_app_tour_grants` | Booking HTTP PG | `app_tour` GRANT on `tenant_routes` + `tours` (current tip) |
 
-Current head: **`20260721120000_tour_create_drop_tenants_select_bandage`** — must move in lockstep with `prisma/migrations/`.
+Current head: **`20260802140000_tenant_routes_tours_app_tour_grants`** — must move in lockstep with `prisma/migrations/`.
 
 `REQUIRED_PRISMA_MIGRATION_NAMES` must include prior intermediates that production probes still require (e.g. phone unique + portal member plans) **and** the tip folder name. Bump both the tip constant and the required list in the same PR as any new migration folder (MASTER `MR-P0-003`).
 
