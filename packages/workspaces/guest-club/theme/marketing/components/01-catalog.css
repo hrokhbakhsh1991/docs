@@ -1,5 +1,5 @@
 /* Guest-club catalog + home page hooks */
-body[data-app-surface="marketing"][data-workspace-plugin="guest-club"] [data-marketing-catalog],
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"] div[data-marketing-catalog],
 body[data-app-surface="marketing"][data-workspace-plugin="guest-club"] [data-slot="page-catalog"] {
   padding: var(--space-6) var(--space-4);
 }
@@ -24,7 +24,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="guest-club"]
   border: 1px solid var(--color-border-default);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="guest-club"] [data-marketing-home],
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"] div[data-marketing-home],
 body[data-app-surface="marketing"][data-workspace-plugin="guest-club"] [data-slot="page-home"] {
   padding: var(--space-6) var(--space-4);
 }
