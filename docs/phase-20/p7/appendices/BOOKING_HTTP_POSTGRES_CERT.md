@@ -64,8 +64,9 @@ Booking HTTP Postgres cert requires at least:
 | ----- | ----- | --- |
 | `tenant_routes` | `SELECT` | `lookupTenantRouteRow` / `bind-request-context` on every authenticated request |
 | `tours` | `SELECT, INSERT, UPDATE, DELETE` | Booking create/capacity paths read tours under `app_tour` + FORCE RLS |
+| `urban_registrations` | `SELECT, INSERT, UPDATE, DELETE` | TODO-002 RLS adversarial + urban intake under `app_cloud` + FORCE RLS |
 
-Without these grants, Prisma surfaces a truncated `Invalid tx.tenantRoute.findUnique()` wrapping Postgres `42501 permission denied`. Migration: `apps/api/prisma/migrations/20260802140000_tenant_routes_tours_app_tour_grants/` — bumps `EXPECTED_PRISMA_MIGRATION_HEAD` (DEC-097 / MR-P0-003).
+Without these grants, Prisma surfaces a truncated `Invalid …` wrapping Postgres `42501 permission denied`. Migrations: `20260802140000_tenant_routes_tours_app_tour_grants` + `20260802150000_urban_registrations_app_tour_grants` — tip bumps `EXPECTED_PRISMA_MIGRATION_HEAD` (DEC-097 / MR-P0-003).
 
 ## Proof harness
 
