@@ -229,12 +229,16 @@ pnpm run phase-psc:fast-track
 
 ```bash
 pnpm run build:workspace-sdk-for-guards
-pnpm --filter @app-cloud/guest-surface-host build   # when GSH TS sources changed
+pnpm --filter @app-tour/guest-surface-host build   # when GSH TS sources changed
 ```
 
 Without auth-first, Phase 0 / Phase 1 gates fail with `TS2307: Cannot find module '@app-tour/catalog-registration-auth'`.
 
-**Monorepo `pnpm build` (`scripts/monorepo-build.sh`):** packages whose `exports` point at `dist/` must be built before consumers. Prefer `pnpm --dir packages/<name> run build` over bare `--filter @scope/name` (filter can no-op with exit 0). Before `@app-tour/workspace-denali`, emit at least: `booking-http-contracts`, `finance-http-contracts`, `finance-http`, `platform-core`, `draft-engine`, `wizard-navigation`, and catalog UI packages the workspace imports. `@apps/api` `prebuild` and booking-postgres-gate use `scripts/ci/build-api-workspace-deps.sh`, which builds shared dist packages then **every** `packages/workspaces/*/ ` package with a `build` script (registry + generated tour/booking bindings).
+**Monorepo `pnpm build` (`scripts/monorepo-build.sh`):** packages whose `exports` point at `dist/` must be built before consumers. Prefer `pnpm --dir packages/<name> run build` over bare `--filter @scope/name` (filter can no-op with exit 0). Before `@app-tour/workspace-denali`, emit at least: `booking-http-contracts`, `finance-http-contracts`, `finance-http`, `platform-core`, `draft-engine`, `wizard-navigation`, and catalog UI packages the workspace imports. Before `@app-tour/guest-workspace-runtime`, also emit `@app-tour/workspace-plugin-host` (`dist` exports `register-safe` / `registration-flow`) and `@app-tour/workspace-harbor` (host catalog-registration-flow exports). Before `@app-tour/guest-surface-host`, emit `@app-tour/tenant-kernel`.
+
+**CI product / marketing gates:** do not bare-filter-build denali or guest-surface-host alone. Use `bash scripts/ci/build-api-workspace-deps.sh` (shared dist packages + every `packages/workspaces/*/` with a `build` script + `workspace-plugin-host` + `guest-surface-host`). P6/P8 product gates that run Booking HTTP→Postgres DoD must supply `DATABASE_URL` (Postgres service + migrate deploy) — same contract as `scripts/p6-denali-product-gate.sh`.
+
+`@apps/api` `prebuild` and booking-postgres-gate use the same `scripts/ci/build-api-workspace-deps.sh` helper.
 
 ---
 

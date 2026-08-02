@@ -1,7 +1,7 @@
 # Phase 8 — Guards reference
 
 ```yaml
-guard_version: "2026-06-08-v2"
+guard_version: "2026-08-02-v3"
 authority: MAP §12 R2 · phase-8-agent-router.md · phase-8-charter.md
 fail_token: FAIL
 charter_gates: 25
@@ -34,7 +34,7 @@ runner: scripts/guards/phase-8-guard.mjs
 | 1   | `p8_boot_manifest`                | yes      | `evaluateP8BootManifest` (`phase-8-guard-lib.mjs`)                  | `docs/phase-8/appendices/BOOT-MANIFEST.yaml` exists · structural YAML valid · subphases `8.0`–`8.5` · `gate_chain` declares `phase-8:guard`                                                                   |
 | 2   | `p8_truth_honesty`                | yes      | `evaluateP8TruthHonesty`                                            | `IMPLEMENTATION-TRUTH.md` consistent · **no BL-P8-03** · `lazy-urban-plugin.ts` → subphase **8.2** · urban package shell → **7.1** · all subphase specs on disk                                               |
 | 3   | `p8_erip_cop_present`             | yes      | `evaluateP8EripCopPresent`                                          | When **doc_ready_subphase ≥ 8.1** or behavioral **8.1–8.3**: COP in `appendices/erip/` with front-matter · **exempt at behavioral 8.0 with doc_ready < 8.1**                                                  |
-| 4   | `p8_platform_core_zero_diff`      | yes      | `evaluateP8PlatformCoreZeroDiff`                                    | `git diff <baseline_sha> -- packages/platform-core` empty · working tree clean (INV-P8-001)                                                                                                                   |
+| 4   | `p8_platform_core_zero_diff`      | yes      | `evaluateP8PlatformCoreZeroDiff`                                    | When `baseline_sha` resolves in git: empty `git diff <sha> -- packages/platform-core` · working tree clean (INV-P8-001). When the SHA is missing from the clone (shallow CI / digest-lock tokens such as `deadbeef*`): compare live `packages/platform-core` tree digest to `platform_core_tree_digest` in the same baseline YAML (Phase 7 REQ-P7-007 algorithm: sha256 over sorted `relPath\\tfileSha256` lines, skipping `node_modules`/`dist`/`coverage` and `*.md`) · working tree still clean                                                                                                                                          |
 | 5   | `p8_doc_hardening`                | yes      | `verifyDocHardening` (`phase-8-doc-hardening.mjs`)                  | All **39** canonical PEK paths under `docs/phase-8/` exist on disk                                                                                                                                            |
 | 6   | `p8_anti_hollow`                  | yes      | `verifyAntiHollow` (`anti-hollow-phase8.mjs`)                       | No `TODO` / `FIXME` / `TBD` / `placeholder` / `insert here` / empty table rows in `docs/phase-8/**` (`.md`, `.yaml`)                                                                                          |
 | 7   | `p8_hardening_artifacts`          | yes      | `verifyHardeningArtifacts` (`phase-8-hardening-artifacts.mjs`)      | `URBAN-SETTINGS-HTTP-ENVELOPE.yaml` · `PHASE-BOUNDARY-MATRIX.yaml` on disk with `contract_id` · no `{...}` ellipses · 4× `apps/api/test/urban-*.spec.ts` scaffolds with `describe` / `it` / `expect().toBe()` |

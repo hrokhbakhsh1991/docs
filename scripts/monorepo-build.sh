@@ -10,6 +10,7 @@ bash scripts/with-monorepo-build-lock.sh bash -c '
   set -euo pipefail
   pnpm --dir packages/catalog-registration-auth run build
   pnpm --dir packages/workspace-sdk run build
+  pnpm --dir packages/workspace-plugin-host run build
   pnpm --dir packages/platform-core run build
   pnpm --dir packages/booking-http-contracts run build
   pnpm --dir packages/finance-http-contracts run build
@@ -27,6 +28,7 @@ bash scripts/with-monorepo-build-lock.sh bash -c '
   pnpm --dir packages/workspaces/urban run build
   pnpm --dir packages/workspaces/guest-club run build
   pnpm --dir packages/workspaces/acme run build
+  pnpm --dir packages/workspaces/harbor run build
   pnpm --dir packages/platform-events run build
   pnpm --dir packages/finance-core run build
   pnpm --dir packages/workspaces/booking-ws2 run build
