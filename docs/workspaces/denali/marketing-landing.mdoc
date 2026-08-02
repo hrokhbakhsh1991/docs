@@ -532,7 +532,9 @@ apps/marketing/scripts/smoke-marketing-home-e2e-servers.mjs   # optional
 
 ### 14.4 CI
 
-Extend `.github/workflows/marketing-guard.yml` → `marketing-smoke` job:
+Extend `.github/workflows/marketing-guard.yml` → `marketing-smoke` job.
+
+**CI prep (before Playwright webServer):** `bash scripts/ci/build-api-workspace-deps.sh`, `touch apps/api/.env apps/api/.env.local` (node `--env-file` exit 9), and `pnpm --filter @apps/api run prisma:generate` — otherwise API health never comes up (`Cannot find module '.prisma/client/default'` / env-file exit 9).
 
 ```yaml
 - name: SMK-MKT-HOME-01..06
