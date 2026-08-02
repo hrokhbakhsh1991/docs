@@ -87,6 +87,7 @@ function seedOperatorSmokeDevBookingsFixture(): void {
     submittedAt: now.toISOString(),
     submittedByUserId: OPERATOR_SMOKE_MEMBER_USER_ID,
     approvedAt: null,
+    registrationIntake: { tourCapacityMax: 12 },
   });
 
   repo.seedBooking({
@@ -104,6 +105,7 @@ function seedOperatorSmokeDevBookingsFixture(): void {
     submittedAt: now.toISOString(),
     submittedByUserId: OPERATOR_SMOKE_MEMBER_USER_ID,
     approvedAt: now.toISOString(),
+    registrationIntake: { tourCapacityMax: 12 },
   });
 
   repo.seedBooking({
@@ -121,6 +123,7 @@ function seedOperatorSmokeDevBookingsFixture(): void {
     submittedAt: now.toISOString(),
     submittedByUserId: OPERATOR_SMOKE_OWNER_USER_ID,
     approvedAt: null,
+    registrationIntake: { tourCapacityMax: 12 },
   });
   _devFixtureSeeded = true;
 }

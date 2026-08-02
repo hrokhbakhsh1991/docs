@@ -1,0 +1,51 @@
+# PSR-8c governance files inventory (no license choice / no file landing)
+wave: PSR-8c-governance-files-inventory
+program_id: PSR-001
+decision: inventory_recipe_only
+policy:
+  forbid_license_choice_in_this_wave: true
+  forbid_writing_governance_files_in_this_wave: true
+  forbid_claiming_l_gov_closed: true
+  forbid_claiming_psr8_gate_closed: true
+  forbid_full_gate_in_this_wave: true
+  landing_requires_architect_and_counsel: true
+files:
+  - path: LICENSE
+    present: false
+    required_for_publish: true
+  - path: LICENSE.md
+    present: false
+    required_for_publish: true
+  - path: SECURITY.md
+    present: false
+    required_for_publish: true
+  - path: CONTRIBUTING.md
+    present: false
+    required_for_publish: true
+  - path: CODE_OF_CONDUCT.md
+    present: false
+    required_for_publish: false
+  - path: GOVERNANCE.md
+    present: false
+    required_for_publish: false
+  - path: .github/CODEOWNERS
+    present: false
+    required_for_publish: false
+unlicensed_packages:
+  - packages/booking-http-contracts/package.json
+  - packages/finance-http-contracts/package.json
+  - packages/finance-core/package.json
+publication_model_decided: false
+static_assets:
+  - docs/audits/snapshots/2026-07-31/psr-8c-governance-files-inventory.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-8a-legacy-boundary-inventory.mdoc
+  - docs/architecture/platform-simplification-remediation.mdoc
+ratchet:
+  required_trio_present_count: 0
+  license_chosen: false
+  l_gov_closed: false
+  psr8_gate_closed: false
+  inventory_complete: true
+  next_slice: PSR-8c1-governance-files-land
+  alternate_next: PSR-8b1-denali-types-legacy-rename
+  alternate_next_ops: PSR-7d1-dual-accept-session-jwt

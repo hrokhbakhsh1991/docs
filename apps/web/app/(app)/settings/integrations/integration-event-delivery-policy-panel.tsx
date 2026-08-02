@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ExposureFieldChecklist } from "@/exposure/ExposureFieldChecklist";
 import { localizeExposureCatalogFields } from "@/exposure/localize-exposure-catalog-fields";
 import { loadWizardWorkspacePlugin } from "@/wizard/resolve-wizard-workspace-plugin";
-import { ensureWizardHostReady } from "@app-cloud/workspace-sdk";
+import { ensureWizardHostReady } from "@app-tour/workspace-sdk";
 import {
   catalogFieldIdsFromExposureFields,
   resolveEffectiveSelectedFieldIds,

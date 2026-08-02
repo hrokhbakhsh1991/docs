@@ -6,8 +6,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
-import { getWorkspacePlugin as getUrbanPlugin } from "@app-cloud/workspace-urban";
-import { resolveOperatorShellNavCapability } from "@app-cloud/workspace-sdk";
+import { getWorkspacePlugin as getUrbanPlugin } from "@app-tour/workspace-urban";
+import { resolveOperatorShellNavCapability } from "@app-tour/workspace-sdk";
 
 const WEB_ROOT = join(import.meta.dirname, "..");
 

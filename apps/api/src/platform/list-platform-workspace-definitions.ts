@@ -1,4 +1,7 @@
-import { getPrismaAdmin } from "../db/prisma.ts";
+import {
+  PLATFORM_ADMIN_REASON,
+  getPlatformAdminClient,
+} from "./platform-admin-client.ts";
 
 export type PlatformWorkspaceDefinitionListItem = {
   readonly id: string;
@@ -10,7 +13,7 @@ export type PlatformWorkspaceDefinitionListItem = {
 export async function listPlatformWorkspaceDefinitions(): Promise<
   readonly PlatformWorkspaceDefinitionListItem[]
 > {
-  const prisma = getPrismaAdmin();
+  const prisma = getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_WORKSPACE_DEFINITION);
   const rows = await prisma.workspaceDefinition.findMany({
     orderBy: { id: "asc" },
     select: {

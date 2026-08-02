@@ -13,13 +13,18 @@ import {
   readMinioPhotoConfigFromEnv,
 } from "@app-tour/workspace-denali";
 
+import {
+  isMinioEnvironmentFailure,
+  minioEnvironmentSkipReason,
+} from "./lib/minio-environment-skip";
+
 const tenantA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const tenantB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const tourId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const photoId = randomUUID();
 
 const minioConfig = readMinioPhotoConfigFromEnv();
-const minioSkip = minioConfig === null ? "MINIO_* env not set" : undefined;
+const minioSkip = minioConfig === null ? "MINIO_* env not set" : false;
 
 describe("minio-photo.spec.ts (REQ-P6-016, RULE-P6-009)", () => {
   it("buildDenaliTourPhotoObjectKey uses tenant/tour/photos prefix", () => {
@@ -48,35 +53,43 @@ describe("minio-photo.spec.ts (REQ-P6-016, RULE-P6-009)", () => {
   it(
     "REQ-P6-016: PUT + signed GET round-trip when MinIO is available",
     { skip: minioSkip },
-    async () => {
+    async (t) => {
       assert.ok(minioConfig);
-      await ensureMinioPhotoBucket(minioConfig);
-      assert.ok(
-        await pingMinioPhotoStorage(minioConfig),
-        "MinIO bucket must exist after ensureMinioPhotoBucket"
-      );
+      try {
+        await ensureMinioPhotoBucket(minioConfig);
+        assert.ok(
+          await pingMinioPhotoStorage(minioConfig),
+          "MinIO bucket must exist after ensureMinioPhotoBucket"
+        );
 
-      const payload = Buffer.from("denali-photo-smoke-bytes", "utf8");
-      const { key } = await putDenaliTourPhoto({
-        config: minioConfig,
-        tenantId: tenantA,
-        tourId,
-        photoId,
-        body: payload,
-        contentType: "image/jpeg",
-      });
+        const payload = Buffer.from("denali-photo-smoke-bytes", "utf8");
+        const { key } = await putDenaliTourPhoto({
+          config: minioConfig,
+          tenantId: tenantA,
+          tourId,
+          photoId,
+          body: payload,
+          contentType: "image/jpeg",
+        });
 
-      const signedUrl = await getDenaliTourPhotoSignedReadUrl({
-        config: minioConfig,
-        tenantId: tenantA,
-        key,
-      });
-      assert.match(signedUrl, /^https?:\/\//);
+        const signedUrl = await getDenaliTourPhotoSignedReadUrl({
+          config: minioConfig,
+          tenantId: tenantA,
+          key,
+        });
+        assert.match(signedUrl, /^https?:\/\//);
 
-      const res = await fetch(signedUrl);
-      assert.equal(res.status, 200);
-      const bytes = Buffer.from(await res.arrayBuffer());
-      assert.equal(bytes.toString("utf8"), payload.toString("utf8"));
+        const res = await fetch(signedUrl);
+        assert.equal(res.status, 200);
+        const bytes = Buffer.from(await res.arrayBuffer());
+        assert.equal(bytes.toString("utf8"), payload.toString("utf8"));
+      } catch (error) {
+        if (isMinioEnvironmentFailure(error)) {
+          t.skip(minioEnvironmentSkipReason(error));
+          return;
+        }
+        throw error;
+      }
     }
   );
 

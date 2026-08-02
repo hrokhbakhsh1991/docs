@@ -1,4 +1,4 @@
-import { getPrismaAdmin } from "../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../db/background-admin-client";
 import { metricsRegistry } from "../observability/metrics";
 import {
   computeRelayBackoff,
@@ -27,7 +27,7 @@ export async function healPublishedProcessingOutboxRows(
   reclaimMs = resolveOutboxProcessingReclaimMs()
 ): Promise<number> {
   const cutoff = new Date(Date.now() - reclaimMs);
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_RECLAIM);
   const healed = await admin.$executeRaw`
     UPDATE outbox_events AS o
     SET status = 'done', processed_at = NOW()
@@ -63,7 +63,7 @@ export async function reclaimStaleProcessingOutboxRows(
   await healPublishedProcessingOutboxRows(reclaimMs);
 
   const cutoff = new Date(Date.now() - reclaimMs);
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_RECLAIM);
   const result = await admin.outboxEvent.updateMany({
     where: staleProcessingWhere(cutoff),
     data: {

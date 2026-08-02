@@ -31,6 +31,14 @@ import {
   HTTP_IDEMPOTENCY_TENANT_MISMATCH,
 } from "../http/http-idempotency";
 import { WorkspaceInvalidError } from "../tenant/workspace-membership";
+import {
+  isWorkspaceTypeUnresolvedError,
+  WORKSPACE_TYPE_UNRESOLVED,
+} from "../tenant/resolve-workspace-type";
+import {
+  FINANCE_WORKSPACE_UNSUPPORTED,
+  isFinanceWorkspaceUnsupportedError,
+} from "../workspace-finance/resolve-finance-workspace-type-for-tenant";
 import { sendJson, isMalformedJsonBodyError, INVALID_JSON } from "../http/json";
 import { isResponseTooLargeError, RESPONSE_TOO_LARGE } from "../http/http-response-size-budget";
 import {
@@ -249,7 +257,18 @@ function mapErrorMessageToStatus(message: string): number {
   if (message === "TENANT_NOT_FOUND") return 404;
   if (message.startsWith("TOUR_CLONE_UNSUPPORTED")) return 422;
   if (message.startsWith("DENALI_PHOTO_REMINT_DEST_FORBIDDEN")) return 403;
-  if (message.startsWith("FINANCE_WORKSPACE_UNSUPPORTED")) return 404;
+  if (
+    message === WORKSPACE_TYPE_UNRESOLVED ||
+    message.startsWith(`${WORKSPACE_TYPE_UNRESOLVED}:`)
+  ) {
+    return 404;
+  }
+  if (
+    message === FINANCE_WORKSPACE_UNSUPPORTED ||
+    message.startsWith(`${FINANCE_WORKSPACE_UNSUPPORTED}:`)
+  ) {
+    return 404;
+  }
   if (message.startsWith("BOOKING_WORKSPACE_UNSUPPORTED")) return 404;
   if (message.startsWith("BOOKING_VALIDATION_REJECTED")) return 400;
   if (message.startsWith("BOOKING_VALIDATION_FAILED")) return 400;
@@ -359,6 +378,26 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
         code: bookingHttp.code,
         ...(bookingHttp.maxBatch !== undefined ? { maxBatch: bookingHttp.maxBatch } : {}),
       },
+      correlationId
+    );
+    return;
+  }
+
+  if (isWorkspaceTypeUnresolvedError(error)) {
+    sendHttpError(
+      res,
+      404,
+      { error: WORKSPACE_TYPE_UNRESOLVED, code: WORKSPACE_TYPE_UNRESOLVED },
+      correlationId
+    );
+    return;
+  }
+
+  if (isFinanceWorkspaceUnsupportedError(error)) {
+    sendHttpError(
+      res,
+      404,
+      { error: FINANCE_WORKSPACE_UNSUPPORTED, code: FINANCE_WORKSPACE_UNSUPPORTED },
       correlationId
     );
     return;

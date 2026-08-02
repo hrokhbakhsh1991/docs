@@ -1,27 +1,30 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { WorkspacePluginNotFoundError } from "../src/bootstrap/workspace-plugin-context-errors";
 import { resolveBootstrapWorkspacePluginClient } from "../src/bootstrap/resolve-bootstrap-workspace-plugin.client";
-import { WORKSPACE_ADMIN_THEME_REGISTRY } from "../src/bootstrap/workspace-theme-stylesheets.generated";
+import {
+  listAdminThemeRegistryPluginIds,
+  resolveAdminThemeStylesheets,
+} from "../src/bootstrap/workspace-theme-stylesheets.generated";
 
 describe("resolveBootstrapWorkspacePluginClient (Wave B.b.2)", () => {
-  it("returns starter plugin for starter and unknown ids", () => {
+  it("returns starter plugin for starter; unknown ids fail closed", () => {
     const starter = resolveBootstrapWorkspacePluginClient("starter");
     assert.equal(starter.id, "starter");
-    const unknown = resolveBootstrapWorkspacePluginClient("no-such-plugin");
-    assert.equal(unknown.id, "starter");
+    assert.throws(
+      () => resolveBootstrapWorkspacePluginClient("no-such-plugin"),
+      (err: unknown) => err instanceof WorkspacePluginNotFoundError
+    );
   });
 
-  it("builds theme shells from WORKSPACE_ADMIN_THEME_REGISTRY without hand Map", () => {
-    for (const pluginId of Object.keys(WORKSPACE_ADMIN_THEME_REGISTRY)) {
+  it("builds theme shells from admin theme registry helpers without hand Map", () => {
+    for (const pluginId of listAdminThemeRegistryPluginIds()) {
       if (pluginId === "starter") continue;
       const plugin = resolveBootstrapWorkspacePluginClient(pluginId);
       assert.equal(plugin.id, pluginId);
       assert.deepEqual(plugin.supportedWorkspaceTypes, [pluginId]);
-      assert.equal(
-        plugin.theme?.optionalStylesheet,
-        WORKSPACE_ADMIN_THEME_REGISTRY[pluginId]![0]
-      );
+      assert.equal(plugin.theme?.optionalStylesheet, resolveAdminThemeStylesheets(pluginId)?.[0]);
     }
   });
 

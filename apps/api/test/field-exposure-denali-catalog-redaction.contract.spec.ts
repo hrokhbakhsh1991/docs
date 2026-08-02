@@ -38,7 +38,7 @@ describe("field exposure Denali catalog redaction contract (10.3)", () => {
   it("applies exposure resolver output in Denali catalog HTTP service", () => {
     const service = readFileSync(CATALOG_SERVICE, "utf8");
     assert.match(service, /applyCatalogExposure/);
-    assert.match(service, /resolveVisibleFieldIds/);
+    assert.match(service, /applyWorkspaceCatalogCardExposure/);
     assert.match(service, /applyDenaliCatalogCardExposure/);
   });
 

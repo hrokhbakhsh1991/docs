@@ -6,7 +6,7 @@
 import {
   resolveDraftShellCapability,
   type WorkspacePlugin,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 export type { NewTourWizardDraftEnvelope } from "@/draft/tour-wizard-draft-envelope";
 

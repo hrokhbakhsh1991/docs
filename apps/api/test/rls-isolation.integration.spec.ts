@@ -2,15 +2,17 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
 
-import { disconnectPrisma, getPrisma } from "../src/db/prisma";
+import { disconnectPrisma, getPrisma, getPrismaAdmin } from "../src/db/prisma";
 import { withTenantRls } from "../src/db/with-tenant-rls";
 
-const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
+const hasDatabase =
+  Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
 
 /**
  * P4-E-RLS-01 — Postgres RLS on `tours` via session `app.current_tenant_id`.
- * Requires: docker compose up + migrations applied (tours RLS policy + app_tour NOBYPASSRLS).
- * Run: DATABASE_URL=postgresql://app_tour:app_tour@127.0.0.1:5434/app_tour_dev pnpm --filter @apps/api exec node --import tsx --test test/rls-isolation.integration.spec.ts
+ * Requires: docker compose up + migrations applied (tours RLS policy + app_cloud NOBYPASSRLS).
+ * Tenant fixture seed/cleanup uses DATABASE_URL_ADMIN — `tenants` is FORCE RLS deny for app_cloud.
+ * Run: DATABASE_URL=postgresql://app_cloud:app_cloud@127.0.0.1:5434/app_cloud_dev pnpm --filter @apps/api exec node --import tsx --test test/rls-isolation.integration.spec.ts
  */
 describe("RLS isolation (integration)", { skip: !hasDatabase, concurrency: false }, () => {
   const tenantA = randomUUID();
@@ -27,15 +29,16 @@ describe("RLS isolation (integration)", { skip: !hasDatabase, concurrency: false
     assert.equal(
       rolsuper,
       false,
-      "app role must be NOSUPERUSER — migrate as DATABASE_URL_ADMIN (20260706130000_app_tour_nosuperuser)"
+      "app role must be NOSUPERUSER — migrate as DATABASE_URL_ADMIN (20260706130000_app_cloud_nosuperuser)"
     );
     assert.equal(
       rolbypassrls,
       false,
-      "app role must have NOBYPASSRLS — migrate as DATABASE_URL_ADMIN (20260706120000_app_tour_nobypassrls)"
+      "app role must have NOBYPASSRLS — migrate as DATABASE_URL_ADMIN (20260706120000_app_cloud_nobypassrls)"
     );
 
-    await prisma.tenant.create({
+    const admin = getPrismaAdmin();
+    await admin.tenant.create({
       data: {
         id: tenantA,
         subdomain: `rls-a-${tenantA.slice(0, 8)}`,
@@ -43,7 +46,7 @@ describe("RLS isolation (integration)", { skip: !hasDatabase, concurrency: false
         theme: {},
       },
     });
-    await prisma.tenant.create({
+    await admin.tenant.create({
       data: {
         id: tenantB,
         subdomain: `rls-b-${tenantB.slice(0, 8)}`,
@@ -71,8 +74,7 @@ describe("RLS isolation (integration)", { skip: !hasDatabase, concurrency: false
     for (const tenantId of [tenantA, tenantB]) {
       await withTenantRls(tenantId, (tx) => tx.tour.deleteMany({ where: { tenantId } }));
     }
-    const prisma = getPrisma();
-    await prisma.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
+    await getPrismaAdmin().tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
     await disconnectPrisma();
   });
 

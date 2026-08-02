@@ -1,0 +1,40 @@
+# PSR-7d platform-ops identity design (doc-only; no API code)
+wave: PSR-7d-ops-identity-design
+program_id: PSR-001
+decision: design_only_no_code
+policy:
+  forbid_apps_api_edits_in_this_wave: true
+  forbid_claiming_r_ops_id_closed: true
+  forbid_full_gate_in_this_wave: true
+  implementation_requires_architect_accept: true
+current_model:
+  human_gate: shared_env_bearer_plus_phone_header
+  session_jwt_exists: true
+  session_jwt_ttl: 7d
+  service_jwt_scoped: true
+target_model:
+  human_gate: short_lived_platform_ops_jwt
+  machine_gate: existing_ops_service_jwt_scopes
+  shared_bearer_in_prodlike: removed_after_dual_accept
+rollout_slices:
+  - PSR-7d1-dual-accept-session-jwt
+  - PSR-7d2-bff-short-ttl-session
+  - PSR-7d3-prodlike-reject-shared-bearer
+  - PSR-7d4-remove-shared-bearer-prod-path
+static_assets:
+  - docs/audits/snapshots/2026-07-31/psr-7d-ops-identity-design.mdoc
+  - apps/api/src/platform/assert-platform-ops-auth.ts
+  - apps/api/src/platform/read-platform-ops-bearer-token.ts
+  - apps/api/src/platform/resolve-platform-ops-phone-access.ts
+  - apps/api/src/platform/sign-platform-ops-session-token.ts
+  - apps/api/src/internal/verify-ops-service-jwt.ts
+  - docs/phase-15/platform-control-center-api.mdoc
+ratchet:
+  design_complete: true
+  api_code_changed: false
+  r_ops_id_closed: false
+  psr7_gate_closed: false
+  shared_bearer_still_present: true
+  next_slice: PSR-7d1-dual-accept-session-jwt
+  alternate_next: PSR-6c6-harbor-live-evidence
+  alternate_next_psr8: PSR-8a-legacy-boundary-inventory

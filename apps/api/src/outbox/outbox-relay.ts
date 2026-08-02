@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { publishDomainEvent } from "@app-tour/platform-events";
 
 import { withTenantRls } from "../db/with-tenant-rls";
-import { getPrismaAdmin } from "../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../db/background-admin-client";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
 import {
   isOutboxRelayOrderedPerTenant,
@@ -93,7 +93,7 @@ async function markClaimedRowsProcessing(
 export async function claimPendingOutboxBatch(
   batchSize = readOutboxRelayBatchSize()
 ): Promise<ClaimedOutboxRow[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_RELAY);
   const ordered = isOutboxRelayOrderedPerTenant();
   const effectiveBatch = ordered ? 1 : batchSize;
   return admin.$transaction(async (tx) => {
@@ -157,7 +157,7 @@ export async function claimPendingOutboxBatchForTenant(
   tenantId: string,
   batchSize = readOutboxRelayBatchSize()
 ): Promise<ClaimedOutboxRow[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_RELAY);
   const ordered = isOutboxRelayOrderedPerTenant();
   const effectiveBatch = ordered ? 1 : batchSize;
   return admin.$transaction(async (tx) => {
@@ -238,7 +238,7 @@ async function runWithConcurrency<T>(
 }
 
 async function markOutboxPending(row: ClaimedOutboxRow): Promise<void> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_RELAY);
   try {
     await admin.outboxEvent.update({
       where: { id: row.id },

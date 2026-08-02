@@ -1,0 +1,41 @@
+# PSR-8a legacy extraction + publication boundary inventory
+wave: PSR-8a-legacy-boundary-inventory
+program_id: PSR-001
+decision: inventory_recipe_only
+policy:
+  forbid_legacy_tree_delete_in_this_wave: true
+  forbid_license_choice_in_this_wave: true
+  forbid_claiming_psr8_gate_closed: true
+  forbid_full_gate_in_this_wave: true
+findings:
+  legacy_tree_present: true
+  legacy_tree_size_mb_approx: 1010
+  runtime_import_from_repo_legacy_into_apps: false
+  denali_in_package_types_legacy_present: true
+  root_license_present: false
+  security_md_present: false
+  contributing_md_present: false
+  publication_model_decided: false
+families:
+  - L-IMPORT
+  - L-EXTRACT
+  - L-GOV
+  - L-PUB
+  - L-CLONE
+static_assets:
+  - legacy
+  - dependency-cruiser.config.js
+  - scripts/guards/import-boundary-ast.mjs
+  - packages/workspaces/denali/src/types/legacy
+  - docs/architecture/platform-simplification-remediation.mdoc
+  - AGENTS.md
+ratchet:
+  family_count: 5
+  legacy_tree_present: true
+  root_license_present: false
+  runtime_repo_legacy_import_clean: true
+  psr8_gate_closed: false
+  inventory_complete: true
+  next_slice: PSR-8b-legacy-import-ratchet
+  alternate_next: PSR-9a-closure-scorecard-scaffold
+  alternate_next_ops: PSR-7d1-dual-accept-session-jwt

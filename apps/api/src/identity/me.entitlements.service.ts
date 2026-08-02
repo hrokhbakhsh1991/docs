@@ -27,6 +27,10 @@ export type MemberEntitlementsResponse = {
   readonly evaluatedAt: string;
   readonly granted: readonly string[];
   readonly denied: readonly MemberEntitlementDenial[];
+  /** BP-7 — tenant-defined plan code after apply-plan (not a platform SKU). */
+  readonly planCode?: string;
+  readonly entitlementsRevision?: number;
+  readonly capabilities?: Readonly<Record<string, boolean>>;
 };
 
 /** PS-6 tier-aware evaluation; membership metadata may extend hidden-module grants. */
@@ -44,8 +48,10 @@ export async function getMemberEntitlements(
   }
 
   try {
-    const explicitModuleIds = await resolveExplicitModuleGrants(auth);
-    const evaluation = evaluateMemberPortalEntitlements(pluginId, { explicitModuleIds });
+    const membershipMeta = await resolveMembershipPortalMeta(auth);
+    const evaluation = evaluateMemberPortalEntitlements(pluginId, {
+      explicitModuleIds: membershipMeta.moduleGrants,
+    });
     return Object.freeze({
       ok: true,
       tenantId: auth.tenantId,
@@ -53,6 +59,13 @@ export async function getMemberEntitlements(
       evaluatedAt: new Date().toISOString(),
       granted: evaluation.granted,
       denied: evaluation.denied,
+      ...(membershipMeta.planCode !== undefined ? { planCode: membershipMeta.planCode } : {}),
+      ...(membershipMeta.entitlementsRevision !== undefined
+        ? { entitlementsRevision: membershipMeta.entitlementsRevision }
+        : {}),
+      ...(membershipMeta.capabilities !== undefined
+        ? { capabilities: membershipMeta.capabilities }
+        : {}),
     });
   } catch (error) {
     if (error instanceof MemberPortalNotConfiguredError) {
@@ -62,13 +75,27 @@ export async function getMemberEntitlements(
   }
 }
 
-async function resolveExplicitModuleGrants(auth: TenantAuthContext): Promise<readonly string[]> {
+async function resolveMembershipPortalMeta(auth: TenantAuthContext): Promise<{
+  readonly moduleGrants: readonly string[];
+  readonly planCode?: string;
+  readonly entitlementsRevision?: number;
+  readonly capabilities?: Readonly<Record<string, boolean>>;
+}> {
   const repo = getIdentityRepository();
   const membership = await repo.findMembership(auth.userId, auth.tenantId);
   if (membership === null) {
-    return Object.freeze([]);
+    return { moduleGrants: Object.freeze([]) };
   }
-  return membership.portalModuleGrants ?? Object.freeze([]);
+  const planCode = membership.portalPlanCode?.trim();
+  const capabilities = membership.portalCapabilityFlags;
+  return {
+    moduleGrants: membership.portalModuleGrants ?? Object.freeze([]),
+    ...(planCode !== undefined && planCode.length > 0 ? { planCode } : {}),
+    ...(membership.portalEntitlementsRevision !== undefined
+      ? { entitlementsRevision: membership.portalEntitlementsRevision }
+      : {}),
+    ...(capabilities !== undefined ? { capabilities } : {}),
+  };
 }
 
 function emptyMemberEntitlements(

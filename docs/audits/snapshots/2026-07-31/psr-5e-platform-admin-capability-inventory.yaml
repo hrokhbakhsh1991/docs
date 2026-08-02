@@ -1,0 +1,253 @@
+# PSR-5e platform control-plane admin capability inventory
+wave: PSR-5e-platform-admin-capability-inventory
+program_id: PSR-001
+decision: inventory_plus_pilot
+policy:
+  forbid_bulk_platform_migrate_in_inventory_wave: true
+  require_reason_on_platform_admin_client: true
+  migrate_by_reason_cluster_only: true
+  control_plane_direct_getPrismaAdmin_closed: true
+reason_codes:
+  - PLATFORM_AUDIT
+  - PLATFORM_BILLING
+  - PLATFORM_DOMAIN
+  - PLATFORM_GDPR
+  - PLATFORM_IMPERSONATION
+  - PLATFORM_OPS_USER
+  - PLATFORM_PLAN
+  - PLATFORM_PROVISION
+  - PLATFORM_SITE_SURFACES
+  - PLATFORM_TENANT
+  - PLATFORM_TENANT_LIFECYCLE
+  - PLATFORM_WORKSPACE_DEFINITION
+sites:
+  - path: apps/api/src/internal/provisioning.service.ts
+    relative_src: internal/provisioning.service.ts
+    calls: 0
+    reason: PLATFORM_PROVISION
+    injectable_override: false
+    migrated_by: PSR-5e10
+  - path: apps/api/src/platform/append-platform-audit-event-outside-tx.ts
+    relative_src: platform/append-platform-audit-event-outside-tx.ts
+    calls: 0
+    reason: PLATFORM_AUDIT
+    injectable_override: false
+    migrated_by: PSR-5e1
+  - path: apps/api/src/platform/assert-subdomain-available.ts
+    relative_src: platform/assert-subdomain-available.ts
+    calls: 0
+    reason: PLATFORM_DOMAIN
+    injectable_override: false
+    migrated_by: PSR-5e7
+  - path: apps/api/src/platform/build-tenant-gdpr-export.ts
+    relative_src: platform/build-tenant-gdpr-export.ts
+    calls: 0
+    reason: PLATFORM_GDPR
+    injectable_override: true
+    migrated_by: PSR-5e9
+  - path: apps/api/src/platform/cancel-platform-tenant-offboard.ts
+    relative_src: platform/cancel-platform-tenant-offboard.ts
+    calls: 0
+    reason: PLATFORM_TENANT_LIFECYCLE
+    injectable_override: true
+    migrated_by: PSR-5e3
+  - path: apps/api/src/platform/end-platform-impersonation.ts
+    relative_src: platform/end-platform-impersonation.ts
+    calls: 0
+    reason: PLATFORM_IMPERSONATION
+    injectable_override: false
+    migrated_by: PSR-5e4
+  - path: apps/api/src/platform/list-platform-audit-events-filtered.ts
+    relative_src: platform/list-platform-audit-events-filtered.ts
+    calls: 0
+    reason: PLATFORM_AUDIT
+    injectable_override: true
+    migrated_by: PSR-5e6
+  - path: apps/api/src/platform/list-platform-audit-events.ts
+    relative_src: platform/list-platform-audit-events.ts
+    calls: 0
+    reason: PLATFORM_AUDIT
+    injectable_override: false
+    migrated_by: PSR-5e6
+  - path: apps/api/src/platform/list-platform-workspace-definitions.ts
+    relative_src: platform/list-platform-workspace-definitions.ts
+    calls: 0
+    reason: PLATFORM_WORKSPACE_DEFINITION
+    injectable_override: false
+    migrated_by: PSR-5e5
+  - path: apps/api/src/platform/mark-tenant-subscription-paid.ts
+    relative_src: platform/mark-tenant-subscription-paid.ts
+    calls: 0
+    reason: PLATFORM_BILLING
+    injectable_override: false
+    migrated_by: PSR-5e2
+  - path: apps/api/src/platform/platform-domain.repository.ts
+    relative_src: platform/platform-domain.repository.ts
+    calls: 0
+    reason: PLATFORM_DOMAIN
+    injectable_override: true
+    migrated_by: PSR-5e7
+  - path: apps/api/src/platform/platform-ops-user.repository.ts
+    relative_src: platform/platform-ops-user.repository.ts
+    calls: 0
+    reason: PLATFORM_OPS_USER
+    injectable_override: false
+    migrated_by: PSR-5e1
+  - path: apps/api/src/platform/platform-plan.repository.ts
+    relative_src: platform/platform-plan.repository.ts
+    calls: 0
+    reason: PLATFORM_PLAN
+    injectable_override: true
+    migrated_by: PSR-5e9
+  - path: apps/api/src/platform/platform-subscription.repository.ts
+    relative_src: platform/platform-subscription.repository.ts
+    calls: 0
+    reason: PLATFORM_BILLING
+    injectable_override: true
+    migrated_by: PSR-5e2
+  - path: apps/api/src/platform/platform-tenant-lifecycle.service.ts
+    relative_src: platform/platform-tenant-lifecycle.service.ts
+    calls: 0
+    reason: PLATFORM_TENANT
+    injectable_override: false
+    migrated_by: PSR-5e8
+  - path: apps/api/src/platform/platform-tenant.repository.ts
+    relative_src: platform/platform-tenant.repository.ts
+    calls: 0
+    reason: PLATFORM_TENANT
+    injectable_override: true
+    migrated_by: PSR-5e8
+  - path: apps/api/src/platform/process-past-due-subscriptions.ts
+    relative_src: platform/process-past-due-subscriptions.ts
+    calls: 0
+    reason: PLATFORM_BILLING
+    injectable_override: false
+    migrated_by: PSR-5e2
+  - path: apps/api/src/platform/process-scheduled-tenant-deletions.ts
+    relative_src: platform/process-scheduled-tenant-deletions.ts
+    calls: 0
+    reason: PLATFORM_TENANT_LIFECYCLE
+    injectable_override: false
+    migrated_by: PSR-5e3
+  - path: apps/api/src/platform/publish-platform-workspace-definition-version.ts
+    relative_src: platform/publish-platform-workspace-definition-version.ts
+    calls: 0
+    reason: PLATFORM_WORKSPACE_DEFINITION
+    injectable_override: true
+    migrated_by: PSR-5e5
+  - path: apps/api/src/platform/purge-platform-tenant.ts
+    relative_src: platform/purge-platform-tenant.ts
+    calls: 0
+    reason: PLATFORM_TENANT_LIFECYCLE
+    injectable_override: true
+    migrated_by: PSR-5e3
+  - path: apps/api/src/platform/read-tenant-site-surfaces.ts
+    relative_src: platform/read-tenant-site-surfaces.ts
+    calls: 0
+    reason: PLATFORM_SITE_SURFACES
+    injectable_override: true
+    migrated_by: PSR-5e9
+  - path: apps/api/src/platform/resolve-impersonation-owner-subject.ts
+    relative_src: platform/resolve-impersonation-owner-subject.ts
+    calls: 0
+    reason: PLATFORM_IMPERSONATION
+    injectable_override: false
+    migrated_by: PSR-5e4
+  - path: apps/api/src/platform/run-provision-transaction.ts
+    relative_src: platform/run-provision-transaction.ts
+    calls: 0
+    reason: PLATFORM_PROVISION
+    injectable_override: false
+    migrated_by: PSR-5e10
+  - path: apps/api/src/platform/start-platform-impersonation.ts
+    relative_src: platform/start-platform-impersonation.ts
+    calls: 0
+    reason: PLATFORM_IMPERSONATION
+    injectable_override: false
+    migrated_by: PSR-5e4
+  - path: apps/api/src/platform/start-platform-tenant-offboard.ts
+    relative_src: platform/start-platform-tenant-offboard.ts
+    calls: 0
+    reason: PLATFORM_TENANT_LIFECYCLE
+    injectable_override: true
+    migrated_by: PSR-5e3
+  - path: apps/api/src/platform/update-platform-tenant-workspace-definition.ts
+    relative_src: platform/update-platform-tenant-workspace-definition.ts
+    calls: 0
+    reason: PLATFORM_WORKSPACE_DEFINITION
+    injectable_override: true
+    migrated_by: PSR-5e5
+  - path: apps/api/src/platform/update-tenant-subscription.ts
+    relative_src: platform/update-tenant-subscription.ts
+    calls: 0
+    reason: PLATFORM_BILLING
+    injectable_override: false
+    migrated_by: PSR-5e2
+  - path: apps/api/src/routes/platform/tenants-get.ts
+    relative_src: routes/platform/tenants-get.ts
+    calls: 0
+    reason: PLATFORM_TENANT
+    injectable_override: false
+    migrated_by: PSR-5e8
+  - path: apps/api/src/workspace-metadata/workspace-definition.repository.ts
+    relative_src: workspace-metadata/workspace-definition.repository.ts
+    calls: 0
+    reason: PLATFORM_WORKSPACE_DEFINITION
+    injectable_override: true
+    migrated_by: PSR-5e5
+migrated_clusters:
+  - id: PSR-5e1
+    files:
+      - apps/api/src/platform/platform-ops-user.repository.ts
+      - apps/api/src/platform/append-platform-audit-event-outside-tx.ts
+  - id: PSR-5e2
+    files:
+      - apps/api/src/platform/platform-subscription.repository.ts
+      - apps/api/src/platform/mark-tenant-subscription-paid.ts
+      - apps/api/src/platform/update-tenant-subscription.ts
+      - apps/api/src/platform/process-past-due-subscriptions.ts
+  - id: PSR-5e3
+    files:
+      - apps/api/src/platform/start-platform-tenant-offboard.ts
+      - apps/api/src/platform/cancel-platform-tenant-offboard.ts
+      - apps/api/src/platform/purge-platform-tenant.ts
+      - apps/api/src/platform/process-scheduled-tenant-deletions.ts
+  - id: PSR-5e4
+    files:
+      - apps/api/src/platform/start-platform-impersonation.ts
+      - apps/api/src/platform/end-platform-impersonation.ts
+      - apps/api/src/platform/resolve-impersonation-owner-subject.ts
+  - id: PSR-5e5
+    files:
+      - apps/api/src/platform/list-platform-workspace-definitions.ts
+      - apps/api/src/platform/publish-platform-workspace-definition-version.ts
+      - apps/api/src/platform/update-platform-tenant-workspace-definition.ts
+      - apps/api/src/workspace-metadata/workspace-definition.repository.ts
+  - id: PSR-5e6
+    files:
+      - apps/api/src/platform/list-platform-audit-events.ts
+      - apps/api/src/platform/list-platform-audit-events-filtered.ts
+  - id: PSR-5e7
+    files:
+      - apps/api/src/platform/assert-subdomain-available.ts
+      - apps/api/src/platform/platform-domain.repository.ts
+  - id: PSR-5e8
+    files:
+      - apps/api/src/platform/platform-tenant.repository.ts
+      - apps/api/src/platform/platform-tenant-lifecycle.service.ts
+      - apps/api/src/routes/platform/tenants-get.ts
+  - id: PSR-5e9
+    files:
+      - apps/api/src/platform/platform-plan.repository.ts
+      - apps/api/src/platform/build-tenant-gdpr-export.ts
+      - apps/api/src/platform/read-tenant-site-surfaces.ts
+  - id: PSR-5e10
+    files:
+      - apps/api/src/platform/run-provision-transaction.ts
+      - apps/api/src/internal/provisioning.service.ts
+client_module: apps/api/src/platform/platform-admin-client.ts
+ratchet:
+  control_plane_admin_files_total: 29
+  reason_code_count: 12
+  migrated_file_count: 29
+  remaining_direct: 0

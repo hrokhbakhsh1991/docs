@@ -7,7 +7,7 @@
  */
 import {
   resolveFinanceOpsCapability,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
 import type { FinanceOpsCapability } from "@/finance/finance-ops-capability-contract";

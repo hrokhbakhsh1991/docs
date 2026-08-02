@@ -520,32 +520,32 @@ Shell production-first با **خط اول کد** تحت import-boundary.
 
 **متن الزام PR:** «If a new primitive is added, CI MUST prove zero barrel-import leakage via `P3-E-BARREL` + `P3-E-PRIM-NEW`.»
 
-### 13.4 `phase-3:gate` (هدف root `package.json`)
+### 13.4 `phase-3:gate` (root `package.json`)
 
 ```json
 {
   "scripts": {
     "phase-3:guard": "node scripts/guards/phase-3-guard.mjs",
-    "phase-3:gate": "pnpm build && pnpm test && pnpm run guard:architecture && pnpm run guard:import-boundary && pnpm run guard:artifact-surface && pnpm run audit-boundary && pnpm run phase-2:gate && pnpm run phase-3:guard"
+    "phase-3:apps-cert": "node scripts/guards/phase-3-apps-cert.mjs",
+    "phase-3:gate": "pnpm build && pnpm test && pnpm --filter @app-cloud/platform-core run test:phase-2 && pnpm run phase-2:guard && pnpm run phase-3:guard && pnpm run phase-3:apps-cert"
   }
 }
 ```
 
-**توجه:** `phase-2:gate` **frozen baseline** — فاز ۳ نباید regression فاز ۲ ایجاد کند.
+**Split (2026-08-01):** `phase-3:guard` = static foundation only; `phase-3:apps-cert` = web lint + sdk/starter suites + api/web phase-3 gates. Full release DoD requires **both** (via `phase-3:gate`). See [`phase-3/phase-3-guard-apps-cert-split.mdoc`](phase-3/phase-3-guard-apps-cert-split.mdoc).
 
-### 13.5 `scripts/guards/phase-3-guard.mjs` — checks (هدف PR 3.5)
+**توجه:** `phase-2:guard` **frozen baseline** — فاز ۳ نباید regression فاز ۲ ایجاد کند.
 
-| # | Check | FAIL if |
-|---|--------|---------|
-| 1 | `pnpm --filter @apps/web run lint` | pre* guards fail |
-| 2 | `apps/web` exists + no barrel imports | `P3-E-BARREL` |
-| 3 | `pnpm --filter @app-tour/workspace-sdk test` | ability tests missing |
-| 4 | `packages/workspaces/starter` build/test | plugin invalid |
-| 5 | `apps/api` integration (when present) | accessibleBy test fail |
-| 6 | `guard:artifact-surface` | SB-02 regression |
-| 7 | Phase 3 invariants Select/Checkbox (if 3.3.x merged) | subpath missing |
-| 8 | Write `reports/phase-3-gate-YYYY-MM-DD.json` | — |
-| 9 | `rg -i denali apps packages/workspaces/starter` | denali in phase 3 scope |
+### 13.5 Phase 3 check runners
+
+| Runner | Script | Report | Responsibility |
+|--------|--------|--------|----------------|
+| `phase-3:guard` | `scripts/guards/phase-3-guard.mjs` | `reports/phase-3-guard-*.json` | doc-gate, package exists, barrel/import/architecture/artifact, theme exports, canonical-sync, denali-free, optional UI |
+| `phase-3:apps-cert` | `scripts/guards/phase-3-apps-cert.mjs` | `reports/phase-3-apps-cert-*.json` | web lint, workspace-sdk/starter build+test floors, `phase-3:api-gate`, `phase-3:web-gate` |
+
+**Anti-hollow:** `phase-3:guard` PASS alone is **not** Phase 3 DoD.
+
+Full check id lists: [`phase-3/phase-3-guards.md`](phase-3/phase-3-guards.md).
 
 ### 13.6 ESLint (apps/web — PR 3.3+)
 
@@ -591,7 +591,7 @@ Shell production-first با **خط اول کد** تحت import-boundary.
 | 3.2 | `P3-E-DB-01` | ✅ Enforced | `apps/api` + `accessibleByTourWhere` / `ScopedTourRepository` |
 | 3.3 | `P3-E-BARREL`, `P3-E-APP-HOOK` | ✅ Enforced | `@apps/web` guards + ESLint barrel + `WorkspaceWizardHost` |
 | 3.4 | `P3-E-CANONICAL-34` | ✅ Enforced | `CanonicalTourService` + `validateCanonicalLegacySync` |
-| 3.5 | `P3-E-GATE` | ✅ Enforced | `phase-3:gate` + `reports/phase-3-gate-*.json` |
+| 3.5 | `P3-E-GATE` | ✅ Enforced | `phase-3:gate` (= `phase-3:guard` + `phase-3:apps-cert`) + reports |
 
 **Whole Phase 3 row in MAP:** **Closed: Zero-Debt Verified** (2026-06-03) — forensic [`audits/phase-3-zero-debt-forensic-audit.md`](audits/phase-3-zero-debt-forensic-audit.md) · `pnpm run phase-3:gate` exit 0.
 

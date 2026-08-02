@@ -4,7 +4,7 @@
  */
 import type { Prisma } from "@prisma/client";
 
-import { getPrismaAdmin } from "../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../db/background-admin-client";
 import { logger } from "../observability/logger";
 import { metricsRegistry } from "../observability/metrics";
 import { persistOutboxReplayRun } from "./outbox-replay-audit";
@@ -139,7 +139,7 @@ export async function selectOutboxReplayCandidates(
   input: OutboxProdReplayInput
 ): Promise<readonly OutboxReplayCandidate[]> {
   parseModeInput(input);
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_REPLAY);
   const prefix = input.eventTypePrefix?.trim();
 
   if (input.mode === "single") {

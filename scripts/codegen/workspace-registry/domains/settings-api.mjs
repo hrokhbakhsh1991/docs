@@ -188,22 +188,39 @@ export function generateWizardTemplatePathAliasBindings(manifests) {
 
   if (bindingBlocks.length === 0) {
     return `${BANNER}
-export const WORKSPACE_WIZARD_TEMPLATE_PATH_ALIAS_BINDINGS = [] as const;
+export type WorkspaceWizardTemplatePathAliasBinding = {
+  readonly workspaceType: string;
+  readonly pathAliases: ReadonlySet<string>;
+  readonly aliasCatalogWorkspaceType: string;
+};
 
-export function resolveWizardTemplatePathAliasBinding(_workspaceType: string) {
+export const WORKSPACE_WIZARD_TEMPLATE_PATH_ALIAS_BINDINGS: readonly WorkspaceWizardTemplatePathAliasBinding[] =
+  [];
+
+export function resolveWizardTemplatePathAliasBinding(
+  _workspaceType: string,
+): WorkspaceWizardTemplatePathAliasBinding | undefined {
   return undefined;
 }
 `;
   }
 
   return `${BANNER}
+export type WorkspaceWizardTemplatePathAliasBinding = {
+  readonly workspaceType: string;
+  readonly pathAliases: ReadonlySet<string>;
+  readonly aliasCatalogWorkspaceType: string;
+};
+
 export const WORKSPACE_WIZARD_TEMPLATE_PATH_ALIAS_BINDINGS = [
 ${bindingBlocks.join("\n")}
-] as const;
+] as const satisfies readonly WorkspaceWizardTemplatePathAliasBinding[];
 
-export function resolveWizardTemplatePathAliasBinding(workspaceType: string) {
+export function resolveWizardTemplatePathAliasBinding(
+  workspaceType: string,
+): WorkspaceWizardTemplatePathAliasBinding | undefined {
   return WORKSPACE_WIZARD_TEMPLATE_PATH_ALIAS_BINDINGS.find(
-    (entry) => entry.workspaceType === workspaceType
+    (entry) => entry.workspaceType === workspaceType,
   );
 }
 `;

@@ -69,7 +69,7 @@ Rows reference **TARGET** paths until implementation lands. Status `ABSENT` in [
 | **RULE-P8-004** | 8.1      | Urban admin mutations require isWorkspaceOwner | CMD-P8-010 · CMD-RULE-P8-004 |
 | **RULE-P8-006** | 8.3      | Silo DB URLs only via TenantConnectionRouter   | CMD-P8-031                   |
 | **RULE-P8-007** | 8.0      | No runtime import from legacy/ in trunk apps   | CMD-P8-007                   |
-| **RULE-P8-010** | 8.5      | phase-8:gate chains phase-7:gate               | CMD-RULE-P8-010              |
+| **RULE-P8-010** | 8.5      | phase-8:gate chains phase-7:guard              | CMD-RULE-P8-010              |
 
 ---
 
@@ -289,10 +289,10 @@ rg -q 'verdict:\s*PASS' docs/audits/phase-8-zero-debt-forensic-audit.mdoc
 if rg 'isAdminOrOwner' apps/api/src/urban apps/web/src/urban; then exit 1; else exit 0; fi
 ```
 
-### CMD-RULE-P8-010 — phase-8:gate chains phase-7:gate
+### CMD-RULE-P8-010 — phase-8:gate chains phase-7:guard
 
 ```bash
-node -e "const s=require('./package.json').scripts['phase-8:gate']||''; if(!s.includes('phase-7:gate')) process.exit(1)"
+node -e "const s=require('./package.json').scripts['phase-8:gate']||''; if(!s.includes('phase-7:guard')||s.includes('phase-7:gate')) process.exit(1)"
 ```
 
 ### CMD-P8-F-010 — No finance/minio in urban package

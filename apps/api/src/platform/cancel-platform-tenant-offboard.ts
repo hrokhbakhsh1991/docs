@@ -1,4 +1,9 @@
-import { getPrismaAdmin } from "../db/prisma.ts";
+import type { PrismaClient } from "@prisma/client";
+
+import {
+  PLATFORM_ADMIN_REASON,
+  getPlatformAdminClient,
+} from "./platform-admin-client.ts";
 import {
   appendPlatformAuditEvent,
   PLATFORM_AUDIT_ACTION_TENANT_OFFBOARDING_CANCELED,
@@ -17,10 +22,11 @@ export async function cancelPlatformTenantOffboard(
   },
   deps: {
     repository?: PlatformTenantRepository;
-    prisma?: ReturnType<typeof getPrismaAdmin>;
+    prisma?: PrismaClient;
   } = {}
 ): Promise<PlatformTenantRecord | null> {
-  const prisma = deps.prisma ?? getPrismaAdmin();
+  const prisma =
+    deps.prisma ?? getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_TENANT_LIFECYCLE);
   const existing = await (deps.repository ?? new PlatformTenantRepository()).getById(input.tenantId);
   if (!existing || existing.status !== "offboarding") return null;
 

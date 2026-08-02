@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
 
-import { disconnectPrisma, getPrisma } from "../db/prisma";
+import { disconnectPrisma, getPrisma, getPrismaAdmin } from "../db/prisma";
 import { PrismaTourRepository } from "./prisma-tour.repository";
 
 const sampleCanonical = {
@@ -11,7 +11,8 @@ const sampleCanonical = {
   data: { basics: { title: "prisma-tour" } },
 };
 
-const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
+const hasDatabase =
+  Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
 
 const describeIntegration = hasDatabase ? describe : describe.skip;
 
@@ -22,8 +23,8 @@ describeIntegration("PrismaTourRepository (integration)", { concurrency: false }
 
   before(async () => {
     repo = new PrismaTourRepository();
-    const prisma = getPrisma();
-    await prisma.tenant.upsert({
+    const admin = getPrismaAdmin();
+    await admin.tenant.upsert({
       where: { id: tenantA },
       create: {
         id: tenantA,
@@ -33,7 +34,7 @@ describeIntegration("PrismaTourRepository (integration)", { concurrency: false }
       },
       update: {},
     });
-    await prisma.tenant.upsert({
+    await admin.tenant.upsert({
       where: { id: tenantB },
       create: {
         id: tenantB,
@@ -47,13 +48,14 @@ describeIntegration("PrismaTourRepository (integration)", { concurrency: false }
 
   after(async () => {
     const prisma = getPrisma();
+    const admin = getPrismaAdmin();
     for (const tenantId of [tenantA, tenantB]) {
       await prisma.$executeRaw`
         SELECT set_config('app.current_tenant_id', ${tenantId}::text, false)
       `;
       await prisma.tour.deleteMany({ where: { tenantId } });
     }
-    await prisma.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
+    await admin.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
     await disconnectPrisma();
   });
 

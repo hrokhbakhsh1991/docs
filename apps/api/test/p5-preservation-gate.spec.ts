@@ -53,9 +53,13 @@ describe("p5-preservation-gate (PC-01..10)", () => {
     assert.match(settings, /equipment/);
     assert.match(settings, /audit_trail/);
 
-    const routes = readFileSync(financeRoutesPath, "utf8");
-    assert.match(routes, /POST.*\/finance\/receipts/);
-    assert.match(routes, /PATCH.*\/finance\/receipts/);
+    // Finance SoT is `@app-tour/finance-http`; Denali routes-manifest only re-exports.
+    const financeRoutes = readFileSync(
+      join(repoRoot, "packages/finance-http/src/routes-manifest.ts"),
+      "utf8"
+    );
+    assert.match(financeRoutes, /POST.*\/finance\/receipts/);
+    assert.match(financeRoutes, /PATCH.*\/finance\/receipts/);
   });
 
   it("PC-GATE-04 operator parity mdoc links preservation matrix", () => {

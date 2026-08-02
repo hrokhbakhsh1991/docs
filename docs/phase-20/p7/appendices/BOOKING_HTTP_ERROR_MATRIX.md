@@ -13,6 +13,13 @@ Known Booking domain errors **never** map to HTTP 500.
 
 SoT: `apps/api/src/bookings/booking-http-error-map.ts` → `resolveBookingHttpError` (wired in `handleHttpError`).
 
+### Platform workspace-type unresolved (adjacent)
+
+`resolveWorkspaceTypeForTenant` throws `WORKSPACE_TYPE_UNRESOLVED:<tenantId>` when the tenant is not registered (TODO-011 fail-closed).  
+`handleHttpError` / `mapErrorMessageToStatus` map that prefix to HTTP **404** with stable wire code `WORKSPACE_TYPE_UNRESOLVED` (UUID suffix stripped — never `INTERNAL_ERROR`).
+
+Booking composition wraps the same fault as `BookingWorkspaceUnsupportedError` so Booking routes keep the matrix row below rather than leaking a platform 500.
+
 ## Matrix
 
 | Domain Error | HTTP | Reason | Client Action |
@@ -28,6 +35,8 @@ SoT: `apps/api/src/bookings/booking-http-error-map.ts` → `resolveBookingHttpEr
 | `BOOKING_VALIDATION_FAILED` / `BOOKING_VALIDATION_REJECTED` | **400** | Create validation failed | Fix request body |
 | `BOOKING_WAITLIST_REQUIRED` | **409** | Transition requires waitlist path | `POST …/waitlist` instead |
 | `BOOKING_WORKSPACE_UNSUPPORTED` | **404** | Workspace not booking-supported | Use supported tenant/workspace |
+
+Operator tour `acceptedCount` enrichment (`enrichTourListProjectionsWithAcceptedCount`) **fail-softs** on `BookingWorkspaceUnsupportedError` → `acceptedCount=0`. Booking write/lifecycle routes still return the 404 matrix row above.
 | `BOOKING_STATUS_CONFLICT` | **409** | Illegal status transition (other statuses) | Refresh status; choose valid transition |
 | `BULK_APPROVE_BATCH_LIMIT` | **400** | Bulk batch too large | Reduce `ids` length |
 

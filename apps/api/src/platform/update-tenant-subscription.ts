@@ -1,4 +1,7 @@
-import { getPrismaAdmin } from "../db/prisma.ts";
+import {
+  PLATFORM_ADMIN_REASON,
+  getPlatformAdminClient,
+} from "./platform-admin-client.ts";
 import {
   PLATFORM_AUDIT_ACTION_SUBSCRIPTION_PAST_DUE,
   PLATFORM_AUDIT_ACTION_SUBSCRIPTION_PLAN_CHANGED,
@@ -19,7 +22,7 @@ export async function updateTenantSubscription(input: {
     return null;
   }
 
-  const prisma = getPrismaAdmin();
+  const prisma = getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_BILLING);
   const updated = await prisma.$transaction(async (tx) => {
     let row = existing;
 

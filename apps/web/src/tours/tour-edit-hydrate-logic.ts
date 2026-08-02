@@ -1,7 +1,7 @@
 import {
   resolveWizardHostCapability,
   type WorkspacePlugin,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
 

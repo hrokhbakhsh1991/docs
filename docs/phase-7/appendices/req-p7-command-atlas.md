@@ -11,7 +11,7 @@ binding: REPO_SCRIPTS_OVER_STALE_MD
 ```bash
 nvm use && corepack enable && pnpm install
 pnpm run phase-7:gate
-# = phase-6:gate + phase-7:guard + build/test targets (package.json)
+# = build + test + phase-6:guard + phase-7:guard (denested; does not nest phase-6:gate)
 ```
 
 ## Doc-only validation

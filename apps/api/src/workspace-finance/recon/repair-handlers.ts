@@ -4,7 +4,7 @@
 import { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../../db/with-tenant-rls";
-import { getPrismaAdmin } from "../../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../../db/background-admin-client";
 import { tryReplayFailedOutboxEvent } from "../../outbox/outbox-replay";
 import { resolveFinanceLedgerPolicy } from "../finance-dependency-registry";
 import { enqueueFinanceLedgerCaptureOutbox } from "../enqueue-finance-ledger-capture";
@@ -46,7 +46,7 @@ export async function handlePaidNoLedger(
   if (finding.paymentId === null) {
     return { result: "error", preview, payload: { error: "missing_payment_id" } };
   }
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const payment = await admin.payment.findFirst({
     where: { id: finding.paymentId, tenantId: finding.tenantId, status: "Paid" },
   });
@@ -149,7 +149,7 @@ export async function handleLedgerNoPayment(
   if (finding.outboxEventId === null) {
     return { result: "error", preview, payload: { error: "missing_outbox_event_id" } };
   }
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const row = await admin.outboxEvent.findFirst({
     where: { id: finding.outboxEventId, tenantId: finding.tenantId },
   });
@@ -246,7 +246,7 @@ export async function handlePrepayNoLedger(
     };
   }
 
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const recorded = await admin.outboxEvent.findFirst({
     where: {
       id: finding.outboxEventId,
@@ -382,7 +382,7 @@ export async function handlePrepayBookingDegraded(
   if (finding.registrationId === null) {
     return { result: "error", preview, payload: { error: "missing_registration_id" } };
   }
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const paid = await admin.payment.findFirst({
     where: {
       tenantId: finding.tenantId,

@@ -39,6 +39,21 @@
 | 2-S3 | `apps/web/.../load-workspace-plugin.ts` | lookup generated | delegate | P2-PR3 |
 | 2-S4 | `dependency-cruiser.config.js` | rule loader-only | none | P2-PR4 |
 
+### P2-T17 parity rule (product trunk only)
+
+`pnpm run generate:workspace-registry` writes `WORKSPACE_MANIFEST_BINDINGS` / `DEFAULT_WORKSPACE_TYPE_BINDINGS` from **product** manifests only:
+
+- **Include:** normal workspace packages (e.g. `denali`, `urban`, `harbor`, `finance-ws5`, `booking-ws2`).
+- **Exclude:** `workspaceFinance.registryOnly: true` or `workspaceBooking.registryOnly: true` fixtures (finance-ws2/3/4/6) — dependency/CoA bindings only; no product plugin/nav/SDK type map.
+
+Contract: `apps/api/test/workspace-manifest-codegen.contract.spec.ts` must count and resolve the **product** set, not raw `packages/workspaces/*/workspace.manifest.json` row totals. `--check` PASS means generated artifacts match this filter; do not “fix” missing registryOnly rows by editing generated files by hand.
+
+`apps/api` runtime deps allowlist (`package-boundary.spec.ts`) must include every product `@app-tour/workspace-*` package that `package.json` depends on after codegen (including `@app-tour/workspace-harbor` when harbor is on the product trunk).
+
+### Phase-8 genericity digest lock
+
+`reports/phase-8-genericity-baseline.yaml` `platform_core_tree_digest` must match the live `packages/platform-core` tree when `baseline_sha` is absent (same shallow-CI pattern as Phase 7 / REQ-P7-007). Refresh the digest after intentional platform-core content changes — not when only registry fixtures or allowlists move.
+
 ---
 
 ## Phase 3 — HTTP (urban pilot)

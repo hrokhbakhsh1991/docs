@@ -7,7 +7,7 @@ import {
   resolveSettingsDestinationCapability,
   type WorkspacePlugin,
   type WorkspaceSettingsDestinationCapability,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
 import type { DestinationSettingsSurface } from "@/features/settings/destination-settings-surface-types";

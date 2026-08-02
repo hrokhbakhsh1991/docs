@@ -4,9 +4,9 @@
 import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
 
-import { DENALI_WORKSPACE_PLUGIN_ID } from "@app-cloud/workspace-denali";
-import { ensureWizardHostAdapterSurface } from "@app-cloud/workspace-denali/host/wizard/host-adapter-surface";
-import { getNestedStringValue } from "@app-cloud/workspace-denali/host/ui/adapters/nested-string";
+import { DENALI_WORKSPACE_PLUGIN_ID } from "@app-tour/workspace-denali";
+import { ensureWizardHostAdapterSurface } from "@app-tour/workspace-denali/host/wizard/host-adapter-surface";
+import { getNestedStringValue } from "@app-tour/workspace-denali/host/ui/adapters/nested-string";
 import { loadAppMessages } from "../src/i18n/load-messages";
 import { localizeExposureCatalogFields } from "../src/exposure/localize-exposure-catalog-fields";
 

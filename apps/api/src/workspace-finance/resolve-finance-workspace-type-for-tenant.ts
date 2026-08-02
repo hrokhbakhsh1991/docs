@@ -2,11 +2,29 @@
  * Phase 1.5 Commit 1 — tenant → workspaceType for finance composition.
  * Lookup matches the finance gate (Prisma tenant row, then registered-tenant fallback).
  * Registration fail-closed is against the finance dependency registry (not nav/enablement bindings).
+ *
+ * Postgres path uses {@link findTenantFinanceWorkspaceRow} (PSR-5d) so raw theme JSON
+ * (enabledModules) is preserved — branding merge via resolveRegisteredTenantById would drop it.
  */
 
-import { getPrismaAdmin } from "../db/prisma";
 import { resolveRegisteredTenantById } from "../tenant/resolve-registered-tenant";
+import {
+  TENANT_REGISTRY_ADMIN_REASON,
+  findTenantFinanceWorkspaceRow,
+} from "../tenant/tenant-registry-admin.port";
 import { isFinanceDependencyWorkspaceRegistered } from "./finance-dependency-registry";
+
+/** Stable HTTP / domain code — never echo `workspaceType=` diagnostics to clients. */
+export const FINANCE_WORKSPACE_UNSUPPORTED = "FINANCE_WORKSPACE_UNSUPPORTED";
+
+/** True when finance composition/gate failed closed for an unsupported or missing tenant. */
+export function isFinanceWorkspaceUnsupportedError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.message === FINANCE_WORKSPACE_UNSUPPORTED ||
+      error.message.startsWith(`${FINANCE_WORKSPACE_UNSUPPORTED}:`))
+  );
+}
 
 export type FinanceTenantWorkspaceRow = {
   readonly workspaceType: string;
@@ -28,10 +46,10 @@ export async function resolveFinanceTenantWorkspaceRow(
   const databaseUrl = process.env.DATABASE_URL?.trim();
   if (databaseUrl) {
     try {
-      const row = await getPrismaAdmin().tenant.findUnique({
-        where: { id: trimmed },
-        select: { workspaceType: true, theme: true },
-      });
+      const row = await findTenantFinanceWorkspaceRow(
+        trimmed,
+        TENANT_REGISTRY_ADMIN_REASON.REGISTRY_RESOLVE_FINANCE_WORKSPACE
+      );
       if (row !== null) {
         return row;
       }
@@ -57,12 +75,12 @@ export async function resolveFinanceTenantWorkspaceRow(
 export async function resolveFinanceWorkspaceTypeForTenant(tenantId: string): Promise<string> {
   const row = await resolveFinanceTenantWorkspaceRow(tenantId);
   if (row === null) {
-    throw new Error("FINANCE_WORKSPACE_UNSUPPORTED");
+    throw new Error(FINANCE_WORKSPACE_UNSUPPORTED);
   }
   const workspaceType = row.workspaceType.trim().toLowerCase();
   if (workspaceType.length === 0 || !isFinanceDependencyWorkspaceRegistered(workspaceType)) {
     throw new Error(
-      `FINANCE_WORKSPACE_UNSUPPORTED: workspaceType=${row.workspaceType.trim() || "<empty>"}`
+      `${FINANCE_WORKSPACE_UNSUPPORTED}: workspaceType=${row.workspaceType.trim() || "<empty>"}`
     );
   }
   return workspaceType;

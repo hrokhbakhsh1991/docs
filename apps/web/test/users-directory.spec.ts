@@ -425,8 +425,10 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
 
   it("WEB-9.4-28 users nav visible on denali plugin", async () => {
     const { DENALI_WORKSPACE_PLUGIN_ID } = await import("@app-tour/workspace-denali/plugin");
+    const { seedWizardCreate } = await import("../src/workspace/wizard-create-registry");
     const { isUsersRouteAllowed, shouldShowUsersNav } =
       await import("../src/features/users/users-nav-access");
+    seedWizardCreate(DENALI_WORKSPACE_PLUGIN_ID, { extendedChrome: true });
     assert.equal(shouldShowUsersNav(DENALI_WORKSPACE_PLUGIN_ID), true);
     assert.equal(isUsersRouteAllowed(DENALI_WORKSPACE_PLUGIN_ID), true);
   });

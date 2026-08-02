@@ -1,0 +1,67 @@
+---
+id: PSR-5B-ADMIN-ALLOWLIST
+title: PSR-5b — formal getPrismaAdmin allowlist for tenant-adjacent intentional bypasses
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5b-admin-allowlist.yaml
+  - docs/audits/snapshots/2026-07-31/psr-5-data-authority-inventory.yaml
+  - apps/api/src/identity/prisma-identity.repository.ts
+  - apps/api/src/workspace-finance/resolve-finance-workspace-type-for-tenant.ts
+program_id: PSR-001
+wave: PSR-5b-admin-allowlist-doc
+---
+
+# PSR-5b — admin allowlist (documentation + ratchet)
+
+## Why
+
+PSR-5 inventory tagged two `apps/api/src` sites as
+`tenant_path_allowlist_candidate`. Gate خروج PSR-5 requires every remaining
+tenant-adjacent admin bypass to be a **small allowlist** with owner, reason,
+and expiry — not an open-ended “we know about it” comment.
+
+This wave **does not** remove or rewrite those call sites. It freezes them as
+the only approved tenant-adjacent allowlist entries until a later reduction
+wave.
+
+## Allowlist (exact paths)
+
+| ID | Path | Owner | Reason (summary) | Expiry |
+| --- | --- | --- | --- | --- |
+| `ALW-ID-FORCE-RLS` | `identity/prisma-identity.repository.ts` | identity | FORCE RLS on `user` / `mobileOtpChallenge`; pre-tenant login has no GUC | 2026-10-31 |
+
+**Closed:** `ALW-FIN-TENANT-ROW` → PSR-5d (`findTenantFinanceWorkspaceRow` on registry port).
+
+## Explicitly NOT on this allowlist
+
+- `tenant/resolve-registered-tenant.ts` / `update-tenant-registry-row.ts` —
+  **closed by PSR-5c** named port.
+- `platform/*`, outbox, recon — control_plane / background_repair classes.
+- Any new `getPrismaAdmin` under bookings/tours/HTTP routes — **forbidden**
+  without a new allowlist PR.
+
+## Ratchet
+
+```bash
+node scripts/ops/psr-5b-admin-allowlist-smoke.mjs
+```
+
+Fails if:
+
+- allowlist path loses `getPrismaAdmin(` (silent removal without inventory update);
+- a new `tenant_path_allowlist_candidate` / `tenant_path_review` file appears
+  outside the YAML set;
+- expiry dates are missing or malformed.
+
+## Non-goals
+
+- Rewriting identity OTP/user to app-pool + RLS policies (separate design)
+- Tenant registry port (PSR-5c)
+- Harbor (PSR-6)

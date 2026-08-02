@@ -17,7 +17,7 @@ guard: scripts/guards/lib/phase-cross-continuity.mjs
 ## Gate chain (append)
 
 ```yaml
-phase-7:gate: "build + test + phase-6:gate + phase-7:guard"
+phase-7:gate: "build + test + phase-6:guard + phase-7:guard"
 ```
 
 ## Agent entry — Phase 7

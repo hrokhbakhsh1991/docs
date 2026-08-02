@@ -45,8 +45,17 @@ describe("Phase H2: assertProductionCertifiedWorkspaceType", () => {
     assert.doesNotThrow(() => assertProductionCertifiedWorkspaceType("denali"));
   });
 
-  it("allows harbor (certified G1 guest-only workspace)", () => {
-    assert.doesNotThrow(() => assertProductionCertifiedWorkspaceType("harbor"));
+  it("rejects harbor stub workspace (PSR-6b demote until durable path)", () => {
+    assert.throws(
+      () => assertProductionCertifiedWorkspaceType("harbor"),
+      (err: Error) => {
+        assert.ok(err instanceof WorkspaceNotCertifiedForProductionError);
+        assert.equal(err.code, "WORKSPACE_NOT_CERTIFIED_FOR_PRODUCTION");
+        assert.equal(err.workspaceType, "harbor");
+        assert.equal(err.pluginId, "harbor");
+        return true;
+      }
+    );
   });
 
   it("rejects urban stub workspace", () => {

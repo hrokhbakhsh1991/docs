@@ -12,7 +12,7 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 describe("p6-offline-receipt-gate", () => {
   it("P6-OR-01 finance receipts route exists for member upload", () => {
     const financeRoutes = readFileSync(
-      join(repoRoot, "packages/workspaces/denali/src/http/routes-manifest.ts"),
+      join(repoRoot, "packages/finance-http/src/routes-manifest.ts"),
       "utf8"
     );
     assert.match(financeRoutes, /POST.*\/finance\/receipts/);

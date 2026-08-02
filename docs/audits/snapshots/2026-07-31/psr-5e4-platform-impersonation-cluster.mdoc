@@ -1,0 +1,33 @@
+---
+id: PSR-5E4-PLATFORM-IMPERSONATION-CLUSTER
+title: PSR-5e4 — migrate PLATFORM_IMPERSONATION sites to getPlatformAdminClient
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5e-platform-admin-capability-inventory.yaml
+  - apps/api/src/platform/start-platform-impersonation.ts
+  - apps/api/src/platform/end-platform-impersonation.ts
+  - apps/api/src/platform/resolve-impersonation-owner-subject.ts
+program_id: PSR-001
+wave: PSR-5e4-platform-impersonation-cluster
+---
+
+# PSR-5e4 — PLATFORM_IMPERSONATION cluster
+
+## Files (3)
+
+- `start-platform-impersonation.ts`
+- `end-platform-impersonation.ts`
+- `resolve-impersonation-owner-subject.ts`
+
+All use `getPlatformAdminClient(PLATFORM_IMPERSONATION)`. No injectable overrides.
+
+## Ratchet
+
+`remaining_direct` → **16** (19 − 3).

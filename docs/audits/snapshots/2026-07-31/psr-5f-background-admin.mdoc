@@ -1,0 +1,68 @@
+---
+id: PSR-5F-BACKGROUND-ADMIN
+title: PSR-5f — background-repair admin client inventory + reclaim pilot
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5f-background-admin-inventory.yaml
+  - apps/api/src/db/background-admin-client.ts
+program_id: PSR-001
+wave: PSR-5f-background-admin-inventory
+---
+
+# PSR-5f — background_repair admin capability
+
+## Scope discipline
+
+**20** non-spec `apps/api/src` files still call `getPrismaAdmin` under the
+inventory class `background_repair` (~53 call sites). Bulk-migrate forbidden.
+
+This wave:
+
+1. Inventory every site with a stable reason code.
+2. Introduce `getBackgroundAdminClient(reason)` —
+   `apps/api/src/db/background-admin-client.ts` — metric
+   `background_admin_access_total{reason}`.
+3. Pilot **exactly three** reclaim siblings:
+   - `outbox/outbox-processing-reclaim.ts` → `BG_OUTBOX_RECLAIM`
+   - `http/http-idempotency-reclaim.ts` → `BG_HTTP_IDEMPOTENCY_RECLAIM`
+   - `integrations/worker/integration-delivery-processing-reclaim.ts` →
+     `BG_INTEGRATION_WORKER`
+
+Remaining 17 stay direct until follow-up clusters (outbox ops/relay/replay,
+finance recon, integration migration, events).
+
+## Reason taxonomy (11)
+
+| Reason | Count (files) |
+| --- | ---: |
+| `BG_OUTBOX_OPS` | 3 |
+| `BG_OUTBOX_REPLAY` | 3 |
+| `BG_OUTBOX_RECLAIM` | 1 |
+| `BG_OUTBOX_RELAY` | 1 |
+| `BG_OUTBOX_RECONCILE` | 1 |
+| `BG_FINANCE_RECON` | 5 |
+| `BG_INTEGRATION_MIGRATION` | 2 |
+| `BG_INTEGRATION_DELIVERY` | 1 |
+| `BG_INTEGRATION_WORKER` | 1 |
+| `BG_HTTP_IDEMPOTENCY_RECLAIM` | 1 |
+| `BG_EVENTS` | 1 |
+
+## Non-goals
+
+- Rewriting outbox/finance algorithms
+- Identity allowlist
+- Dual-store cleanup
+
+## Ratchet
+
+```bash
+node scripts/ops/psr-5f-background-admin-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+```

@@ -6,7 +6,7 @@
 import {
   resolveSettingsHubFallbackCapability,
   type WorkspacePlugin,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
 import type { SettingsModuleMetadata } from "@/features/settings/settings-module-types";

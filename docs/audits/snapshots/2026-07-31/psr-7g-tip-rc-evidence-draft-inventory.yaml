@@ -1,0 +1,26 @@
+# PSR-7g tip RC evidence draft (all program_gates false)
+wave: PSR-7g-tip-rc-evidence-draft
+program_id: PSR-001
+decision: draft_generator_only
+policy:
+  forbid_claiming_any_program_gate_true: true
+  forbid_full_gate_in_this_wave: true
+  forbid_harbor_promote: true
+  draft_output_gitignored: true
+output_path: reports/psr/rc-evidence-draft.json
+schema: docs/audits/snapshots/2026-07-31/psr-7e-rc-evidence-pack.schema.json
+static_assets:
+  - scripts/ops/psr-7g-tip-rc-evidence-draft.mjs
+  - docs/audits/snapshots/2026-07-31/psr-7e-rc-evidence-pack.schema.json
+  - docs/audits/snapshots/2026-07-31/psr-7g-tip-rc-evidence-draft.mdoc
+ratchet:
+  draft_generator_present: true
+  program_gates_must_all_be_false: true
+  next_slice: PSR-ARCHITECT-DECISION-POINT
+  decision_options:
+    - PSR-6c6-harbor-live-evidence-execute
+    - PSR-7d1-dual-accept-session-jwt
+    - PSR-8c1-governance-files-land
+    - PSR-8b1-denali-types-legacy-rename
+    - PSR-5i-same-sha-live
+    - PSR-7f2-branch-protection-live-verify

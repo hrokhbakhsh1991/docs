@@ -1,4 +1,9 @@
-import { getPrismaAdmin } from "../db/prisma.ts";
+import type { PrismaClient } from "@prisma/client";
+
+import {
+  PLATFORM_ADMIN_REASON,
+  getPlatformAdminClient,
+} from "./platform-admin-client.ts";
 import { PlatformValidation } from "./platform.errors.ts";
 
 export type TenantGdprExportBundle = {
@@ -20,9 +25,10 @@ export type TenantGdprExportBundle = {
 
 export async function buildTenantGdprExport(
   tenantId: string,
-  deps: { prisma?: ReturnType<typeof getPrismaAdmin> } = {}
+  deps: { prisma?: PrismaClient } = {}
 ): Promise<TenantGdprExportBundle> {
-  const prisma = deps.prisma ?? getPrismaAdmin();
+  const prisma =
+    deps.prisma ?? getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_GDPR);
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
   if (!tenant) throw new PlatformValidation("tenant not found");
 

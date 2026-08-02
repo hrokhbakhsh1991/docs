@@ -9,6 +9,10 @@ import {
   handlePostHarborRegistration,
 } from "../src/http/harbor-catalog-http";
 import {
+  configureHarborHttpHost,
+  resetHarborHttpHostForTests,
+} from "../src/http/host-runtime";
+import {
   buildHarborSmokeCatalogCard,
   HARBOR_SMOKE_PUBLISHED_TOUR_CITY,
   HARBOR_SMOKE_PUBLISHED_TOUR_ID,
@@ -18,6 +22,7 @@ import {
   getHarborSmokeCatalogStore,
   resetHarborSmokeCatalogStoreForTests,
 } from "../src/catalog/harbor-smoke-catalog.store";
+import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 
 function mockRes(): ServerResponse & {
   readonly body: string;
@@ -76,6 +81,7 @@ describe("DG-4.1 harbor catalog HTTP", () => {
   it("defaults to guest stub when smoke seed disabled", async () => {
     delete process.env.HARBOR_SMOKE_E2E_SEED;
     resetHarborSmokeCatalogStoreForTests();
+    resetHarborHttpHostForTests();
     const res = mockRes();
     await handleGetHarborCatalog({ url: "/harbor/catalog" } as IncomingMessage, res);
     assert.equal(res.status, 501);
@@ -173,5 +179,117 @@ describe("DG-4.1 harbor catalog HTTP", () => {
     assert.equal(regs[0]?.fullName, "Bess Harbor");
     assert.equal(regs[1]?.fullName, "Cora Harbor");
     delete process.env.HARBOR_SMOKE_E2E_SEED;
+  });
+
+  it("PSR-6c3/6c4 durable list/detail/register when host configured (seed off)", async () => {
+    delete process.env.HARBOR_SMOKE_E2E_SEED;
+    resetHarborSmokeCatalogStoreForTests();
+    resetHarborHttpHostForTests();
+
+    const tourId = "00000000-0000-4000-8000-000000000777";
+    const canonical = {
+      schemaVersion: 1,
+      roots: [],
+      data: {
+        title: "Durable sail",
+        city: "bandar",
+        shortDescription: "From store",
+        category: "city_sail",
+        publishStatus: "published",
+        departureAt: "2026-11-01T10:00:00.000Z",
+        priceAmount: 10,
+        priceCurrency: "IRR",
+      },
+    } as CanonicalDocument;
+
+    configureHarborHttpHost({
+      runWithHttpRequestContext: async (_req, _auth, fn) => fn(),
+      sendJson: (res, status, body) => {
+        (res as ServerResponse & { statusCode: number }).statusCode = status;
+        res.end(JSON.stringify(body));
+      },
+      sendHttpError: () => undefined,
+      handleHttpError: (res, error) => {
+        const coded = error as { code?: string; httpStatus?: number };
+        (res as ServerResponse & { statusCode: number }).statusCode =
+          coded.httpStatus ?? 500;
+        res.end(JSON.stringify({ code: coded.code ?? "ERROR" }));
+      },
+      resolveWorkspaceTypeForTenant: async () => "harbor",
+      resolveTourStore: async () => ({
+        listPage: async () => ({
+          items: [
+            {
+              id: tourId,
+              createdAt: "2026-08-01T00:00:00.000Z",
+              canonical,
+            },
+          ],
+        }),
+        findFirst: async ({ id }) =>
+          id === tourId
+            ? {
+                id: tourId,
+                createdAt: "2026-08-01T00:00:00.000Z",
+                canonical,
+              }
+            : null,
+      }),
+      resolvePublicBookingPort: () => ({
+        findDuplicateByTourGuest: async () => null,
+        findDuplicateByTourGuestLabel: async () => null,
+        findDuplicateByTourGuestNationalId: async () => null,
+        findDuplicateByTourEmail: async () => null,
+        createPendingBooking: async (input) => ({
+          id: "reg-durable-1",
+          status: "pending",
+          tourId: input.tourId,
+        }),
+        sumApprovedPartySizeByTourIds: async () => ({}),
+      }),
+      readHarborRegistrationRequestBody: async () => ({
+        tourId,
+        contact: { fullName: "No Seed", email: "n@example.com" },
+        partySize: 1,
+      }),
+    });
+
+    const list = mockRes();
+    await handleGetHarborCatalog(
+      {
+        url: "/harbor/catalog",
+        headers: { "x-tenant-id": "fbdcae8a-2cd8-4c2c-898c-f408bd51321a" },
+      } as IncomingMessage,
+      list,
+    );
+    assert.equal(list.status, 200);
+    assert.equal(JSON.parse(list.body).data.items[0]?.id, tourId);
+    assert.equal(JSON.parse(list.body).data.items[0]?.city, "bandar");
+
+    const detail = mockRes();
+    await handleGetHarborCatalogTour(
+      {
+        headers: { "x-tenant-id": "fbdcae8a-2cd8-4c2c-898c-f408bd51321a" },
+      } as IncomingMessage,
+      detail,
+      tourId,
+    );
+    assert.equal(detail.status, 200);
+    assert.equal(JSON.parse(detail.body).data.id, tourId);
+
+    const register = mockRes();
+    const regReq = mockJsonReq({
+      tourId,
+      contact: { fullName: "No Seed", email: "n@example.com" },
+      partySize: 1,
+    });
+    (regReq as IncomingMessage & { headers: Record<string, string> }).headers = {
+      "x-tenant-id": "fbdcae8a-2cd8-4c2c-898c-f408bd51321a",
+    };
+    await handlePostHarborRegistration(regReq, register);
+    assert.equal(register.status, 201, register.body);
+    assert.equal(JSON.parse(register.body).data.id, "reg-durable-1");
+
+    resetHarborHttpHostForTests();
   });
 });

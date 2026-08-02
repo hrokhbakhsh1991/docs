@@ -1,0 +1,62 @@
+# PSR-5h dual-store classification inventory
+wave: PSR-5h-dual-store-classification
+program_id: PSR-001
+decision: classify_retain_all_as_test_dev_adapters
+policy:
+  forbid_inmemory_deletion_in_this_wave: true
+  require_assert_production_on_each_factory: true
+  require_dual_store_role_export: true
+  scaffold_only_deletion_candidates: 0
+role_module: apps/api/src/storage/dual-store-role.ts
+role_const: DUAL_STORE_ROLE_RETAINED_TEST_DEV_ADAPTER
+factories:
+  - path: apps/api/src/bookings/create-bookings-repository.ts
+    domain: bookings
+    role: retained_explicit_test_dev_adapter
+    test_hook: resetBookingsRepositoryForTests
+    notes: createWithDevSeed for local memory
+  - path: apps/api/src/identity/create-identity-repository.ts
+    domain: identity
+    role: retained_explicit_test_dev_adapter
+    test_hook: resetIdentityRepositoryForTests
+    notes: createWithDevSeed for local memory
+  - path: apps/api/src/identity/portal-member-plan.service.ts
+    domain: portal_member_plan
+    role: retained_explicit_test_dev_adapter
+    test_hook: setPortalMemberPlanRepositoryForTests
+    notes: injectible plan repo for tests
+  - path: apps/api/src/storage/create-tour-storage.ts
+    domain: tour_storage
+    role: retained_explicit_test_dev_adapter
+    test_hook: smoke_memory_stores
+    notes: urban/operator/dual smoke InMemoryTourRepository stores
+  - path: apps/api/src/settings/create-settings-audit-repository.ts
+    domain: settings_audit
+    role: retained_explicit_test_dev_adapter
+    test_hook: resetSettingsAuditRepositorySingletonForTests
+  - path: apps/api/src/settings/create-settings-config-repository.ts
+    domain: settings_config
+    role: retained_explicit_test_dev_adapter
+    test_hook: resetSettingsConfigRepositorySingletonForTests
+  - path: apps/api/src/settings/create-settings-resources-repository.ts
+    domain: settings_resources
+    role: retained_explicit_test_dev_adapter
+    test_hook: resetSettingsResourcesRepositorySingletonForTests
+  - path: apps/api/src/workspace-drafts/create-workspace-drafts-repository.ts
+    domain: workspace_drafts
+    role: retained_explicit_test_dev_adapter
+    test_hook: resetWorkspaceDraftsRepositorySingletonForTests
+  - path: apps/api/src/workspace-drafts/create-workspace-draft-events-repository.ts
+    domain: workspace_draft_events
+    role: retained_explicit_test_dev_adapter
+    test_hook: resetWorkspaceDraftEventsRepositorySingletonForTests
+  - path: apps/api/src/workspace-finance/finance-repository.factory.ts
+    domain: finance
+    role: retained_explicit_test_dev_adapter
+    test_hook: resetFinanceRepositoryForTests
+ratchet:
+  factory_count: 10
+  scaffold_only_count: 0
+  retained_test_dev_adapter_count: 10
+  inmemory_deletion_count: 0
+  item_6_status: complete_explicit_test_dev_adapters

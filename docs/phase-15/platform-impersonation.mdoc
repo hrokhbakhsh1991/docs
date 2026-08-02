@@ -51,6 +51,13 @@ JWT claims (30m expiry): `sub`, `tenant_id`, `role: "owner"`, `sess_ver`, `platf
 
 `assertOperatorImpersonationReadonly` runs inside `runWithHttpRequestContext` when `options.rateLimit` is set (write-tier routes). GET/HEAD pass through. Mutations with impersonation JWT → `ImpersonationReadOnlyError` → HTTP **403** `{ "error": "forbidden", "code": "IMPERSONATION_READ_ONLY" }`.
 
+**Non-impersonation bearers:** when `AUTH_JWT_*` is configured, the guard must not `jwtVerify` unsigned
+dev bearers (`dev.<base64url>`) or other non-RS256 tokens. Those are not platform impersonation
+sessions — verify failure previously escaped as **500** `Invalid Compact JWS` on urban settings /
+tour PATCH paths that already authenticated via `tryParseDevBearerToken`. Contract: skip
+`DEV_BEARER_PREFIX` tokens; on any other verify failure, return (do not block the write). Only a
+successfully verified JWT with `platform_impersonation_readonly: true` denies mutation.
+
 ## Audit
 
 | Action | When |

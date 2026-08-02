@@ -602,7 +602,7 @@ async function main() {
     platform_core_baseline_sha: baselineSha,
     checks,
     charter_gates: PHASE8_CHARTER_GATES,
-    note: "phase-8:gate adds build+test+phase-7:gate — see package.json",
+    note: "phase-8:gate adds build+test+phase-7:guard — see package.json (denested from phase-7:gate)",
   };
 
   if (!fs.existsSync(REPORTS_DIR)) {

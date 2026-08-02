@@ -33,6 +33,18 @@ After fix:
 2. Urban workspace → `FINANCE_WORKSPACE_UNSUPPORTED` (**404**).
 3. Denali without Postgres persistence → `getSummary` returns zero counts (**200**).
 
+### P15-P-A2 finance HTTP strip (colon suffix)
+
+Lazy finance composition resolves via `resolveFinanceWorkspaceTypeForTenant`, which throws
+`FINANCE_WORKSPACE_UNSUPPORTED: workspaceType=<type>` for types outside the finance dependency
+registry (urban, starter, unknown). That message fails `isClientSafeErrorToken` (colon + spaces)
+and was overwritten to **500** `internal_error` even though `mapErrorMessageToStatus` already
+returned **404**.
+
+`handleHttpError` now early-maps any `FINANCE_WORKSPACE_UNSUPPORTED` / `FINANCE_WORKSPACE_UNSUPPORTED:…`
+throw to **404** with stable body `{ error, code: "FINANCE_WORKSPACE_UNSUPPORTED" }` (no workspaceType
+leak). Urban hosts stay fail-closed without granting finance capability.
+
 ## Test environment
 
 - `NODE_ENV=test`, `STORAGE_DRIVER=memory`

@@ -21,7 +21,7 @@ describe("runForwardFieldExposureDecisionEngineShadow", () => {
     resetMetricsRegistryForTests();
   });
 
-  it("is a no-op when the forward shadow flag is disabled", () => {
+  it("is a no-op when the forward shadow flag is disabled", async () => {
     previousFlag = process.env[FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV];
     delete process.env[FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV];
 
@@ -32,7 +32,7 @@ describe("runForwardFieldExposureDecisionEngineShadow", () => {
     };
 
     try {
-      runForwardFieldExposureDecisionEngineShadow({
+      await runForwardFieldExposureDecisionEngineShadow({
         tenantId: "tenant-a",
         eventType: "TourCreated",
         workspaceType: "denali",
@@ -48,7 +48,7 @@ describe("runForwardFieldExposureDecisionEngineShadow", () => {
     }
   });
 
-  it("skips shadow work when workspace type is absent", () => {
+  it("skips shadow work when workspace type is absent", async () => {
     previousFlag = process.env[FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV];
     process.env[FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV] = "true";
 
@@ -59,7 +59,7 @@ describe("runForwardFieldExposureDecisionEngineShadow", () => {
     };
 
     try {
-      runForwardFieldExposureDecisionEngineShadow({
+      await runForwardFieldExposureDecisionEngineShadow({
         tenantId: "tenant-a",
         eventType: "TourCreated",
         workspaceType: null,
@@ -75,7 +75,7 @@ describe("runForwardFieldExposureDecisionEngineShadow", () => {
     }
   });
 
-  it("logs a warning and does not throw when plugin resolution fails", () => {
+  it("logs a warning and does not throw when plugin resolution fails", async () => {
     previousFlag = process.env[FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV];
     process.env[FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV] = "true";
 
@@ -86,7 +86,7 @@ describe("runForwardFieldExposureDecisionEngineShadow", () => {
     };
 
     try {
-      assert.doesNotThrow(() =>
+      await assert.doesNotReject(async () =>
         runForwardFieldExposureDecisionEngineShadow({
           tenantId: "tenant-a",
           eventType: "TourCreated",
@@ -106,7 +106,7 @@ describe("runForwardFieldExposureDecisionEngineShadow", () => {
     }
   });
 
-  it("emits exactly one aggregate parity summary per enabled shadow run", () => {
+  it("emits exactly one aggregate parity summary per enabled shadow run", async () => {
     previousFlag = process.env[FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV];
     process.env[FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV] = "true";
 
@@ -117,7 +117,7 @@ describe("runForwardFieldExposureDecisionEngineShadow", () => {
     };
 
     try {
-      runForwardFieldExposureDecisionEngineShadow({
+      await runForwardFieldExposureDecisionEngineShadow({
         tenantId: "tenant-a",
         eventType: "TourCreated",
         workspaceType: "starter",
@@ -147,7 +147,7 @@ describe("runForwardFieldExposureDecisionEngineShadow", () => {
     }
   });
 
-  it("records forward engine shadow mismatch metric when aggregate parity fails", () => {
+  it("records forward engine shadow mismatch metric when aggregate parity fails", async () => {
     previousFlag = process.env[FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV];
     process.env[FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV] = "true";
 
@@ -155,7 +155,7 @@ describe("runForwardFieldExposureDecisionEngineShadow", () => {
     (logger.info as unknown as (...args: unknown[]) => void) = () => {};
 
     try {
-      runForwardFieldExposureDecisionEngineShadow({
+      await runForwardFieldExposureDecisionEngineShadow({
         tenantId: "tenant-a",
         eventType: "TourCreated",
         workspaceType: "starter",

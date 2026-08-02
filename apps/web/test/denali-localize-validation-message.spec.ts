@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { localizeDenaliValidationIssueMessage } from "@app-cloud/workspace-denali/host/wizard/localize-validation-message";
+import { localizeDenaliValidationIssueMessage } from "@app-tour/workspace-denali/host/wizard/localize-validation-message";
 
 const messages: Record<string, string> = {
   "validation.requiredField": "{field} is required.",

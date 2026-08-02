@@ -63,7 +63,7 @@ flowchart LR
 | ------------------------------------ | --------------------------------------------- |
 | `.github/workflows/phase-4-gate.yml` | Already ships Postgres + `phase-4:gate`       |
 | `.github/workflows/phase-5-gate.yml` | **New** — Postgres bootstrap + `phase-5:gate` |
-| `scripts/test-full.sh`               | Chain `phase-5:gate` after `phase-4:gate`     |
+| `scripts/test-full.sh`               | Invokes `phase-5:gate` once (nests prior gates; sibling re-entry removed 2026-08-01) |
 
 ## 5 — Migration head preflight (DEC-097)
 

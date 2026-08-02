@@ -7,7 +7,7 @@
 import {
   resolveLabelsCapability,
   type WorkspacePlugin,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import type { WizardLabelResolver } from "@/wizard/wizard-surface-types";
 import { loadWizardWorkspacePlugin } from "@/wizard/resolve-wizard-workspace-plugin";

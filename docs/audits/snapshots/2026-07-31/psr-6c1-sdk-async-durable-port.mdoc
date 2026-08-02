@@ -1,0 +1,52 @@
+---
+id: PSR-6C1-SDK-DURABLE-PORT
+title: PSR-6c1 — SDK async catalog port + durable surface gate
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-6c1-sdk-async-durable-port-inventory.yaml
+program_id: PSR-001
+wave: PSR-6c1-sdk-async-durable-smoke-port
+---
+
+# PSR-6c1 — SDK async durable smoke port
+
+## Intent
+
+Unblock Harbor durable wiring without forcing a Denali clone: evolve
+`createWorkspaceGuestSmokeHttpHandlers` so a later host-backed port can be
+**async** and can serve a **non-501 default path** when durable mode is on.
+
+## Changes
+
+| API | Behavior |
+| --- | --- |
+| `WorkspaceGuestSmokeCatalogPort` | `listPublished` / `getPublished` / `createRegistration` may return `T` or `Promise<T>` |
+| `isDurableEnabled?: () => boolean` | When true (and seed false), surface is allowed — **no** 501 |
+| Durable + no `catalogPort` | Empty list / 404 detail / register not-found — **not** fixture `buildCard` fallback |
+| Seed path | Unchanged for guest-club / Harbor memory store (sync port still valid) |
+
+## Non-goals
+
+- Wiring Harbor HTTP to durable mode (`isDurableEnabled` stays unused there)
+- API `configureHarbor*` host
+- Prisma adapters
+- Recert / tier promote
+
+## Verify
+
+```bash
+node scripts/ops/psr-6c1-sdk-async-durable-port-smoke.mjs
+pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/http-plib-dg1.spec.ts
+```
+
+## Next
+
+`PSR-6c2-harbor-thin-host-card-mapper` — Harbor host shell + Event card from
+published tour; still may keep seed-only until 6c3 API configure.

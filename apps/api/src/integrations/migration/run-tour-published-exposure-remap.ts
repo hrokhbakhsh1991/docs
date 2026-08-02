@@ -1,7 +1,8 @@
 import { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../../db/with-tenant-rls";
-import { disconnectPrisma, getPrismaAdmin } from "../../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../../db/background-admin-client";
+import { disconnectPrisma } from "../../db/prisma";
 import { createExposureIntentRepository } from "../../exposure/prisma-exposure-intent.repository";
 import type { ExposureFieldDecorations } from "../../exposure/exposure-intent";
 import type { ExposureIntentMode } from "../../exposure/exposure-intent";
@@ -85,7 +86,7 @@ function mapRow(row: {
 async function listExposureIntentRows(
   tenantId?: string,
 ): Promise<ExposureIntentRemapCandidate[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_INTEGRATION_MIGRATION);
   const rows = await admin.exposureIntent.findMany({
     where: {
       workspaceType: "denali",

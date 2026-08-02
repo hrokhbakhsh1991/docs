@@ -1,0 +1,43 @@
+---
+id: PSR-9A-CLOSURE-SCORECARD-SCAFFOLD
+title: PSR-9a — Closure scorecard scaffold (measure-only; no closure claim)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-9a-closure-scorecard.yaml
+program_id: PSR-001
+wave: PSR-9a-closure-scorecard-scaffold
+---
+
+# PSR-9a — Closure scorecard scaffold
+
+## Intent
+
+Make the SoT PSR-9 closure table **machine-readable** and **re-measurable**
+without claiming program closure. Collector writes a JSON report (gitignored
+under `reports/psr/`); smoke asserts scaffold integrity + collector runs.
+
+## Commands
+
+```bash
+node scripts/ops/psr-9-closure-scorecard-collect.mjs
+node scripts/ops/psr-9a-closure-scorecard-smoke.mjs
+```
+
+## Honesty
+
+- Metrics are **tips** at collection time — not a release SHA evidence pack.
+- Harbor durable code ≠ Harbor `certified` (still `stub`).
+- Secret-scan / SBOM tooling baselines ≠ PSR-7 gate closed.
+- Dirty worktree / Denali export counts may need deeper collectors in later slices.
+
+## Next
+
+`PSR-9b-scorecard-collectors-expand` (dirty worktree, Denali exports, absolute
+paths) or prioritized live YES / `PSR-7d1` / `PSR-8b`.

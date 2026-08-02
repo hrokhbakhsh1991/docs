@@ -18,12 +18,24 @@ A developer must not merge to `main` without Booking **production-path** Postgre
 
 These are the job `name:` fields (status check **contexts**), not workflow file names:
 
-| Required context | Workflow job id | Proof |
-| ---------------- | --------------- | ----- |
-| **Booking PostgreSQL capacity** | `booking-postgres-capacity` | capacity + approve concurrency + stress |
-| **Booking HTTP PostgreSQL** | `booking-http-postgres` | HTTP→Prisma certification matrix |
+| Required context | Workflow job id (real) | Workflow job id (PR stub) | Proof |
+| ---------------- | ---------------------- | ------------------------- | ----- |
+| **Booking PostgreSQL capacity** | `booking-postgres-capacity` | `booking-postgres-capacity-stub` | capacity + approve concurrency + stress |
+| **Booking HTTP PostgreSQL** | `booking-http-postgres` | `booking-http-postgres-stub` | HTTP→Prisma certification matrix |
 
 Canonical list: `scripts/ops/main-branch-required-checks.mjs` (`BOOKING_POSTGRES_REQUIRED_CHECKS`).
+
+## PR path gating (velocity)
+
+**Do not** use workflow-level `pull_request.paths` — required contexts would never report and merges would pend.
+
+Instead `.github/workflows/booking-postgres-gate.yml`:
+
+1. Job `booking-relevance` diffs the PR (`base...head`) against booking-related paths (bookings, outbox, prisma/SQL, finance-recon/RLS extras in this workflow, contract/core deps used by the listener build, ops required-check scripts, this workflow, lockfile).
+2. If relevant (or event is `push` to `main` / `workflow_dispatch`): run the **real** Postgres jobs.
+3. Otherwise: run lightweight **stub** jobs that reuse the **same** `name:` values so branch protection and `deploy-vps` waiters still see success.
+
+`push` to `main` and `workflow_dispatch` always set `run_booking=true` (full proofs unchanged).
 
 ## Apply (repo admin)
 

@@ -1,0 +1,90 @@
+# PSR-6c5 Harbor durable proofs + recert inventory (no promote / no live)
+wave: PSR-6c5-harbor-durable-proofs-recert-inventory
+program_id: PSR-001
+decision: inventory_recipe_only
+policy:
+  forbid_tier_promote_in_this_wave: true
+  forbid_proof_matrix_harbor_rows_in_this_wave: true
+  forbid_full_gate_in_this_wave: true
+  forbid_claiming_psr6_gate_closed_without_live_pack: true
+  live_proof_requires_architect_yes: true
+  current_e2e_smoke_is_seed_path_not_durable: true
+code_truth_after_6c4:
+  durable_list_detail: true
+  durable_registration: true
+  production_tier: stub
+  seed_path_intact: true
+  api_configure_harbor: true
+proof_families:
+  - id: H-DEFAULT
+    purpose: Seed off + configured host returns non-501 catalog
+    recipe_commands:
+      - "pnpm --filter @app-tour/workspace-harbor run test"
+    static_assets:
+      - packages/workspaces/harbor/src/http/harbor-catalog-http.ts
+      - packages/workspaces/harbor/test/dg4-harbor-smoke-http.spec.ts
+    live_status: unit_covered_live_pending
+  - id: H-REGISTER
+    purpose: Durable POST registrations via BookingPublicPort
+    recipe_commands:
+      - "pnpm --filter @app-tour/workspace-harbor run test"
+    static_assets:
+      - packages/workspaces/harbor/src/registration/create-harbor-registration.ts
+      - apps/api/src/http/configure-product-http-hosts.ts
+    live_status: unit_covered_live_pending
+  - id: H-DUP
+    purpose: Duplicate email maps to 409
+    recipe_commands:
+      - "pnpm --filter @app-tour/workspace-harbor run test"
+    static_assets:
+      - packages/workspaces/harbor/src/registration/harbor-registration-duplicate.error.ts
+      - apps/api/src/middleware/workspace-http-error-map.generated.ts
+    live_status: unit_covered_live_pending
+  - id: H-RESTART
+    purpose: Registration survives API process restart
+    recipe_commands:
+      - "# Architect YES — disposable Postgres; create registration; restart API; GET booking"
+    static_assets:
+      - apps/api/src/bookings/infrastructure/host-booking-public.adapter.ts
+    live_status: pending
+  - id: H-RLS
+    purpose: Cross-tenant isolation for harbor catalog/register
+    recipe_commands:
+      - pnpm run guard:repository-rls
+      - "# plus targeted harbor tenant isolation under STORAGE_DRIVER=prisma"
+    static_assets:
+      - scripts/guards/guard-repository-rls.mjs
+      - docs/audits/snapshots/2026-07-31/psr-5i-same-sha-proofs-inventory.yaml
+    live_status: pending
+  - id: H-CERT
+    purpose: CERT-01…05 rebind + promote on identical SHA
+    recipe_commands:
+      - pnpm run generate:workspace-registry
+      - pnpm run guard:workspace-certification
+      - "PW_NO_REUSE_SERVER=1 pnpm --filter @apps/marketing run test:smoke:harbor"
+    static_assets:
+      - docs/workspaces/harbor/certification.md
+      - docs/dev/workspace-certification-proof-matrix.yaml
+      - docs/dev/workspace-certification.mdoc
+      - apps/marketing/scripts/smoke-marketing-harbor-e2e-servers.mjs
+    live_status: pending
+    note: current test:smoke:harbor forces HARBOR_SMOKE_E2E_SEED=1 — not durable CERT-03
+recert_checklist_not_executed:
+  - durable_e2e_seed_off
+  - restart_drill
+  - rls_live
+  - restore_proof_matrix_harbor_rows
+  - set_production_tier_certified
+  - regenerate_registry
+  - guard_workspace_certification
+  - architect_promote_yes
+ratchet:
+  proof_family_count: 6
+  static_asset_missing_count: 0
+  tier_promoted: false
+  proof_matrix_has_harbor: false
+  live_proof_complete: false
+  psr6_gate_closed: false
+  inventory_complete: true
+  next_slice: PSR-6c6-harbor-live-evidence
+  alternate_next_if_stub_retained: PSR-7-security-release-readiness

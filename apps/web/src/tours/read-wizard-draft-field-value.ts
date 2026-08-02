@@ -1,5 +1,5 @@
-import type { WorkspacePlugin } from "@app-cloud/workspace-sdk";
-import { resolveDraftShellCapability } from "@app-cloud/workspace-sdk";
+import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
+import { resolveDraftShellCapability } from "@app-tour/workspace-sdk";
 
 import type { TourWizardDraft } from "./tour-wizard-draft";
 import { getCanonicalValue } from "./tour-wizard-draft-path";

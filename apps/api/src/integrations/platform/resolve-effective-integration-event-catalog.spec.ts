@@ -8,8 +8,8 @@ import {
 } from "./resolve-effective-integration-event-catalog";
 
 describe("resolveEffectiveIntegrationEventCatalog", () => {
-  it("defaults denali telegram to TourPublished from surface when no persisted rows", () => {
-    const catalog = resolveEffectiveIntegrationEventCatalog({
+  it("defaults denali telegram to TourPublished from surface when no persisted rows", async () => {
+    const catalog = await resolveEffectiveIntegrationEventCatalog({
       workspaceType: "denali",
       providerId: "telegram",
       persistedPolicies: [],
@@ -25,8 +25,8 @@ describe("resolveEffectiveIntegrationEventCatalog", () => {
     assert.equal(catalog[0]?.deprecated, false);
   });
 
-  it("marks persisted TourCreated as deprecated with supersededBy TourPublished", () => {
-    const catalog = resolveEffectiveIntegrationEventCatalog({
+  it("marks persisted TourCreated as deprecated with supersededBy TourPublished", async () => {
+    const catalog = await resolveEffectiveIntegrationEventCatalog({
       workspaceType: "denali",
       providerId: "telegram",
       persistedPolicies: [{ eventType: "TourCreated", enabled: true }],
@@ -44,8 +44,8 @@ describe("resolveEffectiveIntegrationEventCatalog", () => {
     assert.equal(published.routingActive, true);
   });
 
-  it("prefers persisted enablement over surface default", () => {
-    const catalog = resolveEffectiveIntegrationEventCatalog({
+  it("prefers persisted enablement over surface default", async () => {
+    const catalog = await resolveEffectiveIntegrationEventCatalog({
       workspaceType: "denali",
       providerId: "telegram",
       persistedPolicies: [{ eventType: "TourPublished", enabled: false }],
@@ -55,8 +55,8 @@ describe("resolveEffectiveIntegrationEventCatalog", () => {
     assert.equal(catalog[0]?.enabled, false);
   });
 
-  it("maps public DTO policies with deprecated metadata", () => {
-    const catalog = resolveEffectiveIntegrationEventCatalog({
+  it("maps public DTO policies with deprecated metadata", async () => {
+    const catalog = await resolveEffectiveIntegrationEventCatalog({
       workspaceType: "denali",
       providerId: "telegram",
       persistedPolicies: [{ eventType: "TourCreated", enabled: true }],
@@ -71,8 +71,8 @@ describe("resolveEffectiveIntegrationEventCatalog", () => {
     });
   });
 
-  it("lists active event types for admin UI without deprecated routes", () => {
-    const catalog = resolveEffectiveIntegrationEventCatalog({
+  it("lists active event types for admin UI without deprecated routes", async () => {
+    const catalog = await resolveEffectiveIntegrationEventCatalog({
       workspaceType: "denali",
       providerId: "telegram",
       persistedPolicies: [{ eventType: "TourCreated", enabled: true }],

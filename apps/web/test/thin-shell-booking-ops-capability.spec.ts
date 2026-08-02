@@ -7,9 +7,9 @@ import { dirname, resolve } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { getWorkspacePlugin as getBookingWs2Plugin } from "@app-cloud/workspace-booking-ws2";
-import { getWorkspacePlugin as getDenaliPlugin } from "@app-cloud/workspace-denali";
-import { resolveBookingOpsCapability } from "@app-cloud/workspace-sdk";
+import { getWorkspacePlugin as getBookingWs2Plugin } from "@app-tour/workspace-booking-ws2";
+import { getWorkspacePlugin as getDenaliPlugin } from "@app-tour/workspace-denali";
+import { resolveBookingOpsCapability } from "@app-tour/workspace-sdk";
 
 import { resolveBookingOpsCapabilityForHub } from "../src/features/bookings/booking-ops-panels";
 

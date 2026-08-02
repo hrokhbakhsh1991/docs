@@ -17,7 +17,7 @@ pnpm run phase-1:gate
 echo "ci-integrity: phase-2:gate (visual-layer invariants + p2_* guards)"
 pnpm run phase-2:gate
 
-echo "ci-integrity: phase-3:gate (apps + starter + doc-gate + p3_* guards)"
+echo "ci-integrity: phase-3:gate (static phase-3:guard + phase-3:apps-cert)"
 pnpm run phase-3:gate
 
 echo "ci-integrity: phase-4:guard (tenant-kernel + RLS when DATABASE_URL set)"

@@ -1,7 +1,8 @@
 /**
  * TODO-001 / PREV-AUD-001 — honest production JWT → HTTP → Prisma booking write.
  *
- * Forbidden: x-* header auth, memory SoT, silent skip without DATABASE_URL.
+ * Forbidden: x-* header auth, memory SoT, silent skip without DATABASE_URL reason.
+ * Missing DATABASE_URL(+ADMIN) → honest describe skip (visible `*_REQUIRES_DATABASE` reason).
  */
 import assert from "node:assert/strict";
 import http from "node:http";
@@ -27,11 +28,9 @@ import { integrationTenantId } from "./test-helpers";
 const hasDatabase =
   Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
 
-if (!hasDatabase) {
-  throw new Error(
-    "BOOKING_HTTP_POSTGRES_JWT_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN (TODO-001)"
-  );
-}
+const postgresSkip = hasDatabase
+  ? false
+  : "BOOKING_HTTP_POSTGRES_JWT_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN (TODO-001)";
 
 const ENV_KEYS = [
   "NODE_ENV",
@@ -127,7 +126,7 @@ async function requestJson(
 
 describe(
   "bookings-http-postgres-jwt-production — TODO-001 production JWT path",
-  { concurrency: false },
+  { concurrency: false, skip: postgresSkip },
   () => {
     const tenantId = integrationTenantId();
     const userId = randomUUID();

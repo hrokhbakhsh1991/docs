@@ -30,9 +30,13 @@ describe("dtcg-f2-admin-hooks.spec.mjs", () => {
 
   it("F2-02 wizard-calendar aliases admin semantic primary vars", () => {
     const calendar = readHook("wizard-calendar.css");
-    assert.match(calendar, /--denali-wizard-calendar-primary:\s*var\(--color-primary\)/);
-    assert.match(calendar, /--denali-wizard-calendar-primary-fg:\s*var\(--color-primary-fg\)/);
-    assert.doesNotMatch(calendar, /html\.dark:has\([\s\S]*--denali-wizard-calendar-primary:/);
+    // Wave H.q: --denali-wizard-calendar-primary* → --operator-wizard-calendar-primary*
+    // @see docs/dev/wave-h-operator-wizard-calendar-bem.mdoc
+    assert.match(calendar, /--operator-wizard-calendar-primary:\s*var\(--color-primary\)/);
+    assert.match(calendar, /--operator-wizard-calendar-primary-fg:\s*var\(--color-primary-fg\)/);
+    assert.match(calendar, /--operator-wizard-calendar-primary-hover:\s*var\(--color-primary-hover\)/);
+    assert.doesNotMatch(calendar, /--denali-wizard-calendar-primary/);
+    assert.doesNotMatch(calendar, /html\.dark:has\([\s\S]*--operator-wizard-calendar-primary:/);
   });
 
   it("F2-03 wizard skin dark re-bind uses inherited semantic vars", () => {

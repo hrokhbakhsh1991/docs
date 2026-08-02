@@ -36,6 +36,7 @@ import {
   fakeFixedClock,
   fakeNoopLog,
   fakeNoopMetrics,
+  fakeNullObligation,
   fakePermissiveCapability,
   fakePermissiveAccess,
   fakeReceiptProofUrl,
@@ -57,10 +58,12 @@ const DENALI_TENANT_ID = OPERATOR_SMOKE.tenantId;
 describe("finance-di-purity.spec.ts — composition root mandatory", { concurrency: false }, () => {
   const priorStorageDriver = process.env.STORAGE_DRIVER;
   const priorDatabaseUrl = process.env.DATABASE_URL;
+  const priorBootWorkspaceType = process.env.FINANCE_BOOT_WORKSPACE_TYPE;
 
   before(() => {
     process.env.STORAGE_DRIVER = "memory";
     delete process.env.DATABASE_URL;
+    process.env.FINANCE_BOOT_WORKSPACE_TYPE = DENALI;
   });
 
   after(() => {
@@ -77,6 +80,11 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
     } else {
       process.env.DATABASE_URL = priorDatabaseUrl;
     }
+    if (priorBootWorkspaceType === undefined) {
+      delete process.env.FINANCE_BOOT_WORKSPACE_TYPE;
+    } else {
+      process.env.FINANCE_BOOT_WORKSPACE_TYPE = priorBootWorkspaceType;
+    }
   });
 
   it("FIN-DI-01 missing dependency fails fast (service + repository factory)", () => {
@@ -84,7 +92,7 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
     const repo = new InMemoryFinanceRepository(bookingPayments);
     const ledger = new DenaliFinanceLedgerPolicyAdapter();
     const defaults = new DenaliFinanceReceiptDefaultsAdapter();
-    const display = new BookingRegistrationDisplayAdapter();
+    const display = new BookingRegistrationDisplayAdapter(getBookingsRepository());
 
     assert.throws(
       () =>
@@ -101,7 +109,8 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
           fakePermissiveAccess,
           fakeEmptySchedules,
           fakeNoopLog,
-          fakeFixedClock
+          fakeFixedClock,
+          fakeNullObligation
         ),
       /FINANCE_SERVICE_DEP_REQUIRED: ledgerPolicy/
     );
@@ -120,7 +129,8 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
           fakePermissiveAccess,
           fakeEmptySchedules,
           fakeNoopLog,
-          fakeFixedClock
+          fakeFixedClock,
+          fakeNullObligation
         ),
       /FINANCE_SERVICE_DEP_REQUIRED: registrationDisplay/
     );
@@ -139,7 +149,8 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
           fakePermissiveAccess,
           fakeEmptySchedules,
           fakeNoopLog,
-          fakeFixedClock
+          fakeFixedClock,
+          fakeNullObligation
         ),
       /FINANCE_SERVICE_DEP_REQUIRED: metrics/
     );
@@ -158,9 +169,30 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
           fakePermissiveAccess,
           fakeEmptySchedules,
           fakeNoopLog,
-          undefined as never
+          undefined as never,
+          fakeNullObligation
         ),
       /FINANCE_SERVICE_DEP_REQUIRED: clock/
+    );
+    assert.throws(
+      () =>
+        new FinanceService(
+          ledger,
+          repo,
+          bookingPayments,
+          defaults,
+          display,
+          fakeNoopMetrics,
+          fakeMemoryPersistenceMode,
+          fakeReceiptProofUrl,
+          fakePermissiveCapability,
+          fakePermissiveAccess,
+          fakeEmptySchedules,
+          fakeNoopLog,
+          fakeFixedClock,
+          undefined as never
+        ),
+      /FINANCE_SERVICE_DEP_REQUIRED: obligation/
     );
     assert.throws(
       () => createFinanceRepository(undefined as never),
@@ -289,7 +321,7 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
       new InMemoryFinanceRepository(bookingPayments),
       bookingPayments,
       deps.receiptDefaults,
-      new BookingRegistrationDisplayAdapter(),
+      new BookingRegistrationDisplayAdapter(getBookingsRepository()),
       fakeNoopMetrics,
       fakeMemoryPersistenceMode,
       fakeReceiptProofUrl,
@@ -297,7 +329,8 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
       fakePermissiveAccess,
       fakeEmptySchedules,
       fakeNoopLog,
-      fakeFixedClock
+      fakeFixedClock,
+      fakeNullObligation
     );
     assert.equal(typeof service.reviewReceipt, "function");
     assert.equal(typeof service.recordPrepayment, "function");

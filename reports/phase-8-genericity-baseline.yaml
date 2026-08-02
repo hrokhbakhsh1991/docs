@@ -1,8 +1,9 @@
-# Phase 8 genericity baseline — digest-locked after Phase 14 workspace host remediation (draft tombstone ingress)
+# phase-8 genericity baseline — digest-locked (shallow CI when baseline_sha absent)
+# Inherited pattern from Phase 7 REQ-P7-007; keep in sync with live packages/platform-core tree.
 baseline_sha: deadbeef0
 inherited_from: reports/phase-7-genericity-baseline.yaml
-platform_core_tree_digest: e1992e6035c55e5eb5a2331cdae7aef9c62e96455f502b1d5ecd748fb5472856
-platform_core_file_count: 77
-recorded_at: "2026-06-20T00:00:00Z"
-recorded_by: "P0 workspace remediation — draftTombstone strip + composite renderer hints"
-note: "phase-8 digest lock when baseline_sha ref absent; prior digest 81aa16510d6f"
+platform_core_tree_digest: e5530071b35c92d72cf76e06cd645acbb118f996046c0ff1d17cbc2674e1292a
+platform_core_file_count: 103
+recorded_at: "2026-08-01T18:10:00Z"
+recorded_by: "phase-8 digest refresh — align with P7-2-A01 platform-core wizard host hooks (non-product registry)"
+note: "Same digest as reports/phase-7-genericity-baseline.yaml; record real baseline_sha on next platform-core commit"

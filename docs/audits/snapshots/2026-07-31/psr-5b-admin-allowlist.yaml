@@ -1,0 +1,39 @@
+# PSR-5b formal getPrismaAdmin allowlist (tenant-adjacent intentional)
+wave: PSR-5b-admin-allowlist-doc
+program_id: PSR-001
+decision: document_allowlist_only
+policy:
+  forbid_new_tenant_path_admin_without_pr: true
+  forbid_silent_removal_without_inventory_update: true
+entries: []
+closed_entries:
+  - id: ALW-FIN-TENANT-ROW
+    path: apps/api/src/workspace-finance/resolve-finance-workspace-type-for-tenant.ts
+    closed_by: PSR-5d-finance-resolver-via-registry-port
+    note: >
+      Now uses findTenantFinanceWorkspaceRow on TenantRegistryAdminPort;
+      no direct getPrismaAdmin in this file.
+  - id: ALW-ID-FORCE-RLS
+    path: apps/api/src/identity/prisma-identity.repository.ts
+    closed_by: PSR-5g-identity-admin-client
+    note: >
+      Repository no longer calls getPrismaAdmin; sole owner is
+      identity/identity-admin-client.ts with identity_admin_access_total{reason}.
+      FORCE RLS posture unchanged — admin pool still required for pre-tenant user/OTP.
+deferred_to_named_port:
+  - path: apps/api/src/tenant/resolve-registered-tenant.ts
+    class: tenant_registry
+    next: PSR-5c-tenant-registry-port
+    status: closed
+    closed_by: PSR-5c-tenant-registry-port
+  - path: apps/api/src/tenant/update-tenant-registry-row.ts
+    class: tenant_registry
+    next: PSR-5c-tenant-registry-port
+    status: closed
+    closed_by: PSR-5c-tenant-registry-port
+ratchet:
+  allowlist_entry_count: 0
+  required_ids: []
+  deferred_registry_direct_admin_count: 0
+  closed_finance_allowlist: true
+  closed_identity_allowlist: true

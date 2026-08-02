@@ -1,0 +1,30 @@
+# PSR-6c4 Harbor durable registration
+wave: PSR-6c4-harbor-durable-registration
+program_id: PSR-001
+decision: booking_public_port_thin_register
+policy:
+  forbid_denali_registration_clone: true
+  forbid_tier_promote_in_this_wave: true
+  forbid_full_gate_in_this_wave: true
+  keep_smoke_seed_path: true
+  idempotency_wrapper_deferred: true
+touched:
+  - packages/workspaces/harbor/package.json
+  - packages/workspaces/harbor/workspace.manifest.json
+  - packages/workspaces/harbor/src/http/host-ports.ts
+  - packages/workspaces/harbor/src/http/harbor-catalog-http.ts
+  - packages/workspaces/harbor/src/http/routes.ts
+  - packages/workspaces/harbor/src/http/index.ts
+  - packages/workspaces/harbor/src/registration/create-harbor-registration.ts
+  - packages/workspaces/harbor/src/registration/harbor-registration-duplicate.error.ts
+  - packages/workspaces/harbor/src/registration/harbor-workspace-required.error.ts
+  - packages/workspaces/harbor/test/create-harbor-registration.spec.ts
+  - packages/workspaces/harbor/test/dg4-harbor-smoke-http.spec.ts
+  - apps/api/src/http/configure-product-http-hosts.ts
+  - apps/api/src/http/workspace-route-registrar.ts
+ratchet:
+  durable_registration: true
+  smoke_seed_intact: true
+  booking_port_wired: true
+  tier_stub: true
+  next_slice: PSR-6c5-harbor-durable-proofs-recert

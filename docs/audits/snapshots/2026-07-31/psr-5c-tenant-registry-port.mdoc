@@ -1,0 +1,68 @@
+---
+id: PSR-5C-TENANT-REGISTRY-PORT
+title: PSR-5c — TenantRegistryAdminPort for registry resolve/update
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5-data-authority-inventory.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5b-admin-allowlist.mdoc
+  - apps/api/src/tenant/tenant-registry-admin.port.ts
+  - apps/api/src/tenant/resolve-registered-tenant.ts
+  - apps/api/src/tenant/update-tenant-registry-row.ts
+program_id: PSR-001
+wave: PSR-5c-tenant-registry-port
+---
+
+# PSR-5c — named TenantRegistryAdminPort
+
+## Why
+
+PSR-5 item 5: control-plane admin access must go through a **named** interface
+with capability/reason — not raw `getPrismaAdmin()` imports on the hot tenant
+registry path.
+
+Inventory classed these as `tenant_registry` (deferred from PSR-5b allowlist):
+
+- `resolve-registered-tenant.ts` — cache-miss reads by id / subdomain / theme
+- `update-tenant-registry-row.ts` — admin `tenants` update + cache invalidation
+
+## Design (behavior-preserving)
+
+New module: `apps/api/src/tenant/tenant-registry-admin.port.ts`
+
+| Piece | Detail |
+| --- | --- |
+| Reason codes | `REGISTRY_RESOLVE_BY_ID`, `REGISTRY_RESOLVE_BY_SUBDOMAIN`, `REGISTRY_RESOLVE_THEME`, `REGISTRY_UPDATE` |
+| API | `findTenantRowById`, `findTenantRowBySubdomain`, `findTenantThemeById`, `updateTenantRow` |
+| Pool | still `getPrismaAdmin()` — **only** inside the port |
+| Metrics | existing `recordAdminPoolRead`; plus `tenant_registry_admin_access_total{reason}` |
+| Call sites | resolve + update import the port; **zero** direct `getPrismaAdmin` there |
+
+No cache, mapping, or static-registry logic moves — only the Prisma admin I/O.
+
+## Explicit non-goals
+
+- Changing RLS / DATABASE_URL_ADMIN posture
+- Rewiring finance `ALW-FIN-TENANT-ROW` onto this port (follow-up PSR-5d optional)
+- Rewriting identity allowlist
+- Audit event table writes (reason metric is the minimal audit signal this wave)
+
+## Ratchet
+
+```bash
+node scripts/ops/psr-5c-tenant-registry-port-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+node scripts/ops/psr-5b-admin-allowlist-smoke.mjs
+```
+
+After land:
+
+- resolve/update must not match `getPrismaAdmin(`
+- port file is the sole tenant-registry admin owner
+- deferred_to_named_port entries in PSR-5b marked `closed_by: PSR-5c`

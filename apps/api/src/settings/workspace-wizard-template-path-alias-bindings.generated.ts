@@ -4,8 +4,17 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-export const WORKSPACE_WIZARD_TEMPLATE_PATH_ALIAS_BINDINGS = [] as const;
+export type WorkspaceWizardTemplatePathAliasBinding = {
+  readonly workspaceType: string;
+  readonly pathAliases: ReadonlySet<string>;
+  readonly aliasCatalogWorkspaceType: string;
+};
 
-export function resolveWizardTemplatePathAliasBinding(_workspaceType: string) {
+export const WORKSPACE_WIZARD_TEMPLATE_PATH_ALIAS_BINDINGS: readonly WorkspaceWizardTemplatePathAliasBinding[] =
+  [];
+
+export function resolveWizardTemplatePathAliasBinding(
+  _workspaceType: string,
+): WorkspaceWizardTemplatePathAliasBinding | undefined {
   return undefined;
 }

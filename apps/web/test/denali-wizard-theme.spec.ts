@@ -362,8 +362,14 @@ describe("denali-wizard-theme.spec.ts", () => {
       join(import.meta.dirname, "../app/tours/new/create-tour-wizard-client.tsx"),
       "utf8"
     );
-    assert.match(client, /useOperatorCreateTourWizard/);
-    assert.match(client, /CreateTourWizardHeader/);
+    const ready = readFileSync(
+      join(import.meta.dirname, "../app/tours/new/create-tour-wizard-client-ready.tsx"),
+      "utf8"
+    );
+    assert.match(client, /warmOperatorWizardShell/);
+    assert.match(client, /OperatorCreateTourWizardClientReady/);
+    assert.match(ready, /useOperatorCreateTourWizard/);
+    assert.match(ready, /CreateTourWizardHeader/);
     const stepShell = readFileSync(
       join(import.meta.dirname, "../src/wizard/wizard-step-shell.tsx"),
       "utf8"

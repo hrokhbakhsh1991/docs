@@ -1,0 +1,56 @@
+---
+id: PSR-6C6B-HARBOR-DURABLE-E2E-HARNESS
+title: PSR-6c6b — Durable Harbor E2E harness (seed off; no live Playwright)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-6c6b-harbor-durable-e2e-harness-inventory.yaml
+program_id: PSR-001
+wave: PSR-6c6b-harbor-durable-e2e-harness
+---
+
+# PSR-6c6b — Durable Harbor E2E harness
+
+## Intent
+
+Close **G-SEED-E2E-HARNESS** from PSR-6c6 by landing a **parallel** durable
+server harness + Playwright config — without running live E2E and without
+changing the default seed smoke.
+
+| Path | Script / config | Seed |
+| --- | --- | --- |
+| Default (CERT historical / local fixture) | `smoke-marketing-harbor-e2e-servers.mjs` + `playwright.marketing-harbor.config.ts` | forced `1` + memory |
+| Durable (live pack when YES) | `smoke-marketing-harbor-durable-e2e-servers.mjs` + `playwright.marketing-harbor-durable.config.ts` | forbidden |
+
+## Commands
+
+```bash
+# Contract-only (no servers):
+HARBOR_DURABLE_E2E_DRY_RUN=1 \
+  DATABASE_URL=postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db \
+  DATABASE_URL_ADMIN=postgresql://postgres:postgres@127.0.0.1:5434/tour_db \
+  node apps/marketing/scripts/smoke-marketing-harbor-durable-e2e-servers.mjs
+
+# Ratchet:
+node scripts/ops/psr-6c6b-harbor-durable-e2e-harness-smoke.mjs
+
+# Live Playwright (Architect YES only):
+# PW_NO_REUSE_SERVER=1 pnpm --filter @apps/marketing run test:smoke:harbor:durable
+```
+
+## Still required before CERT-03 durable
+
+1. Architect YES
+2. Disposable Postgres + migrations
+3. Published Harbor tour for smoke tenant
+4. Process restart + RLS packs (6c5 families)
+
+## Next
+
+`PSR-8c0-governance-templates` or Architect YES execute.

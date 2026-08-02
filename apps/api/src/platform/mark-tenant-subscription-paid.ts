@@ -1,4 +1,7 @@
-import { getPrismaAdmin } from "../db/prisma.ts";
+import {
+  PLATFORM_ADMIN_REASON,
+  getPlatformAdminClient,
+} from "./platform-admin-client.ts";
 import {
   PLATFORM_AUDIT_ACTION_SUBSCRIPTION_MARKED_PAID,
   appendPlatformAuditEvent,
@@ -16,7 +19,7 @@ export async function markTenantSubscriptionPaid(input: {
     return null;
   }
 
-  const prisma = getPrismaAdmin();
+  const prisma = getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_BILLING);
   const updated = await prisma.$transaction(async (tx) => {
     const row = await tx.tenantSubscription.update({
       where: { tenantId: input.tenantId },

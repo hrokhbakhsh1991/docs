@@ -28,9 +28,11 @@ import { HostFinanceMetricsAdapter } from "../workspace-finance/infrastructure/h
 import { HostFinancePersistenceModeAdapter } from "../workspace-finance/infrastructure/host-finance-persistence-mode.adapter";
 import { HostFinanceReceiptProofUrlAdapter } from "../workspace-finance/infrastructure/host-finance-receipt-proof-url.adapter";
 import { HostFinanceScheduleAdapter } from "../workspace-finance/infrastructure/host-finance-schedule.adapter";
+import { createFinanceObligationPort } from "../workspace-finance/finance-obligation.factory";
 import { resolveFinanceWorkspaceTypeForTenant } from "../workspace-finance/resolve-finance-workspace-type-for-tenant";
 import { createBookingPaymentPort } from "../bookings/create-booking-payment-port";
 import { getBookingsRepository } from "../bookings/create-bookings-repository";
+import type { FinanceObligationPort } from "@app-tour/finance-http-contracts";
 
 /** workspaceType → FinanceService (workspace policies differ; platform I/O is shared). */
 const financeServiceByWorkspaceType = new Map<string, FinanceService>();
@@ -57,6 +59,8 @@ let sharedAuthorization: FinanceAuthorizationPort | null = null;
 let sharedSchedules: FinanceSchedulePort | null = null;
 let sharedLogger: FinanceLoggerPort | null = null;
 let sharedClock: FinanceClockPort | null = null;
+/** workspaceType → obligation port (commercial pricing bind may differ per workspace). */
+const obligationByWorkspaceType = new Map<string, FinanceObligationPort>();
 
 function getPlatformBookingPayments(): IBookingPaymentPort {
   if (platformBookingPayments === null) {
@@ -75,6 +79,7 @@ function getPlatformFinanceRepository(): FinanceRepositoryPort {
 export function resetLazyFinanceServiceForTests(): void {
   financeServiceByWorkspaceType.clear();
   financeServiceInflightByWorkspaceType.clear();
+  obligationByWorkspaceType.clear();
   platformBookingPayments = null;
   platformFinanceRepository = null;
   sharedRegistrationDisplay = null;
@@ -161,6 +166,12 @@ export async function getOrCreateFinanceServiceForWorkspaceType(
       sharedClock = new HostFinanceClockAdapter();
     }
 
+    let obligation = obligationByWorkspaceType.get(normalized);
+    if (obligation === undefined) {
+      obligation = await createFinanceObligationPort(normalized);
+      obligationByWorkspaceType.set(normalized, obligation);
+    }
+
     const service = createFinanceService(
       deps.ledgerPolicy,
       repository,
@@ -174,7 +185,8 @@ export async function getOrCreateFinanceServiceForWorkspaceType(
       sharedAuthorization,
       sharedSchedules,
       sharedLogger,
-      sharedClock
+      sharedClock,
+      obligation
     );
     financeServiceByWorkspaceType.set(normalized, service);
     return service;

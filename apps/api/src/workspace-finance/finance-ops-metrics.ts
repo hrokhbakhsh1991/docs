@@ -5,7 +5,7 @@
 
 import { Prisma } from "@prisma/client";
 
-import { getPrismaAdmin } from "../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../db/background-admin-client";
 import { metricsRegistry } from "../observability/metrics";
 
 /** Must match `FINANCE_METRIC` in `@app-tour/finance-core` (guarded by deploy-finance-ops-alerts). */
@@ -46,7 +46,7 @@ async function refreshFinanceOutboxAge(): Promise<void> {
     return;
   }
   try {
-    const admin = getPrismaAdmin();
+    const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
     const row = await admin.outboxEvent.findFirst({
       where: {
         status: "pending",
@@ -70,7 +70,7 @@ async function refreshStuckPayments(): Promise<void> {
     return;
   }
   try {
-    const admin = getPrismaAdmin();
+    const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
     const cutoff = new Date(Date.now() - FINANCE_STUCK_PAYMENT_AGE_MS);
     financeStuckPayments = await admin.payment.count({
       where: { status: "Pending", createdAt: { lt: cutoff } },
@@ -90,7 +90,7 @@ async function refreshReconciliationMismatch(): Promise<void> {
     return;
   }
   try {
-    const admin = getPrismaAdmin();
+    const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
     const since = new Date(Date.now() - FINANCE_RECON_LOOKBACK_MS);
     const rows = await admin.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
       SELECT COUNT(*)::bigint AS count

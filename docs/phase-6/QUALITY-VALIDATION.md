@@ -21,7 +21,8 @@ guard: pnpm run phase-6:guard
 
 - `packages/workspaces/denali` product implementation
 - Playwright green
-- `phase-6:gate` full chain (includes phase-5:gate behavioral)
+- Full historical 0–5 recursive nest (`phase-5:gate` / `test:full`) — **not** required for doc-pack validation
+- `phase-6:gate` behavioral Option B path (`build` + `test` + `phase-5:runtime-proof` + `phase-5:guard` + residual `phase-3:apps-cert:post-test` + `phase-3:apps-cert:floors` + `phase-6:guard`) — separate from this doc-only score; **PASS ≠** full `phase-3:apps-cert`
 
 ## Score claim
 

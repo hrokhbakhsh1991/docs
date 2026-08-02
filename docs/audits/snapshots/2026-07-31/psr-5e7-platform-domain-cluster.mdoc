@@ -1,0 +1,28 @@
+---
+id: PSR-5E7-PLATFORM-DOMAIN-CLUSTER
+title: PSR-5e7 — migrate PLATFORM_DOMAIN sites
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - apps/api/src/platform/assert-subdomain-available.ts
+  - apps/api/src/platform/platform-domain.repository.ts
+program_id: PSR-001
+wave: PSR-5e7-platform-domain-cluster
+---
+
+# PSR-5e7 — PLATFORM_DOMAIN cluster
+
+## Files (2)
+
+- `assert-subdomain-available.ts`
+- `platform-domain.repository.ts` — `defaultPrisma()` injectable ctor kept
+
+## Ratchet
+
+`remaining_direct` → **8** after e5–e7.

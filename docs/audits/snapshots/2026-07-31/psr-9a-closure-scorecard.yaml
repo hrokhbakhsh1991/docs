@@ -1,0 +1,68 @@
+# PSR-9a closure scorecard scaffold (measure-only)
+wave: PSR-9a-closure-scorecard-scaffold
+program_id: PSR-001
+decision: scorecard_scaffold_only
+policy:
+  forbid_claiming_psr9_closed: true
+  forbid_claiming_program_closed: true
+  forbid_full_gate_in_this_wave: true
+metrics:
+  - id: root_public_commands
+    label: Root package.json script keys
+    baseline_sot: 313
+    target: 60
+    target_note: "≤12 public; ≤60 total (SoT)"
+    collector: count_package_scripts
+  - id: active_workflows
+    label: Active GitHub workflow files
+    baseline_sot: 27
+    target: 12
+    collector: count_workflows
+  - id: active_docs_md_mdoc
+    label: docs/**/*.md + *.mdoc count
+    baseline_sot: 1000
+    target: 150
+    collector: count_docs_md_mdoc
+  - id: root_markdown
+    label: Root *.md / *.mdoc
+    baseline_sot: 22
+    target: 5
+    collector: count_root_markdown
+  - id: legacy_tree_mb
+    label: legacy/ directory size (MB)
+    baseline_sot: 1010
+    target: 0
+    collector: legacy_size_mb
+  - id: root_license_present
+    label: Root LICENSE present
+    baseline_sot: 0
+    target: 1
+    collector: license_present
+  - id: harbor_production_tier_certified
+    label: Harbor productionTier == certified
+    baseline_sot: 0
+    target: 1
+    collector: harbor_certified
+  - id: secret_scan_tooling
+    label: Tracked secret-scan baseline present
+    baseline_sot: 0
+    target: 1
+    collector: secret_scan_tooling
+  - id: sbom_tooling
+    label: Lockfile CDX generator present
+    baseline_sot: 0
+    target: 1
+    collector: sbom_tooling
+static_assets:
+  - docs/audits/snapshots/2026-07-31/psr-9a-closure-scorecard-scaffold.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-9a-closure-scorecard.yaml
+  - scripts/ops/psr-9-closure-scorecard-collect.mjs
+  - docs/architecture/platform-simplification-remediation.mdoc
+ratchet:
+  metric_count: 9
+  psr9_closed: false
+  program_closed: false
+  inventory_complete: true
+  next_slice: PSR-9b-scorecard-collectors-expand
+  alternate_next: PSR-8b-legacy-import-ratchet
+  # living scorecard continues at psr-9b-closure-scorecard.yaml after PSR-9b

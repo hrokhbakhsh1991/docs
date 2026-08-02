@@ -3,7 +3,10 @@
  * Denali hybrid supplies max; Booking decides occupancy on create + approve.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { after, before, beforeEach, describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { BOOKING_POLICY_CASE_A_GUEST_LABEL } from "@app-tour/booking-http-contracts";
 
@@ -154,19 +157,14 @@ describe("booking capacity ownership (single decision point)", () => {
     );
   });
 
-  it("denali registration validation no longer owns capacity (supply-only)", async () => {
-    const { validateDenaliRegistrationPayload } = await import(
-      "@app-tour/workspace-denali/plugin"
+  it("denali registration validation no longer owns capacity (supply-only)", () => {
+    // Import-boundary: do not dynamically import packages/workspaces/* from apps/api.
+    const here = dirname(fileURLToPath(import.meta.url));
+    const src = readFileSync(
+      resolve(here, "../../../../packages/workspaces/denali/src/http/registration.validation.ts"),
+      "utf8"
     );
-    assert.equal(typeof validateDenaliRegistrationPayload, "function");
-    assert.doesNotThrow(() =>
-      validateDenaliRegistrationPayload(
-        {
-          contact: { fullName: "Over Cap Guest" },
-          partySize: 99,
-        },
-        { capacity: 10 }
-      )
-    );
+    assert.match(src, /export function validateDenaliRegistrationPayload/);
+    assert.match(src, /enforcePartySizeCapacity:\s*false/);
   });
 });

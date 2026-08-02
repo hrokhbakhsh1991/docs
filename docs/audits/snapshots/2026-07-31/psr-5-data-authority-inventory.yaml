@@ -1,0 +1,170 @@
+# PSR-5 data authority inventory — classification only (no refactor)
+wave: PSR-5-data-authority-inventory
+program_id: PSR-001
+verified_sha: a99b0656
+generated: 2026-07-31
+decision: inventory_only
+policy:
+  forbid_refactor_in_this_wave: true
+  forbid_deleting_admin_calls: true
+  memory_forbidden_in_production: true
+  memory_forbidden_in_prodlike: true
+environment_matrix:
+  test:
+    memory_allowed: true
+    prisma_allowed: true
+    notes: harness may pin memory while gate exports prisma
+  development:
+    memory_allowed: true
+    prisma_allowed: true
+    notes: default memory when no DATABASE_URL
+  production:
+    memory_allowed: false
+    prisma_allowed: true
+    enforcer: assertProductionStorageDriver via assertProductionRuntimeIntegrity
+  prodlike:
+    memory_allowed: false
+    prisma_allowed: true
+    enforcer: requiresProductionGradeIntegrity() same path
+dual_store_factories:
+  count: 10
+  with_assert_production: 10
+  missing_assert_production: 0
+  items:
+    - path: apps/api/src/bookings/create-bookings-repository.ts
+      domain: bookings
+      assert_production_storage_driver: true
+      resolve_storage_driver: true
+      has_in_memory_branch: true
+    - path: apps/api/src/identity/create-identity-repository.ts
+      domain: identity
+      assert_production_storage_driver: true
+      resolve_storage_driver: true
+      has_in_memory_branch: true
+    - path: apps/api/src/identity/portal-member-plan.service.ts
+      domain: portal_member_plan
+      assert_production_storage_driver: true
+      resolve_storage_driver: true
+      has_in_memory_branch: true
+    - path: apps/api/src/storage/create-tour-storage.ts
+      domain: tour_storage
+      assert_production_storage_driver: true
+      resolve_storage_driver: true
+      has_in_memory_branch: true
+    - path: apps/api/src/settings/create-settings-audit-repository.ts
+      domain: settings_audit
+      assert_production_storage_driver: true
+      resolve_storage_driver: true
+      has_in_memory_branch: true
+    - path: apps/api/src/settings/create-settings-config-repository.ts
+      domain: settings_config
+      assert_production_storage_driver: true
+      resolve_storage_driver: true
+      has_in_memory_branch: true
+    - path: apps/api/src/settings/create-settings-resources-repository.ts
+      domain: settings_resources
+      assert_production_storage_driver: true
+      resolve_storage_driver: true
+      has_in_memory_branch: true
+    - path: apps/api/src/workspace-drafts/create-workspace-drafts-repository.ts
+      domain: workspace_drafts
+      assert_production_storage_driver: true
+      resolve_storage_driver: true
+      has_in_memory_branch: true
+    - path: apps/api/src/workspace-drafts/create-workspace-draft-events-repository.ts
+      domain: workspace_draft_events
+      assert_production_storage_driver: true
+      resolve_storage_driver: true
+      has_in_memory_branch: true
+    - path: apps/api/src/workspace-finance/finance-repository.factory.ts
+      domain: finance
+      assert_production_storage_driver: true
+      resolve_storage_driver: true
+      has_in_memory_branch: true
+      closed_by: PSR-5a-finance-factory-assert
+get_prisma_admin:
+  scope: apps/api/src (non-spec .ts)
+  files: 6
+  call_sites: 12
+  note: >
+    PSR-5e + PSR-5f + PSR-5g complete — named clients for platform/background/
+    identity; registry port; definition; seed. Zero tenant_path allowlist
+    candidates with direct getPrismaAdmin.
+  by_class:
+    background_admin_client:
+      files: 1
+      calls: 1
+    background_repair:
+      files: 0
+      calls: 0
+    definition:
+      files: 1
+      calls: 1
+    identity_admin_client:
+      files: 1
+      calls: 1
+    platform_admin_client:
+      files: 1
+      calls: 1
+    seed_dev:
+      files: 1
+      calls: 2
+    tenant_path_allowlist_candidate:
+      files: 0
+      calls: 0
+    tenant_registry_port:
+      files: 1
+      calls: 6
+  files:
+    - path: apps/api/src/db/background-admin-client.ts
+      calls: 1
+      class: background_admin_client
+    - path: apps/api/src/db/prisma.ts
+      calls: 1
+      class: definition
+    - path: apps/api/src/identity/identity-admin-client.ts
+      calls: 1
+      class: identity_admin_client
+    - path: apps/api/src/platform/platform-admin-client.ts
+      calls: 1
+      class: platform_admin_client
+    - path: apps/api/src/settings/seed-operator-smoke-published-tour.ts
+      calls: 2
+      class: seed_dev
+    - path: apps/api/src/tenant/tenant-registry-admin.port.ts
+      calls: 6
+      class: tenant_registry_port
+class_semantics:
+  definition: getPrismaAdmin implementation
+  control_plane: 0 — platform_admin_client
+  platform_admin_client: sole thin wrapper for platform control-plane
+  background_admin_client: sole thin wrapper for background/repair
+  identity_admin_client: sole thin wrapper for identity FORCE-RLS (PSR-5g)
+  background_repair: 0 direct
+  tenant_registry_port: sole owner of registry admin tenants I/O
+  tenant_path_allowlist_candidate: 0 — ALW-ID closed by PSR-5g
+  seed_dev: operator smoke seed helpers
+psr5_checklist_progress:
+  "1_list_factories_env_matrix": complete
+  "2_memory_only_test_dev": complete
+  "3_classify_getPrismaAdmin": complete_for_inventory
+  "4_tenant_http_no_direct_admin": complete_for_allowlist_zero
+  "5_named_control_plane_interface": complete_platform_background_identity
+  "6_dual_store_scaffold_cleanup": complete_explicit_test_dev_adapters
+  "7_same_sha_migration_rls_outbox": inventory_complete_live_proof_pending
+proposed_next_slices:
+  - id: PSR-5i-same-sha-live-evidence
+    risk: high
+    action: run four proof recipes on identical tip SHA with Postgres — Architect YES required; write live evidence yaml
+    inventory: docs/audits/snapshots/2026-07-31/psr-5i-same-sha-proofs-inventory.yaml
+ratchet:
+  dual_store_factory_count: 10
+  dual_store_missing_assert_count: 0
+  api_src_admin_files: 6
+  api_src_admin_calls: 12
+  unclassified_api_src_files: 0
+  finance_factory_missing_assert: false
+  tenant_registry_direct_admin_files: 0
+  control_plane_direct_admin_files: 0
+  background_repair_direct_admin_files: 0
+  tenant_path_allowlist_candidate_files: 0

@@ -34,6 +34,8 @@ describe("wizard-template-field-labels.spec.ts", () => {
   });
 
   it("WEB-WIZ-LABEL-02 resolves denali-specific labels (legacy fa parity)", async () => {
+    const { ensureGeneratedLabelResolver } = await import("../src/wizard/wizard-label-registry");
+    await ensureGeneratedLabelResolver("denali");
     const messages = await loadAppMessages("fa");
     const denali = denaliMessagesFromAppMessages(messages, "fa");
     const translate = (key: string) => {
@@ -71,6 +73,8 @@ describe("wizard-template-field-labels.spec.ts", () => {
   });
 
   it("WEB-WIZ-LABEL-04 denali catalog fields have readable labels", async () => {
+    const { ensureGeneratedLabelResolver } = await import("../src/wizard/wizard-label-registry");
+    await ensureGeneratedLabelResolver("denali");
     const messages = await loadAppMessages("fa");
     const denali = denaliMessagesFromAppMessages(messages, "fa");
     const translate = (key: string) => {

@@ -1,0 +1,67 @@
+---
+id: PSR-5I-SAME-SHA
+title: PSR-5i — same-SHA proofs inventory (item 7; no live heavy run)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5i-same-sha-proofs-inventory.yaml
+program_id: PSR-001
+wave: PSR-5i-same-sha-proofs-inventory
+---
+
+# PSR-5i — same-SHA proofs inventory
+
+## PSR-5 item 7 intent
+
+> migration، restore، RLS probe و outbox effect روی **همان release SHA** اجرا شوند.
+
+This wave is **inventory + recipe only**. It does **not** execute
+`phase-5:gate`, `ci:integrity`, `test:full`, or any Postgres-heavy proof chain
+(Verification Policy — requires Architect **YES**).
+
+## Four proof families
+
+| Family | Purpose | Canonical recipe (when YES) | Static assets inventoried |
+| --- | --- | --- | --- |
+| **Migration** | schema deploy on admin URL | `pnpm run db:migrate:deploy` (+ `DATABASE_URL_ADMIN`) | Prisma migrate scripts under `@apps/api` |
+| **Restore** | backup/restore mechanics | `bash scripts/restore-drill-smoke.sh` | script + `.github/workflows/restore-drill-monthly.yml` |
+| **RLS probe** | tenant isolation | `pnpm run guard:repository-rls` + targeted `*.postgres.spec.ts` / `rls-*.spec.ts` | guard + listed specs |
+| **Outbox effect** | relay/claim under RLS | Postgres outbox specs (e.g. `outbox-rls-forbidden-access.spec.ts`) under `STORAGE_DRIVER=prisma` | listed specs |
+
+## Same-SHA binding rule
+
+A future **live evidence pack** must record for each family:
+
+1. `git rev-parse HEAD` (identical across all four)
+2. command + exit code
+3. timestamp / CI run URL (if GHA)
+4. env profile (`DATABASE_URL` present, `STORAGE_DRIVER=prisma` where required)
+
+Until that pack exists, item 7 status is
+`inventory_complete_live_proof_pending` — **not** gate-closed.
+
+## Explicit non-goals (this wave)
+
+- Running `phase-4:gate` / `phase-5:gate` / `ci:integrity`
+- Claiming PSR-5 fully closed
+- Changing migration or RLS SQL
+
+## Smoke
+
+```bash
+node scripts/ops/psr-5i-same-sha-proofs-smoke.mjs
+```
+
+Validates inventory paths exist and `live_proof_complete: false`.
+
+## Next (Architect YES required)
+
+Propose a single disposable Postgres session that runs the four recipes on tip
+SHA and writes
+`docs/audits/snapshots/<date>/psr-5i-same-sha-live-evidence.yaml`.

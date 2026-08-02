@@ -1,7 +1,7 @@
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 
 import { deriveTourProjections } from "../canonical/projection-sync";
-import { getPrismaAdmin } from "../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../db/background-admin-client";
 import { logger } from "../observability/logger";
 import { metricsRegistry } from "../observability/metrics";
 
@@ -27,7 +27,7 @@ function tourProjectionMatches(
 async function observeProjectionLag(
   tenantId: string,
   tourId: string,
-  admin = getPrismaAdmin()
+  admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_RECONCILE)
 ): Promise<void> {
   const outbox = await admin.outboxEvent.findFirst({
     where: {
@@ -57,7 +57,7 @@ export async function repairTourProjectionIfDrifted(
   tenantId: string,
   tourId: string
 ): Promise<boolean> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_RECONCILE);
   const tour = await admin.tour.findUnique({
     where: { tenantId_id: { tenantId, id: tourId } },
   });
@@ -103,7 +103,7 @@ export async function reconcileTourProjectionsForTenant(
   options?: ReconcileTourProjectionOptions
 ): Promise<ReconcileTourProjectionResult> {
   const repair = options?.repair === true;
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_RECONCILE);
   const tours = await admin.tour.findMany({
     where: { tenantId },
     take: limit,

@@ -1,0 +1,34 @@
+# PSR-6b Harbor demote inventory (option A)
+wave: PSR-6b-harbor-demote
+program_id: PSR-001
+decision: option_a_demote
+architect_option: A
+policy:
+  forbid_persist_wiring_in_this_wave: true
+  forbid_full_gate_in_this_wave: true
+  require_registry_regenerate: true
+  stub_must_not_declare_proof_matrix_rows: true
+demote:
+  from_tier: certified
+  to_tier: stub
+  manifest: packages/workspaces/harbor/workspace.manifest.json
+  generated: packages/workspace-sdk/src/catalog/workspace-production-certification.generated.ts
+  proof_matrix: docs/dev/workspace-certification-proof-matrix.yaml
+  proof_matrix_harbor_rows: removed
+  certification_runbook: docs/workspaces/harbor/certification.md
+  certification_runbook_role: historical_g1_smoke_pack_not_production_authority
+api_test_expectations:
+  - apps/api/test/list-platform-workspaces.spec.ts
+  - apps/api/test/provision-tenant-production.spec.ts
+unchanged_until_psr6c:
+  - packages/workspaces/harbor/src/catalog/harbor-smoke-catalog.store.ts
+  - packages/workspaces/harbor/src/http/harbor-catalog-http.ts
+  - HARBOR_SMOKE_E2E_SEED gate
+ratchet:
+  demote_executed: true
+  persist_wired: false
+  production_tier: stub
+  proof_matrix_has_harbor: false
+  generated_harbor_tier: stub
+  production_onboarding_allowed: false
+  inventory_complete: true

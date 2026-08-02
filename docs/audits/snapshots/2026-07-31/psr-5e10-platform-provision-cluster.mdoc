@@ -1,0 +1,33 @@
+---
+id: PSR-5E10-PLATFORM-PROVISION-CLUSTER
+title: PSR-5e10 — migrate PLATFORM_PROVISION sites to getPlatformAdminClient
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - apps/api/src/platform/run-provision-transaction.ts
+  - apps/api/src/internal/provisioning.service.ts
+program_id: PSR-001
+wave: PSR-5e10-platform-provision-cluster
+---
+
+# PSR-5e10 — PLATFORM_PROVISION cluster
+
+## Files (2)
+
+| File | Notes |
+| --- | --- |
+| `run-provision-transaction.ts` | thin `$transaction` wrapper |
+| `internal/provisioning.service.ts` | 3 call sites + JSDoc update |
+
+Closes the last control_plane direct `getPrismaAdmin` sites (with e8).
+
+## Gate
+
+`remaining_direct: 0` on PSR-5e inventory ratchet.
+`control_plane` class in main inventory → **0** files (only `platform_admin_client` owns admin for platform).

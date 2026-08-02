@@ -1,0 +1,34 @@
+---
+id: PSR-5E8-PLATFORM-TENANT-CLUSTER
+title: PSR-5e8 — migrate PLATFORM_TENANT sites to getPlatformAdminClient
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - apps/api/src/platform/platform-tenant.repository.ts
+  - apps/api/src/platform/platform-tenant-lifecycle.service.ts
+  - apps/api/src/routes/platform/tenants-get.ts
+program_id: PSR-001
+wave: PSR-5e8-platform-tenant-cluster
+---
+
+# PSR-5e8 — PLATFORM_TENANT cluster
+
+## Files (3)
+
+| File | Pattern |
+| --- | --- |
+| `platform-tenant.repository.ts` | `defaultPrisma()` |
+| `platform-tenant-lifecycle.service.ts` | `defaultPrisma()` |
+| `routes/platform/tenants-get.ts` | dynamic import for definition displayName |
+
+Reason: `PLATFORM_TENANT` (route lookup stays under tenant cluster, not definition).
+
+## Ratchet
+
+Part of closing control_plane: after e8+e10 → `remaining_direct: 0`.

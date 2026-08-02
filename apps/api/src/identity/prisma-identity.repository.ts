@@ -7,7 +7,7 @@ import type {
 } from "@app-tour/workspace-sdk";
 import { Prisma } from "@prisma/client";
 import type { InvitableWorkspaceRole } from "./users.types";
-import { getPrismaAdmin } from "../db/prisma";
+import { getIdentityAdminClient, IDENTITY_ADMIN_REASON } from "./identity-admin-client";
 import { withTenantRls } from "../db/with-tenant-rls";
 import type {
   CreatePendingInviteInput,
@@ -166,8 +166,8 @@ function buildDirectorySqlConditions(
 
 export class PrismaIdentityRepository implements IdentityRepository {
   async findUserByMobile(mobile: string): Promise<IdentityUserRecord | null> {
-    // users: FORCE RLS deny for app_cloud mutations; pre-tenant login has no GUC — admin pool.
-    const row = await getPrismaAdmin().user.findUnique({
+    // users: FORCE RLS deny for app_cloud mutations; pre-tenant login has no GUC — identity admin client.
+    const row = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_USER_READ).user.findUnique({
       where: { mobile: normalizeMobile(mobile) },
       select: { id: true, mobile: true },
     });
@@ -175,7 +175,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
   }
 
   async findUserById(userId: string): Promise<IdentityUserRecord | null> {
-    const row = await getPrismaAdmin().user.findUnique({
+    const row = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_USER_READ).user.findUnique({
       where: { id: userId },
       select: { id: true, mobile: true },
     });
@@ -187,7 +187,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
       return new Map();
     }
     const uniqueIds = [...new Set(userIds)];
-    const rows = await getPrismaAdmin().user.findMany({
+    const rows = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_USER_READ).user.findMany({
       where: { id: { in: uniqueIds } },
       select: { id: true, mobile: true },
       take: uniqueIds.length,
@@ -322,8 +322,8 @@ export class PrismaIdentityRepository implements IdentityRepository {
 
   async createOtpChallenge(mobile: string, codeHash: string): Promise<{ challengeId: string }> {
     const id = randomUUID();
-    // OTP table: FORCE RLS with no app_cloud policies — admin only (TODO-002).
-    await getPrismaAdmin().mobileOtpChallenge.create({
+    // OTP table: FORCE RLS with no app_cloud policies — identity admin client (TODO-002).
+    await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_OTP).mobileOtpChallenge.create({
       data: {
         id,
         mobile: normalizeMobile(mobile),
@@ -337,7 +337,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
   }
 
   async findOtpChallenge(challengeId: string): Promise<OtpChallengeRecord | null> {
-    const row = await getPrismaAdmin().mobileOtpChallenge.findUnique({
+    const row = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_OTP).mobileOtpChallenge.findUnique({
       where: { id: challengeId.trim() },
     });
     if (row === null) {
@@ -354,7 +354,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
   }
 
   async markOtpChallengeUsed(challengeId: string): Promise<void> {
-    await getPrismaAdmin().mobileOtpChallenge.updateMany({
+    await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_OTP).mobileOtpChallenge.updateMany({
       where: { id: challengeId.trim(), used: false },
       data: { used: true },
     });
@@ -436,7 +436,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
   }
 
   async findPendingInviteForAccept(inviteToken: string): Promise<PendingInviteRecord | null> {
-    const row = await getPrismaAdmin().operatorPendingInvite.findFirst({
+    const row = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_PENDING_INVITE).operatorPendingInvite.findFirst({
       where: { inviteToken: inviteToken.trim(), status: "INVITED" },
     });
     return row === null ? null : toPendingInviteRecord(row);
@@ -801,9 +801,9 @@ export class PrismaIdentityRepository implements IdentityRepository {
     const displayName = input.displayName.trim();
     const email = input.email?.trim();
 
-    let userRow = await getPrismaAdmin().user.findUnique({ where: { mobile } });
+    let userRow = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_USER_READ).user.findUnique({ where: { mobile } });
     if (userRow === null) {
-      userRow = await getPrismaAdmin().user.create({ data: { mobile } });
+      userRow = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_USER_WRITE).user.create({ data: { mobile } });
     }
     const user: IdentityUserRecord = { id: userRow.id, mobile: userRow.mobile };
 
@@ -848,7 +848,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
   async updateUserMobile(userId: string, newMobile: string): Promise<IdentityUserRecord> {
     const normalized = normalizeMobile(newMobile);
     try {
-      await getPrismaAdmin().$transaction(async (tx) => {
+      await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_USER_WRITE).$transaction(async (tx) => {
         const existing = await tx.user.findUnique({ where: { mobile: normalized } });
         if (existing !== null && existing.id !== userId) {
           throw new MobileAlreadyRegisteredError();
@@ -860,7 +860,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
       });
 
       // Cross-tenant session invalidation — user may belong to multiple workspaces.
-      await getPrismaAdmin().userTenant.updateMany({
+      await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_SESSION_BUMP).userTenant.updateMany({
         where: { userId },
         data: { sessionVersion: { increment: 1 } },
       });
@@ -873,7 +873,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
       }
       throw error;
     }
-    const row = await getPrismaAdmin().user.findUnique({ where: { id: userId } });
+    const row = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_USER_READ).user.findUnique({ where: { id: userId } });
     if (row === null) {
       throw new MembershipNotFoundError(userId);
     }

@@ -56,11 +56,12 @@ describe("identity-pending-invite-rls.spec.ts", () => {
     assert.match(source, /withTenantRls/);
   });
 
-  it("ID-RLS-05 updateUserMobile uses getPrismaAdmin for cross-tenant session bump", () => {
+  it("ID-RLS-05 updateUserMobile uses identity admin client for cross-tenant session bump", () => {
     const source = fs.readFileSync(PRISMA_IDENTITY, "utf8");
     const body = source.match(/async updateUserMobile\([\s\S]*?\n  \}/)?.[0];
     assert.ok(body !== undefined);
-    assert.match(body, /getPrismaAdmin\s*\(\s*\)\.userTenant\.updateMany/);
+    assert.match(body, /getIdentityAdminClient\s*\(/);
+    assert.match(body, /IDENTITY_ADMIN_REASON\.ID_USER_WRITE/);
     assert.doesNotMatch(body, /tx\.userTenant\.updateMany/);
   });
 

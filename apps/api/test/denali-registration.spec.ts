@@ -8,17 +8,45 @@ import { before, describe, it } from "node:test";
 
 import { createRequestListener } from "../src/app";
 import { getBookingsRepository } from "../src/bookings/create-bookings-repository";
+import { getIdentityRepository } from "../src/identity/create-identity-repository";
+import { InMemoryIdentityRepository } from "../src/identity/in-memory-identity.repository";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const OPERATOR_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 
+/** Self-registration members — not the smoke fixture member (…103 already has pending on …210). */
+const DREG_SESSION_MEMBER_A = "00000000-0000-4000-8000-000000000104";
+const DREG_SESSION_MEMBER_B = "00000000-0000-4000-8000-000000000105";
+
 function publicHeaders(tenantId = OPERATOR_SMOKE_TENANT_ID): Record<string, string> {
   return {
     "x-tenant-id": tenantId,
     "content-type": "application/json",
   };
+}
+
+function seedDenaliRegistrationSessionMembers(): void {
+  const identity = getIdentityRepository();
+  if (!(identity instanceof InMemoryIdentityRepository)) {
+    throw new Error("denali-registration.spec requires in-memory identity");
+  }
+  for (const [userId, mobile, displayName] of [
+    [DREG_SESSION_MEMBER_A, "+15550001004", "DREG Session A"],
+    [DREG_SESSION_MEMBER_B, "+15550001005", "DREG Session B"],
+  ] as const) {
+    identity.seedUser({ id: userId, mobile });
+    identity.seedMembership({
+      userId,
+      tenantId: OPERATOR_SMOKE_TENANT_ID,
+      role: "member",
+      status: "ACTIVE",
+      sessionVersion: 1,
+      workspaceId: `ws-dreg-${userId.slice(-4)}`,
+      displayName,
+    });
+  }
 }
 
 async function requestDenali(
@@ -82,6 +110,7 @@ describe("denali-registration (M16)", () => {
     repo.ensureOperatorSmokeSeedTour();
     const toursService = createTestToursService(repo);
     listener = createRequestListener({ toursService, tourStore: repo });
+    seedDenaliRegistrationSessionMembers();
   });
 
   it("DREG-16-01 POST /denali/registrations creates pending booking", async () => {
@@ -103,12 +132,11 @@ describe("denali-registration (M16)", () => {
   });
 
   it("DREG-17-01 POST /denali/registrations accepts M17 session member user id", async () => {
-    const memberUserId = "00000000-0000-4000-8000-000000000104";
     const response = await requestDenali(listener, "POST", "/denali/registrations", {
       headers: {
         "x-tenant-id": OPERATOR_SMOKE_TENANT_ID,
         "x-authenticated-tenant-id": OPERATOR_SMOKE_TENANT_ID,
-        "x-user-id": memberUserId,
+        "x-user-id": DREG_SESSION_MEMBER_A,
         "x-actor-role": "member",
         "x-membership-status": "ACTIVE",
         "content-type": "application/json",
@@ -123,11 +151,10 @@ describe("denali-registration (M16)", () => {
   });
 
   it("DREG-16-02 POST /denali/registrations duplicate member returns 409", async () => {
-    const memberUserId = "00000000-0000-4000-8000-000000000105";
     const sessionHeaders = {
       "x-tenant-id": OPERATOR_SMOKE_TENANT_ID,
       "x-authenticated-tenant-id": OPERATOR_SMOKE_TENANT_ID,
-      "x-user-id": memberUserId,
+      "x-user-id": DREG_SESSION_MEMBER_B,
       "x-actor-role": "member",
       "x-membership-status": "ACTIVE",
       "content-type": "application/json",

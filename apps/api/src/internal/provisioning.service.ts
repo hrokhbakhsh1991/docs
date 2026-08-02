@@ -10,7 +10,10 @@ import {
 } from "../settings/resolve-workspace-dev-smoke-tenant";
 
 import { appendAuditEvent, AUDIT_ACTION_TENANT_PROVISIONED } from "../audit/audit-logger";
-import { getPrismaAdmin } from "../db/prisma";
+import {
+  PLATFORM_ADMIN_REASON,
+  getPlatformAdminClient,
+} from "../platform/platform-admin-client";
 import { invalidateTenantRegistryCache } from "../tenant/tenant-registry-cache";
 import { findTenantBySubdomain, isStaticTenantRegistryAllowed } from "../tenant/tenant-registry";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
@@ -66,7 +69,7 @@ type ResolvedTenantIdentity = {
  * Phase 4.3 provisioning — seeds `tenant-a` / `tenant-b` and backs
  * `POST /internal/tenants/provision` (development only).
  *
- * Tenant rows are created via {@link getPrismaAdmin} only (no RLS on `tenants`;
+ * Tenant rows are created via {@link getPlatformAdminClient} only (no RLS on `tenants`;
  * the principal does not exist until after insert). Tour I/O must use
  * {@link withTenantRls} with explicit tenant scope.
  *
@@ -140,7 +143,7 @@ export class ProvisioningService {
   private async upsertSeedTenant(input: ProvisionTenantInput): Promise<ProvisionedTenant> {
     assertProvisioningDevelopmentOnly();
     const identity = resolveTenantIdentity(input);
-    const prisma = getPrismaAdmin();
+    const prisma = getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_PROVISION);
 
     const row = await prisma.tenant.upsert({
       where: { subdomain: identity.subdomain },
@@ -176,7 +179,7 @@ export class ProvisioningService {
 }
 
 async function assertTenantNotAlreadyPresent(tenantId: string, subdomain: string): Promise<void> {
-  const prisma = getPrismaAdmin();
+  const prisma = getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_PROVISION);
   const [byId, bySubdomain] = await Promise.all([
     prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true } }),
     prisma.tenant.findUnique({ where: { subdomain }, select: { id: true } }),
@@ -190,7 +193,7 @@ async function assertTenantNotAlreadyPresent(tenantId: string, subdomain: string
 }
 
 async function createTenantRow(identity: ResolvedTenantIdentity): Promise<ProvisionedTenant> {
-  const prisma = getPrismaAdmin();
+  const prisma = getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_PROVISION);
   const row = await prisma.$transaction(async (tx) => {
     const created = await tx.tenant.create({
       data: {

@@ -1,0 +1,86 @@
+---
+id: PSR-8A-LEGACY-BOUNDARY-INVENTORY
+title: PSR-8a — Legacy extraction and publication-boundary inventory
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-8a-legacy-boundary-inventory.yaml
+program_id: PSR-001
+wave: PSR-8a-legacy-boundary-inventory
+---
+
+# PSR-8a — Legacy / publication boundary inventory
+
+## Intent
+
+Inventory-only for PSR-8: measure the `legacy/` tree, confirm **runtime**
+isolation of the new platform, and list publication/governance gaps. No archive
+move, no license choice, no public-repo split in this wave.
+
+## Findings
+
+### 1. Tree still present (~1010MB)
+
+`legacy/` remains in the active monorepo (SoT closure target: 0 runtime tree in
+public/active repo). Extraction = tag + checksum + cold storage (later slice).
+
+### 2. Runtime imports from repo-root `legacy/` → new platform
+
+| Surface | Status |
+| --- | --- |
+| `apps/api` / `apps/web` source | **No** `from "…/legacy/…"` imports (comments only) |
+| `dependency-cruiser` `no-legacy-imports` | Enforced (`to.path: ^legacy`) |
+| `guard:import-boundary` | Blocks `/legacy/` path segments |
+
+**Honesty:** Denali still imports `packages/workspaces/denali/src/types/legacy/*`
+— an **in-package** module folder named `legacy`, not the frozen monorepo tree.
+Rename/extract is a Denali hygiene follow-up, not PSR-8 archive.
+
+### 3. Publication / governance gaps
+
+| Asset | Status |
+| --- | --- |
+| Root `LICENSE` | **Missing** |
+| `SECURITY.md` / `CONTRIBUTING.md` / `CODE_OF_CONDUCT` | **Missing** |
+| Package `license` fields | Sparse; several `UNLICENSED` (e.g. finance/booking contracts) |
+| Publication model | Undecided (full OSS vs open-core vs source-available) |
+| Absolute local paths in docs | Residual occurrences (SoT PSR-9 metric) |
+
+### 4. Suggested open-core candidates (SoT)
+
+`workspace-sdk`, platform contracts, generator, starter — after privacy/license
+review. Denali/ops stay private until review.
+
+## Families (later slices)
+
+| Family | Purpose |
+| --- | --- |
+| **L-IMPORT** | Continuous zero `^legacy` runtime import (guards already exist) |
+| **L-EXTRACT** | Fixture/contract harvest then archive `legacy/` |
+| **L-GOV** | LICENSE + security disclosure + contribution flow |
+| **L-PUB** | Decide publication boundary + scrub absolute/private refs |
+| **L-CLONE** | Fresh public clone install/build/test proof |
+
+## Non-goals
+
+- Moving/deleting `legacy/`
+- Choosing a license
+- Renaming Denali `types/legacy`
+- Claiming PSR-8 gate closed
+
+## Smoke
+
+```bash
+node scripts/ops/psr-8a-legacy-boundary-inventory-smoke.mjs
+```
+
+## Next
+
+`PSR-8b-legacy-import-ratchet` (guard smoke + denali `types/legacy` rename plan)
+or resume PSR-7d1 / live YES packs / PSR-9 scorecard scaffolding.

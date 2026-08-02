@@ -1,0 +1,45 @@
+{
+  "gate": "phase-6",
+  "date": "2026-08-01",
+  "gitSha": "a99b0656",
+  "ok": true,
+  "appsCertMode": "residual",
+  "fullAppsCert": false,
+  "appsCertOwned": [
+    "post-test",
+    "floors"
+  ],
+  "checks": [
+    {
+      "id": "p6_boot_manifest",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p6_doc_hardening",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p6_denali_probe_honesty",
+      "required": true,
+      "ok": true,
+      "detail": "denali README must state product workspace (6.1+); probe export removed"
+    },
+    {
+      "id": "p6_anti_hollow",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p6_gate_graph_residual",
+      "required": true,
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "note": "phase-6:gate = build+test + phase-5:runtime-proof + phase-5:guard + residual apps-cert (post-test + floors) + phase-6:guard. PASS ≠ full phase-3:apps-cert. Historical nest = phase-5:gate / test:full."
+}

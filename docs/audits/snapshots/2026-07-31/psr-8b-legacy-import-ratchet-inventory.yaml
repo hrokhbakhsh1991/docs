@@ -1,0 +1,38 @@
+# PSR-8b legacy import ratchet (no extract / no rename execution)
+wave: PSR-8b-legacy-import-ratchet
+program_id: PSR-001
+decision: import_ratchet_plus_rename_plan_only
+policy:
+  forbid_legacy_tree_delete_in_this_wave: true
+  forbid_denali_types_rename_in_this_wave: true
+  forbid_license_choice_in_this_wave: true
+  forbid_claiming_psr8_gate_closed: true
+  forbid_full_gate_in_this_wave: true
+findings:
+  runtime_repo_legacy_import_clean: true
+  denali_in_package_types_legacy_present: true
+  denali_types_legacy_module_count: 7
+  depcruise_no_legacy_imports_rule: true
+rename_plan_modules:
+  - packages/workspaces/denali/src/types/legacy/repo-types.ts
+  - packages/workspaces/denali/src/types/legacy/repo-types-denali.ts
+  - packages/workspaces/denali/src/types/legacy/shared-contracts.ts
+  - packages/workspaces/denali/src/types/legacy/denali-canonical-basics.ts
+  - packages/workspaces/denali/src/types/legacy/denali-tour-kind.ts
+  - packages/workspaces/denali/src/types/legacy/denali-transport-rules.ts
+  - packages/workspaces/denali/src/types/legacy/tour-form-profile.ts
+static_assets:
+  - docs/audits/snapshots/2026-07-31/psr-8b-legacy-import-ratchet.mdoc
+  - dependency-cruiser.config.js
+  - scripts/guards/import-boundary-ast.mjs
+  - packages/workspaces/denali/src/types/legacy
+  - legacy
+ratchet:
+  runtime_repo_legacy_import_clean: true
+  denali_types_legacy_renamed: false
+  legacy_tree_present: true
+  psr8_gate_closed: false
+  inventory_complete: true
+  next_slice: PSR-8b1-denali-types-legacy-rename
+  alternate_next: PSR-8c-governance-files-inventory
+  alternate_next_ops: PSR-7d1-dual-accept-session-jwt

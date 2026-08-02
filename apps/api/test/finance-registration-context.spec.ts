@@ -100,7 +100,7 @@ describe("finance-registration-context.spec.ts", () => {
         submittedByUserId: "user-1",
         approvedAt: null,
       });
-      const adapter = new BookingRegistrationDisplayAdapter();
+      const adapter = new BookingRegistrationDisplayAdapter(getBookingsRepository());
       const map = await adapter.getByRegistrationIds(tenantId, [registrationId]);
       assert.deepEqual(map.get(registrationId), {
         registrationId,

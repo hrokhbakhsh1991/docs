@@ -132,13 +132,14 @@ describe("BK-B2.1 booking capability gate (runtime)", { concurrency: false }, ()
         error instanceof BookingWorkspaceUnsupportedError &&
         error.message.includes("workspaceType=starter")
     );
-    // Unknown tenant resolves to starter (tenant registry miss) — still fail-closed, never denali.
+    // Unknown tenant: platform fail-closed (WORKSPACE_TYPE_UNRESOLVED) is wrapped as
+    // BookingWorkspaceUnsupportedError — never Denali, never raw HTTP 500.
     await assert.rejects(
       () => resolveBookingWorkspaceTypeForTenant(UNKNOWN_TENANT_ID),
       (error: unknown) =>
         error instanceof BookingWorkspaceUnsupportedError &&
         !error.message.includes("denali") &&
-        error.message.includes("workspaceType=starter")
+        error.message.includes("WORKSPACE_TYPE_UNRESOLVED")
     );
   });
 

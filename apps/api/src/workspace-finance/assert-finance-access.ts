@@ -4,7 +4,10 @@ import {
   isFinanceModuleEnabled,
   parseEnabledModulesFromTheme,
 } from "./finance-module-enabled.ts";
-import { resolveFinanceTenantWorkspaceRow } from "./resolve-finance-workspace-type-for-tenant.ts";
+import {
+  FINANCE_WORKSPACE_UNSUPPORTED,
+  resolveFinanceTenantWorkspaceRow,
+} from "./resolve-finance-workspace-type-for-tenant.ts";
 import { isFinanceSupportedWorkspace } from "./workspace-finance-bindings.generated.ts";
 
 export { parseEnabledModulesFromTheme, isFinanceModuleEnabled };
@@ -29,11 +32,11 @@ export async function assertFinanceWorkspaceGate(tenantId: string): Promise<{
 }> {
   const row = await resolveFinanceTenantWorkspaceRow(tenantId);
   if (row === null) {
-    throw new Error("FINANCE_WORKSPACE_UNSUPPORTED");
+    throw new Error(FINANCE_WORKSPACE_UNSUPPORTED);
   }
   const workspaceType = row.workspaceType.trim().toLowerCase();
   if (workspaceType.length === 0 || !isFinanceSupportedWorkspace(workspaceType)) {
-    throw new Error("FINANCE_WORKSPACE_UNSUPPORTED");
+    throw new Error(FINANCE_WORKSPACE_UNSUPPORTED);
   }
   if (!isFinanceModuleEnabled(row.theme, workspaceType)) {
     throw new Error("FORBIDDEN_FINANCE_MODULE_DISABLED");

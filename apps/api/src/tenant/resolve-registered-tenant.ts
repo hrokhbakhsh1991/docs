@@ -1,12 +1,8 @@
-import { performance } from "node:perf_hooks";
-
 import { resolveEffectiveTenantBranding, type TenantThemeConfig } from "@app-tour/workspace-sdk";
 
 import { resolveDefaultTenantBranding } from "./workspace-default-tenant-branding";
 
-import { getPrismaAdmin } from "../db/prisma";
 import {
-  recordAdminPoolRead,
   recordTenantRegistryCacheHit,
   recordTenantRegistryCacheMiss,
 } from "./admin-pool-read-monitor";
@@ -26,6 +22,12 @@ import {
   setCachedTenantThemeById,
 } from "./tenant-registry-cache";
 import { isPersistedTenantUuid } from "./tenant-id-format";
+import {
+  TENANT_REGISTRY_ADMIN_REASON,
+  findTenantRowById,
+  findTenantRowBySubdomain,
+  findTenantThemeById,
+} from "./tenant-registry-admin.port";
 
 function themeFromJson(theme: unknown): TenantThemeConfig {
   if (theme === null || typeof theme !== "object") {
@@ -95,11 +97,10 @@ export async function resolveRegisteredTenantById(
       return cached;
     }
     recordTenantRegistryCacheMiss("by_id");
-    const readStarted = performance.now();
-    const row = await getPrismaAdmin().tenant.findUnique({
-      where: { id: normalized },
-    });
-    recordAdminPoolRead(performance.now() - readStarted);
+    const row = await findTenantRowById(
+      normalized,
+      TENANT_REGISTRY_ADMIN_REASON.REGISTRY_RESOLVE_BY_ID
+    );
     if (row !== null) {
       const mapped = mapPrismaTenant(row);
       setCachedTenantById(normalized, mapped);
@@ -130,11 +131,10 @@ export async function resolveRegisteredTenantBySubdomain(
       return cached;
     }
     recordTenantRegistryCacheMiss("by_subdomain");
-    const readStarted = performance.now();
-    const row = await getPrismaAdmin().tenant.findUnique({
-      where: { subdomain: normalized },
-    });
-    recordAdminPoolRead(performance.now() - readStarted);
+    const row = await findTenantRowBySubdomain(
+      normalized,
+      TENANT_REGISTRY_ADMIN_REASON.REGISTRY_RESOLVE_BY_SUBDOMAIN
+    );
     if (row !== null) {
       const mapped = mapPrismaTenant(row);
       setCachedTenantBySubdomain(normalized, mapped);
@@ -182,13 +182,10 @@ export async function resolveTenantThemeJsonById(tenantId: string): Promise<unkn
   if (process.env.DATABASE_URL?.trim() && isPersistedTenantUuid(normalized)) {
     recordTenantRegistryCacheMiss("theme");
     adminThemeLookupCountForTests += 1;
-    const readStarted = performance.now();
-    const row = await getPrismaAdmin().tenant.findUnique({
-      where: { id: normalized },
-      select: { theme: true },
-    });
-    recordAdminPoolRead(performance.now() - readStarted);
-    const theme = row !== null ? row.theme : null;
+    const theme = await findTenantThemeById(
+      normalized,
+      TENANT_REGISTRY_ADMIN_REASON.REGISTRY_RESOLVE_THEME
+    );
     setCachedTenantThemeById(normalized, theme);
     return theme;
   }

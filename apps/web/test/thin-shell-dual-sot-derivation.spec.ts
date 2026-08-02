@@ -8,18 +8,18 @@ import { dirname, resolve } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { getWorkspacePlugin as getAcmePlugin } from "@app-cloud/workspace-acme";
-import { getWorkspacePlugin as getBookingWs2Plugin } from "@app-cloud/workspace-booking-ws2";
-import { getWorkspacePlugin as getDenaliPlugin } from "@app-cloud/workspace-denali";
-import { getWorkspacePlugin as getFinanceWs5Plugin } from "@app-cloud/workspace-finance-ws5";
-import { getWorkspacePlugin as getUrbanPlugin } from "@app-cloud/workspace-urban";
+import { getWorkspacePlugin as getAcmePlugin } from "@app-tour/workspace-acme";
+import { getWorkspacePlugin as getBookingWs2Plugin } from "@app-tour/workspace-booking-ws2";
+import { getWorkspacePlugin as getDenaliPlugin } from "@app-tour/workspace-denali";
+import { getWorkspacePlugin as getFinanceWs5Plugin } from "@app-tour/workspace-finance-ws5";
+import { getWorkspacePlugin as getUrbanPlugin } from "@app-tour/workspace-urban";
 import {
   resolveBookingOpsCapability,
   resolveFinanceNavCapability,
   resolveFinanceOpsCapability,
   resolveOperatorShellNavCapability,
   resolveWizardCreateCapability,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO_ROOT = resolve(WEB_ROOT, "../..");

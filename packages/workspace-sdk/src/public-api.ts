@@ -519,6 +519,7 @@ export {
   type CreateWorkspaceGuestSmokeHttpHandlersOptions,
   type WorkspaceGuestSmokeCatalogPort,
   type WorkspaceGuestSmokeHttpHandlers,
+  type WorkspaceGuestSmokeMaybeAsync,
   type WorkspaceGuestSmokeRegistrationInput,
   type WorkspaceGuestSmokeRegistrationResult,
 } from "./http/create-workspace-guest-smoke-http-handlers";

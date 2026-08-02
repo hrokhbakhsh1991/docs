@@ -1,0 +1,73 @@
+# PSR-6c Harbor persistent catalog inventory (no wire)
+wave: PSR-6c-harbor-persistent-catalog-inventory
+program_id: PSR-001
+decision: inventory_only
+policy:
+  forbid_handler_mutate_in_this_wave: true
+  forbid_denali_catalog_clone: true
+  forbid_fake_file_sqlite_sot: true
+  forbid_full_gate_in_this_wave: true
+  require_thin_harbor_plus_host_ports: true
+  residual_psr5i_live_proof_pending: true
+  residual_psr6b_demote_active: true
+current_surface:
+  http: packages/workspaces/harbor/src/http/harbor-catalog-http.ts
+  store: packages/workspaces/harbor/src/catalog/harbor-smoke-catalog.store.ts
+  store_kind: in_memory_singleton
+  seed_env: HARBOR_SMOKE_E2E_SEED
+  intake_upstream_path: /harbor/registrations
+  intake: packages/workspaces/harbor/src/catalog/catalog-intake.ts
+  routes: packages/workspaces/harbor/src/http/routes-manifest.ts
+  production_tier: stub
+reference_durable_surface:
+  denali_routes: packages/workspaces/denali/src/http/product.routes.ts
+  denali_catalog_service: packages/workspaces/denali/src/http/catalog.service.ts
+  api_host_configure: apps/api/src/http/configure-product-http-hosts.ts
+  tour_store_resolver: apps/api/src/http/resolve-product-tour-store.ts
+  note: Harbor absent from configure-product-http-hosts
+gaps:
+  - id: G-NO-PRODUCT-HOST
+    severity: blocker
+    summary: Harbor has no configure* product HTTP host / tour-store injection
+  - id: G-SYNC-SMOKE-PORT
+    severity: blocker
+    summary: WorkspaceGuestSmokeCatalogPort is sync memory-shaped; durable I/O is async
+  - id: G-SEED-GATE-501
+    severity: blocker
+    summary: isSeedEnabled gates all list/detail/register to 501
+  - id: G-MEMORY-STORE
+    severity: blocker
+    summary: HarborSmokeCatalogStore not restart-durable
+  - id: G-NO-RLS-CONTEXT
+    severity: blocker
+    summary: Smoke handlers do not runWithHttpRequestContext
+  - id: G-CARD-MAPPER
+    severity: medium
+    summary: Need Harbor Event card projection from published tour without Denali clone
+proposed_sub_slices:
+  - PSR-6c1-sdk-async-durable-smoke-port
+  - PSR-6c2-harbor-thin-host-card-mapper
+  - PSR-6c3-api-configure-harbor-host
+  - PSR-6c4-seed-vs-default-path
+  - PSR-6c5-proofs-and-recert-path
+static_assets:
+  - packages/workspaces/harbor/src/http/harbor-catalog-http.ts
+  - packages/workspaces/harbor/src/catalog/harbor-smoke-catalog.store.ts
+  - packages/workspaces/harbor/src/catalog/catalog-intake.ts
+  - packages/workspaces/harbor/workspace.manifest.json
+  - packages/workspace-sdk/src/http/create-workspace-guest-smoke-http-handlers.ts
+  - packages/workspaces/denali/src/http/product.routes.ts
+  - apps/api/src/http/configure-product-http-hosts.ts
+  - apps/api/src/http/resolve-product-tour-store.ts
+ratchet:
+  gap_count: 6
+  blocker_gap_count: 5
+  static_asset_missing_count: 0
+  denali_clone_detected: false
+  inventory_complete: true
+  next_slice: PSR-6c5-harbor-durable-proofs-recert
+  psr6c1_status: complete
+  psr6c2_status: complete
+  psr6c3_status: complete
+  psr6c4_status: complete
+  wire_executed: true

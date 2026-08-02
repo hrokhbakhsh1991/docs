@@ -1,0 +1,88 @@
+---
+id: PSR-6C5-HARBOR-PROOFS-RECERT
+title: PSR-6c5 — Harbor durable proofs + recert recipe (no promote / no live YES)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-6c5-harbor-durable-proofs-recert-inventory.yaml
+program_id: PSR-001
+wave: PSR-6c5-harbor-durable-proofs-recert-inventory
+---
+
+# PSR-6c5 — Harbor durable proofs + recert inventory
+
+## Intent
+
+After PSR-6c3/6c4, Harbor has a **code path** for durable list/detail/register
+when the API host is configured and `HARBOR_SMOKE_E2E_SEED` is off. PSR-6 gate
+still requires **same-SHA evidence** and CERT rebind before `certified`.
+
+This wave is **inventory + recipe only**:
+
+- No `productionTier: certified`
+- No proof-matrix Harbor rows restored
+- No live Playwright / Postgres pack (Architect **YES** required)
+- No `phase-*:gate` / `ci:integrity`
+
+## Code truth vs gate truth (after 6c4)
+
+| Gate criterion (PSR-6) | Code status | Live evidence |
+| --- | --- | --- |
+| Default production path non-501 | Host configured → durable list/detail (empty/404 if no tours) | Unit covered; API boot path not live-proven here |
+| Data survives restart | Booking + tour store are host Prisma/memory adapters | **Pending** Postgres restart drill |
+| Tenant isolation | `runWithHttpRequestContext` + tour/booking RLS | **Pending** (pairs PSR-5i RLS family) |
+| Duplicate registration | `HARBOR_REGISTRATION_DUPLICATE` + email/user checks | Unit covered; live pending |
+| CERT-01…05 on release SHA | Tier still `stub`; matrix rows absent | **Pending** after live durable E2E |
+
+## Important honesty gap
+
+Default marketing Harbor smoke still sets `HARBOR_SMOKE_E2E_SEED=1`
+(`smoke-marketing-harbor-e2e-servers.mjs`). That proves the **seed/memory** path.
+
+**PSR-6c6b** landed a parallel durable harness
+(`smoke-marketing-harbor-durable-e2e-servers.mjs` +
+`test:smoke:harbor:durable`) — gap **G-SEED-E2E-HARNESS** closed as tooling.
+Live Playwright on that harness still needs Architect **YES**.
+
+## Proof families (Harbor-specific)
+
+| Family | Purpose | Recipe (when YES) | Unit today |
+| --- | --- | --- | --- |
+| **H-DEFAULT** | Seed off + host → non-501 catalog | API boot + `GET /harbor/catalog` with `x-tenant-id` | harbor HTTP durable test |
+| **H-REGISTER** | Durable POST `/harbor/registrations` | Same + booking persistence | createHarborRegistration + HTTP test |
+| **H-DUP** | Duplicate email → 409 | Two POSTs same email | unit duplicate test |
+| **H-RESTART** | Registration survives process restart | Postgres + two API processes | pending |
+| **H-RLS** | Cross-tenant catalog/register denied | Storage prisma + two tenants | pending (5i) |
+| **H-CERT** | CERT-01…05 + promote | Guards + durable E2E + matrix + tier | recipe only |
+
+## Recert checklist (do not execute in this wave)
+
+1. Live durable catalog/register on tip SHA (seed **off**).
+2. Record H-RESTART + H-RLS (+ optional pair with PSR-5i live pack).
+3. Restore `plugins.harbor` CERT rows in proof matrix with durable CERT-03 hooks.
+4. Set `guestConformance.productionTier: certified`.
+5. `pnpm run generate:workspace-registry` + `pnpm run guard:workspace-certification`.
+6. Architect YES on promote (OD-style).
+
+## Residual deferred items
+
+- HTTP idempotency wrapper on Harbor register (noted in 6c4)
+- Seed fixture writer that inserts real tour rows for durable E2E
+- PSR-5i live same-SHA pack (platform-wide)
+
+## Smoke
+
+```bash
+node scripts/ops/psr-6c5-harbor-durable-proofs-recert-smoke.mjs
+```
+
+## Next
+
+After Architect **YES** on live packs: `PSR-6c6-harbor-live-evidence` then promote;
+or start **PSR-7** while Harbor remains honest `stub` until live recert.

@@ -3,7 +3,7 @@
  */
 import { Prisma } from "@prisma/client";
 
-import { getPrismaAdmin } from "../../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../../db/background-admin-client";
 import { FINANCE_RECON_LOOKBACK_MS } from "../finance-ops-metrics";
 import { paymentLedgerCaptureDomainEventId } from "../paid-without-ledger-detection";
 import { tourCreatedLedgerDomainEventPrefix } from "../registration-booking-wallet-credit";
@@ -61,7 +61,7 @@ export function sumDebitLinesMinor(payload: unknown): bigint | null {
 export async function detectPaidNoLedger(
   options: FinanceReconDetectOptions = {}
 ): Promise<readonly FinanceReconFindingDraft[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const since = lookbackSince(options.lookbackMs ?? FINANCE_RECON_LOOKBACK_MS);
   const limit = options.batchSize ?? 500;
   const tenantFilter =
@@ -114,7 +114,7 @@ export async function detectPaidNoLedger(
 export async function detectPaidAmtMismatch(
   options: FinanceReconDetectOptions = {}
 ): Promise<readonly FinanceReconFindingDraft[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const since = lookbackSince(options.lookbackMs ?? FINANCE_RECON_LOOKBACK_MS);
   const limit = options.batchSize ?? 500;
   const tenantFilter =
@@ -195,7 +195,7 @@ export async function detectPaidAmtMismatch(
 export async function detectDupCapture(
   options: FinanceReconDetectOptions = {}
 ): Promise<readonly FinanceReconFindingDraft[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const since = lookbackSince(options.lookbackMs ?? FINANCE_RECON_LOOKBACK_MS);
   const limit = options.batchSize ?? 200;
   const tenantFilter =
@@ -240,7 +240,7 @@ export async function detectDupCapture(
 export async function detectPrepayNoLedger(
   options: FinanceReconDetectOptions = {}
 ): Promise<readonly FinanceReconFindingDraft[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const since = lookbackSince(options.lookbackMs ?? FINANCE_RECON_LOOKBACK_MS);
   const limit = options.batchSize ?? 500;
   const tenantFilter =
@@ -290,7 +290,7 @@ export async function detectPrepayNoLedger(
 export async function detectPaidBookingDrift(
   options: FinanceReconDetectOptions = {}
 ): Promise<readonly FinanceReconFindingDraft[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const since = lookbackSince(options.lookbackMs ?? FINANCE_RECON_LOOKBACK_MS);
   const limit = options.batchSize ?? 500;
   const tenantFilter =
@@ -336,7 +336,7 @@ export async function detectPaidBookingDrift(
 export async function detectPrepayBookingDegraded(
   options: FinanceReconDetectOptions = {}
 ): Promise<readonly FinanceReconFindingDraft[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const limit = options.batchSize ?? 500;
   const tenantFilter =
     options.tenantId !== undefined
@@ -375,7 +375,7 @@ export async function detectPrepayBookingDegraded(
 export async function detectOutboxFailed(
   options: FinanceReconDetectOptions = {}
 ): Promise<readonly FinanceReconFindingDraft[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const since = lookbackSince(options.lookbackMs ?? FINANCE_RECON_LOOKBACK_MS);
   const limit = options.batchSize ?? 500;
   const tenantFilter =
@@ -414,7 +414,7 @@ export async function detectOutboxFailed(
 export async function detectOutboxStale(
   options: FinanceReconDetectOptions = {}
 ): Promise<readonly FinanceReconFindingDraft[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const staleMs = options.staleOutboxMs ?? 300_000;
   const cutoff = lookbackSince(staleMs);
   const limit = options.batchSize ?? 500;
@@ -458,7 +458,7 @@ export async function detectOutboxStale(
 export async function detectStuckPending(
   options: FinanceReconDetectOptions = {}
 ): Promise<readonly FinanceReconFindingDraft[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const stuckMs = options.stuckPendingMs ?? 24 * 60 * 60 * 1000;
   const cutoff = lookbackSince(stuckMs);
   const limit = options.batchSize ?? 500;
@@ -498,7 +498,7 @@ export async function detectStuckPending(
 export async function detectLedgerNoPayment(
   options: FinanceReconDetectOptions = {}
 ): Promise<readonly FinanceReconFindingDraft[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const since = lookbackSince(options.lookbackMs ?? FINANCE_RECON_LOOKBACK_MS);
   const limit = options.batchSize ?? 200;
   const tenantFilter =
@@ -548,7 +548,7 @@ export async function detectLedgerNoPayment(
 export async function detectDoubleWallet(
   options: FinanceReconDetectOptions = {}
 ): Promise<readonly FinanceReconFindingDraft[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const since = lookbackSince(options.lookbackMs ?? FINANCE_RECON_LOOKBACK_MS);
   const limit = options.batchSize ?? 200;
   const tenantFilter =

@@ -1,0 +1,92 @@
+---
+id: PSR-6C-HARBOR-PERSIST-INV
+title: PSR-6c — Harbor persistent catalog inventory (no wire yet)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-6c-harbor-persistent-catalog-inventory.yaml
+program_id: PSR-001
+wave: PSR-6c-harbor-persistent-catalog-inventory
+---
+
+# PSR-6c — Harbor persistent catalog inventory
+
+## Context
+
+After **PSR-6b** Harbor is `stub` (option A). Durable G1 still blocked by:
+
+1. Default HTTP → `501 WORKSPACE_GUEST_STUB` unless `HARBOR_SMOKE_E2E_SEED=1`
+2. `HarborSmokeCatalogStore` — process-memory Map
+3. No product HTTP host / tour-store / RLS request context (unlike Denali/Urban)
+
+Portal intake already POSTs upstream `/harbor/registrations` (see
+`catalog-intake.ts`); marketing browse hits `/harbor/catalog*`. Both land on
+the **same smoke handlers** — fixing the Harbor HTTP surface fixes portal +
+marketing.
+
+## Current call graph
+
+```text
+marketing  → GET  /harbor/catalog[/:id]  → harbor-catalog-http (smoke factory)
+portal     → POST /api/catalog/registrations
+           → buildUpstreamRequest path=/harbor/registrations
+           → harbor-catalog-http (smoke factory)
+smoke factory → isSeedEnabled? else 501
+             → HarborSmokeCatalogStore (memory) when seed on
+```
+
+Denali reference (do **not** clone):
+
+```text
+GET /denali/catalog* → product.routes → catalog.service
+  → host.resolveTourStore + runWithHttpRequestContext (RLS)
+POST /denali/registrations → registration.service + idempotency/capacity
+configure-product-http-hosts.ts wires Denali/Urban hosts only — Harbor absent
+```
+
+## Target architecture (approved direction)
+
+| Layer | Decision |
+| --- | --- |
+| Product package | Keep Harbor **thin**; map published tours → Harbor Event card; city filter stays product-owned |
+| Host wiring | Add Harbor (or shared G1) product HTTP host configured from `apps/api` like Denali/Urban — **no** branded import in configure body beyond generated façade |
+| Data | Reuse platform `resolveProductTourStore` + existing registration persistence (capacity/idempotency ports) under tenant RLS |
+| Smoke seed | `HARBOR_SMOKE_E2E_SEED` becomes **dev/e2e seed-only** (ensure fixture tour rows), not the sole production gate |
+| Default path | Production/prodlike: durable port enabled; missing published tours → empty list / 404, **not** 501 stub |
+| SDK | Evolve `WorkspaceGuestSmokeCatalogPort` toward async + optional `isDurableEnabled` **or** replace Harbor handlers with host-bound routes using neutral SDK catalog helpers (`filterWorkspacePublishedTours`, `loadWorkspaceTourIfPublished`, …) |
+
+## Explicit forbidden moves
+
+- Copying `denali/.../catalog.service.ts` / Denali exposure stack into Harbor
+- Keeping `certified` until durable default path + proofs exist (already demoted)
+- File/sqlite “fake durable” store as production SoT
+- Full `phase-*:gate` without Architect YES
+
+## Proposed sub-slices (after this inventory)
+
+| Slice | Scope | Risk |
+| --- | --- | --- |
+| **PSR-6c1** | SDK: async catalog/registration port + factory path that can skip 501 when durable mode on | med |
+| **PSR-6c2** | Harbor thin host + card mapper from published tour; keep city filter | med |
+| **PSR-6c3** | API: generated host binding + `configure*` for Harbor tour store + registration adapters | high |
+| **PSR-6c4** | Seed helper writes/reads real store for e2e; default path non-501 | med |
+| **PSR-6c5** | Restart/idempotency/RLS proofs + CERT rebind path (ties PSR-5i live) | high |
+
+This wave ships **inventory + smoke only** — no handler/host mutate.
+
+## Smoke
+
+```bash
+node scripts/ops/psr-6c-harbor-persistent-catalog-smoke.mjs
+```
+
+## Residual
+
+- PSR-5i live same-SHA pack still needs Architect YES
+- Recert / `productionTier: certified` only after 6c4–6c5

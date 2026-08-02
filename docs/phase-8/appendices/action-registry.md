@@ -285,7 +285,7 @@ note: "P8-X-A* not defined in Phase 8 PEK — defer to Block C if needed"
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | **Responsible actor**            | DevOps CI                                                                                                                           |
 | **Operational subphase trigger** | 8.5 (closure)                                                                                                                       |
-| **Verification evidence target** | `pnpm run phase-8:gate` exit 0 · `reports/phase-8-gate-YYYY-MM-DD.json` field `"ok": true` · nested `phase-7:gate` pass in same job |
+| **Verification evidence target** | `pnpm run phase-8:gate` exit 0 · `reports/phase-8-gate-YYYY-MM-DD.json` field `"ok": true` · nested `phase-7:guard` pass in same job |
 
 ### P8-5-A04 — Complete forensic audit mdoc
 

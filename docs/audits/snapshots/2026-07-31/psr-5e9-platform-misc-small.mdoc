@@ -1,0 +1,35 @@
+---
+id: PSR-5E9-PLATFORM-MISC-SMALL
+title: PSR-5e9 — migrate PLAN + GDPR + SITE_SURFACES (small leftovers)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - apps/api/src/platform/platform-plan.repository.ts
+  - apps/api/src/platform/build-tenant-gdpr-export.ts
+  - apps/api/src/platform/read-tenant-site-surfaces.ts
+program_id: PSR-001
+wave: PSR-5e9-platform-misc-small
+---
+
+# PSR-5e9 — small leftover reasons (3 files)
+
+Not one reason-code cluster — three singleton leftovers after larger clusters:
+
+| File | Reason |
+| --- | --- |
+| `platform-plan.repository.ts` | `PLATFORM_PLAN` |
+| `build-tenant-gdpr-export.ts` | `PLATFORM_GDPR` |
+| `read-tenant-site-surfaces.ts` | `PLATFORM_SITE_SURFACES` |
+
+Injectable overrides preserved. Numbered **e9** so **e8** stays reserved for the
+larger `PLATFORM_TENANT` cluster.
+
+## Ratchet
+
+After e5–e7 + e9: `remaining_direct` → **5** (tenant×3 + provision×2).

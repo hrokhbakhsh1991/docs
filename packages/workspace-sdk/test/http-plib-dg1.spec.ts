@@ -138,14 +138,17 @@ describe("workspace-sdk http P-lib (DG-1)", () => {
 });
 
 describe("workspace-sdk http P-lib (DG-1.2)", () => {
-  it("createWorkspaceHttpHostSlot configure/get/reset", () => {
+  it("createWorkspaceHttpHostSlot configure/get/reset/tryGet", () => {
     const slot = createWorkspaceHttpHostSlot<{ readonly n: number }>({
       notConfiguredCode: "HOST_MISSING",
     });
+    assert.equal(slot.tryGet(), null);
     assert.throws(() => slot.get(), /HOST_MISSING/);
     slot.configure({ n: 7 });
+    assert.equal(slot.tryGet()?.n, 7);
     assert.equal(slot.get().n, 7);
     slot.resetForTests();
+    assert.equal(slot.tryGet(), null);
     assert.throws(() => slot.get(), /HOST_MISSING/);
   });
 
@@ -694,5 +697,43 @@ describe("workspace-sdk http P-lib (DG-4.3 guest smoke handlers)", () => {
     assert.equal(created.status, 201);
     assert.equal(regs.length, 1);
     assert.equal(regs[0]?.tourId, "port-tour");
+  });
+
+  it("PSR-6c1 durable mode skips 501 and awaits async catalogPort", async () => {
+    const cards = [{ id: "durable-tour", title: "Durable sail" }];
+    const handlers = createWorkspaceGuestSmokeHttpHandlers({
+      isSeedEnabled: () => false,
+      isDurableEnabled: () => true,
+      publishedTourId: "ignored",
+      buildCard: () => ({ id: "fixture", title: "must-not-use" }),
+      catalogPort: {
+        listPublished: async () => cards,
+        getPublished: async (id) => cards.find((card) => card.id === id) ?? null,
+        createRegistration: async (input) => ({
+          id: "reg-durable",
+          tourId: input.tourId,
+          status: "pending",
+        }),
+      },
+    });
+
+    const list = mockRes();
+    await handlers.handleList({ url: "/x/catalog" } as IncomingMessage, list);
+    assert.equal(list.status, 200);
+    assert.equal(JSON.parse(list.body).data.items[0].id, "durable-tour");
+
+    const emptyDurable = createWorkspaceGuestSmokeHttpHandlers({
+      isSeedEnabled: () => false,
+      isDurableEnabled: () => true,
+      publishedTourId: "x",
+      buildCard: () => ({ id: "fixture", title: "unused" }),
+    });
+    const emptyList = mockRes();
+    await emptyDurable.handleList(
+      { url: "/x/catalog" } as IncomingMessage,
+      emptyList,
+    );
+    assert.equal(emptyList.status, 200);
+    assert.deepEqual(JSON.parse(emptyList.body).data.items, []);
   });
 });

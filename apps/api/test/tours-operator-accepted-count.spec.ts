@@ -87,4 +87,12 @@ describe("tours-operator-accepted-count", () => {
     assert.equal(enriched[0]?.acceptedCount, 3);
     assert.equal(enriched[1]?.acceptedCount, 0);
   });
+
+  it("OPS-ACC-02 unsupported booking workspace fail-softs to acceptedCount=0", async () => {
+    const unknownTenant = "00000000-0000-4000-8000-000000009999";
+    const enriched = await enrichTourListProjectionsWithAcceptedCount(unknownTenant, [
+      projection(TOUR_A),
+    ]);
+    assert.equal(enriched[0]?.acceptedCount, 0);
+  });
 });

@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 
-import { ensureWizardHostReady, type WorkspacePlugin } from "@app-cloud/workspace-sdk";
+import { ensureWizardHostReady, type WorkspacePlugin } from "@app-tour/workspace-sdk";
 
 import { resolveWizardCreateViewSurface } from "@/wizard/wizard-create-view-registry";
 import { resolveWizardCatalogPrefetchProvider } from "@/wizard/wizard-host-adapter-registry";

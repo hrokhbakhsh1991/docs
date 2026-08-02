@@ -24,6 +24,6 @@ describe("p6-guest-slice", () => {
       rootDomain: "localhost",
       portalPort: "3003",
     });
-    assert.match(base, /operator\.portal\.localhost:3003/);
+    assert.match(base, /portal\.operator\.localhost:3003/);
   });
 });

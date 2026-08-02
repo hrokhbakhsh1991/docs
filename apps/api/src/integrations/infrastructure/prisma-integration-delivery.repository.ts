@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../../db/background-admin-client";
 import { withTenantRls } from "../../db/with-tenant-rls";
 import type {
   EnqueueIntegrationDeliveryJobInput,
@@ -120,8 +121,7 @@ function readIntegrationWorkerTenantScope(): string | null {
 async function claimPendingGlobal(
   batchSize: number
 ): Promise<readonly IntegrationDeliveryJobRecord[]> {
-  const { getPrismaAdmin } = await import("../../db/prisma");
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_INTEGRATION_DELIVERY);
   return admin.$transaction(async (tx) => {
     const rows = await tx.$queryRaw<
       {
@@ -175,8 +175,7 @@ async function claimPendingForTenant(
   tenantId: string,
   batchSize: number
 ): Promise<readonly IntegrationDeliveryJobRecord[]> {
-  const { getPrismaAdmin } = await import("../../db/prisma");
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_INTEGRATION_DELIVERY);
   return admin.$transaction(async (tx) => {
     const rows = await tx.$queryRaw<
       {

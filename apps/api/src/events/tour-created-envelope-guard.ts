@@ -1,6 +1,6 @@
 import type { DomainEventEnvelope } from "@app-tour/platform-events";
 
-import { getPrismaAdmin } from "../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../db/background-admin-client";
 
 export type TourCreatedEventPayload = {
   readonly tourId?: string;
@@ -57,7 +57,7 @@ export async function assertTourCreatedAggregateOwnership(
     throw new SecurityViolation("TourCreated payload.tourId is required for ownership check");
   }
 
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_EVENTS);
   const owned = await admin.tour.findFirst({
     where: { id: tourId, tenantId: envelope.tenantId },
     select: { id: true },

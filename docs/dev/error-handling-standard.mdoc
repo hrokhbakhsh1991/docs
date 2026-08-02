@@ -52,6 +52,12 @@ Implementation: `isClientSafeErrorToken()` in `error-interceptor.ts`.
 
 **Exception — ingress validation prefixes:** Errors whose message starts with `ZOD_VALIDATION_FAILED` or `CANONICAL_VALIDATION_FAILED` map to **400** before the opaque-token gate. The HTTP body includes the full prefixed message in `error` (field paths allowed) and a stable `code` (`ZOD_VALIDATION_FAILED` / `CANONICAL_VALIDATION_FAILED`). Without this branch, messages containing spaces would incorrectly fall through to **500** `internal_error`.
 
+**Exception — workspace fail-closed prefixes:** `WORKSPACE_TYPE_UNRESOLVED` / `WORKSPACE_TYPE_UNRESOLVED:<id>`
+and `FINANCE_WORKSPACE_UNSUPPORTED` / `FINANCE_WORKSPACE_UNSUPPORTED:…` are early-mapped to **404** with
+a **stable code only** (UUID / `workspaceType=` diagnostic stripped from the client body). Status mapping
+alone is insufficient: colon/space diagnostics fail `isClientSafeErrorToken` and would otherwise become
+**500**.
+
 ## Logging vs response
 
 - **Response:** correlation id + stable `error` / `code` fields only.

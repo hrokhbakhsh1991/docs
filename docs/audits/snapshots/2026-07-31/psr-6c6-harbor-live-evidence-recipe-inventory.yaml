@@ -1,0 +1,51 @@
+# PSR-6c6 Harbor durable live-evidence recipe (no execution / no promote)
+wave: PSR-6c6-harbor-live-evidence-recipe
+program_id: PSR-001
+decision: executable_recipe_only
+policy:
+  forbid_live_execution_in_this_wave: true
+  forbid_tier_promote_in_this_wave: true
+  forbid_proof_matrix_harbor_rows_in_this_wave: true
+  forbid_full_gate_in_this_wave: true
+  live_proof_requires_architect_yes: true
+  seed_e2e_harness_still_forces_seed: true
+gaps:
+  - id: G-SEED-E2E-HARNESS
+    status: closed_by_psr_6c6b
+    asset: apps/marketing/scripts/smoke-marketing-harbor-durable-e2e-servers.mjs
+    detail: Parallel durable harness landed; seed harness remains default
+  - id: G-LIVE-PACK
+    status: open
+    detail: Postgres restart + RLS + durable HTTP/Playwright not executed
+  - id: G-PROMOTE
+    status: open
+    detail: productionTier remains stub; CERT matrix rows absent
+proof_families_from_6c5:
+  - H-DEFAULT
+  - H-REGISTER
+  - H-DUP
+  - H-RESTART
+  - H-RLS
+  - H-CERT
+recipe_env_required_for_live:
+  - DATABASE_URL
+  - DATABASE_URL_ADMIN
+  - STORAGE_DRIVER=prisma
+  - HARBOR_SMOKE_E2E_SEED unset or 0
+static_assets:
+  - docs/audits/snapshots/2026-07-31/psr-6c5-harbor-durable-proofs-recert.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-6c5-harbor-durable-proofs-recert-inventory.yaml
+  - docs/workspaces/harbor/certification.md
+  - apps/marketing/scripts/smoke-marketing-harbor-e2e-servers.mjs
+  - packages/workspaces/harbor/src/http/harbor-catalog-http.ts
+  - packages/workspaces/harbor/workspace.manifest.json
+  - apps/api/src/http/configure-product-http-hosts.ts
+ratchet:
+  live_executed: false
+  tier_promoted: false
+  seed_harness_still_seed: true
+  production_tier: stub
+  gap_count: 3
+  inventory_complete: true
+  next_slice: PSR-7e-rc-evidence-pack-schema
+  alternate_next_on_yes: PSR-6c6-harbor-live-evidence-execute

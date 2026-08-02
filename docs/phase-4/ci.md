@@ -103,7 +103,7 @@ OS packages: `postgresql-client`, `ripgrep` (`audit-boundary` in nested `phase-3
 | Context                 | Script                                         | Runs phase-4:gate?                                            |
 | ----------------------- | ---------------------------------------------- | ------------------------------------------------------------- |
 | Husky fast path         | `scripts/pre-commit-fast.sh` → `test-changed`  | No                                                            |
-| Manual / PR integration | `pnpm run test:full`                           | **Yes** — `phase-3:gate` + `phase-4:gate` (RLS when env set)  |
+| Manual / PR integration | `pnpm run test:full`                           | **Yes** — `phase-5:gate` (nests `phase-4:gate` → `phase-3:gate`; RLS when env set) |
 | CI `main` / PR          | `pnpm run ci:integrity` (phases 0–3)           | No                                                            |
 | CI `main` / PR          | `.github/workflows/phase-4-gate.yml` (DEC-081) | **Yes** — Postgres service + resilience gate + `phase-4:gate` |
 | Phase 4.6 closure       | `pnpm run phase-4:gate`                        | **Yes — required**                                            |

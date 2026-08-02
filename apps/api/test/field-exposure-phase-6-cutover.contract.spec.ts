@@ -198,7 +198,7 @@ describe("field exposure phase 6 controlled cutover contract", () => {
     assert.equal(job.payload.fieldExposureRuntime.selectionSource, "exposure_profile_defaults");
     assert.equal(job.payload.fieldExposureRuntime.nativeIntentMissing, true);
     assert.equal(job.payload.integrationDeliveryMessageTemplate, undefined);
-    const rendered = formatIntegrationDeliveryMessage({
+    const rendered = await formatIntegrationDeliveryMessage({
       workspaceType: "denali",
       eventType: "TourCreated",
       payload: job.payload as Record<string, unknown>,
@@ -226,7 +226,7 @@ describe("field exposure phase 6 controlled cutover contract", () => {
     assert.equal(job.payload.fieldExposureRuntime.selectionSource, "exposure_profile_defaults");
     assert.equal(job.payload.fieldExposureRuntime.nativeIntentMissing, true);
     assert.equal(job.payload.integrationDeliveryMessageTemplate, undefined);
-    const rendered = formatIntegrationDeliveryMessage({
+    const rendered = await formatIntegrationDeliveryMessage({
       workspaceType: "denali",
       eventType: "TourCreated",
       payload: job.payload as Record<string, unknown>,

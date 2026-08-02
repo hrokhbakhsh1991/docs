@@ -23,9 +23,9 @@ function authoritativeFields(input: {
 }
 
 describe("resolveShadowExposureFromDelivery", () => {
-  it("returns null when current delivery policy is absent", () => {
+  it("returns null when current delivery policy is absent", async () => {
     assert.equal(
-      resolveShadowExposureFromDelivery({
+      await resolveShadowExposureFromDelivery({
         context: {
           workspaceType: "denali",
           surface: "telegram",
@@ -48,8 +48,8 @@ describe("resolveShadowExposureFromDelivery", () => {
     );
   });
 
-  it("mirrors current delivery policy and enrichment into exposure-shaped metadata", () => {
-    const shadow = resolveShadowExposureFromDelivery({
+  it("mirrors current delivery policy and enrichment into exposure-shaped metadata", async () => {
+    const shadow = await resolveShadowExposureFromDelivery({
       context: {
         workspaceType: "denali",
         surface: "telegram",
@@ -94,8 +94,8 @@ describe("resolveShadowExposureFromDelivery", () => {
     assert.equal(shadow?.parity.matches, true);
   });
 
-  it("records source intent on shadow metadata when present", () => {
-    const shadow = resolveShadowExposureFromDelivery({
+  it("records source intent on shadow metadata when present", async () => {
+    const shadow = await resolveShadowExposureFromDelivery({
       context: {
         workspaceType: "denali",
         surface: "telegram",
@@ -140,9 +140,9 @@ describe("resolveShadowExposureFromDelivery", () => {
     assert.equal(shadow?.parity.matches, true);
   });
 
-  it("rendered message matches worker formatter on mirrored delivery payload", () => {
+  it("rendered message matches worker formatter on mirrored delivery payload", async () => {
     const basePayload = { title: "Alpine Day", aggregateId: "tour-1" };
-    const shadow = resolveShadowExposureFromDelivery({
+    const shadow = await resolveShadowExposureFromDelivery({
       context: {
         workspaceType: "starter",
         surface: "telegram",
@@ -166,7 +166,7 @@ describe("resolveShadowExposureFromDelivery", () => {
       }),
     });
 
-    const workerRendered = formatIntegrationDeliveryMessage({
+    const workerRendered = await formatIntegrationDeliveryMessage({
       workspaceType: "starter",
       eventType: "TourCreated",
       payload: {

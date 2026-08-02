@@ -2,7 +2,7 @@
  * Wave H.l.b — operator datetime chrome (no Denali time-picker brand in shell + theme).
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -58,17 +58,19 @@ describe("Wave H.l.b — operator datetime chrome", () => {
     assert.match(fields, /data-operator-time-picker/);
   });
 
-  it("H.l.b-03 generated bindings export ensure/resolve operator UI surface", () => {
-    const generated = readFileSync(
-      join(WEB_ROOT, "src/bootstrap/workspace-operator-ui-components-bindings.generated.ts"),
+  it("H.l.b-03 operator UI surface is registry/capability-only (binder deleted)", () => {
+    const registry = readFileSync(
+      join(WEB_ROOT, "src/wizard/operator-ui-components-registry.ts"),
       "utf8"
     );
-    assert.match(generated, /ensureOperatorUiComponentsSurface/);
-    assert.match(generated, /resolveOperatorUiComponentsSurface/);
-    assert.match(generated, /await import\(/);
-    assert.doesNotMatch(
-      generated,
-      /(?:import|export)\s+\{[^}]*\}\s+from\s+"@app-tour\/workspace-denali\/host\/ui\/operator-ui-components-surface"/
+    assert.match(registry, /ensureOperatorUiComponentsSurface|peekOperatorUiComponentsSurface/);
+    assert.match(registry, /resolveOperatorUiCapability/);
+    assert.doesNotMatch(registry, /workspace-operator-ui-components-bindings/);
+    assert.equal(
+      existsSync(
+        join(WEB_ROOT, "src/bootstrap/workspace-operator-ui-components-bindings.generated.ts")
+      ),
+      false
     );
   });
 });

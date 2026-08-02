@@ -2,6 +2,7 @@ import {
   assertProductionStorageDriver,
   resolveStorageDriver,
 } from "../storage/production-storage-driver-assert";
+import { DUAL_STORE_ROLE_RETAINED_TEST_DEV_ADAPTER } from "../storage/dual-store-role";
 import {
   InMemoryBookingsRepository,
   resetBookingsStoresForTests,
@@ -11,6 +12,8 @@ import { PrismaBookingsRepository } from "./prisma-bookings.repository";
 
 export type { BookingRepositoryPort, BookingsRepository } from "./ports/booking-repository.port";
 
+/** PSR-5h — InMemory branch retained as explicit test|dev adapter. */
+export const DUAL_STORE_ROLE = DUAL_STORE_ROLE_RETAINED_TEST_DEV_ADAPTER;
 let singleton: BookingRepositoryPort | null = null;
 let singletonDriver: ReturnType<typeof resolveStorageDriver> | null = null;
 

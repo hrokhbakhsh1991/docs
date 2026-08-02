@@ -1,9 +1,12 @@
-import { getPrismaAdmin } from "../db/prisma.ts";
+import {
+  PLATFORM_ADMIN_REASON,
+  getPlatformAdminClient,
+} from "./platform-admin-client.ts";
 
 import { purgePlatformTenant } from "./purge-platform-tenant.ts";
 
 export async function processScheduledTenantDeletions(actorId: string): Promise<{ purged: string[] }> {
-  const prisma = getPrismaAdmin();
+  const prisma = getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_TENANT_LIFECYCLE);
   const due = await prisma.tenant.findMany({
     where: { status: "offboarding", scheduledDeletionAt: { lte: new Date() } },
     select: { id: true },

@@ -1,0 +1,76 @@
+---
+id: PSR-5H-DUAL-STORE
+title: PSR-5h — dual-store item 6 classification (explicit test|dev adapters)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5h-dual-store-inventory.yaml
+  - apps/api/src/storage/dual-store-role.ts
+program_id: PSR-001
+wave: PSR-5h-dual-store-classification
+---
+
+# PSR-5h — dual-store cleanup (classification wave)
+
+## PSR-5 item 6 intent
+
+> dual storeهایی که تنها برای scaffold مانده‌اند حذف یا **صریحاً test adapter** شوند.
+
+Production/prodlike already refuse memory via `assertProductionStorageDriver`
+(PSR-5a). This wave answers: which of the ten factories are scaffold-only
+deletion candidates vs intentional test|dev adapters?
+
+## Decision (inventory)
+
+**Zero scaffold-only deletion candidates** in this release.
+
+All ten factories are classified
+`retained_explicit_test_dev_adapter`:
+
+| Domain | Evidence |
+| --- | --- |
+| bookings / identity | `createWithDevSeed` + `reset*ForTests` + active specs |
+| tour_storage | dedicated smoke memory stores + many specs |
+| portal_member_plan | `setPortalMemberPlanRepositoryForTests` + broad refs |
+| settings ×3 / drafts ×2 | `reset*ForTests` + factory InMemory branch |
+| finance | `resetFinanceRepositoryForTests` + recon/service specs |
+
+Deleting InMemory now would break local/dev and large test surface without
+improving production posture (already fail-closed).
+
+## Code ratchet (minimal)
+
+`apps/api/src/storage/dual-store-role.ts` exports
+`DUAL_STORE_ROLE_RETAINED_TEST_DEV_ADAPTER`.
+
+Each of the ten factories re-exports:
+
+```ts
+export const DUAL_STORE_ROLE = DUAL_STORE_ROLE_RETAINED_TEST_DEV_ADAPTER;
+```
+
+No driver / assert / InMemory algorithm changes.
+
+## Non-goals
+
+- Removing any InMemory implementation
+- Same-SHA migration/RLS/outbox proofs (item 7)
+- Changing `STORAGE_DRIVER` resolution
+
+## Item 6 status after this wave
+
+**Complete for classification + explicit adapter marking.** Future prisma-only
+narrowing requires Architect YES and a dedicated deletion wave per domain.
+
+## Smoke
+
+```bash
+node scripts/ops/psr-5h-dual-store-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+```

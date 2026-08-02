@@ -4,8 +4,8 @@ import { dirname, resolve } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { getWorkspacePlugin as getDenaliPlugin } from "@app-cloud/workspace-denali";
-import { resolveWizardHostCapability } from "@app-cloud/workspace-sdk";
+import { getWorkspacePlugin as getDenaliPlugin } from "@app-tour/workspace-denali";
+import { resolveWizardHostCapability } from "@app-tour/workspace-sdk";
 
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 

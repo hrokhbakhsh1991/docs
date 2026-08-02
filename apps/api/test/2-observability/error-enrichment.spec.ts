@@ -305,7 +305,9 @@ describe("2-observability — error enrichment (POST /tours)", () => {
   });
 
   it("OBS-ERR-04: internal 500 returns internal_error with correlation and no leak", async () => {
-    const tenantId = integrationTenantId();
+    // Registered starter smoke tenant — random UUIDs fail closed as WORKSPACE_TYPE_UNRESOLVED 404
+    // before the injected ToursService fault can run.
+    const tenantId = "00000000-0000-4000-8000-000000000001";
     const correlationId = randomUUID();
 
     const faultService = {
@@ -343,7 +345,7 @@ describe("2-observability — error enrichment (POST /tours)", () => {
   });
 
   it("LOG-COL-01: internal 500 log uses tenant_hash and error_code only", async () => {
-    const tenantId = integrationTenantId();
+    const tenantId = "00000000-0000-4000-8000-000000000001";
     const correlationId = randomUUID();
     const faultService = {
       createTour: async () => {

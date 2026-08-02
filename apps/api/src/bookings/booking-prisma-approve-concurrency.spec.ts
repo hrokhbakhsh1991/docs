@@ -22,21 +22,12 @@ import { integrationTenantId } from "../../test/test-helpers.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-function requireDatabaseEnv(): void {
-  if (!process.env.DATABASE_URL?.trim()) {
-    throw new Error(
-      "BOOKING_PRISMA_CONCURRENCY_REQUIRES_DATABASE: set DATABASE_URL. " +
-        "Run: NODE_ENV=test STORAGE_DRIVER=prisma node --import tsx " +
-        "--env-file=.env --env-file=.env.local --test " +
-        "src/bookings/booking-prisma-approve-concurrency.spec.ts"
-    );
-  }
-  if (!process.env.DATABASE_URL_ADMIN?.trim()) {
-    throw new Error(
-      "BOOKING_PRISMA_CONCURRENCY_REQUIRES_DATABASE_URL_ADMIN: admin role needed for seed/cleanup under RLS"
-    );
-  }
-}
+const hasDatabase =
+  Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
+
+const postgresSkip = hasDatabase
+  ? false
+  : "BOOKING_PRISMA_CONCURRENCY_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN";
 
 function assertCapacity(max: number) {
   return (ctx: {
@@ -230,8 +221,7 @@ function assertOutboxConsistent(input: {
   }
 }
 
-describe("booking prisma approve concurrency", { concurrency: false }, () => {
-  requireDatabaseEnv();
+describe("booking prisma approve concurrency", { concurrency: false, skip: postgresSkip }, () => {
 
   const tenantDenali = integrationTenantId();
   const tenantWs2 = integrationTenantId();

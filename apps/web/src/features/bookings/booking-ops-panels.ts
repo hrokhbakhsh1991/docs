@@ -4,7 +4,7 @@
  *
  * Generic web depends on {@link BookingOpsCapability} only — never imports workspace packages.
  */
-import { resolveBookingOpsCapability } from "@app-cloud/workspace-sdk";
+import { resolveBookingOpsCapability } from "@app-tour/workspace-sdk";
 
 import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
 import type { BookingOpsCapability } from "@/features/bookings/booking-ops-capability-contract";

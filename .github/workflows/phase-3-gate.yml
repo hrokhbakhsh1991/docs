@@ -1,4 +1,4 @@
-# Phase 3.5 — apps/api+web, starter, CASL, canonical SoT (phase-3:gate).
+# Phase 3.5 — static guard + apps-cert (phase-3:gate = both).
 
 name: phase-3-gate
 
@@ -37,10 +37,12 @@ jobs:
       - name: Phase 3 gate
         run: pnpm run phase-3:gate
 
-      - name: Upload phase-3 gate report
+      - name: Upload phase-3 guard + apps-cert reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: phase-3-gate-report
-          path: reports/phase-3-gate-*.json
+          path: |
+            reports/phase-3-guard-*.json
+            reports/phase-3-apps-cert-*.json
           if-no-files-found: ignore

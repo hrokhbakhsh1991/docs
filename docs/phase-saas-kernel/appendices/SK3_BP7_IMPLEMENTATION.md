@@ -57,7 +57,7 @@ Apply webhook
 
 ## Entitlements read path
 
-`getMemberEntitlements` still evaluates via SDK using `portalModuleGrants`. Response gains optional:
+`getMemberEntitlements` evaluates via SDK using `portalModuleGrants`. Response includes optional BP-7 fields when present on membership metadata:
 
 - `planCode`
 - `entitlementsRevision`
@@ -72,6 +72,7 @@ BFF cache remains 30s max (DL-17); apply-plan bumps revision for API truth. Memb
 | Prisma model + RLS migration | `apps/api/prisma/schema.prisma` `PortalMemberPlan`; `migrations/20260721100000_portal_member_plans_bp7/` |
 | Repos / service | `apps/api/src/identity/portal-member-plan.*` |
 | Internal routes | `apps/api/src/routes/internal/portal-member-entitlements.ts` |
+| HTTP dispatch | `apps/api/src/app.ts` — `POST` upsert + apply-plan → `handlePortalMemberEntitlementsInternal` |
 | Ops scope | `OPS_SCOPE_PORTAL_ENTITLEMENTS = "portal:entitlements"` |
 | Me read | `apps/api/src/identity/me.entitlements.service.ts` |
 | Spec | `apps/api/test/portal-member-plan-bp7.spec.ts` |

@@ -1,0 +1,221 @@
+# PSR-5f background_repair admin capability inventory
+wave: PSR-5f-background-admin-inventory
+program_id: PSR-001
+decision: inventory_plus_pilot
+policy:
+  forbid_bulk_background_migrate_in_inventory_wave: true
+  require_reason_on_background_admin_client: true
+  migrate_by_reason_cluster_only: true
+client_module: apps/api/src/db/background-admin-client.ts
+metric: background_admin_access_total
+reason_codes:
+  - BG_EVENTS
+  - BG_FINANCE_RECON
+  - BG_HTTP_IDEMPOTENCY_RECLAIM
+  - BG_INTEGRATION_DELIVERY
+  - BG_INTEGRATION_MIGRATION
+  - BG_INTEGRATION_WORKER
+  - BG_OUTBOX_OPS
+  - BG_OUTBOX_RECLAIM
+  - BG_OUTBOX_RECONCILE
+  - BG_OUTBOX_RELAY
+  - BG_OUTBOX_REPLAY
+sites:
+  - path: apps/api/src/events/tour-created-envelope-guard.ts
+    relative_src: events/tour-created-envelope-guard.ts
+    calls: 0
+    reason: BG_EVENTS
+    injectable_override: false
+    migrated_by: PSR-5f8
+  - path: apps/api/src/http/http-idempotency-reclaim.ts
+    relative_src: http/http-idempotency-reclaim.ts
+    calls: 0
+    reason: BG_HTTP_IDEMPOTENCY_RECLAIM
+    injectable_override: false
+    migrated_by: PSR-5f1
+  - path: apps/api/src/integrations/infrastructure/prisma-integration-delivery.repository.ts
+    relative_src: integrations/infrastructure/prisma-integration-delivery.repository.ts
+    calls: 0
+    reason: BG_INTEGRATION_DELIVERY
+    injectable_override: false
+    migrated_by: PSR-5f7a
+  - path: apps/api/src/integrations/migration/run-telegram-backfill.ts
+    relative_src: integrations/migration/run-telegram-backfill.ts
+    calls: 0
+    reason: BG_INTEGRATION_MIGRATION
+    injectable_override: false
+    migrated_by: PSR-5f7b
+  - path: apps/api/src/integrations/migration/run-tour-published-exposure-remap.ts
+    relative_src: integrations/migration/run-tour-published-exposure-remap.ts
+    calls: 0
+    reason: BG_INTEGRATION_MIGRATION
+    injectable_override: false
+    migrated_by: PSR-5f7b
+  - path: apps/api/src/integrations/worker/integration-delivery-processing-reclaim.ts
+    relative_src: integrations/worker/integration-delivery-processing-reclaim.ts
+    calls: 0
+    reason: BG_INTEGRATION_WORKER
+    injectable_override: false
+    migrated_by: PSR-5f1
+  - path: apps/api/src/outbox/outbox-failed.ts
+    relative_src: outbox/outbox-failed.ts
+    calls: 0
+    reason: BG_OUTBOX_OPS
+    injectable_override: false
+    migrated_by: PSR-5f2
+  - path: apps/api/src/outbox/outbox-mark-done.ts
+    relative_src: outbox/outbox-mark-done.ts
+    calls: 0
+    reason: BG_OUTBOX_OPS
+    injectable_override: false
+    migrated_by: PSR-5f2
+  - path: apps/api/src/outbox/outbox-processing-reclaim.ts
+    relative_src: outbox/outbox-processing-reclaim.ts
+    calls: 0
+    reason: BG_OUTBOX_RECLAIM
+    injectable_override: false
+    migrated_by: PSR-5f1
+  - path: apps/api/src/outbox/outbox-prod-replay.ts
+    relative_src: outbox/outbox-prod-replay.ts
+    calls: 0
+    reason: BG_OUTBOX_REPLAY
+    injectable_override: false
+    migrated_by: PSR-5f4
+  - path: apps/api/src/outbox/outbox-queue-counts.ts
+    relative_src: outbox/outbox-queue-counts.ts
+    calls: 0
+    reason: BG_OUTBOX_OPS
+    injectable_override: false
+    migrated_by: PSR-5f2
+  - path: apps/api/src/outbox/outbox-relay.ts
+    relative_src: outbox/outbox-relay.ts
+    calls: 0
+    reason: BG_OUTBOX_RELAY
+    injectable_override: false
+    migrated_by: PSR-5f3
+  - path: apps/api/src/outbox/outbox-replay-audit.ts
+    relative_src: outbox/outbox-replay-audit.ts
+    calls: 0
+    reason: BG_OUTBOX_REPLAY
+    injectable_override: true
+    migrated_by: PSR-5f4
+  - path: apps/api/src/outbox/outbox-replay.ts
+    relative_src: outbox/outbox-replay.ts
+    calls: 0
+    reason: BG_OUTBOX_REPLAY
+    injectable_override: false
+    migrated_by: PSR-5f4
+  - path: apps/api/src/outbox/reconcile-tour-projection.ts
+    relative_src: outbox/reconcile-tour-projection.ts
+    calls: 0
+    reason: BG_OUTBOX_RECONCILE
+    injectable_override: true
+    migrated_by: PSR-5f5
+  - path: apps/api/src/workspace-finance/finance-ops-metrics.ts
+    relative_src: workspace-finance/finance-ops-metrics.ts
+    calls: 0
+    reason: BG_FINANCE_RECON
+    injectable_override: false
+    migrated_by: PSR-5f6a
+  - path: apps/api/src/workspace-finance/recon/detect.ts
+    relative_src: workspace-finance/recon/detect.ts
+    calls: 0
+    reason: BG_FINANCE_RECON
+    injectable_override: false
+    migrated_by: PSR-5f6d
+  - path: apps/api/src/workspace-finance/recon/finance-recon-runner.ts
+    relative_src: workspace-finance/recon/finance-recon-runner.ts
+    calls: 0
+    reason: BG_FINANCE_RECON
+    injectable_override: false
+    migrated_by: PSR-5f6a
+  - path: apps/api/src/workspace-finance/recon/findings-store.ts
+    relative_src: workspace-finance/recon/findings-store.ts
+    calls: 0
+    reason: BG_FINANCE_RECON
+    injectable_override: true
+    migrated_by: PSR-5f6b
+  - path: apps/api/src/workspace-finance/recon/repair-handlers.ts
+    relative_src: workspace-finance/recon/repair-handlers.ts
+    calls: 0
+    reason: BG_FINANCE_RECON
+    injectable_override: false
+    migrated_by: PSR-5f6c
+migrated_clusters:
+  - id: PSR-5f1-reclaim-pilot
+    reason_codes:
+      - BG_OUTBOX_RECLAIM
+      - BG_HTTP_IDEMPOTENCY_RECLAIM
+      - BG_INTEGRATION_WORKER
+    files:
+      - apps/api/src/outbox/outbox-processing-reclaim.ts
+      - apps/api/src/http/http-idempotency-reclaim.ts
+      - apps/api/src/integrations/worker/integration-delivery-processing-reclaim.ts
+  - id: PSR-5f2-outbox-ops
+    reason_codes:
+      - BG_OUTBOX_OPS
+    files:
+      - apps/api/src/outbox/outbox-failed.ts
+      - apps/api/src/outbox/outbox-mark-done.ts
+      - apps/api/src/outbox/outbox-queue-counts.ts
+  - id: PSR-5f3-outbox-relay
+    reason_codes:
+      - BG_OUTBOX_RELAY
+    files:
+      - apps/api/src/outbox/outbox-relay.ts
+  - id: PSR-5f4-outbox-replay
+    reason_codes:
+      - BG_OUTBOX_REPLAY
+    files:
+      - apps/api/src/outbox/outbox-replay.ts
+      - apps/api/src/outbox/outbox-replay-audit.ts
+      - apps/api/src/outbox/outbox-prod-replay.ts
+  - id: PSR-5f5-outbox-reconcile
+    reason_codes:
+      - BG_OUTBOX_RECONCILE
+    files:
+      - apps/api/src/outbox/reconcile-tour-projection.ts
+  - id: PSR-5f6a-finance-recon-edge
+    reason_codes:
+      - BG_FINANCE_RECON
+    files:
+      - apps/api/src/workspace-finance/finance-ops-metrics.ts
+      - apps/api/src/workspace-finance/recon/finance-recon-runner.ts
+  - id: PSR-5f6b-finance-findings-store
+    reason_codes:
+      - BG_FINANCE_RECON
+    files:
+      - apps/api/src/workspace-finance/recon/findings-store.ts
+  - id: PSR-5f6c-finance-repair-handlers
+    reason_codes:
+      - BG_FINANCE_RECON
+    files:
+      - apps/api/src/workspace-finance/recon/repair-handlers.ts
+  - id: PSR-5f6d-finance-detect
+    reason_codes:
+      - BG_FINANCE_RECON
+    files:
+      - apps/api/src/workspace-finance/recon/detect.ts
+  - id: PSR-5f7a-integration-delivery
+    reason_codes:
+      - BG_INTEGRATION_DELIVERY
+    files:
+      - apps/api/src/integrations/infrastructure/prisma-integration-delivery.repository.ts
+  - id: PSR-5f7b-integration-migration
+    reason_codes:
+      - BG_INTEGRATION_MIGRATION
+    files:
+      - apps/api/src/integrations/migration/run-telegram-backfill.ts
+      - apps/api/src/integrations/migration/run-tour-published-exposure-remap.ts
+  - id: PSR-5f8-events
+    reason_codes:
+      - BG_EVENTS
+    files:
+      - apps/api/src/events/tour-created-envelope-guard.ts
+proposed_follow_up_clusters: []
+ratchet:
+  background_admin_files_total: 20
+  reason_code_count: 11
+  migrated_file_count: 20
+  remaining_direct: 0
+  background_repair_direct_closed: true

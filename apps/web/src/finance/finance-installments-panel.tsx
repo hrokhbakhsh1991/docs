@@ -17,8 +17,11 @@ import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-
 import {
   FINANCE_INSTALLMENTS_TEST_IDS,
   INSTALLMENT_BOARD_COLUMNS,
+  buildRescheduleScheduleItemRequestBody,
+  buildWaiveScheduleItemRequestBody,
   groupInstallmentsByBoardColumn,
   installmentProgressPercent,
+  parseScheduleItemPatchResponse,
   parseSchedulesListResponse,
   validateGenerateScheduleForm,
   type GenerateScheduleFormState,
@@ -26,7 +29,7 @@ import {
 } from "@/finance/finance-installments-logic";
 import { FinanceInvoiceBalanceCard } from "@/finance/finance-invoice-balance-card";
 import { resolveFinanceOpsCapabilityForHub } from "@/finance/finance-ops-panels";
-import { withFinanceRegistrationQuery } from "@/finance/finance-registration-context";
+import { withFinanceListScopeQuery } from "@/finance/finance-registration-context";
 import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
 import { FinanceRegistrationPicker } from "@/finance/finance-registration-picker";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
@@ -54,20 +57,64 @@ function resolveInstallmentStatusLabel(t: (key: string) => string, status: strin
   }
 }
 
+function canMutateScheduleItem(item: PaymentScheduleItem): boolean {
+  return item.status !== "paid" && item.status !== "waived";
+}
+
 function ScheduleCard({
   item,
   currency,
+  canManage,
+  onPatched,
 }: {
   readonly item: PaymentScheduleItem;
   readonly currency: string;
+  readonly canManage: boolean;
+  readonly onPatched: (next: PaymentScheduleItem) => void;
 }) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("finance.installments");
   const tCommon = useTranslations("finance.common");
+  const tAppCommon = useTranslations("common");
+  const tValidation = useTranslations("finance.validation");
+  const tErrors = useTranslations("finance.errors");
   const progress = installmentProgressPercent(item);
   const dueDate = new Date(item.dueAt).toLocaleDateString(
     locale === "fa" ? "fa-IR" : "en-US"
   );
+  const [waiveReason, setWaiveReason] = useState("");
+  const [rescheduleDueAt, setRescheduleDueAt] = useState(item.dueAt);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<"waive" | "reschedule" | null>(null);
+  const showMutate = canManage && canMutateScheduleItem(item);
+
+  const patchItem = async (body: Record<string, unknown>, action: "waive" | "reschedule") => {
+    setActionError(null);
+    setPendingAction(action);
+    try {
+      const response = await fetch(
+        `/api/finance/schedules/${encodeURIComponent(item.registrationId)}/items/${encodeURIComponent(item.id)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      );
+      if (!response.ok) {
+        throw new Error(`SCHEDULE_ITEM_PATCH_HTTP_${response.status}`);
+      }
+      const patched = parseScheduleItemPatchResponse(await response.json());
+      if (patched == null) {
+        throw new Error("SCHEDULE_ITEM_PATCH_INVALID");
+      }
+      onPatched(patched);
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : "SCHEDULE_ITEM_PATCH_FAILED");
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
   return (
     <div
       className="rounded-md border bg-background p-3 text-sm shadow-sm"
@@ -110,6 +157,62 @@ function ScheduleCard({
           aria-label={tCommon("paidPercent", { percent: progress })}
         />
       </div>
+
+      {showMutate ? (
+        <div className="mt-3 space-y-3 border-t pt-3">
+          <div className="space-y-2">
+            <Label htmlFor={`waive-reason-${item.id}`}>{t("waiveReason")}</Label>
+            <Input
+              id={`waive-reason-${item.id}`}
+              value={waiveReason}
+              placeholder={t("waiveReasonPlaceholder")}
+              onChange={(event) => setWaiveReason(event.target.value)}
+              disabled={pendingAction != null}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              data-testid={FINANCE_INSTALLMENTS_TEST_IDS.waiveButton}
+              disabled={pendingAction != null || waiveReason.trim().length === 0}
+              onClick={() =>
+                void patchItem(buildWaiveScheduleItemRequestBody(waiveReason), "waive")
+              }
+            >
+              {pendingAction === "waive" ? tAppCommon("saving") : t("waiveButton")}
+            </Button>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`reschedule-due-${item.id}`}>{t("rescheduleDue")}</Label>
+            <LocalizedDatetimePicker
+              id={`reschedule-due-${item.id}`}
+              value={rescheduleDueAt}
+              onChange={setRescheduleDueAt}
+              disabled={pendingAction != null}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              data-testid={FINANCE_INSTALLMENTS_TEST_IDS.rescheduleButton}
+              disabled={pendingAction != null || rescheduleDueAt.trim().length === 0}
+              onClick={() =>
+                void patchItem(
+                  buildRescheduleScheduleItemRequestBody(rescheduleDueAt),
+                  "reschedule"
+                )
+              }
+            >
+              {pendingAction === "reschedule" ? tAppCommon("saving") : t("rescheduleButton")}
+            </Button>
+          </div>
+          {actionError ? (
+            <p className="text-xs text-destructive" role="alert">
+              {localizeFinanceMessage(tValidation, tErrors, actionError)}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -124,6 +227,7 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
   const canGenerateSchedule = canManage && scheduleGenerateEnabled;
   const searchParams = useSearchParams();
   const registrationFilter = searchParams.get("registrationId");
+  const tourFilter = searchParams.get("tourId");
   const [items, setItems] = useState<readonly PaymentScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -148,7 +252,10 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
     let cancelled = false;
     setLoading(true);
     setError(null);
-    const path = withFinanceRegistrationQuery("/api/finance/schedules", registrationFilter);
+    const path = withFinanceListScopeQuery("/api/finance/schedules", {
+      registrationId: registrationFilter,
+      tourId: tourFilter,
+    });
     void fetch(path, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) {
@@ -174,12 +281,16 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
     return () => {
       cancelled = true;
     };
-  }, [fetchNonce, registrationFilter]);
+  }, [fetchNonce, registrationFilter, tourFilter]);
 
   const board = useMemo(() => groupInstallmentsByBoardColumn(items), [items]);
   const refresh = () => setFetchNonce((value) => value + 1);
   const boardCurrency =
     form.currency.trim().length >= 3 ? form.currency.trim().toUpperCase() : "IRR";
+
+  const handleItemPatched = (next: PaymentScheduleItem) => {
+    setItems((current) => current.map((row) => (row.id === next.id ? next : row)));
+  };
 
   const handleGenerate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -223,7 +334,7 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
         <ul className="list-disc space-y-1 ps-5 text-muted-foreground">
           <li>{t("semanticsPartial")}</li>
           <li>{t("semanticsPrepayment")}</li>
-          <li>{t("actionsDeferred")}</li>
+          <li>{canManage ? t("semanticsMutate") : t("actionsDeferred")}</li>
         </ul>
       </div>
 
@@ -363,7 +474,13 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
                   <p className="text-xs text-muted-foreground">{tCommon("noItems")}</p>
                 ) : (
                   board[column].map((item) => (
-                    <ScheduleCard key={item.id} item={item} currency={boardCurrency} />
+                    <ScheduleCard
+                      key={item.id}
+                      item={item}
+                      currency={boardCurrency}
+                      canManage={canManage}
+                      onPatched={handleItemPatched}
+                    />
                   ))
                 )}
               </CardContent>

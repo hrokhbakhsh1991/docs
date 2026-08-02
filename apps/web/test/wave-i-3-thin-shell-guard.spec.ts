@@ -14,7 +14,8 @@ describe("Wave I.3 — thin-shell guard", () => {
     const source = readFileSync(join(REPO, "scripts/guards/guard-thin-shell.mjs"), "utf8");
     assert.match(source, /\.generated\./);
     assert.match(source, /workspace-sdk/);
-    assert.doesNotMatch(source, /wizard\/denali/);
+    // Forbidden path must remain encoded as a ban string (do not strip).
+    assert.match(source, /wizard\/denali/);
     assert.doesNotMatch(source, /workspace-theme-css\.d\.ts/);
   });
 

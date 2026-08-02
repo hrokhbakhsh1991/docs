@@ -1,7 +1,7 @@
 /**
  * Finance reconciliation job runner — detect + upsert findings; optional auto-repair.
  */
-import { getPrismaAdmin } from "../../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../../db/background-admin-client";
 import { logger } from "../../observability/logger";
 import { metricsRegistry } from "../../observability/metrics";
 import { FINANCE_RECON_LOOKBACK_MS } from "../finance-ops-metrics";
@@ -104,7 +104,7 @@ export async function runFinanceReconJob(input: {
 
   let autoRepaired = 0;
   if (isAutoRepairEnabled()) {
-    const admin = getPrismaAdmin();
+    const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
     const openPaid = await admin.financeReconFinding.findMany({
       where: {
         status: "open",

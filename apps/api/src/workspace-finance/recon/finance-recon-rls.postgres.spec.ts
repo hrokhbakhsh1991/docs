@@ -14,20 +14,17 @@ import { disconnectPrisma, getPrismaAdmin } from "../../db/prisma.ts";
 import { withTenantRls } from "../../db/with-tenant-rls.ts";
 import { integrationTenantId } from "../../../test/test-helpers.ts";
 
-function requireDatabaseEnv(): void {
-  if (!process.env.DATABASE_URL?.trim() || !process.env.DATABASE_URL_ADMIN?.trim()) {
-    throw new Error(
-      "FINANCE_RECON_RLS_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN"
-    );
-  }
-  if (process.env.STORAGE_DRIVER?.trim().toLowerCase() !== "prisma") {
-    throw new Error("FINANCE_RECON_RLS_REQUIRES_STORAGE_DRIVER=prisma");
-  }
-}
+const hasDatabase =
+  Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
+const hasPrismaDriver = process.env.STORAGE_DRIVER?.trim().toLowerCase() === "prisma";
 
-describe("finance-recon-rls.postgres.spec.ts", { concurrency: false }, () => {
-  requireDatabaseEnv();
+const postgresSkip = !hasDatabase
+  ? "FINANCE_RECON_RLS_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN"
+  : !hasPrismaDriver
+    ? "FINANCE_RECON_RLS_REQUIRES_STORAGE_DRIVER=prisma"
+    : false;
 
+describe("finance-recon-rls.postgres.spec.ts", { concurrency: false, skip: postgresSkip }, () => {
   const tenantA = integrationTenantId();
   const tenantB = integrationTenantId();
   let findingAId = "";

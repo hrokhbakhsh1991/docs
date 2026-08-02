@@ -1,0 +1,65 @@
+---
+id: PSR-6C2-HARBOR-HOST-MAPPER
+title: PSR-6c2 — Harbor thin HTTP host slot + Event catalog card mapper
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-6c2-harbor-thin-host-card-mapper-inventory.yaml
+program_id: PSR-001
+wave: PSR-6c2-harbor-thin-host-card-mapper
+---
+
+# PSR-6c2 — Harbor thin host + card mapper
+
+## Intent
+
+Prepare Harbor for durable G1 without cloning Denali/Urban catalog services:
+
+1. **Card mapper** — `PublicCatalogTourInput` → `HarborSmokeCatalogCard` (city Event
+   egress + JSON-LD), product-owned projection only.
+2. **Thin HTTP host slot** — `configureHarborHttpHost` / `tryGet` / reset — ports
+   typed for a future tour store; **API does not configure yet** (PSR-6c3).
+3. **Smoke HTTP unchanged** — still seed-gated memory store (no false durable path
+   without request-scoped tenant).
+
+## Why host without wiring handlers
+
+Smoke `catalogPort` has no `req`/`tenantId`. Real RLS needs host-bound routes
+(or a later request-scoped factory). Shipping the slot + mapper first lets 6c3
+bind `resolveProductTourStore` without inventing Harbor card shape under pressure.
+
+## SDK adjunct
+
+`createWorkspaceHttpHostSlot` gains `tryGet(): TPorts | null` so Harbor can detect
+an unconfigured host without throwing `HARBOR_HTTP_HOST_NOT_CONFIGURED`.
+
+## File budget
+
+Harbor `src/http` stays ≤6 modules (clone detector). Mapper lives under
+`src/catalog/`.
+
+## Non-goals
+
+- `configure-product-http-hosts` Harbor binding
+- `isDurableEnabled` on Harbor HTTP
+- Prisma / registration adapters
+- Recert / tier promote
+
+## Verify
+
+```bash
+node scripts/ops/psr-6c2-harbor-thin-host-card-mapper-smoke.mjs
+pnpm --filter @app-tour/workspace-harbor run test
+pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/http-plib-dg1.spec.ts
+```
+
+## Next
+
+`PSR-6c3-api-configure-harbor-host` — generated façade + API configure + request-
+scoped durable handlers (or port bridge).

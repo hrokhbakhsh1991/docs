@@ -296,7 +296,8 @@ describe("Phase 8.1 — ASM HTTP owner denial + auth (003..010, 013..014, 018..0
   });
 
   it("ASM-8.1-020 GET /urban/settings starter workspace owner returns 403 URBAN_OWNER_REQUIRED", async () => {
-    const starterTenantId = "00000000-0000-4000-8000-000000000099";
+    // DEV_TENANTS tenant-a — registered starter (unregistered UUID → WORKSPACE_TYPE_UNRESOLVED 404).
+    const starterTenantId = "00000000-0000-4000-8000-000000000001";
     const response = await requestUrban(listener, "GET", urbanBearer("owner", starterTenantId));
     expect(response.status).toBe(403);
     expect((response.body as { code?: string }).code).toBe("URBAN_OWNER_REQUIRED");

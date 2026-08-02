@@ -49,12 +49,16 @@ pnpm run phase-g-h:create-pr-api        # DEV→main PR via GITHUB_TOKEN only
 pnpm run generate:workspace-registry  # after workspace.manifest.json change
 pnpm run workspace:create -- <id>   # scaffold packages/workspaces/<id>
 pnpm run test:changed               # git-aware unit tests (origin/main...HEAD, cached)
-pnpm run test:full                  # phase-3:gate + phase-4:gate (RLS when DATABASE_URL set)
+pnpm run test:full                  # phase-5:gate (nests phase-4 → phase-3; RLS when DATABASE_URL set)
+pnpm run phase-5:runtime-proof      # additive: db reset + phase-4:guard + targeted P5 perf (not a denest)
+pnpm run phase-5:guard              # static Phase 5 contracts only
 pnpm run db:test-reset              # TRUNCATE tenant data — fast between integration runs
 pnpm run ci:integrity               # phase-0→3 + phase-4 guard + evolution — CI / PR (not pre-commit)
 pnpm run phase-7:adversarial-gate   # 7.8 P0 — prefer GHA workflow phase-7-gate (parallel jobs)
 pnpm run phase-7:platform-gate      # 7.9 DoD — GHA job platform-dod after ci-integrity + adversarial green
-pnpm run phase-3:gate               # apps/starter integration + doc-gate (inside ci:integrity / test:full)
+pnpm run phase-3:guard              # static foundation only (not apps DoD)
+pnpm run phase-3:apps-cert          # sdk/starter + api/web phase-3 certification
+pnpm run phase-3:gate               # build/test + phase-2:guard + guard + apps-cert (inside ci:integrity / test:full)
 pnpm run phase-4:gate               # full Phase 4 closure (includes phase-3:gate)
 pnpm run check:node-engine  # Node 24 required (.nvmrc / engines)
 pnpm run baseline:metrics

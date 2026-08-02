@@ -1,4 +1,7 @@
-import { getPrismaAdmin } from "../../db/prisma";
+import {
+  BACKGROUND_ADMIN_REASON,
+  getBackgroundAdminClient,
+} from "../../db/background-admin-client";
 import { metricsRegistry } from "../../observability/metrics";
 
 import { resolveIntegrationDeliveryProcessingReclaimMs } from "./integration-delivery-reclaim-config";
@@ -18,7 +21,7 @@ export async function reclaimStaleProcessingIntegrationDeliveryJobs(
   reclaimMs = resolveIntegrationDeliveryProcessingReclaimMs(),
 ): Promise<number> {
   const cutoff = new Date(Date.now() - reclaimMs);
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_INTEGRATION_WORKER);
   const result = await admin.integrationDeliveryJob.updateMany({
     where: staleProcessingWhere(cutoff),
     data: {

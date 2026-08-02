@@ -23,8 +23,8 @@ describe("resolveExposureDecision", () => {
     version: "v1",
   } as const;
 
-  it("records profile defaults when no native intent exists", () => {
-    const resolved = resolveExposureDecision({
+  it("records profile defaults when no native intent exists", async () => {
+    const resolved = await resolveExposureDecision({
       tenantId: "tenant-a",
       workspaceType: "denali",
       eventType: "TourCreated",
@@ -32,7 +32,7 @@ describe("resolveExposureDecision", () => {
       payload: { title: "Alpine Day" },
       profile,
       exposureIntent: null,
-      resolveDeliveryFieldDefinitions: () => [],
+      resolveDeliveryFieldDefinitions: async () => [],
     });
 
     assert.equal(resolved.decision.profileId, profile.id);
@@ -43,7 +43,7 @@ describe("resolveExposureDecision", () => {
     assert.deepEqual(resolved.decision.eligibleFieldIds, []);
   });
 
-  it("records native intent metadata when an exposure intent is present", () => {
+  it("records native intent metadata when an exposure intent is present", async () => {
     const exposureIntent: ExposureIntent = {
       id: "intent-1",
       profileId: profile.id,
@@ -57,7 +57,7 @@ describe("resolveExposureDecision", () => {
       version: "2026-01-01T00:00:00.000Z",
     };
 
-    const resolved = resolveExposureDecision({
+    const resolved = await resolveExposureDecision({
       tenantId: "tenant-a",
       workspaceType: "denali",
       eventType: "TourCreated",
@@ -65,7 +65,7 @@ describe("resolveExposureDecision", () => {
       payload: { title: "Alpine Day" },
       profile,
       exposureIntent,
-      resolveDeliveryFieldDefinitions: () => [],
+      resolveDeliveryFieldDefinitions: async () => [],
     });
 
     assert.equal(resolved.decision.intentId, "intent-1");
@@ -74,8 +74,8 @@ describe("resolveExposureDecision", () => {
     assert.equal(resolved.messageTemplate, "Native {{field:native.title}}");
   });
 
-  it("does not treat profile defaultTemplateId as a delivery override template", () => {
-    const resolved = resolveExposureDecision({
+  it("does not treat profile defaultTemplateId as a delivery override template", async () => {
+    const resolved = await resolveExposureDecision({
       tenantId: "tenant-a",
       workspaceType: "denali",
       eventType: "TourPublished",
@@ -86,14 +86,14 @@ describe("resolveExposureDecision", () => {
         defaultTemplateId: "Tour published: {{title}}",
       },
       exposureIntent: null,
-      resolveDeliveryFieldDefinitions: () => [],
+      resolveDeliveryFieldDefinitions: async () => [],
     });
 
     assert.equal(resolved.messageTemplate, null);
   });
 
-  it("uses engine catalog and mirrors engine-selected ids when engine decisions are provided", () => {
-    const resolved = resolveExposureDecision({
+  it("uses engine catalog and mirrors engine-selected ids when engine decisions are provided", async () => {
+    const resolved = await resolveExposureDecision({
       tenantId: "tenant-a",
       workspaceType: "denali",
       eventType: "TourCreated",
@@ -106,7 +106,7 @@ describe("resolveExposureDecision", () => {
         ["summary", { state: "summary_only", reasonChain: [], appliedPolicies: [] }],
         ["secret", { state: "blocked", reasonChain: [], appliedPolicies: [] }],
       ]),
-      resolveDeliveryFieldDefinitions: () => [],
+      resolveDeliveryFieldDefinitions: async () => [],
     });
 
     assert.deepEqual(resolved.decision.candidateFieldIds, ["secret", "summary", "title"]);
@@ -114,8 +114,8 @@ describe("resolveExposureDecision", () => {
     assert.deepEqual(resolved.decision.eligibleFieldIds, ["title"]);
   });
 
-  it("uses full engine catalog keys for candidates without requiring an explicit cutover flag", () => {
-    const resolved = resolveExposureDecision({
+  it("uses full engine catalog keys for candidates without requiring an explicit cutover flag", async () => {
+    const resolved = await resolveExposureDecision({
       tenantId: "tenant-a",
       workspaceType: "denali",
       eventType: "TourCreated",
@@ -128,7 +128,7 @@ describe("resolveExposureDecision", () => {
         ["meetingPoint", { state: "hidden", reasonChain: [], appliedPolicies: [] }],
         ["extra.field", { state: "blocked", reasonChain: [], appliedPolicies: [] }],
       ]),
-      resolveDeliveryFieldDefinitions: () => [],
+      resolveDeliveryFieldDefinitions: async () => [],
     });
 
     assert.deepEqual(resolved.decision.candidateFieldIds, [
@@ -139,8 +139,8 @@ describe("resolveExposureDecision", () => {
     assert.deepEqual(resolved.decision.engineSelectedFieldIds, ["title"]);
   });
 
-  it("mirrors engine-selected ids into eligibleFieldIds when engine catalog authority is active", () => {
-    const resolved = resolveExposureDecision({
+  it("mirrors engine-selected ids into eligibleFieldIds when engine catalog authority is active", async () => {
+    const resolved = await resolveExposureDecision({
       tenantId: "tenant-a",
       workspaceType: "denali",
       eventType: "TourCreated",
@@ -152,7 +152,7 @@ describe("resolveExposureDecision", () => {
         ["title", { state: "visible", reasonChain: [], appliedPolicies: [] }],
         ["summary", { state: "hidden", reasonChain: [], appliedPolicies: [] }],
       ]),
-      resolveDeliveryFieldDefinitions: () => [],
+      resolveDeliveryFieldDefinitions: async () => [],
     });
 
     assert.deepEqual(resolved.decision.eligibleFieldIds, ["title"]);

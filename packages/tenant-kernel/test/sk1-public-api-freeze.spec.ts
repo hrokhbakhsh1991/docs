@@ -32,6 +32,8 @@ const ALLOWED_EXPORT_SYMBOLS = new Set([
   "FormatCustomApexSurfaceUrlInput",
   "ParsedCustomApexHost",
   "resolveMemberSessionCookieDomain",
+  "isLegacyClubPortalHost",
+  "toCanonicalClubPortalHost",
   "isClubAdminHost",
   "isPlatformAdminHost",
   "parseMultiLevelTenantHost",

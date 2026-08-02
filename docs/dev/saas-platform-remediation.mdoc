@@ -477,3 +477,22 @@ Peer/optional product deps remain **out of scope inside this pnpm monorepo** unt
 - Rename product-core input `denaliSchemaGateRef` → `draftSchemaGateRef` so shell orchestration call sites drop the branded prop key.
 - Lower shell product-token budget **59→57** in lockstep after rename.
 
+## Thin Shell residual SoT (Phases 4bu–4bz)
+
+Post–Gap Closure thin-shell honesty locks live in dedicated Markdoc SoTs under `docs/dev/`. This charter does **not** re-open product binders or raise budgets; it points merge reviewers at the active inventories.
+
+### Dual-SOT covenant
+
+**Dual-SOT covenant:** packaging keys and `WorkspacePluginCapabilities` slots must stay consistent. Capability-stub codegen alone must not “enable” a surface that packaging does not declare (and the reverse). Rules + inventory: [`thin-shell-dual-sot-derivation.mdoc`](./thin-shell-dual-sot-derivation.mdoc) (Phase **4bu**). Consistency proofs: `apps/web/test/thin-shell-dual-sot-derivation.spec.ts`.
+
+### Phase map (residual)
+
+| Phase | SoT | Lock |
+| --- | --- | --- |
+| **4bu** | [`thin-shell-dual-sot-derivation.mdoc`](./thin-shell-dual-sot-derivation.mdoc) | Dual-SOT inventory + derivation rules; no capability-stub codegen yet |
+| Phase 4bv | [`thin-shell-capability-bag-consolidation.mdoc`](./thin-shell-capability-bag-consolidation.mdoc) | Fine-grained capability bag (~25 slots) frozen; coarse fold sketch only — **no SDK type fold** until Architect YES |
+| Phase 4bx | [`thin-shell-operator-naming-inventory.mdoc`](./thin-shell-operator-naming-inventory.mdoc) | Shell Operator-clean; package `Denali*` names deferred rename waves |
+| Phase 4bz | [`thin-shell-post-binder-closure.mdoc`](./thin-shell-post-binder-closure.mdoc) | Post-binder optional polish list empty; no score-chasing reopen |
+
+Generated bootstrap inventory (exact set, no resurrected product binders): [`thin-shell-generated-bootstrap-inventory.mdoc`](./thin-shell-generated-bootstrap-inventory.mdoc). SDK narrative mirrors the Phase 4bu/4bv/4bx rows in `packages/workspace-sdk/SDK_CONTRACTS.md`.
+

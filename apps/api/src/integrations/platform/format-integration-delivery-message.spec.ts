@@ -7,9 +7,9 @@ import {
 } from "./format-integration-delivery-message";
 
 describe("format integration delivery message", () => {
-  it("uses Denali TourPublished template from workspace surface", () => {
+  it("uses Denali TourPublished template from workspace surface", async () => {
     assert.equal(
-      formatIntegrationDeliveryMessage({
+      await formatIntegrationDeliveryMessage({
         workspaceType: "denali",
         eventType: "TourPublished",
         payload: { title: "Alpine Day", aggregateId: "tour-1" },
@@ -18,9 +18,9 @@ describe("format integration delivery message", () => {
     );
   });
 
-  it("renders automatic field lines in integrationDeliveryFieldIds order when no custom template", () => {
+  it("renders automatic field lines in integrationDeliveryFieldIds order when no custom template", async () => {
     assert.equal(
-      formatIntegrationDeliveryMessage({
+      await formatIntegrationDeliveryMessage({
         workspaceType: "denali",
         eventType: "TourPublished",
         payload: {
@@ -43,9 +43,9 @@ describe("format integration delivery message", () => {
     );
   });
 
-  it("prefixes automatic field lines with intent-scoped decorations", () => {
+  it("prefixes automatic field lines with intent-scoped decorations", async () => {
     assert.equal(
-      formatIntegrationDeliveryMessage({
+      await formatIntegrationDeliveryMessage({
         workspaceType: "denali",
         eventType: "TourPublished",
         payload: {
@@ -70,9 +70,9 @@ describe("format integration delivery message", () => {
     );
   });
 
-  it("leaves custom template output unchanged when decorations are present", () => {
+  it("leaves custom template output unchanged when decorations are present", async () => {
     assert.equal(
-      formatIntegrationDeliveryMessage({
+      await formatIntegrationDeliveryMessage({
         workspaceType: "denali",
         eventType: "TourPublished",
         payload: {
@@ -90,9 +90,9 @@ describe("format integration delivery message", () => {
     );
   });
 
-  it("prefers an admin message-template override from the payload", () => {
+  it("prefers an admin message-template override from the payload", async () => {
     assert.equal(
-      formatIntegrationDeliveryMessage({
+      await formatIntegrationDeliveryMessage({
         workspaceType: "denali",
         eventType: "TourPublished",
         payload: {
@@ -107,9 +107,9 @@ describe("format integration delivery message", () => {
     );
   });
 
-  it("falls back when workspace has no template", () => {
+  it("falls back when workspace has no template", async () => {
     assert.equal(
-      formatIntegrationDeliveryMessage({
+      await formatIntegrationDeliveryMessage({
         workspaceType: "starter",
         eventType: "TourCreated",
         payload: { aggregateId: "tour-2" },
@@ -118,9 +118,9 @@ describe("format integration delivery message", () => {
     );
   });
 
-  it("leaves templates without field placeholders unchanged", () => {
+  it("leaves templates without field placeholders unchanged", async () => {
     assert.equal(
-      applyFieldPolicyPlaceholders("Tour created: {{title}}", {
+      await applyFieldPolicyPlaceholders("Tour created: {{title}}", {
         integrationDeliveryFieldIds: ["basics.title"],
         integrationDeliveryFieldValues: { "basics.title": "Alpine Day" },
       }),
@@ -128,9 +128,9 @@ describe("format integration delivery message", () => {
     );
   });
 
-  it("fills {{field:<id>}} only for delivery-eligible field ids", () => {
+  it("fills {{field:<id>}} only for delivery-eligible field ids", async () => {
     assert.equal(
-      applyFieldPolicyPlaceholders(
+      await applyFieldPolicyPlaceholders(
         "Title: {{field:basics.title}} | Summary: {{field:details.summary}}",
         {
           integrationDeliveryFieldIds: ["basics.title", "details.summary"],
@@ -144,9 +144,9 @@ describe("format integration delivery message", () => {
     );
   });
 
-  it("redacts non-eligible or value-missing field placeholders to empty string", () => {
+  it("redacts non-eligible or value-missing field placeholders to empty string", async () => {
     assert.equal(
-      applyFieldPolicyPlaceholders(
+      await applyFieldPolicyPlaceholders(
         "Title: {{field:basics.title}} | Featured: {{field:basics.featured}}",
         {
           integrationDeliveryFieldIds: ["basics.title"],
@@ -160,16 +160,16 @@ describe("format integration delivery message", () => {
     );
   });
 
-  it("redacts all field placeholders when no eligibility metadata is present", () => {
+  it("redacts all field placeholders when no eligibility metadata is present", async () => {
     assert.equal(
-      applyFieldPolicyPlaceholders("Title: {{field:basics.title}}", {}),
+      await applyFieldPolicyPlaceholders("Title: {{field:basics.title}}", {}),
       "Title: "
     );
   });
 
-  it("ignores fieldExposureShadow metadata when formatting delivery message", () => {
+  it("ignores fieldExposureShadow metadata when formatting delivery message", async () => {
     assert.equal(
-      formatIntegrationDeliveryMessage({
+      await formatIntegrationDeliveryMessage({
         workspaceType: "denali",
         eventType: "TourPublished",
         payload: {

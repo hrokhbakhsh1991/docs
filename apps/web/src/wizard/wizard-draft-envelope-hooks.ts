@@ -4,7 +4,7 @@ import {
   type WorkspacePlugin,
   type WorkspaceWizardDraftEnvelope,
   type WorkspaceWizardDraftMeta,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 /** Phase 13.5 / 14.2 — prepare client envelope via resolveWizardHostCapability; caller injects product fallback. */
 export function prepareWizardDraftEnvelope<TForm>(

@@ -7,10 +7,11 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
 
-import { disconnectPrisma, getPrisma } from "../src/db/prisma";
+import { disconnectPrisma, getPrismaAdmin } from "../src/db/prisma";
 import { withTenantRls } from "../src/db/with-tenant-rls";
 
-const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
+const hasDatabase =
+  Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
 
 const WORKSPACE_TYPES = ["urban", "denali"] as const;
 
@@ -35,8 +36,8 @@ for (const workspaceType of WORKSPACE_TYPES) {
       let tourBId: string;
 
       before(async () => {
-        const prisma = getPrisma();
-        await prisma.tenant.createMany({
+        const admin = getPrismaAdmin();
+        await admin.tenant.createMany({
           data: [
             {
               id: tenantA,
@@ -75,13 +76,13 @@ for (const workspaceType of WORKSPACE_TYPES) {
       });
 
       after(async () => {
-        const prisma = getPrisma();
+        const admin = getPrismaAdmin();
         for (const tenantId of [tenantA, tenantB]) {
           await withTenantRls(tenantId, async (tx) => {
             await tx.tour.deleteMany({ where: { tenantId } });
           });
         }
-        await prisma.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
+        await admin.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
         await disconnectPrisma();
       });
 

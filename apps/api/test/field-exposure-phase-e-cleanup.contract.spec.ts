@@ -53,7 +53,10 @@ describe("field exposure phase E cleanup contract", () => {
   it("skips legacy mirror shadow diagnostics in cutover mode", () => {
     const dispatch = readFileSync(DISPATCH, "utf8");
 
-    assert.match(dispatch, /runtimeMode === "cutover"\s*\?\s*null\s*:\s*resolveFieldExposureShadowDiagnostics/);
+    assert.match(
+      dispatch,
+      /runtimeMode === "cutover"\s*\?\s*null\s*:\s*await resolveFieldExposureShadowDiagnostics/,
+    );
     assert.match(dispatch, /if \(runtimeMode === "shadow"\) \{/);
   });
 
@@ -71,7 +74,7 @@ describe("field exposure phase E cleanup contract", () => {
     const deliveryDefinitions = readFileSync(DELIVERY_DEFINITIONS, "utf8");
 
     assert.match(resolver, /resolveDeliveryFieldDefinitions/);
-    assert.match(resolver, /const definitions =\s*resolveDefinitions/);
+    assert.match(resolver, /const definitions =\s*\(await resolveDefinitions/);
     assert.match(deliveryDefinitions, /resolveDeliveryFieldDefinitions/);
     assert.match(deliveryDefinitions, /exposureCatalogFieldIds/);
     assert.doesNotMatch(deliveryDefinitions, /export function resolveDeliveryFieldPolicy/);

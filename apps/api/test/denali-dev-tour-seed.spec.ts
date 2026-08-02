@@ -7,6 +7,7 @@ import { describe, it } from "node:test";
 import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
 import { parseTenantAuthContext } from "@app-tour/workspace-sdk";
 
+import { DENALI_CLUB_DEV_PUBLISHED_TOUR_ID } from "../src/fixtures/operator-smoke-published-tour.fixture";
 import { ensureDevMemoryTourSeedForTenant } from "../src/storage/create-tour-storage";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { OPERATOR_SMOKE } from "./fixtures/operator-smoke-e2e-tenant";
@@ -18,7 +19,7 @@ describe("denali-dev-tour-seed.spec.ts — FE-14/TR-09", () => {
   it("ensureDevMemoryTourSeedForTenant indexes smoke tour on injected store", async () => {
     const store = new InMemoryTourRepository();
     ensureDevMemoryTourSeedForTenant(DENALI_SMOKE_TENANT_ID, store);
-    const hit = await store.getById(OPERATOR_SMOKE.seedTourId, DENALI_SMOKE_TENANT_ID);
+    const hit = await store.getById(DENALI_CLUB_DEV_PUBLISHED_TOUR_ID, DENALI_SMOKE_TENANT_ID);
     assert.ok(hit);
     assert.equal(hit.tenantId, DENALI_SMOKE_TENANT_ID);
   });
@@ -32,9 +33,9 @@ describe("denali-dev-tour-seed.spec.ts — FE-14/TR-09", () => {
       status: "ACTIVE",
     });
 
-    const record = await service.getTourById(auth, OPERATOR_SMOKE.seedTourId);
+    const record = await service.getTourById(auth, DENALI_CLUB_DEV_PUBLISHED_TOUR_ID);
     assert.ok(record);
-    assert.equal(record.id, OPERATOR_SMOKE.seedTourId);
+    assert.equal(record.id, DENALI_CLUB_DEV_PUBLISHED_TOUR_ID);
     assert.equal(record.tenantId, DENALI_SMOKE_TENANT_ID);
   });
 });

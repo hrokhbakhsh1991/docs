@@ -73,6 +73,7 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
       workspaceType: "denali",
       tenantWorkspaceBinding: new HostBookingTenantWorkspaceBindingAdapter(),
       capabilities: toBookingRuntimeCapabilities(capabilities),
+      productionGradeIntegrity: false,
     });
 
     await assert.rejects(
@@ -147,6 +148,7 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
         workspaceType: "denali",
         tenantWorkspaceBinding: new HostBookingTenantWorkspaceBindingAdapter(),
         capabilities: toBookingRuntimeCapabilities(capabilities),
+        productionGradeIntegrity: true,
       });
 
       await assert.rejects(

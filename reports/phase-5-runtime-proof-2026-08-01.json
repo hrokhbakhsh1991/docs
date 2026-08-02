@@ -1,0 +1,26 @@
+{
+  "gate": "phase-5-runtime-proof",
+  "date": "2026-08-01",
+  "gitSha": "a99b0656",
+  "ok": false,
+  "enforcement": {
+    "doc": "docs/phase-5/phase-5-runtime-proof.mdoc",
+    "command": "pnpm run phase-5:runtime-proof"
+  },
+  "env": {
+    "P5_PERF_GATE_MS": "850",
+    "MIN_THROUGHPUT": "100",
+    "BASELINE_RATIO_MAX": "1.25"
+  },
+  "checks": [
+    {
+      "id": "p5rp_database_url",
+      "enforcementId": "P4-E-RLS-01",
+      "description": "DATABASE_URL set (fail closed before reset / RLS)",
+      "required": true,
+      "ok": false,
+      "detail": "DATABASE_URL unset — required for phase-5:runtime-proof (see docs/phase-4/ci.md)"
+    }
+  ],
+  "note": "Additive runtime boundary — does not replace full Phase 5 closure; no nested prior-phase gate chain"
+}

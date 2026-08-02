@@ -1,4 +1,7 @@
-import { getPrismaAdmin } from "../db/prisma.ts";
+import {
+  PLATFORM_ADMIN_REASON,
+  getPlatformAdminClient,
+} from "./platform-admin-client.ts";
 
 export type ImpersonationOwnerSubject = {
   readonly userId: string;
@@ -8,7 +11,7 @@ export type ImpersonationOwnerSubject = {
 export async function resolveImpersonationOwnerSubject(
   tenantId: string
 ): Promise<ImpersonationOwnerSubject | null> {
-  const prisma = getPrismaAdmin();
+  const prisma = getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_IMPERSONATION);
   const row = await prisma.userTenant.findFirst({
     where: { tenantId, role: "owner", status: "ACTIVE" },
     select: { userId: true, sessionVersion: true },

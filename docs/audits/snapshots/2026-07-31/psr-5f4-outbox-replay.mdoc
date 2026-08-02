@@ -1,0 +1,53 @@
+---
+id: PSR-5F4-OUTBOX-REPLAY
+title: PSR-5f4 — BG_OUTBOX_REPLAY cluster (3 files)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5f-background-admin-inventory.yaml
+  - apps/api/src/outbox/outbox-replay.ts
+  - apps/api/src/outbox/outbox-replay-audit.ts
+  - apps/api/src/outbox/outbox-prod-replay.ts
+program_id: PSR-001
+wave: PSR-5f4-outbox-replay
+---
+
+# PSR-5f4 — outbox replay cluster
+
+## Scope (exactly three files)
+
+| File | Prior direct calls | Notes |
+| --- | ---: | --- |
+| `outbox/outbox-replay.ts` | 2 | failed→pending mutation helpers |
+| `outbox/outbox-replay-audit.ts` | 2 | default `admin` injectable param |
+| `outbox/outbox-prod-replay.ts` | 1 | candidate select orchestration |
+
+All use `getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_REPLAY)`.
+
+Audit helpers keep injectable `admin` override; only the **default** switches
+from raw `getPrismaAdmin` to the named client (same pattern as inventory
+`injectable_override: true`).
+
+## Non-goals
+
+- No DEC-086 mutation semantics change
+- No reconcile / finance / integration in this wave
+
+## Ratchet after f4
+
+- f inventory: `migrated_file_count: 10`, `remaining_direct: 10`
+- main: `api_src_admin_files: 16`, `api_src_admin_calls: 57`,
+  `background_repair_direct_admin_files: 10`
+
+## Smoke
+
+```bash
+node scripts/ops/psr-5f-background-admin-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+```

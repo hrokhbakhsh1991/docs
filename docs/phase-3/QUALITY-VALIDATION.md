@@ -8,6 +8,8 @@ validation_meta:
   repo_truth:
     - package.json
     - scripts/guards/phase-3-guard.mjs
+    - scripts/guards/phase-3-apps-cert.mjs
+    - docs/phase-3/phase-3-guard-apps-cert-split.mdoc
     - scripts/guards/gate-thresholds.mjs
     - scripts/ci-integrity-check.sh
   result: PASS
@@ -31,7 +33,7 @@ validation_meta:
 | `phase-3.ai-exec.index.md` | UPDATED | STEP 1; central_stub; binding; prerequisite_hubs |
 | `phase-3/README.md` | UPDATED | Central stub as primary entrypoint |
 | `phase-3-design-system.md` | UPDATED | Central stub + gate header |
-| `phase-3-guards.md` | VERIFIED | 16× p3_* (1 optional); doc-gate duplicate note |
+| `phase-3-guards.md` | VERIFIED | static + apps-cert split; 1 optional; see guard-apps-cert-split |
 | `phase-3-ci.md` | VERIFIED | 9-step package.json chain |
 | `phase-3-state-machine.md` | VERIFIED | execution_mode + CASL-before-ingress forbidden states |
 | `phase-3-enforcement.md` | VERIFIED | P3-E-* · Phase 4 entry |
@@ -60,7 +62,7 @@ validation_meta:
 | Central index | `phase-3-design-system.ai-exec.md` | Agent cold start |
 | Detailed index | `phase-3.ai-exec.index.md` | DRIFT-P3-01..10 |
 | Gate | `phase-3-ci.md` | `pnpm run phase-3:gate` |
-| Guards | `phase-3-guards.md` | p3_* (p3_ui_select_checkbox_optional optional) |
+| Guards | `phase-3-guards.md` | static `phase-3:guard` + `phase-3:apps-cert` (optional UI) |
 | Thresholds | `gate-thresholds.mjs` | 100 / 15 / 20 / 10 |
 | Subphases | `subphases/3.0`–`3.5` + `3.3.x` | exit_criteria_* |
 | Security order | `phase-3-state-machine.md` | ability.can → ingress → DOM |
@@ -74,4 +76,4 @@ validation_meta:
 | GAP-3.3.X | Select/Checkbox subpaths | optional |
 | GAP-NARRATIVE | `phase-3-design-system.md` body | header UPDATED — use `docs/phase-3/` |
 | GAP-PHASE4 | P4E-04 P4E-05 tenant RLS | open until Phase 4 |
-| BLOCKER-NONE | Docs match package.json + phase-3-guard.mjs | PASS |
+| BLOCKER-NONE | Docs match package.json + phase-3-guard + phase-3-apps-cert | PASS |

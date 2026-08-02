@@ -2,6 +2,7 @@ import type { IncomingMessage } from "node:http";
 
 import { jwtVerify } from "jose";
 
+import { DEV_BEARER_PREFIX } from "../tenant-kernel/parse-bearer";
 import { isJwtVerifyConfigured, readJwtVerifyConfig } from "../tenant-kernel/jwt-env";
 import { loadPublicKey } from "../tenant-kernel/jwt-key.util";
 import { ImpersonationReadOnlyError } from "./impersonation-read-only.error";
@@ -31,20 +32,32 @@ export async function assertOperatorImpersonationReadonly(req: IncomingMessage):
     return;
   }
 
+  // Unsigned test/dev bearers are not platform impersonation JWTs — never jwtVerify them.
+  if (token.startsWith(DEV_BEARER_PREFIX)) {
+    return;
+  }
+
   if (!isJwtVerifyConfigured()) {
     return;
   }
 
   const config = readJwtVerifyConfig()!;
-  const key = await loadPublicKey(config.publicKeyPem);
-  const verified = await jwtVerify(token, key, {
-    algorithms: ["RS256"],
-    issuer: config.issuer,
-    audience: config.audience,
-    clockTolerance: "5s",
-  });
+  try {
+    const key = await loadPublicKey(config.publicKeyPem);
+    const verified = await jwtVerify(token, key, {
+      algorithms: ["RS256"],
+      issuer: config.issuer,
+      audience: config.audience,
+      clockTolerance: "5s",
+    });
 
-  if (verified.payload.platform_impersonation_readonly === true) {
-    throw new ImpersonationReadOnlyError();
+    if (verified.payload.platform_impersonation_readonly === true) {
+      throw new ImpersonationReadOnlyError();
+    }
+  } catch (error) {
+    if (error instanceof ImpersonationReadOnlyError) {
+      throw error;
+    }
+    // Non-impersonation / malformed bearer — leave write authz to resolveTenantContext.
   }
 }

@@ -1,7 +1,7 @@
 import {
   ensureWizardHostReady,
   type WorkspacePlugin,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import { loadWorkspacePluginByIdFromRegistry } from "@/bootstrap/workspace-plugin-loaders.generated";
 

@@ -1,0 +1,10 @@
+# title: gitleaks config stub (PSR-7b)
+# Optional binary-backed follow-up. Baseline ratchet uses
+# scripts/ops/secret-scan-tracked-baseline.mjs and does not require gitleaks.
+# History scan / CI required-check needs Architect YES (PSR-7b2).
+title = "app-tour"
+[allowlist]
+description = "See scripts/ops/secret-scan-tracked-allowlist.yaml for Node baseline"
+paths = [
+  '''legacy/apps/api/test/e2e/jwt-test-keys\.ts''',
+]

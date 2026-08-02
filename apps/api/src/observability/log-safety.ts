@@ -93,6 +93,18 @@ function resolveErrorCodeFromMessage(message: string): string {
   if (message.startsWith("CANONICAL_SYNC_VALIDATION_FAILED")) return message;
   if (message.startsWith("TOUR_VERSION_CONFLICT")) return message;
   if (message.startsWith("TOUR_NOT_FOUND")) return message;
+  if (
+    message === "WORKSPACE_TYPE_UNRESOLVED" ||
+    message.startsWith("WORKSPACE_TYPE_UNRESOLVED:")
+  ) {
+    return "WORKSPACE_TYPE_UNRESOLVED";
+  }
+  if (
+    message === "FINANCE_WORKSPACE_UNSUPPORTED" ||
+    message.startsWith("FINANCE_WORKSPACE_UNSUPPORTED:")
+  ) {
+    return "FINANCE_WORKSPACE_UNSUPPORTED";
+  }
   if (message.startsWith("TOUR_CAPACITY_EXCEEDED")) return message;
   if (message.startsWith("DUAL_WRITE_FORBIDDEN")) return message;
   if (message.startsWith("DB_POOL_SATURATED")) return message;

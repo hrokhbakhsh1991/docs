@@ -221,9 +221,12 @@ states:
 
   - id: ASM-8.1-020
     route: GET /urban/settings
+    # Fixture: DEV_TENANTS tenant-a (000…001), workspaceType=starter — not an unregistered UUID
+    # (unregistered → WORKSPACE_TYPE_UNRESOLVED 404 before assertWorkspaceOwner).
     input_state: bearer_valid_owner_workspace_type_starter
     actor_role: owner
     workspaceType: starter
+    tenant_id: "00000000-0000-4000-8000-000000000001"
     middleware_step: assertWorkspaceOwner
     http_status: 403
     body_error_code: URBAN_OWNER_REQUIRED

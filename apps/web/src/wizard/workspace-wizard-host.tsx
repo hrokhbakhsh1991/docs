@@ -9,7 +9,7 @@ import {
   type ScopedTenantAuthz,
   type TenantAuthz,
   type WorkspacePlugin,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 import { mapValidationResultToIssues, wizardFieldPathAttributes, type ValidationIssue } from "@app-tour/wizard-navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";

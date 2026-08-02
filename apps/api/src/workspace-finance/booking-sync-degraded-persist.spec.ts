@@ -12,6 +12,7 @@ import {
   fakeEmptySchedules,
   fakeFixedClock,
   fakeNoopLog,
+  fakeNullObligation,
   fakePermissiveCapability,
   fakePermissiveAccess,
   fakeReceiptProofUrl,
@@ -71,7 +72,8 @@ describe("finance booking-sync degraded persist", { concurrency: false }, () => 
       fakePermissiveAccess,
       fakeEmptySchedules,
       fakeNoopLog,
-      fakeFixedClock
+      fakeFixedClock,
+      fakeNullObligation
     );
     const persist = (
       service as unknown as {

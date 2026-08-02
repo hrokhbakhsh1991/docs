@@ -21,7 +21,7 @@ describe("exposure-batch-reads.spec.ts", () => {
     assert.doesNotMatch(body, /for\s*\([\s\S]*findForContext/);
   });
 
-  it("EXP-BATCH-02 buildConnectionContextsFromPrefetch uses prefetched maps (no await in loop)", () => {
+  it("EXP-BATCH-02 buildConnectionContextsFromPrefetch uses prefetched intent/profile maps", () => {
     const source = fs.readFileSync(CONTROL_PLANE, "utf8");
     const body = source.match(
       /function buildConnectionContextsFromPrefetch\([\s\S]*?\n  return contexts;\n\}/
@@ -29,7 +29,10 @@ describe("exposure-batch-reads.spec.ts", () => {
     assert.ok(body !== undefined);
     assert.match(body, /legacyIntentLookup/);
     assert.match(body, /profileById/);
-    assert.doesNotMatch(body, /\bawait\b/);
+    // Intent/profile rows stay prefetched; await is allowed for async legacy profile
+    // resolution and engine preview (no per-event findForContext / ensureSeededProfiles).
+    assert.doesNotMatch(body, /findForContext\b/);
+    assert.doesNotMatch(body, /ensureSeededProfiles/);
   });
 
   it("EXP-BATCH-04 getWorkspaceExposureControlPlane batches connection intents and profiles", () => {
@@ -40,8 +43,15 @@ describe("exposure-batch-reads.spec.ts", () => {
     assert.ok(body !== undefined);
     assert.match(body, /listForConnectionScopes/);
     assert.match(body, /ensureSeededProfiles/);
+    assert.match(body, /findForContexts/);
     assert.match(body, /buildConnectionContextsFromPrefetch/);
-    assert.doesNotMatch(body, /Promise\.all\([\s\S]*?buildConnectionContexts/);
+    // Parallelize per-connection context assembly only after intent/profile batch prefetch.
+    assert.match(
+      body,
+      /ensureSeededProfiles\([\s\S]*?Promise\.all\(\s*enabledConnections\.map\(async \(connection\) => \(\{[\s\S]*?buildConnectionContextsFromPrefetch/,
+    );
+    assert.doesNotMatch(body, /for\s*\([\s\S]*listForConnectionScopes/);
+    assert.doesNotMatch(body, /for\s*\([\s\S]*ensureSeededProfiles/);
   });
 
   it("EXP-BATCH-03 prisma exposure intent repo implements findForContexts", () => {

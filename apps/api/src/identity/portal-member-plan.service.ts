@@ -2,6 +2,7 @@ import {
   assertProductionStorageDriver,
   resolveStorageDriver,
 } from "../storage/production-storage-driver-assert";
+import { DUAL_STORE_ROLE_RETAINED_TEST_DEV_ADAPTER } from "../storage/dual-store-role";
 import { getIdentityRepository } from "./create-identity-repository";
 import { MembershipNotFoundError } from "./in-memory-identity.repository";
 import { InMemoryPortalMemberPlanRepository } from "./in-memory-portal-member-plan.repository";
@@ -13,6 +14,8 @@ import type {
 } from "./portal-member-plan.types";
 import { PrismaPortalMemberPlanRepository } from "./prisma-portal-member-plan.repository";
 
+/** PSR-5h — InMemory branch retained as explicit test|dev adapter. */
+export const DUAL_STORE_ROLE = DUAL_STORE_ROLE_RETAINED_TEST_DEV_ADAPTER;
 export class PortalMemberPlanNotFoundError extends Error {
   constructor(planCode: string) {
     super(`PORTAL_MEMBER_PLAN_NOT_FOUND:${planCode}`);

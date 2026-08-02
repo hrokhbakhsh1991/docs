@@ -1,0 +1,35 @@
+---
+id: PSR-5E5-PLATFORM-WORKSPACE-DEFINITION-CLUSTER
+title: PSR-5e5 — migrate PLATFORM_WORKSPACE_DEFINITION to getPlatformAdminClient
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5e-platform-admin-capability-inventory.yaml
+  - apps/api/src/platform/list-platform-workspace-definitions.ts
+  - apps/api/src/platform/publish-platform-workspace-definition-version.ts
+  - apps/api/src/platform/update-platform-tenant-workspace-definition.ts
+  - apps/api/src/workspace-metadata/workspace-definition.repository.ts
+program_id: PSR-001
+wave: PSR-5e5-platform-workspace-definition-cluster
+---
+
+# PSR-5e5 — PLATFORM_WORKSPACE_DEFINITION cluster
+
+## Files (4)
+
+| File | Notes |
+| --- | --- |
+| `list-platform-workspace-definitions.ts` | direct |
+| `publish-platform-workspace-definition-version.ts` | `input.prisma` injectable kept |
+| `update-platform-tenant-workspace-definition.ts` | injectable kept |
+| `workspace-metadata/workspace-definition.repository.ts` | `defaultPrisma()` via require → client |
+
+## Ratchet
+
+`remaining_direct` → **12** (16 − 4).

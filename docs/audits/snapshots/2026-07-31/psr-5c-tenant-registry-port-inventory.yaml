@@ -1,0 +1,26 @@
+# PSR-5c TenantRegistryAdminPort inventory / ratchet
+wave: PSR-5c-tenant-registry-port
+program_id: PSR-001
+decision: named_port_behavior_preserving
+policy:
+  forbid_direct_getPrismaAdmin_in_resolve_update: true
+  port_is_sole_registry_admin_owner: true
+port:
+  path: apps/api/src/tenant/tenant-registry-admin.port.ts
+  reason_codes:
+    - REGISTRY_RESOLVE_BY_ID
+    - REGISTRY_RESOLVE_BY_SUBDOMAIN
+    - REGISTRY_RESOLVE_THEME
+    - REGISTRY_RESOLVE_FINANCE_WORKSPACE
+    - REGISTRY_UPDATE
+consumers:
+  - apps/api/src/tenant/resolve-registered-tenant.ts
+  - apps/api/src/tenant/update-tenant-registry-row.ts
+  - apps/api/src/workspace-finance/resolve-finance-workspace-type-for-tenant.ts
+closed_deferred_from_psr5b:
+  - apps/api/src/tenant/resolve-registered-tenant.ts
+  - apps/api/src/tenant/update-tenant-registry-row.ts
+ratchet:
+  port_must_call_getPrismaAdmin: true
+  consumer_direct_getPrismaAdmin_count: 0
+  reason_code_count: 5

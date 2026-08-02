@@ -1,0 +1,30 @@
+---
+id: PSR-5E6-PLATFORM-AUDIT-LIST-CLUSTER
+title: PSR-5e6 — migrate remaining PLATFORM_AUDIT list sites
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - apps/api/src/platform/list-platform-audit-events.ts
+  - apps/api/src/platform/list-platform-audit-events-filtered.ts
+program_id: PSR-001
+wave: PSR-5e6-platform-audit-list-cluster
+---
+
+# PSR-5e6 — PLATFORM_AUDIT list cluster
+
+Closes remaining audit **list** sites (append already on client via e1).
+
+## Files (2)
+
+- `list-platform-audit-events.ts` — `defaultPrisma()`
+- `list-platform-audit-events-filtered.ts` — `defaultPrisma()` + injectable
+
+## Ratchet
+
+`remaining_direct` → **10** after e5+e6 (12 − 2), assuming e5 already applied.

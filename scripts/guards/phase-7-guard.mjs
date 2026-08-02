@@ -77,7 +77,7 @@ function main() {
     gitSha: gitShortSha(),
     ok: requiredFailed.length === 0,
     checks,
-    note: "Full phase-7:gate includes phase-6:gate — see package.json when wired",
+    note: "phase-7:gate adds build+test+phase-6:guard — see package.json (denested from phase-6:gate)",
   };
 
   if (!fs.existsSync(REPORTS_DIR)) fs.mkdirSync(REPORTS_DIR, { recursive: true });

@@ -1,0 +1,72 @@
+---
+id: PSR-5G-IDENTITY-ADMIN
+title: PSR-5g — IdentityAdminClient closes ALW-ID-FORCE-RLS
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5b-admin-allowlist.yaml
+  - docs/audits/snapshots/2026-07-31/psr-5g-identity-admin-inventory.yaml
+  - apps/api/src/identity/identity-admin-client.ts
+  - apps/api/src/identity/prisma-identity.repository.ts
+program_id: PSR-001
+wave: PSR-5g-identity-admin-client
+---
+
+# PSR-5g — Identity admin client (closes ALW-ID)
+
+## Why
+
+`user` / `mobileOtpChallenge` (and related pre-tenant identity I/O) use FORCE RLS
+with no `app_tour` policies — admin pool remains required. PSR-5 item 5 still
+demands a **named** access path with reason codes, not raw `getPrismaAdmin` in
+the repository.
+
+## Design (behavior-preserving)
+
+Thin client (same shape as platform/background clients — safer than extracting
+every Prisma shape into a port in one wave):
+
+`apps/api/src/identity/identity-admin-client.ts`
+
+| Piece | Detail |
+| --- | --- |
+| API | `getIdentityAdminClient(reason)` |
+| Metric | `identity_admin_access_total{reason}` |
+| Pool | still `getPrismaAdmin()` — **only** inside the client |
+| Consumer | `prisma-identity.repository.ts` — zero direct admin |
+
+### Reason codes (5)
+
+| Reason | Sites |
+| --- | --- |
+| `ID_USER_READ` | findUserByMobile / ById / ByIds; post-update reload |
+| `ID_USER_WRITE` | registerPublicGuest create; updateUserMobile transaction |
+| `ID_OTP` | create / find / mark OTP challenge |
+| `ID_PENDING_INVITE` | findPendingInviteForAccept |
+| `ID_SESSION_BUMP` | cross-tenant `userTenant.sessionVersion` increment |
+
+## Allowlist
+
+`ALW-ID-FORCE-RLS` **closed** — sole owner is `identity-admin-client.ts`.
+PSR-5b active allowlist entry count → **0**.
+
+## Non-goals
+
+- Changing FORCE RLS / policies
+- Dual-store cleanup (item 6)
+- Same-SHA proofs (item 7)
+- Rewriting identity business logic
+
+## Smoke
+
+```bash
+node scripts/ops/psr-5g-identity-admin-smoke.mjs
+node scripts/ops/psr-5b-admin-allowlist-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+```

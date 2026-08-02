@@ -1,0 +1,31 @@
+# PSR-7f branch-protection print-only ratchet (no gh apply/verify)
+wave: PSR-7f-branch-protection-print-ratchet
+program_id: PSR-001
+decision: print_and_local_drift_only
+policy:
+  forbid_gh_branch_protection_apply_in_this_wave: true
+  forbid_gh_branch_protection_verify_without_yes: true
+  forbid_claiming_r_branch_closed: true
+  forbid_full_gate_in_this_wave: true
+  live_verify_requires_architect_yes: true
+expected_required_checks:
+  - Phase 0 foundation gate
+  - Phase 0 integration gate
+  - Phase 1 platform-core gate
+  - Booking PostgreSQL capacity
+  - Booking HTTP PostgreSQL
+static_assets:
+  - scripts/ops/configure-main-branch-protection.mjs
+  - scripts/ops/main-branch-required-checks.mjs
+  - scripts/ops/verify-required-check-names.mjs
+  - reports/GITHUB_BRANCH_PROTECTION.md
+  - docs/phase-20/p7/appendices/BOOKING_BRANCH_PROTECTION_GATE.md
+  - docs/audits/snapshots/2026-07-31/psr-7f-branch-protection-print-ratchet.mdoc
+ratchet:
+  print_only_complete: true
+  local_name_drift_clean: true
+  live_verify_complete: false
+  r_branch_closed: false
+  required_check_count: 5
+  next_slice: PSR-7g-tip-rc-evidence-draft
+  alternate_next_on_yes: PSR-7f2-branch-protection-live-verify

@@ -1,0 +1,55 @@
+---
+id: PSR-5D-FINANCE-RESOLVER-VIA-REGISTRY-PORT
+title: PSR-5d — finance workspace row via TenantRegistryAdminPort
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5c-tenant-registry-port.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5b-admin-allowlist.yaml
+  - apps/api/src/tenant/tenant-registry-admin.port.ts
+  - apps/api/src/workspace-finance/resolve-finance-workspace-type-for-tenant.ts
+program_id: PSR-001
+wave: PSR-5d-finance-resolver-via-registry-port
+---
+
+# PSR-5d — ALW-FIN through TenantRegistryAdminPort
+
+## Why not `resolveRegisteredTenantById` alone?
+
+Registered-tenant mapping runs theme through branding merge and **drops**
+non-branding JSON such as `enabledModules`. Finance gate
+(`isFinanceModuleEnabled`) needs the **raw** `tenants.theme` JSON. The prior
+direct `getPrismaAdmin().tenant.findUnique({ select: { workspaceType, theme } })`
+existed for that reason.
+
+## Change
+
+1. Add reason `REGISTRY_RESOLVE_FINANCE_WORKSPACE` on
+   `tenant-registry-admin.port.ts`.
+2. Add `findTenantFinanceWorkspaceRow(tenantId, reason)` — admin select of
+   `{ workspaceType, theme }` with metrics + `recordAdminPoolRead`.
+3. `resolveFinanceTenantWorkspaceRow` uses the port when `DATABASE_URL` is set;
+   keeps try/catch → `resolveRegisteredTenantById` fallback.
+4. Close / remove **`ALW-FIN-TENANT-ROW`** from PSR-5b allowlist (path no longer
+   calls `getPrismaAdmin`).
+
+## Non-goals
+
+- Changing finance gate semantics
+- Identity allowlist (`ALW-ID-FORCE-RLS`)
+- Platform repository wrapping
+
+## Ratchet
+
+```bash
+node scripts/ops/psr-5d-finance-resolver-port-smoke.mjs
+node scripts/ops/psr-5b-admin-allowlist-smoke.mjs
+node scripts/ops/psr-5c-tenant-registry-port-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+```

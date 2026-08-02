@@ -1,0 +1,73 @@
+---
+id: PSR-5E-PLATFORM-ADMIN-CAPABILITY
+title: PSR-5e — platform admin client inventory + ops-user/audit pilot
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5e-platform-admin-capability-inventory.yaml
+  - apps/api/src/platform/platform-admin-client.ts
+  - apps/api/src/platform/platform-ops-user.repository.ts
+  - apps/api/src/platform/append-platform-audit-event-outside-tx.ts
+program_id: PSR-001
+wave: PSR-5e-platform-admin-capability-inventory
+---
+
+# PSR-5e — platform control-plane admin capability (inventory + pilot)
+
+## Scope discipline
+
+Wrapping all **29** control_plane `getPrismaAdmin` files in one PR is too coarse.
+This wave:
+
+1. **Inventory** every control_plane site with a stable reason code.
+2. **Introduce** `getPlatformAdminClient(reason)` — sole thin wrapper that calls
+   `getPrismaAdmin()` and increments `platform_admin_access_total{reason}`.
+3. **Pilot** exactly **two** simple files (no injectable prisma override):
+   - `platform-ops-user.repository.ts` → `PLATFORM_OPS_USER`
+   - `append-platform-audit-event-outside-tx.ts` → `PLATFORM_AUDIT`
+
+Remaining 27 sites stay on direct `getPrismaAdmin` until follow-up waves
+(`PSR-5e2…`) migrate by reason cluster (billing, lifecycle, impersonation, …).
+
+## Reason taxonomy (12)
+
+| Reason | Typical owners |
+| --- | --- |
+| `PLATFORM_OPS_USER` | ops user repository |
+| `PLATFORM_AUDIT` | audit append/list |
+| `PLATFORM_IMPERSONATION` | start/end/resolve impersonation |
+| `PLATFORM_TENANT_LIFECYCLE` | offboard/purge/scheduled deletion |
+| `PLATFORM_BILLING` | subscription mark/update/past-due |
+| `PLATFORM_WORKSPACE_DEFINITION` | definitions publish/list/update |
+| `PLATFORM_DOMAIN` | subdomain/domain |
+| `PLATFORM_GDPR` | GDPR export |
+| `PLATFORM_SITE_SURFACES` | site surfaces |
+| `PLATFORM_PLAN` | plans |
+| `PLATFORM_PROVISION` | provision transaction/service |
+| `PLATFORM_TENANT` | tenant repository/lifecycle/route |
+
+## Why pilot these two
+
+- No `prisma ??` injectable override to preserve.
+- Small surface (4 source call sites).
+- Proves metric + reason typing without touching provision/billing hot paths.
+
+## Non-goals
+
+- Migrating all platform repositories
+- Changing auth / RLS
+- Identity allowlist redesign
+- Dual-store cleanup (PSR-5 item 6)
+
+## Ratchet
+
+```bash
+node scripts/ops/psr-5e-platform-admin-capability-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+```

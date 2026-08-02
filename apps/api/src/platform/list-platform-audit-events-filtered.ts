@@ -3,8 +3,11 @@ import type { PrismaClient } from "@prisma/client";
 import type { PlatformAuditEventDto } from "./list-platform-audit-events.ts";
 
 function defaultPrisma(): PrismaClient {
-  const { getPrismaAdmin } = require("../db/prisma") as typeof import("../db/prisma");
-  return getPrismaAdmin();
+  const {
+    PLATFORM_ADMIN_REASON,
+    getPlatformAdminClient,
+  } = require("./platform-admin-client") as typeof import("./platform-admin-client");
+  return getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_AUDIT);
 }
 
 export async function listPlatformAuditEventsFiltered(input: {

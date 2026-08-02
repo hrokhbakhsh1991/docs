@@ -2,12 +2,16 @@ import {
   assertProductionStorageDriver,
   resolveStorageDriver,
 } from "../storage/production-storage-driver-assert";
+import { DUAL_STORE_ROLE_RETAINED_TEST_DEV_ADAPTER } from "../storage/dual-store-role";
 import {
   InMemoryWorkspaceDraftsRepository,
   resetWorkspaceDraftsRepositoryForTests,
   type WorkspaceDraftsRepository,
 } from "./in-memory-workspace-drafts.repository";
 import { PrismaWorkspaceDraftsRepository } from "./prisma-workspace-drafts.repository";
+
+/** PSR-5h — InMemory branch retained as explicit test|dev adapter. */
+export const DUAL_STORE_ROLE = DUAL_STORE_ROLE_RETAINED_TEST_DEV_ADAPTER;
 
 let singleton: WorkspaceDraftsRepository | null = null;
 let singletonDriver: ReturnType<typeof resolveStorageDriver> | null = null;

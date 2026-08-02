@@ -104,6 +104,7 @@ export {
   type CreateWorkspaceGuestSmokeHttpHandlersOptions,
   type WorkspaceGuestSmokeCatalogPort,
   type WorkspaceGuestSmokeHttpHandlers,
+  type WorkspaceGuestSmokeMaybeAsync,
   type WorkspaceGuestSmokeRegistrationInput,
   type WorkspaceGuestSmokeRegistrationResult,
 } from "./create-workspace-guest-smoke-http-handlers";

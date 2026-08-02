@@ -1,0 +1,56 @@
+---
+id: PSR-7E-RC-EVIDENCE-PACK-SCHEMA
+title: PSR-7e — Release-candidate evidence pack schema (no attest / no live)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-7e-rc-evidence-pack.schema.json
+  - docs/audits/snapshots/2026-07-31/psr-7e-rc-evidence-pack.example.yaml
+program_id: PSR-001
+wave: PSR-7e-rc-evidence-pack-schema
+---
+
+# PSR-7e — RC evidence pack schema
+
+## Intent
+
+Close the **schema** half of PSR-7 R-EVIDENCE: a machine-readable release
+candidate pack that binds **one git SHA** to security/release artifacts.
+
+This wave lands schema + example + validator smoke only:
+
+- No provenance attestation
+- No staging deploy
+- No claim that a real RC pack exists for tip
+
+## Pack fields (summary)
+
+| Field | Purpose |
+| --- | --- |
+| `git_sha` | Identical tip for all attached proofs |
+| `collected_at` | ISO timestamp |
+| `scorecard` | Path/digest of PSR-9 collector report |
+| `secret_scan` | Tracked baseline result (+ optional history YES pack) |
+| `sbom` | CycloneDX path + lockfile sha256 |
+| `branch_protection` | print/verify artifact (live verify = YES) |
+| `staging` | four-process / restore refs (live = YES) |
+| `harbor` | tier + proof family statuses |
+| `ops_identity` | shared_bearer vs session_jwt dual-accept status |
+| `program_gates` | explicit booleans — must stay false until Architect |
+
+## Validate
+
+```bash
+node scripts/ops/psr-7e-rc-evidence-pack-smoke.mjs
+```
+
+## Next
+
+`PSR-7f-branch-protection-print-ratchet` then fill a tip draft pack under
+`reports/psr/` (gitignored) without claiming RC closed.

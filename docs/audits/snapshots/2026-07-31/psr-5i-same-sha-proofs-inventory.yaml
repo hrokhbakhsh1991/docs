@@ -1,0 +1,76 @@
+# PSR-5i same-SHA proofs inventory (recipe only — no live heavy run)
+wave: PSR-5i-same-sha-proofs-inventory
+program_id: PSR-001
+decision: inventory_recipe_only
+policy:
+  forbid_full_gate_in_this_wave: true
+  forbid_claiming_item_7_complete_without_live_pack: true
+  require_identical_git_sha_across_four_families: true
+  live_proof_requires_architect_yes: true
+proof_families:
+  - id: migration
+    purpose: Deploy Prisma migrations with admin role
+    recipe_commands:
+      - pnpm run db:migrate:deploy
+    requires_env:
+      - DATABASE_URL_ADMIN
+    static_assets:
+      - package.json
+      - apps/api/package.json
+    live_status: pending
+  - id: restore
+    purpose: Logical dump/restore drill on disposable DB
+    recipe_commands:
+      - bash scripts/restore-drill-smoke.sh
+    requires_env:
+      - DATABASE_URL_ADMIN
+    static_assets:
+      - scripts/restore-drill-smoke.sh
+      - .github/workflows/restore-drill-monthly.yml
+    live_status: pending
+  - id: rls_probe
+    purpose: Tenant RLS isolation (static guard + Postgres specs)
+    recipe_commands:
+      - pnpm run guard:repository-rls
+      - "pnpm --filter @apps/api exec node --import tsx --test test/rls-isolation.integration.spec.ts"
+      - "pnpm --filter @apps/api exec node --import tsx --test test/rls-tenant-isolation.spec.ts"
+      - "pnpm --filter @apps/api exec node --import tsx --test test/outbox-rls-forbidden-access.spec.ts"
+    requires_env:
+      - DATABASE_URL
+      - DATABASE_URL_ADMIN
+      - STORAGE_DRIVER=prisma
+    static_assets:
+      - scripts/guards/guard-repository-rls.mjs
+      - apps/api/test/rls-isolation.integration.spec.ts
+      - apps/api/test/rls-tenant-isolation.spec.ts
+      - apps/api/test/outbox-rls-forbidden-access.spec.ts
+      - apps/api/test/0-functional/rls-predicate-logic.spec.ts
+      - apps/api/test/tenant-rls-unprotected-tables.postgres.spec.ts
+      - apps/api/test/identity-pending-invite-rls.spec.ts
+      - apps/api/test/security/tenant-kernel-load-rls.spec.ts
+    live_status: pending
+  - id: outbox_effect
+    purpose: Outbox claim/relay behavior under tenant isolation
+    recipe_commands:
+      - "pnpm --filter @apps/api exec node --import tsx --test test/outbox-rls-forbidden-access.spec.ts"
+      - "pnpm --filter @apps/api exec node --import tsx --test test/4-integration/outbox-relay-ordered-per-tenant.spec.ts"
+    requires_env:
+      - DATABASE_URL
+      - DATABASE_URL_ADMIN
+      - STORAGE_DRIVER=prisma
+    static_assets:
+      - apps/api/test/outbox-rls-forbidden-access.spec.ts
+      - apps/api/test/4-integration/outbox-relay-ordered-per-tenant.spec.ts
+      - scripts/db-test-reset.sh
+    live_status: pending
+bundled_heavy_paths_forbidden_without_yes:
+  - pnpm run phase-5:gate
+  - pnpm run phase-4:gate
+  - pnpm run ci:integrity
+  - pnpm run test:full
+ratchet:
+  proof_family_count: 4
+  static_asset_missing_count: 0
+  live_proof_complete: false
+  item_7_status: inventory_complete_live_proof_pending
+  identical_sha_binding_required: true

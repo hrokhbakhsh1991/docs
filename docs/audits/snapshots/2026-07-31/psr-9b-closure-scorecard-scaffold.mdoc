@@ -1,0 +1,52 @@
+---
+id: PSR-9B-SCORECARD-COLLECTORS-EXPAND
+title: PSR-9b — Expand closure scorecard collectors (measure-only)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-9b-closure-scorecard.yaml
+program_id: PSR-001
+wave: PSR-9b-scorecard-collectors-expand
+---
+
+# PSR-9b — Scorecard collectors expand
+
+## Intent
+
+Add SoT-aligned collectors that PSR-9a deferred:
+
+| Metric | Collector |
+| --- | --- |
+| Dirty worktree records | `git status --porcelain` line count |
+| Absolute local doc links | `/home/…` + `/Users/…` hits under `docs/**/*.{md,mdoc}` |
+| Denali `package.json` exports map size | `exports` key count |
+| Governance trio present | LICENSE + SECURITY.md + CONTRIBUTING.md (0–3) |
+| Harbor tier stub honesty | `1` while `productionTier=stub` (interim; flips when certified) |
+
+Still **measure-only** — never claims PSR-9 / program closed.
+
+## Commands
+
+```bash
+node scripts/ops/psr-9-closure-scorecard-collect.mjs \
+  --scorecard docs/audits/snapshots/2026-07-31/psr-9b-closure-scorecard.yaml
+node scripts/ops/psr-9b-closure-scorecard-smoke.mjs
+```
+
+Default collector scorecard (when `--scorecard` omitted) is now the **9b** file.
+
+## Honesty
+
+- Dirty count includes intentional WIP; release closure requires clean SHA separately.
+- Denali export count is `package.json#exports` keys — not public API surface review.
+- `harbor_stub_honest=1` is a **holding** metric until durable recert (PSR-6c6 YES).
+
+## Next
+
+`PSR-8b-legacy-import-ratchet` or Architect YES/accept packs (`PSR-6c6`, `PSR-7d1`).

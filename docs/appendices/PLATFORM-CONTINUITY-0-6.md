@@ -17,7 +17,11 @@ guard: scripts/guards/lib/phase-cross-continuity.mjs
 ## Gate chain (append)
 
 ```yaml
-phase-6:gate: "build + test + phase-5:gate + phase-6:guard"
+# Option B — optimized Phase 6 closure (not historical 0–5 recursive nest)
+# Residual apps-cert only — PASS ≠ full phase-3:apps-cert / api·web leaf-gate composites
+phase-6:gate: "build + test + phase-5:runtime-proof + phase-5:guard + apps-cert:post-test + apps-cert:floors + phase-6:guard"
+# Historical full spine remains: phase-5:gate / test:full
+# Standalone leaf certification remains: phase-3:apps-cert
 ```
 
 ## Agent entry — Phase 6

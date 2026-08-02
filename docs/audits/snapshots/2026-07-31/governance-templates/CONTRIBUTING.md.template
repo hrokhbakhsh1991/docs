@@ -1,0 +1,31 @@
+# Contributing (TEMPLATE — not active until copied to /CONTRIBUTING.md)
+
+> PSR-8c0 draft. Do not treat this path as the canonical contribution guide.
+
+## Before you start
+
+1. Read `AGENTS.md` and `docs/architecture/platform-simplification-remediation.mdoc`
+2. Prefer fast-track verification; no full gates without Architect YES
+3. Doc-first for protected packages (`apps/api`, `platform-core`, `workspace-sdk`)
+
+## Development
+
+```bash
+nvm use && corepack enable
+pnpm install
+pnpm run pre-commit:fast
+```
+
+## Pull requests
+
+- Small, focused diffs
+- Include proof (smoke / targeted test) in the PR body
+- Do not commit secrets, `.env`, or absolute machine paths
+
+## DCO / CLA
+
+_TBD — counsel decides Sign-off vs CLA._
+
+## Code of conduct
+
+_TBD — link CODE_OF_CONDUCT.md when landed._

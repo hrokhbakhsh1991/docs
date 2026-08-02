@@ -11,7 +11,8 @@ import { after, before, describe, it } from "node:test";
 import { createRequestListener } from "../../src/app";
 import { MAP_UPSTREAM_NOT_CONFIGURED } from "../../src/routes/api-v2/map-enrich.routes";
 import { TENANT_PROXY_OUTBOUND_HEADER, TenantHttpProxy } from "../../src/proxy/tenant-http-proxy";
-import { createTestToursService, integrationTenantId } from "../test-helpers";
+import { OPERATOR_SMOKE } from "../fixtures/operator-smoke-e2e-tenant";
+import { createTestToursService } from "../test-helpers";
 
 type CapturedRequest = {
   readonly tenantHeader: string | undefined;
@@ -121,7 +122,8 @@ async function getMapEnrich(
 }
 
 describe("4-integration — proxy production wire (DEC-093)", () => {
-  const tenantId = integrationTenantId();
+  // Registered tenant — map enrich resolves workspace type under ALS (not a random UUID).
+  const tenantId = OPERATOR_SMOKE.tenantId;
   let upstream: Awaited<ReturnType<typeof startMockUpstream>>;
 
   before(async () => {

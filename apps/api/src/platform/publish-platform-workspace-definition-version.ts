@@ -6,7 +6,7 @@ import {
 } from "@app-tour/workspace-sdk/metadata";
 import { computeWorkspaceDefinitionPayloadChecksum } from "@app-tour/workspace-sdk/metadata/checksum";
 
-import { getPrismaAdmin } from "../db/prisma.ts";
+import { getPlatformAdminClient, PLATFORM_ADMIN_REASON } from "./platform-admin-client.ts";
 import { mergeCommerceIntoWorkspaceDefinitionPayload } from "../workspace-metadata/persist-commerce-on-publish.ts";
 import { assertWorkspaceDefinitionRendererAllowlist } from "./assert-workspace-definition-renderer-allowlist.ts";
 import {
@@ -31,7 +31,9 @@ export async function publishPlatformWorkspaceDefinitionVersion(input: {
   readonly prisma?: Pick<PrismaClient, "$transaction" | "workspaceDefinition">;
 }): Promise<PublishPlatformWorkspaceDefinitionVersionResult | null> {
   const repository = input.repository ?? new WorkspaceDefinitionRepository();
-  const prisma = input.prisma ?? getPrismaAdmin();
+  const prisma =
+    input.prisma ??
+    getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_WORKSPACE_DEFINITION);
 
   const definition = await repository.getDefinitionById(input.definitionId);
   if (!definition) {

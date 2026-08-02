@@ -7,7 +7,7 @@
 import {
   resolveSettingsEquipmentUiCapability,
   type WorkspacePlugin,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
 import type { SettingsEquipmentUiSurface } from "@/features/settings/settings-equipment-ui-types";

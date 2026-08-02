@@ -1,5 +1,5 @@
 /**
- * Wave H.h — non-generated apps/web sources must not import @app-cloud/workspace-denali.
+ * Wave H.h — non-generated apps/web sources must not import @app-tour/workspace-denali.
  * Product reachability is via generated plugin loaders + wizardHost.ensureReady / Pattern B registries.
  */
 import assert from "node:assert/strict";
@@ -21,7 +21,7 @@ function listTs(dir: string, out: string[] = []): string[] {
 }
 
 describe("Wave H.h — denali import firewall", () => {
-  it("H.h-01 no non-generated apps/web source imports @app-cloud/workspace-denali", () => {
+  it("H.h-01 no non-generated apps/web source imports @app-tour/workspace-denali", () => {
     const hits: string[] = [];
     for (const root of [join(WEB_ROOT, "src"), join(WEB_ROOT, "app")]) {
       for (const file of listTs(root)) {

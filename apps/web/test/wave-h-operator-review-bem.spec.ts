@@ -18,9 +18,11 @@ const SURFACES = [
 describe("Wave H.r — operator review BEM", () => {
   it("review chrome classes use operator-review* without renaming modules", () => {
     const corpus = SURFACES.map((p) => readFileSync(p, "utf8")).join("\n");
-    assert.equal(/\bdenali-review__/.test(corpus), false);
-    assert.equal(/\bdenali-review-validation\b/.test(corpus), false);
+    // Ban CSS/BEM class tokens only — module filenames may stay Denali-named.
+    assert.equal(/\bclass(?:Name)?=["'`][^"'`]*\bdenali-review__/.test(corpus), false);
+    assert.equal(/\bclass(?:Name)?=["'`][^"'`]*\bdenali-review-validation\b/.test(corpus), false);
     assert.equal(/className="denali-review"/.test(corpus), false);
+    assert.equal(/\.[a-z0-9_-]*\bdenali-review__/.test(corpus), false);
     assert.match(corpus, /operator-review__/);
     assert.match(corpus, /operator-review-validation/);
     assert.match(corpus, /className="operator-review"/);

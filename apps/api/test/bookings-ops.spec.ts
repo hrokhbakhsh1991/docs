@@ -116,6 +116,7 @@ describe("bookings-ops.spec.ts — Phase 9.5 API", () => {
       submittedAt: new Date().toISOString(),
       submittedByUserId: OPERATOR_SMOKE.memberUserId,
       approvedAt: null,
+      registrationIntake: { tourCapacityMax: 12 },
     });
 
     const response = await client.requestJson<BookingsApiResponse>("POST", "/bookings/bulk-approve", {

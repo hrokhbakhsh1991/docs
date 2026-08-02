@@ -1,0 +1,59 @@
+---
+id: PSR-7C-SBOM-PROVENANCE-RECIPE
+title: PSR-7c — SBOM from pnpm-lock + provenance recipe (no attest YES)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-7c-sbom-provenance-inventory.yaml
+program_id: PSR-001
+wave: PSR-7c-sbom-provenance-recipe
+---
+
+# PSR-7c — SBOM provenance recipe
+
+## Intent
+
+Close PSR-7 **R-SBOM** tooling gap with a **lockfile-derived CycloneDX 1.5**
+generator (no `syft`/`cyclonedx` binary required):
+
+- `scripts/ops/sbom-from-pnpm-lock.mjs` → `reports/sbom/app-tour.cdx.json`
+- Artifact path is gitignored (generate on demand / CI artifact)
+- Provenance (in-toto / GitHub attestations / cosign) is **recipe-only** until YES
+- No license-policy gate claim
+- No root `package.json` public command (command-budget honesty)
+
+## Generate
+
+```bash
+node scripts/ops/sbom-from-pnpm-lock.mjs
+# or:
+node scripts/ops/sbom-from-pnpm-lock.mjs --out /tmp/app-tour.cdx.json --json-summary
+node scripts/ops/psr-7c-sbom-provenance-smoke.mjs
+```
+
+## Honesty
+
+| Present | Missing (later) |
+| --- | --- |
+| CycloneDX 1.5 components from `pnpm-lock.yaml` | Runtime/image layer SBOM via syft |
+| Lockfile SHA-256 property | Signed provenance attestation |
+| Generator smoke ratchet | Dependency **license deny-list** gate |
+| | Required CI upload on release SHA |
+
+## Provenance recipe (do not execute without YES)
+
+1. Build/release on clean tip SHA.
+2. Generate CDX via `sbom-from-pnpm-lock.mjs`; store as release asset.
+3. Optional: `syft` image SBOM for deploy artifacts.
+4. Attest with GitHub `actions/attest` or cosign; record digest in RC evidence pack (R-EVIDENCE).
+
+## Next
+
+- `PSR-7d-ops-identity-design` (doc-first shared-bearer replacement)
+- Or live YES packs: `PSR-7b2` history secrets / `R-BRANCH` / `R-STAGING` / `PSR-6c6`

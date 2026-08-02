@@ -1,0 +1,23 @@
+# PSR-6c1 SDK async durable smoke port
+wave: PSR-6c1-sdk-async-durable-smoke-port
+program_id: PSR-001
+decision: sdk_port_async_plus_durable_gate
+policy:
+  forbid_harbor_http_wire_in_this_wave: true
+  forbid_api_configure_harbor_in_this_wave: true
+  forbid_denali_catalog_clone: true
+  forbid_full_gate_in_this_wave: true
+  seed_path_backward_compatible: true
+touched:
+  - packages/workspace-sdk/src/http/create-workspace-guest-smoke-http-handlers.ts
+  - packages/workspace-sdk/test/http-plib-dg1.spec.ts
+unchanged:
+  - packages/workspaces/harbor/src/http/harbor-catalog-http.ts
+  - packages/workspaces/guest-club/src/http/guest-club-catalog-http.ts
+  - apps/api/src/http/configure-product-http-hosts.ts
+ratchet:
+  async_port_supported: true
+  durable_gate_supported: true
+  harbor_durable_enabled: false
+  wire_harbor_executed: false
+  next_slice: PSR-6c3-api-configure-harbor-host

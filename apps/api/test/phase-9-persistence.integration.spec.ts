@@ -12,7 +12,7 @@ import { resetBookingsRepositorySingletonForTests } from "../src/bookings/create
 import { getBookingsRepository } from "../src/bookings/create-bookings-repository";
 import { resetIdentityRepositorySingletonForTests } from "../src/identity/create-identity-repository";
 import { getIdentityRepository } from "../src/identity/create-identity-repository";
-import { disconnectPrisma, getPrisma } from "../src/db/prisma";
+import { disconnectPrisma, getPrismaAdmin } from "../src/db/prisma";
 import { withTenantRls } from "../src/db/with-tenant-rls";
 import { resetSettingsConfigRepositorySingletonForTests } from "../src/settings/create-settings-config-repository";
 import { getSettingsConfigRepository } from "../src/settings/create-settings-config-repository";
@@ -22,7 +22,8 @@ import { resetSettingsResourcesRepositorySingletonForTests } from "../src/settin
 import { getSettingsResourcesRepository } from "../src/settings/create-settings-resources-repository";
 import { createTestToursService } from "./test-helpers";
 
-const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
+const hasDatabase =
+  Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
 
 async function httpJson(
   listener: ReturnType<typeof createRequestListener>,
@@ -102,8 +103,8 @@ describe("Phase 9 persistence (integration)", { skip: !hasDatabase, concurrency:
     resetSettingsConfigRepositorySingletonForTests();
     resetSettingsResourcesRepositorySingletonForTests();
 
-    const prisma = getPrisma();
-    await prisma.tenant.create({
+    const admin = getPrismaAdmin();
+    await admin.tenant.create({
       data: {
         id: tenantId,
         subdomain: `p9-persist-${tenantId.slice(0, 8)}`,
@@ -111,7 +112,8 @@ describe("Phase 9 persistence (integration)", { skip: !hasDatabase, concurrency:
         theme: {},
       },
     });
-    await prisma.user.create({
+    // users: FORCE RLS with SELECT-only for app_cloud — seed via admin.
+    await admin.user.create({
       data: { id: userId, mobile: `+1555${tenantId.replace(/\D/g, "").slice(0, 7)}` },
     });
     await withTenantRls(tenantId, (tx) =>
@@ -128,7 +130,7 @@ describe("Phase 9 persistence (integration)", { skip: !hasDatabase, concurrency:
   });
 
   after(async () => {
-    const prisma = getPrisma();
+    const admin = getPrismaAdmin();
     await withTenantRls(tenantId, async (tx) => {
       await tx.operatorRegistration.deleteMany({ where: { tenantId } });
       await tx.tenantConfig.deleteMany({ where: { tenantId } });
@@ -136,8 +138,8 @@ describe("Phase 9 persistence (integration)", { skip: !hasDatabase, concurrency:
       await tx.operatorSettingsAuditEvent.deleteMany({ where: { tenantId } });
       await tx.userTenant.deleteMany({ where: { tenantId } });
     });
-    await prisma.user.deleteMany({ where: { id: userId } });
-    await prisma.tenant.deleteMany({ where: { id: tenantId } });
+    await admin.user.deleteMany({ where: { id: userId } });
+    await admin.tenant.deleteMany({ where: { id: tenantId } });
     resetIdentityRepositorySingletonForTests();
     resetBookingsRepositorySingletonForTests();
     resetSettingsConfigRepositorySingletonForTests();
@@ -224,8 +226,7 @@ describe("Phase 9 persistence (integration)", { skip: !hasDatabase, concurrency:
     const membership = await identity.findMembership(userId, tenantId);
     assert.ok(membership !== null);
 
-    const prisma = getPrisma();
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await getPrismaAdmin().user.findUnique({ where: { id: userId } });
     assert.ok(user !== null);
 
     const authorized = await isPhoneAuthorizedForTenantLogin(tenantId, user.mobile, identity);
@@ -236,8 +237,7 @@ describe("Phase 9 persistence (integration)", { skip: !hasDatabase, concurrency:
   });
 
   it("P9-PERSIST-07 HTTP request-otp gate uses Prisma identity (403 unauthorized, 200 owner)", async () => {
-    const prisma = getPrisma();
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await getPrismaAdmin().user.findUnique({ where: { id: userId } });
     assert.ok(user !== null);
 
     const listener = createRequestListener({ toursService: createTestToursService() });

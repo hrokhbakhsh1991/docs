@@ -123,7 +123,7 @@ forbidden:
 | `phase-6.contract.spec.ts`                           | MAP §12 contractual gate                    |
 | HTTP smoke                                           | 6.6 — wizard paths                          |
 | MinIO e2e                                            | 6.7                                         |
-| `phase-6:gate`                                       | build + test + phase-5:gate + phase-6:guard |
+| `phase-6:gate`                                       | build + test + phase-5:runtime-proof + phase-5:guard + residual apps-cert (`post-test` + `floors` with `PHASE_3_APPS_CERT_INHERIT_ROOT=1`) + phase-6:guard. **PASS ≠** full `phase-3:apps-cert` / api·web leaf-gate composites. Historical 0–5 nest = `phase-5:gate` / `test:full`. Standalone leaf cert remains `phase-3:apps-cert`. |
 
 **Not sufficient:** build green alone (MAP hardening filter).
 

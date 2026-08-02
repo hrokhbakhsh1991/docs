@@ -6,8 +6,8 @@ import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
 
 import { OPERATOR_WIZARD_PATH } from "../src/admin/require-operator-session";
-import { DENALI_WORKSPACE_PLUGIN_ID } from "@app-cloud/workspace-denali";
-import { ensureWizardHostAdapterSurface } from "@app-cloud/workspace-denali/host/wizard/host-adapter-surface";
+import { DENALI_WORKSPACE_PLUGIN_ID } from "@app-tour/workspace-denali";
+import { ensureWizardHostAdapterSurface } from "@app-tour/workspace-denali/host/wizard/host-adapter-surface";
 import type { OperatorTourDetailResponse } from "../src/features/tours/operator-tour-detail-types";
 import {
   buildCloneTourDetailUrl,

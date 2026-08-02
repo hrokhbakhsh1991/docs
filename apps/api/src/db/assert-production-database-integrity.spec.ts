@@ -54,16 +54,21 @@ describe("assertTenantTablesHaveRls (DM-CT-02)", () => {
   });
 
   it("rejects missing or partial RLS on tenant tables", () => {
+    // Absent tables are skipped (migration head enforces presence); empty probe → none.
     assert.throws(
-      () =>
-        assertTenantTablesHaveRls([
-          { relname: "tours", relrowsecurity: true, relforcerowsecurity: true },
-        ]),
+      () => assertTenantTablesHaveRls([]),
       (error: unknown) => {
         assert.ok(error instanceof Error);
-        assert.equal(error.message, `${PRODUCTION_DATABASE_RLS_NOT_APPLIED}:outbox_events`);
+        assert.equal(error.message, `${PRODUCTION_DATABASE_RLS_NOT_APPLIED}:none`);
         return true;
       }
+    );
+
+    // Partial probe with only fully-forced tables is accepted (other names skipped).
+    assert.doesNotThrow(() =>
+      assertTenantTablesHaveRls([
+        { relname: "tours", relrowsecurity: true, relforcerowsecurity: true },
+      ])
     );
 
     assert.throws(

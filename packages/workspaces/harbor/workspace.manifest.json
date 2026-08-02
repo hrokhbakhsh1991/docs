@@ -16,7 +16,7 @@
     "export": "getWorkspacePlugin"
   },
   "guestConformance": {
-    "productionTier": "certified"
+    "productionTier": "stub"
   },
   "http": {
     "prefix": "/harbor",
@@ -38,6 +38,25 @@
       }
     ]
   },
+  "productHttpHost": {
+    "module": "./http",
+    "configureExport": "configureHarborHttpHost",
+    "routeDepsTypeExport": "HarborProductRouteDeps",
+    "portsTypeExport": "HarborHttpHostPorts",
+    "extraTypeExports": ["BookingPublicPort"]
+  },
+  "httpErrors": [
+    {
+      "isErrorExport": "isHarborRegistrationDuplicateError",
+      "codeExport": "HARBOR_REGISTRATION_DUPLICATE",
+      "status": 409
+    },
+    {
+      "isErrorExport": "isHarborWorkspaceRequiredError",
+      "codeExport": "HARBOR_WORKSPACE_REQUIRED",
+      "status": 404
+    }
+  ],
   "devBootstrap": {
     "pluginTenantIds": [
       "fbdcae8a-2cd8-4c2c-898c-f408bd51321a"

@@ -1,0 +1,46 @@
+# Example RC evidence pack — tip draft shape (NOT a closed release)
+schema_version: psr-7e.1
+program_id: PSR-001
+git_sha: a99b0656
+collected_at: "2026-08-01T00:00:00.000Z"
+program_gates:
+  psr5_item7_same_sha_live: false
+  psr6_harbor_certified: false
+  psr7_release_ready: false
+  psr8_publication_ready: false
+  psr9_closure: false
+artifacts:
+  scorecard:
+    path: reports/psr/closure-scorecard-latest.json
+    meets_all_targets: false
+  secret_scan:
+    tracked_open_count: 0
+    allowlisted_count: 1
+    history_complete: false
+  sbom:
+    generator: scripts/ops/sbom-from-pnpm-lock.mjs
+    bom_format: CycloneDX
+    spec_version: "1.5"
+    provenance_included: false
+  branch_protection:
+    print_only_complete: false
+    live_verify_complete: false
+    required_checks:
+      - Phase 0 foundation gate
+      - Phase 0 integration gate
+      - Phase 1 platform-core gate
+      - Booking PostgreSQL capacity
+      - Booking HTTP PostgreSQL
+  staging:
+    live_pack_complete: false
+    four_process_smoke: false
+    restore_drill: false
+    harbor_durable_e2e: false
+  harbor:
+    production_tier: stub
+    live_durable_pack_complete: false
+    seed_e2e_only: true
+  ops_identity:
+    model: shared_env_bearer
+    design_wave: PSR-7d-ops-identity-design
+notes: "Example only — fill from collectors after PSR-7f; never claim RC closed while program_gates are false."

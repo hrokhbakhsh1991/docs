@@ -7,6 +7,7 @@
  */
 
 import { getBookingsRepository } from "./create-bookings-repository";
+import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 import { createBookingsService, type BookingsService } from "./bookings.service";
 import { HostBookingAuthorizationAdapter } from "./infrastructure/host-booking-authorization.adapter";
 import { HostBookingClockAdapter } from "./infrastructure/host-booking-clock.adapter";
@@ -124,6 +125,7 @@ export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string)
     workspaceType: normalized,
     tenantWorkspaceBinding: getSharedTenantWorkspaceBinding(),
     capabilities: toBookingRuntimeCapabilities(capabilities),
+    productionGradeIntegrity: requiresProductionGradeIntegrity(),
   });
   const runtime: BookingRuntime = {
     workspaceType: normalized,

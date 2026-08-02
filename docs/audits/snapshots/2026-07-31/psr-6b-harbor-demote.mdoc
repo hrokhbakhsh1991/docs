@@ -1,0 +1,76 @@
+---
+id: PSR-6B-HARBOR-DEMOTE
+title: PSR-6b — Harbor demote to stub (option A; no persist yet)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes:
+  - docs/audits/snapshots/2026-07-31/psr-6a-harbor-production-truth.mdoc
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-6b-harbor-demote-inventory.yaml
+program_id: PSR-001
+wave: PSR-6b-harbor-demote
+---
+
+# PSR-6b — Harbor demote (option A)
+
+## Architect decision
+
+Continuation of PSR-001 after PSR-6a inventory: **option A** — demote Harbor
+until a durable catalog/registration path exists, then re-certify.
+
+No grey path: `certified` must not imply sellable/durable G1 while default HTTP
+is 501-without-seed and store is in-memory.
+
+## What this wave changes
+
+| Surface | Before | After |
+| --- | --- | --- |
+| `guestConformance.productionTier` | `certified` | `stub` |
+| Proof matrix `plugins.harbor` | CERT-01…05 rows | **removed** (stub must not declare proofs) |
+| Generated certification map | `harbor: certified` | `harbor: stub` |
+| Production onboarding | allowed | **rejected** (`WorkspaceNotCertifiedForProductionError`) |
+| In-memory smoke store / `HARBOR_SMOKE_E2E_SEED` | unchanged | unchanged (PSR-6c) |
+| CERT historical runbook | claimed current certified | retained as **historical G1 smoke pack**; not production authority |
+
+## Logic
+
+1. Tier demote is the honesty gate: provisioning and platform workspace list
+   refuse Harbor for production onboarding.
+2. Removing proof-matrix rows prevents `guard:workspace-certification` from
+   treating a stub as certified-with-proofs.
+3. Registry regenerate is mandatory so
+   `workspace-production-certification.generated.ts` matches manifests.
+4. Persistence, default non-501 production path, restart/RLS proofs, and CERT
+   rebind are **explicitly deferred** to PSR-6c+.
+
+## API / host tests
+
+- `list-platform-workspaces.spec.ts` — Harbor stub, onboarding false.
+- `provision-tenant-production.spec.ts` — Harbor rejected like other stubs.
+
+## Smoke
+
+```bash
+node scripts/ops/psr-6b-harbor-demote-smoke.mjs
+pnpm run generate:workspace-registry -- --check   # or regenerate then check
+pnpm run guard:workspace-certification
+```
+
+## Non-goals
+
+- Wiring Prisma / platform catalog ports
+- Removing `HarborSmokeCatalogStore`
+- Live CERT-03 E2E as closure
+- PSR-5i live same-SHA pack
+- PSR-7
+
+## Next
+
+`PSR-6c-harbor-persistent-catalog` — durable list/detail/register behind the
+same guest smoke port shape (or platform ports), seed env test-only, then
+recert path.

@@ -1,0 +1,62 @@
+---
+id: PSR-8B-LEGACY-IMPORT-RATCHET
+title: PSR-8b — Legacy import ratchet + Denali types/legacy rename plan
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-8b-legacy-import-ratchet-inventory.yaml
+program_id: PSR-001
+wave: PSR-8b-legacy-import-ratchet
+---
+
+# PSR-8b — Legacy import ratchet
+
+## Intent
+
+Freeze the PSR-8a finding that **new-platform runtime code does not import the
+repo-root `legacy/` tree**, and document the Denali **in-package**
+`src/types/legacy/` rename plan — **without** deleting `legacy/` or renaming
+modules in this wave (rename is a later approved slice).
+
+## Ratchet checks
+
+1. `rg` over `apps/*/src` + `packages/workspace-sdk|platform-core/src` finds **zero**
+   imports whose specifier contains repo `legacy/` path segments targeting the
+   frozen tree (`from "…/legacy/…"` where path resolves under repo-root `legacy/`).
+2. `dependency-cruiser.config.js` still declares `no-legacy-imports` with
+   `to.path: "^legacy"`.
+3. Denali `packages/workspaces/denali/src/types/legacy/` **still exists** (honest
+   debt) and is listed in the rename plan below.
+4. No `LICENSE` choice / no `legacy/` archive in this wave.
+
+## Denali rename plan (not executed here)
+
+| Today | Target (future `PSR-8b1`) |
+| --- | --- |
+| `src/types/legacy/repo-types.ts` | `src/types/denali-repo-types.ts` (or `vendor/`) |
+| `src/types/legacy/repo-types-denali.ts` | `src/types/denali-canonical-types.ts` |
+| `src/types/legacy/shared-contracts.ts` | `src/types/denali-shared-contracts.ts` |
+| `src/types/legacy/denali-*.ts` | `src/types/denali-*.ts` |
+
+Rules for `PSR-8b1`:
+
+- Doc-first note before mass move
+- Keep public export stability via `internal.ts` re-exports
+- Do not touch repo-root `legacy/` in the same PR
+
+## Smoke
+
+```bash
+node scripts/ops/psr-8b-legacy-import-ratchet-smoke.mjs
+```
+
+## Next
+
+`PSR-8b1-denali-types-legacy-rename` (Architect approve) or live YES packs /
+`PSR-7d1` accept / governance (`L-GOV`) inventory.

@@ -1,0 +1,55 @@
+---
+id: PSR-5F7A-INTEGRATION-DELIVERY
+title: PSR-5f7a — BG_INTEGRATION_DELIVERY (delivery repository claim only)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5f-background-admin-inventory.yaml
+  - apps/api/src/integrations/infrastructure/prisma-integration-delivery.repository.ts
+program_id: PSR-001
+wave: PSR-5f7a-integration-delivery
+---
+
+# PSR-5f7a — integration delivery claim
+
+## Scope (exactly one file)
+
+| File | Prior direct calls | Reason |
+| --- | ---: | --- |
+| `integrations/infrastructure/prisma-integration-delivery.repository.ts` | 2 | `BG_INTEGRATION_DELIVERY` |
+
+`claimPendingGlobal` / `claimPendingForTenant` previously used **dynamic**
+`import("../../db/prisma")` then `getPrismaAdmin()`. Both switch to a static
+`getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_INTEGRATION_DELIVERY)`.
+
+Tenant-scoped enqueue/mark paths already use `withTenantRls` — unchanged.
+
+## Deferred
+
+- `run-telegram-backfill.ts` + `run-tour-published-exposure-remap.ts` → **f7b**
+  (`BG_INTEGRATION_MIGRATION`)
+- `tour-created-envelope-guard.ts` → **f8** (`BG_EVENTS`)
+
+## Non-goals
+
+- No SKIP LOCKED claim SQL / mapping changes
+- No migration scripts in this wave
+
+## Ratchet after f7a
+
+- f inventory: `migrated_file_count: 17`, `remaining_direct: 3`
+- main: `api_src_admin_files: 9`, `api_src_admin_calls: 27`,
+  `background_repair_direct_admin_files: 3`
+
+## Smoke
+
+```bash
+node scripts/ops/psr-5f-background-admin-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+```

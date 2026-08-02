@@ -12,6 +12,7 @@ import { enrichTourListProjectionsWithAcceptedCount } from "../bookings/enrich-t
 import { enrichTourListProjectionsCoverImageUrls } from "./enrich-tour-list-cover-image-url";
 import type { TourStorageRepository } from "../db/tour.repository";
 import { ensureDevMemoryTourSeedForTenant } from "../storage/create-tour-storage";
+import { getActiveWorkspaceType } from "../tenant/tenant-request-context";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
 
@@ -104,7 +105,11 @@ export async function listToursOperator(
   query: OperatorListToursQuery
 ): Promise<OperatorTourListResult> {
   ensureDevMemoryTourSeedForTenant(tenantId, store);
-  const workspaceType = await resolveWorkspaceTypeForTenant(tenantId);
+  const activeWorkspaceType = getActiveWorkspaceType()?.trim();
+  const workspaceType =
+    activeWorkspaceType !== undefined && activeWorkspaceType.length > 0
+      ? activeWorkspaceType
+      : await resolveWorkspaceTypeForTenant(tenantId);
   const plugin = await resolveWorkspacePluginForType(workspaceType);
   const extract =
     plugin.tourList?.extractTourListProjection ?? defaultExtractTourListProjection;

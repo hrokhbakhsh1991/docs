@@ -1,0 +1,50 @@
+{% callout type="info" %}
+**Option B consumer (2026-08-01)** — `phase-6:gate` calls `phase-5:runtime-proof` + `phase-5:guard` + residual apps-cert (`post-test` + `floors`), not nested `phase-5:gate` and not full `phase-3:apps-cert`. Historical 0–5 recursive closure remains `phase-5:gate` / `test:full`. Standalone leaf certification remains `phase-3:apps-cert`.
+{% /callout %}
+
+# Phase 5 — runtime-proof boundary
+
+## Command ownership
+
+| Command | Role |
+| --- | --- |
+| `phase-5:guard` | Static contracts — docs/schema/prisma/SQL presence, anti-hollow, doc hardening, `phase-5.contract.spec.ts` |
+| `phase-5:runtime-proof` | Runtime/data/security — `db:test-reset`, `phase-4:guard` (not `:gate`), targeted perf specs |
+| `phase-5:gate` | Historical full closure — build + test + nested `phase-4:gate` + `phase-5:guard` (**unchanged**; also `test:full`) |
+| `phase-6:gate` | Option B — build + test + runtime-proof + phase-5:guard + residual apps-cert (`post-test` + `floors`) + phase-6:guard |
+
+## `phase-5:runtime-proof` graph
+
+```text
+phase-5:runtime-proof
+ ├─ DATABASE_URL required (fail closed)
+ ├─ db:test-reset
+ ├─ phase-4:guard          ← RLS + tenant-security + kernel/events floors
+ ├─ atomic-write-perf      P5_PERF_GATE_MS=850
+ ├─ outbox-throughput      MIN_THROUGHPUT=100
+ └─ noisy-neighbor         BASELINE_RATIO_MAX=1.25
+```
+
+Report: `reports/phase-5-runtime-proof-YYYY-MM-DD.json`
+
+**Forbidden in this runner:** `phase-4:gate`, `phase-3:gate`, `phase-5:gate`, full monorepo `pnpm test`.
+
+## Trunk perf env inventory
+
+Repo grep (`P5_PERF` / `MIN_THROUGHPUT` / `BASELINE_RATIO`) — trunk gate signals live on:
+
+| Spec | Env (gate tier) |
+| --- | --- |
+| `apps/api/test/chaos/atomic-write-perf.spec.ts` | `P5_PERF_GATE_MS=850` |
+| `apps/api/test/3-performance/outbox-throughput.spec.ts` | `MIN_THROUGHPUT=100` |
+| `apps/api/test/3-performance/noisy-neighbor-latency.spec.ts` | `BASELINE_RATIO_MAX=1.25` |
+
+Stricter nightly defaults (e.g. ratio **1.10**) remain outside this command.
+
+## Anti-hollow
+
+| Claim | Truth |
+| --- | --- |
+| `phase-5:runtime-proof` PASS | Runtime slice only — not full `phase-5:gate` |
+| `phase-5:guard` PASS | Static/contracts only — not RLS/perf |
+| `phase-6:gate` PASS | Phase 6 + Phase 5 runtime/static + **residual** apps-cert — **not** full `phase-3:apps-cert` / api·web leaf-gate composites; **not** historical 0–5 nest |

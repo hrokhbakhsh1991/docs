@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import { TENANT_KERNEL_TEST_MIN, PLATFORM_EVENTS_TEST_MIN } from "./gate-thresholds.mjs";
 import { evaluateAntiHollowPhase4 } from "./lib/anti-hollow-phase4.mjs";
+import { evaluateDenaliKernelBoundary } from "./lib/denali-kernel-boundary.mjs";
 import { evaluatePackageTestRun } from "./lib/parse-test-output.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -33,15 +34,6 @@ function runPnpm(args) {
     shell: true,
     maxBuffer: 16 * 1024 * 1024,
   });
-}
-
-function rgDenaliZero() {
-  const r = spawnSync(
-    "rg",
-    ["-i", "denali", "packages/tenant-kernel", "packages/platform-events"],
-    { cwd: REPO_ROOT, encoding: "utf8" }
-  );
-  return r.status === 1;
 }
 
 const API_RLS_TEST = "test/rls-isolation.integration.spec.ts";
@@ -203,12 +195,19 @@ function main() {
     detail: contract.status !== 0 ? contract.stderr?.slice(0, 500) : null,
   });
 
+  const denaliBoundary = evaluateDenaliKernelBoundary(REPO_ROOT);
   checks.push({
     id: "p4_no_denali_in_kernel",
-    description: "rg -i denali packages/tenant-kernel platform-events → 0",
+    description: "tenant-kernel/platform-events have no Denali workspace or product coupling",
     required: true,
-    ok: rgDenaliZero(),
-    detail: null,
+    ok: denaliBoundary.ok,
+    detail: denaliBoundary.ok
+      ? null
+      : denaliBoundary.violations
+          .map(({ file, line, kind, value }) =>
+            `${file}:${line} ${kind}${value ? ` (${value})` : ""}`
+          )
+          .join("\n"),
   });
 
   const infraCompose = path.join(REPO_ROOT, "infra", "docker-compose.yml");

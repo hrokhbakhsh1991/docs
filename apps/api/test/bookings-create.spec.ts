@@ -44,6 +44,7 @@ describe("bookings-create.spec.ts — Phase 9.5 API", () => {
         guestLabel: "New Guest",
         partySize: 2,
         departureAt,
+        registrationIntake: { tourCapacityMax: 12 },
       },
     });
     assert.equal(response.status, 201);

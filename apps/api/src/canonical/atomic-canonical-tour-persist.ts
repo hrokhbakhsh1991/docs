@@ -305,16 +305,20 @@ async function enqueueTourPublishedOutboxIfPublic(
   });
 }
 
+/**
+ * Unchecked scalar FK — do not `tenant: { connect }` under app_cloud.
+ * @see docs/phase-20/p7/appendices/TOUR_CREATE_TENANTS_RLS_FK.md
+ */
 function buildTourCreateData(args: {
   tourId: string;
   tenantId: string;
   canonical: CanonicalDocument;
   projections: ReturnType<typeof deriveTourProjections>;
   createdAt: Date;
-}): Prisma.TourCreateInput {
+}): Prisma.TourUncheckedCreateInput {
   return {
     id: args.tourId,
-    tenant: { connect: { id: args.tenantId } },
+    tenantId: args.tenantId,
     canonical: args.canonical as unknown as Prisma.InputJsonValue,
     title: args.projections.title,
     schemaVersion: args.projections.schemaVersion,

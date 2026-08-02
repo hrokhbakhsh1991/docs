@@ -1,0 +1,87 @@
+---
+id: PSR-6A-HARBOR-TRUTH
+title: PSR-6a — Harbor production-truth inventory (no demote / no persist yet)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-6a-harbor-production-truth-inventory.yaml
+program_id: PSR-001
+wave: PSR-6a-harbor-production-truth-inventory
+---
+
+# PSR-6a — Harbor production-truth inventory
+
+## Intent (PSR-6)
+
+Harbor must become a **second production-viable G1 product**, not only a
+smoke-gated certified proof. SoT forbids a grey path: either **demote then
+persist** (option A) or **close the durable gap before any sellable claim**
+(option B).
+
+This wave is **inventory only** — no manifest demote, no Postgres port, no
+CERT re-run, no `phase-*:gate`.
+
+## Current claim vs runtime truth
+
+| Axis | Claimed today | Runtime finding |
+| --- | --- | --- |
+| Tier | `guestConformance.productionTier: certified` | Manifest + CERT doc agree |
+| CERT-01…05 | Pass (architecture/smoke pack) | Documented in `docs/workspaces/harbor/certification.md` |
+| Default HTTP (no seed env) | Implied production guest surface | **501** `WORKSPACE_GUEST_STUB` unless `HARBOR_SMOKE_E2E_SEED=1` |
+| Catalog/registration SoT | Production durable | **In-memory** `HarborSmokeCatalogStore` singleton + fixture seed |
+| Restart durability | Required by PSR-6 gate | **Lost** on process restart |
+| Tenant RLS / Prisma tours | Required for durable G1 | **Not wired** — smoke port only |
+| Spec drift | Profile test expects `stub` | `dg4-harbor-profile.spec.ts` still asserts `stub` while manifest is `certified` |
+
+## Gap matrix (exit blockers)
+
+1. **Default path:** production without smoke env must not return guest stub 501
+   for declared catalog/register routes.
+2. **Persistence:** list/detail/register must use platform persistent ports
+   (or an approved Harbor adapter over them), not process memory.
+3. **Seed boundary:** fixture/`HARBOR_SMOKE_E2E_SEED` only for test|dev|e2e —
+   never the sole production data path.
+4. **Proofs:** restart durability, duplicate-registration idempotency, tenant
+   isolation, migrate/rollback — same-SHA evidence (ties to PSR-5i live pack).
+5. **Recert:** CERT-01…05 re-bound to durable evidence after path is real.
+6. **Spec honesty:** profile/unit expectations must match chosen tier during
+   remediation (demote → stub/candidate, or keep certified only under option B
+   with an explicit “cert ≠ durable” waiver until gate closes — Architect chooses).
+
+## Options (decision pending — not executed)
+
+| Option | First move | Risk |
+| --- | --- | --- |
+| **A (recommended in SoT)** | Demote tier → `stub`/`candidate`, then wire persistence, then recert | Honest marketing of maturity |
+| **B** | Keep `certified`, close durable gaps before any sales onboarding | Faster optics; zero grey “sellable” claims until done |
+
+## Explicit non-goals (this wave)
+
+- Changing `productionTier`
+- Replacing `HarborSmokeCatalogStore`
+- Running Harbor E2E / certification guards as a closure claim
+- Starting PSR-7
+
+## Residual from PSR-5
+
+Item 7 live same-SHA pack remains
+`inventory_complete_live_proof_pending` — Architect YES required. PSR-6a does
+not subsume that pack.
+
+## Smoke
+
+```bash
+node scripts/ops/psr-6a-harbor-production-truth-smoke.mjs
+```
+
+## Next slices (after Architect choice of A vs B)
+
+- `PSR-6b` — demote **or** durable-path spike (per choice)
+- `PSR-6c` — persistent catalog/registration adapter
+- `PSR-6d` — durability / isolation proofs + CERT rebind

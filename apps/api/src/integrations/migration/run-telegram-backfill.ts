@@ -3,7 +3,8 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../../db/with-tenant-rls";
-import { getPrismaAdmin, disconnectPrisma } from "../../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../../db/background-admin-client";
+import { disconnectPrisma } from "../../db/prisma";
 import { putIntegrationSecretInTransaction } from "../infrastructure/integration-secret-store";
 import { seedDefaultEventPoliciesForConnectionInTransaction } from "../infrastructure/prisma-integration-policy.repository";
 import {
@@ -33,7 +34,7 @@ export type VerifyTelegramBackfillResult = {
 };
 
 async function listLegacyCandidates(tenantId?: string): Promise<LegacyTelegramBotSnapshot[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_INTEGRATION_MIGRATION);
   const rows = await admin.workspaceTelegramBot.findMany({
     where: tenantId !== undefined ? { tenantId } : undefined,
     orderBy: [{ tenantId: "asc" }, { workspaceType: "asc" }],
@@ -189,7 +190,7 @@ export async function verifyTelegramBackfill(
   tenantId?: string
 ): Promise<VerifyTelegramBackfillResult> {
   const legacyRows = await listLegacyCandidates(tenantId);
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_INTEGRATION_MIGRATION);
   const connectionRows = await admin.integrationConnection.findMany({
     where: {
       provider: "telegram",

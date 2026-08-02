@@ -5,4 +5,5 @@
  */
 
 export { configureDenaliProductHttpHost, type BookingPublicPort, type DenaliProductRouteDeps, type DenaliPublicDestinationPort } from "@app-tour/workspace-denali/host/http";
+export { configureHarborHttpHost, type HarborHttpHostPorts, type HarborProductRouteDeps } from "@app-tour/workspace-harbor/host/http";
 export { configureUrbanHttpHost, type UrbanHttpHostPorts, type UrbanProductRouteDeps } from "@app-tour/workspace-urban/host/http";

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
 
-import { DENALI_WORKSPACE_PLUGIN_ID } from "@app-cloud/workspace-denali";
-import { ensureWizardHostAdapterSurface } from "@app-cloud/workspace-denali/host/wizard/host-adapter-surface";
+import { DENALI_WORKSPACE_PLUGIN_ID } from "@app-tour/workspace-denali";
+import { ensureWizardHostAdapterSurface } from "@app-tour/workspace-denali/host/wizard/host-adapter-surface";
 
 import { encodeTourActionSubmitError } from "../src/wizard/tour-action-submit-codec";
 

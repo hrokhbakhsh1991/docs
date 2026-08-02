@@ -1,0 +1,35 @@
+# PSR-7c SBOM + provenance recipe (generator baseline; no attest YES)
+wave: PSR-7c-sbom-provenance-recipe
+program_id: PSR-001
+decision: tooling_baseline_lockfile_cdx
+policy:
+  forbid_full_gate_in_this_wave: true
+  forbid_provenance_attest_claim: true
+  forbid_license_deny_gate_claim: true
+  forbid_ci_required_check_without_yes: true
+  forbid_claiming_psr7_r_sbom_closed: true
+  provenance_requires_architect_yes: true
+generator:
+  command: node scripts/ops/sbom-from-pnpm-lock.mjs
+  default_out: reports/sbom/app-tour.cdx.json
+  bom_format: CycloneDX
+  spec_version: "1.5"
+  min_component_count: 1000
+static_assets:
+  - scripts/ops/sbom-from-pnpm-lock.mjs
+  - docs/audits/snapshots/2026-07-31/psr-7c-sbom-provenance-recipe.mdoc
+  - pnpm-lock.yaml
+deferred_to_yes_pack:
+  - syft_image_sbom
+  - github_attest_or_cosign
+  - license_deny_list_gate
+  - release_asset_upload_on_sha
+ratchet:
+  sbom_tooling_present: true
+  provenance_complete: false
+  license_gate_complete: false
+  ci_required_check: false
+  psr7_gate_closed: false
+  inventory_complete: true
+  next_slice: PSR-7d-ops-identity-design
+  alternate_next: PSR-6c6-harbor-live-evidence

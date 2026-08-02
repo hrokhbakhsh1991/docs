@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 
-import { getPrismaAdmin } from "../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../db/background-admin-client";
 
 export class OutboxReplayNotFailedError extends Error {
   readonly code = "OUTBOX_REPLAY_NOT_FAILED";
@@ -43,7 +43,7 @@ export async function replayFailedOutboxEvent(args: {
   /** @deprecated No longer used — gate moved to HTTP edge. Kept for call-site compat. */
   readonly skipDevOnlyGate?: boolean;
 }): Promise<void> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_REPLAY);
   const row = await admin.outboxEvent.findUnique({ where: { id: args.outboxId } });
   if (row === null) {
     throw new OutboxReplayNotFoundError();
@@ -72,7 +72,7 @@ export async function tryReplayFailedOutboxEvent(args: {
   readonly tenantId: string;
   readonly outboxId: string;
 }): Promise<"replayed" | "skipped"> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_REPLAY);
   const updated = await admin.outboxEvent.updateMany({
     where: {
       id: args.outboxId,

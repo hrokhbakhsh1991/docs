@@ -40,7 +40,7 @@ on:
         type: boolean
         default: true
       run_full_phase_8_gate:
-        description: Run full pnpm run phase-8:gate (nested phase-7 chain — slow)
+        description: Run full pnpm run phase-8:gate (build+test + phase-7:guard + phase-8:guard)
         type: boolean
         default: false
 

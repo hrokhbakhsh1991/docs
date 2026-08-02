@@ -1,0 +1,97 @@
+---
+id: PSR-6C6-HARBOR-LIVE-EVIDENCE-RECIPE
+title: PSR-6c6 — Harbor durable live-evidence recipe (no execution / no promote)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-6c6-harbor-live-evidence-recipe-inventory.yaml
+program_id: PSR-001
+wave: PSR-6c6-harbor-live-evidence-recipe
+---
+
+# PSR-6c6 — Harbor durable live-evidence recipe
+
+## Intent
+
+Turn PSR-6c5 proof families into an **executable checklist** for Architect YES —
+**without running** Postgres, Playwright, CERT promote, or full gates in this wave.
+
+## Hard rules for the live pack (when YES)
+
+1. `HARBOR_SMOKE_E2E_SEED` must be **unset or `0`** (not `"1"`).
+2. API must boot with Harbor product HTTP host configured (normal `configureProductHttpHosts`).
+3. `STORAGE_DRIVER=prisma` (or equivalent durable driver) + disposable `DATABASE_URL*`.
+4. At least one **published** Harbor tour exists for the proof tenant.
+5. Identical `git rev-parse HEAD` recorded across H-DEFAULT, H-REGISTER, H-DUP,
+   H-RESTART, H-RLS, and H-CERT artifacts.
+6. Do **not** set `productionTier: certified` until all families pass + matrix rows
+   restored + Architect promote YES.
+
+## Current honesty gap (still true)
+
+`apps/marketing/scripts/smoke-marketing-harbor-e2e-servers.mjs` forces
+`HARBOR_SMOKE_E2E_SEED: "1"` and `STORAGE_DRIVER: "memory"`. That script proves
+the **seed** path only. Live durable CERT-03 needs a **new** server harness
+(or env override) — tracked as gap `G-SEED-E2E-HARNESS` below.
+
+## Recipe (do not execute here)
+
+### A. Unit confirm (already green; re-run OK without YES)
+
+```bash
+pnpm --filter @app-tour/workspace-harbor run test
+```
+
+### B. Live durable HTTP (YES + Postgres)
+
+```bash
+export DATABASE_URL=...
+export DATABASE_URL_ADMIN=...
+export STORAGE_DRIVER=prisma
+unset HARBOR_SMOKE_E2E_SEED
+# provision tenant + publish tour, then:
+# GET /harbor/catalog  (x-tenant-id)
+# GET /harbor/catalog/:id
+# POST /harbor/registrations  (expect 201)
+# POST same email again     (expect 409 HARBOR_REGISTRATION_DUPLICATE)
+# restart API process; confirm booking/tour still readable
+```
+
+### C. RLS (pair PSR-5i)
+
+```bash
+pnpm run guard:repository-rls
+# plus targeted two-tenant harbor catalog/register under prisma
+```
+
+### D. Durable E2E / CERT-03 (YES; harness change first)
+
+1. Land `G-SEED-E2E-HARNESS` fix (seed off + prisma + seeded published tours).
+2. `PW_NO_REUSE_SERVER=1 pnpm --filter @apps/marketing run test:smoke:harbor`
+3. Restore `plugins.harbor` CERT rows; `generate:workspace-registry`;
+   `guard:workspace-certification`.
+4. Promote tier only with Architect YES.
+
+## Gaps blocked until YES / harness
+
+| Id | Blocker |
+| --- | --- |
+| G-SEED-E2E-HARNESS | Marketing harbor e2e forces seed+memory |
+| G-LIVE-PACK | Architect YES for Postgres + restart + RLS |
+| G-PROMOTE | Architect YES after live pack |
+
+## Smoke
+
+```bash
+node scripts/ops/psr-6c6-harbor-live-evidence-recipe-smoke.mjs
+```
+
+## Next
+
+Architect **YES** → execute live pack → promote wave. Or continue PSR-7e evidence schema.

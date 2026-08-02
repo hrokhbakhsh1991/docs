@@ -10,14 +10,25 @@ prerequisite: pnpm run phase-4:gate
 ```bash
 nvm use && corepack enable && pnpm install
 pnpm run phase-5:gate
-# = build + test + phase-4:gate + phase-5:guard
+# = db:test-reset + build + test (P5 perf env) + phase-4:gate + phase-5:guard
+# UNCHANGED — still nests phase-4:gate → phase-3:gate
 ```
 
-## Guard only (scaffold — not 5.6 closure)
+## Static guard (scaffold — not runtime / not 5.6 alone)
 
 ```bash
 pnpm run phase-5:guard
 # reports/phase-5-gate-YYYY-MM-DD.json
+# docs/schema/prisma/SQL + contract + anti-hollow — NOT RLS/perf
+```
+
+## Runtime proof (additive — not a denest of phase-5:gate)
+
+```bash
+pnpm run phase-5:runtime-proof
+# DATABASE_URL required → db:test-reset → phase-4:guard → targeted P5 perf specs
+# reports/phase-5-runtime-proof-YYYY-MM-DD.json
+# See docs/phase-5/phase-5-runtime-proof.mdoc
 ```
 
 ## Per subphase

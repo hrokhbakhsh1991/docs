@@ -6,6 +6,8 @@ export type WorkspaceHttpHostSlot<TPorts> = {
   readonly configure: (ports: TPorts) => void;
   readonly resetForTests: () => void;
   readonly get: () => TPorts;
+  /** PSR-6c2 — peek without throwing when host not configured yet. */
+  readonly tryGet: () => TPorts | null;
 };
 
 export function createWorkspaceHttpHostSlot<TPorts>(options: {
@@ -24,6 +26,9 @@ export function createWorkspaceHttpHostSlot<TPorts>(options: {
       if (configuredPorts === null) {
         throw new Error(options.notConfiguredCode);
       }
+      return configuredPorts;
+    },
+    tryGet(): TPorts | null {
       return configuredPorts;
     },
   };

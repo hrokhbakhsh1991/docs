@@ -7,7 +7,7 @@ import {
   resolveOperatorShellNavCapability,
   type WorkspaceOperatorShellNavLink,
   type WorkspacePlugin,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
 

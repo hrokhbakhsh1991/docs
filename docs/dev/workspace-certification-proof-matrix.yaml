@@ -19,15 +19,5 @@ plugins:
         status: partial
         runbook: docs/phase-23/runbooks/p10-second-club-onboarding.md
         note: includes productionTier gate (Phase H); workspace-specific runbook optional
-  harbor:
-    proofs:
-      CERT-01: pass
-      CERT-02: pass
-      CERT-03:
-        status: pass
-        hookIds:
-          - SMK-MKT-HARBOR-01
-      CERT-04: pass
-      CERT-05:
-        status: pass
-        runbook: docs/workspaces/harbor/certification.md
+  # harbor: demoted to stub in PSR-6b (option A) — stub plugins must not declare
+  # live CERT rows. Historical runbook: docs/workspaces/harbor/certification.md

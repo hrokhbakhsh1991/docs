@@ -11,7 +11,7 @@ export const WORKSPACE_SDK_TEST_MIN = {
   phase1: 39,
   /** phase-2-guard — theme ingress + CASL growth */
   phase2: 50,
-  /** phase-3-guard — full scaffold close */
+  /** phase-3:apps-cert — sdk suite floor (static phase-3:guard does not run tests) */
   phase3: 100,
 };
 
@@ -36,13 +36,16 @@ export const THEME_REACT_TEST_MIN = {
 };
 
 export const WORKSPACE_STARTER_TEST_MIN = {
+  /** phase-3:apps-cert */
   phase3: 15,
 };
 
+/** Enforced inside apps/api phase-3:api-gate (invoked by phase-3:apps-cert), not by static phase-3:guard */
 export const APPS_API_TEST_MIN = {
   phase3: 20,
 };
 
+/** Enforced inside apps/web phase-3:web-gate (invoked by phase-3:apps-cert), not by static phase-3:guard */
 export const APPS_WEB_TEST_MIN = {
   phase3: 10,
 };

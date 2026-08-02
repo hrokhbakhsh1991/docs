@@ -35,7 +35,6 @@ import type { BookingRecord } from "./bookings.types";
 import {
   BookingCapabilityViolationError,
 } from "./bookings.errors";
-import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 
 const BULK_APPROVE_MAX_BATCH = 25;
 
@@ -54,6 +53,11 @@ export type BookingsServiceDeps = {
   readonly tenantWorkspaceBinding: BookingTenantWorkspaceBindingPort;
   /** Composition-resolved capability decisions (not generated matrix). */
   readonly capabilities: BookingRuntimeCapabilities;
+  /**
+   * Host integrity profile — fail-closed when tour SoT lacks capacityMax.
+   * Injected at composition (never import runtime-profile into this service).
+   */
+  readonly productionGradeIntegrity: boolean;
 };
 
 
@@ -104,6 +108,7 @@ export class BookingsService {
   private readonly workspaceType: string;
   private readonly tenantWorkspaceBinding: BookingTenantWorkspaceBindingPort;
   private readonly capabilities: BookingRuntimeCapabilities;
+  private readonly productionGradeIntegrity: boolean;
 
   constructor(deps: BookingsServiceDeps) {
     if (deps.repository == null) {
@@ -136,6 +141,9 @@ export class BookingsService {
     if (deps.capabilities == null) {
       throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:capabilities");
     }
+    if (typeof deps.productionGradeIntegrity !== "boolean") {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:productionGradeIntegrity");
+    }
     const workspaceType = deps.workspaceType.trim().toLowerCase();
     if (workspaceType.length === 0) {
       throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:workspaceType");
@@ -151,6 +159,7 @@ export class BookingsService {
     this.workspaceType = workspaceType;
     this.tenantWorkspaceBinding = deps.tenantWorkspaceBinding;
     this.capabilities = deps.capabilities;
+    this.productionGradeIntegrity = deps.productionGradeIntegrity;
   }
 
   /** Bound workspaceType for this runtime (capability composition key). */
@@ -350,7 +359,7 @@ export class BookingsService {
     if (serverMax !== null) {
       return serverMax;
     }
-    if (requiresProductionGradeIntegrity()) {
+    if (this.productionGradeIntegrity) {
       throw new Error(BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE);
     }
     return requireTourCapacityMax(intake);

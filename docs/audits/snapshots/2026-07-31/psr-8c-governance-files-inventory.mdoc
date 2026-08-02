@@ -1,0 +1,58 @@
+---
+id: PSR-8C-GOVERNANCE-FILES-INVENTORY
+title: PSR-8c — Open-source governance files inventory (no license choice)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-8c-governance-files-inventory.yaml
+program_id: PSR-001
+wave: PSR-8c-governance-files-inventory
+---
+
+# PSR-8c — Governance files inventory
+
+## Intent
+
+Inventory what PSR-8 / PSR-9 require for publishable governance **without**
+choosing a license or adding legal files in this wave (Architect + counsel).
+
+## Required trio (SoT)
+
+| File | Present | Notes |
+| --- | ---: | --- |
+| `LICENSE` / `LICENSE.md` | no | Blocks public clone claims |
+| `SECURITY.md` | no | Vulnerability disclosure path missing |
+| `CONTRIBUTING.md` | no | Contribution / DCO / CLA undecided |
+
+## Related gaps
+
+| Asset | Present | Notes |
+| --- | ---: | --- |
+| `CODE_OF_CONDUCT.md` | no | Optional but listed in SoT governance |
+| `CODEOWNERS` | probe | May exist under `.github/` — see inventory yaml |
+| `GOVERNANCE.md` | no | Program-level decision record |
+| Package `license` fields | sparse | Several `UNLICENSED` (finance/booking contracts) |
+| Publication model | undecided | full OSS vs open-core vs source-available (PSR-8a) |
+
+## Non-goals
+
+- Writing/choosing LICENSE text
+- Adding SECURITY/CONTRIBUTING content
+- Claiming L-GOV closed
+
+## Smoke
+
+```bash
+node scripts/ops/psr-8c-governance-files-inventory-smoke.mjs
+```
+
+## Next
+
+Architect chooses publication model + license → `PSR-8c1-governance-files-land`
+(doc-first templates). Or YES/accept packs / `PSR-8b1` rename.

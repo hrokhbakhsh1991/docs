@@ -1,0 +1,85 @@
+# PSR-7a security/release readiness inventory (no live YES)
+wave: PSR-7a-security-release-inventory
+program_id: PSR-001
+decision: inventory_recipe_only
+policy:
+  forbid_full_gate_in_this_wave: true
+  forbid_gh_branch_protection_apply_without_yes: true
+  forbid_staging_vps_live_without_yes: true
+  forbid_claiming_psr7_gate_closed: true
+  harbor_remains_stub: true
+  live_proof_requires_architect_yes: true
+exit_criteria:
+  - id: R-OPS-ID
+    sot_item: 1
+    purpose: Short-lived scoped rotatable platform-ops identity + audit
+    static_assets:
+      - apps/api/src/platform/read-platform-ops-bearer-token.ts
+      - apps/api/src/platform/resolve-platform-ops-phone-access.ts
+      - apps/api/src/platform/platform-ops-auth-fail-closed.spec.ts
+      - docs/phase-15/platform-control-center-api.mdoc
+    current_model: shared_env_bearer_plus_phone_whitelist
+    gap: not_short_lived_not_scoped_not_rotated
+    live_status: pending_design
+  - id: R-BRANCH
+    sot_item: 2
+    purpose: Branch protection + required checks from GitHub API on release SHA
+    static_assets:
+      - scripts/ops/configure-main-branch-protection.mjs
+      - scripts/ops/main-branch-required-checks.mjs
+      - scripts/ops/verify-required-check-names.mjs
+      - reports/GITHUB_BRANCH_PROTECTION.md
+      - docs/phase-20/p7/appendices/BOOKING_BRANCH_PROTECTION_GATE.md
+    recipe_commands:
+      - pnpm run ops:branch-protection:print
+      - pnpm run ops:branch-protection:dry-run
+      - pnpm run ops:branch-protection:verify
+    gap: live_verify_on_tip_sha_pending_yes
+    live_status: pending
+  - id: R-STAGING
+    sot_item: 3
+    purpose: Staging migrate + four-process + Harbor + failure inject + rollback/restore
+    static_assets:
+      - .github/workflows/p10-staging-gate.yml
+      - .github/workflows/deploy-vps.yml
+      - .github/workflows/restore-drill-monthly.yml
+      - scripts/restore-drill-smoke.sh
+      - scripts/p7-staging-verify.sh
+      - scripts/p8-staging-remote-smoke.sh
+      - docs/phase-20/p7/runbooks/p7-staging-e2e.md
+    gap: live_vps_pack_pending_yes_harbor_e2e_still_seed
+    live_status: pending
+  - id: R-SECRET
+    sot_item: 4
+    purpose: Secret scan on tracked files and history
+    static_assets: []
+    gap: no_scanner_script_or_workflow_in_repo_root
+    live_status: missing_tooling
+  - id: R-SBOM
+    sot_item: 5
+    purpose: SBOM + dependency/license scan + provenance artifact
+    static_assets: []
+    gap: no_sbom_package_script_or_workflow
+    live_status: missing_tooling
+  - id: R-EVIDENCE
+    sot_item: 6
+    purpose: Immutable machine-readable release evidence pack
+    static_assets:
+      - docs/architecture/platform-simplification-remediation.mdoc
+      - docs/dev/workspace-certification-proof-matrix.yaml
+      - docs/audits/snapshots/2026-07-31/psr-5i-same-sha-proofs-inventory.yaml
+    gap: no_unified_rc_evidence_schema
+    live_status: pending_design
+ratchet:
+  family_count: 6
+  static_asset_missing_count: 0
+  secret_scan_tooling_present: false
+  sbom_tooling_present: false
+  ops_identity_is_short_lived: false
+  live_branch_verify_complete: false
+  live_staging_pack_complete: false
+  psr7_gate_closed: false
+  harbor_tier: stub
+  inventory_complete: true
+  next_slice: PSR-7b-secret-scan-baseline
+  alternate_next: PSR-6c6-harbor-live-evidence

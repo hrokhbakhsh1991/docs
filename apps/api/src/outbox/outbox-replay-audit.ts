@@ -1,6 +1,6 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 
-import { getPrismaAdmin } from "../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../db/background-admin-client";
 
 export type OutboxReplayRunRecord = {
   readonly id: string;
@@ -40,7 +40,7 @@ export async function persistOutboxReplayRun(
     readonly durationMs: number;
     readonly details: Record<string, unknown>;
   },
-  admin: PrismaClient = getPrismaAdmin()
+  admin: PrismaClient = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_REPLAY)
 ): Promise<OutboxReplayRunRecord> {
   return admin.outboxReplayRun.create({
     data: {
@@ -65,7 +65,7 @@ export async function persistOutboxReplayRun(
 
 export async function getOutboxReplayRun(
   runId: string,
-  admin: PrismaClient = getPrismaAdmin()
+  admin: PrismaClient = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_REPLAY)
 ): Promise<OutboxReplayRunRecord | null> {
   return admin.outboxReplayRun.findUnique({ where: { id: runId } });
 }

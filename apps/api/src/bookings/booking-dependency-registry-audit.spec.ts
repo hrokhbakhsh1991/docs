@@ -163,6 +163,7 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
         assertTenantBoundToRuntime: async () => undefined,
       },
       capabilities: toBookingRuntimeCapabilities(caps),
+      productionGradeIntegrity: false,
     });
 
     await assert.rejects(

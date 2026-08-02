@@ -1,0 +1,71 @@
+# PSR-6a Harbor production-truth inventory (historical; live tier owned by PSR-6b)
+wave: PSR-6a-harbor-production-truth-inventory
+program_id: PSR-001
+decision: inventory_only
+policy:
+  forbid_demote_in_this_wave: true
+  forbid_persist_wiring_in_this_wave: true
+  forbid_full_gate_in_this_wave: true
+  require_architect_choice_a_or_b_before_mutate: true
+  residual_psr5i_live_proof_pending: true
+  live_tier_owned_by: PSR-6b-harbor-demote
+current_claim_at_inventory_time:
+  production_tier: certified
+  certification_doc: docs/workspaces/harbor/certification.md
+  proof_matrix: docs/dev/workspace-certification-proof-matrix.yaml
+runtime_truth_at_inventory_time:
+  default_without_seed_env: "501 WORKSPACE_GUEST_STUB"
+  seed_env: HARBOR_SMOKE_E2E_SEED=1
+  store: packages/workspaces/harbor/src/catalog/harbor-smoke-catalog.store.ts
+  store_kind: in_memory_singleton
+  fixture: packages/workspaces/harbor/src/catalog/harbor-smoke-catalog.fixture.ts
+  http: packages/workspaces/harbor/src/http/harbor-catalog-http.ts
+  sdk_factory: packages/workspace-sdk/src/http/create-workspace-guest-smoke-http-handlers.ts
+gaps:
+  - id: G-DEFAULT-501
+    severity: blocker
+    summary: Declared G1 routes stub without smoke seed env
+  - id: G-MEMORY-STORE
+    severity: blocker
+    summary: Catalog/registrations not durable across restart
+  - id: G-NO-PRISMA-PORT
+    severity: blocker
+    summary: No tenant-scoped persistent catalog/registration port wired
+  - id: G-SEED-AS-PROD-PATH
+    severity: blocker
+    summary: Production path must not depend on HARBOR_SMOKE_E2E_SEED
+  - id: G-SPEC-TIER-DRIFT
+    severity: medium
+    summary: Was profile stub vs manifest certified; resolved by PSR-6b demote
+    asset: packages/workspaces/harbor/test/dg4-harbor-profile.spec.ts
+    status_after_psr6b: resolved_align_stub
+  - id: G-RECERT-AFTER-DURABLE
+    severity: blocker
+    summary: CERT pack must rebind after durable path exists
+options:
+  A_demote_then_persist:
+    first_move: set productionTier stub|candidate then persist
+    status: chosen_in_psr6b
+  B_persist_without_demote:
+    first_move: keep certified; close durable gaps before sellable claim
+    status: not_chosen
+static_assets:
+  - packages/workspaces/harbor/workspace.manifest.json
+  - packages/workspaces/harbor/src/catalog/harbor-smoke-catalog.store.ts
+  - packages/workspaces/harbor/src/catalog/harbor-smoke-catalog.fixture.ts
+  - packages/workspaces/harbor/src/http/harbor-catalog-http.ts
+  - packages/workspaces/harbor/test/dg4-harbor-profile.spec.ts
+  - packages/workspaces/harbor/test/dg4-harbor-smoke-http.spec.ts
+  - packages/workspace-sdk/src/http/create-workspace-guest-smoke-http-handlers.ts
+  - docs/workspaces/harbor/certification.md
+  - docs/dev/workspace-certification-proof-matrix.yaml
+ratchet:
+  gap_count: 6
+  blocker_gap_count: 5
+  static_asset_missing_count: 0
+  demote_executed: false
+  persist_wired: false
+  architect_option_chosen: null
+  inventory_complete: true
+  historical_snapshot_only: true
+  live_demote_smoke: scripts/ops/psr-6b-harbor-demote-smoke.mjs

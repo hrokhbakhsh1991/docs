@@ -1,4 +1,9 @@
-import { getPrismaAdmin } from "../db/prisma.ts";
+import type { PrismaClient } from "@prisma/client";
+
+import {
+  PLATFORM_ADMIN_REASON,
+  getPlatformAdminClient,
+} from "./platform-admin-client.ts";
 import {
   appendPlatformAuditEvent,
   PLATFORM_AUDIT_ACTION_TENANT_OFFBOARDING_STARTED,
@@ -23,7 +28,7 @@ export async function startPlatformTenantOffboard(
   },
   deps: {
     repository?: PlatformTenantRepository;
-    prisma?: ReturnType<typeof getPrismaAdmin>;
+    prisma?: PrismaClient;
   } = {}
 ): Promise<PlatformTenantRecord | null> {
   const repository = deps.repository ?? new PlatformTenantRepository();
@@ -32,7 +37,8 @@ export async function startPlatformTenantOffboard(
     return null;
   }
 
-  const prisma = deps.prisma ?? getPrismaAdmin();
+  const prisma =
+    deps.prisma ?? getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_TENANT_LIFECYCLE);
   const now = new Date();
   const scheduledDeletionAt = new Date(now.getTime() + readOffboardRetentionDays() * 86400000);
 

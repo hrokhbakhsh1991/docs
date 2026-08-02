@@ -1,0 +1,107 @@
+# PSR-9b expanded closure scorecard (measure-only)
+wave: PSR-9b-scorecard-collectors-expand
+program_id: PSR-001
+decision: collectors_expanded_measure_only
+policy:
+  forbid_claiming_psr9_closed: true
+  forbid_claiming_program_closed: true
+  forbid_full_gate_in_this_wave: true
+metrics:
+  - id: root_public_commands
+    label: Root package.json script keys
+    baseline_sot: 313
+    target: 60
+    comparison: lte
+    collector: count_package_scripts
+  - id: active_workflows
+    label: Active GitHub workflow files
+    baseline_sot: 27
+    target: 12
+    comparison: lte
+    collector: count_workflows
+  - id: active_docs_md_mdoc
+    label: docs/**/*.md + *.mdoc count
+    baseline_sot: 1000
+    target: 150
+    comparison: lte
+    collector: count_docs_md_mdoc
+  - id: root_markdown
+    label: Root *.md / *.mdoc
+    baseline_sot: 22
+    target: 5
+    comparison: lte
+    collector: count_root_markdown
+  - id: legacy_tree_mb
+    label: legacy/ directory size (MB)
+    baseline_sot: 1010
+    target: 0
+    comparison: lte
+    collector: legacy_size_mb
+  - id: root_license_present
+    label: Root LICENSE present
+    baseline_sot: 0
+    target: 1
+    comparison: gte
+    collector: license_present
+  - id: harbor_production_tier_certified
+    label: Harbor productionTier == certified
+    baseline_sot: 0
+    target: 1
+    comparison: gte
+    collector: harbor_certified
+  - id: secret_scan_tooling
+    label: Tracked secret-scan baseline present
+    baseline_sot: 0
+    target: 1
+    comparison: gte
+    collector: secret_scan_tooling
+  - id: sbom_tooling
+    label: Lockfile CDX generator present
+    baseline_sot: 0
+    target: 1
+    comparison: gte
+    collector: sbom_tooling
+  - id: dirty_worktree_records
+    label: git status --porcelain line count
+    baseline_sot: 243
+    target: 0
+    comparison: lte
+    collector: dirty_worktree_count
+  - id: absolute_local_doc_links
+    label: Absolute /home|/Users hits in docs md/mdoc
+    baseline_sot: 20
+    target: 0
+    comparison: lte
+    collector: absolute_doc_path_hits
+  - id: denali_package_exports
+    label: packages/workspaces/denali package.json exports keys
+    baseline_sot: 162
+    target: 15
+    comparison: lte
+    collector: denali_exports_count
+  - id: governance_files_present
+    label: LICENSE + SECURITY.md + CONTRIBUTING.md count (0-3)
+    baseline_sot: 0
+    target: 3
+    comparison: gte
+    collector: governance_file_count
+  - id: harbor_stub_honest
+    label: Harbor remains stub until live recert (1=honest stub)
+    baseline_sot: 1
+    target: 1
+    comparison: gte
+    collector: harbor_stub_honest
+static_assets:
+  - docs/audits/snapshots/2026-07-31/psr-9b-closure-scorecard-scaffold.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-9b-closure-scorecard.yaml
+  - scripts/ops/psr-9-closure-scorecard-collect.mjs
+  - docs/architecture/platform-simplification-remediation.mdoc
+ratchet:
+  metric_count: 14
+  psr9_closed: false
+  program_closed: false
+  inventory_complete: true
+  next_slice: PSR-8b-legacy-import-ratchet
+  # PSR-8b completed in same train; living next after 8b:
+  post_8b_next: PSR-8c-governance-files-inventory
+  alternate_next: PSR-7d1-dual-accept-session-jwt

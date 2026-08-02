@@ -18,12 +18,17 @@ describe("Wave I.9 — create wizard async plugin", () => {
   });
 
   it("I.9-02 client loads plugin before mounting hook", () => {
-    const source = readFileSync(join(WEB, "app/tours/new/create-tour-wizard-client.tsx"), "utf8");
-    assert.match(source, /loadWizardWorkspacePlugin\(session\.pluginId\)/);
-    assert.match(source, /useOperatorCreateTourWizard\(\{ plugin, initialTemplateResponse \}/);
-    assert.match(source, /useWorkspaceWizardTranslator\(session\.pluginId\)/);
-    assert.match(source, /platformCreateTourDraftKey\(session\.pluginId\)/);
-    assert.doesNotMatch(source, /useWorkspaceWizardTranslator\(\"denali\"\)/);
-    assert.doesNotMatch(source, /platformCreateTourDraftKey\(\"denali\"\)/);
+    const client = readFileSync(join(WEB, "app/tours/new/create-tour-wizard-client.tsx"), "utf8");
+    const ready = readFileSync(
+      join(WEB, "app/tours/new/create-tour-wizard-client-ready.tsx"),
+      "utf8"
+    );
+    assert.match(client, /warmOperatorWizardShell\(session\.pluginId\)/);
+    assert.match(client, /OperatorCreateTourWizardClientReady/);
+    assert.match(ready, /useOperatorCreateTourWizard\(\{\s*plugin,/);
+    assert.match(ready, /useWorkspaceWizardTranslator\(session\.pluginId\)/);
+    assert.match(ready, /platformCreateTourDraftKey\(session\.pluginId\)/);
+    assert.doesNotMatch(ready, /useWorkspaceWizardTranslator\(\"denali\"\)/);
+    assert.doesNotMatch(ready, /platformCreateTourDraftKey\(\"denali\"\)/);
   });
 });

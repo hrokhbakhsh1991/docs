@@ -103,7 +103,7 @@ function walk(absDir, relDir) {
 
     const text = fs.readFileSync(abs, "utf8");
     const isGenerated = relPosix.includes(".generated.");
-    if (!text.includes("@app-cloud/workspace-")) continue;
+    if (!text.includes("@app-tour/workspace-")) continue;
     const lines = text.split("\n");
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -138,7 +138,7 @@ for (const absRoot of ROOTS) {
 
 if (hits.length > 0) {
   console.error("guard-thin-shell: FAIL — product workspace imports outside allowlist");
-  console.error("Allowed: @app-cloud/workspace-sdk; *.generated.* (metered)");
+  console.error("Allowed: @app-tour/workspace-sdk; *.generated.* (metered)");
   console.error("See docs/dev/thin-shell-generated-bootstrap-inventory.mdoc");
   for (const h of hits.slice(0, 40)) {
     console.error(` - ${h}`);

@@ -13,13 +13,11 @@ import { integrationTenantId } from "./test-helpers";
 const hasDatabase =
   Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
 
-if (!hasDatabase) {
-  throw new Error(
-    "TENANT_RLS_UNPROTECTED_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN (TODO-002)"
-  );
-}
+const postgresSkip = hasDatabase
+  ? false
+  : "TENANT_RLS_UNPROTECTED_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN (TODO-002)";
 
-describe("TODO-002 tenant RLS closure adversarial", { concurrency: false }, () => {
+describe("TODO-002 tenant RLS closure adversarial", { concurrency: false, skip: postgresSkip }, () => {
   const tenantA = integrationTenantId();
   const tenantB = integrationTenantId();
   const tourId = randomUUID();

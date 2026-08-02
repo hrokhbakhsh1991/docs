@@ -1,0 +1,53 @@
+---
+id: PSR-6C4-HARBOR-DURABLE-REG
+title: PSR-6c4 — Harbor durable public registration via BookingPublicPort
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-6c4-harbor-durable-registration-inventory.yaml
+program_id: PSR-001
+wave: PSR-6c4-harbor-durable-registration
+---
+
+# PSR-6c4 — Harbor durable registration
+
+## Intent
+
+Close the seed-only register gap after PSR-6c3 durable list/detail:
+
+1. Thin `createHarborRegistration` orchestrates published-tour gate + contact
+   basics + email duplicate + `BookingPublicPort.createPendingBooking`.
+2. Host gains `resolvePublicBookingPort` (same host adapter Denali uses — no
+   Harbor Prisma).
+3. HTTP: seed off + host configured → durable register under RLS write context;
+   seed path unchanged for e2e.
+4. `HARBOR_REGISTRATION_DUPLICATE` → 409 via generated http error map.
+5. Tier stays `stub` (recert / proofs → later slice).
+
+## Non-goals
+
+- Denali nationalId/transport/profile persist clone
+- Full Urban capacity/waitlist policy clone (Harbor uses booking capacity via
+  `tourCapacityMax` in registrationIntake when known)
+- Idempotency wrapper (deferred — email duplicate still fail-closed)
+- CERT promote / `productionTier: certified`
+- Full gates without YES
+
+## Verify
+
+```bash
+node scripts/ops/psr-6c4-harbor-durable-registration-smoke.mjs
+pnpm run generate:workspace-registry
+pnpm --filter @app-tour/workspace-harbor run test
+```
+
+## Next
+
+`PSR-6c5-harbor-durable-proofs-recert` — restart/idempotency/RLS evidence + CERT
+rebind path (may pair with PSR-5i live YES).

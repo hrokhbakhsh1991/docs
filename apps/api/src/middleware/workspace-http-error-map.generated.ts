@@ -6,6 +6,8 @@
 
 import { isDenaliOwnerRequiredError, DENALI_OWNER_REQUIRED } from "@app-tour/workspace-denali/host/http";
 import { isDenaliRegistrationDuplicateError, DENALI_REGISTRATION_DUPLICATE } from "@app-tour/workspace-denali/host/http";
+import { isHarborRegistrationDuplicateError, HARBOR_REGISTRATION_DUPLICATE } from "@app-tour/workspace-harbor/host/http";
+import { isHarborWorkspaceRequiredError, HARBOR_WORKSPACE_REQUIRED } from "@app-tour/workspace-harbor/host/http";
 import { isUrbanOwnerRequiredError, URBAN_OWNER_REQUIRED } from "@app-tour/workspace-urban/host/http";
 import { isUrbanRegistrationClosedError, URBAN_REGISTRATION_CLOSED } from "@app-tour/workspace-urban/host/http";
 import { isUrbanRegistrationDuplicateError, URBAN_REGISTRATION_DUPLICATE } from "@app-tour/workspace-urban/host/http";
@@ -30,6 +32,18 @@ export const WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS: readonly WorkspaceHttpError
     status: 409,
     isError: isDenaliRegistrationDuplicateError,
     code: DENALI_REGISTRATION_DUPLICATE,
+  },
+  {
+    workspaceId: "harbor",
+    status: 409,
+    isError: isHarborRegistrationDuplicateError,
+    code: HARBOR_REGISTRATION_DUPLICATE,
+  },
+  {
+    workspaceId: "harbor",
+    status: 404,
+    isError: isHarborWorkspaceRequiredError,
+    code: HARBOR_WORKSPACE_REQUIRED,
   },
   {
     workspaceId: "urban",
@@ -60,6 +74,8 @@ export const WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS: readonly WorkspaceHttpError
 export const WORKSPACE_HTTP_ERROR_CODE_STATUS = {
   [DENALI_OWNER_REQUIRED]: 403,
   [DENALI_REGISTRATION_DUPLICATE]: 409,
+  [HARBOR_REGISTRATION_DUPLICATE]: 409,
+  [HARBOR_WORKSPACE_REQUIRED]: 404,
   [URBAN_OWNER_REQUIRED]: 403,
   [URBAN_WORKSPACE_REQUIRED]: 404,
   [URBAN_REGISTRATION_DUPLICATE]: 409,

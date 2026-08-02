@@ -7,7 +7,7 @@ import {
   resolveTourListCategoryCapability,
   type WorkspacePlugin,
   type WorkspaceTourListCategoryCapability,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
 import type { TourListCategorySurface } from "@/features/tours/tour-list-category-surface-types";

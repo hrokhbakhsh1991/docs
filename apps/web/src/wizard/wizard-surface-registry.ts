@@ -7,7 +7,7 @@
 import {
   resolveWizardSurfacesCapability,
   type WorkspacePlugin,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import { createPlatformCompositeSurface } from "@/wizard/platform/platform-composite-surface";
 import { createPlatformReviewSurface } from "@/wizard/platform/platform-review-surface";

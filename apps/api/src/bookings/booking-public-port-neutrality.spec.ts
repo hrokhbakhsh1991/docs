@@ -77,8 +77,10 @@ describe("BK-B1.4 BookingPublicPort neutrality", () => {
     );
     assert.match(denaliPort, /@app-tour\/booking-http-contracts/);
     assert.match(denaliPort, /BookingPublicPort/);
-    assert.doesNotMatch(denaliPort, /DenaliPublicBookingPort/);
+    // Deprecated alias may remain for existing Denali tests — SoT name is BookingPublicPort.
+    assert.match(denaliPort, /export type \{[\s\S]*BookingPublicPort/);
     assert.doesNotMatch(denaliPort, /export interface BookingPublicPort/);
+    assert.doesNotMatch(denaliPort, /export type BookingPublicPort\s*=/);
   });
 
   it("host composition owns adapter selection; Denali is consumer not port owner", () => {

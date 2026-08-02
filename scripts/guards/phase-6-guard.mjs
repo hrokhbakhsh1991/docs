@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Phase 6 guard — doc pack + denali probe honesty.
+ * Phase 6 guard — doc pack + denali probe honesty + residual gate-graph ratchet.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import { evaluateAntiHollowPhase6 } from "./lib/anti-hollow-phase6.mjs";
 import { evaluatePhase6DocHardening } from "./lib/phase-6-doc-hardening.mjs";
+import { evaluatePhase6GateGraph } from "./lib/phase-6-gate-graph.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../..");
@@ -58,14 +59,26 @@ function main() {
     detail: hollow.detail,
   });
 
+  const graph = evaluatePhase6GateGraph();
+  checks.push({
+    id: "p6_gate_graph_residual",
+    required: true,
+    ok: graph.ok,
+    detail: graph.detail,
+  });
+
   const requiredFailed = checks.filter((c) => c.required && !c.ok);
   const report = {
     gate: "phase-6",
     date: REPORT_DATE,
     gitSha: gitShortSha(),
     ok: requiredFailed.length === 0,
+    appsCertMode: graph.appsCert.appsCertMode,
+    fullAppsCert: graph.appsCert.fullAppsCert,
+    appsCertOwned: graph.appsCert.owned,
     checks,
-    note: "Full phase-6:gate includes phase-5:gate — see package.json when wired",
+    note:
+      "phase-6:gate = build+test + phase-5:runtime-proof + phase-5:guard + residual apps-cert (post-test + floors) + phase-6:guard. PASS ≠ full phase-3:apps-cert. Historical nest = phase-5:gate / test:full.",
   };
 
   if (!fs.existsSync(REPORTS_DIR)) fs.mkdirSync(REPORTS_DIR, { recursive: true });

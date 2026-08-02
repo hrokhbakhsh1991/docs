@@ -8,7 +8,6 @@ import type { CanonicalDocument, TenantAuthContext } from "@app-tour/workspace-s
 import { enrichTourListProjectionWithAcceptedCount } from "../bookings/enrich-tour-accepted-counts";
 import { enrichTourListProjectionCoverImageUrl } from "./enrich-tour-list-cover-image-url";
 import type { TourRecord } from "../db/tour-record";
-import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
 import type { ToursService } from "./tours.service";
 
@@ -58,9 +57,9 @@ function defaultExtractTourListProjection(canonical: CanonicalDocument): TourLis
 
 export async function buildOperatorTourDetailResponse(
   record: TourRecord,
-  tenantId: string
+  tenantId: string,
+  workspaceType: string
 ): Promise<OperatorTourDetailResponse> {
-  const workspaceType = await resolveWorkspaceTypeForTenant(tenantId);
   const plugin = await resolveWorkspacePluginForType(workspaceType);
   const extract =
     plugin.tourList?.extractTourListProjection ?? defaultExtractTourListProjection;
@@ -101,5 +100,8 @@ export async function getTourOperator(
   if (record === null) {
     return null;
   }
-  return buildOperatorTourDetailResponse(record, auth.tenantId);
+  // Honor ToursService.resolveWorkspaceType (route injection / test helpers) — do not
+  // re-call platform resolveWorkspaceTypeForTenant and bypass the HTTP-bound resolver.
+  const workspaceType = await toursService.resolveWorkspaceType(auth.tenantId);
+  return buildOperatorTourDetailResponse(record, auth.tenantId, workspaceType);
 }

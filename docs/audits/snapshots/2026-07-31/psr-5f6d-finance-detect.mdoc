@@ -1,0 +1,52 @@
+---
+id: PSR-5F6D-FINANCE-DETECT
+title: PSR-5f6d — BG_FINANCE_RECON detect.ts only (closes finance cluster)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5f-background-admin-inventory.yaml
+  - apps/api/src/workspace-finance/recon/detect.ts
+program_id: PSR-001
+wave: PSR-5f6d-finance-detect
+---
+
+# PSR-5f6d — finance detect (last BG_FINANCE_RECON file)
+
+## Scope (exactly one file)
+
+| File | Prior direct calls | Reason |
+| --- | ---: | --- |
+| `workspace-finance/recon/detect.ts` | 11 | `BG_FINANCE_RECON` |
+
+All eleven local `getPrismaAdmin()` →
+`getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON)`.
+
+## Cluster closure
+
+After this wave, **all five** finance recon sites use the background client
+(f6a edge · f6b findings · f6c repair · f6d detect). No remaining
+`BG_FINANCE_RECON` direct admin.
+
+## Non-goals
+
+- No detector SQL / lookback / fingerprint changes
+- No integration / events in this wave
+
+## Ratchet after f6d
+
+- f inventory: `migrated_file_count: 16`, `remaining_direct: 4`
+- main: `api_src_admin_files: 10`, `api_src_admin_calls: 29`,
+  `background_repair_direct_admin_files: 4`
+
+## Smoke
+
+```bash
+node scripts/ops/psr-5f-background-admin-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+```

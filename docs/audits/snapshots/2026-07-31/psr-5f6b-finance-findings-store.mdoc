@@ -1,0 +1,53 @@
+---
+id: PSR-5F6B-FINANCE-FINDINGS
+title: PSR-5f6b — BG_FINANCE_RECON findings-store only
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5f-background-admin-inventory.yaml
+  - apps/api/src/workspace-finance/recon/findings-store.ts
+program_id: PSR-001
+wave: PSR-5f6b-finance-findings-store
+---
+
+# PSR-5f6b — finance findings store
+
+## Scope (exactly one file)
+
+| File | Prior direct calls | Notes |
+| --- | ---: | --- |
+| `workspace-finance/recon/findings-store.ts` | 6 | one injectable default + five locals |
+
+All switch to
+`getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON)`.
+`upsertFinanceReconFindings(..., admin = …)` keeps injectable override; only the
+default changes.
+
+## Deferred (same reason)
+
+- `repair-handlers.ts` → f6c
+- `detect.ts` → f6d
+
+## Non-goals
+
+- No upsert / reopen / action-audit semantics changes
+- No repair or detect SQL
+
+## Ratchet after f6b
+
+- f inventory: `migrated_file_count: 14`, `remaining_direct: 6`
+- main: `api_src_admin_files: 12`, `api_src_admin_calls: 44`,
+  `background_repair_direct_admin_files: 6`
+
+## Smoke
+
+```bash
+node scripts/ops/psr-5f-background-admin-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+```

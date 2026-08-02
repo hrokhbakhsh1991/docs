@@ -1,0 +1,32 @@
+# PSR-8c0 governance templates (docs only; root files remain absent)
+wave: PSR-8c0-governance-templates
+program_id: PSR-001
+decision: templates_only_not_root
+policy:
+  forbid_root_license_land_in_this_wave: true
+  forbid_root_security_land_in_this_wave: true
+  forbid_root_contributing_land_in_this_wave: true
+  forbid_license_choice_in_this_wave: true
+  forbid_claiming_l_gov_closed: true
+  landing_requires_architect_and_counsel: true
+templates:
+  - docs/audits/snapshots/2026-07-31/governance-templates/LICENSE.CHOICE.md
+  - docs/audits/snapshots/2026-07-31/governance-templates/SECURITY.md.template
+  - docs/audits/snapshots/2026-07-31/governance-templates/CONTRIBUTING.md.template
+static_assets:
+  - docs/audits/snapshots/2026-07-31/psr-8c0-governance-templates.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-8c-governance-files-inventory.mdoc
+ratchet:
+  template_count: 3
+  root_license_present: false
+  root_security_present: false
+  root_contributing_present: false
+  l_gov_closed: false
+  next_slice: PSR-ARCHITECT-DECISION-POINT
+  decision_options:
+    - PSR-6c6-harbor-live-evidence-execute
+    - PSR-7d1-dual-accept-session-jwt
+    - PSR-8c1-governance-files-land
+    - PSR-8b1-denali-types-legacy-rename
+    - PSR-5i-same-sha-live
+    - PSR-7f2-branch-protection-live-verify

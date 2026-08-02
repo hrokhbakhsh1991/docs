@@ -12,7 +12,8 @@ fast_closure:
 
 closure_gate:
   command: pnpm run phase-6:gate
-  chain: "pnpm build && pnpm test && pnpm run phase-5:gate && pnpm run phase-6:guard"
+  chain: "pnpm build && pnpm test && phase-5:runtime-proof && phase-5:guard && residual apps-cert (post-test + floors) && phase-6:guard"
+  note: "PASS ≠ full phase-3:apps-cert; not nested phase-5:gate"
   workflow: .github/workflows/phase-6-gate.yml#full-gate
 ```
 

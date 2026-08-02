@@ -1,0 +1,60 @@
+---
+id: PSR-5F6A-FINANCE-EDGE
+title: PSR-5f6a — BG_FINANCE_RECON thin edge (ops metrics + runner)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5f-background-admin-inventory.yaml
+  - apps/api/src/workspace-finance/finance-ops-metrics.ts
+  - apps/api/src/workspace-finance/recon/finance-recon-runner.ts
+program_id: PSR-001
+wave: PSR-5f6a-finance-recon-edge
+---
+
+# PSR-5f6a — finance recon edge (sub-slice)
+
+Full `BG_FINANCE_RECON` is **five** files / **۲۵** call sites. This wave migrates
+only the thin edge — gauges + job orchestration — and leaves detect / findings /
+repair for follow-up sub-slices.
+
+## Scope (exactly two files)
+
+| File | Prior direct calls | Role |
+| --- | ---: | --- |
+| `workspace-finance/finance-ops-metrics.ts` | 3 | scrape gauges (read-only counts) |
+| `workspace-finance/recon/finance-recon-runner.ts` | 1 | auto-repair open-finding select |
+
+Both use `getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON)`.
+
+## Explicitly deferred (same reason code)
+
+| File | Calls | Planned wave |
+| --- | ---: | --- |
+| `recon/findings-store.ts` | 6 | PSR-5f6b |
+| `recon/repair-handlers.ts` | 4 | PSR-5f6c |
+| `recon/detect.ts` | 11 | PSR-5f6d |
+
+## Non-goals
+
+- No gauge formula / lookback / auto-repair policy changes
+- No detect SQL or repair handler mutation logic
+- No integration / events clusters
+
+## Ratchet after f6a
+
+- f inventory: `migrated_file_count: 13`, `remaining_direct: 7`
+- main: `api_src_admin_files: 13`, `api_src_admin_calls: 50`,
+  `background_repair_direct_admin_files: 7`
+
+## Smoke
+
+```bash
+node scripts/ops/psr-5f-background-admin-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+```

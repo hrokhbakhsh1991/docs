@@ -96,7 +96,7 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
       financeRepo,
       bookingPayments,
       await resolveFinanceReceiptDefaults(workspaceType),
-      new BookingRegistrationDisplayAdapter(),
+      new BookingRegistrationDisplayAdapter(getBookingsRepository()),
       fakeNoopMetrics,
       fakeMemoryPersistenceMode,
       fakeReceiptProofUrl,

@@ -7,7 +7,7 @@
 import {
   resolveSettingsExposureSurfacesUiCapability,
   type WorkspacePlugin,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
 import type { SettingsExposureSurfacesUiSurface } from "@/features/settings/settings-exposure-surfaces-ui-types";

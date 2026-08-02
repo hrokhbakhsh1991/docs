@@ -1,14 +1,14 @@
-import { getPrismaAdmin } from "../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../db/background-admin-client";
 
 export async function countPendingOutboxRows(): Promise<number> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_OPS);
   return admin.outboxEvent.count({
     where: { status: "pending" },
   });
 }
 
 export async function countFailedOutboxRows(): Promise<number> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_OPS);
   return admin.outboxEvent.count({
     where: { status: "failed" },
   });
@@ -16,7 +16,7 @@ export async function countFailedOutboxRows(): Promise<number> {
 
 /** Oldest pending row `created_at`, or null when queue empty. */
 export async function queryOldestPendingOutboxCreatedAt(): Promise<Date | null> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_OPS);
   const row = await admin.outboxEvent.findFirst({
     where: { status: "pending" },
     orderBy: { createdAt: "asc" },
@@ -32,7 +32,7 @@ export async function countActiveProcessingOutboxRows(
   reclaimMs = resolveOutboxProcessingReclaimMs()
 ): Promise<number> {
   const cutoff = new Date(Date.now() - reclaimMs);
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_OPS);
   return admin.outboxEvent.count({
     where: {
       status: "processing",

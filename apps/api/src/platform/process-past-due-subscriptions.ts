@@ -1,4 +1,7 @@
-import { getPrismaAdmin } from "../db/prisma.ts";
+import {
+  PLATFORM_ADMIN_REASON,
+  getPlatformAdminClient,
+} from "./platform-admin-client.ts";
 import {
   PLATFORM_AUDIT_ACTION_TENANT_SUSPENDED_BILLING,
   appendPlatformAuditEvent,
@@ -13,7 +16,7 @@ export async function processPastDueSubscriptions(
   const repository = deps.repository ?? new PlatformSubscriptionRepository();
   const expired = await repository.listExpiredPastDue();
   const suspended: string[] = [];
-  const prisma = getPrismaAdmin();
+  const prisma = getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_BILLING);
 
   for (const row of expired) {
     await updatePlatformTenantStatus({

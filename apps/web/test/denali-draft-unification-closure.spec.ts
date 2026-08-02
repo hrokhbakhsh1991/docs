@@ -45,7 +45,10 @@ describe("denali-draft-unification-closure.spec.ts — Tracks A–C", () => {
     const flatEdit = readWebSource("app/(app)/tours/[id]/edit/flat-edit-page-client.tsx");
     for (const source of [createHook, flatEditHook]) {
       assert.match(source, /resolveOperatorDraftConflictStrategy/);
-      assert.match(source, /resolveDenaliDraftMerge|resolveWizardDraftMerge/);
+      assert.match(
+        source,
+        /resolveDraftMergeForPlugin|resolveWizardDraftMerge|resolveDenaliDraftMerge/
+      );
       assert.match(source, /createOperatorDraftOnPushSuccess/);
     }
     assert.match(createChrome, /conflictReloadNotice=\{props\.draftSync\.conflictReloadNotice\}/);
@@ -81,7 +84,8 @@ describe("denali-draft-unification-closure.spec.ts — Tracks A–C", () => {
   it("WEB-P11-UNIFY-07 draftTombstone stripped before PlatformWizardEngine ingress", () => {
     const stripper = readRepoSource("packages/workspaces/denali/src/plugin-for-wizard-engine.ts");
     const engineStrip = readRepoSource("packages/platform-core/src/engine/platform-wizard.engine.ts");
-    assert.match(stripper, /draftTombstone:\s*_draftTombstone/);
+    // Denali thin-aliases platform-core strip; destructure lives in platform-core.
+    assert.match(stripper, /stripWorkspacePluginForWizardEngine/);
     assert.match(engineStrip, /draftTombstone:\s*_draftTombstone/);
   });
 

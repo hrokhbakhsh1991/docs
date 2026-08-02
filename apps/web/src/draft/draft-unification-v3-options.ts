@@ -1,6 +1,6 @@
-import type { ConflictStrategy, DraftSyncPayload } from "@app-cloud/draft-engine";
-import type { WorkspacePlugin, WorkspaceWizardDraftEnvelope } from "@app-cloud/workspace-sdk";
-import { resolveDraftShellCapability } from "@app-cloud/workspace-sdk";
+import type { ConflictStrategy, DraftSyncPayload } from "@app-tour/draft-engine";
+import type { WorkspacePlugin, WorkspaceWizardDraftEnvelope } from "@app-tour/workspace-sdk";
+import { resolveDraftShellCapability } from "@app-tour/workspace-sdk";
 
 import { mergeWizardDraftEnvelope } from "@/wizard/wizard-draft-envelope-hooks";
 

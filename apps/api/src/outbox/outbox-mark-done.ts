@@ -1,4 +1,4 @@
-import { getPrismaAdmin } from "../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../db/background-admin-client";
 import { metricsRegistry } from "../observability/metrics";
 
 export type OutboxMarkDoneTarget = {
@@ -35,7 +35,7 @@ export function resolveOutboxMarkDoneRetryAttempts(): number {
  * Terminal timestamp uses DB `now()` (DEC-084 / CLK-F-03).
  */
 export async function markOutboxDone(row: OutboxMarkDoneTarget): Promise<void> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_OPS);
   const affected = await admin.$executeRaw`
     UPDATE outbox_events
     SET status = 'done', processed_at = now()

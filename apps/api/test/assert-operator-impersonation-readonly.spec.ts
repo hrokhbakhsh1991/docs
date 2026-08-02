@@ -68,4 +68,16 @@ describe("assertOperatorImpersonationReadonly", () => {
       } as never)
     );
   });
+
+  it("PATCH with unsigned dev bearer does not throw Invalid Compact JWS", async () => {
+    await assert.doesNotReject(() =>
+      assertOperatorImpersonationReadonly({
+        method: "PATCH",
+        headers: {
+          authorization:
+            "Bearer dev.eyJ1c2VySWQiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDA0MDEiLCJ0ZW5hbnRJZCI6IjAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwNCIsInJvbGUiOiJvd25lciIsInN0YXR1cyI6IkFDVElWRSIsIndvcmtzcGFjZUlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwNDAzIiwiZXhwIjo5OTk5OTk5OTk5fQ",
+        },
+      } as never)
+    );
+  });
 });

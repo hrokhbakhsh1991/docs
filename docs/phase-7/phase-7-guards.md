@@ -10,7 +10,7 @@ guard_version: "2026-06-04-v2"
 | --------------------------------------------------- | --------------------------------------- |
 | `pnpm run phase-7:guard`                            | Doc pack + urban absence honesty        |
 | `pnpm run phase-7:adversarial-gate`                 | 7.8 P0 matrix (+ optional ci:integrity) |
-| `pnpm run phase-7:gate`                             | `phase-6:gate` + `phase-7:guard`        |
+| `pnpm run phase-7:gate`                             | build + test + `phase-6:guard` + `phase-7:guard` (denested; no `phase-6:gate`) |
 | `node scripts/guards/lib/phase-7-doc-hardening.mjs` | Semantic PEK checks (target ≥96)        |
 | `node scripts/guards/lib/anti-hollow-phase7.mjs`    | Scaffold honesty                        |
 

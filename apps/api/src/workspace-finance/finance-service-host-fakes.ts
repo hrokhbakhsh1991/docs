@@ -7,6 +7,7 @@ import type { FinanceMetricsPort } from "./ports/finance-metrics.port";
 import type { FinanceStorageDriverPort } from "./ports/finance-persistence-mode.port";
 import type { ReceiptProofStoragePort } from "./ports/finance-receipt-proof-url.port";
 import type { FinanceSchedulePort } from "./ports/finance-schedule.port";
+import type { FinanceObligationPort } from "@app-tour/finance-http-contracts";
 import type { PaymentScheduleItem } from "./finance-schedule-domain";
 
 /** Memory-driver equivalent — skip durable ledger / degraded outbox side-effects. */
@@ -96,6 +97,13 @@ export const fakeEmptySchedules: FinanceSchedulePort = {
   },
 };
 
+/** Null commercial obligation — unit tests that do not exercise overpay / invoice obligation. */
+export const fakeNullObligation: FinanceObligationPort = {
+  async resolveRegistrationObligation() {
+    return null;
+  },
+};
+
 /** Host-port bundle for memory-backed FinanceService unit tests. */
 export const fakeFinanceServiceHostPorts = {
   metrics: fakeNoopMetrics,
@@ -106,4 +114,5 @@ export const fakeFinanceServiceHostPorts = {
   schedules: fakeEmptySchedules,
   log: fakeNoopLog,
   clock: fakeFixedClock,
+  obligation: fakeNullObligation,
 } as const;

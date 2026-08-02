@@ -3,7 +3,7 @@
  * Delegates to codegen dynamic-import registry — no sync fan-in.
  * Fail-closed: never falls back to a product id.
  */
-import type { WorkspacePlugin } from "@app-cloud/workspace-sdk";
+import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
 import {
   WorkspacePluginNotFoundError,

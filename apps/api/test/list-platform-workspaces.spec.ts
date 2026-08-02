@@ -12,17 +12,9 @@ describe("listPlatformWorkspaces", () => {
     assert.equal(denali.productionOnboardingAllowed, true);
   });
 
-  it("includes harbor as certified for G1 production onboarding", () => {
+  it("marks urban, guest-club, and harbor as stub (Harbor demoted PSR-6b)", () => {
     const workspaces = listPlatformWorkspaces();
-    const harbor = workspaces.find((entry) => entry.id === "harbor");
-    assert.ok(harbor);
-    assert.equal(harbor.productionTier, "certified");
-    assert.equal(harbor.productionOnboardingAllowed, true);
-  });
-
-  it("marks urban and guest-club as stub", () => {
-    const workspaces = listPlatformWorkspaces();
-    for (const id of ["urban", "guest-club"] as const) {
+    for (const id of ["urban", "guest-club", "harbor"] as const) {
       const entry = workspaces.find((item) => item.id === id);
       assert.ok(entry, id);
       assert.equal(entry.productionTier, "stub");

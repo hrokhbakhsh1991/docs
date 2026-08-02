@@ -1,0 +1,47 @@
+# PSR-5g identity admin client inventory
+wave: PSR-5g-identity-admin-client
+program_id: PSR-001
+decision: named_client_behavior_preserving
+policy:
+  forbid_direct_getPrismaAdmin_in_prisma_identity_repository: true
+  require_reason_on_identity_admin_client: true
+  closes_alw_id_force_rls: true
+client_module: apps/api/src/identity/identity-admin-client.ts
+metric: identity_admin_access_total
+consumer: apps/api/src/identity/prisma-identity.repository.ts
+reason_codes:
+  - ID_OTP
+  - ID_PENDING_INVITE
+  - ID_SESSION_BUMP
+  - ID_USER_READ
+  - ID_USER_WRITE
+sites:
+  - method: findUserByMobile
+    reason: ID_USER_READ
+  - method: findUserById
+    reason: ID_USER_READ
+  - method: findUsersByIds
+    reason: ID_USER_READ
+  - method: createOtpChallenge
+    reason: ID_OTP
+  - method: findOtpChallenge
+    reason: ID_OTP
+  - method: markOtpChallengeUsed
+    reason: ID_OTP
+  - method: findPendingInviteForAccept
+    reason: ID_PENDING_INVITE
+  - method: registerPublicGuest.findUnique
+    reason: ID_USER_READ
+  - method: registerPublicGuest.create
+    reason: ID_USER_WRITE
+  - method: updateUserMobile.transaction
+    reason: ID_USER_WRITE
+  - method: updateUserMobile.sessionBump
+    reason: ID_SESSION_BUMP
+  - method: updateUserMobile.reload
+    reason: ID_USER_READ
+ratchet:
+  reason_code_count: 5
+  site_count: 12
+  consumer_direct_getPrismaAdmin: 0
+  closed_alw_id_force_rls: true

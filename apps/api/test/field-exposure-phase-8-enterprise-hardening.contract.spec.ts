@@ -106,13 +106,13 @@ describe("field exposure phase 8 enterprise hardening contract", () => {
     assert.match(client, /exposureCatalog\?\.fields/);
   });
 
-  it("authoritative exposure resolver records versioned audit metadata", () => {
+  it("authoritative exposure resolver records versioned audit metadata", async () => {
     const dispatch = readFileSync(DISPATCH, "utf8");
     assert.match(dispatch, /resolveExposureDecision/);
     assert.match(dispatch, /fieldExposureDecision/);
     assert.match(dispatch, /recordFieldExposureDecisionAudited/);
 
-    const resolved = resolveExposureDecision({
+    const resolved = await resolveExposureDecision({
       tenantId: "00000000-0000-0000-0000-000000000001",
       workspaceType: "denali",
       eventType: "TourCreated",
@@ -133,7 +133,7 @@ describe("field exposure phase 8 enterprise hardening contract", () => {
       engineDecisions: new Map([
         ["title", { state: "visible", reasonChain: [], appliedPolicies: [] }],
       ]),
-      resolveDeliveryFieldDefinitions: () => [],
+      resolveDeliveryFieldDefinitions: async () => [],
     });
 
     assert.equal(resolved.decision.resolverVersion, EXPOSURE_RESOLVER_VERSION);

@@ -21,7 +21,7 @@ constraints:
 | `@app-tour/finance-core` | Domain + application engine (`FinanceService`, ports, pure helpers) |
 | `@app-tour/finance-http-contracts` | Zod HTTP body parsers + workspace capability port types (ledger policy, receipt defaults, event reaction) |
 
-**Composition entry:** `createFinanceService(...13 ports)` — every argument is required (`null` / `undefined` → `FINANCE_SERVICE_DEP_REQUIRED`).
+**Composition entry:** `createFinanceService(...14 ports)` — every argument is required at the `FinanceService` constructor (`null` / `undefined` → `FINANCE_SERVICE_DEP_REQUIRED`). The factory may default `obligation` to a null port for non-commercial workspaces; hosts that support commercial pricing must pass `createFinanceObligationPort(workspaceType)`.
 
 ---
 
@@ -55,7 +55,7 @@ constraints:
 │ Host process                                                │
 │  auth mapper · HTTP · registry(workspaceType) · outbox IO   │
 │                                                             │
-│   createFinanceService(13 adapters)                         │
+│   createFinanceService(14 adapters)                         │
 │        │                                                    │
 │        ▼                                                    │
 │   ┌─────────────────┐     ports      ┌──────────────────┐   │
@@ -69,7 +69,7 @@ constraints:
 
 ## 1. Required adapters list
 
-Wire **exactly these 13** into `createFinanceService`, in this order:
+Wire **these 14** into `createFinanceService`, in this order:
 
 | # | Port type | Import from | Host classification | One-line duty |
 | - | --------- | ----------- | ------------------- | ------------- |
@@ -86,6 +86,7 @@ Wire **exactly these 13** into `createFinanceService`, in this order:
 | 11 | `FinanceSchedulePort` | finance-core | **Database** | Persist installment schedules per registration |
 | 12 | `FinanceLoggerPort` | finance-core | **Observability** | `warn` / `error` |
 | 13 | `FinanceClockPort` | finance-core | **Host infra** | `nowIso()` (injectable for tests) |
+| 14 | `FinanceObligationPort` | finance-core / contracts | **Commercial pricing** | Registration obligation minor; null port when unbound |
 
 ### Composition sketch (host-owned)
 
@@ -105,9 +106,12 @@ const finance = createFinanceService(
   authorization,         // 10 authz
   schedules,             // 11 DB
   logger,                // 12 observability
-  clock                  // 13 clock
+  clock,                 // 13 clock
+  obligation             // 14 commercial obligation (or null port)
 );
 ```
+
+`apps/api` composition root (`lazy-finance-service`) wires #14 via `createFinanceObligationPort(workspaceType)`. Boot/legacy `resolveLazyFinanceService` requires `FINANCE_BOOT_WORKSPACE_TYPE` (no silent denali default).
 
 ### Not ctor args (still required for a full production host)
 

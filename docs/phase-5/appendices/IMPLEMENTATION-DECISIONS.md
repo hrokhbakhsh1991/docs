@@ -1827,8 +1827,10 @@ Pass criteria: exit `0`; artifact `test/reliability/phase-3-regression-gate.last
 | Item        | Choice                                           |
 | ----------- | ------------------------------------------------ |
 | Workflow    | `.github/workflows/phase-5-gate.yml`             |
-| test:full   | `phase-3:gate` → `phase-4:gate` → `phase-5:gate` |
+| test:full   | `phase-5:gate` only (nests `phase-4:gate` → `phase-3:gate`) |
 | Postgres CI | Same service container pattern as phase-4        |
+
+**History:** Initial Phase 1 wiring ran sibling `phase-3:gate` → `phase-4:gate` → `phase-5:gate` (redundant nest). Flattened 2026-08-01 so `scripts/test-full.sh` invokes `phase-5:gate` once; coverage unchanged because `phase-5:gate` already nests prior gates.
 
 **Verification:** [`phase5-evolution-p0-phase1.md`](phase5-evolution-p0-phase1.md).
 

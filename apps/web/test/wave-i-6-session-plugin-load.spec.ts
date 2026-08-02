@@ -21,9 +21,9 @@ describe("Wave I.6 — session plugin load", () => {
       join(WEB, "app/(app)/tours/[id]/edit/flat-edit-page-client.tsx"),
       "utf8"
     );
-    assert.match(source, /loadWizardWorkspacePlugin\(session\.pluginId\)/);
+    assert.match(source, /warmOperatorWizardShell\(session\.pluginId\)/);
     assert.match(source, /useWorkspaceWizardTranslator\(session\.pluginId\)/);
-    assert.doesNotMatch(source, /loadWizardWorkspacePlugin\(\s*\)/);
+    assert.doesNotMatch(source, /warmOperatorWizardShell\(\s*\)/);
     assert.doesNotMatch(source, /useWorkspaceWizardTranslator\(DENALI_PLUGIN_ID\)/);
     assert.doesNotMatch(source, /from \"@\/wizard\/denali\/workspace-plugin-id\"/);
   });

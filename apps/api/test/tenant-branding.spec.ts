@@ -11,9 +11,13 @@ import { buildTenantBrandLogoObjectKey } from "@app-tour/workspace-sdk";
 import { createRequestListener } from "../src/app";
 import { resetIdentityRepositoryForTests } from "../src/identity/create-identity-repository";
 import { updateTenantRegistryRow } from "../src/tenant/update-tenant-registry-row";
-import { readTenantBrandLogoMinioConfigFromEnv } from "../src/tenant/tenant-branding-storage";
+import { readTenantBrandLogoMinioConfigFromEnv, putTenantBrandLogo } from "../src/tenant/tenant-branding-storage";
 import { OPERATOR_SMOKE } from "./fixtures/operator-smoke-e2e-tenant";
 import { URBAN_SMOKE_E2E } from "./fixtures/urban-smoke-e2e-tenant";
+import {
+  isMinioEnvironmentFailure,
+  minioEnvironmentSkipReason,
+} from "./lib/minio-environment-skip";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
 const PNG_HEADER = Buffer.from([
@@ -21,7 +25,7 @@ const PNG_HEADER = Buffer.from([
 ]);
 
 const minioConfig = readTenantBrandLogoMinioConfigFromEnv();
-const minioSkip = minioConfig === null ? "MINIO_* env not set" : undefined;
+const minioSkip = minioConfig === null ? "MINIO_* env not set" : false;
 
 installMemoryStorageDriverForDescribe();
 
@@ -341,7 +345,7 @@ describe("tenant-branding.spec.ts", () => {
   it(
     "API-TB-05b POST /settings/branding/logo owner valid PNG returns 201",
     { skip: minioSkip },
-    async () => {
+    async (t) => {
       const response = await requestHttp(port, "POST", "/settings/branding/logo", {
         headers: {
           ...ownerHeaders(),
@@ -349,6 +353,20 @@ describe("tenant-branding.spec.ts", () => {
         },
         body: PNG_HEADER,
       });
+      if (response.status !== 201) {
+        try {
+          await putTenantBrandLogo({
+            tenantId: OPERATOR_SMOKE.tenantId,
+            body: PNG_HEADER,
+            contentType: "image/png",
+          });
+        } catch (error) {
+          if (isMinioEnvironmentFailure(error)) {
+            t.skip(minioEnvironmentSkipReason(error));
+            return;
+          }
+        }
+      }
       assert.equal(response.status, 201);
       assert.ok(response.body.logo?.storageKey);
       const urlResponse = await requestHttp(port, "GET", "/settings/branding/logo/url", {

@@ -106,7 +106,15 @@ Rows reference **TARGET** paths until implementation lands. Status `ABSENT` in [
 | **RULE-P9-001** | 9.1      | Identity modules under `apps/api/src/identity/**` — no Nest port tree         | `test -d docs/phase-9/appendices/IDENTITY-PORT-SCOPE.md` + path convention review                                      |
 | **RULE-P9-002** | 9.4      | Denali admin uses `isAdminOrOwner` — Urban owner uses `isWorkspaceOwner` only | urban-owner regression + CASL specs                                                                                    |
 | **RULE-P9-003** | 9.3      | Wizard at `/tours/new` only — no `(app)/tours/new`                            | `rg '\\(app\\)/tours/new' apps/web` → zero                                                                             |
-| **RULE-P9-010** | 9.8      | `phase-9:gate` chains `phase-8:gate`                                          | `node -e "const p=require('./package.json'); if(!p.scripts['phase-9:gate'].includes('phase-8:gate')) process.exit(1)"` |
+| **RULE-P9-010** | 9.8      | `phase-9:gate` chains `phase-8:guard` + `phase-9:guard` (denested; must **not** nest `phase-8:gate`) | CMD-RULE-P9-010 below |
+
+---
+
+### CMD-RULE-P9-010 — phase-9:gate chains phase-8:guard (denested)
+
+```bash
+node -e "const s=require('./package.json').scripts['phase-9:gate']||''; if(!s.includes('phase-8:guard')||!s.includes('phase-9:guard')||s.includes('phase-8:gate')) process.exit(1)"
+```
 
 ---
 

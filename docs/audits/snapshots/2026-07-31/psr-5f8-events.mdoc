@@ -1,0 +1,47 @@
+---
+id: PSR-5F8-EVENTS
+title: PSR-5f8 — BG_EVENTS (closes PSR-5f background_repair direct admin)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5f-background-admin-inventory.yaml
+  - apps/api/src/events/tour-created-envelope-guard.ts
+program_id: PSR-001
+wave: PSR-5f8-events
+---
+
+# PSR-5f8 — events envelope guard (PSR-5f closure)
+
+## Scope (exactly one file)
+
+| File | Prior calls | Reason |
+| --- | ---: | --- |
+| `events/tour-created-envelope-guard.ts` | 1 | `BG_EVENTS` |
+
+`assertTourCreatedAggregateOwnership` uses
+`getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_EVENTS)`.
+
+## Closure
+
+After this wave: **migrated=20/20**, `remaining_direct=0` for the PSR-5f
+inventory. All former `background_repair` direct sites go through
+`getBackgroundAdminClient(reason)`.
+
+## Still open outside PSR-5f
+
+- Identity allowlist (`ALW-ID-FORCE-RLS`) → PSR-5g
+- Dual-store scaffold cleanup → PSR-5 item 6
+- Same-SHA proofs → PSR-5 item 7
+
+## Smoke
+
+```bash
+node scripts/ops/psr-5f-background-admin-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+```

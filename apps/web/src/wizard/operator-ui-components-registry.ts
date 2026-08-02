@@ -10,7 +10,7 @@ import type { ComponentType } from "react";
 import {
   resolveOperatorUiCapability,
   type WorkspacePlugin,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import { loadWizardWorkspacePlugin } from "@/wizard/resolve-wizard-workspace-plugin";
 

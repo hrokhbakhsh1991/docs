@@ -1,0 +1,126 @@
+---
+id: PSR-7D-OPS-IDENTITY-DESIGN
+title: PSR-7d — Platform-ops identity design (doc-first; no API code)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-7d-ops-identity-design-inventory.yaml
+program_id: PSR-001
+wave: PSR-7d-ops-identity-design
+---
+
+# PSR-7d — Platform-ops identity design
+
+## Intent
+
+Design the replacement for the **shared static** `PLATFORM_OPS_BEARER_TOKEN`
+(SoT PSR-7 item 1 / R-OPS-ID) **without changing `apps/api` in this wave**.
+
+Doc-first covenant: any later code change to `assertPlatformOpsAuth` /
+`read-platform-ops-bearer-token` must land only after this design is accepted.
+
+## Current model (as-built)
+
+```text
+Client/BFF
+  Authorization: Bearer <shared PLATFORM_OPS_BEARER_TOKEN>
+  X-Platform-Ops-Phone: <E.164>
+       │
+       ▼
+assertPlatformOpsAuth
+  1) bearer === env shared secret (constant-time equality today: string ===)
+  2) resolvePlatformOpsPhoneAccess(phone) → role owner|admin|support
+       │
+       ▼
+PlatformAuthContext { actorId: phone, roles: [role] }
+```
+
+Parallel machine path (already closer to target):
+
+- `verify-ops-service-jwt.ts` — short-lived JWT with **scopes**
+  (`cache:invalidate`, `metrics:read`, `finance:recon`, `portal:entitlements`)
+- `signPlatformOpsSessionToken` — RS256 JWT `kind: platform_ops`, **TTL 7d**,
+  claims `platform_role` + `sub=phone` (session-ish; not yet the sole gate)
+
+Gaps vs SoT:
+
+| Requirement | Today |
+| --- | --- |
+| Short-lived | Shared bearer: **no**; session JWT: 7d (long); service JWT: yes |
+| Scoped | Shared bearer: **no** (all-or-nothing + role); service JWT: **yes** |
+| Rotatable without outage | Shared bearer: single env flip; JWT: key pair + previous-key slot on service path |
+| Actor + audit | Phone as actorId; role from DB/env whitelist |
+
+## Target model
+
+```text
+Human ops (Control Center BFF)
+  Authorization: Bearer <platform_ops session JWT>
+  — short TTL (≤15m access) + refresh or re-login
+  — claims: kind=platform_ops, sub=phone, platform_role, scope[] (optional)
+  — signed with AUTH_JWT_* key material; previous-key verify during rotation
+
+Machine ops (internal routes)
+  Authorization: Bearer <ops service JWT>
+  — existing verifyOpsServiceJwt + scope enum (extend, do not fork)
+
+Shared PLATFORM_OPS_BEARER_TOKEN
+  — removed from production/prodlike after dual-accept window
+  — test/dev may keep explicit fixture secret behind NODE_ENV=test only
+```
+
+### Auth decision tree (target)
+
+1. Parse Bearer.
+2. If JWT (three segments): verify as `platform_ops` session **or** ops-service
+   (by `kind` / audience / scope claim). Reject shared-secret equality.
+3. If opaque string: **deny** in production/prodlike; allow only in `NODE_ENV=test`
+   with documented fixture.
+4. Emit `PlatformAuthContext` with `actorId`, `roles`, and `scopes[]` for audit.
+
+### Scope catalog (initial)
+
+Reuse service scopes where possible; add human scopes only when a route needs
+finer control than role:
+
+| Scope | Who | Notes |
+| --- | --- | --- |
+| (role-only) | human | Default: owner/admin/support gate as today |
+| `finance:recon` | machine (+ maybe owner) | Existing |
+| `cache:invalidate` | machine | Existing |
+| `metrics:read` | machine | Existing |
+| `portal:entitlements` | machine | Existing |
+
+### Rollout slices (future; not this wave)
+
+| Slice | Change | Risk |
+| --- | --- | --- |
+| **7d1** | Dual-accept: JWT session **or** shared bearer in `assertPlatformOpsAuth` | Low |
+| **7d2** | BFF issues/refreshes short-TTL session JWT; stop sending shared bearer | Medium |
+| **7d3** | Prodlike reject shared bearer; metrics for residual use | Medium |
+| **7d4** | Delete shared-bearer reader path from prod codepaths; keep test fixture | Low |
+
+## Non-goals (this wave)
+
+- No edits under `apps/api/src/platform/**`
+- No Control Center BFF wire
+- No TTL change to existing `signPlatformOpsSessionToken` (7d → 15m is **7d1+**)
+- No claim that R-OPS-ID is closed
+
+## Smoke
+
+```bash
+node scripts/ops/psr-7d-ops-identity-design-smoke.mjs
+```
+
+## Next
+
+Implement **PSR-7d1-dual-accept-session-jwt** only after Architect accepts this
+design (and docs-first note before touching API). Alternate: live YES packs
+(`PSR-6c6`, `R-BRANCH`, `R-STAGING`).

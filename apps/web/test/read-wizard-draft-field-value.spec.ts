@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { getWorkspacePlugin as getDenaliPlugin } from "@app-cloud/workspace-denali";
+import { getWorkspacePlugin as getDenaliPlugin } from "@app-tour/workspace-denali";
 
 import {
   readWizardDraftFieldDisplayString,

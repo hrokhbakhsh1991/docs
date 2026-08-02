@@ -1,0 +1,49 @@
+---
+id: PSR-5E2-PLATFORM-BILLING-CLUSTER
+title: PSR-5e2 — migrate PLATFORM_BILLING sites to getPlatformAdminClient
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5e-platform-admin-capability.mdoc
+  - apps/api/src/platform/platform-admin-client.ts
+  - apps/api/src/platform/platform-subscription.repository.ts
+  - apps/api/src/platform/mark-tenant-subscription-paid.ts
+  - apps/api/src/platform/update-tenant-subscription.ts
+  - apps/api/src/platform/process-past-due-subscriptions.ts
+program_id: PSR-001
+wave: PSR-5e2-platform-billing-cluster
+---
+
+# PSR-5e2 — PLATFORM_BILLING cluster migrate
+
+## Files (4)
+
+| File | Pattern |
+| --- | --- |
+| `platform-subscription.repository.ts` | `defaultPrisma()` via require |
+| `mark-tenant-subscription-paid.ts` | direct `getPrismaAdmin()` |
+| `update-tenant-subscription.ts` | direct |
+| `process-past-due-subscriptions.ts` | direct |
+
+All switch to `getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_BILLING)`.
+Injectable `constructor(prisma?)` on the repository is unchanged — only the
+default factory uses the named client.
+
+## Non-goals
+
+- Lifecycle / impersonation / provision clusters
+- Changing subscription business logic
+
+## Ratchet
+
+```bash
+node scripts/ops/psr-5e-platform-admin-capability-smoke.mjs
+```
+
+`remaining_direct` must be **23** (29 − 2 pilot − 4 billing).

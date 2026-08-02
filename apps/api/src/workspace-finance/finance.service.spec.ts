@@ -32,6 +32,7 @@ import {
   fakeFixedClock,
   fakeNoopLog,
   fakeNoopMetrics,
+  fakeNullObligation,
   fakePermissiveCapability,
   fakePermissiveAccess,
   fakeReceiptProofUrl,
@@ -109,7 +110,7 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
       financeRepo,
       bookingPayments,
       new DenaliFinanceReceiptDefaultsAdapter(),
-      new BookingRegistrationDisplayAdapter(),
+      new BookingRegistrationDisplayAdapter(getBookingsRepository()),
       fakeNoopMetrics,
       fakeMemoryPersistenceMode,
       fakeReceiptProofUrl,
@@ -117,7 +118,8 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
       fakePermissiveAccess,
       fakeEmptySchedules,
       fakeNoopLog,
-      fakeFixedClock
+      fakeFixedClock,
+      fakeNullObligation
     );
 
     if (input.withBooking) {

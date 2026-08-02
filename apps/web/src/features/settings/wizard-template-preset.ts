@@ -3,7 +3,7 @@
  * Generated binder deleted; fail-closed when capability omitted.
  */
 
-import { resolveTemplatePresetCapability } from "@app-cloud/workspace-sdk";
+import { resolveTemplatePresetCapability } from "@app-tour/workspace-sdk";
 
 import type { WizardTemplatePayload } from "@/features/settings/wizard-template-types";
 import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";

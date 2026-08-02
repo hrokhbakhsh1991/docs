@@ -190,7 +190,7 @@ describe("settings-config-version.spec.ts — Phase 9.6 API", () => {
     assert.equal(response.body.code, "SETTINGS_WIZARD_UNKNOWN_FIELD");
   });
 
-  it("API-9.6-CFG-06 PUT accepts published denali title bridge on starter workspace", async () => {
+  it("API-9.6-CFG-06 PUT rejects denali title on starter (no path alias bridge)", async () => {
     const prevSeed = process.env.OPERATOR_SMOKE_E2E_SEED;
     const prevStorage = process.env.STORAGE_DRIVER;
     process.env.OPERATOR_SMOKE_E2E_SEED = "1";
@@ -226,7 +226,9 @@ describe("settings-config-version.spec.ts — Phase 9.6 API", () => {
           },
         }
       );
-      assert.equal(response.status, 200);
+      assert.equal(response.status, 400);
+      assert.equal(response.body.code, "SETTINGS_WIZARD_UNKNOWN_FIELD");
+      assert.equal(response.body.canonicalPath, "title");
     } finally {
       if (prevSeed === undefined) {
         delete process.env.OPERATOR_SMOKE_E2E_SEED;

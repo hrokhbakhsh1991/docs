@@ -1,6 +1,6 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 
-import { getPrismaAdmin } from "../../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../../db/background-admin-client";
 import { FINANCE_RECON_SEVERITY, type FinanceReconFindingDraft } from "./codes";
 
 export type UpsertFindingsResult = {
@@ -11,7 +11,7 @@ export type UpsertFindingsResult = {
 /** Upsert open findings; reopen previously resolved/ignored if divergence returns. */
 export async function upsertFinanceReconFindings(
   drafts: readonly FinanceReconFindingDraft[],
-  admin: PrismaClient = getPrismaAdmin()
+  admin: PrismaClient = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON)
 ): Promise<UpsertFindingsResult> {
   let upserted = 0;
   let reopened = 0;
@@ -74,7 +74,7 @@ export async function listOpenFinanceReconFindings(input: {
   readonly code?: string;
   readonly limit?: number;
 }): Promise<unknown[]> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   return admin.financeReconFinding.findMany({
     where: {
       status: "open",
@@ -90,7 +90,7 @@ export async function getFinanceReconFinding(input: {
   readonly id: string;
   readonly tenantId: string;
 }): Promise<unknown | null> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   return admin.financeReconFinding.findFirst({
     where: { id: input.id, tenantId: input.tenantId },
     include: { actions: { orderBy: { createdAt: "desc" }, take: 20 } },
@@ -109,7 +109,7 @@ export async function recordFinanceReconAction(input: {
   readonly result: string;
   readonly payload: Record<string, unknown>;
 }): Promise<void> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   await admin.financeReconAction.create({
     data: {
       findingId: input.findingId,
@@ -132,7 +132,7 @@ export async function markFinanceReconFindingStatus(input: {
   readonly status: "resolved" | "ignored";
   readonly resolvedBy?: string;
 }): Promise<void> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   const updated = await admin.financeReconFinding.updateMany({
     where: { id: input.findingId, tenantId: input.tenantId },
     data: {
@@ -147,6 +147,6 @@ export async function markFinanceReconFindingStatus(input: {
 }
 
 export async function countOpenFinanceReconFindings(): Promise<number> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON);
   return admin.financeReconFinding.count({ where: { status: "open" } });
 }

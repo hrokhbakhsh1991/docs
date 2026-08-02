@@ -1,0 +1,43 @@
+---
+id: PSR-5E3-PLATFORM-LIFECYCLE-CLUSTER
+title: PSR-5e3 — migrate PLATFORM_TENANT_LIFECYCLE sites to getPlatformAdminClient
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5e-platform-admin-capability-inventory.yaml
+  - apps/api/src/platform/start-platform-tenant-offboard.ts
+  - apps/api/src/platform/cancel-platform-tenant-offboard.ts
+  - apps/api/src/platform/purge-platform-tenant.ts
+  - apps/api/src/platform/process-scheduled-tenant-deletions.ts
+program_id: PSR-001
+wave: PSR-5e3-platform-lifecycle-cluster
+---
+
+# PSR-5e3 — PLATFORM_TENANT_LIFECYCLE cluster
+
+## Files (4)
+
+| File | Notes |
+| --- | --- |
+| `start-platform-tenant-offboard.ts` | injectable `deps.prisma` kept |
+| `cancel-platform-tenant-offboard.ts` | injectable kept |
+| `purge-platform-tenant.ts` | injectable kept |
+| `process-scheduled-tenant-deletions.ts` | direct client only |
+
+Default path: `getPlatformAdminClient(PLATFORM_TENANT_LIFECYCLE)`.
+Deps type uses `ReturnType<typeof getPlatformAdminClient>` (same PrismaClient).
+
+## Non-goals
+
+- Impersonation / provision / tenant-repo clusters
+- Changing offboard retention or purge predicates
+
+## Ratchet
+
+`remaining_direct` → **19** (23 − 4).

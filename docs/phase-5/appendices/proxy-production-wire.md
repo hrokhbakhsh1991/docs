@@ -5,6 +5,7 @@ status: implemented
 phase: 4 resilience — Wave D
 closes: PI-03
 related: tenant-http-proxy.md, proxy-upstream-timeout.md
+fail_closed_auth: "Map enrich binds ALS via resolveTenantContextFromRequest + runWithHttpRequestContext (same as tenant-config). Tenant id must resolve a registered workspace type — random UUIDs yield WORKSPACE_TYPE_UNRESOLVED (404), not a proxy miss."
 ```
 
 ## Problem
@@ -67,7 +68,8 @@ pnpm run guard:proxy-production-wire
 
 | Assertion                                                       | Proves                           |
 | --------------------------------------------------------------- | -------------------------------- |
-| Mock upstream receives `x-tenant-id` from ALS                   | Production route uses proxy seam |
+| Mock upstream receives `x-tenant-id` from ALS (registered tenant) | Production route uses proxy seam |
+| Spec uses a **registry** tenant id (e.g. operator smoke `…014`) — not `integrationTenantId()` | Avoids false 404 `WORKSPACE_TYPE_UNRESOLVED` |
 | `main.ts` passes `tenantHttpProxy` into `createRequestListener` | DI wiring (PI-03 closed)         |
 | Without proxy dep → 503 `MAP_UPSTREAM_NOT_CONFIGURED`           | Fail-closed when env absent      |
 

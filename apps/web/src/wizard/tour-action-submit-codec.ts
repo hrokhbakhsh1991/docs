@@ -8,7 +8,7 @@ import {
   resolveTourActionSubmitCapability,
   type WorkspacePlugin,
   type WorkspaceTourActionSubmitErrorPayload,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 export type TourActionSubmitErrorPayload = WorkspaceTourActionSubmitErrorPayload;
 

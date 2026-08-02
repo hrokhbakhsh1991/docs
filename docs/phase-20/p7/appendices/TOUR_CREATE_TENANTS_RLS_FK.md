@@ -57,9 +57,12 @@ pnpm --filter @apps/api run db:seed
 
 Without seed, admin can see zero fixed Denali UUID tenants; that is a separate failure mode from P2025-on-connect.
 
+**App role SoT:** `DATABASE_URL` must use role `app_tour` (see `docs/phase-4/dev/init/01-app-role.sql`). A sibling `app_cloud` role may exist from historical migration `GRANT … TO app_cloud` guards; do not point trunk tests at it.
+
 ## Verification
 
-- Source contract: atomic persist must not contain `tenant: { connect`.
+- Source contract: `buildTourCreateData` returns `Prisma.TourUncheckedCreateInput` with scalar `tenantId` — must not contain `tenant: { connect` (`apps/api/src/canonical/atomic-canonical-tour-persist.ts`; guarded by `apps/api/test/tour-create-tenants-rls-fk.contract.spec.ts`).
+- Integration fixtures that need a tenant row must seed/cleanup via `getPrismaAdmin()` / `DATABASE_URL_ADMIN` — `getPrisma().tenant.create` under `app_cloud` correctly fails with SQLSTATE `42501` (FORCE RLS, zero policies).
 - Integration paths that call `persistNewTourAtomically` under Prisma + RLS continue to create tours for seeded tenants.
 - Ad-hoc policy `tenants_current_tenant_select` (if present from a live debug session) is dropped by follow-up migration — not required once unchecked create lands.
 

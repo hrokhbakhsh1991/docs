@@ -2,7 +2,7 @@ import {
   resolveTemplateGateCapability,
   resolveWizardHostCapability,
   type WorkspacePlugin,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import { parseWizardTemplateResponse } from "@/features/settings/wizard-template-logic";
 import type {

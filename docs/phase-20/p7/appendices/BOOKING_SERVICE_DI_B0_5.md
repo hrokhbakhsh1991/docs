@@ -27,6 +27,11 @@ constraints:
 1. `BookingRepositoryPort`
 2. `BookingAuthorizationPort` (`assertOpsAccess`)
 3. `BookingClockPort` (`now()`)
+4. Workspace capability / policy ports + `BookingRuntimeCapabilities` (later B1/B2)
+5. **`productionGradeIntegrity: boolean`** — host composition sets this from
+   `requiresProductionGradeIntegrity()`; `BookingsService` must **not** import
+   `../server/runtime-profile` (BK-DI-04). When tour SoT lacks `capacityMax`,
+   production-grade hosts fail closed; test/dev may use intake last-resort.
 
 ## Host composition
 

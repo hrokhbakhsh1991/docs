@@ -152,6 +152,7 @@ describe("bookings-service-di (B0.5)", () => {
           workspaceType: "denali",
           tenantWorkspaceBinding: stubTenantBinding(),
           capabilities: denaliCaps(),
+      productionGradeIntegrity: false,
         }),
       /BOOKINGS_SERVICE_DEP_REQUIRED:repository/
     );
@@ -172,6 +173,7 @@ describe("bookings-service-di (B0.5)", () => {
       workspaceType: "denali",
       tenantWorkspaceBinding: stubTenantBinding(),
       capabilities: denaliCaps(),
+      productionGradeIntegrity: false,
     });
     assert.equal(typeof service.listBookings, "function");
     assert.equal(service.boundWorkspaceType, "denali");

@@ -1,5 +1,9 @@
 /**
  * Phase 10.2 S4 — manifest ↔ codegen ↔ DEFAULT_WORKSPACE_TYPE_BINDINGS parity (P2-T17).
+ *
+ * Product trunk only: manifests with workspaceFinance.registryOnly or
+ * workspaceBooking.registryOnly are excluded from SDK/API type bindings
+ * (see scripts/codegen/.../productWorkspaceManifests).
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -18,22 +22,33 @@ const WORKSPACES_DIR = join(REPO_ROOT, "packages/workspaces");
 type WorkspaceManifest = {
   readonly id: string;
   readonly workspaceTypes: readonly string[];
+  readonly workspaceFinance?: { readonly registryOnly?: boolean };
+  readonly workspaceBooking?: { readonly registryOnly?: boolean };
 };
 
-function loadManifests(): WorkspaceManifest[] {
+function isRegistryOnlyFixture(manifest: WorkspaceManifest): boolean {
+  return (
+    manifest.workspaceFinance?.registryOnly === true ||
+    manifest.workspaceBooking?.registryOnly === true
+  );
+}
+
+function loadProductManifests(): WorkspaceManifest[] {
   const out: WorkspaceManifest[] = [];
   for (const ent of readdirSync(WORKSPACES_DIR, { withFileTypes: true })) {
     if (!ent.isDirectory()) continue;
     const manifestPath = join(WORKSPACES_DIR, ent.name, "workspace.manifest.json");
     if (!existsSync(manifestPath)) continue;
-    out.push(JSON.parse(readFileSync(manifestPath, "utf8")) as WorkspaceManifest);
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as WorkspaceManifest;
+    if (isRegistryOnlyFixture(manifest)) continue;
+    out.push(manifest);
   }
   return out.sort((a, b) => a.id.localeCompare(b.id));
 }
 
 describe("workspace manifest codegen contract (P2-T17)", () => {
-  it("every manifest workspaceType resolves via DEFAULT_WORKSPACE_TYPE_BINDINGS", () => {
-    const manifests = loadManifests();
+  it("every product manifest workspaceType resolves via DEFAULT_WORKSPACE_TYPE_BINDINGS", () => {
+    const manifests = loadProductManifests();
     assert.ok(manifests.length >= 3);
 
     for (const manifest of manifests) {
@@ -51,9 +66,20 @@ describe("workspace manifest codegen contract (P2-T17)", () => {
     }
   });
 
-  it("bindings row count equals manifest workspaceType entries", () => {
-    const manifests = loadManifests();
+  it("bindings row count equals product manifest workspaceType entries", () => {
+    const manifests = loadProductManifests();
     const expectedRows = manifests.reduce((n, m) => n + m.workspaceTypes.length, 0);
     assert.equal(DEFAULT_WORKSPACE_TYPE_BINDINGS.length, expectedRows);
+  });
+
+  it("registryOnly finance/booking fixtures are excluded from DEFAULT bindings", () => {
+    assert.equal(resolveWorkspacePluginIdForType("finance-ws2", DEFAULT_WORKSPACE_TYPE_BINDINGS), null);
+    assert.equal(resolveWorkspacePluginIdForType("finance-ws3", DEFAULT_WORKSPACE_TYPE_BINDINGS), null);
+    assert.equal(resolveWorkspacePluginIdForType("finance-ws4", DEFAULT_WORKSPACE_TYPE_BINDINGS), null);
+    assert.equal(resolveWorkspacePluginIdForType("finance-ws6", DEFAULT_WORKSPACE_TYPE_BINDINGS), null);
+    assert.equal(
+      resolveWorkspacePluginIdForType("finance-ws5", DEFAULT_WORKSPACE_TYPE_BINDINGS),
+      "finance-ws5"
+    );
   });
 });

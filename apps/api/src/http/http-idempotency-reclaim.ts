@@ -1,4 +1,4 @@
-import { getPrismaAdmin } from "../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../db/background-admin-client";
 import { metricsRegistry } from "../observability/metrics";
 
 const DEFAULT_RECLAIM_MS = 120_000;
@@ -26,7 +26,7 @@ export async function reclaimStaleProcessingHttpIdempotencyRecords(
 ): Promise<number> {
   const now = new Date();
   const legacyCutoff = new Date(Date.now() - reclaimMs);
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_HTTP_IDEMPOTENCY_RECLAIM);
   const result = await admin.httpIdempotencyRecord.deleteMany({
     where: {
       status: "processing",

@@ -4,6 +4,9 @@ import {
   resetBookingsRepositoryForTests,
 } from "../../src/bookings/create-bookings-repository";
 
+/** Booking-owned capacity — fixtures must carry tourCapacityMax when tour SoT is not in capacity adapter store. */
+const SMOKE_TOUR_CAPACITY_MAX = 12;
+
 export function seedOperatorBookingsFixture(): void {
   resetBookingsRepositoryForTests();
   const repo = getBookingsRepository();
@@ -28,6 +31,7 @@ export function seedOperatorBookingsFixture(): void {
     submittedAt: now.toISOString(),
     submittedByUserId: OPERATOR_SMOKE.memberUserId,
     approvedAt: null,
+    registrationIntake: { tourCapacityMax: SMOKE_TOUR_CAPACITY_MAX },
   });
 
   repo.seedBooking({
@@ -45,6 +49,7 @@ export function seedOperatorBookingsFixture(): void {
     submittedAt: now.toISOString(),
     submittedByUserId: OPERATOR_SMOKE.memberUserId,
     approvedAt: now.toISOString(),
+    registrationIntake: { tourCapacityMax: SMOKE_TOUR_CAPACITY_MAX },
   });
 
   repo.seedBooking({
@@ -62,5 +67,6 @@ export function seedOperatorBookingsFixture(): void {
     submittedAt: now.toISOString(),
     submittedByUserId: OPERATOR_SMOKE.ownerUserId,
     approvedAt: null,
+    registrationIntake: { tourCapacityMax: SMOKE_TOUR_CAPACITY_MAX },
   });
 }

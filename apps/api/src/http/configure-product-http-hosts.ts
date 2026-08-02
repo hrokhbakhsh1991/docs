@@ -5,10 +5,12 @@
  */
 import {
   configureDenaliProductHttpHost,
+  configureHarborHttpHost,
   configureUrbanHttpHost,
   type BookingPublicPort,
   type DenaliProductRouteDeps,
   type DenaliPublicDestinationPort,
+  type HarborProductRouteDeps,
   type UrbanHttpHostPorts,
   type UrbanProductRouteDeps,
 } from "./workspace-product-http-host-bindings.generated";
@@ -132,6 +134,22 @@ configureDenaliProductHttpHost({
   resolvePublicDestinationPort,
   resolveExposureResolverPort: resolveDenaliExposureResolverPort,
   resolveReminderFeedPort,
+});
+
+configureHarborHttpHost({
+  runWithHttpRequestContext,
+  sendJson,
+  sendHttpError,
+  handleHttpError,
+  resolveWorkspaceTypeForTenant,
+  resolveTourStore: (deps: HarborProductRouteDeps) => resolveProductTourStore(deps),
+  resolvePublicBookingPort: (deps: HarborProductRouteDeps) => {
+    if (deps.publicBookingPort !== undefined) {
+      return deps.publicBookingPort;
+    }
+    return createHostBookingPublicAdapter();
+  },
+  readHarborRegistrationRequestBody: readJsonBody,
 });
 
 configureUrbanHttpHost({

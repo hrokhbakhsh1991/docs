@@ -1,0 +1,39 @@
+---
+id: PSR-7F-BRANCH-PROTECTION-PRINT-RATCHET
+title: PSR-7f — Branch-protection print-only ratchet (no gh apply / no verify YES)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-7f-branch-protection-print-inventory.yaml
+program_id: PSR-001
+wave: PSR-7f-branch-protection-print-ratchet
+---
+
+# PSR-7f — Branch-protection print ratchet
+
+## Intent
+
+Advance R-BRANCH without GitHub API writes:
+
+- `ops:branch-protection:print` lists required check contexts
+- Local name-drift verifier (`verify-required-check-names.mjs`) stays green
+- **No** `--verify` / apply (needs `gh` auth + Architect YES)
+
+## Commands
+
+```bash
+pnpm run ops:branch-protection:print
+node scripts/ops/verify-required-check-names.mjs
+node scripts/ops/psr-7f-branch-protection-print-smoke.mjs
+```
+
+## Next
+
+Architect YES → `pnpm run ops:branch-protection:verify` on release SHA.
+Or fill tip RC pack draft from PSR-7e schema under `reports/psr/`.

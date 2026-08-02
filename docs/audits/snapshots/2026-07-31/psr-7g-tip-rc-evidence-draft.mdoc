@@ -1,0 +1,43 @@
+---
+id: PSR-7G-TIP-RC-EVIDENCE-DRAFT
+title: PSR-7g — Tip RC evidence draft generator (gates remain false)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-7g-tip-rc-evidence-draft-inventory.yaml
+program_id: PSR-001
+wave: PSR-7g-tip-rc-evidence-draft
+---
+
+# PSR-7g — Tip RC evidence draft
+
+## Intent
+
+Assemble a **draft** PSR-7e evidence pack for the current tip into
+`reports/psr/rc-evidence-draft.json` (gitignored) from existing collectors:
+
+- scorecard collect
+- secret-scan tracked baseline
+- sbom lockfile summary
+- branch-protection required-check list (print-only)
+- Harbor stub honesty
+
+All `program_gates.*` remain **false**. This is not a release candidate.
+
+## Commands
+
+```bash
+node scripts/ops/psr-7g-tip-rc-evidence-draft.mjs
+node scripts/ops/psr-7g-tip-rc-evidence-draft-smoke.mjs
+```
+
+## Next
+
+Natural stop for inventory train: Architect chooses YES/accept/counsel path.
+Optional thin follow-ups still without YES: expand scorecard metrics only.

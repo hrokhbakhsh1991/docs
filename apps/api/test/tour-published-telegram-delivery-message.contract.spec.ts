@@ -120,7 +120,7 @@ describe("TourPublished telegram delivery message contract", () => {
     assert.equal(payload.integrationDeliveryMessageTemplate, undefined);
     assert.notEqual(payload.integrationDeliveryFieldIds, undefined);
 
-    const rendered = formatIntegrationDeliveryMessage({
+    const rendered = await formatIntegrationDeliveryMessage({
       workspaceType: "denali",
       eventType: "TourPublished",
       payload,

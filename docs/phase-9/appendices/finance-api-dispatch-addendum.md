@@ -22,6 +22,10 @@ All routes below require:
 
 Urban → **404** `FINANCE_WORKSPACE_UNSUPPORTED`.
 
+Composition may throw `FINANCE_WORKSPACE_UNSUPPORTED: workspaceType=urban` (diagnostic suffix). HTTP
+mapping must strip to the stable code (**404**, no 500) — see `handleHttpError` early branch and
+`docs/phase-15/operator-dashboard-runtime.mdoc` (P15-P-A2 finance HTTP strip).
+
 ### Memory driver (`STORAGE_DRIVER=memory`, no `DATABASE_URL`)
 
 Local dev without Postgres must not return **500** on read-only finance report routes documented in SMK-P9-09.

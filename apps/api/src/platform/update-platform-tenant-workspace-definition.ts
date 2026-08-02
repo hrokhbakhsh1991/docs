@@ -1,6 +1,9 @@
 import type { PrismaClient } from "@prisma/client";
 
-import { getPrismaAdmin } from "../db/prisma.ts";
+import {
+  PLATFORM_ADMIN_REASON,
+  getPlatformAdminClient,
+} from "./platform-admin-client.ts";
 import {
   appendPlatformAuditEvent,
   PLATFORM_AUDIT_ACTION_TENANT_DEFINITION_ASSIGNED,
@@ -26,7 +29,9 @@ export async function updatePlatformTenantWorkspaceDefinition(input: {
 }): Promise<PlatformTenantWorkspaceDefinitionDto | null> {
   const tenantRepository = input.tenantRepository ?? new PlatformTenantRepository();
   const definitionRepository = input.definitionRepository ?? new WorkspaceDefinitionRepository();
-  const prisma = input.prisma ?? getPrismaAdmin();
+  const prisma =
+    input.prisma ??
+    getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_WORKSPACE_DEFINITION);
 
   const existing = await tenantRepository.getById(input.tenantId);
   if (!existing) {

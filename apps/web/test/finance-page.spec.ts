@@ -159,17 +159,24 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
     assert.match(shell, /finance-decision-guide/);
   });
 
-  it("WEB-9.7-10 Phase D: installments board has no waive/record stubs", () => {
+  it("WEB-9.7-10 FC-4: installments board wires real waive/reschedule BFF (no stub callbacks)", () => {
     const panel = readFileSync(
       resolve(WEB_ROOT, "src/finance/finance-installments-panel.tsx"),
       "utf8"
     );
     assert.match(panel, /finance-installments-semantics/);
     assert.match(panel, /partialHint/);
-    assert.match(panel, /actionsDeferred/);
+    assert.match(panel, /semanticsMutate/);
     assert.match(panel, /schedules\/generate/);
     assert.match(panel, /installmentDefaults\?\.enabled/);
-    assert.doesNotMatch(panel, /waive|recordPayment|onWaive|onRecordInstallment/i);
+    assert.match(panel, /buildWaiveScheduleItemRequestBody/);
+    assert.match(panel, /buildRescheduleScheduleItemRequestBody/);
+    assert.match(panel, /\/api\/finance\/schedules\//);
+    assert.match(panel, /FINANCE_INSTALLMENTS_TEST_IDS\.waiveButton/);
+    assert.match(panel, /FINANCE_INSTALLMENTS_TEST_IDS\.rescheduleButton/);
+    assert.match(panel, /isAdminOrOwnerRole/);
+    // No fake callback stubs — mutate goes through BFF PATCH only.
+    assert.doesNotMatch(panel, /recordPayment|onWaive|onRecordInstallment/);
   });
 
   it("WEB-9.7-11 Phase E: overview links triage + attention samples helper", () => {

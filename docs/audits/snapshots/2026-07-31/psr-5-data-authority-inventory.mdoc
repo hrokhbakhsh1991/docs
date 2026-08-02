@@ -1,0 +1,123 @@
+---
+id: PSR-5-DATA-AUTHORITY-INVENTORY
+title: PSR-5 data authority inventory — factories, env matrix, getPrismaAdmin classes
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5-data-authority-inventory.yaml
+  - apps/api/src/db/prisma.ts
+  - apps/api/src/storage/production-storage-driver-assert.ts
+  - apps/api/src/server/production-runtime-env.ts
+program_id: PSR-001
+wave: PSR-5-data-authority-inventory
+---
+
+# PSR-5 — data authority inventory (no refactor)
+
+## Goal (this wave only)
+
+Complete **PSR-5 item 1** and a first-pass of **item 3**: list every dual
+memory/prisma factory, document the environment matrix, and classify every
+non-spec `getPrismaAdmin()` site under `apps/api/src`.
+
+**Forbidden in this wave:** deleting admin calls, changing RLS posture, Harbor
+productionize, or any storage migration.
+
+## Environment matrix
+
+| Profile | Memory boot | Prisma | Enforcer |
+| --- | --- | --- | --- |
+| `test` | allowed | allowed | harness / `STORAGE_DRIVER` |
+| `development` | allowed (default if no `DATABASE_URL`) | allowed | none at factory unless called |
+| `production` | **forbidden** | required | `assertProductionStorageDriver` via `assertProductionRuntimeIntegrity` |
+| `prodlike` | **forbidden** | required | `requiresProductionGradeIntegrity()` same path |
+
+Source: `resolveStorageDriver` + `assertProductionStorageDriver` in
+`apps/api/src/storage/production-storage-driver-assert.ts`, wired from
+`assertProductionRuntimeIntegrity()`.
+
+## Dual-store factories (10)
+
+| Domain | Path | Local `assertProductionStorageDriver` |
+| --- | --- | --- |
+| bookings | `create-bookings-repository.ts` | yes |
+| identity | `create-identity-repository.ts` | yes |
+| portal member plan | `portal-member-plan.service.ts` | yes |
+| tour storage | `create-tour-storage.ts` | yes |
+| settings ×3 | `create-settings-*-repository.ts` | yes |
+| drafts ×2 | `create-workspace-drafts*.ts` | yes |
+| **finance** | `finance-repository.factory.ts` | **yes** (PSR-5a) |
+
+Boot-time integrity blocks memory in production/prodlike. PSR-5a added
+factory-local assert so finance matches bookings/identity/drafts.
+
+## `getPrismaAdmin` in `apps/api/src` (non-spec)
+
+| Class | Files | Calls≈ | PSR-5 bucket |
+| --- | ---: | ---: | --- |
+| `control_plane` | 29 | 31 | legitimate control-plane candidate |
+| `background_repair` | 20 | 50 | background/repair; audit trail still open |
+| `tenant_registry` | 2 | 4 | routing hot path; needs named port (item 5) |
+| `tenant_path_allowlist_candidate` | 2 | 13 | intentional today; needs owner/reason/expiry |
+| `seed_dev` | 1 | 2 | keep out of production request path |
+| `definition` | 1 | 1 | `db/prisma.ts` |
+| **Total** | **55** | **106** | — |
+| `unclassified` | **0** | — | ratchet |
+
+### Allowlist candidates (not yet formal allowlist)
+
+1. **`identity/prisma-identity.repository.ts`** (~12 calls) — `user` /
+   `mobileOtpChallenge` FORCE RLS deny for app role; pre-tenant login has no
+   GUC. Comment in source already documents admin-only OTP/user reads.
+2. **`workspace-finance/resolve-finance-workspace-type-for-tenant.ts`** — admin
+   `tenant.findUnique` when `DATABASE_URL` set; falls back to static registry.
+   Used from finance composition (tenant-adjacent).
+
+### Tenant registry (every request)
+
+`resolve-registered-tenant.ts` and `update-tenant-registry-row.ts` use the admin
+pool for cache-miss reads/writes and already emit `recordAdminPoolRead` metrics.
+PSR-5 item 5 wants a **named** control-plane interface + reason code rather than
+raw `getPrismaAdmin()` imports.
+
+## Checklist progress vs SoT §PSR-5
+
+| # | Item | This wave |
+| --- | --- | --- |
+| 1 | List factories + env matrix | **complete** |
+| 2 | Memory only test\|dev | **complete** (boot + all 10 factories; PSR-5a) |
+| 3 | Classify non-test admin into 3 groups | **inventory complete** (+ registry/allowlist refinements) |
+| 4–7 | Scoped ports, named CP, dual-store cleanup, same-SHA proofs | **open** |
+
+## Proposed next slices (not executed)
+
+1. **PSR-5b-admin-allowlist-doc** (low) — formal allowlist YAML for identity +
+   finance resolver with owner/reason/expiry.
+2. **PSR-5c-tenant-registry-port** (medium) — `TenantRegistryAdminPort` wrapper.
+
+## Closed slices
+
+- **PSR-5a-finance-factory-assert** — finance factory local assert.
+
+## Ratchet
+
+```bash
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+node scripts/ops/psr-5a-finance-factory-assert-smoke.mjs
+```
+
+Locks: 10 dual-store factories; **0** missing local assert; 55 classified
+api_src admin files; 0 unclassified.
+
+## Explicit non-goals
+
+- Removing any `getPrismaAdmin` call
+- Changing identity FORCE-RLS tables to app pool
+- Harbor durable path (PSR-6)
+- Full production release evidence (PSR-7)

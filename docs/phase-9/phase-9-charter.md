@@ -209,7 +209,7 @@ Full machine rules: [`appendices/BOOT-MANIFEST.yaml`](appendices/BOOT-MANIFEST.y
 
 ```bash
 pnpm run phase-9:guard    # doc + invariant attestation (daily)
-pnpm run phase-9:gate     # full closure — explicit Architect YES only (~35–45 min chain)
+pnpm run phase-9:gate     # full closure — explicit Architect YES only (build+test + phase-8:guard + phase-9:guard; denested from phase-8:gate)
 ```
 
 **Doc pack honesty:** `phase-9:guard` PASS does **not** imply Operator Admin DoD — see [`audits/IMPLEMENTATION-TRUTH.md`](audits/IMPLEMENTATION-TRUTH.md).

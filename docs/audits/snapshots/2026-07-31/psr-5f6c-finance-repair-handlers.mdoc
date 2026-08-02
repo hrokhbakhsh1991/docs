@@ -1,0 +1,50 @@
+---
+id: PSR-5F6C-FINANCE-REPAIR
+title: PSR-5f6c — BG_FINANCE_RECON repair-handlers only
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5f-background-admin-inventory.yaml
+  - apps/api/src/workspace-finance/recon/repair-handlers.ts
+program_id: PSR-001
+wave: PSR-5f6c-finance-repair-handlers
+---
+
+# PSR-5f6c — finance repair handlers
+
+## Scope (exactly one file)
+
+| File | Prior direct calls | Reason |
+| --- | ---: | --- |
+| `workspace-finance/recon/repair-handlers.ts` | 4 | `BG_FINANCE_RECON` |
+
+Each local `getPrismaAdmin()` →
+`getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_FINANCE_RECON)`.
+
+## Deferred
+
+- `detect.ts` (11 calls) → **PSR-5f6d**
+
+## Non-goals
+
+- No repair mutation / RLS / outbox-replay semantics changes
+- No detect SQL in this wave
+
+## Ratchet after f6c
+
+- f inventory: `migrated_file_count: 15`, `remaining_direct: 5`
+- main: `api_src_admin_files: 11`, `api_src_admin_calls: 40`,
+  `background_repair_direct_admin_files: 5`
+
+## Smoke
+
+```bash
+node scripts/ops/psr-5f-background-admin-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+```

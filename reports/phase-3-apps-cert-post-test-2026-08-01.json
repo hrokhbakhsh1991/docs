@@ -1,0 +1,106 @@
+{
+  "mode": "post-test",
+  "generatedAt": "2026-08-01T11:29:20.742Z",
+  "gitSha": "a99b0656",
+  "reportDate": "2026-08-01",
+  "gateCommand": "pnpm run phase-3:apps-cert:post-test",
+  "enforcement": {
+    "doc": "docs/phase-3/phase-3-guard-apps-cert-split.mdoc"
+  },
+  "contract": {
+    "requireEnv": "PHASE_3_APPS_CERT_INHERIT_ROOT=1",
+    "assumes": [
+      "root monorepo build exit 0",
+      "root monorepo test exit 0"
+    ]
+  },
+  "inherited": [
+    {
+      "id": "root_build",
+      "owner": "root monorepo build",
+      "detail": "caller contract — not re-executed by this runner"
+    },
+    {
+      "id": "root_test",
+      "owner": "root monorepo test",
+      "detail": "caller contract — includes sdk, starter, api(+pretest), web suites; not re-executed"
+    }
+  ],
+  "executed": [
+    {
+      "id": "p3_apps_web_lint",
+      "enforcementId": "P3-E-APP-HOOK",
+      "description": "pnpm --filter @apps/web run lint (prelint lifecycle + eslint + tsc)",
+      "ok": false,
+      "detail": "> @apps/web@0.1.0 prelint /home/hamed/Music/docs/apps/web\n> pnpm run guard:import-boundary && pnpm run audit-boundary && pnpm run guard:no-raw-wizard-input\n\n\n> @apps/web@0.1.0 guard:import-boundary /home/hamed/Music/docs/apps/web\n> node ../../scripts/guards/import-boundary-ast.mjs\n\nimport-boundary-ast: PASS\n\n> @apps/web@0.1.0 audit-boundary /home/hamed/Music/docs/apps/web\n> node ../../scripts/guards/audit-ui-primitives-boundary.mjs\n\naudit-ui-primitives-boundary PASS\n  scanned: apps, packages\n  allowed subpaths: button, input, select, checkbox, field-shell, alert, badge\n\n> @apps/web@0.1.0 guard:no-raw-wizard-input /home/hamed/Music/docs/apps/web\n> node ./scripts/guard-no-raw-wizard-input.mjs\n\nguard-no-raw-wizard-input: PASS\n\n> @apps/web@0.1.0 lint /home/hamed/Music/docs/apps/web\n> eslint \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\" --max-warnings 0 && tsc --noEmit -p tsconfig.lint.json\n\nsrc/bootstrap/workspace-plugin-loaders.generated.ts(49,32): error TS2307: Cannot find module '@app-tour/workspace-harbor/plugin' or its corresponding type declarations.\n/home/hamed/Music/docs/apps/web:\n ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @apps/web@0.1.0 lint: `eslint \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\" --max-warnings 0 && tsc --noEmit -p tsconfig.lint.json`\nExit status 2"
+    },
+    {
+      "id": "p3_canonical_sync",
+      "enforcementId": "P3-E-CANONICAL-34",
+      "description": "pnpm --filter @apps/api run validate:canonical-sync",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p3_apps_web_next_build",
+      "enforcementId": "P3-E-APP-HOOK",
+      "description": "WEB_SKIP_GUARD_PREBUILD=1 pnpm --filter @apps/web run build (admin next build; not in root monorepo build)",
+      "ok": false,
+      "detail": "> @apps/web@0.1.0 prebuild /home/hamed/Music/docs/apps/web\n> node ./scripts/run-prebuild-guards.mjs\n\nweb-prebuild: skip guards (WEB_SKIP_GUARD_PREBUILD=1)\n\n> @apps/web@0.1.0 build /home/hamed/Music/docs/apps/web\n> next build\n\n   ▲ Next.js 15.5.19\n\n   Creating an optimized production build ...\n   Linting and checking validity of types ...\n/home/hamed/Music/docs/apps/web:\n ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @apps/web@0.1.0 build: `next build`\nExit status 1\n ⚠ Compiled with warnings in 75s\n\n../../packages/workspaces/denali/dist/settings/settings-equipment-ui-package-surface.js\nCritical dependency: the request of a dependency is an expression\n\nImport trace for requested module:\n../../packages/workspaces/denali/dist/settings/settings-equipment-ui-package-surface.js\n../../packages/workspaces/denali/dist/denali.plugin.js\n./src/bootstrap/workspace-plugin-loaders.generated.ts\n./src/wizard/resolve-wizard-workspace-plugin.ts\n./app/(app)/tours/[id]/edit/tour-edit-page-client.tsx\n\n../../packages/workspaces/denali/dist/settings/settings-exposure-surfaces-ui-package-surface.js\nCritical dependency: the request of a dependency is an expression\n\nImport trace for requested module:\n../../packages/workspaces/denali/dist/settings/settings-exposure-surfaces-ui-package-surface.js\n../../packages/workspaces/denali/dist/denali.plugin.js\n./src/bootstrap/workspace-plugin-loaders.generated.ts\n./src/wizard/resolve-wizard-workspace-plugin.ts\n./app/(app)/tours/[id]/edit/tour-edit-page-client.tsx\n\n../../packages/workspaces/denali/dist/wizard/create-chrome-surface.js\nCritical dependency: the request of a dependency is an expression\n\nImport trace for requested module:\n../../packages/workspaces/denali/dist/wizard/create-chrome-surface.js\n../../packages/workspaces/denali/dist/denali.plugin.js\n./src/bootstrap/workspace-plugin-loaders.generated.ts\n./src/wizard/resolve-wizard-workspace-plugin.ts\n./app/(app)/tours/[id]/edit/tour-edit-page-client.tsx\n\n../../packages/workspaces/denali/dist/wizard/create-view-surface.js\nCritical dependency: the request of a dependency is an expression\n\nImport trace for requested module:\n../../packages/workspaces/denali/dist/wizard/create-view-surface.js\n../../packages/workspaces/denali/dist/denali.plugin.js\n./src/bootstrap/workspace-plugin-loaders.generated.ts\n./src/wizard/resolve-wizard-workspace-plugin.ts\n./app/(app)/tours/[id]/edit/tour-edit-page-client.tsx\n\n../../packages/workspaces/denali/dist/wizard/flat-edit-chrome-surface.js\nCritical dependency: the request of a dependency is an expression\n\nImport trace for requested module:\n../../packages/workspaces/denali/dist/wizard/flat-edit-chrome-surface.js\n../../packages/workspaces/denali/dist/denali.plugin.js\n./src/bootstrap/workspace-plugin-loaders.generated.ts\n./src/wizard/resolve-wizard-workspace-plugin.ts\n./app/(app)/tours/[id]/edit/tour-edit-page-client.tsx\n\n../../packages/workspaces/denali/dist/wizard/flat-edit-form-surface.js\nCritical dependency: the request of a dependency is an expression\n\nImport trace for requested module:\n../../packages/workspaces/denali/dist/wizard/flat-edit-form-surface.js\n../../packages/workspaces/denali/dist/denali.plugin.js\n./src/bootstrap/workspace-plugin-loaders.generated.ts\n./src/wizard/resolve-wizard-workspace-plugin.ts\n./app/(app)/tours/[id]/edit/tour-edit-page-client.tsx\n\n../../packages/workspaces/denali/dist/wizard/flat-edit-page-surface.js\nCritical dependency: the request of a dependency is an expression\n\nImport trace for requested module:\n../../packages/workspaces/denali/dist/wizard/flat-edit-page-surface.js\n../../packages/workspaces/denali/dist/denali.plugin.js\n./src/bootstrap/workspace-plugin-loaders.generated.ts\n./src/wizard/resolve-wizard-workspace-plugin.ts\n./app/(app)/tours/[id]/edit/tour-edit-page-client.tsx\n\n../../packages/workspaces/denali/dist/wizard/host-adapter-surface.js\nCritical dependency: the request of a dependency is an expression\n\nImport trace for requested module:\n../../packages/workspaces/denali/dist/wizard/host-adapter-surfac\n… (truncated)"
+    }
+  ],
+  "skipped_by_contract": [
+    {
+      "id": "p3_workspace_sdk_tests",
+      "detail": "sdk suite owned by root monorepo test — not re-executed"
+    },
+    {
+      "id": "p3_starter_build",
+      "detail": "starter build owned by root monorepo build — not re-executed"
+    },
+    {
+      "id": "p3_starter_tests",
+      "detail": "starter suite owned by root monorepo test — not re-executed"
+    },
+    {
+      "id": "p3_api_gate",
+      "detail": "api leaf certification gate not invoked — api build/test/guards owned by root build+test; not equivalent to that gate PASS"
+    },
+    {
+      "id": "api_build_prebuild",
+      "detail": "api prebuild/build owned by root monorepo build — not re-executed"
+    },
+    {
+      "id": "api_test_and_pretest_guards",
+      "detail": "api test + pretest guards owned by root monorepo test — not re-executed"
+    },
+    {
+      "id": "p3_web_gate",
+      "detail": "web leaf certification gate not invoked — replaced by lint-once + next build; web unit suite owned by root test"
+    },
+    {
+      "id": "web_unit_tests",
+      "detail": "web unit suite owned by root monorepo test — not re-executed"
+    }
+  ],
+  "not_enforced_in_this_mode": [
+    {
+      "id": "sdk_starter_count_floors",
+      "detail": "Root test proves exit 0 only; ≥100/≥15 floors remain authority of full standalone apps-cert (checkPackageTests)"
+    },
+    {
+      "id": "api_leaf_gate_composite",
+      "detail": "Post-test does not emit api leaf-gate PASS; canonical-sync is executed separately"
+    },
+    {
+      "id": "web_leaf_gate_composite",
+      "detail": "Post-test does not emit web leaf-gate PASS; lint + next build are executed separately"
+    }
+  ],
+  "exit": {
+    "pass": false,
+    "executedTotal": 3,
+    "executedPassed": 1,
+    "note": "Residual post-root cert only — NOT equivalent to full standalone apps-cert PASS"
+  }
+}

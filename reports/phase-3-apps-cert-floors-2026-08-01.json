@@ -1,0 +1,59 @@
+{
+  "mode": "floors",
+  "generatedAt": "2026-08-01T11:26:54.063Z",
+  "gitSha": "a99b0656",
+  "reportDate": "2026-08-01",
+  "gateCommand": "pnpm run phase-3:apps-cert:floors",
+  "enforcement": {
+    "doc": "docs/phase-3/phase-3-guard-apps-cert-split.mdoc"
+  },
+  "contract": {
+    "requireEnv": "PHASE_3_APPS_CERT_INHERIT_ROOT=1",
+    "assumes": [
+      "root monorepo build exit 0",
+      "root monorepo test exit 0"
+    ]
+  },
+  "executed": [
+    {
+      "id": "workspace_sdk_test_floor",
+      "enforcementId": "P3-E-CASL-01",
+      "filter": "@app-cloud/workspace-sdk",
+      "threshold": 100,
+      "ok": false,
+      "count": null,
+      "result": "could not parse test count\nNo projects matched the filters in \"/home/hamed/Music/docs\""
+    },
+    {
+      "id": "starter_test_floor",
+      "enforcementId": "P3-E-WS-01",
+      "filter": "@app-cloud/workspace-starter",
+      "threshold": 15,
+      "ok": false,
+      "count": null,
+      "result": "could not parse test count\nNo projects matched the filters in \"/home/hamed/Music/docs\""
+    }
+  ],
+  "inherited": [
+    {
+      "id": "root_build",
+      "detail": "not re-executed"
+    },
+    {
+      "id": "root_test",
+      "detail": "not re-executed"
+    }
+  ],
+  "not_enforced_in_this_mode": [
+    "api test count docs",
+    "web test count docs",
+    "api-gate composite",
+    "web-gate composite"
+  ],
+  "exit": {
+    "pass": false,
+    "executedTotal": 2,
+    "executedPassed": 0,
+    "note": "Sdk+starter count floors only — NOT equivalent to full standalone apps certification; api/web composites not claimed"
+  }
+}

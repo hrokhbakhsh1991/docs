@@ -4,6 +4,15 @@ const URBAN_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000004";
 
 export const WORKSPACE_TYPE_UNRESOLVED = "WORKSPACE_TYPE_UNRESOLVED";
 
+/** True when `resolveWorkspaceTypeForTenant` failed closed for an unregistered tenant. */
+export function isWorkspaceTypeUnresolvedError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.message === WORKSPACE_TYPE_UNRESOLVED ||
+      error.message.startsWith(`${WORKSPACE_TYPE_UNRESOLVED}:`))
+  );
+}
+
 /**
  * Loads workspace_type for validation-time plugin resolution (5.2).
  * Postgres `tenants.workspace_type` when present; else static registry.

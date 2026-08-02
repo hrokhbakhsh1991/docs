@@ -11,7 +11,7 @@ import {
   resolveWizardHostCapability,
   type WorkspacePlugin,
   type WorkspaceWizardDraftMeta,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
 import { resolveDraftUnificationV3Mode } from "@/draft/draft-unification-v3";

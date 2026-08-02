@@ -8,8 +8,17 @@ path: HTTP → route → facade → resolveBookingsServiceForTenant → Bookings
 forbidden: InMemoryBookingsRepository | mocked repositories | direct BookingsService calls
 command: pnpm --filter @apps/api run test:booking-http-postgres
 ci_job: Booking HTTP PostgreSQL
-fail_closed: "MR-P0-015 — missing DATABASE_URL(+ADMIN) throws BOOKING_HTTP_POSTGRES_REQUIRES_DATABASE (no silent skip)"
+fail_closed: "MR-P0-015 — missing DATABASE_URL(+ADMIN) → honest describe skip with BOOKING_HTTP_POSTGRES_REQUIRES_DATABASE (visible skip, never silent green). Dedicated runners (`test:booking-http-postgres`, Booking HTTP PostgreSQL CI, Phase-6 PG jobs) must set DATABASE_URL(+ADMIN) so the suite executes."
 ```
+
+## Env contract (memory trunk vs PG cert)
+
+| Runner | `DATABASE_URL` (+ADMIN) | Expected |
+| ------ | ----------------------- | -------- |
+| Root `pnpm test` / `STORAGE_DRIVER=memory` | Cleared by `bootstrap-outbox-test-env` | Suite **skipped** with stable `*_REQUIRES_DATABASE` reason — not a product failure |
+| `pnpm --filter @apps/api run test:booking-http-postgres` (loads `.env`) | Present | Suite **runs**; missing env is a CI misconfig (scripts pin prisma + env files) |
+
+Honest skip ≠ silent skip: Node test reporter shows skipped suites and the reason string remains grep-stable for MR-P0-015 meta-contracts.
 
 ## Path under test
 

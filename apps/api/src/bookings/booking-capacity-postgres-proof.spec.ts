@@ -27,13 +27,12 @@ import { PrismaBookingsRepository } from "./prisma-bookings.repository.ts";
 import { resetBookingsRepositorySingletonForTests } from "./create-bookings-repository.ts";
 import { integrationTenantId } from "../../test/test-helpers.ts";
 
-function requireDatabaseEnv(): void {
-  if (!process.env.DATABASE_URL?.trim() || !process.env.DATABASE_URL_ADMIN?.trim()) {
-    throw new Error(
-      "BOOKING_CAPACITY_POSTGRES_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN"
-    );
-  }
-}
+const hasDatabase =
+  Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
+
+const postgresSkip = hasDatabase
+  ? false
+  : "BOOKING_CAPACITY_POSTGRES_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN";
 
 function assertCapacity(max: number) {
   return (ctx: {
@@ -227,9 +226,7 @@ async function raceApprove(input: {
   };
 }
 
-describe("booking capacity correctness (PostgreSQL)", { concurrency: false }, () => {
-  requireDatabaseEnv();
-
+describe("booking capacity correctness (PostgreSQL)", { concurrency: false, skip: postgresSkip }, () => {
   const tenantId = integrationTenantId();
   const priorStorage = process.env.STORAGE_DRIVER;
   let workerA: PrismaBookingsRepository;

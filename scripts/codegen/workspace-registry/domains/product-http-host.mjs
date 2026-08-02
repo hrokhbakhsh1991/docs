@@ -11,6 +11,8 @@ import { importSpecifier } from "../utils.mjs";
 export function generateProductHttpHostBindings(manifests) {
   /** @type {Map<string, Set<string>>} */
   const importsBySpecifier = new Map();
+  /** Type export local names already emitted (prevents TS2300 across workspaces). */
+  const seenTypeLocalNames = new Set();
 
   for (const m of manifests) {
     const productHttpHost = m.productHttpHost;
@@ -42,6 +44,11 @@ export function generateProductHttpHostBindings(manifests) {
     ];
     for (const name of optional) {
       if (typeof name === "string" && name.length > 0) {
+        const local = name.replace(/^type\s+/, "");
+        if (seenTypeLocalNames.has(local)) {
+          continue;
+        }
+        seenTypeLocalNames.add(local);
         exports.add(name);
       }
     }
@@ -49,7 +56,15 @@ export function generateProductHttpHostBindings(manifests) {
     if (Array.isArray(extras)) {
       for (const raw of extras) {
         if (typeof raw === "string" && raw.length > 0) {
-          exports.add(raw.startsWith("type ") ? raw : `type ${raw}`);
+          const withType = raw.startsWith("type ") ? raw : `type ${raw}`;
+          const local = withType.replace(/^type\s+/, "");
+          if (seenTypeLocalNames.has(local)) {
+            // Same SoT type re-exported from multiple workspaces (e.g. BookingPublicPort) —
+            // keep the first façade export only.
+            continue;
+          }
+          seenTypeLocalNames.add(local);
+          exports.add(withType);
         }
       }
     }

@@ -2,6 +2,10 @@
 # Memory repositories are forbidden. Fast unit / memory HTTP suites stay outside this workflow.
 #
 # Docs: docs/phase-20/p7/appendices/BOOKING_CAPACITY_CONCURRENCY_CERT.md
+# Branch protection: docs/phase-20/p7/appendices/BOOKING_BRANCH_PROTECTION_GATE.md
+#
+# PR velocity: do NOT use workflow-level pull_request.paths (required checks would pend).
+# Instead: detect booking-related paths; run real jobs or same-name lightweight stubs.
 
 name: booking-postgres-gate
 
@@ -25,8 +29,52 @@ env:
   PROJECTION_AUTO_RECONCILE_ENABLED: "false"
 
 jobs:
+  # Sets run_booking=true for push/main + workflow_dispatch; path-gated on pull_request only.
+  booking-relevance:
+    name: Booking relevance
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run_booking: ${{ steps.detect.outputs.run_booking }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Detect booking-related changes
+        id: detect
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run_booking=true" >> "$GITHUB_OUTPUT"
+            echo "event=${{ github.event_name }} — always run full Booking PostgreSQL proofs"
+            exit 0
+          fi
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          echo "Diffing ${BASE_SHA}...${HEAD_SHA}"
+
+          # Paths that affect capacity/HTTP booking proofs, RLS extras in this workflow,
+          # migrate/bootstrap, or required-check drift guards.
+          PATTERN='^(apps/api/src/bookings/|apps/api/src/bookings$|apps/api/test/booking|apps/api/test/bookings-|apps/api/src/outbox/|apps/api/src/workspace-finance/recon/|apps/api/test/tenant-rls-unprotected-tables\.postgres\.spec\.ts|apps/api/src/ops/branch-protection-verify-fail-closed\.spec\.ts|apps/api/prisma/|apps/api/scripts/db-migrate-deploy\.mjs|apps/api/scripts/.*migration|packages/booking-http-contracts/|packages/finance-core/|packages/finance-http/|packages/finance-http-contracts/|packages/workspace-sdk/|packages/platform-core/|infra/sql/|docs/phase-4/dev/init/01-app-role\.sql|scripts/ci/build-api-workspace-deps\.sh|scripts/ops/main-branch-required-checks\.mjs|scripts/ops/configure-main-branch-protection\.mjs|scripts/ops/verify-required-check-names\.mjs|\.github/workflows/booking-postgres-gate\.yml|package\.json|pnpm-lock\.yaml)'
+
+          CHANGED="$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}" || true)"
+          if printf '%s\n' "$CHANGED" | grep -E -q "$PATTERN"; then
+            echo "run_booking=true" >> "$GITHUB_OUTPUT"
+            echo "Booking-related paths changed — run full proofs"
+            printf '%s\n' "$CHANGED" | grep -E "$PATTERN" || true
+          else
+            echo "run_booking=false" >> "$GITHUB_OUTPUT"
+            echo "No booking-related paths — emit required-check stubs only"
+          fi
+
   booking-postgres-capacity:
     name: Booking PostgreSQL capacity
+    needs: booking-relevance
+    if: needs.booking-relevance.outputs.run_booking == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 35
 
@@ -121,8 +169,23 @@ jobs:
           PRISMA_TRANSACTION_MAX_WAIT_MS: "60000"
         run: pnpm run test:booking-capacity-stress
 
+  # Same check context as booking-postgres-capacity — success stub when PR paths are unrelated.
+  booking-postgres-capacity-stub:
+    name: Booking PostgreSQL capacity
+    needs: booking-relevance
+    if: needs.booking-relevance.outputs.run_booking != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Skip unrelated PR
+        run: |
+          echo "Skipping Booking PostgreSQL capacity — no booking-related paths in this PR."
+          echo "push to main and workflow_dispatch always run the full job."
+
   booking-http-postgres:
     name: Booking HTTP PostgreSQL
+    needs: booking-relevance
+    if: needs.booking-relevance.outputs.run_booking == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -254,3 +317,16 @@ jobs:
         env:
           TENANT_MAX_CONCURRENT_DB_OPS: "32"
         run: pnpm run test:finance-recon-rls
+
+  # Same check context as booking-http-postgres — success stub when PR paths are unrelated.
+  booking-http-postgres-stub:
+    name: Booking HTTP PostgreSQL
+    needs: booking-relevance
+    if: needs.booking-relevance.outputs.run_booking != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Skip unrelated PR
+        run: |
+          echo "Skipping Booking HTTP PostgreSQL — no booking-related paths in this PR."
+          echo "push to main and workflow_dispatch always run the full job."

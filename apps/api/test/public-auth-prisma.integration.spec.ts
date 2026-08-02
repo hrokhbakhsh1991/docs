@@ -12,13 +12,14 @@ import {
   resetOnboardingTokenKeyCacheForTests,
 } from "../src/identity/onboarding-token";
 import { resetSessionTokenKeyCacheForTests } from "../src/identity/sign-session-token";
-import { disconnectPrisma, getPrisma } from "../src/db/prisma";
+import { disconnectPrisma, getPrismaAdmin } from "../src/db/prisma";
 import { withTenantRls } from "../src/db/with-tenant-rls";
 import { createRequestListener } from "../src/app";
 import { createTestToursService } from "./test-helpers";
 import { installHttpTestClient } from "./http-test-client";
 
-const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
+const hasDatabase =
+  Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
 const NEW_MOBILE = "+15550007771";
 
 function publicAuthHeaders(tenantId: string): Record<string, string> {
@@ -54,7 +55,8 @@ describe(
       resetOnboardingTokenKeyCacheForTests();
       resetIdentityRepositorySingletonForTests();
 
-      await getPrisma().tenant.create({
+      // tenants is FORCE RLS deny for app_cloud — seed via admin pool.
+      await getPrismaAdmin().tenant.create({
         data: {
           id: tenantId,
           subdomain: `pub-auth-${tenantId.slice(0, 8)}`,
@@ -69,6 +71,7 @@ describe(
       resetSessionTokenKeyCacheForTests();
       resetOnboardingTokenKeyCacheForTests();
       resetIdentityRepositorySingletonForTests();
+      await getPrismaAdmin().tenant.deleteMany({ where: { id: tenantId } });
       await disconnectPrisma();
     });
 
@@ -99,7 +102,10 @@ describe(
       assert.equal(typeof completed.body.userId, "string");
 
       const userId = String(completed.body.userId);
-      const userRow = await getPrisma().user.findUnique({ where: { mobile: NEW_MOBILE } });
+      // users SELECT under app role requires tenant membership GUC (hostile audit).
+      const userRow = await withTenantRls(tenantId, (tx) =>
+        tx.user.findUnique({ where: { mobile: NEW_MOBILE } })
+      );
       assert.notEqual(userRow, null);
       assert.equal(userRow?.id, userId);
 

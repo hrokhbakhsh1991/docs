@@ -1,0 +1,32 @@
+# PSR-6c2 Harbor thin host + card mapper
+wave: PSR-6c2-harbor-thin-host-card-mapper
+program_id: PSR-001
+decision: thin_host_slot_plus_card_mapper
+policy:
+  forbid_api_configure_harbor_in_this_wave: true
+  forbid_harbor_durable_http_enable_in_this_wave: true
+  forbid_denali_catalog_clone: true
+  forbid_full_gate_in_this_wave: true
+  harbor_http_module_max: 6
+  keep_smoke_seed_path: true
+touched:
+  - packages/workspace-sdk/src/http/create-workspace-http-host-slot.ts
+  - packages/workspace-sdk/test/http-plib-dg1.spec.ts
+  - packages/workspaces/harbor/src/catalog/to-harbor-catalog-card.ts
+  - packages/workspaces/harbor/src/http/host-ports.ts
+  - packages/workspaces/harbor/src/http/host-runtime.ts
+  - packages/workspaces/harbor/src/http/routes.ts
+  - packages/workspaces/harbor/src/http/index.ts
+  - packages/workspaces/harbor/src/catalog/index.ts
+  - packages/workspaces/harbor/test/to-harbor-catalog-card.spec.ts
+unchanged_behavior:
+  - packages/workspaces/harbor/src/http/harbor-catalog-http.ts
+  - apps/api/src/http/configure-product-http-hosts.ts
+ratchet:
+  card_mapper_present: true
+  host_slot_present: true
+  sdk_try_get_present: true
+  api_configure_harbor: false
+  harbor_durable_http_enabled: false
+  http_module_count_max: 6
+  next_slice: PSR-6c4-harbor-durable-registration

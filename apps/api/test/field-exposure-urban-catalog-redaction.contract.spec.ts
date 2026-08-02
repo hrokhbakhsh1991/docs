@@ -34,7 +34,7 @@ describe("field exposure Urban catalog redaction contract", () => {
   it("applies exposure resolver output in Urban catalog HTTP service", () => {
     const service = readFileSync(CATALOG_SERVICE, "utf8");
     assert.match(service, /applyCatalogExposure/);
-    assert.match(service, /resolveVisibleFieldIds/);
+    assert.match(service, /applyWorkspaceCatalogCardExposure/);
     assert.match(service, /applyUrbanCatalogCardExposure/);
   });
 

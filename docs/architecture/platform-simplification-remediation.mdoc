@@ -6,10 +6,46 @@ role: canonical
 owner: platform-architecture
 status: active
 last_verified: 2026-07-31
-verified_sha: f7a73c0a
+verified_sha: a99b0656
 supersedes: []
 superseded_by: null
 evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5e10-platform-provision-cluster.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5f-background-admin.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5f-background-admin-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-5f2-outbox-ops.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5f3-outbox-relay.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5f4-outbox-replay.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5f5-outbox-reconcile.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5f6a-finance-recon-edge.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5f6b-finance-findings-store.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5f6c-finance-repair-handlers.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5f6d-finance-detect.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5f7a-integration-delivery.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5f7b-integration-migration.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5f8-events.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5g-identity-admin.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5g-identity-admin-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-5h-dual-store.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5h-dual-store-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-5e8-platform-tenant-cluster.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5e9-platform-misc-small.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5e7-platform-domain-cluster.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5e6-platform-audit-list-cluster.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5e5-platform-workspace-definition-cluster.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5e4-platform-impersonation-cluster.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5e3-platform-lifecycle-cluster.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5e2-platform-billing-cluster.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5e-platform-admin-capability.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5e-platform-admin-capability-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-5d-finance-resolver-via-registry-port.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5c-tenant-registry-port.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5c-tenant-registry-port-inventory.yaml
+  - docs/audits/snapshots/2026-07-31/psr-5b-admin-allowlist.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5b-admin-allowlist.yaml
+  - docs/audits/snapshots/2026-07-31/psr-5a-finance-factory-assert.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5-data-authority-inventory.mdoc
+  - docs/audits/snapshots/2026-07-31/psr-5-data-authority-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-0a-worktree-inventory.yaml
   - docs/audits/snapshots/2026-07-31/psr-0b-train-log.mdoc
   - docs/audits/snapshots/2026-07-31/psr-1-hygiene.mdoc
@@ -53,7 +89,7 @@ evidence:
   - docs/audits/snapshots/2026-07-31/psr-4b-http-alias.mdoc
   - docs/audits/snapshots/2026-07-31/psr-4b-http-alias-inventory.yaml
 program_id: PSR-001
-current_wave: PSR-4b-api-deps-fixture-split
+current_wave: PSR-8c0-governance-templates
 created: 2026-07-31
 scope: new-platform-only
 execution_authority: explicit-approval-required
@@ -63,7 +99,407 @@ doc_role: canonical
 
 # مسیر اصلاح، ساده‌سازی و آمادگی انتشار عمومی پلتفرم
 
-## 0. وضعیت موج جاری (PSR-4b-api-deps-fixture-split — retain fixtures)
+## 0. وضعیت موج جاری (PSR-8c0 — Governance templates + harness ready)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-8c0-governance-templates** |
+| Exit gate | GREEN — قالب LICENSE/SECURITY/CONTRIBUTING زیر docs؛ root trio غایب؛ G-SEED harness بسته |
+| Snapshots | [`psr-8c0`](../audits/snapshots/2026-07-31/psr-8c0-governance-templates.mdoc) · [`psr-6c6b`](../audits/snapshots/2026-07-31/psr-6c6b-harbor-durable-e2e-harness.mdoc) |
+| Smokes | `psr-8c0-governance-templates-smoke.mjs` · `psr-6c6b-harbor-durable-e2e-harness-smoke.mjs` |
+
+**پیشرفت بدون YES:** durable E2E harness (`test:smoke:harbor:durable`) + governance templates.
+
+**نقطه تصمیم Architect (بدون این‌ها مسیر live/legal جلو نمی‌رود):**
+
+| Option | نیاز |
+| --- | --- |
+| `test:smoke:harbor:durable` + Postgres packs | **YES** |
+| `PSR-7d1` dual-accept JWT | **accept** |
+| Root LICENSE/SECURITY/CONTRIBUTING از templates | **counsel + approve** |
+| Denali `types/legacy` rename | **approve** |
+| `ops:branch-protection:verify` | **YES** + `gh` |
+
+### 0.00 PSR-6c6b (بسته — harness)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-6c6b** durable Harbor E2E harness (**complete**; live PW باز) |
+| Snapshot | [`psr-6c6b-harbor-durable-e2e-harness.mdoc`](../audits/snapshots/2026-07-31/psr-6c6b-harbor-durable-e2e-harness.mdoc) |
+
+### 0.00 PSR-7g (بسته — draft)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-7g** tip RC evidence draft (**complete**) |
+| Snapshot | [`psr-7g-tip-rc-evidence-draft.mdoc`](../audits/snapshots/2026-07-31/psr-7g-tip-rc-evidence-draft.mdoc) |
+
+### 0.00 PSR-7f (بسته — print ratchet)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-7f** branch-protection print (**complete**; live verify باز) |
+| Snapshot | [`psr-7f-branch-protection-print-ratchet.mdoc`](../audits/snapshots/2026-07-31/psr-7f-branch-protection-print-ratchet.mdoc) |
+
+### 0.00 PSR-7e (بسته — schema)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-7e** RC evidence schema (**complete**) |
+| Snapshot | [`psr-7e-rc-evidence-pack-schema.mdoc`](../audits/snapshots/2026-07-31/psr-7e-rc-evidence-pack-schema.mdoc) |
+
+### 0.00 PSR-6c6 (بسته — recipe only)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-6c6** durable live-evidence **recipe** (**complete**; execute نیازمند YES) |
+| Snapshot | [`psr-6c6-harbor-live-evidence-recipe.mdoc`](../audits/snapshots/2026-07-31/psr-6c6-harbor-live-evidence-recipe.mdoc) |
+
+### 0.00 PSR-8c (بسته — inventory)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-8c** governance files inventory (**complete**) |
+| Snapshot | [`psr-8c-governance-files-inventory.mdoc`](../audits/snapshots/2026-07-31/psr-8c-governance-files-inventory.mdoc) |
+
+### 0.00 PSR-8b (بسته — ratchet)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-8b** legacy import ratchet (**complete**) |
+| Snapshot | [`psr-8b-legacy-import-ratchet.mdoc`](../audits/snapshots/2026-07-31/psr-8b-legacy-import-ratchet.mdoc) |
+
+### 0.00 PSR-9b (بسته — collectors)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-9b** scorecard collectors (**complete**) |
+| Snapshot | [`psr-9b-closure-scorecard-scaffold.mdoc`](../audits/snapshots/2026-07-31/psr-9b-closure-scorecard-scaffold.mdoc) |
+
+### 0.00 PSR-9a (بسته — scaffold)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-9a** scorecard scaffold (**complete**) |
+| Snapshot | [`psr-9a-closure-scorecard-scaffold.mdoc`](../audits/snapshots/2026-07-31/psr-9a-closure-scorecard-scaffold.mdoc) |
+
+### 0.00 PSR-8a (بسته — inventory)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-8a** legacy/publication inventory (**complete**) |
+| Snapshot | [`psr-8a-legacy-boundary-inventory.mdoc`](../audits/snapshots/2026-07-31/psr-8a-legacy-boundary-inventory.mdoc) |
+
+### 0.00 PSR-7d (بسته — design)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-7d** ops identity design (**complete**; API unchanged) |
+| Snapshot | [`psr-7d-ops-identity-design.mdoc`](../audits/snapshots/2026-07-31/psr-7d-ops-identity-design.mdoc) |
+
+### 0.00 PSR-7c (بسته — SBOM generator)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-7c** lockfile CycloneDX (**complete**; provenance باز) |
+| Snapshot | [`psr-7c-sbom-provenance-recipe.mdoc`](../audits/snapshots/2026-07-31/psr-7c-sbom-provenance-recipe.mdoc) |
+
+### 0.00 PSR-7b (بسته — tracked secret baseline)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-7b** tracked secret-scan (**complete**; history باز) |
+| Snapshot | [`psr-7b-secret-scan-baseline.mdoc`](../audits/snapshots/2026-07-31/psr-7b-secret-scan-baseline.mdoc) |
+
+### 0.00 PSR-7a (بسته — inventory)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-7a** security/release inventory (**complete**) |
+| Snapshot | [`psr-7a-security-release-inventory.mdoc`](../audits/snapshots/2026-07-31/psr-7a-security-release-inventory.mdoc) |
+
+### 0.00 PSR-6c5 (بسته — inventory)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-6c5** durable proofs/recert inventory (**complete**) |
+| Snapshot | [`psr-6c5-harbor-durable-proofs-recert.mdoc`](../audits/snapshots/2026-07-31/psr-6c5-harbor-durable-proofs-recert.mdoc) |
+| Smoke | `node scripts/ops/psr-6c5-harbor-durable-proofs-recert-smoke.mjs` |
+
+### 0.00 PSR-6c4 (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-6c4** durable registration (**complete**) |
+| Snapshot | [`psr-6c4-harbor-durable-registration.mdoc`](../audits/snapshots/2026-07-31/psr-6c4-harbor-durable-registration.mdoc) |
+
+### 0.00 PSR-6c3 (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-6c3** API configure + durable list/detail (**complete**) |
+| Snapshot | [`psr-6c3-api-configure-harbor-host.mdoc`](../audits/snapshots/2026-07-31/psr-6c3-api-configure-harbor-host.mdoc) |
+
+### 0.00 PSR-6c2 (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-6c2** thin host + card mapper (**complete**) |
+| Snapshot | [`psr-6c2-harbor-thin-host-card-mapper.mdoc`](../audits/snapshots/2026-07-31/psr-6c2-harbor-thin-host-card-mapper.mdoc) |
+
+### 0.00 PSR-6c1 (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-6c1** SDK async durable port (**complete**) |
+| Snapshot | [`psr-6c1-sdk-async-durable-port.mdoc`](../audits/snapshots/2026-07-31/psr-6c1-sdk-async-durable-port.mdoc) |
+
+### 0.00 PSR-6c inventory (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-6c** inventory (**complete**) |
+| Snapshot | [`psr-6c-harbor-persistent-catalog.mdoc`](../audits/snapshots/2026-07-31/psr-6c-harbor-persistent-catalog.mdoc) |
+
+### 0.00 PSR-6b-harbor-demote (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-6b** option A demote (**complete**) — tier=`stub` |
+| Snapshot | [`psr-6b-harbor-demote.mdoc`](../audits/snapshots/2026-07-31/psr-6b-harbor-demote.mdoc) |
+| Smoke | `node scripts/ops/psr-6b-harbor-demote-smoke.mjs` |
+
+### 0.00 PSR-6a-harbor-truth (inventory بسته؛ demote در ۶b)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-6a** inventory (**complete**) — option A executed in 6b |
+| Snapshot | [`psr-6a-harbor-production-truth.mdoc`](../audits/snapshots/2026-07-31/psr-6a-harbor-production-truth.mdoc) |
+
+### 0.00 PSR-5i-same-sha (inventory بسته؛ live باز)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5i** inventory (**complete**) — live pack pending YES |
+| Snapshot | [`psr-5i-same-sha-proofs.mdoc`](../audits/snapshots/2026-07-31/psr-5i-same-sha-proofs.mdoc) |
+| Smoke | `node scripts/ops/psr-5i-same-sha-proofs-smoke.mjs` |
+
+### 0.00 PSR-5h-dual-store (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5h** dual-store classification (**complete**) |
+| Snapshot | [`psr-5h-dual-store.mdoc`](../audits/snapshots/2026-07-31/psr-5h-dual-store.mdoc) |
+| Smoke | `node scripts/ops/psr-5h-dual-store-smoke.mjs` |
+
+### 0.00 PSR-5g-identity-admin (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5g** identity client (**complete**) — ALW-ID closed |
+| Snapshot | [`psr-5g-identity-admin.mdoc`](../audits/snapshots/2026-07-31/psr-5g-identity-admin.mdoc) |
+
+### 0.00 PSR-5f **بسته** (background_repair direct = ۰)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5f7b** + **PSR-5f8** — closure (**complete**) |
+| Exit gate | GREEN — migrated=**۲۰/۲۰**؛ `remaining_direct=۰` |
+| Snapshots | [`psr-5f7b`](../audits/snapshots/2026-07-31/psr-5f7b-integration-migration.mdoc) · [`psr-5f8`](../audits/snapshots/2026-07-31/psr-5f8-events.mdoc) |
+
+### 0.00 PSR-5f7a-integration-delivery (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5f7a** DELIVERY (**complete**) |
+| Snapshot | [`psr-5f7a-integration-delivery.mdoc`](../audits/snapshots/2026-07-31/psr-5f7a-integration-delivery.mdoc) |
+
+### 0.00 PSR-5f6d-finance-detect (بسته — finance کامل)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5f6d** detect (**complete**) — آخرین `BG_FINANCE_RECON` |
+| Snapshot | [`psr-5f6d-finance-detect.mdoc`](../audits/snapshots/2026-07-31/psr-5f6d-finance-detect.mdoc) |
+
+### 0.00 PSR-5f6c-finance-repair-handlers (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5f6c** repair (**complete**) — `repair-handlers.ts` |
+| Snapshot | [`psr-5f6c-finance-repair-handlers.mdoc`](../audits/snapshots/2026-07-31/psr-5f6c-finance-repair-handlers.mdoc) |
+
+### 0.00 PSR-5f6b-finance-findings-store (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5f6b** findings (**complete**) — `findings-store.ts` |
+| Snapshot | [`psr-5f6b-finance-findings-store.mdoc`](../audits/snapshots/2026-07-31/psr-5f6b-finance-findings-store.mdoc) |
+
+### 0.00 PSR-5f6a-finance-recon-edge (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5f6a** edge (**complete**) — ops-metrics + recon-runner |
+| Snapshot | [`psr-5f6a-finance-recon-edge.mdoc`](../audits/snapshots/2026-07-31/psr-5f6a-finance-recon-edge.mdoc) |
+
+### 0.00 PSR-5f5-outbox-reconcile (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5f5** RECONCILE (**complete**) — `reconcile-tour-projection.ts` |
+| Snapshot | [`psr-5f5-outbox-reconcile.mdoc`](../audits/snapshots/2026-07-31/psr-5f5-outbox-reconcile.mdoc) |
+
+### 0.00 PSR-5f4-outbox-replay (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5f4** REPLAY (**complete**) — replay · audit · prod-replay |
+| Snapshot | [`psr-5f4-outbox-replay.mdoc`](../audits/snapshots/2026-07-31/psr-5f4-outbox-replay.mdoc) |
+
+### 0.00 PSR-5f3-outbox-relay (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5f3** RELAY (**complete**) — `outbox-relay.ts` |
+| Snapshot | [`psr-5f3-outbox-relay.mdoc`](../audits/snapshots/2026-07-31/psr-5f3-outbox-relay.mdoc) |
+
+### 0.00 PSR-5f2-outbox-ops (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5f2** OPS (**complete**) — failed / mark-done / queue-counts |
+| Snapshot | [`psr-5f2-outbox-ops.mdoc`](../audits/snapshots/2026-07-31/psr-5f2-outbox-ops.mdoc) |
+
+### 0.00 PSR-5f1 reclaim pilot (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5f0 inventory** + **PSR-5f1 reclaim** (**complete**) |
+| Exit gate | GREEN — ۳ reclaim sibling روی background client |
+| Snapshot | [`psr-5f-background-admin.mdoc`](../audits/snapshots/2026-07-31/psr-5f-background-admin.mdoc) |
+
+### 0.00 PSR-5e8 + PSR-5e10 (بسته — control_plane)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5e8 tenant** + **PSR-5e10 provision** (**complete**) |
+| Exit gate | GREEN — migrated=**۲۹/۲۹**؛ `remaining_direct=۰` |
+| Smoke | `node scripts/ops/psr-5e-platform-admin-capability-smoke.mjs` |
+| Client | `apps/api/src/platform/platform-admin-client.ts` |
+
+### 0.00 PSR-5e9-platform-misc-small (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5e9** PLAN + GDPR + SITE_SURFACES (**complete**) |
+| Snapshot | [`psr-5e9-platform-misc-small.mdoc`](../audits/snapshots/2026-07-31/psr-5e9-platform-misc-small.mdoc) |
+
+### 0.00 PSR-5e5…e7 (بسته)
+
+| Wave | Snapshot |
+| --- | --- |
+| e5 definition | [`psr-5e5…`](../audits/snapshots/2026-07-31/psr-5e5-platform-workspace-definition-cluster.mdoc) |
+| e6 audit list | [`psr-5e6…`](../audits/snapshots/2026-07-31/psr-5e6-platform-audit-list-cluster.mdoc) |
+| e7 domain | [`psr-5e7…`](../audits/snapshots/2026-07-31/psr-5e7-platform-domain-cluster.mdoc) |
+
+### 0.00 PSR-5e4-platform-impersonation-cluster (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5e4** impersonation (**complete**) |
+| Snapshot | [`psr-5e4-platform-impersonation-cluster.mdoc`](../audits/snapshots/2026-07-31/psr-5e4-platform-impersonation-cluster.mdoc) |
+
+### 0.00 PSR-5e3-platform-lifecycle-cluster (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5e3** lifecycle (**complete**) |
+| Snapshot | [`psr-5e3-platform-lifecycle-cluster.mdoc`](../audits/snapshots/2026-07-31/psr-5e3-platform-lifecycle-cluster.mdoc) |
+
+### 0.00 PSR-5e2-platform-billing-cluster (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5e2** billing (**complete**) |
+| Snapshot | [`psr-5e2-platform-billing-cluster.mdoc`](../audits/snapshots/2026-07-31/psr-5e2-platform-billing-cluster.mdoc) |
+
+### 0.00 PSR-5e inventory + pilot (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5e** inventory + client (**complete**) |
+| Snapshot | [`psr-5e-platform-admin-capability.mdoc`](../audits/snapshots/2026-07-31/psr-5e-platform-admin-capability.mdoc) |
+
+### 0.00 PSR-5d-finance-resolver-via-registry-port (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5d-finance-resolver-via-registry-port** — ALW-FIN via registry port (**complete**) |
+| Exit gate | GREEN — finance بدون `getPrismaAdmin`؛ `findTenantFinanceWorkspaceRow`؛ allowlist=۱ (identity) |
+| Snapshot | [`psr-5d-finance-resolver-via-registry-port.mdoc`](../audits/snapshots/2026-07-31/psr-5d-finance-resolver-via-registry-port.mdoc) |
+| Smoke | `node scripts/ops/psr-5d-finance-resolver-port-smoke.mjs` |
+
+### 0.00 PSR-5c-tenant-registry-port (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5c-tenant-registry-port** — named registry admin port (**complete**) |
+| Exit gate | GREEN — resolve/update بدون `getPrismaAdmin` مستقیم؛ port sole owner |
+| Snapshot | [`psr-5c-tenant-registry-port.mdoc`](../audits/snapshots/2026-07-31/psr-5c-tenant-registry-port.mdoc) |
+| Inventory | [`psr-5c-tenant-registry-port-inventory.yaml`](../audits/snapshots/2026-07-31/psr-5c-tenant-registry-port-inventory.yaml) |
+| Smoke | `node scripts/ops/psr-5c-tenant-registry-port-smoke.mjs` |
+| Code | `apps/api/src/tenant/tenant-registry-admin.port.ts` |
+
+### 0.00 PSR-5b-admin-allowlist-doc (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5b-admin-allowlist-doc** — formal tenant-adjacent admin allowlist (**complete**) |
+| Exit gate | GREEN — ۲ entry با owner/reason/expiry؛ صفر `tenant_path_review` تازه |
+| Snapshot | [`psr-5b-admin-allowlist.mdoc`](../audits/snapshots/2026-07-31/psr-5b-admin-allowlist.mdoc) |
+| Inventory | [`psr-5b-admin-allowlist.yaml`](../audits/snapshots/2026-07-31/psr-5b-admin-allowlist.yaml) |
+| Smoke | `node scripts/ops/psr-5b-admin-allowlist-smoke.mjs` |
+
+| Change | Detail |
+| --- | --- |
+| `ALW-ID-FORCE-RLS` | identity prisma — FORCE RLS OTP/user؛ expiry 2026-10-31 |
+| `ALW-FIN-TENANT-ROW` | finance workspaceType resolve؛ expiry 2026-10-31 |
+| Deferred registry | **closed by PSR-5c** |
+
+### 0.00 PSR-5a-finance-factory-assert (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5a-finance-factory-assert** — local `assertProductionStorageDriver` on finance factory (**complete**) |
+| Exit gate | GREEN — هر ۱۰ dual-store factory assert دارند؛ finance قبل از شاخهٔ memory |
+| Snapshot | [`psr-5a-finance-factory-assert.mdoc`](../audits/snapshots/2026-07-31/psr-5a-finance-factory-assert.mdoc) |
+| Smoke | `node scripts/ops/psr-5a-finance-factory-assert-smoke.mjs` (+ inventory smoke) |
+| Parent inventory | [`psr-5-data-authority-inventory.mdoc`](../audits/snapshots/2026-07-31/psr-5-data-authority-inventory.mdoc) |
+
+| Change | Detail |
+| --- | --- |
+| Code | `createFinanceRepository` → `assertProductionStorageDriver()` قبل از resolve |
+| Ratchet | `dual_store_missing_assert_count: 0`؛ `finance_factory_missing_assert: false` |
+
+### 0.00 PSR-5-data-authority-inventory (بسته)
+
+| Field | Value |
+| --- | --- |
+| Wave | **PSR-5-data-authority-inventory** — dual-store factories + `getPrismaAdmin` classes (**complete**) |
+| Exit gate | GREEN — ۱۰ factory؛ ۵۵ فایل api_src طبقه‌بندی‌شده؛ ۰ unclassified |
+| Snapshot | [`psr-5-data-authority-inventory.mdoc`](../audits/snapshots/2026-07-31/psr-5-data-authority-inventory.mdoc) |
+| Inventory | [`psr-5-data-authority-inventory.yaml`](../audits/snapshots/2026-07-31/psr-5-data-authority-inventory.yaml) |
+| Smoke | `node scripts/ops/psr-5-data-authority-inventory-smoke.mjs` |
+| Verified SHA | `a99b0656` |
+
+| Change | Detail |
+| --- | --- |
+| Scope | inventory only — بدون حذف/جابه‌جایی admin call |
+| Factories | ۱۰ dual-store؛ پس از PSR-5a همه با assert |
+| Admin classes | background/platform/identity clients؛ registry port؛ seed؛ definition — allowlist فعال ۰ |
+| Env matrix | memory فقط test\|dev؛ production\|prodlike از boot fail-closed |
+
+### 0.00 PSR-4b-api-deps-fixture-split (بسته)
 
 | Field | Value |
 | --- | --- |
@@ -80,10 +516,6 @@ doc_role: canonical
 | Decision | **retain** — fixtures required by generated finance/booking bindings + specs |
 | Helpers | `partitionApiHostManifestPackages` / `isApiHostRegistryOnlyFixtureManifest` |
 | Delete deps | **forbidden** |
-
-**عمداً خارج:** حذف fixture از `apps/api`؛ تغییر registryOnly flags؛ PSR-5.
-
-**Next:** PSR-5+ (memory/prisma inventory) یا Harbor.
 
 ### 0.00 PSR-4b-whyDenali-alias-expiry (بسته)
 
@@ -789,6 +1221,20 @@ workspace از مسیر manifest + package + generate + tests انجام شود.
 
 **هدف:** یک production SoT و مرز روشن control-plane/tenant-plane.
 
+#### PSR-5-data-authority-inventory — انجام‌شده (2026-07-31)
+
+Inventory-only: ۱۰ dual-store factory، env matrix، و ۵۵ فایل
+`getPrismaAdmin` در `apps/api/src` با صفر unclassified — evidence:
+[`psr-5-data-authority-inventory.mdoc`](../audits/snapshots/2026-07-31/psr-5-data-authority-inventory.mdoc).
+
+| بند | وضعیت پس از inventory |
+| --- | --- |
+| 1. فهرست factory + env matrix | **کامل** |
+| 2. memory فقط test\|dev | **کامل** پس از PSR-5a (boot + هر ۱۰ factory) |
+| 3. طبقه‌بندی admin non-test | **inventory کامل** (control_plane / background_repair / registry+allowlist) |
+| 4–6 | **کامل** (allowlist=۰؛ named clients؛ dual-store adapter صریح) |
+| 7. same-SHA proofs | **inventory کامل** — live pack باز (`PSR-5i`) |
+
 1. تمام memory/prisma factoryها فهرست و با environment matrix طبقه‌بندی شوند.
 2. memory فقط `test|development` باشد؛ `production|prodlike` با memory boot نشود.
 3. `getPrismaAdmin()`های non-test به سه گروه تقسیم شوند:
@@ -802,19 +1248,38 @@ workspace از مسیر manifest + package + generate + tests انجام شود.
 6. dual storeهایی که تنها برای scaffold مانده‌اند حذف یا صریحاً test adapter
    شوند.
 7. migration، restore، RLS probe و outbox effect روی همان release SHA اجرا شوند.
+   (PSR-5i: recipe + static assets؛ live پس از YES →
+   [`psr-5i-same-sha-proofs.mdoc`](../audits/snapshots/2026-07-31/psr-5i-same-sha-proofs.mdoc).)
 
 **Gate خروج:** صفر admin Prisma مستقیم در tenant HTTP path؛ یک production driver؛
-تمام bypassهای باقی‌مانده allowlist کوچک با owner/reason/expiry و audit coverage.
+تمام bypassهای باقی‌مانده allowlist کوچک با owner/reason/expiry و audit coverage؛
+**plus** live same-SHA evidence pack برای چهار خانوادهٔ بند ۷.
+
+**Next slice پیشنهادی:** `PSR-5i-same-sha-live-evidence` — اجرای recipe روی tip
+SHA با Postgres (فقط پس از YES صریح؛ نه `phase-5:gate` مگر جداگانه تأیید شود).
 
 ### PSR-6 — Harbor production truth
 
 **هدف:** دومین محصول واقعاً production-viable، نه smoke-only certified.
 
+#### PSR-6a-harbor-production-truth-inventory — انجام‌شده (2026-08-01)
+
+Inventory-only: gap matrix (default 501، memory store، بدون Prisma port، seed
+به‌عنوان prod path، drift تست stub↔certified، نیاز recert) — evidence:
+[`psr-6a-harbor-production-truth.mdoc`](../audits/snapshots/2026-07-31/psr-6a-harbor-production-truth.mdoc).
+
+#### PSR-6b-harbor-demote — انجام‌شده (2026-08-01)
+
+گزینه **A** اجرا شد: `productionTier→stub`؛ حذف ردیف‌های proof-matrix Harbor؛
+regenerate certification map؛ API list/provision Harbor را stub می‌دانند.
+Persist و default non-501 عمداً باز — evidence:
+[`psr-6b-harbor-demote.mdoc`](../audits/snapshots/2026-07-31/psr-6b-harbor-demote.mdoc).
+
 دو مسیر مجاز است؛ مسیر خاکستری مجاز نیست:
 
-#### گزینه‌ی پیشنهادی A — ابتدا demote، سپس productionize
+#### گزینه‌ی پیشنهادی A — ابتدا demote، سپس productionize — **انتخاب‌شده**
 
-1. Harbor تا زمان persistence واقعی به `stub`/`candidate` برگردد.
+1. Harbor تا زمان persistence واقعی به `stub`/`candidate` برگردد. ✅ (stub)
 2. catalog list/detail و registration به persistent platform ports متصل شوند.
 3. production fixture/env switch حذف شود؛ seed فقط test/dev بماند.
 4. restart durability، concurrency/idempotency، RLS isolation، migration و
@@ -825,7 +1290,7 @@ workspace از مسیر manifest + package + generate + tests انجام شود.
 
 این گزینه فقط وقتی مجاز است که تا قبل از هر production onboarding، persistent
 path، default non-501 behavior و release evidence تکمیل شود. در این فاصله هیچ
-ادعای «محصول قابل‌فروش» منتشر نشود.
+ادعای «محصول قابل‌فروش» منتشر نشود. **انتخاب نشد** (PSR-6b = A).
 
 سطح G1 همچنان operator/finance/memberApp را الزام نمی‌کند؛ اما catalog و
 registration اعلام‌شده باید durable و production-backed باشند.
@@ -833,6 +1298,45 @@ registration اعلام‌شده باید durable و production-backed باشن�
 **Gate خروج:** Harbor در default production path پاسخ واقعی دارد، داده پس از
 restart باقی می‌ماند، tenant isolation و duplicate registration اثبات شده و
 certification به SHA و evidence pack متصل است.
+
+**Next slice پیشنهادی:** `PSR-6c6-harbor-live-evidence` (Architect YES) یا شروع PSR-7 با Harbor=`stub`.
+
+#### PSR-6c-harbor-persistent-catalog-inventory — انجام‌شده (2026-08-01)
+
+Call-graph + gap matrix (no product host، sync smoke port، seed→501، memory،
+بدون RLS context) — evidence:
+[`psr-6c-harbor-persistent-catalog.mdoc`](../audits/snapshots/2026-07-31/psr-6c-harbor-persistent-catalog.mdoc).
+
+#### PSR-6c1-sdk-async-durable-smoke-port — انجام‌شده (2026-08-01)
+
+SDK: `WorkspaceGuestSmokeMaybeAsync` + `isDurableEnabled`؛ durable بدون port →
+empty/404 نه fixture؛ Harbor/API unwired — evidence:
+[`psr-6c1-sdk-async-durable-port.mdoc`](../audits/snapshots/2026-07-31/psr-6c1-sdk-async-durable-port.mdoc).
+
+#### PSR-6c2-harbor-thin-host-card-mapper — انجام‌شده (2026-08-01)
+
+`toHarborCatalogCard` + host slot/`tryGet`؛ smoke HTTP دست‌نخورده؛ API configure
+نیست — evidence:
+[`psr-6c2-harbor-thin-host-card-mapper.mdoc`](../audits/snapshots/2026-07-31/psr-6c2-harbor-thin-host-card-mapper.mdoc).
+
+#### PSR-6c3-api-configure-harbor-host — انجام‌شده (2026-08-01)
+
+Manifest `productHttpHost` + API configure + durable list/detail تحت RLS context؛
+register هنوز seed — evidence:
+[`psr-6c3-api-configure-harbor-host.mdoc`](../audits/snapshots/2026-07-31/psr-6c3-api-configure-harbor-host.mdoc).
+
+#### PSR-6c4-harbor-durable-registration — انجام‌شده (2026-08-01)
+
+`createHarborRegistration` + `BookingPublicPort`؛ seed e2e intact؛ duplicate→409؛
+tier stub — evidence:
+[`psr-6c4-harbor-durable-registration.mdoc`](../audits/snapshots/2026-07-31/psr-6c4-harbor-durable-registration.mdoc).
+
+#### PSR-6c5-harbor-durable-proofs-recert-inventory — انجام‌شده (2026-08-01)
+
+شش proof family (H-DEFAULT…H-CERT)؛ recert checklist بدون promote؛ honesty gap
+seed E2E vs durable — evidence:
+[`psr-6c5-harbor-durable-proofs-recert.mdoc`](../audits/snapshots/2026-07-31/psr-6c5-harbor-durable-proofs-recert.mdoc).
+
 
 ### PSR-7 — Security و release readiness
 
@@ -851,6 +1355,32 @@ certification به SHA و evidence pack متصل است.
 
 **Gate خروج:** یک release candidate تمیز با required checks، staging deploy،
 rollback restore، secret scan و SBOM سبز.
+
+#### PSR-7a-security-release-inventory — انجام‌شده (2026-08-01)
+
+Gap matrix شش خانواده (R-OPS-ID…R-EVIDENCE)؛ secret-scan/SBOM tooling غایب؛
+ops هنوز shared bearer؛ live branch/staging نیازمند YES — evidence:
+[`psr-7a-security-release-inventory.mdoc`](../audits/snapshots/2026-07-31/psr-7a-security-release-inventory.mdoc).
+
+#### PSR-7b-secret-scan-baseline — انجام‌شده (2026-08-01)
+
+Tracked high-confidence scanner + allowlist؛ open=0؛ `.gitleaks.toml` stub؛
+بدون history/CI required-check — evidence:
+[`psr-7b-secret-scan-baseline.mdoc`](../audits/snapshots/2026-07-31/psr-7b-secret-scan-baseline.mdoc).
+
+#### PSR-7c-sbom-provenance-recipe — انجام‌شده (2026-08-01)
+
+CycloneDX 1.5 از `pnpm-lock.yaml`؛ `reports/sbom/` gitignore؛ provenance/license
+gate عمداً باز — evidence:
+[`psr-7c-sbom-provenance-recipe.mdoc`](../audits/snapshots/2026-07-31/psr-7c-sbom-provenance-recipe.mdoc).
+
+#### PSR-7d-ops-identity-design — انجام‌شده (2026-08-01)
+
+طراحی جایگزینی shared bearer با session/service JWT + rollout ۷d1…۷d4؛ بدون
+تغییر API — evidence:
+[`psr-7d-ops-identity-design.mdoc`](../audits/snapshots/2026-07-31/psr-7d-ops-identity-design.mdoc).
+
+**Next slice پیشنهادی:** `PSR-7d1` پس از Architect accept — یا `PSR-8a` / live YES.
 
 ### PSR-8 — Legacy extraction و publication boundary
 
@@ -877,6 +1407,14 @@ publication boundary شوند.
 **Gate خروج:** install/build/test از public fresh clone؛ صفر legacy runtime
 dependency؛ governance کامل؛ license و security policy معتبر.
 
+#### PSR-8a-legacy-boundary-inventory — انجام‌شده (2026-08-01)
+
+`legacy/` ≈1010MB؛ runtime `^legacy` import به apps تمیز؛ Denali
+`types/legacy` in-package؛ LICENSE/SECURITY/CONTRIBUTING غایب — evidence:
+[`psr-8a-legacy-boundary-inventory.mdoc`](../audits/snapshots/2026-07-31/psr-8a-legacy-boundary-inventory.mdoc).
+
+**Next slice پیشنهادی:** `PSR-8b1` / `PSR-8c` یا live YES packs.
+
 ### PSR-9 — Closure و جلوگیری از بازگشت
 
 Closure فقط با یک clean SHA و جدول زیر مجاز است:
@@ -898,6 +1436,69 @@ Closure فقط با یک clean SHA و جدول زیر مجاز است:
 | Harbor default production response | 501 | durable non-stub path |
 | Legacy in active/public repo | 1010MB | 0 runtime tree |
 | Open-source governance files | 0 | کامل |
+
+#### PSR-9a-closure-scorecard-scaffold — انجام‌شده (2026-08-01)
+
+Scorecard YAML + collector برای ۹ متریک قابل‌اندازه‌گیری؛ بدون claim closure —
+evidence:
+[`psr-9a-closure-scorecard-scaffold.mdoc`](../audits/snapshots/2026-07-31/psr-9a-closure-scorecard-scaffold.mdoc).
+
+#### PSR-9b-scorecard-collectors-expand — انجام‌شده (2026-08-01)
+
+۱۴ متریک incl. dirty worktree، absolute doc paths، Denali exports، governance —
+evidence:
+[`psr-9b-closure-scorecard-scaffold.mdoc`](../audits/snapshots/2026-07-31/psr-9b-closure-scorecard-scaffold.mdoc).
+
+#### PSR-8b-legacy-import-ratchet — انجام‌شده (2026-08-01)
+
+Ratchet runtime `^legacy` import clean؛ rename plan برای Denali `types/legacy` بدون اجرا —
+evidence:
+[`psr-8b-legacy-import-ratchet.mdoc`](../audits/snapshots/2026-07-31/psr-8b-legacy-import-ratchet.mdoc).
+
+#### PSR-8c-governance-files-inventory — انجام‌شده (2026-08-01)
+
+Trio LICENSE/SECURITY/CONTRIBUTING غایب؛ چند package با `UNLICENSED`؛ بدون انتخاب license —
+evidence:
+[`psr-8c-governance-files-inventory.mdoc`](../audits/snapshots/2026-07-31/psr-8c-governance-files-inventory.mdoc).
+
+#### PSR-6c6-harbor-live-evidence-recipe — انجام‌شده (2026-08-01)
+
+Executable checklist + G-SEED-E2E-HARNESS honesty؛ بدون live/promote —
+evidence:
+[`psr-6c6-harbor-live-evidence-recipe.mdoc`](../audits/snapshots/2026-07-31/psr-6c6-harbor-live-evidence-recipe.mdoc).
+
+#### PSR-7e-rc-evidence-pack-schema — انجام‌شده (2026-08-01)
+
+JSON Schema `psr-7e.1` + example با همه gates false —
+evidence:
+[`psr-7e-rc-evidence-pack-schema.mdoc`](../audits/snapshots/2026-07-31/psr-7e-rc-evidence-pack-schema.mdoc).
+
+#### PSR-7f-branch-protection-print-ratchet — انجام‌شده (2026-08-01)
+
+`--print-only` + local name-drift clean؛ live verify باز —
+evidence:
+[`psr-7f-branch-protection-print-ratchet.mdoc`](../audits/snapshots/2026-07-31/psr-7f-branch-protection-print-ratchet.mdoc).
+
+#### PSR-7g-tip-rc-evidence-draft — انجام‌شده (2026-08-01)
+
+Tip draft assembler → `reports/psr/rc-evidence-draft.json`؛ decision point —
+evidence:
+[`psr-7g-tip-rc-evidence-draft.mdoc`](../audits/snapshots/2026-07-31/psr-7g-tip-rc-evidence-draft.mdoc).
+
+#### PSR-6c6b-harbor-durable-e2e-harness — انجام‌شده (2026-08-01)
+
+Parallel durable servers + `test:smoke:harbor:durable`؛ seed default intact؛
+G-SEED-E2E-HARNESS tooling closed — evidence:
+[`psr-6c6b-harbor-durable-e2e-harness.mdoc`](../audits/snapshots/2026-07-31/psr-6c6b-harbor-durable-e2e-harness.mdoc).
+
+#### PSR-8c0-governance-templates — انجام‌شده (2026-08-01)
+
+Templates under `governance-templates/`؛ root LICENSE/SECURITY/CONTRIBUTING غایب —
+evidence:
+[`psr-8c0-governance-templates.mdoc`](../audits/snapshots/2026-07-31/psr-8c0-governance-templates.mdoc).
+
+**Next:** Architect decision table in §0 (YES / accept / counsel).
+
 
 ## 7. ترتیب PRها
 

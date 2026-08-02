@@ -24,7 +24,7 @@ describe("shadow rendered delivery parity", () => {
     assert.equal(payload.integrationDeliveryMessageTemplate, "New {{field:title}}");
   });
 
-  it("records rendered message parity against authoritative delivery fields", () => {
+  it("records rendered message parity against authoritative delivery fields", async () => {
     const input = {
       workspaceType: "denali",
       eventType: "TourCreated",
@@ -43,8 +43,8 @@ describe("shadow rendered delivery parity", () => {
       },
     } as const;
 
-    const { renderedMessage, renderedParity } = resolveShadowRenderedDeliveryParity(input);
-    const workerRendered = formatIntegrationDeliveryMessage({
+    const { renderedMessage, renderedParity } = await resolveShadowRenderedDeliveryParity(input);
+    const workerRendered = await formatIntegrationDeliveryMessage({
       workspaceType: input.workspaceType,
       eventType: input.eventType,
       payload: buildIntegrationDeliveryRenderPayload({
@@ -62,8 +62,8 @@ describe("shadow rendered delivery parity", () => {
     assert.deepEqual(renderedParity.mismatches, []);
   });
 
-  it("detects rendered template divergence between shadow and authoritative fields", () => {
-    const { renderedParity } = resolveShadowRenderedDeliveryParity({
+  it("detects rendered template divergence between shadow and authoritative fields", async () => {
+    const { renderedParity } = await resolveShadowRenderedDeliveryParity({
       workspaceType: "denali",
       eventType: "TourCreated",
       basePayload: { title: "Alpine Day" },

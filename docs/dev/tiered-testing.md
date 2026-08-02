@@ -15,12 +15,16 @@ Preferred local discovery commands: `pnpm verify:fast`, `pnpm verify:product`, `
 | **Fast (default)**               | Husky → `scripts/pre-commit-fast.sh`         | Every `git commit` (when hooks not suspended)              | Path-gated guards, `lint-staged` (batched eslint + prettier), `test-changed --mode pre-commit` (direct packages, API spec-level) — see [Pre-commit fast path](#pre-commit-fast-path) |
 | **Changed tests**                | `pnpm run test:changed`                      | Manual / CI selective                                      | `scripts/test-changed.sh --mode ci` — diff `origin/main...HEAD`, dependency expansion, `.cache/test-changed/`                                                                        |
 | **Pre-commit dry-run**           | `pnpm run pre-commit:fast`                   | Before commit                                              | Same as Husky fast path                                                                                                                                                              |
-| **Full**                         | `pnpm run test:full`                         | Before PR / Phase 4 closure                                | `phase-3:gate` + `phase-4:gate` (includes build, full `pnpm test`, guards, doc-gate, `p4_rls_integration_tests` when env set)                                                        |
+| **Full**                         | `pnpm run test:full`                         | Before PR / Phase 4–5 closure                              | `phase-5:gate` only (nests `phase-4:gate` → `phase-3:gate`; build, full `pnpm test`, `phase-3:guard` + `phase-3:apps-cert`, `p4_rls_integration_tests` when env set)                                      |
+| **Phase 5 runtime proof**        | `pnpm run phase-5:runtime-proof`             | Postgres available; additive (does not replace `:gate`)  | `db:test-reset` + `phase-4:guard` + targeted perf (`P5_PERF_GATE_MS=850`, `MIN_THROUGHPUT=100`, `BASELINE_RATIO_MAX=1.25`) — see [`phase-5-runtime-proof.mdoc`](../phase-5/phase-5-runtime-proof.mdoc) |
+| **Phase 6 full closure**         | `pnpm run phase-6:gate`                      | Phase 6 DoD / GHA `full-gate`                          | build + test + `phase-5:runtime-proof` + `phase-5:guard` + residual apps-cert (`post-test` + `floors`) + `phase-6:guard` (Option B; **not** nested `phase-5:gate`; **PASS ≠** full `phase-3:apps-cert`) |
+| **Phase 3 apps-cert post-test**  | `PHASE_3_APPS_CERT_INHERIT_ROOT=1 pnpm run phase-3:apps-cert:post-test` | After root `build && test` in same recipe; wired into `phase-6:gate` | Residual: web lint + canonical-sync + admin `next build` — **not** full apps-cert / leaf-gate PASS |
+| **Phase 3 apps-cert floors**     | `PHASE_3_APPS_CERT_INHERIT_ROOT=1 pnpm run phase-3:apps-cert:floors` | After root `build && test` in same recipe; wired into `phase-6:gate` | Sdk ≥100 + starter ≥15 count floors — **not** api/web floors or leaf-gate PASS |
 | **CI integrity**                 | `pnpm run ci:integrity`                      | GitHub / explicit local                                    | Phases **0 → 3** via `scripts/ci-integrity-check.sh` — **not** Husky default                                                                                                         |
 | **Phase 8 guard (fast)**         | `pnpm run phase-8:guard`                     | PR / local                                                 | 25 doc + boundary charter gates — under 10s                                                                                                                                          |
 | **Phase 8 urban regression**     | GHA job `urban-regression`                   | GitHub PR (`phase-8-gate.yml`)                             | Contract + urban proof bundle (memory driver)                                                                                                                                        |
 | **Phase 8 urban E2E**            | `pnpm --filter @apps/web run test:e2e:urban` | GHA job `urban-e2e`                                        | Playwright SMK-P8-01..04                                                                                                                                                             |
-| **Phase 8 full closure**         | `pnpm run phase-8:gate`                      | GHA `phase-8-gate-full` on **main** or `workflow_dispatch` | build + full `pnpm test` + nested `phase-7:gate` + `phase-8:guard` (~90–150 min)                                                                                                     |
+| **Phase 8 full closure**         | `pnpm run phase-8:gate`                      | GHA `phase-8-gate-full` on **main** or `workflow_dispatch` | build + full `pnpm test` + `phase-7:guard` + `phase-8:guard` (~90–150 min; denested)                                                                                                     |
 | **Nightly (API probes)**         | `pnpm run test:nightly`                      | Scheduled / pre-release                                    | `APPS_API_TEST_TIER=nightly` — backlog 1000-row, noise-neighbor HTTP, 10k relay leak; includes `test:nightly:soak` when `RUN_SOAK=1`                                                 |
 | **Nightly (cold-start enforce)** | `pnpm run test:nightly:cold-start`           | Scheduled (`api-nightly.yml`) / pre-release                | `build` + `cold-start-readiness-gate` with `COLD_START_READINESS_ENFORCE=true` — hard-fail when compiled p95 > 500 ms                                                                |
 
@@ -87,6 +91,8 @@ pnpm --filter @apps/api run test:file \
 New HTTP specs should use `apps/api/test/http-test-client.ts` (`installHttpTestClient`) — **one server per describe**, `Connection: close`, proper teardown.
 
 `test:file` pins `STORAGE_DRIVER=memory`; bootstrap clears shell `DATABASE_URL` so tenant workspace_type resolves via static registry (operator-smoke → starter for POST `/tours` bodies). Postgres integration specs need an explicit `STORAGE_DRIVER=prisma DATABASE_URL=…` command — not `test:file`.
+
+**Env vs product failures:** Postgres-only suites (`*.postgres.spec.ts`, booking HTTP PG cert, capacity/concurrency proofs, finance recon RLS) must **honest-skip** when `DATABASE_URL`(+ADMIN) is absent — `describe(..., { skip: reason })` with a stable `*_REQUIRES_DATABASE` string. They must not throw at module load (that hard-fails memory trunk). MinIO / object-storage live suites skip when `readMinioPhotoConfigFromEnv() === null` (`MINIO_* env not set`). When MinIO env is set but the backend is full/unreachable, round-trip cases call `t.skip` with an environment reason (`PHOTO_STORAGE_FULL`, etc.) — not a product red. Port/ACL unit proofs use in-memory `TenantObjectStoragePort` and must not require MinIO.
 
 ### Phase 9 Postgres finance + persistence (local · ~15s)
 
@@ -240,7 +246,7 @@ bash scripts/db-test-reset.sh
 
 ## Full path environment (Phase 4)
 
-`pnpm run test:full` runs `phase-4:gate`, which requires Postgres for `p4_rls_integration_tests`:
+`pnpm run test:full` runs `phase-5:gate` (which nests `phase-4:gate` → `phase-3:gate`). Nested `phase-4:gate` requires Postgres for `p4_rls_integration_tests`:
 
 ```bash
 export DATABASE_URL="${DATABASE_URL:-postgresql://app_tour:app_tour@localhost:${PHASE4_DB_PORT:-5434}/tour_db}"
@@ -319,7 +325,7 @@ cd apps/api && NODE_ENV=test node --import tsx --test test/0-security/als-high-l
 
 ## GitHub Actions
 
-- Phase 3: `.github/workflows/phase-3-gate.yml` runs `pnpm run phase-3:gate` on PR/push.
+- Phase 3: `.github/workflows/phase-3-gate.yml` runs `pnpm run phase-3:gate` (`phase-3:guard` + `phase-3:apps-cert`). Local static-only: `pnpm run phase-3:guard`.
 - Phase 10 + G+H+I: `.github/workflows/phase-10-guard.yml` — registry freshness, guest conformance, certification guards, I1/I2 guards + script tests. **H2/H4 API+web integration specs run in local `phase-i:closure` only** (full workspace build chain; not GHA fast path).
 - API nightly: `.github/workflows/api-nightly.yml` — scheduled `test:nightly:cold-start` (enforce) + `test:nightly:slow-sink`; not on trunk PR path.
 - Phase 4 RLS: run `pnpm run test:full` (or `phase-4:gate` with env) in a job with Postgres — not part of fast pre-commit.

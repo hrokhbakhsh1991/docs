@@ -1,0 +1,130 @@
+{% callout type="info" %}
+**Phase 3 verification split (2026-08-01)** — `phase-3:guard` is static foundation only; app build/test certification lives in `phase-3:apps-cert`. Full release coverage remains `phase-3:gate` (runs both). Residual modes: `phase-3:apps-cert:post-test` + `phase-3:apps-cert:floors` (wired into `phase-6:gate` only; **PASS ≠** full apps-cert).
+{% /callout %}
+
+# Phase 3 — Guard / apps-cert split
+
+## Problem
+
+`scripts/guards/phase-3-guard.mjs` historically mixed:
+
+1. **Static foundation** — doc-gate, package presence, barrel/import/architecture/artifact surfaces, theme export allowlist, canonical-sync, denali-free kernel scan.
+2. **Application certification** — web lint, workspace-sdk / starter suites, `@apps/api` `phase-3:api-gate`, `@apps/web` `phase-3:web-gate`.
+
+Calling `phase-3:guard` therefore acted as a **hidden apps mega-gate** (rebuild/retest api+web after the outer `phase-3:gate` build/test already ran). That blocked a true “static foundation” path and would poison any future Foundation verification lane.
+
+## Target shape
+
+```text
+phase-3:guard      → static foundation only
+                     report: reports/phase-3-guard-YYYY-MM-DD.json
+
+phase-3:apps-cert  → full standalone apps certification (unchanged)
+                     report: reports/phase-3-apps-cert-YYYY-MM-DD.json
+                     invokes apps/api phase-3:api-gate + apps/web phase-3:web-gate
+                     owns sdk/starter floors + leaf-gate composites
+
+phase-3:apps-cert:post-test → residual cert AFTER root build && test
+                     require: PHASE_3_APPS_CERT_INHERIT_ROOT=1
+                     report: reports/phase-3-apps-cert-post-test-YYYY-MM-DD.json
+                     executes: web lint once + canonical-sync + admin next build
+                     does NOT re-run api/web leaf gates or sdk/starter suites
+                     does NOT enforce count floors
+
+phase-3:apps-cert:floors → sdk/starter count floors ONLY (additive probe)
+                     require: PHASE_3_APPS_CERT_INHERIT_ROOT=1
+                     report: reports/phase-3-apps-cert-floors-YYYY-MM-DD.json
+                     executes: workspace-sdk test + workspace-starter test
+                     thresholds: WORKSPACE_SDK_TEST_MIN.phase3 / WORKSPACE_STARTER_TEST_MIN.phase3
+                     does NOT run api/web floors, leaf gates, root build/test, or full apps-cert
+
+phase-3:gate       → build + test + platform-core test:phase-2
+                     + phase-2:guard + phase-3:guard + phase-3:apps-cert
+```
+
+**No checks removed from the full release path (`phase-3:gate`).** Post-test and floors are residual ownership — wired into `phase-6:gate` only (not into `phase-3:gate`). **`phase-6:gate` PASS ≠ `phase-3:apps-cert` PASS.**
+
+## Inherit contract (residual modes)
+
+1. `PHASE_3_APPS_CERT_INHERIT_ROOT=1` is valid **only** after `pnpm build && pnpm test` succeeded in the **same** gate recipe.
+2. `phase-5:runtime-proof` may mutate database state (`db:test-reset`) but does **not** mutate source artifacts.
+3. Residual mode intentionally does **not** recreate full apps-cert isolation (no api-gate/web-gate composite PASS; api/web count thresholds remain documentation-only unless separately ratcheted).
+4. Sdk/starter floors (≥100 / ≥15) are preserved through `phase-3:apps-cert:floors` using the same `gate-thresholds.mjs` constants.
+
+## Relationship of the three apps-cert modes
+
+| Mode | Role | What PASS means |
+| --- | --- | --- |
+| `phase-3:apps-cert` | Full standalone authority | Lint + sdk/starter suites/floors + starter build + api/web leaf-gate composites |
+| `phase-3:apps-cert:post-test` | Residual after inherited root build+test | Web lint + canonical-sync + admin `next build` only — **no** floors, **no** leaf-gate PASS |
+| `phase-3:apps-cert:floors` | Floor probe after inherited root build+test | Sdk ≥100 + starter ≥15 via `evaluatePackageTestRun` + `gate-thresholds.mjs` — **no** api/web enforcement, **no** leaf-gate PASS |
+
+Composing post-test + floors still does **not** equal full apps-cert (missing starter build, api/web leaf gates, and any future apps-cert checks).
+
+## Anti-hollow rules
+
+| Claim | Truth |
+| --- | --- |
+| `phase-3:guard` PASS | Static foundation only — **not** apps DoD |
+| `phase-3:apps-cert` PASS | Full sdk/starter/api/web certification slice (floors + leaf gates) |
+| `phase-3:apps-cert:post-test` PASS | Residual only — **not** equivalent to full apps-cert; floors/api-gate/web-gate composites **not** claimed |
+| `phase-3:apps-cert:floors` PASS | Sdk+starter count floors only — **not** api/web floors or leaf-gate composites; inherited root build/test are **not** executed PASS |
+| `phase-3:gate` PASS | Outer build/test + phase-2 baseline + **both** halves (full apps-cert) |
+| Merge on guard alone | **Forbidden** — `FF-P3-GUARD-ONLY` (+ now also misses apps-cert) |
+
+## Check ownership
+
+### `phase-3:guard` (static)
+
+`p3_doc_gate`, `p3_apps_web_exists`, `p3_apps_api_exists`, `p3_audit_boundary`, `p3_import_boundary`, `p3_guard_architecture`, `p3_artifact_surface`, `p3_theme_react_verify_exports`, `p3_canonical_sync`, `p3_ui_select_checkbox_optional`, `p3_no_denali`
+
+### `phase-3:apps-cert` (full / standalone)
+
+`p3_apps_web_lint`, `p3_workspace_sdk_tests`, `p3_starter_build`, `p3_starter_tests`, `p3_api_gate`, `p3_web_gate`
+
+API/Web test count floors remain documentation / leaf-gate territory (see `gate-thresholds.mjs` docs mins). Sdk/starter floors are enforced by apps-cert via `checkPackageTests`. **Full apps-cert remains composite authority.**
+
+### `phase-3:apps-cert:post-test` (residual after root build+test)
+
+**Contract:** `PHASE_3_APPS_CERT_INHERIT_ROOT=1` (fail closed). Assumes caller already ran root monorepo build and test exit 0 — recorded as **inherited**, never re-executed or faked as PASS checks.
+
+**Executed:**
+
+1. `pnpm --filter @apps/web run lint` (prelint lifecycle once)
+2. `pnpm --filter @apps/api run validate:canonical-sync`
+3. `WEB_SKIP_GUARD_PREBUILD=1 pnpm --filter @apps/web run build` (admin `next build`; root monorepo build excludes `apps/web`)
+
+**Skipped by contract (listed, not marked PASS):** sdk/starter suites and builds, full `phase-3:api-gate`, full `phase-3:web-gate`, api build/test/guards, web unit tests.
+
+**Not enforced in this mode:** sdk/starter count floors; api-gate / web-gate composite PASS.
+
+Report sections: `inherited` · `executed` · `skipped_by_contract` · `not_enforced_in_this_mode`.
+
+### `phase-3:apps-cert:floors` (sdk/starter floors only)
+
+**Ownership:** Preserve the **code-enforced** Phase-3 package test floors (`WORKSPACE_SDK_TEST_MIN.phase3` ≥100, `WORKSPACE_STARTER_TEST_MIN.phase3` ≥15) without requiring full standalone apps-cert.
+
+**Contract:** `PHASE_3_APPS_CERT_INHERIT_ROOT=1` (fail closed). Assumes prior successful root monorepo build && test — recorded under `inherited` with `detail: "not re-executed"`, never marked executed PASS.
+
+**Executed (only):**
+
+1. `pnpm --filter ./packages/workspace-sdk run test` → `evaluatePackageTestRun(..., WORKSPACE_SDK_TEST_MIN.phase3)`
+2. `pnpm --filter ./packages/workspaces/starter run test` → `evaluatePackageTestRun(..., WORKSPACE_STARTER_TEST_MIN.phase3)`
+
+Package names are `@app-tour/workspace-sdk` / `@app-tour/workspace-starter`. Floors uses path filters (`./packages/workspace-sdk`, `./packages/workspaces/starter`) to avoid scoped-filter typos (`@app-cloud` is a forbidden misspelling of `@app-tour`).
+
+**Why api/web are excluded:** Api/web ≥20/≥10 mins are **docs-only** today (leaf gates do not parse counts). Inventing floors or claiming api/web leaf-gate PASS in this probe would hollow the report. Those composites stay owned by full `phase-3:apps-cert` → `phase-3:api-gate` / `phase-3:web-gate`.
+
+**Not enforced in this mode:** api test count docs; web test count docs; api-gate composite; web-gate composite.
+
+Report sections: `mode: "floors"` · `inherited` · `executed` · `not_enforced_in_this_mode` · `exit.pass`.
+
+## Rollback
+
+- Full split: revert the cutover that thins the guard and wires `phase-3:gate` to both scripts.
+- Post-test only: remove `phase-3:apps-cert:post-test` script + runner; full `phase-3:apps-cert` unaffected.
+- Floors only: remove `phase-3:apps-cert:floors` script + runner; full `phase-3:apps-cert` unaffected.
+
+## Out of scope
+
+Verification lane redesign; changes to api/web gate bodies; inventing api/web count enforcement; claiming `phase-6:gate` equals full `phase-3:apps-cert`.

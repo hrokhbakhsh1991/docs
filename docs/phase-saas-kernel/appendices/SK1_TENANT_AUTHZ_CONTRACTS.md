@@ -71,7 +71,7 @@ flowchart LR
 | Category | Symbols |
 | -------- | ------- |
 | Host constants | `DEFAULT_TENANT_HOST_RESERVED_LABELS`, `parseReservedLabelsCsv`, `TENANT_MAX_HOST_LENGTH`, `TENANT_SUBDOMAIN_REGEX` |
-| Host parse | `normalizeRootDomain`, `parseWorkspaceTenantLabelFromHost`, `resolveWorkspaceSlugFromNormalizedHost`, `parseMultiLevelTenantHost`, `isClubAdminHost`, `isPlatformAdminHost`, custom-apex helpers, `buildDev*PublicBaseUrl`, `resolveMemberSessionCookieDomain` |
+| Host parse | `normalizeRootDomain`, `parseWorkspaceTenantLabelFromHost`, `resolveWorkspaceSlugFromNormalizedHost`, `parseMultiLevelTenantHost`, `isClubAdminHost`, `isPlatformAdminHost`, custom-apex helpers, `buildDev*PublicBaseUrl`, `resolveMemberSessionCookieDomain`, `toCanonicalClubPortalHost`, `isLegacyClubPortalHost` (PCMS-COOK-05 / WRS-PORTAL-LEGACY-308 — localhost legacy `{club}.portal.localhost` → canonical `portal.{club}.localhost`) |
 | RLS | `RLS_TENANT_SETTING`, `SET_LOCAL_RLS_TENANT_SQL`, `RESET_RLS_TENANT_SQL` |
 | Route | `TenantRoute`, `TenantTier`, `TenantRouteRow`, `resolveTenantRoute`, `TENANT_ROUTE_MISCONFIGURED`, `TenantConnectionRouter`, `TenantRouteLookup` |
 

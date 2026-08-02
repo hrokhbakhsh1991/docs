@@ -56,7 +56,10 @@ describe("denali-draft-systemic-closure.spec.ts — Phase 4", () => {
     const listComponent = readRepoSource(
       "packages/workspaces/denali/src/ui/chrome/denali-flat-edit-validation-list.tsx"
     );
-    assert.match(flatEdit, /DenaliFlatEditValidationList/);
+    // Thin shell: page resolves FlatEditValidationList via registry surface (no Denali binder import).
+    assert.match(flatEdit, /resolveWizardFlatEditPageSurface/);
+    assert.match(flatEdit, /FlatEditValidationList/);
+    assert.doesNotMatch(flatEdit, /DenaliFlatEditValidationList/);
     assert.doesNotMatch(flatEdit, /\{issue\.message\}/);
     assert.match(listComponent, /resolveWizardValidationIssueMessage/);
     assert.match(listComponent, /denali\.review\.validation/);

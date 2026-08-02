@@ -127,6 +127,17 @@ async function dispatchRequest(
     return;
   }
 
+  if (
+    method === "POST" &&
+    (url.pathname === "/internal/portal-member-entitlements/plans/upsert" ||
+      url.pathname === "/internal/portal-member-entitlements/apply-plan")
+  ) {
+    const { handlePortalMemberEntitlementsInternal } =
+      await import("./routes/internal/portal-member-entitlements");
+    await handlePortalMemberEntitlementsInternal(req, res, url.pathname);
+    return;
+  }
+
   if (method === "GET" && url.pathname === "/internal/consistency/migrations") {
     const { handleMigrationConsistency } = await import("./routes/internal/migration-consistency");
     await handleMigrationConsistency(req, res);

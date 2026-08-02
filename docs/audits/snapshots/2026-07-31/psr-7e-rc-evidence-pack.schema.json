@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://app-tour.local/schemas/psr-7e-rc-evidence-pack.schema.json",
+  "title": "PSR-7e Release Candidate Evidence Pack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "program_id",
+    "git_sha",
+    "collected_at",
+    "program_gates",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "psr-7e.1" },
+    "program_id": { "type": "string", "const": "PSR-001" },
+    "git_sha": {
+      "type": "string",
+      "minLength": 7,
+      "maxLength": 40,
+      "pattern": "^[0-9a-f]+$"
+    },
+    "collected_at": { "type": "string", "format": "date-time" },
+    "program_gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "psr5_item7_same_sha_live",
+        "psr6_harbor_certified",
+        "psr7_release_ready",
+        "psr8_publication_ready",
+        "psr9_closure"
+      ],
+      "properties": {
+        "psr5_item7_same_sha_live": { "type": "boolean" },
+        "psr6_harbor_certified": { "type": "boolean" },
+        "psr7_release_ready": { "type": "boolean" },
+        "psr8_publication_ready": { "type": "boolean" },
+        "psr9_closure": { "type": "boolean" }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scorecard",
+        "secret_scan",
+        "sbom",
+        "branch_protection",
+        "staging",
+        "harbor",
+        "ops_identity"
+      ],
+      "properties": {
+        "scorecard": {
+          "type": "object",
+          "required": ["path", "meets_all_targets"],
+          "properties": {
+            "path": { "type": "string" },
+            "meets_all_targets": { "type": "boolean" }
+          }
+        },
+        "secret_scan": {
+          "type": "object",
+          "required": ["tracked_open_count", "history_complete"],
+          "properties": {
+            "tracked_open_count": { "type": "integer", "minimum": 0 },
+            "history_complete": { "type": "boolean" },
+            "allowlisted_count": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "sbom": {
+          "type": "object",
+          "required": ["generator", "provenance_included"],
+          "properties": {
+            "generator": { "type": "string" },
+            "bom_format": { "type": "string" },
+            "spec_version": { "type": "string" },
+            "lockfile_sha256": { "type": "string" },
+            "component_count": { "type": "integer", "minimum": 0 },
+            "provenance_included": { "type": "boolean" }
+          }
+        },
+        "branch_protection": {
+          "type": "object",
+          "required": ["print_only_complete", "live_verify_complete"],
+          "properties": {
+            "print_only_complete": { "type": "boolean" },
+            "live_verify_complete": { "type": "boolean" },
+            "required_checks": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "staging": {
+          "type": "object",
+          "required": ["live_pack_complete"],
+          "properties": {
+            "live_pack_complete": { "type": "boolean" },
+            "four_process_smoke": { "type": "boolean" },
+            "restore_drill": { "type": "boolean" },
+            "harbor_durable_e2e": { "type": "boolean" }
+          }
+        },
+        "harbor": {
+          "type": "object",
+          "required": ["production_tier", "live_durable_pack_complete"],
+          "properties": {
+            "production_tier": {
+              "type": "string",
+              "enum": ["stub", "certified", "unknown"]
+            },
+            "live_durable_pack_complete": { "type": "boolean" },
+            "seed_e2e_only": { "type": "boolean" }
+          }
+        },
+        "ops_identity": {
+          "type": "object",
+          "required": ["model"],
+          "properties": {
+            "model": {
+              "type": "string",
+              "enum": [
+                "shared_env_bearer",
+                "dual_accept",
+                "session_jwt_only"
+              ]
+            },
+            "design_wave": { "type": "string" }
+          }
+        }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

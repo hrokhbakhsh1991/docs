@@ -11,8 +11,11 @@ export type WorkspaceDefinitionVersionRow = {
 };
 
 function defaultPrisma(): PrismaClient {
-  const { getPrismaAdmin } = require("../db/prisma") as typeof import("../db/prisma");
-  return getPrismaAdmin();
+  const {
+    PLATFORM_ADMIN_REASON,
+    getPlatformAdminClient,
+  } = require("../platform/platform-admin-client") as typeof import("../platform/platform-admin-client");
+  return getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_WORKSPACE_DEFINITION);
 }
 
 export class WorkspaceDefinitionRepository {

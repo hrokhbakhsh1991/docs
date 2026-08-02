@@ -52,8 +52,11 @@ tenantId
 | Input | Result |
 | ----- | ------ |
 | empty `tenantId` | `BOOKING_WORKSPACE_UNSUPPORTED` |
-| `urban` / `starter` / unknown | `BOOKING_WORKSPACE_UNSUPPORTED` (never silent Denali) |
+| `urban` / `starter` / unknown workspaceType | `BOOKING_WORKSPACE_UNSUPPORTED` (never silent Denali) |
+| unregistered tenant (`WORKSPACE_TYPE_UNRESOLVED`) | wrapped as `BookingWorkspaceUnsupportedError` → HTTP **404** `BOOKING_WORKSPACE_UNSUPPORTED` (never raw 500 / never Denali) |
 | `denali` / `booking-ws2` | supported runtime |
+
+Platform `resolveWorkspaceTypeForTenant` remains fail-closed (no `starter` inference). Booking boundary must translate `WORKSPACE_TYPE_UNRESOLVED` into `BookingWorkspaceUnsupportedError` before HTTP.
 
 ## DEV tenants (static registry)
 

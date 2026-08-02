@@ -78,6 +78,10 @@ describe("WizardField renderers", () => {
   });
 
   it("renders denali location zones composite when draft binding is provided", async () => {
+    const { ensureGeneratedCompositeSurface } = await import(
+      "../src/wizard/wizard-surface-registry"
+    );
+    await ensureGeneratedCompositeSurface("denali");
     const field: RenderFieldPlan = {
       fieldId: "denali.location-zones",
       kind: "composite",

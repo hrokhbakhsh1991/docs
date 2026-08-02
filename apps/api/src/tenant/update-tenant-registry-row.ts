@@ -1,13 +1,18 @@
 import type { Prisma } from "@prisma/client";
 
-import { getPrismaAdmin } from "../db/prisma";
 import { isPersistedTenantUuid } from "./tenant-id-format";
 import { findTenantById, isStaticTenantRegistryAllowed } from "./tenant-registry";
 import { invalidateTenantRegistryCache, setCachedTenantThemeById } from "./tenant-registry-cache";
+import {
+  TENANT_REGISTRY_ADMIN_REASON,
+  findTenantIdSubdomainById,
+  updateTenantRow,
+} from "./tenant-registry-admin.port";
 
 /**
  * Admin `tenants` update with registry cache invalidation (DEC-074 / PU-F-01).
  * Test/dev without Postgres persists theme JSON to the in-process cache only.
+ * Postgres I/O goes through {@link updateTenantRow} / {@link findTenantIdSubdomainById} (PSR-5c).
  */
 export async function updateTenantRegistryRow(
   tenantId: string,
@@ -26,11 +31,10 @@ export async function updateTenantRegistryRow(
     throw new Error(`updateTenantRegistryRow: DATABASE_URL required for tenant ${normalized}`);
   }
 
-  const admin = getPrismaAdmin();
-  const existing = await admin.tenant.findUnique({
-    where: { id: normalized },
-    select: { id: true, subdomain: true },
-  });
+  const existing = await findTenantIdSubdomainById(
+    normalized,
+    TENANT_REGISTRY_ADMIN_REASON.REGISTRY_UPDATE
+  );
 
   if (existing === null) {
     if (isStaticTenantRegistryAllowed()) {
@@ -46,11 +50,11 @@ export async function updateTenantRegistryRow(
     throw new Error("TENANT_NOT_FOUND");
   }
 
-  const row = await admin.tenant.update({
-    where: { id: normalized },
+  const row = await updateTenantRow(
+    normalized,
     data,
-    select: { id: true, subdomain: true },
-  });
+    TENANT_REGISTRY_ADMIN_REASON.REGISTRY_UPDATE
+  );
   invalidateTenantRegistryCache(row.id, row.subdomain);
   return row;
 }

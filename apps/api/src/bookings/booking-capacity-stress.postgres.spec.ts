@@ -22,12 +22,14 @@ const STRESS_ITERATIONS = Number.parseInt(process.env.BOOKING_STRESS_ITERATIONS 
 const CONCURRENCY = Number.parseInt(process.env.BOOKING_STRESS_CONCURRENCY ?? "200", 10);
 const CAPACITY_MAX = 5;
 
-function requireDatabaseEnv(): void {
-  if (!process.env.DATABASE_URL?.trim() || !process.env.DATABASE_URL_ADMIN?.trim()) {
-    throw new Error(
-      "BOOKING_CAPACITY_STRESS_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN"
-    );
-  }
+const hasDatabase =
+  Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
+
+const postgresSkip = hasDatabase
+  ? false
+  : "BOOKING_CAPACITY_STRESS_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN";
+
+function assertStressParams(): void {
   if (!Number.isFinite(STRESS_ITERATIONS) || STRESS_ITERATIONS < 100) {
     throw new Error("BOOKING_STRESS_ITERATIONS must be >= 100");
   }
@@ -82,14 +84,13 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-describe("booking capacity stress (PostgreSQL)", { concurrency: false }, () => {
-  requireDatabaseEnv();
-
+describe("booking capacity stress (PostgreSQL)", { concurrency: false, skip: postgresSkip }, () => {
   const tenantId = integrationTenantId();
   const submittedByUserId = randomUUID();
   let repos: PrismaBookingsRepository[];
 
   before(async () => {
+    assertStressParams();
     process.env.STORAGE_DRIVER = "prisma";
     process.env.TENANT_MAX_CONCURRENT_DB_OPS = "64";
     process.env.PRISMA_TRANSACTION_TIMEOUT_MS = "120000";

@@ -14,7 +14,7 @@ runner: scripts/guards/phase-9-guard.mjs
 | --------------------------------- | ------------------------------------------- |
 | `pnpm run phase-9:guard`          | 32 charter gates — doc pack attestation     |
 | `pnpm run guard:p9-boundary-diff` | 9.1 PR boundary allowlist                   |
-| `pnpm run phase-9:gate`           | build + test + phase-8:gate + phase-9:guard |
+| `pnpm run phase-9:gate`           | build + test + phase-8:guard + phase-9:guard (no nested phase-8:gate) |
 
 ## Hook suspension (velocity — active)
 
@@ -61,7 +61,7 @@ Re-enable: delete marker at **9.8** · see `re_enable.verify` in yaml · `bash s
 | 24  | `p9_adversarial_matrix`       | ADVERSARIAL-MATRIX-P9 ADV-P9-01..10                                 |
 | 25  | `p9_platform_core_zero_diff`  | platform-core git diff empty                                        |
 | 26  | `p9_no_legacy_runtime_import` | no legacy imports in apps                                           |
-| 27  | `p9_phase9_gate_script`       | phase-9:gate chains phase-8:gate                                    |
+| 27  | `p9_phase9_gate_script`       | phase-9:gate chains phase-8:guard (not nested phase-8:gate)         |
 | 28  | `p9_technical_quality`        | TQ-P9-001..010 in charter                                           |
 | 29  | `p9_navigator_present`        | AGENT-NAVIGATOR.md · ≥8 decision nodes                              |
 | 30  | `p9_leader_actor_drift`       | no Leader RBAC actor in route matrix / router                       |

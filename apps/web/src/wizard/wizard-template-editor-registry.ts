@@ -7,7 +7,7 @@ import {
   resolveTemplateEditorCapability,
   type WorkspacePlugin,
   type WorkspaceTemplateEditorCapability,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
 import type { WizardTemplateEditorSurface } from "@/wizard/wizard-template-editor-types";

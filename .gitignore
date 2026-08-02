@@ -41,6 +41,8 @@ TEMP/
 docs/temp/
 legacy/reports/phase-0-environment-*
 reports/p4-cold-path-fan-in.json
+reports/sbom/
+reports/psr/
 
 # Root ad-hoc helpers (PSR-1 — use scripts/vps-deploy + formal smoke instead)
 /tmp-restart-*.mjs

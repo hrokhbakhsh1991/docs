@@ -53,8 +53,13 @@ export async function handlePlatformTenantsGet(
     if (deps.resolveDefinitionDisplayName) {
       definitionDisplayName = await deps.resolveDefinitionDisplayName(row.workspaceDefinitionId);
     } else {
-      const { getPrismaAdmin } = await import("../../db/prisma.ts");
-      const definition = await getPrismaAdmin().workspaceDefinition.findUnique({
+      const {
+        PLATFORM_ADMIN_REASON,
+        getPlatformAdminClient,
+      } = await import("../../platform/platform-admin-client.ts");
+      const definition = await getPlatformAdminClient(
+        PLATFORM_ADMIN_REASON.PLATFORM_TENANT
+      ).workspaceDefinition.findUnique({
         where: { id: row.workspaceDefinitionId },
         select: { displayName: true },
       });

@@ -4,14 +4,18 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
+import { getWorkspacePlugin as getDenaliPlugin } from "@app-tour/workspace-denali";
+import {
+  logDenaliTombstoneShadowMismatch,
+  mergeDenaliWizardDraftEnvelope,
+  resolveDenaliDraftMerge,
+} from "@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface";
+
 import {
   createOperatorDraftOnPushSuccess,
   resolveOperatorDraftConflictStrategy,
 } from "../src/draft/draft-unification-v3-options";
-import { resolveDenaliDraftMerge } from "@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface";
 import { resolveDraftUnificationV3Mode } from "../src/draft/draft-unification-v3";
-import { logDenaliTombstoneShadowMismatch } from "@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface";
-import { mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface";
 
 const ENV_KEYS = ["DRAFT_UNIFICATION_V3", "NEXT_PUBLIC_DRAFT_UNIFICATION_V3"] as const;
 
@@ -100,7 +104,12 @@ describe("draft-unification-v3.spec.ts — Track C", () => {
         schemaVersion: 1,
         lastModified: 100,
       });
-      createOperatorDraftOnPushSuccess("shadow")(wrapPayload(pushed), wrapPayload(server), baseline);
+      // Phase 4am — onPushSuccess takes plugin then mode (capability draftShell path).
+      createOperatorDraftOnPushSuccess(getDenaliPlugin(), "shadow")(
+        wrapPayload(pushed),
+        wrapPayload(server),
+        baseline
+      );
       await new Promise<void>((resolve) => {
         setImmediate(resolve);
       });

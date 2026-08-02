@@ -86,7 +86,10 @@ describe("field exposure engine migration DONE contract", () => {
   it("skips temporary observability stacks in cutover runtime", () => {
     const dispatch = readFileSync(DISPATCH, "utf8");
 
-    assert.match(dispatch, /runtimeMode === "cutover"\s*\?\s*null\s*:\s*resolveFieldExposureShadowDiagnostics/);
+    assert.match(
+      dispatch,
+      /runtimeMode === "cutover"\s*\?\s*null\s*:\s*await resolveFieldExposureShadowDiagnostics/,
+    );
     assert.match(dispatch, /if \(runtimeMode === "shadow"\) \{/);
   });
 
@@ -96,7 +99,7 @@ describe("field exposure engine migration DONE contract", () => {
       "utf8",
     );
 
-    assert.match(deliveryDefinitions, /export function resolveDeliveryFieldDefinitions/);
+    assert.match(deliveryDefinitions, /export async function resolveDeliveryFieldDefinitions/);
     assert.doesNotMatch(deliveryDefinitions, /export function resolveDeliveryFieldPolicy/);
   });
 });

@@ -32,23 +32,23 @@ function urbanCanonical(publishStatus: string): CanonicalDocument {
 }
 
 describe("shouldInvalidateMarketingCatalog (MKT-API-11)", () => {
-  it("MKT-API-11a denali — draft create does not invalidate", () => {
+  it("MKT-API-11a denali — draft create does not invalidate", async () => {
     assert.equal(
-      shouldInvalidateMarketingCatalog("denali", null, denaliCanonical("draft")),
+      await shouldInvalidateMarketingCatalog("denali", null, denaliCanonical("draft")),
       false
     );
   });
 
-  it("MKT-API-11b denali — active create invalidates", () => {
+  it("MKT-API-11b denali — active create invalidates", async () => {
     assert.equal(
-      shouldInvalidateMarketingCatalog("denali", null, denaliCanonical("active")),
+      await shouldInvalidateMarketingCatalog("denali", null, denaliCanonical("active")),
       true
     );
   });
 
-  it("MKT-API-11c denali — draft to active invalidates", () => {
+  it("MKT-API-11c denali — draft to active invalidates", async () => {
     assert.equal(
-      shouldInvalidateMarketingCatalog(
+      await shouldInvalidateMarketingCatalog(
         "denali",
         denaliCanonical("draft"),
         denaliCanonical("active")
@@ -57,18 +57,18 @@ describe("shouldInvalidateMarketingCatalog (MKT-API-11)", () => {
     );
   });
 
-  it("MKT-API-11d denali — active edit invalidates", () => {
+  it("MKT-API-11d denali — active edit invalidates", async () => {
     const before = denaliCanonical("active");
     const after: CanonicalDocument = {
       ...before,
       data: { ...(before.data as Record<string, unknown>), publishStatus: "active" },
     };
-    assert.equal(shouldInvalidateMarketingCatalog("denali", before, after), true);
+    assert.equal(await shouldInvalidateMarketingCatalog("denali", before, after), true);
   });
 
-  it("MKT-API-11e denali — active to draft invalidates", () => {
+  it("MKT-API-11e denali — active to draft invalidates", async () => {
     assert.equal(
-      shouldInvalidateMarketingCatalog(
+      await shouldInvalidateMarketingCatalog(
         "denali",
         denaliCanonical("active"),
         denaliCanonical("draft")
@@ -77,16 +77,16 @@ describe("shouldInvalidateMarketingCatalog (MKT-API-11)", () => {
     );
   });
 
-  it("MKT-API-11f urban — published tour invalidates", () => {
+  it("MKT-API-11f urban — published tour invalidates", async () => {
     assert.equal(
-      shouldInvalidateMarketingCatalog("urban", null, urbanCanonical("published")),
+      await shouldInvalidateMarketingCatalog("urban", null, urbanCanonical("published")),
       true
     );
   });
 
-  it("MKT-API-11g starter — no public catalog surface", () => {
+  it("MKT-API-11g starter — no public catalog surface", async () => {
     assert.equal(
-      shouldInvalidateMarketingCatalog("starter", null, denaliCanonical("active")),
+      await shouldInvalidateMarketingCatalog("starter", null, denaliCanonical("active")),
       false
     );
   });

@@ -14,7 +14,7 @@ runner: scripts/guards/phase-8-guard.mjs
 | --------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `pnpm run phase-8:guard`                                  | Phase 8 charter gates (25 checks · doc + invariants + hardening + Sprint A navigator + F–M)   |
 | `pnpm run guard:p8-boundary-diff`                         | 8.1 PR boundary diff vs [`PHASE-BOUNDARY-MATRIX.yaml`](appendices/PHASE-BOUNDARY-MATRIX.yaml) |
-| `pnpm run phase-8:gate`                                   | `build` + `test` + `phase-7:gate` + `phase-8:guard`                                           |
+| `pnpm run phase-8:gate`                                   | `build` + `test` + `phase-7:guard` + `phase-8:guard` (denested; no `phase-7:gate`) |
 | `node scripts/guards/phase-8-guard.mjs`                   | Direct guard invocation (same as `phase-8:guard`)                                             |
 | `node scripts/guards/lib/phase-8-guard-lib.mjs`           | Shared evaluators (`evaluateP8*`)                                                             |
 | `node scripts/guards/lib/phase-8-doc-hardening.mjs`       | PEK file presence (`verifyDocHardening`)                                                      |

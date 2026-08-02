@@ -50,8 +50,11 @@ export async function assertSubdomainAvailable(subdomain: string): Promise<void>
   }
 
   // 3. Check DB uniqueness
-  const { getPrismaAdmin } = require("../db/prisma") as typeof import("../db/prisma");
-  const prisma = getPrismaAdmin();
+  const {
+    PLATFORM_ADMIN_REASON,
+    getPlatformAdminClient,
+  } = require("./platform-admin-client") as typeof import("./platform-admin-client");
+  const prisma = getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_DOMAIN);
   const existing = await prisma.tenant.findUnique({
     where: { subdomain },
     select: { id: true },

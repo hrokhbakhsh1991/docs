@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import type { WorkspacePlugin } from "@app-cloud/workspace-sdk";
+import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
 import {
   createLoadingWizardTemplateGateState,

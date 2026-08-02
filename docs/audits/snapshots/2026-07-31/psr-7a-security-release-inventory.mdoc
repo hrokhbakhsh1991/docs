@@ -1,0 +1,75 @@
+---
+id: PSR-7A-SECURITY-RELEASE-INVENTORY
+title: PSR-7a — Security and release readiness inventory (no live YES packs)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-7a-security-release-inventory.yaml
+program_id: PSR-001
+wave: PSR-7a-security-release-inventory
+---
+
+# PSR-7a — Security / release readiness inventory
+
+## Intent
+
+PSR-7 closes the gap from “code correct” to “release proven”. This wave is
+**inventory + gap matrix only**:
+
+- No GitHub branch-protection API apply/verify (needs `gh` + Architect YES)
+- No staging VPS deploy / four-process / Harbor live smoke
+- No secret-history scan execution
+- No SBOM generation
+- No platform-ops identity redesign implementation
+- Harbor remains `stub` (PSR-6c5); PSR-6 gate stays open until live recert
+
+## Exit criteria vs current truth
+
+| # | SoT criterion | Code / docs assets | Gap |
+| ---: | --- | --- | --- |
+| 1 | Short-lived, scoped, rotatable ops identity + audit | Shared env bearer `PLATFORM_OPS_BEARER_TOKEN`; prod fails closed if unset; phone whitelist (TODO-004) | Still **shared static secret**, not short-lived/scoped/rotated |
+| 2 | Branch protection + required checks proven from GitHub API on release SHA | `ops:branch-protection:*`, `main-branch-required-checks.mjs`, `reports/GITHUB_BRANCH_PROTECTION.md` | Local print/dry-run OK; **live `--verify` on tip SHA** pending YES |
+| 3 | Staging deploy: migrate, four-process, Harbor, failure inject, rollback+restore | `p10-staging-gate.yml`, `p7-staging-*`, `restore-drill-monthly.yml`, `scripts/restore-drill-smoke.sh` | Workflows exist; **live VPS pack** pending secrets + YES; Harbor smoke still seed-path |
+| 4 | Secret scan on tracked files + history | — | **No** root `gitleaks`/`trivy`/secret-scan script or workflow found |
+| 5 | SBOM + dependency/license + provenance artifact | — | **No** `syft`/`cyclonedx`/SBOM package script found |
+| 6 | Immutable machine-readable release evidence | Partial: audit snapshots + proof matrices | No single **release evidence pack** schema/artifact for RC |
+
+## Family map (for later slices)
+
+| Family | Slice hint | Status |
+| --- | --- | --- |
+| **R-OPS-ID** | Replace shared bearer with short-lived scoped tokens | open |
+| **R-BRANCH** | Live GitHub protection verify on release SHA | recipe ready; live pending |
+| **R-STAGING** | One clean staging RC smoke + rollback | assets exist; live pending |
+| **R-SECRET** | Introduce scanner + baseline + CI job | missing tooling |
+| **R-SBOM** | Introduce SBOM + license scan + provenance | missing tooling |
+| **R-EVIDENCE** | Machine-readable RC evidence schema | open |
+
+## Parallelism with PSR-6
+
+Harbor durable code exists (6c3/6c4) but CERT/`certified` wait on Architect YES
+(`PSR-6c6`). PSR-7 may proceed with Harbor=`stub`; staging Harbor smoke must not
+claim durable CERT-03 until seed-off recipe lands.
+
+## Smoke
+
+```bash
+node scripts/ops/psr-7a-security-release-inventory-smoke.mjs
+```
+
+## Next
+
+Suggested thin slices (Architect order):
+
+1. `PSR-7b-secret-scan-baseline` — add scanner + tracked-file recipe (no history claim without YES)
+2. `PSR-7c-sbom-provenance-recipe` — SBOM script + artifact layout
+3. `PSR-7d-ops-identity-design` — doc-first replacement for shared bearer
+4. Live packs (`R-BRANCH`, `R-STAGING`) only after **YES**
+
+Or interrupt for `PSR-6c6-harbor-live-evidence` if Harbor promote is higher priority.

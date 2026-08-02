@@ -1,0 +1,63 @@
+---
+id: PSR-5A-FINANCE-FACTORY-ASSERT
+title: PSR-5a — finance repository factory production storage assert
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5-data-authority-inventory.mdoc
+  - apps/api/src/workspace-finance/finance-repository.factory.ts
+  - apps/api/src/storage/production-storage-driver-assert.ts
+program_id: PSR-001
+wave: PSR-5a-finance-factory-assert
+---
+
+# PSR-5a — finance factory local production assert
+
+## Gap (from PSR-5 inventory)
+
+Nine dual-store factories call `assertProductionStorageDriver()` before choosing
+memory vs prisma. `createFinanceRepository` only called `resolveStorageDriver()`,
+relying solely on boot-time `assertProductionRuntimeIntegrity()`.
+
+That is insufficient defense-in-depth: a composition root, script, or test that
+constructs the finance singleton without full boot can still allocate
+`InMemoryFinanceRepository` under a mis-set `STORAGE_DRIVER=memory` even when
+production-grade integrity is expected later.
+
+## Change
+
+In `finance-repository.factory.ts`:
+
+1. Import `assertProductionStorageDriver` alongside `resolveStorageDriver`.
+2. Call `assertProductionStorageDriver()` at the start of
+   `createFinanceRepository` (same posture as bookings/identity/drafts).
+
+Behavior:
+
+| Profile | Effect |
+| --- | --- |
+| test / development | unchanged — memory still allowed when driver resolves to memory |
+| production / prodlike | throws `PRODUCTION_STORAGE_DRIVER_FORBIDDEN` if memory would be selected |
+
+## Non-goals
+
+- Removing the in-memory finance adapter
+- Changing Prisma finance RLS
+- Formal admin allowlist (PSR-5b)
+- Tenant registry port (PSR-5c)
+
+## Ratchet
+
+```bash
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+node scripts/ops/psr-5a-finance-factory-assert-smoke.mjs
+```
+
+After land: `dual_store_missing_assert_count: 0` and
+`finance_factory_missing_assert: false` in the PSR-5 inventory YAML.

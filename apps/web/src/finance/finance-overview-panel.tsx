@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,8 +69,13 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
   );
   const [attentionSamples, setAttentionSamples] = useState<readonly FinanceAttentionSample[]>([]);
   const [paidByTour, setPaidByTour] = useState<FinanceByTourReport["items"]>([]);
+  const skipInitialFetchRef = useRef(initialOverview !== null);
 
   useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);

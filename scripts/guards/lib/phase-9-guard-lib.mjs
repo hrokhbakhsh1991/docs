@@ -133,10 +133,20 @@ export function evaluateP9EntryLedger() {
 export function evaluateP9GateScript() {
   const pkg = JSON.parse(readUtf8("package.json"));
   const script = pkg.scripts?.["phase-9:gate"] ?? "";
-  if (!script.includes("phase-8:gate")) {
+  // Phase 2 denest: call phase-8:guard directly (not recursive phase-8:gate).
+  if (!script.includes("phase-8:guard")) {
     return {
       ok: false,
-      detail: failToken("p9_phase9_gate_script", "phase-9:gate must chain phase-8:gate"),
+      detail: failToken("p9_phase9_gate_script", "phase-9:gate must chain phase-8:guard"),
+    };
+  }
+  if (script.includes("phase-8:gate")) {
+    return {
+      ok: false,
+      detail: failToken(
+        "p9_phase9_gate_script",
+        "phase-9:gate must not nest phase-8:gate (use phase-8:guard)",
+      ),
     };
   }
   if (!script.includes("phase-9:guard")) {

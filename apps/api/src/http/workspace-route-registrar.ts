@@ -83,7 +83,7 @@ const HANDLER_DISPATCH_KIND = {
   handleGetDenaliReminderFeed: "product",
   handleGetGuestClubCatalog: "bare",
   handleGetGuestClubCatalogTour: "product-param",
-  handleGetHarborCatalog: "bare",
+  handleGetHarborCatalog: "product",
   handleGetHarborCatalogTour: "product-param",
   handleGetUrbanCatalog: "product",
   handleGetUrbanCatalogTour: "product-param",
@@ -91,7 +91,7 @@ const HANDLER_DISPATCH_KIND = {
   handlePatchUrbanSettings: "bare",
   handlePostDenaliRegistration: "product",
   handlePostGuestClubRegistration: "bare",
-  handlePostHarborRegistration: "bare",
+  handlePostHarborRegistration: "product",
   handlePostUrbanRegistration: "product",
 } as const satisfies Record<WorkspaceHttpHandlerKey, HandlerDispatchKind>;
 

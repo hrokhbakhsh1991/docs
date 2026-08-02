@@ -5,8 +5,8 @@ import { buildConnectionExposureIntentUpsert } from "./patch-connection-exposure
 import { NATIVE_EXPOSURE_INTENT_SOURCE } from "./exposure-intent";
 
 describe("patch-connection-exposure-intent", () => {
-  it("maps enabled override into native exposure intent upsert", () => {
-    const upsert = buildConnectionExposureIntentUpsert({
+  it("maps enabled override into native exposure intent upsert", async () => {
+    const upsert = await buildConnectionExposureIntentUpsert({
       tenantId: "tenant-a",
       workspaceType: "denali",
       provider: "telegram",
@@ -29,8 +29,8 @@ describe("patch-connection-exposure-intent", () => {
     assert.notEqual(upsert?.profileId, "");
   });
 
-  it("maps inherit profile when override disabled", () => {
-    const upsert = buildConnectionExposureIntentUpsert({
+  it("maps inherit profile when override disabled", async () => {
+    const upsert = await buildConnectionExposureIntentUpsert({
       tenantId: "tenant-a",
       workspaceType: "denali",
       provider: "telegram",
@@ -45,8 +45,8 @@ describe("patch-connection-exposure-intent", () => {
     assert.equal(upsert?.templateOverrideId, null);
   });
 
-  it("honors explicit surface, audience, and trigger overrides", () => {
-    const upsert = buildConnectionExposureIntentUpsert({
+  it("honors explicit surface, audience, and trigger overrides", async () => {
+    const upsert = await buildConnectionExposureIntentUpsert({
       tenantId: "tenant-a",
       workspaceType: "denali",
       provider: "telegram",
@@ -69,8 +69,8 @@ describe("patch-connection-exposure-intent", () => {
     });
   });
 
-  it("returns null upsert when workspace type is missing", () => {
-    const upsert = buildConnectionExposureIntentUpsert({
+  it("returns null upsert when workspace type is missing", async () => {
+    const upsert = await buildConnectionExposureIntentUpsert({
       tenantId: "tenant-a",
       workspaceType: null,
       provider: "telegram",

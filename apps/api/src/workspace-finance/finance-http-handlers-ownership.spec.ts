@@ -46,7 +46,7 @@ describe("finance-http-handlers-ownership.spec.ts — Phase 1.4 C2", () => {
     assert.match(loaders, /handleGetDenaliCatalog/);
   });
 
-  it("FIN-P1.4-C2-03 finance route path inventory unchanged (SoT === Denali re-export)", () => {
+  it("FIN-P1.4-C2-03 finance route path inventory matches finance-http SoT (Denali re-export)", () => {
     assert.deepEqual([...FINANCE_HTTP_ROUTE_MANIFEST], [...DENALI_FINANCE_HTTP_ROUTE_MANIFEST]);
     const paths = FINANCE_HTTP_ROUTE_MANIFEST.map((r) => `${r.method} ${r.path}`).sort();
     assert.deepEqual(paths, [
@@ -56,16 +56,19 @@ describe("finance-http-handlers-ownership.spec.ts — Phase 1.4 C2", () => {
       "GET /finance/prepayments/booking-sync-degraded",
       "GET /finance/receipts/:receiptId/url",
       "GET /finance/receipts/pending",
+      "GET /finance/reports/by-tour",
       "GET /finance/reports/ledger-events",
       "GET /finance/reports/open-payments",
       "GET /finance/reports/summary",
       "GET /finance/schedules",
       "GET /finance/schedules/:registrationId",
       "PATCH /finance/receipts/:receiptId/review",
+      "PATCH /finance/schedules/:registrationId/items/:itemId",
       "POST /finance/payments/manual",
       "POST /finance/prepayments",
       "POST /finance/prepayments/booking-sync-retry",
       "POST /finance/receipts",
+      "POST /finance/receipts/upload",
       "POST /finance/schedules/generate",
     ]);
   });

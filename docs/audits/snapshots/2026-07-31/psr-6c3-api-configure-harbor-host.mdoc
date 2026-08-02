@@ -1,0 +1,62 @@
+---
+id: PSR-6C3-API-CONFIGURE-HARBOR
+title: PSR-6c3 — API configure Harbor host + durable catalog list/detail
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-08-01
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-6c3-api-configure-harbor-host-inventory.yaml
+program_id: PSR-001
+wave: PSR-6c3-api-configure-harbor-host
+---
+
+# PSR-6c3 — API configure Harbor + durable list/detail
+
+## Intent
+
+Close the “no product host” gap from PSR-6c inventory:
+
+1. Manifest `productHttpHost` for Harbor → generated façade export.
+2. `configure-product-http-hosts.ts` binds Harbor like Denali/Urban (tour store +
+   `runWithHttpRequestContext` / JSON / errors / workspace type).
+3. Harbor HTTP: **without** `HARBOR_SMOKE_E2E_SEED`, if host configured → durable
+   **list/detail** from tour store under RLS context + `toHarborCatalogCard`.
+4. Smoke seed path unchanged (e2e).
+5. **Registration** remains seed-gated this slice (no Denali registration clone);
+   durable register → PSR-6c4.
+
+## Logic
+
+| Mode | Gate | Behavior |
+| --- | --- | --- |
+| Seed | `HARBOR_SMOKE_E2E_SEED=1` | Memory smoke factory (unchanged) |
+| Durable catalog | host configured + seed off | Auth from request → RLS context → store → published filter → Event card |
+| No host | seed off + unconfigured | 501 stub (tests without API boot) |
+| Register | seed off | Still 501 stub until 6c4 |
+
+Dispatch: `handleGetHarborCatalog` → `product` (deps.tourStore); detail stays
+`product-param`; register stays `bare`.
+
+## Forbidden
+
+- Cloning Denali/Urban `catalog.service`
+- Promoting `productionTier` / CERT rows
+- Full gates without YES
+
+## Verify
+
+```bash
+node scripts/ops/psr-6c3-api-configure-harbor-host-smoke.mjs
+pnpm run generate:workspace-registry
+pnpm --filter @app-tour/workspace-harbor run test
+```
+
+## Next
+
+`PSR-6c4-harbor-durable-registration` — idempotent public register adapter +
+seed-only fixture helper writing real store rows.

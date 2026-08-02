@@ -1,6 +1,7 @@
 /**
- * Shared guest-smoke catalog/registration HTTP handlers (DG-4.3 / DG-4.6).
+ * Shared guest-smoke catalog/registration HTTP handlers (DG-4.3 / DG-4.6 / PSR-6c1).
  * Workspaces supply seed gate + fixture card, or an optional catalog port.
+ * Durable mode (PSR-6c1) allows a non-501 path when a host later wires async I/O.
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -46,17 +47,27 @@ export type WorkspaceGuestSmokeRegistrationResult = {
   readonly status: string;
 };
 
-/** Optional replaceable catalog/registration surface (DG-4.6). */
+/** Sync or async result — durable adapters may hit Prisma under RLS. */
+export type WorkspaceGuestSmokeMaybeAsync<T> = T | Promise<T>;
+
+/** Optional replaceable catalog/registration surface (DG-4.6 + PSR-6c1 async). */
 export type WorkspaceGuestSmokeCatalogPort<TCard> = {
-  readonly listPublished: () => readonly TCard[];
-  readonly getPublished: (tourId: string) => TCard | null;
+  readonly listPublished: () => WorkspaceGuestSmokeMaybeAsync<readonly TCard[]>;
+  readonly getPublished: (
+    tourId: string,
+  ) => WorkspaceGuestSmokeMaybeAsync<TCard | null>;
   readonly createRegistration: (
     input: WorkspaceGuestSmokeRegistrationInput,
-  ) => WorkspaceGuestSmokeRegistrationResult;
+  ) => WorkspaceGuestSmokeMaybeAsync<WorkspaceGuestSmokeRegistrationResult>;
 };
 
 export type CreateWorkspaceGuestSmokeHttpHandlersOptions<TCard> = {
   readonly isSeedEnabled: () => boolean;
+  /**
+   * When true, list/detail/register are allowed without the smoke seed env.
+   * Without a `catalogPort`, durable mode returns empty / 404 (no fixture fallback).
+   */
+  readonly isDurableEnabled?: () => boolean;
   readonly publishedTourId: string;
   readonly buildCard: () => TCard;
   /** When set, list/detail/register go through the port (fixture helpers may still seed it). */
@@ -70,6 +81,12 @@ export type CreateWorkspaceGuestSmokeHttpHandlersOptions<TCard> = {
   readonly applyListLimit?: boolean;
 };
 
+function isGuestSmokeSurfaceOpen<TCard>(
+  options: CreateWorkspaceGuestSmokeHttpHandlersOptions<TCard>,
+): boolean {
+  return options.isSeedEnabled() || options.isDurableEnabled?.() === true;
+}
+
 export function createWorkspaceGuestSmokeHttpHandlers<TCard>(
   options: CreateWorkspaceGuestSmokeHttpHandlersOptions<TCard>,
 ): WorkspaceGuestSmokeHttpHandlers {
@@ -79,12 +96,19 @@ export function createWorkspaceGuestSmokeHttpHandlers<TCard>(
 
   return {
     async handleList(req, res): Promise<void> {
-      if (!options.isSeedEnabled()) {
+      if (!isGuestSmokeSurfaceOpen(options)) {
         sendWorkspaceGuestStub(res);
         return;
       }
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
-      const source = port ? port.listPublished() : [options.buildCard()];
+      let source: readonly TCard[];
+      if (port) {
+        source = await Promise.resolve(port.listPublished());
+      } else if (options.isSeedEnabled()) {
+        source = [options.buildCard()];
+      } else {
+        source = [];
+      }
       const filtered = filterListItems(source, url);
       const { limit } = applyListLimit
         ? parseWorkspaceCatalogCursorLimitQuery(url)
@@ -99,15 +123,19 @@ export function createWorkspaceGuestSmokeHttpHandlers<TCard>(
     },
 
     async handleDetail(_req, res, tourId): Promise<void> {
-      if (!options.isSeedEnabled()) {
+      if (!isGuestSmokeSurfaceOpen(options)) {
         sendWorkspaceGuestStub(res);
         return;
       }
-      const card = port
-        ? port.getPublished(tourId.trim())
-        : tourId.trim() === options.publishedTourId
-          ? options.buildCard()
-          : null;
+      let card: TCard | null;
+      if (port) {
+        card = await Promise.resolve(port.getPublished(tourId.trim()));
+      } else if (options.isSeedEnabled()) {
+        card =
+          tourId.trim() === options.publishedTourId ? options.buildCard() : null;
+      } else {
+        card = null;
+      }
       if (card === null) {
         sendWorkspaceNotFound(res);
         return;
@@ -116,7 +144,7 @@ export function createWorkspaceGuestSmokeHttpHandlers<TCard>(
     },
 
     async handleRegister(req, res): Promise<void> {
-      if (!options.isSeedEnabled()) {
+      if (!isGuestSmokeSurfaceOpen(options)) {
         sendWorkspaceGuestStub(res);
         return;
       }
@@ -139,11 +167,16 @@ export function createWorkspaceGuestSmokeHttpHandlers<TCard>(
             : Number.parseInt(String(raw.partySize ?? ""), 10);
 
         if (port) {
-          if (port.getPublished(tourId) === null) {
+          if ((await Promise.resolve(port.getPublished(tourId))) === null) {
             sendWorkspaceNotFound(res);
             return;
           }
-        } else if (tourId !== options.publishedTourId) {
+        } else if (options.isSeedEnabled()) {
+          if (tourId !== options.publishedTourId) {
+            sendWorkspaceNotFound(res);
+            return;
+          }
+        } else {
           sendWorkspaceNotFound(res);
           return;
         }
@@ -153,12 +186,14 @@ export function createWorkspaceGuestSmokeHttpHandlers<TCard>(
         }
 
         const created = port
-          ? port.createRegistration({
-              tourId,
-              fullName,
-              email,
-              partySize,
-            })
+          ? await Promise.resolve(
+              port.createRegistration({
+                tourId,
+                fullName,
+                email,
+                partySize,
+              }),
+            )
           : {
               id: `00000000-0000-4000-8000-${String(Date.now()).slice(-12)}`,
               tourId,

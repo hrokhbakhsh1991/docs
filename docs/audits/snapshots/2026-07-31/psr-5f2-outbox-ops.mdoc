@@ -1,0 +1,49 @@
+---
+id: PSR-5F2-OUTBOX-OPS
+title: PSR-5f2 — BG_OUTBOX_OPS cluster onto background-admin-client
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5f-background-admin-inventory.yaml
+  - apps/api/src/db/background-admin-client.ts
+program_id: PSR-001
+wave: PSR-5f2-outbox-ops
+---
+
+# PSR-5f2 — outbox ops cluster
+
+## Scope (exactly three files)
+
+| File | Prior direct calls | Reason |
+| --- | ---: | --- |
+| `apps/api/src/outbox/outbox-failed.ts` | 2 | `BG_OUTBOX_OPS` |
+| `apps/api/src/outbox/outbox-mark-done.ts` | 1 | `BG_OUTBOX_OPS` |
+| `apps/api/src/outbox/outbox-queue-counts.ts` | 4 | `BG_OUTBOX_OPS` |
+
+All replace `getPrismaAdmin()` with
+`getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_OPS)`.
+
+## Non-goals
+
+- No algorithm / SQL / retry-policy changes
+- No `BG_OUTBOX_RELAY` / `BG_OUTBOX_REPLAY` / finance recon in this wave
+- Client module unchanged (reason already present from f0)
+
+## Ratchet after f2
+
+- f inventory: `migrated_file_count: 6`, `remaining_direct: 14`
+- main inventory: `api_src_admin_files: 20`, `api_src_admin_calls: 65`,
+  `background_repair_direct_admin_files: 14`
+
+## Smoke
+
+```bash
+node scripts/ops/psr-5f-background-admin-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+```

@@ -10,7 +10,7 @@ import {
   WORKSPACE_THEME_CSS_VARIABLE,
   getStarterWorkspacePlugin,
   workspaceThemePresets,
-} from "@app-cloud/workspace-sdk";
+} from "@app-tour/workspace-sdk";
 
 import {
   WorkspacePluginNotFoundError,

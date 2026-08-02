@@ -40,7 +40,7 @@ failure_states:
     recovery: "fix failing outer step or p3_* check; re-run full phase-3:gate"
   - id: FF-P3-GUARD-ONLY
     trigger: "merge approved after phase-3:guard alone"
-    recovery: "run full phase-3:gate — misses build test phase-2:gate doc-gate"
+    recovery: "run full phase-3:gate — misses build/test, phase-2:guard, and phase-3:apps-cert"
   - id: FF-P3-DOC-GATE
     trigger: "3.1+ code PR without doc-gate / Markdoc update"
     recovery: "update phase-3-design-system.mdoc first; pnpm run doc-gate"

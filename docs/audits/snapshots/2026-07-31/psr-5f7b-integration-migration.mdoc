@@ -1,0 +1,33 @@
+---
+id: PSR-5F7B-INTEGRATION-MIGRATION
+title: PSR-5f7b — BG_INTEGRATION_MIGRATION (2 migration scripts)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5f-background-admin-inventory.yaml
+program_id: PSR-001
+wave: PSR-5f7b-integration-migration
+---
+
+# PSR-5f7b — integration migration scripts
+
+## Scope (exactly two files)
+
+| File | Prior calls | Reason |
+| --- | ---: | --- |
+| `integrations/migration/run-telegram-backfill.ts` | 2 | `BG_INTEGRATION_MIGRATION` |
+| `integrations/migration/run-tour-published-exposure-remap.ts` | 1 | `BG_INTEGRATION_MIGRATION` |
+
+`getPrismaAdmin()` → `getBackgroundAdminClient(BG_INTEGRATION_MIGRATION)`.
+`disconnectPrisma` stays imported from `db/prisma`.
+
+## Non-goals
+
+- No backfill/remap plan algorithm changes
+- Events guard is a separate wave (f8)

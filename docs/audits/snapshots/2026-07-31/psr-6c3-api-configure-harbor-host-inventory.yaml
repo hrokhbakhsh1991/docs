@@ -1,0 +1,25 @@
+# PSR-6c3 API configure Harbor host
+wave: PSR-6c3-api-configure-harbor-host
+program_id: PSR-001
+decision: configure_host_plus_durable_list_detail
+policy:
+  forbid_denali_catalog_clone: true
+  forbid_tier_promote_in_this_wave: true
+  forbid_full_gate_in_this_wave: true
+  durable_registration_deferred: true
+  keep_smoke_seed_path: true
+touched:
+  - packages/workspaces/harbor/workspace.manifest.json
+  - packages/workspaces/harbor/src/http/host-ports.ts
+  - packages/workspaces/harbor/src/http/harbor-catalog-http.ts
+  - packages/workspaces/harbor/test/dg4-harbor-smoke-http.spec.ts
+  - apps/api/src/http/configure-product-http-hosts.ts
+  - apps/api/src/http/workspace-route-registrar.ts
+  - apps/api/src/http/workspace-product-http-host-bindings.generated.ts
+ratchet:
+  product_http_host_manifest: true
+  api_configure_harbor: true
+  durable_list_detail: true
+  durable_registration: true
+  smoke_seed_intact: true
+  next_slice: PSR-6c5-harbor-durable-proofs-recert

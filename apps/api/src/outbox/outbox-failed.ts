@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 
-import { getPrismaAdmin } from "../db/prisma";
+import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../db/background-admin-client";
 import type { OutboxPublishErrorClass } from "./outbox-publish-error-classifier";
 
 export type OutboxLastError = {
@@ -45,7 +45,7 @@ export async function markOutboxPendingForRetry(
   error: unknown,
   attempts: number
 ): Promise<void> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_OPS);
   const lastError = serializeOutboxLastError(error, {
     attempts,
     classification: "transient",
@@ -73,7 +73,7 @@ export async function markOutboxFailed(
   error?: unknown,
   meta?: { readonly attempts?: number; readonly classification?: OutboxPublishErrorClass }
 ): Promise<void> {
-  const admin = getPrismaAdmin();
+  const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_OPS);
   const lastError = serializeOutboxLastError(error, {
     attempts: meta?.attempts,
     classification: meta?.classification ?? "poison",

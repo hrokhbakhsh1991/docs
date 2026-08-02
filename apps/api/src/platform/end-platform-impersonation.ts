@@ -1,4 +1,7 @@
-import { getPrismaAdmin } from "../db/prisma.ts";
+import {
+  PLATFORM_ADMIN_REASON,
+  getPlatformAdminClient,
+} from "./platform-admin-client.ts";
 import {
   PLATFORM_AUDIT_ACTION_IMPERSONATE_END,
   appendPlatformAuditEvent,
@@ -9,7 +12,7 @@ export async function endPlatformImpersonation(input: {
   readonly actorId: string;
   readonly reason: "manual" | "timeout" | "replaced";
 }): Promise<void> {
-  const prisma = getPrismaAdmin();
+  const prisma = getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_IMPERSONATION);
   await prisma.$transaction((tx) =>
     appendPlatformAuditEvent(tx, {
       action: PLATFORM_AUDIT_ACTION_IMPERSONATE_END,

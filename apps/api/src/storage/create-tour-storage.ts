@@ -9,6 +9,7 @@ import {
   assertProductionStorageDriver,
   resolveStorageDriver,
 } from "./production-storage-driver-assert";
+import { DUAL_STORE_ROLE_RETAINED_TEST_DEV_ADAPTER } from "./dual-store-role";
 
 export type { TourStorageDriver } from "./production-storage-driver-assert";
 export {
@@ -18,6 +19,8 @@ export {
   resolveStorageDriver,
 } from "./production-storage-driver-assert";
 
+/** PSR-5h — InMemory branch retained as explicit test|dev adapter. */
+export const DUAL_STORE_ROLE = DUAL_STORE_ROLE_RETAINED_TEST_DEV_ADAPTER;
 export type TourStorageImplementation = TourStorageRepository & {
   createTour(data: { tenantId: string; canonical: Tour["canonical"] }): Promise<Tour>;
 };

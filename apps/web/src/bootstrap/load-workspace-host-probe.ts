@@ -2,7 +2,7 @@
  * Thin Shell Phase 4s — load host-probe view model for the generic shell route.
  * Fail-closed: no product id defaults.
  */
-import { resolveHostProbeCapability } from "@app-cloud/workspace-sdk";
+import { resolveHostProbeCapability } from "@app-tour/workspace-sdk";
 
 import { loadBootstrapWorkspacePlugin } from "./resolve-bootstrap-workspace-plugin";
 import { requireWorkspacePluginId } from "./workspace-plugin-context-errors";

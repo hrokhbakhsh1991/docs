@@ -16,7 +16,7 @@ Closes findings from the Principal hostile retrospective (`PREV-AUD-001`…`016`
 | TODO-008 | Finance booking port: no `getBookingsRepository()` in finance runtime | depcruise + hygiene |
 | TODO-009 | Receipt authz HTTP + sess_ver revoke JWT E2E | JWT production suite |
 | TODO-010 | Rollback smoke hint includes dump path; `CODE_ONLY` requires `I_ACCEPT_SCHEMA_FORWARD=1` | script contract |
-| TODO-011 | `resolveWorkspaceTypeForTenant` fail-closed (no `starter` fallback) | unit |
+| TODO-011 | `resolveWorkspaceTypeForTenant` fail-closed (no `starter` fallback); HTTP maps `WORKSPACE_TYPE_UNRESOLVED` → **404**; Booking wraps as `BookingWorkspaceUnsupportedError` | unit + HTTP |
 | TODO-012 | Demote grep-as-cert; plan progress requires runtime evidence | doc + CI scripts |
 
 ## RLS policy model

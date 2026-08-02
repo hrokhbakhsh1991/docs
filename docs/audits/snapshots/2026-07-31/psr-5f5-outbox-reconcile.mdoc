@@ -1,0 +1,48 @@
+---
+id: PSR-5F5-OUTBOX-RECONCILE
+title: PSR-5f5 — BG_OUTBOX_RECONCILE (reconcile-tour-projection.ts only)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5f-background-admin-inventory.yaml
+  - apps/api/src/outbox/reconcile-tour-projection.ts
+program_id: PSR-001
+wave: PSR-5f5-outbox-reconcile
+---
+
+# PSR-5f5 — outbox tour-projection reconcile
+
+## Scope (exactly one file)
+
+| File | Prior direct calls | Reason |
+| --- | ---: | --- |
+| `apps/api/src/outbox/reconcile-tour-projection.ts` | 3 | `BG_OUTBOX_RECONCILE` |
+
+Sites: injectable default on `observeProjectionLag`, plus two local
+`getPrismaAdmin()` in scan/repair paths →
+`getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_RECONCILE)`.
+
+## Non-goals
+
+- No projection match / repair algorithm changes
+- No finance recon (separate cluster f6)
+- No integration / events
+
+## Ratchet after f5
+
+- f inventory: `migrated_file_count: 11`, `remaining_direct: 9`
+- main: `api_src_admin_files: 15`, `api_src_admin_calls: 54`,
+  `background_repair_direct_admin_files: 9`
+
+## Smoke
+
+```bash
+node scripts/ops/psr-5f-background-admin-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+```

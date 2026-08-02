@@ -1,0 +1,48 @@
+---
+id: PSR-5F3-OUTBOX-RELAY
+title: PSR-5f3 — BG_OUTBOX_RELAY (outbox-relay.ts only)
+format: markdoc
+role: audit_snapshot
+owner: platform-architecture
+status: active
+last_verified: 2026-07-31
+verified_sha: a99b0656
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/audits/snapshots/2026-07-31/psr-5f-background-admin-inventory.yaml
+  - apps/api/src/outbox/outbox-relay.ts
+program_id: PSR-001
+wave: PSR-5f3-outbox-relay
+---
+
+# PSR-5f3 — outbox relay cluster
+
+## Scope (exactly one file)
+
+| File | Prior direct calls | Reason |
+| --- | ---: | --- |
+| `apps/api/src/outbox/outbox-relay.ts` | 3 | `BG_OUTBOX_RELAY` |
+
+Call sites (claim / ordered claim / markPending): each
+`getPrismaAdmin()` →
+`getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_RELAY)`.
+
+## Non-goals
+
+- No claim SQL, batching, tenant-slot, or publish-path changes
+- No replay / reconcile / finance in this wave
+- Helpers already on `BG_OUTBOX_OPS` / reclaim stay as-is
+
+## Ratchet after f3
+
+- f inventory: `migrated_file_count: 7`, `remaining_direct: 13`
+- main: `api_src_admin_files: 19`, `api_src_admin_calls: 62`,
+  `background_repair_direct_admin_files: 13`
+
+## Smoke
+
+```bash
+node scripts/ops/psr-5f-background-admin-smoke.mjs
+node scripts/ops/psr-5-data-authority-inventory-smoke.mjs
+```

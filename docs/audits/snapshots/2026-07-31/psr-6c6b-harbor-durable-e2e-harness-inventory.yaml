@@ -1,0 +1,30 @@
+# PSR-6c6b durable Harbor E2E harness (no live Playwright)
+wave: PSR-6c6b-harbor-durable-e2e-harness
+program_id: PSR-001
+decision: harness_landed_no_live_run
+policy:
+  forbid_live_playwright_in_this_wave: true
+  forbid_tier_promote_in_this_wave: true
+  forbid_full_gate_in_this_wave: true
+  keep_seed_harness_default: true
+  live_playwright_requires_architect_yes: true
+gaps_closed:
+  - G-SEED-E2E-HARNESS
+gaps_still_open:
+  - G-LIVE-PACK
+  - G-PROMOTE
+static_assets:
+  - apps/marketing/scripts/smoke-marketing-harbor-durable-e2e-servers.mjs
+  - apps/marketing/playwright.marketing-harbor-durable.config.ts
+  - apps/marketing/scripts/smoke-marketing-harbor-e2e-servers.mjs
+  - apps/marketing/playwright.marketing-harbor.config.ts
+  - apps/marketing/package.json
+  - docs/audits/snapshots/2026-07-31/psr-6c6-harbor-live-evidence-recipe.mdoc
+ratchet:
+  durable_harness_present: true
+  seed_harness_still_forces_seed: true
+  package_script_harbor_durable: true
+  live_playwright_executed: false
+  production_tier: stub
+  next_slice: PSR-8c0-governance-templates
+  alternate_next_on_yes: PSR-6c6-harbor-live-evidence-execute

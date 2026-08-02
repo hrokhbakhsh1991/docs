@@ -28,7 +28,7 @@ import type { AppLocale } from "@/i18n/routing";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
 import { resolveWizardCatalogPrefetchProvider } from "@/wizard/wizard-host-adapter-registry";
 import { loadWizardWorkspacePlugin } from "@/wizard/resolve-wizard-workspace-plugin";
-import { ensureWizardHostReady } from "@app-cloud/workspace-sdk";
+import { ensureWizardHostReady } from "@app-tour/workspace-sdk";
 
 import { OperatorFlatEditPageClient } from "./flat-edit-page-client";
 import { TourStatusBadge } from "../../tour-status-badge";
