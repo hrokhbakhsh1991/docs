@@ -114,6 +114,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build workspace dist deps (sdk · tenant-kernel · denali · guest-surface-host)
         run: bash scripts/ci/build-api-workspace-deps.sh
+      - run: pnpm --filter @apps/api run prisma:generate
       - run: pnpm --filter @app-tour/guest-surface-host run test
       - run: pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/resolve-catalog-list-features.spec.ts test/resolve-catalog-detail-sections.spec.ts test/resolve-catalog-registration-support.spec.ts test/catalog-registration-dispatch.spec.ts test/registration-intake.contract.spec.ts test/product-neutral-core.contract.spec.ts && pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/filter-denali-catalog-list.spec.ts test/denali-catalog-transport-intake.spec.ts
       - run: pnpm --filter @apps/api exec node --import tsx --test test/denali-catalog.spec.ts

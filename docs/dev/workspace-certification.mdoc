@@ -88,6 +88,8 @@ Additive block under existing `guestConformance`:
 Schema admission (codegen, before emit):
 
 - `productionTier` ∈ `{ "stub", "certified" }`
+
+**Stub marketing / token honesty (CTL):** workspaces with `guestConformance.productionTier: "stub"` (or omitted tier — Phase H default stub) are skipped by `guard-marketing-skin-coverage` (required `data-marketing-*` hooks) and by `guard-dtcg-hex-ban` audits of that workspace `theme/tokens.css`. Scaffold skins may declare `guestThemeStylesheets.marketing` for wiring proofs without shipping certified DTCG skins. Promote to `certified` only with full hook coverage + `@generated` tokens.
 - `certified` + L-level &lt; L3 → codegen error `WORKSPACE_CERTIFICATION_L3_REQUIRED`
 - `certified` + `memberApp: true` + availability ≠ full → codegen error (reuse L4 gates)
 - `starter` + `certified` → codegen error `WORKSPACE_STARTER_NOT_CERTIFIABLE`

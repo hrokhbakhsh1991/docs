@@ -58,6 +58,12 @@ for (const id of readdirSync(WORKSPACES)) {
     continue;
   }
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  // Stub scaffolds (explicit or Phase H default omitted tier) may wire marketing
+  // CSS paths without certified data-marketing-* hook skins.
+  const productionTier = manifest.guestConformance?.productionTier ?? "stub";
+  if (productionTier !== "certified") {
+    continue;
+  }
   const marketingSkins = manifest.guestThemeStylesheets?.marketing;
   if (!Array.isArray(marketingSkins) || marketingSkins.length === 0) {
     continue;

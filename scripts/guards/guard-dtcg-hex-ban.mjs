@@ -116,8 +116,19 @@ if (!existsSync(WORKSPACES_ROOT)) {
       continue;
     }
 
+    const manifestPath = path.join(WORKSPACES_ROOT, workspaceId, "workspace.manifest.json");
+    /** Default omitted tier is stub (Phase H fail-closed); only certified must ship @generated tokens. */
+    let productionTier = "stub";
+    if (existsSync(manifestPath)) {
+      const tier = JSON.parse(readFileSync(manifestPath, "utf8")).guestConformance?.productionTier;
+      if (tier === "certified" || tier === "stub") {
+        productionTier = tier;
+      }
+    }
+
     const tokensPath = path.join(themeDir, "tokens.css");
-    if (existsSync(tokensPath)) {
+    // Stub scaffolds keep hand-authored --ws-* seeds; certified workspaces need @generated DTCG.
+    if (existsSync(tokensPath) && productionTier === "certified") {
       auditDtcgOutputCss(tokensPath, `packages/workspaces/${workspaceId}/theme/tokens.css`);
     }
 
