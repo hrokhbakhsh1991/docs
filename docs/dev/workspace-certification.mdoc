@@ -88,7 +88,6 @@ Additive block under existing `guestConformance`:
 Schema admission (codegen, before emit):
 
 - `productionTier` ∈ `{ "stub", "certified" }`
-
 - `certified` + L-level &lt; L3 → codegen error `WORKSPACE_CERTIFICATION_L3_REQUIRED`
 - `certified` + `memberApp: true` + availability ≠ full → codegen error (reuse L4 gates)
 - `starter` + `certified` → codegen error `WORKSPACE_STARTER_NOT_CERTIFIABLE`
