@@ -79,3 +79,23 @@ Quick index: [`docs/MIGRATION.md`](docs/MIGRATION.md).
 
 - WRS-001: [`docs/standards/workspace-routing-standard.mdoc`](docs/standards/workspace-routing-standard.mdoc)
 - PCMS-001: [`docs/standards/member-session-portal-authority.mdoc`](docs/standards/member-session-portal-authority.mdoc)
+
+## Cursor Cloud specific instructions
+
+Environment baseline (Node 24 via nvm, pnpm 9.12.0 via corepack, Docker, and installed deps) is baked into the VM snapshot; the startup update script only runs `pnpm install`. The notes below are the non-obvious runbook/caveats for starting services — standard commands live in the `## Commands` section, root `package.json`, and `infra/docker-compose.yml`.
+
+**Node version gotcha.** `.npmrc` sets `engine-strict=true` and the repo requires Node `>=24 <25`, but the VM also has a `/exec-daemon/node` (v22) that precedes nvm in `PATH`. A one-time line in `~/.bashrc` prepends the nvm Node 24 `bin` so interactive shells get Node 24. If a shell somehow shows Node 22 (`node -v`), run `nvm use 24` before any `pnpm` command, or `pnpm install` will fail engine-strict.
+
+**Docker (no systemd).** Infra runs in Docker but there is no systemd/service manager, so `dockerd` must be started manually each boot before `pnpm infra:up`:
+- Start once per VM: `sudo dockerd > /tmp/dockerd.log 2>&1 &` (a tmux session is convenient), then `sudo chmod 666 /var/run/docker.sock` so `docker`/`docker compose` work without sudo (the `infra:up` script calls `docker` unsudoed).
+- `pnpm infra:up` starts Postgres (host `5434`), Redis (`6379`), MinIO (`9002` API / `9001` console) and creates the `app-tour-dev` bucket. Data lives in named Docker volumes.
+
+**API env + DB.** `apps/api/.env` and `apps/api/.env.local` are committed-out (gitignored) and created during setup (persist in the snapshot). If absent: `cp apps/api/.env.example apps/api/.env`, `cp apps/api/.env.local.example apps/api/.env.local`, then `pnpm --filter @apps/api run bootstrap:dev-jwt >> apps/api/.env.local`. After infra is up run `pnpm --filter @apps/api run db:migrate:deploy` then `pnpm --filter @apps/api run db:seed` (both idempotent; `db:migrate:deploy` also runs `prisma generate`).
+
+**Build ordering gotcha (only when package sources change).** Workspace libs resolve consumers from `dist/`, so run library builds before the apps. The root `build` script's hardcoded order is incomplete for a cold build: `@app-tour/catalog-registration-auth` and `@app-tour/catalog-intake-ui` must be built before `workspace-sdk` / the workspace plugins. Prefer a topological build: `pnpm --filter "./packages/**" -r build`. Known non-blocking failure: `@app-tour/workspace-guest-club` flow-UI (`tsconfig.flow.json`) fails with `Cannot find module 'next-intl'` (undeclared dep on `main`); this does not block dev because the Next apps transpile workspace source and provide `next-intl` at the app level.
+
+**Running the apps (dev).** Run the API plus whichever frontend you need (each `pnpm --filter @apps/<name> dev`): `@apps/api` :3001, `@apps/web` (operator) :3000, `@apps/marketing` (public catalog) :3002, `@apps/portal` (guest/member) :3003. Tenancy is host-based, so use subdomain hosts (Chrome resolves `*.localhost` to loopback): operator `denali.localhost:3000`, marketing `denali.localhost:3002`, portal redirects from `denali.portal.localhost:3003` to the marketing catalog. Dev auth uses static OTP `1234`; the seeded denali operator mobile is `+15550001001`. Frontends are BFFs that proxy to the API via `TOUR_OPS_API_URL` (defaults to `http://127.0.0.1:3001`) — they return `BACKEND_UNREACHABLE` if the API is down.
+
+**Lint caveat.** `pnpm lint` currently reports one pre-existing `import/no-unresolved` error for `server-only` in `packages/workspace-sdk/src/workspace-registry/server.ts` (the package is undeclared in any `package.json` on `main`, so it is not a setup/install problem).
+
+**Verification speed.** Heavy phase/CI gates are gated behind explicit approval per `.cursorrules`; for quick checks prefer targeted package tests (e.g. `pnpm --filter @app-tour/tenant-kernel run test`) and the fast-track scripts documented above.
