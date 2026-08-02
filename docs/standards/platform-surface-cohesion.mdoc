@@ -236,9 +236,13 @@ Without auth-first, Phase 0 / Phase 1 gates fail with `TS2307: Cannot find modul
 
 **Monorepo `pnpm build` (`scripts/monorepo-build.sh`):** packages whose `exports` point at `dist/` must be built before consumers. Prefer `pnpm --dir packages/<name> run build` over bare `--filter @scope/name` (filter can no-op with exit 0). Before `@app-tour/workspace-denali`, emit at least: `booking-http-contracts`, `finance-http-contracts`, `finance-http`, `platform-core`, `draft-engine`, `wizard-navigation`, and catalog UI packages the workspace imports. Before `@app-tour/guest-workspace-runtime`, also emit `@app-tour/workspace-plugin-host` (`dist` exports `register-safe` / `registration-flow`) and `@app-tour/workspace-harbor` (host catalog-registration-flow exports). Before `@app-tour/guest-surface-host`, emit `@app-tour/tenant-kernel`.
 
-**CI product / marketing gates:** do not bare-filter-build denali or guest-surface-host alone. Use `bash scripts/ci/build-api-workspace-deps.sh` (shared dist packages + every `packages/workspaces/*/` with a `build` script + `workspace-plugin-host` + `guest-surface-host`). P6/P8 product gates that run Booking HTTP→Postgres DoD must supply `DATABASE_URL` (Postgres service + migrate deploy) — same contract as `scripts/p6-denali-product-gate.sh`.
+**CI product / marketing gates:** do not bare-filter-build denali or guest-surface-host alone. Use `bash scripts/ci/build-api-workspace-deps.sh` (shared dist packages + every `packages/workspaces/*/` with a `build` script + `workspace-plugin-host` + `session-client` + `guest-surface-host`). P6/P8 product gates that run Booking HTTP→Postgres DoD must supply `DATABASE_URL` (Postgres service + migrate deploy) — same contract as `scripts/p6-denali-product-gate.sh`.
 
 `@apps/api` `prebuild` and booking-postgres-gate use the same `scripts/ci/build-api-workspace-deps.sh` helper.
+
+
+**Stub marketing / token honesty (CTL):** workspaces with `guestConformance.productionTier: "stub"` (or omitted tier — Phase H default stub) are skipped by `guard-marketing-skin-coverage` (required `data-marketing-*` hooks) and by `guard-dtcg-hex-ban` audits of that workspace `theme/tokens.css`. Scaffold skins may declare `guestThemeStylesheets.marketing` for wiring proofs without shipping certified DTCG skins. Promote to `certified` only with full hook coverage + `@generated` tokens.
+
 
 ---
 

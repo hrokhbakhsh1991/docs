@@ -77,7 +77,7 @@ echo P6_DENALI_PRODUCT_GATE_OK
 
 **CI:** `.github/workflows/p6-denali-gate.yml` — `p6:gate` on PR (paths include M17 · guest-surface-host · workspace-sdk catalog · catalog UI docs); E2E weekly; `p6:staging-gate` via `workflow_dispatch`.
 
-**CI prep (EX-P6-05):** product / E2E / staging jobs must emit dist via `bash scripts/ci/build-api-workspace-deps.sh` (sdk · contracts · every `packages/workspaces/*/` with `build` · `workspace-plugin-host` · `guest-surface-host`) — not bare `pnpm --filter @app-tour/workspace-* run build`. Product job also provisions Postgres + `db:migrate:deploy` because `p6:gate` requires `DATABASE_URL` for Booking HTTP→Postgres DoD. Exit contract `platform-denali-first-customer-exit.spec.ts` asserts the workflow cites `build-api-workspace-deps.sh` (and still wires `p6:gate` / `p6:e2e-gate` / `p6:staging-gate`).
+**CI prep (EX-P6-05):** product / E2E / staging jobs must emit dist via `bash scripts/ci/build-api-workspace-deps.sh` (sdk · contracts · every `packages/workspaces/*/` with `build` · `workspace-plugin-host` · `guest-surface-host`) — not bare `pnpm --filter @app-tour/workspace-* run build`. Product job also provisions Postgres + `db:migrate:deploy` + empty `apps/api/.env` / `.env.local` (node `--env-file` requires the paths) because `p6:gate` requires `DATABASE_URL` for Booking HTTP→Postgres DoD. Exit contract `platform-denali-first-customer-exit.spec.ts` asserts the workflow cites `build-api-workspace-deps.sh` (and still wires `p6:gate` / `p6:e2e-gate` / `p6:staging-gate`).
 
 ---
 

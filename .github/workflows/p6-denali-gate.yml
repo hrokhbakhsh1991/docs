@@ -122,6 +122,9 @@ jobs:
 
       - run: pnpm --filter @apps/api run prisma:generate
 
+      - name: Touch optional env files for node --env-file
+        run: touch apps/api/.env apps/api/.env.local
+
       - name: p6:gate
         run: pnpm run p6:gate
 
