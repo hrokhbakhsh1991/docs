@@ -40,7 +40,7 @@ note: "R0–R3 prove_with re-run 2026-06-06; IMPLEMENTATION-TRUTH row 4.0 VERIFI
 | RF-F05 closed                                 | [x]                                         |
 | RF-SCALE-1/2/3 closed                         | [x]                                         |
 | RF-F08 closed                                 | [x]                                         |
-| `audit-red-flags-phase-3.md` P0/P1 remediated | [ ] human verify                            |
+| `docs/archive/root-forensics/audit-red-flags-phase-3.md` P0/P1 remediated | [ ] human verify                            |
 | `pnpm run phase-3:gate` green                 | [x] @ `1937f0b` — select=true checkbox=true |
 
 ## Phase 4.0 completion

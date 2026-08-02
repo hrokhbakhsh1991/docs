@@ -8,7 +8,7 @@ report_meta:
   audit_inputs:
     - docs/phase-4/QUALITY-VALIDATION.md
     - docs/phase-4/phase-4.ai-exec.index.md DOC_DRIFT DRIFT-P4-01..06
-    - docs/phase-3-readiness-report.md (Phase 4 entry risks)
+    - docs/archive/root-forensics/phase-3-readiness-report.md (Phase 4 entry risks)
     - phase-3-readiness InMemoryTourRepository / dev bearer findings
   constraints_honored:
     - project architecture unchanged

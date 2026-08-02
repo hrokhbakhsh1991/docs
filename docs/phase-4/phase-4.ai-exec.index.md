@@ -29,7 +29,7 @@ document_meta:
   execution_priority: REPO_SCRIPTS_OVER_STALE_MD_WHERE_DOC_DRIFT
   document_status_claim: "Open — execution spec; code in PRs per subphase 4.0→4.6"
   red_flag_backlog: docs/backlog/phase-3.2-red-flag-backlog.md
-  audit_red_flags: audit-red-flags-phase-3.md
+  audit_red_flags: docs/archive/root-forensics/audit-red-flags-phase-3.md
   map_refs:
     - docs/MIGRATION-MAP.md §11 (phase 4)
     - docs/MIGRATION-MAP.md §7 (tenant isolation)

@@ -66,4 +66,4 @@ pnpm run phase-3:gate
 pnpm run ci:integrity   # full 0→3 (pre-commit)
 ```
 
-**Readiness source:** [`phase-3-readiness-report.md`](../phase-3-readiness-report.md)
+**Readiness source:** [`phase-3-readiness-report.md`](../docs/archive/root-forensics/phase-3-readiness-report.md)

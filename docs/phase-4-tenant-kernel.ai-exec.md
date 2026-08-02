@@ -66,7 +66,7 @@ document_meta:
 | Item | File |
 |------|------|
 | R0–R3 red flags | [`backlog/phase-3.2-red-flag-backlog.md`](backlog/phase-3.2-red-flag-backlog.md) |
-| Audit red flags | [`audit-red-flags-phase-3.md`](audit-red-flags-phase-3.md) |
+| Audit red flags | [`audit-red-flags-phase-3.md`](archive/root-forensics/audit-red-flags-phase-3.md) |
 | Status report (guard) | reports/phase-3.2-red-flag-status-*.md |
 
 ## Agent boot (deterministic)

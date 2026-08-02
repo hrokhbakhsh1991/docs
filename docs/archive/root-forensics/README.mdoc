@@ -1,0 +1,33 @@
+---
+id: ARCHIVE-ROOT-FORENSICS-001
+title: Root forensics archive
+format: markdoc
+role: evidence
+owner: platform-architecture
+status: archived
+last_verified: 2026-08-02
+verified_sha: null
+supersedes: []
+superseded_by: null
+evidence:
+  - docs/archive/README.mdoc
+program_id: null
+wave: root-hygiene-wave1
+---
+
+# Root forensics archive
+
+Historical audit / health / readiness reports moved off the monorepo root so
+the root stays limited to product entrypoints (`README.md`, `AGENTS.md`,
+tooling configs).
+
+## Rules
+
+1. **Immutable.** Edit only to repair links after further archive moves.
+2. **Not live SoT.** Open work belongs in phase docs, MAP, or `docs/audits/`.
+3. **Inbound links** from active docs may point here for history.
+
+## Inventory
+
+See filenames in this directory (enterprise audit, system health, phase-0/3 red
+flags, phase-3 readiness/final reports, token drift, architecture reviews).

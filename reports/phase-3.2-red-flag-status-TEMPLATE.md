@@ -36,7 +36,7 @@ metadata:
 
 ## Backlog cross-check
 
-- [ ] Rows in [`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md) P0/P1 updated
+- [ ] Rows in [`audit-red-flags-phase-3.md`](../docs/archive/root-forensics/audit-red-flags-phase-3.md) P0/P1 updated
 - [ ] [`phase-3.2-red-flag-backlog.md`](../docs/backlog/phase-3.2-red-flag-backlog.md) exit § updated
 
 **Do not merge 4.1+ while any track is FAIL without Architect waiver.**

@@ -685,8 +685,8 @@ Barrel `@app-tour/ui-primitives` is **deprecated** (not in `exports`). Apps must
 ### فاز ۳ — Starter workspace + apps minimal — **Gate-passed (integration complete)**
 
 > **Status:** **`pnpm run phase-3:gate` PASS** — subphases 3.0–3.5 + P0 remediation (storage, auth, wizard binding, 3.3.x primitives).  
-> **Locked label:** Use **Gate-passed** until fresh gate SHA after gap-closure commit; full MAP **“Zero-Debt Verified”** still requires signed waiver for soft items (Playwright EC-33-3/4) and Phase 4 tenant/RLS items — see [`final-phase-3-audit-report.md`](../final-phase-3-audit-report.md).  
-> **Red-flag backlog:** P0/P1 tracks R0–R3 marked closed in [`backlog/phase-3.2-red-flag-backlog.md`](backlog/phase-3.2-red-flag-backlog.md); forensic: [`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md).  
+> **Locked label:** Use **Gate-passed** until fresh gate SHA after gap-closure commit; full MAP **“Zero-Debt Verified”** still requires signed waiver for soft items (Playwright EC-33-3/4) and Phase 4 tenant/RLS items — see [`final-phase-3-audit-report.md`](archive/root-forensics/final-phase-3-audit-report.md).  
+> **Red-flag backlog:** P0/P1 tracks R0–R3 marked closed in [`backlog/phase-3.2-red-flag-backlog.md`](backlog/phase-3.2-red-flag-backlog.md); forensic: [`audit-red-flags-phase-3.md`](archive/root-forensics/audit-red-flags-phase-3.md).  
 > **راهنمای اجرایی:** [`phase-3-design-system.md`](phase-3-design-system.md) — DAG 3.0–3.5، **PHASE 3 ENFORCEMENT**
 
 **هدف:** اثبات end-to-end plugin (قبل از Denali) با **access control و DB guardrails** قبل از هر مسیر production.
@@ -822,7 +822,7 @@ Ingress بدون CASL = **نقض معماری فاز ۳** (همانند فراخ
 **Gate Compliance Checklist (§12 — mandatory before Phase 4 closure):**
 
 - [ ] **Contractual Gate:** No grep/regex **required** check for Phase 4; must implement `phase-4.contract.spec.ts` (or `packages/tenant-kernel/test/*.contract.spec.ts`) paired with depcruise/HTTP proofs.
-- [ ] **Data Integrity:** Adversarial test flow for **P0/P1** breaches in [`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md) (dev bearer, in-memory SoT, cross-tenant) and [§13](#۱۳-architecture-breaking-points).
+- [ ] **Data Integrity:** Adversarial test flow for **P0/P1** breaches in [`audit-red-flags-phase-3.md`](archive/root-forensics/audit-red-flags-phase-3.md) (dev bearer, in-memory SoT, cross-tenant) and [§13](#۱۳-architecture-breaking-points).
 - [ ] **Complexity Bound:** Big-O bounds documented for every new service/repository **before** merge; gate fails on **O(N)** hot paths ([§12.3](#۱۲۳-scale-invariant-guard)).
 
 **Forensic Audit checkpoint (mandatory — [§16](#۱۶-forensic-drift-enforcement)):**
@@ -1043,7 +1043,7 @@ Each phase row in [§11](#۱۱-فازبندی-migration) includes an **Enforceme
 | **O(1)** or **O(log N)** per request | Indexed by `id` and/or `tenantId`; no full-table scan on write path | **Required** for Phase 4+ closure     |
 | **O(global N)**                      | e.g. post-write `findMany` over all rows                            | **Broken/Draft** — gate **must fail** |
 
-**Regression:** `writeTour-no-full-scan` or equivalent HTTP proof ([`audit-red-flags-phase-3.md` §4](../audit-red-flags-phase-3.md)).
+**Regression:** `writeTour-no-full-scan` or equivalent HTTP proof ([`docs/archive/root-forensics/audit-red-flags-phase-3.md` §4](archive/root-forensics/audit-red-flags-phase-3.md)).
 
 ---
 
@@ -1066,7 +1066,7 @@ Each phase row in [§11](#۱۱-فازبندی-migration) includes an **Enforceme
 - **[!] Isolation Leak** — Packages importing `react` or Nest must be **Feature-Layer** and **fail** `phase-0:foundation-gate` (RF-P0-ABS-04/05).
 - **[!] Synthetic Integrity** — Tautology unit tests forbidden; runtime integration required.
 
-**Forensic baselines:** [`audits/phase-0-forensic-audit.md`](../audits/phase-0-forensic-audit.md) · [`audit-red-flags-phase-0.md`](../audit-red-flags-phase-0.md) · [`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md) · [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.md`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md).
+**Forensic baselines:** [`audits/phase-0-forensic-audit.md`](../audits/phase-0-forensic-audit.md) · [`audit-red-flags-phase-0.md`](archive/root-forensics/audit-red-flags-phase-0.md) · [`audit-red-flags-phase-3.md`](archive/root-forensics/audit-red-flags-phase-3.md) · [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.md`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md).
 
 #### Gate theater — demote or pair (Phase 4+)
 
@@ -1094,7 +1094,7 @@ Each phase row in [§11](#۱۱-فازبندی-migration) includes an **Enforceme
 - dependency-cruiser alone,
 - `rg -i denali` / legacy substring guards alone,
 - dist/file-count guards without consumer contract tests,
-- test **count floors** without behavioral coverage review ([`audit-red-flags-phase-3.md` RF-G09](../audit-red-flags-phase-3.md)).
+- test **count floors** without behavioral coverage review ([`docs/archive/root-forensics/audit-red-flags-phase-3.md` RF-G09](archive/root-forensics/audit-red-flags-phase-3.md)).
 
 **Phase 4+ gate script rule:** New checks in `phase-N-guard.mjs` must invoke **test runners** or **HTTP listeners** (`createRequestListener`, Playwright, Testcontainers) — not add new grep-only required checks.
 
@@ -1110,7 +1110,7 @@ Each phase row in [§11](#۱۱-فازبندی-migration) includes an **Enforceme
 | **1** — Platform core    | Closed (baseline)                      | `platform-wizard.engine` specs + adversarial validation                                                                                                                                                                                                              | 0                            | N/A              | 0                 |
 | **2** — Design system    | **Verified Remediated**                | `theme-react` ingress specs + `guard:artifact-surface` + [forensic 2026-06-02](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md)                                                                                                                                | 0                            | 0                | 0                 |
 | **2.5** — Gate           | `phase-2:gate`                         | Same as Phase 2                                                                                                                                                                                                                                                      | 0                            | 0                | 0                 |
-| **3** — Starter + apps   | **Scaffold — red-flag backlog active** | **Not closed** until: dev bearer gated, per-request web session, indexed store, web `POST /tours` integration — see [`backlog/phase-3.2-red-flag-backlog.md`](backlog/phase-3.2-red-flag-backlog.md) · [`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md) | per Phase 2 for publish pkgs | 0 in primitives  | 0                 |
+| **3** — Starter + apps   | **Scaffold — red-flag backlog active** | **Not closed** until: dev bearer gated, per-request web session, indexed store, web `POST /tours` integration — see [`backlog/phase-3.2-red-flag-backlog.md`](backlog/phase-3.2-red-flag-backlog.md) · [`audit-red-flags-phase-3.md`](archive/root-forensics/audit-red-flags-phase-3.md) | per Phase 2 for publish pkgs | 0 in primitives  | 0                 |
 | **4** — Tenant / RLS     | ⏸ Not started                          | **Required:** JWT/host session contract tests; no dev bearer in prod; Postgres + RLS integration                                                                                                                                                                     | —                            | —                | —                 |
 | **5** — Events / outbox  | ⏸ Not started                          | **Required:** outbox idempotency integration test (real DB)                                                                                                                                                                                                          | —                            | —                | —                 |
 | **6** — Denali workspace | ⏸ Not started                          | **Required:** plugin registry HTTP + canonical persist e2e                                                                                                                                                                                                           | —                            | —                | —                 |
@@ -1149,7 +1149,7 @@ pnpm --filter @apps/web test          # must include fetch-tour-client / server-
 
 ### ۱۲.۸ Lessons Learned appendix — Phase 3 forensic (detail)
 
-**Source:** [`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md) (2026-06-03). **Never repeat** without Runtime Proof in Phase 4+.
+**Source:** [`audit-red-flags-phase-3.md`](archive/root-forensics/audit-red-flags-phase-3.md) (2026-06-03). **Never repeat** without Runtime Proof in Phase 4+.
 
 #### Auth & identity (P0)
 
@@ -1203,7 +1203,7 @@ pnpm --filter @apps/web test          # must include fetch-tour-client / server-
 3. **Update** the Phase Gate Audit Table in the **same PR** as the fix.
 4. **Halt** when a request conflicts with §12 — do not silently compromise.
 
-**Forensic baselines:** Phase 2 — [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.md`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md) · Phase 3 — [`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md) · Phase 0 — [`audit-red-flags-phase-0.md`](../audit-red-flags-phase-0.md) · [`audits/phase-0-forensic-audit.md`](../audits/phase-0-forensic-audit.md).
+**Forensic baselines:** Phase 2 — [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.md`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md) · Phase 3 — [`audit-red-flags-phase-3.md`](archive/root-forensics/audit-red-flags-phase-3.md) · Phase 0 — [`audit-red-flags-phase-0.md`](archive/root-forensics/audit-red-flags-phase-0.md) · [`audits/phase-0-forensic-audit.md`](../audits/phase-0-forensic-audit.md).
 
 ---
 
@@ -1220,7 +1220,7 @@ pnpm --filter @apps/web test          # must include fetch-tour-client / server-
 
 **Approval evidence (PR must include):**
 
-1. Link to relevant forensic audit ([`audits/phase-0-forensic-audit.md`](../audits/phase-0-forensic-audit.md) · `audit-red-flags-phase-N.md` · or new file under [`docs/audits/`](audits/README.md))
+1. Link to relevant forensic audit ([`audits/phase-0-forensic-audit.md`](../audits/phase-0-forensic-audit.md) · `docs/archive/root-forensics/audit-red-flags-phase-N.md` · or new file under [`docs/audits/`](audits/README.md))
 2. Updated **Verification** table in the phase doc ([§12.2](#۱۲۲-verification-as-code))
 3. Updated row in [Phase Gate Audit Table](#phase-gate-audit-table--runtime-proof-required)
 4. Human reviewer sign-off in PR description: `Forensic Audit: approved for gate change`
@@ -1243,7 +1243,7 @@ pnpm --filter @apps/web test          # must include fetch-tour-client / server-
 | **BP-05** | **[!] Env-Leaking guards**       | Guard subprocesses must not inherit full `process.env` (CI secrets → tests).                                                                                                                                                                 | [Verifies: `scripts/guards/lib/guard-subprocess-env.mjs`](../scripts/guards/lib/guard-subprocess-env.mjs) (P0-ISO-03)                                                                                      |
 | **BP-06** | **[!] Import-time global state** | Foundation packages must not freeze singletons on `import` (theme presets, reference plugin).                                                                                                                                                | [Verifies: `packages/workspace-sdk/test/import-purity.spec.ts`](../packages/workspace-sdk/test/import-purity.spec.ts) (KS-13)                                                                              |
 
-**Sources:** [`audits/phase-0-forensic-audit.md`](../audits/phase-0-forensic-audit.md) · [`audit-red-flags-phase-0.md`](../audit-red-flags-phase-0.md) · [`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md).
+**Sources:** [`audits/phase-0-forensic-audit.md`](../audits/phase-0-forensic-audit.md) · [`audit-red-flags-phase-0.md`](archive/root-forensics/audit-red-flags-phase-0.md) · [`audit-red-flags-phase-3.md`](archive/root-forensics/audit-red-flags-phase-3.md).
 
 **Phase 4+ obligation:** New breaking points discovered in audit must be appended to this table in the **same PR** as the fix.
 
@@ -1257,7 +1257,7 @@ The **Paranoid Audit** is the mandatory forensic protocol referenced by [§14](#
 | **2. Scaffold Theater scan** | Confirm the phase gate builds/tests **only** its declared package targets (foundation vs integration jobs — **BP-01** · **BP-02** in table above).                                                    |
 | **3. Gate Drift scan**       | Confirm `phase-N:foundation-gate` (if any) does **not** pull in `apps/*`, design-system packages, or full `pnpm build` unless explicitly integration-gate.                                            |
 | **4. Contract suite**        | `packages/<phase-primary>/test/phase-N.contract.spec.ts` (or `packages/workspace-sdk/test/*-coupling.contract.spec.ts` for Phase 0) is **required** and green in CI.                                  |
-| **5. Hard-fix backlog**      | Open items from the phase paranoid report (e.g. [`audit-red-flags-phase-0.md`](../audit-red-flags-phase-0.md)) must be **closed or explicitly deferred** with Architect sign-off.                     |
+| **5. Hard-fix backlog**      | Open items from the phase paranoid report (e.g. [`audit-red-flags-phase-0.md`](archive/root-forensics/audit-red-flags-phase-0.md)) must be **closed or explicitly deferred** with Architect sign-off.                     |
 | **6. Purity Score**          | Report **Purity Score (0–10)** for the phase integration path ([§16](#۱۶-forensic-drift-enforcement)). **&lt; 8 blocks closure** unless Architect waiver in the audit artifact.                       |
 
 **Phase 0 reference implementation:** [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) (aggregator) · `denali-coupling.contract.spec.ts` · `legacy-import.contract.spec.ts` · `contract.spec.ts` · `invariant-manifest.contract.spec.ts` · `foundation-scope-assert.mjs` · KS-01 workflow split.
@@ -1455,7 +1455,7 @@ pnpm build && pnpm test && pnpm run guard:architecture
 
 ## Security & Compliance
 
-> **مرجع ممیزی:** [`audit-red-flags-phase-0.md`](../audit-red-flags-phase-0.md) · [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.md`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md) — structural / theme security (malicious tenant admin threat model, exploit vectors, remediation log).  
+> **مرجع ممیزی:** [`audit-red-flags-phase-0.md`](archive/root-forensics/audit-red-flags-phase-0.md) · [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.md`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md) — structural / theme security (malicious tenant admin threat model, exploit vectors, remediation log).  
 > **مرجع hygiene (non-blocking backlog):** [`audits/zero-debt-remediation-audit.md`](audits/zero-debt-remediation-audit.md).  
 > **تاریخچهٔ شکست و اصلاح:** [Audit & Remediation History](#audit--remediation-history) — SB-01 و «Fully satisfied» بایگانی شده‌اند؛ Phase 3 نباید بدون خواندن آن‌ها seal بزند.
 
@@ -1544,7 +1544,7 @@ Remediation applied **after** the false “Fully satisfied” gate and forensic 
 | **SB-02** | **HIGH**     | Full `dist/**` on disk; “private” meant “not on index” only.                                                         | L-01 + `guard:artifact-surface`; ui-primitives `files` whitelist + `prune-dist`; no `dist/tokens` leakage. | **Verified Remediated** |
 | **SB-03** | **HIGH**     | Harness on production `.` export.                                                                                    | Stripped from public index; harness dev-only, excluded from production build.                              | **Remediated**          |
 
-> **Forensic references:** [`audits/zero-debt-remediation-audit.md`](audits/zero-debt-remediation-audit.md) · [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.md`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md) · [`audit-red-flags-phase-0.md`](../audit-red-flags-phase-0.md).
+> **Forensic references:** [`audits/zero-debt-remediation-audit.md`](audits/zero-debt-remediation-audit.md) · [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.md`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md) · [`audit-red-flags-phase-0.md`](archive/root-forensics/audit-red-flags-phase-0.md).
 
 ### Phase 3 — do not repeat
 

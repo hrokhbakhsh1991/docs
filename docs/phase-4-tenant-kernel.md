@@ -76,7 +76,7 @@ fail_if: "Agent implements Phase 4 from this monolith body instead of phase-4-ai
 | تناقض | توضیح هماهنگ | مرجع |
 |--------|--------------|------|
 | فاز ۳ «Postgres» vs RLS فاز ۴ | فاز ۳: Docker + dev · **SoT تور = in-memory** · CASL در app | [`phase-0-foundation.md` §9](phase-0-foundation.md) · [`phase-3-design-system.md` §17](phase-3-design-system.md) |
-| فاز ۳ «Closed» vs red flags | **Gate فاز ۳** = scaffold بصری/اپ · **۴.0** = بستن RF P0/P1 tenant ([`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md)) | [`backlog/phase-3.2-red-flag-backlog.md`](backlog/phase-3.2-red-flag-backlog.md) |
+| فاز ۳ «Closed» vs red flags | **Gate فاز ۳** = scaffold بصری/اپ · **۴.0** = بستن RF P0/P1 tenant ([`audit-red-flags-phase-3.md`](archive/root-forensics/audit-red-flags-phase-3.md)) | [`backlog/phase-3.2-red-flag-backlog.md`](backlog/phase-3.2-red-flag-backlog.md) |
 | `TenantTheme` فاز ۲ stub vs فاز ۴ | Types در [`workspace-sdk` `TenantThemeConfig`](packages/workspace-sdk/src/theme/tenant-theme.contract.ts) فاز ۲ · **Provider + DB** فاز ۴ | [`phase-2-design-system.md` §8.3](phase-2-design-system.md#83-تفکیک-از-tenant-فاز-۴) |
 | سه اپ MAP §3.5 vs یک `apps/web` | **فاز ۳–۴:** یک shell (`apps/web`) · contract bootstrap مشترک · **deploy جدا** Marketing/Portal/Admin بعداً | [`MIGRATION-MAP.md` §3.5](MIGRATION-MAP.md#۳۵-application-structure) |
 | Legacy `app.tenant_id` vs MAP | پورت از legacy: نام session را **`app.current_tenant_id`** نگه دار ([MAP §7.1](MIGRATION-MAP.md#۷۱-مدل-پیش‌فرض-فاز-۴۵)) | [`legacy/.../rls-tenant-session.ts`](../legacy/apps/api/src/database/rls-tenant-session.ts) |
@@ -141,7 +141,7 @@ Phase 5  canonical JSONB schema + transactional outbox
 Phase 6  Denali workspace plugin
 ```
 
-**قانون:** Denali = اولین **workspace محصول**، نه اولین **مرز امنیتی tenant**. بدون فاز ۴، «multi-tenant» در marketing و «dev-tenant-local» در runtime یکی نیستند ([`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md)).
+**قانون:** Denali = اولین **workspace محصول**، نه اولین **مرز امنیتی tenant**. بدون فاز ۴، «multi-tenant» در marketing و «dev-tenant-local» در runtime یکی نیستند ([`audit-red-flags-phase-3.md`](archive/root-forensics/audit-red-flags-phase-3.md)).
 
 ### 1.2 شکست‌هایی که فاز ۴ باید ببندد
 
@@ -228,7 +228,7 @@ Phase 6  Denali workspace plugin
 4. هر چیز دیگر → 401/403 — بدون اجرای business logic
 ```
 
-**ممنوع (۲۳٪ incident class — misconfiguration):** `tenantId` از query string، body مهمان، یا `dev.<base64>` بدون gate در production ([`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md) RF-F09).
+**ممنوع (۲۳٪ incident class — misconfiguration):** `tenantId` از query string، body مهمان، یا `dev.<base64>` بدون gate در production ([`audit-red-flags-phase-3.md`](archive/root-forensics/audit-red-flags-phase-3.md) RF-F09).
 
 ### 2.3 Row-Level Security (PostgreSQL) — الگوی canonical ۲۰۲۶
 
@@ -601,7 +601,7 @@ In-memory می‌ماند برای unit tests بدون Docker — **نه** defau
 
 - Seed: `tenant-a`, `tenant-b` · `workspace_type: starter` (هم‌نام [`starterWorkspacePlugin`](../packages/workspaces/starter))
 - Dev route (gated): `POST /internal/tenants/provision` — `NODE_ENV=development` only
-- **بعد از 4.3 (اختیاری):** resolve `pluginId` از header/registry در validation — تکمیل RF-F03 ([`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md))؛ فاز ۳ هنوز `starter` hard-coded در [`canonical-validation.ts`](../apps/api/src/tours/canonical-validation.ts)
+- **بعد از 4.3 (اختیاری):** resolve `pluginId` از header/registry در validation — تکمیل RF-F03 ([`audit-red-flags-phase-3.md`](archive/root-forensics/audit-red-flags-phase-3.md))؛ فاز ۳ هنوز `starter` hard-coded در [`canonical-validation.ts`](../apps/api/src/tours/canonical-validation.ts)
 
 ### 10.2 E2E proof
 
