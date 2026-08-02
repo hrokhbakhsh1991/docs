@@ -71,7 +71,19 @@ Without these grants, Prisma surfaces a truncated `Invalid tx.tenantRoute.findUn
 
 `apps/api/test/bookings-http-postgres.spec.ts` — only `createRequestListener` + header auth; asserts `PrismaBookingsRepository`.
 
-See also: [`BOOKING_CAPACITY_CONCURRENCY_CERT.md`](./BOOKING_CAPACITY_CONCURRENCY_CERT.md), [`BOOKING_HTTP_ERROR_MATRIX.md`](./BOOKING_HTTP_ERROR_MATRIX.md).
+### TODO-001 — production JWT path (`test:booking-http-postgres-jwt-production`)
+
+Honest production create under `NODE_ENV=production` + JWT (no `x-*` header auth, no harness). Capacity resolution is **fail-closed on tour SoT**:
+
+```text
+BookingsService.resolveEffectiveTourCapacityMax
+  → HostBookingTourCapacityAdapter.resolveTourCapacityMax
+  → tour.canonical.data.capacityMax
+```
+
+When `productionGradeIntegrity` is on (production / prodlike), a missing tour `capacityMax` rejects with `BOOKING_CAPACITY_REJECTED: tourCapacityMax required` even if the client sends `registrationIntake.tourCapacityMax`. The JWT cert therefore **seeds a `tours` row** with `canonical.data.capacityMax` before `POST /bookings` — client intake alone is not a valid production ceiling.
+
+See also: [`BOOKING_CAPACITY_CONCURRENCY_CERT.md`](./BOOKING_CAPACITY_CONCURRENCY_CERT.md), [`BOOKING_HTTP_ERROR_MATRIX.md`](./BOOKING_HTTP_ERROR_MATRIX.md), [`BOOKING_REMEDIATION_TODO_001_HARNESS.md`](./BOOKING_REMEDIATION_TODO_001_HARNESS.md).
 
 ## Active submitter uniqueness (MR-P0-011 / hostile audit)
 

@@ -41,6 +41,18 @@ Four-layer enforcement for guest and admin surfaces. **Marketing shell is the re
 
 Existing `data-*` hooks are never removed — `data-slot` is additive only.
 
+## Page-level `data-slot` landmarks (marketing MKT-20)
+
+Page roots inside `shell-main` expose a single **`<main>`** landmark with page slot + product hook:
+
+| Slot | Marketing hook | Source |
+| ---- | -------------- | ------ |
+| `page-home` | `data-marketing-home` | `apps/marketing/src/home/guest-home-full.tsx` |
+| `page-catalog` | `data-marketing-catalog` | `apps/marketing/app/tours/page.tsx` |
+| `page-catalog-detail` | `data-marketing-catalog-detail-page` | `apps/marketing/app/tours/[tourId]/page.tsx` |
+
+Contract proof: `apps/marketing/test/marketing-page-landmarks.spec.ts` (`MKT-20-01` / `MKT-20-02`) — asserts `<main … data-slot="page-*">` (not a wrapping `<div>`). Workspace skins should prefer attribute selectors (`[data-slot="page-home"]` / `[data-marketing-home]`) so element tag changes do not break appearance.
+
 ## Shell forbidden in TSX
 
 - Appearance Tailwind: `bg-*`, `text-*`, `border-*`, `shadow-*`, `backdrop-*`, `rounded-*` (visual)

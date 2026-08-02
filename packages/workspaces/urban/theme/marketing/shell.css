@@ -124,7 +124,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="urban"]
   border-color: var(--primary);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="urban"] div[data-marketing-catalog],
+body[data-app-surface="marketing"][data-workspace-plugin="urban"] [data-marketing-catalog],
 body[data-app-surface="marketing"][data-workspace-plugin="urban"] [data-slot="page-catalog"] {
   box-sizing: border-box;
   width: 100%;

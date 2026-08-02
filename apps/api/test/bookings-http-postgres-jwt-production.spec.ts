@@ -190,6 +190,25 @@ describe(
         })
       );
 
+      // Production integrity fail-closes on tour SoT capacityMax — client intake alone is rejected.
+      await admin.tour.create({
+        data: {
+          id: tourId,
+          tenantId,
+          title: "JWT Prod Cert Tour",
+          publishStatus: "active",
+          canonical: {
+            schemaVersion: 1,
+            roots: ["basics"],
+            data: {
+              title: "JWT Prod Cert Tour",
+              publishStatus: "active",
+              capacityMax: 20,
+            },
+          },
+        },
+      });
+
       const repo = getBookingsRepository();
       assert.ok(repo instanceof PrismaBookingsRepository);
       listener = createRequestListener();
@@ -199,6 +218,7 @@ describe(
       try {
         await admin.outboxEvent.deleteMany({ where: { tenantId } });
         await admin.operatorRegistration.deleteMany({ where: { tenantId } });
+        await admin.tour.deleteMany({ where: { id: tourId } });
         await admin.userTenant.deleteMany({ where: { tenantId } });
         await admin.user.deleteMany({ where: { id: userId } });
         await admin.tenant.deleteMany({ where: { id: tenantId } });
