@@ -202,6 +202,12 @@ jobs:
       - name: Build workspace dist (sdk · core · urban plugins)
         run: bash scripts/ci/build-api-workspace-deps.sh
 
+      - name: Touch API env files for node --env-file
+        run: touch apps/api/.env apps/api/.env.local
+
+      - name: Prisma generate (API webServer imports @prisma/client)
+        run: pnpm --filter @apps/api run prisma:generate
+
       - name: Install Playwright Chromium
         run: pnpm --filter @apps/web exec playwright install --with-deps chromium
 
