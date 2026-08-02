@@ -217,7 +217,9 @@ jobs:
 
       - name: Urban E2E integrity (SMK-P8-01..04)
         # Charter gate is SMK-P8 only — urban-wizard-create (SMK-P15-W-D2) is Phase 15.
-        run: pnpm --filter @apps/web run test:e2e:urban -- --grep SMK-P8
+        # Use dedicated script: `pnpm run … -- --grep` forwards a literal `--` that Playwright
+        # treats as a test-file filter → "No tests found".
+        run: pnpm --filter @apps/web run test:e2e:urban:smk-p8
 
   ci-integrity:
     name: Phase 8 ci:integrity (cross-phase 0→3)

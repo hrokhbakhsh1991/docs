@@ -1,7 +1,7 @@
 # Phase 8 — Guards reference
 
 ```yaml
-guard_version: "2026-08-02-v3"
+guard_version: "2026-08-02-v4"
 authority: MAP §12 R2 · phase-8-agent-router.md · phase-8-charter.md
 fail_token: FAIL
 charter_gates: 25
@@ -149,7 +149,7 @@ Workflow: [`.github/workflows/phase-8-gate.yml`](../../.github/workflows/phase-8
 | --- | ------- | ------- |
 | `guard` | PR + `phase-8/**` push (path filter) | `phase-8:guard` · `guard:p8-boundary-diff` · `guard:import-boundary` |
 | `urban-regression` | After guard | Contract + 8.1–8.4 proof bundle (memory) — full `pnpm run build` for dist |
-| `urban-e2e` | After guard | Playwright **`--grep SMK-P8`** (01..04 only; not SMK-P15 wizard) — **must** run `bash scripts/ci/build-api-workspace-deps.sh`, `touch apps/api/.env{,.local}` (node `--env-file` exit 9), and `pnpm --filter @apps/api run prisma:generate` before webServer |
+| `urban-e2e` | After guard | Playwright via `pnpm --filter @apps/web run test:e2e:urban:smk-p8` (hardcoded `--grep SMK-P8` → 01..04 only; not SMK-P15 wizard). **Do not** use `pnpm run test:e2e:urban -- --grep SMK-P8` — pnpm forwards a literal `--` and Playwright treats it as a test-file filter (`Error: No tests found`). Prep: `bash scripts/ci/build-api-workspace-deps.sh`, `touch apps/api/.env{,.local}` (node `--env-file` exit 9), and `pnpm --filter @apps/api run prisma:generate` before webServer |
 | `ci-integrity` | `main` push or manual | Cross-phase 0→3 integrity |
 | `phase-8-gate-full` | `main` push or manual `run_full_phase_8_gate` | Full `pnpm run phase-8:gate` with Postgres + Redis |
 
