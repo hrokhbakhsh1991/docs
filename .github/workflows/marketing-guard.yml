@@ -121,7 +121,11 @@ jobs:
       - run: pnpm --filter @apps/portal exec node --import tsx --test test/portal-catalog-registrations-dispatch.spec.ts test/portal-catalog-registrations-bff.spec.ts test/catalog-registration-intake-form-contract.spec.ts test/public-catalog-registration-flow-contract.spec.ts test/resolve-intake-defaults.spec.ts test/portal-member-profile-bff.spec.ts
       - run: pnpm run guard:portal-member-profile-boundary
       - run: pnpm run guard:architecture-truth
-      - run: pnpm --filter @apps/api exec node --import tsx --test test/denali-registration.spec.ts test/identity-me.spec.ts
+      - name: API Denali registration + identity-me (memory)
+        env:
+          STORAGE_DRIVER: memory
+          NODE_ENV: test
+        run: pnpm --filter @apps/api exec node --import tsx --test test/denali-registration.spec.ts test/identity-me.spec.ts
       - run: pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/resolve-denali-registration-transport.spec.ts test/denali-registration-validation.spec.ts
       - run: pnpm --filter @apps/api exec node --import tsx --test test/platform-club-product-exit.spec.ts
       - run: pnpm --filter @apps/marketing run lint

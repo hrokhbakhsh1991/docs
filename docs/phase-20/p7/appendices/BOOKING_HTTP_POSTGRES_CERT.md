@@ -53,6 +53,20 @@ HTTP
 | T1 | tenant isolation | foreign tenant approve | **404** `BOOKING_NOT_FOUND` | no cross-tenant write |
 | T2 | RLS enforcement | app role + wrong tenant session | empty read | cannot see foreign row |
 
+
+## App-role table privileges (CI migrate order)
+
+CI runs `docs/phase-4/dev/init/01-app-role.sql` **before** `prisma migrate deploy`. That script revokes default privileges for future postgres-owned tables, then grants only tables that already exist. Migrations that create tables later must include explicit `GRANT … TO app_tour` (RLS policies alone are not enough — Postgres still requires table privilege).
+
+Booking HTTP Postgres cert requires at least:
+
+| Table | Grant | Why |
+| ----- | ----- | --- |
+| `tenant_routes` | `SELECT` | `lookupTenantRouteRow` / `bind-request-context` on every authenticated request |
+| `tours` | `SELECT, INSERT, UPDATE, DELETE` | Booking create/capacity paths read tours under `app_tour` + FORCE RLS |
+
+Without these grants, Prisma surfaces a truncated `Invalid tx.tenantRoute.findUnique()` wrapping Postgres `42501 permission denied`. Migration: `apps/api/prisma/migrations/20260802140000_tenant_routes_tours_app_tour_grants/`.
+
 ## Proof harness
 
 `apps/api/test/bookings-http-postgres.spec.ts` — only `createRequestListener` + header auth; asserts `PrismaBookingsRepository`.
