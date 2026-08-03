@@ -66,8 +66,8 @@ describe("thin-shell-wizard-surfaces-capability — Phase 4as", () => {
     assert.match(pkg, /WIZARD_COMPOSITE_SURFACE_CACHE_KEY/);
     assert.match(pkg, /WIZARD_REVIEW_SURFACE_CACHE_KEY/);
     assert.match(pkg, /ensureWizardSurfacesPackageSurface/);
-    assert.match(pkg, /const compositeSpecifier = "/);
-    assert.match(pkg, /const reviewSpecifier = "/);
+    assert.match(pkg, /import\("\.\.\/ui\/surfaces\/composite-surface"\)/);
+    assert.match(pkg, /import\("\.\.\/ui\/surfaces\/review-surface"\)/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/surfaces\/composite-surface\"/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/surfaces\/review-surface\"/);
   });
