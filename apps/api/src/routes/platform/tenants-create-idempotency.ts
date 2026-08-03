@@ -70,6 +70,7 @@ function markCompleted(key: string, entry: MemoryEntry): void {
 }
 
 export function readPlatformIdempotencyKey(req: IncomingMessage): string | undefined {
+  // Node lowercases IncomingMessage header names; unit mocks must do the same.
   const raw = req.headers["idempotency-key"];
   const value = Array.isArray(raw) ? raw[0] : raw;
   const trimmed = value?.trim() ?? "";
