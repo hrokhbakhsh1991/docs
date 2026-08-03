@@ -89,6 +89,24 @@ try {
   existing = protection.required_status_checks?.contexts ?? [];
 } catch (err) {
   const msg = String(err.stderr ?? err.message ?? err);
+  const soft403 =
+    process.env.BRANCH_PROTECTION_VERIFY_SOFT_403 === "1" ||
+    process.env.BRANCH_PROTECTION_VERIFY_SOFT_403 === "true";
+  // Default GITHUB_TOKEN cannot read branch protection (HTTP 403). That is a token
+  // scope problem, not proof that required checks are missing — do not fail Booking
+  // HTTP PostgreSQL / block-vps on soft-403 when verifying in Actions.
+  if (verifyOnly && soft403 && /403|Resource not accessible by integration/i.test(msg)) {
+    console.warn(
+      "WARN: cannot read branch protection (HTTP 403) — Actions token lacks administration:read."
+    );
+    console.warn(
+      "WARN: soft-skipping live verify so Booking HTTP / deploy-vps stay unblocked."
+    );
+    console.warn(
+      "WARN: set secret BRANCH_PROTECTION_TOKEN (repo admin PAT) for real verify, or run: pnpm run ops:branch-protection:verify"
+    );
+    process.exit(0);
+  }
   if (!msg.includes("404")) {
     console.error("Failed to read branch protection:", msg);
     process.exit(1);

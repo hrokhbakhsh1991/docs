@@ -31,7 +31,34 @@ if ! bash "$DEPLOY_PATH/scripts/vps-deploy/verify-db-env.sh" "$ENV_DIR/api.env";
 fi
 
 log "sync $BRANCH"
-cd "$DEPLOY_PATH"
+# Some VPS images flake absolute path lookup for /opt/app-cloud (ENOENT from a
+# stale negative dentry) while openat(dirfd) still works. Recover before git sync.
+if ! cd "$DEPLOY_PATH" 2>/dev/null; then
+  log "WARN: cd $DEPLOY_PATH failed — dropping page/dentry caches"
+  sync || true
+  if [[ -w /proc/sys/vm/drop_caches ]]; then
+    echo 3 >/proc/sys/vm/drop_caches || true
+  fi
+fi
+if ! cd "$DEPLOY_PATH" 2>/dev/null; then
+  log "WARN: cd still failing — attempting dentry rename repair"
+  python3 - "$DEPLOY_PATH" <<'PY'
+import os, sys
+deploy = sys.argv[1].rstrip("/")
+parent, name = os.path.split(deploy)
+if not parent or not name:
+    raise SystemExit(f"invalid DEPLOY_PATH: {deploy}")
+dirfd = os.open(parent, os.O_RDONLY | os.O_DIRECTORY)
+tmp = f"{name}.__dentry_repair__"
+try:
+    os.rename(name, tmp, src_dir_fd=dirfd, dst_dir_fd=dirfd)
+    os.rename(tmp, name, src_dir_fd=dirfd, dst_dir_fd=dirfd)
+finally:
+    os.close(dirfd)
+print(f"dentry repair applied under {parent}/{name}")
+PY
+fi
+cd "$DEPLOY_PATH" || die "repo path unreachable at $DEPLOY_PATH after cache/dentry recovery"
 git fetch origin "$BRANCH:refs/remotes/origin/$BRANCH"
 git reset --hard "origin/$BRANCH"
 chown -R "$APP_USER:$APP_USER" "$DEPLOY_PATH"
