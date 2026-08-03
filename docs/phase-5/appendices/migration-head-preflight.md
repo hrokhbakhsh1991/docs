@@ -40,9 +40,12 @@ After a failed `migrate deploy`, the DB schema may sit at migration **N-1** whil
 | `20260721100000_portal_member_plans_bp7` | MR-P0-003 | Portal member plans (BP-7); required intermediate |
 | `20260721120000_tour_create_drop_tenants_select_bandage` | MR-P0-003 | Tour `CREATE`/`DROP` tenants SELECT bandage |
 | `20260802140000_tenant_routes_tours_app_tour_grants` | Booking HTTP PG | `app_tour` GRANT on `tenant_routes` + `tours` |
-| `20260802150000_urban_registrations_app_tour_grants` | Booking HTTP PG / TODO-002 | Unconditional `app_tour` GRANT on `urban_registrations` (current tip) |
+| `20260802150000_urban_registrations_app_tour_grants` | Booking HTTP PG / TODO-002 | Unconditional `app_tour` GRANT on `urban_registrations` |
+| `20260803120000_http_idempotency_app_tour_grants` | Phase 5 / ci:integrity | Unconditional `app_tour` GRANT on `http_idempotency_records` (finance prepay + IDEM suites; current tip) |
 
-Current head: **`20260802150000_urban_registrations_app_tour_grants`** — must move in lockstep with `prisma/migrations/`.
+Current head: **`20260803120000_http_idempotency_app_tour_grants`** — must move in lockstep with `prisma/migrations/`.
+
+**Why `http_idempotency_records` tip:** Phase 5 / `ci:integrity` Postgres runs hit `permission denied for table http_idempotency_records` (42501) under role `app_tour` after `01-app-role.sql` revoked default privileges. Table + RLS landed in `20260605160000_http_idempotency` without a GRANT. Same pattern as tours / urban_registrations tips.
 
 `REQUIRED_PRISMA_MIGRATION_NAMES` must include prior intermediates that production probes still require (e.g. phone unique + portal member plans) **and** the tip folder name. Bump both the tip constant and the required list in the same PR as any new migration folder (MASTER `MR-P0-003`).
 
