@@ -5,6 +5,8 @@ import { afterEach, describe, it } from "node:test";
 import { toCreateTenantResponse } from "../src/platform/create-tenant-response.dto.ts";
 import { handlePlatformTenantsCreate } from "../src/routes/platform/tenants-create.ts";
 import { resetPlatformIdempotencyMemoryForTests } from "../src/routes/platform/tenants-create-idempotency.ts";
+import { seedPlatformPlans } from "../scripts/seed-platform-plans.ts";
+import { disconnectPrisma } from "../src/db/prisma.ts";
 
 const env = process.env as Record<string, string | undefined>;
 const envSnapshot = {
@@ -150,6 +152,8 @@ describe("Platform provision endpoint", () => {
     "201 handler creates tenant when DATABASE_URL set",
     async () => {
       delete env.PLATFORM_OPS_PHONES;
+      // db:test-reset truncates platform_plans; provision FK requires standard plan.
+      await seedPlatformPlans();
       const subdomain = `prov-${Date.now().toString(36)}`.slice(0, 40);
       const ownerPhone = "+15550008888";
       const req = makeMockReqWithBody(
@@ -174,6 +178,7 @@ describe("Platform provision endpoint", () => {
       assert.ok(
         typeof out.body.invite?.inviteToken === "string" && out.body.invite.inviteToken.length > 0
       );
+      await disconnectPrisma();
     }
   );
 });

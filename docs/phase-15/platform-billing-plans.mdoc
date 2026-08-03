@@ -34,4 +34,10 @@ Super Admin club detail → **Billing** tab (`data-tab="billing"`). Owner sees p
 
 Seed: `seedPlatformPlans()` via `db:seed`.
 
+### Provision integration harness
+
+`createTenantSubscriptionOnProvision` inserts `tenant_subscriptions.plan_id = 'standard'`. Truncate-based CI (`db:test-reset`) clears `platform_plans`, so Postgres provision specs (`platform-provision.spec.ts` 201 path) **must** call `seedPlatformPlans()` before `handlePlatformTenantsCreate` — otherwise Prisma fails with `tenant_subscriptions_plan_id_fkey`.
+
+Teardown note: finance HTTP suites that write `http_idempotency_records` must `deleteMany` those rows before `tenant.delete` (FK `http_idempotency_records_tenant_id_fkey`).
+
 See also: [`platform-impersonation.mdoc`](platform-impersonation.mdoc) · [`platform-control-center-api.mdoc`](platform-control-center-api.mdoc)

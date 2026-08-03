@@ -126,6 +126,7 @@ describe("finance-invoice.spec.ts — Phase 9.7 R2", { skip: !hasDatabase, concu
       await admin.paymentReceipt.deleteMany({ where: { tenantId: denaliTenantId } });
       await admin.payment.deleteMany({ where: { tenantId: denaliTenantId } });
       await admin.outboxEvent.deleteMany({ where: { tenantId: denaliTenantId } });
+      await admin.httpIdempotencyRecord.deleteMany({ where: { tenantId: denaliTenantId } });
       await admin.tenant.delete({ where: { id: denaliTenantId } });
     } finally {
       await admin.$executeRawUnsafe(

@@ -37,11 +37,14 @@ const FORBIDDEN_LIST_SQL_COLUMNS = [
   "updated_at",
 ] as const;
 
-const HEAVY_REGISTRATION_INTAKE = {
-  nationalId: "perf-national-id",
-  blob: "x".repeat(16_384),
-  nested: { marker: "bookings-perf-heavy-json", pad: "y".repeat(8_192) },
-};
+/** Heavy intake blob — callers must supply a unique nationalId (uq_operator_reg_active_national_id). */
+function heavyRegistrationIntake(nationalId: string): Readonly<Record<string, unknown>> {
+  return {
+    nationalId,
+    blob: "x".repeat(16_384),
+    nested: { marker: "bookings-perf-heavy-json", pad: "y".repeat(8_192) },
+  };
+}
 
 type CapturedQuery = {
   readonly sql: string;
@@ -191,7 +194,7 @@ describe(
             // Distinct submitter per active row — uq_operator_reg_active_user
             submittedByUserId: randomUUID(),
             approvedAt: index % 5 === 0 ? new Date() : null,
-            registrationIntake: HEAVY_REGISTRATION_INTAKE,
+            registrationIntake: heavyRegistrationIntake(`perf-national-${index}`),
           },
         });
       }
