@@ -66,3 +66,9 @@ Final honesty pass before Denali product development:
 ### Logic — why promote the checklist
 
 TS-4BZ-02/03 open the remaining checklist on every full `pnpm test` (Phase 0 integration → Phase 5 / `ci:integrity`). `TEMP/` is `.gitignore`d, so fresh clones and GHA runners hit `ENOENT`. Same pattern as Phase 18 agent-pack promotion (`docs/phase-18/agent-pack/`): clone-addressable bytes under `docs/dev/`, specs retargeted, Markdoc `extends` updated.
+
+### Logic — iran-mountain-landmarks on the build graph
+
+`@app-tour/iran-mountain-landmarks` is consumed by admin geocoding (`geocoding-search.spec.ts` under `tsx`). Wave-0 CI failed with `Cannot find module …/dist/index.js` because package `exports` pointed at unbuilt `dist/` and `scripts/monorepo-build.sh` omitted the package.
+
+**Fix:** package `exports`/`main` target `src/index.ts` (tsx + Next-safe with transpile), include `@app-tour/iran-mountain-landmarks` in admin `transpilePackages`, keep `pnpm --dir packages/iran-mountain-landmarks run build` in monorepo-build and `apps/web` `pretest` as belt-and-suspenders for any dist consumers.
