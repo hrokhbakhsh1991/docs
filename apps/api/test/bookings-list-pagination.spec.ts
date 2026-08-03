@@ -245,7 +245,6 @@ describe(
     const tenantId = integrationTenantId();
     const tourA = randomUUID();
     const tourB = randomUUID();
-    const userA = randomUUID();
     const userB = randomUUID();
     const tiedSubmittedAt = new Date("2026-07-07T12:00:00.000Z");
     const repo = new PrismaBookingsRepository();
