@@ -153,6 +153,8 @@ describe("Platform provision endpoint", () => {
     "201 handler creates tenant when DATABASE_URL set",
     async () => {
       delete env.PLATFORM_OPS_PHONES;
+      // Site URL builder requires PLATFORM_ROOT_DOMAIN (readPlatformRootDomain).
+      env.PLATFORM_ROOT_DOMAIN = "example.test";
       // db:test-reset truncates platform_plans; provision FK requires standard plan.
       await seedPlatformPlans();
       const subdomain = `prov-${Date.now().toString(36)}`.slice(0, 40);
