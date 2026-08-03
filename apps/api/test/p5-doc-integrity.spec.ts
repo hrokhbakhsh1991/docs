@@ -1,6 +1,6 @@
 /**
  * P5 — documentation integrity contract (cross-file sync)
- * @see TEMP/p5/DOC-SYNC-INDEX.md
+ * @see docs/phase-18/agent-pack/DOC-SYNC-INDEX.md
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -15,7 +15,7 @@ function read(path: string): string {
 }
 
 function readCanonicalFromDocSyncIndex(): Record<string, string> {
-  const index = read("TEMP/p5/DOC-SYNC-INDEX.md");
+  const index = read("docs/phase-18/agent-pack/DOC-SYNC-INDEX.md");
   const block = index.match(/```yaml\n([\s\S]*?)```/)?.[1];
   assert.ok(block, "DOC-SYNC-INDEX yaml block missing");
   const fields: Record<string, string> = {};
@@ -31,18 +31,18 @@ function readCanonicalFromDocSyncIndex(): Record<string, string> {
 }
 
 const SYNC_FILES = [
-  "TEMP/p5/DOC-SYNC-INDEX.md",
-  "TEMP/p5/AGENT-START.md",
-  "TEMP/p5/README.md",
-  "TEMP/p5-exit-checklist.md",
-  "TEMP/p5-enterprise-evolution.md",
-  "TEMP/p5/AGENT-MANIFEST.yaml",
+  "docs/phase-18/agent-pack/DOC-SYNC-INDEX.md",
+  "docs/phase-18/agent-pack/AGENT-START.md",
+  "docs/phase-18/agent-pack/README.md",
+  "docs/phase-18/agent-pack/p5-exit-checklist.md",
+  "docs/phase-18/agent-pack/p5-enterprise-evolution.md",
+  "docs/phase-18/agent-pack/AGENT-MANIFEST.yaml",
 ] as const;
 
 describe("p5-doc-integrity (DOC-SYNC)", () => {
   it("DOC-SYNC-01 canonical index defines frozen fields", () => {
     const canonical = readCanonicalFromDocSyncIndex();
-    const index = read("TEMP/p5/DOC-SYNC-INDEX.md");
+    const index = read("docs/phase-18/agent-pack/DOC-SYNC-INDEX.md");
     assert.match(index, /pack_version: 2\.9-ai-friendly/);
     assert.match(index, new RegExp(`current_task: ${canonical.current_task}`));
     assert.match(index, new RegExp(`nano_done: ${canonical.nano_done}`));
@@ -53,7 +53,7 @@ describe("p5-doc-integrity (DOC-SYNC)", () => {
   it("DOC-SYNC-02 agent entry files agree on task + exit", () => {
     const canonical = readCanonicalFromDocSyncIndex();
     for (const file of SYNC_FILES) {
-      if (file === "TEMP/p5/DOC-SYNC-INDEX.md") continue;
+      if (file === "docs/phase-18/agent-pack/DOC-SYNC-INDEX.md") continue;
       const text = read(file);
       assert.match(
         text,
@@ -70,12 +70,12 @@ describe("p5-doc-integrity (DOC-SYNC)", () => {
     }
   });
 
-  it("DOC-SYNC-03 phase-18 core mdoc frontmatter links TEMP specs", () => {
+  it("DOC-SYNC-03 phase-18 core mdoc frontmatter links agent-pack specs", () => {
     const cutover = read("docs/phase-18/platform-metadata-cutover-pilot.mdoc");
     const parity = read("docs/phase-18/platform-denali-operator-parity.mdoc");
     const commerce = read("docs/phase-18/platform-workspace-commerce.mdoc");
-    assert.match(cutover, /execution_spec: TEMP\/p5\/p5-a-cutover-pilot\.md/);
-    assert.match(parity, /execution_spec: TEMP\/p5\/p5-b-denali-operator-parity\.md/);
+    assert.match(cutover, /execution_spec: docs\/phase-18\/agent-pack\/p5-a-cutover-pilot\.md/);
+    assert.match(parity, /execution_spec: docs\/phase-18\/agent-pack\/p5-b-denali-operator-parity\.md/);
     assert.match(parity, /Operator product preservation matrix \(DOC-B-02\)/);
     assert.match(parity, /Gap → owner map \(DOC-B-01/);
     assert.match(parity, /Nano ↔ gap map \(frozen — P5-B-N-002\)/);
@@ -98,7 +98,7 @@ describe("p5-doc-integrity (DOC-SYNC)", () => {
     assert.match(commerce, /Super Admin commerce badge \(frozen — P5-C-N-006\)/);
     assert.match(commerce, /Commerce guards \(frozen — P5-C-N-007\.\.009\)/);
     assert.match(commerce, /tour-create-commerce-gateway-blocked\.spec\.ts/);
-    assert.match(commerce, /execution_spec: TEMP\/p5\/p5-c-workspace-commerce-config\.md/);
+    assert.match(commerce, /execution_spec: docs\/phase-18\/agent-pack\/p5-c-workspace-commerce-config\.md/);
     assert.match(cutover, /quality: 9\.9/);
     assert.match(parity, /quality: 9\.9/);
     assert.match(cutover, /deriveMetadataCutoverStage/);
@@ -114,7 +114,7 @@ describe("p5-doc-integrity (DOC-SYNC)", () => {
       "docs/phase-18/platform-registrations-finance-tranche.mdoc",
     ]) {
       const text = read(file);
-      assert.match(text, /execution_spec: TEMP\/p5\//);
+      assert.match(text, /execution_spec: docs\/phase-18\/agent-pack\//);
       assert.match(text, /optional: true/);
     }
   });
@@ -130,7 +130,7 @@ describe("p5-doc-integrity (DOC-SYNC)", () => {
   });
 
   it("DOC-SYNC-06 completed nanos reflected in FILE-MAP", () => {
-    const map = read("TEMP/p5/FILE-MAP.md");
+    const map = read("docs/phase-18/agent-pack/FILE-MAP.md");
     assert.match(map, /P5-A-N-001.*✅/);
     assert.match(map, /P5-A-N-002.*✅/);
     assert.match(map, /P5-A-N-003.*✅/);

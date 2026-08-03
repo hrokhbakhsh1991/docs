@@ -6,8 +6,8 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
-const assessmentPath = join(repoRoot, "TEMP/wizard-denali-enterprise-assessment.md");
-const roadmapPath = join(repoRoot, "TEMP/ROADMAP-INDEX.md");
+const assessmentPath = join(repoRoot, "docs/phase-18/agent-pack/wizard-denali-enterprise-assessment.md");
+const roadmapPath = join(repoRoot, "docs/phase-18/agent-pack/ROADMAP-INDEX.md");
 const denaliReadmePath = join(repoRoot, "packages/workspaces/denali/README.md");
 
 describe("workspace-metadata-phase-exit", () => {

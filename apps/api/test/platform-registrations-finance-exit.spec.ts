@@ -12,7 +12,7 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 describe("platform-registrations-finance-exit (P5-E optional)", () => {
   it("EX-E-01 epic spec preserves receipt flow", () => {
     const spec = readFileSync(
-      join(repoRoot, "TEMP/p5/p5-e-registrations-finance.md"),
+      join(repoRoot, "docs/phase-18/agent-pack/p5-e-registrations-finance.md"),
       "utf8"
     );
     assert.match(spec, /PC-06/);
@@ -20,7 +20,7 @@ describe("platform-registrations-finance-exit (P5-E optional)", () => {
   });
 
   it("EX-E-02 exit checklist path B references P5-E-N-006", () => {
-    const checklist = readFileSync(join(repoRoot, "TEMP/p5-exit-checklist.md"), "utf8");
+    const checklist = readFileSync(join(repoRoot, "docs/phase-18/agent-pack/p5-exit-checklist.md"), "utf8");
     assert.match(checklist, /Path B — P5-full/);
     assert.match(checklist, /P5-E-N-006/);
   });

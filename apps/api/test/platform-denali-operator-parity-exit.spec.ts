@@ -1,6 +1,6 @@
 /**
  * P5-B-N-016 — Denali operator parity phase exit (P5-core path A)
- * @see TEMP/p5/p5-b-denali-operator-parity.md
+ * @see docs/phase-18/agent-pack/p5-b-denali-operator-parity.md
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -9,8 +9,8 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
-const exitChecklistPath = join(repoRoot, "TEMP/p5-exit-checklist.md");
-const epicSpecPath = join(repoRoot, "TEMP/p5/p5-b-denali-operator-parity.md");
+const exitChecklistPath = join(repoRoot, "docs/phase-18/agent-pack/p5-exit-checklist.md");
+const epicSpecPath = join(repoRoot, "docs/phase-18/agent-pack/p5-b-denali-operator-parity.md");
 const cutoverMdocPath = join(repoRoot, "docs/phase-18/platform-metadata-cutover-pilot.mdoc");
 const parityMdocPath = join(repoRoot, "docs/phase-18/platform-denali-operator-parity.mdoc");
 
