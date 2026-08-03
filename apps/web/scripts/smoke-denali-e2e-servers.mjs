@@ -55,13 +55,16 @@ seed.on("exit", (code) => {
     AUTH_ALLOW_DEV_BEARER: "true",
     AUTH_ALLOW_DEV_STATIC_OTP: "true",
     PUBLIC_TENANT_FALLBACK_LABEL: "denali",
-    PUBLIC_TENANT_FALLBACK_HOSTS: "127.0.0.1,localhost",
+    PUBLIC_TENANT_FALLBACK_HOSTS: "127.0.0.1,localhost,denali.localhost",
   });
 
   const webEnv = {
     ...process.env,
     NODE_ENV: useProdStart ? "production" : "development",
     ...smokeWebBaseEnv(apiEnv),
+    PUBLIC_TENANT_FALLBACK_LABEL: "denali",
+    PUBLIC_TENANT_FALLBACK_HOSTS: "127.0.0.1,localhost,denali.localhost",
+    TENANT_ROOT_DOMAIN: "localhost",
     ALLOW_DENALI_WEB_PLUGIN: "true",
     TOUR_OPS_DEV_TENANT_ID: denaliSmokeTenantId,
     TOUR_OPS_DEV_USER_ID: denaliSmokeOwnerUserId,

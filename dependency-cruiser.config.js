@@ -26,6 +26,11 @@ module.exports = {
       from: {},
       to: {
         circular: true,
+        // Denali capability loaders deliberately cross the plugin/UI boundary lazily;
+        // runtime imports stay split while webpack receives resolvable specifiers.
+        viaOnly: {
+          pathNot: "^packages/workspaces/denali/src/(?:wizard/(?:create-chrome|create-view|flat-edit-chrome|flat-edit-form|flat-edit-page|host-adapter|label-resolver|operator-ui|wizard-surfaces)-surface|settings/settings-(?:equipment-ui|exposure-surfaces-ui)-package-surface)[.]ts$",
+        },
       },
     },
     {
