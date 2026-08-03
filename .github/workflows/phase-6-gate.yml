@@ -171,7 +171,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build denali workspace (minio-photo imports dist)
-        run: pnpm --filter @app-tour/workspace-denali... run build
+        run: bash scripts/ci/build-api-workspace-deps.sh
 
       - name: Start MinIO
         run: |
@@ -259,7 +259,7 @@ jobs:
         run: pnpm --filter @apps/api run prisma:generate
 
       - name: Build workspace dist (denali plugin imports dist)
-        run: pnpm --filter @app-tour/workspace-denali... run build
+        run: bash scripts/ci/build-api-workspace-deps.sh
 
       - name: Install Playwright Chromium
         run: pnpm --filter @apps/web exec playwright install --with-deps chromium

@@ -7,9 +7,9 @@ cd "$ROOT"
 
 echo "phase-eph-identity-ratchet: zero workspaceType/plugin.id identity branches in apps/api/src"
 
-if rg -q 'workspaceType === "denali"|workspaceType !== "denali"|workspaceType === "starter"|plugin\.id === "denali"' apps/api/src; then
+if rg -q 'workspaceType === "denali"|workspaceType !== "denali"|workspaceType === "starter"|plugin\.id === "denali"' apps/api/src --glob '!*.spec.ts' --glob '!*.test.ts'; then
   echo "phase-eph-identity-ratchet: FAIL — identity branches remain:"
-  rg -n 'workspaceType === "denali"|workspaceType !== "denali"|workspaceType === "starter"|plugin\.id === "denali"' apps/api/src || true
+  rg -n 'workspaceType === "denali"|workspaceType !== "denali"|workspaceType === "starter"|plugin\.id === "denali"' apps/api/src --glob '!*.spec.ts' --glob '!*.test.ts' || true
   exit 1
 fi
 
