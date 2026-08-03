@@ -255,6 +255,9 @@ jobs:
       - name: Prisma migrate deploy
         run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
 
+      - name: Grant app role migration ledger read
+        run: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c 'GRANT SELECT ON TABLE "_prisma_migrations" TO app_tour'
+
       - name: Generate Prisma client (smoke seed imports @apps/api)
         run: pnpm --filter @apps/api run prisma:generate
 

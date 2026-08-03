@@ -26,8 +26,7 @@ const denaliSmokeTenantId =
   process.env.DENALI_SMOKE_TENANT_ID?.trim() || "00000000-0000-4000-8000-000000000003";
 const denaliSmokeOwnerUserId =
   process.env.DENALI_SMOKE_OWNER_USER_ID?.trim() || "00000000-0000-4000-8000-000000000101";
-const denaliSmokeWorkspaceId =
-  process.env.DENALI_SMOKE_WORKSPACE_ID?.trim() || "ws-denali-dev";
+const denaliSmokeWorkspaceId = process.env.DENALI_SMOKE_WORKSPACE_ID?.trim() || "ws-denali-dev";
 const useProdStart = isSmokeProdStartEnv();
 
 const seed = spawn("node", ["scripts/seed-denali-smoke-tenant.mjs"], {
@@ -36,7 +35,7 @@ const seed = spawn("node", ["scripts/seed-denali-smoke-tenant.mjs"], {
   stdio: "inherit",
 });
 
-seed.on("exit", (code) => {
+seed.on("exit", async (code) => {
   if (code !== 0) {
     process.exit(code ?? 1);
   }
@@ -85,15 +84,19 @@ seed.on("exit", (code) => {
     stdio: "inherit",
   });
 
+  try {
+    await waitForUrl("http://127.0.0.1:3001/health");
+  } catch (error) {
+    api.kill("SIGTERM");
+    console.error(error);
+    process.exit(1);
+  }
+
   const web = spawn("pnpm", ["--filter", "@apps/web", "run", webScript], {
     cwd: repoRoot,
     env: webEnv,
     stdio: "inherit",
   });
-
-  void waitForUrl("http://127.0.0.1:3001/health")
-    .then(() => waitForUrl("http://denali.localhost:3000/"))
-    .then(() => waitForUrl("http://denali.localhost:3000/tours/new", 300_000));
 
   const shutdown = (signal) => {
     api.kill(signal);
