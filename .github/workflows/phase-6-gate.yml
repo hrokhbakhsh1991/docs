@@ -268,7 +268,7 @@ jobs:
         run: pnpm --filter @apps/web run test:smoke:denali
 
   full-gate:
-    name: Phase 6 full gate (Option B: runtime-proof + guard + residual apps-cert + phase-6:guard)
+    name: "Phase 6 full gate (Option B: runtime-proof + guard + residual apps-cert + phase-6:guard)"
     if: >-
       (github.event_name == 'workflow_dispatch' && inputs.run_full_gate == true) ||
       (github.event_name == 'schedule' && github.event.schedule == '0 3 * * 0')

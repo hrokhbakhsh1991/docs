@@ -52,7 +52,7 @@ html[dir="rtl"] body {
 /*
  * Workspace wizard — platform fallback (Urban/starter).
  * Progress state SoT: data-wizard-step-state (current | complete | upcoming).
- * Denali enhanced stepper (scroll rail, teal pills): wizard-stepper.css under [data-new-tour-wizard].
+ * Workspace-enhanced stepper (scroll rail, themed pills): wizard-stepper.css under [data-new-tour-wizard].
  */
 .workspace-wizard {
   width: 100%;

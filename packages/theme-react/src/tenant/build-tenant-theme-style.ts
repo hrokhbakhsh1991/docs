@@ -10,7 +10,7 @@ export function normalizeCssVariableName(key: string): string {
 }
 
 export type BuildTenantThemeStyleOptions = {
-  /** When true, skip tenant primaryColor inline vars so CSS dark cascade (e.g. Denali admin) wins. @see docs/dev/dtcg-pipeline-spec.mdoc § F9-4 */
+  /** When true, skip tenant primaryColor inline vars so CSS dark cascade (e.g. a workspace admin skin) wins. @see docs/dev/dtcg-pipeline-spec.mdoc § F9-4 */
   readonly omitPrimaryColor?: boolean;
 };
 
