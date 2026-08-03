@@ -34,7 +34,7 @@ async function loginDenaliSmokeOwner(page: import("@playwright/test").Page): Pro
 test.describe("denali-wizard.spec.ts (SMK-P6-01..06, REQ-P6-015)", () => {
   // smoke-denali-e2e-servers sets TOUR_OPS_DEV_TENANT_ID → denali plugin (Linux-safe; no Host override).
   test.use({
-    baseURL: process.env.SMOKE_BASE_URL ?? "http://127.0.0.1:3000",
+    baseURL: process.env.SMOKE_BASE_URL ?? "http://denali.localhost:3000",
   });
 
   test("SMK-P6-01 / SMK-P6-04: /tours/new renders denali workspace wizard", async ({ page }) => {

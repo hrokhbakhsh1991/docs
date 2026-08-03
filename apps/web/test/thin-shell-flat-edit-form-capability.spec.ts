@@ -55,7 +55,7 @@ describe("thin-shell-flat-edit-form-capability — Phase 4ae/4ai", () => {
     assert.doesNotMatch(registry, /workspace-wizard-flat-edit-form-bindings/);
   });
 
-  it("TS-4AE-03 package flat-edit form surface uses string-keyed dynamic import", () => {
+  it("TS-4AE-03 package flat-edit form surface uses bundler-visible dynamic import", () => {
     const pkg = readFileSync(
       resolve(
         WEB_ROOT,
@@ -67,7 +67,7 @@ describe("thin-shell-flat-edit-form-capability — Phase 4ae/4ai", () => {
     assert.match(pkg, /ensureWizardFlatEditFormPackageSurface/);
     assert.match(pkg, /DENALI_WORKSPACE_PLUGIN_ID/);
     assert.match(pkg, /Map<string,\s*WizardFlatEditFormSurface>/);
-    assert.match(pkg, /const specifier = "/);
+    assert.match(pkg, /import\(/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/chrome\/wizard-flat-edit-form-surface\"/);
   });
 });

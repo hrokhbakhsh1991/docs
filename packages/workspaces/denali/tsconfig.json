@@ -1,6 +1,7 @@
 {
   "extends": "../../config/tsconfig.base.json",
   "compilerOptions": {
+    "jsx": "react-jsx",
     "outDir": "./dist",
     "rootDir": "./src",
     "noEmit": false,
@@ -8,7 +9,11 @@
     "paths": {
       "@repo/types": ["./src/types/legacy/repo-types.ts"],
       "@repo/types/denali": ["./src/types/legacy/repo-types-denali.ts"],
-      "@repo/shared-contracts": ["./src/types/legacy/shared-contracts.ts"]
+      "@repo/shared-contracts": ["./src/types/legacy/shared-contracts.ts"],
+      "@app-tour/ui-primitives/button": ["../../ui-primitives/dist/Button/Button"],
+      "@app-tour/ui-primitives/checkbox": ["../../ui-primitives/dist/Checkbox/Checkbox"],
+      "@app-tour/ui-primitives/input": ["../../ui-primitives/dist/Input/Input"],
+      "@app-tour/ui-primitives/select": ["../../ui-primitives/dist/Select/Select"]
     }
   },
   "include": ["src/**/*.ts"],

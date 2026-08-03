@@ -68,8 +68,7 @@ export async function ensureWizardCreateViewPackageSurface(
   }
 
   // String-keyed so plugin/wizard tsc does not pull `src/ui` statically.
-  const specifier = "../ui/chrome/wizard-create-view-surface";
-  const mod = await import(specifier);
+  const mod = await import("../ui/chrome/wizard-create-view-surface");
   const next = Object.freeze({
     CreateTourWizardView: mod.denaliWizardCreateViewSurface.CreateTourWizardView,
   }) as WizardCreateViewSurface;

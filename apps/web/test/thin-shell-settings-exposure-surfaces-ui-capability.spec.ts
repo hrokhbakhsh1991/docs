@@ -53,7 +53,7 @@ describe("thin-shell-settings-exposure-surfaces-ui-capability — Phase 4bb", ()
     assert.doesNotMatch(page, /workspace-settings-exposure-surfaces-ui-bindings/);
   });
 
-  it("TS-4BB-03 package settings-exposure surface uses string-keyed dynamic import", () => {
+  it("TS-4BB-03 package settings-exposure surface uses bundler-visible dynamic import", () => {
     const pkg = readFileSync(
       resolve(
         WEB_ROOT,
@@ -65,7 +65,7 @@ describe("thin-shell-settings-exposure-surfaces-ui-capability — Phase 4bb", ()
     assert.match(pkg, /ensureSettingsExposureSurfacesUiPackageSurface/);
     assert.match(pkg, /DENALI_WORKSPACE_PLUGIN_ID/);
     assert.match(pkg, /Map<string,\s*SettingsExposureSurfacesUiPackageSurface>/);
-    assert.match(pkg, /const specifier = "/);
+    assert.match(pkg, /import\(/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/settings\/settings-exposure-surfaces-ui-binding\"/);
   });
 });

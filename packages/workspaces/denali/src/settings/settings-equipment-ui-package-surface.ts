@@ -54,8 +54,7 @@ export async function ensureSettingsEquipmentUiPackageSurface(
   }
 
   // String-keyed so plugin tsc does not pull `src/ui` statically.
-  const specifier = "../ui/settings/settings-equipment-ui-surface";
-  const mod = await import(specifier);
+  const mod = await import("../ui/settings/settings-equipment-ui-surface");
   const next = Object.freeze({
     EquipmentCatalogAvatar: mod.denaliSettingsEquipmentUiSurface.EquipmentCatalogAvatar,
     EquipmentIconPicker: mod.denaliSettingsEquipmentUiSurface.EquipmentIconPicker,

@@ -63,7 +63,7 @@ describe("thin-shell-operator-ui-capability — Phase 4ao", () => {
     assert.doesNotMatch(leaflet, /workspace-operator-ui-components-bindings/);
   });
 
-  it("TS-4AO-03 package operator-ui surface uses string-keyed dynamic import", () => {
+  it("TS-4AO-03 package operator-ui surface uses bundler-visible dynamic import", () => {
     const pkg = readFileSync(
       resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/operator-ui-surface.ts"),
       "utf8"
@@ -72,7 +72,7 @@ describe("thin-shell-operator-ui-capability — Phase 4ao", () => {
     assert.match(pkg, /ensureOperatorUiComponentsPackageSurface/);
     assert.match(pkg, /DENALI_WORKSPACE_PLUGIN_ID/);
     assert.match(pkg, /Map<string,\s*OperatorUiComponentsSurface>/);
-    assert.match(pkg, /const specifier = "/);
+    assert.match(pkg, /import\(/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/operator-ui-components-surface\"/);
   });
 });

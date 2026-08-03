@@ -55,14 +55,14 @@ describe("thin-shell-labels-capability — Phase 4aq", () => {
     assert.doesNotMatch(submit, /wizard-label-bindings/);
   });
 
-  it("TS-4AQ-03 package label surface uses string-keyed dynamic import", () => {
+  it("TS-4AQ-03 package label surface uses bundler-visible dynamic import", () => {
     const pkg = readFileSync(
       resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/label-resolver-surface.ts"),
       "utf8"
     );
     assert.match(pkg, /WIZARD_LABEL_RESOLVER_CACHE_KEY/);
     assert.match(pkg, /ensureWizardLabelResolverPackageSurface/);
-    assert.match(pkg, /const specifier = "/);
+    assert.match(pkg, /import\(/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/surfaces\/field-label-resolver\"/);
   });
 

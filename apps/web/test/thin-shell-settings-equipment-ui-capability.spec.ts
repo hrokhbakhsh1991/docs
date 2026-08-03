@@ -53,7 +53,7 @@ describe("thin-shell-settings-equipment-ui-capability — Phase 4ba", () => {
     assert.doesNotMatch(page, /workspace-settings-equipment-ui-bindings/);
   });
 
-  it("TS-4BA-03 package settings-equipment surface uses string-keyed dynamic import", () => {
+  it("TS-4BA-03 package settings-equipment surface uses bundler-visible dynamic import", () => {
     const pkg = readFileSync(
       resolve(
         WEB_ROOT,
@@ -65,7 +65,7 @@ describe("thin-shell-settings-equipment-ui-capability — Phase 4ba", () => {
     assert.match(pkg, /ensureSettingsEquipmentUiPackageSurface/);
     assert.match(pkg, /DENALI_WORKSPACE_PLUGIN_ID/);
     assert.match(pkg, /Map<string,\s*SettingsEquipmentUiPackageSurface>/);
-    assert.match(pkg, /const specifier = "/);
+    assert.match(pkg, /import\(/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/settings\/settings-equipment-ui-surface\"/);
   });
 });

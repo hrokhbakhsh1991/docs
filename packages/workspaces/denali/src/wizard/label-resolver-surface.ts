@@ -55,9 +55,7 @@ export async function ensureWizardLabelResolverPackageSurface(): Promise<WizardL
   if (existing != null) {
     return existing;
   }
-
-  const specifier = "../ui/surfaces/field-label-resolver";
-  const mod = await import(specifier);
+  const mod = await import("../ui/surfaces/field-label-resolver");
   const next = mod.createDenaliFieldLabelResolver() as WizardLabelResolverSurface;
   getCache().set(surfaceId, next);
   return next;

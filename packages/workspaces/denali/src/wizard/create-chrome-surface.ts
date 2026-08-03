@@ -67,8 +67,7 @@ export async function ensureWizardCreateChromePackageSurface(
   }
 
   // String-keyed so plugin/wizard tsc does not pull `src/ui` statically.
-  const specifier = "../ui/chrome/wizard-create-chrome-surface";
-  const mod = await import(specifier);
+  const mod = await import("../ui/chrome/wizard-create-chrome-surface");
   const next = Object.freeze({
     useCreateTourWizardCore: mod.denaliWizardCreateChromeSurface.useCreateTourWizardCore,
     isDraftEssentiallyEmpty: mod.denaliWizardCreateChromeSurface.isDraftEssentiallyEmpty,

@@ -65,11 +65,9 @@ export async function ensureWizardSurfacesPackageSurface(): Promise<void> {
     return;
   }
 
-  const compositeSpecifier = "../ui/surfaces/composite-surface";
-  const reviewSpecifier = "../ui/surfaces/review-surface";
   const [compositeMod, reviewMod] = await Promise.all([
-    import(compositeSpecifier),
-    import(reviewSpecifier),
+    import("../ui/surfaces/composite-surface"),
+    import("../ui/surfaces/review-surface"),
   ]);
   if (compositeExisting == null) {
     getCompositeCache().set(

@@ -42,7 +42,6 @@ seed.on("exit", (code) => {
   }
 
   if (useProdStart) {
-    ensurePackageBuild(repoRoot, "@apps/api", "apps/api/dist/main.js");
     ensurePackageBuild(repoRoot, "@apps/web", "apps/web/.next/BUILD_ID");
   }
 
@@ -75,11 +74,10 @@ seed.on("exit", (code) => {
     PORT: "3000",
   };
 
-  const apiScript = useProdStart ? "start" : "dev";
   const webScript = useProdStart ? "start" : "dev";
 
-  const api = spawn("pnpm", ["--filter", "@apps/api", "run", apiScript], {
-    cwd: repoRoot,
+  const api = spawn("node", ["--import", "tsx", "src/main.ts"], {
+    cwd: path.join(repoRoot, "apps/api"),
     env: apiEnv,
     stdio: "inherit",
   });
@@ -91,8 +89,8 @@ seed.on("exit", (code) => {
   });
 
   void waitForUrl("http://127.0.0.1:3001/health")
-    .then(() => waitForUrl("http://127.0.0.1:3000/"))
-    .then(() => waitForUrl("http://127.0.0.1:3000/tours/new", 300_000));
+    .then(() => waitForUrl("http://denali.localhost:3000/"))
+    .then(() => waitForUrl("http://denali.localhost:3000/tours/new", 300_000));
 
   const shutdown = (signal) => {
     api.kill(signal);

@@ -68,8 +68,7 @@ export async function ensureWizardFlatEditFormPackageSurface(
   }
 
   // String-keyed so plugin/wizard tsc does not pull `src/ui` statically.
-  const specifier = "../ui/chrome/wizard-flat-edit-form-surface";
-  const mod = await import(specifier);
+  const mod = await import("../ui/chrome/wizard-flat-edit-form-surface");
   const next = Object.freeze({
     FlatEditForm: mod.denaliWizardFlatEditFormSurface.FlatEditForm,
     testIds: mod.denaliWizardFlatEditFormSurface.testIds,

@@ -68,8 +68,7 @@ export async function ensureWizardFlatEditPagePackageSurface(
   }
 
   // String-keyed so plugin/wizard tsc does not pull `src/ui` statically.
-  const specifier = "../ui/chrome/wizard-flat-edit-page-surface";
-  const mod = await import(specifier);
+  const mod = await import("../ui/chrome/wizard-flat-edit-page-surface");
   const next = Object.freeze({
     FlatEditPageView: mod.denaliWizardFlatEditPageSurface.FlatEditPageView,
     FlatEditValidationList: mod.denaliWizardFlatEditPageSurface.FlatEditValidationList,

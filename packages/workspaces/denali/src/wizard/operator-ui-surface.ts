@@ -71,8 +71,7 @@ export async function ensureOperatorUiComponentsPackageSurface(
   }
 
   // String-keyed so plugin/wizard tsc does not pull `src/ui` statically.
-  const specifier = "../ui/operator-ui-components-surface";
-  const mod = await import(specifier);
+  const mod = await import("../ui/operator-ui-components-surface");
   const next = Object.freeze({
     TimeInput: mod.denaliOperatorUiComponentsSurface.TimeInput,
     DifficultyRangeSlider: mod.denaliOperatorUiComponentsSurface.DifficultyRangeSlider,

@@ -57,7 +57,7 @@ describe("thin-shell-create-view-capability — Phase 4ad/4ak", () => {
     assert.doesNotMatch(registry, /workspace-wizard-create-view-bindings/);
   });
 
-  it("TS-4AD-03 package create-view surface uses string-keyed dynamic import", () => {
+  it("TS-4AD-03 package create-view surface uses bundler-visible dynamic import", () => {
     const pkg = readFileSync(
       resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/create-view-surface.ts"),
       "utf8"
@@ -66,7 +66,7 @@ describe("thin-shell-create-view-capability — Phase 4ad/4ak", () => {
     assert.match(pkg, /ensureWizardCreateViewPackageSurface/);
     assert.match(pkg, /DENALI_WORKSPACE_PLUGIN_ID/);
     assert.match(pkg, /Map<string,\s*WizardCreateViewSurface>/);
-    assert.match(pkg, /const specifier = "/);
+    assert.match(pkg, /import\(/);
     assert.doesNotMatch(pkg, /from \"\.\.\/ui\/chrome\/wizard-create-view-surface\"/);
   });
 });

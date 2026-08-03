@@ -58,7 +58,7 @@ describe("thin-shell-wizard-surfaces-capability — Phase 4as", () => {
     assert.doesNotMatch(review, /wizard-surface-bindings/);
   });
 
-  it("TS-4AS-03 package surface uses string-keyed dynamic import", () => {
+  it("TS-4AS-03 package surface uses bundler-visible dynamic import", () => {
     const pkg = readFileSync(
       resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/wizard-surfaces-surface.ts"),
       "utf8"

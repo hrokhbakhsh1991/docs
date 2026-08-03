@@ -96,17 +96,6 @@ export async function ensureWizardHostAdapterSurface(
     return existing;
   }
 
-  const specs: string[] = [
-    "../draft",
-    "../ui/chrome/build-denali-flat-edit-tour-load-result",
-    "../ui/chrome/map-denali-flat-edit-tour-http-status",
-    "../ui/hooks/denali-wizard-catalog-prefetch-context",
-    "./denali-wizard-catalog-sanitize",
-    "../ui/adapters/localize-exposure-catalog-fields",
-    "../ui/chrome/build-denali-flat-edit-meta-line",
-    "./localize-denali-validation-message",
-    "../ui/adapters/read-active-catalog-ids-from-payload",
-  ];
   const [
     draftMod,
     loadResultMod,
@@ -117,7 +106,17 @@ export async function ensureWizardHostAdapterSurface(
     metaMod,
     localizeMod,
     catalogMod,
-  ] = await Promise.all(specs.map((specifier) => import(specifier)));
+  ] = await Promise.all([
+    import("../draft"),
+    import("../ui/chrome/build-denali-flat-edit-tour-load-result"),
+    import("../ui/chrome/map-denali-flat-edit-tour-http-status"),
+    import("../ui/hooks/denali-wizard-catalog-prefetch-context"),
+    import("./denali-wizard-catalog-sanitize"),
+    import("../ui/adapters/localize-exposure-catalog-fields"),
+    import("../ui/chrome/build-denali-flat-edit-meta-line"),
+    import("./localize-denali-validation-message"),
+    import("../ui/adapters/read-active-catalog-ids-from-payload"),
+  ]);
 
   const next = Object.freeze({
     buildWizardFreshStartMeta: draftMod.buildDenaliWizardFreshStartMeta,
@@ -140,7 +139,7 @@ export async function ensureWizardHostAdapterSurface(
     localizeWizardValidationIssueMessage: localizeMod.localizeDenaliValidationIssueMessage,
     resolveActiveCatalogIdsFromResourcePayloads:
       catalogMod.resolveActiveCatalogIdsFromResourcePayloads,
-  }) as WizardHostAdapterSurface;
+  } as WizardHostAdapterSurface);
 
   getCache().set(id, next);
   return next;

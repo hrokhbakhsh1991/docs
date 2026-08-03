@@ -58,8 +58,7 @@ export async function ensureSettingsExposureSurfacesUiPackageSurface(
 
   // String-keyed so plugin tsc does not pull `src/ui` statically.
   // Host binding barrel owns the frozen surface object (panel + export).
-  const specifier = "../ui/settings/settings-exposure-surfaces-ui-binding";
-  const mod = await import(specifier);
+  const mod = await import("../ui/settings/settings-exposure-surfaces-ui-binding");
   const next = Object.freeze({
     WorkspaceSurfacesPanel: mod.denaliSettingsExposureSurfacesUiSurface.WorkspaceSurfacesPanel,
   }) as SettingsExposureSurfacesUiPackageSurface;
