@@ -40,6 +40,8 @@ bash scripts/with-monorepo-build-lock.sh bash -c '
   pnpm --dir packages/session-client run build
   pnpm --dir packages/guest-surface-host run build
   pnpm --dir packages/guest-workspace-runtime run build
+  # Dist-backed; consumed by apps/web geocoding (unit tests after root build).
+  pnpm --dir packages/iran-mountain-landmarks run build
   pnpm --dir apps/api run build
   pnpm --dir apps/marketing run build
   pnpm --dir apps/portal run build

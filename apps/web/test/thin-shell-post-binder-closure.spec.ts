@@ -27,7 +27,7 @@ describe("thin-shell-post-binder-closure — Phase 4bz", () => {
 
   it("TS-4BZ-02 remaining checklist has no open post-binder polish items", () => {
     const checklist = readFileSync(
-      resolve(REPO_ROOT, "TEMP/THIN_SHELL_REMAINING_CHECKLIST.md"),
+      resolve(REPO_ROOT, "docs/dev/thin-shell-remaining-checklist.md"),
       "utf8"
     );
     const section = checklist.split("## Remaining after binder closure")[1] ?? "";
@@ -40,7 +40,7 @@ describe("thin-shell-post-binder-closure — Phase 4bz", () => {
 
   it("TS-4BZ-03 stale P0 bullets no longer claim 4k / naming / E2E open", () => {
     const checklist = readFileSync(
-      resolve(REPO_ROOT, "TEMP/THIN_SHELL_REMAINING_CHECKLIST.md"),
+      resolve(REPO_ROOT, "docs/dev/thin-shell-remaining-checklist.md"),
       "utf8"
     );
     assert.doesNotMatch(

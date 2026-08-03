@@ -4,9 +4,9 @@ format: markdoc
 doc_role: architecture_sot
 extends:
   - docs/dev/saas-platform-remediation.mdoc
-  - TEMP/THIN_SHELL_STRUCTURAL_PATH_VERDICT.md
-  - TEMP/THIN_SHELL_REMAINING_CHECKLIST.md
+  - docs/dev/thin-shell-remaining-checklist.md
 ---
+
 
 # Thin Shell — Post-binder closure (Architect gates)
 
@@ -61,3 +61,8 @@ Final honesty pass before Denali product development:
 ## Guards
 
 - `apps/web/test/thin-shell-post-binder-closure.spec.ts` — TS-4BZ-*
+- Checklist authority: [`thin-shell-remaining-checklist.md`](./thin-shell-remaining-checklist.md) (promoted from gitignored `TEMP/THIN_SHELL_REMAINING_CHECKLIST.md` — Wave-0 / PSR-2c; do not reintroduce root `TEMP/` for CI)
+
+### Logic — why promote the checklist
+
+TS-4BZ-02/03 open the remaining checklist on every full `pnpm test` (Phase 0 integration → Phase 5 / `ci:integrity`). `TEMP/` is `.gitignore`d, so fresh clones and GHA runners hit `ENOENT`. Same pattern as Phase 18 agent-pack promotion (`docs/phase-18/agent-pack/`): clone-addressable bytes under `docs/dev/`, specs retargeted, Markdoc `extends` updated.
