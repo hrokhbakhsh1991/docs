@@ -12,6 +12,7 @@ const env = process.env as Record<string, string | undefined>;
 const envSnapshot = {
   PLATFORM_OPS_PHONES: env.PLATFORM_OPS_PHONES,
   PLATFORM_OPS_BEARER_TOKEN: env.PLATFORM_OPS_BEARER_TOKEN,
+  PLATFORM_ROOT_DOMAIN: env.PLATFORM_ROOT_DOMAIN,
 };
 
 afterEach(() => {

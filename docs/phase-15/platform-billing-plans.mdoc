@@ -38,6 +38,8 @@ Seed: `seedPlatformPlans()` via `db:seed`.
 
 `createTenantSubscriptionOnProvision` inserts `tenant_subscriptions.plan_id = 'standard'`. Truncate-based CI (`db:test-reset`) clears `platform_plans`, so Postgres provision specs (`platform-provision.spec.ts` 201 path) **must** call `seedPlatformPlans()` before `handlePlatformTenantsCreate` — otherwise Prisma fails with `tenant_subscriptions_plan_id_fkey`.
 
+The same 201 path builds club site URLs via `readPlatformRootDomain()` / `buildClubSiteUrls`. Gate runners often omit `PLATFORM_ROOT_DOMAIN`, which surfaces as HTTP **500** with `PLATFORM_ROOT_DOMAIN environment variable is required`. The harness must set a stable root (e.g. `example.test`) for the DB-backed case and restore it in `afterEach`.
+
 Teardown note: finance HTTP suites that write `http_idempotency_records` must `deleteMany` those rows before `tenant.delete` (FK `http_idempotency_records_tenant_id_fkey`).
 
 See also: [`platform-impersonation.mdoc`](platform-impersonation.mdoc) · [`platform-control-center-api.mdoc`](platform-control-center-api.mdoc)
