@@ -1,11 +1,13 @@
 # Phase 8 — Guards reference
 
 ```yaml
-guard_version: "2026-08-02-v4"
+guard_version: "2026-08-03-v5"
 authority: MAP §12 R2 · phase-8-agent-router.md · phase-8-charter.md
 fail_token: FAIL
 charter_gates: 25
 runner: scripts/guards/phase-8-guard.mjs
+digest_lock: "15af23b2861cd7dac01cebd0afaa8cfc93150f627bf01d4983f4a650ed9aa8f4"
+digest_note: "Wave A 2026-08-03 — platform-core denali token purge; refresh reports/phase-{7,8}-genericity-baseline.yaml together"
 ```
 
 ## Commands

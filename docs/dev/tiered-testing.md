@@ -48,6 +48,8 @@ Hooks cannot be bypassed (`HUSKY=0` / `SKIP_HOOKS` rejected). Fast path is the n
 
 `MAIN_BRANCH_REQUIRED_CHECKS` job **names** are unchanged (PSR-3b freeze). Only recipes and `if:` conditions changed.
 
+**platform-core digest lock (INV-P8-001 / REQ-P7-007):** Wave A also purged Denali product tokens from `packages/platform-core` so `phase-1:guard` g3/g3b/g3c pass. That tree change refreshes `platform_core_tree_digest` in both [`reports/phase-7-genericity-baseline.yaml`](../../reports/phase-7-genericity-baseline.yaml) and [`reports/phase-8-genericity-baseline.yaml`](../../reports/phase-8-genericity-baseline.yaml) to `15af23b2861cd7dac01cebd0afaa8cfc93150f627bf01d4983f4a650ed9aa8f4` (103 files, same REQ-P7-007 algorithm). Keep the locked `Phase 6.6 denali smoke` test title in `rule-context-tenant.spec.ts` (allowed by g3b title exemption; required by `verify-phase-7-genericity-proof-rev.mjs`). This is hygiene for the genericity rail — not an urban product edit — and keeps `p8_platform_core_zero_diff` + ADV-P7-P0-04 green under digest-lock `deadbeef*` SHAs in shallow CI.
+
 ```mermaid
 flowchart LR
   PR[PR] --> L0[Foundation + short guards]
