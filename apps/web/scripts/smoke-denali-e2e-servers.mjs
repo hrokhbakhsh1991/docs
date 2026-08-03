@@ -55,6 +55,8 @@ seed.on("exit", (code) => {
     TENANT_RATE_LIMIT_ENABLED: "false",
     AUTH_ALLOW_DEV_BEARER: "true",
     AUTH_ALLOW_DEV_STATIC_OTP: "true",
+    PUBLIC_TENANT_FALLBACK_LABEL: "denali",
+    PUBLIC_TENANT_FALLBACK_HOSTS: "127.0.0.1,localhost",
   });
 
   const webEnv = {
