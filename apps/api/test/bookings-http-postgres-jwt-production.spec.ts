@@ -190,6 +190,26 @@ describe(
         })
       );
 
+      // Production integrity fail-closes on tour SoT capacityMax — client intake alone is rejected.
+      // Column publish_status CHECK allows draft|published (not Denali-canonical "active").
+      await admin.tour.create({
+        data: {
+          id: tourId,
+          tenantId,
+          title: "JWT Prod Cert Tour",
+          publishStatus: "published",
+          canonical: {
+            schemaVersion: 1,
+            roots: ["basics"],
+            data: {
+              title: "JWT Prod Cert Tour",
+              publishStatus: "published",
+              capacityMax: 20,
+            },
+          },
+        },
+      });
+
       const repo = getBookingsRepository();
       assert.ok(repo instanceof PrismaBookingsRepository);
       listener = createRequestListener();
@@ -199,6 +219,7 @@ describe(
       try {
         await admin.outboxEvent.deleteMany({ where: { tenantId } });
         await admin.operatorRegistration.deleteMany({ where: { tenantId } });
+        await admin.tour.deleteMany({ where: { id: tourId } });
         await admin.userTenant.deleteMany({ where: { tenantId } });
         await admin.user.deleteMany({ where: { id: userId } });
         await admin.tenant.deleteMany({ where: { id: tenantId } });

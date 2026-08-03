@@ -45,7 +45,7 @@ const REQUIRED_FILES = [
   "apps/api/src/openapi/public-auth-openapi.ts",
   "apps/api/test/public-auth.spec.ts",
   "apps/portal/src/catalog/public-catalog-registration-flow.tsx",
-  "apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx",
+  "apps/portal/app/catalog/[tourId]/register/page.tsx",
   "apps/portal/app/api/catalog/registrations/route.ts",
   "apps/portal/playwright.portal.config.ts",
   "apps/portal/tests/e2e/portal-registration-smoke.spec.ts",

@@ -223,12 +223,21 @@ Reference mutation pattern: `approveWithOutbox` — `findFirst({ id, tenantId })
 
 Caller authz remains mandatory: `finance.service.ts` passes `auth.tenantId` into `getById` and asserts `booking.submittedByUserId === auth.userId`.
 
+## Query-capture bind (BK-PAGE / PERF SQL shape)
+
+Postgres SQL-shape suites (`bookings-list-pagination`, `bookings-pagination-stress`, `bookings-perf`) construct a `PrismaClient` with `log: [{ emit: "event", level: "query" }]` and `$on("query")`, then install it as the process singleton via:
+
+`__testBindPrismaClientForQueryCapture(binding)` in `apps/api/src/db/prisma.ts`
+
+**Logic:** `getPrisma()` returns the bound client so `PrismaBookingsRepository` SQL is the captured stream. Dispose leaves the binding installed so a subsequent `disconnectPrisma()` closes that client and clears the singleton (restore is a no-op for the singleton pointer). Without this export, BK-PAGE-04/05 and PERF-* throw `TypeError: … is not a function`.
+
 ## Implementation references
 
 | Concern | Code |
 |---------|------|
 | Bookings list projection | `BOOKING_LIST_SELECT` in `prisma-bookings.repository.ts` |
 | Bookings keyset | `listByTenantPage` — `(submittedAt desc, id desc)` |
+| Bookings SQL capture bind | `__testBindPrismaClientForQueryCapture` in `db/prisma.ts` |
 | Bookings duplicate checks | `BookingsService` over `listByTenant` (port finders removed) |
 | User booking summary | count + `listRecentBySubmittedUser` — `bookings-member-summary-projection.ts` |
 | Deprecated listByTenant | `listByTenantPage` cap 500 |

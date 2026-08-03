@@ -189,7 +189,7 @@ resolved_contradictions:
   - id: P4-ALIGN-02
     topic: "Phase 3 Closed vs tenant production"
     rule: "phase-3:gate = visual/app/CASL scaffold; tenant production honesty = 4.0 R0–R3 + 4.2+"
-    refs: [audit-red-flags-phase-3.md, docs/backlog/phase-3.2-red-flag-backlog.md]
+    refs: [docs/archive/root-forensics/audit-red-flags-phase-3.md, docs/backlog/phase-3.2-red-flag-backlog.md]
   - id: P4-ALIGN-03
     topic: "TenantTheme stub phase 2 vs production phase 4"
     rule: "TenantThemeConfig types in workspace-sdk phase 2; provider+DB phase 4"

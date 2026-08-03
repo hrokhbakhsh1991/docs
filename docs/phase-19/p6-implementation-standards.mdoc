@@ -109,8 +109,11 @@ Portal P6-1 target refactor (when touching OTP):
 ```text
 src/features/auth/public-registration-logic.ts   ← step machine helpers
 src/features/auth/public-registration-types.ts
-app/catalog/.../public-catalog-registration-flow.tsx  ← thin compose
+src/catalog/public-catalog-registration-flow.tsx ← OTP step machine (canonical)
+app/catalog/[tourId]/register/page.tsx           ← route shell imports @/catalog/...
 ```
+
+M17 (`guard-public-catalog-m17`) requires the **src** flow path only — do not revive a duplicate under `app/catalog/.../public-catalog-registration-flow.tsx`.
 
 ### 3.2 BFF-only browser → API
 

@@ -9,6 +9,9 @@
  *   → Postgres `tenants` when DATABASE_URL set; static DEV_TENANTS only when
  *     isStaticTenantRegistryAllowed() (test, or dev without DATABASE_URL).
  *
+ * Auth: header-based identity (`x-authenticated-tenant-id`) is allowed only when
+ * `NODE_ENV=test`. Using `development` yields 401 UNAUTHORIZED_HEADER_AUTH_FORBIDDEN_OUTSIDE_TEST.
+ *
  * Dynamic sync proof: mid-load admin UPDATE to tenants.theme must appear on
  * subsequent GET /api/v2/tenant-config without process restart
  * (`updateTenantRegistryRow` → DEC-074 cache invalidation; 5s TTL otherwise stale).
@@ -113,7 +116,10 @@ describe(
     const envSnapshot = { NODE_ENV: process.env.NODE_ENV };
 
     before(async () => {
-      process.env.NODE_ENV = "development";
+      // Header auth (`x-authenticated-tenant-id`) is permitted only when NODE_ENV=test
+      // (UNAUTHORIZED_HEADER_AUTH_FORBIDDEN_OUTSIDE_TEST). Dynamic sync still hits
+      // Postgres when DATABASE_URL is set — HT-01 registry path is unchanged.
+      process.env.NODE_ENV = "test";
       await new ProvisioningService().seedDevTenants();
 
       const admin = getPrismaAdmin();

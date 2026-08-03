@@ -199,6 +199,15 @@ jobs:
       - name: Install CI OS packages
         run: sudo apt-get update && sudo apt-get install -y ripgrep
 
+      - name: Build workspace dist (sdk · core · urban plugins)
+        run: bash scripts/ci/build-api-workspace-deps.sh
+
+      - name: Touch API env files for node --env-file
+        run: touch apps/api/.env apps/api/.env.local
+
+      - name: Prisma generate (API webServer imports @prisma/client)
+        run: pnpm --filter @apps/api run prisma:generate
+
       - name: Install Playwright Chromium
         run: pnpm --filter @apps/web exec playwright install --with-deps chromium
 
@@ -207,14 +216,21 @@ jobs:
           grep -q 'urban.localhost' /etc/hosts || echo '127.0.0.1 urban.localhost workspace-owner-smoke.localhost workspace-member-smoke.localhost shop.urban.localhost' | sudo tee -a /etc/hosts
 
       - name: Urban E2E integrity (SMK-P8-01..04)
-        run: pnpm --filter @apps/web run test:e2e:urban
+        # Charter gate is SMK-P8 only — urban-wizard-create (SMK-P15-W-D2) is Phase 15.
+        # Use dedicated script: `pnpm run … -- --grep` forwards a literal `--` that Playwright
+        # treats as a test-file filter → "No tests found".
+        run: pnpm --filter @apps/web run test:e2e:urban:smk-p8
 
   ci-integrity:
     name: Phase 8 ci:integrity (cross-phase 0→3)
     runs-on: ubuntu-latest
     timeout-minutes: 90
     needs: guard
-    if: github.event_name != 'workflow_dispatch' || inputs.run_ci_integrity
+    # Wave A — PR no longer double-runs ci:integrity (Phase 7 owns PR path when enabled).
+    # Trunk / manual only.
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.run_ci_integrity)
 
     services:
       postgres:

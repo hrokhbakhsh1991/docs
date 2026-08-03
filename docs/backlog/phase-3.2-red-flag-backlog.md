@@ -1,10 +1,10 @@
 # Phase 3.2 — Primary Backlog (Red Flags)
 
 **Status:** P0/P1 tracks closed (R0–R3) — gate refresh + Playwright waiver before MAP «Locked»  
-**Source of truth:** [`audit-red-flags-phase-3.md`](../../audit-red-flags-phase-3.md)  
+**Source of truth:** [`audit-red-flags-phase-3.md`](../archive/root-forensics/audit-red-flags-phase-3.md)  
 **Stance:** Scaffold Theater → **honest scaffold** with blocking security and one real vertical slice (web → API)
 
-**Do not claim:** MAP **“Locked / Zero-Debt Verified”** until `pnpm run phase-3:gate` on post-gap SHA + [`final-phase-3-audit-report.md`](../final-phase-3-audit-report.md) PASS + Playwright EC-33-3/4 waived or implemented.
+**Do not claim:** MAP **“Locked / Zero-Debt Verified”** until `pnpm run phase-3:gate` on post-gap SHA + [`final-phase-3-audit-report.md`](../archive/root-forensics/final-phase-3-audit-report.md) PASS + Playwright EC-33-3/4 waived or implemented.
 
 ---
 
@@ -169,7 +169,7 @@ Redirect /tours/[id] or success surface with tour id
 - [x] RF-SCALE-1/2/3 closed (no full scan on write; tenant-scoped index; bounds) — R2
 - [x] RF-F08 closed (wizard submit persists via server → API) — R3 TourClient bridge
 - [ ] `pnpm run phase-3:gate` still green
-- [ ] `audit-red-flags-phase-3.md` P0/P1 rows marked remediated in `reports/phase-3.2-red-flag-status-*.md`
+- [ ] `docs/archive/root-forensics/audit-red-flags-phase-3.md` P0/P1 rows marked remediated in `reports/phase-3.2-red-flag-status-*.md`
 
 ---
 

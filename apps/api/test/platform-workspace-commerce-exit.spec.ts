@@ -12,7 +12,7 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 describe("platform-workspace-commerce-exit (P5-C optional)", () => {
   it("EX-C-01 epic spec declares optional + Denali frozen", () => {
     const spec = readFileSync(
-      join(repoRoot, "TEMP/p5/p5-c-workspace-commerce-config.md"),
+      join(repoRoot, "docs/phase-18/agent-pack/p5-c-workspace-commerce-config.md"),
       "utf8"
     );
     assert.match(spec, /optional: true/);

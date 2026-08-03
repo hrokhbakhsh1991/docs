@@ -74,7 +74,28 @@ jobs:
   p6-product-gate:
     name: P6 product gate (p6:gate)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tour_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
+      STORAGE_DRIVER: prisma
+      NODE_ENV: test
 
     steps:
       - uses: actions/checkout@v4
@@ -88,11 +109,21 @@ jobs:
 
       - run: node scripts/guards/check-node-engine.mjs
 
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter @app-tour/workspace-sdk run build
-      - run: pnpm --filter @app-tour/guest-surface-host run build
-      - run: pnpm --filter @app-tour/workspace-denali run build
+      - name: Build workspace dist deps (sdk · contracts · denali · guest-surface-host)
+        run: bash scripts/ci/build-api-workspace-deps.sh
+
+      - run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+
+      - run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+
+      - run: pnpm --filter @apps/api run prisma:generate
+
+      - name: Touch optional env files for node --env-file
+        run: touch apps/api/.env apps/api/.env.local
 
       - name: p6:gate
         run: pnpm run p6:gate
@@ -123,10 +154,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter @app-tour/workspace-sdk run build
-      - run: pnpm --filter @app-tour/guest-surface-host run build
-      - run: pnpm --filter @app-tour/workspace-denali run build
-      - run: pnpm --filter @app-tour/workspace-urban run build
+      - name: Build workspace dist deps
+        run: bash scripts/ci/build-api-workspace-deps.sh
 
       - name: Configure operator dev hosts
         run: |
@@ -185,7 +214,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter @app-tour/workspace-denali run build
+      - name: Build workspace dist deps
+        run: bash scripts/ci/build-api-workspace-deps.sh
 
       - run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
 

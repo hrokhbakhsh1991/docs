@@ -1,6 +1,6 @@
 # Phase 3 — بستن Gapها در ۳ فاز
 
-**منبع:** [`final-phase-3-audit-report.md`](../final-phase-3-audit-report.md)  
+**منبع:** [`final-phase-3-audit-report.md`](../docs/archive/root-forensics/final-phase-3-audit-report.md)  
 **تاریخ:** 2026-06-04
 
 ---
@@ -46,7 +46,7 @@
 
 ## فاز ۳ — صریح‌سازی تعلیق + به‌روزرسانی گزارش قفل
 
-**هدف:** Playwright waiver، bootstrap/tenant Phase 4، انواع فیلد پشتیبانی‌نشده، به‌روزرسانی `final-phase-3-audit-report.md`.
+**هدف:** Playwright waiver، bootstrap/tenant Phase 4، انواع فیلد پشتیبانی‌نشده، به‌روزرسانی `docs/archive/root-forensics/final-phase-3-audit-report.md`.
 
 ---
 

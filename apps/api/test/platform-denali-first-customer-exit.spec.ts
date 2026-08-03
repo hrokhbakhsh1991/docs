@@ -62,8 +62,8 @@ describe("platform-denali-first-customer-exit", () => {
       "utf8"
     );
     assert.match(workflow, /pnpm run p6:gate/);
-    assert.match(workflow, /workspace-urban run build/);
-    assert.match(workflow, /guest-surface-host run build/);
+    assert.match(workflow, /build-api-workspace-deps\.sh/);
+    assert.match(workflow, /DATABASE_URL/);
     assert.match(workflow, /p6:e2e-gate/);
     assert.match(workflow, /p6:staging-gate/);
   });

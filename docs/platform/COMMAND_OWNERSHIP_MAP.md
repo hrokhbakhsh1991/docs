@@ -43,7 +43,12 @@ CI composite setup consolidation (S5.1 / PSR-3b): see [`CI_COMPOSITE_SETUP.md`](
 | `test:phase-0` | Phase 0 SDK contract suite | **Canonical foundation suite** | CI `phase-0:foundation-gate` still depends on this chain |
 | `guard:doc-sync` | Preferred name for documentation-sync guard | **Canonical name** | Keep |
 | `doc-gate` | Full Docs-as-Code gate | **Canonical** | Keep |
-| `ci:integrity` | Integrity chain used by CI / `verify:full` | **Canonical heavy** | CI workflows own callers |
+| `ci:integrity` | Integrity chain used by CI / `verify:full` | **Canonical heavy** | **Wave A:** GHA Phase 7/8 jobs run on **`main` / `workflow_dispatch` only** (not every PR) |
+| `phase-0:integration-gate` | Full trunk integration (`pnpm test` + guards) | **Canonical** | `main` / `ci:integrity` / local |
+| `phase-0:integration-gate:pr` | PR integration (`test:changed` + guards) | **Canonical PR** | `phase-0-gate.yml` pull_request job |
+| `phase-1:gate` | platform-core build/tests + `phase-1:guard` | **Canonical** | Wave A: no monorepo `pnpm test` (Phase 0 / Phase 5 own that) |
+| `phase-4:gate` | build + test + `phase-4:guard` | **Canonical** | Wave A: **denested** (no nested `phase-3:gate`) |
+| `phase-5:gate` | db reset + build + test + `phase-4:guard` + `phase-5:guard` | **Canonical** | Wave A: **denested** (no nested `phase-4:gate`) |
 | Leaf `guard:*` used by CI | Targeted safety leaves | **Required until CI migrates** | Zero CI + docs refs before deprecate |
 
 ---

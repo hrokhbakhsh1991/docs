@@ -13,6 +13,10 @@ Web-layer proof that two tenants receive distinct tenant theme CSS variables via
 
 API baseline: `apps/api/test/4-integration/dynamic-config-sync.spec.ts` (Postgres). TH-1 adds **browser** proof per [`test-matrix.md`](test-matrix.md).
 
+### `dynamic-config-sync` auth env (MR-P0-006)
+
+The integration listener must run with `NODE_ENV=test` so header auth (`x-authenticated-tenant-id`) is accepted. `NODE_ENV=development` returns **401** (`UNAUTHORIZED_HEADER_AUTH_FORBIDDEN_OUTSIDE_TEST`) even when `DATABASE_URL` is set — Postgres theme sync still applies under `test` via HT-01 when `DATABASE_URL` is present. See [`production-auth-policy.md`](production-auth-policy.md).
+
 ## Prerequisites
 
 ```bash

@@ -5,8 +5,8 @@ format: markdoc
 role: standard
 owner: platform-architecture
 status: active
-last_verified: 2026-07-31
-verified_sha: 3d4f25d2
+last_verified: 2026-08-02
+verified_sha: null
 supersedes: []
 superseded_by: null
 evidence:
@@ -32,9 +32,14 @@ only in [`docs/index.yaml`](../index.yaml).
    broken relative links after a move (link-fix commits only).
 3. **Inbound links from active docs** may point at archive for history; they
    must not treat archive as the sole SoT for a live concern.
-4. **Ignored scratch (`TEMP/`, `temp/`)** is never archive. Promote first
-   (PSR-2b) or drop authority links (PSR-2c); do not `git add` TEMP.
-5. **PSR-2c pilot:** root-command satellite worksheets →
+4. **Ignored scratch (`TEMP/`, `temp/`, `tmp/`, `.tmp/`)** is never archive.
+   Promote first (PSR-2b) or drop authority links (PSR-2c); do not `git add`
+   TEMP/tmp scratch.
+5. **Root local-ops notes are not archive.** Machine-specific SSH / VS Code /
+   host-connection guides must not live at the monorepo root and must not be
+   relocated into `docs/archive/` (they are not program authority). Remove them
+   from the tree; recover from git history only if needed.
+6. **PSR-2c pilot:** root-command satellite worksheets →
    [`psr-001/root-command/`](./psr-001/root-command/). Full `docs/phase-*`
    relocation remains a follow-on slice after link hygiene is green.
 
@@ -46,5 +51,14 @@ docs/archive/
   ARCHIVE-POLICY via standard above
   psr-001/
     root-command/             # 15 ROOT_COMMAND_* worksheets (PSR-2c)
+  root-forensics/             # former monorepo-root audit/health reports
     # future: phase-N/ … when scheduled
 ```
+
+### `root-forensics/` (Wave-1 hygiene)
+
+Immutable copies of reports that previously cluttered the monorepo root
+(`ENTERPRISE_AUDIT_REPORT.md`, `audit-red-flags-phase-*.md`,
+`SYSTEM_HEALTH_REPORT.md`, etc.). They remain searchable historical evidence.
+Active authority stays in phase guides, MAP, and `docs/audits/` / live guards —
+do not treat `root-forensics/` as SoT for open remediation work.

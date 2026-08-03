@@ -1,6 +1,6 @@
 /**
  * P5 — enterprise evolution phase exit contract (agent pack verification)
- * @see TEMP/p5/p5-a-cutover-pilot.md P5-A-N-013
+ * @see docs/phase-18/agent-pack/p5-a-cutover-pilot.md P5-A-N-013
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -11,9 +11,9 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const gateScriptPath = join(repoRoot, "scripts/p5-enterprise-evolution-gate.sh");
 const packageJsonPath = join(repoRoot, "package.json");
-const manifestPath = join(repoRoot, "TEMP/p5/AGENT-MANIFEST.yaml");
-const preservationPath = join(repoRoot, "TEMP/p5/PRESERVATION-CHECKLIST.md");
-const exitChecklistPath = join(repoRoot, "TEMP/p5-exit-checklist.md");
+const manifestPath = join(repoRoot, "docs/phase-18/agent-pack/AGENT-MANIFEST.yaml");
+const preservationPath = join(repoRoot, "docs/phase-18/agent-pack/PRESERVATION-CHECKLIST.md");
+const exitChecklistPath = join(repoRoot, "docs/phase-18/agent-pack/p5-exit-checklist.md");
 
 describe("platform-enterprise-evolution-exit (P5 agent pack)", () => {
   it("EX-P5-01 p5:gate script and package.json wiring", () => {
@@ -72,8 +72,8 @@ describe("platform-enterprise-evolution-exit (P5 agent pack)", () => {
       "utf8"
     );
     const readme = readFileSync(join(repoRoot, "docs/phase-18/README.md"), "utf8");
-    assert.match(cutover, /execution_spec: TEMP\/p5\/p5-a-cutover-pilot.md/);
-    assert.match(parity, /execution_spec: TEMP\/p5\/p5-b-denali-operator-parity.md/);
+    assert.match(cutover, /execution_spec: docs\/phase-18\/agent-pack\/p5-a-cutover-pilot.md/);
+    assert.match(parity, /execution_spec: docs\/phase-18\/agent-pack\/p5-b-denali-operator-parity.md/);
     assert.match(readme, /platform-metadata-cutover-pilot/);
     assert.match(readme, /platform-denali-operator-parity/);
   });
@@ -95,7 +95,7 @@ describe("platform-enterprise-evolution-exit (P5 agent pack)", () => {
   });
 
   it("EX-P5-08 DOC-SYNC index is canonical cross-file SoT", () => {
-    const index = readFileSync(join(repoRoot, "TEMP/p5/DOC-SYNC-INDEX.md"), "utf8");
+    const index = readFileSync(join(repoRoot, "docs/phase-18/agent-pack/DOC-SYNC-INDEX.md"), "utf8");
     assert.match(index, /doc_integrity_score: 9\.9\/10/);
     assert.match(index, /current_task: null/);
     assert.match(index, /nano_done: 56/);
@@ -111,7 +111,7 @@ describe("platform-enterprise-evolution-exit (P5 agent pack)", () => {
 
   it("EX-A-02 enterprise assessment documents staging pilot (P5-A)", () => {
     const assessment = readFileSync(
-      join(repoRoot, "TEMP/wizard-denali-enterprise-assessment.md"),
+      join(repoRoot, "docs/phase-18/agent-pack/wizard-denali-enterprise-assessment.md"),
       "utf8"
     );
     assert.match(assessment, /Stage 2 Pilot.*✅/);
@@ -121,7 +121,7 @@ describe("platform-enterprise-evolution-exit (P5 agent pack)", () => {
 
   it("EX-P5-09 enterprise assessment documents P5-full exit ≥9.5", () => {
     const assessment = readFileSync(
-      join(repoRoot, "TEMP/wizard-denali-enterprise-assessment.md"),
+      join(repoRoot, "docs/phase-18/agent-pack/wizard-denali-enterprise-assessment.md"),
       "utf8"
     );
     assert.match(assessment, /P5-full EPIC exit/);

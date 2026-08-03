@@ -64,7 +64,8 @@ jobs:
   integration-gate:
     name: Phase 0 integration gate
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # PR uses test:changed (integration-gate:pr); main keeps full pnpm test.
+    timeout-minutes: 45
     env:
       # H-12 — full monorepo legacy-import depcruise (all packages/workspaces).
       LEGACY_IMPORT_SCAN_SCOPE: monorepo
@@ -100,7 +101,12 @@ jobs:
           echo "integration-gate HEAD=$(git rev-parse HEAD)"
           node scripts/verify-phase-7-genericity-proof-rev.mjs
 
-      - name: Phase 0 integration gate (trunk integrity)
+      - name: Phase 0 integration gate (PR fast — test:changed)
+        if: github.event_name == 'pull_request'
+        run: pnpm run phase-0:integration-gate:pr
+
+      - name: Phase 0 integration gate (trunk — full pnpm test)
+        if: github.event_name != 'pull_request'
         run: pnpm run phase-0:integration-gate
 
       - name: Upload integration gate report

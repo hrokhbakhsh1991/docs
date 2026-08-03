@@ -3,15 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "description": "Static Iranian mountaineering landmark dictionary for geocoding fallback (Thin Shell Phase 4bi \u2014 out of apps/web)",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     }
   },
   "files": [
+    "src",
     "dist"
   ],
   "scripts": {

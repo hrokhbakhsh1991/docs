@@ -29,14 +29,14 @@ describe("resolveFieldExposureDecision", () => {
   const definitions: readonly FieldDefinition[] = [
     {
       id: "title",
-      workspaceType: "denali",
+      workspaceType: "starter",
       canonicalPath: "title",
       kind: "text",
       version: 1,
     },
     {
       id: "meetingPoint",
-      workspaceType: "denali",
+      workspaceType: "starter",
       canonicalPath: "logistics.meetingPoint",
       kind: "text",
       version: 1,
@@ -45,7 +45,7 @@ describe("resolveFieldExposureDecision", () => {
   const rules: readonly FieldPolicyRule[] = [
     {
       id: "title-visible",
-      workspaceType: "denali",
+      workspaceType: "starter",
       fieldId: "title",
       surface: "delivery",
       state: "visible",
@@ -55,7 +55,7 @@ describe("resolveFieldExposureDecision", () => {
     },
     {
       id: "meeting-hidden",
-      workspaceType: "denali",
+      workspaceType: "starter",
       fieldId: "meetingPoint",
       surface: "delivery",
       state: "hidden",
@@ -67,7 +67,7 @@ describe("resolveFieldExposureDecision", () => {
 
   it("returns a visible skeleton decision with staged reason markers", () => {
     const decision = resolveFieldExposureDecision({
-      workspaceType: "denali",
+      workspaceType: "starter",
       fieldId: "title",
       entityState: { tour: { status: "DRAFT" } },
       surface: "telegram",
@@ -84,7 +84,7 @@ describe("resolveFieldExposureDecision", () => {
 
   it("hides fields that are missing from the registry snapshot", () => {
     const decision = resolveFieldExposureDecision({
-      workspaceType: "denali",
+      workspaceType: "starter",
       fieldId: "unknown",
       entityState: { tour: { status: "published" } },
       surface: "telegram",
@@ -100,7 +100,7 @@ describe("resolveFieldExposureDecision", () => {
   it("maps FieldPolicy visible states to visible exposure decisions", () => {
     const decision = resolveFieldExposureDecision({
       tenantId: "tenant-a",
-      workspaceType: "denali",
+      workspaceType: "starter",
       fieldId: "title",
       entityState: { tour: { status: "published" } },
       surface: "telegram",
@@ -118,7 +118,7 @@ describe("resolveFieldExposureDecision", () => {
   it("enforces FieldPolicy hidden as a hard lower bound", () => {
     const decision = resolveFieldExposureDecision({
       tenantId: "tenant-a",
-      workspaceType: "denali",
+      workspaceType: "starter",
       fieldId: "meetingPoint",
       entityState: { tour: { status: "published" } },
       surface: "telegram",
@@ -136,7 +136,7 @@ describe("resolveFieldExposureDecision", () => {
   it("blocks exposure when intent is disabled", () => {
     const decision = resolveFieldExposureDecision({
       tenantId: "tenant-a",
-      workspaceType: "denali",
+      workspaceType: "starter",
       fieldId: "title",
       entityState: { tour: { status: "published" } },
       surface: "telegram",
@@ -155,7 +155,7 @@ describe("resolveFieldExposureDecision", () => {
   it("hides fields outside override_fields selectedFieldIds", () => {
     const decision = resolveFieldExposureDecision({
       tenantId: "tenant-a",
-      workspaceType: "denali",
+      workspaceType: "starter",
       fieldId: "title",
       entityState: { tour: { status: "published" } },
       surface: "telegram",
@@ -177,7 +177,7 @@ describe("resolveFieldExposureDecision", () => {
   it("keeps selected override_fields visible after FieldPolicy allows exposure", () => {
     const decision = resolveFieldExposureDecision({
       tenantId: "tenant-a",
-      workspaceType: "denali",
+      workspaceType: "starter",
       fieldId: "title",
       entityState: { tour: { status: "published" } },
       surface: "telegram",
@@ -195,7 +195,7 @@ describe("resolveFieldExposureDecision", () => {
   it("hides fields outside the exposure policy allowedFieldIds snapshot", () => {
     const decision = resolveFieldExposureDecision({
       tenantId: "tenant-a",
-      workspaceType: "denali",
+      workspaceType: "starter",
       fieldId: "title",
       entityState: { tour: { status: "published" } },
       surface: "telegram",
@@ -220,7 +220,7 @@ describe("resolveFieldExposureDecision", () => {
   it("allows fields inside the exposure policy allowedFieldIds snapshot", () => {
     const decision = resolveFieldExposureDecision({
       tenantId: "tenant-a",
-      workspaceType: "denali",
+      workspaceType: "starter",
       fieldId: "title",
       entityState: { tour: { status: "published" } },
       surface: "telegram",
@@ -245,7 +245,7 @@ describe("resolveFieldExposureDecision", () => {
   it("applies inherit_profile exposure policy before intent narrowing", () => {
     const decision = resolveFieldExposureDecision({
       tenantId: "tenant-a",
-      workspaceType: "denali",
+      workspaceType: "starter",
       fieldId: "title",
       entityState: { tour: { status: "published" } },
       surface: "telegram",
@@ -267,7 +267,7 @@ describe("resolveFieldExposureDecision", () => {
   it("does not change inherit_profile decisions beyond FieldPolicy when policy allows the field", () => {
     const decision = resolveFieldExposureDecision({
       tenantId: "tenant-a",
-      workspaceType: "denali",
+      workspaceType: "starter",
       fieldId: "title",
       entityState: { tour: { status: "published" } },
       surface: "telegram",

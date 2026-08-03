@@ -2,7 +2,7 @@
 
 **Re-verification date:** 2026-07-07  
 **Method:** Ruthless static analysis — grep, file reads, guard script inspection, subagent cross-verification against live trunk (not stale report copy).  
-**Charter:** `ENTERPRISE_AUDIT_REPORT.md` audit points 1–10, 13–18, 21, 25.
+**Charter:** `docs/archive/root-forensics/ENTERPRISE_AUDIT_REPORT.md` audit points 1–10, 13–18, 21, 25.
 
 ---
 

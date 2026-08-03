@@ -5,11 +5,14 @@ import { afterEach, describe, it } from "node:test";
 import { toCreateTenantResponse } from "../src/platform/create-tenant-response.dto.ts";
 import { handlePlatformTenantsCreate } from "../src/routes/platform/tenants-create.ts";
 import { resetPlatformIdempotencyMemoryForTests } from "../src/routes/platform/tenants-create-idempotency.ts";
+import { seedPlatformPlans } from "../scripts/seed-platform-plans.ts";
+import { disconnectPrisma } from "../src/db/prisma.ts";
 
 const env = process.env as Record<string, string | undefined>;
 const envSnapshot = {
   PLATFORM_OPS_PHONES: env.PLATFORM_OPS_PHONES,
   PLATFORM_OPS_BEARER_TOKEN: env.PLATFORM_OPS_BEARER_TOKEN,
+  PLATFORM_ROOT_DOMAIN: env.PLATFORM_ROOT_DOMAIN,
 };
 
 afterEach(() => {
@@ -28,8 +31,13 @@ function makeMockReqWithBody(
   body: string,
   url = "/platform/v1/tenants"
 ) {
+  // Node IncomingMessage lowercases header names; mocks must match.
+  const normalized: Record<string, string | undefined> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    normalized[key.toLowerCase()] = value;
+  }
   return {
-    headers,
+    headers: normalized,
     url,
     method: "POST",
     [Symbol.asyncIterator]: async function* () {
@@ -145,6 +153,10 @@ describe("Platform provision endpoint", () => {
     "201 handler creates tenant when DATABASE_URL set",
     async () => {
       delete env.PLATFORM_OPS_PHONES;
+      // Site URL builder requires PLATFORM_ROOT_DOMAIN (readPlatformRootDomain).
+      env.PLATFORM_ROOT_DOMAIN = "example.test";
+      // db:test-reset truncates platform_plans; provision FK requires standard plan.
+      await seedPlatformPlans();
       const subdomain = `prov-${Date.now().toString(36)}`.slice(0, 40);
       const ownerPhone = "+15550008888";
       const req = makeMockReqWithBody(
@@ -169,6 +181,7 @@ describe("Platform provision endpoint", () => {
       assert.ok(
         typeof out.body.invite?.inviteToken === "string" && out.body.invite.inviteToken.length > 0
       );
+      await disconnectPrisma();
     }
   );
 });

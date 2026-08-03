@@ -25,9 +25,28 @@ PostgreSQL **partial unique indexes** enforce uniqueness for rows that are not `
 
 Application layer still pre-checks for friendly UX. On race, Prisma `P2002` maps to `BOOKING_GUEST_DUPLICATE` (HTTP 409).
 
-## Harness note (capacity / concurrency specs)
+## Harness note (capacity / concurrency / list pagination specs)
 
-Fixtures that seed **multiple active** rows on the same tour (pending or approved) must use a **distinct** `submitted_by_user_id` (and distinct `guest_label`) per row. Reusing one user across pendings violates `uq_operator_reg_active_user` and is not a valid domain scenario — capacity races model distinct guests competing for seats.
+Fixtures that seed **multiple active** rows on the same tour (pending or approved) must use **distinct** values for every active unique key — not only submitter:
+
+| Key | Index | Harness rule |
+| --- | --- | --- |
+| `submitted_by_user_id` | `uq_operator_reg_active_user` | `randomUUID()` (or otherwise unique) per row |
+| `guest_label` | `uq_operator_reg_active_label` | Distinct label string per row |
+| `guest_email` / `guest_phone` | email / phone uniques | Distinct or null |
+| `registration_intake.nationalId` | `uq_operator_reg_active_national_id` | **Per-row** nationalId when intake includes the key — a shared `HEAVY_REGISTRATION_INTAKE` blob will fail on the 2nd insert |
+
+Reusing one user (or one nationalId) across pendings is not a valid domain scenario — capacity races model distinct guests competing for seats.
+
+**List SQL filters after uniqueness:** when submitters are unique per row, tests must **not** filter `submittedByUserId` to a single shared fixture user for multi-row walks (BK-PAGE-05/07). Filter by `tourId` + `status` (and assert on `submittedAt` / id order) instead.
+
+Same rule applies to Postgres seed hooks in:
+
+| Spec | Why |
+| --- | --- |
+| `bookings-list-pagination.spec.ts` (Postgres SQL edge cases) | Tied-timestamp + noise rows on one tour |
+| `bookings-pagination-stress.spec.ts` (Postgres stress) | Exact-limit + tie-break seeds — unique nationalId per heavy intake |
+| `bookings-perf.spec.ts` (Postgres projection) | Bulk SEED_ROW_COUNT on one tour — unique nationalId per row |
 
 ## Verification
 

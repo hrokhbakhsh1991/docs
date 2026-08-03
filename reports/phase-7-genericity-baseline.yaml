@@ -1,8 +1,8 @@
 # Phase 7 genericity baseline — digest-locked after platform-core exposure + wizard ingress (Phase F unblock)
 # baseline_sha intentionally absent from git: use platform_core_tree_digest when ref missing (REQ-P7-007 shallow CI).
 baseline_sha: deadbeef00000000000000000000000000000000
-platform_core_tree_digest: e5530071b35c92d72cf76e06cd645acbb118f996046c0ff1d17cbc2674e1292a
+platform_core_tree_digest: 15af23b2861cd7dac01cebd0afaa8cfc93150f627bf01d4983f4a650ed9aa8f4
 platform_core_file_count: 103
-recorded_at: "2026-08-01T17:10:00Z"
-recorded_by: "P7-2-A01 digest refresh — platform-core wizard host hooks (non-urban); REQ-P7-007 shallow CI lock"
-note: "Digest lock at HEAD+working tree; record real baseline_sha on next platform-core commit (P7-2-A01)"
+recorded_at: "2026-08-03T11:42:00Z"
+recorded_by: "Wave A — platform-core denali token purge (g3/g3b/g3c); REQ-P7-007 shallow CI lock"
+note: "Digest lock after denali-free hygiene; record real baseline_sha on next intentional platform-core commit"

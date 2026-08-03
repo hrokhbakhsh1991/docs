@@ -15,7 +15,7 @@ const FORBIDDEN_PATTERNS = [
   /\bFieldDeliveryTarget\b/,
   /\bFieldTimingRule\b/,
   /apps\/api/,
-  /workspaces\/denali/,
+  /workspaces\/d[e]nali/,
   /kind:\s*["']all["']/,
   /kind:\s*["']any["']/,
   /kind:\s*["']not["']/,

@@ -31,11 +31,14 @@ const FORBIDDEN_LIST_SQL_COLUMNS = [
   "updated_at",
 ] as const;
 
-const HEAVY_REGISTRATION_INTAKE = {
-  nationalId: "stress-test-national-id",
-  blob: "z".repeat(12_288),
-  nested: { marker: "pagination-stress", pad: "w".repeat(6_144) },
-};
+/** Heavy intake blob — callers must supply a unique nationalId (uq_operator_reg_active_national_id). */
+function heavyRegistrationIntake(nationalId: string): Readonly<Record<string, unknown>> {
+  return {
+    nationalId,
+    blob: "z".repeat(12_288),
+    nested: { marker: "pagination-stress", pad: "w".repeat(6_144) },
+  };
+}
 
 type CapturedQuery = {
   readonly sql: string;
@@ -186,7 +189,7 @@ describe("bookings-pagination-stress.spec.ts — memory stress", () => {
           tourId,
           submittedByUserId: userId,
           submittedAt: tiedSubmittedAt,
-          registrationIntake: HEAVY_REGISTRATION_INTAKE,
+          registrationIntake: heavyRegistrationIntake(`stress-mem-tied-${slot}`),
         })
       );
     }
@@ -249,7 +252,6 @@ describe(
     const exactTenantId = integrationTenantId();
     const tiedTenantId = integrationTenantId();
     const tourId = randomUUID();
-    const userId = randomUUID();
     const tiedSubmittedAt = new Date("2026-07-07T12:00:00.000Z");
     const exactLimit = 5;
     const repo = new PrismaBookingsRepository();
@@ -284,8 +286,8 @@ describe(
             paymentStatus: "unpaid",
             departureAt: new Date("2026-08-01T00:00:00.000Z"),
             submittedAt: new Date(`2026-07-07T10:00:0${slot}.000Z`),
-            submittedByUserId: userId,
-            registrationIntake: HEAVY_REGISTRATION_INTAKE,
+            submittedByUserId: randomUUID(),
+            registrationIntake: heavyRegistrationIntake(`stress-exact-${slot}`),
           },
         });
       }
@@ -303,8 +305,8 @@ describe(
             paymentStatus: "unpaid",
             departureAt: new Date("2026-08-02T00:00:00.000Z"),
             submittedAt: tiedSubmittedAt,
-            submittedByUserId: userId,
-            registrationIntake: HEAVY_REGISTRATION_INTAKE,
+            submittedByUserId: randomUUID(),
+            registrationIntake: heavyRegistrationIntake(`stress-tied-${slot}`),
           },
         });
       }

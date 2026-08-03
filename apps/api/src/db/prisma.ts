@@ -36,6 +36,23 @@ export function getPrismaAdmin(): PrismaClient {
   return adminClient;
 }
 
+/**
+ * Test-only — install a query-logging `PrismaClient` as the `getPrisma()` singleton
+ * so repository SQL can be asserted via `$on("query")` (BK-PAGE-04/05, PERF-*, STRESS-07).
+ *
+ * Dispose contract (see `installQueryCapture` in booking list specs): call the returned
+ * restore, then `disconnectPrisma()`. Restore leaves the binding installed so
+ * `disconnectPrisma()` closes the capture client and clears the singleton.
+ */
+export function __testBindPrismaClientForQueryCapture(
+  binding: PrismaClient
+): () => Promise<void> {
+  client = binding;
+  return async () => {
+    // Singleton stays on `binding` until `disconnectPrisma()`.
+  };
+}
+
 /** Test-only — disconnect and reset singleton. */
 export async function disconnectPrisma(): Promise<void> {
   if (client !== undefined) {

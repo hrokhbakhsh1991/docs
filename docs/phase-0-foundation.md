@@ -13,7 +13,7 @@
 > **وضعیت:** **Foundation closure complete (2026-06-03)** — Integration Foundation · `pnpm run phase-0:gate` سبز محلی · spec alias: [`phase-0-spec.mdoc`](phase-0-spec.mdoc)  
 > **Docs-as-Code (§20 MAP):** Markdoc canonical — [`phase-0-foundation.mdoc`](phase-0-foundation.mdoc) · `pnpm run guard:doc-sync` (in `phase-0:gate`)  
 > **مرجع شکست‌های قبلی:** [`legacy/map_2.md`](../legacy/map_2.md) · [`legacy/phase-0-platform-baseline.md`](../legacy/phase-0-platform-baseline.md)  
-> **Forensic audit:** [`audit-red-flags-phase-0.md`](../audit-red-flags-phase-0.md)
+> **Forensic audit:** [`audit-red-flags-phase-0.md`](archive/root-forensics/audit-red-flags-phase-0.md)
 
 ---
 
@@ -30,7 +30,7 @@
 
 ### Known Structural Liabilities (RF-P0)
 
-Source: [`audit-red-flags-phase-0.md`](../audit-red-flags-phase-0.md). Status after painful-gate hardening (2026-06).
+Source: [`audit-red-flags-phase-0.md`](archive/root-forensics/audit-red-flags-phase-0.md). Status after painful-gate hardening (2026-06).
 
 | ID | Liability (one line) | Remediation in this pass |
 |----|----------------------|-------------------------|

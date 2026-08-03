@@ -649,7 +649,7 @@ export function WorkspaceThemeProvider(props: { theme: WorkspaceThemeContract; c
 | **SB-02** | **HIGH** | `dist/**` deep-import surface (“private” = not on index only). | L-01: `exports` = `.` only; `files` whitelist; `verify:exports` (build hook); `guard:artifact-surface` در `phase-2:gate`. پکیج `private` — tarball npm فقط `files`؛ باقی `dist/` on-disk = dev artifact monorepo. | **Remediated** |
 | **SB-03** | **HIGH** | Harness helpers on production `.` export. | Stripped from `index.ts`; harness not in `exports`. | **Remediated** |
 
-مرجع: [`audits/zero-debt-remediation-audit.md`](audits/zero-debt-remediation-audit.md) · [`audit-red-flags-phase-0.md`](../audit-red-flags-phase-0.md) · [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.md`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md).
+مرجع: [`audits/zero-debt-remediation-audit.md`](audits/zero-debt-remediation-audit.md) · [`audit-red-flags-phase-0.md`](archive/root-forensics/audit-red-flags-phase-0.md) · [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.md`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md).
 
 ---
 

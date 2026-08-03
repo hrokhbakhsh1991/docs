@@ -1,6 +1,6 @@
 /**
  * P5-B-N-014 — Denali operator product preservation gate (static contract)
- * @see TEMP/p5/PRESERVATION-CHECKLIST.md
+ * @see docs/phase-18/agent-pack/PRESERVATION-CHECKLIST.md
  * @see docs/phase-18/platform-denali-operator-parity.mdoc
  */
 import assert from "node:assert/strict";
@@ -10,7 +10,7 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
-const checklistPath = join(repoRoot, "TEMP/p5/PRESERVATION-CHECKLIST.md");
+const checklistPath = join(repoRoot, "docs/phase-18/agent-pack/PRESERVATION-CHECKLIST.md");
 const denaliPluginPath = join(
   repoRoot,
   "packages/workspaces/denali/src/denali.plugin.ts"

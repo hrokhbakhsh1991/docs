@@ -1,7 +1,7 @@
 /**
  * Thin Shell Phase 4q — architecture purity locks for DoD checklist §8 signals.
- * @see TEMP/THIN_SHELL_TARGET_ARCHITECTURE_PLAN.md §8
- * @see TEMP/THIN_SHELL_REMAINING_CHECKLIST.md
+ * @see docs/dev/thin-shell-post-binder-closure.mdoc
+ * @see docs/dev/thin-shell-remaining-checklist.md
  */
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";

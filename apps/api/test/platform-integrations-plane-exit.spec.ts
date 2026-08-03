@@ -12,7 +12,7 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 describe("platform-integrations-plane-exit (P5-D optional)", () => {
   it("EX-D-01 epic spec declares egress-before-PSP order", () => {
     const spec = readFileSync(
-      join(repoRoot, "TEMP/p5/p5-d-integrations-plane.md"),
+      join(repoRoot, "docs/phase-18/agent-pack/p5-d-integrations-plane.md"),
       "utf8"
     );
     assert.match(spec, /EG-01 before PSP-01/);

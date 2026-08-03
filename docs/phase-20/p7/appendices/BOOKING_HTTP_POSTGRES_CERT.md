@@ -53,11 +53,39 @@ HTTP
 | T1 | tenant isolation | foreign tenant approve | **404** `BOOKING_NOT_FOUND` | no cross-tenant write |
 | T2 | RLS enforcement | app role + wrong tenant session | empty read | cannot see foreign row |
 
+
+## App-role table privileges (CI migrate order)
+
+CI runs `docs/phase-4/dev/init/01-app-role.sql` **before** `prisma migrate deploy`. That script revokes default privileges for future postgres-owned tables, then grants only tables that already exist. Migrations that create tables later must include explicit `GRANT … TO app_tour` (RLS policies alone are not enough — Postgres still requires table privilege).
+
+Booking HTTP Postgres cert requires at least:
+
+| Table | Grant | Why |
+| ----- | ----- | --- |
+| `tenant_routes` | `SELECT` | `lookupTenantRouteRow` / `bind-request-context` on every authenticated request |
+| `tours` | `SELECT, INSERT, UPDATE, DELETE` | Booking create/capacity paths read tours under `app_tour` + FORCE RLS |
+| `urban_registrations` | `SELECT, INSERT, UPDATE, DELETE` | TODO-002 RLS adversarial + urban intake under `app_tour` + FORCE RLS |
+| `http_idempotency_records` | `SELECT, INSERT, UPDATE, DELETE` | Finance prepay / IDEM-* under Phase 5 + `ci:integrity` (table from `20260605160000`; tip GRANT `20260803120000`) |
+
+Without these grants, Prisma surfaces a truncated `Invalid …` wrapping Postgres `42501 permission denied`. Migrations: `20260802140000_tenant_routes_tours_app_tour_grants` + `20260802150000_urban_registrations_app_tour_grants` + `20260803120000_http_idempotency_app_tour_grants` — tip bumps `EXPECTED_PRISMA_MIGRATION_HEAD` (DEC-097 / MR-P0-003).
+
 ## Proof harness
 
 `apps/api/test/bookings-http-postgres.spec.ts` — only `createRequestListener` + header auth; asserts `PrismaBookingsRepository`.
 
-See also: [`BOOKING_CAPACITY_CONCURRENCY_CERT.md`](./BOOKING_CAPACITY_CONCURRENCY_CERT.md), [`BOOKING_HTTP_ERROR_MATRIX.md`](./BOOKING_HTTP_ERROR_MATRIX.md).
+### TODO-001 — production JWT path (`test:booking-http-postgres-jwt-production`)
+
+Honest production create under `NODE_ENV=production` + JWT (no `x-*` header auth, no harness). Capacity resolution is **fail-closed on tour SoT**:
+
+```text
+BookingsService.resolveEffectiveTourCapacityMax
+  → HostBookingTourCapacityAdapter.resolveTourCapacityMax
+  → tour.canonical.data.capacityMax
+```
+
+When `productionGradeIntegrity` is on (production / prodlike), a missing tour `capacityMax` rejects with `BOOKING_CAPACITY_REJECTED: tourCapacityMax required` even if the client sends `registrationIntake.tourCapacityMax`. The JWT cert therefore **seeds a `tours` row** with `canonical.data.capacityMax` before `POST /bookings` — client intake alone is not a valid production ceiling. Seed `publish_status` as `published` (Postgres `chk_tours_publish_status`); Denali-canonical `active` is not a column-legal value.
+
+See also: [`BOOKING_CAPACITY_CONCURRENCY_CERT.md`](./BOOKING_CAPACITY_CONCURRENCY_CERT.md), [`BOOKING_HTTP_ERROR_MATRIX.md`](./BOOKING_HTTP_ERROR_MATRIX.md), [`BOOKING_REMEDIATION_TODO_001_HARNESS.md`](./BOOKING_REMEDIATION_TODO_001_HARNESS.md).
 
 ## Active submitter uniqueness (MR-P0-011 / hostile audit)
 

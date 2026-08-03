@@ -245,7 +245,6 @@ describe(
     const tenantId = integrationTenantId();
     const tourA = randomUUID();
     const tourB = randomUUID();
-    const userA = randomUUID();
     const userB = randomUUID();
     const tiedSubmittedAt = new Date("2026-07-07T12:00:00.000Z");
     const repo = new PrismaBookingsRepository();
@@ -279,7 +278,8 @@ describe(
             paymentStatus: "unpaid",
             departureAt: new Date("2026-08-01T00:00:00.000Z"),
             submittedAt: tiedSubmittedAt,
-            submittedByUserId: userA,
+            // Unique (tenant_id, tour_id, submitted_by_user_id) — one submitter per row.
+            submittedByUserId: randomUUID(),
           },
         });
       }
@@ -312,7 +312,7 @@ describe(
             paymentStatus: "unpaid",
             departureAt: new Date("2026-08-03T00:00:00.000Z"),
             submittedAt: new Date("2026-07-06T00:00:00.000Z"),
-            submittedByUserId: userA,
+            submittedByUserId: randomUUID(),
           },
         });
       }
@@ -364,11 +364,11 @@ describe(
     it("BK-PAGE-05 keyset cursor uses submittedAt + id OR branch in SQL", async () => {
       const capture = installQueryCapture();
       try {
+        // Submitters are unique per row (uq_operator_reg_active_user) — filter by tour + status only.
         const firstPage = await repo.listByTenantPage({
           tenantId,
           limit: 2,
           tourId: tourA,
-          submittedByUserId: userA,
           status: "pending",
         });
         assert.equal(firstPage.items.length, 2);
@@ -378,7 +378,6 @@ describe(
           tenantId,
           limit: 2,
           tourId: tourA,
-          submittedByUserId: userA,
           status: "pending",
           cursor: firstPage.nextCursor!,
         });
@@ -422,11 +421,11 @@ describe(
     });
 
     it("BK-PAGE-07 full walk with tied submittedAt yields stable id tie-break ordering", async () => {
+      // Distinct submitters per tied row — do not filter submittedByUserId to a shared fixture.
       const all = await collectAllPages(repo, {
         tenantId,
         limit: 1,
         tourId: tourA,
-        submittedByUserId: userA,
         status: "pending",
       });
 

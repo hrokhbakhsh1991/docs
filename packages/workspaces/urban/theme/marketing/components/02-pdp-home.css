@@ -1,5 +1,5 @@
 /* Urban marketing — home + catalog detail (PDP) partial (MKT-15b) */
-body[data-app-surface="marketing"][data-workspace-plugin="urban"] div[data-marketing-home],
+body[data-app-surface="marketing"][data-workspace-plugin="urban"] [data-marketing-home],
 body[data-app-surface="marketing"][data-workspace-plugin="urban"] [data-slot="page-home"] {
   box-sizing: border-box;
   width: 100%;
@@ -43,7 +43,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="urban"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="urban"]
-  div[data-marketing-catalog-detail-page],
+  [data-marketing-catalog-detail-page],
 body[data-app-surface="marketing"][data-workspace-plugin="urban"]
   [data-slot="page-catalog-detail"] {
   box-sizing: border-box;

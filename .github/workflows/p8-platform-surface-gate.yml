@@ -48,7 +48,28 @@ jobs:
   p8-product-gate:
     name: P8 product gate (p8:gate)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tour_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
+      STORAGE_DRIVER: prisma
+      NODE_ENV: test
 
     steps:
       - uses: actions/checkout@v4
@@ -62,9 +83,21 @@ jobs:
 
       - run: node scripts/guards/check-node-engine.mjs
 
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter @app-tour/workspace-denali run build
+      - name: Build workspace dist deps (sdk · contracts · denali · guest-surface-host)
+        run: bash scripts/ci/build-api-workspace-deps.sh
+
+      - run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+
+      - run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+
+      - run: pnpm --filter @apps/api run prisma:generate
+
+      - name: Touch optional env files for node --env-file
+        run: touch apps/api/.env apps/api/.env.local
 
       - name: p8:gate
         run: pnpm run p8:gate

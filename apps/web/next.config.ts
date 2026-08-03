@@ -28,8 +28,9 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{ source: "/favicon.ico", destination: "/icon" }];
   },
-  /** Wave G.a — product workspace packages from manifests (see admin-transpile-packages.generated.mjs). */
-  transpilePackages: [...ADMIN_TRANSPILE_PACKAGES],
+  /** Wave G.a — product workspace packages from manifests (see admin-transpile-packages.generated.mjs).
+   * Plus static geocoding landmarks (non-product; dist or src — always transpile for admin BFF). */
+  transpilePackages: [...ADMIN_TRANSPILE_PACKAGES, "@app-tour/iran-mountain-landmarks"],
   webpack: (config, { webpack, isServer }) => {
     if (!isServer) {
       // Client never bundles Node minio SDK.

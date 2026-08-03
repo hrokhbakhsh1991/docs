@@ -9,6 +9,7 @@ cd "$ROOT"
 
 pnpm --dir packages/catalog-registration-auth run build
 pnpm --dir packages/workspace-sdk run build
+pnpm --dir packages/workspace-plugin-host run build
 pnpm --dir packages/platform-core run build
 pnpm --dir packages/booking-http-contracts run build
 pnpm --dir packages/finance-http-contracts run build
@@ -22,11 +23,16 @@ pnpm --dir packages/wizard-navigation run build
 pnpm --dir packages/catalog-registration-flow-ui run build
 pnpm --dir packages/catalog-intake-ui run build
 pnpm --dir packages/tenant-kernel run build
+pnpm --dir packages/session-client run build
 pnpm --dir packages/platform-events run build
 
 # All product workspaces with a build script (registry + generated bindings).
+# Includes harbor — required before guest-workspace-runtime consumers.
 for dir in packages/workspaces/*/ ; do
   if [[ -f "${dir}package.json" ]] && grep -q '"build"' "${dir}package.json"; then
     pnpm --dir "$dir" run build
   fi
 done
+
+# Guest surface host imports tenant-kernel dist types; build after kernel.
+pnpm --dir packages/guest-surface-host run build

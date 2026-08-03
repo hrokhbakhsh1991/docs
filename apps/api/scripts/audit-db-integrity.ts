@@ -68,8 +68,11 @@ async function audit() {
   console.log(`[AUDIT] Found ${configOrphans.length} orphaned tenant_config rows.`);
   console.log(`[AUDIT] Found ${equipmentOrphans.length} orphaned workspace_equipment rows.`);
 
-  // Write/append to SYSTEM_HEALTH_REPORT.md in root
-  const reportPath = path.resolve(API_ROOT, "../../SYSTEM_HEALTH_REPORT.md");
+  // Append DB integrity section to archived system-health forensic report
+  const reportPath = path.resolve(
+    API_ROOT,
+    "../../docs/archive/root-forensics/SYSTEM_HEALTH_REPORT.md",
+  );
   
   let content = "## 1. Database Integrity Audit\n\n";
   content += `**Audit Timestamp:** ${new Date().toISOString()}\n\n`;

@@ -28,8 +28,9 @@ wave: PSR-2c
 | Deferred dirty docs (8) | Commit with classification | — |
 | SSH/secret absolute-link scrub | No | Later secret review |
 | Domain extract from phase-5/20 | No | Follow-on extract PRs |
+| P5 agent-pack promote (`TEMP/p5` → `docs/phase-18/agent-pack`) | Yes (CI ENOENT close) | Internal TEMP path strings inside pack bodies |
 
-**Forbidden still:** TEMP wipe, single cleanup commit mixing product code,
+**Forbidden still:** TEMP wipe without retargeting clone-bound specs, single cleanup commit mixing product code,
 blind move of all `docs/phase-*`.
 
 ## ROOT_COMMAND active trio

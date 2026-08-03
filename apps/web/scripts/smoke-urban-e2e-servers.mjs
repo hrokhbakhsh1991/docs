@@ -8,6 +8,8 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { resolveSmokeApiJwtEnv } from "../../api/scripts/smoke-api-jwt-env.mjs";
+
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const webDir = path.join(repoRoot, "apps/web");
 const marketingDir = path.join(repoRoot, "apps/marketing");
@@ -16,8 +18,11 @@ const portalDir = path.join(repoRoot, "apps/portal");
 const urbanSmokeTenantId =
   process.env.URBAN_SMOKE_TENANT_ID?.trim() || "00000000-0000-4000-8000-000000000004";
 
+const jwtEnv = await resolveSmokeApiJwtEnv();
+
 const apiEnv = {
   ...process.env,
+  ...jwtEnv,
   NODE_ENV: "test",
   STORAGE_DRIVER: "memory",
   URBAN_SMOKE_E2E_SEED: "1",
@@ -25,10 +30,16 @@ const apiEnv = {
   PORT: "3001",
   TENANT_RATE_LIMIT_ENABLED: "false",
   AUTH_ALLOW_DEV_STATIC_OTP: "true",
+  // Dev bearer is test-only (AUTH_DEV_BEARER_FORBIDDEN_OUTSIDE_TEST). Must not
+  // start via `pnpm run dev` which hardcodes NODE_ENV=development.
+  AUTH_ALLOW_DEV_BEARER: "true",
 };
+delete apiEnv.DATABASE_URL;
+delete apiEnv.DATABASE_URL_ADMIN;
 
 const webEnv = {
   ...process.env,
+  ...jwtEnv,
   NODE_ENV: "development",
   ALLOW_DEV_WEB_SESSION: "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",
@@ -51,6 +62,7 @@ const marketingEnv = {
 
 const portalEnv = {
   ...process.env,
+  ...jwtEnv,
   NODE_ENV: "development",
   ALLOW_DEV_WEB_SESSION: "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",
@@ -135,8 +147,9 @@ async function start() {
   }
 
   if (apiStatus !== 200) {
-    const api = spawn("pnpm", ["--filter", "@apps/api", "run", "dev"], {
-      cwd: repoRoot,
+    // Honor apiEnv.NODE_ENV=test — do not use `pnpm run dev` (forces development).
+    const api = spawn("node", ["--import", "tsx", "--env-file=.env", "--env-file=.env.local", "src/main.ts"], {
+      cwd: path.join(repoRoot, "apps/api"),
       env: apiEnv,
       stdio: "inherit",
     });

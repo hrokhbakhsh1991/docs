@@ -2,8 +2,8 @@
 # Inherited pattern from Phase 7 REQ-P7-007; keep in sync with live packages/platform-core tree.
 baseline_sha: deadbeef0
 inherited_from: reports/phase-7-genericity-baseline.yaml
-platform_core_tree_digest: e5530071b35c92d72cf76e06cd645acbb118f996046c0ff1d17cbc2674e1292a
+platform_core_tree_digest: 15af23b2861cd7dac01cebd0afaa8cfc93150f627bf01d4983f4a650ed9aa8f4
 platform_core_file_count: 103
-recorded_at: "2026-08-01T18:10:00Z"
-recorded_by: "phase-8 digest refresh — align with P7-2-A01 platform-core wizard host hooks (non-product registry)"
-note: "Same digest as reports/phase-7-genericity-baseline.yaml; record real baseline_sha on next platform-core commit"
+recorded_at: "2026-08-03T11:42:00Z"
+recorded_by: "Wave A — platform-core denali token purge (g3/g3b/g3c); non-urban hygiene"
+note: "Digest refreshed after phase-1-guard denali-free pass; same value as phase-7 baseline"

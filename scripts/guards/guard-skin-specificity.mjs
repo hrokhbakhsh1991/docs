@@ -2,7 +2,7 @@
 /**
  * R-10 — workspace skins must not use !important (specificity escalation).
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -40,9 +40,13 @@ function walkCss(dir) {
 for (const ws of readdirSync(WORKSPACES_THEME)) {
   const wsPath = path.join(WORKSPACES_THEME, ws);
   const themeDir = path.join(wsPath, "theme");
-  if (statSync(wsPath).isDirectory() && statSync(themeDir).isDirectory()) {
-    walkCss(themeDir);
+  if (!existsSync(wsPath) || !statSync(wsPath).isDirectory()) {
+    continue;
   }
+  if (!existsSync(themeDir) || !statSync(themeDir).isDirectory()) {
+    continue;
+  }
+  walkCss(themeDir);
 }
 
 if (violations.length > 0) {

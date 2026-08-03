@@ -396,6 +396,76 @@ export function evaluateP8EripCopPresent() {
   };
 }
 
+const PLATFORM_CORE_SKIP_DIRS = new Set(["node_modules", "dist", "coverage"]);
+
+/**
+ * REQ-P7-007 / Phase 8 digest lock — sha256 over sorted `relPath\\tfileSha256` lines.
+ * @param {string} absDir
+ * @returns {Record<string, string>}
+ */
+function fingerprintPlatformCoreTree(absDir) {
+  /** @type {Record<string, string>} */
+  const files = {};
+  const walk = (dir) => {
+    for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, ent.name);
+      if (ent.isDirectory()) {
+        if (PLATFORM_CORE_SKIP_DIRS.has(ent.name)) continue;
+        walk(abs);
+        continue;
+      }
+      if (ent.name.endsWith(".md")) continue;
+      const rel = path.relative(absDir, abs).split(path.sep).join("/");
+      files[rel] = createHash("sha256").update(fs.readFileSync(abs)).digest("hex");
+    }
+  };
+  walk(absDir);
+  return files;
+}
+
+/**
+ * @param {Record<string, string>} files
+ * @returns {string}
+ */
+function digestPlatformCoreTree(files) {
+  const lines = Object.keys(files)
+    .sort()
+    .map((relPath) => `${relPath}\t${files[relPath]}`);
+  return createHash("sha256").update(lines.join("\n")).digest("hex");
+}
+
+/**
+ * @param {string} baselineSha
+ * @returns {boolean}
+ */
+function baselineRefExists(baselineSha) {
+  const result = spawnSync("git", ["rev-parse", "--verify", `${baselineSha}^{commit}`], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+  });
+  return result.status === 0;
+}
+
+/**
+ * @returns {{ ok: boolean, detail: string | null }}
+ */
+function assertPlatformCoreWorkingTreeClean() {
+  const worktree = spawnSync("git", ["diff", "--stat", "--", "packages/platform-core"], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+  });
+  if (worktree.stdout.trim().length > 0) {
+    return {
+      ok: false,
+      detail: failToken(
+        "p8_platform_core_zero_diff",
+        `uncommitted platform-core changes: ${worktree.stdout.trim().split("\n").pop()}`,
+      ),
+    };
+  }
+  return { ok: true, detail: null };
+}
+
 /**
  * @returns {{ ok: boolean, detail: string | null, baselineSha?: string }}
  */
@@ -406,16 +476,21 @@ export function evaluateP8PlatformCoreZeroDiff() {
   ];
 
   let baselineSha = null;
+  let baselineRel = null;
+  let baselineRaw = null;
   for (const rel of baselineCandidates) {
     if (!exists(rel)) continue;
-    const m = /baseline_sha:\s*(\S+)/.exec(readUtf8(rel));
+    const raw = readUtf8(rel);
+    const m = /baseline_sha:\s*(\S+)/.exec(raw);
     if (m) {
       baselineSha = m[1];
+      baselineRel = rel;
+      baselineRaw = raw;
       break;
     }
   }
 
-  if (!baselineSha) {
+  if (!baselineSha || !baselineRel || !baselineRaw) {
     return {
       ok: false,
       detail: failToken(
@@ -425,54 +500,72 @@ export function evaluateP8PlatformCoreZeroDiff() {
     };
   }
 
-  const diff = spawnSync(
-    "git",
-    ["diff", "--stat", baselineSha, "--", "packages/platform-core"],
-    { cwd: REPO_ROOT, encoding: "utf8" },
-  );
+  const shaResolvable = baselineRefExists(baselineSha);
+  if (shaResolvable) {
+    const diff = spawnSync(
+      "git",
+      ["diff", "--stat", baselineSha, "--", "packages/platform-core"],
+      { cwd: REPO_ROOT, encoding: "utf8" },
+    );
 
-  if (diff.status !== 0) {
-    return {
-      ok: false,
-      detail: failToken(
-        "p8_platform_core_zero_diff",
-        `git diff failed: ${diff.stderr?.trim() || "unknown error"}`,
-      ),
-      baselineSha,
-    };
+    if (diff.status !== 0) {
+      return {
+        ok: false,
+        detail: failToken(
+          "p8_platform_core_zero_diff",
+          `git diff failed: ${diff.stderr?.trim() || "unknown error"}`,
+        ),
+        baselineSha,
+      };
+    }
+
+    const statOut = diff.stdout.trim();
+    if (statOut.length > 0) {
+      return {
+        ok: false,
+        detail: failToken(
+          "p8_platform_core_zero_diff",
+          `INV-P8-001 violated — platform-core diff since ${baselineSha}: ${statOut.split("\n").pop()}`,
+        ),
+        baselineSha,
+      };
+    }
+  } else {
+    const digestMatch = /platform_core_tree_digest:\s*([0-9a-f]{64})/i.exec(baselineRaw);
+    if (!digestMatch?.[1]) {
+      return {
+        ok: false,
+        detail: failToken(
+          "p8_platform_core_zero_diff",
+          `baseline ${baselineSha} not in git and ${baselineRel} missing platform_core_tree_digest`,
+        ),
+        baselineSha,
+      };
+    }
+    const expectedDigest = digestMatch[1];
+    const platformCoreAbs = path.join(REPO_ROOT, "packages/platform-core");
+    const currentDigest = digestPlatformCoreTree(fingerprintPlatformCoreTree(platformCoreAbs));
+    if (currentDigest !== expectedDigest) {
+      return {
+        ok: false,
+        detail: failToken(
+          "p8_platform_core_zero_diff",
+          `INV-P8-001 violated — platform-core tree digest drift vs ${baselineRel} (expected ${expectedDigest}, got ${currentDigest})`,
+        ),
+        baselineSha,
+      };
+    }
   }
 
-  const statOut = diff.stdout.trim();
-  if (statOut.length > 0) {
-    return {
-      ok: false,
-      detail: failToken(
-        "p8_platform_core_zero_diff",
-        `INV-P8-001 violated — platform-core diff since ${baselineSha}: ${statOut.split("\n").pop()}`,
-      ),
-      baselineSha,
-    };
+  const worktree = assertPlatformCoreWorkingTreeClean();
+  if (!worktree.ok) {
+    return { ...worktree, baselineSha };
   }
 
-  const worktree = spawnSync(
-    "git",
-    ["diff", "--stat", "--", "packages/platform-core"],
-    { cwd: REPO_ROOT, encoding: "utf8" },
-  );
-  if (worktree.stdout.trim().length > 0) {
-    return {
-      ok: false,
-      detail: failToken(
-        "p8_platform_core_zero_diff",
-        `uncommitted platform-core changes: ${worktree.stdout.trim().split("\n").pop()}`,
-      ),
-      baselineSha,
-    };
-  }
-
+  const mode = shaResolvable ? `git:${baselineSha}` : `digest:${baselineRel}`;
   return {
     ok: true,
-    detail: `platform-core clean vs baseline ${baselineSha} and working tree`,
+    detail: `platform-core clean via ${mode} and working tree`,
     baselineSha,
   };
 }
