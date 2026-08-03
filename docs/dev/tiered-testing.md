@@ -15,12 +15,12 @@ Preferred local discovery commands: `pnpm verify:fast`, `pnpm verify:product`, `
 | **Fast (default)**               | Husky → `scripts/pre-commit-fast.sh`         | Every `git commit` (when hooks not suspended)              | Path-gated guards, `lint-staged` (batched eslint + prettier), `test-changed --mode pre-commit` (direct packages, API spec-level) — see [Pre-commit fast path](#pre-commit-fast-path) |
 | **Changed tests**                | `pnpm run test:changed`                      | Manual / CI selective                                      | `scripts/test-changed.sh --mode ci` — diff `origin/main...HEAD`, dependency expansion, `.cache/test-changed/`                                                                        |
 | **Pre-commit dry-run**           | `pnpm run pre-commit:fast`                   | Before commit                                              | Same as Husky fast path                                                                                                                                                              |
-| **Full**                         | `pnpm run test:full`                         | Before PR / Phase 4–5 closure                              | `phase-5:gate` only (nests `phase-4:gate` → `phase-3:gate`; build, full `pnpm test`, `phase-3:guard` + `phase-3:apps-cert`, `p4_rls_integration_tests` when env set)                                      |
+| **Full**                         | `pnpm run test:full`                         | Before PR / Phase 4–5 closure                              | `phase-5:gate` — **denested Wave A**: `db:test-reset` + build + full `pnpm test` + `phase-4:guard` + `phase-5:guard` (**does not** nest `phase-4:gate` / `phase-3:gate`)                                      |
 | **Phase 5 runtime proof**        | `pnpm run phase-5:runtime-proof`             | Postgres available; additive (does not replace `:gate`)  | `db:test-reset` + `phase-4:guard` + targeted perf (`P5_PERF_GATE_MS=850`, `MIN_THROUGHPUT=100`, `BASELINE_RATIO_MAX=1.25`) — see [`phase-5-runtime-proof.mdoc`](../phase-5/phase-5-runtime-proof.mdoc) |
 | **Phase 6 full closure**         | `pnpm run phase-6:gate`                      | Phase 6 DoD / GHA `full-gate`                          | build + test + `phase-5:runtime-proof` + `phase-5:guard` + residual apps-cert (`post-test` + `floors`) + `phase-6:guard` (Option B; **not** nested `phase-5:gate`; **PASS ≠** full `phase-3:apps-cert`) |
 | **Phase 3 apps-cert post-test**  | `PHASE_3_APPS_CERT_INHERIT_ROOT=1 pnpm run phase-3:apps-cert:post-test` | After root `build && test` in same recipe; wired into `phase-6:gate` | Residual: web lint + canonical-sync + admin `next build` — **not** full apps-cert / leaf-gate PASS |
 | **Phase 3 apps-cert floors**     | `PHASE_3_APPS_CERT_INHERIT_ROOT=1 pnpm run phase-3:apps-cert:floors` | After root `build && test` in same recipe; wired into `phase-6:gate` | Sdk ≥100 + starter ≥15 count floors — **not** api/web floors or leaf-gate PASS |
-| **CI integrity**                 | `pnpm run ci:integrity`                      | GitHub / explicit local                                    | Phases **0 → 3** via `scripts/ci-integrity-check.sh` — **not** Husky default                                                                                                         |
+| **CI integrity**                 | `pnpm run ci:integrity`                      | **`main` push / `workflow_dispatch`** (not every PR)     | Phases **0 → 3** via `scripts/ci-integrity-check.sh` — Wave A removed duplicate PR runs from Phase 7+8 workflows                                                                                                         |
 | **Phase 8 guard (fast)**         | `pnpm run phase-8:guard`                     | PR / local                                                 | 25 doc + boundary charter gates — under 10s                                                                                                                                          |
 | **Phase 8 urban regression**     | GHA job `urban-regression`                   | GitHub PR (`phase-8-gate.yml`)                             | Contract + urban proof bundle (memory driver)                                                                                                                                        |
 | **Phase 8 urban E2E**            | `pnpm --filter @apps/web run test:e2e:urban` | GHA job `urban-e2e`                                        | Playwright SMK-P8-01..04                                                                                                                                                             |
@@ -29,6 +29,34 @@ Preferred local discovery commands: `pnpm verify:fast`, `pnpm verify:product`, `
 | **Nightly (cold-start enforce)** | `pnpm run test:nightly:cold-start`           | Scheduled (`api-nightly.yml`) / pre-release                | `build` + `cold-start-readiness-gate` with `COLD_START_READINESS_ENFORCE=true` — hard-fail when compiled p95 > 500 ms                                                                |
 
 Hooks cannot be bypassed (`HUSKY=0` / `SKIP_HOOKS` rejected). Fast path is the new default; full path is **on demand**.
+
+## Wave A — PR denest (2026-08)
+
+**Problem:** A single API-touching PR ran `pnpm build` + full `pnpm test` many times in parallel (Phase 0 integration + Phase 1 + Phase 4 nest + Phase 5 nest + Phase 7 `ci:integrity` + Phase 8 `ci:integrity`), often 70–90+ minutes before the first red, with cancel/timeouts at 30–60 minutes.
+
+**Logic (ownership):**
+
+| Surface | PR | `main` / manual |
+| --- | --- | --- |
+| Phase 0 foundation | `test:phase-0` (unchanged) | same |
+| Phase 0 integration | `phase-0:integration-gate:pr` = build + **`test:changed`** + contracts/adversarial/guards | full `phase-0:integration-gate` (`pnpm test`) |
+| Phase 1 | build + **platform-core tests only** + `phase-1:guard` (no monorepo `pnpm test`) | same script (still scoped) |
+| Phase 4 GHA | resilience + **`phase-4:guard` only** | full `phase-4:gate` (build + test + guard; **no** nested `phase-3:gate`) |
+| Phase 5 GHA | denested `phase-5:gate` (build + test + `phase-4:guard` + `phase-5:guard`) | same |
+| Phase 7 / 8 `ci:integrity` | **skipped** | run once on `main` / `workflow_dispatch` |
+| Phase 7 adversarial P0 | stays on PR (Postgres, ~5 min) | same |
+
+`MAIN_BRANCH_REQUIRED_CHECKS` job **names** are unchanged (PSR-3b freeze). Only recipes and `if:` conditions changed.
+
+```mermaid
+flowchart LR
+  PR[PR] --> L0[Foundation + short guards]
+  PR --> L0b[Integration PR = test:changed]
+  PR --> L1[Phase 1 = platform-core only]
+  PR --> L1b[Phase 5 denested when api paths]
+  PR --> L1c[Adversarial P0]
+  main[main] --> L2[ci:integrity + full integration]
+```
 
 ## Phase hook suspension (temporary)
 
@@ -119,10 +147,10 @@ Heavy verification runs on **ubuntu-latest** with service containers — not on 
 | `guard`             | Every PR / push (path filter)                   | —                | `phase-8:guard` + `guard:p8-boundary-diff`                          |
 | `urban-regression`  | After guard green                               | —                | `phase-8.contract` + urban API proof specs + `workspace-urban` test |
 | `urban-e2e`         | After guard green                               | —                | Playwright `test:e2e:urban`                                         |
-| `ci-integrity`      | **main** push or `workflow_dispatch`            | Postgres 16      | `pnpm run ci:integrity`                                             |
+| `ci-integrity`      | **`main` push or `workflow_dispatch` only** (Wave A — not every PR) | Postgres 16      | `pnpm run ci:integrity`                                             |
 | `phase-8-gate-full` | **main** push or manual `run_full_phase_8_gate` | Postgres + Redis | `pnpm run phase-8:gate`                                             |
 
-**PR fast path (typical):** guard → urban-regression → urban-e2e (~15–45 min on GHA).
+**PR fast path (typical):** guard → urban-regression → urban-e2e (~15–45 min on GHA). Full `ci:integrity` is trunk/manual (avoids double-running Phase 7+8 integrity on the same tip).
 
 **Closure path (8.5):** merge to `main` triggers `ci-integrity` + `phase-8-gate-full`, or run **Actions → phase-8-gate → Run workflow** with `run_full_phase_8_gate: true`.
 

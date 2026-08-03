@@ -12,7 +12,7 @@ import { isEmptyCanonicalValue } from "../utils/canonical-value";
  * | Visible value present | assertCanonicalValueMatchesKind | strict |
  * | Hidden non-composite + defined non-null value | HIDDEN_FIELD_POISON | — |
  * | Hidden composite + value | allowed at path (leaves validated when visible) | — |
- * | Visible composite + JSON array | assertCanonicalValueMatchesKind | accepted (Phase 11.10 Denali array ingress) |
+ * | Visible composite + JSON array | assertCanonicalValueMatchesKind | accepted (Phase 11.10 array ingress) |
  */
 export const CANONICAL_FIELD_VALIDATION_CONTRACT = [
   {

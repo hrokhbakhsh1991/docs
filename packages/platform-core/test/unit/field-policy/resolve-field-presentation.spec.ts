@@ -9,7 +9,7 @@ import {
 describe("resolveFieldPresentation", () => {
   it("prefers adminLabel over canonical path", () => {
     const presentation = resolveFieldPresentation({
-      id: "denali.destination",
+      id: "tour.destination",
       canonicalPath: "destinationId",
       adminLabel: "Tour Destination",
       group: "Location",
@@ -17,7 +17,7 @@ describe("resolveFieldPresentation", () => {
 
     assert.equal(presentation.label, "Tour Destination");
     assert.equal(presentation.group, "Location");
-    assert.equal(presentation.id, "denali.destination");
+    assert.equal(presentation.id, "tour.destination");
   });
 
   it("humanizes canonical path when adminLabel is absent", () => {
@@ -34,7 +34,7 @@ describe("resolveFieldPresentation", () => {
     const grouped = groupFieldPresentations([
       { id: "title", canonicalPath: "title", adminLabel: "Tour Title", group: "General" },
       {
-        id: "denali.destination",
+        id: "tour.destination",
         canonicalPath: "destinationId",
         adminLabel: "Tour Destination",
         group: "Location",

@@ -82,7 +82,13 @@ jobs:
         working-directory: apps/api
         run: pnpm run phase-4:resilience-regression-gate
 
-      - name: Phase 4 closure gate
+      # Wave A — PR: static/RLS guard only (phase-5 denested owns build+test on api PRs).
+      - name: Phase 4 guard (PR fast)
+        if: github.event_name == 'pull_request'
+        run: pnpm run phase-4:guard
+
+      - name: Phase 4 closure gate (trunk — build + test + guard)
+        if: github.event_name != 'pull_request'
         run: pnpm run phase-4:gate
 
       - name: Upload phase-4 gate reports

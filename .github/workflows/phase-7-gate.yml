@@ -122,7 +122,10 @@ jobs:
     name: Phase 7 ci:integrity (ADV-P7-P0-07)
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    if: github.event_name != 'workflow_dispatch' || inputs.run_ci_integrity
+    # Wave A — run full integrity once on trunk/manual, not on every PR (denest vs Phase 8 + nested gates).
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.run_ci_integrity)
 
     services:
       postgres:

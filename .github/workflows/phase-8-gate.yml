@@ -226,7 +226,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     needs: guard
-    if: github.event_name != 'workflow_dispatch' || inputs.run_ci_integrity
+    # Wave A — PR no longer double-runs ci:integrity (Phase 7 owns PR path when enabled).
+    # Trunk / manual only.
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.run_ci_integrity)
 
     services:
       postgres:
