@@ -156,7 +156,6 @@ describe(
   () => {
     const tenantId = integrationTenantId();
     const tourId = randomUUID();
-    const submittedByUserId = randomUUID();
     const repo = new PrismaBookingsRepository();
     const priorStorageDriver = process.env.STORAGE_DRIVER;
 
@@ -189,7 +188,8 @@ describe(
             paymentStatus: "unpaid",
             departureAt: new Date(baseSubmittedAt + (index + 3) * 86_400_000),
             submittedAt: new Date(baseSubmittedAt - index * 1_000),
-            submittedByUserId,
+            // Distinct submitter per active row — uq_operator_reg_active_user
+            submittedByUserId: randomUUID(),
             approvedAt: index % 5 === 0 ? new Date() : null,
             registrationIntake: HEAVY_REGISTRATION_INTAKE,
           },

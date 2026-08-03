@@ -28,8 +28,13 @@ function makeMockReqWithBody(
   body: string,
   url = "/platform/v1/tenants"
 ) {
+  // Node IncomingMessage lowercases header names; mocks must match.
+  const normalized: Record<string, string | undefined> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    normalized[key.toLowerCase()] = value;
+  }
   return {
-    headers,
+    headers: normalized,
     url,
     method: "POST",
     [Symbol.asyncIterator]: async function* () {

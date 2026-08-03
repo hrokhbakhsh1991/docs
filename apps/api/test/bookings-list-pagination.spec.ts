@@ -279,7 +279,8 @@ describe(
             paymentStatus: "unpaid",
             departureAt: new Date("2026-08-01T00:00:00.000Z"),
             submittedAt: tiedSubmittedAt,
-            submittedByUserId: userA,
+            // Unique (tenant_id, tour_id, submitted_by_user_id) — one submitter per row.
+            submittedByUserId: randomUUID(),
           },
         });
       }
@@ -312,7 +313,7 @@ describe(
             paymentStatus: "unpaid",
             departureAt: new Date("2026-08-03T00:00:00.000Z"),
             submittedAt: new Date("2026-07-06T00:00:00.000Z"),
-            submittedByUserId: userA,
+            submittedByUserId: randomUUID(),
           },
         });
       }

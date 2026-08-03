@@ -249,7 +249,6 @@ describe(
     const exactTenantId = integrationTenantId();
     const tiedTenantId = integrationTenantId();
     const tourId = randomUUID();
-    const userId = randomUUID();
     const tiedSubmittedAt = new Date("2026-07-07T12:00:00.000Z");
     const exactLimit = 5;
     const repo = new PrismaBookingsRepository();
@@ -284,7 +283,7 @@ describe(
             paymentStatus: "unpaid",
             departureAt: new Date("2026-08-01T00:00:00.000Z"),
             submittedAt: new Date(`2026-07-07T10:00:0${slot}.000Z`),
-            submittedByUserId: userId,
+            submittedByUserId: randomUUID(),
             registrationIntake: HEAVY_REGISTRATION_INTAKE,
           },
         });
@@ -303,7 +302,7 @@ describe(
             paymentStatus: "unpaid",
             departureAt: new Date("2026-08-02T00:00:00.000Z"),
             submittedAt: tiedSubmittedAt,
-            submittedByUserId: userId,
+            submittedByUserId: randomUUID(),
             registrationIntake: HEAVY_REGISTRATION_INTAKE,
           },
         });
