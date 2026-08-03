@@ -69,7 +69,7 @@ test.describe("denali-wizard.spec.ts (SMK-P6-01..06, REQ-P6-015)", () => {
     const continueBtn = page.getByTestId("workspace-wizard-step-next");
     if (await continueBtn.isVisible().catch(() => false)) {
       const btnBg = await continueBtn.evaluate((el) => getComputedStyle(el).backgroundColor);
-      expect(btnBg).toBe("rgb(15, 118, 110)");
+      expect(btnBg).toBe("rgb(5, 150, 105)");
     }
   });
 

@@ -247,7 +247,7 @@ export function useOperatorCreateTourWizard(options: {
     },
     gate,
     runtimeGates: integrationRuntime,
-    wizardPlugin,
+    denaliPlugin: wizardPlugin,
     draftSync,
     draftIndex,
     clearDraft,

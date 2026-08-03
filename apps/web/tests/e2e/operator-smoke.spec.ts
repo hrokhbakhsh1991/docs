@@ -71,7 +71,7 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
       }
       return getComputedStyle(button).backgroundColor;
     });
-    expect(buttonBg).toBe("rgb(15, 118, 110)");
+    expect(buttonBg).toBe("rgb(5, 150, 105)");
 
     // Mirror OperatorThemeToggleButton.applyThemeMode — headless click on the toggle is flaky.
     await page.evaluate(() => {
@@ -119,7 +119,7 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     const continueBtn = page.getByTestId("workspace-wizard-step-next");
     await expect(continueBtn).toBeVisible();
     expect(await continueBtn.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
-      "rgb(15, 118, 110)"
+      "rgb(5, 150, 105)"
     );
 
     await page.evaluate(() => {
