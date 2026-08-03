@@ -8,8 +8,6 @@ import type {
 } from "./denali-location-picker-map-inner";
 
 export type { DenaliMapCoordinates, DenaliLocationPickerMapInnerProps };
-export { DenaliLocationPickerMapInner } from "./denali-location-picker-map-inner";
-export { ensureLeafletDefaultIcon } from "./leaflet-default-icon";
 
 const MapLoadingShell = ({ height = 220 }: { height?: number }) => (
   <div
