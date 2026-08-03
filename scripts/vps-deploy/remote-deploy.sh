@@ -71,7 +71,7 @@ run_as_app() {
 }
 
 log "pre-migrate Postgres dump (MR-P0-014 restore point)"
-bash "$DEPLOY_PATH/scripts/vps-deploy/pre-migrate-pg-dump.sh" || die "pre-migrate dump failed — refuse migrate without restore point"
+ENV_DIR="$ENV_DIR" DEPLOY_PATH="$DEPLOY_PATH" bash "$DEPLOY_PATH/scripts/vps-deploy/pre-migrate-pg-dump.sh" || die "pre-migrate dump failed — refuse migrate without restore point"
 
 run_as_app "
   set -euo pipefail
