@@ -3,7 +3,8 @@
 # @see scripts/p10-staging-remote-gate.sh
 set -euo pipefail
 
-export VPS_DEPLOY_PATH="${VPS_DEPLOY_PATH:-/opt/app-tour}"
+# Durable bind path — see app-tour-ensure-bind / deploy-vps.yml ( /opt pathname flake ).
+export VPS_DEPLOY_PATH="${VPS_DEPLOY_PATH:-/srv/app-tour}"
 export ENV_DIR="${ENV_DIR:-/etc/app-tour}"
 export UNIT_PREFIX="${UNIT_PREFIX:-app-tour}"
 

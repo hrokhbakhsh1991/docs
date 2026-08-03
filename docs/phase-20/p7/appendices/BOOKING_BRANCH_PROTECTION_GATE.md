@@ -103,4 +103,15 @@ Optional harden: add repo secret `BRANCH_PROTECTION_TOKEN` with `administration:
 
 ## VPS path flake (secondary CD risk)
 
-On host `89.45.89.206`, pathname lookup for `/opt/app-cloud` occasionally returns `ENOENT` while `openat(/opt, "app-tour")` still works (stale negative dentry). `remote-deploy.sh` recovers with `drop_caches` then a `renameat` cycle before `git fetch`. If SSH deploy still fails after the Booking soft-403 fix, check `journalctl` / deploy logs for the WARN lines above.
+On host `89.45.89.206`, pathname lookup for `/opt/app-tour` occasionally returns `ENOENT` while `openat(/opt, "app-tour")` still works (stale negative dentry). That breaks the old SSH one-liner (`bash /opt/app-tour/scripts/...`) before `remote-deploy.sh` can recover.
+
+**Durable path (2026-08-03):**
+
+| Piece | Role |
+| ----- | ---- |
+| `/usr/local/sbin/app-tour-ensure-bind` | `mount --bind` of the live tree onto `/srv/app-tour` via `/proc/self/cwd` after `openat` |
+| `/usr/local/sbin/app-tour-enter-deploy` | ensure-bind → `remote-deploy.sh` with `DEPLOY_PATH=/srv/app-tour` |
+| `app-tour-bind.service` | oneshot before app units |
+| `deploy-vps.yml` | SSH invokes enter-deploy / `/srv/app-tour` (not flaky `/opt` pathname) |
+
+`remote-deploy.sh` still has drop_caches + renameat as a secondary recovery if `cd` fails inside the tree.
