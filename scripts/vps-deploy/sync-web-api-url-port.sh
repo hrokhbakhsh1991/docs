@@ -50,6 +50,25 @@ sync_env_file "$web_env" TOUR_OPS_API_URL API_INTERNAL_URL
 sync_env_file "${ENV_DIR}/marketing.env" TOUR_OPS_API_URL
 sync_env_file "${ENV_DIR}/portal.env" TOUR_OPS_API_URL
 
+marketing_env="${ENV_DIR}/marketing.env"
+if [[ -f "$marketing_env" ]]; then
+  marketing_revalidate_secret="$(read_env_var "$marketing_env" MARKETING_REVALIDATE_SECRET || true)"
+  api_revalidate_secret="$(read_env_var "$api_env" MARKETING_REVALIDATE_SECRET || true)"
+
+  if [[ -n "$marketing_revalidate_secret" && "$api_revalidate_secret" != "$marketing_revalidate_secret" ]]; then
+    escaped_secret="${marketing_revalidate_secret//\\/\\\\}"
+    escaped_secret="${escaped_secret//&/\\&}"
+    escaped_secret="${escaped_secret//|/\\|}"
+    if grep -q '^MARKETING_REVALIDATE_SECRET=' "$api_env"; then
+      sed -i "s|^MARKETING_REVALIDATE_SECRET=.*|MARKETING_REVALIDATE_SECRET=${escaped_secret}|" "$api_env"
+    else
+      printf '\nMARKETING_REVALIDATE_SECRET=%s\n' "$marketing_revalidate_secret" >>"$api_env"
+    fi
+    echo "sync-web-api-url-port: api.env MARKETING_REVALIDATE_SECRET aligned with marketing.env"
+    changed=1
+  fi
+fi
+
 if [[ "$changed" -eq 1 ]]; then
-  echo "sync-web-api-url-port: BFF URLs aligned to api PORT ${api_port}"
+  echo "sync-web-api-url-port: deployment environment aligned"
 fi
