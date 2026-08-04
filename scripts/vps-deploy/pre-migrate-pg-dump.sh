@@ -25,7 +25,9 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 SHA="$(cd "$DEPLOY_PATH" && git rev-parse --short HEAD 2>/dev/null || echo nosha)"
 OUT="${DUMP_DIR}/pre-migrate-${STAMP}-${SHA}.dump"
 
+DUMP_URL="$(node -e 'const url = new URL(process.argv[1]); url.searchParams.delete("connection_limit"); process.stdout.write(url.toString());' "$ADMIN_URL")"
+
 log "dumping to $OUT"
-pg_dump --format=custom --file="$OUT" "$ADMIN_URL"
+pg_dump --format=custom --file="$OUT" "$DUMP_URL"
 log "OK $OUT"
 echo "$OUT"
