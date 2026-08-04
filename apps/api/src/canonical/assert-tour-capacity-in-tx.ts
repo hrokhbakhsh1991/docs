@@ -9,10 +9,14 @@ export async function assertTourCapacityInTx(
   tenantId: string
 ): Promise<void> {
   const limits = readTourCapLimits();
-  const [globalCount, tenantCount] = await Promise.all([
-    tx.tour.count(),
-    tx.tour.count({ where: { tenantId } }),
-  ]);
+  const rows = await tx.$queryRaw<Array<{ global_count: bigint; tenant_count: bigint }>>`
+    SELECT
+      count(*) AS global_count,
+      count(*) FILTER (WHERE tenant_id = ${tenantId}::uuid) AS tenant_count
+    FROM tours
+  `;
+  const globalCount = Number(rows[0]?.global_count ?? 0n);
+  const tenantCount = Number(rows[0]?.tenant_count ?? 0n);
 
   if (globalCount >= limits.maxGlobal) {
     throw new TourCapacityExceededError(

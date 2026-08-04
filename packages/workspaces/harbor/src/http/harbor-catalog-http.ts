@@ -23,8 +23,10 @@ import {
   toHarborCatalogCard,
 } from "../catalog/to-harbor-catalog-card";
 import { createHarborRegistration } from "../registration/create-harbor-registration";
-import type { HarborProductRouteDeps } from "./host-ports";
-import { tryGetHarborHttpHost } from "./host-runtime";
+import {
+  tryGetHarborHttpHost,
+  type HarborProductRouteDeps,
+} from "./harbor-http-host";
 
 function isHarborSmokeSeedEnabled(): boolean {
   return process.env.HARBOR_SMOKE_E2E_SEED === "1";

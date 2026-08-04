@@ -17,7 +17,7 @@ import {
   isHarborTourPublished,
   toHarborCatalogCard,
 } from "../catalog/to-harbor-catalog-card";
-import type { HarborTourStorePort } from "../http/host-ports";
+import type { HarborTourStorePort } from "../http/harbor-http-host";
 import { HarborRegistrationDuplicateError } from "./harbor-registration-duplicate.error";
 import { HarborWorkspaceRequiredError } from "./harbor-workspace-required.error";
 

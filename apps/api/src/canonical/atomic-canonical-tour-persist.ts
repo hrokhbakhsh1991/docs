@@ -8,9 +8,15 @@ import {
   appendAuditEvent,
   appendTourPublishTransitionAuditEvent,
   appendTourUpdatedAuditEvent,
+  buildAuditMetadata,
 } from "../audit/audit-logger";
-import { readCanonicalTransactionNow } from "../db/canonical-transaction-now";
-import { withCanonicalTransaction } from "../db/with-canonical-transaction";
+import { pseudonymizeAuditActorId } from "../audit/audit-pseudonym";
+import { readTourCapLimits } from "../db/tour-cap-config";
+import { TourCapacityExceededError, tourCapacityErrorMessage } from "../db/tour-capacity.error";
+import {
+  withCanonicalStatement,
+  withCanonicalTransaction,
+} from "../db/with-canonical-transaction";
 import { getActiveTraceId } from "../observability/trace-request-context";
 import {
   buildTourPublishedDomainEventId,
@@ -89,9 +95,23 @@ async function persistNewTourAtomicallyInContext(
   const domainEventId = randomUUID();
   const projections = deriveTourProjections(input.canonical);
 
-  return withCanonicalTransaction(input.tenantId, async (tx) => {
-    const txNow = await readCanonicalTransactionNow(tx);
+  if (
+    !isPublicPublishStatusLabel(
+      readTourPublishStatusLabel(getActiveWorkspaceType(), input.canonical)
+    ) &&
+    process.env.P5_ATOMIC_TX_TEST_ABORT === undefined &&
+    process.env.P5_CHAOS_ABORT === undefined
+  ) {
+    return persistNewDraftTourInOneStatement(input, {
+      tourId,
+      domainEventId,
+      auditId: randomUUID(),
+      outboxId: randomUUID(),
+      projections,
+    });
+  }
 
+  return withCanonicalTransaction(input.tenantId, async (tx, txNow) => {
     await assertTourCapacityInTx(tx, input.tenantId);
 
     await tx.tour.create({
@@ -160,6 +180,126 @@ async function persistNewTourAtomicallyInContext(
   });
 }
 
+async function persistNewDraftTourInOneStatement(
+  input: AtomicCanonicalTourPersistInput,
+  generated: {
+    readonly tourId: string;
+    readonly domainEventId: string;
+    readonly auditId: string;
+    readonly outboxId: string;
+    readonly projections: ReturnType<typeof deriveTourProjections>;
+  }
+): Promise<AtomicCanonicalTourPersistResult> {
+  const limits = readTourCapLimits();
+  const rawActorId = getActiveActorId();
+  const actorId =
+    rawActorId === undefined ? null : pseudonymizeAuditActorId(rawActorId, input.tenantId);
+  const metadata = buildAuditMetadata({
+    action: AUDIT_ACTION_TOUR_CREATED,
+    entityType: "tour",
+    entityId: generated.tourId,
+  });
+  const traceId = getActiveTraceId() ?? null;
+  const sessionTraceId = traceId ?? randomUUID();
+
+  return withCanonicalStatement(input.tenantId, async (prisma, normalizedTenantId) => {
+    const setSession = prisma.$executeRaw`
+      SELECT
+        set_config('app.current_tenant_id', ${normalizedTenantId}::text, true),
+        set_config('app.current_trace_id', ${sessionTraceId}::text, true)
+    `;
+    const persist = prisma.$queryRaw<
+      Array<{
+        global_count: bigint;
+        tenant_count: bigint;
+        inserted: boolean;
+        tx_now: Date;
+      }>
+    >`
+      WITH capacity AS MATERIALIZED (
+        SELECT
+          count(tours.id) AS global_count,
+          count(tours.id) FILTER (WHERE tenant_id = ${input.tenantId}::uuid) AS tenant_count,
+          now() AS tx_now
+        FROM tours
+      ),
+      inserted_tour AS (
+        INSERT INTO tours (
+          id, tenant_id, canonical_data, title, schema_version, created_at
+        )
+        SELECT
+          ${generated.tourId}::uuid,
+          ${input.tenantId}::uuid,
+          ${JSON.stringify(input.canonical)}::jsonb,
+          ${generated.projections.title},
+          ${generated.projections.schemaVersion},
+          capacity.tx_now
+        FROM capacity
+        WHERE global_count < ${limits.maxGlobal}
+          AND tenant_count < ${limits.maxPerTenant}
+        RETURNING id
+      ),
+      inserted_audit AS (
+        INSERT INTO audit_events (
+          id, tenant_id, actor_id, action, entity_type, entity_id, metadata, created_at
+        )
+        SELECT
+          ${generated.auditId}::uuid,
+          ${input.tenantId}::uuid,
+          ${actorId},
+          ${AUDIT_ACTION_TOUR_CREATED},
+          'tour',
+          id,
+          ${JSON.stringify(metadata)}::jsonb,
+          (SELECT tx_now FROM capacity)
+        FROM inserted_tour
+        RETURNING id
+      ),
+      inserted_outbox AS (
+        INSERT INTO outbox_events (
+          id, tenant_id, aggregate_type, aggregate_id, event_type, payload,
+          status, domain_event_id, correlation_id, created_at
+        )
+        SELECT
+          ${generated.outboxId}::uuid,
+          ${input.tenantId}::uuid,
+          'tour',
+          id,
+          'TourCreated',
+          ${JSON.stringify({ tenantId: input.tenantId, tourId: generated.tourId })}::jsonb,
+          'pending',
+          ${generated.domainEventId},
+          ${traceId},
+          (SELECT tx_now FROM capacity)
+        FROM inserted_tour
+        RETURNING id
+      )
+      SELECT
+        capacity.global_count,
+        capacity.tenant_count,
+        EXISTS (SELECT 1 FROM inserted_outbox) AS inserted,
+        capacity.tx_now
+      FROM capacity
+    `;
+    const [, rows] = await prisma.$transaction([setSession, persist]);
+    const row = rows[0];
+    if (row?.inserted !== true) {
+      const globalCount = Number(row?.global_count ?? 0n);
+      const code =
+        globalCount >= limits.maxGlobal ? "TOUR_CAPACITY_GLOBAL" : "TOUR_CAPACITY_TENANT";
+      throw new TourCapacityExceededError(code, tourCapacityErrorMessage(code));
+    }
+    return {
+      id: generated.tourId,
+      tenantId: input.tenantId,
+      canonical: input.canonical,
+      createdAt: row.tx_now.toISOString(),
+      title: generated.projections.title,
+      schemaVersion: generated.projections.schemaVersion,
+    };
+  });
+}
+
 /**
  * DEC-047 / AUDIT-GAP-02 — one TX: tour update + `TOUR_UPDATED` audit;
  * `TourPublished` outbox when publish transition is detected.
@@ -185,9 +325,7 @@ async function persistTourUpdateAtomicallyInContext(
 ): Promise<AtomicCanonicalTourUpdateResult> {
   const projections = deriveTourProjections(input.canonical);
 
-  return withCanonicalTransaction(input.tenantId, async (tx) => {
-    const txNow = await readCanonicalTransactionNow(tx);
-
+  return withCanonicalTransaction(input.tenantId, async (tx, txNow) => {
     const existing = await tx.tour.findUnique({
       where: { tenantId_id: { tenantId: input.tenantId, id: input.tourId } },
     });

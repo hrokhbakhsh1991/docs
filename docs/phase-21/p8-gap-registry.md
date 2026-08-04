@@ -4,7 +4,7 @@
 registry_id: P8-GAP-REGISTRY
 pack: P8
 version: "1.2"
-status: PLANNED
+status: BEHAVIORAL_COMPLETE
 audit: p8-ingress-session-env-audit.md
 app_fit: p8-app-fit.md
 env_contract: p8-env-contract.yaml

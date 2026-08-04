@@ -13,7 +13,7 @@ function readSource(rel: string): string {
 describe("canonical timestamp unify (DEC-077 / CLK-F-01/02)", () => {
   it("atomic persist binds tour, audit, and outbox to txNow", () => {
     const source = readSource("canonical/atomic-canonical-tour-persist.ts");
-    assert.match(source, /const txNow = await readCanonicalTransactionNow\(tx\)/);
+    assert.match(source, /withCanonicalTransaction\(input\.tenantId, async \(tx, txNow\)/);
     assert.match(source, /createdAt:\s*txNow/);
     assert.doesNotMatch(source, /const createdAt = new Date\(\)/);
   });

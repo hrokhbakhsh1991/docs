@@ -11,7 +11,7 @@ import {
 import {
   configureHarborHttpHost,
   resetHarborHttpHostForTests,
-} from "../src/http/host-runtime";
+} from "../src/http/harbor-http-host";
 import {
   buildHarborSmokeCatalogCard,
   HARBOR_SMOKE_PUBLISHED_TOUR_CITY,

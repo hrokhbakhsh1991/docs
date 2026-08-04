@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
@@ -104,6 +105,17 @@ describe("validateWorkspaceManifestRecord", () => {
 });
 
 describe("runValidateWorkspaceManifests", () => {
+  it("is exposed through the package validate:manifests front door", () => {
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.join(SDK_ROOT, "package.json"), "utf8"),
+    ) as { scripts?: Record<string, string> };
+
+    assert.equal(
+      packageJson.scripts?.["validate:manifests"],
+      "node --import tsx scripts/validate-manifests.ts",
+    );
+  });
+
   it("PASS for checked-in workspace manifests", () => {
     const result = runValidateWorkspaceManifests(WORKSPACES_DIR);
     assert.equal(

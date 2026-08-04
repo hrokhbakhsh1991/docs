@@ -4,11 +4,11 @@
 phase: 21
 pack: P8
 pack_version: "1.0"
-status: PLANNED
+status: BEHAVIORAL_COMPLETE
 sole_boot: appendices/P8-BOOT-MANIFEST.yaml
 fail_token: P8_FAIL
 prerequisite: P7 BEHAVIORAL_COMPLETE · pnpm run p7:gate
-current_task: P8-0-N-001
+current_task: null
 machine_snapshot: AGENT-CURRENT-PHASE.yaml
 truth: appendices/P8-IMPLEMENTATION-TRUTH.md
 anti_hollow: appendices/P8-ANTI-HOLLOW-CONTRACT.md

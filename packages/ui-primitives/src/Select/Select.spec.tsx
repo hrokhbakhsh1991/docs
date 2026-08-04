@@ -16,6 +16,7 @@ describe("Select", () => {
           { value: "open", label: "Open" },
         ]}
         value="draft"
+        onChange={() => {}}
       />,
     );
     const control = getByRole("combobox", { name: "Status" }) as HTMLSelectElement;
@@ -25,7 +26,12 @@ describe("Select", () => {
 
   it("sets aria-invalid when invalid", () => {
     const { container } = render(
-      <Select aria-label="Status" options={[{ value: "a", label: "A" }]} invalid />,
+      <Select
+        aria-label="Status"
+        options={[{ value: "a", label: "A" }]}
+        invalid
+        onChange={() => {}}
+      />,
     );
     const control = container.querySelector("select");
     assert.equal(control?.getAttribute("aria-invalid"), "true");

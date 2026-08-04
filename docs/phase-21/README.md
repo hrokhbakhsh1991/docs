@@ -4,7 +4,7 @@
 phase: 21
 pack: P8
 pack_version: "1.0"
-status: PLANNED
+status: BEHAVIORAL_COMPLETE
 ai_agent_pack: COMPLETE
 prerequisite: P7 BEHAVIORAL_COMPLETE
 sole_entry: AGENT-START.md

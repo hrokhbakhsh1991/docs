@@ -74,6 +74,7 @@
   "scripts": {
     "build": "pnpm --dir ../catalog-registration-auth run build && tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
+    "validate:manifests": "node --import tsx scripts/validate-manifests.ts",
     "test": "NODE_ENV=test node --import ./test/register-server-only-stub.mjs --import tsx --test \"test/**/*.spec.ts\"",
     "test:phase-0": "pnpm run build && NODE_ENV=test LEGACY_IMPORT_SCAN_SCOPE=foundation node --import ./test/register-server-only-stub.mjs --import tsx --test test/phase-0.contract.spec.ts",
     "test:invariants": "NODE_ENV=test node --import ./test/register-server-only-stub.mjs --import tsx --test test/invariant-manifest.contract.spec.ts",

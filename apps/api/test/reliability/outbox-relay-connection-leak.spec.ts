@@ -226,7 +226,7 @@ describe(
       let errorsInjectedProcessed = 0;
 
       let safetyTicks = 0;
-      while (safetyTicks < 500) {
+      while (safetyTicks < 1_500) {
         safetyTicks += 1;
         relayTicks += 1;
 

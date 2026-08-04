@@ -4,7 +4,7 @@
 action_plan_id: P8-ACTION-PLAN
 version: "1.1"
 pack: P8
-status: PLANNED
+status: BEHAVIORAL_COMPLETE
 prerequisite: P7 BEHAVIORAL_COMPLETE
 app_fit: p8-app-fit.md
 strict_baseline:

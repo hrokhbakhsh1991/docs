@@ -45,6 +45,8 @@ function killChild(child) {
 function measureSpawnToHealth(port) {
   return new Promise((resolve, reject) => {
     const spawnStarted = performance.now();
+    // Build emits one native ESM entry bundle, so readiness never pays the tsx
+    // loader/transpiler cost used by the development path.
     const child = spawn(process.execPath, [MAIN_JS], {
       cwd: ROOT,
       env: {
@@ -59,6 +61,7 @@ function measureSpawnToHealth(port) {
     });
 
     let settled = false;
+    let stderr = "";
     const fail = (error) => {
       if (settled) return;
       settled = true;
@@ -71,6 +74,7 @@ function measureSpawnToHealth(port) {
 
     child.stderr.on("data", (chunk) => {
       const text = chunk.toString("utf8");
+      stderr += text;
       if (text.includes("boot failed")) {
         fail(new Error(`dist/main.js boot failed: ${text.trim()}`));
       }
@@ -79,7 +83,11 @@ function measureSpawnToHealth(port) {
     child.on("error", (error) => fail(error));
     child.on("exit", (code, signal) => {
       if (settled) return;
-      fail(new Error(`dist/main.js exited before /health (code=${code} signal=${signal})`));
+      fail(
+        new Error(
+          `dist/main.js exited before /health (code=${code} signal=${signal}): ${stderr.trim()}`
+        )
+      );
     });
 
     const poll = () => {

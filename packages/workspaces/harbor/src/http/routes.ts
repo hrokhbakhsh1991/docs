@@ -10,13 +10,13 @@ export {
   getHarborHttpHost,
   resetHarborHttpHostForTests,
   tryGetHarborHttpHost,
-} from "./host-runtime";
+} from "./harbor-http-host";
 export type {
   BookingPublicPort,
   HarborHttpHostPorts,
   HarborProductRouteDeps,
   HarborTourStorePort,
-} from "./host-ports";
+} from "./harbor-http-host";
 export {
   HARBOR_REGISTRATION_DUPLICATE,
   HarborRegistrationDuplicateError,

@@ -11,7 +11,7 @@ import {
   configureHarborHttpHost,
   resetHarborHttpHostForTests,
   tryGetHarborHttpHost,
-} from "../src/http/host-runtime";
+} from "../src/http/harbor-http-host";
 
 function tourInput(
   data: Record<string, unknown>,

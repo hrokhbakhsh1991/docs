@@ -68,7 +68,7 @@ if (/@app-tour\/workspace-denali|listDenaliCatalog/.test(mapperSrc)) {
 }
 
 const hostRuntime = readFileSync(
-  join(root, "packages/workspaces/harbor/src/http/host-runtime.ts"),
+  join(root, "packages/workspaces/harbor/src/http/harbor-http-host.ts"),
   "utf8",
 );
 if (!hostRuntime.includes("tryGetHarborHttpHost")) {

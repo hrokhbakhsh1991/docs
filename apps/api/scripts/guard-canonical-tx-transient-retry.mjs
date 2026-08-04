@@ -35,7 +35,7 @@ const canonical = read("src/db/with-canonical-transaction.ts");
 if (!canonical.includes("withTransientTxRetry")) {
   violations.push("with-canonical-transaction.ts must wrap TX in withTransientTxRetry");
 }
-if (!canonical.includes("applyTenantRlsSessionVars")) {
+if (!canonical.includes("applyCanonicalTransactionSession")) {
   violations.push("with-canonical-transaction.ts must set RLS per transaction attempt");
 }
 

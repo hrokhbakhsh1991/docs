@@ -1,6 +1,7 @@
 .cache/test-changed/
 
 node_modules/
+**/node_modules.broken.*/
 .pnpm-store/
 .cache/
 dist/
@@ -43,6 +44,15 @@ legacy/reports/phase-0-environment-*
 reports/p4-cold-path-fan-in.json
 reports/sbom/
 reports/psr/
+# Local dated guard/gate evidence (formal report families remain tracked above)
+/reports/phase-*-guard-*.json
+/reports/phase-*-guard-*.md
+/reports/phase-*-gate-*.json
+/reports/phase-*-gate-*.md
+/reports/phase-*-baseline-*.json
+/reports/phase-*-baseline-*.md
+/reports/phase-*-apps-cert-*.json
+/reports/phase-*-apps-cert-*.md
 
 # Root ad-hoc helpers (PSR-1 — use scripts/vps-deploy + formal smoke instead)
 /tmp-restart-*.mjs

@@ -15,8 +15,8 @@ function read(rel) {
 }
 
 const atomic = read("src/canonical/atomic-canonical-tour-persist.ts");
-if (!atomic.includes("readCanonicalTransactionNow")) {
-  violations.push("atomic-canonical-tour-persist.ts must call readCanonicalTransactionNow");
+if (!atomic.includes("async (tx, txNow)")) {
+  violations.push("atomic-canonical-tour-persist.ts must consume the canonical transaction DB clock");
 }
 if (/const createdAt = new Date\(\)/.test(atomic)) {
   violations.push(
