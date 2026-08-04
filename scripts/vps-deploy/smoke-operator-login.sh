@@ -34,27 +34,19 @@ resolve_smoke_admin_host() {
   fi
 
   local api_env="${ENV_DIR}/api.env"
-  local label
-  label="$(read_env_value "$api_env" PUBLIC_TENANT_FALLBACK_LABEL)"
-  label="${label,,}"
-  if [[ -n "$label" && "$label" != "operator" ]]; then
-    printf '%s.admin.localhost' "$label"
-    return
-  fi
-
   local fallback_hosts
   fallback_hosts="$(read_env_value "$api_env" PUBLIC_TENANT_FALLBACK_HOSTS)"
   if [[ -n "$fallback_hosts" ]]; then
     local first_host="${fallback_hosts%%,*}"
     first_host="${first_host// /}"
     first_host="${first_host%%:*}"
-    if [[ -n "$first_host" && "$first_host" != "127.0.0.1" && "$first_host" != "localhost" ]]; then
+    if [[ -n "$first_host" ]]; then
       printf '%s' "$first_host"
       return
     fi
   fi
 
-  printf '%s' "operator.admin.localhost"
+  printf '%s' "127.0.0.1"
 }
 
 ADMIN_HOST="$(resolve_smoke_admin_host)"
