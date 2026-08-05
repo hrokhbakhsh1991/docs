@@ -2,7 +2,9 @@
  * Phase 5 hardened gate — atomic write latency under concurrency.
  *
  * Two tiers:
- * 1. Serial baseline (10 ops after warmup): p95 < 100ms — proves atomic path is fast uncontended.
+ * 1. Serial baseline (10 ops after warmup): p95 < P5_SERIAL_PERF_GATE_MS (default 100) —
+ *    proves atomic path is fast uncontended. GHA shared runners after a long suite may need a
+ *    higher ceiling (document in HARDENED-GATE-REPORT / phase-6-gate fast-closure env).
  * 2. Concurrent burst (50 tenants, Promise.all): p95 < P5_PERF_GATE_MS (default 100 target SLO).
  *    Local Postgres on 5434 with default Prisma pool typically exceeds 100ms under 50 concurrent TX;
  *    document measured values in HARDENED-GATE-REPORT.md. Set P5_PERF_GATE_MS to infra-proven
@@ -33,7 +35,10 @@ const ADMIN_URL =
 
 const CONCURRENCY = 50;
 const SERIAL_BASELINE_OPS = 10;
-const SERIAL_BASELINE_MS = 100;
+const SERIAL_BASELINE_MS = Number.parseInt(
+  process.env.P5_SERIAL_PERF_GATE_MS?.trim() ?? "100",
+  10
+);
 
 function logPerfStats(label: string, stats: PerfStats): void {
   console.log(`[P5-PERF] ${label}: ${JSON.stringify(stats)}`);
@@ -140,7 +145,7 @@ describe(
       }
     }
 
-    it("serial baseline: 10 persists p95 under 100ms after warmup", async () => {
+    it(`serial baseline: 10 persists p95 under ${SERIAL_BASELINE_MS}ms after warmup`, async () => {
       const tenantId = tenantIds[0]!;
       await persistForTenant(tenantId, `perf-${runId}-warmup`);
       await admin.outboxEvent.deleteMany({ where: { tenantId } });

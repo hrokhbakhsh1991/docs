@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { RenderStepPlan } from "@app-tour/platform-core";
 
 import { loadDenaliReviewCatalog } from "../adapters/review-catalog-fetch";
@@ -11,10 +11,13 @@ import {
   resolveDenaliTourKindLabel,
   resolveDenaliTransportModeLabel,
 } from "../adapters/field-labels";
+import { formatDatetimeLocalLabel } from "../adapters/datetime-format";
+import type { AppLocale } from "../adapters/i18n-format";
 import { DenaliPhotoPreview } from "../components/denali-photo-preview";
 import { EquipmentCatalogAvatar } from "../components/equipment-catalog-avatar";
 import type { DenaliTourWizardDraft } from "../../draft/denali-tour-wizard-draft";
 import type { DenaliGearItem } from "../logic/denali-gear-types";
+import { isoToDatetimeLocalInput } from "../logic/denali-datetime-utils";
 import {
   buildDenaliReviewHero,
   buildDenaliReviewSectionsFromVisibleSteps,
@@ -322,6 +325,7 @@ export function DenaliReviewStep({
   onNavigateToStep,
 }: DenaliReviewStepProps) {
   const t = useTranslations("denali");
+  const locale = useLocale() as AppLocale;
   const [catalog, setCatalog] = useState<DenaliReviewCatalog>(EMPTY_CATALOG);
   const [loading, setLoading] = useState(true);
 
@@ -351,6 +355,8 @@ export function DenaliReviewStep({
       transportModeLabel: (mode) => resolveDenaliTransportModeLabel(t, mode),
       publishStatusLabel: (status) => resolveDenaliPublishStatusLabel(t, status),
       locationZoneLabel: (path) => t(`composites.locationTypes.${path}`),
+      formatDatetime: (iso) =>
+        formatDatetimeLocalLabel(isoToDatetimeLocalInput(iso), locale),
       yes: t("review.yes"),
       no: t("review.no"),
       gearRequired: t("review.gearRequired"),
@@ -360,7 +366,7 @@ export function DenaliReviewStep({
       primaryGathering: t("review.primaryGathering"),
       socialMediaTelegramAutoLabel: t("composites.socialMedia.reviewTelegramAuto"),
     };
-  }, [t]);
+  }, [t, locale]);
 
   const hero = useMemo(
     () => buildDenaliReviewHero(draft, catalog, labels),

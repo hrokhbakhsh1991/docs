@@ -42,8 +42,9 @@ export function collectWorkspacePluginLoadCacheViolations(
     );
   }
 
+  // Codegen may break the string onto the next line (prettier / long revision lists).
   const revisionMatch = generated.match(
-    /export const WORKSPACE_PLUGIN_REGISTRY_REVISION = "([^"]*)"/
+    /export const WORKSPACE_PLUGIN_REGISTRY_REVISION\s*=\s*"([^"]*)"/
   );
   if (!revisionMatch) {
     violations.push("missing WORKSPACE_PLUGIN_REGISTRY_REVISION export");

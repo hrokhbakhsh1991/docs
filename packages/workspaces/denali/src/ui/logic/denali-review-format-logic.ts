@@ -79,6 +79,8 @@ export type DenaliReviewFormatLabels = {
   readonly transportModeLabel: (mode: string) => string;
   readonly publishStatusLabel: (status: string) => string;
   readonly locationZoneLabel: (path: string) => string;
+  /** Display-only — canonical storage stays ISO (INV-DENALI-REVIEW-01). */
+  readonly formatDatetime: (iso: string) => string;
   readonly yes: string;
   readonly no: string;
   readonly gearRequired: string;
@@ -168,7 +170,11 @@ export function buildDenaliReviewHero(
   const destinationId = getCanonicalStringValue(draft, "destinationId");
   const startDateTime = getCanonicalStringValue(draft, "startDateTime");
   const endDateTime = getCanonicalStringValue(draft, "endDateTime");
-  const scheduleParts = [startDateTime, endDateTime].filter((part) => part.trim().length > 0);
+  const scheduleParts = [startDateTime, endDateTime]
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0)
+    .map((part) => labels.formatDatetime(part))
+    .filter((part) => part.trim().length > 0);
 
   return {
     title,
@@ -219,8 +225,18 @@ export function buildDenaliReviewSections(
     "denali_basic",
     getCanonicalStringValue(draft, "tripDetails.overview.trailDistanceKm")
   );
-  pushRow(basicRows, "startDateTime", labels.fieldLabel("startDateTime"), getCanonicalStringValue(draft, "startDateTime"));
-  pushRow(basicRows, "endDateTime", labels.fieldLabel("endDateTime"), getCanonicalStringValue(draft, "endDateTime"));
+  pushRow(
+    basicRows,
+    "startDateTime",
+    labels.fieldLabel("startDateTime"),
+    labels.formatDatetime(getCanonicalStringValue(draft, "startDateTime"))
+  );
+  pushRow(
+    basicRows,
+    "endDateTime",
+    labels.fieldLabel("endDateTime"),
+    labels.formatDatetime(getCanonicalStringValue(draft, "endDateTime"))
+  );
   pushRow(
     basicRows,
     "approximateReturnTime",

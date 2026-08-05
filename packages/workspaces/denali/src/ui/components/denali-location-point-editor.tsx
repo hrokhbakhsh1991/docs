@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState, type SyntheticEvent } from "react";
 import { useTranslations } from "next-intl";
 
 import {
@@ -10,7 +11,11 @@ import {
 import { Button, Input } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { fetchReverseGeocodeAddress } from "../adapters/reverse-geocode-client";
-import { parseDenaliLocationData, type DenaliLocationData } from "../logic/denali-location-types";
+import {
+  isDenaliLocationDataPopulated,
+  parseDenaliLocationData,
+  type DenaliLocationData,
+} from "../logic/denali-location-types";
 import { DenaliLocationAddressPicker } from "./denali-location-address-picker";
 
 type DenaliLocationPointEditorProps = {
@@ -33,6 +38,14 @@ export function DenaliLocationPointEditor({
   const draftRef = useLatestWizardDraft(draft);
 
   const location = parseDenaliLocationData(getCanonicalValue(draft, canonicalPath));
+  const populated = isDenaliLocationDataPopulated(location);
+  const [open, setOpen] = useState(populated);
+
+  useEffect(() => {
+    if (populated) {
+      setOpen(true);
+    }
+  }, [populated]);
 
   const updateLocation = (patch: Partial<DenaliLocationData>) => {
     commitWizardDraftEdit(draftRef, onDraftChange, (base) => {
@@ -63,9 +76,28 @@ export function DenaliLocationPointEditor({
     );
   };
 
+  const onToggle = (event: SyntheticEvent<HTMLDetailsElement>) => {
+    setOpen(event.currentTarget.open);
+  };
+
   return (
-    <details className="denali-wizard-composite__panel denali-location-point" open>
-      <summary className="denali-wizard-composite__legend denali-location-point__summary">{heading}</summary>
+    <details
+      className="denali-wizard-composite__panel denali-location-point"
+      open={open}
+      onToggle={onToggle}
+      data-testid={`denali-location-zone-${testIdKey}`}
+      data-location-zone-open={open ? "true" : "false"}
+      data-location-zone-populated={populated ? "true" : "false"}
+    >
+      <summary className="denali-wizard-composite__legend denali-location-point__summary">
+        {heading}
+        {!populated ? (
+          <span className="denali-location-point__summary-hint">
+            {" — "}
+            {tLocation("zoneCollapsedHint")}
+          </span>
+        ) : null}
+      </summary>
       <label className="denali-wizard-composite__field">
         <span>{t("label")}</span>
         <Input
@@ -77,6 +109,7 @@ export function DenaliLocationPointEditor({
         testIdKey={testIdKey}
         value={location}
         onChange={updateLocation}
+        mapMounted={open}
       />
       <Button type="button" variant="secondary" onClick={useCurrentPosition}>
         {tLocation("useCurrentLocation")}

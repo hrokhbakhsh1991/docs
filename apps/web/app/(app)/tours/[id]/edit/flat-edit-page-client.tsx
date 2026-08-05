@@ -129,9 +129,13 @@ function OperatorFlatEditPageClientReady({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- product view slot props
         renderReady: ({ core: readyCore, detail, tourId: readyTourId }: any) => {
           const loadError = resolveTourErrorMessage(tErrors, readyCore.error);
+          const hasSubmitValidationIssues =
+            readyCore.submitValidationIssues != null &&
+            readyCore.submitValidationIssues.length > 0;
+          // Field-level validation list already conveys the blocker — suppress duplicate footer summary.
           const submitPresentation = resolveWizardSubmitErrorMessage({
             pluginId: session.pluginId,
-            raw: readyCore.submitError,
+            raw: hasSubmitValidationIssues ? null : readyCore.submitError,
             context: "edit",
             translateFieldLabel: createWizardSubmitFieldLabelResolver(session.pluginId, (key) =>
               tPlugin(key)

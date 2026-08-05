@@ -65,11 +65,14 @@ describe("workspace:create --guest", () => {
       assert.doesNotMatch(catalogHttpTs, /sendWorkspaceGuestStub/);
       const routesTs = readFileSync(join(dir, "src/http/routes.ts"), "utf8");
       assert.match(routesTs, /alpine-club-catalog-http/);
+      assert.doesNotMatch(routesTs, /from "\.\/alpine-club-catalog-http\.ts"/);
       assert.doesNotMatch(routesTs, /function sendGuestStub/);
       const routesManifestTs = readFileSync(join(dir, "src/http/routes-manifest.ts"), "utf8");
       assert.match(routesManifestTs, /WorkspaceHttpMethod/);
       const catalogIndexTs = readFileSync(join(dir, "src/catalog/index.ts"), "utf8");
       assert.match(catalogIndexTs, /buildAlpineClubSmokeCatalogCard/);
+      assert.doesNotMatch(catalogIndexTs, /from "\.\/.*\.ts"/);
+      assert.doesNotMatch(catalogHttpTs, /from "\.\.\/catalog\/.*\.ts"/);
 
       assert.ok(existsSync(join(dir, "test/guest-smoke-http.spec.ts")));
       assert.ok(existsSync(join(dir, "test/guest-clone-budget.spec.ts")));

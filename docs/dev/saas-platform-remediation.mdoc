@@ -137,7 +137,7 @@ Scale readiness exit gates (Architect maturity ≥ targets + green GHA `gap-clos
 | B.19b dual-key smoke host labels removed | Closed |
 | Hand `pathNot` product fragments → boundary codegen (P5.2.c) | Closed (fail-closed; not all product ids) |
 | C.4 filtered `optionalDependencies` / pnpm installs | Out of scope |
-| E.4b-d2 disposable `pnpm --filter` package build | Closed (`--package-build` + lockfile restore) |
+| E.4b-d2 disposable `pnpm --filter` package build | Closed (`--package-build` + lockfile restore). Scaffold import strip must use `/\.ts$/` (not `/\\.ts$/`) so emitted relative imports never keep a `.ts` suffix — otherwise `tsc` fails TS5097 under NodeNext. |
 
 ### Architect verification (local — post-DONE regression)
 

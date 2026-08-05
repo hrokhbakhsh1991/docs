@@ -158,6 +158,22 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
   }, [input.draftSync.data, tourBaseline, input.envelopeMeta]);
 
   const draft = envelope?.form ?? emptyDenaliTourWizardDraft();
+  // UX: clear stale submit error/validation after real draft edits.
+  const draftDataKey = useMemo(() => {
+    try {
+      return JSON.stringify((draft as unknown as { data?: unknown }).data ?? null);
+    } catch {
+      return "";
+    }
+  }, [draft]);
+  const prevDraftDataKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevDraftDataKeyRef.current != null && prevDraftDataKeyRef.current !== draftDataKey) {
+      setSubmitError(null);
+      setSubmitValidationIssues(null);
+    }
+    prevDraftDataKeyRef.current = draftDataKey;
+  }, [draftDataKey]);
 
   const envelopeRef = useRef(envelope);
   envelopeRef.current = envelope;
@@ -217,48 +233,59 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
       setUnpublished(false);
       setPendingIntent(patchIntent);
       startTransition(async () => {
-        const outcome = await runDenaliFlatEditPatch({
-          plugin: input.plugin,
-          draft,
-          denaliRules: denaliRules as unknown as StrictDenaliWizardRulesModule | null,
-          wizardRuleEvalContext,
-          tenantId: input.tenantId,
-          rowVersion,
-          patchIntent,
-          gate: input.gate,
-          loadCatalog: input.loadSubmitCatalog,
-          updateTour: input.updateTour,
-        });
-        if (!outcome.ok) {
-          if (outcome.failure.kind === "validation") {
-            setSubmitValidationIssues(outcome.failure.validationIssues ?? null);
-            setSubmitError("VALIDATION_FAILED");
-          } else if (outcome.failure.kind === "update-action") {
-            setSubmitError(
-              encodeTourActionSubmitError({
-                status: outcome.failure.status ?? 400,
-                code: outcome.failure.code,
-                message: outcome.failure.message ?? outcome.failure.code,
-              })
-            );
+        try {
+          const outcome = await runDenaliFlatEditPatch({
+            plugin: input.plugin,
+            draft,
+            denaliRules: denaliRules as unknown as StrictDenaliWizardRulesModule | null,
+            wizardRuleEvalContext,
+            tenantId: input.tenantId,
+            rowVersion,
+            patchIntent,
+            gate: input.gate,
+            loadCatalog: input.loadSubmitCatalog,
+            updateTour: input.updateTour,
+          });
+          if (!outcome.ok) {
+            if (outcome.failure.kind === "validation") {
+              setSubmitValidationIssues(outcome.failure.validationIssues ?? null);
+              setSubmitError("VALIDATION_FAILED");
+            } else if (outcome.failure.kind === "update-action") {
+              setSubmitError(
+                encodeTourActionSubmitError({
+                  status: outcome.failure.status ?? 400,
+                  code: outcome.failure.code,
+                  message: outcome.failure.message ?? outcome.failure.code,
+                })
+              );
+            } else {
+              setSubmitError(outcome.failure.code);
+            }
+            setPendingIntent(null);
+            return;
+          }
+          setRowVersion(outcome.rowVersion);
+          if (outcome.patchIntent === "publish") {
+            setPublished(true);
+          } else if (outcome.patchIntent === "unpublish") {
+            setUnpublished(true);
           } else {
-            setSubmitError(outcome.failure.code);
+            setSaved(true);
           }
           setPendingIntent(null);
-          return;
+          await input.draftSync.clearDraft();
+          input.onAfterPatchSuccess();
+          void loadTour();
+        } catch {
+          setSubmitError(
+            encodeTourActionSubmitError({
+              status: 500,
+              code: "unknown_error",
+              message: "unknown_error",
+            })
+          );
+          setPendingIntent(null);
         }
-        setRowVersion(outcome.rowVersion);
-        if (outcome.patchIntent === "publish") {
-          setPublished(true);
-        } else if (outcome.patchIntent === "unpublish") {
-          setUnpublished(true);
-        } else {
-          setSaved(true);
-        }
-        setPendingIntent(null);
-        await input.draftSync.clearDraft();
-        input.onAfterPatchSuccess();
-        void loadTour();
       });
     },
     [input, draft, denaliRules, wizardRuleEvalContext, rowVersion, loadTour]

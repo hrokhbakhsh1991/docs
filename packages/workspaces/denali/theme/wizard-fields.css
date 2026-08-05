@@ -601,6 +601,11 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-location-poi
   margin-block-end: var(--space-3, 0.75rem);
 }
 
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-location-point__summary-hint {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__photos-layout {
   display: grid;
   gap: var(--space-4, 1rem);

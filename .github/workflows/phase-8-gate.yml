@@ -219,6 +219,10 @@ jobs:
         # Charter gate is SMK-P8 only — urban-wizard-create (SMK-P15-W-D2) is Phase 15.
         # Use dedicated script: `pnpm run … -- --grep` forwards a literal `--` that Playwright
         # treats as a test-file filter → "No tests found".
+        # Wave H: smoke-urban-e2e-servers also sets these; export here so Next/env is unambiguous.
+        env:
+          ALLOW_URBAN_WEB_PLUGIN: "true"
+          ALLOW_DENALI_WEB_PLUGIN: "true"
         run: pnpm --filter @apps/web run test:e2e:urban:smk-p8
 
   ci-integrity:

@@ -21,6 +21,8 @@ export default defineConfig({
     url: "http://denali.localhost:3000/",
     reuseExistingServer: !process.env.CI && process.env.PW_NO_REUSE_SERVER !== "1",
     timeout: 240_000,
+    stdout: "pipe",
+    stderr: "pipe",
   },
   reporter: [["list"]],
 });

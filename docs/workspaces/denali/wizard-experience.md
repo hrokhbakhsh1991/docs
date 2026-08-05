@@ -98,6 +98,8 @@ When an **authenticated Denali operator** opens `/tours/new`, `ToursWizardLayout
 
 `data-testid="wizard-bridge-shell"` on the bridge root.
 
+**Template seed banner:** `CreateTourWizardSeedBanner` shows when the published wizard template carries a non-empty `seedLabel` (prefill for `title`). Copy must describe a **template seed**, not the live tour title (`wizard.seedApplied` — e.g. «تمپلیت اعمال‌شده: {label}»). Hide the banner once the draft `title` diverges from `seedLabel` so operators are not told the tour is still named after the seed. Keep `data-testid` / `data-seed-label` stable for SMK-P9 seed e2e (assert on the seed string, not the prefix).
+
 ## CSS selectors
 
 All Denali wizard skin rules scope to:
@@ -238,6 +240,8 @@ Selected day uses `aria-pressed="true"` (not `data-selected`). Dark mode re-bind
 ## Composites
 
 All `apps/web/src/wizard/denali/*.tsx` fields use BEM classes (`denali-wizard-composite*`) styled in `wizard-fields.css` — no Tailwind utilities in composite renderers.
+
+**Location zones progressive disclosure (INV-DENALI-WIZ-019):** `denali.location-zones` still exposes all registry paths (`startPoint`, `summitPoint`, `campPoint`, `endPoint`) — matrix visibility is unchanged. Each zone is a `<details>` panel: **collapsed by default when empty**, **open when** `isDenaliLocationDataPopulated` (label / address / coordinates). The Leaflet/OSM map (`DenaliLocationPickerMap`) mounts only while that zone’s panel is open (`mapMounted`), so nature tours with unused zones do not pay for four map instances on first paint. Expanding a zone mounts the map; collapsing unmounts it. Mountain tours with prefilled zones still open those panels. Specs: `DN-LOC-ZONE-*` in `packages/workspaces/denali/test/denali-location-zone-disclosure.spec.ts`.
 
 Platform-neutral wizard fallback remains in `apps/web/app/globals.css`; Denali overrides live only under `[data-new-tour-wizard]`.
 

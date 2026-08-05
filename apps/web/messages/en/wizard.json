@@ -20,7 +20,7 @@
   },
   "pageTitle": "Create tour",
   "pageSubtitle": "Complete each step — fields update when you change tour type.",
-  "seedApplied": "Default tour title: {label}",
+  "seedApplied": "Template applied: {label}",
   "presetApplied": "Tour preset applied to this draft.",
   "createButton": "Create tour",
   "saveDraft": "Save draft",

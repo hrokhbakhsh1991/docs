@@ -48,7 +48,10 @@ export type DenaliCreateTourWizardViewSlots = {
     readonly requestClearDraft: DenaliCreateTourWizardCoreState["clearDraft"]["requestClearDraft"];
     readonly clearDraftConfirmDialog: DenaliCreateTourWizardCoreState["clearDraft"]["clearDraftConfirmDialog"];
   }) => ReactNode;
-  readonly renderSeedBanner: (props: { readonly seedLabel: string }) => ReactNode;
+  readonly renderSeedBanner: (props: {
+    readonly seedLabel: string;
+    readonly draftTitle?: string;
+  }) => ReactNode;
   readonly renderClonePhotoRemintWarning: (props: { readonly testId: string }) => ReactNode;
   readonly renderPresetBanner: (props: { readonly presetId: string }) => ReactNode;
   readonly renderSubmitFooter: (props: {
@@ -110,7 +113,13 @@ export function DenaliCreateTourWizardView({
         clearDraftConfirmDialog: wizard.clearDraft.clearDraftConfirmDialog,
       })}
       {wizard.showSeedBanner ? (
-        slots.renderSeedBanner({ seedLabel: wizard.gate.seedLabel })
+        slots.renderSeedBanner({
+          seedLabel: wizard.gate.seedLabel,
+          draftTitle:
+            typeof (wizard.draft.data as { title?: unknown } | undefined)?.title === "string"
+              ? (wizard.draft.data as { title: string }).title
+              : "",
+        })
       ) : null}
       {wizard.clonePhotoRemintWarning ? (
         slots.renderClonePhotoRemintWarning({
@@ -143,7 +152,12 @@ export function DenaliCreateTourWizardView({
         renderFooter: () =>
           slots.renderSubmitFooter({
             pending: wizard.pending,
-            submitError: wizard.submitError,
+            // Avoid duplicate messaging when field-level validation issues are already rendered/focused.
+            submitError:
+              wizard.submitValidationIssues != null &&
+              wizard.submitValidationIssues.length > 0
+                ? null
+                : wizard.submitError,
             createdTourId: wizard.createdTourId,
             onSubmit: wizard.onSubmit,
             resolveSubmitError,

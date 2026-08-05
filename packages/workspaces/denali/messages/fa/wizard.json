@@ -197,6 +197,8 @@
       "coordinatesSet": "مختصات: {lat} ، {lng}",
       "pickFromMapHint": "آدرس را جستجو کنید یا روی نقشه کلیک کنید تا مکان انتخاب شود.",
       "mapInteractionHint": "روی نقشه کلیک کنید یا نشانگر را بکشید — آدرس به‌صورت خودکار به‌روز می‌شود.",
+      "mapDeferredHint": "برای بارگذاری نقشه، این نقطه را باز کنید.",
+      "zoneCollapsedHint": "اختیاری — برای ویرایش باز کنید",
       "useCurrentLocation": "استفاده از موقعیت فعلی",
       "mapPreviewTitle": "پیش‌نمایش نقشه",
       "openFullMapLink": "باز کردن نقشه کامل"

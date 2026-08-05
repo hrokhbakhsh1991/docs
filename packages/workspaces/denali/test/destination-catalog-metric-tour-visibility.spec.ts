@@ -74,6 +74,7 @@ const REVIEW_LABELS = {
   transportModeLabel: (mode: string) => mode,
   publishStatusLabel: (status: string) => status,
   locationZoneLabel: (path: string) => path,
+  formatDatetime: (iso: string) => iso,
   yes: "yes",
   no: "no",
   gearRequired: "req",

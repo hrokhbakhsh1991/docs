@@ -72,3 +72,6 @@ temp/
 .aider*
 .venv/
 **/.venv*/
+
+# Local Playwright/audit scratch (never commit)
+apps/web/.tmp-audit/

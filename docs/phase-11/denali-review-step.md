@@ -52,6 +52,8 @@ Review is not a text dump of wizard labels — it mirrors composite surfaces:
 | Itinerary | Day cards (`kind: "itinerary"`) with segment body | `program.itinerary` |
 | Excluded services | Dashed self-variant cards only | `tripDetails.logistics.excludedServices` |
 
+**Schedule / datetime display (INV-DENALI-REVIEW-01):** Canonical `startDateTime` / `endDateTime` stay ISO in the draft (storage SoT). Review **read-back** must not render raw `…T…Z` strings. Format via the same wall-clock path as the datetime composite: `isoToDatetimeLocalInput` → `formatDatetimeLocalLabel(locale)` through `DenaliReviewFormatLabels.formatDatetime`. Hero `schedule` and basic-section rows share that formatter. Specs: `WEB-DENALI-REVIEW-01` in `apps/web/test/denali-review-format-logic.spec.ts`.
+
 Section chrome uses `denali-review__section-header` (title + ghost **Edit** jump) — no `text-transform: uppercase` (FA-safe). Styles live in `packages/workspaces/denali/theme/wizard-review.css`.
 
 `DenaliPhotoPreview` accepts `readOnly` for review surfaces: signed-url fetch still runs; retry button is hidden and fallback uses `denali-review__photo-fallback`.
@@ -59,6 +61,8 @@ Section chrome uses `denali-review__section-header` (title + ghost **Edit** jump
 Test ids: `denali-review-hero-cover`, `denali-review-photo-grid`, per-section `denali-review-edit-{stepId}`.
 
 Submit button stays in `WizardStepShell` `lastStepFooter` (review is the last step). Create is **not** embedded inside the review composite.
+
+**Create footer state:** When `createdTourId` is set, the create button must not keep showing `wizard.creating` from a lingering `useTransition` pending flag — prefer the idle/success button label (and keep the `data-tour-created` status line).
 
 ## Validation
 

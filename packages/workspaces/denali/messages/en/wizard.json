@@ -197,6 +197,8 @@
       "coordinatesSet": "Coordinates: {lat}, {lng}",
       "pickFromMapHint": "Search for an address or click on the map to pick a location.",
       "mapInteractionHint": "Click the map or drag the marker — the address field updates automatically.",
+      "mapDeferredHint": "Expand this point to load the map picker.",
+      "zoneCollapsedHint": "optional — expand to edit",
       "useCurrentLocation": "Use current location",
       "mapPreviewTitle": "Map preview",
       "openFullMapLink": "Open full map"

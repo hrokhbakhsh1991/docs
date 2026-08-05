@@ -23,6 +23,8 @@ const LABELS: DenaliReviewFormatLabels = {
   transportModeLabel: (mode) => mode,
   publishStatusLabel: (status) => status,
   locationZoneLabel: (path) => path,
+  // Identity stub — production wires isoToDatetimeLocalInput + formatDatetimeLocalLabel.
+  formatDatetime: (iso) => `fmt:${iso}`,
   yes: "yes",
   no: "no",
   gearRequired: "required",
@@ -50,7 +52,29 @@ describe("denali-review-format-logic.spec.ts", () => {
     );
     assert.equal(hero.title, "Spring climb");
     assert.equal(hero.destination, "Damavand");
-    assert.match(hero.schedule, /2026-07-01T08:00/);
+    assert.equal(hero.schedule, "fmt:2026-07-01T08:00 → fmt:2026-07-01T20:00");
+    assert.doesNotMatch(hero.schedule, /T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
+  });
+
+  it("WEB-DENALI-REVIEW-01b formats Zulu ISO via labels.formatDatetime (INV-DENALI-REVIEW-01)", () => {
+    const hero = buildDenaliReviewHero(
+      {
+        data: {
+          title: "Nature multi",
+          category: "nature_multi",
+          destinationId: "dest-1",
+          startDateTime: "2026-08-07T04:30:00.000Z",
+          endDateTime: "2026-08-10T13:30:00.000Z",
+        },
+      },
+      EMPTY_CATALOG,
+      LABELS
+    );
+    assert.equal(
+      hero.schedule,
+      "fmt:2026-08-07T04:30:00.000Z → fmt:2026-08-10T13:30:00.000Z"
+    );
+    assert.doesNotMatch(hero.schedule, /^2026-08-07T04:30:00\.000Z/);
   });
 
   it("WEB-DENALI-REVIEW-02b shows telegram auto label when social link is empty", () => {
