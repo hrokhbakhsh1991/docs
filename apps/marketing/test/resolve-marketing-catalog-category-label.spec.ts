@@ -38,4 +38,14 @@ describe("resolve-marketing-catalog-category-label.spec.ts — PR-23 card", () =
       "کوهنوردی"
     );
   });
+
+  it("MKT-CAT-04 unknown city slug falls back without throwing (next-intl MISSING_MESSAGE)", async () => {
+    const throwingTranslate = ((key: string) => {
+      throw Object.assign(new Error(`MISSING_MESSAGE:${key}`), { code: "MISSING_MESSAGE" });
+    }) as (key: string) => string;
+    assert.equal(
+      await resolveMarketingCatalogCardCategoryLabel("Berlin", throwingTranslate),
+      "Berlin"
+    );
+  });
 });

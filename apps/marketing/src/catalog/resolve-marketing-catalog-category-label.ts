@@ -6,6 +6,22 @@ import type {
   MarketingCategoryGroup,
 } from "./marketing-catalog-surface-types";
 
+/**
+ * next-intl `t()` may throw MISSING_MESSAGE; callers historically expected key-echo.
+ * Prefer `t.has` when available, otherwise catch and fall back to the key.
+ */
+function safeTranslate(translate: (key: string) => string, key: string): string {
+  const withHas = translate as ((key: string) => string) & { has?: (key: string) => boolean };
+  if (typeof withHas.has === "function" && !withHas.has(key)) {
+    return key;
+  }
+  try {
+    return translate(key);
+  } catch {
+    return key;
+  }
+}
+
 /** Chip / pill label for catalog category filter (group or legacy slug). */
 export async function resolveMarketingCatalogCategoryFilterLabel(
   category: string,
@@ -20,14 +36,14 @@ export async function resolveMarketingCatalogCategoryFilterLabel(
   const surface = pluginId != null ? await resolveMarketingCatalogSurface(pluginId) : null;
   if (surface != null && surface.isCategoryGroup(normalized)) {
     const groupKey = `list.filters.categoryGroups.${normalized as MarketingCategoryGroup}`;
-    const groupLabel = translate(groupKey);
+    const groupLabel = safeTranslate(translate, groupKey);
     if (groupLabel !== groupKey && groupLabel.trim().length > 0) {
       return groupLabel;
     }
   }
 
   const slugKey = `home.full.categories.labels.${normalized}`;
-  const slugLabel = translate(slugKey);
+  const slugLabel = safeTranslate(translate, slugKey);
   if (slugLabel !== slugKey && slugLabel.trim().length > 0) {
     return slugLabel;
   }
@@ -63,7 +79,7 @@ export async function resolveMarketingCatalogCardCategoryLabel(
   }
 
   const slugKey = `home.full.categories.labels.${normalized}`;
-  const slugLabel = translate(slugKey);
+  const slugLabel = safeTranslate(translate, slugKey);
   if (slugLabel !== slugKey && slugLabel.trim().length > 0) {
     return slugLabel;
   }
@@ -72,7 +88,7 @@ export async function resolveMarketingCatalogCardCategoryLabel(
   const group = resolveCategoryGroupKey(normalized, surface);
   if (group != null) {
     const groupKey = `list.filters.categoryGroups.${group}`;
-    const groupLabel = translate(groupKey);
+    const groupLabel = safeTranslate(translate, groupKey);
     if (groupLabel !== groupKey && groupLabel.trim().length > 0) {
       return groupLabel;
     }
