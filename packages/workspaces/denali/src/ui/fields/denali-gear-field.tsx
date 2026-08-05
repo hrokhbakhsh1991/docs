@@ -41,9 +41,10 @@ function parseThemeIds(value: unknown): string[] {
 type DenaliGearFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
+  readonly invalid?: boolean;
 };
 
-export function DenaliGearField({ draft, onDraftChange }: DenaliGearFieldProps) {
+export function DenaliGearField({ draft, onDraftChange, invalid = false }: DenaliGearFieldProps) {
   const locale = useLocale();
   const t = useTranslations("denali");
   const tErrors = useTranslations("settings.errors");
@@ -193,6 +194,7 @@ export function DenaliGearField({ draft, onDraftChange }: DenaliGearFieldProps) 
       data-operator-wizard-surface="section"
       data-operator-gear-picker
       data-testid={DENALI_GEAR_TEST_IDS.gear}
+      aria-invalid={invalid || undefined}
     >
       <div className="denali-wizard-composite__header">
         <h3 className="denali-wizard-composite__title">{label}</h3>

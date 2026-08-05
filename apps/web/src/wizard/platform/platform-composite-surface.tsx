@@ -25,6 +25,8 @@ export function createPlatformCompositeSurface(): WizardCompositeSurface {
         wizardSessionId={props.wizardSessionId}
         workspaceFormProfile={props.workspaceFormProfile}
         wizardRuleEvalContext={props.wizardRuleEvalContext}
+        invalid={props.invalid}
+        validationIssuePaths={props.validationIssuePaths}
       />
     ),
   });

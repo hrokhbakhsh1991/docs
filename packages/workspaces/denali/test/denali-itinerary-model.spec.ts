@@ -51,12 +51,13 @@ describe("denali-itinerary-model.spec.ts", () => {
     assert.equal(synced[1]?.segments.length, 1);
   });
 
-  it("DN-ITIN-03b sync scaffolds titles for newly added days (FE-07)", () => {
+  it("DN-ITIN-03b sync scaffolds empty shells for newly added days (INV-DENALI-WIZ-009)", () => {
     const synced = syncDenaliItineraryRows([], 3);
     assert.equal(synced.length, 3);
-    assert.equal(synced[2]?.title, "Day 3");
-    assert.equal(synced[2]?.segments[0]?.title, "Activity 3");
-    assert.equal(dayHasRequiredItineraryContent(synced[2]!), true);
+    assert.equal(synced[2]?.title, "");
+    assert.equal(synced[2]?.segments[0]?.title, "");
+    assert.equal(dayHasRequiredItineraryContent(synced[2]!), false);
+    assert.ok(collectDenaliItineraryDayValidationIssues(synced).length > 0);
   });
 
   it("DN-ITIN-04 validation requires day title and at least one segment title", () => {

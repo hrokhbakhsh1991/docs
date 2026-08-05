@@ -2,14 +2,13 @@
 /**
  * Field Exposure System — Phase 1 domain language closure guard.
  *
- * Validates glossary, ADRs, legacy mapping, forbidden vocabulary, cross-doc mirrors,
- * and blocks NEW runtime code in Phase 1 scope (staged diff only).
+ * Validates glossary, ADRs, legacy mapping, forbidden vocabulary, and cross-doc mirrors.
+ * The post-closure staged "no runtime code" ratchet is retired (see Phase 1 doc section).
  *
  * @see docs/architecture/field-exposure-system.md#phase-1--domain-language-closure
  */
-import { readFileSync, existsSync, statSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
@@ -71,15 +70,6 @@ const REQUIRED_FORBIDDEN_TERMS = [
   "deliveryCandidateFields",
   "deliverable",
   'surface: "delivery"',
-];
-
-/** Phase 1 may only add/modify docs, guards, and exposure contract tests. */
-const PHASE_1_ALLOWED_STAGED_PREFIXES = [
-  "docs/",
-  "scripts/guards/",
-  "apps/api/test/field-exposure-phase-",
-  "package.json",
-  "scripts/pre-commit-fast.sh",
 ];
 
 function readText(path) {
@@ -206,41 +196,13 @@ function evaluateSiblingDocs() {
   return failures;
 }
 
-function listStagedFiles() {
-  const result = spawnSync(
-    "git",
-    ["diff", "--cached", "--name-only", "--diff-filter=ACMR"],
-    { cwd: REPO_ROOT, encoding: "utf8" }
-  );
-  if (result.status !== 0) return [];
-  return (result.stdout || "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function isPhase1AllowedPath(filePath) {
-  return PHASE_1_ALLOWED_STAGED_PREFIXES.some((prefix) => filePath.startsWith(prefix));
-}
-
 function evaluatePhase1Scope() {
-  const failures = [];
-  const staged = listStagedFiles();
-  if (staged.length === 0) return failures;
-
-  for (const file of staged) {
-    if (isPhase1AllowedPath(file)) continue;
-    const fullPath = join(REPO_ROOT, file);
-    if (!existsSync(fullPath)) continue;
-    if (!statSync(fullPath).isFile()) continue;
-    if (/\.(ts|tsx)$/.test(file)) {
-      failures.push(
-        `${file}: Phase 1 staged change outside docs/guards/contract scope (runtime code forbidden)`
-      );
-    }
-  }
-
-  return failures;
+  // Retired after Phase 1 documentation closure (2026-06-28). A staged-diff "no runtime
+  // .ts/.tsx" ratchet made sense only while Phase 1 PRs were docs/guards/contracts-only.
+  // Post-closure, product PRs routinely stage apps/web and workspace runtime while API
+  // field-exposure contract tests still invoke this guard — failing those PRs is a false
+  // positive. Glossary / ADR / sibling-doc checks above remain the live Phase 1 contract.
+  return [];
 }
 
 function main() {

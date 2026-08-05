@@ -44,6 +44,7 @@ type WizardFieldRendererProps = {
   readonly label: string;
   readonly dataTestId?: string;
   readonly selectPlaceholder: string;
+  readonly invalid?: boolean;
 };
 
 export function parseEnumOptions(
@@ -77,6 +78,7 @@ function renderTextField({
   onChange,
   label,
   dataTestId,
+  invalid = false,
 }: WizardFieldRendererProps): ReactNode {
   return (
     <label {...fieldMarkerProps(field)}>
@@ -88,6 +90,7 @@ function renderTextField({
         onChange={(event) => onChange(event.target.value)}
         required={field.required}
         aria-required={field.required || undefined}
+        invalid={invalid}
         placeholder={field.uiHints?.placeholder}
       />
     </label>
@@ -101,6 +104,7 @@ function renderEnumField({
   label,
   selectPlaceholder,
   resolveOptionLabel,
+  invalid = false,
 }: WizardFieldRendererProps & {
   readonly resolveOptionLabel?: (value: string) => string;
 }): ReactNode {
@@ -116,6 +120,7 @@ function renderEnumField({
         onChange={(event) => onChange(event.target.value)}
         required={field.required}
         aria-required={field.required || undefined}
+        invalid={invalid}
         placeholder={field.uiHints?.placeholder ?? selectPlaceholder}
       />
     </label>
@@ -127,6 +132,7 @@ function renderBooleanField({
   value,
   onChange,
   label,
+  invalid = false,
 }: WizardFieldRendererProps): ReactNode {
   const checked = value === "true";
   return (
@@ -138,13 +144,20 @@ function renderBooleanField({
         onChange={(event) => onChange(event.target.checked ? "true" : "false")}
         required={field.required}
         aria-required={field.required || undefined}
+        invalid={invalid}
       />
       <span>{label}</span>
     </label>
   );
 }
 
-function renderNumberField({ field, value, onChange, label }: WizardFieldRendererProps): ReactNode {
+function renderNumberField({
+  field,
+  value,
+  onChange,
+  label,
+  invalid = false,
+}: WizardFieldRendererProps): ReactNode {
   return (
     <label {...fieldMarkerProps(field)}>
       <span>{label}</span>
@@ -155,13 +168,20 @@ function renderNumberField({ field, value, onChange, label }: WizardFieldRendere
         mode="decimal"
         required={field.required}
         aria-required={field.required || undefined}
+        invalid={invalid}
         placeholder={field.uiHints?.placeholder}
       />
     </label>
   );
 }
 
-function renderDateField({ field, value, onChange, label }: WizardFieldRendererProps): ReactNode {
+function renderDateField({
+  field,
+  value,
+  onChange,
+  label,
+  invalid = false,
+}: WizardFieldRendererProps): ReactNode {
   return (
     <label {...fieldMarkerProps(field)}>
       <span>{label}</span>
@@ -171,6 +191,7 @@ function renderDateField({ field, value, onChange, label }: WizardFieldRendererP
           onChange={onChange}
           required={field.required}
           aria-label={label}
+          invalid={invalid}
         />
       </div>
     </label>
@@ -232,6 +253,8 @@ export function WizardField({
   compositeSurfaceId,
   fieldLabelSurfaceId,
   translateWorkspaceMessage,
+  invalid = false,
+  validationIssuePaths,
 }: {
   readonly field: RenderFieldPlan;
   readonly value: string;
@@ -246,6 +269,8 @@ export function WizardField({
   readonly compositeSurfaceId?: string;
   readonly fieldLabelSurfaceId?: string;
   readonly translateWorkspaceMessage?: (key: string) => string;
+  readonly invalid?: boolean;
+  readonly validationIssuePaths?: readonly string[];
 }) {
   const tField = useTranslations("wizard.field");
   const translate = translateWorkspaceMessage ?? ((key: string) => key);
@@ -278,6 +303,8 @@ export function WizardField({
         wizardSessionId,
         workspaceFormProfile,
         wizardRuleEvalContext,
+        invalid,
+        validationIssuePaths,
       });
     }
     if (field.kind === "composite") {
@@ -296,6 +323,7 @@ export function WizardField({
           dataTestId,
           selectPlaceholder: tField("selectPlaceholder"),
           resolveOptionLabel,
+          invalid,
         })
       : render({
           field,
@@ -304,6 +332,7 @@ export function WizardField({
           label,
           dataTestId,
           selectPlaceholder: tField("selectPlaceholder"),
+          invalid,
         });
   }
 

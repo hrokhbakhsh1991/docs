@@ -24,11 +24,13 @@ const GATHERING_POINTS_PATH = "tripDetails.logistics.gatheringPoints";
 type DenaliGatheringPointsFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
+  readonly invalid?: boolean;
 };
 
 export function DenaliGatheringPointsField({
   draft,
   onDraftChange,
+  invalid = false,
 }: DenaliGatheringPointsFieldProps) {
   const t = useTranslations("denali");
   const tCommon = useTranslations("denali.composites.common");
@@ -96,6 +98,7 @@ export function DenaliGatheringPointsField({
       className="denali-wizard-composite"
       data-operator-wizard-surface="section"
       data-testid={DENALI_COMPOSITE_TEST_IDS.gatheringPoints}
+      aria-invalid={invalid || undefined}
     >
       <div className="denali-wizard-composite__header">
         <h3 className="denali-wizard-composite__title">{label}</h3>

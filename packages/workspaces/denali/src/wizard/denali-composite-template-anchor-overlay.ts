@@ -1,25 +1,16 @@
 import { DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR } from "../composites/denali-composite-anchors";
 
-/** P3 wizard overlay — transport composite dependents (metadata SoT frozen under composites/). */
+/**
+ * Template/settings helpers historically kept a transport-only overlay map.
+ * INV-DENALI-WIZ-013 — single SoT is `DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR`
+ * (includes transport + pricing/program anchors). Alias retained for imports.
+ */
 export const DENALI_COMPOSITE_TEMPLATE_ANCHOR_OVERLAY: Readonly<
   Record<string, readonly string[]>
-> = Object.freeze({
-  "transport.mode": [
-    "transport.transportCost",
-    "transport.allowPersonalCar",
-    "transport.dongAmount",
-    "transport.transportNotes",
-    "transport.seatPreference",
-    "transport.adminCapacityApproval",
-  ],
-});
+> = DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR;
 
 export function listDenaliCompositeTemplateDependentsForAnchor(
   anchorPath: string
 ): readonly string[] {
-  return (
-    DENALI_COMPOSITE_TEMPLATE_ANCHOR_OVERLAY[anchorPath] ??
-    DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR[anchorPath] ??
-    []
-  );
+  return DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR[anchorPath] ?? [];
 }

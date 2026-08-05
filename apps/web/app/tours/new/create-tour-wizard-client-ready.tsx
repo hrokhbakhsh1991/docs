@@ -2,9 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import type React from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 
-import { ensureWizardHostReady, type WorkspacePlugin } from "@app-tour/workspace-sdk";
+import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
 import { resolveWizardCreateViewSurface } from "@/wizard/wizard-create-view-registry";
 import { resolveWizardCatalogPrefetchProvider } from "@/wizard/wizard-host-adapter-registry";
@@ -25,7 +25,6 @@ import {
   createWizardSubmitFieldLabelResolver,
   resolveWizardSubmitErrorMessage,
 } from "@/wizard/resolve-wizard-submit-error-message";
-import { loadWizardWorkspacePlugin } from "@/wizard/resolve-wizard-workspace-plugin";
 import { useOperatorCreateTourWizard } from "@/wizard/use-create-tour-wizard";
 import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
 import { WorkspaceWizardHost } from "@/wizard/workspace-wizard-host";
@@ -87,9 +86,7 @@ export function OperatorCreateTourWizardClientReady({
               >["draftSync"]
             }
             draftIndex={
-              props.draftIndex as React.ComponentProps<
-                typeof CreateTourWizardHeader
-              >["draftIndex"]
+              props.draftIndex as React.ComponentProps<typeof CreateTourWizardHeader>["draftIndex"]
             }
             clearDraftPending={props.clearDraftPending}
             clearDraftError={props.clearDraftError}
@@ -156,26 +153,10 @@ export function OperatorCreateTourWizardCatalogShell({
   readonly children: React.ReactNode;
 }) {
   const session = useAppSession();
-  const [, setWarmTick] = useState(0);
-  useEffect(() => {
-    let cancelled = false;
-    void loadWizardWorkspacePlugin(session.pluginId)
-      .then((plugin) => ensureWizardHostReady(plugin))
-      .then(() => {
-        if (!cancelled) {
-          setWarmTick((n) => n + 1);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [session.pluginId]);
 
   const Provider = resolveWizardCatalogPrefetchProvider(session.pluginId);
   if (Provider == null) {
     return <>{children}</>;
   }
-  return (
-    <Provider initialLocationsResponse={initialLocationsResponse}>{children}</Provider>
-  );
+  return <Provider initialLocationsResponse={initialLocationsResponse}>{children}</Provider>;
 }

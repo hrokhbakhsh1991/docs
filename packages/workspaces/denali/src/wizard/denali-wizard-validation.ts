@@ -6,6 +6,7 @@ import {
   type ValidationResult,
 } from "@app-tour/platform-core";
 import { createCanonicalDocument, type WorkspacePlugin, type WorkspaceWizardHostPluginContext } from "@app-tour/workspace-sdk";
+import { dedupeValidationViolations } from "@app-tour/wizard-navigation";
 
 import { projectDenaliWizardFormToCanonicalIngressData } from "../acl/migrateDenaliCanonical";
 import { collectDenaliPublishReadinessRuleIssues } from "../validation/publishReadinessRules";
@@ -21,7 +22,17 @@ import { DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR } from "../composites/denali-comp
 import { denaliFieldIdForCanonicalPath } from "../denali-plugin-adapter";
 import type { DenaliFieldDefinition } from "../field-registry/denaliFieldRegistryData";
 import { DENALI_FIELD_DEFINITIONS } from "../field-registry/denaliFieldRegistryData";
-import { resolveDenaliDimensionsFromDraft } from "./apply-contextual-render-plan";
+import {
+  collectDenaliItineraryDayValidationIssues,
+  parseDenaliItineraryDays,
+} from "../schemas/denaliItineraryDaySchema";
+import { getDenaliFieldDefinitionByCanonicalPath } from "../rules/denaliContextualRules";
+import {
+  applyDenaliConditionalFieldRules,
+  hasDenaliWizardClassification,
+  resolveDenaliDimensionsFromDraft,
+  type DenaliWizardRuleEvalInput,
+} from "./apply-contextual-render-plan";
 import type { DenaliWizardRulesModule } from "./denali-wizard-rules-module";
 import { tourWizardDraftToDenaliForm } from "./denali-wizard-form-adapter";
 import type { DenaliWizardRuleEvalContext } from "./denali-wizard-rule-eval-context";
@@ -160,7 +171,17 @@ export function filterDenaliCanonicalValidationResult(
   return filterDenaliCompositeStorageViolations(result, { data });
 }
 
-function expandStepFieldsForCompositeDependents(step: RenderStepPlan): RenderStepPlan {
+type ExpandCompositeDependentsOptions = {
+  readonly envelope?: CanonicalWizardDraftEnvelope;
+  readonly rules?: DenaliWizardRulesModule | null;
+  /** INV-DENALI-WIZ-012 — same overlay/uiOptions the host used for the visible plan. */
+  readonly evalContext?: DenaliWizardRuleEvalContext;
+};
+
+function expandStepFieldsForCompositeDependents(
+  step: RenderStepPlan,
+  options?: ExpandCompositeDependentsOptions
+): RenderStepPlan {
   const extraPaths = new Set<string>();
   for (const field of step.fields) {
     const dependents = DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR[field.canonicalPath];
@@ -177,27 +198,45 @@ function expandStepFieldsForCompositeDependents(step: RenderStepPlan): RenderSte
   const existing = new Set(step.fields.map((field) => field.canonicalPath));
   const synthetic = [...extraPaths]
     .filter((path) => !existing.has(path))
-    .map(
-      (path): RenderFieldPlan => ({
+    .map((path): RenderFieldPlan => {
+      const definition = getDenaliFieldDefinitionByCanonicalPath(path);
+      return {
         fieldId: path,
         canonicalPath: path,
         kind: "text",
-        required: false,
-        hidden: false,
+        // INV-DENALI-WIZ-005 — matrix/registry required must survive composite expand.
+        required: definition?.ruleDefaults.required === true,
+        hidden: definition?.ruleDefaults.hidden === true,
         stepId: step.stepId,
-      })
-    );
-  return {
+      };
+    });
+  const expanded: RenderStepPlan = {
     ...step,
     fields: [...step.fields, ...synthetic],
   };
+
+  // INV-DENALI-WIZ-010 — re-apply contextual required/hidden (e.g. basePrice when paid).
+  // INV-DENALI-WIZ-012 — forward evalContext so overlay/uiOptions match host plan eval.
+  const rules = options?.rules;
+  const envelope = options?.envelope;
+  if (rules == null || envelope == null || !hasDenaliWizardClassification(envelope, rules)) {
+    return expanded;
+  }
+  const [reapplied] = applyDenaliConditionalFieldRules(
+    [expanded],
+    envelope,
+    rules,
+    options?.evalContext as DenaliWizardRuleEvalInput | undefined
+  );
+  return reapplied ?? expanded;
 }
 
 function filterValidationToStep(
   result: ValidationResult,
-  step: RenderStepPlan
+  step: RenderStepPlan,
+  expandOptions?: ExpandCompositeDependentsOptions
 ): ValidationResult {
-  const expandedStep = expandStepFieldsForCompositeDependents(step);
+  const expandedStep = expandStepFieldsForCompositeDependents(step, expandOptions);
   if (result.ok) {
     return result;
   }
@@ -305,8 +344,13 @@ export function validateDenaliWizardDraftSync(
     return mergeDenaliScheduleDateViolations(result, envelope);
   }
 
-  result = filterValidationToStep(result, step);
-  result = mergeDenaliStepRequiredFieldViolations(result, envelope, step);
+  const expandOptions: ExpandCompositeDependentsOptions = {
+    envelope,
+    rules: denaliRules,
+    evalContext,
+  };
+  result = filterValidationToStep(result, step, expandOptions);
+  result = mergeDenaliStepRequiredFieldViolations(result, envelope, step, expandOptions);
   return mergeDenaliScheduleDateViolations(result, envelope, step);
 }
 
@@ -324,8 +368,28 @@ function isDenaliDraftFieldValueEmpty(
     }
     return value.trim().length === 0;
   }
+  if (typeof value === "number") {
+    return !Number.isFinite(value);
+  }
   if (field.kind === "number") {
     return value === "";
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return true;
+    }
+    // INV-DENALI-WIZ-009 — multi-day itinerary must have day/segment content, not just rows.
+    if (field.canonicalPath === "program.itinerary") {
+      const days = parseDenaliItineraryDays(value);
+      if (days.length === 0) {
+        return true;
+      }
+      return collectDenaliItineraryDayValidationIssues(days).length > 0;
+    }
+    return false;
+  }
+  if (typeof value === "object") {
+    return Object.keys(value as Record<string, unknown>).length === 0;
   }
   return false;
 }
@@ -334,9 +398,13 @@ function isDenaliDraftFieldValueEmpty(
 function mergeDenaliStepRequiredFieldViolations(
   result: ValidationResult,
   envelope: CanonicalWizardDraftEnvelope,
-  step: RenderStepPlan
+  step: RenderStepPlan,
+  expandOptions?: ExpandCompositeDependentsOptions
 ): ValidationResult {
-  const expandedStep = expandStepFieldsForCompositeDependents(step);
+  const expandedStep = expandStepFieldsForCompositeDependents(step, {
+    ...expandOptions,
+    envelope: expandOptions?.envelope ?? envelope,
+  });
   const extraViolations: Array<ValidationResult["violations"][number]> = [];
 
   for (const field of expandedStep.fields) {
@@ -513,11 +581,14 @@ export function validateDenaliCreateTourSubmitSync(input: {
     publishTransition,
   });
 
-  const violations = [...canonical.violations, ...readiness.violations];
+  const violations = dedupeValidationViolations([
+    ...canonical.violations,
+    ...readiness.violations,
+  ]);
   return {
     kind: "ok",
     validation: {
-      ok: canonical.ok && readiness.ok,
+      ok: violations.length === 0,
       violations,
     },
   };

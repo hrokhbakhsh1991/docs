@@ -1,0 +1,69 @@
+---
+title: Denali operator-smoke wizard template bootstrap
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/phase-15/urban-wizard-template-seed.mdoc
+  - docs/phase-14/subphases/14.0-surface-registry-codegen.md
+  - docs/dev/denali-plugin-encapsulation.mdoc
+---
+
+# Denali operator-smoke wizard template bootstrap
+
+## Problem
+
+`devBootstrap.wizardTemplate` on Denali seeded only tenant `…000003` (`denali.localhost` /
+`DENALI_SMOKE_TENANT_ID`). Operator admin smoke and Phase 9/P6 hosts use tenant
+`…000014` (`operator.admin.localhost`, `OPERATOR_SMOKE_TENANT_ID`).
+
+That tenant already appears in `devBootstrap.pluginTenantIds` (plugin resolution works),
+but **not** in `wizardTemplate.tenantIds`. On `STORAGE_DRIVER=memory` / fresh API boot,
+`bootstrapWorkspaceWizardTemplatesIfNeeded()` therefore never writes a published
+`wizard_template` for `…014`.
+
+Symptom: `apps/web` `/tours/new` shows the intentional **not-configured** gate
+(`create-tour-wizard-chrome` → `notConfigured.*`) even though Denali plugin loads.
+
+Urban already solved the same class of gap in P15-P-D0 — extend the **same** manifest →
+codegen → bootstrap loop. Do **not** add a parallel seed module, Playwright-only PUT as
+“fix”, or workspace-id branches in apps.
+
+## Decision
+
+| Layer | Change |
+| ----- | ------ |
+| Manifest | `packages/workspaces/denali/workspace.manifest.json` → `devBootstrap.wizardTemplate.tenantIds` includes **both** `…003` and `…014` |
+| Codegen | `pnpm run generate:workspace-registry` → `WORKSPACE_DEV_WIZARD_TEMPLATE_BINDINGS` |
+| Runtime | Existing `bootstrapWorkspaceWizardTemplatesIfNeeded()` / `seedWorkspaceWizardTemplate()` — no new boot path |
+| Product gate | Keep not-configured empty state when template is unpublished (correct tenant SoT) |
+
+## Source of truth
+
+| Layer | Module | Responsibility |
+| ----- | ------ | -------------- |
+| Manifest | `denali` `devBootstrap.wizardTemplate` | Tenant UUID allowlist + `buildExport` |
+| Package | `buildDenaliTenantWizardTemplatePayload()` | Full published steps (`denali_basic` … `denali_legal`; host chrome owns `review`) |
+| Generated | `workspace-dev-bootstrap-bindings.generated.ts` | Binding consumed by API |
+| API | `seed-workspace-wizard-template.ts` | Idempotent `settings_config` row (`configKey: wizard_template`) |
+| API boot | `bootstrap-workspace-wizard-templates.ts` | Non-production listen warm |
+
+## Idempotency
+
+Same as Urban/Denali seed: skip when existing payload is `published: true` and
+`steps.length >= minPublishedSteps` (Denali: `2`).
+
+## Verify
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run guard:workspace-registry-fresh
+pnpm --filter @apps/api exec node --import tsx --test test/seed-denali-operator-smoke-wizard-template.spec.ts
+# Memory API boot + GET wizard_template as tenant …014 → published steps
+# operator.admin.localhost:3000/tours/new → wizard shell (not notConfigured card)
+```
+
+## Non-goals
+
+- Removing or softening the not-configured create-tour gate
+- Hand-maintained template PUT inside E2E as the only bootstrap path
+- Separate `bootstrap-operator-smoke-wizard-template.ts` file (use shared workspace bootstrap)

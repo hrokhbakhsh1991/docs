@@ -45,3 +45,19 @@ export function resolveActiveAdminClientWorkspaceIgnoreRules(env = process.env) 
       })
   );
 }
+
+/**
+ * Expose only manifest-declared, non-secret bundle flags to client code.
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env]
+ * @returns {Readonly<Record<string, "true" | "false">>}
+ */
+export function resolveAdminClientWorkspaceBundleEnv(env = process.env) {
+  return Object.freeze(
+    Object.fromEntries(
+      ADMIN_CLIENT_WORKSPACE_IGNORE_RULES.map((rule) => [
+        rule.envKey,
+        env[rule.envKey] === "true" ? "true" : "false",
+      ])
+    )
+  );
+}

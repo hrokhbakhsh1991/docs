@@ -57,9 +57,9 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
 
     await expect(page.locator("body")).toHaveAttribute("data-workspace-plugin", "denali");
 
-    const primary = await page.locator("body").evaluate((el) =>
-      getComputedStyle(el).getPropertyValue("--primary").trim().toLowerCase()
-    );
+    const primary = await page
+      .locator("body")
+      .evaluate((el) => getComputedStyle(el).getPropertyValue("--primary").trim().toLowerCase());
     expect(primary).toBe("#059669");
 
     const cta = page.getByTestId("operator-new-tour-cta");
@@ -84,15 +84,17 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
       }
     });
 
-    const darkPrimary = await page.locator("body").evaluate((el) =>
-      getComputedStyle(el).getPropertyValue("--primary").trim().toLowerCase()
-    );
+    const darkPrimary = await page
+      .locator("body")
+      .evaluate((el) => getComputedStyle(el).getPropertyValue("--primary").trim().toLowerCase());
     expect(darkPrimary).toBe("#5eead4");
     expect(darkPrimary).not.toBe("#5b9fd4");
 
-    const tenantDarkPrimary = await page.locator("[data-tenant-theme]").evaluate((el) =>
-      getComputedStyle(el).getPropertyValue("--color-primary").trim().toLowerCase()
-    );
+    const tenantDarkPrimary = await page
+      .locator("[data-tenant-theme]")
+      .evaluate((el) =>
+        getComputedStyle(el).getPropertyValue("--color-primary").trim().toLowerCase()
+      );
     expect(tenantDarkPrimary).toBe("#5eead4");
 
     const darkButtonBg = await cta.evaluate((el) => {
@@ -105,15 +107,53 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     expect(darkButtonBg).toBe("rgb(94, 234, 212)");
   });
 
+  test("SMK-P9-WIZARD-BOOTSTRAP template + host + tour kind become ready", async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") consoleErrors.push(message.text());
+    });
+
+    await loginOperatorOwner(page);
+    await publishOperatorWizardTemplate(page, { fullTemplate: true });
+    const templateResponse = await page.request.get("/api/settings/tour-wizard-template");
+    expect(templateResponse.status()).toBe(200);
+    const template = (await templateResponse.json()) as {
+      payload?: { steps?: readonly unknown[] };
+    };
+    expect((template.payload?.steps ?? []).length).toBeGreaterThanOrEqual(6);
+    await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-workspace-wizard]")).toHaveAttribute(
+      "data-plugin-id",
+      "denali",
+      { timeout: 60_000 }
+    );
+    await expect(page.getByTestId("denali-composite-tour-kind")).toBeVisible();
+    await page.getByTestId("denali-tour-kind-category-nature").click();
+    await page.getByTestId("denali-tour-kind-duration-single_day").click();
+    await expect(page.getByTestId("denali-tour-kind-category-nature")).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    await expect(page.getByTestId("denali-tour-kind-duration-single_day")).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    expect(consoleErrors).toEqual([]);
+  });
+
   test("SMK-P9-WIZARD-THEME bridge shell + teal primary on /tours/new", async ({ page }) => {
     await loginOperatorOwner(page);
     await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("wizard-bridge-shell")).toBeVisible({ timeout: 30_000 });
-    await expect(page.locator("[data-workspace-wizard]")).toHaveAttribute("data-plugin-id", "denali");
-
-    const primary = await page.locator("body").evaluate((el) =>
-      getComputedStyle(el).getPropertyValue("--color-primary").trim().toLowerCase()
+    await expect(page.locator("[data-workspace-wizard]")).toHaveAttribute(
+      "data-plugin-id",
+      "denali"
     );
+    const primary = await page
+      .locator("body")
+      .evaluate((el) =>
+        getComputedStyle(el).getPropertyValue("--color-primary").trim().toLowerCase()
+      );
     expect(primary).toBe("#059669");
 
     const continueBtn = page.getByTestId("workspace-wizard-step-next");
@@ -132,9 +172,11 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
       }
     });
 
-    const wizardPrimary = await page.locator("[data-new-tour-wizard]").evaluate((el) =>
-      getComputedStyle(el).getPropertyValue("--color-primary").trim().toLowerCase()
-    );
+    const wizardPrimary = await page
+      .locator("[data-new-tour-wizard]")
+      .evaluate((el) =>
+        getComputedStyle(el).getPropertyValue("--color-primary").trim().toLowerCase()
+      );
     expect(wizardPrimary).toBe("#5eead4");
 
     expect(await continueBtn.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
@@ -381,8 +423,7 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     await typeLoginPhone(page, UNAUTHORIZED_LOGIN_MOBILE);
     const otpRequest = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/auth/request-otp") &&
-        response.request().method() === "POST"
+        response.url().includes("/api/auth/request-otp") && response.request().method() === "POST"
     );
     await page.getByRole("button", { name: /send code|ارسال رمز/i }).click();
     const otpResponse = await otpRequest;
@@ -482,8 +523,7 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
 
     const otpRequest = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/auth/request-otp") &&
-        response.request().method() === "POST"
+        response.url().includes("/api/auth/request-otp") && response.request().method() === "POST"
     );
     await resendButton.click();
     const otpResponse = await otpRequest;

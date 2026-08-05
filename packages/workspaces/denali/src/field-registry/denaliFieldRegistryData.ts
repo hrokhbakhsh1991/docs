@@ -655,12 +655,15 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     tags: ["core"] as const,
     ruleDefaults: { required: false, hidden: false },
     inRuleModel: false,
+    // INV-WIZ-002 / INV-DENALI-WIZ-016 — Layer C Settings palette exclude only.
+    // Create wizard still owns the leaf inside denali.transport-mode when mode=train.
     settingsSurface: "deprecated",
     contextualVisibility: { kind: "transportTrainSeatVisible" },
     contextualRequired: { kind: "transportTrainSeatVisible" },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
     wire: { kind: "tripDetails", field: "transport" },
     notes:
-      "Legacy train seat preference; no modern wizard input — excluded from Settings overlay (Layer C).",
+      "Train seat preference — rendered inside denali.transport-mode (not a standalone Settings overlay leaf). settingsSurface deprecated = wizard_overlay_exclude only (INV-WIZ-002).",
   },
   {
     canonicalPath: "transport.adminCapacityApproval",
@@ -827,6 +830,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     tags: ["mountain_participants", "non_mountain_participants_hidden"] as const,
     ruleDefaults: { required: true, hidden: false },
 
+    structuralInvariant: { kind: "defaultWhenVisible", value: "medium" },
     cellOverrides: {
       "desert:multi_day": { required: false, hidden: true },
       "desert:single_day": { required: false, hidden: true },

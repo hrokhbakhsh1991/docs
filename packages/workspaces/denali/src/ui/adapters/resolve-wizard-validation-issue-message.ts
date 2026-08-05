@@ -1,11 +1,17 @@
 import type { ValidationIssue } from "@app-tour/wizard-navigation";
 
+import { localizeDenaliValidationIssueMessage } from "../../wizard/localize-denali-validation-message";
+
 export type WizardValidationMessageTranslator = {
   readonly has: (key: string) => boolean;
   readonly translate: (key: string, values: { field: string }) => string;
+  readonly translateWorkspace: (
+    key: string,
+    values?: Record<string, string | number>
+  ) => string;
 };
 
-/** Map structural validation codes to i18n; fall back to platform message. */
+/** Map structural validation codes first, then canonical platform copy, to operator-facing i18n. */
 export function resolveWizardValidationIssueMessage(
   issue: ValidationIssue,
   translator: WizardValidationMessageTranslator,
@@ -15,5 +21,9 @@ export function resolveWizardValidationIssueMessage(
   if (code != null && code.length > 0 && translator.has(code)) {
     return translator.translate(code, { field: fieldLabel });
   }
-  return issue.message;
+  return localizeDenaliValidationIssueMessage(
+    translator.translateWorkspace,
+    issue.message,
+    fieldLabel
+  );
 }

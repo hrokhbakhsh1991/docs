@@ -22,11 +22,13 @@ export { DENALI_GUIDE_LANGUAGES_TEST_IDS } from "../test-ids/denali-guide-langua
 type DenaliGuideLanguageIdsFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
+  readonly invalid?: boolean;
 };
 
 export function DenaliGuideLanguageIdsField({
   draft,
   onDraftChange,
+  invalid = false,
 }: DenaliGuideLanguageIdsFieldProps) {
   const t = useTranslations("denali");
   const tErrors = useTranslations("settings.errors");
@@ -84,6 +86,7 @@ export function DenaliGuideLanguageIdsField({
       className="denali-wizard-composite"
       data-operator-wizard-surface="section"
       data-testid={DENALI_GUIDE_LANGUAGES_TEST_IDS.guideLanguages}
+      aria-invalid={invalid || undefined}
     >
       <div className="denali-wizard-composite__header">
         <h3 className="denali-wizard-composite__title">{label}</h3>

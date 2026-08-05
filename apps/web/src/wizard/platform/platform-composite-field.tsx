@@ -16,6 +16,8 @@ type PlatformCompositeFieldProps = {
   readonly wizardSessionId?: string;
   readonly workspaceFormProfile?: string;
   readonly wizardRuleEvalContext?: unknown;
+  readonly invalid?: boolean;
+  readonly validationIssuePaths?: readonly string[];
 };
 
 export function PlatformCompositeField({
@@ -26,6 +28,8 @@ export function PlatformCompositeField({
   wizardSessionId,
   workspaceFormProfile,
   wizardRuleEvalContext,
+  invalid = false,
+  validationIssuePaths,
 }: PlatformCompositeFieldProps): ReactNode {
   const renderer = resolvePlatformCompositeRenderer(compositeId);
   return renderer({
@@ -36,6 +40,8 @@ export function PlatformCompositeField({
     wizardSessionId,
     workspaceFormProfile,
     wizardRuleEvalContext,
+    invalid,
+    validationIssuePaths,
   });
 }
 

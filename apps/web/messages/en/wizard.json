@@ -1,5 +1,11 @@
 {
   "loading": "Loading tour wizard…",
+  "bootstrapError": {
+    "title": "Wizard failed to load",
+    "description": "The workspace plugin did not become ready. Check the environment configuration and try again.",
+    "code": "Error code: {code}",
+    "retry": "Try again"
+  },
   "clone": {
     "loading": "Loading tour to duplicate…",
     "error": "Could not load tour to duplicate ({error}).",

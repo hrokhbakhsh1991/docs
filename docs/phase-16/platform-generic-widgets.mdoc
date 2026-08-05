@@ -270,6 +270,25 @@ All composites use `TourWizardDraft` + `@/tours/tour-wizard-draft-path` (`getCan
 
 Props surface: `WizardCompositeFieldRenderProps` from `apps/web/src/wizard/wizard-surface-types.ts`.
 
+### Step-nav field invalid state (a11y)
+
+When `usesStepValidation` blocks Continue, the host already renders `renderValidationSummary` from `stepNavValidationIssues`. That is not enough for assistive tech or visual field-level error state:
+
+```text
+handleBeforeNext → ValidationIssue[] (path + message)
+  → host marks each RenderFieldPlan whose canonicalPath **or fieldId** matches an issue
+  → WizardField(invalid) / renderCompositeField({ invalid })
+  → control sets aria-invalid (+ invalid border tokens where the primitive supports it)
+```
+
+| Rule | Detail |
+|------|--------|
+| Match | `wizardFieldHasValidationIssue(canonicalPath, issues) \|\| wizardFieldHasValidationIssue(fieldId, issues)` — Denali required composites often emit `fieldId` as `denali.itinerary` while the render plan path stays `program.itinerary` |
+| Clear | Existing host effect clears `stepNavValidationIssues` on any draft edit (summary + field invalid together) |
+| Contract | Optional `invalid?: boolean` on `WizardCompositeFieldRenderProps` — workspaces must forward to the primary interactive control |
+| Dependents | Optional `validationIssuePaths?: readonly string[]` — issue paths for the active step so composite-owned dependents (not the anchor path) can set `aria-invalid` (Denali: `program.shortDescription` inside `denali.program-content`) |
+| Primitives | Host `WizardField` text/enum/boolean/number pass `invalid` into ui-primitives (`Input` / `Select` / `Checkbox` / numeric Input) |
+
 ### `platform.photos`
 
 | Item | Contract |

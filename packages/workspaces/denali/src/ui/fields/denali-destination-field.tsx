@@ -21,6 +21,7 @@ type DenaliDestinationFieldProps = {
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly canonicalPath: string;
   readonly required?: boolean;
+  readonly invalid?: boolean;
 };
 
 function applyDestinationSelection(
@@ -38,6 +39,7 @@ export function DenaliDestinationField({
   onDraftChange,
   canonicalPath,
   required = false,
+  invalid = false,
 }: DenaliDestinationFieldProps) {
   const t = useTranslations("denali");
   const tErrors = useTranslations("settings.errors");
@@ -61,6 +63,7 @@ export function DenaliDestinationField({
           }
           loading={loading}
           required={required}
+          invalid={invalid}
           searchableThreshold={0}
           searchLabel={t("composites.destination.searchLabel")}
           searchPlaceholder={t("composites.destination.searchPlaceholder")}

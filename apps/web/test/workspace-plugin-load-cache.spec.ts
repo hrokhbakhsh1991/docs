@@ -60,12 +60,28 @@ describe("workspace plugin load cache (Phase I2)", () => {
     );
   });
 
+  it("evicts rejected loads so an explicit retry can import again", async () => {
+    invalidateWorkspacePluginLoadCache();
+    let loads = 0;
+    const options = { registryRevision: "retry", maxEntries: 1 };
+    const load = async () => {
+      loads += 1;
+      if (loads === 1) throw new Error("chunk unavailable");
+      return fakePlugin("a");
+    };
+
+    await assert.rejects(getOrCreateWorkspacePluginLoad("a", load, options));
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+    const plugin = await getOrCreateWorkspacePluginLoad("a", load, options);
+    assert.equal(plugin.id, "a");
+    assert.equal(loads, 2);
+  });
+
   it("invalidateWorkspacePluginLoadCache clears entries", async () => {
-    await getOrCreateWorkspacePluginLoad(
-      "a",
-      () => Promise.resolve(fakePlugin("a")),
-      { registryRevision: "a", maxEntries: 1 }
-    );
+    await getOrCreateWorkspacePluginLoad("a", () => Promise.resolve(fakePlugin("a")), {
+      registryRevision: "a",
+      maxEntries: 1,
+    });
     assert.equal(getWorkspacePluginLoadCacheStats().size, 1);
     invalidateWorkspacePluginLoadCache();
     assert.equal(getWorkspacePluginLoadCacheStats().size, 0);

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import {
   buildDefaultItineraryDays,
+  collectDenaliItineraryDayValidationIssues,
   createEmptyDenaliItinerarySegment,
   parseDenaliItineraryDays,
   type DenaliItineraryDay,
@@ -17,7 +18,6 @@ import {
   getCanonicalValue,
   setCanonicalValue,
 } from "../../draft/denali-tour-wizard-draft";
-import { resolveDenaliFieldLabel } from "../adapters/field-labels";
 import { Button, Input, Select, type SelectOption } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { DenaliTimeInput } from "../components/denali-time-input";
@@ -32,6 +32,7 @@ type DenaliItineraryFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly required?: boolean;
+  readonly invalid?: boolean;
 };
 
 const SEGMENT_KINDS: readonly DenaliItinerarySegmentKind[] = [
@@ -48,11 +49,13 @@ export function DenaliItineraryField({
   draft,
   onDraftChange,
   required = false,
+  invalid = false,
 }: DenaliItineraryFieldProps) {
   const t = useTranslations("denali");
   const tCommon = useTranslations("denali.composites.common");
   const draftRef = useLatestWizardDraft(draft);
-  const label = resolveDenaliFieldLabel(t, "program.itinerary");
+  // Match validation summary / INV-DENALI-WIZ-009 sectionTitle (not fields.program.itinerary).
+  const label = t("composites.itinerary.sectionTitle");
   const stored = parseDenaliItineraryDays(getCanonicalValue(draft, "program.itinerary"));
   const tourPhotos = parseDenaliTourPhotos(getCanonicalValue(draft, "photos"));
 
@@ -92,6 +95,22 @@ export function DenaliItineraryField({
     }
     return stored;
   }, [stored, targetDayCount]);
+
+  const { invalidDayIndexes, invalidSegmentKeys } = useMemo(() => {
+    const days = new Set<number>();
+    const segments = new Set<string>();
+    if (!invalid) {
+      return { invalidDayIndexes: days, invalidSegmentKeys: segments };
+    }
+    for (const issue of collectDenaliItineraryDayValidationIssues(displayDays)) {
+      if (issue.segmentIndex == null) {
+        days.add(issue.dayIndex);
+      } else {
+        segments.add(`${issue.dayIndex}:${issue.segmentIndex}`);
+      }
+    }
+    return { invalidDayIndexes: days, invalidSegmentKeys: segments };
+  }, [invalid, displayDays]);
 
   const writeDays = (days: DenaliItineraryDay[]) => {
     commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
@@ -143,6 +162,7 @@ export function DenaliItineraryField({
       className="denali-wizard-composite denali-wizard-composite--itinerary"
       data-operator-wizard-surface="section"
       data-testid={DENALI_ITINERARY_TEST_IDS.itinerary}
+      aria-invalid={invalid || undefined}
     >
       <div className="denali-wizard-composite__header">
         <h3 className="denali-wizard-composite__title">{label}</h3>
@@ -168,6 +188,7 @@ export function DenaliItineraryField({
               onChange={(event) => updateDay(dayIndex, { title: event.target.value })}
               required={required}
               aria-required={required || undefined}
+              invalid={invalidDayIndexes.has(dayIndex)}
             />
           </label>
 
@@ -234,6 +255,7 @@ export function DenaliItineraryField({
                     }
                     required={required}
                     aria-required={required || undefined}
+                    invalid={invalidSegmentKeys.has(`${dayIndex}:${segmentIndex}`)}
                   />
                 </label>
 

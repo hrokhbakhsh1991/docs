@@ -26,12 +26,16 @@ type DenaliPricingParticipantsFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly required?: boolean;
+  readonly invalid?: boolean;
+  readonly validationIssuePaths?: readonly string[];
 };
 
 export function DenaliPricingParticipantsField({
   draft,
   onDraftChange,
   required = false,
+  invalid = false,
+  validationIssuePaths = [],
 }: DenaliPricingParticipantsFieldProps) {
   const t = useTranslations("denali");
   const draftRef = useLatestWizardDraft(draft);
@@ -50,12 +54,20 @@ export function DenaliPricingParticipantsField({
   const setBool = (path: string, checked: boolean) => setString(path, checked ? "true" : "false");
   const fitnessLabel = resolveDenaliFieldLabel(t, "participants.fitnessLevel");
   const insuranceLabel = resolveDenaliFieldLabel(t, "participants.sportsInsuranceRequired");
+  const minimumAgeInvalid =
+    invalid ||
+    validationIssuePaths.some(
+      (path) => path === "participants.minimumAge" || path === "denali.pricing-participants"
+    );
+  const fitnessInvalid = validationIssuePaths.some((path) => path === "participants.fitnessLevel");
+  const fitnessValue = getCanonicalStringValue(draft, "participants.fitnessLevel");
 
   return (
     <div
       className="denali-wizard-composite"
       data-operator-wizard-surface="section"
       data-testid={DENALI_PRICING_PARTICIPANTS_TEST_IDS.participants}
+      aria-invalid={invalid || undefined}
     >
       <h3 className="denali-wizard-composite__title">{t("composites.pricingParticipants.sectionTitle")}</h3>
 
@@ -67,6 +79,7 @@ export function DenaliPricingParticipantsField({
           onChange={(value) => setString("participants.minimumAge", value)}
           required={required}
           aria-required={required || undefined}
+          invalid={minimumAgeInvalid}
         />
       </label>
 
@@ -84,10 +97,14 @@ export function DenaliPricingParticipantsField({
         <Select
           aria-label={fitnessLabel}
           options={fitnessOptions}
-          value={getCanonicalStringValue(draft, "participants.fitnessLevel") || "medium"}
+          value={
+            fitnessOptions.some((option) => option.value === fitnessValue) ? fitnessValue : ""
+          }
           onChange={(event) => setString("participants.fitnessLevel", event.target.value)}
           required={required}
           aria-required={required || undefined}
+          invalid={fitnessInvalid}
+          placeholder={t("composites.pricingParticipants.fitnessPlaceholder")}
         />
       </label>
 

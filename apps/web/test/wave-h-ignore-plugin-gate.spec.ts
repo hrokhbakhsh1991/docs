@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import {
   ADMIN_CLIENT_WORKSPACE_IGNORE_RULES,
   resolveActiveAdminClientWorkspaceIgnoreRules,
+  resolveAdminClientWorkspaceBundleEnv,
 } from "../src/bootstrap/admin-client-workspace-ignore.generated.mjs";
 
 const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -28,6 +29,11 @@ describe("Wave H.g/H.j — IgnorePlugin gate", () => {
       assert.equal(re.test(`${pkg}/plugin`), true);
       assert.equal(re.test("@app-tour/workspace-starter"), false);
     }
+  });
+
+  it("H.g-05 unit harness defaults ALLOW_* so gated plugin loads work", () => {
+    assert.equal(process.env.ALLOW_DENALI_WEB_PLUGIN, "true");
+    assert.equal(process.env.ALLOW_URBAN_WEB_PLUGIN, "true");
   });
 
   it("H.g-02 active rules respect ALLOW_*_WEB_PLUGIN env", () => {
@@ -52,6 +58,20 @@ describe("Wave H.g/H.j — IgnorePlugin gate", () => {
     assert.match(source, /resolveActiveAdminClientWorkspaceIgnoreRules/);
     assert.doesNotMatch(source, /@app-cloud\/workspace-(denali|urban)/);
     assert.doesNotMatch(source, /resourceRegExp:\s*\/\^@app-tour\\\/workspace-denali\$\//);
+  });
+
+  it("H.g-04 exposes only normalized manifest bundle flags to client code", () => {
+    assert.deepEqual(
+      resolveAdminClientWorkspaceBundleEnv({
+        ALLOW_DENALI_WEB_PLUGIN: "true",
+        ALLOW_URBAN_WEB_PLUGIN: "yes",
+        DATABASE_URL: "must-not-leak",
+      }),
+      {
+        ALLOW_DENALI_WEB_PLUGIN: "true",
+        ALLOW_URBAN_WEB_PLUGIN: "false",
+      }
+    );
   });
 
   it("H.j-01 hand-written ignore module is gone", () => {

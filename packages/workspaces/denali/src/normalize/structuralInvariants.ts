@@ -85,7 +85,9 @@ function applyStructuralInvariantRule(
         return;
       }
       const formPath = mapDenaliCanonicalToFormPath(canonicalPath);
-      if (getDenaliFormPathValue(form, formPath) == null) {
+      const existing = getDenaliFormPathValue(form, formPath);
+      // Empty string is not a seeded default — treat like missing (INV-DENALI-WIZ-010).
+      if (existing == null || existing === "") {
         setDenaliFormPathValue(form, formPath, rule.value);
       }
       return;

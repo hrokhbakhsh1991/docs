@@ -7,11 +7,11 @@
  */
 import { expect, type Page } from "@playwright/test";
 
+import { resolveOperatorSmokeOwnerMobile } from "../../scripts/operator-smoke-identity.mjs";
 import { SESSION_TOKEN_COOKIE } from "../../src/auth/build-session-cookie";
 
 /** Sync with `OPERATOR_SMOKE.ownerMobile` / staging seed (override via env on VPS). */
-export const OPERATOR_OWNER_MOBILE =
-  process.env.OPERATOR_OWNER_MOBILE?.trim() || "+15550001001";
+export const OPERATOR_OWNER_MOBILE = resolveOperatorSmokeOwnerMobile();
 export const OPERATOR_ADMIN_MOBILE = "+15550001002";
 export const OPERATOR_MEMBER_MOBILE = "+15550001003";
 export const OPERATOR_MEMBER_DISPLAY_NAME = "Smoke Member";

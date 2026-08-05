@@ -30,6 +30,15 @@ export const DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR: Readonly<
     "participants.evacuationInsuranceRequired",
   ],
   "pricing.requiresPayment": ["pricing.basePricePerPerson", "pricing.includesTourInsurance"],
+  // INV-DENALI-WIZ-013 — contextualRequired leaves inside denali.transport-mode.
+  "transport.mode": [
+    "transport.transportCost",
+    "transport.allowPersonalCar",
+    "transport.dongAmount",
+    "transport.transportNotes",
+    "transport.seatPreference",
+    "transport.adminCapacityApproval",
+  ],
 });
 
 /** Top-level tour-kind / location aliases — never persist separately (INV-DENALI-WIZ-003). */

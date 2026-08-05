@@ -30,6 +30,7 @@ import type { DenaliWizardRulesModule } from "./denali-wizard-rules-module";
 import { getCanonicalStringFromDraft, type CanonicalWizardDraftEnvelope } from "./canonical-draft-access";
 import { validateDenaliWizardDraftSyncFromHostInput, validateDenaliPublishReadinessSyncFromHostInput } from "./denali-wizard-validation";
 import { resolveDenaliInitialStepIndexFromHostInput } from "./resolve-initial-step-index";
+import { resolveDenaliValidationStepId } from "./build-field-step-resolver";
 import {
   buildDenaliWizardRuleEvalContextFromHostInput,
   denaliHydrateTourEditDraftFromHostInput,
@@ -136,6 +137,7 @@ export const denaliWizardHostHooks = Object.freeze({
   resolveMatrixDimensionsFromDraft: resolveDenaliMatrixDimensionsFromDraft,
   applyContextualFieldRules,
   resolveInitialStepIndex: resolveDenaliInitialStepIndexFromHostInput,
+  resolveValidationStepId: resolveDenaliValidationStepId,
   validateDraftSync: validateDenaliWizardDraftSyncFromHostInput,
   validatePublishReadiness: validateDenaliPublishReadinessSyncFromHostInput,
   buildRuleEvalContext: buildDenaliWizardRuleEvalContextFromHostInput,

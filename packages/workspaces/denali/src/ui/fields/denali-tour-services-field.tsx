@@ -31,6 +31,7 @@ type ServiceBucket = "included" | "selfProvided";
 type DenaliTourServicesFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
+  readonly invalid?: boolean;
 };
 
 function bucketPath(bucket: ServiceBucket): string {
@@ -165,7 +166,11 @@ function ServiceColumn({
   );
 }
 
-export function DenaliTourServicesField({ draft, onDraftChange }: DenaliTourServicesFieldProps) {
+export function DenaliTourServicesField({
+  draft,
+  onDraftChange,
+  invalid = false,
+}: DenaliTourServicesFieldProps) {
   const t = useTranslations("denali");
   const draftRef = useLatestWizardDraft(draft);
 
@@ -219,6 +224,7 @@ export function DenaliTourServicesField({ draft, onDraftChange }: DenaliTourServ
       data-operator-wizard-surface="section"
       data-operator-tour-services
       data-testid={DENALI_TOUR_SERVICES_TEST_IDS.panel}
+      aria-invalid={invalid || undefined}
     >
       <div className="denali-wizard-composite__header">
         <h3 className="denali-wizard-composite__title">{t("composites.tourServices.title")}</h3>

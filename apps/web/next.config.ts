@@ -2,11 +2,15 @@ import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
 import { ADMIN_TRANSPILE_PACKAGES } from "./src/bootstrap/admin-transpile-packages.generated.mjs";
-import { resolveActiveAdminClientWorkspaceIgnoreRules } from "./src/bootstrap/admin-client-workspace-ignore.generated.mjs";
+import {
+  resolveActiveAdminClientWorkspaceIgnoreRules,
+  resolveAdminClientWorkspaceBundleEnv,
+} from "./src/bootstrap/admin-client-workspace-ignore.generated.mjs";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  env: resolveAdminClientWorkspaceBundleEnv(process.env),
   /** VPS staging sync (`pnpm run p7:sync-staging-web`) — trunk TS debt; webpack output still valid. */
   typescript: {
     ignoreBuildErrors: process.env.STAGING_WEB_BUILD === "1",

@@ -51,7 +51,6 @@ export const ADMIN_PLATFORM_TRANSPILE_PACKAGES = Object.freeze([
   "@app-tour/workspace-sdk",
 ]);
 
-
 /**
  * Product workspace packages that guest Next apps must transpile (Wave C.b).
  * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
@@ -619,9 +618,7 @@ export function assertAdminWebManifest(manifest) {
     return;
   }
   if (typeof gate !== "string" || !/^ALLOW_[A-Z0-9_]+$/.test(gate)) {
-    throw new Error(
-      `${manifest.id}: adminWeb.clientBundleEnvGate must match /^ALLOW_[A-Z0-9_]+$/`
-    );
+    throw new Error(`${manifest.id}: adminWeb.clientBundleEnvGate must match /^ALLOW_[A-Z0-9_]+$/`);
   }
   if (typeof manifest.package !== "string" || manifest.package.trim().length === 0) {
     throw new Error(`${manifest.id}: adminWeb.clientBundleEnvGate requires package string`);
@@ -789,6 +786,22 @@ export function resolveActiveAdminClientWorkspaceIgnoreRules(env = process.env) 
       })
   );
 }
+
+/**
+ * Expose only manifest-declared, non-secret bundle flags to client code.
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env]
+ * @returns {Readonly<Record<string, "true" | "false">>}
+ */
+export function resolveAdminClientWorkspaceBundleEnv(env = process.env) {
+  return Object.freeze(
+    Object.fromEntries(
+      ADMIN_CLIENT_WORKSPACE_IGNORE_RULES.map((rule) => [
+        rule.envKey,
+        env[rule.envKey] === "true" ? "true" : "false",
+      ])
+    )
+  );
+}
 `;
 }
 
@@ -808,7 +821,6 @@ export function generateWorkspaceThemeStylesheets(manifests) {
 ${[...importLines].sort().join("\n")}
 `;
 }
-
 
 /**
  * Per-plugin dynamic admin CSS loader — no eager import of all workspace admin skins.
@@ -954,9 +966,7 @@ export function generateGuestThemeStylesheetLoader(manifests, surface, env = pro
   }
 
   const surfaceCamel =
-    surface === "marketing"
-      ? "Marketing"
-      : surface.charAt(0).toUpperCase() + surface.slice(1);
+    surface === "marketing" ? "Marketing" : surface.charAt(0).toUpperCase() + surface.slice(1);
 
   /** @type {{ id: string; package: string; sheets: string[] }[]} */
   const entries = [];
@@ -1005,15 +1015,23 @@ export function generateGuestThemeStylesheetLoader(manifests, surface, env = pro
     })
     .join("\n\n");
 
-  return `${BANNER}${surface === "portal" ? `
+  return `${BANNER}${
+    surface === "portal"
+      ? `
 /** Starter workspace owns the default portal L3 skin (Phase D.2). */
 export const WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN =
   "@app-tour/workspace-starter/theme/starter-portal.css" as const;
-` : ""}${surface === "marketing" ? `
+`
+      : ""
+  }${
+    surface === "marketing"
+      ? `
 /** Starter workspace owns the default marketing L3 skin (Phase D.3). */
 export const WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN =
   "@app-tour/workspace-starter/theme/starter-marketing.css" as const;
-` : ""}
+`
+      : ""
+  }
 /** Manifest paths per workspace plugin (documentation / guards). */
 export const WORKSPACE_GUEST_${surface.toUpperCase()}_THEME_REGISTRY = Object.freeze({
 ${registryLines}

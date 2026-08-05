@@ -39,6 +39,29 @@ True install-graph isolation remains deferred. Until then, the gate list must be
 
 5. Registry freshness (`pnpm run guard:workspace-registry-fresh`) covers the new artifact under the `theme` domain.
 
+## Runtime loader contract
+
+The manifest gate controls both sides of one fail-closed contract:
+
+- `next.config.ts` excludes the package when its `ALLOW_*` value is not exactly `"true"`.
+- `workspace-plugin-loaders.generated.ts` checks that same generated env key before calling
+  `import()`. A disabled bundle throws `WORKSPACE_PLUGIN_CLIENT_BUNDLE_DISABLED` and never
+  attempts to import a module removed by webpack.
+- Failed loader promises are evicted from the single-flight cache so an operator retry can
+  recover after configuration or transient chunk failures.
+
+For local Denali development, copy the non-secret flags from `apps/web/.env.example` into
+`apps/web/.env.local`. CI and production must set only the workspace flags included in their
+deploy profile; `pnpm run print:deploy-profile-env` remains the production source of recommended
+values. Personal `.env.local` files and secrets are never committed.
+
+**Unit-test harness:** `apps/web/test/register-dom.mjs` (imported by `test` / `test:file`)
+defaults `ALLOW_DENALI_WEB_PLUGIN` and `ALLOW_URBAN_WEB_PLUGIN` to `"true"` when unset so
+specs that resolve bootstrap/wizard plugins can import gated packages. Explicit `process.env`
+overrides still win. Gate behavior itself is covered by
+`workspace-plugin-client-bundle-gate.spec.ts` and `wave-h-ignore-plugin-gate.spec.ts`
+(pass env objects; do not rely on the harness defaults).
+
 ## Gap Closure Phase D.1
 
 Deploy profiles compose IgnorePlugin gates with filtered transpile product sets via `buildDeployProfileBundlePlan` (see [`saas-platform-remediation.mdoc`](./saas-platform-remediation.mdoc)). Recommended `ALLOW_*=true` applies only to gated packages **in** the active profile; packages outside the profile stay ignored on the client. Default Next config is unchanged.
@@ -46,7 +69,7 @@ Deploy profiles compose IgnorePlugin gates with filtered transpile product sets 
 ## Out of scope
 
 - Removing IgnorePlugin / `optionalDependencies` install isolation (Wave I)
-- Auto-gating every workspace id (guest-club, finance-*) without explicit manifest opt-in
+- Auto-gating every workspace id (guest-club, finance-\*) without explicit manifest opt-in
 - Changing portal/marketing client strategy
 
 ## Verify

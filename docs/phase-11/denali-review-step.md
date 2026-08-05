@@ -70,7 +70,13 @@ Client-side `PlatformWizardEngine.validateCanonical` on `TourWizardDraft` → `C
 | **Create tour** (review footer) | Full form; on failure → jump to first issue step + `useWizardStepValidation` focus |
 | **API 400** `CANONICAL_VALIDATION_FAILED` | Same focus path when message is parseable |
 
-Step / field lookup uses `visibleSteps` render plan (`fieldId` + `canonicalPath`).
+Step / field lookup uses `visibleSteps` render plan (`fieldId` + `canonicalPath`), then **`wizardHost.resolveValidationStepId`** for composite dependents that never appear as standalone plan rows (INV-DENALI-WIZ-011). Without that fallback, review issue buttons and post-submit focus land on `stepId: undefined` / group `"unknown"` and cannot change steps.
+
+When `publishStatus === "active"`, the host merges `validatePublishReadiness` violations into the live review summary (same codes as create-submit) so operators see linkable gaps before clicking Create — not only after a failed submit. Merge uses `dedupeValidationViolations` (`fieldId` + `code`) so canonical engine and readiness layers that emit the same gap do not render duplicate review rows. Create-submit (`validateDenaliCreateTourSubmitSync` / publish-transition merge) uses the same dedupe.
+
+**Step-nav summary lifetime (INV-DENALI-WIZ-015 / WEB-WIZ-015):** After Continue fails, the host shows step-nav validation issues with `aria-invalid`. Clearing that panel must **not** key off React draft **identity** alone — remote resume, soft-lock merge, and parent `prepareEnvelope` often mint a new `draft` object with identical `data`, which previously wiped the alert before the operator could read or click issue links. Clear only when `JSON.stringify(draft.data)` changes (real edit / sanitize rewrite) or when the active step index changes. Same-payload reference churn keeps the summary.
+
+**Step vs create heading (INV-DENALI-WIZ-017):** Step-nav summary uses `review.stepValidationHeading`; review/submit uses `review.validationHeading`. Host passes `validationHeadingKey` through `buildWizardValidationSurfaceProps`; Denali `DenaliReviewValidationSummary` must honor it (i18n keys already exist under `denali.review`).
 
 ## DOM / focus
 

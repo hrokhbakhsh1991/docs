@@ -22,12 +22,14 @@ type DenaliPeakExperienceFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly required?: boolean;
+  readonly invalid?: boolean;
 };
 
 export function DenaliPeakExperienceField({
   draft,
   onDraftChange,
   required = false,
+  invalid = false,
 }: DenaliPeakExperienceFieldProps) {
   const t = useTranslations("denali");
   const draftRef = useLatestWizardDraft(draft);
@@ -42,7 +44,11 @@ export function DenaliPeakExperienceField({
   }));
 
   return (
-    <div className="denali-wizard-composite" data-testid={DENALI_PEAK_EXPERIENCE_TEST_IDS.peakExperience}>
+    <div
+      className="denali-wizard-composite"
+      data-testid={DENALI_PEAK_EXPERIENCE_TEST_IDS.peakExperience}
+      aria-invalid={invalid || undefined}
+    >
       <label className="denali-wizard-composite__field">
         <span>{label}</span>
         <Select
@@ -56,6 +62,7 @@ export function DenaliPeakExperienceField({
           }
           required={required}
           aria-required={required || undefined}
+          invalid={invalid}
           placeholder={t("composites.peakExperience.placeholder")}
           data-testid={DENALI_PEAK_EXPERIENCE_TEST_IDS.select}
         />

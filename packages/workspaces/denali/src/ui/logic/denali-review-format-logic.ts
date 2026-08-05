@@ -534,15 +534,6 @@ export function buildDenaliReviewSections(
   return sections;
 }
 
-const TRANSPORT_MODE_REVIEW_DEPENDENTS = [
-  "transport.transportCost",
-  "transport.allowPersonalCar",
-  "transport.dongAmount",
-  "transport.transportNotes",
-  "transport.seatPreference",
-  "transport.adminCapacityApproval",
-] as const;
-
 const CATEGORY_REVIEW_DEPENDENTS = ["duration", "eventVariant"] as const;
 
 const START_POINT_REVIEW_DEPENDENTS = ["summitPoint", "campPoint", "endPoint"] as const;
@@ -552,9 +543,7 @@ function resolveCompositeDependentsForAnchor(anchor: string): readonly string[] 
   if (listed != null) {
     return listed;
   }
-  if (anchor === "transport.mode") {
-    return TRANSPORT_MODE_REVIEW_DEPENDENTS;
-  }
+  // Ghost aliases / location shells — not step-nav expand targets.
   if (anchor === "category") {
     return CATEGORY_REVIEW_DEPENDENTS;
   }

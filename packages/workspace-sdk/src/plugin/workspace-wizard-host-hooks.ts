@@ -129,6 +129,11 @@ export type WorkspaceWizardHostHooks = {
       readonly visibleSteps?: readonly unknown[];
     };
   }) => WizardDraftValidationResult;
+  /**
+   * Map validation fieldId / canonical path → wizard stepId when the path is absent from the
+   * visible render plan (composite dependents). Host: plan resolver first, then this hook.
+   */
+  readonly resolveValidationStepId?: (fieldId: string) => string | undefined;
   /** Rule-engine publish matrix — host calls before publish transition (Phase 12.6). */
   readonly validatePublishReadiness?: (input: {
     readonly plugin: WorkspaceWizardHostPluginContext;

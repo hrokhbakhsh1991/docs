@@ -31,12 +31,14 @@ type DenaliSocialMediaLinkFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly required?: boolean;
+  readonly invalid?: boolean;
 };
 
 export function DenaliSocialMediaLinkField({
   draft,
   onDraftChange,
   required = false,
+  invalid = false,
 }: DenaliSocialMediaLinkFieldProps) {
   const t = useTranslations("denali");
   const draftRef = useLatestWizardDraft(draft);
@@ -102,6 +104,7 @@ export function DenaliSocialMediaLinkField({
       data-operator-social-media-link
       data-social-media-kind={kind}
       data-testid={DENALI_SOCIAL_MEDIA_TEST_IDS.root}
+      aria-invalid={invalid || error !== null || undefined}
     >
       <div className="denali-wizard-composite__header">
         <h3 className="denali-wizard-composite__title">{label}</h3>
@@ -155,7 +158,7 @@ export function DenaliSocialMediaLinkField({
               value={display}
               required={required}
               aria-required={required || undefined}
-              aria-invalid={error !== null || undefined}
+              aria-invalid={invalid || error !== null || undefined}
               placeholder={t("composites.socialMedia.urlPlaceholder")}
               onChange={(event) => {
                 const next = event.target.value;

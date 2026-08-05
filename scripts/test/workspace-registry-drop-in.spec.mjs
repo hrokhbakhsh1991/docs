@@ -73,10 +73,7 @@ describe("workspace registry drop-in (P7-T06)", () => {
     const sdk = generateSdkBindings(merged);
     assert.match(sdk, /workspaceType: "climbing-club"/);
     assert.match(sdk, /pluginId: "climbing-club"/);
-    assert.equal(
-      merged.find((m) => m.id === "climbing-club")?.workspaceTypes[0],
-      "climbing-club"
-    );
+    assert.equal(merged.find((m) => m.id === "climbing-club")?.workspaceTypes[0], "climbing-club");
   });
 
   it("P15-W-B5 generateAdminThemeStylesheetLoader emits dynamic admin skin loader", () => {
@@ -501,7 +498,10 @@ describe("workspace registry drop-in (P7-T06)", () => {
       /guestClubCatalogRegistrationFlowSurface/
     );
 
-    const fixturePath = join(REPO_ROOT, "test/fixtures/workspaces/guest-club/workspace.manifest.json");
+    const fixturePath = join(
+      REPO_ROOT,
+      "test/fixtures/workspaces/guest-club/workspace.manifest.json"
+    );
     const fixture = JSON.parse(readFileSync(fixturePath, "utf8"));
     assert.equal(fixture.guestExtensionsVersion, guestClub.guestExtensionsVersion);
     assert.equal(fixture.httpRoutes.handlerPackage, guestClub.httpRoutes.handlerPackage);
@@ -526,7 +526,10 @@ describe("workspace registry drop-in (P7-T06)", () => {
 
   it("Phase H3: drop-in fixture defaults production tier to stub", () => {
     const fixture = JSON.parse(
-      readFileSync(join(REPO_ROOT, "test/fixtures/workspaces/climbing-club/workspace.manifest.json"), "utf8")
+      readFileSync(
+        join(REPO_ROOT, "test/fixtures/workspaces/climbing-club/workspace.manifest.json"),
+        "utf8"
+      )
     );
     assert.equal(resolveProductionCertificationTier(fixture), "stub");
     const merged = [...discoverManifests(), fixture];
@@ -542,5 +545,19 @@ describe("workspace registry drop-in (P7-T06)", () => {
     assert.match(generated, /WORKSPACE_PLUGIN_REGISTRY_REVISION/);
     assert.match(generated, /WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 8/);
     assert.doesNotMatch(generated, /const pluginLoadCache\s*=\s*new Map/);
+  });
+
+  it("generates a matching client-bundle guard before each gated import", () => {
+    const generated = generateWebLoaders(discoverManifests());
+    const denaliGuard = generated.search(/assertWorkspacePluginClientBundleEnabled\(\s*"denali"/);
+    const denaliImport = generated.indexOf('import("@app-tour/workspace-denali/plugin")');
+    assert.ok(denaliGuard >= 0);
+    assert.ok(denaliGuard < denaliImport);
+    assert.match(generated, /process\.env\.ALLOW_DENALI_WEB_PLUGIN === "true"/);
+    assert.match(generated, /process\.env\.ALLOW_URBAN_WEB_PLUGIN === "true"/);
+    assert.doesNotMatch(
+      generated.slice(generated.indexOf('case "starter"'), generated.indexOf('case "urban"')),
+      /assertWorkspacePluginClientBundleEnabled/
+    );
   });
 });

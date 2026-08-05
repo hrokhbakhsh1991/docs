@@ -13,12 +13,14 @@ type DenaliDatetimeEndFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly required?: boolean;
+  readonly invalid?: boolean;
 };
 
 export function DenaliDatetimeEndField({
   draft,
   onDraftChange,
   required = false,
+  invalid = false,
 }: DenaliDatetimeEndFieldProps) {
   const t = useTranslations("denali");
   const tourKind = getCanonicalStringValue(draft, "category");
@@ -31,6 +33,7 @@ export function DenaliDatetimeEndField({
       canonicalPath="endDateTime"
       required={required}
       testId={DENALI_DATETIME_TEST_IDS.end}
+      invalid={invalid}
       hint={
         multiDay
           ? t("composites.datetimeEnd.multiDayHint")

@@ -33,6 +33,7 @@ export { DENALI_LEADERS_TEST_IDS } from "../test-ids/denali-leaders-test-ids";
 type DenaliLeaderUserIdsFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
+  readonly invalid?: boolean;
 };
 
 function ChevronDownIcon({ className }: { readonly className?: string }) {
@@ -60,6 +61,7 @@ function ChevronDownIcon({ className }: { readonly className?: string }) {
 export function DenaliLeaderUserIdsField({
   draft,
   onDraftChange,
+  invalid = false,
 }: DenaliLeaderUserIdsFieldProps) {
   const t = useTranslations("denali");
   const tErrors = useTranslations("settings.errors");
@@ -170,6 +172,7 @@ export function DenaliLeaderUserIdsField({
       data-operator-leader-picker
       data-operator-leader-picker-expanded={pickerExpanded ? "true" : "false"}
       data-testid={DENALI_LEADERS_TEST_IDS.leaders}
+      aria-invalid={invalid || undefined}
     >
       <div className="denali-wizard-composite__header denali-leader-picker__header">
         <div className="denali-leader-picker__header-row">

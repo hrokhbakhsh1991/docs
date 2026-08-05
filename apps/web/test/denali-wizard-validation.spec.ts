@@ -62,6 +62,10 @@ describe("denali-wizard-validation.spec.ts — Phase 11.7", () => {
     ]);
     assert.equal(resolveStepId("title"), "denali_basic");
     assert.equal(resolveStepId("publishStatus"), "review");
+    // INV-DENALI-WIZ-011 — dependents absent from template still resolve via registry.
+    assert.equal(resolveStepId("program.shortDescription"), "denali_photos");
+    assert.equal(resolveStepId("pricing.basePricePerPerson"), "denali_pricing");
+    assert.equal(resolveStepId("participants.fitnessLevel"), "denali_pricing");
   });
 
   it("WEB-P11-7-04 filled denali_basic step passes per-step validation", async () => {
@@ -180,7 +184,7 @@ describe("denali-wizard-validation.spec.ts — Phase 11.7", () => {
           photos: [{ id: "p1", url: "https://example.com/photo.jpg", sortOrder: 0 }],
         },
         pricing: { requiresPayment: false },
-        participants: { minimumAge: "18" },
+        participants: { minimumAge: "18", fitnessLevel: "medium" },
       },
     };
     const steps = plugin.wizardHost!.applyContextualFieldRules!({

@@ -33,6 +33,7 @@ type DenaliTourKindFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly required?: boolean;
+  readonly invalid?: boolean;
 };
 
 function readTourKindSlug(draft: DenaliTourWizardDraft): string {
@@ -43,6 +44,7 @@ export function DenaliTourKindField({
   draft,
   onDraftChange,
   required = false,
+  invalid = false,
 }: DenaliTourKindFieldProps) {
   const t = useTranslations("denali");
   const draftRef = useLatestWizardDraft(draft);
@@ -107,6 +109,7 @@ export function DenaliTourKindField({
       className="denali-wizard-composite denali-tour-kind"
       data-operator-tour-kind
       data-testid={DENALI_TOUR_KIND_TEST_IDS.tourKind}
+      aria-invalid={invalid || undefined}
     >
       <div className="denali-wizard-composite__header">
         <h3 className="denali-wizard-composite__title">{categoryLabel}</h3>
@@ -130,7 +133,13 @@ export function DenaliTourKindField({
       <div className="denali-tour-kind__picker" data-testid={DENALI_TOUR_KIND_TEST_IDS.picker}>
         <fieldset className="denali-tour-kind__group">
           <legend className="denali-tour-kind__legend">{categoryLabel}</legend>
-          <div className="denali-tour-kind__choices" role="group" aria-label={categoryLabel}>
+          <div
+            className="denali-tour-kind__choices"
+            role="group"
+            aria-label={categoryLabel}
+            aria-invalid={invalid || undefined}
+            aria-required={required || undefined}
+          >
             {DENALI_TOUR_CATEGORY_VALUES.map((category) => (
               <button
                 key={category}

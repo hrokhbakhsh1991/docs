@@ -8,10 +8,20 @@ import {
   OperatorCreateTourWizardCatalogShell,
   OperatorCreateTourWizardClientReady,
 } from "./create-tour-wizard-client-ready";
-import { CreateTourWizardLoadingMessage } from "@/wizard/create-tour-wizard-chrome";
+import {
+  CreateTourWizardLoadError,
+  CreateTourWizardLoadingMessage,
+} from "@/wizard/create-tour-wizard-chrome";
 import { useAppSession } from "@/providers/app-session-context";
-import { warmOperatorWizardShell } from "@/wizard/warm-operator-wizard-shell";
+import {
+  OperatorWizardWarmError,
+  warmOperatorWizardShell,
+} from "@/wizard/warm-operator-wizard-shell";
 
+type WizardBootstrapState =
+  | { readonly status: "loading" }
+  | { readonly status: "ready"; readonly plugin: WorkspacePlugin }
+  | { readonly status: "error"; readonly code: string };
 type OperatorCreateTourWizardClientProps = {
   readonly initialTemplateResponse?: unknown | null;
   readonly initialLocationsResponse?: unknown | null;
@@ -27,21 +37,33 @@ export function OperatorCreateTourWizardClient({
   initialLocationsResponse = null,
 }: OperatorCreateTourWizardClientProps) {
   const session = useAppSession();
-  const [plugin, setPlugin] = useState<WorkspacePlugin | null>(null);
+  const [bootstrap, setBootstrap] = useState<WizardBootstrapState>({ status: "loading" });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    void warmOperatorWizardShell(session.pluginId).then((loaded) => {
-      if (!cancelled) {
-        setPlugin(loaded);
-      }
-    });
+    setBootstrap({ status: "loading" });
+    void warmOperatorWizardShell(session.pluginId)
+      .then((loaded) => {
+        if (!cancelled) setBootstrap({ status: "ready", plugin: loaded });
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        const code =
+          error instanceof OperatorWizardWarmError ? error.code : "WORKSPACE_PLUGIN_LOAD_FAILED";
+        console.error("operator wizard bootstrap failed", {
+          pluginId: session.pluginId,
+          code,
+          errorName: error instanceof Error ? error.name : "UnknownError",
+        });
+        setBootstrap({ status: "error", code });
+      });
     return () => {
       cancelled = true;
     };
-  }, [session.pluginId]);
+  }, [session.pluginId, attempt]);
 
-  if (plugin == null) {
+  if (bootstrap.status === "loading") {
     return (
       <OperatorCreateTourWizardCatalogShell initialLocationsResponse={initialLocationsResponse}>
         <CreateTourWizardLoadingMessage />
@@ -49,10 +71,21 @@ export function OperatorCreateTourWizardClient({
     );
   }
 
+  if (bootstrap.status === "error") {
+    return (
+      <OperatorCreateTourWizardCatalogShell initialLocationsResponse={initialLocationsResponse}>
+        <CreateTourWizardLoadError
+          code={bootstrap.code}
+          onRetry={() => setAttempt((current) => current + 1)}
+        />
+      </OperatorCreateTourWizardCatalogShell>
+    );
+  }
+
   return (
     <OperatorCreateTourWizardCatalogShell initialLocationsResponse={initialLocationsResponse}>
       <OperatorCreateTourWizardClientReady
-        plugin={plugin}
+        plugin={bootstrap.plugin}
         initialTemplateResponse={initialTemplateResponse}
       />
     </OperatorCreateTourWizardCatalogShell>

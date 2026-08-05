@@ -1,5 +1,6 @@
 import type { RenderStepPlan, ValidationResult } from "@app-tour/platform-core";
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
+import { dedupeValidationViolations } from "@app-tour/wizard-navigation";
 
 import type { DenaliTourWizardDraft } from "../../draft/denali-tour-wizard-draft";
 import type { DenaliWizardRulesModule } from "../../wizard/denali-wizard-rules-module";
@@ -61,9 +62,13 @@ function mergeValidationResults(
   if (primary.ok && secondary.ok) {
     return { ok: true, violations: [] };
   }
+  const violations = dedupeValidationViolations([
+    ...primary.violations,
+    ...secondary.violations,
+  ]);
   return {
-    ok: false,
-    violations: [...primary.violations, ...secondary.violations],
+    ok: violations.length === 0,
+    violations,
   };
 }
 

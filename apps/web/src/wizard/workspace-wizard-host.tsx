@@ -10,7 +10,13 @@ import {
   type TenantAuthz,
   type WorkspacePlugin,
 } from "@app-tour/workspace-sdk";
-import { mapValidationResultToIssues, wizardFieldPathAttributes, type ValidationIssue } from "@app-tour/wizard-navigation";
+import {
+  dedupeValidationViolations,
+  mapValidationResultToIssues,
+  wizardFieldHasValidationIssue,
+  wizardFieldPathAttributes,
+  type ValidationIssue,
+} from "@app-tour/wizard-navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
@@ -55,6 +61,11 @@ import {
   resolveWizardValidationSurface,
 } from "./wizard-review-surface-registry";
 import { buildFieldStepResolver } from "./wizard-field-step-resolver";
+import { buildWizardStepValidationCallInput } from "./build-wizard-step-validation-call-input";
+import {
+  shouldClearStepNavValidationOnDraftChange,
+  stableWizardDraftDataKey,
+} from "./should-clear-step-nav-validation";
 import { useWizardStepValidation } from "./use-wizard-step-validation";
 import { useWorkspaceWizardTranslator } from "./use-workspace-wizard-translator";
 
@@ -483,10 +494,12 @@ export function WorkspaceWizardHost({
     }
   }, [stepSignature, stepDescriptors, activeStepIndex, setActiveStepIndex]);
 
-  const resolveStepId = useMemo(
-    () => (visibleSteps != null ? buildFieldStepResolver(visibleSteps) : () => undefined),
-    [visibleSteps]
-  );
+  const resolveStepId = useMemo(() => {
+    const fromPlan =
+      visibleSteps != null ? buildFieldStepResolver(visibleSteps) : () => undefined;
+    const fromHost = wizardHost?.resolveValidationStepId;
+    return (fieldId: string) => fromPlan(fieldId) ?? fromHost?.(fieldId);
+  }, [visibleSteps, wizardHost?.resolveValidationStepId]);
 
   const goToStepById = useCallback(
     async (stepId: string) => {
@@ -517,20 +530,53 @@ export function WorkspaceWizardHost({
       setReviewValidationIssues([]);
       return;
     }
-    const result = validate({
+    const draftRecord = draft as unknown as Record<string, unknown>;
+    const canonical = validate({
       plugin: workspacePlugin,
-      draft: draft as unknown as Record<string, unknown>,
+      draft: draftRecord,
       rulesModule: rulesModule,
       tenantId,
+      evalContext: wizardRuleEvalContext,
     });
-    if (result.ok) {
+    const publishStatus = getCanonicalStringValue(draft, "publishStatus").trim().toLowerCase();
+    const readiness =
+      publishStatus === "active" &&
+      wizardHost.validatePublishReadiness != null &&
+      wizardRuleEvalContext != null
+        ? wizardHost.validatePublishReadiness({
+            plugin: workspacePlugin,
+            draft: draftRecord,
+            rulesModule: rulesModule,
+            evalContext: wizardRuleEvalContext,
+            scope: { publishTransition: true },
+          })
+        : { ok: true as const, violations: [] as const };
+
+    const violations = dedupeValidationViolations([
+      ...canonical.violations,
+      ...readiness.violations,
+    ]);
+    if (violations.length === 0) {
       setReviewValidationIssues([]);
       return;
     }
     setReviewValidationIssues(
-      mapValidationResultToIssues(result, { resolveStepId })
+      mapValidationResultToIssues(
+        { ok: false, violations },
+        { resolveStepId }
+      )
     );
-  }, [workspacePlugin, wizardHost?.usesStepValidation, wizardHost?.validateDraftSync, draft, rulesModule, tenantId, resolveStepId]);
+  }, [
+    workspacePlugin,
+    wizardHost?.usesStepValidation,
+    wizardHost?.validateDraftSync,
+    wizardHost?.validatePublishReadiness,
+    draft,
+    rulesModule,
+    tenantId,
+    resolveStepId,
+    wizardRuleEvalContext,
+  ]);
 
   useEffect(() => {
     if (resolvedVisibleSteps == null) {
@@ -556,11 +602,32 @@ export function WorkspaceWizardHost({
     }
   }, [submitValidationIssues, focusIssue, onSubmitValidationHandled]);
 
+  // INV-DENALI-WIZ-015 — clear step-nav summary on real draft.data change or step change,
+  // not on same-payload draft identity remints (resume / prepareEnvelope).
+  const stepNavValidationIssuesRef = useRef(stepNavValidationIssues);
+  stepNavValidationIssuesRef.current = stepNavValidationIssues;
+  const draftDataKeyRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (stepNavValidationIssues.length > 0) {
+    const nextKey = stableWizardDraftDataKey(draft);
+    const previousKey = draftDataKeyRef.current;
+    draftDataKeyRef.current = nextKey;
+    if (
+      shouldClearStepNavValidationOnDraftChange({
+        previousDataKey: previousKey,
+        nextDataKey: nextKey,
+        issueCount: stepNavValidationIssuesRef.current.length,
+      })
+    ) {
       setStepNavValidationIssues([]);
     }
   }, [draft]);
+
+  useEffect(() => {
+    if (stepNavValidationIssuesRef.current.length > 0) {
+      setStepNavValidationIssues([]);
+    }
+  }, [activeStepIndex]);
 
   const handleBeforeNext = useCallback(
     async (currentIndex: number) => {
@@ -575,13 +642,18 @@ export function WorkspaceWizardHost({
       if (validate == null) {
         return true;
       }
-      const result = validate({
-        plugin: workspacePlugin,
-        draft: draft as unknown as Record<string, unknown>,
-        rulesModule: rulesModule,
-        tenantId,
-        scope: { stepId: step.stepId, visibleSteps },
-      });
+      const result = validate(
+        buildWizardStepValidationCallInput({
+          plugin: workspacePlugin,
+          draft: draft as unknown as Record<string, unknown>,
+          rulesModule: rulesModule,
+          tenantId,
+          stepId: step.stepId,
+          visibleSteps,
+          // INV-DENALI-WIZ-014 — same overlay/uiOptions as review + contextual plan.
+          evalContext: wizardRuleEvalContext,
+        })
+      );
       if (result.ok) {
         setStepNavValidationIssues([]);
         return true;
@@ -600,6 +672,7 @@ export function WorkspaceWizardHost({
       draft,
       rulesModule,
       tenantId,
+      wizardRuleEvalContext,
       focusFirstFromResult,
       resolveStepId,
     ]
@@ -610,6 +683,12 @@ export function WorkspaceWizardHost({
       void focusIssue({ path, message: "", stepId });
     },
     [focusIssue]
+  );
+
+  // Must stay above early returns — Rules of Hooks (step-nav aria-invalid path list).
+  const stepNavValidationIssuePaths = useMemo(
+    () => stepNavValidationIssues.map((issue) => issue.path),
+    [stepNavValidationIssues]
   );
 
   if (!authorized) {
@@ -701,6 +780,8 @@ export function WorkspaceWizardHost({
                     onFocusIssue: handleFocusValidationIssue,
                     fieldLabelSurfaceId: wizardHost?.fieldLabelSurfaceId,
                     translateWorkspaceMessage,
+                    // INV-DENALI-WIZ-017 — Continue uses step heading, not create-tour.
+                    validationHeadingKey: "review.stepValidationHeading",
                   })
                 )}
               </div>
@@ -758,6 +839,11 @@ export function WorkspaceWizardHost({
                       wizardSessionId={wizardSessionId}
                       workspaceFormProfile={readWorkspaceFormProfileFromEvalContext(wizardRuleEvalContext)}
                       wizardRuleEvalContext={wizardRuleEvalContext}
+                      invalid={
+                        wizardFieldHasValidationIssue(path, stepNavValidationIssues) ||
+                        wizardFieldHasValidationIssue(field.fieldId, stepNavValidationIssues)
+                      }
+                      validationIssuePaths={stepNavValidationIssuePaths}
                       dataTestId={
                         shouldAttachSeedPrefillTestId(path, pluginId, workspacePlugin ?? undefined)
                           ? WIZARD_TEMPLATE_PREFILL_TEST_IDS.seedPrefillField

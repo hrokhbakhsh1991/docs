@@ -25,6 +25,7 @@ function renderDenaliValidationSummary(props: WizardValidationSurfaceRenderProps
       onFocusIssue={props.onFocusIssue}
       fieldLabelSurfaceId={props.fieldLabelSurfaceId}
       translateWorkspaceMessage={props.translateWorkspaceMessage}
+      validationHeadingKey={props.validationHeadingKey}
     />
   );
 }

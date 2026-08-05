@@ -28,6 +28,8 @@ export function createDenaliCompositeSurface(): WizardCompositeSurface {
         wizardRuleEvalContext={
           props.wizardRuleEvalContext as Pick<DenaliWizardRuleEvalContext, "ruleSet"> | undefined
         }
+        invalid={props.invalid}
+        validationIssuePaths={props.validationIssuePaths}
       />
     ),
   });

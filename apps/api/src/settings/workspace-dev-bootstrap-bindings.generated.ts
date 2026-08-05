@@ -14,7 +14,7 @@ import { buildUrbanMinimalWizardTemplatePayload } from "@app-tour/workspace-urba
 export const WORKSPACE_DEV_WIZARD_TEMPLATE_BINDINGS = [
   {
     workspaceId: "denali",
-    tenantIds: ["00000000-0000-4000-8000-000000000003"],
+    tenantIds: ["00000000-0000-4000-8000-000000000003","00000000-0000-4000-8000-000000000014"],
     buildPayload: buildDenaliTenantWizardTemplatePayload,
     minPublishedSteps: 2,
   },

@@ -1,6 +1,7 @@
 "use client";
 
 import { Checkbox, Input, Select, type SelectOption } from "../adapters/platform-primitives";
+import { wizardFieldHasValidationIssue } from "@app-tour/wizard-navigation";
 import { useTranslations } from "next-intl";
 
 import {
@@ -33,6 +34,8 @@ type DenaliTransportModeFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly required?: boolean;
+  readonly invalid?: boolean;
+  readonly validationIssuePaths?: readonly string[];
 };
 
 function boolFromDraft(draft: DenaliTourWizardDraft, path: string): boolean {
@@ -43,6 +46,8 @@ export function DenaliTransportModeField({
   draft,
   onDraftChange,
   required = false,
+  invalid = false,
+  validationIssuePaths = [],
 }: DenaliTransportModeFieldProps) {
   const t = useTranslations("denali");
   const draftRef = useLatestWizardDraft(draft);
@@ -53,6 +58,13 @@ export function DenaliTransportModeField({
     value: option.value,
     label: resolveDenaliTransportModeLabel(t, option.value),
   }));
+  const modeInvalid =
+    invalid || wizardFieldHasValidationIssue("transport.mode", validationIssuePaths);
+  const dongInvalid = wizardFieldHasValidationIssue("transport.dongAmount", validationIssuePaths);
+  const seatInvalid = wizardFieldHasValidationIssue(
+    "transport.seatPreference",
+    validationIssuePaths
+  );
 
   const setString = (path: string, value: string) =>
     commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
@@ -66,6 +78,7 @@ export function DenaliTransportModeField({
       className="denali-wizard-composite"
       data-operator-wizard-surface="section"
       data-testid={DENALI_TRANSPORT_TEST_IDS.transport}
+      aria-invalid={invalid || undefined}
     >
       <label className="denali-wizard-composite__field">
         <span>{modeLabel}</span>
@@ -76,6 +89,7 @@ export function DenaliTransportModeField({
           onChange={(event) => setString("transport.mode", event.target.value)}
           required={required}
           aria-required={required || undefined}
+          invalid={modeInvalid}
         />
       </label>
 
@@ -112,6 +126,7 @@ export function DenaliTransportModeField({
             onChange={(value) => setString("transport.dongAmount", value)}
             required={isDenaliDongAmountRequired(mode, allowPersonalCar)}
             aria-required={isDenaliDongAmountRequired(mode, allowPersonalCar) || undefined}
+            invalid={dongInvalid}
           />
         </label>
       ) : null}
@@ -122,6 +137,10 @@ export function DenaliTransportModeField({
           <Input
             value={getCanonicalStringValue(draft, "transport.seatPreference")}
             onChange={(event) => setString("transport.seatPreference", event.target.value)}
+            required
+            aria-required
+            aria-invalid={seatInvalid || undefined}
+            invalid={seatInvalid}
           />
         </label>
       ) : null}

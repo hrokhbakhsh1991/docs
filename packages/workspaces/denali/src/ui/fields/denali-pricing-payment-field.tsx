@@ -19,6 +19,8 @@ export const DENALI_PRICING_TEST_IDS = {
 type DenaliPricingPaymentFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
+  readonly invalid?: boolean;
+  readonly validationIssuePaths?: readonly string[];
 };
 
 function boolFromDraft(draft: DenaliTourWizardDraft, path: string): boolean {
@@ -28,6 +30,8 @@ function boolFromDraft(draft: DenaliTourWizardDraft, path: string): boolean {
 export function DenaliPricingPaymentField({
   draft,
   onDraftChange,
+  invalid = false,
+  validationIssuePaths = [],
 }: DenaliPricingPaymentFieldProps) {
   const t = useTranslations("denali");
   const draftRef = useLatestWizardDraft(draft);
@@ -39,12 +43,19 @@ export function DenaliPricingPaymentField({
   const setBool = (path: string, checked: boolean) => setString(path, checked ? "true" : "false");
   const requiresPaymentLabel = resolveDenaliFieldLabel(t, "pricing.requiresPayment");
   const insuranceLabel = resolveDenaliFieldLabel(t, "pricing.includesTourInsurance");
+  const priceInvalid =
+    invalid ||
+    validationIssuePaths.some(
+      (path) =>
+        path === "pricing.basePricePerPerson" || path === "denali.pricing-payment"
+    );
 
   return (
     <div
       className="denali-wizard-composite"
       data-operator-wizard-surface="section"
       data-testid={DENALI_PRICING_TEST_IDS.pricing}
+      aria-invalid={invalid || undefined}
     >
       <label className="denali-wizard-composite__field-row">
         <Checkbox
@@ -65,6 +76,7 @@ export function DenaliPricingPaymentField({
             onChange={(value) => setString("pricing.basePricePerPerson", value)}
             required
             aria-required
+            invalid={priceInvalid}
           />
         </label>
       ) : null}

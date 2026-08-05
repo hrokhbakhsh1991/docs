@@ -77,24 +77,14 @@ export function createEmptyDenaliItinerarySegment(): DenaliItinerarySegment {
   };
 }
 
-function scaffoldItineraryDayTitle(dayNumber: number): string {
-  return `Day ${dayNumber}`;
-}
-
-function scaffoldItinerarySegmentTitle(dayNumber: number): string {
-  return `Activity ${dayNumber}`;
-}
-
 function scaffoldItineraryDay(dayNumber: number): DenaliItineraryDay {
+  // Empty titles — must not satisfy collectDenaliItineraryDayValidationIssues (INV-DENALI-WIZ-009).
+  // Row count sync only; operator must enter day/segment content before Continue.
   return {
     dayNumber,
-    title: scaffoldItineraryDayTitle(dayNumber),
-    segments: [
-      {
-        ...createEmptyDenaliItinerarySegment(),
-        title: scaffoldItinerarySegmentTitle(dayNumber),
-      },
-    ],
+    title: "",
+    summary: "",
+    segments: [createEmptyDenaliItinerarySegment()],
   };
 }
 

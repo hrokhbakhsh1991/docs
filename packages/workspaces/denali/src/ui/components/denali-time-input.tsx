@@ -37,6 +37,7 @@ export type DenaliTimeInputProps = {
   readonly onChange: (time: string) => void;
   readonly disabled?: boolean;
   readonly required?: boolean;
+  readonly invalid?: boolean;
   readonly className?: string;
   readonly appearance?: DenaliTimeInputAppearance;
   readonly "data-testid"?: string;
@@ -50,6 +51,7 @@ export function DenaliTimeInput({
   onChange,
   disabled = false,
   required = false,
+  invalid = false,
   className,
   appearance = "field",
   "data-testid": dataTestId,
@@ -120,6 +122,7 @@ export function DenaliTimeInput({
         dir="ltr"
         aria-label={ariaLabel ?? t("pickTime")}
         aria-required={required || undefined}
+        aria-invalid={invalid || undefined}
         aria-expanded={open}
         onClick={(event) => {
           event.stopPropagation();

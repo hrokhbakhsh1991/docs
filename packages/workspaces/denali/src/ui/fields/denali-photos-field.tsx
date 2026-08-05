@@ -33,6 +33,7 @@ type DenaliPhotosFieldProps = {
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly required?: boolean;
   readonly wizardSessionId?: string;
+  readonly invalid?: boolean;
 };
 
 function newPhotoId(): string {
@@ -51,6 +52,7 @@ export function DenaliPhotosField({
   onDraftChange,
   required = false,
   wizardSessionId,
+  invalid = false,
 }: DenaliPhotosFieldProps) {
   const t = useTranslations("denali");
   const tCommon = useTranslations("denali.composites.common");
@@ -248,7 +250,12 @@ export function DenaliPhotosField({
   };
 
   return (
-    <div className="denali-wizard-composite" data-operator-wizard-surface="section" data-testid={DENALI_PHOTOS_TEST_IDS.photos}>
+    <div
+      className="denali-wizard-composite"
+      data-operator-wizard-surface="section"
+      data-testid={DENALI_PHOTOS_TEST_IDS.photos}
+      aria-invalid={invalid || undefined}
+    >
       <div className="denali-wizard-composite__header">
         <h3 className="denali-wizard-composite__title">{label}</h3>
         {multiDay ? (

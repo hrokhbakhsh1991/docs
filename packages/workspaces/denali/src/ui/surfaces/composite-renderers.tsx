@@ -43,150 +43,197 @@ type DenaliCompositeRendererProps = {
   readonly wizardSessionId?: string;
   readonly workspaceFormProfile?: string;
   readonly wizardRuleEvalContext?: Pick<DenaliWizardRuleEvalContext, "ruleSet">;
+  readonly invalid?: boolean;
+  readonly validationIssuePaths?: readonly string[];
 };
 
 type DenaliCompositeRenderer = (props: DenaliCompositeRendererProps) => ReactNode;
 
 const DENALI_COMPOSITE_RENDERERS: Readonly<Record<DenaliImplementedCompositeId, DenaliCompositeRenderer>> =
   {
-    "denali.tour-kind-basics": ({ draft, onDraftChange, field }) => (
+    "denali.tour-kind-basics": ({ draft, onDraftChange, field, invalid }) => (
       <DenaliTourKindField
         draft={draft}
         onDraftChange={onDraftChange}
         required={field.required}
+        invalid={invalid}
       />
     ),
-    "denali.destination": ({ field, draft, onDraftChange }) => (
+    "denali.destination": ({ field, draft, onDraftChange, invalid }) => (
       <DenaliDestinationField
         draft={draft}
         onDraftChange={onDraftChange}
         canonicalPath={field.canonicalPath}
         required={field.required}
+        invalid={invalid}
       />
     ),
-    "denali.destination-catalog-metric.peak-height": ({ field, draft, onDraftChange }) => (
+    "denali.destination-catalog-metric.peak-height": ({ field, draft, onDraftChange, invalid }) => (
       <DenaliDestinationCatalogMetricField
         draft={draft}
         onDraftChange={onDraftChange}
         canonicalPath={field.canonicalPath}
         required={field.required}
+        invalid={invalid}
       />
     ),
-    "denali.destination-catalog-metric.trail-distance": ({ field, draft, onDraftChange }) => (
+    "denali.destination-catalog-metric.trail-distance": ({ field, draft, onDraftChange, invalid }) => (
       <DenaliDestinationCatalogMetricField
         draft={draft}
         onDraftChange={onDraftChange}
         canonicalPath={field.canonicalPath}
         required={field.required}
+        invalid={invalid}
       />
     ),
-    "denali.datetime": ({ draft, onDraftChange, field }) => (
+    "denali.datetime": ({ draft, onDraftChange, field, invalid }) => (
       <DenaliDatetimeField
         draft={draft}
         onDraftChange={onDraftChange}
         canonicalPath={field.canonicalPath}
         required={field.required}
         testId={DENALI_DATETIME_TEST_IDS.start}
+        invalid={invalid}
       />
     ),
-    "denali.datetime-end": ({ draft, onDraftChange, field }) => (
+    "denali.datetime-end": ({ draft, onDraftChange, field, invalid }) => (
       <DenaliDatetimeEndField
         draft={draft}
         onDraftChange={onDraftChange}
         required={field.required}
+        invalid={invalid}
       />
     ),
-    "denali.location-zones": ({ draft, onDraftChange }) => (
-      <DenaliLocationZonesField draft={draft} onDraftChange={onDraftChange} />
+    "denali.location-zones": ({ draft, onDraftChange, invalid }) => (
+      <DenaliLocationZonesField draft={draft} onDraftChange={onDraftChange} invalid={invalid} />
     ),
-    "denali.gathering-points": ({ draft, onDraftChange }) => (
-      <DenaliGatheringPointsField draft={draft} onDraftChange={onDraftChange} />
+    "denali.gathering-points": ({ draft, onDraftChange, invalid }) => (
+      <DenaliGatheringPointsField draft={draft} onDraftChange={onDraftChange} invalid={invalid} />
     ),
-    "denali.transport-mode": ({ draft, onDraftChange, field }) => (
+    "denali.transport-mode": ({ draft, onDraftChange, field, invalid, validationIssuePaths }) => (
       <DenaliTransportModeField
         draft={draft}
         onDraftChange={onDraftChange}
         required={field.required}
+        invalid={invalid}
+        validationIssuePaths={validationIssuePaths}
       />
     ),
-    "denali.difficulty-level": ({ draft, onDraftChange, field }) => (
+    "denali.difficulty-level": ({ draft, onDraftChange, field, invalid }) => (
       <DenaliDifficultyLevelField
         draft={draft}
         onDraftChange={onDraftChange}
         required={field.required}
+        invalid={invalid}
       />
     ),
-    "denali.elevation-gain": ({ draft, onDraftChange, field }) => (
+    "denali.elevation-gain": ({ draft, onDraftChange, field, invalid }) => (
       <DenaliElevationGainField
         draft={draft}
         onDraftChange={onDraftChange}
         required={field.required}
+        invalid={invalid}
       />
     ),
-    "denali.gear": ({ draft, onDraftChange }) => (
-      <DenaliGearField draft={draft} onDraftChange={onDraftChange} />
+    "denali.gear": ({ draft, onDraftChange, invalid }) => (
+      <DenaliGearField draft={draft} onDraftChange={onDraftChange} invalid={invalid} />
     ),
-    "denali.program-content": ({ draft, onDraftChange, workspaceFormProfile, wizardRuleEvalContext }) => (
+    "denali.program-content": ({
+      draft,
+      onDraftChange,
+      workspaceFormProfile,
+      wizardRuleEvalContext,
+      invalid,
+      validationIssuePaths,
+    }) => (
       <DenaliProgramContentField
         draft={draft}
         onDraftChange={onDraftChange}
         workspaceFormProfile={workspaceFormProfile}
         wizardRuleEvalContext={wizardRuleEvalContext}
+        invalid={invalid}
+        validationIssuePaths={validationIssuePaths}
       />
     ),
-    "denali.peak-experience": ({ draft, onDraftChange, field }) => (
+    "denali.peak-experience": ({ draft, onDraftChange, field, invalid }) => (
       <DenaliPeakExperienceField
         draft={draft}
         onDraftChange={onDraftChange}
         required={field.required}
+        invalid={invalid}
       />
     ),
-    "denali.pricing-payment": ({ draft, onDraftChange }) => (
-      <DenaliPricingPaymentField draft={draft} onDraftChange={onDraftChange} />
+    "denali.pricing-payment": ({ draft, onDraftChange, invalid, validationIssuePaths }) => (
+      <DenaliPricingPaymentField
+        draft={draft}
+        onDraftChange={onDraftChange}
+        invalid={invalid}
+        validationIssuePaths={validationIssuePaths}
+      />
     ),
-    "denali.pricing-participants": ({ draft, onDraftChange, field }) => (
+    "denali.pricing-participants": ({
+      draft,
+      onDraftChange,
+      field,
+      invalid,
+      validationIssuePaths,
+    }) => (
       <DenaliPricingParticipantsField
         draft={draft}
         onDraftChange={onDraftChange}
         required={field.required}
+        invalid={invalid}
+        validationIssuePaths={validationIssuePaths}
       />
     ),
-    "denali.approximate-return-time": ({ draft, onDraftChange, field }) => (
+    "denali.approximate-return-time": ({ draft, onDraftChange, field, invalid }) => (
       <DenaliApproximateReturnTimeField
         draft={draft}
         onDraftChange={onDraftChange}
         required={field.required}
+        invalid={invalid}
       />
     ),
-    "denali.leader-user-ids": ({ draft, onDraftChange }) => (
-      <DenaliLeaderUserIdsField draft={draft} onDraftChange={onDraftChange} />
+    "denali.leader-user-ids": ({ draft, onDraftChange, invalid }) => (
+      <DenaliLeaderUserIdsField draft={draft} onDraftChange={onDraftChange} invalid={invalid} />
     ),
-    "denali.social-media-link": ({ draft, onDraftChange, field }) => (
+    "denali.social-media-link": ({ draft, onDraftChange, field, invalid }) => (
       <DenaliSocialMediaLinkField
         draft={draft}
         onDraftChange={onDraftChange}
         required={field.required}
+        invalid={invalid}
       />
     ),
-    "denali.guide-language-ids": ({ draft, onDraftChange }) => (
-      <DenaliGuideLanguageIdsField draft={draft} onDraftChange={onDraftChange} />
+    "denali.guide-language-ids": ({ draft, onDraftChange, invalid }) => (
+      <DenaliGuideLanguageIdsField
+        draft={draft}
+        onDraftChange={onDraftChange}
+        invalid={invalid}
+      />
     ),
-    "denali.custom-services": ({ draft, onDraftChange }) => (
-      <DenaliCustomServicesField draft={draft} onDraftChange={onDraftChange} />
+    "denali.custom-services": ({ draft, onDraftChange, invalid }) => (
+      <DenaliCustomServicesField draft={draft} onDraftChange={onDraftChange} invalid={invalid} />
     ),
-    "denali.tour-services": ({ draft, onDraftChange }) => (
-      <DenaliTourServicesField draft={draft} onDraftChange={onDraftChange} />
+    "denali.tour-services": ({ draft, onDraftChange, invalid }) => (
+      <DenaliTourServicesField draft={draft} onDraftChange={onDraftChange} invalid={invalid} />
     ),
-    "denali.photos": ({ draft, onDraftChange, field, wizardSessionId }) => (
+    "denali.photos": ({ draft, onDraftChange, field, wizardSessionId, invalid }) => (
       <DenaliPhotosField
         draft={draft}
         onDraftChange={onDraftChange}
         required={field.required}
         wizardSessionId={wizardSessionId}
+        invalid={invalid}
       />
     ),
-    "denali.itinerary": ({ draft, onDraftChange, field }) => (
-      <DenaliItineraryField draft={draft} onDraftChange={onDraftChange} required={field.required} />
+    "denali.itinerary": ({ draft, onDraftChange, field, invalid }) => (
+      <DenaliItineraryField
+        draft={draft}
+        onDraftChange={onDraftChange}
+        required={field.required}
+        invalid={invalid}
+      />
     ),
   };
 

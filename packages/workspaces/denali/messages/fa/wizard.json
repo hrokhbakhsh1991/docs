@@ -50,7 +50,7 @@
       "hikingHoursApprox": "مدت تقریبی پیاده‌روی (ساعت)",
       "hikingGoHours": "ساعت پیمایش رفت (تقریبی)",
       "hikingReturnHours": "ساعت پیمایش برگشت (تقریبی)",
-      "itinerary": "خلاصه برنامه"
+      "itinerary": "برنامه روزبه‌روز"
     },
     "gatheringPoint": "محل تجمع (ناحیه)",
     "gatheringPoints": "ایستگاه‌های تجمع",
@@ -133,6 +133,9 @@
     "offline_receipt": "رسید / پرداخت آفلاین"
   },
   "composites": {
+    "datetime": {
+      "sectionTitle": "تاریخ و زمان تور"
+    },
     "common": {
       "name": "نام",
       "label": "برچسب",
@@ -290,6 +293,7 @@
       ]
     },
     "itinerary": {
+      "sectionTitle": "برنامه روزبه‌روز",
       "helper": "برنامه روزبه‌روز برای تورهای چندروزه ({count, number} روز از تاریخ شروع/پایان).",
       "dayHeading": "روز {n, number}",
       "dayTitle": "عنوان روز",
@@ -437,6 +441,7 @@
     },
     "pricingParticipants": {
       "sectionTitle": "الزامات شرکت‌کننده",
+      "fitnessPlaceholder": "سطح آمادگی را انتخاب کنید…",
       "fitnessLow": "پایین",
       "fitnessMedium": "متوسط",
       "fitnessHigh": "بالا"
@@ -497,6 +502,7 @@
     "requiredField": "فیلد «{field}» الزامی است.",
     "invalidNumber": "فیلد «{field}» باید عدد معتبر باشد.",
     "invalidBoolean": "فیلد «{field}» باید مقدار بله/خیر معتبر داشته باشد.",
-    "invalidText": "فیلد «{field}» باید متن معتبر باشد."
+    "invalidText": "فیلد «{field}» باید متن معتبر باشد.",
+    "invalidValue": "مقدار فیلد «{field}» نامعتبر است."
   }
 }

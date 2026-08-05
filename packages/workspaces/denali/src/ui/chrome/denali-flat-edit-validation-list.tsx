@@ -29,6 +29,10 @@ export function DenaliFlatEditValidationList({
   const validationTranslator = {
     has: (key: string) => tValidation.has(key),
     translate: (key: string, values: { field: string }) => tValidation(key, values),
+    translateWorkspace: (
+      key: string,
+      values?: Record<string, string | number>
+    ) => t(key, values),
   };
 
   if (issues.length === 0) {

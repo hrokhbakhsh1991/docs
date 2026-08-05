@@ -10,15 +10,10 @@ import {
   resolveSelectOptionLabel,
   shouldUseDenaliSearchableSelect,
 } from "../logic/denali-searchable-select-logic";
+import { DENALI_SEARCHABLE_SELECT_TEST_IDS } from "../test-ids/denali-searchable-select-test-ids";
 import { cn } from "../utils/cn";
 
-export const DENALI_SEARCHABLE_SELECT_TEST_IDS = {
-  root: "denali-searchable-select",
-  trigger: "denali-searchable-select-trigger",
-  panel: "denali-searchable-select-panel",
-  search: "denali-searchable-select-search",
-  option: (value: string) => `denali-searchable-select-option-${value}`,
-} as const;
+export { DENALI_SEARCHABLE_SELECT_TEST_IDS } from "../test-ids/denali-searchable-select-test-ids";
 
 function ChevronDownIcon({ className }: { readonly className?: string }) {
   return (

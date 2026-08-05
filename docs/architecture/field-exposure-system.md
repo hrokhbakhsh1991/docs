@@ -973,6 +973,11 @@ behavior change.**
 Phase 1 goal: freeze **exposure domain language in documentation**. **No runtime behavior
 change.** Phase 1 may touch only `docs/`, `scripts/guards/`, and exposure contract tests.
 
+**Staged-scope ratchet (retired):** After Phase 1 documentation closure, `guard:field-exposure-phase-1`
+no longer rejects staged runtime `.ts`/`.tsx` outside docs/guards/contracts. That check caused
+false failures on ordinary product PRs that stage `apps/web` while API exposure contract tests
+still invoke the guard. The live Phase 1 contract is glossary + ADR + sibling-doc mirrors only.
+
 ### Completion checklist
 
 - [x] Official glossary (`ExposureSurface`, `Audience`, `ActivationTrigger`, …)

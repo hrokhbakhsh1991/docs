@@ -15,6 +15,8 @@ type DenaliCompositeFieldProps = {
   readonly wizardSessionId?: string;
   readonly workspaceFormProfile?: string;
   readonly wizardRuleEvalContext?: Pick<DenaliWizardRuleEvalContext, "ruleSet">;
+  readonly invalid?: boolean;
+  readonly validationIssuePaths?: readonly string[];
 };
 
 export function DenaliCompositeField({
@@ -25,10 +27,21 @@ export function DenaliCompositeField({
   wizardSessionId,
   workspaceFormProfile,
   wizardRuleEvalContext,
+  invalid = false,
+  validationIssuePaths,
 }: DenaliCompositeFieldProps): ReactNode {
   const renderer = resolveDenaliCompositeRenderer(compositeId);
   if (!renderer) {
     return null;
   }
-  return renderer({ field, draft, onDraftChange, wizardSessionId, workspaceFormProfile, wizardRuleEvalContext });
+  return renderer({
+    field,
+    draft,
+    onDraftChange,
+    wizardSessionId,
+    workspaceFormProfile,
+    wizardRuleEvalContext,
+    invalid,
+    validationIssuePaths,
+  });
 }

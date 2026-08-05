@@ -32,12 +32,14 @@ type DenaliDifficultyLevelFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly required?: boolean;
+  readonly invalid?: boolean;
 };
 
 export function DenaliDifficultyLevelField({
   draft,
   onDraftChange,
   required = false,
+  invalid = false,
 }: DenaliDifficultyLevelFieldProps) {
   const t = useTranslations("denali");
   const locale = useLocale() as AppLocale;
@@ -74,6 +76,7 @@ export function DenaliDifficultyLevelField({
       data-operator-wizard-surface="section"
       data-operator-difficulty-level
       data-testid={DENALI_DIFFICULTY_TEST_IDS.difficulty}
+      aria-invalid={invalid || undefined}
     >
       <div className="denali-wizard-composite__header">
         <h3 className="denali-wizard-composite__title">{label}</h3>
@@ -111,6 +114,7 @@ export function DenaliDifficultyLevelField({
             value={value}
             required={required}
             aria-required={required || undefined}
+            aria-invalid={invalid || undefined}
             aria-label={label}
             aria-valuemin={DIFFICULTY_LEVEL_MIN}
             aria-valuemax={DIFFICULTY_LEVEL_MAX}

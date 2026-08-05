@@ -15,6 +15,7 @@ export type DenaliWizardDatetimePickerProps = {
   readonly minIsoDate?: string;
   readonly disabled?: boolean;
   readonly required?: boolean;
+  readonly invalid?: boolean;
   readonly className?: string;
   readonly "data-testid"?: string;
   readonly "aria-label"?: string;
@@ -28,6 +29,7 @@ export function DenaliWizardDatetimePicker({
   minIsoDate,
   disabled = false,
   required = false,
+  invalid = false,
   className,
   "data-testid": dataTestId,
   "aria-label": ariaLabel,
@@ -51,6 +53,7 @@ export function DenaliWizardDatetimePicker({
             minIsoDate={minIsoDate}
             disabled={disabled}
             required={required}
+            invalid={invalid}
             aria-label={ariaLabel ?? t("pickDate")}
             className="operator-wizard-datetime__date-trigger"
             onChange={(nextDate) => onChange(joinDatetimeLocal(nextDate, time))}
@@ -62,6 +65,7 @@ export function DenaliWizardDatetimePicker({
           value={time}
           disabled={disabled}
           required={required}
+          invalid={invalid}
           aria-label={t("timeLabel")}
           onChange={(nextTime) => onChange(joinDatetimeLocal(date, nextTime))}
         />

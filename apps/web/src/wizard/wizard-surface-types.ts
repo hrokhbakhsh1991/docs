@@ -1,5 +1,9 @@
 import type { RenderFieldPlan, RenderStepPlan } from "@app-tour/platform-core";
-import type { ValidationIssue } from "@app-tour/wizard-navigation";
+import type {
+  ValidationIssue,
+  WizardCompositeA11yProps,
+  WizardValidationHeadingKey,
+} from "@app-tour/wizard-navigation";
 import type { ReactNode } from "react";
 
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
@@ -9,7 +13,7 @@ export type WizardStepDescriptor = {
   readonly label: string;
 };
 
-export type WizardCompositeFieldRenderProps = {
+export type WizardCompositeFieldRenderProps = WizardCompositeA11yProps & {
   readonly compositeId: string;
   readonly field: RenderFieldPlan;
   readonly draft: TourWizardDraft;
@@ -53,7 +57,7 @@ export type WizardValidationSurfaceRenderProps = {
   readonly fieldLabelSurfaceId?: string;
   readonly translateWorkspaceMessage?: (key: string) => string;
   /** `step` — blocked Continue; `submit` — create/publish blocked (default). */
-  readonly validationHeadingKey?: "review.stepValidationHeading" | "review.validationHeading";
+  readonly validationHeadingKey?: WizardValidationHeadingKey;
 };
 
 export type WizardReviewSurfaceRenderProps = {

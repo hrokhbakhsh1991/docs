@@ -21,11 +21,13 @@ export const DENALI_CUSTOM_SERVICES_TEST_IDS = {
 type DenaliCustomServicesFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
+  readonly invalid?: boolean;
 };
 
 export function DenaliCustomServicesField({
   draft,
   onDraftChange,
+  invalid = false,
 }: DenaliCustomServicesFieldProps) {
   const t = useTranslations("denali");
   const tCommon = useTranslations("denali.composites.common");
@@ -60,6 +62,7 @@ export function DenaliCustomServicesField({
       className="denali-wizard-composite"
       data-operator-wizard-surface="section"
       data-testid={DENALI_CUSTOM_SERVICES_TEST_IDS.customServices}
+      aria-invalid={invalid || undefined}
     >
       <div className="denali-wizard-composite__header">
         <h3 className="denali-wizard-composite__title">{label}</h3>

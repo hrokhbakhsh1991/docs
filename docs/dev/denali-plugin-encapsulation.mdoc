@@ -36,6 +36,8 @@ Urban mirrors the same six-symbol contract (`guard:urban-plugin-surface`). Guest
 
 Manifest-bound **operator settings** modules (`settingsEnrichers`, `devBootstrap.wizardTemplate`, `web.surfaces` for settings UI) export as `./settings/<module>` keys — **not** under `./host/settings/*`. This keeps `apps/api` settings dispatch (`workspace-settings-enrichers.generated.ts`, `parse-equipment-icon-key.ts`) on a stable platform contract instead of Denali host internals.
 
+**Operator-smoke tenant `…014`:** `devBootstrap.wizardTemplate.tenantIds` must include both Denali smoke (`…003`) and operator smoke (`…014`) so memory/dev boot publishes a template for `operator.admin.localhost`. See [`denali-operator-smoke-wizard-template-seed.mdoc`](./denali-operator-smoke-wizard-template-seed.mdoc).
+
 **PSR-4b-host-imports-close (2026-07-31):** `parse-equipment-icon-key.ts` is the sole
 `approved-settings-contract` allowlist entry for API host branded imports — excluded from the
 unapproved host-source ceiling (must stay 0). See

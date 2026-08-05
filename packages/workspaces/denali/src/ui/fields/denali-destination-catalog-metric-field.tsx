@@ -33,6 +33,7 @@ type DenaliDestinationCatalogMetricFieldProps = {
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly canonicalPath: string;
   readonly required?: boolean;
+  readonly invalid?: boolean;
 };
 
 const METRIC_PATCH_DEBOUNCE_MS = 500;
@@ -42,6 +43,7 @@ export function DenaliDestinationCatalogMetricField({
   onDraftChange,
   canonicalPath,
   required = false,
+  invalid = false,
 }: DenaliDestinationCatalogMetricFieldProps) {
   const binding = resolveDenaliDestinationCatalogMetricBinding(canonicalPath);
   const t = useTranslations("denali");
@@ -128,6 +130,7 @@ export function DenaliDestinationCatalogMetricField({
           }}
           required={required}
           aria-required={required || undefined}
+          invalid={invalid}
           placeholder={t(`composites.destinationCatalogMetric.${binding.inputMode}Placeholder`)}
         />
       </label>

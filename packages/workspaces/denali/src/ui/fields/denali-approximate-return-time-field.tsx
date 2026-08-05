@@ -21,12 +21,14 @@ type DenaliApproximateReturnTimeFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly required?: boolean;
+  readonly invalid?: boolean;
 };
 
 export function DenaliApproximateReturnTimeField({
   draft,
   onDraftChange,
   required = false,
+  invalid = false,
 }: DenaliApproximateReturnTimeFieldProps) {
   const t = useTranslations("denali");
   const fieldId = useId();
@@ -55,6 +57,7 @@ export function DenaliApproximateReturnTimeField({
             )
           }
           required={required}
+          invalid={invalid}
         />
       </div>
       <p className="denali-wizard-composite__helper">{t("composites.approximateReturn.helper")}</p>

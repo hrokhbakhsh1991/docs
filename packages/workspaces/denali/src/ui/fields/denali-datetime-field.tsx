@@ -24,6 +24,7 @@ type DenaliDatetimeFieldProps = {
   readonly required?: boolean;
   readonly testId?: string;
   readonly hint?: string;
+  readonly invalid?: boolean;
 };
 
 export function DenaliDatetimeField({
@@ -33,6 +34,7 @@ export function DenaliDatetimeField({
   required = false,
   testId,
   hint,
+  invalid = false,
 }: DenaliDatetimeFieldProps) {
   const t = useTranslations("denali");
   const fieldId = useId();
@@ -57,6 +59,7 @@ export function DenaliDatetimeField({
             )
           }
           required={required}
+          invalid={invalid}
         />
       </div>
       {hint ? <p className="denali-wizard-composite__helper">{hint}</p> : null}

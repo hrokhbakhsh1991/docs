@@ -4,7 +4,7 @@ import { readDenaliCanonicalBasics } from "../../adapters/denaliCanonicalBasicsC
 import { isDenaliWizardFieldVisibleOnDraft } from "../../wizard/denali-wizard-field-visibility";
 import type { DenaliWizardRuleEvalContext } from "../../wizard/denali-wizard-rule-eval-context";
 import { DENALI_DEFAULT_WORKSPACE_FORM_PROFILE } from "../../wizard/denali-wizard-rule-eval-context";
-import { wizardFieldPathAttributes } from "@app-tour/wizard-navigation";
+import { wizardFieldHasValidationIssue, wizardFieldPathAttributes } from "@app-tour/wizard-navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 
@@ -39,6 +39,8 @@ type DenaliProgramContentFieldProps = {
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly workspaceFormProfile?: string;
   readonly wizardRuleEvalContext?: Pick<DenaliWizardRuleEvalContext, "ruleSet">;
+  readonly invalid?: boolean;
+  readonly validationIssuePaths?: readonly string[];
 };
 
 export function DenaliProgramContentField({
@@ -46,6 +48,8 @@ export function DenaliProgramContentField({
   onDraftChange,
   workspaceFormProfile = DENALI_DEFAULT_WORKSPACE_FORM_PROFILE,
   wizardRuleEvalContext,
+  invalid = false,
+  validationIssuePaths,
 }: DenaliProgramContentFieldProps) {
   const t = useTranslations("denali");
   const tErrors = useTranslations("settings.errors");
@@ -55,6 +59,13 @@ export function DenaliProgramContentField({
   const longDescriptionLabel = resolveDenaliFieldLabel(t, "program.longDescription");
   const shortDescription = getCanonicalStringValue(draft, "program.shortDescription");
   const longDescription = getCanonicalStringValue(draft, "program.longDescription");
+  const shortDescriptionInvalid =
+    invalid ||
+    wizardFieldHasValidationIssue("program.shortDescription", validationIssuePaths ?? []);
+  const longDescriptionInvalid = wizardFieldHasValidationIssue(
+    "program.longDescription",
+    validationIssuePaths ?? []
+  );
   const showLongDescription = useMemo(
     () =>
       isDenaliWizardFieldVisibleOnDraft(draft, "program.longDescription", "denali_photos", {
@@ -155,6 +166,7 @@ export function DenaliProgramContentField({
           value={shortDescription}
           required
           aria-required
+          aria-invalid={shortDescriptionInvalid || undefined}
           rows={3}
           onChange={(event) => writeShortDescription(event.target.value)}
           onBlur={(event) => writeShortDescription(event.target.value)}
@@ -171,6 +183,7 @@ export function DenaliProgramContentField({
             className="denali-wizard-composite__textarea"
             data-testid={DENALI_PROGRAM_CONTENT_TEST_IDS.longDescription}
             value={longDescription}
+            aria-invalid={longDescriptionInvalid || undefined}
             rows={6}
             onChange={(event) => writeLongDescription(event.target.value)}
             onBlur={(event) => writeLongDescription(event.target.value)}

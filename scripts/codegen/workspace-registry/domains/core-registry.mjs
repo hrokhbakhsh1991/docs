@@ -4,8 +4,7 @@ import { importSpecifier } from "../utils.mjs";
 /** Manifests that participate in product plugin/SDK/web registries (exclude finance/booking fixtures). */
 export function productWorkspaceManifests(manifests) {
   return manifests.filter(
-    (m) =>
-      m.workspaceFinance?.registryOnly !== true && m.workspaceBooking?.registryOnly !== true
+    (m) => m.workspaceFinance?.registryOnly !== true && m.workspaceBooking?.registryOnly !== true
   );
 }
 
@@ -100,7 +99,6 @@ export async function listApiWorkspacePluginsFromManifest(): Promise<readonly Wo
 `;
 }
 
-
 /**
  * Async-only web plugin loaders (P4.1 / I3) — no static workspace imports, no SYNC map.
  * @param {ReturnType<import("../manifest-loader.mjs").discoverManifests>} manifests
@@ -112,10 +110,20 @@ export function generateWebLoaders(manifests) {
     .map((m) => {
       const web = m.web ?? m.plugin;
       const spec = importSpecifier(m.package, web.entry);
-      return `    case "${m.id}": {
-      const mod = await import("${spec}");
-      return mod.${web.export}();
-    }`;
+      const clientBundleEnvGate = m.adminWeb?.clientBundleEnvGate;
+      const bundleGuard =
+        typeof clientBundleEnvGate === "string"
+          ? `          assertWorkspacePluginClientBundleEnabled(
+            "${m.id}",
+            "${clientBundleEnvGate}",
+            process.env.${clientBundleEnvGate} === "true"
+          );
+`
+          : "";
+      return `        case "${m.id}": {
+${bundleGuard}          const mod = await import("${spec}");
+          return mod.${web.export}();
+        }`;
     })
     .join("\n");
 
@@ -129,9 +137,11 @@ import {
   getOrCreateWorkspacePluginLoad,
   invalidateWorkspacePluginLoadCache,
 } from "./workspace-plugin-load-cache";
+import { assertWorkspacePluginClientBundleEnabled } from "./workspace-plugin-client-bundle-gate";
 
 /** Sorted product trunk plugin ids — cache bust when codegen regen changes membership. */
-export const WORKSPACE_PLUGIN_REGISTRY_REVISION = ${JSON.stringify(registryRevision)};
+export const WORKSPACE_PLUGIN_REGISTRY_REVISION =
+  ${JSON.stringify(registryRevision)};
 
 /** Upper bound for per-process plugin load cache (= product trunk plugin count). */
 export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = ${maxEntries};

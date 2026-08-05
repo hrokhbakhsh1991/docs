@@ -49,5 +49,10 @@ export function getOrCreateWorkspacePluginLoad(
 
   const promise = load();
   cache.set(pluginId, promise);
+  void promise.catch(() => {
+    if (cache.get(pluginId) === promise) {
+      cache.delete(pluginId);
+    }
+  });
   return promise;
 }

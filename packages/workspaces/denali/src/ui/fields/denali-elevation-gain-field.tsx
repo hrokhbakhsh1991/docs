@@ -19,12 +19,14 @@ type DenaliElevationGainFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly required?: boolean;
+  readonly invalid?: boolean;
 };
 
 export function DenaliElevationGainField({
   draft,
   onDraftChange,
   required = false,
+  invalid = false,
 }: DenaliElevationGainFieldProps) {
   const t = useTranslations("denali");
   const draftRef = useLatestWizardDraft(draft);
@@ -45,6 +47,7 @@ export function DenaliElevationGainField({
           }
           required={required}
           aria-required={required || undefined}
+          invalid={invalid}
           placeholder={t("composites.elevation.meters")}
         />
       </label>

@@ -1,6 +1,7 @@
 "use client";
 
-import type { ValidationIssue } from "@app-tour/wizard-navigation";
+import type { ValidationIssue, WizardValidationHeadingKey } from "@app-tour/wizard-navigation";
+import { resolveWizardValidationHeadingKey } from "@app-tour/wizard-navigation";
 import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -18,6 +19,7 @@ type DenaliReviewValidationSummaryProps = {
   readonly onFocusIssue: (stepId: string, path: string) => void;
   readonly fieldLabelSurfaceId?: string;
   readonly translateWorkspaceMessage?: (key: string) => string;
+  readonly validationHeadingKey?: WizardValidationHeadingKey;
 };
 
 export function DenaliReviewValidationSummary({
@@ -25,17 +27,23 @@ export function DenaliReviewValidationSummary({
   stepDescriptors,
   onFocusIssue,
   translateWorkspaceMessage,
+  validationHeadingKey,
 }: DenaliReviewValidationSummaryProps) {
   const t = useTranslations("denali");
   const tValidation = useTranslations("denali.review.validation");
   const locale = useLocale();
   const isRtl = locale === "fa";
   const StepChevron = isRtl ? ChevronLeft : ChevronRight;
+  const headingKey = resolveWizardValidationHeadingKey(validationHeadingKey);
   const translateFieldLabel =
     translateWorkspaceMessage ?? ((key: string) => t(key));
   const validationTranslator = {
     has: (key: string) => tValidation.has(key),
     translate: (key: string, values: { field: string }) => tValidation(key, values),
+    translateWorkspace: (
+      key: string,
+      values?: Record<string, string | number>
+    ) => t(key, values),
   };
 
   if (issues.length === 0) {
@@ -50,13 +58,14 @@ export function DenaliReviewValidationSummary({
       role="alert"
       aria-live="polite"
       data-testid={DENALI_REVIEW_VALIDATION_TEST_IDS.panel}
+      data-validation-heading={headingKey}
     >
       <header className="operator-review-validation__header">
         <span className="operator-review-validation__icon" aria-hidden="true">
           <AlertCircle size={20} strokeWidth={2.25} />
         </span>
         <div className="operator-review-validation__header-text">
-          <h3 className="operator-review-validation__heading">{t("review.validationHeading")}</h3>
+          <h3 className="operator-review-validation__heading">{t(headingKey)}</h3>
           <p className="operator-review-validation__count">
             {t("review.validationCount", { count: issues.length })}
           </p>

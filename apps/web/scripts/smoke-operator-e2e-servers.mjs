@@ -11,13 +11,15 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { resolveOperatorSmokeOwnerMobile } from "./operator-smoke-identity.mjs";
+
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const webDir = path.join(repoRoot, "apps/web");
 const joseEntry = path.join(repoRoot, "apps/api/node_modules/jose/dist/webapi/index.js");
 const operatorTenantId =
   process.env.TOUR_OPS_DEV_TENANT_ID?.trim() || "00000000-0000-4000-8000-000000000014";
 const operatorSmokeOwnerUserId = "00000000-0000-4000-8000-000000000101";
-const operatorSmokeOwnerMobile = "+989121000001";
+const operatorSmokeOwnerMobile = resolveOperatorSmokeOwnerMobile();
 const operatorSmokeSeedTourTitle = "North Ridge Trek";
 
 /** Cursor shell may expose Node 22 on PATH ahead of nvm — pin repo .nvmrc for spawned pnpm/next. */

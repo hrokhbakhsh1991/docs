@@ -1,5 +1,9 @@
 import type { RenderStepPlan } from "@app-tour/platform-core";
-import type { ValidationIssue } from "@app-tour/wizard-navigation";
+import type {
+  ValidationIssue,
+  WizardCompositeA11yProps,
+  WizardValidationHeadingKey,
+} from "@app-tour/wizard-navigation";
 import type { ReactNode } from "react";
 
 import type { DenaliTourWizardDraft } from "../../draft/denali-tour-wizard-draft";
@@ -29,7 +33,7 @@ export type WizardStepDescriptor = {
   readonly label: string;
 };
 
-export type WizardCompositeFieldRenderProps = {
+export type WizardCompositeFieldRenderProps = WizardCompositeA11yProps & {
   readonly compositeId: string;
   readonly field: import("@app-tour/platform-core").RenderFieldPlan;
   readonly draft: DenaliTourWizardDraft;
@@ -52,6 +56,8 @@ export type WizardValidationSurfaceRenderProps = {
   readonly onFocusIssue: (stepId: string, path: string) => void;
   readonly fieldLabelSurfaceId?: string;
   readonly translateWorkspaceMessage?: (key: string) => string;
+  /** INV-DENALI-WIZ-017 — step-nav vs create/submit heading. */
+  readonly validationHeadingKey?: WizardValidationHeadingKey;
 };
 
 export type WizardReviewSurfaceRenderProps = {
@@ -76,3 +82,5 @@ export type WizardReviewSurface = {
   readonly renderValidationSummary?: (props: WizardValidationSurfaceRenderProps) => ReactNode;
   readonly renderReviewChrome?: (props: WizardReviewSurfaceRenderProps) => ReactNode;
 };
+
+export type WizardValidationSurface = Required<Pick<WizardReviewSurface, "renderValidationSummary">>;

@@ -15,7 +15,7 @@ import {
 } from "../../test/fixtures/denali-itinerary-wizard-fixture";
 import { loginOperatorOwner } from "../../test/fixtures/operator-owner-session";
 import { publishOperatorWizardTemplate } from "../../test/fixtures/operator-wizard-template-fixture";
-import { DENALI_ITINERARY_TEST_IDS } from "@app-tour/workspace-denali/ui/test-ids/denali-itinerary-test-ids";
+import { DENALI_ITINERARY_TEST_IDS } from "@app-tour/workspace-denali/host/ui/test-ids/denali-itinerary-test-ids";
 
 const OPERATOR_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 
@@ -105,5 +105,80 @@ test.describe("denali-itinerary-wizard.spec.ts", () => {
     await resetOperatorWizardToBasic(page);
     await fillDenaliMultiDayWizardThroughReview(page, tourTitle);
     await submitDenaliWizardDraftCreate(page);
+  });
+
+  test("SMK-P9-ITIN-06 back and next preserve multi-day basic values", async ({ page }) => {
+    const tourTitle = `SMK-P9-ITIN-06 ${Date.now()}`;
+
+    await loginOperatorOwner(page);
+    await publishOperatorWizardTemplate(page, { fullTemplate: true });
+    await fillDenaliMultiDayWizardBasics(page, tourTitle);
+
+    await expect(page.locator("[data-wizard-step=\"denali_photos\"]")).toBeVisible();
+    await page.getByTestId("workspace-wizard-step-back").click();
+    await expect(page.locator("[data-wizard-step=\"denali_basic\"]")).toBeVisible();
+    await expect(page.getByRole("textbox", { name: /نام تور|title/i })).toHaveValue(tourTitle);
+    await expect(page.getByTestId("denali-tour-kind-category-mountain")).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    await expect(page.getByTestId("denali-tour-kind-duration-multi_day")).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+
+    await page.getByTestId("workspace-wizard-step-next").click();
+    await expect(page.locator("[data-wizard-step=\"denali_photos\"]")).toBeVisible();
+  });
+
+  test("SMK-P9-ITIN-07 empty validation is localized without missing-message errors", async ({
+    page,
+  }) => {
+    const consoleErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") {
+        consoleErrors.push(message.text());
+      }
+    });
+
+    await loginOperatorOwner(page);
+    await publishOperatorWizardTemplate(page, { fullTemplate: true });
+    await resetOperatorWizardToBasic(page);
+    await page.getByTestId("workspace-wizard-step-next").click();
+
+    const body = page.locator("body");
+    await expect(body).not.toContainText("No value at canonical path");
+    await expect(body).not.toContainText("denali.composites.datetime.sectionTitle");
+    expect(consoleErrors.join("\n")).not.toMatch(/MISSING_MESSAGE|composites\.datetime\.sectionTitle/);
+  });
+
+  test("SMK-P9-ITIN-08 draft failure reaches ERROR and retry succeeds", async ({ page }) => {
+    await loginOperatorOwner(page);
+    await publishOperatorWizardTemplate(page, { fullTemplate: true });
+    await resetOperatorWizardToBasic(page);
+
+    const failDraftPatch = async (route: import("@playwright/test").Route) => {
+      if (route.request().method() === "PATCH") {
+        await route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({ error: { code: "TEST_DRAFT_UNAVAILABLE" } }),
+        });
+        return;
+      }
+      await route.continue();
+    };
+    await page.route("**/api/workspaces/**/drafts/**", failDraftPatch);
+
+    await page.getByRole("textbox", { name: /نام تور|title/i }).fill("Draft retry proof");
+    const indicator = page.getByTestId("draft-sync-indicator");
+    await expect(indicator).toHaveAttribute("data-status", "ERROR", { timeout: 15_000 });
+    await expect(page.getByTestId("draft-sync-retry")).toBeVisible();
+
+    await page.unroute("**/api/workspaces/**/drafts/**", failDraftPatch);
+    await page.getByTestId("draft-sync-retry").click();
+    await expect
+      .poll(() => indicator.getAttribute("data-status"), { timeout: 30_000 })
+      .toMatch(/^(?:IDLE|SAVED)$/);
   });
 });

@@ -13,9 +13,16 @@ function tryTranslateSectionTitle(t: DenaliTranslator, sectionKey: string): stri
   }
   try {
     const sectionLabel = t(sectionKey);
-    if (sectionLabel !== sectionKey && sectionLabel.length > 0) {
-      return sectionLabel;
+    // Reject missing-message echoes (raw key or namespaced `denali.composites…` fallback).
+    if (
+      sectionLabel.length === 0 ||
+      sectionLabel === sectionKey ||
+      sectionLabel.endsWith(sectionKey) ||
+      (sectionLabel.includes(".composites.") && sectionLabel.includes(".sectionTitle"))
+    ) {
+      return null;
     }
+    return sectionLabel;
   } catch {
     // Fall through to canonical anchor lookup.
   }

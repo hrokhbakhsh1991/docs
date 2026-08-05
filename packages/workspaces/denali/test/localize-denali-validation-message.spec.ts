@@ -8,6 +8,7 @@ const MESSAGES: Record<string, string> = {
   "validation.invalidNumber": "{field} must be a valid number.",
   "validation.invalidBoolean": "{field} must be true or false.",
   "validation.invalidText": "{field} must be text.",
+  "validation.invalidValue": "{field} has an invalid value.",
 };
 
 function t(key: string, values?: Record<string, string | number>): string {
@@ -37,5 +38,12 @@ test("localizeDenaliValidationIssueMessage maps number type mismatch", () => {
       "Capacity"
     ),
     "Capacity must be a valid number."
+  );
+});
+
+test("localizeDenaliValidationIssueMessage does not expose unknown platform copy", () => {
+  assert.equal(
+    localizeDenaliValidationIssueMessage(t, "Internal validator detail", "Capacity"),
+    "Capacity has an invalid value."
   );
 });

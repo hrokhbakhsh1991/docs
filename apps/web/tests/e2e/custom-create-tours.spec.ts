@@ -66,11 +66,9 @@ async function clearOperatorWizardDraftIfPresent(page: Page): Promise<void> {
 }
 
 async function resetOperatorWizardToBasic(page: Page): Promise<void> {
-  // Wait for initial network requests (BFF session / draft state) to complete
-  await page.waitForLoadState("networkidle");
-  
+  await expect(page.locator("[data-workspace-wizard]")).toBeVisible({ timeout: 90_000 });
+
   await clearOperatorWizardDraftIfPresent(page);
-  await page.waitForLoadState("networkidle");
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
     if (await page.locator('[data-wizard-step="denali_basic"]').isVisible().catch(() => false)) {
@@ -82,13 +80,11 @@ async function resetOperatorWizardToBasic(page: Page): Promise<void> {
       break;
     }
     await back.click();
-    await page.waitForLoadState("networkidle");
   }
 
   const basicProgress = page.getByTestId(WIZARD_STEP_SHELL_TEST_IDS.progressStep("denali_basic"));
   if (await basicProgress.isEnabled().catch(() => false)) {
     await basicProgress.click();
-    await page.waitForLoadState("networkidle");
   }
   await expect(page.locator('[data-wizard-step="denali_basic"]')).toBeVisible({ timeout: 30_000 });
 }
@@ -100,10 +96,10 @@ async function fillWizardNumericField(page: Page, labelRegex: RegExp, value: str
 }
 
 async function settleOperatorWizardDraftSync(page: Page): Promise<void> {
-  const syncIndicator = page.getByTestId("draft-sync-indicator");
-  if (await syncIndicator.isVisible().catch(() => false)) {
-    await expect(syncIndicator).toHaveAttribute("data-status", "SAVED", { timeout: 30_000 });
-  }
+  const indicator = page.getByTestId("draft-sync-indicator");
+  await expect
+    .poll(() => indicator.getAttribute("data-status"), { timeout: 30_000 })
+    .toMatch(/^(?:IDLE|SAVED)$/);
 }
 
 async function waitForWizardNextReady(page: Page): Promise<void> {
@@ -111,7 +107,7 @@ async function waitForWizardNextReady(page: Page): Promise<void> {
   await expect(next).toBeEnabled({ timeout: 30_000 });
 }
 
-async function clickWizardNextToStep(page: Page, expectedStepId: string, blockedLabel: string): Promise<void> {
+async function clickWizardNextToStep(page: Page, expectedStepId: string): Promise<void> {
   await settleOperatorWizardDraftSync(page);
   await waitForWizardNextReady(page);
   await page.getByTestId(WIZARD_STEP_SHELL_TEST_IDS.next).click();
@@ -163,7 +159,7 @@ async function fillDenaliWizardProgramMinimal(page: Page): Promise<void> {
     }
   }
 
-  await clickWizardNextToStep(page, "denali_logistics", "program step blocked before logistics");
+  await clickWizardNextToStep(page, "denali_logistics");
 }
 
 async function fillDenaliWizardLogisticsMinimal(page: Page): Promise<void> {
@@ -173,7 +169,7 @@ async function fillDenaliWizardLogisticsMinimal(page: Page): Promise<void> {
   const transport = page.getByTestId("denali-composite-transport");
   await expect(transport).toBeVisible({ timeout: 15_000 });
   await transport.getByRole("combobox").selectOption("none");
-  await clickWizardNextToStep(page, "denali_pricing", "logistics step blocked before pricing");
+  await clickWizardNextToStep(page, "denali_pricing");
 }
 
 async function fillDenaliWizardPricingMinimal(page: Page): Promise<void> {
@@ -187,7 +183,7 @@ async function fillDenaliWizardPricingMinimal(page: Page): Promise<void> {
   if (await fitnessSelect.isVisible().catch(() => false)) {
     await fitnessSelect.selectOption("medium");
   }
-  await clickWizardNextToStep(page, "denali_legal", "pricing step blocked before legal");
+  await clickWizardNextToStep(page, "denali_legal");
 }
 
 async function fillDenaliWizardLegalMinimal(page: Page): Promise<void> {
@@ -346,13 +342,13 @@ test.describe("Custom Tour Creation Spec", () => {
     const singleDayTitle = `Damavand One-Day Ascent ${Date.now()}`;
     const multiDayTitle = `Alam-Kuh Multi-Day Climb ${Date.now()}`;
 
-    // Login using the +15550001001 number
+    // Login with the shared operator-owner smoke identity
     await loginOperatorOwner(page);
     await publishOperatorWizardTemplate(page, { fullTemplate: true });
 
     // 1. Create a One-Day Mountain Climbing Tour
     await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator("[data-workspace-wizard]")).toBeVisible({ timeout: 90_000 });
     await fillDenaliSingleDayWizardBasics(page, singleDayTitle);
     await fillDenaliWizardPhotosMinimal(page);
     await fillDenaliWizardProgramMinimal(page);
@@ -365,7 +361,7 @@ test.describe("Custom Tour Creation Spec", () => {
 
     // 2. Create a Multi-Day Mountain Climbing Tour
     await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator("[data-workspace-wizard]")).toBeVisible({ timeout: 90_000 });
     await fillDenaliMultiDayWizardBasicsLocal(page, multiDayTitle);
     await fillDenaliWizardPhotosMinimal(page);
     await fillDenaliWizardProgramMinimal(page);

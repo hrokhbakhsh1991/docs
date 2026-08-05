@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import React from "react";
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
@@ -12,15 +13,9 @@ import type { WizardSubmitErrorPresentation } from "@/wizard/resolve-wizard-subm
 import { WizardSubmitErrorAlert } from "@/wizard/wizard-submit-error-alert";
 import { WorkspaceDraftIndexSummary } from "@/draft/workspace-draft-index-summary";
 import type { WorkspaceDraftIndexItem } from "@/draft/workspace-draft-types";
-import {
-  TOUR_PRESET_PREFILL_TEST_IDS,
-} from "@/tours/tour-preset-prefill-logic";
-import {
-  WIZARD_TEMPLATE_GATE_TEST_IDS,
-} from "@/tours/wizard-template-gate-logic";
-import {
-  WIZARD_TEMPLATE_PREFILL_TEST_IDS,
-} from "@/tours/wizard-template-prefill-logic";
+import { TOUR_PRESET_PREFILL_TEST_IDS } from "@/tours/tour-preset-prefill-logic";
+import { WIZARD_TEMPLATE_GATE_TEST_IDS } from "@/tours/wizard-template-gate-logic";
+import { WIZARD_TEMPLATE_PREFILL_TEST_IDS } from "@/tours/wizard-template-prefill-logic";
 
 export function CreateTourWizardLoadingMessage(props: {
   readonly message?: string;
@@ -44,7 +39,10 @@ export function CreateTourWizardNotConfigured() {
   const t = useTranslations("wizard");
   return (
     <div data-new-tour-wizard>
-      <section className="new-tour-wizard-page__empty" data-testid={WIZARD_TEMPLATE_GATE_TEST_IDS.emptyState}>
+      <section
+        className="new-tour-wizard-page__empty"
+        data-testid={WIZARD_TEMPLATE_GATE_TEST_IDS.emptyState}
+      >
         <h1 className="new-tour-wizard-page__empty-title">{t("notConfigured.title")}</h1>
         <p className="new-tour-wizard-page__empty-desc">{t("notConfigured.description")}</p>
         <Button asChild data-testid={WIZARD_TEMPLATE_GATE_TEST_IDS.configureLink}>
@@ -62,11 +60,7 @@ export function CreateTourWizardCloneError(props: {
   const t = useTranslations("wizard");
   return (
     <div data-new-tour-wizard className="space-y-4">
-      <p
-        className="new-tour-wizard-page__empty-desc"
-        role="alert"
-        data-testid={props.testId}
-      >
+      <p className="new-tour-wizard-page__empty-desc" role="alert" data-testid={props.testId}>
         {t("clone.error", { error: props.error })}
       </p>
       <div className="flex flex-wrap gap-2">
@@ -123,16 +117,10 @@ export function CreateTourWizardSeedBanner(props: { readonly seedLabel: string }
 }
 
 /** Non-blocking notice when clone photo remint batches fail (storage soft-skip). */
-export function CreateTourWizardClonePhotoRemintWarning(props: {
-  readonly testId: string;
-}) {
+export function CreateTourWizardClonePhotoRemintWarning(props: { readonly testId: string }) {
   const t = useTranslations("wizard");
   return (
-    <p
-      className="new-tour-wizard-page__seed-banner"
-      role="status"
-      data-testid={props.testId}
-    >
+    <p className="new-tour-wizard-page__seed-banner" role="status" data-testid={props.testId}>
       {t("clone.photoRemintWarning")}
     </p>
   );
@@ -161,7 +149,7 @@ export function CreateTourWizardSubmitFooter(props: {
   const t = useTranslations("wizard");
   const submitPresentation =
     props.submitError != null
-      ? props.resolveSubmitError?.(props.submitError) ?? { summary: props.submitError }
+      ? (props.resolveSubmitError?.(props.submitError) ?? { summary: props.submitError })
       : null;
   return (
     <div data-wizard-footer>
@@ -170,9 +158,7 @@ export function CreateTourWizardSubmitFooter(props: {
       </Button>
       <WizardSubmitErrorAlert presentation={submitPresentation} />
       {props.createdTourId ? (
-        <p data-tour-created>
-          {t("created", { id: props.createdTourId })}
-        </p>
+        <p data-tour-created>{t("created", { id: props.createdTourId })}</p>
       ) : null}
     </div>
   );
@@ -275,5 +261,30 @@ export function CreateTourWizardHeader(props: {
         </>
       }
     />
+  );
+}
+
+export function CreateTourWizardLoadError(props: {
+  readonly code: string;
+  readonly onRetry: () => void;
+}) {
+  const t = useTranslations("wizard");
+  return (
+    <div data-new-tour-wizard>
+      <section
+        className="new-tour-wizard-page__empty"
+        data-testid="operator-wizard-bootstrap-error"
+        role="alert"
+      >
+        <h1 className="new-tour-wizard-page__empty-title">{t("bootstrapError.title")}</h1>
+        <p className="new-tour-wizard-page__empty-desc">{t("bootstrapError.description")}</p>
+        <p className="new-tour-wizard-page__empty-desc">
+          {t("bootstrapError.code", { code: props.code })}
+        </p>
+        <Button type="button" onClick={props.onRetry}>
+          {t("bootstrapError.retry")}
+        </Button>
+      </section>
+    </div>
   );
 }

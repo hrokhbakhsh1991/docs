@@ -19,6 +19,7 @@ export type LocalizedDatePickerProps = {
   readonly placeholder?: string;
   readonly disabled?: boolean;
   readonly required?: boolean;
+  readonly invalid?: boolean;
   readonly className?: string;
   readonly "data-testid"?: string;
   readonly "aria-label"?: string;
@@ -31,6 +32,7 @@ export function LocalizedDatePicker({
   placeholder,
   disabled = false,
   required = false,
+  invalid = false,
   className,
   "data-testid": dataTestId,
   "aria-label": ariaLabel,
@@ -52,6 +54,7 @@ export function LocalizedDatePicker({
           data-testid={dataTestId}
           aria-label={ariaLabel ?? t("pickDate")}
           aria-required={required || undefined}
+          aria-invalid={invalid || undefined}
           className={cn(
             "h-10 min-h-11 w-full justify-start gap-2 px-3 font-normal",
             !displayLabel && "text-muted-foreground",

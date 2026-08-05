@@ -9,9 +9,14 @@ import { DENALI_COMPOSITE_TEST_IDS, DENALI_LOCATION_ZONE_PATHS } from "../logic/
 type DenaliLocationZonesFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
+  readonly invalid?: boolean;
 };
 
-export function DenaliLocationZonesField({ draft, onDraftChange }: DenaliLocationZonesFieldProps) {
+export function DenaliLocationZonesField({
+  draft,
+  onDraftChange,
+  invalid = false,
+}: DenaliLocationZonesFieldProps) {
   const t = useTranslations("denali");
   const title = t("composites.location.sectionTitle");
 
@@ -20,6 +25,7 @@ export function DenaliLocationZonesField({ draft, onDraftChange }: DenaliLocatio
       className="denali-wizard-composite"
       data-operator-wizard-surface="section"
       data-testid={DENALI_COMPOSITE_TEST_IDS.locationZones}
+      aria-invalid={invalid || undefined}
     >
       <h3 className="denali-wizard-composite__title">{title}</h3>
       <p className="denali-wizard-composite__status">{t("composites.location.zonesHelper")}</p>

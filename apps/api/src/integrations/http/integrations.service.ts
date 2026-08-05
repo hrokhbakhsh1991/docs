@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { withTenantRls } from "../../db/with-tenant-rls";
+import { resolveStorageDriver } from "../../storage/production-storage-driver-assert";
 import { logger } from "../../observability/logger";
 import { mapLatestExposureIntentsToConnectionPublic } from "../../exposure/exposure-intent-public";
 import { normalizeFieldDecorations } from "../../exposure/field-decorations";
@@ -736,12 +737,21 @@ export async function getWorkspaceIntegrationMeta(
   return await buildWorkspaceIntegrationSurfaceMeta(workspaceType);
 }
 
+export function emptyWorkspaceIntegrationsListResponse(): WorkspaceIntegrationsListResponse {
+  const items: IntegrationConnectionPublicDto[] = [];
+  return { items, summary: computeWorkspaceIntegrationsSummary(items) };
+}
+
 export async function listWorkspaceIntegrations(
   auth: TenantAuthContext,
   workspaceId: string
 ): Promise<WorkspaceIntegrationsListResponse> {
   await assertWorkspaceScope(auth, workspaceId);
   const workspaceType = await resolveWorkspaceTypeForRoute(auth.tenantId, workspaceId);
+
+  if (resolveStorageDriver() === "memory") {
+    return emptyWorkspaceIntegrationsListResponse();
+  }
 
   let connectionItems: IntegrationConnectionPublicDto[] = [];
   try {

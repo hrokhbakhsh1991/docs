@@ -50,7 +50,7 @@
       "hikingHoursApprox": "Approximate hiking hours",
       "hikingGoHours": "Outbound hiking hours (approx.)",
       "hikingReturnHours": "Return hiking hours (approx.)",
-      "itinerary": "Itinerary summary"
+      "itinerary": "Day-by-day itinerary"
     },
     "gatheringPoint": "Gathering area",
     "gatheringPoints": "Gathering stations",
@@ -133,6 +133,9 @@
     "offline_receipt": "Offline receipt / bank transfer"
   },
   "composites": {
+    "datetime": {
+      "sectionTitle": "Tour date and time"
+    },
     "common": {
       "name": "Name",
       "label": "Label",
@@ -290,6 +293,7 @@
       ]
     },
     "itinerary": {
+      "sectionTitle": "Day-by-day itinerary",
       "helper": "Day-by-day program for multi-day tours ({count, number} days from start/end dates).",
       "dayHeading": "Day {n, number}",
       "dayTitle": "Day title",
@@ -437,6 +441,7 @@
     },
     "pricingParticipants": {
       "sectionTitle": "Participant requirements",
+      "fitnessPlaceholder": "Select fitness level…",
       "fitnessLow": "Low",
       "fitnessMedium": "Medium",
       "fitnessHigh": "High"
@@ -497,6 +502,7 @@
     "requiredField": "{field} is required.",
     "invalidNumber": "{field} must be a valid number.",
     "invalidBoolean": "{field} must be a valid yes/no value.",
-    "invalidText": "{field} must be valid text."
+    "invalidText": "{field} must be valid text.",
+    "invalidValue": "{field} has an invalid value."
   }
 }

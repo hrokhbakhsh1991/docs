@@ -25,6 +25,7 @@ type PlatformLocationFieldProps = {
   readonly onDraftChange: (draft: TourWizardDraft) => void;
   readonly canonicalPath: string;
   readonly required?: boolean;
+  readonly invalid?: boolean;
 };
 
 function readLocationFromDraft(draft: TourWizardDraft, canonicalPath: string): PlatformLocationData {
@@ -36,6 +37,7 @@ export function PlatformLocationField({
   onDraftChange,
   canonicalPath,
   required = false,
+  invalid = false,
 }: PlatformLocationFieldProps) {
   const location = readLocationFromDraft(draft, canonicalPath);
   const zones = location.zones ?? [];
@@ -79,6 +81,7 @@ export function PlatformLocationField({
           id={`${canonicalPath}-address`}
           value={location.address ?? ""}
           required={required}
+          aria-invalid={invalid || undefined}
           placeholder="Street, city, region"
           onChange={(event) => updateAddress(event.target.value)}
         />
@@ -156,6 +159,7 @@ export function renderPlatformLocationCompositeField(
       onDraftChange={props.onDraftChange}
       canonicalPath={props.field.canonicalPath || "location"}
       required={props.field.required}
+      invalid={props.invalid}
     />
   );
 }

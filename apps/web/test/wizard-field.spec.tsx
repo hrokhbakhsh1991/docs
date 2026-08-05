@@ -43,6 +43,15 @@ function fieldPlan(kind: RenderFieldPlan["kind"]): RenderFieldPlan {
 }
 
 describe("WizardField renderers", () => {
+  it("sets aria-invalid on text Input when invalid", () => {
+    const { container } = renderWizardField(
+      <WizardField field={fieldPlan("text")} value="" onChange={() => {}} invalid />
+    );
+    const input = container.querySelector("input");
+    assert.ok(input);
+    assert.equal(input?.getAttribute("aria-invalid"), "true");
+  });
+
   it("exposes number and date as supported shell kinds (composite deferred)", () => {
     assert.ok(SUPPORTED_WIZARD_FIELD_KINDS.includes("number"));
     assert.ok(SUPPORTED_WIZARD_FIELD_KINDS.includes("date"));
