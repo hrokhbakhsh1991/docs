@@ -67,6 +67,11 @@ specs via `pnpm --filter @apps/web exec env ALLOW_*=… node --import tsx --test
 soft-fail to `null` finance ops when the Wave H loader gate is closed. Any other gate that loads
 Denali/Urban plugins outside `register-dom` must set the same flags (or import the harness).
 
+**Urban Playwright (SMK-P8):** `apps/web/scripts/smoke-urban-e2e-servers.mjs` sets
+`ALLOW_URBAN_WEB_PLUGIN=true` (and defaults Denali allow) on the web process env so
+`/settings/workspace-owner` can load the gated urban plugin; without it the page returns 500
+`WORKSPACE_PLUGIN_CLIENT_BUNDLE_DISABLED`.
+
 ## Gap Closure Phase D.1
 
 Deploy profiles compose IgnorePlugin gates with filtered transpile product sets via `buildDeployProfileBundlePlan` (see [`saas-platform-remediation.mdoc`](./saas-platform-remediation.mdoc)). Recommended `ALLOW_*=true` applies only to gated packages **in** the active profile; packages outside the profile stay ignored on the client. Default Next config is unchanged.

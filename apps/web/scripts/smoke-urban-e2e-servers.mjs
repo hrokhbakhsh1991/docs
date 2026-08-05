@@ -42,6 +42,9 @@ const webEnv = {
   ...jwtEnv,
   NODE_ENV: "development",
   ALLOW_DEV_WEB_SESSION: "true",
+  // Wave H — urban settings/host loads @app-tour/workspace-urban via gated loaders.
+  ALLOW_URBAN_WEB_PLUGIN: "true",
+  ALLOW_DENALI_WEB_PLUGIN: process.env.ALLOW_DENALI_WEB_PLUGIN ?? "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",
   API_INTERNAL_URL: "http://127.0.0.1:3001",
   TOUR_OPS_DEV_TENANT_ID: urbanSmokeTenantId,
