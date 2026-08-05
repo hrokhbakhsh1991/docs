@@ -757,6 +757,7 @@ export function WorkspaceWizardHost({
         onActiveIndexChange={setActiveStepIndex}
         lastStepFooter={renderFooter?.(draft)}
         navLocked={navLocked}
+        continueAttention={stepNavValidationIssues.length > 0}
         onBeforeNext={handleBeforeNext}
       >
         <section

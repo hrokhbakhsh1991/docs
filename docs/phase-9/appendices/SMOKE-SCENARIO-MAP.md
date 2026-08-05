@@ -71,6 +71,8 @@ npm_script: test:e2e:operator
 
 **Boot order:** API `/health` → Next `next dev --hostname 127.0.0.1` (spawn after API; background warm: `/` · `/auth/login` · `/bookings/new` for SMK-P9-07). Playwright `webServer.url` probes **API health only** (`3001`) so Playwright readiness does not hammer Next during first compile. `operator-smoke-global-setup.ts` repeats the same warm paths when Playwright owns `webServer`.
 
+**P6 host-bind (soft):** After ready, `smoke-operator-e2e-servers.mjs` probes `GET /public/tenant-context` and may run `scripts/smoke-p6-host-bind.mjs`. Failure is **warn-only** — SMK-P6-HOST-01 must not tear down the memory operator stack (wizard/OTP via BFF still valid). Empty `DATABASE_URL` is **deleted** from the spawned API env (not set to `""`) so shell Postgres cannot leak into memory mode.
+
 **Reuse guard (SMK-P9-07):** When ports 3000/3001 are already listening, `smoke-operator-e2e-servers.mjs` probes `GET /tours?view=operator` for seed title `North Ridge Trek`. If absent (stale API without `OPERATOR_SMOKE_E2E_SEED=1`), it **kills port 3001** and spawns a fresh API with the smoke env instead of reusing.
 
 **Workspace type (memory smoke):** Phase **11.0** (DEC-P11-001) — API and web both resolve tenant `…000014` as **`denali`** (`resolve-workspace-type.ts` uses `tenant-registry`; no `starter` override). `GET /settings/modules` exposes full denali reference modules; `bootstrapOperatorSmokeCatalogIfNeeded` seeds equipment/locations/themes when `OPERATOR_SMOKE_E2E_SEED=1`. Tour create still uses the thin `createTourAction` starter-shape bridge until Phase **11.7** full canonical projection (SMK-P9-02 may need title-path alignment with denali validation).

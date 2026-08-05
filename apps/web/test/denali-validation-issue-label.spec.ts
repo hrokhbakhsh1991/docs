@@ -14,10 +14,10 @@ function mockDenaliTranslator(key: string): string {
 
 const resolver = createDenaliFieldLabelResolver();
 
-test("resolveDenaliValidationIssueLabel resolves composite renderer ids", () => {
+test("resolveDenaliValidationIssueLabel prefers leaf over sectionTitle (INV-DENALI-WIZ-018)", () => {
   assert.equal(
     resolver.resolveValidationIssueLabel?.(mockDenaliTranslator, "denali.pricing-participants"),
-    "Participant requirements"
+    "Minimum age"
   );
 });
 

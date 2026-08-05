@@ -10,6 +10,8 @@ const messages: Record<string, string> = {
   "composites.datetime.sectionTitle": "Tour date and time",
   "composites.itinerary.sectionTitle": "Day-by-day itinerary",
   "fields.participants.minimumAge": "Minimum age",
+  "fields.destinationId": "Destination",
+  "fields.startDateTime": "Start date & time",
   "fields.program.itinerary": "Day-by-day itinerary",
 };
 
@@ -18,13 +20,13 @@ function mockDenaliTranslator(key: string): string {
 }
 
 describe("resolveDenaliWizardValidationFieldLabel", () => {
-  it("DN-VLABEL-01 resolves composite renderer ids via section title", () => {
+  it("DN-VLABEL-01 prefers leaf over composite sectionTitle (INV-DENALI-WIZ-018)", () => {
     assert.equal(
       resolveDenaliWizardValidationFieldLabel({
         canonicalPath: "denali.pricing-participants",
         translateWorkspaceMessage: mockDenaliTranslator,
       }),
-      "Participant requirements"
+      "Minimum age"
     );
   });
 
@@ -38,7 +40,7 @@ describe("resolveDenaliWizardValidationFieldLabel", () => {
     );
   });
 
-  it("DN-VLABEL-04 resolves destination composite ids via section title", () => {
+  it("DN-VLABEL-04 resolves destination composite ids via leaf map", () => {
     assert.equal(
       resolveDenaliWizardValidationFieldLabel({
         canonicalPath: "denali.destination",
@@ -64,17 +66,17 @@ describe("resolveDenaliWizardValidationFieldLabel", () => {
     );
   });
 
-  it("DN-VLABEL-05 resolves the datetime composite through its catalog key", () => {
+  it("DN-VLABEL-05 resolves the datetime composite via startDateTime leaf (INV-DENALI-WIZ-018)", () => {
     assert.equal(
       resolveDenaliWizardValidationFieldLabel({
         canonicalPath: "denali.datetime",
         translateWorkspaceMessage: mockDenaliTranslator,
       }),
-      "Tour date and time"
+      "Start date & time"
     );
   });
 
-  it("DN-VLABEL-06 resolves itinerary composite via sectionTitle (INV-DENALI-WIZ-009)", () => {
+  it("DN-VLABEL-06 resolves itinerary composite via leaf fields.program.itinerary (INV-DENALI-WIZ-009/018)", () => {
     assert.equal(
       resolveDenaliWizardValidationFieldLabel({
         canonicalPath: "denali.itinerary",

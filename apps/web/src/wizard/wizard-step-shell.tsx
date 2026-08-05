@@ -30,6 +30,11 @@ type WizardStepShellProps = {
   readonly navLocked?: boolean;
   /** TW-03 — disable Continue until current step validation passes. */
   readonly continueDisabled?: boolean;
+  /**
+   * Soft attention when step-nav validation issues are open (INV-DENALI-WIZ-018).
+   * Does not disable Continue — validate-on-click must remain retryable after edits.
+   */
+  readonly continueAttention?: boolean;
   /** Return false to block Continue (11.7 per-step validation). */
   readonly onBeforeNext?: (currentIndex: number) => boolean | Promise<boolean>;
 };
@@ -76,6 +81,7 @@ export function WizardStepShell({
   lastStepFooter,
   navLocked = false,
   continueDisabled = false,
+  continueAttention = false,
   onBeforeNext,
 }: WizardStepShellProps) {
   const t = useTranslations("wizard.stepShell");
@@ -242,6 +248,9 @@ export function WizardStepShell({
                   variant="primary"
                   disabled={navLocked || continueDisabled}
                   data-wizard-nav="continue"
+                  {...(continueAttention
+                    ? { "data-wizard-nav-continue-attention": "" }
+                    : {})}
                   data-testid={WIZARD_STEP_SHELL_TEST_IDS.next}
                   onClick={() => {
                     void (async () => {
