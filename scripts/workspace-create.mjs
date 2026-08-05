@@ -691,7 +691,7 @@ export {
   ${ctx.smokeBuildCardFn},
   ${ctx.smokeTourIdConst},
   ${ctx.smokeTourTitleConst},
-} from "./${ctx.smokeFixtureFile.replace(/\\.ts$/, "")}";
+} from "./${ctx.smokeFixtureFile.replace(/\.ts$/, "")}";
 `
   );
 
@@ -719,7 +719,7 @@ import { createWorkspaceGuestSmokeHttpHandlers } from "@app-tour/workspace-sdk";
 import {
   ${ctx.smokeBuildCardFn},
   ${ctx.smokeTourIdConst},
-} from "../catalog/${ctx.smokeFixtureFile.replace(/\\.ts$/, "")}";
+} from "../catalog/${ctx.smokeFixtureFile.replace(/\.ts$/, "")}";
 
 function isSmokeSeedEnabled(): boolean {
   return process.env.${ctx.smokeEnvConst} === "1";
@@ -763,7 +763,7 @@ export {
   ${ctx.catalogListHandler},
   ${ctx.catalogDetailHandler},
   ${ctx.registrationPostHandler},
-} from "./${ctx.catalogHttpFile.replace(/\\.ts$/, "")}";
+} from "./${ctx.catalogHttpFile.replace(/\.ts$/, "")}";
 export { ${ctx.httpRouteManifestConst} };
 `
   );

@@ -94,7 +94,12 @@ pnpm --filter @apps/portal exec node --import tsx --test \
   test/portal-member-profile-bff.spec.ts
 
 echo "== p6:gate — web redirect + finance nav =="
-pnpm --filter @apps/web exec node --import tsx --test \
+# Finance/nav specs resolve Denali via workspace-plugin-loaders (Wave H clientBundleEnvGate).
+# They do not import register-dom.mjs, so pass allow flags via env (same pattern as API STORAGE_DRIVER).
+pnpm --filter @apps/web exec env \
+  ALLOW_DENALI_WEB_PLUGIN="${ALLOW_DENALI_WEB_PLUGIN:-true}" \
+  ALLOW_URBAN_WEB_PLUGIN="${ALLOW_URBAN_WEB_PLUGIN:-true}" \
+  node --import tsx --test \
   test/portal-registration-redirect.spec.ts \
   test/format-registration-intake.spec.ts \
   test/finance-page.spec.ts \
