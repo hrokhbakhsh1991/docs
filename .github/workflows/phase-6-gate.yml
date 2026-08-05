@@ -65,7 +65,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install ripgrep (phase-eph identity ratchet)
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
+        run: |
+          # GHA images sometimes ship a broken azure-cli apt source (403); drop it so update can proceed.
+          sudo rm -f /etc/apt/sources.list.d/azure-cli*.list /etc/apt/sources.list.d/microsoft-prod*.list || true
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
 
       - name: Workspace registry codegen check
         run: pnpm run generate:workspace-registry -- --check
