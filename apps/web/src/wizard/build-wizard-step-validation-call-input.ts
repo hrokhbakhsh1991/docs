@@ -2,7 +2,7 @@
  * INV-DENALI-WIZ-014 — Continue step-nav validate input must carry the same
  * rule-eval context the host already built for contextual plan + review.
  */
-import type { WorkspaceWizardHostPluginContext } from "@app-cloud/workspace-sdk";
+import type { WorkspaceWizardHostPluginContext } from "@app-tour/workspace-sdk";
 
 export type WizardStepValidationCallInput = {
   readonly plugin: WorkspaceWizardHostPluginContext;
