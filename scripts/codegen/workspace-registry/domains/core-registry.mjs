@@ -140,8 +140,7 @@ import {
 import { assertWorkspacePluginClientBundleEnabled } from "./workspace-plugin-client-bundle-gate";
 
 /** Sorted product trunk plugin ids — cache bust when codegen regen changes membership. */
-export const WORKSPACE_PLUGIN_REGISTRY_REVISION =
-  ${JSON.stringify(registryRevision)};
+export const WORKSPACE_PLUGIN_REGISTRY_REVISION = ${JSON.stringify(registryRevision)};
 
 /** Upper bound for per-process plugin load cache (= product trunk plugin count). */
 export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = ${maxEntries};

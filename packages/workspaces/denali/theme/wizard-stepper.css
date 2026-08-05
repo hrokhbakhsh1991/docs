@@ -265,7 +265,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-wizard-nav="co
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-wizard-nav="continue"][data-wizard-nav-continue-attention] {
   background: color-mix(in oklch, var(--color-primary) 72%, var(--color-bg-page, var(--background)));
   box-shadow:
-    0 0 0 2px color-mix(in oklch, var(--color-danger, #b42318) 55%, transparent),
+    0 0 0 2px color-mix(in oklch, var(--color-danger) 55%, transparent),
     0 1px 2px color-mix(in oklch, var(--color-primary) 18%, transparent);
 }
 

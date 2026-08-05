@@ -122,7 +122,7 @@ const pluginLoadCache = new Map<string, Promise<WorkspacePlugin>>();
 | ----- | ---- |
 | Generated loaders | Must use `getOrCreateWorkspacePluginLoad` — no inline `pluginLoadCache` Map |
 | Max entries | `WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES` === **product** manifest `pluginId` count |
-| Revision | `WORKSPACE_PLUGIN_REGISTRY_REVISION` = sorted **product** trunk plugin ids (comma-joined) |
+| Revision | `WORKSPACE_PLUGIN_REGISTRY_REVISION` = sorted **product** trunk plugin ids (comma-joined). Guard matches `export const … = "…"` with optional whitespace/newline between `=` and the string so long revision lists stay valid after prettier wrap; codegen prefers a single-line export. |
 | No static fan-in | Generated loaders must not `import … from "@app-cloud/workspace-…"` at top level; must not define `SYNC_WORKSPACE_PLUGINS` |
 | Invalidation | `invalidateWorkspacePluginLoadCache()` exported from generated bootstrap |
 | CI | `pnpm run guard:workspace-plugin-load-cache` in `phase-10:guard` + `phase-i:fast-track` + `phase-10-guard.yml` |

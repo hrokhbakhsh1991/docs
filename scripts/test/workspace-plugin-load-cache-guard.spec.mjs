@@ -29,6 +29,24 @@ describe("workspace plugin load cache guard (Phase I2)", () => {
     assert.deepEqual(violations, []);
   });
 
+  it("accepts multiline WORKSPACE_PLUGIN_REGISTRY_REVISION export", () => {
+    const violations = collectWorkspacePluginLoadCacheViolations(
+      `
+import { getOrCreateWorkspacePluginLoad, invalidateWorkspacePluginLoadCache } from "./workspace-plugin-load-cache";
+export { invalidateWorkspacePluginLoadCache };
+export const WORKSPACE_PLUGIN_REGISTRY_REVISION =
+  "denali";
+export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 1;
+export async function loadWorkspacePluginByIdFromRegistry() {
+  return getOrCreateWorkspacePluginLoad("denali", async () => ({}), {});
+}
+`,
+      1,
+      "denali"
+    );
+    assert.deepEqual(violations, []);
+  });
+
   it("rejects SYNC eager map and static product imports", () => {
     const violations = collectWorkspacePluginLoadCacheViolations(
       `
