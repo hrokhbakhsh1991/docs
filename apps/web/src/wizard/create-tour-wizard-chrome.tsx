@@ -17,6 +17,12 @@ import { TOUR_PRESET_PREFILL_TEST_IDS } from "@/tours/tour-preset-prefill-logic"
 import { WIZARD_TEMPLATE_GATE_TEST_IDS } from "@/tours/wizard-template-gate-logic";
 import { WIZARD_TEMPLATE_PREFILL_TEST_IDS } from "@/tours/wizard-template-prefill-logic";
 
+import {
+  isCreateTourSubmitDisabled,
+  resolveCreateTourSubmitButtonKind,
+  shouldShowWizardTemplateSeedBanner,
+} from "./create-tour-wizard-chrome-logic";
+
 export function CreateTourWizardLoadingMessage(props: {
   readonly message?: string;
   readonly testId?: string;
@@ -103,8 +109,20 @@ export function CreateTourWizardPageHeader(props: {
   );
 }
 
-export function CreateTourWizardSeedBanner(props: { readonly seedLabel: string }) {
+export function CreateTourWizardSeedBanner(props: {
+  readonly seedLabel: string;
+  /** When set and different from seedLabel, banner hides (operator edited title). */
+  readonly draftTitle?: string;
+}) {
   const t = useTranslations("wizard");
+  if (
+    !shouldShowWizardTemplateSeedBanner({
+      seedLabel: props.seedLabel,
+      draftTitle: props.draftTitle,
+    })
+  ) {
+    return null;
+  }
   return (
     <p
       className="new-tour-wizard-page__seed-banner"
@@ -147,17 +165,30 @@ export function CreateTourWizardSubmitFooter(props: {
   readonly resolveSubmitError?: (code: string) => WizardSubmitErrorPresentation | null;
 }) {
   const t = useTranslations("wizard");
+  const buttonKind = resolveCreateTourSubmitButtonKind({
+    createdTourId: props.createdTourId,
+    pending: props.pending,
+  });
+  const created =
+    props.createdTourId != null && props.createdTourId.trim().length > 0;
   const submitPresentation =
     props.submitError != null
       ? (props.resolveSubmitError?.(props.submitError) ?? { summary: props.submitError })
       : null;
   return (
     <div data-wizard-footer>
-      <Button type="button" onClick={props.onSubmit} disabled={props.pending}>
-        {props.pending ? t("creating") : t("createButton")}
+      <Button
+        type="button"
+        onClick={props.onSubmit}
+        disabled={isCreateTourSubmitDisabled({
+          createdTourId: props.createdTourId,
+          pending: props.pending,
+        })}
+      >
+        {t(buttonKind)}
       </Button>
       <WizardSubmitErrorAlert presentation={submitPresentation} />
-      {props.createdTourId ? (
+      {created ? (
         <p data-tour-created>{t("created", { id: props.createdTourId })}</p>
       ) : null}
     </div>

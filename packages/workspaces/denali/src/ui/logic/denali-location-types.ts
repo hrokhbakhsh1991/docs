@@ -54,6 +54,22 @@ export function parseDenaliLocationData(value: unknown): DenaliLocationData {
   };
 }
 
+/** True when the zone has any operator-entered label, address, or coordinates (INV-DENALI-WIZ-019). */
+export function isDenaliLocationDataPopulated(location: DenaliLocationData): boolean {
+  if ((location.label ?? "").trim().length > 0) {
+    return true;
+  }
+  if ((location.address ?? "").trim().length > 0) {
+    return true;
+  }
+  return (
+    location.latitude !== undefined &&
+    location.longitude !== undefined &&
+    Number.isFinite(location.latitude) &&
+    Number.isFinite(location.longitude)
+  );
+}
+
 function readLegacyLocationFields(entry: Record<string, unknown>): Partial<DenaliGatheringPoint> {
   const location =
     entry.location !== null && typeof entry.location === "object" && !Array.isArray(entry.location)

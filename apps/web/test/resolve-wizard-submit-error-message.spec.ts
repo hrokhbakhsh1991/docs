@@ -106,4 +106,40 @@ describe("resolve-wizard-submit-error-message.spec.ts", () => {
     assert.equal(segments[0]?.path, "participants.minRequiredPeaks");
     assert.equal(segments[0]?.code, "CANONICAL_TYPE_MISMATCH");
   });
+
+  it("maps unknown raw tokens to safe errorUnknown summary", () => {
+    const presentation = resolveWizardSubmitErrorMessage({
+      pluginId: DENALI_WORKSPACE_PLUGIN_ID,
+      raw: "SOME_GARBAGE_TOKEN",
+      context: "create",
+      translateFieldLabel: (path) => `Label:${path}`,
+      t,
+    });
+    assert.equal(presentation?.summary, "Create failed.");
+  });
+
+  it("omits HTTP detail rows when translator.has returns false", () => {
+    const guardedT = {
+      translate: t.translate,
+      has: (key: string) =>
+        key === "submit.http500" ||
+        key === "submit.errorUnknown" ||
+        key === "submitEdit.errorUnknown",
+    };
+    const raw = encodeTourActionSubmitError({
+      status: 500,
+      code: "INTERNAL_ERROR",
+      message: "internal_error",
+      correlationId: "8104fe81-3909-4563-b29f-97414e10abfa",
+    });
+    const presentation = resolveWizardSubmitErrorMessage({
+      pluginId: DENALI_WORKSPACE_PLUGIN_ID,
+      raw,
+      context: "create",
+      translateFieldLabel: (path) => path,
+      t: guardedT,
+    });
+    assert.equal(presentation?.summary, "Server error bucket.");
+    assert.equal(presentation?.details, undefined);
+  });
 });

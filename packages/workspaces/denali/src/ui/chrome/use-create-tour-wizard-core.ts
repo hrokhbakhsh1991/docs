@@ -275,6 +275,24 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
 
   const draft = denaliEnvelope?.form ?? emptyDenaliTourWizardDraft();
   const activeStepIndex = denaliEnvelope?.meta.currentStepIndex ?? 0;
+
+  // UX: if user edits draft after a submit failure, clear stale submitError/validation issues.
+  const draftDataKey = useMemo(() => {
+    try {
+      return JSON.stringify((draft as unknown as { data?: unknown }).data ?? null);
+    } catch {
+      return "";
+    }
+  }, [draft]);
+  const prevDraftDataKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevDraftDataKeyRef.current != null && prevDraftDataKeyRef.current !== draftDataKey) {
+      setSubmitError(null);
+      setSubmitValidationIssues(null);
+    }
+    prevDraftDataKeyRef.current = draftDataKey;
+  }, [draftDataKey]);
+
   const getEnvelope = useCallback(() => denaliEnvelopeRef.current, []);
   const setEnvelope = useCallback(
     (prepared: DenaliCreateTourWizardDraftEnvelope) => {
@@ -326,41 +344,51 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
     setSubmitError(null);
     setSubmitValidationIssues(null);
     startTransition(async () => {
-      const outcome = await runDenaliCreateTourSubmit({
-        plugin: input.denaliPlugin,
-        draft,
-        denaliRules: denaliRules as unknown as StrictDenaliWizardRulesModule | null,
-        wizardRuleEvalContext,
-        tenantId: input.session.tenantId,
-        gate: input.gate,
-      });
-      if (!outcome.ok) {
-        if (outcome.failure.kind === "validation") {
-          setSubmitValidationIssues(outcome.failure.validationIssues ?? null);
-          setSubmitError("VALIDATION_FAILED");
+      try {
+        const outcome = await runDenaliCreateTourSubmit({
+          plugin: input.denaliPlugin,
+          draft,
+          denaliRules: denaliRules as unknown as StrictDenaliWizardRulesModule | null,
+          wizardRuleEvalContext,
+          tenantId: input.session.tenantId,
+          gate: input.gate,
+        });
+        if (!outcome.ok) {
+          if (outcome.failure.kind === "validation") {
+            setSubmitValidationIssues(outcome.failure.validationIssues ?? null);
+            setSubmitError("VALIDATION_FAILED");
+            return;
+          }
+          if (outcome.failure.kind === "rules-not-ready") {
+            setSubmitError("WIZARD_RULES_NOT_READY");
+            return;
+          }
+          setSubmitError(outcome.failure.code);
           return;
         }
-        if (outcome.failure.kind === "rules-not-ready") {
-          setSubmitError("WIZARD_RULES_NOT_READY");
+        const result = await input.createTourAction(outcome.result.payload);
+        if (!result.ok) {
+          setSubmitError(
+            encodeTourActionSubmitError({
+              status: result.status,
+              code: result.code,
+              message: result.message,
+              ...(result.correlationId !== undefined ? { correlationId: result.correlationId } : {}),
+            })
+          );
           return;
         }
-        setSubmitError(outcome.failure.code);
-        return;
-      }
-      const result = await input.createTourAction(outcome.result.payload);
-      if (!result.ok) {
+        setCreatedTourId(result.record.id);
+        input.onCreateSuccess?.(result.record.id);
+      } catch {
         setSubmitError(
           encodeTourActionSubmitError({
-            status: result.status,
-            code: result.code,
-            message: result.message,
-            ...(result.correlationId !== undefined ? { correlationId: result.correlationId } : {}),
+            status: 500,
+            code: "unknown_error",
+            message: "unknown_error",
           })
         );
-        return;
       }
-      setCreatedTourId(result.record.id);
-      input.onCreateSuccess?.(result.record.id);
     });
   }, [
     input.denaliPlugin,

@@ -59,7 +59,8 @@ function buildHttpSubmitErrorDetails(
   const prefix = context === "create" ? "submit" : "submitEdit";
 
   if (code.length > 0 && code !== "unknown_error") {
-    details.push(t.translate(`${prefix}.errorDetailCode`, { code }));
+    const key = `${prefix}.errorDetailCode`;
+    if (t.has(key)) details.push(t.translate(key, { code }));
   }
   if (
     message.length > 0 &&
@@ -67,12 +68,14 @@ function buildHttpSubmitErrorDetails(
     message !== code &&
     !message.startsWith("CANONICAL_VALIDATION_FAILED")
   ) {
-    details.push(t.translate(`${prefix}.errorDetailMessage`, { message }));
+    const key = `${prefix}.errorDetailMessage`;
+    if (t.has(key)) details.push(t.translate(key, { message }));
   }
   if (payload.correlationId != null && payload.correlationId.length > 0) {
-    details.push(
-      t.translate(`${prefix}.errorDetailCorrelation`, { correlationId: payload.correlationId })
-    );
+    const key = `${prefix}.errorDetailCorrelation`;
+    if (t.has(key)) {
+      details.push(t.translate(key, { correlationId: payload.correlationId }));
+    }
   }
 
   return details.length > 0 ? details : undefined;
@@ -149,6 +152,8 @@ export function resolveWizardSubmitErrorMessage(input: {
     return null;
   }
 
+  const unknownKey = input.context === "create" ? "submit.errorUnknown" : "submitEdit.errorUnknown";
+
   if (raw === "VALIDATION_FAILED") {
     return {
       summary: input.t.translate(
@@ -164,7 +169,8 @@ export function resolveWizardSubmitErrorMessage(input: {
   const payload =
     decodeTourActionSubmitError(raw) ?? parseLegacyActionSubmitError(raw);
   if (payload == null) {
-    return { summary: raw };
+    // Never show raw token to end users — map to a safe generic message.
+    return { summary: input.t.translate(unknownKey) };
   }
 
   const message = payload.message.trim();

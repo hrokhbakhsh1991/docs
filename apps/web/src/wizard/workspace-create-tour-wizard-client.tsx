@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import {
+  encodeTourActionSubmitError,
   encodeTourActionSubmitErrorForPlugin,
 } from "@/wizard/tour-action-submit-codec";
 import {
@@ -57,6 +58,7 @@ import {
 import { WorkspaceWizardHost } from "@/wizard/workspace-wizard-host";
 import { createWizardSubmitErrorTranslator } from "@/wizard/create-wizard-submit-error-translator";
 import { resolveWizardSubmitErrorMessage } from "@/wizard/resolve-wizard-submit-error-message";
+import { stableWizardDraftDataKey } from "./should-clear-step-nav-validation";
 
 function buildPrefilledForm(
   gate: WizardTemplateGateState,
@@ -214,6 +216,17 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
   const draftReady = draftSync.data !== null || draftSync.status === "ERROR";
 
   const draft = draftSync.data?.form ?? emptyTourWizardDraft();
+
+  // UX: if user edits draft after a submit failure, clear the stale submitError.
+  const draftDataKey = useMemo(() => stableWizardDraftDataKey(draft), [draft]);
+  const prevDraftDataKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevDraftDataKeyRef.current != null && prevDraftDataKeyRef.current !== draftDataKey) {
+      setSubmitError(null);
+    }
+    prevDraftDataKeyRef.current = draftDataKey;
+  }, [draftDataKey]);
+
   const activeStepIndex =
     typeof draftSync.data?.meta.currentStepIndex === "number"
       ? draftSync.data.meta.currentStepIndex
@@ -259,40 +272,51 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
   const onSubmit = () => {
     setSubmitError(null);
     startTransition(async () => {
-      const plugin = workspacePlugin ?? (await loadWorkspacePluginById(pluginId));
-      const wizardHost = resolveWizardHostCapability(plugin);
-      const payload =
-        wizardHost?.prepareSubmitPayload != null
-          ? wizardHost.prepareSubmitPayload({
-              plugin,
-              draft: draft as unknown as Readonly<Record<string, unknown>>,
-              rulesModule: null,
-              evalContext: {
-                uiOptions: { workspaceFormProfile: gate.workspaceFormProfile },
-              },
+      try {
+        const plugin = workspacePlugin ?? (await loadWorkspacePluginById(pluginId));
+        const wizardHost = resolveWizardHostCapability(plugin);
+        const payload =
+          wizardHost?.prepareSubmitPayload != null
+            ? wizardHost.prepareSubmitPayload({
+                plugin,
+                draft: draft as unknown as Readonly<Record<string, unknown>>,
+                rulesModule: null,
+                evalContext: {
+                  uiOptions: { workspaceFormProfile: gate.workspaceFormProfile },
+                },
+              })
+            : { data: draft.data };
+        const result = await createTourAction(payload as { data: typeof draft.data });
+        if (!result.ok) {
+          setSubmitError(
+            encodeTourActionSubmitErrorForPlugin(plugin, {
+              status: result.status,
+              code: result.code,
+              message: result.message,
             })
-          : { data: draft.data };
-      const result = await createTourAction(payload as { data: typeof draft.data });
-      if (!result.ok) {
+          );
+          return;
+        }
+        setCreatedTourId(result.record.id);
+        runCreateTourPostSubmitSuccess({
+          tourId: result.record.id,
+          navigate: (url) => router.replace(url),
+          discardRemoteDraft: createCreateTourPostSubmitDiscardRemoteDraft({
+            workspaceId: session.workspaceId,
+            namespace: PLATFORM_OPERATOR_WIZARD_DRAFT_NAMESPACE,
+            draftKey: platformCreateTourDraftKey(pluginId),
+          }),
+        });
+      } catch {
+        // Submit exceptions (network/runtime) must still surface a safe error.
         setSubmitError(
-          encodeTourActionSubmitErrorForPlugin(plugin, {
-            status: result.status,
-            code: result.code,
-            message: result.message,
+          encodeTourActionSubmitError({
+            status: 500,
+            code: "unknown_error",
+            message: "unknown_error",
           })
         );
-        return;
       }
-      setCreatedTourId(result.record.id);
-      runCreateTourPostSubmitSuccess({
-        tourId: result.record.id,
-        navigate: (url) => router.replace(url),
-        discardRemoteDraft: createCreateTourPostSubmitDiscardRemoteDraft({
-          workspaceId: session.workspaceId,
-          namespace: PLATFORM_OPERATOR_WIZARD_DRAFT_NAMESPACE,
-          draftKey: platformCreateTourDraftKey(pluginId),
-        }),
-      });
     });
   };
 
@@ -336,7 +360,16 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
           />
         }
       />
-      {showSeedBanner ? <CreateTourWizardSeedBanner seedLabel={gate.seedLabel} /> : null}
+      {showSeedBanner ? (
+        <CreateTourWizardSeedBanner
+          seedLabel={gate.seedLabel}
+          draftTitle={
+            typeof (draft.data as { title?: unknown } | undefined)?.title === "string"
+              ? ((draft.data as { title: string }).title)
+              : ""
+          }
+        />
+      ) : null}
       {presetApplied && presetId ? <CreateTourWizardPresetBanner presetId={presetId} /> : null}
       <WorkspaceWizardHost
         pluginId={pluginId}

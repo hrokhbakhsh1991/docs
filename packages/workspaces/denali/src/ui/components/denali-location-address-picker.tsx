@@ -24,6 +24,11 @@ type DenaliLocationAddressPickerProps = {
   readonly onChange: (_patch: Partial<DenaliLocationAddressValue>) => void;
   readonly label?: string;
   readonly hint?: string;
+  /**
+   * When false, skip mounting the map widget (INV-DENALI-WIZ-019).
+   * Search / address fields still render so collapsed panels stay editable after open.
+   */
+  readonly mapMounted?: boolean;
 };
 
 function geocodingSuggestionKey(item: GeocodingSearchResult): string {
@@ -52,6 +57,7 @@ export function DenaliLocationAddressPicker({
   onChange,
   label,
   hint,
+  mapMounted = true,
 }: DenaliLocationAddressPickerProps) {
   const t = useTranslations("denali.composites.location");
   const listboxId = useId();
@@ -231,13 +237,24 @@ export function DenaliLocationAddressPicker({
       )}
 
       <div className="denali-wizard-composite__map-wrap">
-        <DenaliLocationPickerMap
-          value={mapValue}
-          onChange={handleMapChange}
-          height={220}
-          data-testid={`denali-location-${testIdKey}-map`}
-        />
-        <p className="denali-wizard-composite__location-map-hint">{t("mapInteractionHint")}</p>
+        {mapMounted ? (
+          <DenaliLocationPickerMap
+            value={mapValue}
+            onChange={handleMapChange}
+            height={220}
+            data-testid={`denali-location-${testIdKey}-map`}
+          />
+        ) : (
+          <p
+            className="denali-wizard-composite__location-map-hint"
+            data-testid={`denali-location-${testIdKey}-map-deferred`}
+          >
+            {t("mapDeferredHint")}
+          </p>
+        )}
+        {mapMounted ? (
+          <p className="denali-wizard-composite__location-map-hint">{t("mapInteractionHint")}</p>
+        ) : null}
       </div>
     </div>
   );
