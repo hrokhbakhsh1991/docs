@@ -1,3 +1,5 @@
+import { normalizePublicRegistrationMobile } from "./normalize-public-registration-mobile";
+
 export type PublicRegistrationApiError = {
   readonly ok?: boolean;
   readonly challenge_id?: string;
@@ -32,11 +34,34 @@ export {
   readCatalogRegistrationFlowState,
 } from "./registration-flow-state";
 
-export { normalizePublicRegistrationMobile } from "./normalize-public-registration-mobile";
+export { normalizePublicRegistrationMobile };
 
 export function isPublicRegistrationMobileValid(mobile: string): boolean {
   const digits = mobile.replace(/\D/g, "");
   return digits.length >= PUBLIC_REGISTRATION_MIN_MOBILE_DIGITS;
+}
+
+export type PublicRegistrationMobileCode = "MOBILE_REQUIRED" | "MOBILE_INVALID";
+
+/**
+ * Classify raw phone input for portal public-auth / mobile-change BFF.
+ * Empty after normalize → REQUIRED; non-empty but invalid → INVALID; otherwise null (ok).
+ */
+export function classifyPublicRegistrationMobileInput(
+  raw: unknown
+): PublicRegistrationMobileCode | null {
+  const trimmed = typeof raw === "string" ? raw.trim() : "";
+  if (trimmed.length === 0) {
+    return "MOBILE_REQUIRED";
+  }
+  const phone = normalizePublicRegistrationMobile(trimmed);
+  if (phone.length === 0) {
+    return "MOBILE_REQUIRED";
+  }
+  if (!isPublicRegistrationMobileValid(phone)) {
+    return "MOBILE_INVALID";
+  }
+  return null;
 }
 
 export function buildPublicRegistrationProfilePayload(input: {

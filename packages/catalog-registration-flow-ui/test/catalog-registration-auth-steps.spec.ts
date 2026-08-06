@@ -21,4 +21,23 @@ describe("catalog-registration-auth-steps — PCMS-UX polish", () => {
     assert.match(authSteps, /readMemberLoginEgress/);
     assert.doesNotMatch(authSteps, /isMemberLoginEgressFromLocation/);
   });
+
+  it("PCMS-UX-ERR-01 clears presentation errors on edit and skips HTML5 validation", () => {
+    const authSteps = readFileSync(
+      join(
+        repoRoot,
+        "packages/catalog-registration-flow-ui/src/catalog-registration-auth-steps.tsx"
+      ),
+      "utf8"
+    );
+    assert.match(authSteps, /noValidate/);
+    assert.match(authSteps, /setError\(null\)/);
+    assert.match(authSteps, /classifyPublicRegistrationMobileInput/);
+    assert.doesNotMatch(authSteps, /isPublicRegistrationMobileValid/);
+    assert.doesNotMatch(authSteps, /code\.length < 4/);
+    assert.doesNotMatch(authSteps, /DISPLAY_NAME_REQUIRED/);
+    assert.doesNotMatch(authSteps, /\srequired\b/);
+    assert.match(authSteps, /type="text"/);
+    assert.match(authSteps, /inputMode="email"/);
+  });
 });

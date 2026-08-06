@@ -21,13 +21,15 @@ type FieldSection = {
   readonly fields: readonly MemberProfileFieldId[];
 };
 
+type FieldErrorMap = Partial<Record<MemberProfileFieldId, string>>;
+
 function buildFieldSections(profile: MemberProfileViewProfile): readonly FieldSection[] {
   if (profile.capabilities.sections !== undefined && profile.capabilities.sections.length > 0) {
     return profile.capabilities.sections;
   }
   return [
     {
-      id: "profile",
+      id: "identity",
       fields: [
         ...profile.capabilities.editableFields,
         ...profile.capabilities.readOnlyFields,
@@ -40,14 +42,18 @@ function fieldInputType(fieldId: MemberProfileFieldId): string {
   if (fieldId === "birthDate") {
     return "date";
   }
-  if (fieldId === "email") {
-    return "email";
-  }
+  // INV-MP-07 / coded errors — do not use HTML5 email validation messages.
   return "text";
 }
 
-function fieldInputMode(fieldId: MemberProfileFieldId): "numeric" | undefined {
-  return fieldId === "nationalId" ? "numeric" : undefined;
+function fieldInputMode(fieldId: MemberProfileFieldId): "numeric" | "email" | undefined {
+  if (fieldId === "nationalId") {
+    return "numeric";
+  }
+  if (fieldId === "email") {
+    return "email";
+  }
+  return undefined;
 }
 
 function initialEditableValues(
@@ -71,10 +77,10 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
     initialProfile.fields.avatarUrl ?? null
   );
-  const [avatarEpoch, setAvatarEpoch] = useState(0);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrorMap>({});
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -89,9 +95,34 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
   );
   const mobileChangeViaOtp = profile.capabilities.mobileChangeViaOtp === true;
 
+  function updateFieldValue(fieldId: MemberProfileFieldId, nextValue: string): void {
+    setFieldValues((current) => ({
+      ...current,
+      [fieldId]: nextValue,
+    }));
+    // INV-MP-ERR-01 clear-on-edit — presentation only; no re-validation in UI.
+    setFieldErrors((current) => {
+      if (current[fieldId] === undefined) {
+        return current;
+      }
+      const next = { ...current };
+      delete next[fieldId];
+      return next;
+    });
+  }
+
+  function handleAvatarChange(nextUrl: string | null): void {
+    setAvatarUrl(nextUrl);
+    setProfile((current) => ({
+      ...current,
+      fields: { ...current.fields, avatarUrl: nextUrl },
+    }));
+  }
+
   async function handleSubmit(): Promise<void> {
     setMessage(null);
     setError(null);
+    setFieldErrors({});
     setLoading(true);
 
     const fields: Partial<Record<MemberProfileFieldId, string | null>> = {};
@@ -108,15 +139,29 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
       });
       const payload = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
-        error?: { code?: string };
+        error?: { code?: string; fieldErrors?: FieldErrorMap };
         profile?: MemberProfileViewProfile;
       };
       if (!res.ok || payload.ok !== true || payload.profile === undefined) {
-        setError(resolveMemberProfileErrorMessage(t, payload.error?.code));
+        const nextFieldErrors = payload.error?.fieldErrors ?? {};
+        setFieldErrors(nextFieldErrors);
+        // INV-MP-ERR-01: prefer per-field presentation; form alert only when no field map.
+        if (Object.keys(nextFieldErrors).length === 0) {
+          setError(resolveMemberProfileErrorMessage(t, payload.error?.code));
+        } else {
+          setError(null);
+        }
         return;
       }
-      setProfile(payload.profile);
-      setFieldValues(initialEditableValues(payload.profile));
+      const nextProfile = payload.profile;
+      const nextAvatar = nextProfile.fields.avatarUrl ?? avatarUrl;
+      setProfile({
+        ...nextProfile,
+        fields: { ...nextProfile.fields, avatarUrl: nextAvatar },
+      });
+      setAvatarUrl(nextAvatar ?? null);
+      setFieldValues(initialEditableValues(nextProfile));
+      setFieldErrors({});
       setMessage(t("saved"));
     } catch {
       setError(t("failed"));
@@ -125,16 +170,17 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
     }
   }
 
+  /** INV-MP-AVATAR-01 / DL-43 — reset PATCH fields only; keep last successful server avatar. */
   function handleDiscard(): void {
     setFieldValues(initialEditableValues(profile));
-    setAvatarUrl(profile.fields.avatarUrl ?? null);
-    setAvatarEpoch((current) => current + 1);
     setMessage(null);
     setError(null);
+    setFieldErrors({});
   }
 
   return (
     <form
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
         void handleSubmit();
@@ -145,11 +191,10 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
     >
       <section data-member-profile-card="photo">
         <MemberProfileAvatar
-          key={avatarEpoch}
           userId={profile.userId}
           displayName={fieldValues.displayName ?? profile.fields.displayName}
           initialAvatarUrl={avatarUrl}
-          onAvatarChange={setAvatarUrl}
+          onAvatarChange={handleAvatarChange}
         />
       </section>
 
@@ -184,35 +229,39 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
               );
             }
 
+            const fieldErrorCode = fieldErrors[fieldId];
+            const fieldErrorMessage =
+              fieldErrorCode !== undefined
+                ? resolveMemberProfileErrorMessage(t, fieldErrorCode)
+                : null;
+            const fieldErrorId = `profile-${fieldId}-error`;
+            const controlId = `profile-${fieldId}`;
+
             return (
               <div key={fieldId} data-member-profile-field={fieldId}>
                 {fieldId === "gender" ? (
                   <MemberProfileGenderField
-                    id={`profile-${fieldId}`}
+                    id={controlId}
                     label={label}
                     value={fieldValues[fieldId] ?? ""}
-                    onChange={(nextValue) =>
-                      setFieldValues((current) => ({
-                        ...current,
-                        gender: nextValue,
-                      }))
-                    }
+                    invalid={fieldErrorCode !== undefined}
+                    describedBy={fieldErrorMessage !== null ? fieldErrorId : undefined}
+                    onChange={(nextValue) => updateFieldValue("gender", nextValue)}
                   />
                 ) : (
                   <>
-                    <label htmlFor={`profile-${fieldId}`}>{label}</label>
+                    <label htmlFor={controlId}>{label}</label>
                     <Input
-                      id={`profile-${fieldId}`}
+                      id={controlId}
                       name={fieldId}
                       type={fieldInputType(fieldId)}
                       inputMode={fieldInputMode(fieldId)}
                       value={fieldValues[fieldId] ?? ""}
-                      onChange={(event) =>
-                        setFieldValues((current) => ({
-                          ...current,
-                          [fieldId]: event.target.value,
-                        }))
+                      aria-invalid={fieldErrorCode !== undefined ? true : undefined}
+                      aria-describedby={
+                        fieldErrorMessage !== null ? fieldErrorId : undefined
                       }
+                      onChange={(event) => updateFieldValue(fieldId, event.target.value)}
                       autoComplete={
                         fieldId === "email"
                           ? "email"
@@ -223,6 +272,11 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
                     />
                   </>
                 )}
+                {fieldErrorMessage !== null ? (
+                  <p id={fieldErrorId} role="alert" data-member-profile-field-error={fieldId}>
+                    {fieldErrorMessage}
+                  </p>
+                ) : null}
               </div>
             );
           })}
@@ -230,7 +284,7 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
       ))}
 
       {error !== null ? (
-        <p role="alert">
+        <p role="alert" data-member-profile-form-error>
           {error}
         </p>
       ) : null}

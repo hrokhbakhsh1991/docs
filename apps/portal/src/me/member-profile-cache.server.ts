@@ -1,5 +1,6 @@
 import type { MemberProfileViewPayload } from "./member-profile-types";
 import { MEMBER_PROFILE_CONTRACT_VERSION } from "./member-profile-contract.server";
+import { invalidateMemberEntitlementsCacheForMember } from "./member-entitlements-cache.server";
 import { getMemberProfileCacheStore } from "./member-profile-cache-store.server";
 
 export type { MemberProfileCacheStore } from "./member-profile-cache-store.server";
@@ -34,6 +35,20 @@ export function writeMemberProfileCache(
 
 export function invalidateMemberProfileCache(cacheKey: string): void {
   getMemberProfileCacheStore().invalidate(cacheKey);
+}
+
+/**
+ * INV-MP-CACHE-01 — shared invalidate for profile-view mutations
+ * (PATCH profile, mobile verify, avatar POST/DELETE).
+ * Also clears member entitlements for the same tenant/user/plugin.
+ */
+export function invalidateMemberProfileViewForMember(input: {
+  readonly tenantId: string;
+  readonly userId: string;
+  readonly pluginId: string;
+}): void {
+  invalidateMemberProfileCache(buildMemberProfileCacheKey(input));
+  invalidateMemberEntitlementsCacheForMember(input);
 }
 
 /** Test-only reset — not used in production routes. */

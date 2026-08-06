@@ -225,10 +225,25 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-profile]
   [data-member-profile-avatar-actions] {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--space-2);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-avatar-upload] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]

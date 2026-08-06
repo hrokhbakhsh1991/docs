@@ -79,6 +79,8 @@
       "otpLabel": "کد تأیید",
       "verify": "تأیید تغییر",
       "verifying": "در حال تأیید…",
+      "resendOtp": "ارسال مجدد کد",
+      "resendingOtp": "در حال ارسال مجدد…",
       "cancel": "انصراف",
       "back": "بازگشت",
       "success": "شماره موبایل به‌روزرسانی شد.",
@@ -101,6 +103,8 @@
     "avatarUploading": "در حال بارگذاری…",
     "avatarRemove": "حذف تصویر",
     "avatarHint": "فرمت‌های JPG، PNG یا WebP — حداکثر ۲ مگابایت.",
+    "avatarPhotoAlt": "تصویر پروفایل {name}",
+    "avatarInitialsAlt": "حروف اول پروفایل {name}",
     "avatarErrors": {
       "PROFILE_AVATAR_EMPTY": "فایل خالی است.",
       "PROFILE_AVATAR_TOO_LARGE": "حجم فایل بیش از حد مجاز است.",

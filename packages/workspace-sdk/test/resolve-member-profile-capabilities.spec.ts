@@ -36,8 +36,10 @@ describe("resolve-member-profile-capabilities", () => {
     assert.equal(typeof caps.validators.displayName, "function");
     assert.equal(typeof caps.validators.email, "function");
     assert.equal(typeof caps.validators.gender, "function");
-    assert.equal(caps.validators.nationalId!("1234567890"), null);
+    assert.equal(caps.validators.nationalId!("0013542419"), null);
     assert.equal(caps.validators.nationalId!("bad"), "PROFILE_NATIONAL_ID_INVALID");
+    assert.equal(caps.validators.nationalId!("1234567890"), "PROFILE_NATIONAL_ID_INVALID");
+    assert.equal(caps.validators.birthDate!("1991-02-31"), "PROFILE_BIRTH_DATE_INVALID");
   });
 
   it("SDK-MP-CAP-03 urban manifest row exposes displayName + email", () => {
@@ -61,16 +63,26 @@ describe("resolve-member-profile-capabilities", () => {
 });
 
 describe("member-profile-validators", () => {
-  it("SDK-MP-VAL-01 nationalId accepts empty or 10 digits", () => {
+  const VALID_IR_NATIONAL_ID = "0013542419";
+
+  it("SDK-MP-VAL-01 nationalId accepts empty or valid IR checksum id", () => {
     assert.equal(validateMemberProfileNationalId(""), null);
-    assert.equal(validateMemberProfileNationalId("1234567890"), null);
+    assert.equal(validateMemberProfileNationalId(VALID_IR_NATIONAL_ID), null);
     assert.equal(validateMemberProfileNationalId("123"), "PROFILE_NATIONAL_ID_INVALID");
+    assert.equal(validateMemberProfileNationalId("0000000000"), "PROFILE_NATIONAL_ID_INVALID");
+    assert.equal(validateMemberProfileNationalId("1111111111"), "PROFILE_NATIONAL_ID_INVALID");
+    assert.equal(validateMemberProfileNationalId("1234567890"), "PROFILE_NATIONAL_ID_INVALID");
   });
 
-  it("SDK-MP-VAL-02 birthDate accepts empty or ISO date", () => {
+  it("SDK-MP-VAL-02 birthDate accepts empty or real calendar date not after today", () => {
     assert.equal(validateMemberProfileBirthDate(""), null);
     assert.equal(validateMemberProfileBirthDate("1990-05-15"), null);
     assert.equal(validateMemberProfileBirthDate("15-05-1990"), "PROFILE_BIRTH_DATE_INVALID");
+    assert.equal(validateMemberProfileBirthDate("1991-02-31"), "PROFILE_BIRTH_DATE_INVALID");
+    const tomorrow = new Date();
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    const future = `${tomorrow.getUTCFullYear()}-${String(tomorrow.getUTCMonth() + 1).padStart(2, "0")}-${String(tomorrow.getUTCDate()).padStart(2, "0")}`;
+    assert.equal(validateMemberProfileBirthDate(future), "PROFILE_BIRTH_DATE_INVALID");
   });
 
   it("SDK-MP-VAL-03 displayName requires non-empty within max length", () => {

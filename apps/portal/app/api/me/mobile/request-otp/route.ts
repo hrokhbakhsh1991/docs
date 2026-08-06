@@ -1,28 +1,34 @@
 import { NextResponse } from "next/server";
 
+import {
+  classifyPublicRegistrationMobileInput,
+  normalizePublicRegistrationMobile,
+} from "@app-tour/catalog-registration-auth";
+
+import { bffCodedError } from "@/auth/bff-coded-error";
 import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
 import { resolveTourOpsApiBaseUrl } from "@/env";
-
-function resolveIngressHost(req: Request): string {
-  return req.headers.get("host") ?? "localhost:3003";
-}
+import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 
 type RequestOtpBody = {
   phone?: unknown;
 };
 
 export async function POST(req: Request): Promise<NextResponse> {
-  const host = resolveIngressHost(req);
+  const host = resolvePortalIngressHost(req);
   const headers = await buildMemberApiHeaders(host);
   if (headers.Authorization === undefined) {
-    return NextResponse.json({ ok: false, code: "AUTH_UNAUTHENTICATED" }, { status: 401 });
+    return bffCodedError("AUTH_UNAUTHENTICATED", 401);
   }
 
   const body = (await req.json().catch(() => ({}))) as RequestOtpBody;
-  const phone = typeof body.phone === "string" ? body.phone.trim() : "";
-  if (phone.length === 0) {
-    return NextResponse.json({ ok: false, code: "MOBILE_REQUIRED" }, { status: 400 });
+  const mobileCode = classifyPublicRegistrationMobileInput(body.phone);
+  if (mobileCode !== null) {
+    return bffCodedError(mobileCode, 400);
   }
+  const phone = normalizePublicRegistrationMobile(
+    typeof body.phone === "string" ? body.phone.trim() : ""
+  );
 
   const ingressHost = host.split(":")[0] ?? host;
 
@@ -39,9 +45,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     });
     const payload = (await backendRes.json().catch(() => ({}))) as Record<string, unknown>;
     if (!backendRes.ok) {
-      return NextResponse.json(
-        { ok: false, code: typeof payload.code === "string" ? payload.code : "OTP_REQUEST_FAILED" },
-        { status: backendRes.status }
+      return bffCodedError(
+        typeof payload.code === "string" ? payload.code : "OTP_REQUEST_FAILED",
+        backendRes.status
       );
     }
     return NextResponse.json(
@@ -52,6 +58,6 @@ export async function POST(req: Request): Promise<NextResponse> {
       { status: 200 }
     );
   } catch {
-    return NextResponse.json({ ok: false, code: "BACKEND_UNREACHABLE" }, { status: 502 });
+    return bffCodedError("BACKEND_UNREACHABLE", 502);
   }
 }

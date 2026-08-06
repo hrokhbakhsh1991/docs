@@ -89,6 +89,24 @@ describe("guest-theme-stack.spec.ts — portal", () => {
     );
     assert.match(loginPageCss, /\[data-portal-login-modal\]/);
     assert.match(loginPageCss, /data-portal-login-modal-presentation/);
+    assert.match(loginPageCss, /data-portal-register-auth-gate/);
+    assert.match(loginPageCss, /data-portal-register-guest-auth/);
+    assert.match(loginPageCss, /data-portal-login-modal-body/);
+    // Preflight strips UA dialog margin — open frame must flex-center the panel.
+    assert.match(
+      loginPageCss,
+      /\[data-portal-login-modal\]\[open\][\s\S]*display:\s*flex[\s\S]*justify-content:\s*center/
+    );
+    assert.match(loginPageCss, /align-items:\s*flex-end/);
+    assert.match(
+      loginPageCss,
+      /:has\(\s*\[data-portal-login-modal-open="true"\]\s*\)[\s\S]*\[data-portal-login-host-lede\]/
+    );
+    const formControls = readFileSync(
+      join(repoRoot, "packages/workspaces/denali/theme/portal/denali-form-controls.css"),
+      "utf8"
+    );
+    assert.match(formControls, /data-portal-login-modal-body/);
     assert.match(skin, /portal\/member-shell\.css/);
     assert.match(skin, /portal\/member-shell-desktop\.css/);
     assert.match(skin, /portal\/member-pages\.css/);

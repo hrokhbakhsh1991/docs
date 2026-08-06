@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-MEMBER-PROFILE
-version: "2026-07-02-v2"
+version: "2026-08-05-v3"
 extends: platform-portal-member-profile.mdoc
 workspace: denali
 apps: [portal]
@@ -12,11 +12,15 @@ authority: platform-portal-member-profile.mdoc · portal-registration-ui.md
 
 ## Scope
 
-**Platform shell (workspace-agnostic):** [platform-portal-member-profile.mdoc](../../phase-19/platform-portal-member-profile.mdoc) — `MemberProfileView` / `MemberProfilePatch`, `GET/PATCH /api/me/profile`, `resolveMemberProfileCapabilities(pluginId)`.
+**Platform shell (workspace-agnostic):** [platform-portal-member-profile.mdoc](../../phase-19/platform-portal-member-profile.mdoc) — `MemberProfileView` / `MemberProfilePatch`, `GET/PATCH /api/me/profile`, `resolveMemberProfileCapabilities(pluginId)`, **INV-MP-CACHE-01 / INV-MP-AVATAR-01 / INV-MP-ERR-01**, and platform field validators for `birthDate` / `nationalId`.
 
 **This doc:** Denali-specific profile field deltas, intake linkage, E2E hooks, and roadmap fields. Urban differences are capability-driven in SDK — no Denali imports in portal.
 
 Portal **must not** static-import `@app-tour/workspace-denali`. Denali rules for registration validation remain in `packages/workspaces/denali`; profile persistence stays on `identity/me`.
+
+### Platform validators (not Denali-branched)
+
+Denali exposes `nationalId` and `birthDate` in `editableFields`. Validation rules (IR national-ID checksum, calendar `birthDate`, no future dates) live in **workspace-sdk** `member-profile-validators.ts` as documented in the platform SoT — **not** copied here and **not** gated with `pluginId === "denali"`. Workspaces that omit those fields never attach those validators.
 
 ---
 
@@ -33,7 +37,7 @@ Registered in `resolveMemberProfileCapabilities("denali")` (manifest-generated):
 | `mobileChangeViaOtp` | `true` |
 | `sections` | `identity` → displayName · mobile · email · **gender** · `participant` → nationalId · fatherName · birthDate |
 
-**Avatar (enterprise):** separate upload surface — `POST/DELETE /api/me/avatar` portal BFF → `identity/me/avatar` (same storage as operator admin). UI shows preview + upload/remove; not a text `avatarUrl` field in the PATCH form.
+**Avatar (enterprise):** separate upload surface — `POST/DELETE /api/me/avatar` portal BFF → `identity/me/avatar` (same storage as operator admin). UI shows preview + upload/remove; not a text `avatarUrl` field in the PATCH form. Discard policy = platform **INV-MP-AVATAR-01** / shell **DL-43**. Successful avatar + mobile verify mutations invalidate profile GET cache (**INV-MP-CACHE-01**).
 
 **Mobile change (enterprise · v2):** `mobile` stays **out of** `PATCH /api/me/profile`. Self-service change uses authenticated OTP to the **new** number:
 

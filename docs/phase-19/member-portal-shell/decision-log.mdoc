@@ -167,12 +167,36 @@ extends:
 
 | Field | Value |
 | ----- | ----- |
-| **Status** | **IMPLEMENTED (2026-07-16)** |
+| **Status** | **IMPLEMENTED (2026-07-16)** · **EXTENDED by DL-41 (2026-08-05)** |
 | **Context** | Full-page `/login` alpine experience vs same-page auth for tour guests; marketing SSR must still detect portal members (PCMS-03-READ). |
 | **Decision** | Portal-hosted login **modal** (desktop dialog · mobile bottom sheet). Thin `/login` retained for `/me/*` middleware gate. Tour registration stays full-page. Marketing tour «ورود» → `/catalog/{id}/register?auth=login`. Header Sign in → `/login?portalReturn=/me/registrations`. Every modal success path runs cookie probe (PCMS-UX-MODAL-COOKIE); cross-surface marketing header requires **custom apex** cookie Domain (PCMS-COOK-01/03) — not `Domain=.localhost`. |
 | **Consequences** | Shared `PortalLoginModalProvider` + `PortalMemberLoginFlow`; GSH URL builder change for registration login; Denali modal CSS hooks; SMK-PTL-10. |
 | **Dependencies** | PCMS-001 §5.0 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) · DL-12 |
 | **Open questions** | Backdrop-click dismiss; optional `?auth=login` on portal home. |
+
+### DL-41 — Modal-first tour registration auth
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **IMPLEMENTED (2026-08-05)** — modal-first guest register + Denali skin for gate/modal body |
+| **Context** | Dual guest paths (inline phone→OTP on register **and** optional login modal) split auth UX; product wants one OTP path and intake-only register page. |
+| **Decision** | **PCMS-UX-MODAL-04:** Guest `/catalog/{id}/register` auto-opens login modal; page must not render inline auth steps. New member profile: display name required, email optional (existing `register-complete`). Session members unchanged (PCMS-REG-01 intake-only). Denali CSS: `login-page.css` gate hooks + `denali-form-controls.css` scopes `[data-portal-login-modal-body]`. |
+| **Consequences** | Register page gates on `buildRegistrationResumeInitialState`; guest auth gate + `PortalLoginModalOpener`; reopen via `PortalRegisterSignInLink`; client session probe may reload when SSR missed cookie (custom apex). Specs assert no guest `PublicCatalogRegistrationFlow` without resume. Thin `/login` keeps `data-portal-login-thin-host`. |
+| **Dependencies** | DL-40 · PCMS §5.0 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) |
+| **Open questions** | Optional backdrop-click dismiss. |
+| **Verify (2026-08-05 local)** | Guest register HTML: `data-portal-register-guest-auth=modal-first` + gate + modal, no inline phone. BFF: new mobile → profile → `register-complete` sets `atour_mb_session` `Domain=denali.localhost`; returning member → session without profile. Host: use `portal.denali.localhost:3003` (not bare localhost). |
+
+### DL-41 handoff checklist
+
+| Check | Status |
+| ----- | ------ |
+| PCMS-UX-MODAL-04 in standards + modal design doc | Done |
+| Guest register: no inline auth flow | Done (`PortalRegisterGuestAuthGate`) |
+| `/login` thin host + portalReturn (PCMS-UX-01..04) | Done |
+| Contract specs (login / register / resume) | Done (18 pass) |
+| Live BFF existing + new member paths | Done (local smoke) |
+| Visual / CSS modal + guest gate (Denali) | Done (`login-page.css` · form-controls) |
+| Full monorepo gate | Not run (needs Architect YES) |
 
 ### DL-13 — Telegram / embedded host adapter
 
@@ -505,6 +529,28 @@ extends:
 | **Dependencies** | PCMS; WRS addendum §6 |
 | **Open questions** | None. |
 
+### DL-43 — Profile Discard vs avatar side-effect
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Avatar upload/remove commits immediately via `/api/me/avatar`; text fields commit only on PATCH. Form Discard previously risked resetting avatar preview to a stale `profile.fields.avatarUrl`. |
+| **Decision** | Discard resets only PATCH-editable field values and form-level messages. Avatar client state tracks the last successful server URL (INV-MP-AVATAR-01). Discard is not “undo server avatar”. |
+| **Consequences** | Reload after Discard still shows server avatar; no new undo API. |
+| **Dependencies** | [platform-portal-member-profile.mdoc](../platform-portal-member-profile.mdoc) INV-MP-AVATAR-01 · INV-MP-CACHE-01 |
+| **Open questions** | None. |
+
+### DL-44 — Auth/profile coded error UX + DEV OTP single source
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Dual DEV OTP sources (random challenge log vs UI `1234` hint), stop-at-first `fieldErrors`, HTML5 English validation on onboarding, identical FA copy for `MOBILE_REQUIRED`/`MOBILE_INVALID`. |
+| **Decision** | (1) When static DEV OTP is enabled, API **issues** `1234` so challenge hash, `otp-dev` log, and UI hint share one value. (2) BFF emits distinct `MOBILE_REQUIRED` vs `MOBILE_INVALID`; UI clears presentation errors on edit; onboarding uses `noValidate` + coded alerts. (3) Profile BFF collect-all `fieldErrors`; clear-on-edit in UI; PATCH upstream OK + view-build fail still invalidates cache (INV-MP-CACHE-01 / INV-MP-ERR-01). |
+| **Consequences** | Shared helpers only in `catalog-registration-auth` / SDK; no portal business validators; no HTML5 as message source. |
+| **Dependencies** | [platform-portal-otp-flow.mdoc](../platform-portal-otp-flow.mdoc) · [platform-portal-member-profile.mdoc](../platform-portal-member-profile.mdoc) INV-MP-ERR-01 · INV-MP-CACHE-01 · INV-MP-AVATAR-02 |
+| **Open questions** | None. |
+
 
 ---
 
@@ -557,6 +603,8 @@ extends:
 | DL-40 | §52 | addendum §2.2 | — | §5.2 | guard-member-shell | P1 |
 | DL-41 | §53 | WRS §4 link | — | addendum | guard-wrs-stale-docs | P3 |
 | DL-42 | §54 | addendum §6 | REG paths | §5.5 | — | all |
+| DL-43 | profile Discard/avatar | platform-portal-member-profile INV-MP-AVATAR-01 | — | — | — | profile |
+| DL-44 | auth/profile error UX · DEV OTP | platform-portal-otp-flow · INV-MP-ERR-01 | — | — | — | auth+profile |
 
 *BMC = [builder-migration-contract.mdoc](./builder-migration-contract.mdoc) · GCSN = [guest-cross-surface-nav-schema.mdoc](./guest-cross-surface-nav-schema.mdoc)*
 

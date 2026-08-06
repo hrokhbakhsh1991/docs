@@ -166,6 +166,8 @@ export function parseMemberProfilePatchBody(
   const capabilities = resolveMemberProfileCapabilities(pluginId);
   const patch: IdentityMePatchBody = {};
   const fieldRecord = fields as Record<string, unknown>;
+  const fieldErrors: Partial<Record<MemberProfileFieldId, string>> = {};
+  let firstValidationCode: string | null = null;
 
   for (const [rawKey, rawValue] of Object.entries(fieldRecord)) {
     if (!isMemberProfileFieldId(rawKey, capabilities)) {
@@ -186,25 +188,34 @@ export function parseMemberProfilePatchBody(
     if (validator !== undefined) {
       const validationCode = validator(normalized);
       if (validationCode !== null) {
-        if (options?.traceId !== undefined) {
-          logMemberProfileEvent({
-            traceId: options.traceId,
-            kind: "validation_failure",
-            pluginId,
-            errorCode: validationCode,
-            fieldErrorCount: 1,
-          });
+        fieldErrors[rawKey] = validationCode;
+        if (firstValidationCode === null) {
+          firstValidationCode = validationCode;
         }
-        return {
-          code: validationCode,
-          status: 400,
-          fieldErrors: { [rawKey]: validationCode },
-        };
+        continue;
       }
     }
     const upstreamKey = IDENTITY_PATCH_KEYS[rawKey];
     patch[upstreamKey] =
       rawKey === "gender" && normalized.length === 0 ? null : normalized;
+  }
+
+  if (firstValidationCode !== null) {
+    const errorCount = Object.keys(fieldErrors).length;
+    if (options?.traceId !== undefined) {
+      logMemberProfileEvent({
+        traceId: options.traceId,
+        kind: "validation_failure",
+        pluginId,
+        errorCode: firstValidationCode,
+        fieldErrorCount: errorCount,
+      });
+    }
+    return {
+      code: firstValidationCode,
+      status: 400,
+      fieldErrors,
+    };
   }
 
   if (Object.keys(patch).length === 0) {

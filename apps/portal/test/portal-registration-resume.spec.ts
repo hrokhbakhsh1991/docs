@@ -29,7 +29,8 @@ describe("portal registration resume — PCMS-REG-01", () => {
     );
     assert.match(flow, /initialRuntimeState/);
     assert.match(flow, /memberLoginEgress/);
-    assert.doesNotMatch(flow, /isMemberLoginEgressFromLocation/);
+    // Location probe allowed inside useEffect only (PCMS-LOGIN-05) — not a render gate.
+    assert.match(flow, /isMemberLoginEgressFromLocation/);
     assert.doesNotMatch(flow, /request-otp/);
   });
 

@@ -12,6 +12,7 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
     assert.match(page, /data-portal-member-login-page/);
     assert.match(page, /data-member-login-egress/);
     assert.match(page, /data-portal-return/);
+    assert.match(page, /data-portal-login-thin-host/);
     assert.match(page, /PortalLoginModalOpener/);
     assert.match(page, /host="login"/);
     assert.match(page, /loginPageTitle/);
@@ -33,8 +34,27 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
       "utf8"
     );
     assert.match(page, /redirect\(`\/login\?portalReturn=/);
-    assert.match(page, /PortalRegisterSignInLink/);
-    assert.match(page, /auth === "login"/);
+  });
+
+  it("PCMS-UX-MODAL-04 register guest gates auth to modal (no inline flow)", () => {
+    const page = readFileSync(
+      join(repoRoot, "apps/portal/app/catalog/[tourId]/register/page.tsx"),
+      "utf8"
+    );
+    const gate = readFileSync(
+      join(repoRoot, "apps/portal/src/auth/portal-register-guest-auth-gate.tsx"),
+      "utf8"
+    );
+    assert.match(page, /PortalRegisterGuestAuthGate/);
+    assert.match(page, /PortalLoginModalOpener/);
+    assert.match(page, /data-portal-register-guest-auth/);
+    assert.match(page, /host="register"/);
+    assert.match(gate, /data-portal-register-auth-gate/);
+    assert.match(gate, /PortalRegisterSignInLink/);
+    assert.match(gate, /\/api\/me\/profile/);
+    assert.match(page, /registrationResume !== null \?/);
+    assert.match(page, /: \(\s*<>[\s\S]*PortalLoginModalOpener[\s\S]*PortalRegisterGuestAuthGate/);
+    assert.doesNotMatch(page, /initialRuntimeState=\{registrationResume\?\.initialState\}/);
   });
 
   it("PCMS-LOGIN-03 shared auth shell exposes stable data hooks", () => {
@@ -60,6 +80,18 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
     assert.doesNotMatch(
       flow,
       /if \(isMemberLoginEgressFromLocation\(\)\) \{\s*return /
+    );
+  });
+
+  it("PCMS-LOGIN-06 login egress omits registration stepper chrome", () => {
+    const flow = readFileSync(
+      join(repoRoot, "apps/portal/src/catalog/public-catalog-registration-flow.tsx"),
+      "utf8"
+    );
+    assert.match(flow, /showStepper = !memberLoginEgress/);
+    assert.match(
+      flow,
+      /\{showStepper \? \(\s*<CatalogRegistrationStepper[\s\S]*?\) : null\}/
     );
   });
 

@@ -3,8 +3,8 @@
 import { Input } from "@app-tour/ui-primitives/input";
 import {
   buildPublicRegistrationProfilePayload,
+  classifyPublicRegistrationMobileInput,
   initialPublicRegistrationPhone,
-  isPublicRegistrationMobileValid,
   normalizePublicRegistrationMobile,
   PUBLIC_REGISTRATION_DEV_OTP,
   PUBLIC_REGISTRATION_RESEND_COOLDOWN_SEC,
@@ -76,11 +76,11 @@ export function CatalogRegistrationPhoneStep({
     if (readMemberLoginEgress(context)) {
       return;
     }
-    const effectivePhone = normalizePublicRegistrationMobile(data.phone);
-    if (!isPublicRegistrationMobileValid(effectivePhone)) {
+    if (classifyPublicRegistrationMobileInput(data.phone) !== null) {
       setPhoneHint(null);
       return;
     }
+    const effectivePhone = normalizePublicRegistrationMobile(data.phone);
     try {
       const preflight = await fetch("/api/public-auth/phone-preflight", {
         method: "POST",
@@ -98,15 +98,12 @@ export function CatalogRegistrationPhoneStep({
   }
 
   async function requestOtp(): Promise<void> {
+    const mobileCode = classifyPublicRegistrationMobileInput(data.phone);
+    if (mobileCode !== null) {
+      setError(resolveError(mobileCode));
+      return;
+    }
     const effectivePhone = normalizePublicRegistrationMobile(data.phone);
-    if (effectivePhone.length === 0) {
-      setError(resolveError("MOBILE_REQUIRED"));
-      return;
-    }
-    if (!isPublicRegistrationMobileValid(effectivePhone)) {
-      setError(resolveError("MOBILE_INVALID"));
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
@@ -181,7 +178,10 @@ export function CatalogRegistrationPhoneStep({
       <Input
         id="phone"
         value={data.phone}
-        onChange={(event) => mergeFlowState(state, dispatch, { phone: event.target.value })}
+        onChange={(event) => {
+          setError(null);
+          mergeFlowState(state, dispatch, { phone: event.target.value });
+        }}
         onBlur={() => void refreshPhoneHint()}
         aria-invalid={error !== null}
         aria-describedby={error !== null ? errorId : undefined}
@@ -222,10 +222,6 @@ export function CatalogRegistrationOtpStep({
 
   async function verifyOtp(otpOverride?: string): Promise<void> {
     const code = (otpOverride ?? data.otp).replace(/\D/g, "");
-    if (code.length < 4) {
-      setError(resolveError("OTP_INVALID"));
-      return;
-    }
     if (verifyInFlightRef.current) return;
     verifyInFlightRef.current = true;
     setLoading(true);
@@ -271,6 +267,7 @@ export function CatalogRegistrationOtpStep({
 
   async function resendOtp(): Promise<void> {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/public-auth/request-otp", {
         method: "POST",
@@ -282,7 +279,11 @@ export function CatalogRegistrationOtpStep({
       if (res.ok && body.ok && typeof body.challenge_id === "string") {
         mergeFlowState(state, dispatch, { challengeId: body.challenge_id, otp: "" });
         setResendCooldown(PUBLIC_REGISTRATION_RESEND_COOLDOWN_SEC);
+        return;
       }
+      setError(resolveError(readPublicRegistrationErrorCode(body)));
+    } catch {
+      setError(resolveError("network"));
     } finally {
       setLoading(false);
     }
@@ -302,7 +303,10 @@ export function CatalogRegistrationOtpStep({
       <Input
         id="otp"
         value={data.otp}
-        onChange={(event) => mergeFlowState(state, dispatch, { otp: event.target.value })}
+        onChange={(event) => {
+          setError(null);
+          mergeFlowState(state, dispatch, { otp: event.target.value });
+        }}
         onBlur={() => void verifyOtp()}
         aria-invalid={error !== null}
         aria-describedby={error !== null ? errorId : undefined}
@@ -354,11 +358,6 @@ export function CatalogRegistrationProfileStep({
 
   async function completeProfile(event: FormEvent): Promise<void> {
     event.preventDefault();
-    const name = data.displayName.trim();
-    if (name.length === 0) {
-      setError(resolveError("DISPLAY_NAME_REQUIRED"));
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
@@ -391,7 +390,7 @@ export function CatalogRegistrationProfileStep({
         context,
         state,
         dispatch,
-        name,
+        data.displayName.trim(),
         data.profileEmail.trim()
       );
     } catch {
@@ -405,6 +404,7 @@ export function CatalogRegistrationProfileStep({
 
   return (
     <form
+      noValidate
       onSubmit={completeProfile}
       data-public-registration-profile
       data-tour-id={context.tourId}
@@ -418,17 +418,25 @@ export function CatalogRegistrationProfileStep({
       <Input
         id="displayName"
         value={data.displayName}
-        onChange={(event) => mergeFlowState(state, dispatch, { displayName: event.target.value })}
-        required
+        onChange={(event) => {
+          setError(null);
+          mergeFlowState(state, dispatch, { displayName: event.target.value });
+        }}
+        autoComplete="name"
         aria-invalid={error !== null}
         aria-describedby={error !== null ? errorId : undefined}
       />
       <label htmlFor="profileEmail">{t("profile.emailLabel")}</label>
       <Input
         id="profileEmail"
-        type="email"
+        type="text"
+        inputMode="email"
+        autoComplete="email"
         value={data.profileEmail}
-        onChange={(event) => mergeFlowState(state, dispatch, { profileEmail: event.target.value })}
+        onChange={(event) => {
+          setError(null);
+          mergeFlowState(state, dispatch, { profileEmail: event.target.value });
+        }}
       />
       {error !== null ? (
         <p id={errorId} role="alert">

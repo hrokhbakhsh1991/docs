@@ -49,12 +49,17 @@ describe("portal-member-entitlements — PS-5", () => {
     assert.match(logout, /invalidateMemberEntitlementsCacheForMember/);
   });
 
-  it("PS6-ENT-03 profile PATCH invalidates entitlements cache", () => {
+  it("PS6-ENT-03 profile PATCH invalidates entitlements cache via shared helper", () => {
     const profile = readFileSync(
       join(repoRoot, "apps/portal/app/api/me/profile/route.ts"),
       "utf8"
     );
-    assert.match(profile, /invalidateMemberEntitlementsCacheForMember/);
+    const cache = readFileSync(
+      join(repoRoot, "apps/portal/src/me/member-profile-cache.server.ts"),
+      "utf8"
+    );
+    assert.match(profile, /invalidateMemberProfileViewForMember/);
+    assert.match(cache, /invalidateMemberEntitlementsCacheForMember/);
   });
 
   it("PS6-ENT-04 entitlements invalidate route exists", () => {

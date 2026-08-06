@@ -6,6 +6,7 @@
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   :is(
     [data-portal-auth-card],
+    [data-portal-login-modal-body],
     main[data-portal-member-profile] [data-portal-member-profile],
     [data-portal-member-receipt-upload]
   )
@@ -19,6 +20,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   :is(
     [data-portal-auth-card],
+    [data-portal-login-modal-body],
     main[data-portal-member-profile] [data-portal-member-profile],
     [data-portal-member-receipt-upload]
   )
@@ -26,6 +28,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   :is(
     [data-portal-auth-card],
+    [data-portal-login-modal-body],
     main[data-portal-member-profile] [data-portal-member-profile]
   )
   select {
@@ -42,6 +45,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   :is(
     [data-portal-auth-card],
+    [data-portal-login-modal-body],
     main[data-portal-member-profile] [data-portal-member-profile],
     [data-portal-member-receipt-upload]
   )
@@ -49,6 +53,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   :is(
     [data-portal-auth-card],
+    [data-portal-login-modal-body],
     main[data-portal-member-profile] [data-portal-member-profile]
   )
   select:focus-visible {
@@ -60,6 +65,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   :is(
     [data-portal-auth-card],
+    [data-portal-login-modal-body],
     main[data-portal-member-profile] [data-portal-member-profile],
     [data-portal-member-receipt-upload]
   )
@@ -96,6 +102,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   :is(
     [data-portal-auth-card],
+    [data-portal-login-modal-body],
     main[data-portal-member-profile] [data-portal-member-profile],
     [data-portal-member-receipt-upload]
   )
@@ -113,6 +120,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   :is(
     [data-portal-auth-card],
+    [data-portal-login-modal-body],
     main[data-portal-member-profile] [data-portal-member-profile],
     [data-portal-member-receipt-upload]
   )
@@ -127,6 +135,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   :is(
     [data-portal-auth-card],
+    [data-portal-login-modal-body],
     main[data-portal-member-profile] [data-portal-member-profile],
     [data-portal-member-receipt-upload]
   )
@@ -140,8 +149,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-auth-card]
-  button[type="button"] {
+  :is([data-portal-auth-card], [data-portal-login-modal-body])
+  button[type="button"]:not([data-portal-register-sign-in-button]):not(
+      [data-portal-login-modal-close]
+    ) {
   align-self: stretch;
   width: 100%;
   min-height: 3rem;
@@ -168,7 +179,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-auth-card]
+  :is([data-portal-auth-card], [data-portal-login-modal-body])
   [role="alert"] {
   padding: var(--space-3);
   border-radius: var(--radius-md);

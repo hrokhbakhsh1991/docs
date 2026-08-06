@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-07-16-v5"
+version: "2026-08-05-v7"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -29,14 +29,13 @@ app/layout.tsx
     PortalLoginModalProvider          ← design PCMS-UX-MODAL (dialog/sheet)
   └── app/login/page.tsx              ← thin host · auto-open login modal
   └── app/catalog/[tourId]/register/page.tsx
-        PortalAuthExperienceShell     ← FULL PAGE tour registration (unchanged)
-        PublicCatalogRegistrationFlow
-          guest: phone → OTP → profile → intake → success
-          session: intake-only
-        «ورود» / ?auth=login → openLoginModal (overlay · not intake)
+        PortalAuthExperienceShell     ← FULL PAGE tour registration chrome
+        session: PublicCatalogRegistrationFlow (intake-only)
+        guest: auth gate + auto login modal (PCMS-UX-MODAL-04)
+               reopen «ورود» · ?auth=login compatible
 ```
 
-**Design SoT (login modal):** [portal-member-login-modal.mdoc](../../phase-19/portal-member-login-modal.mdoc) · PCMS §5.0 · DL-40.
+**Design SoT (login modal):** [portal-member-login-modal.mdoc](../../phase-19/portal-member-login-modal.mdoc) · PCMS §5.0 · DL-40 · DL-41.
 
 ### Auth experience shell (Denali — registration page)
 
@@ -49,17 +48,25 @@ app/layout.tsx
 | `[data-portal-auth-hero]` | Page `<h1>` + lede |
 | `[data-portal-auth-session-chip]` | Member resume badge (mobile) when session skips auth steps |
 | `[data-portal-auth-lede]` | Secondary hero copy |
+| `[data-portal-register-guest-auth="modal-first"]` | Guest register host (PCMS-UX-MODAL-04) |
+| `[data-portal-register-auth-gate]` | Card CTA while waiting for / after dismiss of login modal |
+| `[data-portal-register-auth-gate-lede]` | Gate helper copy (hidden when hero lede present) |
+| `[data-portal-register-sign-in-button]` | Primary reopen control inside the gate |
+| `[data-portal-login-thin-host]` | Thin `/login` host marker |
+| `[data-portal-login-host-lede]` | Fallback copy when modal closed; hidden while modal open |
 
 **Login modal hooks (PCMS-UX-MODAL):**
 
 | Hook | Purpose |
 | ---- | ------- |
-| `[data-portal-login-modal]` | Modal root |
+| `[data-portal-login-modal]` | Modal root — Denali flex-centers on `[open]` (Preflight strips UA `margin: auto`) |
 | `[data-portal-login-modal-open]` | Open |
-| `[data-portal-login-modal-presentation="dialog"\|"sheet"]` | Desktop dialog · mobile sheet |
+| `[data-portal-login-modal-presentation="dialog"\|"sheet"]` | Desktop centered dialog · mobile bottom sheet |
 | `[data-portal-login-modal-host="login"\|"register"]` | Host page |
+| `[data-portal-login-modal-body]` | OTP flow surface (shares Denali form controls) |
+| `[data-portal-login-modal-panel]` | Glass panel inside the flex frame |
 
-Component: `apps/portal/src/catalog/portal-auth-experience-shell.tsx` (register page). Modal chrome TBD under portal shell per design doc. Skin: `packages/workspaces/denali/theme/portal/login-page.css` (+ modal selectors).
+Component: `apps/portal/src/catalog/portal-auth-experience-shell.tsx` (register page). Skin: `packages/workspaces/denali/theme/portal/login-page.css` + `denali-form-controls.css`.
 
 **Resume at intake:** `buildRegistrationResumeInitialState` returns `{ initialState, memberMobile }`. Register page sets `heroLede` to `intake.resumeLede`, optional `sessionBadge` from `intake.signedInBadge`, and `data-registration-resume="intake"` on `<main>`.
 
@@ -72,9 +79,9 @@ Smoke URLs: `http://denali.portal.localhost:3003/login` · `/catalog/{tourId}/re
 | Route / trigger | User intent | UI | Intake |
 | --------------- | ----------- | -- | ------ |
 | `/login?portalReturn=/me/registrations` | Header / standalone sign-in | Thin host + **login modal** | **Never** |
-| `/catalog/{id}/register?auth=login` | Sign-in then continue tour | Register **page** + **login modal** | After OTP on **page** (intake-only) |
-| Register «ورود» (same page) | Sign-in without leaving tour context | Modal overlay | After OTP on **page** |
-| `/catalog/{id}/register` (guest) | Register for tour | Full page flow | Yes |
+| `/catalog/{id}/register` (guest) | Register for tour — auth first | Register chrome + **forced login modal** + auth gate | After OTP (intake-only) |
+| `/catalog/{id}/register?auth=login` | Deep link / reopen | Same as guest (compatible) | After OTP on **page** |
+| Register reopen «ورود» | Dismissed modal | Modal overlay again | After OTP on **page** |
 | `/catalog/{id}/register` (session) | Resume registration | intake-only page | Yes |
 
 Hooks:
@@ -101,11 +108,11 @@ Example tour sign-in URL: `/catalog/{tourId}/register?auth=login`
 
 | Mode | When | Steps shown |
 | ---- | ---- | ----------- |
-| `registration` | Guest (no session resume) | phone → otp → profile → intake |
+| `registration` | Guest register page (session present / after auth) | phone → otp → profile → intake |
 | `intake-only` | Member resume at intake (PCMS-REG-02) | intake only — auth steps hidden |
-| `login` | `/login` egress | phone → otp → profile |
+| *(none)* | Login modal / `memberLoginEgress` | **No stepper** — title in modal header; flow still phone → OTP → profile |
 
-Hook: `[data-registration-stepper-mode="intake-only"]`. Wired in `public-catalog-registration-flow.tsx` when `initialRuntimeState.currentStep === "intake"` or client `data-registration-resume="intake"`.
+Hook: `[data-registration-stepper-mode="intake-only"]`. Wired in `public-catalog-registration-flow.tsx` when `initialRuntimeState.currentStep === "intake"` or client `data-registration-resume="intake"`. Login modal (`memberLoginEgress`) skips `CatalogRegistrationStepper` entirely.
 
 ### BFF (server)
 

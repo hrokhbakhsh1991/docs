@@ -79,6 +79,8 @@
       "otpLabel": "Verification code",
       "verify": "Confirm change",
       "verifying": "Verifying…",
+      "resendOtp": "Resend code",
+      "resendingOtp": "Resending code…",
       "cancel": "Cancel",
       "back": "Back",
       "success": "Mobile number updated.",
@@ -101,6 +103,8 @@
     "avatarUploading": "Uploading…",
     "avatarRemove": "Remove photo",
     "avatarHint": "JPG, PNG, or WebP — max 2 MB.",
+    "avatarPhotoAlt": "Profile photo for {name}",
+    "avatarInitialsAlt": "Profile initials for {name}",
     "avatarErrors": {
       "PROFILE_AVATAR_EMPTY": "File is empty.",
       "PROFILE_AVATAR_TOO_LARGE": "File is too large.",

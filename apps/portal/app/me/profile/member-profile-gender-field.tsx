@@ -7,6 +7,8 @@ type MemberProfileGenderFieldProps = {
   readonly id: string;
   readonly label: string;
   readonly value: string;
+  readonly invalid?: boolean;
+  readonly describedBy?: string;
   readonly onChange: (value: string) => void;
 };
 
@@ -14,17 +16,21 @@ export function MemberProfileGenderField({
   id,
   label,
   value,
+  invalid,
+  describedBy,
   onChange,
 }: MemberProfileGenderFieldProps) {
   const t = useTranslations("portalMember.profile");
 
   return (
-    <div data-member-profile-field="gender">
+    <>
       <label htmlFor={id}>{label}</label>
       <select
         id={id}
         name="gender"
         value={value}
+        aria-invalid={invalid === true ? true : undefined}
+        aria-describedby={describedBy}
         onChange={(event) => onChange(event.target.value)}
         autoComplete="sex"
       >
@@ -35,6 +41,6 @@ export function MemberProfileGenderField({
           </option>
         ))}
       </select>
-    </div>
+    </>
   );
 }

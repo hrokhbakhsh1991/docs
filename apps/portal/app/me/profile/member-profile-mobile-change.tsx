@@ -1,6 +1,6 @@
 "use client";
 
-import { isPublicRegistrationMobileValid, normalizePublicRegistrationMobile } from "@app-tour/catalog-registration-auth";
+import { normalizePublicRegistrationMobile } from "@app-tour/catalog-registration-auth";
 import { Input } from "@app-tour/ui-primitives/input";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -16,10 +16,6 @@ type MemberProfileMobileChangeProps = {
 };
 
 type MobileChangeStep = "view" | "phone" | "otp";
-
-function normalizePhone(value: string): string {
-  return normalizePublicRegistrationMobile(value);
-}
 
 function resolveMobileChangeErrorMessage(
   t: (key: string) => string,
@@ -46,17 +42,11 @@ export function MemberProfileMobileChange({
   const [challengeId, setChallengeId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   async function handleRequestOtp(): Promise<void> {
-    const effectivePhone = normalizePhone(phone);
-    if (effectivePhone.length === 0) {
-      setError(t("mobileChange.errors.MOBILE_REQUIRED"));
-      return;
-    }
-    if (!isPublicRegistrationMobileValid(effectivePhone)) {
-      setError(t("mobileChange.errors.MOBILE_INVALID"));
-      return;
-    }
+    // INV-MP-07 — normalize only; MOBILE_* codes come from BFF.
+    const effectivePhone = normalizePublicRegistrationMobile(phone.trim());
     setLoading(true);
     setError(null);
     try {
@@ -74,11 +64,8 @@ export function MemberProfileMobileChange({
   }
 
   async function handleVerify(): Promise<void> {
+    // INV-MP-07 — OTP validity codes come from BFF (no local length gate).
     const code = otp.replace(/\D/g, "");
-    if (code.length < 4) {
-      setError(t("mobileChange.errors.OTP_INVALID"));
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
@@ -89,6 +76,7 @@ export function MemberProfileMobileChange({
       setOtp("");
       setChallengeId("");
       setError(null);
+      setSuccess(t("mobileChange.success"));
     } catch (caught) {
       const codeMessage = caught instanceof Error ? caught.message : undefined;
       setError(resolveMobileChangeErrorMessage(t, codeMessage));
@@ -106,7 +94,10 @@ export function MemberProfileMobileChange({
         <Input
           id="profile-mobile-change-phone"
           value={phone}
-          onChange={(event) => setPhone(event.target.value)}
+          onChange={(event) => {
+            setError(null);
+            setPhone(event.target.value);
+          }}
           inputMode="tel"
           autoComplete="tel"
         />
@@ -147,7 +138,10 @@ export function MemberProfileMobileChange({
         <Input
           id="profile-mobile-change-otp"
           value={otp}
-          onChange={(event) => setOtp(event.target.value)}
+          onChange={(event) => {
+            setError(null);
+            setOtp(event.target.value);
+          }}
           inputMode="numeric"
           autoComplete="one-time-code"
         />
@@ -159,6 +153,14 @@ export function MemberProfileMobileChange({
         <div data-member-profile-action-row>
           <button type="button" disabled={loading} onClick={() => void handleVerify()}>
             {loading ? t("mobileChange.verifying") : t("mobileChange.verify")}
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            data-member-profile-mobile-change-resend
+            onClick={() => void handleRequestOtp()}
+          >
+            {loading ? t("mobileChange.resendingOtp") : t("mobileChange.resendOtp")}
           </button>
           <button
             type="button"
@@ -180,6 +182,11 @@ export function MemberProfileMobileChange({
       <p>{t("fieldLabels.mobile")}</p>
       <p>{currentMobile ?? "—"}</p>
       <p data-member-profile-field-hint>{t("mobileChange.viewHint")}</p>
+      {success !== null ? (
+        <p role="status" data-member-profile-mobile-change-success>
+          {success}
+        </p>
+      ) : null}
       <button
         type="button"
         data-member-profile-mobile-change-start
@@ -187,6 +194,7 @@ export function MemberProfileMobileChange({
           setStep("phone");
           setPhone("");
           setError(null);
+          setSuccess(null);
         }}
       >
         {t("mobileChange.start")}

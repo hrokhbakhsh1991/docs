@@ -4,13 +4,10 @@ import { resolveTourOpsApiBaseUrl } from "@/env";
 import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
 import {
   buildMemberProfileCacheKey,
-  invalidateMemberProfileCache,
+  invalidateMemberProfileViewForMember,
   readMemberProfileCache,
   writeMemberProfileCache,
 } from "@/me/member-profile-cache.server";
-import {
-  invalidateMemberEntitlementsCacheForMember,
-} from "@/me/member-entitlements-cache.server";
 import { buildMemberProfileApiError, normalizeMemberProfilePatchBody } from "@/me/member-profile-contract.server";
 import {
   buildMemberProfileView,
@@ -228,12 +225,26 @@ export async function PATCH(req: Request): Promise<NextResponse> {
   const identity = (await backendRes.json().catch(() => ({}))) as IdentityMeUpstream;
   const view = buildMemberProfileView(identity, bootstrap.pluginId, { traceId });
   if (!("ok" in view)) {
+    // INV-MP-CACHE-01: upstream already committed — drop stale GET cache even when view build fails.
+    const sessionUserId = headers["x-user-id"]?.trim();
+    if (sessionUserId !== undefined && sessionUserId.length > 0) {
+      invalidateMemberProfileViewForMember({
+        tenantId: bootstrap.tenantId,
+        userId: sessionUserId,
+        pluginId: bootstrap.pluginId,
+      });
+      logMemberProfileEvent({
+        traceId,
+        kind: "cache_invalidate",
+        pluginId: bootstrap.pluginId,
+        tenantId: bootstrap.tenantId,
+      });
+    }
     return jsonMemberProfileError(view.code, view.status, traceId, view.fieldErrors);
   }
 
   const cacheKey = resolveCacheKey(view.profile.tenantId, view.profile.userId, bootstrap.pluginId);
-  invalidateMemberProfileCache(cacheKey);
-  invalidateMemberEntitlementsCacheForMember({
+  invalidateMemberProfileViewForMember({
     tenantId: view.profile.tenantId,
     userId: view.profile.userId,
     pluginId: bootstrap.pluginId,

@@ -1,7 +1,7 @@
 ---
 title: Portal Member Login Modal
 doc_id: PCMS-LOGIN-MODAL
-version: "2026-07-16-v1"
+version: "2026-08-05-v2"
 status: design
 authority: docs/standards/member-session-portal-authority.mdoc
 apps: [portal, marketing]
@@ -12,24 +12,26 @@ decision: DL-40
 # Portal member login modal — design (doc-first)
 
 ```yaml
-goal: Present member OTP login as a modal/sheet on portal; keep tour registration as full-page
+goal: Present member OTP login as a modal/sheet on portal; gate tour registration behind that modal for guests
 non_goals:
   - Modalizing /catalog/{tourId}/register intake or submit
   - Writing atour_mb_session from apps/marketing
   - Deleting /login deep-link host (required for /me/* middleware gate)
   - Operator /auth/login
+  - Visual redesign / CSS polish (behavior + contracts first)
 ```
 
 ## 1. Product contract (locked)
 
 | Rule | Behavior |
 | ---- | -------- |
-| Same-page auth | Wherever the user clicks Sign in / ورود on a **portal** page, open login UI on that page — do not navigate away mid-OTP |
-| Tour registration | Remains full-page `/catalog/{tourId}/register` (phone→otp→profile→intake→done or intake-only resume) |
-| Login content | phone → otp → (profile if `requires_registration`) only — **never** tour intake |
+| Same-page auth on portal | Login UI is the shared modal (desktop dialog · mobile sheet) |
+| Tour registration page | Full-page `/catalog/{tourId}/register` for **intake only** after member session |
+| Guest on register | **PCMS-UX-MODAL-04** — auto-open login modal; **no** inline phone/OTP/profile on the page |
+| Login content | phone → otp → (profile if `requires_registration`; name required, email optional) — **never** tour intake |
 | Desktop | Centered dialog (`aria-modal`, focus trap, Esc closes) |
 | Mobile | Bottom sheet |
-| Close without success | Stay on host URL |
+| Close without success | Stay on host URL; register shows auth gate + reopen |
 | Marketing | Cannot host OTP; one navigation to portal, then modal/host |
 
 ## 2. Why marketing SSR already detects portal members
@@ -55,7 +57,7 @@ PCMS-001 already requires marketing **read-only** detection of `atour_mb_session
 
 | Host page | How modal opens | After OTP success |
 | --------- | --------------- | ----------------- |
-| `/catalog/{id}/register` | «ورود» click **or** `?auth=login` | Close modal · **stay** · resume/hydrate **intake-only** (PCMS-REG-01) |
+| `/catalog/{id}/register` | **Auto for guests** (PCMS-UX-MODAL-04); `?auth=login` compatible; reopen via Sign-in control | Close modal · **stay** · resume/hydrate **intake-only** (PCMS-REG-01) |
 | `/login` (thin public host) | Auto-open on load | `waitForMemberSessionCookie` then `location.assign(portalReturn)` |
 | Protected `/me/*` | **Cannot** host modal for guests | Middleware → `/login?portalReturn=<path>` (unchanged) |
 
@@ -73,8 +75,10 @@ flowchart TD
     REG["/catalog/id/register PAGE"]
     LOGIN["/login thin host"]
     MODAL[Login modal dialog/sheet]
+    GATE[Guest auth gate — no inline OTP]
     ME["/me/*"]
-    REG -->|ورود or auth=login| MODAL
+    REG -->|guest| GATE
+    GATE -->|auto-open| MODAL
     LOGIN --> MODAL
     ME -->|guest middleware| LOGIN
     MODAL -->|success on register| INTAKE[intake-only on REG]
@@ -118,7 +122,7 @@ apps/portal
 | `PortalLoginModalProvider` | Imperative `openLoginModal({ portalReturn?, mode })` · URL `?auth=login` sync · focus restore |
 | `PortalMemberLoginFlow` | SSR-stable `memberLoginEgress` · smoke tour bootstrap · shared with `/login` page |
 | `/login/page.tsx` | Thin host: PCMS-UX-01/02 SSR gates · render backdrop + auto-open modal · `data-portal-return` |
-| Register page | Full registration chrome unchanged · «ورود» calls `openLoginModal` · reads `auth=login` |
+| Register page | Session → intake flow. Guest → auth gate + auto modal (PCMS-UX-MODAL-04); reopen via Sign-in · `?auth=login` compatible |
 | Marketing | **No** modal component · only href targets + existing SSR session probe |
 
 **Presentation hooks (stable for smoke/CSS):**
@@ -136,8 +140,8 @@ apps/portal
 | Mode | When | Post-cookie |
 | ---- | ---- | ----------- |
 | **Login host egress** | Modal on `/login` | `completeMemberLoginEgressAfterSession` → `location.assign(portalReturn)` |
-| **Register-host login** | Modal on register | `waitForMemberSessionCookie` → close modal → `hydrateCatalogRegistrationIntakeAfterSession` / SSR resume — **forbid** intake inside modal |
-| **Full register guest** | No modal | Existing page flow |
+| **Register-host login** | Modal on register (required for guests) | `waitForMemberSessionCookie` → close modal → reload / SSR resume intake-only — **forbid** intake inside modal |
+| **Guest inline register auth** | — | **Removed** (PCMS-UX-MODAL-04) |
 
 `memberLoginEgress` prop remains SSR-stable for modal body. Register-host login uses a distinct success handler (not intake-inside-modal).
 
@@ -179,8 +183,16 @@ apps/portal
 ## 10. Theme / CSS
 
 - Extend `packages/workspaces/denali/theme/portal/login-page.css` with `[data-portal-login-modal]` — do **not** reuse `main[data-portal-member-login-page] { min-height: 100dvh }` on the modal panel.
+- **Dialog centering (required):** Tailwind / Preflight resets native `<dialog>` `margin: auto`, so an open modal collapses to the top-inline-start corner (top-right under RTL). Denali skin must re-center with a full-viewport flex frame on `[data-portal-login-modal][open]` / `[data-portal-login-modal-open="true"]`:
+  - Desktop (`presentation="dialog"`): `display: flex; align-items: center; justify-content: center; inset/width/height cover viewport; margin: 0; transparent surface`.
+  - Mobile sheet (`presentation="sheet"`): same frame with `align-items: flex-end` so the panel docks to the bottom safe area.
+  - Panel keeps `width: min(100vw - 2rem, 28rem)` (dialog) / full bleed (sheet); do **not** rely on UA dialog margin alone.
+- Thin `/login` host: hide `[data-portal-login-host-lede]` while the modal is open (`body:has([data-portal-login-modal-open="true"])`) so the alpine backdrop stays brand-only behind the dialog.
+- Guest gate (PCMS-UX-MODAL-04): `[data-portal-register-guest-auth]` · `[data-portal-register-auth-gate]` · primary `[data-portal-register-sign-in-button]` — muted while modal open.
+- Modal OTP controls: `denali-form-controls.css` scopes `[data-portal-login-modal-body]` alongside `[data-portal-auth-card]`.
+- **No registration stepper** inside the login modal (`memberLoginEgress` skips `CatalogRegistrationStepper`); modal header title is the only step chrome.
 - Register page full-viewport auth experience **unchanged** when modal closed.
-- Thin `/login` host may keep muted backdrop behind modal for brand continuity.
+- Thin `/login` host may keep muted backdrop behind modal for brand continuity (`data-portal-login-thin-host`).
 
 ## 11. Implementation phases (code later)
 

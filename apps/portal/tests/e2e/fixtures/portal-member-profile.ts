@@ -6,7 +6,7 @@ import {
   OPERATOR_SMOKE_PARTICIPANT_TOUR_ID,
 } from "./complete-portal-registration";
 
-export const DENALI_PROFILE_NATIONAL_ID = "5544332210";
+export const DENALI_PROFILE_NATIONAL_ID = "0013542419";
 export const DENALI_PROFILE_FATHER_NAME = "Portal Profile Father";
 export const DENALI_PROFILE_BIRTH_DATE = "1991-06-15";
 

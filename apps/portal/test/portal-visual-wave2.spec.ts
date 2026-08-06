@@ -20,6 +20,8 @@ describe("portal-visual-wave2.spec.ts", () => {
     assert.match(flow, /CatalogRegistrationStepper/);
     assert.match(flow, /isResumeAtIntake/);
     assert.match(flow, /intake-only/);
+    assert.match(flow, /showStepper/);
+    assert.match(flow, /!memberLoginEgress/);
     assert.match(flow, /data-public-registration-flow/);
     assert.match(flow, /data-registration-resume-pending/);
   });

@@ -30,7 +30,9 @@ export async function createMobileOtpChallenge(
   repo: IdentityRepository = getIdentityRepository()
 ): Promise<{ challengeId: string }> {
   assertOtpRequestRateLimit(mobile);
-  const code = resolveOtpCodeForChallenge();
+  // DL-44: when static DEV OTP is enabled, issue the same code the UI hints (1234)
+  // so otp-dev logs match PUBLIC_REGISTRATION_DEV_OTP / otp.devHint.
+  const code = isDevStaticOtpEnabled() ? DEV_STATIC_OTP : resolveOtpCodeForChallenge();
   const codeHash = await hashOtpCode(code);
   const { challengeId } = await repo.createOtpChallenge(mobile, codeHash);
   deliverOtpCode(mobile, code);

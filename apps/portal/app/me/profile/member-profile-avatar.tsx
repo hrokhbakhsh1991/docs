@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   removeMemberAvatar,
@@ -33,8 +33,16 @@ export function MemberProfileAvatar({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    setAvatarUrl(initialAvatarUrl ?? null);
+  }, [initialAvatarUrl]);
+
   const label = displayName?.trim() || userId;
   const initials = initialsFromLabel(label);
+  const previewLabel =
+    avatarUrl !== null && avatarUrl.length > 0
+      ? t("avatarPhotoAlt", { name: label })
+      : t("avatarInitialsAlt", { name: label });
 
   async function handleFileSelected(file: File): Promise<void> {
     setError(null);
@@ -72,11 +80,17 @@ export function MemberProfileAvatar({
 
   return (
     <div data-member-profile-avatar>
-      <div data-member-profile-avatar-preview aria-hidden={avatarUrl === null}>
+      <div
+        data-member-profile-avatar-preview
+        role="img"
+        aria-label={previewLabel}
+      >
         {avatarUrl !== null && avatarUrl.length > 0 ? (
           <img src={avatarUrl} alt="" data-member-profile-avatar-image />
         ) : (
-          <span data-member-profile-avatar-initials>{initials}</span>
+          <span data-member-profile-avatar-initials aria-hidden="true">
+            {initials}
+          </span>
         )}
       </div>
       <div data-member-profile-avatar-actions>
@@ -85,6 +99,7 @@ export function MemberProfileAvatar({
           type="file"
           accept="image/jpeg,image/png,image/webp"
           data-member-profile-avatar-upload
+          aria-label={t("avatarUpload")}
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file !== undefined) {

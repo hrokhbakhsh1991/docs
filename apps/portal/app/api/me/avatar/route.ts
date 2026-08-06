@@ -2,13 +2,38 @@ import { NextResponse } from "next/server";
 
 import { resolveTourOpsApiBaseUrl } from "@/env";
 import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
+import { invalidateMemberProfileViewForMember } from "@/me/member-profile-cache.server";
+import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
+import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 
-function resolveIngressHost(req: Request): string {
-  return req.headers.get("host") ?? "localhost:3003";
+function readSessionUserId(headers: Record<string, string>): string | null {
+  const userId = headers["x-user-id"];
+  return userId !== undefined && userId.trim().length > 0 ? userId.trim() : null;
+}
+
+/** Best-effort INV-MP-CACHE-01 — must not mask a successful upstream mutation. */
+async function invalidateProfileViewAfterAvatarMutation(
+  host: string,
+  headers: Record<string, string>
+): Promise<void> {
+  try {
+    const sessionUserId = readSessionUserId(headers);
+    if (sessionUserId === null) {
+      return;
+    }
+    const bootstrap = await resolvePortalBootstrapForHost(host);
+    invalidateMemberProfileViewForMember({
+      tenantId: bootstrap.tenantId,
+      userId: sessionUserId,
+      pluginId: bootstrap.pluginId,
+    });
+  } catch {
+    // Cache may stay briefly stale; upstream avatar mutation already committed.
+  }
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
-  const host = resolveIngressHost(req);
+  const host = resolvePortalIngressHost(req);
   const headers = await buildMemberApiHeaders(host);
   if (headers.Authorization === undefined) {
     return NextResponse.json({ ok: false, code: "AUTH_UNAUTHENTICATED" }, { status: 401 });
@@ -35,6 +60,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       cache: "no-store",
     });
     const payload = (await backendRes.json().catch(() => ({}))) as Record<string, unknown>;
+    if (backendRes.ok) {
+      await invalidateProfileViewAfterAvatarMutation(host, headers);
+    }
     return NextResponse.json(payload, { status: backendRes.status });
   } catch {
     return NextResponse.json({ ok: false, code: "BACKEND_UNREACHABLE" }, { status: 502 });
@@ -42,7 +70,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 }
 
 export async function DELETE(req: Request): Promise<NextResponse> {
-  const host = resolveIngressHost(req);
+  const host = resolvePortalIngressHost(req);
   const headers = await buildMemberApiHeaders(host);
   if (headers.Authorization === undefined) {
     return NextResponse.json({ ok: false, code: "AUTH_UNAUTHENTICATED" }, { status: 401 });
@@ -57,6 +85,9 @@ export async function DELETE(req: Request): Promise<NextResponse> {
       cache: "no-store",
     });
     const payload = (await backendRes.json().catch(() => ({}))) as Record<string, unknown>;
+    if (backendRes.ok) {
+      await invalidateProfileViewAfterAvatarMutation(host, headers);
+    }
     return NextResponse.json(payload, { status: backendRes.status });
   } catch {
     return NextResponse.json({ ok: false, code: "BACKEND_UNREACHABLE" }, { status: 502 });

@@ -1,11 +1,42 @@
 import { NextResponse } from "next/server";
 
+import {
+  classifyPublicRegistrationMobileInput,
+  normalizePublicRegistrationMobile,
+} from "@app-tour/catalog-registration-auth";
+
+import { bffCodedError } from "@/auth/bff-coded-error";
 import { setSessionCookieOnResponse } from "@/auth/build-session-cookie";
 import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
+import { invalidateMemberProfileViewForMember } from "@/me/member-profile-cache.server";
 import { resolveTourOpsApiBaseUrl } from "@/env";
+import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
+import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 
-function resolveIngressHost(req: Request): string {
-  return req.headers.get("host") ?? "localhost:3003";
+function readSessionUserId(headers: Record<string, string>): string | null {
+  const userId = headers["x-user-id"];
+  return userId !== undefined && userId.trim().length > 0 ? userId.trim() : null;
+}
+
+/** Best-effort INV-MP-CACHE-01 — must not mask a successful upstream mutation. */
+async function invalidateAfterMobileVerify(
+  host: string,
+  headers: Record<string, string>
+): Promise<void> {
+  try {
+    const sessionUserId = readSessionUserId(headers);
+    if (sessionUserId === null) {
+      return;
+    }
+    const bootstrap = await resolvePortalBootstrapForHost(host);
+    invalidateMemberProfileViewForMember({
+      tenantId: bootstrap.tenantId,
+      userId: sessionUserId,
+      pluginId: bootstrap.pluginId,
+    });
+  } catch {
+    // Upstream mobile change already committed; avoid turning OK into 502.
+  }
 }
 
 type VerifyBody = {
@@ -15,23 +46,26 @@ type VerifyBody = {
 };
 
 export async function POST(req: Request): Promise<NextResponse> {
-  const host = resolveIngressHost(req);
+  const host = resolvePortalIngressHost(req);
   const headers = await buildMemberApiHeaders(host);
   if (headers.Authorization === undefined) {
-    return NextResponse.json({ ok: false, code: "AUTH_UNAUTHENTICATED" }, { status: 401 });
+    return bffCodedError("AUTH_UNAUTHENTICATED", 401);
   }
 
   const body = (await req.json().catch(() => ({}))) as VerifyBody;
-  const phone = typeof body.phone === "string" ? body.phone.trim() : "";
+  const mobileCode = classifyPublicRegistrationMobileInput(body.phone);
+  if (mobileCode !== null) {
+    return bffCodedError(mobileCode, 400);
+  }
+  const phone = normalizePublicRegistrationMobile(
+    typeof body.phone === "string" ? body.phone.trim() : ""
+  );
   const otp = typeof body.otp === "string" ? body.otp.trim() : "";
   const challengeId =
     typeof body.challenge_id === "string" ? body.challenge_id.trim() : "";
 
-  if (phone.length === 0) {
-    return NextResponse.json({ ok: false, code: "MOBILE_REQUIRED" }, { status: 400 });
-  }
   if (otp.length === 0 || challengeId.length === 0) {
-    return NextResponse.json({ ok: false, code: "OTP_PAYLOAD_INVALID" }, { status: 400 });
+    return bffCodedError("OTP_PAYLOAD_INVALID", 400);
   }
 
   const ingressHost = host.split(":")[0] ?? host;
@@ -57,16 +91,19 @@ export async function POST(req: Request): Promise<NextResponse> {
       profile?: { mobile?: unknown };
     };
     if (!backendRes.ok) {
-      return NextResponse.json(
-        { ok: false, code: typeof payload.code === "string" ? payload.code : "MOBILE_CHANGE_FAILED" },
-        { status: backendRes.status }
+      return bffCodedError(
+        typeof payload.code === "string" ? payload.code : "MOBILE_CHANGE_FAILED",
+        backendRes.status
       );
     }
+
+    // Invalidate as soon as upstream confirms — even if session cookie refresh fails.
+    await invalidateAfterMobileVerify(host, headers);
 
     const sessionToken =
       typeof payload.sessionToken === "string" ? payload.sessionToken.trim() : "";
     if (sessionToken.length === 0) {
-      return NextResponse.json({ ok: false, code: "SESSION_TOKEN_MISSING" }, { status: 502 });
+      return bffCodedError("SESSION_TOKEN_MISSING", 502);
     }
 
     const res = NextResponse.json(
@@ -80,6 +117,6 @@ export async function POST(req: Request): Promise<NextResponse> {
     setSessionCookieOnResponse(res.headers, sessionToken, host);
     return res;
   } catch {
-    return NextResponse.json({ ok: false, code: "BACKEND_UNREACHABLE" }, { status: 502 });
+    return bffCodedError("BACKEND_UNREACHABLE", 502);
   }
 }

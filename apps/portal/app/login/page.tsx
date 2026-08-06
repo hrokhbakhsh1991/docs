@@ -79,6 +79,7 @@ export default async function PortalMemberLoginPage({ searchParams }: PageProps)
       data-member-login-egress
       data-portal-return={portalReturn}
       data-portal-auth-experience
+      data-portal-login-thin-host=""
     >
       <div data-portal-auth-backdrop aria-hidden="true" />
       <div data-portal-login-host-lede>

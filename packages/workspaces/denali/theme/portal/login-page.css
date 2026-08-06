@@ -1,6 +1,7 @@
 /**
  * Denali portal — auth experience shell (login + catalog registration OTP).
- * Hooks: data-portal-auth-* · page markers data-portal-member-login-page | data-catalog-registration-page
+ * Hooks: data-portal-auth-* · data-portal-register-guest-auth · data-portal-register-auth-gate
+ *         · data-portal-login-modal-* · page markers data-portal-member-login-page | data-catalog-registration-page
  */
 @import "./denali-form-controls.css";
 
@@ -189,6 +190,111 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-reg
   color: var(--color-text-primary);
 }
 
+/* ── Guest auth gate (PCMS-UX-MODAL-04) ────────────────────────────────────── */
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-register-guest-auth="modal-first"]
+  [data-portal-auth-card] {
+  padding-block-end: var(--space-5);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-register-auth-gate] {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+  padding: var(--space-4);
+  border-radius: calc(var(--radius) * 1.1);
+  border: 1px solid color-mix(in oklab, var(--color-border-subtle) 85%, var(--color-primary));
+  background: color-mix(in oklab, var(--color-bg-muted) 55%, var(--color-bg-surface));
+  text-align: center;
+  transition: opacity 0.2s ease;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-register-auth-gate][data-portal-register-auth-gate-modal-open="true"] {
+  opacity: 0.48;
+  pointer-events: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-register-auth-gate-lede] {
+  margin: 0;
+  max-width: 36ch;
+  margin-inline: auto;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+/* Hero already carries loginDescription — avoid duplicate copy in the gate. */
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-auth-card]:has([data-portal-auth-lede])
+  [data-portal-register-auth-gate-lede] {
+  display: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-register-auth-gate]
+  [data-portal-register-sign-in-link] {
+  margin: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-register-auth-gate]
+  [data-portal-register-sign-in-button] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  width: 100%;
+  min-height: 3rem;
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: calc(var(--radius) * 1.1);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--color-primary) 92%, white),
+    var(--color-primary)
+  );
+  color: var(--color-primary-fg);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  box-shadow:
+    0 1px 2px rgb(4 120 87 / 0.24),
+    0 6px 16px rgb(5 150 105 / 0.18);
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-register-auth-gate]
+  [data-portal-register-sign-in-button]:hover {
+  filter: brightness(1.03);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-register-auth-gate]
+  [data-portal-register-sign-in-button]:active {
+  transform: translateY(1px);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-register-auth-gate]
+  [data-portal-register-sign-in-button]:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--color-focus-ring),
+    0 6px 16px rgb(5 150 105 / 0.18);
+}
+
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-registration-resume-pending] {
   padding: var(--space-6) var(--space-4);
   text-align: center;
@@ -340,13 +446,22 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 /* ── Auth form step layout (phone / OTP / profile) ────────────────────────── */
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  :is(
+    main:is([data-portal-member-login-page], [data-catalog-registration-page]),
+    [data-portal-login-modal-body]
+  )
   [data-public-registration-phone],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  :is(
+    main:is([data-portal-member-login-page], [data-catalog-registration-page]),
+    [data-portal-login-modal-body]
+  )
   [data-public-registration-otp],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  :is(
+    main:is([data-portal-member-login-page], [data-catalog-registration-page]),
+    [data-portal-login-modal-body]
+  )
   [data-public-registration-profile] {
   display: flex;
   flex-direction: column;
@@ -354,7 +469,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  :is(
+    main:is([data-portal-member-login-page], [data-catalog-registration-page]),
+    [data-portal-login-modal-body]
+  )
   [data-public-registration-otp]
   button[type="button"]:not([data-action="verify-otp"]) {
   width: auto;
@@ -659,6 +777,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 /* ── Login modal (PCMS-UX-MODAL) ───────────────────────────────────────────── */
+/*
+ * Preflight resets <dialog> margin — UA auto-centering dies. Open state uses a
+ * full-viewport flex frame so the panel stays centered (desktop) / docked (sheet).
+ */
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-login-modal] {
@@ -667,6 +789,25 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   background: transparent;
   max-width: none;
   max-height: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-login-modal][open],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-login-modal][data-portal-login-modal-open="true"] {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  max-width: 100vw;
+  max-height: 100dvh;
+  margin: 0;
+  border: none;
+  padding: 0;
+  background: transparent;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -680,7 +821,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   width: min(100vw - 2rem, 28rem);
   max-height: min(90dvh, 40rem);
   overflow: auto;
-  margin: auto;
+  margin: 0;
   border-radius: calc(var(--radius) * 1.25);
   border: 1px solid var(--color-border-subtle);
   background: var(--color-bg-surface);
@@ -720,8 +861,71 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-login-modal-body]
+  [data-registration-stepper] {
+  display: flex;
+  gap: 0;
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-login-modal-body]
+  [data-registration-stepper]
+  li {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding-inline: var(--space-1);
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-login-modal-body]
+  [data-registration-step-state="current"]
+  [data-registration-step-label] {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-login-modal-body]
+  [data-registration-step-index] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-login-modal-body]
+  [data-registration-step-state="current"]
+  [data-registration-step-index],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-login-modal-body]
+  [data-registration-step-state="complete"]
+  [data-registration-step-index] {
+  border-color: color-mix(in oklab, var(--color-primary) 55%, transparent);
+  background: color-mix(in oklab, var(--color-primary) 14%, var(--color-bg-surface));
+  color: var(--color-primary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-register-sign-in-link]
-  button {
+  button:not([data-portal-register-sign-in-button]) {
   font: inherit;
   color: var(--color-primary);
   background: none;
@@ -734,6 +938,9 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-login-page]
+  [data-portal-login-host-lede],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-login-thin-host]
   [data-portal-login-host-lede] {
   width: min(100%, 28rem);
   margin: var(--space-8) auto 0;
@@ -742,14 +949,33 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   text-align: center;
 }
 
+/* Host lede is fallback when modal closed — hide while dialog is open. */
+body[data-app-surface="portal"][data-workspace-plugin="denali"]:has(
+    [data-portal-login-modal-open="true"]
+  )
+  [data-portal-login-host-lede] {
+  visibility: hidden;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-login-thin-host]
+  [data-portal-auth-backdrop] {
+  opacity: 1;
+}
+
 /* Mobile bottom sheet */
 @media (max-width: 47.99rem) {
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
-    [data-portal-login-modal][data-portal-login-modal-presentation="sheet"] {
+    [data-portal-login-modal][data-portal-login-modal-presentation="sheet"][open],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-login-modal][data-portal-login-modal-presentation="sheet"][data-portal-login-modal-open="true"] {
     width: 100%;
-    max-width: 100%;
+    max-width: 100vw;
+    height: 100%;
+    max-height: 100dvh;
     margin: 0;
-    align-self: end;
+    align-items: flex-end;
+    justify-content: center;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]

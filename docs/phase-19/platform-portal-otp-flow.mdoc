@@ -15,13 +15,33 @@ Guest registration on **`apps/portal`** (`{club}.portal.{root}`). Authority for 
 
 Authority: [p6-host-addressing-architecture.mdoc](p6-host-addressing-architecture.mdoc)
 
-| Env | Portal register URL (canonical) | Legacy dev alias |
-| --- | ------------------------------- | ---------------- |
-| Dev | `http://{club}.portal.localhost:3003/catalog/{tourId}/register` | `http://{club}.localhost:3003/...` |
-| Prod (platform) | `https://{club}.portal.{root}/catalog/{tourId}/register` | — |
-| Prod (custom) | `https://portal.{apex}/catalog/{tourId}/register` | `tenant_domains` · `surface=portal` |
+| Env | Portal register / login URL (canonical) | Notes |
+| --- | --------------------------------------- | ----- |
+| Dev (WRS club) | `http://{club}.portal.localhost:3003/...` | e.g. `denali.portal.localhost:3003` — WRS club-portal form |
+| Dev legacy alias | `http://{club}.localhost:3003/...` | Prefer `{club}.portal.localhost` for branding + tenant bind |
+| Prod (platform) | `https://{club}.portal.{root}/...` | — |
+| Prod (custom apex) | `https://portal.{apex}/...` | e.g. `portal.denali.club` — `tenant_domains` · `surface=portal` |
 
 Marketing CTA resolves portal origin via `resolveWebRegistrationUrl` → **`buildDevPortalPublicBaseUrl`** (`@app-tour/tenant-kernel`; strips `shop.` when present). Custom apex: set `PORTAL_PUBLIC_BASE_URL`.
+
+Wrong host → bootstrap/branding 404. Do not invert apex-style labels on localhost (treat custom-apex `portal.denali.*` separately from WRS `{club}.portal.localhost`).
+
+---
+
+## Coded auth errors (presentation contract · 2026-08-06)
+
+| Code | Meaning | Layer that emits |
+| ---- | ------- | ---------------- |
+| `MOBILE_REQUIRED` | Phone empty after trim / normalize yields empty | Portal BFF `phone-preflight` · `request-otp` · `verify-otp` |
+| `MOBILE_INVALID` | Non-empty phone fails shared `isPublicRegistrationMobileValid(normalize(...))` | Same BFF routes (distinct from required) |
+| `OTP_*` / `DISPLAY_NAME_REQUIRED` / … | Unchanged coded failures | BFF ↔ API |
+
+**UI rules (no HTML5 as message source):**
+
+1. Messages resolve only via i18n keys under `catalogRegistration.errors.*` (distinct copy for `MOBILE_REQUIRED` vs `MOBILE_INVALID`).
+2. Clear presentation error on input edit (phone / OTP / onboarding profile fields).
+3. Onboarding profile form uses `noValidate`; empty name → coded `DISPLAY_NAME_REQUIRED` with `role="alert"` — browser English HTML5 validation must not block submit.
+4. Client may mirror the shared normalize/validity helpers from `@app-tour/catalog-registration-auth` before fetch; it must not invent local regex or hard-coded English strings.
 
 ---
 
@@ -67,15 +87,21 @@ Tour intake (separate step):
 
 ---
 
-## Dev OTP `1234`
+## Dev OTP `1234` (single source)
+
+When `NODE_ENV` is `development` or `test` and `AUTH_ALLOW_DEV_STATIC_OTP !== false`:
 
 | Layer | Mechanism |
 | ----- | --------- |
-| API | `verifyMobileOtp` accepts `1234` when `NODE_ENV` is `development` or `test` and `AUTH_ALLOW_DEV_STATIC_OTP !== false` |
-| Portal UI | Pre-fills OTP in dev · shows `data-dev-otp-hint` |
+| API challenge | `createMobileOtpChallenge` **issues** static `1234` (same value hashed + logged via `otp-dev delivery`) — not a random 6-digit that disagrees with the UI hint |
+| API verify | `verifyMobileOtp` still accepts `1234` (defense-in-depth bypass remains) |
+| Portal UI | Pre-fills OTP in dev · `otp.devHint` shows `{code: PUBLIC_REGISTRATION_DEV_OTP}` (`1234`) |
+| Shared constant | `PUBLIC_REGISTRATION_DEV_OTP` in `@app-tour/catalog-registration-auth` must match API `DEV_STATIC_OTP` |
 | E2E | `CATALOG_DEV_OTP = "1234"` in `catalog-registration-otp.ts` |
 
-Production: real OTP from `createMobileOtpChallenge` (SMS/log per `otp-delivery.ts`).
+When static OTP is disabled (`AUTH_ALLOW_DEV_STATIC_OTP=false`) or production: real OTP from `resolveOtpCodeForChallenge` / SMS (`otp-delivery.ts`); UI must not claim a fixed code.
+
+Decision: **DL-44** in [member-portal-shell/decision-log.mdoc](member-portal-shell/decision-log.mdoc).
 
 ---
 

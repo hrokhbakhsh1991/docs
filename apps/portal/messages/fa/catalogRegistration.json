@@ -2,7 +2,7 @@
   "pageTitle": "ثبت‌نام — {tourTitle}",
   "loginPageTitle": "ورود",
   "loginModalClose": "بستن ورود",
-  "signInToRegister": "قبلاً ثبت‌نام کرده‌اید؟ ورود",
+  "signInToRegister": "ورود برای ادامه ثبت‌نام",
   "backToTour": "بازگشت به تور",
   "backToMarketing": "بازگشت",
   "phone": {
@@ -31,7 +31,7 @@
   },
   "profile": {
     "title": "تکمیل پروفایل",
-    "loginTitle": "ساخت حساب کاربری",
+    "loginTitle": "تکمیل ورود",
     "description": "نام اجباری است. ایمیل اختیاری.",
     "loginDescription": "برای تکمیل ورود، نام خود را وارد کنید. ایمیل اختیاری است.",
     "nameLabel": "نام",
@@ -86,12 +86,13 @@
     "viewRegistrations": "مشاهده ثبت‌نام‌های من"
   },
   "errors": {
-    "MOBILE_REQUIRED": "شماره موبایل معتبر وارد کنید.",
+    "MOBILE_REQUIRED": "شماره موبایل را وارد کنید.",
     "MOBILE_INVALID": "شماره موبایل معتبر وارد کنید.",
     "OTP_INVALID": "کد نامعتبر یا منقضی است. دوباره تلاش کنید.",
     "OTP_EXPIRED": "کد نامعتبر یا منقضی است. دوباره تلاش کنید.",
     "OTP_CHALLENGE_INVALID": "کد نامعتبر یا منقضی است. دوباره تلاش کنید.",
     "OTP_RATE_LIMITED": "تلاش زیاد بود. کمی صبر کنید.",
+    "OTP_PAYLOAD_INVALID": "کد تأیید را وارد کنید.",
     "DISPLAY_NAME_REQUIRED": "نام الزامی است.",
     "ONBOARDING_TOKEN_INVALID": "نشست منقضی شد. دوباره با شماره موبایل شروع کنید.",
     "PUBLIC_CATALOG_TENANT_UNRESOLVED": "ثبت‌نام در این سایت موقتاً در دسترس نیست.",

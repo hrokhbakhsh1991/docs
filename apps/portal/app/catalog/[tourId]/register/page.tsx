@@ -12,7 +12,7 @@ import { registerWorkspacePluginSafe } from "@app-tour/workspace-plugin-host/reg
 import { bindWorkspacePluginRegisterInvokers } from "@app-tour/guest-workspace-runtime/bind-register-invokers";
 
 import { PortalLoginModalOpener } from "@/auth/portal-login-modal-opener";
-import { PortalRegisterSignInLink } from "@/auth/portal-register-sign-in-link";
+import { PortalRegisterGuestAuthGate } from "@/auth/portal-register-guest-auth-gate";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import { buildRegistrationResumeInitialState } from "@/catalog/build-registration-resume-initial-state.server";
 import { PublicCatalogRegistrationFlow } from "@/catalog/public-catalog-registration-flow";
@@ -111,13 +111,12 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
   );
 
   const resumeAtIntake = registrationResume !== null;
-  const heroLede = resumeAtIntake ? t("intake.resumeLede") : t("phone.description");
+  // PCMS-UX-MODAL-04 — guests auth in modal only; page is intake after session.
+  const heroLede = resumeAtIntake ? t("intake.resumeLede") : t("phone.loginDescription");
   const sessionBadge =
     registrationResume !== null && registrationResume.memberMobile !== null
       ? t("intake.signedInBadge", { mobile: registrationResume.memberMobile })
       : null;
-
-  const openAuthLogin = !resumeAtIntake && query.auth === "login";
 
   const loginFlow = {
     workspace,
@@ -137,25 +136,35 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
       sessionBadge={sessionBadge}
       pageKind="registration"
       workspace={workspace}
-      mainAttributes={resumeAtIntake ? { "data-registration-resume": "intake" } : undefined}
+      mainAttributes={
+        resumeAtIntake
+          ? { "data-registration-resume": "intake" }
+          : { "data-portal-register-guest-auth": "modal-first" }
+      }
     >
-      {!resumeAtIntake ? <PortalRegisterSignInLink flow={loginFlow} /> : null}
-      {openAuthLogin ? <PortalLoginModalOpener host="register" flow={loginFlow} /> : null}
-      <PublicCatalogRegistrationFlow
-        workspace={workspace}
-        tenantId={bootstrap.tenantId}
-        tourId={tourId}
-        tourTitle={tourTitle}
-        tourPoliciesText={tour.policiesText ?? null}
-        tourPriceAmount={tour.priceAmount ?? null}
-        tourTransport={tour.transport}
-        tourNationalIdRequired={tour.nationalIdRequired === true}
-        tourFatherNameRequired={tour.fatherNameRequired === true}
-        tourBirthDateRequired={tour.birthDateRequired === true}
-        backHref={backHref}
-        memberModuleHref={memberModuleHref}
-        initialRuntimeState={registrationResume?.initialState}
-      />
+      {registrationResume !== null ? (
+        <PublicCatalogRegistrationFlow
+          workspace={workspace}
+          tenantId={bootstrap.tenantId}
+          tourId={tourId}
+          tourTitle={tourTitle}
+          tourPoliciesText={tour.policiesText ?? null}
+          tourPriceAmount={tour.priceAmount ?? null}
+          tourTransport={tour.transport}
+          tourNationalIdRequired={tour.nationalIdRequired === true}
+          tourFatherNameRequired={tour.fatherNameRequired === true}
+          tourBirthDateRequired={tour.birthDateRequired === true}
+          backHref={backHref}
+          memberModuleHref={memberModuleHref}
+          initialRuntimeState={registrationResume.initialState}
+        />
+      ) : (
+        <>
+          {/* PCMS-UX-MODAL-04: guests always auto-open; `?auth=login` is a compatible deep link. */}
+          <PortalLoginModalOpener host="register" flow={loginFlow} />
+          <PortalRegisterGuestAuthGate flow={loginFlow} tenantId={bootstrap.tenantId} />
+        </>
+      )}
     </PortalAuthExperienceShell>
   );
 }

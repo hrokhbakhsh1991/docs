@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { normalizePublicRegistrationMobile } from "@app-tour/catalog-registration-auth";
+import {
+  classifyPublicRegistrationMobileInput,
+  normalizePublicRegistrationMobile,
+} from "@app-tour/catalog-registration-auth";
 
 import { bffCodedError } from "@/auth/bff-coded-error";
 import {
@@ -17,12 +20,13 @@ type PhonePreflightBody = {
 
 export async function POST(req: Request): Promise<NextResponse> {
   const body = (await req.json().catch(() => ({}))) as PhonePreflightBody;
+  const mobileCode = classifyPublicRegistrationMobileInput(body.phone);
+  if (mobileCode !== null) {
+    return bffCodedError(mobileCode, 400);
+  }
   const phone = normalizePublicRegistrationMobile(
     typeof body.phone === "string" ? body.phone.trim() : ""
   );
-  if (phone.length === 0) {
-    return bffCodedError("MOBILE_REQUIRED", 400);
-  }
 
   const rateKey = readBffLoginRateLimitKey(req, phone);
   if (!checkBffLoginRateLimit(rateKey)) {

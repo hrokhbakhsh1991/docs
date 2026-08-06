@@ -190,11 +190,9 @@ export function PublicCatalogRegistrationFlow({
 
   const isResumeAtIntake =
     initialRuntimeState?.currentStep === "intake" || resumeAtIntake;
-  const stepperMode = memberLoginEgress
-    ? "login"
-    : isResumeAtIntake
-      ? "intake-only"
-      : "registration";
+  // Login modal: no stepper chrome (PCMS-03-UX) — modal header title is enough.
+  const showStepper = !memberLoginEgress;
+  const stepperMode = isResumeAtIntake ? "intake-only" : "registration";
 
   if (
     sessionResumeStatus === "checking" &&
@@ -221,7 +219,9 @@ export function PublicCatalogRegistrationFlow({
         ? { "data-registration-resume": "intake" }
         : {})}
     >
-      <CatalogRegistrationStepper currentStep={state.currentStep} mode={stepperMode} />
+      {showStepper ? (
+        <CatalogRegistrationStepper currentStep={state.currentStep} mode={stepperMode} />
+      ) : null}
       <Step context={context} state={state} dispatch={dispatch} resolveError={resolveError} />
     </div>
   );

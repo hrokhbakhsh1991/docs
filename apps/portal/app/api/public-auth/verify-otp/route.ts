@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { normalizePublicRegistrationMobile } from "@app-tour/catalog-registration-auth";
+import {
+  classifyPublicRegistrationMobileInput,
+  normalizePublicRegistrationMobile,
+} from "@app-tour/catalog-registration-auth";
 
 import { bffCodedError } from "@/auth/bff-coded-error";
 import { mapPublicAuthBffCatchError } from "@/auth/public-auth-bff-error";
@@ -17,6 +20,10 @@ type VerifyOtpBody = {
 
 export async function POST(req: Request): Promise<NextResponse> {
   const body = (await req.json().catch(() => ({}))) as VerifyOtpBody;
+  const mobileCode = classifyPublicRegistrationMobileInput(body.phone);
+  if (mobileCode !== null) {
+    return bffCodedError(mobileCode, 400);
+  }
   const phone = normalizePublicRegistrationMobile(
     typeof body.phone === "string" ? body.phone.trim() : ""
   );
@@ -24,9 +31,6 @@ export async function POST(req: Request): Promise<NextResponse> {
   const challengeId =
     typeof body.challenge_id === "string" ? body.challenge_id.trim() : "";
 
-  if (phone.length === 0) {
-    return bffCodedError("MOBILE_REQUIRED", 400);
-  }
   if (otp.length === 0 || challengeId.length === 0) {
     return bffCodedError("OTP_PAYLOAD_INVALID", 400);
   }

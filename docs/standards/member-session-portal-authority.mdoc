@@ -127,7 +127,8 @@ Marketing header **Sign in** (`data-marketing-header-sign-in`) must target membe
 | ----- | ------- | ------ |
 | Marketing header Sign in | `resolvePortalMemberLoginUrl(host)` | Portal `/login?portalReturn=/me/registrations` (thin host → **login modal**) |
 | Marketing tour PDP «ورود برای ادامه ثبت‌نام» | `resolvePortalRegistrationLoginUrl(host, tourId)` | Portal `/catalog/{tourId}/register?auth=login` (register **page** + login modal — stay on tour context) |
-| Portal register «حساب دارید؟ ورود» | `openLoginModal` (same page) | Modal over register; optional `?auth=login` deep link |
+| Portal register guest (any visit) | Auto `openLoginModal` (PCMS-UX-MODAL-04) | Modal over register; `?auth=login` remains a compatible deep link / reopen |
+| Portal register reopen after dismiss | `PortalRegisterSignInLink` → `openLoginModal` | Same-page modal; no navigate-away |
 | Marketing footer «ثبت‌نام‌های من» | `resolvePortalMemberModuleUrl(host)` | Portal `/me/registrations` (middleware redirects guests to `/login?portalReturn=…`) |
 | Portal middleware (unauthenticated `/me/*`) | `resolvePortalMemberLoginPath(host, returnPath)` | `/login?portalReturn=<requested /me/* path>` |
 
@@ -135,8 +136,8 @@ Marketing header **Sign in** (`data-marketing-header-sign-in`) must target membe
 
 | Host | Role |
 | ---- | ---- |
-| `/login` | **Thin public host** — required for middleware `/me/*` gate (guests never render `/me` React). Auto-opens modal. Not a second full alpine registration page. |
-| `/catalog/{id}/register` | Full tour registration page. May open the **same** login modal via «ورود» / `?auth=login` without leaving the page. Intake stays on the page, never inside the modal. |
+| `/login` | **Thin public host** — required for middleware `/me/*` gate (guests never render `/me` React). Auto-opens modal. Not a second full alpine registration page. Auth only: phone → OTP → (profile if new). |
+| `/catalog/{id}/register` | Full tour **intake** page. Guests **must** complete member auth in the **same** login modal first (**PCMS-UX-MODAL-04**). Session members land intake-only (PCMS-REG-01). Intake stays on the page, never inside the modal. |
 
 **Login route (PCMS-03-LOGIN):** Deep link **`/login`** remains canonical for standalone sign-in and `/me` redirects. OTP steps are shared with catalog registration auth steps (`memberLoginEgress`); smoke tour id bootstraps the flow plugin server-side only. Legacy `/catalog/{id}/register?portalReturn=…` redirects to `/login?portalReturn=…`.
 
@@ -153,11 +154,14 @@ Marketing header **Sign in** (`data-marketing-header-sign-in`) must target membe
 | **PCMS-UX-MODAL-01** | Desktop = dialog · mobile = bottom sheet · hooks `data-portal-login-modal` / `data-portal-login-modal-presentation`. |
 | **PCMS-UX-MODAL-02** | While modal open on register host: stay on URL; close without success keeps the page. |
 | **PCMS-UX-MODAL-03** | Register-host modal success: cookie probe → close modal → intake-only on **page** (not intake in modal). |
+| **PCMS-UX-MODAL-04** | **Modal-first tour register (2026-08-05):** Guest on `/catalog/{id}/register` (no valid member session for host tenant) **must not** render inline phone/OTP/profile on the page. Auto-open login modal (same as `?auth=login`). New members: display name **required**, email **optional** (`register-complete`). Close without success keeps the register URL; page shows auth gate + reopen control — **no** tour intake until session. |
 | **PCMS-UX-MODAL-COOKIE** | Every modal success path must probe same-origin session (`waitForMemberSessionCookie`) so the session cookie is committed and COOK-03 can refresh `Domain=<share-parent>` on **custom apex** or **`portal.{club}.localhost`** — otherwise marketing SSR cannot detect the member. Legacy `{club}.portal.localhost` probe still avoids login redirect loops but does not share with marketing. |
 
-**Login chrome (PCMS-03-UX):** Modal / thin host uses login titles (`loginPageTitle`), marketing back where applicable, stepper phone→otp→profile only — not tour registration chrome.
+**Login chrome (PCMS-03-UX):** Modal / thin host uses login titles (`loginPageTitle`) and marketing back where applicable — **no** registration stepper chrome. Auth still runs phone → OTP → (profile if new); the step list UI is omitted inside the login modal.
 
-**Register route (tour registration):** `/catalog/{tourId}/register` without forcing login — full phone → OTP → (profile) → intake when guest. Session resume → intake-only (PCMS-REG-01).
+**Register route (tour registration):** `/catalog/{tourId}/register` is **intake-first after auth**. Guests are gated by PCMS-UX-MODAL-04 (modal OTP / profile). Session resume → intake-only (PCMS-REG-01). Inline guest auth on the register page is **forbidden**.
+
+**Auth API (unchanged contract):** `phone-preflight` → `request-otp` → `verify-otp` (existing member → session) **or** `requires_registration` → profile → `register-complete` (new member → session). Portal BFF under `/api/public-auth/*`.
 
 **Cross-intent after login:** Marketing tour sign-in lands on register with modal; after OTP, user remains on register → intake-only. Header Sign in uses `/login` then `/me/registrations`.
 

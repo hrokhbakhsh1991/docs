@@ -4,7 +4,7 @@ phase: 19
 format: markdoc
 doc_role: architecture_sot
 doc_id: PLATFORM-PORTAL-MEMBER-PROFILE
-version: "2026-07-01-v1"
+version: "2026-08-06-v3"
 status: FROZEN_CONTRACT
 extends:
   - docs/phase-19/platform-portal-member.mdoc
@@ -15,7 +15,7 @@ app: apps/portal
 
 # Platform — portal member profile & `/me` area (architecture freeze)
 
-**Status:** 2026-07-02 · **Contract frozen** · **M6 aligned** — `GET/PATCH /api/me/profile`, SDK capabilities, Denali skin + DEN-PROF E2E (roadmap fields deferred)
+**Status:** 2026-08-06 · **Contract frozen** · **M6 + cache/avatar/err + error-UX addenda** — `GET/PATCH /api/me/profile`, SDK capabilities, Denali skin + DEN-PROF E2E (roadmap fields deferred)
 
 **Related:**
 
@@ -44,6 +44,15 @@ This document is the **single source of truth** for aligning:
 | **INV-MP-08** | **Workspace extends profile only via SDK** — workspace-specific rules live in `packages/workspaces/{id}` and are invoked from API layer, never from portal. |
 | **INV-MP-09** | **Portal owns presentation** — layout, i18n, theming, accessibility; not business rules. |
 | **INV-MP-10** | **Registrations stay on `/api/me/registrations`** — member bookings/receipt BFF is separate from profile BFF; both share session headers via `buildMemberApiHeaders`. |
+
+### Behavioral addenda (cache · avatar · field errors · 2026-08-05 / 2026-08-06)
+
+| ID | Invariant |
+| -- | --------- |
+| **INV-MP-CACHE-01** | **Profile-view cache coherence** — every successful mutation that changes the member profile view must invalidate the same in-memory cache key `contractVersion:tenantId:userId:pluginId`. Covered mutations: `PATCH /api/me/profile`, `POST /api/me/mobile/verify`, `POST /api/me/avatar`, `DELETE /api/me/avatar`. Invalidation goes through one shared helper (`invalidateMemberProfileViewForMember`) that also clears member entitlements cache for the same `{tenantId,userId,pluginId}` (same pairing PATCH already used). Callers must not invent TTL hacks or scattered `cache: 'no-store'` as a substitute for invalidate. **PATCH edge:** if upstream `PATCH /identity/me` succeeds but `buildMemberProfileView` fails, BFF must still invalidate before returning the error so GET cannot serve a pre-mutation snapshot. |
+| **INV-MP-AVATAR-01** | **Avatar is an immediate side-effect** — upload/remove succeed against the avatar BFF independently of the text PATCH form. Client avatar preview state tracks the **last successful server URL** (or null after remove). Form **Discard** resets only PATCH-editable field values plus form-level success/error messages; Discard must **not** roll avatar preview back to a pre-upload snapshot unless that snapshot is still the last successful server URL held in profile view state. |
+| **INV-MP-AVATAR-02** | **Avatar file gate is a presentation mirror** — client may reject empty / oversize / wrong MIME using the same SDK constants the avatar BFF enforces (`OPERATOR_AVATAR_MAX_BYTES`, `isOperatorAvatarContentType`) so the File API fails fast with coded messages. This is **not** a profile-field business validator (INV-MP-07 still forbids regex/checksum/calendar in portal). No extra client-only size/type rules. |
+| **INV-MP-ERR-01** | **Field errors are presentation-only** — on `PATCH /api/me/profile` failure, UI binds `error.fieldErrors` (map of `MemberProfileFieldId` → coded string) to the matching field slot (`aria-invalid` / `aria-describedby` as needed). Portal must not import or execute SDK field validators (INV-MP-07). Coded messages resolve via existing `errors.PROFILE_*` i18n. **Clear-on-edit:** when the member edits a field, UI removes that field’s entry from the presentation `fieldErrors` map (does not re-validate). **Collect-all:** `parseMemberProfilePatchBody` accumulates every failing editable field into one `fieldErrors` map; top-level `code` is the first failing field’s validator code (stable, deterministic Object.entries order). Stop-at-first is forbidden after this addendum (DL-44). |
 
 **Session (aligned with code, supersedes stale doc text):**
 
@@ -96,7 +105,7 @@ Legacy `session-profile` BFF and direct portal `identity/me` SSR were removed in
 | `apps/portal/app/me/layout.tsx` | Session guards + `PortalMemberShell` wrapper (PS-1) | KEEP — presentation |
 | `apps/portal/src/shell/*` | Platform member shell frame (header, bottom nav, user menu) | **PS-1** |
 | `apps/portal/app/me/profile/page.tsx` | SSR profile load | **M3** — `fetchMemberProfile` → `/api/me/profile` |
-| `apps/portal/app/me/profile/member-profile-form.tsx` | Capability-driven form | **M3** — `PATCH /api/me/profile` |
+| `apps/portal/app/me/profile/member-profile-form.tsx` | Capability-driven form; Discard = PATCH fields only (**INV-MP-AVATAR-01** / DL-43) | **M3** + avatar side-effect policy |
 | `apps/portal/app/api/public-auth/session-profile/route.ts` | Legacy profile GET/PATCH | **REMOVED M4** |
 | `apps/portal/app/api/me/profile/route.ts` | Canonical profile BFF | **M2** |
 | `apps/portal/src/me/member-profile-bff.server.ts` | SDK mapping + patch validation | **M2** |
@@ -104,7 +113,9 @@ Legacy `session-profile` BFF and direct portal `identity/me` SSR were removed in
 | `apps/portal/src/me/fetch-member-profile-from-session.server.ts` | PCMS catalog resume SSR (allowlisted `identity/me`) | **PCMS-REG-01** |
 | `apps/portal/src/catalog/build-registration-resume-initial-state.server.ts` | Skip OTP when member session valid | **PCMS-REG-01** |
 | `apps/portal/src/me/member-profile-contract.server.ts` | Contract v1 + unified errors | **M5** |
-| `apps/portal/src/me/member-profile-cache.server.ts` | GET cache + PATCH invalidation | **M5** |
+| `apps/portal/src/me/member-profile-cache.server.ts` | GET cache + shared invalidate helper (`invalidateMemberProfileViewForMember`) | **M5** + **INV-MP-CACHE-01** |
+| `apps/portal/app/api/me/avatar/route.ts` | Avatar POST/DELETE BFF (+ cache invalidate on OK) | **INV-MP-01** · **INV-MP-CACHE-01** |
+| `apps/portal/app/api/me/mobile/verify/route.ts` | Mobile OTP verify BFF (+ cache invalidate on OK) | **INV-MP-01** · **INV-MP-CACHE-01** |
 | `apps/portal/src/me/member-profile-observability.server.ts` | PII-free BFF telemetry | **M5** |
 | `apps/portal/src/me/member-profile-contract-v1.snapshot.json` | Frozen v1 contract snapshot | **M6** |
 | `apps/portal/src/me/member-profile-cache-store.server.ts` | Cache store abstraction | **M6** |
@@ -235,7 +246,18 @@ type MemberProfileCapabilities = {
 function resolveMemberProfileCapabilities(pluginId: string): MemberProfileCapabilities;
 ```
 
-Validators live in `member-profile-validators.ts` — **BFF/API only**; portal UI must not call them (INV-MP-07).
+Validators live in `member-profile-validators.ts` — **BFF/API only**; portal UI must not call them (INV-MP-07). Attached only for fields present in that plugin’s `editableFields` (`attachValidators`) — workspaces that omit `nationalId` / `birthDate` never run those validators.
+
+#### Field validator contract (platform · capability-scoped)
+
+| Field | Accept empty clear? | Rules | Error code |
+| ----- | ------------------- | ----- | ---------- |
+| `birthDate` | Yes | Must match `YYYY-MM-DD`; must be a real calendar date (reject e.g. `1991-02-31`); must not be after **today** (UTC date ceiling) | `PROFILE_BIRTH_DATE_INVALID` |
+| `nationalId` | Yes | Platform field id `nationalId` means **Iranian national ID** (`locale=IR`): exactly 10 digits; reject all-same digits and all-zeros; apply standard IR checksum. Future locales = additional SDK validator packs — **not** portal branches and **not** `if (pluginId === "denali")`. | `PROFILE_NATIONAL_ID_INVALID` |
+| `displayName` | No (required when editable) | Non-empty, max length | `PROFILE_DISPLAY_NAME_INVALID` |
+| `email` | Yes | Max length + basic email shape | `PROFILE_EMAIL_INVALID` |
+| `fatherName` | Yes | Max length | `PROFILE_FATHER_NAME_INVALID` |
+| `gender` | Yes | Empty or `OPERATOR_PROFILE_GENDERS` enum | `PROFILE_GENDER_INVALID` |
 
 **Initial registry (v1 · frozen):**
 
@@ -252,13 +274,15 @@ Workspace deltas documented in `docs/workspaces/{id}/portal-member-profile.md` (
 
 | Method | Path | Auth | Upstream |
 | ------ | ---- | ---- | -------- |
-| `GET` | `/api/me/profile` | `atour_mb_session` | `GET /identity/me` → map to `MemberProfileView` |
-| `PATCH` | `/api/me/profile` | `atour_mb_session` | SDK patch build → `PATCH /identity/me` |
-| `POST` | `/api/me/avatar` | `atour_mb_session` | `POST /identity/me/avatar` |
-| `DELETE` | `/api/me/avatar` | `atour_mb_session` | `DELETE /identity/me/avatar` |
-| `GET` | `/api/me/avatar/url` | `atour_mb_session` | `GET /identity/me/avatar/url` |
-| `POST` | `/api/me/mobile/request-otp` | `atour_mb_session` | `POST /identity/me/mobile/request-otp` |
-| `POST` | `/api/me/mobile/verify` | `atour_mb_session` | `POST /identity/me/mobile/verify` (+ session cookie refresh) |
+| `GET` | `/api/me/profile` | `atour_mb_session` | `GET /identity/me` → map to `MemberProfileView` (reads shared cache) |
+| `PATCH` | `/api/me/profile` | `atour_mb_session` | SDK patch build → `PATCH /identity/me` → **INV-MP-CACHE-01** invalidate (+ optional re-write) |
+| `POST` | `/api/me/avatar` | `atour_mb_session` | `POST /identity/me/avatar` → **INV-MP-CACHE-01** invalidate on OK |
+| `DELETE` | `/api/me/avatar` | `atour_mb_session` | `DELETE /identity/me/avatar` → **INV-MP-CACHE-01** invalidate on OK |
+| `GET` | `/api/me/avatar/url` | `atour_mb_session` | `GET /identity/me/avatar/url` (read-only; no invalidate) |
+| `POST` | `/api/me/mobile/request-otp` | `atour_mb_session` | `POST /identity/me/mobile/request-otp` (challenge only; no profile-view mutate) |
+| `POST` | `/api/me/mobile/verify` | `atour_mb_session` | `POST /identity/me/mobile/verify` (+ session cookie refresh) → **INV-MP-CACHE-01** invalidate on OK |
+
+**Cache note:** `PATCH /api/me/profile` already invalidates then may re-write GET cache with the fresh view. Mobile verify and avatar mutations invalidate via the same helper so a subsequent `GET /api/me/profile` cannot serve a stale mobile or avatar snapshot.
 
 **Not profile BFF:** all `public-auth/*` except onboarding (`register-complete`).
 
@@ -291,6 +315,8 @@ Source: `apps/api/src/identity/membership-metadata.ts` · `me.service.ts`.
 | Documented logout route missing | **RESOLVED** (2026-07-02) — `POST /api/public-auth/logout` |
 | `fetchMemberRegistrations` returns `[]` on error | **OPEN** | observability debt |
 | `if (pluginId === "denali")` in portal profile | **Not present** | INV-MP-05 — guarded |
+| Stale GET after mobile/avatar mutate | **CLOSED by INV-MP-CACHE-01** | shared invalidate helper |
+| Discard undoes successful avatar | **CLOSED by INV-MP-AVATAR-01** | presentation policy |
 
 ---
 
@@ -332,8 +358,8 @@ Source: `apps/api/src/identity/membership-metadata.ts` · `me.service.ts`.
 ### Phase M5 — System hardening (post-legacy stabilization)
 
 1. Contract version tag `v1` on `MemberProfileView` / error payloads (`member-profile-contract.server.ts`). **✅ M5**
-2. In-memory GET cache keyed by `tenantId` + `userId` + `pluginId`; invalidate on PATCH (`member-profile-cache.server.ts`). **✅ M5**
-3. Unified error shape `{ code, message, fieldErrors? }` on all `/api/me/profile` failures. **✅ M5**
+2. In-memory GET cache keyed by `tenantId` + `userId` + `pluginId`; invalidate on PATCH (`member-profile-cache.server.ts`). **✅ M5** — extended by **INV-MP-CACHE-01** so mobile verify + avatar POST/DELETE share `invalidateMemberProfileViewForMember` (profile + entitlements).
+3. Unified error shape `{ code, message, fieldErrors? }` on all `/api/me/profile` failures. **✅ M5** — UI bind of `fieldErrors` per slot is **INV-MP-ERR-01** (presentation follow-up).
 4. Structured observability hooks — capability resolve, GET/PATCH, validation, cache events; no PII (`member-profile-observability.server.ts`). **✅ M5**
 
 ### Phase M6 — Final architecture lock (production freeze)

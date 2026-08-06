@@ -151,14 +151,14 @@ describe("member-profile-bff.server (M2)", () => {
 
   it("MP-BFF-05 PATCH validates editable fields via SDK", () => {
     const ok = parseMemberProfilePatchBody(
-      { fields: { nationalId: "1234567890", fatherName: "Ali" } },
+      { fields: { nationalId: "0013542419", fatherName: "Ali" } },
       "denali"
     );
     assert.ok("patch" in ok);
     if (!("patch" in ok)) {
       return;
     }
-    assert.deepEqual(ok.patch, { nationalId: "1234567890", fatherName: "Ali" });
+    assert.deepEqual(ok.patch, { nationalId: "0013542419", fatherName: "Ali" });
   });
 
   it("MP-BFF-08 PATCH runs SDK validator codes with fieldErrors", () => {
@@ -166,6 +166,19 @@ describe("member-profile-bff.server (M2)", () => {
     assert.equal("code" in err && err.code, "PROFILE_NATIONAL_ID_INVALID");
     assert.deepEqual("fieldErrors" in err && err.fieldErrors, {
       nationalId: "PROFILE_NATIONAL_ID_INVALID",
+    });
+  });
+
+  it("MP-BFF-08b PATCH collect-all fieldErrors for multiple invalid fields", () => {
+    const err = parseMemberProfilePatchBody(
+      { fields: { nationalId: "bad", birthDate: "1991-02-31", displayName: "" } },
+      "denali"
+    );
+    assert.equal("code" in err && err.code, "PROFILE_NATIONAL_ID_INVALID");
+    assert.deepEqual("fieldErrors" in err && err.fieldErrors, {
+      nationalId: "PROFILE_NATIONAL_ID_INVALID",
+      birthDate: "PROFILE_BIRTH_DATE_INVALID",
+      displayName: "PROFILE_DISPLAY_NAME_INVALID",
     });
   });
 
@@ -194,14 +207,14 @@ describe("member-profile-bff.server (M2)", () => {
 
   it("MP-BFF-10c PATCH maps empty gender to null upstream", () => {
     const ok = parseMemberProfilePatchBody(
-      { fields: { nationalId: "1234567890", gender: "" } },
+      { fields: { nationalId: "0013542419", gender: "" } },
       "denali"
     );
     assert.ok("patch" in ok);
     if (!("patch" in ok)) {
       return;
     }
-    assert.deepEqual(ok.patch, { nationalId: "1234567890", gender: null });
+    assert.deepEqual(ok.patch, { nationalId: "0013542419", gender: null });
   });
 
   it("MP-BFF-11 identity missing userId returns PROFILE_FETCH_FAILED", () => {
@@ -251,6 +264,95 @@ describe("portal-member-profile-bff route (M2)", () => {
     assert.doesNotMatch(form, /session-profile/);
     assert.doesNotMatch(form, /\/\^\\d\{10\}/);
     assert.doesNotMatch(form, /nationalIdInvalid/);
+  });
+
+  it("MP-AVATAR-01 Discard resets text fields only; avatar syncs last server URL", () => {
+    const form = readFileSync(
+      join(repoRoot, "apps/portal/app/me/profile/member-profile-form.tsx"),
+      "utf8"
+    );
+    assert.match(form, /function handleAvatarChange/);
+    assert.match(form, /fields: \{ \.\.\.current\.fields, avatarUrl: nextUrl \}/);
+    assert.match(form, /INV-MP-AVATAR-01/);
+    assert.match(form, /function handleDiscard/);
+    assert.doesNotMatch(form, /setAvatarUrl\(profile\.fields\.avatarUrl/);
+    assert.doesNotMatch(form, /avatarEpoch/);
+    assert.doesNotMatch(form, /setAvatarEpoch/);
+  });
+
+  it("MP-ERR-01 form binds fieldErrors without importing validators", () => {
+    const form = readFileSync(
+      join(repoRoot, "apps/portal/app/me/profile/member-profile-form.tsx"),
+      "utf8"
+    );
+    assert.match(form, /fieldErrors/);
+    assert.match(form, /data-member-profile-field-error/);
+    assert.match(form, /aria-invalid/);
+    assert.match(form, /Object\.keys\(nextFieldErrors\)\.length === 0/);
+    assert.match(form, /function updateFieldValue/);
+    assert.match(form, /INV-MP-ERR-01 clear-on-edit/);
+    assert.match(form, /noValidate/);
+    assert.doesNotMatch(form, /validateMemberProfile/);
+    assert.doesNotMatch(form, /member-profile-validators/);
+    assert.match(form, /\/\/ INV-MP-07 \/ coded errors/);
+    assert.match(form, /inputMode=\{fieldInputMode\(fieldId\)\}/);
+  });
+
+  it("MP-UI-01 gender field has single data-member-profile-field hook; section fallback is identity", () => {
+    const form = readFileSync(
+      join(repoRoot, "apps/portal/app/me/profile/member-profile-form.tsx"),
+      "utf8"
+    );
+    const gender = readFileSync(
+      join(repoRoot, "apps/portal/app/me/profile/member-profile-gender-field.tsx"),
+      "utf8"
+    );
+    assert.match(form, /id: "identity"/);
+    assert.doesNotMatch(form, /id: "profile"/);
+    assert.doesNotMatch(gender, /data-member-profile-field/);
+  });
+
+  it("MP-MOBILE-01 verify shows success and otp step has resend", () => {
+    const mobile = readFileSync(
+      join(repoRoot, "apps/portal/app/me/profile/member-profile-mobile-change.tsx"),
+      "utf8"
+    );
+    assert.match(mobile, /mobileChange\.success/);
+    assert.match(mobile, /data-member-profile-mobile-change-success/);
+    assert.match(mobile, /data-member-profile-mobile-change-resend/);
+    assert.match(mobile, /resendOtp/);
+    assert.doesNotMatch(mobile, /isPublicRegistrationMobileValid/);
+    assert.match(mobile, /normalizePublicRegistrationMobile/);
+  });
+
+  it("MP-MOBILE-02 request-otp BFF classifies mobile and uses ingress host", () => {
+    const route = readFileSync(
+      join(repoRoot, "apps/portal/app/api/me/mobile/request-otp/route.ts"),
+      "utf8"
+    );
+    assert.match(route, /classifyPublicRegistrationMobileInput/);
+    assert.match(route, /resolvePortalIngressHost/);
+    assert.doesNotMatch(route, /function resolveIngressHost/);
+  });
+
+  it("MP-MOBILE-03 verify BFF classifies mobile like request-otp", () => {
+    const route = readFileSync(
+      join(repoRoot, "apps/portal/app/api/me/mobile/verify/route.ts"),
+      "utf8"
+    );
+    assert.match(route, /classifyPublicRegistrationMobileInput/);
+    assert.match(route, /normalizePublicRegistrationMobile/);
+  });
+
+  it("MP-A11Y-01 avatar exposes labeled preview and file input", () => {
+    const avatar = readFileSync(
+      join(repoRoot, "apps/portal/app/me/profile/member-profile-avatar.tsx"),
+      "utf8"
+    );
+    assert.match(avatar, /avatarPhotoAlt/);
+    assert.match(avatar, /avatarInitialsAlt/);
+    assert.match(avatar, /aria-label=\{t\("avatarUpload"\)\}/);
+    assert.match(avatar, /role="img"/);
   });
 
   it("MP-M3-03 registration auth steps hydrate intake from profile BFF", () => {
@@ -365,9 +467,107 @@ describe("member-profile M5 hardening", () => {
     );
     assert.match(route, /buildMemberProfileApiError/);
     assert.match(route, /readMemberProfileCache/);
-    assert.match(route, /invalidateMemberProfileCache/);
+    assert.match(route, /invalidateMemberProfileViewForMember/);
     assert.match(route, /logMemberProfileEvent/);
     assert.doesNotMatch(route, /error: \{ code \}/);
+  });
+});
+
+describe("member-profile INV-MP-CACHE-01", () => {
+  it("MP-CACHE-01 shared helper clears profile and entitlements caches", async () => {
+    const {
+      buildMemberProfileCacheKey,
+      clearMemberProfileCacheForTests,
+      invalidateMemberProfileViewForMember,
+      readMemberProfileCache,
+      writeMemberProfileCache,
+    } = await import("../src/me/member-profile-cache.server");
+    const {
+      buildMemberEntitlementsCacheKey,
+      clearMemberEntitlementsCacheForTests,
+      readMemberEntitlementsCache,
+      writeMemberEntitlementsCache,
+    } = await import("../src/me/member-entitlements-cache.server");
+    const { withMemberProfileContractVersion } = await import(
+      "../src/me/member-profile-contract.server"
+    );
+
+    clearMemberProfileCacheForTests();
+    clearMemberEntitlementsCacheForTests();
+
+    const member = {
+      tenantId: "tenant-cache-1",
+      userId: "user-cache-1",
+      pluginId: "denali",
+    };
+    const profileKey = buildMemberProfileCacheKey(member);
+    const entitlementsKey = buildMemberEntitlementsCacheKey(member);
+
+    writeMemberProfileCache(
+      profileKey,
+      withMemberProfileContractVersion({
+        userId: member.userId,
+        tenantId: member.tenantId,
+        role: "member",
+        fields: { displayName: "Stale", mobile: "+15550001111" },
+        capabilities: {
+          editableFields: ["displayName"],
+          readOnlyFields: ["mobile"],
+        },
+      })
+    );
+    writeMemberEntitlementsCache(entitlementsKey, {
+      ok: true,
+      tenantId: member.tenantId,
+      workspaceId: member.pluginId,
+      evaluatedAt: new Date().toISOString(),
+      granted: ["profile"],
+      denied: [],
+    });
+
+    assert.notEqual(readMemberProfileCache(profileKey), null);
+    assert.notEqual(readMemberEntitlementsCache(entitlementsKey), null);
+
+    invalidateMemberProfileViewForMember(member);
+
+    assert.equal(readMemberProfileCache(profileKey), null);
+    assert.equal(readMemberEntitlementsCache(entitlementsKey), null);
+  });
+
+  it("MP-CACHE-02 mobile verify and avatar routes invalidate via shared helper", () => {
+    const verify = readFileSync(
+      join(repoRoot, "apps/portal/app/api/me/mobile/verify/route.ts"),
+      "utf8"
+    );
+    const avatar = readFileSync(
+      join(repoRoot, "apps/portal/app/api/me/avatar/route.ts"),
+      "utf8"
+    );
+    assert.match(verify, /invalidateMemberProfileViewForMember/);
+    assert.match(verify, /resolvePortalBootstrapForHost/);
+    assert.match(verify, /resolvePortalIngressHost/);
+    assert.match(avatar, /invalidateMemberProfileViewForMember/);
+    assert.match(avatar, /resolvePortalIngressHost/);
+    assert.match(avatar, /backendRes\.ok/);
+  });
+
+  it("MP-CACHE-03 profile PATCH uses shared helper not raw dual invalidate", () => {
+    const route = readFileSync(
+      join(repoRoot, "apps/portal/app/api/me/profile/route.ts"),
+      "utf8"
+    );
+    assert.match(route, /invalidateMemberProfileViewForMember/);
+    assert.doesNotMatch(route, /invalidateMemberProfileCache\(/);
+    assert.doesNotMatch(route, /invalidateMemberEntitlementsCacheForMember/);
+  });
+
+  it("MP-CACHE-04 PATCH invalidates when view build fails after upstream OK", () => {
+    const route = readFileSync(
+      join(repoRoot, "apps/portal/app/api/me/profile/route.ts"),
+      "utf8"
+    );
+    assert.match(route, /upstream already committed/);
+    assert.match(route, /if \(!\("ok" in view\)\)/);
   });
 });
 

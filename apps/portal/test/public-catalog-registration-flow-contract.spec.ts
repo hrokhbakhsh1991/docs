@@ -47,7 +47,7 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
     assert.match(page, /buildRegistrationResumeInitialState/);
   });
 
-  it("PCMS-REG-LINK-01 register page opens same-page login modal", () => {
+  it("PCMS-REG-LINK-01 / PCMS-UX-MODAL-04 register guest opens modal-first auth gate", () => {
     const pagePath = join(
       repoRoot,
       "apps/portal/app/catalog/[tourId]/register/page.tsx"
@@ -57,11 +57,18 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
       join(repoRoot, "apps/portal/src/auth/portal-register-sign-in-link.tsx"),
       "utf8"
     );
-    assert.match(page, /PortalRegisterSignInLink/);
-    assert.match(page, /auth === "login"/);
+    const gate = readFileSync(
+      join(repoRoot, "apps/portal/src/auth/portal-register-guest-auth-gate.tsx"),
+      "utf8"
+    );
+    assert.match(page, /PortalRegisterGuestAuthGate/);
+    assert.match(page, /PortalLoginModalOpener/);
+    assert.match(page, /data-portal-register-guest-auth/);
+    assert.match(gate, /PortalRegisterSignInLink/);
     assert.match(signIn, /data-portal-register-sign-in-link/);
     assert.match(signIn, /openLoginModal/);
     assert.match(signIn, /host: "register"/);
+    assert.doesNotMatch(page, /auth === "login"/);
   });
 
   it("P8-03 OTP orchestration lives in shared catalog-registration-flow-ui", () => {
