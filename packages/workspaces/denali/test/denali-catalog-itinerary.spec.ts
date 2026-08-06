@@ -75,6 +75,17 @@ describe("denali-catalog-itinerary.spec.ts", () => {
     );
   });
 
+  it("DN-CAT-04b projects data:image smoke fixture URLs onto segment photoUrls", () => {
+    const dataUri =
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E";
+    const projected = projectDenaliCatalogItinerary(
+      canonical({
+        photos: [{ id: "p1", url: dataUri }],
+      }).data
+    );
+    assert.equal(projected?.[0]?.segments[0]?.photoUrls?.[0], dataUri);
+  });
+
   it("DN-CAT-10 resolves segment locationLabel from destination catalog when manual label absent", () => {
     const data = canonical().data;
     const program = data.program as {

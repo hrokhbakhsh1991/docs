@@ -3,7 +3,7 @@ import type {
   PublicCatalogItinerarySegment,
 } from "@app-tour/workspace-sdk";
 
-import { isDenaliHttpsImageUrl } from "../schemas/denaliFileAssetSchema";
+import { isDenaliCatalogProjectableImageUrl } from "../schemas/denaliFileAssetSchema";
 import { parseDenaliItineraryDays, type DenaliItinerarySegment } from "../schemas/denaliItineraryDaySchema";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -44,7 +44,7 @@ function buildPhotoUrlById(photos: unknown): ReadonlyMap<string, string> {
     }
     const id = readString(entry.id);
     const url = readString(entry.url);
-    if (id == null || url == null || !isDenaliHttpsImageUrl(url)) {
+    if (id == null || url == null || !isDenaliCatalogProjectableImageUrl(url)) {
       continue;
     }
     byId.set(id, url);

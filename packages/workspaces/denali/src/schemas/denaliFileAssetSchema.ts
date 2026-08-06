@@ -30,6 +30,18 @@ export function isDenaliHttpsImageUrl(value: string): boolean {
   }
 }
 
+/**
+ * Catalog itinerary/gallery projection — HTTPS images plus deterministic `data:image/*`
+ * smoke fixtures (avoid DNS to placeholder CDNs in operator/admin seeds).
+ */
+export function isDenaliCatalogProjectableImageUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (isDenaliHttpsImageUrl(trimmed)) {
+    return true;
+  }
+  return /^data:image\/[a-z0-9.+-]+[,;]/i.test(trimmed);
+}
+
 /** Canonical tour photo row — MinIO `storageKey` preferred; external `url` kept as fallback. */
 export const denaliImageFileAssetSchema = z
   .object({
