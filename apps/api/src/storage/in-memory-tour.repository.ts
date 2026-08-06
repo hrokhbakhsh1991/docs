@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto";
 import {
   buildDenaliClubDevDraftTour,
   buildDenaliClubDevPublishedTour,
-  buildOperatorSmokeDraftTour,
   buildOperatorSmokeParticipantRequirementsTour,
   buildOperatorSmokePublishedTourItinerary,
   buildOperatorSmokeTransportBusTour,
