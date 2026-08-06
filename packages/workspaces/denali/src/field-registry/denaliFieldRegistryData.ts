@@ -344,7 +344,6 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "difficultyLevel",
     tags: ["outdoor_program", "event_program_hidden"] as const,
     ruleDefaults: { required: true, hidden: false },
-    structuralInvariant: { kind: "defaultWhenVisible", value: 5 },
     cellOverrides: {
       "event:single_day": { required: false, hidden: true },
     },
@@ -830,7 +829,6 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     tags: ["mountain_participants", "non_mountain_participants_hidden"] as const,
     ruleDefaults: { required: true, hidden: false },
 
-    structuralInvariant: { kind: "defaultWhenVisible", value: "medium" },
     cellOverrides: {
       "desert:multi_day": { required: false, hidden: true },
       "desert:single_day": { required: false, hidden: true },

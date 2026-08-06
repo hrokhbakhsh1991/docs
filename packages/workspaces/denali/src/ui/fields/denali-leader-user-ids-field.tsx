@@ -14,8 +14,9 @@ import {
 } from "../../wizard/denali-wizard-catalog-sanitize";
 import type { UsersListResponse } from "../adapters/catalog-types";
 import { resolveDenaliFieldLabel } from "../adapters/field-labels";
-import { resolveCodedErrorMessage } from "../adapters/i18n-errors";
 import { Input } from "../adapters/platform-primitives";
+import { fetchDenaliCatalogJsonWithSoftRetry } from "../adapters/catalog-soft-fail";
+import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notice";
 import { LeaderPickerAvatar } from "../components/leader-picker-avatar";
 import { CheckIcon } from "../components/icons/tour-service-icons";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
@@ -64,7 +65,6 @@ export function DenaliLeaderUserIdsField({
   invalid = false,
 }: DenaliLeaderUserIdsFieldProps) {
   const t = useTranslations("denali");
-  const tErrors = useTranslations("settings.errors");
   const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, "leaderUserIds");
   const selected = parseStringArray(getCanonicalValue(draft, "leaderUserIds"));
@@ -85,13 +85,10 @@ export function DenaliLeaderUserIdsField({
 
   useEffect(() => {
     let cancelled = false;
-    void fetch(DENALI_SUBMIT_CATALOG_BFF_PATHS.activeUsers, { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`USERS_HTTP_${response.status}`);
-        }
-        return (await response.json()) as UsersListResponse;
-      })
+    void fetchDenaliCatalogJsonWithSoftRetry<UsersListResponse>(
+      DENALI_SUBMIT_CATALOG_BFF_PATHS.activeUsers,
+      "USERS"
+    )
       .then((payload) => {
         if (!cancelled) {
           const items = payload.items ?? [];
@@ -250,9 +247,7 @@ export function DenaliLeaderUserIdsField({
       {loading ? (
         <p className="denali-wizard-composite__status">{t("composites.leaders.loading")}</p>
       ) : null}
-      {error !== null ? (
-        <p className="denali-wizard-composite__error">{resolveCodedErrorMessage(tErrors, error)}</p>
-      ) : null}
+      <DenaliCatalogLoadNotice error={error} />
 
       {!loading && users.length === 0 && error === null ? (
         <div className="denali-leader-picker__empty">

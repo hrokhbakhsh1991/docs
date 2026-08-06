@@ -15,6 +15,7 @@ import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-
 import {
   DIFFICULTY_LEVEL_MAX,
   DIFFICULTY_LEVEL_MIN,
+  DIFFICULTY_LEVEL_SLIDER_UNSET_POSITION,
   DIFFICULTY_LEVEL_STEP,
   difficultyLevelSliderProgress,
   formatDifficultyLevelDisplay,
@@ -47,10 +48,14 @@ export function DenaliDifficultyLevelField({
   const label = resolveDenaliFieldLabel(t, "program.difficultyLevel");
   const raw = getCanonicalStringValue(draft, "program.difficultyLevel");
   const value = useMemo(() => parseDifficultyLevel(raw), [raw]);
-  const displayValue = formatDifficultyLevelDisplay(value, locale);
+  const isUnset = value == null;
+  const sliderValue = value ?? DIFFICULTY_LEVEL_SLIDER_UNSET_POSITION;
+  const displayValue = isUnset
+    ? t("composites.difficulty.unset")
+    : formatDifficultyLevelDisplay(value, locale);
   const minLabel = formatDifficultyLevelDisplay(DIFFICULTY_LEVEL_MIN, locale);
   const maxLabel = formatDifficultyLevelDisplay(DIFFICULTY_LEVEL_MAX, locale);
-  const sliderProgress = difficultyLevelSliderProgress(value);
+  const sliderProgress = difficultyLevelSliderProgress(sliderValue);
 
   const integerTicks = useMemo(
     () =>
@@ -70,11 +75,16 @@ export function DenaliDifficultyLevelField({
     );
   };
 
+  const commitFromSliderEvent = (event: { readonly currentTarget: HTMLInputElement }) => {
+    commitValue(Number.parseFloat(event.currentTarget.value));
+  };
+
   return (
     <div
       className="denali-wizard-composite"
       data-operator-wizard-surface="section"
       data-operator-difficulty-level
+      data-difficulty-unset={isUnset ? "true" : undefined}
       data-testid={DENALI_DIFFICULTY_TEST_IDS.difficulty}
       aria-invalid={invalid || undefined}
     >
@@ -85,23 +95,32 @@ export function DenaliDifficultyLevelField({
 
       <div className="denali-difficulty-level__panel">
         <output
-          className="denali-difficulty-level__value"
+          className={
+            isUnset
+              ? "denali-difficulty-level__value denali-difficulty-level__value--unset"
+              : "denali-difficulty-level__value"
+          }
           data-testid={DENALI_DIFFICULTY_TEST_IDS.value}
           htmlFor={DENALI_DIFFICULTY_TEST_IDS.slider}
         >
           {displayValue}
-          <span className="denali-difficulty-level__value-suffix">
-            {t("composites.difficulty.outOf", {
-              max: formatDifficultyLevelDisplay(DIFFICULTY_LEVEL_MAX, locale),
-            })}
-          </span>
+          {isUnset ? null : (
+            <>
+              {" "}
+              <span className="denali-difficulty-level__value-suffix">
+                {t("composites.difficulty.outOf", {
+                  max: formatDifficultyLevelDisplay(DIFFICULTY_LEVEL_MAX, locale),
+                })}
+              </span>
+            </>
+          )}
         </output>
 
         <div className="denali-difficulty-level__slider-wrap">
           <div className="denali-difficulty-level__track" aria-hidden>
             <div
               className="denali-difficulty-level__fill"
-              style={{ width: `${sliderProgress}%` }}
+              style={{ width: isUnset ? "0%" : `${sliderProgress}%` }}
             />
           </div>
           <DenaliDifficultyRangeSlider
@@ -111,16 +130,24 @@ export function DenaliDifficultyLevelField({
             min={DIFFICULTY_LEVEL_MIN}
             max={DIFFICULTY_LEVEL_MAX}
             step={DIFFICULTY_LEVEL_STEP}
-            value={value}
+            value={sliderValue}
             required={required}
             aria-required={required || undefined}
             aria-invalid={invalid || undefined}
             aria-label={label}
             aria-valuemin={DIFFICULTY_LEVEL_MIN}
             aria-valuemax={DIFFICULTY_LEVEL_MAX}
-            aria-valuenow={value}
+            aria-valuenow={isUnset ? undefined : value}
             aria-valuetext={displayValue}
-            onChange={(event) => commitValue(Number.parseFloat(event.target.value))}
+            onInput={commitFromSliderEvent}
+            onChange={commitFromSliderEvent}
+            onPointerUp={(event) => {
+              // Controlled unset parks at UNSET_POSITION; browsers often skip `change` when
+              // the value does not move — still treat the gesture as an operator choice.
+              if (isUnset) {
+                commitFromSliderEvent(event);
+              }
+            }}
           />
           <div className="denali-difficulty-level__scale" aria-hidden>
             <span>{minLabel}</span>

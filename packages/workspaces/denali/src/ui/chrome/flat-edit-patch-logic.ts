@@ -41,6 +41,8 @@ export async function runDenaliFlatEditPatch(input: {
   readonly rowVersion: number | null;
   readonly patchIntent: DenaliFlatEditPatchIntent;
   readonly gate: { readonly templateSteps: DenaliFlatEditTemplateStepsForPatch };
+  /** ED-DT-01 — loaded tour start ISO; grandfather past start when unchanged. */
+  readonly scheduleBaselineStartIso?: string;
   readonly loadCatalog: () => Promise<DenaliSubmitCatalogIds>;
   readonly updateTour: (
     payload: UpdateTourPayload
@@ -81,6 +83,11 @@ export async function runDenaliFlatEditPatch(input: {
     };
   }
 
+  const scheduleScope =
+    input.scheduleBaselineStartIso != null && input.scheduleBaselineStartIso.trim().length > 0
+      ? { scheduleBaselineStartIso: input.scheduleBaselineStartIso.trim() }
+      : undefined;
+
   const validation =
     input.patchIntent === "publish"
       ? validateDenaliPublishTransitionSync(
@@ -88,13 +95,15 @@ export async function runDenaliFlatEditPatch(input: {
           input.draft,
           input.denaliRules,
           input.tenantId,
-          input.wizardRuleEvalContext!
+          input.wizardRuleEvalContext!,
+          scheduleScope
         )
       : validateDenaliWizardDraftSync(
           input.plugin,
           input.draft,
           input.denaliRules,
-          input.tenantId
+          input.tenantId,
+          scheduleScope
         );
 
   if (!validation.ok) {

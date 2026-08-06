@@ -1,12 +1,17 @@
 import { randomUUID } from "node:crypto";
 
 import {
+  buildDenaliClubDevDraftTour,
+  buildDenaliClubDevPublishedTour,
   buildOperatorSmokeDraftTour,
   buildOperatorSmokeParticipantRequirementsTour,
-  buildDenaliClubDevPublishedTour,
+  buildOperatorSmokePublishedTourItinerary,
   buildOperatorSmokeTransportBusTour,
   buildOperatorSmokeTransportSharedCarsTour,
+  DENALI_CLUB_DEV_DRAFT_TOUR_ID,
   DENALI_CLUB_DEV_PUBLISHED_TOUR_ID,
+  OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG,
+  OPERATOR_SMOKE_PUBLISHED_TOUR_COVER_URL,
   OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
   OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
   OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
@@ -68,6 +73,7 @@ function buildOperatorSmokeDenaliCatalogData(input: {
   readonly title: string;
   readonly publishStatus: "draft" | "active";
 }): { readonly roots: string[]; readonly data: Record<string, unknown> } {
+  const catalog = OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG;
   const data: Record<string, unknown> = {
     title: input.title,
     publishStatus: input.publishStatus,
@@ -75,49 +81,31 @@ function buildOperatorSmokeDenaliCatalogData(input: {
     endDateTime: "2026-07-03T18:00:00.000Z",
     category: "mountain_multi",
     capacityMax: 12,
+    destinationId: catalog.destinationId,
     program: {
       shortDescription: "Operator smoke catalog tour",
       difficultyLevel: 6,
       hikingHoursApprox: 8,
-      itinerary: [
-        {
-          dayNumber: 1,
-          title: "Summit push",
-          summary: "Early alpine start",
-          segments: [
-            {
-              id: "smk-seg-1",
-              kind: "activity",
-              title: "Ridge ascent",
-              startTime: "06:00",
-              locationLabel: "North Ridge camp",
-              photoIds: ["smk-photo-1"],
-            },
-          ],
-        },
-        {
-          dayNumber: 2,
-          title: "Return leg",
-          segments: [
-            {
-              id: "smk-seg-2",
-              kind: "transport",
-              title: "Descent to trailhead",
-            },
-          ],
-        },
-      ],
+      themeIds: [catalog.themeId],
+      itinerary: [...buildOperatorSmokePublishedTourItinerary()],
     },
-    participants: { fitnessLevel: "medium" },
-    pricing: { basePricePerPerson: 2500000 },
+    participants: { fitnessLevel: "medium", minimumAge: 16 },
+    pricing: { basePricePerPerson: 2500000, paymentMode: "offline_receipt" },
+    transport: { mode: "none" },
     photos: [
       {
         id: "smk-photo-1",
-        url: "https://cdn.example/north-ridge.jpg",
+        url: OPERATOR_SMOKE_PUBLISHED_TOUR_COVER_URL,
         label: "Ridge panorama",
         day: 1,
       },
     ],
+    tripDetails: {
+      overview: {
+        peakHeight: catalog.peakHeight,
+        customServiceLabels: [],
+      },
+    },
     basics: { title: input.title },
     details: { summary: "Operator smoke seed tour" },
   };
@@ -128,7 +116,7 @@ function buildOperatorSmokeDenaliCatalogData(input: {
       cancellationPenaltyPercentage: 20,
     };
   }
-  return { data, roots: Object.keys(data).sort() };
+  return { data, roots: Object.keys(data) };
 }
 
 function assertTenantId(tenantId: string): void {
@@ -201,14 +189,14 @@ export class InMemoryTourRepository implements TourStorageRepository {
     }
   }
 
-  /** Denali dev host tenant (…000003) — FE-14 / TR-09 memory seed. */
+  /** Denali dev host tenant (…000003) — FE-14 / TR-09 memory seed (ED-SEED-01 ≥2 tours). */
   ensureDenaliDevSmokeSeedTour(): void {
     const tenantId = OPERATOR_DENALI_SMOKE_TENANT_ID;
     if (!this.hasTour(tenantId, DENALI_CLUB_DEV_PUBLISHED_TOUR_ID)) {
       this.indexTour(buildDenaliClubDevPublishedTour({ tenantId }));
     }
-    if (!this.hasTour(tenantId, OPERATOR_SMOKE_DRAFT_TOUR_ID)) {
-      this.indexTour(buildOperatorSmokeDraftTour({ tenantId }));
+    if (!this.hasTour(tenantId, DENALI_CLUB_DEV_DRAFT_TOUR_ID)) {
+      this.indexTour(buildDenaliClubDevDraftTour({ tenantId }));
     }
     if (!this.hasTour(tenantId, OPERATOR_SMOKE_PARTICIPANT_TOUR_ID)) {
       this.indexTour(buildOperatorSmokeParticipantRequirementsTour({ tenantId }));

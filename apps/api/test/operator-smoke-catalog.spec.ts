@@ -41,10 +41,31 @@ describe("operator-smoke-catalog.spec.ts — Phase 11.0", () => {
     const equipment = await repo.listEquipment(DENALI_SMOKE_TENANT_ID);
     const regions = await repo.listRegions(DENALI_SMOKE_TENANT_ID);
     const destinations = await repo.listDestinations(DENALI_SMOKE_TENANT_ID);
+    const themes = await repo.listTourThemes(DENALI_SMOKE_TENANT_ID);
     const activeCount = destinations.filter((item) => item.isActive).length;
     assert.ok(
       activeCount >= 3,
       `equipment=${equipment.length} regions=${regions.length} destinations=${activeCount} names=${destinations.map((item) => item.name).join(", ")}`
     );
+    assert.equal(equipment[0]?.name, "عصای کوهنوردی");
+    assert.equal(themes[0]?.name, "کوهستان");
+  });
+
+  it("API-11.0-04 re-upserts Denali club FA catalog names when equipment already exists", async () => {
+    resetSettingsResourcesRepositorySingletonForTests();
+    const repo = getSettingsResourcesRepository();
+    await seedOperatorSmokeCatalog(repo, { tenantId: DENALI_SMOKE_TENANT_ID });
+    const first = await repo.listEquipment(DENALI_SMOKE_TENANT_ID);
+    assert.equal(first[0]?.name, "عصای کوهنوردی");
+    // Mutate to English then re-seed — ensure path must restore FA labels.
+    await repo.seedEquipment({
+      ...first[0]!,
+      name: "Smoke Trekking Poles",
+    });
+    await seedOperatorSmokeCatalog(repo, { tenantId: DENALI_SMOKE_TENANT_ID });
+    const equipment = await repo.listEquipment(DENALI_SMOKE_TENANT_ID);
+    const themes = await repo.listTourThemes(DENALI_SMOKE_TENANT_ID);
+    assert.equal(equipment[0]?.name, "عصای کوهنوردی");
+    assert.equal(themes[0]?.name, "کوهستان");
   });
 });

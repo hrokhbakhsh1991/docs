@@ -2,6 +2,24 @@ import { formatIsoDateLabel } from "./calendar-format";
 import { toLocalizedDigits } from "./format-localized-digits";
 import type { AppLocale } from "./routing";
 
+/**
+ * Convert stored ISO datetime to `datetime-local` wall (local timezone).
+ * Product-blind — do not import workspace packages for list/review formatting (Wave H.h).
+ */
+export function isoToDatetimeLocalInput(iso: string): string {
+  const trimmed = iso.trim();
+  if (trimmed.length === 0) {
+    return "";
+  }
+  const parsed = Date.parse(trimmed);
+  if (!Number.isFinite(parsed)) {
+    return trimmed.length >= 16 ? trimmed.slice(0, 16) : trimmed;
+  }
+  const date = new Date(parsed);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function splitDatetimeLocal(value: string): { readonly date: string; readonly time: string } {
   const trimmed = value.trim();
   if (trimmed.length === 0) {

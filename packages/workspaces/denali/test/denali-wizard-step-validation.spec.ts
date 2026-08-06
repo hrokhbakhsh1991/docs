@@ -465,7 +465,7 @@ describe("denali-wizard-step-validation.spec.ts", () => {
     );
   });
 
-  it("DN-WIZARD-STEP-10 sanitize seeds fitnessLevel medium when visible and empty", async () => {
+  it("DN-WIZARD-STEP-10 sanitize leaves fitnessLevel empty when unset", async () => {
     const rules = await loadDenaliWizardRulesModule();
     const { buildDenaliWizardRuleEvalContext } = await import(
       "../src/wizard/denali-wizard-rule-eval-context.ts"
@@ -496,7 +496,7 @@ describe("denali-wizard-step-validation.spec.ts", () => {
     );
     assert.equal(
       getCanonicalStringFromDraft(sanitized as { data?: Record<string, unknown> }, "participants.fitnessLevel"),
-      "medium"
+      ""
     );
   });
 

@@ -25,6 +25,8 @@ type DenaliDatetimeFieldProps = {
   readonly testId?: string;
   readonly hint?: string;
   readonly invalid?: boolean;
+  /** When date is chosen and this field has no clock yet, use this HH:mm (ED-DT-END-01). */
+  readonly fallbackTime?: string;
 };
 
 export function DenaliDatetimeField({
@@ -35,6 +37,7 @@ export function DenaliDatetimeField({
   testId,
   hint,
   invalid = false,
+  fallbackTime,
 }: DenaliDatetimeFieldProps) {
   const t = useTranslations("denali");
   const fieldId = useId();
@@ -52,6 +55,7 @@ export function DenaliDatetimeField({
           id={fieldId}
           aria-label={label}
           value={localValue}
+          fallbackTime={fallbackTime}
           minIsoDate={minIsoDate}
           onChange={(local) =>
             commitWizardDraftEdit(draftRef, onDraftChange, (base) =>

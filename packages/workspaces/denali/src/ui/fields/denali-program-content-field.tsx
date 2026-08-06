@@ -18,8 +18,9 @@ import {
 import { DENALI_SUBMIT_CATALOG_BFF_PATHS } from "../../wizard/denali-wizard-catalog-sanitize";
 import type { TourThemeResource, TourThemesListResponse } from "../adapters/catalog-types";
 import { resolveDenaliFieldLabel } from "../adapters/field-labels";
-import { resolveCodedErrorMessage } from "../adapters/i18n-errors";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
+import { fetchDenaliCatalogJsonWithSoftRetry } from "../adapters/catalog-soft-fail";
+import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notice";
 import { CheckIcon } from "../components/icons/tour-service-icons";
 import { isTourThemeCompatibleWithWizard } from "../logic/denali-catalog-filters";
 import { themeDisplayInitials, themeSwatchToneClass } from "../logic/denali-theme-picker-logic";
@@ -52,7 +53,6 @@ export function DenaliProgramContentField({
   validationIssuePaths,
 }: DenaliProgramContentFieldProps) {
   const t = useTranslations("denali");
-  const tErrors = useTranslations("settings.errors");
   const draftRef = useLatestWizardDraft(draft);
   const themesLabel = resolveDenaliFieldLabel(t, "program.themeIds");
   const shortDescriptionLabel = resolveDenaliFieldLabel(t, "program.shortDescription");
@@ -81,13 +81,10 @@ export function DenaliProgramContentField({
 
   useEffect(() => {
     let cancelled = false;
-    void fetch(DENALI_SUBMIT_CATALOG_BFF_PATHS.tourThemes, { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`TOUR_THEMES_HTTP_${response.status}`);
-        }
-        return (await response.json()) as TourThemesListResponse;
-      })
+    void fetchDenaliCatalogJsonWithSoftRetry<TourThemesListResponse>(
+      DENALI_SUBMIT_CATALOG_BFF_PATHS.tourThemes,
+      "TOUR_THEMES"
+    )
       .then((payload) => {
         if (!cancelled) {
           setThemes((payload.items ?? []).filter((theme) => theme.isActive));
@@ -204,9 +201,7 @@ export function DenaliProgramContentField({
       {loading ? (
         <p className="denali-wizard-composite__status">{t("composites.programContent.loading")}</p>
       ) : null}
-      {error !== null ? (
-        <p className="denali-wizard-composite__error">{resolveCodedErrorMessage(tErrors, error)}</p>
-      ) : null}
+      <DenaliCatalogLoadNotice error={error} />
 
       {!loading && visibleThemes.length === 0 && error === null ? (
         <div className="denali-theme-picker__empty">
@@ -244,12 +239,8 @@ export function DenaliProgramContentField({
                   {themeDisplayInitials(theme.name)}
                 </span>
                 <span className="denali-theme-picker__body">
+                  {/* ED-LBL-THEME-01: operator sees display name only; slug stays settings/catalog SoT. */}
                   <span className="denali-theme-picker__name">{theme.name}</span>
-                  {theme.slug ? (
-                    <span className="denali-theme-picker__slug" dir="ltr">
-                      {theme.slug}
-                    </span>
-                  ) : null}
                 </span>
                 <span
                   className={

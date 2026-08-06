@@ -6,13 +6,17 @@ import { resolveStorageDriver } from "../storage/production-storage-driver-asser
 
 import { getSettingsResourcesRepository } from "./create-settings-resources-repository";
 import { seedOperatorSmokeCatalog } from "./seed-operator-smoke-catalog";
-import { seedOperatorSmokePublishedTour } from "./seed-operator-smoke-published-tour";
+import {
+  ensureOperatorSmokePublishedTourEditReady,
+  seedDenaliClubDevDraftTour,
+  seedOperatorSmokePublishedTour,
+} from "./seed-operator-smoke-published-tour";
 import { InMemoryTourRepository } from "../storage/in-memory-tour.repository";
 import { createTourStorageRepository } from "../storage/create-tour-storage";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
 
 /**
- * Dev bootstrap — Denali dev tenant gets smoke catalog + published tour …0210.
+ * Dev bootstrap — Denali dev tenant gets smoke catalog + published/draft tours (ED-SEED-01).
  * Runs for memory (local dev) and prisma (VPS) when not in production auth mode.
  */
 export async function bootstrapDenaliDevSmokeFixturesIfNeeded(): Promise<void> {
@@ -29,6 +33,8 @@ export async function bootstrapDenaliDevSmokeFixturesIfNeeded(): Promise<void> {
 
       if (resolveStorageDriver() === "prisma") {
         await seedOperatorSmokePublishedTour(tenantId);
+        await ensureOperatorSmokePublishedTourEditReady(tenantId);
+        await seedDenaliClubDevDraftTour(tenantId);
       } else {
         const tourStore = createTourStorageRepository();
         if (tourStore instanceof InMemoryTourRepository) {

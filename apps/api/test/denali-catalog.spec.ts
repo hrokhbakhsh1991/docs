@@ -11,6 +11,7 @@ import {
   resetBookingsRepositoryForTests,
   resetBookingsRepositorySingletonForTests,
 } from "../src/bookings/create-bookings-repository";
+import { OPERATOR_SMOKE_PUBLISHED_TOUR_COVER_URL } from "../src/fixtures/operator-smoke-published-tour.fixture";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
@@ -170,10 +171,14 @@ describe("denali-catalog", () => {
         itineraryDays?: Array<{ title?: string; segments?: Array<{ title?: string; photoUrls?: string[] }> }>;
       };
     }).data;
-    assert.equal(data?.itineraryDays?.length, 2);
+    assert.equal(data?.itineraryDays?.length, 3);
     assert.equal(data?.itineraryDays?.[0]?.title, "Summit push");
     assert.equal(data?.itineraryDays?.[0]?.segments?.[0]?.title, "Ridge ascent");
-    assert.equal(data?.itineraryDays?.[0]?.segments?.[0]?.photoUrls?.[0], "https://cdn.example/north-ridge.jpg");
+    assert.equal(
+      data?.itineraryDays?.[0]?.segments?.[0]?.photoUrls?.[0],
+      OPERATOR_SMOKE_PUBLISHED_TOUR_COVER_URL
+    );
+    assert.equal(data?.itineraryDays?.[2]?.title, "Departure buffer");
   });
 
   it("DCAT-06 GET /denali/catalog/{tourId} includes policiesText for legal step", async () => {

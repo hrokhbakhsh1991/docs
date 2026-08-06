@@ -475,7 +475,7 @@ When `WORKSPACE_METADATA_ENABLED` false → sync `resolveWorkspacePluginForType`
 | Tier | File | Function | Why |
 |------|------|----------|-----|
 | **P0 MUST** | `tours/canonical-validation-sync.ts` | `getOrCreateValidationEngine`, `validateCanonicalBeforePersistSync` | fieldRegistry + ruleSet drive validation |
-| **P0 MUST** | `tours/build-clone-tour-body.ts` | `buildCloneTourCreateBody` | uses `plugin.wizard.roots` |
+| **P0 MUST** | `tours/build-clone-tour-body.ts` | `buildCloneTourCreateBody` | clone `roots = Object.keys(data)` after prepare (not `plugin.wizard.roots`; ED-CLONE-01) |
 | **P0 MUST** | `settings/wizard-template-catalog.ts` | `assertWizardTemplateFieldsKnown` | fieldRegistry defines allowed template paths |
 | **P1 SHOULD** | `tours/list-tours-operator.ts` | `listToursOperator` | tourList hook from overlay — metadata optional v1.1 |
 | **P1 SHOULD** | `tours/get-tour-operator.ts` | `buildOperatorTourDetailResponse` | same — overlay hook |

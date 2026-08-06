@@ -5,13 +5,19 @@ import {
   OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
   OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
   OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
+  applyOperatorSmokePublishedTourEditReadyPatch,
+  buildDenaliClubDevDraftTour,
   buildDenaliClubDevPublishedTour,
   buildOperatorSmokeDraftTour,
   buildOperatorSmokeParticipantRequirementsTour,
   buildOperatorSmokePublishedTour,
   buildOperatorSmokeTransportBusTour,
   buildOperatorSmokeTransportSharedCarsTour,
+  DENALI_CLUB_DEV_DRAFT_TOUR_ID,
+  DENALI_CLUB_DEV_PUBLISHED_TOUR_CATALOG,
   DENALI_CLUB_DEV_PUBLISHED_TOUR_ID,
+  isOperatorSmokePublishedTourEditReady,
+  OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG,
 } from "../fixtures/operator-smoke-published-tour.fixture";
 import { OPERATOR_SMOKE_TENANT_ID } from "./seed-operator-smoke-catalog";
 import { DENALI_SMOKE_TENANT_ID } from "./resolve-workspace-dev-smoke-tenant";
@@ -39,6 +45,73 @@ export async function seedDenaliClubDevPublishedTour(tenantId: string): Promise<
       tourId: DENALI_CLUB_DEV_PUBLISHED_TOUR_ID,
     },
     "denali club dev published tour seeded"
+  );
+}
+
+/** Idempotent Prisma seed — draft tour for denali.club (ED-SEED-01 ≥2 editable). */
+export async function seedDenaliClubDevDraftTour(tenantId: string): Promise<void> {
+  if (tenantId !== DENALI_SMOKE_TENANT_ID) {
+    throw new Error("DENALI_CLUB_DEV_TOUR_SEED_TENANT_MISMATCH");
+  }
+
+  const repo = new PrismaTourRepository();
+  const existing = await repo.getById(DENALI_CLUB_DEV_DRAFT_TOUR_ID, tenantId);
+  if (existing !== null) {
+    return;
+  }
+
+  await repo.save(buildDenaliClubDevDraftTour({ tenantId }));
+  logger.info(
+    {
+      event: "db.seed.denali_club_dev_draft_tour",
+      tenantId,
+      tourId: DENALI_CLUB_DEV_DRAFT_TOUR_ID,
+    },
+    "denali club dev draft tour seeded"
+  );
+}
+
+/**
+ * ED-SEED-01 — backfill itinerary day-count + catalog refs on existing smoke published tours.
+ * Safe to call on every bootstrap; no-ops when already edit-ready.
+ */
+export async function ensureOperatorSmokePublishedTourEditReady(tenantId: string): Promise<void> {
+  const repo = new PrismaTourRepository();
+  const isDenaliClub = tenantId === DENALI_SMOKE_TENANT_ID;
+  const tourId = isDenaliClub ? DENALI_CLUB_DEV_PUBLISHED_TOUR_ID : OPERATOR_SMOKE_SEED_TOUR_ID;
+  const catalog = isDenaliClub
+    ? DENALI_CLUB_DEV_PUBLISHED_TOUR_CATALOG
+    : OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG;
+
+  const existing = await repo.getById(tourId, tenantId);
+  if (existing === null) {
+    return;
+  }
+
+  const data = existing.canonical.data as Record<string, unknown>;
+  if (isOperatorSmokePublishedTourEditReady(data, catalog)) {
+    return;
+  }
+
+  const nextData = applyOperatorSmokePublishedTourEditReadyPatch(data, catalog);
+  const canonical = {
+    ...existing.canonical,
+    data: nextData,
+    roots: Object.keys(nextData),
+  };
+
+  await repo.save({
+    ...existing,
+    rowVersion: existing.rowVersion + 1,
+    canonical,
+  });
+  logger.info(
+    {
+      event: "db.seed.operator_smoke_published_tour_edit_ready",
+      tenantId,
+      tourId,
+    },
+    "operator smoke published tour edit-ready fields backfilled"
   );
 }
 

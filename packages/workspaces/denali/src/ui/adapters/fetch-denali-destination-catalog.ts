@@ -4,12 +4,13 @@ import {
   buildDenaliDestinationCatalogStateFromPayload,
   type DenaliDestinationCatalogState,
 } from "./build-denali-destination-catalog-state";
+import { fetchDenaliCatalogJsonWithSoftRetry } from "./catalog-soft-fail";
 
 let inflightCatalogRequest: Promise<DenaliDestinationCatalogState> | null = null;
 
 /**
  * Deduped operator BFF fetch — `/api/settings/resources/locations`
- * (one in-flight request; shared by package hook + web shim).
+ * (one in-flight request; shared by package hook + web shim). Soft-retries once on 5xx/network.
  */
 export function fetchDenaliDestinationCatalogClient(
   fetchImpl: typeof fetch = fetch
@@ -18,13 +19,12 @@ export function fetchDenaliDestinationCatalogClient(
     return inflightCatalogRequest;
   }
 
-  inflightCatalogRequest = fetchImpl("/api/settings/resources/locations", { cache: "no-store" })
-    .then(async (response) => {
-      if (!response.ok) {
-        throw new Error(`LOCATIONS_HTTP_${response.status}`);
-      }
-      return buildDenaliDestinationCatalogStateFromPayload(await response.json());
-    })
+  inflightCatalogRequest = fetchDenaliCatalogJsonWithSoftRetry<unknown>(
+    "/api/settings/resources/locations",
+    "LOCATIONS",
+    fetchImpl
+  )
+    .then((payload) => buildDenaliDestinationCatalogStateFromPayload(payload))
     .catch((fetchError: unknown) => ({
       options: [] as readonly SelectOption[],
       destinationById: new Map(),

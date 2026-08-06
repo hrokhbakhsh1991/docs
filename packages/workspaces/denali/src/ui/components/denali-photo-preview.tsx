@@ -134,14 +134,18 @@ export function DenaliPhotoPreview({
       ? resolveDenaliPhotoUploadError(t, fetchErrorCode) || t("composites.photos.previewLoadFailed")
       : t("composites.photos.previewLoadFailed");
 
+  // ED-UX-01 — broken CDN/preview URLs are soft-fail (status), not blocking validation alerts.
   return (
     <div
       data-testid={DENALI_PHOTO_PREVIEW_FALLBACK_TEST_ID}
       className={readOnly ? "operator-review__photo-fallback" : undefined}
+      data-operator-photo-preview-soft-fail=""
     >
       <p
-        className={readOnly ? "operator-review__photo-fallback-text" : "denali-wizard-composite__error"}
-        role="alert"
+        className={
+          readOnly ? "operator-review__photo-fallback-text" : "denali-wizard-composite__status"
+        }
+        role="status"
       >
         {fallbackMessage}
       </p>

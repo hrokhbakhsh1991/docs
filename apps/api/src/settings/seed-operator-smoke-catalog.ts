@@ -1,7 +1,9 @@
 /**
  * Phase 11.0 — idempotent reference catalog for operator smoke tenant (…000014).
- * Denali dev tenant (…000003) uses a separate id namespace — global PK on settings rows.
+ * Denali club tenant (…000003) uses a separate id namespace — global PK on settings rows.
+ * Denali club FA admin surfaces use Persian display names for equipment/theme (ED-LBL-CATALOG-01).
  * @see docs/phase-11/subphases/11.0-smoke-workspace-alignment.md
+ * @see docs/workspaces/denali/operator-tour-edit-remediation.mdoc
  */
 import { DENALI_SMOKE_TENANT_ID } from "./resolve-workspace-dev-smoke-tenant";
 
@@ -40,6 +42,17 @@ export const DENALI_DEV_SMOKE_MIN_DESTINATIONS = 3;
 export const OPERATOR_SMOKE_DESTINATION_ID = OPERATOR_SMOKE_CATALOG_IDS.destination;
 
 const ISO_NOW = "2026-06-11T00:00:00.000Z";
+
+/** Operator SMK strings — keep English for e2e stability on tenant …014. */
+const OPERATOR_SMOKE_EQUIPMENT_NAME = "Smoke Trekking Poles";
+const OPERATOR_SMOKE_THEME_NAME = "Smoke Mountain";
+const OPERATOR_SMOKE_THEME_SLUG = "smoke-mountain";
+
+/** Denali club FA admin — readable Persian labels in wizard gear + Settings equipment. */
+const DENALI_CLUB_EQUIPMENT_NAME = "عصای کوهنوردی";
+const DENALI_CLUB_THEME_NAME = "کوهستان";
+/** Keep stable slug across renames so existing themeId FKs stay valid. */
+const DENALI_CLUB_THEME_SLUG = "smoke-mountain";
 
 function resolveSmokeCatalogIds(
   tenantId: string
@@ -97,6 +110,38 @@ function buildDenaliDevExtraDestinations(
   ];
 }
 
+function buildSmokeEquipment(tenantId: string): EquipmentResource {
+  const ids = resolveSmokeCatalogIds(tenantId);
+  const isDenaliClub = tenantId === DENALI_SMOKE_TENANT_ID;
+  return {
+    id: ids.equipment,
+    tenantId,
+    name: isDenaliClub ? DENALI_CLUB_EQUIPMENT_NAME : OPERATOR_SMOKE_EQUIPMENT_NAME,
+    category: "mountain",
+    iconKey: "trekking_poles",
+    themeIds: [ids.theme],
+    sortOrder: 0,
+    createdAt: ISO_NOW,
+    updatedAt: ISO_NOW,
+  };
+}
+
+function buildSmokeTourTheme(tenantId: string): TourThemeResource {
+  const ids = resolveSmokeCatalogIds(tenantId);
+  const isDenaliClub = tenantId === DENALI_SMOKE_TENANT_ID;
+  return {
+    id: ids.theme,
+    tenantId,
+    name: isDenaliClub ? DENALI_CLUB_THEME_NAME : OPERATOR_SMOKE_THEME_NAME,
+    slug: isDenaliClub ? DENALI_CLUB_THEME_SLUG : OPERATOR_SMOKE_THEME_SLUG,
+    formProfile: "mountain_outdoor",
+    isActive: true,
+    sortOrder: 0,
+    createdAt: ISO_NOW,
+    updatedAt: ISO_NOW,
+  };
+}
+
 async function ensureDenaliDevSmokeDestinations(
   repo: SettingsResourcesRepository,
   tenantId: string
@@ -133,6 +178,21 @@ async function ensureDenaliDevSmokeDestinations(
   }
 }
 
+/**
+ * ED-LBL-CATALOG-01 — re-upsert Denali club equipment/theme display names without wiping
+ * operator-created catalog rows. Safe on every bootstrap because seed* upserts by fixed id.
+ */
+async function ensureDenaliDevSmokeCatalogDisplayNames(
+  repo: SettingsResourcesRepository,
+  tenantId: string
+): Promise<void> {
+  if (tenantId !== DENALI_SMOKE_TENANT_ID) {
+    return;
+  }
+  await repo.seedEquipment(buildSmokeEquipment(tenantId));
+  await repo.seedTourTheme(buildSmokeTourTheme(tenantId));
+}
+
 export async function seedOperatorSmokeCatalog(
   repo: SettingsResourcesRepository,
   options?: { readonly tenantId?: string }
@@ -141,22 +201,12 @@ export async function seedOperatorSmokeCatalog(
   const existingEquipment = await repo.listEquipment(tenantId);
   if (existingEquipment.length > 0) {
     await ensureDenaliDevSmokeDestinations(repo, tenantId);
+    await ensureDenaliDevSmokeCatalogDisplayNames(repo, tenantId);
     return;
   }
 
   const ids = resolveSmokeCatalogIds(tenantId);
-
-  const equipment: EquipmentResource = {
-    id: ids.equipment,
-    tenantId,
-    name: "Smoke Trekking Poles",
-    category: "mountain",
-    iconKey: "trekking_poles",
-    themeIds: [ids.theme],
-    sortOrder: 0,
-    createdAt: ISO_NOW,
-    updatedAt: ISO_NOW,
-  };
+  const equipment = buildSmokeEquipment(tenantId);
 
   const region: RegionResource = {
     id: ids.region,
@@ -188,17 +238,7 @@ export async function seedOperatorSmokeCatalog(
           },
         ];
 
-  const theme: TourThemeResource = {
-    id: ids.theme,
-    tenantId,
-    name: "Smoke Mountain",
-    slug: "smoke-mountain",
-    formProfile: "mountain_outdoor",
-    isActive: true,
-    sortOrder: 0,
-    createdAt: ISO_NOW,
-    updatedAt: ISO_NOW,
-  };
+  const theme = buildSmokeTourTheme(tenantId);
 
   await repo.seedEquipment(equipment);
   await repo.seedRegion(region);

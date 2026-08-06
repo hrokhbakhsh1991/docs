@@ -217,6 +217,38 @@ body[data-workspace-plugin="denali"] .new-tour-wizard-page__flat-edit-nav {
   gap: var(--space-2, 0.5rem);
 }
 
+/* ED-VAL-01 — flat-edit validation rows: stack label + message (avoid glued inline spans). */
+body[data-workspace-plugin="denali"] .denali-flat-edit-validation__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+}
+
+body[data-workspace-plugin="denali"] .denali-flat-edit-validation__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  border-radius: var(--radius-sm, 0.25rem);
+  background: color-mix(in oklch, var(--color-danger) 8%, var(--color-bg-surface));
+}
+
+body[data-workspace-plugin="denali"] .denali-flat-edit-validation__field {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+}
+
+body[data-workspace-plugin="denali"] .denali-flat-edit-validation__message {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--color-danger);
+}
+
 body[data-workspace-plugin="denali"] .new-tour-wizard-page__header {
   display: flex;
   flex-direction: column;

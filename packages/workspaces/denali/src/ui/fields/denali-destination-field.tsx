@@ -10,8 +10,8 @@ import {
 import { applyDestinationCatalogPrefill } from "../../settings/apply-destination-catalog-prefill";
 import type { DestinationResource } from "../adapters/catalog-types";
 import { DenaliSearchableSelect } from "../components/denali-searchable-select";
+import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notice";
 import { resolveDenaliFieldLabel } from "../adapters/field-labels";
-import { resolveCodedErrorMessage } from "../adapters/i18n-errors";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { useDenaliDestinationCatalog } from "../hooks/use-destination-catalog";
 import { DENALI_COMPOSITE_TEST_IDS } from "../logic/denali-location-types";
@@ -42,7 +42,6 @@ export function DenaliDestinationField({
   invalid = false,
 }: DenaliDestinationFieldProps) {
   const t = useTranslations("denali");
-  const tErrors = useTranslations("settings.errors");
   const draftRef = useLatestWizardDraft(draft);
   const { options, destinationById, loading, error } = useDenaliDestinationCatalog();
   const value = getCanonicalStringValue(draft, canonicalPath);
@@ -81,9 +80,7 @@ export function DenaliDestinationField({
           }}
         />
       </label>
-      {error !== null ? (
-        <p className="denali-wizard-composite__error">{resolveCodedErrorMessage(tErrors, error)}</p>
-      ) : null}
+      <DenaliCatalogLoadNotice error={error} />
       {options.length === 0 && !loading && error === null ? (
         <p className="denali-wizard-composite__status">{t("composites.destination.empty")}</p>
       ) : null}

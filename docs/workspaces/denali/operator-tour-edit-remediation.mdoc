@@ -1,0 +1,150 @@
+---
+title: Denali operator tour edit — remediation contract
+doc_id: DENALI-OPERATOR-TOUR-EDIT-REMEDIATION
+version: "2026-08-06-v12"
+phase: operator-admin
+apps: [web, api]
+workspace: denali
+---
+
+# Denali operator tour edit — remediation contract
+
+Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on **flat-edit save/publish presentation**, **datetime round-trip**, **server clone roots**, and **PATCH roots after shallow merge**. This pack freezes phased DoD so fixes stay narrow and do not reopen Denali lifecycle policy.
+
+## Non-goals
+
+| Item | Why |
+| --- | --- |
+| Enable unpublish (`OPEN → DRAFT`) | Denali lifecycle allowlist is `DRAFT → OPEN` only (`isWorkspaceUnpublishTransitionAllowed` = false). Product policy — not a bug. |
+| Broad `platform-core` validate rewrites | Prefer hydrate/serialize + clone roots alignment. |
+| Full monorepo gates without Architect YES | Use targeted package/web specs + `test:changed`. |
+
+## Bug → owner → DoD
+
+| ID | Symptom | Likely owner | Phase | Done when |
+| --- | --- | --- | --- | --- |
+| **ED-VAL-01** | Validation row shows raw `denali.fields…` / glued label+message | `resolveDenaliFieldLabel` + flat-edit validation list CSS | **1** | No `denali.fields.` / `denali.composites.` echo in labels; field + message visually separated |
+| **ED-DT-01** | Save/publish: «شروع برنامه نامعتبر» while API ISO + UI dates present | Root cause: `DENALI_TOUR_START_BEFORE_TODAY` on **past** starts (smoke `2026-07-01` vs today); code lacked i18n → fell through to `invalidValue`. Fix: grandfather unchanged past start on edit + i18n code | **2** | Title-only save issues `PATCH /api/tours/:id` 2xx when start day unchanged; changing start to a new past day still fails with clear copy |
+| **ED-CLONE-01** | Quick copy `CANONICAL_ROOT_UNKNOWN` (`basics` ∉ roots) | Root cause: `buildCloneTourCreateBody` set `roots: plugin.wizard.roots` while `prepareDenaliServerCloneCanonical` keeps source `data` keys (e.g. `basics`). Wizard roots omit `basics` and include step ids (`denali_basic`) absent from data. **Fix:** after prepare, `roots = Object.keys(data)` (bijection). | **3** | Doc-first API note + clone creates second tour; unit asserts roots↔keys |
+| **ED-UX-01** | Photo `cdn.example` / 503 themes·users | Preview used `__error`+`role=alert`; catalog pickers showed HTTP 5xx as hard errors. Soft-fail: preview → status helper; `*_HTTP_5xx` → `composites.catalog.degraded` (save still allowed). Integrations 503 is settings-shell noise, not tour-edit blocker. | **4** | Preview/catalog 5xx never look like blocking validation; save path unchanged |
+| **ED-SEED-01** | `programNature.itinerary.2.title` + only one tour on denali club; clone then failed `transport.mode` | Root cause: date span **3** days vs **2** itinerary rows → empty scaffold day. Prisma bootstrap only seeded `…0220`. Clone createTour requires matrix field `transport.mode` (canonical), not form `transportMode`. **Fix:** 3 titled days + catalog refs + `transport.mode` + draft `…0221` + idempotent edit-ready repair. | **5** | ≥2 editable tours; no empty scaffolded day titles; clone 2xx; publish fails only on operator-left gaps |
+| **ED-PATCH-01** | Flat-edit save on smoke `…0220`: `CANONICAL_ROOT_UNKNOWN` for `basics` | Root cause: seed keeps legacy list keys `basics`/`details`; flat-edit PATCH sends `roots: plugin.wizard.roots` (no `basics`) + full submit `data` (no `basics`); API shallow-merges so `basics` survives in data while client roots omit it. Same class as ED-CLONE-01 after merge. **Fix:** after merge, `roots = Object.keys(mergedData)` (bijection). | **6** | Title/capacity save on published smoke issues `PATCH` 2xx; unit asserts merged roots include preserved legacy keys |
+| **ED-LBL-CATALOG-01** | Wizard gear + Settings → Equipment show English `Smoke Trekking Poles` / `Smoke Mountain` on Denali FA admin | Root cause: Denali club smoke catalog reused English SMK fixture names; destinations were already FA. Chrome i18n (`تجهیزات الزامی`, category chips) was fine. **Fix:** Denali tenant seed uses FA display names; ensure path upserts known ids on every bootstrap. | **7** | Gear picker + equipment list show FA names; operator smoke `…014` keeps English SMK strings |
+| **ED-DIFF-01** | Create wizard: difficulty looks mid-set (thumb at 5) but draft empty → «سطح سختی الزامی»; click mid often no `change` | Unset uses `DIFFICULTY_LEVEL_SLIDER_UNSET_POSITION = 5` while fill stays 0% (INV-DENALI-WIZ-010 forbids phantom seed). Controlled value already 5 → browser may skip `change`. **Fix:** unset thumb at min (align with empty fill); commit on `input` + `pointerup` when still unset (operator gesture only). | **8** | Unset shows thumb at 1 + empty fill + unset copy; first pointer gesture writes a real level; mid-click no longer blocks Continue |
+| **ED-TZ-01** | Tours list shows `۰۲:۳۰` while review shows `۰۶:۰۰` for same ISO `…T02:30:00.000Z` | `formatTourDeparture` passed ISO-Z into `formatDatetimeLocalLabel` which naively slices `T`… clock digits (UTC wall). Review uses `isoToDatetimeLocalInput` first. **Fix:** list path same conversion before label. | **8** | Card meta clock matches review local wall for ISO-Z departures |
+| **ED-LBL-DIFF-01** | Difficulty readout glues `۷از ۱۰` | FA `composites.difficulty.outOf` = `از {max}` with no leading space; JSX concatenates value+suffix. **Fix:** leading space in en/fa strings + thin JSX gap. | **8** | Display reads `۷ از ۱۰` / `7 of 10` |
+| **ED-DIFF-TICK-01** | Integer tick `6` looks missing on FA (RTL) scale | Ticks use `inset-inline-start` + physical `translateX(-50%)` — mis-centers under RTL so mid labels collide/clip. **Fix:** RTL-aware tick translate. | **8** | Ticks 1–10 readable in `dir=rtl` |
+| **ED-LBL-THEME-01** | Theme picker shows FA name + raw `smoke-mountain` slug | Card always renders `theme.slug` under the name (dev/smoke leakage). **Fix:** operator wizard cards show display `name` only; slug stays catalog/settings SoT. | **9** | Create/edit theme cards show localized name without slug line |
+| **ED-UX-02** | Themes/equipment show `settings.errors.Failed to fetch` as `role=alert` when BFF/network fails | Catch stored browser `Error.message` (`Failed to fetch`) → coded lookup miss; only `*_HTTP_5xx` soft-failed. **Fix:** normalize network/load failures to soft `composites.catalog.degraded` (same class as ED-UX-01). | **9** | Catalog network fail uses status helper, not blocking alert; Continue still allowed |
+| **ED-DT-END-01** | Multi-day review shows end clock `۰۰:۰۰` after date-only pick | `joinDatetimeLocal` defaults empty time → invented midnight. **Fix:** inherit start clock on date commit; named invent helper; one-shot hydrate repair on end field. | **10** | End date pick / hydrate keeps start’s HH:mm; explicit non-midnight end still wins |
+| **ED-LIST-CAT-01** | Tours list: category/duration chips missing; filters stuck on «همه دسته‌ها» | `ensureTourListCategorySurface` can return `null` (plugin gate/load); page still set `categorySurfaceReady=true`, so filter groups stay empty / badges `isTourKindSlug`→false. **Fix:** mark ready only when surface non-null; retry once. | **10** | After warm, mountain filters + category badges render for Denali |
+
+## Phase order
+
+```text
+0 docs (this file) → 1 validation i18n/CSS → 2 datetime round-trip
+  → 3 clone roots (Doc-First API) → 4 degraded UX → 5 seed/smoke
+  → 6 PATCH roots after merge (Doc-First API)
+  → 7 Denali club FA catalog display names (Doc-First API seed)
+  → 8 create-wizard UX (difficulty unset + list TZ + outOf + RTL ticks)
+  → 9 theme card label + catalog network soft-fail
+  → 10 end-date clock inherit + tour-list category surface ready gate
+```
+
+## Invariants
+
+1. **Canonical roots ↔ data keys** must stay consistent (`CANONICAL_ROOT_UNKNOWN`).
+2. **Canonical datetime remains ISO**; Jalali is presentation only.
+3. **Doc-First** before `apps/api` / `workspace-sdk` / `platform-core` edits (`scripts/guard-docs.sh`).
+4. **Smoke multi-day itinerary day count** = `computeDenaliTourDayCount(start, end, multi)` — seed must not leave scaffolded empty titles.
+5. **PATCH after shallow merge** — persist `roots` must be exactly `Object.keys(merged data)` (client-supplied roots are not authoritative once siblings are preserved).
+
+## Progress
+
+| Phase | Status |
+| --- | --- |
+| 0–2 | Done (validation labels, past-start grandfather) |
+| **3** ED-CLONE-01 | Done — `resolveCanonicalRootsFromData` + docs 11.12 |
+| **4** ED-UX-01 | Done — photo preview + catalog HTTP soft-fail |
+| **5** ED-SEED-01 | Done — 3-day itinerary + `transport.mode` + draft `…0221` + edit-ready repair; live clone 201 |
+| **6** ED-PATCH-01 | Done — `resolveCanonicalRootsFromData(mergedData)` in `CanonicalTourService.updateTour` |
+| **7** ED-LBL-CATALOG-01 | Done — Denali club smoke equipment/theme FA display names + ensure upsert |
+| **8** ED-DIFF-01 / ED-TZ-01 / ED-LBL-DIFF-01 / ED-DIFF-TICK-01 | Done — unset thumb@min + gesture commit; list TZ via `isoToDatetimeLocalInput`; outOf JSX gap; RTL tick translate |
+| **9** ED-LBL-THEME-01 / ED-UX-02 | Done — hide theme slug; network/catalog load → soft degraded notice |
+| **10** ED-DT-END-01 / ED-LIST-CAT-01 | Done — end inherit + hydrate repair; category ready gate + failed/Retry; catalog soft-retry |
+
+## Closure (2026-08-06)
+
+All phased IDs **ED-VAL-01 … ED-LIST-CAT-01** meet DoD (unit + live `denali.admin.localhost` where noted). No further phases in this pack.
+
+**Operator follow-ups outside this pack** (not blockers; do not reopen lifecycle / platform-core validate):
+
+| Item | Class | Notes |
+| --- | --- | --- |
+| Cold Next compile → intermittent BFF `503` on `/api/users`, `guide_languages`, drafts | Dev infra (mitigated) | Soft-fail notice + **one soft-retry** via `fetchDenaliCatalogJsonWithSoftRetry` on catalog pickers/destinations. Residual cold compile may still show degraded once. |
+| Logistics / guide-language empty optional UX | Product polish | Empty state is valid when catalog soft-degraded or operator skips. |
+| Day-photo hint / itinerary photo empty copy | Product polish | Non-blocking; out of edit-save critical path. |
+| Unpublish `OPEN → DRAFT` | Non-goal | Lifecycle policy. |
+| Portal CSS / auth gate on same git branch | Branch hygiene | Unrelated to this pack — split when committing. |
+
+**Suggested exit:** Architect reviews this file; commit remediation + related web/api/denali diffs as one (or split API Doc-First) PR when ready. Prefer `pre-commit:fast` / listed verification — not full gates without YES.
+
+**Debt audit (2026-08-06 v12):** Closed — Wave H list TZ twin in web i18n; firewall scope typo fixed; `resolveCanonicalRootsFromData` (no clone-only alias); invented-midnight named + one-shot end-field repair; catalog soft-retry helper; category warm failure + Retry (no infinite pending).
+
+## Phase 8 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-DIFF-01 | `denali-difficulty-level-logic.ts` (`UNSET_POSITION` → min) + `denali-difficulty-level-field.tsx` (`onInput` / unset `pointerup`) |
+| ED-TZ-01 | `apps/web/src/i18n/datetime-format.ts` `isoToDatetimeLocalInput` + `tour-list-formatters` (product-blind; no workspace import) |
+| ED-LBL-DIFF-01 | JSX gap before `composites.difficulty.outOf` suffix in `denali-difficulty-level-field.tsx` |
+| ED-DIFF-TICK-01 | `theme/wizard-fields.css` tick transform under `[dir="rtl"]` |
+
+## Phase 9 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-LBL-THEME-01 | `denali-program-content-field.tsx` — omit `theme.slug` under card name |
+| ED-UX-02 | `catalog-soft-fail.ts` + `DenaliCatalogLoadNotice` — treat network/`*_LOAD_FAILED` as soft |
+
+## Phase 10 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-DT-END-01 | `isUnsetOrInventedMidnightClock` + `repairInventedMidnightDatetimeLocal` + end-field one-shot hydrate + `fallbackTime` |
+| ED-LIST-CAT-01 | `tours-page-client.tsx` — ready only when surface ≠ null; retry once; failed state + Retry CTA |
+
+## ED-SEED-01 implementation map
+
+| Piece | Path |
+| --- | --- |
+| Canonical fixture (3 days + catalog refs + roots bijection + `pricing.paymentMode`) | `apps/api/src/fixtures/operator-smoke-published-tour.fixture.ts` |
+| Idempotent itinerary/catalog/`paymentMode` repair | `ensureOperatorSmokePublishedTourEditReady` in `seed-operator-smoke-published-tour.ts` |
+| Memory seed parity (`paymentMode`) | `InMemoryTourRepository.buildOperatorSmokeDenaliCatalogData` |
+| Denali club draft `…0221` | `buildDenaliClubDevDraftTour` + bootstrap |
+| Memory parity | `InMemoryTourRepository.ensureDenaliDevSmokeSeedTour` |
+| Bootstrap | `bootstrap-denali-dev-smoke-fixtures.ts` |
+
+## Verification (default)
+
+```bash
+pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/wizard-validation-field-label.spec.ts
+pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/resolve-wizard-validation-issue-message.spec.ts
+# Phase 3 clone roots
+pnpm --filter @apps/api exec node --import tsx --test test/clone-tour-body.spec.ts
+# Phase 4 catalog soft-fail
+pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/catalog-soft-fail.spec.ts
+# Phase 5 seed fixture
+pnpm --filter @apps/api exec node --import tsx --test test/operator-smoke-published-tour.fixture.spec.ts
+pnpm --filter @apps/api exec node --import tsx --test test/denali-dev-tour-seed.spec.ts
+# Phase 6 PATCH roots after merge
+pnpm --filter @apps/api exec node --import tsx --test test/canonical-patch-roots-after-merge.spec.ts
+# After API restart: capacity PATCH on …0220 with wizard roots omitting basics → 200; roots still include basics
+# Phase 8–9
+pnpm --filter @apps/web exec node --import tsx --import ./test/register-dom.mjs --test test/tours-list.spec.ts test/denali-difficulty-level-logic.spec.ts
+pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/catalog-soft-fail.spec.ts
+# Phase 10
+pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/datetime-end-inherit.spec.ts
+pnpm --filter @apps/web exec node --import tsx --import ./test/register-dom.mjs --test test/tours-list.spec.ts
+```
+

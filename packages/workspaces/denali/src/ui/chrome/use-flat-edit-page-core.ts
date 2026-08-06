@@ -20,8 +20,10 @@ import {
 } from "../../draft/denali-wizard-draft-binding";
 import {
   emptyDenaliTourWizardDraft,
+  getCanonicalStringValue,
   type DenaliTourWizardDraft,
 } from "../../draft/denali-tour-wizard-draft";
+import { DENALI_TOUR_START_CANONICAL_PATH } from "../logic/denali-schedule-date-policy";
 import type { DenaliSubmitCatalogIds } from "../../wizard/denali-wizard-catalog-sanitize";
 import type { DenaliWizardRulesModule as StrictDenaliWizardRulesModule } from "../../wizard/denali-wizard-rules-module";
 import { encodeTourActionSubmitError } from "../logic/tour-action-submit-error-codec";
@@ -243,6 +245,10 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
             rowVersion,
             patchIntent,
             gate: input.gate,
+            scheduleBaselineStartIso:
+              tourBaseline != null
+                ? getCanonicalStringValue(tourBaseline, DENALI_TOUR_START_CANONICAL_PATH)
+                : undefined,
             loadCatalog: input.loadSubmitCatalog,
             updateTour: input.updateTour,
           });
@@ -288,7 +294,7 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
         }
       });
     },
-    [input, draft, denaliRules, wizardRuleEvalContext, rowVersion, loadTour]
+    [input, draft, denaliRules, wizardRuleEvalContext, rowVersion, tourBaseline, loadTour]
   );
 
   const formReady = envelope !== null;

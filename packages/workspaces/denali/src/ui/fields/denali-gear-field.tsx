@@ -13,9 +13,10 @@ import {
 import { DENALI_SUBMIT_CATALOG_BFF_PATHS } from "../../wizard/denali-wizard-catalog-sanitize";
 import type { EquipmentResource, TourThemeResource, TourThemesListResponse } from "../adapters/catalog-types";
 import { resolveDenaliFieldLabel } from "../adapters/field-labels";
-import { resolveCodedErrorMessage } from "../adapters/i18n-errors";
 import { Input } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
+import { fetchDenaliCatalogJsonWithSoftRetry } from "../adapters/catalog-soft-fail";
+import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notice";
 import { CheckIcon } from "../components/icons/tour-service-icons";
 import { EquipmentCatalogAvatar } from "../components/equipment-catalog-avatar";
 import { isEquipmentVisibleInWizard } from "../logic/denali-catalog-filters";
@@ -47,7 +48,6 @@ type DenaliGearFieldProps = {
 export function DenaliGearField({ draft, onDraftChange, invalid = false }: DenaliGearFieldProps) {
   const locale = useLocale();
   const t = useTranslations("denali");
-  const tErrors = useTranslations("settings.errors");
   const label = resolveDenaliFieldLabel(t, "participants.gearItems");
   const draftRef = useLatestWizardDraft(draft);
 
@@ -61,18 +61,14 @@ export function DenaliGearField({ draft, onDraftChange, invalid = false }: Denal
   useEffect(() => {
     let cancelled = false;
     void Promise.all([
-      fetch(DENALI_SUBMIT_CATALOG_BFF_PATHS.equipment, { cache: "no-store" }).then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`EQUIPMENT_HTTP_${response.status}`);
-        }
-        return (await response.json()) as { items: EquipmentResource[] };
-      }),
-      fetch(DENALI_SUBMIT_CATALOG_BFF_PATHS.tourThemes, { cache: "no-store" }).then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`TOUR_THEMES_HTTP_${response.status}`);
-        }
-        return (await response.json()) as TourThemesListResponse;
-      }),
+      fetchDenaliCatalogJsonWithSoftRetry<{ items: EquipmentResource[] }>(
+        DENALI_SUBMIT_CATALOG_BFF_PATHS.equipment,
+        "EQUIPMENT"
+      ),
+      fetchDenaliCatalogJsonWithSoftRetry<TourThemesListResponse>(
+        DENALI_SUBMIT_CATALOG_BFF_PATHS.tourThemes,
+        "TOUR_THEMES"
+      ),
     ])
       .then(([equipmentPayload, themesPayload]) => {
         if (!cancelled) {
@@ -207,11 +203,7 @@ export function DenaliGearField({ draft, onDraftChange, invalid = false }: Denal
       </div>
 
       {loading ? <p className="denali-wizard-composite__status">{t("composites.gear.loading")}</p> : null}
-      {error !== null ? (
-        <p className="denali-wizard-composite__error" role="alert">
-          {resolveCodedErrorMessage(tErrors, error)}
-        </p>
-      ) : null}
+      <DenaliCatalogLoadNotice error={error} />
 
       {!loading && visibleCatalog.length === 0 && error === null ? (
         <div className="denali-gear-picker__empty">

@@ -58,6 +58,7 @@ export function DenaliFlatEditValidationList({
         return (
           <li
             key={`${issue.path}:${issue.code ?? issue.message}`}
+            className="denali-flat-edit-validation__item"
             data-testid={`${DENALI_FLAT_EDIT_VALIDATION_TEST_IDS.item}-${issue.path.replace(/\./g, "-")}`}
           >
             <span className="denali-flat-edit-validation__field">{fieldLabel}</span>

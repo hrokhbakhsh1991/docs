@@ -173,10 +173,14 @@
       "multiDayHint": "Required for multi-day tours — used to size the itinerary and per-day photo sections.",
       "singleDayHint": "Optional for single-day tours."
     },
+    "catalog": {
+      "degraded": "Catalog is temporarily unavailable. You can still save this tour; pickers refresh when the service recovers."
+    },
     "difficulty": {
       "level": "Level {level}",
       "helper": "1 to 10 in half steps (e.g. 6.5 or 7). 1 = easiest, 10 = hardest.",
-      "outOf": "of {max}"
+      "outOf": "of {max}",
+      "unset": "Select difficulty…"
     },
     "elevation": {
       "meters": "meters",
@@ -231,7 +235,7 @@
       "missingPhotoId": "Photo row is missing an id.",
       "uploadFailed": "Upload failed",
       "uploading": "Uploading…",
-      "previewLoadFailed": "Could not load image preview.",
+      "previewLoadFailed": "Could not load image preview. Saving is still available.",
       "previewRetry": "Retry",
       "uploadErrors": {
         "PHOTO_INVALID_TYPE": "Only JPEG, PNG, or WebP images are allowed.",
@@ -492,7 +496,8 @@
       "HIDDEN_FIELD_POISON": "{field} contains a value that must be cleared",
       "VALIDATION_RULE_REQUIRED_FIELD": "{field} is required",
       "DENALI_TOUR_TYPE_REQUIRED": "Select a tour type before continuing",
-      "CARDINALITY_VIOLATION": "{field} exceeds allowed limits"
+      "CARDINALITY_VIOLATION": "{field} exceeds allowed limits",
+      "DENALI_TOUR_START_BEFORE_TODAY": "{field} cannot be before today"
     },
     "publishStatus": {
       "helper": "Draft tours stay internal until you publish as active.",

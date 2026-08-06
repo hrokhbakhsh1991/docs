@@ -8,7 +8,6 @@ import {
   localizeWizardValidationIssueMessage,
   WIZARD_RULES_NOT_READY_CODE,
 } from "@/wizard/wizard-host-adapter-registry";
-import { resolveWizardValidationIssueMessage } from "@/wizard/resolve-wizard-validation-issue-message";
 import { parsePlatformValidationMessage } from "@/wizard/parse-platform-validation-segments";
 
 export type WizardSubmitErrorPresentation = {
@@ -86,10 +85,20 @@ function formatValidationSegments(input: {
   readonly message: string;
   readonly t: WizardSubmitErrorTranslator;
   readonly translateFieldLabel: (path: string) => string;
+  /** Workspace message namespace — product `validation.*` keys for localize adapter. */
+  readonly translateWorkspace: (
+    key: string,
+    values?: Record<string, string | number>
+  ) => string;
+  readonly context: "create" | "edit";
 }): WizardSubmitErrorPresentation {
   const segments = parsePlatformValidationMessage(input.message);
   if (segments.length === 0) {
-    return { summary: input.t.translate("submit.errorUnknown") };
+    return {
+      summary: input.t.translate(
+        input.context === "edit" ? "submitEdit.errorUnknown" : "submit.errorUnknown"
+      ),
+    };
   }
 
   const details = segments.map((segment) => {
@@ -97,24 +106,25 @@ function formatValidationSegments(input: {
       segment.path != null
         ? input.translateFieldLabel(segment.path)
         : input.t.translate("submit.unknownField");
-    const issueMessage = resolveWizardValidationIssueMessage(
-      { code: segment.code, message: segment.message, path: segment.path ?? "" },
-      {
-        has: input.t.has,
-        translate: (code, values) => input.t.translate(`host.validation.codes.${code}`, values),
-      },
-      fieldLabel
-    );
+    // Shell codes live under wizard.host.validation.codes.* — has() must use the same path.
+    const codeKey = (code: string) => `host.validation.codes.${code}`;
+    const code = segment.code?.trim();
+    if (code != null && code.length > 0 && input.t.has(codeKey(code))) {
+      return input.t.translate(codeKey(code), { field: fieldLabel });
+    }
+    // Unmapped platform prose → product localize (workspace validation.* keys).
     return localizeWizardValidationIssueMessage(
       input.pluginId,
-      (key: string, values?: Record<string, string | number>) => input.t.translate(key, values),
-      issueMessage,
+      input.translateWorkspace,
+      segment.message,
       fieldLabel
     );
   });
 
   return {
-    summary: input.t.translate("submit.validationSummary"),
+    summary: input.t.translate(
+      input.context === "edit" ? "submitEdit.validationSummary" : "submit.validationSummary"
+    ),
     details,
   };
 }
@@ -145,6 +155,14 @@ export function resolveWizardSubmitErrorMessage(input: {
   readonly raw: string | null | undefined;
   readonly t: WizardSubmitErrorTranslator;
   readonly translateFieldLabel: (path: string) => string;
+  /**
+   * Workspace i18n for product `localizeWizardValidationIssueMessage` keys
+   * (`validation.requiredField`, …). Defaults to shell `t` when omitted (tests).
+   */
+  readonly translateWorkspace?: (
+    key: string,
+    values?: Record<string, string | number>
+  ) => string;
   readonly context: "create" | "edit";
 }): WizardSubmitErrorPresentation | null {
   const raw = input.raw?.trim();
@@ -153,6 +171,9 @@ export function resolveWizardSubmitErrorMessage(input: {
   }
 
   const unknownKey = input.context === "create" ? "submit.errorUnknown" : "submitEdit.errorUnknown";
+  const translateWorkspace =
+    input.translateWorkspace ??
+    ((key: string, values?: Record<string, string | number>) => input.t.translate(key, values));
 
   if (raw === "VALIDATION_FAILED") {
     return {
@@ -183,6 +204,8 @@ export function resolveWizardSubmitErrorMessage(input: {
       message,
       t: input.t,
       translateFieldLabel: input.translateFieldLabel,
+      translateWorkspace,
+      context: input.context,
     });
   }
 
@@ -192,6 +215,8 @@ export function resolveWizardSubmitErrorMessage(input: {
       message,
       t: input.t,
       translateFieldLabel: input.translateFieldLabel,
+      translateWorkspace,
+      context: input.context,
     });
   }
 

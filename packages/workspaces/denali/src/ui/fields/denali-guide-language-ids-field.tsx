@@ -11,9 +11,10 @@ import {
 import { DENALI_SUBMIT_CATALOG_BFF_PATHS } from "../../wizard/denali-wizard-catalog-sanitize";
 import type { GuideLanguagesListResponse } from "../adapters/catalog-types";
 import { resolveDenaliFieldLabel } from "../adapters/field-labels";
-import { resolveCodedErrorMessage } from "../adapters/i18n-errors";
 import { Checkbox } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
+import { fetchDenaliCatalogJsonWithSoftRetry } from "../adapters/catalog-soft-fail";
+import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notice";
 import { parseStringArray } from "../logic/denali-array-field-utils";
 import { DENALI_GUIDE_LANGUAGES_TEST_IDS } from "../test-ids/denali-guide-languages-test-ids";
 
@@ -31,7 +32,6 @@ export function DenaliGuideLanguageIdsField({
   invalid = false,
 }: DenaliGuideLanguageIdsFieldProps) {
   const t = useTranslations("denali");
-  const tErrors = useTranslations("settings.errors");
   const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, "program.guideLanguageIds");
   const selected = parseStringArray(getCanonicalValue(draft, "program.guideLanguageIds"));
@@ -42,13 +42,10 @@ export function DenaliGuideLanguageIdsField({
 
   useEffect(() => {
     let cancelled = false;
-    void fetch(DENALI_SUBMIT_CATALOG_BFF_PATHS.guideLanguages, { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`GUIDE_LANGUAGES_HTTP_${response.status}`);
-        }
-        return (await response.json()) as GuideLanguagesListResponse;
-      })
+    void fetchDenaliCatalogJsonWithSoftRetry<GuideLanguagesListResponse>(
+      DENALI_SUBMIT_CATALOG_BFF_PATHS.guideLanguages,
+      "GUIDE_LANGUAGES"
+    )
       .then((payload) => {
         if (!cancelled) {
           const items = (payload.items ?? []).filter((item) => item.isActive !== false);
@@ -96,9 +93,7 @@ export function DenaliGuideLanguageIdsField({
       {loading ? (
         <p className="denali-wizard-composite__status">{t("composites.guideLanguages.loading")}</p>
       ) : null}
-      {error !== null ? (
-        <p className="denali-wizard-composite__error">{resolveCodedErrorMessage(tErrors, error)}</p>
-      ) : null}
+      <DenaliCatalogLoadNotice error={error} />
 
       {!loading && languages.length === 0 && error === null ? (
         <p className="denali-wizard-composite__status">{t("composites.guideLanguages.empty")}</p>

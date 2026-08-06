@@ -27,9 +27,8 @@ Tenant `wizard_template` overlays the workspace field catalog. Create-wizard dra
 Only when canonical path is **empty after L1**:
 
 - `category` → `mountain_day`
-- `participants.fitnessLevel` → `medium`
 
-Template `defaultValue` for these paths must apply before bootstrap (INV-WIZ-010).
+Do **not** bootstrap `participants.fitnessLevel` or `program.difficultyLevel` — those stay empty until the operator selects a value (INV-DENALI-WIZ-010). Template `defaultValue` for other paths must still apply before bootstrap (INV-WIZ-010).
 
 ## Visibility coherence
 

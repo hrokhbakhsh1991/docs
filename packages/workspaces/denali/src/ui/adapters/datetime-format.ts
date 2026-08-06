@@ -1,6 +1,9 @@
 import { formatIsoDateLabel } from "./calendar-format";
 import { toLocalizedDigits, type AppLocale } from "./i18n-format";
 
+/** Default wall clock invented by {@link joinDatetimeLocal} when time is empty. */
+export const DATETIME_LOCAL_INVENTED_MIDNIGHT = "00:00" as const;
+
 export function splitDatetimeLocal(value: string): { readonly date: string; readonly time: string } {
   const trimmed = value.trim();
   if (trimmed.length === 0) {
@@ -21,8 +24,62 @@ export function joinDatetimeLocal(date: string, time: string): string {
   if (trimmedDate.length === 0) {
     return "";
   }
-  const normalizedTime = normalizeClockTime(time) || "00:00";
+  const normalizedTime = normalizeClockTime(time) || DATETIME_LOCAL_INVENTED_MIDNIGHT;
   return `${trimmedDate}T${normalizedTime}`;
+}
+
+/**
+ * True when `own` is empty or the invent sentinel from {@link joinDatetimeLocal}, while a
+ * meaningful non-midnight fallback (e.g. tour start clock) is available.
+ */
+export function isUnsetOrInventedMidnightClock(
+  currentTime: string,
+  fallbackTime?: string
+): boolean {
+  const own = currentTime.trim();
+  const fallback = fallbackTime?.trim() ?? "";
+  if (fallback.length === 0 || fallback === DATETIME_LOCAL_INVENTED_MIDNIGHT) {
+    return false;
+  }
+  return own.length === 0 || own === DATETIME_LOCAL_INVENTED_MIDNIGHT;
+}
+
+/**
+ * ED-DT-END-01 — when committing a date change, keep an explicit non-midnight clock; otherwise
+ * inherit fallback before {@link joinDatetimeLocal} invents midnight.
+ */
+export function resolveDatetimePickerTimeForDateCommit(
+  currentTime: string,
+  fallbackTime?: string
+): string {
+  const own = currentTime.trim();
+  const fallback = fallbackTime?.trim() ?? "";
+  if (isUnsetOrInventedMidnightClock(own, fallback)) {
+    return fallback;
+  }
+  if (own.length > 0) {
+    return own;
+  }
+  return fallback;
+}
+
+/**
+ * Repair an end datetime-local wall that still carries invented midnight while start has a real clock.
+ * Returns the repaired local string, or `null` when no repair is needed.
+ */
+export function repairInventedMidnightDatetimeLocal(
+  endDatetimeLocal: string,
+  startDatetimeLocal: string
+): string | null {
+  const endParts = splitDatetimeLocal(endDatetimeLocal);
+  const startParts = splitDatetimeLocal(startDatetimeLocal);
+  if (endParts.date.length === 0) {
+    return null;
+  }
+  if (!isUnsetOrInventedMidnightClock(endParts.time, startParts.time)) {
+    return null;
+  }
+  return joinDatetimeLocal(endParts.date, startParts.time);
 }
 
 export function formatDatetimeLocalLabel(value: string, locale: AppLocale): string {

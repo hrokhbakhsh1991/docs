@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   isDenaliIsoDateSelectable,
   isDenaliTourStartDatetimeBeforeMin,
+  isDenaliTourStartGrandfatheredPastBaseline,
   resolveDenaliDatetimeFieldMinIsoDate,
   resolveDenaliTourStartMinIsoDate,
 } from "../src/ui/logic/denali-schedule-date-policy";
@@ -35,6 +36,28 @@ describe("denali-schedule-date-policy.spec.ts", () => {
     );
     assert.equal(
       isDenaliTourStartDatetimeBeforeMin(todayMorningLocal, "2026-06-23"),
+      false
+    );
+  });
+
+  it("DN-SCHED-DATE-05 grandfather unchanged past start on edit (ED-DT-01)", () => {
+    const pastStart = new Date(2026, 5, 1, 8, 0, 0).toISOString();
+    const sameDayLater = new Date(2026, 5, 1, 18, 0, 0).toISOString();
+    const differentPast = new Date(2026, 5, 2, 8, 0, 0).toISOString();
+    assert.equal(
+      isDenaliTourStartGrandfatheredPastBaseline(pastStart, pastStart, "2026-06-23"),
+      true
+    );
+    assert.equal(
+      isDenaliTourStartGrandfatheredPastBaseline(sameDayLater, pastStart, "2026-06-23"),
+      true
+    );
+    assert.equal(
+      isDenaliTourStartGrandfatheredPastBaseline(differentPast, pastStart, "2026-06-23"),
+      false
+    );
+    assert.equal(
+      isDenaliTourStartGrandfatheredPastBaseline(pastStart, undefined, "2026-06-23"),
       false
     );
   });

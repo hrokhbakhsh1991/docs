@@ -10,6 +10,20 @@ export type BuildCloneTourBodyInput = {
   readonly activeDestinationIds?: readonly string[];
 };
 
+/**
+ * ED-CLONE-01 / ED-PATCH-01 / DEC-P11-010 — createTour + post-merge PATCH require
+ * roots↔data bijection. Do not use plugin.wizard.roots (step ids + missing legacy keys).
+ */
+export function resolveCanonicalRootsFromData(
+  data: Readonly<Record<string, unknown>>
+): string[] {
+  const roots = Object.keys(data);
+  if (roots.length === 0) {
+    throw new Error("CANONICAL_EMPTY_DATA");
+  }
+  return roots;
+}
+
 export async function buildCloneTourCreateBody(
   input: BuildCloneTourBodyInput
 ): Promise<CreateTourBody> {
@@ -28,8 +42,9 @@ export async function buildCloneTourCreateBody(
     activeDestinationIds: input.activeDestinationIds,
   });
 
+  const data = hydrated.data as Record<string, unknown>;
   return {
-    roots: [...plugin.wizard.roots],
-    data: hydrated.data,
+    roots: resolveCanonicalRootsFromData(data),
+    data,
   };
 }

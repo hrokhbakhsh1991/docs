@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { DenaliSearchableSelect } from "../components/denali-searchable-select";
-import { resolveCodedErrorMessage } from "../adapters/i18n-errors";
+import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notice";
 import { useDenaliDestinationCatalog, readDenaliDestinationLabel } from "../hooks/use-destination-catalog";
 import { buildItinerarySegmentDestinationSelection } from "../logic/denali-itinerary-segment-destination-logic";
 import { DENALI_ITINERARY_SEGMENT_DESTINATION_TEST_IDS } from "../test-ids/denali-photos-test-ids";
@@ -23,7 +23,6 @@ export function DenaliItinerarySegmentDestinationField({
   onChange,
 }: DenaliItinerarySegmentDestinationFieldProps) {
   const t = useTranslations("denali");
-  const tErrors = useTranslations("settings.errors");
   const { options, destinationById, loading, error } = useDenaliDestinationCatalog();
   const selectedLabel = readDenaliDestinationLabel(destinationId, destinationById);
 
@@ -53,9 +52,7 @@ export function DenaliItinerarySegmentDestinationField({
       {selectedLabel != null ? (
         <p className="denali-wizard-composite__helper">{selectedLabel}</p>
       ) : null}
-      {error !== null ? (
-        <p className="denali-wizard-composite__error">{resolveCodedErrorMessage(tErrors, error)}</p>
-      ) : null}
+      <DenaliCatalogLoadNotice error={error} />
     </label>
   );
 }

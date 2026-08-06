@@ -3,22 +3,27 @@ import { type AppLocale, toLocalizedDigits } from "../adapters/i18n-format";
 export const DIFFICULTY_LEVEL_MIN = 1;
 export const DIFFICULTY_LEVEL_MAX = 10;
 export const DIFFICULTY_LEVEL_STEP = 0.5;
-export const DIFFICULTY_LEVEL_DEFAULT = 5;
+/** Visual park for unset thumb — min aligns with empty fill; never auto-seed draft (INV-DENALI-WIZ-010). */
+export const DIFFICULTY_LEVEL_SLIDER_UNSET_POSITION = DIFFICULTY_LEVEL_MIN;
 
 export function snapDifficultyLevel(value: number): number {
   if (!Number.isFinite(value)) {
-    return DIFFICULTY_LEVEL_DEFAULT;
+    return DIFFICULTY_LEVEL_MIN;
   }
   const snapped = Math.round(value / DIFFICULTY_LEVEL_STEP) * DIFFICULTY_LEVEL_STEP;
   return Math.min(DIFFICULTY_LEVEL_MAX, Math.max(DIFFICULTY_LEVEL_MIN, snapped));
 }
 
-export function parseDifficultyLevel(raw: string): number {
+/** Parse stored difficulty; empty / invalid → `null` (unset — not a phantom mid value). */
+export function parseDifficultyLevel(raw: string): number | null {
   const trimmed = raw.trim();
   if (trimmed.length === 0) {
-    return DIFFICULTY_LEVEL_DEFAULT;
+    return null;
   }
   const parsed = Number.parseFloat(trimmed);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
   return snapDifficultyLevel(parsed);
 }
 

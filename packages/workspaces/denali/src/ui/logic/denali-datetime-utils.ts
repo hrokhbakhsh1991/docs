@@ -1,4 +1,8 @@
-/** Convert stored ISO datetime to `datetime-local` input value (local timezone). */
+/**
+ * Convert stored ISO datetime to `datetime-local` input value (local timezone).
+ * Wizard/host SoT — `apps/web/src/i18n/datetime-format.ts` keeps a product-blind twin for
+ * thin-shell list formatting (Wave H.h forbids importing this package from `apps/web` src).
+ */
 export function isoToDatetimeLocalInput(iso: string): string {
   const trimmed = iso.trim();
   if (trimmed.length === 0) {

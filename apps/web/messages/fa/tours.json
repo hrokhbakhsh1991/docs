@@ -13,6 +13,7 @@
   },
   "categoryFilterLabel": "دسته تور",
   "categoryAll": "همه دسته‌ها",
+  "categoryFiltersUnavailable": "فیلترهای دسته بارگذاری نشد.",
   "status": {
     "all": "همه",
     "draft": "پیش‌نویس",

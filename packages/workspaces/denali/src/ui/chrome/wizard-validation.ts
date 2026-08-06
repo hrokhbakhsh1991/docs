@@ -13,6 +13,8 @@ import {
 export type DenaliWizardValidationScope = {
   readonly stepId?: string;
   readonly visibleSteps?: readonly RenderStepPlan[];
+  /** ED-DT-01 — grandfather unchanged past tour starts on flat-edit save/publish. */
+  readonly scheduleBaselineStartIso?: string;
 };
 
 export function validateDenaliWizardDraftSync(
@@ -78,9 +80,10 @@ export function validateDenaliPublishTransitionSync(
   draft: DenaliTourWizardDraft,
   denaliRules: DenaliWizardRulesModule | null,
   tenantId: string,
-  evalContext: DenaliWizardRuleEvalContext
+  evalContext: DenaliWizardRuleEvalContext,
+  scope?: Pick<DenaliWizardValidationScope, "scheduleBaselineStartIso">
 ): ValidationResult {
-  const canonical = validateDenaliWizardDraftSync(plugin, draft, denaliRules, tenantId);
+  const canonical = validateDenaliWizardDraftSync(plugin, draft, denaliRules, tenantId, scope);
   const readiness = validateDenaliPublishReadinessSync(plugin, draft, denaliRules, evalContext, {
     publishTransition: true,
   });

@@ -14,6 +14,7 @@ import {
   type OperatorTourListResult,
 } from "../tours/list-tours-operator";
 import type { CreateTourBody } from "../tours/create-tour.schema";
+import { resolveCanonicalRootsFromData } from "../tours/build-clone-tour-body";
 import { mergeCanonicalPatchDataForWorkspace } from "../tours/workspace-tour-write-dispatch";
 import type { UpdateTourBody } from "../tours/update-tour.schema";
 import { useAtomicCanonicalPersist } from "../storage/create-tour-storage";
@@ -223,14 +224,17 @@ export class CanonicalTourService {
       throw new Error("TOUR_NOT_FOUND");
     }
 
+    // ED-PATCH-01 — shallow merge keeps sibling keys (e.g. legacy `basics`); client
+    // `roots` (often `plugin.wizard.roots`) are not authoritative after merge.
+    const mergedData = mergeCanonicalPatchDataForWorkspace(
+      input.workspaceType,
+      existing.canonical.data as Record<string, unknown>,
+      input.body.data as Record<string, unknown> | undefined
+    );
     const mergeBody: CreateTourBody = {
       schemaVersion: input.body.schemaVersion ?? existing.canonical.schemaVersion,
-      roots: input.body.roots ?? [...existing.canonical.roots],
-      data: mergeCanonicalPatchDataForWorkspace(
-        input.workspaceType,
-        existing.canonical.data as Record<string, unknown>,
-        input.body.data as Record<string, unknown> | undefined
-      ) as CreateTourBody["data"],
+      roots: resolveCanonicalRootsFromData(mergedData),
+      data: mergedData as CreateTourBody["data"],
     };
 
     const canonical = await runPreTransactionValidation({

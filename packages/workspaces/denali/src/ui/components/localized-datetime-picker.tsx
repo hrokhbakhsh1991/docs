@@ -2,7 +2,11 @@
 
 import { useLocale, useTranslations } from "next-intl";
 
-import { joinDatetimeLocal, splitDatetimeLocal } from "../adapters/datetime-format";
+import {
+  joinDatetimeLocal,
+  resolveDatetimePickerTimeForDateCommit,
+  splitDatetimeLocal,
+} from "../adapters/datetime-format";
 import { type AppLocale } from "../adapters/i18n-format";
 import { cn } from "../utils/cn";
 import { DenaliTimeInput } from "./denali-time-input";
@@ -12,6 +16,8 @@ export type DenaliWizardDatetimePickerProps = {
   readonly id?: string;
   readonly value: string;
   readonly onChange: (datetimeLocal: string) => void;
+  /** Used when the control has a date but no clock yet (e.g. end inherits start). */
+  readonly fallbackTime?: string;
   readonly minIsoDate?: string;
   readonly disabled?: boolean;
   readonly required?: boolean;
@@ -26,6 +32,7 @@ export function DenaliWizardDatetimePicker({
   id,
   value,
   onChange,
+  fallbackTime,
   minIsoDate,
   disabled = false,
   required = false,
@@ -56,7 +63,14 @@ export function DenaliWizardDatetimePicker({
             invalid={invalid}
             aria-label={ariaLabel ?? t("pickDate")}
             className="operator-wizard-datetime__date-trigger"
-            onChange={(nextDate) => onChange(joinDatetimeLocal(nextDate, time))}
+            onChange={(nextDate) =>
+              onChange(
+                joinDatetimeLocal(
+                  nextDate,
+                  resolveDatetimePickerTimeForDateCommit(time, fallbackTime)
+                )
+              )
+            }
           />
         </div>
         <div className="operator-wizard-datetime__divider" aria-hidden />

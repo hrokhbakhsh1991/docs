@@ -140,6 +140,7 @@ function OperatorFlatEditPageClientReady({
             translateFieldLabel: createWizardSubmitFieldLabelResolver(session.pluginId, (key) =>
               tPlugin(key)
             ),
+            translateWorkspace: (key, values) => tPlugin(key, values),
             t: createWizardSubmitErrorTranslator(tWizard),
           });
           const priceLabel = formatTourPrice(

@@ -1848,6 +1848,12 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-difficulty-l
   color: var(--color-primary);
 }
 
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-difficulty-level__value--unset {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-difficulty-level__value-suffix {
   font-size: 0.875rem;
   font-weight: 600;
@@ -1955,11 +1961,18 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-difficulty-l
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-difficulty-level__tick {
   position: absolute;
   top: 0;
+  /* Physical -50% centers when inset-inline-start maps to `left` (LTR). */
   transform: translateX(-50%);
   font-size: 0.625rem;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-muted);
+}
+
+/* Under RTL, inset-inline-start maps to `right` — flip the centering shift (ED-DIFF-TICK-01). */
+:is(html[dir="rtl"], [dir="rtl"]) body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-difficulty-level__tick,
+body[data-workspace-plugin="denali"][dir="rtl"] [data-new-tour-wizard] .denali-difficulty-level__tick {
+  transform: translateX(50%);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-operator-tour-services] .denali-tour-services__summary {

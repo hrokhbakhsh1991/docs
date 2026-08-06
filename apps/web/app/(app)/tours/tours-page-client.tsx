@@ -32,6 +32,7 @@ import {
   type TourCategoryFilter,
 } from "@/features/tours/tour-list-category-logic";
 import { ensureTourListCategorySurface } from "@/features/tours/tour-list-category-registry";
+import { ensureGeneratedLabelResolver } from "@/wizard/wizard-label-registry";
 import { catalogListSupportsServerFilter, resolveCatalogListFeatures } from "@app-tour/workspace-sdk";
 import {
   queryStatusToUiStatus,
@@ -77,17 +78,34 @@ export function OperatorToursPageClient({
   const hasCategoryFilter = catalogListSupportsServerFilter(catalogListFeatures, "category");
   const showExtendedCard = hasCategoryFilter;
   const [categorySurfaceReady, setCategorySurfaceReady] = useState(false);
+  const [categorySurfaceFailed, setCategorySurfaceFailed] = useState(false);
+  const [categoryWarmNonce, setCategoryWarmNonce] = useState(0);
   useEffect(() => {
     let cancelled = false;
-    void ensureTourListCategorySurface(session.pluginId).then(() => {
-      if (!cancelled) {
-        setCategorySurfaceReady(true);
+    setCategorySurfaceReady(false);
+    setCategorySurfaceFailed(false);
+    const warmCategorySurface = async () => {
+      let surface = await ensureTourListCategorySurface(session.pluginId);
+      if (surface == null) {
+        // ED-LIST-CAT-01: cold plugin load / gate race — one retry before giving up.
+        surface = await ensureTourListCategorySurface(session.pluginId);
       }
-    });
+      await ensureGeneratedLabelResolver(session.pluginId);
+      if (cancelled) {
+        return;
+      }
+      if (surface != null) {
+        setCategorySurfaceReady(true);
+        setCategorySurfaceFailed(false);
+        return;
+      }
+      setCategorySurfaceFailed(true);
+    };
+    void warmCategorySurface();
     return () => {
       cancelled = true;
     };
-  }, [session.pluginId]);
+  }, [session.pluginId, categoryWarmNonce]);
   const categoryFilterGroups = useMemo(
     () =>
       hasCategoryFilter && categorySurfaceReady
@@ -309,7 +327,8 @@ export function OperatorToursPageClient({
                   {t("categoryAll")}
                 </Button>
               </div>
-              {categoryFilterGroups.map((group) => (
+              {categorySurfaceReady ? (
+                categoryFilterGroups.map((group) => (
                 <div key={group.id} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                   <span className="min-w-20 text-xs font-medium text-muted-foreground">
                     {resolveWizardTourCategoryGroupLabel(
@@ -332,7 +351,27 @@ export function OperatorToursPageClient({
                     ))}
                   </div>
                 </div>
-              ))}
+              ))
+              ) : categorySurfaceFailed ? (
+                <div
+                  className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+                  data-operator-category-filters-failed
+                >
+                  <span>{t("categoryFiltersUnavailable")}</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCategoryWarmNonce((n) => n + 1)}
+                  >
+                    {tCommon("retry")}
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground" data-operator-category-filters-pending>
+                  {tCommon("loading")}
+                </p>
+              )}
             </div>
           ) : null}
 

@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import {
+  isUnresolvedDenaliTranslation,
+  resolveDenaliFieldLabel,
+} from "../src/ui/adapters/field-labels";
 import { resolveDenaliWizardValidationFieldLabel } from "../src/ui/adapters/wizard-validation-field-label";
 
 const messages: Record<string, string> = {
@@ -9,6 +13,9 @@ const messages: Record<string, string> = {
   "composites.destinationCatalogMetric.peakHeight.sectionTitle": "Peak height (m)",
   "composites.datetime.sectionTitle": "Tour date and time",
   "composites.itinerary.sectionTitle": "Day-by-day itinerary",
+  "composites.itinerary.dayTitle": "Day title",
+  "composites.itinerary.daySummary": "Day summary",
+  "composites.itinerary.segmentsHeading": "Segments",
   "fields.participants.minimumAge": "Minimum age",
   "fields.destinationId": "Destination",
   "fields.startDateTime": "Start date & time",
@@ -17,6 +24,14 @@ const messages: Record<string, string> = {
 
 function mockDenaliTranslator(key: string): string {
   return messages[key] ?? key;
+}
+
+/** Mimics next-intl missing-key echo under useTranslations("denali"). */
+function echoNamespacedTranslator(key: string): string {
+  if (messages[key] !== undefined) {
+    return messages[key]!;
+  }
+  return `denali.${key}`;
 }
 
 describe("resolveDenaliWizardValidationFieldLabel", () => {
@@ -101,6 +116,37 @@ describe("resolveDenaliWizardValidationFieldLabel", () => {
         },
       }),
       "Required gear"
+    );
+  });
+
+  it("DN-VLABEL-08 rejects denali.fields.* next-intl echoes (ED-VAL-01)", () => {
+    assert.equal(
+      isUnresolvedDenaliTranslation(
+        "fields.programNature.itinerary.2.title",
+        "denali.fields.programNature.itinerary.2.title"
+      ),
+      true
+    );
+    assert.equal(
+      resolveDenaliFieldLabel(echoNamespacedTranslator, "programNature.itinerary.2.title"),
+      "Day title"
+    );
+    assert.equal(
+      resolveDenaliWizardValidationFieldLabel({
+        canonicalPath: "programNature.itinerary.2.segments.0.title",
+        translateWorkspaceMessage: echoNamespacedTranslator,
+      }),
+      "Day title"
+    );
+  });
+
+  it("DN-VLABEL-09 maps programNature itinerary leaf to program.itinerary when present", () => {
+    assert.equal(
+      resolveDenaliWizardValidationFieldLabel({
+        canonicalPath: "programNature.itinerary",
+        translateWorkspaceMessage: mockDenaliTranslator,
+      }),
+      "Day-by-day itinerary"
     );
   });
 });

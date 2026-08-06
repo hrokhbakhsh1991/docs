@@ -35,11 +35,19 @@ Verification: `apps/api/test/5.5-audit-events.spec.ts` — `PATCH /tours/:id` af
 Denali and Urban register `mergeCanonicalPatchData` in `workspace.manifest.json` (codegen → `workspace-tour-write-bindings.generated.ts`). Workspaces without a binding use the API **root-level shallow merge** fallback:
 
 1. For each key in the PATCH `data` object, merge into the stored canonical `data` (object roots are shallow-merged; scalar roots are replaced).
-2. `roots` on the merged body default to the stored tour roots unless the PATCH body supplies `roots` explicitly.
+2. After merge, persist `roots` are **exactly** `Object.keys(mergedData)` (same bijection helper as clone: `resolveCanonicalRootsFromData`). Client-supplied `roots` and stored `roots` are **not** reused as the post-merge root list.
 
-This preserves roots injected on create (e.g. `pricing` from P5-C commerce defaults) when operators PATCH only `basics` / `details` fragments. Replacing the entire `data` object on PATCH would drop sibling roots and fail pre-TX validation (`CANONICAL_ROOT_UNKNOWN`).
+### Why client `roots` are not authoritative after merge (ED-PATCH-01)
 
-Verification: `apps/api/test/4-integration/schema-version-compat.spec.ts` — `SV-PATCH-OK`.
+Flat-edit / wizard submit often sends `roots: plugin.wizard.roots` (step ids + field tops) while **omitting** legacy/list keys still present on stored tours (`basics`, `details`) and intentionally omitted lifecycle keys on save (`publishStatus` stripped so shallow merge preserves status). Shallow merge **keeps** those sibling keys in `data`. Reusing the PATCH `roots` array then fails `assertCanonicalDocument` with `CANONICAL_ROOT_UNKNOWN` (e.g. `Key "basics" is not listed in document.roots`).
+
+Deriving roots from merged `data` keys:
+
+- Preserves commerce/list siblings injected on create (e.g. `pricing`, `basics`) when operators PATCH fragments or full wizard payloads.
+- Keeps save-intent publish stripping working: `publishStatus` stays in merged data → stays in roots.
+- Matches ED-CLONE-01 / DEC-P11-010 create-body bijection.
+
+Verification: `apps/api/test/4-integration/schema-version-compat.spec.ts` — `SV-PATCH-OK`; `apps/api/test/canonical-patch-roots-after-merge.spec.ts` — `ED-PATCH-01`.
 
 ## Migration
 

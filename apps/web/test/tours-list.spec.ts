@@ -138,6 +138,19 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.equal(formatTourSeats({ acceptedCount: 3, totalCapacity: 12 }), "3/12 seats");
   });
 
+  it("ED-TZ-01 formatTourDeparture uses local wall clock (not naive ISO-Z digits)", async () => {
+    const { formatDatetimeLocalLabel, isoToDatetimeLocalInput } = await import(
+      "../src/i18n/datetime-format"
+    );
+    const iso = "2026-08-15T02:30:00.000Z";
+    const expected = formatDatetimeLocalLabel(isoToDatetimeLocalInput(iso), "en");
+    assert.equal(formatTourDeparture(iso, "en"), expected);
+    const naiveUtcSlice = formatDatetimeLocalLabel(iso, "en");
+    if (isoToDatetimeLocalInput(iso) !== "2026-08-15T02:30") {
+      assert.notEqual(formatTourDeparture(iso, "en"), naiveUtcSlice);
+    }
+  });
+
   it("WEB-9.3-09 Denali duration chip derives from category slug", () => {
     assert.equal(resolveTourKindDuration(PLUGIN_ID, "mountain_day"), "single_day");
     assert.equal(resolveTourKindDuration(PLUGIN_ID, "mountain_multi"), "multi_day");

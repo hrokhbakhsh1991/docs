@@ -15,6 +15,107 @@ export function canonicalPathToFieldMessageKey(canonicalPath: string): string {
   return `fields.${canonicalPath}`;
 }
 
+/**
+ * next-intl missing keys often echo `denali.${key}` when `useTranslations("denali")`
+ * is used — treat those as unresolved so we never surface raw message keys in UI.
+ */
+export function isUnresolvedDenaliTranslation(key: string, translated: string): boolean {
+  const value = translated.trim();
+  if (value.length === 0) {
+    return true;
+  }
+  if (value === key) {
+    return true;
+  }
+  if (value === `denali.${key}`) {
+    return true;
+  }
+  if (value.endsWith(`.${key}`)) {
+    return true;
+  }
+  return /^(denali\.)?(fields|composites|validation|steps|enumOptions)\./.test(value);
+}
+
+function tryDenaliTranslate(t: DenaliTranslator, key: string): string | null {
+  if (typeof t.has === "function") {
+    if (!t.has(key)) {
+      return null;
+    }
+    const translated = t(key);
+    return isUnresolvedDenaliTranslation(key, translated) ? null : translated;
+  }
+  try {
+    const translated = t(key);
+    return isUnresolvedDenaliTranslation(key, translated) ? null : translated;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Indexed itinerary paths (e.g. `programNature.itinerary.2.title`,
+ * `program.itinerary.0.segments.1.title`) map to composite itinerary copy.
+ */
+export function resolveDenaliIndexedItineraryFieldLabel(
+  t: DenaliTranslator,
+  canonicalPath: string
+): string | null {
+  const match = canonicalPath.match(
+    /^(?:programNature|program)\.itinerary\.(\d+)(?:\.(.+))?$/
+  );
+  if (match === null) {
+    return null;
+  }
+  const rest = match[2] ?? "";
+
+  if (rest.length === 0 || rest === "title") {
+    return (
+      tryDenaliTranslate(t, "composites.itinerary.dayTitle") ??
+      tryDenaliTranslate(t, "fields.program.itinerary")
+    );
+  }
+  if (rest === "summary") {
+    return tryDenaliTranslate(t, "composites.itinerary.daySummary");
+  }
+  if (/^segments\.\d+\.title$/.test(rest)) {
+    return (
+      tryDenaliTranslate(t, "composites.itinerary.dayTitle") ??
+      tryDenaliTranslate(t, "composites.itinerary.segmentsHeading")
+    );
+  }
+  if (/^segments\.\d+/.test(rest)) {
+    return tryDenaliTranslate(t, "composites.itinerary.segmentsHeading");
+  }
+
+  return tryDenaliTranslate(t, "fields.program.itinerary");
+}
+
+/** Strip numeric path segments and retry `fields.*` (and programNature→program alias). */
+function resolveDenaliFieldLabelByStrippingIndexes(
+  t: DenaliTranslator,
+  canonicalPath: string
+): string | null {
+  const parts = canonicalPath.split(".");
+  if (!parts.some((part) => /^\d+$/.test(part))) {
+    return null;
+  }
+  const withoutIndexes = parts.filter((part) => !/^\d+$/.test(part)).join(".");
+  if (withoutIndexes.length === 0 || withoutIndexes === canonicalPath) {
+    return null;
+  }
+  const candidates = [withoutIndexes];
+  if (withoutIndexes.startsWith("programNature.")) {
+    candidates.push(`program.${withoutIndexes.slice("programNature.".length)}`);
+  }
+  for (const candidate of candidates) {
+    const label = tryDenaliTranslate(t, canonicalPathToFieldMessageKey(candidate));
+    if (label !== null) {
+      return label;
+    }
+  }
+  return null;
+}
+
 export function resolveDenaliStepLabelFallback(stepId: string): string {
   return stepId
     .replace(/^denali_/, "")
@@ -35,47 +136,52 @@ export function resolveDenaliFieldLabel(t: DenaliTranslator, canonicalPath: stri
       return resolveDenaliFieldLabel(t, mapped);
     }
     const sectionKey = compositeIdToSectionTitleMessageKey(canonicalPath);
-    if (typeof t.has === "function") {
-      if (t.has(sectionKey)) {
-        return t(sectionKey);
-      }
-    } else {
-      try {
-        const sectionLabel = t(sectionKey);
-        if (sectionLabel !== sectionKey && sectionLabel.length > 0) {
-          return sectionLabel;
-        }
-      } catch {
-        // Fall through to fields.* / formatted path.
-      }
+    const sectionLabel = tryDenaliTranslate(t, sectionKey);
+    if (sectionLabel !== null) {
+      return sectionLabel;
     }
   }
 
+  const indexedItinerary = resolveDenaliIndexedItineraryFieldLabel(t, canonicalPath);
+  if (indexedItinerary !== null) {
+    return indexedItinerary;
+  }
+
+  const stripped = resolveDenaliFieldLabelByStrippingIndexes(t, canonicalPath);
+  if (stripped !== null) {
+    return stripped;
+  }
+
   const key = canonicalPathToFieldMessageKey(canonicalPath);
-  if (typeof t.has === "function") {
-    if (t.has(key)) {
-      return t(key);
-    }
-    return formatCanonicalPathToLabel(canonicalPath);
+  const direct = tryDenaliTranslate(t, key);
+  if (direct !== null) {
+    return direct;
   }
-  try {
-    const label = t(key);
-    if (label !== key && label.length > 0) {
-      return label;
+
+  if (canonicalPath.startsWith("programNature.")) {
+    const aliased = tryDenaliTranslate(
+      t,
+      canonicalPathToFieldMessageKey(`program.${canonicalPath.slice("programNature.".length)}`)
+    );
+    if (aliased !== null) {
+      return aliased;
     }
-  } catch {
-    // Missing message keys fall back to formatted path.
   }
+
   return formatCanonicalPathToLabel(canonicalPath);
 }
 
 function readEnumOptionLabel(t: DenaliTranslator, key: string, _fallback: string): string | null {
   if (typeof t.has === "function") {
-    return t.has(key) ? t(key) : null;
+    if (!t.has(key)) {
+      return null;
+    }
+    const translated = t(key);
+    return isUnresolvedDenaliTranslation(key, translated) ? null : translated;
   }
   try {
     const label = t(key);
-    return label !== key && label.length > 0 ? label : null;
+    return isUnresolvedDenaliTranslation(key, label) ? null : label;
   } catch {
     return null;
   }
@@ -92,8 +198,9 @@ export function resolveDenaliEnumOptionLabel(
     return value;
   }
 
+  // Prefer keys that exist in packages/workspaces/denali/messages/*/wizard.json.
+  // `enumOptions.*` is optional/legacy — probe last (and only via has()) to avoid MISSING_MESSAGE spam.
   const candidates: readonly string[] = [
-    `enumOptions.${canonicalPath}.${slug}`,
     canonicalPath === "transport.mode" || canonicalPath.endsWith(".mode")
       ? `transportModes.${slug}`
       : null,
@@ -108,6 +215,7 @@ export function resolveDenaliEnumOptionLabel(
       ? `composites.tourKind.categories.${slug}`
       : null,
     `tourKinds.${slug}`,
+    `enumOptions.${canonicalPath}.${slug}`,
   ].filter((entry): entry is string => entry != null);
 
   for (const key of candidates) {

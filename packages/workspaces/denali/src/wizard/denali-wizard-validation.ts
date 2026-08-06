@@ -41,6 +41,7 @@ import { sanitizeDenaliWizardDraftRecord } from "./denali-wizard-draft-sanitize"
 import {
   DENALI_TOUR_START_CANONICAL_PATH,
   isDenaliTourStartDatetimeBeforeMin,
+  isDenaliTourStartGrandfatheredPastBaseline,
 } from "../ui/logic/denali-schedule-date-policy";
 
 const DENALI_COMPOSITE_FIELD_BY_CANONICAL_PATH = new Map<string, DenaliFieldDefinition>(
@@ -66,6 +67,11 @@ const DENALI_STRING_ARRAY_CANONICAL_PATHS = new Set([
 export type DenaliWizardValidationScope = {
   readonly stepId?: string;
   readonly visibleSteps?: readonly RenderStepPlan[];
+  /**
+   * ED-DT-01 — when editing an existing tour, unchanged past starts (same local
+   * calendar day as this baseline ISO) are grandfathered; create/new past picks still fail.
+   */
+  readonly scheduleBaselineStartIso?: string;
 };
 
 function asDraftEnvelope(draft: Readonly<Record<string, unknown>>): CanonicalWizardDraftEnvelope {
@@ -336,12 +342,12 @@ export function validateDenaliWizardDraftSync(
   result = filterDenaliCompositeStorageViolations(result, { data: document.data });
 
   if (scope?.stepId == null || scope.visibleSteps == null) {
-    return mergeDenaliScheduleDateViolations(result, envelope);
+    return mergeDenaliScheduleDateViolations(result, envelope, undefined, scope);
   }
 
   const step = scope.visibleSteps.find((entry) => entry.stepId === scope.stepId);
   if (step == null) {
-    return mergeDenaliScheduleDateViolations(result, envelope);
+    return mergeDenaliScheduleDateViolations(result, envelope, undefined, scope);
   }
 
   const expandOptions: ExpandCompositeDependentsOptions = {
@@ -351,7 +357,7 @@ export function validateDenaliWizardDraftSync(
   };
   result = filterValidationToStep(result, step, expandOptions);
   result = mergeDenaliStepRequiredFieldViolations(result, envelope, step, expandOptions);
-  return mergeDenaliScheduleDateViolations(result, envelope, step);
+  return mergeDenaliScheduleDateViolations(result, envelope, step, scope);
 }
 
 function isDenaliDraftFieldValueEmpty(
@@ -449,7 +455,8 @@ function mergeDenaliStepRequiredFieldViolations(
 function mergeDenaliScheduleDateViolations(
   result: ValidationResult,
   envelope: CanonicalWizardDraftEnvelope,
-  step?: RenderStepPlan
+  step?: RenderStepPlan,
+  scope?: DenaliWizardValidationScope
 ): ValidationResult {
   if (step != null) {
     const expandedStep = expandStepFieldsForCompositeDependents(step);
@@ -463,6 +470,12 @@ function mergeDenaliScheduleDateViolations(
 
   const startIso = getCanonicalStringFromDraft(envelope, DENALI_TOUR_START_CANONICAL_PATH);
   if (startIso.trim().length === 0 || !isDenaliTourStartDatetimeBeforeMin(startIso)) {
+    return result;
+  }
+
+  if (
+    isDenaliTourStartGrandfatheredPastBaseline(startIso, scope?.scheduleBaselineStartIso)
+  ) {
     return result;
   }
 
@@ -603,6 +616,7 @@ export function validateDenaliWizardDraftSyncFromHostInput(input: {
   readonly scope?: {
     readonly stepId?: string;
     readonly visibleSteps?: readonly unknown[];
+    readonly scheduleBaselineStartIso?: string;
   };
 }): ValidationResult {
   const plugin = input.plugin as WorkspacePlugin;

@@ -9,7 +9,7 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const DENALI_IMPORT = /from\s+['"]@app-cloud\/workspace-denali/;
+const DENALI_IMPORT = /from\s+['"]@app-tour\/workspace-denali/;
 
 function listTs(dir: string, out: string[] = []): string[] {
   for (const ent of readdirSync(dir, { withFileTypes: true })) {
@@ -40,7 +40,7 @@ describe("Wave H.h — denali import firewall", () => {
       "src/exposure/localize-exposure-catalog-fields.ts",
     ]) {
       const source = readFileSync(join(WEB_ROOT, rel), "utf8");
-      assert.doesNotMatch(source, /@app-cloud\/workspace-denali/);
+      assert.doesNotMatch(source, /@app-tour\/workspace-denali/);
       assert.match(source, /wizard-host-adapter-registry/);
       assert.doesNotMatch(source, /workspace-host-adapters\.generated/);
     }

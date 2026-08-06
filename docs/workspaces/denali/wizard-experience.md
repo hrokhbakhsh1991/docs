@@ -257,8 +257,20 @@ Server actions (`createTourAction`, `updateTourAction`) return structured `{ sta
 | --------------------------------- | ---------------------------------------------------------------------------------- |
 | `parseTourApiErrorBody`           | Split API `code` vs human `error` message                                          |
 | `parsePlatformValidationMessage`  | Turn `CANONICAL_VALIDATION_FAILED: …` into field segments                          |
-| `resolveWizardSubmitErrorMessage` | Map segments → `wizard.submit.*` / `host.validation.codes.*` + Denali field labels |
+| `resolveWizardSubmitErrorMessage` | Map segments → shell `wizard.submit*` / `host.validation.codes.*` + product localize |
 | `WizardSubmitErrorAlert`          | Summary + bullet list under create/save footer                                     |
+
+**Thin-shell split (create + flat-edit):**
+
+| Concern | Owner | Namespace / surface |
+| ------- | ----- | ------------------- |
+| HTTP bucket copy (`submit.http500`, `submitEdit.validationSummary`, …) | Shell (`apps/web` `wizard.*`) | `useTranslations("wizard")` |
+| Structural codes (`REQUIRED_FIELD_EMPTY`, …) | Shell | `wizard.host.validation.codes.*` (`has` must check that path) |
+| Platform prose → operator copy (`validation.requiredField`, `validation.invalidValue`, …) | Workspace plugin via `localizeWizardValidationIssueMessage` | **Workspace** translator (`useWorkspaceWizardTranslator(pluginId)` → `denali.validation.*`), **not** shell `wizard.*` |
+| Field labels | Workspace label resolver | Same workspace translator |
+| Client-side draft validation list | Product `FlatEditValidationList` from flat-edit page surface registry | `denali.review.validation.*` codes; shell suppresses duplicate `WizardSubmitErrorAlert` when issues are present |
+
+If localize is wired to shell `wizard` alone, next-intl echoes missing keys such as `wizard.validation.invalidValue` in the footer — that is a shell wiring bug, not a Denali message pack gap.
 
 Validation failures show Persian field labels (e.g. «نقطه شروع») — not English canonical paths or HTTP codes.
 

@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 
 import {
   formatDatetimeLocalLabel,
+  isoToDatetimeLocalInput,
   joinDatetimeLocal,
   normalizeClockTime,
   splitDatetimeLocal,
@@ -28,5 +29,16 @@ describe("datetime-format.spec.ts", () => {
     const label = formatDatetimeLocalLabel("2026-03-21T09:15", "fa");
     assert.match(label, /فروردین/);
     assert.match(label, /۰۹:۱۵/);
+  });
+
+  it("WEB-DT-04 isoToDatetimeLocalInput matches Denali host algorithm (Wave H twin)", () => {
+    const iso = "2026-08-15T02:30:00.000Z";
+    const local = isoToDatetimeLocalInput(iso);
+    assert.match(local, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+    // Same contract as packages/workspaces/denali/.../denali-datetime-utils.ts
+    const parsed = new Date(Date.parse(iso));
+    const pad = (value: number) => String(value).padStart(2, "0");
+    const expected = `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}T${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
+    assert.equal(local, expected);
   });
 });

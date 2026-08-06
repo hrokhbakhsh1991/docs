@@ -53,6 +53,7 @@ export function OperatorCreateTourWizardClientReady({
         translateFieldLabel: createWizardSubmitFieldLabelResolver(session.pluginId, (key) =>
           tWizard(key)
         ),
+        translateWorkspace: (key, values) => tWizard(key, values),
         t: createWizardSubmitErrorTranslator(t),
       }),
     [t, tWizard, session.pluginId]

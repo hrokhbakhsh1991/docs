@@ -1,13 +1,12 @@
 import type { TourThemeResource } from "./catalog-types";
+import { fetchDenaliCatalogJsonWithSoftRetry } from "./catalog-soft-fail";
 
 /** Operator tour themes catalog for wizard rule eval context. */
 export async function loadDenaliThemeCatalog(): Promise<readonly TourThemeResource[]> {
   try {
-    const response = await fetch("/api/settings/resources/tour_themes", { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(`TOUR_THEMES_HTTP_${response.status}`);
-    }
-    const payload = (await response.json()) as { items?: readonly TourThemeResource[] };
+    const payload = await fetchDenaliCatalogJsonWithSoftRetry<{
+      items?: readonly TourThemeResource[];
+    }>("/api/settings/resources/tour_themes", "TOUR_THEMES");
     return payload.items ?? [];
   } catch {
     return [];

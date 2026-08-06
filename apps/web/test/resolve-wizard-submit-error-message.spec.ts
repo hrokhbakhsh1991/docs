@@ -17,8 +17,10 @@ describe("resolve-wizard-submit-error-message.spec.ts", () => {
     translate: (key: string, values?: Record<string, string | number>) => {
       const map: Record<string, string> = {
         "submit.validationSummary": "Fix before create:",
+        "submitEdit.validationSummary": "Fix before save:",
         "submit.validationFailed": "Fix highlighted fields.",
         "submit.errorUnknown": "Create failed.",
+        "submitEdit.errorUnknown": "Save failed.",
         "submit.http500": "Server error bucket.",
         "submit.errorDetailCode": "Code: {code}",
         "submit.errorDetailMessage": "Message: {message}",
@@ -29,6 +31,7 @@ describe("resolve-wizard-submit-error-message.spec.ts", () => {
         "host.validation.codes.CANONICAL_TYPE_MISMATCH": "{field} is invalid",
         "validation.requiredField": "{field} is required",
         "validation.invalidText": "{field} must be valid text",
+        "validation.invalidValue": "{field} has an invalid value",
       };
       const template = map[key] ?? key;
       return template.replace(/\{(\w+)\}/g, (_, token: string) => String(values?.[token] ?? ""));
@@ -58,6 +61,55 @@ describe("resolve-wizard-submit-error-message.spec.ts", () => {
     assert.equal(presentation?.details?.length, 2);
     assert.match(presentation?.details?.[0] ?? "", /Label:title/);
     assert.match(presentation?.details?.[1] ?? "", /Label:startPoint/);
+  });
+
+  it("uses submitEdit.validationSummary and workspace localize on edit context", () => {
+    const raw = encodeTourActionSubmitError({
+      status: 400,
+      code: "VALIDATION_FAILURE",
+      message: 'CANONICAL_VALIDATION_FAILED: No value at canonical path "pricing.paymentMode"',
+    });
+    // Shell has REQUIRED_FIELD_EMPTY — prefer host.validation.codes over product localize.
+    const presentation = resolveWizardSubmitErrorMessage({
+      pluginId: DENALI_WORKSPACE_PLUGIN_ID,
+      raw,
+      context: "edit",
+      translateFieldLabel: (path) => `Label:${path}`,
+      translateWorkspace: (key) => `WS:${key}`,
+      t,
+    });
+    assert.equal(presentation?.summary, "Fix before save:");
+    assert.equal(presentation?.details?.[0], "Label:pricing.paymentMode is required");
+  });
+
+  it("falls back to workspace localize when shell has no code mapping", () => {
+    const raw = encodeTourActionSubmitError({
+      status: 400,
+      code: "VALIDATION_FAILURE",
+      message: 'CANONICAL_VALIDATION_FAILED: No value at canonical path "pricing.paymentMode"',
+    });
+    const tWithoutCodes = {
+      translate: t.translate,
+      has: (key: string) =>
+        key.startsWith("submit.") ||
+        key.startsWith("submitEdit.") ||
+        key.startsWith("validation."),
+    };
+    const presentation = resolveWizardSubmitErrorMessage({
+      pluginId: DENALI_WORKSPACE_PLUGIN_ID,
+      raw,
+      context: "edit",
+      translateFieldLabel: (path) => `Label:${path}`,
+      translateWorkspace: (key, values) => {
+        if (key === "validation.requiredField") {
+          return `WS-required:${values?.field ?? ""}`;
+        }
+        return key;
+      },
+      t: tWithoutCodes,
+    });
+    assert.equal(presentation?.summary, "Fix before save:");
+    assert.equal(presentation?.details?.[0], "WS-required:Label:pricing.paymentMode");
   });
 
   it("shows API code, message, and correlation id for HTTP 500", () => {

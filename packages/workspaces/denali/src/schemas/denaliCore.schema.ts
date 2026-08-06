@@ -37,7 +37,7 @@ export function buildDenaliTourCreateDefaultValues(): DenaliCreateTourWizardForm
       guideLanguageIds: [],
       shortDescription: undefined,
       longDescription: undefined,
-      difficultyLevel: 5,
+      difficultyLevel: undefined,
       hikingHoursApprox: undefined,
       hikingGoHours: undefined,
       hikingReturnHours: undefined,

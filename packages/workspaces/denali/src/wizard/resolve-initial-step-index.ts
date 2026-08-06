@@ -18,7 +18,6 @@ const PHANTOM_CANONICAL_STRINGS = new Set([
   "false",
   "true",
   "0",
-  "5",
   "draft",
   "mountain_day",
 ]);
@@ -52,7 +51,7 @@ export function isPhantomCanonicalScalar(value: unknown): boolean {
     return false;
   }
   if (typeof value === "number") {
-    return value === 0 || value === 5;
+    return value === 0;
   }
   if (typeof value === "string") {
     return PHANTOM_CANONICAL_STRINGS.has(value.trim().toLowerCase());
@@ -62,7 +61,7 @@ export function isPhantomCanonicalScalar(value: unknown): boolean {
 
 /**
  * Step inference treats only meaningful user input as non-empty.
- * Ignores phantom defaults (e.g. pricing.requiresPayment "false", difficultyLevel "5").
+ * Ignores phantom defaults (e.g. pricing.requiresPayment "false", transport "none").
  */
 export function hasNonEmptyCanonicalValue(value: unknown): boolean {
   if (value === null || value === undefined) {

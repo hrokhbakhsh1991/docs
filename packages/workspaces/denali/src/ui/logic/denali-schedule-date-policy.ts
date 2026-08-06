@@ -41,3 +41,24 @@ export function isDenaliTourStartDatetimeBeforeMin(
   }
   return compareIsoDates(localDate, minIsoDate) < 0;
 }
+
+/**
+ * ED-DT-01 — edit grandfather: past start is allowed when its local calendar day
+ * matches the loaded tour baseline (operator did not pick a new past day).
+ */
+export function isDenaliTourStartGrandfatheredPastBaseline(
+  startIso: string,
+  baselineStartIso: string | undefined,
+  minIsoDate: string = resolveDenaliTourStartMinIsoDate()
+): boolean {
+  const baseline = baselineStartIso?.trim() ?? "";
+  if (baseline.length === 0) {
+    return false;
+  }
+  if (!isDenaliTourStartDatetimeBeforeMin(startIso, minIsoDate)) {
+    return false;
+  }
+  const baselineLocal = isoDatetimeToLocalIsoDate(baseline);
+  const currentLocal = isoDatetimeToLocalIsoDate(startIso);
+  return baselineLocal != null && currentLocal != null && baselineLocal === currentLocal;
+}

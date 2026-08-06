@@ -13,6 +13,7 @@
   },
   "categoryFilterLabel": "Tour category",
   "categoryAll": "All categories",
+  "categoryFiltersUnavailable": "Category filters could not load.",
   "status": {
     "all": "All",
     "draft": "Draft",

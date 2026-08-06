@@ -46,4 +46,15 @@ describe("field-labels.spec.ts — enum + has", () => {
       "ماجراجویی"
     );
   });
+
+  it("DEN-LBL-04 skips unresolved denali.* keys and continues enum fallback chain", () => {
+    const t = createTranslator({
+      "enumOptions.tour.kind.mountain_day": "denali.denali.enumOptions.tour.kind.mountain_day",
+      "tourKinds.mountain_day": "کوهنوردی — تک‌روزه",
+    });
+    assert.equal(
+      resolveDenaliEnumOptionLabel(t, "tour.kind", "mountain_day"),
+      "کوهنوردی — تک‌روزه"
+    );
+  });
 });

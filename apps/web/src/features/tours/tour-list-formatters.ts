@@ -1,5 +1,8 @@
 import type { AppLocale } from "@/i18n/routing";
-import { formatDatetimeLocalLabel } from "@/i18n/datetime-format";
+import {
+  formatDatetimeLocalLabel,
+  isoToDatetimeLocalInput,
+} from "@/i18n/datetime-format";
 import { formatLocalizedNumber, INTL_LOCALE } from "@/i18n/format-localized-digits";
 
 import type { TourListProjection } from "./operator-tours-types";
@@ -36,7 +39,8 @@ export function formatTourDeparture(
   if (iso === null || iso.trim().length === 0) {
     return null;
   }
-  const label = formatDatetimeLocalLabel(iso, locale);
+  // Match review: convert ISO-Z to local datetime-local wall before labeling.
+  const label = formatDatetimeLocalLabel(isoToDatetimeLocalInput(iso), locale);
   return label.length > 0 ? label : null;
 }
 
