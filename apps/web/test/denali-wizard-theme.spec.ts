@@ -274,7 +274,12 @@ describe("denali-wizard-theme.spec.ts", () => {
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/fields/denali-gear-field.tsx"),
       "utf8"
     );
-    assert.match(gear, /denali-wizard-composite__error/);
+    assert.match(gear, /DenaliCatalogLoadNotice/);
+    const catalogLoadNotice = readFileSync(
+      join(REPO_ROOT, "packages/workspaces/denali/src/ui/components/denali-catalog-load-notice.tsx"),
+      "utf8"
+    );
+    assert.match(catalogLoadNotice, /denali-wizard-composite__error/);
     const photos = readFileSync(
       join(REPO_ROOT, "packages/workspaces/denali/src/ui/fields/denali-photos-field.tsx"),
       "utf8"

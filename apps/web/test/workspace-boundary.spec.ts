@@ -336,7 +336,7 @@ describe("Phase 3.3 workspace boundary", () => {
     );
     assert.match(
       readFileSync(join(DENALI_UI, "fields/denali-destination-field.tsx"), "utf8"),
-      /i18n-errors/
+      /denali-catalog-load-notice/
     );
     assert.match(
       readFileSync(join(DENALI_UI, "fields/denali-gear-field.tsx"), "utf8"),

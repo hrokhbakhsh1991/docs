@@ -144,7 +144,8 @@ describe("denali-wizard-draft-contract", () => {
       assert.equal(hasNonEmptyCanonicalValue("x"), true);
       assert.equal(hasNonEmptyCanonicalValue("false"), false);
       assert.equal(hasNonEmptyCanonicalValue("none"), false);
-      assert.equal(hasNonEmptyCanonicalValue("5"), false);
+      // INV-DENALI-WIZ-010: difficulty 5 is operator-chosen, not a phantom seed.
+      assert.equal(hasNonEmptyCanonicalValue("5"), true);
       assert.equal(hasNonEmptyCanonicalValue([{ name: "A" }]), true);
       assert.equal(hasNonEmptyCanonicalValue([{}]), false);
     });
@@ -154,7 +155,6 @@ describe("denali-wizard-draft-contract", () => {
         data: {
           title: "تور جدید",
           category: "mountain_day",
-          program: { difficultyLevel: "5" },
           transport: { mode: "none" },
           pricing: { requiresPayment: "false" },
           participants: { nationalIdRequired: "false" },

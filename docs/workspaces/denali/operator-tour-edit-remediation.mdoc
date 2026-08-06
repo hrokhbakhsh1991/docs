@@ -1,7 +1,7 @@
 ---
 title: Denali operator tour edit — remediation contract
 doc_id: DENALI-OPERATOR-TOUR-EDIT-REMEDIATION
-version: "2026-08-06-v12"
+version: "2026-08-06-v13"
 phase: operator-admin
 apps: [web, api]
 workspace: denali
@@ -90,6 +90,8 @@ All phased IDs **ED-VAL-01 … ED-LIST-CAT-01** meet DoD (unit + live `denali.ad
 **Suggested exit:** Architect reviews this file; commit remediation + related web/api/denali diffs as one (or split API Doc-First) PR when ready. Prefer `pre-commit:fast` / listed verification — not full gates without YES.
 
 **Debt audit (2026-08-06 v12):** Closed — Wave H list TZ twin in web i18n; firewall scope typo fixed; `resolveCanonicalRootsFromData` (no clone-only alias); invented-midnight named + one-shot end-field repair; catalog soft-retry helper; category warm failure + Retry (no infinite pending).
+
+**ci:integrity contract sync (2026-08-06 v13):** Host specs lagged ED-DIFF / ED-UX soft-fail extraction — `DWC-STEP-06/07` still treated difficulty `"5"` as phantom (contradicts INV-DENALI-WIZ-010 + `DEN-RESUME-06b`); `WEB-DENALI-WIZARD-14` / `P15-W-C2` still required inline `i18n-errors` / `__error` on leaf fields after `DenaliCatalogLoadNotice` ownership. Updated those three web contracts only — no product logic change.
 
 ## Phase 8 implementation map
 
