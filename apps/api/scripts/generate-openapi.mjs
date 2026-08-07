@@ -31,10 +31,15 @@ const { BOOKING_OPENAPI_OVERRIDES, BOOKING_OPENAPI_SCHEMAS } = await import(
   pathToFileURL(path.join(ROOT, "src/openapi/booking-openapi.ts")).href
 );
 
+const { LIST_PROJECTION_OPENAPI_COMPONENTS, LIST_PROJECTION_OPENAPI_OVERRIDES } = await import(
+  pathToFileURL(path.join(ROOT, "src/openapi/list-projection-openapi.ts")).href
+);
+
 const OPENAPI_OVERRIDES = {
   ...PUBLIC_AUTH_OPENAPI_OVERRIDES,
   ...DENALI_CATALOG_OPENAPI_OVERRIDES,
   ...PLATFORM_WORKSPACE_CERTIFICATION_OPENAPI_OVERRIDES,
+  ...LIST_PROJECTION_OPENAPI_OVERRIDES,
   ...BOOKING_OPENAPI_OVERRIDES,
 };
 
@@ -90,6 +95,7 @@ const spec = {
   paths,
   components: {
     schemas: {
+      ...LIST_PROJECTION_OPENAPI_COMPONENTS.schemas,
       ...BOOKING_OPENAPI_SCHEMAS,
     },
   },

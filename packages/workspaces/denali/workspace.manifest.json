@@ -81,6 +81,7 @@
           "PATCH /finance/receipts/:receiptId/review": "handleFinanceReviewReceipt",
           "GET /finance/receipts/:receiptId/url": "handleFinanceReceiptUrl",
           "GET /finance/invoices/:registrationId": "handleFinanceGetRegistrationInvoice",
+          "PUT /finance/registrations/:registrationId/obligation-override": "handleFinanceSetObligationOverride",
           "GET /finance/schedules/:registrationId": "handleFinanceGetSchedule",
           "PATCH /finance/schedules/:registrationId/items/:itemId": "handleFinancePatchScheduleItem"
         },

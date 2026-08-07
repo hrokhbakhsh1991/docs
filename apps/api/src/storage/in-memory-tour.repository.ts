@@ -335,6 +335,21 @@ export class InMemoryTourRepository implements TourStorageRepository {
     return this.byId.get(tourStorageKey(tenantId, id)) ?? null;
   }
 
+  async getByIds(ids: readonly string[], tenantId: string): Promise<Tour[]> {
+    assertTenantId(tenantId);
+    const unique = [
+      ...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0)),
+    ];
+    const out: Tour[] = [];
+    for (const id of unique) {
+      const tour = this.byId.get(tourStorageKey(tenantId, id));
+      if (tour !== undefined) {
+        out.push(tour);
+      }
+    }
+    return out;
+  }
+
   async save(tour: Tour): Promise<void> {
     assertTenantId(tour.tenantId);
     const existing = this.byId.get(tourStorageKey(tour.tenantId, tour.id));

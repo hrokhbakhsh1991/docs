@@ -43,6 +43,7 @@ describe("PSR-6c4 createHarborRegistration", () => {
         calls.push(input);
         return { id: "b1", status: "pending" };
       },
+      autoApprovePublicBooking: async () => ({ id: "b1", status: "approved" }),
       sumApprovedPartySizeByTourIds: async () => ({}),
     };
 
@@ -71,6 +72,9 @@ describe("PSR-6c4 createHarborRegistration", () => {
       findDuplicateByTourEmail: async () => ({ id: "existing" }),
       createPendingBooking: async () => {
         throw new Error("should not create");
+      },
+      autoApprovePublicBooking: async () => {
+        throw new Error("should not auto-approve");
       },
       sumApprovedPartySizeByTourIds: async () => ({}),
     };

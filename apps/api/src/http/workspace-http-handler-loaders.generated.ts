@@ -25,6 +25,7 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handleFinanceReportByTour"
   | "handleFinanceRetryBookingSync"
   | "handleFinanceReviewReceipt"
+  | "handleFinanceSetObligationOverride"
   | "handleFinanceSubmitReceipt"
   | "handleFinanceSummary"
   | "handleGetDenaliCatalog"
@@ -68,6 +69,7 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
   handleFinanceReportByTour: "@app-tour/finance-http",
   handleFinanceRetryBookingSync: "@app-tour/finance-http",
   handleFinanceReviewReceipt: "@app-tour/finance-http",
+  handleFinanceSetObligationOverride: "@app-tour/finance-http",
   handleFinanceSubmitReceipt: "@app-tour/finance-http",
   handleFinanceSummary: "@app-tour/finance-http",
   handleGetDenaliCatalog: "@app-tour/workspace-denali/host/http",
@@ -125,6 +127,7 @@ export async function loadWorkspaceHttpHandlersForPackage(
         handleFinanceReportByTour: mod.handleFinanceReportByTour,
         handleFinanceRetryBookingSync: mod.handleFinanceRetryBookingSync,
         handleFinanceReviewReceipt: mod.handleFinanceReviewReceipt,
+        handleFinanceSetObligationOverride: mod.handleFinanceSetObligationOverride,
         handleFinanceSubmitReceipt: mod.handleFinanceSubmitReceipt,
         handleFinanceSummary: mod.handleFinanceSummary,
       };

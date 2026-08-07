@@ -107,6 +107,7 @@ describe("PSR-6c2 harbor HTTP host slot", () => {
         findDuplicateByTourGuestNationalId: async () => null,
         findDuplicateByTourEmail: async () => null,
         createPendingBooking: async () => ({ id: "x", status: "pending" }),
+        autoApprovePublicBooking: async () => ({ id: "x", status: "approved" }),
         sumApprovedPartySizeByTourIds: async () => ({}),
       }),
       readHarborRegistrationRequestBody: async () => ({}),

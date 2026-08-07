@@ -522,6 +522,37 @@ body[data-workspace-plugin="denali"] [data-operator-bookings-inbox] [data-operat
   backdrop-filter: blur(6px);
 }
 
+/* UX-BKG-42 — sticky viewport split: both panes stay on screen */
+@media (min-width: 1024px) {
+  body[data-workspace-plugin="denali"] [data-operator-bookings-split] {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: grid;
+    height: calc(100dvh - 7.5rem);
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  body[data-workspace-plugin="denali"] [data-operator-bookings-inbox],
+  body[data-workspace-plugin="denali"] [data-operator-bookings-inspection] {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  body[data-workspace-plugin="denali"] [data-operator-booking-list],
+  body[data-workspace-plugin="denali"] [data-operator-bookings-inspection-body] {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
 body[data-workspace-plugin="denali"] [data-operator-booking-list] [data-booking-row]:nth-child(odd) {
   background: color-mix(in srgb, var(--color-bg-muted) 40%, transparent);
 }

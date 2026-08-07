@@ -35,6 +35,7 @@ export type WorkspaceHttpHandlerKey =
   | "handleFinanceReportByTour"
   | "handleFinanceRetryBookingSync"
   | "handleFinanceReviewReceipt"
+  | "handleFinanceSetObligationOverride"
   | "handleFinanceSubmitReceipt"
   | "handleFinanceSummary"
   | "handleGetDenaliCatalog"
@@ -139,6 +140,7 @@ const DENALI_FINANCE_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
   "PATCH /finance/receipts/:receiptId/review": "handleFinanceReviewReceipt",
   "GET /finance/receipts/:receiptId/url": "handleFinanceReceiptUrl",
   "GET /finance/invoices/:registrationId": "handleFinanceGetRegistrationInvoice",
+  "PUT /finance/registrations/:registrationId/obligation-override": "handleFinanceSetObligationOverride",
   "GET /finance/schedules/:registrationId": "handleFinanceGetSchedule",
   "PATCH /finance/schedules/:registrationId/items/:itemId": "handleFinancePatchScheduleItem"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;

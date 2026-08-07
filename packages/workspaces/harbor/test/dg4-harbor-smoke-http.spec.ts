@@ -245,6 +245,10 @@ describe("DG-4.1 harbor catalog HTTP", () => {
           status: "pending",
           tourId: input.tourId,
         }),
+        autoApprovePublicBooking: async () => ({
+          id: "reg-durable-1",
+          status: "approved",
+        }),
         sumApprovedPartySizeByTourIds: async () => ({}),
       }),
       readHarborRegistrationRequestBody: async () => ({

@@ -4,6 +4,7 @@ import type { FinanceService } from "../workspace-finance/finance.service";
 import type { TourStorageRepository } from "../db/tour.repository";
 import { getIdentityRepository } from "../identity/create-identity-repository";
 import { MembershipNotFoundError } from "../identity/in-memory-identity.repository";
+import { sendHttpError } from "../middleware/error-interceptor";
 import {
   WORKSPACE_HTTP_PARAM_ROUTES,
   WORKSPACE_HTTP_STATIC_ROUTES,
@@ -60,6 +61,7 @@ const HANDLER_DISPATCH_KIND = {
   handleFinanceCreateManualPayment: "finance",
   handleFinanceGenerateSchedule: "finance",
   handleFinanceGetRegistrationInvoice: "finance-param",
+  handleFinanceSetObligationOverride: "finance-param",
   handleFinanceGetSchedule: "finance-param",
   handleFinanceLedgerEvents: "finance",
   handleFinanceListPayments: "finance",
@@ -180,8 +182,27 @@ export type ResolveWorkspaceHttpHandler = (
 ) => Promise<WorkspaceHttpHandlerFn>;
 
 /**
+ * Collect HTTP methods registered for an exact or param-matched workspace path.
+ * Empty set means the pathname is not a workspace product/finance route.
+ */
+export function collectWorkspaceRouteMethodsForPath(pathname: string): ReadonlySet<string> {
+  const allowed = new Set<string>();
+  for (const route of WORKSPACE_HTTP_STATIC_ROUTES) {
+    if (pathname === route.path) {
+      allowed.add(route.method);
+    }
+  }
+  for (const route of WORKSPACE_HTTP_PARAM_ROUTES) {
+    if (route.pathPattern.test(pathname)) {
+      allowed.add(route.method);
+    }
+  }
+  return allowed;
+}
+
+/**
  * Dispatches workspace-product HTTP routes. Resolves handlers lazily per key (Wave G.b).
- * Returns true when handled.
+ * Returns true when handled (including method mismatch → 405).
  */
 export async function tryDispatchWorkspaceRoutes(
   method: string,
@@ -216,6 +237,14 @@ export async function tryDispatchWorkspaceRoutes(
       );
       return true;
     }
+  }
+
+  const allowedMethods = collectWorkspaceRouteMethodsForPath(pathname);
+  if (allowedMethods.size > 0 && !allowedMethods.has(method)) {
+    const allow = [...allowedMethods].sort().join(", ");
+    res.setHeader("Allow", allow);
+    sendHttpError(res, 405, { error: "method_not_allowed", code: "METHOD_NOT_ALLOWED" });
+    return true;
   }
 
   return false;

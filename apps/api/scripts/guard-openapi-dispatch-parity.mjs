@@ -104,6 +104,9 @@ function appWiresRoute(route) {
   if (route.path === "/bookings/summary") {
     return app.includes('"/bookings/summary"') && app.includes("handleGetBookingsSummary");
   }
+  if (route.path === "/bookings/{bookingId}") {
+    return app.includes("bookingGetMatch") && app.includes("handleGetBooking");
+  }
   if (route.path === "/bookings/bulk-approve") {
     return app.includes('"/bookings/bulk-approve"') && app.includes("handleBulkApproveBookings");
   }

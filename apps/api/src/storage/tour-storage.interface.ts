@@ -50,6 +50,12 @@ export type TourOperatorListPageOutput = {
 export interface TourStorageRepository {
   getById(id: string, tenantId: string): Promise<Tour | null>;
 
+  /**
+   * Batch tenant-scoped read — missing ids omitted (no null placeholders).
+   * Empty `ids` → empty array without hitting storage.
+   */
+  getByIds(ids: readonly string[], tenantId: string): Promise<Tour[]>;
+
   save(tour: Tour): Promise<void>;
 
   listByTenant(tenantId: string): Promise<Tour[]>;

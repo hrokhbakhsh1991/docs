@@ -111,6 +111,22 @@ export class PrismaTourRepository implements TourStorageRepository {
     });
   }
 
+  async getByIds(ids: readonly string[], tenantId: string): Promise<Tour[]> {
+    assertTenantId(tenantId);
+    const unique = [
+      ...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0)),
+    ];
+    if (unique.length === 0) {
+      return [];
+    }
+    return withTenantRls(tenantId, async (tx) => {
+      const rows = await tx.tour.findMany({
+        where: { tenantId, id: { in: unique } },
+      });
+      return rows.map(toTour);
+    });
+  }
+
   async save(tour: Tour): Promise<void> {
     assertTenantId(tour.tenantId);
     const existing = await this.getById(tour.id, tour.tenantId);
