@@ -200,6 +200,8 @@ pnpm run phase-6:fast-track
 
 `getById` is **exempt** from list projection guards: the detail path may return full `registrationIntake` JSON. Security and performance rules differ from list reads.
 
+**HTTP:** `GET /bookings/{bookingId}` (`getBooking`) is the ops detail route for Command Center inspection (UX-BKG-50 amend). It must **not** widen `listBookings` / `BookingListItem` list schema — detail may declare `registrationIntake`; list schemas must not.
+
 ### Tenant-scoped signature (`PrismaBookingsRepository.getById`)
 
 All booking detail reads use **`getById(id, tenantId)`** — same contract as `PrismaTourRepository.getById`. Callers must pass `auth.tenantId` (member receipt SMK-PTL-04, operator finance paths). Cross-tenant UUID guess returns **`null`** at the DB layer (`findFirst({ id, tenantId })` inside `withTenantRls`).

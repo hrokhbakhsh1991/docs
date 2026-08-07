@@ -5,13 +5,14 @@ import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import type { BookingRuntimeCapabilities } from "./ports/booking-runtime-capabilities.port";
 import type { BookingTenantWorkspaceBindingPort } from "./ports/booking-tenant-workspace-binding.port";
 import type { BookingTourCapacityPort } from "./ports/booking-tour-capacity.port";
+import type { BookingCapacitySnapshot, BookingListItem } from "@app-tour/booking-http-contracts";
 import type {
   ApproveBookingResponse,
   BookingCapacityPolicyPort,
   BookingCreatePolicyContext,
-  BookingListItem,
   BookingsListQuery,
   BookingsListResponse,
+  BookingsSummaryQuery,
   BookingsSummaryResponse,
   BookingPublicCapabilityPort,
   BookingValidationPolicyPort,
@@ -34,7 +35,9 @@ import {
 import type { BookingRecord } from "./bookings.types";
 import {
   BookingCapabilityViolationError,
+  BookingNotFoundError,
 } from "./bookings.errors";
+import { resolveUtcApprovedWithinDaysWindow } from "./booking-list-query";
 
 const BULK_APPROVE_MAX_BATCH = 25;
 
@@ -72,21 +75,42 @@ function requireTourCapacityMax(
   return max;
 }
 
-function toListItem(record: BookingRecord): BookingListItem {
+function toListItem(
+  record: BookingRecord,
+  capacitySnapshot?: BookingCapacitySnapshot,
+  options?: { readonly includeRegistrationIntake?: boolean }
+): BookingListItem {
+  const guestEmail =
+    record.guestEmail !== null && record.guestEmail.trim().length > 0
+      ? record.guestEmail.trim()
+      : undefined;
+  const guestPhone =
+    record.guestPhone !== null && record.guestPhone.trim().length > 0
+      ? record.guestPhone.trim()
+      : undefined;
+  const approvedAt =
+    record.approvedAt !== null && record.approvedAt.trim().length > 0
+      ? record.approvedAt.trim()
+      : undefined;
+  const includeIntake = options?.includeRegistrationIntake === true;
   return {
     id: record.id,
     tourId: record.tourId,
     tourTitle: record.tourTitle,
     guestLabel: record.guestLabel,
+    ...(guestEmail !== undefined ? { guestEmail } : {}),
+    ...(guestPhone !== undefined ? { guestPhone } : {}),
     partySize: record.partySize,
     status: record.status,
     paymentStatus: record.paymentStatus,
     departureAt: record.departureAt,
     submittedAt: record.submittedAt,
-    ...(record.registrationIntake !== undefined
+    ...(approvedAt !== undefined ? { approvedAt } : {}),
+    ...(includeIntake && record.registrationIntake !== undefined
       ? { registrationIntake: record.registrationIntake }
       : {}),
     ...(record.rejectReason !== undefined ? { rejectReason: record.rejectReason } : {}),
+    ...(capacitySnapshot !== undefined ? { capacitySnapshot } : {}),
   };
 }
 
@@ -248,16 +272,36 @@ export class BookingsService {
     const filters = {
       tenantId: auth.tenantId,
       ...(query.view === "mine" ? { submittedByUserId: auth.userId } : {}),
-      ...(query.status !== undefined ? { status: query.status } : {}),
+      ...(query.statuses !== undefined && query.statuses.length > 0
+        ? { statuses: query.statuses }
+        : query.status !== undefined
+          ? { status: query.status }
+          : {}),
       ...(query.tourId !== undefined && query.tourId.length > 0 ? { tourId: query.tourId } : {}),
       ...(query.paymentStatus !== undefined ? { paymentStatus: query.paymentStatus } : {}),
       ...(query.q !== undefined && query.q.length > 0 ? { q: query.q } : {}),
+      ...(query.departureWithinDays !== undefined
+        ? (() => {
+            const now = this.clock.now();
+            const to = new Date(
+              now.getTime() + query.departureWithinDays * 24 * 60 * 60 * 1000
+            );
+            return {
+              departureFrom: now.toISOString(),
+              departureTo: to.toISOString(),
+            };
+          })()
+        : {}),
+      ...(query.approvedWithinDays !== undefined
+        ? resolveUtcApprovedWithinDaysWindow(this.clock.now(), query.approvedWithinDays)
+        : {}),
     };
 
     const [page, total] = await Promise.all([
       this.repository.listByTenantPage({
         ...filters,
         limit: query.limit,
+        sort: query.sort === "departureAt" ? "departureAt" : "submittedAt",
         ...(query.cursor !== undefined && query.cursor.length > 0
           ? { cursor: query.cursor }
           : {}),
@@ -265,19 +309,64 @@ export class BookingsService {
       this.repository.countByTenantFilters(filters),
     ]);
 
+    const tourIds = [...new Set(page.items.map((row) => (row as BookingRecord).tourId))];
+    const occupiedByTour =
+      tourIds.length > 0
+        ? await this.repository.sumApprovedPartySizeByTourIds(auth.tenantId, tourIds)
+        : {};
+    const maxByTour =
+      tourIds.length > 0
+        ? await this.tourCapacity.resolveTourCapacityMaxMany(auth.tenantId, tourIds)
+        : {};
+
     return {
-      items: page.items.map((row) => toListItem(row as BookingRecord)),
+      items: page.items.map((row) => {
+        const record = row as BookingRecord;
+        return toListItem(record, {
+          occupied: occupiedByTour[record.tourId] ?? 0,
+          max: maxByTour[record.tourId] ?? null,
+        });
+      }),
       total,
       nextCursor: page.nextCursor,
     };
   }
 
-  async getBookingsSummary(auth: BookingActorContext): Promise<BookingsSummaryResponse> {
+  /**
+   * Ops detail — includes `registrationIntake` (list projection must omit it).
+   * @see UX-BKG-50 amend / docs/dev/list-projection-guards.mdoc
+   */
+  async getBooking(auth: BookingActorContext, bookingId: string): Promise<BookingListItem> {
+    await this.assertTenantBound(auth.tenantId);
+    this.authorization.assertOpsAccess(auth);
+    const record = await this.repository.getById(bookingId, auth.tenantId);
+    if (record === null) {
+      throw new BookingNotFoundError();
+    }
+    const [occupiedByTour, maxByTour] = await Promise.all([
+      this.repository.sumApprovedPartySizeByTourIds(auth.tenantId, [record.tourId]),
+      this.tourCapacity.resolveTourCapacityMaxMany(auth.tenantId, [record.tourId]),
+    ]);
+    return toListItem(
+      record,
+      {
+        occupied: occupiedByTour[record.tourId] ?? 0,
+        max: maxByTour[record.tourId] ?? null,
+      },
+      { includeRegistrationIntake: true }
+    );
+  }
+
+  async getBookingsSummary(
+    auth: BookingActorContext,
+    query: BookingsSummaryQuery = { tourChipScope: "ops" }
+  ): Promise<BookingsSummaryResponse> {
     await this.assertTenantBound(auth.tenantId);
     this.authorization.assertOpsAccess(auth);
     return this.repository.getBookingsSummaryStats({
       tenantId: auth.tenantId,
       now: this.clock.now(),
+      tourChipScope: query.tourChipScope,
     });
   }
 
@@ -521,6 +610,45 @@ export class BookingsService {
       status: updated.status,
       approvedAt: updated.approvedAt ?? this.clock.now().toISOString(),
     };
+  }
+
+  /**
+   * Tour-policy public auto-approve — no ops CASL.
+   * Ownership: actorUserId must equal submittedByUserId.
+   * Capacity reject → leave pending (fail closed to manual queue).
+   */
+  async autoApprovePublicBooking(input: {
+    readonly tenantId: string;
+    readonly bookingId: string;
+    readonly actorUserId: string;
+  }): Promise<{ readonly id: string; readonly status: string }> {
+    await this.assertTenantBound(input.tenantId);
+    this.assertApprovalCapability();
+    const booking = await this.repository.getById(input.bookingId, input.tenantId);
+    if (booking === null || booking.submittedByUserId !== input.actorUserId) {
+      throw new BookingNotFoundError();
+    }
+    if (booking.status !== "pending") {
+      return { id: booking.id, status: booking.status };
+    }
+    try {
+      const updated = await this.repository.approveWithOutbox({
+        bookingId: input.bookingId,
+        tenantId: input.tenantId,
+        outboxEvent: this.eventReaction.approveOutboxEventType,
+        assertCapacityInTx: this.buildApproveCapacityAssert(input.tenantId),
+      });
+      await this.invokeApproveReaction(input.tenantId, updated.id);
+      return { id: updated.id, status: updated.status };
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.startsWith("BOOKING_CAPACITY_REJECTED")
+      ) {
+        return { id: booking.id, status: booking.status };
+      }
+      throw error;
+    }
   }
 
   /**

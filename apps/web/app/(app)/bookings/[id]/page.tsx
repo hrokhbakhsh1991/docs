@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 
+import { buildBookingsDetailDeepLinkHref } from "@/features/bookings/bookings-command-center-logic";
+
 type BookingDetailAliasPageProps = {
   readonly params: Promise<{ id: string }>;
 };
@@ -13,5 +15,5 @@ export default async function BookingDetailAliasPage({ params }: BookingDetailAl
   if (bookingId.length === 0) {
     redirect("/bookings");
   }
-  redirect(`/bookings?bookingId=${encodeURIComponent(bookingId)}`);
+  redirect(buildBookingsDetailDeepLinkHref(bookingId));
 }

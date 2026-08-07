@@ -1,9 +1,12 @@
 import { randomUUID } from "node:crypto";
 
 import {
+  compareBookingsByDepartureAtAsc,
   compareBookingsBySubmittedAtDesc,
+  isBookingAfterDepartureKeysetCursor,
   isBookingAfterKeysetCursor,
   matchesBookingListFilters,
+  resolveBookingListSortMode,
 } from "./booking-list-query";
 import type {
   BookingListPageInput,
@@ -20,6 +23,7 @@ import {
   MAX_MEMBER_BOOKINGS_LIST_CAP,
 } from "./bookings-member-summary-projection";
 import { raiseBookingPaymentStatus } from "./booking-payment-status";
+import { finalizeBookingTourChips } from "./booking-tour-chips";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import {
   BookingNotFoundError,
@@ -132,9 +136,10 @@ function cloneBooking(record: BookingRecord): BookingRecord {
   return { ...record };
 }
 
+/** List projection — strip `registrationIntake` (BK-SAFE-01). */
 function toBookingListRecord(record: BookingRecord): BookingRecord {
-  const { registrationIntake: _omit, ...listRecord } = record;
-  return listRecord;
+  const { registrationIntake: _omitIntake, ...rest } = cloneBooking(record);
+  return rest;
 }
 
 function snapshotState(): RepositorySnapshot {
@@ -250,20 +255,33 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
   async listByTenantPage(input: BookingListPageInput): Promise<BookingListPageOutput> {
     let rows = [...bookingsStore.values()].filter((row) => row.tenantId === input.tenantId);
     rows = rows.filter((row) => matchesBookingListFilters(row, input));
+    const sortMode = resolveBookingListSortMode(input.sort);
 
     if (input.cursor !== undefined && input.cursor.length > 0) {
       const cursorRow = bookingsStore.get(input.cursor);
       if (cursorRow !== undefined && cursorRow.tenantId === input.tenantId) {
-        rows = rows.filter((row) =>
-          isBookingAfterKeysetCursor(row, {
-            submittedAt: cursorRow.submittedAt,
-            id: cursorRow.id,
-          })
-        );
+        rows =
+          sortMode === "departureAt"
+            ? rows.filter((row) =>
+                isBookingAfterDepartureKeysetCursor(row, {
+                  departureAt: cursorRow.departureAt,
+                  id: cursorRow.id,
+                })
+              )
+            : rows.filter((row) =>
+                isBookingAfterKeysetCursor(row, {
+                  submittedAt: cursorRow.submittedAt,
+                  id: cursorRow.id,
+                })
+              );
       }
     }
 
-    rows.sort(compareBookingsBySubmittedAtDesc);
+    rows.sort(
+      sortMode === "departureAt"
+        ? compareBookingsByDepartureAtAsc
+        : compareBookingsBySubmittedAtDesc
+    );
 
     const pageRows = rows.slice(0, input.limit + 1);
     const hasMore = pageRows.length > input.limit;
@@ -347,6 +365,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
   async getBookingsSummaryStats(input: {
     readonly tenantId: string;
     readonly now: Date;
+    readonly tourChipScope?: "ops" | "all";
   }): Promise<{
     readonly pending: number;
     readonly approvedToday: number;
@@ -372,7 +391,14 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     let waitlist = 0;
     const chipMap = new Map<
       string,
-      { tourId: string; tourTitle: string; pendingCount: number; totalCount: number }
+      {
+        tourId: string;
+        tourTitle: string;
+        pendingCount: number;
+        waitlistedCount: number;
+        totalCount: number;
+        hasUpcomingDeparture: boolean;
+      }
     >();
 
     for (const row of rows) {
@@ -398,20 +424,26 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
         tourId: row.tourId,
         tourTitle: row.tourTitle,
         pendingCount: 0,
+        waitlistedCount: 0,
         totalCount: 0,
+        hasUpcomingDeparture: false,
       };
       chip.totalCount += 1;
       if (row.status === "pending") {
         chip.pendingCount += 1;
       }
+      if (row.status === "waitlisted") {
+        chip.waitlistedCount += 1;
+      }
+      if (departure >= input.now) {
+        chip.hasUpcomingDeparture = true;
+      }
       chipMap.set(row.tourId, chip);
     }
 
-    const tourChips = [...chipMap.values()].sort(
-      (a, b) =>
-        b.pendingCount - a.pendingCount ||
-        b.totalCount - a.totalCount ||
-        a.tourTitle.localeCompare(b.tourTitle)
+    const tourChips = finalizeBookingTourChips(
+      [...chipMap.values()],
+      input.tourChipScope === "all" ? "all" : "ops"
     );
 
     return { pending, approvedToday, departures7d, waitlist, tourChips };
@@ -459,25 +491,45 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     return out;
   }
 
-  async updatePaymentStatus(input: {
-    readonly bookingId: string;
-    readonly tenantId: string;
-    readonly paymentStatus: BookingPaymentStatus;
-  }): Promise<BookingRecord | null> {
-    const row = bookingsStore.get(input.bookingId);
-    if (row === undefined || row.tenantId !== input.tenantId) {
-      return null;
+    async updatePaymentStatus(input: {
+      readonly bookingId: string;
+      readonly tenantId: string;
+      readonly paymentStatus: BookingPaymentStatus;
+    }): Promise<BookingRecord | null> {
+      const row = bookingsStore.get(input.bookingId);
+      if (row === undefined || row.tenantId !== input.tenantId) {
+        return null;
+      }
+      const next = raiseBookingPaymentStatus(row.paymentStatus, input.paymentStatus);
+      if (next === row.paymentStatus) {
+        return cloneBooking(row);
+      }
+      const updated: BookingRecord = { ...row, paymentStatus: next };
+      bookingsStore.set(input.bookingId, updated);
+      return cloneBooking(updated);
     }
-    const next = raiseBookingPaymentStatus(row.paymentStatus, input.paymentStatus);
-    if (next === row.paymentStatus) {
-      return cloneBooking(row);
-    }
-    const updated: BookingRecord = { ...row, paymentStatus: next };
-    bookingsStore.set(input.bookingId, updated);
-    return cloneBooking(updated);
-  }
 
-  async createBooking(input: {
+    async mergeRegistrationIntake(input: {
+      readonly bookingId: string;
+      readonly tenantId: string;
+      readonly patch: Readonly<Record<string, unknown>>;
+    }): Promise<BookingRecord | null> {
+      const row = bookingsStore.get(input.bookingId);
+      if (row === undefined || row.tenantId !== input.tenantId) {
+        return null;
+      }
+      const merged: BookingRecord = {
+        ...row,
+        registrationIntake: {
+          ...(row.registrationIntake ?? {}),
+          ...input.patch,
+        },
+      };
+      bookingsStore.set(input.bookingId, merged);
+      return cloneBooking(merged);
+    }
+
+    async createBooking(input: {
     tenantId: string;
     submittedByUserId: string;
     body: CreateBookingRequest;

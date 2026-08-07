@@ -12,6 +12,7 @@ import type {
   CreateBookingRequest,
 } from "./bookings.types";
 import { raiseBookingPaymentStatus } from "./booking-payment-status";
+import { finalizeBookingTourChips } from "./booking-tour-chips";
 import {
   CANCELLED_BOOKING_STATUSES,
   MAX_BOOKINGS_LIST_BY_TENANT_DEPRECATED,
@@ -62,7 +63,7 @@ async function sumApprovedPartySizeInTx(
   return occupancy._sum.partySize ?? 0;
 }
 
-/** List projection — excludes `registrationIntake` JSON (detail path uses `getById`). */
+/** List projection — omits `registrationIntake` (BK-SAFE-01 / list-projection guards). */
 export const BOOKING_LIST_SELECT = {
   id: true,
   tenantId: true,
@@ -161,12 +162,50 @@ function buildBookingListWhere(
   input: Omit<BookingListPageInput, "limit" | "cursor">
 ): Prisma.OperatorRegistrationWhereInput {
   const q = normalizeBookingSearchQuery(input.q);
+  const departureFrom =
+    input.departureFrom !== undefined ? new Date(input.departureFrom) : undefined;
+  const departureTo = input.departureTo !== undefined ? new Date(input.departureTo) : undefined;
+  const hasDepartureFrom =
+    departureFrom !== undefined && !Number.isNaN(departureFrom.getTime());
+  const hasDepartureTo = departureTo !== undefined && !Number.isNaN(departureTo.getTime());
+  const approvedFrom =
+    input.approvedFrom !== undefined ? new Date(input.approvedFrom) : undefined;
+  const approvedTo = input.approvedTo !== undefined ? new Date(input.approvedTo) : undefined;
+  const hasApprovedFrom =
+    approvedFrom !== undefined && !Number.isNaN(approvedFrom.getTime());
+  const hasApprovedTo = approvedTo !== undefined && !Number.isNaN(approvedTo.getTime());
+
   return {
     tenantId: input.tenantId,
-    ...(input.status !== undefined ? { status: input.status } : {}),
+    ...(input.statuses !== undefined && input.statuses.length > 0
+      ? {
+          status:
+            input.statuses.length === 1
+              ? input.statuses[0]
+              : { in: [...input.statuses] },
+        }
+      : input.status !== undefined
+        ? { status: input.status }
+        : {}),
     ...(input.tourId !== undefined && input.tourId.length > 0 ? { tourId: input.tourId } : {}),
     ...(input.paymentStatus !== undefined ? { paymentStatus: input.paymentStatus } : {}),
     ...(input.submittedByUserId !== undefined ? { submittedByUserId: input.submittedByUserId } : {}),
+    ...(hasDepartureFrom || hasDepartureTo
+      ? {
+          departureAt: {
+            ...(hasDepartureFrom ? { gte: departureFrom } : {}),
+            ...(hasDepartureTo ? { lt: departureTo } : {}),
+          },
+        }
+      : {}),
+    ...(hasApprovedFrom || hasApprovedTo
+      ? {
+          approvedAt: {
+            ...(hasApprovedFrom ? { gte: approvedFrom } : {}),
+            ...(hasApprovedTo ? { lt: approvedTo } : {}),
+          },
+        }
+      : {}),
     ...(q !== undefined
       ? {
           OR: [
@@ -179,7 +218,7 @@ function buildBookingListWhere(
   };
 }
 
-function applyKeysetCursor(
+function applySubmittedAtKeysetCursor(
   baseWhere: Prisma.OperatorRegistrationWhereInput,
   cursor: { submittedAt: Date; id: string }
 ): Prisma.OperatorRegistrationWhereInput {
@@ -192,6 +231,26 @@ function applyKeysetCursor(
           {
             submittedAt: cursor.submittedAt,
             id: { lt: cursor.id },
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function applyDepartureAtKeysetCursor(
+  baseWhere: Prisma.OperatorRegistrationWhereInput,
+  cursor: { departureAt: Date; id: string }
+): Prisma.OperatorRegistrationWhereInput {
+  return {
+    AND: [
+      baseWhere,
+      {
+        OR: [
+          { departureAt: { gt: cursor.departureAt } },
+          {
+            departureAt: cursor.departureAt,
+            id: { gt: cursor.id },
           },
         ],
       },
@@ -278,6 +337,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
 
   async listByTenantPage(input: BookingListPageInput): Promise<BookingListPageOutput> {
     const baseWhere = buildBookingListWhere(input);
+    const sortMode = input.sort === "departureAt" ? "departureAt" : "submittedAt";
 
     const rows = await withTenantRls(input.tenantId, async (tx) => {
       let where = baseWhere;
@@ -285,20 +345,29 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       if (input.cursor !== undefined && input.cursor.length > 0) {
         const cursorRow = await tx.operatorRegistration.findFirst({
           where: { id: input.cursor, tenantId: input.tenantId },
-          select: { id: true, submittedAt: true },
+          select: { id: true, submittedAt: true, departureAt: true },
         });
         if (cursorRow !== null) {
-          where = applyKeysetCursor(baseWhere, {
-            id: cursorRow.id,
-            submittedAt: cursorRow.submittedAt,
-          });
+          where =
+            sortMode === "departureAt"
+              ? applyDepartureAtKeysetCursor(baseWhere, {
+                  id: cursorRow.id,
+                  departureAt: cursorRow.departureAt,
+                })
+              : applySubmittedAtKeysetCursor(baseWhere, {
+                  id: cursorRow.id,
+                  submittedAt: cursorRow.submittedAt,
+                });
         }
       }
 
       return tx.operatorRegistration.findMany({
         where,
         select: BOOKING_LIST_SELECT,
-        orderBy: [{ submittedAt: "desc" }, { id: "desc" }],
+        orderBy:
+          sortMode === "departureAt"
+            ? [{ departureAt: "asc" }, { id: "asc" }]
+            : [{ submittedAt: "desc" }, { id: "desc" }],
         take: input.limit + 1,
       });
     });
@@ -405,6 +474,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
   async getBookingsSummaryStats(input: {
     readonly tenantId: string;
     readonly now: Date;
+    readonly tourChipScope?: "ops" | "all";
   }): Promise<{
     readonly pending: number;
     readonly approvedToday: number;
@@ -456,28 +526,45 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         }),
       ]);
 
-      const pendingByTour = await tx.operatorRegistration.groupBy({
-        by: ["tourId"],
-        where: { tenantId: input.tenantId, status: "pending" },
-        _count: { _all: true },
-      });
+      const [pendingByTour, waitlistedByTour, upcomingTourRows] = await Promise.all([
+        tx.operatorRegistration.groupBy({
+          by: ["tourId"],
+          where: { tenantId: input.tenantId, status: "pending" },
+          _count: { _all: true },
+        }),
+        tx.operatorRegistration.groupBy({
+          by: ["tourId"],
+          where: { tenantId: input.tenantId, status: "waitlisted" },
+          _count: { _all: true },
+        }),
+        tx.operatorRegistration.groupBy({
+          by: ["tourId"],
+          where: {
+            tenantId: input.tenantId,
+            departureAt: { gte: input.now },
+          },
+          _count: { _all: true },
+        }),
+      ]);
       const pendingMap = new Map(
         pendingByTour.map((row) => [row.tourId, row._count._all] as const)
       );
+      const waitlistedMap = new Map(
+        waitlistedByTour.map((row) => [row.tourId, row._count._all] as const)
+      );
+      const upcomingTourIds = new Set(upcomingTourRows.map((row) => row.tourId));
 
-      const tourChips = chipRows
-        .map((row) => ({
+      const tourChips = finalizeBookingTourChips(
+        chipRows.map((row) => ({
           tourId: row.tourId,
           tourTitle: row.tourTitle,
           pendingCount: pendingMap.get(row.tourId) ?? 0,
           totalCount: row._count._all,
-        }))
-        .sort(
-          (a, b) =>
-            b.pendingCount - a.pendingCount ||
-            b.totalCount - a.totalCount ||
-            a.tourTitle.localeCompare(b.tourTitle)
-        );
+          waitlistedCount: waitlistedMap.get(row.tourId) ?? 0,
+          hasUpcomingDeparture: upcomingTourIds.has(row.tourId),
+        })),
+        input.tourChipScope === "all" ? "all" : "ops"
+      );
 
       return { pending, approvedToday, departures7d, waitlist, tourChips };
     });
@@ -564,6 +651,40 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         select: BOOKING_LIST_SELECT,
       });
       return row === null ? null : toBookingListRecord(row);
+    });
+  }
+
+  async mergeRegistrationIntake(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly patch: Readonly<Record<string, unknown>>;
+  }): Promise<BookingRecord | null> {
+    assertTenantId(input.tenantId);
+    return withTenantRls(input.tenantId, async (tx) => {
+      const existing = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      if (existing === null) {
+        return null;
+      }
+      const currentIntake =
+        existing.registrationIntake !== null &&
+        typeof existing.registrationIntake === "object" &&
+        !Array.isArray(existing.registrationIntake)
+          ? (existing.registrationIntake as Record<string, unknown>)
+          : {};
+      const nextIntake = { ...currentIntake, ...input.patch };
+      const updated = await tx.operatorRegistration.updateMany({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+        data: { registrationIntake: nextIntake as Prisma.InputJsonValue },
+      });
+      if (updated.count !== 1) {
+        return null;
+      }
+      const row = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+      });
+      return row === null ? null : toBookingRecord(row);
     });
   }
 

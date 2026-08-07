@@ -598,6 +598,24 @@ describe(
       assert.equal(before.status, 200, JSON.stringify(before.body));
       assert.equal(before.body.status, "none");
 
+      const blocked = await requestJson(listener, {
+        method: "POST",
+        path: `/bookings/${id}/receipts`,
+        tenantId: tenantA,
+        userId: memberUserId,
+        role: "member",
+        body: { fileKey },
+      });
+      assert.equal(blocked.status, 409, JSON.stringify(blocked.body));
+      assert.equal(blocked.body.code, "FINANCE_RECEIPT_REQUIRES_APPROVED_BOOKING");
+
+      const approved = await requestJson(listener, {
+        method: "POST",
+        path: `/bookings/${id}/approve`,
+        tenantId: tenantA,
+      });
+      assert.equal(approved.status, 200, JSON.stringify(approved.body));
+
       const uploaded = await requestJson(listener, {
         method: "POST",
         path: `/bookings/${id}/receipts`,

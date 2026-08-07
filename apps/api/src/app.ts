@@ -5,6 +5,7 @@ import {
   handleBulkApproveBookings,
   handleCancelBooking,
   handleCreateBooking,
+  handleGetBooking,
   handleGetBookingReceiptStatus,
   handleGetBookingsSummary,
   handleListBookings,
@@ -402,6 +403,12 @@ async function dispatchRequest(
 
   if (method === "POST" && url.pathname === "/bookings/bulk-approve") {
     await handleBulkApproveBookings(req, res);
+    return;
+  }
+
+  const bookingGetMatch = url.pathname.match(/^\/bookings\/([^/]+)$/);
+  if (method === "GET" && bookingGetMatch) {
+    await handleGetBooking(req, res, bookingGetMatch[1]!);
     return;
   }
 

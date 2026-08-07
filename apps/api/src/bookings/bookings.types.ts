@@ -62,9 +62,21 @@ export type BookingListPageInput = {
   readonly tenantId: string;
   readonly submittedByUserId?: string;
   readonly status?: BookingStatus;
+  /** Multi-status IN filter (UX-BKG-43a); takes precedence over `status`. */
+  readonly statuses?: readonly BookingStatus[];
   readonly tourId?: string;
   readonly paymentStatus?: BookingPaymentStatus;
   readonly q?: string;
+  /** Inclusive lower bound (ISO) for departureAt filter. */
+  readonly departureFrom?: string;
+  /** Exclusive upper bound (ISO) for departureAt filter. */
+  readonly departureTo?: string;
+  /** Inclusive lower bound (ISO) for approvedAt filter (UX-BKG-43b). */
+  readonly approvedFrom?: string;
+  /** Exclusive upper bound (ISO) for approvedAt filter. */
+  readonly approvedTo?: string;
+  /** Keyset order — default submittedAt (BOOKINGS-OPS-UX P3b-a). */
+  readonly sort?: "submittedAt" | "departureAt";
   readonly cursor?: string;
   readonly limit: number;
 };

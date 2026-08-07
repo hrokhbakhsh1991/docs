@@ -78,7 +78,8 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
   },
   BookingListItem: {
     type: "object",
-    description: "List/detail projection (DTO BookingListItem). No dedicated GET-by-id route.",
+    description:
+      "List projection (DTO BookingListItem). Omits registrationIntake — use getBooking detail.",
     required: [
       "id",
       "tourId",
@@ -100,7 +101,6 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
       paymentStatus: ref("BookingPaymentStatus"),
       departureAt: { type: "string", format: "date-time", examples: ["2031-08-01T10:00:00.000Z"] },
       submittedAt: { type: "string", format: "date-time", examples: ["2026-07-20T08:00:00.000Z"] },
-      registrationIntake: ref("BookingRegistrationIntake"),
       rejectReason: {
         type: "string",
         description: "Ops reject reason when status=rejected (optional / additive).",
@@ -118,7 +118,34 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
         paymentStatus: "unpaid",
         departureAt: "2031-08-01T10:00:00.000Z",
         submittedAt: "2026-07-20T08:00:00.000Z",
-        registrationIntake: { tourCapacityMax: 10 },
+      },
+    ],
+  },
+  BookingDetailItem: {
+    type: "object",
+    description:
+      "Ops detail projection (GET /bookings/{bookingId}). May include registrationIntake.",
+    allOf: [
+      { $ref: "#/components/schemas/BookingListItem" },
+      {
+        type: "object",
+        properties: {
+          registrationIntake: ref("BookingRegistrationIntake"),
+        },
+      },
+    ],
+    examples: [
+      {
+        id: "00000000-0000-4000-8000-000000000891",
+        tourId: "00000000-0000-4000-8000-000000000880",
+        tourTitle: "Alborz Day Hike",
+        guestLabel: "Ada Lovelace",
+        partySize: 2,
+        status: "pending",
+        paymentStatus: "unpaid",
+        departureAt: "2031-08-01T10:00:00.000Z",
+        submittedAt: "2026-07-20T08:00:00.000Z",
+        registrationIntake: { tourCapacityMax: 10, transport: { kind: "primary" } },
       },
     ],
   },
@@ -571,6 +598,29 @@ export const BOOKING_OPENAPI_OVERRIDES: Record<string, Record<string, unknown>> 
         }),
       },
       ...authErrorResponses,
+    },
+  },
+  getBooking: {
+    tags: ["Bookings"],
+    parameters: [bookingIdPathParam],
+    responses: {
+      200: {
+        description: "Ops booking detail (may include registrationIntake)",
+        content: jsonContent("BookingDetailItem", {
+          id: "00000000-0000-4000-8000-000000000891",
+          tourId: "00000000-0000-4000-8000-000000000880",
+          tourTitle: "Alborz Day Hike",
+          guestLabel: "Ada Lovelace",
+          partySize: 2,
+          status: "pending",
+          paymentStatus: "unpaid",
+          departureAt: "2031-08-01T10:00:00.000Z",
+          submittedAt: "2026-07-20T08:00:00.000Z",
+          registrationIntake: { tourCapacityMax: 10, transport: { kind: "primary" } },
+        }),
+      },
+      ...authErrorResponses,
+      404: errorResponse("Not found", { error: "not_found", code: "BOOKING_NOT_FOUND" }),
     },
   },
   bulkApproveBookings: {

@@ -57,6 +57,7 @@ describe("BK-B1.4 BookingPublicPort neutrality", () => {
     assert.equal(typeof port.findDuplicateByTourGuestNationalId, "function");
     assert.equal(typeof port.findDuplicateByTourEmail, "function");
     assert.equal(typeof port.createPendingBooking, "function");
+    assert.equal(typeof port.autoApprovePublicBooking, "function");
     assert.equal(typeof port.sumApprovedPartySizeByTourIds, "function");
   });
 

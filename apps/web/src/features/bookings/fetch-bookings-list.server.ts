@@ -44,11 +44,16 @@ export type BookingsServerPrefetch = {
 /** Server prefetch for bookings command center — avoids client-only loading stall. */
 export async function fetchBookingsServerPrefetch(
   listQueryString: string,
-  includeSummary: boolean
+  includeSummary: boolean,
+  summaryQueryString = ""
 ): Promise<BookingsServerPrefetch | null> {
+  const summaryPath =
+    summaryQueryString.length > 0
+      ? `/bookings/summary?${summaryQueryString}`
+      : "/bookings/summary";
   const [listRaw, summaryRaw] = await Promise.all([
     fetchBookingsBackendJson(`/bookings?${listQueryString}`),
-    includeSummary ? fetchBookingsBackendJson("/bookings/summary") : Promise.resolve(null),
+    includeSummary ? fetchBookingsBackendJson(summaryPath) : Promise.resolve(null),
   ]);
 
   if (listRaw === null) {

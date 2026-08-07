@@ -7,6 +7,8 @@ export function resolveBookingsPageBodyState(input: {
   readonly loading: boolean;
   readonly error: string | null;
   readonly itemsLength: number;
+  readonly hasActiveFilters?: boolean;
+  readonly upcomingFacetActive?: boolean;
 }) {
   return resolveBookingsCommandCenterBodyState(input);
 }

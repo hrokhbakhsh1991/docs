@@ -27,9 +27,11 @@ import { resolveBookingWorkspaceDependencies } from "./booking-dependency-regist
 import { isBookingSupportedWorkspace } from "./workspace-booking-bindings.generated";
 import type {
   ApproveBookingResponse,
+  BookingListItem,
   BookingRecord,
   BookingsListQuery,
   BookingsListResponse,
+  BookingsSummaryQuery,
   BookingsSummaryResponse,
   BulkApproveBookingsRequest,
   BulkApproveBookingsResponse,
@@ -161,10 +163,18 @@ export async function listBookings(
   return (await resolveBookingsServiceForTenant(auth.tenantId)).listBookings(auth, query);
 }
 
+export async function getBooking(
+  auth: BookingActorContext,
+  bookingId: string
+): Promise<BookingListItem> {
+  return (await resolveBookingsServiceForTenant(auth.tenantId)).getBooking(auth, bookingId);
+}
+
 export async function getBookingsSummary(
-  auth: BookingActorContext
+  auth: BookingActorContext,
+  query: BookingsSummaryQuery = { tourChipScope: "ops" }
 ): Promise<BookingsSummaryResponse> {
-  return (await resolveBookingsServiceForTenant(auth.tenantId)).getBookingsSummary(auth);
+  return (await resolveBookingsServiceForTenant(auth.tenantId)).getBookingsSummary(auth, query);
 }
 
 export async function createBooking(
@@ -217,7 +227,39 @@ export async function approveBooking(
   auth: BookingActorContext,
   bookingId: string
 ): Promise<ApproveBookingResponse> {
-  return (await resolveBookingsServiceForTenant(auth.tenantId)).approveBooking(auth, bookingId);
+  const result = await (
+    await resolveBookingsServiceForTenant(auth.tenantId)
+  ).approveBooking(auth, bookingId);
+  if (result.status === "approved") {
+    const { applyFreeCollectionAfterBookingApprove } = await import(
+      "../workspace-finance/apply-free-collection-after-booking-approve"
+    );
+    await applyFreeCollectionAfterBookingApprove({
+      tenantId: auth.tenantId,
+      bookingId: result.id,
+    });
+  }
+  return result;
+}
+
+export async function autoApprovePublicBooking(input: {
+  readonly tenantId: string;
+  readonly bookingId: string;
+  readonly actorUserId: string;
+}): Promise<{ readonly id: string; readonly status: string }> {
+  const result = await (
+    await resolveBookingsServiceForTenant(input.tenantId)
+  ).autoApprovePublicBooking(input);
+  if (result.status === "approved") {
+    const { applyFreeCollectionAfterBookingApprove } = await import(
+      "../workspace-finance/apply-free-collection-after-booking-approve"
+    );
+    await applyFreeCollectionAfterBookingApprove({
+      tenantId: input.tenantId,
+      bookingId: result.id,
+    });
+  }
+  return result;
 }
 
 export async function rejectBooking(
@@ -250,7 +292,21 @@ export async function bulkApproveBookings(
   auth: BookingActorContext,
   body: BulkApproveBookingsRequest
 ): Promise<BulkApproveBookingsResponse> {
-  return (await resolveBookingsServiceForTenant(auth.tenantId)).bulkApproveBookings(auth, body);
+  const result = await (
+    await resolveBookingsServiceForTenant(auth.tenantId)
+  ).bulkApproveBookings(auth, body);
+  if (result.approvedIds.length > 0) {
+    const { applyFreeCollectionAfterBookingApprove } = await import(
+      "../workspace-finance/apply-free-collection-after-booking-approve"
+    );
+    for (const bookingId of result.approvedIds) {
+      await applyFreeCollectionAfterBookingApprove({
+        tenantId: auth.tenantId,
+        bookingId,
+      });
+    }
+  }
+  return result;
 }
 
 export {

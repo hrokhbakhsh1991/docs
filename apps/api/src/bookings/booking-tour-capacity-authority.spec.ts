@@ -52,6 +52,8 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
     const tourCapacity: BookingTourCapacityPort = {
       kind: "fixture-tour-capacity",
       resolveTourCapacityMax: async () => 10,
+      resolveTourCapacityMaxMany: async (_tenantId, tourIds) =>
+        Object.fromEntries(tourIds.map((id) => [id, 10])),
     };
     const dependencies = resolveBookingWorkspaceDependencies("denali");
     const eventReaction = resolveWorkspaceBookingEventReaction("denali");
@@ -127,6 +129,8 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
       const tourCapacity: BookingTourCapacityPort = {
         kind: "fixture-tour-capacity-missing",
         resolveTourCapacityMax: async () => null,
+        resolveTourCapacityMaxMany: async (_tenantId, tourIds) =>
+          Object.fromEntries(tourIds.map((id) => [id, null])),
       };
       const dependencies = resolveBookingWorkspaceDependencies("denali");
       const eventReaction = resolveWorkspaceBookingEventReaction("denali");

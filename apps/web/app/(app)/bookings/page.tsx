@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
 
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
-import { buildBookingsApiQuery, parseBookingsCommandCenterQuery } from "@/features/bookings/bookings-command-center-logic";
+import {
+  buildBookingsApiQuery,
+  buildBookingsSummaryApiQuery,
+  parseBookingsCommandCenterQuery,
+} from "@/features/bookings/bookings-command-center-logic";
 import {
   isAdminOrOwnerRole,
   resolveBookingsViewForRole,
 } from "@/features/bookings/bookings-command-center-types";
 import { fetchBookingsServerPrefetch } from "@/features/bookings/fetch-bookings-list.server";
+import { resolveBookingOpsCapabilityForHub } from "@/features/bookings/booking-ops-panels";
+import { resolveBookingsOpsActionChrome } from "@/features/bookings/bookings-ops-action-chrome";
 import { buildBookingPageMetadata } from "@/i18n/booking-page-metadata";
 
 import { BookingsPageClient } from "./bookings-page-client";
@@ -54,8 +60,17 @@ export default async function OperatorBookingsPage({ searchParams }: OperatorBoo
   };
   const initialPrefetch = await fetchBookingsServerPrefetch(
     buildBookingsApiQuery(query),
-    isAdminOrOwnerRole(session.role)
+    isAdminOrOwnerRole(session.role),
+    buildBookingsSummaryApiQuery(query)
   );
+  const opsManifest = await resolveBookingOpsCapabilityForHub(null, session.pluginId);
+  const opsActions = resolveBookingsOpsActionChrome(opsManifest);
 
-  return <BookingsPageClient session={session} initialPrefetch={initialPrefetch} />;
+  return (
+    <BookingsPageClient
+      session={session}
+      initialPrefetch={initialPrefetch}
+      opsActions={opsActions}
+    />
+  );
 }

@@ -22,6 +22,13 @@ export type BookingPublicCreateResult = {
   readonly status: string;
 };
 
+export type BookingPublicAutoApproveInput = {
+  readonly tenantId: string;
+  readonly bookingId: string;
+  /** Must match the booking submitter (public guest). */
+  readonly actorUserId: string;
+};
+
 /** Host-injected bookings adapter — Prisma/memory lives in apps/api. */
 export interface BookingPublicPort {
   findDuplicateByTourGuest(
@@ -45,6 +52,13 @@ export interface BookingPublicPort {
     email: string
   ): Promise<{ readonly id: string } | null>;
   createPendingBooking(input: BookingPublicCreateInput): Promise<BookingPublicCreateResult>;
+  /**
+   * Tour-policy auto-approve after public create (no ops CASL).
+   * Capacity failure → leave pending and return current status.
+   */
+  autoApprovePublicBooking(
+    input: BookingPublicAutoApproveInput
+  ): Promise<BookingPublicCreateResult>;
   /** Sum approved `partySize` per tour — public catalog occupancy (no PII). */
   sumApprovedPartySizeByTourIds(
     tenantId: string,

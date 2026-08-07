@@ -80,6 +80,7 @@ function fakeRepo(): BookingRepositoryPort {
     getById: async () => null,
     getByIds: async () => [],
     updatePaymentStatus: async () => null,
+    mergeRegistrationIntake: async () => null,
     createBooking: async () => {
       throw new Error("not used");
     },
@@ -148,7 +149,11 @@ describe("bookings-service-di (B0.5)", () => {
           publicBooking: stubPublicBooking(),
           validationPolicy: stubValidation(),
           capacityPolicy: stubCapacity(),
-          tourCapacity: { kind: "test-tour-capacity", resolveTourCapacityMax: async () => null },
+          tourCapacity: {
+            kind: "test-tour-capacity",
+            resolveTourCapacityMax: async () => null,
+            resolveTourCapacityMaxMany: async () => ({}),
+          },
           workspaceType: "denali",
           tenantWorkspaceBinding: stubTenantBinding(),
           capabilities: denaliCaps(),
@@ -169,7 +174,11 @@ describe("bookings-service-di (B0.5)", () => {
       publicBooking: stubPublicBooking(),
       validationPolicy: stubValidation(),
       capacityPolicy: stubCapacity(),
-      tourCapacity: { kind: "test-tour-capacity", resolveTourCapacityMax: async () => null },
+      tourCapacity: {
+        kind: "test-tour-capacity",
+        resolveTourCapacityMax: async () => null,
+        resolveTourCapacityMaxMany: async () => ({}),
+      },
       workspaceType: "denali",
       tenantWorkspaceBinding: stubTenantBinding(),
       capabilities: denaliCaps(),

@@ -12,14 +12,44 @@ export type BookingTourChip = {
   readonly totalCount: number;
 };
 
+export type BookingsListSort = "submittedAt" | "departureAt";
+
 export type BookingsListQuery = {
   readonly view: BookingsListView;
+  /** Single-status filter (BC). Prefer `statuses` when multiple. */
   readonly status?: BookingStatus;
+  /**
+   * Multi-status `IN` filter (UX-BKG-43a). When set, takes precedence over `status`.
+   * Wire: `?status=pending,waitlisted` (comma-separated, order-insensitive).
+   */
+  readonly statuses?: readonly BookingStatus[];
   readonly tourId?: string;
   readonly paymentStatus?: BookingPaymentStatus;
   readonly q?: string;
   readonly cursor?: string;
   readonly limit: number;
+  /**
+   * Ops convenience filter: departureAt in [now, now+N days) where N is 1..30.
+   * Expanded server-side via clock; not a client-supplied absolute range.
+   */
+  readonly departureWithinDays?: number;
+  /**
+   * Ops convenience filter: approvedAt in a UTC calendar-day window ending at
+   * tomorrow UTC midnight (N=1 matches summary approvedToday). Expanded server-side.
+   */
+  readonly approvedWithinDays?: number;
+  /**
+   * List keyset order (BOOKINGS-OPS-UX P3b-a). Default submittedAt.
+   * departureAt = soonest first (ASC).
+   */
+  readonly sort?: BookingsListSort;
+};
+
+export type BookingCapacitySnapshot = {
+  /** Σ partySize of approved registrations for this tour (tenant-scoped). */
+  readonly occupied: number;
+  /** Tour SoT capacityMax; null when tour missing or uncapped/invalid. */
+  readonly max: number | null;
 };
 
 export type BookingListItem = {
@@ -27,14 +57,29 @@ export type BookingListItem = {
   readonly tourId: string;
   readonly tourTitle: string;
   readonly guestLabel: string;
+  /** Additive ops contact — present when stored on the registration. */
+  readonly guestEmail?: string;
+  /** Additive ops contact — present when stored on the registration. */
+  readonly guestPhone?: string;
   readonly partySize: number;
   readonly status: BookingStatus;
   readonly paymentStatus: BookingPaymentStatus;
   readonly departureAt: string;
   readonly submittedAt: string;
+  /** Present after approve when the host persisted approvedAt. */
+  readonly approvedAt?: string;
+  /**
+   * Guest intake JSON — **detail / getBooking only** (UX-BKG-50 amend).
+   * Must be omitted from `listBookings` list projection (BK-SAFE-01).
+   */
   readonly registrationIntake?: Readonly<Record<string, unknown>>;
   /** Present when status=rejected and an ops reason was persisted (additive / optional). */
   readonly rejectReason?: string;
+  /**
+   * Ops capacity bar — enriched on listBookings from approved party sum + tour capacityMax.
+   * Absent when enrichment skipped (empty page).
+   */
+  readonly capacitySnapshot?: BookingCapacitySnapshot;
 };
 
 export type BookingsListResponse = {
@@ -48,7 +93,20 @@ export type BookingsSummaryResponse = {
   readonly approvedToday: number;
   readonly departures7d: number;
   readonly waitlist: number;
+  /**
+   * Tour chips for ops chrome. Default membership is ops-scoped
+   * Default scope is `ops`: tours with pendingCount > 0, waitlistedCount > 0,
+   * or departureAt >= now (UX-BKG-28). Pass `tourChipScope=all` on
+   * GET /bookings/summary to include pure-history tours (BOOKINGS-OPS-UX P4c).
+   */
   readonly tourChips: readonly BookingTourChip[];
+};
+
+/** GET /bookings/summary query (P4c). */
+export type BookingTourChipScope = "ops" | "all";
+
+export type BookingsSummaryQuery = {
+  readonly tourChipScope: BookingTourChipScope;
 };
 
 export type BulkApproveBookingsRequest = {

@@ -20,15 +20,29 @@ export class HostBookingTourCapacityAdapter implements BookingTourCapacityPort {
   readonly kind = "host-booking-tour-capacity";
 
   async resolveTourCapacityMax(tenantId: string, tourId: string): Promise<number | null> {
-    const id = tourId.trim();
+    const many = await this.resolveTourCapacityMaxMany(tenantId, [tourId]);
+    return many[tourId.trim()] ?? null;
+  }
+
+  async resolveTourCapacityMaxMany(
+    tenantId: string,
+    tourIds: readonly string[]
+  ): Promise<Readonly<Record<string, number | null>>> {
     const tenant = tenantId.trim();
-    if (id.length === 0 || tenant.length === 0) {
-      return null;
+    const unique = [
+      ...new Set(tourIds.map((id) => id.trim()).filter((id) => id.length > 0)),
+    ];
+    if (tenant.length === 0 || unique.length === 0) {
+      return {};
     }
-    const tour = await createTourStorageRepository().getById(id, tenant);
-    if (tour === null) {
-      return null;
+    const tours = await createTourStorageRepository().getByIds(unique, tenant);
+    const byId = new Map(tours.map((tour) => [tour.id, tour] as const));
+    const out: Record<string, number | null> = {};
+    for (const id of unique) {
+      const tour = byId.get(id);
+      out[id] =
+        tour === undefined ? null : readCapacityMaxFromTourData(tour.canonical.data);
     }
-    return readCapacityMaxFromTourData(tour.canonical.data);
+    return out;
   }
 }

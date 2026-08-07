@@ -4,6 +4,7 @@
  */
 import type { BookingPublicPort } from "../ports/booking-public.port";
 import {
+  autoApprovePublicBooking,
   createPublicGuestBooking,
   findGuestBookingDuplicateMatch,
   sumApprovedPartySizeByTourIds,
@@ -61,6 +62,9 @@ export function createHostBookingPublicAdapter(): BookingPublicPort {
         }
       );
       return { id: created.id, status: created.status };
+    },
+    async autoApprovePublicBooking(input) {
+      return autoApprovePublicBooking(input);
     },
     async sumApprovedPartySizeByTourIds(tenantId, tourIds) {
       return sumApprovedPartySizeByTourIds(tenantId, tourIds);

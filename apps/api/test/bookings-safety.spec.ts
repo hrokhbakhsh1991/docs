@@ -75,6 +75,15 @@ describe("bookings-safety.spec.ts", () => {
     assert.equal(page.items[0]?.registrationIntake, undefined);
   });
 
+  it("BK-SAFE-01a BOOKING_LIST_SELECT must not select registrationIntake", () => {
+    const source = fs.readFileSync(PRISMA_BOOKINGS_REPO, "utf8");
+    const selectBody = source.match(
+      /export const BOOKING_LIST_SELECT = \{[\s\S]*?\} as const/
+    )?.[0];
+    assert.ok(selectBody !== undefined, "BOOKING_LIST_SELECT must exist");
+    assert.doesNotMatch(selectBody, /registrationIntake\s*:/);
+  });
+
   it("BK-SAFE-02 prisma listByTenantPage uses withTenantRls for paginated query", () => {
     const source = fs.readFileSync(PRISMA_BOOKINGS_REPO, "utf8");
     const methodBody = source.match(

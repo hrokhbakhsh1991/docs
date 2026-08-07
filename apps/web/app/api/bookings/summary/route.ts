@@ -13,11 +13,14 @@ export async function GET(req: Request): Promise<NextResponse> {
   }
 
   const incoming = new URL(req.url);
+  const tourChipScope = incoming.searchParams.get("tourChipScope")?.trim() ?? "";
+  const summaryQs =
+    tourChipScope.toLowerCase() === "all" ? "?tourChipScope=all" : "";
 
   let backendRes: Response;
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}/bookings/summary`, {
+    backendRes = await fetch(`${apiBase}/bookings/summary${summaryQs}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${sessionToken}`,

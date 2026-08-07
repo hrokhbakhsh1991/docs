@@ -52,6 +52,8 @@ export interface BookingRepositoryPort {
   getBookingsSummaryStats(input: {
     readonly tenantId: string;
     readonly now: Date;
+    /** Default ops — P4a filter; all = include pure-history tours (P4c). */
+    readonly tourChipScope?: "ops" | "all";
   }): Promise<BookingsSummaryStats>;
   countBookingsBySubmittedUser(tenantId: string, submittedByUserId: string): Promise<number>;
   countCancelledBookingsBySubmittedUser(
@@ -83,6 +85,15 @@ export interface BookingRepositoryPort {
     readonly bookingId: string;
     readonly tenantId: string;
     readonly paymentStatus: BookingPaymentStatus;
+  }): Promise<BookingRecord | null>;
+  /**
+   * Merge keys into `registrationIntake` (finance obligation override, etc.).
+   * Missing booking → null.
+   */
+  mergeRegistrationIntake(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly patch: Readonly<Record<string, unknown>>;
   }): Promise<BookingRecord | null>;
   /**
    * Create pending in one tenant TX: tour advisory lock → re-sum approved → optional

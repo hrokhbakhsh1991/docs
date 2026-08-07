@@ -121,6 +121,7 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
       getById: async () => null,
       getByIds: async () => [],
       updatePaymentStatus: async () => null,
+      mergeRegistrationIntake: async () => null,
       createBooking: async () => {
         throw new Error("create must not run when public create unsupported");
       },
@@ -157,7 +158,11 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
       },
       validationPolicy: { kind: "test", assertCreateValid: () => undefined },
       capacityPolicy: { kind: "test", assertCreateCapacity: () => undefined },
-      tourCapacity: { kind: "test-tour-capacity", resolveTourCapacityMax: async () => null },
+      tourCapacity: {
+        kind: "test-tour-capacity",
+        resolveTourCapacityMax: async () => null,
+        resolveTourCapacityMaxMany: async () => ({}),
+      },
       workspaceType: "denali",
       tenantWorkspaceBinding: {
         assertTenantBoundToRuntime: async () => undefined,

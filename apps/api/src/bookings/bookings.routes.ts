@@ -4,6 +4,7 @@ import {
   isBookingJsonReceiptContentType,
   parseBookingMemberReceiptJsonBody,
   parseBookingsListQuery,
+  parseBookingsSummaryQuery,
   parseBulkApproveBookingsBody,
   parseCreateBookingBody,
   parseRejectBookingBody,
@@ -26,6 +27,7 @@ import {
   bulkApproveBookings,
   cancelBooking,
   createBooking,
+  getBooking,
   getBookingsSummary,
   listBookings,
   rejectBooking,
@@ -53,9 +55,10 @@ export async function handleListBookings(req: IncomingMessage, res: ServerRespon
   }
 }
 
-export async function handleGetBookingsSummary(
+export async function handleGetBooking(
   req: IncomingMessage,
-  res: ServerResponse
+  res: ServerResponse,
+  bookingId: string
 ): Promise<void> {
   try {
     const auth = await requireOperatorSession(req);
@@ -63,7 +66,29 @@ export async function handleGetBookingsSummary(
       req,
       auth,
       async () => {
-        const result = await getBookingsSummary(auth);
+        const result = await getBooking(auth, bookingId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "read" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleGetBookingsSummary(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    const url = new URL(req.url ?? "/", "http://127.0.0.1");
+    const query = parseBookingsSummaryQuery(url);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await getBookingsSummary(auth, query);
         sendJson(res, 200, result);
       },
       { rateLimit: "read" }

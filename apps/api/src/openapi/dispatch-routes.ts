@@ -447,6 +447,12 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
     operationId: "getBookingsSummary",
   },
   {
+    method: "GET",
+    path: "/bookings/{bookingId}",
+    summary: "Get booking detail (ops; includes registrationIntake)",
+    operationId: "getBooking",
+  },
+  {
     method: "POST",
     path: "/bookings/bulk-approve",
     summary: "Bulk approve bookings",

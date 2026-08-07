@@ -2467,10 +2467,17 @@
       },
       "get": {
         "operationId": "listTours",
-        "summary": "List tours for tenant (cursor pagination)",
+        "summary": "List tours for tenant (cursor pagination; no canonical blob on list path)",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToursListResponse"
+                }
+              }
+            }
           },
           "201": {
             "description": "Created"
@@ -3072,6 +3079,137 @@
           },
           "404": {
             "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/bookings/{bookingId}": {
+      "get": {
+        "operationId": "getBooking",
+        "summary": "Get booking detail (ops; includes registrationIntake)",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "examples": {
+              "default": {
+                "summary": "BookingId",
+                "value": "00000000-0000-4000-8000-000000000891"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ops booking detail (may include registrationIntake)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingDetailItem"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingDetailItem",
+                    "value": {
+                      "id": "00000000-0000-4000-8000-000000000891",
+                      "tourId": "00000000-0000-4000-8000-000000000880",
+                      "tourTitle": "Alborz Day Hike",
+                      "guestLabel": "Ada Lovelace",
+                      "partySize": 2,
+                      "status": "pending",
+                      "paymentStatus": "unpaid",
+                      "departureAt": "2031-08-01T10:00:00.000Z",
+                      "submittedAt": "2026-07-20T08:00:00.000Z",
+                      "registrationIntake": {
+                        "tourCapacityMax": 10,
+                        "transport": {
+                          "kind": "primary"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "not_found",
+                      "code": "BOOKING_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
           },
           "409": {
             "description": "Conflict"
@@ -4926,113 +5064,9 @@
   },
   "components": {
     "schemas": {
-      "BookingStatus": {
-        "type": "string",
-        "enum": [
-          "pending",
-          "approved",
-          "waitlisted",
-          "rejected",
-          "cancelled"
-        ],
-        "description": "Booking lifecycle status (booking-http-contracts).",
-        "examples": [
-          "pending"
-        ]
-      },
-      "BookingPaymentStatus": {
-        "type": "string",
-        "enum": [
-          "unpaid",
-          "partial",
-          "paid"
-        ],
-        "description": "Payment projection on booking list/create (booking-http-contracts).",
-        "examples": [
-          "unpaid"
-        ]
-      },
-      "BookingsListView": {
-        "type": "string",
-        "enum": [
-          "ops",
-          "mine"
-        ],
-        "description": "List view discriminator.",
-        "examples": [
-          "ops"
-        ]
-      },
-      "BookingId": {
-        "type": "string",
-        "format": "uuid",
-        "description": "Booking / operator registration id.",
-        "examples": [
-          "00000000-0000-4000-8000-000000000891"
-        ]
-      },
-      "BookingTourId": {
-        "type": "string",
-        "format": "uuid",
-        "description": "Tour id.",
-        "examples": [
-          "00000000-0000-4000-8000-000000000880"
-        ]
-      },
-      "BookingHttpError": {
-        "type": "object",
-        "required": [
-          "error",
-          "code"
-        ],
-        "additionalProperties": true,
-        "properties": {
-          "error": {
-            "type": "string",
-            "examples": [
-              "forbidden"
-            ]
-          },
-          "code": {
-            "type": "string",
-            "examples": [
-              "BOOKINGS_OPS_FORBIDDEN"
-            ]
-          },
-          "maxBatch": {
-            "type": "integer",
-            "description": "Present on bulk approve batch limit."
-          }
-        },
-        "examples": [
-          {
-            "error": "forbidden",
-            "code": "BOOKINGS_OPS_FORBIDDEN"
-          }
-        ]
-      },
-      "BookingRegistrationIntake": {
-        "type": "object",
-        "description": "Opaque product intake JSON; Booking requires tourCapacityMax for capacity.",
-        "additionalProperties": true,
-        "properties": {
-          "tourCapacityMax": {
-            "type": "integer",
-            "minimum": 1,
-            "examples": [
-              10
-            ]
-          }
-        },
-        "examples": [
-          {
-            "tourCapacityMax": 10
-          }
-        ]
-      },
       "BookingListItem": {
         "type": "object",
-        "description": "List/detail projection (DTO BookingListItem). No dedicated GET-by-id route.",
+        "description": "List projection (DTO BookingListItem). Omits registrationIntake — use getBooking detail.",
         "required": [
           "id",
           "tourId",
@@ -5090,9 +5124,6 @@
               "2026-07-20T08:00:00.000Z"
             ]
           },
-          "registrationIntake": {
-            "$ref": "#/components/schemas/BookingRegistrationIntake"
-          },
           "rejectReason": {
             "type": "string",
             "description": "Ops reject reason when status=rejected (optional / additive).",
@@ -5111,10 +5142,7 @@
             "status": "pending",
             "paymentStatus": "unpaid",
             "departureAt": "2031-08-01T10:00:00.000Z",
-            "submittedAt": "2026-07-20T08:00:00.000Z",
-            "registrationIntake": {
-              "tourCapacityMax": 10
-            }
+            "submittedAt": "2026-07-20T08:00:00.000Z"
           }
         ]
       },
@@ -5270,6 +5298,327 @@
                 "totalCount": 12
               }
             ]
+          }
+        ]
+      },
+      "TourSlimListItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "tenantId",
+          "createdAt",
+          "rowVersion"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rowVersion": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "TourListProjection": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "tenantId",
+          "createdAt",
+          "updatedAt",
+          "rowVersion",
+          "title",
+          "shortDescription",
+          "listStatus",
+          "uiStatus",
+          "priceAmount",
+          "priceCurrency",
+          "totalCapacity",
+          "acceptedCount",
+          "category",
+          "coverImageUrl",
+          "coverImageStorageKey",
+          "departureAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rowVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "title": {
+            "type": "string"
+          },
+          "shortDescription": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "listStatus": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "open",
+              "published",
+              "closed",
+              "cancelled",
+              "archived"
+            ]
+          },
+          "uiStatus": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "active",
+              "archived"
+            ]
+          },
+          "priceAmount": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "priceCurrency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "totalCapacity": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "acceptedCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "category": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coverImageUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coverImageStorageKey": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "departureAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ToursListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TourSlimListItem"
+                },
+                {
+                  "$ref": "#/components/schemas/TourListProjection"
+                }
+              ]
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "BookingStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "approved",
+          "waitlisted",
+          "rejected",
+          "cancelled"
+        ],
+        "description": "Booking lifecycle status (booking-http-contracts).",
+        "examples": [
+          "pending"
+        ]
+      },
+      "BookingPaymentStatus": {
+        "type": "string",
+        "enum": [
+          "unpaid",
+          "partial",
+          "paid"
+        ],
+        "description": "Payment projection on booking list/create (booking-http-contracts).",
+        "examples": [
+          "unpaid"
+        ]
+      },
+      "BookingsListView": {
+        "type": "string",
+        "enum": [
+          "ops",
+          "mine"
+        ],
+        "description": "List view discriminator.",
+        "examples": [
+          "ops"
+        ]
+      },
+      "BookingId": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Booking / operator registration id.",
+        "examples": [
+          "00000000-0000-4000-8000-000000000891"
+        ]
+      },
+      "BookingTourId": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Tour id.",
+        "examples": [
+          "00000000-0000-4000-8000-000000000880"
+        ]
+      },
+      "BookingHttpError": {
+        "type": "object",
+        "required": [
+          "error",
+          "code"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "error": {
+            "type": "string",
+            "examples": [
+              "forbidden"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "examples": [
+              "BOOKINGS_OPS_FORBIDDEN"
+            ]
+          },
+          "maxBatch": {
+            "type": "integer",
+            "description": "Present on bulk approve batch limit."
+          }
+        },
+        "examples": [
+          {
+            "error": "forbidden",
+            "code": "BOOKINGS_OPS_FORBIDDEN"
+          }
+        ]
+      },
+      "BookingRegistrationIntake": {
+        "type": "object",
+        "description": "Opaque product intake JSON; Booking requires tourCapacityMax for capacity.",
+        "additionalProperties": true,
+        "properties": {
+          "tourCapacityMax": {
+            "type": "integer",
+            "minimum": 1,
+            "examples": [
+              10
+            ]
+          }
+        },
+        "examples": [
+          {
+            "tourCapacityMax": 10
+          }
+        ]
+      },
+      "BookingDetailItem": {
+        "type": "object",
+        "description": "Ops detail projection (GET /bookings/{bookingId}). May include registrationIntake.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BookingListItem"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "registrationIntake": {
+                "$ref": "#/components/schemas/BookingRegistrationIntake"
+              }
+            }
+          }
+        ],
+        "examples": [
+          {
+            "id": "00000000-0000-4000-8000-000000000891",
+            "tourId": "00000000-0000-4000-8000-000000000880",
+            "tourTitle": "Alborz Day Hike",
+            "guestLabel": "Ada Lovelace",
+            "partySize": 2,
+            "status": "pending",
+            "paymentStatus": "unpaid",
+            "departureAt": "2031-08-01T10:00:00.000Z",
+            "submittedAt": "2026-07-20T08:00:00.000Z",
+            "registrationIntake": {
+              "tourCapacityMax": 10,
+              "transport": {
+                "kind": "primary"
+              }
+            }
           }
         ]
       },

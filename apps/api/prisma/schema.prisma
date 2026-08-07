@@ -473,6 +473,7 @@ model OperatorRegistration {
 
   @@index([tenantId, status, submittedAt(sort: Desc)], map: "idx_operator_registrations_tenant_status")
   @@index([tenantId, tourId, submittedAt(sort: Desc)], map: "idx_operator_registrations_tenant_tour")
+  @@index([tenantId, departureAt, id], map: "idx_operator_registrations_tenant_departure_id")
   @@map("operator_registrations")
 }
 

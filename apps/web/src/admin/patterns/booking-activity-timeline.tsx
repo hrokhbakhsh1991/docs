@@ -3,7 +3,10 @@
 import { useLocale, useTranslations } from "next-intl";
 
 import type { BookingListItem } from "@/features/bookings/bookings-command-center-types";
-import { formatBookingDeparture } from "@/features/bookings/bookings-command-center-logic";
+import {
+  formatBookingDateTime,
+  formatBookingDeparture,
+} from "@/features/bookings/bookings-command-center-logic";
 import type { AppLocale } from "@/i18n/routing";
 
 type BookingActivityTimelineProps = {
@@ -18,13 +21,31 @@ export function BookingActivityTimeline({ booking }: BookingActivityTimelineProp
     {
       id: "submitted",
       label: t("submitted"),
-      detail: formatBookingDeparture(booking.submittedAt, locale),
+      detail: formatBookingDateTime(booking.submittedAt, locale),
     },
     {
       id: "status",
       label: t("status"),
       detail: t(`statusValue.${booking.status}`),
     },
+    ...(booking.approvedAt !== undefined && booking.approvedAt.length > 0
+      ? [
+          {
+            id: "approvedAt",
+            label: t("approvedAt"),
+            detail: formatBookingDateTime(booking.approvedAt, locale),
+          },
+        ]
+      : []),
+    ...(booking.rejectReason !== undefined && booking.rejectReason.length > 0
+      ? [
+          {
+            id: "rejectReason",
+            label: t("rejectReason"),
+            detail: booking.rejectReason,
+          },
+        ]
+      : []),
     {
       id: "payment",
       label: t("payment"),
@@ -38,19 +59,22 @@ export function BookingActivityTimeline({ booking }: BookingActivityTimelineProp
   ] as const;
 
   return (
-    <ol data-operator-booking-timeline>
-      {events.map((event, index) => (
-        <li key={event.id} data-booking-timeline-item>
-          <span data-booking-timeline-marker aria-hidden>
-            <span data-booking-timeline-dot />
-            {index < events.length - 1 ? <span data-booking-timeline-rail /> : null}
-          </span>
-          <div data-booking-timeline-body>
-            <p data-booking-timeline-label>{event.label}</p>
-            <p data-booking-timeline-detail>{event.detail}</p>
-          </div>
-        </li>
-      ))}
-    </ol>
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">{t("snapshotNote")}</p>
+      <ol data-operator-booking-timeline>
+        {events.map((event, index) => (
+          <li key={event.id} data-booking-timeline-item>
+            <span data-booking-timeline-marker aria-hidden>
+              <span data-booking-timeline-dot />
+              {index < events.length - 1 ? <span data-booking-timeline-rail /> : null}
+            </span>
+            <div data-booking-timeline-body>
+              <p data-booking-timeline-label>{event.label}</p>
+              <p data-booking-timeline-detail>{event.detail}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }

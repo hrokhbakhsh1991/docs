@@ -35,11 +35,24 @@ export const LIST_PROJECTION_OPENAPI_COMPONENTS = {
         tourId: { type: "string", format: "uuid" },
         tourTitle: { type: "string" },
         guestLabel: { type: "string" },
+        guestEmail: { type: "string" },
+        guestPhone: { type: "string" },
         partySize: { type: "integer", minimum: 1 },
         status: { type: "string", enum: [...bookingStatusEnum] },
         paymentStatus: { type: "string", enum: [...bookingPaymentStatusEnum] },
         departureAt: { type: "string", format: "date-time" },
         submittedAt: { type: "string", format: "date-time" },
+        approvedAt: { type: "string", format: "date-time" },
+        rejectReason: { type: "string" },
+        capacitySnapshot: {
+          type: "object",
+          additionalProperties: false,
+          required: ["occupied", "max"],
+          properties: {
+            occupied: { type: "integer", minimum: 0 },
+            max: { type: ["integer", "null"], minimum: 1 },
+          },
+        },
       },
     },
     BookingsListResponse: {
@@ -77,6 +90,8 @@ export const LIST_PROJECTION_OPENAPI_COMPONENTS = {
         waitlist: { type: "integer", minimum: 0 },
         tourChips: {
           type: "array",
+          description:
+            "Tour chips; default ops-scoped (pending>0 or departureAt>=now). Pass tourChipScope=all for history (BOOKINGS-OPS-UX P4c).",
           items: { $ref: "#/components/schemas/BookingTourChip" },
         },
       },

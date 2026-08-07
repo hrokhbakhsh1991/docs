@@ -295,7 +295,7 @@ pattern: DEC-P9-009 (settings registry)
 
 ### Context
 
-Legacy operator approval lives in `leader/review` (multi-tour KPI + inspection panel) while `(app)/bookings` serves participant self-service. Lift-and-shifting both trees duplicates logic and blocks workspace-specific UX (Urban vs Denali). Industry patterns ([approval queue](https://www.shadcn.io/blocks/crud-approval-queue), [kanban swimlanes](https://kanbantool.com/kanban-board-examples)) favor one inbox with view modes and bulk actions.
+Legacy operator approval lives in `leader/review` (multi-tour KPI + inspection panel) while `(app)/bookings` serves participant self-service. Lift-and-shifting both trees duplicates logic and blocks workspace-specific UX (Urban vs Denali). Industry research cited an [approval queue](https://www.shadcn.io/blocks/crud-approval-queue) and [kanban swimlanes](https://kanbantool.com/kanban-board-examples) as inspiration for multi-tour ops; **shipped Command Center does not implement Kanban** — `tour_board` is **By Tour** stacked grouping (`layout=board`, UX-BKG-44). DnD status Kanban remains out of scope.
 
 ### Decision
 
@@ -304,7 +304,7 @@ Legacy operator approval lives in `leader/review` (multi-tour KPI + inspection p
 3. **`(app)/leader/review`** is an **alias** to the same shell (`view=inbox_table&scope=leader`) — **forbidden:** second approve implementation tree.
 4. **Members** on `/bookings` receive **`view=mine`** only — full tenant queue requires `operator.bookings.approve`.
 5. **API** extends list with filters + `GET /bookings/summary` + optional `POST /bookings/bulk-approve` — approve/reject outbox rules unchanged (DEC-P9-006 · P9-F-006).
-6. **MVP closure:** `inbox_table` + inspection panel required; board/timeline optional before 9.8 per subphase CP-9.5-09.
+6. **MVP closure:** `inbox_table` + inspection panel required; **By Tour** / timeline thin layouts optional before 9.8 per subphase CP-9.5-09 (not Kanban columns).
 
 ### Verification
 
