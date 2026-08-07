@@ -4,9 +4,11 @@ import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
 import type { MemberReceiptStatus } from "@/me/member-receipt-status";
+import type { RegistrationLifecycleStatus } from "@/me/registration-lifecycle-status";
 
 type Props = {
   readonly registrationId: string;
+  readonly registrationStatus: RegistrationLifecycleStatus;
   readonly initialStatus: MemberReceiptStatus;
   readonly tripsListHref: string;
   readonly tourHref: string | null;
@@ -14,6 +16,7 @@ type Props = {
 
 export function MemberReceiptUploadForm({
   registrationId,
+  registrationStatus,
   initialStatus,
   tripsListHref,
   tourHref,
@@ -63,18 +66,6 @@ export function MemberReceiptUploadForm({
     </p>
   );
 
-  if (receiptStatus === "pending") {
-    return (
-      <div data-portal-member-receipt-waiting>
-        <p role="status">
-          <strong>{t("waitingTitle")}</strong>
-        </p>
-        <p>{t("waitingBody")}</p>
-        {actionLinks}
-      </div>
-    );
-  }
-
   if (receiptStatus === "paid") {
     return (
       <div data-portal-member-receipt-paid>
@@ -82,6 +73,42 @@ export function MemberReceiptUploadForm({
           <strong>{t("paidTitle")}</strong>
         </p>
         <p>{t("paidBody")}</p>
+        {actionLinks}
+      </div>
+    );
+  }
+
+  if (registrationStatus === "rejected" || registrationStatus === "cancelled") {
+    return (
+      <div data-portal-member-receipt-closed>
+        <p role="status">
+          <strong>{t("closedTitle")}</strong>
+        </p>
+        <p>{t("closedBody")}</p>
+        {actionLinks}
+      </div>
+    );
+  }
+
+  if (registrationStatus === "pending" || registrationStatus === "waitlisted") {
+    return (
+      <div data-portal-member-receipt-awaiting-approval>
+        <p role="status">
+          <strong>{t("awaitingApprovalTitle")}</strong>
+        </p>
+        <p>{t("awaitingApprovalBody")}</p>
+        {actionLinks}
+      </div>
+    );
+  }
+
+  if (receiptStatus === "pending") {
+    return (
+      <div data-portal-member-receipt-waiting>
+        <p role="status">
+          <strong>{t("waitingTitle")}</strong>
+        </p>
+        <p>{t("waitingBody")}</p>
         {actionLinks}
       </div>
     );

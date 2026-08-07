@@ -45,6 +45,9 @@ function bookingPort(approvedByTour: Record<string, number>): BookingPublicPort 
     async createPendingBooking() {
       return { id: "booking", status: "pending" };
     },
+    async autoApprovePublicBooking() {
+      return { id: "booking", status: "approved" };
+    },
     async sumApprovedPartySizeByTourIds(_tenantId, tourIds) {
       const totals: Record<string, number> = {};
       for (const tourId of tourIds) {

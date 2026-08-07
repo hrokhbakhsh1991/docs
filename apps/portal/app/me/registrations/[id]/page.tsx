@@ -11,6 +11,7 @@ import {
   localizeMemberRegistrationStatus,
 } from "@/me/format-member-registration-display.server";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
+import { parseRegistrationLifecycleStatus } from "@/me/registration-lifecycle-status";
 import { resolveMemberPortalTripsListPath } from "@/me/resolve-member-portal-routes.server";
 import { resolveMarketingTourDetailUrl } from "@/marketing/resolve-marketing-public-url";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
@@ -56,7 +57,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
       <main data-portal-member-registration-detail>
         <header data-portal-member-detail-app-bar>
           <Link href={tripsListHref} data-portal-member-back>
-            ← {t("backToList")}
+            {t("backToList")}
           </Link>
         </header>
         <section data-portal-member-detail-hero>
@@ -70,7 +71,8 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
         </section>
         <MemberReceiptUploadForm
           registrationId={row.id}
-          initialStatus={receiptStatus}
+          registrationStatus={parseRegistrationLifecycleStatus(row.status) ?? "pending"}
+          initialStatus={row.paymentStatus === "paid" ? "paid" : receiptStatus}
           tripsListHref={tripsListHref}
           tourHref={tourHref}
         />

@@ -1,7 +1,7 @@
 ---
 title: Portal Member Login Modal
 doc_id: PCMS-LOGIN-MODAL
-version: "2026-08-05-v2"
+version: "2026-08-07-v3"
 status: design
 authority: docs/standards/member-session-portal-authority.mdoc
 apps: [portal, marketing]
@@ -53,6 +53,8 @@ PCMS-001 already requires marketing **read-only** detection of `atour_mb_session
 
 **Design invariant PCMS-UX-MODAL-COOKIE:** Modal success paths **must** run `waitForMemberSessionCookie()` (or equivalent same-origin authenticated probe) before considering login complete — even when staying on the register page — so the cookie is committed and apex COOK-03 can share with marketing SSR.
 
+**Bounded probe (anti-hang):** `waitForMemberSessionCookie` must not wait forever on a hung `/api/me/profile` BFF (first compile / overloaded Next). Each attempt uses a short `AbortSignal` timeout; after a finite attempt budget the probe returns `false` and the OTP step surfaces a localized network error instead of leaving the UI stuck on «در حال تأیید…». Navigation (`location.assign(portalReturn)`) only runs after a successful probe.
+
 ## 3. Host matrix
 
 | Host page | How modal opens | After OTP success |
@@ -60,6 +62,8 @@ PCMS-001 already requires marketing **read-only** detection of `atour_mb_session
 | `/catalog/{id}/register` | **Auto for guests** (PCMS-UX-MODAL-04); `?auth=login` compatible; reopen via Sign-in control | Close modal · **stay** · resume/hydrate **intake-only** (PCMS-REG-01) |
 | `/login` (thin public host) | Auto-open on load | `waitForMemberSessionCookie` then `location.assign(portalReturn)` |
 | Protected `/me/*` | **Cannot** host modal for guests | Middleware → `/login?portalReturn=<path>` (unchanged) |
+
+**Closed-modal a11y (2026-08-07):** `PortalLoginModalProvider` must not leave a visible/AT-exposed «ورود» / Sign-in `h2` on authenticated pages. When `open=false`, dialog content is unmounted and the `<dialog>` is `inert` so screen readers and a11y snapshots do not see a ghost login heading under `/me/*`.
 
 ```mermaid
 flowchart TD

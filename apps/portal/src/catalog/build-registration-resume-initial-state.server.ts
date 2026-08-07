@@ -71,7 +71,7 @@ export async function buildRegistrationResumeInitialState(
     initialState: Object.freeze({
       currentStep: "intake",
       data: Object.freeze({
-      phone: initialPublicRegistrationPhone(),
+      phone: memberMobile ?? initialPublicRegistrationPhone(),
       otp: initialPublicRegistrationOtp(),
       challengeId: "",
       onboardingToken: "",

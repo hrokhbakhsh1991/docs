@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-08-05-v7"
+version: "2026-08-05-v8"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -125,6 +125,19 @@ Hook: `[data-registration-stepper-mode="intake-only"]`. Wired in `public-catalog
 | `POST /api/catalog/registrations` | `POST /denali/registrations` or `/urban/registrations` |
 
 Intake dispatch: `apps/portal/app/api/catalog/registrations/route.ts` calls SDK `buildCatalogRegistrationUpstreamRequest(bootstrap.pluginId, payload)` — **no inline `pluginId ===` branches**.
+
+#### Catalog registration auth + idempotency (2026-08-07 v8)
+
+| Layer | Contract |
+| ----- | -------- |
+| Portal BFF → API | Uses `buildMemberApiHeaders(host)` (same as member BFF): `x-tenant-id` + session `x-user-id` / role / workspace **and** `Authorization: Bearer` when the member session cookie is present |
+| Denali intake feature | `features.idempotencyKey: true` (aligned with Urban) |
+| Client `POST /api/catalog/registrations` | Must send `Idempotency-Key` (UUID per submit). BFF forwards into SDK `options.idempotencyKey` → Denali upstream `extraHeaders` |
+| Server fallback | If the client omits the key, Denali `buildUpstreamRequest` mints `portal-denali-reg-{tourId}-{uuid}` so upstream always has a key |
+
+**Phone hydration:** after OTP/session, intake state `phone` is set from profile `mobile` / resume `memberMobile` (not left at `initialPublicRegistrationPhone()` empty). Submit includes `phone` when known so guest contact matches the signed-in member.
+
+**Ops note:** cold `next dev` compile of `/api/catalog/registrations` can take ~20s; clients with short timeouts may abort while the server still finishes — prefer Idempotency-Key + retry, not a second bare submit.
 
 ### Intake field rules (2026-06-30)
 

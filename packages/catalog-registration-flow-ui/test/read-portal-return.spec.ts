@@ -57,5 +57,6 @@ describe("read-portal-return — PCMS login egress", () => {
     assert.match(egressSource, /waitForMemberSessionCookie/);
     assert.match(egressSource, /completeMemberLoginEgressAfterSession/);
     assert.match(waitSource, /credentials: "include"/);
+    assert.match(waitSource, /AbortSignal\.timeout/);
   });
 });

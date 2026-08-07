@@ -55,6 +55,9 @@ function noopBookingPort(): DenaliPublicBookingPort {
     async createPendingBooking() {
       return { id: "booking-1", status: "pending" };
     },
+    async autoApprovePublicBooking() {
+      return { id: "booking-1", status: "approved" };
+    },
     async sumApprovedPartySizeByTourIds() {
       return {};
     },

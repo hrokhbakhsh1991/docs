@@ -75,12 +75,26 @@ describe("portal-member-registrations", () => {
     assert.match(page, /resolveMemberPortalTripsListPath/);
     assert.match(page, /fetchMemberReceiptStatus/);
     assert.match(page, /resolveMarketingTourDetailUrl/);
+    assert.match(page, /data-portal-member-back/);
+    assert.match(page, /\{t\("backToList"\)\}/);
+    assert.doesNotMatch(page, /← \{t\("backToList"\)\}/);
     assert.match(form, /data-portal-member-receipt-upload/);
     assert.match(form, /data-portal-member-receipt-submit/);
+    assert.match(form, /data-portal-member-receipt-awaiting-approval/);
+    assert.match(form, /data-portal-member-receipt-closed/);
     assert.match(form, /data-portal-member-receipt-waiting/);
     assert.match(form, /data-portal-member-receipt-paid/);
     assert.match(form, /data-portal-member-receipt-view-tour/);
     assert.match(form, /data-portal-member-receipt-back-trips/);
+    assert.match(form, /registrationStatus/);
+    const lifecycle = readFileSync(
+      join(repoRoot, "apps/portal/src/me/registration-lifecycle-status.ts"),
+      "utf8"
+    );
+    assert.match(lifecycle, /parseRegistrationLifecycleStatus/);
+    assert.doesNotMatch(lifecycle, /\|\s*string/);
+    assert.match(page, /parseRegistrationLifecycleStatus/);
+    assert.doesNotMatch(form, /parseRegistrationLifecycleStatus/);
     assert.match(form, /disabled=\{uploadPhase === "uploading"\}/);
   });
 
@@ -97,6 +111,8 @@ describe("portal-member-registrations", () => {
     assert.match(skin, /main\[data-portal-member-module-stub\]/);
     assert.match(skin, /main\[data-portal-member-registration-detail\]/);
     assert.match(skin, /\[data-portal-member-receipt-upload\]/);
+    assert.match(skin, /\[data-portal-member-receipt-awaiting-approval\]/);
+    assert.match(skin, /\[data-portal-member-receipt-closed\]/);
     assert.match(skin, /\[data-portal-member-receipt-waiting\]/);
     assert.match(skin, /\[data-portal-member-receipt-paid\]/);
     assert.match(skin, /\[data-public-auth-logout\]/);

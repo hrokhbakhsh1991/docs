@@ -69,7 +69,9 @@ API upstream (frozen — reuse Phase 9.5 member filter + PS-5 entitlements):
 | --------- | ------------ | ----- |
 | `GET /api/me/registrations` | `GET /bookings?view=mine` | session user + tenant RLS · includes `tourId` |
 | `GET /api/me/registrations/[id]/receipt` | `GET /bookings/{registrationId}/receipts` | member-only · `{ status: none\|pending\|rejected\|paid }` |
-| `POST /api/me/registrations/[id]/receipt` | `POST /bookings/{registrationId}/receipts` | member-only; ensures pending manual payment then receipt |
+| `POST /api/me/registrations/[id]/receipt` | `POST /bookings/{registrationId}/receipts` | member-only; **requires booking.status=`approved`** (else `FINANCE_RECEIPT_REQUIRES_APPROVED_BOOKING`); then ensures pending manual payment + receipt |
+
+**Approve-then-pay (2026-08-06):** Offline receipt upload is gated on booking lifecycle. Portal detail stages UI from `booking.status` (from `GET /bookings?view=mine`) before showing the upload form. Authority: [registration-payment-orchestration.mdoc](../workspaces/denali/registration-payment-orchestration.mdoc). Per-tour `pricing.registrationApproval: auto` may land the member already `approved` (phase 3). Per-tour `pricing.paymentCollection: free` marks `paymentStatus=paid` after approve without a receipt (phase 4).
 | `GET /api/me/entitlements` | `GET /identity/me/entitlements` | Registry effective modules for tenant workspace (bootstrap grant-all) |
 | `GET /api/me/home` | Portal-composed | Registry + entitlements aggregate (bootstrap) |
 
@@ -92,9 +94,11 @@ API upstream (frozen — reuse Phase 9.5 member filter + PS-5 entitlements):
 | ----- | ------ | -------- |
 | `POST /api/public-auth/logout` | **Landed** (2026-07-02) | Clears `atour_mb_session` via `clearSessionCookieOnResponse` · returns `{ ok: true }` · **no** API revoke (parity with operator `POST /api/auth/logout`) |
 
-**Client (member nav):** `MemberLogoutButton` in `/me` layout — `POST /api/public-auth/logout` then `router.push("/")` + `router.refresh()`. Hooks: `data-public-auth-logout` · `data-public-auth-logout-ready="true"` after hydration.
+**Client (member nav):** `MemberLogoutButton` in `/me` layout — `POST /api/public-auth/logout` then hard navigate to **`/login`** on the portal host (member auth surface). Hooks: `data-public-auth-logout` · `data-public-auth-logout-ready="true"` after hydration · `data-public-auth-logout-target="login"`.
 
-**E2E:** **SMK-PTL-06** — register → `/me/registrations` → `data-public-auth-logout` (hydration-ready) → `POST /api/public-auth/logout` 200 → cookie cleared → middleware `307` on `GET /me/registrations` (no member shell) → `401` on `GET /api/me/registrations`. Smoke servers set `MARKETING_PUBLIC_BASE_URL` to portal `/health` so post-logout `/` redirect does not require marketing `:3002`.
+**Why `/login` (not `/`):** Portal `/` without a session is **guest egress** to marketing (`resolvePortalGuestEgressUrl`). Explicit logout must not depend on marketing `:3002` being up — landing on portal `/login` keeps PCMS authority on the portal host and matches “sign out → sign in again.”
+
+**E2E:** **SMK-PTL-06** — register → `/me/registrations` → `data-public-auth-logout` (hydration-ready) → `POST /api/public-auth/logout` 200 → cookie cleared → path leaves `/me/*` (typically `/login`) → middleware `307`/`401` on member routes. Anonymous portal `/` may still egress to marketing; smoke may pin `MARKETING_PUBLIC_BASE_URL` to portal `/health` when exercising that path.
 
 **Middleware:** `/api/public-auth/logout` is **not** behind `/api/me/*` guard — callable without valid session (idempotent clear).
 
@@ -135,6 +139,7 @@ Specs: `apps/portal/test/portal-member-*.spec.ts` · `apps/api/test/portal-membe
 
 - [platform-portal-member-profile.mdoc](./platform-portal-member-profile.mdoc) — profile freeze · BFF · SDK capabilities
 - [platform-portal-otp-flow.mdoc](platform-portal-otp-flow.mdoc) — registration session creation
+- [registration-payment-orchestration.mdoc](../workspaces/denali/registration-payment-orchestration.mdoc) — approve-then-offline-pay gate
 - [p6-3-member-portal.md](p6/p6-3-member-portal.md)
 - [public-catalog.md](../workspaces/denali/public-catalog.md) § Registration
 - [portal-member-profile.md](../workspaces/denali/portal-member-profile.md) — Denali profile deltas

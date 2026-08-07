@@ -44,7 +44,7 @@ const DENALI_CATALOG_INTAKE_SCHEMA: IntakeSchema = Object.freeze({
     registrantTargetTabs: true,
     transportIntake: true,
     notesAtIntake: false,
-    idempotencyKey: false,
+    idempotencyKey: true,
   }),
 });
 
@@ -129,7 +129,8 @@ function resolveDenaliSubmitValues(input: {
 }
 
 function buildDenaliContactV1(
-  payload: CatalogRegistrationPortalPayload
+  payload: CatalogRegistrationPortalPayload,
+  idempotencyKey: string
 ): CatalogRegistrationUpstreamRequest {
   const {
     tourId,
@@ -160,6 +161,7 @@ function buildDenaliContactV1(
       partySize,
       ...(transport !== undefined && transport !== null ? { transport } : {}),
     },
+    extraHeaders: Object.freeze({ "Idempotency-Key": idempotencyKey }),
   };
 }
 
@@ -169,5 +171,10 @@ export const denaliCatalogIntakeSurface: WorkspaceCatalogIntakeSurface = Object.
   resolveEffectiveSchema: resolveDenaliEffectiveSchema,
   resolveSubmitValues: resolveDenaliSubmitValues,
   transport: denaliCatalogTransportIntakeSurface,
-  buildUpstreamRequest: (payload) => buildDenaliContactV1(payload),
+  buildUpstreamRequest: (payload, options) => {
+    const key =
+      options?.idempotencyKey?.trim() ||
+      `portal-denali-reg-${payload.tourId.trim()}-${globalThis.crypto.randomUUID()}`;
+    return buildDenaliContactV1(payload, key);
+  },
 });

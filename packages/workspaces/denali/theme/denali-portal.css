@@ -642,6 +642,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-receipt-upload],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-awaiting-approval],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-closed],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-receipt-waiting],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-receipt-paid] {
@@ -655,6 +659,12 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-awaiting-approval]
+  p,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-closed]
+  p,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-receipt-waiting]
   p,
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -665,6 +675,12 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   color: var(--muted-foreground);
 }
 
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-awaiting-approval]
+  p[role="status"],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-closed]
+  p[role="status"],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-receipt-waiting]
   p[role="status"],

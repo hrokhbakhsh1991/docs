@@ -47,7 +47,7 @@ test("SMK-PTL-05 portal home redirects authenticated member to /me/registrations
 const RECEIPT_EMAIL = `smk-ptl-04-${Date.now()}@denali-smoke.local`;
 const RECEIPT_PHONE = `+1555${String(Date.now()).slice(-7)}`;
 
-test("SMK-PTL-04 member uploads offline receipt on registration detail (VS-05)", async ({
+test("SMK-PTL-04 member detail awaits club approval before receipt upload (approve-then-pay)", async ({
   page,
 }) => {
   await completePortalCatalogRegistration(page, {
@@ -58,36 +58,12 @@ test("SMK-PTL-04 member uploads offline receipt on registration detail (VS-05)",
 
   await page.locator('[data-public-registration-success] a[href*="/me"]').first().click();
   await page.getByRole("link", { name: OPERATOR_PUBLISHED_TOUR_TITLE }).first().click();
-  await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible({
+  await expect(page.locator("[data-portal-member-receipt-awaiting-approval]")).toBeVisible({
     timeout: 60_000,
   });
-  await expect(page.locator("[data-portal-member-receipt-submit]")).toBeVisible();
-  await page.waitForLoadState("networkidle");
-
-  const [uploadRes] = await Promise.all([
-    page.waitForResponse(
-      (res) =>
-        res.url().includes("/api/me/registrations/") &&
-        res.url().includes("/receipt") &&
-        res.request().method() === "POST"
-    ),
-    (async () => {
-      await page.locator("#receipt-file").setInputFiles({
-        name: "proof.jpg",
-        mimeType: "image/jpeg",
-        buffer: Buffer.from("smoke-receipt-jpeg"),
-      });
-      await page.locator("[data-portal-member-receipt-submit]").first().click();
-    })(),
-  ]);
-  const uploadBody = await uploadRes.text();
-  expect(uploadRes.ok(), `receipt upload ${uploadRes.status()} ${uploadBody.slice(0, 300)}`).toBe(true);
-  await expect(page.locator("[data-portal-member-receipt-waiting]")).toBeVisible({
-    timeout: 60_000,
-  });
+  await expect(page.locator("[data-portal-member-receipt-upload]")).toHaveCount(0);
   await expect(page.locator("[data-portal-member-receipt-submit]")).toHaveCount(0);
   await expect(page.locator("[data-portal-member-receipt-back-trips]")).toBeVisible();
-  await expect(page.locator("[data-portal-member-receipt-view-tour]")).toBeVisible();
 });
 
 test("SMK-PTL-06 member logout clears session and blocks /me area", async ({ page }) => {

@@ -8,7 +8,7 @@ import {
   IntakePluginNotRegisteredError,
 } from "@app-tour/workspace-sdk";
 
-import { buildCatalogRegistrationHeaders } from "@/catalog/build-catalog-registration-headers.server";
+import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
 import { resolveTourOpsApiBaseUrl } from "@/env";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
@@ -95,7 +95,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const apiBase = resolveTourOpsApiBaseUrl();
   const headers = {
-    ...(await buildCatalogRegistrationHeaders(bootstrap.tenantId)),
+    ...(await buildMemberApiHeaders(host)),
     "content-type": "application/json",
     ...(upstream.extraHeaders ?? {}),
   };

@@ -105,6 +105,8 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
     assert.match(modal, /data-portal-login-modal-presentation/);
     assert.match(modal, /data-portal-login-modal-host/);
     assert.match(modal, /memberLoginStayOnPage/);
+    assert.match(modal, /inert=\{!open\}/);
+    assert.match(modal, /\{open \? \(/);
     assert.match(providers, /PortalLoginModalProvider/);
   });
 });

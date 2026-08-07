@@ -4,6 +4,9 @@ import { LogOut } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState, type JSX } from "react";
 
+/** Post-logout landing — portal-owned auth surface (not marketing egress via `/`). */
+export const MEMBER_LOGOUT_LANDING_PATH = "/login" as const;
+
 export function MemberLogoutButton(): JSX.Element {
   const t = useTranslations("portalMember.nav");
   const [loading, setLoading] = useState(false);
@@ -20,7 +23,7 @@ export function MemberLogoutButton(): JSX.Element {
     setLoading(true);
     try {
       await fetch("/api/public-auth/logout", { method: "POST" });
-      window.location.assign("/");
+      window.location.assign(MEMBER_LOGOUT_LANDING_PATH);
     } catch {
       setLoading(false);
     }
@@ -31,6 +34,7 @@ export function MemberLogoutButton(): JSX.Element {
       type="button"
       data-public-auth-logout
       data-public-auth-logout-ready={ready ? "true" : undefined}
+      data-public-auth-logout-target="login"
       disabled={loading || !ready}
       onClick={() => void handleLogout()}
     >

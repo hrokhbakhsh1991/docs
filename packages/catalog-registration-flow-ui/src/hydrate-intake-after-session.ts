@@ -21,6 +21,7 @@ export async function hydrateCatalogRegistrationIntakeAfterSession(
   let sessionNationalIdValue: string | null = null;
   let sessionFatherNameValue: string | null = null;
   let sessionBirthDateValue: string | null = null;
+  let sessionMobileValue: string | null = null;
   try {
     const res = await fetch("/api/me/profile", {
       credentials: "include",
@@ -39,6 +40,10 @@ export async function hydrateCatalogRegistrationIntakeAfterSession(
       sessionNationalIdValue = typeof fields.nationalId === "string" ? fields.nationalId : null;
       sessionFatherNameValue = typeof fields.fatherName === "string" ? fields.fatherName : null;
       sessionBirthDateValue = typeof fields.birthDate === "string" ? fields.birthDate : null;
+      sessionMobileValue =
+        typeof fields.mobile === "string" && fields.mobile.trim().length > 0
+          ? fields.mobile.trim()
+          : null;
     }
   } catch {
     // profile optional
@@ -55,7 +60,12 @@ export async function hydrateCatalogRegistrationIntakeAfterSession(
     profileEmailValue.trim().length > 0
       ? profileEmailValue.trim()
       : (sessionEmailValue?.trim() ?? "");
+  const resolvedPhone =
+    sessionMobileValue !== null && sessionMobileValue.length > 0
+      ? sessionMobileValue
+      : state.data.phone;
   mergeFlowState(state, dispatch, {
+    phone: resolvedPhone,
     sessionEmail: resolvedEmail,
     sessionNationalId: defaults.nationalId,
     sessionFatherName: defaults.fatherName,

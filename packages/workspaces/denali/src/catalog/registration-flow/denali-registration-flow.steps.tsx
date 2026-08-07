@@ -149,10 +149,17 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
     setError(null);
     try {
       const email = (merged.email ?? data.sessionEmail).trim();
+      const idempotencyKey =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `portal-denali-reg-${context.tourId}-${Date.now()}`;
       const res = await fetch("/api/catalog/registrations", {
         method: "POST",
         credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
         body: JSON.stringify({
           tourId: context.tourId,
           fullName: merged.fullName,

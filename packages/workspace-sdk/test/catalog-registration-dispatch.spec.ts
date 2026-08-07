@@ -49,14 +49,28 @@ describe("catalog-registration-dispatch (registry)", () => {
   it("SDK-REG-01 denali upstream path and body", () => {
     const schema = resolveIntakeSchema("denali");
     assert.equal(schema.features.transportIntake, true);
+    assert.equal(schema.features.idempotencyKey, true);
     assert.equal(resolveCatalogRegistrationApiPath("denali"), "/denali/registrations");
 
+    const built = buildCatalogRegistrationUpstreamRequest(
+      "denali",
+      {
+        ...basePayload,
+        registrantTarget: "self",
+      },
+      { idempotencyKey: "test-denali-idem-1" }
+    );
+    assert.equal(built.path, "/denali/registrations");
+    assert.match(JSON.stringify(built.body), /"nationalId":"1234567890"/);
+    assert.equal(built.extraHeaders?.["Idempotency-Key"], "test-denali-idem-1");
+  });
+
+  it("SDK-REG-01b denali mints Idempotency-Key when client omits it", () => {
     const built = buildCatalogRegistrationUpstreamRequest("denali", {
       ...basePayload,
       registrantTarget: "self",
     });
-    assert.equal(built.path, "/denali/registrations");
-    assert.match(JSON.stringify(built.body), /"nationalId":"1234567890"/);
+    assert.match(built.extraHeaders?.["Idempotency-Key"] ?? "", /^portal-denali-reg-/);
   });
 
   it("SDK-REG-02 urban upstream requires email", () => {

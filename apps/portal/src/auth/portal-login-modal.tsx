@@ -142,48 +142,51 @@ export function PortalLoginModalProvider({ children }: ProviderProps) {
         data-portal-login-modal-presentation={presentation}
         data-portal-login-modal-host={host}
         {...(portalReturn !== undefined ? { "data-portal-return": portalReturn } : {})}
-        aria-labelledby={titleId}
+        aria-labelledby={open ? titleId : undefined}
+        inert={!open}
         onCancel={(event) => {
           event.preventDefault();
           closeLoginModal();
         }}
         onClose={closeLoginModal}
       >
-        <div data-portal-login-modal-panel>
-          <header data-portal-login-modal-header>
-            <h2 id={titleId}>{t("loginPageTitle")}</h2>
-            <button
-              type="button"
-              data-portal-login-modal-close
-              aria-label={t("loginModalClose")}
-              onClick={closeLoginModal}
-            >
-              ×
-            </button>
-          </header>
-          {flow !== null && open ? (
-            <div data-portal-login-modal-body data-member-login-egress="">
-              <PublicCatalogRegistrationFlow
-                workspace={flow.workspace}
-                tenantId={flow.tenantId}
-                tourId={flow.tourId}
-                tourTitle={flow.tourTitle}
-                tourPoliciesText={null}
-                tourPriceAmount={null}
-                tourNationalIdRequired={false}
-                tourFatherNameRequired={false}
-                tourBirthDateRequired={false}
-                backHref={flow.backHref}
-                memberModuleHref={flow.memberModuleHref}
-                memberLoginEgress
-                memberLoginStayOnPage={host === "register"}
-                onMemberLoginSessionReady={
-                  host === "register" ? onRegisterSessionReady : undefined
-                }
-              />
-            </div>
-          ) : null}
-        </div>
+        {open ? (
+          <div data-portal-login-modal-panel>
+            <header data-portal-login-modal-header>
+              <h2 id={titleId}>{t("loginPageTitle")}</h2>
+              <button
+                type="button"
+                data-portal-login-modal-close
+                aria-label={t("loginModalClose")}
+                onClick={closeLoginModal}
+              >
+                ×
+              </button>
+            </header>
+            {flow !== null ? (
+              <div data-portal-login-modal-body data-member-login-egress="">
+                <PublicCatalogRegistrationFlow
+                  workspace={flow.workspace}
+                  tenantId={flow.tenantId}
+                  tourId={flow.tourId}
+                  tourTitle={flow.tourTitle}
+                  tourPoliciesText={null}
+                  tourPriceAmount={null}
+                  tourNationalIdRequired={false}
+                  tourFatherNameRequired={false}
+                  tourBirthDateRequired={false}
+                  backHref={flow.backHref}
+                  memberModuleHref={flow.memberModuleHref}
+                  memberLoginEgress
+                  memberLoginStayOnPage={host === "register"}
+                  onMemberLoginSessionReady={
+                    host === "register" ? onRegisterSessionReady : undefined
+                  }
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </dialog>
     </PortalLoginModalContext.Provider>
   );

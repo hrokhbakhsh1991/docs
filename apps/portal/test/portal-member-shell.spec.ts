@@ -92,6 +92,10 @@ describe("portal-member-shell.spec.ts — PS-1", () => {
     const logout = readPortal("src/me/member-logout-button.tsx");
     assert.match(logout, /data-public-auth-logout/);
     assert.match(logout, /data-public-auth-logout-ready/);
+    assert.match(logout, /data-public-auth-logout-target="login"/);
+    assert.match(logout, /MEMBER_LOGOUT_LANDING_PATH/);
+    assert.match(logout, /\/login/);
+    assert.doesNotMatch(logout, /location\.assign\("\/"\)/);
   });
 });
 

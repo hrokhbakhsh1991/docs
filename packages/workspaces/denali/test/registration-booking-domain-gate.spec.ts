@@ -58,6 +58,9 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
         createCalls += 1;
         return { id: "should-not-create", status: "pending" };
       },
+      async autoApprovePublicBooking() {
+        throw new Error("autoApprove should not run");
+      },
       async sumApprovedPartySizeByTourIds() {
         return {};
       },
@@ -84,6 +87,7 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
 
   it("DN-B1-R02 valid partySize still creates pending via host port", async () => {
     let createCalls = 0;
+    let autoCalls = 0;
     const bookingPort: BookingPublicPort = {
       async findDuplicateByTourGuest() {
         return null;
@@ -101,6 +105,10 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
         createCalls += 1;
         assert.equal(input.partySize, 2);
         return { id: "booking-ok", status: "pending" };
+      },
+      async autoApprovePublicBooking() {
+        autoCalls += 1;
+        return { id: "booking-ok", status: "approved" };
       },
       async sumApprovedPartySizeByTourIds() {
         return {};
@@ -120,6 +128,7 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
       bookingPort,
     });
     assert.equal(createCalls, 1);
+    assert.equal(autoCalls, 0, "default registrationApproval is manual");
     assert.equal(created.id, "booking-ok");
     assert.equal(created.status, "pending");
   });
@@ -142,6 +151,9 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
       async createPendingBooking() {
         createCalls += 1;
         return { id: "should-not-create", status: "pending" };
+      },
+      async autoApprovePublicBooking() {
+        throw new Error("autoApprove should not run");
       },
       async sumApprovedPartySizeByTourIds() {
         return {};
