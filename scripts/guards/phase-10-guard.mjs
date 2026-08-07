@@ -158,6 +158,7 @@ const WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
   "recon",
   "registration-booking-wallet-credit.spec.ts",
   "registration-booking-wallet-credit.ts",
+  "apply-free-collection-after-booking-approve.ts",
   "resolve-finance-workspace-type-for-tenant.ts",
   "tour-created-paid-ledger-exclusive.ts",
   "workspace-finance-bindings.generated.ts",

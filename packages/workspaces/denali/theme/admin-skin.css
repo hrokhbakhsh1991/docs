@@ -557,6 +557,19 @@ body[data-workspace-plugin="denali"] [data-operator-booking-list] [data-booking-
   background: color-mix(in srgb, var(--color-bg-muted) 40%, transparent);
 }
 
+body[data-workspace-plugin="denali"] [data-operator-booking-timeline-wrap] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+body[data-workspace-plugin="denali"] [data-booking-timeline-snapshot-note] {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  color: var(--color-text-muted);
+}
+
 body[data-workspace-plugin="denali"] [data-operator-booking-timeline] {
   margin: 0;
   padding: 0;

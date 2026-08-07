@@ -59,8 +59,8 @@ export function BookingActivityTimeline({ booking }: BookingActivityTimelineProp
   ] as const;
 
   return (
-    <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">{t("snapshotNote")}</p>
+    <div data-operator-booking-timeline-wrap>
+      <p data-booking-timeline-snapshot-note>{t("snapshotNote")}</p>
       <ol data-operator-booking-timeline>
         {events.map((event, index) => (
           <li key={event.id} data-booking-timeline-item>
