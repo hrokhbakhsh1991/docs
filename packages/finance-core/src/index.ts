@@ -28,10 +28,14 @@ export type {
 /* ─── Domain (pure) ────────────────────────────────────────────────────── */
 export {
   attachFinanceRegistrationContext,
+  buildObligationOverrideIntakeValue,
   buildPaymentScheduleItems,
   compileRegistrationInvoice,
   filterRowsByRegistrationId,
   filterRowsByTourId,
+  isZeroObligationMinor,
+  OBLIGATION_OVERRIDE_INTAKE_KEY,
+  readObligationOverrideFromIntake,
   reschedulePaymentScheduleItem,
   waivePaymentScheduleItem,
 } from "./domain/index";
@@ -40,6 +44,7 @@ export type {
   FinanceRegistrationContext,
   GenerateScheduleTemplate,
   InstallmentItemStatus,
+  ObligationOverrideIntake,
   PaymentScheduleItem,
   PrepaymentRecord,
   RegistrationInvoiceReadModel,
@@ -49,6 +54,8 @@ export type {
 export type {
   ApproveManualReceiptAtomicInput,
   ApproveManualReceiptAtomicResult,
+  BookingPaymentLifecycleStatus,
+  BookingPaymentLifecycleStatusInput,
   BookingPaymentMemberOwnershipInput,
   BookingPaymentRaisePaidInTxInput,
   BookingPaymentSyncStatus,

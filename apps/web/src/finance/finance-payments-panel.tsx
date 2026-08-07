@@ -35,10 +35,11 @@ import { FinanceInvoiceBalanceCard } from "@/finance/finance-invoice-balance-car
 import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
 import { FinanceRegistrationPicker } from "@/finance/finance-registration-picker";
 import { withFinanceListScopeQuery } from "@/finance/finance-registration-context";
+import { fetchFinanceListWithRetry } from "@/finance/fetch-finance-list-with-retry";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import { formatFinanceTimestamp } from "@/finance/finance-reports-logic";
 import type { AppLocale } from "@/i18n/routing";
-import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
+import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
 import { useSearchParams } from "next/navigation";
 
 type FinancePaymentsPanelProps = {
@@ -142,14 +143,14 @@ export function FinancePaymentsPanel({
       skipInitialFetchRef.current = false;
       return;
     }
-    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
     const path = withFinanceListScopeQuery("/api/finance/payments?limit=50", {
       registrationId: registrationFilter,
       tourId: tourFilter,
     });
-    void fetch(path, { cache: "no-store" })
+    void fetchFinanceListWithRetry(path, controller.signal)
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(`PAYMENTS_LIST_HTTP_${response.status}`);
@@ -157,22 +158,27 @@ export function FinancePaymentsPanel({
         return parseFinancePaymentsListResponse(await response.json());
       })
       .then((payload) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setItems(payload.items);
+          setError(null);
         }
       })
       .catch((fetchError: unknown) => {
-        if (!cancelled) {
-          setError(fetchError instanceof Error ? fetchError.message : "PAYMENTS_FETCH_FAILED");
+        if (controller.signal.aborted) {
+          return;
         }
+        if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
+          return;
+        }
+        setError(toFinanceClientErrorCode(fetchError, "PAYMENTS_FETCH_FAILED"));
       })
       .finally(() => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [fetchNonce, registrationFilter, tourFilter]);
 
@@ -249,9 +255,7 @@ export function FinancePaymentsPanel({
       setForm(EMPTY_FORM);
       refresh();
     } catch (submitError: unknown) {
-      setFormError(
-        submitError instanceof Error ? submitError.message : "MANUAL_PAYMENT_FAILED"
-      );
+      setFormError(toFinanceClientErrorCode(submitError, "MANUAL_PAYMENT_FAILED"));
     } finally {
       setSaving(false);
     }
@@ -283,14 +287,12 @@ export function FinancePaymentsPanel({
         body: JSON.stringify(buildSubmitReceiptRequestBody(validated.value)),
       });
       if (!response.ok) {
-        throw new Error(`RECEIPT_SUBMIT_HTTP_${response.status}`);
+        throw new Error(`SUBMIT_RECEIPT_HTTP_${response.status}`);
       }
       setReceiptForm(EMPTY_RECEIPT_FORM);
       refresh();
     } catch (submitError: unknown) {
-      setReceiptFormError(
-        submitError instanceof Error ? submitError.message : "RECEIPT_SUBMIT_FAILED"
-      );
+      setReceiptFormError(toFinanceClientErrorCode(submitError, "SUBMIT_RECEIPT_FAILED"));
     } finally {
       setReceiptSaving(false);
     }

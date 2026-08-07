@@ -2,6 +2,7 @@ import type { FinanceObligationPort } from "@app-tour/finance-http-contracts";
 
 import { getBookingsRepository } from "../bookings/create-bookings-repository";
 import { createTourStorageRepository } from "../storage/create-tour-storage";
+import { resolveFinanceReceiptDefaults } from "./finance-dependency-registry";
 import { RegistrationFinanceObligationAdapter } from "./infrastructure/registration-finance-obligation.adapter";
 import {
   isFinanceObligationBindingRegistered,
@@ -12,6 +13,12 @@ import {
 const nullFinanceObligationPort: FinanceObligationPort = {
   async resolveRegistrationObligation() {
     return null;
+  },
+  async resolveRegistrationPaymentCollection() {
+    return "offline";
+  },
+  async setRegistrationObligationOverride() {
+    return false;
   },
 };
 
@@ -32,9 +39,23 @@ export async function createFinanceObligationPort(
       normalized as keyof typeof WORKSPACE_FINANCE_OBLIGATION_BINDINGS
     ];
   const resolve = await binding.loadResolve();
+
+  // Phase 4 — Denali also exports paymentCollection resolver from the same host/finance barrel.
+  let resolvePaymentCollection: (tourCanonical: unknown) => "offline" | "free" = () =>
+    "offline";
+  if (normalized === "denali") {
+    const mod = await import("@app-tour/workspace-denali/host/finance");
+    resolvePaymentCollection = mod.resolveDenaliPaymentCollectionMode;
+  }
+
+  const receiptDefaults = await resolveFinanceReceiptDefaults(normalized);
+  const resolveDefaultCurrency = () => receiptDefaults.offlineReceiptPaymentDefaults().currency;
+
   return new RegistrationFinanceObligationAdapter(
     getBookingsRepository(),
     createTourStorageRepository(),
-    resolve
+    resolve,
+    resolveDefaultCurrency,
+    resolvePaymentCollection
   );
 }

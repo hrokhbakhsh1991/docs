@@ -113,6 +113,10 @@ export function createExternalBookingPort(): IBookingPaymentPort {
     async getPaymentStatus() {
       return "unpaid";
     },
+    async getRegistrationLifecycleStatus() {
+      return "approved";
+    },
+
   };
 }
 

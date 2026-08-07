@@ -9,6 +9,7 @@ import {
 import {
   assertDenaliCreateValid,
   buildDenaliBookingCreatePolicyContext,
+  resolveDenaliRegistrationApprovalMode,
 } from "../booking";
 import { DENALI_WORKSPACE_TYPE } from "../denali-identity";
 
@@ -202,7 +203,7 @@ export async function createDenaliRegistration(params: {
     }
   }
 
-  return params.bookingPort.createPendingBooking({
+  const created = await params.bookingPort.createPendingBooking({
     tenantId: params.tenantId,
     guestUserId: params.guestUserId,
     tourId: params.body.tourId,
@@ -219,5 +220,17 @@ export async function createDenaliRegistration(params: {
       // Booking-owned capacity: Denali supplies tour max when known; Booking fails closed if missing.
       ...(capacity !== null ? { tourCapacityMax: capacity } : {}),
     },
+  });
+
+  // Phase 3 — tour canonical `pricing.registrationApproval` (default manual).
+  // Never trust client intake; mode comes only from loaded tour SoT.
+  if (resolveDenaliRegistrationApprovalMode(tour.canonical) !== "auto") {
+    return created;
+  }
+
+  return params.bookingPort.autoApprovePublicBooking({
+    tenantId: params.tenantId,
+    bookingId: created.id,
+    actorUserId: params.guestUserId,
   });
 }

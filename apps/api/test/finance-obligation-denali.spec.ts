@@ -42,5 +42,7 @@ describe("finance-obligation-denali.spec.ts — FC-2", () => {
     assert.match(src, /finance\.obligation\.manual_amount_override/);
     assert.match(src, /FINANCE_OBLIGATION_OVERPAY/);
     assert.match(src, /obligation\.resolveRegistrationObligation/);
+    assert.match(src, /obligation\.setRegistrationObligationOverride/);
+    assert.doesNotMatch(src, /bookingPayments\.setObligationOverride/);
   });
 });

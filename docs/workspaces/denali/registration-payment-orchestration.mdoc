@@ -1,0 +1,287 @@
+---
+title: Denali registration ↔ payment orchestration
+doc_id: DENALI-REG-PAY-ORCH
+version: "2026-08-07-v8"
+workspace: denali
+status: ACTIVE
+phase: P6-3 follow-on
+authority: BOOKING_LIFECYCLE_OWNERSHIP · PAYMENT-LEDGER-BOUNDARY · platform-portal-member.mdoc
+---
+
+# Denali registration ↔ payment orchestration
+
+## Problem
+
+Denali uses two independent axes by design:
+
+| Axis | Owner | Values |
+| ---- | ----- | ------ |
+| Booking lifecycle | Bookings | `pending` · `waitlisted` · `approved` · `rejected` · `cancelled` |
+| Payment | Finance | `unpaid` · `partial` · `paid` (+ offline receipt Pending/Approved/Rejected) |
+
+Without a bridge, members can upload offline receipts while the club has not yet approved the registration. That breaks the product path for screened mountain tours.
+
+## Locked product policy (phase 1)
+
+**Default Denali policy:** `approve_then_offline_pay`
+
+```text
+create → booking.status=pending, paymentStatus=unpaid
+  → operator approve (Bookings)
+  → member may upload offline receipt (Finance)
+  → operator reviewReceipt (Finance)
+  → paymentStatus=paid
+```
+
+| `booking.status` | Member receipt upload | Finance pending-receipt queue |
+| ---------------- | --------------------- | ----------------------------- |
+| `pending` | **Forbidden** | — |
+| `waitlisted` | **Forbidden** | — |
+| `approved` + unpaid/partial | **Allowed** | After successful upload |
+| `approved` + paid | Form hidden (paid panel) | — |
+| `rejected` | **Forbidden** | — |
+| `cancelled` | **Forbidden** | — |
+
+### Server error
+
+`POST …/receipts` (member) when booking is not `approved`:
+
+| Code | Meaning |
+| ---- | ------- |
+| `FINANCE_RECEIPT_REQUIRES_APPROVED_BOOKING` | Ownership OK but lifecycle gate failed |
+
+UI must not rely on this alone — portal stages the panel from `booking.status` (list/detail already carry status).
+
+### Domain separation (unchanged)
+
+- Bookings **does not** approve receipts or post ledger.
+- Finance **does not** transition booking lifecycle (`pending` → `approved`).
+- Finance **may** read booking status via `IBookingPaymentPort` to enforce eligibility.
+- Finance **owns** commercial obligation resolve/write via `FinanceObligationPort` (override may persist in booking intake as a host bag — Bookings does not interpret it).
+- Operator surfaces stay split: `/bookings` (lifecycle) · `/finance?tab=receipts` (proof review).
+
+### Pre-existing receipts on non-approved bookings
+
+Phase 1 **does not** purge or auto-reject historical receipts uploaded before the gate. New submits are blocked. Operator review of an already-Pending receipt is unchanged.
+
+## Portal UX stages (member)
+
+Detail `/me/registrations/{id}` resolves panel from **both** axes:
+
+| Condition | Panel |
+| --------- | ----- |
+| `status` ∈ pending \| waitlisted | Awaiting club approval — **no** file input |
+| `status` ∈ rejected \| cancelled | Registration closed — **no** upload |
+| `status=approved` ∧ receipt `none`\|`rejected` | Upload form |
+| `status=approved` ∧ receipt `pending` | Waiting for finance review |
+| receipt `paid` | Paid confirmed |
+
+Hooks (additive):
+
+| Hook | When |
+| ---- | ---- |
+| `data-portal-member-receipt-awaiting-approval` | Club approval pending / waitlisted |
+| `data-portal-member-receipt-closed` | rejected / cancelled |
+
+Existing hooks (`data-portal-member-receipt-upload` · `-waiting` · `-paid`) unchanged.
+
+## Operator hint (phase 1C)
+
+After approve on `/bookings`, when `paymentStatus` is unpaid/partial, inspection panel may hint that the next step is Finance receipt review (`/finance?tab=receipts`). **No** receipt approve button inside Bookings.
+
+### Operator receipt-review client errors (2026-08-07)
+
+Finance panels must never surface raw browser/network strings (e.g. `Failed to fetch` under `finance.validation.*`).
+
+| Client signal | Stable i18n key (`finance.errors`) |
+| ------------- | ---------------------------------- |
+| `TypeError` / `Failed to fetch` / `Load failed` / `NetworkError` | `NETWORK_ERROR` |
+| `RECEIPT_REVIEW_HTTP_<status>` | `REVIEW_RECEIPT_FAILED` |
+| `*_LIST_HTTP_<502\|503>` (after one client retry) | `*_FETCH_FAILED` |
+| Mutation `*_HTTP_<status>` (`MANUAL_PAYMENT_`, `SUBMIT_RECEIPT_`, `RECORD_PREPAYMENT_`, `GENERATE_SCHEDULE_`) | matching `*_FAILED` key |
+
+Throw sites must use the **same prefix family** as the i18n key (no dual aliases). Finance UI catch paths store stable codes via `toFinanceClientErrorCode` before `localizeFinanceMessage`. List GETs use one client retry on 502/503 and drain the failed response body before backoff.
+
+Receipt approve still requires `Idempotency-Key` on PATCH; BFF proxies to `PATCH /finance/receipts/:id/review`. Dual-axis reminder: Finance `Payment.status=Pending` (awaiting receipt review) is **not** the same as Bookings `paymentStatus` — booking stays `unpaid` until receipt **Approved**.
+
+### Operator receipt-review HTTP contract (2026-08-07 v8)
+
+| Client | Method | Path | Required headers |
+| ------ | ------ | ---- | ---------------- |
+| Admin UI / BFF | **PATCH** | `/finance/receipts/:receiptId/review` | `Idempotency-Key` when `decision=approve` |
+| Wrong method (e.g. POST) | — | same path | — |
+
+**RCA (false “intermittent 404”):** workspace finance registers review as **PATCH only**. A `POST` to the same path previously fell through the workspace dispatcher and returned generic `404` `NOT_FOUND` (same shape as an unknown route). Listing pending receipts did not “warm” the route — retries that switched to PATCH succeeded. Product UI already uses PATCH; raw scripts / CDP probes must not POST.
+
+**Standard response (v8):** when the pathname matches a registered workspace product/finance route but the HTTP method does not, the API returns **`405`** `method_not_allowed` / `METHOD_NOT_ALLOWED` with an `Allow` header listing the registered methods. Unknown paths remain `404` `NOT_FOUND`.
+
+Dev OTP operator paths (not `/auth/otp/*`): `POST /auth/request-otp` → `POST /auth/verify-otp` (Host + tenant context headers).
+
+### Path verification closure (2026-08-07)
+
+| Item | Result |
+| ---- | ------ |
+| Fresh create from catalog | OK — `POST /api/catalog/registrations` → booking `pending`/`unpaid` (tour `capacityMax` must leave approved-party headroom) |
+| Admin Approve on `/bookings` | OK — UI `تأیید` → `approved`/`unpaid` |
+| Member receipt upload | OK — portal BFF `POST …/receipt` → Finance receipt `Pending` |
+| Finance receipt approve | OK — `PATCH …/review` + `Idempotency-Key` → `bookingPaymentStatus=paid` (portal paid panel) |
+| E rejected receipt re-upload | OK — upload form + prior-reject status copy |
+| G rejected / H cancelled | OK — closed panel, no upload |
+| Logout | OK — lands on `/login` (may include `portalReturn`) |
+| P2 false 404 | Fixed — wrong method → **405** `METHOD_NOT_ALLOWED` + `Allow` |
+| Catalog submit Idempotency + Bearer | Fixed — Denali intake sends/forwards `Idempotency-Key`; BFF uses `buildMemberApiHeaders` |
+| P3 admin Next hang | **Ops** — intermittent `next dev` stall; restart process; no product-code defect found |
+
+## Phase 2 — Offline receipt amount from tour obligation (2026-08-06)
+
+When a member uploads a receipt and no pending manual payment exists yet, Finance creates one:
+
+| Source | When |
+| ------ | ---- |
+| `FinanceObligationPort.resolveRegistrationObligation` | Preferred — Denali: `basePricePerPerson × partySize` (FC-2) |
+| `FinanceReceiptDefaultsPort.offlineReceiptPaymentDefaults` | Fallback only when obligation resolves `null` (no pricing bind / missing tour price) |
+
+Member offline receipt auto-create uses the same obligation resolver as operator overpay checks.
+
+Operator `createManualPayment` already accepted an explicit amount and logged over-obligation; member auto-create now aligns with the same obligation resolver. Per-registration override landed in phase 5.
+
+## Phase 3 — Per-tour registration approval mode (2026-08-06)
+
+Canonical path (Denali tour document):
+
+| Path | Values | Default |
+| ---- | ------ | ------- |
+| `pricing.registrationApproval` | `manual` \| `auto` | `manual` (missing / unknown → manual) |
+
+```text
+manual (default): create → pending → operator approve → receipt
+auto:             create → pending → host autoApprove (capacity OK) → approved → receipt
+```
+
+Rules:
+
+- Only Denali public registration orchestration reads the field and may call `BookingPublicPort.autoApprovePublicBooking`.
+- Host auto-approve: **no** ops CASL; requires booking `pending`, actor = submitter, capacity re-check in TX (same as ops approve).
+- If capacity blocks auto-approve → booking stays `pending` (fail closed to manual queue).
+- Operator manual create (`POST /bookings`) does **not** auto-approve.
+- Wizard UI for the field is **out of scope** for phase 3 — set via canonical / fixtures; UI can land later.
+
+Portal: no special branch — when status is already `approved`, receipt upload panel opens (phase 1 gate).
+
+## Phase 4 — Free collection / auto-paid (2026-08-06)
+
+Canonical path (Denali tour document):
+
+| Path | Values | Default |
+| ---- | ------ | ------- |
+| `pricing.paymentCollection` | `offline` \| `free` | `offline` (missing / unknown → offline) |
+
+```text
+offline (default): approved → member receipt → finance approve → paid
+free:              approved → host marks booking.paymentStatus=paid (no receipt, no ledger capture)
+```
+
+Rules:
+
+- Pure Denali resolver reads `pricing.paymentCollection` (also accepts `pricingPayment.paymentCollection`).
+- When `free`, commercial obligation resolves to `obligationMinor: "0"` (no offline default amount).
+- After booking becomes `approved` (ops approve, bulk approve, or public auto-approve), host composition calls Finance `applyFreeCollectionPayment` — **no-op** when collection is offline or lifecycle is not approved.
+- Free paid is a **booking payment projection only** (`IBookingPaymentPort.syncStatus` → `paid`). No `PaymentIntent`, no receipt, no double-entry journal (zero money).
+- Member receipt submit: blocked when already `paid` or collection is `free` (`FINANCE_RECEIPT_NOT_REQUIRED`).
+- Member receipt status GET: if booking `paymentStatus=paid` → `{ status: "paid" }` even without a receipt row (portal paid panel).
+- Wizard UI for the field is **out of scope** — set via canonical / fixtures.
+- PC-07 unchanged for paid Denali tours: ingress remains `offline_receipt`.
+
+Portal: list/detail already show `paymentStatus`; receipt panel uses paid status from BFF (booking paid or receipt approved).
+
+## Phase 5 — Personal obligation override / discount (2026-08-06)
+
+Commercial amount for a **single registration** may be lowered (or set explicitly) without changing tour list price.
+
+### Ownership (hexagonal — locked v6)
+
+Commercial obligation is **Finance-owned**, same as tour pricing resolution (FC-2):
+
+| Concern | Owner | Artifact |
+| ------- | ----- | -------- |
+| Resolve amount owed | Finance | `FinanceObligationPort.resolveRegistrationObligation` |
+| Write personal override | Finance | `FinanceObligationPort.setRegistrationObligationOverride` |
+| Payment status projection | Finance → Booking | `IBookingPaymentPort.syncStatus` / `raisePaidInTx` / lifecycle **reads** |
+| Persist override bytes | Host infra bag | Booking row `registrationIntake.obligationOverride` via `BookingRepositoryPort.mergeRegistrationIntake` **inside** the obligation adapter only |
+
+`IBookingPaymentPort` must **not** carry commercial write APIs. Booking intake is a host persistence bag (no new Prisma column), not Bookings commercial SoT — Bookings does not interpret `obligationOverride`.
+
+```mermaid
+flowchart LR
+  http[PUT obligation-override] --> svc[FinanceService]
+  svc --> oblPort[FinanceObligationPort]
+  oblPort --> oblAdapter[RegistrationFinanceObligationAdapter]
+  oblAdapter --> bookingsRepo["BookingsRepository.mergeRegistrationIntake"]
+  svc -->|"zero waive → paid"| payPort[IBookingPaymentPort.syncStatus]
+```
+
+### Storage shape
+
+Persisted under `registrationIntake.obligationOverride` (JSON on booking row):
+
+| Field | Required | Meaning |
+| ----- | -------- | ------- |
+| `obligationMinor` | yes | Final amount owed (digits / minor units string, ≥ 0) |
+| `reason` | no | Ops audit note (e.g. loyalty discount) |
+| `setAt` | yes | ISO timestamp when override was set |
+| `setByUserId` | yes | Ops actor |
+
+Currency for an override resolution comes from the tour obligation resolver (or receipt-defaults currency when tour pricing cannot resolve). Do not hardcode workspace currency inside the host adapter.
+
+### Resolution order (`FinanceObligationPort.resolveRegistrationObligation`)
+
+```text
+1) registrationIntake.obligationOverride.obligationMinor  → source=operator_override
+2) tour canonical pricing (Denali basePricePerPerson × partySize / free→0)
+3) null → member receipt falls back to offline receipt defaults (phase 2)
+```
+
+Member offline receipt auto-create and `reviewReceipt` overpay checks both use this resolved obligation.
+
+### Ops write path
+
+`PUT /finance/registrations/:registrationId/obligation-override`
+
+Body: `{ obligationMinor: string, reason?: string }`
+
+- Requires finance ops access.
+- Writes via `FinanceObligationPort.setRegistrationObligationOverride` (adapter merges intake).
+- Returns false / miss when booking missing or tenant mismatch → `FINANCE_BOOKING_PAYMENT_SYNC_MISS`.
+- If booking is already `approved` and resolved obligation is **zero**, host also runs `applyFreeCollectionPayment` (waive → paid, same as phase 4 free).
+
+### Zero obligation ≡ skip receipt
+
+After approve (or when override lands on an approved booking):
+
+| Condition | Effect |
+| --------- | ------ |
+| `paymentCollection=free` **or** resolved `obligationMinor` is zero | `paymentStatus=paid`; member receipt blocked (`FINANCE_RECEIPT_NOT_REQUIRED`) |
+
+### Out of scope (later)
+
+- Coupon / promo codes, percentage UI, member self-service discounts
+- Wizard fields for tour-level discounts
+- Changing tour `basePricePerPerson` (that remains tour SoT; override is per-registration only)
+- Dedicated finance table for overrides (intake bag remains until schema migration justified)
+
+## Roadmap (later)
+
+| Phase | Content |
+| ----- | ------- |
+| 3.1 | Wizard / settings control for `pricing.registrationApproval` |
+| 4.1 | Wizard / settings control for `pricing.paymentCollection` |
+| 5.1 | Ops UI panel for obligation override on `/finance` or `/bookings` |
+
+PC-07 remains: Denali paid ingress is `offline_receipt` only.
+
+## References
+
+- [portal-member-registrations.md](./portal-member-registrations.md)
+- [platform-portal-member.mdoc](../../phase-19/platform-portal-member.mdoc)
+- [BOOKING_LIFECYCLE_OWNERSHIP.md](../../phase-20/p7/appendices/BOOKING_LIFECYCLE_OWNERSHIP.md)
+- [PAYMENT-LEDGER-BOUNDARY.md](../../phase-20/p7/appendices/PAYMENT-LEDGER-BOUNDARY.md)

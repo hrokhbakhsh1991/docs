@@ -196,6 +196,9 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
       async getPaymentStatus() {
         return null;
       },
+      async getRegistrationLifecycleStatus() {
+        return "approved";
+      },
     };
     const { finance, financeRepo, receiptId, paymentId } = await seedPendingReceipt({
       registrationId,
@@ -226,14 +229,16 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
       async raisePaidInTx(tx, input) {
         return new BookingPaymentAdapter(getBookingsRepository()).raisePaidInTx(tx, input);
       },
-      async raisePaidInTx(tx, input) {
-        return new BookingPaymentAdapter().raisePaidInTx(tx, input);
-      },
       async memberOwnsRegistration(input) {
         return new BookingPaymentAdapter(getBookingsRepository()).memberOwnsRegistration(input);
       },
       async getPaymentStatus(input) {
         return new BookingPaymentAdapter(getBookingsRepository()).getPaymentStatus(input);
+      },
+      async getRegistrationLifecycleStatus(input) {
+        return new BookingPaymentAdapter(getBookingsRepository()).getRegistrationLifecycleStatus(
+          input
+        );
       },
     };
 

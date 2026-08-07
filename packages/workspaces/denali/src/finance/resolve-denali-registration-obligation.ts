@@ -3,6 +3,8 @@
  * Host loads booking + tour canonical; this module stays free of apps/api imports.
  */
 
+import { resolveDenaliPaymentCollectionMode } from "./resolve-denali-payment-collection-mode";
+
 export type DenaliRegistrationObligation = {
   readonly currency: string;
   readonly obligationMinor: string;
@@ -47,6 +49,17 @@ export function resolveDenaliRegistrationObligationMinor(input: {
     return null;
   }
 
+  const currency = (input.currency ?? "IRR").toUpperCase();
+
+  // Phase 4 — free collection: zero obligation (never fall back to offline receipt defaults).
+  if (resolveDenaliPaymentCollectionMode(input.tourCanonical) === "free") {
+    return {
+      currency,
+      obligationMinor: "0",
+      source: "tour_canonical",
+    };
+  }
+
   const paymentMode = String(
     readCanonicalPath(data, "pricing.paymentMode") ??
       readCanonicalPath(data, "pricingPayment.paymentMode") ??
@@ -63,7 +76,7 @@ export function resolveDenaliRegistrationObligationMinor(input: {
 
   const totalMinor = BigInt(basePerPerson) * BigInt(input.partySize);
   return {
-    currency: (input.currency ?? "IRR").toUpperCase(),
+    currency,
     obligationMinor: totalMinor.toString(),
     source: "tour_canonical",
   };

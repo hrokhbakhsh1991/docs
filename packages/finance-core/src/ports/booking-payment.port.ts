@@ -30,6 +30,19 @@ export type BookingPaymentRaisePaidInTxInput = {
   readonly registrationId: string;
 };
 
+/** Booking lifecycle status — Finance reads for receipt eligibility (approve-then-pay). */
+export type BookingPaymentLifecycleStatus =
+  | "pending"
+  | "approved"
+  | "waitlisted"
+  | "rejected"
+  | "cancelled";
+
+export type BookingPaymentLifecycleStatusInput = {
+  readonly tenantId: string;
+  readonly registrationId: string;
+};
+
 export interface IBookingPaymentPort {
   syncStatus(input: BookingPaymentSyncStatusInput): Promise<BookingPaymentSyncStatus | null>;
 
@@ -44,4 +57,12 @@ export interface IBookingPaymentPort {
     readonly tenantId: string;
     readonly registrationId: string;
   }): Promise<BookingPaymentSyncStatus | null>;
+
+  /**
+   * Lifecycle status for offline receipt eligibility.
+   * `null` when booking missing / tenant mismatch.
+   */
+  getRegistrationLifecycleStatus(
+    input: BookingPaymentLifecycleStatusInput
+  ): Promise<BookingPaymentLifecycleStatus | null>;
 }

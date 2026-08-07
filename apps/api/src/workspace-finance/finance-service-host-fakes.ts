@@ -102,6 +102,12 @@ export const fakeNullObligation: FinanceObligationPort = {
   async resolveRegistrationObligation() {
     return null;
   },
+  async resolveRegistrationPaymentCollection() {
+    return "offline";
+  },
+  async setRegistrationObligationOverride() {
+    return false;
+  },
 };
 
 /** Host-port bundle for memory-backed FinanceService unit tests. */

@@ -11,6 +11,7 @@ import type {
 } from "@app-tour/finance-http-contracts";
 
 import { compileRegistrationInvoice } from "../domain/compile-invoice-balances";
+import { isZeroObligationMinor } from "../domain/obligation-override";
 import { buildPaymentScheduleItems, reschedulePaymentScheduleItem, waivePaymentScheduleItem, type PaymentScheduleItem } from "../domain/schedule";
 import {
   attachFinanceRegistrationContext,
@@ -564,6 +565,40 @@ export class FinanceService {
       throw new Error("BOOKINGS_FORBIDDEN");
     }
 
+    const lifecycle = await this.bookingPayments.getRegistrationLifecycleStatus({
+      tenantId: auth.tenantId,
+      registrationId: input.registrationId,
+    });
+    if (lifecycle !== "approved") {
+      throw new Error("FINANCE_RECEIPT_REQUIRES_APPROVED_BOOKING");
+    }
+
+    const paymentStatus = await this.bookingPayments.getPaymentStatus({
+      tenantId: auth.tenantId,
+      registrationId: input.registrationId,
+    });
+    if (paymentStatus === "paid") {
+      throw new Error("FINANCE_RECEIPT_NOT_REQUIRED");
+    }
+
+    const collection = await this.obligation.resolveRegistrationPaymentCollection({
+      tenantId: auth.tenantId,
+      registrationId: input.registrationId,
+    });
+    if (collection === "free") {
+      throw new Error("FINANCE_RECEIPT_NOT_REQUIRED");
+    }
+    const obligationForGate = await this.obligation.resolveRegistrationObligation({
+      tenantId: auth.tenantId,
+      registrationId: input.registrationId,
+    });
+    if (
+      obligationForGate !== null &&
+      isZeroObligationMinor(obligationForGate.obligationMinor)
+    ) {
+      throw new Error("FINANCE_RECEIPT_NOT_REQUIRED");
+    }
+
     let payment = await this.repository.findFirstPendingManualPayment(
       auth.tenantId,
       input.registrationId
@@ -574,12 +609,20 @@ export class FinanceService {
         input.registrationId
       );
       assertManualPaymentDebtAllowed(statuses);
+      const obligation = await this.obligation.resolveRegistrationObligation({
+        tenantId: auth.tenantId,
+        registrationId: input.registrationId,
+      });
       const offlineDefaults = this.receiptDefaults.offlineReceiptPaymentDefaults();
+      const amount =
+        obligation !== null ? obligation.obligationMinor : offlineDefaults.amountMinor;
+      const currency =
+        obligation !== null ? obligation.currency : offlineDefaults.currency;
       payment = await this.repository.createManualPayment({
         tenantId: auth.tenantId,
         registrationId: input.registrationId,
-        amount: offlineDefaults.amountMinor,
-        currency: offlineDefaults.currency,
+        amount,
+        currency,
         method: "Manual",
         provider: "manual",
         status: "Pending",
@@ -591,6 +634,106 @@ export class FinanceService {
       fileKey: input.fileKey,
       ...(input.note !== undefined ? { note: input.note } : {}),
     });
+  }
+
+  /**
+   * Phase 4/5 — after booking approve (or zero override), mark paymentStatus=paid when
+   * collection is `free` or resolved obligation is zero. No-op otherwise. No ledger.
+   */
+  async applyFreeCollectionPayment(input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+  }): Promise<{ readonly applied: boolean; readonly paymentStatus: "unpaid" | "partial" | "paid" | null }> {
+    const lifecycle = await this.bookingPayments.getRegistrationLifecycleStatus({
+      tenantId: input.tenantId,
+      registrationId: input.registrationId,
+    });
+    if (lifecycle !== "approved") {
+      const current = await this.bookingPayments.getPaymentStatus({
+        tenantId: input.tenantId,
+        registrationId: input.registrationId,
+      });
+      return { applied: false, paymentStatus: current };
+    }
+
+    const collection = await this.obligation.resolveRegistrationPaymentCollection({
+      tenantId: input.tenantId,
+      registrationId: input.registrationId,
+    });
+    const obligation = await this.obligation.resolveRegistrationObligation({
+      tenantId: input.tenantId,
+      registrationId: input.registrationId,
+    });
+    const zeroObligation =
+      obligation !== null && isZeroObligationMinor(obligation.obligationMinor);
+    if (collection !== "free" && !zeroObligation) {
+      const current = await this.bookingPayments.getPaymentStatus({
+        tenantId: input.tenantId,
+        registrationId: input.registrationId,
+      });
+      return { applied: false, paymentStatus: current };
+    }
+
+    const current = await this.bookingPayments.getPaymentStatus({
+      tenantId: input.tenantId,
+      registrationId: input.registrationId,
+    });
+    if (current === "paid") {
+      return { applied: false, paymentStatus: "paid" };
+    }
+
+    const paymentStatus = await this.raiseBookingPaymentStatus(
+      input.tenantId,
+      input.registrationId,
+      "paid"
+    );
+    return { applied: true, paymentStatus };
+  }
+
+  /**
+   * Phase 5 — ops sets per-registration obligation (discount / waive amount).
+   */
+  async setRegistrationObligationOverride(
+    auth: FinanceActorContext,
+    input: {
+      readonly registrationId: string;
+      readonly obligationMinor: string;
+      readonly reason?: string;
+    }
+  ): Promise<{
+    readonly registrationId: string;
+    readonly obligationMinor: string;
+    readonly source: "operator_override";
+    readonly paymentStatus: "unpaid" | "partial" | "paid" | null;
+    readonly freePaidApplied: boolean;
+  }> {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+
+    const written = await this.obligation.setRegistrationObligationOverride({
+      tenantId: auth.tenantId,
+      registrationId: input.registrationId,
+      obligationMinor: input.obligationMinor,
+      setAt: this.clock.nowIso(),
+      setByUserId: auth.userId,
+      ...(input.reason !== undefined ? { reason: input.reason } : {}),
+    });
+    if (!written) {
+      throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_MISS");
+    }
+
+    const freePaid = await this.applyFreeCollectionPayment({
+      tenantId: auth.tenantId,
+      registrationId: input.registrationId,
+    });
+
+    return {
+      registrationId: input.registrationId,
+      obligationMinor: input.obligationMinor.trim(),
+      source: "operator_override",
+      paymentStatus: freePaid.paymentStatus,
+      freePaidApplied: freePaid.applied,
+    };
   }
 
   async getMemberReceiptStatusForRegistration(
@@ -607,6 +750,14 @@ export class FinanceService {
     });
     if (!owns) {
       throw new Error("BOOKINGS_FORBIDDEN");
+    }
+
+    const bookingPaymentStatus = await this.bookingPayments.getPaymentStatus({
+      tenantId: auth.tenantId,
+      registrationId,
+    });
+    if (bookingPaymentStatus === "paid") {
+      return { status: "paid" };
     }
 
     const paymentStatuses = await this.repository.findPaymentStatusesByRegistration(

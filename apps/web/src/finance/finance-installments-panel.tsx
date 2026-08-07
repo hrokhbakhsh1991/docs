@@ -30,11 +30,12 @@ import {
 import { FinanceInvoiceBalanceCard } from "@/finance/finance-invoice-balance-card";
 import { resolveFinanceOpsCapabilityForHub } from "@/finance/finance-ops-panels";
 import { withFinanceListScopeQuery } from "@/finance/finance-registration-context";
+import { fetchFinanceListWithRetry } from "@/finance/fetch-finance-list-with-retry";
 import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
 import { FinanceRegistrationPicker } from "@/finance/finance-registration-picker";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import type { AppLocale } from "@/i18n/routing";
-import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
+import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
 
 type FinanceInstallmentsPanelProps = {
   readonly session: OperatorSessionContext;
@@ -109,7 +110,7 @@ function ScheduleCard({
       }
       onPatched(patched);
     } catch (err: unknown) {
-      setActionError(err instanceof Error ? err.message : "SCHEDULE_ITEM_PATCH_FAILED");
+      setActionError(toFinanceClientErrorCode(err, "SCHEDULE_ITEM_PATCH_FAILED"));
     } finally {
       setPendingAction(null);
     }
@@ -249,14 +250,14 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
   }, [session.pluginId]);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
     const path = withFinanceListScopeQuery("/api/finance/schedules", {
       registrationId: registrationFilter,
       tourId: tourFilter,
     });
-    void fetch(path, { cache: "no-store" })
+    void fetchFinanceListWithRetry(path, controller.signal)
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(`SCHEDULES_LIST_HTTP_${response.status}`);
@@ -264,22 +265,27 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
         return parseSchedulesListResponse(await response.json());
       })
       .then((payload) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setItems(payload.items);
+          setError(null);
         }
       })
       .catch((fetchError: unknown) => {
-        if (!cancelled) {
-          setError(fetchError instanceof Error ? fetchError.message : "SCHEDULES_FETCH_FAILED");
+        if (controller.signal.aborted) {
+          return;
         }
+        if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
+          return;
+        }
+        setError(toFinanceClientErrorCode(fetchError, "SCHEDULES_FETCH_FAILED"));
       })
       .finally(() => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [fetchNonce, registrationFilter, tourFilter]);
 
@@ -311,14 +317,12 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
         body: JSON.stringify(validated.value),
       });
       if (!response.ok) {
-        throw new Error(`SCHEDULE_GENERATE_HTTP_${response.status}`);
+        throw new Error(`GENERATE_SCHEDULE_HTTP_${response.status}`);
       }
       setForm(EMPTY_GENERATE_FORM);
       refresh();
     } catch (submitError: unknown) {
-      setFormError(
-        submitError instanceof Error ? submitError.message : "SCHEDULE_GENERATE_FAILED"
-      );
+      setFormError(toFinanceClientErrorCode(submitError, "GENERATE_SCHEDULE_FAILED"));
     } finally {
       setSaving(false);
     }

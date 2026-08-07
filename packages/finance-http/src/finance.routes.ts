@@ -17,6 +17,7 @@ import {
   parsePatchScheduleItemBody,
   parseRecordPrepaymentBody,
   parseReviewReceiptBody,
+  parseSetObligationOverrideBody,
   parseSubmitReceiptBody,
 } from "@app-tour/finance-http-contracts";
 
@@ -572,6 +573,36 @@ export async function handleFinanceGetRegistrationInvoice(
         host.sendJson(res, 200, invoice);
       },
       { rateLimit: "read" }
+    );
+  } catch (error) {
+    host.handleHttpError(res, error);
+  }
+}
+
+export async function handleFinanceSetObligationOverride(
+  req: IncomingMessage,
+  res: ServerResponse,
+  deps: FinanceRouteDeps,
+  registrationId: string
+): Promise<void> {
+  const host = getFinanceHttpHost();
+  try {
+    const { parsedBody } = await host.readFinanceRequestBody(req);
+    const body = parseSetObligationOverrideBody(parsedBody);
+    const auth = await host.resolveTenantContextFromRequest(req);
+    const financeService = await host.resolveFinanceService(deps, auth);
+    await host.runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await financeService.setRegistrationObligationOverride(auth, {
+          registrationId,
+          obligationMinor: body.obligationMinor,
+          ...(body.reason !== undefined ? { reason: body.reason } : {}),
+        });
+        host.sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
     );
   } catch (error) {
     host.handleHttpError(res, error);

@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
 import { withFinanceListScopeQuery } from "@/finance/finance-registration-context";
+import { fetchFinanceListWithRetry } from "@/finance/fetch-finance-list-with-retry";
 import {
   FINANCE_LEDGER_TEST_IDS,
   buildFinanceLedgerCsvContent,
@@ -24,7 +25,7 @@ import {
   type FinanceLedgerListResponse,
 } from "@/finance/finance-reports-logic";
 import type { AppLocale } from "@/i18n/routing";
-import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
+import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
 
 type FinanceLedgerPanelProps = {
   readonly session: OperatorSessionContext;
@@ -54,14 +55,14 @@ export function FinanceLedgerPanel({
       skipInitialFetchRef.current = false;
       return;
     }
-    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
     const path = withFinanceListScopeQuery("/api/finance/reports/ledger-events?limit=100", {
       registrationId: registrationFilter,
       tourId: tourFilter,
     });
-    void fetch(path, { cache: "no-store" })
+    void fetchFinanceListWithRetry(path, controller.signal)
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(`LEDGER_HTTP_${response.status}`);
@@ -69,22 +70,27 @@ export function FinanceLedgerPanel({
         return parseFinanceLedgerListResponse(await response.json());
       })
       .then((payload) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setItems(payload.items);
+          setError(null);
         }
       })
       .catch((fetchError: unknown) => {
-        if (!cancelled) {
-          setError(fetchError instanceof Error ? fetchError.message : "LEDGER_FETCH_FAILED");
+        if (controller.signal.aborted) {
+          return;
         }
+        if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
+          return;
+        }
+        setError(toFinanceClientErrorCode(fetchError, "LEDGER_FETCH_FAILED"));
       })
       .finally(() => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [fetchNonce, registrationFilter, tourFilter]);
 

@@ -192,11 +192,17 @@
   "errors": {
     "OVERVIEW_FETCH_FAILED": "بارگذاری خلاصه مالی ناموفق بود.",
     "FINANCE_SUMMARY_FAILED": "بارگذاری شاخص‌های مالی ناموفق بود.",
+    "RECEIPTS_FETCH_FAILED": "بارگذاری صف رسیدها ناموفق بود. دوباره تلاش کنید.",
+    "PAYMENTS_FETCH_FAILED": "بارگذاری فهرست پرداخت‌ها ناموفق بود. دوباره تلاش کنید.",
+    "PREPAYMENTS_FETCH_FAILED": "بارگذاری پیش‌پرداخت‌ها ناموفق بود. دوباره تلاش کنید.",
+    "SCHEDULES_FETCH_FAILED": "بارگذاری برنامه اقساط ناموفق بود. دوباره تلاش کنید.",
     "MANUAL_PAYMENT_FAILED": "ثبت پرداخت دستی ناموفق بود.",
     "SUBMIT_RECEIPT_FAILED": "ارسال رسید ناموفق بود.",
     "RECORD_PREPAYMENT_FAILED": "ثبت پیش‌پرداخت ناموفق بود.",
     "GENERATE_SCHEDULE_FAILED": "تولید برنامه اقساط ناموفق بود.",
+    "SCHEDULE_ITEM_PATCH_FAILED": "به‌روزرسانی قسط ناموفق بود. دوباره تلاش کنید.",
     "REVIEW_RECEIPT_FAILED": "بررسی رسید ناموفق بود.",
+    "NETWORK_ERROR": "خطای شبکه. اتصال را بررسی کنید و دوباره تلاش کنید.",
     "LEDGER_FETCH_FAILED": "بارگذاری دفتر ناموفق بود.",
     "INVOICE_FETCH_FAILED": "بارگذاری مانده فاکتور ناموفق بود.",
     "INVOICE_PARSE_FAILED": "پاسخ فاکتور نامعتبر بود."

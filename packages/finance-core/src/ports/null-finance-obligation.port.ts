@@ -5,4 +5,10 @@ export const nullFinanceObligationPort: FinanceObligationPort = {
   async resolveRegistrationObligation() {
     return null;
   },
+  async resolveRegistrationPaymentCollection() {
+    return "offline";
+  },
+  async setRegistrationObligationOverride() {
+    return false;
+  },
 };

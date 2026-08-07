@@ -34,7 +34,7 @@ import {
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import type { AppLocale } from "@/i18n/routing";
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
-import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
+import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
 import type { FinanceOverviewServerPrefetch } from "./fetch-finance-overview.server";
 
 type FinanceOverviewPanelProps = {
@@ -90,7 +90,7 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
     ])
       .then(async ([summaryRes, ledgerRes, byTourRes, schedulesRes, paymentsRes, receiptsRes]) => {
         if (!summaryRes.ok) {
-          throw new Error(`SUMMARY_HTTP_${summaryRes.status}`);
+          throw new Error(`FINANCE_SUMMARY_HTTP_${summaryRes.status}`);
         }
         if (!ledgerRes.ok) {
           throw new Error(`LEDGER_HTTP_${ledgerRes.status}`);
@@ -130,7 +130,7 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
       })
       .catch((fetchError: unknown) => {
         if (!cancelled) {
-          setError(fetchError instanceof Error ? fetchError.message : "OVERVIEW_FETCH_FAILED");
+          setError(toFinanceClientErrorCode(fetchError, "OVERVIEW_FETCH_FAILED"));
         }
       })
       .finally(() => {

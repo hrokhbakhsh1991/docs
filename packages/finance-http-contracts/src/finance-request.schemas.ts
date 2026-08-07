@@ -199,3 +199,20 @@ export function parsePatchScheduleItemBody(raw: unknown): PatchScheduleItemBody 
   }
   return result.data;
 }
+
+export const setObligationOverrideBodySchema = z
+  .object({
+    obligationMinor: minorAmountSchema,
+    reason: z.string().max(2000).optional(),
+  })
+  .strict();
+
+export type SetObligationOverrideBody = z.infer<typeof setObligationOverrideBodySchema>;
+
+export function parseSetObligationOverrideBody(raw: unknown): SetObligationOverrideBody {
+  const result = setObligationOverrideBodySchema.safeParse(raw);
+  if (!result.success) {
+    throw new Error(`ZOD_VALIDATION_FAILED: ${formatZodError(result.error)}`);
+  }
+  return result.data;
+}

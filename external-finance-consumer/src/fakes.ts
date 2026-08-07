@@ -184,5 +184,9 @@ export function createExternalBookingPort(): IBookingPaymentPort & {
     async getPaymentStatus(input) {
       return paidRegistrations.has(input.registrationId) ? "paid" : "unpaid";
     },
+    async getRegistrationLifecycleStatus() {
+      return "approved";
+    },
+
   };
 }

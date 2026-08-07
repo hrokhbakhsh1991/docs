@@ -77,3 +77,8 @@ export {
 } from "./status";
 
 export { assertDenaliCreateValid } from "./validation";
+
+export {
+  resolveDenaliRegistrationApprovalMode,
+  type DenaliRegistrationApprovalMode,
+} from "./resolve-denali-registration-approval-mode";

@@ -12,10 +12,20 @@ import {
   paymentStatusTone,
   type FinancePaymentRow,
 } from "@/finance/finance-payments-logic";
+import {
+  readFinanceRegistrationCache,
+  writeFinanceRegistrationCache,
+} from "@/finance/finance-registration-fetch-cache";
 import { formatFinanceTimestamp } from "@/finance/finance-reports-logic";
 import { withFinanceRegistrationQuery } from "@/finance/finance-registration-context";
+import { fetchFinanceListWithRetry } from "@/finance/fetch-finance-list-with-retry";
 import type { AppLocale } from "@/i18n/routing";
-import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
+import {
+  localizeFinanceMessage,
+  toFinanceClientErrorCode,
+} from "@/i18n/resolve-finance-error-message";
+
+const PAYMENTS_CACHE_NS = "finance-strip-payments";
 
 type BookingFinancialStripProps = {
   readonly registrationId: string;
@@ -48,12 +58,23 @@ export function BookingFinancialStrip({ registrationId }: BookingFinancialStripP
       setError(null);
       return;
     }
-    let cancelled = false;
+    const cached = readFinanceRegistrationCache<readonly FinancePaymentRow[]>(
+      PAYMENTS_CACHE_NS,
+      id
+    );
+    if (cached !== null) {
+      setItems(cached);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
-    void fetch(withFinanceRegistrationQuery("/api/finance/payments?limit=5", id), {
-      cache: "no-store",
-    })
+    void fetchFinanceListWithRetry(
+      withFinanceRegistrationQuery("/api/finance/payments?limit=5", id),
+      controller.signal
+    )
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(`FINANCE_PAYMENTS_HTTP_${response.status}`);
@@ -61,24 +82,30 @@ export function BookingFinancialStrip({ registrationId }: BookingFinancialStripP
         return parseFinancePaymentsListResponse(await response.json()).items;
       })
       .then((rows) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
+          writeFinanceRegistrationCache(PAYMENTS_CACHE_NS, id, rows);
           setItems(rows);
+          setError(null);
         }
       })
       .catch((fetchError: unknown) => {
-        if (!cancelled) {
-          setItems([]);
-          setError(fetchError instanceof Error ? fetchError.message : "FINANCE_PAYMENTS_FETCH_FAILED");
+        if (controller.signal.aborted) {
+          return;
         }
+        if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
+          return;
+        }
+        setItems([]);
+        setError(toFinanceClientErrorCode(fetchError, "PAYMENTS_FETCH_FAILED"));
       })
       .finally(() => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
       });
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [registrationId]);
 

@@ -21,6 +21,7 @@ export const FINANCE_HTTP_ROUTE_MANIFEST: readonly {
   { method: "GET", path: "/finance/prepayments/booking-sync-degraded" },
   { method: "POST", path: "/finance/prepayments/booking-sync-retry" },
   { method: "GET", path: "/finance/invoices/:registrationId" },
+  { method: "PUT", path: "/finance/registrations/:registrationId/obligation-override" },
   { method: "GET", path: "/finance/schedules" },
   { method: "GET", path: "/finance/schedules/:registrationId" },
   { method: "POST", path: "/finance/schedules/generate" },

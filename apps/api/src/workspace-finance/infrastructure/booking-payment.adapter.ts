@@ -99,4 +99,18 @@ export class BookingPaymentAdapter implements IBookingPaymentPort {
     }
     return booking.paymentStatus;
   }
+
+  async getRegistrationLifecycleStatus(input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+  }) {
+    const booking = await this.bookings.getById(
+      input.registrationId.trim(),
+      input.tenantId.trim()
+    );
+    if (booking === null || booking.tenantId !== input.tenantId.trim()) {
+      return null;
+    }
+    return booking.status;
+  }
 }

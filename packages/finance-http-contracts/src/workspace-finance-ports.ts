@@ -89,11 +89,41 @@ export type FinanceRegistrationObligation = {
   readonly source: "tour_canonical" | "schedule" | "operator_override" | "unknown";
 };
 
+/** How payment is collected after booking approval (Denali phase 4). */
+export type FinancePaymentCollectionMode = "offline" | "free";
+
+/** Ops write — personal registration obligation override (phase 5). */
+export type FinanceRegistrationObligationOverrideInput = {
+  readonly tenantId: string;
+  readonly registrationId: string;
+  readonly obligationMinor: string;
+  readonly setAt: string;
+  readonly setByUserId: string;
+  readonly reason?: string;
+};
+
 export interface FinanceObligationPort {
   resolveRegistrationObligation(input: {
     readonly tenantId: string;
     readonly registrationId: string;
   }): Promise<FinanceRegistrationObligation | null>;
+
+  /**
+   * Payment collection mode for the registration's tour.
+   * Missing binding / unknown tour → `offline` (fail closed to receipt path).
+   */
+  resolveRegistrationPaymentCollection(input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+  }): Promise<FinancePaymentCollectionMode>;
+
+  /**
+   * Persist per-registration commercial override (Finance-owned).
+   * Host may store bytes on booking intake; returns false when registration missing / tenant mismatch.
+   */
+  setRegistrationObligationOverride(
+    input: FinanceRegistrationObligationOverrideInput
+  ): Promise<boolean>;
 }
 
 export type WorkspaceFinanceReactionBatchResult = {

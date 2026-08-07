@@ -70,6 +70,10 @@ function createOwnershipBookingPort(
     async getPaymentStatus() {
       return "unpaid";
     },
+    async getRegistrationLifecycleStatus() {
+      return "approved";
+    },
+
   };
 }
 

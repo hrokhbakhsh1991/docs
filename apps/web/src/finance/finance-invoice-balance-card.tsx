@@ -10,8 +10,18 @@ import {
   type RegistrationInvoice,
 } from "@/finance/finance-invoice-logic";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
+import {
+  readFinanceRegistrationCache,
+  writeFinanceRegistrationCache,
+} from "@/finance/finance-registration-fetch-cache";
 import type { AppLocale } from "@/i18n/routing";
-import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
+import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
+
+const INVOICE_CACHE_NS = "finance-invoice-balance";
+
+type InvoiceCachePayload = {
+  readonly invoice: RegistrationInvoice | null;
+};
 
 type FinanceInvoiceBalanceCardProps = {
   readonly registrationId: string;
@@ -44,6 +54,13 @@ export function FinanceInvoiceBalanceCard({
       setError(null);
       return;
     }
+    const hit = readFinanceRegistrationCache<InvoiceCachePayload>(INVOICE_CACHE_NS, id);
+    if (hit !== null) {
+      setInvoice(hit.invoice);
+      setError(hit.invoice === null ? "INVOICE_PARSE_FAILED" : null);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -56,6 +73,7 @@ export function FinanceInvoiceBalanceCard({
       })
       .then((payload) => {
         if (!cancelled) {
+          writeFinanceRegistrationCache(INVOICE_CACHE_NS, id, { invoice: payload });
           setInvoice(payload);
           if (payload === null) {
             setError("INVOICE_PARSE_FAILED");
@@ -65,7 +83,7 @@ export function FinanceInvoiceBalanceCard({
       .catch((fetchError: unknown) => {
         if (!cancelled) {
           setInvoice(null);
-          setError(fetchError instanceof Error ? fetchError.message : "INVOICE_FETCH_FAILED");
+          setError(toFinanceClientErrorCode(fetchError, "INVOICE_FETCH_FAILED"));
         }
       })
       .finally(() => {

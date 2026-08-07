@@ -19,6 +19,7 @@ import { FinanceRegistrationPicker } from "@/finance/finance-registration-picker
 import {
   withFinanceListScopeQuery,
 } from "@/finance/finance-registration-context";
+import { fetchFinanceListWithRetry } from "@/finance/fetch-finance-list-with-retry";
 import {
   FINANCE_INVOICE_TEST_IDS,
   fetchRegistrationInvoice,
@@ -35,7 +36,7 @@ import {
   type PrepaymentsListResponse,
   type RecordPrepaymentFormState,
 } from "@/finance/finance-prepayments-logic";
-import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
+import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
 import type { AppLocale } from "@/i18n/routing";
 
 type FinancePrepaymentsPanelProps = {
@@ -80,14 +81,14 @@ export function FinancePrepaymentsPanel({
       skipInitialFetchRef.current = false;
       return;
     }
-    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
     const path = withFinanceListScopeQuery("/api/finance/prepayments?limit=50", {
       registrationId: registrationFilter,
       tourId: tourFilter,
     });
-    void fetch(path, { cache: "no-store" })
+    void fetchFinanceListWithRetry(path, controller.signal)
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(`PREPAYMENTS_LIST_HTTP_${response.status}`);
@@ -95,22 +96,27 @@ export function FinancePrepaymentsPanel({
         return parsePrepaymentsListResponse(await response.json());
       })
       .then((payload) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setItems(payload.items);
+          setError(null);
         }
       })
       .catch((fetchError: unknown) => {
-        if (!cancelled) {
-          setError(fetchError instanceof Error ? fetchError.message : "PREPAYMENTS_FETCH_FAILED");
+        if (controller.signal.aborted) {
+          return;
         }
+        if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
+          return;
+        }
+        setError(toFinanceClientErrorCode(fetchError, "PREPAYMENTS_FETCH_FAILED"));
       })
       .finally(() => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [fetchNonce, registrationFilter, tourFilter]);
 
@@ -171,14 +177,12 @@ export function FinancePrepaymentsPanel({
         body: JSON.stringify(buildRecordPrepaymentRequestBody(validated.value)),
       });
       if (!response.ok) {
-        throw new Error(`PREPAYMENT_RECORD_HTTP_${response.status}`);
+        throw new Error(`RECORD_PREPAYMENT_HTTP_${response.status}`);
       }
       setForm(EMPTY_FORM);
       refresh();
     } catch (submitError: unknown) {
-      setFormError(
-        submitError instanceof Error ? submitError.message : "PREPAYMENT_RECORD_FAILED"
-      );
+      setFormError(toFinanceClientErrorCode(submitError, "RECORD_PREPAYMENT_FAILED"));
     } finally {
       setSaving(false);
     }

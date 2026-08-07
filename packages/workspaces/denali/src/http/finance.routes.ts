@@ -19,6 +19,7 @@ export {
   handleFinanceGetSchedule,
   handleFinanceGenerateSchedule,
   handleFinanceGetRegistrationInvoice,
+  handleFinanceSetObligationOverride,
   handleFinancePatchScheduleItem,
   handleFinanceReceiptUpload,
   type FinanceRouteDeps,

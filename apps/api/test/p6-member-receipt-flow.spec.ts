@@ -53,6 +53,13 @@ describe("p6-member-receipt-flow", () => {
     assert.equal(reg.status, 201);
     registrationId = reg.body.data?.id ?? "";
     assert.ok(registrationId.length > 0);
+
+    const approved = await client.requestJson<{ id?: string }>(
+      "POST",
+      `/bookings/${registrationId}/approve`,
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(approved.status, 200);
   });
 
   it("P6-MR-00 GET /bookings/{id}/receipts returns none before upload", async () => {
@@ -91,6 +98,45 @@ describe("p6-member-receipt-flow", () => {
     );
     assert.equal(response.status, 200);
     assert.equal(response.body.status, "pending");
+  });
+
+  it("P6-MR-01c pending booking cannot upload receipt (approve-then-pay)", async () => {
+    const idRepo = getIdentityRepository();
+    const { user, membership } = await idRepo.registerPublicGuest({
+      tenantId: OPERATOR_SMOKE.tenantId,
+      mobile: "+15559001126",
+      displayName: "P6 Receipt Pending Gate",
+      email: "p6-receipt-pending-gate@denali-smoke.local",
+    });
+    const reg = await client.requestJson<{ data?: { id?: string } }>(
+      "POST",
+      "/denali/registrations",
+      {
+        headers: memberHeaders(user.id, membership.workspaceId ?? "ws-public-pending-gate"),
+        body: {
+          tourId: OPERATOR_SMOKE.seedTourId,
+          contact: {
+            email: "p6-receipt-pending-gate@denali-smoke.local",
+            fullName: "P6 Receipt Pending Gate",
+          },
+          partySize: 1,
+        },
+      }
+    );
+    assert.equal(reg.status, 201);
+    const bookingId = reg.body.data?.id ?? "";
+    assert.ok(bookingId.length > 0);
+
+    const response = await client.requestJson<{ code?: string }>(
+      "POST",
+      `/bookings/${bookingId}/receipts`,
+      {
+        headers: memberHeaders(user.id, membership.workspaceId ?? "ws-public-pending-gate"),
+        body: { fileKey: `receipts/${bookingId}/too-early.jpg` },
+      }
+    );
+    assert.equal(response.status, 409);
+    assert.equal(response.body.code, "FINANCE_RECEIPT_REQUIRES_APPROVED_BOOKING");
   });
 
   it("P6-MR-02 foreign member cannot upload receipt for another registration", async () => {
@@ -152,6 +198,13 @@ describe("p6-member-receipt-flow", () => {
     );
     assert.equal(reg.status, 201);
     const bookingId = reg.body.data?.id ?? "";
+
+    const approved = await client.requestJson<{ id?: string }>(
+      "POST",
+      `/bookings/${bookingId}/approve`,
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(approved.status, 200);
 
     const upload = await client.requestJson<{ id?: string }>(
       "POST",

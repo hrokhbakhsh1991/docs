@@ -55,6 +55,7 @@ const fakeBooking: IBookingPaymentPort = {
   raisePaidInTx: async () => "paid",
   memberOwnsRegistration: async () => false,
   getPaymentStatus: async () => null,
+  getRegistrationLifecycleStatus: async () => null,
 };
 
 const fakeDefaults: FinanceReceiptDefaultsPort = {

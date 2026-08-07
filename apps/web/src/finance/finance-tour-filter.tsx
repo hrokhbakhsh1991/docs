@@ -65,6 +65,8 @@ export function FinanceTourFilter({ className }: FinanceTourFilterProps) {
     let cancelled = false;
     setLoading(true);
     void fetch("/api/bookings/summary", { cache: "no-store" })
+    // P4c: default ops-scoped chips (same API predicate as Bookings CC). Escape hatch
+    // lives on Command Center via ?tourChipScope=all — not duplicated here.
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(`BOOKINGS_SUMMARY_HTTP_${response.status}`);

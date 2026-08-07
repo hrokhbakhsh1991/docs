@@ -3,6 +3,8 @@
  */
 export type {
   AmbientTenantTx,
+  BookingPaymentLifecycleStatus,
+  BookingPaymentLifecycleStatusInput,
   BookingPaymentMemberOwnershipInput,
   BookingPaymentRaisePaidInTxInput,
   BookingPaymentSyncStatus,

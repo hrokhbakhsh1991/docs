@@ -18,7 +18,7 @@ import {
   parseDashboardFinanceSummary,
 } from "@/finance/finance-dashboard-widget-logic";
 import type { FinanceSummary } from "@/finance/finance-reports-logic";
-import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
+import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
 import type { AppLocale } from "@/i18n/routing";
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 import { useTenantBrandTitle } from "@/tenant/tenant-branding-context";
@@ -63,7 +63,7 @@ export function FinanceDashboardWidget({
       })
       .catch((fetchError: unknown) => {
         if (!cancelled) {
-          setError(fetchError instanceof Error ? fetchError.message : "FINANCE_SUMMARY_FAILED");
+          setError(toFinanceClientErrorCode(fetchError, "FINANCE_SUMMARY_FAILED"));
         }
       })
       .finally(() => {

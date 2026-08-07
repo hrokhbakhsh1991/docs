@@ -15,6 +15,7 @@ export {
   parseRecordPrepaymentBody,
   parseGenerateScheduleBody,
   parsePatchScheduleItemBody,
+  parseSetObligationOverrideBody,
   parseLedgerEventsLimit,
   parseOpenPaymentsLimit,
   parseOptionalRegistrationId,
@@ -27,6 +28,7 @@ export {
   type RecordPrepaymentBody,
   type GenerateScheduleBody,
   type PatchScheduleItemBody,
+  type SetObligationOverrideBody,
 } from "./finance-request.schemas";
 
 export type {
@@ -39,7 +41,9 @@ export type {
   FinanceLedgerPolicyPort,
   FinanceOfflineReceiptDefaults,
   FinanceObligationPort,
+  FinancePaymentCollectionMode,
   FinanceRegistrationObligation,
+  FinanceRegistrationObligationOverrideInput,
   FinanceReceiptDefaultsPort,
   WorkspaceFinanceReactionBatchResult,
   WorkspaceFinancePublishedOutboxRow,

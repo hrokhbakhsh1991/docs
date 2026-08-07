@@ -105,4 +105,12 @@ export type FinanceServicePort = {
     auth: TenantAuthContext,
     registrationId: string
   ) => Promise<unknown>;
+  readonly setRegistrationObligationOverride: (
+    auth: TenantAuthContext,
+    input: {
+      readonly registrationId: string;
+      readonly obligationMinor: string;
+      readonly reason?: string;
+    }
+  ) => Promise<unknown>;
 };
