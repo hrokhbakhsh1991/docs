@@ -2,6 +2,7 @@ import { ensureWizardHostReady, type WorkspacePlugin } from "@app-tour/workspace
 
 import { loadWorkspacePluginByIdFromRegistry } from "@/bootstrap/workspace-plugin-loaders.generated";
 import { WorkspacePluginClientBundleDisabledError } from "@/bootstrap/workspace-plugin-client-bundle-gate";
+import { writeCachedTourPlugin } from "@/features/tours/tour-route-cache";
 
 export const OPERATOR_WIZARD_HOST_READY_TIMEOUT_MS = 30_000;
 
@@ -81,5 +82,6 @@ export async function warmOperatorWizardShell(
       cause: error,
     });
   }
+  writeCachedTourPlugin(pluginId, plugin);
   return plugin;
 }

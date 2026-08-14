@@ -54,12 +54,14 @@ Portal `/me` is **not** the operator admin panel (`apps/web`). Product rule: ope
 
 | Route | Auth | Purpose |
 | ----- | ---- | ------- |
-| `/me/registrations` | member session | List own tour registrations |
-| `/me/registrations/[id]` | member session | Detail + offline receipt panel (upload / waiting / paid) |
+| `/me/registrations` | member session | List own tour registrations — **self vs other:** URL filter `?target=all\|self\|other` (presentation-only; BFF still returns both) + row badges (`forSelfBadge` / `forOtherBadge` + guest name when other). Workspace delta: [portal-member-registrations.md](../workspaces/denali/portal-member-registrations.md) · uniqueness: [registration-self-other-uniqueness.mdoc](../workspaces/denali/registration-self-other-uniqueness.mdoc) § Member trips |
+| `/me/registrations/[id]` | member session | Detail + offline receipt panel (upload / waiting / paid) + **pending intake amend** (transport) + guest identity when registration is for someone else |
 | `/me/profile` | member session | Edit profile fields (capability-driven · see freeze doc) |
 | `GET /api/me/registrations` | member session | BFF list proxy (forwards `tourId` from bookings) |
+| `GET /api/me/registrations/for-tour?tourId=` | member session | Self-registration gate for catalog register page |
 | `GET /api/me/registrations/[id]/receipt` | member session | Receipt status for detail SSR / refresh |
 | `POST /api/me/registrations/[id]/receipt` | member session | Upload offline receipt proof |
+| `PATCH /api/me/registrations/[id]/intake` | member session | Amend allowlisted `registrationIntake` while pending/waitlisted |
 | `GET/PATCH /api/me/profile` | member session | **Landed M2** — sole profile BFF |
 | `POST /api/public-auth/logout` | none (idempotent) | Clear `atour_mb_session` · **Landed** 2026-07-02 |
 
@@ -68,8 +70,12 @@ API upstream (frozen — reuse Phase 9.5 member filter + PS-5 entitlements):
 | BFF route | Upstream API | Scope |
 | --------- | ------------ | ----- |
 | `GET /api/me/registrations` | `GET /bookings?view=mine` | session user + tenant RLS · includes `tourId` |
+| `GET /api/me/registrations/for-tour?tourId=` | `GET /denali/registrations/for-tour/:tourId` | member; `{ self: { id, status } \| null }` — Denali product semantics |
 | `GET /api/me/registrations/[id]/receipt` | `GET /bookings/{registrationId}/receipts` | member-only · `{ status: none\|pending\|rejected\|paid }` |
 | `POST /api/me/registrations/[id]/receipt` | `POST /bookings/{registrationId}/receipts` | member-only; **requires booking.status=`approved`** (else `FINANCE_RECEIPT_REQUIRES_APPROVED_BOOKING`); then ensures pending manual payment + receipt |
+| `PATCH /api/me/registrations/[id]/intake` | `PATCH /denali/registrations/:id` | member owns row; status pending/waitlisted; transport allowlist only |
+
+**Self / other uniqueness + amend authority:** [registration-self-other-uniqueness.mdoc](../workspaces/denali/registration-self-other-uniqueness.mdoc).
 
 **Approve-then-pay (2026-08-06):** Offline receipt upload is gated on booking lifecycle. Portal detail stages UI from `booking.status` (from `GET /bookings?view=mine`) before showing the upload form. Authority: [registration-payment-orchestration.mdoc](../workspaces/denali/registration-payment-orchestration.mdoc). Per-tour `pricing.registrationApproval: auto` may land the member already `approved` (phase 3). Per-tour `pricing.paymentCollection: free` marks `paymentStatus=paid` after approve without a receipt (phase 4).
 | `GET /api/me/entitlements` | `GET /identity/me/entitlements` | Registry effective modules for tenant workspace (bootstrap grant-all) |

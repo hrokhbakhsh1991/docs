@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { TourInternalLink } from "@/features/tours/tour-internal-link";
 import { useLocale, useTranslations } from "next-intl";
 
 import { Badge } from "@/components/ui/badge";
@@ -118,17 +118,13 @@ export function TourCard({ pluginId, tour, canManage, showExtendedCard = false }
         )}
       </CardContent>
       <CardFooter className="flex flex-wrap gap-2">
-        <Link href={`/tours/${tour.id}/edit`}>
-          <Button type="button" variant="secondary" size="sm">
-            {t("view")}
-          </Button>
-        </Link>
+        <Button asChild variant="secondary" size="sm">
+          <TourInternalLink href={`/tours/${tour.id}/edit`}>{t("view")}</TourInternalLink>
+        </Button>
         {canManage ? (
-          <Link href={`/tours/${tour.id}/workspace`} data-testid={TOURS_LIST_TEST_IDS.workspace}>
-            <Button type="button" variant="outline" size="sm">
-              {t("workspace")}
-            </Button>
-          </Link>
+          <Button asChild variant="outline" size="sm" data-testid={TOURS_LIST_TEST_IDS.workspace}>
+            <TourInternalLink href={`/tours/${tour.id}/workspace`}>{t("workspace")}</TourInternalLink>
+          </Button>
         ) : null}
         {canManage ? <TourDuplicateActions tourId={tour.id} /> : null}
       </CardFooter>

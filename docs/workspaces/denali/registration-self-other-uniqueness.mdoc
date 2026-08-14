@@ -1,0 +1,161 @@
+---
+title: Denali self vs other registration uniqueness + member amend
+doc_id: DENALI-REG-SELF-OTHER-UNIQUENESS
+version: "2026-08-11-v3"
+workspace: denali
+authority: public-catalog.md · BOOKING_GUEST_DUPLICATE_UNIQUENESS.md · platform-portal-member.mdoc
+---
+
+# Denali registration — self / other uniqueness and pending amend
+
+## Product invariants
+
+| Rule | Meaning |
+| ---- | ------- |
+| **Self** | At most one **active** booking (`pending` \| `waitlisted` \| `approved`) with `registrantTarget=self` (missing target treated as self) per `(tenantId, tourId, submittedByUserId)` |
+| **Other** | Same booker may create many active rows; uniqueness is on **guest identity** — intake `nationalId` (when present), `guestPhone` (required for other), and `guestLabel` (case-insensitive) |
+| **Other phone** | Catalog intake shows a required **guest mobile** field when `registrantTarget=other`. Never reuse the member session login phone as `guestPhone` for other |
+| **Session** | Portal `POST /api/catalog/registrations` for Denali **requires** member session (`Authorization` + `x-user-id`). Anonymous catalog guest id is not accepted for Denali intake writes |
+| **Amend** | Member may `PATCH` allowlisted intake keys (e.g. `transport`) only while status ∈ `{pending, waitlisted}` and they own the row |
+| **Self vs own-other identity** | Guest-identity uniques (`nationalId` / `phone` / `label`) are **tour-global** (not scoped by `registrantTarget`). If the member POSTs `registrantTarget=self` and the only collision is an **active `other` row they own** with the same identity, the host **reclassifies** that row to `self` (same booking id) instead of `409` / empty self list. Collision with another submitter’s identity still `409`. |
+
+Active = `status NOT IN ('cancelled', 'rejected')`.
+
+### Why reclassify (bug class)
+
+Symptom: member registered themselves via an **other** guest card (same nationalId/phone/name). Later “register for myself” hits `BOOKING_GUEST_DUPLICATE` while `GET …/for-tour` returns `self: null` and the trips list only shows «برای دیگری». Messaging feels like “you already registered yourself” without a self row.
+
+Fix: on `POST` self, after the self-only user duplicate check passes, resolve identity hits (`nationalId` → `phone` → `label`). If the hit is owned by the same member and `registrantTarget=other`, call `BookingPublicPort.reclassifyOwnedOtherToSelf` (sets intake `registrantTarget=self`, refreshes guest label / intake identity + transport). Response is the **same** registration id — list/for-tour then show self.
+
+Repository implementation: one tenant-scoped TX with JSON-path gate (`registrationIntake.registrantTarget = other`) — avoids a separate full-row `getById` before merge/update.
+
+## Database
+
+Migration `20260810120000_operator_registration_active_self_unique`:
+
+1. `DROP INDEX IF EXISTS uq_operator_reg_active_user` (legacy: one submitter per tour for **all** targets — blocked multi-`other`).
+2. Create partial unique `uq_operator_reg_active_self` on `(tenant_id, tour_id, submitted_by_user_id)` where active **and** `coalesce(registration_intake->>'registrantTarget', 'self') = 'self'`.
+
+**Ops:** until this migration is applied, Prisma `P2002` on the legacy user unique surfaces as `BOOKING_GUEST_DUPLICATE` when registering a second (other) guest under the same member — even when nationalId/phone/label differ.
+
+Unchanged guest-identity actives: email / label / nationalId / phone uniques.
+
+**Member mine list:** `GET /bookings?view=mine` (portal trips) defaults to active statuses only (`pending` \| `waitlisted` \| `approved`) when no `status`/`statuses` query is set — cancelled/rejected history is omitted from `/me/registrations`.
+
+## Application pre-check
+
+`BookingPublicPort.findDuplicateByTourGuest` / repository match `kind: "user"` means **self-only**: same submitter on the tour whose intake is not `registrantTarget=other`.
+
+`other` path uses guest identity match kinds only: `nationalId` → `phone` → `label` (in that order when values are present).
+
+`self` path (registered member):
+
+1. `findDuplicateByTourGuest` → if hit → `DENALI_REGISTRATION_DUPLICATE`.
+2. Else identity probe (`nationalId` → `phone` → `label` when present).
+3. If identity hit **and** `findOwnedBooking` shows same submitter + `registrantTarget=other` → **`reclassifyOwnedOtherToSelf`** → return that id/status (no second INSERT).
+4. If identity hit owned by someone else (or not owned) → proceed to create → host `P2002` → `BOOKING_GUEST_DUPLICATE` (UI: `SELF_IDENTITY_DUPLICATE`, never false self-already when `for-tour.self` is null).
+
+## HTTP (Denali)
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `POST` | `/denali/registrations` | Create (existing) — duplicate rules above; registered member required from portal; `contact.phone` **required** when `registrantTarget=other` |
+| `GET` | `/denali/registrations/for-tour/:tourId` | Member: `{ self: { id, status } \| null }` for register-page gate |
+| `GET` | `/denali/registrations/:registrationId` | Member-owned detail (submitter match). Deep link `/me/registrations/{id}` must use this — not a mine-list scan |
+| `PATCH` | `/denali/registrations/:registrationId` | Member amend pending/waitlisted intake (`transport` allowlist) |
+
+## Portal BFF
+
+| BFF | Upstream |
+| --- | -------- |
+| `POST /api/catalog/registrations` | Fail-closed without member Bearer when intake `features.requiresMemberSession` |
+| `GET /api/me/registrations/for-tour?tourId=` | `GET {registrationApiPath}/for-tour/:tourId` when `features.selfRegistrationGate` |
+| `GET /api/me/registrations/[id]` | `GET {registrationApiPath}/:id` — owned detail for SSR (404 only when missing / not owned) |
+| `PATCH /api/me/registrations/[id]/intake` | `PATCH {registrationApiPath}/:id` when `features.memberPendingIntakeAmend` |
+
+Intake feature flags (Denali): `requiresMemberSession` · `selfRegistrationGate` · `memberPendingIntakeAmend` — portal dispatches via `registrationApiPath` (no `pluginId === "denali"` branches).
+
+Intake schema: field `phone` (`labelKey: intake.phoneLabel`) is collected only when `registrantTarget=other` (flow state key `intakePhone`, distinct from login `phone`).
+
+## Ownership
+
+| Concern | Owner |
+| ------- | ----- |
+| Occupancy / unique indexes / merge storage | Booking (`apps/api` bookings) |
+| Registrant target semantics / transport validate / other phone required | Denali workspace |
+| Portal chrome / no `@app-cloud/workspace-denali` import | `apps/portal` |
+
+Finance `mergeRegistrationIntake` for `obligationOverride` stays finance-only — member amend never accepts that key.
+
+## UX
+
+- Register page: if self active exists for **this tour** (`GET …/for-tour` → `self` non-null):
+  - disable the “register for myself” checkbox (`data-denali-registrant-self-toggle`);
+  - show status banner `data-registration-self-already` with **two** CTAs:
+    1. **Detail** — `/me/registrations/{id}` (`data-registration-self-already-detail`) for amend/await on that row (owned deep-link; do not scan the mine list).
+    2. **My trips** — `context.memberModuleHref` (`data-registration-self-already-trips`) when the host provides it (typically `/me/registrations` list). Omit the trips link when `memberModuleHref` is null.
+  - guest cards remain available so the member can still register others.
+- **Self duplicate on submit (safety net):** if the member still POSTs `registrantTarget=self`:
+  - Success may be a **reclassify** of an owned `other` row (same id) — treat like a normal create success (advance to done / list).
+  - `DENALI_REGISTRATION_DUPLICATE` → treat as self-already **only when** `for-tour.self` is non-null (or refresh returns an id): lock checkbox, show `data-registration-self-already`. Do not lock as self-already when `for-tour.self` is still null.
+  - `BOOKING_GUEST_DUPLICATE` → **first** refresh `for-tour`. Only if `self` is non-null treat as self-already (same banner). If `for-tour.self` is null, this is an **identity collision** with another guest on the tour — show `errors.SELF_IDENTITY_DUPLICATE` on the self card and **do not** claim “you already registered yourself” or lock the self checkbox as self-already. Prefer linking `context.memberModuleHref` so the member can open trips and see the conflicting «برای دیگری» row when it is theirs.
+- Other guest cards: show guest name + required mobile + tour-required identity fields; submit stores `guestPhone` from intake phone.
+- Detail pending: transport edit panel; after `approved` amend is closed.
+- Portal i18n must map both `DENALI_REGISTRATION_DUPLICATE` and `BOOKING_GUEST_DUPLICATE` (host P2002) under `catalogRegistration.errors`.
+
+### Member trips list / detail — self vs other (portal)
+
+**Problem:** `/me/registrations` previously showed only tour title + lifecycle/payment + departure. A member with both a **self** and an **other** row on the same tour could not tell which booking was for whom. Detail hero had the same gap.
+
+**Contract (safe scalars — not full intake):**
+
+| Surface | Fields | Notes |
+| ------- | ------ | ----- |
+| `GET /bookings?view=mine` (`BookingListItem`) | `guestLabel` (already), **`registrantTarget`: `self` \| `other`** | List still **omits** `registrationIntake` (BK-SAFE-01). Target is derived server-side from intake JSON as a scalar only. |
+| `GET /denali/registrations/:id` (owned detail) | `guestLabel`, `registrantTarget` | Same meaning; used by portal detail SSR / BFF. |
+
+**Portal chrome:**
+
+| Element | When `registrantTarget=other` | When `self` (default) |
+| ------- | ----------------------------- | --------------------- |
+| List filter | Included in **همه** / **برای دیگران** tabs (`?target=all\|other`) | Included in **همه** / **برای خودم** (`?target=all\|self`) — see [portal-member-registrations.md](./portal-member-registrations.md) |
+| List row | Badge «برای دیگری» + line with guest display name (`guestLabel`) | Badge «برای خودم» (symmetry when **همه** is selected) |
+| Detail hero | Same badge + “مسافر: {guestLabel}” | Optional quiet “ثبت‌نام برای خودم” — default: omit |
+
+Hooks: `data-portal-member-registrant-target="other"|"self"`, `data-portal-member-registration-guest-label`, `data-portal-member-registrant-other-badge`, `data-portal-member-registrant-self-badge`, `data-portal-member-registrations-filter` (+ `filter-tab` / `filter-count`).
+
+**List filter note:** Tabs on `/me/registrations` are **presentation-only** over the mine BFF payload (do not add `target` to `GET /bookings`). Distinct from intake multi-guest UX below (which forbids intake “self/other tabs” in favor of checkbox + guest cards).
+
+**Why not infer from name alone:** `guestLabel` for self is the member display name and can drift from profile; only `registrantTarget` is authoritative.
+
+### Member registration UX — multi-guest (no tabs)
+
+When the member wants to register for multiple guests (e.g. 4/10 participants), the intake UI should not present “tabs” as if it were a single-person flow.
+
+**Expected UX:**
+- Replace `forSelfTab` / `forOtherTab` tabs with:
+  - a simple checkbox for “register for myself” (disabled when `selfAlreadyRegistered` is locked), and
+  - a repeatable “guest cards” list for “register for guests”.
+- **Self lock ≠ guest lock:** an active `for-tour.self` only disables the self checkbox and blocks another self POST. Guest cards remain writable; submit posts only `registrantTarget=other` rows. Banner copy must say guests are still allowed.
+- Guest `phone` uses digit text input (preserve leading `0`); see [portal-registration-ui.md](./portal-registration-ui.md) § Register-page self gate / Phone intake control.
+- When the member unchecks “register for myself” while the guest list is empty, the UI **auto-seeds one empty guest card** (so the operator does not need a dead-end empty list before the first “Add guest”).
+- Additional guests are added via `data-denali-add-guest` (**hard cap: 10 other-guest cards**); remove is available when more than one guest card exists (`data-denali-remove-guest`).
+- Each guest card collects full intake identity fields for `registrantTarget=other` and its own transport selections (so “some guests bring cars, others don’t” does not force an artificial shared configuration).
+
+### Implementation contract (why cards)
+
+Denali host contract accepts “one participant per submission”, so the UI treats each card as one submission:
+- Submit sends **one `POST /api/catalog/registrations` per card** (self card optional, then one per other guest card).
+- `partySize` is kept fixed to `1` per submission; the “4/10 people” meaning is represented by the number of cards.
+- **All ok** → flow advances to success (`data-public-registration-success`).
+- **Partial / total failure** → stay on intake; render `data-denali-submit-results` with per-card errors (`data-denali-submit-result-error`) and, when at least one card succeeded, a partial-success status plus link via `context.memberModuleHref` (member registrations module, typically `/me/registrations`) so the member can continue without restarting from scratch.
+
+### Probe runner (manual / non-CI)
+
+Denali multi-guest probes are **not** in `playwright.portal.config.ts` smoke `testMatch`. Run:
+
+```bash
+cd apps/portal && pnpm exec playwright test -c playwright.denali-probes.config.ts
+```
+
+Specs: `denali-multi-guest-intake.spec.ts`, `denali-multi-guest-partial-duplicate.spec.ts` (seed tour `…000212`, portal smoke baseURL).

@@ -17,6 +17,8 @@ export type RegistrationObligationResolver = (input: {
   readonly tourCanonical: unknown;
   readonly partySize: number;
   readonly currency?: string;
+  /** Booking intake bag — Denali reads `transport.kind` for dong / organized add-ons. */
+  readonly registrationIntake?: unknown;
 }) => {
   readonly currency: string;
   readonly obligationMinor: string;
@@ -79,6 +81,9 @@ export class RegistrationFinanceObligationAdapter implements FinanceObligationPo
           : this.resolveObligation({
               tourCanonical: tour.canonical,
               partySize: booking.partySize,
+              ...(booking.registrationIntake !== undefined
+                ? { registrationIntake: booking.registrationIntake }
+                : {}),
             });
       return {
         currency: base?.currency ?? this.resolveDefaultCurrency(),
@@ -94,6 +99,9 @@ export class RegistrationFinanceObligationAdapter implements FinanceObligationPo
     const resolved = this.resolveObligation({
       tourCanonical: tour.canonical,
       partySize: booking.partySize,
+      ...(booking.registrationIntake !== undefined
+        ? { registrationIntake: booking.registrationIntake }
+        : {}),
     });
     if (resolved === null) {
       return null;

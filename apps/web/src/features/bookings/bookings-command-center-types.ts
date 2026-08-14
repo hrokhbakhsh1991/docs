@@ -60,6 +60,15 @@ export type BookingListItem = {
   readonly guestLabel: string;
   readonly guestEmail?: string;
   readonly guestPhone?: string;
+  readonly registrantTarget?: "self" | "other";
+  /** H5-T3 list scalar — always present on HTTP list; null when unknown. */
+  readonly transportKind:
+    | "primary"
+    | "personal_car"
+    | "no_car_dong"
+    | "no_car_acquaintance"
+    | null;
+  readonly personalCarOccupants: 1 | 2 | 3 | null;
   readonly partySize: number;
   readonly status: Exclude<BookingStatus, "all" | "actionable">;
   readonly paymentStatus: "unpaid" | "partial" | "paid";
@@ -105,6 +114,10 @@ export const BOOKINGS_COMMAND_CENTER_TEST_IDS = {
   layoutSwitch: "operator-bookings-layout",
   inbox: "operator-bookings-inbox",
   inspection: "operator-bookings-inspection",
+  /** PR21-H1 — booking settlement badge (inbox list row). */
+  paymentBadgeInbox: "operator-bookings-payment-badge-inbox",
+  /** PR21-H1 — booking settlement badge (inspection header). */
+  paymentBadgeInspection: "operator-bookings-payment-badge-inspection",
   approveButton: "operator-bookings-approve",
   inlineApproveButton: "operator-bookings-inline-approve",
   rejectButton: "operator-bookings-reject",
@@ -116,6 +129,10 @@ export const BOOKINGS_COMMAND_CENTER_TEST_IDS = {
   loadMoreButton: "operator-bookings-load-more",
   actionError: "operator-bookings-action-error",
   actionNotice: "operator-bookings-action-notice",
+  actionNoticeTransportLink: "operator-bookings-action-notice-transport",
+  actionNoticeFinanceLink: "operator-bookings-action-notice-finance",
+  actionNoticeWaitlistLink: "operator-bookings-action-notice-waitlist",
+  actionNoticeHistoryLink: "operator-bookings-action-notice-history",
   mobileActionBar: "operator-bookings-mobile-actions",
   mobileInspectionSheet: "operator-bookings-mobile-sheet",
   copyBookingIdButton: "operator-bookings-copy-id",
@@ -125,6 +142,7 @@ export const BOOKINGS_COMMAND_CENTER_TEST_IDS = {
   bulkConfirmDialog: "operator-bookings-bulk-confirm",
   cancelConfirmDialog: "operator-bookings-cancel-confirm",
   cancelConfirmButton: "operator-bookings-cancel-confirm-button",
+  overbookConfirmDialog: "operator-bookings-overbook-confirm",
   capacityBar: "operator-bookings-capacity",
   filtersDetails: "operator-bookings-filters-details",
   filtersDirtyBadge: "operator-bookings-filters-dirty",

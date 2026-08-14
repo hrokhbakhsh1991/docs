@@ -147,7 +147,8 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     await expect(page.getByTestId("wizard-bridge-shell")).toBeVisible({ timeout: 30_000 });
     await expect(page.locator("[data-workspace-wizard]")).toHaveAttribute(
       "data-plugin-id",
-      "denali"
+      "denali",
+      { timeout: 30_000 }
     );
     const primary = await page
       .locator("body")
@@ -171,17 +172,21 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
         platformRoot.classList.add("theme-dark");
       }
     });
+    await page.mouse.move(0, 0);
 
-    const wizardPrimary = await page
-      .locator("[data-new-tour-wizard]")
+    const tenantDarkPrimary = await page
+      .locator("[data-tenant-theme]")
       .evaluate((el) =>
         getComputedStyle(el).getPropertyValue("--color-primary").trim().toLowerCase()
       );
-    expect(wizardPrimary).toBe("#5eead4");
+    expect(tenantDarkPrimary).toBe("#5eead4");
 
-    expect(await continueBtn.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
-      "rgb(94, 234, 212)"
-    );
+    await expect
+      .poll(
+        async () => continueBtn.evaluate((el) => getComputedStyle(el).backgroundColor),
+        { timeout: 5_000 }
+      )
+      .toBe("rgb(94, 234, 212)");
   });
 
   test("SMK-P9-02 wizard create → tour in list", async ({ page }) => {

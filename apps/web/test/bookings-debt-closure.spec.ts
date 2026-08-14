@@ -43,7 +43,7 @@ describe("bookings split-pane scroll contract (UX-BKG-40)", () => {
     const { readFileSync } = require("node:fs") as typeof import("node:fs");
     const { join } = require("node:path") as typeof import("node:path");
     const src = readFileSync(
-      join(process.cwd(), "app/(app)/bookings/bookings-page-client.tsx"),
+      join(process.cwd(), "src/features/bookings/bookings-command-center-shell.tsx"),
       "utf8"
     );
     assert.match(src, /scroll:\s*false/);
@@ -57,7 +57,7 @@ describe("bookings inbox row geometry (UX-BKG-41 / UX-BKG-55)", () => {
     const { readFileSync } = require("node:fs") as typeof import("node:fs");
     const { join } = require("node:path") as typeof import("node:path");
     const src = readFileSync(
-      join(process.cwd(), "app/(app)/bookings/bookings-page-client.tsx"),
+      join(process.cwd(), "src/features/bookings/bookings-command-center-shell.tsx"),
       "utf8"
     );
     assert.match(src, /data-operator-inbox-group="tour"/);
@@ -80,7 +80,7 @@ describe("bookings sticky inspection (UX-BKG-42)", () => {
     const { readFileSync } = require("node:fs") as typeof import("node:fs");
     const { join } = require("node:path") as typeof import("node:path");
     const src = readFileSync(
-      join(process.cwd(), "app/(app)/bookings/bookings-page-client.tsx"),
+      join(process.cwd(), "src/features/bookings/bookings-command-center-shell.tsx"),
       "utf8"
     );
     assert.match(src, /data-operator-bookings-split/);

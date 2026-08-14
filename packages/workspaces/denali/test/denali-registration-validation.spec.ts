@@ -43,7 +43,11 @@ describe("denali-registration-validation", () => {
       validateDenaliRegistrationPayload(
         {
           registrantTarget: "other",
-          contact: { fullName: "Guest Child", nationalId: "2234567890" },
+          contact: {
+            fullName: "Guest Child",
+            phone: "09121234567",
+            nationalId: "2234567890",
+          },
           partySize: 1,
         },
         {

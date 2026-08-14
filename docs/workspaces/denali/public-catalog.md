@@ -277,12 +277,16 @@ Duplicate registration guard:
 
 | `registrantTarget` | Rule |
 |--------------------|------|
-| `self` (default) | Same **member user id + tour id** → `409` |
-| `other` | Same **tour id + guest full name** (normalized) → `409` when no national ID supplied; when guest **national ID** is provided → same **tour id + national ID** → `409`; booker may register multiple different guests |
+| `self` (default) | Same **member user id + tour id** on an active **self** row → `409` (`DENALI_REGISTRATION_DUPLICATE`). DB: `uq_operator_reg_active_self` |
+| `other` | Same **tour id + guest full name** (normalized) → `409` when no national ID supplied; when guest **national ID** is provided → same **tour id + national ID** → `409`; **same booker may register multiple different guests** (no longer blocked by submitter unique) |
+
+Authority: [registration-self-other-uniqueness.mdoc](./registration-self-other-uniqueness.mdoc) · [BOOKING_GUEST_DUPLICATE_UNIQUENESS.md](../../phase-20/p7/appendices/BOOKING_GUEST_DUPLICATE_UNIQUENESS.md).
 
 Persisted intake metadata: `registrationIntake` JSON on booking (`registrantTarget`, `transport`, optional `nationalId` when collected at intake). Operator list/detail surfaces `registrationIntake` for ops inspection (transport kind, registrant target).
 
-**Session attribution (P2):** After M17 verify/profile, portal `POST /api/catalog/registrations` reads the member session cookie and forwards `x-user-id` + `x-actor-role: member` to `POST /denali/registrations` (or urban). Anonymous catalog guest id (`…000001`) is used only when no valid session.
+**Session attribution (P2 + 2026-08-10):** After M17 verify/profile, portal `POST /api/catalog/registrations` reads the member session cookie and forwards `x-user-id` + `x-actor-role: member` + `Authorization` to `POST /denali/registrations`. Denali intake sets `features.requiresMemberSession: true` — portal BFF **fail-closes** with `401` when Bearer is missing (no silent anonymous guest id on Denali writes).
+
+**Member gate / amend:** `GET /denali/registrations/for-tour/:tourId` feeds register-page self tab lock; `PATCH /denali/registrations/:id` amends allowlisted intake (`transport`) while `pending`/`waitlisted`.
 
 **Intake pre-fill (P2b):** `GET /api/me/profile` hydrates `displayName` / optional `email` for returning users. Profile-step email pre-fills intake via `resolveIntakeDefaults` (profile wins over session).
 

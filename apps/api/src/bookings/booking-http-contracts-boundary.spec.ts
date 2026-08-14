@@ -92,6 +92,7 @@ describe("BK-B1.2 booking-http-contracts boundary", () => {
     assert.deepEqual(parseBookingsListQuery(url), {
       view: "mine",
       status: "pending",
+      statuses: ["pending"],
       tourId: "t1",
       paymentStatus: "paid",
       q: "ali",
@@ -107,6 +108,7 @@ describe("BK-B1.2 booking-http-contracts boundary", () => {
         partySize: 2,
         departureAt: "2026-08-01T00:00:00.000Z",
         guestEmail: "a@b.c",
+        memberUserId: "u-1",
       }),
       {
         tourId: "t1",
@@ -115,6 +117,7 @@ describe("BK-B1.2 booking-http-contracts boundary", () => {
         partySize: 2,
         departureAt: "2026-08-01T00:00:00.000Z",
         guestEmail: "a@b.c",
+        memberUserId: "u-1",
       }
     );
     assert.deepEqual(

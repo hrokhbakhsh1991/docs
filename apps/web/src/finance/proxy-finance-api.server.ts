@@ -74,3 +74,11 @@ export async function proxyFinanceApiPatch(
 ): Promise<NextResponse> {
   return proxyFinanceApiRequest(req, { path: backendPath, method: "PATCH", body });
 }
+
+export async function proxyFinanceApiPut(
+  req: Request,
+  backendPath: string,
+  body: string
+): Promise<NextResponse> {
+  return proxyFinanceApiRequest(req, { path: backendPath, method: "PUT", body });
+}

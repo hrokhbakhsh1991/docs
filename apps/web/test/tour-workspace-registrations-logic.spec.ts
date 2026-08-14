@@ -15,8 +15,9 @@ test("buildTourRegistrationsWorkspaceQuery lists all statuses for tour", () => {
   assert.doesNotMatch(query, /status=/);
 });
 
-test("buildTourRegistrationsBookingsQuery keeps pending filter for command center", () => {
+test("buildTourRegistrationsBookingsQuery scopes command center to the tour without forcing status", () => {
   const query = buildTourRegistrationsBookingsQuery(TOUR_ID);
-  assert.match(query, /status=pending/);
+  assert.doesNotMatch(query, /status=/);
   assert.match(query, new RegExp(`tourId=${TOUR_ID}`));
+  assert.match(query, /view=ops/);
 });

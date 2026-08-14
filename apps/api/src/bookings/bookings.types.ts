@@ -5,6 +5,7 @@
 import type {
   BookingPaymentStatus,
   BookingStatus,
+  CreateBookingRequest as BookingHttpCreateBookingRequest,
 } from "@app-tour/booking-http-contracts";
 
 export type {
@@ -16,16 +17,20 @@ export type {
   BookingsListQuery,
   BookingsListResponse,
   BookingsListView,
+  BookingsSummaryQuery,
   BookingsSummaryResponse,
   BulkApproveBookingsRequest,
   BulkApproveBookingsResponse,
   CancelBookingResponse,
-  CreateBookingRequest,
   CreateBookingResponse,
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
 } from "@app-tour/booking-http-contracts";
+
+export type CreateBookingRequest = BookingHttpCreateBookingRequest & {
+  readonly memberUserId?: string;
+};
 
 export type BookingRecord = {
   readonly id: string;
@@ -43,6 +48,21 @@ export type BookingRecord = {
   readonly submittedByUserId: string;
   readonly approvedAt: string | null;
   readonly registrationIntake?: Readonly<Record<string, unknown>>;
+  /**
+   * List projection scalar — set when intake is stripped but target must remain
+   * on the HTTP list item (BK-SAFE-01). Detail may omit and derive from intake.
+   */
+  readonly registrantTarget?: "self" | "other";
+  /**
+   * List projection scalars for transport roster (H5-T3) — derived from intake JSON.
+   */
+  readonly transportKind?:
+    | "primary"
+    | "personal_car"
+    | "no_car_dong"
+    | "no_car_acquaintance"
+    | null;
+  readonly personalCarOccupants?: 1 | 2 | 3 | null;
   /** Ops reject reason when status=rejected; omitted when unset (BC). */
   readonly rejectReason?: string;
 };

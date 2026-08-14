@@ -1,5 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
+import type {
+  FinanceCaseCommandHttpResult,
+  FinanceCaseCommandReviewReceiptHttpBody,
+  FinanceCaseEncounterLoadResult,
+} from "@app-tour/finance-http-contracts";
 
 import type { FinanceServicePort } from "./finance-service.port";
 
@@ -51,6 +56,27 @@ export type FinanceHttpHostPorts = {
     readonly reason: string;
     readonly actorUserId: string;
   }) => Promise<void>;
+  /**
+   * PR12-B — Denali Case Encounter presentation load (Host owns Case composition).
+   * finance-http never imports finance-core Case modules.
+   */
+  readonly loadFinanceCaseEncounter: (input: {
+    readonly auth: TenantAuthContext;
+    readonly registrationId: string;
+    readonly counterpartyId: string;
+    readonly deps: FinanceRouteDeps;
+  }) => Promise<FinanceCaseEncounterLoadResult>;
+  /**
+   * PR14-B — Case Command Bridge reviewReceipt (Host owns authz/vocab/stale/SoT/re-exec).
+   * finance-http never imports finance-core Case modules or SoT internals.
+   */
+  readonly runFinanceCaseCommandReviewReceipt: (input: {
+    readonly auth: TenantAuthContext;
+    readonly body: FinanceCaseCommandReviewReceiptHttpBody;
+    readonly deps: FinanceRouteDeps;
+    readonly idempotencyKey?: string;
+    readonly requestHash?: string;
+  }) => Promise<FinanceCaseCommandHttpResult>;
 };
 
 /** @deprecated Alias — Denali compat (Phase 1.4 Commit 2). */

@@ -22,6 +22,9 @@ Codifies performance standards for **operator bookings** and **tour** list paths
 ## Bookings duplicate-finder paths (AP15 — Faz 2)
 
 Guest duplicate checks run in `BookingsService` over bounded `listByTenant` (status ≠ cancelled|rejected). Dedicated `findActiveDuplicateBy*` repository methods were **removed** (no production callers on the Booking port).
+Duplicate probes (`findActiveGuestDuplicate`) should keep projection minimal and must not load `registrationIntake` unless a caller explicitly needs full intake payload on that path. Identity matching via JSON path filters (`registrationIntake.path`) does not require returning the blob.
+
+`reclassifyOwnedOtherToSelf` (owned other→self) uses a **single repository transaction**: gate via JSON path (`registrantTarget=other`) + active status + submitter match, then merge intake and update guest projection — no separate `getById` pre-read of the full blob.
 
 User directory summary (`getWorkspaceUserBookingSummary`) uses **SQL counts** plus `listRecentBySubmittedUser(tenantId, userId, MAX_MEMBER_BOOKINGS_RECENT_TRIPS)` — not a full member booking scan.
 
@@ -176,6 +179,19 @@ pnpm run guard:unbounded-list
 | `operationId` | Response schema | Banned fields |
 |---------------|---------------|---------------|
 | `listBookings` | `BookingsListResponse` → `BookingListItem[]` | `registrationIntake`, `canonical`, `data` |
+
+**Allowed scalars (not blobs):** on `BookingListItem`, the following may appear when derived without widening `BOOKING_LIST_SELECT` to include `registrationIntake` (BK-SAFE-01a):
+
+| Scalar | Values | Purpose |
+| ------ | ------ | ------- |
+| `registrantTarget` | `self` \| `other` | Member/ops list chrome |
+| `transportKind` | `primary` \| `personal_car` \| `no_car_dong` \| `no_car_acquaintance` \| `null` | Tour Workspace transport roster (H5-T3) |
+| `personalCarOccupants` | `1` \| `2` \| `3` \| `null` | Label fidelity when `transportKind=personal_car` |
+
+Typical pattern: list select stays lean; a follow-up `id`→scalar map (same intake read as `registrantTarget`) attaches enums before HTTP projection.
+Implementation note (performance): repository implementations may derive the allowed scalars via **SQL JSON extraction** (e.g. `registration_intake->...` JSON operators) in the list path, returning only the computed enum/integer columns. This avoids selecting and materializing the full `registrationIntake` blob while still keeping HTTP list responses free of blobs (BK-SAFE-01). Prefer doing both list read and scalar derivation in the same tenant-RLS scope to reduce repeated context/connection overhead.
+
+**Postgres typing:** Prisma `$queryRaw` binds string parameters as `text`. Any predicate on `uuid` columns (`tenant_id`, `id`) must cast explicitly — e.g. `${tenantId}::uuid` and `${id}::uuid` in the `IN (...)` list — or Postgres raises `42883 operator does not exist: uuid = text` (HTTP 500 on `GET /bookings`).
 | `getBookingsSummary` | `BookingsSummaryResponse` | same |
 | `listTours` | `ToursListResponse` | `canonical` (projection only) |
 

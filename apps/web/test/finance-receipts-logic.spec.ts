@@ -7,6 +7,7 @@ import { describe, it } from "node:test";
 
 import {
   buildReviewReceiptRequestBody,
+  classifyReceiptAmountAgainstRemaining,
   isBrowserReachableReceiptUrl,
   isReceiptImageFileKey,
   isReceiptPdfFileKey,
@@ -14,6 +15,7 @@ import {
   parseFinanceReceiptReviewResponse,
   parseFinanceReceiptUrlPayload,
   receiptFileLabel,
+  remainingAfterApproveMinor,
   validateReviewReceiptForm,
 } from "../src/finance/finance-receipts-logic";
 
@@ -104,5 +106,18 @@ describe("finance-receipts-logic.spec.ts — Phase 9.7 R1", () => {
     });
     assert.equal(parsed?.url, "https://cdn.example/a.jpg");
     assert.equal(parseFinanceReceiptUrlPayload({}), null);
+  });
+
+  it("PR21-C1: classifyReceiptAmountAgainstRemaining under/exact/over", () => {
+    assert.equal(classifyReceiptAmountAgainstRemaining("1000000", "2500000"), "under");
+    assert.equal(classifyReceiptAmountAgainstRemaining("2500000", "2500000"), "exact");
+    assert.equal(classifyReceiptAmountAgainstRemaining("3000000", "2500000"), "over");
+    assert.equal(classifyReceiptAmountAgainstRemaining("x", "2500000"), "unknown");
+  });
+
+  it("PR21-C1: remainingAfterApproveMinor for under and exact", () => {
+    assert.equal(remainingAfterApproveMinor("1000000", "2500000"), "1500000");
+    assert.equal(remainingAfterApproveMinor("2500000", "2500000"), "0");
+    assert.equal(remainingAfterApproveMinor("3000000", "2500000"), null);
   });
 });

@@ -74,6 +74,6 @@ describe("portal-visual-wave2.spec.ts", () => {
     assert.match(skin, /\[data-public-registration-intake\]/);
     assert.match(skin, /\[data-public-registration-success\]/);
     assert.match(skin, /\[data-portal-auth-session-chip\]/);
-    assert.match(skin, /\[data-registration-target-tabs\]/);
+    assert.match(skin, /\[data-denali-other-guest-list\]/);
   });
 });

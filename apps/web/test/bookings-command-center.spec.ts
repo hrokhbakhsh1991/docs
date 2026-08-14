@@ -6,12 +6,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-import { resolveBookingsPageBodyState } from "../app/(app)/bookings/bookings-command-center-gate";
+import { resolveBookingsPageBodyState } from "../src/features/bookings/bookings-command-center-gate";
 import {
   bookingsAdvancedFiltersDirty,
   bookingsCommandCenterHasActiveFilters,
   buildBookingsApiQuery,
   buildBookingsCommandCenterHref,
+  buildBookingLifecycleActionNotice,
+  buildBookingsHistoryHref,
   buildBookingsDetailDeepLinkHref,
   buildRejectBookingRequestBody,
   capacitySnapshotFillPercent,
@@ -468,6 +470,53 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelConfirmDialog,
       "operator-bookings-cancel-confirm"
     );
+    assert.equal(
+      BOOKINGS_COMMAND_CENTER_TEST_IDS.overbookConfirmDialog,
+      "operator-bookings-overbook-confirm"
+    );
+
+    const approveEmbedded = buildBookingLifecycleActionNotice({
+      action: "approve",
+      guestLabel: "Jane Doe",
+      paymentStatus: "unpaid",
+      embedded: true,
+      lockedTourId: "tour-1",
+    });
+    assert.equal(approveEmbedded.kind, "lifecycle");
+    if (approveEmbedded.kind === "lifecycle") {
+      assert.equal(approveEmbedded.action, "approve");
+      assert.equal(approveEmbedded.embeddedTourId, "tour-1");
+      assert.equal(approveEmbedded.showFinanceLink, true);
+    }
+
+    const approvePaid = buildBookingLifecycleActionNotice({
+      action: "approve",
+      guestLabel: "Jane Doe",
+      paymentStatus: "paid",
+      embedded: true,
+      lockedTourId: "tour-1",
+    });
+    if (approvePaid.kind === "lifecycle") {
+      assert.equal(approvePaid.showFinanceLink, false);
+    }
+
+    const rejectNotice = buildBookingLifecycleActionNotice({
+      action: "reject",
+      guestLabel: "Bob",
+      embedded: true,
+      lockedTourId: "tour-1",
+    });
+    if (rejectNotice.kind === "lifecycle") {
+      assert.equal(rejectNotice.historyStatus, "rejected");
+    }
+
+    assert.equal(
+      buildBookingsHistoryHref({ tourId: "tour-1", status: "rejected" }),
+      "/bookings?tourId=tour-1&status=rejected&view=ops"
+    );
+
+    assert.equal(buildBookingLifecycleActionNotice({ action: "approve", guestLabel: "  " }).kind, "none");
+
     const enSafety = JSON.parse(
       readFileSync(new URL("../messages/en/bookings.json", import.meta.url), "utf8")
     ) as {
@@ -475,7 +524,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       inlineApproveConfirm: string;
     };
     assert.match(enSafety.cancelDialogTitle, /Cancel/i);
-    assert.equal(enSafety.inlineApproveConfirm, "Confirm?");
+    assert.equal(enSafety.inlineApproveConfirm, "Confirm? (2nd click)");
 
 
     assert.equal(BOOKINGS_QUEUE_FRESHNESS_COOLDOWN_MS, 45_000);
@@ -1209,7 +1258,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     );
 
     const pageSource = readFileSync(
-      new URL("../app/(app)/bookings/bookings-page-client.tsx", import.meta.url),
+      new URL("../src/features/bookings/bookings-command-center-shell.tsx", import.meta.url),
       "utf8"
     );
     assert.match(pageSource, /BookingsDisplayMenu/);

@@ -7,7 +7,10 @@ round: R3
 scope: "(app)/tours/[id]/workspace layout + subnav + stub tabs; register → TOURS-REGISTER-UX.md R4"
 authority: subphases/9.3-tours-operator.md · DEC-P9-008
 prerequisite: TOURS-EDIT-UX.md R1
+complete_spec: TOURS-WORKSPACE-COMPLETE.md
 ```
+
+> **Complete workspace (post-R3):** Header KPIs, Bookings Command Center embed on registrations, waitlist/transport parity, and tour-scoped finance tab are specified in [`TOURS-WORKSPACE-COMPLETE.md`](./TOURS-WORKSPACE-COMPLETE.md). This file remains the R3 baseline + tab BFF notes.
 
 ---
 
@@ -17,10 +20,13 @@ Provide the **workspace chrome** operators use to manage tour registrations, wai
 
 | Surface | Route | R3 scope |
 | ------- | ----- | -------- |
-| Registrations (default) | `(app)/tours/[id]/workspace` | **R3+** — pending roster from `GET /bookings?status=pending&tourId={id}` + register link |
-| Waitlist | `…/workspace/waitlist` | **R3+** — table from `GET /bookings?status=waitlisted&tourId={id}` (9.5 API) |
-| Transport | `…/workspace/transport` | **R3+** — modes from tour canonical + approved roster (`GET /bookings?status=approved&tourId={id}`) |
+| Registrations (default) | `(app)/tours/[id]/workspace` | **Complete** — Bookings CC embed with `lockedTourId` (not thin pending table). See TOURS-WORKSPACE-COMPLETE |
+| Waitlist | `…/workspace?tab=waitlist` | **Complete** — Bookings CC embed `lockedStatus=waitlisted` + capacity strip (H4b) |
+| Transport | `…/workspace?tab=transport` | **Complete** — modes + approved roster + intake labels |
+| Finance | `…/workspace?tab=finance` | **Complete** — Tour Money Inbox (H-10/H-11): status→actions→guest list for **this tour only**; not Finance Hub. See TOURS-WORKSPACE-COMPLETE §8 |
 | Operator register | `(app)/tours/[id]/register` | **R4** — out of R3 |
+
+Legacy segment paths (`/workspace/waitlist`, `/transport`, `/finance`) **redirect** to the canonical `?tab=` query (deep-link compatibility only).
 
 ---
 
@@ -28,13 +34,16 @@ Provide the **workspace chrome** operators use to manage tour registrations, wai
 
 ```text
 (app)/tours/[id]/edit          ← edit R1 (link → workspace)
-(app)/tours/[id]/workspace     ← registrations tab (default)
-(app)/tours/[id]/workspace/waitlist
-(app)/tours/[id]/workspace/transport
+(app)/tours/[id]/workspace     ← registrations tab (default) — ?tab omitted
+(app)/tours/[id]/workspace?tab=waitlist|transport|finance
 (app)/tours/[id]/register      ← R4
 ```
 
-Subnav tabs mirror legacy `WorkspaceSubnav`: registrations · waitlist · transport.
+Subnav tabs: registrations · waitlist · transport · finance (finance capability-gated).
+
+**Tab navigation (H-09):** Subnav and header KPI clicks use `<button type="button">` + `router.replace(buildWorkspaceTabReplacePath(...), { scroll: false })` — same pattern as [`FINANCE-OPS-UX.md`](./FINANCE-OPS-UX.md) §5. Avoid raw `<Link href="?tab=…">` for in-shell tab switches (prevents heavy RSC re-fetch under `(app)/layout` `force-dynamic`).
+
+**Lazy keep-alive panels:** `tour-workspace-tab-panels.tsx` mounts each tab client on **first visit**, then toggles `hidden` — not all four eagerly on initial load.
 
 ---
 
@@ -42,9 +51,10 @@ Subnav tabs mirror legacy `WorkspaceSubnav`: registrations · waitlist · transp
 
 | Artifact | Path |
 | -------- | ---- |
-| Subnav + tab resolver | `apps/web/src/features/tours/tour-workspace-logic.ts` |
-| Layout shell | `apps/web/app/(app)/tours/[id]/workspace/tour-workspace-layout-client.tsx` |
-| Tab pages | `workspace/page.tsx` · `waitlist/page.tsx` · `transport/page.tsx` |
+| Subnav + tab resolver | `apps/web/src/features/tours/tour-workspace-logic.ts` (`buildWorkspaceTabReplacePath`, `hrefForWorkspaceTab`) |
+| Layout shell + tab buttons | `apps/web/app/(app)/tours/[id]/workspace/tour-workspace-layout-client.tsx` |
+| Lazy keep-alive panels | `apps/web/app/(app)/tours/[id]/workspace/tour-workspace-tab-panels.tsx` |
+| Legacy segment redirects | `workspace/waitlist/page.tsx` · `transport/page.tsx` · `finance/page.tsx` → `?tab=` |
 | Entry from list/edit | `tour-card.tsx` · `tour-edit-page-client.tsx` |
 
 Tour header reuses `GET /api/tours/{id}` projection (same BFF as edit).
@@ -92,11 +102,17 @@ Empty roster links to Command Center (`/bookings?status=approved&tourId=…`).
 
 ## 8. Registrations tab (9.3 · 9.5 tie-in)
 
-**BFF:** `GET /api/bookings?status=pending&tourId={tourId}` → operator pending queue.
+**SoT (Complete / hardening):** Embed Bookings Command Center from `features/bookings/bookings-command-center-shell` with `lockedTourId` + `embedded` (+ waitlist: `lockedStatus=waitlisted`). See [`TOURS-WORKSPACE-COMPLETE.md`](./TOURS-WORKSPACE-COMPLETE.md) §6.
 
-**Web:** `TourWorkspaceRegistrationsClient` renders guest · party · departure · submitted + register guest CTA.
+**BFF:** same `GET /api/bookings` ops list as Command Center (`tourId` locked). Thin pending table is **not** the product UX.
 
-Empty state links to `(app)/tours/[id]/register`.
+Empty / register CTA: primary Register lives on workspace header (H-06).
+
+---
+
+## 9. Finance tab (Complete)
+
+Tour-scoped outstanding / receipts / payments + rollup + case drill-in. Spec: [`TOURS-WORKSPACE-COMPLETE.md`](./TOURS-WORKSPACE-COMPLETE.md) §8. Cross-ref: [`FINANCE-OPS-UX.md`](./FINANCE-OPS-UX.md).
 
 ---
 

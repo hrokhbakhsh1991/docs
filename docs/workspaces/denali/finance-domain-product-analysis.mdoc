@@ -1,0 +1,642 @@
+---
+title: Denali Finance — Domain & Product Analysis (current state)
+doc_id: DENALI-FINANCE-DOMAIN-MAP
+version: "2026-08-07-v1"
+workspace: denali
+status: ANALYSIS
+phase: pre-redesign discovery
+authority: >
+  DENALI-REG-PAY-ORCH · PAYMENT-LEDGER-BOUNDARY · BOOKING_LIFECYCLE_OWNERSHIP ·
+  FINANCE-OPS-UX · phase-9/9.7-finance-denali
+purpose: >
+  Product / UX / domain discovery only. No UI redesign, no implementation plan,
+  no migration or refactor proposals in this document.
+---
+
+# Finance Domain Map
+
+## Scope & posture
+
+This document describes **how Denali finance works today** (product + domain truth as implemented and locked in policy docs). It is an analysis baseline for a later redesign of admin finance experience. It does **not** prescribe a future UX, code change, or schema migration.
+
+Primary operator question this map must eventually serve:
+
+> For this registration, what is the money state, and what is the correct next operational act?
+
+---
+
+## Primary commercial object
+
+In Denali ops language, **Registration ≈ Booking** (same `registrationId` / booking id on the operator registration row). Finance always keys money work to that id.
+
+Commercial question attached to one registration:
+
+| Question | Domain answer today |
+| -------- | ------------------- |
+| How much is owed? | **Obligation** (resolved; may be overridden) |
+| How much has been recognized toward the invoice? | **Invoice read model** (`paid` / `balanceDue`) |
+| How did money attempt to arrive? | **Payment intent** (+ optional **receipt** proof) |
+| Was club lifecycle cleared? | **Booking lifecycle status** (Bookings-owned) |
+| Is the booking commercially settled on the booking projection? | **Booking payment status** (Finance writes via port) |
+
+---
+
+## Core entities
+
+### 1. Booking / Registration (host commercial anchor)
+
+| Field | Owner | Notes |
+| ----- | ----- | ----- |
+| Lifecycle `status` | **Bookings** | `pending` · `waitlisted` · `approved` · `rejected` · `cancelled` |
+| `paymentStatus` projection | **Finance writes** via `IBookingPaymentPort`; stored on booking row | `unpaid` · `partial` · `paid` |
+| Party / tour / departure / intake | Bookings | Context for money, not money SoT |
+| `registrationIntake.obligationOverride` | **Finance obligation adapter** writes; Bookings stores as opaque bag | Bookings must not interpret |
+
+Finance may **read** lifecycle to gate member receipt upload. Finance must **not** transition lifecycle.
+
+### 2. Commercial obligation
+
+Resolved amount the registration owes (minor units).
+
+**Resolution order (SoT for “how much”):**
+
+1. Per-registration `obligationOverride.obligationMinor` (operator override)
+2. Tour canonical pricing (Denali: `basePricePerPerson × partySize`; free collection → `0`)
+3. Else unresolved → offline receipt defaults may apply when creating a payment from member upload
+
+**Owner:** Finance (`FinanceObligationPort`).  
+**Related tour knobs (Denali canonical):**
+
+| Path | Values | Default | Effect on money path |
+| ---- | ------ | ------- | -------------------- |
+| `pricing.registrationApproval` | `manual` · `auto` | `manual` | When money may start (after approve) |
+| `pricing.paymentCollection` | `offline` · `free` | `offline` | Whether receipt/ledger capture is required |
+
+### 3. Invoice read model
+
+Compiled view for one registration:
+
+- `invoiceTotalMinor`
+- `paidAmountMinor`
+- `balanceDueMinor`
+- `currency`
+
+**Owner:** Finance (compile from wallet / payments / obligation — read model, not a separate mutable “invoice document” ops edits by hand).  
+**Role:** Answers “how much left?” without requiring the operator to recompute.
+
+### 4. Payment (manual / offline intent)
+
+A money **intent** row, typically method `Manual` in the Denali offline path.
+
+| Attribute | Typical values |
+| --------- | -------------- |
+| Status | `Pending` · `Paid` · `Failed` |
+| Amount / currency | Minor units |
+| Links | `registrationId` |
+
+**Owner:** Finance.  
+**Created by:**
+
+- Operator `createManualPayment`, or
+- Member offline receipt path when no suitable pending payment exists (auto-create using obligation resolver)
+
+**Meaning of `Pending`:** proof not yet accepted as capture — **not** the same statement as booking `paymentStatus=unpaid` (though they often coexist).
+
+### 5. Payment receipt (proof)
+
+Evidence that a transfer happened (file + optional note).
+
+| Attribute | Values |
+| --------- | ------ |
+| Status | `Pending` · `Approved` · `Rejected` |
+| Links | Payment id (and thus registration) |
+
+**Owner:** Finance.  
+**Ingress (Denali P7):** `offline_receipt` only — member portal upload is the product path; operator can also submit proof in advanced ops paths.
+
+### 6. Booking wallet / prepayment
+
+Credit recorded against `booking:{registrationId}` before (or toward) full settlement.
+
+| Concept | Meaning |
+| ------- | ------- |
+| Prepayment received | Wallet credit |
+| Prepayment cleared | Wallet credit applied/cleared in ledger sense |
+| Relation to invoice | Feeds `paidAmountMinor` / balance math |
+
+**Owner:** Finance (ledger events + prepayment records).  
+**Role:** Partial progress toward obligation without requiring a full paid capture in one step.
+
+### 7. Payment schedule / installment items
+
+Plan that splits `invoiceTotalMinor` across due dates.
+
+| Item status | Meaning |
+| ----------- | ------- |
+| `scheduled` | Future |
+| `due` | Due date reached, unpaid |
+| `partial` | `paidMinor < amountMinor` **for that installment row** |
+| `paid` | Row settled |
+| `overdue` | Past grace |
+| `waived` | Operator waiver |
+
+**Owner:** Finance.  
+**Role:** Time-phased collection plan — conceptually distinct from wallet prepayment and from a single offline receipt capture.
+
+### 8. Ledger / outbox journal
+
+Double-entry capture spine. After successful money capture (notably receipt approve), outbox emits `finance.ledger.double_entry_applied`.
+
+**Owner:** Finance.  
+**Role:** Audit / accounting truth of what was posted — not the day-to-day “is this guest paid?” queue.
+
+### 9. Reconciliation findings (adjacent)
+
+Ops triage of mismatches / attention items; linked from finance hub but product surface historically lives under settings.
+
+**Owner:** Finance reconciliation domain (read/triage).  
+**Role:** Exception handling, not the primary settle path.
+
+---
+
+## Ownership matrix (source of truth)
+
+| Concern | SoT owner | Non-owner must not |
+| ------- | --------- | ------------------ |
+| Booking lifecycle transitions | Bookings | Finance must not approve/reject/cancel lifecycle |
+| Booking `paymentStatus` projection | Finance (via payment port) | Bookings must not invent payment settlement |
+| Receipt approve / reject | Finance | Bookings must not review receipts |
+| Obligation resolve / override | Finance | Bookings must not interpret override bag |
+| Ledger journals | Finance | Shadow balances elsewhere forbidden |
+| Member session / portal upload UX staging | Portal + Finance gates | — |
+| Tour list price | Tour canonical (Denali pricing) | Per-reg override does not rewrite tour SoT |
+
+---
+
+## Relationship sketch
+
+```text
+Tour pricing / paymentCollection / registrationApproval
+        │
+        ▼
+Registration (lifecycle ⊕ paymentStatus projection)
+        │
+        ├── Obligation (resolved amount owed)
+        │         │
+        │         ▼
+        ├── Invoice read model (total / paid / due)
+        │
+        ├── PaymentIntent[] ──► PaymentReceipt[] ──► review
+        │         │                      │
+        │         └──────── capture ─────┴──► Ledger outbox
+        │
+        ├── Booking wallet (prepayments)
+        │
+        └── PaymentSchedule (installment items)
+```
+
+**Projection bridge:** Finance → `IBookingPaymentPort.syncStatus` / `raisePaidInTx` updates booking `paymentStatus` without transferring lifecycle ownership.
+
+---
+
+## Lifecycles & triggers (by entity)
+
+### A. Booking lifecycle (Bookings)
+
+```text
+create → pending
+pending → waitlisted | approved | rejected
+waitlisted → approved | rejected | cancelled
+approved → cancelled
+rejected / cancelled → (terminal)
+```
+
+**Money-relevant gate:** member receipt upload allowed only when lifecycle = `approved` (and not already commercially settled / free-not-required).
+
+**After approve (host composition):** if `paymentCollection=free` or resolved obligation is zero → Finance may mark booking `paymentStatus=paid` without receipt/ledger capture.
+
+### B. Booking payment status (Finance projection)
+
+```text
+unpaid → partial (e.g. prepayment / incomplete recognition)
+unpaid|partial → paid (receipt approve capture, free collection, zero obligation waive path, or other Finance sync)
+```
+
+Triggers that move projection include (non-exhaustive product set):
+
+| Trigger | Typical result |
+| ------- | -------------- |
+| Registration created | `unpaid` |
+| `applyFreeCollectionPayment` after approve | `paid` (no receipt) |
+| Zero obligation on approved booking | `paid` |
+| Receipt **Approved** (atomic with payment Paid) | `paid` |
+| Prepayment recorded | may move toward `partial` / paid recognition via sync helpers |
+| Receipt still Pending | booking often remains `unpaid` or `partial` |
+
+### C. Payment intent
+
+```text
+create → Pending
+Pending → Paid   (successful capture, esp. receipt approve)
+Pending → Failed (failure paths)
+```
+
+### D. Receipt
+
+```text
+submit → Pending
+Pending → Approved  (operator review approve → capture)
+Pending → Rejected  (operator review reject; member may re-upload when policy allows)
+```
+
+**Policy note:** Historical Pending receipts on non-approved bookings are not auto-purged; new submits are blocked by lifecycle gate.
+
+### E. Installment item
+
+```text
+generate schedule → scheduled / due (by dates)
+due → overdue (time)
+* → partial (partial paidMinor)
+* → paid
+* → waived (ops)
+reschedule may recalc status
+```
+
+### F. Ledger
+
+Append-only journal events after capture; not a status machine the treasurer “advances” manually in the happy path.
+
+---
+
+# Current User Journey
+
+## Persona: مسئول مالی باشگاه
+
+### Who
+
+Club staff responsible for **money correctness** for mountain-tour registrations: seeing who owes what, confirming bank transfers, and keeping booking payment projection trustworthy. May or may not also do lifecycle approve; product currently splits those desks (`/bookings` vs `/finance`).
+
+### Goals
+
+1. Know, per registration: **owed / recognized / still due**.
+2. Clear the **proof queue** (offline receipts) without guessing.
+3. Avoid double-counting or inventing debt.
+4. Trust that after a finance action, **booking payment status** matches reality.
+5. Handle exceptions: discount/zero, free tour, rejected proof, partial pay, installment plans when used.
+
+### Daily questions
+
+- Who is waiting on **my** review (proof), not club approval?
+- For this name/tour, are they **approved to pay** yet?
+- Did this guest already upload? Is proof good?
+- After I accept proof, is the registration **paid** on the booking side?
+- Why does one screen say “pending” and another “unpaid”?
+- Is this tour free / zero — should I expect **no** receipt?
+- Did someone already open a manual payment for this guest?
+
+### Decisions they make
+
+| Decision | Domain act |
+| -------- | ---------- |
+| Accept or reject transfer proof | Receipt review |
+| Whether a debt row should exist | Manual payment create (ops) vs trust member auto-create |
+| Record partial credit | Prepayment |
+| Split remaining balance over time | Generate / manage schedule |
+| Treat as settled without money movement | Free collection / zero obligation paths (policy-driven) |
+| Investigate mismatch | Ledger / reconciliation attention |
+
+### Information needed for a confident decision
+
+- Member + tour identity (not raw UUID alone)
+- Lifecycle status (may they pay / should proof even exist?)
+- Obligation and invoice balance
+- Whether a Pending payment and/or Pending receipt already exist
+- Proof artifact + member note
+- Departure urgency (operational priority — currently weak in finance domain surfacing)
+- Collection mode (offline vs free) and any personal override
+
+### What creates distrust
+
+- Two “pending” meanings that do not move together
+- Acting on finance and not seeing booking payment update immediately / consistently
+- Not knowing whether manual payment was required or redundant
+- Proof preview unavailable while still asked to decide
+- Free/zero cases that look like “unpaid waiting for receipt”
+- Partial installment language colliding with prepayment language
+
+---
+
+## Journey 1 — Happy path (Denali default policy)
+
+**Policy name:** `approve_then_offline_pay`  
+**Ingress:** `offline_receipt` (P7 frozen for Denali paid tours)
+
+```text
+1) Member submits registration
+     → lifecycle: pending
+     → paymentStatus: unpaid
+
+2) Club approves on Bookings
+     → lifecycle: approved
+     → paymentStatus: still unpaid (unless free/zero path applies)
+
+3) Member uploads transfer proof on Portal
+     → Finance may auto-create Pending Payment from obligation
+     → Receipt: Pending
+     → booking paymentStatus: typically still unpaid/partial
+     → Receipt enters operator pending queue
+
+4) Finance operator reviews receipt (approve)
+     → Payment: Paid
+     → Receipt: Approved
+     → booking paymentStatus: paid
+     → Ledger outbox capture
+
+5) Member / ops surfaces show paid
+```
+
+**Ownership split on this path:** Bookings owns step 2; Finance owns steps 3–4 money; projection links them at step 4.
+
+---
+
+## Journey 2 — Member receipt path (detail)
+
+Eligibility:
+
+- Lifecycle must be `approved`
+- Booking must not already be `paid` in a way that blocks upload
+- Free collection / zero obligation → receipt **not required** (blocked with finance error semantics)
+
+States the **member** experiences (portal stages both axes):
+
+| Condition | Member-facing stage |
+| --------- | ------------------- |
+| pending / waitlisted | Waiting for club approval — no upload |
+| rejected / cancelled | Closed — no upload |
+| approved + no/rejected receipt | Upload |
+| approved + receipt pending | Waiting for finance review |
+| paid (booking or approved receipt) | Paid confirmed |
+
+Operator queue sees Receipt `Pending` after successful upload.
+
+---
+
+## Journey 3 — Manual payment (operator)
+
+**Domain role:** open an explicit Manual Payment intent (debt / open payment row) with amount + currency, keyed to registration.
+
+**When it appears in product thinking today:**
+
+- Legacy / ops parity with “create open payment then attach proof”
+- Cases where operator records money work without waiting for member auto-create
+- Advanced operator proof submit still ties to a `paymentId`
+
+**Tension with Journey 1:** default Denali member upload can create the payment itself. Manual create is therefore an **alternate ingress to the same Payment entity**, not a mandatory step on the happy path — but the mental model of “always open a payment first” still exists in ops guidance surfaces.
+
+---
+
+## Journey 4 — Prepayment
+
+**Problem it solves:** recognize money (or club-accepted credit) **before** full invoice settlement — wallet progress toward obligation.
+
+**Distinct from:**
+
+- Receipt approve (proof capture of a payment intent)
+- Installment `partial` (underpayment **on one schedule row**)
+
+Prepayment may sync booking payment projection toward `partial` / paid recognition depending on amounts vs invoice.
+
+---
+
+## Journey 5 — Installments
+
+**Problem it solves:** time-box the obligation into due dates (deposit % + N installments template).
+
+**Distinct from prepayment:** schedule is a **plan of dues**; prepayment is a **wallet credit event**. Product copy already warns these are not the same “partial.”
+
+**Operational maturity note (current):** schedule generate/list/waive/reschedule exist in domain; day-to-day capture of “pay this installment via offline receipt” is not the same single spine as P7 offline receipt → payment Paid for the whole intent. Operators may still fall back to payments/prepayments for money movement while schedule tracks plan state.
+
+---
+
+## Journey 6 — Free / zero obligation
+
+```text
+approved + (paymentCollection=free OR obligationMinor=0)
+  → Finance marks booking paymentStatus=paid
+  → no PaymentIntent / receipt / double-entry required for zero money
+```
+
+**Operator risk if misunderstood:** waiting in receipt queue for a registration that will never produce proof.
+
+---
+
+## Journey 7 — Auto-approve registration (tour setting)
+
+If `registrationApproval=auto` and capacity allows, lifecycle may become `approved` without ops click — then Journey 1 continues from member upload. Finance rules unchanged; **who** performed lifecycle approve changes.
+
+---
+
+# Entity Relationship Understanding
+
+## What is “one financial case”?
+
+For the treasurer persona, the natural case is **one registration**. Everything else is either:
+
+- a **fact about that case** (obligation, invoice, lifecycle, paymentStatus), or
+- a **work object** hanging off it (payment, receipt, prepayment, schedule item), or
+- an **audit trail** (ledger event).
+
+## Cardinality (conceptual)
+
+| From | To | Cardinality | Notes |
+| ---- | -- | ----------- | ----- |
+| Registration | Obligation resolution | 1 current answer | Override replaces resolved amount |
+| Registration | Invoice read model | 1 | Derived |
+| Registration | Payment intents | 0..n | Manual + auto-created possible |
+| Payment | Receipts | 0..n | Pending review typically one active proof story |
+| Registration | Prepayments | 0..n | Wallet credits |
+| Registration | Schedule | 0..1 plan with 1..n items | Generated |
+| Capture success | Ledger event | 1..n lines via outbox | Audit |
+
+## Two axes that must be composed, not merged
+
+Locked product design:
+
+| Axis | Values | Owner |
+| ---- | ------ | ----- |
+| Lifecycle | pending…cancelled | Bookings |
+| Money projection | unpaid/partial/paid | Finance → booking field |
+
+Offline receipt adds a **third visible status family** (receipt Pending/Approved/Rejected) and a **fourth** (payment Pending/Paid/Failed).
+
+These are intentionally separate in architecture. They become a **single story** only when an operator (or member UI) composes them. Today that composition is partial and uneven across surfaces.
+
+## Bridge rules (policy)
+
+- Finance does not approve bookings.
+- Bookings does not approve receipts or post ledger.
+- Finance reads lifecycle for eligibility.
+- Finance writes `paymentStatus` only through the booking payment port.
+- Commercial obligation is Finance-owned even when bytes sit in booking intake.
+
+## Money ingress vs ledger (do not conflate)
+
+| Layer | Question |
+| ----- | -------- |
+| Ingress | How does money arrive? (Denali: offline receipt review) |
+| Ledger | What accounting event was posted once capture is confirmed? |
+
+Changing future ingress modes should not redefine ledger meaning; Denali today freezes ingress to offline receipt for paid tours.
+
+---
+
+# Status Inventory
+
+## Inventory table
+
+| Status family | Values | SoT | Answers which human question? | Common false synonym |
+| ------------- | ------ | --- | ----------------------------- | -------------------- |
+| Booking lifecycle | pending, waitlisted, approved, rejected, cancelled | Bookings | May this registration proceed / pay? | “Pending payment” |
+| Booking paymentStatus | unpaid, partial, paid | Finance projection on booking | Is the booking commercially settled? | Payment `Pending` |
+| Payment.status | Pending, Paid, Failed | Finance payment row | Is this intent captured? | Booking unpaid; receipt Pending |
+| Receipt.status | Pending, Approved, Rejected | Finance receipt row | Is proof accepted? | Payment Pending; booking pending |
+| Installment item | scheduled, due, partial, paid, overdue, waived | Finance schedule | Is this due-slice settled on time? | Prepayment “partial progress” |
+| Member receipt stage (derived) | none / waiting approval / upload / waiting review / paid / closed | Portal composition | What should the member do? | Raw single status |
+
+## Coexistence patterns (expected, not bugs)
+
+| Situation | Lifecycle | Booking paymentStatus | Payment | Receipt |
+| --------- | --------- | --------------------- | ------- | ------- |
+| Just submitted | pending | unpaid | — | — |
+| Approved, waiting member pay | approved | unpaid | — or none yet | — |
+| Proof uploaded, awaiting finance | approved | unpaid (typical) | Pending | Pending |
+| Proof approved | approved | paid | Paid | Approved |
+| Free tour after approve | approved | paid | — | — |
+| Rejected proof, retry allowed | approved | unpaid/partial | Pending (or new) | Rejected (prior) |
+
+**Critical coexistence:** Receipt `Pending` + Booking `unpaid` is **normal** on the default path until finance approves proof.
+
+## Label collision (conceptual, language-level)
+
+In Persian ops UI today, multiple families collapse toward «در انتظار» / «تأیید» without stating *what* is awaited or *what* is confirmed. That is a **domain communication** problem even before UI redesign: the status inventory has more distinctions than the shared vocabulary.
+
+---
+
+# Pain Points
+
+Focus: **conceptual / mental-model** friction — not control layout, visual density, or implementation debt.
+
+## P1 — Status families look synonymous but mean different jobs
+
+Operator sees several “pending/waiting/unpaid” signals and naturally merges them into one “not done yet” flag. The system needs four answers; the mind wants one.
+
+**Effect:** Wrong queue, wrong owner (“why hasn’t finance paid them?” when lifecycle is still pending; or “why is booking unpaid?” when receipt is already in review).
+
+## P2 — Happy-path sequence vs “open a payment first” mental model
+
+Domain default: approve → member proof → review.  
+Parallel concept: create Manual Payment (open debt), then attach/review proof.
+
+Both use the same Payment entity. Without a clear rule of **when manual create is the act vs when it is redundant**, the treasurer must interpret process.
+
+**Effect:** Duplicate intents, uncertainty whether the case is “already opened,” hesitation to act.
+
+## P3 — Booking paymentStatus is a projection, not the receipt queue
+
+Settling proof is a Finance receipt decision; “paid on booking” is a **downstream projection**. Mentally, operators treat the booking badge as the live money truth and expect it to move as soon as proof exists — but policy keeps unpaid until **Approved**.
+
+**Effect:** Distrust (“system out of sync”) during the most common waiting window.
+
+## P4 — Partial means more than one thing
+
+- Booking `partial`
+- Installment `partial`
+- Invoice partially covered via wallet/prepayment
+
+Same vernacular, different scopes (registration vs schedule row vs wallet math).
+
+**Effect:** Hard decisions about “is this guest OK for departure?” vs “is installment 2 short?”
+
+## P5 — Prepayment vs deposit vs first installment vs manual pending
+
+Product has several “money before full settlement” ideas. Domain distinguishes wallet credit, schedule deposit slot, and pending manual intent — humans hear “بیعانه / پیش‌پرداخت / قسط اول.”
+
+**Effect:** Choice paralysis: which act records the bank transfer they see?
+
+## P6 — Collection mode and obligation overrides are first-class domain facts but second-class in the operator story
+
+Free / zero / personal override change whether a receipt should ever appear and what amount proof should match. Those facts live in resolvers and intake bags; the treasurer’s day still starts from status badges.
+
+**Effect:** Waiting for proof that policy forbids; mismatch between expected tour price and obligation.
+
+## P7 — Lifecycle gate on upload creates asymmetric visibility
+
+Member cannot upload until approved; finance queue is proof-centric. Ops who live in finance may not see *why* a guest has no receipt yet (still pending approval) without composing Bookings state.
+
+**Effect:** Human interpretation required: empty queue ≠ financially fine; missing proof ≠ member negligent.
+
+## P8 — Historical Pending receipts on non-approved bookings remain reviewable
+
+Policy explicitly does not purge old proofs. Domain allows review of already-Pending receipts even when new submits are blocked.
+
+**Effect:** Operator must judge whether approving proof still makes commercial sense for a registration that may no longer be in an approved lifecycle — a judgment call with weak domain framing.
+
+## P9 — Ledger truth vs operational truth
+
+Ledger answers auditors. PaymentStatus + receipts answer “can we treat them as paid for ops?” When both are visible as peer concepts, operators may think they must “work the ledger” to settle guests.
+
+**Effect:** Wrong altitude of work; fear of touching audit surfaces; or ignoring audit when mismatches appear.
+
+## P10 — Split desks without a shared case narrative
+
+Architecture correctly splits Bookings vs Finance ownership. The persona still needs **one case narrative**. Today the narrative is assembled by the human across two hubs and multiple status families.
+
+**Effect:** Next-action ambiguity after approve (“I approved — now what exactly am I waiting for, and who owns the wait?”).
+
+---
+
+# Open Questions
+
+Questions for subsequent analysis workshops (unanswered on purpose — no solutioning here).
+
+1. For Denali’s **dominant** club operations, is the primary money unit of work “one registration case” or “one receipt in a global queue”? Which should own the default mental model?
+2. When should an operator **create** a Manual Payment versus rely on member upload auto-create? Is manual create an exception path only?
+3. What is the single sentence definition of booking `partial` that a treasurer can apply without knowing wallet internals?
+4. Are installments in-scope for Denali day-1 treasurer workflows, or a secondary product track that should stay out of the default money story until capture-per-installment is first-class?
+5. How should free / zero obligation registrations announce themselves in the **same language** as unpaid-offline registrations without collapsing statuses?
+6. Should rejected receipts leave Payment `Pending`, recreate payment, or require an explicit ops disposition — and how is that taught?
+7. What is the authoritative ops answer during “Receipt Pending + Booking unpaid”: which status do we tell a coach/leader who asks “have they paid?”
+8. How much lifecycle context must Finance domain language carry (read-only) for money decisions without violating ownership boundaries?
+9. Is obligation override an expected weekly treasurer tool or a rare manager tool? (API exists; ops story incomplete.)
+10. For historical Pending receipts on non-approved bookings: is continued review a deliberate ops capability or residual debt to be policy-clarified?
+11. Where does reconciliation sit in the treasurer’s weekly ritual relative to receipt review — same job, adjacent job, or escalations-only?
+12. What events must be **visible as one timeline** on a registration for trust (lifecycle, proof submit, proof decision, projection sync, ledger post) even if ownership stays split?
+
+---
+
+# پیشنهادی برای مراحل بعدی تحلیل
+
+Only **analysis** next steps — not design or build.
+
+1. **Case grammar workshop** — Define the minimum set of domain sentences a treasurer must be able to say about one registration (without UI mockups). Validate against Journeys 1–6.
+2. **Status synonym map (FA/EN)** — For each status value, write the forbidden colloquial merges and the one allowed plain-language gloss. Keep as glossary, not screens.
+3. **Decision inventory** — List every decision in Pain Points P2/P5/P8 with: inputs required, forbidden inputs, and which entity status flips. Still no UI.
+4. **Path prevalence study** — From real/staging Denali data (or structured ops interviews): frequency of happy-path receipt vs manual payment vs prepayment vs installments vs free/zero. Informs which concepts are core vs edge in later redesign.
+5. **Trust timeline study** — Shadow a receipt approve and note every moment an operator checks Bookings vs Finance vs member portal; document expectation gaps (conceptual sync), still without prescribing sync UX.
+6. **Boundary stress scenarios** — Scripted analysis of: approve then cancel; reject receipt twice; override to zero after proof pending; auto-approve + free; duplicate manual + member payment. Capture domain ambiguity, not engineering tasks.
+7. **Persona variants** — Split “finance-only staff” vs “owner who does both approve and receipt review” and re-test Open Questions 1, 7, 8.
+8. **Only then** — Problem framing brief for redesign (jobs-to-be-done + non-goals), still prior to UI exploration.
+
+---
+
+## References (authority for this analysis)
+
+- [`registration-payment-orchestration.mdoc`](./registration-payment-orchestration.mdoc) — Denali dual-axis policy, receipt gate, free/zero/override
+- [`PAYMENT-LEDGER-BOUNDARY.md`](../../phase-20/p7/appendices/PAYMENT-LEDGER-BOUNDARY.md) — ingress vs ledger, approve atomicity, booking payment port
+- [`BOOKING_LIFECYCLE_OWNERSHIP.md`](../../phase-20/p7/appendices/BOOKING_LIFECYCLE_OWNERSHIP.md) — lifecycle SoT
+- [`FINANCE-OPS-UX.md`](../../phase-9/appendices/FINANCE-OPS-UX.md) — command-center product north star & progressive finance architecture
+- Runtime ownership mirrors: `packages/finance-core` (`FinanceService`, schedule/obligation domain), `IBookingPaymentPort`
+
+---
+
+*Document type: discovery analysis. Explicitly excludes UI proposals, implementation plans, refactors, and migrations.*

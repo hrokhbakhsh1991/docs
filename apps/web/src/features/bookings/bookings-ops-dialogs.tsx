@@ -175,3 +175,47 @@ export function BookingsCancelConfirmDialog({
     </Dialog>
   );
 }
+
+type BookingsOverbookConfirmDialogProps = {
+  readonly open: boolean;
+  readonly busy: boolean;
+  readonly guestLabel: string;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly onConfirm: () => void;
+};
+
+/** H-08 / H2-T2 — approve at capacity requires explicit confirm on waitlist embed. */
+export function BookingsOverbookConfirmDialog({
+  open,
+  busy,
+  guestLabel,
+  onOpenChange,
+  onConfirm,
+}: BookingsOverbookConfirmDialogProps) {
+  const t = useTranslations("bookings");
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.overbookConfirmDialog}>
+        <DialogHeader>
+          <DialogTitle>{t("overbookConfirmTitle")}</DialogTitle>
+          <DialogDescription>
+            {t("overbookConfirmDescription", { guest: guestLabel })}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={busy}
+          >
+            {t("overbookConfirmCancel")}
+          </Button>
+          <Button type="button" disabled={busy} onClick={onConfirm}>
+            {t("overbookConfirmAction")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

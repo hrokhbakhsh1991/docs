@@ -618,6 +618,16 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main:is([data-portal-member-login-page], [data-catalog-registration-page])
   [data-portal-auth-card]
+  [data-registration-other-guest-list] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-2) 0 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-auth-card]
   [data-registration-target-tabs]
   button[type="button"] {
   width: auto;

@@ -5072,6 +5072,9 @@
           "tourId",
           "tourTitle",
           "guestLabel",
+          "registrantTarget",
+          "transportKind",
+          "personalCarOccupants",
           "partySize",
           "status",
           "paymentStatus",
@@ -5095,6 +5098,44 @@
             "type": "string",
             "examples": [
               "Ada Lovelace"
+            ]
+          },
+          "registrantTarget": {
+            "type": "string",
+            "enum": [
+              "self",
+              "other"
+            ],
+            "description": "Who the seat is for — scalar derived from intake (list omits registrationIntake).",
+            "examples": [
+              "self"
+            ]
+          },
+          "transportKind": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "primary",
+              "personal_car",
+              "no_car_dong",
+              "no_car_acquaintance"
+            ],
+            "description": "Guest intake transport kind — list scalar (H5-T3); not the intake blob.",
+            "examples": [
+              "personal_car"
+            ]
+          },
+          "personalCarOccupants": {
+            "type": "integer",
+            "nullable": true,
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "description": "When transportKind=personal_car, occupants 1–3 (list scalar).",
+            "examples": [
+              2
             ]
           },
           "partySize": {
@@ -5138,6 +5179,9 @@
             "tourId": "00000000-0000-4000-8000-000000000880",
             "tourTitle": "Alborz Day Hike",
             "guestLabel": "Ada Lovelace",
+            "registrantTarget": "self",
+            "transportKind": null,
+            "personalCarOccupants": null,
             "partySize": 2,
             "status": "pending",
             "paymentStatus": "unpaid",
@@ -5608,6 +5652,9 @@
             "tourId": "00000000-0000-4000-8000-000000000880",
             "tourTitle": "Alborz Day Hike",
             "guestLabel": "Ada Lovelace",
+            "registrantTarget": "self",
+            "transportKind": "primary",
+            "personalCarOccupants": null,
             "partySize": 2,
             "status": "pending",
             "paymentStatus": "unpaid",

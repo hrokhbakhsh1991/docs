@@ -23,6 +23,14 @@ import {
   MAX_MEMBER_BOOKINGS_LIST_CAP,
 } from "./bookings-member-summary-projection";
 import { raiseBookingPaymentStatus } from "./booking-payment-status";
+import {
+  isOwnedActiveOtherReclassifyCandidate,
+  readRegistrantTargetFromIntake,
+} from "./read-registrant-target";
+import {
+  readPersonalCarOccupantsFromIntake,
+  readTransportKindFromIntake,
+} from "./read-transport-kind-from-intake";
 import { finalizeBookingTourChips } from "./booking-tour-chips";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import {
@@ -133,13 +141,31 @@ function seedOperatorSmokeDevBookingsFixture(): void {
 }
 
 function cloneBooking(record: BookingRecord): BookingRecord {
-  return { ...record };
+  const registrationIntake = record.registrationIntake;
+  return {
+    ...record,
+    registrantTarget:
+      record.registrantTarget ?? readRegistrantTargetFromIntake(registrationIntake),
+    transportKind:
+      record.transportKind !== undefined
+        ? record.transportKind
+        : readTransportKindFromIntake(registrationIntake),
+    personalCarOccupants:
+      record.personalCarOccupants !== undefined
+        ? record.personalCarOccupants
+        : readPersonalCarOccupantsFromIntake(registrationIntake),
+  };
 }
 
-/** List projection — strip `registrationIntake` (BK-SAFE-01). */
+/** List projection — strip `registrationIntake` (BK-SAFE-01); keep scalars. */
 function toBookingListRecord(record: BookingRecord): BookingRecord {
-  const { registrationIntake: _omitIntake, ...rest } = cloneBooking(record);
-  return rest;
+  const { registrationIntake, ...rest } = cloneBooking(record);
+  return {
+    ...rest,
+    registrantTarget: readRegistrantTargetFromIntake(registrationIntake),
+    transportKind: readTransportKindFromIntake(registrationIntake),
+    personalCarOccupants: readPersonalCarOccupantsFromIntake(registrationIntake),
+  };
 }
 
 function snapshotState(): RepositorySnapshot {
@@ -305,7 +331,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     readonly tenantId: string;
     readonly tourId: string;
     readonly match: {
-      readonly kind: "user" | "label" | "email" | "nationalId";
+      readonly kind: "user" | "label" | "email" | "nationalId" | "phone";
       readonly value: string;
     };
   }): Promise<BookingRecord | null> {
@@ -314,7 +340,9 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       return null;
     }
     const normalized =
-      input.match.kind === "label" || input.match.kind === "email"
+      input.match.kind === "label" ||
+      input.match.kind === "email" ||
+      input.match.kind === "phone"
         ? raw.toLocaleLowerCase()
         : raw;
     for (const row of bookingsStore.values()) {
@@ -329,6 +357,10 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       switch (input.match.kind) {
         case "user":
           if (row.submittedByUserId === normalized) {
+            const target = row.registrationIntake?.registrantTarget;
+            if (target === "other") {
+              break;
+            }
             return cloneBooking(row);
           }
           break;
@@ -339,6 +371,11 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
           break;
         case "email":
           if ((row.guestEmail?.trim().toLowerCase() ?? "") === normalized) {
+            return cloneBooking(row);
+          }
+          break;
+        case "phone":
+          if ((row.guestPhone?.trim().toLowerCase() ?? "") === normalized) {
             return cloneBooking(row);
           }
           break;
@@ -527,6 +564,71 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       };
       bookingsStore.set(input.bookingId, merged);
       return cloneBooking(merged);
+    }
+
+    async updateGuestProjectionAndIntake(input: {
+      readonly bookingId: string;
+      readonly tenantId: string;
+      readonly guestLabel: string;
+      readonly guestEmail?: string | null;
+      readonly guestPhone?: string | null;
+      readonly intakePatch: Readonly<Record<string, unknown>>;
+    }): Promise<BookingRecord | null> {
+      const row = bookingsStore.get(input.bookingId);
+      if (row === undefined || row.tenantId !== input.tenantId) {
+        return null;
+      }
+      const merged: BookingRecord = {
+        ...row,
+        guestLabel: input.guestLabel,
+        ...(input.guestEmail !== undefined ? { guestEmail: input.guestEmail } : {}),
+        ...(input.guestPhone !== undefined ? { guestPhone: input.guestPhone } : {}),
+        registrationIntake: {
+          ...(row.registrationIntake ?? {}),
+          ...input.intakePatch,
+        },
+      };
+      bookingsStore.set(input.bookingId, merged);
+      return cloneBooking(merged);
+    }
+
+    async reclassifyOwnedOtherToSelf(input: {
+      readonly bookingId: string;
+      readonly tenantId: string;
+      readonly submittedByUserId: string;
+      readonly guestLabel: string;
+      readonly guestEmail?: string | null;
+      readonly guestPhone?: string | null;
+      readonly intakePatch: Readonly<Record<string, unknown>>;
+    }): Promise<{ readonly id: string; readonly status: string } | null> {
+      const row = bookingsStore.get(input.bookingId);
+      if (
+        row === undefined ||
+        !isOwnedActiveOtherReclassifyCandidate({
+          submittedByUserId: row.submittedByUserId,
+          expectedSubmitterId: input.submittedByUserId,
+          status: row.status,
+          registrationIntake: row.registrationIntake,
+        })
+      ) {
+        return null;
+      }
+      const merged: BookingRecord = {
+        ...row,
+        guestLabel: input.guestLabel,
+        ...(input.guestEmail !== undefined ? { guestEmail: input.guestEmail } : {}),
+        ...(input.guestPhone !== undefined ? { guestPhone: input.guestPhone } : {}),
+        registrationIntake: {
+          ...(row.registrationIntake ?? {}),
+          ...input.intakePatch,
+        },
+        registrantTarget: readRegistrantTargetFromIntake({
+          ...(row.registrationIntake ?? {}),
+          ...input.intakePatch,
+        }),
+      };
+      bookingsStore.set(input.bookingId, merged);
+      return { id: merged.id, status: merged.status };
     }
 
     async createBooking(input: {

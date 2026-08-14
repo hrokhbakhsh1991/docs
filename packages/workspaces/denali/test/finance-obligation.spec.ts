@@ -83,4 +83,91 @@ describe("finance-obligation.spec.ts — FC-2 Denali", () => {
     assert.ok(resolved !== null);
     assert.equal(resolved.obligationMinor, "500");
   });
+
+  it("PR15-E — wizard envelope data.pricing resolves (live Prisma shape)", () => {
+    const resolved = resolveDenaliRegistrationObligationMinor({
+      tourCanonical: {
+        data: {
+          pricing: {
+            basePricePerPerson: 2_500_000,
+            paymentMode: "offline_receipt",
+          },
+        },
+        roots: {},
+        schemaVersion: 1,
+      },
+      partySize: 1,
+    });
+    assert.ok(resolved !== null);
+    assert.equal(resolved.obligationMinor, "2500000");
+    assert.equal(resolved.currency, "IRR");
+    assert.equal(resolved.source, "tour_canonical");
+  });
+
+  it("PR15-E — missing pricing stays null (unknown; never zero)", () => {
+    assert.equal(
+      resolveDenaliRegistrationObligationMinor({
+        tourCanonical: {
+          data: { title: "No price tour", pricing: { paymentMode: "offline_receipt" } },
+          roots: {},
+          schemaVersion: 1,
+        },
+        partySize: 1,
+      }),
+      null
+    );
+    assert.equal(
+      resolveDenaliRegistrationObligationMinor({
+        tourCanonical: { data: { title: "No pricing object" }, roots: {}, schemaVersion: 1 },
+        partySize: 1,
+      }),
+      null
+    );
+  });
+
+  it("PR15-E — malformed envelope yields null (no guess)", () => {
+    assert.equal(
+      resolveDenaliRegistrationObligationMinor({
+        tourCanonical: { data: null, roots: {}, schemaVersion: 1 },
+        partySize: 1,
+      }),
+      null
+    );
+    assert.equal(
+      resolveDenaliRegistrationObligationMinor({
+        tourCanonical: { data: "not-an-object", roots: {}, schemaVersion: 1 },
+        partySize: 1,
+      }),
+      null
+    );
+    assert.equal(
+      resolveDenaliRegistrationObligationMinor({
+        tourCanonical: null,
+        partySize: 1,
+      }),
+      null
+    );
+  });
+
+  it("PR15-E — flat and wrapped same pricing ⇒ same obligationMinor", () => {
+    const flat = resolveDenaliRegistrationObligationMinor({
+      tourCanonical: {
+        pricing: { basePricePerPerson: 1_000_000, paymentMode: "offline_receipt" },
+      },
+      partySize: 3,
+    });
+    const wrapped = resolveDenaliRegistrationObligationMinor({
+      tourCanonical: {
+        data: {
+          pricing: { basePricePerPerson: 1_000_000, paymentMode: "offline_receipt" },
+        },
+        roots: {},
+        schemaVersion: 1,
+      },
+      partySize: 3,
+    });
+    assert.ok(flat !== null && wrapped !== null);
+    assert.equal(flat.obligationMinor, wrapped.obligationMinor);
+    assert.equal(flat.currency, wrapped.currency);
+  });
 });

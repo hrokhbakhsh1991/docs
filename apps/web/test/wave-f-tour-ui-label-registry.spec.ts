@@ -48,7 +48,7 @@ describe("wave-f-tour-ui-label-registry.spec.ts — Wave F.c", () => {
     assert.match(source, /tour\.categoryGroup/);
   });
 
-  it("F.c-03 transport page passes pluginId into client", () => {
+  it("F.c-03 transport UI resolves labels through the plugin-aware client", () => {
     const page = readFileSync(
       join(WEB_ROOT, "app/(app)/tours/[id]/workspace/transport/page.tsx"),
       "utf8"
@@ -60,7 +60,7 @@ describe("wave-f-tour-ui-label-registry.spec.ts — Wave F.c", () => {
       ),
       "utf8"
     );
-    assert.match(page, /pluginId=\{session\.pluginId\}/);
+    assert.match(page, /redirect\(hrefForWorkspaceTab\(id,\s*"transport"\)\)/);
     assert.match(client, /readonly pluginId: string/);
     assert.match(client, /resolveWizardTransportModeLabel/);
     assert.match(client, /useWorkspaceWizardTranslator/);

@@ -77,7 +77,7 @@
     "openCommandCenter": "رفتن به امور مالی",
     "kpi": {
       "pending-manual": "پرداخت دستی در انتظار",
-      "pending-receipts": "رسید در انتظار",
+      "pending-receipts": "رسیدهای در انتظار بررسی",
       "paid-payments": "پرداخت‌شده"
     }
   }

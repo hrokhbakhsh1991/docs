@@ -37,7 +37,7 @@ describe("resolve-intake-schema (registry)", () => {
     const schema = resolveIntakeSchema("denali");
     assert.deepEqual(
       schema.fields.map((field) => field.id),
-      ["fullName", "nationalId", "fatherName", "birthDate"]
+      ["fullName", "phone", "nationalId", "fatherName", "birthDate"]
     );
     assert.equal(schema.fields.find((field) => field.id === "birthDate")?.type, "date");
     assert.equal(schema.features.transportIntake, true);
@@ -106,6 +106,7 @@ describe("resolve-intake-schema (registry)", () => {
     const schema = resolveIntakeSchema("denali");
     const issues = validateIntakeSchemaValues(schema, {
       fullName: "Ada",
+      phone: "09123456789",
       nationalId: "abc",
       fatherName: "Bob",
       birthDate: "1990-01-01",

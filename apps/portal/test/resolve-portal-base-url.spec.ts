@@ -17,7 +17,7 @@ describe("resolve-portal-base-url", () => {
         rootDomain: "localhost",
         portalPort: "3003",
       }),
-      "http://denali.portal.localhost:3003"
+      "http://portal.denali.localhost:3003"
     );
   });
 

@@ -233,6 +233,12 @@ describe(
       assert.equal(payload.publishStatus, "active");
       const snapshot = payload.deliverySnapshot as Record<string, unknown>;
       assert.equal(snapshot.title, expectedTitle);
+
+      const tour = await admin.tour.findUniqueOrThrow({
+        where: { tenantId_id: { tenantId, id: tourId } },
+      });
+      assert.equal(tour.publishStatus, "published");
+      assert.ok(tour.publishedAt instanceof Date);
     });
 
     it("dispatches TourPublished into an idempotent integration delivery job", async () => {

@@ -34,4 +34,33 @@ export class BookingRegistrationDisplayAdapter implements RegistrationDisplayPor
     }
     return map;
   }
+
+  async listRegistrationIdsByTourId(
+    tenantId: string,
+    tourId: string
+  ): Promise<readonly string[]> {
+    const trimmedTenant = tenantId.trim();
+    const trimmedTour = tourId.trim();
+    if (trimmedTenant.length === 0 || trimmedTour.length === 0) {
+      return [];
+    }
+    const ids: string[] = [];
+    let cursor: string | undefined;
+    for (;;) {
+      const page = await this.bookings.listByTenantPage({
+        tenantId: trimmedTenant,
+        tourId: trimmedTour,
+        limit: 200,
+        ...(cursor !== undefined ? { cursor } : {}),
+      });
+      for (const booking of page.items) {
+        ids.push(booking.id);
+      }
+      if (page.nextCursor === null || page.nextCursor.length === 0) {
+        break;
+      }
+      cursor = page.nextCursor;
+    }
+    return ids;
+  }
 }

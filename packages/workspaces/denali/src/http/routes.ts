@@ -20,6 +20,9 @@ export {
   handleGetDenaliCatalogTour,
   handleGetDenaliDashboardTour,
   handleGetDenaliReminderFeed,
+  handleGetDenaliRegistrationForTour,
+  handleGetDenaliRegistration,
+  handlePatchDenaliRegistration,
   handlePostDenaliRegistration,
 } from "./product.routes";
 export {
@@ -27,6 +30,21 @@ export {
   DENALI_REGISTRATION_DUPLICATE,
   isDenaliRegistrationDuplicateError,
 } from "./errors/denali-registration-conflict.error";
+export {
+  DenaliRegistrationNotFoundError,
+  DENALI_REGISTRATION_NOT_FOUND,
+  isDenaliRegistrationNotFoundError,
+} from "./errors/denali-registration-not-found.error";
+export {
+  DenaliRegistrationInvalidError,
+  DENALI_REGISTRATION_INVALID,
+  isDenaliRegistrationInvalidError,
+} from "./errors/denali-registration-invalid.error";
+export {
+  DenaliRegistrationNotAmendableError,
+  DENALI_REGISTRATION_NOT_AMENDABLE,
+  isDenaliRegistrationNotAmendableError,
+} from "./errors/denali-registration-not-amendable.error";
 
 export {
   handleFinanceSummary,
@@ -38,6 +56,9 @@ export {
   handleFinanceReviewReceipt,
   handleFinanceReceiptUrl,
   handleFinancePendingReceipts,
+  handleFinanceListExceptions,
+  handleFinanceOutstandingBalances,
+  handleFinanceTourCollections,
   handleFinanceListPrepayments,
   handleFinanceRecordPrepayment,
   handleFinanceListBookingSyncDegraded,
@@ -49,4 +70,6 @@ export {
   handleFinanceSetObligationOverride,
   handleFinancePatchScheduleItem,
   handleFinanceReceiptUpload,
+  handleFinanceCaseEncounter,
+  handleFinanceCaseCommandReviewReceipt,
 } from "./finance.routes";

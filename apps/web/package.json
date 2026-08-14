@@ -44,6 +44,7 @@
   "dependencies": {
     "@app-tour/design-tokens": "workspace:*",
     "@app-tour/draft-engine": "workspace:*",
+    "@app-tour/finance-case-encounter-ui": "workspace:*",
     "@app-tour/guest-surface-host": "workspace:*",
     "@app-tour/iran-mountain-landmarks": "workspace:*",
     "@app-tour/platform-core": "workspace:*",

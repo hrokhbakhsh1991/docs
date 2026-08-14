@@ -239,7 +239,10 @@ describe("DG-4.1 harbor catalog HTTP", () => {
         findDuplicateByTourGuest: async () => null,
         findDuplicateByTourGuestLabel: async () => null,
         findDuplicateByTourGuestNationalId: async () => null,
+        findDuplicateByTourGuestPhone: async () => null,
         findDuplicateByTourEmail: async () => null,
+        findOwnedBooking: async () => null,
+        mergeOwnedRegistrationIntake: async () => null,
         createPendingBooking: async (input) => ({
           id: "reg-durable-1",
           status: "pending",

@@ -12,6 +12,9 @@ import { getDenaliDashboardTour } from "./dashboard.service";
 import { getDenaliProductHttpHost } from "./product-host-runtime";
 import type { DenaliProductRouteDeps } from "./product-host-ports";
 import { createDenaliRegistration } from "./registration.service";
+import { amendDenaliRegistrationIntake } from "./registration-amend.service";
+import { getDenaliRegistrationForTour } from "./registration-for-tour.service";
+import { getDenaliRegistrationOwned } from "./registration-get.service";
 import { listDenaliReminderFeed } from "./reminder-feed.service";
 import { resolveDenaliPublicAuth } from "./resolve-denali-public-auth";
 import { resolveDenaliRegisteredAuth } from "./resolve-denali-registered-auth";
@@ -152,6 +155,107 @@ export async function handlePostDenaliRegistration(
             : {}),
         });
         host.sendJson(res, 201, buildWorkspaceSuccessDataBody(created));
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    host.handleHttpError(res, error);
+  }
+}
+
+export async function handleGetDenaliRegistrationForTour(
+  req: IncomingMessage,
+  res: ServerResponse,
+  tourId: string,
+  deps: DenaliProductRouteDeps = {}
+): Promise<void> {
+  const host = getDenaliProductHttpHost();
+  try {
+    const auth = resolveDenaliRegisteredAuth(req);
+    const bookingPort = host.resolvePublicBookingPort(deps);
+
+    await host.runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await getDenaliRegistrationForTour({
+          tenantId: auth.tenantId,
+          guestUserId: auth.userId,
+          tourId,
+          bookingPort,
+        });
+        host.sendJson(res, 200, buildWorkspaceSuccessDataBody(result));
+      },
+      { rateLimit: "read" }
+    );
+  } catch (error) {
+    host.handleHttpError(res, error);
+  }
+}
+
+export async function handleGetDenaliRegistration(
+  req: IncomingMessage,
+  res: ServerResponse,
+  registrationId: string,
+  deps: DenaliProductRouteDeps = {}
+): Promise<void> {
+  const host = getDenaliProductHttpHost();
+  try {
+    const auth = resolveDenaliRegisteredAuth(req);
+    const bookingPort = host.resolvePublicBookingPort(deps);
+
+    await host.runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await getDenaliRegistrationOwned({
+          tenantId: auth.tenantId,
+          guestUserId: auth.userId,
+          registrationId,
+          bookingPort,
+          store: await host.resolveTourStore(deps),
+        });
+        host.sendJson(res, 200, buildWorkspaceSuccessDataBody(result));
+      },
+      { rateLimit: "read" }
+    );
+  } catch (error) {
+    host.handleHttpError(res, error);
+  }
+}
+
+export async function handlePatchDenaliRegistration(
+  req: IncomingMessage,
+  res: ServerResponse,
+  registrationId: string,
+  deps: DenaliProductRouteDeps = {}
+): Promise<void> {
+  const host = getDenaliProductHttpHost();
+  try {
+    const auth = resolveDenaliRegisteredAuth(req);
+    const rawBody = await host.readDenaliRegistrationRequestBody(req);
+    const body =
+      rawBody !== null && typeof rawBody === "object" && !Array.isArray(rawBody)
+        ? (rawBody as { transport?: unknown })
+        : {};
+    const store = await host.resolveTourStore(deps);
+    const bookingPort = host.resolvePublicBookingPort(deps);
+    const workspaceType = await host.resolveWorkspaceTypeForTenant(auth.tenantId);
+
+    await host.runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const updated = await amendDenaliRegistrationIntake({
+          tenantId: auth.tenantId,
+          workspaceType,
+          guestUserId: auth.userId,
+          registrationId,
+          body,
+          store,
+          bookingPort,
+        });
+        host.sendJson(res, 200, buildWorkspaceSuccessDataBody(updated));
       },
       { rateLimit: "write" }
     );

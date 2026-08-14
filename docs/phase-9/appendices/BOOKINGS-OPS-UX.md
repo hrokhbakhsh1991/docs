@@ -47,7 +47,10 @@ next_wave: "p3b-audit" # optional — true activity stream; not required for ops
 (app)/bookings/[id]               ← Deep link → `/bookings?bookingId={id}` (inspection panel focus)
 (app)/leader/review               ← Alias → /bookings?view=inbox_table&scope=leader (DEC-P9-011)
 (app)/tours/[id]/workspace/...    ← Registrations tab embeds same component with tourId preset
+                                    ← Complete IA: TOURS-WORKSPACE-COMPLETE.md (TW-C-01)
 ```
+
+> **Tour Workspace embed (locked):** `(app)/tours/[id]/workspace` must reuse the Command Center shell with immutable `tourId` (hide tour chip bar when embedded). Deep link back: Workspace ↔ `/bookings?tourId=`. See [`TOURS-WORKSPACE-COMPLETE.md`](./TOURS-WORKSPACE-COMPLETE.md).
 
 ### View modes (operator toggles — persisted `localStorage` + optional tenant default)
 
@@ -658,7 +661,7 @@ L3 History        status=all / past window      — explicit only (search / stat
 | UX-BKG-47 | **Urgency scan cues (badge-only, no sort):** single urgency slot — Overdue ≻ Soon (`0 ≤ departure−now < 48h`) ≻ Aging (`pending\|waitlisted` and `now−submittedAt ≥ 48h` as muted submitted-line suffix). Client helpers only; no API/sort changes (UX-BKG-33). | web row |
 | UX-BKG-48 | **Optional inline Approve only** (no Reject / Waitlist / Cancel on row). Sibling `<button>` (not nested in select hit-target); `stopPropagation`. Desktop: every eligible pending\|waitlisted row when feature on; mobile (`<lg`): selected row only. Same `approve` runner as inspection. Kill switch `BOOKINGS_INLINE_APPROVE_ENABLED`. | web row |
 | UX-BKG-49 | **Lightweight queue freshness:** `visibilitychange` → visible soft-refetch (bump `fetchNonce`, preserve bulk selection). Cooldown **45s** since last successful fetch; skip while `actionBusy` / `loadingMore` / reject|bulk dialog open. No polling, no websocket. | web page |
-| UX-BKG-50 | **Transport on inspection only (list-projection restore):** do **not** put `registrationIntake` on `listBookings` / `BOOKING_LIST_SELECT` (BK-SAFE-01 + `FORBIDDEN_LIST_JSON_BLOB_FIELDS`). Row meta must **not** render transport. Operators read transport via inspection/detail: `GET /bookings/{bookingId}` (ops) returns projected fields **plus** `registrationIntake`; Command Center loads detail when a row is selected (desktop split + mobile sheet). Tour-workspace transport roster that still calls list-only may show `—` until a dedicated transport projection lands. | API detail + web inspection |
+| UX-BKG-50 | **Transport on inspection only (list-projection restore):** do **not** put `registrationIntake` on `listBookings` / `BOOKING_LIST_SELECT` (BK-SAFE-01 + `FORBIDDEN_LIST_JSON_BLOB_FIELDS`). Row meta in Command Center must **not** render transport from the blob. Operators read full intake via inspection/detail: `GET /bookings/{bookingId}` (ops). **Allowed list scalars (H5-T3):** `transportKind` + `personalCarOccupants` derived server-side from intake JSON (same pattern as `registrantTarget`) for Tour Workspace transport roster — still not the intake blob. | API detail + list scalars + web inspection |
 | UX-BKG-32 | Facet **Upcoming** window beside tour chips. **UX-BKG-45:** segmented **7 / 14 / 30** chips → `applyBookingsDepartureWindowChip` → `applyDepartureWindow` (membership preserve). KPI / preset default remain **7**. | URL + chrome |
 | UX-BKG-33 | **Badge-only** — no secondary overdue sort in P4b (avoids fighting keyset/`sort=submittedAt`). | decision |
 | UX-BKG-34 | Body state `emptyUpcoming` when list empty and `departureWithinDays` set (copy distinct from `emptyFiltered`). | gate + i18n |
@@ -688,6 +691,24 @@ Operator copy must not imply KPI / preset / timeline are separate “upcoming pr
 | **Bulk approve** | Unchanged confirm (UX-BKG-22). |
 
 No undo toast in 52. No API changes.
+
+**UX-BKG-56 (2026-08-12) — Post-lifecycle action feedback:**
+
+| Action | After successful POST |
+| ------ | --------------------- |
+| **Approve** | Persistent `role="status"` banner (reuse `actionNotice`; **not** toast). Copy names guest and states lifecycle outcome. When `paymentStatus` is `unpaid` or `partial`, copy must clarify **approve ≠ paid**. |
+| **Reject** | Banner names guest; hint where to find record (History / `status=rejected`). |
+| **Waitlist** | Banner names guest; when tour workspace embed, link to waitlist tab. |
+| **Cancel** | Banner names guest; hint History / `status=cancelled`. |
+| **Bulk approve** | Partial skip notice unchanged (UX-BKG-22). When all succeed, count-based success banner. |
+
+**Inline approve (UX-BKG-52 unchanged):** arm→confirm flow preserved. Only copy/chrome clarity — armed row highlight + clearer second-click label.
+
+**Embedded tour workspace:** when `embedded` + `lockedTourId`, approve notice includes links to Transport tab; unpaid/partial adds Finance tab link. See TOURS-WORKSPACE-COMPLETE H-08.
+
+**Non-goals:** undo toast; auto-navigate away from queue; API changes.
+
+**Verify:** `bookings-command-center.spec.ts` notice builder matrix + existing CC suite.
 
 **Out of P4b:** forcing `departureAt ≥ now` on default pending query; P4c history scope.
 

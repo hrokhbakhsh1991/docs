@@ -31,6 +31,11 @@ export type RegistrationFlowContext = {
   readonly memberLoginStayOnPage?: boolean;
   /** Register-host modal success — close modal + resume intake on page. */
   readonly onMemberLoginSessionReady?: () => void | Promise<void>;
+  /**
+   * When set, member already has an active **self** registration on this tour —
+   * intake UI must not offer self again (gate to `/me/registrations/{id}`).
+   */
+  readonly existingSelfRegistrationId?: string | null;
 };
 
 export type IntakeFlowDefinition = {

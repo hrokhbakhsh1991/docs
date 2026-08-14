@@ -7,6 +7,12 @@ export type FieldRules = {
 
 export type IntakeFieldType = "text" | "date" | "email" | "number" | "boolean";
 
+/**
+ * Digit-string controls for intake:
+ * - `numeric-text` / `localized-digits` — both render as `type="text"` + `inputMode="numeric"`
+ *   (never HTML `type="number"`; preserves leading zeros e.g. Iranian mobile).
+ * True quantities use `IntakeFieldType` `"number"`.
+ */
 export type IntakeFieldWidget = "numeric-text" | "localized-digits";
 
 export type IntakeField = {
@@ -24,6 +30,20 @@ export type IntakeSchemaFeatures = {
   readonly transportIntake: boolean;
   readonly notesAtIntake: boolean;
   readonly idempotencyKey: boolean;
+  /**
+   * Portal catalog POST must send member Bearer — no anonymous guest write.
+   * Workspaces with member-only intake set true; guest-write surfaces omit or set false.
+   */
+  readonly requiresMemberSession?: boolean;
+  /**
+   * Enables `GET …/registrations/for-tour/:tourId` member self-gate
+   * (path derived from intake `registrationApiPath`).
+   */
+  readonly selfRegistrationGate?: boolean;
+  /**
+   * Enables member `PATCH …/registrations/:id` pending intake amend (transport allowlist).
+   */
+  readonly memberPendingIntakeAmend?: boolean;
   /** Extra `data-*` attributes on `[data-public-registration-success]` for workspace E2E smokes. */
   readonly successDataAttributes?: Readonly<Record<string, boolean>>;
 };

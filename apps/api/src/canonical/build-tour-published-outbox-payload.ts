@@ -1,6 +1,7 @@
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 
 import type { TourProjectionFields } from "./projection-sync";
+export { isPublicPublishStatusLabel } from "./publish-status-labels";
 
 export const TOUR_PUBLISHED_OUTBOX_PAYLOAD_SCHEMA_VERSION = 1 as const;
 
@@ -27,15 +28,6 @@ function readCanonicalDataRecord(
     return data as Readonly<Record<string, unknown>>;
   }
   return {};
-}
-
-/** Workspace publish labels that mean "publicly visible" for integration dispatch. */
-export function isPublicPublishStatusLabel(label: string | undefined): boolean {
-  if (label === undefined) {
-    return false;
-  }
-  const normalized = label.trim().toLowerCase();
-  return normalized === "active" || normalized === "published";
 }
 
 export function buildTourPublishedOutboxPayload(input: {

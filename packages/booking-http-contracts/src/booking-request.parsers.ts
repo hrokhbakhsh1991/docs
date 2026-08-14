@@ -135,6 +135,7 @@ export function parseCreateBookingBody(body: unknown): CreateBookingRequest | nu
   const departureAt = readBookingStringField(body, "departureAt");
   const guestEmail = readBookingStringField(body, "guestEmail");
   const guestPhone = readBookingStringField(body, "guestPhone");
+  const memberUserId = readBookingStringField(body, "memberUserId");
   const registrationIntake = readBookingRegistrationIntake(body);
 
   if (
@@ -155,6 +156,7 @@ export function parseCreateBookingBody(body: unknown): CreateBookingRequest | nu
     departureAt,
     ...(guestEmail.length > 0 ? { guestEmail } : {}),
     ...(guestPhone.length > 0 ? { guestPhone } : {}),
+    ...(memberUserId.length > 0 ? { memberUserId } : {}),
     ...(registrationIntake !== undefined ? { registrationIntake } : {}),
   };
 }

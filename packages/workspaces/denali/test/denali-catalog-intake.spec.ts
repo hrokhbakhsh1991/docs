@@ -63,6 +63,7 @@ describe("denali-catalog-intake", () => {
     });
     assert.deepEqual(effective.fields.map((field) => field.id), [
       "fullName",
+      "phone",
       "nationalId",
       "fatherName",
       "birthDate",

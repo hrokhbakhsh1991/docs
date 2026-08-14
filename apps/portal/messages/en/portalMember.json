@@ -21,8 +21,16 @@
   "registrations": {
     "title": "My registrations",
     "empty": "No registrations yet.",
+    "emptyFiltered": "No registrations in this filter. Try another tab.",
     "emptyCta": "Browse tours",
+    "filterAria": "Filter by registration type",
+    "filterAll": "All",
+    "filterSelf": "For myself",
+    "filterOther": "For others",
     "statusLine": "{status} · {paymentStatus} · {departureAt}",
+    "forSelfBadge": "For myself",
+    "forOtherBadge": "For someone else",
+    "guestLine": "Guest: {guestLabel}",
     "statusLabels": {
       "pending": "Pending",
       "approved": "Approved",
@@ -147,7 +155,9 @@
   "detail": {
     "backToList": "← Back to my registrations",
     "statusLine": "Status: {status} · Payment: {paymentStatus}",
-    "departure": "Departure: {departureAt}"
+    "departure": "Departure: {departureAt}",
+    "forOtherBadge": "For someone else",
+    "guestLine": "Guest: {guestLabel}"
   },
   "receipt": {
     "label": "Upload payment receipt",
@@ -165,6 +175,26 @@
     "paidTitle": "Payment confirmed",
     "paidBody": "Your receipt was approved. You're all set for this trip.",
     "viewTour": "View tour",
-    "backToTrips": "Back to my trips"
+    "backToTrips": "Back to my trips",
+    "dueTitle": "Amount due with receipt",
+    "dueTotal": "Total: {amount}",
+    "dueLineTrip": "Trip fee",
+    "dueLineDong": "Dong",
+    "dueLineTransport": "Transport",
+    "dueHint": "Your receipt should cover this total (trip plus dong/transport when applicable)."
+  },
+  "intakeAmend": {
+    "title": "Update registration details",
+    "lede": "You can change transport details before the club approves your registration.",
+    "transportLegend": "Transport",
+    "noPersonalCar": "Club / organized transport",
+    "personalCar": "I will bring a personal car",
+    "noCarDong": "No car — pay dong",
+    "noCarAcquaintance": "No car — ride with acquaintance",
+    "occupants": "Seats in my car",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "saved": "Saved.",
+    "error": "Could not save. Try again."
   }
 }

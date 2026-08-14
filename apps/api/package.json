@@ -154,6 +154,7 @@
     "test:phase-5": "NODE_ENV=test node --import tsx --test test/phase-5.contract.spec.ts",
     "test:soak": "NODE_ENV=test RUN_SOAK=1 node --expose-gc --import tsx --test --test-concurrency=1 test/3-performance/soak-memory-leak.spec.ts",
     "start": "node dist/main.js",
+    "predev": "bash ../../scripts/ci/build-api-workspace-deps.sh",
     "dev": "NODE_ENV=development node --import tsx --import ./scripts/bootstrap-dev-env.ts --env-file=.env --env-file=.env.local src/main.ts",
     "bootstrap:dev-jwt": "node ./scripts/bootstrap-dev-jwt-keys.mjs"
   },

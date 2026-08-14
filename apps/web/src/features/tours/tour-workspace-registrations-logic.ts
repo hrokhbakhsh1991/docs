@@ -1,10 +1,7 @@
 import type { BookingListItem } from "@/features/bookings/bookings-command-center-types";
 
 export const TOUR_WORKSPACE_REGISTRATIONS_TEST_IDS = {
-  table: "operator-tour-workspace-registrations-table",
-  empty: "operator-tour-workspace-registrations-empty",
   registerLink: "operator-tour-workspace-registrations-register",
-  registerFirstLink: "operator-tour-workspace-registrations-register-first",
 } as const;
 
 export function buildTourRegistrationsWorkspaceQuery(tourId: string): string {
@@ -14,10 +11,9 @@ export function buildTourRegistrationsWorkspaceQuery(tourId: string): string {
   return params.toString();
 }
 
-/** Pending-only query for Command Center deep links. */
+/** Command Center deep link — same tour scope as workspace embed (all statuses unless filtered in CC). */
 export function buildTourRegistrationsBookingsQuery(tourId: string): string {
   const params = new URLSearchParams();
-  params.set("status", "pending");
   params.set("tourId", tourId.trim());
   params.set("view", "ops");
   return params.toString();

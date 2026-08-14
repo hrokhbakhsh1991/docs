@@ -3,6 +3,8 @@ import { cookies, headers } from "next/headers";
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
+const WIZARD_LOCATIONS_PREFETCH_TIMEOUT_MS = 10_000;
+
 /** Server prefetch for wizard destination catalog — avoids client-only loading stall. */
 export async function fetchWizardLocationsServer(): Promise<unknown | null> {
   const cookieStore = await cookies();
@@ -22,6 +24,7 @@ export async function fetchWizardLocationsServer(): Promise<unknown | null> {
         host: host.split(":")[0] ?? "localhost",
       },
       cache: "no-store",
+      signal: AbortSignal.timeout(WIZARD_LOCATIONS_PREFETCH_TIMEOUT_MS),
     });
     if (!backendRes.ok) {
       return null;

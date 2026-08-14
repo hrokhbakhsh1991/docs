@@ -49,7 +49,19 @@ function noopBookingPort(): DenaliPublicBookingPort {
     async findDuplicateByTourGuestNationalId() {
       return null;
     },
+    async findDuplicateByTourGuestPhone() {
+      return null;
+    },
     async findDuplicateByTourEmail() {
+      return null;
+    },
+    async findOwnedBooking() {
+      return null;
+    },
+    async mergeOwnedRegistrationIntake() {
+      return null;
+    },
+    async reclassifyOwnedOtherToSelf() {
       return null;
     },
     async createPendingBooking() {
@@ -150,6 +162,7 @@ describe("denali-registration-profile-persist", () => {
         registrantTarget: "other",
         contact: {
           fullName: "Guest Child",
+          phone: "09123456789",
           nationalId: "2234567890",
           fatherName: "Guest Father",
           birthDate: "1992-01-01",

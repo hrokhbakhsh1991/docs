@@ -9,6 +9,7 @@
 import { getBookingsRepository } from "./create-bookings-repository";
 import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 import { createBookingsService, type BookingsService } from "./bookings.service";
+import { HostBookingAssistedRegistrationMembersAdapter } from "./infrastructure/host-booking-assisted-registration-members.adapter";
 import { HostBookingAuthorizationAdapter } from "./infrastructure/host-booking-authorization.adapter";
 import { HostBookingClockAdapter } from "./infrastructure/host-booking-clock.adapter";
 import { HostBookingTenantWorkspaceBindingAdapter } from "./infrastructure/host-booking-tenant-workspace-binding.adapter";
@@ -61,6 +62,7 @@ let sharedAuthorization: BookingAuthorizationPort | null = null;
 let sharedClock: BookingClockPort | null = null;
 let sharedTenantWorkspaceBinding: BookingTenantWorkspaceBindingPort | null = null;
 let sharedTourCapacity: BookingTourCapacityPort | null = null;
+let sharedAssistedRegistrationMembers: HostBookingAssistedRegistrationMembersAdapter | null = null;
 
 function getSharedAuthorization(): BookingAuthorizationPort {
   if (sharedAuthorization === null) {
@@ -88,6 +90,13 @@ function getSharedTourCapacity(): BookingTourCapacityPort {
     sharedTourCapacity = new HostBookingTourCapacityAdapter();
   }
   return sharedTourCapacity;
+}
+
+function getSharedAssistedRegistrationMembers(): HostBookingAssistedRegistrationMembersAdapter {
+  if (sharedAssistedRegistrationMembers === null) {
+    sharedAssistedRegistrationMembers = new HostBookingAssistedRegistrationMembersAdapter();
+  }
+  return sharedAssistedRegistrationMembers;
 }
 
 /**
@@ -123,6 +132,7 @@ export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string)
     publicBooking: dependencies.publicBooking,
     validationPolicy: dependencies.validationPolicy,
     capacityPolicy: dependencies.capacityPolicy,
+    assistedRegistrationMembers: getSharedAssistedRegistrationMembers(),
     tourCapacity: getSharedTourCapacity(),
     workspaceType: normalized,
     tenantWorkspaceBinding: getSharedTenantWorkspaceBinding(),
@@ -153,6 +163,7 @@ export function resetBookingsServiceCompositionForTests(): void {
   sharedClock = null;
   sharedTenantWorkspaceBinding = null;
   sharedTourCapacity = null;
+  sharedAssistedRegistrationMembers = null;
 }
 
 /** HTTP / host façades — tenant-aware service selection (B1.5). */
@@ -198,7 +209,8 @@ export type GuestBookingDuplicateMatch =
   | { readonly kind: "user"; readonly value: string }
   | { readonly kind: "label"; readonly value: string }
   | { readonly kind: "email"; readonly value: string }
-  | { readonly kind: "nationalId"; readonly value: string };
+  | { readonly kind: "nationalId"; readonly value: string }
+  | { readonly kind: "phone"; readonly value: string };
 
 /** Single guest-duplicate façade — all public match kinds. */
 export async function findGuestBookingDuplicateMatch(

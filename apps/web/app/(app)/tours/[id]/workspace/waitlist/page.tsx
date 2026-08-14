@@ -1,25 +1,15 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
-import { buildTourPageMetadata } from "@/i18n/tour-page-metadata";
+import { hrefForWorkspaceTab } from "@/features/tours/tour-workspace-logic";
 
-import { TourWorkspaceWaitlistClient } from "./tour-workspace-waitlist-client";
-
-export async function generateMetadata(): Promise<Metadata> {
-  return buildTourPageMetadata("workspaceWaitlist");
-}
-
-export const dynamic = "force-dynamic";
-
-type TourWorkspaceWaitlistPageProps = {
+type TourWorkspaceWaitlistRedirectProps = {
   readonly params: Promise<{ id: string }>;
 };
 
-export default async function TourWorkspaceWaitlistPage({ params }: TourWorkspaceWaitlistPageProps) {
-  const session = await readOperatorSessionFromCookies();
-  if (session === null) {
-    return null;
-  }
+/** Legacy segment — canonical tab is `?tab=waitlist`. */
+export default async function TourWorkspaceWaitlistRedirectPage({
+  params,
+}: TourWorkspaceWaitlistRedirectProps) {
   const { id } = await params;
-  return <TourWorkspaceWaitlistClient session={session} tourId={id} />;
+  redirect(hrefForWorkspaceTab(id, "waitlist"));
 }

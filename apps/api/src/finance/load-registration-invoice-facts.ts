@@ -12,6 +12,8 @@ export type RegistrationInvoiceFacts = {
   readonly paidPaymentsMinor: string;
   readonly paymentAmountsMinor: readonly string[];
   readonly currency: string;
+  /** PR23-E2 — sum of Completed refund amounts for the registration. */
+  readonly refundedCompletedMinor: string;
 };
 
 export async function loadRegistrationInvoiceFacts(
@@ -19,8 +21,9 @@ export async function loadRegistrationInvoiceFacts(
   tenantId: string,
   registrationId: string
 ): Promise<RegistrationInvoiceFacts> {
-  const [prepaymentSumRows, paidSumRows, payments, latestPrepayment] = await Promise.all([
-    tx.$queryRaw<Array<{ sum: string | null }>>`
+  const [prepaymentSumRows, paidSumRows, refundSumRows, payments, latestPrepayment] =
+    await Promise.all([
+      tx.$queryRaw<Array<{ sum: string | null }>>`
       SELECT COALESCE(SUM(
         CAST(NULLIF(REGEXP_REPLACE(payload->>'amountMinor', '[^0-9]', '', 'g'), '') AS BIGINT)
       ), 0)::text AS sum
@@ -29,7 +32,7 @@ export async function loadRegistrationInvoiceFacts(
         AND event_type = 'finance.prepayment.recorded'
         AND aggregate_id = ${registrationId}::uuid
     `,
-    tx.$queryRaw<Array<{ sum: string | null }>>`
+      tx.$queryRaw<Array<{ sum: string | null }>>`
       SELECT COALESCE(SUM(
         CAST(NULLIF(REGEXP_REPLACE(amount, '[^0-9]', '', 'g'), '') AS BIGINT)
       ), 0)::text AS sum
@@ -38,22 +41,31 @@ export async function loadRegistrationInvoiceFacts(
         AND registration_id = ${registrationId}::uuid
         AND status = 'Paid'
     `,
-    tx.payment.findMany({
-      where: { tenantId, registrationId },
-      select: { amount: true, currency: true, status: true },
-      orderBy: { createdAt: "desc" },
-      take: MAX_PAYMENTS_PER_REGISTRATION,
-    }),
-    tx.outboxEvent.findFirst({
-      where: {
-        tenantId,
-        eventType: "finance.prepayment.recorded",
-        aggregateId: registrationId,
-      },
-      select: { payload: true },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
+      tx.$queryRaw<Array<{ sum: string | null }>>`
+      SELECT COALESCE(SUM(
+        CAST(NULLIF(REGEXP_REPLACE(amount_minor, '[^0-9]', '', 'g'), '') AS BIGINT)
+      ), 0)::text AS sum
+      FROM finance_refunds
+      WHERE tenant_id = ${tenantId}::uuid
+        AND registration_id = ${registrationId}::uuid
+        AND status = 'Completed'
+    `,
+      tx.payment.findMany({
+        where: { tenantId, registrationId },
+        select: { amount: true, currency: true, status: true },
+        orderBy: { createdAt: "desc" },
+        take: MAX_PAYMENTS_PER_REGISTRATION,
+      }),
+      tx.outboxEvent.findFirst({
+        where: {
+          tenantId,
+          eventType: "finance.prepayment.recorded",
+          aggregateId: registrationId,
+        },
+        select: { payload: true },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
 
   let currency = "IRR";
   const latestPayload =
@@ -76,11 +88,13 @@ export async function loadRegistrationInvoiceFacts(
 
   const prepaymentMinor = prepaymentSumRows[0]?.sum ?? "0";
   const paidPaymentsMinor = paidSumRows[0]?.sum ?? "0";
+  const refundedCompletedMinor = refundSumRows[0]?.sum ?? "0";
 
   return {
     prepaymentMinor,
     paidPaymentsMinor,
     paymentAmountsMinor,
     currency,
+    refundedCompletedMinor,
   };
 }

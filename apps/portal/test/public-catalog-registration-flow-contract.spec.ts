@@ -30,7 +30,7 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
   });
 
   it("P8-02 denali plugin owns intake transport and registrant UI", () => {
-    assert.match(denaliIntake, /data-registration-target-tabs/);
+    assert.match(denaliIntake, /data-denali-other-guest-list/);
     assert.match(denaliIntake, /data-public-registration-transport/);
     assert.match(denaliIntake, /RenderIntakeForm/);
     assert.match(denaliIntake, /tourRequirements: context\.tourRequirements/);

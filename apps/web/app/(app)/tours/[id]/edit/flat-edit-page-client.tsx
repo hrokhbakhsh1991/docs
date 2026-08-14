@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
@@ -12,6 +11,8 @@ import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
 import { TOUR_EDIT_TEST_IDS } from "@/features/tours/operator-tour-detail-types";
 import type { TourUiStatus } from "@/features/tours/operator-tours-types";
+import { TourInternalLink } from "@/features/tours/tour-internal-link";
+import { readCachedTourPlugin } from "@/features/tours/tour-route-cache";
 import {
   formatTourDeparture,
   formatTourPrice,
@@ -50,7 +51,9 @@ type OperatorFlatEditPageClientProps = {
 
 /** Wave B.c / I.6 — load plugin via registry (session.pluginId), then mount orchestration hook. */
 export function OperatorFlatEditPageClient({ session, tourId }: OperatorFlatEditPageClientProps) {
-  const [plugin, setPlugin] = useState<WorkspacePlugin | null>(null);
+  const [plugin, setPlugin] = useState<WorkspacePlugin | null>(() =>
+    readCachedTourPlugin(session.pluginId)
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -204,16 +207,14 @@ function OperatorFlatEditPageClientReady({
                       <p className="text-sm text-muted-foreground">{t("unpublished")}</p>
                     ) : null}
                     <div className="flex flex-wrap gap-2">
-                      <Link href="/tours">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          data-testid={TOUR_EDIT_TEST_IDS.cancel}
-                          disabled={readyCore.pending}
-                        >
-                          {t("cancelEdits")}
-                        </Button>
-                      </Link>
+                      <Button
+                        asChild
+                        variant="ghost"
+                        data-testid={TOUR_EDIT_TEST_IDS.cancel}
+                        disabled={readyCore.pending}
+                      >
+                        <TourInternalLink href="/tours">{t("cancelEdits")}</TourInternalLink>
+                      </Button>
                       <Button
                         type="button"
                         variant="outline"

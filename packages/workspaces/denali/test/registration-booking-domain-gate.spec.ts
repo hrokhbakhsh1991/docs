@@ -51,9 +51,21 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
       async findDuplicateByTourGuestNationalId() {
         return null;
       },
+    async findDuplicateByTourGuestPhone() {
+      return null;
+    },
       async findDuplicateByTourEmail() {
         return null;
       },
+      async findOwnedBooking() {
+        return null;
+      },
+      async mergeOwnedRegistrationIntake() {
+        return null;
+      },
+    async reclassifyOwnedOtherToSelf() {
+      return null;
+    },
       async createPendingBooking() {
         createCalls += 1;
         return { id: "should-not-create", status: "pending" };
@@ -98,9 +110,21 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
       async findDuplicateByTourGuestNationalId() {
         return null;
       },
+    async findDuplicateByTourGuestPhone() {
+      return null;
+    },
       async findDuplicateByTourEmail() {
         return null;
       },
+      async findOwnedBooking() {
+        return null;
+      },
+      async mergeOwnedRegistrationIntake() {
+        return null;
+      },
+    async reclassifyOwnedOtherToSelf() {
+      return null;
+    },
       async createPendingBooking(input) {
         createCalls += 1;
         assert.equal(input.partySize, 2);
@@ -145,9 +169,21 @@ describe("registration-booking-domain-gate.spec.ts — Denali Phase 1", () => {
       async findDuplicateByTourGuestNationalId() {
         return null;
       },
+    async findDuplicateByTourGuestPhone() {
+      return null;
+    },
       async findDuplicateByTourEmail() {
         return null;
       },
+      async findOwnedBooking() {
+        return null;
+      },
+      async mergeOwnedRegistrationIntake() {
+        return null;
+      },
+    async reclassifyOwnedOtherToSelf() {
+      return null;
+    },
       async createPendingBooking() {
         createCalls += 1;
         return { id: "should-not-create", status: "pending" };

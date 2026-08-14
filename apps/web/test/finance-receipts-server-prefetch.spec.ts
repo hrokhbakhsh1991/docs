@@ -28,9 +28,19 @@ describe("finance-receipts-server-prefetch.spec.ts", () => {
       resolve(WEB_ROOT, "src/finance/finance-receipts-panel.tsx"),
       "utf8"
     );
-    assert.match(panelSource, /FINANCE_RECEIPTS_TEST_IDS\.submittedAt/);
-    assert.match(panelSource, /FINANCE_RECEIPTS_TEST_IDS\.preview/);
-    assert.match(panelSource, /\/api\/finance\/receipts\/.*\/url/);
+    const reviewSource = readFileSync(
+      resolve(WEB_ROOT, "src/finance/finance-receipt-review-content.tsx"),
+      "utf8"
+    );
+    const previewSource = readFileSync(
+      resolve(WEB_ROOT, "src/finance/receipt-proof-preview.tsx"),
+      "utf8"
+    );
+    assert.match(panelSource, /FinanceReceiptReviewContent/);
+    assert.match(reviewSource, /FINANCE_RECEIPTS_TEST_IDS\.submittedAt/);
+    assert.match(reviewSource, /ReceiptProofPreview/);
+    assert.match(previewSource, /FINANCE_RECEIPTS_TEST_IDS\.preview/);
+    assert.match(previewSource, /\/api\/finance\/receipts\/.*\/url/);
     const logicSource = readFileSync(
       resolve(WEB_ROOT, "src/finance/finance-receipts-logic.ts"),
       "utf8"

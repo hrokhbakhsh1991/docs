@@ -59,6 +59,7 @@ import {
 const FINANCE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)));
 const REGISTRATION_ID = "11111111-1111-4111-8111-111111111111";
 const PAYMENT_ID = "22222222-2222-4222-8222-222222222222";
+const WS2_MANUAL_OBLIGATION_MINOR = "10000";
 
 describe("finance-http-contracts.spec.ts — Phase 1.4", { concurrency: false }, () => {
   const priorStorageDriver = process.env.STORAGE_DRIVER;
@@ -207,7 +208,22 @@ describe("finance-http-contracts.spec.ts — Phase 1.4", { concurrency: false },
       fakePermissiveAccess,
       fakeEmptySchedules,
       fakeNoopLog,
-      fakeFixedClock
+      fakeFixedClock,
+      {
+        async resolveRegistrationObligation() {
+          return {
+            currency: "USD",
+            obligationMinor: WS2_MANUAL_OBLIGATION_MINOR,
+            source: "tour_canonical" as const,
+          };
+        },
+        async resolveRegistrationPaymentCollection() {
+          return "offline";
+        },
+        async setRegistrationObligationOverride() {
+          return false;
+        },
+      }
     );
 
     const body: CreateManualPaymentBody = parseCreateManualPaymentBody({

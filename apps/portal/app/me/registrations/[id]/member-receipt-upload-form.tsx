@@ -6,13 +6,35 @@ import { useRef, useState } from "react";
 import type { MemberReceiptStatus } from "@/me/member-receipt-status";
 import type { RegistrationLifecycleStatus } from "@/me/registration-lifecycle-status";
 
+export type MemberReceiptDueLine = {
+  readonly code: "trip" | "dong" | "transport";
+  readonly amountMinor: string;
+};
+
+export type MemberReceiptDue = {
+  readonly currency: string;
+  readonly totalMinor: string;
+  readonly lines: readonly MemberReceiptDueLine[];
+};
+
 type Props = {
   readonly registrationId: string;
   readonly registrationStatus: RegistrationLifecycleStatus;
   readonly initialStatus: MemberReceiptStatus;
   readonly tripsListHref: string;
   readonly tourHref: string | null;
+  readonly due: MemberReceiptDue | null;
 };
+
+function formatMinorAmount(amountMinor: string, currency: string): string {
+  const digits = amountMinor.replace(/\D/g, "");
+  const n = digits.length > 0 ? Number.parseInt(digits, 10) : NaN;
+  if (!Number.isFinite(n)) {
+    return amountMinor;
+  }
+  const formatted = n.toLocaleString("fa-IR");
+  return currency.toUpperCase() === "IRR" ? `${formatted} ریال` : `${formatted} ${currency}`;
+}
 
 export function MemberReceiptUploadForm({
   registrationId,
@@ -20,6 +42,7 @@ export function MemberReceiptUploadForm({
   initialStatus,
   tripsListHref,
   tourHref,
+  due,
 }: Props) {
   const t = useTranslations("portalMember.receipt");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,6 +89,34 @@ export function MemberReceiptUploadForm({
     </p>
   );
 
+  const dueBlock =
+    due !== null ? (
+      <section data-portal-member-receipt-due>
+        <h2>{t("dueTitle")}</h2>
+        <p data-portal-member-receipt-due-total>
+          <strong>{t("dueTotal", { amount: formatMinorAmount(due.totalMinor, due.currency) })}</strong>
+        </p>
+        {due.lines.length > 0 ? (
+          <ul>
+            {due.lines.map((line) => {
+              const label =
+                line.code === "trip"
+                  ? t("dueLineTrip")
+                  : line.code === "dong"
+                    ? t("dueLineDong")
+                    : t("dueLineTransport");
+              return (
+                <li key={line.code} data-portal-member-receipt-due-line data-due-code={line.code}>
+                  {label}: {formatMinorAmount(line.amountMinor, due.currency)}
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+        <p>{t("dueHint")}</p>
+      </section>
+    ) : null;
+
   if (receiptStatus === "paid") {
     return (
       <div data-portal-member-receipt-paid>
@@ -105,6 +156,7 @@ export function MemberReceiptUploadForm({
   if (receiptStatus === "pending") {
     return (
       <div data-portal-member-receipt-waiting>
+        {dueBlock}
         <p role="status">
           <strong>{t("waitingTitle")}</strong>
         </p>
@@ -116,6 +168,7 @@ export function MemberReceiptUploadForm({
 
   return (
     <div data-portal-member-receipt-upload>
+      {dueBlock}
       {receiptStatus === "rejected" ? (
         <p role="status" data-portal-member-receipt-rejected-hint>
           {t("rejectedHint")}

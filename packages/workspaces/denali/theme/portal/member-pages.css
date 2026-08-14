@@ -117,6 +117,90 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   line-height: 1.3;
 }
 
+/* ── Trips list — registrant target filter ────────────────────────────────── */
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-registrations]
+  [data-portal-member-registrations-filter] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-registrations]
+  [data-portal-member-registrations-filter-tab] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid color-mix(in oklab, var(--color-border-subtle) 90%, transparent);
+  background: color-mix(in oklab, var(--color-bg-surface) 96%, transparent);
+  color: var(--color-text-secondary, var(--color-text-muted));
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  line-height: 1.2;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-registrations]
+  [data-portal-member-registrations-filter-tab][aria-current="page"] {
+  border-color: color-mix(in oklab, var(--color-primary, #059669) 55%, transparent);
+  background: color-mix(in oklab, var(--color-primary, #059669) 12%, transparent);
+  color: var(--color-primary, #047857);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-registrations]
+  [data-portal-member-registrations-filter-count] {
+  min-inline-size: 1.25rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-full, 9999px);
+  background: color-mix(in oklab, var(--color-text-muted) 14%, transparent);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-registrations]
+  [data-portal-member-registrations-filter-tab][aria-current="page"]
+  [data-portal-member-registrations-filter-count] {
+  background: color-mix(in oklab, var(--color-primary, #059669) 22%, transparent);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-registrations]
+  [data-portal-member-registrant-self-badge],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-registrations]
+  [data-portal-member-registrant-other-badge] {
+  display: inline-block;
+  margin-inline-end: var(--space-2);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-registrations]
+  [data-portal-member-registrant-self-badge] {
+  background: color-mix(in oklab, var(--color-primary, #059669) 14%, transparent);
+  color: var(--color-primary, #047857);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-registrations]
+  [data-portal-member-registrant-other-badge] {
+  background: color-mix(in oklab, var(--color-text-muted) 16%, transparent);
+  color: var(--color-text-secondary, #334155);
+}
+
 /* ── Trips list ───────────────────────────────────────────────────────────── */
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -207,6 +291,42 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   margin: var(--space-2) 0 0;
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-registrations]
+  [data-portal-member-registration-guest],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-registration-detail]
+  [data-portal-member-registration-guest] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-registrant-other-badge] {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full, 9999px);
+  color: color-mix(in oklab, var(--color-primary) 88%, var(--color-text-primary));
+  background: color-mix(in oklab, var(--color-primary) 14%, var(--color-bg-surface));
+  border: 1px solid color-mix(in oklab, var(--color-primary) 28%, transparent);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-registration-guest-label] {
+  line-height: 1.35;
+  color: var(--color-text-primary);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]

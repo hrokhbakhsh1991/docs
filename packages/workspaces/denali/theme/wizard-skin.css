@@ -423,10 +423,10 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-field-path].wi
 
 html.dark:has(body[data-workspace-plugin="denali"]) [data-new-tour-wizard],
 body[data-workspace-plugin="denali"] .theme-dark [data-new-tour-wizard] {
-  /* Re-bind wizard subtree to admin semantic tokens (inherits from body dark block) */
-  --color-primary: var(--color-primary);
-  --color-primary-fg: var(--color-primary-fg);
-  --color-primary-hover: var(--color-primary-hover);
-  --primary: var(--color-primary);
-  --primary-foreground: var(--color-primary-fg);
+  /* Re-bind wizard subtree to inherited dark admin semantics; avoid self-referential custom props. */
+  --color-primary: inherit;
+  --color-primary-fg: inherit;
+  --color-primary-hover: inherit;
+  --primary: inherit;
+  --primary-foreground: inherit;
 }

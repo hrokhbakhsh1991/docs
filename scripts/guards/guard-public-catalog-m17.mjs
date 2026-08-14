@@ -304,9 +304,15 @@ assertCheck(
 assertCheck(
   "m17_portal_registration_transport_hooks",
   portalRegistrationDoc.includes("data-public-registration-transport") &&
-    portalRegistrationDoc.includes("data-registration-target-tabs") &&
-    denaliRegistrationFlowSteps.includes("data-public-registration-personal-car-opt-in"),
-  "portal registration must document transport + registrant tab hooks"
+    portalRegistrationDoc.includes("data-denali-other-guest-list") &&
+    portalRegistrationDoc.includes("data-denali-add-guest") &&
+    portalRegistrationDoc.includes("data-denali-remove-guest") &&
+    portalRegistrationDoc.includes("data-denali-submit-results") &&
+    portalRegistrationDoc.includes("data-denali-self-guest-card") &&
+    denaliRegistrationFlowSteps.includes("data-public-registration-personal-car-opt-in") &&
+    denaliRegistrationFlowSteps.includes("data-denali-add-guest") &&
+    denaliRegistrationFlowSteps.includes("data-denali-submit-results"),
+  "portal registration must document transport + multi-guest intake hooks"
 );
 
 const denaliCatalogOpenapi = read("apps/api/src/openapi/denali-catalog-openapi.ts");

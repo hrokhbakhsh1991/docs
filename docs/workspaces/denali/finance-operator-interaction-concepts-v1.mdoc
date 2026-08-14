@@ -1,0 +1,663 @@
+---
+title: Finance Operator Interaction Concepts v1
+doc_id: DENALI-FINANCE-OPERATOR-INTERACTION-CONCEPTS
+version: "2026-08-07-v1"
+workspace: denali
+status: ANALYSIS
+phase: pre-redesign discovery stage-7
+continues:
+  - DENALI-FINANCE-DOMAIN-MAP
+  - DENALI-FINANCE-CASE-GRAMMAR
+  - DENALI-FINANCE-EXPERIENCE-PRINCIPLES
+  - DENALI-FINANCE-OPERATOR-PROBLEM-FRAMING
+  - DENALI-FINANCE-OPERATOR-EXPERIENCE-MODEL
+  - DENALI-FINANCE-OPERATOR-EXPERIENCE-STRUCTURE
+authority: >
+  Domain Map · Case Grammar · Decision Model · Money Truth Layers ·
+  Status Translation · Composite Scenarios · Experience Principles ·
+  Operational Truth Hierarchy · Next Action Model ·
+  Operator Language Rules · Daily Work Boundary ·
+  Experience Model · Experience Structure
+purpose: >
+  Define interaction concepts that allow Finance Operators to consume
+  the Financial Case information structure and perform correct decisions.
+
+  This phase defines:
+  - operator interactشion patterns
+  - decision moments
+  - information reveal principles
+  - case understanding flow
+  - action boundaries
+  - confidence building mechanisms
+
+  This phase does NOT define screens, components, layouts, navigation,
+  visual design, APIs, schemas, or implementation details.
+constraints:
+  - Financial Case remains the mental unit
+  - No domain truth replacement
+  - No status merging
+  - No ownership changes
+  - No Bookings redesign
+  - No Finance ownership expansion
+  - No entity-first interaction model
+north_star: >
+  For this registration:
+  Where are we financially right now?
+  And whose correct next action is it?
+---
+
+# Finance Operator Interaction Concepts v1
+
+## Framing
+
+Experience Structure defined **what** information a case must expose and in what hierarchy.
+
+This document defines **how the operator interacts with that information** — the cognitive/behavioral contract of encounter → comprehension → decision → action (or deliberate non-action) — still without screens.
+
+**Interaction question:**
+
+> How does the operator move from “something looks unpaid/pending” to “I understand this Financial Case, know why it is here, and know whose move is next”?
+
+---
+
+# 1. Interaction Model Framing
+
+## From fragment to case
+
+Typical broken start:
+
+```text
+Signal: unpaid / pending / payment row / receipt row
+   → impulse: act, chase, open manual payment, or dive ledger
+```
+
+Required interaction arc:
+
+```text
+Signal
+  → Encounter as Financial Case (not entity)
+  → Comprehension (structure L1→L6)
+  → Verdict + Owner
+  → Decision interaction (what kind of moment is this?)
+  → Action interaction OR deliberate wait OR exception/audit entry
+```
+
+## Four interaction modes
+
+| Mode | Operator is doing | Success looks like |
+| ---- | ----------------- | ------------------ |
+| **Comprehension interaction** | Reading the case in hierarchy order; forming composed story | Can state where we are + whose move **before** any irreversible act |
+| **Decision interaction** | Matching case to a verdict class and allowed move set | Chooses among wait / review / escalate / idle — not among random entity buttons |
+| **Action interaction** | Performing a finance-owned (or explicitly allowed) act with known prerequisites | Act follows verdict; post-act case story remains coherent |
+| **Exception interaction** | Pausing daily reflexes; seeking commercial meaning | Does not process terminal/ambiguous items as routine proof review |
+
+Audit is not a fifth peer mode for morning work; it is an **entry** from exception / failed daily explanation (§9).
+
+## Mode transitions
+
+```text
+Comprehension ──► Decision ──► Action
+       │              │
+       │              └──► deliberate Wait (no action)
+       │
+       └──► Exception ──► (maybe) Audit entry
+```
+
+Skipping Comprehension → Action is an anti-pattern (§10).
+
+---
+
+# 2. Core Interaction Principles
+
+## IP1 — Understand before acting
+
+Before irreversible actions (especially approve/reject proof), the operator must have traversed:
+
+```text
+Identity
+→ Eligibility
+→ Money Target
+→ Proof
+→ Settlement
+→ Owner
+```
+
+**Interaction implication:** Action affordances are **decision-gated**, not signal-gated. Seeing a receipt is not sufficient permission to decide.
+
+**Irreversible / high-cost acts** (must be gated): approve proof, reject proof, invent manual payment, treat case as settled for club.
+
+**Low-cost comprehension acts** (allowed early): identify who/tour, read policy frame, read obligation, read proof state.
+
+---
+
+## IP2 — Explain ownership before offering action
+
+The interaction must establish:
+
+> Whose move is next?
+
+**before** suggesting:
+
+| Suggestion | Only after owner = |
+| ---------- | ------------------ |
+| Review proof | **finance** |
+| Request / expect member correction or proof | **member** (and eligibility allows) |
+| Wait | owner ≠ finance, or finance idle |
+| Escalate exception | **exception_policy** / lane = exception |
+
+**Rule:** Offering “review” while owner is member is an ownership lie. Offering “wait” while proof is in review and owner is finance hides work.
+
+---
+
+## IP3 — Reduce false urgency
+
+Interaction must dampen panic from bare signals.
+
+| Panic trigger | Interaction counter |
+| ------------- | ------------------- |
+| Unpaid badge | Coexistence / awaiting-member / no-money-due framing before task framing |
+| Bare pending | Object-qualified wait + owner before any “do something” prompt |
+| Ledger presence | Audit not offered as first response to unpaid |
+| Empty proof + unpaid | Default narrative = member wait, not “create payment to fix” |
+| Open manual intent | Narrate as intent, not as finance review due |
+
+**False urgency test:** If the operator feels they must act because a badge is red/unsettled, but owner is member or idle (free/zero), interaction has failed IP3.
+
+---
+
+## Supporting interaction principles
+
+| ID | Principle | Meaning |
+| -- | --------- | ------- |
+| IP4 | **Case-first encounter** | Every work signal resolves into a Financial Case before action vocabulary |
+| IP5 | **Reveal follows hierarchy** | Information reveal order matches Experience Structure L1→L7 |
+| IP6 | **Verdict names the moment** | Decision vocabulary is verdict-shaped (awaiting member/finance, no money due, partial scoped, exception) |
+| IP7 | **Confidence is explicit** | Operator can answer why visible, why mine, cost of inaction, what to avoid (§6) |
+| IP8 | **Lane-visible transitions** | Entering exception/audit is a noticed mode change, not a quiet extra panel of the same job |
+
+---
+
+# 3. Case Reading Interaction
+
+Conceptual flow (not navigation):
+
+```text
+Encounter case
+      ↓
+Understand context          (Identity + Eligibility + Policy)
+      ↓
+Interpret money meaning     (Money Target)
+      ↓
+Understand current state    (Proof + Settlement + coexistence)
+      ↓
+Identify owner              (+ lane)
+      ↓
+Choose action or no action  (Decision → Action / Wait / Exception)
+```
+
+---
+
+### Step A — Encounter case
+
+| Field | Content |
+| ----- | ------- |
+| **Operator question** | What registration am I dealing with? |
+| **Required information** | Identity (member, tour, departure) |
+| **Possible misunderstanding** | Treating a receipt/payment row as the unit of work |
+| **Prevented failure** | Wrong-person review; entity-first thrash |
+
+---
+
+### Step B — Understand context
+
+| Field | Content |
+| ----- | ------- |
+| **Operator question** | Is this registration allowed on the money path? Is money even due? |
+| **Required information** | Eligibility (lifecycle) · Collection policy (offline due vs no money due) |
+| **Possible misunderstanding** | Unpaid = member late; free case = missing proof |
+| **Prevented failure** | Chase before approve; chase free/zero; daily processing of closed cases |
+
+---
+
+### Step C — Interpret money meaning
+
+| Field | Content |
+| ----- | ------- |
+| **Operator question** | How much is owed and how much remains? |
+| **Required information** | Obligation · remaining · personalization if any |
+| **Possible misunderstanding** | Tour list price = this person’s obligation; badge = amount |
+| **Prevented failure** | Approve/reject without amount anchor |
+
+---
+
+### Step D — Understand current state
+
+| Field | Content |
+| ----- | ------- |
+| **Operator question** | Where is proof? What does the club settlement badge mean *right now*? |
+| **Required information** | Proof progress · settlement meaning · healthy coexistence when unpaid+in_review · partial scope if partial · open intent as detail |
+| **Possible misunderstanding** | Unpaid contradicts in-review proof; open intent = in review; partial unscoped |
+| **Prevented failure** | Sync-bug panic; wrong owner; bad go/no-go |
+
+---
+
+### Step E — Identify owner
+
+| Field | Content |
+| ----- | ------- |
+| **Operator question** | Whose correct next action is it? Which lane am I in? |
+| **Required information** | Derived owner · work lane |
+| **Possible misunderstanding** | “I’m looking at finance screens, so it’s mine” |
+| **Prevented failure** | Doing member work; ignoring finance-owned proof; inventing manual payment to seize ownership |
+
+---
+
+### Step F — Choose action or no action
+
+| Field | Content |
+| ----- | ------- |
+| **Operator question** | Given verdict + owner, what am I allowed to do — including wait? |
+| **Required information** | Verdict class · allowed/forbidden action set (§4–§5) · confidence answers (§6) |
+| **Possible misunderstanding** | Action buttons exist ⇒ I should press something |
+| **Prevented failure** | Irreversible acts without comprehension; exception processed as routine |
+
+---
+
+# 4. Decision Interaction Model
+
+For each major verdict, define interaction goal, confidence signals, allowed and forbidden moves.
+
+---
+
+## V-AWAITING-MEMBER
+
+**Interaction goal:** Operator understands *the system is waiting for member action* — finance’s correct move is usually **wait / monitor**, not capture.
+
+| Dimension | Content |
+| --------- | ------- |
+| **Confidence signals** | Eligibility = eligible; policy = offline due; proof = none or rejected; owner = member; settlement unsettled explained as “not yet paid,” not “broken” |
+| **Allowed** | Wait; answer club “not yet — waiting for member”; after reject, expect member correction (conceptual request/correction expectation); prioritize by departure context without inventing payment |
+| **Forbidden** | Approve anything; treat as finance review due; create manual payment as default fix; escalate to audit because unpaid |
+
+---
+
+## V-AWAITING-FINANCE
+
+**Interaction goal:** Operator understands *proof exists and finance owns review*; unpaid badge is **not alarming**.
+
+| Dimension | Content |
+| --------- | ------- |
+| **Confidence signals** | Proof = in_review; owner = finance; coexistence message present; obligation visible for amount judgment |
+| **Review interaction** | Comprehension complete (IP1) → amount vs obligation → proof quality judgment → approve or reject |
+| **Approval context** | Accepting proof is capture decision for this case; expects post-decision settlement coherence in the same case story |
+| **Rejection context** | Returns ownership to member; does not mean registration rejected |
+| **Why unpaid is not alarming** | Healthy coexistence rule: settlement updates after finance accepts proof — in-review unpaid is the normal Denali path |
+| **Allowed** | Review; approve; reject (with object-qualified meaning) |
+| **Forbidden** | Sync-bug framing; create manual payment; club answer “yes paid”; ledger-first confirmation before deciding |
+
+---
+
+## V-NO-MONEY-DUE
+
+**Interaction goal:** Operator understands *no payment chase exists*.
+
+| Dimension | Content |
+| --------- | ------- |
+| **Confidence signals** | Policy/obligation = no money due; settlement settled (or path to settled without proof); owner = idle; proof queue absence explained |
+| **How false work is prevented** | Interaction never frames missing proof as delinquency; never offers review-as-task; never suggests manual payment |
+| **Allowed** | Idle; club answer “yes — no payment required” |
+| **Forbidden** | Await member proof; await finance review; open payment intent “to complete the case” |
+
+---
+
+## V-SETTLED-CAPTURED
+
+**Interaction goal:** Operator understands *case is done on the daily money path* after accepted proof/capture.
+
+| Dimension | Content |
+| --------- | ------- |
+| **Confidence signals** | Proof accepted; settlement settled; owner = idle; same-case post-decision coherence |
+| **Allowed** | Idle; club answer “yes — settled after accepted proof” |
+| **Forbidden** | Re-open chase; require ledger to believe settlement for normal cases |
+
+---
+
+## V-PARTIAL
+
+**Interaction goal:** Operator understands *partial of what?* before acting or answering the club.
+
+| Dimension | Content |
+| --------- | ------- |
+| **Scope clarification interaction** | Force scope: case settlement vs obligation remainder vs installment slice vs wallet progress — then derive owner |
+| **Confidence signals** | Scoped partial statement; remaining amount; whether proof is also in review |
+| **Allowed** | Club answer with scope; wait on member if remainder due and no proof in review; review if proof in review (finance owns) |
+| **Forbidden** | Bare “partially paid” club answer; treating any partial as finance review due without proof |
+
+---
+
+## V-INTENT-OPEN-NO-PROOF
+
+**Interaction goal:** Operator understands *open payment intent is not finance review*.
+
+| Dimension | Content |
+| --------- | ------- |
+| **Confidence signals** | Intent open; proof none; owner = member (default); settlement unsettled explained |
+| **Allowed** | Wait for member proof; conscious exception cleanup only if intents are duplicate/ambiguous (then leave daily) |
+| **Forbidden** | Equating open intent with in-review proof; default manual-payment creation loop |
+
+---
+
+## V-NOT-ELIGIBLE / V-CLOSED
+
+**Interaction goal:** Money blame is suspended; lifecycle desk or closed-case framing owns meaning.
+
+| Dimension | Content |
+| --------- | ------- |
+| **Allowed** | Direct understanding to lifecycle eligibility / closed; do not run offline collection interaction |
+| **Forbidden** | Member payment chase; finance proof review as if approved offline case |
+
+---
+
+## V-EXCEPTION
+
+**Interaction goal:** Operator understands *this is not a normal finance queue item*.
+
+| Dimension | Content |
+| --------- | ------- |
+| **Pause behavior** | Stop routine approve/reject muscle memory; require commercial-meaning question first |
+| **Escalation reasoning** | Visible why daily composition is insufficient (terminal leftover, conflict, duplicate intents, unexplained mismatch) |
+| **Allowed** | Exception judgment; escalate; enter audit only if daily/exception explanation still fails |
+| **Forbidden** | Silent happy-path review; treating leftover proof as V-AWAITING-FINANCE |
+
+---
+
+## V-AUDIT-SUSPECT
+
+**Interaction goal:** Operator understands *daily story failed*; altitude must change.
+
+| Dimension | Content |
+| --------- | ------- |
+| **Allowed** | Audit entry (§9) after stating which slots conflict |
+| **Forbidden** | Using audit as first reaction to unpaid or pending |
+
+---
+
+# 5. Action Boundary Model
+
+Conceptual actions only — not controls.
+
+---
+
+### A1 — Approve proof
+
+| Field | Content |
+| ----- | ------- |
+| **Trigger** | Verdict V-AWAITING-FINANCE; owner = finance; lane = daily |
+| **Who owns it** | Finance |
+| **Must know first** | Identity · eligibility · policy offline due · obligation/remaining · proof in review · settlement coexistence understood |
+| **Mistakes prevented** | Approve without amount; approve on free/zero; approve terminal leftover as routine; confuse with registration approval |
+
+---
+
+### A2 — Reject proof
+
+| Field | Content |
+| ----- | ------- |
+| **Trigger** | V-AWAITING-FINANCE; owner = finance |
+| **Who owns it** | Finance |
+| **Must know first** | Same as A1; rejection reason meaningful for member correction |
+| **Mistakes prevented** | Implying registration rejected; leaving operator believing finance still owns the wait |
+
+**After reject:** ownership interaction flips to member (V-AWAITING-MEMBER).
+
+---
+
+### A3 — Request member correction / expect resubmit
+
+| Field | Content |
+| ----- | ------- |
+| **Trigger** | After reject, or when communicating awaiting-member state |
+| **Who owns next action** | Member |
+| **Must know first** | Eligibility still allows upload; what was wrong with proof/amount |
+| **Mistakes prevented** | Finance re-uploading as default path; treating request as finance “task done” while still owning review |
+
+---
+
+### A4 — Wait
+
+| Field | Content |
+| ----- | ------- |
+| **Trigger** | Owner = member, idle, lifecycle_desk, or policy_system — not finance-owned proof |
+| **Who owns it** | Non-finance owner continues; finance monitors understanding |
+| **Must know first** | Owner + why wait is correct (awaiting member / no money due / not eligible) |
+| **Mistakes prevented** | Wait while proof in review; invent work to avoid waiting |
+
+**Wait is a first-class interaction outcome**, not a failure to find a button.
+
+---
+
+### A5 — Escalate exception
+
+| Field | Content |
+| ----- | ------- |
+| **Trigger** | V-EXCEPTION cues; commercial meaning unclear |
+| **Who owns it** | exception_policy (club policy / senior judgment as defined by org) |
+| **Must know first** | Which conflict/terminal cue fired; what daily verdict almost applied but was blocked |
+| **Mistakes prevented** | Quiet routine approve; labeling exception as “pending payment” |
+
+---
+
+### A6 — Inspect audit context
+
+| Field | Content |
+| ----- | ------- |
+| **Trigger** | V-AUDIT-SUSPECT or exception unresolved; daily explanation failed |
+| **Who owns it** | Finance at audit altitude (or recon role) |
+| **Must know first** | Which composed slots disagree; that this is not required for normal V-AWAITING-FINANCE decisions |
+| **Mistakes prevented** | Ledger-as-first-truth; audit to calm unpaid+in_review anxiety |
+
+---
+
+### A7 — Create / rely on manual payment intent (exceptional)
+
+| Field | Content |
+| ----- | ------- |
+| **Trigger** | Explicit exception/alternate ingress — **not** default unpaid approved offline |
+| **Who owns consequence** | Still usually member for proof unless proof already in review |
+| **Must know first** | No existing adequate intent/proof path; why default member path is insufficient |
+| **Mistakes prevented** | Manual payment as default fix for unpaid; hijacking owner to finance without proof |
+
+---
+
+# 6. Confidence Model
+
+Interaction creates confidence when the operator can always answer four questions for the current case.
+
+| Confidence question | Must be answerable by | Failure if unanswered |
+| ------------------- | --------------------- | --------------------- |
+| **Why am I seeing this?** | Case story + verdict (encounter reason: proof in review, unpaid eligible, exception cue, etc.) | Ghost tasks; anxiety browsing |
+| **Why is it assigned to me?** | Owner = finance **or** explicit “not assigned to you — owner is X” | Doing others’ work / ignoring own queue |
+| **What happens if I do nothing?** | Cost of wait by verdict (member delay vs finance backlog vs idle OK) | False urgency or dangerous neglect |
+| **What should I avoid doing?** | Forbidden set for this verdict (§4) | Manual payment, ledger dive, bare approve |
+
+## Confidence signals by mode
+
+| Mode | Minimum confidence package |
+| ---- | -------------------------- |
+| Comprehension | Hierarchy slots filled enough to speak composed story |
+| Decision | Verdict named + owner named + lane named |
+| Action | IP1 checklist complete + post-action expected settlement meaning known |
+| Exception | Pause reason visible + forbidden routine acts named |
+| Wait | Owner ≠ finance explained + non-alarming unpaid if applicable |
+
+## Post-action confidence (approve path)
+
+After approve proof, confidence requires the case story to show settlement settled / owner idle **in the same case comprehension frame** — without mandating audit entry (P12 / Structure post-decision coherence).
+
+---
+
+# 7. Healthy Coexistence Interaction
+
+## Scenario
+
+```text
+Proof = in_review
+Settlement = unsettled
+(Eligibility = approved, policy = offline due)
+```
+
+## Required communication (conceptual)
+
+The interaction must communicate **all** of:
+
+1. **This is expected** on the Denali approve-then-offline-pay path.  
+2. **Finance owns the next action** (review).  
+3. **No sync failure exists** merely because settlement is still unsettled.  
+4. Club answer seed: “Not yet — proof is with finance for review.”  
+
+## Interaction shape
+
+```text
+Comprehension reveals proof in_review + settlement unsettled together
+      ↓
+Decision names V-AWAITING-FINANCE (alarm = false)
+      ↓
+Ownership explained before action offers
+      ↓
+Action = review (approve/reject), not “fix unpaid”
+```
+
+## Forbidden in this scenario
+
+| Forbidden interaction | Why |
+| --------------------- | --- |
+| Showing conflict / error framing between the two truths | Creates false urgency |
+| Creating urgency from unpaid alone | IP3 failure |
+| Suggesting manual payment | Wrong fix; P11 |
+| Suggesting ledger to verify “why unpaid” | Wrong altitude |
+| Suggesting wait-as-if-member-owned | Hides finance work |
+| Club answer “paid” or “broken” | Language / verdict failure |
+
+---
+
+# 8. Exception Transition Interaction
+
+## Daily vs exception verbs
+
+| Daily | Exception |
+| ----- | --------- |
+| “Review proof” | “Commercial meaning unclear” |
+| “Wait for member” | “Do not process as normal queue item” |
+| “Settled — no money due” | “Leftover money object on closed registration” |
+
+## Transition triggers (must become visible)
+
+- Terminal lifecycle + money objects  
+- Duplicate / parallel intents  
+- Conflicting truths outside healthy coexistence  
+- Unexplained mismatch after expected settlement  
+- Policy dispute on whether money should be due  
+
+## Reason visibility
+
+Exception interaction must state **which trigger** fired before offering approve/reject-as-routine.
+
+## Prevented shortcuts
+
+| Shortcut blocked | Replacement |
+| ---------------- | ----------- |
+| Approve because proof file exists | Pause → commercial meaning |
+| Same decision checklist as V-AWAITING-FINANCE | Exception checklist first |
+| Quietly treating item as daily backlog | Explicit lane change (IP8) |
+
+---
+
+# 9. Audit Entry Interaction
+
+## When audit information becomes available
+
+Only after:
+
+1. Daily comprehension attempted, and  
+2. Exception framing applied when cues exist, and  
+3. Daily/exception explanation **still fails** to reconcile slots — **or** an explicit reconciliation finding demands accounting altitude.
+
+## Rules
+
+| Rule | Meaning |
+| ---- | ------- |
+| **Never first interaction** | Unpaid/pending must not open as ledger reading |
+| **Never required for normal decisions** | V-AWAITING-FINANCE approve/reject does not depend on journal lines |
+| **Only after daily explanation fails** | Audit answers integrity questions, not North Star club answers |
+| **Entry is noticed** | Operator knows altitude changed (IP8) |
+| **Exit back to case story** | Audit findings map back to case slots; do not strand operator in entity browser |
+
+---
+
+# 10. Interaction Anti-patterns
+
+Forbidden patterns (conceptual):
+
+| Anti-pattern | Violates |
+| ------------ | -------- |
+| Opening receipt decision before knowing obligation | IP1 |
+| Offering action before ownership is established | IP2 |
+| Using ledger as primary proof of “is guest OK?” | IP3, audit boundary |
+| Payment/receipt entity as interaction unit | Case-first |
+| Unpaid badge as task assignment to finance | Owner derivation |
+| Manual payment creation as default fix for unpaid | P11, V-AWAITING-MEMBER |
+| Treating unpaid+in_review as conflict/error | Healthy coexistence |
+| Bare pending/approved/paid prompts without object | Language Rules |
+| Processing terminal leftover as daily review | Exception transition |
+| Requiring audit to feel confident after normal approve | Post-decision confidence |
+| Partial club answers without scope clarification | V-PARTIAL |
+| Framing free/zero missing proof as delinquency | V-NO-MONEY-DUE |
+| Bookings lifecycle actions inside finance decision vocabulary | Ownership boundary |
+| Finance “approving the person” language | P05 / ownership |
+
+---
+
+# 11. Interaction Acceptance Criteria
+
+Any future UX concept (still not specified here) is acceptable **only if**:
+
+1. **Operator can explain the case before acting** — composed story available prior to irreversible acts.  
+2. **Owner is clear before action** — review/wait/escalate suggestions match derived owner.  
+3. **Daily cases do not require audit altitude** — normal proof decisions complete without ledger.  
+4. **Healthy coexistence does not look broken** — unpaid + in_review is expected, finance-owned, non-alarming.  
+5. **Partial always has scope** — no unscoped partial decision or club answer.  
+6. **Free cases cannot become payment tasks** — no chase/review/manual-payment offers.  
+7. **Manual intents cannot hijack finance ownership** — open intent ≠ in-review without proof.  
+8. **Actions follow verdict, not entity status** — decision vocabulary is verdict-shaped.  
+9. **Exceptions are recognized before routine processing** — pause + reason before happy-path approve.  
+10. **Financial Case remains the interaction unit** — no entity-first primary flow.  
+11. **Wait is a valid outcome** — not a UI failure state.  
+12. **Confidence quartet is answerable** — why visible, why mine, if I do nothing, what to avoid.  
+13. **Post-approve coherence** — settlement meaning updates in the same case comprehension frame without mandatory audit.  
+14. **Boundaries preserved** — no status merge, no Bookings/Finance ownership swap, no domain truth replacement.  
+15. **Information reveal respects hierarchy** — eligibility/policy before money blame; owner before action.
+
+---
+
+## Interaction one-liner
+
+> Operators encounter work as a Financial Case, read it in hierarchy until verdict and owner are known, then only take actions allowed by that verdict — treating wait as success when ownership is elsewhere, treating unpaid+in-review as calm finance work, and treating exceptions/audit as explicit mode changes.
+
+---
+
+## Traceability
+
+| Section | Foundation |
+| ------- | ---------- |
+| Framing / modes | Experience Model · Problem Framing jobs |
+| Principles IP1–IP3 | Structure hierarchy · P06–P08 · P11 |
+| Case reading steps | Experience Structure L1–L7 |
+| Decision by verdict | Experience Model verdict catalog |
+| Action boundaries | Decision Model · Next Action Model |
+| Coexistence | P07 · Critical moment M2 |
+| Exception / audit | Work lanes · Daily/Exception/Audit boundaries |
+| Anti-patterns / acceptance | Structure acceptance · Design Decision Criteria |
+
+---
+
+Ready afterward for: **Experience Patterns / UI Concepts** phase — only after Interaction Concepts acceptance.

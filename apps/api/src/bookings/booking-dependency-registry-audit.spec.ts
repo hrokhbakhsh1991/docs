@@ -122,6 +122,8 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
       getByIds: async () => [],
       updatePaymentStatus: async () => null,
       mergeRegistrationIntake: async () => null,
+      updateGuestProjectionAndIntake: async () => null,
+      reclassifyOwnedOtherToSelf: async () => null,
       createBooking: async () => {
         throw new Error("create must not run when public create unsupported");
       },
@@ -158,6 +160,9 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
       },
       validationPolicy: { kind: "test", assertCreateValid: () => undefined },
       capacityPolicy: { kind: "test", assertCreateCapacity: () => undefined },
+      assistedRegistrationMembers: {
+        findTenantMember: async () => null,
+      },
       tourCapacity: {
         kind: "test-tour-capacity",
         resolveTourCapacityMax: async () => null,

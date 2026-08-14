@@ -42,6 +42,8 @@ export type PublicCatalogRegistrationFlowProps = {
   /** Register-host modal: probe cookie then callback instead of assign(portalReturn). */
   readonly memberLoginStayOnPage?: boolean;
   readonly onMemberLoginSessionReady?: () => void | Promise<void>;
+  /** Active self registration id on this tour — disables self tab when set. */
+  readonly existingSelfRegistrationId?: string | null;
 };
 
 type SessionResumeStatus = "checking" | "ready";
@@ -63,6 +65,7 @@ export function PublicCatalogRegistrationFlow({
   memberLoginEgress = false,
   memberLoginStayOnPage = false,
   onMemberLoginSessionReady,
+  existingSelfRegistrationId = null,
 }: PublicCatalogRegistrationFlowProps) {
   const t = useTranslations("catalogRegistration");
   ensureWorkspaceRegistrationFlowClient(workspace);
@@ -88,9 +91,11 @@ export function PublicCatalogRegistrationFlow({
       memberLoginEgress,
       memberLoginStayOnPage,
       onMemberLoginSessionReady,
+      existingSelfRegistrationId,
     }),
     [
       backHref,
+      existingSelfRegistrationId,
       memberLoginEgress,
       memberLoginStayOnPage,
       memberModuleHref,

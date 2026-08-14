@@ -27,6 +27,11 @@
       "require": "./dist/application/index.js",
       "default": "./dist/application/index.js"
     },
+    "./case": {
+      "types": "./dist/case/public-api.d.ts",
+      "require": "./dist/case/public-api.js",
+      "default": "./dist/case/public-api.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

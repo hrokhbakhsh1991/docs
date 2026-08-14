@@ -45,9 +45,13 @@ req_ids: [REQ-P9-010, REQ-P9-011, REQ-P9-080]
 
 | Field  | Value                                          |
 | ------ | ---------------------------------------------- |
-| Host   | `denali.localhost:3000`                        |
-| Mobile | `+989121000001`                                |
+| Host   | `denali.admin.localhost:3000` (or `denali.localhost:3000`) |
+| Mobile | `+15550001001` (Denali / operator smoke seed owner) |
 | OTP    | `1234` (when `AUTH_ALLOW_DEV_STATIC_OTP=true`) |
+
+Web login form (dev): `NEXT_PUBLIC_DEV_LOGIN_PHONE` / `NEXT_PUBLIC_DEV_LOGIN_OTP` must match this fixture.
+Default fallback in `apps/web/app/auth/login/login-form.tsx` is the same mobile; placeholder copy in `messages/*/auth.json` → `phonePlaceholder`.
+Source of truth for the seed mobile: `apps/api/scripts/seed-denali-operator-identity.ts` (`DENALI_DEV_OWNER_MOBILE`) and in-memory `DEFAULT_OPERATOR_SMOKE_OWNER_MOBILE` — override only via `OPERATOR_OWNER_MOBILE` on the API **and** matching `NEXT_PUBLIC_DEV_LOGIN_PHONE` on web.
 
 ---
 

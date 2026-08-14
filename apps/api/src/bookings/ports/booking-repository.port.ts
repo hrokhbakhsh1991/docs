@@ -16,7 +16,8 @@ export type BookingGuestDuplicateMatch =
   | { readonly kind: "user"; readonly value: string }
   | { readonly kind: "label"; readonly value: string }
   | { readonly kind: "email"; readonly value: string }
-  | { readonly kind: "nationalId"; readonly value: string };
+  | { readonly kind: "nationalId"; readonly value: string }
+  | { readonly kind: "phone"; readonly value: string };
 
 export type BookingsSummaryStats = {
   readonly pending: number;
@@ -95,6 +96,31 @@ export interface BookingRepositoryPort {
     readonly tenantId: string;
     readonly patch: Readonly<Record<string, unknown>>;
   }): Promise<BookingRecord | null>;
+  /**
+   * Update guest projection columns + merge intake in one write (reclassify other→self).
+   * Missing booking → null.
+   */
+  updateGuestProjectionAndIntake(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly guestLabel: string;
+    readonly guestEmail?: string | null;
+    readonly guestPhone?: string | null;
+    readonly intakePatch: Readonly<Record<string, unknown>>;
+  }): Promise<BookingRecord | null>;
+  /**
+   * Owned other→self reclassify in one tenant TX: JSON-path gate + intake merge.
+   * Returns minimal `{ id, status }` on success; null when gate fails or row missing.
+   */
+  reclassifyOwnedOtherToSelf(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly submittedByUserId: string;
+    readonly guestLabel: string;
+    readonly guestEmail?: string | null;
+    readonly guestPhone?: string | null;
+    readonly intakePatch: Readonly<Record<string, unknown>>;
+  }): Promise<{ readonly id: string; readonly status: string } | null>;
   /**
    * Create pending in one tenant TX: tour advisory lock → re-sum approved → optional
    * capacity assert → INSERT. Soft gate vs approved occupancy (pending does not consume seats).

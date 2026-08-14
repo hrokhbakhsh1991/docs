@@ -3,6 +3,8 @@
  * Missing / unknown → offline (safe default: approve-then-receipt).
  */
 
+import { unwrapDenaliTourCanonicalDocument } from "./unwrap-denali-tour-canonical-document";
+
 export type DenaliPaymentCollectionMode = "offline" | "free";
 
 function readCanonicalPath(data: Record<string, unknown>, path: string): unknown {
@@ -14,18 +16,6 @@ function readCanonicalPath(data: Record<string, unknown>, path: string): unknown
   }, data);
 }
 
-function asDataRoot(tourCanonical: unknown): Record<string, unknown> | null {
-  if (tourCanonical === null || typeof tourCanonical !== "object" || Array.isArray(tourCanonical)) {
-    return null;
-  }
-  const root = tourCanonical as Record<string, unknown>;
-  const nested = root.data;
-  if (nested !== null && typeof nested === "object" && !Array.isArray(nested)) {
-    return nested as Record<string, unknown>;
-  }
-  return root;
-}
-
 /**
  * Resolve `pricing.paymentCollection` from tour canonical.
  * Accepts either full canonical document (`{ data: {...} }`) or bare `data` object.
@@ -33,7 +23,7 @@ function asDataRoot(tourCanonical: unknown): Record<string, unknown> | null {
 export function resolveDenaliPaymentCollectionMode(
   tourCanonical: unknown
 ): DenaliPaymentCollectionMode {
-  const data = asDataRoot(tourCanonical);
+  const data = unwrapDenaliTourCanonicalDocument(tourCanonical);
   if (data === null) {
     return "offline";
   }

@@ -22,16 +22,18 @@ Payment capture (Path A) and TourCreated ledger reaction (Path B) can both credi
 
 ## Decision
 
-1. At most **one** booking-wallet clearing credit per registration (Path A **XOR** Path B).
+1. **Path A XOR Path B** — TourCreated (Path B) and payment capture (Path A) must not both credit the same registration booking wallet.
 2. Serialize with `pg_advisory_xact_lock` keyed by tenant + registration.
-3. Detect existing credit via `registrationHasBookingWalletCredit` (or equivalent durable check).
-4. **Path B** (TourCreated): **skip** enqueue when credit already exists.
-5. **Path A** (approve capture): **throw** `FINANCE_DUPLICATE_OBLIGATION_CREDIT` when credit already exists (approve TX rolls back).
-6. Do not change capture `domainEventId` formulas to encode this rule.
+3. Detect Path B credit via `registrationHasTourCreatedWalletCredit`; detect any credit via `registrationHasBookingWalletCredit`.
+4. **Path B** (TourCreated): **skip** enqueue when **any** Path A capture or Path B credit already exists.
+5. **Path A** (approve capture): **throw** `FINANCE_DUPLICATE_OBLIGATION_CREDIT` only when **Path B** credit already exists (approve TX rolls back).
+6. **PR20-D:** Multiple Path A payment captures for the same registration are **allowed** (partial collection). Each capture credits the wallet by that payment’s amount; XOR is against TourCreated, not against prior captures.
+7. Do not change capture `domainEventId` formulas to encode this rule.
 
 ## Consequences
 
 - Ordering of TourCreated vs approve is safe under the advisory lock.
+- Partial payment sequences (`unpaid → partial → … → paid`) can enqueue one capture journal per approved payment.
 - Recon may still ticket rare double-wallet findings (`ticket_only`) if historical rows predate the lock.
 - Workspace CoA must keep wallet prefixes non-colliding across products (capability registry / CoA ownership).
 

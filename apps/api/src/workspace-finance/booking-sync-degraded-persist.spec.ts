@@ -50,6 +50,7 @@ const stubBookingPayments: IBookingPaymentPort = {
 
 const stubRegistrationDisplay: RegistrationDisplayPort = {
   getByRegistrationIds: async () => new Map(),
+  listRegistrationIdsByTourId: async () => [],
 };
 
 describe("finance booking-sync degraded persist", { concurrency: false }, () => {

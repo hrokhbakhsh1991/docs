@@ -29,13 +29,38 @@ export type BookingPublicAutoApproveInput = {
   readonly actorUserId: string;
 };
 
+/** Active self-registration row (registrantTarget ≠ other). */
+export type BookingPublicSelfRegistration = {
+  readonly id: string;
+  readonly status: string;
+};
+
+export type BookingPublicOwnedDetail = {
+  readonly id: string;
+  readonly status: string;
+  readonly tourId: string;
+  readonly tourTitle: string;
+  readonly guestLabel: string;
+  /** Who the seat is for — derived from intake; defaults to self. */
+  readonly registrantTarget: "self" | "other";
+  readonly paymentStatus: string;
+  readonly departureAt: string;
+  readonly submittedAt: string;
+  readonly partySize: number;
+  readonly registrationIntake?: Readonly<Record<string, unknown>>;
+};
+
 /** Host-injected bookings adapter — Prisma/memory lives in apps/api. */
 export interface BookingPublicPort {
+  /**
+   * Active **self** registration for this submitter on the tour
+   * (excludes `registrantTarget=other`).
+   */
   findDuplicateByTourGuest(
     tenantId: string,
     tourId: string,
     guestUserId: string
-  ): Promise<{ readonly id: string } | null>;
+  ): Promise<BookingPublicSelfRegistration | null>;
   findDuplicateByTourGuestLabel(
     tenantId: string,
     tourId: string,
@@ -45,6 +70,11 @@ export interface BookingPublicPort {
     tenantId: string,
     tourId: string,
     nationalId: string
+  ): Promise<{ readonly id: string } | null>;
+  findDuplicateByTourGuestPhone(
+    tenantId: string,
+    tourId: string,
+    phone: string
   ): Promise<{ readonly id: string } | null>;
   findDuplicateByTourEmail(
     tenantId: string,
@@ -64,4 +94,34 @@ export interface BookingPublicPort {
     tenantId: string,
     tourIds: readonly string[]
   ): Promise<Readonly<Record<string, number>>>;
+  /** Member-owned booking detail (submitter match) — for for-tour / amend. */
+  findOwnedBooking(
+    tenantId: string,
+    bookingId: string,
+    guestUserId: string
+  ): Promise<BookingPublicOwnedDetail | null>;
+  /**
+   * Merge allowlisted intake keys when the actor owns the row.
+   * Caller enforces status gate before invoke.
+   */
+  mergeOwnedRegistrationIntake(input: {
+    readonly tenantId: string;
+    readonly bookingId: string;
+    readonly guestUserId: string;
+    readonly patch: Readonly<Record<string, unknown>>;
+  }): Promise<BookingPublicOwnedDetail | null>;
+  /**
+   * Promote an owned active `other` registration to `self` (same row id).
+   * Used when member POSTs self and guest-identity uniques collide with their own other seat.
+   * Returns null when missing / not owned / not active other / already has a different self.
+   */
+  reclassifyOwnedOtherToSelf(input: {
+    readonly tenantId: string;
+    readonly bookingId: string;
+    readonly guestUserId: string;
+    readonly guestLabel: string;
+    readonly guestEmail?: string;
+    readonly guestPhone?: string;
+    readonly registrationIntakePatch: Readonly<Record<string, unknown>>;
+  }): Promise<BookingPublicCreateResult | null>;
 }

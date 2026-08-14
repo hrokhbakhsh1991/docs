@@ -218,7 +218,13 @@ Schema: [`schemas/PAYMENT-SCHEDULE-ITEM.schema.json`](schemas/PAYMENT-SCHEDULE-I
 (app)/settings/reconciliation-triage   ← linked from overview · manage Reconciliation
 
 (app)/bookings/[id]                    ← financial strip embed (9.5 integration)
+
+(app)/tours/[id]/workspace/finance    ← tour-scoped money home (rollup + queues)
+                                       ← Complete: TOURS-WORKSPACE-COMPLETE.md (TW-C-02)
+                                       ← Not a second Finance hub — filter + compose only
 ```
+
+> **Tour Workspace finance tab:** Same `/api/finance/*` + optional `tourId` list scope; Financial Case remains per `registrationId`. Bidirectional deep link: Workspace ↔ `/finance?tourId=`. See [`TOURS-WORKSPACE-COMPLETE.md`](./TOURS-WORKSPACE-COMPLETE.md).
 
 ### 5.0 Tab shell — client URL sync (no full reload)
 

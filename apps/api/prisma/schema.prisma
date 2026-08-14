@@ -26,6 +26,7 @@ model Tenant {
   payments                    Payment[]
   paymentReceipts             PaymentReceipt[]
   financeSchedules            FinanceSchedule[]
+  financeRefunds              FinanceRefund[]
   urbanRegistrations          UrbanRegistration[]
   userTenants                 UserTenant[]
   operatorPendingInvites      OperatorPendingInvite[]
@@ -276,6 +277,44 @@ model Payment {
   @@index([tenantId, status])
   @@index([tenantId, registrationId])
   @@map("payments")
+}
+
+/// PR23-E2 — finance-owned refund aggregate (money only when status = Completed).
+model FinanceRefund {
+  id                      String    @id @default(uuid()) @db.Uuid
+  tenantId                String    @map("tenant_id") @db.Uuid
+  registrationId          String    @map("registration_id") @db.Uuid
+  paymentId               String?   @map("payment_id") @db.Uuid
+  sourceKind              String    @map("source_kind")
+  amountMinor             String    @map("amount_minor")
+  currency                String    @db.VarChar(8)
+  reasonCode              String    @map("reason_code")
+  reasonNote              String?   @map("reason_note")
+  status                  String
+  requestedAt             DateTime  @map("requested_at")
+  requestedByUserId       String    @map("requested_by_user_id")
+  approvedAt              DateTime? @map("approved_at")
+  approvedByUserId        String?   @map("approved_by_user_id")
+  rejectedAt              DateTime? @map("rejected_at")
+  rejectedByUserId        String?   @map("rejected_by_user_id")
+  rejectNote              String?   @map("reject_note")
+  cancelledAt             DateTime? @map("cancelled_at")
+  cancelledByUserId       String?   @map("cancelled_by_user_id")
+  completedAt             DateTime? @map("completed_at")
+  completedByUserId       String?   @map("completed_by_user_id")
+  completionNote          String?   @map("completion_note")
+  evidenceFileKey         String?   @map("evidence_file_key")
+  evidenceNote            String?   @map("evidence_note")
+  creationIdempotencyKey  String?   @map("creation_idempotency_key")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  tenant                  Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, creationIdempotencyKey])
+  @@index([tenantId, registrationId])
+  @@index([tenantId, paymentId])
+  @@index([tenantId, status])
+  @@map("finance_refunds")
 }
 
 /// Finance recon — open/resolved mismatch findings (ops; admin Prisma).

@@ -57,13 +57,15 @@ export function RenderIntakeField({
   }
 
   let control: ReactNode;
-  if (field.type === "number" || field.widget === "localized-digits") {
+  // `localized-digits` is for digit *strings* (phone, etc.) — never type=number
+  // (strips leading 0 / spinbutton). Only true numeric quantities use type=number.
+  if (field.type === "number") {
     control = <Input {...commonInputProps} type="number" inputMode="numeric" />;
   } else if (field.type === "date") {
     control = <Input {...commonInputProps} type="date" />;
   } else if (field.type === "email") {
     control = <Input {...commonInputProps} type="email" autoComplete="email" />;
-  } else if (field.widget === "numeric-text") {
+  } else if (field.widget === "numeric-text" || field.widget === "localized-digits") {
     control = <Input {...commonInputProps} type="text" inputMode="numeric" autoComplete="off" />;
   } else {
     control = (

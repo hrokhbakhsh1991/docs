@@ -11,6 +11,18 @@ import type {
 } from "@app-tour/finance-http-contracts";
 
 import { compileRegistrationInvoice } from "../domain/compile-invoice-balances";
+import { assertCancelPendingManualPaymentReason } from "../domain/cancel-pending-manual-payment";
+import {
+  assertPositiveRefundAmountMinor,
+  assertRefundAmountWithinCap,
+  assertRefundReason,
+  assertRefundTransition,
+  type RefundSourceKind,
+} from "../domain/refund";
+import {
+  assertManualPaymentDebtAllowed,
+  isManualPaymentAmountOverRemaining,
+} from "../domain/manual-payment-debt-policy";
 import { isZeroObligationMinor } from "../domain/obligation-override";
 import { buildPaymentScheduleItems, reschedulePaymentScheduleItem, waivePaymentScheduleItem, type PaymentScheduleItem } from "../domain/schedule";
 import {
@@ -19,6 +31,19 @@ import {
   filterRowsByTourId,
   type FinanceRegistrationContext,
 } from "../domain/finance-registration-context";
+import {
+  paginateFinanceExceptionItems,
+  type FinanceExceptionItem,
+} from "../domain/finance-exception";
+import {
+  paginateOutstandingBalanceItems,
+  type OutstandingBalanceItem,
+} from "../domain/outstanding-balance";
+import {
+  aggregateTourCollectionFromOutstanding,
+  paginateTourCollectionItems,
+  type TourCollectionSummaryItem,
+} from "../domain/tour-collection-summary";
 import type { IBookingPaymentPort } from "../ports/booking-payment.port";
 import type { FinanceActorContext, FinanceActorRole } from "../ports/finance-actor-context";
 import type { FinanceAuthorizationPort } from "../ports/finance-access.port";
@@ -27,6 +52,10 @@ import type {
   FinanceWorkspaceGateResult,
 } from "../ports/finance-capability.port";
 import type { FinanceClockPort } from "../ports/finance-clock.port";
+import type {
+  FinanceArObservationPort,
+} from "../ports/finance-ar-observation.port";
+import { nullFinanceArObservationPort } from "../ports/finance-ar-observation.port";
 import type { FinanceLedgerPolicyPort } from "../ports/finance-ledger-policy.port";
 import type { FinanceLoggerPort } from "../ports/finance-log.port";
 import type { FinanceMetricsPort } from "../ports/finance-metrics.port";
@@ -39,12 +68,37 @@ import type { FinanceSchedulePort } from "../ports/finance-schedule.port";
 import type { RegistrationDisplayPort } from "../ports/registration-display.port";
 import { nullFinanceObligationPort } from "../ports/null-finance-obligation.port";
 import {
+  buildOperatorRefundNextCursor,
+  buildRefundResultWithInvoice,
+  enrichOperatorRefundRows,
+  loadRefundOrThrowNotFound,
+  mapRefundRow,
+  normalizeOperatorRefundListQuery,
+  resolveRefundableCapMinor,
+  resolveRequestRefundSource,
+  type FinanceRefundOperatorDeps,
+  type OperatorRefundItem,
+} from "./finance-refund-operator";
+import { buildOperatorFinanceExceptionItems } from "./finance-exception-operator";
+import { loadOutstandingBalanceItems } from "./finance-outstanding-operator";
+import {
+  normalizeListLimit,
+  normalizeOptionalTourId,
+  type FinanceReadEnrichmentDeps,
+} from "./finance-read-enrichment";
+import {
   FINANCE_LATENCY_BUDGET_MS,
   FINANCE_METRIC,
   type FinanceApproveMetricResult,
   type FinanceLatencyOperation,
   type FinanceLedgerCaptureMetricResult,
 } from "./finance-metrics-catalog";
+
+export type {
+  OperatorRefundInvoiceSnapshot,
+  OperatorRefundItem,
+  OperatorRefundLinkedPayment,
+} from "./finance-refund-operator";
 
 function isFinanceOperatorRole(role: FinanceActorRole): boolean {
   return role === "admin" || role === "owner";
@@ -77,14 +131,6 @@ export function buildPrepaymentDomainEventIds(
     ledgerDomainEventId: `${prepaymentDomainEventId}:ledger`,
     journalSeed: `prepay:${registrationId}:${keyHash}`,
   };
-}
-
-function assertManualPaymentDebtAllowed(statuses: readonly string[]): void {
-  if (statuses.some((status) => status === "Paid")) {
-    throw new Error(
-      "ZOD_VALIDATION_FAILED: registration already has a successful payment; additional manual debt is not allowed"
-    );
-  }
 }
 
 function parseMinorDigits(value: string): bigint {
@@ -137,7 +183,8 @@ export class FinanceService {
     private readonly logger: FinanceLoggerPort,
     private readonly clock: FinanceClockPort,
     private readonly obligation: FinanceObligationPort,
-    private readonly obligationToleranceMinor: string = "0"
+    private readonly obligationToleranceMinor: string = "0",
+    private readonly arObservation: FinanceArObservationPort = nullFinanceArObservationPort
   ) {
     assertCompositionDep("ledgerPolicy", ledgerPolicy);
     assertCompositionDep("repository", repository);
@@ -153,6 +200,7 @@ export class FinanceService {
     assertCompositionDep("logger", logger);
     assertCompositionDep("clock", clock);
     assertCompositionDep("obligation", obligation);
+    assertCompositionDep("arObservation", arObservation);
   }
 
   private async gate(auth: FinanceActorContext): Promise<FinanceWorkspaceGateResult> {
@@ -220,6 +268,7 @@ export class FinanceService {
       pendingReceiptReviews: 0,
       paidPayments: 0,
       failedPayments: 0,
+      cancelledPayments: 0,
     };
   }
 
@@ -358,16 +407,136 @@ export class FinanceService {
     });
   }
 
+  /**
+   * PR23-C2 — read-only operator exception aggregation.
+   * Invoice compile is the only balance SoT; no mutations.
+   */
+  async listOperatorFinanceExceptions(
+    auth: FinanceActorContext,
+    query: { readonly limit?: number; readonly cursor?: string | null } = {}
+  ): Promise<{
+    readonly items: readonly FinanceExceptionItem[];
+    readonly nextCursor: string | null;
+    readonly hasMore: boolean;
+  }> {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+
+    const limit = normalizeListLimit(query.limit);
+    const sources = await this.repository.listFinanceExceptionSources(auth.tenantId);
+    const items = await buildOperatorFinanceExceptionItems(
+      this.exceptionOperatorDeps(),
+      auth.tenantId,
+      sources
+    );
+
+    return paginateFinanceExceptionItems({
+      items,
+      limit,
+      cursor: query.cursor,
+    });
+  }
+
+  /**
+   * PR23-D1 — read-only outstanding AR list.
+   * Invoice compile is the only remaining-balance SoT; no payment-sum debt.
+   */
+  async listOutstandingBalances(
+    auth: FinanceActorContext,
+    query: {
+      readonly limit?: number;
+      readonly cursor?: string | null;
+      readonly tourId?: string;
+    } = {}
+  ): Promise<{
+    readonly items: readonly OutstandingBalanceItem[];
+    readonly nextCursor: string | null;
+    readonly hasMore: boolean;
+  }> {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+
+    const limit = normalizeListLimit(query.limit);
+    const loaded = await loadOutstandingBalanceItems(
+      this.outstandingOperatorDeps(),
+      auth.tenantId
+    );
+    const tourId = normalizeOptionalTourId(query.tourId);
+    const items =
+      tourId !== undefined
+        ? loaded.filter((row) => row.identity.tourId === tourId)
+        : loaded;
+
+    return paginateOutstandingBalanceItems({
+      items,
+      limit,
+      cursor: query.cursor,
+    });
+  }
+
+  /**
+   * PR23-D2 — tour AR rollup from outstanding invoice rows (D1), not payment aggregates.
+   */
+  async listTourCollectionSummary(
+    auth: FinanceActorContext,
+    query: {
+      readonly limit?: number;
+      readonly cursor?: string | null;
+      readonly tourId?: string;
+    } = {}
+  ): Promise<{
+    readonly items: readonly TourCollectionSummaryItem[];
+    readonly nextCursor: string | null;
+    readonly hasMore: boolean;
+  }> {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+
+    const limit = normalizeListLimit(query.limit);
+    const outstanding = await loadOutstandingBalanceItems(
+      this.outstandingOperatorDeps(),
+      auth.tenantId
+    );
+    const aggregated = aggregateTourCollectionFromOutstanding(outstanding);
+    const tourId = normalizeOptionalTourId(query.tourId);
+    const tours =
+      tourId !== undefined
+        ? aggregated.filter((row) => row.tourId === tourId)
+        : aggregated;
+
+    return paginateTourCollectionItems({
+      items: tours,
+      limit,
+      cursor: query.cursor,
+    });
+  }
+
   async listPendingReceipts(
     auth: FinanceActorContext,
     limit: number,
     registrationId?: string,
-    tourId?: string
+    tourId?: string,
+    cursor?: string | null
   ) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
-    const rows = await this.repository.listPendingReceipts(auth.tenantId, limit);
-    const mapped = rows.map((row) => ({
+
+    let registrationIds: readonly string[] | undefined;
+    if (registrationId === undefined && tourId !== undefined) {
+      registrationIds = await this.registrationDisplay.listRegistrationIdsByTourId(
+        auth.tenantId,
+        tourId
+      );
+    }
+
+    const page = await this.repository.listPendingReceipts(auth.tenantId, {
+      limit,
+      cursor,
+      ...(registrationId !== undefined ? { registrationId } : {}),
+      ...(registrationIds !== undefined ? { registrationIds } : {}),
+    });
+
+    const mapped = page.rows.map((row) => ({
       id: row.id,
       paymentId: row.paymentId,
       fileKey: row.fileKey,
@@ -383,25 +552,14 @@ export class FinanceService {
           }
         : null,
     }));
+
     const withRegistration = mapped.filter((row) => row.registrationId.length > 0);
-    const scoped = await this.filterListRowsByScope(
+    const contexts = await this.registrationDisplay.getByRegistrationIds(
       auth.tenantId,
-      withRegistration,
-      registrationId,
-      tourId
+      withRegistration.map((row) => row.registrationId)
     );
-    const list =
-      registrationId === undefined && tourId === undefined
-        ? mapped
-        : scoped.rows;
-    const contexts =
-      registrationId === undefined && tourId === undefined
-        ? await this.registrationDisplay.getByRegistrationIds(
-            auth.tenantId,
-            withRegistration.map((row) => row.registrationId)
-          )
-        : scoped.contexts;
-    return list.map((row) => {
+
+    const items = mapped.map((row) => {
       const { registrationId: _drop, ...rest } = row;
       if (row.registrationId.length === 0) {
         return { ...rest, registrationContext: null };
@@ -411,6 +569,12 @@ export class FinanceService {
         contexts
       );
     });
+
+    return {
+      items,
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+    };
   }
 
   async createManualPayment(
@@ -455,24 +619,27 @@ export class FinanceService {
       auth.tenantId,
       body.registrationId
     );
-    assertManualPaymentDebtAllowed(statuses);
+    const invoice = await this.compileRegistrationInvoiceInternal(
+      auth.tenantId,
+      body.registrationId
+    );
+    assertManualPaymentDebtAllowed({
+      statuses,
+      balanceDueMinor: invoice.balanceDueMinor,
+    });
     const obligation = await this.obligation.resolveRegistrationObligation({
       tenantId: auth.tenantId,
       registrationId: body.registrationId,
     });
     if (obligation !== null) {
-      const maxAllowed =
-        parseMinorDigits(obligation.obligationMinor) + parseMinorDigits(this.obligationToleranceMinor);
-      if (parseMinorDigits(body.amount) > maxAllowed) {
-        this.logger.warn({
-          event: "finance.obligation.manual_amount_override",
-          tenantId: auth.tenantId,
-          registrationId: body.registrationId,
+      if (
+        isManualPaymentAmountOverRemaining({
           amountMinor: body.amount,
-          obligationMinor: obligation.obligationMinor,
+          balanceDueMinor: invoice.balanceDueMinor,
           toleranceMinor: this.obligationToleranceMinor,
-          source: obligation.source,
-        });
+        })
+      ) {
+        throw new Error("FINANCE_OBLIGATION_OVERPAY");
       }
     }
     const payment = await this.repository.createManualPayment({
@@ -494,6 +661,54 @@ export class FinanceService {
       ...payment,
       createdAt: payment.createdAt.toISOString(),
       paidAt: payment.paidAt?.toISOString() ?? null,
+    };
+  }
+
+  /**
+   * PR23-A.2 — close abandoned manual Pending intent (Pending → Cancelled).
+   * No ledger, booking payment, invoice, or receipt status mutation.
+   */
+  async cancelPendingManualPayment(
+    auth: FinanceActorContext,
+    body: {
+      readonly paymentId: string;
+      readonly reasonCode: string;
+      readonly reasonNote?: string | null;
+    },
+    idempotencyKey?: string
+  ) {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+    const reason = assertCancelPendingManualPaymentReason({
+      reasonCode: body.reasonCode,
+      reasonNote: body.reasonNote,
+    });
+    const trimmedKey =
+      typeof idempotencyKey === "string" ? idempotencyKey.trim() : "";
+    const idempotencyKeyHash =
+      trimmedKey.length > 0 ? hashFinanceHttpIdempotencyKey(trimmedKey) : undefined;
+    const cancelled = await this.repository.cancelPendingManualPaymentAtomic({
+      tenantId: auth.tenantId,
+      paymentId: body.paymentId,
+      actorUserId: auth.userId,
+      reasonCode: reason.reasonCode,
+      reasonNote: reason.reasonNote,
+      occurredAtIso: this.clock.nowIso(),
+      ...(idempotencyKeyHash !== undefined ? { idempotencyKeyHash } : {}),
+    });
+    return {
+      id: cancelled.payment.id,
+      registrationId: cancelled.payment.registrationId,
+      amount: cancelled.payment.amount,
+      currency: cancelled.payment.currency,
+      method: cancelled.payment.method,
+      status: cancelled.payment.status,
+      provider: cancelled.payment.provider,
+      createdAt: cancelled.payment.createdAt.toISOString(),
+      paidAt: cancelled.payment.paidAt?.toISOString() ?? null,
+      replay: cancelled.replay,
+      domainEventId: cancelled.domainEventId,
+      audit: cancelled.auditPayload,
     };
   }
 
@@ -608,14 +823,26 @@ export class FinanceService {
         auth.tenantId,
         input.registrationId
       );
-      assertManualPaymentDebtAllowed(statuses);
+      const invoice = await this.compileRegistrationInvoiceInternal(
+        auth.tenantId,
+        input.registrationId
+      );
+      assertManualPaymentDebtAllowed({
+        statuses,
+        balanceDueMinor: invoice.balanceDueMinor,
+      });
       const obligation = await this.obligation.resolveRegistrationObligation({
         tenantId: auth.tenantId,
         registrationId: input.registrationId,
       });
       const offlineDefaults = this.receiptDefaults.offlineReceiptPaymentDefaults();
+      const remainingMinor = invoice.balanceDueMinor;
       const amount =
-        obligation !== null ? obligation.obligationMinor : offlineDefaults.amountMinor;
+        parseMinorDigits(remainingMinor) > BigInt(0)
+          ? remainingMinor
+          : obligation !== null
+            ? obligation.obligationMinor
+            : offlineDefaults.amountMinor;
       const currency =
         obligation !== null ? obligation.currency : offlineDefaults.currency;
       payment = await this.repository.createManualPayment({
@@ -828,15 +1055,31 @@ export class FinanceService {
       );
     }
 
+    let approveObligationMinor: string | undefined;
+    let approveScheduleAmountsMinor: readonly string[] = [];
     if (body.decision === "approve") {
       const obligation = await this.obligation.resolveRegistrationObligation({
         tenantId: auth.tenantId,
         registrationId: payment.registrationId,
       });
+      const scheduleItems = await this.schedules.getSchedule(
+        auth.tenantId,
+        payment.registrationId
+      );
+      approveScheduleAmountsMinor = scheduleItems.map((item) => item.amountMinor);
       if (obligation !== null) {
-        const maxAllowed =
-          parseMinorDigits(obligation.obligationMinor) + parseMinorDigits(this.obligationToleranceMinor);
-        if (parseMinorDigits(payment.amount) > maxAllowed) {
+        approveObligationMinor = obligation.obligationMinor;
+        const invoice = await this.compileRegistrationInvoiceInternal(
+          auth.tenantId,
+          payment.registrationId
+        );
+        if (
+          isManualPaymentAmountOverRemaining({
+            amountMinor: payment.amount,
+            balanceDueMinor: invoice.balanceDueMinor,
+            toleranceMinor: this.obligationToleranceMinor,
+          })
+        ) {
           throw new Error("FINANCE_OBLIGATION_OVERPAY");
         }
       }
@@ -886,7 +1129,7 @@ export class FinanceService {
       throw new Error("FINANCE_LEDGER_CAPTURE_EMPTY");
     }
 
-    // Single RLS transaction: payment Paid → booking paid → receipt Approved → ledger.
+    // Single RLS transaction: payment Paid → booking partial|paid (from balance) → receipt Approved → ledger.
     // Memory fake: fail-closed simulate via repository (not production-equivalent).
     try {
       const approved = await this.repository.approveManualReceiptAtomic({
@@ -896,6 +1139,10 @@ export class FinanceService {
         registrationId: payment.registrationId,
         journalId: ledgerCapture.journalId,
         reviewedByUserId: auth.userId,
+        scheduleAmountsMinor: approveScheduleAmountsMinor,
+        ...(approveObligationMinor !== undefined
+          ? { obligationMinor: approveObligationMinor }
+          : {}),
         ...(body.reviewNote !== undefined ? { reviewNote: body.reviewNote } : {}),
         ...(this.storageDriver.isDurablePersistence() ? { ledgerCapture } : {}),
       });
@@ -1176,24 +1423,377 @@ export class FinanceService {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
     const normalizedRegistrationId = registrationId.trim();
-    const facts = await this.repository.getRegistrationInvoiceFacts(
-      auth.tenantId,
-      normalizedRegistrationId
-    );
-    const scheduleItems = await this.schedules.getSchedule(auth.tenantId, normalizedRegistrationId);
+    return this.compileRegistrationInvoiceInternal(auth.tenantId, normalizedRegistrationId);
+  }
+
+  private async compileRegistrationInvoiceInternal(
+    tenantId: string,
+    registrationId: string
+  ) {
+    const facts = await this.repository.getRegistrationInvoiceFacts(tenantId, registrationId);
+    const scheduleItems = await this.schedules.getSchedule(tenantId, registrationId);
     const obligation = await this.obligation.resolveRegistrationObligation({
-      tenantId: auth.tenantId,
-      registrationId: normalizedRegistrationId,
+      tenantId,
+      registrationId,
     });
     return compileRegistrationInvoice({
-      registrationId: normalizedRegistrationId,
+      registrationId,
       currency: facts.currency,
       prepaymentMinor: facts.prepaymentMinor,
       paidPaymentsMinor: facts.paidPaymentsMinor,
       paymentAmountsMinor: facts.paymentAmountsMinor,
       scheduleAmountsMinor: scheduleItems.map((item) => item.amountMinor),
+      refundedCompletedMinor: facts.refundedCompletedMinor,
       ...(obligation !== null ? { obligationMinor: obligation.obligationMinor } : {}),
     });
+  }
+
+  /**
+   * D3-B-compatible money-change hook. No-op until observeRegistrationArState is wired.
+   */
+  private async afterRegistrationMoneyChanged(
+    tenantId: string,
+    registrationId: string,
+    balanceDueMinor: string
+  ): Promise<void> {
+    await this.arObservation.observeRegistrationArState({
+      tenantId,
+      registrationId,
+      balanceDueMinor,
+      nowIso: this.clock.nowIso(),
+    });
+  }
+
+  private readEnrichmentDeps(): FinanceReadEnrichmentDeps {
+    return {
+      bookingPayments: this.bookingPayments,
+      compileRegistrationInvoice: (tenantId, registrationId) =>
+        this.compileRegistrationInvoiceInternal(tenantId, registrationId),
+    };
+  }
+
+  private exceptionOperatorDeps() {
+    return {
+      ...this.readEnrichmentDeps(),
+      registrationDisplay: this.registrationDisplay,
+    };
+  }
+
+  private outstandingOperatorDeps() {
+    return {
+      ...this.readEnrichmentDeps(),
+      repository: this.repository,
+      registrationDisplay: this.registrationDisplay,
+    };
+  }
+
+  private refundOperatorDeps(): FinanceRefundOperatorDeps {
+    return {
+      repository: this.repository,
+      compileRegistrationInvoice: (tenantId, registrationId) =>
+        this.compileRegistrationInvoiceInternal(tenantId, registrationId),
+      registrationDisplay: this.registrationDisplay,
+    };
+  }
+
+  /**
+   * PR23-E2 — open offline refund intent (Requested). No money / AR effect.
+   */
+  async requestRefund(
+    auth: FinanceActorContext,
+    body: {
+      readonly registrationId: string;
+      readonly sourceKind: RefundSourceKind;
+      readonly paymentId?: string | null;
+      readonly amountMinor: string;
+      readonly reasonCode: string;
+      readonly reasonNote?: string | null;
+      readonly evidenceFileKey?: string | null;
+      readonly evidenceNote?: string | null;
+      readonly idempotencyKey?: string;
+    }
+  ) {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+    const registrationId = body.registrationId.trim();
+    const amountMinor = assertPositiveRefundAmountMinor(body.amountMinor);
+    const reason = assertRefundReason({
+      reasonCode: body.reasonCode,
+      reasonNote: body.reasonNote,
+    });
+    const trimmedKey =
+      typeof body.idempotencyKey === "string" ? body.idempotencyKey.trim() : "";
+    if (trimmedKey.length > 0) {
+      const existing = await this.repository.findRefundByCreationIdempotencyKey(
+        auth.tenantId,
+        hashFinanceHttpIdempotencyKey(trimmedKey)
+      );
+      if (existing !== null) {
+        return { ...mapRefundRow(existing), replay: true as const };
+      }
+    }
+
+    const facts = await this.repository.getRegistrationInvoiceFacts(
+      auth.tenantId,
+      registrationId
+    );
+    const source = await resolveRequestRefundSource(this.refundOperatorDeps(), {
+      tenantId: auth.tenantId,
+      registrationId,
+      sourceKind: body.sourceKind,
+      paymentId: body.paymentId,
+      factsCurrency: facts.currency,
+      prepaymentMinor: facts.prepaymentMinor,
+    });
+    const paymentId = source.paymentId;
+
+    const cap = await resolveRefundableCapMinor(this.refundOperatorDeps(), {
+      tenantId: auth.tenantId,
+      registrationId,
+      sourceKind: body.sourceKind,
+      paymentId,
+    });
+    assertRefundAmountWithinCap(amountMinor, cap);
+
+    const created = await this.repository.createRefund({
+      tenantId: auth.tenantId,
+      registrationId,
+      paymentId,
+      sourceKind: body.sourceKind,
+      amountMinor,
+      currency: facts.currency,
+      reasonCode: reason.reasonCode,
+      reasonNote: reason.reasonNote,
+      requestedByUserId: auth.userId,
+      requestedAtIso: this.clock.nowIso(),
+      evidenceFileKey: body.evidenceFileKey ?? null,
+      evidenceNote: body.evidenceNote ?? null,
+      creationIdempotencyKey:
+        trimmedKey.length > 0 ? hashFinanceHttpIdempotencyKey(trimmedKey) : null,
+    });
+    return { ...mapRefundRow(created), replay: false as const };
+  }
+
+  /** PR23-E2 — optional review step; no money. */
+  async approveRefund(auth: FinanceActorContext, refundId: string) {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+    const existing = await loadRefundOrThrowNotFound(this.refundOperatorDeps(), auth.tenantId, refundId);
+    if (existing.status === "Approved") {
+      return { ...mapRefundRow(existing), replay: true as const };
+    }
+    assertRefundTransition(existing.status, "Approved");
+    const updated = await this.repository.transitionRefundStatus({
+      tenantId: auth.tenantId,
+      refundId,
+      fromStatuses: ["Requested"],
+      toStatus: "Approved",
+      actorUserId: auth.userId,
+      occurredAtIso: this.clock.nowIso(),
+    });
+    return { ...mapRefundRow(updated.refund), replay: updated.replay };
+  }
+
+  /** PR23-E2 — terminal reject; no money. */
+  async rejectRefund(
+    auth: FinanceActorContext,
+    refundId: string,
+    body?: { readonly rejectNote?: string | null }
+  ) {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+    const existing = await loadRefundOrThrowNotFound(this.refundOperatorDeps(), auth.tenantId, refundId);
+    assertRefundTransition(existing.status, "Rejected");
+    const updated = await this.repository.transitionRefundStatus({
+      tenantId: auth.tenantId,
+      refundId,
+      fromStatuses: ["Requested", "Approved"],
+      toStatus: "Rejected",
+      actorUserId: auth.userId,
+      occurredAtIso: this.clock.nowIso(),
+      rejectNote: body?.rejectNote ?? null,
+    });
+    return { ...mapRefundRow(updated.refund), replay: updated.replay };
+  }
+
+  /** PR23-E2 — abandon before Complete; no money. */
+  async cancelRefund(auth: FinanceActorContext, refundId: string) {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+    const existing = await loadRefundOrThrowNotFound(this.refundOperatorDeps(), auth.tenantId, refundId);
+    assertRefundTransition(existing.status, "Cancelled");
+    const updated = await this.repository.transitionRefundStatus({
+      tenantId: auth.tenantId,
+      refundId,
+      fromStatuses: ["Requested", "Approved"],
+      toStatus: "Cancelled",
+      actorUserId: auth.userId,
+      occurredAtIso: this.clock.nowIso(),
+    });
+    return { ...mapRefundRow(updated.refund), replay: updated.replay };
+  }
+
+  /**
+   * PR23-E2 — Completed money gate: hard cap re-check, invoice net, AR observe hook.
+   * Idempotent when already Completed.
+   */
+  async completeRefund(
+    auth: FinanceActorContext,
+    refundId: string,
+    body?: { readonly completionNote?: string | null }
+  ) {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+    const existing = await loadRefundOrThrowNotFound(this.refundOperatorDeps(), auth.tenantId, refundId);
+    if (existing.status === "Completed") {
+      const result = await buildRefundResultWithInvoice(this.refundOperatorDeps(), {
+        tenantId: auth.tenantId,
+        registrationId: existing.registrationId,
+        refundRow: existing,
+        replay: true,
+      });
+      return {
+        ...result.refund,
+        replay: true as const,
+        invoice: result.invoice,
+      };
+    }
+    assertRefundTransition(existing.status, "Completed");
+
+    if (existing.sourceKind === "payment") {
+      if (existing.paymentId === null) {
+        throw new Error("REFUND_SOURCE_INVALID");
+      }
+      const payment = await this.repository.findPaymentById(
+        auth.tenantId,
+        existing.paymentId
+      );
+      if (payment === null || payment.status !== "Paid" || payment.method !== "Manual") {
+        throw new Error("REFUND_PAYMENT_NOT_PAID");
+      }
+    }
+
+    const cap = await resolveRefundableCapMinor(this.refundOperatorDeps(), {
+      tenantId: auth.tenantId,
+      registrationId: existing.registrationId,
+      sourceKind: existing.sourceKind,
+      paymentId: existing.paymentId,
+      excludeRefundId: existing.id,
+    });
+    assertRefundAmountWithinCap(existing.amountMinor, cap);
+
+    const updated = await this.repository.transitionRefundStatus({
+      tenantId: auth.tenantId,
+      refundId,
+      fromStatuses: ["Requested", "Approved"],
+      toStatus: "Completed",
+      actorUserId: auth.userId,
+      occurredAtIso: this.clock.nowIso(),
+      completionNote: body?.completionNote ?? null,
+    });
+
+    if (!updated.replay) {
+      const result = await buildRefundResultWithInvoice(this.refundOperatorDeps(), {
+        tenantId: auth.tenantId,
+        registrationId: existing.registrationId,
+        refundRow: updated.refund,
+        replay: updated.replay,
+      });
+      await this.afterRegistrationMoneyChanged(
+        auth.tenantId,
+        existing.registrationId,
+        result.balanceDueMinor
+      );
+      return {
+        ...result.refund,
+        replay: updated.replay,
+        invoice: result.invoice,
+      };
+    }
+
+    const result = await buildRefundResultWithInvoice(this.refundOperatorDeps(), {
+      tenantId: auth.tenantId,
+      registrationId: existing.registrationId,
+      refundRow: updated.refund,
+      replay: updated.replay,
+    });
+    return {
+      ...result.refund,
+      replay: updated.replay,
+      invoice: result.invoice,
+    };
+  }
+
+  /**
+   * PR23-E3 — operator refund list with identity / invoice / href enrichment.
+   * Money fields come only from compileRegistrationInvoiceInternal.
+   */
+  async listOperatorRefunds(
+    auth: FinanceActorContext,
+    query: {
+      readonly limit?: number;
+      readonly cursor?: string | null;
+      readonly registrationId?: string;
+      readonly status?: string;
+    } = {}
+  ): Promise<{
+    readonly items: readonly OperatorRefundItem[];
+    readonly nextCursor: string | null;
+    readonly hasMore: boolean;
+  }> {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+    const normalized = normalizeOperatorRefundListQuery(query);
+
+    const page = await this.repository.listRefundsPage({
+      tenantId: auth.tenantId,
+      limit: normalized.limit,
+      ...(normalized.registrationId !== undefined
+        ? { registrationId: normalized.registrationId }
+        : {}),
+      ...(normalized.status !== undefined ? { status: normalized.status } : {}),
+      cursor: normalized.cursor,
+    });
+
+    const items = await enrichOperatorRefundRows(this.refundOperatorDeps(), auth.tenantId, page.rows);
+    const nextCursor = buildOperatorRefundNextCursor({
+      hasMore: page.hasMore,
+      rows: page.rows,
+    });
+
+    return { items, nextCursor, hasMore: page.hasMore };
+  }
+
+  /** PR23-E3 — single enriched refund for operator detail. */
+  async getOperatorRefund(
+    auth: FinanceActorContext,
+    refundId: string
+  ): Promise<OperatorRefundItem> {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+    const row = await loadRefundOrThrowNotFound(this.refundOperatorDeps(), auth.tenantId, refundId.trim());
+    const [item] = await enrichOperatorRefundRows(this.refundOperatorDeps(), auth.tenantId, [row]);
+    if (item === undefined) {
+      throw new Error("REFUND_NOT_FOUND");
+    }
+    return item;
+  }
+
+  async getRefund(auth: FinanceActorContext, refundId: string) {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+    const row = await this.repository.findRefundById(auth.tenantId, refundId);
+    return mapRefundRow(row);
+  }
+
+  async listRefundsForRegistration(auth: FinanceActorContext, registrationId: string) {
+    await this.gate(auth);
+    this.authorization.assertOperatorAccess(auth);
+    const rows = await this.repository.listRefundsForRegistration(
+      auth.tenantId,
+      registrationId.trim()
+    );
+    return rows.map((row) => mapRefundRow(row));
   }
 
   /**
@@ -1337,7 +1937,8 @@ export function createFinanceService(
   logger: FinanceLoggerPort,
   clock: FinanceClockPort,
   obligation: FinanceObligationPort = nullFinanceObligationPort,
-  obligationToleranceMinor = "0"
+  obligationToleranceMinor = "0",
+  arObservation: FinanceArObservationPort = nullFinanceArObservationPort
 ): FinanceService {
   return new FinanceService(
     ledgerPolicy,
@@ -1354,6 +1955,7 @@ export function createFinanceService(
     logger,
     clock,
     obligation,
-    obligationToleranceMinor
+    obligationToleranceMinor,
+    arObservation
   );
 }

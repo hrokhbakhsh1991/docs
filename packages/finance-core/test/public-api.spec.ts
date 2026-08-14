@@ -13,7 +13,14 @@ const INDEX_SRC = join(PKG, "src/index.ts");
 const PKG_JSON = join(PKG, "package.json");
 const DIST_INDEX = join(PKG, "dist/index.js");
 
-const ALLOWED_EXPORT_KEYS = [".", "./ports", "./domain", "./application", "./package.json"];
+const ALLOWED_EXPORT_KEYS = [
+  ".",
+  "./ports",
+  "./domain",
+  "./application",
+  "./case",
+  "./package.json",
+];
 
 const REQUIRED_RUNTIME = [
   "FinanceService",
@@ -49,6 +56,7 @@ describe("FIN-P2.3.3 finance-core public API freeze", () => {
     assert.equal(pkg.files.includes("dist"), true);
     assert.equal(pkg.main, "./dist/index.js");
     assert.equal(pkg.types, "./dist/index.d.ts");
+    assert.ok(pkg.exports["./case"], "PR4.5-B Case surface subpath required");
   });
 
   it("dist runtime surface has required entry points and no host/prisma names", () => {

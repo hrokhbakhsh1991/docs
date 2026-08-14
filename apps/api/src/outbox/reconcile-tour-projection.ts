@@ -16,12 +16,24 @@ export type ReconcileTourProjectionOptions = {
 };
 
 function tourProjectionMatches(
+  workspaceType: string | undefined,
   canonical: unknown,
   title: string | null,
-  schemaVersion: number
+  schemaVersion: number,
+  publishStatus: string,
+  publishedAt: Date | null
 ): boolean {
-  const expected = deriveTourProjections(canonical as CanonicalDocument);
-  return title === expected.title && schemaVersion === expected.schemaVersion;
+  const expected = deriveTourProjections(canonical as CanonicalDocument, {
+    workspaceType,
+    previousPublishedAt: publishedAt,
+  });
+  return (
+    title === expected.title &&
+    schemaVersion === expected.schemaVersion &&
+    publishStatus === expected.publishStatus &&
+    ((publishedAt === null && expected.publishedAt === null) ||
+      publishedAt?.getTime() === expected.publishedAt?.getTime())
+  );
 }
 
 async function observeProjectionLag(
@@ -64,16 +76,34 @@ export async function repairTourProjectionIfDrifted(
   if (tour === null) {
     return false;
   }
+  const tenant = await admin.tenant.findUnique({
+    where: { id: tenantId },
+    select: { workspaceType: true },
+  });
 
-  if (tourProjectionMatches(tour.canonical, tour.title, tour.schemaVersion)) {
+  if (
+    tourProjectionMatches(
+      tenant?.workspaceType,
+      tour.canonical,
+      tour.title,
+      tour.schemaVersion,
+      tour.publishStatus,
+      tour.publishedAt,
+    )
+  ) {
     return false;
   }
 
-  const expected = deriveTourProjections(tour.canonical as unknown as CanonicalDocument);
+  const expected = deriveTourProjections(tour.canonical as unknown as CanonicalDocument, {
+    workspaceType: tenant?.workspaceType,
+    previousPublishedAt: tour.publishedAt,
+  });
   await admin.tour.update({
     where: { tenantId_id: { tenantId, id: tourId } },
     data: {
       title: expected.title,
+      publishStatus: expected.publishStatus,
+      publishedAt: expected.publishedAt,
       schemaVersion: expected.schemaVersion,
     },
   });
@@ -104,6 +134,10 @@ export async function reconcileTourProjectionsForTenant(
 ): Promise<ReconcileTourProjectionResult> {
   const repair = options?.repair === true;
   const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_OUTBOX_RECONCILE);
+  const tenant = await admin.tenant.findUnique({
+    where: { id: tenantId },
+    select: { workspaceType: true },
+  });
   const tours = await admin.tour.findMany({
     where: { tenantId },
     take: limit,
@@ -114,7 +148,16 @@ export async function reconcileTourProjectionsForTenant(
   let repaired = 0;
 
   for (const tour of tours) {
-    if (tourProjectionMatches(tour.canonical, tour.title, tour.schemaVersion)) {
+    if (
+      tourProjectionMatches(
+        tenant?.workspaceType,
+        tour.canonical,
+        tour.title,
+        tour.schemaVersion,
+        tour.publishStatus,
+        tour.publishedAt,
+      )
+    ) {
       continue;
     }
 

@@ -189,6 +189,12 @@ type IntakeSchemaFeatures = {
   readonly transportIntake: boolean;
   readonly notesAtIntake: boolean;
   readonly idempotencyKey: boolean;
+  /** Portal catalog POST requires member Bearer (Denali). */
+  readonly requiresMemberSession?: boolean;
+  /** Enables GET `{registrationApiPath}/for-tour/:tourId` self gate. */
+  readonly selfRegistrationGate?: boolean;
+  /** Enables member PATCH `{registrationApiPath}/:id` pending intake amend. */
+  readonly memberPendingIntakeAmend?: boolean;
   readonly successDataAttributes?: Record<string, boolean>;
 };
 

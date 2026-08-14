@@ -71,6 +71,9 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
       publicBooking: dependencies.publicBooking,
       validationPolicy: dependencies.validationPolicy,
       capacityPolicy: dependencies.capacityPolicy,
+      assistedRegistrationMembers: {
+        findTenantMember: async () => null,
+      },
       tourCapacity,
       workspaceType: "denali",
       tenantWorkspaceBinding: new HostBookingTenantWorkspaceBindingAdapter(),
@@ -148,6 +151,9 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
         publicBooking: dependencies.publicBooking,
         validationPolicy: dependencies.validationPolicy,
         capacityPolicy: dependencies.capacityPolicy,
+        assistedRegistrationMembers: {
+          findTenantMember: async () => null,
+        },
         tourCapacity,
         workspaceType: "denali",
         tenantWorkspaceBinding: new HostBookingTenantWorkspaceBindingAdapter(),

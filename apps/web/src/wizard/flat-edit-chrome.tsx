@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 
@@ -9,6 +8,7 @@ import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
 import type { NewTourWizardDraftEnvelope } from "@/draft/tour-wizard-draft-envelope";
 import type { useWorkspaceDraft } from "@/draft/use-workspace-draft";
 import { TOUR_EDIT_TEST_IDS } from "@/features/tours/operator-tour-detail-types";
+import { TourInternalLink } from "@/features/tours/tour-internal-link";
 
 type OperatorFlatEditDraftSync = Pick<
   ReturnType<typeof useWorkspaceDraft<NewTourWizardDraftEnvelope>>,
@@ -53,22 +53,22 @@ export function OperatorFlatEditPageHeader(props: {
   return (
     <>
       <nav className="new-tour-wizard-page__flat-edit-nav">
-        <Link href="/tours">
-          <Button type="button" variant="ghost" size="sm" className="gap-1">
+        <Button asChild variant="ghost" size="sm" className="gap-1">
+          <TourInternalLink href="/tours">
             <ArrowLeft className="h-4 w-4" />
             {props.toursNavLabel}
-          </Button>
-        </Link>
-        <Link href={`/tours/${encodeURIComponent(props.tourId)}/workspace`}>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            data-testid={TOUR_EDIT_TEST_IDS.workspace}
-          >
+          </TourInternalLink>
+        </Button>
+        <Button
+          asChild
+          variant="outline"
+          size="sm"
+          data-testid={TOUR_EDIT_TEST_IDS.workspace}
+        >
+          <TourInternalLink href={`/tours/${encodeURIComponent(props.tourId)}/workspace`}>
             {props.workspaceNavLabel}
-          </Button>
-        </Link>
+          </TourInternalLink>
+        </Button>
       </nav>
 
       <header className="new-tour-wizard-page__header">

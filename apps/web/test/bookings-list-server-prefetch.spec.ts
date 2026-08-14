@@ -14,8 +14,13 @@ describe("bookings-list-server-prefetch.spec.ts", () => {
   });
 
   it("BOOKINGS-02 bookings client skips first fetch when initialPrefetch is provided", () => {
-    const clientSource = readFileSync(
+    const entrySource = readFileSync(
       resolve(WEB_ROOT, "app/(app)/bookings/bookings-page-client.tsx"),
+      "utf8"
+    );
+    assert.match(entrySource, /bookings-command-center-shell/);
+    const clientSource = readFileSync(
+      resolve(WEB_ROOT, "src/features/bookings/bookings-command-center-shell.tsx"),
       "utf8"
     );
     assert.match(clientSource, /initialPrefetch/);

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Copy } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -103,7 +102,11 @@ export function BookingInspectionDetails({
         <dd>{formatBookingDeparture(booking.departureAt, locale)}</dd>
         <dt className="text-muted-foreground">{t("fields.payment")}</dt>
         <dd>
-          <Badge variant={bookingPaymentBadgeVariant(booking.paymentStatus)}>
+          <Badge
+            variant={bookingPaymentBadgeVariant(booking.paymentStatus)}
+            data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.paymentBadgeInspection}
+            data-payment-status={booking.paymentStatus}
+          >
             {t(`payment.${booking.paymentStatus}`)}
           </Badge>
         </dd>
@@ -137,6 +140,14 @@ export function BookingInspectionDetails({
           </>
         ) : null}
       </dl>
+      {/* PR21-G2: money state before ops/cancel so finance is not buried. */}
+      <BookingFinancialStrip
+        registrationId={booking.id}
+        bookingPaymentStatus={booking.paymentStatus}
+        bookingStatus={booking.status}
+      />
+      <BookingRegistrationIntakeDetails booking={booking} />
+      <BookingActivityTimeline booking={booking} />
       {canManageOps && (canActOnSelected || canWaitlistSelected || canCancelSelected) ? (
         <BookingActionButtons
           busy={actionBusy}
@@ -150,24 +161,6 @@ export function BookingInspectionDetails({
           className={actionClassName}
           includeTestIds={includeActionTestIds}
         />
-      ) : null}
-      <BookingRegistrationIntakeDetails booking={booking} />
-      <BookingFinancialStrip registrationId={booking.id} />
-      <BookingActivityTimeline booking={booking} />
-      {booking.status === "approved" &&
-      (booking.paymentStatus === "unpaid" || booking.paymentStatus === "partial") ? (
-        <p
-          className="rounded-md border border-dashed bg-muted/40 p-3 text-sm text-muted-foreground"
-          data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.nextStepReceiptHint}
-        >
-          {t("nextStepReceiptHint")}{" "}
-          <Link
-            href="/finance?tab=receipts"
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-          >
-            {t("nextStepReceiptLink")}
-          </Link>
-        </p>
       ) : null}
     </>
   );

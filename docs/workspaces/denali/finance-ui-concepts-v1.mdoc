@@ -1,0 +1,481 @@
+---
+title: Finance UI Concepts v1
+doc_id: DENALI-FINANCE-UI-CONCEPTS
+version: "2026-08-07-v1"
+workspace: denali
+status: ANALYSIS
+phase: pre-redesign discovery stage-9
+continues:
+  - DENALI-FINANCE-CAPABILITY-EXPERIENCE-CONTRACT
+  - DENALI-FINANCE-EXPERIENCE-PATTERNS
+  - DENALI-FINANCE-OPERATOR-INTERACTION-CONCEPTS
+  - DENALI-FINANCE-OPERATOR-EXPERIENCE-STRUCTURE
+authority: >
+  Experience Patterns validation (PASS with gates) · Capability Experience Contract ·
+  Architecture Discovery (finance reusable; Denali = binder)
+purpose: >
+  Define reusable UI Concepts for Finance Operator Experience — interaction architecture
+  that later implementation will follow. Not screen design, not components, not mockups.
+constraints:
+  - No code / components / routes / APIs / schemas / migrations / field renames
+  - Case-first, not entity-first
+  - Financial Case = interpretation only (not persisted SoT)
+  - facts → verdict → owner → lane → confidence → allow/forbid
+  - Denali = first product binding only
+mode: Conceptual UI architecture only
+---
+
+# Finance UI Concepts v1
+
+## Design Principles
+
+| # | Principle | Implication for later UI |
+| - | --------- | ------------------------ |
+| D1 | **Case is the unit** | Surfaces organize around an interpreted commercial situation, not payment/receipt/ledger/registration tables as the primary model |
+| D2 | **Interpretation chain is the interaction model** | Operator flow expresses `facts → verdict → owner → lane → confidence → allow/forbid` |
+| D3 | **Verdict explains facts; never replaces them** | Facts remain visible; verdict is a reading, not a stored status |
+| D4 | **Ownership before affordances** | Action offers appear only after “whose move” is clear |
+| D5 | **Wait is success** | Calm waiting is a first-class outcome, not an empty-state failure |
+| D6 | **Healthy coexistence is non-alarming** | Evidence in review + unsettled settlement can be expected |
+| D7 | **Altitude discipline** | Daily / exception / audit are distinct modes; ledger is not daily workflow |
+| D8 | **Capability vs binder** | Reusable concepts use universal vocabulary; Denali supplies copy, subject shape, and business context |
+| D9 | **No SoT merge** | Lifecycle, payment/intent, proof, and settlement stay separate axes |
+| D10 | **Signals ≠ Cases** | Queues may signal work; opening work always lands in Case interpretation |
+
+**Multi-workspace marks:** **U** universal · **Ad** adapter/product · **D** Denali-only wording/example  
+
+**Probes:** **A** enrollment + offline evidence · **B** subscription + recurring · **C** marketplace order  
+
+---
+
+## Case Information Hierarchy
+
+Not organized around payments list, receipts list, ledger entries, or registrations table.
+
+### Level 1 — Immediate understanding
+
+What the operator must grasp **first** (Pattern Encounter + Verdict headline):
+
+| Concept | Purpose | Mark |
+| ------- | ------- | ---- |
+| Subject identity | Who / what commercial thing | **U** (**Ad** fields) |
+| Interpretive verdict (headline) | Where we are financially *as a reading* | **U** |
+| Next-action owner | Whose move | **U** |
+| Work lane | daily / exception / audit | **U** |
+| Alarm flag | Whether coexistence is healthy | **U** |
+
+### Level 2 — Facts that explain the interpretation
+
+| Concept | Purpose | Mark |
+| ------- | ------- | ---- |
+| Lifecycle eligibility | May money proceed? | **U** (**Ad** mapping) |
+| Collection policy | Money due or not | **U** (**Ad** modes) |
+| Obligation / remaining | Money target | **U** |
+| Evidence / proof progress | Ingress state | **U** (**Ad** file vs gateway) |
+| Intent state | Open/captured intents (+ provenance when known) | **U** |
+| Settlement meaning | Product projection unsettled/partial/settled | **U** |
+| Partial scope (if partial) | Which layer is partial | **U** |
+
+### Level 3 — Ownership decision revealed
+
+| Concept | Purpose | Mark |
+| ------- | ------- | ---- |
+| Owner category | counterparty / finance / product_desk / policy_system / exception_policy / idle | **U** |
+| Explicit non-ownership | “Not finance’s move — waiting on X” | **U** |
+| Confidence: why mine / why visible | Confidence quartet (partial) | **U** |
+
+### Level 4 — Allowed actions
+
+| Concept | Purpose | Mark |
+| ------- | ------- | ---- |
+| Allowed action set | From CaseOutput, not from clicked row | **U** |
+| Forbidden action set | What to avoid now | **U** |
+| Primary posture | act now / wait / escalate / inspect | **U** |
+
+### Level 5 — History / audit
+
+| Concept | Purpose | Mark |
+| ------- | ------- | ---- |
+| Evidence history (accepted/rejected prior) | Context for retry | **U** |
+| Intent history | Parallel/duplicate detection | **U** |
+| Ledger / recon | Audit altitude only | **U** |
+| Product lifecycle timeline | Eligibility context (**Ad**) | **Ad** |
+
+**Rule:** Level 5 must not outrank Levels 1–4 in daily mode.
+
+---
+
+## Encounter Model
+
+### Intent
+
+Operator discovers work without being tricked into treating raw signals as the mental model.
+
+### Signal vs Case
+
+| Signal (intake cue) | Case (interpreted situation) |
+| -------------------- | ---------------------------- |
+| Pending evidence | AWAITING_FINANCE (likely) — finance may own review |
+| Unpaid / unsettled obligation | May be awaiting counterparty, not eligible, no money due, or in review — **must interpret** |
+| Exception cue | EXCEPTION lane — not routine review |
+| Audit / recon finding | AUDIT altitude — not daily first response |
+
+**Signals may form queues.** Queues are **indexes of attention**, not the definition of work.
+
+### Encounter contract
+
+```text
+Signal selected
+  → resolve commercial subject
+  → open Financial Case (interpretation frame)
+  → run Understanding → Verdict → Ownership before actions
+```
+
+### Queue without becoming the model
+
+| Allowed | Forbidden |
+| ------- | --------- |
+| “Evidence needing review” as a **signal list** that opens Cases | Treating a receipt row as the whole job |
+| “Unsettled subjects” as a **signal list** that opens Cases | Treating unpaid badge as finance task assignment |
+| Exception inbox as signals | Happy-path approve from the inbox without Case frame |
+
+### Multi-workspace
+
+| Probe | Encounter signals | Mark |
+| ----- | ----------------- | ---- |
+| A | Pending offline proofs; unsettled enrollments | **U** + **D** labels |
+| B | Failed charges; past_due invoices; disputes | **U** + **Ad** |
+| C | Unpaid orders; capture disputes; payout holds | **U** + **Ad** (multi-case risk) |
+
+---
+
+## Understanding Model
+
+Conceptual reveal order (UI Concepts must preserve this sequence in interaction architecture):
+
+### Identity
+
+| | |
+| --- | --- |
+| **Why needed** | Anchor the case; prevent wrong-party action |
+| **If hidden** | Entity thrash; mis-capture |
+| **Owner of fact** | **Workspace adapter** (display) + commercial id from finance/host |
+
+### Eligibility
+
+| | |
+| --- | --- |
+| **Why needed** | Money blame only when path is open |
+| **If hidden** | Chase before product acceptance; process closed subjects as daily |
+| **Owner of fact** | **Workspace** lifecycle → mapped to `not_yet` / `eligible` / `closed` |
+
+### Policy
+
+| | |
+| --- | --- |
+| **Why needed** | Distinguish money_due vs no_money_due |
+| **If hidden** | Chase free/zero; invent evidence tasks |
+| **Owner of fact** | **Workspace** collection policy resolution |
+
+### Money
+
+| | |
+| --- | --- |
+| **Why needed** | Obligation/remaining for evidence judgment and partial scope |
+| **If hidden** | Approve/reject without amount; wrong club answers |
+| **Owner of fact** | **Finance** (obligation port + invoice recognition) |
+
+### Evidence
+
+| | |
+| --- | --- |
+| **Why needed** | Ingress progress; decides finance vs counterparty ownership |
+| **If hidden** | Confusion between “no proof” and “in review” |
+| **Owner of fact** | **Finance** proof/receipt (or gateway evidence **Ad**) |
+
+### Settlement
+
+| | |
+| --- | --- |
+| **Why needed** | Product projection answer; coexistence with evidence |
+| **If hidden** | Cannot answer “is payment OK?”; post-decision distrust |
+| **Owner of fact** | **Finance** via settlement projection port (host-backed) |
+
+### Context
+
+| | |
+| --- | --- |
+| **Why needed** | Prioritization / ops context (service window, period, fulfillment) |
+| **If hidden** | Poor prioritization — not wrong settlement meaning |
+| **Owner of fact** | **Workspace adapter** businessContext (**D** departure/tour) |
+
+**Checkpoint:** Understanding is incomplete until Identity→…→Settlement can support Owner derivation.
+
+---
+
+## Verdict Model
+
+### Intent
+
+Show “where we are financially?” as an **interpretive reading** that explains visible facts.
+
+### Conceptual verdict set (non-exhaustive)
+
+| Verdict | Operator meaning |
+| ------- | ---------------- |
+| `AWAITING_COUNTERPARTY` | Eligible, money due, waiting on counterparty |
+| `AWAITING_FINANCE` | Evidence with finance; review owed |
+| `SETTLED_CAPTURED` | Settled after accepted capture/evidence |
+| `NO_MONEY_DUE` | No chase; idle on money |
+| `NOT_ELIGIBLE` | Money path not open yet |
+| `CLOSED` | Subject closed for normal collection |
+| `PARTIAL` | Incomplete — scope required |
+| `INTENT_OPEN_NO_PROOF` | Open intent ≠ in-review evidence |
+| `EXCEPTION` | Commercial meaning unclear |
+| `AUDIT_SUSPECT` | Daily story failed |
+
+### Interaction rules
+
+1. Verdict **explains** facts — facts stay available at Level 2.  
+2. Verdict **does not replace** lifecycle, intent, proof, or settlement SoTs.  
+3. Verdict **must not** be designed as a stored DB status or editable “case state.”  
+4. Verdict always pairs with narrative + alarm rules (especially coexistence).  
+
+### Example: `AWAITING_FINANCE`
+
+Must communicate: evidence exists · finance owns · unsettled may be **expected**.  
+Must not communicate: payment broken · sync failure.
+
+### Multi-workspace
+
+Verdict vocabulary = **U**. Frequency of evidence-review vs gateway settle = **Ad**.
+
+---
+
+## Ownership Model
+
+### Intent
+
+Answer “Whose move is it?” **before** offering actions.
+
+### Owners
+
+| Owner | Meaning |
+| ----- | ------- |
+| `counterparty` | Pay / submit / correct (**D** member; **Ad** subscriber/buyer) |
+| `finance` | Review/decide evidence or finance-owned cleanup |
+| `product_desk` | Eligibility/lifecycle desk |
+| `policy_system` | No-money / policy completion |
+| `exception_policy` | Exception judgment |
+| `idle` | No money action |
+
+### Why ownership before actions
+
+- Prevents “I’m in finance UI ⇒ everything unsettled is mine.”  
+- Makes **wait** a coherent choice when owner ≠ finance.  
+- Aligns allow/forbid with who can legally/productively act.  
+
+### Why actions without ownership confuse operators
+
+Operators invent work (manual intent, ledger dive) or neglect real finance-owned evidence; club answers become inconsistent.
+
+### Multi-workspace
+
+Owner categories = **U**. Binding of counterparty/product_desk = **Ad**.
+
+---
+
+## Decision Model
+
+### Intent
+
+Action availability comes from interpretation output, not from which entity row was clicked.
+
+### Source of truth for affordances
+
+```text
+CaseOutput.allowedActions
++ CaseOutput.forbiddenActions
+(+ owner, lane, confidence)
+```
+
+**Not from:** clicked payment/receipt row · bare payment status · bare receipt status · ledger line.
+
+### Conceptual postures
+
+| Posture | When | Examples |
+| ------- | ---- | -------- |
+| **Act now** | owner=`finance`, lane=`daily`, allowed includes evidence decide | approve evidence, reject evidence |
+| **Wait** | owner ∈ {counterparty, idle, product_desk, policy_system} | calm waiting (no irreversible finance act) |
+| **Escalate** | lane=`exception` or allowed includes escalate | exception_policy handoff |
+| **Inspect** | lane=`audit` or allowed includes inspect | audit context — after daily/exception fail |
+
+### Rules
+
+1. Irreversible acts require Understanding complete (hierarchy).  
+2. Reject evidence returns ownership narrative to counterparty.  
+3. Opening manual intent is **not** a default Decision posture (forbidden unless allowed for exception).  
+
+### Multi-workspace
+
+Postures = **U**. Which acts dominate = **Ad** (A: evidence review; B/C: more wait/inspect/dispute).
+
+---
+
+## Waiting Model
+
+### Intent
+
+Communicate: **Nothing is broken. Waiting is correct.**
+
+### Calm waiting situations
+
+| Situation | Message shape | Mark |
+| --------- | ------------- | ---- |
+| Awaiting counterparty (no evidence / rejected) | Waiting on counterparty — finance should not invent capture | **U** |
+| Evidence in review + unsettled | Expected coexistence — finance acts (this is *not* calm-wait for finance; see coexistence) | **U** |
+| No money due | No payment chase | **U** |
+| Not eligible yet | Product desk owns eligibility | **U** |
+| Idle settled | Case complete on money path | **U** |
+
+**Note:** Healthy coexistence is **finance-owned work**, not calm waiting for finance — but it is **non-alarming** for settlement. Calm waiting applies when owner ≠ finance (or idle).
+
+### Avoid alarm-based UX
+
+- No error framing for expected waits  
+- No forcing a primary destructive/create action to “resolve” waiting  
+- Confidence: what happens if I do nothing = acceptable delay, not silent integrity loss  
+
+### Multi-workspace
+
+Calm waiting = **U**. Copy for counterparty action = **Ad/D**.
+
+---
+
+## Exception/Audit Model
+
+### Exception (lane change)
+
+| | |
+| --- | --- |
+| **When** | Terminal + leftover money objects; duplicate intents; non-healthy conflicts; policy disputes |
+| **UI concept** | Visible mode change + reason trigger + routine approve/reject suppressed |
+| **Owner** | typically `exception_policy` |
+| **Mark** | **U** |
+
+### Audit (altitude change)
+
+| | |
+| --- | --- |
+| **When** | After daily/exception explanation fails, or recon finding |
+| **Rules** | Never first response; not required for normal evidence approve; findings map back to Case Level 2 facts |
+| **Mark** | **U** |
+
+### Coexistence (daily, non-exception)
+
+Evidence `in_review` + settlement `unsettled` → **not** exception by default → Verdict `AWAITING_FINANCE`, alarm=false (**U**, primary in **A**).
+
+---
+
+## Multi Workspace Compatibility
+
+| UI Concept | A Enrollment+offline | B Subscription+recurring | C Marketplace order |
+| ---------- | -------------------- | ------------------------ | ------------------- |
+| Case-first hierarchy | **U** | **U** | **U** (watch multi-case) |
+| Signal queues ≠ Case model | **U** | **U** | **U** |
+| Understanding order | **U** | **U** (**Ad** thin evidence) | **U** (**Ad** PSP) |
+| Verdict-as-interpretation | **U** | **U** | **U** |
+| Ownership before actions | **U** | **U** | **U** |
+| Allow/forbid from CaseOutput | **U** | **U** | **U** |
+| Calm waiting | **U** | **U** | **U** |
+| Healthy coexistence | **U** (core path) | **Ad** if disputes | **Ad** if offline/dispute |
+| Exception/audit modes | **U** | **U** | **U** |
+| Tour/departure urgency | **D/Ad** | out | out |
+| Member wording | **D** | **Ad** subscriber | **Ad** buyer |
+| Offline proof approve as main act | **Ad** (central) | **Ad** (secondary) | **Ad** (secondary) |
+
+**Survival rule:** If a concept requires tour, member, or offline-receipt to *define* the pattern (not merely bind copy), it fails multi-workspace and must be demoted to Denali binding.
+
+---
+
+## Denali Binding Notes
+
+| Reusable concept | Denali binding |
+| ---------------- | -------------- |
+| commercialSubjectId | enrollment / registration id (no rename required in this phase) |
+| subjectKind | enrollment |
+| counterparty | member |
+| product_desk | bookings / club ops |
+| businessContext | tour title, departure proximity |
+| collectionPolicy | offline evidence or free/zero from tour canonical |
+| eligibility | booking lifecycle → not_yet / eligible / closed |
+| evidence | offline transfer proof |
+| settlementMeaning | booking paymentStatus projection |
+| Signal queues | pending receipts; unpaid enrollments; bookings handoff |
+| Local copy | club, tour, registration, member, “approve then offline pay” phrases |
+
+Denali binding **may** use bookings APIs as **signals and fact sources**. It **must not** define the reusable IA as “bookings command center inside finance.”
+
+---
+
+## Implementation Deferred Decisions
+
+| Deferred | Why deferred |
+| -------- | ------------ |
+| Visual layout, components, routes, navigation chrome | Explicitly out of this phase |
+| Runtime `interpretFinancialCase` package | Optional for concepting; client composition rules acceptable until shared module |
+| Renaming `registrationId` / settlement port | Conceptual alias only; no migration |
+| Extensible collection-policy enum in APIs | Denali offline\|free sufficient for first binder |
+| Subscription/marketplace ingress implementation | Need second product force |
+| Persisting CaseOutput | Forbidden, not deferred |
+| Replacing entity tabs wholesale in code | Implementation after UI Concepts acceptance + planning |
+
+### Computation locus (accepted for next implementation planning)
+
+For Denali-first delivery concepting: CaseOutput may be treated as **documented derivation** over existing fetches. A shared pure interpreter remains the **target** for multi-workspace consistency, not a gate to accept these UI Concepts.
+
+---
+
+## UI boundary
+
+### Allowed (future implementation may build)
+
+- Case frame expressing Levels 1–4  
+- Signal queues that **open** Cases (not replace them)  
+- Understanding reveal order  
+- Interpretive verdict + narrative + ownership disclosure  
+- Allow/forbid-driven postures: act / wait / escalate / inspect  
+- Calm waiting and healthy coexistence messaging  
+- Exception/audit mode changes  
+- Denali bindings for copy, subject picker, urgency context  
+- Client-side or shared derivation of CaseOutput from existing facts  
+
+### Forbidden (recreates Denali lock-in or architecture breach)
+
+- Payment/receipt/ledger/registration **as primary mental model**  
+- Tour/departure as mandatory finance capability navigation  
+- Member as universal counterparty in shared language  
+- Offline receipt as sole payment flow in shared concepts  
+- Booking lifecycle controls inside finance decision vocabulary  
+- Persisted case status / merged status enum  
+- Alarm UX for expected coexistence or calm waiting  
+- Manual payment as default resolution of waiting  
+- Ledger-first daily path  
+- Cloning Denali tour IA for B/C  
+
+### Deferred (needs runtime contracts or product force first)
+
+- Shared interpreter package extract  
+- SubjectKind multi-case platform rules in APIs  
+- Gateway/recurring ingress UX beyond conceptual notes  
+- Field renames / schema migrations  
+
+---
+
+## Concepts one-liner
+
+> Finance operator UI Concepts organize around an interpreted Financial Case: signals only discover work; understanding reveals facts in order; verdict and ownership explain the situation; actions come from allow/forbid; waiting and coexistence stay calm; exception and audit are explicit altitudes — with Denali as the first binder, not the definition of finance UI.
+
+---
+
+*Conceptual UI architecture only. No screens, components, or implementation.*

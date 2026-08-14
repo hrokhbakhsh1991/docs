@@ -73,6 +73,21 @@ Host read-only dimension for multi-workspace finance ops:
 | Aggregate | `GET /finance/reports/by-tour?tourId=` — SQL join `payments` ↔ `operator_registrations` |
 | Web | `FinanceTourFilter` (bookings summary tour chips) + overview `paidByTour` strip |
 
+Read-only list endpoints in `finance-core` should normalize pagination limits through a shared clamp helper (min=1, max=200, default=50) to avoid drift between exceptions/outstanding/tour-collections paths.
+
+The D1 outstanding load path lives in `finance-outstanding-operator.ts` (`loadOutstandingBalanceItems`).
+Shared helpers remain in `finance-read-enrichment.ts` (see PR23-D1 doc).
+
+Operator refund enrichment and E2 cap/source resolution live in
+`packages/finance-core/src/application/finance-refund-operator.ts`; `FinanceService`
+delegates via `refundOperatorDeps()` (see PR23-E3 workflow doc).
+
+Exception list enrichment lives in `finance-exception-operator.ts`; shared read helpers
+(`normalizeListLimit`, invoice compile try/catch, booking payment status, identity attach)
+live in `finance-read-enrichment.ts` (outstanding/tour paths reuse the same module).
+
+Static guard: `packages/finance-core/test/finance-application-module-split.spec.ts` (FIN-MOD-01..03).
+
 Proof: `apps/api/test/finance-reports-by-tour.spec.ts`, `apps/web/test/finance-tour-filter.spec.ts`.
 
 ## Commercial obligation bind (FC-2)
@@ -80,7 +95,8 @@ Proof: `apps/api/test/finance-reports-by-tour.spec.ts`, `apps/web/test/finance-t
 | Step | Enforcement |
 | ---- | ----------- |
 | Manual payment create | Warn log `finance.obligation.manual_amount_override` when amount > obligation + tolerance |
-| Receipt approve | Block with `FINANCE_OBLIGATION_OVERPAY` when payment > obligation + tolerance |
+| Receipt approve | Block with `FINANCE_OBLIGATION_OVERPAY` when payment > **remaining** (`balanceDueMinor`) + tolerance (PR20-D; HTTP 422) |
+| Manual payment create | Same overpay vs remaining when obligation known; debt gate allows multi-pay while remaining &gt; 0 |
 | Invoice compile | `obligationMinor` after schedule sum, before payment-sum fallback |
 
 Denali resolver: `resolveDenaliRegistrationObligationMinor` (`pricing.basePricePerPerson × partySize`, `offline_receipt` only).  

@@ -32,14 +32,19 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
       "overview",
       "payments",
       "receipts",
+      "outstanding",
       "prepayments",
       "installments",
       "ledger",
+      "refunds",
     ]);
     assert.equal(parseFinanceTab(undefined, DENALI_VISIBLE), "overview");
     assert.equal(parseFinanceTab("receipts", DENALI_VISIBLE), "receipts");
-    assert.equal(parseFinanceTab("prepayments", DENALI_VISIBLE), "prepayments");
+    // PR20-D: prepayments/installments off by default — deep-link falls back to overview
+    assert.equal(parseFinanceTab("prepayments", DENALI_VISIBLE), "overview");
     assert.equal(parseFinanceTab("unknown", DENALI_VISIBLE), "overview");
+    assert.equal(parseFinanceTab("refunds", DENALI_VISIBLE), "refunds");
+    assert.equal(parseFinanceTab("outstanding", DENALI_VISIBLE), "outstanding");
   });
 
   it("WEB-9.7-04 tab shell uses client router.replace (no hard <a href>)", () => {
@@ -53,17 +58,24 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
     assert.doesNotMatch(shell, /href=\{`\/finance\?tab=/);
   });
 
-  it("WEB-9.7-05 default manifest shows installments tab (Phase D)", () => {
+  it("WEB-9.7-05 default Denali first-customer panels hide prepay/installments", () => {
     const visible = DENALI_VISIBLE;
-    assert.ok(visible.includes("installments"));
+    assert.equal(visible.includes("installments"), false);
+    assert.equal(visible.includes("prepayments"), false);
     assert.ok(visible.includes("payments"));
+    assert.ok(visible.includes("receipts"));
     assert.ok(visible.includes("ledger"));
-    assert.equal(parseFinanceTab("installments", visible), "installments");
+    assert.ok(visible.includes("refunds"));
+    assert.ok(visible.includes("outstanding"));
+    assert.equal(parseFinanceTab("installments", visible), "overview");
   });
 
   it("WEB-9.7-06 financeBookingHref deep-links command center bookingId", () => {
     const id = "00000000-0000-4000-8000-000000000099";
-    assert.equal(financeBookingHref(id), `/bookings?bookingId=${encodeURIComponent(id)}`);
+    assert.equal(
+      financeBookingHref(id),
+      `/bookings?status=all&bookingId=${encodeURIComponent(id)}`
+    );
   });
 
   it("WEB-9.7-13 registration link prefers human label over UUID", () => {
@@ -83,12 +95,12 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
   });
 
   it("WEB-FC1-01 booking inspection embeds financial strip with filtered finance links", () => {
-    const bookingPage = readFileSync(
-      resolve(WEB_ROOT, "app/(app)/bookings/bookings-page-client.tsx"),
+    const inspection = readFileSync(
+      resolve(WEB_ROOT, "src/features/bookings/booking-inspection-details.tsx"),
       "utf8"
     );
     const strip = readFileSync(resolve(WEB_ROOT, "src/finance/booking-financial-strip.tsx"), "utf8");
-    assert.match(bookingPage, /BookingFinancialStrip/);
+    assert.match(inspection, /BookingFinancialStrip/);
     assert.match(strip, /withFinanceRegistrationQuery/);
     assert.ok(strip.includes("/finance?tab=payments"));
     assert.ok(strip.includes("/finance?tab=receipts"));
@@ -145,6 +157,10 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
       "utf8"
     );
     assert.match(invoiceCard, /buildInvoiceLookupPath/);
+    assert.match(invoiceCard, /localizeFinanceMessage\(tValidation,\s*tErrors,\s*error\)/);
+    assert.match(invoiceCard, /toFinanceClientErrorCode\(fetchError,\s*"INVOICE_FETCH_FAILED"\)/);
+    assert.doesNotMatch(invoiceCard, /tErrors\(["']INVOICE_FETCH_FAILED["']\)/);
+    assert.doesNotMatch(invoiceCard, /tValidation\(["']INVOICE_FETCH_FAILED["']\)/);
     const payments = readFileSync(
       resolve(WEB_ROOT, "src/finance/finance-payments-panel.tsx"),
       "utf8"
@@ -179,7 +195,7 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
     assert.doesNotMatch(panel, /recordPayment|onWaive|onRecordInstallment/);
   });
 
-  it("WEB-9.7-11 Phase E: overview links triage + attention samples helper", () => {
+  it("WEB-9.7-11 Phase E / PR21-B1: overview attention-first + triage demoted to audit", () => {
     const overview = readFileSync(
       resolve(WEB_ROOT, "src/finance/finance-overview-panel.tsx"),
       "utf8"
@@ -192,11 +208,36 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
     assert.match(overview, /FINANCE_OVERVIEW_TEST_IDS\.triageLink/);
     assert.match(overview, /buildFinanceAttentionSamples/);
     assert.match(overview, /FINANCE_OVERVIEW_TEST_IDS\.attentionList/);
+    assert.match(overview, /FINANCE_OVERVIEW_TEST_IDS\.attentionSection/);
+    assert.match(overview, /FINANCE_OVERVIEW_TEST_IDS\.auditSection/);
+    assert.match(overview, /includeInstallments/);
+    assert.match(overview, /attentionActionReceipt/);
+    // Attention section appears before KPI strip in source order.
+    const attentionIdx = overview.indexOf("FINANCE_OVERVIEW_TEST_IDS.attentionSection");
+    const kpiIdx = overview.indexOf("FINANCE_OVERVIEW_TEST_IDS.kpiStrip");
+    const auditIdx = overview.indexOf("FINANCE_OVERVIEW_TEST_IDS.auditSection");
+    assert.ok(attentionIdx > 0 && kpiIdx > attentionIdx);
+    assert.ok(auditIdx > kpiIdx);
     assert.doesNotMatch(overview, /reconciliation-triage-client/);
     assert.match(reportsLogic, /finance-open-reconciliation-triage/);
     assert.match(reportsLogic, /finance-attention-samples/);
+    assert.match(reportsLogic, /withFinanceRegistrationQuery/);
   });
 
+  it("PR21-B1 / PR22-D: shell guidance omits prepay/installment when panels disabled", () => {
+    const shell = readFileSync(
+      resolve(WEB_ROOT, "app/(app)/finance/finance-command-center.tsx"),
+      "utf8"
+    );
+    assert.match(shell, /tabGuidanceFirstCustomerUx1|tabGuidanceFirstCustomer/);
+    assert.match(shell, /subtitleFirstCustomer/);
+    assert.match(shell, /finance-operator-state-guide/);
+    assert.match(shell, /operatorStatePendingReceipt/);
+    assert.match(shell, /decisionGuideReceipt/);
+    assert.match(shell, /showPrepayments \? <li>\{t\("decisionGuidePrepayment"\)\}<\/li>/);
+    assert.match(shell, /showInstallments \? <li>\{t\("decisionGuideInstallment"\)\}<\/li>/);
+    assert.match(shell, /includeInstallments=\{showInstallments\}/);
+  });
   it("WEB-9.7-12 / P1.10.1 ops panels use FinanceOpsCapability; no Denali hard-import", () => {
     const ops = readFileSync(resolve(WEB_ROOT, "src/finance/finance-ops-panels.ts"), "utf8");
     const contract = readFileSync(

@@ -15,6 +15,10 @@ export type FinanceOpsManifest = {
     readonly prepayments: boolean;
     readonly installments: boolean;
     readonly ledger: boolean;
+    /** PR23-E3 — manual offline refunds. */
+    readonly refunds: boolean;
+    /** PR23 UX-1 — outstanding AR (D1/D2). */
+    readonly outstanding: boolean;
   };
   readonly installmentDefaults?: {
     readonly enabled: boolean;
@@ -31,12 +35,15 @@ export const DEFAULT_FINANCE_OPS_MANIFEST: FinanceOpsManifest = Object.freeze({
     overview: true,
     payments: true,
     receipts: true,
-    prepayments: true,
-    installments: true,
+    // PR20-D — first-customer acceptance is payments/receipts only; enable via theme.financeOps when proven.
+    prepayments: false,
+    installments: false,
     ledger: true,
+    refunds: true,
+    outstanding: true,
   }),
   installmentDefaults: Object.freeze({
-    enabled: true,
+    enabled: false,
     depositPercent: 30,
     installmentCount: 3,
     graceDays: 7,
@@ -85,6 +92,12 @@ export function resolveFinanceOpsManifestFromTheme(theme: unknown): FinanceOpsMa
         DEFAULT_FINANCE_OPS_MANIFEST.panels.installments
       ),
       ledger: readBoolean(panelsRaw, "ledger", DEFAULT_FINANCE_OPS_MANIFEST.panels.ledger),
+      refunds: readBoolean(panelsRaw, "refunds", DEFAULT_FINANCE_OPS_MANIFEST.panels.refunds),
+      outstanding: readBoolean(
+        panelsRaw,
+        "outstanding",
+        DEFAULT_FINANCE_OPS_MANIFEST.panels.outstanding
+      ),
     }),
     installmentDefaults: Object.freeze({
       enabled: readBoolean(

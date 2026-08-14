@@ -107,6 +107,18 @@ export const BOOKING_HTTP_ERROR_MATRIX: readonly BookingHttpErrorMatrixRow[] = [
     clientAction: "Fix request body fields",
   },
   {
+    domainError: "BOOKING_MEMBER_NOT_FOUND",
+    status: 404,
+    reason: "Target workspace member does not exist for assisted operator registration",
+    clientAction: "Select an existing workspace member or switch to guest registration",
+  },
+  {
+    domainError: "BOOKING_MEMBER_INACTIVE",
+    status: 409,
+    reason: "Target workspace member is not active",
+    clientAction: "Reactivate the member first or use guest registration",
+  },
+  {
     domainError: "BOOKING_WORKSPACE_UNSUPPORTED",
     status: 404,
     reason: "Workspace is not booking-supported",
@@ -218,6 +230,12 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
   }
   if (message.startsWith("BOOKING_VALIDATION_REJECTED")) {
     return resolutionFromCode("BOOKING_VALIDATION_REJECTED", message);
+  }
+  if (message === "BOOKING_MEMBER_NOT_FOUND" || message.startsWith("BOOKING_MEMBER_NOT_FOUND:")) {
+    return resolutionFromCode("BOOKING_MEMBER_NOT_FOUND", message);
+  }
+  if (message === "BOOKING_MEMBER_INACTIVE" || message.startsWith("BOOKING_MEMBER_INACTIVE:")) {
+    return resolutionFromCode("BOOKING_MEMBER_INACTIVE", message);
   }
   if (message.startsWith("BOOKING_WORKSPACE_TENANT_MISMATCH")) {
     return resolutionFromCode("BOOKING_WORKSPACE_TENANT_MISMATCH", message);

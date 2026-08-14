@@ -4,11 +4,195 @@ import { parseFinanceRegistrationContext } from "@/finance/finance-registration-
 export const FINANCE_RECEIPTS_TEST_IDS = {
   panel: "finance-receipts-panel",
   list: "finance-receipts-list",
+  loading: "finance-receipts-loading",
+  empty: "finance-receipts-empty",
+  emptyOpenPayments: "finance-receipts-empty-open-payments",
   reviewForm: "finance-receipt-review-form",
   preview: "finance-receipt-preview",
   submittedAt: "finance-receipt-submitted-at",
   openProof: "finance-receipt-open-proof",
+  submittedAmount: "finance-receipt-submitted-amount",
+  financialContext: "finance-receipt-financial-context",
+  amountFit: "finance-receipt-amount-fit",
+  approveConsequence: "finance-receipt-approve-consequence",
+  paymentStatus: "finance-receipt-payment-status",
+  /** PR21-H2 — receipt review status badge (not payment pending). */
+  receiptStatus: "finance-receipt-status",
+  reviewResult: "finance-receipt-review-result",
+  /** PR22-D — after reject, link to Payments for related registration (no new fetch). */
+  reviewResultOpenPayment: "finance-receipt-review-result-open-payment",
+  primaryPathHint: "finance-receipts-primary-path-hint",
+  proofToggle: "finance-receipt-proof-toggle",
+  afterApprovePreview: "finance-receipt-after-approve-preview",
+  /** PR23-B1 — queue clarity (presentation only). */
+  fifoHint: "finance-receipts-fifo-hint",
+  queueHonesty: "finance-receipts-queue-honesty",
+  queueMayMore: "finance-receipts-queue-may-more",
+  agingBand: "finance-receipt-aging-band",
+  waitRelative: "finance-receipt-wait-relative",
+  /** PR23-B2 — cursor pagination */
+  loadMore: "finance-receipts-load-more",
 } as const;
+
+/**
+ * Matches client fetch `?limit=50` on the receipts panel.
+ * Presentation honesty only — not an API contract change.
+ */
+export const RECEIPT_QUEUE_FETCH_LIMIT = 50;
+
+/** UX knobs only — not SLA / overdue / escalation (see PR23-B1 doc). */
+export const RECEIPT_AGING_FRESH_MS = 4 * 60 * 60 * 1000;
+export const RECEIPT_AGING_WAITING_MS = 48 * 60 * 60 * 1000;
+
+export type ReceiptAgingBand = "fresh" | "waiting" | "longer";
+
+export type ReceiptWaitRelativeUnit = "second" | "minute" | "hour" | "day";
+
+/** Negative `value` = past (Intl.RelativeTimeFormat convention). */
+export type ReceiptWaitRelative = {
+  readonly value: number;
+  readonly unit: ReceiptWaitRelativeUnit;
+};
+
+export type ReceiptQueueHonesty =
+  | { readonly kind: "shown_only"; readonly shown: number }
+  | { readonly kind: "shown_of_total"; readonly shown: number; readonly total: number }
+  | { readonly kind: "shown_may_more"; readonly shown: number };
+
+/**
+ * Age in ms from `createdAt` to injectable `now`.
+ * Returns null when `createdAt` is invalid. Does not call Date.now.
+ */
+export function receiptAgeMs(createdAtIso: string, now: Date): number | null {
+  const created = new Date(createdAtIso);
+  if (Number.isNaN(created.getTime()) || Number.isNaN(now.getTime())) {
+    return null;
+  }
+  return Math.max(0, now.getTime() - created.getTime());
+}
+
+/**
+ * Soft aging band — presentation hint only. Not SLA.
+ */
+export function resolveReceiptAgingBand(ageMs: number): ReceiptAgingBand {
+  if (ageMs < RECEIPT_AGING_FRESH_MS) {
+    return "fresh";
+  }
+  if (ageMs < RECEIPT_AGING_WAITING_MS) {
+    return "waiting";
+  }
+  return "longer";
+}
+
+export function resolveReceiptAgingBandFromCreatedAt(
+  createdAtIso: string,
+  now: Date
+): ReceiptAgingBand | null {
+  const age = receiptAgeMs(createdAtIso, now);
+  if (age === null) {
+    return null;
+  }
+  return resolveReceiptAgingBand(age);
+}
+
+/**
+ * Relative wait parts for Intl.RelativeTimeFormat. Pure; no Date.now.
+ */
+export function resolveReceiptWaitRelative(
+  createdAtIso: string,
+  now: Date
+): ReceiptWaitRelative | null {
+  const age = receiptAgeMs(createdAtIso, now);
+  if (age === null) {
+    return null;
+  }
+  const sec = Math.floor(age / 1000);
+  if (sec < 60) {
+    return { value: -Math.max(sec, 0), unit: "second" };
+  }
+  const min = Math.floor(sec / 60);
+  if (min < 60) {
+    return { value: -min, unit: "minute" };
+  }
+  const hour = Math.floor(min / 60);
+  if (hour < 48) {
+    return { value: -hour, unit: "hour" };
+  }
+  const day = Math.floor(hour / 24);
+  return { value: -Math.max(day, 1), unit: "day" };
+}
+
+/**
+ * Queue honesty meta — never invents a total.
+ * `pendingTotal` only when already supplied by the caller (no fetch here).
+ */
+export function resolveReceiptQueueHonesty(input: {
+  readonly shown: number;
+  readonly pendingTotal?: number;
+  readonly fetchLimit?: number;
+  /** When API reports hasMore — honesty without inventing a total. */
+  readonly forceMayMore?: boolean;
+}): ReceiptQueueHonesty {
+  const shown = Math.max(0, input.shown);
+  const fetchLimit = input.fetchLimit ?? RECEIPT_QUEUE_FETCH_LIMIT;
+  const total = input.pendingTotal;
+  if (typeof total === "number" && Number.isFinite(total) && total >= shown) {
+    return { kind: "shown_of_total", shown, total: Math.floor(total) };
+  }
+  if (shown > 0 && (input.forceMayMore === true || shown >= fetchLimit)) {
+    return { kind: "shown_may_more", shown };
+  }
+  return { kind: "shown_only", shown };
+}
+
+/** Presentation-only: compare payment amount to invoice remaining (SoT still authorizes). */
+export type ReceiptAmountFit = "under" | "exact" | "over" | "unknown";
+
+export function classifyReceiptAmountAgainstRemaining(
+  paymentAmountMinor: string,
+  balanceDueMinor: string | null | undefined
+): ReceiptAmountFit {
+  const amount = parseMinorBigInt(paymentAmountMinor);
+  const due = parseMinorBigInt(balanceDueMinor);
+  if (amount === null || due === null) {
+    return "unknown";
+  }
+  if (amount < due) {
+    return "under";
+  }
+  if (amount === due) {
+    return "exact";
+  }
+  return "over";
+}
+
+/** Remaining after a successful underpay/exact approve (presentation math only). */
+export function remainingAfterApproveMinor(
+  paymentAmountMinor: string,
+  balanceDueMinor: string
+): string | null {
+  const amount = parseMinorBigInt(paymentAmountMinor);
+  const due = parseMinorBigInt(balanceDueMinor);
+  if (amount === null || due === null || amount > due) {
+    return null;
+  }
+  return (due - amount).toString();
+}
+
+function parseMinorBigInt(raw: string | null | undefined): bigint | null {
+  if (raw === null || raw === undefined) {
+    return null;
+  }
+  const trimmed = raw.trim();
+  if (!/^\d+$/.test(trimmed)) {
+    return null;
+  }
+  try {
+    return BigInt(trimmed);
+  } catch {
+    return null;
+  }
+}
 
 export type FinanceReceiptPayment = {
   readonly id: string;
@@ -32,6 +216,9 @@ export type FinancePendingReceipt = {
 
 export type FinancePendingReceiptsResponse = {
   readonly items: readonly FinancePendingReceipt[];
+  /** PR23-B2 — opaque keyset cursor; null when no further page. */
+  readonly nextCursor: string | null;
+  readonly hasMore: boolean;
 };
 
 export type ReviewReceiptFormState = {
@@ -41,11 +228,11 @@ export type ReviewReceiptFormState = {
 
 export function parseFinancePendingReceiptsResponse(raw: unknown): FinancePendingReceiptsResponse {
   if (raw === null || typeof raw !== "object") {
-    return { items: [] };
+    return { items: [], nextCursor: null, hasMore: false };
   }
   const record = raw as Record<string, unknown>;
   if (!Array.isArray(record.items)) {
-    return { items: [] };
+    return { items: [], nextCursor: null, hasMore: false };
   }
   const items = record.items
     .filter((entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null)
@@ -74,7 +261,17 @@ export function parseFinancePendingReceiptsResponse(raw: unknown): FinancePendin
       };
     })
     .filter((entry) => entry.id.length > 0);
-  return { items };
+  const nextCursor =
+    typeof record.nextCursor === "string" && record.nextCursor.trim().length > 0
+      ? record.nextCursor.trim()
+      : null;
+  const hasMore =
+    record.hasMore === true
+      ? true
+      : record.hasMore === false
+        ? false
+        : nextCursor !== null;
+  return { items, nextCursor, hasMore };
 }
 
 export function validateReviewReceiptForm(

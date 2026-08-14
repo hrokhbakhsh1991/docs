@@ -42,14 +42,20 @@ export {
   handleTourCreatedLedgerEvent,
   type TourCreatedLedgerPayload,
 } from "./handlers/tour-created-ledger";
-export { resolveDenaliRegistrationObligationMinor } from "./resolve-denali-registration-obligation";
-export type { DenaliRegistrationObligation } from "./resolve-denali-registration-obligation";
+export { resolveDenaliRegistrationObligationMinor, resolveDenaliRegistrationDueBreakdown } from "./resolve-denali-registration-obligation";
+export type {
+  DenaliRegistrationObligation,
+  DenaliRegistrationDueLine,
+  DenaliRegistrationDueLineCode,
+} from "./resolve-denali-registration-obligation";
 export {
   resolveDenaliPaymentCollectionMode,
   type DenaliPaymentCollectionMode,
 } from "./resolve-denali-payment-collection-mode";
+export { unwrapDenaliTourCanonicalDocument } from "./unwrap-denali-tour-canonical-document";
 export { DenaliFinanceLedgerPolicyAdapter } from "./adapters/denali-finance-ledger-policy.adapter";
 export { DenaliFinanceReceiptDefaultsAdapter } from "./adapters/denali-finance-receipt-defaults.adapter";
+
 export {
   DenaliTourCreatedFinanceReactionAdapter,
   type DenaliTourCreatedFinanceReactionHostIo,

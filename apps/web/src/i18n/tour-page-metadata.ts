@@ -7,7 +7,8 @@ export type TourMetadataSection =
   | "register"
   | "workspace"
   | "workspaceWaitlist"
-  | "workspaceTransport";
+  | "workspaceTransport"
+  | "workspaceFinance";
 
 export async function buildTourPageMetadata(section: TourMetadataSection): Promise<Metadata> {
   const t = await getTranslations(`tours.metadata.${section}`);

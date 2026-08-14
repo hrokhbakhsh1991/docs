@@ -5,6 +5,7 @@ import { Suspense } from "react";
 
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
 import { ensureFinanceRouteAllowed } from "@/finance/finance-nav-enablement";
+import { isFinanceCaseCommandUiEnabledForTenant } from "@/finance/finance-case-command-ui-rollout";
 import { buildFinancePageMetadata } from "@/i18n/finance-page-metadata";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
 
@@ -29,9 +30,11 @@ export default async function FinancePage() {
     notFound();
   }
 
+  const commandUiEnabled = isFinanceCaseCommandUiEnabledForTenant(session.tenantId);
+
   return (
     <Suspense fallback={null}>
-      <FinanceCommandCenter session={session} />
+      <FinanceCommandCenter session={session} commandUiEnabled={commandUiEnabled} />
     </Suspense>
   );
 }

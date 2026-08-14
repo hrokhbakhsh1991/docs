@@ -1,4 +1,5 @@
 import { resolveDenaliFieldLabel, type DenaliTranslator } from "./field-labels";
+import { formatCanonicalPathToLabel } from "./format-canonical-path-label";
 
 /**
  * Minimal catalog field shape for exposure localization.
@@ -22,6 +23,12 @@ export function localizeExposureCatalogFields<T extends ExposureCatalogFieldForL
   return fields.map((field) => {
     const label = resolveDenaliFieldLabel(translateWizard, field.canonicalPath);
     if (label.trim().length === 0) {
+      return field;
+    }
+    if (
+      field.adminLabel !== undefined &&
+      label === formatCanonicalPathToLabel(field.canonicalPath)
+    ) {
       return field;
     }
     return { ...field, adminLabel: label };

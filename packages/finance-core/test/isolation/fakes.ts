@@ -138,8 +138,10 @@ export function createFakeBookingPort(): IBookingPaymentPort & {
       return input.paymentStatus;
     },
     async raisePaidInTx(_tx, input) {
-      paidRegistrations.add(input.registrationId);
-      return "paid";
+      if (input.paymentStatus === "paid" || input.paymentStatus === "partial") {
+        paidRegistrations.add(input.registrationId);
+      }
+      return input.paymentStatus;
     },
     async memberOwnsRegistration() {
       return true;
@@ -161,7 +163,10 @@ export const FakeDisplay: RegistrationDisplayPort = {
   async getByRegistrationIds() {
     return new Map();
   },
-};
+  async listRegistrationIdsByTourId() {
+    return [];
+  },
+}
 
 export const FakeCapability: FinanceCapabilityPort = {
   async assertEnabled() {

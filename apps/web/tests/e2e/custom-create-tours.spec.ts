@@ -1,4 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  clearOperatorWizardDraftIfPresent as clearOperatorWizardDraftIfPresentFixture,
+  fillDenaliMultiDayWizardBasics as fillDenaliMultiDayWizardBasicsFixture,
+} from "../../test/fixtures/denali-itinerary-wizard-fixture";
 import { loginOperatorOwner } from "../../test/fixtures/operator-owner-session";
 import { publishOperatorWizardTemplate } from "../../test/fixtures/operator-wizard-template-fixture";
 
@@ -49,20 +53,25 @@ const DENALI_ITINERARY_TEST_IDS = {
   addSegment: (dayNumber: number) => `denali-composite-itinerary-day-${dayNumber}-add-segment`,
 } as const;
 
+const DENALI_PROGRAM_CONTENT_TEST_IDS = {
+  shortDescription: "denali-program-short-description",
+} as const;
+
 // For denali tenant, destinations are seeded in Persian: "دماوند", "توچال", "علم‌کوه"
 const OPERATOR_SMOKE_DESTINATION_LABEL = "دماوند";
 
+function isoDateFromToday(offsetDays: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 // Self-contained E2E helpers
 async function clearOperatorWizardDraftIfPresent(page: Page): Promise<void> {
-  const clearBtn = page.getByTestId("wizard-clear-draft");
-  if (!(await clearBtn.isVisible().catch(() => false))) {
-    return;
-  }
-  await clearBtn.click();
-  const confirmBtn = page.getByTestId("wizard-clear-draft-confirm-confirm");
-  await expect(confirmBtn).toBeVisible({ timeout: 10_000 });
-  await confirmBtn.click();
-  await expect(page.locator('[data-wizard-step="denali_basic"]')).toBeVisible({ timeout: 60_000 });
+  await clearOperatorWizardDraftIfPresentFixture(page);
 }
 
 async function resetOperatorWizardToBasic(page: Page): Promise<void> {
@@ -95,6 +104,19 @@ async function fillWizardNumericField(page: Page, labelRegex: RegExp, value: str
   await input.fill(value);
 }
 
+async function fillWizardNumericFieldIfEditable(
+  page: Page,
+  labelRegex: RegExp,
+  value: string
+): Promise<void> {
+  const input = page.getByRole("textbox", { name: labelRegex });
+  await expect(input).toBeVisible({ timeout: 15_000 });
+  if (!(await input.isEditable().catch(() => false))) {
+    return;
+  }
+  await input.fill(value);
+}
+
 async function settleOperatorWizardDraftSync(page: Page): Promise<void> {
   const indicator = page.getByTestId("draft-sync-indicator");
   await expect
@@ -117,7 +139,7 @@ async function clickWizardNextToStep(page: Page, expectedStepId: string): Promis
 
 async function fillDenaliWizardPhotosMinimal(page: Page): Promise<void> {
   await expect(page.locator('[data-wizard-step="denali_photos"]')).toBeVisible({ timeout: 30_000 });
-  const shortDescription = page.getByTestId("denali-composite-program-short-description");
+  const shortDescription = page.getByTestId(DENALI_PROGRAM_CONTENT_TEST_IDS.shortDescription);
   if (await shortDescription.isVisible().catch(() => false)) {
     await shortDescription.fill("برنامه تست");
   } else {
@@ -150,7 +172,9 @@ async function fillDenaliWizardProgramMinimal(page: Page): Promise<void> {
   );
 
   if (await itinerary.isVisible().catch(() => false)) {
-    const dayCount = await itinerary.locator("[data-testid^='denali-itinerary-day-']").count();
+    const dayCount = await itinerary
+      .locator("section[data-testid^='denali-composite-itinerary-day-']")
+      .count();
     for (let dayNumber = 1; dayNumber <= dayCount; dayNumber += 1) {
       const day = page.getByTestId(DENALI_ITINERARY_TEST_IDS.day(dayNumber));
       await expect(day).toBeVisible({ timeout: 15_000 });
@@ -189,6 +213,7 @@ async function fillDenaliWizardPricingMinimal(page: Page): Promise<void> {
 async function fillDenaliWizardLegalMinimal(page: Page): Promise<void> {
   await expect(page.locator('[data-wizard-step="denali_legal"]')).toBeVisible({ timeout: 30_000 });
   await settleOperatorWizardDraftSync(page);
+  await clickWizardNextToStep(page, "review");
 }
 
 async function submitDenaliWizardDraftCreate(page: Page): Promise<void> {
@@ -240,8 +265,16 @@ async function fillDenaliDatetimeField(
 async function fillDenaliSingleDayWizardBasics(page: Page, title: string): Promise<void> {
   await resetOperatorWizardToBasic(page);
   await page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.tourKind).waitFor({ state: "visible" });
-  await page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.category("mountain")).click();
-  await page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.duration("single_day")).click();
+  const mountain = page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.category("mountain"));
+  const singleDay = page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.duration("single_day"));
+  if ((await mountain.getAttribute("aria-pressed")) !== "true") {
+    await mountain.click();
+    await settleOperatorWizardDraftSync(page);
+  }
+  await expect(mountain).toHaveAttribute("aria-pressed", "true");
+  await singleDay.click();
+  await expect(singleDay).toHaveAttribute("aria-pressed", "true");
+  await settleOperatorWizardDraftSync(page);
 
   const titleField = page.getByRole("textbox", { name: "title" });
   if (await titleField.isVisible().catch(() => false)) {
@@ -249,6 +282,7 @@ async function fillDenaliSingleDayWizardBasics(page: Page, title: string): Promi
   } else {
     await page.getByRole("textbox", { name: /نام تور|title/i }).fill(title);
   }
+  await settleOperatorWizardDraftSync(page);
 
   // Destination select option matching database seed exactly
   const destination = page.getByTestId(DENALI_COMPOSITE_TEST_IDS.destination);
@@ -268,17 +302,31 @@ async function fillDenaliSingleDayWizardBasics(page: Page, title: string): Promi
     await expect(destinationSelect).toBeEnabled({ timeout: 60_000 });
     await destinationSelect.selectOption({ label: OPERATOR_SMOKE_DESTINATION_LABEL });
   }
+  await settleOperatorWizardDraftSync(page);
 
   // Localized Datetime composite field inputs
-  await fillDenaliDatetimeField(page, DENALI_DATETIME_TEST_IDS.start, "2026-07-15", "08", "00");
+  await fillDenaliDatetimeField(
+    page,
+    DENALI_DATETIME_TEST_IDS.start,
+    isoDateFromToday(7),
+    "08",
+    "00"
+  );
 
   const endFieldHost = page.getByTestId(DENALI_DATETIME_TEST_IDS.end);
   if (await endFieldHost.isVisible().catch(() => false)) {
-    await fillDenaliDatetimeField(page, DENALI_DATETIME_TEST_IDS.end, "2026-07-15", "18", "00");
+    await fillDenaliDatetimeField(
+      page,
+      DENALI_DATETIME_TEST_IDS.end,
+      isoDateFromToday(7),
+      "18",
+      "00"
+    );
   }
+  await settleOperatorWizardDraftSync(page);
 
   await fillWizardNumericField(page, /حداکثر ظرفیت|capacityMax/i, "12");
-  await fillWizardNumericField(page, /ارتفاع قله|peakHeight/i, "5610");
+  await fillWizardNumericFieldIfEditable(page, /ارتفاع قله|peakHeight/i, "5610");
 
   await settleOperatorWizardDraftSync(page);
 
@@ -289,50 +337,7 @@ async function fillDenaliSingleDayWizardBasics(page: Page, title: string): Promi
 }
 
 async function fillDenaliMultiDayWizardBasicsLocal(page: Page, title: string): Promise<void> {
-  await resetOperatorWizardToBasic(page);
-  await page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.tourKind).waitFor({ state: "visible" });
-  await page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.category("mountain")).click();
-  await page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.duration("multi_day")).click();
-
-  const titleField = page.getByRole("textbox", { name: "title" });
-  if (await titleField.isVisible().catch(() => false)) {
-    await titleField.fill(title);
-  } else {
-    await page.getByRole("textbox", { name: /نام تور|title/i }).fill(title);
-  }
-
-  // Destination select option matching database seed exactly
-  const destination = page.getByTestId(DENALI_COMPOSITE_TEST_IDS.destination);
-  await expect(destination).toBeVisible();
-  
-  const searchableTrigger = destination.getByTestId(DENALI_SEARCHABLE_SELECT_TEST_IDS.trigger);
-  if (await searchableTrigger.isVisible().catch(() => false)) {
-    await searchableTrigger.click();
-    const searchInput = destination.getByTestId(DENALI_SEARCHABLE_SELECT_TEST_IDS.search);
-    await expect(searchInput).toBeVisible({ timeout: 10_000 });
-    await searchInput.fill(OPERATOR_SMOKE_DESTINATION_LABEL);
-    const option = destination.getByRole("option", { name: OPERATOR_SMOKE_DESTINATION_LABEL });
-    await expect(option).toBeVisible({ timeout: 10_000 });
-    await option.click();
-  } else {
-    const destinationSelect = destination.getByRole("combobox");
-    await expect(destinationSelect).toBeEnabled({ timeout: 60_000 });
-    await destinationSelect.selectOption({ label: OPERATOR_SMOKE_DESTINATION_LABEL });
-  }
-
-  // Localized Datetime composite field inputs
-  await fillDenaliDatetimeField(page, DENALI_DATETIME_TEST_IDS.start, "2026-07-15", "08", "00");
-  await fillDenaliDatetimeField(page, DENALI_DATETIME_TEST_IDS.end, "2026-07-18", "18", "00");
-
-  await fillWizardNumericField(page, /حداکثر ظرفیت|capacityMax/i, "12");
-  await fillWizardNumericField(page, /ارتفاع قله|peakHeight/i, "5610");
-
-  await settleOperatorWizardDraftSync(page);
-
-  const next = page.getByTestId(WIZARD_STEP_SHELL_TEST_IDS.next);
-  await expect(next).toBeEnabled({ timeout: 30_000 });
-  await next.click();
-  await expect(page.locator('[data-wizard-step="denali_photos"]')).toBeVisible({ timeout: 15_000 });
+  await fillDenaliMultiDayWizardBasicsFixture(page, title, OPERATOR_SMOKE_DESTINATION_LABEL);
 }
 
 test.describe("Custom Tour Creation Spec", () => {

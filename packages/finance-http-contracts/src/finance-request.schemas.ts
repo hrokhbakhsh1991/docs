@@ -37,6 +37,50 @@ export const reviewReceiptBodySchema = z
 
 export type ReviewReceiptBody = z.infer<typeof reviewReceiptBodySchema>;
 
+/** PR23-A3 — transport shape for Pending → Cancelled (Manual). */
+export const cancelPendingManualPaymentBodySchema = z
+  .object({
+    reasonCode: z.enum(["abandoned", "wrong_amount", "superseded", "other"]),
+    reasonNote: z.string().max(2000).optional(),
+  })
+  .strict();
+
+export type CancelPendingManualPaymentBody = z.infer<
+  typeof cancelPendingManualPaymentBodySchema
+>;
+
+/** PR23-E3 — request offline refund. */
+export const requestRefundBodySchema = z
+  .object({
+    registrationId: uuidSchema,
+    sourceKind: z.enum(["payment", "prepayment"]),
+    paymentId: uuidSchema.optional(),
+    amountMinor: z.string().min(1).max(64),
+    reasonCode: z.enum(["member_withdrawal", "overpayment", "ops_correction", "other"]),
+    reasonNote: z.string().max(2000).optional(),
+    evidenceFileKey: z.string().max(512).optional(),
+    evidenceNote: z.string().max(2000).optional(),
+  })
+  .strict();
+
+export type RequestRefundBody = z.infer<typeof requestRefundBodySchema>;
+
+export const rejectRefundBodySchema = z
+  .object({
+    rejectNote: z.string().max(2000).optional(),
+  })
+  .strict();
+
+export type RejectRefundBody = z.infer<typeof rejectRefundBodySchema>;
+
+export const completeRefundBodySchema = z
+  .object({
+    completionNote: z.string().max(2000).optional(),
+  })
+  .strict();
+
+export type CompleteRefundBody = z.infer<typeof completeRefundBodySchema>;
+
 function formatZodError(error: z.ZodError): string {
   return error.issues
     .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
@@ -65,6 +109,59 @@ export function parseReviewReceiptBody(raw: unknown): ReviewReceiptBody {
     throw new Error(`ZOD_VALIDATION_FAILED: ${formatZodError(result.error)}`);
   }
   return result.data;
+}
+
+export function parseCancelPendingManualPaymentBody(
+  raw: unknown
+): CancelPendingManualPaymentBody {
+  const result = cancelPendingManualPaymentBodySchema.safeParse(raw);
+  if (!result.success) {
+    throw new Error(`ZOD_VALIDATION_FAILED: ${formatZodError(result.error)}`);
+  }
+  return result.data;
+}
+
+export function parseRequestRefundBody(raw: unknown): RequestRefundBody {
+  const result = requestRefundBodySchema.safeParse(raw);
+  if (!result.success) {
+    throw new Error(`ZOD_VALIDATION_FAILED: ${formatZodError(result.error)}`);
+  }
+  return result.data;
+}
+
+export function parseRejectRefundBody(raw: unknown): RejectRefundBody {
+  const result = rejectRefundBodySchema.safeParse(raw ?? {});
+  if (!result.success) {
+    throw new Error(`ZOD_VALIDATION_FAILED: ${formatZodError(result.error)}`);
+  }
+  return result.data;
+}
+
+export function parseCompleteRefundBody(raw: unknown): CompleteRefundBody {
+  const result = completeRefundBodySchema.safeParse(raw ?? {});
+  if (!result.success) {
+    throw new Error(`ZOD_VALIDATION_FAILED: ${formatZodError(result.error)}`);
+  }
+  return result.data;
+}
+
+export function parseOptionalRefundStatus(
+  raw: string | null
+): "Requested" | "Approved" | "Completed" | "Rejected" | "Cancelled" | undefined {
+  if (raw === null || raw.trim() === "") {
+    return undefined;
+  }
+  const value = raw.trim();
+  if (
+    value === "Requested" ||
+    value === "Approved" ||
+    value === "Completed" ||
+    value === "Rejected" ||
+    value === "Cancelled"
+  ) {
+    return value;
+  }
+  throw new Error("ZOD_VALIDATION_FAILED: status invalid");
 }
 
 export function parseLedgerEventsLimit(raw: string | null): number {
@@ -126,6 +223,18 @@ export function parseFinanceListScope(searchParams: {
     registrationId: parseOptionalRegistrationId(searchParams.get("registrationId")),
     tourId: parseOptionalTourId(searchParams.get("tourId")),
   };
+}
+
+/** Opaque keyset cursor for finance list pagination (PR23-B2). Empty → undefined. */
+export function parseOptionalListCursor(raw: string | null): string | undefined {
+  if (raw === null || raw.trim() === "") {
+    return undefined;
+  }
+  const trimmed = raw.trim();
+  if (trimmed.length > 1024) {
+    throw new Error("ZOD_VALIDATION_FAILED: cursor length exceeded");
+  }
+  return trimmed;
 }
 
 export const recordPrepaymentBodySchema = z

@@ -49,5 +49,7 @@ describe("portal-member-seo.spec.ts — workspace egress", () => {
     );
     assert.match(denaliDone, /context\.memberModuleHref/);
     assert.doesNotMatch(denaliDone, /href="\/me\/registrations"/);
+    assert.match(denaliDone, /data-registration-self-already-trips/);
+    assert.match(denaliDone, /data-registration-self-already-detail/);
   });
 });

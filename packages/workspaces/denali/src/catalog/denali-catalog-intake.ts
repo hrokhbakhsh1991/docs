@@ -19,6 +19,14 @@ const DENALI_CATALOG_INTAKE_SCHEMA: IntakeSchema = Object.freeze({
       labelKey: "intake.nameLabel",
     }),
     Object.freeze({
+      id: "phone",
+      type: "text",
+      required: true,
+      labelKey: "intake.phoneLabel",
+      widget: "localized-digits",
+      rules: Object.freeze({ minLength: 8, maxLength: 20 }),
+    }),
+    Object.freeze({
       id: "nationalId",
       type: "text",
       required: true,
@@ -45,6 +53,9 @@ const DENALI_CATALOG_INTAKE_SCHEMA: IntakeSchema = Object.freeze({
     transportIntake: true,
     notesAtIntake: false,
     idempotencyKey: true,
+    requiresMemberSession: true,
+    selfRegistrationGate: true,
+    memberPendingIntakeAmend: true,
   }),
 });
 
@@ -57,6 +68,9 @@ function shouldIncludeDenaliFieldForTour(
   tourRequirements: IntakeSchemaTourRequirements | undefined
 ): boolean {
   switch (fieldId) {
+    case "phone":
+      // Guest mobile is registrant-target gated (other only), not tour-gated.
+      return true;
     case "nationalId":
       return tourRequirements?.nationalIdRequired === true;
     case "fatherName":
@@ -77,6 +91,9 @@ function denaliTourApplicableFields(
 }
 
 function shouldCollectDenaliIntakeField(fieldId: string, context: IntakeSchemaContext): boolean {
+  if (fieldId === "phone") {
+    return context.registrantTarget === "other";
+  }
   if (context.registrantTarget === "other") {
     return true;
   }

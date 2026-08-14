@@ -8,10 +8,10 @@ import {
 } from "./migration-head-preflight";
 
 describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
-  it("expected head matches tip migration folder (http_idempotency_app_tour_grants)", () => {
+  it("expected head matches tip migration folder (active_self_unique)", () => {
     assert.equal(
       EXPECTED_PRISMA_MIGRATION_HEAD,
-      "20260803120000_http_idempotency_app_tour_grants"
+      "20260810120000_operator_registration_active_self_unique"
     );
   });
 

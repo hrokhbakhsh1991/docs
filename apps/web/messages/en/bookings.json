@@ -17,6 +17,23 @@
   "waitlistActionAria": "Move to waitlist — hold for a seat without rejecting",
   "cancelBooking": "Cancel booking",
   "bulkPartial": "{approved, number} approved; {skipped, number} skipped.",
+  "bulkApproveSuccess": "{count, number} registration(s) approved.",
+  "actionNotice": {
+    "approve": "{guest} approved.",
+    "approveUnpaid": "{guest} approved. Payment is not settled yet.",
+    "reject": "{guest} rejected.",
+    "cancel": "{guest} cancelled.",
+    "waitlist": "{guest} moved to waitlist.",
+    "embeddedHint": "Next:",
+    "viewTransport": "Transport",
+    "viewFinance": "Finance",
+    "viewWaitlist": "Waitlist",
+    "viewHistory": "View in history"
+  },
+  "overbookConfirmTitle": "Tour at capacity",
+  "overbookConfirmDescription": "Capacity is full. Approve {guest} anyway?",
+  "overbookConfirmAction": "Approve anyway",
+  "overbookConfirmCancel": "Cancel",
   "sortLabel": "Sort",
   "sort": {
     "submittedAt": "Newest submitted",
@@ -95,8 +112,9 @@
   "cancelDialogDescription": "Cancel {guest} on {tour}. This cannot be undone from the queue.",
   "cancelDialogConfirm": "Confirm cancel",
   "cancelDialogKeep": "Keep registration",
-  "inlineApproveConfirm": "Confirm?",
+  "inlineApproveConfirm": "Confirm? (2nd click)",
   "inlineApproveConfirmAria": "Confirm approve for {guest}",
+  "inlineApproveHintAria": "Approve {guest} — click again to confirm",
   "bulkConfirmTitle": "Approve selected registrations?",
   "bulkConfirmDescription": "Approve {count, number} pending or waitlisted registration(s).",
   "bulkConfirm": "Approve",
@@ -112,7 +130,7 @@
     "status": "Current status",
     "approvedAt": "Approved at",
     "rejectReason": "Reject reason",
-    "payment": "Payment",
+    "payment": "Booking settlement",
     "departure": "Departure",
     "statusValue": {
       "pending": "Pending approval",
@@ -122,15 +140,15 @@
       "cancelled": "Cancelled"
     },
     "paymentValue": {
-      "unpaid": "Unpaid",
-      "partial": "Partially paid",
-      "paid": "Paid"
+      "unpaid": "Unpaid (booking)",
+      "partial": "Partially paid (booking)",
+      "paid": "Paid (booking)"
     }
   },
   "fields": {
     "party": "Party",
     "departure": "Departure",
-    "payment": "Payment",
+    "payment": "Booking settlement",
     "status": "Status",
     "phone": "Mobile",
     "email": "Email",
@@ -154,10 +172,10 @@
   "nextStepReceiptLink": "Open receipt queue",
   "selectGuest": "Select {guest}",
   "payment": {
-    "all": "All payments",
-    "unpaid": "Unpaid",
-    "partial": "Partial",
-    "paid": "Paid"
+    "all": "All settlement states",
+    "unpaid": "Unpaid (booking)",
+    "partial": "Partially paid (booking)",
+    "paid": "Paid (booking)"
   },
   "metadata": {
     "list": {
@@ -208,6 +226,97 @@
       "BOOKING_CREATE_INVALID": "Invalid form data.",
       "BOOKING_CREATE_FORBIDDEN": "You are not allowed to create bookings.",
       "BOOKING_CREATE_FAILED": "Booking create failed."
+    }
+  },
+  "adminDialog": {
+    "title": "Manual registration in tour workspace",
+    "description": "Create the registration inside the tour operations context and approve it immediately when needed.",
+    "unknownDeparture": "Unknown departure",
+    "basePrice": "Base price per person: {amount}",
+    "fields": {
+      "fullName": "Full name",
+      "memberSearch": "Member lookup",
+      "memberSearchPlaceholder": "Search member name or mobile",
+      "phone": "Mobile",
+      "email": "Email",
+      "partySize": "Party size",
+      "nationalId": "National ID",
+      "fatherName": "Father's name",
+      "birthDate": "Birth date",
+      "personalCarOccupants": "Personal car capacity"
+    },
+    "sections": {
+      "registrant": "Register for",
+      "payment": "Initial settlement state",
+      "transport": "Transport",
+      "approval": "Initial registration status"
+    },
+    "registrantMode": {
+      "member": "Existing member",
+      "guest": "New guest"
+    },
+    "memberSearchEmpty": "No active member matched this search. Use the new guest path if the person is not in the workspace yet.",
+    "paymentStatus": {
+      "unpaid": "Pay later",
+      "partial": "Partially paid",
+      "paid": "Settled"
+    },
+    "approval": {
+      "pending": "Create pending",
+      "approveNow": "Create and approve"
+    },
+    "transport": {
+      "primary": "Organized transport",
+      "personal_car": "Personal car",
+      "no_car_dong": "No car — pays dong",
+      "no_car_acquaintance": "No car — acquaintance ride",
+      "occupants": "{count, number} occupants"
+    },
+    "transportModes": {
+      "none": "No transport",
+      "organizer_vehicle": "Organizer vehicle",
+      "bus": "Bus",
+      "minibus": "Minibus",
+      "train": "Train",
+      "shared_cars": "Shared cars"
+    },
+    "transportHint": "Tour transport setup: {mode}",
+    "review": {
+      "partySize": "Party size",
+      "paymentStatus": "Settlement",
+      "transport": "Transport choice",
+      "initialStatus": "Initial status"
+    },
+    "actions": {
+      "select": "Select",
+      "cancel": "Cancel",
+      "back": "Back",
+      "next": "Next",
+      "createPending": "Create pending",
+      "createAndApprove": "Create and approve"
+    },
+    "steps": {
+      "identity": "Person",
+      "requirements": "Required info",
+      "logistics": "Transport & money",
+      "review": "Review"
+    },
+    "errors": {
+      "MEMBER_REQUIRED": "Select the target member first.",
+      "GUEST_REQUIRED": "Enter the person's full name.",
+      "PHONE_REQUIRED": "Enter a valid mobile number.",
+      "PARTY_SIZE_INVALID": "Party size is invalid.",
+      "PARTY_SIZE_OVER_CAPACITY": "Party size exceeds the tour capacity.",
+      "NATIONAL_ID_REQUIRED": "Enter a valid national ID.",
+      "FATHER_NAME_REQUIRED": "Father's name is required.",
+      "BIRTH_DATE_REQUIRED": "Enter a valid birth date.",
+      "PERSONAL_CAR_OCCUPANTS_REQUIRED": "Choose the personal car capacity.",
+      "BOOKING_CREATE_FORBIDDEN": "You are not allowed to create registrations.",
+      "BOOKING_GUEST_DUPLICATE": "An active matching registration already exists for this person. Review or cancel the previous registration first.",
+      "BOOKING_MEMBER_NOT_FOUND": "The selected member does not exist in this workspace. Pick another member or switch to guest registration.",
+      "BOOKING_MEMBER_INACTIVE": "The selected member is inactive. Reactivate them first or use guest registration.",
+      "BOOKING_CREATE_FAILED": "Registration create failed.",
+      "BOOKING_APPROVE_FAILED": "Automatic approval failed."
     }
   }
 }

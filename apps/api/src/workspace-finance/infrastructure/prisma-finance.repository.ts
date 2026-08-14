@@ -8,29 +8,49 @@ import { enqueueFinanceLedgerCaptureOutbox } from "../enqueue-finance-ledger-cap
 import { MAX_PAYMENTS_PER_REGISTRATION } from "../finance-list-projection";
 import {
   advisoryLockRegistrationWalletCredit,
-  registrationHasBookingWalletCredit,
+  registrationHasTourCreatedWalletCredit,
 } from "../registration-booking-wallet-credit";
 import type {
   ApproveManualReceiptAtomicInput,
   ApproveManualReceiptAtomicResult,
+  CancelPendingManualPaymentAtomicInput,
+  CancelPendingManualPaymentAtomicResult,
   CreatePaymentInput,
   CreateReceiptInput,
+  CreateRefundInput,
   FinanceLedgerOutboxRow,
   FinanceOpenPaymentRow,
   FinancePaymentRow,
   FinancePrepaymentListRow,
   FinanceReceiptRow,
+  FinanceRefundRow,
   FinanceRepositoryPort,
   FinanceSummaryRow,
   FinanceTourPaymentAggregateRow,
   FinanceTransactionPort,
   IBookingPaymentPort,
+  ListFinanceExceptionSourcesResult,
+  ListOutstandingBalanceCandidatesResult,
+  ListPendingReceiptsPage,
+  ListPendingReceiptsQuery,
+  ListRefundsPageQuery,
+  ListRefundsPageResult,
   PrepaymentBookingSyncDegradedRow,
   RecordPrepaymentAtomicInput,
   RecordPrepaymentAtomicResult,
   RegistrationInvoiceFacts,
+  RefundReasonCode,
+  RefundSourceKind,
+  RefundStatus,
+  SumCompletedRefundsQuery,
+  TransitionRefundStatusInput,
   UpdateReceiptReviewInput,
 } from "@app-tour/finance-core";
+import {
+  decodePendingReceiptCursor,
+  encodePendingReceiptCursor,
+  resolveApproveBookingPaymentStatus,
+} from "@app-tour/finance-core/domain";
 import { createTxScopedOutboxWriter } from "./prisma-workspace-outbox-writer";
 
 const PAYMENT_ROW_SELECT = {
@@ -152,26 +172,35 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
 
   async getSummary(tenantId: string): Promise<FinanceSummaryRow> {
     return withTenantRls(tenantId, async (tx) => {
-      const [pendingManualPayments, pendingReceiptReviews, paidPayments, failedPayments] =
-        await Promise.all([
-          tx.payment.count({
-            where: { tenantId, method: "Manual", status: "Pending" },
-          }),
-          tx.paymentReceipt.count({
-            where: { tenantId, status: "Pending" },
-          }),
-          tx.payment.count({
-            where: { tenantId, status: "Paid" },
-          }),
-          tx.payment.count({
-            where: { tenantId, status: "Failed" },
-          }),
-        ]);
+      const [
+        pendingManualPayments,
+        pendingReceiptReviews,
+        paidPayments,
+        failedPayments,
+        cancelledPayments,
+      ] = await Promise.all([
+        tx.payment.count({
+          where: { tenantId, method: "Manual", status: "Pending" },
+        }),
+        tx.paymentReceipt.count({
+          where: { tenantId, status: "Pending" },
+        }),
+        tx.payment.count({
+          where: { tenantId, status: "Paid" },
+        }),
+        tx.payment.count({
+          where: { tenantId, status: "Failed" },
+        }),
+        tx.payment.count({
+          where: { tenantId, status: "Cancelled" },
+        }),
+      ]);
       return {
         pendingManualPayments,
         pendingReceiptReviews,
         paidPayments,
         failedPayments,
+        cancelledPayments,
       };
     });
   }
@@ -660,12 +689,48 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
     });
   }
 
-  async listPendingReceipts(tenantId: string, limit: number): Promise<FinanceReceiptRow[]> {
+  async listPendingReceipts(
+    tenantId: string,
+    query: ListPendingReceiptsQuery
+  ): Promise<ListPendingReceiptsPage> {
+    const limit = Math.max(1, Math.floor(query.limit));
     return withTenantRls(tenantId, async (tx) => {
+      const paymentFilter: Prisma.PaymentWhereInput = {};
+      if (query.registrationId !== undefined) {
+        paymentFilter.registrationId = query.registrationId;
+      } else if (query.registrationIds !== undefined) {
+        if (query.registrationIds.length === 0) {
+          return { rows: [], nextCursor: null, hasMore: false };
+        }
+        paymentFilter.registrationId = { in: [...query.registrationIds] };
+      }
+
+      const where: Prisma.PaymentReceiptWhereInput = {
+        tenantId,
+        status: "Pending",
+        ...(Object.keys(paymentFilter).length > 0 ? { payment: paymentFilter } : {}),
+      };
+
+      if (typeof query.cursor === "string" && query.cursor.trim().length > 0) {
+        const decoded = decodePendingReceiptCursor(query.cursor);
+        if (decoded !== null) {
+          where.AND = [
+            {
+              OR: [
+                { createdAt: { gt: decoded.createdAt } },
+                {
+                  AND: [{ createdAt: decoded.createdAt }, { id: { gt: decoded.id } }],
+                },
+              ],
+            },
+          ];
+        }
+      }
+
       const rows = await tx.paymentReceipt.findMany({
-        where: { tenantId, status: "Pending" },
-        orderBy: { createdAt: "asc" },
-        take: limit,
+        where,
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        take: limit + 1,
         include: {
           payment: {
             select: {
@@ -682,7 +747,143 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           },
         },
       });
-      return rows.map(toFinanceReceiptRow);
+      const hasMore = rows.length > limit;
+      const page = hasMore ? rows.slice(0, limit) : rows;
+      const mapped = page.map(toFinanceReceiptRow);
+      const last = mapped[mapped.length - 1];
+      const nextCursor =
+        hasMore && last !== undefined
+          ? encodePendingReceiptCursor({ createdAt: last.createdAt, id: last.id })
+          : null;
+      return { rows: mapped, nextCursor, hasMore };
+    });
+  }
+
+  async listFinanceExceptionSources(
+    tenantId: string
+  ): Promise<ListFinanceExceptionSourcesResult> {
+    return withTenantRls(tenantId, async (tx) => {
+      type E1Raw = {
+        payment_id: string;
+        registration_id: string;
+        amount: string;
+        currency: string;
+        method: string;
+        receipt_id: string;
+        review_note: string | null;
+        occurred_at: Date;
+      };
+      const e1Rows = await tx.$queryRaw<E1Raw[]>`
+        SELECT
+          latest.payment_id,
+          latest.registration_id,
+          latest.amount,
+          latest.currency,
+          latest.method,
+          latest.receipt_id,
+          latest.review_note,
+          latest.occurred_at
+        FROM (
+          SELECT DISTINCT ON (r.payment_id)
+            p.id AS payment_id,
+            p.registration_id,
+            p.amount,
+            p.currency,
+            p.method,
+            r.id AS receipt_id,
+            r.review_note,
+            COALESCE(r.reviewed_at, r.created_at) AS occurred_at,
+            r.status AS receipt_status
+          FROM payment_receipts r
+          INNER JOIN payments p
+            ON p.id = r.payment_id
+           AND p.tenant_id = r.tenant_id
+          WHERE r.tenant_id = ${tenantId}::uuid
+            AND p.status = 'Pending'
+          ORDER BY r.payment_id, r.created_at DESC, r.id DESC
+        ) latest
+        WHERE latest.receipt_status = 'Rejected'
+      `;
+
+      const cancelled = await tx.payment.findMany({
+        where: { tenantId, status: "Cancelled" },
+        select: {
+          id: true,
+          registrationId: true,
+          amount: true,
+          currency: true,
+          method: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      const cancelEvents = await tx.outboxEvent.findMany({
+        where: {
+          tenantId,
+          eventType: "finance.payment.cancelled",
+          aggregateId: { in: cancelled.map((row) => row.id) },
+        },
+        select: { aggregateId: true, payload: true, createdAt: true },
+      });
+      const cancelByPayment = new Map(
+        cancelEvents.map((event) => [event.aggregateId, event] as const)
+      );
+
+      return {
+        rejectedReceiptPendingPayments: e1Rows.map((row) => ({
+          paymentId: row.payment_id,
+          registrationId: row.registration_id,
+          amount: row.amount,
+          currency: row.currency,
+          method: row.method,
+          receiptId: row.receipt_id,
+          reviewNote: row.review_note,
+          occurredAt: row.occurred_at,
+        })),
+        cancelledPayments: cancelled.map((payment) => {
+          const event = cancelByPayment.get(payment.id);
+          const payload =
+            event !== undefined &&
+            typeof event.payload === "object" &&
+            event.payload !== null
+              ? (event.payload as { reasonCode?: string; occurredAt?: string })
+              : null;
+          const fromPayload =
+            payload?.occurredAt !== undefined ? new Date(payload.occurredAt) : null;
+          const occurredAt =
+            fromPayload !== null && !Number.isNaN(fromPayload.getTime())
+              ? fromPayload
+              : payment.updatedAt ?? payment.createdAt;
+          return {
+            paymentId: payment.id,
+            registrationId: payment.registrationId,
+            amount: payment.amount,
+            currency: payment.currency,
+            method: payment.method,
+            reasonCode: typeof payload?.reasonCode === "string" ? payload.reasonCode : null,
+            occurredAt,
+          };
+        }),
+      };
+    });
+  }
+
+  async listOutstandingBalanceCandidates(
+    tenantId: string
+  ): Promise<ListOutstandingBalanceCandidatesResult> {
+    return withTenantRls(tenantId, async (tx) => {
+      const rows = await tx.operatorRegistration.findMany({
+        where: { tenantId },
+        select: { id: true, createdAt: true },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      });
+      return {
+        candidates: rows.map((row) => ({
+          registrationId: row.id,
+          occurredAt: row.createdAt,
+        })),
+      };
     });
   }
 
@@ -829,9 +1030,23 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
 
       let bookingPaymentStatus: ApproveManualReceiptAtomicResult["bookingPaymentStatus"];
       try {
+        const facts = await loadRegistrationInvoiceFacts(tx, input.tenantId, input.registrationId);
+        const paymentStatus = resolveApproveBookingPaymentStatus({
+          registrationId: input.registrationId,
+          currency: facts.currency,
+          prepaymentMinor: facts.prepaymentMinor,
+          paidPaymentsMinor: facts.paidPaymentsMinor,
+          paymentAmountsMinor: facts.paymentAmountsMinor,
+          scheduleAmountsMinor: input.scheduleAmountsMinor,
+          refundedCompletedMinor: facts.refundedCompletedMinor,
+          ...(input.obligationMinor !== undefined
+            ? { obligationMinor: input.obligationMinor }
+            : {}),
+        });
         bookingPaymentStatus = await this.bookingPayments.raisePaidInTx(tx as FinanceTransactionPort, {
           tenantId: input.tenantId,
           registrationId: input.registrationId,
+          paymentStatus,
         });
       } catch (error: unknown) {
         if (
@@ -887,9 +1102,10 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
         throw new Error("FINANCE_LEDGER_CAPTURE_EMPTY");
       }
 
-      // Single-credit: Path B (TourCreated) must not have already credited this registration.
+      // Path A XOR Path B: block only when TourCreated already credited the wallet.
+      // Multiple payment captures for partial collection are allowed (PR20-D).
       await advisoryLockRegistrationWalletCredit(tx, input.tenantId, input.registrationId);
-      if (await registrationHasBookingWalletCredit(tx, input.tenantId, input.registrationId)) {
+      if (await registrationHasTourCreatedWalletCredit(tx, input.tenantId, input.registrationId)) {
         throw new Error("FINANCE_DUPLICATE_OBLIGATION_CREDIT");
       }
 
@@ -910,6 +1126,136 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
         reviewedAt: updated.reviewedAt?.toISOString() ?? null,
         ledgerJournalId: input.journalId,
         bookingPaymentStatus,
+      };
+    });
+  }
+
+  /**
+   * PR23-A.2 — Pending → Cancelled (Manual). No ledger / booking writes.
+   * Conditional Pending update races safely with approveManualReceiptAtomic.
+   */
+  async cancelPendingManualPaymentAtomic(
+    input: CancelPendingManualPaymentAtomicInput
+  ): Promise<CancelPendingManualPaymentAtomicResult> {
+    const domainEventId = `payment-cancelled:${input.paymentId}`.slice(0, 128);
+    return withTenantRls(input.tenantId, async (tx) => {
+      const row = await tx.payment.findFirst({
+        where: { id: input.paymentId, tenantId: input.tenantId },
+        select: PAYMENT_ROW_SELECT,
+      });
+      if (row === null) {
+        throw new Error("PAYMENT_NOT_FOUND");
+      }
+      if (row.method !== "Manual") {
+        throw new Error("PAYMENT_CANCEL_ONLY_MANUAL");
+      }
+
+      const buildAudit = (
+        payment: typeof row
+      ): CancelPendingManualPaymentAtomicResult["auditPayload"] => ({
+        tenantId: input.tenantId,
+        paymentId: payment.id,
+        registrationId: payment.registrationId,
+        actorUserId: input.actorUserId,
+        occurredAt: input.occurredAtIso,
+        fromStatus: "Pending",
+        toStatus: "Cancelled",
+        method: "Manual",
+        reasonCode: input.reasonCode,
+        reasonNote: input.reasonNote,
+        amount: payment.amount,
+        currency: payment.currency,
+        openReceiptCount: 0,
+        ...(input.idempotencyKeyHash !== undefined
+          ? { idempotencyKeyHash: input.idempotencyKeyHash }
+          : {}),
+      });
+
+      if (row.status === "Cancelled") {
+        const prior = await tx.outboxEvent.findFirst({
+          where: {
+            tenantId: input.tenantId,
+            domainEventId,
+            eventType: "finance.payment.cancelled",
+          },
+          select: { payload: true },
+        });
+        const auditPayload =
+          prior !== null &&
+          typeof prior.payload === "object" &&
+          prior.payload !== null
+            ? (prior.payload as CancelPendingManualPaymentAtomicResult["auditPayload"])
+            : buildAudit(row);
+        return {
+          payment: toFinancePaymentRow(row),
+          replay: true,
+          domainEventId,
+          auditPayload,
+        };
+      }
+
+      if (row.status !== "Pending") {
+        throw new Error("PAYMENT_NOT_CANCELLABLE");
+      }
+
+      const pendingReceiptCount = await tx.paymentReceipt.count({
+        where: {
+          tenantId: input.tenantId,
+          paymentId: input.paymentId,
+          status: "Pending",
+        },
+      });
+      if (pendingReceiptCount > 0) {
+        throw new Error("PAYMENT_HAS_PENDING_RECEIPT");
+      }
+
+      const updatedCount = await tx.payment.updateMany({
+        where: {
+          id: input.paymentId,
+          tenantId: input.tenantId,
+          status: "Pending",
+          method: "Manual",
+        },
+        data: {
+          status: "Cancelled",
+        },
+      });
+      if (updatedCount.count !== 1) {
+        const latest = await tx.payment.findFirst({
+          where: { id: input.paymentId, tenantId: input.tenantId },
+          select: PAYMENT_ROW_SELECT,
+        });
+        if (latest !== null && latest.status === "Cancelled") {
+          return {
+            payment: toFinancePaymentRow(latest),
+            replay: true,
+            domainEventId,
+            auditPayload: buildAudit(latest),
+          };
+        }
+        throw new Error("PAYMENT_NOT_CANCELLABLE");
+      }
+
+      const cancelled = await tx.payment.findFirstOrThrow({
+        where: { id: input.paymentId, tenantId: input.tenantId },
+        select: PAYMENT_ROW_SELECT,
+      });
+      const auditPayload = buildAudit(cancelled);
+
+      await enqueueOutboxEvent(tx, {
+        tenantId: input.tenantId,
+        aggregateType: "payment",
+        aggregateId: input.paymentId,
+        eventType: "finance.payment.cancelled",
+        domainEventId,
+        payload: auditPayload,
+      });
+
+      return {
+        payment: toFinancePaymentRow(cancelled),
+        replay: false,
+        domainEventId,
+        auditPayload,
       };
     });
   }
@@ -1190,4 +1536,241 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
       return loadRegistrationInvoiceFacts(tx, tenantId, registrationId);
     });
   }
+
+  async createRefund(input: CreateRefundInput): Promise<FinanceRefundRow> {
+    return withTenantRls(input.tenantId, async (tx) => {
+      if (input.creationIdempotencyKey) {
+        const existing = await tx.financeRefund.findFirst({
+          where: {
+            tenantId: input.tenantId,
+            creationIdempotencyKey: input.creationIdempotencyKey,
+          },
+        });
+        if (existing !== null) {
+          return mapFinanceRefundRow(existing);
+        }
+      }
+      const created = await tx.financeRefund.create({
+        data: {
+          tenantId: input.tenantId,
+          registrationId: input.registrationId,
+          paymentId: input.paymentId,
+          sourceKind: input.sourceKind,
+          amountMinor: input.amountMinor,
+          currency: input.currency.toUpperCase(),
+          reasonCode: input.reasonCode,
+          reasonNote: input.reasonNote,
+          status: "Requested",
+          requestedAt: new Date(input.requestedAtIso),
+          requestedByUserId: input.requestedByUserId,
+          evidenceFileKey: input.evidenceFileKey ?? null,
+          evidenceNote: input.evidenceNote ?? null,
+          creationIdempotencyKey: input.creationIdempotencyKey ?? null,
+        },
+      });
+      return mapFinanceRefundRow(created);
+    });
+  }
+
+  async findRefundById(tenantId: string, refundId: string): Promise<FinanceRefundRow | null> {
+    return withTenantRls(tenantId, async (tx) => {
+      const row = await tx.financeRefund.findFirst({
+        where: { id: refundId, tenantId },
+      });
+      return row === null ? null : mapFinanceRefundRow(row);
+    });
+  }
+
+  async findRefundByCreationIdempotencyKey(
+    tenantId: string,
+    creationIdempotencyKey: string
+  ): Promise<FinanceRefundRow | null> {
+    return withTenantRls(tenantId, async (tx) => {
+      const row = await tx.financeRefund.findFirst({
+        where: { tenantId, creationIdempotencyKey },
+      });
+      return row === null ? null : mapFinanceRefundRow(row);
+    });
+  }
+
+  async listRefundsForRegistration(
+    tenantId: string,
+    registrationId: string
+  ): Promise<readonly FinanceRefundRow[]> {
+    return withTenantRls(tenantId, async (tx) => {
+      const rows = await tx.financeRefund.findMany({
+        where: { tenantId, registrationId },
+        orderBy: { requestedAt: "asc" },
+      });
+      return rows.map(mapFinanceRefundRow);
+    });
+  }
+
+  async listRefundsPage(query: ListRefundsPageQuery): Promise<ListRefundsPageResult> {
+    const limit = Math.max(1, Math.floor(query.limit));
+    return withTenantRls(query.tenantId, async (tx) => {
+      const where: Prisma.FinanceRefundWhereInput = {
+        tenantId: query.tenantId,
+        ...(query.registrationId !== undefined
+          ? { registrationId: query.registrationId }
+          : {}),
+        ...(query.status !== undefined ? { status: query.status } : {}),
+      };
+
+      const cursorRaw = query.cursor;
+      if (cursorRaw !== undefined && cursorRaw !== null) {
+        const cursorAt = new Date(cursorRaw.requestedAt);
+        if (!Number.isNaN(cursorAt.getTime()) && cursorRaw.id.length > 0) {
+          where.AND = [
+            {
+              OR: [
+                { requestedAt: { lt: cursorAt } },
+                {
+                  AND: [{ requestedAt: cursorAt }, { id: { lt: cursorRaw.id } }],
+                },
+              ],
+            },
+          ];
+        }
+      }
+
+      const rows = await tx.financeRefund.findMany({
+        where,
+        orderBy: [{ requestedAt: "desc" }, { id: "desc" }],
+        take: limit + 1,
+      });
+      const hasMore = rows.length > limit;
+      const page = hasMore ? rows.slice(0, limit) : rows;
+      return { rows: page.map(mapFinanceRefundRow), hasMore };
+    });
+  }
+
+  async sumCompletedRefundsMinor(query: SumCompletedRefundsQuery): Promise<string> {
+    return withTenantRls(query.tenantId, async (tx) => {
+      const rows = await tx.financeRefund.findMany({
+        where: {
+          tenantId: query.tenantId,
+          registrationId: query.registrationId,
+          status: "Completed",
+          ...(query.paymentId !== undefined ? { paymentId: query.paymentId } : {}),
+          ...(query.sourceKind !== undefined ? { sourceKind: query.sourceKind } : {}),
+          ...(query.excludeRefundId !== undefined
+            ? { id: { not: query.excludeRefundId } }
+            : {}),
+        },
+        select: { amountMinor: true },
+      });
+      let sum = BigInt(0);
+      for (const row of rows) {
+        sum += BigInt(row.amountMinor.replace(/\D/g, "") || "0");
+      }
+      return sum.toString();
+    });
+  }
+
+  async transitionRefundStatus(
+    input: TransitionRefundStatusInput
+  ): Promise<{ readonly refund: FinanceRefundRow; readonly replay: boolean }> {
+    return withTenantRls(input.tenantId, async (tx) => {
+      const existing = await tx.financeRefund.findFirst({
+        where: { id: input.refundId, tenantId: input.tenantId },
+      });
+      if (existing === null) {
+        throw new Error("REFUND_NOT_FOUND");
+      }
+      if (existing.status === input.toStatus) {
+        if (input.toStatus === "Completed" || input.toStatus === "Approved") {
+          return { refund: mapFinanceRefundRow(existing), replay: true };
+        }
+        throw new Error("REFUND_NOT_TRANSITIONABLE");
+      }
+      if (!(input.fromStatuses as readonly string[]).includes(existing.status)) {
+        throw new Error("REFUND_NOT_TRANSITIONABLE");
+      }
+      const occurredAt = new Date(input.occurredAtIso);
+      const updated = await tx.financeRefund.update({
+        where: { id: existing.id },
+        data: {
+          status: input.toStatus,
+          ...(input.toStatus === "Approved"
+            ? { approvedAt: occurredAt, approvedByUserId: input.actorUserId }
+            : {}),
+          ...(input.toStatus === "Rejected"
+            ? {
+                rejectedAt: occurredAt,
+                rejectedByUserId: input.actorUserId,
+                rejectNote: input.rejectNote ?? null,
+              }
+            : {}),
+          ...(input.toStatus === "Cancelled"
+            ? { cancelledAt: occurredAt, cancelledByUserId: input.actorUserId }
+            : {}),
+          ...(input.toStatus === "Completed"
+            ? {
+                completedAt: occurredAt,
+                completedByUserId: input.actorUserId,
+                completionNote: input.completionNote ?? null,
+              }
+            : {}),
+        },
+      });
+      return { refund: mapFinanceRefundRow(updated), replay: false };
+    });
+  }
+}
+
+function mapFinanceRefundRow(row: {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly registrationId: string;
+  readonly paymentId: string | null;
+  readonly sourceKind: string;
+  readonly amountMinor: string;
+  readonly currency: string;
+  readonly reasonCode: string;
+  readonly reasonNote: string | null;
+  readonly status: string;
+  readonly requestedAt: Date;
+  readonly requestedByUserId: string;
+  readonly approvedAt: Date | null;
+  readonly approvedByUserId: string | null;
+  readonly rejectedAt: Date | null;
+  readonly rejectedByUserId: string | null;
+  readonly rejectNote: string | null;
+  readonly cancelledAt: Date | null;
+  readonly cancelledByUserId: string | null;
+  readonly completedAt: Date | null;
+  readonly completedByUserId: string | null;
+  readonly completionNote: string | null;
+  readonly evidenceFileKey: string | null;
+  readonly evidenceNote: string | null;
+  readonly creationIdempotencyKey: string | null;
+}): FinanceRefundRow {
+  return {
+    id: row.id,
+    tenantId: row.tenantId,
+    registrationId: row.registrationId,
+    paymentId: row.paymentId,
+    sourceKind: row.sourceKind as RefundSourceKind,
+    amountMinor: row.amountMinor,
+    currency: row.currency,
+    reasonCode: row.reasonCode as RefundReasonCode,
+    reasonNote: row.reasonNote,
+    status: row.status as RefundStatus,
+    requestedAt: row.requestedAt,
+    requestedByUserId: row.requestedByUserId,
+    approvedAt: row.approvedAt,
+    approvedByUserId: row.approvedByUserId,
+    rejectedAt: row.rejectedAt,
+    rejectedByUserId: row.rejectedByUserId,
+    rejectNote: row.rejectNote,
+    cancelledAt: row.cancelledAt,
+    cancelledByUserId: row.cancelledByUserId,
+    completedAt: row.completedAt,
+    completedByUserId: row.completedByUserId,
+    completionNote: row.completionNote,
+    evidenceFileKey: row.evidenceFileKey,
+    evidenceNote: row.evidenceNote,
+    creationIdempotencyKey: row.creationIdempotencyKey,
+  };
 }

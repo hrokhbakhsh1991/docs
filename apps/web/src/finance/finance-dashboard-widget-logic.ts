@@ -19,7 +19,8 @@ export function shouldShowFinanceDashboardWidget(
 }
 
 export function buildDashboardFinanceKpiCards(summary: FinanceSummary) {
-  return buildFinanceKpiCards(summary, 0).filter((card) => card.id !== "overdue-installments");
+  // Dashboard never surfaces installments KPI (first-customer / altitude).
+  return buildFinanceKpiCards(summary, 0, { includeInstallments: false });
 }
 
 export function parseDashboardFinanceSummary(raw: unknown): FinanceSummary {

@@ -11,6 +11,9 @@ export {
   handleFinanceReviewReceipt,
   handleFinanceReceiptUrl,
   handleFinancePendingReceipts,
+  handleFinanceListExceptions,
+  handleFinanceOutstandingBalances,
+  handleFinanceTourCollections,
   handleFinanceListPrepayments,
   handleFinanceRecordPrepayment,
   handleFinanceListBookingSyncDegraded,
@@ -22,5 +25,7 @@ export {
   handleFinanceSetObligationOverride,
   handleFinancePatchScheduleItem,
   handleFinanceReceiptUpload,
+  handleFinanceCaseEncounter,
+  handleFinanceCaseCommandReviewReceipt,
   type FinanceRouteDeps,
 } from "@app-tour/finance-http";

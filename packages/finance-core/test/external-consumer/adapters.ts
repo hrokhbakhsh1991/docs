@@ -49,6 +49,9 @@ export const ExternalDisplay: RegistrationDisplayPort = {
   async getByRegistrationIds() {
     return new Map();
   },
+  async listRegistrationIdsByTourId() {
+    return [];
+  },
 };
 
 export const ExternalCapability: FinanceCapabilityPort = {
@@ -105,7 +108,7 @@ export function createExternalBookingPort(): IBookingPaymentPort {
       return input.paymentStatus;
     },
     async raisePaidInTx(_tx, input) {
-      return "paid";
+      return input.paymentStatus;
     },
     async memberOwnsRegistration() {
       return true;
@@ -138,6 +141,7 @@ export function createExternalRepository(): FinanceRepositoryPort {
         pendingReceiptReviews: 0,
         paidPayments: 0,
         failedPayments: 0,
+        cancelledPayments: 0,
       };
     },
     async listOpenPayments() {
@@ -200,13 +204,22 @@ export function createExternalRepository(): FinanceRepositoryPort {
       return null;
     },
     async listPendingReceipts() {
-      return [];
+      return { rows: [], nextCursor: null, hasMore: false };
+    },
+    async listFinanceExceptionSources() {
+      return { rejectedReceiptPendingPayments: [], cancelledPayments: [] };
+    },
+    async listOutstandingBalanceCandidates() {
+      return { candidates: [] };
     },
     async updateReceiptReview() {
       return notImplemented("updateReceiptReview");
     },
     async approveManualReceiptAtomic() {
       return notImplemented("approveManualReceiptAtomic");
+    },
+    async cancelPendingManualPaymentAtomic() {
+      return notImplemented("cancelPendingManualPaymentAtomic");
     },
     async listPrepayments() {
       return [];
@@ -221,6 +234,27 @@ export function createExternalRepository(): FinanceRepositoryPort {
     async markPrepaymentBookingSyncRecovered() {},
     async getRegistrationInvoiceFacts() {
       return notImplemented("getRegistrationInvoiceFacts");
+    },
+    async createRefund() {
+      return notImplemented("createRefund");
+    },
+    async findRefundById() {
+      return notImplemented("findRefundById");
+    },
+    async findRefundByCreationIdempotencyKey() {
+      return notImplemented("findRefundByCreationIdempotencyKey");
+    },
+    async listRefundsForRegistration() {
+      return notImplemented("listRefundsForRegistration");
+    },
+    async listRefundsPage() {
+      return notImplemented("listRefundsPage");
+    },
+    async sumCompletedRefundsMinor() {
+      return notImplemented("sumCompletedRefundsMinor");
+    },
+    async transitionRefundStatus() {
+      return notImplemented("transitionRefundStatus");
     },
   };
 }

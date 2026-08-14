@@ -1,27 +1,15 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
-import { buildTourPageMetadata } from "@/i18n/tour-page-metadata";
+import { hrefForWorkspaceTab } from "@/features/tours/tour-workspace-logic";
 
-import { TourWorkspaceTransportClient } from "./tour-workspace-transport-client";
-
-export async function generateMetadata(): Promise<Metadata> {
-  return buildTourPageMetadata("workspaceTransport");
-}
-
-export const dynamic = "force-dynamic";
-
-type TourWorkspaceTransportPageProps = {
+type TourWorkspaceTransportRedirectProps = {
   readonly params: Promise<{ id: string }>;
 };
 
-export default async function TourWorkspaceTransportPage({
+/** Legacy segment — canonical tab is `?tab=transport`. */
+export default async function TourWorkspaceTransportRedirectPage({
   params,
-}: TourWorkspaceTransportPageProps) {
-  const session = await readOperatorSessionFromCookies();
-  if (session === null) {
-    return null;
-  }
+}: TourWorkspaceTransportRedirectProps) {
   const { id } = await params;
-  return <TourWorkspaceTransportClient tourId={id} pluginId={session.pluginId} />;
+  redirect(hrefForWorkspaceTab(id, "transport"));
 }

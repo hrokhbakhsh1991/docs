@@ -193,7 +193,7 @@ module.exports = {
       severity: "error",
       from: { path: "^apps/web" },
       to: {
-        path: `^packages/(?!design-tokens|platform-core|theme-react|ui-primitives|workspace-sdk|draft-engine|wizard-navigation|tenant-kernel|session-client|guest-surface-host|iran-mountain-landmarks|${DEPCRUISE_WEB_WORKSPACES_ALLOW_ALT}|config)`,
+        path: `^packages/(?!design-tokens|platform-core|theme-react|ui-primitives|workspace-sdk|draft-engine|wizard-navigation|tenant-kernel|session-client|guest-surface-host|iran-mountain-landmarks|finance-case-encounter-ui|${DEPCRUISE_WEB_WORKSPACES_ALLOW_ALT}|config)`,
       },
     },
     {

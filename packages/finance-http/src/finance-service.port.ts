@@ -1,6 +1,7 @@
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import type {
+  CancelPendingManualPaymentBody,
   CreateManualPaymentBody,
   GenerateScheduleBody,
   RecordPrepaymentBody,
@@ -38,6 +39,24 @@ export type FinanceServicePort = {
     body: CreateManualPaymentBody,
     idempotencyKey: string
   ) => Promise<unknown>;
+  readonly cancelPendingManualPayment: (
+    auth: TenantAuthContext,
+    body: {
+      readonly paymentId: string;
+      readonly reasonCode: CancelPendingManualPaymentBody["reasonCode"];
+      readonly reasonNote?: string | null;
+    },
+    idempotencyKey?: string
+  ) => Promise<{
+    readonly id: string;
+    readonly status: string;
+    readonly domainEventId: string;
+    readonly replay: boolean;
+    readonly audit: {
+      readonly occurredAt: string;
+      readonly reasonCode: string;
+    };
+  }>;
   readonly submitReceipt: (
     auth: TenantAuthContext,
     body: SubmitReceiptBody,
@@ -53,8 +72,91 @@ export type FinanceServicePort = {
     auth: TenantAuthContext,
     limit: number,
     registrationId?: string,
-    tourId?: string
-  ) => Promise<readonly unknown[]>;
+    tourId?: string,
+    cursor?: string | null
+  ) => Promise<{
+    readonly items: readonly unknown[];
+    readonly nextCursor: string | null;
+    readonly hasMore: boolean;
+  }>;
+  /** PR23-C2 — read-only operator finance exceptions. */
+  readonly listOperatorFinanceExceptions: (
+    auth: TenantAuthContext,
+    query?: { readonly limit?: number; readonly cursor?: string | null }
+  ) => Promise<{
+    readonly items: readonly unknown[];
+    readonly nextCursor: string | null;
+    readonly hasMore: boolean;
+  }>;
+  /** PR23-D1 — outstanding AR balances (invoice SoT). */
+  readonly listOutstandingBalances: (
+    auth: TenantAuthContext,
+    query?: {
+      readonly limit?: number;
+      readonly cursor?: string | null;
+      readonly tourId?: string;
+    }
+  ) => Promise<{
+    readonly items: readonly unknown[];
+    readonly nextCursor: string | null;
+    readonly hasMore: boolean;
+  }>;
+  /** PR23-D2 — tour AR rollup from outstanding invoices. */
+  readonly listTourCollectionSummary: (
+    auth: TenantAuthContext,
+    query?: {
+      readonly limit?: number;
+      readonly cursor?: string | null;
+      readonly tourId?: string;
+    }
+  ) => Promise<{
+    readonly items: readonly unknown[];
+    readonly nextCursor: string | null;
+    readonly hasMore: boolean;
+  }>;
+  /** PR23-E3 — operator refund list (enriched). */
+  readonly listOperatorRefunds: (
+    auth: TenantAuthContext,
+    query?: {
+      readonly limit?: number;
+      readonly cursor?: string | null;
+      readonly registrationId?: string;
+      readonly status?: string;
+    }
+  ) => Promise<{
+    readonly items: readonly unknown[];
+    readonly nextCursor: string | null;
+    readonly hasMore: boolean;
+  }>;
+  /** PR23-E3 — single enriched refund. */
+  readonly getOperatorRefund: (
+    auth: TenantAuthContext,
+    refundId: string
+  ) => Promise<unknown>;
+  readonly requestRefund: (
+    auth: TenantAuthContext,
+    body: import("@app-tour/finance-http-contracts").RequestRefundBody & {
+      readonly idempotencyKey?: string;
+    }
+  ) => Promise<Record<string, unknown>>;
+  readonly approveRefund: (
+    auth: TenantAuthContext,
+    refundId: string
+  ) => Promise<Record<string, unknown>>;
+  readonly completeRefund: (
+    auth: TenantAuthContext,
+    refundId: string,
+    body?: { readonly completionNote?: string | null }
+  ) => Promise<Record<string, unknown>>;
+  readonly rejectRefund: (
+    auth: TenantAuthContext,
+    refundId: string,
+    body?: { readonly rejectNote?: string | null }
+  ) => Promise<Record<string, unknown>>;
+  readonly cancelRefund: (
+    auth: TenantAuthContext,
+    refundId: string
+  ) => Promise<Record<string, unknown>>;
   readonly listPrepayments: (
     auth: TenantAuthContext,
     limit: number,

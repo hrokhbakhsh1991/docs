@@ -6,6 +6,7 @@ import {
   buildCatalogRegistrationUpstreamRequest,
   CatalogRegistrationPayloadInvalidError,
   IntakePluginNotRegisteredError,
+  resolveIntakeSchema,
 } from "@app-tour/workspace-sdk";
 
 import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
@@ -99,6 +100,11 @@ export async function POST(req: Request): Promise<NextResponse> {
     "content-type": "application/json",
     ...(upstream.extraHeaders ?? {}),
   };
+
+  const intakeFeatures = resolveIntakeSchema(bootstrap.pluginId).features;
+  if (intakeFeatures.requiresMemberSession === true && headers.Authorization === undefined) {
+    return NextResponse.json({ ok: false, code: "AUTH_UNAUTHENTICATED" }, { status: 401 });
+  }
 
   const res = await fetch(`${apiBase}${upstream.path}`, {
     method: "POST",

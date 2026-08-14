@@ -14,6 +14,10 @@ export type FinanceOpsCapability = {
     readonly prepayments: boolean;
     readonly installments: boolean;
     readonly ledger: boolean;
+    /** PR23-E3 — manual offline refunds workflow. */
+    readonly refunds: boolean;
+    /** PR23 UX-1 — outstanding AR from D1/D2 reports (read-only). */
+    readonly outstanding: boolean;
   };
   readonly installmentDefaults?: {
     readonly enabled: boolean;

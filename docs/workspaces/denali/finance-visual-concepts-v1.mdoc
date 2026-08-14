@@ -1,0 +1,395 @@
+---
+title: Finance Visual Concepts v1
+doc_id: DENALI-FINANCE-VISUAL-CONCEPTS
+version: "2026-08-07-v1"
+workspace: denali
+status: ANALYSIS
+phase: pre-redesign discovery stage-10
+continues:
+  - DENALI-FINANCE-UI-CONCEPTS
+  - DENALI-FINANCE-EXPERIENCE-PATTERNS
+  - DENALI-FINANCE-CAPABILITY-EXPERIENCE-CONTRACT
+authority: >
+  Finance UI Concepts Architecture Review (PASS) · UI Concepts v1 · Experience Patterns v1
+purpose: >
+  Explore visual concepts for Finance Operator Experience: layout, information hierarchy,
+  interaction visualization, responsive behavior. Not React, not component APIs, not backend.
+constraints:
+  - No code / React components / routes / APIs / DB / field renames / implementation files
+  - No mockup image assets
+  - Case canvas only — not payment/receipt/ledger/registration as primary
+  - facts → verdict → owner → lane → confidence → allow/forbid
+  - Queues are signals; open work → Case
+mode: Visual experience exploration only (conceptual)
+---
+
+# Finance Visual Concepts v1
+
+## Visual Principles
+
+| # | Principle | Visual implication |
+| - | --------- | ------------------ |
+| V1 | **Case is the canvas** | Primary viewport = one interpreted Financial Case, not a spreadsheet of entities |
+| V2 | **Interpretation before chrome** | Verdict + owner + lane occupy the “hero” of the case; entity details are supporting |
+| V3 | **Reading, not badge theater** | Verdict looks like an explanation block, not a lone colored pill that replaces facts |
+| V4 | **Ownership gates the action rail** | Action cluster appears only after owner is visible; disabled/absent when not finance’s move |
+| V5 | **Calm > alarm for expected states** | Coexistence and correct waiting use neutral/informational tone, not error red |
+| V6 | **Signals are secondary surfaces** | Attention lists are narrow, dismissible, or side-rail — never the whole product metaphor |
+| V7 | **Progressive depth** | L1 always on; L2–L5 expand without burying L1 |
+| V8 | **Altitude change is obvious** | Exception/audit modes change frame treatment (banner/mode chip), not just extra tabs |
+| V9 | **Universal skeleton, local flesh** | Layout slots are **U**; labels/urgency widgets are **Ad/D** |
+| V10 | **No repair-by-default** | Manual payment / create-intent never dominates the visual hierarchy as “fix unpaid” |
+
+**Marks:** **U** reusable · **Ad** adapter · **D** Denali-only  
+**Probes:** **A** enrollment+offline · **B** subscription+recurring · **C** marketplace order  
+
+---
+
+## Case Canvas Concept
+
+### Metaphor
+
+A **case dossier** for one commercial subject: who it is, how money reads right now, whose move, what you may do.
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│  CASE CANVAS (primary)                                  │
+│  L1: identity · verdict reading · owner · lane · alarm  │
+│  L2: facts that explain the reading                     │
+│  L3: confidence                                         │
+│  L4: action rail (allow/forbid)                         │
+│  L5: history / audit (collapsed by default in daily)    │
+└─────────────────────────────────────────────────────────┘
+         ↑ opens from
+┌─────────────────────────────────────────────────────────┐
+│  SIGNAL RAIL / INDEX (secondary)                        │
+│  pending evidence · unsettled · exception · audit cues  │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Not the canvas
+
+Payment table · receipt inbox-as-app · ledger browser · registration list-as-finance-home.
+
+### Multi-workspace
+
+Canvas structure = **U**. Subject header fields = **Ad**. **D** tour/member labels only in Denali binding.
+
+---
+
+## Information Hierarchy Visualization
+
+### L1 — Immediate understanding (always visible on Case canvas)
+
+| Appears | Why | Hidden until needed |
+| ------- | --- | ------------------- |
+| Subject identity (name + product title) | Anchor | Raw UUID unless identity missing |
+| Verdict **reading** (short title + one-sentence narrative) | “Where are we?” | Full fact dump |
+| Owner line (“Next move: finance / counterparty / …”) | Whose move | Action buttons before this |
+| Lane indicator (daily / exception / audit) | Altitude | Audit panels |
+| Alarm treatment (neutral vs caution) | Coexistence health | Error styling by default |
+
+**Visual weight:** L1 is the densest “above the fold” block — explanation-first, not toolbar-first.
+
+### L2 — Facts supporting interpretation (visible, secondary density)
+
+| Appears | Why | Hidden until needed |
+| ------- | --- | ------------------- |
+| Eligibility | Money path open? | Product lifecycle action controls |
+| Policy (money due / not) | Chase vs no-chase | Implementation of policy editors |
+| Obligation / remaining | Amount judgment | Ledger lines |
+| Evidence progress | Ingress | Full file viewer until review |
+| Intent summary | Open/captured | Manual create form |
+| Settlement meaning | Projection | Sync/debug tooling |
+
+**Visual weight:** Definition list / compact fact grid under L1; each fact object-qualified.
+
+### L3 — Ownership / confidence (adjacent to L1 or directly under)
+
+| Appears | Why | Hidden until needed |
+| ------- | --- | ------------------- |
+| Why visible | Confidence | — |
+| Why mine / not mine | Confidence | — |
+| If I wait… | Calm waiting | Fear copy |
+| Avoid… | Forbidden set preview | Full forbid list dump |
+
+Prefer one progressive ownership story (L1 headline + L3 detail), not two competing owner widgets.
+
+### L4 — Actions (rail or footer of case)
+
+| Appears | Why | Hidden until needed |
+| ------- | --- | ------------------- |
+| Primary posture CTAs from allow set | Act / wait / escalate / inspect | Row kebab menus as primary |
+| Explicit wait affordance when wait is correct | Success outcome | Fake “must click something” |
+| Forbidden actions not shown as primary; optional “why not” | Clarity | Tempting repair CTAs |
+
+### L5 — History / audit (collapsed in daily)
+
+| Appears | Why | Hidden until needed |
+| ------- | --- | ------------------- |
+| Prior evidence decisions | Retry context | Always-open ledger |
+| Intent history | Duplicate detection | — |
+| Lifecycle timeline (**Ad**) | Eligibility story | Finance lifecycle buttons |
+| Ledger / recon | Audit only | Daily default open |
+
+**Rule:** Expanding L5 never steals L1–L4 hierarchy.
+
+---
+
+## Signal → Case Transition
+
+### Signal presentation (secondary)
+
+Conceptual treatments (not components):
+
+| Signal type | Visual cue concept | Priority cue |
+| ----------- | ------------------ | ------------ |
+| Pending evidence | “Needs finance reading” in signal rail | Count + age; **Ad** service-window urgency |
+| Unsettled obligation | “Needs interpretation” — not “fix payment” | Must not look like finance-owned until Case opens |
+| Exception | Distinct caution mode chip on signal | Higher than calm unsettled |
+| Audit finding | Audit altitude chip | Never default home |
+
+### Transition
+
+```text
+Select signal
+  → Case canvas replaces or overlays signal as focus
+  → L1 populated before L4 actions
+  → Signal item remains breadcrumb (“from: evidence needing review”)
+```
+
+### Queues remain secondary
+
+| Do | Don’t |
+| -- | ----- |
+| Narrow rail / split list→detail where detail is Case | Full-viewport receipt table as the product |
+| Label lists as attention indexes | Title the product “Receipts” as finance home |
+| Empty signal rail still allows Case search/open by subject (**Ad**) | Force all work through one entity inbox |
+
+### Avoid
+
+“Finance inbox = receipt list.”
+
+### Multi-workspace
+
+Signal taxonomy = **U**. Which signals dominate = **Ad** (A: evidence; B: failed charge; C: unpaid order / dispute).
+
+---
+
+## Verdict Visualization
+
+### Concept: “Interpretation card” not “status badge”
+
+Visual idea:
+
+- **Title:** human reading (e.g. “Awaiting finance review”)  
+- **Supporting sentence:** object-qualified narrative  
+- **Linked facts:** chips or links into L2 slots (evidence, settlement) — facts still reachable  
+- **Tone:** informational for expected states; caution only for EXCEPTION / unhealthy alarm  
+
+### Examples
+
+| Verdict | Visual reading concept | Tone |
+| ------- | ---------------------- | ---- |
+| `AWAITING_COUNTERPARTY` | Waiting on counterparty — money due, no evidence in finance hands | Calm |
+| `AWAITING_FINANCE` | Evidence with finance — unsettled projection expected | Calm / in-progress (not error) |
+| `SETTLED_CAPTURED` | Settled after accepted capture/evidence | Positive calm |
+| `NO_MONEY_DUE` | No payment chase | Calm complete |
+| `NOT_ELIGIBLE` | Money path not open — product desk | Calm / handoff |
+| `EXCEPTION` | Commercial meaning unclear — pause routine acts | Caution mode |
+
+### Rules
+
+- Verdict is a **reading**, not a stored status control  
+- Avoid single-color-pill mentality that hides narrative  
+- Do not let settlement badge alone sit where verdict should sit  
+
+### Multi-workspace
+
+Presentation pattern = **U**. Wording = **Ad/D**.
+
+---
+
+## Ownership Visualization
+
+### Concept: “Next move” strip
+
+Always visible in L1/L3:
+
+| Owner | Visual distinction concept |
+| ----- | -------------------------- |
+| `counterparty` | Outbound wait — “their move” |
+| `finance` | Inbound work — “your move” |
+| `product_desk` | Handoff — “product ops move” |
+| `policy_system` | System/policy — “no human money chase” |
+| `exception_policy` | Exception mode — “judgment required” |
+| `idle` | Complete — “no money action” |
+
+### Action coupling
+
+- If owner ≠ `finance` (and not exception requiring finance cleanup): action rail emphasizes **Wait** / handoff, not approve  
+- If owner = `finance`: approve/reject (when allowed) become primary  
+- Never imply ownership merely because the operator is on a “finance” route  
+
+### Multi-workspace
+
+Owner set = **U**. Labels (member/subscriber/buyer) = **Ad/D**.
+
+---
+
+## Decision Interaction
+
+### Action rail concept
+
+Sourced only from `allowedActions` / `forbiddenActions` (+ owner/lane).
+
+| Posture | Visual concept |
+| ------- | -------------- |
+| **Act now** | Primary button group for allowed finance decisions (e.g. approve/reject evidence) |
+| **Wait** | Explicit “Correct to wait” control or confirmed idle state — not a disabled void |
+| **Escalate** | Secondary/caution control when exception lane |
+| **Inspect** | Tertiary / mode switch into audit altitude |
+
+### Avoid
+
+- Row action menus as the main decision UX  
+- Payment-first CTAs (“Create manual payment”) as default above-the-fold  
+- Manual payment as default repair for unpaid/waiting  
+- Showing approve when owner is counterparty  
+
+### Multi-workspace
+
+Postures = **U**. Dominant primary CTA = **Ad**.
+
+---
+
+## Waiting Experience
+
+### Goal
+
+Waiting communicates **correctness**, not failure.
+
+### Visual treatments
+
+| Situation | Visual concept |
+| --------- | -------------- |
+| Eligible, counterparty pending | Calm wait panel: owner=counterparty; no error color; “if you wait = delay only” |
+| No money due | Complete/idle calm; no evidence queue pull |
+| Lifecycle not ready | Handoff to product_desk; finance actions absent |
+| Settled idle | Quiet success; no further CTA noise |
+
+### Coexistence vs wait (visual)
+
+| State | Who acts | Visual |
+| ----- | -------- | ------ |
+| Evidence in review + unsettled | **Finance** | In-progress calm (Pattern coexistence) — **not** “waiting empty” |
+| No evidence + unsettled + eligible | **Counterparty** | True calm waiting |
+
+### Avoid
+
+Error red, “failed sync,” pulsing unpaid alarms, forced create-payment CTA.
+
+---
+
+## Exception/Audit Experience
+
+### Exception mode
+
+Case canvas gains:
+
+- Mode banner: “Exception — commercial meaning unclear” + trigger reason  
+- Routine approve/reject **suppressed** or behind confirm-with-reason  
+- Owner shifts to `exception_policy` visual  
+- L2 highlights conflicting slots  
+
+### Audit mode
+
+- Mode banner: “Audit altitude”  
+- L5 ledger/recon expands as **supporting investigation**  
+- Findings map back to L2 fact callouts (settlement vs intent vs evidence)  
+- Exit returns to daily Case reading  
+
+### Keep secondary
+
+Ledger tables, journal lines, recon boards — never replace L1 verdict/owner.
+
+### Multi-workspace
+
+Mode transformation = **U**. Which triggers fire = **Ad**.
+
+---
+
+## Responsive Considerations
+
+Conceptual breakpoints (not CSS):
+
+| Viewport | Concept |
+| -------- | ------- |
+| **Wide** | Signal rail + Case canvas side-by-side; L1–L4 stacked in case; L5 collapsed |
+| **Medium** | Signal list → Case full width on select; sticky L1 summary |
+| **Narrow** | Signal index as first step; Case as full-screen dossier; action rail sticky bottom; L2 accordion; L5 behind “More / Audit” |
+
+**Mobile rule:** Never open entity row actions without Case L1. Sticky owner + primary posture beat dense tables.
+
+**Signal rail on small screens:** One-dimensional list of attention items; detail is always Case.
+
+---
+
+## Multi Workspace Notes
+
+| Visual concept | A | B | C |
+| -------------- | - | - | - |
+| Case canvas | **U** | **U** | **U** (multi-case: choose which case) |
+| Signal→Case | **U** | **U** | **U** |
+| L1–L5 hierarchy | **U** | **U** | **U** |
+| Verdict reading block | **U** | **U** | **U** |
+| Ownership strip | **U** | **U** | **U** |
+| Evidence review as primary act | **Ad** central | **Ad** secondary | **Ad** secondary |
+| Calm waiting | **U** | **U** | **U** |
+| Coexistence calm in-progress | **U** primary | **Ad** | **Ad** |
+| Urgency by departure | **D/Ad** | billing period **Ad** | fulfill-by **Ad** |
+
+---
+
+## Denali Binding Examples
+
+| Slot | Denali visual binding example |
+| ---- | ----------------------------- |
+| Subject identity | Guest label · tour title |
+| businessContext | Departure proximity as optional urgency cue on signals (**not** canvas title) |
+| counterparty | “Member” in copy |
+| Evidence | Offline transfer proof preview in L2/L4 when owner=finance |
+| Signals | “Evidence needing review,” “Unsettled enrollments” |
+| product_desk | Link/handoff language toward bookings — not lifecycle approve inside case actions |
+| Free/zero | `NO_MONEY_DUE` calm complete reading |
+
+Denali may reuse bookings summary as **signal enrichment** only.
+
+---
+
+## Forbidden Visual Patterns
+
+| Forbidden pattern | Why |
+| ----------------- | --- |
+| Full-page payment/receipt/ledger/registration table as finance home | Breaks Case canvas |
+| Receipt inbox metaphor as the product | Signal≠Case violation |
+| Lone status pills replacing narrative verdict | Badge theater / fake SoT feel |
+| Error/destructive styling for unpaid+in_review | Breaks coexistence |
+| Error styling for correct counterparty wait | Breaks calm waiting |
+| Sticky “Create manual payment” as primary repair | Forbidden repair CTA |
+| Row kebab as primary decision surface | Entity-first |
+| Tour chip bar as mandatory global finance nav | Denali lock-in |
+| Lifecycle approve/reject in finance action rail | Ownership breach |
+| Always-open ledger column beside every case | Audit altitude collapse |
+| Visual design that only works with “member + tour + offline proof” | Fails B/C |
+| Editable “Case status” control | Persisted interpretation anti-pattern |
+
+---
+
+## Visual Concepts one-liner
+
+> Finance looks like a Case dossier: a secondary signal rail discovers work; the canvas shows an interpretive reading, ownership, and gated actions; waiting and coexistence stay calm; exception and audit change the frame — portable across products, with Denali only binding labels and urgency.
+
+---
+
+*Conceptual visual architecture only. No screenshots, components, or implementation.*

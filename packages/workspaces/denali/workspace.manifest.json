@@ -55,7 +55,10 @@
         },
         "paramHandlers": {
           "GET /denali/catalog/:tourId": "handleGetDenaliCatalogTour",
-          "GET /denali/dashboard/tours/:tourId": "handleGetDenaliDashboardTour"
+          "GET /denali/dashboard/tours/:tourId": "handleGetDenaliDashboardTour",
+          "GET /denali/registrations/for-tour/:tourId": "handleGetDenaliRegistrationForTour",
+          "GET /denali/registrations/:registrationId": "handleGetDenaliRegistration",
+          "PATCH /denali/registrations/:registrationId": "handlePatchDenaliRegistration"
         }
       },
       {
@@ -65,25 +68,38 @@
           "GET /finance/reports/open-payments": "handleFinanceOpenPayments",
           "GET /finance/reports/ledger-events": "handleFinanceLedgerEvents",
           "GET /finance/reports/by-tour": "handleFinanceReportByTour",
+          "GET /finance/reports/outstanding-balances": "handleFinanceOutstandingBalances",
+          "GET /finance/reports/tour-collections": "handleFinanceTourCollections",
           "GET /finance/payments": "handleFinanceListPayments",
           "POST /finance/payments/manual": "handleFinanceCreateManualPayment",
           "POST /finance/receipts": "handleFinanceSubmitReceipt",
           "POST /finance/receipts/upload": "handleFinanceReceiptUpload",
           "GET /finance/receipts/pending": "handleFinancePendingReceipts",
+          "GET /finance/exceptions": "handleFinanceListExceptions",
+          "GET /finance/refunds": "handleFinanceListRefunds",
+          "POST /finance/refunds": "handleFinanceRequestRefund",
           "GET /finance/prepayments": "handleFinanceListPrepayments",
           "POST /finance/prepayments": "handleFinanceRecordPrepayment",
           "GET /finance/prepayments/booking-sync-degraded": "handleFinanceListBookingSyncDegraded",
           "POST /finance/prepayments/booking-sync-retry": "handleFinanceRetryBookingSync",
           "GET /finance/schedules": "handleFinanceListSchedules",
-          "POST /finance/schedules/generate": "handleFinanceGenerateSchedule"
+          "POST /finance/schedules/generate": "handleFinanceGenerateSchedule",
+          "POST /finance/case/commands/review-receipt": "handleFinanceCaseCommandReviewReceipt"
         },
         "paramHandlers": {
+          "POST /finance/payments/:paymentId/cancel": "handleFinanceCancelPendingManualPayment",
+          "GET /finance/refunds/:refundId": "handleFinanceGetRefund",
+          "POST /finance/refunds/:refundId/approve": "handleFinanceApproveRefund",
+          "POST /finance/refunds/:refundId/complete": "handleFinanceCompleteRefund",
+          "POST /finance/refunds/:refundId/reject": "handleFinanceRejectRefund",
+          "POST /finance/refunds/:refundId/cancel": "handleFinanceCancelRefund",
           "PATCH /finance/receipts/:receiptId/review": "handleFinanceReviewReceipt",
           "GET /finance/receipts/:receiptId/url": "handleFinanceReceiptUrl",
           "GET /finance/invoices/:registrationId": "handleFinanceGetRegistrationInvoice",
           "PUT /finance/registrations/:registrationId/obligation-override": "handleFinanceSetObligationOverride",
           "GET /finance/schedules/:registrationId": "handleFinanceGetSchedule",
-          "PATCH /finance/schedules/:registrationId/items/:itemId": "handleFinancePatchScheduleItem"
+          "PATCH /finance/schedules/:registrationId/items/:itemId": "handleFinancePatchScheduleItem",
+          "GET /finance/case/encounters/:registrationId": "handleFinanceCaseEncounter"
         },
         "handlerPackage": "@app-tour/finance-http"
       }
@@ -466,6 +482,21 @@
       "isErrorExport": "isDenaliRegistrationDuplicateError",
       "codeExport": "DENALI_REGISTRATION_DUPLICATE",
       "status": 409
+    },
+    {
+      "isErrorExport": "isDenaliRegistrationNotAmendableError",
+      "codeExport": "DENALI_REGISTRATION_NOT_AMENDABLE",
+      "status": 409
+    },
+    {
+      "isErrorExport": "isDenaliRegistrationInvalidError",
+      "codeExport": "DENALI_REGISTRATION_INVALID",
+      "status": 400
+    },
+    {
+      "isErrorExport": "isDenaliRegistrationNotFoundError",
+      "codeExport": "DENALI_REGISTRATION_NOT_FOUND",
+      "status": 404
     }
   ],
   "guestCrossSurfaceNav": {

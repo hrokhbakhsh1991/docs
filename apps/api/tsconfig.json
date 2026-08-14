@@ -24,6 +24,18 @@
         "../../packages/workspaces/denali/dist/settings/equipment-icon-registry"
       ],
       "@app-tour/workspace-denali/tours": ["../../packages/workspaces/denali/dist/tours/index"],
+      "@app-tour/workspace-denali/host/finance": [
+        "../../packages/workspaces/denali/dist/finance/index"
+      ],
+      "@app-tour/workspace-denali/host/finance/case-read": [
+        "../../packages/workspaces/denali/dist/finance/case-read/index"
+      ],
+      "@app-tour/workspace-denali/host/finance/api-tour-created-adapter": [
+        "../../packages/workspaces/denali/dist/finance/api-tour-created-adapter"
+      ],
+      "@app-tour/workspace-denali/host/finance/manifest": [
+        "../../packages/workspaces/denali/dist/finance/finance-ops-manifest"
+      ],
       "@app-tour/workspace-urban/plugin": ["../../packages/workspaces/urban/dist/urban.plugin"],
       "@app-tour/workspace-urban/host/http": ["../../packages/workspaces/urban/dist/http/index"],
       "@app-tour/workspace-urban/catalog": ["../../packages/workspaces/urban/dist/catalog/index"],

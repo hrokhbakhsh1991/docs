@@ -22,6 +22,7 @@ describe("compile-invoice-balances.spec.ts — Phase 9.7 R2", () => {
     assert.equal(invoice.walletNetMinor, "8000000");
     assert.equal(invoice.paidAmountMinor, "8000000");
     assert.equal(invoice.balanceDueMinor, "2000000");
+    assert.equal(invoice.refundedMinor, "0");
   });
 
   it("API-9.7-R2-INV-02 wallet exceeding invoice is clamped", () => {
@@ -35,6 +36,7 @@ describe("compile-invoice-balances.spec.ts — Phase 9.7 R2", () => {
     });
     assert.equal(invoice.paidAmountMinor, "10000000");
     assert.equal(invoice.balanceDueMinor, "0");
+    assert.equal(invoice.refundedMinor, "0");
   });
 
   it("API-9.7-R2-INV-03 schedule total takes precedence over payment sum", () => {
@@ -48,5 +50,24 @@ describe("compile-invoice-balances.spec.ts — Phase 9.7 R2", () => {
     });
     assert.equal(invoice.invoiceTotalMinor, "10000000");
     assert.equal(invoice.balanceDueMinor, "10000000");
+    assert.equal(invoice.refundedMinor, "0");
+  });
+
+  it("PR23-E2-INV — completed refunds reduce walletNet; total unchanged", () => {
+    const registrationId = randomUUID();
+    const invoice = compileRegistrationInvoice({
+      registrationId,
+      currency: "IRR",
+      prepaymentMinor: "0",
+      paidPaymentsMinor: "10000000",
+      paymentAmountsMinor: ["10000000"],
+      scheduleAmountsMinor: ["10000000"],
+      refundedCompletedMinor: "3000000",
+    });
+    assert.equal(invoice.invoiceTotalMinor, "10000000");
+    assert.equal(invoice.refundedMinor, "3000000");
+    assert.equal(invoice.walletNetMinor, "7000000");
+    assert.equal(invoice.paidAmountMinor, "7000000");
+    assert.equal(invoice.balanceDueMinor, "3000000");
   });
 });

@@ -1,0 +1,492 @@
+---
+title: Finance Operator Experience Structure v1
+doc_id: DENALI-FINANCE-OPERATOR-EXPERIENCE-STRUCTURE
+version: "2026-08-07-v1"
+workspace: denali
+status: ANALYSIS
+phase: pre-redesign discovery stage-6
+continues:
+  - DENALI-FINANCE-DOMAIN-MAP
+  - DENALI-FINANCE-CASE-GRAMMAR
+  - DENALI-FINANCE-EXPERIENCE-PRINCIPLES
+  - DENALI-FINANCE-OPERATOR-PROBLEM-FRAMING
+  - DENALI-FINANCE-OPERATOR-EXPERIENCE-MODEL
+authority: >
+  Domain Map · Case Grammar · Decision Model · Money Truth Layers ·
+  Status Translation · Composite Scenarios · Experience Principles ·
+  Operational Truth Hierarchy · Next Action Model ·
+  Operator Language Rules · Daily Work Boundary ·
+  Product Non-Goals · Problem Framing · Experience Model
+purpose: >
+  Define the conceptual information structure required for Finance Operators
+  to understand and operate Financial Cases.
+
+  This phase translates the mental model into:
+  - information priorities
+  - cognitive grouping
+  - operator reading order
+  - daily vs exception vs audit separation
+  - case comprehension structure
+
+  Discovery only. No UI and no implementation.
+constraints:
+  - No screens
+  - No pages
+  - No components
+  - No wireframes
+  - No navigation
+  - No API/schema/code
+  - No status enum merging
+  - No replacement of domain truths
+  - No ownership changes between Bookings and Finance
+  - Financial Case remains the operator mental unit
+north_star: >
+  For this registration:
+  Where are we financially right now?
+  And whose correct next action is it?
+---
+
+# Finance Operator Experience Structure v1
+
+## Framing
+
+The Experience Model defined *how* operators think (sequence, verdict, owner, lane).
+
+This document defines *what information must be available, in what cognitive order and grouping*, for that thinking to be possible — still without screens, navigation, or implementation.
+
+**Structure question:**
+
+> What information constellation must a Financial Case expose so the North Star is answerable without entity archaeology?
+
+---
+
+# 1. Information Architecture Principles
+
+## IP1 — Case-shaped information, not entity-shaped information
+
+Information is organized around **one registration’s Financial Case**. Payment, receipt, schedule, and ledger facts are **attributes/evidence of the case**, not peer “homes” of understanding.
+
+## IP2 — First-class vs contextual vs altitude-bound
+
+| Class | Definition | Rule |
+| ----- | ---------- | ---- |
+| **First-class** | Required to form verdict + next-action owner for daily cases | Must be present in case comprehension before action |
+| **Contextual** | Improves priority, amount judgment, or handoff clarity | Present when relevant; must not bury first-class truths |
+| **Altitude-bound** | Meaningful only in exception or audit lanes | Must not dominate daily case reading |
+
+## IP3 — Reading order is part of the structure
+
+Structure encodes the Experience Model sequence. Reordering so that settlement badge or ledger precedes eligibility/policy is a structural failure, not a preference.
+
+## IP4 — Composition slots, not merged fields
+
+Each first-class layer maps to a **composition slot** that keeps its domain SoT. Structure composes slots into a narrative; it does not invent a unified status field.
+
+## IP5 — Owner and lane are information, not footnotes
+
+Next-action owner and work lane are first-class outputs of case structure (derived), equal in importance to settlement and proof.
+
+## First-class information (must)
+
+| Slot | Content |
+| ---- | ------- |
+| Identity | Member + tour + departure context |
+| Eligibility | Booking lifecycle (read-only for finance meaning) |
+| Collection policy | Offline due vs no money due (free/zero) |
+| Money target | Obligation + remaining (and whether personalized) |
+| Proof progress | none / in review / rejected / accepted |
+| Open intent (as ingress detail) | Whether a Payment intent is open + whether it is manual-exception vs default path |
+| Settlement meaning | Club badge unsettled / partial / settled — with coexistence note when needed |
+| Partial scope | When partial: which layer |
+| Next-action owner | member / finance / lifecycle_desk / policy_system / exception_policy / idle |
+| Work lane | daily / exception / audit |
+| Case verdict seed | Composed “where we are” classification (mental, not new SoT enum) |
+
+## Contextual information (supporting)
+
+| Slot | When needed |
+| ---- | ----------- |
+| Party size | Obligation explanation |
+| Obligation source | Tour price vs override |
+| Proof artifact / member note | During finance-owned review |
+| Payment amount vs obligation | Amount judgment on review |
+| Installment plan presence | Only if schedule-active for this case |
+| Urgency (departure proximity) | Prioritization among cases — not settlement definition |
+| Manual-intent provenance | When V-INTENT-OPEN or duplicate risk |
+
+## Exception / audit-only information
+
+| Slot | Lane |
+| ---- | ---- |
+| Terminal + leftover money-object meaning | Exception |
+| Duplicate / parallel Payment intents | Exception |
+| Persistent unexplained layer conflict | Exception → Audit |
+| Ledger journal lines / outbox events | Audit |
+| Reconciliation findings | Audit |
+| Deep idempotency / technical sync forensics | Audit / debugging (outside operator daily structure) |
+
+---
+
+# 2. Financial Case Information Hierarchy
+
+Cognitive priority order (locked):
+
+```text
+Identity
+→ Eligibility & Collection Policy
+→ Money Target
+→ Proof Progress
+→ Settlement Meaning
+→ Next Action Owner
+→ Exception / Audit Context
+```
+
+Open intent and partial scope attach under Proof Progress / Settlement Meaning as subordinate slots (see below). Work lane is derived alongside Next Action Owner.
+
+---
+
+### L1 — Identity
+
+| Dimension | Content |
+| --------- | ------- |
+| **Why needed** | Anchors the case; enables club handoff without UUID-as-story |
+| **If missing** | Operator works an orphan proof/payment; wrong-person risk |
+| **Must never override** | Must not replace money truths; identity alone never answers North Star |
+
+---
+
+### L2 — Eligibility & Collection Policy
+
+| Dimension | Content |
+| --------- | ------- |
+| **Why needed** | Frames whether money path is allowed and whether money is due at all |
+| **If missing** | Blame member for unpaid while still pending approval; chase free/zero cases; treat closed cases as daily collection |
+| **Must never override** | Must not be overridden by unpaid badge or open Payment intent (“they owe” while not eligible / no money due) |
+
+**Sub-slots:** lifecycle eligibility (`not_yet` / `eligible` / `closed`) · policy (`offline_due` / `no_money_due`).
+
+---
+
+### L3 — Money Target
+
+| Dimension | Content |
+| --------- | ------- |
+| **Why needed** | Defines owed amount and remainder for proof judgment and partial meaning |
+| **If missing** | Approve/reject without amount anchor; confuse tour list price with personal obligation |
+| **Must never override** | Must not be overridden by settlement badge (“paid” does not redefine what was owed); badge ≠ target |
+
+**Sub-slots:** obligation · remaining · personalization flag/source.
+
+---
+
+### L4 — Proof Progress
+
+| Dimension | Content |
+| --------- | ------- |
+| **Why needed** | Core ingress signal for offline Denali; decides finance vs member ownership |
+| **If missing** | Empty queue misread as finance backlog; cannot distinguish awaiting member vs awaiting finance |
+| **Must never override** | Must not override eligibility/policy (proof on terminal case does not restore daily happy path); must not alone mean “payment OK” |
+
+**Sub-slots:** proof state · open intent detail · (contextual) proof amount vs obligation.
+
+---
+
+### L5 — Settlement Meaning
+
+| Dimension | Content |
+| --------- | ------- |
+| **Why needed** | Club badge answer for “is the registration treated as settled?” |
+| **If missing** | Cannot answer leaders reliably; post-decision trust wobble |
+| **Must never override** | Must not override proof-in-review ownership (unpaid during review is normal); must not override money target |
+
+**Sub-slots:** unsettled / partial / settled · healthy coexistence flag when unpaid + in_review · partial scope when partial.
+
+---
+
+### L6 — Next Action Owner
+
+| Dimension | Content |
+| --------- | ------- |
+| **Why needed** | Second half of North Star; converts understanding into effort allocation |
+| **If missing** | Finance does member work or waits while proof sits; manual payment invented to “own” the case |
+| **Must never override** | Owner derivation must not be overridden by which entity the operator happened to look at first |
+
+Derived per Experience Model priority (terminal → proof in review → eligibility → policy → rejected → member/idle/partial).
+
+---
+
+### L7 — Exception / Audit Context
+
+| Dimension | Content |
+| --------- | ------- |
+| **Why needed** | Marks when daily composition is insufficient; prevents false confidence |
+| **If missing** | Terminal leftovers processed as normal reviews; mismatches chased as member delinquency |
+| **Must never override** | Must not invade daily cases as default noise; presence of ledger capability must not pull L7 above L2–L6 in daily reading |
+
+Only after L1–L6 fail to produce a coherent daily verdict/owner — or when terminal/conflict cues fire.
+
+---
+
+## Hierarchy diagram
+
+```text
+[L1 Identity]
+     ↓
+[L2 Eligibility + Policy] ──── gates money blame
+     ↓
+[L3 Money Target]
+     ↓
+[L4 Proof Progress (+ open intent)]
+     ↓
+[L5 Settlement Meaning (+ partial scope)]
+     ↓
+[L6 Next Action Owner + Work Lane]
+     ↓
+[L7 Exception/Audit Context] ── only when needed
+```
+
+---
+
+# 3. Case Story Composition Model
+
+## Purpose
+
+Turn separate SoTs into **one operator narrative sentence** without collapsing enums.
+
+## Anti-pattern vs required narrative
+
+| Bad (entity/status fragment) | Good (composed case story) |
+| ---------------------------- | -------------------------- |
+| “Payment pending” | “Registration approved, money due, receipt not submitted — waiting for member” |
+| “Unpaid” | “Club settlement unsettled; proof with finance for review — normal, finance owns next action” |
+| “Approved” | “Registration approved” **or** “Transfer proof approved” — never bare |
+| “Pending” | “Waiting for club acceptance” / “Waiting for member proof” / “Waiting for finance review” |
+| “Partial” | “Case partially settled; remainder X” **or** “Installment 2 partial” |
+| “Paid” on free tour | “Settled — no payment required” |
+| “Receipt pending” on cancelled | “Registration cancelled; leftover proof needs exception judgment — not daily review” |
+
+## Composition rules
+
+### R1 — Healthy coexistence
+
+When proof is in review and club settlement is unsettled:
+
+> Narrate **both**, mark **non-alarming**, owner = **finance**.
+
+Forbidden: narrating this as sync failure or member failure.
+
+### R2 — Object-qualified language
+
+Every wait/approval/paid/partial token in the story must name its object (Operator Language Rules). Structure must reserve distinct slots so language can stay qualified.
+
+### R3 — Partial scope
+
+If settlement or recognition is incomplete, story must include scope before owner claims:
+
+- case settlement partial, and/or
+- obligation remainder, and/or
+- installment slice, and/or
+- wallet progress
+
+Unscoped “partial” is an incomplete case story.
+
+### R4 — Free / zero cases
+
+Story pattern:
+
+> “Registration eligible; **no money due**; club settlement settled — idle on money.”
+
+Forbidden patterns: awaiting member proof; awaiting finance review; “paid because transfer captured” when no capture occurred.
+
+### R5 — Terminal cases
+
+Story pattern:
+
+> “Registration **closed** (cancelled/rejected).”  
+> If money objects remain: append “**exception**: leftover money object requires policy judgment.”
+
+Forbidden: same narrative template as daily V-AWAITING-FINANCE.
+
+### R6 — Manual intent without proof
+
+Story pattern:
+
+> “Registration approved, money due, **open payment intent**, receipt not in review — waiting for member (intent alone is not settlement).”
+
+Forbidden: treating open intent as finance review due.
+
+### R7 — North Star completeness
+
+A composed story is incomplete unless it states:
+
+1. where we are (verdict-class meaning), and  
+2. whose next action it is.
+
+### R8 — Evidence vs headline
+
+Entity names may appear as evidence footnotes in the operator’s mind; they must not be the **headline** of the case story.
+
+---
+
+# 4. Daily Work Information Boundary
+
+## Belongs to daily operator understanding
+
+| Information cluster | Supports |
+| ------------------- | -------- |
+| Full L1–L6 case hierarchy | North Star |
+| Proof review package (artifact + obligation + eligibility) | J1 |
+| Awaiting-member meaning (no proof / rejected proof) | J2, J3 |
+| Settlement answer + coexistence note | J4 |
+| Next-action owner + lane = daily | Effort allocation |
+| Free/zero as no-chase settled | P08 |
+| Scoped partial when relevant | J7 |
+| Awareness that manual payment is exception/alternate | J5 |
+
+## Does not belong to daily understanding (as primary content)
+
+| Information cluster | Why excluded from daily primary |
+| ------------------- | --------------------------------- |
+| Ledger line archaeology | Audit altitude |
+| Reconciliation investigation as morning default | Exception/audit |
+| Historical cleanup of terminal leftovers as unmarked queue meaning | Exception |
+| Technical sync forensics / idempotency keys as operator story | Debugging |
+| Browsing finance entities detached from a case | Violates case unit |
+| Treating schedule generation/waive as default daily ingress for Denali offline happy path | Secondary unless schedule-active and scoped |
+
+## Daily structural test
+
+If removing ledger/recon/historical-cleanup information still leaves L1–L6 + composed story + owner intact, daily structure is healthy.
+
+---
+
+# 5. Exception Information Boundary
+
+A case **leaves normal daily interpretation** when any of the following information cues appear. Structure must surface the cue as **lane = exception** before happy-path verbs (approve/reject as routine).
+
+| Cue | Why daily interpretation stops |
+| --- | ------------------------------ |
+| **Terminal lifecycle + money objects** (e.g. historical pending receipt) | Commercial meaning of capture is ambiguous; P14 |
+| **Duplicate / parallel intents** (manual + member path ambiguity) | Unclear which ingress is authoritative |
+| **Conflicting truths unexplained by healthy coexistence rules** | e.g. not the normal unpaid+in_review pattern |
+| **Unexplained mismatch** after an action that should have settled the case | Trust/coherence failure → exception then possibly audit |
+| **Policy dispute** (should this have been free/zero / override?) | Not a proof-quality decision alone |
+
+## Exception information that becomes first-class (only in this lane)
+
+- Explicit “commercial meaning unclear” flag in the case story  
+- Inventory of conflicting slots (which layers disagree)  
+- Provenance of intents/proofs relative to lifecycle timestamps  
+- Required decision type: policy judgment vs cleanup vs escalate to audit  
+
+## Exception does not mean
+
+- Delete domain objects  
+- Merge statuses to hide conflict  
+- Silently continue daily approve habits  
+
+---
+
+# 6. Audit Information Boundary
+
+## When audit concepts become relevant
+
+| Trigger | Audit information role |
+| ------- | ---------------------- |
+| Daily composition cannot explain settlement vs capture | Verify journal / projection coherence |
+| Reconciliation finding exists for the case/tour | Exception triage at accounting altitude |
+| Post-capture trust still broken after case story shows settled | Confirm outbox/ledger without making it the club answer |
+| Suspected double-entry / duplicate credit issues | Accounting investigation |
+
+## Why audit must not dominate daily decisions
+
+1. **North Star altitude:** Club questions are answered from settlement + proof + owner, not journal lines.  
+2. **Cognitive cost:** Ledger detail buries L2–L6 and recreates entity-browser behavior.  
+3. **False dependency:** Operators learn to “need ledger” to believe normal outcomes (Problem H / P12 failure).  
+4. **Non-goal:** Structure must not become an accounting dashboard.
+
+## Audit placement rule
+
+Audit information is **opt-in altitude** after exception cues or explicit mismatch — never a peer first-class slot in the default case hierarchy.
+
+---
+
+# 7. Information Omission Risks
+
+| Missing layer | Operator misunderstanding | Wrong action | Business risk |
+| ------------- | ------------------------- | ------------ | ------------- |
+| **Identity** | Treats queue object as abstract task | Reviews wrong person’s money | Mis-capture / privacy / trust loss |
+| **Eligibility** | Reads unpaid as member failure | Chases or opens payment too early | Member harassment; process noise |
+| **Collection policy** | Assumes every settled needs a receipt | Waits in proof queue for free/zero | Wasted ops time; false incident reports |
+| **Money target** | Guesses amount from memory/tour list | Approves wrong amount / misses underpay | Revenue leakage or unfair reject |
+| **Proof progress** | Infers activity only from unpaid badge | Creates manual payment or “sync bug” chase | Duplicate intents; distrust |
+| **Settlement meaning** | Cannot answer “payment OK?” | Inconsistent club go/no-go | Departure / leadership errors |
+| **Coexistence note** (when unpaid+in_review) | Assumes system broken | Re-checks endlessly / double work | Throughput collapse |
+| **Partial scope** | Thinks “partially paid” is enough/not enough wrongly | Clears or blocks departure incorrectly | Safety/ops/finance misalignment |
+| **Next-action owner** | Assumes whoever is on-screen owns work | Finance does member job or ignores proof queue | Backlog + member frustration |
+| **Exception cues** | Treats terminal leftover as daily proof | Approves commercially dubious capture | Accounting/policy incidents |
+| **Audit boundary (wrongly omitting when needed)** | Accepts incoherent layers | Closes case while mismatch remains | Silent integrity failure |
+| **Audit boundary (wrongly including always)** | Believes daily needs journal | Avoids finance tools or over-investigates | Slow ops; altitude collapse |
+
+---
+
+# 8. Acceptance Criteria
+
+Any future experience structure (still pre-visual) is acceptable **only if**:
+
+1. **Case as unit** — Information is organized so a registration case is the comprehension unit; entity facts appear as case evidence.  
+2. **North Star completeness** — Structure always affords both “where we are” and “whose next action.”  
+3. **Hierarchy fidelity** — Default reading order matches L1→L7; settlement/ledger cannot outrank eligibility/policy.  
+4. **First-class completeness** — All first-class slots (§1) can be populated for active daily cases.  
+5. **Ownership clarity** — Next-action owner is an explicit structural output, not inferred only from which list the operator opened.  
+6. **Status separation** — Composition slots remain distinct; no unified finance status replaces lifecycle/payment/receipt/settlement SoTs.  
+7. **Healthy coexistence expressible** — Unpaid + proof in review can be represented as normal finance-owned work.  
+8. **Object-qualified narrative support** — Structure supplies objects needed for Language Rules (what is pending/approved/paid/partial).  
+9. **Partial scope slot** — Incomplete settlement cannot be told without scope.  
+10. **Free/zero non-chase** — No-money-due cases structurally differ from awaiting-member.  
+11. **Daily/exception/audit separation** — Boundaries in §§4–6 are enforceable in the information model (lane is knowable).  
+12. **Terminal exception marking** — Terminal + money objects cannot share unmarked daily proof-review meaning.  
+13. **Bookings/Finance boundaries** — Lifecycle remains eligibility input; finance does not gain lifecycle-transition meaning; bookings do not gain receipt-capture meaning.  
+14. **Audit non-dominance** — Daily case comprehension remains intact without ledger/recon primary content.  
+15. **Post-decision coherence slot** — After finance accepts proof, settlement meaning is part of the same case story operators used to act.  
+16. **Manual intent demotion** — Open manual payment without proof does not structurally equal “finance must review now.”
+
+---
+
+# 9. Explicit Non-goals
+
+This Experience Structure **must not become**:
+
+| Non-goal | Why |
+| -------- | --- |
+| **A replacement domain model** | Domain SoTs stay authoritative; structure only composes them for humans |
+| **A unified finance status system** | Would merge axes and violate Non-Goals / P03 |
+| **An accounting dashboard** | Ledger/recon are audit altitude, not daily case structure |
+| **An entity browser** | Browsing payments/receipts/ledger rows as primary IA reintroduces translation burden |
+| **A Bookings takeover surface** | Lifecycle ownership unchanged |
+| **A screen, sitemap, or navigation proposal** | Still discovery; Interaction Concepts come only after acceptance |
+| **A schema/API redesign brief** | No implementation artifacts in this phase |
+| **A mandate to delete installments/prepayments from domain** | They remain contextual/secondary unless schedule-active |
+
+---
+
+## Structure one-liner
+
+> A Financial Case exposes a fixed hierarchy of composition slots — identity, eligibility/policy, money target, proof progress, settlement meaning, next-action owner, then exception/audit context — so operators can narrate one object-qualified story without merging truths or climbing to ledger altitude for daily work.
+
+---
+
+## Traceability
+
+| Structure section | Foundation |
+| ----------------- | ---------- |
+| IA principles | P01–P03, P10 · Problem Framing strategy |
+| Hierarchy | Operational Truth Hierarchy · Experience Model sequence |
+| Composition rules | Status Translation · Language Rules · Verdict model |
+| Boundaries | Daily Work Boundary · Work Lane Model |
+| Omission risks | Problem Framing gaps/moments |
+| Acceptance | Design Decision Criteria · Experience Model invariants |
+
+---
+
+Ready for Interaction Concepts phase only after Experience Structure acceptance.

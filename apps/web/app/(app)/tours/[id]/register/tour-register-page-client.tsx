@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, UserPlus } from "lucide-react";
@@ -24,6 +23,7 @@ import type {
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
 import type { TourUiStatus } from "@/features/tours/operator-tours-types";
+import { TourInternalLink } from "@/features/tours/tour-internal-link";
 import {
   buildTourRegisterSuccessRedirect,
   initRegisterFormFromTour,
@@ -184,17 +184,15 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
   return (
     <div className="mx-auto max-w-2xl space-y-6" data-testid={TOUR_REGISTER_TEST_IDS.page}>
       <div className="flex flex-wrap items-center gap-2">
-        <Link href={`/tours/${encodeURIComponent(tourId)}/workspace`}>
-          <Button type="button" variant="ghost" size="sm" className="gap-1">
+        <Button asChild variant="ghost" size="sm" className="gap-1">
+          <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/workspace`}>
             <ArrowLeft className="h-4 w-4" />
             {tNav("workspace")}
-          </Button>
-        </Link>
-        <Link href={`/tours/${encodeURIComponent(tourId)}/edit`}>
-          <Button type="button" variant="outline" size="sm">
-            {tNav("editTour")}
-          </Button>
-        </Link>
+          </TourInternalLink>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/edit`}>{tNav("editTour")}</TourInternalLink>
+        </Button>
       </div>
 
       <PageHeader title={t("pageTitle")} description={t("pageSubtitle")} />
@@ -217,11 +215,9 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-muted-foreground">
             <p>{t("draftBlockedDescription")}</p>
-            <Link href={`/tours/${encodeURIComponent(tourId)}/edit`}>
-              <Button type="button" variant="outline" size="sm">
-                {t("draftBlockedEdit")}
-              </Button>
-            </Link>
+            <Button asChild variant="outline" size="sm">
+              <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/edit`}>{t("draftBlockedEdit")}</TourInternalLink>
+            </Button>
           </CardContent>
         </Card>
       ) : null}
@@ -238,11 +234,9 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
           <CardContent className="py-10 text-center text-muted-foreground">
             {t("notFound")}
             <div className="mt-4">
-              <Link href="/tours">
-                <Button variant="outline" size="sm">
-                  {tNav("backToTours")}
-                </Button>
-              </Link>
+              <Button asChild variant="outline" size="sm">
+                <TourInternalLink href="/tours">{tNav("backToTours")}</TourInternalLink>
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -365,9 +359,9 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
                     {t("submit")}
                   </Button>
                   <Button type="button" variant="outline" asChild>
-                    <Link href={`/tours/${encodeURIComponent(tourId)}/workspace`}>
+                    <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/workspace`}>
                       {tCommon("cancel")}
-                    </Link>
+                    </TourInternalLink>
                   </Button>
                 </div>
               </form>

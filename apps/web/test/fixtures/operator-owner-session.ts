@@ -20,6 +20,8 @@ export const OPERATOR_SMOKE_ADMIN_USER_ID = "00000000-0000-4000-8000-00000000010
 export const OPERATOR_DEV_OTP = process.env.OPERATOR_DEV_OTP?.trim() || "1234";
 export const OPERATOR_INVITEE_MOBILE = "+15550008803";
 
+const OPERATOR_SESSION_TOKEN_CACHE = new Map<string, string>();
+
 function readRequestCookieDomain(page: Page): string {
   const baseURL = page.context()._options.baseURL;
   if (typeof baseURL === "string" && baseURL.length > 0) {
@@ -28,8 +30,10 @@ function readRequestCookieDomain(page: Page): string {
   return "localhost";
 }
 
-async function persistOperatorSessionCookie(page: Page, loginRes: Awaited<ReturnType<Page["request"]["post"]>>): Promise<void> {
-  const loginBody = (await loginRes.json()) as { session_token?: string };
+async function persistOperatorSessionCookie(
+  page: Page,
+  loginBody: { session_token?: string }
+): Promise<void> {
   expect(typeof loginBody.session_token).toBe("string");
   await page.context().addCookies([
     {
@@ -43,16 +47,33 @@ async function persistOperatorSessionCookie(page: Page, loginRes: Awaited<Return
   ]);
 }
 
+function cacheKeyForOperatorSession(page: Page, phone: string): string {
+  return `${readRequestCookieDomain(page)}::${phone.trim()}`;
+}
+
 async function loginOperatorSessionViaBff(
   page: Page,
   phone: string,
-  skipAbilityPreflight = false
+  skipAbilityPreflight = false,
+  forceFresh = false
 ): Promise<void> {
+  const cacheKey = cacheKeyForOperatorSession(page, phone);
+  const cachedToken = forceFresh ? undefined : OPERATOR_SESSION_TOKEN_CACHE.get(cacheKey);
+  if (cachedToken !== undefined) {
+    await persistOperatorSessionCookie(page, { session_token: cachedToken });
+    if (!skipAbilityPreflight) {
+      const abilityRes = await page.request.get("/api/auth/membership-ability-context");
+      expect(abilityRes.ok()).toBeTruthy();
+    }
+    return;
+  }
+
   const otpRes = await page.request.post("/api/auth/request-otp", {
     data: { phone },
   });
-  expect(otpRes.ok()).toBeTruthy();
-  const otpBody = (await otpRes.json()) as { challenge_id?: string };
+  const otpText = await otpRes.text();
+  expect(otpRes.ok(), `request-otp failed (${otpRes.status()}): ${otpText}`).toBeTruthy();
+  const otpBody = JSON.parse(otpText) as { challenge_id?: string };
   expect(typeof otpBody.challenge_id).toBe("string");
 
   const loginRes = await page.request.post("/api/auth/login-web-session", {
@@ -62,8 +83,14 @@ async function loginOperatorSessionViaBff(
       challenge_id: otpBody.challenge_id,
     },
   });
-  expect(loginRes.ok()).toBeTruthy();
-  await persistOperatorSessionCookie(page, loginRes);
+  const loginText = await loginRes.text();
+  expect(
+    loginRes.ok(),
+    `login-web-session failed (${loginRes.status()}): ${loginText}`
+  ).toBeTruthy();
+  const loginBody = JSON.parse(loginText) as { session_token?: string };
+  await persistOperatorSessionCookie(page, loginBody);
+  OPERATOR_SESSION_TOKEN_CACHE.set(cacheKey, loginBody.session_token!);
 
   if (skipAbilityPreflight) {
     return;
@@ -82,11 +109,7 @@ export async function loginOperatorWithPhone(
     readonly skipAbilityPreflight?: boolean;
   }
 ): Promise<void> {
-  await loginOperatorSessionViaBff(
-    page,
-    phone,
-    options?.skipAbilityPreflight === true
-  );
+  await loginOperatorSessionViaBff(page, phone, options?.skipAbilityPreflight === true);
 
   if (options?.inviteToken !== undefined && options.inviteToken.length > 0) {
     const acceptRes = await page.request.post(
@@ -94,11 +117,7 @@ export async function loginOperatorWithPhone(
     );
     const acceptText = await acceptRes.text();
     expect(acceptRes.ok(), acceptText).toBeTruthy();
-    await loginOperatorSessionViaBff(
-      page,
-      phone,
-      options?.skipAbilityPreflight === true
-    );
+    await loginOperatorSessionViaBff(page, phone, options?.skipAbilityPreflight === true, true);
   }
 
   if (options?.skipDashboard === true) {

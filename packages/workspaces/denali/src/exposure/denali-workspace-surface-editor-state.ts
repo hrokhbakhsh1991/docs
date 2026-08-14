@@ -14,6 +14,14 @@ export type DenaliWorkspaceSurfaceEditorState = {
   readonly trigger: string;
 };
 
+export type DenaliWorkspaceSurfaceUiState = {
+  readonly editor: DenaliWorkspaceSurfaceEditorState;
+  readonly dirty: boolean;
+  readonly saving: boolean;
+  readonly error: string | null;
+  readonly saved: boolean;
+};
+
 export type DenaliWorkspaceSurfaceIntentInput = {
   readonly mode?: string;
   readonly selectedFieldIds?: readonly string[] | null;
@@ -86,6 +94,30 @@ export function buildDenaliWorkspaceSurfaceEditorStatesMap(
   return next;
 }
 
+/**
+ * Maps a surfaces list → keyed UI state record for the operator panel checklist.
+ * Newly loaded rows are clean, idle, error-free, and unsaved.
+ */
+export function buildDenaliWorkspaceSurfaceUiStatesMap(
+  surfaces: readonly DenaliWorkspaceSurfaceEditorSource[]
+): Readonly<Record<string, DenaliWorkspaceSurfaceUiState>> {
+  const next: Record<string, DenaliWorkspaceSurfaceUiState> = {};
+  for (const surface of surfaces) {
+    next[surface.surface] = {
+      editor: buildDenaliWorkspaceSurfaceEditorState({
+        audience: surface.audience,
+        trigger: surface.trigger,
+        activeIntent: surface.activeIntent,
+      }),
+      dirty: false,
+      saving: false,
+      error: null,
+      saved: false,
+    };
+  }
+  return next;
+}
+
 /** Selection fields updated by the operator checklist (audience/trigger preserved). */
 export type DenaliWorkspaceSurfaceEditorSelectionPatch = {
   readonly customizeFields: boolean;
@@ -122,6 +154,135 @@ export function patchDenaliWorkspaceSurfaceEditorStatesMap(
   return {
     ...current,
     [surfaceKey]: mergeDenaliWorkspaceSurfaceEditorState(current[surfaceKey], fallback, patch),
+  };
+}
+
+/**
+ * Immutable update of one surface key inside the panel UI-state map.
+ * Edits clear stale error/saved banners and mark the surface dirty.
+ */
+export function patchDenaliWorkspaceSurfaceUiStatesMap(
+  current: Readonly<Record<string, DenaliWorkspaceSurfaceUiState>>,
+  surfaceKey: string,
+  fallback: DenaliWorkspaceSurfaceEditorState,
+  patch: DenaliWorkspaceSurfaceEditorSelectionPatch
+): Record<string, DenaliWorkspaceSurfaceUiState> {
+  const base = current[surfaceKey];
+  return {
+    ...current,
+    [surfaceKey]: {
+      editor: mergeDenaliWorkspaceSurfaceEditorState(base?.editor, fallback, patch),
+      dirty: true,
+      saving: false,
+      error: null,
+      saved: false,
+    },
+  };
+}
+
+/**
+ * Reconciles a fresh surfaces payload into the panel UI-state map.
+ * Clean rows are refreshed from the server; dirty rows keep local edits.
+ */
+export function mergeDenaliWorkspaceSurfaceUiStatesMap(
+  current: Readonly<Record<string, DenaliWorkspaceSurfaceUiState>>,
+  surfaces: readonly DenaliWorkspaceSurfaceEditorSource[]
+): Record<string, DenaliWorkspaceSurfaceUiState> {
+  const next: Record<string, DenaliWorkspaceSurfaceUiState> = {};
+  for (const surface of surfaces) {
+    const loadedEditor = buildDenaliWorkspaceSurfaceEditorState({
+      audience: surface.audience,
+      trigger: surface.trigger,
+      activeIntent: surface.activeIntent,
+    });
+    const existing = current[surface.surface];
+    if (existing?.dirty) {
+      next[surface.surface] = {
+        ...existing,
+        editor: {
+          ...existing.editor,
+          audience: loadedEditor.audience,
+          trigger: loadedEditor.trigger,
+        },
+      };
+      continue;
+    }
+    next[surface.surface] = {
+      editor: loadedEditor,
+      dirty: false,
+      saving: false,
+      error: null,
+      saved: false,
+    };
+  }
+  return next;
+}
+
+/**
+ * Marks a surface as saving and clears stale save messaging before submit.
+ */
+export function markDenaliWorkspaceSurfaceSaving(
+  current: Readonly<Record<string, DenaliWorkspaceSurfaceUiState>>,
+  surfaceKey: string
+): Record<string, DenaliWorkspaceSurfaceUiState> {
+  const state = current[surfaceKey];
+  if (state === undefined) {
+    return { ...current };
+  }
+  return {
+    ...current,
+    [surfaceKey]: {
+      ...state,
+      saving: true,
+      error: null,
+      saved: false,
+    },
+  };
+}
+
+/**
+ * Marks a surface save as successful, clearing dirty state and banners for that row only.
+ */
+export function markDenaliWorkspaceSurfaceSaveSuccess(
+  current: Readonly<Record<string, DenaliWorkspaceSurfaceUiState>>,
+  surfaceKey: string
+): Record<string, DenaliWorkspaceSurfaceUiState> {
+  const state = current[surfaceKey];
+  if (state === undefined) {
+    return { ...current };
+  }
+  return {
+    ...current,
+    [surfaceKey]: {
+      ...state,
+      dirty: false,
+      saving: false,
+      error: null,
+      saved: true,
+    },
+  };
+}
+
+/**
+ * Marks a surface save as failed while preserving local edits for retry.
+ */
+export function markDenaliWorkspaceSurfaceSaveError(
+  current: Readonly<Record<string, DenaliWorkspaceSurfaceUiState>>,
+  surfaceKey: string,
+  error: string
+): Record<string, DenaliWorkspaceSurfaceUiState> {
+  const state = current[surfaceKey];
+  if (state === undefined) {
+    return { ...current };
+  }
+  return {
+    ...current,
+    [surfaceKey]: {
+      ...state,
+      saving: false,
+      error,
+      saved: false,
+    },
   };
 }
 

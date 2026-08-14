@@ -5,9 +5,15 @@ import {
   buildDenaliWorkspaceSurfaceEditorState,
   buildDenaliWorkspaceSurfaceEditorStatesMap,
   buildDenaliWorkspaceSurfacePatchInput,
+  buildDenaliWorkspaceSurfaceUiStatesMap,
   denaliOperatorSurfaceMessageKey,
+  markDenaliWorkspaceSurfaceSaveError,
+  markDenaliWorkspaceSurfaceSaveSuccess,
+  markDenaliWorkspaceSurfaceSaving,
+  mergeDenaliWorkspaceSurfaceUiStatesMap,
   mergeDenaliWorkspaceSurfaceEditorState,
   patchDenaliWorkspaceSurfaceEditorStatesMap,
+  patchDenaliWorkspaceSurfaceUiStatesMap,
   resolveDenaliOperatorSurfaceDisplayText,
   DENALI_WORKSPACE_SURFACES_TEST_IDS,
 } from "../src/exposure/denali-workspace-surface-editor-state.ts";
@@ -156,6 +162,99 @@ describe("merge / patch DenaliWorkspaceSurfaceEditorStatesMap", () => {
     assert.notEqual(next, current);
     assert.deepEqual(next.public_list?.selectedFieldIds, ["title", "price"]);
     assert.deepEqual(current.public_list?.selectedFieldIds, ["title"]);
+  });
+});
+
+describe("DenaliWorkspaceSurfaceUiState helpers", () => {
+  const surfaces = [
+    {
+      surface: "public_list",
+      audience: "public",
+      trigger: "always",
+      activeIntent: { mode: "override_fields", selectedFieldIds: ["title"] as const },
+    },
+    {
+      surface: "operator_detail",
+      audience: "operator",
+      trigger: "on_publish",
+      activeIntent: null,
+    },
+  ] as const;
+
+  it("buildDenaliWorkspaceSurfaceUiStatesMap seeds clean idle rows", () => {
+    const map = buildDenaliWorkspaceSurfaceUiStatesMap(surfaces);
+    assert.equal(map.public_list?.dirty, false);
+    assert.equal(map.public_list?.saving, false);
+    assert.equal(map.public_list?.saved, false);
+    assert.equal(map.public_list?.error, null);
+    assert.deepEqual(map.public_list?.editor.selectedFieldIds, ["title"]);
+  });
+
+  it("patchDenaliWorkspaceSurfaceUiStatesMap marks local edits dirty and clears banners", () => {
+    const current = buildDenaliWorkspaceSurfaceUiStatesMap(surfaces);
+    const next = patchDenaliWorkspaceSurfaceUiStatesMap(
+      current,
+      "public_list",
+      current.public_list!.editor,
+      { customizeFields: true, selectedFieldIds: ["title", "price"] }
+    );
+    assert.equal(next.public_list?.dirty, true);
+    assert.equal(next.public_list?.saving, false);
+    assert.equal(next.public_list?.saved, false);
+    assert.equal(next.public_list?.error, null);
+    assert.deepEqual(next.public_list?.editor.selectedFieldIds, ["title", "price"]);
+  });
+
+  it("mergeDenaliWorkspaceSurfaceUiStatesMap preserves dirty local edits and refreshes clean rows", () => {
+    const current = patchDenaliWorkspaceSurfaceUiStatesMap(
+      buildDenaliWorkspaceSurfaceUiStatesMap(surfaces),
+      "public_list",
+      buildDenaliWorkspaceSurfaceEditorState({
+        audience: "public",
+        trigger: "always",
+        activeIntent: { mode: "override_fields", selectedFieldIds: ["title"] },
+      }),
+      { customizeFields: true, selectedFieldIds: ["local_only"] }
+    );
+    const merged = mergeDenaliWorkspaceSurfaceUiStatesMap(current, [
+      {
+        surface: "public_list",
+        audience: "public_v2",
+        trigger: "always_v2",
+        activeIntent: { mode: "override_fields", selectedFieldIds: ["server_title"] },
+      },
+      {
+        surface: "operator_detail",
+        audience: "operator_v2",
+        trigger: "on_publish_v2",
+        activeIntent: { mode: "override_fields", selectedFieldIds: ["server_price"] },
+      },
+    ]);
+    assert.deepEqual(merged.public_list?.editor.selectedFieldIds, ["local_only"]);
+    assert.equal(merged.public_list?.editor.audience, "public_v2");
+    assert.equal(merged.public_list?.editor.trigger, "always_v2");
+    assert.equal(merged.public_list?.dirty, true);
+    assert.deepEqual(merged.operator_detail?.editor.selectedFieldIds, ["server_price"]);
+    assert.equal(merged.operator_detail?.dirty, false);
+  });
+
+  it("save markers stay scoped to one surface", () => {
+    const current = buildDenaliWorkspaceSurfaceUiStatesMap(surfaces);
+    const saving = markDenaliWorkspaceSurfaceSaving(current, "public_list");
+    assert.equal(saving.public_list?.saving, true);
+    assert.equal(saving.operator_detail?.saving, false);
+
+    const failed = markDenaliWorkspaceSurfaceSaveError(saving, "public_list", "save_failed");
+    assert.equal(failed.public_list?.saving, false);
+    assert.equal(failed.public_list?.error, "save_failed");
+    assert.equal(failed.public_list?.saved, false);
+    assert.equal(failed.operator_detail?.error, null);
+
+    const succeeded = markDenaliWorkspaceSurfaceSaveSuccess(failed, "public_list");
+    assert.equal(succeeded.public_list?.saving, false);
+    assert.equal(succeeded.public_list?.error, null);
+    assert.equal(succeeded.public_list?.saved, true);
+    assert.equal(succeeded.public_list?.dirty, false);
   });
 });
 

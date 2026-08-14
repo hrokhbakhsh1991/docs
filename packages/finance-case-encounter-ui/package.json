@@ -1,0 +1,35 @@
+{
+  "name": "@app-tour/finance-case-encounter-ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PR8-B — read-only Case EncounterView operator shell (presentation only; no commands/mutations)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "test": "NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test \"test/**/*.spec.ts\" \"test/**/*.spec.tsx\"",
+    "guard:presentation": "node ./scripts/guard-presentation-boundary.mjs"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "@happy-dom/global-registrator": "^17.4.4",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "happy-dom": "^17.4.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsx": "^4.20.5",
+    "typescript": "5.9.3"
+  }
+}

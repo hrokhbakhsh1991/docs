@@ -13,7 +13,10 @@ import {
 } from "../booking";
 import { DENALI_WORKSPACE_TYPE } from "../denali-identity";
 
-import { validateDenaliRegistrationPayload } from "./registration.validation";
+import {
+  resolveDenaliRegistrationContactPhone,
+  validateDenaliRegistrationPayload,
+} from "./registration.validation";
 import { isDenaliTourPublished } from "../catalog/denali-publish-status";
 import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";
 
@@ -112,6 +115,10 @@ export async function createDenaliRegistration(params: {
   const email = params.body.contact.email?.trim() ?? "";
   const guestLabel = params.body.contact.fullName.trim();
   const intakeNationalId = params.body.contact.nationalId?.trim() ?? "";
+  const guestPhone = resolveDenaliRegistrationContactPhone(
+    registrantTarget,
+    params.body.contact.phone
+  );
 
   let duplicate: { readonly id: string } | null = null;
   if (registrantTarget === "other") {
@@ -120,6 +127,13 @@ export async function createDenaliRegistration(params: {
         params.tenantId,
         params.body.tourId,
         intakeNationalId
+      );
+    }
+    if (duplicate === null && guestPhone !== undefined && guestPhone.length > 0) {
+      duplicate = await params.bookingPort.findDuplicateByTourGuestPhone(
+        params.tenantId,
+        params.body.tourId,
+        guestPhone
       );
     }
     if (duplicate === null) {
@@ -160,9 +174,7 @@ export async function createDenaliRegistration(params: {
       tourTitle: card.title,
       guestLabel,
       ...(email.length > 0 ? { guestEmail: email } : {}),
-      ...(params.body.contact.phone !== undefined
-        ? { guestPhone: params.body.contact.phone }
-        : {}),
+      ...(guestPhone !== undefined ? { guestPhone } : {}),
       partySize: params.body.partySize,
       departureAt,
       tourCapacityMax: capacity,
@@ -174,7 +186,6 @@ export async function createDenaliRegistration(params: {
     params.saveGuestProfileFields !== undefined &&
     params.guestUserId !== PUBLIC_CATALOG_GUEST_USER_ID
   ) {
-    const intakeNationalId = params.body.contact.nationalId?.trim() ?? "";
     const intakeFatherName = params.body.contact.fatherName?.trim() ?? "";
     const intakeBirthDate = params.body.contact.birthDate?.trim() ?? "";
     const intakeFullName = params.body.contact.fullName.trim();
@@ -203,6 +214,75 @@ export async function createDenaliRegistration(params: {
     }
   }
 
+  const registrationIntake = {
+    registrantTarget,
+    transport: normalizedTransport,
+    ...(intakeNationalId.length > 0 ? { nationalId: intakeNationalId } : {}),
+    // Booking-owned capacity: Denali supplies tour max when known; Booking fails closed if missing.
+    ...(capacity !== null ? { tourCapacityMax: capacity } : {}),
+  };
+
+  // Own-other identity collision → reclassify same row to self (tour-global guest uniques).
+  if (
+    registrantTarget === "self" &&
+    params.guestUserId !== PUBLIC_CATALOG_GUEST_USER_ID
+  ) {
+    let identityHit: { readonly id: string } | null = null;
+    if (intakeNationalId.length > 0) {
+      identityHit = await params.bookingPort.findDuplicateByTourGuestNationalId(
+        params.tenantId,
+        params.body.tourId,
+        intakeNationalId
+      );
+    }
+    if (
+      identityHit === null &&
+      guestPhone !== undefined &&
+      guestPhone.length > 0
+    ) {
+      identityHit = await params.bookingPort.findDuplicateByTourGuestPhone(
+        params.tenantId,
+        params.body.tourId,
+        guestPhone
+      );
+    }
+    if (identityHit === null) {
+      identityHit = await params.bookingPort.findDuplicateByTourGuestLabel(
+        params.tenantId,
+        params.body.tourId,
+        guestLabel
+      );
+    }
+    if (identityHit !== null) {
+      const owned = await params.bookingPort.findOwnedBooking(
+        params.tenantId,
+        identityHit.id,
+        params.guestUserId
+      );
+      if (owned !== null && owned.registrantTarget === "other") {
+        const reclassified = await params.bookingPort.reclassifyOwnedOtherToSelf({
+          tenantId: params.tenantId,
+          bookingId: owned.id,
+          guestUserId: params.guestUserId,
+          guestLabel,
+          ...(email.length > 0 ? { guestEmail: email } : {}),
+          ...(guestPhone !== undefined ? { guestPhone } : {}),
+          registrationIntakePatch: registrationIntake,
+        });
+        if (reclassified !== null) {
+          if (resolveDenaliRegistrationApprovalMode(tour.canonical) !== "auto") {
+            return reclassified;
+          }
+          return params.bookingPort.autoApprovePublicBooking({
+            tenantId: params.tenantId,
+            bookingId: reclassified.id,
+            actorUserId: params.guestUserId,
+          });
+        }
+      }
+    }
+  }
+
   const created = await params.bookingPort.createPendingBooking({
     tenantId: params.tenantId,
     guestUserId: params.guestUserId,
@@ -210,16 +290,10 @@ export async function createDenaliRegistration(params: {
     tourTitle: card.title,
     guestLabel: params.body.contact.fullName,
     ...(email.length > 0 ? { guestEmail: email } : {}),
-    ...(params.body.contact.phone !== undefined ? { guestPhone: params.body.contact.phone } : {}),
+    ...(guestPhone !== undefined ? { guestPhone } : {}),
     partySize: params.body.partySize,
     departureAt,
-    registrationIntake: {
-      registrantTarget,
-      transport: normalizedTransport,
-      ...(intakeNationalId.length > 0 ? { nationalId: intakeNationalId } : {}),
-      // Booking-owned capacity: Denali supplies tour max when known; Booking fails closed if missing.
-      ...(capacity !== null ? { tourCapacityMax: capacity } : {}),
-    },
+    registrationIntake,
   });
 
   // Phase 3 — tour canonical `pricing.registrationApproval` (default manual).

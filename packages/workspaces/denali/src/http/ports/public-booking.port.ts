@@ -5,7 +5,9 @@
 export type {
   BookingPublicCreateInput,
   BookingPublicCreateResult,
+  BookingPublicOwnedDetail,
   BookingPublicPort,
+  BookingPublicSelfRegistration,
 } from "@app-tour/booking-http-contracts";
 
 /** @deprecated Prefer `BookingPublicPort` — alias kept for existing Denali tests. */

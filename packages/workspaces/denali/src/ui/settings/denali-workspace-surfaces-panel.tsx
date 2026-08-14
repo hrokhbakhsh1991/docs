@@ -6,12 +6,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Checkbox } from "../adapters/platform-primitives";
 
 import {
-  buildDenaliWorkspaceSurfaceEditorStatesMap,
+  buildDenaliWorkspaceSurfaceUiStatesMap,
   buildDenaliWorkspaceSurfacePatchInput,
-  patchDenaliWorkspaceSurfaceEditorStatesMap,
+  markDenaliWorkspaceSurfaceSaveError,
+  markDenaliWorkspaceSurfaceSaveSuccess,
+  markDenaliWorkspaceSurfaceSaving,
+  mergeDenaliWorkspaceSurfaceUiStatesMap,
+  patchDenaliWorkspaceSurfaceUiStatesMap,
   resolveDenaliOperatorSurfaceDisplayText,
   DENALI_WORKSPACE_SURFACES_TEST_IDS,
   type DenaliWorkspaceSurfaceEditorState,
+  type DenaliWorkspaceSurfaceUiState,
 } from "../../exposure/denali-workspace-surface-editor-state";
 import { sortDenaliOperatorSettingsSurfaces } from "../../exposure/denali-exposure-surfaces";
 import { localizeExposureCatalogFields } from "../adapters/localize-exposure-catalog-fields";
@@ -21,6 +26,7 @@ import type {
 } from "./settings-exposure-surfaces-ui-surface";
 
 type SurfaceEditorState = DenaliWorkspaceSurfaceEditorState;
+type SurfaceUiStateMap = Readonly<Record<string, DenaliWorkspaceSurfaceUiState>>;
 
 /**
  * Denali operator workspace-surfaces panel (H1.c.2.b).
@@ -49,6 +55,7 @@ export function DenaliWorkspaceSurfacesPanel({
   } = chrome;
   const t = useTranslations("settings.exposure.denaliSurfaces");
   const tChecklist = useTranslations("settings.exposure.fieldChecklist");
+  const tCommon = useTranslations("common");
   const tWizard = useTranslations("denali");
   const catalogFieldIds = useMemo(
     () => selection.catalogFieldIdsFromExposureFields(exposureCandidateFields),
@@ -70,20 +77,22 @@ export function DenaliWorkspaceSurfacesPanel({
     [surfaces],
   );
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [savingSurface, setSavingSurface] = useState<string | null>(null);
-  const [savedSurface, setSavedSurface] = useState<string | null>(null);
-  const [states, setStates] = useState<Record<string, SurfaceEditorState>>({});
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [surfaceStates, setSurfaceStates] = useState<SurfaceUiStateMap>({});
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setLoadError(null);
     try {
       const payload = await io.loadSurfaces(workspaceId);
       setSurfaces(payload.surfaces);
-      setStates(buildDenaliWorkspaceSurfaceEditorStatesMap(payload.surfaces));
+      setSurfaceStates((current) =>
+        Object.keys(current).length === 0
+          ? buildDenaliWorkspaceSurfaceUiStatesMap(payload.surfaces)
+          : mergeDenaliWorkspaceSurfaceUiStatesMap(current, payload.surfaces),
+      );
     } catch {
-      setError(t("loadFailed"));
+      setLoadError(t("loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -116,31 +125,28 @@ export function DenaliWorkspaceSurfacesPanel({
     fallback: SurfaceEditorState,
     next: { readonly customizeFields: boolean; readonly selectedFieldIds: readonly string[] },
   ): void {
-    setSavedSurface(null);
-    setStates((current) =>
-      patchDenaliWorkspaceSurfaceEditorStatesMap(current, surfaceKey, fallback, next),
+    setSurfaceStates((current) =>
+      patchDenaliWorkspaceSurfaceUiStatesMap(current, surfaceKey, fallback, next),
     );
   }
 
   async function saveSurface(surfaceKey: string): Promise<void> {
-    const state = states[surfaceKey];
-    if (state === undefined) {
+    const surfaceState = surfaceStates[surfaceKey];
+    if (surfaceState === undefined) {
       return;
     }
-    setSavingSurface(surfaceKey);
-    setError(null);
+    setSurfaceStates((current) => markDenaliWorkspaceSurfaceSaving(current, surfaceKey));
     try {
       await io.saveSurfaceIntent(
         workspaceId,
         surfaceKey,
-        buildDenaliWorkspaceSurfacePatchInput(state),
+        buildDenaliWorkspaceSurfacePatchInput(surfaceState.editor),
       );
-      setSavedSurface(surfaceKey);
-      await refresh();
+      setSurfaceStates((current) => markDenaliWorkspaceSurfaceSaveSuccess(current, surfaceKey));
     } catch {
-      setError(t("saveFailed"));
-    } finally {
-      setSavingSurface(null);
+      setSurfaceStates((current) =>
+        markDenaliWorkspaceSurfaceSaveError(current, surfaceKey, t("saveFailed")),
+      );
     }
   }
 
@@ -159,7 +165,7 @@ export function DenaliWorkspaceSurfacesPanel({
 
         {loading ? <Skeleton className="h-40 w-full rounded-lg" /> : null}
 
-        {error !== null ? <p className="text-sm text-destructive">{error}</p> : null}
+        {loadError !== null ? <p className="text-sm text-destructive">{loadError}</p> : null}
 
         {!loading && surfaces.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("empty")}</p>
@@ -167,15 +173,18 @@ export function DenaliWorkspaceSurfacesPanel({
 
         {!loading
           ? orderedSurfaces.map((surface, surfaceIndex) => {
-              const state = states[surface.surface];
-              if (state === undefined) {
+              const surfaceState = surfaceStates[surface.surface];
+              if (surfaceState === undefined) {
                 return null;
               }
+              const state = surfaceState.editor;
               const effectiveIds = selection.resolveEffectiveSelectedFieldIds(
                 state,
                 catalogFieldIds,
               );
-              const isSaving = savingSurface === surface.surface;
+              const isSaving = surfaceState.saving;
+              const isDirty = surfaceState.dirty;
+              const surfaceError = surfaceState.error;
               return (
                 <CollapsibleSection
                   key={surface.surface}
@@ -183,9 +192,14 @@ export function DenaliWorkspaceSurfacesPanel({
                   description={surfaceDescription(surface.surface)}
                   defaultOpen={surfaceIndex === 0}
                   badge={
-                    <Badge variant={state.customizeFields ? "default" : "outline"}>
-                      {state.customizeFields ? t("modeCustom") : t("modeInherit")}
-                    </Badge>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={state.customizeFields ? "default" : "outline"}>
+                        {state.customizeFields ? t("modeCustom") : t("modeInherit")}
+                      </Badge>
+                      {isDirty ? (
+                        <Badge variant="outline">{tCommon("draftSync.dirty")}</Badge>
+                      ) : null}
+                    </div>
                   }
                   className="shadow-none"
                 >
@@ -214,7 +228,7 @@ export function DenaliWorkspaceSurfacesPanel({
                             surface.surface,
                             state,
                             selection.setExposureCustomizeFields(
-                              states[surface.surface] ?? state,
+                              state,
                               catalogFieldIds,
                               event.target.checked,
                             ),
@@ -257,7 +271,7 @@ export function DenaliWorkspaceSurfacesPanel({
                             surface.surface,
                             state,
                             selection.toggleExposureFieldSelection(
-                              states[surface.surface] ?? state,
+                              state,
                               catalogFieldIds,
                               fieldId,
                               checked,
@@ -267,10 +281,14 @@ export function DenaliWorkspaceSurfacesPanel({
                       />
                     ) : null}
 
-                    {savedSurface === surface.surface ? (
+                    {surfaceState.saved ? (
                       <p className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-900 dark:text-emerald-100">
                         {t("saved")}
                       </p>
+                    ) : null}
+
+                    {surfaceError !== null ? (
+                      <p className="text-sm text-destructive">{surfaceError}</p>
                     ) : null}
 
                     {canEdit ? (
@@ -278,7 +296,7 @@ export function DenaliWorkspaceSurfacesPanel({
                         <Button
                           type="button"
                           size="sm"
-                          disabled={isSaving}
+                          disabled={isSaving || !isDirty}
                           onClick={() => void saveSurface(surface.surface)}
                         >
                           {isSaving ? t("saving") : t("save")}

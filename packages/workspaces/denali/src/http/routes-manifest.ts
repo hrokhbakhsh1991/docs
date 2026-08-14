@@ -10,6 +10,9 @@ export const CATALOG_HTTP_ROUTE_MANIFEST: readonly {
   { method: "GET", path: "/denali/dashboard/tours/:tourId" },
   { method: "GET", path: "/denali/reminders/feed" },
   { method: "POST", path: "/denali/registrations" },
+  { method: "GET", path: "/denali/registrations/for-tour/:tourId" },
+  { method: "GET", path: "/denali/registrations/:registrationId" },
+  { method: "PATCH", path: "/denali/registrations/:registrationId" },
 ] as const;
 
 /** Compat — SoT is `@app-tour/finance-http` (Phase 1.4 Commit 2). */

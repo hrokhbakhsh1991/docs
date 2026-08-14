@@ -860,3 +860,70 @@ export function parseBulkApproveBookingsResponse(payload: unknown): {
     : [];
   return { approvedIds, skippedIds };
 }
+
+export type BookingLifecycleAction = "approve" | "reject" | "waitlist" | "cancel";
+
+export type BookingActionNoticeModel =
+  | { readonly kind: "none" }
+  | {
+      readonly kind: "lifecycle";
+      readonly action: BookingLifecycleAction;
+      readonly guestLabel: string;
+      readonly paymentStatus?: BookingListItem["paymentStatus"];
+      readonly embeddedTourId?: string;
+      readonly registrationId?: string;
+      readonly historyStatus?: "rejected" | "cancelled";
+      readonly showFinanceLink?: boolean;
+    };
+
+/** UX-BKG-56 — post-mutation notice payload (presentation in booking-action-notice). */
+export function buildBookingLifecycleActionNotice(input: {
+  readonly action: BookingLifecycleAction;
+  readonly guestLabel: string;
+  readonly paymentStatus?: BookingListItem["paymentStatus"];
+  readonly embedded?: boolean;
+  readonly lockedTourId?: string;
+  readonly registrationId?: string;
+}): BookingActionNoticeModel {
+  const guestLabel = input.guestLabel.trim();
+  if (guestLabel.length === 0) {
+    return { kind: "none" };
+  }
+  const tourId = input.embedded === true ? (input.lockedTourId?.trim() ?? "") : "";
+  const embeddedTourId = tourId.length > 0 ? tourId : undefined;
+  const registrationId = input.registrationId?.trim() || undefined;
+  const showFinanceLink =
+    input.action === "approve" &&
+    embeddedTourId !== undefined &&
+    (input.paymentStatus === "unpaid" || input.paymentStatus === "partial");
+
+  return {
+    kind: "lifecycle",
+    action: input.action,
+    guestLabel,
+    paymentStatus: input.paymentStatus,
+    embeddedTourId,
+    registrationId,
+    showFinanceLink,
+    historyStatus:
+      input.action === "reject"
+        ? "rejected"
+        : input.action === "cancel"
+          ? "cancelled"
+          : undefined,
+  };
+}
+
+export function buildBookingsHistoryHref(input: {
+  readonly tourId?: string;
+  readonly status: "rejected" | "cancelled";
+}): string {
+  const params = new URLSearchParams();
+  const tourId = input.tourId?.trim() ?? "";
+  if (tourId.length > 0) {
+    params.set("tourId", tourId);
+  }
+  params.set("status", input.status);
+  params.set("view", "ops");
+  return `/bookings?${params.toString()}`;
+}

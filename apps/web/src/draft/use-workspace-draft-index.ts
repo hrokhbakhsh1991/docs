@@ -12,16 +12,22 @@ export type UseWorkspaceDraftIndexResult = {
   readonly refresh: () => Promise<void>;
 };
 
+export type UseWorkspaceDraftIndexOptions = {
+  readonly enabled?: boolean;
+};
+
 export function useWorkspaceDraftIndex(
   workspaceId: string | undefined,
-  namespace?: string
+  namespace?: string,
+  options?: UseWorkspaceDraftIndexOptions
 ): UseWorkspaceDraftIndexResult {
+  const enabled = options?.enabled !== false;
   const [items, setItems] = useState<readonly WorkspaceDraftIndexItem[]>([]);
-  const [loading, setLoading] = useState(workspaceId !== undefined);
+  const [loading, setLoading] = useState(workspaceId !== undefined && enabled);
   const [error, setError] = useState<Error | null>(null);
 
   const refresh = async () => {
-    if (workspaceId === undefined) {
+    if (workspaceId === undefined || !enabled) {
       setItems([]);
       setLoading(false);
       setError(null);
@@ -42,7 +48,7 @@ export function useWorkspaceDraftIndex(
 
   useEffect(() => {
     void refresh();
-  }, [workspaceId, namespace]);
+  }, [workspaceId, namespace, enabled]);
 
   return { items, loading, error, refresh };
 }

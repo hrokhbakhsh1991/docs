@@ -19,6 +19,35 @@ type BookingsOpsPresetsBarProps = {
   readonly onReplaceQuery: (next: BookingsCommandCenterQuery) => void;
 };
 
+function presetLabel(
+  preset: BookingsOpsPresetId,
+  t: ReturnType<typeof useTranslations>
+): string {
+  if (preset === "upcoming") {
+    return t("presets.upcoming");
+  }
+  if (preset === "workQueue") {
+    return t("presets.workQueue");
+  }
+  return t("presets.history");
+}
+
+function presetAriaLabel(
+  preset: BookingsOpsPresetId,
+  t: ReturnType<typeof useTranslations>
+): string {
+  if (preset === "upcoming") {
+    return t("presets.upcomingAria");
+  }
+  if (preset === "workQueue") {
+    return t("presets.workQueueAria");
+  }
+  if (preset === "history") {
+    return t("presets.historyAria");
+  }
+  return presetLabel(preset, t);
+}
+
 export function BookingsOpsPresetsBar({ query, onReplaceQuery }: BookingsOpsPresetsBarProps) {
   const t = useTranslations("bookings");
   const active = resolveActiveBookingsOpsPreset(query);
@@ -38,18 +67,10 @@ export function BookingsOpsPresetsBar({ query, onReplaceQuery }: BookingsOpsPres
           size="sm"
           variant={active === preset ? "default" : "outline"}
           aria-pressed={active === preset}
-          aria-label={
-            preset === "upcoming"
-              ? t("presets.upcomingAria")
-              : preset === "workQueue"
-                ? t("presets.workQueueAria")
-                : preset === "history"
-                  ? t("presets.historyAria")
-                  : t(`presets.${preset}`)
-          }
-          onClick={() => onReplaceQuery(applyBookingsOpsPreset(query, preset as BookingsOpsPresetId))}
+          aria-label={presetAriaLabel(preset, t)}
+          onClick={() => onReplaceQuery(applyBookingsOpsPreset(query, preset))}
         >
-          {t(`presets.${preset}`)}
+          {presetLabel(preset, t)}
         </Button>
       ))}
     </div>

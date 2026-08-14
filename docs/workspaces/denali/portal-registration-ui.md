@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-08-05-v8"
+version: "2026-08-12-v9"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -167,7 +167,21 @@ Session defaults: `GET /api/me/profile` hydrates name (+ email for upstream only
 
 Portal wires catalog flags: `register/page.tsx` → `PublicCatalogRegistrationFlow` → `RegistrationFlowContext.tourRequirements`.
 
-Duplicate booking guard: Denali uses **guest user id + tour id** (not email).
+Duplicate booking guard: Denali **self** = member user id + tour id on an active self row (not email). **Other** = guest label / nationalId; same booker may submit multiple others. See [registration-self-other-uniqueness.mdoc](./registration-self-other-uniqueness.mdoc).
+
+**Register-page self gate (2026-08-10 · extended 2026-08-12):** SSR/client loads `GET /api/me/registrations/for-tour?tourId=` — when `self` is non-null, disable “برای خودم”, **keep guest cards available and submit-able**, and show `data-registration-self-already` with:
+- copy that states self is locked **and** guests can still be added (`intake.selfAlreadyRegistered`);
+- detail CTA → `/me/registrations/{id}` (`data-registration-self-already-detail`);
+- my-trips CTA → `memberModuleHref` (`data-registration-self-already-trips`) when the host injects it.
+
+**Phone intake control (2026-08-12):** Schema widget `localized-digits` (Denali/Urban `phone`) must render as `type="text"` + `inputMode="numeric"` — **not** `type="number"`. Number inputs strip a leading `0` (Iranian mobiles) and expose a spinbutton, which makes guest submit look “broken” after a self lock even though the API accepts `other`. True numeric quantities keep `field.type === "number"`. Renderer: `packages/catalog-intake-ui/src/render-intake-field.tsx`.
+
+**Self duplicate submit safety net:** On `self` POST:
+- Host may **reclassify** an owned active `other` row that shares guest identity (nationalId / phone / label) into `self` (same registration id) — treat as success. See [registration-self-other-uniqueness.mdoc](./registration-self-other-uniqueness.mdoc) § Self vs own-other identity.
+- `DENALI_REGISTRATION_DUPLICATE` → lock self + self-already banner **only when** `for-tour.self` is non-null (refresh for detail id). Never invent a self-already lock without an id.
+- `BOOKING_GUEST_DUPLICATE` → refresh `for-tour` first; only if `self` exists treat as self-already. Otherwise show `errors.SELF_IDENTITY_DUPLICATE` on the self card (do **not** fake “already registered yourself”). See [registration-self-other-uniqueness.mdoc](./registration-self-other-uniqueness.mdoc) § UX.
+
+**Catalog POST session:** Denali intake `features.requiresMemberSession: true` — BFF returns `401` without Bearer (no anonymous write).
 
 ### Registrant target tabs (2026-06-30)
 
@@ -175,7 +189,7 @@ Intake opens with two tabs:
 
 | Tab | Behavior |
 |-----|----------|
-| **For myself** (`self`) | Hydrate from `GET /api/me/profile`; hide fields already on profile |
+| **For myself** (`self`) | Hydrate from `GET /api/me/profile`; hide fields already on profile; **blocked** when an active self registration already exists for the tour |
 | **For someone else** (`other`) | All participant fields empty — booker fills guest details manually |
 
 | Tab | Duplicate guard |
@@ -254,7 +268,20 @@ Stable selectors — **do not rename** without updating smoke specs.
 | `data-public-registration-otp` | OTP step shell — fill `#otp` (shared `CatalogRegistrationOtpStep`); segment boxes `[data-otp-cell]` are **operator login only**, not catalog registration |
 | `data-public-registration-profile` | new-user profile |
 | `data-public-registration-intake` | tour intake form (`RenderIntakeForm` / workspace step) |
-| `data-registration-target-tabs` | self / other registrant tabs |
+| `data-denali-registrant-self-toggle` | checkbox برای «برای خودم» (controlled; uncheck auto-seeds first guest card when list empty) |
+| `data-registration-self-already` | بنر وقتی self فعال برای همین تور وجود دارد (چک‌باکس قفل) |
+| `data-registration-self-already-detail` | لینک جزئیات همان ثبت‌نام → `/me/registrations/{id}` |
+| `data-registration-self-already-trips` | لینک سفرهای من → `context.memberModuleHref` (فقط وقتی host مقدار دارد) |
+| `data-denali-self-duplicate-guide` | پیام safety-net وقتی self POST duplicate و هنوز id از for-tour نیامده (+ لینک trips) |
+| `data-denali-self-guest-card` | کارت intake برای self وقتی checkbox فعال است |
+| `data-denali-other-guest-list` | لیست کارت‌های guest (برای دیگری) |
+| `data-denali-other-guest-card` | یک کارت guest (هر guest = یک submission) |
+| `data-denali-add-guest` | افزودن کارت guest (تا سقف محصولی ۱۰) |
+| `data-denali-remove-guest` | حذف کارت guest (فقط وقتی بیش از یک کارت باشد) |
+| `data-denali-submit-results` | خلاصه partial success/failure بعد از چند POST |
+| `data-denali-submit-partial-success` | پیام موفقیت جزئی + لینک `context.memberModuleHref` وقتی حداقل یک کارت ok باشد |
+| `data-denali-submit-result-error` | خطای per-card داخل `data-denali-submit-results` |
+| `data-denali-guest-limit` | وضعیت وقتی سقف ۱۰ مهمان پر شده (دکمه Add مخفی می‌شود) |
 | `data-intake-field="{id}"` | schema-driven intake controls (`nationalId`, `fatherName`, `birthDate`, `email`, …) — preferred E2E selector (no `partySize`; fixed to 1) |
 | `data-public-registration-email` | email at intake when capability + profile lacks email |
 | `data-public-registration-notes` | optional notes (Urban capability) |
@@ -263,6 +290,16 @@ Stable selectors — **do not rename** without updating smoke specs.
 | `data-public-registration-transport` | car / dong follow-up fieldset |
 | `data-registration-price-hint` | estimated per-person price |
 | `data-public-registration-success` | completion |
+
+### Denali multi-guest probes (manual / non-CI)
+
+Not selected by `playwright.portal.config.ts`. Run:
+
+```bash
+cd apps/portal && pnpm exec playwright test -c playwright.denali-probes.config.ts
+```
+
+Specs: `denali-multi-guest-intake.spec.ts`, `denali-multi-guest-partial-duplicate.spec.ts` (seed tour `…000212`). Legacy marketing→portal walkthroughs (`denali-purchase-flow.probe.spec.ts`, `denali-workspace-purchase-flow.spec.ts`) are **manual-only** (`test.skip`).
 
 ### Member area (P6-3)
 

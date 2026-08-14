@@ -1,0 +1,455 @@
+---
+title: Finance Operator Experience Model v1
+doc_id: DENALI-FINANCE-OPERATOR-EXPERIENCE-MODEL
+version: "2026-08-07-v1"
+workspace: denali
+status: ANALYSIS
+phase: pre-redesign discovery stage-5
+continues:
+  - DENALI-FINANCE-DOMAIN-MAP
+  - DENALI-FINANCE-CASE-GRAMMAR
+  - DENALI-FINANCE-EXPERIENCE-PRINCIPLES
+  - DENALI-FINANCE-OPERATOR-PROBLEM-FRAMING
+authority: >
+  Domain Map · Case Grammar · Decision Model · Money Truth Layers · Status Translation ·
+  Composite Scenarios · Experience Principles · Operational Truth Hierarchy ·
+  Next Action Model · Operator Language Rules · Daily Work Boundary ·
+  Product Non-Goals · Problem Framing
+purpose: >
+  Define the conceptual experience model for Finance Operators.
+  Translate problem framing into a human decision model:
+  how operators mentally understand a Financial Case,
+  derive a verdict,
+  identify next action ownership,
+  and separate daily work from exceptions.
+constraints:
+  - No UI
+  - No pages
+  - No components
+  - No wireframes
+  - No navigation design
+  - No APIs
+  - No schemas
+  - No database changes
+  - No status enum merging
+  - No replacement of existing domain truths
+  - No ownership changes between Bookings and Finance
+  - Financial Case remains the operator mental unit
+north_star: >
+  For this registration:
+  Where are we financially right now?
+  And whose correct next action is it?
+---
+
+# Finance Operator Experience Model v1
+
+## Framing
+
+The goal is not to design screens.
+
+The goal is to define the **mental operating model** that any future experience must express.
+
+The experience model must answer:
+
+> How does a finance operator transform multiple correct system truths into one reliable Financial Case understanding?
+
+This model is the bridge between:
+
+| Locked input | Role here |
+| ------------ | --------- |
+| Domain truths & SoT | What may be composed (never merged) |
+| Case Grammar & Decision Model | What questions a case must answer |
+| Principles & Truth Hierarchy | In what order truths are read |
+| Next Action Model | How ownership is derived |
+| Problem Framing | Which jobs/failures this model must prevent |
+
+---
+
+# 1. Financial Case Mental Model
+
+## Definition (operator mind)
+
+A **Financial Case** is the operator’s single mental object for one registration:
+
+```text
+Case = identity
+    + eligibility frame (lifecycle × collection policy)
+    + money target (obligation / remaining)
+    + ingress progress (proof × open intent)
+    + club settlement badge
+    + next-action owner
+    + work lane (daily | exception | audit)
+```
+
+System entities (Payment, Receipt, Ledger, Schedule, …) are **evidence inside the case**, not competing units of work.
+
+---
+
+## Case Interpretation Sequence
+
+Cognitive sequence every operator should follow when opening any registration. Order is mandatory for safe judgment. Skipping early steps is how bare `unpaid` / `pending` create false work.
+
+### Step 0 — Anchor the case
+
+| Cognitive act | Question | Output in mind |
+| ------------- | -------- | -------------- |
+| Identify | Who is this, which tour/departure? | Case identity |
+
+Without identity, later money truths are orphaned.
+
+### Step 1 — Frame eligibility (before money blame)
+
+| Cognitive act | Question | Output in mind |
+| ------------- | -------- | -------------- |
+| Read lifecycle | Has the club accepted this registration? Is it terminal? | Eligibility: `not_yet` · `eligible` · `closed` |
+| Read collection policy | Does this case require money ingress at all? | Policy: `offline_due` · `no_money_due` |
+
+**Gate:** If `closed` → jump to **exception lane** framing (do not run happy-path money chase).  
+**Gate:** If `no_money_due` → settlement meaning is policy-settled, not proof-settled.
+
+### Step 2 — Read money target
+
+| Cognitive act | Question | Output in mind |
+| ------------- | -------- | -------------- |
+| Obligation | How much is owed? | Target amount (+ whether personalized) |
+| Remaining | How much is still due? | Remainder |
+
+Badge settlement does **not** replace this step when deciding proof amounts.
+
+### Step 3 — Read ingress progress
+
+| Cognitive act | Question | Output in mind |
+| ------------- | -------- | -------------- |
+| Proof state | Is there transfer proof? Where is it? | `none` · `in_review` · `rejected` · `accepted` |
+| Open intent | Is there an open Payment intent? Source? | `none` · `member_path` · `manual_exception` · `ambiguous_parallel` |
+
+**Rule:** Open intent without proof ≠ finance review due.
+
+### Step 4 — Read club settlement badge
+
+| Cognitive act | Question | Output in mind |
+| ------------- | -------- | -------------- |
+| Settlement | Does the club already treat this as settled / partial / unsettled? | `unsettled` · `partial` · `settled` |
+
+**Coexistence rule:** `unsettled` + proof `in_review` is a **healthy** intermediate, not a conflict.
+
+### Step 5 — Scope any “partial”
+
+| Cognitive act | Question | Output in mind |
+| ------------- | -------- | -------------- |
+| Scope | Partial on which layer? | `case_settlement` · `obligation_remainder` · `installment_slice` · `wallet_progress` |
+
+Unscoped partial blocks a reliable next-action claim.
+
+### Step 6 — Derive next-action owner
+
+| Cognitive act | Question | Output in mind |
+| ------------- | -------- | -------------- |
+| Ownership | Whose move advances the case? | `member` · `finance` · `lifecycle_desk` · `policy_system` · `exception_policy` · `idle` |
+
+Derivation rules: §3.
+
+### Step 7 — Assign work lane
+
+| Cognitive act | Question | Output in mind |
+| ------------- | -------- | -------------- |
+| Altitude | Is this daily money work, exception judgment, or audit? | `daily` · `exception` · `audit` |
+
+### Step 8 — Form case verdict + club sentence
+
+| Cognitive act | Question | Output in mind |
+| ------------- | -------- | -------------- |
+| Verdict | Where are we financially right now? | Case Verdict (§2) |
+| Club answer | Is payment OK? | One sentence from verdict + owner (§5) |
+
+### Sequence diagram (cognitive only)
+
+```text
+Identity
+   → Eligibility + Policy frame
+      → Obligation / Remaining
+         → Proof + Open intent
+            → Settlement badge
+               → Partial scope (if needed)
+                  → Next-action owner
+                     → Work lane
+                        → Verdict + club sentence
+```
+
+### Forbidden shortcuts
+
+| Shortcut | Failure |
+| -------- | ------- |
+| Jump to unpaid badge first | Mistakes in-review and free cases for delinquency |
+| Jump to proof queue row first | Reviews without obligation/eligibility |
+| Jump to ledger to “be sure” | Audit altitude hijacks daily judgment |
+| Create manual payment to “start” | Invents finance ownership on member-owned waits |
+
+---
+
+# 2. Case Verdict Model
+
+A **Case Verdict** is the operator’s composed answer to “where are we financially?” — still **not** a new domain enum. It is a mental classification built from existing truths.
+
+## Verdict catalog
+
+| Verdict ID | Meaning (operator language) | Typical domain composition (illustrative, not merged) |
+| ---------- | --------------------------- | ----------------------------------------------------- |
+| **V-NOT-ELIGIBLE** | Club has not cleared the registration for the money path yet | lifecycle pending/waitlisted; money unread or unpaid |
+| **V-CLOSED** | Registration is terminal; normal collection story ended | rejected/cancelled |
+| **V-NO-MONEY-DUE** | Settled because policy/obligation requires no ingress | free/zero → paid projection without proof |
+| **V-AWAITING-MEMBER** | Eligible, money due, no acceptable proof in finance hands | approved + unpaid + proof none (or after reject) |
+| **V-AWAITING-FINANCE** | Proof is with finance for decision | approved + receipt pending (+ unpaid coexistence OK) |
+| **V-SETTLED-CAPTURED** | Settled after accepted proof / capture path | receipt approved + payment paid + booking paid |
+| **V-PARTIAL** | Some recognition, not fully settled — scope required | booking partial and/or remainder > 0 and/or slice partial |
+| **V-INTENT-OPEN-NO-PROOF** | Manual/open intent exists but proof not in review | Payment pending, receipt none |
+| **V-EXCEPTION** | Commercial meaning of money objects is ambiguous | e.g. terminal + historical pending proof; conflicting layers |
+| **V-AUDIT-SUSPECT** | Daily story conflict suggests audit/recon altitude | persistent layer mismatch after expected sync |
+
+## Verdict properties
+
+Every verdict must carry:
+
+| Property | Required |
+| -------- | -------- |
+| **Lane** | daily / exception / audit |
+| **Owner** | next-action owner (§3) |
+| **Alarm?** | whether coexistence should feel alarming (`false` for healthy unpaid+in_review) |
+| **Club sentence seed** | one-line answer pattern (§5) |
+
+## Verdict formation rules (high level)
+
+1. Terminal lifecycle → prefer **V-CLOSED**; if money objects still demand judgment → **V-EXCEPTION** (not daily V-AWAITING-FINANCE).
+2. `no_money_due` with settled projection → **V-NO-MONEY-DUE** (never V-AWAITING-MEMBER).
+3. Proof `in_review` on eligible offline case → **V-AWAITING-FINANCE** even if badge unpaid.
+4. Proof `rejected` on still-eligible case → **V-AWAITING-MEMBER** (not finance-owned wait).
+5. Proof `accepted` + settled badge → **V-SETTLED-CAPTURED**.
+6. Unscoped partial facts → cannot emit a clean partial verdict until scope is named → hold as incomplete reading, then **V-PARTIAL**.
+7. Manual intent without proof → **V-INTENT-OPEN-NO-PROOF** (owner usually member), not V-AWAITING-FINANCE.
+8. Only escalate to **V-AUDIT-SUSPECT** when composed daily rules fail to explain the truths.
+
+---
+
+# 3. Next-Action Ownership Derivation
+
+Ownership is **derived**, not a stored domain field. Derivation must match the locked Next Action Model.
+
+## Owner set
+
+| Owner | Meaning |
+| ----- | ------- |
+| **member** | Must pay / upload / fix proof |
+| **finance** | Must review proof (or consciously handle finance-owned exception cleanup) |
+| **lifecycle_desk** | Bookings/club must change lifecycle before money path continues |
+| **policy_system** | Free/zero apply path / policy completion — not proof queue |
+| **exception_policy** | Human/policy judgment outside happy path |
+| **idle** | No money action due |
+
+## Derivation table (operator cognition)
+
+| If interpretation finds… | Owner | Notes |
+| ------------------------ | ----- | ----- |
+| Lifecycle not eligible (`pending`/`waitlisted`) | **lifecycle_desk** | Finance does not approve registrations |
+| Lifecycle terminal + leftover money object | **exception_policy** | Not unmarked finance daily ownership |
+| Policy `no_money_due` and settled | **idle** | Do not chase |
+| Policy `no_money_due` but still unsettled unexpectedly | **policy_system** / then **exception_policy** if stuck | Not member proof chase |
+| Proof `in_review` | **finance** | Overrides unpaid badge anxiety |
+| Proof `rejected` and still eligible + due | **member** | |
+| Proof `none`, eligible, offline due, unsettled | **member** | Manual payment presence alone does not flip to finance |
+| Manual intent open, proof none | **member** (default) | Finance only if choosing exception cleanup of bad/duplicate intent |
+| Proof accepted + settled | **idle** | |
+| Partial with remainder, no proof in review | **member** (typical) | Unless club defines installment follow-up role; still not “bare finance review” |
+| Partial + proof in review | **finance** | Proof wins |
+| Persistent unexplained layer conflict | **exception_policy** → audit lane | |
+
+## Priority when multiple signals exist
+
+Apply in order:
+
+1. Terminal → exception_policy (stop daily derivation)
+2. Proof in review → finance
+3. Not eligible → lifecycle_desk
+4. No money due → idle / policy_system
+5. Rejected proof → member
+6. Else awaiting member / idle / partial rules
+
+This priority encodes: **proof-in-hand beats unpaid badge**; **eligibility beats money blame**; **terminal beats queue habit**.
+
+---
+
+# 4. Work Lane Model
+
+Lanes prevent altitude collapse (P10, Daily Work Boundary).
+
+## Lanes
+
+| Lane | Operator posture | Allowed jobs |
+| ---- | ---------------- | ------------ |
+| **Daily** | Move cases along default offline path; answer club questions | Proof review; know awaiting-member; state settled/partial; avoid needless manual payment |
+| **Exception** | Pause happy-path reflexes; ask commercial meaning | Terminal+history proof; ambiguous parallel intents; policy disputes |
+| **Audit** | Verify accounting coherence after/beside capture | Ledger reading; reconciliation findings; unexplained projection mismatch |
+
+## Lane assignment cues
+
+| Cue | Lane |
+| --- | ---- |
+| Eligible + offline + proof in review | Daily |
+| Eligible + offline + awaiting member | Daily (monitor/understand — not invent capture) |
+| Settled captured or no-money-due | Daily idle |
+| Terminal + actionable-looking proof | Exception |
+| Duplicate/ambiguous intents | Exception |
+| “Why doesn’t journal match?” / recon finding | Audit |
+| Using ledger to decide if guest is OK | **Mis-lane** — return to Daily verdict |
+
+## Lane transition rule
+
+Daily → Exception when commercial meaning of the act is unclear.  
+Daily → Audit only when daily composition cannot explain truths.  
+Audit must not become the default morning lane.
+
+---
+
+# 5. Club Answer Protocol
+
+Protocol for J4 (“Is this person’s payment OK?”). Uses verdict + owner; never entity names as the headline.
+
+| Verdict | Club sentence pattern |
+| ------- | --------------------- |
+| V-NOT-ELIGIBLE | Not yet — registration still waiting on club acceptance |
+| V-CLOSED | Not an active collection case — registration is closed |
+| V-NO-MONEY-DUE | Yes — no payment required for this registration |
+| V-AWAITING-MEMBER | Not yet — waiting for the member to pay/send proof |
+| V-AWAITING-FINANCE | Not yet — proof is with finance for review (club badge may still show unsettled; that is normal) |
+| V-SETTLED-CAPTURED | Yes — settled after accepted proof |
+| V-PARTIAL | Not fully — scoped remainder/slice must be stated |
+| V-INTENT-OPEN-NO-PROOF | Not yet — waiting for member proof (an open payment intent alone is not settlement) |
+| V-EXCEPTION | Do not answer from daily habit — needs exception judgment |
+| V-AUDIT-SUSPECT | Do not answer from badge alone — escalate to audit/exception |
+
+**Hard rule:** Never answer “yes” from member claim or from proof merely pending.
+
+---
+
+# 6. Scenario → Experience Mapping
+
+Maps locked composite scenarios into the experience model (verdict, owner, lane, alarm).
+
+| Scenario | Verdict | Owner | Lane | Alarm on unpaid+proof? |
+| -------- | ------- | ----- | ---- | ---------------------- |
+| Approved + unpaid (no proof, offline due) | V-AWAITING-MEMBER | member | Daily | n/a |
+| Receipt pending | V-AWAITING-FINANCE | finance | Daily | **No — healthy** |
+| Receipt approved | V-SETTLED-CAPTURED | idle | Daily | n/a |
+| Rejected receipt | V-AWAITING-MEMBER | member | Daily | n/a |
+| Free / zero | V-NO-MONEY-DUE | idle | Daily | chasing would be false alarm |
+| Partial | V-PARTIAL (+ scope) | member or finance if proof in review | Daily | depends |
+| Manual payment exists (no proof) | V-INTENT-OPEN-NO-PROOF | member | Daily (exception if cleanup) | n/a |
+| Cancelled + historical receipt | V-EXCEPTION (under V-CLOSED frame) | exception_policy | Exception | n/a |
+
+---
+
+# 7. Truth Composition Contract
+
+How multiple truths sit in one mental case without becoming one status.
+
+## Composition vs merge
+
+| Allowed | Forbidden |
+| ------- | --------- |
+| “Proof in finance review; club settlement still unsettled — normal” | Collapsing both into one `pending` |
+| “Registration approved; money not settled” | Treating registration approval as payment OK |
+| “Settled — no money due” vs “Settled — proof accepted” | One undifferentiated `paid` story |
+| “Partial on installment 2” | Bare `partial` |
+
+## Layer roles inside the case story
+
+| Layer | Role in the sentence |
+| ----- | -------------------- |
+| Lifecycle | Eligibility clause |
+| Collection / zero | Policy clause |
+| Obligation / remaining | Amount clause |
+| Proof | Ingress clause |
+| Payment intent | Supporting ingress detail |
+| Settlement projection | Club badge clause |
+| Schedule / wallet | Scope clause when partial/time-phased |
+| Ledger | Outside daily sentence unless audit lane |
+
+## Post-decision coherence (mental)
+
+After finance accepts proof, the operator’s case model should resolve to:
+
+```text
+Verdict = V-SETTLED-CAPTURED
+Owner = idle
+Lane = daily
+Club sentence = Yes — settled after accepted proof
+```
+
+Needing ledger inspection to believe this is a **model failure** (trust wobble), even if infrastructure succeeded.
+
+---
+
+# 8. Decision Moments Inside the Model
+
+Maps Problem Framing jobs to model steps (still no UI).
+
+| Job | Model entry | Decision inside model |
+| --- | ----------- | --------------------- |
+| Review proof | Sequence lands on V-AWAITING-FINANCE | Accept/reject against obligation within daily lane |
+| Why not settled? | Form verdict | Explain with owner + alarm rules |
+| Who owns next action? | Step 6 derivation | Emit owner |
+| Club answer | §5 protocol | One sentence |
+| Avoid manual payment | See V-AWAITING-MEMBER / V-INTENT-OPEN | Do not invent finance ownership |
+| Exceptions | Lane = exception | Pause capture habit |
+| Partial | Step 5 scope then V-PARTIAL | Scoped club sentence |
+
+---
+
+# 9. Experience Model Invariants
+
+Any future design that violates these is outside the model — regardless of visual quality.
+
+1. **Case is the unit** — work meaning attaches to a registration case, not an orphan entity.
+2. **Sequence before action** — eligibility/policy before blame; proof-in-review before unpaid panic.
+3. **North Star completeness** — every case reading yields verdict **and** owner.
+4. **No status merge** — verdicts compose truths; they do not replace enums.
+5. **Healthy in-review coexistence** — unpaid + finance review must be expressible without alarm.
+6. **Default path** — member ingress → finance review; manual intent is marked exception/alternate.
+7. **Lane discipline** — daily success does not require audit tools.
+8. **Ownership boundaries** — model never assigns lifecycle transitions to finance, nor receipt capture to bookings.
+9. **Language** — waits/approvals/paid/partial always object-qualified in the mental sentence.
+10. **Terminal changes meaning** — terminal + money object ⇒ exception verdict, not silent daily review.
+
+---
+
+# 10. What This Model Explicitly Is Not
+
+| Not this | Why |
+| -------- | --- |
+| A screen inventory | Stage constraint |
+| A new domain status enum called “CaseVerdict” as SoT | Would merge/replace truths — Non-Goal |
+| A claim that operators should ignore Payment/Receipt entities | Entities remain evidence |
+| A bookings redesign | Lifecycle stays Bookings-owned |
+| A promise that exceptions disappear | Some cases stay exception_policy by design |
+
+---
+
+## Model one-liner
+
+> Operators read a registration in a fixed order, compose separate truths into a **Case Verdict**, derive **next-action ownership**, assign a **work lane**, and answer the club in one object-qualified sentence — without merging statuses or changing ownership.
+
+---
+
+## Traceability
+
+| Model section | Locked foundation |
+| ------------- | ----------------- |
+| Interpretation sequence | Operational Truth Hierarchy · Case Grammar |
+| Verdicts | Composite Scenarios · Money Truth Layers · Problem Framing |
+| Ownership derivation | Next Action Model · Principles P06–P08, P11, P14 |
+| Lanes | Daily Work Boundary · P10 |
+| Club protocol | Operator Language Rules · J4 |
+| Invariants | Design Decision Criteria · Non-Goals |
+
+---
+
+Ready for Experience Structure / Information Architecture phase (still pre-UI), or Interaction Concepts — only after this mental model is accepted.

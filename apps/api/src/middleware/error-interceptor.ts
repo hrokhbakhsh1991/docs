@@ -292,6 +292,34 @@ function mapErrorMessageToStatus(message: string): number {
   }
   if (message.startsWith("BULK_APPROVE_BATCH_LIMIT")) return 400;
   if (message.startsWith("FINANCE_PAYMENT_NOT_FOUND")) return 404;
+  // PR23-E3 — offline refund operator workflow.
+  if (message === "REFUND_NOT_FOUND") return 404;
+  if (
+    message === "REFUND_REASON_INVALID" ||
+    message === "REFUND_INVALID_AMOUNT" ||
+    message === "REFUND_SOURCE_INVALID" ||
+    message === "REFUND_CURRENCY_MISMATCH"
+  ) {
+    return 400;
+  }
+  if (
+    message === "REFUND_OVER_CAP" ||
+    message === "REFUND_PAYMENT_NOT_PAID" ||
+    message === "REFUND_PAYMENT_NOT_MANUAL" ||
+    message === "REFUND_NOT_TRANSITIONABLE"
+  ) {
+    return 409;
+  }
+  // PR23-A3 — cancel command; NOT_IN_SCOPE collapses to same 404 (no tenant leak).
+  if (message === "PAYMENT_NOT_FOUND" || message === "PAYMENT_NOT_IN_SCOPE") return 404;
+  if (message === "PAYMENT_CANCEL_REASON_INVALID") return 400;
+  if (
+    message === "PAYMENT_CANCEL_ONLY_MANUAL" ||
+    message === "PAYMENT_NOT_CANCELLABLE" ||
+    message === "PAYMENT_HAS_PENDING_RECEIPT"
+  ) {
+    return 409;
+  }
   if (message.startsWith("FINANCE_RECEIPT_NOT_FOUND")) return 404;
   if (message === "FINANCE_RECEIPT_REQUIRES_APPROVED_BOOKING") return 409;
   if (message === "FINANCE_RECEIPT_NOT_REQUIRED") return 409;
@@ -302,6 +330,7 @@ function mapErrorMessageToStatus(message: string): number {
   if (message === "FINANCE_APPROVE_CONFLICT") return 409;
   if (message === "FINANCE_DUPLICATE_OBLIGATION_CREDIT") return 409;
   if (message === "FINANCE_LEDGER_CAPTURE_EMPTY") return 422;
+  if (message === "FINANCE_OBLIGATION_OVERPAY") return 422;
   if (
     message === "FINANCE_PAYMENT_IDEMPOTENCY_CONFLICT" ||
     message === "FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT"
@@ -756,6 +785,17 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
 
   const message = error instanceof Error ? error.message : "unknown_error";
   const status = mapErrorMessageToStatus(message);
+
+  // PR23-A3 — never leak cross-tenant payment existence.
+  if (message === "PAYMENT_NOT_IN_SCOPE" || message === "PAYMENT_NOT_FOUND") {
+    sendHttpError(
+      res,
+      404,
+      { error: "PAYMENT_NOT_FOUND", code: "PAYMENT_NOT_FOUND" },
+      correlationId
+    );
+    return;
+  }
 
   if (message === "FINANCE_BOOKING_PAYMENT_SYNC_COMPENSATE_FAILED") {
     logInternalServerError(error, correlationId);

@@ -33,7 +33,8 @@ authority: finance-core · finance-http-contracts · Prisma host repository · P
 ```text
 gate → operator authz → hash Idempotency-Key
   → find by creationIdempotencyKey (replay if payload matches)
-  → else debt gate (reject if registration already has Paid)
+  → else debt gate (reject if Pending exists OR balanceDueMinor = 0;
+       allow further Paid rows while remaining > 0 — PR20-D)
   → create Pending Manual payment
 ```
 
@@ -41,7 +42,9 @@ gate → operator authz → hash Idempotency-Key
 
 | Invariant | Enforcer |
 | --------- | -------- |
-| No second manual debt after `Paid` | `assertManualPaymentDebtAllowed` in finance-core |
+| No second manual debt after settlement (`balanceDueMinor = 0`) | `assertManualPaymentDebtAllowed` (remaining-based; see `FINANCE_MANUAL_DEBT_PARTIAL_COLLECTION_POLICY.md`) |
+| No parallel Pending manual debt | same gate |
+| Partial collection (`remaining > 0` after Paid) allowed | PR20-D — Paid row alone is **not** settlement |
 | Same key + different body → conflict | `FINANCE_PAYMENT_IDEMPOTENCY_CONFLICT` |
 | Same key + same body → replay | Repository find-before-create |
 

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { OperatorInternalLink } from "@/features/tours/tour-internal-link";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
@@ -13,14 +13,12 @@ import type {
   BookingListItem,
   BookingsListResponse,
 } from "@/features/bookings/bookings-command-center-types";
-import {
-  formatRegistrationIntakeTransportLabel,
-  parseRegistrationIntakeRecord,
-} from "@app-tour/workspace-sdk";
+import { formatRegistrationIntakeTransportLabel } from "@app-tour/workspace-sdk";
 import { TOUR_WORKSPACE_TEST_IDS } from "@/features/tours/tour-workspace-types";
 import {
   buildTourTransportBookingsQuery,
   buildTourTransportCommandCenterHref,
+  countTransportRosterByIntakeKind,
   extractTransportModesFromTourPayload,
   sortTransportRosterRows,
   TOUR_WORKSPACE_TRANSPORT_TEST_IDS,
@@ -30,6 +28,7 @@ import { resolveWizardTransportModeLabel } from "@/wizard/wizard-label-surface-r
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
+import { fetchTourDetailCached } from "@/features/tours/tour-route-cache";
 
 type TourWorkspaceTransportClientProps = {
   readonly tourId: string;
@@ -44,6 +43,7 @@ export function TourWorkspaceTransportClient({
   const tWorkspace = useWorkspaceWizardTranslator(pluginId);
   const tBookings = useTranslations("bookings.status");
   const tBookingsIntake = useTranslations("bookings.intake");
+  const tPayment = useTranslations("bookings.payment");
   const t = useTranslations("tours.workspace.transport");
   const tTable = useTranslations("tours.workspace.table");
   const tWorkspaceCopy = useTranslations("tours.workspace");
@@ -57,19 +57,18 @@ export function TourWorkspaceTransportClient({
     setLoading(true);
     setError(null);
     try {
-      const [tourResponse, bookingsResponse] = await Promise.all([
-        fetch(`/api/tours/${encodeURIComponent(tourId)}`, { cache: "no-store" }),
+      const [tourPayload, bookingsResponse] = await Promise.all([
+        fetchTourDetailCached(tourId),
         fetch(`/api/bookings?${buildTourTransportBookingsQuery(tourId)}`, { cache: "no-store" }),
       ]);
-      if (!tourResponse.ok) {
-        throw new Error(`TOUR_TRANSPORT_TOUR_HTTP_${tourResponse.status}`);
-      }
       if (!bookingsResponse.ok) {
         throw new Error(`TOUR_TRANSPORT_BOOKINGS_HTTP_${bookingsResponse.status}`);
       }
-      const tourPayload = (await tourResponse.json()) as Record<string, unknown>;
       const bookingsPayload = (await bookingsResponse.json()) as BookingsListResponse;
-      setModes(extractTransportModesFromTourPayload(tourPayload));
+      setModes(
+        extractTransportModesFromTourPayload(tourPayload as unknown as Record<string, unknown>)
+      );
+      // H5-T3/T4 — list scalars only; no N+1 detail hydrate.
       setItems(sortTransportRosterRows(bookingsPayload.items ?? []));
     } catch (loadError: unknown) {
       setError(loadError instanceof Error ? loadError.message : "TOUR_TRANSPORT_FETCH_FAILED");
@@ -106,6 +105,31 @@ export function TourWorkspaceTransportClient({
           </div>
         ) : null}
 
+        {!loading && items.length > 0 ? (
+          <div
+            className="flex flex-wrap gap-2"
+            data-testid={TOUR_WORKSPACE_TRANSPORT_TEST_IDS.modeCounts}
+          >
+            {countTransportRosterByIntakeKind(items).map(({ kind, count }) => {
+              const label =
+                kind === "primary"
+                  ? tBookingsIntake("transportPrimary")
+                  : kind === "personal_car"
+                    ? tBookingsIntake("transportPersonalCar")
+                    : kind === "no_car_dong"
+                      ? tBookingsIntake("transportNoCarDong")
+                      : kind === "no_car_acquaintance"
+                        ? tBookingsIntake("transportNoCarAcquaintance")
+                        : t("unknownIntake");
+              return (
+                <Badge key={kind} variant="outline">
+                  {label}: {formatLocalizedNumber(count, locale)}
+                </Badge>
+              );
+            })}
+          </div>
+        ) : null}
+
         {!loading && items.length === 0 ? (
           <div
             className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground"
@@ -113,9 +137,9 @@ export function TourWorkspaceTransportClient({
           >
             <p>{t("empty")}</p>
             <Button asChild variant="link" className="mt-2">
-              <Link href={buildTourTransportCommandCenterHref(tourId)}>
+              <OperatorInternalLink href={buildTourTransportCommandCenterHref(tourId)}>
                 {tWorkspaceCopy("openCommandCenter")}
-              </Link>
+              </OperatorInternalLink>
             </Button>
           </div>
         ) : null}
@@ -131,21 +155,29 @@ export function TourWorkspaceTransportClient({
                   <th className="px-3 py-2 font-medium">{tTable("guest")}</th>
                   <th className="px-3 py-2 font-medium">{tTable("party")}</th>
                   <th className="px-3 py-2 font-medium">{tTable("transportIntake")}</th>
+                  <th className="px-3 py-2 font-medium">{tTable("payment")}</th>
                   <th className="px-3 py-2 font-medium">{tTable("departure")}</th>
                   <th className="px-3 py-2 font-medium">{tTable("status")}</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((row) => {
-                  const intakeSummary = parseRegistrationIntakeRecord(row.registrationIntake);
-                  const transportLabel = formatRegistrationIntakeTransportLabel(intakeSummary, {
-                    primary: tBookingsIntake("transportPrimary"),
-                    personalCar: tBookingsIntake("transportPersonalCar"),
-                    noCarDong: tBookingsIntake("transportNoCarDong"),
-                    noCarAcquaintance: tBookingsIntake("transportNoCarAcquaintance"),
-                    occupants: (count) =>
-                      tBookingsIntake("transportOccupants", { count, locale }),
-                  });
+                  const transportLabel = formatRegistrationIntakeTransportLabel(
+                    {
+                      registrantTarget: null,
+                      transportKind: row.transportKind,
+                      personalCarOccupants: row.personalCarOccupants,
+                      nationalId: null,
+                    },
+                    {
+                      primary: tBookingsIntake("transportPrimary"),
+                      personalCar: tBookingsIntake("transportPersonalCar"),
+                      noCarDong: tBookingsIntake("transportNoCarDong"),
+                      noCarAcquaintance: tBookingsIntake("transportNoCarAcquaintance"),
+                      occupants: (count) =>
+                        tBookingsIntake("transportOccupants", { count, locale }),
+                    }
+                  );
                   return (
                   <tr key={row.id} className="border-b transition-colors last:border-b-0 hover:bg-muted/50">
                     <td className="px-3 py-2 font-medium">{row.guestLabel}</td>
@@ -153,6 +185,7 @@ export function TourWorkspaceTransportClient({
                     <td className="px-3 py-2 text-muted-foreground">
                       {transportLabel ?? "—"}
                     </td>
+                    <td className="px-3 py-2">{tPayment(row.paymentStatus)}</td>
                     <td className="px-3 py-2">
                       {formatBookingDeparture(row.departureAt, locale)}
                     </td>

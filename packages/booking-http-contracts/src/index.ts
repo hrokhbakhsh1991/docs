@@ -14,6 +14,8 @@ export type {
   ApproveBookingResponse,
   BookingCapacitySnapshot,
   BookingListItem,
+  BookingRegistrantTarget,
+  BookingTransportKind,
   BookingMemberReceiptJsonBody,
   BookingTourChip,
   BookingsListQuery,
@@ -50,7 +52,9 @@ export type {
   BookingPublicAutoApproveInput,
   BookingPublicCreateInput,
   BookingPublicCreateResult,
+  BookingPublicOwnedDetail,
   BookingPublicPort,
+  BookingPublicSelfRegistration,
 } from "./booking-public.port";
 
 export {

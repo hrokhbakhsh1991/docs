@@ -14,6 +14,7 @@ import {
   createOperatorDraftOnPushSuccess,
   resolveOperatorDraftConflictStrategy,
 } from "@/draft/draft-unification-v3-options";
+import { invalidateCachedTourDetail } from "@/features/tours/tour-route-cache";
 import { normalizeWizardRemoteEnvelopeForPlugin } from "@/draft/normalize-wizard-remote-envelope-for-plugin";
 import { useWorkspaceDraft } from "@/draft/use-workspace-draft";
 import {
@@ -139,8 +140,9 @@ export function useOperatorFlatEditPage({
   );
 
   const onAfterPatchSuccess = useCallback(() => {
+    invalidateCachedTourDetail(tourId);
     router.refresh();
-  }, [router]);
+  }, [router, tourId]);
 
   const loadSubmitCatalog = useCallback(
     (...args: never[]) => loadOperatorSubmitCatalogIds(plugin.id, ...args),

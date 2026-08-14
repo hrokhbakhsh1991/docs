@@ -138,12 +138,39 @@ When a member uploads a receipt and no pending manual payment exists yet, Financ
 
 | Source | When |
 | ------ | ---- |
-| `FinanceObligationPort.resolveRegistrationObligation` | Preferred — Denali: `basePricePerPerson × partySize` (FC-2) |
+| `FinanceObligationPort.resolveRegistrationObligation` | Preferred — Denali due total (see below) |
 | `FinanceReceiptDefaultsPort.offlineReceiptPaymentDefaults` | Fallback only when obligation resolves `null` (no pricing bind / missing tour price) |
 
-Member offline receipt auto-create uses the same obligation resolver as operator overpay checks.
+### Denali due total (transport-aware)
+
+Commercial obligation **must match** what the member saw at catalog intake and what Finance auto-creates on receipt upload.
+
+| Component | When included |
+| --------- | ------------- |
+| Trip `pricing.basePricePerPerson` | Always (offline collection; missing/≤0 → resolve `null`) |
+| Organized `transport.transportCostAmount` | Transport kind `primary` **and** organized mode (e.g. bus/van) |
+| `transport.dongAmount` | Transport kind `no_car_dong` |
+| Personal car / acquaintance | Trip only (no dong / no organized transport add-on) |
+
+Formula: `(per-person due) × partySize` in minor units (`IRR`). Free collection (`pricing.paymentCollection=free`) → `0`.
+
+Resolver input includes booking `registrationIntake.transport` (kind) so dong/transport add-ons are not dropped. Operator override still wins when present.
+
+Member offline receipt auto-create uses the **same** obligation resolver as operator overpay checks.
 
 Operator `createManualPayment` already accepted an explicit amount and logged over-obligation; member auto-create now aligns with the same obligation resolver. Per-registration override landed in phase 5.
+
+### Portal member due display (after club approve)
+
+On `/me/registrations/{id}` when lifecycle is `approved` and money is due (offline, unpaid/partial, receipt not yet paid):
+
+| Surface | Contract |
+| ------- | -------- |
+| Owned GET `GET /denali/registrations/:id` | Includes `dueCurrency`, `dueTotalMinor`, and `dueLines[]` (`trip` · `dong` · `transport`) |
+| Receipt upload panel | Shows **total to transfer** + line breakdown before file input |
+| Hooks | `data-portal-member-receipt-due` · `data-portal-member-receipt-due-line` · `data-due-code` |
+
+Display and Finance payment amount share the Denali due resolver — UI must not invent a parallel total. When due resolves `null` (no priced tour), omit the due block (legacy fallback amount remains Finance-only on upload).
 
 ## Phase 3 — Per-tour registration approval mode (2026-08-06)
 

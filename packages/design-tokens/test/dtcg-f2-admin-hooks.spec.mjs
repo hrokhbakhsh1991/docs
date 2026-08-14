@@ -43,7 +43,7 @@ describe("dtcg-f2-admin-hooks.spec.mjs", () => {
     const skin = readHook("wizard-skin.css");
     assert.match(
       skin,
-      /html\.dark:has\(body\[data-workspace-plugin="denali"\]\) \[data-new-tour-wizard\][\s\S]*--color-primary:\s*var\(--color-primary\)/,
+      /html\.dark:has\(body\[data-workspace-plugin="denali"\]\) \[data-new-tour-wizard\][\s\S]*--color-primary:\s*inherit/,
     );
   });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { TourInternalLink } from "@/features/tours/tour-internal-link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -37,14 +37,11 @@ export function TourDuplicateActions({ tourId }: TourDuplicateActionsProps) {
   return (
     <div className="flex flex-col items-start gap-1">
       <div className="flex flex-wrap gap-2">
-        <Link
-          href={`${OPERATOR_WIZARD_PATH}?clone=${encodeURIComponent(tourId)}`}
-          data-testid={TOURS_LIST_TEST_IDS.duplicate}
-        >
-          <Button type="button" variant="outline" size="sm">
+        <Button asChild variant="outline" size="sm" data-testid={TOURS_LIST_TEST_IDS.duplicate}>
+          <TourInternalLink href={`${OPERATOR_WIZARD_PATH}?clone=${encodeURIComponent(tourId)}`}>
             {t("duplicate")}
-          </Button>
-        </Link>
+          </TourInternalLink>
+        </Button>
         <Button
           type="button"
           variant="outline"

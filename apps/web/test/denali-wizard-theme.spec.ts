@@ -54,7 +54,7 @@ describe("denali-wizard-theme.spec.ts", () => {
     const skin = readFileSync(join(DENALI_THEME_DIR, "wizard-skin.css"), "utf8");
     assert.match(
       skin,
-      /html\.dark:has\(body\[data-workspace-plugin="denali"\]\) \[data-new-tour-wizard\][\s\S]*--color-primary:\s*var\(--color-primary\)/
+      /html\.dark:has\(body\[data-workspace-plugin="denali"\]\) \[data-new-tour-wizard\][\s\S]*--color-primary:\s*inherit/
     );
   });
 

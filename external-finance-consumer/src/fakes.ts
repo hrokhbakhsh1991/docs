@@ -51,6 +51,9 @@ export const ExternalDisplay: RegistrationDisplayPort = {
   async getByRegistrationIds() {
     return new Map();
   },
+  async listRegistrationIdsByTourId() {
+    return [];
+  },
 };
 
 export const ExternalCapability: FinanceCapabilityPort = {
@@ -175,8 +178,10 @@ export function createExternalBookingPort(): IBookingPaymentPort & {
       return input.paymentStatus;
     },
     async raisePaidInTx(_tx, input) {
-      paidRegistrations.add(input.registrationId);
-      return "paid";
+      if (input.paymentStatus === "paid" || input.paymentStatus === "partial") {
+        paidRegistrations.add(input.registrationId);
+      }
+      return input.paymentStatus;
     },
     async memberOwnsRegistration() {
       return true;

@@ -87,6 +87,7 @@ Response schema (summary): [`schemas/FINANCE-SUMMARY.schema.json`](schemas/FINAN
 | ----- | ---------- | -------- |
 | `limit` | list endpoints (existing) | unchanged caps |
 | `registrationId` | `GET /finance/payments` · `…/receipts/pending` · `…/prepayments` · `…/reports/ledger-events` · `…/schedules` | Optional UUID. After **tenant-scoped** list, keep only matching `registrationId`. Invalid UUID → `ZOD_VALIDATION_FAILED`. |
+| `tourId` | `GET /finance/receipts/pending` · `…/payments` · `…/prepayments` · `…/reports/ledger-events` · `…/reports/outstanding-balances` · `…/reports/tour-collections` | Optional UUID. Outstanding/tour-collections filter **after** invoice compile + identity enrich, **before** pagination (Tour Workspace KPIs). Receipts/payments use registration↔tour join. |
 
 List item enrichment (optional, backward compatible):
 

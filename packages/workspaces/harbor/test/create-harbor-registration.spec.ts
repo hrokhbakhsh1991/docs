@@ -38,7 +38,10 @@ describe("PSR-6c4 createHarborRegistration", () => {
       findDuplicateByTourGuest: async () => null,
       findDuplicateByTourGuestLabel: async () => null,
       findDuplicateByTourGuestNationalId: async () => null,
+        findDuplicateByTourGuestPhone: async () => null,
       findDuplicateByTourEmail: async () => null,
+      findOwnedBooking: async () => null,
+      mergeOwnedRegistrationIntake: async () => null,
       createPendingBooking: async (input) => {
         calls.push(input);
         return { id: "b1", status: "pending" };
@@ -69,7 +72,10 @@ describe("PSR-6c4 createHarborRegistration", () => {
       findDuplicateByTourGuest: async () => null,
       findDuplicateByTourGuestLabel: async () => null,
       findDuplicateByTourGuestNationalId: async () => null,
+        findDuplicateByTourGuestPhone: async () => null,
       findDuplicateByTourEmail: async () => ({ id: "existing" }),
+      findOwnedBooking: async () => null,
+      mergeOwnedRegistrationIntake: async () => null,
       createPendingBooking: async () => {
         throw new Error("should not create");
       },

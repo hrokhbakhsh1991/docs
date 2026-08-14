@@ -1,5 +1,5 @@
 /**
- * Phase 9.7 R1 — finance overview / ledger logic (CP-9.7-06).
+ * Phase 9.7 R1 + PR21-B1 — finance overview / ledger logic (CP-9.7-06).
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -16,7 +16,7 @@ import {
   toFinanceLedgerCsvRows,
 } from "../src/finance/finance-reports-logic";
 
-describe("finance-reports-logic.spec.ts — Phase 9.7 R1", () => {
+describe("finance-reports-logic.spec.ts — Phase 9.7 R1 / PR21-B1", () => {
   it("WEB-9.7-R1-01 parseFinanceSummary normalizes counts", () => {
     const summary = parseFinanceSummary({
       pendingManualPayments: 2,
@@ -28,8 +28,21 @@ describe("finance-reports-logic.spec.ts — Phase 9.7 R1", () => {
     assert.equal(summary.paidPayments, 10);
   });
 
-  it("WEB-9.7-R1-02 buildFinanceKpiCards includes overdue installments", () => {
+  it("PR21-B1: buildFinanceKpiCards omits overdue when installments disabled (default)", () => {
     const cards = buildFinanceKpiCards(parseFinanceSummary({ pendingManualPayments: 1 }), 3);
+    assert.equal(cards.some((card) => card.id === "overdue-installments"), false);
+    assert.equal(cards.find((card) => card.id === "pending-manual")?.value, 1);
+    assert.ok(cards.some((card) => card.id === "paid-payments"));
+    assert.equal(
+      cards.some((card) => card.href?.includes("tab=installments")),
+      false
+    );
+  });
+
+  it("PR21-B1: buildFinanceKpiCards includes overdue only when includeInstallments", () => {
+    const cards = buildFinanceKpiCards(parseFinanceSummary({ pendingManualPayments: 1 }), 3, {
+      includeInstallments: true,
+    });
     assert.equal(cards.length, 4);
     const overdue = cards.find((card) => card.id === "overdue-installments");
     assert.equal(overdue?.value, 3);
@@ -87,7 +100,7 @@ describe("finance-reports-logic.spec.ts — Phase 9.7 R1", () => {
     );
   });
 
-  it("WEB-9.7-R1-05 Phase E buildFinanceAttentionSamples prioritizes overdue then receipts then manual", () => {
+  it("PR21-B1: attention excludes overdue and prioritizes receipt before manual when installments off", () => {
     const samples = buildFinanceAttentionSamples({
       overdueInstallments: [
         {
@@ -124,12 +137,76 @@ describe("finance-reports-logic.spec.ts — Phase 9.7 R1", () => {
         },
       ],
       limit: 3,
+      includeInstallments: false,
+    });
+    assert.equal(samples.length, 2);
+    assert.equal(samples[0]?.kind, "pending-receipt");
+    assert.equal(samples[1]?.kind, "pending-manual");
+    assert.equal(samples[1]?.registrationId, "reg-c");
+    assert.equal(samples.some((s) => s.kind === "overdue-installment"), false);
+    assert.equal(samples.some((s) => s.href.includes("tab=installments")), false);
+  });
+
+  it("PR21-B1: attention preserves registrationId on receipt and payment hrefs", () => {
+    const samples = buildFinanceAttentionSamples({
+      overdueInstallments: [],
+      pendingReceipts: [{ id: "rcpt-1", registrationId: "reg-receipt-uuid", registrationContext: null }],
+      pendingManualPayments: [
+        { id: "pay-1", registrationId: "reg-payment-uuid", status: "Pending", registrationContext: null },
+      ],
+      includeInstallments: false,
+    });
+    assert.equal(
+      samples[0]?.href,
+      "/finance?tab=receipts&registrationId=reg-receipt-uuid"
+    );
+    assert.equal(
+      samples[1]?.href,
+      "/finance?tab=payments&registrationId=reg-payment-uuid"
+    );
+  });
+
+  it("PR21-B1: when installments enabled, overdue remains first and keeps registrationId", () => {
+    const samples = buildFinanceAttentionSamples({
+      overdueInstallments: [
+        {
+          id: "sch-1",
+          registrationId: "reg-a",
+          label: "Installment 1",
+          registrationContext: {
+            registrationId: "reg-a",
+            tourId: "tour-1",
+            tourTitle: "Alborz",
+            memberDisplayName: "Ada",
+          },
+        },
+      ],
+      pendingReceipts: [
+        {
+          id: "rcpt-1",
+          registrationId: "reg-b",
+          registrationContext: null,
+        },
+      ],
+      pendingManualPayments: [
+        {
+          id: "pay-1",
+          registrationId: "reg-c",
+          status: "Pending",
+          registrationContext: null,
+        },
+      ],
+      limit: 3,
+      includeInstallments: true,
     });
     assert.equal(samples.length, 3);
     assert.equal(samples[0]?.kind, "overdue-installment");
     assert.equal(samples[0]?.registrationContext?.tourTitle, "Alborz");
+    assert.equal(
+      samples[0]?.href,
+      "/finance?tab=installments&registrationId=reg-a"
+    );
     assert.equal(samples[1]?.kind, "pending-receipt");
     assert.equal(samples[2]?.kind, "pending-manual");
-    assert.equal(samples[2]?.registrationId, "reg-c");
   });
 });

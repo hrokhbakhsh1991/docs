@@ -8,22 +8,40 @@ import { randomUUID } from "node:crypto";
 import type {
   ApproveManualReceiptAtomicInput,
   ApproveManualReceiptAtomicResult,
+  CancelPendingManualPaymentAtomicInput,
+  CancelPendingManualPaymentAtomicResult,
   CreatePaymentInput,
   CreateReceiptInput,
+  CreateRefundInput,
   FinanceLedgerOutboxRow,
   FinanceOpenPaymentRow,
   FinancePaymentRow,
   FinancePrepaymentListRow,
   FinanceReceiptRow,
+  FinanceRefundRow,
   FinanceRepositoryPort,
   FinanceSummaryRow,
   FinanceTourPaymentAggregateRow,
+  ListFinanceExceptionSourcesResult,
+  ListOutstandingBalanceCandidatesResult,
+  ListPendingReceiptsPage,
+  ListPendingReceiptsQuery,
+  ListRefundsPageQuery,
+  ListRefundsPageResult,
   PrepaymentBookingSyncDegradedRow,
   RecordPrepaymentAtomicInput,
   RegistrationInvoiceFacts,
+  SumCompletedRefundsQuery,
+  TransitionRefundStatusInput,
   UpdateReceiptReviewInput,
 } from "../../src/ports/finance-repository.port.ts";
 import type { IBookingPaymentPort } from "../../src/ports/booking-payment.port.ts";
+import { paginatePendingReceiptRows } from "../../src/domain/pending-receipt-queue.ts";
+import {
+  compareOperatorRefundOrder,
+  isOlderThanOperatorRefundCursor,
+} from "../../src/domain/refund/operator-refund-page.ts";
+import { resolveApproveBookingPaymentStatus } from "../../src/domain/resolve-approve-booking-payment-status.ts";
 
 type StoredPayment = FinancePaymentRow & {
   readonly tenantId: string;
@@ -41,6 +59,7 @@ let paymentsById = new Map<string, StoredPayment>();
 let receiptsById = new Map<string, StoredReceipt>();
 let ledgerEvents: StoredLedgerEvent[] = [];
 let prepaymentsByDomainEventId = new Map<string, FinancePrepaymentListRow & { readonly tenantId: string }>();
+let refundsById = new Map<string, FinanceRefundRow>();
 
 
 export function resetInMemoryFinanceRepositoryForTests(): void {
@@ -48,6 +67,7 @@ export function resetInMemoryFinanceRepositoryForTests(): void {
   receiptsById = new Map();
   ledgerEvents = [];
   prepaymentsByDomainEventId = new Map();
+  refundsById = new Map();
 }
 
 function toLedgerOutboxRow(row: StoredLedgerEvent): FinanceLedgerOutboxRow {
@@ -77,6 +97,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
       pendingReceiptReviews: tenantReceipts.filter((row) => row.status === "Pending").length,
       paidPayments: tenantPayments.filter((row) => row.status === "Paid").length,
       failedPayments: tenantPayments.filter((row) => row.status === "Failed").length,
+      cancelledPayments: tenantPayments.filter((row) => row.status === "Cancelled").length,
     };
   }
 
@@ -282,10 +303,117 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     return row;
   }
 
-  async listPendingReceipts(tenantId: string, limit: number): Promise<FinanceReceiptRow[]> {
-    return [...receiptsById.values()]
-      .filter((row) => row.tenantId === tenantId && row.status === "Pending")
-      .slice(0, limit);
+  async listPendingReceipts(
+    tenantId: string,
+    query: ListPendingReceiptsQuery
+  ): Promise<ListPendingReceiptsPage> {
+    const pending = [...receiptsById.values()].filter(
+      (row) => row.tenantId === tenantId && row.status === "Pending"
+    );
+    return paginatePendingReceiptRows({
+      rows: pending,
+      tenantId,
+      limit: query.limit,
+      cursor: query.cursor,
+      registrationId: query.registrationId,
+      registrationIds: query.registrationIds,
+    });
+  }
+
+  async listFinanceExceptionSources(
+    tenantId: string
+  ): Promise<ListFinanceExceptionSourcesResult> {
+    const pendingPayments = [...paymentsById.values()].filter(
+      (row) => row.tenantId === tenantId && row.status === "Pending"
+    );
+    const rejectedReceiptPendingPayments = [];
+    for (const payment of pendingPayments) {
+      const latest = [...receiptsById.values()]
+        .filter((row) => row.tenantId === tenantId && row.paymentId === payment.id)
+        .sort((a, b) => {
+          const byTime = b.createdAt.getTime() - a.createdAt.getTime();
+          if (byTime !== 0) {
+            return byTime;
+          }
+          return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
+        })[0];
+      if (latest === undefined || latest.status !== "Rejected") {
+        continue;
+      }
+      rejectedReceiptPendingPayments.push({
+        paymentId: payment.id,
+        registrationId: payment.registrationId,
+        amount: payment.amount,
+        currency: payment.currency,
+        method: payment.method,
+        receiptId: latest.id,
+        reviewNote: latest.reviewNote,
+        occurredAt: latest.reviewedAt ?? latest.createdAt,
+      });
+    }
+
+    const cancelledPayments = [...paymentsById.values()]
+      .filter((row) => row.tenantId === tenantId && row.status === "Cancelled")
+      .map((payment) => {
+        const cancelEvent = ledgerEvents.find(
+          (event) =>
+            event.tenantId === tenantId &&
+            event.eventType === "finance.payment.cancelled" &&
+            event.aggregateId === payment.id
+        );
+        const payload =
+          cancelEvent !== undefined &&
+          typeof cancelEvent.payload === "object" &&
+          cancelEvent.payload !== null
+            ? (cancelEvent.payload as { reasonCode?: string; occurredAt?: string })
+            : null;
+        const occurredAt =
+          payload?.occurredAt !== undefined
+            ? new Date(payload.occurredAt)
+            : cancelEvent?.createdAt ?? payment.createdAt;
+        return {
+          paymentId: payment.id,
+          registrationId: payment.registrationId,
+          amount: payment.amount,
+          currency: payment.currency,
+          method: payment.method,
+          reasonCode: typeof payload?.reasonCode === "string" ? payload.reasonCode : null,
+          occurredAt: Number.isNaN(occurredAt.getTime()) ? payment.createdAt : occurredAt,
+        };
+      });
+
+    return { rejectedReceiptPendingPayments, cancelledPayments };
+  }
+
+  async listOutstandingBalanceCandidates(
+    tenantId: string
+  ): Promise<ListOutstandingBalanceCandidatesResult> {
+    const byRegistration = new Map<string, Date>();
+    for (const payment of paymentsById.values()) {
+      if (payment.tenantId !== tenantId) {
+        continue;
+      }
+      const prior = byRegistration.get(payment.registrationId);
+      // Oldest obligation clock among payment rows for this registration — D1 in-memory
+      // stand-in when operator_registrations are not co-located. Prisma uses registration createdAt.
+      if (prior === undefined || payment.createdAt.getTime() < prior.getTime()) {
+        byRegistration.set(payment.registrationId, payment.createdAt);
+      }
+    }
+    const candidates = [...byRegistration.entries()]
+      .map(([registrationId, occurredAt]) => ({ registrationId, occurredAt }))
+      .sort((a, b) => {
+        const byTime = a.occurredAt.getTime() - b.occurredAt.getTime();
+        if (byTime !== 0) {
+          return byTime;
+        }
+        return a.registrationId < b.registrationId
+          ? -1
+          : a.registrationId > b.registrationId
+            ? 1
+            : 0;
+      });
+    return { candidates };
   }
 
   async updateReceiptReview(
@@ -405,11 +533,25 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
 
     let bookingPaymentStatus: ApproveManualReceiptAtomicResult["bookingPaymentStatus"];
     try {
+      const facts = await this.getRegistrationInvoiceFacts(input.tenantId, input.registrationId);
+      const paymentStatus = resolveApproveBookingPaymentStatus({
+        registrationId: input.registrationId,
+        currency: facts.currency,
+        prepaymentMinor: facts.prepaymentMinor,
+        paidPaymentsMinor: facts.paidPaymentsMinor,
+        paymentAmountsMinor: facts.paymentAmountsMinor,
+        scheduleAmountsMinor: input.scheduleAmountsMinor,
+        refundedCompletedMinor: facts.refundedCompletedMinor,
+        ...(input.obligationMinor !== undefined
+          ? { obligationMinor: input.obligationMinor }
+          : {}),
+      });
       bookingPaymentStatus = await this.bookingPayments.raisePaidInTx(
         {},
         {
           tenantId: input.tenantId,
           registrationId: input.registrationId,
+          paymentStatus,
         }
       );
     } catch (error: unknown) {
@@ -453,6 +595,114 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
       reviewedAt: updated.reviewedAt?.toISOString() ?? null,
       ledgerJournalId: input.journalId,
       bookingPaymentStatus,
+    };
+  }
+
+  /**
+   * Memory simulation of Prisma cancel (conditional Pending → Cancelled + audit outbox).
+   */
+  async cancelPendingManualPaymentAtomic(
+    input: CancelPendingManualPaymentAtomicInput
+  ): Promise<CancelPendingManualPaymentAtomicResult> {
+    const domainEventId = `payment-cancelled:${input.paymentId}`.slice(0, 128);
+    const existing = paymentsById.get(input.paymentId);
+    if (existing === undefined) {
+      throw new Error("PAYMENT_NOT_FOUND");
+    }
+    if (existing.tenantId !== input.tenantId) {
+      throw new Error("PAYMENT_NOT_IN_SCOPE");
+    }
+    if (existing.method !== "Manual") {
+      throw new Error("PAYMENT_CANCEL_ONLY_MANUAL");
+    }
+
+    const buildAudit = (
+      payment: FinancePaymentRow
+    ): CancelPendingManualPaymentAtomicResult["auditPayload"] => ({
+      tenantId: input.tenantId,
+      paymentId: payment.id,
+      registrationId: payment.registrationId,
+      actorUserId: input.actorUserId,
+      occurredAt: input.occurredAtIso,
+      fromStatus: "Pending",
+      toStatus: "Cancelled",
+      method: "Manual",
+      reasonCode: input.reasonCode,
+      reasonNote: input.reasonNote,
+      amount: payment.amount,
+      currency: payment.currency,
+      openReceiptCount: 0,
+      ...(input.idempotencyKeyHash !== undefined
+        ? { idempotencyKeyHash: input.idempotencyKeyHash }
+        : {}),
+    });
+
+    if (existing.status === "Cancelled") {
+      const prior = ledgerEvents.find(
+        (event) =>
+          event.tenantId === input.tenantId &&
+          event.domainEventId === domainEventId &&
+          event.eventType === "finance.payment.cancelled"
+      );
+      const auditPayload =
+        prior !== undefined &&
+        typeof prior.payload === "object" &&
+        prior.payload !== null
+          ? (prior.payload as CancelPendingManualPaymentAtomicResult["auditPayload"])
+          : buildAudit(existing);
+      return {
+        payment: existing,
+        replay: true,
+        domainEventId,
+        auditPayload,
+      };
+    }
+
+    if (existing.status !== "Pending") {
+      throw new Error("PAYMENT_NOT_CANCELLABLE");
+    }
+
+    const pendingReceipts = await this.countPendingReceiptsForPayment(
+      input.tenantId,
+      input.paymentId
+    );
+    if (pendingReceipts > 0) {
+      throw new Error("PAYMENT_HAS_PENDING_RECEIPT");
+    }
+
+    const updated: StoredPayment = {
+      ...existing,
+      status: "Cancelled",
+    };
+    paymentsById.set(input.paymentId, updated);
+    for (const [receiptId, receipt] of receiptsById.entries()) {
+      if (receipt.tenantId === input.tenantId && receipt.paymentId === input.paymentId) {
+        receiptsById.set(receiptId, { ...receipt, payment: updated });
+      }
+    }
+
+    const auditPayload = buildAudit(updated);
+    const already = ledgerEvents.some(
+      (event) =>
+        event.tenantId === input.tenantId && event.domainEventId === domainEventId
+    );
+    if (!already) {
+      ledgerEvents.push({
+        id: randomUUID(),
+        tenantId: input.tenantId,
+        eventType: "finance.payment.cancelled",
+        payload: auditPayload,
+        createdAt: new Date(input.occurredAtIso),
+        domainEventId,
+        aggregateId: input.paymentId,
+      });
+    }
+
+    return {
+      payment: updated,
+      replay: false,
+      domainEventId,
+      auditPayload,
     };
   }
 
@@ -574,14 +824,212 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
   }
 
   async getRegistrationInvoiceFacts(
-    _tenantId: string,
-    _registrationId: string
+    tenantId: string,
+    registrationId: string
   ): Promise<RegistrationInvoiceFacts> {
+    const rows = [...paymentsById.values()].filter(
+      (row) => row.tenantId === tenantId && row.registrationId === registrationId
+    );
+    let paid = BigInt(0);
+    const paymentAmountsMinor: string[] = [];
+    let currency = "IRR";
+    for (const row of rows) {
+      const digits = row.amount.replace(/\D/g, "") || "0";
+      paymentAmountsMinor.push(digits);
+      if (row.currency.length > 0) {
+        currency = row.currency;
+      }
+      if (row.status === "Paid") {
+        paid += BigInt(digits);
+      }
+    }
+    let prepayment = BigInt(0);
+    for (const row of prepaymentsByDomainEventId.values()) {
+      if (row.tenantId === tenantId && row.registrationId === registrationId) {
+        prepayment += BigInt(row.amountMinor.replace(/\D/g, "") || "0");
+        if (row.currency.length > 0) {
+          currency = row.currency;
+        }
+      }
+    }
+    const refundedCompletedMinor = await this.sumCompletedRefundsMinor({
+      tenantId,
+      registrationId,
+    });
     return {
-      prepaymentMinor: "0",
-      paidPaymentsMinor: "0",
-      paymentAmountsMinor: [],
-      currency: "IRR",
+      prepaymentMinor: prepayment.toString(),
+      paidPaymentsMinor: paid.toString(),
+      paymentAmountsMinor,
+      currency,
+      refundedCompletedMinor,
     };
+  }
+
+  async createRefund(input: CreateRefundInput): Promise<FinanceRefundRow> {
+    if (input.creationIdempotencyKey) {
+      const existing = await this.findRefundByCreationIdempotencyKey(
+        input.tenantId,
+        input.creationIdempotencyKey
+      );
+      if (existing !== null) {
+        return existing;
+      }
+    }
+    const requestedAt = new Date(input.requestedAtIso);
+    const row: FinanceRefundRow = {
+      id: randomUUID(),
+      tenantId: input.tenantId,
+      registrationId: input.registrationId,
+      paymentId: input.paymentId,
+      sourceKind: input.sourceKind,
+      amountMinor: input.amountMinor,
+      currency: input.currency.toUpperCase(),
+      reasonCode: input.reasonCode,
+      reasonNote: input.reasonNote,
+      status: "Requested",
+      requestedAt,
+      requestedByUserId: input.requestedByUserId,
+      approvedAt: null,
+      approvedByUserId: null,
+      rejectedAt: null,
+      rejectedByUserId: null,
+      rejectNote: null,
+      cancelledAt: null,
+      cancelledByUserId: null,
+      completedAt: null,
+      completedByUserId: null,
+      completionNote: null,
+      evidenceFileKey: input.evidenceFileKey ?? null,
+      evidenceNote: input.evidenceNote ?? null,
+      creationIdempotencyKey: input.creationIdempotencyKey ?? null,
+    };
+    refundsById.set(row.id, row);
+    return row;
+  }
+
+  async findRefundById(tenantId: string, refundId: string): Promise<FinanceRefundRow | null> {
+    const row = refundsById.get(refundId);
+    if (row === undefined || row.tenantId !== tenantId) {
+      return null;
+    }
+    return row;
+  }
+
+  async findRefundByCreationIdempotencyKey(
+    tenantId: string,
+    creationIdempotencyKey: string
+  ): Promise<FinanceRefundRow | null> {
+    for (const row of refundsById.values()) {
+      if (
+        row.tenantId === tenantId &&
+        row.creationIdempotencyKey === creationIdempotencyKey
+      ) {
+        return row;
+      }
+    }
+    return null;
+  }
+
+  async listRefundsForRegistration(
+    tenantId: string,
+    registrationId: string
+  ): Promise<readonly FinanceRefundRow[]> {
+    return [...refundsById.values()]
+      .filter((row) => row.tenantId === tenantId && row.registrationId === registrationId)
+      .sort((a, b) => a.requestedAt.getTime() - b.requestedAt.getTime());
+  }
+
+  async listRefundsPage(query: ListRefundsPageQuery): Promise<ListRefundsPageResult> {
+    const limit = Math.max(1, Math.floor(query.limit));
+    let rows = [...refundsById.values()].filter((row) => row.tenantId === query.tenantId);
+    if (query.registrationId !== undefined) {
+      rows = rows.filter((row) => row.registrationId === query.registrationId);
+    }
+    if (query.status !== undefined) {
+      rows = rows.filter((row) => row.status === query.status);
+    }
+    const cursorRaw = query.cursor;
+    if (cursorRaw !== undefined && cursorRaw !== null) {
+      const cursorAt = new Date(cursorRaw.requestedAt);
+      if (!Number.isNaN(cursorAt.getTime()) && cursorRaw.id.length > 0) {
+        rows = rows.filter((row) =>
+          isOlderThanOperatorRefundCursor(row, {
+            requestedAt: cursorAt,
+            id: cursorRaw.id,
+          })
+        );
+      }
+    }
+    rows.sort(compareOperatorRefundOrder);
+    const hasMore = rows.length > limit;
+    return { rows: hasMore ? rows.slice(0, limit) : rows, hasMore };
+  }
+
+  async sumCompletedRefundsMinor(query: SumCompletedRefundsQuery): Promise<string> {
+    let sum = BigInt(0);
+    for (const row of refundsById.values()) {
+      if (row.tenantId !== query.tenantId || row.registrationId !== query.registrationId) {
+        continue;
+      }
+      if (row.status !== "Completed") {
+        continue;
+      }
+      if (query.excludeRefundId !== undefined && row.id === query.excludeRefundId) {
+        continue;
+      }
+      if (query.paymentId !== undefined && row.paymentId !== query.paymentId) {
+        continue;
+      }
+      if (query.sourceKind !== undefined && row.sourceKind !== query.sourceKind) {
+        continue;
+      }
+      sum += BigInt(row.amountMinor.replace(/\D/g, "") || "0");
+    }
+    return sum.toString();
+  }
+
+  async transitionRefundStatus(
+    input: TransitionRefundStatusInput
+  ): Promise<{ readonly refund: FinanceRefundRow; readonly replay: boolean }> {
+    const existing = refundsById.get(input.refundId);
+    if (existing === undefined || existing.tenantId !== input.tenantId) {
+      throw new Error("REFUND_NOT_FOUND");
+    }
+    if (existing.status === input.toStatus) {
+      if (input.toStatus === "Completed" || input.toStatus === "Approved") {
+        return { refund: existing, replay: true };
+      }
+      throw new Error("REFUND_NOT_TRANSITIONABLE");
+    }
+    if (!(input.fromStatuses as readonly string[]).includes(existing.status)) {
+      throw new Error("REFUND_NOT_TRANSITIONABLE");
+    }
+    const occurredAt = new Date(input.occurredAtIso);
+    const next: FinanceRefundRow = {
+      ...existing,
+      status: input.toStatus,
+      ...(input.toStatus === "Approved"
+        ? { approvedAt: occurredAt, approvedByUserId: input.actorUserId }
+        : {}),
+      ...(input.toStatus === "Rejected"
+        ? {
+            rejectedAt: occurredAt,
+            rejectedByUserId: input.actorUserId,
+            rejectNote: input.rejectNote ?? null,
+          }
+        : {}),
+      ...(input.toStatus === "Cancelled"
+        ? { cancelledAt: occurredAt, cancelledByUserId: input.actorUserId }
+        : {}),
+      ...(input.toStatus === "Completed"
+        ? {
+            completedAt: occurredAt,
+            completedByUserId: input.actorUserId,
+            completionNote: input.completionNote ?? null,
+          }
+        : {}),
+    };
+    refundsById.set(next.id, next);
+    return { refund: next, replay: false };
   }
 }

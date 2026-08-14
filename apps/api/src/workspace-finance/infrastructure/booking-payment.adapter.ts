@@ -51,7 +51,7 @@ export class BookingPaymentAdapter implements IBookingPaymentPort {
         throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_MISS");
       }
       const current = booking.paymentStatus as BookingPaymentStatus;
-      const next = raiseBookingPaymentStatus(current, "paid");
+      const next = raiseBookingPaymentStatus(current, input.paymentStatus);
       if (next !== current) {
         const updated = await prismaTx.operatorRegistration.updateMany({
           where: { id: registrationId, tenantId },

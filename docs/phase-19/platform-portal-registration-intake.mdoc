@@ -105,10 +105,17 @@ Spec: `apps/portal/test/portal-catalog-registration-bff.spec.ts` (REG-BFF-01).
 | `participantProfileFields` | nationalId, fatherName, birthDate | — | — |
 | `emailAtIntake` | no (profile only) | yes | no |
 | `notesAtIntake` | no | yes | no |
-| `idempotencyKey` | no | yes | no |
+| `idempotencyKey` | yes | yes | no |
+| `requiresMemberSession` | yes | no | no |
+| `selfRegistrationGate` | yes | no | no |
+| `memberPendingIntakeAmend` | yes | no | no |
 | `successDataAttributes` | — | `data-urban-registration-success` | — |
 
 Transport UI is **card-driven**: when `PublicCatalogCard.transport` is absent, portal shows no transport controls even if `transportIntake` capability is true.
+
+### Intake field widgets (digit strings)
+
+`IntakeFieldWidget` values `numeric-text` and `localized-digits` both render as HTML `type="text"` + `inputMode="numeric"` via `@app-cloud/catalog-intake-ui` (`RenderIntakeField`). Do **not** map them to `type="number"` — that strips leading zeros (guest mobile) and breaks validation after a self-registration lock. Only `IntakeFieldType` `"number"` uses a number input.
 
 ### Denali tour-flag intake gating (2026-07-02)
 

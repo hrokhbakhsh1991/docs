@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { resolveBookingsPageBodyState } from "../app/(app)/bookings/bookings-command-center-gate";
+import { resolveBookingsPageBodyState } from "../src/features/bookings/bookings-command-center-gate";
 import { findSelectedBooking } from "../src/features/bookings/bookings-command-center-logic";
 import { BOOKINGS_COMMAND_CENTER_TEST_IDS } from "../src/features/bookings/bookings-command-center-types";
 

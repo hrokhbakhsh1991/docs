@@ -28,6 +28,13 @@ describe("portal-catalog-registrations-dispatch (P4-B PR-10b/c)", () => {
     assert.doesNotMatch(source, /buildCatalogRegistrationHeaders/);
   });
 
+  it("PR-10b3 route fail-closes when requiresMemberSession and no Bearer", () => {
+    const source = readFileSync(ROUTE_PATH, "utf8");
+    assert.match(source, /resolveIntakeSchema/);
+    assert.match(source, /requiresMemberSession/);
+    assert.match(source, /AUTH_UNAUTHENTICATED/);
+  });
+
   it("PR-10c route forwards idempotency key via SDK builder", () => {
     const source = readFileSync(ROUTE_PATH, "utf8");
     assert.match(source, /idempotency-key/);

@@ -25,6 +25,28 @@ describe("deriveTourProjections (unit)", () => {
     });
     assert.equal(projections.title, "My Tour");
     assert.equal(projections.schemaVersion, 2);
+    assert.equal(projections.publishStatus, "draft");
+    assert.equal(projections.publishedAt, null);
+  });
+
+  it("derives public publish columns for denali active canonicals", () => {
+    const observedAt = new Date("2026-08-13T09:00:00.000Z");
+    const projections = deriveTourProjections(
+      {
+        schemaVersion: 1,
+        roots: ["basics"],
+        data: {
+          basics: { title: "Damavand One-Day" },
+          publishStatus: "active",
+        },
+      },
+      {
+        workspaceType: "denali",
+        observedAt,
+      },
+    );
+    assert.equal(projections.publishStatus, "published");
+    assert.equal(projections.publishedAt?.toISOString(), observedAt.toISOString());
   });
 });
 

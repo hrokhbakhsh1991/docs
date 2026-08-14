@@ -194,6 +194,11 @@
       "types": "./dist/finance/api-tour-created-adapter.d.ts",
       "default": "./dist/finance/api-tour-created-adapter.js"
     },
+    "./host/finance/case-read": {
+      "types": "./dist/finance/case-read/index.d.ts",
+      "default": "./dist/finance/case-read/index.js"
+    },
+
     "./settings/denaliFullWizardTemplate": {
       "types": "./dist/settings/denaliFullWizardTemplate.d.ts",
       "default": "./dist/settings/denaliFullWizardTemplate.js"

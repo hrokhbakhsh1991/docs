@@ -2,12 +2,12 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-MEMBER-REGISTRATIONS
-version: "2026-08-06-v6"
+version: "2026-08-12-v8"
 extends: platform-portal-member.mdoc
 workspace: denali
 apps: [portal]
 phase: P6-3
-authority: platform-portal-member.mdoc · portal-registration-ui.md · registration-payment-orchestration.mdoc
+authority: platform-portal-member.mdoc · portal-registration-ui.md · registration-payment-orchestration.mdoc · registration-self-other-uniqueness.mdoc
 ```
 
 ## Scope
@@ -18,22 +18,72 @@ authority: platform-portal-member.mdoc · portal-registration-ui.md · registrat
 
 **This doc:** Denali portal skin for `/me/registrations` list + detail + receipt upload. Business rules stay in API bookings/finance; portal **must not** static-import `@app-cloud/workspace-denali`.
 
+### Mine list default (active only)
+
+`GET /api/me/registrations` → `GET /bookings?view=mine` returns **active** member rows by default: statuses ∈ `{pending, waitlisted, approved}`. Terminal `cancelled` / `rejected` are omitted unless the client explicitly passes `status` / `statuses`. Prevents cancelled probe/history rows from drowning the trips list after reclassify or abandoned attempts.
+
+### Registrant-target filter (self vs other)
+
+List SSR reads optional query `?target=` (URL SoT — bookmarkable, no client-only state):
+
+| `target` | Meaning |
+| -------- | ------- |
+| omitted / `all` | Every active mine row (`self` + `other`) |
+| `self` | Only registrations where `registrantTarget !== "other"` (includes missing/null → self) |
+| `other` | Only guest registrations (`registrantTarget === "other"`) |
+
+**Filter is presentation-only** on the already-fetched mine list. Upstream `GET /bookings?view=mine` still returns both targets; portal does **not** add a booking query param for target (keeps BFF one-shot and avoids ops/list contract churn).
+
+UI:
+
+```text
+nav[data-portal-member-registrations-filter][data-active-target]
+  a[data-portal-member-registrations-filter-tab][data-target=all|self|other][aria-current=page when active]
+    label + count[data-portal-member-registrations-filter-count]
+```
+
+Empty copy is **filter-aware**:
+
+- No rows at all → existing `empty` + browse-tours CTA
+- Rows exist but active tab filters to zero → `emptyFiltered` (no browse CTA; stay on list with other tabs)
+
+Each row keeps `data-portal-member-registrant-target` and shows a badge:
+
+- `other` → `forOtherBadge` (+ guest label when present)
+- `self` → `forSelfBadge` (makes “mine vs guest” obvious when tab is **all**)
+
 ---
 
 ## Route → component tree
 
 ```text
 app/me/layout.tsx
-  └── app/me/registrations/page.tsx
+  └── app/me/registrations/page.tsx  (?target=all|self|other)
         GET /api/me/registrations (SSR via fetchMemberRegistrations — includes tourId)
-        main[data-portal-member-registrations]
-          ul → li[data-portal-member-registration-row] → link
+        main[data-portal-member-registrations][data-registrant-filter]
+          nav[data-portal-member-registrations-filter]
+          ul → li[data-portal-member-registration-row][data-portal-member-registrant-target] → link
 
   └── app/me/registrations/[id]/page.tsx
-        SSR: GET /api/me/registrations/[id]/receipt → receiptStatus
+        SSR: GET /api/me/registrations/[id] (owned detail — not list scan)
+             GET /api/me/registrations/[id]/receipt → receiptStatus
         main[data-portal-member-registration-detail]
           MemberReceiptPanel (client) — gated by booking.status + receiptStatus
 ```
+
+**Deep-link invariant:** Register-page CTA `/me/registrations/{id}` must resolve via owned GET.
+Scanning `GET /api/me/registrations` (mine list) alone is insufficient — empty/failed list previously
+mapped to Next `notFound()` (404) even when the booking existed (for-tour / DB).
+
+### HTTP service modules (portal registration reads + amend)
+
+| Module | Route responsibility |
+| ------ | -------------------- |
+| `registration-for-tour.service.ts` | `GET …/for-tour` — active self row gate before register |
+| `registration-get.service.ts` | `GET …/{id}` — owned detail + optional due breakdown |
+| `registration-amend.service.ts` | `PATCH …/{id}/intake` — transport-only amend while pending/waitlisted |
+
+Wired from `product.routes.ts`. Tests: `packages/workspaces/denali/test/registration-read-services.spec.ts`.
 
 ---
 
@@ -43,7 +93,7 @@ Detail uses **booking.status** (from list row) **and** `receiptStatus`. Upload i
 
 | Condition | UI |
 | --------- | -- |
-| `status` = `pending` \| `waitlisted` | Awaiting club approval panel — **no** file input (`data-portal-member-receipt-awaiting-approval`) |
+| `status` = `pending` \| `waitlisted` | Awaiting club approval panel — **no** file input (`data-portal-member-receipt-awaiting-approval`); optional **intake amend** for transport (`data-portal-member-intake-amend`) via `PATCH /api/me/registrations/{id}/intake` before approve — see [registration-self-other-uniqueness.mdoc](./registration-self-other-uniqueness.mdoc) |
 | `status` = `rejected` \| `cancelled` | Closed registration panel — **no** upload (`data-portal-member-receipt-closed`) |
 | `status` = `approved` ∧ `receiptStatus` = `none` | Upload form |
 | `status` = `approved` ∧ `receiptStatus` = `rejected` | Upload form + retry hint |
@@ -77,8 +127,16 @@ Stable selectors — **do not rename** without updating smoke specs.
 
 | Hook | Location |
 | ---- | -------- |
-| `data-portal-member-registrations` | List page root (`main`) |
+| `data-portal-member-registrations` | List page root (`main`); also `data-registrant-filter={all\|self\|other}` |
+| `data-portal-member-registrations-filter` | Target filter nav; `data-active-target` mirrors query |
+| `data-portal-member-registrations-filter-tab` | Tab link; `data-target` + `aria-current="page"` when active |
+| `data-portal-member-registrations-filter-label` | Tab visible label |
+| `data-portal-member-registrations-filter-count` | Per-tab active count |
+| `data-portal-member-registrations-empty-state` | Empty shell; `data-empty-reason="filtered"` when tab has zero rows but mine list is non-empty |
 | `data-portal-member-registration-row` | Each list item |
+| `data-portal-member-registrant-target` | `self` \| `other` on each row |
+| `data-portal-member-registrant-self-badge` | Self badge copy |
+| `data-portal-member-registrant-other-badge` | Other badge copy |
 | `data-portal-member-registration-detail` | Detail page root (`main`) |
 | `data-portal-member-receipt-awaiting-approval` | Club approval pending / waitlisted |
 | `data-portal-member-receipt-closed` | rejected / cancelled — no upload |
@@ -90,6 +148,9 @@ Stable selectors — **do not rename** without updating smoke specs.
 | `data-portal-member-receipt-paid` | Payment confirmed panel |
 | `data-portal-member-receipt-view-tour` | Marketing tour CTA |
 | `data-portal-member-receipt-back-trips` | Trips list CTA |
+| `data-portal-member-intake-amend` | Pending/waitlisted transport amend panel (feature `memberPendingIntakeAmend`) |
+| `data-portal-member-intake-amend-saved` | Amend success status |
+| `data-portal-member-intake-amend-error` | Amend error alert |
 
 Existing smokes: **SMK-PTL-02** (list) · **SMK-PTL-04** (receipt → waiting panel; requires approved booking) · **SMK-PTL-05** (home redirect) · **SMK-PTL-06** (logout).
 
@@ -110,6 +171,7 @@ Existing smokes: **SMK-PTL-02** (list) · **SMK-PTL-04** (receipt → waiting pa
 | Row meta | `[data-portal-member-registration-meta]` — payment + departure |
 | Empty state | `[data-portal-member-registrations-empty-state]` — message + CTA (PS-M2 · 2026-07-12) |
 | Empty CTA | `[data-portal-member-registrations-empty-cta]` — egress to marketing `/tours` via `resolveMarketingToursUrl` |
+| Target filter | `[data-portal-member-registrations-filter]` · `[data-portal-member-registrations-filter-tab][data-target]` — Denali primary underline/pill for `aria-current` |
 
 Design SoT: `design-system/denali-club/MASTER.md` (primary `#059669`).
 
@@ -124,6 +186,8 @@ Design SoT: `design-system/denali-club/MASTER.md` (primary `#059669`).
 | DEN-REG-03 | Receipt submit disabled while upload in flight |
 | DEN-REG-04 | After upload, waiting panel visible; upload control gone (SMK-PTL-04) |
 | DEN-REG-05 | `status=pending` shows `data-portal-member-receipt-awaiting-approval`; no upload control |
+| DEN-REG-06 | List filter tabs render with counts; `?target=other` shows only `data-portal-member-registrant-target="other"` rows |
+| DEN-REG-07 | Self rows show `data-portal-member-registrant-self-badge`; other rows keep `forOtherBadge` |
 
 ### Detail chrome
 

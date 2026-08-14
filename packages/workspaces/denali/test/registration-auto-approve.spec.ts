@@ -56,7 +56,19 @@ function trackingPort(): {
     async findDuplicateByTourGuestNationalId() {
       return null;
     },
+    async findDuplicateByTourGuestPhone() {
+      return null;
+    },
     async findDuplicateByTourEmail() {
+      return null;
+    },
+    async findOwnedBooking() {
+      return null;
+    },
+    async mergeOwnedRegistrationIntake() {
+      return null;
+    },
+    async reclassifyOwnedOtherToSelf() {
       return null;
     },
     async createPendingBooking() {

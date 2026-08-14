@@ -13,7 +13,7 @@ import {
 import { readTourCapLimits } from "../db/tour-cap-config";
 import { TourCapacityExceededError, tourCapacityErrorMessage } from "../db/tour-capacity.error";
 import { withTenantRls } from "../db/with-tenant-rls";
-import { requireActiveTenantId } from "../tenant/tenant-request-context";
+import { getActiveWorkspaceType, requireActiveTenantId } from "../tenant/tenant-request-context";
 import type {
   Tour,
   TourListByTenantPageInput,
@@ -130,15 +130,28 @@ export class PrismaTourRepository implements TourStorageRepository {
   async save(tour: Tour): Promise<void> {
     assertTenantId(tour.tenantId);
     const existing = await this.getById(tour.id, tour.tenantId);
-    const projections = deriveTourProjections(tour.canonical);
+    const workspaceType = getActiveWorkspaceType();
 
     if (existing !== null) {
       await withTenantRls(tour.tenantId, async (tx) => {
+        const current = await tx.tour.findUnique({
+          where: tenantIdIdWhere(tour.tenantId, tour.id),
+        });
+        if (current === null) {
+          throw new TourVersionConflictError();
+        }
+        const projections = deriveTourProjections(tour.canonical, {
+          workspaceType,
+          observedAt: new Date(),
+          previousPublishedAt: current.publishedAt,
+        });
         await tx.tour.update({
           where: tenantIdIdWhere(tour.tenantId, tour.id),
           data: {
             canonical: tour.canonical as unknown as Prisma.InputJsonValue,
             title: projections.title,
+            publishStatus: projections.publishStatus,
+            publishedAt: projections.publishedAt,
             schemaVersion: projections.schemaVersion,
             rowVersion: tour.rowVersion,
           },
@@ -150,12 +163,18 @@ export class PrismaTourRepository implements TourStorageRepository {
     await this.assertCapacity(tour.tenantId);
     try {
       await withTenantRls(tour.tenantId, async (tx) => {
+        const projections = deriveTourProjections(tour.canonical, {
+          workspaceType,
+          observedAt: new Date(tour.createdAt),
+        });
         await tx.tour.create({
           data: {
             id: tour.id,
             tenantId: tour.tenantId,
             canonical: tour.canonical as unknown as Prisma.InputJsonValue,
             title: projections.title,
+            publishStatus: projections.publishStatus,
+            publishedAt: projections.publishedAt,
             schemaVersion: projections.schemaVersion,
             rowVersion: tour.rowVersion,
             createdAt: new Date(tour.createdAt),
@@ -177,9 +196,20 @@ export class PrismaTourRepository implements TourStorageRepository {
     expectedRowVersion: number;
   }): Promise<Tour> {
     assertTenantId(input.tenantId);
-    const projections = deriveTourProjections(input.canonical);
+    const workspaceType = getActiveWorkspaceType();
 
     const updated = await withTenantRls(input.tenantId, async (tx) => {
+      const current = await tx.tour.findUnique({
+        where: tenantIdIdWhere(input.tenantId, input.id),
+      });
+      if (current === null) {
+        throw new TourVersionConflictError();
+      }
+      const projections = deriveTourProjections(input.canonical, {
+        workspaceType,
+        observedAt: new Date(),
+        previousPublishedAt: current.publishedAt,
+      });
       const result = await tx.tour.updateMany({
         where: {
           tenantId: input.tenantId,
@@ -189,6 +219,8 @@ export class PrismaTourRepository implements TourStorageRepository {
         data: {
           canonical: input.canonical as unknown as Prisma.InputJsonValue,
           title: projections.title,
+          publishStatus: projections.publishStatus,
+          publishedAt: projections.publishedAt,
           schemaVersion: projections.schemaVersion,
           rowVersion: input.expectedRowVersion + 1,
         },

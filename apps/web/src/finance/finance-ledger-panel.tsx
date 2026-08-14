@@ -18,8 +18,8 @@ import {
   buildFinanceLedgerCsvContent,
   buildFinanceLedgerCsvFilename,
   formatFinanceTimestamp,
-  formatLedgerEventLabel,
   parseFinanceLedgerListResponse,
+  resolveFinanceLedgerEventLabel,
   toFinanceLedgerCsvRows,
   type FinanceLedgerEvent,
   type FinanceLedgerListResponse,
@@ -31,6 +31,59 @@ type FinanceLedgerPanelProps = {
   readonly session: OperatorSessionContext;
   readonly initialLedger?: FinanceLedgerListResponse | null;
 };
+
+function LedgerEventRow({
+  event,
+  locale,
+}: {
+  readonly event: FinanceLedgerEvent;
+  readonly locale: AppLocale;
+}) {
+  const t = useTranslations("finance.ledger");
+  const tCommon = useTranslations("finance.common");
+  const humanLabel = resolveFinanceLedgerEventLabel(event.eventType, t);
+
+  return (
+    <li
+      className="flex flex-col gap-2 p-3 sm:flex-row sm:items-start sm:justify-between"
+      data-event-type={event.eventType}
+    >
+      <div className="min-w-0 space-y-1">
+        <p
+          className="text-sm font-medium text-foreground"
+          data-testid={FINANCE_LEDGER_TEST_IDS.eventLabel}
+        >
+          {humanLabel}
+        </p>
+        {event.registrationId ? (
+          <FinanceRegistrationIdentity
+            registrationId={event.registrationId}
+            context={event.registrationContext}
+            density="compact"
+          />
+        ) : null}
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span>{formatFinanceTimestamp(event.createdAt, locale)}</span>
+          <Badge variant="outline" className="font-normal">
+            {tCommon("lines", { count: event.lineCount })}
+          </Badge>
+        </div>
+        <details className="text-xs text-muted-foreground" data-testid={FINANCE_LEDGER_TEST_IDS.eventTechnical}>
+          <summary className="cursor-pointer select-none">{t("technicalDetails")}</summary>
+          <div className="mt-1 space-y-0.5 font-mono">
+            <p>{event.eventType}</p>
+            {event.journalId ? <p>{tCommon("journal", { id: event.journalId })}</p> : null}
+            {event.domainEventId ? (
+              <p>
+                {t("domainEventId")}: {event.domainEventId}
+              </p>
+            ) : null}
+          </div>
+        </details>
+      </div>
+    </li>
+  );
+}
 
 export function FinanceLedgerPanel({
   session,
@@ -106,11 +159,11 @@ export function FinanceLedgerPanel({
   };
 
   return (
-    <div className="space-y-6" data-testid={FINANCE_LEDGER_TEST_IDS.panel} data-finance-audit-panel>
+    <div className="space-y-4" data-testid={FINANCE_LEDGER_TEST_IDS.panel} data-finance-audit-panel>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
+        <div className="space-y-0.5">
           <h2 className="text-base font-semibold">{t("title")}</h2>
-          <p className="text-sm text-muted-foreground">{t("auditSubtitle")}</p>
+          <p className="max-w-xl text-xs text-muted-foreground">{t("auditSubtitle")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -126,7 +179,7 @@ export function FinanceLedgerPanel({
           </Button>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => setFetchNonce((value) => value + 1)}
             disabled={loading}
@@ -137,12 +190,12 @@ export function FinanceLedgerPanel({
       </div>
 
       <Card data-operator-surface="card" className="shadow-sm">
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle className="text-base">{t("eventsTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="space-y-3">
+            <div className="space-y-3" data-testid="finance-ledger-loading">
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
             </div>
@@ -163,30 +216,7 @@ export function FinanceLedgerPanel({
           {!loading && !error && items.length > 0 ? (
             <ul className="divide-y rounded-md border" data-testid={FINANCE_LEDGER_TEST_IDS.list}>
               {items.map((event) => (
-                <li
-                  key={event.outboxEventId}
-                  className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="space-y-1">
-                    <p className="font-medium">{formatLedgerEventLabel(event.eventType)}</p>
-                    <p className="font-mono text-xs text-muted-foreground">{event.eventType}</p>
-                    {event.registrationId ? (
-                      <FinanceRegistrationIdentity
-                        registrationId={event.registrationId}
-                        context={event.registrationContext}
-                      />
-                    ) : null}
-                    {event.journalId ? (
-                      <p className="font-mono text-xs text-muted-foreground">
-                        {tCommon("journal", { id: event.journalId })}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                    <Badge variant="outline">{tCommon("lines", { count: event.lineCount })}</Badge>
-                    <span>{formatFinanceTimestamp(event.createdAt, locale)}</span>
-                  </div>
-                </li>
+                <LedgerEventRow key={event.outboxEventId} event={event} locale={locale} />
               ))}
             </ul>
           ) : null}

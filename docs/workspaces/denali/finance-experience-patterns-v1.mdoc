@@ -1,0 +1,589 @@
+---
+title: Finance Experience Patterns v1
+doc_id: DENALI-FINANCE-EXPERIENCE-PATTERNS
+version: "2026-08-07-v1"
+workspace: denali
+status: ANALYSIS
+phase: pre-redesign discovery stage-8
+continues:
+  - DENALI-FINANCE-DOMAIN-MAP
+  - DENALI-FINANCE-CASE-GRAMMAR
+  - DENALI-FINANCE-EXPERIENCE-PRINCIPLES
+  - DENALI-FINANCE-OPERATOR-PROBLEM-FRAMING
+  - DENALI-FINANCE-OPERATOR-EXPERIENCE-MODEL
+  - DENALI-FINANCE-OPERATOR-EXPERIENCE-STRUCTURE
+  - DENALI-FINANCE-OPERATOR-INTERACTION-CONCEPTS
+  - DENALI-FINANCE-CAPABILITY-EXPERIENCE-CONTRACT
+authority: >
+  Experience Structure · Interaction Concepts · Capability Experience Contract ·
+  Architecture alignment (finance reusable; Denali = binder)
+purpose: >
+  Define reusable operator experience patterns for Financial Case interpretation.
+  Interaction architecture only — no screens, components, navigation, APIs, or schemas.
+constraints:
+  - No code / components / routes / APIs / schemas / DB / renames / package refactor
+  - Financial Case = interpretation only (not persisted SoT)
+  - Primary unit = Financial Case (not payment/receipt/ledger/booking/registration rows)
+  - UI Concepts (later) consume CaseOutput: verdict → owner → lane → confidence → allow/forbid
+  - Denali is one product binding; patterns must survive other workspace types
+mode: Conceptual only
+---
+
+# DENALI-FINANCE-EXPERIENCE-PATTERNS v1
+
+## Framing
+
+These patterns define the **reusable interaction language** for finance operators.
+
+They answer how work is encountered, understood, judged, and acted on — **without** prescribing screens, layout, or components.
+
+```text
+facts → verdict → owner → lane → confidence → allowed/forbidden actions
+```
+
+**Primary unit:** Financial Case (interpretation).  
+**Not primary:** payment row · receipt row · ledger entry · booking/registration row.
+
+**Denali** binds local nouns (enrollment, tour, member) onto these patterns; other workspaces bind differently.
+
+### Multi-workspace legend (used below)
+
+| Mark | Meaning |
+| ---- | ------- |
+| **U** | Universal concept — survives A/B/C unchanged |
+| **Ad** | Adapter-specific detail — product maps facts/copy |
+| **D** | Denali-only wording example — not core pattern language |
+
+**Workspace probes:**  
+**A** tour enrollment + offline evidence · **B** subscription invoice + recurring · **C** marketplace order payment  
+
+---
+
+# Pattern 1 — Case Encounter
+
+## Intent
+
+Ensure the operator’s first contact with work resolves into a **Financial Case**, not a raw alarm from unsettled/pending entity signals.
+
+## Operator question
+
+> What am I looking at, and is this a money case I should interpret — or just a fragment?
+
+## Trigger
+
+Any work signal that could become finance attention: unsettled projection, open intent, evidence submitted, exception cue, handoff question (“is payment OK?”).
+
+## Operator expectation
+
+“I will understand a subject’s money situation,” not “I will fix a red badge.”
+
+## Minimum context revealed
+
+| Must reveal | Slot |
+| ----------- | ---- |
+| Who / what product | subject identity |
+| Which commercial anchor | commercialSubjectId (binding may use enrollment id) |
+| That interpretation has not finished | no premature action offer |
+
+Optional early: urgency context (**Ad** / **D** departure).
+
+## Required information
+
+Subject identity + commercial subject id enough to open Case Understanding (Pattern 2).
+
+## Success condition
+
+Operator can name the case subject before naming a payment/receipt entity.
+
+## Failure mode prevented
+
+- Treating unpaid/pending as an immediate task assignment  
+- Entity-first thrash (open receipt without knowing the case)  
+- Doing work for the wrong counterparty  
+
+## Multi-workspace
+
+| Probe | Result |
+| ----- | ------ |
+| A | **U** encounter; **D** “registration/tour” labels |
+| B | **U**; **Ad** invoice/period identity |
+| C | **U**; **Ad** order identity; may be multiple cases (pay vs payout) |
+
+---
+
+# Pattern 2 — Case Understanding
+
+## Intent
+
+Build the correct mental model via locked information hierarchy before decision.
+
+## Operator question
+
+> Where is this case financially, given eligibility and policy — not just badges?
+
+## Reveal order (mandatory)
+
+```text
+Identity
+→ Eligibility
+→ Policy
+→ Money Target
+→ Proof
+→ Settlement
+→ Owner
+```
+
+## Comprehension checkpoints
+
+| After step | Checkpoint question |
+| ---------- | ------------------- |
+| Identity | Who/what is this case? |
+| Eligibility | May money proceed? (`not_yet` / `eligible` / `closed`) |
+| Policy | Is money due at all? (`money_due` / `no_money_due`) |
+| Money Target | What is owed / remaining? |
+| Proof | Where is evidence? (none / in_review / rejected / accepted) |
+| Settlement | What does product settlement projection say? |
+| Owner | Whose move is next? (+ lane) |
+
+## Confidence signals
+
+- Each checkpoint answered in object-qualified language  
+- No action affordance for irreversible acts until Owner checkpoint passed (see Pattern 5)  
+- Partial requires scope before Owner is trusted  
+
+## Required information
+
+Full daily CaseInput slots (Experience Contract): subject, eligibility, policy, money, ingress, settlement.
+
+## Success condition
+
+Operator can produce a composed narrative and name owner/lane without entity archaeology.
+
+## Failure mode prevented
+
+- Money blame before eligibility/policy  
+- Approve/reject without obligation  
+- Unscoped partial go/no-go  
+
+## Multi-workspace
+
+| Probe | Result |
+| ----- | ------ |
+| A | **U** order; **Ad** lifecycle=enrollment approve; **D** club/tour copy |
+| B | **U** order; **Ad** eligibility=subscription state; proof step may be thin if gateway |
+| C | **U** order; **Ad** order gates; proof may be PSP capture not file |
+
+---
+
+# Pattern 3 — Verdict Reveal
+
+## Intent
+
+Communicate “where are we financially?” as **interpretation**, without inventing a persisted fake status or merging SoTs.
+
+## Operator question
+
+> What is the composed money meaning of this case right now?
+
+## Verdict presentation principles
+
+1. Verdict is a **reading**, not a new source of truth.  
+2. Always pair with narrative slots (eligibility, proof, settlement) — never a lone chip that replaces them.  
+3. Prefer object-qualified sentences over bare pending/paid/approved.  
+4. Alarm only when coexistence is unhealthy or lane ≠ daily.  
+
+## Narrative rules
+
+| Verdict | Must communicate | Must not communicate |
+| ------- | ---------------- | -------------------- |
+| `AWAITING_FINANCE` | Proof exists; finance owns review; unsettled projection can be **expected** | “Payment broken” / sync failure |
+| `AWAITING_COUNTERPARTY` | Eligible; money due; waiting on counterparty | Finance must act now |
+| `NO_MONEY_DUE` | No chase; idle on money | Missing proof = delinquency |
+| `SETTLED_CAPTURED` | Settled after accepted capture/evidence | Needs ledger to believe (daily) |
+| `PARTIAL` | Scoped partial + remainder meaning | Bare “partially paid” |
+| `INTENT_OPEN_NO_PROOF` | Intent ≠ review | Finance review due |
+| `NOT_ELIGIBLE` / `CLOSED` | Money path not open / case closed for normal collection | Offline chase |
+| `EXCEPTION` | Commercial meaning unclear | Routine review |
+| `AUDIT_SUSPECT` | Daily story failed | First response to unpaid |
+
+## Healthy coexistence handling
+
+When proof=`in_review` and settlement=`unsettled` → verdict `AWAITING_FINANCE`, **alarm=false** (Pattern 7).
+
+## Required information
+
+Case Understanding complete enough to choose a verdict class.
+
+## Success condition
+
+Operator states verdict + supporting facts without collapsing axes.
+
+## Failure mode prevented
+
+Fake unified status; sync-bug panic; club “paid” from mere evidence submit.
+
+## Multi-workspace
+
+| Probe | Result |
+| ----- | ------ |
+| A | **U** verdict set; offline evidence path primary |
+| B | **U** verdict set; `AWAITING_FINANCE` less common if auto-capture — still valid for disputes/evidence |
+| C | **U**; may use `AWAITING_FINANCE` for offline/dispute; gateway settle → `SETTLED_CAPTURED` without file proof |
+
+---
+
+# Pattern 4 — Ownership Reveal
+
+## Intent
+
+Make “whose move is next?” first-class so presence in a finance surface does not imply ownership of every unsettled case.
+
+## Operator question
+
+> Is this mine to act on, or should I wait / hand off?
+
+## Owner categories
+
+| Owner | Meaning |
+| ----- | ------- |
+| `finance` | Review/decide evidence or finance-owned exception cleanup |
+| `counterparty` | Pay / submit / correct evidence (**D** “member”; **Ad** subscriber/buyer) |
+| `product_desk` | Fix eligibility/lifecycle before money |
+| `policy_system` | No-money / policy completion path |
+| `exception_policy` | Commercial judgment outside happy path |
+| `idle` | No money action due |
+
+## Reveal principles
+
+1. Owner revealed **before** suggesting review/wait/escalate (Interaction IP2).  
+2. Explicit negative: “Not assigned to finance — owner is X.”  
+3. Derivation priority (locked): terminal/exception → proof in review → not eligible → no money due → rejected → counterparty/idle/partial rules.  
+
+## Prevented anti-pattern
+
+> “I am in the finance area, therefore everything unsettled is my task.”
+
+## Required information
+
+Verdict + eligibility + proof + policy (+ intent provenance when relevant).
+
+## Success condition
+
+Operator’s effort matches owner; wait is acceptable when owner ≠ finance.
+
+## Failure mode prevented
+
+Doing counterparty work; ignoring finance-owned evidence; inventing manual intent to “own” the case.
+
+## Multi-workspace
+
+| Probe | Result |
+| ----- | ------ |
+| A | **U** owners; **D** member ↔ counterparty |
+| B | **U**; **Ad** dunning may be product_desk or counterparty — not automatic finance review |
+| C | **U**; buyer vs seller may be different cases/owners |
+
+---
+
+# Pattern 5 — Decision Moment
+
+## Intent
+
+Move from understanding to a gated decision: act, wait, or escalate — never signal→button.
+
+## Operator question
+
+> Given verdict and owner, what am I allowed to do?
+
+## Before action — required understanding
+
+Identity → Eligibility → Policy → Money Target → Proof → Settlement → Owner (Pattern 2 complete).
+
+## Decision matrix (conceptual)
+
+| Moment | Allowed (typical) | Forbidden (typical) |
+| ------ | ----------------- | ------------------- |
+| Approve evidence | When owner=`finance`, verdict=`AWAITING_FINANCE`, lane=`daily` | When not eligible / no money due / exception unmarked / obligation unknown |
+| Reject evidence | Same ownership gate; returns ownership to counterparty | Implying product lifecycle rejected |
+| Wait | When owner ∈ {counterparty, idle, product_desk, policy_system} | When owner=`finance` and evidence in review |
+| Escalate exception | When lane=`exception` or commercial meaning unclear | Silent happy-path approve |
+
+## Required information
+
+CaseOutput: verdict, owner, lane, allowed/forbidden, confidence quartet.
+
+## Success condition
+
+Chosen move ∈ allowed set; irreversible acts only after comprehension.
+
+## Failure mode prevented
+
+Approve without amount; action before ownership; treating wait as failure.
+
+## Multi-workspace
+
+| Probe | Result |
+| ----- | ------ |
+| A | **U** approve/reject evidence central |
+| B | **U** wait/escalate; evidence approve may be rare (**Ad**) |
+| C | **U**; capture may be system/PSP — operator decision moments shift to disputes/exceptions (**Ad**) |
+
+---
+
+# Pattern 6 — Calm Waiting Pattern
+
+## Intent
+
+Treat **wait** as a successful outcome when the correct move is not acting.
+
+## Operator question
+
+> Is it OK that I’m not pressing anything?
+
+## Situations
+
+| Situation | Message shape |
+| --------- | ------------- |
+| Awaiting counterparty | Nothing wrong — waiting for counterparty pay/evidence |
+| No money due | Nothing wrong — no payment chase |
+| Not eligible | Nothing wrong for finance — product desk owns eligibility |
+| Idle settled | Nothing wrong — case complete on money path |
+
+## Communication principles
+
+1. State **why** waiting is correct (owner + verdict).  
+2. State **cost of waiting** (delay vs danger) without false urgency.  
+3. State **what to avoid** (manual intent, ledger dive, chase).  
+4. Never present wait as empty state failure.  
+
+## Required information
+
+Owner ≠ finance (or idle) + non-alarming settlement/proof reading.
+
+## Success condition
+
+Operator leaves without inventing work; can answer club questions accurately.
+
+## Failure mode prevented
+
+Manual payment as default fix; unpaid panic; audit tourism.
+
+## Multi-workspace
+
+| Probe | Result |
+| ----- | ------ |
+| A | **U**; **D** “waiting for member upload” |
+| B | **U**; **Ad** waiting for subscriber/autopay |
+| C | **U**; **Ad** waiting for buyer checkout / PSP |
+
+---
+
+# Pattern 7 — Healthy Coexistence Pattern
+
+## Intent
+
+Normalize proof in review **with** unsettled settlement projection as expected Denali-like offline path — portable wherever evidence precedes projection update.
+
+## Operator question
+
+> Why is settlement still unsettled if evidence is here?
+
+## Scenario
+
+```text
+proofProgress = in_review
+settlementMeaning = unsettled
+(+ eligible, money_due)
+```
+
+## Must communicate (all)
+
+1. This is **expected**.  
+2. **Finance owns** next action (review).  
+3. **No sync failure** from coexistence alone.  
+4. Club answer: not OK yet — evidence with finance.  
+
+## Must prevent
+
+| Perception | Counter-pattern |
+| ---------- | --------------- |
+| Sync error | Explicit expected coexistence |
+| Unpaid panic | Alarm=false; owner=finance |
+| Ledger diving | Audit not offered as first response |
+| Manual intent create | Forbidden in this moment |
+| Wait-as-if-counterparty | Wrong owner |
+
+## Required information
+
+Proof + settlement + eligibility + policy + obligation (for review quality).
+
+## Success condition
+
+Operator reviews calmly; does not “fix unpaid.”
+
+## Failure mode prevented
+
+Critical Moment M2 distrust; duplicate work; false incidents.
+
+## Multi-workspace
+
+| Probe | Result |
+| ----- | ------ |
+| A | **U** core pattern (primary path) |
+| B | **U** when human evidence/dispute exists; else N/A |
+| C | **U** for offline/dispute; gateway may skip |
+
+---
+
+# Pattern 8 — Exception Transition
+
+## Intent
+
+Make the shift out of normal daily finance work **visible** before routine verbs apply.
+
+## Operator question
+
+> Is this still normal review — or commercially ambiguous?
+
+## Transition triggers
+
+- Closed/terminal subject + leftover money objects  
+- Duplicate / parallel intents  
+- Conflicts outside healthy coexistence  
+- Unexplained mismatch after expected settle  
+- Policy dispute (should money be due?)  
+
+## Lane change
+
+`daily` → `exception` (noticed mode change).
+
+## Reason visibility
+
+Show **which trigger** fired before offering approve/reject-as-routine.
+
+## Forbidden routine actions
+
+Happy-path approve/reject; treating item as unmarked `AWAITING_FINANCE`; bare unpaid chase.
+
+## Required information
+
+Conflict inventory / terminal cue + what daily verdict almost applied.
+
+## Success condition
+
+Operator pauses; escalates or judges under exception_policy ownership.
+
+## Failure mode prevented
+
+Commercially dubious captures; polluted daily queue meaning.
+
+## Multi-workspace
+
+| Probe | Result |
+| ----- | ------ |
+| A | **U** (cancelled enrollment + historical proof) |
+| B | **U** (canceled sub + open charge ambiguity) |
+| C | **U** (canceled order + capture/refund ambiguity) |
+
+---
+
+# Pattern 9 — Audit Altitude Transition
+
+## Intent
+
+Make accounting altitude available only when daily/exception composition fails — then return findings to the case story.
+
+## Operator question
+
+> Do I need accounting proof, or is the case story enough?
+
+## When audit becomes available
+
+After daily understanding attempted **and** (exception applied when cues exist) **and** explanation still fails — or an explicit recon finding demands it.
+
+## Rules
+
+| Rule | Meaning |
+| ---- | ------- |
+| Never first response | Not the reaction to unpaid/pending |
+| Not required for normal approval | `AWAITING_FINANCE` decide without journal lines |
+| Returns findings to case story | Map back to settlement/intent/evidence slots — no stranded entity browser |
+| Noticed altitude change | Operator knows lane=`audit` |
+
+## Required information
+
+Which CaseInput slots disagree; optional ledgerPosted/recon hints.
+
+## Success condition
+
+Integrity question answered; operator returns to Case narrative for club/ops meaning.
+
+## Failure mode prevented
+
+Ledger-as-daily-truth; altitude collapse; fear-driven over-investigation.
+
+## Multi-workspace
+
+| Probe | Result |
+| ----- | ------ |
+| A/B/C | **U** rules; **Ad** which journal shapes exist |
+
+---
+
+# Pattern crosswalk
+
+| Pattern | Primary CaseOutput used | Primary Interaction mode |
+| ------- | ----------------------- | ------------------------ |
+| 1 Encounter | — (opens case) | Comprehension start |
+| 2 Understanding | feeds verdict | Comprehension |
+| 3 Verdict reveal | verdict, narrative, alarm | Decision setup |
+| 4 Ownership reveal | nextActionOwner | Decision setup |
+| 5 Decision moment | allowed/forbidden | Decision → Action |
+| 6 Calm waiting | owner, confidence | Action = wait |
+| 7 Coexistence | verdict AWAITING_FINANCE, alarm=false | Decision |
+| 8 Exception | lane=exception | Exception |
+| 9 Audit | lane=audit | Audit entry |
+
+---
+
+# Universal vs adapter vs Denali-only (rollup)
+
+## Universal (**U**) — keep in pattern language
+
+Case as unit · hierarchy reveal · verdict-as-interpretation · owner categories · wait-as-success · healthy coexistence · exception/audit altitude · allow/forbid gating · confidence quartet  
+
+## Adapter-specific (**Ad**)
+
+Subject identity fields · eligibility mapping · collection/ingress mode · whether evidence file exists · urgency metric · which desk is product_desk · copy for counterparty  
+
+## Denali-only wording (**D**) — examples, not pattern cores
+
+“Member”, “tour”, “departure”, “registration”, “club”, “approve then offline pay” as phrase — bind locally onto counterparty / businessContext / enrollment eligibility  
+
+---
+
+# What these patterns deliberately are not
+
+| Not | Why |
+| --- | --- |
+| Wireframes / components / nav | Next phase after acceptance |
+| DB enums for verdict | Interpretation only |
+| Payment/receipt list IA | Violates Case-as-unit |
+| Permission to rename `registrationId` | Out of scope |
+| Subscription/marketplace build plan | Adapter future; patterns already portable |
+
+---
+
+## Patterns one-liner
+
+> Operators encounter a Financial Case, understand it in a fixed hierarchy, receive an interpretive verdict and owner without fake statuses, then either act under allow/forbid rules, calmly wait, or visibly enter exception/audit — portable across enrollment, subscription, and order products via adapters.
+
+---
+
+## Readiness for visual UI Concepts
+
+After acceptance of these patterns, a later **UI Concepts** phase may propose surfaces that **express** Patterns 1–9 — still without treating Denali tour chrome as the capability IA, and still without persisting verdict.
+
+---
+
+*Document type: conceptual experience patterns. No implementation, screens, or components.*

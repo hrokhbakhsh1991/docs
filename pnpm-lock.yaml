@@ -359,6 +359,9 @@ importers:
       '@app-tour/draft-engine':
         specifier: workspace:*
         version: link:../../packages/draft-engine
+      '@app-tour/finance-case-encounter-ui':
+        specifier: workspace:*
+        version: link:../../packages/finance-case-encounter-ui
       '@app-tour/guest-surface-host':
         specifier: workspace:*
         version: link:../../packages/guest-surface-host
@@ -624,6 +627,39 @@ importers:
         version: 19.2.7
       tsx:
         specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/finance-case-encounter-ui:
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../config
+      '@happy-dom/global-registrator':
+        specifier: ^17.4.4
+        version: 17.6.3
+      '@testing-library/react':
+        specifier: ^16.3.0
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.16))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.16
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.16)
+      happy-dom:
+        specifier: ^17.4.4
+        version: 17.6.3
+      react:
+        specifier: ^19.0.0
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.7(react@19.2.7)
+      tsx:
+        specifier: ^4.20.5
         version: 4.22.4
       typescript:
         specifier: 5.9.3

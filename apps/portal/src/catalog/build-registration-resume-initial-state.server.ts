@@ -87,6 +87,7 @@ export async function buildRegistrationResumeInitialState(
       intakeFatherName: defaults.fatherName,
       intakeBirthDate: defaults.birthDate,
       intakeEmail: resolvedEmail,
+      intakePhone: "",
       partySize: "1",
       notes: "",
       registrantTarget: "self",

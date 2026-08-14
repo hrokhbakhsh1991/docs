@@ -17,30 +17,45 @@ import { HARBOR_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-harbor/host/http
 import { URBAN_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-urban/host/http";
 
 export type WorkspaceHttpHandlerKey =
+  | "handleFinanceApproveRefund"
+  | "handleFinanceCancelPendingManualPayment"
+  | "handleFinanceCancelRefund"
+  | "handleFinanceCaseCommandReviewReceipt"
+  | "handleFinanceCaseEncounter"
+  | "handleFinanceCompleteRefund"
   | "handleFinanceCreateManualPayment"
   | "handleFinanceGenerateSchedule"
+  | "handleFinanceGetRefund"
   | "handleFinanceGetRegistrationInvoice"
   | "handleFinanceGetSchedule"
   | "handleFinanceLedgerEvents"
   | "handleFinanceListBookingSyncDegraded"
+  | "handleFinanceListExceptions"
   | "handleFinanceListPayments"
   | "handleFinanceListPrepayments"
+  | "handleFinanceListRefunds"
   | "handleFinanceListSchedules"
   | "handleFinanceOpenPayments"
+  | "handleFinanceOutstandingBalances"
   | "handleFinancePatchScheduleItem"
   | "handleFinancePendingReceipts"
   | "handleFinanceReceiptUpload"
   | "handleFinanceReceiptUrl"
   | "handleFinanceRecordPrepayment"
+  | "handleFinanceRejectRefund"
   | "handleFinanceReportByTour"
+  | "handleFinanceRequestRefund"
   | "handleFinanceRetryBookingSync"
   | "handleFinanceReviewReceipt"
   | "handleFinanceSetObligationOverride"
   | "handleFinanceSubmitReceipt"
   | "handleFinanceSummary"
+  | "handleFinanceTourCollections"
   | "handleGetDenaliCatalog"
   | "handleGetDenaliCatalogTour"
   | "handleGetDenaliDashboardTour"
+  | "handleGetDenaliRegistration"
+  | "handleGetDenaliRegistrationForTour"
   | "handleGetDenaliReminderFeed"
   | "handleGetGuestClubCatalog"
   | "handleGetGuestClubCatalogTour"
@@ -49,6 +64,7 @@ export type WorkspaceHttpHandlerKey =
   | "handleGetUrbanCatalog"
   | "handleGetUrbanCatalogTour"
   | "handleGetUrbanSettings"
+  | "handlePatchDenaliRegistration"
   | "handlePatchUrbanSettings"
   | "handlePostDenaliRegistration"
   | "handlePostGuestClubRegistration"
@@ -101,17 +117,23 @@ const DENALI_FINANCE_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "GET /finance/reports/open-payments": "handleFinanceOpenPayments",
   "GET /finance/reports/ledger-events": "handleFinanceLedgerEvents",
   "GET /finance/reports/by-tour": "handleFinanceReportByTour",
+  "GET /finance/reports/outstanding-balances": "handleFinanceOutstandingBalances",
+  "GET /finance/reports/tour-collections": "handleFinanceTourCollections",
   "GET /finance/payments": "handleFinanceListPayments",
   "POST /finance/payments/manual": "handleFinanceCreateManualPayment",
   "POST /finance/receipts": "handleFinanceSubmitReceipt",
   "POST /finance/receipts/upload": "handleFinanceReceiptUpload",
   "GET /finance/receipts/pending": "handleFinancePendingReceipts",
+  "GET /finance/exceptions": "handleFinanceListExceptions",
+  "GET /finance/refunds": "handleFinanceListRefunds",
+  "POST /finance/refunds": "handleFinanceRequestRefund",
   "GET /finance/prepayments": "handleFinanceListPrepayments",
   "POST /finance/prepayments": "handleFinanceRecordPrepayment",
   "GET /finance/prepayments/booking-sync-degraded": "handleFinanceListBookingSyncDegraded",
   "POST /finance/prepayments/booking-sync-retry": "handleFinanceRetryBookingSync",
   "GET /finance/schedules": "handleFinanceListSchedules",
-  "POST /finance/schedules/generate": "handleFinanceGenerateSchedule"
+  "POST /finance/schedules/generate": "handleFinanceGenerateSchedule",
+  "POST /finance/case/commands/review-receipt": "handleFinanceCaseCommandReviewReceipt"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 const GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
@@ -133,16 +155,26 @@ const URBAN_URBAN_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
 
 const DENALI_CATALOG_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
   "GET /denali/catalog/:tourId": "handleGetDenaliCatalogTour",
-  "GET /denali/dashboard/tours/:tourId": "handleGetDenaliDashboardTour"
+  "GET /denali/dashboard/tours/:tourId": "handleGetDenaliDashboardTour",
+  "GET /denali/registrations/for-tour/:tourId": "handleGetDenaliRegistrationForTour",
+  "GET /denali/registrations/:registrationId": "handleGetDenaliRegistration",
+  "PATCH /denali/registrations/:registrationId": "handlePatchDenaliRegistration"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 const DENALI_FINANCE_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
+  "POST /finance/payments/:paymentId/cancel": "handleFinanceCancelPendingManualPayment",
+  "GET /finance/refunds/:refundId": "handleFinanceGetRefund",
+  "POST /finance/refunds/:refundId/approve": "handleFinanceApproveRefund",
+  "POST /finance/refunds/:refundId/complete": "handleFinanceCompleteRefund",
+  "POST /finance/refunds/:refundId/reject": "handleFinanceRejectRefund",
+  "POST /finance/refunds/:refundId/cancel": "handleFinanceCancelRefund",
   "PATCH /finance/receipts/:receiptId/review": "handleFinanceReviewReceipt",
   "GET /finance/receipts/:receiptId/url": "handleFinanceReceiptUrl",
   "GET /finance/invoices/:registrationId": "handleFinanceGetRegistrationInvoice",
   "PUT /finance/registrations/:registrationId/obligation-override": "handleFinanceSetObligationOverride",
   "GET /finance/schedules/:registrationId": "handleFinanceGetSchedule",
-  "PATCH /finance/schedules/:registrationId/items/:itemId": "handleFinancePatchScheduleItem"
+  "PATCH /finance/schedules/:registrationId/items/:itemId": "handleFinancePatchScheduleItem",
+  "GET /finance/case/encounters/:registrationId": "handleFinanceCaseEncounter"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 const GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {

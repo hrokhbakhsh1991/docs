@@ -39,13 +39,16 @@ After a failed `migrate deploy`, the DB schema may sit at migration **N-1** whil
 | `20260720170000_operator_registration_active_guest_phone_unique` | MR-P0-003 | Operator registration active guest phone unique |
 | `20260721100000_portal_member_plans_bp7` | MR-P0-003 | Portal member plans (BP-7); required intermediate |
 | `20260721120000_tour_create_drop_tenants_select_bandage` | MR-P0-003 | Tour `CREATE`/`DROP` tenants SELECT bandage |
-| `20260802140000_tenant_routes_tours_app_tour_grants` | Booking HTTP PG | `app_tour` GRANT on `tenant_routes` + `tours` |
-| `20260802150000_urban_registrations_app_tour_grants` | Booking HTTP PG / TODO-002 | Unconditional `app_tour` GRANT on `urban_registrations` |
-| `20260803120000_http_idempotency_app_tour_grants` | Phase 5 / ci:integrity | Unconditional `app_tour` GRANT on `http_idempotency_records` (finance prepay + IDEM suites; current tip) |
+| `20260802140000_tenant_routes_tours_app_tour_grants` | Booking HTTP PG | `app_cloud` GRANT on `tenant_routes` + `tours` |
+| `20260802150000_urban_registrations_app_tour_grants` | Booking HTTP PG / TODO-002 | Unconditional `app_cloud` GRANT on `urban_registrations` |
+| `20260803120000_http_idempotency_app_cloud_grants` | Phase 5 / ci:integrity | Unconditional `app_cloud` GRANT on `http_idempotency_records` |
+| `20260807120000_operator_registration_departure_keyset_index` | Bookings ops | Departure keyset index |
+| `20260809120000_finance_refunds` | Finance | Durable finance refunds + RLS |
+| `20260810120000_operator_registration_active_self_unique` | Denali self/other | Replace submitter-wide unique with self-only partial unique |
 
-Current head: **`20260803120000_http_idempotency_app_tour_grants`** — must move in lockstep with `prisma/migrations/`.
+Current head: **`20260810120000_operator_registration_active_self_unique`** — must move in lockstep with `prisma/migrations/`.
 
-**Why `http_idempotency_records` tip:** Phase 5 / `ci:integrity` Postgres runs hit `permission denied for table http_idempotency_records` (42501) under role `app_tour` after `01-app-role.sql` revoked default privileges. Table + RLS landed in `20260605160000_http_idempotency` without a GRANT. Same pattern as tours / urban_registrations tips.
+**Why self-unique tip:** Denali allows one booker to register multiple `other` guests; legacy `uq_operator_reg_active_user` blocked that. See [registration-self-other-uniqueness.mdoc](../../workspaces/denali/registration-self-other-uniqueness.mdoc).
 
 `REQUIRED_PRISMA_MIGRATION_NAMES` must include prior intermediates that production probes still require (e.g. phone unique + portal member plans) **and** the tip folder name. Bump both the tip constant and the required list in the same PR as any new migration folder (MASTER `MR-P0-003`).
 

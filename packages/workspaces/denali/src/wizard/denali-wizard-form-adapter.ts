@@ -46,14 +46,21 @@ export function tourWizardDraftToDenaliForm(
   rules: DenaliWizardRulesModule
 ): ReturnType<DenaliWizardRulesModule["buildDefaultForm"]> {
   const form = rules.buildDefaultForm() as unknown as Record<string, unknown>;
+  const writtenFormPaths = new Set<string>();
 
   for (const [canonicalPath, formPath] of Object.entries(rules.canonicalToFormPathMap)) {
+    // Shared storage aliases (for example category/duration/eventVariant -> basicInfo.tourType)
+    // must preserve the anchor's raw persisted value instead of overwriting it with derived values.
+    if (writtenFormPaths.has(formPath)) {
+      continue;
+    }
     const raw = getCanonicalValueFromDraft(draft, canonicalPath);
     if (raw === undefined) {
       continue;
     }
     const value = Array.isArray(raw) || isRecord(raw) ? raw : coerceDraftScalar(raw);
     setNestedFormValue(form, formPath, value);
+    writtenFormPaths.add(formPath);
   }
 
   return form as unknown as ReturnType<DenaliWizardRulesModule["buildDefaultForm"]>;

@@ -28,6 +28,8 @@ export type BookingPaymentMemberOwnershipInput = {
 export type BookingPaymentRaisePaidInTxInput = {
   readonly tenantId: string;
   readonly registrationId: string;
+  /** Target projection — approve path passes partial|paid from post-approve balance. */
+  readonly paymentStatus: BookingPaymentSyncStatus;
 };
 
 /** Booking lifecycle status — Finance reads for receipt eligibility (approve-then-pay). */

@@ -16,18 +16,22 @@ export type FinanceCommandCenterTab =
   | "overview"
   | "payments"
   | "receipts"
+  | "outstanding"
   | "prepayments"
   | "installments"
-  | "ledger";
+  | "ledger"
+  | "refunds";
 
 /** Full tab catalog (type + deep-link vocabulary). Visibility is ops-capability-driven. */
 export const FINANCE_COMMAND_CENTER_TABS: readonly FinanceCommandCenterTab[] = [
   "overview",
   "payments",
   "receipts",
+  "outstanding",
   "prepayments",
   "installments",
   "ledger",
+  "refunds",
 ] as const;
 
 export function listVisibleFinanceTabs(
@@ -44,9 +48,11 @@ export function parseFinanceTab(
   if (
     (raw === "payments" ||
       raw === "receipts" ||
+      raw === "outstanding" ||
       raw === "ledger" ||
       raw === "prepayments" ||
-      raw === "installments") &&
+      raw === "installments" ||
+      raw === "refunds") &&
     allowed.has(raw)
   ) {
     return raw;

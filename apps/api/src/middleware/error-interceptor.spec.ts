@@ -86,3 +86,112 @@ describe("handleHttpError — FINANCE_WORKSPACE_UNSUPPORTED (urban fail-closed)"
     assert.equal(res.body.includes("workspaceType"), false);
   });
 });
+
+describe("handleHttpError — PR23-A3 payment cancel mapping", () => {
+  function createMockResponse(): ServerResponse & {
+    statusCode: number;
+    body: string;
+  } {
+    return {
+      statusCode: 0,
+      body: "",
+      writableEnded: false,
+      setHeader() {},
+      end(payload?: string) {
+        if (payload !== undefined) {
+          this.body = payload;
+        }
+        this.writableEnded = true;
+      },
+    } as unknown as ServerResponse & { statusCode: number; body: string };
+  }
+
+  it("maps PAYMENT_NOT_IN_SCOPE to 404 PAYMENT_NOT_FOUND without leak", () => {
+    const res = createMockResponse();
+    void runWithTraceContext("cancel-scope-trace", () => {
+      handleHttpError(res, new Error("PAYMENT_NOT_IN_SCOPE"));
+    });
+    assert.equal(res.statusCode, 404);
+    const body = JSON.parse(res.body) as { error?: string; code?: string };
+    assert.equal(body.error, "PAYMENT_NOT_FOUND");
+    assert.equal(body.code, "PAYMENT_NOT_FOUND");
+    assert.equal(res.body.includes("NOT_IN_SCOPE"), false);
+  });
+
+  it("maps PAYMENT_HAS_PENDING_RECEIPT to 409", () => {
+    const res = createMockResponse();
+    void runWithTraceContext("cancel-receipt-trace", () => {
+      handleHttpError(res, new Error("PAYMENT_HAS_PENDING_RECEIPT"));
+    });
+    assert.equal(res.statusCode, 409);
+    const body = JSON.parse(res.body) as { code?: string };
+    assert.equal(body.code, "PAYMENT_HAS_PENDING_RECEIPT");
+  });
+
+  it("maps PAYMENT_CANCEL_REASON_INVALID to 400", () => {
+    const res = createMockResponse();
+    void runWithTraceContext("cancel-reason-trace", () => {
+      handleHttpError(res, new Error("PAYMENT_CANCEL_REASON_INVALID"));
+    });
+    assert.equal(res.statusCode, 400);
+    const body = JSON.parse(res.body) as { code?: string };
+    assert.equal(body.code, "PAYMENT_CANCEL_REASON_INVALID");
+  });
+
+  it("maps REFUND_NOT_FOUND to 404", () => {
+    const res = createMockResponse();
+    void runWithTraceContext("refund-not-found-trace", () => {
+      handleHttpError(res, new Error("REFUND_NOT_FOUND"));
+    });
+    assert.equal(res.statusCode, 404);
+    const body = JSON.parse(res.body) as { code?: string };
+    assert.equal(body.code, "REFUND_NOT_FOUND");
+  });
+
+  it("maps REFUND_REASON_INVALID to 400", () => {
+    const res = createMockResponse();
+    void runWithTraceContext("refund-reason-trace", () => {
+      handleHttpError(res, new Error("REFUND_REASON_INVALID"));
+    });
+    assert.equal(res.statusCode, 400);
+  });
+
+  it("maps REFUND_OVER_CAP to 409", () => {
+    const res = createMockResponse();
+    void runWithTraceContext("refund-over-cap-trace", () => {
+      handleHttpError(res, new Error("REFUND_OVER_CAP"));
+    });
+    assert.equal(res.statusCode, 409);
+  });
+});
+
+describe("handleHttpError — FINANCE_OBLIGATION_OVERPAY (PR20-D)", () => {
+  function createMockResponse(): ServerResponse & {
+    statusCode: number;
+    body: string;
+  } {
+    return {
+      statusCode: 0,
+      body: "",
+      writableEnded: false,
+      setHeader() {},
+      end(payload?: string) {
+        if (payload !== undefined) {
+          this.body = payload;
+        }
+        this.writableEnded = true;
+      },
+    } as unknown as ServerResponse & { statusCode: number; body: string };
+  }
+
+  it("maps FINANCE_OBLIGATION_OVERPAY to 422 with stable code (not 500)", () => {
+    const res = createMockResponse();
+    void runWithTraceContext("finance-overpay-trace", () => {
+      handleHttpError(res, new Error("FINANCE_OBLIGATION_OVERPAY"));
+    });
+    assert.equal(res.statusCode, 422);
+    const body = JSON.parse(res.body) as { error?: string; code?: string };
+    assert.equal(body.error, "FINANCE_OBLIGATION_OVERPAY");
+    assert.equal(body.code, "FINANCE_OBLIGATION_OVERPAY");
+  });
+});

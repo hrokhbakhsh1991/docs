@@ -17,6 +17,23 @@
   "waitlistActionAria": "انتقال به لیست انتظار — نگه داشتن جای بدون رد کردن",
   "cancelBooking": "لغو رزرو",
   "bulkPartial": "{approved, number} تأیید شد؛ {skipped, number} رد شد.",
+  "bulkApproveSuccess": "{count, number} ثبت‌نام تأیید شد.",
+  "actionNotice": {
+    "approve": "{guest} تأیید شد.",
+    "approveUnpaid": "{guest} تأیید شد. پرداخت هنوز تسویه نشده.",
+    "reject": "{guest} رد شد.",
+    "cancel": "{guest} لغو شد.",
+    "waitlist": "{guest} به لیست انتظار منتقل شد.",
+    "embeddedHint": "بعدی:",
+    "viewTransport": "حمل‌ونقل",
+    "viewFinance": "مالی",
+    "viewWaitlist": "لیست انتظار",
+    "viewHistory": "مشاهده در تاریخچه"
+  },
+  "overbookConfirmTitle": "ظرفیت تور پر است",
+  "overbookConfirmDescription": "ظرفیت تکمیل شده. {guest} باز هم تأیید شود؟",
+  "overbookConfirmAction": "باز هم تأیید",
+  "overbookConfirmCancel": "انصراف",
   "sortLabel": "مرتب‌سازی",
   "sort": {
     "submittedAt": "جدیدترین ثبت",
@@ -29,7 +46,7 @@
   "fields": {
     "party": "تعداد نفرات",
     "departure": "حرکت",
-    "payment": "پرداخت",
+    "payment": "تسویه رزرو",
     "status": "وضعیت",
     "phone": "موبایل",
     "email": "ایمیل",
@@ -107,8 +124,9 @@
   "cancelDialogDescription": "لغو {guest} در تور {tour}. از صف قابل بازگشت نیست.",
   "cancelDialogConfirm": "تأیید لغو",
   "cancelDialogKeep": "نگه داشتن ثبت‌نام",
-  "inlineApproveConfirm": "تأیید؟",
+  "inlineApproveConfirm": "تأیید؟ (کلیک دوم)",
   "inlineApproveConfirmAria": "تأیید نهایی برای {guest}",
+  "inlineApproveHintAria": "تأیید {guest} — برای تأیید دوباره کلیک کنید",
   "bulkConfirmTitle": "تأیید ثبت‌نام‌های انتخاب‌شده؟",
   "bulkConfirmDescription": "تأیید {count, number} ثبت‌نام در انتظار یا لیست انتظار.",
   "bulkConfirm": "تأیید",
@@ -124,7 +142,7 @@
     "status": "وضعیت فعلی",
     "approvedAt": "زمان تأیید",
     "rejectReason": "دلیل رد",
-    "payment": "وضعیت پرداخت",
+    "payment": "تسویه رزرو",
     "departure": "تاریخ حرکت",
     "statusValue": {
       "pending": "در انتظار تأیید",
@@ -134,9 +152,9 @@
       "cancelled": "لغوشده"
     },
     "paymentValue": {
-      "unpaid": "پرداخت‌نشده",
-      "partial": "پرداخت جزئی",
-      "paid": "پرداخت‌شده"
+      "unpaid": "پرداخت‌نشده (رزرو)",
+      "partial": "پرداخت جزئی (رزرو)",
+      "paid": "پرداخت‌شده (رزرو)"
     }
   },
   "intake": {
@@ -154,10 +172,10 @@
   "nextStepReceiptLink": "صف بررسی رسید",
   "selectGuest": "انتخاب {guest}",
   "payment": {
-    "all": "همه پرداخت‌ها",
-    "unpaid": "پرداخت‌نشده",
-    "partial": "جزئی",
-    "paid": "پرداخت‌شده"
+    "all": "همه وضعیت‌های تسویه",
+    "unpaid": "پرداخت‌نشده (رزرو)",
+    "partial": "پرداخت جزئی (رزرو)",
+    "paid": "پرداخت‌شده (رزرو)"
   },
   "metadata": {
     "list": {
@@ -208,6 +226,97 @@
       "BOOKING_CREATE_INVALID": "اطلاعات فرم نامعتبر است.",
       "BOOKING_CREATE_FORBIDDEN": "اجازه ایجاد رزرو ندارید.",
       "BOOKING_CREATE_FAILED": "ایجاد رزرو ناموفق بود."
+    }
+  },
+  "adminDialog": {
+    "title": "ثبت‌نام دستی در ورک‌اسپیس تور",
+    "description": "ثبت‌نام را در همان بستر عملیات تور ایجاد کنید و در صورت نیاز همان‌جا تأییدش کنید.",
+    "unknownDeparture": "زمان حرکت نامشخص",
+    "basePrice": "قیمت پایه هر نفر: {amount}",
+    "fields": {
+      "fullName": "نام و نام خانوادگی",
+      "memberSearch": "جستجوی عضو",
+      "memberSearchPlaceholder": "نام یا موبایل عضو را جستجو کنید",
+      "phone": "موبایل",
+      "email": "ایمیل",
+      "partySize": "تعداد نفرات",
+      "nationalId": "کد ملی",
+      "fatherName": "نام پدر",
+      "birthDate": "تاریخ تولد",
+      "personalCarOccupants": "ظرفیت ماشین شخصی"
+    },
+    "sections": {
+      "registrant": "ثبت‌نام برای",
+      "payment": "وضعیت مالی اولیه",
+      "transport": "حمل‌ونقل",
+      "approval": "وضعیت اولیه ثبت‌نام"
+    },
+    "registrantMode": {
+      "member": "عضو موجود",
+      "guest": "مهمان جدید"
+    },
+    "memberSearchEmpty": "عضوی با این جستجو پیدا نشد. اگر کاربر هنوز عضو نیست، مسیر مهمان جدید را انتخاب کنید.",
+    "paymentStatus": {
+      "unpaid": "پرداخت بعدی",
+      "partial": "پرداخت جزئی",
+      "paid": "تسویه‌شده"
+    },
+    "approval": {
+      "pending": "ثبت در انتظار",
+      "approveNow": "ثبت و تأیید"
+    },
+    "transport": {
+      "primary": "حمل سازمان‌یافته",
+      "personal_car": "ماشین شخصی",
+      "no_car_dong": "بدون ماشین — دونگ",
+      "no_car_acquaintance": "بدون ماشین — با آشنا",
+      "occupants": "{count, number} نفر"
+    },
+    "transportModes": {
+      "none": "بدون حمل",
+      "organizer_vehicle": "خودروی برگزارکننده",
+      "bus": "اتوبوس",
+      "minibus": "مینی‌بوس",
+      "train": "قطار",
+      "shared_cars": "ماشین‌های مشترک"
+    },
+    "transportHint": "تنظیم حمل‌ونقل تور: {mode}",
+    "review": {
+      "partySize": "تعداد نفرات",
+      "paymentStatus": "وضعیت مالی",
+      "transport": "انتخاب حمل",
+      "initialStatus": "وضعیت اولیه"
+    },
+    "actions": {
+      "select": "انتخاب",
+      "cancel": "انصراف",
+      "back": "مرحله قبل",
+      "next": "ادامه",
+      "createPending": "ایجاد در انتظار",
+      "createAndApprove": "ایجاد و تأیید"
+    },
+    "steps": {
+      "identity": "شخص",
+      "requirements": "اطلاعات لازم",
+      "logistics": "حمل و مالی",
+      "review": "بازبینی"
+    },
+    "errors": {
+      "MEMBER_REQUIRED": "اول عضو موردنظر را از فهرست انتخاب کنید.",
+      "GUEST_REQUIRED": "نام شخص را وارد کنید.",
+      "PHONE_REQUIRED": "موبایل معتبر وارد کنید.",
+      "PARTY_SIZE_INVALID": "تعداد نفرات معتبر نیست.",
+      "PARTY_SIZE_OVER_CAPACITY": "تعداد نفرات از ظرفیت تور بیشتر است.",
+      "NATIONAL_ID_REQUIRED": "کد ملی معتبر وارد کنید.",
+      "FATHER_NAME_REQUIRED": "نام پدر الزامی است.",
+      "BIRTH_DATE_REQUIRED": "تاریخ تولد معتبر وارد کنید.",
+      "PERSONAL_CAR_OCCUPANTS_REQUIRED": "ظرفیت ماشین شخصی را مشخص کنید.",
+      "BOOKING_CREATE_FORBIDDEN": "اجازه ایجاد ثبت‌نام ندارید.",
+      "BOOKING_GUEST_DUPLICATE": "برای این شخص یک ثبت‌نام فعال مشابه وجود دارد. ثبت‌نام قبلی را بررسی یا لغو کنید.",
+      "BOOKING_MEMBER_NOT_FOUND": "عضو انتخاب‌شده در این ورک‌اسپیس پیدا نشد. عضو دیگری انتخاب کنید یا از مسیر مهمان جدید بروید.",
+      "BOOKING_MEMBER_INACTIVE": "عضو انتخاب‌شده غیرفعال است. اول عضو را فعال کنید یا از مسیر مهمان جدید استفاده کنید.",
+      "BOOKING_CREATE_FAILED": "ایجاد ثبت‌نام ناموفق بود.",
+      "BOOKING_APPROVE_FAILED": "تأیید خودکار ثبت‌نام ناموفق بود."
     }
   }
 }

@@ -1,0 +1,523 @@
+---
+title: Finance Operator Problem Framing v1
+doc_id: DENALI-FINANCE-OPERATOR-PROBLEM-FRAMING
+version: "2026-08-07-v1"
+workspace: denali
+status: ANALYSIS
+phase: pre-redesign discovery stage-4
+continues: DENALI-FINANCE-EXPERIENCE-PRINCIPLES
+locked_foundations:
+  - DENALI-FINANCE-DOMAIN-MAP
+  - DENALI-FINANCE-CASE-GRAMMAR
+  - DENALI-FINANCE-EXPERIENCE-PRINCIPLES
+authority: >
+  Domain Map · Case Grammar · Decision Model · Money Truth Layers · Status Translation ·
+  Composite Scenarios · Experience Principles · Operational Truth Hierarchy · Next Action Model ·
+  Operator Language Rules · Daily Work Boundary · Product Non-Goals
+purpose: >
+  Translate locked domain/decision/principles analysis into a product problem statement
+  that can guide future experience design. Discovery only — no UI, components, APIs, or code.
+constraints:
+  - No UI / wireframes / components / pages
+  - No schemas, migrations, APIs, or code
+  - Do not merge domain statuses
+  - Do not change Bookings ↔ Finance ownership
+  - Financial Case remains the operator mental unit
+north_star: >
+  For this registration, where are we financially right now — and whose correct next action is it?
+---
+
+# Finance Operator Problem Framing v1
+
+## Framing posture
+
+Denali finance already has a capable domain. The product problem is not “missing money features.” The product problem is:
+
+> Operators must **mentally compose** multiple correct truths into one Financial Case story before they can act safely — and today that composition is left to interpretation.
+
+This document states **jobs**, **problems**, **experience gaps**, **critical trust moments**, **strategy**, and **acceptance criteria** for any future experience work. It does not prescribe surfaces.
+
+---
+
+# 1. Operator Jobs To Be Done
+
+Jobs are phrased for the **مسئول مالی باشگاه** (finance operator). Required truths reference Money Truth Layers / Operational Truth Hierarchy ranks.
+
+---
+
+## J1 — Review payment proof for a case
+
+**Job statement**
+
+When a member has submitted transfer proof for an approved registration, I need to decide accept or reject against the real obligation, so I can capture money correctly or send the member back with a clear reason.
+
+| Field | Content |
+| ----- | ------- |
+| **Trigger** | Receipt enters pending review; or operator opens a case that already has proof waiting |
+| **Required truths** | Identity · Eligibility/lifecycle · Collection policy · Obligation & remaining · Proof state · Open payment intent · Settlement projection (as context, not substitute for proof) |
+| **Current friction** | Proof is easy to see as a queue row; composing obligation, lifecycle meaning, and “unpaid is still normal” requires operator translation across hubs/layers |
+| **Success criteria** | Operator can complete approve/reject with confidence that amount, eligibility, and outcome on the club badge are coherent — without reconstructing the case from raw entities |
+
+---
+
+## J2 — Understand why money is not settled
+
+**Job statement**
+
+When a registration still shows unsettled on the club badge, I need to know the *single operational reason* it is not settled, so I do not chase the wrong person or invent work.
+
+| Field | Content |
+| ----- | ------- |
+| **Trigger** | Coach/leader asks; operator scans unpaid/partial; post-approve booking still unpaid; empty proof queue for an unpaid case |
+| **Required truths** | Next-action owner · Eligibility/policy · Settlement state · Proof state · Obligation & remaining · (if relevant) open intent / partial scope |
+| **Current friction** | Multiple “pending/unpaid” signals look like competing failures; free/zero and “waiting for member” look like the same unpaid badge |
+| **Success criteria** | Operator can state one composed reason (e.g. waiting for member proof / waiting for finance review / no money due / partial with scope) aligned with Next Action Model |
+
+---
+
+## J3 — Know who owns the next action
+
+**Job statement**
+
+When I look at any active Financial Case, I need to know whether the ball is with member, finance, club lifecycle, policy/system, or idle, so I only spend effort on actions that are mine.
+
+| Field | Content |
+| ----- | ------- |
+| **Trigger** | Start of daily work; opening any case; after reject; after booking approve elsewhere |
+| **Required truths** | Next-action owner (rank 1) · Eligibility/policy (rank 2) · Proof state · Settlement state |
+| **Current friction** | Owner is inferred, not first-class; manual payment existence is mistaken for “finance must act now” |
+| **Success criteria** | For every Composite Scenario class, operator names the same owner as the locked Next Action Model without debating badges |
+
+---
+
+## J4 — Give a reliable club answer: “Is this person’s payment OK?”
+
+**Job statement**
+
+When operations ask whether a guest is financially OK for the tour, I need a one-sentence operational verdict grounded in settlement + next action, so the club does not treat claimed transfers as settled or chase settled free cases.
+
+| Field | Content |
+| ----- | ------- |
+| **Trigger** | Departure pressure; inbox question; handoff between bookings desk and finance desk |
+| **Required truths** | Settlement state · Next-action owner · Proof state · Policy frame · Partial scope if partial |
+| **Current friction** | Answer is assembled ad hoc from booking badge + finance tabs + memory of policy; language collapses “paid/pending/approved” |
+| **Success criteria** | Operator can answer using Operator Language Rules (object + owner) and the answer matches domain coexistence (including unpaid + receipt pending as “not OK yet — finance reviewing”) |
+
+---
+
+## J5 — Avoid unnecessary manual payment creation
+
+**Job statement**
+
+When an approved registration is unpaid and no proof exists yet, I need to know whether opening a manual payment is required or harmful, so I do not create parallel intents on the default member-upload path.
+
+| Field | Content |
+| ----- | ------- |
+| **Trigger** | Decision-guide mental model (“open debt first”); empty proof queue; desire to “do something” on unpaid cases |
+| **Required truths** | Proof state · Open money intent · Collection policy · Next-action owner · Default path awareness (member ingress) |
+| **Current friction** | Manual create is presented as a primary money act; default Denali path does not require it; duplicate intents become possible |
+| **Success criteria** | Operator treats manual payment as an explicit exception (P11); default unpaid+approved+offline ⇒ wait on member, not invent Payment |
+
+---
+
+## J6 — Distinguish daily money work from audit/exceptions
+
+**Job statement**
+
+When I start a finance session, I need to stay at daily altitude (cases, proofs, next actions), so I do not waste morning capacity on ledger archaeology or terminal leftovers unless escalated.
+
+| Field | Content |
+| ----- | ------- |
+| **Trigger** | Opening finance hub; seeing ledger/reconciliation peers; historical receipt on cancelled booking appears in work |
+| **Required truths** | Daily Work Boundary · Next-action owner · Lifecycle terminal vs active · Audit layer only when mismatch suspected |
+| **Current friction** | Audit-adjacent concepts sit at peer mental altitude; exception cases look like normal queue work |
+| **Success criteria** | Operator’s default path is J1–J5; ledger/recon/terminal-history are entered knowingly as exception/audit lanes |
+
+---
+
+## J7 — Handle partial settlement with correct scope
+
+**Job statement**
+
+When a case is not fully settled but some money is recognized, I need to know *which layer* is partial, so I can tell the club what is still owed and who must act.
+
+| Field | Content |
+| ----- | ------- |
+| **Trigger** | booking `partial`; invoice remainder; prepayment; installment partial/overdue |
+| **Required truths** | Settlement state · Obligation & remaining · Recognition detail · Proof state if new proof exists · Schedule slice if schedule-active |
+| **Current friction** | One vernacular “جزئی / partial” spans case, wallet, and installment |
+| **Success criteria** | Operator states scoped partial (case vs installment vs remaining obligation) and a coherent next-action owner |
+
+---
+
+## J8 — Handle exceptions without polluting the daily lane
+
+**Job statement**
+
+When a proof or payment object exists on a terminal or commercially ambiguous case, I need to recognize it as exception work, so I do not apply happy-path approve/reject habits blindly.
+
+| Field | Content |
+| ----- | ------- |
+| **Trigger** | Cancelled/rejected + historical pending receipt; conflicting layer truths; duplicate manual + member intents |
+| **Required truths** | Lifecycle · Proof state · Settlement · Policy · (escalation) reconciliation/audit as needed |
+| **Current friction** | Domain allows review of leftover pending proofs; product story does not force “exception meaning” |
+| **Success criteria** | Operator pauses for commercial meaning before capture; daily metrics do not treat these as normal throughput |
+
+---
+
+## Job map vs North Star
+
+| Job | North Star half primarily served |
+| --- | -------------------------------- |
+| J1 | Act when owner = finance |
+| J2–J3 | Where are we + whose action |
+| J4 | Club-facing composition of both halves |
+| J5 | Prevent false finance ownership |
+| J6 | Keep altitude correct |
+| J7–J8 | Hard-mode composition |
+
+---
+
+# 2. Core Operator Problems
+
+Pain converted to problem statements. Principles cited from Experience Principles (P01–P14).
+
+---
+
+### Problem A — Unpaid read as “nothing happened” during proof review
+
+**Problem:** Finance operators interpret booking `unpaid` as missing payment activity even when receipt review is pending.
+
+**Impact:** Duplicate chasing, false “sync bug” reports, distrust in the money spine, wasted contacts with members who already uploaded.
+
+**Root cause:** Settlement projection and proof workflow are separate truths; without a composed case story they look contradictory.
+
+**Why current system creates this:** Correct domain coexistence (approve-then-offline-pay) surfaces as adjacent badges/tabs rather than one narrative; language collapses both to “waiting.”
+
+**Principle that protects against it:** P03, P04, P07, P09
+
+---
+
+### Problem B — Next-action ownership is inferred, not known
+
+**Problem:** Operators cannot reliably say who owns the next action for a registration without reconstructing entity states.
+
+**Impact:** Finance does member work (or waits while proof sits); wrong desk is blamed; daily throughput becomes anxiety-driven.
+
+**Root cause:** Next-action owner is not treated as first-class operational truth equal to settlement/proof.
+
+**Why current system creates this:** Capabilities expose payments, receipts, prepayments, installments, ledger as peer work objects; ownership is a human inference.
+
+**Principle that protects against it:** P02, P06, P01
+
+---
+
+### Problem C — Bare status words collide across axes
+
+**Problem:** Operators hear/speak “pending,” “approved,” and “paid” without an object, merging lifecycle, payment intent, receipt, and settlement meanings.
+
+**Impact:** Wrong decisions (treat proof upload as club approval; treat member transfer claim as settled; reject-registration vs reject-proof confusion).
+
+**Root cause:** Multiple status families share colloquial vocabulary; Status Translation Map exists in analysis but not yet as lived operator language discipline in the product story.
+
+**Why current system creates this:** Independent SoTs are correct; shared FA/EN shorthand is underspecified for operators.
+
+**Principle that protects against it:** P04, P05, Operator Language Rules
+
+---
+
+### Problem D — Empty proof queue has many meanings
+
+**Problem:** Operators treat “no pending receipt” as a single situation (member delinquency) across unpaid approved, not-yet-eligible, and free/zero cases.
+
+**Impact:** Payment chasing on free tours; pressure on members still awaiting club approval; unnecessary manual payment creation.
+
+**Root cause:** Policy/eligibility frame is ranked below badge reading in practice, though hierarchy says otherwise.
+
+**Why current system creates this:** Finance surfaces are proof- and payment-centric; lifecycle/collection policy are easy to omit from the money story.
+
+**Principle that protects against it:** P08, P02, Next Action Model
+
+---
+
+### Problem E — Manual payment feels like the default money act
+
+**Problem:** Operators believe opening a manual payment is the normal way to “start” finance for a registration.
+
+**Impact:** Parallel intents, process forks, hesitation, and conflict with member auto-create on upload.
+
+**Root cause:** Dual ingress to the same Payment entity without a sharp default-vs-exception product rule in the operator’s job framing.
+
+**Why current system creates this:** Historical ops parity and decision guidance elevate manual create beside the member-proof path.
+
+**Principle that protects against it:** P11, J5, Product Non-Goals (do not force manual-first)
+
+---
+
+### Problem F — Partial is unscoped
+
+**Problem:** Operators cannot tell whether “partial” means case settlement, invoice remainder, wallet progress, or an installment slice.
+
+**Impact:** Bad go/no-go calls for departure; wrong next-action owner; premature “close enough” or unnecessary alarm.
+
+**Root cause:** One vernacular covers multiple Money Truth Layers.
+
+**Why current system creates this:** Domain correctly distinguishes layers; experience does not force scope declaration (P13).
+
+**Principle that protects against it:** P13, P09, J7
+
+---
+
+### Problem G — Club questions cannot be answered from one case story
+
+**Problem:** Giving a reliable answer to “is payment OK?” requires stitching Bookings projection + Finance proof + policy in the operator’s head.
+
+**Impact:** Inconsistent answers across staff; leaders act on the wrong altitude of truth.
+
+**Root cause:** Split desks and split SoTs without a mandated composed Financial Case narrative for handoff.
+
+**Why current system creates this:** Ownership boundaries are correctly split; composition is left to humans (Pain P10 from domain analysis).
+
+**Principle that protects against it:** P01, P02, P03, J4
+
+---
+
+### Problem H — Post-decision trust wobble
+
+**Problem:** After finance accepts proof, operators re-check multiple sources before believing the case is settled.
+
+**Impact:** Slowed throughput; lingering sense that money and booking “don’t stay in sync.”
+
+**Root cause:** Settlement is a projection updated by finance capture; the *story* of coherence after decision is weaker than the act of review itself.
+
+**Why current system creates this:** Technical sync can be correct while experiential coherence (P12) is not guaranteed in the operator’s path.
+
+**Principle that protects against it:** P12, P09, Daily vs audit boundary (don’t send them to ledger to feel safe)
+
+---
+
+### Problem I — Terminal cases look like daily proof work
+
+**Problem:** Historical pending receipts on cancelled/rejected registrations appear actionable like normal reviews.
+
+**Impact:** Commercially dubious captures; polluted daily queue meaning; policy ambiguity executed as habit.
+
+**Root cause:** Domain retains reviewability of old pending proofs; terminal lifecycle changes meaning (P14) is not forced into the job.
+
+**Why current system creates this:** Explicit non-purge policy + proof-centric queues.
+
+**Principle that protects against it:** P14, J8, Daily Work Boundary (exception lane)
+
+---
+
+### Problem J — Audit altitude competes with daily altitude
+
+**Problem:** Ledger/reconciliation concepts compete for the same mental slot as proof review and case settlement.
+
+**Impact:** Operators either fear finance tools or ignore real exceptions; morning work loses North Star focus.
+
+**Root cause:** Capability richness without altitude labeling in the product problem framing (now stated in P10 / Daily Work Boundary).
+
+**Why current system creates this:** Finance command center progressive scope includes audit-capable panels as peers.
+
+**Principle that protects against it:** P10, J6, Product Non-Goals (ledger not daily tool)
+
+---
+
+# 3. Experience Gaps
+
+Gaps between **locked domain truth** and **common operator mental model**. Capabilities needed are experiential (what the operator must be able to *perceive/decide*), not UI prescriptions.
+
+| Domain truth | Operator assumption | Gap | Risk | Needed experience capability |
+| ------------ | ------------------- | --- | ---- | ---------------------------- |
+| Receipt Pending + booking unpaid is normal until finance approves | “Unpaid means broken or member hasn’t paid” | Coexistence not narrated as healthy | Distrust; duplicate work | Compose settlement + proof into one non-alarming case truth |
+| Booking lifecycle pending blocks member upload | “Finance should already see money activity” | Eligibility omitted from money reading | Blame member/finance wrongly | Always frame money state inside lifecycle/policy eligibility |
+| Free/zero → settled without receipt/ledger money | “Paid always implies a reviewed transfer” | Policy path invisible | Chase nonexistent proofs | Distinguish “settled because no money due” from “settled because captured” |
+| Payment.Pending ≠ booking unpaid (related but not identical) | One “pending payment” idea | Intent layer merged with club badge | Wrong job selection (J5 vs J1) | Separate open-intent truth from settlement truth in the case story |
+| Receipt.Approved is finance proof decision; booking approved is lifecycle | One “approved” | Axis collision | Wrong desk action | Object-qualified approval language in every case narrative |
+| Manual Payment is alternate ingress, not required step | “I must open payment to start” | Default path inverted | Duplicate intents | Make default member→review path the unmarked job; mark manual as exception |
+| Obligation is amount owed; paymentStatus is club badge | Badge answers “how much?” | Layer swap (P09 violation) | Bad accept/reject amounts | Obligation/remaining always available when deciding proof |
+| Installment partial ≠ booking partial | One “partial” | Scope collapse | Departure errors | Scoped partial declaration before next-action claims |
+| Ledger is post-capture audit spine | “I should use ledger to know if guest is OK” | Altitude swap | Slow daily work; false dependency | Keep club answer at settlement+proof+owner altitude |
+| Finance does not transition lifecycle | Finance hub feels like full money+admission control | Ownership blur | Attempts to “approve people” in finance mental model | Case story shows lifecycle as read-only eligibility frame |
+| Historical pending receipt may remain on cancelled booking | “If it’s in my queue, happy-path review applies” | Exception meaning missing | Bad commercial capture | Classify terminal-linked proof as exception work before decision |
+| Next-action owner is derivable from composed scenario rules | Owner is “whoever I’m looking at” | Inference gap | Idle proof queue / busywork | First-class next-action ownership as part of case truth |
+| After approve receipt, projection should become paid | “I’ll believe it when I re-check everywhere” | Coherence gap post-decision | Trust wobble | Post-decision case verdict that matches domain outcome without audit dive |
+
+---
+
+# 4. Critical Moments
+
+Moments where trust is won or lost. Minimum set required by brief, plus post-decision.
+
+---
+
+### M1 — Approved booking without payment / proof
+
+| Field | Content |
+| ----- | ------- |
+| **Situation** | Lifecycle approved; offline owed; no receipt yet; settlement unpaid |
+| **Operator expectation** | Often: “I should do something in finance now” (open payment / chase) |
+| **Actual domain behavior** | Next action is **member** (upload/pay); finance has nothing to review |
+| **Why confusion happens** | Unpaid badge reads as finance backlog; manual-first mental model |
+| **Required principle** | P06, P08, P11 |
+
+---
+
+### M2 — Receipt pending + booking unpaid
+
+| Field | Content |
+| ----- | ------- |
+| **Situation** | Proof in finance review; club badge still unpaid |
+| **Operator expectation** | “System out of sync” or “member still unpaid so proof can’t be real” |
+| **Actual domain behavior** | Normal Denali path; owner = **finance**; unpaid until Approved |
+| **Why confusion happens** | Two truths without composed “healthy wait” story; bare pending/unpaid language |
+| **Required principle** | P03, P04, P07, P09 |
+
+---
+
+### M3 — Receipt rejected
+
+| Field | Content |
+| ----- | ------- |
+| **Situation** | Proof Rejected; settlement usually still unpaid/partial; payment intent often still Pending |
+| **Operator expectation** | Case closed / registration rejected / finance still owns the wait |
+| **Actual domain behavior** | Next action returns to **member** (fix and resubmit) if lifecycle still approved |
+| **Why confusion happens** | “Rejected” object unspecified; Payment.Pending remains and looks like finance work |
+| **Required principle** | P05, P06, Language Rules |
+
+---
+
+### M4 — Free / zero obligation
+
+| Field | Content |
+| ----- | ------- |
+| **Situation** | After approve (or zero override): settlement paid without receipt/ledger money |
+| **Operator expectation** | Expect proof queue entry or treat unpaid moments as failure |
+| **Actual domain behavior** | No money ingress required; chasing proofs is wrong |
+| **Why confusion happens** | “Paid” culturally implies transfer; policy frame not read first |
+| **Required principle** | P08, P09, P04 (name the kind of settled) |
+
+---
+
+### M5 — Partial payment
+
+| Field | Content |
+| ----- | ------- |
+| **Situation** | Case not fully settled; some recognition exists (wallet/projection/schedule) |
+| **Operator expectation** | Single “partially paid” meaning for club go/no-go |
+| **Actual domain behavior** | Partial is layer-scoped; next owner depends on scope + whether proof is waiting |
+| **Why confusion happens** | Vernacular collision across layers |
+| **Required principle** | P13, P02 |
+
+---
+
+### M6 — Manual payment exists (before / without member upload)
+
+| Field | Content |
+| ----- | ------- |
+| **Situation** | Operator-created Payment.Pending; no receipt yet |
+| **Operator expectation** | “Finance work is underway / I did the right setup” |
+| **Actual domain behavior** | Open intent only; next action still usually **member** for proof unless receipt appears; risk of parallel path with auto-create |
+| **Why confusion happens** | Intent confused with progress; exception path feels like default |
+| **Required principle** | P11, P06, P01 |
+
+---
+
+### M7 — Cancelled booking with historical receipt
+
+| Field | Content |
+| ----- | ------- |
+| **Situation** | Terminal lifecycle; leftover Pending proof still reviewable |
+| **Operator expectation** | Same review job as daily proof |
+| **Actual domain behavior** | Commercial meaning ambiguous; exception lane — not unmarked daily capture |
+| **Why confusion happens** | Queue object exists; terminal meaning not forced |
+| **Required principle** | P14, P10, J8 |
+
+---
+
+### M8 — Immediately after finance approves proof (trust seal)
+
+| Field | Content |
+| ----- | ------- |
+| **Situation** | Operator just accepted proof; expects club settled |
+| **Operator expectation** | One clear “case settled” confirmation in the same story they acted on |
+| **Actual domain behavior** | Domain should move Payment Paid + receipt Approved + booking paid (+ ledger at audit altitude) |
+| **Why confusion happens** | If the operator must leave the case story to re-verify badges elsewhere, trust wobbles even when sync succeeded |
+| **Required principle** | P12, P02, P10 |
+
+---
+
+# 5. Experience Strategy Statement
+
+**Finance experience should help operators** treat each registration as a **Financial Case**: compose lifecycle eligibility, collection policy, obligation/remaining, proof state, and settlement projection **without merging those sources of truth**, always surface **who owns the next action**, keep **proof review and club settlement answers in the daily lane**, and keep **ledger/reconciliation at audit/exception altitude** — while **preserving Bookings ownership of lifecycle** and **Finance ownership of money capture and payment projection**.
+
+### Strategy pillars (non-UI)
+
+1. **Case unit** — Registration-centered story beats entity-centered work.
+2. **North Star completeness** — State + owner, always.
+3. **Layer composition** — Axes remain separate; narrative joins them.
+4. **Default path clarity** — Member proof → finance review; manual payment is exception.
+5. **Altitude discipline** — Daily vs audit vs exception.
+6. **Boundary fidelity** — No ownership takeover either direction.
+
+---
+
+# 6. Design Decision Criteria
+
+A future finance operator experience is **acceptable only if** all of the following hold. These criteria gate design exploration; they are not implementation tasks.
+
+1. **North Star answerability** — For every active Financial Case, an operator can answer both halves: where we are financially, and who owns the next action — without translating raw entity names as the primary story.
+
+2. **Object-qualified waits** — Any pending/waiting presentation identifies **what** is awaited and **who** must act (never bare “pending”).
+
+3. **Object-qualified approvals** — Registration approval and proof approval are never narrated as the same unqualified “approved.”
+
+4. **Healthy coexistence** — Receipt-pending + booking-unpaid is representable as a **normal** in-review state owned by finance, not as an error or sync failure.
+
+5. **Proof review is case-complete** — Completing accept/reject does not require the operator to manually reconstruct obligation, eligibility, and settlement context from disconnected hubs as a prerequisite to a safe decision.
+
+6. **Club verdict capability** — Operator can produce a reliable one-sentence answer to “is this person’s payment OK?” using settlement + next-action (+ partial scope when needed).
+
+7. **Free/zero exclusion from chase** — Cases that require no money ingress do not enter member-payment-chasing or proof-waiting interpretations.
+
+8. **Manual payment exceptionality** — The default unpaid approved offline case does not steer operators toward creating a manual payment as the normal next step.
+
+9. **Scoped partial** — Any partial state declares whether it is case settlement, remaining obligation, or a schedule slice before implying next action.
+
+10. **Terminal exception marking** — Proofs tied to cancelled/rejected (or otherwise terminal) registrations are not treated as unmarked daily review work.
+
+11. **Post-decision coherence** — After a successful proof approval, the case story’s settlement verdict is trustworthy without requiring an audit-altitude dig to feel confident.
+
+12. **Altitude separation** — Ledger/journal remains audit altitude; daily success does not depend on operators “working the ledger” to settle guests.
+
+13. **Ownership preservation** — Experience never implies finance can transition booking lifecycle, nor that bookings can approve receipts or post ledger.
+
+14. **No status merging** — Design does not “solve confusion” by collapsing lifecycle, payment, receipt, or settlement enums into one status family.
+
+15. **Hierarchy respect** — Next-action owner and policy/eligibility are not buried beneath audit counts, raw UUIDs, or secondary money instruments in the daily reading order.
+
+16. **Non-goals honored** — Solutions that primarily add capability surface area, force entity literacy, or make reconciliation the morning queue fail acceptance even if technically elegant.
+
+---
+
+## Problem framing summary (one paragraph)
+
+Denali’s finance operator problem is a **composition and ownership-clarity problem**: the domain correctly separates lifecycle, obligation, payment intent, proof, settlement projection, and ledger, but operators must still ship club decisions from one mental Financial Case. Today, bare status language, peer-altitude tools, manual-first habits, and unscoped partials make normal multi-truth states feel broken. The redesign must make the North Star answerable on every active case, protect healthy unpaid+in-review coexistence, keep free/terminal/manual paths from polluting the default job, and preserve architecture boundaries — without merging statuses or turning audit into daily work.
+
+---
+
+## Traceability
+
+| Framing section | Primary locked inputs |
+| --------------- | --------------------- |
+| Jobs | Decision Model · Next Action Model · Daily Work Boundary |
+| Problems | Domain Pain Points · Experience Principles |
+| Gaps | Money Truth Layers · Status Translation · Non-Goals |
+| Critical moments | Composite Scenarios · Principles P07–P14 |
+| Strategy | North Star · P01–P03 · P10 · ownership matrix |
+| Criteria | All of the above as testable experience acceptance |
+
+---
+
+Ready for Experience Model phase

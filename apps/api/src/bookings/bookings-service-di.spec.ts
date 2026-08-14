@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
 import { createBookingsService } from "./bookings.service.ts";
+import type { BookingAssistedRegistrationMembersPort } from "./ports/booking-assisted-registration-members.port.ts";
 import type { BookingAuthorizationPort } from "./ports/booking-authorization.port.ts";
 import type { BookingClockPort } from "./ports/booking-clock.port.ts";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port.ts";
@@ -59,6 +60,12 @@ function stubCapacity(): import("@app-tour/booking-http-contracts").BookingCapac
   };
 }
 
+function stubAssistedRegistrationMembers(): BookingAssistedRegistrationMembersPort {
+  return {
+    findTenantMember: async () => null,
+  };
+}
+
 function fakeRepo(): BookingRepositoryPort {
   return {
       listByTenant: async () => [],
@@ -81,6 +88,8 @@ function fakeRepo(): BookingRepositoryPort {
     getByIds: async () => [],
     updatePaymentStatus: async () => null,
     mergeRegistrationIntake: async () => null,
+    updateGuestProjectionAndIntake: async () => null,
+    reclassifyOwnedOtherToSelf: async () => null,
     createBooking: async () => {
       throw new Error("not used");
     },
@@ -124,11 +133,13 @@ describe("bookings-service-di (B0.5)", () => {
       const allowed =
         from === "./bookings.types" ||
         from === "./bookings.errors" ||
+        from === "./booking-list-query" ||
         from === "./ports/booking-runtime-capabilities.port" ||
         from === "@app-tour/booking-http-contracts" ||
         from === "./ports/booking-actor-context" ||
         from === "./ports/booking-authorization.port" ||
         from === "./ports/booking-clock.port" ||
+        from === "./ports/booking-assisted-registration-members.port" ||
         from === "./ports/booking-repository.port" ||
         from === "./ports/booking-tenant-workspace-binding.port" ||
         from === "./ports/booking-tour-capacity.port";
@@ -149,6 +160,7 @@ describe("bookings-service-di (B0.5)", () => {
           publicBooking: stubPublicBooking(),
           validationPolicy: stubValidation(),
           capacityPolicy: stubCapacity(),
+          assistedRegistrationMembers: stubAssistedRegistrationMembers(),
           tourCapacity: {
             kind: "test-tour-capacity",
             resolveTourCapacityMax: async () => null,
@@ -174,6 +186,7 @@ describe("bookings-service-di (B0.5)", () => {
       publicBooking: stubPublicBooking(),
       validationPolicy: stubValidation(),
       capacityPolicy: stubCapacity(),
+      assistedRegistrationMembers: stubAssistedRegistrationMembers(),
       tourCapacity: {
         kind: "test-tour-capacity",
         resolveTourCapacityMax: async () => null,

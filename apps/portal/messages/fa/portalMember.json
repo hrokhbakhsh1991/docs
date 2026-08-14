@@ -21,8 +21,16 @@
   "registrations": {
     "title": "ثبت‌نام‌های من",
     "empty": "هنوز ثبت‌نامی ندارید.",
+    "emptyFiltered": "در این بخش ثبت‌نامی نیست. تب دیگر را امتحان کنید.",
     "emptyCta": "مشاهده تورها",
+    "filterAria": "فیلتر نوع ثبت‌نام",
+    "filterAll": "همه",
+    "filterSelf": "برای خودم",
+    "filterOther": "برای دیگران",
     "statusLine": "{status} · {paymentStatus} · {departureAt}",
+    "forSelfBadge": "برای خودم",
+    "forOtherBadge": "برای دیگری",
+    "guestLine": "مسافر: {guestLabel}",
     "statusLabels": {
       "pending": "در انتظار",
       "approved": "تأیید شده",
@@ -147,7 +155,9 @@
   "detail": {
     "backToList": "← بازگشت به ثبت‌نام‌های من",
     "statusLine": "وضعیت: {status} · پرداخت: {paymentStatus}",
-    "departure": "تاریخ حرکت: {departureAt}"
+    "departure": "تاریخ حرکت: {departureAt}",
+    "forOtherBadge": "برای دیگری",
+    "guestLine": "مسافر: {guestLabel}"
   },
   "receipt": {
     "label": "بارگذاری رسید پرداخت",
@@ -165,6 +175,26 @@
     "paidTitle": "پرداخت تأیید شد",
     "paidBody": "رسید شما تأیید شد. برای این سفر آماده هستید.",
     "viewTour": "مشاهده تور",
-    "backToTrips": "بازگشت به سفرها"
+    "backToTrips": "بازگشت به سفرها",
+    "dueTitle": "مبلغ قابل پرداخت با فیش",
+    "dueTotal": "جمع کل: {amount}",
+    "dueLineTrip": "هزینه سفر",
+    "dueLineDong": "دونگ",
+    "dueLineTransport": "هزینه حمل‌ونقل",
+    "dueHint": "فیش باید این مبلغ را پوشش دهد (سفر + دونگ/حمل‌ونقل در صورت اعمال)."
+  },
+  "intakeAmend": {
+    "title": "ویرایش اطلاعات ثبت‌نام",
+    "lede": "قبل از تأیید باشگاه می‌توانید جزئیات حمل‌ونقل را عوض کنید.",
+    "transportLegend": "حمل‌ونقل",
+    "noPersonalCar": "حمل‌ونقل باشگاه / سازمان‌یافته",
+    "personalCar": "ماشین شخصی می‌آورم",
+    "noCarDong": "ماشین ندارم — پرداخت دونگ",
+    "noCarAcquaintance": "ماشین ندارم — با آشنا",
+    "occupants": "ظرفیت صندلی ماشین من",
+    "save": "ذخیره تغییرات",
+    "saving": "در حال ذخیره…",
+    "saved": "ذخیره شد.",
+    "error": "ذخیره نشد. دوباره تلاش کنید."
   }
 }

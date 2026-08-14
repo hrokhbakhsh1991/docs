@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft } from "lucide-react";
@@ -24,6 +23,12 @@ import {
   formatTourPrice,
   formatTourSeats,
 } from "@/features/tours/tour-list-formatters";
+import { TourInternalLink } from "@/features/tours/tour-internal-link";
+import {
+  fetchTourDetailCached,
+  invalidateCachedTourDetail,
+  readCachedTourDetail,
+} from "@/features/tours/tour-route-cache";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
 import { resolveWizardCatalogPrefetchProvider } from "@/wizard/wizard-host-adapter-registry";
@@ -101,9 +106,11 @@ function TourEditTitlePageClient({ session, tourId }: TourEditPageClientProps) {
   const tFormat = useTranslations("tours.format");
   const tCommon = useTranslations("common");
   const router = useRouter();
-  const [detail, setDetail] = useState<OperatorTourDetailResponse | null>(null);
-  const [title, setTitle] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [detail, setDetail] = useState<OperatorTourDetailResponse | null>(() =>
+    readCachedTourDetail(tourId)
+  );
+  const [title, setTitle] = useState(() => readCachedTourDetail(tourId)?.projection.title ?? "");
+  const [loading, setLoading] = useState(() => readCachedTourDetail(tourId) === null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchNonce, setFetchNonce] = useState(0);
@@ -111,33 +118,30 @@ function TourEditTitlePageClient({ session, tourId }: TourEditPageClientProps) {
   const canEdit = canMutateTour(session.role);
   const localizedError = resolveTourErrorMessage(tErrors, error);
 
-  const loadDetail = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/tours/${encodeURIComponent(tourId)}`, {
-        cache: "no-store",
-      });
-      if (response.status === 404) {
-        setDetail(null);
-        setError("TOUR_NOT_FOUND");
-        return;
+  const loadDetail = useCallback(
+    async (force = false) => {
+      setLoading(force || readCachedTourDetail(tourId) === null);
+      setError(null);
+      try {
+        const payload = await fetchTourDetailCached(tourId, { force });
+        setDetail(payload);
+        setTitle(payload.projection.title);
+      } catch (loadError: unknown) {
+        if (loadError instanceof Error && loadError.message.includes("TOUR_HTTP_404")) {
+          setDetail(null);
+          setError("TOUR_NOT_FOUND");
+          return;
+        }
+        setError(loadError instanceof Error ? loadError.message : "TOUR_EDIT_LOAD_FAILED");
+      } finally {
+        setLoading(false);
       }
-      if (!response.ok) {
-        throw new Error(`TOUR_EDIT_HTTP_${response.status}`);
-      }
-      const payload = (await response.json()) as OperatorTourDetailResponse;
-      setDetail(payload);
-      setTitle(payload.projection.title);
-    } catch (loadError: unknown) {
-      setError(loadError instanceof Error ? loadError.message : "TOUR_EDIT_LOAD_FAILED");
-    } finally {
-      setLoading(false);
-    }
-  }, [tourId]);
+    },
+    [tourId]
+  );
 
   useEffect(() => {
-    void loadDetail();
+    void loadDetail(fetchNonce > 0);
   }, [loadDetail, fetchNonce]);
 
   const handleSave = async () => {
@@ -156,6 +160,7 @@ function TourEditTitlePageClient({ session, tourId }: TourEditPageClientProps) {
       if (!response.ok) {
         throw new Error(`TOUR_EDIT_PATCH_${response.status}`);
       }
+      invalidateCachedTourDetail(tourId);
       router.refresh();
       setFetchNonce((value) => value + 1);
     } catch (saveError: unknown) {
@@ -180,11 +185,9 @@ function TourEditTitlePageClient({ session, tourId }: TourEditPageClientProps) {
         <CardContent className="py-10 text-center text-muted-foreground">
           {t("notFound")}
           <div className="mt-4">
-            <Link href="/tours">
-              <Button variant="outline" size="sm">
-                {tNav("backToTours")}
-              </Button>
-            </Link>
+            <Button asChild variant="outline" size="sm">
+              <TourInternalLink href="/tours">{tNav("backToTours")}</TourInternalLink>
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -206,23 +209,23 @@ function TourEditTitlePageClient({ session, tourId }: TourEditPageClientProps) {
   return (
     <div className="mx-auto max-w-2xl space-y-6" data-testid={TOUR_EDIT_TEST_IDS.page}>
       <div className="flex flex-wrap items-center gap-2">
-        <Link href="/tours">
-          <Button type="button" variant="ghost" size="sm" className="gap-1">
+        <Button asChild variant="ghost" size="sm" className="gap-1">
+          <TourInternalLink href="/tours">
             <ArrowLeft className="h-4 w-4" />
             {tNav("tours")}
-          </Button>
-        </Link>
-        <Link href={`/tours/${encodeURIComponent(tourId)}/workspace`}>
-          <Button type="button" variant="outline" size="sm" data-testid={TOUR_EDIT_TEST_IDS.workspace}>
+          </TourInternalLink>
+        </Button>
+        <Button asChild variant="outline" size="sm" data-testid={TOUR_EDIT_TEST_IDS.workspace}>
+          <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/workspace`}>
             {tNav("workspace")}
-          </Button>
-        </Link>
+          </TourInternalLink>
+        </Button>
         {canEdit ? (
-          <Link href={`/tours/${encodeURIComponent(tourId)}/register`}>
-            <Button type="button" variant="default" size="sm" data-testid={TOUR_EDIT_TEST_IDS.register}>
+          <Button asChild variant="default" size="sm" data-testid={TOUR_EDIT_TEST_IDS.register}>
+            <TourInternalLink href={`/tours/${encodeURIComponent(tourId)}/register`}>
               {tNav("registerGuest")}
-            </Button>
-          </Link>
+            </TourInternalLink>
+          </Button>
         ) : null}
       </div>
 

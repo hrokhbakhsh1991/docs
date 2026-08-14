@@ -33,9 +33,10 @@ import { navigateAfterLogin } from "@/auth/navigate-after-auth-session-change";
 type Step = "phone" | "otp";
 
 const RESEND_COOLDOWN_SEC = 45;
-/** Dev owner login — ASCII in state/API; LocalizedNumericInput shows Persian digits when locale is fa. */
+/** Dev owner login — ASCII in state/API; LocalizedNumericInput shows Persian digits when locale is fa.
+ * Must match operator smoke / Denali seed owner (`operator-smoke-identity.mjs`). */
 const DEV_LOGIN_PHONE =
-  process.env.NEXT_PUBLIC_DEV_LOGIN_PHONE?.trim() || "+989190082452";
+  process.env.NEXT_PUBLIC_DEV_LOGIN_PHONE?.trim() || "+15550001001";
 const DEV_LOGIN_OTP = process.env.NEXT_PUBLIC_DEV_LOGIN_OTP?.trim() || "1234";
 
 function initialLoginPhone(): string {
@@ -341,6 +342,7 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
                   id="phone"
                   autoComplete="tel"
                   mode="phone"
+                  placeholder={t("phonePlaceholder")}
                   value={phone}
                   onChange={(value) => {
                     setPhone(value);

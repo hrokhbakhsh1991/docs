@@ -1,14 +1,4 @@
-import { resolveBookingsCommandCenterBodyState } from "@/features/bookings/bookings-command-center-logic";
-import type { BookingsListView } from "@/features/bookings/bookings-command-center-types";
-
-export function resolveBookingsPageBodyState(input: {
-  readonly canManageOps: boolean;
-  readonly view: BookingsListView;
-  readonly loading: boolean;
-  readonly error: string | null;
-  readonly itemsLength: number;
-  readonly hasActiveFilters?: boolean;
-  readonly upcomingFacetActive?: boolean;
-}) {
-  return resolveBookingsCommandCenterBodyState(input);
-}
+/**
+ * @deprecated Import from `@/features/bookings/bookings-command-center-gate` — kept for app-local paths.
+ */
+export { resolveBookingsPageBodyState } from "@/features/bookings/bookings-command-center-gate";

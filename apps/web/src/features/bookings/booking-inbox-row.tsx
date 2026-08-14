@@ -69,7 +69,7 @@ export function BookingInboxRow({
       aria-selected={selected}
       className={`group flex w-full min-w-0 items-center gap-2 border-b border-border/60 last:border-b-0 ${
         selected ? "bg-primary/5" : "hover:bg-muted/40"
-      }`}
+      } ${inlineApproveArmed ? "ring-2 ring-inset ring-primary/40" : ""}`}
     >
       <span
         className={`w-0.5 self-stretch shrink-0 ${selected ? "bg-primary" : "bg-transparent"}`}
@@ -116,6 +116,8 @@ export function BookingInboxRow({
             <Badge
               variant={bookingPaymentBadgeVariant(item.paymentStatus)}
               className="h-5 px-1.5 text-[10px]"
+              data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.paymentBadgeInbox}
+              data-payment-status={item.paymentStatus}
             >
               {t(`payment.${item.paymentStatus}`)}
             </Badge>
@@ -135,7 +137,7 @@ export function BookingInboxRow({
             aria-label={
               inlineApproveArmed
                 ? t("inlineApproveConfirmAria", { guest: item.guestLabel })
-                : `${t("approve")}: ${item.guestLabel}`
+                : t("inlineApproveHintAria", { guest: item.guestLabel })
             }
             onBlur={() => {
               if (inlineApproveArmed) {

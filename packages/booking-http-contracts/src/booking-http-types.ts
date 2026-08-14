@@ -52,6 +52,15 @@ export type BookingCapacitySnapshot = {
   readonly max: number | null;
 };
 
+export type BookingRegistrantTarget = "self" | "other";
+
+/** Guest intake transport kind — list scalar (H5-T3); not the intake blob. */
+export type BookingTransportKind =
+  | "primary"
+  | "personal_car"
+  | "no_car_dong"
+  | "no_car_acquaintance";
+
 export type BookingListItem = {
   readonly id: string;
   readonly tourId: string;
@@ -61,6 +70,20 @@ export type BookingListItem = {
   readonly guestEmail?: string;
   /** Additive ops contact — present when stored on the registration. */
   readonly guestPhone?: string;
+  /**
+   * Who the seat is for — scalar derived from intake (not the intake blob).
+   * Always present on list/detail projections; defaults to `self` when unset.
+   */
+  readonly registrantTarget: BookingRegistrantTarget;
+  /**
+   * Intake transport kind — scalar derived from intake (H5-T3 / BK-SAFE-01).
+   * Always present on list/detail; `null` when intake missing or kind unknown.
+   */
+  readonly transportKind: BookingTransportKind | null;
+  /**
+   * When `transportKind=personal_car`, optional occupants 1–3 (list scalar).
+   */
+  readonly personalCarOccupants: 1 | 2 | 3 | null;
   readonly partySize: number;
   readonly status: BookingStatus;
   readonly paymentStatus: BookingPaymentStatus;
@@ -124,6 +147,8 @@ export type CreateBookingRequest = {
   readonly guestLabel: string;
   readonly guestEmail?: string;
   readonly guestPhone?: string;
+  /** Ops-assisted registration owner inside the same tenant. Ignored on public create. */
+  readonly memberUserId?: string;
   readonly partySize: number;
   readonly departureAt: string;
   readonly paymentStatus?: BookingPaymentStatus;

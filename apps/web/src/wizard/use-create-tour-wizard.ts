@@ -159,7 +159,11 @@ export function useOperatorCreateTourWizard(options: {
   draftSyncDataRef.current = draftSync.data;
   const draftIndex = useWorkspaceDraftIndex(
     session.workspaceId,
-    createTourDraftIdentity.namespace
+    createTourDraftIdentity.namespace,
+    {
+      // Create wizard bootstrap must stay resilient even when draft-index read is degraded.
+      enabled: false,
+    }
   );
 
   const buildClearResetEnvelope = useCallback(

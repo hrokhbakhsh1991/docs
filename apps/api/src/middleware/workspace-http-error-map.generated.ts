@@ -6,6 +6,9 @@
 
 import { isDenaliOwnerRequiredError, DENALI_OWNER_REQUIRED } from "@app-tour/workspace-denali/host/http";
 import { isDenaliRegistrationDuplicateError, DENALI_REGISTRATION_DUPLICATE } from "@app-tour/workspace-denali/host/http";
+import { isDenaliRegistrationInvalidError, DENALI_REGISTRATION_INVALID } from "@app-tour/workspace-denali/host/http";
+import { isDenaliRegistrationNotAmendableError, DENALI_REGISTRATION_NOT_AMENDABLE } from "@app-tour/workspace-denali/host/http";
+import { isDenaliRegistrationNotFoundError, DENALI_REGISTRATION_NOT_FOUND } from "@app-tour/workspace-denali/host/http";
 import { isHarborRegistrationDuplicateError, HARBOR_REGISTRATION_DUPLICATE } from "@app-tour/workspace-harbor/host/http";
 import { isHarborWorkspaceRequiredError, HARBOR_WORKSPACE_REQUIRED } from "@app-tour/workspace-harbor/host/http";
 import { isUrbanOwnerRequiredError, URBAN_OWNER_REQUIRED } from "@app-tour/workspace-urban/host/http";
@@ -32,6 +35,24 @@ export const WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS: readonly WorkspaceHttpError
     status: 409,
     isError: isDenaliRegistrationDuplicateError,
     code: DENALI_REGISTRATION_DUPLICATE,
+  },
+  {
+    workspaceId: "denali",
+    status: 409,
+    isError: isDenaliRegistrationNotAmendableError,
+    code: DENALI_REGISTRATION_NOT_AMENDABLE,
+  },
+  {
+    workspaceId: "denali",
+    status: 400,
+    isError: isDenaliRegistrationInvalidError,
+    code: DENALI_REGISTRATION_INVALID,
+  },
+  {
+    workspaceId: "denali",
+    status: 404,
+    isError: isDenaliRegistrationNotFoundError,
+    code: DENALI_REGISTRATION_NOT_FOUND,
   },
   {
     workspaceId: "harbor",
@@ -74,6 +95,9 @@ export const WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS: readonly WorkspaceHttpError
 export const WORKSPACE_HTTP_ERROR_CODE_STATUS = {
   [DENALI_OWNER_REQUIRED]: 403,
   [DENALI_REGISTRATION_DUPLICATE]: 409,
+  [DENALI_REGISTRATION_NOT_AMENDABLE]: 409,
+  [DENALI_REGISTRATION_INVALID]: 400,
+  [DENALI_REGISTRATION_NOT_FOUND]: 404,
   [HARBOR_REGISTRATION_DUPLICATE]: 409,
   [HARBOR_WORKSPACE_REQUIRED]: 404,
   [URBAN_OWNER_REQUIRED]: 403,

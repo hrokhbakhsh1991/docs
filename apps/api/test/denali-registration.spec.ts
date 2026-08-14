@@ -35,6 +35,14 @@ function seedDenaliRegistrationSessionMembers(): void {
   for (const [userId, mobile, displayName] of [
     [DREG_SESSION_MEMBER_A, "+15550001004", "DREG Session A"],
     [DREG_SESSION_MEMBER_B, "+15550001005", "DREG Session B"],
+    ["00000000-0000-4000-8000-000000000106", "+15550001006", "DREG Other A"],
+    ["00000000-0000-4000-8000-000000000107", "+15550001007", "DREG Other B"],
+    ["00000000-0000-4000-8000-000000000108", "+15550001008", "DREG Other C"],
+    ["00000000-0000-4000-8000-000000000109", "+15550001009", "DREG Self Other"],
+    ["00000000-0000-4000-8000-000000000110", "+15550001010", "DREG For Tour"],
+    ["00000000-0000-4000-8000-000000000111", "+15550001011", "DREG Amend"],
+    ["00000000-0000-4000-8000-000000000112", "+15550001012", "DREG Get By Id"],
+    ["00000000-0000-4000-8000-000000000113", "+15550001013", "DREG Reclassify"],
   ] as const) {
     identity.seedUser({ id: userId, mobile });
     identity.seedMembership({
@@ -51,7 +59,7 @@ function seedDenaliRegistrationSessionMembers(): void {
 
 async function requestDenali(
   listener: ReturnType<typeof createRequestListener>,
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "PATCH",
   path: string,
   options?: { headers?: Record<string, string>; body?: unknown }
 ): Promise<{ status: number; body: unknown }> {
@@ -192,7 +200,7 @@ describe("denali-registration (M16)", () => {
       body: {
         tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
         registrantTarget: "other",
-        contact: { fullName: "Guest One" },
+        contact: { fullName: "Guest One", phone: "+15550001006" },
         partySize: 1,
       },
     });
@@ -202,11 +210,211 @@ describe("denali-registration (M16)", () => {
       body: {
         tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
         registrantTarget: "other",
-        contact: { fullName: "Guest Two" },
+        contact: { fullName: "Guest Two", phone: "+15550001012" },
         partySize: 1,
       },
     });
     assert.equal(second.status, 201);
+  });
+
+  it("DREG-18-04 self then other by same booker succeeds", async () => {
+    const memberUserId = "00000000-0000-4000-8000-000000000109";
+    const sessionHeaders = {
+      "x-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+      "x-authenticated-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+      "x-user-id": memberUserId,
+      "x-actor-role": "member",
+      "x-membership-status": "ACTIVE",
+      "content-type": "application/json",
+    };
+    const selfReg = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: sessionHeaders,
+      body: {
+        tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+        registrantTarget: "self",
+        contact: { fullName: "Self Member" },
+        partySize: 1,
+      },
+    });
+    assert.equal(selfReg.status, 201);
+    const otherReg = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: sessionHeaders,
+      body: {
+        tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+        registrantTarget: "other",
+        contact: { fullName: "Other Guest After Self", phone: "+15550001009" },
+        partySize: 1,
+      },
+    });
+    assert.equal(otherReg.status, 201);
+  });
+
+  it("DREG-18-08 other then self with same nationalId reclassifies owned other", async () => {
+    const memberUserId = "00000000-0000-4000-8000-000000000113";
+    const sessionHeaders = {
+      "x-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+      "x-authenticated-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+      "x-user-id": memberUserId,
+      "x-actor-role": "member",
+      "x-membership-status": "ACTIVE",
+      "content-type": "application/json",
+    };
+    const nationalId = "4420457521";
+    const otherReg = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: sessionHeaders,
+      body: {
+        tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+        registrantTarget: "other",
+        contact: {
+          fullName: "Mistaken Other Self",
+          phone: "+15550001013",
+          nationalId,
+        },
+        partySize: 1,
+      },
+    });
+    assert.equal(otherReg.status, 201);
+    const otherBody = otherReg.body as { data?: { id?: string } };
+    const otherId = otherBody.data?.id;
+    assert.equal(typeof otherId, "string");
+
+    const selfReg = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: sessionHeaders,
+      body: {
+        tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+        registrantTarget: "self",
+        contact: { fullName: "DREG Reclassify", nationalId },
+        partySize: 1,
+      },
+    });
+    assert.equal(selfReg.status, 201);
+    const selfBody = selfReg.body as { data?: { id?: string } };
+    assert.equal(selfBody.data?.id, otherId);
+
+    const forTour = await requestDenali(
+      listener,
+      "GET",
+      `/denali/registrations/for-tour/${OPERATOR_SMOKE_PUBLISHED_TOUR_ID}`,
+      { headers: sessionHeaders }
+    );
+    assert.equal(forTour.status, 200);
+    const forTourBody = forTour.body as {
+      data?: { self?: { id?: string } | null };
+    };
+    assert.equal(forTourBody.data?.self?.id, otherId);
+
+    const detail = await requestDenali(
+      listener,
+      "GET",
+      `/denali/registrations/${otherId}`,
+      { headers: sessionHeaders }
+    );
+    assert.equal(detail.status, 200);
+    const detailBody = detail.body as {
+      data?: { registrantTarget?: string; guestLabel?: string };
+    };
+    assert.equal(detailBody.data?.registrantTarget, "self");
+    assert.equal(detailBody.data?.guestLabel, "DREG Reclassify");
+  });
+
+  it("DREG-18-05 GET for-tour returns self after self registration", async () => {
+    const memberUserId = "00000000-0000-4000-8000-000000000110";
+    const sessionHeaders = {
+      "x-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+      "x-authenticated-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+      "x-user-id": memberUserId,
+      "x-actor-role": "member",
+      "x-membership-status": "ACTIVE",
+      "content-type": "application/json",
+    };
+    const created = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: sessionHeaders,
+      body: {
+        tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+        registrantTarget: "self",
+        contact: { fullName: "For Tour Gate" },
+        partySize: 1,
+      },
+    });
+    assert.equal(created.status, 201);
+    const createdId = (created.body as { data?: { id?: string } }).data?.id;
+    assert.ok(typeof createdId === "string" && createdId.length > 0);
+    const forTour = await requestDenali(
+      listener,
+      "GET",
+      `/denali/registrations/for-tour/${OPERATOR_SMOKE_PUBLISHED_TOUR_ID}`,
+      { headers: sessionHeaders }
+    );
+    assert.equal(forTour.status, 200);
+    const self = (forTour.body as { data?: { self?: { id?: string } | null } }).data?.self;
+    assert.equal(self?.id, createdId);
+  });
+
+  it("DREG-18-07 GET registration by id returns owned detail", async () => {
+    const memberUserId = "00000000-0000-4000-8000-000000000112";
+    const sessionHeaders = {
+      "x-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+      "x-authenticated-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+      "x-user-id": memberUserId,
+      "x-actor-role": "member",
+      "x-membership-status": "ACTIVE",
+      "content-type": "application/json",
+    };
+    const created = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: sessionHeaders,
+      body: {
+        tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+        registrantTarget: "self",
+        contact: { fullName: "Get By Id Member" },
+        partySize: 1,
+      },
+    });
+    assert.equal(created.status, 201);
+    const createdId = (created.body as { data?: { id?: string } }).data?.id;
+    assert.ok(typeof createdId === "string" && createdId.length > 0);
+    const detail = await requestDenali(listener, "GET", `/denali/registrations/${createdId}`, {
+      headers: sessionHeaders,
+    });
+    assert.equal(detail.status, 200);
+    const data = (detail.body as { data?: { id?: string; status?: string; tourId?: string } }).data;
+    assert.equal(data?.id, createdId);
+    assert.equal(data?.tourId, OPERATOR_SMOKE_PUBLISHED_TOUR_ID);
+    assert.ok(typeof data?.status === "string" && data.status.length > 0);
+  });
+
+  it("DREG-18-06 PATCH pending registration transport succeeds", async () => {
+    const memberUserId = "00000000-0000-4000-8000-000000000111";
+    const sessionHeaders = {
+      "x-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+      "x-authenticated-tenant-id": OPERATOR_SMOKE_TENANT_ID,
+      "x-user-id": memberUserId,
+      "x-actor-role": "member",
+      "x-membership-status": "ACTIVE",
+      "content-type": "application/json",
+    };
+    const created = await requestDenali(listener, "POST", "/denali/registrations", {
+      headers: sessionHeaders,
+      body: {
+        tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+        registrantTarget: "self",
+        contact: { fullName: "Amend Transport Member" },
+        partySize: 1,
+      },
+    });
+    assert.equal(created.status, 201);
+    const createdId = (created.body as { data?: { id?: string } }).data?.id;
+    assert.ok(typeof createdId === "string" && createdId.length > 0);
+    const patched = await requestDenali(
+      listener,
+      "PATCH",
+      `/denali/registrations/${createdId}`,
+      {
+        headers: sessionHeaders,
+        body: { transport: { kind: "primary" } },
+      }
+    );
+    assert.equal(patched.status, 200);
+    assert.equal((patched.body as { data?: { id?: string } }).data?.id, createdId);
   });
 
   it("DREG-18-02 other registrant duplicate guest name returns 409", async () => {
@@ -222,7 +430,7 @@ describe("denali-registration (M16)", () => {
     const body = {
       tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
       registrantTarget: "other",
-      contact: { fullName: "Duplicate Guest" },
+      contact: { fullName: "Duplicate Guest", phone: "+15550001007" },
       partySize: 1,
     };
     const first = await requestDenali(listener, "POST", "/denali/registrations", {
@@ -250,7 +458,7 @@ describe("denali-registration (M16)", () => {
     const firstBody = {
       tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
       registrantTarget: "other",
-      contact: { fullName: "Guest Alpha", nationalId: "1234567890" },
+      contact: { fullName: "Guest Alpha", nationalId: "1234567890", phone: "+15550001008" },
       partySize: 1,
     };
     const first = await requestDenali(listener, "POST", "/denali/registrations", {
@@ -262,7 +470,7 @@ describe("denali-registration (M16)", () => {
       headers: sessionHeaders,
       body: {
         ...firstBody,
-        contact: { fullName: "Guest Beta", nationalId: "1234567890" },
+        contact: { fullName: "Guest Beta", nationalId: "1234567890", phone: "+15550001008" },
       },
     });
     assert.equal(second.status, 409);
@@ -274,7 +482,11 @@ describe("denali-registration (M16)", () => {
       body: {
         tourId: OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
         registrantTarget: "other",
-        contact: { fullName: "Intake Guest", nationalId: "9876543210" },
+        contact: {
+          fullName: "Intake Guest",
+          nationalId: "9876543210",
+          phone: "09121234568",
+        },
         partySize: 2,
         transport: { kind: "primary" },
       },

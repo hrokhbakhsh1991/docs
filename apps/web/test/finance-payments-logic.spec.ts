@@ -7,6 +7,9 @@ import { describe, it } from "node:test";
 
 import {
   buildCreateManualPaymentRequestBody,
+  buildFinancePaymentReceiptsHref,
+  parseFinanceManualPaymentCreateResponse,
+  parseFinanceReceiptCreateResponse,
   parseFinancePaymentsListResponse,
   paymentStatusTone,
   validateCreateManualPaymentForm,
@@ -70,5 +73,46 @@ describe("finance-payments-logic.spec.ts — Phase 9.7 R1", () => {
       note: "",
     });
     assert.equal(result.ok, false);
+  });
+
+  it("PR21-E: parseFinanceManualPaymentCreateResponse + receipts href", () => {
+    const registrationId = randomUUID();
+    const parsed = parseFinanceManualPaymentCreateResponse({
+      id: randomUUID(),
+      registrationId,
+      amount: "1000",
+      currency: "IRR",
+      method: "Manual",
+      status: "Pending",
+      provider: "manual",
+      paidAt: null,
+      createdAt: "2026-08-08T00:00:00.000Z",
+    });
+    assert.equal(parsed?.status, "Pending");
+    assert.match(buildFinancePaymentReceiptsHref(registrationId), /tab=receipts/);
+  });
+
+  it("PR23-WF: parseFinanceReceiptCreateResponse normalizes created receipt payload", () => {
+    const paymentId = randomUUID();
+    const parsed = parseFinanceReceiptCreateResponse({
+      id: randomUUID(),
+      paymentId,
+      fileKey: "receipts/demo/proof.jpg",
+      status: "Pending",
+      note: "demo",
+      createdAt: "2026-08-13T00:00:00.000Z",
+    });
+    assert.equal(parsed?.paymentId, paymentId);
+    assert.equal(parsed?.status, "Pending");
+  });
+
+  it("PR23-WF: parseFinanceReceiptCreateResponse rejects incomplete payload", () => {
+    assert.equal(
+      parseFinanceReceiptCreateResponse({
+        id: randomUUID(),
+        paymentId: "",
+      }),
+      null
+    );
   });
 });

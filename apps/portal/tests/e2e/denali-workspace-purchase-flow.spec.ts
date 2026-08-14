@@ -1,6 +1,11 @@
 /**
- * Manual walkthrough — Denali workspace guest purchase flow (P6-1 + P6-3).
- * Not part of CI smokes; delete after local verification if desired.
+ * MANUAL-ONLY walkthrough — marketing CTA → portal register (legacy denali host).
+ *
+ * Not part of CI smokes. Prefer `playwright.denali-probes.config.ts` + seed tour
+ * `…000212` for automated multi-guest / intake verification.
+ *
+ * To force-run locally after removing `test.skip`: marketing on :3002 and
+ * `denali.portal.localhost:3003` must be up with tour `5387d014-…` present.
  */
 import { expect, test } from "@playwright/test";
 
@@ -15,9 +20,13 @@ const DENALI_TOUR_ID = "5387d014-ee64-465a-9187-9b755eba04bb";
 const DENALI_TOUR_TITLE = "تور جدید الالالا";
 const MARKETING_BASE = "http://denali.localhost:3002";
 
-test.describe("Denali workspace purchase flow", () => {
+test.describe("Denali workspace purchase flow (manual-only)", () => {
+  test.skip(
+    true,
+    "manual-only: needs marketing:3002 + denali.portal host — not CI; see playwright.denali-probes.config.ts"
+  );
+
   test("marketing CTA → portal register → intake → /me/registrations", async ({ page }) => {
-    const email = `denali-flow-${Date.now()}@denali-smoke.local`;
     const phone = `+1555${String(Date.now()).slice(-7)}`;
 
     await page.goto(`${MARKETING_BASE}/tours`, { waitUntil: "domcontentloaded" });
@@ -50,9 +59,9 @@ test.describe("Denali workspace purchase flow", () => {
     ).toBeVisible({ timeout: 60_000 });
 
     await completeCatalogRegistrationIntake(page, {
-      email,
       fullName: "Denali Flow Guest",
       partySize: "2",
+      phone,
     });
 
     await expect(page.locator("[data-public-registration-success]")).toBeVisible({

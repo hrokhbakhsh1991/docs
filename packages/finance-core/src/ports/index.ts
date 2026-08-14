@@ -20,6 +20,11 @@ export type {
   FinanceAuthorizationPort,
 } from "./finance-access.port";
 export type {
+  FinanceArObservationPort,
+  ObserveRegistrationArStateInput,
+} from "./finance-ar-observation.port";
+export { nullFinanceArObservationPort } from "./finance-ar-observation.port";
+export type {
   FinanceCapabilityPort,
   FinanceWorkspaceGateResult,
 } from "./finance-capability.port";
@@ -60,6 +65,8 @@ export type {
 export type {
   ApproveManualReceiptAtomicInput,
   ApproveManualReceiptAtomicResult,
+  CancelPendingManualPaymentAtomicInput,
+  CancelPendingManualPaymentAtomicResult,
   CreatePaymentInput,
   CreateReceiptInput,
   FinanceLedgerOutboxRow,
@@ -70,11 +77,29 @@ export type {
   FinanceRepositoryPort,
   FinanceSummaryRow,
   FinanceTourPaymentAggregateRow,
+  FinanceExceptionE1SourceRow,
+  FinanceExceptionE2SourceRow,
+  ListFinanceExceptionSourcesResult,
+  ListOutstandingBalanceCandidatesResult,
+  ListPendingReceiptsPage,
+  ListPendingReceiptsQuery,
+  ListRefundsPageQuery,
+  ListRefundsPageResult,
+  OutstandingBalanceCandidateRow,
   PrepaymentBookingSyncDegradedRow,
   RecordPrepaymentAtomicInput,
   RecordPrepaymentAtomicResult,
   RegistrationInvoiceFacts,
+  CreateRefundInput,
+  SumCompletedRefundsQuery,
+  TransitionRefundStatusInput,
   UpdateReceiptReviewInput,
+} from "./finance-repository.port";
+export type {
+  FinanceRefundRow,
+  RefundReasonCode,
+  RefundSourceKind,
+  RefundStatus,
 } from "./finance-repository.port";
 export type { FinanceSchedulePort } from "./finance-schedule.port";
 /** Schedule item shape — SoT in domain; re-exported for port implementers. */

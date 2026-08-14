@@ -8,6 +8,15 @@ export type MemberRegistrationItem = {
   readonly paymentStatus: string;
   readonly departureAt: string;
   readonly submittedAt: string;
+  readonly partySize?: number;
+  readonly guestLabel?: string;
+  readonly registrantTarget?: "self" | "other";
+  readonly dueCurrency?: string;
+  readonly dueTotalMinor?: string;
+  readonly dueLines?: readonly {
+    readonly code: "trip" | "dong" | "transport";
+    readonly amountMinor: string;
+  }[];
 };
 
 type MemberRegistrationsBffResponse = {

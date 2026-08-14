@@ -73,6 +73,9 @@ describe("bookings-safety.spec.ts", () => {
     assert.equal(page.items.length, 1);
     assert.equal(page.items[0]?.id, BOOKING_ID);
     assert.equal(page.items[0]?.registrationIntake, undefined);
+    assert.equal(page.items[0]?.registrantTarget, "other");
+    assert.equal(page.items[0]?.transportKind, "primary");
+    assert.equal(page.items[0]?.personalCarOccupants, null);
   });
 
   it("BK-SAFE-01a BOOKING_LIST_SELECT must not select registrationIntake", () => {

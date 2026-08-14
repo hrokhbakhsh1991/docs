@@ -97,6 +97,8 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     readonly registrationId: string;
     readonly withBooking: boolean;
     readonly bookingPayments?: IBookingPaymentPort;
+    readonly paymentAmount?: string;
+    readonly obligationMinor?: string | null;
   }): Promise<{
     readonly finance: FinanceService;
     readonly financeRepo: InMemoryFinanceRepository;
@@ -105,6 +107,27 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
   }> {
     const bookingPayments = input.bookingPayments ?? new BookingPaymentAdapter(getBookingsRepository());
     const financeRepo = new InMemoryFinanceRepository(bookingPayments);
+    const obligation =
+      input.obligationMinor === undefined
+        ? fakeNullObligation
+        : input.obligationMinor === null
+          ? fakeNullObligation
+          : {
+              async resolveRegistrationObligation() {
+                return {
+                  obligationMinor: input.obligationMinor as string,
+                  currency: "IRR",
+                  source: "tour_canonical" as const,
+                };
+              },
+              async resolveRegistrationPaymentCollection() {
+                return "offline" as const;
+              },
+              async setRegistrationObligationOverride() {
+                return false;
+              },
+            };
+    const amount = input.paymentAmount ?? "2500000";
     const finance = new FinanceService(
       new DenaliFinanceLedgerPolicyAdapter(),
       financeRepo,
@@ -119,7 +142,7 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
       fakeEmptySchedules,
       fakeNoopLog,
       fakeFixedClock,
-      fakeNullObligation
+      obligation
     );
 
     if (input.withBooking) {
@@ -129,7 +152,7 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     const payment = await financeRepo.createManualPayment({
       tenantId: OPERATOR_SMOKE.tenantId,
       registrationId: input.registrationId,
-      amount: "2500000",
+      amount,
       currency: "IRR",
       method: "Manual",
       provider: "manual",
@@ -160,6 +183,185 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
 
     const booking = await getBookingsRepository().getById(registrationId, OPERATOR_SMOKE.tenantId);
     assert.equal(booking?.paymentStatus, "paid");
+  });
+
+  it("PR20-B underpay approve → booking partial (obligation 2500000, payment 1500000)", async () => {
+    const registrationId = randomUUID();
+    const { finance, receiptId } = await seedPendingReceipt({
+      registrationId,
+      withBooking: true,
+      paymentAmount: "1500000",
+      obligationMinor: "2500000",
+    });
+
+    const reviewed = await finance.reviewReceipt(operatorAuth, receiptId, {
+      decision: "approve",
+    });
+
+    assert.equal(reviewed.status, "Approved");
+    assert.equal(reviewed.bookingPaymentStatus, "partial");
+    const booking = await getBookingsRepository().getById(registrationId, OPERATOR_SMOKE.tenantId);
+    assert.equal(booking?.paymentStatus, "partial");
+  });
+
+  it("PR20-B full cover approve → booking paid (obligation 2500000, payment 2500000)", async () => {
+    const registrationId = randomUUID();
+    const { finance, receiptId } = await seedPendingReceipt({
+      registrationId,
+      withBooking: true,
+      paymentAmount: "2500000",
+      obligationMinor: "2500000",
+    });
+
+    const reviewed = await finance.reviewReceipt(operatorAuth, receiptId, {
+      decision: "approve",
+    });
+
+    assert.equal(reviewed.status, "Approved");
+    assert.equal(reviewed.bookingPaymentStatus, "paid");
+    const booking = await getBookingsRepository().getById(registrationId, OPERATOR_SMOKE.tenantId);
+    assert.equal(booking?.paymentStatus, "paid");
+  });
+
+  it("PR20-B overpay still rejected (FINANCE_OBLIGATION_OVERPAY)", async () => {
+    const registrationId = randomUUID();
+    const { finance, receiptId } = await seedPendingReceipt({
+      registrationId,
+      withBooking: true,
+      paymentAmount: "3000000",
+      obligationMinor: "2500000",
+    });
+
+    await assert.rejects(
+      () => finance.reviewReceipt(operatorAuth, receiptId, { decision: "approve" }),
+      (error: unknown) =>
+        error instanceof Error && error.message === "FINANCE_OBLIGATION_OVERPAY"
+    );
+  });
+
+  it("PR20-D partial → second payment → still partial → final → paid", async () => {
+    const registrationId = randomUUID();
+    const { finance, financeRepo, receiptId } = await seedPendingReceipt({
+      registrationId,
+      withBooking: true,
+      paymentAmount: "1000000",
+      obligationMinor: "2500000",
+    });
+
+    const first = await finance.reviewReceipt(operatorAuth, receiptId, {
+      decision: "approve",
+    });
+    assert.equal(first.bookingPaymentStatus, "partial");
+    assert.equal(
+      (await getBookingsRepository().getById(registrationId, OPERATOR_SMOKE.tenantId))
+        ?.paymentStatus,
+      "partial"
+    );
+
+    const secondPay = await finance.createManualPayment(
+      operatorAuth,
+      { registrationId, amount: "500000", currency: "IRR" },
+      `idem-second-${registrationId}`
+    );
+    assert.equal(secondPay.status, "Pending");
+    const secondReceipt = await financeRepo.createReceipt({
+      tenantId: OPERATOR_SMOKE.tenantId,
+      paymentId: secondPay.id,
+      fileKey: `receipts/${secondPay.id}/unit-proof-2.jpg`,
+    });
+    const second = await finance.reviewReceipt(operatorAuth, secondReceipt.id, {
+      decision: "approve",
+    });
+    assert.equal(second.bookingPaymentStatus, "partial");
+
+    const finalPay = await finance.createManualPayment(
+      operatorAuth,
+      { registrationId, amount: "1000000", currency: "IRR" },
+      `idem-final-${registrationId}`
+    );
+    const finalReceipt = await financeRepo.createReceipt({
+      tenantId: OPERATOR_SMOKE.tenantId,
+      paymentId: finalPay.id,
+      fileKey: `receipts/${finalPay.id}/unit-proof-3.jpg`,
+    });
+    const final = await finance.reviewReceipt(operatorAuth, finalReceipt.id, {
+      decision: "approve",
+    });
+    assert.equal(final.bookingPaymentStatus, "paid");
+    assert.equal(
+      (await getBookingsRepository().getById(registrationId, OPERATOR_SMOKE.tenantId))
+        ?.paymentStatus,
+      "paid"
+    );
+
+    const invoice = await finance.getRegistrationInvoice(operatorAuth, registrationId);
+    assert.equal(invoice.balanceDueMinor, "0");
+  });
+
+  it("PR20-D rejects create exceeding remaining after partial", async () => {
+    const registrationId = randomUUID();
+    const { finance, receiptId } = await seedPendingReceipt({
+      registrationId,
+      withBooking: true,
+      paymentAmount: "1500000",
+      obligationMinor: "2500000",
+    });
+    await finance.reviewReceipt(operatorAuth, receiptId, { decision: "approve" });
+
+    await assert.rejects(
+      () =>
+        finance.createManualPayment(
+          operatorAuth,
+          { registrationId, amount: "1500001", currency: "IRR" },
+          `idem-over-${registrationId}`
+        ),
+      (error: unknown) =>
+        error instanceof Error && error.message === "FINANCE_OBLIGATION_OVERPAY"
+    );
+  });
+
+  it("PR20-D rejects additional debt after full settlement", async () => {
+    const registrationId = randomUUID();
+    const { finance, receiptId } = await seedPendingReceipt({
+      registrationId,
+      withBooking: true,
+      paymentAmount: "2500000",
+      obligationMinor: "2500000",
+    });
+    await finance.reviewReceipt(operatorAuth, receiptId, { decision: "approve" });
+
+    await assert.rejects(
+      () =>
+        finance.createManualPayment(
+          operatorAuth,
+          { registrationId, amount: "1", currency: "IRR" },
+          `idem-settled-${registrationId}`
+        ),
+      (error: unknown) =>
+        error instanceof Error &&
+        error.message.includes("successful payment; additional manual debt is not allowed")
+    );
+  });
+
+  it("PR20-D rejects parallel Pending manual debt", async () => {
+    const registrationId = randomUUID();
+    const { finance } = await seedPendingReceipt({
+      registrationId,
+      withBooking: true,
+      paymentAmount: "1000000",
+      obligationMinor: "2500000",
+    });
+
+    await assert.rejects(
+      () =>
+        finance.createManualPayment(
+          operatorAuth,
+          { registrationId, amount: "500000", currency: "IRR" },
+          `idem-pending-${registrationId}`
+        ),
+      (error: unknown) =>
+        error instanceof Error && error.message.includes("pending payment already exists")
+    );
   });
 
   it("FIN-SVC-02 missing booking → SYNC_MISS, payment Pending, receipt not Approved", async () => {

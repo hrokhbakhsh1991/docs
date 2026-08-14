@@ -21,7 +21,6 @@ import { getActiveTraceId } from "../observability/trace-request-context";
 import {
   buildTourPublishedDomainEventId,
   buildTourPublishedOutboxPayload,
-  isPublicPublishStatusLabel,
 } from "./build-tour-published-outbox-payload";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
 import { shouldAbortAtomicTx } from "../test-hooks/atomic-tx-test-abort";
@@ -33,6 +32,7 @@ import {
   runWithTenantContext,
 } from "../tenant/tenant-request-context";
 import { assertTourCapacityInTx } from "./assert-tour-capacity-in-tx";
+import { isPublicPublishStatusLabel } from "./publish-status-labels";
 import { deriveTourProjections } from "./projection-sync";
 import {
   detectTourPublishTransition,
@@ -93,12 +93,11 @@ async function persistNewTourAtomicallyInContext(
 ): Promise<AtomicCanonicalTourPersistResult> {
   const tourId = randomUUID();
   const domainEventId = randomUUID();
-  const projections = deriveTourProjections(input.canonical);
+  const workspaceType = getActiveWorkspaceType();
+  const projections = deriveTourProjections(input.canonical, { workspaceType });
 
   if (
-    !isPublicPublishStatusLabel(
-      readTourPublishStatusLabel(getActiveWorkspaceType(), input.canonical)
-    ) &&
+    !isPublicPublishStatusLabel(projections.publishStatus) &&
     process.env.P5_ATOMIC_TX_TEST_ABORT === undefined &&
     process.env.P5_CHAOS_ABORT === undefined
   ) {
@@ -113,13 +112,17 @@ async function persistNewTourAtomicallyInContext(
 
   return withCanonicalTransaction(input.tenantId, async (tx, txNow) => {
     await assertTourCapacityInTx(tx, input.tenantId);
+    const persistedProjections = deriveTourProjections(input.canonical, {
+      workspaceType,
+      observedAt: txNow,
+    });
 
     await tx.tour.create({
       data: buildTourCreateData({
         tourId,
         tenantId: input.tenantId,
         canonical: input.canonical,
-        projections,
+        projections: persistedProjections,
         createdAt: txNow,
       }),
     });
@@ -155,7 +158,7 @@ async function persistNewTourAtomicallyInContext(
       tourId,
       rowVersion: 1,
       canonical: input.canonical,
-      projections,
+      projections: persistedProjections,
       createdAt: txNow,
     });
 
@@ -174,8 +177,8 @@ async function persistNewTourAtomicallyInContext(
       tenantId: input.tenantId,
       canonical: input.canonical,
       createdAt: txNow.toISOString(),
-      title: projections.title,
-      schemaVersion: projections.schemaVersion,
+      title: persistedProjections.title,
+      schemaVersion: persistedProjections.schemaVersion,
     };
   });
 }
@@ -323,7 +326,7 @@ export async function persistTourUpdateAtomically(
 async function persistTourUpdateAtomicallyInContext(
   input: AtomicCanonicalTourUpdateInput
 ): Promise<AtomicCanonicalTourUpdateResult> {
-  const projections = deriveTourProjections(input.canonical);
+  const workspaceType = getActiveWorkspaceType();
 
   return withCanonicalTransaction(input.tenantId, async (tx, txNow) => {
     const existing = await tx.tour.findUnique({
@@ -333,6 +336,11 @@ async function persistTourUpdateAtomicallyInContext(
       throw new TourVersionConflictError();
     }
     const beforeCanonical = existing.canonical as unknown as CanonicalDocument;
+    const projections = deriveTourProjections(input.canonical, {
+      workspaceType,
+      observedAt: txNow,
+      previousPublishedAt: existing.publishedAt,
+    });
 
     const result = await tx.tour.updateMany({
       where: {
@@ -343,6 +351,8 @@ async function persistTourUpdateAtomicallyInContext(
       data: {
         canonical: input.canonical as unknown as Prisma.InputJsonValue,
         title: projections.title,
+        publishStatus: projections.publishStatus,
+        publishedAt: projections.publishedAt,
         schemaVersion: projections.schemaVersion,
         rowVersion: input.expectedRowVersion + 1,
       },
@@ -368,7 +378,7 @@ async function persistTourUpdateAtomicallyInContext(
     });
 
     const publishTransition = detectTourPublishTransition(
-      getActiveWorkspaceType(),
+      workspaceType,
       beforeCanonical,
       input.canonical
     );
@@ -376,8 +386,8 @@ async function persistTourUpdateAtomicallyInContext(
       await appendTourPublishTransitionAuditEvent(tx, {
         tourId: input.tourId,
         transition: publishTransition,
-        fromPublishStatus: readTourPublishStatusLabel(getActiveWorkspaceType(), beforeCanonical),
-        toPublishStatus: readTourPublishStatusLabel(getActiveWorkspaceType(), input.canonical),
+        fromPublishStatus: readTourPublishStatusLabel(workspaceType, beforeCanonical),
+        toPublishStatus: readTourPublishStatusLabel(workspaceType, input.canonical),
         createdAt: txNow,
       });
       if (publishTransition === "published") {
@@ -459,6 +469,8 @@ function buildTourCreateData(args: {
     tenantId: args.tenantId,
     canonical: args.canonical as unknown as Prisma.InputJsonValue,
     title: args.projections.title,
+    publishStatus: args.projections.publishStatus,
+    publishedAt: args.projections.publishedAt,
     schemaVersion: args.projections.schemaVersion,
     createdAt: args.createdAt,
   };

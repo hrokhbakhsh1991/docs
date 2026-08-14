@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { TourInternalLink } from "@/features/tours/tour-internal-link";
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
@@ -251,12 +251,12 @@ export function OperatorToursPageClient({
         description={t("pageSubtitle")}
         actions={
           showCreate ? (
-            <Link href={OPERATOR_WIZARD_PATH}>
-              <Button className="w-full gap-2 sm:w-auto">
+            <Button asChild className="w-full gap-2 sm:w-auto">
+              <TourInternalLink href={OPERATOR_WIZARD_PATH}>
                 <Plus className="h-4 w-4" />
                 {t("newTour")}
-              </Button>
-            </Link>
+              </TourInternalLink>
+            </Button>
           ) : null
         }
       />
@@ -426,10 +426,10 @@ export function OperatorToursPageClient({
               action={
                 showCreate ? (
                   <Button asChild className="gap-2">
-                    <Link href={OPERATOR_WIZARD_PATH}>
+                    <TourInternalLink href={OPERATOR_WIZARD_PATH}>
                       <Plus className="h-4 w-4" />
                       {t("newTour")}
-                    </Link>
+                    </TourInternalLink>
                   </Button>
                 ) : undefined
               }

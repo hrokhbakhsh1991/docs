@@ -7,30 +7,45 @@
 import type { WorkspaceHttpHandlerFn, WorkspaceRouteHandlers } from "./workspace-route-registrar";
 
 export type WorkspaceHttpPackageHandlerKey =
+  | "handleFinanceApproveRefund"
+  | "handleFinanceCancelPendingManualPayment"
+  | "handleFinanceCancelRefund"
+  | "handleFinanceCaseCommandReviewReceipt"
+  | "handleFinanceCaseEncounter"
+  | "handleFinanceCompleteRefund"
   | "handleFinanceCreateManualPayment"
   | "handleFinanceGenerateSchedule"
+  | "handleFinanceGetRefund"
   | "handleFinanceGetRegistrationInvoice"
   | "handleFinanceGetSchedule"
   | "handleFinanceLedgerEvents"
   | "handleFinanceListBookingSyncDegraded"
+  | "handleFinanceListExceptions"
   | "handleFinanceListPayments"
   | "handleFinanceListPrepayments"
+  | "handleFinanceListRefunds"
   | "handleFinanceListSchedules"
   | "handleFinanceOpenPayments"
+  | "handleFinanceOutstandingBalances"
   | "handleFinancePatchScheduleItem"
   | "handleFinancePendingReceipts"
   | "handleFinanceReceiptUpload"
   | "handleFinanceReceiptUrl"
   | "handleFinanceRecordPrepayment"
+  | "handleFinanceRejectRefund"
   | "handleFinanceReportByTour"
+  | "handleFinanceRequestRefund"
   | "handleFinanceRetryBookingSync"
   | "handleFinanceReviewReceipt"
   | "handleFinanceSetObligationOverride"
   | "handleFinanceSubmitReceipt"
   | "handleFinanceSummary"
+  | "handleFinanceTourCollections"
   | "handleGetDenaliCatalog"
   | "handleGetDenaliCatalogTour"
   | "handleGetDenaliDashboardTour"
+  | "handleGetDenaliRegistration"
+  | "handleGetDenaliRegistrationForTour"
   | "handleGetDenaliReminderFeed"
   | "handleGetGuestClubCatalog"
   | "handleGetGuestClubCatalogTour"
@@ -39,6 +54,7 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handleGetUrbanCatalog"
   | "handleGetUrbanCatalogTour"
   | "handleGetUrbanSettings"
+  | "handlePatchDenaliRegistration"
   | "handlePatchUrbanSettings"
   | "handlePostDenaliRegistration"
   | "handlePostGuestClubRegistration"
@@ -51,31 +67,47 @@ export type WorkspaceHttpPackageHandlers = Pick<
 >;
 
 const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
+  handleFinanceApproveRefund: "@app-tour/finance-http",
+  handleFinanceCancelPendingManualPayment: "@app-tour/finance-http",
+  handleFinanceCancelRefund: "@app-tour/finance-http",
+  handleFinanceCaseCommandReviewReceipt: "@app-tour/finance-http",
+  handleFinanceCaseEncounter: "@app-tour/finance-http",
+  handleFinanceCompleteRefund: "@app-tour/finance-http",
   handleFinanceCreateManualPayment: "@app-tour/finance-http",
   handleFinanceGenerateSchedule: "@app-tour/finance-http",
+  handleFinanceGetRefund: "@app-tour/finance-http",
   handleFinanceGetRegistrationInvoice: "@app-tour/finance-http",
   handleFinanceGetSchedule: "@app-tour/finance-http",
   handleFinanceLedgerEvents: "@app-tour/finance-http",
   handleFinanceListBookingSyncDegraded: "@app-tour/finance-http",
+  handleFinanceListExceptions: "@app-tour/finance-http",
   handleFinanceListPayments: "@app-tour/finance-http",
   handleFinanceListPrepayments: "@app-tour/finance-http",
+  handleFinanceListRefunds: "@app-tour/finance-http",
   handleFinanceListSchedules: "@app-tour/finance-http",
   handleFinanceOpenPayments: "@app-tour/finance-http",
+  handleFinanceOutstandingBalances: "@app-tour/finance-http",
   handleFinancePatchScheduleItem: "@app-tour/finance-http",
   handleFinancePendingReceipts: "@app-tour/finance-http",
   handleFinanceReceiptUpload: "@app-tour/finance-http",
   handleFinanceReceiptUrl: "@app-tour/finance-http",
   handleFinanceRecordPrepayment: "@app-tour/finance-http",
+  handleFinanceRejectRefund: "@app-tour/finance-http",
   handleFinanceReportByTour: "@app-tour/finance-http",
+  handleFinanceRequestRefund: "@app-tour/finance-http",
   handleFinanceRetryBookingSync: "@app-tour/finance-http",
   handleFinanceReviewReceipt: "@app-tour/finance-http",
   handleFinanceSetObligationOverride: "@app-tour/finance-http",
   handleFinanceSubmitReceipt: "@app-tour/finance-http",
   handleFinanceSummary: "@app-tour/finance-http",
+  handleFinanceTourCollections: "@app-tour/finance-http",
   handleGetDenaliCatalog: "@app-tour/workspace-denali/host/http",
   handleGetDenaliCatalogTour: "@app-tour/workspace-denali/host/http",
   handleGetDenaliDashboardTour: "@app-tour/workspace-denali/host/http",
+  handleGetDenaliRegistration: "@app-tour/workspace-denali/host/http",
+  handleGetDenaliRegistrationForTour: "@app-tour/workspace-denali/host/http",
   handleGetDenaliReminderFeed: "@app-tour/workspace-denali/host/http",
+  handlePatchDenaliRegistration: "@app-tour/workspace-denali/host/http",
   handlePostDenaliRegistration: "@app-tour/workspace-denali/host/http",
   handleGetGuestClubCatalog: "@app-tour/workspace-guest-club/host/http",
   handleGetGuestClubCatalogTour: "@app-tour/workspace-guest-club/host/http",
@@ -109,27 +141,40 @@ export async function loadWorkspaceHttpHandlersForPackage(
     case "@app-tour/finance-http": {
       const mod = await import("@app-tour/finance-http");
       return {
+        handleFinanceApproveRefund: mod.handleFinanceApproveRefund,
+        handleFinanceCancelPendingManualPayment: mod.handleFinanceCancelPendingManualPayment,
+        handleFinanceCancelRefund: mod.handleFinanceCancelRefund,
+        handleFinanceCaseCommandReviewReceipt: mod.handleFinanceCaseCommandReviewReceipt,
+        handleFinanceCaseEncounter: mod.handleFinanceCaseEncounter,
+        handleFinanceCompleteRefund: mod.handleFinanceCompleteRefund,
         handleFinanceCreateManualPayment: mod.handleFinanceCreateManualPayment,
         handleFinanceGenerateSchedule: mod.handleFinanceGenerateSchedule,
+        handleFinanceGetRefund: mod.handleFinanceGetRefund,
         handleFinanceGetRegistrationInvoice: mod.handleFinanceGetRegistrationInvoice,
         handleFinanceGetSchedule: mod.handleFinanceGetSchedule,
         handleFinanceLedgerEvents: mod.handleFinanceLedgerEvents,
         handleFinanceListBookingSyncDegraded: mod.handleFinanceListBookingSyncDegraded,
+        handleFinanceListExceptions: mod.handleFinanceListExceptions,
         handleFinanceListPayments: mod.handleFinanceListPayments,
         handleFinanceListPrepayments: mod.handleFinanceListPrepayments,
+        handleFinanceListRefunds: mod.handleFinanceListRefunds,
         handleFinanceListSchedules: mod.handleFinanceListSchedules,
         handleFinanceOpenPayments: mod.handleFinanceOpenPayments,
+        handleFinanceOutstandingBalances: mod.handleFinanceOutstandingBalances,
         handleFinancePatchScheduleItem: mod.handleFinancePatchScheduleItem,
         handleFinancePendingReceipts: mod.handleFinancePendingReceipts,
         handleFinanceReceiptUpload: mod.handleFinanceReceiptUpload,
         handleFinanceReceiptUrl: mod.handleFinanceReceiptUrl,
         handleFinanceRecordPrepayment: mod.handleFinanceRecordPrepayment,
+        handleFinanceRejectRefund: mod.handleFinanceRejectRefund,
         handleFinanceReportByTour: mod.handleFinanceReportByTour,
+        handleFinanceRequestRefund: mod.handleFinanceRequestRefund,
         handleFinanceRetryBookingSync: mod.handleFinanceRetryBookingSync,
         handleFinanceReviewReceipt: mod.handleFinanceReviewReceipt,
         handleFinanceSetObligationOverride: mod.handleFinanceSetObligationOverride,
         handleFinanceSubmitReceipt: mod.handleFinanceSubmitReceipt,
         handleFinanceSummary: mod.handleFinanceSummary,
+        handleFinanceTourCollections: mod.handleFinanceTourCollections,
       };
     }
     case "@app-tour/workspace-denali/host/http": {
@@ -138,7 +183,10 @@ export async function loadWorkspaceHttpHandlersForPackage(
         handleGetDenaliCatalog: mod.handleGetDenaliCatalog,
         handleGetDenaliCatalogTour: mod.handleGetDenaliCatalogTour,
         handleGetDenaliDashboardTour: mod.handleGetDenaliDashboardTour,
+        handleGetDenaliRegistration: mod.handleGetDenaliRegistration,
+        handleGetDenaliRegistrationForTour: mod.handleGetDenaliRegistrationForTour,
         handleGetDenaliReminderFeed: mod.handleGetDenaliReminderFeed,
+        handlePatchDenaliRegistration: mod.handlePatchDenaliRegistration,
         handlePostDenaliRegistration: mod.handlePostDenaliRegistration,
       };
     }

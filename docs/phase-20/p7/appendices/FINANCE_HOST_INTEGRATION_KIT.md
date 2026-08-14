@@ -252,7 +252,7 @@ Implement **every** method on `FinanceRepositoryPort`. Partial stubs are not pro
 | `getSummary` | Counts: pending manual payments, pending receipt reviews, paid, failed |
 | `listOpenPayments` / `listPayments` | Operator lists; honor `limit` |
 | `listLedgerEvents` | Read durable ledger facts (typically outbox rows shaped as `FinanceLedgerOutboxRow`) |
-| `findPaymentStatusesByRegistration` | Used to block extra manual debt after a `Paid` payment |
+| `findPaymentStatusesByRegistration` | Used with invoice `balanceDueMinor` to block extra manual debt after settlement / while Pending exists (PR20-D; Paid alone is not settlement) |
 | `createManualPayment` | Persist `Pending` manual payment; unique on `creationIdempotencyKey` when set |
 | `findPaymentById` / `findPaymentByCreationIdempotencyKey` | Lookups + idempotent create replay |
 | `findFirstPendingManualPayment` | Member offline-receipt bootstrap |

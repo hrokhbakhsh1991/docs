@@ -47,6 +47,7 @@ const fakeRepo = {
     pendingReceiptReviews: 0,
     paidPayments: 0,
     failedPayments: 0,
+    cancelledPayments: 0,
   }),
 } as unknown as FinanceRepositoryPort;
 
@@ -64,6 +65,7 @@ const fakeDefaults: FinanceReceiptDefaultsPort = {
 
 const fakeDisplay: RegistrationDisplayPort = {
   getByRegistrationIds: async () => new Map(),
+  listRegistrationIdsByTourId: async () => [],
 };
 
 const fakeMetrics: FinanceMetricsPort = { increment() {} };

@@ -1,6 +1,19 @@
-type TranslateFn = (key: string) => string;
+/**
+ * Finance UI error localization — validation codes first, then errors.
+ * next-intl missing-key fallbacks must not be treated as successful translations.
+ */
+
+/** Callable translator; optional `has` matches next-intl `useTranslations` (no caller migration). */
+export type FinanceTranslateFn = ((key: string) => string) & {
+  readonly has?: (key: string) => boolean;
+};
+
+type TranslateFn = FinanceTranslateFn;
 
 const HTTP_STATUS_SUFFIX = /^(.+)_HTTP_(\d+)$/;
+
+/** Existing finance.errors generic copy when neither namespace resolves the code. */
+export const FINANCE_GENERIC_ERROR_FALLBACK_KEY = "NETWORK_ERROR";
 
 const NETWORK_ERROR_MESSAGES = new Set([
   "failed to fetch",
@@ -39,6 +52,7 @@ export function normalizeFinanceErrorCode(code: string): string {
     RECORD_PREPAYMENT_HTTP_: "RECORD_PREPAYMENT_FAILED",
     GENERATE_SCHEDULE_HTTP_: "GENERATE_SCHEDULE_FAILED",
     SCHEDULE_ITEM_PATCH_HTTP_: "SCHEDULE_ITEM_PATCH_FAILED",
+    SET_OBLIGATION_OVERRIDE_HTTP_: "SET_OBLIGATION_OVERRIDE_FAILED",
   };
   for (const [prefix, key] of Object.entries(explicit)) {
     if (trimmed.startsWith(prefix)) {
@@ -83,7 +97,27 @@ export function toFinanceClientErrorCode(error: unknown, fallback: string): stri
   return fallback;
 }
 
-/** Maps stable finance error/validation codes to localized copy. */
+/**
+ * True when a translator result is a usable human message (not a missing-key fallback).
+ * Covers bare keys and canonical paths such as `finance.validation.<KEY>` from next-intl.
+ */
+export function isUsableFinanceTranslationResult(message: string, attemptedKey: string): boolean {
+  const trimmed = message.trim();
+  const key = attemptedKey.trim();
+  if (trimmed.length === 0 || key.length === 0) {
+    return false;
+  }
+  if (trimmed === key) {
+    return false;
+  }
+  // Canonical missing-message paths: namespace...key (last segment equals attempted key).
+  if (trimmed.includes(".") && trimmed.endsWith(`.${key}`)) {
+    return false;
+  }
+  return true;
+}
+
+/** Maps stable finance error/validation codes to localized copy when the key resolves. */
 export function resolveFinanceErrorMessage(
   t: TranslateFn,
   code: string | null | undefined
@@ -92,13 +126,24 @@ export function resolveFinanceErrorMessage(
     return null;
   }
   const normalized = normalizeFinanceErrorCode(code);
+  if (typeof t.has === "function" && !t.has(normalized)) {
+    return null;
+  }
   try {
-    return t(normalized);
+    const message = t(normalized);
+    if (!isUsableFinanceTranslationResult(message, normalized)) {
+      return null;
+    }
+    return message;
   } catch {
     return null;
   }
 }
 
+/**
+ * Prefer validation copy when the key genuinely exists; otherwise errors; then generic NETWORK_ERROR.
+ * Never returns raw `finance.validation.*` / `finance.errors.*` missing-key fallbacks.
+ */
 export function localizeFinanceMessage(
   tValidation: TranslateFn,
   tErrors: TranslateFn,
@@ -110,6 +155,6 @@ export function localizeFinanceMessage(
   return (
     resolveFinanceErrorMessage(tValidation, code) ??
     resolveFinanceErrorMessage(tErrors, code) ??
-    code
+    resolveFinanceErrorMessage(tErrors, FINANCE_GENERIC_ERROR_FALLBACK_KEY)
   );
 }

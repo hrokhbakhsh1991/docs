@@ -6,6 +6,7 @@ import { expect, type Page } from "@playwright/test";
 import { DENALI_DATETIME_TEST_IDS } from "@app-tour/workspace-denali/host/ui/test-ids/denali-datetime-test-ids";
 import { DENALI_ITINERARY_TEST_IDS } from "@app-tour/workspace-denali/host/ui/test-ids/denali-itinerary-test-ids";
 import { DENALI_COMPOSITE_TEST_IDS } from "@app-tour/workspace-denali/host/ui/logic/denali-location-types";
+import { DENALI_PROGRAM_CONTENT_TEST_IDS } from "@app-tour/workspace-denali/host/ui/test-ids/denali-program-content-test-ids";
 import { DENALI_SEARCHABLE_SELECT_TEST_IDS } from "@app-tour/workspace-denali/host/ui/test-ids/denali-searchable-select-test-ids";
 import { DENALI_TOUR_KIND_TEST_IDS } from "@app-tour/workspace-denali/host/ui/test-ids/denali-tour-kind-test-ids";
 import { WIZARD_STEP_SHELL_TEST_IDS } from "../../src/wizard/wizard-step-shell-logic";
@@ -24,6 +25,8 @@ export async function clearOperatorWizardDraftIfPresent(page: Page): Promise<voi
   const confirmBtn = page.getByTestId("wizard-clear-draft-confirm-confirm");
   await expect(confirmBtn).toBeVisible({ timeout: 10_000 });
   await confirmBtn.click();
+  await expect(clearBtn).toHaveAttribute("aria-busy", "true", { timeout: 10_000 });
+  await expect(clearBtn).not.toHaveAttribute("aria-busy", "true", { timeout: 60_000 });
   await expect(page.locator('[data-wizard-step="denali_basic"]')).toBeVisible({ timeout: 60_000 });
   await settleOperatorWizardDraftSync(page);
 }
@@ -96,12 +99,19 @@ export async function resetOperatorWizardToBasic(page: Page): Promise<void> {
   await expect(page.locator('[data-wizard-step="denali_basic"]')).toBeVisible({ timeout: 30_000 });
 }
 
-export async function fillDenaliMultiDayWizardBasics(page: Page, title: string): Promise<void> {
+export async function fillDenaliMultiDayWizardBasics(
+  page: Page,
+  title: string,
+  destinationLabel = OPERATOR_SMOKE_DESTINATION_LABEL
+): Promise<void> {
   await resetOperatorWizardToBasic(page);
   await page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.tourKind).waitFor({ state: "visible" });
   const mountain = page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.category("mountain"));
   const multiDay = page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.duration("multi_day"));
-  await mountain.click();
+  if ((await mountain.getAttribute("aria-pressed")) !== "true") {
+    await mountain.click();
+    await settleOperatorWizardDraftSync(page);
+  }
   await expect(mountain).toHaveAttribute("aria-pressed", "true");
   await multiDay.click();
   await expect(multiDay).toHaveAttribute("aria-pressed", "true");
@@ -120,12 +130,12 @@ export async function fillDenaliMultiDayWizardBasics(page: Page, title: string):
   const searchableTrigger = destination.getByTestId(DENALI_SEARCHABLE_SELECT_TEST_IDS.trigger);
   if (await searchableTrigger.isVisible().catch(() => false)) {
     await searchableTrigger.click();
-    await destination.getByTestId(DENALI_SEARCHABLE_SELECT_TEST_IDS.search).fill(OPERATOR_SMOKE_DESTINATION_LABEL);
-    await destination.getByRole("option", { name: OPERATOR_SMOKE_DESTINATION_LABEL }).click();
+    await destination.getByTestId(DENALI_SEARCHABLE_SELECT_TEST_IDS.search).fill(destinationLabel);
+    await destination.getByRole("option", { name: destinationLabel }).click();
   } else {
     const destinationSelect = destination.getByRole("combobox");
     await expect(destinationSelect).toBeEnabled({ timeout: 60_000 });
-    await destinationSelect.selectOption({ label: OPERATOR_SMOKE_DESTINATION_LABEL });
+    await destinationSelect.selectOption({ label: destinationLabel });
   }
   await settleOperatorWizardDraftSync(page);
 
@@ -187,7 +197,7 @@ export async function fillDenaliWizardPhotosMinimal(page: Page): Promise<void> {
   await expect(page.locator("[data-wizard-step=\"denali_photos\"]")).toBeVisible({
     timeout: 30_000,
   });
-  const shortDescription = page.getByTestId("denali-composite-program-short-description");
+  const shortDescription = page.getByTestId(DENALI_PROGRAM_CONTENT_TEST_IDS.shortDescription);
   if (await shortDescription.isVisible().catch(() => false)) {
     await shortDescription.fill("برنامه تست");
   } else {
@@ -217,7 +227,9 @@ export async function fillDenaliWizardProgramMinimal(page: Page): Promise<void> 
 
   const itinerary = page.getByTestId(DENALI_ITINERARY_TEST_IDS.itinerary);
   if (await itinerary.isVisible().catch(() => false)) {
-    const days = itinerary.locator("[data-testid^=\"denali-composite-itinerary-day-\"]");
+    const days = itinerary.locator(
+      "section[data-testid^=\"denali-composite-itinerary-day-\"]"
+    );
     for (let index = 0; index < (await days.count()); index += 1) {
       const day = days.nth(index);
       await day.getByRole("textbox", { name: /عنوان روز|Day title/i }).fill(`روز ${index + 1} تست`);
@@ -265,7 +277,7 @@ export async function fillDenaliMultiDayWizardThroughReview(
   title: string
 ): Promise<void> {
   await fillDenaliMultiDayWizardThroughLegal(page, title);
-  await clickWizardNextToStep(page, "denali_review");
+  await clickWizardNextToStep(page, "review");
 }
 
 export async function submitDenaliWizardDraftCreate(page: Page): Promise<void> {

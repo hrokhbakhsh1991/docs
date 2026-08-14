@@ -3,6 +3,7 @@ import type { BookingAuthorizationPort } from "./ports/booking-authorization.por
 import type { BookingClockPort } from "./ports/booking-clock.port";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import type { BookingRuntimeCapabilities } from "./ports/booking-runtime-capabilities.port";
+import type { BookingAssistedRegistrationMembersPort } from "./ports/booking-assisted-registration-members.port";
 import type { BookingTenantWorkspaceBindingPort } from "./ports/booking-tenant-workspace-binding.port";
 import type { BookingTourCapacityPort } from "./ports/booking-tour-capacity.port";
 import type { BookingCapacitySnapshot, BookingListItem } from "@app-tour/booking-http-contracts";
@@ -49,6 +50,7 @@ export type BookingsServiceDeps = {
   readonly publicBooking: BookingPublicCapabilityPort;
   readonly validationPolicy: BookingValidationPolicyPort;
   readonly capacityPolicy: BookingCapacityPolicyPort;
+  readonly assistedRegistrationMembers: BookingAssistedRegistrationMembersPort;
   /** Tour SoT capacity ceiling — preferred over client registrationIntake.tourCapacityMax. */
   readonly tourCapacity: BookingTourCapacityPort;
   /** Bound workspaceType for this runtime — must match tenant-owned type (B2.0). */
@@ -93,6 +95,9 @@ function toListItem(
       ? record.approvedAt.trim()
       : undefined;
   const includeIntake = options?.includeRegistrationIntake === true;
+  const registrantTarget = record.registrantTarget ?? "self";
+  const transportKind = record.transportKind ?? null;
+  const personalCarOccupants = record.personalCarOccupants ?? null;
   return {
     id: record.id,
     tourId: record.tourId,
@@ -100,6 +105,9 @@ function toListItem(
     guestLabel: record.guestLabel,
     ...(guestEmail !== undefined ? { guestEmail } : {}),
     ...(guestPhone !== undefined ? { guestPhone } : {}),
+    registrantTarget,
+    transportKind,
+    personalCarOccupants,
     partySize: record.partySize,
     status: record.status,
     paymentStatus: record.paymentStatus,
@@ -128,6 +136,7 @@ export class BookingsService {
   private readonly publicBooking: BookingPublicCapabilityPort;
   private readonly validationPolicy: BookingValidationPolicyPort;
   private readonly capacityPolicy: BookingCapacityPolicyPort;
+  private readonly assistedRegistrationMembers: BookingAssistedRegistrationMembersPort;
   private readonly tourCapacity: BookingTourCapacityPort;
   private readonly workspaceType: string;
   private readonly tenantWorkspaceBinding: BookingTenantWorkspaceBindingPort;
@@ -156,6 +165,9 @@ export class BookingsService {
     if (deps.capacityPolicy == null) {
       throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:capacityPolicy");
     }
+    if (deps.assistedRegistrationMembers == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:assistedRegistrationMembers");
+    }
     if (deps.tourCapacity == null) {
       throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:tourCapacity");
     }
@@ -179,6 +191,7 @@ export class BookingsService {
     this.publicBooking = deps.publicBooking;
     this.validationPolicy = deps.validationPolicy;
     this.capacityPolicy = deps.capacityPolicy;
+    this.assistedRegistrationMembers = deps.assistedRegistrationMembers;
     this.tourCapacity = deps.tourCapacity;
     this.workspaceType = workspaceType;
     this.tenantWorkspaceBinding = deps.tenantWorkspaceBinding;
@@ -276,7 +289,10 @@ export class BookingsService {
         ? { statuses: query.statuses }
         : query.status !== undefined
           ? { status: query.status }
-          : {}),
+          : query.view === "mine"
+            ? // Member trips list: active seats only (omit cancelled/rejected history).
+              { statuses: ["pending", "waitlisted", "approved"] as const }
+            : {}),
       ...(query.tourId !== undefined && query.tourId.length > 0 ? { tourId: query.tourId } : {}),
       ...(query.paymentStatus !== undefined ? { paymentStatus: query.paymentStatus } : {}),
       ...(query.q !== undefined && query.q.length > 0 ? { q: query.q } : {}),
@@ -377,7 +393,8 @@ export class BookingsService {
     await this.assertTenantBound(auth.tenantId);
     this.authorization.assertOpsAccess(auth);
     this.assertOperatorCreateCapability();
-    return this.executeCreatePipeline(auth, body);
+    const submittedByUserId = await this.resolveSubmittedByUserIdForOperatorCreate(auth, body);
+    return this.executeCreatePipeline(auth, body, submittedByUserId);
   }
 
   async sumApprovedPartySizeByTourIds(
@@ -403,6 +420,7 @@ export class BookingsService {
       | { readonly kind: "label"; readonly value: string }
       | { readonly kind: "email"; readonly value: string }
       | { readonly kind: "nationalId"; readonly value: string }
+      | { readonly kind: "phone"; readonly value: string }
   ): Promise<BookingRecord | null> {
     await this.assertTenantBound(tenantId);
     const raw = match.value.trim();
@@ -426,7 +444,28 @@ export class BookingsService {
   ): Promise<CreateBookingResponse> {
     await this.assertTenantBound(auth.tenantId);
     this.assertPublicCreateCapability();
-    return this.executeCreatePipeline(auth, body);
+    return this.executeCreatePipeline(auth, body, auth.userId);
+  }
+
+  private async resolveSubmittedByUserIdForOperatorCreate(
+    auth: BookingActorContext,
+    body: CreateBookingRequest
+  ): Promise<string> {
+    const memberUserId = body.memberUserId?.trim() ?? "";
+    if (memberUserId.length === 0 || memberUserId === auth.userId) {
+      return auth.userId;
+    }
+    const membership = await this.assistedRegistrationMembers.findTenantMember(
+      auth.tenantId,
+      memberUserId
+    );
+    if (membership === null) {
+      throw new Error("BOOKING_MEMBER_NOT_FOUND");
+    }
+    if (membership.status !== "ACTIVE") {
+      throw new Error("BOOKING_MEMBER_INACTIVE");
+    }
+    return memberUserId;
   }
 
   /**
@@ -463,7 +502,8 @@ export class BookingsService {
 
   private async executeCreatePipeline(
     auth: BookingActorContext,
-    body: CreateBookingRequest
+    body: CreateBookingRequest,
+    submittedByUserId: string
   ): Promise<CreateBookingResponse> {
     this.assertCreatePolicyCapabilityLevels();
     const tourCapacityMax = await this.resolveEffectiveTourCapacityMax(
@@ -499,7 +539,7 @@ export class BookingsService {
 
     const created = await this.repository.createBooking({
       tenantId: auth.tenantId,
-      submittedByUserId: auth.userId,
+      submittedByUserId,
       body: securedBody,
       assertCapacityInTx: (ctx) => {
         this.capacityPolicy.assertCreateCapacity({

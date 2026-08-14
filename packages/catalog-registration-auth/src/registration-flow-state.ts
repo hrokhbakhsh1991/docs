@@ -36,6 +36,7 @@ export type CatalogRegistrationFlowState = Readonly<{
   readonly intakeFatherName: string;
   readonly intakeBirthDate: string;
   readonly intakeEmail: string;
+  readonly intakePhone: string;
   readonly partySize: string;
   readonly notes: string;
   readonly registrantTarget: "self" | "other";
@@ -68,6 +69,7 @@ export const CATALOG_REGISTRATION_FLOW_STATE_KEYS = [
   "intakeFatherName",
   "intakeBirthDate",
   "intakeEmail",
+  "intakePhone",
   "partySize",
   "notes",
   "registrantTarget",
@@ -107,6 +109,7 @@ export function createCatalogRegistrationFlowInitialData(): CatalogRegistrationF
     intakeFatherName: "",
     intakeBirthDate: "",
     intakeEmail: "",
+    intakePhone: "",
     partySize: "1",
     notes: "",
     registrantTarget: "self",
@@ -187,6 +190,7 @@ export function assertCatalogRegistrationFlowState(
     "intakeFatherName",
     "intakeBirthDate",
     "intakeEmail",
+    "intakePhone",
     "partySize",
     "notes",
   ] as const;

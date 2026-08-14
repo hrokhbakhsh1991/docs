@@ -35,9 +35,10 @@ export async function advisoryLockRegistrationWalletCredit(
 }
 
 /**
- * True when Path A capture or Path B TourCreated ledger already exists for the registration.
+ * True when Path B (TourCreated) ledger already credited this registration's booking wallet.
+ * Path A multi-pay captures must NOT use this as a blanket "any capture" gate (PR20-D).
  */
-export async function registrationHasBookingWalletCredit(
+export async function registrationHasTourCreatedWalletCredit(
   tx: Prisma.TransactionClient,
   tenantId: string,
   registrationId: string
@@ -51,7 +52,19 @@ export async function registrationHasBookingWalletCredit(
     },
     select: { id: true },
   });
-  if (tourHit !== null) {
+  return tourHit !== null;
+}
+
+/**
+ * True when Path A capture or Path B TourCreated ledger already exists for the registration.
+ * Used by Path B skip (XOR): any prior capture or TourCreated blocks another TourCreated credit.
+ */
+export async function registrationHasBookingWalletCredit(
+  tx: Prisma.TransactionClient,
+  tenantId: string,
+  registrationId: string
+): Promise<boolean> {
+  if (await registrationHasTourCreatedWalletCredit(tx, tenantId, registrationId)) {
     return true;
   }
 

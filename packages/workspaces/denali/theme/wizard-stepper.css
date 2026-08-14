@@ -254,16 +254,21 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-wizard-nav="co
   min-inline-size: 7.5rem;
   gap: var(--space-2, 0.5rem);
   padding-inline: var(--space-5, 1.25rem);
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
+  border-color: color-mix(in oklch, var(--color-primary) 65%, transparent);
   box-shadow: 0 1px 2px color-mix(in oklch, var(--color-primary) 22%, transparent);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-wizard-nav="continue"]:hover:not(:disabled) {
+  background: var(--color-primary-hover, var(--color-primary));
   box-shadow: 0 2px 6px color-mix(in oklch, var(--color-primary) 28%, transparent);
 }
 
 /* Soft attention while step-nav issues remain open — still clickable (INV-DENALI-WIZ-018). */
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-wizard-nav="continue"][data-wizard-nav-continue-attention] {
-  background: color-mix(in oklch, var(--color-primary) 72%, var(--color-bg-page, var(--background)));
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
   box-shadow:
     0 0 0 2px color-mix(in oklch, var(--color-danger) 55%, transparent),
     0 1px 2px color-mix(in oklch, var(--color-primary) 18%, transparent);

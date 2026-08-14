@@ -21,6 +21,8 @@ describe("portal-member-registrations", () => {
     assert.match(fetchModule, /cookieHeader\.length === 0/);
     assert.match(fetchModule, /return \[\]/);
     assert.match(fetchModule, /readonly tourId: string/);
+    assert.match(fetchModule, /readonly guestLabel\?:/);
+    assert.match(fetchModule, /readonly registrantTarget\?:/);
     assert.doesNotMatch(fetchModule, /bookings\?view=mine/);
     assert.doesNotMatch(fetchModule, /resolveTourOpsApiBaseUrl/);
   });
@@ -55,11 +57,15 @@ describe("portal-member-registrations", () => {
       join(repoRoot, "apps/portal/app/me/registrations/page.tsx"),
       "utf8"
     );
-    assert.match(page, /main data-portal-member-registrations/);
+    assert.match(page, /data-portal-member-registrations/);
+    assert.match(page, /data-registrant-filter/);
+    assert.match(page, /data-portal-member-registrations-filter/);
     assert.match(page, /data-portal-member-registration-row/);
     assert.match(page, /data-portal-member-registration-status-badge/);
     assert.match(page, /data-portal-member-registrations-empty-cta/);
     assert.match(page, /fetchMemberRegistrations/);
+    assert.match(page, /RegistrantListFilter/);
+    assert.match(page, /\?target=\$\{filter\}/);
   });
 
   it("MEM-BFF-04 /me/registrations detail page markers", () => {
@@ -71,7 +77,8 @@ describe("portal-member-registrations", () => {
       join(repoRoot, "apps/portal/app/me/registrations/[id]/member-receipt-upload-form.tsx"),
       "utf8"
     );
-    assert.match(page, /main data-portal-member-registration-detail/);
+    assert.match(page, /data-portal-member-registration-detail/);
+    assert.match(page, /data-portal-member-registrant-target/);
     assert.match(page, /resolveMemberPortalTripsListPath/);
     assert.match(page, /fetchMemberReceiptStatus/);
     assert.match(page, /resolveMarketingTourDetailUrl/);
@@ -96,11 +103,42 @@ describe("portal-member-registrations", () => {
     assert.match(page, /parseRegistrationLifecycleStatus/);
     assert.doesNotMatch(form, /parseRegistrationLifecycleStatus/);
     assert.match(form, /disabled=\{uploadPhase === "uploading"\}/);
+    assert.match(page, /MemberIntakeAmendForm/);
+    assert.match(page, /memberPendingIntakeAmend/);
+    assert.match(page, /fetchMemberRegistrationById/);
+    assert.doesNotMatch(page, /fetchMemberRegistrations/);
+    const detailBff = readFileSync(
+      join(repoRoot, "apps/portal/app/api/me/registrations/[id]/route.ts"),
+      "utf8"
+    );
+    assert.match(detailBff, /registrationApiPath/);
+    assert.doesNotMatch(detailBff, /pluginId !== "denali"/);
+    const amend = readFileSync(
+      join(repoRoot, "apps/portal/app/me/registrations/[id]/member-intake-amend-form.tsx"),
+      "utf8"
+    );
+    assert.match(amend, /data-portal-member-intake-amend/);
+    const forTour = readFileSync(
+      join(repoRoot, "apps/portal/app/api/me/registrations/for-tour/route.ts"),
+      "utf8"
+    );
+    assert.match(forTour, /selfRegistrationGate/);
+    assert.doesNotMatch(forTour, /pluginId !== "denali"/);
+    const intakePatch = readFileSync(
+      join(repoRoot, "apps/portal/app/api/me/registrations/[id]/intake/route.ts"),
+      "utf8"
+    );
+    assert.match(intakePatch, /memberPendingIntakeAmend/);
+    assert.doesNotMatch(intakePatch, /pluginId !== "denali"/);
   });
 
   it("MEM-SKIN-01 denali-portal.css covers member registrations surfaces", () => {
     const skin = readFileSync(
       join(repoRoot, "packages/workspaces/denali/theme/denali-portal.css"),
+      "utf8"
+    );
+    const memberPages = readFileSync(
+      join(repoRoot, "packages/workspaces/denali/theme/portal/member-pages.css"),
       "utf8"
     );
     assert.match(skin, /main\[data-portal-member-registrations\]/);
@@ -115,7 +153,32 @@ describe("portal-member-registrations", () => {
     assert.match(skin, /\[data-portal-member-receipt-closed\]/);
     assert.match(skin, /\[data-portal-member-receipt-waiting\]/);
     assert.match(skin, /\[data-portal-member-receipt-paid\]/);
+    assert.match(skin, /\[data-portal-member-intake-amend\]/);
     assert.match(skin, /\[data-public-auth-logout\]/);
+    assert.match(memberPages, /\[data-portal-member-registrant-other-badge\]/);
+    assert.match(memberPages, /\[data-portal-member-registrant-self-badge\]/);
+    assert.match(memberPages, /\[data-portal-member-registration-guest\]/);
+    assert.match(memberPages, /\[data-portal-member-registrations-filter\]/);
+    assert.match(skin, /\[data-portal-member-registrations-filter-tab\]/);
+  });
+
+  it("MEM-UX-OTHER-01 list and detail surface registrantTarget=other", () => {
+    const listPage = readFileSync(
+      join(repoRoot, "apps/portal/app/me/registrations/page.tsx"),
+      "utf8"
+    );
+    const detailPage = readFileSync(
+      join(repoRoot, "apps/portal/app/me/registrations/[id]/page.tsx"),
+      "utf8"
+    );
+    assert.match(listPage, /data-portal-member-registrant-target/);
+    assert.match(listPage, /forOtherBadge/);
+    assert.match(listPage, /forSelfBadge/);
+    assert.match(listPage, /guestLine/);
+    assert.match(listPage, /filterOther/);
+    assert.match(detailPage, /data-portal-member-registrant-target/);
+    assert.match(detailPage, /forOtherBadge/);
+    assert.match(detailPage, /guestLine/);
   });
 
   it("MEM-AUTH-02 member shell wires logout BFF", () => {
@@ -152,6 +215,14 @@ describe("portal-member-registrations", () => {
     assert.match(en, /"waitingTitle"/);
     assert.match(fa, /"viewTour"/);
     assert.match(en, /"viewTour"/);
+    assert.match(fa, /"forOtherBadge"/);
+    assert.match(en, /"forOtherBadge"/);
+    assert.match(fa, /"forSelfBadge"/);
+    assert.match(en, /"forSelfBadge"/);
+    assert.match(fa, /"filterOther"/);
+    assert.match(en, /"filterOther"/);
+    assert.match(fa, /"guestLine"/);
+    assert.match(en, /"guestLine"/);
   });
 
   it("MEM-PROF-01 profile page uses canonical profile BFF", () => {

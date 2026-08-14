@@ -54,6 +54,8 @@ const TENANT_A = "00000000-0000-4000-8000-0000000000a1";
 const TENANT_B = "00000000-0000-4000-8000-0000000000b2";
 const DENALI = "denali";
 const WS5 = "finance-ws5";
+const DENALI_OBLIGATION_MINOR = "2500000";
+const WS5_OBLIGATION_MINOR = "12500";
 
 function authFor(tenantId: string): FinanceActorContext {
   return {
@@ -69,6 +71,27 @@ function capabilityFor(workspaceType: string): FinanceCapabilityPort {
   return {
     async assertEnabled() {
       return { workspaceType, theme: {} };
+    },
+  };
+}
+
+function obligationFor(workspaceType: string) {
+  const obligationMinor =
+    workspaceType === DENALI ? DENALI_OBLIGATION_MINOR : WS5_OBLIGATION_MINOR;
+  const currency = workspaceType === DENALI ? "IRR" : "CAD";
+  return {
+    async resolveRegistrationObligation() {
+      return {
+        currency,
+        obligationMinor,
+        source: "tour_canonical" as const,
+      };
+    },
+    async resolveRegistrationPaymentCollection() {
+      return "offline";
+    },
+    async setRegistrationObligationOverride() {
+      return false;
     },
   };
 }
@@ -126,7 +149,8 @@ function createWorkspaceFinanceService(input: {
     fakePermissiveAccess,
     fakeEmptySchedules,
     fakeNoopLog,
-    fakeFixedClock
+    fakeFixedClock,
+    obligationFor(input.workspaceType)
   );
 }
 

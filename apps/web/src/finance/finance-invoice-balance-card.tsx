@@ -11,13 +11,12 @@ import {
 } from "@/finance/finance-invoice-logic";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import {
+  FINANCE_REGISTRATION_CACHE_NS,
   readFinanceRegistrationCache,
   writeFinanceRegistrationCache,
 } from "@/finance/finance-registration-fetch-cache";
 import type { AppLocale } from "@/i18n/routing";
 import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
-
-const INVOICE_CACHE_NS = "finance-invoice-balance";
 
 type InvoiceCachePayload = {
   readonly invoice: RegistrationInvoice | null;
@@ -27,6 +26,8 @@ type FinanceInvoiceBalanceCardProps = {
   readonly registrationId: string;
   /** When true, fetch whenever registrationId is a non-empty UUID-like string. */
   readonly autoLoad?: boolean;
+  /** Optional caller-controlled refresh signal for same-registration mutations. */
+  readonly refreshKey?: string | number;
 };
 
 /**
@@ -35,6 +36,7 @@ type FinanceInvoiceBalanceCardProps = {
 export function FinanceInvoiceBalanceCard({
   registrationId,
   autoLoad = true,
+  refreshKey,
 }: FinanceInvoiceBalanceCardProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("finance.prepayments");
@@ -42,7 +44,9 @@ export function FinanceInvoiceBalanceCard({
   const tErrors = useTranslations("finance.errors");
   const [invoice, setInvoice] = useState<RegistrationInvoice | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(
+    () => autoLoad && registrationId.trim().length >= 32
+  );
 
   useEffect(() => {
     if (!autoLoad) {
@@ -54,7 +58,10 @@ export function FinanceInvoiceBalanceCard({
       setError(null);
       return;
     }
-    const hit = readFinanceRegistrationCache<InvoiceCachePayload>(INVOICE_CACHE_NS, id);
+    const hit = readFinanceRegistrationCache<InvoiceCachePayload>(
+      FINANCE_REGISTRATION_CACHE_NS.invoiceBalance,
+      id
+    );
     if (hit !== null) {
       setInvoice(hit.invoice);
       setError(hit.invoice === null ? "INVOICE_PARSE_FAILED" : null);
@@ -73,7 +80,9 @@ export function FinanceInvoiceBalanceCard({
       })
       .then((payload) => {
         if (!cancelled) {
-          writeFinanceRegistrationCache(INVOICE_CACHE_NS, id, { invoice: payload });
+          writeFinanceRegistrationCache(FINANCE_REGISTRATION_CACHE_NS.invoiceBalance, id, {
+            invoice: payload,
+          });
           setInvoice(payload);
           if (payload === null) {
             setError("INVOICE_PARSE_FAILED");
@@ -94,7 +103,7 @@ export function FinanceInvoiceBalanceCard({
     return () => {
       cancelled = true;
     };
-  }, [autoLoad, registrationId]);
+  }, [autoLoad, refreshKey, registrationId]);
 
   if (registrationId.trim().length < 32 && !loading) {
     return null;
