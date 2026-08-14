@@ -21,11 +21,13 @@
     "conflictResolving": "Resolving conflict…",
     "retry": "Retry",
     "softLockBanner": "Your changes are saved locally; server sync is temporarily unavailable.",
+    "offlineSoftLockBanner": "You are offline — changes stay local until the connection returns.",
     "syncingSoftLockBanner": "Saving draft to server — you can keep editing.",
     "conflictSoftLockBanner": "Resolving draft conflict — please wait.",
     "applyServer": "Load server version",
     "discardLocal": "Keep editing locally",
-    "serverReloaded": "Draft updated from server after a sync conflict."
+    "serverReloaded": "Draft updated from server after a sync conflict.",
+    "externalUpdateAvailable": "A newer draft version was saved in another tab."
   },
   "slug": "Slug",
   "optional": "optional",

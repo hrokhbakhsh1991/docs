@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 
 import { bffCodedError } from "@/auth/bff-coded-error";
 import { buildIdentityBffHeadersAsync } from "@/auth/identity-bff-headers";
+import { fetchOperatorAuthBff } from "@/auth/operator-auth-bff-fetch";
 import { mapOperatorAuthBffCatchError } from "@/auth/operator-auth-bff-error";
 import { decodeJwtPayload } from "@app-tour/session-client";
 import { setSessionCookieOnResponse } from "@/auth/build-session-cookie";
 import { setOperatorWelcomeArmedCookieOnResponse } from "@/auth/operator-welcome-cookie";
 import { normalizeOtpDigits } from "@/features/auth/otp-segment-input.logic";
 import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
-import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 type LoginPayload = {
   phone?: unknown;
@@ -35,8 +35,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   let backendRes: Response;
   try {
-    const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}/auth/verify-otp`, {
+    backendRes = await fetchOperatorAuthBff("/auth/verify-otp", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

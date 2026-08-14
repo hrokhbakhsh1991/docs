@@ -23,6 +23,8 @@ export type WorkspaceDraftAdapterOptions<T> = {
     _serverPayload: DraftSyncPayload<T>,
     _baselineData: T | undefined,
   ) => void;
+  /** Optional runtime hook after remote persistence succeeds (Phase 11 enterprise hardening). */
+  readonly onPersisted?: (_action: "saved" | "cleared") => void;
   /** prePush gate — Phase 5A; never blocks setData. */
   readonly schemaGate?: DraftSchemaGate<T>;
   /** Strip server-only fields after remote hydrate (Track B B-8). */
@@ -58,6 +60,8 @@ export type WorkspaceDraftHookResult<T> = {
   readonly conflictReloadNotice: boolean;
   readonly canRevertQuarantine: boolean;
   readonly navLocked: boolean;
+  readonly isOnline: boolean;
+  readonly externalUpdateAvailable: boolean;
   readonly setData: (_data: T, _options?: DraftSetDataOptions) => void;
   readonly retry: () => Promise<void>;
   readonly clearDraft: () => Promise<void>;

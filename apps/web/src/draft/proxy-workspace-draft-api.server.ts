@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
+const WORKSPACE_DRAFT_PROXY_TIMEOUT_MS = 10_000;
+
 type ProxyWorkspaceDraftOptions = {
   readonly workspaceId: string;
   readonly namespace: string;
@@ -58,6 +60,10 @@ function isWorkspaceDraftNotFoundPayload(payload: Record<string, unknown> | null
   return false;
 }
 
+function createProxyTimeoutSignal(): AbortSignal {
+  return AbortSignal.timeout(WORKSPACE_DRAFT_PROXY_TIMEOUT_MS);
+}
+
 export async function proxyWorkspaceDraftEventsApiRequest(
   req: Request,
   options: ProxyWorkspaceDraftEventsOptions
@@ -83,6 +89,7 @@ export async function proxyWorkspaceDraftEventsApiRequest(
           host: incoming.host.split(":")[0] ?? "localhost",
         },
         cache: "no-store",
+        signal: createProxyTimeoutSignal(),
       }
     );
     const payload = (await backendRes.json().catch(() => ({}))) as Record<string, unknown>;
@@ -118,6 +125,7 @@ export async function proxyWorkspaceDraftListApiRequest(
         host: incoming.host.split(":")[0] ?? "localhost",
       },
       cache: "no-store",
+      signal: createProxyTimeoutSignal(),
     });
     const payload = (await backendRes.json().catch(() => ({}))) as Record<string, unknown>;
     return NextResponse.json(payload, { status: backendRes.status });
@@ -160,6 +168,7 @@ export async function proxyWorkspaceDraftApiRequest(
         },
         ...(options.body !== undefined ? { body: options.body } : {}),
         cache: "no-store",
+        signal: createProxyTimeoutSignal(),
       }
     );
     const payload =

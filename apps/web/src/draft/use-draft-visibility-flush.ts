@@ -55,10 +55,10 @@ export function useDraftVisibilityFlush({
     };
 
     document.addEventListener("visibilitychange", onVisibilityChange);
-    document.addEventListener("pagehide", onPageHide);
+    window.addEventListener("pagehide", onPageHide);
     return () => {
       document.removeEventListener("visibilitychange", onVisibilityChange);
-      document.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("pagehide", onPageHide);
     };
   }, [enabled]);
 }

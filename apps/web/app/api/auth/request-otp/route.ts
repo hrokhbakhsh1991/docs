@@ -6,9 +6,9 @@ import {
   readBffLoginRateLimitKey,
 } from "@/auth/bff-login-rate-limit";
 import { buildIdentityBffHeadersAsync } from "@/auth/identity-bff-headers";
+import { fetchOperatorAuthBff } from "@/auth/operator-auth-bff-fetch";
 import { mapOperatorAuthBffCatchError } from "@/auth/operator-auth-bff-error";
 import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
-import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 type RequestOtpBody = {
   phone?: unknown;
@@ -31,8 +31,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   let backendRes: Response;
   try {
-    const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}/auth/request-otp`, {
+    backendRes = await fetchOperatorAuthBff("/auth/request-otp", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

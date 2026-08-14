@@ -10,6 +10,7 @@ import { resolveDraftConflictBannerView } from "./draft-conflict-banner-logic";
 export type DraftConflictBannerProps<T> = {
   readonly status: DraftStatus;
   readonly pendingDraft?: DraftSyncPayload<T> | null;
+  readonly externalUpdateAvailable?: boolean;
   readonly conflictReloadNotice?: boolean;
   readonly onApplyPending?: () => void;
   readonly onDiscardPending?: () => void;
@@ -18,6 +19,7 @@ export type DraftConflictBannerProps<T> = {
 export function DraftConflictBanner<T>({
   status,
   pendingDraft,
+  externalUpdateAvailable = false,
   conflictReloadNotice = false,
   onApplyPending,
   onDiscardPending,
@@ -27,6 +29,7 @@ export function DraftConflictBanner<T>({
     status,
     pendingDraft != null,
     onApplyPending !== undefined || onDiscardPending !== undefined,
+    externalUpdateAvailable,
     conflictReloadNotice,
   );
 
@@ -34,6 +37,14 @@ export function DraftConflictBanner<T>({
     return (
       <p className="draft-conflict-banner" data-testid="draft-conflict-server-reloaded" role="status">
         {t("draftSync.serverReloaded")}
+      </p>
+    );
+  }
+
+  if (view.kind === "externalUpdate") {
+    return (
+      <p className="draft-conflict-banner" data-testid="draft-conflict-external-update" role="status">
+        {t("draftSync.externalUpdateAvailable")}
       </p>
     );
   }

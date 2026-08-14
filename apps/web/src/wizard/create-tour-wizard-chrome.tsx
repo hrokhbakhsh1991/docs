@@ -199,6 +199,8 @@ type OperatorDraftSyncChrome = {
   readonly status: DraftStatus;
   readonly schemaIssues: readonly DraftSchemaIssue[];
   readonly navLocked: boolean;
+  readonly isOnline: boolean;
+  readonly externalUpdateAvailable: boolean;
   readonly pendingDraft: DraftSyncPayload<NewTourWizardDraftEnvelope> | null | undefined;
   readonly conflictReloadNotice: boolean;
   readonly retry: () => Promise<void>;
@@ -233,6 +235,8 @@ export function CreateTourWizardHeader(props: {
             status={props.draftSync.status}
             schemaIssues={props.draftSync.schemaIssues}
             navLocked={props.draftSync.navLocked}
+            isOnline={props.draftSync.isOnline}
+            externalUpdateAvailable={props.draftSync.externalUpdateAvailable}
             pendingDraft={props.draftSync.pendingDraft}
             conflictReloadNotice={props.draftSync.conflictReloadNotice}
             onRetry={() => void props.draftSync.retry()}

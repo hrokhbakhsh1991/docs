@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { fetchWorkspaceDraftIndex } from "./workspace-draft-client";
 import type { WorkspaceDraftIndexItem } from "./workspace-draft-types";
@@ -25,30 +25,48 @@ export function useWorkspaceDraftIndex(
   const [items, setItems] = useState<readonly WorkspaceDraftIndexItem[]>([]);
   const [loading, setLoading] = useState(workspaceId !== undefined && enabled);
   const [error, setError] = useState<Error | null>(null);
+  const requestVersionRef = useRef(0);
+  const mountedRef = useRef(true);
 
-  const refresh = async () => {
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const refresh = useCallback(async () => {
+    const requestVersion = requestVersionRef.current + 1;
+    requestVersionRef.current = requestVersion;
     if (workspaceId === undefined || !enabled) {
-      setItems([]);
-      setLoading(false);
-      setError(null);
+      if (mountedRef.current && requestVersionRef.current === requestVersion) {
+        setItems([]);
+        setLoading(false);
+        setError(null);
+      }
       return;
     }
     setLoading(true);
     setError(null);
     try {
       const response = await fetchWorkspaceDraftIndex(workspaceId, namespace);
-      setItems(response.items);
+      if (mountedRef.current && requestVersionRef.current === requestVersion) {
+        setItems(response.items);
+      }
     } catch (cause) {
-      setError(cause instanceof Error ? cause : new Error("WORKSPACE_DRAFT_INDEX_FAILED"));
-      setItems([]);
+      if (mountedRef.current && requestVersionRef.current === requestVersion) {
+        setError(cause instanceof Error ? cause : new Error("WORKSPACE_DRAFT_INDEX_FAILED"));
+        setItems([]);
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current && requestVersionRef.current === requestVersion) {
+        setLoading(false);
+      }
     }
-  };
+  }, [enabled, namespace, workspaceId]);
 
   useEffect(() => {
     void refresh();
-  }, [workspaceId, namespace, enabled]);
+  }, [refresh]);
 
   return { items, loading, error, refresh };
 }

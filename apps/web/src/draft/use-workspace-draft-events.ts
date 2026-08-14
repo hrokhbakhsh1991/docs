@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { fetchWorkspaceDraftEvents } from "./workspace-draft-client";
 import type { WorkspaceDraftEventListItem } from "./workspace-draft-types";
@@ -23,12 +23,24 @@ export function useWorkspaceDraftEvents(
   const [items, setItems] = useState<readonly WorkspaceDraftEventListItem[]>([]);
   const [loading, setLoading] = useState(workspaceId !== undefined);
   const [error, setError] = useState<Error | null>(null);
+  const requestVersionRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const refresh = useCallback(async () => {
+    const requestVersion = requestVersionRef.current + 1;
+    requestVersionRef.current = requestVersion;
     if (workspaceId === undefined) {
-      setItems([]);
-      setLoading(false);
-      setError(null);
+      if (mountedRef.current && requestVersionRef.current === requestVersion) {
+        setItems([]);
+        setLoading(false);
+        setError(null);
+      }
       return;
     }
     setLoading(true);
@@ -40,12 +52,18 @@ export function useWorkspaceDraftEvents(
         draftKey,
         WORKSPACE_DRAFT_EVENTS_FETCH_LIMIT
       );
-      setItems(response.items);
+      if (mountedRef.current && requestVersionRef.current === requestVersion) {
+        setItems(response.items);
+      }
     } catch (cause) {
-      setError(cause instanceof Error ? cause : new Error("WORKSPACE_DRAFT_EVENTS_FAILED"));
-      setItems([]);
+      if (mountedRef.current && requestVersionRef.current === requestVersion) {
+        setError(cause instanceof Error ? cause : new Error("WORKSPACE_DRAFT_EVENTS_FAILED"));
+        setItems([]);
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current && requestVersionRef.current === requestVersion) {
+        setLoading(false);
+      }
     }
   }, [workspaceId, namespace, draftKey]);
 

@@ -359,6 +359,82 @@ async function probeOperatorSmokeLoginReady() {
   });
 }
 
+async function probeOperatorSmokeOtpReady() {
+  const body = JSON.stringify({ phone: operatorSmokeOwnerMobile });
+  return new Promise((resolve) => {
+    const req = http.request(
+      {
+        hostname: "127.0.0.1",
+        port: 3000,
+        path: "/api/auth/request-otp",
+        method: "POST",
+        headers: {
+          host: "operator.admin.localhost:3000",
+          "content-type": "application/json",
+          "content-length": Buffer.byteLength(body),
+        },
+      },
+      (res) => {
+        const chunks = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => {
+          if (res.statusCode !== 200) {
+            resolve(false);
+            return;
+          }
+          try {
+            const payload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+            resolve(payload?.ok === true && typeof payload?.challenge_id === "string");
+          } catch {
+            resolve(false);
+          }
+        });
+      }
+    );
+    req.on("error", () => resolve(false));
+    req.setTimeout(5_000, () => {
+      req.destroy();
+      resolve(false);
+    });
+    req.write(body);
+    req.end();
+  });
+}
+
+async function probeOperatorSmokeWebAuthReady() {
+  const loginReady = await probeOperatorSmokeLoginReady();
+  if (!loginReady) {
+    return { ok: false, failedProbe: "phone-preflight" };
+  }
+  const otpReady = await probeOperatorSmokeOtpReady();
+  if (!otpReady) {
+    return { ok: false, failedProbe: "request-otp" };
+  }
+  return { ok: true, failedProbe: null };
+}
+
+async function restartWebForOperatorSmoke(failedProbe) {
+  console.warn(
+    `smoke-operator-e2e-servers: operator smoke auth readiness failed (${failedProbe}) — restarting web on 3000 with ALLOW_DEV_WEB_SESSION=true`
+  );
+  freePort(3000);
+  await new Promise((resolve) => setTimeout(resolve, 2_000));
+}
+
+async function waitForOperatorSmokeWebAuthReady(timeoutMs = 60_000) {
+  const deadline = Date.now() + timeoutMs;
+  let failedProbe = "phone-preflight";
+  while (Date.now() < deadline) {
+    const probe = await probeOperatorSmokeWebAuthReady();
+    if (probe.ok) {
+      return { ok: true, failedProbe: null };
+    }
+    failedProbe = probe.failedProbe ?? failedProbe;
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
+  return { ok: false, failedProbe };
+}
+
 function probeTenantContextHost(forwardedHost) {
   return new Promise((resolve) => {
     const req = http.request(
@@ -512,18 +588,14 @@ try {
   }
 
   if (apiListening && webListening) {
-    const loginReady = await probeOperatorSmokeLoginReady();
-    if (loginReady) {
+    const webAuthProbe = await probeOperatorSmokeWebAuthReady();
+    if (webAuthProbe.ok) {
       console.log("smoke-operator-e2e-servers: reusing existing API (3001) + web (3000)");
       await waitForUrl("http://127.0.0.1:3001/health", 30_000);
       await keepAlive();
     }
-    if (!loginReady) {
-      console.warn(
-        "smoke-operator-e2e-servers: ports 3000/3001 busy but operator smoke auth preflight failed — restarting web on 3000 with ALLOW_DEV_WEB_SESSION=true"
-      );
-      freePort(3000);
-      await new Promise((resolve) => setTimeout(resolve, 2_000));
+    if (!webAuthProbe.ok) {
+      await restartWebForOperatorSmoke(webAuthProbe.failedProbe ?? "phone-preflight");
       webListening = false;
     }
   }
@@ -588,6 +660,14 @@ try {
     console.log("smoke-operator-e2e-servers: API already on 3001 — skipping spawn");
   }
 
+  if (webListening) {
+    const webAuthProbe = await probeOperatorSmokeWebAuthReady();
+    if (!webAuthProbe.ok) {
+      await restartWebForOperatorSmoke(webAuthProbe.failedProbe ?? "phone-preflight");
+      webListening = false;
+    }
+  }
+
   if (!webListening) {
     web = spawn("pnpm", ["exec", "next", "dev", "--port", "3000", "--hostname", "127.0.0.1"], {
       cwd: webDir,
@@ -597,6 +677,12 @@ try {
     await waitForUrl("http://127.0.0.1:3000/", 300_000);
     await waitForUrl("http://127.0.0.1:3000/auth/login", 300_000);
     await waitForUrl("http://127.0.0.1:3000/bookings/new", 300_000);
+    const webAuthReady = await waitForOperatorSmokeWebAuthReady(120_000);
+    if (!webAuthReady.ok) {
+      throw new Error(
+        `smoke-operator-e2e-servers: web auth routes failed readiness probe after spawn (${webAuthReady.failedProbe})`
+      );
+    }
     console.log("smoke-operator-e2e-servers: web routes warm (login + bookings/new)");
   } else {
     console.log("smoke-operator-e2e-servers: web already on 3000 — skipping spawn");

@@ -90,6 +90,7 @@ export type WorkspaceWizardHostProps = {
   readonly navLocked?: boolean;
   /** When ERROR, host shows non-blocking sync banner; fields stay editable. */
   readonly draftSyncStatus?: DraftStatus;
+  readonly draftSyncOnline?: boolean;
   /** Parent submit validation — host focuses first issue (11.7-T5). */
   readonly submitValidationIssues?: readonly ValidationIssue[] | null;
   readonly onSubmitValidationHandled?: () => void;
@@ -201,6 +202,7 @@ export function WorkspaceWizardHost({
   onActiveStepIndexChange,
   navLocked = false,
   draftSyncStatus,
+  draftSyncOnline = true,
   submitValidationIssues = null,
   onSubmitValidationHandled,
   wizardRuleEvalContext,
@@ -742,9 +744,11 @@ export function WorkspaceWizardHost({
       data-plugin-id={pluginId}
       {...(wizardHost?.hostRootDataAttributes ?? {})}
     >
-      {draftSyncStatus != null && shouldShowCreateTourWizardSoftLockBanner(draftSyncStatus) ? (
+      {draftSyncStatus != null &&
+      shouldShowCreateTourWizardSoftLockBanner(draftSyncStatus, draftSyncOnline) ? (
         <DraftSyncSoftLockBanner
           status={draftSyncStatus}
+          isOnline={draftSyncOnline}
           className="workspace-wizard__sync-soft-lock"
         />
       ) : null}

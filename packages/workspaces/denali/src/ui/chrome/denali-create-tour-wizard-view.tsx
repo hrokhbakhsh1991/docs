@@ -19,6 +19,7 @@ export type DenaliCreateTourWizardHostRenderProps = {
   readonly onActiveStepIndexChange: DenaliCreateTourWizardCoreState["onActiveStepIndexChange"];
   readonly navLocked: boolean;
   readonly draftSyncStatus: DenaliCreateTourWizardCoreState["draftSync"]["status"];
+  readonly draftSyncOnline: DenaliCreateTourWizardCoreState["draftSync"]["isOnline"];
   readonly submitValidationIssues: readonly ValidationIssue[] | null;
   readonly onSubmitValidationHandled: () => void;
   readonly wizardRuleEvalContext: DenaliCreateTourWizardCoreState["wizardRuleEvalContext"];

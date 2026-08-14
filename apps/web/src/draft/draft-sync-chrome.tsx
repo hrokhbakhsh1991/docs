@@ -14,6 +14,8 @@ export type DraftSyncChromeProps<T> = {
   readonly status: DraftStatus;
   readonly schemaIssues?: DraftEngineState<T>["schemaIssues"];
   readonly navLocked?: boolean;
+  readonly isOnline?: boolean;
+  readonly externalUpdateAvailable?: boolean;
   readonly pendingDraft?: DraftEngineState<T>["pendingDraft"];
   readonly conflictReloadNotice?: boolean;
   readonly onRetry: () => void;
@@ -37,6 +39,8 @@ export function DraftSyncChrome<T>({
   status,
   schemaIssues,
   navLocked = false,
+  isOnline = true,
+  externalUpdateAvailable = false,
   pendingDraft,
   conflictReloadNotice = false,
   onRetry,
@@ -75,6 +79,7 @@ export function DraftSyncChrome<T>({
         {onApplyPending != null && onDiscardPending != null ? (
           <DraftConflictBanner
             status={status}
+            externalUpdateAvailable={externalUpdateAvailable}
             pendingDraft={pendingDraft}
             conflictReloadNotice={conflictReloadNotice}
             onApplyPending={onApplyPending}
@@ -88,7 +93,11 @@ export function DraftSyncChrome<T>({
           onRevert={onRevertQuarantine}
         />
         {showInlineSoftLockBanner ? (
-          <DraftSyncSoftLockBanner status={status} className={softLockClassName} />
+          <DraftSyncSoftLockBanner
+            status={status}
+            isOnline={isOnline}
+            className={softLockClassName}
+          />
         ) : null}
       </div>
     </div>

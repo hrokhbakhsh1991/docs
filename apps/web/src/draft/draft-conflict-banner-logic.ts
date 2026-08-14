@@ -4,16 +4,21 @@ export type DraftConflictBannerView =
   | { readonly kind: "hidden" }
   | { readonly kind: "resolving" }
   | { readonly kind: "available"; readonly showActions: boolean }
+  | { readonly kind: "externalUpdate" }
   | { readonly kind: "serverReloaded" };
 
 export function resolveDraftConflictBannerView(
   status: DraftStatus,
   hasPendingDraft: boolean,
   hasActions: boolean,
+  externalUpdateAvailable: boolean,
   conflictReloadNotice: boolean,
 ): DraftConflictBannerView {
   if (conflictReloadNotice) {
     return { kind: "serverReloaded" };
+  }
+  if (externalUpdateAvailable) {
+    return { kind: "externalUpdate" };
   }
   if (status === "CONFLICT_RESOLVING") {
     return { kind: "resolving" };

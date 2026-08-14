@@ -15,6 +15,8 @@ type OperatorFlatEditDraftSync = Pick<
   | "status"
   | "schemaIssues"
   | "navLocked"
+  | "isOnline"
+  | "externalUpdateAvailable"
   | "pendingDraft"
   | "conflictReloadNotice"
   | "retry"
@@ -85,6 +87,8 @@ export function OperatorFlatEditPageHeader(props: {
               status={props.draftSync.status}
               schemaIssues={props.draftSync.schemaIssues}
               navLocked={props.draftSync.navLocked}
+              isOnline={props.draftSync.isOnline}
+              externalUpdateAvailable={props.draftSync.externalUpdateAvailable}
               pendingDraft={props.draftSync.pendingDraft}
               conflictReloadNotice={props.draftSync.conflictReloadNotice}
               onRetry={() => void props.draftSync.retry()}

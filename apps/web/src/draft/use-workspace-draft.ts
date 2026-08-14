@@ -4,14 +4,27 @@ import { useDraftEngine } from "@app-tour/draft-engine/react";
 import { useEffect, useMemo } from "react";
 
 import { createWorkspaceDraftAdapter } from "./create-workspace-draft-adapter";
+import {
+  useDraftPersistencePublisher,
+  useDraftRuntimeCoordination,
+} from "./use-draft-runtime-coordination";
 import { useDraftVisibilityFlush } from "./use-draft-visibility-flush";
 import type { UseWorkspaceDraftOptions, WorkspaceDraftHookResult } from "./workspace-draft-types";
 
 export function useWorkspaceDraft<T>(
   options: UseWorkspaceDraftOptions<T>
 ): WorkspaceDraftHookResult<T> {
+  const { publishPersistence } = useDraftPersistencePublisher({
+    workspaceId: options.workspaceId,
+    namespace: options.namespace,
+    draftKey: options.draftKey,
+  });
   const adapter = useMemo(
-    () => createWorkspaceDraftAdapter<T>(options),
+    () =>
+      createWorkspaceDraftAdapter<T>({
+        ...options,
+        onPersisted: publishPersistence,
+      }),
     [
       options.workspaceId,
       options.namespace,
@@ -25,11 +38,22 @@ export function useWorkspaceDraft<T>(
       options.schemaGate,
       options.normalizeRemote,
       options.shouldBypassServerVersionAdoption,
+      publishPersistence,
     ]
   );
 
   const { state, setDraftData, retry, flush, flushKeepalive, initialize, clearDraft, clearDraftAndReset, applyDraft, revertToLastValid } =
     useDraftEngine(adapter);
+
+  const { isOnline, externalUpdateAvailable } = useDraftRuntimeCoordination({
+    workspaceId: options.workspaceId,
+    namespace: options.namespace,
+    draftKey: options.draftKey,
+    status: state.status,
+    initialize,
+    flush,
+    retry,
+  });
 
   useEffect(() => {
     if (options.hydrateFromRemote === false) {
@@ -62,6 +86,8 @@ export function useWorkspaceDraft<T>(
       conflictReloadNotice: state.conflictReloadNotice === true,
       canRevertQuarantine,
       navLocked,
+      isOnline,
+      externalUpdateAvailable,
       setData: setDraftData,
       retry,
       clearDraft,
@@ -83,6 +109,8 @@ export function useWorkspaceDraft<T>(
       state.conflictReloadNotice,
       canRevertQuarantine,
       navLocked,
+      isOnline,
+      externalUpdateAvailable,
       setDraftData,
       retry,
       clearDraft,

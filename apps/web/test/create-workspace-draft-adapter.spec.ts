@@ -149,6 +149,34 @@ describe("create-workspace-draft-adapter.spec.ts — Phase 1 abort", () => {
     assert.deepEqual(keepaliveFlags, [false, true]);
   });
 
+  it("WEB-P11-3-11b keepalive onPush surfaces persistence failure", async () => {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ error: "unavailable" }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      })) as FetchImpl;
+
+    const adapter = createWorkspaceDraftAdapter<TestData>({
+      workspaceId: "ws-test",
+      namespace: "operator.wizard",
+      draftKey: "test-draft-keepalive-failure",
+    });
+
+    await assert.rejects(
+      () =>
+        adapter.onPush(
+          {
+            data: { value: "first" },
+            version: 0,
+            schemaVersion: 1,
+            lastModified: 100,
+          },
+          { keepalive: true }
+        ),
+      /WORKSPACE_DRAFT_PATCH_FAILED:503/
+    );
+  });
+
   it("WEB-P11-3-13 adapter forwards intentId as Idempotency-Key on non-keepalive PATCH", async () => {
     let capturedKey: string | null = null;
     globalThis.fetch = (async (_input, init) => {

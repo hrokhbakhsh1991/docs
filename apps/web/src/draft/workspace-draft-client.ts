@@ -8,6 +8,7 @@ import type {
 } from "./workspace-draft-types";
 
 export const WORKSPACE_DRAFT_PATCH_ABORTED = "WORKSPACE_DRAFT_PATCH_ABORTED" as const;
+const WORKSPACE_DRAFT_FETCH_TIMEOUT_MS = 10_000;
 
 function draftBffPath(workspaceId: string, namespace: string, key: string): string {
   return `/api/workspaces/${encodeURIComponent(workspaceId)}/drafts/${encodeURIComponent(namespace)}/${encodeURIComponent(key)}`;
@@ -28,6 +29,11 @@ function draftEventsBffPath(
 ): string {
   const base = `/api/workspaces/${encodeURIComponent(workspaceId)}/drafts/${encodeURIComponent(namespace)}/${encodeURIComponent(key)}/events`;
   return limit === undefined ? base : `${base}?limit=${encodeURIComponent(String(limit))}`;
+}
+
+function createDraftRequestSignal(signal?: AbortSignal): AbortSignal {
+  const timeoutSignal = AbortSignal.timeout(WORKSPACE_DRAFT_FETCH_TIMEOUT_MS);
+  return signal === undefined ? timeoutSignal : AbortSignal.any([signal, timeoutSignal]);
 }
 
 function parseWorkspaceDraftIndexItem(value: unknown): WorkspaceDraftIndexItem | null {
@@ -66,10 +72,11 @@ function parseWorkspaceDraftIndexResponse(body: unknown): WorkspaceDraftIndexRes
   if (!Array.isArray(record.items)) {
     throw new Error("WORKSPACE_DRAFT_INDEX_INVALID_RESPONSE");
   }
-  const items = record.items
-    .map((item) => parseWorkspaceDraftIndexItem(item))
-    .filter((item): item is WorkspaceDraftIndexItem => item !== null);
-  return { items };
+  const items = record.items.map((item) => parseWorkspaceDraftIndexItem(item));
+  if (items.some((item) => item === null)) {
+    throw new Error("WORKSPACE_DRAFT_INDEX_INVALID_RESPONSE");
+  }
+  return { items: items as WorkspaceDraftIndexItem[] };
 }
 
 function parseWorkspaceDraftEventItem(value: unknown): WorkspaceDraftEventListItem | null {
@@ -107,10 +114,11 @@ function parseWorkspaceDraftEventsResponse(body: unknown): WorkspaceDraftEventsR
   if (!Array.isArray(record.items)) {
     throw new Error("WORKSPACE_DRAFT_EVENTS_INVALID_RESPONSE");
   }
-  const items = record.items
-    .map((item) => parseWorkspaceDraftEventItem(item))
-    .filter((item): item is WorkspaceDraftEventListItem => item !== null);
-  return { items };
+  const items = record.items.map((item) => parseWorkspaceDraftEventItem(item));
+  if (items.some((item) => item === null)) {
+    throw new Error("WORKSPACE_DRAFT_EVENTS_INVALID_RESPONSE");
+  }
+  return { items: items as WorkspaceDraftEventListItem[] };
 }
 
 export async function fetchWorkspaceDraftEvents(
@@ -122,6 +130,7 @@ export async function fetchWorkspaceDraftEvents(
   const response = await fetch(draftEventsBffPath(workspaceId, namespace, key, limit), {
     method: "GET",
     cache: "no-store",
+    signal: createDraftRequestSignal(),
   });
   if (!response.ok) {
     throw new Error(`WORKSPACE_DRAFT_EVENTS_FETCH_FAILED:${response.status}`);
@@ -137,6 +146,7 @@ export async function fetchWorkspaceDraftIndex(
   const response = await fetchWithTransientRetry(draftListBffPath(workspaceId, namespace), {
     method: "GET",
     cache: "no-store",
+    signal: createDraftRequestSignal(),
   });
   if (!response.ok) {
     throw new Error(`WORKSPACE_DRAFT_INDEX_FETCH_FAILED:${response.status}`);
@@ -192,6 +202,7 @@ export async function fetchWorkspaceDraftSnapshot<T>(
   const response = await fetchWithTransientRetry(draftBffPath(workspaceId, namespace, key), {
     method: "GET",
     cache: "no-store",
+    signal: createDraftRequestSignal(),
   });
   if (response.status === 204 || response.status === 404) {
     return null;
@@ -229,7 +240,7 @@ export async function patchWorkspaceDraftSnapshot<T>(
     body: JSON.stringify(payload),
     cache: "no-store",
     ...(keepalive ? { keepalive: true } : {}),
-    ...(!keepalive && options?.signal !== undefined ? { signal: options.signal } : {}),
+    ...(!keepalive ? { signal: createDraftRequestSignal(options?.signal) } : {}),
   });
   if (response.status === 409) {
     const body = await readJsonResponseBody(response);
@@ -250,6 +261,7 @@ export async function deleteWorkspaceDraftSnapshot(
   const response = await fetch(draftBffPath(workspaceId, namespace, key), {
     method: "DELETE",
     cache: "no-store",
+    signal: createDraftRequestSignal(),
   });
   if (response.status === 404 || response.status === 204) {
     return;
@@ -268,6 +280,7 @@ export async function deleteWorkspaceDraftSnapshotVerified(
   const response = await fetch(draftBffPath(workspaceId, namespace, key), {
     method: "DELETE",
     cache: "no-store",
+    signal: createDraftRequestSignal(),
   });
   if (response.status === 404) {
     return;

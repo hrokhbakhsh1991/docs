@@ -47,13 +47,12 @@ export function createWorkspaceDraftAdapter<T>(
     onFetch: async () => fetchWorkspaceDraftSnapshot<T>(workspaceId, namespace, draftKey),
     onPush: async (payload, pushOptions?: DraftPushOptions) => {
       if (pushOptions?.keepalive === true) {
-        try {
-          return await patchWorkspaceDraftSnapshot<T>(workspaceId, namespace, draftKey, payload, {
-            keepalive: true,
-          });
-        } catch {
-          return payload;
-        }
+        return patchWorkspaceDraftSnapshot<T>(workspaceId, namespace, draftKey, payload, {
+          keepalive: true,
+        }).then((result) => {
+          options.onPersisted?.("saved");
+          return result;
+        });
       }
 
       const payloadJson = stablePayloadJson(payload);
@@ -73,6 +72,7 @@ export function createWorkspaceDraftAdapter<T>(
         if (pushAbortController.signal === signal) {
           inFlightPayloadJson = null;
         }
+        options.onPersisted?.("saved");
         return result;
       } catch (error: unknown) {
         if (pushAbortController.signal === signal) {
@@ -86,6 +86,7 @@ export function createWorkspaceDraftAdapter<T>(
     },
     onDelete: async () => {
       await deleteWorkspaceDraftSnapshotVerified(workspaceId, namespace, draftKey);
+      options.onPersisted?.("cleared");
     },
     onAbortInFlightPush: () => {
       pushAbortController?.abort();

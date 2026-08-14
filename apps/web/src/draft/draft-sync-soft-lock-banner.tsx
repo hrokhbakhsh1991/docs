@@ -5,20 +5,30 @@ import { useTranslations } from "next-intl";
 
 export type DraftSyncSoftLockBannerProps = {
   readonly status: DraftStatus;
+  readonly isOnline?: boolean;
   readonly className?: string;
 };
 
 /** Create-tour wizard body: soft-lock banner only on sync ERROR (not SYNCING — avoids layout jump). */
-export function shouldShowCreateTourWizardSoftLockBanner(status: DraftStatus): boolean {
-  return status === "ERROR";
+export function shouldShowCreateTourWizardSoftLockBanner(
+  status: DraftStatus,
+  isOnline = true
+): boolean {
+  return !isOnline || status === "ERROR";
 }
 
 /** Non-blocking banner when server sync failed or in-flight — fields stay editable (Phase 2/5B). */
-export function DraftSyncSoftLockBanner({ status, className }: DraftSyncSoftLockBannerProps) {
+export function DraftSyncSoftLockBanner({
+  status,
+  isOnline = true,
+  className,
+}: DraftSyncSoftLockBannerProps) {
   const t = useTranslations("common");
 
   const messageKey =
-    status === "ERROR"
+    !isOnline
+      ? "draftSync.offlineSoftLockBanner"
+      : status === "ERROR"
       ? "draftSync.softLockBanner"
       : status === "SYNCING"
         ? "draftSync.syncingSoftLockBanner"

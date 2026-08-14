@@ -384,6 +384,7 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
         onActiveStepIndexChange={onActiveStepIndexChange}
         navLocked={draftSync.navLocked}
         draftSyncStatus={draftSync.status}
+        draftSyncOnline={draftSync.isOnline}
         wizardRuleEvalContext={{
           uiOptions: { workspaceFormProfile: gate.workspaceFormProfile },
         }}

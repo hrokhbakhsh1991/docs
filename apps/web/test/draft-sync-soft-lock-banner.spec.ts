@@ -4,8 +4,9 @@ import { describe, it } from "node:test";
 import { shouldShowCreateTourWizardSoftLockBanner } from "../src/draft/draft-sync-soft-lock-banner";
 
 describe("draft-sync-soft-lock-banner.spec.ts", () => {
-  it("WEB-P11-SOFT-01 create-tour wizard shows soft-lock banner only on ERROR", () => {
+  it("WEB-P11-SOFT-01 create-tour wizard shows soft-lock banner on ERROR or offline", () => {
     assert.equal(shouldShowCreateTourWizardSoftLockBanner("ERROR"), true);
+    assert.equal(shouldShowCreateTourWizardSoftLockBanner("IDLE", false), true);
     assert.equal(shouldShowCreateTourWizardSoftLockBanner("SYNCING"), false);
     assert.equal(shouldShowCreateTourWizardSoftLockBanner("CONFLICT_RESOLVING"), false);
     assert.equal(shouldShowCreateTourWizardSoftLockBanner("DIRTY"), false);

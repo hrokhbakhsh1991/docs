@@ -331,6 +331,21 @@ describe("workspace-draft-client.spec.ts — Phase 11.3", () => {
     assert.equal("data" in (result.items[0] ?? {}), false);
   });
 
+  it("WEB-P11-9-02b GET list rejects malformed items instead of dropping them silently", async () => {
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          items: [{ draftNamespace: NAMESPACE, draftKey: KEY, version: "bad-version" }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )) as FetchImpl;
+
+    await assert.rejects(
+      () => fetchWorkspaceDraftIndex(WORKSPACE_ID, NAMESPACE),
+      /WORKSPACE_DRAFT_INDEX_INVALID_RESPONSE/
+    );
+  });
+
   it("WEB-P11-9-05 GET events parses audit rows", async () => {
     globalThis.fetch = (async (input) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -357,6 +372,21 @@ describe("workspace-draft-client.spec.ts — Phase 11.3", () => {
     assert.equal(result.items[0]?.action, "updated");
   });
 
+  it("WEB-P11-9-05b GET events rejects malformed rows instead of dropping them silently", async () => {
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          items: [{ id: "evt-1", action: "updated", schemaVersion: "bad" }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )) as FetchImpl;
+
+    await assert.rejects(
+      () => fetchWorkspaceDraftEvents(WORKSPACE_ID, NAMESPACE, KEY),
+      /WORKSPACE_DRAFT_EVENTS_INVALID_RESPONSE/
+    );
+  });
+
   it("WEB-P11-9-06 draft index GET retries once on transient 503", async () => {
     let calls = 0;
     globalThis.fetch = (async () => {
@@ -373,5 +403,54 @@ describe("workspace-draft-client.spec.ts — Phase 11.3", () => {
     const result = await fetchWorkspaceDraftIndex(WORKSPACE_ID, NAMESPACE);
     assert.equal(calls, 2);
     assert.deepEqual(result.items, []);
+  });
+
+  it("WEB-P11-TIMEOUT-01 snapshot GET installs a timeout signal", async () => {
+    let capturedSignal: AbortSignal | null = null;
+    globalThis.fetch = (async (_input, init) => {
+      capturedSignal = init?.signal instanceof AbortSignal ? init.signal : null;
+      return new Response(null, { status: 204 });
+    }) as FetchImpl;
+
+    await fetchWorkspaceDraftSnapshot(WORKSPACE_ID, NAMESPACE, KEY);
+    assert.ok(capturedSignal, "expected snapshot fetch to install AbortSignal.timeout");
+  });
+
+  it("WEB-P11-TIMEOUT-02 PATCH installs a timeout signal for non-keepalive sync", async () => {
+    let capturedSignal: AbortSignal | null = null;
+    globalThis.fetch = (async (_input, init) => {
+      capturedSignal = init?.signal instanceof AbortSignal ? init.signal : null;
+      return new Response(
+        JSON.stringify({
+          data: { title: "saved" },
+          version: 2,
+          schemaVersion: 1,
+          lastModified: 200,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }) as FetchImpl;
+
+    await patchWorkspaceDraftSnapshot(WORKSPACE_ID, NAMESPACE, KEY, {
+      data: { title: "saved" },
+      version: 1,
+      schemaVersion: 1,
+      lastModified: 100,
+    });
+    assert.ok(capturedSignal, "expected patch fetch to install AbortSignal.timeout");
+  });
+
+  it("WEB-P11-TIMEOUT-03 DELETE installs a timeout signal", async () => {
+    let capturedSignal: AbortSignal | null = null;
+    globalThis.fetch = (async (_input, init) => {
+      capturedSignal = init?.signal instanceof AbortSignal ? init.signal : null;
+      return new Response(null, { status: 204 });
+    }) as FetchImpl;
+
+    await deleteWorkspaceDraftSnapshot(WORKSPACE_ID, NAMESPACE, KEY);
+    assert.ok(capturedSignal, "expected delete fetch to install AbortSignal.timeout");
   });
 });

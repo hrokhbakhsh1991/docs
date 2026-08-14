@@ -111,4 +111,38 @@ describe("proxy-workspace-draft-api.spec.ts", () => {
       }
     }
   });
+
+  it("WEB-P11-TIMEOUT-04 draft snapshot proxy installs a timeout signal", async () => {
+    const originalFetch = globalThis.fetch;
+    const originalApiUrl = process.env.TOUR_OPS_API_URL;
+    process.env.TOUR_OPS_API_URL = "http://api.test";
+    let capturedSignal: AbortSignal | null = null;
+    globalThis.fetch = (async (_input, init) => {
+      capturedSignal = init?.signal instanceof AbortSignal ? init.signal : null;
+      return new Response(null, { status: 204 });
+    }) as typeof globalThis.fetch;
+
+    try {
+      const response = await proxyWorkspaceDraftApiRequest(
+        new Request("http://denali.localhost/api/workspaces/ws-test/drafts/operator.wizard/key", {
+          headers: { authorization: "Bearer test-token" },
+        }),
+        {
+          workspaceId: "ws-test",
+          namespace: "operator.wizard",
+          key: "key",
+          method: "GET",
+        }
+      );
+      assert.equal(response.status, 204);
+      assert.ok(capturedSignal, "expected proxy fetch to install AbortSignal.timeout");
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (originalApiUrl === undefined) {
+        delete process.env.TOUR_OPS_API_URL;
+      } else {
+        process.env.TOUR_OPS_API_URL = originalApiUrl;
+      }
+    }
+  });
 });
