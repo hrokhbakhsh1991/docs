@@ -95,7 +95,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   const apiBase = resolveTourOpsApiBaseUrl();
-  const headers = {
+  const headers: Record<string, string> = {
     ...(await buildMemberApiHeaders(host)),
     "content-type": "application/json",
     ...(upstream.extraHeaders ?? {}),

@@ -4,11 +4,14 @@
  */
 import { spawnSync } from "node:child_process";
 import path from "node:path";
-import { guardDepcruiseBin, REPO_ROOT } from "./guard-require.mjs";
+import { guardDepcruiseMain, REPO_ROOT } from "./guard-require.mjs";
 
 const config = path.join(REPO_ROOT, "dependency-cruiser.config.js");
-const bin = guardDepcruiseBin();
+const depcruiseMain = guardDepcruiseMain();
+const maxOldSpaceSize = process.env.DEPCRUISE_MAX_OLD_SPACE_SIZE?.trim() || "4096";
 const args = [
+  `--max-old-space-size=${maxOldSpaceSize}`,
+  depcruiseMain,
   "packages",
   "apps",
   "--config",
@@ -17,7 +20,7 @@ const args = [
   "err",
 ];
 
-const r = spawnSync(bin, args, {
+const r = spawnSync(process.execPath, args, {
   cwd: REPO_ROOT,
   encoding: "utf8",
   stdio: "inherit",
