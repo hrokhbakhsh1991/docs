@@ -149,6 +149,7 @@
     "party": "Party",
     "departure": "Departure",
     "payment": "Booking settlement",
+    "progress": "Status summary",
     "status": "Status",
     "phone": "Mobile",
     "email": "Email",
@@ -176,6 +177,15 @@
     "unpaid": "Unpaid (booking)",
     "partial": "Partially paid (booking)",
     "paid": "Paid (booking)"
+  },
+  "journey": {
+    "pending": "Waiting for an operator decision",
+    "waitlisted": "On the waitlist until capacity opens",
+    "approved_unpaid": "Approved for the tour, but no payment is recorded yet",
+    "approved_partial": "Approved for the tour, but settlement is still incomplete",
+    "approved_paid": "Approved for the tour and fully settled",
+    "rejected": "Registration rejected and closed",
+    "cancelled": "Registration cancelled and closed"
   },
   "metadata": {
     "list": {

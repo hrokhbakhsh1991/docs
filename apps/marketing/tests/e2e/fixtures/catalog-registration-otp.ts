@@ -1,10 +1,15 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type FrameLocator, type Page } from "@playwright/test";
 
 export const CATALOG_DEV_OTP = "1234";
 
+type RegistrationSurface = Pick<Page, "locator" | "getByLabel"> | FrameLocator;
+
 /** Portal registration phone step — wait for client hydration before interacting. */
-export async function fillCatalogPhone(page: Page, phone: string): Promise<void> {
-  const phoneStep = page.locator(
+export async function fillCatalogPhone(
+  surface: RegistrationSurface,
+  phone: string
+): Promise<void> {
+  const phoneStep = surface.locator(
     "[data-public-registration-phone][data-registration-ready]"
   );
   await phoneStep.waitFor({ state: "visible", timeout: 60_000 });
@@ -15,9 +20,13 @@ export async function fillCatalogPhone(page: Page, phone: string): Promise<void>
   await expect(input).not.toHaveValue("");
 }
 
-export async function submitCatalogPhoneForOtp(page: Page, phone: string): Promise<void> {
-  await fillCatalogPhone(page, phone);
-  const sendCode = page.locator('[data-action="send-code"]');
+export async function submitCatalogPhoneForOtp(
+  page: Page,
+  phone: string,
+  surface: RegistrationSurface = page
+): Promise<void> {
+  await fillCatalogPhone(surface, phone);
+  const sendCode = surface.locator('[data-action="send-code"]');
   await expect(sendCode).toBeEnabled({ timeout: 15_000 });
 
   const [response] = await Promise.all([
@@ -34,13 +43,17 @@ export async function submitCatalogPhoneForOtp(page: Page, phone: string): Promi
     response.ok(),
     `request-otp failed (${response.status()}): ${body.slice(0, 240)}`
   ).toBeTruthy();
-  await expect(page.locator("[data-public-registration-otp]")).toBeVisible({
+  await expect(surface.locator("[data-public-registration-otp]")).toBeVisible({
     timeout: 60_000,
   });
 }
 
-export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
-  const otpStep = page.locator("[data-public-registration-otp]");
+export async function fillCatalogOtp(
+  page: Page,
+  code: string,
+  surface: RegistrationSurface = page
+): Promise<void> {
+  const otpStep = surface.locator("[data-public-registration-otp]");
   await otpStep.waitFor({ state: "visible", timeout: 60_000 });
   const input = otpStep.locator("#otp");
   await input.click();
@@ -94,11 +107,11 @@ export async function requestRegistrationOtp(page: Page, phone: string): Promise
 }
 
 async function fillIntakeFieldIfVisible(
-  page: Page,
+  surface: RegistrationSurface,
   fieldId: string,
   value: string
 ): Promise<void> {
-  const input = page.locator(`[data-intake-field="${fieldId}"]`);
+  const input = surface.locator(`[data-intake-field="${fieldId}"]`);
   if (await input.isVisible({ timeout: 1_000 }).catch(() => false)) {
     await input.fill(value);
   }
@@ -106,6 +119,7 @@ async function fillIntakeFieldIfVisible(
 
 export async function completeCatalogRegistrationIntake(
   page: Page,
+  surface: RegistrationSurface = page,
   input: {
     readonly email: string;
     readonly fullName: string;
@@ -115,33 +129,33 @@ export async function completeCatalogRegistrationIntake(
     readonly birthDate?: string;
   }
 ): Promise<void> {
-  const profileStep = page.locator("[data-public-registration-profile]");
+  const profileStep = surface.locator("[data-public-registration-profile]");
   if (await profileStep.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await page.locator("#displayName").fill(input.fullName);
-    await page.locator('[data-action="profile-continue"]').click();
+    await surface.locator("#displayName").fill(input.fullName);
+    await surface.locator('[data-action="profile-continue"]').click();
   }
 
-  await page.locator("[data-public-registration-intake]").waitFor({
+  await surface.locator("[data-public-registration-intake]").waitFor({
     state: "visible",
     timeout: 60_000,
   });
 
-  await fillIntakeFieldIfVisible(page, "fullName", input.fullName);
-  await fillIntakeFieldIfVisible(page, "email", input.email);
-  await fillIntakeFieldIfVisible(page, "nationalId", input.nationalId ?? "1234567890");
-  await fillIntakeFieldIfVisible(page, "fatherName", input.fatherName ?? "Smoke Father");
-  await fillIntakeFieldIfVisible(page, "birthDate", input.birthDate ?? "1990-01-15");
-  await fillIntakeFieldIfVisible(page, "partySize", input.partySize ?? "2");
+  await fillIntakeFieldIfVisible(surface, "fullName", input.fullName);
+  await fillIntakeFieldIfVisible(surface, "email", input.email);
+  await fillIntakeFieldIfVisible(surface, "nationalId", input.nationalId ?? "1234567890");
+  await fillIntakeFieldIfVisible(surface, "fatherName", input.fatherName ?? "Smoke Father");
+  await fillIntakeFieldIfVisible(surface, "birthDate", input.birthDate ?? "1990-01-15");
+  await fillIntakeFieldIfVisible(surface, "partySize", input.partySize ?? "2");
 
-  const partySizeInput = page.getByLabel(/Party size|تعداد نفرات/);
+  const partySizeInput = surface.getByLabel(/Party size|تعداد نفرات/);
   if (await partySizeInput.isVisible({ timeout: 500 }).catch(() => false)) {
     await partySizeInput.fill(input.partySize ?? "2");
   }
 
-  const transportFieldset = page.locator("[data-public-registration-transport]");
+  const transportFieldset = surface.locator("[data-public-registration-transport]");
   if (await transportFieldset.isVisible({ timeout: 2_000 }).catch(() => false)) {
-    await page.locator('input[name="hasPersonalCar"]').nth(1).click();
-    await page.locator('input[name="paysDong"]').first().click();
+    await surface.locator('input[name="hasPersonalCar"]').nth(1).click();
+    await surface.locator('input[name="paysDong"]').first().click();
   }
 
   const [response] = await Promise.all([
@@ -151,7 +165,7 @@ export async function completeCatalogRegistrationIntake(
         res.url().includes("/api/catalog/registrations"),
       { timeout: 90_000 }
     ),
-    page.locator('[data-action="intake-submit"]').click(),
+    surface.locator('[data-action="intake-submit"]').click(),
   ]);
   const body = await response.text();
   expect(

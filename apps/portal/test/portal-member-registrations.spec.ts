@@ -57,11 +57,17 @@ describe("portal-member-registrations", () => {
       join(repoRoot, "apps/portal/app/me/registrations/page.tsx"),
       "utf8"
     );
+    const journey = readFileSync(
+      join(repoRoot, "apps/portal/src/me/member-registration-journey-summary.tsx"),
+      "utf8"
+    );
     assert.match(page, /data-portal-member-registrations/);
     assert.match(page, /data-registrant-filter/);
     assert.match(page, /data-portal-member-registrations-filter/);
     assert.match(page, /data-portal-member-registration-row/);
     assert.match(page, /data-portal-member-registration-status-badge/);
+    assert.match(page, /MemberRegistrationJourneySummary/);
+    assert.match(journey, /data-portal-member-registration-journey/);
     assert.match(page, /data-portal-member-registrations-empty-cta/);
     assert.match(page, /fetchMemberRegistrations/);
     assert.match(page, /RegistrantListFilter/);
@@ -77,12 +83,19 @@ describe("portal-member-registrations", () => {
       join(repoRoot, "apps/portal/app/me/registrations/[id]/member-receipt-upload-form.tsx"),
       "utf8"
     );
+    const journey = readFileSync(
+      join(repoRoot, "apps/portal/src/me/member-registration-journey-summary.tsx"),
+      "utf8"
+    );
     assert.match(page, /data-portal-member-registration-detail/);
     assert.match(page, /data-portal-member-registrant-target/);
     assert.match(page, /resolveMemberPortalTripsListPath/);
     assert.match(page, /fetchMemberReceiptStatus/);
     assert.match(page, /resolveMarketingTourDetailUrl/);
     assert.match(page, /data-portal-member-back/);
+    assert.match(page, /MemberRegistrationJourneySummary/);
+    assert.match(journey, /data-portal-member-registration-journey/);
+    assert.match(page, /registrationJourneyLabels/);
     assert.match(page, /\{t\("backToList"\)\}/);
     assert.doesNotMatch(page, /← \{t\("backToList"\)\}/);
     assert.match(form, /data-portal-member-receipt-upload/);
@@ -223,6 +236,8 @@ describe("portal-member-registrations", () => {
     assert.match(en, /"filterOther"/);
     assert.match(fa, /"guestLine"/);
     assert.match(en, /"guestLine"/);
+    assert.match(fa, /"registrationJourneyLabels"/);
+    assert.match(en, /"registrationJourneyLabels"/);
   });
 
   it("MEM-PROF-01 profile page uses canonical profile BFF", () => {

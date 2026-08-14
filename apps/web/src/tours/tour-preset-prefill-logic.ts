@@ -34,14 +34,34 @@ export function findActiveTourPreset(
 /** Thin re-export — SoT via host-adapter runtime. */
 export { readActiveThemeIds } from "@/wizard/wizard-host-adapter-registry";
 
+type ApplyTourPresetToDraftOptions = {
+  readonly replaceableTitleValues?: readonly string[];
+};
+
+function canReplacePresetTitle(
+  currentTitle: string,
+  options?: ApplyTourPresetToDraftOptions
+): boolean {
+  const trimmed = currentTitle.trim();
+  if (trimmed.length === 0) {
+    return true;
+  }
+  const replaceableValues =
+    options?.replaceableTitleValues
+      ?.map((value) => value.trim())
+      .filter((value) => value.length > 0) ?? [];
+  return replaceableValues.includes(trimmed);
+}
+
 export function applyTourPresetToDraft(
   draft: TourWizardDraft,
   preset: TourPresetResource,
-  activeThemeIds?: readonly string[]
+  activeThemeIds?: readonly string[],
+  options?: ApplyTourPresetToDraftOptions
 ): TourWizardDraft {
   let next = draft;
   const title = getCanonicalStringValue(next, "title");
-  if (title.trim().length === 0 && preset.name.trim().length > 0) {
+  if (canReplacePresetTitle(title, options) && preset.name.trim().length > 0) {
     next = setCanonicalStringValue(next, "title", preset.name.trim());
   }
 

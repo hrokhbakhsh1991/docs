@@ -27,6 +27,7 @@
     "start": "next start --port 3003"
   },
   "dependencies": {
+    "@app-tour/booking-http-contracts": "workspace:*",
     "@app-tour/catalog-registration-auth": "workspace:*",
     "@app-tour/catalog-registration-flow-ui": "workspace:*",
     "@app-tour/design-tokens": "workspace:*",

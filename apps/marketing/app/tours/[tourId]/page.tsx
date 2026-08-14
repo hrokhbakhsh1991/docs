@@ -6,7 +6,12 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { CatalogTourDetail } from "@/catalog/catalog-tour-detail";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import { isAppLocale, routing } from "@/i18n/routing";
-import { resolveWebRegistrationLoginUrl, resolveWebRegistrationUrl } from "@/portal/resolve-web-registration-url";
+import {
+  resolveWebEmbeddedRegistrationLoginUrl,
+  resolveWebEmbeddedRegistrationUrl,
+  resolveWebRegistrationLoginUrl,
+  resolveWebRegistrationUrl,
+} from "@/portal/resolve-web-registration-url";
 import {
   buildMarketingNotFoundMetadata,
   buildMarketingTourDetailMetadata,
@@ -64,6 +69,12 @@ export default async function MarketingTourDetailPage({ params }: PageProps) {
 
   const registrationUrl = resolveWebRegistrationUrl(host, tourId, bootstrap.pluginId);
   const tourSignInUrl = resolveWebRegistrationLoginUrl(host, tourId, bootstrap.pluginId);
+  const embeddedRegistrationUrl = resolveWebEmbeddedRegistrationUrl(host, tourId, bootstrap.pluginId);
+  const embeddedTourSignInUrl = resolveWebEmbeddedRegistrationLoginUrl(
+    host,
+    tourId,
+    bootstrap.pluginId
+  );
 
   return (
     <div data-marketing-catalog-detail-page data-slot="page-catalog-detail">
@@ -71,6 +82,8 @@ export default async function MarketingTourDetailPage({ params }: PageProps) {
         tour={tour}
         registrationUrl={registrationUrl}
         tourSignInUrl={tourSignInUrl}
+        embeddedRegistrationUrl={embeddedRegistrationUrl}
+        embeddedTourSignInUrl={embeddedTourSignInUrl}
         pluginId={bootstrap.pluginId}
       />
     </div>

@@ -10,6 +10,13 @@ export {
   type BookingsListView,
 } from "./booking-status";
 
+export {
+  isApprovedBookingJourneyState,
+  isApprovedBookingJourneyStateUnsettled,
+  resolveBookingJourneyState,
+  type BookingJourneyState,
+} from "./booking-journey-state";
+
 export type {
   ApproveBookingResponse,
   BookingCapacitySnapshot,

@@ -13,6 +13,7 @@ import {
   bookingStatusBadgeVariant,
 } from "@/features/bookings/bookings-badge-variants";
 import { BookingDepartureUrgencyBadge } from "@/features/bookings/booking-overdue-badge";
+import { BookingJourneySummary } from "@/features/bookings/booking-journey-summary";
 import {
   formatBookingDeparture,
   truncateBookingId,
@@ -116,6 +117,13 @@ export function BookingInspectionDetails({
             {t(`status.${booking.status}`)}
           </Badge>
           <BookingDepartureUrgencyBadge item={booking} />
+        </dd>
+        <dt className="text-muted-foreground">{t("fields.progress")}</dt>
+        <dd>
+          <BookingJourneySummary
+            status={booking.status}
+            paymentStatus={booking.paymentStatus}
+          />
         </dd>
         {booking.guestPhone !== undefined && booking.guestPhone.length > 0 ? (
           <>

@@ -23,6 +23,9 @@ function createFakeResponse(body: unknown, ok = true, status = 200) {
     async text() {
       return JSON.stringify(body);
     },
+    url() {
+      return "http://probe.admin.localhost:3000/";
+    },
   };
 }
 
@@ -54,11 +57,13 @@ function createFakePage(baseURL = "http://denali.admin.localhost:3000") {
       },
       context() {
         return {
-          _options: { baseURL },
           async addCookies(nextCookies: Cookie[]) {
             cookies.push(...nextCookies);
           },
         };
+      },
+      url() {
+        return baseURL;
       },
       async goto() {
         throw new Error("goto should not be called when skipDashboard=true");
@@ -101,4 +106,28 @@ test("operator session fixture does not reuse cached token across hosts", async 
 
   assert.equal(first.posts.filter((entry) => entry.url === "/api/auth/request-otp").length, 1);
   assert.equal(second.posts.filter((entry) => entry.url === "/api/auth/request-otp").length, 1);
+});
+
+test("operator session fixture probes request host before the first navigation", async () => {
+  const originalPlaywrightBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
+  const originalSmokeBaseUrl = process.env.SMOKE_BASE_URL;
+  const originalSmokeWebBaseUrl = process.env.SMOKE_WEB_BASE_URL;
+  delete process.env.PLAYWRIGHT_BASE_URL;
+  delete process.env.SMOKE_BASE_URL;
+  delete process.env.SMOKE_WEB_BASE_URL;
+
+  const { page, cookies, gets } = createFakePage("about:blank");
+
+  try {
+    await loginOperatorWithPhone(page as never, "+15550009992", {
+      skipDashboard: true,
+    });
+  } finally {
+    process.env.PLAYWRIGHT_BASE_URL = originalPlaywrightBaseUrl;
+    process.env.SMOKE_BASE_URL = originalSmokeBaseUrl;
+    process.env.SMOKE_WEB_BASE_URL = originalSmokeWebBaseUrl;
+  }
+
+  assert.equal(cookies[0]?.domain, "probe.admin.localhost");
+  assert.equal(gets.includes("/"), true);
 });

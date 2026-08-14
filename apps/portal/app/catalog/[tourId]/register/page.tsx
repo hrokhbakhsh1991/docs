@@ -15,6 +15,7 @@ import { PortalLoginModalOpener } from "@/auth/portal-login-modal-opener";
 import { PortalRegisterGuestAuthGate } from "@/auth/portal-register-guest-auth-gate";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import { buildRegistrationResumeInitialState } from "@/catalog/build-registration-resume-initial-state.server";
+import { EmbeddedMarketingRegistrationSurface } from "@/catalog/embedded-marketing-registration-surface";
 import { PublicCatalogRegistrationFlow } from "@/catalog/public-catalog-registration-flow";
 import { fetchMemberSelfRegistrationForTour } from "@/me/fetch-member-self-registration-for-tour.server";
 import { resolvePortalRegistrationBackHref } from "@/marketing/resolve-portal-registration-back-href.server";
@@ -27,7 +28,11 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   readonly params: Promise<{ readonly tourId: string }>;
-  readonly searchParams: Promise<{ readonly portalReturn?: string; readonly auth?: string }>;
+  readonly searchParams: Promise<{
+    readonly portalReturn?: string;
+    readonly auth?: string;
+    readonly embed?: string;
+  }>;
 };
 
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
@@ -59,6 +64,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
 export default async function CatalogRegisterPage({ params, searchParams }: PageProps) {
   const { tourId } = await params;
   const query = await searchParams;
+  const embeddedMarketing = query.embed === "marketing";
   if (isSafePortalReturnPath(query.portalReturn)) {
     redirect(`/login?portalReturn=${encodeURIComponent(query.portalReturn!.trim())}`);
   }
@@ -140,15 +146,41 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
       heroTitle={t("pageTitle", { tourTitle })}
       heroLede={heroLede}
       sessionBadge={sessionBadge}
+      embedded={embeddedMarketing}
       pageKind="registration"
       workspace={workspace}
       mainAttributes={
         resumeAtIntake
-          ? { "data-registration-resume": "intake" }
-          : { "data-portal-register-guest-auth": "modal-first" }
+          ? {
+              "data-registration-resume": "intake",
+              ...(embeddedMarketing ? { "data-catalog-registration-embedded": "marketing" } : {}),
+            }
+          : {
+              ...(embeddedMarketing
+                ? { "data-catalog-registration-embedded": "marketing" }
+                : { "data-portal-register-guest-auth": "modal-first" }),
+            }
       }
     >
-      {registrationResume !== null ? (
+      {embeddedMarketing ? (
+        <EmbeddedMarketingRegistrationSurface
+          workspace={workspace}
+          tenantId={bootstrap.tenantId}
+          tourId={tourId}
+          tourTitle={tourTitle}
+          tourPoliciesText={tour.policiesText ?? null}
+          tourPriceAmount={tour.priceAmount ?? null}
+          tourTransport={tour.transport}
+          tourNationalIdRequired={tour.nationalIdRequired === true}
+          tourFatherNameRequired={tour.fatherNameRequired === true}
+          tourBirthDateRequired={tour.birthDateRequired === true}
+          backHref={backHref}
+          memberModuleHref={memberModuleHref}
+          initialRuntimeState={registrationResume?.initialState}
+          existingSelfRegistrationId={existingSelf?.id ?? null}
+          mode={registrationResume !== null ? "resume" : "login-egress"}
+        />
+      ) : registrationResume !== null ? (
         <PublicCatalogRegistrationFlow
           workspace={workspace}
           tenantId={bootstrap.tenantId}

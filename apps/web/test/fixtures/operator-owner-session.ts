@@ -22,12 +22,48 @@ export const OPERATOR_INVITEE_MOBILE = "+15550008803";
 
 const OPERATOR_SESSION_TOKEN_CACHE = new Map<string, string>();
 
-function readRequestCookieDomain(page: Page): string {
-  const baseURL = page.context()._options.baseURL;
-  if (typeof baseURL === "string" && baseURL.length > 0) {
-    return new URL(baseURL).hostname;
+function resolvePlaywrightBaseUrl(): string | null {
+  for (const candidate of [
+    process.env.PLAYWRIGHT_BASE_URL,
+    process.env.SMOKE_BASE_URL,
+    process.env.SMOKE_WEB_BASE_URL,
+  ]) {
+    const trimmed = candidate?.trim();
+    if (trimmed !== undefined && trimmed.length > 0) {
+      return trimmed;
+    }
   }
-  return "localhost";
+  return null;
+}
+
+async function probeRequestHostname(page: Page): Promise<string | null> {
+  const probeRes = await page.request.get("/", {
+    failOnStatusCode: false,
+  });
+  const probeUrl = probeRes.url().trim();
+  if (probeUrl.length === 0) {
+    return null;
+  }
+  return new URL(probeUrl).hostname;
+}
+
+export async function resolveOperatorRequestHostname(page: Page): Promise<string> {
+  const configuredBaseUrl = resolvePlaywrightBaseUrl();
+  if (configuredBaseUrl !== null) {
+    return new URL(configuredBaseUrl).hostname;
+  }
+
+  const currentUrl = page.url().trim();
+  if (currentUrl.length > 0 && currentUrl !== "about:blank") {
+    return new URL(currentUrl).hostname;
+  }
+
+  const probedHostname = await probeRequestHostname(page);
+  expect(
+    probedHostname,
+    "Unable to resolve operator request host. Set PLAYWRIGHT_BASE_URL/SMOKE_BASE_URL or navigate the page before logging in."
+  ).not.toBeNull();
+  return probedHostname!;
 }
 
 async function persistOperatorSessionCookie(
@@ -35,11 +71,12 @@ async function persistOperatorSessionCookie(
   loginBody: { session_token?: string }
 ): Promise<void> {
   expect(typeof loginBody.session_token).toBe("string");
+  const domain = await resolveOperatorRequestHostname(page);
   await page.context().addCookies([
     {
       name: SESSION_TOKEN_COOKIE,
       value: loginBody.session_token!,
-      domain: readRequestCookieDomain(page),
+      domain,
       path: "/",
       httpOnly: true,
       sameSite: "Lax",
@@ -47,8 +84,8 @@ async function persistOperatorSessionCookie(
   ]);
 }
 
-function cacheKeyForOperatorSession(page: Page, phone: string): string {
-  return `${readRequestCookieDomain(page)}::${phone.trim()}`;
+async function cacheKeyForOperatorSession(page: Page, phone: string): Promise<string> {
+  return `${await resolveOperatorRequestHostname(page)}::${phone.trim()}`;
 }
 
 async function loginOperatorSessionViaBff(
@@ -57,7 +94,7 @@ async function loginOperatorSessionViaBff(
   skipAbilityPreflight = false,
   forceFresh = false
 ): Promise<void> {
-  const cacheKey = cacheKeyForOperatorSession(page, phone);
+  const cacheKey = await cacheKeyForOperatorSession(page, phone);
   const cachedToken = forceFresh ? undefined : OPERATOR_SESSION_TOKEN_CACHE.get(cacheKey);
   if (cachedToken !== undefined) {
     await persistOperatorSessionCookie(page, { session_token: cachedToken });

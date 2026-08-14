@@ -42,6 +42,7 @@
     "start": "next start --port 3000"
   },
   "dependencies": {
+    "@app-tour/booking-http-contracts": "workspace:*",
     "@app-tour/design-tokens": "workspace:*",
     "@app-tour/draft-engine": "workspace:*",
     "@app-tour/finance-case-encounter-ui": "workspace:*",

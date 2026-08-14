@@ -16,4 +16,15 @@ describe("catalog-tour-detail-register-cta — PCMS tour sign-in", () => {
     assert.match(cta, /tourSignInUrl/);
     assert.match(cta, /signInToRegister/);
   });
+
+  it("MKT-PCMS-04 opens embedded registration dialog instead of forcing navigation", () => {
+    const cta = readFileSync(
+      join(repoRoot, "apps/marketing/src/catalog/catalog-tour-detail-register-cta.tsx"),
+      "utf8"
+    );
+    assert.match(cta, /embeddedRegistrationUrl/);
+    assert.match(cta, /embeddedTourSignInUrl/);
+    assert.match(cta, /data-marketing-dialog-src/);
+    assert.match(cta, /data-marketing-dialog-title/);
+  });
 });

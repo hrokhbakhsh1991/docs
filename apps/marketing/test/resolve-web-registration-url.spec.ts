@@ -8,6 +8,8 @@ import { describe, it } from "node:test";
 import {
   resolvePortalMemberModuleUrl,
   resolvePortalPublicBaseUrl,
+  resolveWebEmbeddedRegistrationLoginUrl,
+  resolveWebEmbeddedRegistrationUrl,
   resolveWebRegistrationLoginUrl,
   resolveWebRegistrationUrl,
   supportsCatalogRegistration,
@@ -75,6 +77,18 @@ describe("resolve-web-registration-url", () => {
       "http://portal.denali.club:3003/catalog/tour-abc/register?auth=login"
     );
     assert.equal(resolveWebRegistrationLoginUrl("denali.club", "tour-abc", "starter"), null);
+  });
+
+  it("MKT-PCMS-05 embedded registration URLs stay on marketing PDP", () => {
+    assert.equal(
+      resolveWebEmbeddedRegistrationUrl("denali.club", "tour-abc", "denali"),
+      "http://portal.denali.club:3003/catalog/tour-abc/register?embed=marketing"
+    );
+    assert.equal(
+      resolveWebEmbeddedRegistrationLoginUrl("denali.club", "tour-abc", "denali"),
+      "http://portal.denali.club:3003/catalog/tour-abc/register?auth=login&embed=marketing"
+    );
+    assert.equal(resolveWebEmbeddedRegistrationUrl("denali.club", "tour-abc", "starter"), null);
   });
 
   it("MKT-13 static member module link to portal (PCMS-03)", () => {

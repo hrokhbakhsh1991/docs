@@ -67,8 +67,32 @@ describe("portal registration resume — PCMS-REG-01", () => {
     );
     assert.match(helper, /currentStep: "intake"/);
     assert.match(helper, /readPublicCatalogSessionFromCookies/);
+    assert.match(helper, /fetchMemberProfileFromSession/);
     assert.match(helper, /memberMobile/);
     assert.match(helper, /RegistrationResumeInitialState/);
+  });
+
+  it("PCMS-REG-03b resume path and member bearer path share one request-token reader", () => {
+    const helper = readFileSync(
+      join(repoRoot, "apps/portal/src/catalog/build-registration-resume-initial-state.server.ts"),
+      "utf8"
+    );
+    const memberHeaders = readFileSync(
+      join(repoRoot, "apps/portal/src/me/build-member-api-headers.server.ts"),
+      "utf8"
+    );
+    const requestReader = readFileSync(
+      join(
+        repoRoot,
+        "apps/portal/src/auth/read-member-session-token-from-request.server.ts"
+      ),
+      "utf8"
+    );
+
+    assert.match(helper, /readPublicCatalogSessionFromCookies/);
+    assert.match(memberHeaders, /readMemberSessionTokenFromRequest/);
+    assert.match(requestReader, /resolveMemberSessionTokenFromSources/);
+    assert.match(requestReader, /readSessionTokenFromCookieHeader/);
   });
 
   it("PCMS-REG-04 middleware uses async bootstrap tenant bind", () => {
@@ -76,5 +100,23 @@ describe("portal registration resume — PCMS-REG-01", () => {
     assert.match(middleware, /export async function middleware/);
     assert.match(middleware, /resolvePortalBootstrapForHost/);
     assert.match(middleware, /resolvedPortalTenantId/);
+  });
+
+  it("PCMS-UX-06 marketing embed keeps auth and resume inside portal registration route", () => {
+    const page = readFileSync(
+      join(repoRoot, "apps/portal/app/catalog/[tourId]/register/page.tsx"),
+      "utf8"
+    );
+    const embeddedSurface = readFileSync(
+      join(repoRoot, "apps/portal/src/catalog/embedded-marketing-registration-surface.tsx"),
+      "utf8"
+    );
+
+    assert.match(page, /query\.embed === "marketing"/);
+    assert.match(page, /EmbeddedMarketingRegistrationSurface/);
+    assert.match(page, /data-catalog-registration-embedded/);
+    assert.match(embeddedSurface, /memberLoginStayOnPage/);
+    assert.match(embeddedSurface, /onMemberLoginSessionReady/);
+    assert.match(embeddedSurface, /window\.location\.replace/);
   });
 });

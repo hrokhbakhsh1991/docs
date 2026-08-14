@@ -1,11 +1,8 @@
-import { cookies, headers } from "next/headers";
-
 import {
-  readSessionTokenFromCookieHeader as parseSessionTokenFromCookieHeader,
   validateSessionTokenAsync,
 } from "@app-tour/session-client";
 
-import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
+import { readMemberSessionTokenFromRequest } from "@/auth/read-member-session-token-from-request.server";
 
 export type PublicCatalogSession = {
   readonly userId: string;
@@ -28,21 +25,9 @@ function normalizeCatalogRole(
   return null;
 }
 
-async function readSessionTokenFromRequest(): Promise<string | undefined> {
-  const cookieStore = await cookies();
-  const fromStore = cookieStore.get(SESSION_TOKEN_COOKIE)?.value?.trim();
-  if (fromStore !== undefined && fromStore.length > 0) {
-    return fromStore;
-  }
-
-  const headerStore = await headers();
-  const raw = headerStore.get("cookie") ?? "";
-  return parseSessionTokenFromCookieHeader(raw, SESSION_TOKEN_COOKIE);
-}
-
 /** M17 public catalog session — any ACTIVE membership role (not operator-owner-only). */
 export async function readPublicCatalogSessionFromCookies(): Promise<PublicCatalogSession | null> {
-  const token = await readSessionTokenFromRequest();
+  const token = await readMemberSessionTokenFromRequest();
   const validation = await validateSessionTokenAsync(token);
   if (validation.status !== "valid") {
     return null;

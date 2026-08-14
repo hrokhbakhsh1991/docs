@@ -144,6 +144,7 @@ export function DenaliCreateTourWizardView({
         onActiveStepIndexChange: wizard.onActiveStepIndexChange,
         navLocked: wizard.draftSync.navLocked || wizard.clearDraft.clearDraftPending,
         draftSyncStatus: wizard.clearDraft.clearDraftPending ? "SYNCING" : wizard.draftSync.status,
+        draftSyncOnline: wizard.draftSync.isOnline,
         submitValidationIssues: wizard.submitValidationIssues,
         onSubmitValidationHandled: () => wizard.setSubmitValidationIssues(null),
         wizardRuleEvalContext: wizard.wizardRuleEvalContext,

@@ -7,6 +7,7 @@ import {
   localizeMemberPaymentStatus,
   localizeMemberRegistrationStatus,
 } from "@/me/format-member-registration-display.server";
+import { MemberRegistrationJourneySummary } from "@/me/member-registration-journey-summary";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
 import {
   resolveMemberPortalTripsDetailPath,
@@ -43,6 +44,7 @@ export default async function MeRegistrationsPage({
   const bootstrap = await resolvePortalBootstrapForHost(host);
   const items = await fetchMemberRegistrations(host);
   const t = await getTranslations("portalMember.registrations");
+  const tJourney = await getTranslations("portalMember.registrationJourneyLabels");
   const params = await searchParams;
   const activeFilter = parseRegistrantListFilter(params.target);
 
@@ -182,6 +184,11 @@ export default async function MeRegistrationsPage({
                     </span>
                     <span data-portal-member-registration-departure>{departureLabel}</span>
                   </p>
+                  <MemberRegistrationJourneySummary
+                    status={item.status}
+                    paymentStatus={item.paymentStatus}
+                    translateLabel={(key) => tJourney(key)}
+                  />
                   <span data-portal-member-row-chevron aria-hidden="true">
                     ›
                   </span>

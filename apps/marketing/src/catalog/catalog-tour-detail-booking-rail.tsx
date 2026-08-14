@@ -10,12 +10,16 @@ export type CatalogTourDetailBookingRailProps = {
   readonly tour: MarketingCatalogCard;
   readonly registration: CatalogTourRegistrationState;
   readonly tourSignInUrl?: string | null;
+  readonly embeddedRegistrationUrl?: string | null;
+  readonly embeddedTourSignInUrl?: string | null;
 };
 
 export async function CatalogTourDetailBookingRail({
   tour,
   registration,
   tourSignInUrl = null,
+  embeddedRegistrationUrl = null,
+  embeddedTourSignInUrl = null,
 }: CatalogTourDetailBookingRailProps) {
   if (!registration.canRegister && !registration.isSoldOut) {
     return null;
@@ -56,6 +60,8 @@ export async function CatalogTourDetailBookingRail({
         registration={registration}
         variant="rail"
         tourSignInUrl={tourSignInUrl}
+        embeddedRegistrationUrl={embeddedRegistrationUrl}
+        embeddedTourSignInUrl={embeddedTourSignInUrl}
       />
     </aside>
   );

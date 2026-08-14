@@ -70,4 +70,15 @@ describe("portal-member-receipt-bff", () => {
     assert.equal(headers["x-workspace-id"], "ws-operator-smoke-member");
     assert.equal(headers["x-user-id"], "00000000-0000-4000-8000-000000000103");
   });
+
+  it("MEM-BFF-04b member Authorization forwarding is fail-closed behind JWT verify config", () => {
+    const source = readFileSync(
+      join(repoRoot, "apps/portal/src/me/build-member-api-headers.server.ts"),
+      "utf8"
+    );
+    assert.match(source, /isJwtVerifyConfigured/);
+    assert.match(source, /validateSessionTokenAsync/);
+    assert.match(source, /if \(!isJwtVerifyConfigured\(\)\) {\s*return headers;/);
+    assert.match(source, /if \(validation\.status === "valid"\)/);
+  });
 });

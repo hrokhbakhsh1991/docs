@@ -102,6 +102,13 @@
     "backToTours": "Back to tours",
     "register": "Register",
     "signInToRegister": "Already registered? Sign in",
+    "registrationDialog": {
+      "defaultTitle": "Complete your registration",
+      "registerTitle": "Register for this tour",
+      "signInTitle": "Sign in to continue",
+      "loading": "Loading registration flow...",
+      "close": "Close registration dialog"
+    },
     "capacity": "Capacity: {count}",
     "spotsRemaining": "{count} spots remaining",
     "difficulty": "Difficulty: {level, number} of {max, number}",

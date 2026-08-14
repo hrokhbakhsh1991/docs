@@ -44,6 +44,20 @@
       "paid": "Paid"
     }
   },
+  "registrationJourneyLabels": {
+    "pending": "Your registration is waiting for club approval",
+    "waitlisted": "Your registration is currently on the waitlist",
+    "approved_unpaid": "You are approved for this tour, but no payment has been recorded yet",
+    "approved_partial": "You are approved for this tour, but your settlement is still incomplete",
+    "approved_paid": "You are approved for this tour and fully settled",
+    "rejected": "This registration has been rejected",
+    "cancelled": "This registration has been cancelled"
+  },
+  "registrationJourneyHints": {
+    "approved_unpaid": "Upload your receipt to complete the financial step.",
+    "approved_partial": "Pay the remaining balance and upload an updated receipt.",
+    "approved_paid": "Financially, you are all set for this trip."
+  },
   "profile": {
     "title": "My profile",
     "description": "These fields pre-fill future tour registrations.",

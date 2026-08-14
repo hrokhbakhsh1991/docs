@@ -12,6 +12,7 @@ import {
   localizeMemberRegistrationStatus,
 } from "@/me/format-member-registration-display.server";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
+import { MemberRegistrationJourneySummary } from "@/me/member-registration-journey-summary";
 import { parseRegistrationLifecycleStatus } from "@/me/registration-lifecycle-status";
 import { resolveMemberPortalTripsListPath } from "@/me/resolve-member-portal-routes.server";
 import { resolveMarketingTourDetailUrl } from "@/marketing/resolve-marketing-public-url";
@@ -42,6 +43,8 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
     notFound();
   }
   const t = await getTranslations("portalMember.detail");
+  const tJourney = await getTranslations("portalMember.registrationJourneyLabels");
+  const tJourneyHint = await getTranslations("portalMember.registrationJourneyHints");
   const [statusLabel, paymentStatusLabel, departureLabel, receiptStatus] = await Promise.all([
     localizeMemberRegistrationStatus(row.status),
     localizeMemberPaymentStatus(row.paymentStatus),
@@ -103,6 +106,12 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
           <p data-portal-member-registration-status>
             {t("statusLine", { status: statusLabel, paymentStatus: paymentStatusLabel })}
           </p>
+          <MemberRegistrationJourneySummary
+            status={row.status}
+            paymentStatus={row.paymentStatus}
+            translateLabel={(key) => tJourney(key)}
+            translateHint={(key) => tJourneyHint(key)}
+          />
           <p data-portal-member-registration-departure>
             {t("departure", { departureAt: departureLabel })}
           </p>

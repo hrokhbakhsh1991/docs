@@ -253,6 +253,9 @@ importers:
 
   apps/portal:
     dependencies:
+      '@app-tour/booking-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/booking-http-contracts
       '@app-tour/catalog-registration-auth':
         specifier: workspace:*
         version: link:../../packages/catalog-registration-auth
@@ -353,6 +356,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@app-tour/booking-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/booking-http-contracts
       '@app-tour/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens

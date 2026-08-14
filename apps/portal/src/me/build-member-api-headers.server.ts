@@ -1,6 +1,6 @@
-import { cookies } from "next/headers";
+import { isJwtVerifyConfigured, validateSessionTokenAsync } from "@app-tour/session-client";
 
-import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
+import { readMemberSessionTokenFromRequest } from "@/auth/read-member-session-token-from-request.server";
 import { mergeCatalogRegistrationHeaders } from "@/catalog/build-catalog-registration-headers.server";
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
@@ -10,10 +10,17 @@ export async function buildMemberApiHeaders(host: string): Promise<Record<string
   const session = await readPublicCatalogSessionFromCookies();
   const headers = mergeCatalogRegistrationHeaders(bootstrap.tenantId, session);
   if (session !== null) {
-    const cookieStore = await cookies();
-    const token = cookieStore.get(SESSION_TOKEN_COOKIE)?.value;
+    const token = await readMemberSessionTokenFromRequest();
     if (token !== undefined && token.length > 0) {
-      return { ...headers, Authorization: `Bearer ${token}` };
+      // Fail closed: only forward member bearer tokens when portal can verify
+      // the same JWT contract that API enforces.
+      if (!isJwtVerifyConfigured()) {
+        return headers;
+      }
+      const validation = await validateSessionTokenAsync(token);
+      if (validation.status === "valid") {
+        return { ...headers, Authorization: `Bearer ${token}` };
+      }
     }
   }
   return headers;

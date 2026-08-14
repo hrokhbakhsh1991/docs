@@ -18,6 +18,7 @@ import { FINANCE_REFUNDS_TEST_IDS } from "../../src/finance/finance-refunds-logi
 import {
   loginOperatorWithPhone,
   OPERATOR_OWNER_MOBILE,
+  resolveOperatorRequestHostname,
 } from "../../test/fixtures/operator-owner-session";
 
 const ARTIFACT_DIR = path.join(
@@ -43,11 +44,7 @@ async function loginUx2Operator(page: Page): Promise<void> {
 }
 
 async function setOperatorLocale(page: Page, locale: AppLocale): Promise<void> {
-  const baseURL = page.context()._options.baseURL;
-  const domain =
-    typeof baseURL === "string" && baseURL.length > 0
-      ? new URL(baseURL).hostname
-      : "operator.admin.localhost";
+  const domain = await resolveOperatorRequestHostname(page);
   await page.context().addCookies([
     {
       name: "NEXT_LOCALE",

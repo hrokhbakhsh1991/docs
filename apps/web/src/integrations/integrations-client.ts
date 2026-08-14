@@ -9,12 +9,23 @@ import {
   type WorkspaceIntegrationsListResponse,
 } from "@/integrations/integrations-types";
 
+const WORKSPACE_INTEGRATIONS_FETCH_TIMEOUT_MS = 10_000;
+
+function buildNoStoreFetchOptions(init?: RequestInit): RequestInit {
+  return {
+    cache: "no-store",
+    signal: AbortSignal.timeout(WORKSPACE_INTEGRATIONS_FETCH_TIMEOUT_MS),
+    ...init,
+  };
+}
+
 export async function fetchWorkspaceIntegrations(
   workspaceId: string
 ): Promise<WorkspaceIntegrationsListResponse> {
-  const res = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}/integrations`, {
-    cache: "no-store",
-  });
+  const res = await fetch(
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/integrations`,
+    buildNoStoreFetchOptions()
+  );
   const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
     const code =
@@ -27,9 +38,10 @@ export async function fetchWorkspaceIntegrations(
 export async function fetchWorkspaceIntegrationMeta(
   workspaceId: string
 ): Promise<WorkspaceIntegrationSurfaceMetaResponse> {
-  const res = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}/integrations/meta`, {
-    cache: "no-store",
-  });
+  const res = await fetch(
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/integrations/meta`,
+    buildNoStoreFetchOptions()
+  );
   const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
     const code =

@@ -1,4 +1,3 @@
-import { parseLocationsResponse } from "./catalog-parse";
 import type { UsersListResponse } from "./catalog-types";
 import type { DenaliReviewCatalog } from "../logic/denali-review-format-logic";
 
@@ -9,21 +8,12 @@ function readNameMap(
 }
 
 export async function loadDenaliReviewCatalog(): Promise<DenaliReviewCatalog> {
-  const [locationsRes, usersRes, themesRes, languagesRes, equipmentRes] = await Promise.all([
-    fetch("/api/settings/resources/locations", { cache: "no-store" }),
+  const [usersRes, themesRes, languagesRes, equipmentRes] = await Promise.all([
     fetch("/api/users?role=all&status=active", { cache: "no-store" }),
     fetch("/api/settings/resources/tour_themes", { cache: "no-store" }),
     fetch("/api/settings/resources/guide_languages", { cache: "no-store" }),
     fetch("/api/settings/resources/equipment", { cache: "no-store" }),
   ]);
-
-  const destinationNameById = new Map<string, string>();
-  if (locationsRes.ok) {
-    const payload = parseLocationsResponse(await locationsRes.json());
-    for (const destination of payload.destinations) {
-      destinationNameById.set(destination.id, destination.name);
-    }
-  }
 
   const leaderNameById = new Map<string, string>();
   if (usersRes.ok) {
@@ -64,7 +54,7 @@ export async function loadDenaliReviewCatalog(): Promise<DenaliReviewCatalog> {
   }
 
   return {
-    destinationNameById,
+    destinationNameById: new Map(),
     leaderNameById,
     themeNameById,
     languageNameById,

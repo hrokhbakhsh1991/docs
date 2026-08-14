@@ -1,5 +1,6 @@
-import { getTranslations } from "next-intl/server";
+"use client";
 
+import { useTranslations } from "next-intl";
 import type { CatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
 
 export type CatalogTourDetailRegisterCtaProps = {
@@ -7,15 +8,19 @@ export type CatalogTourDetailRegisterCtaProps = {
   readonly variant: "primary" | "secondary" | "rail";
   readonly assignRegisterAnchor?: boolean;
   readonly tourSignInUrl?: string | null;
+  readonly embeddedRegistrationUrl?: string | null;
+  readonly embeddedTourSignInUrl?: string | null;
 };
 
-export async function CatalogTourDetailRegisterCta({
+export function CatalogTourDetailRegisterCta({
   registration,
   variant,
   assignRegisterAnchor = false,
   tourSignInUrl = null,
+  embeddedRegistrationUrl = null,
+  embeddedTourSignInUrl = null,
 }: CatalogTourDetailRegisterCtaProps) {
-  const t = await getTranslations("catalog");
+  const t = useTranslations("catalog");
 
   if (registration.isSoldOut) {
     return (
@@ -30,15 +35,34 @@ export async function CatalogTourDetailRegisterCta({
   }
 
   const registerLabel = t("detail.register");
+
   const signInLink =
     tourSignInUrl != null && tourSignInUrl.trim().length > 0 ? (
-      <a href={tourSignInUrl} data-marketing-tour-sign-in>
+      <a
+        href={tourSignInUrl}
+        data-marketing-tour-sign-in
+        {...(embeddedTourSignInUrl != null && embeddedTourSignInUrl.trim().length > 0
+          ? {
+              "data-marketing-dialog-src": embeddedTourSignInUrl,
+              "data-marketing-dialog-title": t("detail.registrationDialog.signInTitle"),
+            }
+          : {})}
+      >
         {t("detail.signInToRegister")}
       </a>
     ) : null;
 
   const link = (
-    <a href={registration.registrationUrl} data-marketing-register>
+    <a
+      href={registration.registrationUrl}
+      data-marketing-register
+      {...(embeddedRegistrationUrl != null && embeddedRegistrationUrl.trim().length > 0
+        ? {
+            "data-marketing-dialog-src": embeddedRegistrationUrl,
+            "data-marketing-dialog-title": t("detail.registrationDialog.registerTitle"),
+          }
+        : {})}
+    >
       {registerLabel}
     </a>
   );

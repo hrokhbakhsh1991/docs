@@ -102,6 +102,13 @@
     "backToTours": "بازگشت به تورها",
     "register": "ثبت‌نام",
     "signInToRegister": "قبلاً ثبت‌نام کرده‌اید؟ ورود",
+    "registrationDialog": {
+      "defaultTitle": "تکمیل ثبت‌نام تور",
+      "registerTitle": "ثبت‌نام این تور",
+      "signInTitle": "برای ادامه وارد شوید",
+      "loading": "در حال بارگذاری فرایند ثبت‌نام...",
+      "close": "بستن پنجره ثبت‌نام"
+    },
     "capacity": "ظرفیت: {count, number}",
     "spotsRemaining": "{count, number} جای خالی",
     "difficulty": "سطح سختی: {level, number} از {max, number}",

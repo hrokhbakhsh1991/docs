@@ -15,6 +15,7 @@ import {
 import { shouldSkipWizardTemplatePrefill } from "./tour-clone-hydrate-logic";
 import type { TourWizardDraft } from "./tour-wizard-draft";
 import type { WizardTemplateGateState } from "./wizard-template-gate-logic";
+import { resolveWizardTemplateSeedCanonicalPath } from "./wizard-template-prefill-logic";
 
 type DraftSyncLike<TEnvelope> = {
   readonly data: TEnvelope | null;
@@ -83,6 +84,25 @@ type UseWizardCreatePresetPrefillInput<TEnvelope, TForm extends TourWizardDraft>
   readonly onPresetAppliedChange: (applied: boolean) => void;
 };
 
+function resolveReplaceablePresetTitleValues(
+  pluginId: string,
+  gate: WizardTemplateGateState
+): readonly string[] {
+  const values = new Set<string>();
+  const seedLabel = gate.seedLabel.trim();
+  if (seedLabel.length > 0) {
+    values.add(seedLabel);
+  }
+  const titlePath = gate.fieldOverlays.has("title")
+    ? "title"
+    : resolveWizardTemplateSeedCanonicalPath(pluginId);
+  const overlayDefault = gate.fieldOverlays.get(titlePath)?.defaultValue?.trim() ?? "";
+  if (overlayDefault.length > 0) {
+    values.add(overlayDefault);
+  }
+  return [...values];
+}
+
 /** Phase 15.2 P15-W-B1a — URL preset prefill for create wizard. */
 export function useWizardCreatePresetPrefill<TEnvelope, TForm extends TourWizardDraft>(
   input: UseWizardCreatePresetPrefillInput<TEnvelope, TForm>
@@ -124,8 +144,14 @@ export function useWizardCreatePresetPrefill<TEnvelope, TForm extends TourWizard
           return;
         }
         appliedPresetIdRef.current = input.presetId;
+        const replaceableTitleValues = resolveReplaceablePresetTitleValues(
+          input.pluginId,
+          input.gate
+        );
         const applyPreset = (base: TForm) =>
-          applyTourPresetToDraft(base, resolved.preset, resolved.activeThemeIds) as TForm;
+          applyTourPresetToDraft(base, resolved.preset, resolved.activeThemeIds, {
+            replaceableTitleValues,
+          }) as TForm;
         const currentEnvelope = input.draftSyncDataRef.current;
         if (currentEnvelope != null) {
           const envelope = currentEnvelope as unknown as {

@@ -26,7 +26,9 @@ import {
   type DenaliReviewHero,
   type DenaliReviewRow,
   type DenaliReviewSection,
+  mergeDenaliReviewDestinationNames,
 } from "../logic/denali-review-format-logic";
+import { useDenaliDestinationCatalog } from "../hooks/use-destination-catalog";
 import type { DenaliTourPhoto } from "../logic/denali-photo-types";
 import { DENALI_REVIEW_STEP_TEST_IDS } from "../test-ids/denali-review-test-ids";
 
@@ -326,6 +328,7 @@ export function DenaliReviewStep({
 }: DenaliReviewStepProps) {
   const t = useTranslations("denali");
   const locale = useLocale() as AppLocale;
+  const { destinationById } = useDenaliDestinationCatalog();
   const [catalog, setCatalog] = useState<DenaliReviewCatalog>(EMPTY_CATALOG);
   const [loading, setLoading] = useState(true);
 
@@ -368,13 +371,24 @@ export function DenaliReviewStep({
     };
   }, [t, locale]);
 
+  const reviewCatalog = useMemo(
+    () =>
+      mergeDenaliReviewDestinationNames(
+        catalog,
+        new Map(
+          Array.from(destinationById.entries()).map(([id, destination]) => [id, destination.name] as const)
+        )
+      ),
+    [catalog, destinationById]
+  );
+
   const hero = useMemo(
-    () => buildDenaliReviewHero(draft, catalog, labels),
-    [draft, catalog, labels]
+    () => buildDenaliReviewHero(draft, reviewCatalog, labels),
+    [draft, reviewCatalog, labels]
   );
   const sections = useMemo(
-    () => buildDenaliReviewSectionsFromVisibleSteps(draft, contentSteps, catalog, labels),
-    [draft, contentSteps, catalog, labels]
+    () => buildDenaliReviewSectionsFromVisibleSteps(draft, contentSteps, reviewCatalog, labels),
+    [draft, contentSteps, reviewCatalog, labels]
   );
 
   const displayTitle =
@@ -392,7 +406,7 @@ export function DenaliReviewStep({
           <ReviewSectionBlock
             key={section.stepId}
             section={section}
-            equipmentIconKeyById={catalog.equipmentIconKeyById}
+            equipmentIconKeyById={reviewCatalog.equipmentIconKeyById}
             editSectionLabel={t("review.editSection")}
             gearRequiredLabel={t("review.gearRequired")}
             gearOptionalLabel={t("review.gearOptional")}

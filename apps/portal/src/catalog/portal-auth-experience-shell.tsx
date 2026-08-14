@@ -10,6 +10,7 @@ export type PortalAuthExperienceShellProps = {
   readonly heroLede?: string | null;
   readonly sessionBadge?: string | null;
   readonly memberLoginEgress?: boolean;
+  readonly embedded?: boolean;
   readonly pageKind: "login" | "registration";
   readonly workspace: string;
   readonly mainAttributes?: Record<string, string>;
@@ -24,6 +25,7 @@ export function PortalAuthExperienceShell({
   heroLede = null,
   sessionBadge = null,
   memberLoginEgress = false,
+  embedded = false,
   pageKind,
   workspace,
   mainAttributes,
@@ -39,13 +41,15 @@ export function PortalAuthExperienceShell({
         : { "data-catalog-registration-page": "" })}
       {...mainAttributes}
     >
-      <div data-portal-auth-backdrop aria-hidden="true" />
+      {!embedded ? <div data-portal-auth-backdrop aria-hidden="true" /> : null}
       <div data-portal-auth-layout>
-        <PortalRegistrationChrome
-          branding={branding}
-          backHref={backHref}
-          memberLoginEgress={memberLoginEgress}
-        />
+        {!embedded ? (
+          <PortalRegistrationChrome
+            branding={branding}
+            backHref={backHref}
+            memberLoginEgress={memberLoginEgress}
+          />
+        ) : null}
         <section data-portal-auth-card>
           <header data-portal-auth-hero>
             <h1>{heroTitle}</h1>

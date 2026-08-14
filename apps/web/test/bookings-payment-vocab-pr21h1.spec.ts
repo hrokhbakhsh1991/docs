@@ -57,10 +57,17 @@ describe("bookings payment vocabulary PR21-H1", () => {
       resolve(WEB_ROOT, "src/features/bookings/booking-inspection-details.tsx"),
       "utf8"
     );
+    const journey = readFileSync(
+      resolve(WEB_ROOT, "src/features/bookings/booking-journey-summary.tsx"),
+      "utf8"
+    );
     assert.match(inbox, /payment\.\$\{item\.paymentStatus\}/);
     assert.match(inspection, /payment\.\$\{booking\.paymentStatus\}/);
     assert.match(inbox, /paymentBadgeInbox/);
     assert.match(inspection, /paymentBadgeInspection/);
+    assert.match(inbox, /BookingJourneySummary/);
+    assert.match(inspection, /BookingJourneySummary/);
+    assert.match(journey, /resolveBookingJourneyState/);
   });
 
   it("H1 safety: no FinanceService / finance-core in booking badge modules", () => {

@@ -37,6 +37,28 @@ export type DenaliReviewCatalog = {
   readonly equipmentIconKeyById: ReadonlyMap<string, string | null>;
 };
 
+export function mergeDenaliReviewDestinationNames(
+  catalog: DenaliReviewCatalog,
+  destinationNames: ReadonlyMap<string, string>
+): DenaliReviewCatalog {
+  if (destinationNames.size === 0) {
+    return catalog;
+  }
+  const destinationNameById = new Map(catalog.destinationNameById);
+  for (const [id, name] of destinationNames) {
+    const trimmedId = id.trim();
+    const trimmedName = name.trim();
+    if (trimmedId.length === 0 || trimmedName.length === 0) {
+      continue;
+    }
+    destinationNameById.set(trimmedId, trimmedName);
+  }
+  return {
+    ...catalog,
+    destinationNameById,
+  };
+}
+
 export type DenaliReviewRow = {
   readonly canonicalPath?: string;
   readonly label: string;

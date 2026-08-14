@@ -62,6 +62,7 @@ export type DenaliCreateTourDraftSync = {
   readonly data: DenaliCreateTourWizardDraftEnvelope | null;
   readonly status: DraftStatus;
   readonly navLocked: boolean;
+  readonly isOnline: boolean;
   readonly setData: (
     envelope: DenaliCreateTourWizardDraftEnvelope,
     options?: { readonly source?: string }

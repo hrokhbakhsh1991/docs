@@ -44,6 +44,8 @@ export type CatalogTourDetailProps = {
   readonly tour: MarketingCatalogCard;
   readonly registrationUrl: string | null;
   readonly tourSignInUrl?: string | null;
+  readonly embeddedRegistrationUrl?: string | null;
+  readonly embeddedTourSignInUrl?: string | null;
   readonly pluginId: string;
 };
 
@@ -60,6 +62,8 @@ export async function CatalogTourDetail({
   tour,
   registrationUrl,
   tourSignInUrl = null,
+  embeddedRegistrationUrl = null,
+  embeddedTourSignInUrl = null,
   pluginId,
 }: CatalogTourDetailProps) {
   const sections = resolveCatalogDetailSections(pluginId);
@@ -225,6 +229,8 @@ export async function CatalogTourDetail({
             tour={tour}
             registration={registration}
             tourSignInUrl={tourSignInUrl}
+            embeddedRegistrationUrl={embeddedRegistrationUrl}
+            embeddedTourSignInUrl={embeddedTourSignInUrl}
           />
         </div>
 
@@ -232,6 +238,8 @@ export async function CatalogTourDetail({
           tour={tour}
           registration={registration}
           tourSignInUrl={tourSignInUrl}
+          embeddedRegistrationUrl={embeddedRegistrationUrl}
+          embeddedTourSignInUrl={embeddedTourSignInUrl}
         />
 
         {detailJsonLdGraph != null ? (

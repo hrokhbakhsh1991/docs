@@ -11,6 +11,7 @@ import {
   bookingStatusBadgeVariant,
 } from "@/features/bookings/bookings-badge-variants";
 import { BookingDepartureUrgencyBadge } from "@/features/bookings/booking-overdue-badge";
+import { BookingJourneySummary } from "@/features/bookings/booking-journey-summary";
 import {
   formatBookingDateTime,
   formatBookingDeparture,
@@ -107,6 +108,11 @@ export function BookingInboxRow({
                 ? ` · ${t("pendingAgeDays", { days: pendingAgeDays })}`
                 : ""}
             </p>
+            <BookingJourneySummary
+              status={item.status}
+              paymentStatus={item.paymentStatus}
+              compact
+            />
           </div>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
             <BookingDepartureUrgencyBadge item={item} />
