@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type {
   CaseCommandCapabilityContract,
   CaseEncounterHostLifecycleEvent,
-} from "@app-tour/finance-case-encounter-ui";
+} from "@/finance/finance-case-encounter-ui";
 
 import { OperatorCaseEncounterPanel } from "@/finance/denali-case-encounter-panel";
 import {

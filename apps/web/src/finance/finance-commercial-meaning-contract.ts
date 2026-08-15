@@ -7,7 +7,7 @@ import type {
   CaseCommandCapabilityContract,
   CaseEncounterViewContract,
   EncounterSurfaceStateContract,
-} from "@app-tour/finance-case-encounter-ui";
+} from "@/finance/finance-case-encounter-ui";
 
 import { withFinanceRegistrationQuery } from "@/finance/finance-registration-context";
 
