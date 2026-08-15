@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import { OPERATOR_SMOKE_PUBLISHED_TOUR_ID } from "./tests/e2e/fixtures/smoke-published-tour";
+
 /**
  * Marketing SEO smoke — SMK-MKT-06..09
  * @see docs/dev/guest-seo-e2e-hooks.yaml
@@ -7,6 +9,12 @@ import { defineConfig, devices } from "@playwright/test";
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 const marketingSmokeBaseUrl =
   process.env.SMOKE_MARKETING_BASE_URL ?? "http://operator.localhost:3002";
+
+// SEO matrix seeds operator tenant …014 + tour …0210. Do not inherit the
+// denali-default tour id (…0220) from resolveSmokePublishedTourId().
+if (!process.env.SMOKE_PUBLISHED_TOUR_ID?.trim()) {
+  process.env.SMOKE_PUBLISHED_TOUR_ID = OPERATOR_SMOKE_PUBLISHED_TOUR_ID;
+}
 
 function stagingLaunchOptions(): { args: string[] } | undefined {
   const vpsIp = process.env.VPS_IP?.trim();
