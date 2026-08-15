@@ -13,10 +13,13 @@ import { clearPreTransactionValidationGate } from "../src/canonical/pre-transact
 import { resetValidationSchedulerForTests } from "../src/canonical/validation-scheduler";
 import { disconnectPrisma } from "../src/db/prisma";
 import { resetBookingsRepositorySingletonForTests } from "../src/bookings/create-bookings-repository";
+import { resetLazyFinanceServiceForTests } from "../src/boot/lazy-finance-service";
 import { resetIdentityRepositorySingletonForTests } from "../src/identity/create-identity-repository";
 import { resetSettingsResourcesRepositorySingletonForTests } from "../src/settings/create-settings-resources-repository";
+import { resetFinanceScheduleStoreForTests } from "../src/workspace-finance/finance-schedule-store";
 import { resetTenantRouteLookupCacheForTests } from "../src/tenant/tenant-route-lookup";
 import { resetTenantRegistryCacheForTests } from "../src/tenant/tenant-registry-cache";
+import { createTourStorageRepository } from "../src/storage/create-tour-storage";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { ToursService } from "../src/tours/tours.service";
 import {
@@ -64,6 +67,27 @@ export function createTestToursService(
 }
 
 /**
+ * Shared memory tour store for HTTP + finance obligation (same singleton as
+ * `createFinanceObligationPort` → `createTourStorageRepository()`).
+ * Private `new InMemoryTourRepository()` leaves finance unable to resolve tour
+ * pricing → invoice balance 0 → member receipt POST 400.
+ */
+export function createSharedMemoryTourStoreForHttpTests(options?: {
+  readonly seedOperatorSmoke?: boolean;
+}): InMemoryTourRepository {
+  const store = createTourStorageRepository();
+  if (!(store instanceof InMemoryTourRepository)) {
+    throw new Error(
+      "createSharedMemoryTourStoreForHttpTests requires STORAGE_DRIVER=memory"
+    );
+  }
+  if (options?.seedOperatorSmoke !== false) {
+    store.ensureOperatorSmokeSeedTour();
+  }
+  return store;
+}
+
+/**
  * HTTP specs using {@link createTestToursService} with in-memory storage must pin
  * `STORAGE_DRIVER=memory` even when the outer gate exports `STORAGE_DRIVER=prisma`.
  */
@@ -86,6 +110,8 @@ export function installMemoryStorageDriverForDescribe(): void {
     resetBookingsRepositorySingletonForTests();
     resetIdentityRepositorySingletonForTests();
     resetSettingsResourcesRepositorySingletonForTests();
+    resetLazyFinanceServiceForTests();
+    resetFinanceScheduleStoreForTests();
   });
   after(() => {
     if (prior === undefined) {
@@ -125,6 +151,8 @@ export function installMemoryStorageDriverForDescribe(): void {
     }
     resetBookingsRepositorySingletonForTests();
     resetIdentityRepositorySingletonForTests();
+    resetLazyFinanceServiceForTests();
+    resetFinanceScheduleStoreForTests();
   });
 }
 

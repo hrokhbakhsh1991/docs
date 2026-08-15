@@ -1,5 +1,5 @@
 /**
- * Host adapter — Prisma/RLS finance schedule store.
+ * Host adapter — finance schedule store (Prisma/RLS when prisma; in-memory when memory).
  */
 
 import {

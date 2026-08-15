@@ -1,6 +1,7 @@
 import type { FinanceSchedule } from "@prisma/client";
 
 import { withTenantRls } from "../db/with-tenant-rls";
+import { resolveStorageDriver } from "../storage/production-storage-driver-assert";
 import type { PaymentScheduleItem } from "./finance-schedule-domain";
 
 export type {
@@ -20,12 +21,23 @@ const INSTALLMENT_STATUSES = new Set<string>([
   "waived",
 ]);
 
+/** In-memory schedules when STORAGE_DRIVER=memory (P6 / unit HTTP gates). */
+const memorySchedulesByRegistration = new Map<string, PaymentScheduleItem[]>();
+
+function memoryKey(tenantId: string, registrationId: string): string {
+  return `${tenantId.trim()}\0${registrationId.trim()}`;
+}
+
+function useMemoryScheduleStore(): boolean {
+  return resolveStorageDriver() === "memory";
+}
+
 /**
- * Schedules are durable in PostgreSQL. Kept for test API compatibility;
- * tenant cleanup (CASCADE) is the real isolation boundary.
+ * Clears in-memory schedule rows for memory-driver tests.
+ * Prisma path relies on tenant CASCADE / truncate between suites.
  */
 export function resetFinanceScheduleStoreForTests(): void {
-  // no-op — FinanceSchedule rows live in Postgres under RLS
+  memorySchedulesByRegistration.clear();
 }
 
 function toPaymentScheduleItem(row: FinanceSchedule): PaymentScheduleItem {
@@ -48,6 +60,20 @@ function toPaymentScheduleItem(row: FinanceSchedule): PaymentScheduleItem {
 
 export async function listAllSchedules(tenantId: string): Promise<PaymentScheduleItem[]> {
   const normalizedTenantId = tenantId.trim();
+  if (useMemoryScheduleStore()) {
+    const prefix = `${normalizedTenantId}\0`;
+    const items: PaymentScheduleItem[] = [];
+    for (const [key, rows] of memorySchedulesByRegistration.entries()) {
+      if (key.startsWith(prefix)) {
+        items.push(...rows);
+      }
+    }
+    return items.sort((a, b) =>
+      a.registrationId === b.registrationId
+        ? a.sequence - b.sequence
+        : a.registrationId.localeCompare(b.registrationId)
+    );
+  }
   const rows = await withTenantRls(normalizedTenantId, (tx) =>
     tx.financeSchedule.findMany({
       where: { tenantId: normalizedTenantId },
@@ -63,6 +89,9 @@ export async function getSchedule(
 ): Promise<PaymentScheduleItem[]> {
   const normalizedTenantId = tenantId.trim();
   const normalizedRegistrationId = registrationId.trim();
+  if (useMemoryScheduleStore()) {
+    return memorySchedulesByRegistration.get(memoryKey(normalizedTenantId, normalizedRegistrationId)) ?? [];
+  }
   const rows = await withTenantRls(normalizedTenantId, (tx) =>
     tx.financeSchedule.findMany({
       where: {
@@ -83,6 +112,14 @@ export async function putSchedule(
   const normalizedTenantId = tenantId.trim();
   const normalizedRegistrationId = registrationId.trim();
   const snapshot = items.map((item) => ({ ...item, registrationId: normalizedRegistrationId }));
+
+  if (useMemoryScheduleStore()) {
+    memorySchedulesByRegistration.set(
+      memoryKey(normalizedTenantId, normalizedRegistrationId),
+      snapshot.map((item) => ({ ...item }))
+    );
+    return snapshot;
+  }
 
   await withTenantRls(normalizedTenantId, async (tx) => {
     await tx.financeSchedule.deleteMany({

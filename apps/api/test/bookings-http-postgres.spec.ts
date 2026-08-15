@@ -613,6 +613,7 @@ describe(
         method: "POST",
         path: `/bookings/${id}/approve`,
         tenantId: tenantA,
+        userId: operatorA,
       });
       assert.equal(approved.status, 200, JSON.stringify(approved.body));
 

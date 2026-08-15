@@ -87,6 +87,7 @@ Forbidden response fields: FactSnapshot, CaseOutput, providers, SoT DTOs, gatewa
 - Package: `@app-tour/finance-case-encounter-ui`
 - Route: `/finance/case/[registrationId]` (operator session + finance module gate)
 - Labels: Denali product terminology + attention class map only
+- Admin Next: listed in `ADMIN_PLATFORM_TRANSPILE_PACKAGES` (`apps/web` `transpilePackages`) so CI production `next build` resolves the workspace client import; `scripts/ci/build-api-workspace-deps.sh` builds package `dist` before smoke/web.
 
 ---
 

@@ -10,15 +10,17 @@ import { getIdentityRepository } from "../src/identity/create-identity-repositor
 import { installHttpTestClient } from "./http-test-client";
 import { OPERATOR_SMOKE } from "./fixtures/operator-smoke-e2e-tenant";
 import { operatorAuthHeaders, seedOperatorIdentityFixture } from "./fixtures/operator-identity-fixture";
-import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
-import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
+import {
+  createSharedMemoryTourStoreForHttpTests,
+  createTestToursService,
+  installMemoryStorageDriverForDescribe,
+} from "./test-helpers";
 
 installMemoryStorageDriverForDescribe();
 
 describe("p6-member-receipt-flow", () => {
   const client = installHttpTestClient(() => {
-    const repo = new InMemoryTourRepository();
-    repo.ensureOperatorSmokeSeedTour();
+    const repo = createSharedMemoryTourStoreForHttpTests();
     return createRequestListener({ toursService: createTestToursService(repo), tourStore: repo });
   });
 
