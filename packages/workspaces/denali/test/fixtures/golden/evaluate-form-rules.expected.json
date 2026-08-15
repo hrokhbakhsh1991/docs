@@ -418,6 +418,22 @@
         "staticRequired": false
       },
       {
+        "canonicalPath": "pricing.prepaymentEnabled",
+        "formPath": "pricingPayment.prepaymentEnabled",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "pricing.prepaymentPercent",
+        "formPath": "pricingPayment.prepaymentPercent",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
         "canonicalPath": "pricing.requiresPayment",
         "formPath": "pricingPayment.requiresPayment",
         "visible": true,
@@ -880,6 +896,22 @@
         "staticRequired": false
       },
       {
+        "canonicalPath": "pricing.prepaymentEnabled",
+        "formPath": "pricingPayment.prepaymentEnabled",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "pricing.prepaymentPercent",
+        "formPath": "pricingPayment.prepaymentPercent",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
         "canonicalPath": "pricing.requiresPayment",
         "formPath": "pricingPayment.requiresPayment",
         "visible": true,
@@ -1337,6 +1369,22 @@
         "canonicalPath": "pricing.includesTourInsurance",
         "formPath": "pricingPayment.includesTourInsurance",
         "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "pricing.prepaymentEnabled",
+        "formPath": "pricingPayment.prepaymentEnabled",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "pricing.prepaymentPercent",
+        "formPath": "pricingPayment.prepaymentPercent",
+        "visible": false,
         "required": false,
         "staticHidden": false,
         "staticRequired": false

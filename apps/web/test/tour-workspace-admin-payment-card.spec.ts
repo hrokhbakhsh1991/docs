@@ -14,7 +14,7 @@ describe("tour-workspace-admin-payment-card.spec.ts", () => {
   it("keeps workspace payment orchestration inside the tours feature", () => {
     assert.match(source, /fetchRegistrationInvoice/);
     assert.match(source, /fetchTourDetailCached/);
-    assert.match(source, /resolveDenaliSuggestedPrepaymentMinor/);
+    assert.match(source, /resolveTourSuggestedPrepaymentMinor/);
     assert.match(source, /resolveSuggestedPaymentAmountMinor/);
     assert.match(source, /validateRecordPrepaymentForm/);
     assert.doesNotMatch(source, /FinanceService|finance-core|runReviewReceiptCommandBridge/);

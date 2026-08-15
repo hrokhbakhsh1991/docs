@@ -12,7 +12,7 @@ import {
   type RegistrationFlowStepProps,
 } from "@app-tour/workspace-sdk";
 import { useTranslations } from "next-intl";
-import { useId, useMemo, useState, type FormEvent, type JSX } from "react";
+import { useEffect, useId, useMemo, useState, type FormEvent, type JSX } from "react";
 
 import { readUrbanFlowData, urbanCatalogRegistrationFlowSurface } from "./urban-registration-flow.surface";
 
@@ -40,6 +40,12 @@ export function UrbanIntakeStep({
   const errorId = useId();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Gate automation until client handlers are attached — SSR submit is a GET with
+  // query-string field names and never hits /api/catalog/registrations.
+  const [clientReady, setClientReady] = useState(false);
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
 
   const intakeContext = useMemo(
     () => ({
@@ -64,8 +70,8 @@ export function UrbanIntakeStep({
     [data]
   );
 
-  async function handleSubmit(event: FormEvent): Promise<void> {
-    event.preventDefault();
+  async function handleSubmit(event?: FormEvent): Promise<void> {
+    event?.preventDefault();
     const merged = resolveIntakeSubmitValues({
       pluginId: context.pluginId,
       context: intakeContext,
@@ -122,7 +128,13 @@ export function UrbanIntakeStep({
   }
 
   return (
-    <form onSubmit={handleSubmit} data-public-registration-intake data-tour-id={context.tourId}>
+    <form
+      noValidate
+      onSubmit={handleSubmit}
+      data-public-registration-intake
+      data-registration-ready={clientReady ? "" : undefined}
+      data-tour-id={context.tourId}
+    >
       <h2>{t("intake.title")}</h2>
       <RenderIntakeForm
         schema={effectiveSchema}
@@ -137,7 +149,12 @@ export function UrbanIntakeStep({
           {error}
         </p>
       ) : null}
-      <button type="submit" disabled={loading} data-action="intake-submit">
+      <button
+        type="button"
+        disabled={loading || !clientReady}
+        data-action="intake-submit"
+        onClick={() => void handleSubmit()}
+      >
         {loading ? t("intake.submitting") : t("intake.submit")}
       </button>
     </form>

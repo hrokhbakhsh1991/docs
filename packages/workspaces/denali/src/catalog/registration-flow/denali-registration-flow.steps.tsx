@@ -17,7 +17,7 @@ import {
 } from "@app-tour/workspace-sdk";
 import { classifyPublicRegistrationMobileInput } from "@app-tour/catalog-registration-auth";
 import { useTranslations } from "next-intl";
-import { useId, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useState, type FormEvent } from "react";
 
 import { denaliCatalogTransportIntakeSurface } from "../denali-catalog-transport-intake";
 import { denaliCatalogRegistrationFlowSurface, readDenaliFlowData } from "./denali-registration-flow.surface";
@@ -55,6 +55,12 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
   const errorId = useId();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Gate automation until client handlers are attached — SSR submit is a GET with
+  // query-string field names and never hits /api/catalog/registrations.
+  const [clientReady, setClientReady] = useState(false);
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
   const [submitResults, setSubmitResults] = useState<
     readonly {
       readonly target: "self" | "other";
@@ -296,8 +302,8 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
     );
   }
 
-  async function handleSubmit(event: FormEvent): Promise<void> {
-    event.preventDefault();
+  async function handleSubmit(event?: FormEvent): Promise<void> {
+    event?.preventDefault();
     if (!selfSelected && otherGuests.length === 0) return;
 
     setLoading(true);
@@ -479,7 +485,13 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
   }
 
   return (
-    <form onSubmit={handleSubmit} data-public-registration-intake data-tour-id={context.tourId}>
+    <form
+      noValidate
+      onSubmit={handleSubmit}
+      data-public-registration-intake
+      data-registration-ready={clientReady ? "" : undefined}
+      data-tour-id={context.tourId}
+    >
       <header data-denali-intake-header>
         <p data-denali-intake-stage-eyebrow>{t("intake.stageEyebrow")}</p>
         <h2>{t("intake.title")}</h2>
@@ -1047,9 +1059,12 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
         <div data-denali-intake-submit-actions>
           <p data-denali-intake-submit-state>{t("intake.summaryReady")}</p>
           <button
-            type="submit"
-            disabled={loading || (!selfSelected && otherGuests.length === 0)}
+            type="button"
+            disabled={
+              loading || !clientReady || (!selfSelected && otherGuests.length === 0)
+            }
             data-action="intake-submit"
+            onClick={() => void handleSubmit()}
           >
             {loading ? t("intake.submitting") : t("intake.submit")}
           </button>

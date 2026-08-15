@@ -47,6 +47,15 @@ Golden manifest profiles live at `scripts/test/fixtures/workspace-guest-seo.gold
 | SMK-MKT-09 | `marketing-seo-hreflang.spec.ts` | `/en/tours` reciprocal hreflang |
 | SMK-MKT-10 | `marketing-seo-pagination.spec.ts` | `?cursor` → `noindex, follow` |
 | SMK-MKT-11 | `marketing-seo-jsonld.spec.ts` | Denali JSON-LD `offers` + `image` |
+
+### Smoke cover image (SMK-MKT-06 / 11)
+
+Denali catalog egress only projects **https** photo URLs into `coverImageUrl` / TouristTrip `image`
+(`readDenaliFirstPhotoHttpsUrl` / `isDenaliHttpsImageUrl`). Operator + Denali club smoke seeds must
+therefore use an `https://…` cover (see `OPERATOR_SMOKE_PUBLISHED_TOUR_COVER_URL`), not a `data:`
+SVG — otherwise SMK-MKT-06/11 fail with `typeof image === "undefined"` even when the detail page
+renders. SEO smoke (`playwright.marketing-seo.config.ts`) pins tour id `…0210` on
+`operator.localhost` so the matrix seed and JSON-LD assertions stay aligned.
 | SMK-MKT-12 | `marketing-urban-catalog-smoke.spec.ts` | Urban Event v2 JSON-LD |
 | SMK-MKT-13 | `marketing-guest-club-seo.spec.ts` | Guest-club Event stub JSON-LD |
 | SMK-MKT-14 | `marketing-seo-unpublish.spec.ts` | Draft tour → 404 + sitemap omit |

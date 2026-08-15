@@ -42,10 +42,16 @@ describe("Wave H.n — operator admin DOM attrs", () => {
     }
   });
 
-  it("H.n-02 denali theme CSS has zero data-denali- selectors", () => {
+  it("H.n-02 denali operator theme CSS has zero data-denali- selectors", () => {
+    // Guest/portal skins (`theme/portal/**`) own `data-denali-*` intake hooks.
+    // This gate is operator-admin only.
     for (const abs of listFiles(DENALI_THEME, /\.css$/)) {
+      const rel = abs.slice(REPO_ROOT.length + 1).replace(/\\/g, "/");
+      if (rel.includes("/theme/portal/")) {
+        continue;
+      }
       const css = readFileSync(abs, "utf8");
-      assert.doesNotMatch(css, forbiddenRe, `forbidden in ${abs.slice(REPO_ROOT.length + 1)}`);
+      assert.doesNotMatch(css, forbiddenRe, `forbidden in ${rel}`);
     }
   });
 

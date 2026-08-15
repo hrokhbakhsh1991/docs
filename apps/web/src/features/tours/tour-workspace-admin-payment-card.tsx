@@ -2,8 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { resolveDenaliSuggestedPrepaymentMinor } from "@app-tour/workspace-denali/host/bookings";
-
 import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +22,7 @@ import {
   formatMinorAmount,
   validateRecordPrepaymentForm,
 } from "@/finance/finance-prepayments-logic";
+import { resolveTourSuggestedPrepaymentMinor } from "@/features/tours/resolve-tour-suggested-prepayment-minor";
 import { fetchTourDetailCached, readCachedTourDetail } from "@/features/tours/tour-route-cache";
 import type { TourWorkspacePaymentActionEvent } from "@/features/tours/tour-workspace-finance-logic";
 import type { AppLocale } from "@/i18n/routing";
@@ -156,7 +155,7 @@ export function TourWorkspaceAdminPaymentCard({
     amountPrefilledRef.current = normalizedRegistrationId;
     const suggested =
       tourCanonicalData !== null
-        ? resolveDenaliSuggestedPrepaymentMinor({
+        ? resolveTourSuggestedPrepaymentMinor({
             tourCanonicalData,
             invoiceTotalMinor: invoice.invoiceTotalMinor,
             balanceDueMinor: invoice.balanceDueMinor,
@@ -233,7 +232,7 @@ export function TourWorkspaceAdminPaymentCard({
     invoice !== null
       ? formatMinorAmount(
           tourCanonicalData !== null
-            ? resolveDenaliSuggestedPrepaymentMinor({
+            ? resolveTourSuggestedPrepaymentMinor({
                 tourCanonicalData,
                 invoiceTotalMinor: invoice.invoiceTotalMinor,
                 balanceDueMinor: invoice.balanceDueMinor,
