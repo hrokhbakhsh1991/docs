@@ -87,7 +87,7 @@ Forbidden response fields: FactSnapshot, CaseOutput, providers, SoT DTOs, gatewa
 - Package: `@app-tour/finance-case-encounter-ui`
 - Route: `/finance/case/[registrationId]` (operator session + finance module gate)
 - Labels: Denali product terminology + attention class map only
-- Admin Next: apps/web imports via `@/finance/finance-case-encounter-ui` (relative re-export of package `src`) because CI `next build` could not resolve the workspace package name through node_modules/exports even with transpilePackages + webpack alias. Package remains a workspace dep for types/tests outside Next.
+- Admin Next: apps/web imports via `@/finance/finance-case-encounter-ui` (relative re-export). Root cause of Phase 6.6 `Module not found` was a typo (`@app-cloud/...` vs package `@app-tour/...`) in Denali encounter panels — not pnpm linking.
 
 ---
 
