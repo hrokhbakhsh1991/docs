@@ -9,7 +9,7 @@ import {
   type CaseEncounterHostLifecycleEvent,
   type CaseEncounterPresentationEnvelope,
   type CaseEncounterViewContract,
-} from "@app-cloud/finance-case-encounter-ui";
+} from "@/finance/finance-case-encounter-ui";
 
 import { buildCaseEncounterLabels } from "@/finance/denali-case-encounter-labels";
 import { FINANCE_COMMERCIAL_MEANING_DEFAULT_TIMEOUT_MS } from "@/finance/finance-commercial-meaning-contract";
