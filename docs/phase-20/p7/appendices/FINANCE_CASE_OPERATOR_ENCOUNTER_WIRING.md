@@ -87,7 +87,7 @@ Forbidden response fields: FactSnapshot, CaseOutput, providers, SoT DTOs, gatewa
 - Package: `@app-tour/finance-case-encounter-ui`
 - Route: `/finance/case/[registrationId]` (operator session + finance module gate)
 - Labels: Denali product terminology + attention class map only
-- Admin Next: listed in `ADMIN_PLATFORM_TRANSPILE_PACKAGES` (`apps/web` `transpilePackages`) and pinned via webpack `resolve.alias` to `packages/finance-case-encounter-ui/src/index.ts` so CI production `next build` cannot miss package-exports resolve; `scripts/ci/build-api-workspace-deps.sh` also builds package `dist`.
+- Admin Next: listed in `ADMIN_PLATFORM_TRANSPILE_PACKAGES`, `apps/web/tsconfig.json` paths, and `NormalModuleReplacementPlugin` → `packages/finance-case-encounter-ui/src/index.ts` (CI `next build` was failing package-exports resolve even after `tsc` dist). `scripts/ci/build-api-workspace-deps.sh` still builds package `dist` for non-Next consumers.
 
 ---
 

@@ -44,12 +44,24 @@ const nextConfig: NextConfig = {
       __dirname,
       "../../packages/finance-case-encounter-ui/src/index.ts"
     );
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      // CI Next production build intermittently fails package-exports resolve for this
-      // workspace UI package; pin to source (also listed in ADMIN_TRANSPILE_PACKAGES).
-      "@app-tour/finance-case-encounter-ui": encounterUiRoot,
-    };
+    // Prefer replacement plugin — alias may already be a webpack5 array on CI.
+    config.plugins.push(
+      new webpack.NormalModuleReplacementPlugin(
+        /^@app-tour\/finance-case-encounter-ui$/,
+        encounterUiRoot
+      )
+    );
+    if (Array.isArray(config.resolve.alias)) {
+      config.resolve.alias.push({
+        name: "@app-tour/finance-case-encounter-ui",
+        alias: encounterUiRoot,
+      });
+    } else {
+      config.resolve.alias = {
+        ...(config.resolve.alias ?? {}),
+        "@app-tour/finance-case-encounter-ui": encounterUiRoot,
+      };
+    }
     if (!isServer) {
       // Client never bundles Node minio SDK.
       config.plugins.push(
