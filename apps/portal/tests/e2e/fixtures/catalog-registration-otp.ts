@@ -113,7 +113,7 @@ export async function completeCatalogRegistrationIntake(
     await page.locator('[data-action="profile-continue"]').click({ noWaitAfter: true });
   }
 
-  await page.locator("[data-public-registration-intake]").waitFor({
+  await page.locator("[data-public-registration-intake][data-registration-ready]").waitFor({
     state: "visible",
     timeout: 120_000,
   });

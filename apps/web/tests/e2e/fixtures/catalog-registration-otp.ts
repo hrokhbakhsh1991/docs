@@ -91,7 +91,9 @@ export async function completeCatalogRegistrationIntake(
     await page.locator('[data-action="profile-continue"]').click({ noWaitAfter: true });
   }
 
-  const intakeRoot = page.locator("[data-public-registration-intake]");
+  const intakeRoot = page.locator(
+    "[data-public-registration-intake][data-registration-ready]"
+  );
   await intakeRoot.waitFor({ state: "visible", timeout: 120_000 });
 
   // Urban requires these three; Denali may hide some when session already has them.
