@@ -24,9 +24,9 @@ export const OPERATOR_SMOKE_PARTICIPANT_TOUR_ID = "00000000-0000-4000-8000-00000
 
 export const OPERATOR_SMOKE_PUBLISHED_TOUR_TITLE = "North Ridge Trek" as const;
 
-/** Deterministic local SVG — avoids DNS failures from placeholder CDN hosts in operator UI. */
+/** Deterministic HTTPS cover — JSON-LD / catalog egress only emit https image URLs (not data:). */
 export const OPERATOR_SMOKE_PUBLISHED_TOUR_COVER_URL =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='500'%3E%3Crect fill='%232a4a3a' width='100%25' height='100%25'/%3E%3Ctext x='50%25' y='50%25' fill='%23e8f0ea' font-family='sans-serif' font-size='28' text-anchor='middle' dominant-baseline='middle'%3ESmoke tour%3C/text%3E%3C/svg%3E" as const;
+  "https://cdn.example/operator-smoke-cover.jpg" as const;
 
 export const OPERATOR_SMOKE_PARTICIPANT_TOUR_TITLE = "Alpine Identity Check" as const;
 
