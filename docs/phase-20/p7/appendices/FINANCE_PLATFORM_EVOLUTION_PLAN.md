@@ -42,6 +42,7 @@ Verified in `apps/api/src/workspace-finance/` + Prisma + P7 proofs:
 | **Phase 3A** prepayment TX + stable IDs | `recordPrepaymentAtomic`; `prepayment:{registrationId}:{keyHash}` / `:ledger`; proofs in `finance-prepayments.spec.ts` |
 | Installment schedules | `FinanceSchedule` + `finance-schedule-store.ts` — **Postgres when `STORAGE_DRIVER=prisma`**; **in-memory map when `STORAGE_DRIVER=memory`** so P6/member-receipt HTTP memory gates do not require `DATABASE_URL` (compile invoice → `getSchedule` must not call Prisma under memory). |
 | Memory HTTP + obligation | P6 receipt gates must wire `createTourStorageRepository()` (via `createSharedMemoryTourStoreForHttpTests`) as `tourStore` — finance obligation uses the same singleton; a private `new InMemoryTourRepository()` yields null tour pricing → `balanceDueMinor=0` → receipt POST 400. |
+| Postgres booking HTTP RC1 | Seed `Tour` row with Denali `pricing.basePricePerPerson` for the cert `tourId` — same debt gate applies under Prisma when tour SoT is missing. |
 | Invoice read model | `compile-invoice-balances.ts` + `load-registration-invoice-facts.ts` |
 | Outbox + relay | `enqueueFinanceLedgerCaptureOutbox` / tx-scoped writer; `outbox_events`; relay publish |
 | Tenant RLS | `withTenantRls` on finance mutations |

@@ -173,6 +173,31 @@ describe(
         ],
       });
 
+      // RC1 receipts need tour SoT pricing — finance obligation resolves via Tour.canonical.
+      // Missing tour → balanceDueMinor 0 → manual receipt debt gate 400.
+      await admin.tour.create({
+        data: {
+          id: tourId,
+          tenantId: tenantA,
+          title: "HTTP Postgres Cert Tour",
+          publishStatus: "published",
+          canonical: {
+            schemaVersion: 1,
+            roots: ["pricing"],
+            data: {
+              title: "HTTP Postgres Cert Tour",
+              publishStatus: "published",
+              capacityMax: 20,
+              pricing: {
+                basePricePerPerson: 2_500_000,
+                paymentMode: "offline_receipt",
+                paymentCollection: "offline",
+              },
+            },
+          },
+        },
+      });
+
       const repo = getBookingsRepository();
       assert.ok(
         repo instanceof PrismaBookingsRepository,
@@ -193,6 +218,7 @@ describe(
           await admin.outboxEvent.deleteMany({ where: { tenantId } });
           await admin.operatorRegistration.deleteMany({ where: { tenantId } });
         }
+        await admin.tour.deleteMany({ where: { id: tourId } });
         await admin.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
       } finally {
         await admin.$disconnect();
