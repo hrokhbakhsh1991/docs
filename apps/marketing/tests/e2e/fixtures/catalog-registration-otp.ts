@@ -43,7 +43,14 @@ export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
   const otpStep = page.locator("[data-public-registration-otp]");
   await otpStep.waitFor({ state: "visible", timeout: 60_000 });
   const digits = code.replace(/\D/g, "");
-  // OtpSegmentInput hides #otp behind pointer-events-none; type into visible cells.
+  // OtpSegmentInput auto-submits via onComplete — do not click verify (button stays
+  // disabled as "Verifying…" and Playwright will hang on click).
+  const responsePromise = page.waitForResponse(
+    (res) =>
+      res.request().method() === "POST" &&
+      res.url().includes("/api/public-auth/verify-otp"),
+    { timeout: 90_000 }
+  );
   const firstCell = otpStep.locator('[data-otp-cell="0"]');
   if ((await firstCell.count()) > 0) {
     await firstCell.click();
@@ -53,17 +60,6 @@ export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
     await input.click({ force: true });
     await input.fill("");
     await input.pressSequentially(digits, { delay: 15 });
-  }
-
-  const verifyButton = page.locator('[data-action="verify-otp"]');
-  const responsePromise = page.waitForResponse(
-    (res) =>
-      res.request().method() === "POST" &&
-      res.url().includes("/api/public-auth/verify-otp"),
-    { timeout: 90_000 }
-  );
-  if (await verifyButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await verifyButton.click();
   }
   const response = await responsePromise;
   const body = await response.text();

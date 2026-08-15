@@ -56,7 +56,29 @@ describe("manual-payment-debt-policy (PR20-D)", () => {
     );
   });
 
-  it("rejects when remaining 0 without Paid", () => {
+  it("rejects when remaining 0 without Paid and invoice total known", () => {
+    assert.throws(
+      () =>
+        assertManualPaymentDebtAllowed({
+          statuses: [],
+          balanceDueMinor: "0",
+          invoiceTotalMinor: "2500000",
+        }),
+      /no remaining balance/
+    );
+  });
+
+  it("allows bootstrap first debt when remaining and invoice total are both 0", () => {
+    assert.doesNotThrow(() =>
+      assertManualPaymentDebtAllowed({
+        statuses: [],
+        balanceDueMinor: "0",
+        invoiceTotalMinor: "0",
+      })
+    );
+  });
+
+  it("rejects when remaining 0 without Paid (legacy callers omit invoice total)", () => {
     assert.throws(
       () =>
         assertManualPaymentDebtAllowed({

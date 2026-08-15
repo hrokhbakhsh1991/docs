@@ -43,11 +43,6 @@ test("SMK-P8-02 public registration intake (OTP + tour intake)", async ({ page }
 
   await fillCatalogOtp(page, CATALOG_DEV_OTP);
 
-  const verifyBtn = page.locator('[data-action="verify-otp"]');
-  if (await verifyBtn.isEnabled({ timeout: 3_000 }).catch(() => false)) {
-    await verifyBtn.click();
-  }
-
   await expect(
     page.locator("[data-public-registration-profile], [data-public-registration-intake]")
   ).toBeVisible({ timeout: 60_000 });

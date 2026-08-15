@@ -626,6 +626,7 @@ export class FinanceService {
     assertManualPaymentDebtAllowed({
       statuses,
       balanceDueMinor: invoice.balanceDueMinor,
+      invoiceTotalMinor: invoice.invoiceTotalMinor,
     });
     const obligation = await this.obligation.resolveRegistrationObligation({
       tenantId: auth.tenantId,
@@ -639,6 +640,15 @@ export class FinanceService {
           toleranceMinor: this.obligationToleranceMinor,
         })
       ) {
+        this.logger.warn({
+          event: "finance.obligation.manual_amount_override",
+          tenantId: auth.tenantId,
+          registrationId: body.registrationId,
+          amountMinor: body.amount,
+          obligationMinor: obligation.obligationMinor,
+          toleranceMinor: this.obligationToleranceMinor,
+          source: obligation.source,
+        });
         throw new Error("FINANCE_OBLIGATION_OVERPAY");
       }
     }
@@ -830,6 +840,7 @@ export class FinanceService {
       assertManualPaymentDebtAllowed({
         statuses,
         balanceDueMinor: invoice.balanceDueMinor,
+        invoiceTotalMinor: invoice.invoiceTotalMinor,
       });
       const obligation = await this.obligation.resolveRegistrationObligation({
         tenantId: auth.tenantId,
