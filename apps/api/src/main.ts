@@ -95,6 +95,7 @@ async function bootstrap(): Promise<void> {
   assertProductionRuntimeIntegrity();
 
   const port = Number(process.env.PORT ?? 3001);
+  const host = process.env.HOST?.trim() || "0.0.0.0";
   const productionBoot = isProductionAuthMode();
 
   if (productionBoot) {
@@ -151,8 +152,8 @@ async function bootstrap(): Promise<void> {
 
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
-    server.listen(port, () => {
-      logger.info({ event: "server.start", port }, "@apps/api listening");
+    server.listen(port, host, () => {
+      logger.info({ event: "server.start", port, host }, "@apps/api listening");
       resolve();
     });
   });

@@ -40,12 +40,10 @@ export async function createFinanceObligationPort(
     ];
   const resolve = await binding.loadResolve();
 
-  // Phase 4 — Denali also exports paymentCollection resolver from the same host/finance barrel.
   let resolvePaymentCollection: (tourCanonical: unknown) => "offline" | "free" = () =>
     "offline";
-  if (normalized === "denali") {
-    const mod = await import("@app-tour/workspace-denali/host/finance");
-    resolvePaymentCollection = mod.resolveDenaliPaymentCollectionMode;
+  if ("loadPaymentCollection" in binding && typeof binding.loadPaymentCollection === "function") {
+    resolvePaymentCollection = await binding.loadPaymentCollection();
   }
 
   const receiptDefaults = await resolveFinanceReceiptDefaults(normalized);

@@ -296,7 +296,7 @@ Constraints / indexes:
 - `@@unique([tenantId, creationIdempotencyKey])`
 - `@@index([tenantId, registrationId])`, `@@index([tenantId, paymentId])`, `@@index([tenantId, status])`
 
-RLS: `ENABLE` + `FORCE` + policy `tenant_id = current_setting('app.current_tenant_id', true)::uuid` (same pattern as `finance_schedules`). `GRANT SELECT, INSERT, UPDATE, DELETE … TO app_cloud`.
+RLS: `ENABLE` + `FORCE` + policy `tenant_id = current_setting('app.current_tenant_id', true)::uuid` (same pattern as `finance_schedules`). `GRANT SELECT, INSERT, UPDATE, DELETE … TO app_tour` (SoT app role — never `app_cloud`).
 
 ### Repository port methods (all adapters)
 

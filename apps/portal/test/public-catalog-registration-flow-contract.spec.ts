@@ -31,6 +31,8 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
 
   it("P8-02 denali plugin owns intake transport and registrant UI", () => {
     assert.match(denaliIntake, /data-denali-other-guest-list/);
+    assert.match(denaliIntake, /data-denali-intake-summary-card/);
+    assert.match(denaliIntake, /data-denali-other-guest-toolbar/);
     assert.match(denaliIntake, /data-public-registration-transport/);
     assert.match(denaliIntake, /RenderIntakeForm/);
     assert.match(denaliIntake, /tourRequirements: context\.tourRequirements/);
@@ -76,15 +78,23 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
       repoRoot,
       "packages/catalog-registration-flow-ui/src/catalog-registration-auth-steps.tsx"
     );
+    const otpInputPath = join(
+      repoRoot,
+      "packages/catalog-registration-flow-ui/src/otp-segment-input.tsx"
+    );
     const authSteps = readFileSync(authStepsPath, "utf8");
+    const otpInput = readFileSync(otpInputPath, "utf8");
     assert.match(authSteps, /request-otp/);
     assert.match(authSteps, /verify-otp/);
+    assert.match(authSteps, /OtpSegmentInput/);
     assert.match(authSteps, /readMemberLoginEgress/);
     assert.match(authSteps, /finishMemberLoginEgress/);
     assert.match(authSteps, /completeMemberLoginEgressAfterSession/);
     assert.match(authSteps, /memberLoginStayOnPage/);
     assert.match(authSteps, /waitForMemberSessionCookie/);
     assert.match(authSteps, /credentials: "include"/);
+    assert.match(otpInput, /data-otp-segment-input/);
+    assert.match(otpInput, /autoComplete="one-time-code"/);
     assert.doesNotMatch(authSteps, /isMemberLoginEgressFromLocation/);
     assert.doesNotMatch(denaliIntake, /request-otp/);
   });

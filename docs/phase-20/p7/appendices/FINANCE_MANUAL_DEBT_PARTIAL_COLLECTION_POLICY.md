@@ -41,8 +41,11 @@ Do **not** delete the debt gate. Re-anchor it on **invoice remaining** + **open 
 | Condition | Result |
 | --------- | ------ |
 | Any payment status `Pending` | Reject — one open manual debt intent at a time |
-| `balanceDueMinor = 0` (settled / fully covered) | Reject — no additional manual debt after settlement |
+| `balanceDueMinor = 0` **and** `invoiceTotalMinor > 0` (settled / fully covered) | Reject — no additional manual debt after settlement |
+| `balanceDueMinor = 0` **and** `invoiceTotalMinor = 0` (no commercial invoice yet) | **Allow** — first Pending debt may establish the invoice amount (ops / cert bootstrap) |
 | `balanceDueMinor > 0` | **Allow** new Pending manual payment even if prior rows are `Paid` |
+
+Call sites must pass `invoiceTotalMinor` from `compileRegistrationInvoice` (see `FinanceService.createManualPayment` / member receipt bootstrap).
 
 Settlement message for clients that already match the string remains when remaining is zero and a `Paid` row exists:
 

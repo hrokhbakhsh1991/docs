@@ -32,6 +32,7 @@ export default defineConfig({
   testMatch: [
     "denali-multi-guest-intake.spec.ts",
     "denali-multi-guest-partial-duplicate.spec.ts",
+    "portal-registration-visual-denali.spec.ts",
   ],
   globalSetup: "./tests/e2e/portal-smoke-global-setup.ts",
   retries: process.env.CI || process.env.PW_EXTERNAL_SERVERS === "1" ? 1 : 0,
@@ -59,4 +60,3 @@ export default defineConfig({
       }),
   reporter: [["list"]],
 });
-

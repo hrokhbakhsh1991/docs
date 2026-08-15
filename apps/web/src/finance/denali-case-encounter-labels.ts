@@ -6,7 +6,7 @@
 import {
   DEFAULT_CASE_ENCOUNTER_LABELS,
   type CaseEncounterLabelBundle,
-} from "@app-cloud/finance-case-encounter-ui";
+} from "@/finance/finance-case-encounter-ui";
 
 type Translate = (key: string) => string;
 

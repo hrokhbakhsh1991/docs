@@ -50,6 +50,7 @@ function isEmptyRequiredValue(value: unknown, path: string): boolean {
   if (
     (formPath === "transport.transportCost" ||
       formPath === "transport.dongAmount" ||
+      formPath === "pricingPayment.prepaymentPercent" ||
       formPath === "pricingPayment.basePricePerPerson" ||
       formPath === "basicInfo.capacityMax" ||
       formPath === "tripDetails.overview.peakHeight") &&

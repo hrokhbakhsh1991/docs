@@ -5,7 +5,7 @@
  * Does not call Host bridge, FinanceService, or gateways.
  */
 
-import type { CaseCommandCapabilityContract } from "@app-tour/finance-case-encounter-ui";
+import type { CaseCommandCapabilityContract } from "@/finance/finance-case-encounter-ui";
 
 /** Layers on the Commercial Meaning → Command Bridge surface. */
 export type FinanceCommandBridgeUxLayer =

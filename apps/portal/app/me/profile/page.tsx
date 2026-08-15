@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
+import { resolveMarketingPublicBaseUrl } from "@app-tour/guest-surface-host";
+
 import { fetchMemberProfile } from "@/me/fetch-member-profile.server";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
@@ -39,7 +41,10 @@ export default async function MeProfilePage() {
           <h1>{t("title")}</h1>
           <p>{t("description")}</p>
         </header>
-        <MemberProfileForm profile={profilePayload.profile} />
+        <MemberProfileForm
+          profile={profilePayload.profile}
+          logoutTarget={resolveMarketingPublicBaseUrl(host)}
+        />
       </main>
     </MemberModuleEntitlementGate>
   );

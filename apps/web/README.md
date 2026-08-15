@@ -40,6 +40,13 @@ Use **subpaths only**, e.g. `@app-tour/ui-primitives/button` (see `src/shell/hom
 pnpm build
 pnpm install
 pnpm --filter @apps/web dev
+pnpm --filter @apps/web run test:e2e:operator
+pnpm --filter @apps/web run test:e2e:prepayment
 ```
+
+`test:e2e:prepayment` is the dedicated Denali wizard prepayment smoke. It runs
+`denali-prepayment-create.spec.ts` through [`playwright.prepayment.config.ts`](./playwright.prepayment.config.ts)
+and forces non-finance smoke bootstrap (`OPERATOR_SMOKE_USE_DATABASE=0`) so the
+scenario stays independent from the wider DB-backed operator finance pack.
 
 Phase: **3.3**

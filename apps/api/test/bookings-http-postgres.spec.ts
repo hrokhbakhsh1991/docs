@@ -173,6 +173,31 @@ describe(
         ],
       });
 
+      // RC1 receipts need tour SoT pricing — finance obligation resolves via Tour.canonical.
+      // Missing tour → balanceDueMinor 0 → manual receipt debt gate 400.
+      await admin.tour.create({
+        data: {
+          id: tourId,
+          tenantId: tenantA,
+          title: "HTTP Postgres Cert Tour",
+          publishStatus: "published",
+          canonical: {
+            schemaVersion: 1,
+            roots: ["pricing"],
+            data: {
+              title: "HTTP Postgres Cert Tour",
+              publishStatus: "published",
+              capacityMax: 20,
+              pricing: {
+                basePricePerPerson: 2_500_000,
+                paymentMode: "offline_receipt",
+                paymentCollection: "offline",
+              },
+            },
+          },
+        },
+      });
+
       const repo = getBookingsRepository();
       assert.ok(
         repo instanceof PrismaBookingsRepository,
@@ -193,6 +218,7 @@ describe(
           await admin.outboxEvent.deleteMany({ where: { tenantId } });
           await admin.operatorRegistration.deleteMany({ where: { tenantId } });
         }
+        await admin.tour.deleteMany({ where: { id: tourId } });
         await admin.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
       } finally {
         await admin.$disconnect();
@@ -290,17 +316,48 @@ describe(
     });
 
     it("C3 POST /bookings capacity failure → 409 BOOKING_CAPACITY_REJECTED", async () => {
+      // Dedicated tour SoT capacityMax=2 — shared cert tour is capacity 20 and would
+      // skip the intake-only reject path; also avoid operatorA colliding with C1.
+      const capacityTourId = randomUUID();
+      await admin.tour.create({
+        data: {
+          id: capacityTourId,
+          tenantId: tenantA,
+          title: "HTTP Postgres Capacity Tour",
+          publishStatus: "published",
+          canonical: {
+            schemaVersion: 1,
+            roots: ["pricing"],
+            data: {
+              title: "HTTP Postgres Capacity Tour",
+              publishStatus: "published",
+              capacityMax: 2,
+              pricing: {
+                basePricePerPerson: 2_500_000,
+                paymentMode: "offline_receipt",
+                paymentCollection: "offline",
+              },
+            },
+          },
+        },
+      });
       const before = await admin.operatorRegistration.count({ where: { tenantId: tenantA } });
       const response = await httpCreate(
         tenantA,
-        operatorA,
-        createBody({ guestLabel: "C3 Over", partySize: 5, tourCapacityMax: 2 })
+        randomUUID(),
+        createBody({
+          guestLabel: "C3 Over",
+          partySize: 5,
+          tourCapacityMax: 2,
+          tourId: capacityTourId,
+        })
       );
       assert.equal(response.status, 409, JSON.stringify(response.body));
       assert.equal(response.body.code, "BOOKING_CAPACITY_REJECTED");
       assert.match(String(response.body.error ?? ""), /BOOKING_CAPACITY_REJECTED/);
       const after = await admin.operatorRegistration.count({ where: { tenantId: tenantA } });
       assert.equal(after, before);
+      await admin.tour.deleteMany({ where: { id: capacityTourId } });
     });
 
     // ─── 2. POST /bookings/:id/approve ───────────────────────────────────
@@ -613,6 +670,7 @@ describe(
         method: "POST",
         path: `/bookings/${id}/approve`,
         tenantId: tenantA,
+        userId: operatorA,
       });
       assert.equal(approved.status, 200, JSON.stringify(approved.body));
 

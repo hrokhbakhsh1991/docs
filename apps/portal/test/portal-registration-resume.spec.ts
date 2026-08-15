@@ -67,6 +67,7 @@ describe("portal registration resume — PCMS-REG-01", () => {
     );
     assert.match(helper, /currentStep: "intake"/);
     assert.match(helper, /readPublicCatalogSessionFromCookies/);
+    assert.match(helper, /sessionMemberMatchesPortalGuestSurface/);
     assert.match(helper, /memberMobile/);
     assert.match(helper, /RegistrationResumeInitialState/);
   });

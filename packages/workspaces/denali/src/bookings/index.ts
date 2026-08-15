@@ -8,3 +8,8 @@ export {
   getDenaliRegistrationOpsManifest,
   resolveBookingOpsManifestFromTheme,
 } from "./ops-manifest";
+export {
+  resolveDenaliPrepaymentPolicy,
+  resolveDenaliSuggestedPrepaymentMinor,
+} from "./resolve-denali-prepayment-policy";
+export type { DenaliPrepaymentPolicy } from "./resolve-denali-prepayment-policy";

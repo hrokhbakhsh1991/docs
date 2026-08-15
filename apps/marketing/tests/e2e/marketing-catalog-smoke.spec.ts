@@ -31,6 +31,37 @@ test("SMK-MKT-01 denali operator public catalog browse", async ({ page, context 
   await expect(page.getByText(SMOKE_PUBLISHED_TOUR_TITLE)).toBeVisible();
 });
 
+test("SMK-MKT-17 denali catalog page matches current backend catalog batch", async ({
+  page,
+}) => {
+  const response = await page.request.get("/api/catalog");
+  expect(response.ok()).toBe(true);
+
+  const payload = (await response.json()) as {
+    readonly data?: { readonly items?: ReadonlyArray<{ readonly title?: string | null }> };
+    readonly metadata?: { readonly nextCursor?: string | null };
+  };
+  const expectedItems = payload.data?.items ?? [];
+  const expectedTitles = expectedItems
+    .map((item) => item.title?.trim())
+    .filter((title): title is string => title != null && title.length > 0);
+
+  await page.goto("/tours", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator("[data-marketing-catalog-card]")).toHaveCount(expectedItems.length);
+
+  for (const title of expectedTitles) {
+    await expect(page.getByText(title, { exact: true })).toBeVisible();
+  }
+
+  const loadMore = page.locator("[data-marketing-catalog-pagination-next]");
+  if (payload.metadata?.nextCursor == null) {
+    await expect(loadMore).toHaveCount(0);
+  } else {
+    await expect(loadMore).toHaveCount(1);
+  }
+});
+
 test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({ page }) => {
   const devPhone = `+1555${String(Date.now()).slice(-7)}`;
   await page.goto("/tours", { waitUntil: "domcontentloaded" });

@@ -16,6 +16,37 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"] {
   --border: var(--color-border-default);
   --input: var(--color-border-subtle);
   --font-heading: var(--font-heading-en, var(--font-sans-en, inherit));
+  --portal-auth-stack-gap: var(--space-5);
+  --portal-auth-card-padding: clamp(1.25rem, 4vw, 2rem);
+  --portal-auth-card-radius: calc(var(--radius) * 1.75);
+  --portal-auth-card-border: color-mix(in oklab, var(--color-border-subtle) 90%, white);
+  --portal-auth-card-background: color-mix(in srgb, var(--color-bg-surface) 96%, transparent);
+  --portal-auth-card-shadow: var(--denali-shadow-card-hover);
+  --portal-auth-chip-border: color-mix(in oklab, var(--color-primary) 24%, transparent);
+  --portal-auth-chip-background: color-mix(
+    in oklab,
+    var(--color-primary) 9%,
+    var(--color-bg-surface)
+  );
+  --portal-auth-chip-color: var(--color-text-primary);
+  --portal-auth-support-border: color-mix(in oklab, var(--color-border-subtle) 84%, white);
+  --portal-auth-support-background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--color-bg-surface) 92%, white),
+    color-mix(in oklab, var(--color-bg-muted) 56%, var(--color-bg-surface))
+  );
+  --portal-auth-alert-border: color-mix(in oklab, var(--destructive) 35%, transparent);
+  --portal-auth-alert-background: color-mix(
+    in oklab,
+    var(--destructive) 8%,
+    var(--color-bg-surface)
+  );
+  --portal-auth-success-border: color-mix(in oklab, var(--color-primary) 30%, transparent);
+  --portal-auth-success-background: color-mix(
+    in oklab,
+    var(--color-primary) 10%,
+    var(--color-bg-surface)
+  );
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]

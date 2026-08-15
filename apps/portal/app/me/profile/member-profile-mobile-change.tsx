@@ -88,8 +88,10 @@ export function MemberProfileMobileChange({
   if (step === "phone") {
     return (
       <div data-member-profile-mobile-change data-member-profile-mobile-change-request>
-        <p>{t("fieldLabels.mobile")}</p>
-        <p>{t("mobileChange.phoneDescription")}</p>
+        <div data-member-profile-mobile-change-header>
+          <p>{t("fieldLabels.mobile")}</p>
+          <p>{t("mobileChange.phoneDescription")}</p>
+        </div>
         <label htmlFor="profile-mobile-change-phone">{t("mobileChange.newPhoneLabel")}</label>
         <Input
           id="profile-mobile-change-phone"
@@ -106,7 +108,10 @@ export function MemberProfileMobileChange({
             {error}
           </p>
         ) : null}
-        <div data-member-profile-action-row>
+        <div
+          data-member-profile-action-row
+          data-member-profile-mobile-change-actions="request"
+        >
           <button
             type="button"
             disabled={loading}
@@ -132,8 +137,10 @@ export function MemberProfileMobileChange({
   if (step === "otp") {
     return (
       <div data-member-profile-mobile-change data-member-profile-mobile-change-verify>
-        <p>{t("fieldLabels.mobile")}</p>
-        <p>{t("mobileChange.otpDescription")}</p>
+        <div data-member-profile-mobile-change-header>
+          <p>{t("fieldLabels.mobile")}</p>
+          <p>{t("mobileChange.otpDescription")}</p>
+        </div>
         <label htmlFor="profile-mobile-change-otp">{t("mobileChange.otpLabel")}</label>
         <Input
           id="profile-mobile-change-otp"
@@ -150,7 +157,10 @@ export function MemberProfileMobileChange({
             {error}
           </p>
         ) : null}
-        <div data-member-profile-action-row>
+        <div
+          data-member-profile-action-row
+          data-member-profile-mobile-change-actions="verify"
+        >
           <button type="button" disabled={loading} onClick={() => void handleVerify()}>
             {loading ? t("mobileChange.verifying") : t("mobileChange.verify")}
           </button>
@@ -179,26 +189,30 @@ export function MemberProfileMobileChange({
 
   return (
     <div data-member-profile-field="mobile" data-member-profile-mobile-change>
-      <p>{t("fieldLabels.mobile")}</p>
-      <p>{currentMobile ?? "—"}</p>
-      <p data-member-profile-field-hint>{t("mobileChange.viewHint")}</p>
+      <div data-member-profile-mobile-change-header>
+        <p>{t("fieldLabels.mobile")}</p>
+        <p>{t("mobileChange.viewHint")}</p>
+      </div>
+      <p data-member-profile-mobile-change-value>{currentMobile ?? "—"}</p>
       {success !== null ? (
         <p role="status" data-member-profile-mobile-change-success>
           {success}
         </p>
       ) : null}
-      <button
-        type="button"
-        data-member-profile-mobile-change-start
-        onClick={() => {
-          setStep("phone");
-          setPhone("");
-          setError(null);
-          setSuccess(null);
-        }}
-      >
-        {t("mobileChange.start")}
-      </button>
+      <div data-member-profile-mobile-change-actions="view">
+        <button
+          type="button"
+          data-member-profile-mobile-change-start
+          onClick={() => {
+            setStep("phone");
+            setPhone("");
+            setError(null);
+            setSuccess(null);
+          }}
+        >
+          {t("mobileChange.start")}
+        </button>
+      </div>
     </div>
   );
 }

@@ -12,7 +12,7 @@ import type {
   DenaliObligationSource,
   DenaliPaymentSource,
   DenaliSignalSource,
-} from "@app-tour/workspace-denali/host/finance/case-read";
+} from "../workspace-finance-case-read-bindings.generated";
 
 export type DenaliCaseReadSourcePort = {
   readObligation(scope: CaseFactReadScope): Promise<DenaliObligationSource>;

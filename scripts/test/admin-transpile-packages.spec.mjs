@@ -81,6 +81,9 @@ describe("admin transpilePackages codegen (Wave G.a)", () => {
     assert.ok(ADMIN_PLATFORM_TRANSPILE_PACKAGES.includes("@app-tour/draft-engine"));
     assert.ok(ADMIN_PLATFORM_TRANSPILE_PACKAGES.includes("@app-tour/platform-core"));
     assert.ok(ADMIN_PLATFORM_TRANSPILE_PACKAGES.includes("@app-tour/workspace-sdk"));
+    assert.ok(
+      ADMIN_PLATFORM_TRANSPILE_PACKAGES.includes("@app-tour/finance-case-encounter-ui")
+    );
     assert.ok(!ADMIN_PLATFORM_TRANSPILE_PACKAGES.includes("@app-tour/workspace-denali"));
     assert.equal(
       ADMIN_PLATFORM_TRANSPILE_PACKAGES.every((pkg) => pkg.startsWith("@app-tour/")),

@@ -120,6 +120,10 @@ packages/workspaces/denali/src/finance/case-read/
 
 apps/api/src/workspace-finance/case-read/
   → host SoT loaders + Case fact provider façades
+
+apps/api/src/workspace-finance/workspace-finance-case-read-bindings.generated.ts
+  → sole allowed `@app-tour/workspace-*/host/finance/case-read` import surface
+    (API providers import this binding; `guard-api-workspace-isolation` forbids direct host paths)
 ```
 
 ### Approved Case surface (PR4.5-B) — Option A

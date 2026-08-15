@@ -5,8 +5,25 @@
 @media (min-width: 64rem) {
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-home]
+    [data-portal-member-home-quick-links-section] {
+    display: grid;
+    grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-5);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-home]
     [data-portal-member-home-quick-links] {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(12rem, 1fr));
+    max-width: 42rem;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-home]
+    [data-portal-member-home-quick-links][data-portal-member-home-card-count="2"] {
+    grid-template-columns: repeat(2, minmax(14rem, 1fr));
+    max-width: 34rem;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -27,5 +44,91 @@
     main[data-portal-member-registrations]
     [data-portal-member-registrations-empty-state] {
     grid-column: 1 / -1;
+    max-width: 46rem;
+    margin-inline: auto;
+    min-height: min(30rem, calc(100dvh - 15rem));
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-registration-detail] {
+    max-width: 56rem;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-registration-detail]
+    [data-portal-member-detail-hero] {
+    padding: var(--space-6);
+    display: grid;
+    grid-template-columns: minmax(18rem, 0.92fr) minmax(20rem, 1.08fr);
+    align-items: start;
+    gap: var(--space-5);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-registration-detail]
+    [data-portal-member-detail-hero-content] {
+    max-width: 25rem;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-registration-detail]
+    [data-portal-member-detail-kpis] {
+    align-self: start;
+    justify-self: stretch;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-actions] {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-actions]
+    a {
+    width: auto;
+    min-width: 9.75rem;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-intake-amend],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-upload],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-awaiting-approval],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-closed],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-waiting],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-paid] {
+    padding: var(--space-6);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-upload],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-awaiting-approval],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-closed],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-waiting],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-paid] {
+    width: 100%;
+    max-width: 42rem;
+    margin-inline: auto;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-awaiting-approval],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-closed],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-waiting],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-paid] {
+    gap: var(--space-5);
   }
 }

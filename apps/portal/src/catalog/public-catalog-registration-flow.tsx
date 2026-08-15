@@ -206,7 +206,10 @@ export function PublicCatalogRegistrationFlow({
   ) {
     return (
       <div data-public-registration-flow data-registration-resume-pending aria-busy="true">
-        <p role="status">{t("sessionResume.pending")}</p>
+        <div data-registration-resume-pending-card>
+          <p data-registration-resume-pending-eyebrow>{t("phone.loginTitle")}</p>
+          <p role="status">{t("sessionResume.pending")}</p>
+        </div>
       </div>
     );
   }
@@ -219,6 +222,7 @@ export function PublicCatalogRegistrationFlow({
   return (
     <div
       data-public-registration-flow
+      data-registration-stage={state.currentStep}
       {...(memberLoginEgress ? { "data-member-login-egress": "" } : {})}
       {...(resumeAtIntake || initialRuntimeState?.currentStep === "intake"
         ? { "data-registration-resume": "intake" }
@@ -227,7 +231,9 @@ export function PublicCatalogRegistrationFlow({
       {showStepper ? (
         <CatalogRegistrationStepper currentStep={state.currentStep} mode={stepperMode} />
       ) : null}
-      <Step context={context} state={state} dispatch={dispatch} resolveError={resolveError} />
+      <div data-public-registration-stage data-public-registration-stage-panel>
+        <Step context={context} state={state} dispatch={dispatch} resolveError={resolveError} />
+      </div>
     </div>
   );
 }

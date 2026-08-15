@@ -620,15 +620,29 @@ export function generateWorkspaceFinanceObligationBindings(manifests) {
       );
     }
     const spec = importSpecifier(m.package, obligation.module);
+    const paymentCollection =
+      finance.paymentCollection !== undefined
+        ? assertModuleExport(finance.paymentCollection, m.id, "paymentCollection")
+        : null;
+    const paymentCollectionSpec =
+      paymentCollection !== null ? importSpecifier(m.package, paymentCollection.module) : null;
     for (const wt of workspaceTypes) {
       if (typeof wt !== "string" || wt.trim().length === 0) {
         continue;
       }
+      const paymentCollectionBlock =
+        paymentCollection !== null && paymentCollectionSpec !== null
+          ? `
+    loadPaymentCollection: async () => {
+      const mod = await import(${JSON.stringify(paymentCollectionSpec)});
+      return mod.${paymentCollection.export};
+    },`
+          : "";
       bindingEntries.push(`  ${JSON.stringify(wt.trim().toLowerCase())}: {
     loadResolve: async () => {
       const mod = await import(${JSON.stringify(spec)});
       return mod.${obligation.export};
-    },
+    },${paymentCollectionBlock}
   },`);
     }
   }

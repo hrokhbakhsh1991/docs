@@ -23,9 +23,20 @@ export const OPERATOR_INVITEE_MOBILE = "+15550008803";
 const OPERATOR_SESSION_TOKEN_CACHE = new Map<string, string>();
 
 function readRequestCookieDomain(page: Page): string {
-  const baseURL = page.context()._options.baseURL;
+  const context = page.context() as {
+    readonly _options?: { readonly baseURL?: string };
+  };
+  const baseURL = context._options?.baseURL;
   if (typeof baseURL === "string" && baseURL.length > 0) {
     return new URL(baseURL).hostname;
+  }
+  try {
+    const href = page.url();
+    if (href.length > 0 && href !== "about:blank") {
+      return new URL(href).hostname;
+    }
+  } catch {
+    // ignore invalid page URL
   }
   return "localhost";
 }

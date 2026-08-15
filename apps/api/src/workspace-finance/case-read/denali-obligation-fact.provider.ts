@@ -8,7 +8,7 @@ import {
   type CaseFactProviderResult,
   type CaseFactReadScope,
   type MoneyFacts,
-} from "@app-tour/workspace-denali/host/finance/case-read";
+} from "../workspace-finance-case-read-bindings.generated";
 
 import type { DenaliCaseReadSourcePort } from "./denali-case-read-source.port";
 

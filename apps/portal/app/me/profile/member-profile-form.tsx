@@ -14,6 +14,7 @@ import { MemberProfileMobileChange } from "./member-profile-mobile-change";
 
 type MemberProfileFormProps = {
   readonly profile: MemberProfileViewProfile;
+  readonly logoutTarget: string;
 };
 
 type FieldSection = {
@@ -70,7 +71,10 @@ function sectionLegendKey(sectionId: string): string {
   return `sectionLabels.${sectionId}`;
 }
 
-export function MemberProfileForm({ profile: initialProfile }: MemberProfileFormProps) {
+export function MemberProfileForm({
+  profile: initialProfile,
+  logoutTarget,
+}: MemberProfileFormProps) {
   const t = useTranslations("portalMember.profile");
   const [profile, setProfile] = useState(initialProfile);
   const [fieldValues, setFieldValues] = useState(() => initialEditableValues(initialProfile));
@@ -283,42 +287,46 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
         </fieldset>
       ))}
 
-      {error !== null ? (
-        <p role="alert" data-member-profile-form-error>
-          {error}
-        </p>
-      ) : null}
-      {message !== null ? (
-        <p role="status">
-          {message}
-        </p>
-      ) : null}
+      {(error !== null || message !== null || editableFields.length > 0) ? (
+        <div data-member-profile-footer>
+          {error !== null ? (
+            <p role="alert" data-member-profile-form-error>
+              {error}
+            </p>
+          ) : null}
+          {message !== null ? (
+            <p role="status">
+              {message}
+            </p>
+          ) : null}
 
-      {editableFields.length > 0 ? (
-        <div data-member-profile-actions>
-          <button
-            type="button"
-            disabled={loading}
-            data-member-profile-discard
-            onClick={handleDiscard}
-          >
-            {t("discard")}
-          </button>
-          <button
-            type="button"
-            disabled={loading}
-            data-member-profile-save
-            onClick={() => void handleSubmit()}
-          >
-            {loading ? t("saving") : t("save")}
-          </button>
+          {editableFields.length > 0 ? (
+            <div data-member-profile-actions>
+              <button
+                type="button"
+                disabled={loading}
+                data-member-profile-discard
+                onClick={handleDiscard}
+              >
+                {t("discard")}
+              </button>
+              <button type="submit" disabled={loading} data-member-profile-save>
+                {loading ? t("saving") : t("save")}
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
       <section data-member-profile-session data-member-profile-card="session">
-        <h2 data-member-profile-session-title>{t("sessionTitle")}</h2>
-        <p data-member-profile-session-hint>{t("sessionHint")}</p>
-        <MemberLogoutButton />
+        <div data-member-profile-session-header>
+          <span aria-hidden="true" data-member-profile-session-mark />
+          <div data-member-profile-session-copy>
+            <h2 data-member-profile-session-title>{t("sessionTitle")}</h2>
+            <p data-member-profile-session-hint>{t("sessionHint")}</p>
+          </div>
+        </div>
+        <MemberLogoutButton logoutTarget={logoutTarget} />
       </section>
     </form>
   );

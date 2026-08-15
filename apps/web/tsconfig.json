@@ -9,7 +9,10 @@
     "incremental": true,
     "plugins": [{ "name": "next" }],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@app-tour/finance-case-encounter-ui": [
+        "../../packages/finance-case-encounter-ui/src/index.ts"
+      ]
     },
     "allowJs": true,
     "isolatedModules": true

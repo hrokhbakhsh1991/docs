@@ -16,11 +16,29 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 const marketingDir = path.join(repoRoot, "apps/marketing");
 const portalDir = path.join(repoRoot, "apps/portal");
 
+const DENALI_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
+const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
+const DENALI_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000220";
+const OPERATOR_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
+const marketingSmokeBaseUrl =
+  process.env.SMOKE_MARKETING_BASE_URL?.trim() || "http://denali.localhost:3002";
+const marketingSmokeOrigin = new URL(marketingSmokeBaseUrl);
+const smokeUsesDenaliHost =
+  marketingSmokeOrigin.hostname === "denali.localhost" ||
+  marketingSmokeOrigin.hostname === "denali.club";
 const operatorSmokeTenantId =
-  process.env.TOUR_OPS_DEV_TENANT_ID?.trim() || "00000000-0000-4000-8000-000000000014";
-const operatorSmokeOwnerUserId = "00000000-0000-4000-8000-000000000101";
-const operatorSmokeSeedTourTitle = "North Ridge Trek";
-const operatorSmokeSeedTourId = "00000000-0000-4000-8000-000000000210";
+  process.env.TOUR_OPS_DEV_TENANT_ID?.trim() ||
+  (smokeUsesDenaliHost ? DENALI_SMOKE_TENANT_ID : OPERATOR_SMOKE_TENANT_ID);
+const operatorSmokeSeedTourId = smokeUsesDenaliHost
+  ? DENALI_SMOKE_PUBLISHED_TOUR_ID
+  : OPERATOR_SMOKE_PUBLISHED_TOUR_ID;
+const portalWarmHost =
+  process.env.SMOKE_PORTAL_HOST?.trim() ||
+  (marketingSmokeOrigin.hostname === "denali.club"
+    ? "portal.denali.club:3003"
+    : smokeUsesDenaliHost
+      ? "portal.denali.localhost:3003"
+      : "portal.operator.localhost:3003");
 const forceFreshServers = process.env.PW_NO_REUSE_SERVER === "1";
 
 function isPortListening(port) {
@@ -78,58 +96,8 @@ function keepAlive() {
   return new Promise(() => {});
 }
 
-/** Refuse stale API reuse when operator smoke catalog seed is missing. */
-async function probeOperatorSmokeSeedReady() {
-  const headers = {
-    "x-tenant-id": operatorSmokeTenantId,
-    "x-authenticated-tenant-id": operatorSmokeTenantId,
-    "x-user-id": operatorSmokeOwnerUserId,
-    "x-actor-role": "owner",
-    "x-membership-status": "ACTIVE",
-    "x-workspace-id": "ws-operator-smoke",
-  };
-  const listReady = await new Promise((resolve) => {
-    const req = http.request(
-      {
-        hostname: "127.0.0.1",
-        port: 3001,
-        path: "/tours?view=operator&limit=5",
-        method: "GET",
-        headers,
-      },
-      (res) => {
-        const chunks = [];
-        res.on("data", (chunk) => chunks.push(chunk));
-        res.on("end", () => {
-          if (res.statusCode !== 200) {
-            resolve(false);
-            return;
-          }
-          try {
-            const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-            const items = Array.isArray(body.items) ? body.items : [];
-            resolve(
-              items.some(
-                (row) =>
-                  typeof row?.title === "string" && row.title.trim() === operatorSmokeSeedTourTitle
-              )
-            );
-          } catch {
-            resolve(false);
-          }
-        });
-      }
-    );
-    req.on("error", () => resolve(false));
-    req.setTimeout(3_000, () => {
-      req.destroy();
-      resolve(false);
-    });
-    req.end();
-  });
-  if (!listReady) {
-    return false;
-  }
+/** Refuse stale API reuse when the targeted public catalog seed is missing. */
+async function probeSmokeSeedReady() {
   return new Promise((resolve) => {
     const req = http.request(
       {
@@ -229,10 +197,10 @@ try {
   const marketingListening = await isPortListening(3002);
 
   if (apiListening) {
-    const seedReady = await probeOperatorSmokeSeedReady();
+    const seedReady = await probeSmokeSeedReady();
     if (!seedReady) {
       console.warn(
-        "smoke-marketing-e2e-servers: port 3001 busy without operator smoke seed — restarting API"
+        "smoke-marketing-e2e-servers: port 3001 busy without targeted marketing smoke seed — restarting API"
       );
       freePort(3001);
       await new Promise((resolve) => setTimeout(resolve, 2_000));
@@ -289,7 +257,7 @@ try {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          host: "operator.localhost:3003",
+          host: portalWarmHost,
         },
       },
       (res) => {

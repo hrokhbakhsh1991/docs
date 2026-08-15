@@ -6,7 +6,37 @@
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell],
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-slot="shell"] {
   max-width: 36rem;
+  position: relative;
+  isolation: isolate;
   background: var(--color-bg-page);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-skip-link] {
+  position: absolute;
+  top: var(--space-3);
+  inset-inline-start: var(--space-3);
+  z-index: 30;
+  transform: translateY(-140%);
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full, 9999px);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--color-primary) 10%, transparent),
+    0 10px 24px rgb(4 47 46 / 0.12);
+  transition: transform 0.12s ease;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell-skip-link]:focus-visible {
+  transform: translateY(0);
+  outline: none;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-header],
@@ -30,7 +60,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-brand],
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-slot="shell-brand"] {
+  display: inline-flex;
+  align-items: center;
   gap: var(--space-3);
+  text-decoration: none;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-logo] {
@@ -44,8 +77,108 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-she
   font-family: var(--font-heading, inherit);
   font-size: 1rem;
   font-weight: 400;
-  letter-spacing: 0.01em;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
   color: var(--color-text-primary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-marketing-header-member] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  max-width: min(11.5rem, 42vw);
+  padding: var(--space-1) var(--space-2);
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklab, var(--color-border-default) 82%, transparent);
+  background: color-mix(in srgb, var(--color-bg-surface) 88%, transparent);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  box-shadow: var(--denali-shadow-card, 0 1px 2px rgb(0 0 0 / 0.06));
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-marketing-header-member]:hover {
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
+  text-decoration: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-marketing-header-member]:active {
+  transform: scale(0.985);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-marketing-header-member-avatar-wrap] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--color-primary) 10%, var(--color-bg-surface));
+  color: var(--color-primary);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-marketing-header-member-avatar] {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-marketing-header-member-meta] {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-marketing-header-member-label] {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-marketing-header-member-hint] {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 25rem) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-marketing-header-member] {
+    max-width: 3rem;
+    padding-inline: var(--space-1);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-marketing-header-member-meta] {
+    display: none;
+  }
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-user-menu],
@@ -111,7 +244,8 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-main],
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-slot="shell-main"] {
-  padding: var(--space-4) var(--space-4) var(--space-6);
+  min-height: calc(100dvh - 8.75rem);
+  padding: var(--space-5) var(--space-4) calc(var(--space-7) + env(safe-area-inset-bottom, 0px));
   background:
     radial-gradient(
       ellipse 120% 45% at 50% -5%,
@@ -123,6 +257,14 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-slot="shel
       var(--color-bg-page) 0%,
       color-mix(in oklab, var(--denali-alpine-600, var(--color-bg-muted)) 5%, var(--color-bg-page)) 100%
     );
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-main-inner] {
+  width: min(100%, 60rem);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-bottom-nav],
@@ -140,7 +282,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-bottom-nav]
   ul {
   gap: var(--space-1);
-  padding-block: var(--space-2) var(--space-3);
+  padding-block: var(--space-2) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -150,9 +292,11 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   padding: var(--space-2) var(--space-1);
   border-radius: calc(var(--radius) * 1.1);
   color: var(--color-text-muted);
+  text-decoration: none;
   transition:
     background 0.15s ease,
     color 0.15s ease,
+    box-shadow 0.15s ease,
     transform 0.12s ease;
 }
 
@@ -164,10 +308,20 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-bottom-nav]
+  [data-portal-shell-nav-link]:hover {
+  background: color-mix(in oklab, var(--color-primary) 7%, var(--color-bg-surface));
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell-bottom-nav]
   [data-portal-shell-nav-link][data-active="true"] {
   background: color-mix(in oklab, var(--color-primary) 12%, var(--color-bg-surface));
   color: var(--color-primary);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-primary) 18%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--color-primary) 18%, transparent),
+    0 6px 18px rgb(5 150 105 / 0.08);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]

@@ -91,6 +91,7 @@ export default async function MeRegistrationsPage({
       >
         <header data-portal-member-page-header>
           <h1>{t("title")}</h1>
+          <p data-portal-member-registrations-lede>{t("lede")}</p>
         </header>
 
         {allCount > 0 ? (
@@ -119,17 +120,40 @@ export default async function MeRegistrationsPage({
 
         {allCount === 0 ? (
           <div data-portal-member-registrations-empty-state>
-            <p data-portal-member-registrations-empty>{t("empty")}</p>
-            <a href={browseToursUrl} data-portal-member-registrations-empty-cta>
-              {t("emptyCta")}
-            </a>
+            <div data-portal-member-registrations-empty-copy>
+              <p data-portal-member-registrations-empty-eyebrow>{t("filterAll")}</p>
+              <h2 data-portal-member-registrations-empty-title>{t("emptyTitle")}</h2>
+              <p data-portal-member-registrations-empty>{t("empty")}</p>
+            </div>
+            <div data-portal-member-registrations-empty-actions>
+              <a href={browseToursUrl} data-portal-member-registrations-empty-cta>
+                {t("emptyCta")}
+              </a>
+            </div>
           </div>
         ) : visibleRows.length === 0 ? (
           <div
             data-portal-member-registrations-empty-state
             data-empty-reason="filtered"
           >
-            <p data-portal-member-registrations-empty>{t("emptyFiltered")}</p>
+            <div data-portal-member-registrations-empty-copy>
+              <p data-portal-member-registrations-empty-eyebrow>
+                {
+                  filterTabs.find(({ target }) => target === activeFilter)?.label
+                    ?? t("filterAll")
+                }
+              </p>
+              <h2 data-portal-member-registrations-empty-title>{t("filterOther")}</h2>
+              <p data-portal-member-registrations-empty>{t("emptyFiltered")}</p>
+            </div>
+            <div data-portal-member-registrations-empty-actions>
+              <a
+                href={registrantListHref("all")}
+                data-portal-member-registrations-empty-cta
+              >
+                {t("filterAll")}
+              </a>
+            </div>
           </div>
         ) : (
           <ul data-portal-member-registrations-list>

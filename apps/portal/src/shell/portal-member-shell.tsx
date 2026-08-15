@@ -61,10 +61,10 @@ export async function PortalMemberShell({
         data-portal-shell-main
         data-slot="shell-main"
       >
-        {children}
+        <div data-portal-shell-main-inner>{children}</div>
       </div>
 
-      <PortalMemberBottomNav items={bottomNav} />
+      <PortalMemberBottomNav items={bottomNav} logoutTarget={marketingHomeUrl} />
     </div>
   );
 }

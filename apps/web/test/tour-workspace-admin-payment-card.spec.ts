@@ -13,6 +13,8 @@ const source = readFileSync(
 describe("tour-workspace-admin-payment-card.spec.ts", () => {
   it("keeps workspace payment orchestration inside the tours feature", () => {
     assert.match(source, /fetchRegistrationInvoice/);
+    assert.match(source, /fetchTourDetailCached/);
+    assert.match(source, /resolveDenaliSuggestedPrepaymentMinor/);
     assert.match(source, /resolveSuggestedPaymentAmountMinor/);
     assert.match(source, /validateRecordPrepaymentForm/);
     assert.doesNotMatch(source, /FinanceService|finance-core|runReviewReceiptCommandBridge/);
@@ -32,6 +34,8 @@ describe("tour-workspace-admin-payment-card.spec.ts", () => {
     assert.match(source, /kind: "prepayment_recorded"/);
     assert.match(source, /\/api\/finance\/prepayments/);
     assert.match(source, /refreshKey/);
+    assert.match(source, /tourId/);
+    assert.match(source, /readCachedTourDetail/);
     assert.match(source, /FinanceInvoiceBalanceCard[\s\S]*refreshKey=\{refreshKey\}/);
     assert.doesNotMatch(source, /setAdvancedOpen\(true\)/);
   });

@@ -6,7 +6,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 const marketingSmokeBaseUrl =
-  process.env.SMOKE_MARKETING_BASE_URL ?? "http://operator.localhost:3002";
+  process.env.SMOKE_MARKETING_BASE_URL ?? "http://denali.localhost:3002";
 
 function stagingLaunchOptions(): { args: string[] } | undefined {
   const vpsIp = process.env.VPS_IP?.trim();
@@ -14,6 +14,8 @@ function stagingLaunchOptions(): { args: string[] } | undefined {
     return undefined;
   }
   const rules = [
+    `MAP portal.denali.localhost ${vpsIp}`,
+    `MAP denali.localhost ${vpsIp}`,
     `MAP operator.admin.localhost ${vpsIp}`,
     `MAP operator.portal.localhost ${vpsIp}`,
     `MAP portal.operator.localhost ${vpsIp}`,

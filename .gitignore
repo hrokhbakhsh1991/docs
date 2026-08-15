@@ -75,3 +75,5 @@ temp/
 
 # Local Playwright/audit scratch (never commit)
 apps/web/.tmp-audit/
+apps/portal/.artifacts/
+apps/portal/apps/

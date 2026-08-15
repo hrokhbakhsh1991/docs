@@ -165,6 +165,7 @@ export function TourWorkspacePaymentActionsSection({
                 className="border-primary/20 bg-primary/5"
               >
                 <TourWorkspaceAdminPaymentCard
+                  tourId={tourId}
                   registrationId={registrationId}
                   canManage={canManage}
                   refreshKey={refreshKey}

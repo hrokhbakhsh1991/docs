@@ -11,9 +11,10 @@ import { PortalNavIcon } from "./portal-nav-icon";
 
 export type PortalMemberUserMenuProps = {
   readonly items: readonly PortalMemberNavItem[];
+  readonly logoutTarget: string;
 };
 
-export function PortalMemberUserMenu({ items }: PortalMemberUserMenuProps) {
+export function PortalMemberUserMenu({ items, logoutTarget }: PortalMemberUserMenuProps) {
   const pathname = usePathname();
   const t = useTranslations("portalMember.nav");
 
@@ -38,7 +39,7 @@ export function PortalMemberUserMenu({ items }: PortalMemberUserMenuProps) {
           </Link>
         );
       })}
-      <MemberLogoutButton />
+      <MemberLogoutButton logoutTarget={logoutTarget} />
     </div>
   );
 }

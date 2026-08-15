@@ -49,6 +49,8 @@ export const ADMIN_PLATFORM_TRANSPILE_PACKAGES = Object.freeze([
   "@app-tour/theme-react",
   "@app-tour/ui-primitives",
   "@app-tour/workspace-sdk",
+  /** PR8-B Case Encounter UI — must be transpiled so Next resolves workspace client imports. */
+  "@app-tour/finance-case-encounter-ui",
 ]);
 
 /**

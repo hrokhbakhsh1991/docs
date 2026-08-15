@@ -50,6 +50,8 @@ export function buildDenaliTourCreateDefaultValues(): DenaliCreateTourWizardForm
     },
     pricingPayment: {
       requiresPayment: false,
+      prepaymentEnabled: false,
+      prepaymentPercent: undefined,
       basePricePerPerson: undefined,
       paymentMode: undefined,
       includesTourInsurance: false,
@@ -118,6 +120,8 @@ export function buildDenaliTourCreateTestValues(): DenaliCreateTourWizardForm {
     pricingPayment: {
       ...base.pricingPayment,
       requiresPayment: true,
+      prepaymentEnabled: true,
+      prepaymentPercent: 30,
       paymentMode: "offline_receipt",
       basePricePerPerson: 500_000,
     },

@@ -7,6 +7,7 @@
 export const DENALI_CONDITIONALLY_REQUIRED_CANONICAL_PATHS = [
   "endDateTime",
   "pricing.basePricePerPerson",
+  "pricing.prepaymentPercent",
   "transport.dongAmount",
   "transport.seatPreference",
 ] as const;

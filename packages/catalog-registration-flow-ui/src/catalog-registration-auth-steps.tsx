@@ -26,6 +26,7 @@ import {
 } from "./read-portal-return";
 import { readCatalogRegistrationFlowData } from "./flow-data";
 import { hydrateCatalogRegistrationIntakeAfterSession } from "./hydrate-intake-after-session";
+import { OtpSegmentInput } from "./otp-segment-input";
 
 /** SSR-stable login egress from flow context — never `window` during render. */
 function readMemberLoginEgress(context: RegistrationFlowContext): boolean {
@@ -295,48 +296,69 @@ export function CatalogRegistrationOtpStep({
       data-tour-id={context.tourId}
       {...(readMemberLoginEgress(context) ? { "data-member-login-egress": "" } : {})}
     >
-      <h2>
-        {readMemberLoginEgress(context) ? t("otp.loginTitle") : t("otp.title")}
-      </h2>
-      <p>{t("otp.sentTo", { phone: data.phone })}</p>
+      <div data-portal-otp-hero>
+        <div data-portal-otp-orbit aria-hidden="true">
+          <span data-portal-otp-orbit-ring="outer" />
+          <span data-portal-otp-orbit-ring="inner" />
+          <span data-portal-otp-orbit-dot="alpha" />
+          <span data-portal-otp-orbit-dot="beta" />
+        </div>
+        <div data-portal-otp-copy>
+          <h2>{readMemberLoginEgress(context) ? t("otp.loginTitle") : t("otp.title")}</h2>
+          <p>{t("otp.helper")}</p>
+        </div>
+        <div data-portal-otp-meta>
+          <p data-portal-otp-phone-chip>{t("otp.sentTo", { phone: data.phone })}</p>
+          <p data-portal-otp-autofill-hint>{t("otp.autoFillHint")}</p>
+        </div>
+      </div>
       <label htmlFor="otp">{t("otp.title")}</label>
-      <Input
+      <OtpSegmentInput
         id="otp"
         value={data.otp}
-        onChange={(event) => {
+        onChange={(nextValue) => {
           setError(null);
-          mergeFlowState(state, dispatch, { otp: event.target.value });
+          mergeFlowState(state, dispatch, { otp: nextValue });
         }}
-        onBlur={() => void verifyOtp()}
+        onComplete={(nextValue) => void verifyOtp(nextValue)}
         aria-invalid={error !== null}
         aria-describedby={error !== null ? errorId : undefined}
+        disabled={loading}
       />
       {error !== null ? (
         <p id={errorId} role="alert">
           {error}
         </p>
       ) : null}
-      <button type="button" onClick={() => void verifyOtp()} disabled={loading} data-action="verify-otp">
-        {loading ? t("otp.verifying") : t("otp.verify")}
-      </button>
-      <button type="button" onClick={() => void resendOtp()} disabled={loading || resendCooldown > 0}>
-        {resendCooldown > 0 ? t("otp.resendIn", { seconds: resendCooldown }) : t("otp.resend")}
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          mergeFlowState(state, dispatch, {
-            phone: initialPublicRegistrationPhone(),
-            otp: "",
-            challengeId: "",
-            onboardingToken: "",
-          });
-          transitionFlowStep(dispatch, "phone");
-        }}
-        disabled={loading}
-      >
-        {t("otp.changePhone")}
-      </button>
+      <div data-portal-otp-actions>
+        <button type="button" onClick={() => void verifyOtp()} disabled={loading} data-action="verify-otp">
+          {loading ? t("otp.verifying") : t("otp.verify")}
+        </button>
+        <div data-portal-otp-secondary-actions>
+          <button
+            type="button"
+            onClick={() => void resendOtp()}
+            disabled={loading || resendCooldown > 0}
+          >
+            {resendCooldown > 0 ? t("otp.resendIn", { seconds: resendCooldown }) : t("otp.resend")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              mergeFlowState(state, dispatch, {
+                phone: initialPublicRegistrationPhone(),
+                otp: "",
+                challengeId: "",
+                onboardingToken: "",
+              });
+              transitionFlowStep(dispatch, "phone");
+            }}
+            disabled={loading}
+          >
+            {t("otp.changePhone")}
+          </button>
+        </div>
+      </div>
       {process.env.NODE_ENV === "development" ? (
         <p data-dev-otp-hint>{t("otp.devHint", { code: PUBLIC_REGISTRATION_DEV_OTP })}</p>
       ) : null}

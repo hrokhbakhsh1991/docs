@@ -5,20 +5,26 @@ export const CATALOG_DEV_OTP = "1234";
 export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
   const otpStep = page.locator("[data-public-registration-otp]");
   await otpStep.waitFor({ state: "visible", timeout: 60_000 });
-  const input = otpStep.locator("#otp");
-  await input.click();
-  await input.fill("");
-  await input.pressSequentially(code.replace(/\D/g, ""), { delay: 15 });
-
-  const [response] = await Promise.all([
-    page.waitForResponse(
-      (res) =>
-        res.request().method() === "POST" &&
-        res.url().includes("/api/public-auth/verify-otp"),
-      { timeout: 90_000 }
-    ),
-    page.locator('[data-action="verify-otp"]').click(),
-  ]);
+  const digits = code.replace(/\D/g, "");
+  // OtpSegmentInput auto-submits via onComplete — do not click verify (button stays
+  // disabled as "Verifying…" and Playwright will hang on click).
+  const responsePromise = page.waitForResponse(
+    (res) =>
+      res.request().method() === "POST" &&
+      res.url().includes("/api/public-auth/verify-otp"),
+    { timeout: 90_000 }
+  );
+  const firstCell = otpStep.locator('[data-otp-cell="0"]');
+  if ((await firstCell.count()) > 0) {
+    await firstCell.click();
+    await page.keyboard.type(digits, { delay: 15 });
+  } else {
+    const input = otpStep.locator("#otp");
+    await input.click({ force: true });
+    await input.fill("");
+    await input.pressSequentially(digits, { delay: 15 });
+  }
+  const response = await responsePromise;
   const body = await response.text();
   expect(
     response.ok(),

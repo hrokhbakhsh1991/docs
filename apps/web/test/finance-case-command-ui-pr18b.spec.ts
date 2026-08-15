@@ -26,7 +26,7 @@ import {
   commandCapabilityGrantsPermission,
   projectCommandBridgeUxDiscovery,
 } from "../src/finance/finance-command-bridge-ux-architecture";
-import type { CaseCommandCapabilityContract } from "@app-tour/finance-case-encounter-ui";
+import type { CaseCommandCapabilityContract } from "@/finance/finance-case-encounter-ui";
 
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO_ROOT = resolve(WEB_ROOT, "../..");

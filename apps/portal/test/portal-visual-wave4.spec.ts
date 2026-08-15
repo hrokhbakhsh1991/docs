@@ -92,7 +92,10 @@ describe("portal-visual-wave4.spec.ts", () => {
     const list = readPortal("app/me/more/member-more-hub-list.tsx");
     assert.match(page, /MemberMoreHubList/);
     assert.match(page, /data-portal-member-page-header/);
+    assert.match(page, /data-portal-member-hub-section-eyebrow/);
     assert.match(list, /data-portal-member-hub-link-icon/);
+    assert.match(list, /data-portal-member-hub-link-description/);
+    assert.match(list, /data-portal-member-hub-card-count/);
   });
 
   it("VIS-STUB-01 module stub exposes back link hook", () => {

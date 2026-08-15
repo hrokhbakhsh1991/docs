@@ -85,27 +85,42 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
       >
         <header data-portal-member-detail-app-bar>
           <Link href={tripsListHref} data-portal-member-back>
-            {t("backToList")}
+            <span data-portal-member-back-icon aria-hidden="true">
+              ←
+            </span>
+            <span data-portal-member-back-label>{t("backToList")}</span>
           </Link>
         </header>
         <section data-portal-member-detail-hero>
-          <h1>{row.tourTitle}</h1>
-          {registrantTarget === "other" ? (
-            <p data-portal-member-registration-guest>
-              <span data-portal-member-registrant-other-badge>{t("forOtherBadge")}</span>
-              {guestLabel !== null ? (
-                <span data-portal-member-registration-guest-label>
-                  {t("guestLine", { guestLabel })}
-                </span>
-              ) : null}
-            </p>
-          ) : null}
-          <p data-portal-member-registration-status>
-            {t("statusLine", { status: statusLabel, paymentStatus: paymentStatusLabel })}
-          </p>
-          <p data-portal-member-registration-departure>
-            {t("departure", { departureAt: departureLabel })}
-          </p>
+          <div data-portal-member-detail-hero-content>
+            <p data-portal-member-detail-eyebrow>{t("summaryEyebrow")}</p>
+            <h1>{row.tourTitle}</h1>
+            <p data-portal-member-detail-lede>{t("lede")}</p>
+            {registrantTarget === "other" ? (
+              <p data-portal-member-registration-guest>
+                <span data-portal-member-registrant-other-badge>{t("forOtherBadge")}</span>
+                {guestLabel !== null ? (
+                  <span data-portal-member-registration-guest-label>
+                    {t("guestLine", { guestLabel })}
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
+          </div>
+          <div data-portal-member-detail-kpis>
+            <div data-portal-member-detail-kpi data-kpi="status">
+              <p data-portal-member-detail-kpi-label>{t("statusLabel")}</p>
+              <p data-portal-member-registration-status>
+                {t("statusLine", { status: statusLabel, paymentStatus: paymentStatusLabel })}
+              </p>
+            </div>
+            <div data-portal-member-detail-kpi data-kpi="departure">
+              <p data-portal-member-detail-kpi-label>{t("departureLabel")}</p>
+              <p data-portal-member-registration-departure>
+                {t("departure", { departureAt: departureLabel })}
+              </p>
+            </div>
+          </div>
         </section>
         {showIntakeAmend && tour !== null ? (
           <MemberIntakeAmendForm

@@ -33,19 +33,33 @@ export default async function MeMorePage() {
       <main data-portal-member-more>
         <header data-portal-member-page-header>
           <h1>{t("title")}</h1>
+          <p data-portal-member-hub-lede>{t("lede")}</p>
         </header>
         {hubPayload.modules.length === 0 ? (
-          <p data-portal-member-hub-empty>{t("empty")}</p>
+          <section data-portal-member-hub-empty-state>
+            <div data-portal-member-hub-empty-copy>
+              <p data-portal-member-hub-empty-eyebrow>{t("title")}</p>
+              <h2 data-portal-member-hub-empty-title>{t("emptyTitle")}</h2>
+              <p data-portal-member-hub-empty>{t("empty")}</p>
+            </div>
+          </section>
         ) : (
-          <MemberMoreHubList
-            mode={hubPayload.presentation.mode}
-            items={hubPayload.modules.map((module) => ({
-              id: module.id,
-              href: module.routePath,
-              labelKey: module.labelKey,
-              testId: `portal-hub-link-${module.id}`,
-            }))}
-          />
+          <section data-portal-member-hub-section>
+            <div data-portal-member-section-heading>
+              <p data-portal-member-hub-section-eyebrow>{t("sectionEyebrow")}</p>
+              <h2>{t("sectionTitle")}</h2>
+              <p>{t("sectionLede")}</p>
+            </div>
+            <MemberMoreHubList
+              mode={hubPayload.presentation.mode}
+              items={hubPayload.modules.map((module) => ({
+                id: module.id,
+                href: module.routePath,
+                labelKey: module.labelKey,
+                testId: `portal-hub-link-${module.id}`,
+              }))}
+            />
+          </section>
         )}
       </main>
     </MemberMoreHubEntitlementGate>

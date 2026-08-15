@@ -20,7 +20,9 @@
   },
   "registrations": {
     "title": "My registrations",
+    "lede": "Review your own registrations and companion bookings in one calm place.",
     "empty": "No registrations yet.",
+    "emptyTitle": "No trip has started yet",
     "emptyFiltered": "No registrations in this filter. Try another tab.",
     "emptyCta": "Browse tours",
     "filterAria": "Filter by registration type",
@@ -136,11 +138,29 @@
   },
   "home": {
     "title": "Home",
-    "lede": "Your member hub — more modules arrive as your workspace enables them."
+    "lede": "Your member hub — more modules arrive as your workspace enables them.",
+    "quickLinksEyebrow": "Start here",
+    "quickLinksTitle": "Quick access",
+    "quickLinksLede": "Jump straight into the member actions you use most.",
+    "quickLinksRecommended": "Recommended",
+    "linkDescriptions": {
+      "default": "Open this module to continue the next part of your member journey.",
+      "profile": "Manage your account details and the defaults used in future registrations.",
+      "trips": "Follow your registrations, payment state, and active trip details."
+    }
   },
   "hub": {
     "title": "More",
-    "empty": "No additional modules are available yet."
+    "lede": "Less-frequent member tools and secondary account paths live here.",
+    "sectionEyebrow": "Secondary paths",
+    "sectionTitle": "More member tools",
+    "sectionLede": "Use this list when you need supporting modules beyond the main trips and profile flow.",
+    "emptyTitle": "Nothing more to show yet",
+    "empty": "No additional modules are available yet.",
+    "linkDescriptions": {
+      "default": "Open one of the supporting member tools from here when you need it.",
+      "wallet": "When available, your balance or member wallet tools will live here."
+    }
   },
   "unauthorized": {
     "title": "Access not available",
@@ -153,14 +173,21 @@
     "backToHome": "Back to home"
   },
   "detail": {
-    "backToList": "← Back to my registrations",
+    "backToList": "Back to my registrations",
+    "summaryEyebrow": "Registration overview",
+    "lede": "Track your registration status, departure timing, and next action for this trip here.",
+    "statusLabel": "Registration status",
+    "departureLabel": "Departure window",
     "statusLine": "Status: {status} · Payment: {paymentStatus}",
     "departure": "Departure: {departureAt}",
     "forOtherBadge": "For someone else",
     "guestLine": "Guest: {guestLabel}"
   },
   "receipt": {
+    "uploadEyebrow": "Pay by receipt",
     "label": "Upload payment receipt",
+    "uploadLede": "Upload the bank slip or PDF receipt so the Denali team can review your payment.",
+    "uploadHint": "Image files and PDF are supported. Check that the uploaded file is clear before submitting.",
     "submit": "Submit receipt",
     "uploading": "Uploading…",
     "uploaded": "Receipt uploaded.",
@@ -184,6 +211,7 @@
     "dueHint": "Your receipt should cover this total (trip plus dong/transport when applicable)."
   },
   "intakeAmend": {
+    "eyebrow": "Before approval",
     "title": "Update registration details",
     "lede": "You can change transport details before the club approves your registration.",
     "transportLegend": "Transport",

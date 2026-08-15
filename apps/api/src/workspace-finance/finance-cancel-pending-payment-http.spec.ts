@@ -7,14 +7,14 @@ import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { after, beforeEach, describe, it } from "node:test";
 
-import type { TenantAuthContext } from "@app-cloud/workspace-sdk";
+import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 import {
   configureFinanceHttpHost,
   handleFinanceCancelPendingManualPayment,
   resetFinanceHttpHostForTests,
-} from "@app-cloud/finance-http";
-import { createFinanceService } from "@app-cloud/finance-core";
-import type { FinanceObligationPort } from "@app-cloud/finance-http-contracts";
+} from "@app-tour/finance-http";
+import { createFinanceService } from "@app-tour/finance-core";
+import type { FinanceObligationPort } from "@app-tour/finance-http-contracts";
 
 import { handleHttpError } from "../middleware/error-interceptor.ts";
 import { runWithTraceContext } from "../observability/trace-request-context.ts";

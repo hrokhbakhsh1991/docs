@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import type { CaseCommandCapabilityContract } from "@app-tour/finance-case-encounter-ui";
+import type { CaseCommandCapabilityContract } from "@/finance/finance-case-encounter-ui";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

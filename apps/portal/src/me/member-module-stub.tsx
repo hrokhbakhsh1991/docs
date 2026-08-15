@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
+import { MemberModuleStatusShell } from "./member-module-status-shell";
 import { resolveMemberPortalBackTargetPath } from "./resolve-member-portal-routes.server";
 
 type MemberModuleStubProps = {
@@ -22,14 +23,17 @@ export async function MemberModuleStub({
   const ledeKey = moduleId === "wallet" ? "walletLede" : "lede";
 
   return (
-    <main
-      data-portal-member-module-stub
-      data-portal-member-module-id={moduleId}
-      data-portal-member-module-route={routePath}
+    <MemberModuleStatusShell
+      heading={tNav(labelKey)}
+      eyebrow={routePath}
+      description={tStub(ledeKey)}
+      headerProps={{ "data-portal-member-page-header": "" }}
+      mainProps={{
+        "data-portal-member-module-stub": "",
+        "data-portal-member-module-id": moduleId,
+        "data-portal-member-module-route": routePath,
+      }}
     >
-      <header data-portal-member-page-header>
-        <h1>{tNav(labelKey)}</h1>
-      </header>
       <section data-portal-member-module-stub-card>
         <p data-portal-member-module-stub-lede>{tStub(ledeKey)}</p>
         {backHref !== null ? (
@@ -38,6 +42,6 @@ export async function MemberModuleStub({
           </Link>
         ) : null}
       </section>
-    </main>
+    </MemberModuleStatusShell>
   );
 }

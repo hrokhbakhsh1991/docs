@@ -66,4 +66,53 @@ describe("tour-create-payment-mode-default (P5-C API-03..04)", () => {
     const pricing = data.pricing as { paymentMode?: string };
     assert.equal(pricing.paymentMode, DENALI_FROZEN_COMMERCE_CONFIG.paymentMode);
   });
+
+  it("API-05 keeps prepayment policy when starter ingress injects missing paymentMode", () => {
+    const body = applyWorkspaceCommerceDefaultToCreateBody(
+      "starter",
+      {
+        data: {
+          basics: { title: "Starter prepayment tour" },
+          pricing: {
+            prepaymentEnabled: true,
+            prepaymentPercent: 30,
+          },
+        },
+      },
+      GATEWAY_COMMERCE
+    );
+
+    const pricing = (body.data as Record<string, unknown>).pricing as {
+      paymentMode?: string;
+      prepaymentEnabled?: boolean;
+      prepaymentPercent?: number;
+    };
+    assert.equal(pricing.paymentMode, "gateway");
+    assert.equal(pricing.prepaymentEnabled, true);
+    assert.equal(pricing.prepaymentPercent, 30);
+  });
+
+  it("API-06 keeps denali prepayment fields while freezing paymentMode", () => {
+    const data = applyWorkspaceCommercePaymentModeToCreateData(
+      "denali",
+      {
+        basics: { title: "Denali prepayment tour" },
+        pricing: {
+          paymentMode: "gateway",
+          prepaymentEnabled: true,
+          prepaymentPercent: 50,
+        },
+      },
+      GATEWAY_COMMERCE
+    );
+
+    const pricing = data.pricing as {
+      paymentMode?: string;
+      prepaymentEnabled?: boolean;
+      prepaymentPercent?: number;
+    };
+    assert.equal(pricing.paymentMode, DENALI_FROZEN_COMMERCE_CONFIG.paymentMode);
+    assert.equal(pricing.prepaymentEnabled, true);
+    assert.equal(pricing.prepaymentPercent, 50);
+  });
 });

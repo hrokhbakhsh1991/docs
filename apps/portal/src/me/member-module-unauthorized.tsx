@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
+import { MemberModuleStatusShell } from "./member-module-status-shell";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
@@ -30,10 +31,19 @@ export async function MemberModuleUnauthorized({ moduleId }: MemberModuleUnautho
   const backHref = resolveMemberPortalBackTargetPath(bootstrap.pluginId);
 
   return (
-    <main data-portal-member-unauthorized data-portal-member-unauthorized-module={moduleId}>
-      <h1>{t("title")}</h1>
-      <p>{t("description", { moduleId: moduleLabel })}</p>
-      {backHref !== null ? <Link href={backHref}>{t("backToHome")}</Link> : null}
-    </main>
+    <MemberModuleStatusShell
+      heading={t("title")}
+      eyebrow={moduleLabel}
+      description={t("description", { moduleId: moduleLabel })}
+      headerProps={{ "data-portal-member-page-header": "" }}
+      mainProps={{
+        "data-portal-member-unauthorized": "",
+        "data-portal-member-unauthorized-module": moduleId,
+      }}
+    >
+      <div data-portal-member-status-actions>
+        {backHref !== null ? <Link href={backHref}>{t("backToHome")}</Link> : null}
+      </div>
+    </MemberModuleStatusShell>
   );
 }

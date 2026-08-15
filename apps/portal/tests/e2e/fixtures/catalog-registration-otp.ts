@@ -13,20 +13,18 @@ export async function gotoPortalRegistration(page: Page, tourId: string): Promis
 export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
   const otpStep = page.locator("[data-public-registration-otp]");
   await otpStep.waitFor({ state: "visible", timeout: 60_000 });
-  const input = otpStep.locator("#otp");
-  await input.click();
-  await input.fill("");
-  await input.pressSequentially(code.replace(/\D/g, ""), { delay: 15 });
+  const digits = code.replace(/\D/g, "");
+  const firstCell = otpStep.locator('[data-otp-cell="0"]');
 
-  const [response] = await Promise.all([
-    page.waitForResponse(
-      (res) =>
-        res.request().method() === "POST" &&
-        res.url().includes("/api/public-auth/verify-otp"),
-      { timeout: 90_000 }
-    ),
-    page.locator('[data-action="verify-otp"]').click(),
-  ]);
+  await firstCell.click();
+  await page.keyboard.type(digits, { delay: 15 });
+
+  const response = await page.waitForResponse(
+    (res) =>
+      res.request().method() === "POST" &&
+      res.url().includes("/api/public-auth/verify-otp"),
+    { timeout: 90_000 }
+  );
   const body = await response.text();
   expect(
     response.ok(),
@@ -109,7 +107,7 @@ export async function completeCatalogRegistrationIntake(
   const profileStep = page.locator("[data-public-registration-profile]");
   if (await profileStep.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await page.locator("#displayName").fill(input.fullName);
-    await page.locator('[data-action="profile-continue"]').click();
+    await page.locator('[data-action="profile-continue"]').click({ noWaitAfter: true });
   }
 
   await page.locator("[data-public-registration-intake]").waitFor({
@@ -260,7 +258,7 @@ export async function completeCatalogRegistrationIntake(
 
   const expectSuccess = input.expectSuccess ?? true;
 
-  await page.locator('[data-action="intake-submit"]').click();
+  await page.locator('[data-action="intake-submit"]').click({ noWaitAfter: true });
 
   if (expectSuccess) {
     await page.waitForSelector("[data-public-registration-success]", { timeout: 90_000 });
