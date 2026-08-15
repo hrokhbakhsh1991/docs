@@ -479,7 +479,12 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
   }
 
   return (
-    <form onSubmit={handleSubmit} data-public-registration-intake data-tour-id={context.tourId}>
+    <form
+      noValidate
+      onSubmit={handleSubmit}
+      data-public-registration-intake
+      data-tour-id={context.tourId}
+    >
       <header data-denali-intake-header>
         <p data-denali-intake-stage-eyebrow>{t("intake.stageEyebrow")}</p>
         <h2>{t("intake.title")}</h2>

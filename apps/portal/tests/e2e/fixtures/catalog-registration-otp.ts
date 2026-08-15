@@ -14,17 +14,20 @@ export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
   const otpStep = page.locator("[data-public-registration-otp]");
   await otpStep.waitFor({ state: "visible", timeout: 60_000 });
   const digits = code.replace(/\D/g, "");
-  const firstCell = otpStep.locator('[data-otp-cell="0"]');
-
-  await firstCell.click();
-  await page.keyboard.type(digits, { delay: 15 });
-
-  const response = await page.waitForResponse(
+  // Wait before typing — OtpSegmentInput auto-submits onComplete; cell-by-cell
+  // fill avoids rAF focus races from keyboard.type across maxLength=1 inputs.
+  const responsePromise = page.waitForResponse(
     (res) =>
       res.request().method() === "POST" &&
       res.url().includes("/api/public-auth/verify-otp"),
     { timeout: 90_000 }
   );
+  for (let i = 0; i < digits.length; i++) {
+    const cell = otpStep.locator(`[data-otp-cell="${i}"]`);
+    await cell.click();
+    await cell.fill(digits[i]!);
+  }
+  const response = await responsePromise;
   const body = await response.text();
   expect(
     response.ok(),

@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 export const CATALOG_DEV_OTP = "1234";
 
@@ -39,28 +39,37 @@ export async function submitCatalogPhoneForOtp(page: Page, phone: string): Promi
   });
 }
 
+/**
+ * OtpSegmentInput auto-submits via onComplete — do not click verify (button stays
+ * disabled as "Verifying…" and Playwright will hang on click).
+ * Fill cells one-by-one: keyboard.type races requestAnimationFrame focus moves.
+ */
 export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
   const otpStep = page.locator("[data-public-registration-otp]");
   await otpStep.waitFor({ state: "visible", timeout: 60_000 });
   const digits = code.replace(/\D/g, "");
-  // OtpSegmentInput auto-submits via onComplete — do not click verify (button stays
-  // disabled as "Verifying…" and Playwright will hang on click).
+
   const responsePromise = page.waitForResponse(
     (res) =>
       res.request().method() === "POST" &&
       res.url().includes("/api/public-auth/verify-otp"),
     { timeout: 90_000 }
   );
+
   const firstCell = otpStep.locator('[data-otp-cell="0"]');
   if ((await firstCell.count()) > 0) {
-    await firstCell.click();
-    await page.keyboard.type(digits, { delay: 15 });
+    for (let i = 0; i < digits.length; i++) {
+      const cell = otpStep.locator(`[data-otp-cell="${i}"]`);
+      await cell.click();
+      await cell.fill(digits[i]!);
+    }
   } else {
     const input = otpStep.locator("#otp");
     await input.click({ force: true });
     await input.fill("");
     await input.pressSequentially(digits, { delay: 15 });
   }
+
   const response = await responsePromise;
   const body = await response.text();
   expect(
@@ -99,17 +108,38 @@ export async function requestRegistrationOtp(page: Page, phone: string): Promise
   ).toBeTruthy();
 }
 
-async function fillIntakeFieldIfVisible(
-  page: Page,
+async function fillIntakeFieldInRootIfVisible(
+  root: Locator,
   fieldId: string,
   value: string
 ): Promise<void> {
-  const input = page.locator(`[data-intake-field="${fieldId}"]`);
-  if (await input.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await input.fill(value);
+  const inputEl = root.locator(`[data-intake-field="${fieldId}"]`).first();
+  if (await inputEl.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    await inputEl.fill(value);
   }
 }
 
+async function selectNoPersonalCarAndPayDong(cardRoot: Locator): Promise<void> {
+  const transportRoot = cardRoot.locator("[data-public-registration-transport]");
+  const scope = (await transportRoot.count()) > 0 ? transportRoot : cardRoot;
+  const hasPersonalCarRadios = scope.locator(
+    'input[type="radio"][name^="hasPersonalCar-"]'
+  );
+  if ((await hasPersonalCarRadios.count()) > 0) {
+    await hasPersonalCarRadios.nth(1).click();
+  }
+
+  const paysDongRadios = cardRoot.locator('input[type="radio"][name^="paysDong-"]');
+  if ((await paysDongRadios.count()) > 0) {
+    await paysDongRadios.first().click();
+  }
+}
+
+/**
+ * Complete portal intake after OTP. Aligned with apps/portal fixture:
+ * Denali self + transport radios (`hasPersonalCar-self`), then wait for success
+ * (not only POST — native constraint validation can swallow submit with no fetch).
+ */
 export async function completeCatalogRegistrationIntake(
   page: Page,
   input: {
@@ -119,36 +149,134 @@ export async function completeCatalogRegistrationIntake(
     readonly nationalId?: string;
     readonly fatherName?: string;
     readonly birthDate?: string;
+    readonly phone?: string;
+    readonly registrantTarget?: "self" | "other";
+    readonly expectSuccess?: boolean;
   }
 ): Promise<void> {
   const profileStep = page.locator("[data-public-registration-profile]");
   if (await profileStep.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await page.locator("#displayName").fill(input.fullName);
-    await page.locator('[data-action="profile-continue"]').click();
+    const emailInput = page.locator("#profileEmail, #email").first();
+    if (await emailInput.isVisible({ timeout: 500 }).catch(() => false)) {
+      await emailInput.fill(input.email);
+    }
+    await page.locator('[data-action="profile-continue"]').click({ noWaitAfter: true });
   }
 
   await page.locator("[data-public-registration-intake]").waitFor({
     state: "visible",
-    timeout: 60_000,
+    timeout: 120_000,
   });
 
-  await fillIntakeFieldIfVisible(page, "fullName", input.fullName);
-  await fillIntakeFieldIfVisible(page, "email", input.email);
-  await fillIntakeFieldIfVisible(page, "nationalId", input.nationalId ?? "1234567890");
-  await fillIntakeFieldIfVisible(page, "fatherName", input.fatherName ?? "Smoke Father");
-  await fillIntakeFieldIfVisible(page, "birthDate", input.birthDate ?? "1990-01-15");
-  await fillIntakeFieldIfVisible(page, "partySize", input.partySize ?? "2");
+  const registrantTarget = input.registrantTarget ?? "self";
+  const intakeRoot = page.locator("[data-public-registration-intake]");
 
-  const partySizeInput = page.getByLabel(/Party size|تعداد نفرات/);
-  if (await partySizeInput.isVisible({ timeout: 500 }).catch(() => false)) {
-    await partySizeInput.fill(input.partySize ?? "2");
+  if (registrantTarget === "other") {
+    const selfCheckbox = page.getByRole("checkbox", {
+      name: /برای خودم|For myself/i,
+    });
+    if (await selfCheckbox.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      const selfCard = page.locator("[data-denali-self-guest-card]");
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const checked = await selfCheckbox.isChecked().catch(() => false);
+        const selfVisible = (await selfCard.count()) > 0;
+        if (!checked && !selfVisible) break;
+        if (await selfCheckbox.isEnabled()) {
+          await selfCheckbox.click({ force: true });
+        }
+        try {
+          await expect(selfCard).toHaveCount(0, { timeout: 5_000 });
+          break;
+        } catch {
+          // retry
+        }
+      }
+    }
+
+    const guestCards = page.locator("[data-denali-other-guest-card]");
+    const addGuestButton = page.getByRole("button", {
+      name: /افزودن مهمان|Add guest/i,
+    });
+    if ((await guestCards.count()) === 0 && (await addGuestButton.count()) > 0) {
+      await addGuestButton.first().click();
+    }
+    if ((await guestCards.count()) > 0) {
+      const card = guestCards.first();
+      await fillIntakeFieldInRootIfVisible(card, "fullName", input.fullName);
+      if (input.phone) {
+        await fillIntakeFieldInRootIfVisible(card, "phone", input.phone);
+      }
+      await fillIntakeFieldInRootIfVisible(card, "email", input.email);
+      await fillIntakeFieldInRootIfVisible(
+        card,
+        "nationalId",
+        input.nationalId ?? "1234567890"
+      );
+      await fillIntakeFieldInRootIfVisible(
+        card,
+        "fatherName",
+        input.fatherName ?? "Smoke Father"
+      );
+      await fillIntakeFieldInRootIfVisible(
+        card,
+        "birthDate",
+        input.birthDate ?? "1990-01-15"
+      );
+      await fillIntakeFieldInRootIfVisible(card, "partySize", input.partySize ?? "2");
+      await selectNoPersonalCarAndPayDong(card);
+    }
+  } else {
+    // Ensure Denali "for myself" stays selected when the toggle is present.
+    const selfCheckbox = page.getByRole("checkbox", {
+      name: /برای خودم|For myself/i,
+    });
+    if (await selfCheckbox.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      if (!(await selfCheckbox.isChecked())) {
+        await selfCheckbox.click({ force: true });
+      }
+      await expect(page.locator("[data-denali-self-guest-card]")).toBeVisible({
+        timeout: 15_000,
+      });
+    }
+
+    await fillIntakeFieldInRootIfVisible(intakeRoot, "fullName", input.fullName);
+    if (input.phone) {
+      await fillIntakeFieldInRootIfVisible(intakeRoot, "phone", input.phone);
+    }
+    await fillIntakeFieldInRootIfVisible(intakeRoot, "email", input.email);
+    await fillIntakeFieldInRootIfVisible(
+      intakeRoot,
+      "nationalId",
+      input.nationalId ?? "1234567890"
+    );
+    await fillIntakeFieldInRootIfVisible(
+      intakeRoot,
+      "fatherName",
+      input.fatherName ?? "Smoke Father"
+    );
+    await fillIntakeFieldInRootIfVisible(
+      intakeRoot,
+      "birthDate",
+      input.birthDate ?? "1990-01-15"
+    );
+    await fillIntakeFieldInRootIfVisible(
+      intakeRoot,
+      "partySize",
+      input.partySize ?? "2"
+    );
+
+    const partySizeInput = page.getByLabel(/Party size|تعداد نفرات/);
+    if (await partySizeInput.isVisible({ timeout: 500 }).catch(() => false)) {
+      await partySizeInput.fill(input.partySize ?? "2");
+    }
+
+    await selectNoPersonalCarAndPayDong(intakeRoot);
   }
 
-  const transportFieldset = page.locator("[data-public-registration-transport]");
-  if (await transportFieldset.isVisible({ timeout: 2_000 }).catch(() => false)) {
-    await page.locator('input[name="hasPersonalCar"]').nth(1).click();
-    await page.locator('input[name="paysDong"]').first().click();
-  }
+  const expectSuccess = input.expectSuccess ?? true;
+  const submit = page.locator('[data-action="intake-submit"]');
+  await expect(submit).toBeEnabled({ timeout: 15_000 });
 
   const [response] = await Promise.all([
     page.waitForResponse(
@@ -157,11 +285,15 @@ export async function completeCatalogRegistrationIntake(
         res.url().includes("/api/catalog/registrations"),
       { timeout: 90_000 }
     ),
-    page.locator('[data-action="intake-submit"]').click(),
+    submit.click({ noWaitAfter: true }),
   ]);
   const body = await response.text();
   expect(
     response.ok(),
     `catalog registration failed (${response.status()}): ${body.slice(0, 240)}`
   ).toBeTruthy();
+
+  if (expectSuccess) {
+    await page.waitForSelector("[data-public-registration-success]", { timeout: 90_000 });
+  }
 }

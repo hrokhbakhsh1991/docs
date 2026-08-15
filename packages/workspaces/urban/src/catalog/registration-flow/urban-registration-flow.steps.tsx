@@ -122,7 +122,12 @@ export function UrbanIntakeStep({
   }
 
   return (
-    <form onSubmit={handleSubmit} data-public-registration-intake data-tour-id={context.tourId}>
+    <form
+      noValidate
+      onSubmit={handleSubmit}
+      data-public-registration-intake
+      data-tour-id={context.tourId}
+    >
       <h2>{t("intake.title")}</h2>
       <RenderIntakeForm
         schema={effectiveSchema}
