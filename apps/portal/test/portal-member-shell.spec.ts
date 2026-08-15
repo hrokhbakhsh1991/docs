@@ -89,12 +89,15 @@ describe("portal-member-shell.spec.ts — PS-1", () => {
   it("PS1-SHELL-05 logout hook preserved in user menu", () => {
     const userMenu = readPortal("src/shell/portal-member-user-menu.tsx");
     assert.match(userMenu, /MemberLogoutButton/);
+    assert.match(userMenu, /logoutTarget/);
     const logout = readPortal("src/me/member-logout-button.tsx");
     assert.match(logout, /data-public-auth-logout/);
     assert.match(logout, /data-public-auth-logout-ready/);
-    assert.match(logout, /data-public-auth-logout-target="login"/);
-    assert.match(logout, /MEMBER_LOGOUT_LANDING_PATH/);
-    assert.match(logout, /\/login/);
+    assert.match(logout, /data-public-auth-logout-target="marketing-home"/);
+    assert.match(logout, /logoutTarget: string/);
+    assert.match(logout, /location\.assign\(logoutTarget\)/);
+    assert.doesNotMatch(logout, /MEMBER_LOGOUT_LANDING_PATH/);
+    assert.doesNotMatch(logout, /\/login/);
     assert.doesNotMatch(logout, /location\.assign\("\/"\)/);
   });
 });
@@ -112,6 +115,7 @@ describe("portal-member-shell.spec.ts — PS-2 registry nav", () => {
   it("PS2-SHELL-02 bottom nav consumes registry items prop", () => {
     const bottomNav = readPortal("src/shell/portal-member-bottom-nav.tsx");
     assert.match(bottomNav, /items\.map/);
+    assert.match(bottomNav, /logoutTarget/);
     assert.doesNotMatch(bottomNav, /PHASE1_PRIMARY_NAV/);
     assert.doesNotMatch(bottomNav, /href="\/me\/registrations"/);
   });
@@ -119,6 +123,7 @@ describe("portal-member-shell.spec.ts — PS-2 registry nav", () => {
   it("PS2-SHELL-03 user menu consumes registry items prop", () => {
     const userMenu = readPortal("src/shell/portal-member-user-menu.tsx");
     assert.match(userMenu, /items\.map/);
+    assert.match(userMenu, /logoutTarget/);
     assert.doesNotMatch(userMenu, /href="\/me\/profile"/);
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 
 import type { MemberReceiptStatus } from "@/me/member-receipt-status";
@@ -24,6 +25,13 @@ type Props = {
   readonly tripsListHref: string;
   readonly tourHref: string | null;
   readonly due: MemberReceiptDue | null;
+};
+
+type ReceiptStateCardProps = {
+  readonly body: string;
+  readonly children?: ReactNode;
+  readonly rootProps: Record<string, string>;
+  readonly title: string;
 };
 
 function formatMinorAmount(amountMinor: string, currency: string): string {
@@ -73,20 +81,36 @@ export function MemberReceiptUploadForm({
     }
   }
 
+  function ReceiptStateCard({ body, children, rootProps, title }: ReceiptStateCardProps) {
+    return (
+      <div data-portal-member-receipt-state-card {...rootProps}>
+        <div data-portal-member-receipt-state-copy>
+          <p data-portal-member-receipt-state-eyebrow>{t("uploadEyebrow")}</p>
+          <p role="status" data-portal-member-receipt-state-title>
+            <strong>{title}</strong>
+          </p>
+          <p data-portal-member-receipt-state-body>{body}</p>
+        </div>
+        {children}
+      </div>
+    );
+  }
+
   const actionLinks = (
-    <p data-portal-member-receipt-actions>
-      <a href={tripsListHref} data-portal-member-receipt-back-trips>
+    <div data-portal-member-receipt-actions>
+      <a
+        href={tripsListHref}
+        data-portal-member-receipt-back-trips
+        data-action-kind="secondary"
+      >
         {t("backToTrips")}
       </a>
       {tourHref !== null ? (
-        <>
-          {" · "}
-          <a href={tourHref} data-portal-member-receipt-view-tour>
-            {t("viewTour")}
-          </a>
-        </>
+        <a href={tourHref} data-portal-member-receipt-view-tour data-action-kind="primary">
+          {t("viewTour")}
+        </a>
       ) : null}
-    </p>
+    </div>
   );
 
   const dueBlock =
@@ -97,7 +121,7 @@ export function MemberReceiptUploadForm({
           <strong>{t("dueTotal", { amount: formatMinorAmount(due.totalMinor, due.currency) })}</strong>
         </p>
         {due.lines.length > 0 ? (
-          <ul>
+          <ul data-portal-member-receipt-due-list>
             {due.lines.map((line) => {
               const label =
                 line.code === "trip"
@@ -119,79 +143,89 @@ export function MemberReceiptUploadForm({
 
   if (receiptStatus === "paid") {
     return (
-      <div data-portal-member-receipt-paid>
-        <p role="status">
-          <strong>{t("paidTitle")}</strong>
-        </p>
-        <p>{t("paidBody")}</p>
+      <ReceiptStateCard
+        rootProps={{ "data-portal-member-receipt-paid": "" }}
+        title={t("paidTitle")}
+        body={t("paidBody")}
+      >
         {actionLinks}
-      </div>
+      </ReceiptStateCard>
     );
   }
 
   if (registrationStatus === "rejected" || registrationStatus === "cancelled") {
     return (
-      <div data-portal-member-receipt-closed>
-        <p role="status">
-          <strong>{t("closedTitle")}</strong>
-        </p>
-        <p>{t("closedBody")}</p>
+      <ReceiptStateCard
+        rootProps={{ "data-portal-member-receipt-closed": "" }}
+        title={t("closedTitle")}
+        body={t("closedBody")}
+      >
         {actionLinks}
-      </div>
+      </ReceiptStateCard>
     );
   }
 
   if (registrationStatus === "pending" || registrationStatus === "waitlisted") {
     return (
-      <div data-portal-member-receipt-awaiting-approval>
-        <p role="status">
-          <strong>{t("awaitingApprovalTitle")}</strong>
-        </p>
-        <p>{t("awaitingApprovalBody")}</p>
+      <ReceiptStateCard
+        rootProps={{ "data-portal-member-receipt-awaiting-approval": "" }}
+        title={t("awaitingApprovalTitle")}
+        body={t("awaitingApprovalBody")}
+      >
         {actionLinks}
-      </div>
+      </ReceiptStateCard>
     );
   }
 
   if (receiptStatus === "pending") {
     return (
-      <div data-portal-member-receipt-waiting>
+      <ReceiptStateCard
+        rootProps={{ "data-portal-member-receipt-waiting": "" }}
+        title={t("waitingTitle")}
+        body={t("waitingBody")}
+      >
         {dueBlock}
-        <p role="status">
-          <strong>{t("waitingTitle")}</strong>
-        </p>
-        <p>{t("waitingBody")}</p>
         {actionLinks}
-      </div>
+      </ReceiptStateCard>
     );
   }
 
   return (
     <div data-portal-member-receipt-upload>
+      <div data-portal-member-detail-section-heading>
+        <p data-portal-member-receipt-upload-eyebrow>{t("uploadEyebrow")}</p>
+        <h2>{t("label")}</h2>
+        <p>{t("uploadLede")}</p>
+      </div>
       {dueBlock}
       {receiptStatus === "rejected" ? (
         <p role="status" data-portal-member-receipt-rejected-hint>
           {t("rejectedHint")}
         </p>
       ) : null}
-      <label htmlFor="receipt-file">{t("label")}</label>
-      <input
-        ref={fileInputRef}
-        id="receipt-file"
-        name="file"
-        type="file"
-        accept="image/*,.pdf"
-        required
-        disabled={uploadPhase === "uploading"}
-      />
-      <button
-        type="button"
-        data-portal-member-receipt-submit
-        disabled={uploadPhase === "uploading"}
-        onClick={() => void uploadReceipt()}
-      >
-        {uploadPhase === "uploading" ? t("uploading") : t("submit")}
-      </button>
+      <div data-portal-member-receipt-upload-field>
+        <label htmlFor="receipt-file">{t("label")}</label>
+        <input
+          ref={fileInputRef}
+          id="receipt-file"
+          name="file"
+          type="file"
+          accept="image/*,.pdf"
+          required
+          disabled={uploadPhase === "uploading"}
+        />
+        <p data-portal-member-receipt-upload-hint>{t("uploadHint")}</p>
+      </div>
+      <div data-portal-member-receipt-upload-actions>
+        <button
+          type="button"
+          data-portal-member-receipt-submit
+          disabled={uploadPhase === "uploading"}
+          onClick={() => void uploadReceipt()}
+        >
+          {uploadPhase === "uploading" ? t("uploading") : t("submit")}
+        </button>
+      </div>
       {uploadPhase === "error" ? (
         <p role="alert" data-portal-member-receipt-error>
           {t("failed")}

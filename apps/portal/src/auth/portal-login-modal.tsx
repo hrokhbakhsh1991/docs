@@ -131,6 +131,10 @@ export function PortalLoginModalProvider({ children }: ProviderProps) {
   );
 
   const titleId = "portal-login-modal-title";
+  const modalTitle = host === "register" ? t("signInToRegister") : t("loginPageTitle");
+  const modalLede =
+    host === "register" ? t("phone.existingMemberDescription") : t("phone.loginDescription");
+  const showRegisterIntro = host === "login";
 
   return (
     <PortalLoginModalContext.Provider value={value}>
@@ -153,7 +157,7 @@ export function PortalLoginModalProvider({ children }: ProviderProps) {
         {open ? (
           <div data-portal-login-modal-panel>
             <header data-portal-login-modal-header>
-              <h2 id={titleId}>{t("loginPageTitle")}</h2>
+              <h2 id={titleId}>{modalTitle}</h2>
               <button
                 type="button"
                 data-portal-login-modal-close
@@ -164,7 +168,21 @@ export function PortalLoginModalProvider({ children }: ProviderProps) {
               </button>
             </header>
             {flow !== null ? (
-              <div data-portal-login-modal-body data-member-login-egress="">
+              <div
+                data-portal-login-modal-body
+                data-member-login-egress=""
+                data-portal-login-modal-body-variant={host}
+              >
+                {showRegisterIntro ? (
+                  <div data-portal-login-modal-intro>
+                    <p data-portal-login-modal-intro-eyebrow>{t("phone.loginTitle")}</p>
+                    <p data-portal-login-modal-intro-lede>{modalLede}</p>
+                    <div data-portal-login-modal-intro-hints>
+                      <p>{t("phone.existingHint")}</p>
+                      <p>{t("phone.newHint")}</p>
+                    </div>
+                  </div>
+                ) : null}
                 <PublicCatalogRegistrationFlow
                   workspace={flow.workspace}
                   tenantId={flow.tenantId}

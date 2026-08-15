@@ -21,6 +21,12 @@ const operatorTenantId =
 const operatorSmokeOwnerUserId = "00000000-0000-4000-8000-000000000101";
 const operatorSmokeOwnerMobile = resolveOperatorSmokeOwnerMobile();
 const operatorSmokeSeedTourTitle = "North Ridge Trek";
+const operatorSmokeDbUrl =
+  process.env.DATABASE_URL?.trim() ||
+  "postgresql://app_tour:app_tour@127.0.0.1:5434/app_tour_dev";
+const operatorSmokeDbAdminUrl =
+  process.env.DATABASE_URL_ADMIN?.trim() ||
+  "postgresql://postgres:postgres@127.0.0.1:5434/app_tour_dev";
 /**
  * Finance workspace scenarios create manual payments / receipts, so the operator smoke stack
  * needs Prisma + DATABASE_URL by default. Set OPERATOR_SMOKE_USE_DATABASE=0 to force legacy memory smoke.
@@ -101,6 +107,62 @@ function waitForUrl(url, timeoutMs = 300_000) {
       });
     };
     tick();
+  });
+}
+
+function createChildExitError(label, code, signal) {
+  const suffix =
+    typeof code === "number"
+      ? `exit ${code}`
+      : signal
+        ? `signal ${signal}`
+        : "unknown exit";
+  return new Error(`smoke-operator-e2e-servers: ${label} exited before readiness (${suffix})`);
+}
+
+function waitForUrlOrChildExit(child, url, label, timeoutMs = 300_000) {
+  if (child.exitCode !== null) {
+    return Promise.reject(createChildExitError(label, child.exitCode, child.signalCode));
+  }
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+
+    const cleanup = () => {
+      child.off("exit", onExit);
+      child.off("error", onError);
+    };
+
+    const settleResolve = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      resolve();
+    };
+
+    const settleReject = (error) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+
+    const onExit = (code, signal) => {
+      settleReject(createChildExitError(label, code, signal));
+    };
+
+    const onError = (error) => {
+      settleReject(error);
+    };
+
+    child.once("exit", onExit);
+    child.once("error", onError);
+
+    waitForUrl(url, timeoutMs).then(settleResolve).catch(settleReject);
   });
 }
 
@@ -534,6 +596,12 @@ try {
     ...process.env,
     ...jwtEnv,
     NODE_ENV: "test",
+    ...(useFinanceDatabase
+      ? {
+          DATABASE_URL: operatorSmokeDbUrl,
+          DATABASE_URL_ADMIN: operatorSmokeDbAdminUrl,
+        }
+      : {}),
     STORAGE_DRIVER: useFinanceDatabase
       ? process.env.STORAGE_DRIVER?.trim() || "prisma"
       : "memory",
@@ -543,6 +611,7 @@ try {
     OPERATOR_OWNER_USER_ID: operatorSmokeOwnerUserId,
     P5_VALIDATION_WORKERS_ENABLED: "false",
     PORT: "3001",
+    HOST: "127.0.0.1",
     TENANT_RATE_LIMIT_ENABLED: "false",
     PROJECTION_AUTO_RECONCILE_ENABLED: "false",
     PRIORITY_LOAD_SHED_ENABLED: "false",
@@ -577,7 +646,7 @@ try {
       stdio: "inherit",
       }
     );
-    await waitForUrl("http://127.0.0.1:3001/health");
+    await waitForUrlOrChildExit(api, "http://127.0.0.1:3001/health", "API server");
     runDbBackedOperatorSmokeSeed();
     if (!(await waitForOperatorSmokeFinanceReady())) {
       throw new Error(
@@ -594,9 +663,9 @@ try {
       env: webEnv,
       stdio: "inherit",
     });
-    await waitForUrl("http://127.0.0.1:3000/", 300_000);
-    await waitForUrl("http://127.0.0.1:3000/auth/login", 300_000);
-    await waitForUrl("http://127.0.0.1:3000/bookings/new", 300_000);
+    await waitForUrlOrChildExit(web, "http://127.0.0.1:3000/", "web server", 300_000);
+    await waitForUrlOrChildExit(web, "http://127.0.0.1:3000/auth/login", "web server", 300_000);
+    await waitForUrlOrChildExit(web, "http://127.0.0.1:3000/bookings/new", "web server", 300_000);
     console.log("smoke-operator-e2e-servers: web routes warm (login + bookings/new)");
   } else {
     console.log("smoke-operator-e2e-servers: web already on 3000 — skipping spawn");

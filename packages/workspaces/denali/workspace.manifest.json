@@ -162,6 +162,10 @@
     "registrationObligation": {
       "module": "./finance",
       "export": "resolveDenaliRegistrationObligationMinor"
+    },
+    "paymentCollection": {
+      "module": "./finance",
+      "export": "resolveDenaliPaymentCollectionMode"
     }
   },
   "workspaceBooking": {

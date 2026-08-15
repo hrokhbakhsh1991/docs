@@ -100,7 +100,7 @@ describe("guest-theme-stack.spec.ts — portal", () => {
     assert.match(loginPageCss, /align-items:\s*flex-end/);
     assert.match(
       loginPageCss,
-      /:has\(\s*\[data-portal-login-modal-open="true"\]\s*\)[\s\S]*\[data-portal-login-host-lede\]/
+      /:has\(\s*\[data-portal-login-modal-open="true"\]\s*\)[\s\S]*\[data-portal-login-host-lede\]|:has\(\s*\[data-portal-login-modal-open="true"\]\s*\)[\s\S]*\[data-portal-login-form-panel\]/
     );
     const formControls = readFileSync(
       join(repoRoot, "packages/workspaces/denali/theme/portal/denali-form-controls.css"),

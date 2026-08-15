@@ -11,7 +11,7 @@ import type {
 
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
 import { fetchMemberProfileFromSession } from "@/me/fetch-member-profile-from-session.server";
-import { sessionMemberMatchesPortalTenant } from "@/tenant/session-host-binding";
+import { sessionMemberMatchesPortalGuestSurface } from "@/tenant/session-host-binding";
 
 function emptyTransportState(): PublicCatalogTransportIntakeState {
   return {
@@ -34,7 +34,10 @@ export async function buildRegistrationResumeInitialState(
   _context: RegistrationFlowContext
 ): Promise<RegistrationResumeInitialState | null> {
   const session = await readPublicCatalogSessionFromCookies();
-  if (session === null || !sessionMemberMatchesPortalTenant(session.tenantId, portalTenantId)) {
+  if (
+    session === null ||
+    !sessionMemberMatchesPortalGuestSurface(session.tenantId, host, portalTenantId)
+  ) {
     return null;
   }
 

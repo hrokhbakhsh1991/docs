@@ -24,6 +24,17 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-profile] [data-portal-member-profile],
     [data-portal-member-receipt-upload]
   )
+  :is(input, select, button, a):focus-visible {
+  outline: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is(
+    [data-portal-auth-card],
+    [data-portal-login-modal-body],
+    main[data-portal-member-profile] [data-portal-member-profile],
+    [data-portal-member-receipt-upload]
+  )
   input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   :is(
@@ -34,12 +45,32 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   select {
   width: 100%;
   min-height: 3rem;
+  padding: 0.875rem 0.95rem;
   border-radius: calc(var(--radius) * 1.1);
   border: 1px solid var(--color-border-default);
-  background: var(--color-bg-surface);
+  background: color-mix(in srgb, var(--color-bg-surface) 94%, white);
   font: inherit;
   font-size: 1rem;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  line-height: 1.35;
+  color: var(--color-text-primary);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.38),
+    0 1px 2px rgb(15 23 42 / 0.04);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is(
+    [data-portal-auth-card],
+    [data-portal-login-modal-body],
+    main[data-portal-member-profile] [data-portal-member-profile],
+    [data-portal-member-receipt-upload]
+  )
+  input::placeholder {
+  color: color-mix(in oklab, var(--color-text-muted) 88%, white);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -58,8 +89,30 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   )
   select:focus-visible {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-focus-ring);
-  outline: none;
+  background: var(--color-bg-surface);
+  box-shadow:
+    0 0 0 3px var(--color-focus-ring),
+    0 10px 24px rgb(5 150 105 / 0.08);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is(
+    [data-portal-auth-card],
+    [data-portal-login-modal-body],
+    main[data-portal-member-profile] [data-portal-member-profile],
+    [data-portal-member-receipt-upload]
+  )
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):disabled,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is(
+    [data-portal-auth-card],
+    [data-portal-login-modal-body],
+    main[data-portal-member-profile] [data-portal-member-profile]
+  )
+  select:disabled {
+  opacity: 0.72;
+  background: color-mix(in oklab, var(--color-bg-muted) 84%, white);
+  cursor: not-allowed;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -74,6 +127,9 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-member-profile-save],
     [data-portal-member-receipt-submit]
   ) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   align-self: stretch;
   width: 100%;
   min-height: 3rem;
@@ -89,6 +145,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   font-size: 0.9375rem;
   font-weight: 700;
   letter-spacing: 0.01em;
+  text-decoration: none;
   box-shadow:
     0 1px 2px rgb(4 120 87 / 0.24),
     0 6px 16px rgb(5 150 105 / 0.18);
@@ -146,6 +203,9 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   ):disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.08),
+    0 4px 10px rgb(15 23 42 / 0.06);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -153,6 +213,9 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   button[type="button"]:not([data-portal-register-sign-in-button]):not(
       [data-portal-login-modal-close]
     ) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   align-self: stretch;
   width: 100%;
   min-height: 3rem;
@@ -180,12 +243,42 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   :is([data-portal-auth-card], [data-portal-login-modal-body])
+  button[type="button"]:not([data-portal-register-sign-in-button]):not(
+      [data-portal-login-modal-close]
+    ):not(:disabled):hover {
+  filter: brightness(1.03);
+  box-shadow:
+    0 2px 4px rgb(4 120 87 / 0.26),
+    0 10px 22px rgb(5 150 105 / 0.22);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is([data-portal-auth-card], [data-portal-login-modal-body])
+  button[type="button"]:not([data-portal-register-sign-in-button]):not(
+      [data-portal-login-modal-close]
+    ):not(:disabled):active {
+  transform: translateY(1px);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is([data-portal-auth-card], [data-portal-login-modal-body])
+  button[type="button"]:not([data-portal-register-sign-in-button]):not(
+      [data-portal-login-modal-close]
+    ):focus-visible {
+  box-shadow:
+    0 0 0 3px var(--color-focus-ring),
+    0 10px 22px rgb(5 150 105 / 0.22);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is([data-portal-auth-card], [data-portal-login-modal-body])
   [role="alert"] {
   padding: var(--space-3);
   border-radius: var(--radius-md);
-  border: 1px solid color-mix(in oklab, var(--destructive) 35%, transparent);
-  background: color-mix(in oklab, var(--destructive) 8%, var(--color-bg-surface));
+  border: 1px solid var(--portal-auth-alert-border);
+  background: var(--portal-auth-alert-background);
   color: var(--destructive);
   font-size: 0.875rem;
+  line-height: 1.5;
   margin: 0;
 }

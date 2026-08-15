@@ -13,7 +13,7 @@ import {
   mapDenaliLifecycleToLifecycleFacts,
   mapDenaliObligationToMoneyFacts,
   mapDenaliPaymentToPaymentFacts,
-} from "@app-tour/workspace-denali/host/finance/case-read";
+} from "../../workspace-finance-case-read-bindings.generated";
 
 import {
   createInMemoryEncounterTelemetrySink,

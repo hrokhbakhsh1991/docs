@@ -46,4 +46,4 @@ CREATE POLICY finance_refunds_tenant_isolation ON finance_refunds
   USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
   WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE finance_refunds TO app_cloud;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE finance_refunds TO app_tour;

@@ -56,7 +56,7 @@ export function PortalAuthExperienceShell({
               <p data-portal-auth-lede>{heroLede}</p>
             ) : null}
           </header>
-          {children}
+          <div data-portal-auth-content>{children}</div>
         </section>
       </div>
     </main>

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  sessionMemberMatchesPortalGuestSurface,
   sessionMemberMatchesPortalTenant,
   sessionTenantMatchesHost,
 } from "../src/tenant/session-host-binding";
@@ -45,6 +46,28 @@ describe("session-host-binding — PCMS-SEC-01", () => {
       );
     } finally {
       process.env.ALLOW_DEV_WEB_SESSION = oldAllow;
+    }
+  });
+
+  it("PCMS-03b guest auth surfaces reuse cross-surface dev tenant bind", () => {
+    const oldAllow = process.env.ALLOW_DEV_WEB_SESSION;
+    const oldNode = process.env.NODE_ENV;
+    process.env.ALLOW_DEV_WEB_SESSION = "true";
+    process.env.NODE_ENV = "development";
+    try {
+      assert.equal(
+        sessionMemberMatchesPortalGuestSurface(TENANT_A, "denali.portal.localhost:3003", TENANT_B),
+        true
+      );
+      assert.equal(
+        sessionMemberMatchesPortalGuestSurface(TENANT_B, "denali.portal.localhost:3003", TENANT_B),
+        true
+      );
+    } finally {
+      if (oldAllow === undefined) delete process.env.ALLOW_DEV_WEB_SESSION;
+      else process.env.ALLOW_DEV_WEB_SESSION = oldAllow;
+      if (oldNode === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = oldNode;
     }
   });
 

@@ -43,6 +43,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   div[data-marketing-header-end] {
   grid-column: 2;
   justify-self: end;
+  min-width: 0;
 }
 
 /* Toolbar always visible (marketing hides it below 1024px) */
@@ -51,6 +52,22 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   header[data-portal-member-header-minimal]
   div[data-marketing-header-toolbar] {
   display: flex;
+  min-width: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  header[data-portal-member-header-minimal]
+  a[data-marketing-header-member] {
+  max-width: min(100%, 13rem);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  header[data-portal-member-header-minimal]
+  span[data-marketing-header-member-label] {
+  max-width: 100%;
+  unicode-bidi: plaintext;
 }
 
 @media (min-width: 48rem) {
@@ -85,6 +102,47 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     header[data-portal-member-header-minimal]
     span[data-marketing-header-member-hint] {
+    display: none;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    header[data-portal-member-header-minimal]
+    div[data-marketing-header-inner] {
+    gap: var(--space-2);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    header[data-portal-member-header-minimal]
+    a[data-marketing-header-member] {
+    max-width: min(100%, 9.75rem);
+    padding-inline-end: var(--space-2);
+  }
+}
+
+@media (max-width: 29.99rem) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    header[data-portal-member-header-minimal]
+    div[data-marketing-header-inner] {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-inline: var(--space-3);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    header[data-portal-member-header-minimal]
+    a[data-marketing-header-member] {
+    max-width: 3rem;
+    min-width: 3rem;
+    padding-inline: var(--space-1);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    header[data-portal-member-header-minimal]
+    span[data-marketing-header-member-meta] {
     display: none;
   }
 }

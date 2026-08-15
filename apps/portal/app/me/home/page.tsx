@@ -46,14 +46,21 @@ export default async function MeHomePage() {
           <h1>{t(homePayload.welcome.titleKey)}</h1>
           <p data-portal-member-home-lede>{t(homePayload.welcome.ledeKey)}</p>
         </header>
-        <MemberHomeQuickLinks
-          items={quickLinks.map((module) => ({
-            id: module.id,
-            href: module.routePath,
-            labelKey: module.labelKey,
-            testId: `portal-home-link-${module.id}`,
-          }))}
-        />
+        <section data-portal-member-home-quick-links-section>
+          <div data-portal-member-section-heading>
+            <p data-portal-member-home-section-eyebrow>{t("quickLinksEyebrow")}</p>
+            <h2>{t("quickLinksTitle")}</h2>
+            <p>{t("quickLinksLede")}</p>
+          </div>
+          <MemberHomeQuickLinks
+            items={quickLinks.map((module) => ({
+              id: module.id,
+              href: module.routePath,
+              labelKey: module.labelKey,
+              testId: `portal-home-link-${module.id}`,
+            }))}
+          />
+        </section>
       </main>
     </MemberModuleEntitlementGate>
   );

@@ -43,6 +43,7 @@ export function MemberProfileAvatar({
     avatarUrl !== null && avatarUrl.length > 0
       ? t("avatarPhotoAlt", { name: label })
       : t("avatarInitialsAlt", { name: label });
+  const avatarSectionLabel = t("fieldLabels.avatarUrl");
 
   async function handleFileSelected(file: File): Promise<void> {
     setError(null);
@@ -92,6 +93,10 @@ export function MemberProfileAvatar({
             {initials}
           </span>
         )}
+      </div>
+      <div data-member-profile-avatar-meta>
+        <p data-member-profile-avatar-caption>{avatarSectionLabel}</p>
+        <p data-member-profile-avatar-name>{label}</p>
       </div>
       <div data-member-profile-avatar-actions>
         <input

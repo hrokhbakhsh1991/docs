@@ -45,6 +45,8 @@ export const DENALI_FIELD_COMPLETION_WEIGHTS: Readonly<Record<string, number>> =
   "transport.adminCapacityApproval": 1,
   photos: 10,
   "pricing.requiresPayment": 2,
+  "pricing.prepaymentEnabled": 2,
+  "pricing.prepaymentPercent": 3,
   "pricing.basePricePerPerson": 4,
   "pricing.paymentMode": 2,
   "pricing.includesTourInsurance": 1,

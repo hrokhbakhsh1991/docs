@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { resolveDenaliSuggestedPrepaymentMinor } from "@app-tour/workspace-denali/host/bookings";
 
 import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import { Button } from "@/components/ui/button";
@@ -23,12 +24,14 @@ import {
   formatMinorAmount,
   validateRecordPrepaymentForm,
 } from "@/finance/finance-prepayments-logic";
+import { fetchTourDetailCached, readCachedTourDetail } from "@/features/tours/tour-route-cache";
 import type { TourWorkspacePaymentActionEvent } from "@/features/tours/tour-workspace-finance-logic";
 import type { AppLocale } from "@/i18n/routing";
 import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
 import { cn } from "@/lib/utils";
 
 type TourWorkspaceAdminPaymentCardProps = {
+  readonly tourId: string;
   readonly registrationId: string;
   readonly canManage: boolean;
   readonly onChanged?: (event: TourWorkspacePaymentActionEvent) => void;
@@ -53,6 +56,7 @@ function parseMinor(value: string): bigint {
 }
 
 export function TourWorkspaceAdminPaymentCard({
+  tourId,
   registrationId,
   canManage,
   onChanged,
@@ -66,6 +70,7 @@ export function TourWorkspaceAdminPaymentCard({
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
   const normalizedRegistrationId = registrationId.trim();
+  const normalizedTourId = tourId.trim();
   const [invoice, setInvoice] = useState<RegistrationInvoice | null>(null);
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("IRR");
@@ -73,6 +78,9 @@ export function TourWorkspaceAdminPaymentCard({
   const [saving, setSaving] = useState(false);
   const [actionBanner, setActionBanner] = useState<PaymentActionBanner | null>(null);
   const [invoiceLoaded, setInvoiceLoaded] = useState(false);
+  const [tourCanonicalData, setTourCanonicalData] = useState<Record<string, unknown> | null>(() =>
+    readCachedTourDetail(normalizedTourId)?.canonical.data ?? null
+  );
   const amountPrefilledRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -82,6 +90,33 @@ export function TourWorkspaceAdminPaymentCard({
     setActionBanner(null);
     amountPrefilledRef.current = null;
   }, [normalizedRegistrationId, refreshKey]);
+
+  useEffect(() => {
+    if (normalizedTourId.length === 0) {
+      setTourCanonicalData(null);
+      return;
+    }
+    const cached = readCachedTourDetail(normalizedTourId);
+    if (cached !== null) {
+      setTourCanonicalData(cached.canonical.data);
+    }
+
+    let cancelled = false;
+    void fetchTourDetailCached(normalizedTourId)
+      .then((detail) => {
+        if (!cancelled) {
+          setTourCanonicalData(detail.canonical.data);
+        }
+      })
+      .catch(() => {
+        if (!cancelled && cached === null) {
+          setTourCanonicalData(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [normalizedTourId, refreshKey]);
 
   useEffect(() => {
     if (normalizedRegistrationId.length < 32) {
@@ -119,9 +154,17 @@ export function TourWorkspaceAdminPaymentCard({
       return;
     }
     amountPrefilledRef.current = normalizedRegistrationId;
-    setAmount(resolveSuggestedPaymentAmountMinor(invoice));
+    const suggested =
+      tourCanonicalData !== null
+        ? resolveDenaliSuggestedPrepaymentMinor({
+            tourCanonicalData,
+            invoiceTotalMinor: invoice.invoiceTotalMinor,
+            balanceDueMinor: invoice.balanceDueMinor,
+          })
+        : null;
+    setAmount(suggested ?? resolveSuggestedPaymentAmountMinor(invoice));
     setCurrency(invoice.currency);
-  }, [amount, invoice, normalizedRegistrationId]);
+  }, [amount, invoice, normalizedRegistrationId, tourCanonicalData]);
 
   const handleRecordAdminPayment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -188,7 +231,17 @@ export function TourWorkspaceAdminPaymentCard({
 
   const defaultAmountLabel =
     invoice !== null
-      ? formatMinorAmount(resolveSuggestedPaymentAmountMinor(invoice), invoice.currency, locale)
+      ? formatMinorAmount(
+          tourCanonicalData !== null
+            ? resolveDenaliSuggestedPrepaymentMinor({
+                tourCanonicalData,
+                invoiceTotalMinor: invoice.invoiceTotalMinor,
+                balanceDueMinor: invoice.balanceDueMinor,
+              }) ?? resolveSuggestedPaymentAmountMinor(invoice)
+            : resolveSuggestedPaymentAmountMinor(invoice),
+          invoice.currency,
+          locale
+        )
       : null;
 
   return (

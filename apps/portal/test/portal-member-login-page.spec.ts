@@ -7,15 +7,15 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
-  it("PCMS-LOGIN-01 thin /login host auto-opens login modal", () => {
+  it("PCMS-LOGIN-01 /login is a full-page member auth host (no portal modal trigger)", () => {
     const page = readFileSync(join(repoRoot, "apps/portal/app/login/page.tsx"), "utf8");
-    assert.match(page, /data-portal-member-login-page/);
-    assert.match(page, /data-member-login-egress/);
+    assert.match(page, /pageKind="login"/);
+    assert.match(page, /memberLoginEgress/);
     assert.match(page, /data-portal-return/);
-    assert.match(page, /data-portal-login-thin-host/);
-    assert.match(page, /PortalLoginModalOpener/);
-    assert.match(page, /host="login"/);
-    assert.match(page, /loginPageTitle/);
+    assert.match(page, /PortalAuthExperienceShell/);
+    assert.match(page, /PublicCatalogRegistrationFlow/);
+    assert.match(page, /data-portal-login-full-page/);
+    assert.doesNotMatch(page, /PortalLoginModalOpener/);
   });
 
   it("PCMS-LOGIN-01b missing login catalog tour does not notFound the host", () => {
@@ -26,6 +26,11 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
       page,
       /fetchCatalogTour[\s\S]*?if \(tour === null\) \{\s*notFound\(\);/
     );
+  });
+
+  it("PCMS-LOGIN-01c thin login host reuses guest-surface session bind before re-prompting", () => {
+    const page = readFileSync(join(repoRoot, "apps/portal/app/login/page.tsx"), "utf8");
+    assert.match(page, /sessionMemberMatchesPortalGuestSurface/);
   });
 
   it("PCMS-LOGIN-02 register page redirects legacy portalReturn to /login", () => {
@@ -104,6 +109,8 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
     assert.match(modal, /data-portal-login-modal/);
     assert.match(modal, /data-portal-login-modal-presentation/);
     assert.match(modal, /data-portal-login-modal-host/);
+    assert.match(modal, /data-portal-login-modal-body-variant=\{host\}/);
+    assert.match(modal, /const showRegisterIntro = host === "login"/);
     assert.match(modal, /memberLoginStayOnPage/);
     assert.match(modal, /inert=\{!open\}/);
     assert.match(modal, /\{open \? \(/);

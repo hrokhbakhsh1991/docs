@@ -56,7 +56,14 @@ export function PortalRegisterGuestAuthGate({ flow, tenantId }: Props) {
       data-portal-register-auth-gate=""
       data-portal-register-auth-gate-modal-open={open ? "true" : "false"}
     >
-      <p data-portal-register-auth-gate-lede>{t("phone.loginDescription")}</p>
+      <div data-portal-register-auth-gate-header>
+        <p data-portal-register-auth-gate-eyebrow>{t("phone.loginTitle")}</p>
+        <p data-portal-register-auth-gate-lede>{t("phone.loginDescription")}</p>
+      </div>
+      <div data-portal-register-auth-gate-hints>
+        <p>{t("phone.existingHint")}</p>
+        <p>{t("phone.newHint")}</p>
+      </div>
       <PortalRegisterSignInLink flow={flow} />
     </div>
   );

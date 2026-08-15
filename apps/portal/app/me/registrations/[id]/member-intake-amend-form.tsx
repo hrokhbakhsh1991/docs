@@ -54,56 +54,79 @@ export function MemberIntakeAmendForm({
 
   return (
     <section data-portal-member-intake-amend>
-      <h2>{t("title")}</h2>
-      <p>{t("lede")}</p>
-      <fieldset>
+      <div data-portal-member-detail-section-heading>
+        <p data-portal-member-intake-eyebrow>{t("eyebrow")}</p>
+        <h2>{t("title")}</h2>
+        <p>{t("lede")}</p>
+      </div>
+      <fieldset data-portal-member-intake-options>
         <legend>{t("transportLegend")}</legend>
         {!sharedCarsMode ? (
-          <label>
+          <label
+            data-portal-member-intake-option
+            data-checked={kind === "primary" ? "true" : undefined}
+          >
             <input
               type="radio"
               name="amend-transport"
               checked={kind === "primary"}
               onChange={() => setKind("primary")}
             />
-            {t("noPersonalCar")}
+            <span data-portal-member-intake-option-copy>
+              <span data-portal-member-intake-option-title>{t("noPersonalCar")}</span>
+            </span>
           </label>
         ) : null}
-        <label>
+        <label
+          data-portal-member-intake-option
+          data-checked={kind === "personal_car" ? "true" : undefined}
+        >
           <input
             type="radio"
             name="amend-transport"
             checked={kind === "personal_car"}
             onChange={() => setKind("personal_car")}
           />
-          {t("personalCar")}
+          <span data-portal-member-intake-option-copy>
+            <span data-portal-member-intake-option-title>{t("personalCar")}</span>
+          </span>
         </label>
         {dongAvailable ? (
-          <label>
+          <label
+            data-portal-member-intake-option
+            data-checked={kind === "no_car_dong" ? "true" : undefined}
+          >
             <input
               type="radio"
               name="amend-transport"
               checked={kind === "no_car_dong"}
               onChange={() => setKind("no_car_dong")}
             />
-            {t("noCarDong")}
+            <span data-portal-member-intake-option-copy>
+              <span data-portal-member-intake-option-title>{t("noCarDong")}</span>
+            </span>
           </label>
         ) : null}
         {sharedCarsMode || allowPersonalCar ? (
-          <label>
+          <label
+            data-portal-member-intake-option
+            data-checked={kind === "no_car_acquaintance" ? "true" : undefined}
+          >
             <input
               type="radio"
               name="amend-transport"
               checked={kind === "no_car_acquaintance"}
               onChange={() => setKind("no_car_acquaintance")}
             />
-            {t("noCarAcquaintance")}
+            <span data-portal-member-intake-option-copy>
+              <span data-portal-member-intake-option-title>{t("noCarAcquaintance")}</span>
+            </span>
           </label>
         ) : null}
       </fieldset>
       {kind === "personal_car" ? (
-        <label>
-          {t("occupants")}
+        <label data-portal-member-intake-occupants>
+          <span data-portal-member-intake-occupants-label>{t("occupants")}</span>
           <select
             value={occupants}
             onChange={(event) => setOccupants(Number(event.target.value) as 1 | 2 | 3)}
@@ -114,9 +137,11 @@ export function MemberIntakeAmendForm({
           </select>
         </label>
       ) : null}
-      <button type="button" disabled={phase === "saving"} onClick={() => void save()}>
-        {phase === "saving" ? t("saving") : t("save")}
-      </button>
+      <div data-portal-member-intake-actions>
+        <button type="button" disabled={phase === "saving"} onClick={() => void save()}>
+          {phase === "saving" ? t("saving") : t("save")}
+        </button>
+      </div>
       {phase === "saved" ? (
         <p role="status" data-portal-member-intake-amend-saved>
           {t("saved")}

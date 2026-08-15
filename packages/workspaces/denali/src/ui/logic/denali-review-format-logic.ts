@@ -495,6 +495,24 @@ export function buildDenaliReviewSections(
   );
   pushRow(
     pricingRows,
+    "pricing.prepaymentEnabled",
+    labels.fieldLabel("pricing.prepaymentEnabled"),
+    boolLabel(getCanonicalStringValue(draft, "pricing.prepaymentEnabled"), labels)
+  );
+  pushRow(
+    pricingRows,
+    "pricing.prepaymentPercent",
+    labels.fieldLabel("pricing.prepaymentPercent"),
+    getCanonicalStringValue(draft, "pricing.prepaymentPercent")
+  );
+  pushRow(
+    pricingRows,
+    "pricing.basePricePerPerson",
+    labels.fieldLabel("pricing.basePricePerPerson"),
+    getCanonicalStringValue(draft, "pricing.basePricePerPerson")
+  );
+  pushRow(
+    pricingRows,
     "participants.minimumAge",
     labels.fieldLabel("participants.minimumAge"),
     getCanonicalStringValue(draft, "participants.minimumAge")

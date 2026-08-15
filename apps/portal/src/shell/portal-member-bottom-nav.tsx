@@ -12,13 +12,14 @@ import { PortalNavIcon } from "./portal-nav-icon";
 
 export type PortalMemberBottomNavProps = {
   readonly items: readonly PortalMemberNavItem[];
+  readonly logoutTarget: string;
 };
 
 /**
  * Primary member nav (thumb bar / side rail) + desktop logout footer (PS-VIS-5f).
  * Mobile hides `[data-portal-shell-nav-footer]` — logout lives on profile session card.
  */
-export function PortalMemberBottomNav({ items }: PortalMemberBottomNavProps) {
+export function PortalMemberBottomNav({ items, logoutTarget }: PortalMemberBottomNavProps) {
   const pathname = usePathname();
   const t = useTranslations("portalMember.nav");
 
@@ -53,7 +54,7 @@ export function PortalMemberBottomNav({ items }: PortalMemberBottomNavProps) {
         })}
       </ul>
       <div data-portal-shell-nav-footer>
-        <MemberLogoutButton />
+        <MemberLogoutButton logoutTarget={logoutTarget} />
       </div>
     </nav>
   );

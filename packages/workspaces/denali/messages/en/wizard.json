@@ -89,6 +89,8 @@
     "photos": "Photo upload",
     "pricing": {
       "requiresPayment": "Paid tour (registration requires payment)",
+      "prepaymentEnabled": "Allow registration with prepayment",
+      "prepaymentPercent": "Prepayment percent of total amount",
       "basePricePerPerson": "Price per person",
       "paymentMode": "Payment method",
       "includesTourInsurance": "Tour includes organizer group liability insurance"

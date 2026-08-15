@@ -9,7 +9,24 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"] main[data-portal
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
-  padding-bottom: var(--space-4);
+  padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom, 0px));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-portal-member-page-header] {
+  padding: var(--space-5);
+  border-radius: calc(var(--radius) * 1.2);
+  border: 1px solid color-mix(in oklab, var(--color-primary) 14%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-bg-surface) 95%, white),
+      color-mix(in oklab, var(--color-primary) 5%, var(--color-bg-surface))
+    );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.42),
+    0 14px 30px rgb(15 23 42 / 0.05);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -57,13 +74,20 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-member-profile-card] {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
   margin: 0;
-  padding: var(--space-5);
+  padding: var(--space-4);
   border-radius: calc(var(--radius) * 1.15);
   border: 1px solid color-mix(in oklab, var(--color-border-subtle) 90%, transparent);
-  background: color-mix(in oklab, var(--color-bg-surface) 96%, transparent);
-  box-shadow: var(--denali-shadow-card, 0 1px 3px rgb(0 0 0 / 0.06));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-bg-surface) 96%, white),
+      color-mix(in oklab, var(--color-bg-muted) 24%, var(--color-bg-surface))
+    );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.38),
+    var(--denali-shadow-card, 0 1px 3px rgb(0 0 0 / 0.06));
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -80,7 +104,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   border: none;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -88,10 +112,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   fieldset
   legend {
   padding: 0;
-  margin-bottom: var(--space-1);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  letter-spacing: 0;
+  margin-bottom: var(--space-2);
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   text-transform: none;
   color: var(--color-text-primary);
 }
@@ -106,14 +130,155 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-profile]
+  [data-member-profile-field] {
+  min-width: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-field]
+  > p:first-child {
+  margin: 0 0 var(--space-2);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-field]
+  > p:nth-child(2) {
+  margin: 0;
+  line-height: 1.65;
+  color: var(--color-text-primary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-mobile-change] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: calc(var(--radius) * 1.05);
+  border: 1px solid color-mix(in oklab, var(--color-primary) 12%, var(--color-border-subtle));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-bg-surface) 96%, white),
+      color-mix(in oklab, var(--color-primary) 5%, var(--color-bg-surface))
+    );
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-mobile-change-header] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-mobile-change-header]
+  > p:first-child {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-mobile-change-header]
+  > p:nth-child(2) {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-mobile-change-value] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.7rem 0.95rem;
+  border-radius: calc(var(--radius) * 0.95);
+  border: 1px solid color-mix(in oklab, var(--color-primary) 16%, var(--color-border-subtle));
+  background: color-mix(in oklab, var(--color-primary) 6%, var(--color-bg-surface));
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  direction: ltr;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-mobile-change-actions] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-mobile-change-actions="view"] {
+  margin-top: var(--space-1);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-mobile-change-actions]
+  button {
+  width: 100%;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
   [data-member-profile-actions] {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  position: sticky;
-  bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
-  z-index: 10;
-  padding-top: var(--space-2);
+  position: static;
+  z-index: 1;
+  margin-top: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid color-mix(in oklab, var(--color-border-subtle) 88%, transparent);
+  border-radius: calc(var(--radius) * 1.1);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-bg-surface) 96%, white),
+      color-mix(in oklab, var(--color-primary) 4%, var(--color-bg-surface))
+    );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    0 10px 24px rgb(15 23 42 / 0.06);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-footer] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-actions]
+  button {
+  width: 100%;
+  min-height: 2.875rem;
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.08),
+    0 10px 24px rgb(15 23 42 / 0.06);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -130,7 +295,57 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   flex-direction: column;
   gap: var(--space-3);
   margin-top: var(--space-2);
-  margin-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  margin-bottom: 0;
+  padding: var(--space-4);
+  border-radius: calc(var(--radius) * 1.15);
+  border: 1px solid color-mix(in oklab, var(--color-border-subtle) 88%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-bg-surface) 95%, white),
+      color-mix(in oklab, var(--color-bg-muted) 22%, var(--color-bg-surface))
+    );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.36),
+    var(--denali-shadow-card, 0 1px 3px rgb(0 0 0 / 0.06));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-session-header] {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-session-mark] {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  border: 1px solid color-mix(in oklab, var(--color-primary) 20%, transparent);
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      color-mix(in oklab, var(--color-primary) 20%, white) 0%,
+      color-mix(in oklab, var(--color-primary) 10%, var(--color-bg-surface)) 45%,
+      transparent 46%
+    ),
+    color-mix(in oklab, var(--color-primary) 5%, var(--color-bg-surface));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.42),
+    0 10px 20px rgb(15 23 42 / 0.06);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-session-copy] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -147,7 +362,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-member-profile-session-hint] {
   margin: 0;
   font-size: 0.8125rem;
-  line-height: 1.45;
+  line-height: 1.6;
   color: var(--color-text-muted);
 }
 
@@ -170,6 +385,25 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.12s ease;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-session]
+  [data-public-auth-logout]:hover {
+  background: color-mix(in oklab, var(--color-danger, #b42318) 9%, var(--color-bg-surface));
+  border-color: color-mix(in oklab, var(--color-danger, #b42318) 36%, var(--color-border-default));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-session]
+  [data-public-auth-logout]:active {
+  transform: translateY(1px);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -187,15 +421,45 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   text-align: center;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-profile]
+  [data-member-profile-avatar-meta] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-avatar-caption] {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [data-member-profile-avatar-name] {
+  margin: 0;
+  font-family: var(--font-heading, inherit);
+  font-size: 1.05rem;
+  line-height: 1.25;
+  color: var(--color-text-primary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
   [data-member-profile-avatar-preview] {
-  width: 5.5rem;
-  height: 5.5rem;
+  width: 5rem;
+  height: 5rem;
   border-radius: var(--radius-full, 9999px);
   overflow: hidden;
   background: color-mix(in oklab, var(--color-primary) 10%, var(--color-bg-muted));
@@ -230,6 +494,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--space-2);
+  width: 100%;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -250,7 +515,8 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-profile]
   [data-member-profile-avatar-actions]
   button {
-  min-height: 2.5rem;
+  min-height: 2.625rem;
+  min-width: min(9rem, 100%);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-default);
@@ -266,6 +532,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-member-profile-avatar-hint] {
   margin: 0;
   font-size: 0.75rem;
+  line-height: 1.6;
   color: var(--color-text-muted);
 }
 
@@ -289,14 +556,22 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   color: var(--destructive);
 }
 
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-profile]
+  [role="status"] {
+  border: 1px solid color-mix(in oklab, var(--color-primary) 22%, transparent);
+  background: color-mix(in oklab, var(--color-primary) 8%, var(--color-bg-surface));
+  color: var(--color-primary);
+}
+
 /* ── Desktop settings (PS-VIS-5g) — sectioned Linear/Vercel rhythm ─────────── */
 /* Keeps data-member-profile-card hooks; flattens card chrome at ≥48rem only.   */
 
 @media (min-width: 48rem) {
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-profile] {
-    gap: var(--space-5);
-    max-width: 48rem;
+    gap: var(--space-6);
+    max-width: 54rem;
     margin-inline: auto;
     width: 100%;
     padding-bottom: var(--space-8);
@@ -308,8 +583,38 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
-    padding-bottom: var(--space-4);
-    border-bottom: 1px solid color-mix(in oklab, var(--color-border-subtle) 80%, transparent);
+    position: relative;
+    overflow: hidden;
+    padding: var(--space-5) var(--space-6);
+    border: 1px solid color-mix(in oklab, var(--color-border-subtle) 84%, transparent);
+    border-radius: calc(var(--radius) * 1.2);
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--color-bg-surface) 97%, white),
+        color-mix(in oklab, var(--color-primary) 5%, var(--color-bg-surface))
+      );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.45),
+      0 18px 36px rgb(15 23 42 / 0.06);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-portal-member-page-header]::after {
+    content: "";
+    position: absolute;
+    inset-inline-end: -2.5rem;
+    top: -3rem;
+    width: 11rem;
+    height: 11rem;
+    border-radius: 9999px;
+    background: radial-gradient(
+      circle,
+      color-mix(in oklab, var(--color-primary) 11%, white),
+      transparent 72%
+    );
+    pointer-events: none;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -325,37 +630,85 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-profile]
     [data-portal-member-page-header]
     p {
-    max-width: 40rem;
-    font-size: 0.9375rem;
+    max-width: 32rem;
+    font-size: 0.95rem;
+    line-height: 1.7;
     color: var(--color-text-muted);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-profile]
     [data-portal-member-profile][data-member-profile-layout="sectioned"] {
-    gap: 0;
+    gap: var(--space-5);
   }
 
-  /* Flatten cards → sectioned dividers (hooks preserved) */
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-profile]
     [data-member-profile-layout="sectioned"]
     [data-member-profile-card] {
     gap: var(--space-5);
     margin: 0;
-    padding: var(--space-6) 0;
-    border: none;
-    border-bottom: 1px solid color-mix(in oklab, var(--color-border-subtle) 85%, transparent);
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
+    padding: var(--space-6);
+    border: 1px solid color-mix(in oklab, var(--color-border-subtle) 88%, transparent);
+    border-radius: calc(var(--radius) * 1.15);
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--color-bg-surface) 97%, white),
+        color-mix(in oklab, var(--color-bg-muted) 20%, var(--color-bg-surface))
+      );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.4),
+      0 14px 30px rgb(15 23 42 / 0.05);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-layout="sectioned"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-profile]
     [data-member-profile-layout="sectioned"]
     [data-member-profile-card="photo"] {
-    padding-top: var(--space-5);
+    display: grid;
+    gap: var(--space-4);
+    position: relative;
+    overflow: hidden;
+    padding: var(--space-5);
+    border: 1px solid color-mix(in oklab, var(--color-border-subtle) 88%, transparent);
+    border-radius: calc(var(--radius) * 1.15);
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--color-bg-surface) 96%, white),
+        color-mix(in oklab, var(--color-primary) 4%, var(--color-bg-surface))
+      );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.42),
+      0 14px 30px rgb(15 23 42 / 0.05);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-layout="sectioned"]
+    [data-member-profile-card="photo"]::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: -3rem;
+    top: -2rem;
+    width: 13rem;
+    height: 13rem;
+    border-radius: 9999px;
+    background: radial-gradient(
+      circle,
+      color-mix(in oklab, var(--color-primary) 12%, white),
+      transparent 72%
+    );
+    pointer-events: none;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -365,7 +718,6 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-4) var(--space-5);
-    border: none;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -376,13 +728,30 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     grid-column: 1 / -1;
     float: none;
     width: 100%;
-    padding: 0 0 var(--space-3);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 0 0 var(--space-4);
     margin: 0 0 var(--space-1);
     border-bottom: 1px solid color-mix(in oklab, var(--color-border-subtle) 75%, transparent);
-    font-size: 0.9375rem;
+    font-size: 1rem;
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--color-text-primary);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-layout="sectioned"]
+    fieldset[data-member-profile-card]
+    legend::before {
+    content: "";
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--color-primary) 78%, white);
+    box-shadow: 0 0 0 0.3rem color-mix(in oklab, var(--color-primary) 14%, transparent);
+    flex-shrink: 0;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -392,6 +761,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
+    padding: var(--space-3);
+    border: 1px solid color-mix(in oklab, var(--color-border-subtle) 82%, transparent);
+    border-radius: calc(var(--radius) * 0.95);
+    background: color-mix(in oklab, var(--color-bg-surface) 92%, white);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -420,11 +793,20 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-member-profile-field]
     > p:nth-child(2) {
     margin: 0;
-    min-height: 2.5rem;
+    min-height: 3rem;
     display: flex;
     align-items: center;
     font-size: 0.9375rem;
     color: var(--color-text-primary);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-field-hint] {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -436,62 +818,163 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     grid-column: 1 / -1;
   }
 
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-mobile-change-actions] {
+    align-items: center;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-mobile-change-actions]
+    button {
+    width: auto;
+    min-width: 8.5rem;
+  }
+
   /* Horizontal avatar identity row */
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-profile]
     [data-member-profile-card="photo"]
     [data-member-profile-avatar] {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-start;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "meta preview"
+      "actions preview"
+      "hint hint"
+      "alert alert";
+    align-items: start;
+    justify-content: stretch;
     text-align: start;
-    gap: var(--space-5);
+    gap: var(--space-3) var(--space-5);
+    position: relative;
+    z-index: 1;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-profile]
     [data-member-profile-card="photo"]
     [data-member-profile-avatar-preview] {
-    width: 4.25rem;
-    height: 4.25rem;
+    grid-area: preview;
+    width: 5rem;
+    height: 5rem;
     flex-shrink: 0;
     border-width: 2px;
-    box-shadow: none;
+    box-shadow:
+      0 0 0 0.45rem color-mix(in oklab, var(--color-primary) 10%, transparent),
+      0 12px 24px rgb(15 23 42 / 0.08);
+    align-self: start;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-card="photo"]
+    [data-member-profile-avatar-meta] {
+    grid-area: meta;
+    align-items: flex-start;
+    justify-content: center;
+    min-width: 0;
+    padding-top: 0.15rem;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-card="photo"]
+    [data-member-profile-avatar-name] {
+    font-size: 1.35rem;
+    line-height: 1.2;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-profile]
     [data-member-profile-card="photo"]
     [data-member-profile-avatar-actions] {
+    grid-area: actions;
     flex-direction: row;
+    flex-wrap: wrap;
     justify-content: flex-start;
+    align-items: center;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-profile]
     [data-member-profile-card="photo"]
     [data-member-profile-avatar-hint] {
-    flex: 1 1 100%;
+    grid-area: hint;
     text-align: start;
-    margin-inline-start: calc(4.25rem + var(--space-5));
+    margin: 0;
+    max-width: 32rem;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-card="photo"]
+    [role="alert"] {
+    grid-area: alert;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-footer] {
+    position: sticky;
+    bottom: var(--space-4);
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-3);
+    margin-inline-start: auto;
+    width: min(100%, 26rem);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-footer]
+    [role="alert"],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-footer]
+    [role="status"] {
+    width: 100%;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.3),
+      0 10px 24px rgb(15 23 42 / 0.06);
+    backdrop-filter: blur(10px);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-profile]
     [data-member-profile-actions] {
-    position: sticky;
-    bottom: 0;
-    z-index: 5;
+    position: static;
     flex-direction: row;
     justify-content: flex-end;
     align-items: center;
     gap: var(--space-3);
     margin: 0;
-    padding: var(--space-4) 0;
-    border-top: 1px solid color-mix(in oklab, var(--color-border-subtle) 85%, transparent);
-    background: color-mix(in oklab, var(--color-bg-page) 92%, transparent);
+    width: 100%;
+    max-width: none;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid color-mix(in oklab, var(--color-border-subtle) 86%, transparent);
+    border-radius: calc(var(--radius) * 1.15);
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--color-bg-page) 90%, white),
+        color-mix(in oklab, var(--color-bg-surface) 96%, white)
+      );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.36),
+      0 12px 24px rgb(15 23 42 / 0.07);
     backdrop-filter: blur(10px);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-actions]
+    button {
+    width: auto;
+    min-width: 8rem;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -535,6 +1018,6 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 @media (min-width: 64rem) {
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-profile] {
-    max-width: 52rem;
+    max-width: 58rem;
   }
 }

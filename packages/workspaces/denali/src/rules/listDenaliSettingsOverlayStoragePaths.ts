@@ -31,6 +31,8 @@ export const DENALI_MODERN_SETTINGS_OVERLAY_STORAGE_PATHS = [
   "policies.policiesText",
   "pricing.basePricePerPerson",
   "pricing.includesTourInsurance",
+  "pricing.prepaymentEnabled",
+  "pricing.prepaymentPercent",
   "pricing.requiresPayment",
   "program.difficultyLevel",
   "program.hikingGoHours",

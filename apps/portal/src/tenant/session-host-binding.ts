@@ -1,4 +1,5 @@
 import {
+  sessionTenantMatchesDevCrossSurfaceHost,
   resolveTenantIdFromDevHost,
   resolveTenantIdFromIngressLabel,
 } from "@app-tour/guest-surface-host";
@@ -27,6 +28,19 @@ export function sessionMemberMatchesPortalTenant(
   portalTenantId: string
 ): boolean {
   return sessionTenantId.trim() === portalTenantId.trim();
+}
+
+/**
+ * Guest auth surfaces mirror marketing's dev cross-surface session bind so a
+ * shared member session can reopen login/register on paired M<->P hosts.
+ * Protected `/me/*` and member APIs stay on strict portal tenant checks.
+ */
+export function sessionMemberMatchesPortalGuestSurface(
+  sessionTenantId: string,
+  host: string,
+  portalTenantId: string
+): boolean {
+  return sessionTenantMatchesDevCrossSurfaceHost(sessionTenantId, host, portalTenantId);
 }
 
 export type SessionTenantHostMatchOptions = {

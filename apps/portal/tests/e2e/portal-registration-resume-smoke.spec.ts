@@ -16,6 +16,33 @@ import {
  * PCMS-REG-01 — member with valid portal cookie skips OTP on a second tour register page.
  * @see docs/standards/member-session-portal-authority.mdoc
  */
+test("SMK-PTL-07b second register page resumes at intake after OTP session only", async ({
+  page,
+}) => {
+  const phone = `+1555${String(Date.now()).slice(-7)}`;
+
+  await page.context().clearCookies();
+  await gotoPortalRegistration(page, OPERATOR_PUBLISHED_TOUR_ID);
+  await requestRegistrationOtp(page, phone);
+  await fillCatalogOtp(page, CATALOG_DEV_OTP);
+  await expect(
+    page.locator("[data-public-registration-profile], [data-public-registration-intake]")
+  ).toBeVisible({ timeout: 60_000 });
+
+  await page.goto(`/catalog/${OPERATOR_SMOKE_PARTICIPANT_TOUR_ID}/register`, {
+    waitUntil: "domcontentloaded",
+  });
+
+  await expect(page.locator('[data-registration-resume="intake"]').first()).toBeVisible({
+    timeout: 120_000,
+  });
+  await expect(page.locator("[data-public-registration-phone]")).toHaveCount(0);
+  await expect(page.locator("[data-public-registration-otp]")).toHaveCount(0);
+  await expect(page.locator("[data-public-registration-intake]")).toBeVisible({
+    timeout: 60_000,
+  });
+});
+
 test("SMK-PTL-07 second tour registration resumes at intake without OTP", async ({ page }) => {
   const phone = `+1555${String(Date.now()).slice(-7)}`;
 

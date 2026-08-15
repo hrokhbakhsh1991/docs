@@ -23,6 +23,7 @@ GHA workflows applied redundant `001_tenant_rls.sql` and manual `last_error` DDL
 | --------------------- | -------------------------------------------------------------------------------- |
 | Bootstrap (gate/prod) | `01-app-role.sql` (once) → **`pnpm run db:migrate:deploy`**                      |
 | App role name (SoT)   | **`app_tour`** — matches `DATABASE_URL` + Prisma `GRANT`/`ALTER ROLE` migrations. Init must **not** create `app_cloud` (hostile-audit rename regression). |
+| Refunds GRANT typo    | `20260809120000_finance_refunds` must `GRANT … TO app_tour` (not `app_cloud`). A wrong role name fails CI migrate deploy with SQLSTATE `42704` before any Postgres gate can run. |
 | `migrate dev`         | **Authoring only** — local creation of new `migration.sql`; forbidden in CI/gate |
 | `infra/sql/001…004`   | **Reference-only** — historical mirror; do not execute in CI/ops                 |
 | Exception             | `infra/sql/test-reset.sql` for `pnpm run db:test-reset` (DEC-095 prod-block)     |

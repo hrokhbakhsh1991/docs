@@ -89,6 +89,8 @@
     "photos": "آپلود عکس",
     "pricing": {
       "requiresPayment": "تور پولی (ثبت‌نام با پرداخت)",
+      "prepaymentEnabled": "امکان ثبت‌نام با پیش‌پرداخت",
+      "prepaymentPercent": "درصد پیش‌پرداخت از مبلغ کل",
       "basePricePerPerson": "قیمت به ازای هر نفر (تومان)",
       "paymentMode": "روش پرداخت",
       "includesTourInsurance": "این تور شامل بیمه مسئولیت گروهی سازمان‌دهنده است"

@@ -47,6 +47,8 @@ export const DENALI_CANONICAL_TO_FORM_PATH_MAP: Record<string, string> = {
   "pricing.basePricePerPerson": "pricingPayment.basePricePerPerson",
   "pricing.includesTourInsurance": "pricingPayment.includesTourInsurance",
   "pricing.paymentMode": "pricingPayment.paymentMode",
+  "pricing.prepaymentEnabled": "pricingPayment.prepaymentEnabled",
+  "pricing.prepaymentPercent": "pricingPayment.prepaymentPercent",
   "pricing.requiresPayment": "pricingPayment.requiresPayment",
   "program.difficultyLevel": "programNature.difficultyLevel",
   "program.guideLanguageIds": "programNature.guideLanguageIds",

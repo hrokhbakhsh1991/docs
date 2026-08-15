@@ -10,6 +10,10 @@ export const WORKSPACE_FINANCE_OBLIGATION_BINDINGS = {
       const mod = await import("@app-tour/workspace-denali/host/finance");
       return mod.resolveDenaliRegistrationObligationMinor;
     },
+    loadPaymentCollection: async () => {
+      const mod = await import("@app-tour/workspace-denali/host/finance");
+      return mod.resolveDenaliPaymentCollectionMode;
+    },
   },
 } as const;
 

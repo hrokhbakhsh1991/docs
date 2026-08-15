@@ -10,7 +10,7 @@ export function resolveSmokePublishedTourId(baseUrl?: string): string {
   if (override !== undefined && override.length > 0) {
     return override;
   }
-  const url = (baseUrl ?? process.env.SMOKE_MARKETING_BASE_URL ?? "http://operator.localhost:3002").toLowerCase();
+  const url = (baseUrl ?? process.env.SMOKE_MARKETING_BASE_URL ?? "http://denali.localhost:3002").toLowerCase();
   if (url.includes("denali.localhost") || url.includes("denali.club")) {
     return DENALI_SMOKE_PUBLISHED_TOUR_ID;
   }
