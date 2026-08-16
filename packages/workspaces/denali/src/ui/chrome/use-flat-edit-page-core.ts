@@ -5,7 +5,7 @@ import {
   type UpdateTourPayload,
   type WorkspacePlugin,
 } from "@app-tour/workspace-sdk";
-import type { DraftSchemaGate } from "@app-tour/draft-engine";
+import type { DraftSchemaGate, DraftStatus } from "@app-tour/draft-engine";
 import type { ValidationIssue } from "@app-tour/wizard-navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
@@ -69,7 +69,7 @@ export type DenaliFlatEditDraftEnvelope = DenaliWizardDraftEnvelope<DenaliTourWi
 
 export type DenaliFlatEditDraftSync = {
   readonly data: DenaliFlatEditDraftEnvelope | null;
-  readonly status: string;
+  readonly status: DraftStatus;
   readonly setData: (envelope: DenaliFlatEditDraftEnvelope) => void;
   readonly clearDraft: () => Promise<void>;
   readonly clearDraftAndReset: (reset: DenaliFlatEditDraftEnvelope) => Promise<void>;
@@ -311,6 +311,10 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
                 draftSync: input.draftSync,
               });
             }
+          } catch {
+            // Tour PATCH already succeeded. Draft reset is best-effort — do not
+            // remap a reset failure to unknown_error (operator would think save failed).
+            setRowVersion(outcome.rowVersion);
           } finally {
             suppressTourSeedRef.current = false;
           }

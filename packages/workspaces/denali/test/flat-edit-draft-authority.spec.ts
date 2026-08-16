@@ -95,7 +95,7 @@ describe("flat-edit-draft-authority.spec.ts — DEN-12.4-DRAFT", () => {
       shouldSeedDenaliFlatEditDraftFromTour({
         remoteDraft: null,
         tourRowVersion: 1,
-        draftStatus: "READY",
+        draftStatus: "IDLE",
       }),
       true
     );
@@ -104,7 +104,7 @@ describe("flat-edit-draft-authority.spec.ts — DEN-12.4-DRAFT", () => {
       shouldSeedDenaliFlatEditDraftFromTour({
         remoteDraft: stale,
         tourRowVersion: 2,
-        draftStatus: "READY",
+        draftStatus: "DRAFT_AVAILABLE",
       }),
       true
     );
@@ -118,14 +118,6 @@ describe("flat-edit-draft-authority.spec.ts — DEN-12.4-DRAFT", () => {
       envelopeMeta,
       tourRowVersion: 2,
       draftSync: {
-        setData: (envelope) => {
-          events.push(`setData:${envelope.form.data.title}:${envelope.meta.sourceRowVersion}`);
-          current = envelope.form;
-        },
-        clearDraft: async () => {
-          events.push("clearDraft");
-          current = null;
-        },
         clearDraftAndReset: async (reset) => {
           events.push(
             `clearDraftAndReset:${reset.form.data.title}:${reset.meta.sourceRowVersion}`
@@ -136,23 +128,5 @@ describe("flat-edit-draft-authority.spec.ts — DEN-12.4-DRAFT", () => {
     });
     assert.deepEqual(events, ["clearDraftAndReset:GET after PATCH:2"]);
     assert.equal(current?.data.title, "GET after PATCH");
-  });
-
-  it("DEN-12.4-DRAFT-08 falls back to clear then setData when reset is unavailable", async () => {
-    const events: string[] = [];
-    await replaceDenaliFlatEditDraftAfterSuccessfulPatch({
-      baseline: { data: { title: "GET after PATCH" } },
-      envelopeMeta,
-      tourRowVersion: 5,
-      draftSync: {
-        setData: (envelope) => {
-          events.push(`setData:${envelope.form.data.title}:${envelope.meta.sourceRowVersion}`);
-        },
-        clearDraft: async () => {
-          events.push("clearDraft");
-        },
-      },
-    });
-    assert.deepEqual(events, ["clearDraft", "setData:GET after PATCH:5"]);
   });
 });

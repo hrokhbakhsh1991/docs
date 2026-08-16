@@ -2,6 +2,7 @@ import type { WorkspaceWizardDraftEnvelope, WorkspaceWizardDraftMeta } from "@ap
 
 import { DENALI_CANONICAL_OBJECT_ROOTS } from "../denali-plugin-adapter";
 import { isDraftEssentiallyEmpty } from "../wizard/resolve-initial-step-index";
+import { readDenaliWizardSourceRowVersion } from "./denali-wizard-draft-binding";
 
 function readDeletedRoots(meta: WorkspaceWizardDraftMeta): readonly string[] | undefined {
   const raw = meta.deletedRoots;
@@ -15,11 +16,6 @@ function readDeletedRoots(meta: WorkspaceWizardDraftMeta): readonly string[] | u
 function readStepIndex(meta: WorkspaceWizardDraftMeta): number {
   const raw = meta.currentStepIndex;
   return typeof raw === "number" && Number.isFinite(raw) ? raw : 0;
-}
-
-function readSourceRowVersion(meta: WorkspaceWizardDraftMeta): number | undefined {
-  const raw = meta.sourceRowVersion;
-  return typeof raw === "number" && Number.isFinite(raw) && raw >= 0 ? raw : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -152,6 +148,10 @@ export function mergeDenaliWizardDraftEnvelope<TForm>(
     local.form as unknown as Record<string, unknown>
   );
 
+  const localSourceRowVersion = readDenaliWizardSourceRowVersion(local.meta.sourceRowVersion);
+  const serverSourceRowVersion = readDenaliWizardSourceRowVersion(server.meta.sourceRowVersion);
+  const sourceRowVersion = localSourceRowVersion ?? serverSourceRowVersion;
+
   return {
     form: {
       ...local.form,
@@ -172,11 +172,7 @@ export function mergeDenaliWizardDraftEnvelope<TForm>(
         return readStepIndex(server.meta);
       })(),
       wizardSessionId: local.meta.wizardSessionId ?? server.meta.wizardSessionId,
-      ...(readSourceRowVersion(local.meta) !== undefined
-        ? { sourceRowVersion: readSourceRowVersion(local.meta) }
-        : readSourceRowVersion(server.meta) !== undefined
-          ? { sourceRowVersion: readSourceRowVersion(server.meta) }
-          : {}),
+      ...(sourceRowVersion !== undefined ? { sourceRowVersion } : {}),
     },
   };
 }

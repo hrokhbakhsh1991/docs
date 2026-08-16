@@ -165,7 +165,7 @@ Flat edit mounts `useWorkspaceDraft` on `denali-edit:{tourId}` so in-progress fi
 
 **Failure mode this closes:** footer save updated canonical title, heading showed the new title, `input[name=title]` still showed the create-time title after reload. `clearDraft()` set `data=null`; the seed effect ran against the **pre-PATCH** `tourBaseline` and PUT `denali-edit:{id}` with the old title. Next hydrate preferred that remote draft over GET.
 
-Pure helpers (no React): `resolveDenaliFlatEditWorkingEnvelope`, `shouldSeedDenaliFlatEditDraftFromTour`, `replaceDenaliFlatEditDraftAfterSuccessfulPatch` in `packages/workspaces/denali/src/ui/chrome/flat-edit-draft-authority.ts`. Specs: `DEN-12.4-DRAFT-*` in `test/flat-edit-draft-authority.spec.ts`.
+Pure helpers (no React): `resolveDenaliFlatEditWorkingEnvelope`, `shouldSeedDenaliFlatEditDraftFromTour`, `replaceDenaliFlatEditDraftAfterSuccessfulPatch` in `packages/workspaces/denali/src/ui/chrome/flat-edit-draft-authority.ts`. Specs: `DEN-12.4-DRAFT-*` in `test/flat-edit-draft-authority.spec.ts`. Stamp reader: `readDenaliWizardSourceRowVersion` (integer ≥ 0). Post-PATCH reset **must** call `clearDraftAndReset` — a `clearDraft` + `setData` fallback is not permitted. Tour PATCH success is independent of draft-reset errors.
 
 **Sensitive fields on this surface (operator edit):**
 

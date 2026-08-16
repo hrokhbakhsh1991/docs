@@ -97,12 +97,20 @@ export function prepareDenaliCreateTourFreshStartEnvelope<TForm>(
   return prepareEnvelope(form, buildDenaliWizardFreshStartMeta(wizardSessionId));
 }
 
+/**
+ * Flat-edit `meta.sourceRowVersion` — integer ≥ 0. Non-integers (NaN, 1.5, Infinity) are absent.
+ */
+export function readDenaliWizardSourceRowVersion(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : undefined;
+}
+
 function clientMetaFromInput(meta: DenaliWizardDraftMeta): DenaliWizardDraftMeta {
+  const sourceRowVersion = readDenaliWizardSourceRowVersion(meta.sourceRowVersion);
   return {
     currentStepIndex: meta.currentStepIndex,
     ...(meta.wizardSessionId !== undefined ? { wizardSessionId: meta.wizardSessionId } : {}),
     ...(meta.freshStart === true ? { freshStart: true } : {}),
-    ...(typeof meta.sourceRowVersion === "number" ? { sourceRowVersion: meta.sourceRowVersion } : {}),
+    ...(sourceRowVersion !== undefined ? { sourceRowVersion } : {}),
   };
 }
 
@@ -122,28 +130,29 @@ export function denaliHydrateDraftEnvelope<TForm>(
   fallbackMeta?: Partial<DenaliWizardDraftMeta>
 ): DenaliWizardDraftEnvelope<TForm> {
   if (remote === null || remote === undefined) {
+    const fallbackSource = readDenaliWizardSourceRowVersion(fallbackMeta?.sourceRowVersion);
     return denaliPrepareDraftEnvelope(fallbackForm, {
       currentStepIndex: fallbackMeta?.currentStepIndex ?? 0,
       ...(fallbackMeta?.wizardSessionId !== undefined
         ? { wizardSessionId: fallbackMeta.wizardSessionId }
         : {}),
       ...(fallbackMeta?.freshStart === true ? { freshStart: true } : {}),
-      ...(typeof fallbackMeta?.sourceRowVersion === "number"
-        ? { sourceRowVersion: fallbackMeta.sourceRowVersion }
-        : {}),
+      ...(fallbackSource !== undefined ? { sourceRowVersion: fallbackSource } : {}),
     });
   }
 
+  const remoteSource = readDenaliWizardSourceRowVersion(remote.meta.sourceRowVersion);
+  const fallbackSource = readDenaliWizardSourceRowVersion(fallbackMeta?.sourceRowVersion);
   return {
     form: structuredClone(remote.form),
     meta: {
       currentStepIndex: remote.meta.currentStepIndex ?? fallbackMeta?.currentStepIndex ?? 0,
       wizardSessionId: remote.meta.wizardSessionId ?? fallbackMeta?.wizardSessionId,
       ...(remote.meta.freshStart === true ? { freshStart: true } : {}),
-      ...(typeof remote.meta.sourceRowVersion === "number"
-        ? { sourceRowVersion: remote.meta.sourceRowVersion }
-        : typeof fallbackMeta?.sourceRowVersion === "number"
-          ? { sourceRowVersion: fallbackMeta.sourceRowVersion }
+      ...(remoteSource !== undefined
+        ? { sourceRowVersion: remoteSource }
+        : fallbackSource !== undefined
+          ? { sourceRowVersion: fallbackSource }
           : {}),
     },
   };

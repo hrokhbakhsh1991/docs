@@ -1,3 +1,5 @@
+import type { DraftStatus } from "@app-tour/draft-engine";
+
 import type {
   DenaliWizardDraftEnvelope,
   DenaliWizardDraftMeta,
@@ -5,27 +7,29 @@ import type {
 import {
   denaliHydrateDraftEnvelope,
   denaliPrepareDraftEnvelope,
+  readDenaliWizardSourceRowVersion,
 } from "../../draft/denali-wizard-draft-binding";
 
 export type DenaliFlatEditDraftResetSync<TForm> = {
-  readonly setData: (envelope: DenaliWizardDraftEnvelope<TForm>) => void;
-  readonly clearDraft: () => Promise<void>;
-  readonly clearDraftAndReset?: (reset: DenaliWizardDraftEnvelope<TForm>) => Promise<void>;
+  readonly clearDraftAndReset: (reset: DenaliWizardDraftEnvelope<TForm>) => Promise<void>;
 };
 
-/** Stamp the tour rowVersion this envelope was hydrated from (flat-edit only). */
+/**
+ * Stamp the tour rowVersion this envelope was hydrated from (flat-edit only).
+ * Goes through `denaliPrepareDraftEnvelope` so Track B allowlisting stays in one place.
+ */
 export function denaliFlatEditEnvelopeMetaForTour(
   envelopeMeta: DenaliWizardDraftMeta,
   tourRowVersion: number | null
 ): DenaliWizardDraftMeta {
-  return {
-    currentStepIndex: envelopeMeta.currentStepIndex,
-    ...(envelopeMeta.wizardSessionId !== undefined
-      ? { wizardSessionId: envelopeMeta.wizardSessionId }
-      : {}),
-    ...(envelopeMeta.freshStart === true ? { freshStart: true } : {}),
-    ...(tourRowVersion != null ? { sourceRowVersion: tourRowVersion } : {}),
-  };
+  const sourceRowVersion = readDenaliWizardSourceRowVersion(tourRowVersion);
+  return denaliPrepareDraftEnvelope(
+    {},
+    {
+      ...envelopeMeta,
+      ...(sourceRowVersion !== undefined ? { sourceRowVersion } : {}),
+    }
+  ).meta;
 }
 
 export function prepareDenaliFlatEditSeedEnvelope<TForm>(
@@ -33,10 +37,7 @@ export function prepareDenaliFlatEditSeedEnvelope<TForm>(
   envelopeMeta: DenaliWizardDraftMeta,
   tourRowVersion: number | null
 ): DenaliWizardDraftEnvelope<TForm> {
-  return denaliPrepareDraftEnvelope(
-    form,
-    denaliFlatEditEnvelopeMetaForTour(envelopeMeta, tourRowVersion)
-  );
+  return denaliPrepareDraftEnvelope(form, denaliFlatEditEnvelopeMetaForTour(envelopeMeta, tourRowVersion));
 }
 
 /**
@@ -48,20 +49,18 @@ export function isDenaliFlatEditDraftStaleVsTour(
   draft: DenaliWizardDraftEnvelope<unknown>,
   tourRowVersion: number | null
 ): boolean {
-  if (tourRowVersion == null) {
+  const tour = readDenaliWizardSourceRowVersion(tourRowVersion);
+  const source = readDenaliWizardSourceRowVersion(draft.meta.sourceRowVersion);
+  if (tour === undefined || source === undefined) {
     return false;
   }
-  const source = draft.meta.sourceRowVersion;
-  if (typeof source !== "number") {
-    return false;
-  }
-  return source < tourRowVersion;
+  return source < tour;
 }
 
 export function shouldSeedDenaliFlatEditDraftFromTour(input: {
   readonly remoteDraft: DenaliWizardDraftEnvelope<unknown> | null;
   readonly tourRowVersion: number | null;
-  readonly draftStatus: string;
+  readonly draftStatus: DraftStatus;
 }): boolean {
   if (input.draftStatus === "SYNCING" || input.draftStatus === "CONFLICT_RESOLVING") {
     return false;
@@ -94,8 +93,7 @@ export function resolveDenaliFlatEditWorkingEnvelope<TForm>(input: {
 
 /**
  * After a successful tour PATCH: persist the GET snapshot as the edit draft.
- * Prefer `clearDraftAndReset` so React never observes `data=null` and cannot
- * re-PUT the pre-PATCH baseline (create-wizard already uses this primitive).
+ * Requires `clearDraftAndReset` so React never observes `data=null`.
  */
 export async function replaceDenaliFlatEditDraftAfterSuccessfulPatch<TForm>(input: {
   readonly baseline: TForm;
@@ -103,15 +101,7 @@ export async function replaceDenaliFlatEditDraftAfterSuccessfulPatch<TForm>(inpu
   readonly tourRowVersion: number;
   readonly draftSync: DenaliFlatEditDraftResetSync<TForm>;
 }): Promise<void> {
-  const next = prepareDenaliFlatEditSeedEnvelope(
-    input.baseline,
-    input.envelopeMeta,
-    input.tourRowVersion
+  await input.draftSync.clearDraftAndReset(
+    prepareDenaliFlatEditSeedEnvelope(input.baseline, input.envelopeMeta, input.tourRowVersion)
   );
-  if (input.draftSync.clearDraftAndReset !== undefined) {
-    await input.draftSync.clearDraftAndReset(next);
-    return;
-  }
-  await input.draftSync.clearDraft();
-  input.draftSync.setData(next);
 }

@@ -11,6 +11,7 @@ export {
   denaliHydrateDraftEnvelope,
   denaliPrepareDraftEnvelope,
   prepareDenaliCreateTourFreshStartEnvelope,
+  readDenaliWizardSourceRowVersion,
   type DenaliCreateTourRemoteDraftIdentity,
   type DenaliEditTourRemoteDraftIdentity,
   type DenaliWizardDraftEnvelope,
