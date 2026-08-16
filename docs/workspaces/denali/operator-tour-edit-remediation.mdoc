@@ -1,7 +1,7 @@
 ---
 title: Denali operator tour edit — remediation contract
 doc_id: DENALI-OPERATOR-TOUR-EDIT-REMEDIATION
-version: "2026-08-16-v23"
+version: "2026-08-16-v24"
 phase: operator-admin
 apps: [web, api, marketing]
 workspace: denali
@@ -60,6 +60,9 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
   → 18 ED-EMPTY-OPT-01 (optional empty for logistics gear/services + guide languages)
   → 19 ED-PHOTO-EMPTY-01 (day photo + itinerary photo empty copy; persist allowed)
   → 20 ED-CURR-MKT-01 (public catalog IRR label → تومان; no ×10)
+  → 21 ED-CAMP-PERSIST-01 (location-zone ghosts → tripDetails.overview)
+  → 22 ED-DEST-REFETCH-01 + ED-REV-CURR-01 (catalog refetch + review toman)
+  → 23 ED-LOC-NATURE-01 / ED-THEME-CAMP-01 / ED-PAY-DIFF-UX-01
 ```
 
 ## Invariants
@@ -93,6 +96,9 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
 | **18** ED-EMPTY-OPT-01 | Done — logistics gear/services and guide languages show optional empty (`role=status`) when catalog is soft-degraded, catalog is empty, or the operator skips. Empty `[]` does not block Continue/save. |
 | **19** ED-PHOTO-EMPTY-01 | Done — day photos and itinerary segment photos have optional empty copy. Empty `photos: []` / no segment `photoIds` does not block save. Marketing itinerary shows muted empty copy; does not invent photos. |
 | **20** ED-CURR-MKT-01 | Done — public catalog `formatCatalogPrice` labels `IRR` as تومان/toman **for Denali `pluginId` only** (same digits). Harbor/Urban keep `Intl`. No ×10. JSON-LD stays ISO `IRR`. Operator `formatTourPrice` is the same Denali-only display rule. |
+| **21** ED-CAMP-PERSIST-01 | **P1 — in progress** — persist `summitPoint` / `campPoint` / `endPoint` under `tripDetails.overview.*`. Ghost strip stays. See wizard-experience v23. |
+| **22** ED-DEST-REFETCH-01 / ED-REV-CURR-01 | **P2 — blocked on 21** — destination catalog focus refetch when offered list empty; review money grouping. |
+| **23** ED-LOC-NATURE-01 / ED-THEME-CAMP-01 / ED-PAY-DIFF-UX-01 | **P3 — blocked on 22** — nature zone labels; camping theme/gear seed; paid/difficulty copy. |
 
 ## Closure (2026-08-06)
 
@@ -117,6 +123,8 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 **v22 (2026-08-16):** Phase **20** / **ED-CURR-MKT-01** — public catalog painted `Intl` `style: currency` + `IRR` as ریال/`IRR` while wizard/operator list already say تومان for the same stored integer. Fix is **marketing-local** `formatCatalogPrice` only (grouped digits + تومان/toman). Do **not** ×10; do **not** change finance formatters or JSON-LD `priceCurrency`. Storage/egress stay ISO `IRR`. No API / `platform-core`.
 
 **v23 (2026-08-16):** Workspace isolation for toman display. Host formatters (`formatTourPrice`, `formatCatalogPrice`) must not treat every ISO `IRR` as Denali toman — Harbor/guest-club also store `IRR`. Toman label applies only when the host passes `pluginId === "denali"`. Still no API / `platform-core` / persist rewrite.
+
+**v24 (2026-08-16):** Asklim live-audit pack. Phase **21** persists location-zone ghosts onto `tripDetails.overview` (do not persist root `campPoint`). Phase **22** catalog refetch + review toman. Phase **23** nature labels / camping catalog / paid-difficulty copy. Full contract: [`wizard-experience.md`](wizard-experience.md) § Asklim live-audit pack. No `plugin.id === "denali"` in `updateTour`. No ×10.
 
 **Operator follow-ups outside this pack** (not blockers; do not reopen lifecycle / platform-core validate):
 

@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v22"
+version: "2026-08-16-v23"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -317,6 +317,90 @@ Live create leftover after Phase 15. **No ×10 conversion.** Storage `priceCurre
 | **ED-CURR-MKT-01** | Public catalog used the same `Intl` currency style → FA «ریال» / EN `IRR 2,500,000` for wizard تومان digits. | Marketing-local `formatCatalogPrice` (`apps/marketing`, not `formatTourPrice`, not finance). `IRR` → grouped digits + تومان/toman **only for `pluginId === "denali"`** (callers pass tenant `pluginId`). Other workspaces keep `Intl`. JSON-LD `offers.priceCurrency` stays `IRR`. **No ×10** until product YES. Spec: `MKT-CURR-01`. |
 | **ED-DEST-NATURE-01** | Nature tour destination + itinerary pickers listed `locationType=peak` rows (Tochal/Damavand). Peak altitude prefill was already skipped. | `isDenaliDestinationOfferedForTourKind` hides peaks when `readDenaliCanonicalBasics(kind).category === "nature"`. Currently selected peak remains in the option list so the control does not go blank. Mountain/desert/event unchanged. Specs: `DEN-DEST-NATURE-01*`. |
 | **ED-DT-EQ-COPY-01** | Guard is `Date.parse(end) <= Date.parse(start)` (equal instants rejected) but FA copy said only «قبل از شروع». | i18n: end **must be after** start (`باید بعد از شروع برنامه باشد` / `must be after the tour start`). Comparison unchanged. |
+
+## Asklim live-audit pack (v23 — phased)
+
+Live create 2026-08-16: nature multi-day camping at آبشار اسکلیم (`97974fc2-…`). Gathering dual-write (ED-GATHER-PERSIST-01) held; **camp OSM did not survive POST**. **Do not start P2/P3 until P1 specs `DEN-CAMP-PERSIST-01*` are green** — later waves must not reopen ghost-path policy (`INV-DENALI-WIZ-003`).
+
+**Gate:** P1 (phase 21) → P2 (phase 22, parallel IDs) → P3 (phase 23). Implementation is Denali client/ACL only in P1; API `stripFormProfileForSubmit` stays unchanged.
+
+### Phase order (do not skip)
+
+```text
+P1  ED-CAMP-PERSIST-01   location-zone ghosts → tripDetails.overview.*
+        │
+        ├─ blocked by: ghost strip must stay (do not persist root campPoint)
+        └─ unblocks: edit/GET round-trip of camp/summit/end
+P2  ED-DEST-REFETCH-01   destination catalog refetch when empty-after-filter
+P2  ED-REV-CURR-01       review money uses Denali toman grouping (no ×10)
+        │
+        └─ parallel after P1; no persist/registry change
+P3  ED-LOC-NATURE-01     nature logistics zone labels (copy)
+P3  ED-THEME-CAMP-01     nature/camping theme + gear catalog (seed/settings)
+P3  ED-PAY-DIFF-UX-01    paid-tour helper + difficulty unset affordance (copy/UX)
+```
+
+| User P | ID | Symptom (live) | Owner | Done when |
+| ------ | -- | -------------- | ----- | --------- |
+| **P1** | **ED-CAMP-PERSIST-01** | Review showed «کمپ آبشار اسکلیم» + OSM coords; `GET` had `campPoint: null` and `tripDetails.overview` only `trailDistanceKm`. Same class: `summitPoint` / `endPoint`. | Denali field + sanitize + `prepareDenaliSubmitArtifact`. **Do not** remove paths from `DENALI_FORM_PROFILE_GHOST_PATHS`. | POST/PATCH stores populated `{ label, address, lat, lng }` at `tripDetails.overview.campPoint` (and siblings). Edit hydrate + review resolve nested. Root ghosts still stripped. `osmName` forbidden. Specs: `DEN-CAMP-PERSIST-01*`. |
+| **P2** | **ED-DEST-REFETCH-01** | Settings added `nature_trail` Asklim; wizard tab still «مقصدی نیست» until full reload. `useDenaliDestinationCatalog` refetches on focus **only when `state.error !== null`**. Empty-after-filter is a successful peak list. | `use-destination-catalog.ts` (+ empty-state retry control). Mirror ED-CAT-RETRY-01 focus/visibility, but trigger when **offered** destinations for the current kind are empty — not only HTTP error. | Adding a destination in another tab + focus/visibility (or explicit retry on the empty notice) shows the new row without `location.reload`. Specs: `DEN-DEST-REFETCH-01*`. |
+| **P2** | **ED-REV-CURR-01** | Review painted `3200000` / `450000` while list card showed `۳٬۲۰۰٬۰۰۰ تومان`. | `denali-review-format-logic.ts` + Denali `formatGroupedDigitsString` / toman suffix. **Must not import** `apps/web` `formatTourPrice` (package boundary). Same digits, **no ×10**, storage stays IRR. | Review rows for `pricing.basePricePerPerson` and `transport.transportCost` match list grouping + تومان/toman. Specs: `DEN-REV-CURR-01*`. |
+| **P3** | **ED-LOC-NATURE-01** | Nature logistics still labels the summit zone «قله / نقطه اوج». | FA/EN `composites.locationTypes` kind-aware keys. Registry paths unchanged (`INV-DENALI-WIZ-019` — do not hide the zone). | `readDenaliCanonicalBasics(kind).category === "nature"` → summit copy is peak-free (e.g. «نقطه اوج مسیر»). Mountain unchanged. Specs: `DEN-LOC-NATURE-01*`. |
+| **P3** | **ED-THEME-CAMP-01** | Themes empty («از تنظیمات → تم‌های تور»); gear list only mountain poles. | Denali club **seed** + optional Settings empty-state already exists. Not a wizard schema change. | Seed includes a nature/camping theme and at least one camping gear row (tent/sleeping bag) tagged for nature. Wizard theme picker non-empty on club tenant. Spec: seed/settings unit or club bootstrap assert. |
+| **P3** | **ED-PAY-DIFF-UX-01** | Paid checkbox default off hides the price field (by design). Difficulty unset thumb sits at 1 with «سطح سختی را انتخاب کنید» — ED-DIFF-01 already owns the slider math. | Copy/affordance only under paid checkbox; difficulty unset helper already exists — tighten if live still reads as “value is 1”. **Do not** default `requiresPayment: true`. **Do not** move unset thumb off min. | Unpaid state has `role=status` helper that price appears after checking paid. Difficulty unset copy remains distinct from a committed `1`. Specs: field render / copy. |
+
+### Location-zone persist path (ED-CAMP-PERSIST-01)
+
+`startPoint` is the composite **anchor** and **may persist at root**. `summitPoint` / `campPoint` / `endPoint` are **ghost dependents** (`DENALI_FORM_PROFILE_GHOST_PATHS`, `INV-DENALI-WIZ-003`). Client sanitize skips them (`shouldPersistCanonicalPathFromForm` → false). `tourWizardDraftToDenaliForm` still copies `basicInfo.campPoint`; `projectDenaliWizardFormToCanonicalIngressData` writes **root** `campPoint`; API `stripFormProfileForSubmit` **deletes** that root. Nested `tripDetails.overview.campPoint` (registry `wire`) is never filled → GET loses the OSM camp.
+
+```text
+UI write (bug)     canonical root campPoint                 ← populated (review in-session)
+sanitize           skips ghost path
+form adapter       basicInfo.campPoint                      ← populated
+project artifact   data.campPoint                           ← populated
+API ghost strip    delete data.campPoint
+tripDetails.overview.campPoint                              ← missing
+GET / edit hydrate campPoint: null, overview without camp
+```
+
+```text
+UI write (fix)     root campPoint (in-session) + tripDetails.overview.campPoint (persist SoT)
+sanitize           promote populated root ghost → overview when nested empty
+prepareDenaliSubmitArtifact
+                   copy populated basicInfo.{summit,camp,end}Point
+                   onto data.tripDetails.overview.* (after form project, before HTTP)
+API ghost strip    delete root campPoint / summitPoint / endPoint  (unchanged)
+GET                tripDetails.overview.campPoint populated
+hydrate / review   resolveDenaliLocationZoneFromStorage(root, nested)
+```
+
+| Layer | Path |
+| ----- | ---- |
+| Field read | `resolveDenaliLocationZoneFromStorage(root, tripDetails.overview.{path})` — populated root wins (in-session); else nested |
+| Field write | root (composite) **and** `tripDetails.overview.{path}` |
+| OSM | persist-safe `{ label, address, latitude, longitude }` only — no `osmName` |
+| Sanitize | promote root ghost → overview when nested empty; empty zones persist as omitted / `{}` not a fake pin |
+| Submit artifact | copy form `basicInfo.{summit,camp,end}Point` → `tripDetails.overview.*` so form-project overwrite of `tripDetails` cannot drop the zone |
+| Review | same resolve helper (`formatLocation`) |
+| API strip | **unchanged** — ghosts stay ghosts |
+| Delivery enrich | optional same-phase: `getCanonicalValue(overview.{path})` fallback when root ghost is absent. Doc-First if `apps/api` `enrich-canonical-delivery-payload.ts` changes. Not required to close operator GET. |
+
+Do **not**: drop `campPoint` from `DENALI_FORM_PROFILE_GHOST_PATHS`; persist root ghosts; `plugin.id === "denali"` in `updateTour`; invent coordinates.
+
+### Destination catalog refetch (ED-DEST-REFETCH-01)
+
+```text
+GET locations → 3 peaks (200)
+nature filter → offered.length === 0 → empty copy + settings link
+operator adds nature_trail in /settings/locations (other tab)
+wizard catalog Map still peaks-only  (error === null → no focus reload)
+```
+
+Contract: when **offered** destinations for the current tour kind are empty (or the empty notice is visible), `visibilitychange` / `window focus` / explicit retry call `reload()`. Successful non-empty lists do not refetch on every focus. Soft HTTP retry (ED-CAT-RETRY-01) unchanged.
+
+### Review money (ED-REV-CURR-01)
+
+Wizard labels already say تومان. `getCanonicalStringValue` dumps the ASCII integer. Formatter lives in Denali `i18n-format` (`formatGroupedDigitsString` + تومان/toman). Host `formatTourPrice` stays in `apps/web` for list/header (`pluginId === "denali"`). Review must not cross the workspace→app import boundary.
 
 ```text
 loading catalog ──► destination/leader display = "" (not UUID)
