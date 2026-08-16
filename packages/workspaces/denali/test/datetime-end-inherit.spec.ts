@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
   DATETIME_LOCAL_INVENTED_MIDNIGHT,
+  isDatetimePickerDateUnchanged,
   isUnsetOrInventedMidnightClock,
   joinDatetimeLocal,
   repairInventedMidnightDatetimeLocal,
@@ -45,5 +47,19 @@ describe("datetime-format end-date inherit (ED-DT-END-01)", () => {
       "2026-08-18T06:00"
     );
     assert.equal(repairInventedMidnightDatetimeLocal("2026-08-18T18:30", "2026-08-15T06:00"), null);
+  });
+
+  it("ED-DT-CLOCK-01 same calendar day is not a date commit", () => {
+    assert.equal(isDatetimePickerDateUnchanged("2026-08-18", "2026-08-18"), true);
+    assert.equal(isDatetimePickerDateUnchanged(" 2026-08-18 ", "2026-08-18"), true);
+    assert.equal(isDatetimePickerDateUnchanged("2026-08-19", "2026-08-18"), false);
+  });
+
+  it("ED-DT-CLOCK-01 picker skips unchanged calendar day commits", () => {
+    const source = readFileSync(
+      new URL("../src/ui/components/localized-datetime-picker.tsx", import.meta.url),
+      "utf8"
+    );
+    assert.match(source, /isDatetimePickerDateUnchanged\(nextDate, date\)/);
   });
 });

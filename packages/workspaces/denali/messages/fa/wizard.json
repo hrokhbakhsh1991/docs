@@ -503,7 +503,9 @@
       "DENALI_TOUR_TYPE_REQUIRED": "قبل از ادامه نوع تور را انتخاب کنید",
       "CARDINALITY_VIOLATION": "{field} از حد مجاز فراتر رفته است",
       "DENALI_TOUR_START_BEFORE_TODAY": "تاریخ «{field}» نمی‌تواند قبل از امروز باشد",
-      "DENALI_TOUR_END_BEFORE_START": "تاریخ «{field}» نمی‌تواند قبل از شروع برنامه باشد"
+      "DENALI_TOUR_END_BEFORE_START": "تاریخ «{field}» نمی‌تواند قبل از شروع برنامه باشد",
+      "DENALI_CAPACITY_MIN_AFTER_MAX": "حداقل ظرفیت نمی‌تواند بیشتر از حداکثر ظرفیت باشد",
+      "DENALI_AGE_MIN_AFTER_MAX": "حداقل سن نمی‌تواند بیشتر از حداکثر سن باشد"
     },
     "publishStatus": {
       "helper": "تور پیش‌نویس تا زمان انتشار فعال، داخلی می‌ماند.",

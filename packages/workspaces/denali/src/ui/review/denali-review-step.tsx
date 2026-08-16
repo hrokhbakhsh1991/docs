@@ -7,6 +7,7 @@ import type { RenderStepPlan } from "@app-tour/platform-core";
 import { loadDenaliReviewCatalog } from "../adapters/review-catalog-fetch";
 import {
   resolveDenaliFieldLabel,
+  resolveDenaliFitnessLevelLabel,
   resolveDenaliPublishStatusLabel,
   resolveDenaliTourKindLabel,
   resolveDenaliTransportModeLabel,
@@ -353,6 +354,7 @@ export function DenaliReviewStep({
       stepLabel: (stepId) => t(`steps.${stepId}`),
       tourKindLabel: (slug) => resolveDenaliTourKindLabel(t, slug),
       transportModeLabel: (mode) => resolveDenaliTransportModeLabel(t, mode),
+      fitnessLevelLabel: (level) => resolveDenaliFitnessLevelLabel(t, level),
       publishStatusLabel: (status) => resolveDenaliPublishStatusLabel(t, status),
       locationZoneLabel: (path) => t(`composites.locationTypes.${path}`),
       formatDatetime: (iso) =>

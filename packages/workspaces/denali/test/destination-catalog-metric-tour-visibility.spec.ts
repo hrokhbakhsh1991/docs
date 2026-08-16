@@ -72,6 +72,7 @@ const REVIEW_LABELS = {
   stepLabel: (stepId: string) => stepId,
   tourKindLabel: (slug: string) => slug,
   transportModeLabel: (mode: string) => mode,
+  fitnessLevelLabel: (level: string) => level,
   publishStatusLabel: (status: string) => status,
   locationZoneLabel: (path: string) => path,
   formatDatetime: (iso: string) => iso,

@@ -21,6 +21,7 @@ const LABELS: DenaliReviewFormatLabels = {
   stepLabel: (stepId) => stepId,
   tourKindLabel: (slug) => slug,
   transportModeLabel: (mode) => mode,
+  fitnessLevelLabel: (level) => level,
   publishStatusLabel: (status) => status,
   locationZoneLabel: (path) => path,
   // Identity stub — production wires isoToDatetimeLocalInput + formatDatetimeLocalLabel.

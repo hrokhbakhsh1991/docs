@@ -20,6 +20,7 @@ import {
 import type { TourThemeResource } from "../adapters/catalog-types";
 import { loadDenaliThemeCatalog } from "../adapters/theme-catalog-fetch";
 import { persistDenaliWizardDraftChange } from "../chrome/draft-persist";
+import { useDenaliDestinationCatalog } from "./use-destination-catalog";
 
 export type DenaliWizardRuleSyncGate = {
   readonly workspaceFormProfile: string;
@@ -126,6 +127,8 @@ export function useDenaliWizardRuleSync({
     themeCatalog,
   ]);
 
+  const { destinationById } = useDenaliDestinationCatalog();
+
   const onDraftChange = useCallback(
     (next: DenaliTourWizardDraft) => {
       persistDenaliWizardDraftChange(next, {
@@ -134,9 +137,10 @@ export function useDenaliWizardRuleSync({
         denaliRules,
         denaliPlugin: plugin,
         wizardRuleEvalContext,
+        lookupDestination: (destinationId) => destinationById.get(destinationId),
       });
     },
-    [getEnvelope, setEnvelope, denaliRules, plugin, wizardRuleEvalContext]
+    [getEnvelope, setEnvelope, denaliRules, plugin, wizardRuleEvalContext, destinationById]
   );
 
   return { wizardRuleEvalContext, onDraftChange };

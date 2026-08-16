@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import {
   type DenaliTourWizardDraft,
@@ -13,6 +13,7 @@ import {
   isDestinationCatalogMetricLocked,
   readLockedDestinationCatalogMetricValue,
 } from "../../settings/resolve-destination-catalog-metric-lock";
+import { seedEmptyVisibleDestinationCatalogMetrics } from "../../settings/apply-destination-catalog-prefill";
 import { patchDestinationCatalogMetric } from "../adapters/persist-destination-catalog-metric";
 import { resolveDenaliFieldLabel } from "../adapters/field-labels";
 import { resolveCodedErrorMessage } from "../adapters/i18n-errors";
@@ -62,6 +63,20 @@ export function DenaliDestinationCatalogMetricField({
       }
     };
   }, []);
+
+  useLayoutEffect(() => {
+    const destinationId = getCanonicalStringValue(draftRef.current, "destinationId").trim();
+    const currentDestination =
+      destinationId.length > 0 ? destinationById.get(destinationId) : undefined;
+    if (currentDestination == null) {
+      return;
+    }
+    const next = seedEmptyVisibleDestinationCatalogMetrics(draftRef.current, currentDestination);
+    if (next === draftRef.current) {
+      return;
+    }
+    commitWizardDraftEdit(draftRef, onDraftChange, () => next);
+  }, [destinationById, draft, draftRef, onDraftChange]);
 
   if (binding == null) {
     return null;

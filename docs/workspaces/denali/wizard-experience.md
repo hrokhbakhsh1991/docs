@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v12"
+version: "2026-08-16-v13"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -205,7 +205,33 @@ PATCH/POST body
 
 API must not branch on `plugin.id === "denali"` or name `peakHeight`. Destinations stay settings records; Denali interprets `altitudeM` / `typicalTrailDistanceKm`. Worker threads must **not** call settings — enrich runs on the HTTP/main path only.
 
-**Still deferred (product):** same-calendar-day `multi_day` still forces ≥2 itinerary rows (`estimateDenaliTourDayCount`). Do not change until this file picks invariant A (multi-day = ≥2 calendar days) vs B (allow 1 itinerary day). `projection.updatedAt` on memory GET still mirrors `createdAt` — freshness remains `rowVersion`.
+## Matrix visible-again + pair bounds (v13)
+
+Template/matrix cells hide and show fields. Hide is already owned by `structuralInvariant: { kind: "clearWhenNotVisible" }` (sanitize). The remaining hole is **visible-again**: the UI can remount a catalog-locked metric and paint the catalog number while canonical is still empty, so Continue emits `REQUIRED_FIELD_EMPTY`. That is a matrix/lifecycle gap, not a peakHeight special case.
+
+| ID | Failure | Owner | Contract |
+| -- | ------- | ----- | -------- |
+| **ED-CAT-SEED-01** | Mountain → nature (peak hidden + cleared) → mountain: locked peak shows catalog `3962` but Continue fails required. | `seedEmptyVisibleDestinationCatalogMetrics` after sanitize in `persistDenaliWizardDraftChange` (lookup from destination catalog). Metric field `useLayoutEffect` reseeds when catalog arrives later. | If the field is **visible again**, canonical is **empty**, and the current destination **locks** that metric → write the catalog string. Do **not** overwrite a non-empty operator value. Do **not** call full `applyDestinationCatalogPrefill` on every persist (that clears unlocked metrics). Hidden by template/matrix → no seed (sanitize already cleared). Specs: `DEN-CAT-SEED-01*`. |
+| **ED-DT-CLOCK-01** | Category remount re-commits the end calendar day and can replace a complete ISO clock with start `fallbackTime`. | `isDatetimePickerDateUnchanged` in `DenaliWizardDatetimePicker`; inherit still only via `resolveDatetimePickerTimeForDateCommit` (empty / invented midnight). | Same calendar day → no `onChange`. Date-without-clock / `00:00` with a real start clock still inherits (ED-DT-END-01). Specs: `datetime-end-inherit.spec.ts`. |
+| **ED-NUM-PAIR-01** | `capacityMin` > `capacityMax` and `participants.minimumAge` > `maximumAge` accepted through Continue/review. | `denali-numeric-pair-policy.ts` + `mergeDenaliNumericPairViolations` (same class as schedule dates). | Emit only when **both** fields are visible (matrix/template) **and** both parse as finite numbers **and** `min > max`. Empty optional min → skip. No `updateTour` / API branch. Codes: `DENALI_CAPACITY_MIN_AFTER_MAX`, `DENALI_AGE_MIN_AFTER_MAX`. |
+| **ED-REV-VIS-01** | Review omitted `participants.maximumAge` and `participants.fitnessLevel` even when the pricing composite showed them. | `pushRowWhenFieldVisible` in `denali-review-format-logic.ts` (same helper as peak/trail). | Review visibility = wizard visibility. Fitness display uses `fitnessLevelLabel` (`low` / `medium` / `high`); storage stays the enum. |
+| **ED-DT-CLEAR-01** | `endDateTime` lacked `clearWhenNotVisible` while `approximateReturnTime` had it — single-day cells could keep a stale multi-day end. | Registry `endDateTime.structuralInvariant` (sibling of return time). No `denali:codegen` (invariant is registry-owned, not a generated rule row). | Hide → clear on sanitize. Visible-again empty end is operator-owned (not catalog-seeded). |
+
+**Visible-again seed (not dest-change prefill):**
+
+```text
+category / matrix cell change
+  → persist rebase
+  → sanitizeWizardDraft  (clearWhenNotVisible)
+  → seedEmptyVisibleDestinationCatalogMetrics(draft, lookup(destinationId))
+        visible + canonical empty + catalog lock → write catalog string
+        else leave draft
+  → persist-if-changed
+```
+
+`applyDestinationCatalogPrefill` remains the **destination picker** primitive (peak vs trail vs generic). Persist must not re-run it on every keystroke.
+
+**Still deferred (product):** same-calendar-day `multi_day` still forces ≥2 itinerary rows (`estimateDenaliTourDayCount`). Do not change until this file picks invariant A (multi-day = ≥2 calendar days) vs B (allow 1 itinerary day). `projection.updatedAt` on memory GET still mirrors `createdAt` — freshness remains `rowVersion`. Filter peak destinations on nature tours; copy «قبل از شروع» for equality; merge the two save buttons.
 
 ```text
 loading catalog ──► destination/leader display = "" (not UUID)

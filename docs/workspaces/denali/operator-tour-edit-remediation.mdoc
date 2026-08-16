@@ -1,7 +1,7 @@
 ---
 title: Denali operator tour edit — remediation contract
 doc_id: DENALI-OPERATOR-TOUR-EDIT-REMEDIATION
-version: "2026-08-16-v15"
+version: "2026-08-16-v16"
 phase: operator-admin
 apps: [web, api]
 workspace: denali
@@ -53,6 +53,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
   → 11 multi-day end ≥ start (ED-DT-RANGE-01) — Denali wizard/edit only
   → 12 operator UX (ED-REV-UUID-01, ED-GATHER-01, ED-SAVE-COPY-01, ED-HIKE-MULTI-01, ED-PEAK-RO-01)
   → 13 persist catalog metric lock (ED-PEAK-LOCK-01) — optional wizardHost hook + API enrich
+  → 14 matrix visible-again seed + pair bounds + review visibility + end clock/clear
 ```
 
 ## Invariants
@@ -79,6 +80,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
 | **11** ED-DT-RANGE-01 | Done — end calendar min = start local day; `DENALI_TOUR_END_BEFORE_START` on `Date.parse(end) <= Date.parse(start)` |
 | **12** ED-REV-UUID-01 / ED-GATHER-01 / ED-SAVE-COPY-01 / ED-HIKE-MULTI-01 / ED-PEAK-RO-01 | Done — Denali-only UI/copy/registry; see wizard-experience v11. |
 | **13** ED-PEAK-LOCK-01 | Done — optional `wizardHost.normalizeCanonicalForPersist`; API enrich is product-blind. No `plugin.id === "denali"` in `updateTour`. Memory `projection.updatedAt` still mirrors `createdAt`. |
+| **14** ED-CAT-SEED-01 / ED-DT-CLOCK-01 / ED-NUM-PAIR-01 / ED-REV-VIS-01 / ED-DT-CLEAR-01 | Done — Denali wizard/edit only. Visible-again catalog seed after sanitize; date-picker same-day no-op; min≤max when both visible+set; review uses `pushRowWhenFieldVisible`; `endDateTime` `clearWhenNotVisible`. No API / `updateTour` / `plugin.id === "denali"`. |
 
 ## Closure (2026-08-06)
 
@@ -87,6 +89,8 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 **v14 (2026-08-16):** Phase **11** / **ED-DT-RANGE-01** — inverted multi-day range was accepted at create Continue because `resolveDenaliDatetimeFieldMinIsoDate("endDateTime")` returned `undefined` and `mergeDenaliScheduleDateViolations` only emitted `DENALI_TOUR_START_BEFORE_TODAY`. Fix is Denali UI/validation only (no API, no `platform-core`).
 
 **v15 (2026-08-16):** Phase **13** / **ED-PEAK-LOCK-01** — crafted POST/PATCH could store a peak/trail number other than the locked catalog value. Persist enrich runs on the HTTP/main thread inside `enrichValidateBeforePersistInput` (after optional catalog-ref allowlists, before worker/RuleEngine). `applyWorkspacePersistCanonicalNormalize` calls `wizardHost.normalizeCanonicalForPersist` only when the workspace implements it; otherwise it must not `listDestinations`. Denali `applyLockedDestinationCatalogMetricsToCanonical` overwrites `tripDetails.overview.peakHeight` / `trailDistanceKm` when the destination row locks that metric **and** the field is visible for the tour kind. Unlocked / missing destination / hidden field → leave operator values. API does not name `peakHeight` or branch on `plugin.id === "denali"`. Worker entry stays `validateCanonicalBeforePersistSync` on already-enriched `body.data`.
+
+**v16 (2026-08-16):** Phase **14** — template/matrix hide already clears via `clearWhenNotVisible`. Visible-again did not re-seed catalog-locked metrics, so Continue validated empty canonical while the locked input painted catalog. Fix is Denali client persist + review/validation only: `seedEmptyVisibleDestinationCatalogMetrics` after sanitize (empty + visible + lock → catalog string; never a blanket `applyDestinationCatalogPrefill` on every keystroke). End clock: date picker must not re-commit the same local day. Numeric pairs: `min > max` only when both fields are visible and both set. Review: `participants.maximumAge` / `fitnessLevel` via `pushRowWhenFieldVisible`. `endDateTime` gains the same `clearWhenNotVisible` sibling as `approximateReturnTime`. No codegen unless generated rule rows change.
 
 **Operator follow-ups outside this pack** (not blockers; do not reopen lifecycle / platform-core validate):
 
@@ -139,6 +143,16 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 | --- | --- |
 | ED-PEAK-LOCK-01 | Denali `applyLockedDestinationCatalogMetricsToCanonical` → `wizardHost.normalizeCanonicalForPersist`. API `applyWorkspacePersistCanonicalNormalize` inside `enrichValidateBeforePersistInput` (main thread; worker receives already-locked `body.data`). |
 
+## Phase 14 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-CAT-SEED-01 | `seedEmptyVisibleDestinationCatalogMetrics` in `apply-destination-catalog-prefill.ts` → `persistDenaliWizardDraftChange` after sanitize (`lookupDestination`) + locked metric field `useLayoutEffect` |
+| ED-DT-CLOCK-01 | `isDatetimePickerDateUnchanged` + existing `resolveDatetimePickerTimeForDateCommit` in `DenaliWizardDatetimePicker` |
+| ED-NUM-PAIR-01 | `denali-numeric-pair-policy.ts` → `mergeDenaliNumericPairViolations` + `review.validation.DENALI_*_MIN_AFTER_MAX` |
+| ED-REV-VIS-01 | `denali-review-format-logic.ts` `pushRowWhenFieldVisible` for max age + fitness; `fitnessLevelLabel` |
+| ED-DT-CLEAR-01 | `denaliFieldRegistryData.ts` `endDateTime.structuralInvariant: { kind: "clearWhenNotVisible" }` (no `denali:codegen`) |
+
 ## Phase 12 implementation map
 
 | ID | Owner path |
@@ -184,5 +198,7 @@ pnpm --filter @apps/web exec node --import tsx --import ./test/register-dom.mjs 
 # Phase 11 ED-DT-RANGE-01
 pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/denali-schedule-date-policy.spec.ts
 pnpm --filter @apps/web exec node --import tsx --import ./test/register-dom.mjs --test test/denali-wizard-validation.spec.ts
+# Phase 14 visible-again / pairs / review / end clear
+pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/apply-destination-catalog-prefill.spec.ts test/datetime-end-inherit.spec.ts test/denali-numeric-pair-policy.spec.ts test/denali-review-catalog-name.spec.ts test/denali-schedule-fields.spec.ts
 ```
 

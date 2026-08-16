@@ -190,6 +190,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     tags: ["core", "deliverable"] as const,
     ruleDefaults: { required: false, hidden: true },
     contextualRequired: { kind: "multiDayEndDateTimeRequired" },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
 
     cellOverrides: {
       "desert:multi_day": { required: true, hidden: false },

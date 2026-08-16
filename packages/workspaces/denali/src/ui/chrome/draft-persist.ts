@@ -5,10 +5,15 @@ import {
   type DenaliWizardDraftEnvelope,
   type DenaliWizardDraftMeta,
 } from "../../draft/denali-wizard-draft-binding";
-import type { DenaliTourWizardDraft } from "../../draft/denali-tour-wizard-draft";
+import {
+  type DenaliTourWizardDraft,
+  getCanonicalStringValue,
+} from "../../draft/denali-tour-wizard-draft";
+import { seedEmptyVisibleDestinationCatalogMetrics } from "../../settings/apply-destination-catalog-prefill";
 import type { DenaliWizardRulesModule } from "../../wizard/rules-loader";
 import type { DenaliWizardRulesModule as StrictDenaliWizardRulesModule } from "../../wizard/denali-wizard-rules-module";
 import type { DenaliWizardRuleEvalContext } from "../../wizard/denali-wizard-submit-payload";
+import type { DestinationResource } from "../adapters/catalog-types";
 import { sanitizeDenaliWizardDraft } from "./draft-form-adapter";
 import { rebaseDraftChangeOntoLatest } from "../logic/denali-tour-kind-field-logic";
 
@@ -18,7 +23,23 @@ export type DenaliWizardDraftPersistInput = {
   readonly denaliRules: DenaliWizardRulesModule | null;
   readonly denaliPlugin: WorkspacePlugin | null;
   readonly wizardRuleEvalContext: DenaliWizardRuleEvalContext | undefined;
+  /** ED-CAT-SEED-01 — optional; omitted in unit tests that do not load destinations. */
+  readonly lookupDestination?: (destinationId: string) => DestinationResource | undefined;
 };
+
+function seedVisibleCatalogMetricsAfterSanitize(
+  draft: DenaliTourWizardDraft,
+  lookupDestination: DenaliWizardDraftPersistInput["lookupDestination"]
+): DenaliTourWizardDraft {
+  if (lookupDestination == null) {
+    return draft;
+  }
+  const destinationId = getCanonicalStringValue(draft, "destinationId").trim();
+  if (destinationId.length === 0) {
+    return draft;
+  }
+  return seedEmptyVisibleDestinationCatalogMetrics(draft, lookupDestination(destinationId));
+}
 
 function prepareDenaliWizardDraftEnvelope(
   plugin: WorkspacePlugin | null,
@@ -57,11 +78,13 @@ export function persistDenaliWizardDraftChange(
           )
         : rebased;
 
+  const seeded = seedVisibleCatalogMetricsAfterSanitize(sanitized, input.lookupDestination);
+
   if (envelope === null) {
     return;
   }
 
-  const prepared = prepareDenaliWizardDraftEnvelope(input.denaliPlugin, sanitized, {
+  const prepared = prepareDenaliWizardDraftEnvelope(input.denaliPlugin, seeded, {
     ...envelope.meta,
   });
   if (

@@ -22,6 +22,7 @@ const LABELS: DenaliReviewFormatLabels = {
   stepLabel: (stepId) => stepId,
   tourKindLabel: (slug) => slug,
   transportModeLabel: (mode) => mode,
+  fitnessLevelLabel: (level) => level,
   publishStatusLabel: (status) => status,
   locationZoneLabel: (path) => path,
   formatDatetime: (iso) => iso,
@@ -73,5 +74,52 @@ describe("denali-review-catalog-name.spec.ts", () => {
     assert.equal(paths.has("program.hikingHoursApprox"), true);
     assert.equal(paths.has("program.hikingGoHours"), false);
     assert.equal(paths.has("program.hikingReturnHours"), false);
+  });
+
+  it("DEN-REV-VIS-01 mountain review includes max age and fitness (ED-REV-VIS-01)", () => {
+    const sections = buildDenaliReviewSections(
+      {
+        data: {
+          title: "Damavand",
+          category: "mountain_day",
+          participants: {
+            minimumAge: "18",
+            maximumAge: "55",
+            fitnessLevel: "medium",
+          },
+        },
+      },
+      EMPTY_CATALOG,
+      LABELS
+    );
+    const pricing = sections.find((section) => section.stepId === "denali_pricing");
+    const paths = new Set(pricing?.rows.map((row) => row.canonicalPath) ?? []);
+    assert.equal(paths.has("participants.minimumAge"), true);
+    assert.equal(paths.has("participants.maximumAge"), true);
+    assert.equal(paths.has("participants.fitnessLevel"), true);
+    const fitness = pricing?.rows.find((row) => row.canonicalPath === "participants.fitnessLevel");
+    assert.equal(fitness?.value, "medium");
+  });
+
+  it("DEN-REV-VIS-01b nature review omits mountain-only age and fitness", () => {
+    const sections = buildDenaliReviewSections(
+      {
+        data: {
+          title: "Nature walk",
+          category: "nature_day",
+          participants: {
+            minimumAge: "18",
+            maximumAge: "55",
+            fitnessLevel: "medium",
+          },
+        },
+      },
+      EMPTY_CATALOG,
+      LABELS
+    );
+    const pricing = sections.find((section) => section.stepId === "denali_pricing");
+    const paths = new Set(pricing?.rows.map((row) => row.canonicalPath) ?? []);
+    assert.equal(paths.has("participants.maximumAge"), false);
+    assert.equal(paths.has("participants.fitnessLevel"), false);
   });
 });

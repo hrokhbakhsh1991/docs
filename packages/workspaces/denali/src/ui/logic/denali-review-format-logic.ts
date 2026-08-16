@@ -77,6 +77,7 @@ export type DenaliReviewFormatLabels = {
   readonly stepLabel: (stepId: string) => string;
   readonly tourKindLabel: (slug: string) => string;
   readonly transportModeLabel: (mode: string) => string;
+  readonly fitnessLevelLabel: (level: string) => string;
   readonly publishStatusLabel: (status: string) => string;
   readonly locationZoneLabel: (path: string) => string;
   /** Display-only — canonical storage stays ISO (INV-DENALI-REVIEW-01). */
@@ -557,6 +558,22 @@ export function buildDenaliReviewSections(
     "participants.minimumAge",
     labels.fieldLabel("participants.minimumAge"),
     getCanonicalStringValue(draft, "participants.minimumAge")
+  );
+  pushRowWhenFieldVisible(
+    draft,
+    pricingRows,
+    labels,
+    "participants.maximumAge",
+    "denali_pricing",
+    getCanonicalStringValue(draft, "participants.maximumAge")
+  );
+  pushRowWhenFieldVisible(
+    draft,
+    pricingRows,
+    labels,
+    "participants.fitnessLevel",
+    "denali_pricing",
+    labels.fitnessLevelLabel(getCanonicalStringValue(draft, "participants.fitnessLevel"))
   );
   pushRow(
     pricingRows,
