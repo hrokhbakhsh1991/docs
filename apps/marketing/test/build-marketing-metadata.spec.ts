@@ -35,14 +35,15 @@ describe("build-marketing-metadata", () => {
     );
   });
 
-  it("MKT-14 tours list metadata uses tenant display name", () => {
+  it("MKT-14 tours list metadata uses a title segment without doubling site name", () => {
     const metadata = buildMarketingToursListMetadata({
       host: "operator.localhost:3002",
       siteName: "Operator Smoke",
-      title: "Operator Smoke — Tours",
+      title: "Tours",
       description: "Published tour catalog for Operator Smoke.",
     });
-    assert.equal(metadata.title, "Operator Smoke — Tours");
+    assert.equal(metadata.title, "Tours");
+    assert.equal(metadata.openGraph?.title, "Tours — Operator Smoke");
     assert.equal(metadata.alternates?.canonical, "/tours");
   });
 
@@ -92,16 +93,17 @@ describe("build-marketing-metadata", () => {
     assert.equal(images[0]?.alt, "North Ridge Trek");
   });
 
-  it("MKT-29 tours list metadata includes Twitter card", () => {
+  it("MKT-29 tours list Twitter/OG titles append site name once", () => {
     const metadata = buildMarketingToursListMetadata({
       host: "operator.localhost:3002",
       siteName: "Operator Smoke",
-      title: "Operator Smoke — Tours",
+      title: "Tours",
       description: "Published tour catalog for Operator Smoke.",
     });
     assert.equal(metadata.twitter?.card, "summary");
-    assert.equal(metadata.twitter?.title, "Operator Smoke — Tours");
+    assert.equal(metadata.twitter?.title, "Tours — Operator Smoke");
     assert.equal(metadata.twitter?.description, "Published tour catalog for Operator Smoke.");
+    assert.equal(metadata.openGraph?.title, "Tours — Operator Smoke");
   });
 
   it("MKT-33 applies noindex follow when pagination query params are present", () => {

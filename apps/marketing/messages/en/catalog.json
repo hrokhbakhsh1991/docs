@@ -12,7 +12,7 @@
   "seo": {
     "homeTitle": "{siteName}",
     "homeDescription": "Browse published programs from {siteName}.",
-    "toursTitle": "{siteName} — Tours",
+    "toursTitle": "Tours",
     "toursDescription": "Published tour catalog for {siteName}."
   },
   "nav": {
@@ -35,7 +35,7 @@
     "title": "Tours",
     "lead": "Browse published programs — filter by type, dates, and difficulty.",
     "empty": "No published tours yet.",
-    "emptyFiltered": "No tours match your filters. Try clearing filters or load more.",
+    "emptyFiltered": "No tours match your filters. Clear the filters or tap Reset.",
     "viewTour": "View tour",
     "loadMore": "Load more",
     "resultsCount": "{count, number} programs",
@@ -477,6 +477,13 @@
       "lead": "View published programs",
       "cta": "Browse tours"
     }
+  },
+  "pageNotFound": {
+    "title": "Page not found",
+    "body": "This page does not exist or is not published on this club.",
+    "back": "Back to home",
+    "metadataTitle": "Page not found",
+    "metadataDescription": "This page does not exist."
   },
   "notFound": {
     "title": "Tour not found",

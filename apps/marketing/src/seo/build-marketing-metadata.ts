@@ -111,6 +111,7 @@ export function buildMarketingToursListMetadata(input: {
   const path = "/tours";
   const localizedPath = resolveMarketingLocalePath(path, input.locale ?? "fa");
   const url = `${resolveMarketingPublicOrigin(input.host)}${localizedPath}`;
+  const socialTitle = `${input.title} — ${input.siteName}`;
 
   return {
     title: input.title,
@@ -121,14 +122,14 @@ export function buildMarketingToursListMetadata(input: {
       languages: buildMarketingLanguageAlternates({ host: input.host, path }),
     },
     openGraph: {
-      title: input.title,
+      title: socialTitle,
       description: input.description,
       url,
       type: "website",
       locale: resolveMarketingOpenGraphLocale(input.locale ?? "fa"),
     },
     twitter: buildMarketingTwitterMetadata({
-      title: input.title,
+      title: socialTitle,
       description: input.description,
     }),
   };

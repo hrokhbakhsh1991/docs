@@ -199,7 +199,9 @@ These routes call `notFound()` on **club_apex** hosts unless platform-mother ten
 | `/contact` | `apps/marketing/app/contact/page.tsx` |
 | `/pricing` | `apps/marketing/app/pricing/page.tsx` |
 
-**Audit finding:** `FULL_LANDING_NAV_LINKS` in `marketing-shell.tsx` L21–26 links `/about`, `/contact` on all club hosts → **404 on club tenants**. Target: `guestCrossSurfaceNav` manifest with `visibleWhen: platform_mother` (DL-05, DL-37).
+**Do not publish club stubs** for these three paths. Mother host still renders `MaintenancePage`. Club `notFound()` is presented by the **root** marketing 404 (`apps/marketing/app/not-found.tsx` + `catalog.pageNotFound`: «صفحه یافت نشد» / page does not exist / CTA `/`). That copy is **not** `catalog.notFound` («تور یافت نشد» / unpublished tour) — tour unpublished is owned by `apps/marketing/app/tours/[tourId]/not-found.tsx`. Document title segment is page-not-found; layout `title.template` yields `صفحه یافت نشد — {siteName}`.
+
+**Audit finding:** `FULL_LANDING_NAV_LINKS` in `marketing-shell.tsx` L21–26 links `/about`, `/contact` on all club hosts → **404 on club tenants**. Target: `guestCrossSurfaceNav` manifest with `visibleWhen: platform_mother` (DL-05, DL-37). Phase 4 does **not** hide those nav links; it only fixes 404 presentation so a club guest who follows them does not see tour-unpublished copy.
 
 ### 4.3 Marketing SEO (verified — contrast with portal)
 

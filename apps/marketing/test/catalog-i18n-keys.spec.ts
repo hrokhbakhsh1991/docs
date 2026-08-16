@@ -92,4 +92,39 @@ describe("catalog-i18n-keys.spec.ts — HOME-UNIT-08", () => {
     assert.deepEqual(faKeys.sort(), enKeys.sort());
     assert.deepEqual(enKeys.sort(), [...REQUIRED_LIST_KEYS].sort());
   });
+
+  it("BUG-14 seo.toursTitle is a segment without {siteName}", () => {
+    for (const locale of ["en", "fa"] as const) {
+      const title = readNestedValue(readCatalogMessages(locale), "seo.toursTitle");
+      assert.equal(typeof title, "string");
+      assert.doesNotMatch(String(title), /\{siteName\}/);
+      assert.ok(String(title).trim().length > 0);
+    }
+  });
+
+  it("BUG-15 emptyFiltered does not mention load-more", () => {
+    for (const locale of ["en", "fa"] as const) {
+      const emptyFiltered = readNestedValue(readCatalogMessages(locale), "list.emptyFiltered");
+      assert.equal(typeof emptyFiltered, "string");
+      assert.doesNotMatch(String(emptyFiltered), /load more|نمایش بیشتر/i);
+      assert.match(String(emptyFiltered), /Reset|بازنشانی|clear|پاک/i);
+    }
+  });
+
+  it("BUG-16 page and tour 404 keys stay distinct", () => {
+    for (const locale of ["en", "fa"] as const) {
+      const messages = readCatalogMessages(locale);
+      const pageTitle = readNestedValue(messages, "pageNotFound.title");
+      const tourTitle = readNestedValue(messages, "notFound.title");
+      const pageBody = readNestedValue(messages, "pageNotFound.body");
+      const tourBody = readNestedValue(messages, "notFound.body");
+      assert.equal(typeof pageTitle, "string");
+      assert.equal(typeof tourTitle, "string");
+      assert.notEqual(pageTitle, tourTitle);
+      assert.doesNotMatch(String(pageTitle), /Tour|تور/);
+      assert.match(String(tourTitle), /Tour|تور/);
+      assert.doesNotMatch(String(pageBody), /\btour\b|تور/i);
+      assert.match(String(tourBody), /tour|تور/i);
+    }
+  });
 });

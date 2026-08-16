@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PUBLIC-CATALOG
-version: "2026-08-16-v27"
+version: "2026-08-16-v28"
 workspace: denali
 stack: workspace-sdk · workspace-denali/http · apps/marketing
 authority: MIGRATION-MAP.md §3.5 · docs/workspaces/denali/marketing-landing.mdoc
@@ -342,13 +342,17 @@ Denali and Urban exposure resolvers (`resolve-denali-surface-exposure.ts`, `reso
 
 ### SEO metadata (M8)
 
+Layout `buildMarketingSiteMetadata` sets Next `title.template` = `` `%s — ${siteName}` `` (`siteName` = `resolveGuestChromeDisplayName(branding.displayName, …)`, never a hardcoded club public name). Child `metadata.title` is therefore a **segment**, not a full document title.
+
 | Page | `generateMetadata` |
 |------|-------------------|
-| Layout | `metadataBase`, tenant `displayName`, default title |
-| `/tours` | `{displayName} — Tours` + catalog description |
-| `/tours/[tourId]` | tour title, description (`shortDescription` / `catalogSummary`), Open Graph image (`coverImageUrl`) |
+| Layout | `metadataBase`, tenant `displayName`, `title.template` |
+| `/tours` | **Segment** `seo.toursTitle` (`تورها` / `Tours`) — **no** `{siteName}` in the message. Document `<title>` becomes `تورها — {siteName}` via the layout template. OG/twitter = `` `${segment} — ${siteName}` `` (same split as detail). Fallback without `listTitleKey`: `t("nav.tours")`. |
+| `/tours/[tourId]` | tour title segment, description (`shortDescription` / `catalogSummary`), Open Graph image (`coverImageUrl`); OG/twitter append ` — ${siteName}` |
+| Missing tour | `app/tours/[tourId]/not-found.tsx` + `catalog.notFound` (tour unpublished). `generateMetadata` on the detail page already emits `metadata.notFoundTitle` / `notFoundDescription` + noindex. |
+| Club `/about` `/pricing` `/contact` | Intentionally `notFound()` (not published stubs). Root `app/not-found.tsx` + `catalog.pageNotFound` (page missing, CTA home). Mother host still `MaintenancePage`. |
 
-Canonical URLs derive from `MARKETING_PUBLIC_BASE_URL` or request host. `app/not-found.tsx` for missing tours.
+Canonical URLs derive from `MARKETING_PUBLIC_BASE_URL` or request host. Do **not** reuse tour-unpublished copy for informational club 404s — SMK-MKT-14 still asserts `[data-marketing-not-found]` on draft PDP via the nested tree.
 
 #### SEO shell (M8a — marketing `apps/marketing`)
 

@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-MARKETING-CATALOG-UI
-version: "2026-08-16-v10"
+version: "2026-08-16-v11"
 extends: public-catalog.md
 apps: [marketing]
 phase: P6-1
@@ -44,7 +44,9 @@ Exposure redaction (`denali-catalog-exposure-bindings`) may hide mapped fields �
 
 **Denali (PR-22):** When `resolveCatalogListFeatures().serverListFilters` includes a param, marketing forwards it on `GET /denali/catalog` / BFF `GET /api/catalog`; Denali applies filter + sort on the full published set **before** cursor pagination. Marketing **also** runs `filterMarketingCatalogItems` + `sortMarketingCatalogItems` on the fetched batch (idempotent safety net when API/cache is stale). **Fetch limit:** default **20** per cursor page when Denali server owns the active narrowing filters; widen to **50** only when a narrowing filter is **client-only** (Urban/guest-club). Filtered requests use `cache: no-store`.
 
-**Pagination (PR-24):** Cursor-based pages (`?cursor=<tourId>`) replace the list batch (not infinite append). `load-more` and `first-page` links use `resolveMarketingLocalePath("/tours")`. Active filter pills and filter form omit `cursor` (reset to page 1). Results line uses `list.resultsCountPage` when `cursor` or `nextCursor` is set.
+**Pagination (PR-24):** Cursor-based pages (`?cursor=<tourId>`) replace the list batch (not infinite append). `load-more` and `first-page` links use `resolveMarketingLocalePath("/tours")`. Active filter pills and filter form omit `cursor` (reset to page 1). Results line uses `list.resultsCountPage` when `cursor` or `nextCursor` is set. Pagination chrome (`[data-marketing-catalog-pagination]`, `[data-marketing-catalog-pagination-next]`) renders **only** when `loadMoreHref != null` or `firstPageHref != null` (`apps/marketing/app/tours/page.tsx`). A one-page catalog (typical smoke: four published tours, no `nextCursor`) has **no** «نمایش بیشتر» control.
+
+**Empty filtered copy (BUG-15):** `list.emptyFiltered` is shown when the current filter set matches zero cards. That string must tell the guest to **clear filters** (visible controls: «بازنشانی» / Reset + «اعمال فیلترها»). It must **not** mention «نمایش بیشتر» / “load more” — that control is absent unless pagination exists. Load-more stays its own link (`list.loadMore` / `list.loadMoreSearch` when the empty page still has `nextCursor`). `list.filterScopeNotice` already mentions load-more **only** when `clientFiltersActive && nextCursor != null` (`showFilterScopeNotice`); do not duplicate that sentence into `emptyFiltered`.
 
 **Denali category UX (PR-23):** Marketing shows two admin-aligned families only — **کوهنوردی** (`category=mountain`) and **طبیعت‌گردی** (`category=nature`) — no تک‌روزه/چندروزه chips. Server + client match `mountain_*` / `nature_*` slugs. Difficulty select uses wizard range **1–10** (step 0.5); fitness uses `low` / `medium` / `high`.
 
@@ -368,11 +370,15 @@ Spec: [`marketing-landing.mdoc`](./marketing-landing.mdoc) v7 · smoke: SMK-MKT-
 
 ### Errors
 
-| Hook                           | Location              |
-| ------------------------------ | --------------------- |
-| `data-marketing-error`         | `app/error.tsx`       |
-| `data-marketing-catalog-error` | `app/tours/error.tsx` |
-| `data-marketing-not-found`     | `app/not-found.tsx`   |
+| Hook                              | Location                                      | Copy |
+| --------------------------------- | --------------------------------------------- | ---- |
+| `data-marketing-error`            | `app/error.tsx`                               | generic error |
+| `data-marketing-catalog-error`    | `app/tours/error.tsx`                         | catalog load failure |
+| `data-marketing-not-found`        | both 404 trees (shared smoke hook)            | — |
+| `data-marketing-page-not-found`   | `app/not-found.tsx`                           | `catalog.pageNotFound` — **page** missing |
+| `data-marketing-tour-not-found`   | `app/tours/[tourId]/not-found.tsx`            | `catalog.notFound` — **tour** unpublished / missing |
+
+**404 split (BUG-16):** Club hosts call `notFound()` on `/about`, `/pricing`, `/contact` (WRS platform-mother-only; do **not** publish club stubs). Those routes have no nested `not-found.tsx`, so the **root** tree runs: heading «صفحه یافت نشد», body that the page does not exist on this club, CTA home (`/`), document-title segment `catalog.pageNotFound.metadataTitle` → layout template `صفحه یافت نشد — {siteName}`. `/tours/{id}` still calls `notFound()` when `fetchCatalogTour` is null; the **segment** tree keeps tour copy («تور یافت نشد» / unpublished) and CTA `/tours`. SMK-MKT-14 continues to assert `[data-marketing-not-found]` on draft PDP. Mother host of the three informational routes still renders `MaintenancePage` — unchanged.
 
 ---
 

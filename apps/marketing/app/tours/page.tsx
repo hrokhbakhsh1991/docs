@@ -53,7 +53,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
   const title = guestSeo.listTitleKey
     ? t(guestSeo.listTitleKey, { siteName })
-    : `${siteName} — ${t("nav.tours")}`;
+    : t("nav.tours");
   const description = guestSeo.listDescriptionKey
     ? t(guestSeo.listDescriptionKey, { siteName })
     : t("metadata.listDescription", { siteName });
