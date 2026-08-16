@@ -79,4 +79,12 @@ describe("portal-guest-chrome-branding.spec.ts", () => {
     assert.match(icon, /viewBox="0 0 32 32"/);
     assert.doesNotMatch(icon, /shenski|denali/i);
   });
+
+  it("GL-OTP-01-SHELL unused P6 portal OTP shell stays Digit-free", () => {
+    const otpInput = readPortal("src/features/auth/otp-segment-input.tsx");
+    assert.match(otpInput, /data-otp-autofill-sink/);
+    assert.match(otpInput, /otp\.digitLabel/);
+    assert.match(otpInput, /otp\.groupLabel/);
+    assert.doesNotMatch(otpInput, /Digit \$\{index/);
+  });
 });

@@ -1,7 +1,7 @@
 ---
 title: Denali guest login + club branding — remediation contract
 doc_id: DENALI-GUEST-LOGIN-BRANDING-REMEDIATION
-version: "2026-08-16-v5"
+version: "2026-08-16-v6"
 phase: guest-portal
 apps: [portal, marketing, web, api]
 workspace: denali
@@ -78,7 +78,7 @@ Admin  /settings/branding  →  tenants.theme.displayName = "shenski"
 
 ### Phase 4 OTP a11y (GL-OTP-01)
 
-Guest login uses **`packages/catalog-registration-flow-ui/src/otp-segment-input.tsx`** (portal `transpilePackages`). Do not confuse with `apps/web/src/features/auth/otp-segment-input.tsx` or `apps/portal/src/features/auth/otp-segment-input.tsx` (not on this path).
+Guest login uses **`packages/catalog-registration-flow-ui/src/otp-segment-input.tsx`** (portal `transpilePackages`). Operator login uses `apps/web/src/features/auth/otp-segment-input.tsx`. P6 still requires a thin portal shell at `apps/portal/src/features/auth/otp-segment-input.tsx` — it is **not** on the live guest path, but it must not keep hardcoded `Digit N` / `Input.control` sink (same a11y contract, `catalogRegistration.otp.*`).
 
 ```text
 SMS autofill  →  native sink (autocomplete=one-time-code)
@@ -123,6 +123,7 @@ Browser  GET /favicon.ico
 | **GL-AVATAR-01** | Profile has two «انتخاب تصویر» controls | Hidden file input + button share `aria-label` | **3** | One named upload control; file input is visually hidden and not a second button in the a11y tree. |
 | **GL-OTP-01** | OTP cells labelled `Digit 1`…; extra unnamed textbox | `otp-segment-input.tsx` autofill sink + English aria-label | **4** | Autofill sink stays out of a11y tree; cell labels use i18n (FA/EN). Dev hint `کد توسعه: 1234` may stay in `NODE_ENV=development`. |
 | **GL-OTP-01-OP** | Same extra unnamed textbox + `Digit 1` on **operator** `/auth/login` | `apps/web/src/features/auth/otp-segment-input.tsx` (not guest flow-ui) | **4 twin** | Native clipped sink; `auth.otpLabel` group + `auth.otpDigitLabel` `{index}`. Dangling `htmlFor="otp"` removed. Do not import guest `catalogRegistration`. |
+| **GL-OTP-01-SHELL** | Unused P6 portal OTP shell still had `Digit 1` + styled sink | `apps/portal/src/features/auth/otp-segment-input.tsx` | **4 shell** | Same clipped native sink + `catalogRegistration.otp.digitLabel` / `groupLabel`. Do **not** delete the file (OTP-SCOPE-P6 thin shell). Live guest path stays flow-ui. |
 | **GL-POLISH-01** | `GET /favicon.ico` 404 on portal | Portal app metadata / public asset | **5** | No 404 for favicon on `portal.denali.localhost`. |
 | **GL-POLISH-02** | Next.js LCP warning on marketing hero image | Marketing image `priority` | **5** | Hero/LCP img has `priority` (or equivalent). Not a login blocker. |
 
@@ -165,4 +166,5 @@ Do **not** put `shenski` on `resolveDefaultTenantBranding("denali")`. Guest chro
 | **3** GL-AVATAR-01 | **Done** — file input unnamed + `aria-hidden`; button is the named control |
 | **4** GL-OTP-01 | **Done** — clipped native sink; `otp.digitLabel` / `otp.groupLabel` |
 | **4 twin** GL-OTP-01-OP | **Done** — operator login same sink/i18n pattern under `auth.*` |
+| **4 shell** GL-OTP-01-SHELL | **Done** — P6 portal thin shell Digit-free; live path still flow-ui |
 | **5** GL-POLISH-01 + GL-POLISH-02 | **Done** — portal `/icon.svg` rewrite; hero LCP eager/high vs lazy/low |
