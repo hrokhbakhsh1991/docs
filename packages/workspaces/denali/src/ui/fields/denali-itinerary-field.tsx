@@ -297,6 +297,7 @@ export function DenaliItineraryField({
 
                 <DenaliItinerarySegmentDestinationField
                   destinationId={segment.destinationId}
+                  tourKind={getCanonicalStringValue(draft, "category")}
                   onChange={(selection) => {
                     if (selection.destinationId != null) {
                       updateSegment(dayIndex, segmentIndex, {

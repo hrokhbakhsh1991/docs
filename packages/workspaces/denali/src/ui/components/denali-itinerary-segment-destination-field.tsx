@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { DenaliSearchableSelect } from "../components/denali-searchable-select";
 import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notice";
 import { useDenaliDestinationCatalog, readDenaliDestinationLabel } from "../hooks/use-destination-catalog";
+import { filterDenaliDestinationPickerOptions } from "../logic/denali-destination-picker-filter";
 import { buildItinerarySegmentDestinationSelection } from "../logic/denali-itinerary-segment-destination-logic";
 import { DENALI_ITINERARY_SEGMENT_DESTINATION_TEST_IDS } from "../test-ids/denali-photos-test-ids";
 
@@ -12,6 +13,7 @@ export { DENALI_ITINERARY_SEGMENT_DESTINATION_TEST_IDS } from "../test-ids/denal
 
 type DenaliItinerarySegmentDestinationFieldProps = {
   readonly destinationId?: string;
+  readonly tourKind?: string;
   readonly onChange: (selection: {
     readonly destinationId?: string;
     readonly locationLabel?: string;
@@ -20,11 +22,18 @@ type DenaliItinerarySegmentDestinationFieldProps = {
 
 export function DenaliItinerarySegmentDestinationField({
   destinationId,
+  tourKind = "",
   onChange,
 }: DenaliItinerarySegmentDestinationFieldProps) {
   const t = useTranslations("denali");
   const { options, destinationById, loading, error, reload } = useDenaliDestinationCatalog();
   const selectedLabel = readDenaliDestinationLabel(destinationId, destinationById);
+  const visibleOptions = filterDenaliDestinationPickerOptions({
+    options,
+    destinationById,
+    tourKind,
+    selectedDestinationId: destinationId,
+  });
 
   return (
     <div className="denali-wizard-composite__field">
@@ -33,7 +42,7 @@ export function DenaliItinerarySegmentDestinationField({
         <div data-testid={DENALI_ITINERARY_SEGMENT_DESTINATION_TEST_IDS.select}>
           <DenaliSearchableSelect
             ariaLabel={t("composites.itinerary.segmentDestination")}
-            options={options}
+            options={visibleOptions}
             value={destinationId ?? ""}
             placeholder={
               loading

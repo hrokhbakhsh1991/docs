@@ -21,6 +21,11 @@ export function formatTourPrice(
     return null;
   }
   const code = currency?.trim().toUpperCase() ?? "USD";
+  // ED-CURR-01 — operator amounts are toman; ISO storage stays IRR. Do not ×10.
+  if (code === "IRR") {
+    const unit = locale === "fa" ? "تومان" : "toman";
+    return `${formatLocalizedNumber(amount, locale)} ${unit}`;
+  }
   try {
     return new Intl.NumberFormat(INTL_LOCALE[locale], {
       style: "currency",

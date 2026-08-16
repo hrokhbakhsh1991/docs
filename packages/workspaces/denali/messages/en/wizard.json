@@ -504,7 +504,7 @@
       "DENALI_TOUR_TYPE_REQUIRED": "Select a tour type before continuing",
       "CARDINALITY_VIOLATION": "{field} exceeds allowed limits",
       "DENALI_TOUR_START_BEFORE_TODAY": "{field} cannot be before today",
-      "DENALI_TOUR_END_BEFORE_START": "{field} cannot be before the tour start",
+      "DENALI_TOUR_END_BEFORE_START": "{field} must be after the tour start",
       "DENALI_CAPACITY_MIN_AFTER_MAX": "Minimum capacity cannot be greater than maximum capacity",
       "DENALI_AGE_MIN_AFTER_MAX": "Minimum age cannot be greater than maximum age"
     },

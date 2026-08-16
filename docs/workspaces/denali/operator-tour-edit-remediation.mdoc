@@ -1,7 +1,7 @@
 ---
 title: Denali operator tour edit — remediation contract
 doc_id: DENALI-OPERATOR-TOUR-EDIT-REMEDIATION
-version: "2026-08-16-v17"
+version: "2026-08-16-v18"
 phase: operator-admin
 apps: [web, api]
 workspace: denali
@@ -55,6 +55,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
   → 13 persist catalog metric lock (ED-PEAK-LOCK-01) — optional wizardHost hook + API enrich
   → 14 matrix visible-again seed + pair bounds + review visibility + end clock/clear
   → 15 gathering persist path + catalog retry + photo upload a11y
+  → 16 operator polish (IRR→toman label, hide peaks on nature, end-after-start copy)
 ```
 
 ## Invariants
@@ -83,6 +84,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
 | **13** ED-PEAK-LOCK-01 | Done — optional `wizardHost.normalizeCanonicalForPersist`; API enrich is product-blind. No `plugin.id === "denali"` in `updateTour`. Memory `projection.updatedAt` still mirrors `createdAt`. |
 | **14** ED-CAT-SEED-01 / ED-DT-CLOCK-01 / ED-NUM-PAIR-01 / ED-REV-VIS-01 / ED-DT-CLEAR-01 | Done — Denali wizard/edit only. Visible-again catalog seed after sanitize; date-picker same-day no-op; min≤max when both visible+set; review uses `pushRowWhenFieldVisible`; `endDateTime` `clearWhenNotVisible`. No API / `updateTour` / `plugin.id === "denali"`. |
 | **15** ED-GATHER-PERSIST-01 / ED-CAT-RETRY-01 / ED-PHOTO-A11Y-01 | Done — Denali wizard/edit only. Gathering SoT is canonical `gatheringPoints`; nested RHF path is fallback + sanitize promote. Catalog degraded notice retries (button + focus). Photo upload error is outside the file `<label>`. |
+| **16** ED-CURR-01 / ED-DEST-NATURE-01 / ED-DT-EQ-COPY-01 | Done — operator list/header formats `IRR` as تومان (no ×10). Nature pickers hide `locationType=peak`. End-datetime copy covers equality (`must be after start`). Header/footer save stay two primitives. |
 
 ## Closure (2026-08-06)
 
@@ -95,6 +97,8 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 **v16 (2026-08-16):** Phase **14** — template/matrix hide already clears via `clearWhenNotVisible`. Visible-again did not re-seed catalog-locked metrics, so Continue validated empty canonical while the locked input painted catalog. Fix is Denali client persist + review/validation only: `seedEmptyVisibleDestinationCatalogMetrics` after sanitize (empty + visible + lock → catalog string; never a blanket `applyDestinationCatalogPrefill` on every keystroke). End clock: date picker must not re-commit the same local day. Numeric pairs: `min > max` only when both fields are visible and both set. Review: `participants.maximumAge` / `fitnessLevel` via `pushRowWhenFieldVisible`. `endDateTime` gains the same `clearWhenNotVisible` sibling as `approximateReturnTime`. No codegen unless generated rule rows change.
 
 **v17 (2026-08-16):** Phase **15** — live create stored a populated gathering station in the composite then persisted `[]` because the field wrote `tripDetails.logistics.gatheringPoints` while `tourWizardDraftToDenaliForm` / review read root `gatheringPoints`. Promote nested→root in sanitize before form mapping; field/review use `resolveDenaliGatheringPointsFromStorage`. Catalog pickers: one soft-retry was not enough after cold BFF reset — degraded notice gains explicit retry + focus/visibility reload. File-input accessible name must not include the upload error string. No API / `platform-core` / `plugin.id === "denali"`.
+
+**v18 (2026-08-16):** Phase **16** — remaining live-audit polish. Operator tour list/edit header used `Intl` currency style on hardcoded `priceCurrency: "IRR"` → «ریال» while wizard labels are تومان; same digits, no conversion. `formatTourPrice` special-cases `IRR` as تومان/toman. Nature destination + itinerary pickers omit peak catalog rows (`ED-DEST-NATURE-01`); selected peak stays listed so the control does not blank. `DENALI_TOUR_END_BEFORE_START` copy states the end must be **after** start (guard already rejects equality). Do not merge the two save buttons. No API / `platform-core` / `plugin.id === "denali"`.
 
 **Operator follow-ups outside this pack** (not blockers; do not reopen lifecycle / platform-core validate):
 
@@ -146,6 +150,14 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 | ID | Owner path |
 | --- | --- |
 | ED-PEAK-LOCK-01 | Denali `applyLockedDestinationCatalogMetricsToCanonical` → `wizardHost.normalizeCanonicalForPersist`. API `applyWorkspacePersistCanonicalNormalize` inside `enrichValidateBeforePersistInput` (main thread; worker receives already-locked `body.data`). |
+
+## Phase 16 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-CURR-01 | `apps/web/src/features/tours/tour-list-formatters.ts` `formatTourPrice` — `IRR` → تومان/toman grouped digits (list card + edit header). Storage stays `IRR`. |
+| ED-DEST-NATURE-01 | `denali-destination-picker-filter.ts` → destination field + itinerary segment destination |
+| ED-DT-EQ-COPY-01 | `messages/{fa,en}/wizard.json` `review.validation.DENALI_TOUR_END_BEFORE_START` |
 
 ## Phase 14 implementation map
 

@@ -14,6 +14,7 @@ import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notic
 import { resolveDenaliFieldLabel } from "../adapters/field-labels";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { useDenaliDestinationCatalog } from "../hooks/use-destination-catalog";
+import { filterDenaliDestinationPickerOptions } from "../logic/denali-destination-picker-filter";
 import { DENALI_COMPOSITE_TEST_IDS } from "../logic/denali-location-types";
 
 type DenaliDestinationFieldProps = {
@@ -46,6 +47,13 @@ export function DenaliDestinationField({
   const { options, destinationById, loading, error, reload } = useDenaliDestinationCatalog();
   const value = getCanonicalStringValue(draft, canonicalPath);
   const label = resolveDenaliFieldLabel(t, canonicalPath);
+  const tourKind = getCanonicalStringValue(draft, "category");
+  const visibleOptions = filterDenaliDestinationPickerOptions({
+    options,
+    destinationById,
+    tourKind,
+    selectedDestinationId: value,
+  });
 
   return (
     <div className="denali-wizard-composite" data-testid={DENALI_COMPOSITE_TEST_IDS.destination}>
@@ -53,7 +61,7 @@ export function DenaliDestinationField({
         <span>{label}</span>
         <DenaliSearchableSelect
           ariaLabel={label}
-          options={options}
+          options={visibleOptions}
           value={value}
           placeholder={
             loading
@@ -81,7 +89,7 @@ export function DenaliDestinationField({
         />
       </label>
       <DenaliCatalogLoadNotice error={error} onRetry={reload} />
-      {options.length === 0 && !loading && error === null ? (
+      {visibleOptions.length === 0 && !loading && error === null ? (
         <p className="denali-wizard-composite__status">{t("composites.destination.empty")}</p>
       ) : null}
     </div>

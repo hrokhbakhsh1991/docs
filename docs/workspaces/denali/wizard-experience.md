@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v15"
+version: "2026-08-16-v16"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -232,7 +232,7 @@ category / matrix cell change
 
 `applyDestinationCatalogPrefill` remains the **destination picker** primitive (peak vs trail vs generic). Persist must not re-run it on every keystroke.
 
-**Still deferred (product):** same-calendar-day `multi_day` still forces ≥2 itinerary rows (`estimateDenaliTourDayCount`). Do not change until this file picks invariant A (multi-day = ≥2 calendar days) vs B (allow 1 itinerary day). `projection.updatedAt` on memory GET still mirrors `createdAt` — freshness remains `rowVersion`. Filter peak destinations on nature tours; copy «قبل از شروع» for equality; merge the two save buttons.
+**Still deferred (product):** same-calendar-day `multi_day` still forces ≥2 itinerary rows (`estimateDenaliTourDayCount`). Do not change until this file picks invariant A (multi-day = ≥2 calendar days) vs B (allow 1 itinerary day). `projection.updatedAt` on memory GET still mirrors `createdAt` — freshness remains `rowVersion`. Do **not** merge header draft-flush with footer PATCH (`ED-SAVE-COPY-01`).
 
 ## Gathering persist path (ED-GATHER-PERSIST-01)
 
@@ -269,6 +269,16 @@ Contract: degraded notice offers **تلاش مجدد**; when the notice is visib
 ## Photo upload error a11y (ED-PHOTO-A11Y-01)
 
 Upload failure copy (`PHOTO_STORAGE_NOT_CONFIGURED` / Minio 503) lived inside the `<label>` wrapping `input[type=file]`, so the accessible name became «آپلود تصویر» + the error. Alert stays `role=alert` **outside** that label. Object-storage 503 remains an env/driver issue, not this UI contract.
+
+## Remaining operator polish (v16)
+
+Live create leftover after Phase 15. **No ×10 conversion.** Storage `priceCurrency` stays ISO `IRR`. Header draft-flush and footer PATCH stay two primitives.
+
+| ID | Failure | Contract |
+| -- | ------- | -------- |
+| **ED-CURR-01** | Wizard labels تومان; operator list/edit header `Intl` with `priceCurrency: "IRR"` painted **ریال** for the same digits. | `formatTourPrice` (apps/web, product-blind) formats `IRR` as تومان / toman via grouped digits — not `Intl` currency style. Marketing/finance stay on their own formatters. Spec: `WEB-CURR-01` in `tours-list.spec.ts`. |
+| **ED-DEST-NATURE-01** | Nature tour destination + itinerary pickers listed `locationType=peak` rows (Tochal/Damavand). Peak altitude prefill was already skipped. | `isDenaliDestinationOfferedForTourKind` hides peaks when `readDenaliCanonicalBasics(kind).category === "nature"`. Currently selected peak remains in the option list so the control does not go blank. Mountain/desert/event unchanged. Specs: `DEN-DEST-NATURE-01*`. |
+| **ED-DT-EQ-COPY-01** | Guard is `Date.parse(end) <= Date.parse(start)` (equal instants rejected) but FA copy said only «قبل از شروع». | i18n: end **must be after** start (`باید بعد از شروع برنامه باشد` / `must be after the tour start`). Comparison unchanged. |
 
 ```text
 loading catalog ──► destination/leader display = "" (not UUID)
@@ -392,14 +402,14 @@ visible end?   → both ISO parse AND Date.parse(end) <= Date.parse(start)
 | Step scope | On a wizard step, start/end checks run only when that canonical path is in the expanded step and **not hidden** (single-day hides `endDateTime`). Full validate (flat edit / review) runs both when values are present. |
 | Storage | Naive `…T06:00:00.000Z` wall-clock-as-Z is compared consistently on both fields; do not mix true UTC offsets here. |
 
-Specs: `DN-SCHED-DATE-01…06` in `packages/workspaces/denali/test/denali-schedule-date-policy.spec.ts`; `WEB-P11-7-08` empty end; `WEB-P11-7-09` end-before-start. i18n: `DENALI_TOUR_END_BEFORE_START` in `messages/{fa,en}/wizard.json`.
+Specs: `DN-SCHED-DATE-01…06` in `packages/workspaces/denali/test/denali-schedule-date-policy.spec.ts`; `WEB-P11-7-08` empty end; `WEB-P11-7-09` end-before-start. i18n: `DENALI_TOUR_END_BEFORE_START` — end must be **after** start (covers equality).
 
 **Destination catalog (searchable select):**
 
 | Behavior | Contract                                                                                                                                                                                               |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Trigger  | `DenaliSearchableSelect` — native `<select>` when option count ≤ threshold (default 8); destination + itinerary segment pickers pass `searchableThreshold={0}` so any non-empty catalog is searchable. |
-| Filter   | `filterSelectOptionsByQuery` — same normalization as gear/leader pickers (`denali-picker-filter-logic`).                                                                                               |
+| Filter   | `filterSelectOptionsByQuery` — same normalization as gear/leader pickers (`denali-picker-filter-logic`). Nature tour kinds omit `locationType=peak` (`ED-DEST-NATURE-01`). |
 | Panel    | BEM `denali-searchable-select__*` in `wizard-fields.css`; search input reuses `denali-wizard-picker__search` + scroll list `denali-wizard-picker__scroll`.                                             |
 | Test ids | `denali-searchable-select-trigger`, `denali-searchable-select-search`, `denali-searchable-select-option-{id}`.                                                                                         |
 

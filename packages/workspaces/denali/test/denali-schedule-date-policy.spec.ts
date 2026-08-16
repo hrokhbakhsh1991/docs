@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   isDenaliIsoDateSelectable,
@@ -79,5 +82,17 @@ describe("denali-schedule-date-policy.spec.ts", () => {
     assert.equal(isDenaliTourEndDatetimeNotAfterStart(start, "2026-08-19T18:00:00.000Z"), false);
     assert.equal(isDenaliTourEndDatetimeNotAfterStart(start, ""), false);
     assert.equal(isDenaliTourEndDatetimeNotAfterStart("", "2026-08-19T18:00:00.000Z"), false);
+  });
+
+  it("ED-DT-EQ-COPY-01 validation copy says end must be after start", () => {
+    const messagesRoot = join(dirname(fileURLToPath(import.meta.url)), "../messages");
+    const fa = JSON.parse(readFileSync(join(messagesRoot, "fa/wizard.json"), "utf8")) as {
+      review: { validation: { DENALI_TOUR_END_BEFORE_START: string } };
+    };
+    const en = JSON.parse(readFileSync(join(messagesRoot, "en/wizard.json"), "utf8")) as {
+      review: { validation: { DENALI_TOUR_END_BEFORE_START: string } };
+    };
+    assert.match(fa.review.validation.DENALI_TOUR_END_BEFORE_START, /بعد از شروع/);
+    assert.match(en.review.validation.DENALI_TOUR_END_BEFORE_START, /must be after the tour start/);
   });
 });
