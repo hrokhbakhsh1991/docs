@@ -4,6 +4,7 @@ import { Input } from "@app-tour/ui-primitives/input";
 import {
   buildPublicRegistrationProfilePayload,
   classifyPublicRegistrationMobileInput,
+  guestLoginPhoneFieldValue,
   normalizePublicRegistrationMobile,
   PUBLIC_REGISTRATION_DEV_OTP,
   PUBLIC_REGISTRATION_RESEND_COOLDOWN_SEC,
@@ -72,15 +73,24 @@ export function CatalogRegistrationPhoneStep({
     setClientReady(true);
   }, []);
 
+  useEffect(() => {
+    const nextPhone = guestLoginPhoneFieldValue(data.phone);
+    if (nextPhone === data.phone) {
+      return;
+    }
+    mergeFlowState(state, dispatch, { phone: nextPhone });
+  }, [data.phone, dispatch, state]);
+
   async function refreshPhoneHint(): Promise<void> {
     if (readMemberLoginEgress(context)) {
       return;
     }
-    if (classifyPublicRegistrationMobileInput(data.phone) !== null) {
+    const visiblePhone = guestLoginPhoneFieldValue(data.phone);
+    if (classifyPublicRegistrationMobileInput(visiblePhone) !== null) {
       setPhoneHint(null);
       return;
     }
-    const effectivePhone = normalizePublicRegistrationMobile(data.phone);
+    const effectivePhone = normalizePublicRegistrationMobile(visiblePhone);
     try {
       const preflight = await fetch("/api/public-auth/phone-preflight", {
         method: "POST",
@@ -98,12 +108,13 @@ export function CatalogRegistrationPhoneStep({
   }
 
   async function requestOtp(): Promise<void> {
-    const mobileCode = classifyPublicRegistrationMobileInput(data.phone);
+    const visiblePhone = guestLoginPhoneFieldValue(data.phone);
+    const mobileCode = classifyPublicRegistrationMobileInput(visiblePhone);
     if (mobileCode !== null) {
       setError(resolveError(mobileCode));
       return;
     }
-    const effectivePhone = normalizePublicRegistrationMobile(data.phone);
+    const effectivePhone = normalizePublicRegistrationMobile(visiblePhone);
     setLoading(true);
     setError(null);
     try {
@@ -177,10 +188,17 @@ export function CatalogRegistrationPhoneStep({
       <label htmlFor="phone">{t("phone.label")}</label>
       <Input
         id="phone"
-        value={data.phone}
+        name="guest-mobile"
+        value={guestLoginPhoneFieldValue(data.phone)}
+        autoComplete="off"
+        inputMode="tel"
+        autoCorrect="off"
+        spellCheck={false}
         onChange={(event) => {
           setError(null);
-          mergeFlowState(state, dispatch, { phone: event.target.value });
+          mergeFlowState(state, dispatch, {
+            phone: guestLoginPhoneFieldValue(event.target.value),
+          });
         }}
         onBlur={() => void refreshPhoneHint()}
         aria-invalid={error !== null}

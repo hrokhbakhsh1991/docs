@@ -1,7 +1,7 @@
 ---
 title: Denali guest login + club branding — remediation contract
 doc_id: DENALI-GUEST-LOGIN-BRANDING-REMEDIATION
-version: "2026-08-16-v7"
+version: "2026-08-16-v8"
 phase: guest-portal
 apps: [portal, marketing, web, api]
 workspace: denali
@@ -78,7 +78,27 @@ Club chrome and the logged-in **person** chip are different labels on the same `
 
 ### Phase 2 phone traps
 
-`initialPublicRegistrationPhone()` returns empty even in `NODE_ENV=development`. `PUBLIC_REGISTRATION_DEV_PHONE` stays a named fixture for API/E2E that **fill** the field. OTP «تغییر شماره» writes `phone: ""`, not a call back into the initializer. Dev OTP hint / `initialPublicRegistrationOtp()` may stay.
+Guest login/register phone is a **blank field**. The US smoke number is a named fixture, never a visible default.
+
+```text
+createCatalogRegistrationFlowInitialData.phone
+        → initialPublicRegistrationPhone() = ""
+                 │
+                 ├── Input value  → guestLoginPhoneFieldValue(phone)
+                 │                  trim === +15550009901  →  ""
+                 ├── autoComplete="off"  →  after logout, browser must not restore the fixture
+                 └── OTP «تغییر شماره»  →  phone: ""  (not the initializer, not the fixture)
+```
+
+| Rule | Why |
+| ---- | --- |
+| `initialPublicRegistrationPhone()` is always `""` | Even in `NODE_ENV=development`. Sending OTP without typing must not log into the smoke user. |
+| `PUBLIC_REGISTRATION_DEV_PHONE` | Named fixture for API/E2E that **fill** the field. Never `value={PUBLIC_REGISTRATION_DEV_PHONE}`. |
+| `guestLoginPhoneFieldValue` | If flow state or autofill injects the fixture, the input shows empty and submit sees empty (`MOBILE_REQUIRED`). Same trim-match as chrome `guestVisibleProfileMobile`. |
+| Phone input `autoComplete="off"` | `id="phone"` is an autofill magnet. After **خروج** the field must stay empty, not restore `+15550009901`. |
+| OTP «تغییر شماره» | Writes `phone: ""`, not a call back into the initializer. |
+
+Dev OTP hint / `initialPublicRegistrationOtp()` (`1234`) may stay. Do **not** put `autoComplete="tel"` on this field (that reopens the smoke-number restore).
 
 ### Phase 3 avatar a11y (GL-AVATAR-01)
 
@@ -140,7 +160,7 @@ Browser  GET /favicon.ico
 | **GL-BRAND-01** | Three names: باشگاه / Portal / denali | Portal + marketing chrome fallbacks | **1** | All three surfaces show the same `displayName`. Empty → `defaultSiteName` only. Never `pluginId` or `"Portal"`. Specs: chrome unit + branding public GET. |
 | **GL-BRAND-02** | Club is not named shenski | Operator settings + optional Denali club seed/ensure `…000003` | **1** | Admin Save `shenski` on `/settings/branding` (or idempotent club seed). Hard refresh marketing + login + `/me` all say **shenski**. Smoke `…014` unchanged. |
 | **GL-BRAND-03** | `/me` person chip says English `Member` when displayName (and often mobile) is empty | `app/me/layout.tsx` memberHeader | **1 addendum** | Chip uses `portalMember.nav.memberFallback` (FA عضو / EN Member). Layout source has no `"Member"` literal. Fixture phone is not a chip label. Club `workspaceLabel` unchanged. Spec in `portal-guest-chrome-branding`. |
-| **GL-PHONE-01** | After logout, login field is `+15550009901` | `initialPublicRegistrationPhone()` in development | **2** | Club guest login (`denali.localhost` / portal.denali) does not look pre-filled with the US smoke number. Sending OTP without editing the field must not create/login a different user. |
+| **GL-PHONE-01** | After logout, login field is `+15550009901` | `initialPublicRegistrationPhone()` + visible field sanitizer + `autoComplete="off"` | **2** | Club guest login (`denali.localhost` / portal.denali) input `value` is empty. Fixture never renders. Sending OTP without editing the field must not create/login a different user. |
 | **GL-PHONE-02** | OTP «تغییر شماره» restores `+15550009901` | `catalog-registration-auth-steps.tsx` change-phone merge | **2** | Change-phone clears to empty (or last typed club number), not `PUBLIC_REGISTRATION_DEV_PHONE`. |
 | **GL-AVATAR-01** | Profile has two «انتخاب تصویر» controls | Hidden file input + button share `aria-label` | **3** | One named upload control; file input is visually hidden and not a second button in the a11y tree. |
 | **GL-OTP-01** | OTP cells labelled `Digit 1`…; extra unnamed textbox | `otp-segment-input.tsx` autofill sink + English aria-label | **4** | Autofill sink stays out of a11y tree; cell labels use i18n (FA/EN). Dev hint `کد توسعه: 1234` may stay in `NODE_ENV=development`. |
@@ -185,7 +205,7 @@ Do **not** put `shenski` on `resolveDefaultTenantBranding("denali")`. Guest chro
 | **0** this file | Done — checklist |
 | **1** GL-BRAND-01 + GL-BRAND-02 | **Done** — shared chrome helper + club seed `shenski` |
 | **1 addendum** GL-BRAND-03 | **Done** — person chip i18n fallback; fixture phone hidden on chip |
-| **2** GL-PHONE-01 + GL-PHONE-02 | **Done** — empty guest phone; change-phone clears |
+| **2** GL-PHONE-01 + GL-PHONE-02 | **Done** — empty guest phone; fixture stripped from the input; change-phone clears; `autoComplete="off"` |
 | **3** GL-AVATAR-01 | **Done** — file input unnamed + `aria-hidden`; button is the named control |
 | **4** GL-OTP-01 | **Done** — clipped native sink; `otp.digitLabel` / `otp.groupLabel` |
 | **4 twin** GL-OTP-01-OP | **Done** — operator login same sink/i18n pattern under `auth.*` |

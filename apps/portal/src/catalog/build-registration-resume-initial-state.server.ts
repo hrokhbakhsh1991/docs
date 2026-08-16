@@ -1,4 +1,5 @@
 import {
+  guestLoginPhoneFieldValue,
   initialPublicRegistrationOtp,
   initialPublicRegistrationPhone,
   resolveIntakeDefaults,
@@ -64,10 +65,13 @@ export async function buildRegistrationResumeInitialState(
     registrantTarget: "self",
   });
   const resolvedEmail = sessionEmailValue?.trim() ?? "";
-  const memberMobile =
+  const memberMobileRaw =
     typeof fields.mobile === "string" && fields.mobile.trim().length > 0
       ? fields.mobile.trim()
       : null;
+  const memberMobile = memberMobileRaw !== null
+    ? (guestLoginPhoneFieldValue(memberMobileRaw) || null)
+    : null;
 
   return Object.freeze({
     memberMobile,

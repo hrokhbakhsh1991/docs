@@ -50,8 +50,14 @@ describe("catalog-registration-auth-steps — PCMS-UX polish", () => {
       "utf8"
     );
     assert.match(authSteps, /phone: ""/);
+    assert.match(authSteps, /guestLoginPhoneFieldValue/);
+    assert.match(authSteps, /name="guest-mobile"/);
+    assert.match(authSteps, /autoComplete="off"/);
+    assert.match(authSteps, /inputMode="tel"/);
     assert.doesNotMatch(authSteps, /initialPublicRegistrationPhone/);
     assert.doesNotMatch(authSteps, /PUBLIC_REGISTRATION_DEV_PHONE/);
+    assert.doesNotMatch(authSteps, /\+15550009901/);
+    assert.doesNotMatch(authSteps, /autoComplete="tel"/);
   });
 
   it("GL-OTP-01 autofill sink is unnamed and cells use catalogRegistration i18n", () => {

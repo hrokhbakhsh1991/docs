@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  guestLoginPhoneFieldValue,
   guestVisibleProfileMobile,
   initialPublicRegistrationOtp,
   initialPublicRegistrationPhone,
@@ -31,5 +32,13 @@ describe("public-registration-dev-defaults", () => {
     assert.equal(guestVisibleProfileMobile(PUBLIC_REGISTRATION_DEV_PHONE), "");
     assert.equal(guestVisibleProfileMobile(`  ${PUBLIC_REGISTRATION_DEV_PHONE}  `), "");
     assert.equal(guestVisibleProfileMobile("09128881147"), "09128881147");
+  });
+
+  it("GL-PHONE-01 guestLoginPhoneFieldValue never shows the US smoke fixture", () => {
+    assert.equal(guestLoginPhoneFieldValue(""), "");
+    assert.equal(guestLoginPhoneFieldValue(PUBLIC_REGISTRATION_DEV_PHONE), "");
+    assert.equal(guestLoginPhoneFieldValue(`  ${PUBLIC_REGISTRATION_DEV_PHONE}  `), "");
+    assert.equal(guestLoginPhoneFieldValue("09128881147"), "09128881147");
+    assert.equal(guestLoginPhoneFieldValue("09"), "09");
   });
 });

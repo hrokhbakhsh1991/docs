@@ -24,3 +24,12 @@ export function guestVisibleProfileMobile(mobile: string | null | undefined): st
   }
   return trimmed;
 }
+
+/**
+ * Visible guest login/register phone (GL-PHONE-01). The US smoke fixture is
+ * never a field value, even if flow state or browser autofill injects it.
+ * Unlike {@link guestVisibleProfileMobile}, mid-typing spaces are preserved.
+ */
+export function guestLoginPhoneFieldValue(phone: string): string {
+  return phone.trim() === PUBLIC_REGISTRATION_DEV_PHONE ? "" : phone;
+}
