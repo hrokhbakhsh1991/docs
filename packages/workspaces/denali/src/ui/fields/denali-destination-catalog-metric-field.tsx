@@ -121,6 +121,7 @@ export function DenaliDestinationCatalogMetricField({
           aria-label={label}
           value={displayValue}
           disabled={locked || destinationId.length === 0}
+          readOnly={locked}
           onChange={(value) => {
             setWritebackError(null);
             commitWizardDraftEdit(draftRef, onDraftChange, (base) =>

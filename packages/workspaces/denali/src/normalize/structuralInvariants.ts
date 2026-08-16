@@ -28,6 +28,10 @@ import {
   type DenaliUIContextOptions,
 } from "../rules/denaliUIAdapter";
 
+import {
+  omitEmptyDenaliGatheringPoints,
+  parseDenaliGatheringPoints,
+} from "../ui/logic/denali-location-types";
 import { normalizeDenaliWizardForm } from "./clearHiddenFormValues";
 import { resolveDenaliRuleModelFromForm } from "./resolveRuleModel";
 
@@ -168,6 +172,21 @@ function applyGlobalStructuralInvariant(
       if (JSON.stringify(pruned) !== JSON.stringify(parsed)) {
         form.programNature.itinerary = pruned as typeof form.programNature.itinerary;
       }
+      return;
+    }
+    case "omitEmptyGatheringPoints": {
+      const current = parseDenaliGatheringPoints(form.tripDetails?.logistics?.gatheringPoints);
+      const next = omitEmptyDenaliGatheringPoints(current);
+      if (JSON.stringify(next) === JSON.stringify(current)) {
+        return;
+      }
+      form.tripDetails = {
+        ...form.tripDetails,
+        logistics: {
+          ...form.tripDetails?.logistics,
+          gatheringPoints: next,
+        },
+      };
       return;
     }
     default: {

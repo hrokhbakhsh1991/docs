@@ -368,8 +368,13 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "optionalPositiveInt",
     tags: ["outdoor_program", "event_program_hidden"] as const,
     ruleDefaults: { required: false, hidden: false },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
     cellOverrides: {
       "event:single_day": { required: false, hidden: true },
+      "mountain:multi_day": { required: false, hidden: true },
+      "nature:multi_day": { required: false, hidden: true },
+      "desert:multi_day": { required: false, hidden: true },
+      "event:multi_day": { required: false, hidden: true },
     },
   },
   {
@@ -380,8 +385,13 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "optionalPositiveInt",
     tags: ["outdoor_program", "event_program_hidden"] as const,
     ruleDefaults: { required: false, hidden: false },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
     cellOverrides: {
       "event:single_day": { required: false, hidden: true },
+      "mountain:multi_day": { required: false, hidden: true },
+      "nature:multi_day": { required: false, hidden: true },
+      "desert:multi_day": { required: false, hidden: true },
+      "event:multi_day": { required: false, hidden: true },
     },
   },
   {

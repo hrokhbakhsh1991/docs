@@ -53,6 +53,7 @@ export function DraftManualSyncButton({
       data-testid={testId}
       data-draft-sync-action={view.action}
       data-draft-sync-status={status}
+      title={view.labelNamespace === "wizard" ? tWizard("saveDraftHint") : undefined}
       disabled={disabled}
       aria-busy={status === "SYNCING" ? true : undefined}
       onClick={onClick}

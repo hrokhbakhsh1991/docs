@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
@@ -84,5 +85,16 @@ describe("resolveDestinationCatalogMetricLock", () => {
     const dest = destination({ locationType: "peak", altitudeM: null });
     const binding = DENALI_DESTINATION_CATALOG_METRIC_BINDINGS["tripDetails.overview.peakHeight"];
     assert.equal(isDestinationCatalogMetricLocked(dest, binding), false);
+  });
+});
+
+describe("destination-catalog-metric field lock attributes (ED-PEAK-RO-01)", () => {
+  it("locked metric input is readOnly as well as disabled", () => {
+    const source = readFileSync(
+      new URL("../src/ui/fields/denali-destination-catalog-metric-field.tsx", import.meta.url),
+      "utf8"
+    );
+    assert.match(source, /readOnly=\{locked\}/);
+    assert.match(source, /disabled=\{locked \|\| destinationId\.length === 0\}/);
   });
 });

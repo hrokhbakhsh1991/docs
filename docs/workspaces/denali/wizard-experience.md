@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v10"
+version: "2026-08-16-v11"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -171,12 +171,33 @@ Pure helpers (no React): `resolveDenaliFlatEditWorkingEnvelope`, `shouldSeedDena
 
 | Field | UI | Notes |
 |-------|----|--------|
-| Peak height | `disabled` when destination catalog has `altitudeM` | Lock is **DOM `disabled` only** (`readOnly: false`). Changing destination (توچال 3962 → دماوند 5610) prefills from catalog. A crafted PATCH can still send another number until API re-applies catalog lock. |
+| Peak height | `disabled` **and** `readOnly` when destination catalog has `altitudeM` (ED-PEAK-RO-01) | Catalog lock is still **client-only**. Changing destination (توچال 3962 → دماوند 5610) prefills from catalog. A crafted PATCH can still send another number until **API** re-applies catalog lock (out of this pack — Doc-First `apps/api`). |
 | Paid tour | Checkbox reveals per-person price (تومان) | Empty price with paid checked must fail publish validation, not silently store `priceAmount: null` as free. |
 | PII flags | national id / father name / birth date | Default off; enabling is a registration-policy change, not a tour-content edit. |
-| Header «ذخیره پیش‌نویس» | Enabled only when draft engine is `DIRTY` or `ERROR` | Does **not** PATCH the tour. Footer «ذخیره تغییرات» is the canonical write. Autosave to `SYNCED` leaves the header disabled even with unsaved-vs-canonical field diffs if the engine already flushed the draft. |
+| Header «ذخیره پیش‌نویس» | Enabled only when draft engine is `DIRTY` or `ERROR` | Draft-engine **flush** only — does **not** PATCH the tour. Footer «ذخیره تغییرات» is the canonical write. Do **not** merge the two actions. Helper copy: `flatEdit.draftVsTourSaveHint` (Denali) + `title` on the host flush button (`wizard.saveDraftHint`). Autosave to `SYNCED` leaves the header disabled even with unsaved-vs-canonical field diffs if the engine already flushed the draft. |
 
 `projection.updatedAt` on the memory storage driver may equal `createdAt` after PATCH even when `rowVersion` increments — do **not** use `updatedAt` to decide draft vs tour freshness; use `rowVersion` / `sourceRowVersion`.
+
+## Operator UX closure (v11 — Denali only)
+
+Layer: `packages/workspaces/denali` (+ host **copy** keys that stay product-blind). **No** `apps/api` / `platform-core` / `workspace-sdk`. Do not hand-edit `denaliRuleSet.generated.ts`.
+
+| ID | Failure | Owner | Contract |
+| -- | ------- | ----- | -------- |
+| **ED-REV-UUID-01** | Review hero/rows flash raw destination/leader UUIDs while `loadDenaliReviewCatalog` is in flight (`mapIds` / `Map.get ?? id`). | `resolveDenaliReviewCatalogName` in `denali-review-format-logic.ts`; `DenaliReviewStep` already shows `review.loading`. | Never emit a UUID-shaped id as display text. Unresolved / loading → empty string so `pushRow` skips. Non-UUID slugs (themes) may still show the id if the catalog miss. Specs: `DEN-REV-CATALOG-01` + `WEB-DENALI-REVIEW-09`. |
+| **ED-GATHER-01** | Logistics always **writes** `{ name: "" }` station 1 into the draft (`useEffect` seed). Canonical looks dirty; submit can persist an empty point. | `denali-location-types.ts` (`isDenaliGatheringPointPopulated`, `omitEmptyDenaliGatheringPoints`, editor scaffold helper) + gathering field (no seed effect) + global invariant `omitEmptyGatheringPoints`. | UI may show one empty scaffold; **persist `[]`** until name/address/coords exist. Sanitize/invariants strip empty rows. |
+| **ED-SAVE-COPY-01** | Operators confuse header flush with footer PATCH. | Denali helper on flat-edit form; host `title` on `DraftManualSyncButton`. | Actions stay two primitives. Copy only. |
+| **ED-HIKE-MULTI-01** | `program.hikingGoHours` / `hikingReturnHours` visible on `*:multi_day` (confuse vs itinerary). | `cellOverrides` on those registry rows → `pnpm --filter @app-tour/workspace-denali run denali:codegen`. **RP-05 snapshot:** same hidden flags on multi-day cells in `apps/api/scripts/seed/definitions/denali-v1.json` (Denali matrix copy — not a new API invariant). | Hidden on multi-day cells; still optional on outdoor single-day. `hikingHoursApprox` unchanged. |
+| **ED-PEAK-RO-01** | Peak input `disabled` but `readOnly: false`. | `DenaliDestinationCatalogMetricField`: `readOnly={locked}` in addition to `disabled`. | Inspector/AT see read-only. Server enforcement is a later API pack. |
+
+**Deferred (product, not this pack):** same-calendar-day `multi_day` still forces ≥2 itinerary rows (`estimateDenaliTourDayCount`). Do not change until `wizard-experience` picks invariant A (multi-day = ≥2 calendar days) vs B (allow 1 itinerary day).
+
+```text
+loading catalog ──► destination/leader display = "" (not UUID)
+catalog hit     ──► display = catalog name
+catalog miss + UUID ──► display = "" (never echo id)
+catalog miss + slug ──► display = slug
+```
 
 ## Data attributes
 

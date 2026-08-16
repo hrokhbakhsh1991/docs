@@ -134,9 +134,39 @@ function boolLabel(raw: string, labels: Pick<DenaliReviewFormatLabels, "yes" | "
   return "";
 }
 
+/** RFC 4122 UUID (any version) — review must never echo these when the catalog miss. */
+const DENALI_REVIEW_OPAQUE_ID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isDenaliReviewOpaqueCatalogId(value: string): boolean {
+  return DENALI_REVIEW_OPAQUE_ID.test(value.trim());
+}
+
+/**
+ * ED-REV-UUID-01 / INV-DENALI-REVIEW-02 — catalog display name for an id.
+ * Loading or miss + UUID → empty (caller skips the row). Non-UUID slugs may pass through.
+ */
+export function resolveDenaliReviewCatalogName(
+  id: string,
+  catalog: ReadonlyMap<string, string>
+): string {
+  const trimmed = id.trim();
+  if (trimmed.length === 0) {
+    return "";
+  }
+  const named = catalog.get(trimmed);
+  if (named != null && named.trim().length > 0) {
+    return named.trim();
+  }
+  if (isDenaliReviewOpaqueCatalogId(trimmed)) {
+    return "";
+  }
+  return trimmed;
+}
+
 function mapIds(ids: readonly string[], catalog: ReadonlyMap<string, string>): string {
   return ids
-    .map((id) => catalog.get(id) ?? id)
+    .map((id) => resolveDenaliReviewCatalogName(id, catalog))
     .filter((entry) => entry.trim().length > 0)
     .join("، ");
 }
@@ -180,7 +210,7 @@ export function buildDenaliReviewHero(
     title,
     categoryLabel:
       category.trim().length > 0 ? labels.tourKindLabel(category) : "",
-    destination: catalog.destinationNameById.get(destinationId) ?? destinationId,
+    destination: resolveDenaliReviewCatalogName(destinationId, catalog.destinationNameById),
     schedule: scheduleParts.join(" → "),
     coverPhoto: resolveDenaliReviewCoverPhoto(draft),
   };
@@ -206,8 +236,10 @@ export function buildDenaliReviewSections(
     basicRows,
     "destinationId",
     labels.fieldLabel("destinationId"),
-    catalog.destinationNameById.get(getCanonicalStringValue(draft, "destinationId")) ??
-      getCanonicalStringValue(draft, "destinationId")
+    resolveDenaliReviewCatalogName(
+      getCanonicalStringValue(draft, "destinationId"),
+      catalog.destinationNameById
+    )
   );
   pushRowWhenFieldVisible(
     draft,
@@ -322,22 +354,28 @@ export function buildDenaliReviewSections(
     labels.fieldLabel("program.difficultyLevel"),
     getCanonicalStringValue(draft, "program.difficultyLevel")
   );
-  pushRow(
+  pushRowWhenFieldVisible(
+    draft,
     programRows,
+    labels,
     "program.hikingHoursApprox",
-    labels.fieldLabel("program.hikingHoursApprox"),
+    "denali_program",
     getCanonicalStringValue(draft, "program.hikingHoursApprox")
   );
-  pushRow(
+  pushRowWhenFieldVisible(
+    draft,
     programRows,
+    labels,
     "program.hikingGoHours",
-    labels.fieldLabel("program.hikingGoHours"),
+    "denali_program",
     getCanonicalStringValue(draft, "program.hikingGoHours")
   );
-  pushRow(
+  pushRowWhenFieldVisible(
+    draft,
     programRows,
+    labels,
     "program.hikingReturnHours",
-    labels.fieldLabel("program.hikingReturnHours"),
+    "denali_program",
     getCanonicalStringValue(draft, "program.hikingReturnHours")
   );
   pushRowWhenFieldVisible(
@@ -378,10 +416,13 @@ export function buildDenaliReviewSections(
               if (segment.locationLabel?.trim()) {
                 parts.push(`@ ${segment.locationLabel.trim()}`);
               } else if (segment.destinationId?.trim()) {
-                const destinationName =
-                  catalog.destinationNameById.get(segment.destinationId.trim()) ??
-                  segment.destinationId.trim();
-                parts.push(`@ ${destinationName}`);
+                const destinationName = resolveDenaliReviewCatalogName(
+                  segment.destinationId.trim(),
+                  catalog.destinationNameById
+                );
+                if (destinationName.length > 0) {
+                  parts.push(`@ ${destinationName}`);
+                }
               }
               if (segment.photoIds != null && segment.photoIds.length > 0) {
                 const photoLabels = segment.photoIds

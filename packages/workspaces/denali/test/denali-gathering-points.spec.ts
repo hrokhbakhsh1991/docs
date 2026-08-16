@@ -1,0 +1,52 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { applyDenaliStructuralInvariants } from "../src/normalize/structuralInvariants";
+import { buildDenaliTourCreateDefaultValues } from "../src/schemas/denaliCore.schema";
+import {
+  createEmptyDenaliGatheringPoint,
+  isDenaliGatheringPointPopulated,
+  omitEmptyDenaliGatheringPoints,
+  resolveDenaliGatheringPointsEditorState,
+} from "../src/ui/logic/denali-location-types";
+
+const FIELD_SRC = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), "../src/ui/fields/denali-gathering-points-field.tsx"),
+  "utf8"
+);
+
+describe("denali-gathering-points.spec.ts", () => {
+  it("ED-GATHER-01 empty scaffold is display-only and not populated", () => {
+    const empty = createEmptyDenaliGatheringPoint(true);
+    assert.equal(isDenaliGatheringPointPopulated(empty), false);
+    assert.deepEqual(omitEmptyDenaliGatheringPoints([empty, { name: "  " }]), []);
+    const editor = resolveDenaliGatheringPointsEditorState([]);
+    assert.equal(editor.scaffold, true);
+    assert.equal(editor.points.length, 1);
+  });
+
+  it("ED-GATHER-01 keeps populated stations and stamps a primary", () => {
+    const kept = omitEmptyDenaliGatheringPoints([
+      { name: "" },
+      { name: "میدان تجریش", address: "تجریش" },
+    ]);
+    assert.equal(kept.length, 1);
+    assert.equal(kept[0]?.isPrimary, true);
+    assert.equal(kept[0]?.name, "میدان تجریش");
+  });
+
+  it("ED-GATHER-01 field does not seed an empty station into the draft on mount", () => {
+    assert.equal(/useEffect/.test(FIELD_SRC), false);
+    assert.match(FIELD_SRC, /data-gathering-scaffold/);
+  });
+
+  it("ED-GATHER-01 invariant strips empty gathering rows before persist", () => {
+    const form = buildDenaliTourCreateDefaultValues();
+    form.tripDetails.logistics.gatheringPoints = [createEmptyDenaliGatheringPoint(true)];
+    const next = applyDenaliStructuralInvariants(form);
+    assert.deepEqual(next.tripDetails.logistics.gatheringPoints, []);
+  });
+});

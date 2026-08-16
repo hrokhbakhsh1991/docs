@@ -51,6 +51,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
   → 9 theme card label + catalog network soft-fail
   → 10 end-date clock inherit + tour-list category surface ready gate
   → 11 multi-day end ≥ start (ED-DT-RANGE-01) — Denali wizard/edit only
+  → 12 operator UX (ED-REV-UUID-01, ED-GATHER-01, ED-SAVE-COPY-01, ED-HIKE-MULTI-01, ED-PEAK-RO-01)
 ```
 
 ## Invariants
@@ -75,6 +76,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
 | **9** ED-LBL-THEME-01 / ED-UX-02 | Done — hide theme slug; network/catalog load → soft degraded notice |
 | **10** ED-DT-END-01 / ED-LIST-CAT-01 | Done — end inherit + hydrate repair; category ready gate + failed/Retry; catalog soft-retry |
 | **11** ED-DT-RANGE-01 | Done — end calendar min = start local day; `DENALI_TOUR_END_BEFORE_START` on `Date.parse(end) <= Date.parse(start)` |
+| **12** ED-REV-UUID-01 / ED-GATHER-01 / ED-SAVE-COPY-01 / ED-HIKE-MULTI-01 / ED-PEAK-RO-01 | Done — Denali-only; see wizard-experience v11. No API catalog lock; no same-day itinerary invariant change. |
 
 ## Closure (2026-08-06)
 
@@ -126,6 +128,16 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 | ID | Owner path |
 | --- | --- |
 | ED-DT-RANGE-01 | `denali-schedule-date-policy.ts` (`DENALI_TOUR_END_CANONICAL_PATH`, end min from start local day, `isDenaliTourEndDatetimeNotAfterStart`) → `DenaliDatetimeField` context → `mergeDenaliScheduleDateViolations` + `review.validation.DENALI_TOUR_END_BEFORE_START` |
+
+## Phase 12 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-REV-UUID-01 | `resolveDenaliReviewCatalogName` — never display UUID-shaped catalog misses |
+| ED-GATHER-01 | gathering editor scaffold (no draft seed) + `omitEmptyGatheringPoints` invariant |
+| ED-SAVE-COPY-01 | Denali `flatEdit.draftVsTourSaveHint`; host `wizard.saveDraftHint` as button `title` only |
+| ED-HIKE-MULTI-01 | registry `cellOverrides` for go/return hours on `*:multi_day` + `denali:codegen` |
+| ED-PEAK-RO-01 | `DenaliDestinationCatalogMetricField` `readOnly={locked}` (client; API lock deferred) |
 
 ## ED-SEED-01 implementation map
 

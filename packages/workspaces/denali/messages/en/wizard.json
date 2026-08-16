@@ -472,6 +472,9 @@
       "destinations": "Loading destinations…"
     }
   },
+  "flatEdit": {
+    "draftVsTourSaveHint": "Header “Save draft” only flushes the wizard draft. Footer “Save changes” PATCHes the tour."
+  },
   "review": {
     "intro": "Review everything below before creating the tour.",
     "loading": "Preparing summary…",

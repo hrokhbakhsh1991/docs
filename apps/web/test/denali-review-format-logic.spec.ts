@@ -338,4 +338,32 @@ describe("denali-review-format-logic.spec.ts", () => {
       "120000"
     );
   });
+
+  it("WEB-DENALI-REVIEW-09 does not echo UUID destination/leader when catalog is empty (ED-REV-UUID-01)", () => {
+    const destId = "00000000-0000-4000-8000-000000000705";
+    const leaderId = "00000000-0000-4000-8000-000000000101";
+    const empty: DenaliReviewCatalog = {
+      destinationNameById: new Map(),
+      leaderNameById: new Map(),
+      themeNameById: new Map(),
+      languageNameById: new Map(),
+    };
+    const draft = {
+      data: {
+        title: "Damavand",
+        category: "mountain_multi",
+        destinationId: destId,
+        leaderUserIds: [leaderId],
+        startDateTime: "2026-08-17T06:00:00.000Z",
+      },
+    };
+    const hero = buildDenaliReviewHero(draft, empty, LABELS);
+    assert.equal(hero.destination, "");
+    const sections = buildDenaliReviewSections(draft, empty, LABELS);
+    const basic = sections.find((section) => section.stepId === "denali_basic");
+    assert.equal(
+      basic?.rows.some((row) => row.value.includes(destId) || row.value.includes(leaderId)),
+      false
+    );
+  });
 });

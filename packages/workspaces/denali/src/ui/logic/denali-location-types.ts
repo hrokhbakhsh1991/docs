@@ -118,6 +118,46 @@ export function createEmptyDenaliGatheringPoint(isPrimary = false): DenaliGather
   return isPrimary ? { name: "", isPrimary: true } : { name: "" };
 }
 
+/** True when the operator entered a name, address, or coordinates (ED-GATHER-01). */
+export function isDenaliGatheringPointPopulated(point: DenaliGatheringPoint): boolean {
+  if ((point.name ?? "").trim().length > 0) {
+    return true;
+  }
+  return isDenaliLocationDataPopulated({
+    address: point.address,
+    latitude: point.latitude,
+    longitude: point.longitude,
+  });
+}
+
+/** Drop empty scaffold rows; keep a single primary when any populated row remains. */
+export function omitEmptyDenaliGatheringPoints(
+  points: readonly DenaliGatheringPoint[]
+): DenaliGatheringPoint[] {
+  const kept = points.filter(isDenaliGatheringPointPopulated);
+  if (kept.length === 0) {
+    return [];
+  }
+  if (kept.some((point) => point.isPrimary === true)) {
+    return kept;
+  }
+  const [first, ...rest] = kept;
+  return [{ ...first!, isPrimary: true }, ...rest];
+}
+
+/**
+ * Editor display: one empty station when canonical is `[]` — do not write the scaffold
+ * into the draft until the operator edits (ED-GATHER-01).
+ */
+export function resolveDenaliGatheringPointsEditorState(
+  stored: readonly DenaliGatheringPoint[]
+): { readonly points: readonly DenaliGatheringPoint[]; readonly scaffold: boolean } {
+  if (stored.length > 0) {
+    return { points: stored, scaffold: false };
+  }
+  return { points: [createEmptyDenaliGatheringPoint(true)], scaffold: true };
+}
+
 export function parseDenaliGatheringPoints(value: unknown): DenaliGatheringPoint[] {
   if (!Array.isArray(value)) {
     return [];

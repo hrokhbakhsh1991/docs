@@ -1000,7 +1000,7 @@
             {
               "fieldId": "program.hikingGoHours",
               "required": false,
-              "hidden": false
+              "hidden": true
             },
             {
               "fieldId": "program.hikingHoursApprox",
@@ -1010,7 +1010,7 @@
             {
               "fieldId": "program.hikingReturnHours",
               "required": false,
-              "hidden": false
+              "hidden": true
             },
             {
               "fieldId": "denali.itinerary",
@@ -1418,7 +1418,7 @@
             {
               "fieldId": "program.hikingGoHours",
               "required": false,
-              "hidden": false
+              "hidden": true
             },
             {
               "fieldId": "program.hikingHoursApprox",
@@ -1428,7 +1428,7 @@
             {
               "fieldId": "program.hikingReturnHours",
               "required": false,
-              "hidden": false
+              "hidden": true
             },
             {
               "fieldId": "denali.itinerary",
@@ -1836,7 +1836,7 @@
             {
               "fieldId": "program.hikingGoHours",
               "required": false,
-              "hidden": false
+              "hidden": true
             },
             {
               "fieldId": "program.hikingHoursApprox",
@@ -1846,7 +1846,7 @@
             {
               "fieldId": "program.hikingReturnHours",
               "required": false,
-              "hidden": false
+              "hidden": true
             },
             {
               "fieldId": "denali.itinerary",

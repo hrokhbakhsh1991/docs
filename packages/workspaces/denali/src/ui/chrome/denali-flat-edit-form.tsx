@@ -280,6 +280,9 @@ export function DenaliFlatEditForm({
           );
         })}
       </fieldset>
+      <p className="denali-flat-edit-form__save-hint text-sm text-muted-foreground" data-testid="denali-flat-edit-draft-vs-tour-hint">
+        {tDenali("flatEdit.draftVsTourSaveHint")}
+      </p>
       {footer}
     </form>
   );
