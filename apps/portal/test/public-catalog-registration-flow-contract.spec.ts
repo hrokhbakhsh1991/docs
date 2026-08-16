@@ -94,7 +94,7 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
     assert.match(authSteps, /waitForMemberSessionCookie/);
     assert.match(authSteps, /credentials: "include"/);
     assert.match(otpInput, /data-otp-segment-input/);
-    assert.match(otpInput, /autoComplete="one-time-code"/);
+    assert.match(otpInput, /one-time-code/);
     assert.doesNotMatch(authSteps, /isMemberLoginEgressFromLocation/);
     assert.doesNotMatch(denaliIntake, /request-otp/);
   });

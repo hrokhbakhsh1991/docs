@@ -60,7 +60,7 @@ describe("catalog-registration-auth-steps — PCMS-UX polish", () => {
     assert.doesNotMatch(authSteps, /autoComplete="tel"/);
   });
 
-  it("GL-OTP-01 autofill sink is unnamed and cells use catalogRegistration i18n", () => {
+  it("GL-OTP-01 guest OTP has no extra textbox and FA cell names use Persian digits", () => {
     const otpInput = readFileSync(
       join(repoRoot, "packages/catalog-registration-flow-ui/src/otp-segment-input.tsx"),
       "utf8"
@@ -72,9 +72,9 @@ describe("catalog-registration-auth-steps — PCMS-UX polish", () => {
       ),
       "utf8"
     );
-    assert.match(otpInput, /data-otp-autofill-sink/);
-    assert.match(otpInput, /aria-hidden="true"/);
-    assert.match(otpInput, /tabIndex=\{-1\}/);
+    assert.doesNotMatch(otpInput, /data-otp-autofill-sink/);
+    assert.match(otpInput, /formatOtpDigitIndex/);
+    assert.match(otpInput, /one-time-code/);
     assert.match(otpInput, /otp\.digitLabel/);
     assert.match(otpInput, /otp\.groupLabel/);
     assert.doesNotMatch(otpInput, /Digit \$\{index/);

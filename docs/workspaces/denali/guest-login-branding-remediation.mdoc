@@ -1,7 +1,7 @@
 ---
 title: Denali guest login + club branding — remediation contract
 doc_id: DENALI-GUEST-LOGIN-BRANDING-REMEDIATION
-version: "2026-08-16-v9"
+version: "2026-08-16-v10"
 phase: guest-portal
 apps: [portal, marketing, web, api]
 workspace: denali
@@ -120,25 +120,28 @@ Dev OTP hint / `initialPublicRegistrationOtp()` (`1234`) may stay. Do **not** pu
 
 ### Phase 4 OTP a11y (GL-OTP-01)
 
-Guest login uses **`packages/catalog-registration-flow-ui/src/otp-segment-input.tsx`** (portal `transpilePackages`). Operator login uses `apps/web/src/features/auth/otp-segment-input.tsx`. P6 still requires a thin portal shell at `apps/portal/src/features/auth/otp-segment-input.tsx` — it is **not** on the live guest path, but it must not keep hardcoded `Digit N` / `Input.control` sink (same a11y contract, `catalogRegistration.otp.*`).
+Guest login uses **`packages/catalog-registration-flow-ui/src/otp-segment-input.tsx`** (portal `transpilePackages` + `dist`). Operator login uses `apps/web/src/features/auth/otp-segment-input.tsx`. P6 still requires a thin portal shell at `apps/portal/src/features/auth/otp-segment-input.tsx` — it is **not** on the live guest path.
+
+**v10 live proof:** a clipped native sink with `aria-hidden` + `tabIndex={-1}` + `id="otp"` still mapped as an unnamed `textbox` in the accessibility snapshot. Chromium exposes a programmatically focusable `<input>` even when the host is clipped. Guest SMS autofill therefore binds to the **first visible cell**, not a fifth field.
 
 ```text
-SMS autofill  →  native sink (autocomplete=one-time-code)
-                      │
-                      ├── visually clipped host (not Input.control)
-                      ├── aria-hidden + tabIndex=-1  →  out of a11y tree
-                      └── no htmlFor="otp" on the visible caption
-                 cells  →  catalogRegistration.otp.digitLabel {index}
+SMS autofill  →  cell 0  autocomplete=one-time-code  maxLength=4
+                 cells 1–3  autocomplete=off          maxLength=1
+                 onChange/onPaste already splits a 4-digit dump across cells
+                 no data-otp-autofill-sink on the guest path
+                 no id="otp" on an input (group may keep the id)
+                 cells  →  otp.digitLabel + formatOtpDigitIndex (FA رقم ۱ … ۴)
                  group  →  catalogRegistration.otp.groupLabel
 ```
 
 | Failure | Cause |
 | ------- | ----- |
-| Extra unnamed textbox | Sink was `ui-primitives` `Input` (`.control` tap-target + border). Tailwind `opacity-0 absolute` classes are **not** compiled for this package. `aria-hidden` on a still-visible control is ignored by some AT. |
-| English `Digit 1` | Hardcoded `aria-label`. Keys live under existing `catalogRegistration.otp` (no new namespace). |
-| Caption naming the sink | `<label htmlFor="otp">` pointed at the sink `id`. After the sink leaves the tree, `htmlFor` is removed so the caption is visual only. Group `aria-labelledby` owns the accessible name. |
+| Extra unnamed textbox | Fifth native `<input id="otp">` sink. `aria-hidden` on a focusable control is ignored. Guest path **deletes** the sink. |
+| English `Digit 1` | Hardcoded `aria-label`. Keys stay under `catalogRegistration.otp`. |
+| FA `رقم 1` (Latin index) | `{index}` interpolated as ASCII. `formatOtpDigitIndex` uses `fa-IR` so the name is **رقم ۱**. EN stays `Digit 1`. |
+| Caption naming a sink | `<label htmlFor="otp">` is gone. Group `aria-labelledby` owns the name. |
 
-Do **not** use `display: none` / `hidden` on the sink (iOS SMS autofill). Do **not** use `inert` on the sink host (can block autofill). Dev hint `otp.devHint` (`کد توسعه: 1234`) stays.
+Operator + unused P6 portal shell may keep a clipped sink (GL-OTP-01-OP / SHELL). Do **not** reintroduce a guest sink to satisfy `#otp` locators — e2e fills `[data-otp-cell]`. Dev hint `otp.devHint` (`کد توسعه: 1234`) stays.
 
 ### Phase 5 polish
 
@@ -164,7 +167,7 @@ Browser  GET /favicon.ico
 | **GL-PHONE-01** | After logout, login field is `+15550009901` | `initialPublicRegistrationPhone()` + visible field sanitizer + `autoComplete="off"` | **2** | Club guest login (`denali.localhost` / portal.denali) input `value` is empty. Fixture never renders. Sending OTP without editing the field must not create/login a different user. |
 | **GL-PHONE-02** | OTP «تغییر شماره» restores `+15550009901` | `catalog-registration-auth-steps.tsx` change-phone merge | **2** | Change-phone clears to empty (or last typed club number), not `PUBLIC_REGISTRATION_DEV_PHONE`. |
 | **GL-AVATAR-01** | Profile has two «انتخاب تصویر» controls | Hidden file input + button share `aria-label` | **3** | One named upload control; file input is visually hidden and not a second button in the a11y tree. |
-| **GL-OTP-01** | OTP cells labelled `Digit 1`…; extra unnamed textbox | `otp-segment-input.tsx` autofill sink + English aria-label | **4** | Autofill sink stays out of a11y tree; cell labels use i18n (FA/EN). Dev hint `کد توسعه: 1234` may stay in `NODE_ENV=development`. |
+| **GL-OTP-01** | OTP cells labelled `Digit 1` / `رقم 1`; extra unnamed textbox | guest `otp-segment-input.tsx` sink + ASCII `{index}` | **4** | AX tree: group + **four** named cells, no fifth textbox. FA names **رقم ۱**…**رقم ۴**. First cell carries `one-time-code`. Dev hint may stay in development. |
 | **GL-OTP-01-OP** | Same extra unnamed textbox + `Digit 1` on **operator** `/auth/login` | `apps/web/src/features/auth/otp-segment-input.tsx` (not guest flow-ui) | **4 twin** | Native clipped sink; `auth.otpLabel` group + `auth.otpDigitLabel` `{index}`. Dangling `htmlFor="otp"` removed. Do not import guest `catalogRegistration`. |
 | **GL-OTP-01-SHELL** | Unused P6 portal OTP shell still had `Digit 1` + styled sink | `apps/portal/src/features/auth/otp-segment-input.tsx` | **4 shell** | Same clipped native sink + `catalogRegistration.otp.digitLabel` / `groupLabel`. Do **not** delete the file (OTP-SCOPE-P6 thin shell). Live guest path stays flow-ui. |
 | **GL-POLISH-01** | `GET /favicon.ico` 404 on portal | Portal app metadata / public asset | **5** | No 404 for favicon on `portal.denali.localhost`. |
@@ -208,7 +211,7 @@ Do **not** put `shenski` on `resolveDefaultTenantBranding("denali")`. Guest chro
 | **1 addendum** GL-BRAND-03 | **Done** — person chip i18n **عضو**; placeholder `Member` and mobile-as-name stripped |
 | **2** GL-PHONE-01 + GL-PHONE-02 | **Done** — empty guest phone; fixture stripped from the input; change-phone clears; `autoComplete="off"` |
 | **3** GL-AVATAR-01 | **Done** — file input unnamed + `aria-hidden`; button is the named control |
-| **4** GL-OTP-01 | **Done** — clipped native sink; `otp.digitLabel` / `otp.groupLabel` |
+| **4** GL-OTP-01 | **Done (v10)** — guest path has no sink textbox; FA cell names **رقم ۱**…**۴** |
 | **4 twin** GL-OTP-01-OP | **Done** — operator login same sink/i18n pattern under `auth.*` |
 | **4 shell** GL-OTP-01-SHELL | **Done** — P6 portal thin shell Digit-free; live path still flow-ui |
 | **5** GL-POLISH-01 + GL-POLISH-02 | **Done** — portal `/icon.svg` rewrite; hero LCP eager/high vs lazy/low |
