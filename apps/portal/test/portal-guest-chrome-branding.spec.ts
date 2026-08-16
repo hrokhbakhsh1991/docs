@@ -80,7 +80,7 @@ describe("portal-guest-chrome-branding.spec.ts", () => {
     assert.doesNotMatch(icon, /shenski|denali/i);
   });
 
-  it("GL-BRAND-03 member chip uses i18n fallback, not hardcoded Member", () => {
+  it("GL-BRAND-03 member chip uses shared helper, not hardcoded Member", () => {
     const layout = readPortal("app/me/layout.tsx");
     const fa = JSON.parse(
       readFileSync(join(portalRoot, "messages/fa/portalMember.json"), "utf8")
@@ -88,13 +88,22 @@ describe("portal-guest-chrome-branding.spec.ts", () => {
     const en = JSON.parse(
       readFileSync(join(portalRoot, "messages/en/portalMember.json"), "utf8")
     ) as { readonly nav?: { readonly memberFallback?: string } };
-    assert.match(layout, /guestVisibleProfileMobile/);
+    const marketingFa = JSON.parse(
+      readFileSync(join(repoRoot, "apps/marketing/messages/fa/catalog.json"), "utf8")
+    ) as { readonly nav?: { readonly memberFallback?: string } };
+    const marketingEn = JSON.parse(
+      readFileSync(join(repoRoot, "apps/marketing/messages/en/catalog.json"), "utf8")
+    ) as { readonly nav?: { readonly memberFallback?: string } };
+    assert.match(layout, /resolveGuestMemberChipLabel/);
     assert.match(layout, /portalMember\.nav/);
     assert.match(layout, /memberFallback/);
     assert.doesNotMatch(layout, /["']Member["']/);
+    assert.doesNotMatch(layout, /guestVisibleProfileMobile/);
     assert.doesNotMatch(layout, /resolveGuestChromeDisplayName\(\s*profile/);
     assert.equal(fa.nav?.memberFallback, "عضو");
     assert.equal(en.nav?.memberFallback, "Member");
+    assert.equal(fa.nav?.memberFallback, marketingFa.nav?.memberFallback);
+    assert.equal(en.nav?.memberFallback, marketingEn.nav?.memberFallback);
   });
 
   it("GL-OTP-01-SHELL unused P6 portal OTP shell stays Digit-free", () => {

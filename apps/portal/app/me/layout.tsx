@@ -4,8 +4,7 @@ import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
-import { guestVisibleProfileMobile } from "@app-tour/catalog-registration-auth";
-import { resolveEmbeddedMemberPortalHost, resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
+import { resolveEmbeddedMemberPortalHost, resolveGuestChromeDisplayName, resolveGuestMemberChipLabel } from "@app-tour/guest-surface-host";
 import { isMemberPortalEnabled } from "@app-tour/workspace-sdk";
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
 import { fetchMemberProfile } from "@/me/fetch-member-profile.server";
@@ -59,10 +58,11 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
   const profile = profilePayload?.profile;
   const tNav = await getTranslations("portalMember.nav");
   const memberHeader = {
-    displayName:
-      profile?.fields.displayName?.trim() ||
-      guestVisibleProfileMobile(profile?.fields.mobile) ||
-      tNav("memberFallback"),
+    displayName: resolveGuestMemberChipLabel({
+      displayName: profile?.fields.displayName,
+      mobile: profile?.fields.mobile,
+      fallback: tNav("memberFallback"),
+    }),
     avatarUrl: profile?.fields.avatarUrl ?? null,
     profileHref: "/me/profile",
   };

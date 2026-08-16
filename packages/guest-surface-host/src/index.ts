@@ -23,6 +23,7 @@ export {
   type FetchPublicTenantBrandingOptions,
 } from "./fetch-public-tenant-branding";
 export { resolveGuestChromeDisplayName } from "./resolve-guest-chrome-display-name";
+export { resolveGuestMemberChipLabel } from "./resolve-guest-member-chip-label";
 export {
   PUBLIC_TENANT_BRAND_LOGO_SIGNED_URL_TTL_SECONDS,
   resolveGuestBootstrapRevalidateSeconds,

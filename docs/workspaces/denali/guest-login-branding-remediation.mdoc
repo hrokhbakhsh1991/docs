@@ -1,7 +1,7 @@
 ---
 title: Denali guest login + club branding — remediation contract
 doc_id: DENALI-GUEST-LOGIN-BRANDING-REMEDIATION
-version: "2026-08-16-v8"
+version: "2026-08-16-v9"
 phase: guest-portal
 apps: [portal, marketing, web, api]
 workspace: denali
@@ -63,18 +63,19 @@ Club chrome and the logged-in **person** chip are different labels on the same `
 /me header
   ├─ workspaceLabel  → resolveGuestChromeDisplayName(branding.displayName, chrome.defaultSiteName)
   │                    club trade name (shenski) or باشگاه / Club
-  └─ member chip     → profile.displayName
-                       else guestVisibleProfileMobile(profile.mobile)
-                       else portalMember.nav.memberFallback   (FA عضو / EN Member)
+  └─ member chip     → resolveGuestMemberChipLabel({ displayName, mobile, fallback })
+                       chosen personal name only
+                       else portalMember.nav.memberFallback  (FA عضو / EN Member)
 ```
 
 | Surface | Owner | Rule |
 | ------- | ----- | ---- |
 | Club brand (`data-portal-shell-workspace-label`) | GL-BRAND-01/02 | Unchanged helper. Empty → `defaultSiteName` only. |
-| Person chip (`data-marketing-header-member-label`) | **GL-BRAND-03** | Prefer trimmed profile `displayName`. Else a **guest-visible** mobile. Else i18n `portalMember.nav.memberFallback`. |
+| Person chip (`data-marketing-header-member-label`) | **GL-BRAND-03** | Shared `resolveGuestMemberChipLabel`. **Not** a phone number. **Not** English `"Member"` as a placeholder. Empty / placeholder / name-equals-mobile → i18n `memberFallback` (FA **عضو** / EN Member). |
 | Login `sessionBadge` | already | Club `branding.displayName` or hidden when empty. Do **not** put `"Member"` or `memberFallback` here (would duplicate chrome). |
+| Marketing header chip | same helper | `catalog.nav.memberFallback` is **byte-equal** to portal `portalMember.nav.memberFallback`. No `"Member"` literal in `resolve-marketing-member-header.server.ts`. |
 
-`guestVisibleProfileMobile` lives next to `PUBLIC_REGISTRATION_DEV_PHONE` in `catalog-registration-auth`. Empty / null / the US smoke fixture `+15550009901` all return `""` so a persisted GL-PHONE identity cannot leak onto the chip. The profile form still shows stored mobile (honest edit surface). Do **not** call `resolveGuestChromeDisplayName` for the person chip (that helper is club-only; `باشگاه` is not a personal name).
+`GET /identity/me` fills `displayName` with `user.mobile` when the membership has no name. That is a directory convenience, not a guest chip label — the helper treats `displayName === mobile` as unnamed. Literal `"Member"` is the old hardcoded fallback and is also unnamed. Do **not** call `resolveGuestChromeDisplayName` for the person chip (`باشگاه` is not a personal name). Do **not** put the US smoke phone on the chip (`guestVisibleProfileMobile` stays for other surfaces).
 
 ### Phase 2 phone traps
 
@@ -159,7 +160,7 @@ Browser  GET /favicon.ico
 | --- | --- | --- | --- | --- |
 | **GL-BRAND-01** | Three names: باشگاه / Portal / denali | Portal + marketing chrome fallbacks | **1** | All three surfaces show the same `displayName`. Empty → `defaultSiteName` only. Never `pluginId` or `"Portal"`. Specs: chrome unit + branding public GET. |
 | **GL-BRAND-02** | Club is not named shenski | Operator settings + optional Denali club seed/ensure `…000003` | **1** | Admin Save `shenski` on `/settings/branding` (or idempotent club seed). Hard refresh marketing + login + `/me` all say **shenski**. Smoke `…014` unchanged. |
-| **GL-BRAND-03** | `/me` person chip says English `Member` when displayName (and often mobile) is empty | `app/me/layout.tsx` memberHeader | **1 addendum** | Chip uses `portalMember.nav.memberFallback` (FA عضو / EN Member). Layout source has no `"Member"` literal. Fixture phone is not a chip label. Club `workspaceLabel` unchanged. Spec in `portal-guest-chrome-branding`. |
+| **GL-BRAND-03** | `/me` person chip says English `Member` when displayName is empty (or identity stuffed mobile into `displayName`) | `resolveGuestMemberChipLabel` in guest-surface-host + portal `/me` layout + marketing header | **1 addendum** | FA chip is **عضو**. Layout/marketing source has no `"Member"` fallback literal. Identity mobile substitute and placeholder `"Member"` do not render. Club `workspaceLabel` unchanged. Specs: chrome unit + marketing member header. |
 | **GL-PHONE-01** | After logout, login field is `+15550009901` | `initialPublicRegistrationPhone()` + visible field sanitizer + `autoComplete="off"` | **2** | Club guest login (`denali.localhost` / portal.denali) input `value` is empty. Fixture never renders. Sending OTP without editing the field must not create/login a different user. |
 | **GL-PHONE-02** | OTP «تغییر شماره» restores `+15550009901` | `catalog-registration-auth-steps.tsx` change-phone merge | **2** | Change-phone clears to empty (or last typed club number), not `PUBLIC_REGISTRATION_DEV_PHONE`. |
 | **GL-AVATAR-01** | Profile has two «انتخاب تصویر» controls | Hidden file input + button share `aria-label` | **3** | One named upload control; file input is visually hidden and not a second button in the a11y tree. |
@@ -204,7 +205,7 @@ Do **not** put `shenski` on `resolveDefaultTenantBranding("denali")`. Guest chro
 | --- | --- |
 | **0** this file | Done — checklist |
 | **1** GL-BRAND-01 + GL-BRAND-02 | **Done** — shared chrome helper + club seed `shenski` |
-| **1 addendum** GL-BRAND-03 | **Done** — person chip i18n fallback; fixture phone hidden on chip |
+| **1 addendum** GL-BRAND-03 | **Done** — person chip i18n **عضو**; placeholder `Member` and mobile-as-name stripped |
 | **2** GL-PHONE-01 + GL-PHONE-02 | **Done** — empty guest phone; fixture stripped from the input; change-phone clears; `autoComplete="off"` |
 | **3** GL-AVATAR-01 | **Done** — file input unnamed + `aria-hidden`; button is the named control |
 | **4** GL-OTP-01 | **Done** — clipped native sink; `otp.digitLabel` / `otp.groupLabel` |

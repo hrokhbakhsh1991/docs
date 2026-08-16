@@ -26,6 +26,7 @@
     "account": "حساب کاربری",
     "primary": "ناوبری اصلی",
     "defaultSiteName": "باشگاه",
+    "memberFallback": "عضو",
     "openMenu": "باز کردن منو",
     "closeMenu": "بستن منو",
     "skipToContent": "رفتن به محتوای اصلی"

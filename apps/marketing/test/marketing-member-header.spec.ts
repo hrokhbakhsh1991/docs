@@ -46,4 +46,14 @@ describe("marketing member header — PCMS-03", () => {
     );
     assert.match(resolver, /sessionTenantMatchesDevCrossSurfaceHost/);
   });
+
+  it("GL-BRAND-03 marketing person chip uses shared helper, not hardcoded Member", () => {
+    const resolver = readFileSync(
+      path.join(marketingRoot, "src/shell/resolve-marketing-member-header.server.ts"),
+      "utf8"
+    );
+    assert.match(resolver, /resolveGuestMemberChipLabel/);
+    assert.match(resolver, /nav\.memberFallback/);
+    assert.doesNotMatch(resolver, /["']Member["']/);
+  });
 });

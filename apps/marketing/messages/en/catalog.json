@@ -26,6 +26,7 @@
     "account": "Account",
     "primary": "Primary navigation",
     "defaultSiteName": "Club",
+    "memberFallback": "Member",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "skipToContent": "Skip to main content"
