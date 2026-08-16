@@ -1,7 +1,7 @@
 ---
 title: Portal Member Login Modal
 doc_id: PCMS-LOGIN-MODAL
-version: "2026-08-16-v8"
+version: "2026-08-16-v9"
 status: design
 authority: docs/standards/member-session-portal-authority.mdoc
 apps: [portal, marketing]
@@ -32,7 +32,7 @@ non_goals:
 | Desktop | Centered dialog (`aria-modal`, focus trap, Esc closes) |
 | Mobile | Bottom sheet |
 | Close without success | Stay on host URL; register shows auth gate + reopen |
-| Marketing | Cannot host OTP; one navigation to portal, then modal/host |
+| Marketing | Hosts the **same** OTP/profile steps in a marketing modal via Portal-origin transport; href fallback to portal `/login` / `register?auth=login`; no Marketing BFF |
 | Shared auth steps | `GuestAuthTransport` + host `onAuthenticated` — no BFF URLs or intake hydrate in OTP/profile UI |
 
 ## 2. Why marketing SSR already detects portal members
@@ -63,17 +63,21 @@ PCMS-001 already requires marketing **read-only** detection of `atour_mb_session
 | `/catalog/{id}/register` | **Auto for guests** (PCMS-UX-MODAL-04); `?auth=login` compatible; reopen via Sign-in control | Close modal · **stay** · resume/hydrate **intake-only** (PCMS-REG-01) |
 | `/login` (thin public host) | Auto-open on load | `waitForMemberSessionCookie` then `location.assign(portalReturn)` |
 | Protected `/me/*` | **Cannot** host modal for guests | Middleware → `/login?portalReturn=<path>` (unchanged) |
+| Marketing (any public page) | Header Sign in / PDP tour sign-in (client); optional `?auth=login` auto-open | Origin `probeSession` then **reload current marketing URL** |
 
 **Closed-modal a11y (2026-08-07):** `PortalLoginModalProvider` must not leave a visible/AT-exposed «ورود» / Sign-in `h2` on authenticated pages. When `open=false`, dialog content is unmounted and the `<dialog>` is `inert` so screen readers and a11y snapshots do not see a ghost login heading under `/me/*`.
 
 ```mermaid
 flowchart TD
-  subgraph marketing [Marketing SSR]
+  subgraph marketing [Marketing]
     MKT_READ[readMarketingMemberSessionFromCookies]
-    MKT_GUEST[Sign in link]
+    MKT_GUEST[Sign in / tour ورود]
     MKT_MEMBER[Profile chip]
+    MKT_MODAL[Marketing login modal]
     MKT_READ -->|null| MKT_GUEST
     MKT_READ -->|valid + tenant bind| MKT_MEMBER
+    MKT_GUEST -->|JS + portal origin| MKT_MODAL
+    MKT_MODAL -->|CORS public-auth + reload| MKT_READ
   end
 
   subgraph portal [Portal]
@@ -90,16 +94,15 @@ flowchart TD
     MODAL -->|success on /login| ME
   end
 
-  MKT_GUEST -->|header| LOGIN
-  MKT_GUEST -->|tour sign-in| REG
+  MKT_GUEST -->|no-JS / no origin| LOGIN
 ```
 
 ## 4. URL builders (target contract)
 
 | Actor | Builder (keep / adjust) | Target URL after this design |
 | ----- | ----------------------- | ---------------------------- |
-| Marketing header Sign in | `resolvePortalMemberLoginUrl` | `{portal}/login?portalReturn=/me/registrations` |
-| Marketing tour «ورود» | `resolvePortalRegistrationLoginUrl` | `{portal}/catalog/{tourId}/register?auth=login` (**change from** `/login?portalReturn=…`) |
+| Marketing header Sign in | `resolvePortalMemberLoginUrl` | **Primary:** marketing modal (Phase 5). **Fallback href:** `{portal}/login?portalReturn=/me/registrations` |
+| Marketing tour «ورود» | `resolvePortalRegistrationLoginUrl` | **Primary:** marketing modal (stay on PDP after reload). **Fallback href:** `{portal}/catalog/{tourId}/register?auth=login` |
 | Portal register «ورود» | client open modal | Same URL; optional `?auth=login` for shareable deep link |
 | Middleware `/me` guest | `resolvePortalMemberLoginPath` | `/login?portalReturn=<requested path>` |
 
@@ -132,10 +135,10 @@ apps/portal
 | `PortalLoginThinHost` | Client: auto-open `host="login"` with `portalReturn`; fallback `[data-portal-login-host-lede]` + `[data-portal-login-host-trigger]` after dismiss. |
 | Login-host modal `onAuthenticated` | `completeMemberLoginEgress({ memberLoginEgress: true })` (**no** second cookie probe — steps already `probeSession`). Register host stays close + reload. |
 | Register page | Session → intake flow. Guest → auth gate + auto modal (PCMS-UX-MODAL-04); reopen via Sign-in · `?auth=login` compatible |
-| `@app-tour/catalog-registration-flow-ui` `GuestAuthTransport` | Phone/OTP/profile **network + session probe** only. Portal factory: same-origin `/api/public-auth/*` + `GET /api/me/profile`. No cookie write, no tenant, no intake, no `baseUrl`. |
+| `@app-tour/catalog-registration-flow-ui` `GuestAuthTransport` | Phone/OTP/profile **network + session probe** only. Portal factory: same-origin `/api/public-auth/*` + `GET /api/me/profile`. Marketing factory: absolute portal `/api/public-auth/*` + `GET {origin}/api/public-auth/session`. No cookie write, no tenant, no intake. |
 | `GuestAuthHostProvider` | Injects `{ transport, onAuthenticated }` into auth steps. Steps throw if mounted outside the provider. |
-| Host `onAuthenticated` | Login: `completeMemberLoginEgress`. Register modal: close + reload register URL. Portal register resume (non-login-egress): `hydrateCatalogRegistrationIntakeAfterSession` on the **flow host**, never inside OTP/profile steps. |
-| Marketing | **No** modal / OTP until Phase 5 · href targets + SSR session probe · Phase 4 CORS is **Portal** `/api/public-auth/*` only |
+| Host `onAuthenticated` | Login: `completeMemberLoginEgress`. Register modal: close + reload register URL. **Marketing modal:** reload current marketing URL. Portal register resume (non-login-egress): `hydrateCatalogRegistrationIntakeAfterSession` on the **flow host**, never inside OTP/profile steps. |
+| Marketing | Phase 5: `MarketingLoginModalProvider` + origin adapter + shared auth steps. Hooks `data-marketing-login-modal*`. No `PublicCatalogRegistrationFlow`. No marketing public-auth BFF. Phase 4 CORS remains Portal `/api/public-auth/*` only. |
 
 **Presentation hooks (stable for smoke/CSS):**
 
@@ -161,11 +164,11 @@ apps/portal
 
 ```text
 1. Guest on marketing → Sign in / tour ورود
-2. Land on portal (/login or register?auth=login) → modal
-3. OTP success → Set-Cookie (host-only) → waitForMemberSessionCookie
-4. On custom apex, middleware COOK-03 refreshes Domain=<apex>; on *.localhost cookie stays host-only
-5. User later opens marketing on the **same apex** → SSR readMarketingMemberSessionFromCookies
-6. Header shows profile chip (data-marketing-header-member)
+2. JS: marketing modal · origin fetch Portal `/api/public-auth/*` (CORS)
+   no-JS: land on portal (`/login` or register?auth=login) → portal modal
+3. OTP success → Set-Cookie (Portal BFF) → origin probe GET `/api/public-auth/session`
+4. Marketing reloads current URL. On custom apex, COOK-03 `Domain=<apex>` lets SSR see the cookie
+5. Header shows profile chip (data-marketing-header-member); PDP CTA matrix hides tour sign-in
 ```
 
 **Failure modes to design against:**
@@ -320,11 +323,21 @@ Marketing still **must not** host OTP, write `atour_mb_session`, or expose `apps
 - OPTIONS preflight: 204 + CORS when allowed; 403 and no ACAO when Origin is missing or not paired (PCMS-CORS-04).
 - Credentialed: `Access-Control-Allow-Credentials: true` + exact `Access-Control-Allow-Origin`. `Allow-Methods: GET, POST, OPTIONS`. `Allow-Headers: content-type`. `Vary: Origin`.
 - `GET /api/public-auth/session` returns `{ ok: true, ready }` after JWT + tenant bind — no PII, no token (PCMS-CORS-05). Portal same-origin `waitForMemberSessionCookie` still uses `GET /api/me/profile`.
-- `createPortalSameOriginGuestAuthTransport` remains the only factory. No Marketing adapter (Phase 5).
+- `createPortalSameOriginGuestAuthTransport` remains the Portal-only factory (arity 0). Marketing uses a **separate** origin factory (Phase 5).
+
+**Phase 5 DoD (this change) — Marketing Portal-origin auth host:**
+
+Marketing **may** host OTP UI. Cookie write stays Portal BFF. Marketing still **must not** write `atour_mb_session` or expose `apps/marketing/app/api/me/*` / `app/api/public-auth/*`. Portal `/login` is retained. `[data-marketing-register]` still goes to portal register (Phase 6).
+
+- `tryCreatePortalOriginGuestAuthTransport` / `createPortalOriginGuestAuthTransport` — absolute portal public-auth only; `credentials: "include"`; `probeSession` = `GET {origin}/api/public-auth/session`; never `/api/me/profile`; never persist `session_token`; invalid origin → `null` / `GuestAuthTransportError("network")`.
+- Marketing modal mounts `catalogRegistrationAuthFlowSteps` + `GuestAuthHostProvider` — **not** `PublicCatalogRegistrationFlow`.
+- Header `[data-marketing-header-sign-in]` and PDP `[data-marketing-tour-sign-in]` open the marketing modal; `href` fallback remains GSH portal URLs.
+- Host `onAuthenticated` → reload current marketing URL (strip `auth=login`).
+- `createPortalSameOriginGuestAuthTransport` remains Portal-only, arity 0.
+- Denali skin: `37-mkt-login-modal.css` scoped to `body[data-app-surface="marketing"]` + `data-marketing-login-modal*` (not `data-portal-login-modal`).
 
 | Later phase | Work | Blocker |
 | ----------- | ---- | ------- |
-| **5** | New Marketing **Portal-origin** adapter (same UI, cookie still Portal BFF; `fetch` portal `/api/public-auth/*` + session probe) | Phase 4 (done) |
-| **6** | Retire PDP→modal-on-register as the primary logged-out buy path | Phase 5 |
+| **6** | Retire PDP→modal-on-register as the primary logged-out buy path | Phase 5 (done) |
 
-Acceptance retained: *Today Portal is the only active auth host. Tomorrow Marketing can become a second auth UI host by adding a Portal-origin transport adapter and approved CORS/PCMS changes, without rewriting OTP/profile UI, creating a second auth package, moving session ownership, or changing Portal `/login`.*
+Acceptance retained: *Portal remains the only cookie writer and `/me/*` gate. Marketing is a second auth **UI** host via Portal-origin transport + approved CORS, without rewriting OTP/profile UI, creating a second auth package, moving session ownership, or deleting Portal `/login`.*

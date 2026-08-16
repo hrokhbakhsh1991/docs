@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-08-16-v14"
+version: "2026-08-16-v15"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -41,12 +41,14 @@ app/layout.tsx
 
 @app-tour/catalog-registration-flow-ui
   GuestAuthTransport                  ← network + probeSession only
-  createPortalSameOriginGuestAuthTransport  ← /api/public-auth/* + /api/me/profile
+  createPortalSameOriginGuestAuthTransport  ← Portal: /api/public-auth/* + /api/me/profile
+  tryCreatePortalOriginGuestAuthTransport   ← Marketing: absolute portal /api/public-auth/* + /session
   GuestAuthHostProvider               ← { transport, onAuthenticated }
   phone / otp / profile steps         ← no fetch URLs, no location.assign, no intake hydrate
 
 Phase 4 (PCMS-CORS): Portal middleware CORS on `/api/public-auth/*` for the paired marketing origin.
-Marketing still has **no** OTP host / no public-auth BFF (Phase 5 adapter).
+Phase 5: Marketing hosts the same OTP UI via the origin factory. Cookie write stays Portal BFF.
+Portal `/login` is retained (middleware `/me/*` gate). Marketing must not add `app/api/public-auth` / `app/api/me`.
 ```
 
 **Design SoT (login modal):** [portal-member-login-modal.mdoc](../../phase-19/portal-member-login-modal.mdoc) · PCMS §5.0 · DL-40 · DL-41.

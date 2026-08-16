@@ -9,6 +9,9 @@ export {
 } from "./react";
 export {
   createPortalSameOriginGuestAuthTransport,
+  tryCreatePortalOriginGuestAuthTransport,
+  createPortalOriginGuestAuthTransport,
+  parsePortalPublicOrigin,
   GuestAuthTransportError,
   isGuestAuthTransportError,
   readGuestAuthFailureCode,

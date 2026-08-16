@@ -19,6 +19,9 @@ const REQUIRED_FILES = [
   "apps/portal/src/auth/apply-public-auth-cors.ts",
   "apps/portal/app/api/public-auth/session/route.ts",
   "packages/guest-surface-host/src/resolve-public-auth-cors-allow-origin.ts",
+  "apps/marketing/src/auth/marketing-login-modal.tsx",
+  "apps/marketing/src/auth/marketing-login-auth-flow.tsx",
+  "apps/marketing/src/auth/marketing-login-modal-trigger.tsx",
 ];
 
 const MARKETING_SESSION_PROBE_ALLOWLIST = new Set([
@@ -32,7 +35,11 @@ const PORTAL_CORS_ALLOWLIST = new Set([
 
 const FORBIDDEN_MARKETING_AUTH_HOST = [
   /createPortalSameOriginGuestAuthTransport/,
-  /GuestAuthHostProvider/,
+  /waitForMemberSessionCookie/,
+  /completeMemberLoginEgress/,
+  /PublicCatalogRegistrationFlow/,
+  /hydrateCatalogRegistrationIntakeAfterSession/,
+  /\/api\/me\/profile/,
   /Access-Control-Allow-Origin/,
 ];
 
@@ -87,6 +94,12 @@ if (marketingShell.includes("resolvePortalMemberAreaUrl")) {
 const marketingLayout = readRepo("apps/marketing/app/layout.tsx");
 if (!marketingLayout.includes("resolvePortalMemberLoginUrl")) {
   violations.push("marketing/app/layout.tsx: missing resolvePortalMemberLoginUrl");
+}
+if (!marketingLayout.includes("resolvePortalPublicBaseUrl")) {
+  violations.push("marketing/app/layout.tsx: missing resolvePortalPublicBaseUrl (Phase 5 origin adapter)");
+}
+if (!marketingLayout.includes("MarketingLoginModalProvider")) {
+  violations.push("marketing/app/layout.tsx: missing MarketingLoginModalProvider (PCMS-MKT-AUTH-04)");
 }
 if (!marketingLayout.includes("resolveMarketingMemberHeader")) {
   violations.push("marketing/app/layout.tsx: missing resolveMarketingMemberHeader");
@@ -167,9 +180,54 @@ for (const root of ["apps/marketing/src", "apps/marketing/app"]) {
     }
     for (const re of FORBIDDEN_MARKETING_AUTH_HOST) {
       if (re.test(content)) {
-        violations.push(`${rel}: Phase 4 forbids Marketing OTP host / CORS (${re})`);
+        violations.push(`${rel}: Phase 5 forbids Marketing cookie write / portal-same-origin / member BFF (${re})`);
       }
     }
+  }
+}
+
+const marketingAuthFlow = readRepo("apps/marketing/src/auth/marketing-login-auth-flow.tsx");
+if (!marketingAuthFlow.includes("GuestAuthHostProvider")) {
+  violations.push("marketing-login-auth-flow.tsx: missing GuestAuthHostProvider (PCMS-MKT-AUTH-04)");
+}
+if (!marketingAuthFlow.includes("catalogRegistrationAuthFlowSteps")) {
+  violations.push("marketing-login-auth-flow.tsx: missing catalogRegistrationAuthFlowSteps");
+}
+if (marketingAuthFlow.includes("PublicCatalogRegistrationFlow")) {
+  violations.push("marketing-login-auth-flow.tsx: must not mount PublicCatalogRegistrationFlow");
+}
+
+const marketingModal = readRepo("apps/marketing/src/auth/marketing-login-modal.tsx");
+if (!marketingModal.includes("tryCreatePortalOriginGuestAuthTransport")) {
+  violations.push("marketing-login-modal.tsx: missing tryCreatePortalOriginGuestAuthTransport");
+}
+if (!marketingModal.includes("data-marketing-login-modal")) {
+  violations.push("marketing-login-modal.tsx: missing data-marketing-login-modal");
+}
+if (marketingModal.includes("createPortalSameOriginGuestAuthTransport")) {
+  violations.push("marketing-login-modal.tsx: Portal same-origin factory is forbidden on marketing");
+}
+
+const marketingShellAuth = readRepo("apps/marketing/src/shell/marketing-shell.tsx");
+if (!marketingShellAuth.includes("MarketingLoginModalTrigger")) {
+  violations.push("marketing-shell.tsx: header Sign in must use MarketingLoginModalTrigger");
+}
+
+const originTransport = readRepo("packages/catalog-registration-flow-ui/src/guest-auth-transport.ts");
+if (!originTransport.includes("tryCreatePortalOriginGuestAuthTransport")) {
+  violations.push("guest-auth-transport.ts: missing tryCreatePortalOriginGuestAuthTransport");
+}
+if (!originTransport.includes("/api/public-auth/session")) {
+  violations.push("guest-auth-transport.ts: origin probeSession must use /api/public-auth/session");
+}
+if (!/createPortalSameOriginGuestAuthTransport\s*\(\s*\)/.test(originTransport)) {
+  violations.push("guest-auth-transport.ts: Portal same-origin factory must remain arity 0");
+}
+
+for (const rel of ["apps/marketing/app/api/public-auth", "apps/marketing/app/api/me"]) {
+  const abs = path.join(REPO_ROOT, rel);
+  if (statSync(abs, { throwIfNoEntry: false })?.isDirectory()) {
+    violations.push(`${rel}: Marketing public-auth / member BFF is forbidden (PCMS-MKT-AUTH-06)`);
   }
 }
 
@@ -177,8 +235,14 @@ const pcmsDoc = readRepo("docs/standards/member-session-portal-authority.mdoc");
 if (!pcmsDoc.includes("### 5.4 Marketing → Portal public-auth CORS")) {
   violations.push("PCMS-001 missing §5.4 public-auth CORS amendment");
 }
+if (!pcmsDoc.includes("### 5.5 Marketing Portal-origin auth host")) {
+  violations.push("PCMS-001 missing §5.5 Marketing Portal-origin auth host");
+}
 if (!pcmsDoc.includes("PCMS-CORS-01")) {
   violations.push("PCMS-001 missing PCMS-CORS-01");
+}
+if (!pcmsDoc.includes("PCMS-MKT-AUTH-01")) {
+  violations.push("PCMS-001 missing PCMS-MKT-AUTH-01");
 }
 
 const corsHelper = readRepo("apps/portal/src/auth/apply-public-auth-cors.ts");

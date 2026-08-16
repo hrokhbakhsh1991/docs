@@ -12,7 +12,7 @@ export type GuestAuthVerifyOutcome =
 
 /**
  * Network + session probe only. No cookie write, tenant, origin, or intake.
- * Portal same-origin adapter is the only implementation until Phase 5.
+ * Portal same-origin and Marketing Portal-origin are separate factories.
  */
 export type GuestAuthTransport = {
   readonly preflightPhone: (input: { readonly phone: string }) => Promise<{ readonly exists: boolean }>;
@@ -50,15 +50,20 @@ export function readGuestAuthFailureCode(error: unknown): string {
 
 type PublicAuthJson = PublicRegistrationApiError & {
   readonly exists?: boolean;
+  readonly session_token?: unknown;
 };
 
 const JSON_HEADERS = { "Content-Type": "application/json" } as const;
 
+const PUBLIC_AUTH_SESSION_MAX_ATTEMPTS = 8;
+const PUBLIC_AUTH_SESSION_BASE_DELAY_MS = 50;
+const PUBLIC_AUTH_SESSION_ATTEMPT_TIMEOUT_MS = 2_500;
+
 async function postPublicAuthJson(
-  path: string,
+  url: string,
   body: unknown
 ): Promise<{ readonly ok: boolean; readonly data: PublicAuthJson }> {
-  const res = await fetch(path, {
+  const res = await fetch(url, {
     method: "POST",
     headers: JSON_HEADERS,
     credentials: "include",
@@ -68,14 +73,13 @@ async function postPublicAuthJson(
   return { ok: res.ok, data };
 }
 
-/**
- * Today's Portal host: relative BFF paths. Does not accept a base URL
- * (Phase 5 Marketing adapter is a separate factory after PCMS-CORS-01).
- */
-export function createPortalSameOriginGuestAuthTransport(): GuestAuthTransport {
+function createGuestAuthTransportFromPublicAuthBase(
+  urlForPath: (path: string) => string,
+  probeSession: GuestAuthTransport["probeSession"]
+): GuestAuthTransport {
   return {
     async preflightPhone(input) {
-      const { ok, data } = await postPublicAuthJson("/api/public-auth/phone-preflight", {
+      const { ok, data } = await postPublicAuthJson(urlForPath("/api/public-auth/phone-preflight"), {
         phone: input.phone,
       });
       if (!ok) {
@@ -84,7 +88,7 @@ export function createPortalSameOriginGuestAuthTransport(): GuestAuthTransport {
       return { exists: data.exists === true };
     },
     async requestOtp(input) {
-      const { ok, data } = await postPublicAuthJson("/api/public-auth/request-otp", {
+      const { ok, data } = await postPublicAuthJson(urlForPath("/api/public-auth/request-otp"), {
         phone: input.phone,
       });
       if (!ok || data.ok !== true || typeof data.challenge_id !== "string") {
@@ -93,11 +97,13 @@ export function createPortalSameOriginGuestAuthTransport(): GuestAuthTransport {
       return { challengeId: data.challenge_id };
     },
     async verifyOtp(input) {
-      const { ok, data } = await postPublicAuthJson("/api/public-auth/verify-otp", {
+      const { ok, data } = await postPublicAuthJson(urlForPath("/api/public-auth/verify-otp"), {
         phone: input.phone,
         otp: input.otp,
         challenge_id: input.challengeId,
       });
+      // JSON session_token (if present) is ignored — cookie write stays Portal Set-Cookie.
+      void data.session_token;
       if (!ok || data.ok !== true) {
         throw new GuestAuthTransportError(readPublicRegistrationErrorCode(data));
       }
@@ -113,21 +119,116 @@ export function createPortalSameOriginGuestAuthTransport(): GuestAuthTransport {
     },
     async completeProfile(input) {
       const { ok, data } = await postPublicAuthJson(
-        "/api/public-auth/register-complete",
+        urlForPath("/api/public-auth/register-complete"),
         buildPublicRegistrationProfilePayload({
           onboardingToken: input.onboardingToken,
           displayName: input.displayName,
           profileEmail: input.email ?? "",
         })
       );
+      void data.session_token;
       if (!ok || data.ok !== true) {
         throw new GuestAuthTransportError(readPublicRegistrationErrorCode(data));
       }
       return { outcome: "session_ready" };
     },
-    async probeSession() {
+    probeSession,
+  };
+}
+
+/**
+ * Today's Portal host: relative BFF paths. Does not accept a base URL
+ * (Marketing uses tryCreatePortalOriginGuestAuthTransport).
+ */
+export function createPortalSameOriginGuestAuthTransport(): GuestAuthTransport {
+  return createGuestAuthTransportFromPublicAuthBase(
+    (path) => path,
+    async () => {
       const ready = await waitForMemberSessionCookie();
       return { ready };
-    },
-  };
+    }
+  );
+}
+
+/** http(s) origin only — no `*`, userinfo, or relative URLs. */
+export function parsePortalPublicOrigin(
+  portalPublicBaseUrl: string | null | undefined
+): string | null {
+  if (typeof portalPublicBaseUrl !== "string") {
+    return null;
+  }
+  const trimmed = portalPublicBaseUrl.trim();
+  if (trimmed.length === 0 || trimmed === "*") {
+    return null;
+  }
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return null;
+  }
+  if (url.username.length > 0 || url.password.length > 0) {
+    return null;
+  }
+  return url.origin;
+}
+
+async function waitForPublicAuthSession(origin: string): Promise<boolean> {
+  for (let attempt = 0; attempt < PUBLIC_AUTH_SESSION_MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(`${origin}/api/public-auth/session`, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+        signal: AbortSignal.timeout(PUBLIC_AUTH_SESSION_ATTEMPT_TIMEOUT_MS),
+      });
+      if (res.ok) {
+        const body = (await res.json()) as { ok?: boolean; ready?: boolean };
+        if (body.ok === true && body.ready === true) {
+          return true;
+        }
+      }
+    } catch {
+      // retry (network, abort/timeout, parse)
+    }
+    if (attempt < PUBLIC_AUTH_SESSION_MAX_ATTEMPTS - 1) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, PUBLIC_AUTH_SESSION_BASE_DELAY_MS * (attempt + 1));
+      });
+    }
+  }
+  return false;
+}
+
+/**
+ * Marketing host: absolute Portal public origin. Cookie write stays Portal BFF (CORS).
+ * probeSession uses GET {origin}/api/public-auth/session — never /api/me/profile.
+ */
+export function tryCreatePortalOriginGuestAuthTransport(
+  portalPublicBaseUrl: string | null | undefined
+): GuestAuthTransport | null {
+  const origin = parsePortalPublicOrigin(portalPublicBaseUrl);
+  if (origin === null) {
+    return null;
+  }
+  return createGuestAuthTransportFromPublicAuthBase(
+    (path) => `${origin}${path}`,
+    async () => {
+      const ready = await waitForPublicAuthSession(origin);
+      return { ready };
+    }
+  );
+}
+
+export function createPortalOriginGuestAuthTransport(
+  portalPublicBaseUrl: string
+): GuestAuthTransport {
+  const transport = tryCreatePortalOriginGuestAuthTransport(portalPublicBaseUrl);
+  if (transport === null) {
+    throw new GuestAuthTransportError("network");
+  }
+  return transport;
 }

@@ -8,6 +8,7 @@ import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-
 import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 import type { GuestLandingFeatures } from "@app-tour/workspace-sdk";
 
+import { MarketingLoginModalTrigger } from "@/auth/marketing-login-modal-trigger";
 import { MarketingFooter } from "./marketing-footer";
 import { MarketingLocaleSwitcher } from "@/i18n/marketing-locale-switcher";
 import { isAppLocale, resolveMarketingLocalePath, routing } from "@/i18n/routing";
@@ -121,15 +122,16 @@ export async function MarketingShell({
                   </span>
                 </a>
               ) : portalMemberLoginUrl !== null ? (
-                <a
+                <MarketingLoginModalTrigger
                   href={portalMemberLoginUrl}
+                  host="header"
                   data-marketing-portal-member
                   data-marketing-header-sign-in
                   aria-label={t("nav.signIn")}
                 >
                   <LogIn aria-hidden="true" data-marketing-header-sign-in-icon />
                   <span data-marketing-header-sign-in-label>{t("nav.signIn")}</span>
-                </a>
+                </MarketingLoginModalTrigger>
               ) : null}
               {showHeaderToursCta ? (
                 <Link href={toursHref} data-marketing-header-cta>
@@ -194,14 +196,15 @@ export async function MarketingShell({
                     </span>
                   </a>
                 ) : portalMemberLoginUrl !== null ? (
-                  <a
+                  <MarketingLoginModalTrigger
                     href={portalMemberLoginUrl}
+                    host="header"
                     data-marketing-portal-member
                     data-marketing-header-sign-in
                   >
                     <LogIn aria-hidden="true" data-marketing-header-sign-in-icon />
                     {t("nav.signIn")}
-                  </a>
+                  </MarketingLoginModalTrigger>
                 ) : null}
               </nav>
             </details>

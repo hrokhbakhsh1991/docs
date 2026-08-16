@@ -36,8 +36,11 @@ export const PORTAL_PLATFORM_TRANSPILE_PACKAGES = Object.freeze([
 export const MARKETING_PLATFORM_TRANSPILE_PACKAGES = Object.freeze([
   "@app-tour/design-tokens",
   "@app-tour/theme-react",
+  "@app-tour/ui-primitives",
   "@app-tour/workspace-sdk",
   "@app-tour/guest-workspace-runtime",
+  "@app-tour/catalog-registration-auth",
+  "@app-tour/catalog-registration-flow-ui",
 ]);
 
 /** Fixed Next transpilePackages for admin web (non-workspace product packages). */

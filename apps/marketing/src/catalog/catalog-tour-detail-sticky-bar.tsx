@@ -50,6 +50,8 @@ export async function CatalogTourDetailStickyBar({
           registration={registration}
           cta={cta}
           variant="sticky"
+          tourId={tour.id}
+          tourTitle={tour.title ?? ""}
         />
       )}
     </div>

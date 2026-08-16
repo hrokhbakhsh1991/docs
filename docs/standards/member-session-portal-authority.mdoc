@@ -1,7 +1,7 @@
 ---
 title: Member Session Portal Authority (PCMS)
 standard_id: PCMS-001
-version: 1.4.0
+version: 1.5.0
 status: active
 extends:
   - docs/standards/workspace-routing-standard.mdoc
@@ -37,6 +37,9 @@ code_sot:
   - apps/portal/app/login/page.tsx
   - apps/portal/src/auth/portal-login-thin-host.tsx
   - apps/portal/src/auth/portal-login-modal.tsx
+  - apps/marketing/src/auth/marketing-login-modal.tsx
+  - apps/marketing/src/auth/marketing-login-auth-flow.tsx
+  - apps/marketing/src/auth/marketing-login-modal-trigger.tsx
   - docs/phase-19/portal-member-login-modal.mdoc
 mandatory_for:
   - apps/portal
@@ -45,7 +48,7 @@ mandatory_for:
 
 # Member Session Portal Authority (PCMS-001)
 
-**Principle:** Member identity (`atour_mb_session`) is owned by **`apps/portal` only** (cookie write). Marketing may **read** the shared cookie for header chrome and PDP CTA shaping. Marketing must not host OTP, write the cookie, or expose member BFF routes. Operator uses `atour_op_session` on `apps/web` — separate actor.
+**Principle:** Member identity (`atour_mb_session`) is owned by **`apps/portal` only** (cookie **write**). Marketing may **read** the shared cookie for header chrome and PDP CTA shaping, and may **host** the shared OTP/profile UI via a Portal-origin `GuestAuthTransport` (Phase 5 — §5.5). Marketing must not write the cookie or expose member BFF routes (`app/api/me/*` / `app/api/public-auth/*`). Operator uses `atour_op_session` on `apps/web` — separate actor.
 
 ---
 
@@ -53,7 +56,7 @@ mandatory_for:
 
 | Surface | Session | Registration auth |
 | ------- | ------- | ----------------- |
-| Marketing | Read-only SSR probe (`readMarketingMemberSessionFromCookies`) for header chrome **and** PDP CTA shaping | **Guest PDP:** Register → `/catalog/{id}/register`; «ورود» → `register?auth=login`. **Logged-in PDP:** hide `[data-marketing-tour-sign-in]`; continue → `/catalog/{id}/register` (no `auth=login`). **Already-registered self:** primary → `/me/registrations/{id}` (`[data-marketing-view-registration]`). Header: Sign in → `/login?…`; authenticated → profile chip via `resolveMarketingMemberHeader` |
+| Marketing | Read-only SSR probe (`readMarketingMemberSessionFromCookies`) for header chrome **and** PDP CTA shaping | **Guest PDP:** Register → portal `/catalog/{id}/register` (Phase 6 still owns this buy path); «ورود» opens the **marketing** login modal (Portal-origin OTP) with href fallback to `register?auth=login`. **Logged-in PDP:** hide `[data-marketing-tour-sign-in]`; continue → `/catalog/{id}/register` (no `auth=login`). **Already-registered self:** primary → `/me/registrations/{id}` (`[data-marketing-view-registration]`). Header: Sign in opens the marketing modal (href fallback `{portal}/login?…`); authenticated → profile chip via `resolveMarketingMemberHeader` |
 | Portal | `atour_mb_session` read/write | OTP in **login modal** (host: `/login` thin page **or** register page); tour registration full-page on `/catalog/{id}/register` |
 | Web admin | `atour_op_session` | Operator invite login — never member cookie |
 
@@ -175,9 +178,18 @@ Marketing header **Sign in** (`data-marketing-header-sign-in`) must target membe
 
 **Auth API (unchanged contract):** `phone-preflight` → `request-otp` → `verify-otp` (existing member → session) **or** `requires_registration` → profile → `register-complete` (new member → session). Portal BFF under `/api/public-auth/*`.
 
-**GuestAuthTransport (Phase 1 — multi-host-capable, Portal-only impl):** Shared OTP/profile steps in `@app-tour/catalog-registration-flow-ui` must not `fetch` BFF paths or `location.assign`. They read `GuestAuthHost` (`transport` + `onAuthenticated`) from `GuestAuthHostProvider`. Transport methods: `preflightPhone` → `{ exists }`; `requestOtp` → `{ challengeId }`; `verifyOtp` → `{ outcome: "session_ready" } | { outcome: "needs_profile", onboardingToken }`; `completeProfile` → `{ outcome: "session_ready" }`; `probeSession` → `{ ready }` (PCMS-UX-MODAL-COOKIE). After `session_ready`, steps call `probeSession` then host `onAuthenticated` only — they must not hydrate intake, read `portalReturn`, or `location.assign`. The only **implementation** today is `createPortalSameOriginGuestAuthTransport()` → relative `/api/public-auth/*` and `GET /api/me/profile` via `waitForMemberSessionCookie`. No unused `baseUrl` factory in Phase 1–4 (a Marketing host is Phase 5). Cookie `Set-Cookie` remains Portal BFF. **Phase 4 (PCMS-CORS-01, 2026-08-16):** Architect-approved CORS on Portal `/api/public-auth/*` only — see §5.4. Marketing still **must not** host OTP UI, write `atour_mb_session`, or expose member BFF / `app/api/me/*` / `app/api/public-auth/*`. Phase 5 may add a **new** Portal-origin adapter that `fetch`es the portal origin with `credentials: "include"`; it must not rewrite OTP/profile UI, create `packages/guest-auth`, move session ownership, CORS `/api/me/*`, or replace `/login`.
+**GuestAuthTransport (Phase 1 — multi-host-capable):** Shared OTP/profile steps in `@app-tour/catalog-registration-flow-ui` must not `fetch` BFF paths or `location.assign`. They read `GuestAuthHost` (`transport` + `onAuthenticated`) from `GuestAuthHostProvider`. Transport methods: `preflightPhone` → `{ exists }`; `requestOtp` → `{ challengeId }`; `verifyOtp` → `{ outcome: "session_ready" } | { outcome: "needs_profile", onboardingToken }`; `completeProfile` → `{ outcome: "session_ready" }`; `probeSession` → `{ ready }` (PCMS-UX-MODAL-COOKIE). After `session_ready`, steps call `probeSession` then host `onAuthenticated` only — they must not hydrate intake, read `portalReturn`, or `location.assign`.
 
-**Cross-intent after login:** Marketing tour sign-in lands on register with modal; after OTP, user remains on register → intake-only. Header Sign in uses `/login` then `/me/registrations`.
+Two factories (do **not** merge; do **not** add `baseUrl` to the Portal factory):
+
+| Factory | Host | Network | `probeSession` |
+| ------- | ---- | ------- | -------------- |
+| `createPortalSameOriginGuestAuthTransport()` (arity 0) | Portal only | Relative `/api/public-auth/*` | `waitForMemberSessionCookie` → `GET /api/me/profile` |
+| `tryCreatePortalOriginGuestAuthTransport(portalPublicBaseUrl)` / `createPortalOriginGuestAuthTransport` | Marketing (Phase 5) | Absolute `{portalOrigin}/api/public-auth/*` with `credentials: "include"` | `GET {portalOrigin}/api/public-auth/session` → `{ ok, ready }` |
+
+Cookie `Set-Cookie` remains Portal BFF. Adapters **must not** persist JSON `session_token`. **Phase 4 (PCMS-CORS-01):** CORS on Portal `/api/public-auth/*` only — see §5.4. **Phase 5 (§5.5):** Marketing **may** host the same OTP/profile UI via the origin factory. Marketing still **must not** write `atour_mb_session`, expose `app/api/me/*` / `app/api/public-auth/*`, CORS `/api/me/*`, rewrite OTP/profile UI, create `packages/guest-auth`, move session ownership, or delete `/login`.
+
+**Cross-intent after login:** Marketing header Sign in and PDP `[data-marketing-tour-sign-in]` open the **marketing** modal; after OTP, marketing **reloads** the current URL so SSR chrome/CTA can see the cookie. `[data-marketing-register]` still navigates to portal `/catalog/{id}/register` (Phase 6). Portal `/login` remains the `/me/*` middleware gate.
 
 ### 5.2 Marketing authenticated header (PCMS-03 — 2026-07-14)
 
@@ -188,7 +200,7 @@ Marketing **SSR** must detect portal members via the shared cookie (read-only). 
 3. Shell: profile chip (`data-marketing-header-member`) **or** Sign in (`data-marketing-header-sign-in`).
 4. Root: `data-marketing-member-authenticated` when member.
 
-Marketing must **not** write member cookies, host OTP UI, or expose member BFF routes — probe only (`read-marketing-member-session.server.ts`). The same probe feeds PDP CTA shaping (§5.3); it does not create a second session authority.
+Marketing must **not** write member cookies or expose member BFF routes — cookie probe stays in `read-marketing-member-session.server.ts`. Phase 5 (§5.5) **does** host OTP UI on marketing via Portal-origin `fetch`; that UI must not call `GET /api/me/profile` or write `atour_mb_session`. The same SSR probe still feeds PDP CTA shaping (§5.3); it does not create a second session authority.
 
 After portal modal login on **custom apex** or **`portal.{club}.localhost`**, PCMS-UX-MODAL-COOKIE + COOK-03 (`Domain=<share-parent>`) ensure the next marketing SSR request can see `atour_mb_session`. Legacy `{club}.portal.localhost` does not share with `{club}.localhost`. `*.localhost` marketing often cannot read a host-only portal cookie — fail-closed to guest CTAs is expected in that topology.
 
@@ -231,7 +243,7 @@ Hooks: `[data-marketing-register]` (SMK-MKT-03, guest + continue + register-anot
 
 ### 5.4 Marketing → Portal public-auth CORS (Phase 4 — 2026-08-16)
 
-Architect YES (this change) unlocks **browser credentialed `fetch` from the paired marketing origin to Portal `/api/public-auth/*`**. It does **not** make Marketing an auth host yet (Phase 5 adapter). Cookie write, tenant bind, and `/login` stay on Portal.
+Architect YES (Phase 4) unlocked **browser credentialed `fetch` from the paired marketing origin to Portal `/api/public-auth/*`**. Cookie write, tenant bind, and `/login` stay on Portal. Phase 5 (§5.5) uses this CORS door for the Marketing Portal-origin adapter — it does **not** expand CORS onto `/api/me/*`.
 
 ```mermaid
 flowchart TD
@@ -255,9 +267,45 @@ flowchart TD
 
 **Why not CORS `/api/me/*`?** Member profile/registrations BFF is portal-private. A marketing OTP host only needs public-auth (phone → OTP → profile complete) plus a boolean cookie probe. Expanding CORS to `/api/me/*` would leak member APIs to any allowed marketing origin script.
 
-**Why not Marketing OTP in this phase?** Layer A UI + a new transport factory are Phase 5. Phase 4 only opens the network door so that factory can `fetch(portalOrigin + "/api/public-auth/…", { credentials: "include" })` without a PCMS waiver later.
+**Why CORS before the Marketing host?** Layer A UI + `tryCreatePortalOriginGuestAuthTransport` are Phase 5 (§5.5). Phase 4 only opened the network door so that factory can `fetch(portalOrigin + "/api/public-auth/…", { credentials: "include" })` without a PCMS waiver.
 
 **Same-site vs host-only:** Custom apex + `portal.{club}.localhost` still rely on COOK-03 `Domain=<share-parent>` so marketing SSR can read the cookie after a CORS OTP. `*.localhost` marketing often cannot see a host-only portal cookie — fail-closed guest CTAs remain expected.
+
+### 5.5 Marketing Portal-origin auth host (Phase 5 — 2026-08-16)
+
+Marketing becomes a **second auth UI host**. Cookie write stays Portal BFF. The shared phone/OTP/profile steps stay in `@app-tour/catalog-registration-flow-ui`. Marketing must **not** mount `PublicCatalogRegistrationFlow` (that host hydrates intake and `GET /api/me/profile`).
+
+```mermaid
+flowchart TD
+  CTA["Header Sign in / PDP tour sign-in"]
+  MODAL["Marketing login modal · catalogRegistrationAuthFlowSteps"]
+  ORIGIN["tryCreatePortalOriginGuestAuthTransport"]
+  CORS["Portal /api/public-auth/* + CORS"]
+  COOKIE["Set-Cookie atour_mb_session · COOK-03"]
+  PROBE["GET portalOrigin/api/public-auth/session"]
+  RELOAD["window.location reload current marketing URL"]
+  SSR["Next marketing SSR · header chip + PDP CTA"]
+  CTA --> MODAL
+  MODAL --> ORIGIN
+  ORIGIN --> CORS
+  CORS --> COOKIE
+  ORIGIN --> PROBE
+  PROBE --> RELOAD
+  RELOAD --> SSR
+```
+
+| Invariant | Rule |
+| --------- | ---- |
+| **PCMS-MKT-AUTH-01** | `tryCreatePortalOriginGuestAuthTransport(portalPublicBaseUrl)` parses `http(s)` origin only (no `*`, no userinfo, no relative). Invalid → `null`. `createPortalOriginGuestAuthTransport` throws `GuestAuthTransportError("network")` on invalid. Do **not** add `baseUrl` to `createPortalSameOriginGuestAuthTransport` (arity 0, Portal-only). |
+| **PCMS-MKT-AUTH-02** | Origin adapter POSTs `{origin}/api/public-auth/{phone-preflight,request-otp,verify-otp,register-complete}` with `credentials: "include"`. Ignore JSON `session_token` — never persist it. |
+| **PCMS-MKT-AUTH-03** | Origin `probeSession` retries `GET {origin}/api/public-auth/session` until `{ ok: true, ready: true }` (bounded, same anti-hang budget as `waitForMemberSessionCookie`). **Zero** `GET /api/me/profile` from marketing. |
+| **PCMS-MKT-AUTH-04** | Marketing modal uses `GuestAuthHostProvider` + `catalogRegistrationAuthFlowSteps` with `memberLoginEgress: true`. Host `onAuthenticated` reloads the **current marketing URL** (strip `auth=login` if present). Not `completeMemberLoginEgress`, not intake hydrate. |
+| **PCMS-MKT-AUTH-05** | Header `[data-marketing-header-sign-in]` and PDP `[data-marketing-tour-sign-in]` are `<a href={GSH portal URL}>` with client `preventDefault` when the origin transport exists. No-JS / missing portal origin fall through to Portal `/login` or `register?auth=login`. |
+| **PCMS-MKT-AUTH-06** | `[data-marketing-register]` stays portal `/catalog/{id}/register` (Phase 6). Portal `/login` is **not** deleted. No `apps/marketing/app/api/public-auth/*`, no `app/api/me/*`, no cookie Domain helper changes. |
+
+**Why reload instead of client hydrate?** Marketing header chip and PDP CTA matrix are **SSR** (PCMS-03 / §5.3). After CORS `Set-Cookie` on the Portal host, the next marketing document request is what COOK-03 sharing is designed for. Client-only state would lie on `*.localhost` host-only cookies.
+
+**Why a second factory?** Portal same-origin `probeSession` must keep using `/api/me/profile` (no CORS on `/api/me/*`). Marketing must use the boolean public-auth session probe. Sharing one `baseUrl` argument would tempt `/api/me/profile` across origin.
 
 ### 5.1 PCMS-003 Phase 3 follow-up — applied (2026-07-05)
 
@@ -285,13 +333,14 @@ When API runs with `STORAGE_DRIVER=memory` and `OPERATOR_SMOKE_E2E_SEED=1`, the 
 
 ## 6. Forbidden
 
-- Marketing **write** of `atour_mb_session` (read-only SSR probe is required — PCMS-03-READ / §5.2 / §5.3)
-- Marketing hosting member OTP / login modal / public-auth BFF / `app/api/me/*` / `app/api/public-auth/*` (Phase 5 adapter still must not add Marketing BFF — only a Portal-origin `fetch`)
+- Marketing **write** of `atour_mb_session` (read-only SSR probe is required — PCMS-03-READ / §5.2 / §5.3 / §5.5)
+- Marketing `app/api/me/*` / `app/api/public-auth/*` / cookie Domain helpers / persisting JSON `session_token`
+- Marketing `createPortalSameOriginGuestAuthTransport` / `GET /api/me/profile` / `PublicCatalogRegistrationFlow` / `completeMemberLoginEgress` / intake hydrate
 - `Access-Control-Allow-Origin: *` or CORS on Portal routes other than `/api/public-auth/*` (including `/api/me/*`)
 - CORS / cookie `Domain` changes on `apps/api` `/public/auth/*` (browser never calls API; Portal BFF remains the cookie writer)
 - Shared cookie across platform tenants on `{club}.{root}` hosts
 - Middleware OTP skip (resume decision lives on register **page** server component only)
-- Tour registration intake inside the login modal
+- Tour registration intake inside the login modal (portal **or** marketing)
 - Deleting `/login` without a replacement public host for `/me/*` guest redirects
 - `NEXT_PUBLIC_*` cookie domain env
 
@@ -306,7 +355,8 @@ pnpm --filter @app-tour/session-client test
 pnpm --filter @app-tour/guest-surface-host exec node --import tsx --test test/resolve-public-auth-cors-allow-origin.spec.ts
 pnpm --filter @apps/portal exec node --import tsx --test test/portal-public-auth-cors.spec.ts test/portal-public-auth-session.spec.ts test/build-session-cookie.spec.ts
 pnpm --filter @apps/portal run test -- test/portal-session-host-bind.spec.ts test/portal-registration-resume.spec.ts test/build-session-cookie.spec.ts
-pnpm --filter @apps/marketing run test -- test/marketing-shell-portal-link.spec.ts test/resolve-web-registration-url.spec.ts test/catalog-tour-detail-register-cta.spec.ts test/resolve-marketing-tour-detail-cta.spec.ts
+pnpm --filter @app-tour/catalog-registration-flow-ui exec node --import tsx --test test/guest-auth-transport.spec.ts
+pnpm --filter @apps/marketing run test -- test/marketing-shell-portal-link.spec.ts test/resolve-web-registration-url.spec.ts test/catalog-tour-detail-register-cta.spec.ts test/resolve-marketing-tour-detail-cta.spec.ts test/marketing-phase-5-auth-host.spec.ts
 pnpm --filter @apps/portal run test:smoke  # SMK-PTL-07 registration resume E2E
 pnpm --filter @apps/portal run test:smoke:custom-apex  # SMK-PTL-08 custom apex cookie + resume
 pnpm run smoke:pcms-custom-apex  # API tenant-context for denali.club hosts

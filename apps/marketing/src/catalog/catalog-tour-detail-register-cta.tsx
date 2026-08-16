@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { getTranslations } from "next-intl/server";
 
+import { MarketingLoginModalTrigger } from "@/auth/marketing-login-modal-trigger";
 import type { CatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
 import type { MarketingTourDetailCtaModel } from "./resolve-marketing-tour-detail-cta";
 
@@ -9,6 +10,8 @@ export type CatalogTourDetailRegisterCtaProps = {
   readonly cta: MarketingTourDetailCtaModel;
   readonly variant: "primary" | "secondary" | "rail" | "sticky";
   readonly assignRegisterAnchor?: boolean;
+  readonly tourId?: string;
+  readonly tourTitle?: string;
 };
 
 export async function CatalogTourDetailRegisterCta({
@@ -16,6 +19,8 @@ export async function CatalogTourDetailRegisterCta({
   cta,
   variant,
   assignRegisterAnchor = false,
+  tourId,
+  tourTitle,
 }: CatalogTourDetailRegisterCtaProps) {
   const t = await getTranslations("catalog");
   const showViewSelf = cta.primaryKind === "view-self" && cta.primaryHref != null;
@@ -53,9 +58,15 @@ export async function CatalogTourDetailRegisterCta({
   let secondary: ReactNode = null;
   if (cta.secondaryKind === "sign-in" && cta.secondaryHref != null) {
     secondary = (
-      <a href={cta.secondaryHref} data-marketing-tour-sign-in>
+      <MarketingLoginModalTrigger
+        href={cta.secondaryHref}
+        host="pdp"
+        tourId={tourId}
+        tourTitle={tourTitle}
+        data-marketing-tour-sign-in
+      >
         {t("detail.signInToRegister")}
-      </a>
+      </MarketingLoginModalTrigger>
     );
   } else if (cta.secondaryKind === "register-another" && cta.secondaryHref != null) {
     secondary = (

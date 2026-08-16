@@ -60,6 +60,8 @@ export async function CatalogTourDetailBookingRail({
         registration={registration}
         cta={cta}
         variant="rail"
+        tourId={tour.id}
+        tourTitle={tour.title ?? ""}
       />
     </aside>
   );

@@ -551,6 +551,17 @@ extends:
 | **Dependencies** | PCMS-001 §5.4 · PCMS-CORS-01…05 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) §16 Phase 4 |
 | **Open questions** | None. |
 
+### DL-46 — Marketing Portal-origin auth host (Phase 5)
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **IMPLEMENTED (2026-08-16)** |
+| **Context** | Phase 4 CORS opened credentialed `fetch` from the paired marketing origin to Portal `/api/public-auth/*`. Marketing may now host the shared OTP/profile UI without becoming a cookie writer. |
+| **Decision** | Add `tryCreatePortalOriginGuestAuthTransport` (absolute portal public-auth + `GET /api/public-auth/session`). Mount `catalogRegistrationAuthFlowSteps` in a marketing modal. Header Sign in and PDP tour sign-in open that modal; `[data-marketing-register]` still goes to portal register. Host `onAuthenticated` reloads the current marketing URL. Do not add Marketing BFF, CORS `/api/me/*`, or delete `/login`. |
+| **Consequences** | Custom-apex guests can complete OTP without leaving marketing. `*.localhost` host-only cookies still fail-closed to guest CTAs. Portal remains the `/me/*` gate. |
+| **Dependencies** | PCMS-001 §5.5 · PCMS-MKT-AUTH-01…06 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) §16 Phase 5 |
+| **Open questions** | None. |
+
 ---
 
 *Promoted from Blueprint v9 · Architecture documentation only · Not implementation authorization*
@@ -605,6 +616,7 @@ extends:
 | DL-43 | profile Discard/avatar | platform-portal-member-profile INV-MP-AVATAR-01 | — | — | — | profile |
 | DL-44 | auth/profile error UX · DEV OTP | platform-portal-otp-flow · INV-MP-ERR-01 | — | — | — | auth+profile |
 | DL-45 | public-auth CORS Phase 4 | PCMS §5.4 | CORS-01…05 | guard-pcms-authority | P4 guest-auth |
+| DL-46 | Marketing origin OTP host Phase 5 | PCMS §5.5 | MKT-AUTH-01…06 | guard-pcms-authority | P5 guest-auth |
 
 *BMC = [builder-migration-contract.mdoc](./builder-migration-contract.mdoc) · GCSN = [guest-cross-surface-nav-schema.mdoc](./guest-cross-surface-nav-schema.mdoc)*
 

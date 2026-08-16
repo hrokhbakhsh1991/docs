@@ -13,6 +13,7 @@ describe("catalog-tour-detail-register-cta — PCMS tour sign-in + Phase 3", () 
       "utf8"
     );
     assert.match(cta, /data-marketing-tour-sign-in/);
+    assert.match(cta, /MarketingLoginModalTrigger/);
     assert.match(cta, /signInToRegister/);
     assert.match(cta, /secondaryKind === "sign-in"/);
   });

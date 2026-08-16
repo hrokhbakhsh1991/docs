@@ -1,0 +1,94 @@
+/**
+ * PCMS-001 §5.5 — Marketing is an OTP UI host via Portal-origin transport only.
+ * @see docs/standards/member-session-portal-authority.mdoc
+ */
+import assert from "node:assert/strict";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
+
+const marketingRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = join(marketingRoot, "../..");
+
+function walkTsFiles(dir: string, out: string[] = []): string[] {
+  if (!statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
+    return out;
+  }
+  for (const ent of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, ent.name);
+    if (ent.isDirectory()) {
+      walkTsFiles(full, out);
+    } else if (ent.name.endsWith(".ts") || ent.name.endsWith(".tsx")) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
+describe("marketing Phase 5 — Portal-origin auth host", () => {
+  it("MKT-PCMS-P5-01 origin adapter + shared steps; no same-origin factory or member BFF", () => {
+    const files = [
+      ...walkTsFiles(join(marketingRoot, "src")),
+      ...walkTsFiles(join(marketingRoot, "app")),
+    ];
+    assert.ok(files.length > 0);
+    const joined = files.map((file) => readFileSync(file, "utf8")).join("\n");
+    assert.match(joined, /tryCreatePortalOriginGuestAuthTransport/);
+    assert.match(joined, /GuestAuthHostProvider/);
+    assert.match(joined, /catalogRegistrationAuthFlowSteps/);
+    assert.match(joined, /data-marketing-login-modal/);
+    assert.doesNotMatch(joined, /createPortalSameOriginGuestAuthTransport/);
+    assert.doesNotMatch(joined, /PublicCatalogRegistrationFlow/);
+    assert.doesNotMatch(joined, /completeMemberLoginEgress/);
+    assert.doesNotMatch(joined, /waitForMemberSessionCookie/);
+    assert.doesNotMatch(joined, /\/api\/me\/profile/);
+    assert.doesNotMatch(joined, /Access-Control-Allow-Origin/);
+    assert.doesNotMatch(joined, /app\/api\/public-auth/);
+    for (const file of files) {
+      const rel = file.slice(repoRoot.length + 1);
+      const text = readFileSync(file, "utf8");
+      assert.doesNotMatch(text, /atour_mb_session/, rel);
+    }
+  });
+
+  it("MKT-PCMS-P5-02 header and PDP sign-in keep GSH href fallback", () => {
+    const trigger = readFileSync(
+      join(marketingRoot, "src/auth/marketing-login-modal-trigger.tsx"),
+      "utf8"
+    );
+    const cta = readFileSync(
+      join(marketingRoot, "src/catalog/catalog-tour-detail-register-cta.tsx"),
+      "utf8"
+    );
+    assert.match(trigger, /preventDefault/);
+    assert.match(trigger, /canHostAuth/);
+    assert.match(cta, /data-marketing-tour-sign-in/);
+    assert.match(cta, /MarketingLoginModalTrigger/);
+    assert.match(cta, /data-marketing-register/);
+    assert.doesNotMatch(cta, /tryCreatePortalOriginGuestAuthTransport/);
+  });
+
+  it("MKT-PCMS-P5-03 catalogRegistration messages exist without shenski", () => {
+    for (const locale of ["fa", "en"] as const) {
+      const raw = readFileSync(
+        join(marketingRoot, `messages/${locale}/catalogRegistration.json`),
+        "utf8"
+      );
+      assert.doesNotMatch(raw, /shenski/i);
+      const data = JSON.parse(raw) as {
+        loginPageTitle?: string;
+        phone?: { loginTitle?: string };
+        errors?: { network?: string };
+      };
+      assert.equal(typeof data.loginPageTitle, "string");
+      assert.equal(typeof data.phone?.loginTitle, "string");
+      assert.equal(typeof data.errors?.network, "string");
+    }
+  });
+
+  it("MKT-PCMS-P5-04 no marketing public-auth or member BFF routes", () => {
+    assert.equal(statSync(join(marketingRoot, "app/api/public-auth"), { throwIfNoEntry: false }), undefined);
+    assert.equal(statSync(join(marketingRoot, "app/api/me"), { throwIfNoEntry: false }), undefined);
+  });
+});

@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-MARKETING-CATALOG-UI
-version: "2026-08-16-v7"
+version: "2026-08-16-v8"
 extends: public-catalog.md
 apps: [marketing]
 phase: P6-1
@@ -149,15 +149,15 @@ Authority: [PCMS-001 §5.3](../../standards/member-session-portal-authority.mdoc
 
 **Problem:** After portal OTP the member returns to marketing (custom apex cookie share). Header already swapped Sign-in → profile chip, but the tour PDP still rendered «ثبت‌نام» + «قبلاً ثبت‌نام کرده‌اید؟ ورود» even when the member had an active self booking.
 
-**Decision:** Shape CTAs in marketing **SSR** from the existing read-only session probe + optional API for-tour. Do not add Marketing OTP, cookie write, or `app/api/me/*` / `app/api/public-auth/*`. Phase 4 CORS is **Portal** `/api/public-auth/*` only ([PCMS-001 §5.4](../../standards/member-session-portal-authority.mdoc)); marketing still does not host OTP (Phase 5 adapter).
+**Decision:** Shape CTAs in marketing **SSR** from the existing read-only session probe + optional API for-tour. Do not add cookie write or `app/api/me/*` / `app/api/public-auth/*`. Phase 5 hosts OTP on marketing via Portal-origin transport ([PCMS-001 §5.5](../../standards/member-session-portal-authority.mdoc)); `[data-marketing-register]` still navigates to portal register.
 
 | Mode | When | Primary | Secondary | i18n |
 | ---- | ---- | ------- | --------- | ---- |
-| `guest` | Cookie missing / invalid / tenant bind fail | `data-marketing-register` → `resolveWebRegistrationUrl` | `data-marketing-tour-sign-in` → `resolveWebRegistrationLoginUrl` | `detail.register` / `detail.signInToRegister` |
+| `guest` | Cookie missing / invalid / tenant bind fail | `data-marketing-register` → `resolveWebRegistrationUrl` | `data-marketing-tour-sign-in` → marketing modal (href fallback `resolveWebRegistrationLoginUrl`) | `detail.register` / `detail.signInToRegister` |
 | `member-continue` | Session readable; for-tour `self` null, path missing, or fetch error | `data-marketing-register` → register URL **without** `auth=login` | none | `detail.continueRegister` |
 | `member-self` | Session readable; for-tour returns `self.id`; GSH builds detail URL | `data-marketing-view-registration` → `/me/registrations/{id}` | `data-marketing-register` + `data-marketing-register-another` when `canRegister` | `detail.viewMyRegistration` / `detail.registerAnotherGuest` |
 
-**Skin (Denali):** `[data-marketing-view-registration]` uses the same accent primary button as `[data-marketing-register]`. `[data-marketing-register-another]` is excluded from that button (`:not([data-marketing-register-another])`) and shares the underlined secondary stack with `[data-marketing-tour-sign-in]` (`36-mkt-tour-sign-in-cta.css`, imported last). Sticky wraps both in `[data-marketing-catalog-detail-sticky-cta]`.
+**Skin (Denali):** `[data-marketing-view-registration]` uses the same accent primary button as `[data-marketing-register]`. `[data-marketing-register-another]` is excluded from that button (`:not([data-marketing-register-another])`) and shares the underlined secondary stack with `[data-marketing-tour-sign-in]` (`36-mkt-tour-sign-in-cta.css`). Sticky wraps both in `[data-marketing-catalog-detail-sticky-cta]`. Login modal chrome is `37-mkt-login-modal.css` (imported last).
 
 **Sold-out:** guest / member-continue still show sold-out copy. Member-self still shows view-registration (the booking exists); register-another is omitted when `canRegister` is false.
 
@@ -167,9 +167,23 @@ Authority: [PCMS-001 §5.3](../../standards/member-session-portal-authority.mdoc
 
 Authority: [PCMS-001 §5.4](../../standards/member-session-portal-authority.mdoc) · [portal-member-login-modal.mdoc](../../phase-19/portal-member-login-modal.mdoc) §16 Phase 4 DoD.
 
-Marketing remains href + read-only cookie chip + Phase 3 PDP CTA. Portal now answers credentialed CORS on `/api/public-auth/*` from the **paired** marketing origin so Phase 5 can add a Portal-origin transport. Marketing must not import `GuestAuthHostProvider` / `createPortalSameOriginGuestAuthTransport` in this phase.
+Marketing remains href + read-only cookie chip + Phase 3 PDP CTA **until Phase 5**. Portal answers credentialed CORS on `/api/public-auth/*` from the **paired** marketing origin. Marketing must not import `createPortalSameOriginGuestAuthTransport` (Portal-only). Phase 5 **does** import `GuestAuthHostProvider` + `tryCreatePortalOriginGuestAuthTransport`.
 
 **For-tour headers (mirror portal BFF, not identity/me-only):** `Authorization: Bearer` + `x-tenant-id` + `x-authenticated-tenant-id` + `x-user-id` + `x-actor-role` + `x-membership-status: ACTIVE` + `x-forwarded-host`. `resolveWorkspacePublicAuthFromRequest` does **not** decode JWT; actor id must be sent as `x-user-id` from the already-validated marketing session.
+
+### Phase 5 Marketing Portal-origin login modal (2026-08-16)
+
+Authority: [PCMS-001 §5.5](../../standards/member-session-portal-authority.mdoc) · [portal-member-login-modal.mdoc](../../phase-19/portal-member-login-modal.mdoc) §16 Phase 5 DoD.
+
+Marketing hosts the shared phone/OTP/profile steps in `[data-marketing-login-modal]`. Transport `fetch`es the GSH portal public origin `/api/public-auth/*` with credentials. Cookie write stays Portal. After success, marketing reloads so SSR header + PDP CTA can see the member.
+
+| Surface | Phase 5 | Fallback (no-JS / no portal origin) |
+| ------- | ------- | ----------------------------------- |
+| Header `[data-marketing-header-sign-in]` | Client trigger opens marketing modal | `href` = `resolvePortalMemberLoginUrl` |
+| PDP `[data-marketing-tour-sign-in]` | Client trigger opens marketing modal; stay on PDP after reload | `href` = portal `register?auth=login` |
+| `[data-marketing-register]` | **Unchanged** — portal `/catalog/{id}/register` | — |
+
+**Skin (Denali):** `37-mkt-login-modal.css` imported last from `denali-marketing.css`. Scope `body[data-app-surface="marketing"][data-workspace-plugin="denali"]` + `data-marketing-login-modal*`. Do not reuse `data-portal-login-modal` (portal CSS is `body[data-app-surface="portal"]`).
 
 ---
 
@@ -205,14 +219,14 @@ Stable selectors for Playwright — **do not rename** without updating smoke spe
 | `data-marketing-brand`           | brand link → `/`      |
 | `data-marketing-logo`            | tenant logo img       |
 | `data-marketing-locale-switcher` | header locale toggle (only when `guestLanding.shellChrome.localeSwitcher === true`) |
-| `data-marketing-header-sign-in`  | portal member OTP login via `resolvePortalMemberLoginUrl` |
+| `data-marketing-header-sign-in`  | guest Sign in — marketing login modal (href fallback `resolvePortalMemberLoginUrl`) |
 | `data-marketing-header-member`   | authenticated profile chip → portal `/me/profile` |
 | `data-marketing-header-member-meta` | name + account hint stack |
 | `data-marketing-header-member-avatar-wrap` | avatar ring container |
 | `data-marketing-member-authenticated` | shell root when member session matches tenant |
 | `data-marketing-header-cta`      | sticky header tours CTA (only when `shellChrome.headerToursCta` and nav has no `tours` link) |
 
-**Denali club header chrome (2026-07-14):** Persian-only public surface — `shellChrome.localeSwitcher: false`. Primary nav already includes `nav.tours` via `guestCrossSurfaceNav`; redundant `data-marketing-header-cta` is off (`headerToursCta: false`). Toolbar keeps `data-marketing-header-sign-in` → `resolvePortalMemberLoginUrl` (OTP on portal catalog register).
+**Denali club header chrome (2026-07-14):** Persian-only public surface — `shellChrome.localeSwitcher: false`. Primary nav already includes `nav.tours` via `guestCrossSurfaceNav`; redundant `data-marketing-header-cta` is off (`headerToursCta: false`). Toolbar keeps `data-marketing-header-sign-in` (Phase 5: marketing modal; href fallback `resolvePortalMemberLoginUrl`).
 
 ### Home (`/`)
 
@@ -345,7 +359,7 @@ Spec: [`marketing-landing.mdoc`](./marketing-landing.mdoc) v7 · smoke: SMK-MKT-
 | `data-marketing-catalog-detail-policies`     | policies section                                                                                      |
 | `data-marketing-catalog-detail-cancellation` | cancellation bullets                                                                                  |
 | `data-marketing-register`                    | registration CTA (**SMK-MKT-03**) → portal [`portal-registration-ui.md`](./portal-registration-ui.md) |
-| `data-marketing-tour-sign-in`                | guest-only secondary → portal `register?auth=login` (Phase 3: omitted when member session is readable) |
+| `data-marketing-tour-sign-in`                | guest-only secondary — marketing login modal (href fallback portal `register?auth=login`; Phase 3: omitted when member session is readable) |
 | `data-marketing-view-registration`           | member-self primary → portal `/me/registrations/{id}` |
 | `data-marketing-register-another`            | member-self secondary → portal `/catalog/{id}/register` (no `auth=login`) |
 | `data-marketing-tour-detail-cta-mode`        | `guest` \| `member-continue` \| `member-self` on CTA wrappers |
