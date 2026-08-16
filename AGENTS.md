@@ -93,8 +93,8 @@ The Cloud Agent base image prepends `/exec-daemon` (a **Node 22** shim) to `PATH
 
 **Environment lifecycle** (proposed `environment.json`):
 
-- `install` — `scripts/cloud/ensure-node24.sh`, then `pnpm install --frozen-lockfile` and `pnpm --filter @apps/api run prisma:generate` (the Prisma client avoids an undefined-`Prisma` crash on the memory-driver error path).
-- `start` — `scripts/cloud/agent-start.sh` runs per boot (idempotent): re-links Node 24, generates the gitignored per-app dev env files, and maps the dev hosts in `/etc/hosts`.
+- `install` — `scripts/cloud/ensure-node24.sh`, then `pnpm install --frozen-lockfile`, `pnpm --filter @apps/api run prisma:generate` (the Prisma client avoids an undefined-`Prisma` crash on the memory-driver error path), then `scripts/cloud/agent-start.sh` so the dev env files are baked into the build snapshot.
+- `start` — `scripts/cloud/agent-start.sh` re-runs per boot (idempotent): re-links Node 24, regenerates any missing per-app dev env files, and maps the dev hosts in `/etc/hosts`.
 
 If Node 24 or an env file is ever missing (e.g. outside Cloud), just run `bash scripts/cloud/agent-start.sh`.
 
