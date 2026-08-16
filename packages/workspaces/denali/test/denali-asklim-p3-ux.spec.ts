@@ -10,12 +10,10 @@ const SRC_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../src");
 const FA_MESSAGES = JSON.parse(
   readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../messages/fa/wizard.json"), "utf8")
 ) as {
-  denali: {
-    composites: {
-      locationTypes: Record<string, string>;
-      difficulty: { unset: string };
-      pricing: { unpaidHint: string };
-    };
+  composites: {
+    locationTypes: Record<string, string>;
+    difficulty: { unset: string };
+    pricing: { unpaidHint: string };
   };
 };
 
@@ -33,17 +31,18 @@ describe("denali-location-zone-labels.spec.ts (ED-LOC-NATURE-01)", () => {
       resolveDenaliLocationZoneLabelKey("campPoint", "nature_multi"),
       "composites.locationTypes.campPoint"
     );
-    const natureCopy = FA_MESSAGES.denali.composites.locationTypes.summitPointNature;
+    const natureCopy = FA_MESSAGES.composites.locationTypes.summitPointNature;
     assert.match(natureCopy, /نقطه اوج مسیر/);
     assert.equal(/قله/.test(natureCopy), false);
-    assert.match(FA_MESSAGES.denali.composites.locationTypes.summitPoint, /قله/);
+    assert.match(FA_MESSAGES.composites.locationTypes.summitPoint, /قله/);
   });
 
   it("DEN-LOC-NATURE-01 location zones field uses kind-aware heading and still renders summit", () => {
     const field = readFileSync(join(SRC_ROOT, "ui/fields/denali-location-zones-field.tsx"), "utf8");
+    const types = readFileSync(join(SRC_ROOT, "ui/logic/denali-location-types.ts"), "utf8");
     assert.match(field, /resolveDenaliLocationZoneLabelKey/);
     assert.match(field, /DENALI_LOCATION_ZONE_PATHS/);
-    assert.match(field, /summitPoint/);
+    assert.match(types, /summitPoint/);
   });
 });
 
@@ -57,7 +56,7 @@ describe("denali-pay-diff-ux.spec.ts (ED-PAY-DIFF-UX-01)", () => {
     assert.match(pricing, /role="status"/);
     assert.match(pricing, /composites\.pricing\.unpaidHint/);
     assert.equal(/requiresPayment:\s*true/.test(pricing), false);
-    assert.match(FA_MESSAGES.denali.composites.pricing.unpaidHint, /تور پولی/);
+    assert.match(FA_MESSAGES.composites.pricing.unpaidHint, /تور پولی/);
   });
 
   it("DEN-PAY-DIFF-UX-01 difficulty unset copy is distinct from committed 1", () => {
@@ -67,7 +66,7 @@ describe("denali-pay-diff-ux.spec.ts (ED-PAY-DIFF-UX-01)", () => {
     );
     assert.match(difficulty, /DIFFICULTY_LEVEL_SLIDER_UNSET_POSITION/);
     assert.match(difficulty, /composites\.difficulty\.unset/);
-    const unset = FA_MESSAGES.denali.composites.difficulty.unset;
+    const unset = FA_MESSAGES.composites.difficulty.unset;
     assert.match(unset, /انتخاب نشده/);
     assert.equal(unset.includes("۱"), false);
     assert.equal(unset.includes("1"), false);
