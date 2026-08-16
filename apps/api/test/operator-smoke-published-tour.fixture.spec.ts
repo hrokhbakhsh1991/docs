@@ -17,6 +17,7 @@ import {
   buildOperatorSmokeTransportBusTourCanonical,
   buildOperatorSmokeTransportSharedCarsTourCanonical,
   isOperatorSmokePublishedTourEditReady,
+  resolveOperatorSmokePublishedTourWindow,
 } from "../src/fixtures/operator-smoke-published-tour.fixture";
 
 describe("operator-smoke-published-tour.fixture.ts", () => {
@@ -39,6 +40,17 @@ describe("operator-smoke-published-tour.fixture.ts", () => {
       ),
       true
     );
+  });
+
+  it("PAY-SEED-01 — published tour window stays in the future relative to now", () => {
+    const now = new Date("2026-08-16T12:00:00.000Z");
+    const window = resolveOperatorSmokePublishedTourWindow(now);
+    assert.equal(window.startDateTime, "2026-08-30T08:00:00.000Z");
+    assert.equal(window.endDateTime, "2026-09-01T18:00:00.000Z");
+    assert.ok(new Date(window.startDateTime).getTime() > now.getTime());
+    const canonical = buildOperatorSmokePublishedTourCanonical();
+    const start = new Date(String(canonical.data.startDateTime));
+    assert.ok(start.getTime() > Date.now());
   });
 
   it("API-SMOKE-TPL-01b edit-ready patch fills empty scaffolded day titles", () => {

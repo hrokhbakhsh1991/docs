@@ -102,14 +102,32 @@ export function buildOperatorSmokePublishedTourItinerary(): readonly Record<stri
   ];
 }
 
+/** ED-SEED-01 — inclusive span must stay 3 days to match itinerary day titles. */
+export function resolveOperatorSmokePublishedTourWindow(
+  now: Date = new Date()
+): { readonly startDateTime: string; readonly endDateTime: string } {
+  const start = new Date(now.getTime());
+  start.setUTCDate(start.getUTCDate() + 14);
+  start.setUTCHours(8, 0, 0, 0);
+  const end = new Date(start.getTime());
+  end.setUTCDate(end.getUTCDate() + 2);
+  end.setUTCHours(18, 0, 0, 0);
+  return {
+    startDateTime: start.toISOString(),
+    endDateTime: end.toISOString(),
+  };
+}
+
 function buildSmokePublishedTourData(
-  catalog: OperatorSmokePublishedTourCatalogRefs
+  catalog: OperatorSmokePublishedTourCatalogRefs,
+  now: Date = new Date()
 ): Record<string, unknown> {
+  const window = resolveOperatorSmokePublishedTourWindow(now);
   return {
     title: OPERATOR_SMOKE_PUBLISHED_TOUR_TITLE,
     publishStatus: "active",
-    startDateTime: "2026-07-01T08:00:00.000Z",
-    endDateTime: "2026-07-03T18:00:00.000Z",
+    startDateTime: window.startDateTime,
+    endDateTime: window.endDateTime,
     category: "mountain_multi",
     capacityMax: 12,
     destinationId: catalog.destinationId,

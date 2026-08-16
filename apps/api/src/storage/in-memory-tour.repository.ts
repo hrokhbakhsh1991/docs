@@ -14,6 +14,7 @@ import {
   OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
   OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
   OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
+  resolveOperatorSmokePublishedTourWindow,
 } from "../fixtures/operator-smoke-published-tour.fixture";
 import { OPERATOR_DENALI_SMOKE_TENANT_ID } from "../internal/operator-smoke-tenant-id";
 import { deriveTourProjections } from "../canonical/projection-sync";
@@ -73,11 +74,12 @@ function buildOperatorSmokeDenaliCatalogData(input: {
   readonly publishStatus: "draft" | "active";
 }): { readonly roots: string[]; readonly data: Record<string, unknown> } {
   const catalog = OPERATOR_SMOKE_PUBLISHED_TOUR_CATALOG;
+  const window = resolveOperatorSmokePublishedTourWindow();
   const data: Record<string, unknown> = {
     title: input.title,
     publishStatus: input.publishStatus,
-    startDateTime: "2026-07-01T08:00:00.000Z",
-    endDateTime: "2026-07-03T18:00:00.000Z",
+    startDateTime: window.startDateTime,
+    endDateTime: window.endDateTime,
     category: "mountain_multi",
     capacityMax: 12,
     destinationId: catalog.destinationId,
