@@ -16,14 +16,14 @@ export type DenaliLocationAddressValue = {
   readonly address?: string;
   readonly latitude?: number;
   readonly longitude?: number;
-  /** Geocoder place title (OSM/Neshan). Gathering maps this to `name` when empty. */
-  readonly osmName?: string;
 };
 
 type DenaliLocationAddressPickerProps = {
   readonly testIdKey: string;
   readonly value: DenaliLocationAddressValue;
   readonly onChange: (_patch: Partial<DenaliLocationAddressValue>) => void;
+  /** Optional place metadata (title). Must not be mixed into persisted location value. */
+  readonly onPlaceSelect?: (place: GeocodingSearchResult) => void;
   readonly label?: string;
   readonly hint?: string;
   /**
@@ -57,6 +57,7 @@ export function DenaliLocationAddressPicker({
   testIdKey,
   value,
   onChange,
+  onPlaceSelect,
   label,
   hint,
   mapMounted = true,
@@ -98,16 +99,16 @@ export function DenaliLocationAddressPicker({
         address: item.addressText,
         latitude: item.latitude,
         longitude: item.longitude,
-        osmName: item.displayName,
       };
       setMapValue({ latitude: item.latitude, longitude: item.longitude });
       onChange(next);
+      onPlaceSelect?.(item);
       setQuery(item.addressText);
       clearResults();
       setDropdownOpen(false);
       setReversePending(false);
     },
-    [clearResults, onChange, setQuery]
+    [clearResults, onChange, onPlaceSelect, setQuery]
   );
 
   const handleSearchChange = useCallback(

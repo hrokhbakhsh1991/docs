@@ -23,13 +23,11 @@ type CatalogItinerarySectionProps = {
 
 function CatalogItineraryDayBody({
   day,
-  dayLabel: _dayLabel,
   segmentsHeading,
   locale,
   segmentPhotosEmpty,
 }: {
   readonly day: PublicCatalogItineraryDay;
-  readonly dayLabel: (dayNumber: number) => string;
   readonly segmentsHeading: string;
   readonly locale: AppLocale;
   readonly segmentPhotosEmpty?: string;
@@ -106,7 +104,6 @@ export function CatalogItinerarySection({
         const body = (
           <CatalogItineraryDayBody
             day={day}
-            dayLabel={dayLabel}
             segmentsHeading={segmentsHeading}
             locale={locale}
             segmentPhotosEmpty={segmentPhotosEmpty}

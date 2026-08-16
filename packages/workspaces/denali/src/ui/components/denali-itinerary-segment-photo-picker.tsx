@@ -48,9 +48,14 @@ export function DenaliItinerarySegmentPhotoPicker({
     >
       <span>{t("composites.itinerary.segmentPhotos")}</span>
       {selectablePhotos.length === 0 ? (
-        <DenaliOptionalEmptyNotice testId={DENALI_ITINERARY_SEGMENT_PHOTO_TEST_IDS.empty}>
-          {`${t("composites.itinerary.segmentPhotosEmpty")} ${t("composites.itinerary.segmentPhotosGoToPhotos")}`}
-        </DenaliOptionalEmptyNotice>
+        <>
+          <DenaliOptionalEmptyNotice testId={DENALI_ITINERARY_SEGMENT_PHOTO_TEST_IDS.empty}>
+            {t("composites.itinerary.segmentPhotosEmpty")}
+          </DenaliOptionalEmptyNotice>
+          <p className="denali-wizard-composite__status">
+            {t("composites.itinerary.segmentPhotosGoToPhotos")}
+          </p>
+        </>
       ) : (
         <div className="denali-wizard-composite__segment-photo-grid" role="group">
           {selectablePhotos.map((photo) => {

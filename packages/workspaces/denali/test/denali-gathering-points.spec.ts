@@ -75,13 +75,15 @@ describe("denali-gathering-points.spec.ts", () => {
   });
 
   it("ED-GATHER-PERSIST-01 OSM pick fills empty name from displayName", () => {
-    assert.match(FIELD_SRC, /osmName/);
-    assert.match(FIELD_SRC, /currentName\.length === 0 && osmName\.length > 0/);
+    assert.match(FIELD_SRC, /onPlaceSelect/);
+    assert.match(FIELD_SRC, /place\.displayName/);
+    assert.match(FIELD_SRC, /readCurrentOrScaffold\(\)/);
     const picker = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), "../src/ui/components/denali-location-address-picker.tsx"),
       "utf8"
     );
-    assert.match(picker, /osmName: item\.displayName/);
+    assert.match(picker, /onPlaceSelect\?\.\(item\)/);
     assert.match(picker, /address: item\.addressText/);
+    assert.equal(/osmName/.test(picker), false);
   });
 });

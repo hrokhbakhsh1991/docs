@@ -114,14 +114,14 @@ export function DenaliGatheringPointsField({
           <DenaliLocationAddressPicker
             testIdKey={`gathering-${index}`}
             value={point}
-            onChange={(patch) => {
-              const osmName = patch.osmName?.trim() ?? "";
-              const currentName = (point.name ?? "").trim();
-              const { osmName: _osmName, ...location } = patch;
-              patchPoint(index, {
-                ...location,
-                ...(currentName.length === 0 && osmName.length > 0 ? { name: osmName } : {}),
-              });
+            onChange={(patch) => patchPoint(index, patch)}
+            onPlaceSelect={(place) => {
+              const current = readCurrentOrScaffold();
+              const currentName = (current[index]?.name ?? "").trim();
+              const osmName = place.displayName.trim();
+              if (currentName.length === 0 && osmName.length > 0) {
+                patchPoint(index, { name: osmName });
+              }
             }}
             label={tCommon("address")}
             hint={t("composites.gatheringPoints.addressHint")}

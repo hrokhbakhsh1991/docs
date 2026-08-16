@@ -230,7 +230,6 @@
       "previewAlt": "Tour photo preview",
       "multiDayHelper": "Upload a cover or gallery photo for each program day.",
       "singleDayHelper": "Upload images or paste URLs — up to {max, number} cover / gallery photos.",
-      "noPhotos": "No photos yet.",
       "optionalEmpty": "Photos are optional. You can continue and save without uploading any.",
       "dayEmpty": "No day photos yet. Assigning a photo per day is optional and does not block save.",
       "uploadImage": "Upload image",

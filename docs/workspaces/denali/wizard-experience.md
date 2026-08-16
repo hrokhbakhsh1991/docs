@@ -254,7 +254,7 @@ Registry SoT is already `canonicalPath: "gatheringPoints"` mapped to form `tripD
 | ----- | ---- |
 | Field read | `resolveDenaliGatheringPointsFromStorage(root, nested)` — populated root wins; else populated nested |
 | Field write | canonical `gatheringPoints` (mirror nested so catalog-shaped drafts stay in sync) |
-| OSM pick | `displayName` → `name` when the station name is empty; `addressText` + lat/lng → `address` / coordinates. Operator-typed name is not overwritten. |
+| OSM pick | Picker `onChange` writes persist-safe `{ address, latitude, longitude }` only. Optional `onPlaceSelect(displayName)` fills gathering `name` when empty. Operator-typed name is not overwritten. `osmName` must not enter canonical. |
 | Sanitize | `promoteDenaliGatheringPointsOnDraft` **before** `tourWizardDraftToDenaliForm` so nested-only drafts survive Continue/submit |
 | Review | same resolve helper (not root-only) |
 | Persist | form adapter maps root → nested form → artifact writes root + `tripDetails` blob |

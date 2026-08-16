@@ -1,3 +1,5 @@
+import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
+
 import type { MarketingCatalogCard } from "./catalog-types";
 
 type CatalogPresentationFields = Pick<
@@ -74,18 +76,18 @@ export function formatCatalogPrice(
   // Do not ×10. Do not reuse operator formatTourPrice or finance formatters.
   if (code === "IRR") {
     const unit = isFa ? "تومان" : "toman";
-    const digits = new Intl.NumberFormat(dateLocale, {
+    return `${formatLocalizedNumber(amount, isFa ? "fa" : "en", { maximumFractionDigits: 0 })} ${unit}`;
+  }
+  try {
+    return new Intl.NumberFormat(dateLocale, {
+      style: "currency",
+      currency: code,
       maximumFractionDigits: 0,
       ...(isFa ? { numberingSystem: "arabext" } : {}),
     }).format(amount);
-    return `${digits} ${unit}`;
+  } catch {
+    return `${formatLocalizedNumber(amount, isFa ? "fa" : "en", { maximumFractionDigits: 0 })} ${code}`;
   }
-  return new Intl.NumberFormat(dateLocale, {
-    style: "currency",
-    currency: code,
-    maximumFractionDigits: 0,
-    ...(isFa ? { numberingSystem: "arabext" } : {}),
-  }).format(amount);
 }
 
 export function formatCatalogDateRange(
