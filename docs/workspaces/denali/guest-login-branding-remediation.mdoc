@@ -1,0 +1,94 @@
+---
+title: Denali guest login + club branding — remediation contract
+doc_id: DENALI-GUEST-LOGIN-BRANDING-REMEDIATION
+version: "2026-08-16-v2"
+phase: guest-portal
+apps: [portal, marketing, web, api]
+workspace: denali
+---
+
+# Denali guest login + club branding — remediation contract
+
+Live path 2026-08-16: marketing header **ورود** → portal OTP login → `/me/profile` → **خروج** → same header login again. Session round-trip worked. Chrome names and login phone prefill did not.
+
+**Gate:** phase **0** (this file) → **1** branding → **2** phone traps → **3** avatar a11y → **4** OTP a11y → **5** polish. **Do not write code until Architect starts a numbered phase.** No `plugin.id === "denali"` in `updateTour`. Do not rename workspace plugin id `denali`. Do not change WRS hosts.
+
+**Club name vs plugin id:** guests must see **`shenski`** (operator `/settings/branding` → `tenants.theme.displayName`). Plugin id `denali` stays the workspace type. After GL-BRAND-01, empty `displayName` still shows i18n `nav.defaultSiteName` (FA باشگاه / EN Denali Club) — **GL-BRAND-02** is what makes every chrome say **shenski**.
+
+## Product branding rule (GL-BRAND)
+
+Club public name is **tenant branding `displayName`**, set by the operator at **`/settings/branding`** (module `workspace_branding`, PATCH `/settings/branding`). Live club name for this tenant is **`shenski`**.
+
+| Must | Must not |
+| --- | --- |
+| Marketing header, login chrome, member-shell brand, public metadata all read `GET /public/tenant-branding` → `displayName` | Hardcode `shenski` / `باشگاه` / `Portal` / `denali` in marketing or portal chrome |
+| Empty name: one shared guest fallback (`nav.defaultSiteName`) on every surface | Fallback to `bootstrap.pluginId` (`denali`) or literal `"Portal"` |
+| Operator Save on settings persists `tenants.theme.displayName` | Logo upload alone persisting the name (already forbidden — keep) |
+| Operator smoke tenant `…014` keeps SMK English branding | Changing WRS host labels (`denali.localhost`) |
+
+Live mismatch (empty `theme.displayName` on club seed):
+
+| Surface | What guest saw | Why |
+| --- | --- | --- |
+| Marketing header | باشگاه | `displayName ?? t("nav.defaultSiteName")` → FA default |
+| Login chrome | Portal | `displayName \|\| "Portal"` in `portal-registration-chrome.tsx` |
+| Member `/me` header | denali | `displayName \|\| bootstrap.pluginId` in `app/me/layout.tsx` |
+
+```text
+Admin  /settings/branding  →  tenants.theme.displayName = "shenski"
+                                    │
+         GET /public/tenant-branding.displayName
+                    ┌───────────────┼────────────────┐
+                    ▼               ▼                ▼
+              marketing         login chrome      member shell
+              brand title       workspace label   workspaceLabel
+```
+
+## Bug → owner → phase → Done when
+
+| ID | Symptom (live) | Owner | Phase | Done when |
+| --- | --- | --- | --- | --- |
+| **GL-BRAND-01** | Three names: باشگاه / Portal / denali | Portal + marketing chrome fallbacks | **1** | All three surfaces show the same `displayName`. Empty → `defaultSiteName` only. Never `pluginId` or `"Portal"`. Specs: chrome unit + branding public GET. |
+| **GL-BRAND-02** | Club is not named shenski | Operator settings + optional Denali club seed/ensure `…000003` | **1** | Admin Save `shenski` on `/settings/branding` (or idempotent club seed). Hard refresh marketing + login + `/me` all say **shenski**. Smoke `…014` unchanged. |
+| **GL-PHONE-01** | After logout, login field is `+15550009901` | `initialPublicRegistrationPhone()` in development | **2** | Club guest login (`denali.localhost` / portal.denali) does not look pre-filled with the US smoke number. Sending OTP without editing the field must not create/login a different user. |
+| **GL-PHONE-02** | OTP «تغییر شماره» restores `+15550009901` | `catalog-registration-auth-steps.tsx` change-phone merge | **2** | Change-phone clears to empty (or last typed club number), not `PUBLIC_REGISTRATION_DEV_PHONE`. |
+| **GL-AVATAR-01** | Profile has two «انتخاب تصویر» controls | Hidden file input + button share `aria-label` | **3** | One named upload control; file input is visually hidden and not a second button in the a11y tree. |
+| **GL-OTP-01** | OTP cells labelled `Digit 1`…; extra unnamed textbox | `otp-segment-input.tsx` autofill sink + English aria-label | **4** | Autofill sink stays out of a11y tree; cell labels use i18n (FA/EN). Dev hint `کد توسعه: 1234` may stay in `NODE_ENV=development`. |
+| **GL-POLISH-01** | `GET /favicon.ico` 404 on portal | Portal app metadata / public asset | **5** | No 404 for favicon on `portal.denali.localhost`. |
+| **GL-POLISH-02** | Next.js LCP warning on marketing hero image | Marketing image `priority` | **5** | Hero/LCP img has `priority` (or equivalent). Not a login blocker. |
+
+## Phase order
+
+```text
+0  this contract (no code)
+1  GL-BRAND-01 + GL-BRAND-02   settings SoT + shenski on club chrome
+2  GL-PHONE-01 + GL-PHONE-02   login phone traps (wrong-account risk)
+3  GL-AVATAR-01                profile upload a11y
+4  GL-OTP-01                   OTP a11y
+5  GL-POLISH-01 + GL-POLISH-02 favicon + LCP (optional last)
+```
+
+Do **not** start phase 2 while login chrome still says Portal / denali — guest cannot tell which club they entered.
+
+## Non-goals
+
+| Item | Why |
+| --- | --- |
+| Rename plugin id `denali` | Workspace type / WRS host, not the club trade name |
+| Unpublish / lifecycle | Unrelated |
+| ×10 toman or persist ghosts | Closed in Asklim pack |
+| Hardcode `shenski` in `apps/marketing` or `apps/portal` | Name is tenant settings, not a string in the guest apps |
+| Full monorepo gates | Fast-track only until Architect YES |
+
+## Verification (when a phase starts)
+
+- Fast-track: targeted portal/marketing specs + `guard:import-boundary`. No `phase-5:gate` / `test:full`.
+- Manual: `denali.admin.localhost:3000/settings/branding` → Save **shenski** → hard refresh `denali.localhost:3002` + `portal.denali.localhost:3003/login` + `/me/profile`.
+- Logout → header **ورود** → login with `09128881147` must not show a filled US number.
+
+## Progress
+
+| Phase | Status |
+| --- | --- |
+| **0** this file | **Now** — checklist only |
+| **1–5** | Not started — no code this turn |
