@@ -1,7 +1,7 @@
 ---
 title: Denali guest login + club branding — remediation contract
 doc_id: DENALI-GUEST-LOGIN-BRANDING-REMEDIATION
-version: "2026-08-16-v10"
+version: "2026-08-16-v11"
 phase: guest-portal
 apps: [portal, marketing, web, api]
 workspace: denali
@@ -191,7 +191,7 @@ Do **not** put `shenski` on `resolveDefaultTenantBranding("denali")`. Guest chro
 | Item | Why |
 | --- | --- |
 | Rename plugin id `denali` | Workspace type / WRS host, not the club trade name |
-| Unpublish / lifecycle | Unrelated |
+| Unpublish / lifecycle | Unrelated. If Asklim is missing on marketing, operator **Publish** (`DRAFT → OPEN`) — public catalog is published-only. Not a guest-app bug. |
 | ×10 toman or persist ghosts | Closed in Asklim pack |
 | Hardcode `shenski` in `apps/marketing` or `apps/portal` | Name is tenant settings, not a string in the guest apps |
 | Full monorepo gates | Fast-track only until Architect YES |

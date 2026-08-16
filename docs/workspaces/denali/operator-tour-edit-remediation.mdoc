@@ -1,7 +1,7 @@
 ---
 title: Denali operator tour edit — remediation contract
 doc_id: DENALI-OPERATOR-TOUR-EDIT-REMEDIATION
-version: "2026-08-16-v26"
+version: "2026-08-16-v27"
 phase: operator-admin
 apps: [web, api, marketing]
 workspace: denali
@@ -16,6 +16,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
 | Item | Why |
 | --- | --- |
 | Enable unpublish (`OPEN → DRAFT`) | Denali lifecycle allowlist is `DRAFT → OPEN` only (`isWorkspaceUnpublishTransitionAllowed` = false). Product policy — not a bug. |
+| Asklim (or any Denali tour) missing on marketing | Public catalog lists **published** tours only (`publishStatus === "active"` / lifecycle **OPEN**). Operator **Publish** is `DRAFT → OPEN`. Absence on `denali.localhost` means the tour is still DRAFT — **not** a marketing filter bug, **not** a reason to seed a second published clone, **not** a reason to allow `OPEN → DRAFT`. |
 | Broad `platform-core` validate rewrites | Prefer hydrate/serialize + clone roots alignment. |
 | Full monorepo gates without Architect YES | Use targeted package/web specs + `test:changed`. |
 
@@ -130,12 +131,14 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 
 **v26 (2026-08-16):** Phase **22** residual. Review `transport.dongAmount` uses the same `formatDenaliTomanAmount` helper as base price / transport cost (no ×10). Destination catalog patch is a listener `Set`, not a last-mount singleton, so metric saves update every mounted picker. No API / `platform-core` / `plugin.id === "denali"`.
 
+**v27 (2026-08-16):** Product policy note — Asklim missing on marketing is operator **Publish** (`DRAFT → OPEN`). Public catalog is published-only. Not a code bug; do not change filters or unpublish allowlist.
+
 **Operator follow-ups outside this pack** (not blockers; do not reopen lifecycle / platform-core validate):
 
 | Item | Class | Notes |
 | --- | --- | --- |
 | Cold Next compile → intermittent BFF `503` on `/api/users`, `guide_languages`, drafts | Dev infra (mitigated) | Soft-fail notice + **one soft-retry** via `fetchDenaliCatalogJsonWithSoftRetry` on catalog pickers/destinations. Residual cold compile may still show degraded once. |
-| Unpublish `OPEN → DRAFT` | Non-goal | Lifecycle policy. |
+| Unpublish `OPEN → DRAFT` | Non-goal | Lifecycle policy. Missing marketing card → **Publish** (`DRAFT → OPEN`), not unpublish. |
 | Portal CSS / auth gate on same git branch | Branch hygiene | Unrelated to this pack — split when committing. |
 
 **Suggested exit:** Architect reviews this file; commit remediation + related web/api/denali diffs as one (or split API Doc-First) PR when ready. Prefer `pre-commit:fast` / listed verification — not full gates without YES.

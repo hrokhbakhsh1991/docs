@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PUBLIC-CATALOG
-version: "2026-06-30-v26"
+version: "2026-08-16-v27"
 workspace: denali
 stack: workspace-sdk · workspace-denali/http · apps/marketing
 authority: MIGRATION-MAP.md §3.5 · docs/workspaces/denali/marketing-landing.mdoc
@@ -32,6 +32,8 @@ A tour appears in the public catalog only when canonical `data.publishStatus ===
 | `active` | Visible | Visible (open/active bucket) |
 
 Wizard review step (Phase 11) persists `publishStatus`; admin must set `active` before marketing lists the tour.
+
+Operator chrome labels that transition **Publish** (`DRAFT → OPEN`). A DRAFT Asklim (or any Denali) tour is **correctly absent** from marketing until that click. Do not treat a missing card as a catalog-filter or guest-app regression.
 
 ## API
 

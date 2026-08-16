@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v25"
+version: "2026-08-16-v26"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -323,6 +323,8 @@ Live create leftover after Phase 15. **No ×10 conversion.** Storage `priceCurre
 Live create 2026-08-16: nature multi-day camping at آبشار اسکلیم (`97974fc2-…`). Gathering dual-write (ED-GATHER-PERSIST-01) held; **camp OSM did not survive POST**. **Do not start P2/P3 until P1 specs `DEN-CAMP-PERSIST-01*` are green** — later waves must not reopen ghost-path policy (`INV-DENALI-WIZ-003`).
 
 **Gate:** P1 (phase 21) → P2 (phase 22, parallel IDs) → P3 (phase 23). Implementation is Denali client/ACL only in P1; API `stripFormProfileForSubmit` stays unchanged.
+
+**Marketing visibility (not a code bug):** Public catalog (`GET /denali/catalog` → `apps/marketing`) only includes canonical `publishStatus === "active"`. Operator chrome calls that state **OPEN** and the control **Publish** (`DRAFT → OPEN`). If آبشار اسکلیم / Asklim is missing on `denali.localhost`, open the tour in operator and Publish. Do not change marketing filters, guest chrome, or unpublish policy (`OPEN → DRAFT` stays forbidden).
 
 ### Phase order (do not skip)
 
