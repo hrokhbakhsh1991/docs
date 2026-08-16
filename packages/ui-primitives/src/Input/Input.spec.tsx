@@ -12,6 +12,11 @@ describe("Input", () => {
     assert.ok(getByRole("textbox", { name: "Title" }));
   });
 
+  it("sets aria-invalid when invalid", () => {
+    const { getByRole } = render(<Input aria-label="invalid-field" invalid />);
+    assert.equal(getByRole("textbox", { name: "invalid-field" }).getAttribute("aria-invalid"), "true");
+  });
+
   it("does not serialize aria-invalid when valid", () => {
     const { getByRole } = render(<Input aria-label="ok-field" />);
     assert.equal(getByRole("textbox", { name: "ok-field" }).hasAttribute("aria-invalid"), false);
