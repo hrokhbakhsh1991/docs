@@ -89,20 +89,20 @@ Quick index: [`docs/MIGRATION.md`](docs/MIGRATION.md).
 
 ## Cursor Cloud specific instructions
 
-The Cloud Agent base image ships Node 22 on `PATH`, but this repo requires **Node 24** (`.nvmrc`, `engine-strict`). A login shell (`bash -lc`) already resolves the nvm-default Node 24, so run repo commands from a login shell (or `source ~/.nvm/nvm.sh && nvm use 24`) rather than the raw agent shell.
+The Cloud Agent base image prepends `/exec-daemon` (a **Node 22** shim) to `PATH`, but this repo requires **Node 24** (`.nvmrc`, `engine-strict`). The shim shadows nvm even in a login shell, so the environment install/start scripts symlink the nvm Node 24 toolchain into `/usr/local/cargo/bin` (the first `PATH` entry) — after that, `node`/`pnpm` resolve to v24 in every shell.
 
-**Environment install** (idempotent):
+**Environment lifecycle** (proposed `environment.json`):
 
-```bash
-pnpm install --frozen-lockfile
-pnpm --filter @apps/api run prisma:generate   # avoids an undefined-Prisma crash on the memory-driver error path
-```
+- `install` — `scripts/cloud/ensure-node24.sh`, then `pnpm install --frozen-lockfile` and `pnpm --filter @apps/api run prisma:generate` (the Prisma client avoids an undefined-`Prisma` crash on the memory-driver error path).
+- `start` — `scripts/cloud/agent-start.sh` runs per boot (idempotent): re-links Node 24, generates the gitignored per-app dev env files, and maps the dev hosts in `/etc/hosts`.
+
+If Node 24 or an env file is ever missing (e.g. outside Cloud), just run `bash scripts/cloud/agent-start.sh`.
 
 **Running surfaces (no Postgres/Docker required — API uses the in-memory driver).** Each surface is a separate process (the root `dev` script only prints this list). Host-based tenant routing means you must send a mapped `Host` header; `denali.localhost`, `operator.localhost`, `urban.localhost` (and `*.portal.localhost`) are seeded dev hosts.
 
-Per-app dev env (already provided as gitignored `.env.local` files; recreate if missing):
+Per-app dev env files created by `scripts/cloud/agent-start.sh`:
 
-- `apps/api/.env.local`: `NODE_ENV=development`, `STORAGE_DRIVER=memory`, rate-limit/outbox/reconcile disabled, `AUTH_ALLOW_DEV_STATIC_OTP=true`, plus RS256 dev JWT keys generated via `cd apps/api && pnpm run bootstrap:dev-jwt >> .env.local`.
+- `apps/api/.env.local`: `NODE_ENV=development`, `STORAGE_DRIVER=memory`, rate-limit/outbox/reconcile disabled, `AUTH_ALLOW_DEV_STATIC_OTP=true`, plus RS256 dev JWT keys (`pnpm run bootstrap:dev-jwt`).
 - `apps/web|marketing|portal/.env.local`: `ALLOW_DEV_WEB_SESSION=true`, `ALLOW_DENALI_WEB_PLUGIN=true`, `ALLOW_URBAN_WEB_PLUGIN=true`, `TOUR_OPS_API_URL=http://127.0.0.1:3001`.
 
 ```bash
@@ -111,5 +111,3 @@ pnpm --filter @apps/web run dev         # operator admin  -> http://operator.loc
 pnpm --filter @apps/marketing run dev   # public club     -> http://denali.localhost:3002/
 pnpm --filter @apps/portal run dev      # member portal   -> http://denali.portal.localhost:3003/
 ```
-
-For browser testing, add the dev hosts to `/etc/hosts`: `127.0.0.1 operator.localhost denali.localhost urban.localhost denali.portal.localhost operator.portal.localhost`.
