@@ -80,6 +80,23 @@ describe("portal-guest-chrome-branding.spec.ts", () => {
     assert.doesNotMatch(icon, /shenski|denali/i);
   });
 
+  it("GL-BRAND-03 member chip uses i18n fallback, not hardcoded Member", () => {
+    const layout = readPortal("app/me/layout.tsx");
+    const fa = JSON.parse(
+      readFileSync(join(portalRoot, "messages/fa/portalMember.json"), "utf8")
+    ) as { readonly nav?: { readonly memberFallback?: string } };
+    const en = JSON.parse(
+      readFileSync(join(portalRoot, "messages/en/portalMember.json"), "utf8")
+    ) as { readonly nav?: { readonly memberFallback?: string } };
+    assert.match(layout, /guestVisibleProfileMobile/);
+    assert.match(layout, /portalMember\.nav/);
+    assert.match(layout, /memberFallback/);
+    assert.doesNotMatch(layout, /["']Member["']/);
+    assert.doesNotMatch(layout, /resolveGuestChromeDisplayName\(\s*profile/);
+    assert.equal(fa.nav?.memberFallback, "عضو");
+    assert.equal(en.nav?.memberFallback, "Member");
+  });
+
   it("GL-OTP-01-SHELL unused P6 portal OTP shell stays Digit-free", () => {
     const otpInput = readPortal("src/features/auth/otp-segment-input.tsx");
     assert.match(otpInput, /data-otp-autofill-sink/);

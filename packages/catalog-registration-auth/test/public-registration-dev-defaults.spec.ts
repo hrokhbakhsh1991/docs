@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  guestVisibleProfileMobile,
   initialPublicRegistrationOtp,
   initialPublicRegistrationPhone,
   PUBLIC_REGISTRATION_DEV_OTP,
@@ -21,5 +22,14 @@ describe("public-registration-dev-defaults", () => {
     } finally {
       process.env.NODE_ENV = prev;
     }
+  });
+
+  it("GL-BRAND-03 guestVisibleProfileMobile hides empty and the US smoke fixture", () => {
+    assert.equal(guestVisibleProfileMobile(undefined), "");
+    assert.equal(guestVisibleProfileMobile(null), "");
+    assert.equal(guestVisibleProfileMobile("  "), "");
+    assert.equal(guestVisibleProfileMobile(PUBLIC_REGISTRATION_DEV_PHONE), "");
+    assert.equal(guestVisibleProfileMobile(`  ${PUBLIC_REGISTRATION_DEV_PHONE}  `), "");
+    assert.equal(guestVisibleProfileMobile("09128881147"), "09128881147");
   });
 });

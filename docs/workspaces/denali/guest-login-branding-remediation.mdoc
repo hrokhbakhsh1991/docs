@@ -1,7 +1,7 @@
 ---
 title: Denali guest login + club branding — remediation contract
 doc_id: DENALI-GUEST-LOGIN-BRANDING-REMEDIATION
-version: "2026-08-16-v6"
+version: "2026-08-16-v7"
 phase: guest-portal
 apps: [portal, marketing, web, api]
 workspace: denali
@@ -11,7 +11,7 @@ workspace: denali
 
 Live path 2026-08-16: marketing header **ورود** → portal OTP login → `/me/profile` → **خروج** → same header login again. Session round-trip worked. Chrome names and login phone prefill did not.
 
-**Gate:** phase **0** (this file) → **1** branding → **2** phone traps → **3** avatar a11y → **4** OTP a11y → **5** polish. Phase **1–5** in this pack. No `plugin.id === "denali"` in `updateTour`. Do not rename workspace plugin id `denali`. Do not change WRS hosts.
+**Gate:** phase **0** (this file) → **1** branding → **2** phone traps → **3** avatar a11y → **4** OTP a11y → **5** polish → **1 addendum** member-chip person label. Phase **1–5** in this pack. No `plugin.id === "denali"` in `updateTour`. Do not rename workspace plugin id `denali`. Do not change WRS hosts.
 
 **Club name vs plugin id:** guests must see **`shenski`** (operator `/settings/branding` → `tenants.theme.displayName`). Plugin id `denali` stays the workspace type. After GL-BRAND-01, empty `displayName` still shows i18n `nav.defaultSiteName` (FA باشگاه / EN Club) — **GL-BRAND-02** is what makes every chrome say **shenski**.
 
@@ -54,6 +54,27 @@ Admin  /settings/branding  →  tenants.theme.displayName = "shenski"
 | Club seed name | `DEV_TENANTS` denali row `…000003` `theme.displayName` | **`shenski`**. Workspace-type default stays color-only so operator smoke `…014` does not inherit the trade name. |
 | Postgres club seed | `ProvisioningService.seedDenaliSmokeTenant` | Passes the `DEV_TENANTS` theme when present (`DATABASE_URL` path otherwise drops to color-only defaults). |
 | Merge | `resolveEffectiveTenantBranding` | Unchanged. Do not inherit `displayName` from workspace-type fallback when stored theme already has colors. |
+
+### Phase 1 addendum — person chip vs club brand (GL-BRAND-03)
+
+Club chrome and the logged-in **person** chip are different labels on the same `/me` header. Mixing them reopens the باشگاه / Portal / denali class of bug as English `"Member"` on the FA portal.
+
+```text
+/me header
+  ├─ workspaceLabel  → resolveGuestChromeDisplayName(branding.displayName, chrome.defaultSiteName)
+  │                    club trade name (shenski) or باشگاه / Club
+  └─ member chip     → profile.displayName
+                       else guestVisibleProfileMobile(profile.mobile)
+                       else portalMember.nav.memberFallback   (FA عضو / EN Member)
+```
+
+| Surface | Owner | Rule |
+| ------- | ----- | ---- |
+| Club brand (`data-portal-shell-workspace-label`) | GL-BRAND-01/02 | Unchanged helper. Empty → `defaultSiteName` only. |
+| Person chip (`data-marketing-header-member-label`) | **GL-BRAND-03** | Prefer trimmed profile `displayName`. Else a **guest-visible** mobile. Else i18n `portalMember.nav.memberFallback`. |
+| Login `sessionBadge` | already | Club `branding.displayName` or hidden when empty. Do **not** put `"Member"` or `memberFallback` here (would duplicate chrome). |
+
+`guestVisibleProfileMobile` lives next to `PUBLIC_REGISTRATION_DEV_PHONE` in `catalog-registration-auth`. Empty / null / the US smoke fixture `+15550009901` all return `""` so a persisted GL-PHONE identity cannot leak onto the chip. The profile form still shows stored mobile (honest edit surface). Do **not** call `resolveGuestChromeDisplayName` for the person chip (that helper is club-only; `باشگاه` is not a personal name).
 
 ### Phase 2 phone traps
 
@@ -118,6 +139,7 @@ Browser  GET /favicon.ico
 | --- | --- | --- | --- | --- |
 | **GL-BRAND-01** | Three names: باشگاه / Portal / denali | Portal + marketing chrome fallbacks | **1** | All three surfaces show the same `displayName`. Empty → `defaultSiteName` only. Never `pluginId` or `"Portal"`. Specs: chrome unit + branding public GET. |
 | **GL-BRAND-02** | Club is not named shenski | Operator settings + optional Denali club seed/ensure `…000003` | **1** | Admin Save `shenski` on `/settings/branding` (or idempotent club seed). Hard refresh marketing + login + `/me` all say **shenski**. Smoke `…014` unchanged. |
+| **GL-BRAND-03** | `/me` person chip says English `Member` when displayName (and often mobile) is empty | `app/me/layout.tsx` memberHeader | **1 addendum** | Chip uses `portalMember.nav.memberFallback` (FA عضو / EN Member). Layout source has no `"Member"` literal. Fixture phone is not a chip label. Club `workspaceLabel` unchanged. Spec in `portal-guest-chrome-branding`. |
 | **GL-PHONE-01** | After logout, login field is `+15550009901` | `initialPublicRegistrationPhone()` in development | **2** | Club guest login (`denali.localhost` / portal.denali) does not look pre-filled with the US smoke number. Sending OTP without editing the field must not create/login a different user. |
 | **GL-PHONE-02** | OTP «تغییر شماره» restores `+15550009901` | `catalog-registration-auth-steps.tsx` change-phone merge | **2** | Change-phone clears to empty (or last typed club number), not `PUBLIC_REGISTRATION_DEV_PHONE`. |
 | **GL-AVATAR-01** | Profile has two «انتخاب تصویر» controls | Hidden file input + button share `aria-label` | **3** | One named upload control; file input is visually hidden and not a second button in the a11y tree. |
@@ -162,6 +184,7 @@ Do **not** put `shenski` on `resolveDefaultTenantBranding("denali")`. Guest chro
 | --- | --- |
 | **0** this file | Done — checklist |
 | **1** GL-BRAND-01 + GL-BRAND-02 | **Done** — shared chrome helper + club seed `shenski` |
+| **1 addendum** GL-BRAND-03 | **Done** — person chip i18n fallback; fixture phone hidden on chip |
 | **2** GL-PHONE-01 + GL-PHONE-02 | **Done** — empty guest phone; change-phone clears |
 | **3** GL-AVATAR-01 | **Done** — file input unnamed + `aria-hidden`; button is the named control |
 | **4** GL-OTP-01 | **Done** — clipped native sink; `otp.digitLabel` / `otp.groupLabel` |

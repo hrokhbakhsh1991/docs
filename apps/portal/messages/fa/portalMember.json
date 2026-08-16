@@ -12,7 +12,8 @@
     "loggingOut": "در حال خروج…",
     "skipToMain": "رفتن به محتوای اصلی",
     "primaryNav": "ناوبری اصلی",
-    "more": "بیشتر"
+    "more": "بیشتر",
+    "memberFallback": "عضو"
   },
   "locale": {
     "fa": "FA",

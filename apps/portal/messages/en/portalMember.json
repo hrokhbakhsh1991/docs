@@ -12,7 +12,8 @@
     "loggingOut": "Logging out…",
     "skipToMain": "Skip to main content",
     "primaryNav": "Primary navigation",
-    "more": "More"
+    "more": "More",
+    "memberFallback": "Member"
   },
   "locale": {
     "fa": "FA",

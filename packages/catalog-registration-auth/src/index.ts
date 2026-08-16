@@ -11,6 +11,7 @@ export type PublicRegistrationApiError = {
 export {
   PUBLIC_REGISTRATION_DEV_OTP,
   PUBLIC_REGISTRATION_DEV_PHONE,
+  guestVisibleProfileMobile,
   initialPublicRegistrationOtp,
   initialPublicRegistrationPhone,
 } from "./public-registration-dev-defaults";

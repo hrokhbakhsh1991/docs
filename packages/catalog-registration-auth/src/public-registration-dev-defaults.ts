@@ -12,3 +12,15 @@ export function initialPublicRegistrationPhone(): string {
 export function initialPublicRegistrationOtp(): string {
   return process.env.NODE_ENV === "development" ? PUBLIC_REGISTRATION_DEV_OTP : "";
 }
+
+/**
+ * Mobile shown on guest `/me` chrome (GL-BRAND-03). The US smoke fixture is
+ * never a visible personal label even if a persisted identity still holds it.
+ */
+export function guestVisibleProfileMobile(mobile: string | null | undefined): string {
+  const trimmed = typeof mobile === "string" ? mobile.trim() : "";
+  if (trimmed.length === 0 || trimmed === PUBLIC_REGISTRATION_DEV_PHONE) {
+    return "";
+  }
+  return trimmed;
+}
