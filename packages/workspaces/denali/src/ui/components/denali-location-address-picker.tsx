@@ -16,6 +16,8 @@ export type DenaliLocationAddressValue = {
   readonly address?: string;
   readonly latitude?: number;
   readonly longitude?: number;
+  /** Geocoder place title (OSM/Neshan). Gathering maps this to `name` when empty. */
+  readonly osmName?: string;
 };
 
 type DenaliLocationAddressPickerProps = {
@@ -96,6 +98,7 @@ export function DenaliLocationAddressPicker({
         address: item.addressText,
         latitude: item.latitude,
         longitude: item.longitude,
+        osmName: item.displayName,
       };
       setMapValue({ latitude: item.latitude, longitude: item.longitude });
       onChange(next);

@@ -73,4 +73,15 @@ describe("denali-gathering-points.spec.ts", () => {
     assert.match(FIELD_SRC, /DENALI_GATHERING_POINTS_NESTED_PATH/);
     assert.match(FIELD_SRC, /setCanonicalValue\(withRoot, DENALI_GATHERING_POINTS_NESTED_PATH/);
   });
+
+  it("ED-GATHER-PERSIST-01 OSM pick fills empty name from displayName", () => {
+    assert.match(FIELD_SRC, /osmName/);
+    assert.match(FIELD_SRC, /currentName\.length === 0 && osmName\.length > 0/);
+    const picker = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/ui/components/denali-location-address-picker.tsx"),
+      "utf8"
+    );
+    assert.match(picker, /osmName: item\.displayName/);
+    assert.match(picker, /address: item\.addressText/);
+  });
 });

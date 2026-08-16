@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v20"
+version: "2026-08-16-v21"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -254,6 +254,7 @@ Registry SoT is already `canonicalPath: "gatheringPoints"` mapped to form `tripD
 | ----- | ---- |
 | Field read | `resolveDenaliGatheringPointsFromStorage(root, nested)` — populated root wins; else populated nested |
 | Field write | canonical `gatheringPoints` (mirror nested so catalog-shaped drafts stay in sync) |
+| OSM pick | `displayName` → `name` when the station name is empty; `addressText` + lat/lng → `address` / coordinates. Operator-typed name is not overwritten. |
 | Sanitize | `promoteDenaliGatheringPointsOnDraft` **before** `tourWizardDraftToDenaliForm` so nested-only drafts survive Continue/submit |
 | Review | same resolve helper (not root-only) |
 | Persist | form adapter maps root → nested form → artifact writes root + `tripDetails` blob |
