@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-06-24-v8"
+version: "2026-08-16-v9"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -130,6 +130,53 @@ Phase 12.4 flat edit (`DenaliFlatEditForm`) renders wizard composites via platfo
 **Non-goals:** No Wizard Bridge layout on edit; no stepper CSS required; no `data-new-tour-wizard` on the `<form>` itself (page root only — mirrors create, where scope sits on `new-tour-wizard-page`, not on inner field nodes).
 
 Authority: [`docs/phase-12/subphases/12.4-denali-flat-edit-form.md`](../../phase-12/subphases/12.4-denali-flat-edit-form.md) · [`TOURS-EDIT-UX.md`](../../phase-9/appendices/TOURS-EDIT-UX.md) (Phase 12 supersession note).
+
+## Flat edit draft authority
+
+Flat edit mounts `useWorkspaceDraft` on `denali-edit:{tourId}` so in-progress field edits survive reload. That remote envelope is **not** allowed to clobber a newer saved tour.
+
+```text
+                    ┌─ remote denali-edit:{id} ─┐
+ GET tour ─────────►│ meta.sourceRowVersion     │
+ rowVersion = N     │   = N  (hydrate / seed)   │
+                    │ form = canonical snapshot │
+                    └──────────┬────────────────┘
+                               │ operator types
+                               ▼
+                    form diverges; stamp stays N
+                               │
+            ┌──────────────────┼──────────────────┐
+            │ reload           │ footer PATCH 200 │
+            ▼                  ▼
+     stamp N == tour N   tour rowVersion → N+1
+     keep draft          GET tour
+                         clearDraftAndReset(GET @ N+1)
+                         (never clear→null then seed
+                          from pre-PATCH React state)
+```
+
+| Condition | Form source | Why |
+|-----------|-------------|-----|
+| No remote draft | GET tour baseline | First open / after delete |
+| Draft `sourceRowVersion` missing | Keep draft | Pre-stamp envelopes; unsaved work must not vanish |
+| Draft `sourceRowVersion` ≥ tour `rowVersion` | Keep draft | Unsaved edits on the current saved version |
+| Draft `sourceRowVersion` < tour `rowVersion` | GET tour | Leftover autosave from before the last successful PATCH |
+| PATCH save/publish/unpublish succeeds | GET then `clearDraftAndReset` | Create-wizard already uses this primitive so React never sees `data=null` and cannot re-PUT the old baseline |
+
+**Failure mode this closes:** footer save updated canonical title, heading showed the new title, `input[name=title]` still showed the create-time title after reload. `clearDraft()` set `data=null`; the seed effect ran against the **pre-PATCH** `tourBaseline` and PUT `denali-edit:{id}` with the old title. Next hydrate preferred that remote draft over GET.
+
+Pure helpers (no React): `resolveDenaliFlatEditWorkingEnvelope`, `shouldSeedDenaliFlatEditDraftFromTour`, `replaceDenaliFlatEditDraftAfterSuccessfulPatch` in `packages/workspaces/denali/src/ui/chrome/flat-edit-draft-authority.ts`. Specs: `DEN-12.4-DRAFT-*` in `test/flat-edit-draft-authority.spec.ts`.
+
+**Sensitive fields on this surface (operator edit):**
+
+| Field | UI | Notes |
+|-------|----|--------|
+| Peak height | `disabled` when destination catalog has `altitudeM` | Lock is **DOM `disabled` only** (`readOnly: false`). Changing destination (توچال 3962 → دماوند 5610) prefills from catalog. A crafted PATCH can still send another number until API re-applies catalog lock. |
+| Paid tour | Checkbox reveals per-person price (تومان) | Empty price with paid checked must fail publish validation, not silently store `priceAmount: null` as free. |
+| PII flags | national id / father name / birth date | Default off; enabling is a registration-policy change, not a tour-content edit. |
+| Header «ذخیره پیش‌نویس» | Enabled only when draft engine is `DIRTY` or `ERROR` | Does **not** PATCH the tour. Footer «ذخیره تغییرات» is the canonical write. Autosave to `SYNCED` leaves the header disabled even with unsaved-vs-canonical field diffs if the engine already flushed the draft. |
+
+`projection.updatedAt` on the memory storage driver may equal `createdAt` after PATCH even when `rowVersion` increments — do **not** use `updatedAt` to decide draft vs tour freshness; use `rowVersion` / `sourceRowVersion`.
 
 ## Data attributes
 

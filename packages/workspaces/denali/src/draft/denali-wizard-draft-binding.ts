@@ -57,6 +57,11 @@ export type DenaliWizardDraftMeta = {
   readonly freshStart?: boolean;
   /** Server-persisted only — stripped on client hydrate/prepare (Track B). */
   readonly deletedRoots?: readonly string[];
+  /**
+   * Flat-edit only — tour `rowVersion` this envelope was hydrated from.
+   * Unsaved edits keep the stamp; a newer GET tour makes the draft stale.
+   */
+  readonly sourceRowVersion?: number;
 };
 
 /**
@@ -97,6 +102,7 @@ function clientMetaFromInput(meta: DenaliWizardDraftMeta): DenaliWizardDraftMeta
     currentStepIndex: meta.currentStepIndex,
     ...(meta.wizardSessionId !== undefined ? { wizardSessionId: meta.wizardSessionId } : {}),
     ...(meta.freshStart === true ? { freshStart: true } : {}),
+    ...(typeof meta.sourceRowVersion === "number" ? { sourceRowVersion: meta.sourceRowVersion } : {}),
   };
 }
 
@@ -122,6 +128,9 @@ export function denaliHydrateDraftEnvelope<TForm>(
         ? { wizardSessionId: fallbackMeta.wizardSessionId }
         : {}),
       ...(fallbackMeta?.freshStart === true ? { freshStart: true } : {}),
+      ...(typeof fallbackMeta?.sourceRowVersion === "number"
+        ? { sourceRowVersion: fallbackMeta.sourceRowVersion }
+        : {}),
     });
   }
 
@@ -131,6 +140,11 @@ export function denaliHydrateDraftEnvelope<TForm>(
       currentStepIndex: remote.meta.currentStepIndex ?? fallbackMeta?.currentStepIndex ?? 0,
       wizardSessionId: remote.meta.wizardSessionId ?? fallbackMeta?.wizardSessionId,
       ...(remote.meta.freshStart === true ? { freshStart: true } : {}),
+      ...(typeof remote.meta.sourceRowVersion === "number"
+        ? { sourceRowVersion: remote.meta.sourceRowVersion }
+        : typeof fallbackMeta?.sourceRowVersion === "number"
+          ? { sourceRowVersion: fallbackMeta.sourceRowVersion }
+          : {}),
     },
   };
 }

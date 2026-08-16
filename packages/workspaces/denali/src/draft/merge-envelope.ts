@@ -17,6 +17,11 @@ function readStepIndex(meta: WorkspaceWizardDraftMeta): number {
   return typeof raw === "number" && Number.isFinite(raw) ? raw : 0;
 }
 
+function readSourceRowVersion(meta: WorkspaceWizardDraftMeta): number | undefined {
+  const raw = meta.sourceRowVersion;
+  return typeof raw === "number" && Number.isFinite(raw) && raw >= 0 ? raw : undefined;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -167,6 +172,11 @@ export function mergeDenaliWizardDraftEnvelope<TForm>(
         return readStepIndex(server.meta);
       })(),
       wizardSessionId: local.meta.wizardSessionId ?? server.meta.wizardSessionId,
+      ...(readSourceRowVersion(local.meta) !== undefined
+        ? { sourceRowVersion: readSourceRowVersion(local.meta) }
+        : readSourceRowVersion(server.meta) !== undefined
+          ? { sourceRowVersion: readSourceRowVersion(server.meta) }
+          : {}),
     },
   };
 }

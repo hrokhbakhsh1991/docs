@@ -124,6 +124,27 @@ describe("denali-wizard-draft-binding.spec.ts — Phase 11.5", () => {
     assert.equal(envelope.form.data.basics.title, "Seed");
   });
 
+  it("WEB-P11-5-07 prepare and hydrate preserve sourceRowVersion (flat-edit stamp)", () => {
+    const envelope = denaliPrepareDraftEnvelope(
+      { data: { basics: { title: "Seed" } } },
+      { currentStepIndex: 0, wizardSessionId: "edit-1", sourceRowVersion: 3 }
+    );
+    assert.equal(envelope.meta.sourceRowVersion, 3);
+    const hydratedRemote = denaliHydrateDraftEnvelope(
+      envelope,
+      { data: { basics: { title: "Fallback" } } },
+      { currentStepIndex: 0 }
+    );
+    assert.equal(hydratedRemote.meta.sourceRowVersion, 3);
+    const hydratedNull = denaliHydrateDraftEnvelope(
+      null,
+      { data: { basics: { title: "From tour" } } },
+      { currentStepIndex: 0, wizardSessionId: "edit-1", sourceRowVersion: 7 }
+    );
+    assert.equal(hydratedNull.meta.sourceRowVersion, 7);
+    assert.equal(hydratedNull.form.data.basics.title, "From tour");
+  });
+
   it("P2-C.15 edit tour remote draft identity scopes key per tour", () => {
     assert.deepEqual(denaliEditTourRemoteDraftIdentity("abc-123"), {
       namespace: DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
