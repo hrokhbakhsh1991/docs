@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v13"
+version: "2026-08-16-v14"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -306,6 +306,26 @@ Imported via [`denali-admin.css`](../../../packages/workspaces/denali/theme/dena
 | Popover + grid | `data-operator-wizard-calendar-popover` + BEM `operator-wizard-calendar__*` grid/header/day — **`wizard-calendar.css` on `body[data-workspace-plugin="denali"]`** (not under page root) |
 
 Selected day uses `aria-pressed="true"` (not `data-selected`). Dark mode re-binds `--operator-wizard-calendar-primary` via the same dual cascade as admin (`html.dark:has(body…)` + `body… .theme-dark`).
+
+**Calendar calendars (INV-DENALI-CAL-01):**
+
+Canonical / API / min / compare / `onSelect` are **Gregorian ISO** (`YYYY-MM-DD` civil date, ISO-8601 datetime). Jalali never enters `data`, RuleEngine, or `updateTour`.
+
+| Layer | Calendar | Notes |
+| ----- | -------- | ----- |
+| Storage + validation | Gregorian ISO | `startDateTime` / `endDateTime`, `minIsoDate`, `compareIsoDates`, `aria-label` on day cells |
+| Admin `locale=fa` | Jalali **presentation** | Month grid + trigger label (`formatIsoDateLabel`) convert at the adapter. Week starts Saturday. |
+| Admin `locale=en` | Gregorian presentation | Same ISO values; Sunday-first grid. |
+
+```text
+operator click (fa grid shows ۲۵ مرداد)
+  → cell.iso = "2026-08-16"          # Gregorian civil day
+  → datetime-local / ISO persist
+  → review/list: isoToDatetimeLocalInput → formatDatetimeLocalLabel(fa)
+        # display Jalali again; storage unchanged
+```
+
+Do **not** store `1405-05-25`. Do **not** convert in `apps/api` / `platform-core`. Reverse Jalali→Gregorian uses the same Intl forward mapping as `gregorianToJalaali` (civil-day binary search) — not a second formula and not a nested year/month/day scan. Shell twin: `apps/web/src/i18n/jalaali-calendar.ts` (Wave H.h — no Denali import from shell). Specs: `DN-CAL-01…07`, `WEB-CAL-01…03`.
 
 **Calendar UX (tour schedule):**
 

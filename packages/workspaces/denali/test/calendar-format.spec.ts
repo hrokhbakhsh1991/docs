@@ -48,4 +48,15 @@ describe("calendar-format.spec.ts", () => {
     assert.equal(canShiftViewMonthBackward(2026, 6, "en", "2026-06-23"), false);
     assert.equal(canShiftViewMonthBackward(2026, 7, "en", "2026-06-23"), true);
   });
+
+  it("DN-CAL-06 persian grid cells emit Gregorian ISO, not Jalali year strings", () => {
+    const cells = buildPersianMonthGrid(1405, 5, "2026-08-16", "2026-08-16");
+    assert.ok(cells.length > 0);
+    for (const cell of cells) {
+      assert.match(cell.iso, /^20\d{2}-\d{2}-\d{2}$/);
+      assert.doesNotMatch(cell.iso, /^1405-/);
+    }
+    const selected = cells.find((cell) => cell.isSelected);
+    assert.equal(selected?.iso, "2026-08-16");
+  });
 });

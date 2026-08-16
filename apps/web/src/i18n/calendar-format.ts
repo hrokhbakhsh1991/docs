@@ -33,6 +33,7 @@ export type CalendarDayCell = {
   readonly day: number;
   readonly month: number;
   readonly year: number;
+  /** Gregorian civil ISO `YYYY-MM-DD` — never a Jalali `1405-…` string (INV-DENALI-CAL-01). */
   readonly iso: string;
   readonly inCurrentMonth: boolean;
   readonly isToday: boolean;
