@@ -23,6 +23,21 @@ import {
 import { groupValidationIssuesByStep } from "../src/wizard/group-validation-issues-by-step";
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 
+/** Relative future ISO — hardcoded calendar days go stale and trip DENALI_TOUR_START_BEFORE_TODAY. */
+function futureTourStartIso(daysAhead = 14): string {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + daysAhead);
+  date.setUTCHours(8, 0, 0, 0);
+  return date.toISOString();
+}
+
+function futureTourEndIso(startIso: string, daysAfterStart = 2): string {
+  const date = new Date(startIso);
+  date.setUTCDate(date.getUTCDate() + daysAfterStart);
+  date.setUTCHours(18, 0, 0, 0);
+  return date.toISOString();
+}
+
 function stripWizardHost(plugin: ReturnType<typeof getDenaliWorkspacePlugin>) {
   const {
     tourList: _a,
@@ -76,7 +91,7 @@ describe("denali-wizard-validation.spec.ts — Phase 11.7", () => {
         category: "mountain_day",
         title: "تور تست",
         destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-        startDateTime: "2026-08-15T08:00:00.000Z",
+        startDateTime: futureTourStartIso(),
         capacityMax: "20",
         leaderUserIds: ["u1"],
         tripDetails: { overview: { peakHeight: "4000" } },
@@ -112,7 +127,7 @@ describe("denali-wizard-validation.spec.ts — Phase 11.7", () => {
         category: "mountain_day",
         title: "تور تست",
         destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-        startDateTime: "2026-08-15T08:00:00.000Z",
+        startDateTime: futureTourStartIso(),
         capacityMax: "20",
         tripDetails: {
           overview: { peakHeight: "4000" },
@@ -167,7 +182,7 @@ describe("denali-wizard-validation.spec.ts — Phase 11.7", () => {
         category: "mountain_day",
         title: "تور تست",
         destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-        startDateTime: "2026-08-15T08:00:00.000Z",
+        startDateTime: futureTourStartIso(),
         capacityMax: "20",
         tripDetails: {
           overview: { peakHeight: "4000" },
@@ -216,13 +231,14 @@ describe("denali-wizard-validation.spec.ts — Phase 11.7", () => {
       tenantId: "tenant",
       dimensions: { category: "mountain", duration: "multi_day" },
     });
+    const startDateTime = futureTourStartIso();
     const draft = {
       data: {
         category: "mountain_multi",
         title: "تور چندروزه",
         destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-        startDateTime: "2026-08-15T08:00:00.000Z",
-        endDateTime: "2026-07-03T18:00:00.000Z",
+        startDateTime,
+        endDateTime: futureTourEndIso(startDateTime),
         capacityMax: "20",
         tripDetails: { overview: { peakHeight: "4000" } },
         participants: { minimumAge: "" },
@@ -270,7 +286,7 @@ describe("denali-wizard-validation.spec.ts — Phase 11.7", () => {
         category: "mountain_multi",
         title: "تور چندروزه",
         destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-        startDateTime: "2026-08-15T08:00:00.000Z",
+        startDateTime: futureTourStartIso(),
         endDateTime: "",
         capacityMax: "20",
         tripDetails: { overview: { peakHeight: "4000" } },
