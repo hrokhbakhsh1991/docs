@@ -14,8 +14,10 @@ export function initialPublicRegistrationOtp(): string {
 }
 
 /**
- * Mobile shown on guest `/me` chrome (GL-BRAND-03). The US smoke fixture is
- * never a visible personal label even if a persisted identity still holds it.
+ * Strip the US smoke fixture from a stored mobile string.
+ * Login/register uses {@link guestLoginPhoneFieldValue}. The `/me` person chip
+ * uses `resolveGuestMemberChipLabel` — do not wire this helper onto that chip.
+ * `/me/profile` must keep showing the stored number (change via OTP).
  */
 export function guestVisibleProfileMobile(mobile: string | null | undefined): string {
   const trimmed = typeof mobile === "string" ? mobile.trim() : "";
