@@ -209,8 +209,23 @@ if (marketingModal.includes("createPortalSameOriginGuestAuthTransport")) {
 }
 
 const marketingShellAuth = readRepo("apps/marketing/src/shell/marketing-shell.tsx");
-if (!marketingShellAuth.includes("MarketingLoginModalTrigger")) {
-  violations.push("marketing-shell.tsx: header Sign in must use MarketingLoginModalTrigger");
+if (marketingShellAuth.includes("MarketingLoginModalTrigger")) {
+  violations.push(
+    "marketing-shell.tsx: header Sign in must navigate to Portal /login, not MarketingLoginModalTrigger (PCMS-MKT-AUTH-05)"
+  );
+}
+if (!marketingShellAuth.includes("href={portalMemberLoginUrl}")) {
+  violations.push("marketing-shell.tsx: header Sign in must use href={portalMemberLoginUrl}");
+}
+
+const marketingPdpCta = readRepo("apps/marketing/src/catalog/catalog-tour-detail-register-cta.tsx");
+if (!marketingPdpCta.includes("MarketingLoginModalTrigger")) {
+  violations.push(
+    "catalog-tour-detail-register-cta.tsx: PDP sign-in must use MarketingLoginModalTrigger (PCMS-MKT-AUTH-05)"
+  );
+}
+if (!marketingPdpCta.includes('host="pdp"')) {
+  violations.push("catalog-tour-detail-register-cta.tsx: PDP trigger must set host=\"pdp\"");
 }
 
 const originTransport = readRepo("packages/catalog-registration-flow-ui/src/guest-auth-transport.ts");

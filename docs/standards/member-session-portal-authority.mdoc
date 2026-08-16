@@ -1,7 +1,7 @@
 ---
 title: Member Session Portal Authority (PCMS)
 standard_id: PCMS-001
-version: 1.5.0
+version: 1.5.1
 status: active
 extends:
   - docs/standards/workspace-routing-standard.mdoc
@@ -56,7 +56,7 @@ mandatory_for:
 
 | Surface | Session | Registration auth |
 | ------- | ------- | ----------------- |
-| Marketing | Read-only SSR probe (`readMarketingMemberSessionFromCookies`) for header chrome **and** PDP CTA shaping | **Guest PDP:** Register → portal `/catalog/{id}/register` (Phase 6 still owns this buy path); «ورود» opens the **marketing** login modal (Portal-origin OTP) with href fallback to `register?auth=login`. **Logged-in PDP:** hide `[data-marketing-tour-sign-in]`; continue → `/catalog/{id}/register` (no `auth=login`). **Already-registered self:** primary → `/me/registrations/{id}` (`[data-marketing-view-registration]`). Header: Sign in opens the marketing modal (href fallback `{portal}/login?…`); authenticated → profile chip via `resolveMarketingMemberHeader` |
+| Marketing | Read-only SSR probe (`readMarketingMemberSessionFromCookies`) for header chrome **and** PDP CTA shaping | **Guest PDP:** Register → portal `/catalog/{id}/register` (Phase 6 still owns this buy path); «ورود» opens the **marketing** login modal (Portal-origin OTP) with href fallback to `register?auth=login`. **Logged-in PDP:** hide `[data-marketing-tour-sign-in]`; continue → `/catalog/{id}/register` (no `auth=login`). **Already-registered self:** primary → `/me/registrations/{id}` (`[data-marketing-view-registration]`). **Header Sign in** navigates to Portal `/login?portalReturn=/me/registrations` (thin host + portal login modal) — **not** the marketing modal. Authenticated header → profile chip via `resolveMarketingMemberHeader`. Future marketing login hosts may reuse the PDP modal; header stays a page egress until product asks. |
 | Portal | `atour_mb_session` read/write | OTP in **login modal** (host: `/login` thin page **or** register page); tour registration full-page on `/catalog/{id}/register` |
 | Web admin | `atour_op_session` | Operator invite login — never member cookie |
 
@@ -273,11 +273,15 @@ flowchart TD
 
 ### 5.5 Marketing Portal-origin auth host (Phase 5 — 2026-08-16)
 
-Marketing becomes a **second auth UI host**. Cookie write stays Portal BFF. The shared phone/OTP/profile steps stay in `@app-tour/catalog-registration-flow-ui`. Marketing must **not** mount `PublicCatalogRegistrationFlow` (that host hydrates intake and `GET /api/me/profile`).
+Marketing becomes a **second auth UI host**, but only where staying on the tour page matters. Cookie write stays Portal BFF. The shared phone/OTP/profile steps stay in `@app-tour/catalog-registration-flow-ui`. Marketing must **not** mount `PublicCatalogRegistrationFlow` (that host hydrates intake and `GET /api/me/profile`).
+
+**Surface split (2026-08-16, 1.5.1):** The marketing modal is the **PDP** guest «ورود» host. Header `[data-marketing-header-sign-in]` is **not** a modal trigger — it is a real navigation to Portal `/login` (PCMS-03 / §5.0). `MarketingLoginModalProvider` stays in the marketing layout so PDP (and a future marketing login host) can open the dialog without a second provider tree.
 
 ```mermaid
 flowchart TD
-  CTA["Header Sign in / PDP tour sign-in"]
+  HEADER["Header Sign in"]
+  PDP["PDP tour sign-in"]
+  LOGIN["Portal /login thin host"]
   MODAL["Marketing login modal · catalogRegistrationAuthFlowSteps"]
   ORIGIN["tryCreatePortalOriginGuestAuthTransport"]
   CORS["Portal /api/public-auth/* + CORS"]
@@ -285,7 +289,8 @@ flowchart TD
   PROBE["GET portalOrigin/api/public-auth/session"]
   RELOAD["window.location reload current marketing URL"]
   SSR["Next marketing SSR · header chip + PDP CTA"]
-  CTA --> MODAL
+  HEADER --> LOGIN
+  PDP --> MODAL
   MODAL --> ORIGIN
   ORIGIN --> CORS
   CORS --> COOKIE
@@ -300,7 +305,7 @@ flowchart TD
 | **PCMS-MKT-AUTH-02** | Origin adapter POSTs `{origin}/api/public-auth/{phone-preflight,request-otp,verify-otp,register-complete}` with `credentials: "include"`. Ignore JSON `session_token` — never persist it. |
 | **PCMS-MKT-AUTH-03** | Origin `probeSession` retries `GET {origin}/api/public-auth/session` until `{ ok: true, ready: true }` (bounded, same anti-hang budget as `waitForMemberSessionCookie`). **Zero** `GET /api/me/profile` from marketing. |
 | **PCMS-MKT-AUTH-04** | Marketing modal uses `GuestAuthHostProvider` + `catalogRegistrationAuthFlowSteps` with `memberLoginEgress: true`. Host `onAuthenticated` reloads the **current marketing URL** (strip `auth=login` if present). Not `completeMemberLoginEgress`, not intake hydrate. |
-| **PCMS-MKT-AUTH-05** | Header `[data-marketing-header-sign-in]` and PDP `[data-marketing-tour-sign-in]` are `<a href={GSH portal URL}>` with client `preventDefault` when the origin transport exists. No-JS / missing portal origin fall through to Portal `/login` or `register?auth=login`. |
+| **PCMS-MKT-AUTH-05** | **Header** `[data-marketing-header-sign-in]` is a plain `<a href={resolvePortalMemberLoginUrl}>` — full navigation to Portal `/login` (no `preventDefault`, no marketing modal). **PDP** `[data-marketing-tour-sign-in]` is `<a href={GSH register?auth=login}>` with client `preventDefault` when the origin transport exists so the guest stays on `/tours/{id}`. No-JS / missing portal origin on PDP falls through to `register?auth=login`. Optional marketing `?auth=login` auto-opens the modal **only** on a tour-detail pathname. `host="header"` on the marketing modal is reserved for a future marketing login surface — do not wire the chrome Sign in to it. |
 | **PCMS-MKT-AUTH-06** | `[data-marketing-register]` stays portal `/catalog/{id}/register` (Phase 6). Portal `/login` is **not** deleted. No `apps/marketing/app/api/public-auth/*`, no `app/api/me/*`, no cookie Domain helper changes. |
 
 **Why reload instead of client hydrate?** Marketing header chip and PDP CTA matrix are **SSR** (PCMS-03 / §5.3). After CORS `Set-Cookie` on the Portal host, the next marketing document request is what COOK-03 sharing is designed for. Client-only state would lie on `*.localhost` host-only cookies.

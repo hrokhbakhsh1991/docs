@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-08-16-v15"
+version: "2026-08-16-v16"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -47,7 +47,7 @@ app/layout.tsx
   phone / otp / profile steps         ← no fetch URLs, no location.assign, no intake hydrate
 
 Phase 4 (PCMS-CORS): Portal middleware CORS on `/api/public-auth/*` for the paired marketing origin.
-Phase 5: Marketing hosts the same OTP UI via the origin factory. Cookie write stays Portal BFF.
+Phase 5: Marketing hosts the same OTP UI on **PDP** via the origin factory (stay on `/tours/{id}`). Header Sign in navigates to Portal `/login`. Cookie write stays Portal BFF.
 Portal `/login` is retained (middleware `/me/*` gate). Marketing must not add `app/api/public-auth` / `app/api/me`.
 ```
 
@@ -106,7 +106,7 @@ Hooks:
 | ---- | ---- |
 | `[data-portal-return]` | Login host / modal — client egress fallback |
 | `[data-portal-register-sign-in-link]` | Guest register — opens login modal (same page) |
-| `[data-marketing-tour-sign-in]` | Marketing PDP **guest only** → `register?auth=login` (hidden when marketing SSR can read a bound member session) |
+| `[data-marketing-tour-sign-in]` | Marketing PDP **guest only** — marketing login modal (href fallback `register?auth=login`; hidden when marketing SSR can read a bound member session). Header Sign in is **not** this hook — it goes to Portal `/login`. |
 | `[data-marketing-view-registration]` | Marketing PDP **member-self** → portal `/me/registrations/{id}` |
 | `[data-marketing-register-another]` | Marketing PDP **member-self** secondary → `/catalog/{id}/register` (no `auth=login`) |
 

@@ -11,13 +11,13 @@ import { fileURLToPath } from "node:url";
 const marketingRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("marketing shell — PCMS-03", () => {
-  it("MKT-PCMS-01 shell sign-in uses portal login URL fallback + marketing modal trigger", () => {
+  it("MKT-PCMS-01 shell sign-in navigates to portal login URL (not marketing modal)", () => {
     const shell = readFileSync(path.join(marketingRoot, "src/shell/marketing-shell.tsx"), "utf8");
     assert.match(shell, /data-marketing-portal-member/);
     assert.match(shell, /data-marketing-header-sign-in/);
     assert.match(shell, /portalMemberLoginUrl/);
-    assert.match(shell, /MarketingLoginModalTrigger/);
     assert.match(shell, /href=\{portalMemberLoginUrl\}/);
+    assert.doesNotMatch(shell, /MarketingLoginModalTrigger/);
     assert.doesNotMatch(shell, /resolvePortalMemberAreaUrl/);
   });
 

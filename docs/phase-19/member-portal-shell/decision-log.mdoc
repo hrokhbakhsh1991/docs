@@ -557,9 +557,20 @@ extends:
 | ----- | ----- |
 | **Status** | **IMPLEMENTED (2026-08-16)** |
 | **Context** | Phase 4 CORS opened credentialed `fetch` from the paired marketing origin to Portal `/api/public-auth/*`. Marketing may now host the shared OTP/profile UI without becoming a cookie writer. |
-| **Decision** | Add `tryCreatePortalOriginGuestAuthTransport` (absolute portal public-auth + `GET /api/public-auth/session`). Mount `catalogRegistrationAuthFlowSteps` in a marketing modal. Header Sign in and PDP tour sign-in open that modal; `[data-marketing-register]` still goes to portal register. Host `onAuthenticated` reloads the current marketing URL. Do not add Marketing BFF, CORS `/api/me/*`, or delete `/login`. |
+| **Decision** | Add `tryCreatePortalOriginGuestAuthTransport` (absolute portal public-auth + `GET /api/public-auth/session`). Mount `catalogRegistrationAuthFlowSteps` in a marketing modal. PDP tour sign-in opens that modal; `[data-marketing-register]` still goes to portal register. Host `onAuthenticated` reloads the current marketing URL. Do not add Marketing BFF, CORS `/api/me/*`, or delete `/login`. **Header Sign in wiring:** see **DL-47** (navigates to Portal `/login`; not the marketing modal). |
 | **Consequences** | Custom-apex guests can complete OTP without leaving marketing. `*.localhost` host-only cookies still fail-closed to guest CTAs. Portal remains the `/me/*` gate. |
 | **Dependencies** | PCMS-001 §5.5 · PCMS-MKT-AUTH-01…06 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) §16 Phase 5 |
+| **Open questions** | None. |
+
+### DL-47 — Marketing header Sign in stays Portal `/login` (Phase 5 surface split)
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **IMPLEMENTED (2026-08-16)** |
+| **Context** | DL-46 shipped a working Portal-origin marketing modal. Product: guests signing in from **chrome** should land on the dedicated Portal login page; the marketing modal exists so PDP «ورود» does not leave `/tours/{id}`. A later marketing login host may reuse the same modal — header must not capture that until asked. |
+| **Decision** | Header `[data-marketing-header-sign-in]` is a plain GSH `<a href={resolvePortalMemberLoginUrl}>` (Portal `/login` thin host + portal modal). PDP `[data-marketing-tour-sign-in]` remains `MarketingLoginModalTrigger`. Keep `MarketingLoginModalProvider` in marketing layout. Auto-open `?auth=login` on marketing only for tour-detail pathnames. Do not delete Portal `/login`. Amend PCMS-MKT-AUTH-05 (1.5.1). |
+| **Consequences** | Home / list / other marketing pages never open `[data-marketing-login-modal]` from the header. PDP stay-on-page OTP is unchanged. |
+| **Dependencies** | PCMS-001 §5.5 · PCMS-MKT-AUTH-05 · DL-46 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) §16 Phase 5 |
 | **Open questions** | None. |
 
 ---
@@ -617,6 +628,7 @@ extends:
 | DL-44 | auth/profile error UX · DEV OTP | platform-portal-otp-flow · INV-MP-ERR-01 | — | — | — | auth+profile |
 | DL-45 | public-auth CORS Phase 4 | PCMS §5.4 | CORS-01…05 | guard-pcms-authority | P4 guest-auth |
 | DL-46 | Marketing origin OTP host Phase 5 | PCMS §5.5 | MKT-AUTH-01…06 | guard-pcms-authority | P5 guest-auth |
+| DL-47 | Header Sign in → Portal `/login`; modal PDP-only | PCMS §5.5 AUTH-05 | MKT-AUTH-05 | guard-pcms-authority | P5 guest-auth |
 
 *BMC = [builder-migration-contract.mdoc](./builder-migration-contract.mdoc) · GCSN = [guest-cross-surface-nav-schema.mdoc](./guest-cross-surface-nav-schema.mdoc)*
 

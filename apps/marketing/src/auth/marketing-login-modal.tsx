@@ -14,12 +14,15 @@ import { useTranslations } from "next-intl";
 
 import { tryCreatePortalOriginGuestAuthTransport } from "@app-tour/catalog-registration-flow-ui";
 
+import { isMarketingTourDetailPathname } from "./is-marketing-tour-detail-pathname";
 import {
   MarketingLoginAuthFlow,
   type MarketingLoginAuthFlowInput,
 } from "./marketing-login-auth-flow";
 
+/** `pdp` is the only wired host. `header` is reserved for a future marketing login surface. */
 export type MarketingLoginModalHost = "header" | "pdp";
+export { isMarketingTourDetailPathname } from "./is-marketing-tour-detail-pathname";
 
 export type OpenMarketingLoginModalOptions = {
   readonly host?: MarketingLoginModalHost;
@@ -82,7 +85,7 @@ export function MarketingLoginModalProvider({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const autoOpenedRef = useRef(false);
   const [open, setOpen] = useState(false);
-  const [host, setHost] = useState<MarketingLoginModalHost>("header");
+  const [host, setHost] = useState<MarketingLoginModalHost>("pdp");
   const [flow, setFlow] = useState<MarketingLoginAuthFlowInput | null>(null);
   const [presentation, setPresentation] = useState<"dialog" | "sheet">("dialog");
 
@@ -118,7 +121,7 @@ export function MarketingLoginModalProvider({
       if (!canHostAuth) {
         return;
       }
-      setHost(options?.host ?? "header");
+      setHost(options?.host ?? "pdp");
       setFlow(buildFlow(options));
       setPresentation(resolvePresentation());
       setOpen(true);
@@ -158,8 +161,11 @@ export function MarketingLoginModalProvider({
     if (params.get("auth") !== "login") {
       return;
     }
+    if (!isMarketingTourDetailPathname(window.location.pathname)) {
+      return;
+    }
     autoOpenedRef.current = true;
-    openLoginModal({ host: "header" });
+    openLoginModal({ host: "pdp" });
   }, [canHostAuth, openLoginModal]);
 
   const onAuthenticated = useCallback(async () => {

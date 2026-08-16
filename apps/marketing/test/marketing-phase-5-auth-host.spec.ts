@@ -8,6 +8,8 @@ import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { isMarketingTourDetailPathname } from "../src/auth/is-marketing-tour-detail-pathname";
+
 const marketingRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(marketingRoot, "../..");
 
@@ -52,7 +54,8 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
     }
   });
 
-  it("MKT-PCMS-P5-02 header and PDP sign-in keep GSH href fallback", () => {
+  it("MKT-PCMS-P5-02 header navigates to /login; PDP sign-in keeps modal trigger", () => {
+    const shell = readFileSync(join(marketingRoot, "src/shell/marketing-shell.tsx"), "utf8");
     const trigger = readFileSync(
       join(marketingRoot, "src/auth/marketing-login-modal-trigger.tsx"),
       "utf8"
@@ -61,12 +64,27 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
       join(marketingRoot, "src/catalog/catalog-tour-detail-register-cta.tsx"),
       "utf8"
     );
+    const modal = readFileSync(join(marketingRoot, "src/auth/marketing-login-modal.tsx"), "utf8");
+    assert.doesNotMatch(shell, /MarketingLoginModalTrigger/);
+    assert.match(shell, /href=\{portalMemberLoginUrl\}/);
     assert.match(trigger, /preventDefault/);
     assert.match(trigger, /canHostAuth/);
     assert.match(cta, /data-marketing-tour-sign-in/);
     assert.match(cta, /MarketingLoginModalTrigger/);
+    assert.match(cta, /host="pdp"/);
     assert.match(cta, /data-marketing-register/);
     assert.doesNotMatch(cta, /tryCreatePortalOriginGuestAuthTransport/);
+    assert.match(modal, /isMarketingTourDetailPathname/);
+    assert.match(modal, /host: "pdp"/);
+  });
+
+  it("MKT-PCMS-P5-05 marketing ?auth=login auto-open is PDP-only", () => {
+    assert.equal(isMarketingTourDetailPathname("/tours/00000000-0000-4000-8000-000000000220"), true);
+    assert.equal(isMarketingTourDetailPathname("/en/tours/abc"), true);
+    assert.equal(isMarketingTourDetailPathname("/"), false);
+    assert.equal(isMarketingTourDetailPathname("/tours"), false);
+    assert.equal(isMarketingTourDetailPathname("/tours/"), false);
+    assert.equal(isMarketingTourDetailPathname("/login"), false);
   });
 
   it("MKT-PCMS-P5-03 catalogRegistration messages exist without shenski", () => {

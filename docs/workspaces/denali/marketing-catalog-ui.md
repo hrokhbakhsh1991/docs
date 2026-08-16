@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-MARKETING-CATALOG-UI
-version: "2026-08-16-v8"
+version: "2026-08-16-v9"
 extends: public-catalog.md
 apps: [marketing]
 phase: P6-1
@@ -179,9 +179,11 @@ Marketing hosts the shared phone/OTP/profile steps in `[data-marketing-login-mod
 
 | Surface | Phase 5 | Fallback (no-JS / no portal origin) |
 | ------- | ------- | ----------------------------------- |
-| Header `[data-marketing-header-sign-in]` | Client trigger opens marketing modal | `href` = `resolvePortalMemberLoginUrl` |
-| PDP `[data-marketing-tour-sign-in]` | Client trigger opens marketing modal; stay on PDP after reload | `href` = portal `register?auth=login` |
+| Header `[data-marketing-header-sign-in]` | **Navigate** to Portal `/login?portalReturn=/me/registrations` (thin host + portal login modal). Not `MarketingLoginModalTrigger`. | Same `href` — no client intercept |
+| PDP `[data-marketing-tour-sign-in]` | Client trigger opens marketing modal; stay on `/tours/{id}` after reload | `href` = portal `register?auth=login` |
 | `[data-marketing-register]` | **Unchanged** — portal `/catalog/{id}/register` | — |
+
+`MarketingLoginModalProvider` remains in `app/layout.tsx` so PDP (and a **future** marketing login host) can open `[data-marketing-login-modal]` without a second provider. `host="header"` on that dialog is reserved — do not attach it to chrome Sign in until product asks.
 
 **Skin (Denali):** `37-mkt-login-modal.css` imported last from `denali-marketing.css`. Scope `body[data-app-surface="marketing"][data-workspace-plugin="denali"]` + `data-marketing-login-modal*`. Do not reuse `data-portal-login-modal` (portal CSS is `body[data-app-surface="portal"]`).
 
@@ -219,14 +221,14 @@ Stable selectors for Playwright — **do not rename** without updating smoke spe
 | `data-marketing-brand`           | brand link → `/`      |
 | `data-marketing-logo`            | tenant logo img       |
 | `data-marketing-locale-switcher` | header locale toggle (only when `guestLanding.shellChrome.localeSwitcher === true`) |
-| `data-marketing-header-sign-in`  | guest Sign in — marketing login modal (href fallback `resolvePortalMemberLoginUrl`) |
+| `data-marketing-header-sign-in`  | guest Sign in — navigates to Portal `/login` (`href={portalMemberLoginUrl}`; not the marketing modal) |
 | `data-marketing-header-member`   | authenticated profile chip → portal `/me/profile` |
 | `data-marketing-header-member-meta` | name + account hint stack |
 | `data-marketing-header-member-avatar-wrap` | avatar ring container |
 | `data-marketing-member-authenticated` | shell root when member session matches tenant |
 | `data-marketing-header-cta`      | sticky header tours CTA (only when `shellChrome.headerToursCta` and nav has no `tours` link) |
 
-**Denali club header chrome (2026-07-14):** Persian-only public surface — `shellChrome.localeSwitcher: false`. Primary nav already includes `nav.tours` via `guestCrossSurfaceNav`; redundant `data-marketing-header-cta` is off (`headerToursCta: false`). Toolbar keeps `data-marketing-header-sign-in` (Phase 5: marketing modal; href fallback `resolvePortalMemberLoginUrl`).
+**Denali club header chrome (2026-07-14):** Persian-only public surface — `shellChrome.localeSwitcher: false`. Primary nav already includes `nav.tours` via `guestCrossSurfaceNav`; redundant `data-marketing-header-cta` is off (`headerToursCta: false`). Toolbar keeps `data-marketing-header-sign-in` as a Portal `/login` link (`resolvePortalMemberLoginUrl`). The marketing OTP modal is PDP-only (`data-marketing-tour-sign-in`).
 
 ### Home (`/`)
 
@@ -359,7 +361,7 @@ Spec: [`marketing-landing.mdoc`](./marketing-landing.mdoc) v7 · smoke: SMK-MKT-
 | `data-marketing-catalog-detail-policies`     | policies section                                                                                      |
 | `data-marketing-catalog-detail-cancellation` | cancellation bullets                                                                                  |
 | `data-marketing-register`                    | registration CTA (**SMK-MKT-03**) → portal [`portal-registration-ui.md`](./portal-registration-ui.md) |
-| `data-marketing-tour-sign-in`                | guest-only secondary — marketing login modal (href fallback portal `register?auth=login`; Phase 3: omitted when member session is readable) |
+| `data-marketing-tour-sign-in`                | guest-only secondary — **PDP marketing login modal** (href fallback portal `register?auth=login`; Phase 3: omitted when member session is readable) |
 | `data-marketing-view-registration`           | member-self primary → portal `/me/registrations/{id}` |
 | `data-marketing-register-another`            | member-self secondary → portal `/catalog/{id}/register` (no `auth=login`) |
 | `data-marketing-tour-detail-cta-mode`        | `guest` \| `member-continue` \| `member-self` on CTA wrappers |

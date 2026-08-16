@@ -1,7 +1,7 @@
 ---
 title: Portal Member Login Modal
 doc_id: PCMS-LOGIN-MODAL
-version: "2026-08-16-v9"
+version: "2026-08-16-v10"
 status: design
 authority: docs/standards/member-session-portal-authority.mdoc
 apps: [portal, marketing]
@@ -32,7 +32,7 @@ non_goals:
 | Desktop | Centered dialog (`aria-modal`, focus trap, Esc closes) |
 | Mobile | Bottom sheet |
 | Close without success | Stay on host URL; register shows auth gate + reopen |
-| Marketing | Hosts the **same** OTP/profile steps in a marketing modal via Portal-origin transport; href fallback to portal `/login` / `register?auth=login`; no Marketing BFF |
+| Marketing | **PDP only** hosts the same OTP/profile steps in a marketing modal via Portal-origin transport (stay on `/tours/{id}`). **Header Sign in** navigates to Portal `/login` (thin host + portal modal). No Marketing BFF. Future marketing login hosts may reuse the PDP modal. |
 | Shared auth steps | `GuestAuthTransport` + host `onAuthenticated` — no BFF URLs or intake hydrate in OTP/profile UI |
 
 ## 2. Why marketing SSR already detects portal members
@@ -63,7 +63,8 @@ PCMS-001 already requires marketing **read-only** detection of `atour_mb_session
 | `/catalog/{id}/register` | **Auto for guests** (PCMS-UX-MODAL-04); `?auth=login` compatible; reopen via Sign-in control | Close modal · **stay** · resume/hydrate **intake-only** (PCMS-REG-01) |
 | `/login` (thin public host) | Auto-open on load | `waitForMemberSessionCookie` then `location.assign(portalReturn)` |
 | Protected `/me/*` | **Cannot** host modal for guests | Middleware → `/login?portalReturn=<path>` (unchanged) |
-| Marketing (any public page) | Header Sign in / PDP tour sign-in (client); optional `?auth=login` auto-open | Origin `probeSession` then **reload current marketing URL** |
+| Marketing header Sign in | **Navigate** to Portal `/login?portalReturn=/me/registrations` — not the marketing modal | Portal thin-host modal, then `portalReturn` |
+| Marketing PDP `/tours/{id}` | `[data-marketing-tour-sign-in]` client-opens marketing modal; optional `?auth=login` auto-open **only** on this pathname | Origin `probeSession` then **reload current PDP URL** |
 
 **Closed-modal a11y (2026-08-07):** `PortalLoginModalProvider` must not leave a visible/AT-exposed «ورود» / Sign-in `h2` on authenticated pages. When `open=false`, dialog content is unmounted and the `<dialog>` is `inert` so screen readers and a11y snapshots do not see a ghost login heading under `/me/*`.
 
@@ -71,13 +72,15 @@ PCMS-001 already requires marketing **read-only** detection of `atour_mb_session
 flowchart TD
   subgraph marketing [Marketing]
     MKT_READ[readMarketingMemberSessionFromCookies]
-    MKT_GUEST[Sign in / tour ورود]
+    MKT_HEADER[Header Sign in]
+    MKT_PDP[PDP tour ورود]
     MKT_MEMBER[Profile chip]
     MKT_MODAL[Marketing login modal]
-    MKT_READ -->|null| MKT_GUEST
+    MKT_READ -->|null| MKT_HEADER
+    MKT_READ -->|null| MKT_PDP
     MKT_READ -->|valid + tenant bind| MKT_MEMBER
-    MKT_GUEST -->|JS + portal origin| MKT_MODAL
-    MKT_MODAL -->|CORS public-auth + reload| MKT_READ
+    MKT_PDP -->|JS + portal origin| MKT_MODAL
+    MKT_MODAL -->|CORS public-auth + reload PDP| MKT_READ
   end
 
   subgraph portal [Portal]
@@ -94,21 +97,23 @@ flowchart TD
     MODAL -->|success on /login| ME
   end
 
-  MKT_GUEST -->|no-JS / no origin| LOGIN
+  MKT_HEADER --> LOGIN
+  MKT_PDP -->|no-JS / no origin| REG
 ```
 
 ## 4. URL builders (target contract)
 
 | Actor | Builder (keep / adjust) | Target URL after this design |
 | ----- | ----------------------- | ---------------------------- |
-| Marketing header Sign in | `resolvePortalMemberLoginUrl` | **Primary:** marketing modal (Phase 5). **Fallback href:** `{portal}/login?portalReturn=/me/registrations` |
-| Marketing tour «ورود» | `resolvePortalRegistrationLoginUrl` | **Primary:** marketing modal (stay on PDP after reload). **Fallback href:** `{portal}/catalog/{tourId}/register?auth=login` |
+| Marketing header Sign in | `resolvePortalMemberLoginUrl` | **Primary:** Portal `/login?portalReturn=/me/registrations` (thin host + portal login modal). Not the marketing modal. |
+| Marketing tour «ورود» | `resolvePortalRegistrationLoginUrl` | **Primary:** marketing modal on PDP (stay on `/tours/{id}` after reload). **Fallback href:** `{portal}/catalog/{tourId}/register?auth=login` |
 | Portal register «ورود» | client open modal | Same URL; optional `?auth=login` for shareable deep link |
 | Middleware `/me` guest | `resolvePortalMemberLoginPath` | `/login?portalReturn=<requested path>` |
 
 **Query `auth=login`:**
 
-- Allowed only on **public** portal routes that may host the modal (register; optionally future public hubs).
+- Allowed on **public** portal routes that may host the modal (register; optionally future public hubs).
+- On **marketing**, auto-open is allowed **only** on a tour-detail pathname (`/tours/{id}` or `/en/tours/{id}`). Home, `/tours` list, and other marketing routes ignore `?auth=login` so header Sign in stays a Portal `/login` navigation.
 - Ignored when session already valid → SSR/client goes intake-only / no modal (PCMS-UX-02 spirit).
 - Safe parsing: exact `auth=login` (no open redirect). `portalReturn` remains the return contract for `/login` host only (DL-12).
 
@@ -138,7 +143,7 @@ apps/portal
 | `@app-tour/catalog-registration-flow-ui` `GuestAuthTransport` | Phone/OTP/profile **network + session probe** only. Portal factory: same-origin `/api/public-auth/*` + `GET /api/me/profile`. Marketing factory: absolute portal `/api/public-auth/*` + `GET {origin}/api/public-auth/session`. No cookie write, no tenant, no intake. |
 | `GuestAuthHostProvider` | Injects `{ transport, onAuthenticated }` into auth steps. Steps throw if mounted outside the provider. |
 | Host `onAuthenticated` | Login: `completeMemberLoginEgress`. Register modal: close + reload register URL. **Marketing modal:** reload current marketing URL. Portal register resume (non-login-egress): `hydrateCatalogRegistrationIntakeAfterSession` on the **flow host**, never inside OTP/profile steps. |
-| Marketing | Phase 5: `MarketingLoginModalProvider` + origin adapter + shared auth steps. Hooks `data-marketing-login-modal*`. No `PublicCatalogRegistrationFlow`. No marketing public-auth BFF. Phase 4 CORS remains Portal `/api/public-auth/*` only. |
+| Marketing | Phase 5: `MarketingLoginModalProvider` in layout (needed for PDP). Trigger is **PDP-only** (`[data-marketing-tour-sign-in]`). Header Sign in is a plain GSH `/login` `<a>`. Hooks `data-marketing-login-modal*`. No `PublicCatalogRegistrationFlow`. No marketing public-auth BFF. Phase 4 CORS remains Portal `/api/public-auth/*` only. |
 
 **Presentation hooks (stable for smoke/CSS):**
 
@@ -331,7 +336,8 @@ Marketing **may** host OTP UI. Cookie write stays Portal BFF. Marketing still **
 
 - `tryCreatePortalOriginGuestAuthTransport` / `createPortalOriginGuestAuthTransport` — absolute portal public-auth only; `credentials: "include"`; `probeSession` = `GET {origin}/api/public-auth/session`; never `/api/me/profile`; never persist `session_token`; invalid origin → `null` / `GuestAuthTransportError("network")`.
 - Marketing modal mounts `catalogRegistrationAuthFlowSteps` + `GuestAuthHostProvider` — **not** `PublicCatalogRegistrationFlow`.
-- Header `[data-marketing-header-sign-in]` and PDP `[data-marketing-tour-sign-in]` open the marketing modal; `href` fallback remains GSH portal URLs.
+- Header `[data-marketing-header-sign-in]` **navigates** to Portal `/login` (plain `<a href={resolvePortalMemberLoginUrl}>`). PDP `[data-marketing-tour-sign-in]` opens the marketing modal; `href` fallback remains GSH `register?auth=login`.
+- Marketing `?auth=login` auto-opens the modal **only** on `/tours/{id}` (optional locale prefix). Other marketing routes ignore it so header Sign in cannot be re-captured by a query string.
 - Host `onAuthenticated` → reload current marketing URL (strip `auth=login`).
 - `createPortalSameOriginGuestAuthTransport` remains Portal-only, arity 0.
 - Denali skin: `37-mkt-login-modal.css` scoped to `body[data-app-surface="marketing"]` + `data-marketing-login-modal*` (not `data-portal-login-modal`).
