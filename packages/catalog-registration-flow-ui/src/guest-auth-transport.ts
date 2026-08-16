@@ -12,7 +12,7 @@ export type GuestAuthVerifyOutcome =
 
 /**
  * Network + session probe only. No cookie write, tenant, origin, or intake.
- * Portal same-origin adapter is the only implementation until a PCMS amendment.
+ * Portal same-origin adapter is the only implementation until Phase 5.
  */
 export type GuestAuthTransport = {
   readonly preflightPhone: (input: { readonly phone: string }) => Promise<{ readonly exists: boolean }>;
@@ -70,7 +70,7 @@ async function postPublicAuthJson(
 
 /**
  * Today's Portal host: relative BFF paths. Does not accept a base URL
- * (a future Marketing adapter would be a separate factory).
+ * (Phase 5 Marketing adapter is a separate factory after PCMS-CORS-01).
  */
 export function createPortalSameOriginGuestAuthTransport(): GuestAuthTransport {
   return {

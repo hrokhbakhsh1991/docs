@@ -54,6 +54,7 @@ export {
   resolvePortalPublicBaseUrl,
   resolvePortalRegistrationUrl,
 } from "./resolve-portal-public-base-url";
+export { resolvePublicAuthCorsAllowOrigin } from "./resolve-public-auth-cors-allow-origin";
 export {
   resolvePortalMemberModuleUrl,
 } from "./resolve-portal-member-module-url";

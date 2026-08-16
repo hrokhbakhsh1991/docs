@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-MARKETING-CATALOG-UI
-version: "2026-08-16-v6"
+version: "2026-08-16-v7"
 extends: public-catalog.md
 apps: [marketing]
 phase: P6-1
@@ -149,7 +149,7 @@ Authority: [PCMS-001 §5.3](../../standards/member-session-portal-authority.mdoc
 
 **Problem:** After portal OTP the member returns to marketing (custom apex cookie share). Header already swapped Sign-in → profile chip, but the tour PDP still rendered «ثبت‌نام» + «قبلاً ثبت‌نام کرده‌اید؟ ورود» even when the member had an active self booking.
 
-**Decision:** Shape CTAs in marketing **SSR** from the existing read-only session probe + optional API for-tour. Do not add Marketing OTP, CORS, cookie write, or `app/api/me/*`.
+**Decision:** Shape CTAs in marketing **SSR** from the existing read-only session probe + optional API for-tour. Do not add Marketing OTP, cookie write, or `app/api/me/*` / `app/api/public-auth/*`. Phase 4 CORS is **Portal** `/api/public-auth/*` only ([PCMS-001 §5.4](../../standards/member-session-portal-authority.mdoc)); marketing still does not host OTP (Phase 5 adapter).
 
 | Mode | When | Primary | Secondary | i18n |
 | ---- | ---- | ------- | --------- | ---- |
@@ -162,6 +162,12 @@ Authority: [PCMS-001 §5.3](../../standards/member-session-portal-authority.mdoc
 **Sold-out:** guest / member-continue still show sold-out copy. Member-self still shows view-registration (the booking exists); register-another is omitted when `canRegister` is false.
 
 **Modules:** `resolve-marketing-tour-detail-cta.ts` (pure) · `resolve-marketing-tour-detail-cta.server.ts` (session + fetch) · `fetch-marketing-member-self-registration-for-tour.server.ts` · `catalog-tour-detail-register-cta.tsx` (shared by booking rail **and** sticky bar — sticky must not duplicate href logic). Page `app/tours/[tourId]/page.tsx` resolves the model once and passes it down.
+
+### Phase 4 Portal public-auth CORS (2026-08-16)
+
+Authority: [PCMS-001 §5.4](../../standards/member-session-portal-authority.mdoc) · [portal-member-login-modal.mdoc](../../phase-19/portal-member-login-modal.mdoc) §16 Phase 4 DoD.
+
+Marketing remains href + read-only cookie chip + Phase 3 PDP CTA. Portal now answers credentialed CORS on `/api/public-auth/*` from the **paired** marketing origin so Phase 5 can add a Portal-origin transport. Marketing must not import `GuestAuthHostProvider` / `createPortalSameOriginGuestAuthTransport` in this phase.
 
 **For-tour headers (mirror portal BFF, not identity/me-only):** `Authorization: Bearer` + `x-tenant-id` + `x-authenticated-tenant-id` + `x-user-id` + `x-actor-role` + `x-membership-status: ACTIVE` + `x-forwarded-host`. `resolveWorkspacePublicAuthFromRequest` does **not** decode JWT; actor id must be sent as `x-user-id` from the already-validated marketing session.
 

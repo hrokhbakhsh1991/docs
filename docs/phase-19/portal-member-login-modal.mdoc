@@ -1,7 +1,7 @@
 ---
 title: Portal Member Login Modal
 doc_id: PCMS-LOGIN-MODAL
-version: "2026-08-16-v7"
+version: "2026-08-16-v8"
 status: design
 authority: docs/standards/member-session-portal-authority.mdoc
 apps: [portal, marketing]
@@ -135,7 +135,7 @@ apps/portal
 | `@app-tour/catalog-registration-flow-ui` `GuestAuthTransport` | Phone/OTP/profile **network + session probe** only. Portal factory: same-origin `/api/public-auth/*` + `GET /api/me/profile`. No cookie write, no tenant, no intake, no `baseUrl`. |
 | `GuestAuthHostProvider` | Injects `{ transport, onAuthenticated }` into auth steps. Steps throw if mounted outside the provider. |
 | Host `onAuthenticated` | Login: `completeMemberLoginEgress`. Register modal: close + reload register URL. Portal register resume (non-login-egress): `hydrateCatalogRegistrationIntakeAfterSession` on the **flow host**, never inside OTP/profile steps. |
-| Marketing | **No** modal component · only href targets + existing SSR session probe · **no** OTP UI until a later PCMS amendment |
+| Marketing | **No** modal / OTP until Phase 5 · href targets + SSR session probe · Phase 4 CORS is **Portal** `/api/public-auth/*` only |
 
 **Presentation hooks (stable for smoke/CSS):**
 
@@ -231,6 +231,7 @@ apps/portal
 | P1-TRANSPORT-01 | Auth steps contain no `/api/public-auth` / `location.assign` / intake hydrate |
 | P1-TRANSPORT-02 | `createPortalSameOriginGuestAuthTransport` owns relative BFF paths + `credentials: "include"` |
 | PCMS-LOGIN-01 | `/login` thin host auto-opens modal; `onAuthenticated` → `completeMemberLoginEgress` |
+| PCMS-CORS-01…05 | Public-auth CORS allowlist + session probe; no CORS on `/api/me/*` |
 
 ## 13. Explicit non-goals (repeat)
 
@@ -308,12 +309,22 @@ Fail-closed matrix:
 
 **Portal Denali intake (same phase):** when `existingSelfRegistrationId` / `selfTabLocked` is true on first paint, **do not** seed `otherGuests` with one empty draft. Empty state `[data-denali-other-guest-empty]` + `[data-denali-add-guest]` is the add path. In-flow duplicate lock may still append a draft after a failed self POST.
 
-Marketing OTP / CORS / cookie `Domain` / GSH guest login builders: **unchanged**.
+Marketing OTP / cookie `Domain` / GSH guest login builders: **unchanged** (Phase 4 CORS is Portal-only).
+
+**Phase 4 DoD (this change) — PCMS amendment + CORS on Portal public-auth only:**
+
+Marketing still **must not** host OTP, write `atour_mb_session`, or expose `apps/marketing/app/api/me/*` / `app/api/public-auth/*`. Cookie write stays Portal BFF. Cookie Domain helpers and `apps/api` `/public/auth/*` stay unchanged.
+
+- `resolvePublicAuthCorsAllowOrigin(ingressHost, Origin)` allowlists **only** the GSH portal public origin and the **paired** marketing public origin for that host (PCMS-CORS-02). Never `*`.
+- Portal middleware attaches CORS **only** when `pathname` is `/api/public-auth/*` (PCMS-CORS-01). `/api/me/*`, HTML pages, and catalog BFF get no ACAO.
+- OPTIONS preflight: 204 + CORS when allowed; 403 and no ACAO when Origin is missing or not paired (PCMS-CORS-04).
+- Credentialed: `Access-Control-Allow-Credentials: true` + exact `Access-Control-Allow-Origin`. `Allow-Methods: GET, POST, OPTIONS`. `Allow-Headers: content-type`. `Vary: Origin`.
+- `GET /api/public-auth/session` returns `{ ok: true, ready }` after JWT + tenant bind — no PII, no token (PCMS-CORS-05). Portal same-origin `waitForMemberSessionCookie` still uses `GET /api/me/profile`.
+- `createPortalSameOriginGuestAuthTransport` remains the only factory. No Marketing adapter (Phase 5).
 
 | Later phase | Work | Blocker |
 | ----------- | ---- | ------- |
-| **4** | Architect YES on PCMS amendment + CORS on public-auth only | Required before Marketing OTP |
-| **5** | New Marketing **Portal-origin** adapter (same UI, cookie still Portal BFF) | Phase 4 |
+| **5** | New Marketing **Portal-origin** adapter (same UI, cookie still Portal BFF; `fetch` portal `/api/public-auth/*` + session probe) | Phase 4 (done) |
 | **6** | Retire PDP→modal-on-register as the primary logged-out buy path | Phase 5 |
 
 Acceptance retained: *Today Portal is the only active auth host. Tomorrow Marketing can become a second auth UI host by adding a Portal-origin transport adapter and approved CORS/PCMS changes, without rewriting OTP/profile UI, creating a second auth package, moving session ownership, or changing Portal `/login`.*

@@ -540,17 +540,16 @@ extends:
 | **Dependencies** | [platform-portal-member-profile.mdoc](../platform-portal-member-profile.mdoc) INV-MP-AVATAR-01 · INV-MP-CACHE-01 |
 | **Open questions** | None. |
 
-### DL-44 — Auth/profile coded error UX + DEV OTP single source
+### DL-45 — Portal public-auth CORS (Phase 4)
 
 | Field | Value |
 | ----- | ----- |
-| **Status** | **PENDING SIGN-OFF** |
-| **Context** | Dual DEV OTP sources (random challenge log vs UI `1234` hint), stop-at-first `fieldErrors`, HTML5 English validation on onboarding, identical FA copy for `MOBILE_REQUIRED`/`MOBILE_INVALID`. |
-| **Decision** | (1) When static DEV OTP is enabled, API **issues** `1234` so challenge hash, `otp-dev` log, and UI hint share one value. (2) BFF emits distinct `MOBILE_REQUIRED` vs `MOBILE_INVALID`; UI clears presentation errors on edit; onboarding uses `noValidate` + coded alerts. (3) Profile BFF collect-all `fieldErrors`; clear-on-edit in UI; PATCH upstream OK + view-build fail still invalidates cache (INV-MP-CACHE-01 / INV-MP-ERR-01). |
-| **Consequences** | Shared helpers only in `catalog-registration-auth` / SDK; no portal business validators; no HTML5 as message source. |
-| **Dependencies** | [platform-portal-otp-flow.mdoc](../platform-portal-otp-flow.mdoc) · [platform-portal-member-profile.mdoc](../platform-portal-member-profile.mdoc) INV-MP-ERR-01 · INV-MP-CACHE-01 · INV-MP-AVATAR-02 |
+| **Status** | **IMPLEMENTED (2026-08-16)** |
+| **Context** | Guest-auth layers lock: Marketing may become a second OTP **UI** host only after CORS on Portal public-auth + PCMS amendment. Cookie write must stay Portal BFF. `/api/me/*` must stay same-origin. |
+| **Decision** | Allow credentialed CORS solely on `/api/public-auth/*`, origin-matched via GSH portal + paired marketing public origins. Add `GET /api/public-auth/session` boolean probe. Do not ship a Marketing transport adapter (Phase 5). Do not change cookie Domain helpers or `apps/api` public-auth. |
+| **Consequences** | Browser on `denali.club` / `{club}.localhost` can `fetch` portal public-auth with cookies; member profile BFF stays portal-private. |
+| **Dependencies** | PCMS-001 §5.4 · PCMS-CORS-01…05 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) §16 Phase 4 |
 | **Open questions** | None. |
-
 
 ---
 
@@ -605,6 +604,7 @@ extends:
 | DL-42 | §54 | addendum §6 | REG paths | §5.5 | — | all |
 | DL-43 | profile Discard/avatar | platform-portal-member-profile INV-MP-AVATAR-01 | — | — | — | profile |
 | DL-44 | auth/profile error UX · DEV OTP | platform-portal-otp-flow · INV-MP-ERR-01 | — | — | — | auth+profile |
+| DL-45 | public-auth CORS Phase 4 | PCMS §5.4 | CORS-01…05 | guard-pcms-authority | P4 guest-auth |
 
 *BMC = [builder-migration-contract.mdoc](./builder-migration-contract.mdoc) · GCSN = [guest-cross-surface-nav-schema.mdoc](./guest-cross-surface-nav-schema.mdoc)*
 
