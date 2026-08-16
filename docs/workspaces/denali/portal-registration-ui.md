@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-08-16-v19"
+version: "2026-08-16-v20"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -156,6 +156,8 @@ Intake dispatch: `apps/portal/app/api/catalog/registrations/route.ts` calls SDK 
 **Phone hydration:** after OTP/session, intake state `phone` is set from profile `mobile` / resume `memberMobile` (not left at `initialPublicRegistrationPhone()` empty). Submit includes `phone` when known so guest contact matches the signed-in member.
 
 **Ops note:** cold `next dev` compile of `/api/catalog/registrations` can take ~20s; clients with short timeouts may abort while the server still finishes — prefer Idempotency-Key + retry, not a second bare submit.
+
+**Submit → done (BUG-4):** `DenaliIntakeStep.handleSubmit` keeps `loading` (copy `intake.submitting`) only while `fetch` POSTs are in flight. After every participant POST returns, a full success calls `transitionFlowStep(dispatch, "done")` **inside the same client tree** — `DenaliDoneStep` mounts from that reducer event. The intake UI must **not** `router.refresh()`, wait on a follow-up `GET …/register?_rsc=…`, or keep the submitting label after the last 201. A 30s «در حال ارسال…» with a 201 already in the network log is a **dead/mismatched API or first compile of the BFF**, not a missing success panel. Partial failure still uses `data-denali-submit-results` (BUG-13).
 
 ### Intake field rules (2026-06-30)
 

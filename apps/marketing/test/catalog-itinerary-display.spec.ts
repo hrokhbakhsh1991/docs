@@ -40,16 +40,28 @@ describe("catalog-itinerary-display.spec.ts", () => {
     );
   });
 
-  it("MKT-08 readCatalogItinerarySegmentPhotoUrls filters blank urls", () => {
+  it("MKT-08 readCatalogItinerarySegmentPhotoUrls drops smoke placeholders", () => {
     assert.deepEqual(
       readCatalogItinerarySegmentPhotoUrls({
         title: "Hike",
-        photoUrls: ["https://cdn.example/a.jpg", "  ", ""],
+        photoUrls: [
+          "https://cdn.example/a.jpg",
+          "https://cdn.example.com/reachable.jpg",
+          "  ",
+          "",
+        ],
       }),
-      ["https://cdn.example/a.jpg"]
+      ["https://cdn.example.com/reachable.jpg"]
     );
     assert.deepEqual(
       readCatalogItinerarySegmentPhotoUrls({ title: "Rest" }),
+      []
+    );
+    assert.deepEqual(
+      readCatalogItinerarySegmentPhotoUrls({
+        title: "Smoke only",
+        photoUrls: ["https://cdn.example/operator-smoke-cover.jpg"],
+      }),
       []
     );
   });
@@ -72,5 +84,13 @@ describe("catalog-itinerary-display.spec.ts", () => {
     assert.match(en.detail.itinerarySegmentPhotosEmpty, /program section/i);
     assert.equal(/ذخیره|wizard|save/i.test(fa.detail.itinerarySegmentPhotosEmpty), false);
     assert.equal(/save|wizard/i.test(en.detail.itinerarySegmentPhotosEmpty), false);
+  });
+
+  it("MKT-08b itinerary photo reader uses the shared unreachable-host filter", () => {
+    const src = readFileSync(
+      new URL("../src/catalog/catalog-itinerary-display-logic.ts", import.meta.url),
+      "utf8"
+    );
+    assert.match(src, /resolveMarketingCatalogPhotoUrl/);
   });
 });

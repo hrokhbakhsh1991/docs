@@ -67,7 +67,7 @@ Hooks:
 | `portal/member-profile.css` | Mobile cards + **PS-VIS-5g sectioned** desktop |
 | `portal/marketing-header-parity.css` | Minimal header skin tokens (brand + chip) |
 | `src/shell/portal-member-header.tsx` | **PS-VIS-5e** brand + chip |
-| `src/shell/portal-member-bottom-nav.tsx` | Primary nav + **PS-VIS-5f** desktop logout footer |
+| `src/shell/portal-member-bottom-nav.tsx` | Primary nav + **PS-VIS-5f** desktop logout footer. **BUG-2:** labels come from RSC props (`item.label`, `primaryNavLabel`, logout strings) — no `useTranslations` in this client file. |
 | `app/me/profile/member-profile-form.tsx` | Hooks + `data-member-profile-layout`; mobile session/logout |
 
 ## Verification

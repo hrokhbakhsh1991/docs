@@ -5,6 +5,7 @@ import { resolveGuestSeoForPlugin, type WorkspaceGuestSeoMarketing } from "@app-
 
 import type { MarketingCatalogCard } from "@/catalog/catalog-types";
 import { formatCatalogCardDescription, formatCatalogCardSubtitle } from "@/catalog/format-catalog-display";
+import { resolveMarketingCatalogPhotoUrl } from "@/home/resolve-home-tour-cover-url";
 import { resolveMarketingLocalePath, type AppLocale } from "@/i18n/routing";
 
 /** Standard OG image dimensions declared for social crawlers (MKT-32). */
@@ -170,8 +171,8 @@ export function buildMarketingTourDetailMetadata(input: {
     },
   };
 
-  const cover = input.tour.coverImageUrl?.trim();
-  if (cover !== undefined && cover.length > 0) {
+  const cover = resolveMarketingCatalogPhotoUrl(input.tour.coverImageUrl);
+  if (cover != null && cover.length > 0) {
     metadata.openGraph = {
       ...metadata.openGraph,
       images: [

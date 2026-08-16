@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-MARKETING-CATALOG-UI
-version: "2026-08-16-v11"
+version: "2026-08-16-v12"
 extends: public-catalog.md
 apps: [marketing]
 phase: P6-1
@@ -358,8 +358,8 @@ Spec: [`marketing-landing.mdoc`](./marketing-landing.mdoc) v7 · smoke: SMK-MKT-
 | `data-marketing-catalog-detail-stats`        | stats ul (detail)                                                                                     |
 | `data-marketing-catalog-itinerary`           | itinerary section                                                                                     |
 | `data-marketing-catalog-itinerary-day`       | per-day article (`={dayNumber}`)                                                                      |
-| `data-marketing-catalog-segment-photos`      | segment photo list                                                                                    |
-| `data-marketing-catalog-segment-photos-empty` | ED-PHOTO-EMPTY-01 — muted empty copy when a segment has no `photoUrls` (day still renders)           |
+| `data-marketing-catalog-segment-photos`      | segment photo list (reachable https only — smoke `cdn.example` omitted, BUG-3)                      |
+| `data-marketing-catalog-segment-photos-empty` | ED-PHOTO-EMPTY-01 — muted empty copy when a segment has no reachable `photoUrls` (day still renders) |
 | `data-marketing-catalog-detail-policies`     | policies section                                                                                      |
 | `data-marketing-catalog-detail-cancellation` | cancellation bullets                                                                                  |
 | `data-marketing-register`                    | registration CTA (**SMK-MKT-03**) → portal [`portal-registration-ui.md`](./portal-registration-ui.md) |

@@ -1,16 +1,20 @@
 "use client";
 
 import { LogOut } from "lucide-react";
-import { useTranslations } from "next-intl";
 import { useEffect, useState, type JSX } from "react";
 
 export type MemberLogoutButtonProps = {
   readonly logoutTarget: string;
+  readonly logoutLabel: string;
+  readonly loggingOutLabel: string;
 };
 
 /** Post-logout landing — canonical guest egress back to marketing home. */
-export function MemberLogoutButton({ logoutTarget }: MemberLogoutButtonProps): JSX.Element {
-  const t = useTranslations("portalMember.nav");
+export function MemberLogoutButton({
+  logoutTarget,
+  logoutLabel,
+  loggingOutLabel,
+}: MemberLogoutButtonProps): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
 
@@ -42,7 +46,7 @@ export function MemberLogoutButton({ logoutTarget }: MemberLogoutButtonProps): J
     >
       <LogOut aria-hidden="true" data-public-auth-logout-icon />
       <span data-public-auth-logout-label>
-        {loading ? t("loggingOut") : t("logout")}
+        {loading ? loggingOutLabel : logoutLabel}
       </span>
     </button>
   );

@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PUBLIC-CATALOG
-version: "2026-08-16-v28"
+version: "2026-08-16-v29"
 workspace: denali
 stack: workspace-sdk · workspace-denali/http · apps/marketing
 authority: MIGRATION-MAP.md §3.5 · docs/workspaces/denali/marketing-landing.mdoc
@@ -138,7 +138,7 @@ Wizard uploads persist canonical photo rows with **`storageKey`** (tenant-scoped
 2. **Itinerary segment photos** — `buildDenaliCatalogPhotoUrlById` presigns each referenced photo id; `projectDenaliCatalogItinerary` merges into segment `photoUrls`.
 3. **Exposure** — when `denali.photos` is hidden, `coverImageUrl` is redacted after enrichment (unchanged).
 4. **Dev** — presign requires MinIO env (`readMinioPhotoConfigFromEnv`); without config, `coverImageUrl` stays `null` and marketing falls back to placeholder.
-5. **Smoke placeholder URLs** — operator/denali dev seeds may emit `https://cdn.example/...` (IANA `.example` reserved host). Marketing `resolveHomeTourCoverUrl` treats these as unreachable and serves `/home/fallback-tour-cover.webp` on list cards, home blocks, and detail hero when no real CDN/MinIO URL is configured.
+5. **Smoke placeholder URLs** — operator/denali dev seeds may emit `https://cdn.example/...` (IANA `.example` reserved host, **not** `cdn.example.com`). `isUnreachableMarketingCatalogImageUrl` / `resolveMarketingCatalogPhotoUrl` drop those hosts. List cards, home blocks, and the simple detail cover use `resolveHomeTourCoverUrl` → `/home/fallback-tour-cover.webp`. Hero mosaic / lightbox already go through `buildCatalogTourPhotoSet` (same filter). **Itinerary segment `<img>`s** must use the same filter (`readCatalogItinerarySegmentPhotoUrls`); a smoke URL becomes “no photos” + ED-PHOTO-EMPTY-01 copy, not a browser `ERR_NAME_NOT_RESOLVED` (BUG-3). Detail `og:image` / `twitter:image` omit the cover when the URL is unreachable — do not advertise a dead host to crawlers. Do not change the seed URL to a real CDN; fixtures stay `.example` so JSON-LD can still emit `https` in API tests.
 
 Marketing `CatalogCoverImage` uses `unoptimized` for hosts outside `MARKETING_IMAGE_REMOTE_HOSTS` (typical for presigned MinIO URLs).
 

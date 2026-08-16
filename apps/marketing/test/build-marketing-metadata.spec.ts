@@ -56,7 +56,7 @@ describe("build-marketing-metadata", () => {
         id: "t1",
         title: "North Ridge Trek",
         shortDescription: "Alpine trek",
-        coverImageUrl: "https://cdn.example/trek.jpg",
+        coverImageUrl: "https://cdn.example.com/trek.jpg",
       },
       tourId: "t1",
       defaultTourTitle: "Tour",
@@ -64,12 +64,32 @@ describe("build-marketing-metadata", () => {
     assert.equal(metadata.title, "North Ridge Trek");
     const images = metadata.openGraph?.images;
     assert.ok(Array.isArray(images));
-    assert.equal(images[0]?.url, "https://cdn.example/trek.jpg");
+    assert.equal(images[0]?.url, "https://cdn.example.com/trek.jpg");
     assert.equal(metadata.twitter?.card, "summary_large_image");
     assert.equal(metadata.twitter?.title, "North Ridge Trek — Operator Smoke");
     const twitterImages = metadata.twitter?.images;
     assert.ok(Array.isArray(twitterImages));
-    assert.equal(twitterImages[0], "https://cdn.example/trek.jpg");
+    assert.equal(twitterImages[0], "https://cdn.example.com/trek.jpg");
+  });
+
+  it("MKT-15b tour detail OG omits unreachable smoke cover URLs", () => {
+    const metadata = buildMarketingTourDetailMetadata({
+      host: "operator.localhost:3002",
+      siteName: "Operator Smoke",
+      pluginId: "denali",
+      tour: {
+        id: "t1",
+        title: "North Ridge Trek",
+        shortDescription: "Alpine trek",
+        coverImageUrl: "https://cdn.example/operator-smoke-cover.jpg",
+      },
+      tourId: "t1",
+      defaultTourTitle: "Tour",
+    });
+    const images = metadata.openGraph?.images;
+    assert.equal(images, undefined);
+    assert.equal(metadata.twitter?.card, "summary");
+    assert.equal(metadata.twitter?.images, undefined);
   });
 
   it("MKT-32 tour detail OG image declares width and height", () => {
@@ -81,7 +101,7 @@ describe("build-marketing-metadata", () => {
         id: "t1",
         title: "North Ridge Trek",
         shortDescription: "Alpine trek",
-        coverImageUrl: "https://cdn.example/trek.jpg",
+        coverImageUrl: "https://cdn.example.com/trek.jpg",
       },
       tourId: "t1",
       defaultTourTitle: "Tour",

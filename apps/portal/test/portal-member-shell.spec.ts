@@ -51,6 +51,9 @@ describe("portal-member-shell.spec.ts — PS-1", () => {
     assert.match(bottomNav, /data-portal-shell-nav-icon/);
     assert.match(bottomNav, /PortalNavIcon/);
     assert.match(bottomNav, /data-active=/);
+    assert.doesNotMatch(bottomNav, /useTranslations/);
+    assert.match(shell, /label: t\(item\.labelKey\)/);
+    assert.match(shell, /primaryNavLabel=\{t\("primaryNav"\)\}/);
   });
 
   it("PS1-SHELL-02b shell TSX has no appearance className (skin owns visuals)", () => {
@@ -95,6 +98,9 @@ describe("portal-member-shell.spec.ts — PS-1", () => {
     assert.match(logout, /data-public-auth-logout-ready/);
     assert.match(logout, /data-public-auth-logout-target="marketing-home"/);
     assert.match(logout, /logoutTarget: string/);
+    assert.match(logout, /logoutLabel: string/);
+    assert.match(logout, /loggingOutLabel: string/);
+    assert.doesNotMatch(logout, /useTranslations/);
     assert.match(logout, /location\.assign\(logoutTarget\)/);
     assert.doesNotMatch(logout, /MEMBER_LOGOUT_LANDING_PATH/);
     assert.doesNotMatch(logout, /\/login/);

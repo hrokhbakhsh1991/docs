@@ -39,7 +39,11 @@ export function PortalMemberUserMenu({ items, logoutTarget }: PortalMemberUserMe
           </Link>
         );
       })}
-      <MemberLogoutButton logoutTarget={logoutTarget} />
+      <MemberLogoutButton
+        logoutTarget={logoutTarget}
+        logoutLabel={t("logout")}
+        loggingOutLabel={t("loggingOut")}
+      />
     </div>
   );
 }
