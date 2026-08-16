@@ -1,7 +1,7 @@
 ---
 title: Denali guest login + club branding — remediation contract
 doc_id: DENALI-GUEST-LOGIN-BRANDING-REMEDIATION
-version: "2026-08-16-v13"
+version: "2026-08-16-v14"
 phase: guest-portal
 apps: [portal, marketing, web, api]
 workspace: denali
@@ -52,7 +52,7 @@ Admin  /settings/branding  →  tenants.theme.displayName = "shenski"
 | Marketing fallback | `catalog.nav.defaultSiteName` | Call the helper directly (no app-local alias wrapper). |
 | Portal fallback | `catalogRegistration.chrome.defaultSiteName` | One portal key (login chrome, `/me` header, document title). **Byte-equal** to marketing `nav.defaultSiteName` (guard spec). |
 | Club seed name | `DEV_TENANTS` denali row `…000003` `theme.displayName` | **`shenski`**. Workspace-type default stays color-only so operator smoke `…014` does not inherit the trade name. |
-| Postgres club seed | `ProvisioningService.seedDenaliSmokeTenant` | Passes the `DEV_TENANTS` theme when present (`DATABASE_URL` path otherwise drops to color-only defaults). |
+| Postgres club seed | `ProvisioningService.seedDenaliSmokeTenant` | Copies `DEV_TENANTS` theme only behind `canResolveDevTenantRegistryFallback()` (DEC-039 / `guard:static-registry`). That gate is true in **dev and test**, including when `DATABASE_URL` is set, so Phase 6.6 Postgres seed still writes `displayName=shenski`. Production auth mode does not read the static registry and keeps the color-only workspace-type default. |
 | Merge | `resolveEffectiveTenantBranding` | Unchanged. Do not inherit `displayName` from workspace-type fallback when stored theme already has colors. |
 
 ### Phase 1 addendum — person chip vs club brand (GL-BRAND-03)

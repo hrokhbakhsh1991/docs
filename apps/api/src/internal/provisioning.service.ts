@@ -15,7 +15,11 @@ import {
   getPlatformAdminClient,
 } from "../platform/platform-admin-client";
 import { invalidateTenantRegistryCache } from "../tenant/tenant-registry-cache";
-import { findTenantBySubdomain, isStaticTenantRegistryAllowed } from "../tenant/tenant-registry";
+import {
+  canResolveDevTenantRegistryFallback,
+  findTenantBySubdomain,
+  isStaticTenantRegistryAllowed,
+} from "../tenant/tenant-registry";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
 import { TenantProvisionConflictError } from "./provisioning.errors";
 import { assertProvisioningDevelopmentOnly } from "./provisioning-guard";
@@ -91,7 +95,9 @@ export class ProvisioningService {
   /** Phase 6.6 — idempotent denali smoke tenant (`denali.localhost`). */
   async seedDenaliSmokeTenant(): Promise<ProvisionedTenant> {
     assertProvisioningDevelopmentOnly();
-    const clubSeed = findTenantBySubdomain(DENALI_SMOKE_SUBDOMAIN);
+    const clubSeed = canResolveDevTenantRegistryFallback()
+      ? findTenantBySubdomain(DENALI_SMOKE_SUBDOMAIN)
+      : null;
     return this.upsertSeedTenant({
       subdomain: DENALI_SMOKE_SUBDOMAIN,
       tenantId: DENALI_SMOKE_TENANT_ID,

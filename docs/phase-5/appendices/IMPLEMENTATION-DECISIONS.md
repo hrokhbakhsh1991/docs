@@ -808,9 +808,10 @@ HTTP 400 path: `handleHttpError` **does not log** these errors (client body only
 | ------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | `assertStaticTenantRegistryRuntime()` | Boot (`main.ts` via `assertProductionRuntimeIntegrity`) | Production: static registry must be disallowed; prod-like env without `DATABASE_URL` → throw |
 | `isStaticTenantRegistryAllowed()`     | All static lookups                                      | Unchanged DEC-025 contract                                                                   |
-| Provisioning static lookup            | `resolveTenantIdentity`                                 | `findTenantBySubdomain` only when gate true                                                  |
+| Provisioning static lookup            | `resolveTenantIdentity`                                 | `findTenantBySubdomain` only when `isStaticTenantRegistryAllowed()`                          |
+| Club smoke seed theme (GL-BRAND-02)   | `ProvisioningService.seedDenaliSmokeTenant`             | Copy `DEV_TENANTS` theme only when `canResolveDevTenantRegistryFallback()` — so Postgres-backed **dev/test** (Phase 6.6 with `DATABASE_URL`) still seeds `displayName=shenski`. Production auth mode stays workspace-type color-only. Ungated `findTenantBy*` is forbidden. |
 
-CI `guard:static-registry` bans direct `findTenantById` / `findTenantBySubdomain` outside `tenant-registry.ts` unless preceded by `isStaticTenantRegistryAllowed()` on the same or prior line block.
+CI `guard:static-registry` bans direct `findTenantById` / `findTenantBySubdomain` outside `tenant-registry.ts` unless the prior 6-line window contains `isStaticTenantRegistryAllowed()` or `canResolveDevTenantRegistryFallback()`.
 
 **Problem (DI-IDEM-02):** `memoryByKey` Map grew without bound in memory storage driver — resource leak in dev/test.
 
