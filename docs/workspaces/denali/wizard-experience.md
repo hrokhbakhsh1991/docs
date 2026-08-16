@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v23"
+version: "2026-08-16-v24"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -318,7 +318,7 @@ Live create leftover after Phase 15. **No ×10 conversion.** Storage `priceCurre
 | **ED-DEST-NATURE-01** | Nature tour destination + itinerary pickers listed `locationType=peak` rows (Tochal/Damavand). Peak altitude prefill was already skipped. | `isDenaliDestinationOfferedForTourKind` hides peaks when `readDenaliCanonicalBasics(kind).category === "nature"`. Currently selected peak remains in the option list so the control does not go blank. Mountain/desert/event unchanged. Specs: `DEN-DEST-NATURE-01*`. |
 | **ED-DT-EQ-COPY-01** | Guard is `Date.parse(end) <= Date.parse(start)` (equal instants rejected) but FA copy said only «قبل از شروع». | i18n: end **must be after** start (`باید بعد از شروع برنامه باشد` / `must be after the tour start`). Comparison unchanged. |
 
-## Asklim live-audit pack (v23 — phased)
+## Asklim live-audit pack (v23/v24 — phased)
 
 Live create 2026-08-16: nature multi-day camping at آبشار اسکلیم (`97974fc2-…`). Gathering dual-write (ED-GATHER-PERSIST-01) held; **camp OSM did not survive POST**. **Do not start P2/P3 until P1 specs `DEN-CAMP-PERSIST-01*` are green** — later waves must not reopen ghost-path policy (`INV-DENALI-WIZ-003`).
 
@@ -386,6 +386,7 @@ prepareDenaliSubmitArtifact
 API ghost strip    delete root campPoint / summitPoint / endPoint  (unchanged)
 GET                tripDetails.overview.campPoint populated
 hydrate / review   resolveDenaliLocationZoneFromStorage(root, nested)
+public delivery    denali.location-zones reads root, then tripDetails.overview.{path}
 ```
 
 | Layer | Path |
@@ -396,10 +397,12 @@ hydrate / review   resolveDenaliLocationZoneFromStorage(root, nested)
 | Sanitize | promote root ghost → overview when nested empty; empty zones persist as omitted / `{}` not a fake pin |
 | Submit artifact | copy form `basicInfo.{summit,camp,end}Point` → `tripDetails.overview.*` so form-project overwrite of `tripDetails` cannot drop the zone |
 | Review | same resolve helper (`formatLocation`) |
-| API strip | **unchanged** — ghosts stay ghosts |
-| Delivery enrich | optional same-phase: `getCanonicalValue(overview.{path})` fallback when root ghost is absent. Doc-First if `apps/api` `enrich-canonical-delivery-payload.ts` changes. Not required to close operator GET. |
+| API strip | **unchanged** — ghosts stay ghosts. `deleteCanonicalPath("campPoint")` deletes **root only**; nested `tripDetails.overview.campPoint` survives. |
+| Delivery enrich | **v24** — `enrich-canonical-delivery-payload.ts` `resolveDenaliLocationZonesDeliveryValue` reads root zone first, then `tripDetails.overview.{path}` when the root is empty (ghost strip). Workspace-agnostic canonical paths only — no `plugin.id === "denali"` in `updateTour`, no persist of root ghosts. Spec: nested-only camp/summit/end still join into `denali.location-zones`. |
 
 Do **not**: drop `campPoint` from `DENALI_FORM_PROFILE_GHOST_PATHS`; persist root ghosts; `plugin.id === "denali"` in `updateTour`; invent coordinates.
+
+**Delivery vs operator GET:** Operator edit hydrate already promotes nested overview → root via `promoteDenaliLocationZonesOnDraft`. Public/integration delivery (`enrichCanonicalDeliveryPayload`) never runs that promote; it previously called `getCanonicalValue(payload, "campPoint")` only, so a persisted Asklim camp vanished from `denali.location-zones` even though GET overview had the pin. Fallback is read-only: populated root still wins (in-session / startPoint anchor); empty root uses overview. Duplicate labels across root+nested are still de-duplicated.
 
 ### Destination catalog refetch (ED-DEST-REFETCH-01)
 

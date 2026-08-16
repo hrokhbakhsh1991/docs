@@ -22,6 +22,8 @@ const DELIVERY_DATE_TIME_TIME_ZONE = "Asia/Tehran";
 /** Denali composite location field — renders all populated trip zones in selection order. */
 const DENALI_LOCATION_ZONES_FIELD_ID = "denali.location-zones";
 const DENALI_LOCATION_ZONE_PATHS = ["startPoint", "summitPoint", "campPoint", "endPoint"] as const;
+/** Ghost dependents persist here after form-profile strip (ED-CAMP-PERSIST-01). */
+const DENALI_LOCATION_ZONE_OVERVIEW_PREFIX = "tripDetails.overview";
 
 function coerceLocationDataToDeliveryString(value: unknown): string | undefined {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -78,6 +80,23 @@ function coerceToDeliveryString(
 }
 
 /**
+ * Root zone first (startPoint anchor / in-session ghosts); empty root falls back to
+ * `tripDetails.overview.{path}` after INV-DENALI-WIZ-003 ghost strip.
+ */
+function resolveDenaliLocationZoneDeliveryString(
+  payload: Readonly<Record<string, unknown>>,
+  zonePath: (typeof DENALI_LOCATION_ZONE_PATHS)[number],
+): string | undefined {
+  const fromRoot = coerceLocationDataToDeliveryString(getCanonicalValue(payload, zonePath));
+  if (fromRoot !== undefined) {
+    return fromRoot;
+  }
+  return coerceLocationDataToDeliveryString(
+    getCanonicalValue(payload, `${DENALI_LOCATION_ZONE_OVERVIEW_PREFIX}.${zonePath}`),
+  );
+}
+
+/**
  * Aggregates the Denali location-zone composite (start/summit/camp/end) into a single
  * comma-joined delivery value. Empty zones are skipped; returns undefined when none are set.
  */
@@ -86,7 +105,7 @@ function resolveDenaliLocationZonesDeliveryValue(
 ): string | undefined {
   const labels: string[] = [];
   for (const zonePath of DENALI_LOCATION_ZONE_PATHS) {
-    const label = coerceLocationDataToDeliveryString(getCanonicalValue(payload, zonePath));
+    const label = resolveDenaliLocationZoneDeliveryString(payload, zonePath);
     if (label !== undefined && !labels.includes(label)) {
       labels.push(label);
     }
