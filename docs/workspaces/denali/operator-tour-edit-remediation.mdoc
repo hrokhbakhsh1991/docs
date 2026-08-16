@@ -1,9 +1,9 @@
 ---
 title: Denali operator tour edit — remediation contract
 doc_id: DENALI-OPERATOR-TOUR-EDIT-REMEDIATION
-version: "2026-08-16-v21"
+version: "2026-08-16-v22"
 phase: operator-admin
-apps: [web, api]
+apps: [web, api, marketing]
 workspace: denali
 ---
 
@@ -59,6 +59,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
   → 17 INV-DENALI-MULTI-CAL-A (multi_day ≥ 2 distinct local calendar days)
   → 18 ED-EMPTY-OPT-01 (optional empty for logistics gear/services + guide languages)
   → 19 ED-PHOTO-EMPTY-01 (day photo + itinerary photo empty copy; persist allowed)
+  → 20 ED-CURR-MKT-01 (public catalog IRR label → تومان; no ×10)
 ```
 
 ## Invariants
@@ -91,6 +92,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
 | **17** ED-MULTI-CAL-01 / INV-DENALI-MULTI-CAL-A | Done — `multi_day` requires ≥2 distinct local calendar days. `estimateDenaliTourDayCount` is inclusive YMD count (no min-2 clamp; itinerary row count is not a day). Same-calendar-day multi-day emits `DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS`; end calendar min is start+1. |
 | **18** ED-EMPTY-OPT-01 | Done — logistics gear/services and guide languages show optional empty (`role=status`) when catalog is soft-degraded, catalog is empty, or the operator skips. Empty `[]` does not block Continue/save. |
 | **19** ED-PHOTO-EMPTY-01 | Done — day photos and itinerary segment photos have optional empty copy. Empty `photos: []` / no segment `photoIds` does not block save. Marketing itinerary shows muted empty copy; does not invent photos. |
+| **20** ED-CURR-MKT-01 | Done — public catalog `formatCatalogPrice` labels `IRR` as تومان/toman (same digits). No ×10. JSON-LD stays ISO `IRR`. Operator `formatTourPrice` and finance formatters unchanged. |
 
 ## Closure (2026-08-06)
 
@@ -111,6 +113,8 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 **v20 (2026-08-16):** Phase **18** / **ED-EMPTY-OPT-01** — empty logistics gear/services and guide languages are a valid skip. Soft-degraded catalog shows `role=status` optional-empty (not a blocking alert). Review paints `review.optionalEmpty` instead of omitting the row. Continue/save must not emit `REQUIRED_FIELD_EMPTY` for those `required: false` arrays. No API / `platform-core` / `plugin.id === "denali"`.
 
 **v21 (2026-08-16):** Phase **19** / **ED-PHOTO-EMPTY-01** — day-photo and itinerary-segment-photo empty copy. Wizard uses `DenaliOptionalEmptyNotice`. `photos` stays `required: false`; empty arrays persist. Public catalog itinerary shows `detail.itinerarySegmentPhotosEmpty` when a section has no `photoUrls` (gallery PR-9 fallbacks unchanged). No API / `platform-core` / `plugin.id === "denali"`.
+
+**v22 (2026-08-16):** Phase **20** / **ED-CURR-MKT-01** — public catalog painted `Intl` `style: currency` + `IRR` as ریال/`IRR` while wizard/operator list already say تومان for the same stored integer. Fix is **marketing-local** `formatCatalogPrice` only (grouped digits + تومان/toman). Do **not** ×10; do **not** change `formatTourPrice`, finance formatters, or JSON-LD `priceCurrency`. Storage/egress stay ISO `IRR`. No API / `platform-core` / `plugin.id === "denali"`.
 
 **Operator follow-ups outside this pack** (not blockers; do not reopen lifecycle / platform-core validate):
 
@@ -160,6 +164,12 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 | ID | Owner path |
 | --- | --- |
 | ED-PEAK-LOCK-01 | Denali `applyLockedDestinationCatalogMetricsToCanonical` → `wizardHost.normalizeCanonicalForPersist`. API `applyWorkspacePersistCanonicalNormalize` inside `enrichValidateBeforePersistInput` (main thread; worker receives already-locked `body.data`). |
+
+## Phase 20 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-CURR-MKT-01 | `apps/marketing/src/catalog/format-catalog-display.ts` `formatCatalogPrice` — `IRR` → تومان/toman grouped digits (list chip, home cards, facts, sticky, rail, logistics cost/dong). JSON-LD unchanged. **No ×10.** |
 
 ## Phase 19 implementation map
 
@@ -244,5 +254,7 @@ pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/dena
 pnpm --filter @apps/web exec node --import tsx --import ./test/register-dom.mjs --test test/denali-wizard-validation.spec.ts
 # Phase 14 visible-again / pairs / review / end clear
 pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/apply-destination-catalog-prefill.spec.ts test/datetime-end-inherit.spec.ts test/denali-numeric-pair-policy.spec.ts test/denali-review-catalog-name.spec.ts test/denali-schedule-fields.spec.ts
+# Phase 20 ED-CURR-MKT-01 public catalog IRR → toman (no ×10)
+pnpm --filter @apps/marketing exec node --import tsx --test test/marketing-catalog-display.spec.ts
 ```
 

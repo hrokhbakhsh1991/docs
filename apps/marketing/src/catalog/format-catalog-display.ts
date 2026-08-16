@@ -68,11 +68,23 @@ export function formatCatalogPrice(
   if (amount == null) {
     return priceOnRequestLabel;
   }
+  const code = (currency?.trim() || "IRR").toUpperCase();
+  const isFa = dateLocale.startsWith("fa");
+  // ED-CURR-MKT-01 — catalog IRR amounts are toman digits; ISO storage stays IRR.
+  // Do not ×10. Do not reuse operator formatTourPrice or finance formatters.
+  if (code === "IRR") {
+    const unit = isFa ? "تومان" : "toman";
+    const digits = new Intl.NumberFormat(dateLocale, {
+      maximumFractionDigits: 0,
+      ...(isFa ? { numberingSystem: "arabext" } : {}),
+    }).format(amount);
+    return `${digits} ${unit}`;
+  }
   return new Intl.NumberFormat(dateLocale, {
     style: "currency",
-    currency: currency?.trim() || "IRR",
+    currency: code,
     maximumFractionDigits: 0,
-    ...(dateLocale.startsWith("fa") ? { numberingSystem: "arabext" } : {}),
+    ...(isFa ? { numberingSystem: "arabext" } : {}),
   }).format(amount);
 }
 

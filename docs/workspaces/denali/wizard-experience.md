@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v19"
+version: "2026-08-16-v20"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -312,7 +312,8 @@ Live create leftover after Phase 15. **No ×10 conversion.** Storage `priceCurre
 
 | ID | Failure | Contract |
 | -- | ------- | -------- |
-| **ED-CURR-01** | Wizard labels تومان; operator list/edit header `Intl` with `priceCurrency: "IRR"` painted **ریال** for the same digits. | `formatTourPrice` (apps/web, product-blind) formats `IRR` as تومان / toman via grouped digits — not `Intl` currency style. Marketing/finance stay on their own formatters. Spec: `WEB-CURR-01` in `tours-list.spec.ts`. |
+| **ED-CURR-01** | Wizard labels تومان; operator list/edit header `Intl` with `priceCurrency: "IRR"` painted **ریال** for the same digits. | `formatTourPrice` (apps/web) formats `IRR` as تومان / toman via grouped digits — not `Intl` currency style. **No ×10.** Storage stays ISO `IRR`. Spec: `WEB-CURR-01` in `tours-list.spec.ts`. |
+| **ED-CURR-MKT-01** | Public catalog used the same `Intl` currency style → FA «ریال» / EN `IRR 2,500,000` for wizard تومان digits. | Marketing-local `formatCatalogPrice` (`apps/marketing`, not `formatTourPrice`, not finance). `IRR` → grouped digits + تومان/toman. JSON-LD `offers.priceCurrency` stays `IRR`. **No ×10** until product YES. Spec: `MKT-CURR-01`. |
 | **ED-DEST-NATURE-01** | Nature tour destination + itinerary pickers listed `locationType=peak` rows (Tochal/Damavand). Peak altitude prefill was already skipped. | `isDenaliDestinationOfferedForTourKind` hides peaks when `readDenaliCanonicalBasics(kind).category === "nature"`. Currently selected peak remains in the option list so the control does not go blank. Mountain/desert/event unchanged. Specs: `DEN-DEST-NATURE-01*`. |
 | **ED-DT-EQ-COPY-01** | Guard is `Date.parse(end) <= Date.parse(start)` (equal instants rejected) but FA copy said only «قبل از شروع». | i18n: end **must be after** start (`باید بعد از شروع برنامه باشد` / `must be after the tour start`). Comparison unchanged. |
 

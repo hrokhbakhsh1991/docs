@@ -63,6 +63,20 @@ describe("marketing catalog display", () => {
   it("MKT-05 formatCatalogPrice handles null", () => {
     assert.equal(formatCatalogPrice(null, "IRR", "en-US", "Price on request"), "Price on request");
   });
+
+  it("MKT-CURR-01 IRR catalog price uses toman label without ×10", () => {
+    assert.equal(formatCatalogPrice(1200, "IRR", "en-US", "Price on request"), "1,200 toman");
+    assert.equal(formatCatalogPrice(2_500_000, "IRR", "en-US", "Price on request"), "2,500,000 toman");
+    const faDigits = new Intl.NumberFormat("fa-IR", {
+      maximumFractionDigits: 0,
+      numberingSystem: "arabext",
+    }).format(1200);
+    assert.equal(formatCatalogPrice(1200, "IRR", "fa-IR", "قیمت پس از استعلام"), `${faDigits} تومان`);
+    assert.equal(formatCatalogPrice(1200, "IRR", "en-US", "Price on request").includes("12,000"), false);
+    const usd = formatCatalogPrice(1200, "USD", "en-US", "Price on request");
+    assert.match(usd, /1,200/);
+    assert.equal(usd.includes("toman"), false);
+  });
 });
 
 describe("resolvePublicBrandingHost", () => {

@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-MARKETING-CATALOG-UI
-version: "2026-07-04-v3"
+version: "2026-08-16-v4"
 extends: public-catalog.md
 apps: [marketing]
 phase: P6-1
@@ -116,7 +116,7 @@ app/tours/[tourId]/page.tsx           → CatalogTourDetail (PR-D — see § PR-
 
 | Module                                            | Role                                                                                                      |
 | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `format-catalog-display.ts`                       | subtitle, description, dates, price formatting                                                            |
+| `format-catalog-display.ts`                       | subtitle, description, dates, price formatting. **ED-CURR-MKT-01:** `IRR` display is تومان/toman (same integer; no ×10). Other ISO codes stay `Intl` currency style. JSON-LD `offers.priceCurrency` remains `IRR`. |
 | `format-catalog-cancellation.ts`                  | cancellation template helpers (unit tests); detail UI uses `next-intl` ICU in `CatalogTourDetailPolicies` |
 | `catalog-itinerary-display-logic.ts`              | segment labels, photo list shaping                                                                        |
 | `fetch-catalog-list.ts` / `fetch-catalog-tour.ts` | server upstream fetch                                                                                     |
@@ -591,9 +591,9 @@ When locale is `fa`, numeric copy on `/tours/[tourId]` uses Eastern Arabic (Pers
 | Day title / summary (API text with digits) | `CatalogItinerarySection` localizes visible strings                                                                                                                                                             |
 | Stats capacity / spots                     | ICU `{count, number}` in `messages/fa/catalog.json`                                                                                                                                                             |
 | Cancellation hours / penalty               | ICU `{hours, number}` / `{percent, number}`                                                                                                                                                                     |
-| Meta dates + price                         | `formatCatalogDateRange` / `formatCatalogPrice` with `numberingSystem: arabext` when `fa-IR`                                                                                                                    |
+| Meta dates + price                         | `formatCatalogDateRange` / `formatCatalogPrice`. Dates: `numberingSystem: arabext` when `fa-IR`. **Price (ED-CURR-MKT-01):** `IRR` is grouped digits + تومان/toman — **not** `Intl` `style: currency` (that painted ریال/`IRR`). Same stored integer; **no ×10**. Non-`IRR` codes keep `Intl` currency style. JSON-LD `offers.priceCurrency` stays ISO `IRR`. |
 | **PR-D readiness**                         | peak, trail km, elevation, hiking hours, min/max age — `buildCatalogReadinessCells` + ICU `{hours,meters,km,years, number}` with `toLocalizedDigits` on prerequisite text (`catalog-tour-detail-readiness.tsx`) |
-| **PR-D logistics**                         | return time via `toLocalizedDigits`; transport cost/dong via `formatCatalogPrice` (`arabext` when `fa-IR`)                                                                                                      |
+| **PR-D logistics**                         | return time via `toLocalizedDigits`; transport cost/dong via `formatCatalogPrice` (same IRR→toman rule as list/detail price)                                                                                    |
 | **PR-D register preview**                  | min/max age via ICU `{years, number}` in `detail.registerPreview.*`                                                                                                                                             |
 | **PR-D gallery alt**                       | ICU `{index, number}` in `detail.gallery.photoAlt`                                                                                                                                                              |
 | **PR-D6b lightbox**                        | Click/tap hero mosaic + overflow grid → `<dialog>` fullscreen; arrow keys; `detail.gallery.lightbox*` i18n; one client boundary in `@apps/marketing`                                                            |
