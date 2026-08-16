@@ -1,4 +1,5 @@
 .cache/test-changed/
+.codebase-memory/
 
 node_modules/
 **/node_modules.broken.*/

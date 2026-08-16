@@ -1,0 +1,15 @@
+# Keep the live graph on the new platform. Frozen Tour Ops is reference-only.
+legacy/
+
+# Generated / cache / evidence dumps — not structural source
+.cache/
+.turbo/
+coverage/
+reports/
+audit/
+audit-logs/
+audits/
+**/.next/
+**/dist/
+**/playwright-report/
+**/test-results/
