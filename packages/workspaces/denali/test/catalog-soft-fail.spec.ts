@@ -94,10 +94,12 @@ describe("catalog-soft-fail (ED-UX-01 / ED-UX-02)", () => {
 describe("ED-PHOTO-A11Y-01", () => {
   it("upload error alert is outside the file input label", () => {
     const src = readFileSync(join(SRC_ROOT, "ui/fields/denali-photos-field.tsx"), "utf8");
-    assert.match(src, /role="alert"/);
-    assert.equal(
-      /<label[\s\S]*type="file"[\s\S]*role="alert"[\s\S]*<\/label>/.test(src),
-      false
+    const fileLabel = src.match(
+      /<label className="denali-wizard-composite__field">\s*<span>\{t\("composites\.photos\.uploadImage"\)\}<\/span>[\s\S]*?<\/label>/
     );
+    assert.ok(fileLabel, "expected uploadImage file label");
+    assert.equal(/role="alert"/.test(fileLabel[0] ?? ""), false);
+    assert.match(src, /role="alert"/);
+    assert.match(src, /photoUploadErrors\[photoId\]/);
   });
 });
