@@ -101,6 +101,31 @@ describe("denali-review-catalog-name.spec.ts", () => {
     assert.equal(fitness?.value, "medium");
   });
 
+  it("ED-GATHER-PERSIST-01 nested-only gathering appears on logistics review", () => {
+    const sections = buildDenaliReviewSections(
+      {
+        data: {
+          title: "صعود یک‌روزه توچال از دربند",
+          category: "mountain_day",
+          tripDetails: {
+            logistics: {
+              gatheringPoints: [
+                { name: "میدان دربند", address: "دربند، تهران", isPrimary: true },
+              ],
+            },
+          },
+        },
+      },
+      EMPTY_CATALOG,
+      LABELS
+    );
+    const logistics = sections.find((section) => section.stepId === "denali_logistics");
+    const gathering = logistics?.rows.filter((row) => row.canonicalPath === "gatheringPoints") ?? [];
+    assert.equal(gathering.length > 0, true);
+    assert.match(gathering[0]?.value ?? "", /میدان دربند/);
+    assert.match(gathering[0]?.value ?? "", /دربند، تهران/);
+  });
+
   it("DEN-REV-VIS-01b nature review omits mountain-only age and fitness", () => {
     const sections = buildDenaliReviewSections(
       {

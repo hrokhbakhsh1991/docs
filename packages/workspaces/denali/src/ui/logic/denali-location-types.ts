@@ -114,6 +114,9 @@ function readLegacyLocationFields(entry: Record<string, unknown>): Partial<Denal
   };
 }
 
+export const DENALI_GATHERING_POINTS_CANONICAL_PATH = "gatheringPoints" as const;
+export const DENALI_GATHERING_POINTS_NESTED_PATH = "tripDetails.logistics.gatheringPoints" as const;
+
 export function createEmptyDenaliGatheringPoint(isPrimary = false): DenaliGatheringPoint {
   return isPrimary ? { name: "", isPrimary: true } : { name: "" };
 }
@@ -128,6 +131,25 @@ export function isDenaliGatheringPointPopulated(point: DenaliGatheringPoint): bo
     latitude: point.latitude,
     longitude: point.longitude,
   });
+}
+
+/**
+ * ED-GATHER-PERSIST-01 — persist/review SoT is canonical root `gatheringPoints`.
+ * Nested RHF path is fallback for drafts written before the field aligned with the map.
+ */
+export function resolveDenaliGatheringPointsFromStorage(
+  canonicalRoot: unknown,
+  nestedLogistics: unknown
+): DenaliGatheringPoint[] {
+  const root = parseDenaliGatheringPoints(canonicalRoot);
+  if (root.some(isDenaliGatheringPointPopulated)) {
+    return root;
+  }
+  const nested = parseDenaliGatheringPoints(nestedLogistics);
+  if (nested.some(isDenaliGatheringPointPopulated)) {
+    return nested;
+  }
+  return root;
 }
 
 /** Drop empty scaffold rows; keep a single primary when any populated row remains. */

@@ -13,13 +13,13 @@ import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-
 import { DenaliLocationAddressPicker } from "../components/denali-location-address-picker";
 import {
   DENALI_COMPOSITE_TEST_IDS,
+  DENALI_GATHERING_POINTS_CANONICAL_PATH,
+  DENALI_GATHERING_POINTS_NESTED_PATH,
   createEmptyDenaliGatheringPoint,
-  parseDenaliGatheringPoints,
   resolveDenaliGatheringPointsEditorState,
+  resolveDenaliGatheringPointsFromStorage,
   type DenaliGatheringPoint,
 } from "../logic/denali-location-types";
-
-const GATHERING_POINTS_PATH = "tripDetails.logistics.gatheringPoints";
 
 type DenaliGatheringPointsFieldProps = {
   readonly draft: DenaliTourWizardDraft;
@@ -36,20 +36,25 @@ export function DenaliGatheringPointsField({
   const tCommon = useTranslations("denali.composites.common");
   const draftRef = useLatestWizardDraft(draft);
 
-  const stored = parseDenaliGatheringPoints(getCanonicalValue(draft, GATHERING_POINTS_PATH));
+  const stored = resolveDenaliGatheringPointsFromStorage(
+    getCanonicalValue(draft, DENALI_GATHERING_POINTS_CANONICAL_PATH),
+    getCanonicalValue(draft, DENALI_GATHERING_POINTS_NESTED_PATH)
+  );
   const editor = resolveDenaliGatheringPointsEditorState(stored);
   const points = editor.points;
   const label = resolveDenaliFieldLabel(t, "gatheringPoints");
 
   const updateGatheringPoints = (next: DenaliGatheringPoint[]) => {
-    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
-      setCanonicalValue(base, GATHERING_POINTS_PATH, next)
-    );
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) => {
+      const withRoot = setCanonicalValue(base, DENALI_GATHERING_POINTS_CANONICAL_PATH, next);
+      return setCanonicalValue(withRoot, DENALI_GATHERING_POINTS_NESTED_PATH, next);
+    });
   };
 
   const readCurrentOrScaffold = (): DenaliGatheringPoint[] => {
-    const current = parseDenaliGatheringPoints(
-      getCanonicalValue(draftRef.current, GATHERING_POINTS_PATH)
+    const current = resolveDenaliGatheringPointsFromStorage(
+      getCanonicalValue(draftRef.current, DENALI_GATHERING_POINTS_CANONICAL_PATH),
+      getCanonicalValue(draftRef.current, DENALI_GATHERING_POINTS_NESTED_PATH)
     );
     return current.length > 0 ? current : [createEmptyDenaliGatheringPoint(true)];
   };

@@ -11,6 +11,7 @@ import {
   isDenaliGatheringPointPopulated,
   omitEmptyDenaliGatheringPoints,
   resolveDenaliGatheringPointsEditorState,
+  resolveDenaliGatheringPointsFromStorage,
 } from "../src/ui/logic/denali-location-types";
 
 const FIELD_SRC = readFileSync(
@@ -48,5 +49,28 @@ describe("denali-gathering-points.spec.ts", () => {
     form.tripDetails.logistics.gatheringPoints = [createEmptyDenaliGatheringPoint(true)];
     const next = applyDenaliStructuralInvariants(form);
     assert.deepEqual(next.tripDetails.logistics.gatheringPoints, []);
+  });
+
+  it("ED-GATHER-PERSIST-01 populated root wins over nested logistics", () => {
+    const resolved = resolveDenaliGatheringPointsFromStorage(
+      [{ name: "root station", isPrimary: true }],
+      [{ name: "nested station", address: "دربند" }]
+    );
+    assert.equal(resolved.length, 1);
+    assert.equal(resolved[0]?.name, "root station");
+  });
+
+  it("ED-GATHER-PERSIST-01 empty root falls back to populated nested", () => {
+    const resolved = resolveDenaliGatheringPointsFromStorage([], [
+      { name: "میدان دربند", address: "دربند، تهران", isPrimary: true },
+    ]);
+    assert.equal(resolved[0]?.name, "میدان دربند");
+    assert.equal(resolved[0]?.address, "دربند، تهران");
+  });
+
+  it("ED-GATHER-PERSIST-01 field writes canonical gatheringPoints and mirrors nested", () => {
+    assert.match(FIELD_SRC, /DENALI_GATHERING_POINTS_CANONICAL_PATH/);
+    assert.match(FIELD_SRC, /DENALI_GATHERING_POINTS_NESTED_PATH/);
+    assert.match(FIELD_SRC, /setCanonicalValue\(withRoot, DENALI_GATHERING_POINTS_NESTED_PATH/);
   });
 });

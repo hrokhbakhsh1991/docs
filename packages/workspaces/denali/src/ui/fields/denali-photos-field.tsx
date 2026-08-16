@@ -315,21 +315,23 @@ export function DenaliPhotosField({
                 />
               </label>
               {uploadEnabled ? (
-                <label className="denali-wizard-composite__field">
-                  <span>{t("composites.photos.uploadImage")}</span>
-                  <Input
-                    ref={(element) => {
-                      if (photoId.length > 0) {
-                        fileInputRefs.current[photoId] = element;
-                      }
-                    }}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    data-operator-wizard-file-input
-                    data-testid={DENALI_PHOTOS_TEST_IDS.uploadInput}
-                    disabled={isUploading || photoId.length === 0}
-                    onChange={(event) => void handleFileSelected(photoId, event.target.files?.[0])}
-                  />
+                <>
+                  <label className="denali-wizard-composite__field">
+                    <span>{t("composites.photos.uploadImage")}</span>
+                    <Input
+                      ref={(element) => {
+                        if (photoId.length > 0) {
+                          fileInputRefs.current[photoId] = element;
+                        }
+                      }}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      data-operator-wizard-file-input
+                      data-testid={DENALI_PHOTOS_TEST_IDS.uploadInput}
+                      disabled={isUploading || photoId.length === 0}
+                      onChange={(event) => void handleFileSelected(photoId, event.target.files?.[0])}
+                    />
+                  </label>
                   {isUploading ? (
                     <p
                       className="denali-wizard-composite__helper"
@@ -349,7 +351,7 @@ export function DenaliPhotosField({
                       {photoUploadErrors[photoId]}
                     </p>
                   ) : null}
-                </label>
+                </>
               ) : null}
               <label className="denali-wizard-composite__field">
                 <span>

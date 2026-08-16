@@ -176,7 +176,8 @@
       "singleDayHint": "Optional for single-day tours."
     },
     "catalog": {
-      "degraded": "Catalog is temporarily unavailable. You can still save this tour; pickers refresh when the service recovers."
+      "degraded": "Catalog is temporarily unavailable. You can still save this tour; pickers refresh when the service recovers.",
+      "retry": "Try again"
     },
     "difficulty": {
       "level": "Level {level}",

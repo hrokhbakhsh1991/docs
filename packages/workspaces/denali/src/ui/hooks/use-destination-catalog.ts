@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   resolveInitialDenaliDestinationCatalogState,
@@ -22,12 +22,21 @@ export function patchDenaliDestinationCatalogCache(destination: DestinationResou
  * Operator destination catalog — supports optional server prefetch via
  * {@link DenaliWizardCatalogPrefetchProvider}; otherwise fetches `/api/settings/resources/locations`.
  */
-export function useDenaliDestinationCatalog(): DenaliDestinationCatalogState {
+export function useDenaliDestinationCatalog(): DenaliDestinationCatalogState & {
+  readonly reload: () => void;
+} {
   const { initialLocationsResponse } = useDenaliWizardCatalogPrefetch();
   const skipInitialFetchRef = useRef(initialLocationsResponse !== null);
   const [state, setState] = useState(() =>
     resolveInitialDenaliDestinationCatalogState(initialLocationsResponse)
   );
+
+  const reload = useCallback(() => {
+    setState((previous) => ({ ...previous, loading: true }));
+    void fetchDenaliDestinationCatalogClient().then((next) => {
+      setState(next);
+    });
+  }, []);
 
   useEffect(() => {
     patchDestinationCatalogCache = (destination) => {
@@ -47,19 +56,27 @@ export function useDenaliDestinationCatalog(): DenaliDestinationCatalogState {
       skipInitialFetchRef.current = false;
       return;
     }
-    let cancelled = false;
-    void fetchDenaliDestinationCatalogClient().then((next) => {
-      if (!cancelled) {
-        setState(next);
+    reload();
+  }, [reload]);
+
+  useEffect(() => {
+    if (state.error === null) {
+      return;
+    }
+    const retryWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        reload();
       }
-    });
-
-    return () => {
-      cancelled = true;
     };
-  }, []);
+    document.addEventListener("visibilitychange", retryWhenVisible);
+    window.addEventListener("focus", retryWhenVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", retryWhenVisible);
+      window.removeEventListener("focus", retryWhenVisible);
+    };
+  }, [state.error, reload]);
 
-  return state;
+  return { ...state, reload };
 }
 
 export function readDenaliDestinationLabel(

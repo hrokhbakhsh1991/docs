@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import {
@@ -15,6 +14,7 @@ import { Checkbox } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { fetchDenaliCatalogJsonWithSoftRetry } from "../adapters/catalog-soft-fail";
 import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notice";
+import { useDenaliCatalogSoftLoad } from "../hooks/use-denali-catalog-soft-load";
 import { parseStringArray } from "../logic/denali-array-field-utils";
 import { DENALI_GUIDE_LANGUAGES_TEST_IDS } from "../test-ids/denali-guide-languages-test-ids";
 
@@ -36,38 +36,17 @@ export function DenaliGuideLanguageIdsField({
   const label = resolveDenaliFieldLabel(t, "program.guideLanguageIds");
   const selected = parseStringArray(getCanonicalValue(draft, "program.guideLanguageIds"));
   const selectedSet = new Set(selected);
-  const [languages, setLanguages] = useState<GuideLanguagesListResponse["items"]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchDenaliCatalogJsonWithSoftRetry<GuideLanguagesListResponse>(
-      DENALI_SUBMIT_CATALOG_BFF_PATHS.guideLanguages,
-      "GUIDE_LANGUAGES"
-    )
-      .then((payload) => {
-        if (!cancelled) {
-          const items = (payload.items ?? []).filter((item) => item.isActive !== false);
-          setLanguages(items);
-          setError(null);
-        }
-      })
-      .catch((fetchError: unknown) => {
-        if (!cancelled) {
-          setError(fetchError instanceof Error ? fetchError.message : "GUIDE_LANGUAGES_LOAD_FAILED");
-          setLanguages([]);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data, loading, error, reload } = useDenaliCatalogSoftLoad(
+    async () => {
+      const payload = await fetchDenaliCatalogJsonWithSoftRetry<GuideLanguagesListResponse>(
+        DENALI_SUBMIT_CATALOG_BFF_PATHS.guideLanguages,
+        "GUIDE_LANGUAGES"
+      );
+      return (payload.items ?? []).filter((item) => item.isActive !== false);
+    },
+    "GUIDE_LANGUAGES_LOAD_FAILED"
+  );
+  const languages = data ?? [];
 
   const toggleLanguage = (languageId: string, checked: boolean) => {
     const next = checked
@@ -93,7 +72,7 @@ export function DenaliGuideLanguageIdsField({
       {loading ? (
         <p className="denali-wizard-composite__status">{t("composites.guideLanguages.loading")}</p>
       ) : null}
-      <DenaliCatalogLoadNotice error={error} />
+      <DenaliCatalogLoadNotice error={error} onRetry={reload} />
 
       {!loading && languages.length === 0 && error === null ? (
         <p className="denali-wizard-composite__status">{t("composites.guideLanguages.empty")}</p>

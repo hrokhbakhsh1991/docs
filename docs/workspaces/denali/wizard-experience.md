@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v14"
+version: "2026-08-16-v15"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -186,6 +186,7 @@ Layer: `packages/workspaces/denali` (+ host **copy** keys). **ED-PEAK-LOCK-01** 
 | -- | ------- | ----- | -------- |
 | **ED-REV-UUID-01** | Review hero/rows flash raw destination/leader UUIDs while `loadDenaliReviewCatalog` is in flight (`mapIds` / `Map.get ?? id`). | `resolveDenaliReviewCatalogName` in `denali-review-format-logic.ts`; `DenaliReviewStep` already shows `review.loading`. | Never emit a UUID-shaped id as display text. Unresolved / loading → empty string so `pushRow` skips. Non-UUID slugs (themes) may still show the id if the catalog miss. Specs: `DEN-REV-CATALOG-01` + `WEB-DENALI-REVIEW-09`. |
 | **ED-GATHER-01** | Logistics always **writes** `{ name: "" }` station 1 into the draft (`useEffect` seed). Canonical looks dirty; submit can persist an empty point. | `denali-location-types.ts` (`isDenaliGatheringPointPopulated`, `omitEmptyDenaliGatheringPoints`, editor scaffold helper) + gathering field (no seed effect) + global invariant `omitEmptyGatheringPoints`. | UI may show one empty scaffold; **persist `[]`** until name/address/coords exist. Sanitize/invariants strip empty rows. |
+| **ED-GATHER-PERSIST-01** | Operator fills a station (name + OSM address) but review omits it and POST stores `gatheringPoints: []` / nested `[]`. | Field wrote RHF `tripDetails.logistics.gatheringPoints`; form adapter + review read canonical root `gatheringPoints`. | See [Gathering persist path](#gathering-persist-path-ed-gather-persist-01). |
 | **ED-SAVE-COPY-01** | Operators confuse header flush with footer PATCH. | Denali helper on flat-edit form; host `title` on `DraftManualSyncButton`. | Actions stay two primitives. Copy only. |
 | **ED-HIKE-MULTI-01** | `program.hikingGoHours` / `hikingReturnHours` visible on `*:multi_day` (confuse vs itinerary). | `cellOverrides` on those registry rows → `pnpm --filter @app-tour/workspace-denali run denali:codegen`. **RP-05 snapshot:** same hidden flags on multi-day cells in `apps/api/scripts/seed/definitions/denali-v1.json` (Denali matrix copy — not a new API invariant). | Hidden on multi-day cells; still optional on outdoor single-day. `hikingHoursApprox` unchanged. |
 | **ED-PEAK-RO-01** | Peak input `disabled` but `readOnly: false`. | `DenaliDestinationCatalogMetricField`: `readOnly={locked}` in addition to `disabled`. | Inspector/AT see read-only. |
@@ -232,6 +233,42 @@ category / matrix cell change
 `applyDestinationCatalogPrefill` remains the **destination picker** primitive (peak vs trail vs generic). Persist must not re-run it on every keystroke.
 
 **Still deferred (product):** same-calendar-day `multi_day` still forces ≥2 itinerary rows (`estimateDenaliTourDayCount`). Do not change until this file picks invariant A (multi-day = ≥2 calendar days) vs B (allow 1 itinerary day). `projection.updatedAt` on memory GET still mirrors `createdAt` — freshness remains `rowVersion`. Filter peak destinations on nature tours; copy «قبل از شروع» for equality; merge the two save buttons.
+
+## Gathering persist path (ED-GATHER-PERSIST-01)
+
+Live create (`/tours/new`) stored a filled Darband station in the composite UI, then review skipped the row and API canonical was `gatheringPoints: []` plus `tripDetails.logistics.gatheringPoints: []`. `omitEmptyGatheringPoints` (ED-GATHER-01) did **not** strip a populated row — the row never reached the form adapter.
+
+```text
+UI write  (bug)     tripDetails.logistics.gatheringPoints   ← populated
+draft.data.tripDetails.logistics.gatheringPoints            ← populated
+tourWizardDraftToDenaliForm reads canonicalPath
+  "gatheringPoints" → form tripDetails.logistics.gatheringPoints
+root missing → default []
+prepareDenaliSubmitArtifact / review getCanonicalValue("gatheringPoints")
+  → []
+```
+
+Registry SoT is already `canonicalPath: "gatheringPoints"` mapped to form `tripDetails.logistics.gatheringPoints` (`denaliCanonicalPathMap.generated.ts`). Composites, review, sanitize, and submit must use that **root**. Nested RHF path is a fallback read for in-memory drafts written before this fix.
+
+| Layer | Path |
+| ----- | ---- |
+| Field read | `resolveDenaliGatheringPointsFromStorage(root, nested)` — populated root wins; else populated nested |
+| Field write | canonical `gatheringPoints` (mirror nested so catalog-shaped drafts stay in sync) |
+| Sanitize | `promoteDenaliGatheringPointsOnDraft` **before** `tourWizardDraftToDenaliForm` so nested-only drafts survive Continue/submit |
+| Review | same resolve helper (not root-only) |
+| Persist | form adapter maps root → nested form → artifact writes root + `tripDetails` blob |
+
+Empty scaffold still must not persist (`ED-GATHER-01`). Specs: `DEN-GATHER-PERSIST-01*` in `denali-gathering-points.spec.ts` + review nested-only row.
+
+## Catalog recovery (ED-CAT-RETRY-01)
+
+`fetchDenaliCatalogJsonWithSoftRetry` retries **once** on 5xx/network then stops. Leader/theme/gear/language pickers used `useEffect([])` with no later refetch, so a cold BFF `ERR_CONNECTION_REFUSED` left «کاتالوگ موقتاً در دسترس نیست» for the whole create session (`leaderUserIds: []` on submit). Destinations that remount (edit) recovered.
+
+Contract: degraded notice offers **تلاش مجدد**; when the notice is visible, `visibilitychange` / window `focus` also reloads. Soft-retry on each attempt stays one-shot. No API change.
+
+## Photo upload error a11y (ED-PHOTO-A11Y-01)
+
+Upload failure copy (`PHOTO_STORAGE_NOT_CONFIGURED` / Minio 503) lived inside the `<label>` wrapping `input[type=file]`, so the accessible name became «آپلود تصویر» + the error. Alert stays `role=alert` **outside** that label. Object-storage 503 remains an env/driver issue, not this UI contract.
 
 ```text
 loading catalog ──► destination/leader display = "" (not UUID)

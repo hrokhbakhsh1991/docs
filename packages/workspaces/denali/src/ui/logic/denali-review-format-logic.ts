@@ -23,8 +23,8 @@ import { parseStringArray } from "./denali-array-field-utils";
 import { parseDenaliGearItems, type DenaliGearItem } from "./denali-gear-types";
 import {
   DENALI_LOCATION_ZONE_PATHS,
-  parseDenaliGatheringPoints,
   parseDenaliLocationData,
+  resolveDenaliGatheringPointsFromStorage,
 } from "./denali-location-types";
 import { parseDenaliTourPhotos, type DenaliTourPhoto } from "./denali-photo-types";
 import { formatSocialMediaLinkForReview } from "./denali-social-media-link-logic";
@@ -486,7 +486,10 @@ export function buildDenaliReviewSections(
       formatLocation(getCanonicalValue(draft, zone.path))
     );
   }
-  const gatheringPoints = parseDenaliGatheringPoints(getCanonicalValue(draft, "gatheringPoints"));
+  const gatheringPoints = resolveDenaliGatheringPointsFromStorage(
+    getCanonicalValue(draft, "gatheringPoints"),
+    getCanonicalValue(draft, "tripDetails.logistics.gatheringPoints")
+  );
   for (const point of gatheringPoints) {
     const name = point.name?.trim() ?? "";
     const address = point.address?.trim() ?? "";

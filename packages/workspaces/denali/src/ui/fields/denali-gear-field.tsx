@@ -1,7 +1,7 @@
 "use client";
 
 import { readDenaliCanonicalBasics } from "../../adapters/denaliCanonicalBasicsControl";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
 import {
@@ -11,12 +11,13 @@ import {
   setCanonicalValue,
 } from "../../draft/denali-tour-wizard-draft";
 import { DENALI_SUBMIT_CATALOG_BFF_PATHS } from "../../wizard/denali-wizard-catalog-sanitize";
-import type { EquipmentResource, TourThemeResource, TourThemesListResponse } from "../adapters/catalog-types";
+import type { EquipmentResource, TourThemesListResponse } from "../adapters/catalog-types";
 import { resolveDenaliFieldLabel } from "../adapters/field-labels";
 import { Input } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { fetchDenaliCatalogJsonWithSoftRetry } from "../adapters/catalog-soft-fail";
 import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notice";
+import { useDenaliCatalogSoftLoad } from "../hooks/use-denali-catalog-soft-load";
 import { CheckIcon } from "../components/icons/tour-service-icons";
 import { EquipmentCatalogAvatar } from "../components/equipment-catalog-avatar";
 import { isEquipmentVisibleInWizard } from "../logic/denali-catalog-filters";
@@ -52,47 +53,28 @@ export function DenaliGearField({ draft, onDraftChange, invalid = false }: Denal
   const draftRef = useLatestWizardDraft(draft);
 
   const selected = parseDenaliGearItems(getCanonicalValue(draft, "participants.gearItems"));
-  const [catalog, setCatalog] = useState<readonly EquipmentResource[]>([]);
-  const [themes, setThemes] = useState<readonly TourThemeResource[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, loading, error, reload } = useDenaliCatalogSoftLoad(
+    async () => {
+      const [equipmentPayload, themesPayload] = await Promise.all([
+        fetchDenaliCatalogJsonWithSoftRetry<{ items: EquipmentResource[] }>(
+          DENALI_SUBMIT_CATALOG_BFF_PATHS.equipment,
+          "EQUIPMENT"
+        ),
+        fetchDenaliCatalogJsonWithSoftRetry<TourThemesListResponse>(
+          DENALI_SUBMIT_CATALOG_BFF_PATHS.tourThemes,
+          "TOUR_THEMES"
+        ),
+      ]);
+      return {
+        catalog: equipmentPayload.items ?? [],
+        themes: (themesPayload.items ?? []).filter((theme) => theme.isActive),
+      };
+    },
+    "EQUIPMENT_LOAD_FAILED"
+  );
+  const catalog = data?.catalog ?? [];
+  const themes = data?.themes ?? [];
   const [searchQuery, setSearchQuery] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-    void Promise.all([
-      fetchDenaliCatalogJsonWithSoftRetry<{ items: EquipmentResource[] }>(
-        DENALI_SUBMIT_CATALOG_BFF_PATHS.equipment,
-        "EQUIPMENT"
-      ),
-      fetchDenaliCatalogJsonWithSoftRetry<TourThemesListResponse>(
-        DENALI_SUBMIT_CATALOG_BFF_PATHS.tourThemes,
-        "TOUR_THEMES"
-      ),
-    ])
-      .then(([equipmentPayload, themesPayload]) => {
-        if (!cancelled) {
-          setCatalog(equipmentPayload.items ?? []);
-          setThemes((themesPayload.items ?? []).filter((theme) => theme.isActive));
-          setError(null);
-        }
-      })
-      .catch((fetchError: unknown) => {
-        if (!cancelled) {
-          setError(fetchError instanceof Error ? fetchError.message : "EQUIPMENT_LOAD_FAILED");
-          setCatalog([]);
-          setThemes([]);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const themesById = useMemo(
     () => new Map(themes.map((theme) => [theme.id, theme] as const)),
@@ -203,7 +185,7 @@ export function DenaliGearField({ draft, onDraftChange, invalid = false }: Denal
       </div>
 
       {loading ? <p className="denali-wizard-composite__status">{t("composites.gear.loading")}</p> : null}
-      <DenaliCatalogLoadNotice error={error} />
+      <DenaliCatalogLoadNotice error={error} onRetry={reload} />
 
       {!loading && visibleCatalog.length === 0 && error === null ? (
         <div className="denali-gear-picker__empty">

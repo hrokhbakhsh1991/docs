@@ -5,7 +5,7 @@ import { isDenaliWizardFieldVisibleOnDraft } from "../../wizard/denali-wizard-fi
 import type { DenaliWizardRuleEvalContext } from "../../wizard/denali-wizard-rule-eval-context";
 import { DENALI_DEFAULT_WORKSPACE_FORM_PROFILE } from "../../wizard/denali-wizard-rule-eval-context";
 import { wizardFieldHasValidationIssue, wizardFieldPathAttributes } from "@app-tour/wizard-navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 
 import {
@@ -16,11 +16,12 @@ import {
   setCanonicalValue,
 } from "../../draft/denali-tour-wizard-draft";
 import { DENALI_SUBMIT_CATALOG_BFF_PATHS } from "../../wizard/denali-wizard-catalog-sanitize";
-import type { TourThemeResource, TourThemesListResponse } from "../adapters/catalog-types";
+import type { TourThemesListResponse } from "../adapters/catalog-types";
 import { resolveDenaliFieldLabel } from "../adapters/field-labels";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { fetchDenaliCatalogJsonWithSoftRetry } from "../adapters/catalog-soft-fail";
 import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notice";
+import { useDenaliCatalogSoftLoad } from "../hooks/use-denali-catalog-soft-load";
 import { CheckIcon } from "../components/icons/tour-service-icons";
 import { isTourThemeCompatibleWithWizard } from "../logic/denali-catalog-filters";
 import { themeDisplayInitials, themeSwatchToneClass } from "../logic/denali-theme-picker-logic";
@@ -75,37 +76,17 @@ export function DenaliProgramContentField({
   );
   const selected = parseThemeIds(getCanonicalValue(draft, "program.themeIds"));
   const selectedSet = useMemo(() => new Set(selected), [selected]);
-  const [themes, setThemes] = useState<readonly TourThemeResource[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchDenaliCatalogJsonWithSoftRetry<TourThemesListResponse>(
-      DENALI_SUBMIT_CATALOG_BFF_PATHS.tourThemes,
-      "TOUR_THEMES"
-    )
-      .then((payload) => {
-        if (!cancelled) {
-          setThemes((payload.items ?? []).filter((theme) => theme.isActive));
-          setError(null);
-        }
-      })
-      .catch((fetchError: unknown) => {
-        if (!cancelled) {
-          setError(fetchError instanceof Error ? fetchError.message : "TOUR_THEMES_LOAD_FAILED");
-          setThemes([]);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data, loading, error, reload } = useDenaliCatalogSoftLoad(
+    async () => {
+      const payload = await fetchDenaliCatalogJsonWithSoftRetry<TourThemesListResponse>(
+        DENALI_SUBMIT_CATALOG_BFF_PATHS.tourThemes,
+        "TOUR_THEMES"
+      );
+      return (payload.items ?? []).filter((theme) => theme.isActive);
+    },
+    "TOUR_THEMES_LOAD_FAILED"
+  );
+  const themes = data ?? [];
 
   const tourCategory = useMemo(() => {
     const tourKind = getCanonicalStringValue(draft, "category").trim();
@@ -201,7 +182,7 @@ export function DenaliProgramContentField({
       {loading ? (
         <p className="denali-wizard-composite__status">{t("composites.programContent.loading")}</p>
       ) : null}
-      <DenaliCatalogLoadNotice error={error} />
+      <DenaliCatalogLoadNotice error={error} onRetry={reload} />
 
       {!loading && visibleThemes.length === 0 && error === null ? (
         <div className="denali-theme-picker__empty">

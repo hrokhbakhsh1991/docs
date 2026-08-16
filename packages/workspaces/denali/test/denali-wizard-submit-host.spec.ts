@@ -8,6 +8,7 @@ import { loadDenaliWizardRulesModule } from "../src/wizard/denali-wizard-host-ho
 import { tourWizardDraftToDenaliForm } from "../src/wizard/denali-wizard-form-adapter";
 import { buildDenaliWizardRuleEvalContext } from "../src/wizard/denali-wizard-rule-eval-context";
 import {
+  prepareDenaliTourCreatePayload,
   submitDenaliCreateTourViaWizardHost,
   submitDenaliCreateTourViaWizardHostWithCatalogLoader,
 } from "../src/wizard/denali-wizard-submit-payload";
@@ -56,6 +57,39 @@ describe("denali-wizard-submit-host.spec.ts (P15-W-C1)", () => {
     assert.equal(catalogLoaded, true);
     assert.equal((payload as CreateTourPayload).schemaVersion, 1);
     assert.equal((payload.data as Record<string, unknown>).title, "Alborz hike");
+  });
+
+  it("ED-GATHER-PERSIST-01 nested-only gathering promotes into create payload", async () => {
+    const plugin = getDenaliWorkspacePlugin();
+    const rules = await loadDenaliWizardRulesModule();
+    const station = {
+      name: "میدان دربند",
+      address: "دربند، تهران",
+      isPrimary: true,
+    };
+    const draft = {
+      data: {
+        title: "صعود یک‌روزه توچال از دربند",
+        category: "mountain_day",
+        publishStatus: "draft",
+        tripDetails: {
+          logistics: {
+            gatheringPoints: [station],
+          },
+        },
+      },
+    };
+    const formBefore = tourWizardDraftToDenaliForm(draft, rules) as {
+      tripDetails?: { logistics?: { gatheringPoints?: unknown[] } };
+    };
+    assert.equal((formBefore.tripDetails?.logistics?.gatheringPoints ?? []).length, 0);
+
+    const evalContext = buildDenaliWizardRuleEvalContext({ draft, rulesModule: rules });
+    const payload = prepareDenaliTourCreatePayload(draft, plugin, rules, evalContext);
+    const points = payload.data.gatheringPoints as Array<Record<string, unknown>> | undefined;
+    assert.equal(Array.isArray(points), true);
+    assert.equal(points?.[0]?.name, "میدان دربند");
+    assert.equal(points?.[0]?.address, "دربند، تهران");
   });
 });
 

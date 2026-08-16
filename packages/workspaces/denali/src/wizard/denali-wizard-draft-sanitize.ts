@@ -8,6 +8,14 @@ import type { DenaliWizardRulesModule } from "./denali-wizard-rules-module";
 import { hasDenaliWizardClassification } from "./apply-contextual-render-plan";
 import { shouldPersistCanonicalPathFromForm } from "./denali-canonical-form-sync";
 import { tourWizardDraftToDenaliForm } from "./denali-wizard-form-adapter";
+import {
+  DENALI_GATHERING_POINTS_CANONICAL_PATH,
+  DENALI_GATHERING_POINTS_NESTED_PATH,
+  isDenaliGatheringPointPopulated,
+  omitEmptyDenaliGatheringPoints,
+  parseDenaliGatheringPoints,
+  resolveDenaliGatheringPointsFromStorage,
+} from "../ui/logic/denali-location-types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -84,6 +92,26 @@ function syncDenaliFormToDraftEnvelope(
   return next;
 }
 
+function promoteDenaliGatheringPointsOnDraft(
+  draft: CanonicalWizardDraftEnvelope
+): CanonicalWizardDraftEnvelope {
+  const resolved = resolveDenaliGatheringPointsFromStorage(
+    getCanonicalValueFromDraft(draft, DENALI_GATHERING_POINTS_CANONICAL_PATH),
+    getCanonicalValueFromDraft(draft, DENALI_GATHERING_POINTS_NESTED_PATH)
+  );
+  const populated = omitEmptyDenaliGatheringPoints(resolved);
+  if (populated.length === 0) {
+    return draft;
+  }
+  const root = parseDenaliGatheringPoints(
+    getCanonicalValueFromDraft(draft, DENALI_GATHERING_POINTS_CANONICAL_PATH)
+  );
+  if (root.some(isDenaliGatheringPointPopulated)) {
+    return draft;
+  }
+  return setCanonicalValueOnDraft(draft, DENALI_GATHERING_POINTS_CANONICAL_PATH, populated);
+}
+
 export function sanitizeDenaliWizardDraftEnvelope(
   draft: CanonicalWizardDraftEnvelope,
   rules: DenaliWizardRulesModule,
@@ -92,13 +120,18 @@ export function sanitizeDenaliWizardDraftEnvelope(
   if (!hasDenaliWizardClassification(draft, rules)) {
     return draft;
   }
-  const form = tourWizardDraftToDenaliForm(draft, rules);
+  const promoted = promoteDenaliGatheringPointsOnDraft(draft);
+  const form = tourWizardDraftToDenaliForm(promoted, rules);
   const sanitized = rules.applyDenaliInvariantState(
     form,
     evalContext.uiOptions as Parameters<DenaliWizardRulesModule["applyDenaliInvariantState"]>[1],
     evalContext.ruleSet
   );
-  return syncDenaliFormToDraftEnvelope(draft, sanitized as unknown as Record<string, unknown>, rules);
+  return syncDenaliFormToDraftEnvelope(
+    promoted,
+    sanitized as unknown as Record<string, unknown>,
+    rules
+  );
 }
 
 export function sanitizeDenaliWizardDraftRecord(

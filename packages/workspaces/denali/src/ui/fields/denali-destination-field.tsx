@@ -43,7 +43,7 @@ export function DenaliDestinationField({
 }: DenaliDestinationFieldProps) {
   const t = useTranslations("denali");
   const draftRef = useLatestWizardDraft(draft);
-  const { options, destinationById, loading, error } = useDenaliDestinationCatalog();
+  const { options, destinationById, loading, error, reload } = useDenaliDestinationCatalog();
   const value = getCanonicalStringValue(draft, canonicalPath);
   const label = resolveDenaliFieldLabel(t, canonicalPath);
 
@@ -80,7 +80,7 @@ export function DenaliDestinationField({
           }}
         />
       </label>
-      <DenaliCatalogLoadNotice error={error} />
+      <DenaliCatalogLoadNotice error={error} onRetry={reload} />
       {options.length === 0 && !loading && error === null ? (
         <p className="denali-wizard-composite__status">{t("composites.destination.empty")}</p>
       ) : null}
