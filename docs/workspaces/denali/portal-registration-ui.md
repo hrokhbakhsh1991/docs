@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-08-12-v9"
+version: "2026-08-16-v11"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -27,12 +27,20 @@ Workspace-agnostic **guest registration shell** in `apps/portal`. Business rules
 app/layout.tsx
   PortalProviders
     PortalLoginModalProvider          ← design PCMS-UX-MODAL (dialog/sheet)
-  └── app/login/page.tsx              ← thin host · auto-open login modal
+  └── app/login/page.tsx              ← thin SSR host · PortalLoginAuthFlow
+        onAuthenticated → completeMemberLoginEgress (portalReturn)
   └── app/catalog/[tourId]/register/page.tsx
         PortalAuthExperienceShell     ← FULL PAGE tour registration chrome
         session: PublicCatalogRegistrationFlow (intake-only)
         guest: auth gate + auto login modal (PCMS-UX-MODAL-04)
                reopen «ورود» · ?auth=login compatible
+               modal onAuthenticated → close + reload register URL
+
+@app-tour/catalog-registration-flow-ui
+  GuestAuthTransport                  ← network + probeSession only
+  createPortalSameOriginGuestAuthTransport  ← /api/public-auth/* + /api/me/profile
+  GuestAuthHostProvider               ← { transport, onAuthenticated }
+  phone / otp / profile steps         ← no fetch URLs, no location.assign, no intake hydrate
 ```
 
 **Design SoT (login modal):** [portal-member-login-modal.mdoc](../../phase-19/portal-member-login-modal.mdoc) · PCMS §5.0 · DL-40 · DL-41.

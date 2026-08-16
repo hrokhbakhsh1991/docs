@@ -12,7 +12,7 @@ import {
 } from "@app-tour/guest-surface-host";
 
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
-import { PublicCatalogRegistrationFlow } from "@/catalog/public-catalog-registration-flow";
+import { PortalLoginAuthFlow } from "@/auth/portal-login-auth-flow";
 import { PortalAuthExperienceShell } from "@/catalog/portal-auth-experience-shell";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import { resolvePortalLoginBackHref } from "@/marketing/resolve-portal-registration-back-href.server";
@@ -126,7 +126,7 @@ export default async function PortalMemberLoginPage({ searchParams }: PageProps)
             <p data-portal-login-form-panel-eyebrow>{t("phone.formEyebrow")}</p>
             <p data-portal-login-form-panel-description>{t("phone.formDescription")}</p>
           </div>
-          <PublicCatalogRegistrationFlow
+          <PortalLoginAuthFlow
             workspace={workspace}
             tenantId={bootstrap.tenantId}
             tourId={tourId}

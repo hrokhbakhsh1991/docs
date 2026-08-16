@@ -78,24 +78,48 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
       repoRoot,
       "packages/catalog-registration-flow-ui/src/catalog-registration-auth-steps.tsx"
     );
+    const transportPath = join(
+      repoRoot,
+      "packages/catalog-registration-flow-ui/src/guest-auth-transport.ts"
+    );
+    const hostPath = join(
+      repoRoot,
+      "packages/catalog-registration-flow-ui/src/guest-auth-host.tsx"
+    );
     const otpInputPath = join(
       repoRoot,
       "packages/catalog-registration-flow-ui/src/otp-segment-input.tsx"
     );
     const authSteps = readFileSync(authStepsPath, "utf8");
+    const transport = readFileSync(transportPath, "utf8");
+    const host = readFileSync(hostPath, "utf8");
     const otpInput = readFileSync(otpInputPath, "utf8");
-    assert.match(authSteps, /request-otp/);
-    assert.match(authSteps, /verify-otp/);
+    assert.match(authSteps, /useGuestAuthHost/);
+    assert.match(authSteps, /probeSession/);
+    assert.match(authSteps, /onAuthenticated/);
     assert.match(authSteps, /OtpSegmentInput/);
     assert.match(authSteps, /readMemberLoginEgress/);
-    assert.match(authSteps, /finishMemberLoginEgress/);
-    assert.match(authSteps, /completeMemberLoginEgressAfterSession/);
-    assert.match(authSteps, /memberLoginStayOnPage/);
-    assert.match(authSteps, /waitForMemberSessionCookie/);
-    assert.match(authSteps, /credentials: "include"/);
+    assert.doesNotMatch(authSteps, /\/api\/public-auth/);
+    assert.doesNotMatch(authSteps, /finishMemberLoginEgress/);
+    assert.doesNotMatch(authSteps, /completeMemberLoginEgressAfterSession/);
+    assert.doesNotMatch(authSteps, /hydrateCatalogRegistrationIntakeAfterSession/);
+    assert.doesNotMatch(authSteps, /isMemberLoginEgressFromLocation/);
+    assert.match(transport, /createPortalSameOriginGuestAuthTransport/);
+    assert.match(transport, /phone-preflight/);
+    assert.match(transport, /request-otp/);
+    assert.match(transport, /verify-otp/);
+    assert.match(transport, /register-complete/);
+    assert.match(transport, /credentials: "include"/);
+    assert.doesNotMatch(transport, /baseUrl/);
+    assert.match(host, /GuestAuthHostProvider/);
+    assert.match(host, /onAuthenticated/);
+    assert.match(flow, /GuestAuthHostProvider/);
+    assert.match(flow, /createPortalSameOriginGuestAuthTransport/);
+    assert.match(flow, /onAuthenticated/);
+    assert.match(flow, /completeMemberLoginEgress\(/);
+    assert.doesNotMatch(flow, /completeMemberLoginEgressAfterSession/);
     assert.match(otpInput, /data-otp-segment-input/);
     assert.match(otpInput, /one-time-code/);
-    assert.doesNotMatch(authSteps, /isMemberLoginEgressFromLocation/);
     assert.doesNotMatch(denaliIntake, /request-otp/);
   });
 });

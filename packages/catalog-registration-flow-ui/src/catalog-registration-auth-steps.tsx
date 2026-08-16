@@ -2,14 +2,11 @@
 
 import { Input } from "@app-tour/ui-primitives/input";
 import {
-  buildPublicRegistrationProfilePayload,
   classifyPublicRegistrationMobileInput,
   guestLoginPhoneFieldValue,
   normalizePublicRegistrationMobile,
   PUBLIC_REGISTRATION_DEV_OTP,
   PUBLIC_REGISTRATION_RESEND_COOLDOWN_SEC,
-  readPublicRegistrationErrorCode,
-  type PublicRegistrationApiError,
 } from "@app-tour/catalog-registration-auth";
 import {
   mergeFlowState,
@@ -20,12 +17,9 @@ import {
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
-import {
-  completeMemberLoginEgressAfterSession,
-  waitForMemberSessionCookie,
-} from "./read-portal-return";
 import { readCatalogRegistrationFlowData } from "./flow-data";
-import { hydrateCatalogRegistrationIntakeAfterSession } from "./hydrate-intake-after-session";
+import { useGuestAuthHost, type GuestAuthHost } from "./guest-auth-host";
+import { readGuestAuthFailureCode } from "./guest-auth-transport";
 import { OtpSegmentInput } from "./otp-segment-input";
 
 /** SSR-stable login egress from flow context — never `window` during render. */
@@ -33,25 +27,20 @@ function readMemberLoginEgress(context: RegistrationFlowContext): boolean {
   return context.memberLoginEgress === true;
 }
 
-async function finishMemberLoginEgress(
-  context: RegistrationFlowContext,
+async function finishHostAuthenticated(
+  host: GuestAuthHost,
   setError: (message: string) => void,
   resolveError: (code: string) => string
 ): Promise<void> {
-  if (context.memberLoginStayOnPage === true) {
-    const ready = await waitForMemberSessionCookie();
+  try {
+    const { ready } = await host.transport.probeSession();
     if (!ready) {
       setError(resolveError("network"));
       return;
     }
-    await context.onMemberLoginSessionReady?.();
-    return;
-  }
-  const egressStarted = await completeMemberLoginEgressAfterSession({
-    memberLoginEgress: true,
-  });
-  if (!egressStarted) {
-    setError(resolveError("network"));
+    await host.onAuthenticated();
+  } catch (error) {
+    setError(resolveError(readGuestAuthFailureCode(error)));
   }
 }
 
@@ -62,6 +51,7 @@ export function CatalogRegistrationPhoneStep({
   resolveError,
 }: RegistrationFlowStepProps) {
   const t = useTranslations("catalogRegistration");
+  const { transport } = useGuestAuthHost();
   const data = readCatalogRegistrationFlowData(state);
   const errorId = useId();
   const [loading, setLoading] = useState(false);
@@ -92,16 +82,8 @@ export function CatalogRegistrationPhoneStep({
     }
     const effectivePhone = normalizePublicRegistrationMobile(visiblePhone);
     try {
-      const preflight = await fetch("/api/public-auth/phone-preflight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ phone: effectivePhone }),
-      });
-      const preflightData = (await preflight.json()) as { exists?: boolean };
-      if (preflight.ok) {
-        setPhoneHint(preflightData.exists === true ? "existing" : "new");
-      }
+      const { exists } = await transport.preflightPhone({ phone: effectivePhone });
+      setPhoneHint(exists ? "existing" : "new");
     } catch {
       // ignore hint refresh errors
     }
@@ -118,35 +100,21 @@ export function CatalogRegistrationPhoneStep({
     setLoading(true);
     setError(null);
     try {
-      const preflight = await fetch("/api/public-auth/phone-preflight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ phone: effectivePhone }),
-      });
-      const preflightData = (await preflight.json()) as { exists?: boolean };
-      if (preflight.ok) {
-        setPhoneHint(preflightData.exists === true ? "existing" : "new");
+      try {
+        const { exists } = await transport.preflightPhone({ phone: effectivePhone });
+        setPhoneHint(exists ? "existing" : "new");
+      } catch {
+        // hint is optional — still request OTP
       }
-      const res = await fetch("/api/public-auth/request-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ phone: effectivePhone }),
-      });
-      const body = (await res.json()) as PublicRegistrationApiError;
-      if (!res.ok || !body.ok || typeof body.challenge_id !== "string") {
-        setError(resolveError(readPublicRegistrationErrorCode(body)));
-        return;
-      }
+      const { challengeId } = await transport.requestOtp({ phone: effectivePhone });
       mergeFlowState(state, dispatch, {
         phone: effectivePhone,
-        challengeId: body.challenge_id,
+        challengeId,
         otp: "",
       });
       transitionFlowStep(dispatch, "otp");
-    } catch {
-      setError(resolveError("network"));
+    } catch (error) {
+      setError(resolveError(readGuestAuthFailureCode(error)));
     } finally {
       setLoading(false);
     }
@@ -223,6 +191,7 @@ export function CatalogRegistrationOtpStep({
   resolveError,
 }: RegistrationFlowStepProps) {
   const t = useTranslations("catalogRegistration");
+  const host = useGuestAuthHost();
   const data = readCatalogRegistrationFlowData(state);
   const errorId = useId();
   const [loading, setLoading] = useState(false);
@@ -245,38 +214,19 @@ export function CatalogRegistrationOtpStep({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/public-auth/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          phone: data.phone,
-          otp: code,
-          challenge_id: data.challengeId,
-        }),
+      const result = await host.transport.verifyOtp({
+        phone: data.phone,
+        otp: code,
+        challengeId: data.challengeId,
       });
-      const body = (await res.json()) as PublicRegistrationApiError;
-      if (!res.ok || !body.ok) {
-        setError(resolveError(readPublicRegistrationErrorCode(body)));
-        return;
-      }
-      if (body.requires_registration === true) {
-        const token = typeof body.onboarding_token === "string" ? body.onboarding_token : "";
-        if (token.length === 0) {
-          setError(resolveError("network"));
-          return;
-        }
-        mergeFlowState(state, dispatch, { onboardingToken: token });
+      if (result.outcome === "needs_profile") {
+        mergeFlowState(state, dispatch, { onboardingToken: result.onboardingToken });
         transitionFlowStep(dispatch, "profile");
         return;
       }
-      if (readMemberLoginEgress(context)) {
-        await finishMemberLoginEgress(context, setError, resolveError);
-        return;
-      }
-      await hydrateCatalogRegistrationIntakeAfterSession(context, state, dispatch);
-    } catch {
-      setError(resolveError("network"));
+      await finishHostAuthenticated(host, setError, resolveError);
+    } catch (error) {
+      setError(resolveError(readGuestAuthFailureCode(error)));
     } finally {
       verifyInFlightRef.current = false;
       setLoading(false);
@@ -287,21 +237,11 @@ export function CatalogRegistrationOtpStep({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/public-auth/request-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ phone: data.phone }),
-      });
-      const body = (await res.json()) as PublicRegistrationApiError;
-      if (res.ok && body.ok && typeof body.challenge_id === "string") {
-        mergeFlowState(state, dispatch, { challengeId: body.challenge_id, otp: "" });
-        setResendCooldown(PUBLIC_REGISTRATION_RESEND_COOLDOWN_SEC);
-        return;
-      }
-      setError(resolveError(readPublicRegistrationErrorCode(body)));
-    } catch {
-      setError(resolveError("network"));
+      const { challengeId } = await host.transport.requestOtp({ phone: data.phone });
+      mergeFlowState(state, dispatch, { challengeId, otp: "" });
+      setResendCooldown(PUBLIC_REGISTRATION_RESEND_COOLDOWN_SEC);
+    } catch (error) {
+      setError(resolveError(readGuestAuthFailureCode(error)));
     } finally {
       setLoading(false);
     }
@@ -390,6 +330,7 @@ export function CatalogRegistrationProfileStep({
   resolveError,
 }: RegistrationFlowStepProps) {
   const t = useTranslations("catalogRegistration");
+  const host = useGuestAuthHost();
   const data = readCatalogRegistrationFlowData(state);
   const errorId = useId();
   const [loading, setLoading] = useState(false);
@@ -400,40 +341,18 @@ export function CatalogRegistrationProfileStep({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/public-auth/register-complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(
-          buildPublicRegistrationProfilePayload({
-            onboardingToken: data.onboardingToken,
-            displayName: data.displayName,
-            profileEmail: data.profileEmail,
-          })
-        ),
+      await host.transport.completeProfile({
+        onboardingToken: data.onboardingToken,
+        displayName: data.displayName,
+        email: data.profileEmail,
       });
-      const body = (await res.json()) as PublicRegistrationApiError;
-      if (!res.ok || !body.ok) {
-        const code = readPublicRegistrationErrorCode(body);
-        if (code === "ONBOARDING_TOKEN_INVALID") {
-          transitionFlowStep(dispatch, "phone");
-        }
-        setError(resolveError(code));
-        return;
+      await finishHostAuthenticated(host, setError, resolveError);
+    } catch (error) {
+      const code = readGuestAuthFailureCode(error);
+      if (code === "ONBOARDING_TOKEN_INVALID") {
+        transitionFlowStep(dispatch, "phone");
       }
-      if (readMemberLoginEgress(context)) {
-        await finishMemberLoginEgress(context, setError, resolveError);
-        return;
-      }
-      await hydrateCatalogRegistrationIntakeAfterSession(
-        context,
-        state,
-        dispatch,
-        data.displayName.trim(),
-        data.profileEmail.trim()
-      );
-    } catch {
-      setError(resolveError("network"));
+      setError(resolveError(code));
     } finally {
       setLoading(false);
     }

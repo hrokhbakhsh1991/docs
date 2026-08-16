@@ -197,6 +197,7 @@ export function PortalLoginModalProvider({ children }: ProviderProps) {
                   memberModuleHref={flow.memberModuleHref}
                   memberLoginEgress
                   memberLoginStayOnPage={host === "register"}
+                  onAuthenticated={host === "register" ? onRegisterSessionReady : undefined}
                   onMemberLoginSessionReady={
                     host === "register" ? onRegisterSessionReady : undefined
                   }

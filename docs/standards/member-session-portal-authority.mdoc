@@ -1,7 +1,7 @@
 ---
 title: Member Session Portal Authority (PCMS)
 standard_id: PCMS-001
-version: 1.0.0
+version: 1.1.0
 status: active
 extends:
   - docs/standards/workspace-routing-standard.mdoc
@@ -25,6 +25,10 @@ code_sot:
   - packages/guest-surface-host/src/resolve-member-login-catalog-tour-id.ts
   - packages/guest-surface-host/src/is-localhost-ingress-host.ts
   - packages/guest-surface-host/src/session-tenant-matches-dev-cross-surface-host.ts
+  - packages/catalog-registration-flow-ui/src/guest-auth-transport.ts
+  - packages/catalog-registration-flow-ui/src/guest-auth-host.tsx
+  - packages/catalog-registration-flow-ui/src/catalog-registration-auth-steps.tsx
+  - apps/portal/src/auth/portal-login-auth-flow.tsx
   - docs/phase-19/portal-member-login-modal.mdoc
 mandatory_for:
   - apps/portal
@@ -149,7 +153,7 @@ Marketing header **Sign in** (`data-marketing-header-sign-in`) must target membe
 | --------- | ---- |
 | **PCMS-UX-01** | `GET /login` without safe `portalReturn` → SSR redirect to canonical `/login?portalReturn=<default member module>`. |
 | **PCMS-UX-02** | Valid member session on `/login` **or** `?auth=login` with session → no OTP modal; redirect / intake-only as appropriate. |
-| **PCMS-UX-03** | After `verify-otp` / `register-complete` on **login-host** egress: `waitForMemberSessionCookie()` then `completeMemberLoginEgress()` → `location.assign(portalReturn)`. **`hydrateCatalogRegistrationIntakeAfterSession` is forbidden** on login-host egress. |
+| **PCMS-UX-03** | After `verify-otp` / `register-complete` on **login-host** egress: auth steps call `GuestAuthTransport.probeSession()` then host `onAuthenticated` → `completeMemberLoginEgress()` / `location.assign(portalReturn)`. **`hydrateCatalogRegistrationIntakeAfterSession` is forbidden** on login-host egress **and** inside OTP/profile steps. |
 | **PCMS-UX-04** | `data-portal-return` (host or modal root) mirrors query for client fallback. |
 | **PCMS-UX-MODAL-01** | Desktop = dialog · mobile = bottom sheet · hooks `data-portal-login-modal` / `data-portal-login-modal-presentation`. |
 | **PCMS-UX-MODAL-02** | While modal open on register host: stay on URL; close without success keeps the page. |
@@ -162,6 +166,8 @@ Marketing header **Sign in** (`data-marketing-header-sign-in`) must target membe
 **Register route (tour registration):** `/catalog/{tourId}/register` is **intake-first after auth**. Guests are gated by PCMS-UX-MODAL-04 (modal OTP / profile). Session resume → intake-only (PCMS-REG-01). Inline guest auth on the register page is **forbidden**.
 
 **Auth API (unchanged contract):** `phone-preflight` → `request-otp` → `verify-otp` (existing member → session) **or** `requires_registration` → profile → `register-complete` (new member → session). Portal BFF under `/api/public-auth/*`.
+
+**GuestAuthTransport (Phase 1 — multi-host-capable, Portal-only impl):** Shared OTP/profile steps in `@app-tour/catalog-registration-flow-ui` must not `fetch` BFF paths or `location.assign`. They read `GuestAuthHost` (`transport` + `onAuthenticated`) from `GuestAuthHostProvider`. Transport methods: `preflightPhone` → `{ exists }`; `requestOtp` → `{ challengeId }`; `verifyOtp` → `{ outcome: "session_ready" } | { outcome: "needs_profile", onboardingToken }`; `completeProfile` → `{ outcome: "session_ready" }`; `probeSession` → `{ ready }` (PCMS-UX-MODAL-COOKIE). After `session_ready`, steps call `probeSession` then host `onAuthenticated` only — they must not hydrate intake, read `portalReturn`, or `location.assign`. The only implementation today is `createPortalSameOriginGuestAuthTransport()` → relative `/api/public-auth/*` and `GET /api/me/profile` via `waitForMemberSessionCookie`. No `baseUrl` / absolute-origin factory (that would silently ship a second auth host). Cookie `Set-Cookie` remains Portal BFF. Marketing still **must not** host OTP UI, write `atour_mb_session`, or expose member BFF routes. A future Marketing host would add a **new** Portal-origin adapter + Architect-approved PCMS/CORS amendment; it must not rewrite OTP/profile UI, create `packages/guest-auth`, move session ownership, or replace `/login`.
 
 **Cross-intent after login:** Marketing tour sign-in lands on register with modal; after OTP, user remains on register → intake-only. Header Sign in uses `/login` then `/me/registrations`.
 

@@ -13,9 +13,21 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
     assert.match(page, /memberLoginEgress/);
     assert.match(page, /data-portal-return/);
     assert.match(page, /PortalAuthExperienceShell/);
-    assert.match(page, /PublicCatalogRegistrationFlow/);
+    assert.match(page, /PortalLoginAuthFlow/);
     assert.match(page, /data-portal-login-full-page/);
     assert.doesNotMatch(page, /PortalLoginModalOpener/);
+  });
+
+  it("PCMS-LOGIN-01d /login client wrapper owns host onAuthenticated (no second probe)", () => {
+    const wrapper = readFileSync(
+      join(repoRoot, "apps/portal/src/auth/portal-login-auth-flow.tsx"),
+      "utf8"
+    );
+    assert.match(wrapper, /PublicCatalogRegistrationFlow/);
+    assert.match(wrapper, /onAuthenticated/);
+    assert.match(wrapper, /completeMemberLoginEgress\(\{/);
+    assert.doesNotMatch(wrapper, /completeMemberLoginEgressAfterSession/);
+    assert.doesNotMatch(wrapper, /hydrateCatalogRegistrationIntakeAfterSession/);
   });
 
   it("PCMS-LOGIN-01b missing login catalog tour does not notFound the host", () => {
@@ -112,6 +124,8 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
     assert.match(modal, /data-portal-login-modal-body-variant=\{host\}/);
     assert.match(modal, /const showRegisterIntro = host === "login"/);
     assert.match(modal, /memberLoginStayOnPage/);
+    assert.match(modal, /onAuthenticated/);
+    assert.match(modal, /onRegisterSessionReady/);
     assert.match(modal, /inert=\{!open\}/);
     assert.match(modal, /\{open \? \(/);
     assert.match(providers, /PortalLoginModalProvider/);
