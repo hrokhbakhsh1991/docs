@@ -1,9 +1,47 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { resolveTourWorkspaceFinanceLoadOutcome } from "../src/features/tours/use-tour-workspace-finance-data";
+import {
+  resolveTourWorkspaceFinanceLoadOutcome,
+  shouldBlockTourFinancePanelSkeleton,
+} from "../src/features/tours/use-tour-workspace-finance-data";
 
 describe("tour-workspace-finance-data.spec.ts", () => {
+  it("PAY-FIN-01 — blocks empty skeleton only when loading with no rows yet", () => {
+    assert.equal(
+      shouldBlockTourFinancePanelSkeleton({
+        loading: true,
+        outstandingCount: 0,
+        receiptCount: 0,
+      }),
+      true
+    );
+    assert.equal(
+      shouldBlockTourFinancePanelSkeleton({
+        loading: true,
+        outstandingCount: 0,
+        receiptCount: 3,
+      }),
+      false
+    );
+    assert.equal(
+      shouldBlockTourFinancePanelSkeleton({
+        loading: true,
+        outstandingCount: 1,
+        receiptCount: 0,
+      }),
+      false
+    );
+    assert.equal(
+      shouldBlockTourFinancePanelSkeleton({
+        loading: false,
+        outstandingCount: 0,
+        receiptCount: 0,
+      }),
+      false
+    );
+  });
+
   it("keeps successful finance reads when one workspace read fails", () => {
     const outcome = resolveTourWorkspaceFinanceLoadOutcome({
       outstanding: {

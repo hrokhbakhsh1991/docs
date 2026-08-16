@@ -9,6 +9,7 @@ import {
   buildTourWorkspacePaymentDetailState,
   resolveTourWorkspaceCurrentRequirement,
   resolveTourWorkspacePaymentSummaryStatus,
+  shouldBuildTourWorkspacePaymentDetailState,
   summarizeTourWorkspacePaymentEvidence,
 } from "../src/features/tours/tour-workspace-payment-follow-up-state";
 
@@ -260,6 +261,38 @@ describe("tour-workspace-payment-follow-up-state.spec.ts", () => {
         latestReceiptAt: "2026-08-13T11:00:00.000Z",
       }
     );
+  });
+
+  it("PAY-FIN-03 — does not build detail state from receipts alone while loading", () => {
+    assert.equal(
+      shouldBuildTourWorkspacePaymentDetailState({
+        loading: true,
+        invoice: null,
+        payments: [],
+        schedule: [],
+        receipts: [receipt()],
+      }),
+      false
+    );
+    assert.equal(
+      shouldBuildTourWorkspacePaymentDetailState({
+        loading: false,
+        invoice: null,
+        payments: [],
+        schedule: [],
+        receipts: [receipt()],
+      }),
+      true
+    );
+    const premature = buildTourWorkspacePaymentDetailState({
+      invoice: null,
+      payments: [],
+      receipts: [receipt()],
+      schedule: [],
+      now: NOW,
+    });
+    assert.equal(premature.currentRequirement.kind, "none");
+    assert.equal(premature.currentRequirement.amountMinor, "0");
   });
 
   it("builds a coherent detail state for a partial-paid guest under review", () => {

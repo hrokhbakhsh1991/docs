@@ -20,6 +20,7 @@ import { withFinanceRegistrationQuery } from "@/finance/finance-registration-con
 import { toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
 import {
   buildTourWorkspacePaymentDetailState,
+  shouldBuildTourWorkspacePaymentDetailState,
   type TourWorkspacePaymentDetailState,
 } from "@/features/tours/tour-workspace-payment-follow-up-state";
 
@@ -88,6 +89,9 @@ export function useTourWorkspacePaymentDetailData(
     const controller = new AbortController();
     setLoading(true);
     setError(null);
+    setInvoice(null);
+    setPayments([]);
+    setSchedule([]);
 
     void Promise.all([
       fetch(buildInvoiceLookupPath(normalizedRegistrationId), {
@@ -149,15 +153,21 @@ export function useTourWorkspacePaymentDetailData(
 
   const detailState = useMemo(
     () =>
-      invoice === null && payments.length === 0 && schedule.length === 0 && receipts.length === 0
-        ? null
-        : buildTourWorkspacePaymentDetailState({
+      shouldBuildTourWorkspacePaymentDetailState({
+        loading,
+        invoice,
+        payments,
+        schedule,
+        receipts,
+      })
+        ? buildTourWorkspacePaymentDetailState({
             invoice,
             payments,
             receipts,
             schedule,
-          }),
-    [invoice, payments, receipts, schedule]
+          })
+        : null,
+    [invoice, loading, payments, receipts, schedule]
   );
 
   if (!isUsableRegistrationId(normalizedRegistrationId)) {

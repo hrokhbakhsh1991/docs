@@ -12,17 +12,21 @@ import type {
   FinancePendingReceipt,
   FinancePendingReceiptsResponse,
 } from "@/finance/finance-receipts-logic";
-import { invalidateTourWorkspaceFinanceCache } from "@/features/tours/tour-workspace-finance-fetch-cache";
 import {
+  invalidateTourWorkspaceFinanceCache,
   loadTourWorkspaceCollectionsPage,
   loadTourWorkspaceOutstandingBalancesPage,
   loadTourWorkspacePendingReceiptsPage,
+  readTourWorkspaceFinanceCache,
+  TOUR_WORKSPACE_FINANCE_CACHE_NS,
   TOUR_WORKSPACE_FINANCE_LIST_PAGE_SIZE,
 } from "@/features/tours/tour-workspace-finance-fetch-cache";
 import { toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
 
 type TourWorkspaceFinanceDataState = {
   readonly loading: boolean;
+  /** True only when a first paint would be an empty skeleton (PAY-FIN-01). */
+  readonly panelBlocking: boolean;
   readonly error: string | null;
   readonly outstanding: readonly OutstandingBalanceListItem[];
   readonly tours: readonly TourCollectionListItem[];
@@ -35,6 +39,51 @@ type TourWorkspaceFinanceDataState = {
   readonly refresh: () => void;
   readonly loadMore: () => void;
 };
+
+/**
+ * PAY-FIN-01 — do not blank the finance panel when header cache already warmed
+ * collections/receipts (or a prior tab load left rows). Skeleton only when we
+ * have nothing actionable to paint yet.
+ */
+export function shouldBlockTourFinancePanelSkeleton(input: {
+  readonly loading: boolean;
+  readonly outstandingCount: number;
+  readonly receiptCount: number;
+}): boolean {
+  return input.loading && input.outstandingCount === 0 && input.receiptCount === 0;
+}
+
+function readCachedFinanceSeed(tourId: string): {
+  readonly outstanding: readonly OutstandingBalanceListItem[];
+  readonly tours: readonly TourCollectionListItem[];
+  readonly receipts: readonly FinancePendingReceipt[];
+  readonly outstandingNextCursor: string | null;
+  readonly outstandingHasMore: boolean;
+  readonly receiptsNextCursor: string | null;
+  readonly receiptsHasMore: boolean;
+} {
+  const outstandingPage = readTourWorkspaceFinanceCache<OutstandingBalancesPage>(
+    TOUR_WORKSPACE_FINANCE_CACHE_NS.outstanding,
+    tourId
+  );
+  const collectionsPage = readTourWorkspaceFinanceCache<TourCollectionsPage>(
+    TOUR_WORKSPACE_FINANCE_CACHE_NS.collections,
+    tourId
+  );
+  const receiptsPage = readTourWorkspaceFinanceCache<FinancePendingReceiptsResponse>(
+    TOUR_WORKSPACE_FINANCE_CACHE_NS.pendingReceipts,
+    tourId
+  );
+  return {
+    outstanding: outstandingPage?.items ?? [],
+    tours: collectionsPage?.items ?? [],
+    receipts: receiptsPage?.items ?? [],
+    outstandingNextCursor: outstandingPage?.nextCursor ?? null,
+    outstandingHasMore: outstandingPage?.hasMore === true,
+    receiptsNextCursor: receiptsPage?.nextCursor ?? null,
+    receiptsHasMore: receiptsPage?.hasMore === true,
+  };
+}
 
 export type TourWorkspaceFinanceSection = "outstanding" | "tours" | "receipts";
 
@@ -133,15 +182,26 @@ export function resolveTourWorkspaceFinanceLoadOutcome(input: {
 export function useTourWorkspaceFinanceData(
   tourId: string
 ): TourWorkspaceFinanceDataState {
+  const [initialSeed] = useState(() => readCachedFinanceSeed(tourId));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [outstanding, setOutstanding] = useState<readonly OutstandingBalanceListItem[]>([]);
-  const [tours, setTours] = useState<readonly TourCollectionListItem[]>([]);
-  const [receipts, setReceipts] = useState<readonly FinancePendingReceipt[]>([]);
-  const [receiptsHasMore, setReceiptsHasMore] = useState(false);
-  const [outstandingNextCursor, setOutstandingNextCursor] = useState<string | null>(null);
-  const [outstandingHasMore, setOutstandingHasMore] = useState(false);
-  const [receiptsNextCursor, setReceiptsNextCursor] = useState<string | null>(null);
+  const [outstanding, setOutstanding] = useState<readonly OutstandingBalanceListItem[]>(
+    () => initialSeed.outstanding
+  );
+  const [tours, setTours] = useState<readonly TourCollectionListItem[]>(() => initialSeed.tours);
+  const [receipts, setReceipts] = useState<readonly FinancePendingReceipt[]>(
+    () => initialSeed.receipts
+  );
+  const [receiptsHasMore, setReceiptsHasMore] = useState(() => initialSeed.receiptsHasMore);
+  const [outstandingNextCursor, setOutstandingNextCursor] = useState<string | null>(
+    () => initialSeed.outstandingNextCursor
+  );
+  const [outstandingHasMore, setOutstandingHasMore] = useState(
+    () => initialSeed.outstandingHasMore
+  );
+  const [receiptsNextCursor, setReceiptsNextCursor] = useState<string | null>(
+    () => initialSeed.receiptsNextCursor
+  );
   const [loadingMore, setLoadingMore] = useState(false);
   const [degradedSections, setDegradedSections] = useState<
     readonly TourWorkspaceFinanceSection[]
@@ -260,8 +320,15 @@ export function useTourWorkspaceFinanceData(
     void load(fetchNonce > 0);
   }, [fetchNonce, load]);
 
+  const panelBlocking = shouldBlockTourFinancePanelSkeleton({
+    loading,
+    outstandingCount: outstanding.length,
+    receiptCount: receipts.length,
+  });
+
   return {
     loading,
+    panelBlocking,
     error,
     outstanding,
     tours,
