@@ -64,7 +64,7 @@ type ProviderProps = {
 /**
  * Register-route OTP modal (PCMS-UX-MODAL-04 / DL-48).
  * Standalone `/login` is page OTP — this provider has no `host="login"` branch
- * and must not call `completeMemberLoginEgress`.
+ * and must not run login-host page egress.
  */
 export function PortalLoginModalProvider({ children }: ProviderProps) {
   const t = useTranslations("catalogRegistration");

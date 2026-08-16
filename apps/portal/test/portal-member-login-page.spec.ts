@@ -129,7 +129,8 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
     assert.match(modal, /onAuthenticated/);
     assert.match(modal, /onRegisterSessionReady/);
     assert.doesNotMatch(modal, /onLoginSessionReady/);
-    assert.doesNotMatch(modal, /completeMemberLoginEgress/);
+    assert.doesNotMatch(modal, /from "@app-tour\/catalog-registration-flow-ui"/);
+    assert.doesNotMatch(modal, /completeMemberLoginEgress\(/);
     assert.doesNotMatch(modal, /host === "login"/);
     assert.doesNotMatch(modal, /"login" \| "register"/);
     assert.match(modal, /inert=\{!open\}/);
