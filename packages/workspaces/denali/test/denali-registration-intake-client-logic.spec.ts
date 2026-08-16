@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   denaliRequiredIntakeCopyField,
+  denaliIntakeNationalIdChecksumIssue,
   findDuplicateOtherGuestMobile,
   parseCatalogRegistrationResponseBody,
 } from "../src/catalog/registration-flow/denali-registration-intake-client-logic";
@@ -26,5 +27,24 @@ describe("denali registration intake client logic", () => {
     assert.equal(findDuplicateOtherGuestMobile(["09128003999", "09128003999"]), "+989128003999");
     assert.equal(findDuplicateOtherGuestMobile(["09128003999", "+989128003999"]), "+989128003999");
     assert.equal(findDuplicateOtherGuestMobile(["09128003999", "09128003101"]), null);
+  });
+
+  it("DN-INTAKE-NID-01 checksum issue only when field is collected", () => {
+    assert.equal(
+      denaliIntakeNationalIdChecksumIssue({ fieldInSchema: false, nationalId: "1234567890" }),
+      null
+    );
+    assert.equal(
+      denaliIntakeNationalIdChecksumIssue({ fieldInSchema: true, nationalId: "" }),
+      null
+    );
+    assert.equal(
+      denaliIntakeNationalIdChecksumIssue({ fieldInSchema: true, nationalId: "0013542419" }),
+      null
+    );
+    assert.equal(
+      denaliIntakeNationalIdChecksumIssue({ fieldInSchema: true, nationalId: "1234567890" }),
+      "checksum"
+    );
   });
 });

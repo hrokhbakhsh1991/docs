@@ -114,6 +114,7 @@ const ALLOWED_ROOT_RUNTIME_EXPORTS = new Set([
   "clearWorkspaceCatalogCardStringField",
   "clearWorkspaceIntakePluginRegistryForTests",
   "clearWorkspaceRegistrationFlowRegistryForTests",
+  "classifyIranianNationalId",
   "createCanPerformWorkspaceOwnerMutation",
   "createCanonicalDocument",
   "createStarterWorkspacePlugin",

@@ -169,6 +169,14 @@ describe("member-profile-bff.server (M2)", () => {
     });
   });
 
+  it("MP-BFF-08c PATCH checksum-invalid 10-digit national id is PROFILE_NATIONAL_ID_CHECKSUM", () => {
+    const err = parseMemberProfilePatchBody({ fields: { nationalId: "1234567890" } }, "denali");
+    assert.equal("code" in err && err.code, "PROFILE_NATIONAL_ID_CHECKSUM");
+    assert.deepEqual("fieldErrors" in err && err.fieldErrors, {
+      nationalId: "PROFILE_NATIONAL_ID_CHECKSUM",
+    });
+  });
+
   it("MP-BFF-08b PATCH collect-all fieldErrors for multiple invalid fields", () => {
     const err = parseMemberProfilePatchBody(
       { fields: { nationalId: "bad", birthDate: "1991-02-31", displayName: "" } },
@@ -264,6 +272,7 @@ describe("portal-member-profile-bff route (M2)", () => {
     assert.doesNotMatch(form, /session-profile/);
     assert.doesNotMatch(form, /\/\^\\d\{10\}/);
     assert.doesNotMatch(form, /nationalIdInvalid/);
+    assert.doesNotMatch(form, /classifyIranianNationalId/);
   });
 
   it("MP-AVATAR-01 Discard resets text fields only; avatar syncs last server URL", () => {

@@ -88,7 +88,7 @@ describe("denali-registration-profile-persist", () => {
         registrantTarget: "self",
         contact: {
           fullName: "Ali Rezaei",
-          nationalId: "1234567890",
+          nationalId: "0013542419",
           fatherName: "Hossein",
           birthDate: "1990-05-20",
         },
@@ -110,7 +110,7 @@ describe("denali-registration-profile-persist", () => {
     assert.equal(patches.length, 1);
     assert.deepEqual(patches[0], {
       displayName: "Ali Rezaei",
-      nationalId: "1234567890",
+      nationalId: "0013542419",
       fatherName: "Hossein",
       birthDate: "1990-05-20",
     });
@@ -127,7 +127,7 @@ describe("denali-registration-profile-persist", () => {
         registrantTarget: "self",
         contact: {
           fullName: "Ali Rezaei",
-          nationalId: "1234567890",
+          nationalId: "0013542419",
           fatherName: "Hossein",
           birthDate: "1990-05-20",
         },
@@ -148,7 +148,7 @@ describe("denali-registration-profile-persist", () => {
 
     assert.equal(patches.length, 1);
     assert.equal(patches[0]?.displayName, undefined);
-    assert.equal(patches[0]?.nationalId, "1234567890");
+    assert.equal(patches[0]?.nationalId, "0013542419");
   });
 
   it("DN-REG-P03 other registrant does not patch booker profile", async () => {

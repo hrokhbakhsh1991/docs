@@ -1,7 +1,7 @@
 ---
 title: Denali self vs other registration uniqueness + member amend
 doc_id: DENALI-REG-SELF-OTHER-UNIQUENESS
-version: "2026-08-16-v4"
+version: "2026-08-16-v5"
 workspace: denali
 authority: public-catalog.md · BOOKING_GUEST_DUPLICATE_UNIQUENESS.md · platform-portal-member.mdoc
 ---
@@ -61,7 +61,7 @@ Unchanged guest-identity actives: email / label / nationalId / phone uniques.
 | ------ | ---- | ------- |
 | `POST` | `/denali/registrations` | Create (existing) — duplicate rules above; registered member required from portal; `contact.phone` **required** when `registrantTarget=other` |
 | `GET` | `/denali/registrations/for-tour/:tourId` | Member: `{ self: { id, status } \| null }` for register-page gate |
-| `GET` | `/denali/registrations/:registrationId` | Member-owned detail (submitter match). Deep link `/me/registrations/{id}` must use this — not a mine-list scan |
+| `GET` | `/denali/registrations/:registrationId` | Member-owned detail (submitter match). Deep link `/me/registrations/{id}` must use this — not a mine-list scan. Response includes safe transport scalars `transportKind` + `personalCarOccupants` when `registrationIntake.transport` exists; **must not** expose the raw `registrationIntake` blob (BK-SAFE-01) |
 | `PATCH` | `/denali/registrations/:registrationId` | Member amend pending/waitlisted intake (`transport` allowlist) |
 
 ## Portal BFF
@@ -102,7 +102,7 @@ Finance `mergeRegistrationIntake` for `obligationOverride` stays finance-only �
   - `DENALI_REGISTRATION_DUPLICATE` → treat as self-already **only when** `for-tour.self` is non-null (or refresh returns an id): lock checkbox, show `data-registration-self-already`. Do not lock as self-already when `for-tour.self` is still null.
   - `BOOKING_GUEST_DUPLICATE` → **first** refresh `for-tour`. Only if `self` is non-null treat as self-already (same banner). If `for-tour.self` is null, this is an **identity collision** with another guest on the tour — show `errors.SELF_IDENTITY_DUPLICATE` on the self card and **do not** claim “you already registered yourself” or lock the self checkbox as self-already. Prefer linking `context.memberModuleHref` so the member can open trips and see the conflicting «برای دیگری» row when it is theirs.
 - Other guest cards: show guest name + required mobile + tour-required identity fields; submit stores `guestPhone` from intake phone.
-- Detail pending: transport edit panel; after `approved` amend is closed.
+- Detail pending: transport edit panel **hydrated from those scalars**; after `approved` amend is closed. Summary KPI shows the saved kind so a `personal_car` / occupants 3 row cannot render as «حمل‌ونقل باشگاه».
 - Portal i18n must map both `DENALI_REGISTRATION_DUPLICATE` and `BOOKING_GUEST_DUPLICATE` (host P2002) under `catalogRegistration.errors`.
 
 ### Member trips list / detail — self vs other (portal)

@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-08-16-v18"
+version: "2026-08-16-v19"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -164,7 +164,7 @@ Intake dispatch: `apps/portal/app/api/catalog/registrations/route.ts` calls SDK 
 | Name (`fullName` / `displayName`) | Required | Hidden when profile/session already has name | Yes when `displayName` empty |
 | Email | Optional | **Not shown** — never collected at tour intake | — |
 | Party size | — | Fixed `1` (no UI field) | — |
-| National ID | — | When `nationalIdRequired` and profile empty | Yes |
+| National ID | — | When `nationalIdRequired` and profile empty | Yes — host + Denali client-logic use SDK `classifyIranianNationalId` (`ok` \| `format` \| `checksum`). Format fail → `intake.nationalIdInvalid`; 10 digits that fail checksum / all-same → `intake.nationalIdChecksumInvalid`. Portal UI must not contain the checksum (INV-MP-07). |
 | Father's name | — | When `fatherNameRequired` and profile empty | Yes |
 | Birth date | — | When `birthDateRequired` and profile empty | Yes |
 
@@ -180,6 +180,21 @@ Session defaults: `GET /api/me/profile` hydrates name (+ email for upstream only
 | `birthDate` | `birthDateRequired` | hidden when profile has `birthDate` |
 
 `registrantTarget=other` shows all tour-gated fields empty (booker fills guest).
+
+### Intake a11y — unique field ids (BUG-6)
+
+Each intake card must pass a distinct `idPrefix` into `RenderIntakeForm` so `htmlFor` / control `id` never collide across self + guest cards:
+
+| Card | `idPrefix` |
+|------|------------|
+| Self | `denali-intake-self` |
+| Other guest `n` (0-based) | `denali-intake-other-{n}` |
+
+`aria-invalid` and `aria-describedby` attach **only** to the field that failed (`invalidFieldId`), not every control on the form. Urban uses `idPrefix="urban-intake"` (single card). Platform `Input` must apply `aria-invalid` after `{...rest}` so callers cannot override it to a blanket `true`.
+
+### Member amend hydrate (BUG-18)
+
+Owned detail GET returns safe scalars `transportKind` + `personalCarOccupants` (not `registrationIntake`). `/me/registrations/{id}` KPI `[data-portal-member-registration-transport]` and `MemberIntakeAmendForm` hydrate from those scalars. Missing transport on a bus tour falls back to form default `primary` / occupants `1` — KPI renders only when the scalar is present.
 
 **Party size removed from intake UI (2026-07-02):** Denali registration is one participant per submission — a member registers **themself** (`self`) or **one other person** (`other`, whose identity fields the booker fills). The `partySize` UI field was removed from `DENALI_CATALOG_INTAKE_SCHEMA`; the flow now sends a fixed `partySize: 1` to the API. The API contract is **unchanged** — `denaliRegistrationPostSchema.partySize` (`z.number().int().min(1)`) and capacity/`spotsRemaining` math (`Σ approved.partySize`) still operate on the persisted value. To register additional people, the booker submits again per person (duplicate guard is guest user id + tour id, so distinct guests are allowed).
 

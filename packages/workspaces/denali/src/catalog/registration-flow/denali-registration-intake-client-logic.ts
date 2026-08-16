@@ -2,6 +2,7 @@ import {
   classifyPublicRegistrationMobileInput,
   normalizePublicRegistrationMobile,
 } from "@app-tour/catalog-registration-auth";
+import { classifyIranianNationalId } from "@app-tour/workspace-sdk";
 
 export type DenaliRequiredIntakeCopyField =
   | "fullName"
@@ -62,4 +63,22 @@ export function findDuplicateOtherGuestMobile(phones: readonly string[]): string
     seen.add(normalized);
   }
   return null;
+}
+
+/**
+ * Extra national-id gate after schema pattern (`^\d{10}$`).
+ * Returns `checksum` when 10 digits fail IR checksum / all-same; `null` when ok, empty, or not collected.
+ */
+export function denaliIntakeNationalIdChecksumIssue(input: {
+  readonly fieldInSchema: boolean;
+  readonly nationalId: string | undefined;
+}): "checksum" | null {
+  if (!input.fieldInSchema) {
+    return null;
+  }
+  const trimmed = (input.nationalId ?? "").trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+  return classifyIranianNationalId(trimmed) === "checksum" ? "checksum" : null;
 }

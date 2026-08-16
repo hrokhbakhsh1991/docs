@@ -9,8 +9,9 @@ export type RenderIntakeFormProps = {
   readonly values: IntakeFormState;
   readonly onChange: (fieldId: string, value: string) => void;
   readonly resolveLabel: (field: IntakeField) => string;
+  readonly idPrefix: string;
   readonly errorId?: string;
-  readonly hasError?: boolean;
+  readonly invalidFieldId?: string;
 };
 
 export function RenderIntakeForm({
@@ -18,22 +19,27 @@ export function RenderIntakeForm({
   values,
   onChange,
   resolveLabel,
+  idPrefix,
   errorId,
-  hasError = false,
+  invalidFieldId,
 }: RenderIntakeFormProps) {
   return (
     <div data-schema-intake-form>
-      {schema.fields.map((field) => (
-        <RenderIntakeField
-          key={field.id}
-          field={field}
-          value={values[field.id] ?? ""}
-          label={resolveLabel(field)}
-          onChange={(value) => onChange(field.id, value)}
-          describedBy={hasError ? errorId : undefined}
-          invalid={hasError}
-        />
-      ))}
+      {schema.fields.map((field) => {
+        const fieldInvalid = invalidFieldId === field.id;
+        return (
+          <RenderIntakeField
+            key={field.id}
+            field={field}
+            value={values[field.id] ?? ""}
+            label={resolveLabel(field)}
+            onChange={(value) => onChange(field.id, value)}
+            idPrefix={idPrefix}
+            describedBy={fieldInvalid ? errorId : undefined}
+            invalid={fieldInvalid}
+          />
+        );
+      })}
     </div>
   );
 }

@@ -124,7 +124,8 @@
       "removeFailed": "حذف تصویر ناموفق بود."
     },
     "errors": {
-      "PROFILE_NATIONAL_ID_INVALID": "کد ملی ۱۰ رقمی معتبر وارد کنید.",
+      "PROFILE_NATIONAL_ID_INVALID": "کد ملی باید دقیقاً ۱۰ رقم باشد.",
+      "PROFILE_NATIONAL_ID_CHECKSUM": "این کد ملی از نظر رقم کنترل معتبر نیست. ارقام را بررسی کنید.",
       "PROFILE_BIRTH_DATE_INVALID": "تاریخ تولد معتبر وارد کنید (YYYY-MM-DD).",
       "PROFILE_DISPLAY_NAME_INVALID": "نام نمایشی معتبر وارد کنید.",
       "PROFILE_FATHER_NAME_INVALID": "نام پدر معتبر وارد کنید.",
@@ -181,6 +182,8 @@
     "departureLabel": "زمان حرکت",
     "statusLine": "وضعیت: {status} · پرداخت: {paymentStatus}",
     "departure": "تاریخ حرکت: {departureAt}",
+    "transportLabel": "حمل‌ونقل",
+    "transportLineOccupants": "{kind} · {occupants} صندلی",
     "forOtherBadge": "برای دیگری",
     "guestLine": "مسافر: {guestLabel}"
   },

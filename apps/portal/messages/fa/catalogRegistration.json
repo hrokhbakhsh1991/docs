@@ -120,7 +120,8 @@
     "submit": "ثبت درخواست",
     "submitting": "در حال ارسال…",
     "partySizeInvalid": "تعداد نفرات معتبر وارد کنید.",
-    "nationalIdInvalid": "کد ملی ۱۰ رقمی معتبر وارد کنید.",
+    "nationalIdInvalid": "کد ملی باید دقیقاً ۱۰ رقم باشد.",
+    "nationalIdChecksumInvalid": "این کد ملی از نظر رقم کنترل معتبر نیست. ارقام را بررسی کنید.",
     "fatherNameInvalid": "نام پدر الزامی است.",
     "birthDateInvalid": "تاریخ تولد معتبر وارد کنید.",
     "transportIncomplete": "گزینه‌های حمل‌ونقل را کامل کنید."

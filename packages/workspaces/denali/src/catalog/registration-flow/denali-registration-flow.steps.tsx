@@ -29,6 +29,7 @@ import {
 } from "./denali-registration-flow.surface";
 import {
   denaliRequiredIntakeCopyField,
+  denaliIntakeNationalIdChecksumIssue,
   findDuplicateOtherGuestMobile,
   parseCatalogRegistrationResponseBody,
 } from "./denali-registration-intake-client-logic";
@@ -45,8 +46,11 @@ export {
 function intakeValidationMessage(
   t: ReturnType<typeof useTranslations>,
   fieldId: string,
-  code: "required" | "pattern"
+  code: "required" | "pattern" | "checksum"
 ): string {
+  if (code === "checksum" && fieldId === "nationalId") {
+    return t("intake.nationalIdChecksumInvalid");
+  }
   if (code === "required") {
     const field = denaliRequiredIntakeCopyField(fieldId);
     if (field === "fullName") return t("errors.DISPLAY_NAME_REQUIRED");
@@ -74,6 +78,11 @@ export function DenaliIntakeStep({
   const errorId = useId();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [invalidField, setInvalidField] = useState<{
+    readonly scope: "self" | "other";
+    readonly idx: number;
+    readonly fieldId: string;
+  } | null>(null);
   // Gate automation until client handlers are attached — SSR submit is a GET with
   // query-string field names and never hits /api/catalog/registrations.
   const [clientReady, setClientReady] = useState(false);
@@ -332,6 +341,7 @@ export function DenaliIntakeStep({
 
     setLoading(true);
     setError(null);
+    setInvalidField(null);
     setSubmitResults(null);
 
     const submitSeed =
@@ -396,7 +406,18 @@ export function DenaliIntakeStep({
         const issues = validateIntakeSchemaValues(effectiveSchemaForTarget, merged);
         if (issues.length > 0) {
           const firstIssue = issues[0]!;
+          setInvalidField({ scope: target, idx: p.idx, fieldId: firstIssue.fieldId });
           setError(intakeValidationMessage(t, firstIssue.fieldId, firstIssue.code));
+          return;
+        }
+
+        const nationalIdChecksum = denaliIntakeNationalIdChecksumIssue({
+          fieldInSchema: effectiveSchemaForTarget.fields.some((field) => field.id === "nationalId"),
+          nationalId: merged.nationalId,
+        });
+        if (nationalIdChecksum !== null) {
+          setInvalidField({ scope: target, idx: p.idx, fieldId: "nationalId" });
+          setError(intakeValidationMessage(t, "nationalId", "checksum"));
           return;
         }
 
@@ -405,10 +426,12 @@ export function DenaliIntakeStep({
             (merged.phone as string | undefined) ?? p.draft.intakePhone
           );
           if (mobileCode === "MOBILE_REQUIRED") {
+            setInvalidField({ scope: "other", idx: p.idx, fieldId: "phone" });
             setError(t("errors.MOBILE_REQUIRED"));
             return;
           }
           if (mobileCode === "MOBILE_INVALID") {
+            setInvalidField({ scope: "other", idx: p.idx, fieldId: "phone" });
             setError(t("errors.MOBILE_INVALID"));
             return;
           }
@@ -653,8 +676,11 @@ export function DenaliIntakeStep({
                 }}
                 onChange={(fieldId, value) => updateSelfField(fieldId, value)}
                 resolveLabel={(field: IntakeField) => t(field.labelKey)}
+                idPrefix="denali-intake-self"
                 errorId={errorId}
-                hasError={error !== null}
+                invalidFieldId={
+                  invalidField?.scope === "self" ? invalidField.fieldId : undefined
+                }
               />
 
               {personalCarOptInVisible ? (
@@ -892,8 +918,13 @@ export function DenaliIntakeStep({
                       }}
                       onChange={(fieldId, value) => updateGuestField(guestIdx, fieldId, value)}
                       resolveLabel={(field: IntakeField) => t(field.labelKey)}
+                      idPrefix={`denali-intake-other-${guestIdx}`}
                       errorId={errorId}
-                      hasError={error !== null}
+                      invalidFieldId={
+                        invalidField?.scope === "other" && invalidField.idx === guestIdx
+                          ? invalidField.fieldId
+                          : undefined
+                      }
                     />
 
                     {personalCarOptInVisible ? (

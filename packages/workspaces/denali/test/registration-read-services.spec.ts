@@ -152,6 +152,70 @@ describe("registration-read-services", () => {
     assert.equal(detail.dueTotalMinor, "2650000");
     assert.equal(detail.dueCurrency, "IRR");
     assert.equal(detail.dueLines?.length, 2);
+    assert.equal(detail.transportKind, "primary");
+    assert.equal(detail.personalCarOccupants, undefined);
+  });
+
+  it("DN-READ-06 owned detail exposes personal_car occupants without registrationIntake blob", async () => {
+    const bookingPort: BookingPublicPort = {
+      async findDuplicateByTourGuest() {
+        return null;
+      },
+      async findDuplicateByTourGuestLabel() {
+        return null;
+      },
+      async findDuplicateByTourGuestNationalId() {
+        return null;
+      },
+      async findDuplicateByTourGuestPhone() {
+        return null;
+      },
+      async findDuplicateByTourEmail() {
+        return null;
+      },
+      async findOwnedBooking() {
+        return {
+          id: REG_ID,
+          status: "pending",
+          tourId: TOUR_ID,
+          tourTitle: "Read Services Tour",
+          guestLabel: "Member",
+          registrantTarget: "self",
+          paymentStatus: "unpaid",
+          departureAt: "2026-06-01T08:00:00.000Z",
+          submittedAt: "2026-05-01T08:00:00.000Z",
+          partySize: 1,
+          registrationIntake: { transport: { kind: "personal_car", personalCarOccupants: 3 } },
+        };
+      },
+      async mergeOwnedRegistrationIntake() {
+        return null;
+      },
+      async reclassifyOwnedOtherToSelf() {
+        return null;
+      },
+      async createPendingBooking() {
+        return { id: REG_ID, status: "pending" };
+      },
+      async autoApprovePublicBooking() {
+        return { id: REG_ID, status: "approved" };
+      },
+      async sumApprovedPartySizeByTourIds() {
+        return {};
+      },
+    };
+
+    const detail = await getDenaliRegistrationOwned({
+      tenantId: TENANT,
+      guestUserId: GUEST,
+      registrationId: REG_ID,
+      bookingPort,
+      store: pricedTourStore(),
+    });
+    assert.equal(detail.transportKind, "personal_car");
+    assert.equal(detail.personalCarOccupants, 3);
+    assert.equal("registrationIntake" in detail, false);
+    assert.equal(detail.dueTotalMinor, "2500000");
   });
 
   it("DN-READ-03 owned detail throws when booking not owned", async () => {

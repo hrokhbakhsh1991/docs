@@ -2,7 +2,10 @@ import {
   classifyPublicRegistrationMobileInput,
   normalizePublicRegistrationMobile,
 } from "@app-tour/catalog-registration-auth";
-import { assertWorkspaceRegistrationContactBasics } from "@app-tour/workspace-sdk";
+import {
+  assertWorkspaceRegistrationContactBasics,
+  classifyIranianNationalId,
+} from "@app-tour/workspace-sdk";
 
 import { DenaliRegistrationInvalidError } from "./errors/denali-registration-invalid.error";
 
@@ -81,7 +84,7 @@ export function validateDenaliRegistrationPayload(
     const registrantForSelf = !registrantForOther;
     const effectiveNationalId =
       registrantForSelf && profileNationalId.length > 0 ? profileNationalId : intakeNationalId;
-    if (!/^\d{10}$/.test(effectiveNationalId)) {
+    if (classifyIranianNationalId(effectiveNationalId) !== "ok") {
       throw new DenaliRegistrationInvalidError();
     }
   }
