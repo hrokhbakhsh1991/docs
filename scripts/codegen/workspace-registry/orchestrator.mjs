@@ -38,9 +38,11 @@ import {
   assertGuestLandingManifest,
   assertGuestSeoManifest,
   extractCatalogPathsFromManifest,
+  extractRegistrationForTourPathFromManifest,
   generateWorkspaceCatalogDetailSections,
   generateWorkspaceCatalogListFeatures,
   generateWorkspaceCatalogPaths,
+  generateWorkspaceRegistrationForTourPaths,
   generateWorkspaceGuestConformance,
   generateWorkspaceProductionCertification,
   generateWorkspaceGuestCrossSurfaceNav,
@@ -152,6 +154,7 @@ export const DOMAIN_OUTPUT_KEYS = {
   ],
   "guest-catalog": [
     "catalogPaths",
+    "registrationForTourPaths",
     "catalogListFeatures",
     "catalogDetailSections",
     "guestConformance",
@@ -203,6 +206,7 @@ export const OUTPUT_KEYS = Object.freeze([
   "adminTranspilePackages",
   "adminClientWorkspaceIgnore",
   "catalogPaths",
+  "registrationForTourPaths",
   "catalogListFeatures",
   "catalogDetailSections",
   "operatorCapabilities",
@@ -280,6 +284,7 @@ export function generateAllOutputs(manifests) {
     adminTranspilePackages: generateAdminTranspilePackages(manifests),
     adminClientWorkspaceIgnore: generateAdminClientWorkspaceIgnore(manifests),
     catalogPaths: generateWorkspaceCatalogPaths(manifests),
+    registrationForTourPaths: generateWorkspaceRegistrationForTourPaths(manifests),
     catalogListFeatures: generateWorkspaceCatalogListFeatures(manifests),
     catalogDetailSections: generateWorkspaceCatalogDetailSections(manifests),
     operatorCapabilities: generateWorkspaceOperatorCapabilities(manifests),
@@ -389,6 +394,10 @@ export const OUTPUT_PATHS = {
   catalogPaths: join(
     REPO_ROOT,
     "packages/workspace-sdk/src/catalog/workspace-catalog-paths.generated.ts"
+  ),
+  registrationForTourPaths: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-catalog-registration-for-tour-paths.generated.ts"
   ),
   catalogListFeatures: join(
     REPO_ROOT,

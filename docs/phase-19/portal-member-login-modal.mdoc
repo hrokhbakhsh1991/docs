@@ -1,7 +1,7 @@
 ---
 title: Portal Member Login Modal
 doc_id: PCMS-LOGIN-MODAL
-version: "2026-08-16-v6"
+version: "2026-08-16-v7"
 status: design
 authority: docs/standards/member-session-portal-authority.mdoc
 apps: [portal, marketing]
@@ -287,9 +287,31 @@ Five layers — Phase 1 implements A–E on **Portal only**:
 - Smoke `resolveMemberLoginCatalogTourId` + optional `fetchCatalogTour` are **modal context only**; missing tour must not `notFound()`
 - `/login` is not deleted (middleware `/me/*` gate). Marketing OTP / CORS / cookie Domain: **unchanged**
 
+**Phase 3 DoD (this change) — Marketing PDP CTA vs logged-in / already-registered (PCMS-legal product, not an auth rewrite):**
+
+Marketing still **must not** host OTP, write `atour_mb_session`, or expose `apps/marketing/app/api/me/*`. Cookie write stays Portal BFF. The PDP only **shapes hrefs** after a read-only SSR probe (same cookie path as header chrome).
+
+| Readable member session on marketing SSR | Self row for this tour (`GET {registrationApiPath}/for-tour/{tourId}`) | Primary CTA | Secondary CTA |
+| ---------------------------------------- | --------------------------------------------------------------------- | ----------- | ------------- |
+| No (guest / tenant mismatch / cookie host-only) | n/a — skip for-tour | `[data-marketing-register]` → portal `/catalog/{id}/register` | `[data-marketing-tour-sign-in]` → `register?auth=login` |
+| Yes | `self: null` or for-tour unavailable / error | `[data-marketing-register]` → `/catalog/{id}/register` (no `auth=login`); copy `detail.continueRegister` | **Hidden** — no `[data-marketing-tour-sign-in]` |
+| Yes | `self: { id }` | `[data-marketing-view-registration]` → portal `/me/registrations/{id}` | Optional `[data-marketing-register]` + `[data-marketing-register-another]` → `/catalog/{id}/register` when capacity remains |
+
+Fail-closed matrix:
+
+1. No cookie, JWT invalid, or session `tenant_id` does not bind to marketing bootstrap / GSH dev host map → **guest** CTAs (sign-in stays).
+2. Session readable but workspace has no manifest `GET /{ws}/registrations/for-tour/:tourId` (Urban/Harbor/guest-club today) → **member-continue** (hide sign-in; keep register). Do **not** invent a self id.
+3. For-tour HTTP error / timeout / malformed body → **member-continue** (hide sign-in). Never show «قبلاً ثبت‌نام کرده‌اید؟ ورود» to a member the SSR can already see.
+4. Self id present but GSH cannot build `/me/registrations/{id}` → **member-continue**.
+
+**PCMS-legal for-tour on marketing:** Node SSR → API with `Authorization: Bearer` + the same actor headers portal BFF already sends (`x-tenant-id`, `x-authenticated-tenant-id`, `x-user-id`, `x-actor-role`, `x-membership-status`) plus `x-forwarded-host`. Path comes from generated `WORKSPACE_REGISTRATION_FOR_TOUR_API_PATHS` (`tryResolveCatalogRegistrationForTourApiPath`) — **not** `resolveCatalogRegistrationApiPath` (that requires a live intake plugin registry) and **not** a static `@app-tour/workspace-denali` import.
+
+**Portal Denali intake (same phase):** when `existingSelfRegistrationId` / `selfTabLocked` is true on first paint, **do not** seed `otherGuests` with one empty draft. Empty state `[data-denali-other-guest-empty]` + `[data-denali-add-guest]` is the add path. In-flow duplicate lock may still append a draft after a failed self POST.
+
+Marketing OTP / CORS / cookie `Domain` / GSH guest login builders: **unchanged**.
+
 | Later phase | Work | Blocker |
 | ----------- | ---- | ------- |
-| **3** | Marketing PDP CTA vs already-registered / logged-in | PCMS-legal; product, not auth rewrite |
 | **4** | Architect YES on PCMS amendment + CORS on public-auth only | Required before Marketing OTP |
 | **5** | New Marketing **Portal-origin** adapter (same UI, cookie still Portal BFF) | Phase 4 |
 | **6** | Retire PDP→modal-on-register as the primary logged-out buy path | Phase 5 |

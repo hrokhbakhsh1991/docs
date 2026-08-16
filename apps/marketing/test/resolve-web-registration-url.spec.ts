@@ -8,6 +8,7 @@ import { describe, it } from "node:test";
 import {
   resolvePortalMemberModuleUrl,
   resolvePortalPublicBaseUrl,
+  resolveWebMemberRegistrationDetailUrl,
   resolveWebRegistrationLoginUrl,
   resolveWebRegistrationUrl,
   supportsCatalogRegistration,
@@ -86,5 +87,17 @@ describe("resolve-web-registration-url", () => {
       resolvePortalMemberModuleUrl("shop.urban.localhost:3002"),
       "http://portal.urban.localhost:3003/me/registrations"
     );
+  });
+
+  it("MKT-PCMS-P3-10 member registration detail URL appends id", () => {
+    assert.equal(
+      resolveWebMemberRegistrationDetailUrl(
+        "denali.club",
+        "00000000-0000-4000-8000-000000000601"
+      ),
+      "http://portal.denali.club:3003/me/registrations/00000000-0000-4000-8000-000000000601"
+    );
+    assert.equal(resolveWebMemberRegistrationDetailUrl("denali.club", "../escape"), null);
+    assert.equal(resolveWebMemberRegistrationDetailUrl("denali.club", "a/b"), null);
   });
 });

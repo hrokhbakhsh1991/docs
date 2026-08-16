@@ -126,8 +126,9 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
   }));
 
   const [otherGuests, setOtherGuests] = useState<ParticipantDraft[]>(() => {
-    const includeOther = selfTabLocked || data.registrantTarget === "other";
-    if (!includeOther) return [];
+    // Phase 3: self-already must not auto-open a blank other-guest card.
+    if (selfTabLocked) return [];
+    if (data.registrantTarget !== "other") return [];
     return [
       {
         intakeName: "",

@@ -596,6 +596,7 @@ These are **not** function hooks on the plugin object but manifest-driven capabi
 | `catalogListFeatures` | `WORKSPACE_CATALOG_LIST_FEATURES` | `resolveCatalogListFeatures` |
 | `catalogDetailSections` | `WORKSPACE_CATALOG_DETAIL_SECTIONS` | `resolveCatalogDetailSections` |
 | `catalogPaths` | `WORKSPACE_CATALOG_LIST_PATHS` | `resolveCatalogListApiPath`, `resolveCatalogTourApiPath` |
+| `registrationForTourPaths` | `WORKSPACE_REGISTRATION_FOR_TOUR_API_PATHS` | `tryResolveCatalogRegistrationForTourApiPath` — manifest for-tour only; `null` when absent |
 | `productionTier` | `WORKSPACE_PRODUCTION_CERTIFICATION` | `resolveProductionCertificationForPlugin` |
 | `operatorCapabilities` | `WORKSPACE_OPERATOR_CAPABILITIES` | `operatorCapabilitySupportsUsersDirectory`, etc. |
 | `memberPortal` | `WORKSPACE_MEMBER_PORTAL_CONTRACTS` | `resolveMemberPortalContract` |
@@ -735,6 +736,7 @@ Functions workspace authors **call** (not implement):
 | `resolveGuestSeoForPlugin(pluginId)` | `WorkspaceGuestSeoConfig` | `GuestSeoNotConfiguredError` |
 | `resolveGuestConformanceLevelForPlugin(pluginId)` | `WorkspaceGuestConformanceLevel` | `GuestConformanceNotConfiguredError` |
 | `supportsCatalogRegistration(pluginId)` | `boolean` | — |
+| `tryResolveCatalogRegistrationForTourApiPath(pluginId, tourId)` | `string \| null` | — |
 | `validateStructuredData(json)` | `StructuredDataValidationResult` | — |
 
 ---

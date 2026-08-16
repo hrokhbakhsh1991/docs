@@ -205,6 +205,7 @@ const ALLOWED_ROOT_RUNTIME_EXPORTS = new Set([
   "resolveCatalogListApiPath",
   "resolveCatalogListFeatures",
   "resolveCatalogRegistrationApiPath",
+  "tryResolveCatalogRegistrationForTourApiPath",
   "resolveCatalogTourApiPath",
   "resolveCreateChromeCapability",
   "resolveCreateViewCapability",

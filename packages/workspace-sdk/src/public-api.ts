@@ -340,6 +340,7 @@ export {
   resolveCatalogRegistrationApiPath,
   UnknownCatalogRegistrationPluginError,
 } from "./catalog/resolve-catalog-registration-api-path";
+export { tryResolveCatalogRegistrationForTourApiPath } from "./catalog/resolve-catalog-registration-for-tour-api-path";
 export {
   type FieldRules,
   type IntakeField,

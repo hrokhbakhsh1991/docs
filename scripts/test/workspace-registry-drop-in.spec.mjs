@@ -23,6 +23,8 @@ import {
   generateWizardMediaBackendRouteBindings,
   generateWizardMediaRouteBindings,
   generateWorkspaceCatalogPaths,
+  generateWorkspaceRegistrationForTourPaths,
+  extractRegistrationForTourPathFromManifest,
   generateWorkspaceCatalogListFeatures,
   generateWorkspaceCatalogDetailSections,
   generateWorkspaceGuestLanding,
@@ -261,6 +263,26 @@ describe("workspace registry drop-in (P7-T06)", () => {
       listPath: "/urban/catalog",
     });
     assert.equal(extractCatalogPathsFromManifest(starter), null);
+  });
+
+  it("PF-0.1c extractRegistrationForTourPathFromManifest is denali-only on trunk", () => {
+    const manifests = discoverManifests();
+    const denali = manifests.find((m) => m.id === "denali");
+    const urban = manifests.find((m) => m.id === "urban");
+    const starter = manifests.find((m) => m.id === "starter");
+    assert.ok(denali);
+    assert.ok(urban);
+    assert.ok(starter);
+    assert.deepEqual(extractRegistrationForTourPathFromManifest(denali), {
+      pluginId: "denali",
+      registrationApiPath: "/denali/registrations",
+    });
+    assert.equal(extractRegistrationForTourPathFromManifest(urban), null);
+    assert.equal(extractRegistrationForTourPathFromManifest(starter), null);
+    const generated = generateWorkspaceRegistrationForTourPaths(manifests);
+    assert.match(generated, /"denali": "\/denali\/registrations"/);
+    assert.doesNotMatch(generated, /"urban":/);
+    assert.doesNotMatch(generated, /"starter":/);
   });
 
   it("PF-0.1 generateWorkspaceCatalogPaths matches legacy SDK map", () => {

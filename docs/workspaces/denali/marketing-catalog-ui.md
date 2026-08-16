@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-MARKETING-CATALOG-UI
-version: "2026-08-16-v4"
+version: "2026-08-16-v5"
 extends: public-catalog.md
 apps: [marketing]
 phase: P6-1
@@ -139,8 +139,29 @@ Marketing calls workspace-sdk resolvers — **no** `if (pluginId === …)` in `a
 | `catalogListSupportsServerFilter` | `resolve-catalog-list-features.ts`        | Gate upstream query params in `build-catalog-list-fetch-query.ts`                                                                         |
 | `resolveCatalogDetailSections`    | `resolve-catalog-detail-sections.ts`      | Itinerary / policies visibility                                                                                                           |
 | `supportsCatalogRegistration`     | `resolve-catalog-registration-support.ts` | Register CTA (`data-marketing-register`) — manifest **L2+** (`catalogRegistrationFlow`); no runtime intake registry required in marketing |
+| `tryResolveCatalogRegistrationForTourApiPath` | `resolve-catalog-registration-for-tour-api-path.ts` | Phase 3 PDP self-gate — manifest `GET /{ws}/registrations/for-tour/:tourId` only (Denali on trunk). Returns `null` when the workspace has no for-tour route — marketing must not register intake plugins |
 
 Unit tests: `packages/workspace-sdk/test/resolve-catalog-*.spec.ts` (SDK-CAT-\*) · registration intake (`catalog-registration-dispatch`, `public-catalog-transport-intake`, `registration-intake.contract`) · enforced in `p6:gate` + `p4:gate` + `guard:public-catalog-m17`.
+
+### Phase 3 PDP CTA vs logged-in / already-registered (2026-08-16)
+
+Authority: [PCMS-001 §5.3](../../standards/member-session-portal-authority.mdoc) · [portal-member-login-modal.mdoc](../../phase-19/portal-member-login-modal.mdoc) §16 Phase 3 DoD.
+
+**Problem:** After portal OTP the member returns to marketing (custom apex cookie share). Header already swapped Sign-in → profile chip, but the tour PDP still rendered «ثبت‌نام» + «قبلاً ثبت‌نام کرده‌اید؟ ورود» even when the member had an active self booking.
+
+**Decision:** Shape CTAs in marketing **SSR** from the existing read-only session probe + optional API for-tour. Do not add Marketing OTP, CORS, cookie write, or `app/api/me/*`.
+
+| Mode | When | Primary | Secondary | i18n |
+| ---- | ---- | ------- | --------- | ---- |
+| `guest` | Cookie missing / invalid / tenant bind fail | `data-marketing-register` → `resolveWebRegistrationUrl` | `data-marketing-tour-sign-in` → `resolveWebRegistrationLoginUrl` | `detail.register` / `detail.signInToRegister` |
+| `member-continue` | Session readable; for-tour `self` null, path missing, or fetch error | `data-marketing-register` → register URL **without** `auth=login` | none | `detail.continueRegister` |
+| `member-self` | Session readable; for-tour returns `self.id`; GSH builds detail URL | `data-marketing-view-registration` → `/me/registrations/{id}` | `data-marketing-register` + `data-marketing-register-another` when `canRegister` | `detail.viewMyRegistration` / `detail.registerAnotherGuest` |
+
+**Sold-out:** guest / member-continue still show sold-out copy. Member-self still shows view-registration (the booking exists); register-another is omitted when `canRegister` is false.
+
+**Modules:** `resolve-marketing-tour-detail-cta.ts` (pure) · `resolve-marketing-tour-detail-cta.server.ts` (session + fetch) · `fetch-marketing-member-self-registration-for-tour.server.ts` · `catalog-tour-detail-register-cta.tsx` (shared by booking rail **and** sticky bar — sticky must not duplicate href logic). Page `app/tours/[tourId]/page.tsx` resolves the model once and passes it down.
+
+**For-tour headers (mirror portal BFF, not identity/me-only):** `Authorization: Bearer` + `x-tenant-id` + `x-authenticated-tenant-id` + `x-user-id` + `x-actor-role` + `x-membership-status: ACTIVE` + `x-forwarded-host`. `resolveWorkspacePublicAuthFromRequest` does **not** decode JWT; actor id must be sent as `x-user-id` from the already-validated marketing session.
 
 ---
 
@@ -316,6 +337,10 @@ Spec: [`marketing-landing.mdoc`](./marketing-landing.mdoc) v7 · smoke: SMK-MKT-
 | `data-marketing-catalog-detail-policies`     | policies section                                                                                      |
 | `data-marketing-catalog-detail-cancellation` | cancellation bullets                                                                                  |
 | `data-marketing-register`                    | registration CTA (**SMK-MKT-03**) → portal [`portal-registration-ui.md`](./portal-registration-ui.md) |
+| `data-marketing-tour-sign-in`                | guest-only secondary → portal `register?auth=login` (Phase 3: omitted when member session is readable) |
+| `data-marketing-view-registration`           | member-self primary → portal `/me/registrations/{id}` |
+| `data-marketing-register-another`            | member-self secondary → portal `/catalog/{id}/register` (no `auth=login`) |
+| `data-marketing-tour-detail-cta-mode`        | `guest` \| `member-continue` \| `member-self` on CTA wrappers |
 
 ### Errors
 

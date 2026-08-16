@@ -33,6 +33,7 @@ import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-ca
 import type { MarketingCatalogCard } from "./catalog-types";
 import { formatCatalogCardDescription } from "./format-catalog-display";
 import { resolveCatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
+import type { MarketingTourDetailCtaModel } from "./resolve-marketing-tour-detail-cta";
 import { isAppLocale, resolveIntlDateLocale, resolveMarketingToursListPath, type AppLocale } from "@/i18n/routing";
 import { resolveHomeTourCoverUrl } from "@/home/resolve-home-tour-cover-url";
 import { buildValidatedMarketingTourStructuredData } from "@/seo/build-validated-marketing-structured-data";
@@ -43,7 +44,7 @@ import { serializeMarketingJsonLd } from "@/seo/serialize-marketing-jsonld";
 export type CatalogTourDetailProps = {
   readonly tour: MarketingCatalogCard;
   readonly registrationUrl: string | null;
-  readonly tourSignInUrl?: string | null;
+  readonly cta: MarketingTourDetailCtaModel;
   readonly pluginId: string;
 };
 
@@ -59,7 +60,7 @@ function tourHasPolicies(tour: MarketingCatalogCard): boolean {
 export async function CatalogTourDetail({
   tour,
   registrationUrl,
-  tourSignInUrl = null,
+  cta,
   pluginId,
 }: CatalogTourDetailProps) {
   const sections = resolveCatalogDetailSections(pluginId);
@@ -93,10 +94,10 @@ export async function CatalogTourDetail({
     categoryLabel,
   });
   const registration = resolveCatalogTourRegistrationState(tour, registrationUrl);
+  const showCtaBlock = cta.primaryHref != null || registration.isSoldOut;
   const showItinerary =
     sections.itinerary && tour.itineraryDays != null && tour.itineraryDays.length > 0;
   const showPolicies = sections.policies && tourHasPolicies(tour);
-  const showRegisterBlock = registration.canRegister || registration.isSoldOut;
   const longDescription = tour.longDescription?.trim() ?? "";
   const destinationLabel = tour.destinationLabel?.trim() ?? "";
   const structuredData =
@@ -123,8 +124,8 @@ export async function CatalogTourDetail({
     <CatalogTourDetailPhotoLightboxShell tour={tour} title={title}>
       <article
         data-marketing-catalog-tour-detail
-        {...(registration.canRegister ? { "data-marketing-catalog-detail-has-sticky": true } : {})}
-        {...(showRegisterBlock ? { "data-marketing-catalog-detail-has-booking-rail": true } : {})}
+        {...(cta.primaryHref != null ? { "data-marketing-catalog-detail-has-sticky": true } : {})}
+        {...(showCtaBlock ? { "data-marketing-catalog-detail-has-booking-rail": true } : {})}
       >
         <div data-marketing-catalog-detail-layout>
           <div data-marketing-catalog-detail-main>
@@ -228,7 +229,7 @@ export async function CatalogTourDetail({
             tour={tour}
             pluginId={pluginId}
             registration={registration}
-            tourSignInUrl={tourSignInUrl}
+            cta={cta}
           />
         </div>
 
@@ -236,7 +237,7 @@ export async function CatalogTourDetail({
           tour={tour}
           pluginId={pluginId}
           registration={registration}
-          tourSignInUrl={tourSignInUrl}
+          cta={cta}
         />
 
         {detailJsonLdGraph != null ? (

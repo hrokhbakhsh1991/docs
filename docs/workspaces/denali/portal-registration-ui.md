@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-08-16-v12"
+version: "2026-08-16-v13"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -101,7 +101,9 @@ Hooks:
 | ---- | ---- |
 | `[data-portal-return]` | Login host / modal — client egress fallback |
 | `[data-portal-register-sign-in-link]` | Guest register — opens login modal (same page) |
-| `[data-marketing-tour-sign-in]` | Marketing PDP → `register?auth=login` |
+| `[data-marketing-tour-sign-in]` | Marketing PDP **guest only** → `register?auth=login` (hidden when marketing SSR can read a bound member session) |
+| `[data-marketing-view-registration]` | Marketing PDP **member-self** → portal `/me/registrations/{id}` |
+| `[data-marketing-register-another]` | Marketing PDP **member-self** secondary → `/catalog/{id}/register` (no `auth=login`) |
 
 Example tour sign-in URL: `/catalog/{tourId}/register?auth=login`
 
@@ -111,7 +113,7 @@ Example tour sign-in URL: `/catalog/{tourId}/register?auth=login`
 | --------------- | ------- |
 | `[data-registration-resume-pending]` | Client session probe before phone step — avoids flash of guest auth when cookie exists but SSR resume missed |
 | `[data-phone-hint="existing"]` | Returning member on register — copy switches to «تأیید موبایل برای ادامه» (preflight on blur + after send) |
-| `[data-marketing-tour-sign-in]` | Secondary PDP link — text CTA below primary register button |
+| `[data-marketing-tour-sign-in]` | Secondary PDP link — **guest only**; hidden for readable member sessions (Phase 3) |
 
 **Hydration (PCMS-UX-HYDRATE):** Login egress mode is **never** derived from `window.location` during React render. `/login` is a thin host (`data-portal-login-thin-host`) that auto-opens the shared modal. The modal mounts `PublicCatalogRegistrationFlow` with `memberLoginEgress`, which forwards `RegistrationFlowContext.memberLoginEgress` to shared auth steps. Client-only `isMemberLoginEgressFromLocation()` remains for redirect target resolution (`portalReturn` query / `data-portal-return`) after OTP — not for SSR markup.
 
@@ -180,10 +182,12 @@ Portal wires catalog flags: `register/page.tsx` → `PublicCatalogRegistrationFl
 
 Duplicate booking guard: Denali **self** = member user id + tour id on an active self row (not email). **Other** = guest label / nationalId; same booker may submit multiple others. See [registration-self-other-uniqueness.mdoc](./registration-self-other-uniqueness.mdoc).
 
-**Register-page self gate (2026-08-10 · extended 2026-08-12):** SSR/client loads `GET /api/me/registrations/for-tour?tourId=` — when `self` is non-null, disable “برای خودم”, **keep guest cards available and submit-able**, and show `data-registration-self-already` with:
+**Register-page self gate (2026-08-10 · extended 2026-08-12 · Phase 3 empty-card 2026-08-16):** SSR/client loads `GET /api/me/registrations/for-tour?tourId=` — when `self` is non-null, disable “برای خودم”, **keep guest cards available and submit-able**, and show `data-registration-self-already` with:
 - copy that states self is locked **and** guests can still be added (`intake.selfAlreadyRegistered`);
 - detail CTA → `/me/registrations/{id}` (`data-registration-self-already-detail`);
 - my-trips CTA → `memberModuleHref` (`data-registration-self-already-trips`) when the host injects it.
+
+**Empty other-guest seed (Phase 3):** `DenaliIntakeStep` must **not** initialize `otherGuests` with one blank card solely because `selfTabLocked` / `existingSelfRegistrationId` is set. Returning members who already registered themselves used to land on an empty «مهمان» form that looked like a second self. Start with `otherGuests = []` and the empty toolbar (`[data-denali-other-guest-empty]` + `[data-denali-add-guest]`). `registrantTarget === "other"` on a **new** intake (self not locked) may still seed one draft. In-flow `lockSelfAsAlreadyRegistered` after a duplicate POST may still append a draft so the booker can continue with a guest in the same session.
 
 **Phone intake control (2026-08-12):** Schema widget `localized-digits` (Denali/Urban `phone`) must render as `type="text"` + `inputMode="numeric"` — **not** `type="number"`. Number inputs strip a leading `0` (Iranian mobiles) and expose a spinbutton, which makes guest submit look “broken” after a self lock even though the API accepts `other`. True numeric quantities keep `field.type === "number"`. Renderer: `packages/catalog-intake-ui/src/render-intake-field.tsx`.
 

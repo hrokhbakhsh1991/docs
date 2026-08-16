@@ -1,7 +1,7 @@
 ---
 title: Member Session Portal Authority (PCMS)
 standard_id: PCMS-001
-version: 1.2.0
+version: 1.3.0
 status: active
 extends:
   - docs/standards/workspace-routing-standard.mdoc
@@ -16,6 +16,9 @@ code_sot:
   - apps/marketing/src/shell/marketing-shell.tsx
   - apps/marketing/src/auth/read-marketing-member-session.server.ts
   - apps/marketing/src/shell/resolve-marketing-member-header.server.ts
+  - apps/marketing/src/catalog/resolve-marketing-tour-detail-cta.ts
+  - apps/marketing/src/catalog/fetch-marketing-member-self-registration-for-tour.server.ts
+  - packages/workspace-sdk/src/catalog/resolve-catalog-registration-for-tour-api-path.ts
   - packages/session-client/src/validate-session-token-async.ts
   - packages/session-client/src/verify-session-jwt-signature.ts
   - packages/tenant-kernel/src/host/resolve-member-session-cookie-domain.ts
@@ -39,7 +42,7 @@ mandatory_for:
 
 # Member Session Portal Authority (PCMS-001)
 
-**Principle:** Member identity (`atour_mb_session`) is owned by **`apps/portal` only** (cookie write). Marketing may **read** the shared cookie for header chrome only. Operator uses `atour_op_session` on `apps/web` — separate actor.
+**Principle:** Member identity (`atour_mb_session`) is owned by **`apps/portal` only** (cookie write). Marketing may **read** the shared cookie for header chrome and PDP CTA shaping. Marketing must not host OTP, write the cookie, or expose member BFF routes. Operator uses `atour_op_session` on `apps/web` — separate actor.
 
 ---
 
@@ -47,7 +50,7 @@ mandatory_for:
 
 | Surface | Session | Registration auth |
 | ------- | ------- | ----------------- |
-| Marketing | Read-only SSR probe (`readMarketingMemberSessionFromCookies`) for header chrome | Header Sign in → portal `/login?…`; tour «ورود» → portal `/catalog/{id}/register?auth=login` (modal on register). Authenticated → profile chip via `resolveMarketingMemberHeader` |
+| Marketing | Read-only SSR probe (`readMarketingMemberSessionFromCookies`) for header chrome **and** PDP CTA shaping | **Guest PDP:** Register → `/catalog/{id}/register`; «ورود» → `register?auth=login`. **Logged-in PDP:** hide `[data-marketing-tour-sign-in]`; continue → `/catalog/{id}/register` (no `auth=login`). **Already-registered self:** primary → `/me/registrations/{id}` (`[data-marketing-view-registration]`). Header: Sign in → `/login?…`; authenticated → profile chip via `resolveMarketingMemberHeader` |
 | Portal | `atour_mb_session` read/write | OTP in **login modal** (host: `/login` thin page **or** register page); tour registration full-page on `/catalog/{id}/register` |
 | Web admin | `atour_op_session` | Operator invite login — never member cookie |
 
@@ -182,9 +185,44 @@ Marketing **SSR** must detect portal members via the shared cookie (read-only). 
 3. Shell: profile chip (`data-marketing-header-member`) **or** Sign in (`data-marketing-header-sign-in`).
 4. Root: `data-marketing-member-authenticated` when member.
 
-Marketing must **not** write member cookies, host OTP UI, or expose member BFF routes — probe only (`read-marketing-member-session.server.ts`).
+Marketing must **not** write member cookies, host OTP UI, or expose member BFF routes — probe only (`read-marketing-member-session.server.ts`). The same probe feeds PDP CTA shaping (§5.3); it does not create a second session authority.
 
-After portal modal login on **custom apex** or **`portal.{club}.localhost`**, PCMS-UX-MODAL-COOKIE + COOK-03 (`Domain=<share-parent>`) ensure the next marketing SSR request can see `atour_mb_session`. Legacy `{club}.portal.localhost` does not share with `{club}.localhost`.
+After portal modal login on **custom apex** or **`portal.{club}.localhost`**, PCMS-UX-MODAL-COOKIE + COOK-03 (`Domain=<share-parent>`) ensure the next marketing SSR request can see `atour_mb_session`. Legacy `{club}.portal.localhost` does not share with `{club}.localhost`. `*.localhost` marketing often cannot read a host-only portal cookie — fail-closed to guest CTAs is expected in that topology.
+
+### 5.3 Marketing PDP CTA matrix (Phase 3 — 2026-08-16)
+
+Tour detail (`/tours/{tourId}`) must not keep asking a signed-in member to «ورود» or to «ثبت‌نام» as if they had no self booking.
+
+```mermaid
+flowchart TD
+  READ[readMarketingMemberSessionFromCookies]
+  BIND[sessionTenantMatchesDevCrossSurfaceHost]
+  READ -->|null / invalid JWT| GUEST[Guest CTA: register + sign-in]
+  READ -->|valid JWT| BIND
+  BIND -->|mismatch| GUEST
+  BIND -->|match| FORT[tryResolveCatalogRegistrationForTourApiPath]
+  FORT -->|no manifest path| CONT[Member-continue: register, hide sign-in]
+  FORT -->|path| API["GET API /{ws}/registrations/for-tour/{tourId}<br/>Bearer + x-user-id"]
+  API -->|error / self null| CONT
+  API -->|self.id| VIEW["Member-self: view /me/registrations/id<br/>optional register-another"]
+```
+
+| Layer | File | Role |
+| ----- | ---- | ---- |
+| Cookie read | `read-marketing-member-session.server.ts` | Same PCMS-03-READ probe as header |
+| CTA pure matrix | `resolve-marketing-tour-detail-cta.ts` | Guest / member-continue / member-self hrefs — no fetch |
+| For-tour SSR | `fetch-marketing-member-self-registration-for-tour.server.ts` | API + Bearer; never portal `/api/me/*` |
+| Path map | `tryResolveCatalogRegistrationForTourApiPath` | Manifest `GET /{ws}/registrations/for-tour/:tourId` → `/{ws}/registrations` (Denali only on trunk) |
+| Detail URL | `resolveWebMemberRegistrationDetailUrl` | GSH `resolvePortalMemberModuleUrl(host)` + `/{id}` (no open redirect) |
+| Presentation | `catalog-tour-detail-register-cta.tsx` | Shared by rail + sticky; sold-out still yields view-self when a self id exists |
+
+**Why not portal BFF from marketing?** Calling `portal.{host}/api/me/registrations/for-tour` from marketing Node would either use the public portal origin (cookie not sent cross-origin; custom apex DNS may not resolve in SSR) or invent a marketing `/api/me/*` proxy — both violate PCMS (no marketing member BFF). Header chrome already calls API `GET /identity/me` with Bearer; for-tour is the same pattern on a member-gated workspace route.
+
+**Why a generated path map instead of `resolveCatalogRegistrationApiPath`?** That resolver throws unless a workspace intake plugin is **registered** at runtime. Marketing must not static-import `@app-tour/workspace-*` or bootstrap intake plugins (ADR-MKT-004 / MKT-6). Catalog list already uses generated `WORKSPACE_CATALOG_LIST_PATHS`; for-tour follows the same codegen (workspaces without the route are omitted — Urban/Harbor/guest-club stay member-continue).
+
+Workspaces without `selfRegistrationGate` / for-tour **must not** be special-cased by `pluginId === "denali"` in `apps/marketing`.
+
+Hooks: `[data-marketing-register]` (SMK-MKT-03, guest + continue + register-another) · `[data-marketing-tour-sign-in]` (**guest only**) · `[data-marketing-view-registration]` (member-self primary) · `[data-marketing-register-another]` (member-self secondary) · `[data-marketing-tour-detail-cta-mode]`.
 
 **Default module route:** Resolved from workspace `memberPortal.defaultPrimaryModuleId` (Denali Phase 2: `trips` → `/me/registrations`). The path `/me/registrations` remains a **permanent alias** independent of default (DL-03).
 
@@ -214,8 +252,8 @@ When API runs with `STORAGE_DRIVER=memory` and `OPERATOR_SMOKE_E2E_SEED=1`, the 
 
 ## 6. Forbidden
 
-- Marketing **write** of `atour_mb_session` (read-only SSR probe is required — PCMS-03-READ / §5.2)
-- Marketing hosting member OTP / login modal / public-auth BFF
+- Marketing **write** of `atour_mb_session` (read-only SSR probe is required — PCMS-03-READ / §5.2 / §5.3)
+- Marketing hosting member OTP / login modal / public-auth BFF / `app/api/me/*` member proxies
 - Shared cookie across platform tenants on `{club}.{root}` hosts
 - Middleware OTP skip (resume decision lives on register **page** server component only)
 - Tour registration intake inside the login modal
@@ -232,7 +270,7 @@ pnpm --filter @app-tour/tenant-kernel test
 pnpm --filter @app-tour/session-client test
 pnpm --filter @apps/portal test
 pnpm --filter @apps/portal run test -- test/portal-session-host-bind.spec.ts test/portal-registration-resume.spec.ts test/build-session-cookie.spec.ts
-pnpm --filter @apps/marketing run test -- test/marketing-shell-portal-link.spec.ts test/resolve-web-registration-url.spec.ts
+pnpm --filter @apps/marketing run test -- test/marketing-shell-portal-link.spec.ts test/resolve-web-registration-url.spec.ts test/catalog-tour-detail-register-cta.spec.ts test/resolve-marketing-tour-detail-cta.spec.ts
 pnpm --filter @apps/portal run test:smoke  # SMK-PTL-07 registration resume E2E
 pnpm --filter @apps/portal run test:smoke:custom-apex  # SMK-PTL-08 custom apex cookie + resume
 pnpm run smoke:pcms-custom-apex  # API tenant-context for denali.club hosts
