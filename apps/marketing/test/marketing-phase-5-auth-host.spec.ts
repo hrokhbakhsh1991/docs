@@ -69,6 +69,7 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
     assert.match(shell, /href=\{portalMemberLoginUrl\}/);
     assert.match(trigger, /preventDefault/);
     assert.doesNotMatch(trigger, /canHostAuth/);
+    assert.doesNotMatch(modal, /canHostAuth/);
     assert.match(cta, /data-marketing-tour-sign-in/);
     assert.match(cta, /MarketingLoginModalTrigger/);
     assert.match(cta, /host="pdp"/);

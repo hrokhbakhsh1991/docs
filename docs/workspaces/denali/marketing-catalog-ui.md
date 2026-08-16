@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-MARKETING-CATALOG-UI
-version: "2026-08-16-v9"
+version: "2026-08-16-v10"
 extends: public-catalog.md
 apps: [marketing]
 phase: P6-1
@@ -179,7 +179,7 @@ Marketing hosts the shared phone/OTP/profile steps in `[data-marketing-login-mod
 
 | Surface | Phase 5 | Fallback (no-JS / no portal origin) |
 | ------- | ------- | ----------------------------------- |
-| Header `[data-marketing-header-sign-in]` | **Navigate** to Portal `/login?portalReturn=/me/registrations` (thin host + portal login modal). Not `MarketingLoginModalTrigger`. | Same `href` — no client intercept |
+| Header `[data-marketing-header-sign-in]` | **Navigate** to Portal `/login?portalReturn=/me/registrations` (page OTP). Not `MarketingLoginModalTrigger`. | Same `href` — no client intercept |
 | PDP `[data-marketing-tour-sign-in]` | Client trigger opens marketing modal; stay on `/tours/{id}` after reload | `href` = portal `register?auth=login` |
 | `[data-marketing-register]` | **Unchanged** — portal `/catalog/{id}/register` | — |
 

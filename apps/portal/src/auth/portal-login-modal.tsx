@@ -12,11 +12,7 @@ import {
 } from "react";
 import { useTranslations } from "next-intl";
 
-import { completeMemberLoginEgress } from "@app-tour/catalog-registration-flow-ui";
-
 import { PublicCatalogRegistrationFlow } from "@/catalog/public-catalog-registration-flow";
-
-export type PortalLoginModalHost = "login" | "register";
 
 export type PortalLoginModalFlowInput = {
   readonly workspace: string;
@@ -28,7 +24,6 @@ export type PortalLoginModalFlowInput = {
 };
 
 export type OpenPortalLoginModalOptions = {
-  readonly host: PortalLoginModalHost;
   readonly portalReturn?: string;
   readonly flow: PortalLoginModalFlowInput;
 };
@@ -66,11 +61,15 @@ type ProviderProps = {
   readonly children: ReactNode;
 };
 
+/**
+ * Register-route OTP modal (PCMS-UX-MODAL-04 / DL-48).
+ * Standalone `/login` is page OTP — this provider has no `host="login"` branch
+ * and must not call `completeMemberLoginEgress`.
+ */
 export function PortalLoginModalProvider({ children }: ProviderProps) {
   const t = useTranslations("catalogRegistration");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
-  const [host, setHost] = useState<PortalLoginModalHost>("login");
   const [portalReturn, setPortalReturn] = useState<string | undefined>(undefined);
   const [flow, setFlow] = useState<PortalLoginModalFlowInput | null>(null);
   const [presentation, setPresentation] = useState<"dialog" | "sheet">("dialog");
@@ -85,7 +84,6 @@ export function PortalLoginModalProvider({ children }: ProviderProps) {
   }, []);
 
   const openLoginModal = useCallback((options: OpenPortalLoginModalOptions) => {
-    setHost(options.host);
     setPortalReturn(options.portalReturn);
     setFlow(options.flow);
     setPresentation(resolvePresentation());
@@ -123,10 +121,6 @@ export function PortalLoginModalProvider({ children }: ProviderProps) {
     window.location.assign(`${url.pathname}${url.search}`);
   }, [closeLoginModal]);
 
-  const onLoginSessionReady = useCallback(() => {
-    completeMemberLoginEgress({ memberLoginEgress: true });
-  }, []);
-
   const value = useMemo(
     (): PortalLoginModalContextValue => ({
       open,
@@ -137,10 +131,6 @@ export function PortalLoginModalProvider({ children }: ProviderProps) {
   );
 
   const titleId = "portal-login-modal-title";
-  const modalTitle = host === "register" ? t("signInToRegister") : t("loginPageTitle");
-  const modalLede =
-    host === "register" ? t("phone.existingMemberDescription") : t("phone.loginDescription");
-  const showRegisterIntro = host === "login";
 
   return (
     <PortalLoginModalContext.Provider value={value}>
@@ -150,7 +140,7 @@ export function PortalLoginModalProvider({ children }: ProviderProps) {
         data-portal-login-modal=""
         data-portal-login-modal-open={open ? "true" : "false"}
         data-portal-login-modal-presentation={presentation}
-        data-portal-login-modal-host={host}
+        data-portal-login-modal-host="register"
         {...(portalReturn !== undefined ? { "data-portal-return": portalReturn } : {})}
         aria-labelledby={open ? titleId : undefined}
         inert={!open}
@@ -163,7 +153,7 @@ export function PortalLoginModalProvider({ children }: ProviderProps) {
         {open ? (
           <div data-portal-login-modal-panel>
             <header data-portal-login-modal-header>
-              <h2 id={titleId}>{modalTitle}</h2>
+              <h2 id={titleId}>{t("signInToRegister")}</h2>
               <button
                 type="button"
                 data-portal-login-modal-close
@@ -177,18 +167,8 @@ export function PortalLoginModalProvider({ children }: ProviderProps) {
               <div
                 data-portal-login-modal-body
                 data-member-login-egress=""
-                data-portal-login-modal-body-variant={host}
+                data-portal-login-modal-body-variant="register"
               >
-                {showRegisterIntro ? (
-                  <div data-portal-login-modal-intro>
-                    <p data-portal-login-modal-intro-eyebrow>{t("phone.loginTitle")}</p>
-                    <p data-portal-login-modal-intro-lede>{modalLede}</p>
-                    <div data-portal-login-modal-intro-hints>
-                      <p>{t("phone.existingHint")}</p>
-                      <p>{t("phone.newHint")}</p>
-                    </div>
-                  </div>
-                ) : null}
                 <PublicCatalogRegistrationFlow
                   workspace={flow.workspace}
                   tenantId={flow.tenantId}
@@ -202,13 +182,9 @@ export function PortalLoginModalProvider({ children }: ProviderProps) {
                   backHref={flow.backHref}
                   memberModuleHref={flow.memberModuleHref}
                   memberLoginEgress
-                  memberLoginStayOnPage={host === "register"}
-                  onAuthenticated={
-                    host === "register" ? onRegisterSessionReady : onLoginSessionReady
-                  }
-                  onMemberLoginSessionReady={
-                    host === "register" ? onRegisterSessionReady : undefined
-                  }
+                  memberLoginStayOnPage
+                  onAuthenticated={onRegisterSessionReady}
+                  onMemberLoginSessionReady={onRegisterSessionReady}
                 />
               </div>
             ) : null}

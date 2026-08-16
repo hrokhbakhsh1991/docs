@@ -69,7 +69,8 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
     assert.match(gate, /PortalRegisterSignInLink/);
     assert.match(signIn, /data-portal-register-sign-in-link/);
     assert.match(signIn, /openLoginModal/);
-    assert.match(signIn, /host: "register"/);
+    assert.doesNotMatch(signIn, /host: "register"/);
+    assert.doesNotMatch(signIn, /host: "login"/);
     assert.doesNotMatch(page, /auth === "login"/);
   });
 

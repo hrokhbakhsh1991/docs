@@ -32,7 +32,6 @@ export type OpenMarketingLoginModalOptions = {
 
 type MarketingLoginModalContextValue = {
   readonly open: boolean;
-  readonly canHostAuth: boolean;
   readonly openLoginModal: (options?: OpenMarketingLoginModalOptions) => void;
   readonly closeLoginModal: () => void;
 };
@@ -93,7 +92,6 @@ export function MarketingLoginModalProvider({
     () => tryCreatePortalOriginGuestAuthTransport(portalPublicBaseUrl),
     [portalPublicBaseUrl]
   );
-  const canHostAuth = transport !== null;
 
   const closeLoginModal = useCallback(() => {
     setOpen(false);
@@ -174,11 +172,10 @@ export function MarketingLoginModalProvider({
   const value = useMemo(
     (): MarketingLoginModalContextValue => ({
       open,
-      canHostAuth,
       openLoginModal,
       closeLoginModal,
     }),
-    [canHostAuth, closeLoginModal, open, openLoginModal]
+    [closeLoginModal, open, openLoginModal]
   );
 
   const titleId = "marketing-login-modal-title";

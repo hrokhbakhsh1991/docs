@@ -6,20 +6,17 @@ import { useTranslations } from "next-intl";
 import {
   usePortalLoginModal,
   type PortalLoginModalFlowInput,
-  type PortalLoginModalHost,
 } from "@/auth/portal-login-modal";
 
 type Props = {
-  readonly host: PortalLoginModalHost;
   readonly portalReturn?: string;
   readonly flow: PortalLoginModalFlowInput;
   readonly autoOpen?: boolean;
   readonly showTrigger?: boolean;
 };
 
-/** Opens the shared login modal once (login thin host or register ?auth=login). */
+/** Opens the register-route login modal once (PCMS-UX-MODAL-04). `/login` is page OTP (DL-48). */
 export function PortalLoginModalOpener({
-  host,
   portalReturn,
   flow,
   autoOpen = true,
@@ -34,8 +31,8 @@ export function PortalLoginModalOpener({
       return;
     }
     openedRef.current = true;
-    openLoginModal({ host, portalReturn, flow });
-  }, [autoOpen, flow, host, openLoginModal, portalReturn]);
+    openLoginModal({ portalReturn, flow });
+  }, [autoOpen, flow, openLoginModal, portalReturn]);
 
   if (!showTrigger) {
     return null;
@@ -45,7 +42,7 @@ export function PortalLoginModalOpener({
     <button
       type="button"
       data-portal-login-host-trigger
-      onClick={() => openLoginModal({ host, portalReturn, flow })}
+      onClick={() => openLoginModal({ portalReturn, flow })}
     >
       {t("sendCode")}
     </button>

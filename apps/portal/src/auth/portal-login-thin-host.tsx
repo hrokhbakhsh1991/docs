@@ -15,7 +15,8 @@ type Props = {
 
 /**
  * DL-48 — `/login` page host. Phone / OTP / profile run on the page.
- * Register-route modal is unchanged (PCMS-UX-MODAL-04).
+ * Register-route modal is unchanged (PCMS-UX-MODAL-04) and is the only
+ * remaining `PortalLoginModalProvider` host.
  */
 export function PortalLoginThinHost({ flow, portalReturn }: Props) {
   const t = useTranslations("catalogRegistration");

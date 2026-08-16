@@ -21,7 +21,7 @@ export function PortalRegisterSignInLink({ flow }: Props) {
         type="button"
         data-portal-register-sign-in-button
         onClick={() => {
-          openLoginModal({ host: "register", flow });
+          openLoginModal({ flow });
         }}
       >
         {t("signInToRegister")}

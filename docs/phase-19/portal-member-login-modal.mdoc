@@ -1,7 +1,7 @@
 ---
 title: Portal Member Login Modal
 doc_id: PCMS-LOGIN-MODAL
-version: "2026-08-16-v10"
+version: "2026-08-16-v11"
 status: design
 authority: docs/standards/member-session-portal-authority.mdoc
 apps: [portal, marketing]
@@ -25,14 +25,14 @@ non_goals:
 
 | Rule | Behavior |
 | ---- | -------- |
-| Same-page auth on portal | Login UI is the shared modal (desktop dialog · mobile sheet) |
+| Same-page auth on portal | **Register guests** use the shared modal (desktop dialog · mobile sheet). Standalone `/login` is **page** OTP (DL-48) — the modal has no `host="login"` path. |
 | Tour registration page | Full-page `/catalog/{tourId}/register` for **intake only** after member session |
 | Guest on register | **PCMS-UX-MODAL-04** — auto-open login modal; **no** inline phone/OTP/profile on the page |
 | Login content | phone → otp → (profile if `requires_registration`; name required, email optional) — **never** tour intake |
 | Desktop | Centered dialog (`aria-modal`, focus trap, Esc closes) |
 | Mobile | Bottom sheet |
 | Close without success | Stay on host URL; register shows auth gate + reopen |
-| Marketing | **PDP only** hosts the same OTP/profile steps in a marketing modal via Portal-origin transport (stay on `/tours/{id}`). **Header Sign in** navigates to Portal `/login` (thin host + portal modal). No Marketing BFF. Future marketing login hosts may reuse the PDP modal. |
+| Marketing | **PDP only** hosts the same OTP/profile steps in a marketing modal via Portal-origin transport (stay on `/tours/{id}`). **Header Sign in** navigates to Portal `/login` (page OTP). No Marketing BFF. Future marketing login hosts may reuse the PDP modal. |
 | Shared auth steps | `GuestAuthTransport` + host `onAuthenticated` — no BFF URLs or intake hydrate in OTP/profile UI |
 
 ## 2. Why marketing SSR already detects portal members
@@ -85,16 +85,15 @@ flowchart TD
 
   subgraph portal [Portal]
     REG["/catalog/id/register PAGE"]
-    LOGIN["/login thin host"]
-    MODAL[Login modal dialog/sheet]
+    LOGIN["/login page OTP"]
+    MODAL[Register-only login modal dialog/sheet]
     GATE[Guest auth gate — no inline OTP]
     ME["/me/*"]
     REG -->|guest| GATE
     GATE -->|auto-open| MODAL
-    LOGIN --> MODAL
+    LOGIN -->|onAuthenticated| ME
     ME -->|guest middleware| LOGIN
     MODAL -->|success on register| INTAKE[intake-only on REG]
-    MODAL -->|success on /login| ME
   end
 
   MKT_HEADER --> LOGIN
@@ -105,7 +104,7 @@ flowchart TD
 
 | Actor | Builder (keep / adjust) | Target URL after this design |
 | ----- | ----------------------- | ---------------------------- |
-| Marketing header Sign in | `resolvePortalMemberLoginUrl` | **Primary:** Portal `/login?portalReturn=/me/registrations` (thin host + portal login modal). Not the marketing modal. |
+| Marketing header Sign in | `resolvePortalMemberLoginUrl` | **Primary:** Portal `/login?portalReturn=/me/registrations` (page OTP). Not the marketing modal. |
 | Marketing tour «ورود» | `resolvePortalRegistrationLoginUrl` | **Primary:** marketing modal on PDP (stay on `/tours/{id}` after reload). **Fallback href:** `{portal}/catalog/{tourId}/register?auth=login` |
 | Portal register «ورود» | client open modal | Same URL; optional `?auth=login` for shareable deep link |
 | Middleware `/me` guest | `resolvePortalMemberLoginPath` | `/login?portalReturn=<requested path>` |
@@ -135,7 +134,7 @@ apps/portal
 
 | Piece | Responsibility |
 | ----- | -------------- |
-| `PortalLoginModalProvider` | Imperative `openLoginModal({ portalReturn?, mode })` · URL `?auth=login` sync · focus restore |
+| `PortalLoginModalProvider` | Register-only `openLoginModal({ flow, portalReturn? })`. Always `data-portal-login-modal-host="register"`. Close + reload. **Zero** `completeMemberLoginEgress`. |
 | `PublicCatalogRegistrationFlow` | Portal host shell: injects Portal same-origin transport + `onAuthenticated`; SSR-stable `memberLoginEgress` |
 | `/login/page.tsx` | Public SSR host: PCMS-UX-01/02 gates · `data-portal-return` · `data-portal-login-full-page`. **Inline** phone/OTP/profile. Smoke `tourId` is flow-plugin bootstrap only (missing catalog row must not 404). |
 | `PortalLoginThinHost` | Client page host: story panel + `[data-portal-login-form-panel]` mounting `PublicCatalogRegistrationFlow` (`memberLoginEgress`). **Zero** `openLoginModal`. |
@@ -153,15 +152,15 @@ apps/portal
 | `data-portal-login-modal` | Modal root |
 | `data-portal-login-modal-open` | Open state |
 | `data-portal-login-modal-presentation="dialog"\|"sheet"` | Desktop vs mobile |
-| `data-portal-login-modal-host="login"\|"register"` | Which page hosts |
+| `data-portal-login-modal-host="register"` | Register-route modal only (DL-48 deleted `host="login"`) |
 | Keep | `data-member-login-egress`, `data-portal-return`, phone/otp hooks |
 
 ## 6. Egress modes (unchanged semantics, new presentation)
 
 | Mode | When | Post-cookie |
 | ---- | ---- | ----------- |
-| **Login host egress** | Modal on `/login` | `probeSession` then host `onAuthenticated` → `completeMemberLoginEgress` / `location.assign(portalReturn)` |
-| **Register-host login** | Modal on register (required for guests) | `probeSession` → host `onAuthenticated` (close modal → reload / SSR resume intake-only) — **forbid** intake inside modal or OTP steps |
+| **Login host egress** | **Page** on `/login` (not the modal) | `probeSession` then page-host `onAuthenticated` → `completeMemberLoginEgress` / `location.assign(portalReturn)` |
+| **Register-host login** | Modal on register (required for guests; **only** remaining portal modal host) | `probeSession` → host `onAuthenticated` (close modal → reload / SSR resume intake-only) — **forbid** intake inside modal or OTP steps. Modal must not import `completeMemberLoginEgress`. |
 | **Guest inline register auth** | — | **Removed** (PCMS-UX-MODAL-04) |
 
 `memberLoginEgress` prop remains SSR-stable for modal body. Register-host login uses a distinct success handler (not intake-inside-modal).
@@ -171,7 +170,7 @@ apps/portal
 ```text
 1. Guest on marketing → Sign in / tour ورود
 2. JS: marketing modal · origin fetch Portal `/api/public-auth/*` (CORS)
-   no-JS: land on portal (`/login` or register?auth=login) → portal modal
+   no-JS: land on portal (`/login` page OTP or register?auth=login → register modal)
 3. OTP success → Set-Cookie (Portal BFF) → origin probe GET `/api/public-auth/session`
 4. Marketing reloads current URL. On custom apex, COOK-03 `Domain=<apex>` lets SSR see the cookie
 5. Header shows profile chip (data-marketing-header-member); PDP CTA matrix hides tour sign-in
@@ -190,7 +189,7 @@ apps/portal
 | Question | Answer |
 | -------- | ------ |
 | Can we delete `/login`? | **No** — `/me/*` is middleware-gated; guests never get a React tree to mount a modal on |
-| Is `/login` still a “big page”? | **No** — thin public host that auto-opens the same modal component |
+| Is `/login` still a “big page”? | **Yes for OTP chrome (DL-48)** — story + `[data-portal-login-form-panel]`. It is not the register modal. |
 | Standalone bookmark login? | Yes — `/login` with default `portalReturn` |
 
 ## 9. Accessibility & responsive
@@ -231,7 +230,7 @@ apps/portal
 
 | ID | Assert |
 | -- | ------ |
-| MEM-LOGIN-MODAL-01 | Modal markers + presentation attr |
+| MEM-LOGIN-MODAL-01 | Modal markers + presentation attr; host is always `"register"`; no `onLoginSessionReady` / `completeMemberLoginEgress` |
 | MEM-LOGIN-MODAL-02 | Register guest still auto-opens modal; `/login` is page OTP (no auto-modal); session → redirect UX-02 |
 | MEM-LOGIN-MODAL-03 | Register `?auth=login` opens modal; intake not in modal |
 | MKT-PCMS-03 | Unchanged — SSR header from cookie |

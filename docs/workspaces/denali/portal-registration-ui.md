@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-08-16-v17"
+version: "2026-08-16-v18"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -78,7 +78,7 @@ Portal `/login` is retained (middleware `/me/*` gate). Marketing must not add `a
 | `[data-portal-login-modal]` | Modal root — Denali flex-centers on `[open]` (Preflight strips UA `margin: auto`) |
 | `[data-portal-login-modal-open]` | Open |
 | `[data-portal-login-modal-presentation="dialog"\|"sheet"]` | Desktop centered dialog · mobile bottom sheet |
-| `[data-portal-login-modal-host="login"\|"register"]` | Host page |
+| `[data-portal-login-modal-host="register"]` | Register-route modal only (`/login` is page OTP) |
 | `[data-portal-login-modal-body]` | OTP flow surface (shares Denali form controls) |
 | `[data-portal-login-modal-panel]` | Glass panel inside the flex frame |
 
@@ -94,7 +94,7 @@ Smoke URLs: `http://denali.portal.localhost:3003/login` · `/catalog/{tourId}/re
 
 | Route / trigger | User intent | UI | Intake |
 | --------------- | ----------- | -- | ------ |
-| `/login?portalReturn=/me/registrations` | Header / standalone sign-in | Thin host + **login modal** | **Never** |
+| `/login?portalReturn=/me/registrations` | Header / standalone sign-in | Page OTP (`data-portal-login-full-page` + form panel) | **Never** |
 | `/catalog/{id}/register` (guest) | Register for tour — auth first | Register chrome + **forced login modal** + auth gate | After OTP (intake-only) |
 | `/catalog/{id}/register?auth=login` | Deep link / reopen | Same as guest (compatible) | After OTP on **page** |
 | Register reopen «ورود» | Dismissed modal | Modal overlay again | After OTP on **page** |
