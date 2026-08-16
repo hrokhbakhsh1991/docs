@@ -200,7 +200,7 @@ export function OtpSegmentInput({
       dir="ltr"
     >
       <div data-otp-autofill-sink-host aria-hidden="true" style={visuallyHiddenStyle}>
-        <input
+        <Input
           id={autofillSinkId}
           type="text"
           inputMode="numeric"
@@ -210,6 +210,8 @@ export function OtpSegmentInput({
           aria-hidden="true"
           data-otp-autofill-sink
           value={value}
+          style={visuallyHiddenStyle}
+          className="!h-px !w-px !min-h-0 !min-w-0 !border-0 !p-0 !shadow-none"
           onChange={(event) => handleAutofillSinkChange(event.target.value)}
         />
       </div>

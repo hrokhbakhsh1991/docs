@@ -74,6 +74,7 @@ temp/
 **/.venv*/
 
 # Local Playwright/audit scratch (never commit)
+.playwright-mcp/
 apps/web/.tmp-audit/
 apps/portal/.artifacts/
 apps/portal/apps/
