@@ -7,18 +7,40 @@ import {
 /** Canonical path for tour schedule start — minimum selectable calendar date is today. */
 export const DENALI_TOUR_START_CANONICAL_PATH = "startDateTime" as const;
 
+/** Canonical path for tour schedule end — min calendar day follows start (when parseable). */
+export const DENALI_TOUR_END_CANONICAL_PATH = "endDateTime" as const;
+
+/** Optional draft context when resolving datetime composite min dates. */
+export type DenaliDatetimeFieldMinContext = {
+  readonly startDateTimeIso?: string;
+};
+
 /** Minimum ISO calendar date (`YYYY-MM-DD`) for tour start fields (local timezone). */
 export function resolveDenaliTourStartMinIsoDate(referenceDate: Date = new Date()): string {
   return todayIsoDate(referenceDate);
 }
 
-/** UI min date for datetime composite fields; only tour start is constrained to today+. */
+/**
+ * UI min date for datetime composite fields.
+ * - startDateTime → local today
+ * - endDateTime → start’s local calendar day when start ISO parses; otherwise unconstrained
+ *   (DN-SCHED-DATE-02). Do not clamp end to today: ED-DT-01 grandfathered past starts
+ *   must still allow a historical end on/after that start day.
+ */
 export function resolveDenaliDatetimeFieldMinIsoDate(
   canonicalPath: string,
-  referenceDate: Date = new Date()
+  referenceDate: Date = new Date(),
+  context?: DenaliDatetimeFieldMinContext
 ): string | undefined {
   if (canonicalPath === DENALI_TOUR_START_CANONICAL_PATH) {
     return resolveDenaliTourStartMinIsoDate(referenceDate);
+  }
+  if (canonicalPath === DENALI_TOUR_END_CANONICAL_PATH) {
+    const startIso = context?.startDateTimeIso?.trim() ?? "";
+    if (startIso.length === 0) {
+      return undefined;
+    }
+    return isoDatetimeToLocalIsoDate(startIso) ?? undefined;
   }
   return undefined;
 }
@@ -61,4 +83,18 @@ export function isDenaliTourStartGrandfatheredPastBaseline(
   const baselineLocal = isoDatetimeToLocalIsoDate(baseline);
   const currentLocal = isoDatetimeToLocalIsoDate(startIso);
   return baselineLocal != null && currentLocal != null && baselineLocal === currentLocal;
+}
+
+/**
+ * ED-DT-RANGE-01 — true when both instants parse and end is not strictly after start
+ * (equal clocks are a zero-length tour). Unparseable values return false so other
+ * required/type checks own those cases.
+ */
+export function isDenaliTourEndDatetimeNotAfterStart(startIso: string, endIso: string): boolean {
+  const start = Date.parse(startIso);
+  const end = Date.parse(endIso);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    return false;
+  }
+  return end <= start;
 }

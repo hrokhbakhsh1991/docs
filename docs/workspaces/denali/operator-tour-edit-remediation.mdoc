@@ -1,7 +1,7 @@
 ---
 title: Denali operator tour edit — remediation contract
 doc_id: DENALI-OPERATOR-TOUR-EDIT-REMEDIATION
-version: "2026-08-06-v13"
+version: "2026-08-16-v14"
 phase: operator-admin
 apps: [web, api]
 workspace: denali
@@ -37,6 +37,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
 | **ED-LBL-THEME-01** | Theme picker shows FA name + raw `smoke-mountain` slug | Card always renders `theme.slug` under the name (dev/smoke leakage). **Fix:** operator wizard cards show display `name` only; slug stays catalog/settings SoT. | **9** | Create/edit theme cards show localized name without slug line |
 | **ED-UX-02** | Themes/equipment show `settings.errors.Failed to fetch` as `role=alert` when BFF/network fails | Catch stored browser `Error.message` (`Failed to fetch`) → coded lookup miss; only `*_HTTP_5xx` soft-failed. **Fix:** normalize network/load failures to soft `composites.catalog.degraded` (same class as ED-UX-01). | **9** | Catalog network fail uses status helper, not blocking alert; Continue still allowed |
 | **ED-DT-END-01** | Multi-day review shows end clock `۰۰:۰۰` after date-only pick | `joinDatetimeLocal` defaults empty time → invented midnight. **Fix:** inherit start clock on date commit; named invent helper; one-shot hydrate repair on end field. | **10** | End date pick / hydrate keeps start’s HH:mm; explicit non-midnight end still wins |
+| **ED-DT-RANGE-01** | Multi-day wizard **Continue** accepted `endDateTime` **before** `startDateTime` (calendar had no end min; submit guard only checked start-vs-today). Itinerary then fell back to `max(stored, 2)` because `estimateDenaliTourDayCount` returns `undefined` when `end < start`. | Denali-only: calendar min for end = start’s local day; `mergeDenaliScheduleDateViolations` emits `DENALI_TOUR_END_BEFORE_START` when `Date.parse(end) <= Date.parse(start)`. No API / `platform-core` change. | **11** | Basic-step + flat-edit save reject inverted range with i18n copy; same-day later clock still allowed; DN-SCHED-DATE-02/06 + WEB-P11-7-09 |
 | **ED-LIST-CAT-01** | Tours list: category/duration chips missing; filters stuck on «همه دسته‌ها» | `ensureTourListCategorySurface` can return `null` (plugin gate/load); page still set `categorySurfaceReady=true`, so filter groups stay empty / badges `isTourKindSlug`→false. **Fix:** mark ready only when surface non-null; retry once. | **10** | After warm, mountain filters + category badges render for Denali |
 
 ## Phase order
@@ -49,6 +50,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
   → 8 create-wizard UX (difficulty unset + list TZ + outOf + RTL ticks)
   → 9 theme card label + catalog network soft-fail
   → 10 end-date clock inherit + tour-list category surface ready gate
+  → 11 multi-day end ≥ start (ED-DT-RANGE-01) — Denali wizard/edit only
 ```
 
 ## Invariants
@@ -72,10 +74,13 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
 | **8** ED-DIFF-01 / ED-TZ-01 / ED-LBL-DIFF-01 / ED-DIFF-TICK-01 | Done — unset thumb@min + gesture commit; list TZ via `isoToDatetimeLocalInput`; outOf JSX gap; RTL tick translate |
 | **9** ED-LBL-THEME-01 / ED-UX-02 | Done — hide theme slug; network/catalog load → soft degraded notice |
 | **10** ED-DT-END-01 / ED-LIST-CAT-01 | Done — end inherit + hydrate repair; category ready gate + failed/Retry; catalog soft-retry |
+| **11** ED-DT-RANGE-01 | Done — end calendar min = start local day; `DENALI_TOUR_END_BEFORE_START` on `Date.parse(end) <= Date.parse(start)` |
 
 ## Closure (2026-08-06)
 
-All phased IDs **ED-VAL-01 … ED-LIST-CAT-01** meet DoD (unit + live `denali.admin.localhost` where noted). No further phases in this pack.
+Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.localhost` where noted).
+
+**v14 (2026-08-16):** Phase **11** / **ED-DT-RANGE-01** — inverted multi-day range was accepted at create Continue because `resolveDenaliDatetimeFieldMinIsoDate("endDateTime")` returned `undefined` and `mergeDenaliScheduleDateViolations` only emitted `DENALI_TOUR_START_BEFORE_TODAY`. Fix is Denali UI/validation only (no API, no `platform-core`).
 
 **Operator follow-ups outside this pack** (not blockers; do not reopen lifecycle / platform-core validate):
 
@@ -116,6 +121,12 @@ All phased IDs **ED-VAL-01 … ED-LIST-CAT-01** meet DoD (unit + live `denali.ad
 | ED-DT-END-01 | `isUnsetOrInventedMidnightClock` + `repairInventedMidnightDatetimeLocal` + end-field one-shot hydrate + `fallbackTime` |
 | ED-LIST-CAT-01 | `tours-page-client.tsx` — ready only when surface ≠ null; retry once; failed state + Retry CTA |
 
+## Phase 11 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-DT-RANGE-01 | `denali-schedule-date-policy.ts` (`DENALI_TOUR_END_CANONICAL_PATH`, end min from start local day, `isDenaliTourEndDatetimeNotAfterStart`) → `DenaliDatetimeField` context → `mergeDenaliScheduleDateViolations` + `review.validation.DENALI_TOUR_END_BEFORE_START` |
+
 ## ED-SEED-01 implementation map
 
 | Piece | Path |
@@ -148,5 +159,8 @@ pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/cata
 # Phase 10
 pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/datetime-end-inherit.spec.ts
 pnpm --filter @apps/web exec node --import tsx --import ./test/register-dom.mjs --test test/tours-list.spec.ts
+# Phase 11 ED-DT-RANGE-01
+pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/denali-schedule-date-policy.spec.ts
+pnpm --filter @apps/web exec node --import tsx --import ./test/register-dom.mjs --test test/denali-wizard-validation.spec.ts
 ```
 

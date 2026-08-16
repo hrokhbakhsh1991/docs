@@ -499,7 +499,8 @@
       "VALIDATION_RULE_REQUIRED_FIELD": "{field} is required",
       "DENALI_TOUR_TYPE_REQUIRED": "Select a tour type before continuing",
       "CARDINALITY_VIOLATION": "{field} exceeds allowed limits",
-      "DENALI_TOUR_START_BEFORE_TODAY": "{field} cannot be before today"
+      "DENALI_TOUR_START_BEFORE_TODAY": "{field} cannot be before today",
+      "DENALI_TOUR_END_BEFORE_START": "{field} cannot be before the tour start"
     },
     "publishStatus": {
       "helper": "Draft tours stay internal until you publish as active.",

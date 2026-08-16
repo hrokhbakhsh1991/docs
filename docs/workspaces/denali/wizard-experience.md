@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v9"
+version: "2026-08-16-v10"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -251,8 +251,29 @@ Selected day uses `aria-pressed="true"` (not `data-selected`). Dark mode re-bind
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Day pick                | Clicking a day selects it and **closes** the popover (`LocalizedDatePicker` → `setOpen(false)`).                                                                                                                                                                                                                       |
 | Month / year drill-down | Header month and year are buttons (`operator-wizard-calendar__title-btn`); month view = 3×4 grid, year view = 12-year page with nav. `data-operator-wizard-calendar-view` = `days` \| `months` \| `years`.                                                                                                                 |
-| Tour start min date     | `startDateTime` only — `resolveDenaliDatetimeFieldMinIsoDate` in `src/ui/logic/denali-schedule-date-policy.ts` wires `minIsoDate={today}` into `DenaliDatetimeField` → `DenaliWizardDatetimePicker` → `LocalizedDatePicker` → `DenaliCalendar`. Past calendar days/months/years render `--disabled` and ignore clicks. |
-| Submit guard            | `mergeDenaliScheduleDateViolations` in `denali-wizard-validation.ts` emits `DENALI_TOUR_START_BEFORE_TODAY` when stored ISO datetime's **local calendar day** is before today.                                                                                                                                         |
+| Tour start min date     | `startDateTime` — `resolveDenaliDatetimeFieldMinIsoDate` in `src/ui/logic/denali-schedule-date-policy.ts` wires `minIsoDate={today}` into `DenaliDatetimeField` → `DenaliWizardDatetimePicker` → `LocalizedDatePicker` → `DenaliCalendar`. Past calendar days/months/years render `--disabled` and ignore clicks. |
+| Tour end min date       | `endDateTime` (multi-day only in UI) — when `startDateTime` is parseable, min calendar day is the **start’s local ISO date** (`isoDatetimeToLocalIsoDate`). Same calendar day as start stays selectable so a later clock on day 1 is valid. Empty/unparseable start → no end min (`undefined`; DN-SCHED-DATE-02). Edit grandfather (ED-DT-01) can leave start in the past; end min still follows that start day, **not** today — otherwise a historical multi-day end would be unselectable. |
+| Submit guard            | `mergeDenaliScheduleDateViolations` in `denali-wizard-validation.ts` (create step + flat-edit full validate). Two codes, both i18n’d under `review.validation.*`: |
+
+**Schedule submit-guard logic (v10):**
+
+```text
+visible start? → local calendar(start) < today
+                 AND not ED-DT-01 grandfather (same local day as scheduleBaselineStartIso)
+                 → DENALI_TOUR_START_BEFORE_TODAY on start field id
+
+visible end?   → both ISO parse AND Date.parse(end) <= Date.parse(start)
+                 → DENALI_TOUR_END_BEFORE_START on end field id (denali.datetime-end)
+```
+
+| Rule | Why this comparison |
+| ---- | ------------------- |
+| Start vs today | **Local calendar day**, not instant — a 23:00 pick on today must pass even if UTC date rolled. |
+| End vs start | **Full instant** (`Date.parse`) — same-day `06:00` → `18:00` is valid; `06:00` → previous calendar day, or same-day earlier clock, is not. Equal instants are rejected (zero-length tour). |
+| Step scope | On a wizard step, start/end checks run only when that canonical path is in the expanded step and **not hidden** (single-day hides `endDateTime`). Full validate (flat edit / review) runs both when values are present. |
+| Storage | Naive `…T06:00:00.000Z` wall-clock-as-Z is compared consistently on both fields; do not mix true UTC offsets here. |
+
+Specs: `DN-SCHED-DATE-01…06` in `packages/workspaces/denali/test/denali-schedule-date-policy.spec.ts`; `WEB-P11-7-08` empty end; `WEB-P11-7-09` end-before-start. i18n: `DENALI_TOUR_END_BEFORE_START` in `messages/{fa,en}/wizard.json`.
 
 **Destination catalog (searchable select):**
 

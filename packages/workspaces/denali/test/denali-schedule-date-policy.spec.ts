@@ -3,11 +3,13 @@ import { describe, it } from "node:test";
 
 import {
   isDenaliIsoDateSelectable,
+  isDenaliTourEndDatetimeNotAfterStart,
   isDenaliTourStartDatetimeBeforeMin,
   isDenaliTourStartGrandfatheredPastBaseline,
   resolveDenaliDatetimeFieldMinIsoDate,
   resolveDenaliTourStartMinIsoDate,
 } from "../src/ui/logic/denali-schedule-date-policy";
+import { isoDatetimeToLocalIsoDate } from "../src/ui/adapters/calendar-format";
 
 describe("denali-schedule-date-policy.spec.ts", () => {
   const referenceDate = new Date(2026, 5, 23, 12, 0, 0);
@@ -16,9 +18,16 @@ describe("denali-schedule-date-policy.spec.ts", () => {
     assert.equal(resolveDenaliTourStartMinIsoDate(referenceDate), "2026-06-23");
   });
 
-  it("DN-SCHED-DATE-02 only startDateTime canonical path gets min date", () => {
+  it("DN-SCHED-DATE-02 startDateTime min is today; endDateTime min follows start local day", () => {
     assert.equal(resolveDenaliDatetimeFieldMinIsoDate("startDateTime", referenceDate), "2026-06-23");
     assert.equal(resolveDenaliDatetimeFieldMinIsoDate("endDateTime", referenceDate), undefined);
+    const startIso = "2026-06-25T06:00:00.000Z";
+    assert.equal(
+      resolveDenaliDatetimeFieldMinIsoDate("endDateTime", referenceDate, {
+        startDateTimeIso: startIso,
+      }),
+      isoDatetimeToLocalIsoDate(startIso)
+    );
   });
 
   it("DN-SCHED-DATE-03 past iso dates are not selectable when min is today", () => {
@@ -60,5 +69,15 @@ describe("denali-schedule-date-policy.spec.ts", () => {
       isDenaliTourStartGrandfatheredPastBaseline(pastStart, undefined, "2026-06-23"),
       false
     );
+  });
+
+  it("DN-SCHED-DATE-06 end instant must be strictly after start (ED-DT-RANGE-01)", () => {
+    const start = "2026-08-17T06:00:00.000Z";
+    assert.equal(isDenaliTourEndDatetimeNotAfterStart(start, "2026-08-16T18:00:00.000Z"), true);
+    assert.equal(isDenaliTourEndDatetimeNotAfterStart(start, start), true);
+    assert.equal(isDenaliTourEndDatetimeNotAfterStart(start, "2026-08-17T18:00:00.000Z"), false);
+    assert.equal(isDenaliTourEndDatetimeNotAfterStart(start, "2026-08-19T18:00:00.000Z"), false);
+    assert.equal(isDenaliTourEndDatetimeNotAfterStart(start, ""), false);
+    assert.equal(isDenaliTourEndDatetimeNotAfterStart("", "2026-08-19T18:00:00.000Z"), false);
   });
 });

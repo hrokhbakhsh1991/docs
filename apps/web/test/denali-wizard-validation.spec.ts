@@ -319,6 +319,51 @@ describe("denali-wizard-validation.spec.ts — Phase 11.7", () => {
     );
   });
 
+  it("WEB-P11-7-09 endDateTime before startDateTime blocks basic step (ED-DT-RANGE-01)", async () => {
+    const plugin = getDenaliWorkspacePlugin();
+    const rules = await loadDenaliWizardRulesModule();
+    const engine = PlatformWizardEngine.create(stripWizardHost(plugin));
+    engine.init();
+    const basePlan = engine.buildRenderPlan({
+      tenantId: "tenant",
+      dimensions: { category: "mountain", duration: "multi_day" },
+    });
+    const startDateTime = futureTourStartIso();
+    const draft = {
+      data: {
+        category: "mountain_multi",
+        title: "تور چندروزه",
+        destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+        startDateTime,
+        endDateTime: "2020-01-01T18:00:00.000Z",
+        capacityMax: "20",
+        tripDetails: { overview: { peakHeight: "4000" } },
+      },
+    };
+    const steps = plugin.wizardHost!.applyContextualFieldRules!({
+      steps: applyWizardTemplateToRenderPlan(basePlan, buildDenaliFullWizardTemplateSteps()),
+      draft,
+      rulesModule: rules,
+      evalContext: null,
+    }) as ReturnType<typeof applyWizardTemplateToRenderPlan>;
+    const basicStep = steps.find((step) => step.stepId === "denali_basic");
+    assert.notEqual(basicStep, undefined);
+
+    const result = validateDenaliWizardDraftSync(plugin, draft, rules, "tenant", {
+      stepId: basicStep!.stepId,
+      visibleSteps: steps,
+    });
+    assert.equal(result.ok, false);
+    assert.ok(
+      result.violations.some(
+        (violation) =>
+          violation.code === "DENALI_TOUR_END_BEFORE_START" &&
+          (violation.fieldId === "endDateTime" || violation.fieldId === "denali.datetime-end")
+      ),
+      result.violations.map((v) => `${v.fieldId}:${v.code}`).join("; ")
+    );
+  });
+
   it("WEB-P11-7-03 groupValidationIssuesByStep preserves template order", () => {
     const issues = mapValidationResultToIssues(
       {

@@ -39,7 +39,9 @@ import type { DenaliWizardRuleEvalContext } from "./denali-wizard-rule-eval-cont
 import { isSocialMediaLinkWizardSatisfied } from "../ui/logic/denali-social-media-link-logic";
 import { sanitizeDenaliWizardDraftRecord } from "./denali-wizard-draft-sanitize";
 import {
+  DENALI_TOUR_END_CANONICAL_PATH,
   DENALI_TOUR_START_CANONICAL_PATH,
+  isDenaliTourEndDatetimeNotAfterStart,
   isDenaliTourStartDatetimeBeforeMin,
   isDenaliTourStartGrandfatheredPastBaseline,
 } from "../ui/logic/denali-schedule-date-policy";
@@ -458,33 +460,32 @@ function mergeDenaliScheduleDateViolations(
   step?: RenderStepPlan,
   scope?: DenaliWizardValidationScope
 ): ValidationResult {
-  if (step != null) {
-    const expandedStep = expandStepFieldsForCompositeDependents(step);
-    const includesStart = expandedStep.fields.some(
+  const expandedStep = step != null ? expandStepFieldsForCompositeDependents(step) : undefined;
+  const startVisible =
+    expandedStep == null ||
+    expandedStep.fields.some(
       (field) => field.canonicalPath === DENALI_TOUR_START_CANONICAL_PATH && !field.hidden
     );
-    if (!includesStart) {
-      return result;
-    }
+  const endVisible =
+    expandedStep == null ||
+    expandedStep.fields.some(
+      (field) => field.canonicalPath === DENALI_TOUR_END_CANONICAL_PATH && !field.hidden
+    );
+
+  let next = result;
+  if (startVisible) {
+    next = mergeDenaliTourStartBeforeTodayViolation(next, envelope, scope);
   }
-
-  const startIso = getCanonicalStringFromDraft(envelope, DENALI_TOUR_START_CANONICAL_PATH);
-  if (startIso.trim().length === 0 || !isDenaliTourStartDatetimeBeforeMin(startIso)) {
-    return result;
+  if (endVisible) {
+    next = mergeDenaliTourEndBeforeStartViolation(next, envelope);
   }
+  return next;
+}
 
-  if (
-    isDenaliTourStartGrandfatheredPastBaseline(startIso, scope?.scheduleBaselineStartIso)
-  ) {
-    return result;
-  }
-
-  const violation = {
-    code: "DENALI_TOUR_START_BEFORE_TODAY",
-    fieldId: denaliFieldIdForCanonicalPath(DENALI_TOUR_START_CANONICAL_PATH),
-    message: `Tour start cannot be before today at "${DENALI_TOUR_START_CANONICAL_PATH}"`,
-  };
-
+function appendDenaliScheduleViolation(
+  result: ValidationResult,
+  violation: { readonly code: string; readonly fieldId: string; readonly message: string }
+): ValidationResult {
   const duplicate = result.violations.some(
     (existing) =>
       existing.fieldId === violation.fieldId &&
@@ -493,11 +494,51 @@ function mergeDenaliScheduleDateViolations(
   if (duplicate) {
     return result;
   }
-
   return {
     ok: false,
     violations: [...result.violations, violation],
   };
+}
+
+function mergeDenaliTourStartBeforeTodayViolation(
+  result: ValidationResult,
+  envelope: CanonicalWizardDraftEnvelope,
+  scope?: DenaliWizardValidationScope
+): ValidationResult {
+  const startIso = getCanonicalStringFromDraft(envelope, DENALI_TOUR_START_CANONICAL_PATH);
+  if (startIso.trim().length === 0 || !isDenaliTourStartDatetimeBeforeMin(startIso)) {
+    return result;
+  }
+
+  if (isDenaliTourStartGrandfatheredPastBaseline(startIso, scope?.scheduleBaselineStartIso)) {
+    return result;
+  }
+
+  return appendDenaliScheduleViolation(result, {
+    code: "DENALI_TOUR_START_BEFORE_TODAY",
+    fieldId: denaliFieldIdForCanonicalPath(DENALI_TOUR_START_CANONICAL_PATH),
+    message: `Tour start cannot be before today at "${DENALI_TOUR_START_CANONICAL_PATH}"`,
+  });
+}
+
+function mergeDenaliTourEndBeforeStartViolation(
+  result: ValidationResult,
+  envelope: CanonicalWizardDraftEnvelope
+): ValidationResult {
+  const startIso = getCanonicalStringFromDraft(envelope, DENALI_TOUR_START_CANONICAL_PATH);
+  const endIso = getCanonicalStringFromDraft(envelope, DENALI_TOUR_END_CANONICAL_PATH);
+  if (startIso.trim().length === 0 || endIso.trim().length === 0) {
+    return result;
+  }
+  if (!isDenaliTourEndDatetimeNotAfterStart(startIso, endIso)) {
+    return result;
+  }
+
+  return appendDenaliScheduleViolation(result, {
+    code: "DENALI_TOUR_END_BEFORE_START",
+    fieldId: denaliFieldIdForCanonicalPath(DENALI_TOUR_END_CANONICAL_PATH),
+    message: `Tour end cannot be before or equal to start at "${DENALI_TOUR_END_CANONICAL_PATH}"`,
+  });
 }
 
 export type DenaliPublishReadinessValidationScope = {
