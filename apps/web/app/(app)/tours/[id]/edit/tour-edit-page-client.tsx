@@ -197,7 +197,8 @@ function TourEditTitlePageClient({ session, tourId }: TourEditPageClientProps) {
   const priceLabel = formatTourPrice(
     detail.projection.priceAmount,
     detail.projection.priceCurrency,
-    locale
+    locale,
+    session.pluginId
   );
   const departureLabel = formatTourDeparture(detail.projection.departureAt, locale);
   const seatsLabel = formatTourSeats(detail.projection, {

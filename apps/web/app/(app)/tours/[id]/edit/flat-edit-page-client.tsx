@@ -149,7 +149,8 @@ function OperatorFlatEditPageClientReady({
           const priceLabel = formatTourPrice(
             detail.projection.priceAmount,
             detail.projection.priceCurrency,
-            locale
+            locale,
+            session.pluginId
           );
           const departureLabel = formatTourDeparture(detail.projection.departureAt, locale);
           const seatsLabel = formatSeats(detail.projection);

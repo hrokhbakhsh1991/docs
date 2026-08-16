@@ -7,12 +7,14 @@ import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routi
 
 export type CatalogTourDetailStickyBarProps = {
   readonly tour: MarketingCatalogCard;
+  readonly pluginId: string;
   readonly registration: CatalogTourRegistrationState;
   readonly tourSignInUrl?: string | null;
 };
 
 export async function CatalogTourDetailStickyBar({
   tour,
+  pluginId,
   registration,
   tourSignInUrl = null,
 }: CatalogTourDetailStickyBarProps) {
@@ -30,6 +32,7 @@ export async function CatalogTourDetailStickyBar({
         tour.priceCurrency,
         dateLocale,
         t("detail.priceOnRequest"),
+        pluginId,
       )
     : null;
 

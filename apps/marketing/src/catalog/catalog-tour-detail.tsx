@@ -206,7 +206,9 @@ export async function CatalogTourDetail({
                 />
               ) : null}
 
-              {hasExtendedCatalogLayout ? <CatalogTourDetailLogistics tour={tour} /> : null}
+              {hasExtendedCatalogLayout ? (
+                <CatalogTourDetailLogistics tour={tour} pluginId={pluginId} />
+              ) : null}
               {hasExtendedCatalogLayout ? <CatalogTourDetailGearServices tour={tour} /> : null}
 
               {showPolicies ? (
@@ -224,6 +226,7 @@ export async function CatalogTourDetail({
 
           <CatalogTourDetailBookingRail
             tour={tour}
+            pluginId={pluginId}
             registration={registration}
             tourSignInUrl={tourSignInUrl}
           />
@@ -231,6 +234,7 @@ export async function CatalogTourDetail({
 
         <CatalogTourDetailStickyBar
           tour={tour}
+          pluginId={pluginId}
           registration={registration}
           tourSignInUrl={tourSignInUrl}
         />

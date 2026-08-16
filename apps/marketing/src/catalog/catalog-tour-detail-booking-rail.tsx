@@ -8,12 +8,14 @@ import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routi
 
 export type CatalogTourDetailBookingRailProps = {
   readonly tour: MarketingCatalogCard;
+  readonly pluginId: string;
   readonly registration: CatalogTourRegistrationState;
   readonly tourSignInUrl?: string | null;
 };
 
 export async function CatalogTourDetailBookingRail({
   tour,
+  pluginId,
   registration,
   tourSignInUrl = null,
 }: CatalogTourDetailBookingRailProps) {
@@ -31,6 +33,7 @@ export async function CatalogTourDetailBookingRail({
         tour.priceCurrency,
         dateLocale,
         t("detail.priceOnRequest"),
+        pluginId,
       )
     : null;
 

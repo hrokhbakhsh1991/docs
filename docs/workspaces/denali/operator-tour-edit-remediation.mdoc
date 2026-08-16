@@ -1,7 +1,7 @@
 ---
 title: Denali operator tour edit — remediation contract
 doc_id: DENALI-OPERATOR-TOUR-EDIT-REMEDIATION
-version: "2026-08-16-v22"
+version: "2026-08-16-v23"
 phase: operator-admin
 apps: [web, api, marketing]
 workspace: denali
@@ -92,7 +92,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
 | **17** ED-MULTI-CAL-01 / INV-DENALI-MULTI-CAL-A | Done — `multi_day` requires ≥2 distinct local calendar days. `estimateDenaliTourDayCount` is inclusive YMD count (no min-2 clamp; itinerary row count is not a day). Same-calendar-day multi-day emits `DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS`; end calendar min is start+1. |
 | **18** ED-EMPTY-OPT-01 | Done — logistics gear/services and guide languages show optional empty (`role=status`) when catalog is soft-degraded, catalog is empty, or the operator skips. Empty `[]` does not block Continue/save. |
 | **19** ED-PHOTO-EMPTY-01 | Done — day photos and itinerary segment photos have optional empty copy. Empty `photos: []` / no segment `photoIds` does not block save. Marketing itinerary shows muted empty copy; does not invent photos. |
-| **20** ED-CURR-MKT-01 | Done — public catalog `formatCatalogPrice` labels `IRR` as تومان/toman (same digits). No ×10. JSON-LD stays ISO `IRR`. Operator `formatTourPrice` and finance formatters unchanged. |
+| **20** ED-CURR-MKT-01 | Done — public catalog `formatCatalogPrice` labels `IRR` as تومان/toman **for Denali `pluginId` only** (same digits). Harbor/Urban keep `Intl`. No ×10. JSON-LD stays ISO `IRR`. Operator `formatTourPrice` is the same Denali-only display rule. |
 
 ## Closure (2026-08-06)
 
@@ -114,7 +114,9 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 
 **v21 (2026-08-16):** Phase **19** / **ED-PHOTO-EMPTY-01** — day-photo and itinerary-segment-photo empty copy. Wizard uses `DenaliOptionalEmptyNotice`. `photos` stays `required: false`; empty arrays persist. Public catalog itinerary shows `detail.itinerarySegmentPhotosEmpty` when a section has no `photoUrls` (gallery PR-9 fallbacks unchanged). No API / `platform-core` / `plugin.id === "denali"`.
 
-**v22 (2026-08-16):** Phase **20** / **ED-CURR-MKT-01** — public catalog painted `Intl` `style: currency` + `IRR` as ریال/`IRR` while wizard/operator list already say تومان for the same stored integer. Fix is **marketing-local** `formatCatalogPrice` only (grouped digits + تومان/toman). Do **not** ×10; do **not** change `formatTourPrice`, finance formatters, or JSON-LD `priceCurrency`. Storage/egress stay ISO `IRR`. No API / `platform-core` / `plugin.id === "denali"`.
+**v22 (2026-08-16):** Phase **20** / **ED-CURR-MKT-01** — public catalog painted `Intl` `style: currency` + `IRR` as ریال/`IRR` while wizard/operator list already say تومان for the same stored integer. Fix is **marketing-local** `formatCatalogPrice` only (grouped digits + تومان/toman). Do **not** ×10; do **not** change finance formatters or JSON-LD `priceCurrency`. Storage/egress stay ISO `IRR`. No API / `platform-core`.
+
+**v23 (2026-08-16):** Workspace isolation for toman display. Host formatters (`formatTourPrice`, `formatCatalogPrice`) must not treat every ISO `IRR` as Denali toman — Harbor/guest-club also store `IRR`. Toman label applies only when the host passes `pluginId === "denali"`. Still no API / `platform-core` / persist rewrite.
 
 **Operator follow-ups outside this pack** (not blockers; do not reopen lifecycle / platform-core validate):
 
@@ -169,7 +171,7 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 
 | ID | Owner path |
 | --- | --- |
-| ED-CURR-MKT-01 | `apps/marketing/src/catalog/format-catalog-display.ts` `formatCatalogPrice` — `IRR` → تومان/toman grouped digits (list chip, home cards, facts, sticky, rail, logistics cost/dong). JSON-LD unchanged. **No ×10.** |
+| ED-CURR-MKT-01 | `apps/marketing/src/catalog/format-catalog-display.ts` `formatCatalogPrice` — Denali `pluginId` + `IRR` → تومان/toman grouped digits (list chip, home cards, facts, sticky, rail, logistics cost/dong). Other plugin ids keep `Intl`. JSON-LD unchanged. **No ×10.** |
 
 ## Phase 19 implementation map
 
@@ -193,7 +195,7 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 
 | ID | Owner path |
 | --- | --- |
-| ED-CURR-01 | `apps/web/src/features/tours/tour-list-formatters.ts` `formatTourPrice` — `IRR` → تومان/toman grouped digits (list card + edit header). Storage stays `IRR`. |
+| ED-CURR-01 | `apps/web/src/features/tours/tour-list-formatters.ts` `formatTourPrice` — Denali `pluginId` + `IRR` → تومان/toman grouped digits (list card + edit header). Other plugin ids keep `Intl`. Storage stays `IRR`. |
 | ED-DEST-NATURE-01 | `denali-destination-picker-filter.ts` → destination field + itinerary segment destination |
 | ED-DT-EQ-COPY-01 | `messages/{fa,en}/wizard.json` `review.validation.DENALI_TOUR_END_BEFORE_START` |
 
