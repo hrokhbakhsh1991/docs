@@ -1,7 +1,7 @@
 ---
 title: Denali guest login + club branding — remediation contract
 doc_id: DENALI-GUEST-LOGIN-BRANDING-REMEDIATION
-version: "2026-08-16-v4"
+version: "2026-08-16-v5"
 phase: guest-portal
 apps: [portal, marketing, web, api]
 workspace: denali
@@ -122,6 +122,7 @@ Browser  GET /favicon.ico
 | **GL-PHONE-02** | OTP «تغییر شماره» restores `+15550009901` | `catalog-registration-auth-steps.tsx` change-phone merge | **2** | Change-phone clears to empty (or last typed club number), not `PUBLIC_REGISTRATION_DEV_PHONE`. |
 | **GL-AVATAR-01** | Profile has two «انتخاب تصویر» controls | Hidden file input + button share `aria-label` | **3** | One named upload control; file input is visually hidden and not a second button in the a11y tree. |
 | **GL-OTP-01** | OTP cells labelled `Digit 1`…; extra unnamed textbox | `otp-segment-input.tsx` autofill sink + English aria-label | **4** | Autofill sink stays out of a11y tree; cell labels use i18n (FA/EN). Dev hint `کد توسعه: 1234` may stay in `NODE_ENV=development`. |
+| **GL-OTP-01-OP** | Same extra unnamed textbox + `Digit 1` on **operator** `/auth/login` | `apps/web/src/features/auth/otp-segment-input.tsx` (not guest flow-ui) | **4 twin** | Native clipped sink; `auth.otpLabel` group + `auth.otpDigitLabel` `{index}`. Dangling `htmlFor="otp"` removed. Do not import guest `catalogRegistration`. |
 | **GL-POLISH-01** | `GET /favicon.ico` 404 on portal | Portal app metadata / public asset | **5** | No 404 for favicon on `portal.denali.localhost`. |
 | **GL-POLISH-02** | Next.js LCP warning on marketing hero image | Marketing image `priority` | **5** | Hero/LCP img has `priority` (or equivalent). Not a login blocker. |
 
@@ -163,4 +164,5 @@ Do **not** put `shenski` on `resolveDefaultTenantBranding("denali")`. Guest chro
 | **2** GL-PHONE-01 + GL-PHONE-02 | **Done** — empty guest phone; change-phone clears |
 | **3** GL-AVATAR-01 | **Done** — file input unnamed + `aria-hidden`; button is the named control |
 | **4** GL-OTP-01 | **Done** — clipped native sink; `otp.digitLabel` / `otp.groupLabel` |
+| **4 twin** GL-OTP-01-OP | **Done** — operator login same sink/i18n pattern under `auth.*` |
 | **5** GL-POLISH-01 + GL-POLISH-02 | **Done** — portal `/icon.svg` rewrite; hero LCP eager/high vs lazy/low |
