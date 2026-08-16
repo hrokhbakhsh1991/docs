@@ -34,6 +34,7 @@ const LABELS: DenaliReviewFormatLabels = {
   dayLabel: (day) => `day ${day}`,
   primaryGathering: "primary",
   socialMediaTelegramAutoLabel: "Telegram — auto",
+  optionalEmptyValue: "Not selected (optional)",
 };
 
 describe("denali-review-format-logic.spec.ts", () => {
@@ -132,6 +133,7 @@ describe("denali-review-format-logic.spec.ts", () => {
     assert.deepEqual(stepIds, [
       "denali_basic",
       "denali_photos",
+      "denali_program",
       "denali_logistics",
       "denali_pricing",
     ]);
@@ -366,5 +368,33 @@ describe("denali-review-format-logic.spec.ts", () => {
       basic?.rows.some((row) => row.value.includes(destId) || row.value.includes(leaderId)),
       false
     );
+  });
+
+  it("WEB-DENALI-REVIEW-11 optional empty rows for skipped gear, services, and guide languages", () => {
+    const sections = buildDenaliReviewSections(
+      {
+        data: {
+          title: "Skip optionals",
+          category: "mountain_day",
+          transport: { mode: "none" },
+          program: { guideLanguageIds: [] },
+          participants: { gearItems: [] },
+        },
+      },
+      EMPTY_CATALOG,
+      LABELS
+    );
+    const program = sections.find((section) => section.stepId === "denali_program");
+    const language = program?.rows.find((row) => row.canonicalPath === "program.guideLanguageIds");
+    assert.equal(language?.emptyOptional, true);
+    assert.equal(language?.value, "Not selected (optional)");
+
+    const logistics = sections.find((section) => section.stepId === "denali_logistics");
+    const gear = logistics?.rows.find((row) => row.canonicalPath === "participants.gearItems");
+    const services = logistics?.rows.find(
+      (row) => row.canonicalPath === "tripDetails.logistics.includedServices"
+    );
+    assert.equal(gear?.emptyOptional, true);
+    assert.equal(services?.emptyOptional, true);
   });
 });

@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v17"
+version: "2026-08-16-v18"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -265,6 +265,28 @@ Empty scaffold still must not persist (`ED-GATHER-01`). Specs: `DEN-GATHER-PERSI
 `fetchDenaliCatalogJsonWithSoftRetry` retries **once** on 5xx/network then stops. Leader/theme/gear/language pickers used `useEffect([])` with no later refetch, so a cold BFF `ERR_CONNECTION_REFUSED` left «کاتالوگ موقتاً در دسترس نیست» for the whole create session (`leaderUserIds: []` on submit). Destinations that remount (edit) recovered.
 
 Contract: degraded notice offers **تلاش مجدد**; when the notice is visible, `visibilitychange` / window `focus` also reloads. Soft-retry on each attempt stays one-shot. No API change.
+
+## Optional empty (ED-EMPTY-OPT-01)
+
+Gear (logistics catalog) and guide languages are **optional**. An empty picker is a valid skip, including when the catalog is soft-degraded.
+
+| Surface | When | Contract |
+| ------- | ---- | -------- |
+| Field | `resolveDenaliOptionalEmptyReason`: degraded (soft-fail), catalog empty, or operator selected nothing | `DenaliOptionalEmptyNotice` — `role="status"` (never `alert`), `data-denali-optional-empty`. Copy: `composites.catalog.optionalEmpty`. Does **not** set `aria-invalid`. |
+| Field (services) | Both included/self buckets empty | `composites.tourServices.emptyBucket` states skip is allowed. |
+| Review | Visible `program.guideLanguageIds` / `participants.gearItems` / services with no values | Row value `review.optionalEmpty` (`emptyOptional: true`). Unresolved UUID names still omit the row (ED-REV-UUID-01) — that is loading/miss, not a skip. |
+| Validate / save | `required: false` on those paths; submit catalog loader returns `{}` on fetch throw | Empty `[]` must not emit `REQUIRED_FIELD_EMPTY`. Soft-degraded catalog must not block `prepareSubmitPayload` / PATCH. |
+
+```text
+loading          → no optional-empty (spinner / loading copy)
+hard catalog err → DenaliCatalogLoadNotice alert only
+soft-fail        → degraded notice + optional-empty (save still allowed)
+0 catalog rows   → settings empty copy + optional-empty
+N rows, 0 picked → picker stays; optional-empty (operator skip)
+N rows, k picked → selected summary only
+```
+
+Specs: `DN-EMPTY-OPT-01…` in `denali-optional-empty.spec.ts`; review `WEB-DENALI-REVIEW-11`; step validation `DN-EMPTY-OPT-04`.
 
 ## Photo upload error a11y (ED-PHOTO-A11Y-01)
 

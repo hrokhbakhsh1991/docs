@@ -42,6 +42,8 @@ export type DenaliReviewRow = {
   readonly label: string;
   readonly value: string;
   readonly multiline?: boolean;
+  /** ED-EMPTY-OPT-01 — operator skip / empty optional catalog field. */
+  readonly emptyOptional?: boolean;
 };
 
 export type DenaliReviewCard = {
@@ -90,6 +92,8 @@ export type DenaliReviewFormatLabels = {
   readonly dayLabel: (day: number) => string;
   readonly primaryGathering: string;
   readonly socialMediaTelegramAutoLabel: string;
+  /** ED-EMPTY-OPT-01 — review value when an optional catalog field was skipped. */
+  readonly optionalEmptyValue: string;
 };
 
 function pushRow(
@@ -107,6 +111,20 @@ function pushRow(
     label,
     value,
     ...(multiline ? { multiline: true } : {}),
+  });
+}
+
+function pushOptionalEmptyRow(
+  rows: DenaliReviewRow[],
+  canonicalPath: string,
+  label: string,
+  value: string
+): void {
+  rows.push({
+    canonicalPath,
+    label,
+    value,
+    emptyOptional: true,
   });
 }
 
@@ -343,12 +361,21 @@ export function buildDenaliReviewSections(
 
   const programRows: DenaliReviewRow[] = [];
   const languageIds = parseStringArray(getCanonicalValue(draft, "program.guideLanguageIds"));
-  pushRow(
-    programRows,
-    "program.guideLanguageIds",
-    labels.fieldLabel("program.guideLanguageIds"),
-    mapIds(languageIds, catalog.languageNameById)
-  );
+  if (languageIds.length === 0) {
+    pushOptionalEmptyRow(
+      programRows,
+      "program.guideLanguageIds",
+      labels.fieldLabel("program.guideLanguageIds"),
+      labels.optionalEmptyValue
+    );
+  } else {
+    pushRow(
+      programRows,
+      "program.guideLanguageIds",
+      labels.fieldLabel("program.guideLanguageIds"),
+      mapIds(languageIds, catalog.languageNameById)
+    );
+  }
   pushRow(
     programRows,
     "program.difficultyLevel",
@@ -509,6 +536,22 @@ export function buildDenaliReviewSections(
     getCanonicalValue(draft, "tripDetails.overview.customServiceLabels")
   );
   const gear = parseDenaliGearItems(getCanonicalValue(draft, "participants.gearItems"));
+  if (gear.length === 0) {
+    pushOptionalEmptyRow(
+      logisticsRows,
+      "participants.gearItems",
+      labels.fieldLabel("participants.gearItems"),
+      labels.optionalEmptyValue
+    );
+  }
+  if (included.length === 0 && excluded.length === 0 && customLabels.length === 0) {
+    pushOptionalEmptyRow(
+      logisticsRows,
+      "tripDetails.logistics.includedServices",
+      labels.fieldLabel("tripDetails.logistics.includedServices"),
+      labels.optionalEmptyValue
+    );
+  }
   if (
     logisticsRows.length > 0 ||
     included.length > 0 ||

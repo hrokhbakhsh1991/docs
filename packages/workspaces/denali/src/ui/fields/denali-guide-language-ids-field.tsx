@@ -14,8 +14,10 @@ import { Checkbox } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { fetchDenaliCatalogJsonWithSoftRetry } from "../adapters/catalog-soft-fail";
 import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notice";
+import { DenaliOptionalEmptyNotice } from "../components/denali-optional-empty-notice";
 import { useDenaliCatalogSoftLoad } from "../hooks/use-denali-catalog-soft-load";
 import { parseStringArray } from "../logic/denali-array-field-utils";
+import { resolveDenaliOptionalEmptyReason } from "../logic/denali-optional-empty";
 import { DENALI_GUIDE_LANGUAGES_TEST_IDS } from "../test-ids/denali-guide-languages-test-ids";
 
 export { DENALI_GUIDE_LANGUAGES_TEST_IDS } from "../test-ids/denali-guide-languages-test-ids";
@@ -47,6 +49,12 @@ export function DenaliGuideLanguageIdsField({
     "GUIDE_LANGUAGES_LOAD_FAILED"
   );
   const languages = data ?? [];
+  const optionalEmptyReason = resolveDenaliOptionalEmptyReason({
+    loading,
+    error,
+    catalogItemCount: languages.length,
+    selectedCount: selected.length,
+  });
 
   const toggleLanguage = (languageId: string, checked: boolean) => {
     const next = checked
@@ -73,6 +81,12 @@ export function DenaliGuideLanguageIdsField({
         <p className="denali-wizard-composite__status">{t("composites.guideLanguages.loading")}</p>
       ) : null}
       <DenaliCatalogLoadNotice error={error} onRetry={reload} />
+
+      {optionalEmptyReason != null ? (
+        <DenaliOptionalEmptyNotice testId={DENALI_GUIDE_LANGUAGES_TEST_IDS.optionalEmpty}>
+          {t("composites.guideLanguages.optionalEmpty")}
+        </DenaliOptionalEmptyNotice>
+      ) : null}
 
       {!loading && languages.length === 0 && error === null ? (
         <p className="denali-wizard-composite__status">{t("composites.guideLanguages.empty")}</p>

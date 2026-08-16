@@ -534,6 +534,91 @@ describe("denali-wizard-step-validation.spec.ts", () => {
     );
   });
 
+  it("DN-EMPTY-OPT-04 empty optional gear, services, and guide languages do not block Continue", async () => {
+    const plugin = getDenaliWorkspacePlugin();
+    const rules = await loadDenaliWizardRulesModule();
+    const logisticsDraft = {
+      data: {
+        category: "mountain_day",
+        title: "Tour",
+        destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+        startDateTime: "2027-07-01T08:00:00.000Z",
+        capacityMax: "20",
+        tripDetails: {
+          overview: { peakHeight: "4000" },
+          logistics: { includedServices: [], excludedServices: [] },
+        },
+        transport: { mode: "none" },
+        participants: { gearItems: [] },
+      },
+    };
+    const logisticsFields = plugin.fieldRegistry.fields
+      .filter((field) => field.stepId === "denali_logistics")
+      .map((field) => ({
+        fieldId: field.id,
+        canonicalPath: field.canonicalPath,
+        kind: field.kind,
+        required: field.required,
+        hidden: false,
+      }));
+    const logistics = validateDenaliWizardDraftSync(plugin, logisticsDraft, rules, "tenant", {
+      stepId: "denali_logistics",
+      visibleSteps: [{ stepId: "denali_logistics", fields: logisticsFields }],
+    });
+    assert.equal(
+      logistics.ok,
+      true,
+      logistics.violations.map((v) => `${v.fieldId}:${v.code}:${v.message}`).join("; ")
+    );
+    assert.equal(
+      logistics.violations.some(
+        (violation) =>
+          violation.fieldId?.includes("gearItems") === true ||
+          violation.fieldId?.includes("includedServices") === true ||
+          violation.fieldId?.includes("excludedServices") === true
+      ),
+      false
+    );
+
+    const programDraft = {
+      data: {
+        category: "mountain_day",
+        title: "Tour",
+        destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+        startDateTime: "2027-07-01T08:00:00.000Z",
+        capacityMax: "20",
+        tripDetails: { overview: { peakHeight: "4000" } },
+        program: {
+          difficultyLevel: "5",
+          hikingHoursApprox: "6",
+          guideLanguageIds: [],
+        },
+      },
+    };
+    const programFields = plugin.fieldRegistry.fields
+      .filter((field) => field.stepId === "denali_program")
+      .map((field) => ({
+        fieldId: field.id,
+        canonicalPath: field.canonicalPath,
+        kind: field.kind,
+        required: field.required,
+        hidden: false,
+      }));
+    const program = validateDenaliWizardDraftSync(plugin, programDraft, rules, "tenant", {
+      stepId: "denali_program",
+      visibleSteps: [{ stepId: "denali_program", fields: programFields }],
+    });
+    assert.equal(
+      program.violations.some(
+        (violation) =>
+          violation.fieldId?.includes("guideLanguageIds") === true ||
+          violation.fieldId === "program.guideLanguageIds"
+      ),
+      false,
+      program.violations.map((v) => `${v.fieldId}:${v.code}:${v.message}`).join("; ")
+    );
+  });
+
   it("DN-WIZARD-STEP-12 expand re-apply honors overlay via evalContext", async () => {
     const plugin = getDenaliWorkspacePlugin();
     const rules = await loadDenaliWizardRulesModule();

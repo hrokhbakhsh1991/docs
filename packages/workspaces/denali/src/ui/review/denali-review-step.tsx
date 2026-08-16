@@ -58,10 +58,15 @@ function ReviewGrid({ rows }: { readonly rows: readonly DenaliReviewRow[] }) {
           <dt className="operator-review__term">{row.label}</dt>
           <dd
             className={
-              row.multiline
-                ? "operator-review__value operator-review__value--multiline"
-                : "operator-review__value"
+              [
+                "operator-review__value",
+                row.multiline ? "operator-review__value--multiline" : "",
+                row.emptyOptional ? "operator-review__value--optional-empty" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")
             }
+            {...(row.emptyOptional ? { "data-operator-review-optional-empty": "" } : {})}
           >
             {row.value}
           </dd>
@@ -367,6 +372,7 @@ export function DenaliReviewStep({
       dayLabel: (day) => t("review.dayLabel", { day }),
       primaryGathering: t("review.primaryGathering"),
       socialMediaTelegramAutoLabel: t("composites.socialMedia.reviewTelegramAuto"),
+      optionalEmptyValue: t("review.optionalEmpty"),
     };
   }, [t, locale]);
 

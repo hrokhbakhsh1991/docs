@@ -84,6 +84,7 @@ const REVIEW_LABELS = {
   dayLabel: (day: number) => String(day),
   primaryGathering: "primary",
   socialMediaTelegramAutoLabel: "telegram-auto",
+  optionalEmptyValue: "Not selected (optional)",
 } as const;
 
 describe("destination-catalog-metric-tour-visibility.spec.ts", () => {

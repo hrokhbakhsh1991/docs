@@ -177,7 +177,8 @@
     },
     "catalog": {
       "degraded": "Catalog is temporarily unavailable. You can still save this tour; pickers refresh when the service recovers.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "optionalEmpty": "This is optional. You can continue and save without selecting anything."
     },
     "difficulty": {
       "level": "Level {level}",
@@ -281,7 +282,7 @@
       "selfProvidedPlaceholder": "e.g. Lunch, personal gear",
       "suggestionsLabel": "Quick add",
       "removeLabel": "Remove {name}",
-      "emptyBucket": "Nothing added yet.",
+      "emptyBucket": "Nothing added yet. Optional — skipping does not block save.",
       "suggestionsIncluded": [
         "Breakfast",
         "Lunch",
@@ -362,12 +363,14 @@
     "guideLanguages": {
       "helper": "Select languages your guides can offer on this tour.",
       "loading": "Loading guide languages…",
-      "empty": "No guide languages yet. Add them under Settings → Guide languages."
+      "empty": "No guide languages yet. Add them under Settings → Guide languages.",
+      "optionalEmpty": "This is optional. You can continue and save without selecting a guide language."
     },
     "gear": {
       "helper": "Choose equipment for your selected themes. Mark each item as required or optional.",
       "loading": "Loading equipment…",
       "empty": "No equipment matches the current themes. Add items under Settings → Equipment or pick different themes.",
+      "optionalEmpty": "Equipment is optional. You can continue and save without selecting gear.",
       "openEquipment": "Open equipment settings",
       "allThemes": "All themes",
       "selectedCount": "{count, number} items selected",
@@ -485,6 +488,7 @@
     "no": "No",
     "gearRequired": "Required",
     "gearOptional": "Optional",
+    "optionalEmpty": "Not selected (optional)",
     "photoCount": "{count, number} {count, plural, one {photo} other {photos}}",
     "dayLabel": "Day {day, number}",
     "primaryGathering": "Primary",

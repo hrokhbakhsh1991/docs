@@ -34,6 +34,7 @@ const LABELS: DenaliReviewFormatLabels = {
   dayLabel: (day) => `day ${day}`,
   primaryGathering: "primary",
   socialMediaTelegramAutoLabel: "Telegram",
+  optionalEmptyValue: "Not selected (optional)",
 };
 
 describe("denali-review-catalog-name.spec.ts", () => {

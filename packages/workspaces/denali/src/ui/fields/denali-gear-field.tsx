@@ -17,6 +17,7 @@ import { Input } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { fetchDenaliCatalogJsonWithSoftRetry } from "../adapters/catalog-soft-fail";
 import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notice";
+import { DenaliOptionalEmptyNotice } from "../components/denali-optional-empty-notice";
 import { useDenaliCatalogSoftLoad } from "../hooks/use-denali-catalog-soft-load";
 import { CheckIcon } from "../components/icons/tour-service-icons";
 import { EquipmentCatalogAvatar } from "../components/equipment-catalog-avatar";
@@ -28,6 +29,7 @@ import {
   resolveTourCategoryLabelKey,
 } from "../logic/denali-equipment-catalog-labels";
 import { parseDenaliGearItems, type DenaliGearItem } from "../logic/denali-gear-types";
+import { resolveDenaliOptionalEmptyReason } from "../logic/denali-optional-empty";
 import { filterPickerItemsByQuery } from "../logic/denali-picker-filter-logic";
 import { DENALI_GEAR_TEST_IDS } from "../test-ids/denali-gear-test-ids";
 
@@ -122,6 +124,12 @@ export function DenaliGearField({ draft, onDraftChange, invalid = false }: Denal
     () => catalog.filter((item) => isEquipmentVisibleInWizard(item, tourCategory, tourThemeIds)),
     [catalog, tourCategory, tourThemeIds]
   );
+  const optionalEmptyReason = resolveDenaliOptionalEmptyReason({
+    loading,
+    error,
+    catalogItemCount: visibleCatalog.length,
+    selectedCount: selected.length,
+  });
 
   const filteredCatalog = useMemo(
     () =>
@@ -186,6 +194,12 @@ export function DenaliGearField({ draft, onDraftChange, invalid = false }: Denal
 
       {loading ? <p className="denali-wizard-composite__status">{t("composites.gear.loading")}</p> : null}
       <DenaliCatalogLoadNotice error={error} onRetry={reload} />
+
+      {optionalEmptyReason != null ? (
+        <DenaliOptionalEmptyNotice testId={DENALI_GEAR_TEST_IDS.optionalEmpty}>
+          {t("composites.gear.optionalEmpty")}
+        </DenaliOptionalEmptyNotice>
+      ) : null}
 
       {!loading && visibleCatalog.length === 0 && error === null ? (
         <div className="denali-gear-picker__empty">
