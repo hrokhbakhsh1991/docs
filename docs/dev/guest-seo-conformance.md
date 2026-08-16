@@ -99,7 +99,7 @@ pnpm --filter @apps/marketing run test:lighthouse   # requires smoke servers (he
 | -------- | ---- |
 | `build-marketing-metadata.ts` | `pagination.noindexQueryParams` → `robots: { index: false, follow: true }` on `/tours?cursor`, `?city`, and PR-22 filter params (`q`, `category`, `difficulty`, `fitness`, `availability`, `sort`) |
 | `build-marketing-catalog-list-jsonld.ts` | `ItemList` JSON-LD on first-page `/tours` (no `cursor`) |
-| `build-marketing-sitemap.ts` | Tour detail URLs include `images[]` when `coverImageUrl` is set |
+| `build-marketing-sitemap.ts` | Tour detail URLs include `images[]` only when `resolveMarketingCatalogPhotoUrl(coverImageUrl)` is reachable (BUG-3: omit `cdn.example` / `*.example`; keep `cdn.example.com`) |
 | `catalog-tour-breadcrumb.tsx` | Visible `<nav aria-label="Breadcrumb">` aligned with BreadcrumbList JSON-LD |
 | `guard-marketing-seo-prod.mjs` | Production closure — `MARKETING_PUBLIC_BASE_URL` must be `https://` in prod |
 | `lighthouserc.json` | SEO ≥ 90 **and** Performance ≥ 85 + CWV budgets |
