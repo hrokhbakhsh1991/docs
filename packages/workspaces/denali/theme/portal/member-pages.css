@@ -1444,6 +1444,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-receipt-upload-actions] {
   display: flex;
   justify-content: flex-start;
+  /* Extra clearance above bottom nav so first tap hits Submit, not the nav (PAY-MB-01). */
+  margin-bottom: calc(3.25rem + var(--space-3) + env(safe-area-inset-bottom, 0px));
+  position: relative;
+  z-index: 1;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -1451,6 +1455,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-receipt-upload-actions]
   button {
   min-width: 10rem;
+  min-height: 2.75rem;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
