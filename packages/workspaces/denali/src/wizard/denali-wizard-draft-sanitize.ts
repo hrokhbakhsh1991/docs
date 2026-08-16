@@ -11,10 +11,16 @@ import { tourWizardDraftToDenaliForm } from "./denali-wizard-form-adapter";
 import {
   DENALI_GATHERING_POINTS_CANONICAL_PATH,
   DENALI_GATHERING_POINTS_NESTED_PATH,
+  DENALI_LOCATION_ZONE_GHOST_PATHS,
+  denaliLocationZoneOverviewPath,
   isDenaliGatheringPointPopulated,
+  isDenaliLocationDataPopulated,
   omitEmptyDenaliGatheringPoints,
   parseDenaliGatheringPoints,
+  parseDenaliLocationData,
   resolveDenaliGatheringPointsFromStorage,
+  resolveDenaliLocationZoneFromStorage,
+  toPersistableDenaliLocationData,
 } from "../ui/logic/denali-location-types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -112,6 +118,37 @@ function promoteDenaliGatheringPointsOnDraft(
   return setCanonicalValueOnDraft(draft, DENALI_GATHERING_POINTS_CANONICAL_PATH, populated);
 }
 
+/**
+ * ED-CAMP-PERSIST-01 — persist SoT is overview; root is in-session / form-adapter mirror.
+ * Ghost roots stay non-persistable (`shouldPersistCanonicalPathFromForm` → false).
+ */
+function promoteDenaliLocationZonesOnDraft(
+  draft: CanonicalWizardDraftEnvelope
+): CanonicalWizardDraftEnvelope {
+  let next = draft;
+  for (const zone of DENALI_LOCATION_ZONE_GHOST_PATHS) {
+    const nestedPath = denaliLocationZoneOverviewPath(zone);
+    const resolved = toPersistableDenaliLocationData(
+      resolveDenaliLocationZoneFromStorage(
+        getCanonicalValueFromDraft(next, zone),
+        getCanonicalValueFromDraft(next, nestedPath)
+      )
+    );
+    if (resolved === undefined) {
+      continue;
+    }
+    const nested = parseDenaliLocationData(getCanonicalValueFromDraft(next, nestedPath));
+    if (!isDenaliLocationDataPopulated(nested)) {
+      next = setCanonicalValueOnDraft(next, nestedPath, resolved);
+    }
+    const root = parseDenaliLocationData(getCanonicalValueFromDraft(next, zone));
+    if (!isDenaliLocationDataPopulated(root)) {
+      next = setCanonicalValueOnDraft(next, zone, resolved);
+    }
+  }
+  return next;
+}
+
 export function sanitizeDenaliWizardDraftEnvelope(
   draft: CanonicalWizardDraftEnvelope,
   rules: DenaliWizardRulesModule,
@@ -120,7 +157,7 @@ export function sanitizeDenaliWizardDraftEnvelope(
   if (!hasDenaliWizardClassification(draft, rules)) {
     return draft;
   }
-  const promoted = promoteDenaliGatheringPointsOnDraft(draft);
+  const promoted = promoteDenaliLocationZonesOnDraft(promoteDenaliGatheringPointsOnDraft(draft));
   const form = tourWizardDraftToDenaliForm(promoted, rules);
   const sanitized = rules.applyDenaliInvariantState(
     form,

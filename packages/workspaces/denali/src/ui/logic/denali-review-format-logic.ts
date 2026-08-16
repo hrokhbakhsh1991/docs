@@ -23,8 +23,10 @@ import { parseStringArray } from "./denali-array-field-utils";
 import { parseDenaliGearItems, type DenaliGearItem } from "./denali-gear-types";
 import {
   DENALI_LOCATION_ZONE_PATHS,
+  denaliLocationZoneOverviewPath,
   parseDenaliLocationData,
   resolveDenaliGatheringPointsFromStorage,
+  resolveDenaliLocationZoneFromStorage,
 } from "./denali-location-types";
 import { parseDenaliTourPhotos, type DenaliTourPhoto } from "./denali-photo-types";
 import { formatSocialMediaLinkForReview } from "./denali-social-media-link-logic";
@@ -519,7 +521,12 @@ export function buildDenaliReviewSections(
       logisticsRows,
       zone.path,
       labels.locationZoneLabel(zone.path),
-      formatLocation(getCanonicalValue(draft, zone.path))
+      formatLocation(
+        resolveDenaliLocationZoneFromStorage(
+          getCanonicalValue(draft, zone.path),
+          getCanonicalValue(draft, denaliLocationZoneOverviewPath(zone.path))
+        )
+      )
     );
   }
   const gatheringPoints = resolveDenaliGatheringPointsFromStorage(

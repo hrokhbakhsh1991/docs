@@ -91,6 +91,43 @@ describe("denali-wizard-submit-host.spec.ts (P15-W-C1)", () => {
     assert.equal(points?.[0]?.name, "میدان دربند");
     assert.equal(points?.[0]?.address, "دربند، تهران");
   });
+
+  it("ED-CAMP-PERSIST-01 nested-only campPoint lands on overview in create payload", async () => {
+    const plugin = getDenaliWorkspacePlugin();
+    const rules = await loadDenaliWizardRulesModule();
+    const campPoint = {
+      label: "کمپ آبشار اسکلیم",
+      address: "آبشار آهکی اسکلیم, لفور, سوادکوه شمالی",
+      latitude: 36.16399,
+      longitude: 52.76416,
+    };
+    const draft = {
+      data: {
+        title: "کمپینگ چندروزه آبشار اسکلیم",
+        category: "nature_multi",
+        publishStatus: "draft",
+        tripDetails: {
+          overview: {
+            trailDistanceKm: 8,
+            campPoint,
+          },
+        },
+      },
+    };
+    const formBefore = tourWizardDraftToDenaliForm(draft, rules) as {
+      basicInfo?: { campPoint?: unknown };
+    };
+    assert.equal(formBefore.basicInfo?.campPoint, undefined);
+
+    const evalContext = buildDenaliWizardRuleEvalContext({ draft, rulesModule: rules });
+    const payload = prepareDenaliTourCreatePayload(draft, plugin, rules, evalContext);
+    const overview = (payload.data.tripDetails as Record<string, unknown>).overview as Record<
+      string,
+      unknown
+    >;
+    assert.deepEqual(overview.campPoint, campPoint);
+    assert.equal(overview.trailDistanceKm, 8);
+  });
 });
 
 describe("denali-wizard-submit-validation.spec.ts (P15-W-C1)", () => {

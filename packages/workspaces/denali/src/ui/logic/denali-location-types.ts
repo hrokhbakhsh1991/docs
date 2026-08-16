@@ -24,6 +24,18 @@ export const DENALI_LOCATION_ZONE_PATHS = [
 
 export type DenaliLocationZonePath = (typeof DENALI_LOCATION_ZONE_PATHS)[number]["path"];
 
+/**
+ * Ghost dependents of the startPoint composite (INV-DENALI-WIZ-003).
+ * Persist SoT is `tripDetails.overview.{path}` — root keys are stripped on submit.
+ */
+export const DENALI_LOCATION_ZONE_GHOST_PATHS = ["summitPoint", "campPoint", "endPoint"] as const;
+
+export type DenaliLocationZoneGhostPath = (typeof DENALI_LOCATION_ZONE_GHOST_PATHS)[number];
+
+export function denaliLocationZoneOverviewPath(path: DenaliLocationZonePath): string {
+  return `tripDetails.overview.${path}`;
+}
+
 export const DENALI_COMPOSITE_TEST_IDS = {
   destination: "denali-composite-destination",
   locationZones: "denali-composite-location-zones",
@@ -68,6 +80,36 @@ export function isDenaliLocationDataPopulated(location: DenaliLocationData): boo
     Number.isFinite(location.latitude) &&
     Number.isFinite(location.longitude)
   );
+}
+
+/**
+ * Persist-safe location value — label/address/lat/lng only (ED-CAMP-PERSIST-01).
+ * Empty zones are omitted (`undefined`) so submit does not store a fake pin.
+ */
+export function toPersistableDenaliLocationData(
+  location: DenaliLocationData
+): DenaliLocationData | undefined {
+  const parsed = parseDenaliLocationData(location);
+  return isDenaliLocationDataPopulated(parsed) ? parsed : undefined;
+}
+
+/**
+ * ED-CAMP-PERSIST-01 — in-session root wins; GET/edit hydrate falls back to
+ * `tripDetails.overview.{path}` after API ghost strip.
+ */
+export function resolveDenaliLocationZoneFromStorage(
+  canonicalRoot: unknown,
+  nestedOverview: unknown
+): DenaliLocationData {
+  const root = parseDenaliLocationData(canonicalRoot);
+  if (isDenaliLocationDataPopulated(root)) {
+    return root;
+  }
+  const nested = parseDenaliLocationData(nestedOverview);
+  if (isDenaliLocationDataPopulated(nested)) {
+    return nested;
+  }
+  return root;
 }
 
 function readLegacyLocationFields(entry: Record<string, unknown>): Partial<DenaliGatheringPoint> {

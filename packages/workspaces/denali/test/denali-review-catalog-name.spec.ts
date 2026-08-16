@@ -127,6 +127,31 @@ describe("denali-review-catalog-name.spec.ts", () => {
     assert.match(gathering[0]?.value ?? "", /دربند، تهران/);
   });
 
+  it("ED-CAMP-PERSIST-01 nested-only campPoint appears on logistics review", () => {
+    const sections = buildDenaliReviewSections(
+      {
+        data: {
+          title: "کمپینگ چندروزه آبشار اسکلیم",
+          category: "nature_multi",
+          tripDetails: {
+            overview: {
+              campPoint: {
+                label: "کمپ آبشار اسکلیم",
+                address: "آبشار آهکی اسکلیم, لفور",
+              },
+            },
+          },
+        },
+      },
+      EMPTY_CATALOG,
+      LABELS
+    );
+    const logistics = sections.find((section) => section.stepId === "denali_logistics");
+    const camp = logistics?.rows.find((row) => row.canonicalPath === "campPoint");
+    assert.match(camp?.value ?? "", /کمپ آبشار اسکلیم/);
+    assert.match(camp?.value ?? "", /آبشار آهکی اسکلیم/);
+  });
+
   it("DEN-REV-VIS-01b nature review omits mountain-only age and fitness", () => {
     const sections = buildDenaliReviewSections(
       {
