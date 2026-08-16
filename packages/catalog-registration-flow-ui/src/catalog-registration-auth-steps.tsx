@@ -311,7 +311,7 @@ export function CatalogRegistrationOtpStep({
           <p data-portal-otp-autofill-hint>{t("otp.autoFillHint")}</p>
         </div>
       </div>
-      <label htmlFor="otp">{t("otp.title")}</label>
+      <label>{t("otp.title")}</label>
       <OtpSegmentInput
         id="otp"
         value={data.otp}

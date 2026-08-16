@@ -104,7 +104,8 @@ export function MemberProfileAvatar({
           type="file"
           accept="image/jpeg,image/png,image/webp"
           data-member-profile-avatar-upload
-          aria-label={t("avatarUpload")}
+          aria-hidden="true"
+          tabIndex={-1}
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file !== undefined) {

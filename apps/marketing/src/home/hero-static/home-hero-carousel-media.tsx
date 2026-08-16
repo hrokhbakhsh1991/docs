@@ -51,7 +51,8 @@ export function HomeHeroCarouselMedia({ slides }: HomeHeroCarouselMediaProps) {
           data-marketing-home-hero-background
           data-marketing-home-hero-slide
           data-active={index === activeIndex ? "true" : "false"}
-          fetchPriority={index === 0 ? "high" : "auto"}
+          fetchPriority={index === 0 ? "high" : "low"}
+          loading={index === 0 ? "eager" : "lazy"}
           decoding="async"
         />
       ))}

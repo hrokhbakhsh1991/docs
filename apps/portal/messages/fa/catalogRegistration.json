@@ -46,7 +46,9 @@
     "resend": "ارسال مجدد کد",
     "resendIn": "ارسال مجدد ({seconds} ثانیه)",
     "changePhone": "تغییر شماره",
-    "devHint": "کد توسعه: {code}"
+    "devHint": "کد توسعه: {code}",
+    "groupLabel": "کد یک‌بارمصرف",
+    "digitLabel": "رقم {index}"
   },
   "profile": {
     "title": "تکمیل پروفایل",

@@ -344,15 +344,18 @@ describe("portal-member-profile-bff route (M2)", () => {
     assert.match(route, /normalizePublicRegistrationMobile/);
   });
 
-  it("MP-A11Y-01 avatar exposes labeled preview and file input", () => {
+  it("MP-A11Y-01 avatar preview is named; file input is not a second upload control", () => {
     const avatar = readFileSync(
       join(repoRoot, "apps/portal/app/me/profile/member-profile-avatar.tsx"),
       "utf8"
     );
     assert.match(avatar, /avatarPhotoAlt/);
     assert.match(avatar, /avatarInitialsAlt/);
-    assert.match(avatar, /aria-label=\{t\("avatarUpload"\)\}/);
     assert.match(avatar, /role="img"/);
+    assert.match(avatar, /aria-hidden="true"/);
+    assert.match(avatar, /tabIndex=\{-1\}/);
+    assert.match(avatar, /\{uploading \? t\("avatarUploading"\) : t\("avatarUpload"\)\}/);
+    assert.doesNotMatch(avatar, /aria-label=\{t\("avatarUpload"\)\}/);
   });
 
   it("MP-M3-03 registration auth steps hydrate intake from profile BFF", () => {

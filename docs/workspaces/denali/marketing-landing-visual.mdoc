@@ -587,7 +587,7 @@ apps/marketing/src/home/
 | Parallax       | Desktop only; `--mkt-hero-parallax-x/y` max **10px**           |
 | Reduced motion | No Ken Burns animation; no parallax                            |
 | Mobile ≤639px  | Same image; no parallax; static background                     |
-| LCP            | `fetchPriority="high"` on hero `img`                           |
+| LCP            | First slide `fetchPriority="high"` `loading="eager"`; later slides `low` / `lazy`. Native `img` (not `next/image` fill). |
 
 ### Removed from production path
 

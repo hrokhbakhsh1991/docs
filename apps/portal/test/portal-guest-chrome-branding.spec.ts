@@ -68,4 +68,15 @@ describe("portal-guest-chrome-branding.spec.ts", () => {
       assert.doesNotMatch(readPortal(relative), /shenski/i);
     }
   });
+
+  it("GL-POLISH-01 portal metadata and rewrite serve a generic favicon", () => {
+    const layout = readPortal("app/layout.tsx");
+    const nextConfig = readPortal("next.config.ts");
+    const icon = readFileSync(join(portalRoot, "public/icon.svg"), "utf8");
+    assert.match(layout, /url: "\/icon\.svg"/);
+    assert.match(nextConfig, /source: "\/favicon\.ico"/);
+    assert.match(nextConfig, /destination: "\/icon\.svg"/);
+    assert.match(icon, /viewBox="0 0 32 32"/);
+    assert.doesNotMatch(icon, /shenski|denali/i);
+  });
 });

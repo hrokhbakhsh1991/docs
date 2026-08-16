@@ -32,6 +32,9 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s · ${siteName}`,
     },
     description: t("chrome.siteDescription", { siteName }),
+    icons: {
+      icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    },
   };
 }
 

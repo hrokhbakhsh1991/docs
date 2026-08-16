@@ -53,4 +53,36 @@ describe("catalog-registration-auth-steps — PCMS-UX polish", () => {
     assert.doesNotMatch(authSteps, /initialPublicRegistrationPhone/);
     assert.doesNotMatch(authSteps, /PUBLIC_REGISTRATION_DEV_PHONE/);
   });
+
+  it("GL-OTP-01 autofill sink is unnamed and cells use catalogRegistration i18n", () => {
+    const otpInput = readFileSync(
+      join(repoRoot, "packages/catalog-registration-flow-ui/src/otp-segment-input.tsx"),
+      "utf8"
+    );
+    const authSteps = readFileSync(
+      join(
+        repoRoot,
+        "packages/catalog-registration-flow-ui/src/catalog-registration-auth-steps.tsx"
+      ),
+      "utf8"
+    );
+    assert.match(otpInput, /data-otp-autofill-sink/);
+    assert.match(otpInput, /aria-hidden="true"/);
+    assert.match(otpInput, /tabIndex=\{-1\}/);
+    assert.match(otpInput, /otp\.digitLabel/);
+    assert.match(otpInput, /otp\.groupLabel/);
+    assert.doesNotMatch(otpInput, /Digit \$\{index/);
+    assert.doesNotMatch(otpInput, /className="sr-only"/);
+    assert.doesNotMatch(authSteps, /htmlFor="otp"/);
+    const faOtp = JSON.parse(
+      readFileSync(join(repoRoot, "apps/portal/messages/fa/catalogRegistration.json"), "utf8")
+    ) as { readonly otp?: { readonly digitLabel?: string; readonly groupLabel?: string } };
+    const enOtp = JSON.parse(
+      readFileSync(join(repoRoot, "apps/portal/messages/en/catalogRegistration.json"), "utf8")
+    ) as { readonly otp?: { readonly digitLabel?: string; readonly groupLabel?: string } };
+    assert.equal(faOtp.otp?.digitLabel, "رقم {index}");
+    assert.equal(enOtp.otp?.digitLabel, "Digit {index}");
+    assert.equal(faOtp.otp?.groupLabel, "کد یک‌بارمصرف");
+    assert.equal(enOtp.otp?.groupLabel, "One-time code");
+  });
 });

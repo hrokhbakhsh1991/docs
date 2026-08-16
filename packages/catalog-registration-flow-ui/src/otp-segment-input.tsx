@@ -1,12 +1,14 @@
 "use client";
 
 import { Input } from "@app-tour/ui-primitives/input";
+import { useTranslations } from "next-intl";
 import {
   useCallback,
   useEffect,
   useId,
   useRef,
   type ClipboardEvent,
+  type CSSProperties,
   type KeyboardEvent,
 } from "react";
 
@@ -21,6 +23,19 @@ type OtpSegmentInputProps = {
 };
 
 const OTP_SEGMENT_LENGTH = 4;
+
+/** Clip without display:none / inert — iOS SMS autofill still needs a live field. */
+const visuallyHiddenStyle: CSSProperties = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: "hidden",
+  clip: "rect(0, 0, 0, 0)",
+  whiteSpace: "nowrap",
+  border: 0,
+};
 
 function normalizeOtpDigits(value: string): string {
   return value.replace(/\D/g, "").slice(0, OTP_SEGMENT_LENGTH);
@@ -40,6 +55,7 @@ export function OtpSegmentInput({
   "aria-invalid": ariaInvalid,
   "aria-describedby": ariaDescribedBy,
 }: OtpSegmentInputProps) {
+  const t = useTranslations("catalogRegistration");
   const labelId = useId();
   const autofillSinkId = useId();
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
@@ -162,22 +178,24 @@ export function OtpSegmentInput({
   }
 
   return (
-    <div data-otp-segment-input dir="ltr">
-      <Input
-        id={id ?? autofillSinkId}
-        type="text"
-        inputMode="numeric"
-        autoComplete="one-time-code"
-        disabled={disabled}
-        tabIndex={-1}
-        aria-hidden
-        className="pointer-events-none absolute h-px w-px opacity-0"
-        value={value}
-        onChange={(event) => handleAutofillSinkChange(event.target.value)}
-      />
+    <div data-otp-segment-input dir="ltr" style={{ position: "relative" }}>
+      <div data-otp-autofill-sink-host aria-hidden="true" style={visuallyHiddenStyle}>
+        <input
+          id={id ?? autofillSinkId}
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          disabled={disabled}
+          tabIndex={-1}
+          aria-hidden="true"
+          data-otp-autofill-sink
+          value={value}
+          onChange={(event) => handleAutofillSinkChange(event.target.value)}
+        />
+      </div>
       <div role="group" aria-labelledby={labelId} aria-describedby={ariaDescribedBy}>
-        <span id={labelId} className="sr-only">
-          OTP
+        <span id={labelId} style={visuallyHiddenStyle}>
+          {t("otp.groupLabel")}
         </span>
         <div data-otp-segment-cells>
           {cells.map((digit, index) => (
@@ -196,7 +214,7 @@ export function OtpSegmentInput({
               value={digit}
               disabled={disabled}
               aria-invalid={ariaInvalid}
-              aria-label={`Digit ${index + 1}`}
+              aria-label={t("otp.digitLabel", { index: index + 1 })}
               data-otp-cell={index}
               dir="ltr"
               onChange={(event) => handleCellChange(index, event.target.value)}

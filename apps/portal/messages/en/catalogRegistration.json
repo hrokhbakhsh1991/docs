@@ -46,7 +46,9 @@
     "resend": "Resend code",
     "resendIn": "Resend ({seconds}s)",
     "changePhone": "Change phone",
-    "devHint": "Dev OTP: {code}"
+    "devHint": "Dev OTP: {code}",
+    "groupLabel": "One-time code",
+    "digitLabel": "Digit {index}"
   },
   "profile": {
     "title": "Complete your profile",
