@@ -2,11 +2,12 @@
 
 ```yaml
 doc_id: FINANCE_OUTSTANDING_BALANCE_READ_MODEL_PR23_D1
-version: "2026-08-09-v1"
+version: "2026-08-16-v2"
 status: READY_FOR_PR23_D2
 phase: PR23-D1
 related:
   - docs/phase-20/p7/appendices/FINANCE_EXCEPTION_OPERATOR_UI_PR23_C3.md
+  - docs/workspaces/denali/registration-payment-orchestration.mdoc
 locks:
   mutation: forbidden
   balance_sot: registration_invoice_compile_only
@@ -14,6 +15,8 @@ locks:
   payment_sum_as_debt: forbidden
   online_gateway: out_of_scope
   collection_mode: manual_offline_first
+  candidate_source: operator_registrations
+  candidate_not: payment_rows
 ```
 
 ## Purpose
@@ -86,6 +89,21 @@ HTTP GET /finance/reports/outstanding-balances
       → paginateOutstandingBalanceItems (occurredAt ASC, registrationId ASC)
   → { items, nextCursor, hasMore }
 ```
+
+## Candidate universe (2026-08-16 lock)
+
+`listOutstandingBalanceCandidates` enumerates **operator registrations** for the tenant, not payment rows.
+
+| Driver | Source | `occurredAt` |
+| ------ | ------ | ------------ |
+| Prisma | `operatorRegistration.findMany({ tenantId })` | `createdAt` |
+| Memory (dev/test) | bookings `listByTenantPage` until exhausted (same universe, uncapped via paging) | `submittedAt` (booking clock; no separate `createdAt` on the memory record) |
+
+**Forbidden candidate sources:** scanning `payments` / `paymentsById` as the universe. A Manual Payment row is a collection artifact, not the AR identity. Under Denali `approve_then_offline_pay`, club approve creates **no** payment row; the member has not uploaded a receipt yet. That guest still owes — invoice compile + obligation must keep them.
+
+Inclusion after candidate load is unchanged: `compileRegistrationInvoice` remaining `> 0` only. Zero-remaining / paid registrations stay absent. Drivers must not diverge: memory omitting a registration that Prisma would emit is a product defect (PAY-FIN-02).
+
+Memory tests that construct `InMemoryFinanceRepository` without a bookings list may still fall back to payment-row clocks so payment-first D1 fixtures keep working. The composition-root memory factory **must** inject bookings so the live memory API matches Prisma.
 
 ## Ordering / cursor
 

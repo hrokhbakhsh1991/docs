@@ -869,6 +869,11 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
     });
   }
 
+  /**
+   * PR23-D1 — operator registrations for outstanding AR (not payment rows).
+   * Memory driver must page the same universe via bookings `listByTenantPage`.
+   * @see docs/phase-20/p7/appendices/FINANCE_OUTSTANDING_BALANCE_READ_MODEL_PR23_D1.md
+   */
   async listOutstandingBalanceCandidates(
     tenantId: string
   ): Promise<ListOutstandingBalanceCandidatesResult> {

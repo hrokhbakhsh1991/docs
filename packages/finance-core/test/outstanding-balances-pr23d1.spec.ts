@@ -32,6 +32,7 @@ import {
 import {
   InMemoryFinanceRepository,
   resetInMemoryFinanceRepositoryForTests,
+  seedOutstandingRegistrationCandidate,
 } from "./isolation/in-memory-finance.repository.ts";
 
 const PKG_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -110,6 +111,25 @@ describe("outstanding-balances PR23-D1", () => {
     assert.ok(BigInt(hit.invoice.remainingMinor.replace(/\D/g, "")) > 0n);
     assert.equal(hit.invoice.currency, "IRR");
     assert.ok(hit.invoice.totalMinor.length > 0);
+  });
+
+  it("D1-I — approved unpaid with no payment row still appears (registration candidate)", async () => {
+    const booking = createFakeBookingPort();
+    const repo = new InMemoryFinanceRepository(booking);
+    const finance = createService(repo, booking, offlineObligation("2500000"));
+    const registrationId = randomUUID();
+    seedOutstandingRegistrationCandidate({
+      tenantId: TENANT,
+      registrationId,
+      occurredAt: new Date("2026-08-01T00:00:00.000Z"),
+    });
+
+    const page = await finance.listOutstandingBalances(AUTH, { limit: 50 });
+    const hit = page.items.find((item) => item.registrationId === registrationId);
+    assert.ok(hit, "PAY-FIN-02: remaining obligation without a Manual Payment must still be outstanding");
+    assert.equal(hit.invoice.remainingMinor, "2500000");
+    assert.equal(hit.invoice.paidMinor, "0");
+    assert.equal(hit.bookingPaymentStatus, "unpaid");
   });
 
   it("D1-B — zero remaining / paid registration absent", async () => {
@@ -356,5 +376,8 @@ describe("outstanding-balances PR23-D1", () => {
     assert.match(doc, /manual\/offline/i);
     assert.match(doc, /Online payment gateway/);
     assert.match(doc, /Invoice as AR SoT/);
+    assert.match(doc, /candidate_source: operator_registrations/);
+    assert.match(doc, /candidate_not: payment_rows/);
+    assert.match(outstandingModule, /not payment rows/);
   });
 });

@@ -1,7 +1,7 @@
 ---
 title: Denali registration ↔ payment orchestration
 doc_id: DENALI-REG-PAY-ORCH
-version: "2026-08-07-v8"
+version: "2026-08-16-v9"
 workspace: denali
 status: ACTIVE
 phase: P6-3 follow-on
@@ -85,9 +85,23 @@ Hooks (additive):
 
 Existing hooks (`data-portal-member-receipt-upload` · `-waiting` · `-paid`) unchanged.
 
+## Operator money inbox after approve (2026-08-16)
+
+`approve_then_offline_pay` splits lifecycle from collection: approve does **not** create a Manual Payment. The guest is `approved` + `unpaid` with invoice remaining from the tour obligation.
+
+| Surface | Contract after approve, before receipt upload |
+| ------- | --------------------------------------------- |
+| `GET /finance/reports/outstanding-balances` (± `tourId`) | Registration **must** appear while `invoice.balanceDueMinor > 0` |
+| Tour workspace `?tab=finance` Money Inbox | Same guest in **Awaiting payment** (H-10/H-11) |
+| Finance Hub receipts tab | Empty for this guest until upload (correct — no proof yet) |
+
+**Logic:** outstanding candidates are operator registrations (Prisma `operatorRegistration` / memory bookings page scan). Invoice compile uses obligation even when `getRegistrationInvoiceFacts` returns empty payment arrays. Scanning payment rows as the candidate universe drops the guest until they upload — that is PAY-FIN-02 and is forbidden.
+
+Bookings still owns approve. Finance still owns receipt review. The inbox is a **read** of AR remaining, not a receipt queue.
+
 ## Operator hint (phase 1C)
 
-After approve on `/bookings`, when `paymentStatus` is unpaid/partial, inspection panel may hint that the next step is Finance receipt review (`/finance?tab=receipts`). **No** receipt approve button inside Bookings.
+After approve on `/bookings`, when `paymentStatus` is unpaid/partial, inspection panel may hint that the next step is Finance receipt review (`/finance?tab=receipts`). **No** receipt approve button inside Bookings. The tour finance tab must already list the guest (see money inbox after approve) — operators should not wait for an upload before the name appears.
 
 ### Operator receipt-review client errors (2026-08-07)
 

@@ -46,7 +46,9 @@ function buildOutstandingBalanceItem(input: {
   };
 }
 
-/** Shared D1 load path — invoice compile + remaining > 0 + identity. */
+/** Shared D1 load path — invoice compile + remaining > 0 + identity.
+ * Candidates are operator registrations (not payment rows); remaining gate is invoice-only.
+ */
 export async function loadOutstandingBalanceItems(
   deps: FinanceOutstandingOperatorDeps,
   tenantId: string

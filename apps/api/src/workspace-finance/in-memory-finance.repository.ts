@@ -23,6 +23,7 @@ import type {
   ListPendingReceiptsQuery,
   ListRefundsPageQuery,
   ListRefundsPageResult,
+  OutstandingBalanceCandidateRow,
   PrepaymentBookingSyncDegradedRow,
   RecordPrepaymentAtomicInput,
   RegistrationInvoiceFacts,
@@ -30,6 +31,7 @@ import type {
   TransitionRefundStatusInput,
   UpdateReceiptReviewInput,
 } from "./ports/finance-repository.port";
+import type { BookingRepositoryPort } from "../bookings/ports/booking-repository.port";
 import type { IBookingPaymentPort } from "./ports/booking-payment.port";
 import {
   compareOperatorRefundOrder,
@@ -66,6 +68,25 @@ export function resetInMemoryFinanceRepositoryForTests(): void {
   refundsById = new Map();
 }
 
+/** Same page size as BookingRegistrationDisplayAdapter tour-id scans — collect all pages. */
+const MEMORY_OUTSTANDING_CANDIDATE_PAGE_SIZE = 200;
+
+function sortOutstandingBalanceCandidates(
+  candidates: readonly OutstandingBalanceCandidateRow[]
+): OutstandingBalanceCandidateRow[] {
+  return [...candidates].sort((a, b) => {
+    const byTime = a.occurredAt.getTime() - b.occurredAt.getTime();
+    if (byTime !== 0) {
+      return byTime;
+    }
+    return a.registrationId < b.registrationId
+      ? -1
+      : a.registrationId > b.registrationId
+        ? 1
+        : 0;
+  });
+}
+
 function toLedgerOutboxRow(row: StoredLedgerEvent): FinanceLedgerOutboxRow {
   return {
     id: row.id,
@@ -82,7 +103,14 @@ function toLedgerOutboxRow(row: StoredLedgerEvent): FinanceLedgerOutboxRow {
  * Atomicity / concurrency / HTTP idempotency proofs require STORAGE_DRIVER=prisma.
  */
 export class InMemoryFinanceRepository implements FinanceRepositoryPort {
-  constructor(private readonly bookingPayments: IBookingPaymentPort) {}
+  constructor(
+    private readonly bookingPayments: IBookingPaymentPort,
+    /**
+     * Prisma parity for D1 candidates. Composition-root memory factory must inject
+     * bookings. Payment-first unit fixtures may omit this and fall back to payment clocks.
+     */
+    private readonly bookings: Pick<BookingRepositoryPort, "listByTenantPage"> | null = null
+  ) {}
   async getSummary(tenantId: string): Promise<FinanceSummaryRow> {
     const tenantPayments = [...paymentsById.values()].filter((row) => row.tenantId === tenantId);
     const tenantReceipts = [...receiptsById.values()].filter((row) => row.tenantId === tenantId);
@@ -387,6 +415,57 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
   async listOutstandingBalanceCandidates(
     tenantId: string
   ): Promise<ListOutstandingBalanceCandidatesResult> {
+    if (this.bookings !== null) {
+      return { candidates: await this.listCandidatesFromBookings(tenantId) };
+    }
+    return { candidates: this.listCandidatesFromPaymentRows(tenantId) };
+  }
+
+  /**
+   * Operator registrations for the tenant (Prisma `operatorRegistration.findMany` parity).
+   * Page until exhausted — do not use capped `listByTenant`.
+   */
+  private async listCandidatesFromBookings(
+    tenantId: string
+  ): Promise<readonly OutstandingBalanceCandidateRow[]> {
+    const bookings = this.bookings;
+    if (bookings === null) {
+      return [];
+    }
+    const byRegistration = new Map<string, Date>();
+    let cursor: string | undefined;
+    for (;;) {
+      const page = await bookings.listByTenantPage({
+        tenantId,
+        limit: MEMORY_OUTSTANDING_CANDIDATE_PAGE_SIZE,
+        ...(cursor !== undefined ? { cursor } : {}),
+      });
+      for (const booking of page.items) {
+        const submittedAt = new Date(booking.submittedAt);
+        const occurredAt = Number.isNaN(submittedAt.getTime()) ? new Date(0) : submittedAt;
+        byRegistration.set(booking.id, occurredAt);
+      }
+      if (
+        page.nextCursor === null ||
+        page.nextCursor.length === 0 ||
+        page.nextCursor === cursor
+      ) {
+        break;
+      }
+      cursor = page.nextCursor;
+    }
+    return sortOutstandingBalanceCandidates(
+      [...byRegistration.entries()].map(([registrationId, occurredAt]) => ({
+        registrationId,
+        occurredAt,
+      }))
+    );
+  }
+
+  /** Payment-first D1 fixtures only — not the live memory driver path. */
+  private listCandidatesFromPaymentRows(
+    tenantId: string
+  ): readonly OutstandingBalanceCandidateRow[] {
     const byRegistration = new Map<string, Date>();
     for (const payment of paymentsById.values()) {
       if (payment.tenantId !== tenantId) {
@@ -397,20 +476,12 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
         byRegistration.set(payment.registrationId, payment.createdAt);
       }
     }
-    const candidates = [...byRegistration.entries()]
-      .map(([registrationId, occurredAt]) => ({ registrationId, occurredAt }))
-      .sort((a, b) => {
-        const byTime = a.occurredAt.getTime() - b.occurredAt.getTime();
-        if (byTime !== 0) {
-          return byTime;
-        }
-        return a.registrationId < b.registrationId
-          ? -1
-          : a.registrationId > b.registrationId
-            ? 1
-            : 0;
-      });
-    return { candidates };
+    return sortOutstandingBalanceCandidates(
+      [...byRegistration.entries()].map(([registrationId, occurredAt]) => ({
+        registrationId,
+        occurredAt,
+      }))
+    );
   }
 
   async updateReceiptReview(
