@@ -143,13 +143,13 @@ Marketing header **Sign in** (`data-marketing-header-sign-in`) must target membe
 | Actor | Builder | Target |
 | ----- | ------- | ------ |
 | Marketing header Sign in | `resolvePortalMemberLoginUrl(host)` | Portal `/login?portalReturn=/me/registrations` (**page** phone/OTP/profile; no auto-modal) |
-| Marketing tour PDP «ورود برای ادامه ثبت‌نام» | `resolvePortalRegistrationLoginUrl(host, tourId)` | Portal `/catalog/{tourId}/register?auth=login` (register **page** + login modal — stay on tour context) |
+| Marketing tour PDP «ورود برای ادامه ثبت‌نام» | `resolvePortalRegistrationLoginUrl(host, tourId)` | **Href fallback** only: Portal `/catalog/{tourId}/register?auth=login`. **JS:** marketing modal stays on `/tours/{id}` (PCMS-MKT-AUTH-05). |
 | Portal register guest (any visit) | Auto `openLoginModal` (PCMS-UX-MODAL-04) | Modal over register; `?auth=login` remains a compatible deep link / reopen |
 | Portal register reopen after dismiss | `PortalRegisterSignInLink` → `openLoginModal` | Same-page modal; no navigate-away |
 | Marketing footer «ثبت‌نام‌های من» | `resolvePortalMemberModuleUrl(host)` | Portal `/me/registrations` (middleware redirects guests to `/login?portalReturn=…`) |
 | Portal middleware (unauthenticated `/me/*`) | `resolvePortalMemberLoginPath(host, returnPath)` | `/login?portalReturn=<requested /me/* path>` |
 
-**Login presentation (PCMS-UX-MODAL — 2026-07-16):** Member OTP UI is a **portal-hosted modal** (desktop dialog · mobile bottom sheet). Design SoT: [portal-member-login-modal.mdoc](../phase-19/portal-member-login-modal.mdoc) · DL-40.
+**Login presentation (PCMS-UX-MODAL — 2026-07-16, amended DL-48):** Register-guest OTP is a **portal-hosted modal** (desktop dialog · mobile bottom sheet). Standalone `/login` is **page** OTP, not that modal. Design SoT: [portal-member-login-modal.mdoc](../phase-19/portal-member-login-modal.mdoc) · DL-40 · DL-48.
 
 | Host | Role |
 | ---- | ---- |
@@ -165,7 +165,7 @@ Marketing header **Sign in** (`data-marketing-header-sign-in`) must target membe
 | Invariant | Rule |
 | --------- | ---- |
 | **PCMS-UX-01** | `GET /login` without safe `portalReturn` → SSR redirect to canonical `/login?portalReturn=<default member module>`. |
-| **PCMS-UX-02** | Valid member session on `/login` **or** `?auth=login` with session → no OTP modal; redirect / intake-only as appropriate. |
+| **PCMS-UX-02** | Valid member session on `/login` → redirect to `portalReturn` (**no** OTP page/modal). Register `?auth=login` with session → intake-only (no modal). |
 | **PCMS-UX-03** | After `verify-otp` / `register-complete` on **login-host** egress: auth steps call `GuestAuthTransport.probeSession()` then host `onAuthenticated` → `completeMemberLoginEgress()` / `location.assign(portalReturn)`. **`hydrateCatalogRegistrationIntakeAfterSession` is forbidden** on login-host egress **and** inside OTP/profile steps. |
 | **PCMS-UX-04** | `data-portal-return` (host or modal root) mirrors query for client fallback. |
 | **PCMS-UX-MODAL-01** | Desktop = dialog · mobile = bottom sheet · hooks `data-portal-login-modal` / `data-portal-login-modal-presentation`. |
@@ -193,7 +193,7 @@ Two factories (do **not** merge; do **not** add `baseUrl` to the Portal factory)
 
 Cookie `Set-Cookie` remains Portal BFF. Adapters **must not** persist JSON `session_token`. **Phase 4 (PCMS-CORS-01):** CORS on Portal `/api/public-auth/*` only — see §5.4. **Phase 5 (§5.5):** Marketing **may** host the same OTP/profile UI via the origin factory. Marketing still **must not** write `atour_mb_session`, expose `app/api/me/*` / `app/api/public-auth/*`, CORS `/api/me/*`, rewrite OTP/profile UI, create `packages/guest-auth`, move session ownership, or delete `/login`.
 
-**Cross-intent after login:** Marketing header Sign in and PDP `[data-marketing-tour-sign-in]` open the **marketing** modal; after OTP, marketing **reloads** the current URL so SSR chrome/CTA can see the cookie. `[data-marketing-register]` still navigates to portal `/catalog/{id}/register` (Phase 6). Portal `/login` remains the `/me/*` middleware gate.
+**Cross-intent after login:** Marketing **header** Sign in navigates to Portal `/login` (page OTP). PDP `[data-marketing-tour-sign-in]` opens the **marketing** modal; after OTP, marketing **reloads** the current URL so SSR chrome/CTA can see the cookie. `[data-marketing-register]` still navigates to portal `/catalog/{id}/register` (Phase 6). Portal `/login` remains the `/me/*` middleware gate.
 
 ### 5.2 Marketing authenticated header (PCMS-03 — 2026-07-14)
 

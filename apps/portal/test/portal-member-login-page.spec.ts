@@ -144,6 +144,10 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
       "utf8"
     );
     const page = readFileSync(join(repoRoot, "apps/portal/app/login/page.tsx"), "utf8");
+    const opener = readFileSync(
+      join(repoRoot, "apps/portal/src/auth/portal-login-modal-opener.tsx"),
+      "utf8"
+    );
     assert.match(thinHost, /data-portal-login-form-panel/);
     assert.match(thinHost, /PublicCatalogRegistrationFlow/);
     assert.match(thinHost, /memberLoginEgress/);
@@ -152,6 +156,8 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
     assert.doesNotMatch(thinHost, /data-portal-login-host-lede/);
     assert.doesNotMatch(thinHost, /data-portal-login-host-trigger/);
     assert.doesNotMatch(thinHost, /\/api\/public-auth/);
+    assert.doesNotMatch(opener, /showTrigger/);
+    assert.doesNotMatch(opener, /data-portal-login-host-trigger/);
     assert.match(page, /PortalLoginThinHost/);
     assert.match(page, /data-portal-login-full-page/);
     assert.match(page, /resolveMemberLoginCatalogTourId/);
