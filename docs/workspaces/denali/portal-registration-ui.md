@@ -240,8 +240,11 @@ Opt-in / shared-cars follow-up (only when visible):
 ```text
 Has personal car?
   yes → occupants: 1 | 2 | 3 (includes companions who do not pay dong separately)
-  no  → pays dong? yes (+ dongAmount) | no (acquaintance ride — no extra UI)
+  no  → if dongAmount > 0: pays dong? yes (no_car_dong) | no (acquaintance)
+        else: no dong radios — persist no_car_acquaintance (bus/minibus/train + allowPersonalCar without dong)
 ```
+
+Do **not** offer «بله، دونگ می‌دهم» when `dongAmount` is missing or `<= 0`. Host `normalizeDenaliRegistrationTransportIntake` already rejects `no_car_dong` in that case as `DENALI_REGISTRATION_INVALID` (typed workspace error → HTTP 400). The intake surface must not build that payload.
 
 Persisted on booking as `registrationIntake.transport`:
 

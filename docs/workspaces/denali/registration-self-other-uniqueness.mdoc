@@ -1,7 +1,7 @@
 ---
 title: Denali self vs other registration uniqueness + member amend
 doc_id: DENALI-REG-SELF-OTHER-UNIQUENESS
-version: "2026-08-11-v3"
+version: "2026-08-16-v4"
 workspace: denali
 authority: public-catalog.md · BOOKING_GUEST_DUPLICATE_UNIQUENESS.md · platform-portal-member.mdoc
 ---
@@ -82,7 +82,9 @@ Intake schema: field `phone` (`labelKey: intake.phoneLabel`) is collected only w
 | Concern | Owner |
 | ------- | ----- |
 | Occupancy / unique indexes / merge storage | Booking (`apps/api` bookings) |
-| Registrant target semantics / transport validate / other phone required | Denali workspace |
+| Prisma `instanceof` classifiers (must not kill the process) | API `database-connection-error` / `transient-db-error` / `mapPrismaErrorToAppError` — **no Denali codes** |
+| Registrant target semantics / transport validate / other phone required | Denali workspace (`DenaliRegistrationInvalidError`, not `new Error(code)`) |
+| Dong radios / `no_car_dong` payload | Denali catalog intake surface — only when `dongAmount > 0` |
 | Portal chrome / no `@app-cloud/workspace-denali` import | `apps/portal` |
 
 Finance `mergeRegistrationIntake` for `obligationOverride` stays finance-only — member amend never accepts that key.
@@ -139,6 +141,8 @@ When the member wants to register for multiple guests (e.g. 4/10 participants), 
 - **Self lock ≠ guest lock:** an active `for-tour.self` only disables the self checkbox and blocks another self POST. Guest cards remain writable; submit posts only `registrantTarget=other` rows. Banner copy must say guests are still allowed.
 - Guest `phone` uses digit text input (preserve leading `0`); see [portal-registration-ui.md](./portal-registration-ui.md) § Register-page self gate / Phone intake control.
 - When the member unchecks “register for myself” while the guest list is empty, the UI **auto-seeds one empty guest card** (so the operator does not need a dead-end empty list before the first “Add guest”).
+- **Self-already first paint / in-flow lock must not seed.** When `existingSelfRegistrationId` / `selfTabLocked` is true, `otherGuests` starts empty (`[data-denali-other-guest-empty]` + `[data-denali-add-guest]`). `lockSelfAsAlreadyRegistered` must not append a blank card. Auto-seed is only the uncheck-self path above.
+- **Client duplicate guest mobile:** before any POST, two other-guest cards that normalize to the same mobile are blocked locally (`errors.BOOKING_GUEST_DUPLICATE`) — no sequential POST. Host uniqueness (`guestPhone` active unique → `BOOKING_GUEST_DUPLICATE` 409) remains the SoT if the client is bypassed.
 - Additional guests are added via `data-denali-add-guest` (**hard cap: 10 other-guest cards**); remove is available when more than one guest card exists (`data-denali-remove-guest`).
 - Each guest card collects full intake identity fields for `registrantTarget=other` and its own transport selections (so “some guests bring cars, others don’t” does not force an artificial shared configuration).
 
@@ -149,6 +153,7 @@ Denali host contract accepts “one participant per submission”, so the UI tre
 - `partySize` is kept fixed to `1` per submission; the “4/10 people” meaning is represented by the number of cards.
 - **All ok** → flow advances to success (`data-public-registration-success`).
 - **Partial / total failure** → stay on intake; render `data-denali-submit-results` with per-card errors (`data-denali-submit-result-error`) and, when at least one card succeeded, a partial-success status plus link via `context.memberModuleHref` (member registrations module, typically `/me/registrations`) so the member can continue without restarting from scratch.
+- **Empty HTTP body:** parse `res.text()` then JSON; empty / non-JSON must not throw out of `handleSubmit` (that hid earlier 201s behind a generic network error). Map to the per-card `network` code and keep `data-denali-submit-results`.
 
 ### Probe runner (manual / non-CI)
 

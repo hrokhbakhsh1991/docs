@@ -14,6 +14,10 @@ describe("denali intake — Phase 3 self-already empty guest card", () => {
     );
     assert.match(steps, /if \(selfTabLocked\) return \[\];/);
     assert.match(steps, /data-denali-add-guest/);
+    const lockStart = steps.indexOf("function lockSelfAsAlreadyRegistered");
+    const lockEnd = steps.indexOf("const commonSessionContext");
+    assert.ok(lockStart >= 0 && lockEnd > lockStart);
+    assert.equal(steps.slice(lockStart, lockEnd).includes("createEmptyOtherDraft"), false);
     assert.doesNotMatch(
       steps,
       /const includeOther = selfTabLocked \|\| data\.registrantTarget === "other"/

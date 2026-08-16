@@ -19,8 +19,19 @@ import { classifyPublicRegistrationMobileInput } from "@app-tour/catalog-registr
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useMemo, useState, type FormEvent } from "react";
 
-import { denaliCatalogTransportIntakeSurface } from "../denali-catalog-transport-intake";
-import { denaliCatalogRegistrationFlowSurface, readDenaliFlowData } from "./denali-registration-flow.surface";
+import {
+  denaliCatalogTransportIntakeSurface,
+  isDenaliIntakeDongOffered,
+} from "../denali-catalog-transport-intake";
+import {
+  denaliCatalogRegistrationFlowSurface,
+  readDenaliFlowData,
+} from "./denali-registration-flow.surface";
+import {
+  denaliRequiredIntakeCopyField,
+  findDuplicateOtherGuestMobile,
+  parseCatalogRegistrationResponseBody,
+} from "./denali-registration-intake-client-logic";
 
 /** Product hard cap: other-guest cards per intake submit (self is separate). */
 export const DENALI_MAX_OTHER_GUESTS = 10;
@@ -37,10 +48,13 @@ function intakeValidationMessage(
   code: "required" | "pattern"
 ): string {
   if (code === "required") {
-    if (fieldId === "fullName") return t("errors.DISPLAY_NAME_REQUIRED");
-    if (fieldId === "phone") return t("errors.MOBILE_REQUIRED");
-    if (fieldId === "email") return t("intake.emailRequired");
-    if (fieldId === "fatherName") return t("intake.fatherNameInvalid");
+    const field = denaliRequiredIntakeCopyField(fieldId);
+    if (field === "fullName") return t("errors.DISPLAY_NAME_REQUIRED");
+    if (field === "phone") return t("errors.MOBILE_REQUIRED");
+    if (field === "email") return t("intake.emailRequired");
+    if (field === "fatherName") return t("intake.fatherNameInvalid");
+    if (field === "nationalId") return t("intake.nationalIdInvalid");
+    if (field === "birthDate") return t("intake.birthDateInvalid");
     return t("intake.partySizeInvalid");
   }
   if (fieldId === "phone") return t("errors.MOBILE_INVALID");
@@ -49,7 +63,12 @@ function intakeValidationMessage(
   return t("intake.partySizeInvalid");
 }
 
-export function DenaliIntakeStep({ context, state, dispatch, resolveError }: RegistrationFlowStepProps) {
+export function DenaliIntakeStep({
+  context,
+  state,
+  dispatch,
+  resolveError,
+}: RegistrationFlowStepProps) {
   const t = useTranslations("catalogRegistration");
   const data = readDenaliFlowData(state);
   const errorId = useId();
@@ -62,19 +81,22 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
     setClientReady(true);
   }, []);
   const [submitResults, setSubmitResults] = useState<
-    readonly {
-      readonly target: "self" | "other";
-      readonly idx: number;
-      readonly ok: boolean;
-      readonly error?: string;
-      /** Self duplicate safety net — show trips CTA when for-tour id is still unknown. */
-      readonly kind?: "self_already";
-    }[] | null
+    | readonly {
+        readonly target: "self" | "other";
+        readonly idx: number;
+        readonly ok: boolean;
+        readonly error?: string;
+        /** Self duplicate safety net — show trips CTA when for-tour id is still unknown. */
+        readonly kind?: "self_already";
+      }[]
+    | null
   >(null);
 
   const transportSurface = denaliCatalogTransportIntakeSurface;
   const existingSelfRegistrationId = context.existingSelfRegistrationId ?? null;
-  const [discoveredSelfRegistrationId, setDiscoveredSelfRegistrationId] = useState<string | null>(null);
+  const [discoveredSelfRegistrationId, setDiscoveredSelfRegistrationId] = useState<string | null>(
+    null
+  );
   /** True after a self POST duplicate even when for-tour cannot yet return an id. */
   const [selfLockedWithoutId, setSelfLockedWithoutId] = useState(false);
   const effectiveSelfRegistrationId =
@@ -187,7 +209,6 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
       setSelfLockedWithoutId(true);
     }
     setSelfSelected(false);
-    setOtherGuests((guests) => (guests.length === 0 ? [createEmptyOtherDraft()] : guests));
   }
 
   const commonSessionContext = useMemo(
@@ -224,13 +245,15 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
     [context.pluginId, context.tourRequirements, commonSessionContext]
   );
 
-  const showKnownNameHintSelf = !effectiveSchemaSelf.fields.some((field) => field.id === "fullName");
+  const showKnownNameHintSelf = !effectiveSchemaSelf.fields.some(
+    (field) => field.id === "fullName"
+  );
   const personalCarOptInVisible = transportSurface.showPersonalCarOptIn(context.tourTransport);
 
   const estimatedPrice = useMemo(() => {
     const candidateTransportState = selfSelected
       ? selfDraft.transportState
-      : otherGuests[0]?.transportState ?? data.transportState;
+      : (otherGuests[0]?.transportState ?? data.transportState);
     const transportPayload = transportSurface.buildPayload(
       context.tourTransport,
       candidateTransportState
@@ -343,6 +366,11 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
     }[] = [];
 
     try {
+      if (findDuplicateOtherGuestMobile(otherGuests.map((guest) => guest.intakePhone)) !== null) {
+        setError(t("errors.BOOKING_GUEST_DUPLICATE"));
+        return;
+      }
+
       for (const p of participants) {
         const target = p.target;
         const intakeContextForTarget = resolveIntakeContext(target);
@@ -399,7 +427,9 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
         // Denali registers one participant per submission.
         const partySize = 1;
         const guestPhone =
-          target === "other" ? (((merged.phone ?? p.draft.intakePhone) as string) ?? "").trim() : "";
+          target === "other"
+            ? (((merged.phone ?? p.draft.intakePhone) as string) ?? "").trim()
+            : "";
         const email = (((merged.email ?? data.sessionEmail) as string) ?? "").trim();
 
         const idempotencyKey = `portal-denali-reg-${context.tourId}-${target}-${p.idx}-${submitSeed}`;
@@ -425,7 +455,8 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
           }),
         });
 
-        const result = (await res.json()) as { ok?: boolean; code?: string };
+        const text = await res.text();
+        const result = parseCatalogRegistrationResponseBody(text) ?? {};
         if (!res.ok || !result.ok) {
           const apiErrCode = typeof result.code === "string" ? result.code : "network";
           if (target === "self" && isSelfAlreadyRegisteredApiCode(apiErrCode)) {
@@ -537,7 +568,11 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
             if (r.ok) return null;
             if (r.kind === "self_already") {
               return (
-                <p key={`${r.target}-${r.idx}`} data-denali-submit-result-error data-denali-self-duplicate-guide>
+                <p
+                  key={`${r.target}-${r.idx}`}
+                  data-denali-submit-result-error
+                  data-denali-self-duplicate-guide
+                >
                   {r.error ?? resolveError("DENALI_REGISTRATION_DUPLICATE")}
                   {context.memberModuleHref !== null ? (
                     <>
@@ -623,7 +658,10 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
               />
 
               {personalCarOptInVisible ? (
-                <label className="portal-registration-transport-opt-in" data-public-registration-personal-car-opt-in>
+                <label
+                  className="portal-registration-transport-opt-in"
+                  data-public-registration-personal-car-opt-in
+                >
                   <input
                     type="checkbox"
                     checked={selfDraft.transportState.optInPersonalCar}
@@ -644,7 +682,10 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
                 </label>
               ) : null}
 
-              {transportSurface.showTransportFollowUp(context.tourTransport, selfDraft.transportState) ? (
+              {transportSurface.showTransportFollowUp(
+                context.tourTransport,
+                selfDraft.transportState
+              ) ? (
                 <fieldset data-public-registration-transport>
                   <legend>{t("intake.transportLegend")}</legend>
                   <p>{t("intake.hasPersonalCarQuestion")}</p>
@@ -700,7 +741,10 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
                             onChange={() =>
                               setSelfDraft((prev) => ({
                                 ...prev,
-                                transportState: { ...prev.transportState, personalCarOccupants: count },
+                                transportState: {
+                                  ...prev.transportState,
+                                  personalCarOccupants: count,
+                                },
                               }))
                             }
                           />
@@ -710,7 +754,8 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
                     </div>
                   ) : null}
 
-                  {selfDraft.transportState.hasPersonalCar === false ? (
+                  {selfDraft.transportState.hasPersonalCar === false &&
+                  isDenaliIntakeDongOffered(context.tourTransport) ? (
                     <div data-public-registration-transport-dong>
                       <p>{t("intake.paysDongQuestion")}</p>
                       <label>
@@ -787,12 +832,13 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
             aria-label={t("intake.otherGuestsTitle")}
           >
             <div data-denali-other-guest-header>
-              <div data-denali-intake-section-header data-denali-intake-section-header-kind="guests">
+              <div
+                data-denali-intake-section-header
+                data-denali-intake-section-header-kind="guests"
+              >
                 <div data-denali-intake-section-copy>
                   <h3>{t("intake.otherGuestsTitle")}</h3>
-                  <p data-denali-intake-section-description>
-                    {t("intake.otherGuestsDescription")}
-                  </p>
+                  <p data-denali-intake-section-description>{t("intake.otherGuestsDescription")}</p>
                 </div>
                 <div data-denali-other-guest-toolbar>
                   <p data-denali-intake-section-badge>
@@ -969,7 +1015,8 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
                           </div>
                         ) : null}
 
-                        {guest.transportState.hasPersonalCar === false ? (
+                        {guest.transportState.hasPersonalCar === false &&
+                        isDenaliIntakeDongOffered(context.tourTransport) ? (
                           <div data-public-registration-transport-dong>
                             <p>{t("intake.paysDongQuestion")}</p>
                             <label>
@@ -981,7 +1028,10 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
                                   setOtherGuests((prev) =>
                                     prev.map((g, idx) =>
                                       idx === guestIdx
-                                        ? { ...g, transportState: { ...g.transportState, paysDong: true } }
+                                        ? {
+                                            ...g,
+                                            transportState: { ...g.transportState, paysDong: true },
+                                          }
                                         : g
                                     )
                                   )
@@ -998,7 +1048,13 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
                                   setOtherGuests((prev) =>
                                     prev.map((g, idx) =>
                                       idx === guestIdx
-                                        ? { ...g, transportState: { ...g.transportState, paysDong: false } }
+                                        ? {
+                                            ...g,
+                                            transportState: {
+                                              ...g.transportState,
+                                              paysDong: false,
+                                            },
+                                          }
                                         : g
                                     )
                                   )
@@ -1015,7 +1071,9 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
                       <button
                         type="button"
                         data-denali-remove-guest
-                        onClick={() => setOtherGuests((prev) => prev.filter((_, idx) => idx !== guestIdx))}
+                        onClick={() =>
+                          setOtherGuests((prev) => prev.filter((_, idx) => idx !== guestIdx))
+                        }
                       >
                         {t("intake.removeGuest")}
                       </button>
@@ -1061,9 +1119,7 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
           <p data-denali-intake-submit-state>{t("intake.summaryReady")}</p>
           <button
             type="button"
-            disabled={
-              loading || !clientReady || (!selfSelected && otherGuests.length === 0)
-            }
+            disabled={loading || !clientReady || (!selfSelected && otherGuests.length === 0)}
             data-action="intake-submit"
             onClick={() => void handleSubmit()}
           >
@@ -1077,8 +1133,7 @@ export function DenaliIntakeStep({ context, state, dispatch, resolveError }: Reg
 
 export function DenaliDoneStep({ context, state }: RegistrationFlowStepProps) {
   const t = useTranslations("catalogRegistration");
-  const attrs =
-    denaliCatalogRegistrationFlowSurface.successDataAttributes?.(state, context) ?? {};
+  const attrs = denaliCatalogRegistrationFlowSurface.successDataAttributes?.(state, context) ?? {};
   return (
     <div data-public-registration-success {...attrs}>
       <div data-denali-success-card>

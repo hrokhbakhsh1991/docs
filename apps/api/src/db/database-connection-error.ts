@@ -1,5 +1,7 @@
 import { Prisma } from "@prisma/client";
 
+import { isPrismaErrorOfType } from "./prisma-error-instance";
+
 export const DATABASE_UNAVAILABLE = "DATABASE_UNAVAILABLE";
 
 function errorChainMessages(error: unknown): string[] {
@@ -19,11 +21,17 @@ function errorChainMessages(error: unknown): string[] {
 
 /** Auth / credential / pool init failures — distinct from transient blips (DEC-094). */
 export function isDatabaseConnectionError(error: unknown): boolean {
-  if (error instanceof Prisma.PrismaClientInitializationError) {
+  if (isPrismaErrorOfType(error, Prisma.PrismaClientInitializationError)) {
     return true;
   }
 
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P1000") {
+  if (
+    isPrismaErrorOfType<Prisma.PrismaClientKnownRequestError>(
+      error,
+      Prisma.PrismaClientKnownRequestError
+    ) &&
+    error.code === "P1000"
+  ) {
     return true;
   }
 

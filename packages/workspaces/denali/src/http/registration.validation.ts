@@ -2,9 +2,9 @@ import {
   classifyPublicRegistrationMobileInput,
   normalizePublicRegistrationMobile,
 } from "@app-tour/catalog-registration-auth";
-import {
-  assertWorkspaceRegistrationContactBasics,
-} from "@app-tour/workspace-sdk";
+import { assertWorkspaceRegistrationContactBasics } from "@app-tour/workspace-sdk";
+
+import { DenaliRegistrationInvalidError } from "./errors/denali-registration-invalid.error";
 
 export type DenaliRegistrationPayload = {
   readonly registrantTarget?: "self" | "other";
@@ -31,7 +31,7 @@ export function resolveDenaliRegistrationContactPhone(
   const trimmed = rawPhone?.trim() ?? "";
   if (registrantTarget === "other") {
     if (classifyPublicRegistrationMobileInput(trimmed) !== null) {
-      throw new Error("DENALI_REGISTRATION_INVALID");
+      throw new DenaliRegistrationInvalidError();
     }
     return normalizePublicRegistrationMobile(trimmed);
   }
@@ -39,7 +39,7 @@ export function resolveDenaliRegistrationContactPhone(
     return undefined;
   }
   if (classifyPublicRegistrationMobileInput(trimmed) !== null) {
-    throw new Error("DENALI_REGISTRATION_INVALID");
+    throw new DenaliRegistrationInvalidError();
   }
   return normalizePublicRegistrationMobile(trimmed);
 }
@@ -54,7 +54,7 @@ export function validateDenaliRegistrationPayload(
     readonly profileNationalId?: string | null;
     readonly profileFatherName?: string | null;
     readonly profileBirthDate?: string | null;
-  },
+  }
 ): void {
   const registrantForOther = payload.registrantTarget === "other";
   const normalizedPhone = resolveDenaliRegistrationContactPhone(
@@ -72,7 +72,7 @@ export function validateDenaliRegistrationPayload(
     capacity: context.capacity,
     // Capacity / occupancy SoT is Booking capacityPolicy (hybrid: product supplies max only).
     enforcePartySizeCapacity: false,
-    createInvalidError: () => new Error("DENALI_REGISTRATION_INVALID"),
+    createInvalidError: () => new DenaliRegistrationInvalidError(),
   });
 
   if (context.nationalIdRequired === true) {
@@ -82,7 +82,7 @@ export function validateDenaliRegistrationPayload(
     const effectiveNationalId =
       registrantForSelf && profileNationalId.length > 0 ? profileNationalId : intakeNationalId;
     if (!/^\d{10}$/.test(effectiveNationalId)) {
-      throw new Error("DENALI_REGISTRATION_INVALID");
+      throw new DenaliRegistrationInvalidError();
     }
   }
 
@@ -93,7 +93,7 @@ export function validateDenaliRegistrationPayload(
     const effectiveFatherName =
       registrantForSelf && profileFatherName.length > 0 ? profileFatherName : intakeFatherName;
     if (effectiveFatherName.length < 1 || effectiveFatherName.length > 200) {
-      throw new Error("DENALI_REGISTRATION_INVALID");
+      throw new DenaliRegistrationInvalidError();
     }
   }
 
@@ -104,7 +104,7 @@ export function validateDenaliRegistrationPayload(
     const effectiveBirthDate =
       registrantForSelf && profileBirthDate.length > 0 ? profileBirthDate : intakeBirthDate;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveBirthDate)) {
-      throw new Error("DENALI_REGISTRATION_INVALID");
+      throw new DenaliRegistrationInvalidError();
     }
   }
 }

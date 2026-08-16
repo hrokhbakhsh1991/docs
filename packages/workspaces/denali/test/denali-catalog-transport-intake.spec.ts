@@ -8,7 +8,10 @@ describe("denali catalog transport intake", () => {
     const transport = { mode: "bus" as const, allowPersonalCar: true, transportCostAmount: 50000 };
     const state = denaliCatalogTransportIntakeSurface.initialState(transport);
     assert.equal(denaliCatalogTransportIntakeSurface.showPersonalCarOptIn(transport), true);
-    assert.equal(denaliCatalogTransportIntakeSurface.showTransportFollowUp(transport, state), false);
+    assert.equal(
+      denaliCatalogTransportIntakeSurface.showTransportFollowUp(transport, state),
+      false
+    );
     assert.equal(denaliCatalogTransportIntakeSurface.buildPayload(transport, state), undefined);
   });
 
@@ -28,12 +31,33 @@ describe("denali catalog transport intake", () => {
     assert.equal(price, 2_650_000);
   });
 
-  it("DEN-PRICE-02 no_car_dong adds dong amount", () => {
-    const price = denaliCatalogTransportIntakeSurface.computePricePerPerson({
-      basePrice: 2_500_000,
-      transport: { mode: "shared_cars", dongAmount: 80_000 },
-      transportKind: "no_car_dong",
+  it("DEN-TR-03 bus without dong maps no-car to acquaintance", () => {
+    const transport = {
+      mode: "bus" as const,
+      allowPersonalCar: true,
+      transportCostAmount: 150_000,
+    };
+    const state = {
+      ...denaliCatalogTransportIntakeSurface.initialState(transport),
+      optInPersonalCar: true,
+      hasPersonalCar: false as const,
+      paysDong: true as const,
+    };
+    assert.equal(denaliCatalogTransportIntakeSurface.showPersonalCarOptIn(transport), true);
+    assert.deepEqual(denaliCatalogTransportIntakeSurface.buildPayload(transport, state), {
+      kind: "no_car_acquaintance",
     });
-    assert.equal(price, 2_580_000);
+  });
+
+  it("DEN-TR-04 shared_cars dong still builds no_car_dong", () => {
+    const transport = { mode: "shared_cars" as const, dongAmount: 80_000 };
+    const state = {
+      ...denaliCatalogTransportIntakeSurface.initialState(transport),
+      hasPersonalCar: false as const,
+      paysDong: true as const,
+    };
+    assert.deepEqual(denaliCatalogTransportIntakeSurface.buildPayload(transport, state), {
+      kind: "no_car_dong",
+    });
   });
 });

@@ -41,6 +41,18 @@ Connection/auth failures (`P1000`, etc.) continue through [`database-connection-
 
 Any other `PrismaClient*Error` without explicit mapping → **500** `{ error: "internal_error" }` (logged server-side only).
 
+### Prisma `instanceof` must be constructor-safe (memory / no-engine)
+
+`handleHttpError` classifies **every** thrown value, including workspace validation tokens that are not Prisma errors. On `STORAGE_DRIVER=memory` (empty `DATABASE_URL`) some `Prisma.PrismaClient*Error` exports are not constructors. Bare `error instanceof Prisma.PrismaClientInitializationError` then throws `TypeError: Right-hand side of 'instanceof' is not an object` and **exits the Node process** — the client sees an empty 500 and later `BACKEND_UNREACHABLE`.
+
+**Rule:** interceptor-path classifiers (`isDatabaseConnectionError`, `isTransientDbError`, `mapPrismaErrorToAppError`) must use [`isPrismaErrorOfType`](../../apps/api/src/db/prisma-error-instance.ts): skip `instanceof` unless `typeof ctor === "function"`. Missing ctor → **not** a Prisma error (fall through to workspace bindings / message tokens). Do **not** special-case Denali/Harbor/Urban codes in these classifiers — workspace HTTP status stays on the generated `httpErrors` map.
+
+| Spec | Covers |
+|------|--------|
+| `src/db/prisma-error-instance.spec.ts` | API-DB-CONN-06 missing ctor does not throw |
+| `src/db/database-connection-error.spec.ts` | API-DB-CONN-01…05 + domain token is not a connection error |
+| `src/middleware/database-unavailable-error-interceptor.spec.ts` | API-DB-CONN-05 P1000 → 503; API-DB-CONN-07 workspace invalid token → 400 JSON |
+
 ## Client-safe domain tokens
 
 The message fallback path accepts only **opaque tokens** — no spaces, max 64 chars, snake/SCREAMING_SNAKE:
@@ -113,3 +125,5 @@ Log OTP debug events with `error.code` only — never raw upstream messages.
 |------|--------|
 | `test/platform-provision.spec.ts` | AP14 hotfix — no engine text on 500 |
 | `src/middleware/error-interceptor-prisma.spec.ts` | P2002/P2003/P2025 mapping + opaque unmapped Prisma |
+| `src/db/prisma-error-instance.spec.ts` | API-DB-CONN-06 missing Prisma ctor is not `instanceof` |
+| `src/middleware/database-unavailable-error-interceptor.spec.ts` | API-DB-CONN-05 / API-DB-CONN-07 |

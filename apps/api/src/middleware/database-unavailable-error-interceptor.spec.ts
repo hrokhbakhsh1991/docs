@@ -36,8 +36,12 @@ function createMockResponse(): ServerResponse & {
 
 describe("error-interceptor DATABASE_UNAVAILABLE (API-DB-CONN-05)", () => {
   it("API-DB-CONN-05 maps Prisma auth failure to 503 DATABASE_UNAVAILABLE", () => {
+    const Ctor = Prisma.PrismaClientKnownRequestError;
+    if (typeof Ctor !== "function") {
+      return;
+    }
     const res = createMockResponse();
-    const error = new Prisma.PrismaClientKnownRequestError("auth failed", {
+    const error = new Ctor("auth failed", {
       code: "P1000",
       clientVersion: "test",
     });
@@ -51,5 +55,18 @@ describe("error-interceptor DATABASE_UNAVAILABLE (API-DB-CONN-05)", () => {
     const payload = JSON.parse(res.body) as { code?: string; error?: string };
     assert.equal(payload.code, DATABASE_UNAVAILABLE);
     assert.equal(payload.error, "database_unavailable");
+  });
+
+  it("API-DB-CONN-07 maps workspace invalid token to 400 JSON without crashing", () => {
+    const res = createMockResponse();
+
+    void runWithTraceContext("trace-ws-invalid", () => {
+      handleHttpError(res, new Error("DENALI_REGISTRATION_INVALID"));
+    });
+
+    assert.equal(res.statusCode, 400);
+    const payload = JSON.parse(res.body) as { code?: string; error?: string };
+    assert.equal(payload.code, "DENALI_REGISTRATION_INVALID");
+    assert.equal(payload.error, "DENALI_REGISTRATION_INVALID");
   });
 });
