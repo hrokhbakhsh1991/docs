@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v11"
+version: "2026-08-16-v12"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -171,7 +171,7 @@ Pure helpers (no React): `resolveDenaliFlatEditWorkingEnvelope`, `shouldSeedDena
 
 | Field | UI | Notes |
 |-------|----|--------|
-| Peak height | `disabled` **and** `readOnly` when destination catalog has `altitudeM` (ED-PEAK-RO-01) | Catalog lock is still **client-only**. Changing destination (توچال 3962 → دماوند 5610) prefills from catalog. A crafted PATCH can still send another number until **API** re-applies catalog lock (out of this pack — Doc-First `apps/api`). |
+| Peak height | `disabled` **and** `readOnly` when destination catalog has `altitudeM` (ED-PEAK-RO-01) | Changing destination (توچال 3962 → دماوند 5610) prefills from catalog. Persist re-applies the lock (ED-PEAK-LOCK-01) via `wizardHost.normalizeCanonicalForPersist` **before** RuleEngine — API does not know `peakHeight`. |
 | Paid tour | Checkbox reveals per-person price (تومان) | Empty price with paid checked must fail publish validation, not silently store `priceAmount: null` as free. |
 | PII flags | national id / father name / birth date | Default off; enabling is a registration-policy change, not a tour-content edit. |
 | Header «ذخیره پیش‌نویس» | Enabled only when draft engine is `DIRTY` or `ERROR` | Draft-engine **flush** only — does **not** PATCH the tour. Footer «ذخیره تغییرات» is the canonical write. Do **not** merge the two actions. Helper copy: `flatEdit.draftVsTourSaveHint` (Denali) + `title` on the host flush button (`wizard.saveDraftHint`). Autosave to `SYNCED` leaves the header disabled even with unsaved-vs-canonical field diffs if the engine already flushed the draft. |
@@ -180,7 +180,7 @@ Pure helpers (no React): `resolveDenaliFlatEditWorkingEnvelope`, `shouldSeedDena
 
 ## Operator UX closure (v11 — Denali only)
 
-Layer: `packages/workspaces/denali` (+ host **copy** keys that stay product-blind). **No** `apps/api` / `platform-core` / `workspace-sdk`. Do not hand-edit `denaliRuleSet.generated.ts`.
+Layer: `packages/workspaces/denali` (+ host **copy** keys). **ED-PEAK-LOCK-01** adds an optional SDK persist hook and a product-blind API enrich — not a Denali branch in `updateTour`. Do not hand-edit `denaliRuleSet.generated.ts`.
 
 | ID | Failure | Owner | Contract |
 | -- | ------- | ----- | -------- |
@@ -188,9 +188,24 @@ Layer: `packages/workspaces/denali` (+ host **copy** keys that stay product-blin
 | **ED-GATHER-01** | Logistics always **writes** `{ name: "" }` station 1 into the draft (`useEffect` seed). Canonical looks dirty; submit can persist an empty point. | `denali-location-types.ts` (`isDenaliGatheringPointPopulated`, `omitEmptyDenaliGatheringPoints`, editor scaffold helper) + gathering field (no seed effect) + global invariant `omitEmptyGatheringPoints`. | UI may show one empty scaffold; **persist `[]`** until name/address/coords exist. Sanitize/invariants strip empty rows. |
 | **ED-SAVE-COPY-01** | Operators confuse header flush with footer PATCH. | Denali helper on flat-edit form; host `title` on `DraftManualSyncButton`. | Actions stay two primitives. Copy only. |
 | **ED-HIKE-MULTI-01** | `program.hikingGoHours` / `hikingReturnHours` visible on `*:multi_day` (confuse vs itinerary). | `cellOverrides` on those registry rows → `pnpm --filter @app-tour/workspace-denali run denali:codegen`. **RP-05 snapshot:** same hidden flags on multi-day cells in `apps/api/scripts/seed/definitions/denali-v1.json` (Denali matrix copy — not a new API invariant). | Hidden on multi-day cells; still optional on outdoor single-day. `hikingHoursApprox` unchanged. |
-| **ED-PEAK-RO-01** | Peak input `disabled` but `readOnly: false`. | `DenaliDestinationCatalogMetricField`: `readOnly={locked}` in addition to `disabled`. | Inspector/AT see read-only. Server enforcement is a later API pack. |
+| **ED-PEAK-RO-01** | Peak input `disabled` but `readOnly: false`. | `DenaliDestinationCatalogMetricField`: `readOnly={locked}` in addition to `disabled`. | Inspector/AT see read-only. |
+| **ED-PEAK-LOCK-01** | Crafted POST/PATCH could store a peak/trail metric other than the locked catalog value. | Denali `applyLockedDestinationCatalogMetricsToCanonical` on optional `wizardHost.normalizeCanonicalForPersist`. API enrich (main thread, before worker/engine) loads tenant destinations and calls the hook when present. | **Overwrite when locked** (same as UI prefill). Do **not** clear operator-entered values when the catalog does not lock. Skip when the metric field is not visible for the tour kind. Starter/Urban omit the hook → no extra `listDestinations`. Specs: `DEN-PEAK-LOCK-01*` + `API-PEAK-LOCK-01`. |
 
-**Deferred (product, not this pack):** same-calendar-day `multi_day` still forces ≥2 itinerary rows (`estimateDenaliTourDayCount`). Do not change until `wizard-experience` picks invariant A (multi-day = ≥2 calendar days) vs B (allow 1 itinerary day).
+**Persist lock (v12):**
+
+```text
+PATCH/POST body
+  → API enrich (optional hook only)
+  → listDestinations(tenant)  [opaque rows]
+  → plugin.wizardHost.normalizeCanonicalForPersist({ data, destinations })
+  → Denali: destinationId hit + catalog metric locked + field visible
+        → write catalog number onto tripDetails.overview.peakHeight | trailDistanceKm
+  → RuleEngine validateCanonical (sees locked values)
+```
+
+API must not branch on `plugin.id === "denali"` or name `peakHeight`. Destinations stay settings records; Denali interprets `altitudeM` / `typicalTrailDistanceKm`. Worker threads must **not** call settings — enrich runs on the HTTP/main path only.
+
+**Still deferred (product):** same-calendar-day `multi_day` still forces ≥2 itinerary rows (`estimateDenaliTourDayCount`). Do not change until this file picks invariant A (multi-day = ≥2 calendar days) vs B (allow 1 itinerary day). `projection.updatedAt` on memory GET still mirrors `createdAt` — freshness remains `rowVersion`.
 
 ```text
 loading catalog ──► destination/leader display = "" (not UUID)

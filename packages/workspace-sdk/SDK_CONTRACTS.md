@@ -559,6 +559,7 @@ Largest hook surface. Platform web host reads these instead of hardcoding plugin
 | `hydrateEditDraft?` | `{ canonicalData; activeEquipmentIds?; activeDestinationIds? }` | `Record<string, unknown>` | |
 | `prepareTourPatchPayload?` | `{ plugin; draft; rulesModule; evalContext; rowVersion; patchIntent?; catalog? }` | `unknown` | ⚠ should be `UpdateTourPayload` |
 | `filterEngineValidationResult?` | `result`, `data` | filtered `result` | |
+| `normalizeCanonicalForPersist?` | `{ data; destinations?: readonly Record<string, unknown>[] }` | `Record<string, unknown>` | Optional persist rewrite (ED-PEAK-LOCK-01). API enrich on the main thread only; worker must not call settings. Hosts that omit the hook skip `listDestinations`. |
 
 ```typescript
 type WizardDraftValidationResult = {

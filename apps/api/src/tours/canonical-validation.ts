@@ -8,24 +8,25 @@ import type { ValidateBeforePersistInput } from "./canonical-validation-sync.typ
 import {
   validateCanonicalBeforePersistAsync,
 } from "./canonical-validation-sync";
+import { applyWorkspacePersistCanonicalNormalize } from "./apply-workspace-persist-canonical-normalize";
 
 async function enrichValidateBeforePersistInput(
   input: ValidateBeforePersistInput
 ): Promise<ValidateBeforePersistInput> {
-  if (input.catalogRefAllowlists !== undefined) {
-    return input;
+  let next = input;
+  if (input.catalogRefAllowlists === undefined) {
+    const catalogRefAllowlists = await resolveCatalogRefAllowlistsForWorkspace(
+      input.workspaceType,
+      input.tenantId
+    );
+    if (catalogRefAllowlists !== undefined) {
+      next = {
+        ...next,
+        catalogRefAllowlists,
+      };
+    }
   }
-  const catalogRefAllowlists = await resolveCatalogRefAllowlistsForWorkspace(
-    input.workspaceType,
-    input.tenantId
-  );
-  if (catalogRefAllowlists === undefined) {
-    return input;
-  }
-  return {
-    ...input,
-    catalogRefAllowlists,
-  };
+  return applyWorkspacePersistCanonicalNormalize(next);
 }
 
 export type { ValidateBeforePersistInput } from "./canonical-validation-sync.types";

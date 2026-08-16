@@ -204,4 +204,13 @@ export type WorkspaceWizardHostHooks = {
     readonly ok: boolean;
     readonly violations: readonly { readonly code?: string; readonly message: string }[];
   };
+  /**
+   * Optional persist rewrite of canonical `data` immediately before RuleEngine validation.
+   * Hosts that omit this hook must not load destinations. `destinations` are opaque
+   * tenant settings rows — the workspace interprets catalog fields.
+   */
+  readonly normalizeCanonicalForPersist?: (input: {
+    readonly data: Readonly<Record<string, unknown>>;
+    readonly destinations?: readonly Readonly<Record<string, unknown>>[];
+  }) => Readonly<Record<string, unknown>>;
 };
