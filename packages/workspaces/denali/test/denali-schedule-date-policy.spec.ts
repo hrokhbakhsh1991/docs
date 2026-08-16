@@ -6,13 +6,14 @@ import { fileURLToPath } from "node:url";
 
 import {
   isDenaliIsoDateSelectable,
+  isDenaliMultiDayCalendarSpanTooShort,
   isDenaliTourEndDatetimeNotAfterStart,
   isDenaliTourStartDatetimeBeforeMin,
   isDenaliTourStartGrandfatheredPastBaseline,
   resolveDenaliDatetimeFieldMinIsoDate,
   resolveDenaliTourStartMinIsoDate,
 } from "../src/ui/logic/denali-schedule-date-policy";
-import { isoDatetimeToLocalIsoDate } from "../src/ui/adapters/calendar-format";
+import { addIsoDateDays, isoDatetimeToLocalIsoDate } from "../src/ui/adapters/calendar-format";
 
 describe("denali-schedule-date-policy.spec.ts", () => {
   const referenceDate = new Date(2026, 5, 23, 12, 0, 0);
@@ -94,5 +95,49 @@ describe("denali-schedule-date-policy.spec.ts", () => {
     };
     assert.match(fa.review.validation.DENALI_TOUR_END_BEFORE_START, /بعد از شروع/);
     assert.match(en.review.validation.DENALI_TOUR_END_BEFORE_START, /must be after the tour start/);
+  });
+
+  it("DN-SCHED-DATE-07 multi-day end min is the next local day after start", () => {
+    const startIso = new Date(2026, 5, 25, 8, 0, 0).toISOString();
+    const startLocal = isoDatetimeToLocalIsoDate(startIso);
+    assert.equal(
+      resolveDenaliDatetimeFieldMinIsoDate("endDateTime", referenceDate, {
+        startDateTimeIso: startIso,
+        tourKind: "mountain_day",
+      }),
+      startLocal
+    );
+    assert.equal(
+      resolveDenaliDatetimeFieldMinIsoDate("endDateTime", referenceDate, {
+        startDateTimeIso: startIso,
+        tourKind: "mountain_multi",
+      }),
+      addIsoDateDays(startLocal ?? "", 1)
+    );
+  });
+
+  it("DN-SCHED-DATE-08 same-calendar-day later clock is too short for multi_day", () => {
+    const start = new Date(2026, 5, 25, 8, 0, 0).toISOString();
+    const sameDayLater = new Date(2026, 5, 25, 18, 0, 0).toISOString();
+    const nextDay = new Date(2026, 5, 26, 18, 0, 0).toISOString();
+    assert.equal(isDenaliMultiDayCalendarSpanTooShort("mountain_multi", start, sameDayLater), true);
+    assert.equal(isDenaliMultiDayCalendarSpanTooShort("mountain_multi", start, nextDay), false);
+    assert.equal(isDenaliMultiDayCalendarSpanTooShort("mountain_day", start, sameDayLater), false);
+    assert.equal(isDenaliMultiDayCalendarSpanTooShort("mountain_multi", start, start), false);
+  });
+
+  it("ED-MULTI-CAL-01 validation copy requires two distinct calendar days", () => {
+    const messagesRoot = join(dirname(fileURLToPath(import.meta.url)), "../messages");
+    const fa = JSON.parse(readFileSync(join(messagesRoot, "fa/wizard.json"), "utf8")) as {
+      review: { validation: { DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS: string } };
+    };
+    const en = JSON.parse(readFileSync(join(messagesRoot, "en/wizard.json"), "utf8")) as {
+      review: { validation: { DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS: string } };
+    };
+    assert.match(fa.review.validation.DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS, /دو روز تقویمی/);
+    assert.match(
+      en.review.validation.DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS,
+      /two distinct calendar days/
+    );
   });
 });

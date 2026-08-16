@@ -81,10 +81,6 @@ export function DenaliPhotosField({
 
   const dayCount = useMemo(() => {
     if (!multiDay) return undefined;
-    const itinerary = getCanonicalValue(draft, "program.itinerary");
-    if (Array.isArray(itinerary) && itinerary.length >= 2) {
-      return itinerary.length;
-    }
     return estimateDenaliTourDayCount(
       getCanonicalStringValue(draft, "startDateTime"),
       getCanonicalStringValue(draft, "endDateTime")

@@ -41,6 +41,7 @@ import { sanitizeDenaliWizardDraftRecord } from "./denali-wizard-draft-sanitize"
 import {
   DENALI_TOUR_END_CANONICAL_PATH,
   DENALI_TOUR_START_CANONICAL_PATH,
+  isDenaliMultiDayCalendarSpanTooShort,
   isDenaliTourEndDatetimeNotAfterStart,
   isDenaliTourStartDatetimeBeforeMin,
   isDenaliTourStartGrandfatheredPastBaseline,
@@ -496,6 +497,7 @@ function mergeDenaliScheduleDateViolations(
   }
   if (endVisible) {
     next = mergeDenaliTourEndBeforeStartViolation(next, envelope);
+    next = mergeDenaliTourMultiDayCalendarSpanViolation(next, envelope);
   }
   return next;
 }
@@ -597,6 +599,24 @@ function mergeDenaliTourEndBeforeStartViolation(
     code: "DENALI_TOUR_END_BEFORE_START",
     fieldId: denaliFieldIdForCanonicalPath(DENALI_TOUR_END_CANONICAL_PATH),
     message: `Tour end cannot be before or equal to start at "${DENALI_TOUR_END_CANONICAL_PATH}"`,
+  });
+}
+
+function mergeDenaliTourMultiDayCalendarSpanViolation(
+  result: ValidationResult,
+  envelope: CanonicalWizardDraftEnvelope
+): ValidationResult {
+  const tourKind = getCanonicalStringFromDraft(envelope, "category");
+  const startIso = getCanonicalStringFromDraft(envelope, DENALI_TOUR_START_CANONICAL_PATH);
+  const endIso = getCanonicalStringFromDraft(envelope, DENALI_TOUR_END_CANONICAL_PATH);
+  if (!isDenaliMultiDayCalendarSpanTooShort(tourKind, startIso, endIso)) {
+    return result;
+  }
+
+  return appendDenaliScheduleViolation(result, {
+    code: "DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS",
+    fieldId: denaliFieldIdForCanonicalPath(DENALI_TOUR_END_CANONICAL_PATH),
+    message: `Multi-day tours need at least two distinct calendar days at "${DENALI_TOUR_END_CANONICAL_PATH}"`,
   });
 }
 

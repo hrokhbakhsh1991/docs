@@ -172,7 +172,7 @@
       }
     },
     "datetimeEnd": {
-      "multiDayHint": "Required for multi-day tours — used to size the itinerary and per-day photo sections.",
+      "multiDayHint": "Required for multi-day tours and must be at least the next calendar day after start — itinerary and per-day photos use this span.",
       "singleDayHint": "Optional for single-day tours."
     },
     "catalog": {
@@ -505,6 +505,7 @@
       "CARDINALITY_VIOLATION": "{field} exceeds allowed limits",
       "DENALI_TOUR_START_BEFORE_TODAY": "{field} cannot be before today",
       "DENALI_TOUR_END_BEFORE_START": "{field} must be after the tour start",
+      "DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS": "A multi-day tour must span at least two distinct calendar days",
       "DENALI_CAPACITY_MIN_AFTER_MAX": "Minimum capacity cannot be greater than maximum capacity",
       "DENALI_AGE_MIN_AFTER_MAX": "Minimum age cannot be greater than maximum age"
     },

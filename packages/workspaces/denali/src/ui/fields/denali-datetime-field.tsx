@@ -50,6 +50,7 @@ export function DenaliDatetimeField({
   const localValue = isoToDatetimeLocalInput(stored);
   const minIsoDate = resolveDenaliDatetimeFieldMinIsoDate(canonicalPath, new Date(), {
     startDateTimeIso: getCanonicalStringValue(draft, DENALI_TOUR_START_CANONICAL_PATH),
+    tourKind: getCanonicalStringValue(draft, "category"),
   });
 
   return (

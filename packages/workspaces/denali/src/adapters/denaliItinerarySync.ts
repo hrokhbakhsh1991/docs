@@ -5,34 +5,20 @@ import {
   type DenaliItineraryDayRow,
 } from "../schemas/denaliItineraryDaySchema";
 
-import { parseIsoToYmdAndTime } from "./denaliDatetime";
+import { countInclusiveLocalCalendarDays } from "./denaliDatetime";
 
 export type { DenaliItineraryDay, DenaliItineraryDayRow };
 export { syncDenaliItineraryRows };
-
-const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function localMidnightMsFromYmd(ymd: string): number | null {
-  if (!YMD_RE.test(ymd)) return null;
-  const [y, m, d] = ymd.split("-").map(Number);
-  if (!y || !m || !d) return null;
-  const ms = new Date(y, m - 1, d).getTime();
-  return Number.isNaN(ms) ? null : ms;
-}
 
 export function computeDenaliTourDayCount(
   startIso: string,
   endIso: string | undefined,
   isMultiDay: boolean
 ): number {
-  if (!isMultiDay) return 1;
-  const start = parseIsoToYmdAndTime(startIso).ymd;
-  const end = parseIsoToYmdAndTime(endIso ?? "").ymd;
-  if (!start || !end) return 1;
-  const startMs = localMidnightMsFromYmd(start);
-  const endMs = localMidnightMsFromYmd(end);
-  if (startMs == null || endMs == null || endMs < startMs) return 1;
-  return Math.max(1, Math.round((endMs - startMs) / 86_400_000) + 1);
+  if (!isMultiDay) {
+    return 1;
+  }
+  return countInclusiveLocalCalendarDays(startIso, endIso ?? "") ?? 1;
 }
 
 export function computeDenaliTourDayCountFromKind(
@@ -40,6 +26,8 @@ export function computeDenaliTourDayCountFromKind(
   startIso: string,
   endIso: string | undefined
 ): number {
-  if (tourType == null || !denaliTourKindToIsMultiDay(tourType)) return 1;
+  if (tourType == null || !denaliTourKindToIsMultiDay(tourType)) {
+    return 1;
+  }
   return computeDenaliTourDayCount(startIso, endIso, true);
 }

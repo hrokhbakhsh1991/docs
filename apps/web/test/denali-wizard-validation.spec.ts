@@ -38,6 +38,16 @@ function futureTourEndIso(startIso: string, daysAfterStart = 2): string {
   return date.toISOString();
 }
 
+/** Same local YMD, later wall clock — UTC-hour math can split civil days across timezones. */
+function futureSameLocalCalendarDayRange(daysAhead = 14): { start: string; end: string } {
+  const start = new Date();
+  start.setDate(start.getDate() + daysAhead);
+  start.setHours(8, 0, 0, 0);
+  const end = new Date(start);
+  end.setHours(18, 0, 0, 0);
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
 function stripWizardHost(plugin: ReturnType<typeof getDenaliWorkspacePlugin>) {
   const {
     tourList: _a,
@@ -358,6 +368,51 @@ describe("denali-wizard-validation.spec.ts — Phase 11.7", () => {
       result.violations.some(
         (violation) =>
           violation.code === "DENALI_TOUR_END_BEFORE_START" &&
+          (violation.fieldId === "endDateTime" || violation.fieldId === "denali.datetime-end")
+      ),
+      result.violations.map((v) => `${v.fieldId}:${v.code}`).join("; ")
+    );
+  });
+
+  it("WEB-P11-7-10 same-calendar-day multi-day blocks basic step (INV-DENALI-MULTI-CAL-A)", async () => {
+    const plugin = getDenaliWorkspacePlugin();
+    const rules = await loadDenaliWizardRulesModule();
+    const engine = PlatformWizardEngine.create(stripWizardHost(plugin));
+    engine.init();
+    const basePlan = engine.buildRenderPlan({
+      tenantId: "tenant",
+      dimensions: { category: "mountain", duration: "multi_day" },
+    });
+    const { start: startDateTime, end: endDateTime } = futureSameLocalCalendarDayRange();
+    const draft = {
+      data: {
+        category: "mountain_multi",
+        title: "تور چندروزه",
+        destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+        startDateTime,
+        endDateTime,
+        capacityMax: "20",
+        tripDetails: { overview: { peakHeight: "4000" } },
+      },
+    };
+    const steps = plugin.wizardHost!.applyContextualFieldRules!({
+      steps: applyWizardTemplateToRenderPlan(basePlan, buildDenaliFullWizardTemplateSteps()),
+      draft,
+      rulesModule: rules,
+      evalContext: null,
+    }) as ReturnType<typeof applyWizardTemplateToRenderPlan>;
+    const basicStep = steps.find((step) => step.stepId === "denali_basic");
+    assert.notEqual(basicStep, undefined);
+
+    const result = validateDenaliWizardDraftSync(plugin, draft, rules, "tenant", {
+      stepId: basicStep!.stepId,
+      visibleSteps: steps,
+    });
+    assert.equal(result.ok, false);
+    assert.ok(
+      result.violations.some(
+        (violation) =>
+          violation.code === "DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS" &&
           (violation.fieldId === "endDateTime" || violation.fieldId === "denali.datetime-end")
       ),
       result.violations.map((v) => `${v.fieldId}:${v.code}`).join("; ")

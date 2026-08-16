@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v16"
+version: "2026-08-16-v17"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -232,7 +232,7 @@ category / matrix cell change
 
 `applyDestinationCatalogPrefill` remains the **destination picker** primitive (peak vs trail vs generic). Persist must not re-run it on every keystroke.
 
-**Still deferred (product):** same-calendar-day `multi_day` still forces ≥2 itinerary rows (`estimateDenaliTourDayCount`). Do not change until this file picks invariant A (multi-day = ≥2 calendar days) vs B (allow 1 itinerary day). `projection.updatedAt` on memory GET still mirrors `createdAt` — freshness remains `rowVersion`. Do **not** merge header draft-flush with footer PATCH (`ED-SAVE-COPY-01`).
+**Still deferred (product):** `projection.updatedAt` on memory GET still mirrors `createdAt` — freshness remains `rowVersion`. Do **not** merge header draft-flush with footer PATCH (`ED-SAVE-COPY-01`).
 
 ## Gathering persist path (ED-GATHER-PERSIST-01)
 
@@ -381,7 +381,7 @@ Do **not** store `1405-05-25`. Do **not** convert in `apps/api` / `platform-core
 | Day pick                | Clicking a day selects it and **closes** the popover (`LocalizedDatePicker` → `setOpen(false)`).                                                                                                                                                                                                                       |
 | Month / year drill-down | Header month and year are buttons (`operator-wizard-calendar__title-btn`); month view = 3×4 grid, year view = 12-year page with nav. `data-operator-wizard-calendar-view` = `days` \| `months` \| `years`.                                                                                                                 |
 | Tour start min date     | `startDateTime` — `resolveDenaliDatetimeFieldMinIsoDate` in `src/ui/logic/denali-schedule-date-policy.ts` wires `minIsoDate={today}` into `DenaliDatetimeField` → `DenaliWizardDatetimePicker` → `LocalizedDatePicker` → `DenaliCalendar`. Past calendar days/months/years render `--disabled` and ignore clicks. |
-| Tour end min date       | `endDateTime` (multi-day only in UI) — when `startDateTime` is parseable, min calendar day is the **start’s local ISO date** (`isoDatetimeToLocalIsoDate`). Same calendar day as start stays selectable so a later clock on day 1 is valid. Empty/unparseable start → no end min (`undefined`; DN-SCHED-DATE-02). Edit grandfather (ED-DT-01) can leave start in the past; end min still follows that start day, **not** today — otherwise a historical multi-day end would be unselectable. |
+| Tour end min date       | **Single-day** (field hidden in UI) / default: start’s local ISO date so a later clock on day 1 stays selectable. **`*_multi` (INV-DENALI-MULTI-CAL-A):** min is the **next** local calendar day after start (`addIsoDateDays(startLocal, 1)`). Same-calendar-day multi-day is invalid even with a later clock. Empty/unparseable start → no end min (`undefined`; DN-SCHED-DATE-02). Edit grandfather (ED-DT-01) can leave start in the past; end min still follows that start (or start+1 when multi), **not** today. |
 | Submit guard            | `mergeDenaliScheduleDateViolations` in `denali-wizard-validation.ts` (create step + flat-edit full validate). Two codes, both i18n’d under `review.validation.*`: |
 
 **Schedule submit-guard logic (v10):**
@@ -393,16 +393,21 @@ visible start? → local calendar(start) < today
 
 visible end?   → both ISO parse AND Date.parse(end) <= Date.parse(start)
                  → DENALI_TOUR_END_BEFORE_START on end field id (denali.datetime-end)
+
+visible end + *_multi?
+                 → inclusive local calendar days(start, end) < 2
+                 → DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS on end field id
 ```
 
 | Rule | Why this comparison |
 | ---- | ------------------- |
 | Start vs today | **Local calendar day**, not instant — a 23:00 pick on today must pass even if UTC date rolled. |
-| End vs start | **Full instant** (`Date.parse`) — same-day `06:00` → `18:00` is valid; `06:00` → previous calendar day, or same-day earlier clock, is not. Equal instants are rejected (zero-length tour). |
+| End vs start | **Full instant** (`Date.parse`) — same-day `06:00` → `18:00` is valid **on single-day**; `06:00` → previous calendar day, or same-day earlier clock, is not. Equal instants are rejected (zero-length tour). |
+| Multi-day span (**INV-DENALI-MULTI-CAL-A**) | **Distinct local calendar days**, not itinerary row count. `06:00` → next-day `18:00` = 2; same local YMD = 1 even if two itinerary shells exist. `estimateDenaliTourDayCount` returns that inclusive count (no min-2 clamp). Missing/inverted range → `undefined` (other guards own those cases). |
 | Step scope | On a wizard step, start/end checks run only when that canonical path is in the expanded step and **not hidden** (single-day hides `endDateTime`). Full validate (flat edit / review) runs both when values are present. |
 | Storage | Naive `…T06:00:00.000Z` wall-clock-as-Z is compared consistently on both fields; do not mix true UTC offsets here. |
 
-Specs: `DN-SCHED-DATE-01…06` in `packages/workspaces/denali/test/denali-schedule-date-policy.spec.ts`; `WEB-P11-7-08` empty end; `WEB-P11-7-09` end-before-start. i18n: `DENALI_TOUR_END_BEFORE_START` — end must be **after** start (covers equality).
+Specs: `DN-SCHED-DATE-01…08` in `packages/workspaces/denali/test/denali-schedule-date-policy.spec.ts`; `DN-MULTI-CAL-01…04` in `denali-itinerary-day-count.spec.ts`; `WEB-P11-7-08` empty end; `WEB-P11-7-09` end-before-start; `WEB-P11-7-10` same-calendar-day multi-day. i18n: `DENALI_TOUR_END_BEFORE_START` (end **after** start) and `DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS`.
 
 **Destination catalog (searchable select):**
 
