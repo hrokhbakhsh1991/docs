@@ -106,6 +106,23 @@ describe("portal-guest-chrome-branding.spec.ts", () => {
     assert.equal(en.nav?.memberFallback, marketingEn.nav?.memberFallback);
   });
 
+  it("GL-BRAND-03 profile form keeps stored mobile; chip sanitizer stays off the form", () => {
+    const form = readPortal("app/me/profile/member-profile-form.tsx");
+    const change = readPortal("app/me/profile/member-profile-mobile-change.tsx");
+    const fa = JSON.parse(
+      readFileSync(join(portalRoot, "messages/fa/portalMember.json"), "utf8")
+    ) as { readonly profile?: { readonly mobileChange?: { readonly start?: string } } };
+    assert.match(form, /currentMobile=\{profile\.fields\.mobile\}/);
+    assert.match(change, /data-member-profile-mobile-change-value/);
+    assert.match(change, /currentMobile \?\? "—"/);
+    assert.match(change, /data-member-profile-mobile-change-start/);
+    assert.doesNotMatch(form, /resolveGuestMemberChipLabel/);
+    assert.doesNotMatch(change, /resolveGuestMemberChipLabel/);
+    assert.doesNotMatch(change, /guestLoginPhoneFieldValue/);
+    assert.doesNotMatch(change, /guestVisibleProfileMobile/);
+    assert.equal(fa.profile?.mobileChange?.start, "تغییر شماره موبایل");
+  });
+
   it("GL-OTP-01-SHELL unused P6 portal OTP shell stays Digit-free", () => {
     const otpInput = readPortal("src/features/auth/otp-segment-input.tsx");
     assert.match(otpInput, /data-otp-autofill-sink/);

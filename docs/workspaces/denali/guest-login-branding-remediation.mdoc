@@ -1,7 +1,7 @@
 ---
 title: Denali guest login + club branding — remediation contract
 doc_id: DENALI-GUEST-LOGIN-BRANDING-REMEDIATION
-version: "2026-08-16-v11"
+version: "2026-08-16-v12"
 phase: guest-portal
 apps: [portal, marketing, web, api]
 workspace: denali
@@ -76,6 +76,15 @@ Club chrome and the logged-in **person** chip are different labels on the same `
 | Marketing header chip | same helper | `catalog.nav.memberFallback` is **byte-equal** to portal `portalMember.nav.memberFallback`. No `"Member"` literal in `resolve-marketing-member-header.server.ts`. |
 
 `GET /identity/me` fills `displayName` with `user.mobile` when the membership has no name. That is a directory convenience, not a guest chip label — the helper treats `displayName === mobile` as unnamed. Literal `"Member"` is the old hardcoded fallback and is also unnamed. Do **not** call `resolveGuestChromeDisplayName` for the person chip (`باشگاه` is not a personal name). Do **not** put the US smoke phone on the chip (`guestVisibleProfileMobile` stays for other surfaces).
+
+**`/me/profile` mobile is not the chip.** The profile form is the identity record. `MemberProfileMobileChange` renders `currentMobile={profile.fields.mobile}` at `data-member-profile-mobile-change-value`. An old membership that still holds a test number (`+15550009901`, `09128881147`, …) **must keep showing that stored value**. Do **not** run `guestLoginPhoneFieldValue` / chip sanitizer on this readout — login empty-phone and header-chip rules are different surfaces.
+
+To replace the stored number: **تغییر شماره موبایل** (`portalMember.mobileChange.start`) → OTP to the new phone. The start handler already clears the *new-phone* input (`setPhone("")`); it does not blank the displayed current value until verify succeeds.
+
+```text
+identity.mobile  ──►  /me/profile  data-member-profile-mobile-change-value   (stored, always)
+                 └──►  header chip  resolveGuestMemberChipLabel               (never the phone)
+```
 
 ### Phase 2 phone traps
 
@@ -194,13 +203,14 @@ Do **not** put `shenski` on `resolveDefaultTenantBranding("denali")`. Guest chro
 | Unpublish / lifecycle | Unrelated. If Asklim is missing on marketing, operator **Publish** (`DRAFT → OPEN`) — public catalog is published-only. Not a guest-app bug. |
 | ×10 toman or persist ghosts | Closed in Asklim pack |
 | Hardcode `shenski` in `apps/marketing` or `apps/portal` | Name is tenant settings, not a string in the guest apps |
-| Full monorepo gates | Fast-track only until Architect YES |
+| Blank `/me/profile` stored mobile because chip hides phones | Profile form is the identity record. Use **تغییر شماره موبایل**. |
 
 ## Verification (when a phase starts)
 
 - Fast-track: targeted portal/marketing specs + `guard:import-boundary`. No `phase-5:gate` / `test:full`.
 - Manual: `denali.admin.localhost:3000/settings/branding` → Save **shenski** → hard refresh `denali.localhost:3002` + `portal.denali.localhost:3003/login` + `/me/profile`.
 - Logout → header **ورود** → login with `09128881147` must not show a filled US number.
+- `/me/profile` may still show a stored test mobile; that is the identity record. Change it with **تغییر شماره موبایل**. Only the header chip hides phone-as-name.
 
 ## Progress
 
