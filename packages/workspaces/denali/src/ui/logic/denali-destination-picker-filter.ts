@@ -27,6 +27,20 @@ export function isDenaliDestinationOfferedForTourKind(
   return normalizeDenaliDestinationLocationType(locationType) !== DENALI_DESTINATION_LOCATION_TYPE_PEAK;
 }
 
+/** ED-DEST-REFETCH-01 — count rows offered for the kind (does not keep a selected peak). */
+export function countDenaliDestinationsOfferedForTourKind(
+  destinations: Iterable<{ readonly locationType: string | null | undefined }>,
+  tourKind: string
+): number {
+  let count = 0;
+  for (const destination of destinations) {
+    if (isDenaliDestinationOfferedForTourKind(destination.locationType, tourKind)) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
 export function filterDenaliDestinationPickerOptions<T extends { readonly value: string }>(input: {
   readonly options: readonly T[];
   readonly destinationById: ReadonlyMap<string, { readonly locationType: string | null }>;

@@ -373,6 +373,7 @@ export function DenaliReviewStep({
       primaryGathering: t("review.primaryGathering"),
       socialMediaTelegramAutoLabel: t("composites.socialMedia.reviewTelegramAuto"),
       optionalEmptyValue: t("review.optionalEmpty"),
+      locale,
     };
   }, [t, locale]);
 

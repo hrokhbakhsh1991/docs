@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   buildDenaliReviewSections,
@@ -150,6 +153,34 @@ describe("denali-review-catalog-name.spec.ts", () => {
     const camp = logistics?.rows.find((row) => row.canonicalPath === "campPoint");
     assert.match(camp?.value ?? "", /کمپ آبشار اسکلیم/);
     assert.match(camp?.value ?? "", /آبشار آهکی اسکلیم/);
+  });
+
+  it("ED-REV-CURR-01 review formats base price and transport cost as grouped toman", () => {
+    const sections = buildDenaliReviewSections(
+      {
+        data: {
+          title: "کمپینگ چندروزه آبشار اسکلیم",
+          category: "nature_multi",
+          pricing: { basePricePerPerson: "3200000", requiresPayment: "true" },
+          transport: { mode: "bus", transportCost: "450000" },
+        },
+      },
+      EMPTY_CATALOG,
+      { ...LABELS, locale: "en" }
+    );
+    const pricing = sections.find((section) => section.stepId === "denali_pricing");
+    const logistics = sections.find((section) => section.stepId === "denali_logistics");
+    const price = pricing?.rows.find((row) => row.canonicalPath === "pricing.basePricePerPerson");
+    const transport = logistics?.rows.find((row) => row.canonicalPath === "transport.transportCost");
+    assert.equal(price?.value, "3,200,000 toman");
+    assert.equal(transport?.value, "450,000 toman");
+    const logic = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/ui/logic/denali-review-format-logic.ts"),
+      "utf8"
+    );
+    assert.match(logic, /formatDenaliTomanAmount/);
+    assert.equal(/from ["']@apps\/web/.test(logic), false);
+    assert.equal(/formatTourPrice/.test(logic), false);
   });
 
   it("DEN-REV-VIS-01b nature review omits mountain-only age and fitness", () => {

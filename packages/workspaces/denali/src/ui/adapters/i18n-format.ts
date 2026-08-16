@@ -86,6 +86,18 @@ export function formatGroupedDigitsString(asciiDigits: string, locale: AppLocale
   return toLocalizedDigits(digits.replace(/\B(?=(\d{3})+(?!\d))/g, ","), locale);
 }
 
+/**
+ * ED-REV-CURR-01 — Denali review/list toman label. Same stored digits, no ×10.
+ * Must not import `apps/web` `formatTourPrice`.
+ */
+export function formatDenaliTomanAmount(asciiDigits: string, locale: AppLocale): string {
+  const grouped = formatGroupedDigitsString(asciiDigits, locale);
+  if (grouped.length === 0) {
+    return "";
+  }
+  return `${grouped} ${locale === "fa" ? "تومان" : "toman"}`;
+}
+
 /** Applies Persian digit mapping to an already-formatted string (e.g. legacy manual grouping). */
 export function localizeFormattedDigits(formatted: string, locale: AppLocale): string {
   return toLocalizedDigits(formatted, locale);

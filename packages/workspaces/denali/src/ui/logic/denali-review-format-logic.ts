@@ -30,6 +30,7 @@ import {
 } from "./denali-location-types";
 import { parseDenaliTourPhotos, type DenaliTourPhoto } from "./denali-photo-types";
 import { formatSocialMediaLinkForReview } from "./denali-social-media-link-logic";
+import { formatDenaliTomanAmount, type AppLocale } from "../adapters/i18n-format";
 
 export type DenaliReviewCatalog = {
   readonly destinationNameById: ReadonlyMap<string, string>;
@@ -96,6 +97,8 @@ export type DenaliReviewFormatLabels = {
   readonly socialMediaTelegramAutoLabel: string;
   /** ED-EMPTY-OPT-01 — review value when an optional catalog field was skipped. */
   readonly optionalEmptyValue: string;
+  /** ED-REV-CURR-01 — review toman grouping. Defaults to fa. */
+  readonly locale?: AppLocale;
 };
 
 function pushRow(
@@ -143,6 +146,10 @@ function pushRowWhenFieldVisible(
     return;
   }
   pushRow(rows, canonicalPath, labels.fieldLabel(canonicalPath), value, multiline);
+}
+
+function formatReviewTomanAmount(raw: string, labels: DenaliReviewFormatLabels): string {
+  return formatDenaliTomanAmount(raw, labels.locale ?? "fa");
 }
 
 function boolLabel(raw: string, labels: Pick<DenaliReviewFormatLabels, "yes" | "no">): string {
@@ -501,7 +508,7 @@ export function buildDenaliReviewSections(
     logisticsRows,
     "transport.transportCost",
     labels.fieldLabel("transport.transportCost"),
-    getCanonicalStringValue(draft, "transport.transportCost")
+    formatReviewTomanAmount(getCanonicalStringValue(draft, "transport.transportCost"), labels)
   );
   pushRow(
     logisticsRows,
@@ -613,7 +620,7 @@ export function buildDenaliReviewSections(
     pricingRows,
     "pricing.basePricePerPerson",
     labels.fieldLabel("pricing.basePricePerPerson"),
-    getCanonicalStringValue(draft, "pricing.basePricePerPerson")
+    formatReviewTomanAmount(getCanonicalStringValue(draft, "pricing.basePricePerPerson"), labels)
   );
   pushRow(
     pricingRows,

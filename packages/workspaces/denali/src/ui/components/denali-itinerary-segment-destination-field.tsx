@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { DenaliSearchableSelect } from "../components/denali-searchable-select";
 import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notice";
+import { DenaliDestinationOfferedEmptyNotice } from "../components/denali-destination-offered-empty-notice";
 import { useDenaliDestinationCatalog, readDenaliDestinationLabel } from "../hooks/use-destination-catalog";
 import { filterDenaliDestinationPickerOptions } from "../logic/denali-destination-picker-filter";
 import { buildItinerarySegmentDestinationSelection } from "../logic/denali-itinerary-segment-destination-logic";
@@ -26,7 +27,9 @@ export function DenaliItinerarySegmentDestinationField({
   onChange,
 }: DenaliItinerarySegmentDestinationFieldProps) {
   const t = useTranslations("denali");
-  const { options, destinationById, loading, error, reload } = useDenaliDestinationCatalog();
+  const { options, destinationById, loading, error, reload } = useDenaliDestinationCatalog({
+    tourKind,
+  });
   const selectedLabel = readDenaliDestinationLabel(destinationId, destinationById);
   const visibleOptions = filterDenaliDestinationPickerOptions({
     options,
@@ -64,6 +67,9 @@ export function DenaliItinerarySegmentDestinationField({
         ) : null}
       </label>
       <DenaliCatalogLoadNotice error={error} onRetry={reload} />
+      {visibleOptions.length === 0 && !loading && error === null ? (
+        <DenaliDestinationOfferedEmptyNotice onRetry={reload} />
+      ) : null}
     </div>
   );
 }
