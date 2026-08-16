@@ -2,9 +2,13 @@
 
 import { useTranslations } from "next-intl";
 
-import type { DenaliTourWizardDraft } from "../../draft/denali-tour-wizard-draft";
+import {
+  type DenaliTourWizardDraft,
+  getCanonicalStringValue,
+} from "../../draft/denali-tour-wizard-draft";
 import { DenaliLocationPointEditor } from "../components/denali-location-point-editor";
 import { DENALI_COMPOSITE_TEST_IDS, DENALI_LOCATION_ZONE_PATHS } from "../logic/denali-location-types";
+import { resolveDenaliLocationZoneLabelKey } from "../logic/denali-location-zone-labels";
 
 type DenaliLocationZonesFieldProps = {
   readonly draft: DenaliTourWizardDraft;
@@ -19,6 +23,7 @@ export function DenaliLocationZonesField({
 }: DenaliLocationZonesFieldProps) {
   const t = useTranslations("denali");
   const title = t("composites.location.sectionTitle");
+  const tourKind = getCanonicalStringValue(draft, "category");
 
   return (
     <div
@@ -35,7 +40,7 @@ export function DenaliLocationZonesField({
           draft={draft}
           onDraftChange={onDraftChange}
           canonicalPath={zone.path}
-          heading={t(`composites.locationTypes.${zone.path}`)}
+          heading={t(resolveDenaliLocationZoneLabelKey(zone.path, tourKind))}
           testIdKey={zone.path}
         />
       ))}

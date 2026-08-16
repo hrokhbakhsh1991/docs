@@ -184,7 +184,10 @@
       "level": "Level {level}",
       "helper": "1 to 10 in half steps (e.g. 6.5 or 7). 1 = easiest, 10 = hardest.",
       "outOf": "of {max}",
-      "unset": "Select difficulty…"
+      "unset": "Not set — move the slider to commit a level"
+    },
+    "pricing": {
+      "unpaidHint": "Turn on paid tour to enter the price per person."
     },
     "elevation": {
       "meters": "meters",
@@ -214,6 +217,7 @@
     "locationTypes": {
       "startPoint": "Start point",
       "summitPoint": "Summit point",
+      "summitPointNature": "High point on the route",
       "campPoint": "Camp point",
       "endPoint": "End point"
     },

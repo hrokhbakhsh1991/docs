@@ -16,9 +16,13 @@ import { formatDatetimeLocalLabel } from "../adapters/datetime-format";
 import type { AppLocale } from "../adapters/i18n-format";
 import { DenaliPhotoPreview } from "../components/denali-photo-preview";
 import { EquipmentCatalogAvatar } from "../components/equipment-catalog-avatar";
-import type { DenaliTourWizardDraft } from "../../draft/denali-tour-wizard-draft";
+import {
+  type DenaliTourWizardDraft,
+  getCanonicalStringValue,
+} from "../../draft/denali-tour-wizard-draft";
 import type { DenaliGearItem } from "../logic/denali-gear-types";
 import { isoToDatetimeLocalInput } from "../logic/denali-datetime-utils";
+import { resolveDenaliLocationZoneLabelKey } from "../logic/denali-location-zone-labels";
 import {
   buildDenaliReviewHero,
   buildDenaliReviewSectionsFromVisibleSteps,
@@ -361,7 +365,8 @@ export function DenaliReviewStep({
       transportModeLabel: (mode) => resolveDenaliTransportModeLabel(t, mode),
       fitnessLevelLabel: (level) => resolveDenaliFitnessLevelLabel(t, level),
       publishStatusLabel: (status) => resolveDenaliPublishStatusLabel(t, status),
-      locationZoneLabel: (path) => t(`composites.locationTypes.${path}`),
+      locationZoneLabel: (path) =>
+        t(resolveDenaliLocationZoneLabelKey(path, getCanonicalStringValue(draft, "category"))),
       formatDatetime: (iso) =>
         formatDatetimeLocalLabel(isoToDatetimeLocalInput(iso), locale),
       yes: t("review.yes"),
@@ -375,7 +380,7 @@ export function DenaliReviewStep({
       optionalEmptyValue: t("review.optionalEmpty"),
       locale,
     };
-  }, [t, locale]);
+  }, [t, locale, draft]);
 
   const hero = useMemo(
     () => buildDenaliReviewHero(draft, catalog, labels),

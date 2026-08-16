@@ -68,4 +68,27 @@ describe("operator-smoke-catalog.spec.ts — Phase 11.0", () => {
     assert.equal(equipment[0]?.name, "عصای کوهنوردی");
     assert.equal(themes[0]?.name, "کوهستان");
   });
+
+  it("API-11.0-05 seeds nature/camping theme and gear for Denali club (ED-THEME-CAMP-01)", async () => {
+    resetSettingsResourcesRepositorySingletonForTests();
+    const repo = getSettingsResourcesRepository();
+    await seedOperatorSmokeCatalog(repo);
+    await seedOperatorSmokeCatalog(repo, { tenantId: DENALI_SMOKE_TENANT_ID });
+    const equipment = await repo.listEquipment(DENALI_SMOKE_TENANT_ID);
+    const themes = await repo.listTourThemes(DENALI_SMOKE_TENANT_ID);
+    const natureTheme = themes.find((theme) => theme.formProfile === "nature_trip");
+    assert.equal(natureTheme?.name, "طبیعت / کمپینگ");
+    assert.equal(natureTheme?.slug, "nature-camping");
+    const tent = equipment.find((item) => item.iconKey === "tent");
+    const sleepingBag = equipment.find((item) => item.iconKey === "sleeping_bag");
+    assert.equal(tent?.name, "چادر");
+    assert.equal(tent?.category, "nature");
+    assert.equal(sleepingBag?.name, "کیسه خواب");
+    assert.equal(sleepingBag?.category, "nature");
+    const operatorThemes = await repo.listTourThemes(OPERATOR_SMOKE_TENANT_ID);
+    assert.equal(
+      operatorThemes.some((theme) => theme.formProfile === "nature_trip"),
+      false
+    );
+  });
 });
