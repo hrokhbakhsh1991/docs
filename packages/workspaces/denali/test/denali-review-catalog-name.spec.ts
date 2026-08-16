@@ -162,7 +162,7 @@ describe("denali-review-catalog-name.spec.ts", () => {
           title: "کمپینگ چندروزه آبشار اسکلیم",
           category: "nature_multi",
           pricing: { basePricePerPerson: "3200000", requiresPayment: "true" },
-          transport: { mode: "bus", transportCost: "450000" },
+          transport: { mode: "bus", transportCost: "450000", dongAmount: "80000" },
         },
       },
       EMPTY_CATALOG,
@@ -172,8 +172,10 @@ describe("denali-review-catalog-name.spec.ts", () => {
     const logistics = sections.find((section) => section.stepId === "denali_logistics");
     const price = pricing?.rows.find((row) => row.canonicalPath === "pricing.basePricePerPerson");
     const transport = logistics?.rows.find((row) => row.canonicalPath === "transport.transportCost");
+    const dong = logistics?.rows.find((row) => row.canonicalPath === "transport.dongAmount");
     assert.equal(price?.value, "3,200,000 toman");
     assert.equal(transport?.value, "450,000 toman");
+    assert.equal(dong?.value, "80,000 toman");
     const logic = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), "../src/ui/logic/denali-review-format-logic.ts"),
       "utf8"

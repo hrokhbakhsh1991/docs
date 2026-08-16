@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v24"
+version: "2026-08-16-v25"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -344,7 +344,7 @@ P3  ED-PAY-DIFF-UX-01    paid-tour helper + difficulty unset affordance (copy/UX
 | ------ | -- | -------------- | ----- | --------- |
 | **P1** | **ED-CAMP-PERSIST-01** | Review showed «کمپ آبشار اسکلیم» + OSM coords; `GET` had `campPoint: null` and `tripDetails.overview` only `trailDistanceKm`. Same class: `summitPoint` / `endPoint`. | Denali field + sanitize + `prepareDenaliSubmitArtifact`. **Do not** remove paths from `DENALI_FORM_PROFILE_GHOST_PATHS`. | POST/PATCH stores populated `{ label, address, lat, lng }` at `tripDetails.overview.campPoint` (and siblings). Edit hydrate + review resolve nested. Root ghosts still stripped. `osmName` forbidden. Specs: `DEN-CAMP-PERSIST-01*`. |
 | **P2** | **ED-DEST-REFETCH-01** | Settings added `nature_trail` Asklim; wizard tab still «مقصدی نیست» until full reload. `useDenaliDestinationCatalog` refetches on focus **only when `state.error !== null`**. Empty-after-filter is a successful peak list. | `use-destination-catalog.ts` (+ empty-state retry control). Mirror ED-CAT-RETRY-01 focus/visibility, but trigger when **offered** destinations for the current kind are empty — not only HTTP error. | Adding a destination in another tab + focus/visibility (or explicit retry on the empty notice) shows the new row without `location.reload`. Specs: `DEN-DEST-REFETCH-01*`. |
-| **P2** | **ED-REV-CURR-01** | Review painted `3200000` / `450000` while list card showed `۳٬۲۰۰٬۰۰۰ تومان`. | `denali-review-format-logic.ts` + Denali `formatGroupedDigitsString` / toman suffix. **Must not import** `apps/web` `formatTourPrice` (package boundary). Same digits, **no ×10**, storage stays IRR. | Review rows for `pricing.basePricePerPerson` and `transport.transportCost` match list grouping + تومان/toman. Specs: `DEN-REV-CURR-01*`. |
+| **P2** | **ED-REV-CURR-01** | Review painted `3200000` / `450000` while list card showed `۳٬۲۰۰٬۰۰۰ تومان`. | `denali-review-format-logic.ts` + Denali `formatGroupedDigitsString` / toman suffix. **Must not import** `apps/web` `formatTourPrice` (package boundary). Same digits, **no ×10**, storage stays IRR. | Review rows for `pricing.basePricePerPerson`, `transport.transportCost`, **and** `transport.dongAmount` match list grouping + تومان/toman. Specs: `DEN-REV-CURR-01*`. |
 | **P3** | **ED-LOC-NATURE-01** | Nature logistics still labels the summit zone «قله / نقطه اوج». | FA/EN `composites.locationTypes` kind-aware keys. Registry paths unchanged (`INV-DENALI-WIZ-019` — do not hide the zone). | `readDenaliCanonicalBasics(kind).category === "nature"` → summit copy is peak-free (e.g. «نقطه اوج مسیر»). Mountain unchanged. Specs: `DEN-LOC-NATURE-01*`. |
 | **P3** | **ED-THEME-CAMP-01** | Themes empty («از تنظیمات → تم‌های تور»); gear list only mountain poles. | Denali club **seed** (`seed-operator-smoke-catalog.ts`) + Settings empty-state already exists. Not a wizard schema change. | Seed includes a nature/camping theme (`formProfile: nature_trip`) and camping gear (tent + sleeping bag, `category: nature`). Wizard theme picker non-empty on club tenant for `nature_*`. Spec: `API-11.0-05` / club bootstrap assert. |
 | **P3** | **ED-PAY-DIFF-UX-01** | Paid checkbox default off hides the price field (by design). Difficulty unset thumb sits at 1 with «سطح سختی را انتخاب کنید» — ED-DIFF-01 already owns the slider math. | Copy/affordance only under paid checkbox; difficulty unset helper already exists — tighten if live still reads as “value is 1”. **Do not** default `requiresPayment: true`. **Do not** move unset thumb off min. | Unpaid state has `role=status` helper that price appears after checking paid. Difficulty unset copy remains distinct from a committed `1`. Specs: field render / copy. |
@@ -415,9 +415,13 @@ wizard catalog Map still peaks-only  (error === null → no focus reload)
 
 Contract: when **offered** destinations for the current tour kind are empty (or the empty notice is visible), `visibilitychange` / `window focus` / explicit retry call `reload()`. Successful non-empty lists do not refetch on every focus. Soft HTTP retry (ED-CAT-RETRY-01) unchanged.
 
+Metric-field `patchDenaliDestinationCatalogCache` must **broadcast** to every mounted `useDenaliDestinationCatalog` instance. A module singleton callback (last mount wins, cleanup nulls the hub) drops patches when destination + itinerary + locked-metric fields are all mounted. Listener `Set` subscribe/unsubscribe; no React context.
+
 ### Review money (ED-REV-CURR-01)
 
 Wizard labels already say تومان. `getCanonicalStringValue` dumps the ASCII integer. Formatter lives in Denali `i18n-format` (`formatGroupedDigitsString` + تومان/toman). Host `formatTourPrice` stays in `apps/web` for list/header (`pluginId === "denali"`). Review must not cross the workspace→app import boundary.
+
+Money rows on review: `pricing.basePricePerPerson`, `transport.transportCost`, `transport.dongAmount`. Dong was left as a raw ASCII string after P2; same helper, no ×10.
 
 ```text
 loading catalog ──► destination/leader display = "" (not UUID)

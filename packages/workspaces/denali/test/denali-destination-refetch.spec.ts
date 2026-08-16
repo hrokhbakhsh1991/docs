@@ -4,7 +4,12 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { shouldReloadDenaliDestinationCatalogOnFocus } from "../src/ui/hooks/use-destination-catalog";
+import {
+  shouldReloadDenaliDestinationCatalogOnFocus,
+  patchDenaliDestinationCatalogCache,
+  subscribeDenaliDestinationCatalogPatch,
+} from "../src/ui/hooks/use-destination-catalog";
+import type { DestinationResource } from "../src/ui/adapters/catalog-types";
 import { countDenaliDestinationsOfferedForTourKind } from "../src/ui/logic/denali-destination-picker-filter";
 
 const SRC_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../src");
@@ -101,5 +106,37 @@ describe("denali-destination-refetch.spec.ts (ED-DEST-REFETCH-01)", () => {
       assert.match(src, /DenaliDestinationOfferedEmptyNotice/);
       assert.match(src, /onRetry=\{reload\}/);
     }
+  });
+
+  it("DEN-DEST-REFETCH-01b catalog patch broadcasts to every mounted listener", () => {
+    const hook = readFileSync(join(SRC_ROOT, "ui/hooks/use-destination-catalog.ts"), "utf8");
+    assert.match(hook, /subscribeDenaliDestinationCatalogPatch/);
+    assert.doesNotMatch(hook, /let patchDestinationCatalogCache/);
+    assert.doesNotMatch(hook, /patchDestinationCatalogCache = null/);
+
+    const patched: DestinationResource = {
+      id: "dest-asklim",
+      regionId: "region-1",
+      name: "آبشار اسکلیم",
+      locationType: "nature_trail",
+      altitudeM: null,
+      typicalTrailDistanceKm: 4,
+      isActive: true,
+      sortOrder: 1,
+    };
+    const seen: string[] = [];
+    const unsubscribeA = subscribeDenaliDestinationCatalogPatch((destination) => {
+      seen.push(`a:${destination.id}:${destination.typicalTrailDistanceKm ?? ""}`);
+    });
+    const unsubscribeB = subscribeDenaliDestinationCatalogPatch((destination) => {
+      seen.push(`b:${destination.id}:${destination.typicalTrailDistanceKm ?? ""}`);
+    });
+    patchDenaliDestinationCatalogCache(patched);
+    assert.deepEqual(seen, ["a:dest-asklim:4", "b:dest-asklim:4"]);
+    unsubscribeA();
+    seen.length = 0;
+    patchDenaliDestinationCatalogCache({ ...patched, typicalTrailDistanceKm: 6 });
+    assert.deepEqual(seen, ["b:dest-asklim:6"]);
+    unsubscribeB();
   });
 });

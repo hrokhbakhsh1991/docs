@@ -514,7 +514,7 @@ export function buildDenaliReviewSections(
     logisticsRows,
     "transport.dongAmount",
     labels.fieldLabel("transport.dongAmount"),
-    getCanonicalStringValue(draft, "transport.dongAmount")
+    formatReviewTomanAmount(getCanonicalStringValue(draft, "transport.dongAmount"), labels)
   );
   pushRow(
     logisticsRows,

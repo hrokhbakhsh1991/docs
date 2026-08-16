@@ -13,10 +13,23 @@ import { useDenaliWizardCatalogPrefetch } from "./denali-wizard-catalog-prefetch
 
 export type { DenaliDestinationCatalogState, DestinationResource };
 
-let patchDestinationCatalogCache: ((destination: DestinationResource) => void) | null = null;
+const destinationCatalogPatchListeners = new Set<
+  (destination: DestinationResource) => void
+>();
+
+export function subscribeDenaliDestinationCatalogPatch(
+  listener: (destination: DestinationResource) => void
+): () => void {
+  destinationCatalogPatchListeners.add(listener);
+  return () => {
+    destinationCatalogPatchListeners.delete(listener);
+  };
+}
 
 export function patchDenaliDestinationCatalogCache(destination: DestinationResource): void {
-  patchDestinationCatalogCache?.(destination);
+  for (const listener of destinationCatalogPatchListeners) {
+    listener(destination);
+  }
 }
 
 export type UseDenaliDestinationCatalogOptions = {
@@ -64,16 +77,13 @@ export function useDenaliDestinationCatalog(
   }, []);
 
   useEffect(() => {
-    patchDestinationCatalogCache = (destination) => {
+    return subscribeDenaliDestinationCatalogPatch((destination) => {
       setState((previous) => {
         const destinationById = new Map(previous.destinationById);
         destinationById.set(destination.id, destination);
         return { ...previous, destinationById };
       });
-    };
-    return () => {
-      patchDestinationCatalogCache = null;
-    };
+    });
   }, []);
 
   useEffect(() => {
