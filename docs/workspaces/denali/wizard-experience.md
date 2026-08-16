@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v18"
+version: "2026-08-16-v19"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -287,6 +287,20 @@ N rows, k picked → selected summary only
 ```
 
 Specs: `DN-EMPTY-OPT-01…` in `denali-optional-empty.spec.ts`; review `WEB-DENALI-REVIEW-11`; step validation `DN-EMPTY-OPT-04`.
+
+## Photo empty copy (ED-PHOTO-EMPTY-01)
+
+Tour photos and itinerary segment photos are **optional**. Empty is a skip, not a save blocker.
+
+| Surface | Copy | Contract |
+| ------- | ---- | -------- |
+| Photos composite (single-day) | `composites.photos.optionalEmpty` | `DenaliOptionalEmptyNotice` when `photos.length === 0`. |
+| Photos composite (multi-day / day photos) | `composites.photos.dayEmpty` | Same notice. Day assignment is a picker hint only (`DENALI_ITINERARY_PHOTO_DAY_IS_PICKER_HINT_ONLY`). |
+| Itinerary segment photos | `composites.itinerary.segmentPhotosEmpty` + `segmentPhotosGoToPhotos` | Status empty when the picker has no selectable photos. Helper copy only — the picker does not navigate. Does not require attaching photos to a segment. |
+| Review | `review.optionalEmpty` on `photos` when the list is empty | No `REQUIRED_FIELD_EMPTY`. |
+| Public catalog / Marketing | `detail.itinerarySegmentPhotosEmpty` | Segment with no `photoUrls` shows muted empty copy; the day/section still renders. Gallery cover fallbacks (PR-D-GLR) stay separate — do not invent itinerary photos. |
+
+`photos.required` stays **false**. Empty `[]` must persist. Specs: `DN-PHOTO-EMPTY-01…`; `WEB-DENALI-ITIN-21`; `MKT-09`.
 
 ## Photo upload error a11y (ED-PHOTO-A11Y-01)
 

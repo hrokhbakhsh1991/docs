@@ -109,6 +109,7 @@
     "itineraryHeading": "Day-by-day program",
     "itineraryDay": "Day {day, number}",
     "itinerarySegments": "Program sections",
+    "itinerarySegmentPhotosEmpty": "No photos for this program section.",
     "policiesHeading": "Policies & terms",
     "cancellationDeadline": "Cancellation deadline: {hours} hours before departure",
     "cancellationPenalty": "Cancellation penalty: {percent}%",

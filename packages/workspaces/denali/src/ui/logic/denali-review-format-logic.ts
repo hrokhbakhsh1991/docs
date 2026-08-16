@@ -349,7 +349,16 @@ export function buildDenaliReviewSections(
     true
   );
   const photos = parseDenaliTourPhotos(getCanonicalValue(draft, "photos"));
-  pushRow(photoRows, "photos", labels.fieldLabel("photos"), labels.photoCount(photos.length));
+  if (photos.length === 0) {
+    pushOptionalEmptyRow(
+      photoRows,
+      "photos",
+      labels.fieldLabel("photos"),
+      labels.optionalEmptyValue
+    );
+  } else {
+    pushRow(photoRows, "photos", labels.fieldLabel("photos"), labels.photoCount(photos.length));
+  }
   if (photoRows.length > 0 || photos.length > 0) {
     sections.push({
       stepId: "denali_photos",

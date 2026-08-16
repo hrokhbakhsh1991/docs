@@ -312,6 +312,7 @@ Spec: [`marketing-landing.mdoc`](./marketing-landing.mdoc) v7 · smoke: SMK-MKT-
 | `data-marketing-catalog-itinerary`           | itinerary section                                                                                     |
 | `data-marketing-catalog-itinerary-day`       | per-day article (`={dayNumber}`)                                                                      |
 | `data-marketing-catalog-segment-photos`      | segment photo list                                                                                    |
+| `data-marketing-catalog-segment-photos-empty` | ED-PHOTO-EMPTY-01 — muted empty copy when a segment has no `photoUrls` (day still renders)           |
 | `data-marketing-catalog-detail-policies`     | policies section                                                                                      |
 | `data-marketing-catalog-detail-cancellation` | cancellation bullets                                                                                  |
 | `data-marketing-register`                    | registration CTA (**SMK-MKT-03**) → portal [`portal-registration-ui.md`](./portal-registration-ui.md) |

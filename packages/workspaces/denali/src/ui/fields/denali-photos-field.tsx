@@ -17,6 +17,7 @@ import { uploadDenaliWizardPhoto } from "../adapters/photo-upload-client";
 import { Button, Input, Select, type SelectOption } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { DenaliPhotoPreview } from "../components/denali-photo-preview";
+import { DenaliOptionalEmptyNotice } from "../components/denali-optional-empty-notice";
 import {
   DENALI_MAX_PHOTO_COUNT,
   estimateDenaliTourDayCount,
@@ -266,7 +267,11 @@ export function DenaliPhotosField({
       </div>
 
       {photos.length === 0 ? (
-        <p className="denali-wizard-composite__helper">{t("composites.photos.noPhotos")}</p>
+        <DenaliOptionalEmptyNotice testId={DENALI_PHOTOS_TEST_IDS.optionalEmpty}>
+          {multiDay
+            ? t("composites.photos.dayEmpty")
+            : t("composites.photos.optionalEmpty")}
+        </DenaliOptionalEmptyNotice>
       ) : null}
 
       <div className="denali-wizard-composite__photos-layout" data-operator-wizard-photo-grid>

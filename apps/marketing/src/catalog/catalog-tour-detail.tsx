@@ -199,6 +199,7 @@ export async function CatalogTourDetail({
                   heading={t("detail.itineraryHeading")}
                   dayLabel={(dayNumber) => t("detail.itineraryDay", { day: dayNumber })}
                   segmentsHeading={t("detail.itinerarySegments")}
+                  segmentPhotosEmpty={t("detail.itinerarySegmentPhotosEmpty")}
                   locale={locale}
                   sectionId="catalog-detail-itinerary"
                   useAccordion={tour.itineraryDays!.length > 2}

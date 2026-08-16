@@ -83,6 +83,47 @@ describe("denali-wizard-step-validation.spec.ts", () => {
     );
   });
 
+  it("DN-PHOTO-EMPTY-04 empty photos array does not block photos-step Continue", async () => {
+    const plugin = getDenaliWorkspacePlugin();
+    const rules = await loadDenaliWizardRulesModule();
+    const draft = {
+      data: {
+        category: "mountain_day",
+        title: "Tour",
+        destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+        startDateTime: "2027-07-01T08:00:00.000Z",
+        capacityMax: "20",
+        tripDetails: { overview: { peakHeight: "4000" } },
+        program: {
+          themeIds: ["theme-1"],
+          shortDescription: "خلاصه تور",
+        },
+        photos: [],
+      },
+    };
+    const stepFields = plugin.fieldRegistry.fields
+      .filter((field) => field.stepId === "denali_photos")
+      .map((field) => ({
+        fieldId: field.id,
+        canonicalPath: field.canonicalPath,
+        kind: field.kind,
+        required: field.required,
+        hidden: false,
+      }));
+    const result = validateDenaliWizardDraftSync(plugin, draft, rules, "tenant", {
+      stepId: "denali_photos",
+      visibleSteps: [{ stepId: "denali_photos", fields: stepFields }],
+    });
+    assert.equal(
+      result.violations.some(
+        (violation) =>
+          violation.fieldId === "photos" || violation.fieldId?.includes("photos") === true
+      ),
+      false,
+      result.violations.map((v) => `${v.fieldId}:${v.code}:${v.message}`).join("; ")
+    );
+  });
+
   it("DN-WIZARD-STEP-03 photos step blocks empty shortDescription via composite expand", async () => {
     const plugin = getDenaliWorkspacePlugin();
     const rules = await loadDenaliWizardRulesModule();

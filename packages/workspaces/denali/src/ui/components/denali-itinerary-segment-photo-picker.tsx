@@ -10,6 +10,7 @@ import {
   toggleItinerarySegmentPhotoSelection,
 } from "../logic/denali-itinerary-segment-photo-logic";
 import { DENALI_ITINERARY_SEGMENT_PHOTO_TEST_IDS } from "../test-ids/denali-photos-test-ids";
+import { DenaliOptionalEmptyNotice } from "./denali-optional-empty-notice";
 import { DenaliPhotoPreview } from "./denali-photo-preview";
 
 export { DENALI_ITINERARY_SEGMENT_PHOTO_TEST_IDS } from "../test-ids/denali-photos-test-ids";
@@ -47,7 +48,9 @@ export function DenaliItinerarySegmentPhotoPicker({
     >
       <span>{t("composites.itinerary.segmentPhotos")}</span>
       {selectablePhotos.length === 0 ? (
-        <p className="denali-wizard-composite__helper">{t("composites.itinerary.segmentPhotosEmpty")}</p>
+        <DenaliOptionalEmptyNotice testId={DENALI_ITINERARY_SEGMENT_PHOTO_TEST_IDS.empty}>
+          {`${t("composites.itinerary.segmentPhotosEmpty")} ${t("composites.itinerary.segmentPhotosGoToPhotos")}`}
+        </DenaliOptionalEmptyNotice>
       ) : (
         <div className="denali-wizard-composite__segment-photo-grid" role="group">
           {selectablePhotos.map((photo) => {

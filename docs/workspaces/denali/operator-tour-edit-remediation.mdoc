@@ -1,7 +1,7 @@
 ---
 title: Denali operator tour edit — remediation contract
 doc_id: DENALI-OPERATOR-TOUR-EDIT-REMEDIATION
-version: "2026-08-16-v20"
+version: "2026-08-16-v21"
 phase: operator-admin
 apps: [web, api]
 workspace: denali
@@ -58,6 +58,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
   → 16 operator polish (IRR→toman label, hide peaks on nature, end-after-start copy)
   → 17 INV-DENALI-MULTI-CAL-A (multi_day ≥ 2 distinct local calendar days)
   → 18 ED-EMPTY-OPT-01 (optional empty for logistics gear/services + guide languages)
+  → 19 ED-PHOTO-EMPTY-01 (day photo + itinerary photo empty copy; persist allowed)
 ```
 
 ## Invariants
@@ -89,6 +90,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
 | **16** ED-CURR-01 / ED-DEST-NATURE-01 / ED-DT-EQ-COPY-01 | Done — operator list/header formats `IRR` as تومان (no ×10). Nature pickers hide `locationType=peak`. End-datetime copy covers equality (`must be after start`). Header/footer save stay two primitives. |
 | **17** ED-MULTI-CAL-01 / INV-DENALI-MULTI-CAL-A | Done — `multi_day` requires ≥2 distinct local calendar days. `estimateDenaliTourDayCount` is inclusive YMD count (no min-2 clamp; itinerary row count is not a day). Same-calendar-day multi-day emits `DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS`; end calendar min is start+1. |
 | **18** ED-EMPTY-OPT-01 | Done — logistics gear/services and guide languages show optional empty (`role=status`) when catalog is soft-degraded, catalog is empty, or the operator skips. Empty `[]` does not block Continue/save. |
+| **19** ED-PHOTO-EMPTY-01 | Done — day photos and itinerary segment photos have optional empty copy. Empty `photos: []` / no segment `photoIds` does not block save. Marketing itinerary shows muted empty copy; does not invent photos. |
 
 ## Closure (2026-08-06)
 
@@ -108,12 +110,13 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 
 **v20 (2026-08-16):** Phase **18** / **ED-EMPTY-OPT-01** — empty logistics gear/services and guide languages are a valid skip. Soft-degraded catalog shows `role=status` optional-empty (not a blocking alert). Review paints `review.optionalEmpty` instead of omitting the row. Continue/save must not emit `REQUIRED_FIELD_EMPTY` for those `required: false` arrays. No API / `platform-core` / `plugin.id === "denali"`.
 
+**v21 (2026-08-16):** Phase **19** / **ED-PHOTO-EMPTY-01** — day-photo and itinerary-segment-photo empty copy. Wizard uses `DenaliOptionalEmptyNotice`. `photos` stays `required: false`; empty arrays persist. Public catalog itinerary shows `detail.itinerarySegmentPhotosEmpty` when a section has no `photoUrls` (gallery PR-9 fallbacks unchanged). No API / `platform-core` / `plugin.id === "denali"`.
+
 **Operator follow-ups outside this pack** (not blockers; do not reopen lifecycle / platform-core validate):
 
 | Item | Class | Notes |
 | --- | --- | --- |
 | Cold Next compile → intermittent BFF `503` on `/api/users`, `guide_languages`, drafts | Dev infra (mitigated) | Soft-fail notice + **one soft-retry** via `fetchDenaliCatalogJsonWithSoftRetry` on catalog pickers/destinations. Residual cold compile may still show degraded once. |
-| Day-photo hint / itinerary photo empty copy | Product polish | Non-blocking; out of edit-save critical path. |
 | Unpublish `OPEN → DRAFT` | Non-goal | Lifecycle policy. |
 | Portal CSS / auth gate on same git branch | Branch hygiene | Unrelated to this pack — split when committing. |
 
@@ -157,6 +160,12 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 | ID | Owner path |
 | --- | --- |
 | ED-PEAK-LOCK-01 | Denali `applyLockedDestinationCatalogMetricsToCanonical` → `wizardHost.normalizeCanonicalForPersist`. API `applyWorkspacePersistCanonicalNormalize` inside `enrichValidateBeforePersistInput` (main thread; worker receives already-locked `body.data`). |
+
+## Phase 19 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-PHOTO-EMPTY-01 | Wizard: `DenaliOptionalEmptyNotice` on photos + itinerary segment picker. Marketing: `detail.itinerarySegmentPhotosEmpty` on catalog itinerary segments with no `photoUrls`. |
 
 ## Phase 18 implementation map
 

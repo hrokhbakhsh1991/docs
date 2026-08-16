@@ -109,6 +109,7 @@
     "itineraryHeading": "برنامه روزانه",
     "itineraryDay": "روز {day, number}",
     "itinerarySegments": "بخش‌های برنامه",
+    "itinerarySegmentPhotosEmpty": "عکسی برای این بخش از برنامه روزانه ثبت نشده.",
     "policiesHeading": "قوانین و شرایط",
     "cancellationDeadline": "مهلت لغو: {hours, number} ساعت قبل از حرکت",
     "cancellationPenalty": "جریمه لغو: {percent, number}٪",
