@@ -12,6 +12,8 @@ import {
 } from "react";
 import { useTranslations } from "next-intl";
 
+import { completeMemberLoginEgress } from "@app-tour/catalog-registration-flow-ui";
+
 import { PublicCatalogRegistrationFlow } from "@/catalog/public-catalog-registration-flow";
 
 export type PortalLoginModalHost = "login" | "register";
@@ -121,6 +123,10 @@ export function PortalLoginModalProvider({ children }: ProviderProps) {
     window.location.assign(`${url.pathname}${url.search}`);
   }, [closeLoginModal]);
 
+  const onLoginSessionReady = useCallback(() => {
+    completeMemberLoginEgress({ memberLoginEgress: true });
+  }, []);
+
   const value = useMemo(
     (): PortalLoginModalContextValue => ({
       open,
@@ -197,7 +203,9 @@ export function PortalLoginModalProvider({ children }: ProviderProps) {
                   memberModuleHref={flow.memberModuleHref}
                   memberLoginEgress
                   memberLoginStayOnPage={host === "register"}
-                  onAuthenticated={host === "register" ? onRegisterSessionReady : undefined}
+                  onAuthenticated={
+                    host === "register" ? onRegisterSessionReady : onLoginSessionReady
+                  }
                   onMemberLoginSessionReady={
                     host === "register" ? onRegisterSessionReady : undefined
                   }

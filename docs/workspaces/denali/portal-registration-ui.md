@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-08-16-v11"
+version: "2026-08-16-v12"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -27,8 +27,11 @@ Workspace-agnostic **guest registration shell** in `apps/portal`. Business rules
 app/layout.tsx
   PortalProviders
     PortalLoginModalProvider          ← design PCMS-UX-MODAL (dialog/sheet)
-  └── app/login/page.tsx              ← thin SSR host · PortalLoginAuthFlow
-        onAuthenticated → completeMemberLoginEgress (portalReturn)
+  └── app/login/page.tsx              ← thin SSR host · data-portal-login-thin-host
+        PortalLoginThinHost auto-open host="login"
+        dismiss → data-portal-login-host-lede + host-trigger
+        modal onAuthenticated → completeMemberLoginEgress (portalReturn)
+        smoke tourId = modal bootstrap only (no inline OTP, no 404)
   └── app/catalog/[tourId]/register/page.tsx
         PortalAuthExperienceShell     ← FULL PAGE tour registration chrome
         session: PublicCatalogRegistrationFlow (intake-only)
@@ -110,7 +113,7 @@ Example tour sign-in URL: `/catalog/{tourId}/register?auth=login`
 | `[data-phone-hint="existing"]` | Returning member on register — copy switches to «تأیید موبایل برای ادامه» (preflight on blur + after send) |
 | `[data-marketing-tour-sign-in]` | Secondary PDP link — text CTA below primary register button |
 
-**Hydration (PCMS-UX-HYDRATE):** Login egress mode is **never** derived from `window.location` during React render. `apps/portal/app/login/page.tsx` passes `memberLoginEgress` into `PublicCatalogRegistrationFlow`, which forwards `RegistrationFlowContext.memberLoginEgress` to shared auth steps. Client-only `isMemberLoginEgressFromLocation()` remains for redirect target resolution (`portalReturn` query / `data-portal-return`) after OTP — not for SSR markup.
+**Hydration (PCMS-UX-HYDRATE):** Login egress mode is **never** derived from `window.location` during React render. `/login` is a thin host (`data-portal-login-thin-host`) that auto-opens the shared modal. The modal mounts `PublicCatalogRegistrationFlow` with `memberLoginEgress`, which forwards `RegistrationFlowContext.memberLoginEgress` to shared auth steps. Client-only `isMemberLoginEgressFromLocation()` remains for redirect target resolution (`portalReturn` query / `data-portal-return`) after OTP — not for SSR markup.
 
 ### Registration stepper modes
 

@@ -1,7 +1,7 @@
 ---
 title: Member Session Portal Authority (PCMS)
 standard_id: PCMS-001
-version: 1.1.0
+version: 1.2.0
 status: active
 extends:
   - docs/standards/workspace-routing-standard.mdoc
@@ -28,7 +28,9 @@ code_sot:
   - packages/catalog-registration-flow-ui/src/guest-auth-transport.ts
   - packages/catalog-registration-flow-ui/src/guest-auth-host.tsx
   - packages/catalog-registration-flow-ui/src/catalog-registration-auth-steps.tsx
-  - apps/portal/src/auth/portal-login-auth-flow.tsx
+  - apps/portal/app/login/page.tsx
+  - apps/portal/src/auth/portal-login-thin-host.tsx
+  - apps/portal/src/auth/portal-login-modal.tsx
   - docs/phase-19/portal-member-login-modal.mdoc
 mandatory_for:
   - apps/portal
@@ -140,12 +142,12 @@ Marketing header **Sign in** (`data-marketing-header-sign-in`) must target membe
 
 | Host | Role |
 | ---- | ---- |
-| `/login` | **Thin public host** — required for middleware `/me/*` gate (guests never render `/me` React). Auto-opens modal. Not a second full alpine registration page. Auth only: phone → OTP → (profile if new). |
+| `/login` | **Thin public host (Phase 2)** — required for middleware `/me/*` gate (guests never render `/me` React). Marker `data-portal-login-thin-host`. Auto-opens the **same** `PortalLoginModalProvider` dialog/sheet (`host="login"`). Fallback `[data-portal-login-host-lede]` + `[data-portal-login-host-trigger]` when the guest dismisses. **No** inline phone/OTP/profile on the page (`PortalLoginAuthFlow` / `data-portal-login-form-panel` forbidden). Auth only inside the modal: phone → OTP → (profile if new). |
 | `/catalog/{id}/register` | Full tour **intake** page. Guests **must** complete member auth in the **same** login modal first (**PCMS-UX-MODAL-04**). Session members land intake-only (PCMS-REG-01). Intake stays on the page, never inside the modal. |
 
 **Login route (PCMS-03-LOGIN):** Deep link **`/login`** remains canonical for standalone sign-in and `/me` redirects. OTP steps are shared with catalog registration auth steps (`memberLoginEgress`); smoke tour id bootstraps the flow plugin server-side only. Legacy `/catalog/{id}/register?portalReturn=…` redirects to `/login?portalReturn=…`.
 
-**Login tour id:** `resolveMemberLoginCatalogTourId(pluginId)` — workspace smoke map (Denali dev `…0220`, operator `…0210`, …). Override: `PORTAL_MEMBER_LOGIN_TOUR_ID` / `PORTAL_DEV_GUEST_TOUR_ID`.
+**Login tour id (smoke-tour bootstrap, not a catalog page):** `resolveMemberLoginCatalogTourId(pluginId)` — workspace smoke map (Denali dev `…0220`, operator `…0210`, …). Override: `PORTAL_MEMBER_LOGIN_TOUR_ID` / `PORTAL_DEV_GUEST_TOUR_ID`. The id is passed into the modal flow plugin as `tourId` context only. `fetchCatalogTour` may supply a title; a missing row **must not** `notFound()` the `/login` host. The thin host must not render tour intake, tour price, or a dual-panel «story + OTP form».
 
 **Post-OTP return:**
 
