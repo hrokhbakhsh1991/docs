@@ -86,3 +86,30 @@ Quick index: [`docs/MIGRATION.md`](docs/MIGRATION.md).
 
 - WRS-001: [`docs/standards/workspace-routing-standard.mdoc`](docs/standards/workspace-routing-standard.mdoc)
 - PCMS-001: [`docs/standards/member-session-portal-authority.mdoc`](docs/standards/member-session-portal-authority.mdoc)
+
+## Cursor Cloud specific instructions
+
+The Cloud Agent base image ships Node 22 on `PATH`, but this repo requires **Node 24** (`.nvmrc`, `engine-strict`). A login shell (`bash -lc`) already resolves the nvm-default Node 24, so run repo commands from a login shell (or `source ~/.nvm/nvm.sh && nvm use 24`) rather than the raw agent shell.
+
+**Environment install** (idempotent):
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --filter @apps/api run prisma:generate   # avoids an undefined-Prisma crash on the memory-driver error path
+```
+
+**Running surfaces (no Postgres/Docker required — API uses the in-memory driver).** Each surface is a separate process (the root `dev` script only prints this list). Host-based tenant routing means you must send a mapped `Host` header; `denali.localhost`, `operator.localhost`, `urban.localhost` (and `*.portal.localhost`) are seeded dev hosts.
+
+Per-app dev env (already provided as gitignored `.env.local` files; recreate if missing):
+
+- `apps/api/.env.local`: `NODE_ENV=development`, `STORAGE_DRIVER=memory`, rate-limit/outbox/reconcile disabled, `AUTH_ALLOW_DEV_STATIC_OTP=true`, plus RS256 dev JWT keys generated via `cd apps/api && pnpm run bootstrap:dev-jwt >> .env.local`.
+- `apps/web|marketing|portal/.env.local`: `ALLOW_DEV_WEB_SESSION=true`, `ALLOW_DENALI_WEB_PLUGIN=true`, `ALLOW_URBAN_WEB_PLUGIN=true`, `TOUR_OPS_API_URL=http://127.0.0.1:3001`.
+
+```bash
+pnpm --filter @apps/api run dev         # http://127.0.0.1:3001/health -> {"status":"ok"}
+pnpm --filter @apps/web run dev         # operator admin  -> http://operator.localhost:3000/
+pnpm --filter @apps/marketing run dev   # public club     -> http://denali.localhost:3002/
+pnpm --filter @apps/portal run dev      # member portal   -> http://denali.portal.localhost:3003/
+```
+
+For browser testing, add the dev hosts to `/etc/hosts`: `127.0.0.1 operator.localhost denali.localhost urban.localhost denali.portal.localhost operator.portal.localhost`.
