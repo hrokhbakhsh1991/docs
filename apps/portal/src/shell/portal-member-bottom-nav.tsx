@@ -24,7 +24,7 @@ export type PortalMemberBottomNavProps = {
 /**
  * Primary member nav (thumb bar / side rail) + desktop logout footer (PS-VIS-5f).
  * Mobile hides `[data-portal-shell-nav-footer]` — logout lives on profile session card.
- * Labels are RSC-translated (BUG-2) — this client file must not call useTranslations.
+ * Labels are RSC-translated (BUG-2) — this client file must not call next-intl client hooks.
  */
 export function PortalMemberBottomNav({
   items,

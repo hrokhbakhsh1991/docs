@@ -51,7 +51,8 @@ describe("portal-member-shell.spec.ts — PS-1", () => {
     assert.match(bottomNav, /data-portal-shell-nav-icon/);
     assert.match(bottomNav, /PortalNavIcon/);
     assert.match(bottomNav, /data-active=/);
-    assert.doesNotMatch(bottomNav, /useTranslations/);
+    assert.doesNotMatch(bottomNav, /from "next-intl"/);
+    assert.doesNotMatch(bottomNav, /useTranslations\(/);
     assert.match(shell, /label: t\(item\.labelKey\)/);
     assert.match(shell, /primaryNavLabel=\{t\("primaryNav"\)\}/);
   });
@@ -100,7 +101,8 @@ describe("portal-member-shell.spec.ts — PS-1", () => {
     assert.match(logout, /logoutTarget: string/);
     assert.match(logout, /logoutLabel: string/);
     assert.match(logout, /loggingOutLabel: string/);
-    assert.doesNotMatch(logout, /useTranslations/);
+    assert.doesNotMatch(logout, /from "next-intl"/);
+    assert.doesNotMatch(logout, /useTranslations\(/);
     assert.match(logout, /location\.assign\(logoutTarget\)/);
     assert.doesNotMatch(logout, /MEMBER_LOGOUT_LANDING_PATH/);
     assert.doesNotMatch(logout, /\/login/);
