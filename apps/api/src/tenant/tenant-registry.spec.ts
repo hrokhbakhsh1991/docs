@@ -3,6 +3,7 @@ import { afterEach, describe, it } from "node:test";
 
 import {
   PRODLIKE_DATABASE_URL_REQUIRED_FOR_REGISTRY,
+  DENALI_CLUB_PUBLIC_DISPLAY_NAME,
   assertStaticTenantRegistryRuntime,
   canResolveDevTenantRegistryFallback,
   findTenantById,
@@ -60,6 +61,16 @@ describe("tenant-registry static gate (DI-REG-01 / DEC-039)", () => {
     assert.ok(denali);
     assert.equal(denali.subdomain, "denali");
     assert.equal(denali.workspaceType, "denali");
+  });
+
+  it("GL-BRAND-02 club tenant seeds displayName; operator smoke does not", () => {
+    const club = findTenantById("00000000-0000-4000-8000-000000000003");
+    const operator = findTenantById("00000000-0000-4000-8000-000000000014");
+    assert.ok(club);
+    assert.ok(operator);
+    assert.equal(club.theme.displayName, DENALI_CLUB_PUBLIC_DISPLAY_NAME);
+    assert.equal(operator.theme.displayName, undefined);
+    assert.equal(operator.workspaceType, "denali");
   });
 
   it("DEV_TENANTS includes booking-ws2 smoke tenant for B1.5 composition", () => {

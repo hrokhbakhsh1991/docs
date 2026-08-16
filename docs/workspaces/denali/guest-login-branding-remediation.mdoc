@@ -1,7 +1,7 @@
 ---
 title: Denali guest login + club branding — remediation contract
 doc_id: DENALI-GUEST-LOGIN-BRANDING-REMEDIATION
-version: "2026-08-16-v2"
+version: "2026-08-16-v3"
 phase: guest-portal
 apps: [portal, marketing, web, api]
 workspace: denali
@@ -11,9 +11,9 @@ workspace: denali
 
 Live path 2026-08-16: marketing header **ورود** → portal OTP login → `/me/profile` → **خروج** → same header login again. Session round-trip worked. Chrome names and login phone prefill did not.
 
-**Gate:** phase **0** (this file) → **1** branding → **2** phone traps → **3** avatar a11y → **4** OTP a11y → **5** polish. **Do not write code until Architect starts a numbered phase.** No `plugin.id === "denali"` in `updateTour`. Do not rename workspace plugin id `denali`. Do not change WRS hosts.
+**Gate:** phase **0** (this file) → **1** branding → **2** phone traps → **3** avatar a11y → **4** OTP a11y → **5** polish. Phase **1–2** in this turn. No `plugin.id === "denali"` in `updateTour`. Do not rename workspace plugin id `denali`. Do not change WRS hosts.
 
-**Club name vs plugin id:** guests must see **`shenski`** (operator `/settings/branding` → `tenants.theme.displayName`). Plugin id `denali` stays the workspace type. After GL-BRAND-01, empty `displayName` still shows i18n `nav.defaultSiteName` (FA باشگاه / EN Denali Club) — **GL-BRAND-02** is what makes every chrome say **shenski**.
+**Club name vs plugin id:** guests must see **`shenski`** (operator `/settings/branding` → `tenants.theme.displayName`). Plugin id `denali` stays the workspace type. After GL-BRAND-01, empty `displayName` still shows i18n `nav.defaultSiteName` (FA باشگاه / EN Club) — **GL-BRAND-02** is what makes every chrome say **shenski**.
 
 ## Product branding rule (GL-BRAND)
 
@@ -44,6 +44,21 @@ Admin  /settings/branding  →  tenants.theme.displayName = "shenski"
               brand title       workspace label   workspaceLabel
 ```
 
+### Phase 1 layers (no product literals in guest apps)
+
+| Layer | Owner | Rule |
+| ----- | ----- | ---- |
+| Resolve empty name | `guest-surface-host` `resolveGuestChromeDisplayName(displayName, fallback)` | Trimmed `displayName` wins. Else caller i18n. Never `"Portal"`, never `pluginId`. |
+| Marketing fallback | `catalog.nav.defaultSiteName` | Call the helper directly (no app-local alias wrapper). |
+| Portal fallback | `catalogRegistration.chrome.defaultSiteName` | One portal key (login chrome, `/me` header, document title). **Byte-equal** to marketing `nav.defaultSiteName` (guard spec). |
+| Club seed name | `DEV_TENANTS` denali row `…000003` `theme.displayName` | **`shenski`**. Workspace-type default stays color-only so operator smoke `…014` does not inherit the trade name. |
+| Postgres club seed | `ProvisioningService.seedDenaliSmokeTenant` | Passes the `DEV_TENANTS` theme when present (`DATABASE_URL` path otherwise drops to color-only defaults). |
+| Merge | `resolveEffectiveTenantBranding` | Unchanged. Do not inherit `displayName` from workspace-type fallback when stored theme already has colors. |
+
+### Phase 2 phone traps
+
+`initialPublicRegistrationPhone()` returns empty even in `NODE_ENV=development`. `PUBLIC_REGISTRATION_DEV_PHONE` stays a named fixture for API/E2E that **fill** the field. OTP «تغییر شماره» writes `phone: ""`, not a call back into the initializer. Dev OTP hint / `initialPublicRegistrationOtp()` may stay.
+
 ## Bug → owner → phase → Done when
 
 | ID | Symptom (live) | Owner | Phase | Done when |
@@ -68,7 +83,7 @@ Admin  /settings/branding  →  tenants.theme.displayName = "shenski"
 5  GL-POLISH-01 + GL-POLISH-02 favicon + LCP (optional last)
 ```
 
-Do **not** start phase 2 while login chrome still says Portal / denali — guest cannot tell which club they entered.
+Do **not** put `shenski` on `resolveDefaultTenantBranding("denali")`. Guest chrome and phone traps land together so the club name is visible before login.
 
 ## Non-goals
 
@@ -90,5 +105,7 @@ Do **not** start phase 2 while login chrome still says Portal / denali — guest
 
 | Phase | Status |
 | --- | --- |
-| **0** this file | **Now** — checklist only |
-| **1–5** | Not started — no code this turn |
+| **0** this file | Done — checklist |
+| **1** GL-BRAND-01 + GL-BRAND-02 | **Done** — shared chrome helper + club seed `shenski` |
+| **2** GL-PHONE-01 + GL-PHONE-02 | **Done** — empty guest phone; change-phone clears |
+| **3–5** | Not started |

@@ -18,6 +18,7 @@ import { serializeMarketingJsonLd } from "@/seo/serialize-marketing-jsonld";
 import {
   resolvePortalMemberLoginUrl,
   resolvePortalMemberModuleUrl,
+  resolveGuestChromeDisplayName,
 } from "@app-tour/guest-surface-host";
 import { resolveGuestLandingFeatures } from "@app-tour/workspace-sdk";
 import { resolveMarketingMemberHeader } from "@/shell/resolve-marketing-member-header.server";
@@ -56,7 +57,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   const branding = await fetchPublicTenantBrandingForHost(host);
-  const siteName = branding.displayName ?? t("nav.defaultSiteName");
+  const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
   return {
     ...buildMarketingSiteMetadata({ host, siteName, toursLabel: t("nav.tours"), locale }),
     description: t("metadata.siteDescription", { siteName }),
@@ -104,7 +105,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const branding = await fetchPublicTenantBrandingForHost(host);
   const bootstrap = await resolveMarketingBootstrapForHost(host);
   await importGuestMarketingThemeForPlugin(bootstrap.pluginId);
-  const siteName = branding.displayName ?? (await getTranslations("catalog"))("nav.defaultSiteName");
+  const siteName = resolveGuestChromeDisplayName(
+    branding.displayName,
+    (await getTranslations("catalog"))("nav.defaultSiteName")
+  );
   const layoutJsonLd = buildMarketingLayoutJsonLd({ host, siteName });
   const fontClassName = resolveAppFontClassName(locale);
   const fontFamilyBase = resolveAppFontFamilyCss(locale);

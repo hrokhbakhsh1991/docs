@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding";
+import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 import { isAppLocale, resolveMarketingToursListPath, type AppLocale } from "@/i18n/routing";
 
 import { Button } from "@app-tour/ui-primitives/button";
@@ -32,7 +33,7 @@ export async function HomeHero({
   const localeRaw = await getLocale();
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
   const toursHref = resolveMarketingToursListPath(locale);
-  const siteName = branding.displayName ?? t("nav.defaultSiteName");
+  const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
   const copy = { siteName };
   const heroSlides = resolveHomeHeroCarouselSlides(
     heroImageUrl,

@@ -8,6 +8,7 @@ import {
   resolveMemberLoginCatalogTourId,
   resolvePortalMemberLoginPath,
   resolvePortalMemberModuleUrl,
+  resolveGuestChromeDisplayName,
 } from "@app-tour/guest-surface-host";
 
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
@@ -71,7 +72,8 @@ export default async function PortalMemberLoginPage({ searchParams }: PageProps)
   // Member-login egress only needs tourId/title as OTP modal context. Operator smoke
   // (denali plugin + tenant …0014) may lack denali.club login tour …0220 — do not 404.
   const tourTitle =
-    tour?.title?.trim() || branding.displayName?.trim() || bootstrap.pluginId || "Tour";
+    tour?.title?.trim() ||
+    resolveGuestChromeDisplayName(branding.displayName, t("chrome.defaultSiteName"));
   const workspace = bootstrap.pluginId;
 
   return (

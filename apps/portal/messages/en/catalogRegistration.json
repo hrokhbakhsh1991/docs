@@ -5,6 +5,10 @@
   "signInToRegister": "Sign in to continue registration",
   "backToTour": "Back to tour",
   "backToMarketing": "Back",
+  "chrome": {
+    "defaultSiteName": "Club",
+    "siteDescription": "Member portal for {siteName}."
+  },
   "phone": {
     "title": "Sign in or register",
     "loginTitle": "Sign in",

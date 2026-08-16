@@ -14,6 +14,7 @@ import {
   MARKETING_OG_IMAGE_WIDTH,
 } from "@/seo/build-marketing-metadata";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
+import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
 import { resolveGuestLandingFeatures, resolveGuestSeoForPlugin } from "@app-tour/workspace-sdk";
 
@@ -33,7 +34,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const landing = resolveGuestLandingFeatures(bootstrap.pluginId);
   const branding = await fetchPublicTenantBrandingForHost(host);
   const t = await getTranslations("catalog");
-  const siteName = branding.displayName ?? t("nav.defaultSiteName");
+  const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
 
   const title = guestSeo.homeTitleKey
     ? t(guestSeo.homeTitleKey, { siteName })

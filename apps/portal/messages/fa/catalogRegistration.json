@@ -5,6 +5,10 @@
   "signInToRegister": "ورود برای ادامه ثبت‌نام",
   "backToTour": "بازگشت به تور",
   "backToMarketing": "بازگشت",
+  "chrome": {
+    "defaultSiteName": "باشگاه",
+    "siteDescription": "پورتال اعضا برای {siteName}."
+  },
   "phone": {
     "title": "ورود یا ثبت‌نام",
     "loginTitle": "ورود",

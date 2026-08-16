@@ -4,7 +4,6 @@ import { Input } from "@app-tour/ui-primitives/input";
 import {
   buildPublicRegistrationProfilePayload,
   classifyPublicRegistrationMobileInput,
-  initialPublicRegistrationPhone,
   normalizePublicRegistrationMobile,
   PUBLIC_REGISTRATION_DEV_OTP,
   PUBLIC_REGISTRATION_RESEND_COOLDOWN_SEC,
@@ -346,7 +345,7 @@ export function CatalogRegistrationOtpStep({
             type="button"
             onClick={() => {
               mergeFlowState(state, dispatch, {
-                phone: initialPublicRegistrationPhone(),
+                phone: "",
                 otp: "",
                 challengeId: "",
                 onboardingToken: "",

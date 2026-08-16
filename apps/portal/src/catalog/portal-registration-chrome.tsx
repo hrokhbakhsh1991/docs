@@ -1,5 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
+import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
+
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding";
 
 export type PortalRegistrationChromeProps = {
@@ -15,7 +17,10 @@ export async function PortalRegistrationChrome({
   memberLoginEgress = false,
 }: PortalRegistrationChromeProps) {
   const t = await getTranslations("catalogRegistration");
-  const workspaceLabel = branding.displayName?.trim() || "Portal";
+  const workspaceLabel = resolveGuestChromeDisplayName(
+    branding.displayName,
+    t("chrome.defaultSiteName")
+  );
 
   return (
     <header

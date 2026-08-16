@@ -91,10 +91,12 @@ export class ProvisioningService {
   /** Phase 6.6 — idempotent denali smoke tenant (`denali.localhost`). */
   async seedDenaliSmokeTenant(): Promise<ProvisionedTenant> {
     assertProvisioningDevelopmentOnly();
+    const clubSeed = findTenantBySubdomain(DENALI_SMOKE_SUBDOMAIN);
     return this.upsertSeedTenant({
       subdomain: DENALI_SMOKE_SUBDOMAIN,
       tenantId: DENALI_SMOKE_TENANT_ID,
       workspaceType: "denali",
+      ...(clubSeed?.theme !== undefined ? { theme: clubSeed.theme } : {}),
     });
   }
 

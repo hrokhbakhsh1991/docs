@@ -12,6 +12,7 @@ import {
   buildMarketingTourDetailMetadata,
 } from "@/seo/build-marketing-metadata";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
+import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +32,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     fetchPublicTenantBrandingForHost(host),
     fetchCatalogTour({ ...bootstrap, tourId }),
   ]);
-  const siteName = branding.displayName ?? t("nav.defaultSiteName");
+  const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
 
   if (tour === null) {
     return buildMarketingNotFoundMetadata({

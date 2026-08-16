@@ -40,4 +40,17 @@ describe("catalog-registration-auth-steps — PCMS-UX polish", () => {
     assert.match(authSteps, /type="text"/);
     assert.match(authSteps, /inputMode="email"/);
   });
+
+  it("GL-PHONE-02 change-phone clears the field instead of restoring the US smoke number", () => {
+    const authSteps = readFileSync(
+      join(
+        repoRoot,
+        "packages/catalog-registration-flow-ui/src/catalog-registration-auth-steps.tsx"
+      ),
+      "utf8"
+    );
+    assert.match(authSteps, /phone: ""/);
+    assert.doesNotMatch(authSteps, /initialPublicRegistrationPhone/);
+    assert.doesNotMatch(authSteps, /PUBLIC_REGISTRATION_DEV_PHONE/);
+  });
 });

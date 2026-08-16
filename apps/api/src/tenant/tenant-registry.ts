@@ -8,6 +8,9 @@ export const PRODUCTION_STATIC_TENANT_REGISTRY_FORBIDDEN =
 export const PRODLIKE_DATABASE_URL_REQUIRED_FOR_REGISTRY =
   "PRODLIKE_DATABASE_URL_REQUIRED_FOR_REGISTRY";
 
+/** Club public name for `denali.localhost` (tenant …000003). Not a workspace-type default. */
+export const DENALI_CLUB_PUBLIC_DISPLAY_NAME = "shenski" as const;
+
 export type RegisteredTenant = {
   readonly id: string;
   readonly subdomain: string;
@@ -32,7 +35,11 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
     id: "00000000-0000-4000-8000-000000000003",
     subdomain: "denali",
     workspaceType: "denali",
-    theme: { primaryColor: "#059669", cssVariables: { "--color-primary": "#059669" } },
+    theme: {
+      primaryColor: "#059669",
+      cssVariables: { "--color-primary": "#059669" },
+      displayName: DENALI_CLUB_PUBLIC_DISPLAY_NAME,
+    },
   },
   {
     id: "00000000-0000-4000-8000-000000000004",

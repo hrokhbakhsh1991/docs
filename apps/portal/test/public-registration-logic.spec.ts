@@ -17,11 +17,11 @@ import {
 } from "../src/features/auth/public-registration-logic";
 
 describe("public-registration-logic.spec.ts — P6-1", () => {
-  it("PR-LOGIC-01 dev defaults expose phone and OTP 1234 in development", () => {
+  it("PR-LOGIC-01 guest phone starts empty; OTP 1234 stays a development default", () => {
     const prev = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
     try {
-      assert.match(initialPublicRegistrationPhone(), /\+/);
+      assert.equal(initialPublicRegistrationPhone(), "");
       assert.equal(initialPublicRegistrationOtp(), PUBLIC_REGISTRATION_DEV_OTP);
     } finally {
       process.env.NODE_ENV = prev;

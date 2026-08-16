@@ -28,6 +28,8 @@ describe("portal-visual-wave1.spec.ts", () => {
     assert.match(chrome, /data-portal-registration-back/);
     assert.match(chrome, /data-portal-registration-logo/);
     assert.match(chrome, /data-portal-registration-workspace-label/);
+    assert.match(chrome, /resolveGuestChromeDisplayName/);
+    assert.doesNotMatch(chrome, /\|\| ["']Portal["']/);
   });
 
   it("VIS-CHROME-03 starter skin styles registration chrome", () => {
