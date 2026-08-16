@@ -20,7 +20,7 @@ export function DenaliOptionalEmptyNotice({
       className="denali-wizard-composite__status denali-wizard-composite__optional-empty"
       role="status"
       data-testid={testId}
-      data-denali-optional-empty=""
+      data-operator-optional-empty=""
     >
       {children}
     </p>

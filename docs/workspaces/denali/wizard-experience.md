@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-08-16-v26"
+version: "2026-08-16-v27"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -273,7 +273,7 @@ Gear (logistics catalog) and guide languages are **optional**. An empty picker i
 
 | Surface | When | Contract |
 | ------- | ---- | -------- |
-| Field | `resolveDenaliOptionalEmptyReason`: degraded (soft-fail), catalog empty, or operator selected nothing | `DenaliOptionalEmptyNotice` — `role="status"` (never `alert`), `data-denali-optional-empty`. Copy: `composites.catalog.optionalEmpty`. Does **not** set `aria-invalid`. |
+| Field | `resolveDenaliOptionalEmptyReason`: degraded (soft-fail), catalog empty, or operator selected nothing | `DenaliOptionalEmptyNotice` — `role="status"` (never `alert`), `data-operator-optional-empty` (Wave H.n — operator theme must not use `data-denali-*` selectors). Copy: `composites.catalog.optionalEmpty`. Does **not** set `aria-invalid`. |
 | Field (services) | Both included/self buckets empty | `composites.tourServices.emptyBucket` states skip is allowed. |
 | Review | Visible `program.guideLanguageIds` / `participants.gearItems` / services with no values | Row value `review.optionalEmpty` (`emptyOptional: true`). Unresolved UUID names still omit the row (ED-REV-UUID-01) — that is loading/miss, not a skip. |
 | Validate / save | `required: false` on those paths; submit catalog loader returns `{}` on fetch throw | Empty `[]` must not emit `REQUIRED_FIELD_EMPTY`. Soft-degraded catalog must not block `prepareSubmitPayload` / PATCH. |
@@ -313,7 +313,7 @@ Live create leftover after Phase 15. **No ×10 conversion.** Storage `priceCurre
 
 | ID | Failure | Contract |
 | -- | ------- | -------- |
-| **ED-CURR-01** | Wizard labels تومان; operator list/edit header `Intl` with `priceCurrency: "IRR"` painted **ریال** for the same digits. | `formatTourPrice` (apps/web) formats `IRR` as تومان / toman **only when `pluginId === "denali"`**. Harbor/Urban/other keep `Intl` currency style. **No ×10.** Storage stays ISO `IRR`. Host presentation — not API / `platform-core`. Spec: `WEB-CURR-01` in `tours-list.spec.ts`. |
+| **ED-CURR-01** | Wizard labels تومان; operator list/edit header `Intl` with `priceCurrency: "IRR"` painted **ریال** for the same digits. | `formatTourPrice` (apps/web) formats `IRR` as تومان / toman **only for plugin ids in the operator toman allowlist** (`OPERATOR_IRR_TOMAN_PLUGIN_IDS`, currently Denali). Harbor/Urban/other keep `Intl` currency style. **No** `pluginId === "denali"` token in `apps/web` (thin-shell purity). **No ×10.** Storage stays ISO `IRR`. Host presentation — not API / `platform-core`. Spec: `WEB-CURR-01` in `tours-list.spec.ts`. |
 | **ED-CURR-MKT-01** | Public catalog used the same `Intl` currency style → FA «ریال» / EN `IRR 2,500,000` for wizard تومان digits. | Marketing-local `formatCatalogPrice` (`apps/marketing`, not `formatTourPrice`, not finance). `IRR` → grouped digits + تومان/toman **only for `pluginId === "denali"`** (callers pass tenant `pluginId`). Other workspaces keep `Intl`. JSON-LD `offers.priceCurrency` stays `IRR`. **No ×10** until product YES. Spec: `MKT-CURR-01`. |
 | **ED-DEST-NATURE-01** | Nature tour destination + itinerary pickers listed `locationType=peak` rows (Tochal/Damavand). Peak altitude prefill was already skipped. | `isDenaliDestinationOfferedForTourKind` hides peaks when `readDenaliCanonicalBasics(kind).category === "nature"`. Currently selected peak remains in the option list so the control does not go blank. Mountain/desert/event unchanged. Specs: `DEN-DEST-NATURE-01*`. |
 | **ED-DT-EQ-COPY-01** | Guard is `Date.parse(end) <= Date.parse(start)` (equal instants rejected) but FA copy said only «قبل از شروع». | i18n: end **must be after** start (`باید بعد از شروع برنامه باشد` / `must be after the tour start`). Comparison unchanged. |
@@ -323,6 +323,8 @@ Live create leftover after Phase 15. **No ×10 conversion.** Storage `priceCurre
 Live create 2026-08-16: nature multi-day camping at آبشار اسکلیم (`97974fc2-…`). Gathering dual-write (ED-GATHER-PERSIST-01) held; **camp OSM did not survive POST**. **Do not start P2/P3 until P1 specs `DEN-CAMP-PERSIST-01*` are green** — later waves must not reopen ghost-path policy (`INV-DENALI-WIZ-003`).
 
 **Gate:** P1 (phase 21) → P2 (phase 22, parallel IDs) → P3 (phase 23). Implementation is Denali client/ACL only in P1; API `stripFormProfileForSubmit` stays unchanged.
+
+**P5-B snapshot (v27):** After Asklim registry/copy/review toman changes, re-export `apps/api/scripts/seed/definitions/denali-v1.json` (`pnpm --filter @apps/api run export:workspace-definition -- --workspace denali --out scripts/seed/definitions/denali-v1.json`) so DP/RP parity checksum matches the live package strip. Do not hand-edit the checksum.
 
 **Marketing visibility (not a code bug):** Public catalog (`GET /denali/catalog` → `apps/marketing`) only includes canonical `publishStatus === "active"`. Operator chrome calls that state **OPEN** and the control **Publish** (`DRAFT → OPEN`). If آبشار اسکلیم / Asklim is missing on `denali.localhost`, open the tour in operator and Publish. Do not change marketing filters, guest chrome, or unpublish policy (`OPEN → DRAFT` stays forbidden).
 

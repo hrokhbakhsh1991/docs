@@ -88,7 +88,7 @@ export function formatGroupedDigitsString(asciiDigits: string, locale: AppLocale
 
 /**
  * ED-REV-CURR-01 — Denali review/list toman label. Same stored digits, no ×10.
- * Must not import `apps/web` `formatTourPrice`.
+ * Must not import the operator tour-list price formatter (package boundary).
  */
 export function formatDenaliTomanAmount(asciiDigits: string, locale: AppLocale): string {
   const grouped = formatGroupedDigitsString(asciiDigits, locale);

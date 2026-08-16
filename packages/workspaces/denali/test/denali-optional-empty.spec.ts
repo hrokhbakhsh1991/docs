@@ -75,7 +75,7 @@ describe("denali-optional-empty.spec.ts (ED-EMPTY-OPT-01)", () => {
     );
     assert.match(notice, /role="status"/);
     assert.equal(/role="alert"/.test(notice), false);
-    assert.match(notice, /data-denali-optional-empty/);
+    assert.match(notice, /data-operator-optional-empty/);
 
     const gear = readFileSync(join(SRC_ROOT, "ui/fields/denali-gear-field.tsx"), "utf8");
     const languages = readFileSync(

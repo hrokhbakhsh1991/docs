@@ -332,13 +332,13 @@ describe("denali-review-format-logic.spec.ts", () => {
       },
       contentSteps,
       EMPTY_CATALOG,
-      LABELS
+      { ...LABELS, locale: "en" }
     );
     const logistics = sections.find((section) => section.stepId === "denali_logistics");
     assert.ok(logistics?.rows.some((row) => row.canonicalPath === "transport.transportCost"));
     assert.equal(
       logistics?.rows.find((row) => row.canonicalPath === "transport.transportCost")?.value,
-      "120000"
+      "120,000 toman"
     );
   });
 

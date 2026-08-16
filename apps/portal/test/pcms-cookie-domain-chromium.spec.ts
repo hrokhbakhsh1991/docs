@@ -2,10 +2,13 @@
  * PCMS-COOK-01 — Chromium accepts Domain=apex; rejects Domain=.localhost (PSL).
  */
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import http from "node:http";
 import { describe, it } from "node:test";
 
 import { chromium } from "@playwright/test";
+
+const CHROMIUM_AVAILABLE = existsSync(chromium.executablePath());
 
 async function withCookieServer(
   setCookie: string,
@@ -36,7 +39,7 @@ async function withCookieServer(
   }
 }
 
-describe("PCMS-COOK Chromium Domain acceptance", () => {
+describe("PCMS-COOK Chromium Domain acceptance", { skip: !CHROMIUM_AVAILABLE }, () => {
   it("PCMS-COOK-CR-01 Domain=denali.club shares portal → marketing", async () => {
     await withCookieServer(
       "atour_mb_session=APEX; Path=/; SameSite=Lax; Max-Age=3600; Domain=denali.club",

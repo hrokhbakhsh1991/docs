@@ -13,8 +13,10 @@ export type TourSeatsFormatLabels = {
 };
 
 /** Denali stores toman digits in ISO `IRR`. Other workspaces keep Intl for `IRR`. */
+const OPERATOR_IRR_TOMAN_PLUGIN_IDS = new Set<string>(["denali"]);
+
 export function operatorIrrUsesTomanLabel(pluginId: string | undefined): boolean {
-  return pluginId === "denali";
+  return pluginId !== undefined && OPERATOR_IRR_TOMAN_PLUGIN_IDS.has(pluginId);
 }
 
 export function formatTourPrice(

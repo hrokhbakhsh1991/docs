@@ -1,7 +1,7 @@
 ---
 title: Denali operator tour edit — remediation contract
 doc_id: DENALI-OPERATOR-TOUR-EDIT-REMEDIATION
-version: "2026-08-16-v27"
+version: "2026-08-16-v28"
 phase: operator-admin
 apps: [web, api, marketing]
 workspace: denali
@@ -133,6 +133,8 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 
 **v27 (2026-08-16):** Product policy note — Asklim missing on marketing is operator **Publish** (`DRAFT → OPEN`). Public catalog is published-only. Not a code bug; do not change filters or unpublish allowlist.
 
+**v28 (2026-08-16):** CI contract close — re-export `denali-v1.json` checksum after Asklim strip drift; operator optional-empty hook is `data-operator-optional-empty` (Wave H.n); IRR toman allowlist avoids `pluginId === "denali"` in `apps/web`; review `transport.transportCost` value is grouped toman.
+
 **Operator follow-ups outside this pack** (not blockers; do not reopen lifecycle / platform-core validate):
 
 | Item | Class | Notes |
@@ -198,7 +200,7 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 
 | ID | Owner path |
 | --- | --- |
-| ED-EMPTY-OPT-01 | `resolveDenaliOptionalEmptyReason` + `DenaliOptionalEmptyNotice` on gear + guide languages; review `emptyOptional` rows; tour-services empty-bucket copy. |
+| ED-EMPTY-OPT-01 | `resolveDenaliOptionalEmptyReason` + `DenaliOptionalEmptyNotice` on gear + guide languages (`data-operator-optional-empty`); review `emptyOptional` rows; tour-services empty-bucket copy. |
 
 ## Phase 17 implementation map
 
@@ -210,7 +212,7 @@ Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.l
 
 | ID | Owner path |
 | --- | --- |
-| ED-CURR-01 | `apps/web/src/features/tours/tour-list-formatters.ts` `formatTourPrice` — Denali `pluginId` + `IRR` → تومان/toman grouped digits (list card + edit header). Other plugin ids keep `Intl`. Storage stays `IRR`. |
+| ED-CURR-01 | `apps/web/src/features/tours/tour-list-formatters.ts` `formatTourPrice` — `OPERATOR_IRR_TOMAN_PLUGIN_IDS` (Denali) + `IRR` → تومان/toman grouped digits (list card + edit header). No `pluginId === "denali"` token. Other plugin ids keep `Intl`. Storage stays `IRR`. |
 | ED-DEST-NATURE-01 | `denali-destination-picker-filter.ts` → destination field + itinerary segment destination |
 | ED-DT-EQ-COPY-01 | `messages/{fa,en}/wizard.json` `review.validation.DENALI_TOUR_END_BEFORE_START` |
 
