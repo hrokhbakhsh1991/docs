@@ -9,7 +9,7 @@ class FakePrismaKnownRequestError extends Error {
 
 describe("isPrismaErrorOfType (API-DB-CONN-06)", () => {
   it("API-DB-CONN-06a returns false when the constructor is missing", () => {
-    assert.equal(isPrismaErrorOfType(new Error("DENALI_REGISTRATION_INVALID"), undefined), false);
+    assert.equal(isPrismaErrorOfType(new Error("DOMAIN_TOKEN_NOT_PRISMA"), undefined), false);
     assert.equal(isPrismaErrorOfType(new Error("x"), null), false);
     assert.equal(isPrismaErrorOfType(new Error("x"), {}), false);
   });

@@ -82,8 +82,8 @@ Intake schema: field `phone` (`labelKey: intake.phoneLabel`) is collected only w
 | Concern | Owner |
 | ------- | ----- |
 | Occupancy / unique indexes / merge storage | Booking (`apps/api` bookings) |
-| Prisma `instanceof` classifiers (must not kill the process) | API `database-connection-error` / `transient-db-error` / `mapPrismaErrorToAppError` — **no Denali codes** |
-| Registrant target semantics / transport validate / other phone required | Denali workspace (`DenaliRegistrationInvalidError`, not `new Error(code)`) |
+| Prisma `instanceof` classifiers (must not kill the process) | API `database-connection-error` / `transient-db-error` / `mapPrismaErrorToAppError` — **no Denali codes**. Classifier unit tests (API-DB-CONN-06 / 08) stay workspace-id-free. Interceptor proof API-DB-CONN-07 looks up `DENALI_REGISTRATION_INVALID` on the **generated** `httpErrors` bindings — no handwritten interceptor `if`. |
+| Registrant target semantics / transport validate / other phone required | Denali workspace (`DenaliRegistrationInvalidError`, not `new Error(code)`). Host still rejects illegal `no_car_dong` when `dongAmount` is missing/`≤ 0`. |
 | Dong radios / `no_car_dong` payload | Denali catalog intake surface — only when `dongAmount > 0` |
 | Portal chrome / no `@app-cloud/workspace-denali` import | `apps/portal` |
 

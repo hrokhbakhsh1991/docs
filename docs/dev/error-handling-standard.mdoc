@@ -47,11 +47,26 @@ Any other `PrismaClient*Error` without explicit mapping → **500** `{ error: "i
 
 **Rule:** interceptor-path classifiers (`isDatabaseConnectionError`, `isTransientDbError`, `mapPrismaErrorToAppError`) must use [`isPrismaErrorOfType`](../../apps/api/src/db/prisma-error-instance.ts): skip `instanceof` unless `typeof ctor === "function"`. Missing ctor → **not** a Prisma error (fall through to workspace bindings / message tokens). Do **not** special-case Denali/Harbor/Urban codes in these classifiers — workspace HTTP status stays on the generated `httpErrors` map.
 
+**Not in this rule:** repository / outbox `error instanceof Prisma.PrismaClientKnownRequestError` after a real query. Those paths only run when Prisma threw from storage. They are not on `handleHttpError`’s classify-every-value path and must not be “fixed” by adding workspace `if` branches in the interceptor.
+
+**Why the order matters:** `isDatabaseConnectionError` runs **before** `WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS` and `mapErrorMessageToStatus`. A thrown `TypeError` from `instanceof` therefore prevents both the typed workspace `isError` binding **and** the generated `resolveWorkspaceHttpErrorCodeStatus` message map — the process dies and the client sees an empty 500.
+
+**Spec IDs (do not collide):**
+
+| ID | File | Assertion |
+|----|------|-----------|
+| API-DB-CONN-01 | `database-connection-error.spec.ts` | Prisma P1000 → connection error. If `PrismaClientKnownRequestError` is not a constructor on this driver, **skip** (do not silently assert a generic `Error`). |
+| API-DB-CONN-02…04 | same | password-auth haystack / not ETIMEDOUT / `DATABASE_UNAVAILABLE` constant |
+| API-DB-CONN-05 | `database-unavailable-error-interceptor.spec.ts` | P1000 → HTTP 503 JSON. Same skip rule when the Prisma ctor is missing. Crash-proofing of non-Prisma tokens is **07**, not a silent pass here. |
+| API-DB-CONN-06 | `prisma-error-instance.spec.ts` | missing/non-function ctor → `false`, no throw (fake class, not Prisma) |
+| API-DB-CONN-07 / 07b | interceptor spec | generated workspace invalid binding → HTTP **400 JSON**, process stays up. 07 = plain `Error(code)` message map; 07b = duck-typed `{ code }` through generated `isError`. Do **not** import `@app-tour/workspace-*` from this interceptor spec. |
+| API-DB-CONN-08 | `database-connection-error.spec.ts` | opaque domain tokens are **not** connection errors and **must not throw**. Classifier specs stay workspace-id-free (`BOOKING_GUEST_DUPLICATE`, dummy tokens) — they must not name Denali/Harbor/Urban codes. |
+
 | Spec | Covers |
 |------|--------|
 | `src/db/prisma-error-instance.spec.ts` | API-DB-CONN-06 missing ctor does not throw |
-| `src/db/database-connection-error.spec.ts` | API-DB-CONN-01…05 + domain token is not a connection error |
-| `src/middleware/database-unavailable-error-interceptor.spec.ts` | API-DB-CONN-05 P1000 → 503; API-DB-CONN-07 workspace invalid token → 400 JSON |
+| `src/db/database-connection-error.spec.ts` | API-DB-CONN-01…04 + API-DB-CONN-08 domain token is not a connection error |
+| `src/middleware/database-unavailable-error-interceptor.spec.ts` | API-DB-CONN-05 P1000 → 503; API-DB-CONN-07 / 07b generated workspace invalid → 400 JSON |
 
 ## Client-safe domain tokens
 
@@ -126,4 +141,5 @@ Log OTP debug events with `error.code` only — never raw upstream messages.
 | `test/platform-provision.spec.ts` | AP14 hotfix — no engine text on 500 |
 | `src/middleware/error-interceptor-prisma.spec.ts` | P2002/P2003/P2025 mapping + opaque unmapped Prisma |
 | `src/db/prisma-error-instance.spec.ts` | API-DB-CONN-06 missing Prisma ctor is not `instanceof` |
-| `src/middleware/database-unavailable-error-interceptor.spec.ts` | API-DB-CONN-05 / API-DB-CONN-07 |
+| `src/db/database-connection-error.spec.ts` | API-DB-CONN-01…04 / API-DB-CONN-08 |
+| `src/middleware/database-unavailable-error-interceptor.spec.ts` | API-DB-CONN-05 / API-DB-CONN-07 / 07b |
