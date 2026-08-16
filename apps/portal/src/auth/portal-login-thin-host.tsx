@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { useTranslations } from "next-intl";
 
-import {
-  usePortalLoginModal,
-  type PortalLoginModalFlowInput,
-} from "@/auth/portal-login-modal";
+import { completeMemberLoginEgress } from "@app-tour/catalog-registration-flow-ui";
+
+import type { PortalLoginModalFlowInput } from "@/auth/portal-login-modal";
+import { PublicCatalogRegistrationFlow } from "@/catalog/public-catalog-registration-flow";
 
 type Props = {
   readonly flow: PortalLoginModalFlowInput;
@@ -14,50 +14,56 @@ type Props = {
 };
 
 /**
- * Phase 2 thin `/login` host — auto-opens the shared modal and keeps a reopen
- * panel after dismiss. OTP lives in the modal, not on this page.
+ * DL-48 — `/login` page host. Phone / OTP / profile run on the page.
+ * Register-route modal is unchanged (PCMS-UX-MODAL-04).
  */
 export function PortalLoginThinHost({ flow, portalReturn }: Props) {
   const t = useTranslations("catalogRegistration");
-  const { open, openLoginModal } = usePortalLoginModal();
-  const openedRef = useRef(false);
 
-  useEffect(() => {
-    if (openedRef.current) {
-      return;
-    }
-    openedRef.current = true;
-    openLoginModal({ host: "login", portalReturn, flow });
-  }, [flow, openLoginModal, portalReturn]);
+  const onAuthenticated = useCallback(() => {
+    completeMemberLoginEgress({ memberLoginEgress: true });
+  }, []);
 
   return (
-    <div
-      data-portal-login-host-lede=""
-      data-portal-login-host-lede-modal-open={open ? "true" : "false"}
-    >
-      <div data-portal-login-host-panel>
-        <div data-portal-login-host-copy>
-          <p data-portal-login-host-eyebrow>{t("phone.formEyebrow")}</p>
-          <h2 data-portal-login-host-title>{t("phone.portalStoryTitle")}</h2>
-          <p data-portal-login-host-description>{t("phone.portalStoryDescription")}</p>
+    <div data-portal-login-page-shell="" data-portal-return={portalReturn}>
+      <section data-portal-login-story-panel="">
+        <div data-portal-login-story-copy>
+          <p data-portal-login-story-eyebrow>{t("phone.formEyebrow")}</p>
+          <h2 data-portal-login-story-title>{t("phone.portalStoryTitle")}</h2>
+          <p data-portal-login-story-description>{t("phone.portalStoryDescription")}</p>
         </div>
-        <p data-portal-login-host-intent>{t("phone.loginPrompt")}</p>
-        <ul data-portal-login-host-points>
-          <li>{t("phone.existingHint")}</li>
-          <li>{t("phone.newHint")}</li>
-          <li>{t("phone.portalAssurance")}</li>
+        <ul data-portal-login-story-highlights>
+          <li data-portal-login-story-highlight="">
+            <strong>{t("phone.portalHighlightOne")}</strong>
+            <span> {t("phone.portalHighlightOneCaption")}</span>
+          </li>
+          <li data-portal-login-story-highlight="">
+            <strong>{t("phone.portalHighlightTwo")}</strong>
+            <span> {t("phone.portalHighlightTwoCaption")}</span>
+          </li>
         </ul>
-        <div data-portal-login-host-action-shell>
-          <button
-            type="button"
-            data-portal-login-host-trigger
-            onClick={() => openLoginModal({ host: "login", portalReturn, flow })}
-          >
-            {t("loginPageTitle")}
-          </button>
-          <p data-portal-login-host-action-note>{t("phone.loginActionHint")}</p>
-        </div>
-      </div>
+      </section>
+      <section data-portal-login-form-panel="">
+        <header data-portal-login-form-panel-header>
+          <p data-portal-login-form-panel-eyebrow>{t("phone.loginTitle")}</p>
+          <p data-portal-login-form-panel-description>{t("phone.loginDescription")}</p>
+        </header>
+        <PublicCatalogRegistrationFlow
+          workspace={flow.workspace}
+          tenantId={flow.tenantId}
+          tourId={flow.tourId}
+          tourTitle={flow.tourTitle}
+          tourPoliciesText={null}
+          tourPriceAmount={null}
+          tourNationalIdRequired={false}
+          tourFatherNameRequired={false}
+          tourBirthDateRequired={false}
+          backHref={flow.backHref}
+          memberModuleHref={flow.memberModuleHref}
+          memberLoginEgress
+          onAuthenticated={onAuthenticated}
+        />
+      </section>
     </div>
   );
 }

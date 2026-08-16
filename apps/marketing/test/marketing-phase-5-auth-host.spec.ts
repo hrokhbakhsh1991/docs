@@ -68,7 +68,7 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
     assert.doesNotMatch(shell, /MarketingLoginModalTrigger/);
     assert.match(shell, /href=\{portalMemberLoginUrl\}/);
     assert.match(trigger, /preventDefault/);
-    assert.match(trigger, /canHostAuth/);
+    assert.doesNotMatch(trigger, /canHostAuth/);
     assert.match(cta, /data-marketing-tour-sign-in/);
     assert.match(cta, /MarketingLoginModalTrigger/);
     assert.match(cta, /host="pdp"/);
@@ -76,6 +76,8 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
     assert.doesNotMatch(cta, /tryCreatePortalOriginGuestAuthTransport/);
     assert.match(modal, /isMarketingTourDetailPathname/);
     assert.match(modal, /host: "pdp"/);
+    assert.match(modal, /data-marketing-login-unavailable/);
+    assert.match(modal, /errors\.BACKEND_UNREACHABLE/);
   });
 
   it("MKT-PCMS-P5-05 marketing ?auth=login auto-open is PDP-only", () => {
@@ -97,11 +99,13 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
       const data = JSON.parse(raw) as {
         loginPageTitle?: string;
         phone?: { loginTitle?: string };
-        errors?: { network?: string };
+        errors?: { network?: string; BACKEND_UNREACHABLE?: string };
       };
       assert.equal(typeof data.loginPageTitle, "string");
       assert.equal(typeof data.phone?.loginTitle, "string");
       assert.equal(typeof data.errors?.network, "string");
+      assert.equal(typeof data.errors?.BACKEND_UNREACHABLE, "string");
+      assert.doesNotMatch(data.errors?.BACKEND_UNREACHABLE ?? "", /catalogRegistration/);
     }
   });
 

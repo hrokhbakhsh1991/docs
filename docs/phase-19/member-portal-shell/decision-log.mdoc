@@ -573,6 +573,17 @@ extends:
 | **Dependencies** | PCMS-001 §5.5 · PCMS-MKT-AUTH-05 · DL-46 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) §16 Phase 5 |
 | **Open questions** | None. |
 
+### DL-48 — Portal `/login` is page OTP; PDP never leaves marketing (intake Auth UI Phase 2)
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **IMPLEMENTED (2026-08-16)** |
+| **Context** | DL-47 sends header Sign in to Portal `/login`. Live product: that page must run phone/OTP/profile **inline** (BUG-1). Auto-open `host="login"` modal blocked the page flow. Separately, API 502 showed the raw i18n key `catalogRegistration.errors.BACKEND_UNREACHABLE` (BUG-7), and PDP «ورود» fell through to portal `register?auth=login` when transport was missing / API blipped (BUG-8). |
+| **Decision** | `/login` mounts `data-portal-login-full-page` + `[data-portal-login-form-panel]` + `PublicCatalogRegistrationFlow` (`memberLoginEgress`). **No** `openLoginModal` on this route. Register page stays modal-first (PCMS-UX-MODAL-04). Marketing PDP trigger `preventDefault` whenever the modal provider is mounted; missing transport still opens the dialog with translated `BACKEND_UNREACHABLE`. GSH branding fetch keeps the last **successful** snapshot on network/5xx so chrome does not flash i18n `defaultSiteName` («باشگاه») during an API blip — still never hardcode `shenski`. |
+| **Consequences** | Header → page OTP. PDP stays on `/tours/{id}`. Cookie write / CORS / Layer A–E ownership unchanged. |
+| **Dependencies** | PCMS-001 1.5.2 · DL-47 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) |
+| **Open questions** | None. |
+
 ---
 
 *Promoted from Blueprint v9 · Architecture documentation only · Not implementation authorization*
@@ -629,6 +640,7 @@ extends:
 | DL-45 | public-auth CORS Phase 4 | PCMS §5.4 | CORS-01…05 | guard-pcms-authority | P4 guest-auth |
 | DL-46 | Marketing origin OTP host Phase 5 | PCMS §5.5 | MKT-AUTH-01…06 | guard-pcms-authority | P5 guest-auth |
 | DL-47 | Header Sign in → Portal `/login`; modal PDP-only | PCMS §5.5 AUTH-05 | MKT-AUTH-05 | guard-pcms-authority | P5 guest-auth |
+| DL-48 | `/login` page OTP; PDP stay-on-marketing; branding fail-soft | PCMS 1.5.2 | LOGIN-01 · AUTH-05 | portal + marketing specs | intake Auth UI P2 |
 
 *BMC = [builder-migration-contract.mdoc](./builder-migration-contract.mdoc) · GCSN = [guest-cross-surface-nav-schema.mdoc](./guest-cross-surface-nav-schema.mdoc)*
 

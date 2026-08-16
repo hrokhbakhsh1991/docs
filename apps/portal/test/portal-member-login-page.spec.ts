@@ -7,30 +7,29 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
-  it("PCMS-LOGIN-01 /login is a thin public host that auto-opens the shared modal", () => {
+  it("PCMS-LOGIN-01 /login is a page host with inline OTP (no auto-modal)", () => {
     const page = readFileSync(join(repoRoot, "apps/portal/app/login/page.tsx"), "utf8");
     assert.match(page, /pageKind="login"/);
     assert.match(page, /memberLoginEgress/);
     assert.match(page, /data-portal-return/);
     assert.match(page, /PortalAuthExperienceShell/);
     assert.match(page, /PortalLoginThinHost/);
-    assert.match(page, /data-portal-login-thin-host/);
+    assert.match(page, /data-portal-login-full-page/);
+    assert.doesNotMatch(page, /data-portal-login-thin-host/);
     assert.doesNotMatch(page, /PortalLoginAuthFlow/);
-    assert.doesNotMatch(page, /data-portal-login-full-page/);
-    assert.doesNotMatch(page, /data-portal-login-form-panel/);
     assert.doesNotMatch(page, /PublicCatalogRegistrationFlow/);
   });
 
-  it("PCMS-LOGIN-01d login-host modal owns onAuthenticated without a second probe", () => {
-    const modal = readFileSync(
-      join(repoRoot, "apps/portal/src/auth/portal-login-modal.tsx"),
+  it("PCMS-LOGIN-01d login page host owns onAuthenticated without a second probe", () => {
+    const thinHost = readFileSync(
+      join(repoRoot, "apps/portal/src/auth/portal-login-thin-host.tsx"),
       "utf8"
     );
-    assert.match(modal, /onLoginSessionReady/);
-    assert.match(modal, /completeMemberLoginEgress\(\{\s*memberLoginEgress: true/);
-    assert.match(modal, /host === "register" \? onRegisterSessionReady : onLoginSessionReady/);
-    assert.doesNotMatch(modal, /completeMemberLoginEgressAfterSession/);
-    assert.doesNotMatch(modal, /hydrateCatalogRegistrationIntakeAfterSession/);
+    assert.match(thinHost, /completeMemberLoginEgress\(\{\s*memberLoginEgress: true/);
+    assert.doesNotMatch(thinHost, /completeMemberLoginEgressAfterSession/);
+    assert.doesNotMatch(thinHost, /hydrateCatalogRegistrationIntakeAfterSession/);
+    assert.doesNotMatch(thinHost, /openLoginModal/);
+    assert.doesNotMatch(thinHost, /\/api\/public-auth/);
   });
 
   it("PCMS-LOGIN-01b missing login catalog tour does not notFound the host", () => {
@@ -135,20 +134,22 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
     assert.match(providers, /PortalLoginModalProvider/);
   });
 
-  it("MEM-LOGIN-MODAL-02 /login thin host auto-opens modal and keeps a reopen panel", () => {
+  it("MEM-LOGIN-MODAL-02 /login page mounts form-panel OTP and does not auto-open the modal", () => {
     const thinHost = readFileSync(
       join(repoRoot, "apps/portal/src/auth/portal-login-thin-host.tsx"),
       "utf8"
     );
     const page = readFileSync(join(repoRoot, "apps/portal/app/login/page.tsx"), "utf8");
-    assert.match(thinHost, /host: "login"/);
-    assert.match(thinHost, /openLoginModal/);
-    assert.match(thinHost, /data-portal-login-host-lede/);
-    assert.match(thinHost, /data-portal-login-host-trigger/);
-    assert.match(thinHost, /portalReturn/);
-    assert.doesNotMatch(thinHost, /PublicCatalogRegistrationFlow/);
+    assert.match(thinHost, /data-portal-login-form-panel/);
+    assert.match(thinHost, /PublicCatalogRegistrationFlow/);
+    assert.match(thinHost, /memberLoginEgress/);
+    assert.match(thinHost, /completeMemberLoginEgress/);
+    assert.doesNotMatch(thinHost, /openLoginModal/);
+    assert.doesNotMatch(thinHost, /data-portal-login-host-lede/);
+    assert.doesNotMatch(thinHost, /data-portal-login-host-trigger/);
     assert.doesNotMatch(thinHost, /\/api\/public-auth/);
     assert.match(page, /PortalLoginThinHost/);
+    assert.match(page, /data-portal-login-full-page/);
     assert.match(page, /resolveMemberLoginCatalogTourId/);
     assert.match(page, /tour\?\.title/);
   });

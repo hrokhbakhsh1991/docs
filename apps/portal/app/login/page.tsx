@@ -69,7 +69,7 @@ export default async function PortalMemberLoginPage({ searchParams }: PageProps)
     pluginId: bootstrap.pluginId,
     tourId,
   });
-  // Smoke tour id bootstraps the OTP modal plugin only. Operator smoke
+  // Smoke tour id bootstraps the OTP page flow plugin only. Operator smoke
   // (denali plugin + tenant …0014) may lack denali.club login tour …0220 — do not 404.
   const tourTitle =
     tour?.title?.trim() ||
@@ -95,7 +95,7 @@ export default async function PortalMemberLoginPage({ searchParams }: PageProps)
       workspace={workspace}
       mainAttributes={{
         "data-portal-return": portalReturn,
-        "data-portal-login-thin-host": "",
+        "data-portal-login-full-page": "",
       }}
     >
       <PortalLoginThinHost flow={loginFlow} portalReturn={portalReturn} />

@@ -1,7 +1,7 @@
 ---
 title: Denali guest login + club branding — remediation contract
 doc_id: DENALI-GUEST-LOGIN-BRANDING-REMEDIATION
-version: "2026-08-16-v14"
+version: "2026-08-16-v15"
 phase: guest-portal
 apps: [portal, marketing, web, api]
 workspace: denali
@@ -49,6 +49,7 @@ Admin  /settings/branding  →  tenants.theme.displayName = "shenski"
 | Layer | Owner | Rule |
 | ----- | ----- | ---- |
 | Resolve empty name | `guest-surface-host` `resolveGuestChromeDisplayName(displayName, fallback)` | Trimmed `displayName` wins. Else caller i18n. Never `"Portal"`, never `pluginId`. |
+| Fetch failure ≠ empty name | `fetchPublicTenantBrandingForHost` | Network / non-OK keeps the last **successful** snapshot for that branding host (process memory). Do not treat an API blip as `displayName: null` (that flashes i18n «باشگاه»). Still never hardcode `shenski`. Successful empty name still uses the i18n fallback. |
 | Marketing fallback | `catalog.nav.defaultSiteName` | Call the helper directly (no app-local alias wrapper). |
 | Portal fallback | `catalogRegistration.chrome.defaultSiteName` | One portal key (login chrome, `/me` header, document title). **Byte-equal** to marketing `nav.defaultSiteName` (guard spec). |
 | Club seed name | `DEV_TENANTS` denali row `…000003` `theme.displayName` | **`shenski`**. Workspace-type default stays color-only so operator smoke `…014` does not inherit the trade name. |

@@ -149,6 +149,7 @@
     "DENALI_REGISTRATION_DUPLICATE": "You already registered for this tour.",
     "BOOKING_GUEST_DUPLICATE": "This guest is already registered for this tour (duplicate national ID, phone, or name).",
     "SELF_IDENTITY_DUPLICATE": "These details are already registered for this tour (national ID, phone, or name).",
+    "BACKEND_UNREACHABLE": "Could not reach the server. Try again.",
     "network": "Something went wrong. Try again."
   },
   "sessionResume": {

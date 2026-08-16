@@ -118,15 +118,12 @@ export function MarketingLoginModalProvider({
 
   const openLoginModal = useCallback(
     (options?: OpenMarketingLoginModalOptions) => {
-      if (!canHostAuth) {
-        return;
-      }
       setHost(options?.host ?? "pdp");
       setFlow(buildFlow(options));
       setPresentation(resolvePresentation());
       setOpen(true);
     },
-    [buildFlow, canHostAuth]
+    [buildFlow]
   );
 
   useEffect(() => {
@@ -154,7 +151,7 @@ export function MarketingLoginModalProvider({
   }, [open]);
 
   useEffect(() => {
-    if (!canHostAuth || autoOpenedRef.current || typeof window === "undefined") {
+    if (autoOpenedRef.current || typeof window === "undefined") {
       return;
     }
     const params = new URLSearchParams(window.location.search);
@@ -166,7 +163,7 @@ export function MarketingLoginModalProvider({
     }
     autoOpenedRef.current = true;
     openLoginModal({ host: "pdp" });
-  }, [canHostAuth, openLoginModal]);
+  }, [openLoginModal]);
 
   const onAuthenticated = useCallback(async () => {
     const url = new URL(window.location.href);
@@ -232,7 +229,11 @@ export function MarketingLoginModalProvider({
                   onAuthenticated={onAuthenticated}
                 />
               </div>
-            ) : null}
+            ) : (
+              <p data-marketing-login-unavailable role="alert">
+                {t("errors.BACKEND_UNREACHABLE")}
+              </p>
+            )}
           </div>
         ) : null}
       </dialog>

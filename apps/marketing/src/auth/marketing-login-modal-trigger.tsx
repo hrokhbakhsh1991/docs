@@ -17,9 +17,9 @@ type Props = AnchorHTMLAttributes<HTMLAnchorElement> & {
 
 /**
  * Guest sign-in control for **PDP** (and a future marketing login host).
- * Opens the marketing OTP modal when the Portal-origin transport exists;
- * otherwise navigates to the GSH portal href. Header chrome must not use this
- * — it navigates to Portal `/login` (PCMS-MKT-AUTH-05).
+ * Opens the marketing OTP modal when the provider is mounted so the guest
+ * stays on `/tours/{id}`. `href` is no-JS / no-provider only. Header chrome
+ * must not use this — it navigates to Portal `/login` (PCMS-MKT-AUTH-05).
  */
 export function MarketingLoginModalTrigger({
   href,
@@ -37,7 +37,7 @@ export function MarketingLoginModalTrigger({
     if (event.defaultPrevented) {
       return;
     }
-    if (modal === null || !modal.canHostAuth) {
+    if (modal === null) {
       return;
     }
     event.preventDefault();

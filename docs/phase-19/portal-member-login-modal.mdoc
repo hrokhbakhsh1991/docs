@@ -63,7 +63,7 @@ PCMS-001 already requires marketing **read-only** detection of `atour_mb_session
 | `/catalog/{id}/register` | **Auto for guests** (PCMS-UX-MODAL-04); `?auth=login` compatible; reopen via Sign-in control | Close modal · **stay** · resume/hydrate **intake-only** (PCMS-REG-01) |
 | `/login` (thin public host) | Auto-open on load | `waitForMemberSessionCookie` then `location.assign(portalReturn)` |
 | Protected `/me/*` | **Cannot** host modal for guests | Middleware → `/login?portalReturn=<path>` (unchanged) |
-| Marketing header Sign in | **Navigate** to Portal `/login?portalReturn=/me/registrations` — not the marketing modal | Portal thin-host modal, then `portalReturn` |
+| Marketing header Sign in | **Navigate** to Portal `/login?portalReturn=/me/registrations` — not the marketing modal | Portal **page** OTP, then `portalReturn` |
 | Marketing PDP `/tours/{id}` | `[data-marketing-tour-sign-in]` client-opens marketing modal; optional `?auth=login` auto-open **only** on this pathname | Origin `probeSession` then **reload current PDP URL** |
 
 **Closed-modal a11y (2026-08-07):** `PortalLoginModalProvider` must not leave a visible/AT-exposed «ورود» / Sign-in `h2` on authenticated pages. When `open=false`, dialog content is unmounted and the `<dialog>` is `inert` so screen readers and a11y snapshots do not see a ghost login heading under `/me/*`.
@@ -128,17 +128,18 @@ apps/portal
           GuestAuthHostProvider       ← transport + host onAuthenticated
             shared phone / otp / profile steps
   app/login/page.tsx
-    PortalLoginThinHost               ← auto-open host="login" · host-lede reopen
-    modal onAuthenticated → completeMemberLoginEgress (portalReturn)
+    PortalLoginThinHost               ← page OTP · data-portal-login-full-page + form-panel
+    onAuthenticated → completeMemberLoginEgress (portalReturn)
+    smoke tourId = flow plugin bootstrap only (no intake, no 404)
 ```
 
 | Piece | Responsibility |
 | ----- | -------------- |
 | `PortalLoginModalProvider` | Imperative `openLoginModal({ portalReturn?, mode })` · URL `?auth=login` sync · focus restore |
 | `PublicCatalogRegistrationFlow` | Portal host shell: injects Portal same-origin transport + `onAuthenticated`; SSR-stable `memberLoginEgress` |
-| `/login/page.tsx` | Thin SSR host: PCMS-UX-01/02 gates · `data-portal-return` · `data-portal-login-thin-host`. **No** inline OTP. Smoke `tourId` is modal bootstrap only (missing catalog row must not 404). |
-| `PortalLoginThinHost` | Client: auto-open `host="login"` with `portalReturn`; fallback `[data-portal-login-host-lede]` + `[data-portal-login-host-trigger]` after dismiss. |
-| Login-host modal `onAuthenticated` | `completeMemberLoginEgress({ memberLoginEgress: true })` (**no** second cookie probe — steps already `probeSession`). Register host stays close + reload. |
+| `/login/page.tsx` | Public SSR host: PCMS-UX-01/02 gates · `data-portal-return` · `data-portal-login-full-page`. **Inline** phone/OTP/profile. Smoke `tourId` is flow-plugin bootstrap only (missing catalog row must not 404). |
+| `PortalLoginThinHost` | Client page host: story panel + `[data-portal-login-form-panel]` mounting `PublicCatalogRegistrationFlow` (`memberLoginEgress`). **Zero** `openLoginModal`. |
+| Page-host `onAuthenticated` | `completeMemberLoginEgress({ memberLoginEgress: true })` (**no** second cookie probe — steps already `probeSession`). Register host stays close + reload. |
 | Register page | Session → intake flow. Guest → auth gate + auto modal (PCMS-UX-MODAL-04); reopen via Sign-in · `?auth=login` compatible |
 | `@app-tour/catalog-registration-flow-ui` `GuestAuthTransport` | Phone/OTP/profile **network + session probe** only. Portal factory: same-origin `/api/public-auth/*` + `GET /api/me/profile`. Marketing factory: absolute portal `/api/public-auth/*` + `GET {origin}/api/public-auth/session`. No cookie write, no tenant, no intake. |
 | `GuestAuthHostProvider` | Injects `{ transport, onAuthenticated }` into auth steps. Steps throw if mounted outside the provider. |
@@ -207,12 +208,12 @@ apps/portal
   - Desktop (`presentation="dialog"`): `display: flex; align-items: center; justify-content: center; inset/width/height cover viewport; margin: 0; transparent surface`.
   - Mobile sheet (`presentation="sheet"`): same frame with `align-items: flex-end` so the panel docks to the bottom safe area.
   - Panel keeps `width: min(100vw - 2rem, 28rem)` (dialog) / full bleed (sheet); do **not** rely on UA dialog margin alone.
-- Thin `/login` host: hide `[data-portal-login-host-lede]` while the modal is open (`body:has([data-portal-login-modal-open="true"])`) so the alpine backdrop stays brand-only behind the dialog.
+- Register-host modal: hide gate chrome while the modal is open (`body:has([data-portal-login-modal-open="true"])`). `/login` no longer uses host-lede (page form).
 - Guest gate (PCMS-UX-MODAL-04): `[data-portal-register-guest-auth]` · `[data-portal-register-auth-gate]` · primary `[data-portal-register-sign-in-button]` — muted while modal open.
 - Modal OTP controls: `denali-form-controls.css` scopes `[data-portal-login-modal-body]` alongside `[data-portal-auth-card]`.
 - **No registration stepper** inside the login modal (`memberLoginEgress` skips `CatalogRegistrationStepper`); modal header title is the only step chrome.
 - Register page full-viewport auth experience **unchanged** when modal closed.
-- Thin `/login` host may keep muted backdrop behind modal for brand continuity (`data-portal-login-thin-host`).
+- `/login` page uses the existing `data-portal-login-full-page` alpine skin (story + form panel).
 
 ## 11. Implementation phases (code later)
 
@@ -231,14 +232,14 @@ apps/portal
 | ID | Assert |
 | -- | ------ |
 | MEM-LOGIN-MODAL-01 | Modal markers + presentation attr |
-| MEM-LOGIN-MODAL-02 | `/login` auto-opens thin host; session → redirect UX-02; dismiss keeps URL + host-lede reopen |
+| MEM-LOGIN-MODAL-02 | Register guest still auto-opens modal; `/login` is page OTP (no auto-modal); session → redirect UX-02 |
 | MEM-LOGIN-MODAL-03 | Register `?auth=login` opens modal; intake not in modal |
 | MKT-PCMS-03 | Unchanged — SSR header from cookie |
 | SMK-PTL-10 | Modal OTP → cookie probe → expected host behavior |
 | PCMS-UX-MODAL-COOKIE | Success path always probes before complete |
 | P1-TRANSPORT-01 | Auth steps contain no `/api/public-auth` / `location.assign` / intake hydrate |
 | P1-TRANSPORT-02 | `createPortalSameOriginGuestAuthTransport` owns relative BFF paths + `credentials: "include"` |
-| PCMS-LOGIN-01 | `/login` thin host auto-opens modal; `onAuthenticated` → `completeMemberLoginEgress` |
+| PCMS-LOGIN-01 | `/login` page mounts form-panel + `PublicCatalogRegistrationFlow`; `onAuthenticated` → `completeMemberLoginEgress`; no `openLoginModal` |
 | PCMS-CORS-01…05 | Public-auth CORS allowlist + session probe; no CORS on `/api/me/*` |
 
 ## 13. Explicit non-goals (repeat)
@@ -286,7 +287,9 @@ Five layers — Phase 1 implements A–E on **Portal only**:
 - Client register resume `useEffect` may still `GET /api/me/profile` — that is **host resume**, not auth-step transport
 - Marketing, CORS, cookie Domain helpers, GSH builders, `apps/api` public-auth, `workspace-sdk` HTTP: **unchanged**
 
-**Phase 2 DoD (this change) — `/login` thin host + smoke-tour cleanup:**
+**Phase 2 DoD (guest-auth history — `/login` thin host + smoke-tour cleanup):**
+
+Superseded for **standalone `/login` presentation** by **DL-48** (intake Auth UI Phase 2, 2026-08-16): phone/OTP/profile on the page. The bullets below remain the historical guest-auth ship; do not re-introduce auto-open `host="login"`.
 
 - `/login` mounts `data-portal-login-thin-host` (not `data-portal-login-full-page`)
 - Page auto-opens the shared modal with `host="login"` and `portalReturn` (PCMS-UX-04 on modal + `<main>`)
@@ -336,7 +339,7 @@ Marketing **may** host OTP UI. Cookie write stays Portal BFF. Marketing still **
 
 - `tryCreatePortalOriginGuestAuthTransport` / `createPortalOriginGuestAuthTransport` — absolute portal public-auth only; `credentials: "include"`; `probeSession` = `GET {origin}/api/public-auth/session`; never `/api/me/profile`; never persist `session_token`; invalid origin → `null` / `GuestAuthTransportError("network")`.
 - Marketing modal mounts `catalogRegistrationAuthFlowSteps` + `GuestAuthHostProvider` — **not** `PublicCatalogRegistrationFlow`.
-- Header `[data-marketing-header-sign-in]` **navigates** to Portal `/login` (plain `<a href={resolvePortalMemberLoginUrl}>`). PDP `[data-marketing-tour-sign-in]` opens the marketing modal; `href` fallback remains GSH `register?auth=login`.
+- Header `[data-marketing-header-sign-in]` **navigates** to Portal `/login` (plain `<a href={resolvePortalMemberLoginUrl}>`). PDP `[data-marketing-tour-sign-in]` opens the marketing modal; `href` is no-JS only (JS must `preventDefault` whenever the provider is mounted).
 - Marketing `?auth=login` auto-opens the modal **only** on `/tours/{id}` (optional locale prefix). Other marketing routes ignore it so header Sign in cannot be re-captured by a query string.
 - Host `onAuthenticated` → reload current marketing URL (strip `auth=login`).
 - `createPortalSameOriginGuestAuthTransport` remains Portal-only, arity 0.
@@ -344,6 +347,7 @@ Marketing **may** host OTP UI. Cookie write stays Portal BFF. Marketing still **
 
 | Later phase | Work | Blocker |
 | ----------- | ---- | ------- |
+| **Intake Auth UI Phase 2 (DL-48)** | `/login` page OTP (BUG-1). Marketing `BACKEND_UNREACHABLE` copy (BUG-7). PDP stay-on-page + branding fail-soft (BUG-8). | Guest-auth Phase 5 (done) |
 | **6** | Retire PDP→modal-on-register as the primary logged-out buy path | Phase 5 (done) |
 
 Acceptance retained: *Portal remains the only cookie writer and `/me/*` gate. Marketing is a second auth **UI** host via Portal-origin transport + approved CORS, without rewriting OTP/profile UI, creating a second auth package, moving session ownership, or deleting Portal `/login`.*

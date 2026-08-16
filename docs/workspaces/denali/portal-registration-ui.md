@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-08-16-v16"
+version: "2026-08-16-v17"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -27,11 +27,11 @@ Workspace-agnostic **guest registration shell** in `apps/portal`. Business rules
 app/layout.tsx
   PortalProviders
     PortalLoginModalProvider          ← design PCMS-UX-MODAL (dialog/sheet)
-  └── app/login/page.tsx              ← thin SSR host · data-portal-login-thin-host
-        PortalLoginThinHost auto-open host="login"
-        dismiss → data-portal-login-host-lede + host-trigger
-        modal onAuthenticated → completeMemberLoginEgress (portalReturn)
-        smoke tourId = modal bootstrap only (no inline OTP, no 404)
+  └── app/login/page.tsx              ← page SSR host · data-portal-login-full-page
+        PortalLoginThinHost story + data-portal-login-form-panel
+        PublicCatalogRegistrationFlow memberLoginEgress (phone/OTP/profile on the page)
+        onAuthenticated → completeMemberLoginEgress (portalReturn)
+        smoke tourId = flow plugin bootstrap only (no intake, no 404)
   └── app/catalog/[tourId]/register/page.tsx
         PortalAuthExperienceShell     ← FULL PAGE tour registration chrome
         session: PublicCatalogRegistrationFlow (intake-only)
@@ -68,8 +68,8 @@ Portal `/login` is retained (middleware `/me/*` gate). Marketing must not add `a
 | `[data-portal-register-auth-gate]` | Card CTA while waiting for / after dismiss of login modal |
 | `[data-portal-register-auth-gate-lede]` | Gate helper copy (hidden when hero lede present) |
 | `[data-portal-register-sign-in-button]` | Primary reopen control inside the gate |
-| `[data-portal-login-thin-host]` | Thin `/login` host marker |
-| `[data-portal-login-host-lede]` | Fallback copy when modal closed; hidden while modal open |
+| `[data-portal-login-full-page]` | `/login` page host marker (phone/OTP/profile on the page) |
+| `[data-portal-login-form-panel]` | Page OTP panel (`#phone` lives here, not in a dialog) |
 
 **Login modal hooks (PCMS-UX-MODAL):**
 
@@ -120,7 +120,7 @@ Example tour sign-in URL: `/catalog/{tourId}/register?auth=login`
 | `[data-phone-hint="existing"]` | Returning member on register — copy switches to «تأیید موبایل برای ادامه» (preflight on blur + after send) |
 | `[data-marketing-tour-sign-in]` | Secondary PDP link — **guest only**; hidden for readable member sessions (Phase 3) |
 
-**Hydration (PCMS-UX-HYDRATE):** Login egress mode is **never** derived from `window.location` during React render. `/login` is a thin host (`data-portal-login-thin-host`) that auto-opens the shared modal. The modal mounts `PublicCatalogRegistrationFlow` with `memberLoginEgress`, which forwards `RegistrationFlowContext.memberLoginEgress` to shared auth steps. Client-only `isMemberLoginEgressFromLocation()` remains for redirect target resolution (`portalReturn` query / `data-portal-return`) after OTP — not for SSR markup.
+**Hydration (PCMS-UX-HYDRATE):** Login egress mode is **never** derived from `window.location` during React render. `/login` is a **page** host (`data-portal-login-full-page`) that mounts `PublicCatalogRegistrationFlow` with `memberLoginEgress` (forwards to shared auth steps). Client-only `isMemberLoginEgressFromLocation()` remains for redirect target resolution (`portalReturn` query / `data-portal-return`) after OTP — not for SSR markup. The **register** route still auto-opens the shared modal (PCMS-UX-MODAL-04).
 
 ### Registration stepper modes
 
@@ -128,9 +128,9 @@ Example tour sign-in URL: `/catalog/{tourId}/register?auth=login`
 | ---- | ---- | ----------- |
 | `registration` | Guest register page (session present / after auth) | phone → otp → profile → intake |
 | `intake-only` | Member resume at intake (PCMS-REG-02) | intake only — auth steps hidden |
-| *(none)* | Login modal / `memberLoginEgress` | **No stepper** — title in modal header; flow still phone → OTP → profile |
+| *(none)* | Login page / register modal / `memberLoginEgress` | **No stepper** — title in page hero or modal header; flow still phone → OTP → profile |
 
-Hook: `[data-registration-stepper-mode="intake-only"]`. Wired in `public-catalog-registration-flow.tsx` when `initialRuntimeState.currentStep === "intake"` or client `data-registration-resume="intake"`. Login modal (`memberLoginEgress`) skips `CatalogRegistrationStepper` entirely.
+Hook: `[data-registration-stepper-mode="intake-only"]`. Wired in `public-catalog-registration-flow.tsx` when `initialRuntimeState.currentStep === "intake"` or client `data-registration-resume="intake"`. Login egress (`memberLoginEgress`) skips `CatalogRegistrationStepper` entirely.
 
 ### BFF (server)
 
