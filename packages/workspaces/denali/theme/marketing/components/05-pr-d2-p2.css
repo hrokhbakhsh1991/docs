@@ -28,7 +28,9 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"] a[data-marketing-home-cta],
-body[data-app-surface="marketing"][data-workspace-plugin="denali"] a[data-marketing-register] {
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-register]:not([data-marketing-register-another]),
+body[data-app-surface="marketing"][data-workspace-plugin="denali"] a[data-marketing-view-registration] {
   color: var(--color-accent-fg);
 }
 
@@ -37,16 +39,28 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] a[data-market
     a[data-marketing-home-cta]:hover,
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     div[data-marketing-catalog-detail-cta-primary]
-    a[data-marketing-register]:hover,
+    a[data-marketing-register]:not([data-marketing-register-another]):hover,
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     footer[data-marketing-catalog-detail-actions]
-    a[data-marketing-register]:hover,
+    a[data-marketing-register]:not([data-marketing-register-another]):hover,
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     div[data-marketing-catalog-detail-booking-rail-cta]
-    a[data-marketing-register]:hover,
+    a[data-marketing-register]:not([data-marketing-register-another]):hover,
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     div[data-marketing-catalog-detail-sticky-bar]
-    a[data-marketing-register]:hover,
+    a[data-marketing-register]:not([data-marketing-register-another]):hover,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-catalog-detail-cta-primary]
+    a[data-marketing-view-registration]:hover,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    footer[data-marketing-catalog-detail-actions]
+    a[data-marketing-view-registration]:hover,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-catalog-detail-booking-rail-cta]
+    a[data-marketing-view-registration]:hover,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-catalog-detail-sticky-bar]
+    a[data-marketing-view-registration]:hover,
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     article[data-marketing-catalog-card]:hover {
     transform: none;

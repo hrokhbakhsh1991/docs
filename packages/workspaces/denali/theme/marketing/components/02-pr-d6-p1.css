@@ -265,16 +265,16 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-catalog-detail-cta-primary]
-  a[data-marketing-register],
+  a[data-marketing-register]:not([data-marketing-register-another]),
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   footer[data-marketing-catalog-detail-actions]
-  a[data-marketing-register],
+  a[data-marketing-register]:not([data-marketing-register-another]),
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-catalog-detail-booking-rail-cta]
-  a[data-marketing-register],
+  a[data-marketing-register]:not([data-marketing-register-another]),
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-catalog-detail-sticky-bar]
-  a[data-marketing-register] {
+  a[data-marketing-register]:not([data-marketing-register-another]) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -294,16 +294,16 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-catalog-detail-cta-primary]
-  a[data-marketing-register]:hover,
+  a[data-marketing-register]:not([data-marketing-register-another]):hover,
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   footer[data-marketing-catalog-detail-actions]
-  a[data-marketing-register]:hover,
+  a[data-marketing-register]:not([data-marketing-register-another]):hover,
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-catalog-detail-booking-rail-cta]
-  a[data-marketing-register]:hover,
+  a[data-marketing-register]:not([data-marketing-register-another]):hover,
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-catalog-detail-sticky-bar]
-  a[data-marketing-register]:hover {
+  a[data-marketing-register]:not([data-marketing-register-another]):hover {
   opacity: 0.92;
   transform: translateY(-1px);
 }
@@ -359,7 +359,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-catalog-detail-sticky-bar]
-  a[data-marketing-register] {
+  a[data-marketing-register]:not([data-marketing-register-another]) {
   flex: 0 0 auto;
   width: auto;
   min-width: 8rem;

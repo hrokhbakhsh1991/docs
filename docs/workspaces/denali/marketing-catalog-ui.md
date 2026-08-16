@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-MARKETING-CATALOG-UI
-version: "2026-08-16-v5"
+version: "2026-08-16-v6"
 extends: public-catalog.md
 apps: [marketing]
 phase: P6-1
@@ -156,6 +156,8 @@ Authority: [PCMS-001 §5.3](../../standards/member-session-portal-authority.mdoc
 | `guest` | Cookie missing / invalid / tenant bind fail | `data-marketing-register` → `resolveWebRegistrationUrl` | `data-marketing-tour-sign-in` → `resolveWebRegistrationLoginUrl` | `detail.register` / `detail.signInToRegister` |
 | `member-continue` | Session readable; for-tour `self` null, path missing, or fetch error | `data-marketing-register` → register URL **without** `auth=login` | none | `detail.continueRegister` |
 | `member-self` | Session readable; for-tour returns `self.id`; GSH builds detail URL | `data-marketing-view-registration` → `/me/registrations/{id}` | `data-marketing-register` + `data-marketing-register-another` when `canRegister` | `detail.viewMyRegistration` / `detail.registerAnotherGuest` |
+
+**Skin (Denali):** `[data-marketing-view-registration]` uses the same accent primary button as `[data-marketing-register]`. `[data-marketing-register-another]` is excluded from that button (`:not([data-marketing-register-another])`) and shares the underlined secondary stack with `[data-marketing-tour-sign-in]` (`36-mkt-tour-sign-in-cta.css`, imported last). Sticky wraps both in `[data-marketing-catalog-detail-sticky-cta]`.
 
 **Sold-out:** guest / member-continue still show sold-out copy. Member-self still shows view-registration (the booking exists); register-another is omitted when `canRegister` is false.
 

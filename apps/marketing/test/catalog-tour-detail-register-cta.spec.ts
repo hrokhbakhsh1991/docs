@@ -75,6 +75,24 @@ describe("catalog-tour-detail-register-cta — PCMS tour sign-in + Phase 3", () 
     assert.doesNotMatch(JSON.stringify(en), /shenski/i);
   });
 
+  it("MKT-PCMS-P3-12 Denali skin treats view-registration as primary and register-another as secondary", () => {
+    const skin = readFileSync(
+      join(
+        repoRoot,
+        "packages/workspaces/denali/theme/marketing/components/36-mkt-tour-sign-in-cta.css"
+      ),
+      "utf8"
+    );
+    const primary = readFileSync(
+      join(repoRoot, "packages/workspaces/denali/theme/marketing/components/02-pr-d6-p1.css"),
+      "utf8"
+    );
+    assert.match(skin, /data-marketing-view-registration/);
+    assert.match(skin, /data-marketing-register-another/);
+    assert.match(skin, /data-marketing-catalog-detail-sticky-cta/);
+    assert.match(primary, /data-marketing-register\]:not\(\[data-marketing-register-another\]\)/);
+  });
+
   it("MKT-PCMS-P3-11 tour detail page resolves CTA from session-aware server helper", () => {
     const page = readFileSync(
       join(repoRoot, "apps/marketing/app/tours/[tourId]/page.tsx"),
