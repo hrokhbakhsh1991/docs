@@ -1,0 +1,33 @@
+{
+  "name": "app-tour",
+  "install": "bash scripts/cloud/ensure-node24.sh && pnpm install --frozen-lockfile && pnpm --filter @apps/api run prisma:generate && bash scripts/cloud/agent-start.sh",
+  "start": "bash scripts/cloud/agent-start.sh",
+  "ports": [
+    { "name": "api", "port": 3001 },
+    { "name": "web-operator", "port": 3000 },
+    { "name": "marketing", "port": 3002 },
+    { "name": "portal", "port": 3003 }
+  ],
+  "terminals": [
+    {
+      "name": "api",
+      "command": "bash scripts/cloud/ensure-node24.sh && pnpm --filter @apps/api run dev",
+      "description": "Tour-ops API (in-memory driver). Health: http://127.0.0.1:3001/health"
+    },
+    {
+      "name": "web-operator",
+      "command": "bash scripts/cloud/ensure-node24.sh && pnpm --filter @apps/web run dev",
+      "description": "Operator admin (Next.js). Use Host operator.localhost -> http://operator.localhost:3000/"
+    },
+    {
+      "name": "marketing",
+      "command": "bash scripts/cloud/ensure-node24.sh && pnpm --filter @apps/marketing run dev",
+      "description": "Public club marketing (Next.js). Use Host denali.localhost -> http://denali.localhost:3002/"
+    },
+    {
+      "name": "portal",
+      "command": "bash scripts/cloud/ensure-node24.sh && pnpm --filter @apps/portal run dev",
+      "description": "Member portal (Next.js). Use Host denali.portal.localhost -> http://denali.portal.localhost:3003/"
+    }
+  ]
+}
