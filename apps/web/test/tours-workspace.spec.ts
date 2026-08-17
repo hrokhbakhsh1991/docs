@@ -496,6 +496,30 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.equal(receiptOnly.guestRows[0]?.registrationId, "r-only");
   });
 
+  it("PAY-FIN-02 Money Inbox — approved unpaid with no receipts still awaits payment", () => {
+    const inbox = buildTourFinanceMoneyInbox({
+      outstanding: [
+        {
+          registrationId: "r-approved-unpaid",
+          identity: { memberDisplayName: "Mina", tourTitle: null, tourId: TOUR_ID },
+          invoice: {
+            remainingMinor: "2500000",
+            currency: "IRR",
+            totalMinor: "2500000",
+            paidMinor: "0",
+          },
+          bookingPaymentStatus: "unpaid",
+          occurredAt: "2026-08-12T00:00:00.000Z",
+        },
+      ],
+      pendingReceipts: [],
+    });
+    assert.equal(inbox.leadSection, "awaiting_payment");
+    assert.equal(inbox.awaitingGuestCount, 1);
+    assert.equal(inbox.guestRows[0]?.registrationId, "r-approved-unpaid");
+    assert.equal(inbox.guestRows[0]?.kind, "unpaid");
+  });
+
   it("H-11 Tour Money Inbox — filters, hub href, focus parse", () => {
     const inbox = buildTourFinanceMoneyInbox({
       outstanding: [

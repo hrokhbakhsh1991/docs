@@ -60,7 +60,21 @@ let receiptsById = new Map<string, StoredReceipt>();
 let ledgerEvents: StoredLedgerEvent[] = [];
 let prepaymentsByDomainEventId = new Map<string, FinancePrepaymentListRow & { readonly tenantId: string }>();
 let refundsById = new Map<string, FinanceRefundRow>();
+let registrationCandidateClocksById = new Map<
+  string,
+  { readonly tenantId: string; readonly occurredAt: Date }
+>();
 
+export function seedOutstandingRegistrationCandidate(input: {
+  readonly tenantId: string;
+  readonly registrationId: string;
+  readonly occurredAt?: Date;
+}): void {
+  registrationCandidateClocksById.set(input.registrationId, {
+    tenantId: input.tenantId,
+    occurredAt: input.occurredAt ?? new Date("2026-08-01T00:00:00.000Z"),
+  });
+}
 
 export function resetInMemoryFinanceRepositoryForTests(): void {
   paymentsById = new Map();
@@ -68,6 +82,7 @@ export function resetInMemoryFinanceRepositoryForTests(): void {
   ledgerEvents = [];
   prepaymentsByDomainEventId = new Map();
   refundsById = new Map();
+  registrationCandidateClocksById = new Map();
 }
 
 function toLedgerOutboxRow(row: StoredLedgerEvent): FinanceLedgerOutboxRow {
@@ -389,6 +404,12 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     tenantId: string
   ): Promise<ListOutstandingBalanceCandidatesResult> {
     const byRegistration = new Map<string, Date>();
+    for (const [registrationId, row] of registrationCandidateClocksById) {
+      if (row.tenantId !== tenantId) {
+        continue;
+      }
+      byRegistration.set(registrationId, row.occurredAt);
+    }
     for (const payment of paymentsById.values()) {
       if (payment.tenantId !== tenantId) {
         continue;

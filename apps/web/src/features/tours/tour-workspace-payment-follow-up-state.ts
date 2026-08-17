@@ -203,6 +203,28 @@ export function resolveTourWorkspacePaymentSummaryStatus(input: {
   return "needs_payment";
 }
 
+/**
+ * PAY-FIN-03 — while invoice/payments/schedule are still in flight, do not build a
+ * detail state from list receipts alone (that falsely yields requirement "none").
+ */
+export function shouldBuildTourWorkspacePaymentDetailState(input: {
+  readonly loading: boolean;
+  readonly invoice: RegistrationInvoice | null;
+  readonly payments: readonly FinancePaymentRow[];
+  readonly schedule: readonly PaymentScheduleItem[];
+  readonly receipts: readonly FinancePendingReceipt[];
+}): boolean {
+  if (input.loading) {
+    return false;
+  }
+  return !(
+    input.invoice === null &&
+    input.payments.length === 0 &&
+    input.schedule.length === 0 &&
+    input.receipts.length === 0
+  );
+}
+
 export function buildTourWorkspacePaymentDetailState(input: {
   readonly invoice: RegistrationInvoice | null;
   readonly payments: readonly FinancePaymentRow[];

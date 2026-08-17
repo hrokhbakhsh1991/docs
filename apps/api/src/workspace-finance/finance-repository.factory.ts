@@ -3,6 +3,7 @@ import {
   resolveStorageDriver,
 } from "../storage/production-storage-driver-assert";
 import { DUAL_STORE_ROLE_RETAINED_TEST_DEV_ADAPTER } from "../storage/dual-store-role";
+import { getBookingsRepository } from "../bookings/create-bookings-repository";
 import { PrismaFinanceRepository } from "./infrastructure/prisma-finance.repository";
 import { InMemoryFinanceRepository } from "./in-memory-finance.repository";
 import type { IBookingPaymentPort } from "./ports/booking-payment.port";
@@ -38,7 +39,10 @@ export function createFinanceRepository(
     return financeRepositorySingleton;
   }
   if (resolveStorageDriver() === "memory") {
-    financeRepositorySingleton = new InMemoryFinanceRepository(bookingPayments);
+    financeRepositorySingleton = new InMemoryFinanceRepository(
+      bookingPayments,
+      getBookingsRepository()
+    );
   } else {
     financeRepositorySingleton = new PrismaFinanceRepository(bookingPayments);
   }

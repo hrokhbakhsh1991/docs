@@ -212,6 +212,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const {
     loading,
+    panelBlocking,
     error,
     outstanding,
     tours,
@@ -263,7 +264,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
   }, [pathname, router, searchParams]);
 
   useEffect(() => {
-    if (loading || !loadSucceeded || pendingFocusId === null) {
+    if (panelBlocking || !loadSucceeded || pendingFocusId === null) {
       return;
     }
     const found = findTourFinanceGuestRow(inbox.guestRows, pendingFocusId);
@@ -287,7 +288,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     inbox.guestRows,
     isNarrowViewport,
     loadSucceeded,
-    loading,
+    panelBlocking,
     pendingFocusId,
   ]);
 
@@ -309,7 +310,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     );
   }, [visibleRows]);
 
-  const showGuestTools = !loading && shouldShowTourFinanceGuestTools(inbox);
+  const showGuestTools = !panelBlocking && shouldShowTourFinanceGuestTools(inbox);
   const selectedRow = useMemo(
     () => visibleRows.find((row) => row.key === selectedRowKey) ?? null,
     [selectedRowKey, visibleRows]
@@ -900,14 +901,14 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           </p>
         ) : null}
 
-        {loading ? (
+        {panelBlocking ? (
           <div className="space-y-2">
             <OperatorSkeleton size="user-card" />
             <OperatorSkeleton size="user-card" />
           </div>
         ) : null}
 
-        {!loading && missedFocusId !== null ? (
+        {!panelBlocking && missedFocusId !== null ? (
           <p
             className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground"
             data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.focusMiss}
@@ -929,7 +930,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           </p>
         ) : null}
 
-        {!loading && loadSucceeded && degradedSections.length > 0 ? (
+        {!panelBlocking && loadSucceeded && degradedSections.length > 0 ? (
           <div
             className="space-y-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm"
             role="status"
@@ -947,7 +948,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           </div>
         ) : null}
 
-        {!loading && inbox.leadSection === "settled" ? (
+        {!panelBlocking && inbox.leadSection === "settled" ? (
           <div
             className="rounded-lg border border-dashed bg-muted/20 p-4 text-center text-sm text-muted-foreground"
             data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.allSettled}
@@ -956,7 +957,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           </div>
         ) : null}
 
-        {!loading && inbox.leadSection !== "settled" ? (
+        {!panelBlocking && inbox.leadSection !== "settled" ? (
           <div
             className="space-y-1 rounded-md border bg-muted/20 px-3 py-2 text-sm"
             data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.statusStrip}
@@ -1033,7 +1034,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           />
         ) : null}
 
-        {!loading ? (
+        {!panelBlocking ? (
           <div className="space-y-2 border-t pt-4">
             <p
               className="text-xs text-muted-foreground"

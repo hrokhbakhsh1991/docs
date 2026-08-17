@@ -157,6 +157,7 @@ describe("portal-member-registrations", () => {
     assert.match(skin, /\[data-public-auth-logout\]/);
     assert.match(memberPages, /\[data-portal-member-registrant-other-badge\]/);
     assert.match(memberPages, /\[data-portal-member-registrant-self-badge\]/);
+    assert.match(memberPages, /\[data-portal-member-receipt-upload-actions\][\s\S]*margin-bottom/);
     assert.match(memberPages, /\[data-portal-member-registration-guest\]/);
     assert.match(memberPages, /\[data-portal-member-registrations-filter\]/);
     assert.match(skin, /\[data-portal-member-registrations-filter-tab\]/);

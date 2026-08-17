@@ -24,6 +24,7 @@ export type {
   ListPendingReceiptsQuery,
   ListRefundsPageQuery,
   ListRefundsPageResult,
+  OutstandingBalanceCandidateRow,
   PrepaymentBookingSyncDegradedRow,
   RecordPrepaymentAtomicInput,
   RecordPrepaymentAtomicResult,

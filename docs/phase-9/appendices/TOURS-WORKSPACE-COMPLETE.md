@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: TOURS-WORKSPACE-COMPLETE
-version: "2026-08-12-v2"
+version: "2026-08-16-v3"
 status: COMPLETE
 subphase: "9.3+"
 continues: TOURS-WORKSPACE-UX.md
@@ -154,7 +154,7 @@ Tour is a **filter + money inbox**; Financial Case remains per registration.
 | Queue | Includes | Operator job |
 | ----- | -------- | ------------ |
 | **Needs attention** | Pending receipts · outstanding with `bookingPaymentStatus=partial` | Do now — review receipt / inspect partial |
-| **Awaiting payment** | Outstanding with `unpaid` (or null + remaining) | Follow up — guest still owes |
+| **Awaiting payment** | Outstanding with `unpaid` (or null + remaining), **including approved unpaid with zero payment/receipt rows** (`approve_then_offline_pay`) | Follow up — guest still owes |
 | Section order | If Needs attention has rows → show it first; else Awaiting payment first | Actionability, not fixed receipt-over-unpaid |
 | Language | “N guests still owe” + remaining total — not bare `Outstanding: N` | Product copy |
 | Row CTA | Receipt → review receipt (hub/case) · Unpaid/partial → follow up payment / case | Human status + verb |

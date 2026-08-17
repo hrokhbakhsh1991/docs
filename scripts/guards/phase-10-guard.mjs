@@ -149,6 +149,7 @@ const WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
   "finance.service.ts",
   "in-memory-finance.repository.ts",
   "infrastructure",
+  "outstanding-balance-memory-candidates.spec.ts",
   "paid-without-ledger-detection.spec.ts",
   "paid-without-ledger-detection.ts",
   "ports",

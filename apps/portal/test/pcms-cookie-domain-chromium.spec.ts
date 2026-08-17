@@ -1,11 +1,23 @@
 /**
  * PCMS-COOK-01 — Chromium accepts Domain=apex; rejects Domain=.localhost (PSL).
+ *
+ * Requires Playwright Chromium on disk. Phase-0 `test:changed` does not install
+ * browsers — skip cleanly there; E2E/smoke jobs install chromium first.
  */
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import http from "node:http";
 import { describe, it } from "node:test";
 
 import { chromium } from "@playwright/test";
+
+function playwrightChromiumReady(): boolean {
+  try {
+    return fs.existsSync(chromium.executablePath());
+  } catch {
+    return false;
+  }
+}
 
 async function withCookieServer(
   setCookie: string,
@@ -36,81 +48,89 @@ async function withCookieServer(
   }
 }
 
-describe("PCMS-COOK Chromium Domain acceptance", () => {
-  it("PCMS-COOK-CR-01 Domain=denali.club shares portal → marketing", async () => {
-    await withCookieServer(
-      "atour_mb_session=APEX; Path=/; SameSite=Lax; Max-Age=3600; Domain=denali.club",
-      async (port) => {
-        const browser = await chromium.launch({
-          headless: true,
-          args: [
-            "--host-resolver-rules=MAP portal.denali.club 127.0.0.1, MAP denali.club 127.0.0.1",
-          ],
-        });
-        try {
-          const context = await browser.newContext();
-          const portalPage = await context.newPage();
-          await portalPage.goto(`http://portal.denali.club:${port}/set`);
-          const stored = (await context.cookies()).filter((c) => c.name === "atour_mb_session");
-          assert.equal(stored.length, 1);
-          assert.equal(stored[0]?.domain.replace(/^\./, ""), "denali.club");
+describe(
+  "PCMS-COOK Chromium Domain acceptance",
+  {
+    skip: playwrightChromiumReady()
+      ? false
+      : "Playwright chromium browser not installed (run portal test:smoke:install)",
+  },
+  () => {
+    it("PCMS-COOK-CR-01 Domain=denali.club shares portal → marketing", async () => {
+      await withCookieServer(
+        "atour_mb_session=APEX; Path=/; SameSite=Lax; Max-Age=3600; Domain=denali.club",
+        async (port) => {
+          const browser = await chromium.launch({
+            headless: true,
+            args: [
+              "--host-resolver-rules=MAP portal.denali.club 127.0.0.1, MAP denali.club 127.0.0.1",
+            ],
+          });
+          try {
+            const context = await browser.newContext();
+            const portalPage = await context.newPage();
+            await portalPage.goto(`http://portal.denali.club:${port}/set`);
+            const stored = (await context.cookies()).filter((c) => c.name === "atour_mb_session");
+            assert.equal(stored.length, 1);
+            assert.equal(stored[0]?.domain.replace(/^\./, ""), "denali.club");
 
-          const marketingPage = await context.newPage();
-          const body = await (await marketingPage.goto(`http://denali.club:${port}/`)).text();
-          assert.match(body, /atour_mb_session=APEX/);
-        } finally {
-          await browser.close();
+            const marketingPage = await context.newPage();
+            const body = await (await marketingPage.goto(`http://denali.club:${port}/`)).text();
+            assert.match(body, /atour_mb_session=APEX/);
+          } finally {
+            await browser.close();
+          }
         }
-      }
-    );
-  });
+      );
+    });
 
-  it("PCMS-COOK-CR-02 Domain=.localhost is rejected; host-only does not reach marketing", async () => {
-    await withCookieServer(
-      "atour_mb_session=DOT; Path=/; SameSite=Lax; Max-Age=3600; Domain=.localhost",
-      async (port) => {
-        const browser = await chromium.launch({ headless: true });
-        try {
-          const context = await browser.newContext();
-          const page = await context.newPage();
-          await page.goto(`http://denali.portal.localhost:${port}/set`);
-          const stored = (await context.cookies()).filter((c) => c.name === "atour_mb_session");
-          assert.equal(stored.length, 0);
+    it("PCMS-COOK-CR-02 Domain=.localhost is rejected; host-only does not reach marketing", async () => {
+      await withCookieServer(
+        "atour_mb_session=DOT; Path=/; SameSite=Lax; Max-Age=3600; Domain=.localhost",
+        async (port) => {
+          const browser = await chromium.launch({ headless: true });
+          try {
+            const context = await browser.newContext();
+            const page = await context.newPage();
+            await page.goto(`http://denali.portal.localhost:${port}/set`);
+            const stored = (await context.cookies()).filter((c) => c.name === "atour_mb_session");
+            assert.equal(stored.length, 0);
 
-          const marketingPage = await context.newPage();
-          const body = await (
-            await marketingPage.goto(`http://denali.localhost:${port}/`)
-          ).text();
-          assert.equal(body, "cookie=");
-        } finally {
-          await browser.close();
+            const marketingPage = await context.newPage();
+            const body = await (
+              await marketingPage.goto(`http://denali.localhost:${port}/`)
+            ).text();
+            assert.equal(body, "cookie=");
+          } finally {
+            await browser.close();
+          }
         }
-      }
-    );
-  });
+      );
+    });
 
-  it("PCMS-COOK-CR-03 Domain=denali.localhost shares portal.denali.localhost → denali.localhost", async () => {
-    await withCookieServer(
-      "atour_mb_session=LOCAL; Path=/; SameSite=Lax; Max-Age=3600; Domain=denali.localhost",
-      async (port) => {
-        const browser = await chromium.launch({ headless: true });
-        try {
-          const context = await browser.newContext();
-          const portalPage = await context.newPage();
-          await portalPage.goto(`http://portal.denali.localhost:${port}/set`);
-          const stored = (await context.cookies()).filter((c) => c.name === "atour_mb_session");
-          assert.equal(stored.length, 1);
-          assert.equal(stored[0]?.domain.replace(/^\./, ""), "denali.localhost");
+    it("PCMS-COOK-CR-03 Domain=denali.localhost shares portal.denali.localhost → denali.localhost", async () => {
+      await withCookieServer(
+        "atour_mb_session=LOCAL; Path=/; SameSite=Lax; Max-Age=3600; Domain=denali.localhost",
+        async (port) => {
+          const browser = await chromium.launch({ headless: true });
+          try {
+            const context = await browser.newContext();
+            const portalPage = await context.newPage();
+            await portalPage.goto(`http://portal.denali.localhost:${port}/set`);
+            const stored = (await context.cookies()).filter((c) => c.name === "atour_mb_session");
+            assert.equal(stored.length, 1);
+            assert.equal(stored[0]?.domain.replace(/^\./, ""), "denali.localhost");
 
-          const marketingPage = await context.newPage();
-          const body = await (
-            await marketingPage.goto(`http://denali.localhost:${port}/`)
-          ).text();
-          assert.match(body, /atour_mb_session=LOCAL/);
-        } finally {
-          await browser.close();
+            const marketingPage = await context.newPage();
+            const body = await (
+              await marketingPage.goto(`http://denali.localhost:${port}/`)
+            ).text();
+            assert.match(body, /atour_mb_session=LOCAL/);
+          } finally {
+            await browser.close();
+          }
         }
-      }
-    );
-  });
-});
+      );
+    });
+  }
+);

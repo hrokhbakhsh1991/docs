@@ -245,7 +245,9 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-main],
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-slot="shell-main"] {
   min-height: calc(100dvh - 8.75rem);
-  padding: var(--space-5) var(--space-4) calc(var(--space-7) + env(safe-area-inset-bottom, 0px));
+  /* Clear fixed bottom nav (min-height 3.25rem + nav padding) so primary CTAs are tappable (PAY-MB-01). */
+  padding: var(--space-5) var(--space-4)
+    calc(var(--space-7) + 3.25rem + var(--space-4) + env(safe-area-inset-bottom, 0px));
   background:
     radial-gradient(
       ellipse 120% 45% at 50% -5%,
