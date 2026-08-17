@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { isPoolSaturationError } from "./pool-saturation";
-import { isPrismaErrorOfType } from "./prisma-error-instance";
+import { isPrismaErrorOfType, readPrismaErrorCode } from "./prisma-error-instance";
 
 const TRANSIENT_PRISMA_CODES = new Set(["P1001", "P1002", "P1017"]);
 
@@ -26,13 +26,9 @@ export function isTransientDbError(error: unknown): boolean {
     return true;
   }
 
-  if (
-    isPrismaErrorOfType<Prisma.PrismaClientKnownRequestError>(
-      error,
-      Prisma.PrismaClientKnownRequestError
-    )
-  ) {
-    return TRANSIENT_PRISMA_CODES.has(error.code);
+  if (isPrismaErrorOfType(error, Prisma.PrismaClientKnownRequestError)) {
+    const code = readPrismaErrorCode(error);
+    return code !== undefined && TRANSIENT_PRISMA_CODES.has(code);
   }
 
   const haystack = errorChainMessages(error).join(" ").toLowerCase();

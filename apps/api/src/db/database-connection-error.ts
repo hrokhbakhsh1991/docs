@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 
-import { isPrismaErrorOfType } from "./prisma-error-instance";
+import { isPrismaErrorOfType, readPrismaErrorCode } from "./prisma-error-instance";
 
 export const DATABASE_UNAVAILABLE = "DATABASE_UNAVAILABLE";
 
@@ -26,11 +26,8 @@ export function isDatabaseConnectionError(error: unknown): boolean {
   }
 
   if (
-    isPrismaErrorOfType<Prisma.PrismaClientKnownRequestError>(
-      error,
-      Prisma.PrismaClientKnownRequestError
-    ) &&
-    error.code === "P1000"
+    isPrismaErrorOfType(error, Prisma.PrismaClientKnownRequestError) &&
+    readPrismaErrorCode(error) === "P1000"
   ) {
     return true;
   }

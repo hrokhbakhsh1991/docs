@@ -2,7 +2,7 @@ import type { ServerResponse } from "node:http";
 
 import { Prisma } from "@prisma/client";
 
-import { isPrismaErrorOfType } from "../db/prisma-error-instance";
+import { isPrismaErrorOfType, readPrismaErrorCode } from "../db/prisma-error-instance";
 
 import { isCanonicalSyncValidationError } from "../canonical/canonical-sync-validation-error";
 import { isSchemaVersionMismatchError } from "../canonical/schema-version-mismatch";
@@ -169,15 +169,10 @@ export function isClientSafeErrorToken(message: string): boolean {
 
 /** AP14 — normalize known Prisma request errors before generic message fallback. */
 export function mapPrismaErrorToAppError(error: unknown): MappedAppError | null {
-  if (
-    !isPrismaErrorOfType<Prisma.PrismaClientKnownRequestError>(
-      error,
-      Prisma.PrismaClientKnownRequestError
-    )
-  ) {
+  if (!isPrismaErrorOfType(error, Prisma.PrismaClientKnownRequestError)) {
     return null;
   }
-  switch (error.code) {
+  switch (readPrismaErrorCode(error)) {
     case "P2002":
       return { status: 409, error: "conflict", code: "UNIQUE_CONSTRAINT_VIOLATION" };
     case "P2003":
