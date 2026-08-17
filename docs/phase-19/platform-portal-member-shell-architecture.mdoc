@@ -180,6 +180,8 @@ See [platform-portal-member-entitlements.mdoc](./platform-portal-member-entitlem
 | `REDIRECT_AUTH_HOME` | Valid JWT on `/` | None → default module |
 | `REGISTRATION_MINIMAL` | `/catalog/*/register` | Brand + back egress only |
 | `MEMBER_FULL` | Valid JWT on `/me/*` | Header + bottom nav + outlet |
+
+**First paint after login (BUG-2):** `/login` OTP then `completeMemberLoginEgress` → `/me/registrations` is a full navigation into `MEMBER_FULL`. Root `app/layout.tsx` already wraps `NextIntlClientProvider`. If RSC for `/me/*` fails and React retries the client payload without that provider, `useTranslations` in `PortalMemberBottomNav` throws (`NextIntlClientProvider was not found`) and Next paints the issues overlay on an otherwise-visible shell. **Contract:** the bottom-nav client component renders **pretranslated** `label` / `aria-label` / logout copy from `PortalMemberShell` (RSC `getTranslations("portalMember.nav")`). It must not call `useTranslations`. Header chrome stays RSC. Profile/user-menu clients may keep `useTranslations` because they are not on the login-egress first paint. Profile fetch in `me/layout` is already fail-soft (`null` → fallback chip).
 | `API_MEMBER` | `/api/me/*` | No shell |
 
 **Invariant:** Never `MEMBER_FULL` on registration path (DL-01).

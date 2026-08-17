@@ -17,6 +17,11 @@ describe("Input", () => {
     assert.equal(getByRole("textbox", { name: "invalid-field" }).getAttribute("aria-invalid"), "true");
   });
 
+  it("does not serialize aria-invalid when valid", () => {
+    const { getByRole } = render(<Input aria-label="ok-field" />);
+    assert.equal(getByRole("textbox", { name: "ok-field" }).hasAttribute("aria-invalid"), false);
+  });
+
   it("assigns id", () => {
     render(<Input id="custom-id" aria-label="x" />);
     assert.equal(document.getElementById("custom-id")?.id, "custom-id");

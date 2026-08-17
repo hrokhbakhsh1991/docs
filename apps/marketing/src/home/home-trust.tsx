@@ -2,6 +2,7 @@ import { Mountain, ShieldCheck } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding";
+import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 
 export type HomeTrustProps = {
   readonly branding: PublicTenantBrandingSnapshot;
@@ -9,7 +10,7 @@ export type HomeTrustProps = {
 
 export async function HomeTrust({ branding }: HomeTrustProps) {
   const t = await getTranslations("catalog");
-  const siteName = branding.displayName ?? t("nav.defaultSiteName");
+  const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
 
   return (
     <section data-marketing-home-trust>

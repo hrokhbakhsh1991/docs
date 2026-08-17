@@ -14,6 +14,7 @@ import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-
 
 export const DENALI_PRICING_TEST_IDS = {
   pricing: "denali-composite-pricing-payment",
+  unpaidHint: "denali-pricing-unpaid-hint",
 } as const;
 
 type DenaliPricingPaymentFieldProps = {
@@ -73,6 +74,15 @@ export function DenaliPricingPaymentField({
         />
         <span>{requiresPaymentLabel}</span>
       </label>
+      {requiresPayment ? null : (
+        <p
+          className="denali-wizard-composite__status"
+          role="status"
+          data-testid={DENALI_PRICING_TEST_IDS.unpaidHint}
+        >
+          {t("composites.pricing.unpaidHint")}
+        </p>
+      )}
 
       {requiresPayment ? (
         <>

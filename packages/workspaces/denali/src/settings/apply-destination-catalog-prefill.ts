@@ -1,5 +1,6 @@
 import {
   type DenaliTourWizardDraft,
+  getCanonicalStringValue,
   setCanonicalStringValue,
 } from "../draft/denali-tour-wizard-draft";
 import { isDenaliWizardFieldVisibleOnDraft } from "../wizard/denali-wizard-field-visibility";
@@ -13,7 +14,11 @@ import {
   DENALI_DESTINATION_LOCATION_TYPE_PEAK,
   normalizeDenaliDestinationLocationType,
 } from "./destination-location-types";
-import { formatDestinationCatalogMetricValue } from "./resolve-destination-catalog-metric-lock";
+import {
+  formatDestinationCatalogMetricValue,
+  isDestinationCatalogMetricLocked,
+  readLockedDestinationCatalogMetricValue,
+} from "./resolve-destination-catalog-metric-lock";
 
 function clearDestinationCatalogMetric(
   draft: DenaliTourWizardDraft,
@@ -72,5 +77,39 @@ export function applyDestinationCatalogPrefill(
 
   next = clearDestinationCatalogMetric(next, "tripDetails.overview.peakHeight");
   next = clearDestinationCatalogMetric(next, "tripDetails.overview.trailDistanceKm");
+  return next;
+}
+
+/**
+ * ED-CAT-SEED-01 — after sanitize hides then shows a catalog metric, fill canonical only when
+ * the field is visible, empty, and the current destination locks that metric.
+ * Does not overwrite operator-entered values and does not clear unlocked metrics
+ * (unlike {@link applyDestinationCatalogPrefill}, which is dest-change only).
+ */
+export function seedEmptyVisibleDestinationCatalogMetrics(
+  draft: DenaliTourWizardDraft,
+  destination: DestinationResource | undefined
+): DenaliTourWizardDraft {
+  if (destination === undefined) {
+    return draft;
+  }
+
+  let next = draft;
+  for (const binding of Object.values(DENALI_DESTINATION_CATALOG_METRIC_BINDINGS)) {
+    if (!isDenaliWizardFieldVisibleOnDraft(next, binding.canonicalPath, "denali_basic")) {
+      continue;
+    }
+    if (getCanonicalStringValue(next, binding.canonicalPath).trim().length > 0) {
+      continue;
+    }
+    if (!isDestinationCatalogMetricLocked(destination, binding)) {
+      continue;
+    }
+    const catalogValue = readLockedDestinationCatalogMetricValue(destination, binding);
+    if (catalogValue.trim().length === 0) {
+      continue;
+    }
+    next = setCanonicalStringValue(next, binding.canonicalPath, catalogValue);
+  }
   return next;
 }

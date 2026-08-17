@@ -5,6 +5,8 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { CatalogTourDetail } from "@/catalog/catalog-tour-detail";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
+import { resolveCatalogTourRegistrationState } from "@/catalog/resolve-catalog-tour-registration-state";
+import { resolveMarketingTourDetailCta } from "@/catalog/resolve-marketing-tour-detail-cta.server";
 import { isAppLocale, routing } from "@/i18n/routing";
 import { resolveWebRegistrationLoginUrl, resolveWebRegistrationUrl } from "@/portal/resolve-web-registration-url";
 import {
@@ -12,6 +14,7 @@ import {
   buildMarketingTourDetailMetadata,
 } from "@/seo/build-marketing-metadata";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
+import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +34,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     fetchPublicTenantBrandingForHost(host),
     fetchCatalogTour({ ...bootstrap, tourId }),
   ]);
-  const siteName = branding.displayName ?? t("nav.defaultSiteName");
+  const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
 
   if (tour === null) {
     return buildMarketingNotFoundMetadata({
@@ -64,13 +67,23 @@ export default async function MarketingTourDetailPage({ params }: PageProps) {
 
   const registrationUrl = resolveWebRegistrationUrl(host, tourId, bootstrap.pluginId);
   const tourSignInUrl = resolveWebRegistrationLoginUrl(host, tourId, bootstrap.pluginId);
+  const registration = resolveCatalogTourRegistrationState(tour, registrationUrl);
+  const cta = await resolveMarketingTourDetailCta({
+    host,
+    tenantId: bootstrap.tenantId,
+    pluginId: bootstrap.pluginId,
+    tourId,
+    registrationUrl,
+    tourSignInUrl,
+    canRegister: registration.canRegister,
+  });
 
   return (
     <div data-marketing-catalog-detail-page data-slot="page-catalog-detail">
       <CatalogTourDetail
         tour={tour}
         registrationUrl={registrationUrl}
-        tourSignInUrl={tourSignInUrl}
+        cta={cta}
         pluginId={bootstrap.pluginId}
       />
     </div>

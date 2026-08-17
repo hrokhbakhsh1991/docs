@@ -70,6 +70,15 @@ describe("denali-itinerary-segment-pickers.spec.tsx", () => {
     );
   });
 
+  it("WEB-DENALI-ITIN-21 empty itinerary photo picker shows optional empty status", () => {
+    const { getByTestId } = renderPicker(
+      <DenaliItinerarySegmentPhotoPicker photos={[]} selectedIds={[]} dayNumber={1} onChange={() => {}} />
+    );
+    const empty = getByTestId(DENALI_ITINERARY_SEGMENT_PHOTO_TEST_IDS.empty);
+    assert.equal(empty.getAttribute("role"), "status");
+    assert.match(empty.textContent ?? "", /optional/i);
+  });
+
   it("WEB-DENALI-ITIN-19 destination picker emits destinationId and locationLabel", async () => {
     const prevFetch = globalThis.fetch;
     globalThis.fetch = async () =>

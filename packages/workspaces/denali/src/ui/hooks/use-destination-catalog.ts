@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   resolveInitialDenaliDestinationCatalogState,
@@ -8,38 +8,82 @@ import {
   type DestinationResource,
 } from "../adapters/build-denali-destination-catalog-state";
 import { fetchDenaliDestinationCatalogClient } from "../adapters/fetch-denali-destination-catalog";
+import { countDenaliDestinationsOfferedForTourKind } from "../logic/denali-destination-picker-filter";
 import { useDenaliWizardCatalogPrefetch } from "./denali-wizard-catalog-prefetch-context";
 
 export type { DenaliDestinationCatalogState, DestinationResource };
 
-let patchDestinationCatalogCache: ((destination: DestinationResource) => void) | null = null;
+const destinationCatalogPatchListeners = new Set<
+  (destination: DestinationResource) => void
+>();
+
+export function subscribeDenaliDestinationCatalogPatch(
+  listener: (destination: DestinationResource) => void
+): () => void {
+  destinationCatalogPatchListeners.add(listener);
+  return () => {
+    destinationCatalogPatchListeners.delete(listener);
+  };
+}
 
 export function patchDenaliDestinationCatalogCache(destination: DestinationResource): void {
-  patchDestinationCatalogCache?.(destination);
+  for (const listener of destinationCatalogPatchListeners) {
+    listener(destination);
+  }
+}
+
+export type UseDenaliDestinationCatalogOptions = {
+  readonly tourKind?: string;
+};
+
+/**
+ * ED-DEST-REFETCH-01 — focus/visibility reload while HTTP-degraded **or** the current
+ * tour kind has zero offered destinations (empty-after-filter is not an error).
+ */
+export function shouldReloadDenaliDestinationCatalogOnFocus(input: {
+  readonly error: string | null;
+  readonly loading: boolean;
+  readonly offeredCount?: number;
+}): boolean {
+  if (input.loading) {
+    return false;
+  }
+  if (input.error !== null) {
+    return true;
+  }
+  return input.offeredCount === 0;
 }
 
 /**
  * Operator destination catalog — supports optional server prefetch via
  * {@link DenaliWizardCatalogPrefetchProvider}; otherwise fetches `/api/settings/resources/locations`.
  */
-export function useDenaliDestinationCatalog(): DenaliDestinationCatalogState {
+export function useDenaliDestinationCatalog(
+  options?: UseDenaliDestinationCatalogOptions
+): DenaliDestinationCatalogState & {
+  readonly reload: () => void;
+} {
   const { initialLocationsResponse } = useDenaliWizardCatalogPrefetch();
   const skipInitialFetchRef = useRef(initialLocationsResponse !== null);
   const [state, setState] = useState(() =>
     resolveInitialDenaliDestinationCatalogState(initialLocationsResponse)
   );
 
+  const reload = useCallback(() => {
+    setState((previous) => ({ ...previous, loading: true }));
+    void fetchDenaliDestinationCatalogClient().then((next) => {
+      setState(next);
+    });
+  }, []);
+
   useEffect(() => {
-    patchDestinationCatalogCache = (destination) => {
+    return subscribeDenaliDestinationCatalogPatch((destination) => {
       setState((previous) => {
         const destinationById = new Map(previous.destinationById);
         destinationById.set(destination.id, destination);
         return { ...previous, destinationById };
       });
-    };
-    return () => {
-      patchDestinationCatalogCache = null;
-    };
+    });
   }, []);
 
   useEffect(() => {
@@ -47,19 +91,43 @@ export function useDenaliDestinationCatalog(): DenaliDestinationCatalogState {
       skipInitialFetchRef.current = false;
       return;
     }
-    let cancelled = false;
-    void fetchDenaliDestinationCatalogClient().then((next) => {
-      if (!cancelled) {
-        setState(next);
+    reload();
+  }, [reload]);
+
+  const offeredCount =
+    options?.tourKind === undefined
+      ? undefined
+      : countDenaliDestinationsOfferedForTourKind(
+          state.options.map((option) => ({
+            locationType: state.destinationById.get(option.value)?.locationType,
+          })),
+          options.tourKind
+        );
+
+  const refetchOnFocus = shouldReloadDenaliDestinationCatalogOnFocus({
+    error: state.error,
+    loading: state.loading,
+    offeredCount,
+  });
+
+  useEffect(() => {
+    if (!refetchOnFocus) {
+      return;
+    }
+    const retryWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        reload();
       }
-    });
-
-    return () => {
-      cancelled = true;
     };
-  }, []);
+    document.addEventListener("visibilitychange", retryWhenVisible);
+    window.addEventListener("focus", retryWhenVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", retryWhenVisible);
+      window.removeEventListener("focus", retryWhenVisible);
+    };
+  }, [refetchOnFocus, reload]);
 
-  return state;
+  return { ...state, reload };
 }
 
 export function readDenaliDestinationLabel(

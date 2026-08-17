@@ -112,7 +112,9 @@ test("SMK-MKT-02 tour detail and back navigation", async ({ page }) => {
   await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
 });
 
-test("SMK-MKT-04 tour detail renders multi-day itinerary and segment photos", async ({ page }) => {
+test("SMK-MKT-04 tour detail renders multi-day itinerary; smoke photos stay empty (BUG-3)", async ({
+  page,
+}) => {
   await page.goto(`/tours/${SMOKE_PUBLISHED_TOUR_ID}`, { waitUntil: "domcontentloaded" });
   await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
     timeout: 60_000,
@@ -120,7 +122,9 @@ test("SMK-MKT-04 tour detail renders multi-day itinerary and segment photos", as
   await expect(page.locator("[data-marketing-catalog-itinerary]")).toBeVisible();
   await expect(page.getByText("Summit push")).toBeVisible();
   await expect(page.getByText(/Ridge ascent/)).toBeVisible();
-  await expect(page.locator("[data-marketing-catalog-segment-photos] img")).toHaveCount(1);
+  // Operator-smoke seeds use https://cdn.example/… — filtered as unreachable (BUG-3).
+  await expect(page.locator("[data-marketing-catalog-segment-photos] img")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-catalog-segment-photos-empty]").first()).toBeVisible();
 });
 
 test("SMK-MKT-16 denali catalog server filter shows active pill and dismisses", async ({ page }) => {

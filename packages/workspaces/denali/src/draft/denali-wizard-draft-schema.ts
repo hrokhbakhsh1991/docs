@@ -14,6 +14,7 @@ export const DenaliWizardDraftMetaSchema = z.object({
   wizardSessionId: z.string().optional(),
   freshStart: z.boolean().optional(),
   deletedRoots: z.array(canonicalRootEnum).optional(),
+  sourceRowVersion: z.number().int().min(0).optional(),
 });
 
 export const DenaliWizardDraftEnvelopeSchema = z.object({

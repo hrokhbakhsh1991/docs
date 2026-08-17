@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-MARKETING-CATALOG-UI
-version: "2026-07-04-v3"
+version: "2026-08-16-v12"
 extends: public-catalog.md
 apps: [marketing]
 phase: P6-1
@@ -44,7 +44,9 @@ Exposure redaction (`denali-catalog-exposure-bindings`) may hide mapped fields �
 
 **Denali (PR-22):** When `resolveCatalogListFeatures().serverListFilters` includes a param, marketing forwards it on `GET /denali/catalog` / BFF `GET /api/catalog`; Denali applies filter + sort on the full published set **before** cursor pagination. Marketing **also** runs `filterMarketingCatalogItems` + `sortMarketingCatalogItems` on the fetched batch (idempotent safety net when API/cache is stale). **Fetch limit:** default **20** per cursor page when Denali server owns the active narrowing filters; widen to **50** only when a narrowing filter is **client-only** (Urban/guest-club). Filtered requests use `cache: no-store`.
 
-**Pagination (PR-24):** Cursor-based pages (`?cursor=<tourId>`) replace the list batch (not infinite append). `load-more` and `first-page` links use `resolveMarketingLocalePath("/tours")`. Active filter pills and filter form omit `cursor` (reset to page 1). Results line uses `list.resultsCountPage` when `cursor` or `nextCursor` is set.
+**Pagination (PR-24):** Cursor-based pages (`?cursor=<tourId>`) replace the list batch (not infinite append). `load-more` and `first-page` links use `resolveMarketingLocalePath("/tours")`. Active filter pills and filter form omit `cursor` (reset to page 1). Results line uses `list.resultsCountPage` when `cursor` or `nextCursor` is set. Pagination chrome (`[data-marketing-catalog-pagination]`, `[data-marketing-catalog-pagination-next]`) renders **only** when `loadMoreHref != null` or `firstPageHref != null` (`apps/marketing/app/tours/page.tsx`). A one-page catalog (typical smoke: four published tours, no `nextCursor`) has **no** «نمایش بیشتر» control.
+
+**Empty filtered copy (BUG-15):** `list.emptyFiltered` is shown when the current filter set matches zero cards. That string must tell the guest to **clear filters** (visible controls: «بازنشانی» / Reset + «اعمال فیلترها»). It must **not** mention «نمایش بیشتر» / “load more” — that control is absent unless pagination exists. Load-more stays its own link (`list.loadMore` / `list.loadMoreSearch` when the empty page still has `nextCursor`). `list.filterScopeNotice` already mentions load-more **only** when `clientFiltersActive && nextCursor != null` (`showFilterScopeNotice`); do not duplicate that sentence into `emptyFiltered`.
 
 **Denali category UX (PR-23):** Marketing shows two admin-aligned families only — **کوهنوردی** (`category=mountain`) and **طبیعت‌گردی** (`category=nature`) — no تک‌روزه/چندروزه chips. Server + client match `mountain_*` / `nature_*` slugs. Difficulty select uses wizard range **1–10** (step 0.5); fitness uses `low` / `medium` / `high`.
 
@@ -116,7 +118,7 @@ app/tours/[tourId]/page.tsx           → CatalogTourDetail (PR-D — see § PR-
 
 | Module                                            | Role                                                                                                      |
 | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `format-catalog-display.ts`                       | subtitle, description, dates, price formatting                                                            |
+| `format-catalog-display.ts`                       | subtitle, description, dates, price formatting. **ED-CURR-MKT-01:** Denali `pluginId` + `IRR` display is تومان/toman (same integer; no ×10). Other workspaces / ISO codes stay `Intl` currency style. JSON-LD `offers.priceCurrency` remains `IRR`. |
 | `format-catalog-cancellation.ts`                  | cancellation template helpers (unit tests); detail UI uses `next-intl` ICU in `CatalogTourDetailPolicies` |
 | `catalog-itinerary-display-logic.ts`              | segment labels, photo list shaping                                                                        |
 | `fetch-catalog-list.ts` / `fetch-catalog-tour.ts` | server upstream fetch                                                                                     |
@@ -139,8 +141,55 @@ Marketing calls workspace-sdk resolvers — **no** `if (pluginId === …)` in `a
 | `catalogListSupportsServerFilter` | `resolve-catalog-list-features.ts`        | Gate upstream query params in `build-catalog-list-fetch-query.ts`                                                                         |
 | `resolveCatalogDetailSections`    | `resolve-catalog-detail-sections.ts`      | Itinerary / policies visibility                                                                                                           |
 | `supportsCatalogRegistration`     | `resolve-catalog-registration-support.ts` | Register CTA (`data-marketing-register`) — manifest **L2+** (`catalogRegistrationFlow`); no runtime intake registry required in marketing |
+| `tryResolveCatalogRegistrationForTourApiPath` | `resolve-catalog-registration-for-tour-api-path.ts` | Phase 3 PDP self-gate — manifest `GET /{ws}/registrations/for-tour/:tourId` only (Denali on trunk). Returns `null` when the workspace has no for-tour route — marketing must not register intake plugins |
 
 Unit tests: `packages/workspace-sdk/test/resolve-catalog-*.spec.ts` (SDK-CAT-\*) · registration intake (`catalog-registration-dispatch`, `public-catalog-transport-intake`, `registration-intake.contract`) · enforced in `p6:gate` + `p4:gate` + `guard:public-catalog-m17`.
+
+### Phase 3 PDP CTA vs logged-in / already-registered (2026-08-16)
+
+Authority: [PCMS-001 §5.3](../../standards/member-session-portal-authority.mdoc) · [portal-member-login-modal.mdoc](../../phase-19/portal-member-login-modal.mdoc) §16 Phase 3 DoD.
+
+**Problem:** After portal OTP the member returns to marketing (custom apex cookie share). Header already swapped Sign-in → profile chip, but the tour PDP still rendered «ثبت‌نام» + «قبلاً ثبت‌نام کرده‌اید؟ ورود» even when the member had an active self booking.
+
+**Decision:** Shape CTAs in marketing **SSR** from the existing read-only session probe + optional API for-tour. Do not add cookie write or `app/api/me/*` / `app/api/public-auth/*`. Phase 5 hosts OTP on marketing via Portal-origin transport ([PCMS-001 §5.5](../../standards/member-session-portal-authority.mdoc)); `[data-marketing-register]` still navigates to portal register.
+
+| Mode | When | Primary | Secondary | i18n |
+| ---- | ---- | ------- | --------- | ---- |
+| `guest` | Cookie missing / invalid / tenant bind fail | `data-marketing-register` → `resolveWebRegistrationUrl` | `data-marketing-tour-sign-in` → marketing modal (href fallback `resolveWebRegistrationLoginUrl`) | `detail.register` / `detail.signInToRegister` |
+| `member-continue` | Session readable; for-tour `self` null, path missing, or fetch error | `data-marketing-register` → register URL **without** `auth=login` | none | `detail.continueRegister` |
+| `member-self` | Session readable; for-tour returns `self.id`; GSH builds detail URL | `data-marketing-view-registration` → `/me/registrations/{id}` | `data-marketing-register` + `data-marketing-register-another` when `canRegister` | `detail.viewMyRegistration` / `detail.registerAnotherGuest` |
+
+**Skin (Denali):** `[data-marketing-view-registration]` uses the same accent primary button as `[data-marketing-register]`. `[data-marketing-register-another]` is excluded from that button (`:not([data-marketing-register-another])`) and shares the underlined secondary stack with `[data-marketing-tour-sign-in]` (`36-mkt-tour-sign-in-cta.css`). Sticky wraps both in `[data-marketing-catalog-detail-sticky-cta]`. Login modal chrome is `37-mkt-login-modal.css` (imported last).
+
+**Sold-out:** guest / member-continue still show sold-out copy. Member-self still shows view-registration (the booking exists); register-another is omitted when `canRegister` is false.
+
+**Modules:** `resolve-marketing-tour-detail-cta.ts` (pure) · `resolve-marketing-tour-detail-cta.server.ts` (session + fetch) · `fetch-marketing-member-self-registration-for-tour.server.ts` · `catalog-tour-detail-register-cta.tsx` (shared by booking rail **and** sticky bar — sticky must not duplicate href logic). Page `app/tours/[tourId]/page.tsx` resolves the model once and passes it down.
+
+### Phase 4 Portal public-auth CORS (2026-08-16)
+
+Authority: [PCMS-001 §5.4](../../standards/member-session-portal-authority.mdoc) · [portal-member-login-modal.mdoc](../../phase-19/portal-member-login-modal.mdoc) §16 Phase 4 DoD.
+
+Marketing remains href + read-only cookie chip + Phase 3 PDP CTA **until Phase 5**. Portal answers credentialed CORS on `/api/public-auth/*` from the **paired** marketing origin. Marketing must not import `createPortalSameOriginGuestAuthTransport` (Portal-only). Phase 5 **does** import `GuestAuthHostProvider` + `tryCreatePortalOriginGuestAuthTransport`.
+
+**For-tour headers (mirror portal BFF, not identity/me-only):** `Authorization: Bearer` + `x-tenant-id` + `x-authenticated-tenant-id` + `x-user-id` + `x-actor-role` + `x-membership-status: ACTIVE` + `x-forwarded-host`. `resolveWorkspacePublicAuthFromRequest` does **not** decode JWT; actor id must be sent as `x-user-id` from the already-validated marketing session.
+
+### Phase 5 Marketing Portal-origin login modal (2026-08-16)
+
+Authority: [PCMS-001 §5.5](../../standards/member-session-portal-authority.mdoc) · [portal-member-login-modal.mdoc](../../phase-19/portal-member-login-modal.mdoc) §16 Phase 5 DoD.
+
+Marketing hosts the shared phone/OTP/profile steps in `[data-marketing-login-modal]`. Transport `fetch`es the GSH portal public origin `/api/public-auth/*` with credentials. Cookie write stays Portal. After success, marketing reloads so SSR header + PDP CTA can see the member.
+
+| Surface | Phase 5 | Fallback (no-JS / no portal origin) |
+| ------- | ------- | ----------------------------------- |
+| Header `[data-marketing-header-sign-in]` | **Navigate** to Portal `/login?portalReturn=/me/registrations` (page OTP). Not `MarketingLoginModalTrigger`. | Same `href` — no client intercept |
+| PDP `[data-marketing-tour-sign-in]` | Client trigger opens marketing modal; stay on `/tours/{id}` after reload | `href` = portal `register?auth=login` |
+| `[data-marketing-register]` | **Unchanged** — portal `/catalog/{id}/register` | — |
+
+`MarketingLoginModalProvider` remains in `app/layout.tsx` so PDP (and a **future** marketing login host) can open `[data-marketing-login-modal]` without a second provider. `host="header"` on that dialog is reserved — do not attach it to chrome Sign in until product asks.
+
+**Skin (Denali):** `37-mkt-login-modal.css` imported last from `denali-marketing.css`. Scope `body[data-app-surface="marketing"][data-workspace-plugin="denali"]` + `data-marketing-login-modal*`. Do not reuse `data-portal-login-modal` (portal CSS is `body[data-app-surface="portal"]`).
+
+**Import budget:** `scripts/guards/guard-marketing-skin-import-integrity.mjs` allows at most **37** CSS partials under `theme/marketing/components/` (current tree uses 36 files through `37-mkt-login-modal.css`). Every partial must be `@import`ed from `denali-marketing.css` — orphans fail the guard (CTL-CORE / marketing-guard).
 
 ---
 
@@ -176,14 +225,14 @@ Stable selectors for Playwright — **do not rename** without updating smoke spe
 | `data-marketing-brand`           | brand link → `/`      |
 | `data-marketing-logo`            | tenant logo img       |
 | `data-marketing-locale-switcher` | header locale toggle (only when `guestLanding.shellChrome.localeSwitcher === true`) |
-| `data-marketing-header-sign-in`  | portal member OTP login via `resolvePortalMemberLoginUrl` |
+| `data-marketing-header-sign-in`  | guest Sign in — navigates to Portal `/login` (`href={portalMemberLoginUrl}`; not the marketing modal) |
 | `data-marketing-header-member`   | authenticated profile chip → portal `/me/profile` |
 | `data-marketing-header-member-meta` | name + account hint stack |
 | `data-marketing-header-member-avatar-wrap` | avatar ring container |
 | `data-marketing-member-authenticated` | shell root when member session matches tenant |
 | `data-marketing-header-cta`      | sticky header tours CTA (only when `shellChrome.headerToursCta` and nav has no `tours` link) |
 
-**Denali club header chrome (2026-07-14):** Persian-only public surface — `shellChrome.localeSwitcher: false`. Primary nav already includes `nav.tours` via `guestCrossSurfaceNav`; redundant `data-marketing-header-cta` is off (`headerToursCta: false`). Toolbar keeps `data-marketing-header-sign-in` → `resolvePortalMemberLoginUrl` (OTP on portal catalog register).
+**Denali club header chrome (2026-07-14):** Persian-only public surface — `shellChrome.localeSwitcher: false`. Primary nav already includes `nav.tours` via `guestCrossSurfaceNav`; redundant `data-marketing-header-cta` is off (`headerToursCta: false`). Toolbar keeps `data-marketing-header-sign-in` as a Portal `/login` link (`resolvePortalMemberLoginUrl`). The marketing OTP modal is PDP-only (`data-marketing-tour-sign-in`).
 
 ### Home (`/`)
 
@@ -311,18 +360,27 @@ Spec: [`marketing-landing.mdoc`](./marketing-landing.mdoc) v7 · smoke: SMK-MKT-
 | `data-marketing-catalog-detail-stats`        | stats ul (detail)                                                                                     |
 | `data-marketing-catalog-itinerary`           | itinerary section                                                                                     |
 | `data-marketing-catalog-itinerary-day`       | per-day article (`={dayNumber}`)                                                                      |
-| `data-marketing-catalog-segment-photos`      | segment photo list                                                                                    |
+| `data-marketing-catalog-segment-photos`      | segment photo list (reachable https only — smoke `cdn.example` omitted, BUG-3)                      |
+| `data-marketing-catalog-segment-photos-empty` | ED-PHOTO-EMPTY-01 — muted empty copy when a segment has no reachable `photoUrls` (day still renders) |
 | `data-marketing-catalog-detail-policies`     | policies section                                                                                      |
 | `data-marketing-catalog-detail-cancellation` | cancellation bullets                                                                                  |
 | `data-marketing-register`                    | registration CTA (**SMK-MKT-03**) → portal [`portal-registration-ui.md`](./portal-registration-ui.md) |
+| `data-marketing-tour-sign-in`                | guest-only secondary — **PDP marketing login modal** (href fallback portal `register?auth=login`; Phase 3: omitted when member session is readable) |
+| `data-marketing-view-registration`           | member-self primary → portal `/me/registrations/{id}` |
+| `data-marketing-register-another`            | member-self secondary → portal `/catalog/{id}/register` (no `auth=login`) |
+| `data-marketing-tour-detail-cta-mode`        | `guest` \| `member-continue` \| `member-self` on CTA wrappers |
 
 ### Errors
 
-| Hook                           | Location              |
-| ------------------------------ | --------------------- |
-| `data-marketing-error`         | `app/error.tsx`       |
-| `data-marketing-catalog-error` | `app/tours/error.tsx` |
-| `data-marketing-not-found`     | `app/not-found.tsx`   |
+| Hook                              | Location                                      | Copy |
+| --------------------------------- | --------------------------------------------- | ---- |
+| `data-marketing-error`            | `app/error.tsx`                               | generic error |
+| `data-marketing-catalog-error`    | `app/tours/error.tsx`                         | catalog load failure |
+| `data-marketing-not-found`        | both 404 trees (shared smoke hook)            | — |
+| `data-marketing-page-not-found`   | `app/not-found.tsx`                           | `catalog.pageNotFound` — **page** missing |
+| `data-marketing-tour-not-found`   | `app/tours/[tourId]/not-found.tsx`            | `catalog.notFound` — **tour** unpublished / missing |
+
+**404 split (BUG-16):** Club hosts call `notFound()` on `/about`, `/pricing`, `/contact` (WRS platform-mother-only; do **not** publish club stubs). Those routes have no nested `not-found.tsx`, so the **root** tree runs: heading «صفحه یافت نشد», body that the page does not exist on this club, CTA home (`/`), document-title segment `catalog.pageNotFound.metadataTitle` → layout template `صفحه یافت نشد — {siteName}`. `/tours/{id}` still calls `notFound()` when `fetchCatalogTour` is null; the **segment** tree keeps tour copy («تور یافت نشد» / unpublished) and CTA `/tours`. SMK-MKT-14 continues to assert `[data-marketing-not-found]` on draft PDP. Mother host of the three informational routes still renders `MaintenancePage` — unchanged.
 
 ---
 
@@ -590,9 +648,9 @@ When locale is `fa`, numeric copy on `/tours/[tourId]` uses Eastern Arabic (Pers
 | Day title / summary (API text with digits) | `CatalogItinerarySection` localizes visible strings                                                                                                                                                             |
 | Stats capacity / spots                     | ICU `{count, number}` in `messages/fa/catalog.json`                                                                                                                                                             |
 | Cancellation hours / penalty               | ICU `{hours, number}` / `{percent, number}`                                                                                                                                                                     |
-| Meta dates + price                         | `formatCatalogDateRange` / `formatCatalogPrice` with `numberingSystem: arabext` when `fa-IR`                                                                                                                    |
+| Meta dates + price                         | `formatCatalogDateRange` / `formatCatalogPrice`. Dates: `numberingSystem: arabext` when `fa-IR`. **Price (ED-CURR-MKT-01):** Denali `pluginId` + `IRR` is grouped digits + تومان/toman — **not** `Intl` `style: currency` (that painted ریال/`IRR`). Same stored integer; **no ×10**. Other plugin ids and non-`IRR` codes keep `Intl` currency style. JSON-LD `offers.priceCurrency` stays ISO `IRR`. |
 | **PR-D readiness**                         | peak, trail km, elevation, hiking hours, min/max age — `buildCatalogReadinessCells` + ICU `{hours,meters,km,years, number}` with `toLocalizedDigits` on prerequisite text (`catalog-tour-detail-readiness.tsx`) |
-| **PR-D logistics**                         | return time via `toLocalizedDigits`; transport cost/dong via `formatCatalogPrice` (`arabext` when `fa-IR`)                                                                                                      |
+| **PR-D logistics**                         | return time via `toLocalizedDigits`; transport cost/dong via `formatCatalogPrice` (same Denali-only IRR→toman rule as list/detail price)                                                                                    |
 | **PR-D register preview**                  | min/max age via ICU `{years, number}` in `detail.registerPreview.*`                                                                                                                                             |
 | **PR-D gallery alt**                       | ICU `{index, number}` in `detail.gallery.photoAlt`                                                                                                                                                              |
 | **PR-D6b lightbox**                        | Click/tap hero mosaic + overflow grid → `<dialog>` fullscreen; arrow keys; `detail.gallery.lightbox*` i18n; one client boundary in `@apps/marketing`                                                            |

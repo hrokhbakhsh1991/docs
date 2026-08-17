@@ -2,6 +2,7 @@ import type { WorkspaceWizardDraftEnvelope, WorkspaceWizardDraftMeta } from "@ap
 
 import { DENALI_CANONICAL_OBJECT_ROOTS } from "../denali-plugin-adapter";
 import { isDraftEssentiallyEmpty } from "../wizard/resolve-initial-step-index";
+import { readDenaliWizardSourceRowVersion } from "./denali-wizard-draft-binding";
 
 function readDeletedRoots(meta: WorkspaceWizardDraftMeta): readonly string[] | undefined {
   const raw = meta.deletedRoots;
@@ -147,6 +148,10 @@ export function mergeDenaliWizardDraftEnvelope<TForm>(
     local.form as unknown as Record<string, unknown>
   );
 
+  const localSourceRowVersion = readDenaliWizardSourceRowVersion(local.meta.sourceRowVersion);
+  const serverSourceRowVersion = readDenaliWizardSourceRowVersion(server.meta.sourceRowVersion);
+  const sourceRowVersion = localSourceRowVersion ?? serverSourceRowVersion;
+
   return {
     form: {
       ...local.form,
@@ -167,6 +172,7 @@ export function mergeDenaliWizardDraftEnvelope<TForm>(
         return readStepIndex(server.meta);
       })(),
       wizardSessionId: local.meta.wizardSessionId ?? server.meta.wizardSessionId,
+      ...(sourceRowVersion !== undefined ? { sourceRowVersion } : {}),
     },
   };
 }

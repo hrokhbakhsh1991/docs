@@ -23,6 +23,9 @@ describe("portal-member-registrations", () => {
     assert.match(fetchModule, /readonly tourId: string/);
     assert.match(fetchModule, /readonly guestLabel\?:/);
     assert.match(fetchModule, /readonly registrantTarget\?:/);
+    assert.match(fetchModule, /readonly transportKind\?:/);
+    assert.match(fetchModule, /readonly personalCarOccupants\?:/);
+    assert.doesNotMatch(fetchModule, /registrationIntake/);
     assert.doesNotMatch(fetchModule, /bookings\?view=mine/);
     assert.doesNotMatch(fetchModule, /resolveTourOpsApiBaseUrl/);
   });
@@ -106,6 +109,10 @@ describe("portal-member-registrations", () => {
     assert.match(page, /MemberIntakeAmendForm/);
     assert.match(page, /memberPendingIntakeAmend/);
     assert.match(page, /fetchMemberRegistrationById/);
+    assert.match(page, /data-portal-member-registration-transport/);
+    assert.match(page, /initialKind/);
+    assert.match(page, /initialOccupants/);
+    assert.doesNotMatch(page, /registrationIntake/);
     assert.doesNotMatch(page, /fetchMemberRegistrations/);
     const detailBff = readFileSync(
       join(repoRoot, "apps/portal/app/api/me/registrations/[id]/route.ts"),
@@ -118,6 +125,13 @@ describe("portal-member-registrations", () => {
       "utf8"
     );
     assert.match(amend, /data-portal-member-intake-amend/);
+    assert.match(amend, /initialKind/);
+    assert.match(amend, /initialOccupants/);
+    assert.match(amend, /resolveAmendKind/);
+    assert.doesNotMatch(
+      amend,
+      /useState<TransportKind>\(sharedCarsMode \? "personal_car" : "primary"\)/
+    );
     const forTour = readFileSync(
       join(repoRoot, "apps/portal/app/api/me/registrations/for-tour/route.ts"),
       "utf8"
@@ -224,6 +238,10 @@ describe("portal-member-registrations", () => {
     assert.match(en, /"filterOther"/);
     assert.match(fa, /"guestLine"/);
     assert.match(en, /"guestLine"/);
+    assert.match(fa, /"transportLabel"/);
+    assert.match(en, /"transportLabel"/);
+    assert.match(fa, /PROFILE_NATIONAL_ID_CHECKSUM/);
+    assert.match(en, /PROFILE_NATIONAL_ID_CHECKSUM/);
   });
 
   it("MEM-PROF-01 profile page uses canonical profile BFF", () => {

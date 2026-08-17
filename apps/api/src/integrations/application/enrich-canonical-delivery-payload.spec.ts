@@ -170,6 +170,35 @@ describe("enrichCanonicalDeliveryPayload", () => {
     });
   });
 
+  it("falls back to tripDetails.overview zones after form-profile ghost strip", () => {
+    const enriched = enrichCanonicalDeliveryPayload({
+      payload: {
+        startPoint: { label: "Asklim trailhead" },
+        tripDetails: {
+          overview: {
+            campPoint: { label: "کمپ آبشار اسکلیم", latitude: 36.1, longitude: 51.2 },
+            summitPoint: { address: "نقطه اوج مسیر" },
+            endPoint: { label: "پایان مسیر" },
+          },
+        },
+      },
+      eligibleFieldIds: ["denali.location-zones"],
+      definitions: [
+        {
+          id: "denali.location-zones",
+          workspaceType: "denali",
+          canonicalPath: "startPoint",
+          kind: "text",
+          version: 1,
+        },
+      ],
+    });
+
+    assert.deepEqual(enriched.fieldValues, {
+      "denali.location-zones": "Asklim trailhead، نقطه اوج مسیر، کمپ آبشار اسکلیم، پایان مسیر",
+    });
+  });
+
   it("omits the location-zones field when no zone is populated", () => {
     const enriched = enrichCanonicalDeliveryPayload({
       payload: { startPoint: {}, endPoint: { label: "   " } },

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
@@ -6,7 +7,10 @@ import {
   getCanonicalStringValue,
   setCanonicalStringValue,
 } from "../src/draft/denali-tour-wizard-draft";
-import { applyDestinationCatalogPrefill } from "../src/settings/apply-destination-catalog-prefill";
+import {
+  applyDestinationCatalogPrefill,
+  seedEmptyVisibleDestinationCatalogMetrics,
+} from "../src/settings/apply-destination-catalog-prefill";
 import type { DestinationResource } from "../src/ui/adapters/catalog-types";
 import {
   isDestinationCatalogMetricLocked,
@@ -72,6 +76,45 @@ describe("applyDestinationCatalogPrefill", () => {
   });
 });
 
+describe("seedEmptyVisibleDestinationCatalogMetrics (ED-CAT-SEED-01)", () => {
+  it("DEN-CAT-SEED-01 restores empty visible peak from locked catalog after nature hide", () => {
+    let draft = setCanonicalStringValue(emptyDenaliTourWizardDraft(), "category", "nature_day");
+    draft = applyDestinationCatalogPrefill(
+      draft,
+      destination({ locationType: "peak", altitudeM: 3962 })
+    );
+    assert.equal(getCanonicalStringValue(draft, "tripDetails.overview.peakHeight"), "");
+
+    draft = setCanonicalStringValue(draft, "category", "mountain_day");
+    const seeded = seedEmptyVisibleDestinationCatalogMetrics(
+      draft,
+      destination({ locationType: "peak", altitudeM: 3962 })
+    );
+    assert.equal(getCanonicalStringValue(seeded, "tripDetails.overview.peakHeight"), "3962");
+  });
+
+  it("DEN-CAT-SEED-01b does not overwrite a non-empty operator peak", () => {
+    let draft = setCanonicalStringValue(emptyDenaliTourWizardDraft(), "category", "mountain_day");
+    draft = setCanonicalStringValue(draft, "tripDetails.overview.peakHeight", "4000");
+    const seeded = seedEmptyVisibleDestinationCatalogMetrics(
+      draft,
+      destination({ locationType: "peak", altitudeM: 3962 })
+    );
+    assert.equal(getCanonicalStringValue(seeded, "tripDetails.overview.peakHeight"), "4000");
+    assert.equal(seeded, draft);
+  });
+
+  it("DEN-CAT-SEED-01c does not seed peak while the field is hidden on nature", () => {
+    let draft = setCanonicalStringValue(emptyDenaliTourWizardDraft(), "category", "nature_day");
+    const seeded = seedEmptyVisibleDestinationCatalogMetrics(
+      draft,
+      destination({ locationType: "peak", altitudeM: 3962 })
+    );
+    assert.equal(getCanonicalStringValue(seeded, "tripDetails.overview.peakHeight"), "");
+    assert.equal(seeded, draft);
+  });
+});
+
 describe("resolveDestinationCatalogMetricLock", () => {
   it("locks peakHeight when catalog altitude exists", () => {
     const dest = destination({ locationType: "peak", altitudeM: 3962 });
@@ -84,5 +127,17 @@ describe("resolveDestinationCatalogMetricLock", () => {
     const dest = destination({ locationType: "peak", altitudeM: null });
     const binding = DENALI_DESTINATION_CATALOG_METRIC_BINDINGS["tripDetails.overview.peakHeight"];
     assert.equal(isDestinationCatalogMetricLocked(dest, binding), false);
+  });
+});
+
+describe("destination-catalog-metric field lock attributes (ED-PEAK-RO-01)", () => {
+  it("locked metric input is readOnly as well as disabled", () => {
+    const source = readFileSync(
+      new URL("../src/ui/fields/denali-destination-catalog-metric-field.tsx", import.meta.url),
+      "utf8"
+    );
+    assert.match(source, /readOnly=\{locked\}/);
+    assert.match(source, /disabled=\{locked \|\| destinationId\.length === 0\}/);
+    assert.match(source, /seedEmptyVisibleDestinationCatalogMetrics/);
   });
 });

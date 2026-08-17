@@ -17,7 +17,7 @@ export type HomeLatestTourCardProps = {
   readonly pluginId: string;
 };
 
-export async function HomeLatestTourCard({ tour, pluginId: _pluginId }: HomeLatestTourCardProps) {
+export async function HomeLatestTourCard({ tour, pluginId }: HomeLatestTourCardProps) {
   const t = await getTranslations("catalog");
   const localeRaw = await getLocale();
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
@@ -27,7 +27,7 @@ export async function HomeLatestTourCard({ tour, pluginId: _pluginId }: HomeLate
   const datesLine = formatCatalogCardDates(tour, dateLocale, t("detail.datesTba"));
   const showPrice = shouldShowCatalogPrice(tour);
   const priceLine = showPrice
-    ? formatCatalogPrice(tour.priceAmount, tour.priceCurrency, dateLocale, t("detail.priceOnRequest"))
+    ? formatCatalogPrice(tour.priceAmount, tour.priceCurrency, dateLocale, t("detail.priceOnRequest"), pluginId)
     : null;
   const coverSrc = resolveHomeTourCoverUrl(tour.coverImageUrl);
   const hasCatalogCover = Boolean(tour.coverImageUrl?.trim());

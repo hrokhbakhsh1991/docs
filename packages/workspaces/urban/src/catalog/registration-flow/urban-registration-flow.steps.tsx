@@ -141,8 +141,8 @@ export function UrbanIntakeStep({
         values={schemaValues}
         onChange={handleFieldChange}
         resolveLabel={(field: IntakeField) => t(field.labelKey)}
+        idPrefix="urban-intake"
         errorId={errorId}
-        hasError={error !== null}
       />
       {error !== null ? (
         <p id={errorId} role="alert">

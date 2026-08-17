@@ -38,7 +38,7 @@ export async function CatalogTourCard({ tour, pluginId }: CatalogTourCardProps) 
   const categoryLabel = await resolveMarketingCatalogCardCategoryLabel(categorySlug, t);
   const showPrice = shouldShowCatalogPrice(tour);
   const priceLine = showPrice
-    ? formatCatalogPrice(tour.priceAmount, tour.priceCurrency, dateLocale, t("detail.priceOnRequest"))
+    ? formatCatalogPrice(tour.priceAmount, tour.priceCurrency, dateLocale, t("detail.priceOnRequest"), pluginId)
     : null;
   const coverSrc = resolveHomeTourCoverUrl(tour.coverImageUrl);
   const soldOut = tour.spotsRemaining === 0;

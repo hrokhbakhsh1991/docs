@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
-import { resolveTextDirection, isAppLocale, routing } from "@/i18n/routing";
+import { resolveTextDirection, isAppLocale, resolveMarketingLocalePath, routing } from "@/i18n/routing";
 import { inter, resolveAppFontClassName, resolveAppFontFamilyCss, vazirmatn, calistoga } from "@/i18n/app-fonts";
 import { MaintenancePage } from "@/platform/maintenance-page";
 import { isPlatformMotherHost } from "@/platform/is-platform-mother-host";
@@ -18,11 +18,15 @@ import { serializeMarketingJsonLd } from "@/seo/serialize-marketing-jsonld";
 import {
   resolvePortalMemberLoginUrl,
   resolvePortalMemberModuleUrl,
+  resolvePortalPublicBaseUrl,
+  resolveMemberLoginCatalogTourId,
+  resolveGuestChromeDisplayName,
 } from "@app-tour/guest-surface-host";
 import { resolveGuestLandingFeatures } from "@app-tour/workspace-sdk";
 import { resolveMarketingMemberHeader } from "@/shell/resolve-marketing-member-header.server";
 import { MarketingProviders } from "@/shell/marketing-providers";
 import { MarketingShell } from "@/shell/marketing-shell";
+import { MarketingLoginModalProvider } from "@/auth/marketing-login-modal";
 import { resolveMarketingShellNavLinks } from "@/shell/resolve-marketing-shell-nav.server";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
 import { isMarketingSurfaceEnabled } from "@/tenant/marketing-site-surfaces";
@@ -56,7 +60,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   const branding = await fetchPublicTenantBrandingForHost(host);
-  const siteName = branding.displayName ?? t("nav.defaultSiteName");
+  const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
   return {
     ...buildMarketingSiteMetadata({ host, siteName, toursLabel: t("nav.tours"), locale }),
     description: t("metadata.siteDescription", { siteName }),
@@ -104,12 +108,18 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const branding = await fetchPublicTenantBrandingForHost(host);
   const bootstrap = await resolveMarketingBootstrapForHost(host);
   await importGuestMarketingThemeForPlugin(bootstrap.pluginId);
-  const siteName = branding.displayName ?? (await getTranslations("catalog"))("nav.defaultSiteName");
+  const siteName = resolveGuestChromeDisplayName(
+    branding.displayName,
+    (await getTranslations("catalog"))("nav.defaultSiteName")
+  );
   const layoutJsonLd = buildMarketingLayoutJsonLd({ host, siteName });
   const fontClassName = resolveAppFontClassName(locale);
   const fontFamilyBase = resolveAppFontFamilyCss(locale);
   const portalMemberModuleUrl = resolvePortalMemberModuleUrl(host);
   const portalMemberLoginUrl = resolvePortalMemberLoginUrl(host);
+  const portalPublicBaseUrl = resolvePortalPublicBaseUrl(host);
+  const memberLoginTourId = resolveMemberLoginCatalogTourId(bootstrap.pluginId);
+  const marketingHomeHref = resolveMarketingLocalePath("/", locale);
   const memberHeader = await resolveMarketingMemberHeader(host, bootstrap.tenantId);
   const primaryNavLinks = resolveMarketingShellNavLinks(host, bootstrap.pluginId, locale);
   const landing = resolveGuestLandingFeatures(bootstrap.pluginId);
@@ -127,18 +137,28 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         data-tenant-id={bootstrap.tenantId}
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <MarketingProviders>
-            <MarketingShell
-              branding={branding}
-              portalMemberLoginUrl={portalMemberLoginUrl}
-              portalMemberModuleUrl={portalMemberModuleUrl}
-              memberHeader={memberHeader}
-              primaryNavLinks={primaryNavLinks}
-              landing={landing}
-            >
-              {children}
-            </MarketingShell>
-          </MarketingProviders>
+          <MarketingLoginModalProvider
+            portalPublicBaseUrl={portalPublicBaseUrl}
+            pluginId={bootstrap.pluginId}
+            tenantId={bootstrap.tenantId}
+            defaultTourId={memberLoginTourId}
+            defaultTourTitle={siteName}
+            backHref={marketingHomeHref}
+            memberModuleHref={portalMemberModuleUrl}
+          >
+            <MarketingProviders>
+              <MarketingShell
+                branding={branding}
+                portalMemberLoginUrl={portalMemberLoginUrl}
+                portalMemberModuleUrl={portalMemberModuleUrl}
+                memberHeader={memberHeader}
+                primaryNavLinks={primaryNavLinks}
+                landing={landing}
+              >
+                {children}
+              </MarketingShell>
+            </MarketingProviders>
+          </MarketingLoginModalProvider>
         </NextIntlClientProvider>
         <script
           type="application/ld+json"

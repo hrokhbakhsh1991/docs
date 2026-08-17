@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 
 import type { MarketingCatalogCard } from "@/catalog/catalog-types";
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding";
+import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 
 import { HomeFeaturedTourCard } from "./home-featured-tour-card";
 import { HomeSectionViewAllLink } from "./home-section-view-all-link";
@@ -18,7 +19,7 @@ export async function HomeFeatured({ items, pluginId, branding }: HomeFeaturedPr
   }
 
   const t = await getTranslations("catalog");
-  const siteName = branding.displayName ?? t("nav.defaultSiteName");
+  const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
   const copy = { siteName };
   const [flagship, ...picks] = items;
 

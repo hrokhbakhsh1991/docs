@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
-import { resolveEmbeddedMemberPortalHost } from "@app-tour/guest-surface-host";
+import { resolveEmbeddedMemberPortalHost, resolveGuestChromeDisplayName, resolveGuestMemberChipLabel } from "@app-tour/guest-surface-host";
 import { isMemberPortalEnabled } from "@app-tour/workspace-sdk";
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
 import { fetchMemberProfile } from "@/me/fetch-member-profile.server";
@@ -36,7 +37,11 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
   }
 
   const branding = await fetchPublicTenantBrandingForHost(host);
-  const workspaceLabel = branding.displayName?.trim() || bootstrap.pluginId;
+  const tChrome = await getTranslations("catalogRegistration");
+  const workspaceLabel = resolveGuestChromeDisplayName(
+    branding.displayName,
+    tChrome("chrome.defaultSiteName")
+  );
   const logoUrl = branding.logoUrl ?? null;
   const entitlements = await resolveMemberEntitlementsForShell(host, bootstrap);
   const grantedEntitlementKeys = entitlements?.granted ?? [];
@@ -51,11 +56,13 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
 
   const profilePayload = await fetchMemberProfile(host);
   const profile = profilePayload?.profile;
+  const tNav = await getTranslations("portalMember.nav");
   const memberHeader = {
-    displayName:
-      profile?.fields.displayName?.trim() ||
-      profile?.fields.mobile?.trim() ||
-      "Member",
+    displayName: resolveGuestMemberChipLabel({
+      displayName: profile?.fields.displayName,
+      mobile: profile?.fields.mobile,
+      fallback: tNav("memberFallback"),
+    }),
     avatarUrl: profile?.fields.avatarUrl ?? null,
     profileHref: "/me/profile",
   };

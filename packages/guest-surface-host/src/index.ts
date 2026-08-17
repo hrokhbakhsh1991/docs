@@ -22,6 +22,8 @@ export {
   type PublicTenantBrandingSnapshot,
   type FetchPublicTenantBrandingOptions,
 } from "./fetch-public-tenant-branding";
+export { resolveGuestChromeDisplayName } from "./resolve-guest-chrome-display-name";
+export { resolveGuestMemberChipLabel } from "./resolve-guest-member-chip-label";
 export {
   PUBLIC_TENANT_BRAND_LOGO_SIGNED_URL_TTL_SECONDS,
   resolveGuestBootstrapRevalidateSeconds,
@@ -52,6 +54,7 @@ export {
   resolvePortalPublicBaseUrl,
   resolvePortalRegistrationUrl,
 } from "./resolve-portal-public-base-url";
+export { resolvePublicAuthCorsAllowOrigin } from "./resolve-public-auth-cors-allow-origin";
 export {
   resolvePortalMemberModuleUrl,
 } from "./resolve-portal-member-module-url";

@@ -17,6 +17,7 @@ import { resolveDenaliFieldLabel } from "../adapters/field-labels";
 import { Input } from "../adapters/platform-primitives";
 import { fetchDenaliCatalogJsonWithSoftRetry } from "../adapters/catalog-soft-fail";
 import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notice";
+import { useDenaliCatalogSoftLoad } from "../hooks/use-denali-catalog-soft-load";
 import { LeaderPickerAvatar } from "../components/leader-picker-avatar";
 import { CheckIcon } from "../components/icons/tour-service-icons";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
@@ -69,9 +70,17 @@ export function DenaliLeaderUserIdsField({
   const label = resolveDenaliFieldLabel(t, "leaderUserIds");
   const selected = parseStringArray(getCanonicalValue(draft, "leaderUserIds"));
   const selectedSet = useMemo(() => new Set(selected), [selected]);
-  const [users, setUsers] = useState<UsersListResponse["items"]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, loading, error, reload } = useDenaliCatalogSoftLoad(
+    async () => {
+      const payload = await fetchDenaliCatalogJsonWithSoftRetry<UsersListResponse>(
+        DENALI_SUBMIT_CATALOG_BFF_PATHS.activeUsers,
+        "USERS"
+      );
+      return (payload.items ?? []).filter((user) => isWizardLeaderCandidate(user));
+    },
+    "USERS_LOAD_FAILED"
+  );
+  const users = data ?? [];
   const [searchQuery, setSearchQuery] = useState("");
   const [pickerExpanded, setPickerExpanded] = useState(() =>
     resolveDenaliLeaderPickerDefaultExpanded(selected.length)
@@ -82,36 +91,6 @@ export function DenaliLeaderUserIdsField({
       setPickerExpanded(true);
     }
   }, [selected.length]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchDenaliCatalogJsonWithSoftRetry<UsersListResponse>(
-      DENALI_SUBMIT_CATALOG_BFF_PATHS.activeUsers,
-      "USERS"
-    )
-      .then((payload) => {
-        if (!cancelled) {
-          const items = payload.items ?? [];
-          const leaders = items.filter((user) => isWizardLeaderCandidate(user));
-          setUsers(leaders);
-          setError(null);
-        }
-      })
-      .catch((fetchError: unknown) => {
-        if (!cancelled) {
-          setError(fetchError instanceof Error ? fetchError.message : "USERS_LOAD_FAILED");
-          setUsers([]);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const userById = useMemo(() => new Map(users.map((user) => [user.userId, user])), [users]);
 
@@ -247,7 +226,7 @@ export function DenaliLeaderUserIdsField({
       {loading ? (
         <p className="denali-wizard-composite__status">{t("composites.leaders.loading")}</p>
       ) : null}
-      <DenaliCatalogLoadNotice error={error} />
+      <DenaliCatalogLoadNotice error={error} onRetry={reload} />
 
       {!loading && users.length === 0 && error === null ? (
         <div className="denali-leader-picker__empty">

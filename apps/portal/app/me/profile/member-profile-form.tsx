@@ -76,6 +76,7 @@ export function MemberProfileForm({
   logoutTarget,
 }: MemberProfileFormProps) {
   const t = useTranslations("portalMember.profile");
+  const tNav = useTranslations("portalMember.nav");
   const [profile, setProfile] = useState(initialProfile);
   const [fieldValues, setFieldValues] = useState(() => initialEditableValues(initialProfile));
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
@@ -326,7 +327,11 @@ export function MemberProfileForm({
             <p data-member-profile-session-hint>{t("sessionHint")}</p>
           </div>
         </div>
-        <MemberLogoutButton logoutTarget={logoutTarget} />
+        <MemberLogoutButton
+          logoutTarget={logoutTarget}
+          logoutLabel={tNav("logout")}
+          loggingOutLabel={tNav("loggingOut")}
+        />
       </section>
     </form>
   );

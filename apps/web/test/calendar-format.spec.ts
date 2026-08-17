@@ -36,6 +36,11 @@ describe("calendar-format.spec.ts", () => {
     assert.deepEqual(back, { gy: 2026, gm: 3, gd: 21 });
   });
 
+  it("WEB-CAL-05 persian-year view still serializes Gregorian ISO (INV-DENALI-CAL-01)", () => {
+    assert.equal(jalaaliToIso(1405, 5, 25), "2026-08-16");
+    assert.doesNotMatch(jalaaliToIso(1405, 5, 25), /^1405-/);
+  });
+
   it("WEB-CAL-04 parses and serializes ISO dates", () => {
     assert.deepEqual(parseIsoDate("2026-06-10"), { year: 2026, month: 6, day: 10 });
     assert.equal(toIsoDate({ year: 2026, month: 6, day: 10 }), "2026-06-10");

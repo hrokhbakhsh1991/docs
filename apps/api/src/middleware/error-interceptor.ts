@@ -2,6 +2,8 @@ import type { ServerResponse } from "node:http";
 
 import { Prisma } from "@prisma/client";
 
+import { isPrismaErrorOfType } from "../db/prisma-error-instance";
+
 import { isCanonicalSyncValidationError } from "../canonical/canonical-sync-validation-error";
 import { isSchemaVersionMismatchError } from "../canonical/schema-version-mismatch";
 import {
@@ -52,7 +54,10 @@ import {
   TOUR_WRITE_CONCURRENCY_EXCEEDED,
 } from "../http/tour-write-concurrency-budget";
 import { ProvisioningDevOnlyError } from "../internal/provisioning-guard";
-import { TenantProvisionConflictError, WorkspaceNotCertifiedForProductionError } from "../internal/provisioning.errors";
+import {
+  TenantProvisionConflictError,
+  WorkspaceNotCertifiedForProductionError,
+} from "../internal/provisioning.errors";
 import {
   OutboxReplayNotFailedError,
   OutboxReplayNotFoundError,
@@ -97,25 +102,16 @@ import {
   isPaymentsWebhookTimestampSkewError,
 } from "../integrations/webhooks/webhook.errors.ts";
 import { isPaymentsWebhookEventIdRequiredError } from "../integrations/webhooks/payments-webhook-event-id-required.error.ts";
-import {
-  isPaidTourOpenGateBlockedError,
-} from "../registrations/assert-paid-tour-open-gate.ts";
-import {
-  isPublicRegistrationThrottleExceededError,
-} from "../registrations/public-registration-throttle.ts";
-import {
-  isRegistrationCapacityExceededError,
-} from "../registrations/registration-capacity.service.ts";
+import { isPaidTourOpenGateBlockedError } from "../registrations/assert-paid-tour-open-gate.ts";
+import { isPublicRegistrationThrottleExceededError } from "../registrations/public-registration-throttle.ts";
+import { isRegistrationCapacityExceededError } from "../registrations/registration-capacity.service.ts";
 import { DbCircuitOpenError } from "../db/transient-db-error";
 import { ProxyCircuitOpenError } from "../proxy/proxy-upstream-circuit";
 import {
   isProxyUpstreamTimeoutError,
   ProxyUpstreamTimeoutError,
 } from "../proxy/proxy-upstream-timeout";
-import {
-  DATABASE_UNAVAILABLE,
-  isDatabaseConnectionError,
-} from "../db/database-connection-error";
+import { DATABASE_UNAVAILABLE, isDatabaseConnectionError } from "../db/database-connection-error";
 import { isTransientDbError } from "../db/transient-db-error";
 
 export const CORRELATION_ID_HEADER = "x-correlation-id";
@@ -173,7 +169,12 @@ export function isClientSafeErrorToken(message: string): boolean {
 
 /** AP14 — normalize known Prisma request errors before generic message fallback. */
 export function mapPrismaErrorToAppError(error: unknown): MappedAppError | null {
-  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+  if (
+    !isPrismaErrorOfType<Prisma.PrismaClientKnownRequestError>(
+      error,
+      Prisma.PrismaClientKnownRequestError
+    )
+  ) {
     return null;
   }
   switch (error.code) {
@@ -273,7 +274,8 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("BOOKING_VALIDATION_REJECTED")) return 400;
   if (message.startsWith("BOOKING_VALIDATION_FAILED")) return 400;
   if (message.startsWith("BOOKING_CAPACITY_REJECTED")) return 409;
-  if (message === "BOOKING_GUEST_DUPLICATE" || message.startsWith("BOOKING_GUEST_DUPLICATE:")) return 409;
+  if (message === "BOOKING_GUEST_DUPLICATE" || message.startsWith("BOOKING_GUEST_DUPLICATE:"))
+    return 409;
   if (message.startsWith("BOOKING_WORKSPACE_TENANT_MISMATCH")) return 403;
   if (message.startsWith("BOOKING_CAPABILITY_VIOLATION")) return 422;
   if (message.startsWith("BOOKING_PUBLIC_CREATE_UNSUPPORTED")) return 403;
@@ -641,12 +643,7 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
   }
 
   if (error instanceof ImpersonationReadOnlyError) {
-    sendHttpError(
-      res,
-      403,
-      { error: "forbidden", code: "IMPERSONATION_READ_ONLY" },
-      correlationId
-    );
+    sendHttpError(res, 403, { error: "forbidden", code: "IMPERSONATION_READ_ONLY" }, correlationId);
     return;
   }
 
@@ -665,7 +662,12 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
     isPaymentsWebhookTimestampSkewError(error) ||
     isPaymentsWebhookSignatureInvalidError(error)
   ) {
-    sendHttpError(res, error.statusCode, { error: "unauthorized", code: error.code }, correlationId);
+    sendHttpError(
+      res,
+      error.statusCode,
+      { error: "unauthorized", code: error.code },
+      correlationId
+    );
     return;
   }
 
@@ -695,7 +697,12 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
   }
 
   if (isPublicRegistrationThrottleExceededError(error)) {
-    sendHttpError(res, error.statusCode, { error: "rate_limit_exceeded", code: error.code }, correlationId);
+    sendHttpError(
+      res,
+      error.statusCode,
+      { error: "rate_limit_exceeded", code: error.code },
+      correlationId
+    );
     return;
   }
 

@@ -384,9 +384,6 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
               }}
             >
               <div className="space-y-2">
-                <Label className="sr-only" htmlFor="otp">
-                  {t("otpLabel")}
-                </Label>
                 <p className="text-center text-sm text-muted-foreground sm:text-start">{t("otpLabel")}</p>
                 <OtpSegmentInput
                   value={otp}

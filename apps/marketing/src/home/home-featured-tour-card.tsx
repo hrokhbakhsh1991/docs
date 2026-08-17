@@ -21,7 +21,7 @@ export type HomeFeaturedTourCardProps = {
 
 export async function HomeFeaturedTourCard({
   tour,
-  pluginId: _pluginId,
+  pluginId,
   featured = false,
   flagshipLabel,
 }: HomeFeaturedTourCardProps) {
@@ -34,7 +34,7 @@ export async function HomeFeaturedTourCard({
   const datesLine = formatCatalogCardDates(tour, dateLocale, t("detail.datesTba"));
   const showPrice = shouldShowCatalogPrice(tour);
   const priceLine = showPrice
-    ? formatCatalogPrice(tour.priceAmount, tour.priceCurrency, dateLocale, t("detail.priceOnRequest"))
+    ? formatCatalogPrice(tour.priceAmount, tour.priceCurrency, dateLocale, t("detail.priceOnRequest"), pluginId)
     : null;
   const coverSrc = resolveHomeTourCoverUrl(tour.coverImageUrl);
   const hasCatalogCover = Boolean(tour.coverImageUrl?.trim());

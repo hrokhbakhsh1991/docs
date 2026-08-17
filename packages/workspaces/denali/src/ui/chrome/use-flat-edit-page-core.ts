@@ -5,7 +5,7 @@ import {
   type UpdateTourPayload,
   type WorkspacePlugin,
 } from "@app-tour/workspace-sdk";
-import type { DraftSchemaGate } from "@app-tour/draft-engine";
+import type { DraftSchemaGate, DraftStatus } from "@app-tour/draft-engine";
 import type { ValidationIssue } from "@app-tour/wizard-navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
@@ -13,10 +13,6 @@ import { createDenaliDraftSchemaGate } from "../../draft/create-denali-draft-sch
 import type {
   DenaliWizardDraftEnvelope,
   DenaliWizardDraftMeta,
-} from "../../draft/denali-wizard-draft-binding";
-import {
-  denaliHydrateDraftEnvelope,
-  denaliPrepareDraftEnvelope,
 } from "../../draft/denali-wizard-draft-binding";
 import {
   emptyDenaliTourWizardDraft,
@@ -37,6 +33,12 @@ import {
   useDenaliWizardRules,
 } from "../hooks/use-wizard-rule-sync";
 import { runDenaliFlatEditPatch, type DenaliFlatEditPatchIntent } from "./flat-edit-patch-logic";
+import {
+  prepareDenaliFlatEditSeedEnvelope,
+  replaceDenaliFlatEditDraftAfterSuccessfulPatch,
+  resolveDenaliFlatEditWorkingEnvelope,
+  shouldSeedDenaliFlatEditDraftFromTour,
+} from "./flat-edit-draft-authority";
 import {
   resolveDenaliFlatEditPageScreen,
   type DenaliFlatEditPageScreen,
@@ -67,9 +69,10 @@ export type DenaliFlatEditDraftEnvelope = DenaliWizardDraftEnvelope<DenaliTourWi
 
 export type DenaliFlatEditDraftSync = {
   readonly data: DenaliFlatEditDraftEnvelope | null;
-  readonly status: string;
+  readonly status: DraftStatus;
   readonly setData: (envelope: DenaliFlatEditDraftEnvelope) => void;
   readonly clearDraft: () => Promise<void>;
+  readonly clearDraftAndReset: (reset: DenaliFlatEditDraftEnvelope) => Promise<void>;
   readonly navLocked: boolean;
 };
 
@@ -114,6 +117,7 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
   const [unpublished, setUnpublished] = useState(false);
   const [pendingIntent, setPendingIntent] = useState<DenaliFlatEditPatchIntent | null>(null);
   const [pending, startTransition] = useTransition();
+  const suppressTourSeedRef = useRef(false);
 
   const denaliRules = useDenaliWizardRules();
   const themeCatalog = useDenaliThemeCatalog(input.gate.published);
@@ -150,14 +154,13 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
   }, [input.gate.published, loadTour]);
 
   const envelope = useMemo((): DenaliFlatEditDraftEnvelope | null => {
-    if (input.draftSync.data !== null) {
-      return input.draftSync.data;
-    }
-    if (tourBaseline === null) {
-      return null;
-    }
-    return denaliHydrateDraftEnvelope(null, tourBaseline, input.envelopeMeta);
-  }, [input.draftSync.data, tourBaseline, input.envelopeMeta]);
+    return resolveDenaliFlatEditWorkingEnvelope({
+      remoteDraft: input.draftSync.data,
+      tourBaseline,
+      tourRowVersion: rowVersion,
+      envelopeMeta: input.envelopeMeta,
+    });
+  }, [input.draftSync.data, tourBaseline, rowVersion, input.envelopeMeta]);
 
   const draft = envelope?.form ?? emptyDenaliTourWizardDraft();
   // UX: clear stale submit error/validation after real draft edits.
@@ -209,14 +212,22 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
     if (!input.gate.published || tourBaseline === null) {
       return;
     }
-    if (input.draftSync.data !== null) {
+    if (suppressTourSeedRef.current) {
       return;
     }
-    if (input.draftSync.status === "SYNCING" || input.draftSync.status === "CONFLICT_RESOLVING") {
+    if (
+      !shouldSeedDenaliFlatEditDraftFromTour({
+        remoteDraft: input.draftSync.data,
+        tourRowVersion: rowVersion,
+        draftStatus: input.draftSync.status,
+      })
+    ) {
       return;
     }
-    input.draftSync.setData(denaliPrepareDraftEnvelope(tourBaseline, input.envelopeMeta));
-  }, [input.gate.published, tourBaseline, input.draftSync, input.envelopeMeta]);
+    input.draftSync.setData(
+      prepareDenaliFlatEditSeedEnvelope(tourBaseline, input.envelopeMeta, rowVersion)
+    );
+  }, [input.gate.published, tourBaseline, rowVersion, input.draftSync, input.envelopeMeta]);
 
   input.draftSchemaGateRef.current =
     denaliRules != null && wizardRuleEvalContext !== undefined
@@ -270,7 +281,6 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
             setPendingIntent(null);
             return;
           }
-          setRowVersion(outcome.rowVersion);
           if (outcome.patchIntent === "publish") {
             setPublished(true);
           } else if (outcome.patchIntent === "unpublish") {
@@ -279,9 +289,36 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
             setSaved(true);
           }
           setPendingIntent(null);
-          await input.draftSync.clearDraft();
+          suppressTourSeedRef.current = true;
+          try {
+            const reloaded = await input.loadTourBaseline(input.tourId);
+            if (reloaded.ok) {
+              setDetail(reloaded.detail);
+              setTourBaseline(reloaded.baseline);
+              setRowVersion(reloaded.rowVersion);
+              await replaceDenaliFlatEditDraftAfterSuccessfulPatch({
+                baseline: reloaded.baseline,
+                envelopeMeta: input.envelopeMeta,
+                tourRowVersion: reloaded.rowVersion,
+                draftSync: input.draftSync,
+              });
+            } else {
+              setRowVersion(outcome.rowVersion);
+              await replaceDenaliFlatEditDraftAfterSuccessfulPatch({
+                baseline: draft,
+                envelopeMeta: input.envelopeMeta,
+                tourRowVersion: outcome.rowVersion,
+                draftSync: input.draftSync,
+              });
+            }
+          } catch {
+            // Tour PATCH already succeeded. Draft reset is best-effort — do not
+            // remap a reset failure to unknown_error (operator would think save failed).
+            setRowVersion(outcome.rowVersion);
+          } finally {
+            suppressTourSeedRef.current = false;
+          }
           input.onAfterPatchSuccess();
-          void loadTour();
         } catch {
           setSubmitError(
             encodeTourActionSubmitError({
@@ -294,7 +331,7 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
         }
       });
     },
-    [input, draft, denaliRules, wizardRuleEvalContext, rowVersion, tourBaseline, loadTour]
+    [input, draft, denaliRules, wizardRuleEvalContext, rowVersion, tourBaseline]
   );
 
   const formReady = envelope !== null;

@@ -11,9 +11,13 @@ import { toLocalizedDigits } from "@/i18n/format-localized-digits";
 
 export type CatalogTourDetailLogisticsProps = {
   readonly tour: MarketingCatalogCard;
+  readonly pluginId: string;
 };
 
-export async function CatalogTourDetailLogistics({ tour }: CatalogTourDetailLogisticsProps) {
+export async function CatalogTourDetailLogistics({
+  tour,
+  pluginId,
+}: CatalogTourDetailLogisticsProps) {
   const t = await getTranslations("catalog");
   const localeRaw = await getLocale();
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
@@ -38,11 +42,12 @@ export async function CatalogTourDetailLogistics({ tour }: CatalogTourDetailLogi
           tour.priceCurrency,
           dateLocale,
           t("detail.priceOnRequest"),
+          pluginId,
         )
       : null;
   const dongAmount =
     transport?.dongAmount != null
-      ? formatCatalogPrice(transport.dongAmount, tour.priceCurrency, dateLocale, t("detail.priceOnRequest"))
+      ? formatCatalogPrice(transport.dongAmount, tour.priceCurrency, dateLocale, t("detail.priceOnRequest"), pluginId)
       : null;
 
   const hasContent =

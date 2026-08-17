@@ -266,6 +266,12 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__va
   white-space: pre-wrap;
 }
 
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__value--optional-empty {
+  font-weight: 400;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .operator-review__chips {
   display: flex;
   flex-wrap: wrap;

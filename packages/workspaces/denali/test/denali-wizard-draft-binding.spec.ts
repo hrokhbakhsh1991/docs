@@ -14,6 +14,7 @@ import {
   DENALI_CREATE_TOUR_SUPPORTS_CLONE,
   DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
   prepareDenaliCreateTourFreshStartEnvelope,
+  readDenaliWizardSourceRowVersion,
 } from "../src/draft/denali-wizard-draft-binding";
 
 describe("denali-wizard-draft-binding.spec.ts — Phase 11.5", () => {
@@ -122,6 +123,40 @@ describe("denali-wizard-draft-binding.spec.ts — Phase 11.5", () => {
     assert.equal(envelope.meta.wizardSessionId, "ws-fresh");
     assert.equal(envelope.meta.freshStart, true);
     assert.equal(envelope.form.data.basics.title, "Seed");
+  });
+
+  it("WEB-P11-5-07 prepare and hydrate preserve sourceRowVersion (flat-edit stamp)", () => {
+    const envelope = denaliPrepareDraftEnvelope(
+      { data: { basics: { title: "Seed" } } },
+      { currentStepIndex: 0, wizardSessionId: "edit-1", sourceRowVersion: 3 }
+    );
+    assert.equal(envelope.meta.sourceRowVersion, 3);
+    const hydratedRemote = denaliHydrateDraftEnvelope(
+      envelope,
+      { data: { basics: { title: "Fallback" } } },
+      { currentStepIndex: 0 }
+    );
+    assert.equal(hydratedRemote.meta.sourceRowVersion, 3);
+    const hydratedNull = denaliHydrateDraftEnvelope(
+      null,
+      { data: { basics: { title: "From tour" } } },
+      { currentStepIndex: 0, wizardSessionId: "edit-1", sourceRowVersion: 7 }
+    );
+    assert.equal(hydratedNull.meta.sourceRowVersion, 7);
+    assert.equal(hydratedNull.form.data.basics.title, "From tour");
+  });
+
+  it("WEB-P11-5-08 sourceRowVersion reader keeps integers ≥ 0 and strips the rest", () => {
+    assert.equal(readDenaliWizardSourceRowVersion(0), 0);
+    assert.equal(readDenaliWizardSourceRowVersion(3), 3);
+    assert.equal(readDenaliWizardSourceRowVersion(1.5), undefined);
+    assert.equal(readDenaliWizardSourceRowVersion(Number.NaN), undefined);
+    assert.equal(readDenaliWizardSourceRowVersion(-1), undefined);
+    const stripped = denaliPrepareDraftEnvelope(
+      { data: {} },
+      { currentStepIndex: 0, sourceRowVersion: 1.5 as unknown as number }
+    );
+    assert.equal(stripped.meta.sourceRowVersion, undefined);
   });
 
   it("P2-C.15 edit tour remote draft identity scopes key per tour", () => {

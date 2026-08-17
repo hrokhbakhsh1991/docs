@@ -5,6 +5,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding";
+import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 import type { GuestLandingFeatures } from "@app-tour/workspace-sdk";
 
 import { MarketingFooter } from "./marketing-footer";
@@ -39,7 +40,7 @@ export async function MarketingShell({
   const homeHref = resolveMarketingLocalePath("/", locale);
   const toursHref = resolveMarketingLocalePath("/tours", locale);
   const headerList = await headers();
-  const title = branding.displayName ?? t("nav.defaultSiteName");
+  const title = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
   const isFullLanding = landing.variant === "full";
   const navHasToursLink = (isFullLanding ? primaryNavLinks : [{ id: "tours" }]).some(
     (item) => item.id === "tours"

@@ -24,6 +24,18 @@ export const DENALI_LOCATION_ZONE_PATHS = [
 
 export type DenaliLocationZonePath = (typeof DENALI_LOCATION_ZONE_PATHS)[number]["path"];
 
+/**
+ * Ghost dependents of the startPoint composite (INV-DENALI-WIZ-003).
+ * Persist SoT is `tripDetails.overview.{path}` — root keys are stripped on submit.
+ */
+export const DENALI_LOCATION_ZONE_GHOST_PATHS = ["summitPoint", "campPoint", "endPoint"] as const;
+
+export type DenaliLocationZoneGhostPath = (typeof DENALI_LOCATION_ZONE_GHOST_PATHS)[number];
+
+export function denaliLocationZoneOverviewPath(path: DenaliLocationZonePath): string {
+  return `tripDetails.overview.${path}`;
+}
+
 export const DENALI_COMPOSITE_TEST_IDS = {
   destination: "denali-composite-destination",
   locationZones: "denali-composite-location-zones",
@@ -70,6 +82,36 @@ export function isDenaliLocationDataPopulated(location: DenaliLocationData): boo
   );
 }
 
+/**
+ * Persist-safe location value — label/address/lat/lng only (ED-CAMP-PERSIST-01).
+ * Empty zones are omitted (`undefined`) so submit does not store a fake pin.
+ */
+export function toPersistableDenaliLocationData(
+  location: DenaliLocationData
+): DenaliLocationData | undefined {
+  const parsed = parseDenaliLocationData(location);
+  return isDenaliLocationDataPopulated(parsed) ? parsed : undefined;
+}
+
+/**
+ * ED-CAMP-PERSIST-01 — in-session root wins; GET/edit hydrate falls back to
+ * `tripDetails.overview.{path}` after API ghost strip.
+ */
+export function resolveDenaliLocationZoneFromStorage(
+  canonicalRoot: unknown,
+  nestedOverview: unknown
+): DenaliLocationData {
+  const root = parseDenaliLocationData(canonicalRoot);
+  if (isDenaliLocationDataPopulated(root)) {
+    return root;
+  }
+  const nested = parseDenaliLocationData(nestedOverview);
+  if (isDenaliLocationDataPopulated(nested)) {
+    return nested;
+  }
+  return root;
+}
+
 function readLegacyLocationFields(entry: Record<string, unknown>): Partial<DenaliGatheringPoint> {
   const location =
     entry.location !== null && typeof entry.location === "object" && !Array.isArray(entry.location)
@@ -114,8 +156,70 @@ function readLegacyLocationFields(entry: Record<string, unknown>): Partial<Denal
   };
 }
 
+export const DENALI_GATHERING_POINTS_CANONICAL_PATH = "gatheringPoints" as const;
+export const DENALI_GATHERING_POINTS_NESTED_PATH = "tripDetails.logistics.gatheringPoints" as const;
+
 export function createEmptyDenaliGatheringPoint(isPrimary = false): DenaliGatheringPoint {
   return isPrimary ? { name: "", isPrimary: true } : { name: "" };
+}
+
+/** True when the operator entered a name, address, or coordinates (ED-GATHER-01). */
+export function isDenaliGatheringPointPopulated(point: DenaliGatheringPoint): boolean {
+  if ((point.name ?? "").trim().length > 0) {
+    return true;
+  }
+  return isDenaliLocationDataPopulated({
+    address: point.address,
+    latitude: point.latitude,
+    longitude: point.longitude,
+  });
+}
+
+/**
+ * ED-GATHER-PERSIST-01 — persist/review SoT is canonical root `gatheringPoints`.
+ * Nested RHF path is fallback for drafts written before the field aligned with the map.
+ */
+export function resolveDenaliGatheringPointsFromStorage(
+  canonicalRoot: unknown,
+  nestedLogistics: unknown
+): DenaliGatheringPoint[] {
+  const root = parseDenaliGatheringPoints(canonicalRoot);
+  if (root.some(isDenaliGatheringPointPopulated)) {
+    return root;
+  }
+  const nested = parseDenaliGatheringPoints(nestedLogistics);
+  if (nested.some(isDenaliGatheringPointPopulated)) {
+    return nested;
+  }
+  return root;
+}
+
+/** Drop empty scaffold rows; keep a single primary when any populated row remains. */
+export function omitEmptyDenaliGatheringPoints(
+  points: readonly DenaliGatheringPoint[]
+): DenaliGatheringPoint[] {
+  const kept = points.filter(isDenaliGatheringPointPopulated);
+  if (kept.length === 0) {
+    return [];
+  }
+  if (kept.some((point) => point.isPrimary === true)) {
+    return kept;
+  }
+  const [first, ...rest] = kept;
+  return [{ ...first!, isPrimary: true }, ...rest];
+}
+
+/**
+ * Editor display: one empty station when canonical is `[]` — do not write the scaffold
+ * into the draft until the operator edits (ED-GATHER-01).
+ */
+export function resolveDenaliGatheringPointsEditorState(
+  stored: readonly DenaliGatheringPoint[]
+): { readonly points: readonly DenaliGatheringPoint[]; readonly scaffold: boolean } {
+  if (stored.length > 0) {
+    return { points: stored, scaffold: false };
+  }
+  return { points: [createEmptyDenaliGatheringPoint(true)], scaffold: true };
 }
 
 export function parseDenaliGatheringPoints(value: unknown): DenaliGatheringPoint[] {

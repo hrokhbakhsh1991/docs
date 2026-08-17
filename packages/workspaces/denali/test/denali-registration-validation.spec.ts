@@ -15,7 +15,7 @@ describe("denali-registration-validation", () => {
         {
           capacity: null,
           nationalIdRequired: true,
-          profileNationalId: "1234567890",
+          profileNationalId: "0013542419",
         }
       )
     );
@@ -32,7 +32,7 @@ describe("denali-registration-validation", () => {
         {
           capacity: null,
           nationalIdRequired: true,
-          profileNationalId: "1234567890",
+          profileNationalId: "0013542419",
         }
       )
     );
@@ -53,7 +53,23 @@ describe("denali-registration-validation", () => {
         {
           capacity: null,
           nationalIdRequired: true,
-          profileNationalId: "1234567890",
+          profileNationalId: "0013542419",
+        }
+      )
+    );
+  });
+
+  it("DN-REG-V04 checksum-invalid 10-digit national id is rejected", () => {
+    assert.throws(() =>
+      validateDenaliRegistrationPayload(
+        {
+          registrantTarget: "self",
+          contact: { fullName: "Ali Rezaei", nationalId: "1234567890" },
+          partySize: 1,
+        },
+        {
+          capacity: null,
+          nationalIdRequired: true,
         }
       )
     );

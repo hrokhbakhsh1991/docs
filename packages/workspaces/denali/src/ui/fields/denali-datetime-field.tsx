@@ -15,7 +15,10 @@ import {
   datetimeLocalInputToIso,
   isoToDatetimeLocalInput,
 } from "../logic/denali-datetime-utils";
-import { resolveDenaliDatetimeFieldMinIsoDate } from "../logic/denali-schedule-date-policy";
+import {
+  DENALI_TOUR_START_CANONICAL_PATH,
+  resolveDenaliDatetimeFieldMinIsoDate,
+} from "../logic/denali-schedule-date-policy";
 
 type DenaliDatetimeFieldProps = {
   readonly draft: DenaliTourWizardDraft;
@@ -45,7 +48,10 @@ export function DenaliDatetimeField({
   const label = resolveDenaliFieldLabel(t, canonicalPath);
   const stored = getCanonicalStringValue(draft, canonicalPath);
   const localValue = isoToDatetimeLocalInput(stored);
-  const minIsoDate = resolveDenaliDatetimeFieldMinIsoDate(canonicalPath);
+  const minIsoDate = resolveDenaliDatetimeFieldMinIsoDate(canonicalPath, new Date(), {
+    startDateTimeIso: getCanonicalStringValue(draft, DENALI_TOUR_START_CANONICAL_PATH),
+    tourKind: getCanonicalStringValue(draft, "category"),
+  });
 
   return (
     <div className="denali-wizard-composite" data-testid={testId} data-wizard-date-picker>

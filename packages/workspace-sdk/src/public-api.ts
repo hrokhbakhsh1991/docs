@@ -340,6 +340,7 @@ export {
   resolveCatalogRegistrationApiPath,
   UnknownCatalogRegistrationPluginError,
 } from "./catalog/resolve-catalog-registration-api-path";
+export { tryResolveCatalogRegistrationForTourApiPath } from "./catalog/resolve-catalog-registration-for-tour-api-path";
 export {
   type FieldRules,
   type IntakeField,
@@ -404,12 +405,14 @@ export {
 export {
   MEMBER_PROFILE_DISPLAY_NAME_MAX_LENGTH,
   MEMBER_PROFILE_FATHER_NAME_MAX_LENGTH,
+  classifyIranianNationalId,
   validateMemberProfileBirthDate,
   validateMemberProfileDisplayName,
   validateMemberProfileFatherName,
   validateMemberProfileGender,
   validateMemberProfileNationalId,
   resolveMemberProfileFieldValidator,
+  type IranianNationalIdClass,
   type MemberProfileFieldValidator,
 } from "./profile/member-profile-validators";
 export {

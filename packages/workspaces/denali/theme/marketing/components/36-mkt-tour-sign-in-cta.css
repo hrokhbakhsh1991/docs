@@ -1,5 +1,5 @@
 /**
- * MKT-36 — tour PDP secondary sign-in + CTA stack layout.
+ * MKT-36 — tour PDP CTA stack: guest sign-in + Phase 3 member-self hooks.
  * Split from 02-pr-d6-p1.css (MKT-SKIN-01 ≤500 lines).
  */
 
@@ -8,7 +8,9 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-catalog-detail-cta-primary],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  footer[data-marketing-catalog-detail-actions] {
+  footer[data-marketing-catalog-detail-actions],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-sticky-cta] {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -16,24 +18,98 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  a[data-marketing-tour-sign-in] {
+  div[data-marketing-catalog-detail-sticky-bar]
+  div[data-marketing-catalog-detail-sticky-cta] {
+  flex: 0 0 auto;
+  min-width: 8rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-cta-primary]
+  a[data-marketing-view-registration],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  footer[data-marketing-catalog-detail-actions]
+  a[data-marketing-view-registration],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-booking-rail-cta]
+  a[data-marketing-view-registration],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-sticky-bar]
+  a[data-marketing-view-registration] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  width: 100%;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-cta-primary]
+  a[data-marketing-view-registration]:hover,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  footer[data-marketing-catalog-detail-actions]
+  a[data-marketing-view-registration]:hover,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-booking-rail-cta]
+  a[data-marketing-view-registration]:hover,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-sticky-bar]
+  a[data-marketing-view-registration]:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-sticky-bar]
+  a[data-marketing-view-registration] {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 8rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-tour-sign-in],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-register-another] {
   display: block;
   text-align: center;
   font-size: var(--mkt-text-small);
   font-weight: 600;
   color: var(--muted-foreground);
+  background: transparent;
+  min-height: 0;
+  width: auto;
+  padding: 0;
+  border-radius: 0;
   text-decoration: underline;
   text-underline-offset: 0.15em;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  a[data-marketing-tour-sign-in]:hover {
+  a[data-marketing-tour-sign-in]:hover,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-register-another]:hover {
   color: var(--color-text-primary);
+  opacity: 1;
+  transform: none;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-catalog-detail-sticky-bar]
-  a[data-marketing-tour-sign-in] {
+  a[data-marketing-tour-sign-in],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-sticky-bar]
+  a[data-marketing-register-another] {
   flex: 0 0 auto;
   min-width: 0;
   font-size: var(--mkt-text-small);

@@ -51,6 +51,22 @@ describe("denali-wizard-draft-schema.spec.ts — WEB-P11-HERMETIC-04", () => {
     assert.equal(result.ok, true);
   });
 
+  it("accepts flat-edit sourceRowVersion on meta", () => {
+    const parsed = DenaliWizardDraftEnvelopeSchema.safeParse({
+      form: { data: {} },
+      meta: { currentStepIndex: 0, sourceRowVersion: 3 },
+    });
+    assert.equal(parsed.success, true);
+    if (parsed.success) {
+      assert.equal(parsed.data.meta.sourceRowVersion, 3);
+    }
+    const rejected = DenaliWizardDraftEnvelopeSchema.safeParse({
+      form: { data: {} },
+      meta: { currentStepIndex: 0, sourceRowVersion: 1.5 },
+    });
+    assert.equal(rejected.success, false);
+  });
+
   it("prePush returns envelope unchanged (validate-only)", () => {
     const gate = createDenaliDraftSchemaGate(minimalRules(), {
       uiOptions: {},

@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PUBLIC-CATALOG
-version: "2026-06-30-v26"
+version: "2026-08-16-v30"
 workspace: denali
 stack: workspace-sdk · workspace-denali/http · apps/marketing
 authority: MIGRATION-MAP.md §3.5 · docs/workspaces/denali/marketing-landing.mdoc
@@ -32,6 +32,8 @@ A tour appears in the public catalog only when canonical `data.publishStatus ===
 | `active` | Visible | Visible (open/active bucket) |
 
 Wizard review step (Phase 11) persists `publishStatus`; admin must set `active` before marketing lists the tour.
+
+Operator chrome labels that transition **Publish** (`DRAFT → OPEN`). A DRAFT Asklim (or any Denali) tour is **correctly absent** from marketing until that click. Do not treat a missing card as a catalog-filter or guest-app regression.
 
 ## API
 
@@ -136,7 +138,9 @@ Wizard uploads persist canonical photo rows with **`storageKey`** (tenant-scoped
 2. **Itinerary segment photos** — `buildDenaliCatalogPhotoUrlById` presigns each referenced photo id; `projectDenaliCatalogItinerary` merges into segment `photoUrls`.
 3. **Exposure** — when `denali.photos` is hidden, `coverImageUrl` is redacted after enrichment (unchanged).
 4. **Dev** — presign requires MinIO env (`readMinioPhotoConfigFromEnv`); without config, `coverImageUrl` stays `null` and marketing falls back to placeholder.
-5. **Smoke placeholder URLs** — operator/denali dev seeds may emit `https://cdn.example/...` (IANA `.example` reserved host). Marketing `resolveHomeTourCoverUrl` treats these as unreachable and serves `/home/fallback-tour-cover.webp` on list cards, home blocks, and detail hero when no real CDN/MinIO URL is configured.
+5. **Smoke placeholder URLs** — operator/denali dev seeds may emit `https://cdn.example/...` (IANA `.example` reserved host, **not** `cdn.example.com`). `isUnreachableMarketingCatalogImageUrl` / `resolveMarketingCatalogPhotoUrl` drop those hosts. List cards, home blocks, and the simple detail cover use `resolveHomeTourCoverUrl` → `/home/fallback-tour-cover.webp`. Hero mosaic / lightbox already go through `buildCatalogTourPhotoSet` (same filter). **Itinerary segment `<img>`s** must use the same filter (`readCatalogItinerarySegmentPhotoUrls`); a smoke URL becomes “no photos” + ED-PHOTO-EMPTY-01 copy, not a browser `ERR_NAME_NOT_RESOLVED` (BUG-3). **Crawler image surfaces** (`og:image` / `twitter:image` and sitemap `images[]`) omit the cover when the URL is unreachable — do not advertise a dead host. Sitemap still lists the tour `<loc>`; only the image hint is dropped. Do not change the seed URL to a real CDN; fixtures stay `.example` so API JSON-LD tests can still emit `https`.
+
+   **SMK-MKT-04 contract:** Playwright asserts itinerary copy (`Summit push` / `Ridge ascent`) and **zero** `[data-marketing-catalog-segment-photos] img` plus visible `[data-marketing-catalog-segment-photos-empty]` on the operator-smoke tour — not a reachable `<img>` count of 1. Unit coverage for the filter is `catalog-itinerary-display.spec.ts` (MKT-08 / MKT-09).
 
 Marketing `CatalogCoverImage` uses `unoptimized` for hosts outside `MARKETING_IMAGE_REMOTE_HOSTS` (typical for presigned MinIO URLs).
 
@@ -340,19 +344,23 @@ Denali and Urban exposure resolvers (`resolve-denali-surface-exposure.ts`, `reso
 
 ### SEO metadata (M8)
 
+Layout `buildMarketingSiteMetadata` sets Next `title.template` = `` `%s — ${siteName}` `` (`siteName` = `resolveGuestChromeDisplayName(branding.displayName, …)`, never a hardcoded club public name). Child `metadata.title` is therefore a **segment**, not a full document title.
+
 | Page | `generateMetadata` |
 |------|-------------------|
-| Layout | `metadataBase`, tenant `displayName`, default title |
-| `/tours` | `{displayName} — Tours` + catalog description |
-| `/tours/[tourId]` | tour title, description (`shortDescription` / `catalogSummary`), Open Graph image (`coverImageUrl`) |
+| Layout | `metadataBase`, tenant `displayName`, `title.template` |
+| `/tours` | **Segment** `seo.toursTitle` (`تورها` / `Tours`) — **no** `{siteName}` in the message. Document `<title>` becomes `تورها — {siteName}` via the layout template. OG/twitter = `` `${segment} — ${siteName}` `` (same split as detail). Fallback without `listTitleKey`: `t("nav.tours")`. |
+| `/tours/[tourId]` | tour title segment, description (`shortDescription` / `catalogSummary`), Open Graph image (`coverImageUrl`); OG/twitter append ` — ${siteName}` |
+| Missing tour | `app/tours/[tourId]/not-found.tsx` + `catalog.notFound` (tour unpublished). `generateMetadata` on the detail page already emits `metadata.notFoundTitle` / `notFoundDescription` + noindex. |
+| Club `/about` `/pricing` `/contact` | Intentionally `notFound()` (not published stubs). Root `app/not-found.tsx` + `catalog.pageNotFound` (page missing, CTA home). Mother host still `MaintenancePage`. |
 
-Canonical URLs derive from `MARKETING_PUBLIC_BASE_URL` or request host. `app/not-found.tsx` for missing tours.
+Canonical URLs derive from `MARKETING_PUBLIC_BASE_URL` or request host. Do **not** reuse tour-unpublished copy for informational club 404s — SMK-MKT-14 still asserts `[data-marketing-not-found]` on draft PDP via the nested tree.
 
 #### SEO shell (M8a — marketing `apps/marketing`)
 
 | Route | Role |
 |-------|------|
-| `app/sitemap.ts` | Host-aware dynamic sitemap — `/`, `/tours`, `/tours/{id}` only (no query strings) |
+| `app/sitemap.ts` | Host-aware dynamic sitemap — `/`, `/tours`, `/tours/{id}` only (no query strings). Tour `images[]` only when `resolveMarketingCatalogPhotoUrl` returns a reachable cover (smoke `cdn.example` omitted; `cdn.example.com` kept). |
 | `app/robots.ts` | `disallow: /api/` · absolute `Sitemap:` · `noindex` in non-prod unless `MARKETING_ROBOTS_ALLOW_INDEX=true` |
 | Metadata builders | Twitter Card mirrors Open Graph on list + detail (`build-marketing-metadata.ts`); policy from `resolveGuestSeoForPlugin()` (ADR-GP-004) |
 

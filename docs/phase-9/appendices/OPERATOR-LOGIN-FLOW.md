@@ -2,7 +2,7 @@
 
 ```yaml
 flow_spec_id: OPERATOR-LOGIN-FLOW
-version: "2026-06-10-v2"
+version: "2026-06-10-v3"
 status: LOCKED
 decisions: [DEC-P9-003, DEC-P9-012, DEC-P9-018]
 subphase: "9.1"
@@ -168,7 +168,7 @@ See [`identity-web-bff-addendum.md`](identity-web-bff-addendum.md).
 | Step      | UI | Validation / behavior |
 | --------- | -- | --------------------- |
 | **phone** | `LocalizedNumericInput` (`mode=phone`) · **ارسال رمز** | BFF `POST /api/auth/request-otp` — API **gates** unauthorized phones **before** challenge (`403 AUTH_PHONE_NOT_AUTHORIZED`). Web **never** advances to OTP on failure. |
-| **otp**   | `OtpSegmentInput` — **4 boxes** · paste · auto-submit on 4th digit | BFF `POST /api/auth/login-web-session`. Resend cooldown **45s**. **تغییر شماره موبایل** clears challenge. **Input:** ASCII state · Persian/Arabic-Indic keyboard normalized via `toAsciiDigits` · container `dir=ltr` · SMS autofill via hidden `autocomplete=one-time-code` sink. |
+| **otp**   | `OtpSegmentInput` — **4 boxes** · paste · auto-submit on 4th digit | BFF `POST /api/auth/login-web-session`. Resend cooldown **45s**. **تغییر شماره موبایل** clears challenge. **Input:** ASCII state · Persian/Arabic-Indic keyboard normalized via `toAsciiDigits` · container `dir=ltr` · SMS autofill via **clipped native** `autocomplete=one-time-code` sink (`aria-hidden` + `tabIndex=-1`, not `Input.control`). Cell names: `auth.otpDigitLabel` `{index}`. Group name: `auth.otpLabel`. No `htmlFor="otp"` on a hidden sink. Dev hint `devOtpHint` may stay in development. |
 
 Optional classify-only path: `POST /api/auth/phone-preflight` → `{ ok, authorized }` (web may skip — gated `request-otp` is sufficient).
 

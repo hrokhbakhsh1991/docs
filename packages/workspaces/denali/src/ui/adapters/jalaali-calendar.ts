@@ -1,6 +1,8 @@
 /**
  * Jalali (Persian) ↔ Gregorian conversion via Intl Persian calendar.
- * Storage/API values remain Gregorian ISO (YYYY-MM-DD).
+ * INV-DENALI-CAL-01 — storage/API values remain Gregorian ISO (YYYY-MM-DD).
+ * Reverse mapping searches civil days with the same forward Intl conversion
+ * (no second formula, no nested year/month/day scan).
  */
 
 export type JalaaliDate = { readonly jy: number; readonly jm: number; readonly jd: number };
@@ -13,6 +15,9 @@ const PERSIAN_PARTS_FORMATTER = new Intl.DateTimeFormat("en-u-ca-persian", {
   numberingSystem: "latn",
 });
 
+/** Search window around Nowruz of `jy` — covers a full Jalali year plus padding. */
+const JALAALI_TO_GREGORIAN_DAY_RADIUS = 400;
+
 function persianPartsFromDate(date: Date): JalaaliDate {
   const parts = PERSIAN_PARTS_FORMATTER.formatToParts(date);
   const read = (type: Intl.DateTimeFormatPartTypes): number =>
@@ -20,8 +25,14 @@ function persianPartsFromDate(date: Date): JalaaliDate {
   return { jy: read("year"), jm: read("month"), jd: read("day") };
 }
 
-function gregorianDaysInMonth(gy: number, gm: number): number {
-  return new Date(gy, gm, 0).getDate();
+function compareJalaali(left: JalaaliDate, jy: number, jm: number, jd: number): number {
+  if (left.jy !== jy) {
+    return left.jy - jy;
+  }
+  if (left.jm !== jm) {
+    return left.jm - jm;
+  }
+  return left.jd - jd;
 }
 
 export function gregorianToJalaali(gy: number, gm: number, gd: number): JalaaliDate {
@@ -29,17 +40,31 @@ export function gregorianToJalaali(gy: number, gm: number, gd: number): JalaaliD
 }
 
 export function jalaaliToGregorian(jy: number, jm: number, jd: number): GregorianDate {
-  const searchStart = jy + 621 - 2;
-  const searchEnd = jy + 621 + 2;
-  for (let gy = searchStart; gy <= searchEnd; gy += 1) {
-    for (let gm = 1; gm <= 12; gm += 1) {
-      const daysInMonth = gregorianDaysInMonth(gy, gm);
-      for (let gd = 1; gd <= daysInMonth; gd += 1) {
-        const jalali = persianPartsFromDate(new Date(gy, gm - 1, gd));
-        if (jalali.jy === jy && jalali.jm === jm && jalali.jd === jd) {
-          return { gy, gm, gd };
-        }
-      }
+  if (!Number.isInteger(jy) || !Number.isInteger(jm) || !Number.isInteger(jd)) {
+    throw new RangeError(`Invalid Jalali date: ${jy}/${jm}/${jd}`);
+  }
+  if (jm < 1 || jm > 12 || jd < 1 || jd > 31) {
+    throw new RangeError(`Invalid Jalali date: ${jy}/${jm}/${jd}`);
+  }
+
+  const anchor = new Date(jy + 621, 2, 21);
+  let lo = -JALAALI_TO_GREGORIAN_DAY_RADIUS;
+  let hi = JALAALI_TO_GREGORIAN_DAY_RADIUS;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const candidate = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + mid);
+    const gy = candidate.getFullYear();
+    const gm = candidate.getMonth() + 1;
+    const gd = candidate.getDate();
+    const jalali = gregorianToJalaali(gy, gm, gd);
+    const cmp = compareJalaali(jalali, jy, jm, jd);
+    if (cmp === 0) {
+      return { gy, gm, gd };
+    }
+    if (cmp < 0) {
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
     }
   }
   throw new RangeError(`Invalid Jalali date: ${jy}/${jm}/${jd}`);

@@ -172,6 +172,9 @@ Phases 1–7 are implemented and covered by automated specs above. Phase 8 manua
 
 ## Marketing chrome (guest surfaces)
 
+- Denali club guest chrome (باشگاه / Portal / denali mismatch → **shenski** from `/settings/branding`): [`docs/workspaces/denali/guest-login-branding-remediation.mdoc`](denali/guest-login-branding-remediation.mdoc).
+- **Guest empty-name fallback:** `resolveGuestChromeDisplayName` in `@app-tour/guest-surface-host`. Marketing and portal must not fall back to `pluginId` or `"Portal"`.
+- **Club seed vs workspace-type default:** `DEV_TENANTS` denali row `…000003` stores `theme.displayName` (`shenski`). `resolveDefaultTenantBranding("denali")` stays color-only so operator smoke `…014` does not inherit the club trade name.
 - Public branding via `GET /public/tenant-branding` — logo + `displayName` only (no workspace jargon).
 - **Display name:** Admin must click **Save** on `/settings/branding` after editing the name — logo upload alone does not persist `displayName`.
 - **Header vs nav:** `data-marketing-brand-title` uses `displayName` (fallback `nav.defaultSiteName`, not `nav.tours`). The nav link «تورها» / «Tours» is the catalog route label — it stays fixed even when the club name is customized.

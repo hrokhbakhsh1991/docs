@@ -5,6 +5,7 @@ import { resolveGuestSeoForPlugin, type WorkspaceGuestSeoMarketing } from "@app-
 
 import type { MarketingCatalogCard } from "@/catalog/catalog-types";
 import { formatCatalogCardDescription, formatCatalogCardSubtitle } from "@/catalog/format-catalog-display";
+import { resolveMarketingCatalogPhotoUrl } from "@/home/resolve-home-tour-cover-url";
 import { resolveMarketingLocalePath, type AppLocale } from "@/i18n/routing";
 
 /** Standard OG image dimensions declared for social crawlers (MKT-32). */
@@ -111,6 +112,7 @@ export function buildMarketingToursListMetadata(input: {
   const path = "/tours";
   const localizedPath = resolveMarketingLocalePath(path, input.locale ?? "fa");
   const url = `${resolveMarketingPublicOrigin(input.host)}${localizedPath}`;
+  const socialTitle = `${input.title} — ${input.siteName}`;
 
   return {
     title: input.title,
@@ -121,14 +123,14 @@ export function buildMarketingToursListMetadata(input: {
       languages: buildMarketingLanguageAlternates({ host: input.host, path }),
     },
     openGraph: {
-      title: input.title,
+      title: socialTitle,
       description: input.description,
       url,
       type: "website",
       locale: resolveMarketingOpenGraphLocale(input.locale ?? "fa"),
     },
     twitter: buildMarketingTwitterMetadata({
-      title: input.title,
+      title: socialTitle,
       description: input.description,
     }),
   };
@@ -169,8 +171,8 @@ export function buildMarketingTourDetailMetadata(input: {
     },
   };
 
-  const cover = input.tour.coverImageUrl?.trim();
-  if (cover !== undefined && cover.length > 0) {
+  const cover = resolveMarketingCatalogPhotoUrl(input.tour.coverImageUrl);
+  if (cover != null && cover.length > 0) {
     metadata.openGraph = {
       ...metadata.openGraph,
       images: [

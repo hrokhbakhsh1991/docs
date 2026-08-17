@@ -9,6 +9,9 @@ import {
 } from "@app-tour/workspace-sdk";
 import { getWorkspaceRegistrationFlowSteps } from "@app-tour/workspace-plugin-host/registration-flow";
 import {
+  GuestAuthHostProvider,
+  completeMemberLoginEgress,
+  createPortalSameOriginGuestAuthTransport,
   hydrateCatalogRegistrationIntakeAfterSession,
   isMemberLoginEgressFromLocation,
 } from "@app-tour/catalog-registration-flow-ui";
@@ -42,6 +45,11 @@ export type PublicCatalogRegistrationFlowProps = {
   /** Register-host modal: probe cookie then callback instead of assign(portalReturn). */
   readonly memberLoginStayOnPage?: boolean;
   readonly onMemberLoginSessionReady?: () => void | Promise<void>;
+  /**
+   * Host continuation after auth steps `probeSession`. Login: assign portalReturn.
+   * Register modal: close + reload. Must not live inside OTP/profile steps.
+   */
+  readonly onAuthenticated?: () => void | Promise<void>;
   /** Active self registration id on this tour — disables self tab when set. */
   readonly existingSelfRegistrationId?: string | null;
 };
@@ -65,12 +73,14 @@ export function PublicCatalogRegistrationFlow({
   memberLoginEgress = false,
   memberLoginStayOnPage = false,
   onMemberLoginSessionReady,
+  onAuthenticated,
   existingSelfRegistrationId = null,
 }: PublicCatalogRegistrationFlowProps) {
   const t = useTranslations("catalogRegistration");
   ensureWorkspaceRegistrationFlowClient(workspace);
   const flowPlugin = getWorkspaceRegistrationFlowPlugin(workspace);
   const steps = getWorkspaceRegistrationFlowSteps(workspace);
+  const transport = useMemo(() => createPortalSameOriginGuestAuthTransport(), []);
 
   const context = useMemo(
     (): RegistrationFlowContext => ({
@@ -129,6 +139,35 @@ export function PublicCatalogRegistrationFlow({
         ? flowPlugin.catalogRegistrationFlow.createInitialState(context)
         : createCatalogRegistrationFlowRuntimeState({ initialStep: "" }))
   );
+
+  const handleAuthenticated = useCallback(async () => {
+    if (onAuthenticated !== undefined) {
+      await onAuthenticated();
+      return;
+    }
+    if (onMemberLoginSessionReady !== undefined) {
+      await onMemberLoginSessionReady();
+      return;
+    }
+    if (memberLoginEgress) {
+      completeMemberLoginEgress({ memberLoginEgress: true });
+      return;
+    }
+    await hydrateCatalogRegistrationIntakeAfterSession(
+      context,
+      state,
+      dispatch,
+      state.data.displayName.trim(),
+      state.data.profileEmail.trim()
+    );
+  }, [
+    context,
+    dispatch,
+    memberLoginEgress,
+    onAuthenticated,
+    onMemberLoginSessionReady,
+    state,
+  ]);
 
   const [resumedWithoutServer, setResumedWithoutServer] = useState(false);
   const [sessionResumeStatus, setSessionResumeStatus] = useState<SessionResumeStatus>(() => {
@@ -232,7 +271,9 @@ export function PublicCatalogRegistrationFlow({
         <CatalogRegistrationStepper currentStep={state.currentStep} mode={stepperMode} />
       ) : null}
       <div data-public-registration-stage data-public-registration-stage-panel>
-        <Step context={context} state={state} dispatch={dispatch} resolveError={resolveError} />
+        <GuestAuthHostProvider transport={transport} onAuthenticated={handleAuthenticated}>
+          <Step context={context} state={state} dispatch={dispatch} resolveError={resolveError} />
+        </GuestAuthHostProvider>
       </div>
     </div>
   );

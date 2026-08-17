@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+import { resolveMarketingCatalogPhotoUrl } from "@/home/resolve-home-tour-cover-url";
 import { resolveMarketingLocalePath } from "@/i18n/routing";
 
 import { resolveMarketingPublicOrigin } from "./build-marketing-metadata";
@@ -65,7 +66,7 @@ export function buildMarketingSitemapEntries(
       continue;
     }
     const lastModified = tour.catalogUpdatedAt?.trim();
-    const coverImageUrl = tour.coverImageUrl?.trim();
+    const coverImageUrl = resolveMarketingCatalogPhotoUrl(tour.coverImageUrl);
     entries.push({
       url: `${origin}/tours/${encodeURIComponent(tourId)}`,
       changeFrequency: tourChangeFrequency,
@@ -74,9 +75,7 @@ export function buildMarketingSitemapEntries(
       ...(lastModified !== undefined && lastModified.length > 0
         ? { lastModified: new Date(lastModified) }
         : {}),
-      ...(coverImageUrl !== undefined && coverImageUrl.length > 0
-        ? { images: [coverImageUrl] }
-        : {}),
+      ...(coverImageUrl != null ? { images: [coverImageUrl] } : {}),
     });
   }
 

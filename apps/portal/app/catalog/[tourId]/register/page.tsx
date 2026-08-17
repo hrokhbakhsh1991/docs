@@ -168,7 +168,7 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
       ) : (
         <>
           {/* PCMS-UX-MODAL-04: guests always auto-open; `?auth=login` is a compatible deep link. */}
-          <PortalLoginModalOpener host="register" flow={loginFlow} />
+          <PortalLoginModalOpener flow={loginFlow} />
           <PortalRegisterGuestAuthGate flow={loginFlow} tenantId={bootstrap.tenantId} />
         </>
       )}

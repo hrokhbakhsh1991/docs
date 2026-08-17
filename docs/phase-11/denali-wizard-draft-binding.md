@@ -25,6 +25,11 @@ type DenaliWizardDraftEnvelope<TForm> = {
     freshStart?: boolean;
     /** Server-persisted tombstones only — stripped on client hydrate (Track B). Legacy 409 merge reads server copy (Track C). */
     deletedRoots?: readonly string[];
+    /**
+     * Flat-edit only — tour `rowVersion` this envelope was hydrated from.
+     * Create-wizard envelopes omit it. Integer ≥ 0; non-integers stripped on prepare/hydrate.
+     */
+    sourceRowVersion?: number;
   };
 };
 ```
@@ -46,11 +51,13 @@ Replaces naive shallow spread on `form.data` with controlled merge rules:
 
 `DENALI_CANONICAL_OBJECT_ROOTS` is exported from `@app-tour/workspace-denali/draft` (`program`, `transport`, `pricing`, `participants`, `policies`, `tripDetails`, `photos`, `gatheringPoints`).
 
-`meta.deletedRoots` on merge: reads **server array only** to filter merged `form.data`; **output meta omits `deletedRoots`** (INV-2 — same as prepare/hydrate). Step index and `wizardSessionId` rules unchanged.
+`meta.deletedRoots` on merge: reads **server array only** to filter merged `form.data`; **output meta omits `deletedRoots`** (INV-2 — same as prepare/hydrate). Step index, `wizardSessionId`, and (when present) `sourceRowVersion` (local stamp, else server) are the only client meta keys that round-trip. `freshStart === true` still returns local form + meta **without** copying `sourceRowVersion` (create-wizard clear must not inherit an edit stamp).
 
 ### Tombstone write path (Track B — server-primary)
 
-**Client no longer tracks `deletedRoots`.** On edit, `onDraftChange` sanitizes once and writes envelope meta without `deletedRoots` (step index, `wizardSessionId`, `freshStart` only).
+**Client no longer tracks `deletedRoots`.** On edit, `onDraftChange` sanitizes once and writes envelope meta without `deletedRoots`. Allowed client keys: `currentStepIndex`, `wizardSessionId`, `freshStart`, and on **flat edit** `sourceRowVersion` (tour `rowVersion` at hydrate). Create-wizard prepare/hydrate must not stamp `sourceRowVersion`.
+
+Reader: `readDenaliWizardSourceRowVersion` — `Number.isInteger(n) && n >= 0`. Zod `DenaliWizardDraftMetaSchema` matches. After a successful flat-edit PATCH, the page must call `clearDraftAndReset(GET snapshot)` — never `clearDraft()` then `setData` (that race re-PUTs the pre-PATCH baseline). See [`web-draft-host.md`](web-draft-host.md) and [`12.4-denali-flat-edit-form.md`](../phase-12/subphases/12.4-denali-flat-edit-form.md) 12.4d.
 
 Server PATCH recomputes `meta.deletedRoots` from stored vs incoming form via `WorkspacePlugin.draftTombstone` — see [`workspace-draft-persistence.md`](workspace-draft-persistence.md) § Envelope tombstone invariants (Track A).
 

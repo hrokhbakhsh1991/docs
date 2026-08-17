@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { isAppLocale, resolveMarketingLocalePath, routing } from "@/i18n/routing";
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding";
+import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 
 export type MarketingFooterProps = {
   readonly branding: PublicTenantBrandingSnapshot;
@@ -20,7 +21,7 @@ export async function MarketingFooter({
   const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
   const toursHref = resolveMarketingLocalePath("/tours", locale);
   const faqHref = resolveMarketingLocalePath("/#faq", locale);
-  const siteName = branding.displayName ?? t("nav.defaultSiteName");
+  const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
   const year = new Date().getFullYear();
 
   return (

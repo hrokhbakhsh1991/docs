@@ -7,6 +7,7 @@ export type RenderIntakeFieldProps = {
   readonly value: string;
   readonly label: string;
   readonly onChange: (value: string) => void;
+  readonly idPrefix: string;
   readonly describedBy?: string;
   readonly invalid?: boolean;
 };
@@ -16,10 +17,11 @@ export function RenderIntakeField({
   value,
   label,
   onChange,
+  idPrefix,
   describedBy,
   invalid = false,
 }: RenderIntakeFieldProps) {
-  const inputId = `schema-intake-${field.id}`;
+  const inputId = `${idPrefix}-${field.id}`;
   const requiredMarker = field.required ? <span aria-hidden="true"> *</span> : null;
   const commonInputProps = {
     id: inputId,
@@ -27,7 +29,7 @@ export function RenderIntakeField({
     value,
     onChange: (event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value),
     required: field.required,
-    "aria-invalid": invalid,
+    invalid,
     "aria-describedby": describedBy,
     "data-intake-field": field.id,
     pattern: field.rules?.pattern,
@@ -45,7 +47,7 @@ export function RenderIntakeField({
           checked={value === "true"}
           onChange={(event) => onChange(event.target.checked ? "true" : "false")}
           required={field.required}
-          aria-invalid={invalid}
+          aria-invalid={invalid || undefined}
           aria-describedby={describedBy}
         />
         <span>

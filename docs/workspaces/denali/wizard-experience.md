@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-06-24-v8"
+version: "2026-08-16-v27"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -131,6 +131,309 @@ Phase 12.4 flat edit (`DenaliFlatEditForm`) renders wizard composites via platfo
 
 Authority: [`docs/phase-12/subphases/12.4-denali-flat-edit-form.md`](../../phase-12/subphases/12.4-denali-flat-edit-form.md) · [`TOURS-EDIT-UX.md`](../../phase-9/appendices/TOURS-EDIT-UX.md) (Phase 12 supersession note).
 
+## Flat edit draft authority
+
+Flat edit mounts `useWorkspaceDraft` on `denali-edit:{tourId}` so in-progress field edits survive reload. That remote envelope is **not** allowed to clobber a newer saved tour.
+
+```text
+                    ┌─ remote denali-edit:{id} ─┐
+ GET tour ─────────►│ meta.sourceRowVersion     │
+ rowVersion = N     │   = N  (hydrate / seed)   │
+                    │ form = canonical snapshot │
+                    └──────────┬────────────────┘
+                               │ operator types
+                               ▼
+                    form diverges; stamp stays N
+                               │
+            ┌──────────────────┼──────────────────┐
+            │ reload           │ footer PATCH 200 │
+            ▼                  ▼
+     stamp N == tour N   tour rowVersion → N+1
+     keep draft          GET tour
+                         clearDraftAndReset(GET @ N+1)
+                         (never clear→null then seed
+                          from pre-PATCH React state)
+```
+
+| Condition | Form source | Why |
+|-----------|-------------|-----|
+| No remote draft | GET tour baseline | First open / after delete |
+| Draft `sourceRowVersion` missing | Keep draft | Pre-stamp envelopes; unsaved work must not vanish |
+| Draft `sourceRowVersion` ≥ tour `rowVersion` | Keep draft | Unsaved edits on the current saved version |
+| Draft `sourceRowVersion` < tour `rowVersion` | GET tour | Leftover autosave from before the last successful PATCH |
+| PATCH save/publish/unpublish succeeds | GET then `clearDraftAndReset` | Create-wizard already uses this primitive so React never sees `data=null` and cannot re-PUT the old baseline |
+
+**Failure mode this closes:** footer save updated canonical title, heading showed the new title, `input[name=title]` still showed the create-time title after reload. `clearDraft()` set `data=null`; the seed effect ran against the **pre-PATCH** `tourBaseline` and PUT `denali-edit:{id}` with the old title. Next hydrate preferred that remote draft over GET.
+
+Pure helpers (no React): `resolveDenaliFlatEditWorkingEnvelope`, `shouldSeedDenaliFlatEditDraftFromTour`, `replaceDenaliFlatEditDraftAfterSuccessfulPatch` in `packages/workspaces/denali/src/ui/chrome/flat-edit-draft-authority.ts`. Specs: `DEN-12.4-DRAFT-*` in `test/flat-edit-draft-authority.spec.ts`. Stamp reader: `readDenaliWizardSourceRowVersion` (integer ≥ 0). Post-PATCH reset **must** call `clearDraftAndReset` — a `clearDraft` + `setData` fallback is not permitted. Tour PATCH success is independent of draft-reset errors.
+
+**Sensitive fields on this surface (operator edit):**
+
+| Field | UI | Notes |
+|-------|----|--------|
+| Peak height | `disabled` **and** `readOnly` when destination catalog has `altitudeM` (ED-PEAK-RO-01) | Changing destination (توچال 3962 → دماوند 5610) prefills from catalog. Persist re-applies the lock (ED-PEAK-LOCK-01) via `wizardHost.normalizeCanonicalForPersist` **before** RuleEngine — API does not know `peakHeight`. |
+| Paid tour | Checkbox reveals per-person price (تومان) | Empty price with paid checked must fail publish validation, not silently store `priceAmount: null` as free. |
+| PII flags | national id / father name / birth date | Default off; enabling is a registration-policy change, not a tour-content edit. |
+| Header «ذخیره پیش‌نویس» | Enabled only when draft engine is `DIRTY` or `ERROR` | Draft-engine **flush** only — does **not** PATCH the tour. Footer «ذخیره تغییرات» is the canonical write. Do **not** merge the two actions. Helper copy: `flatEdit.draftVsTourSaveHint` (Denali) + `title` on the host flush button (`wizard.saveDraftHint`). Autosave to `SYNCED` leaves the header disabled even with unsaved-vs-canonical field diffs if the engine already flushed the draft. |
+
+`projection.updatedAt` on the memory storage driver may equal `createdAt` after PATCH even when `rowVersion` increments — do **not** use `updatedAt` to decide draft vs tour freshness; use `rowVersion` / `sourceRowVersion`.
+
+## Operator UX closure (v11 — Denali only)
+
+Layer: `packages/workspaces/denali` (+ host **copy** keys). **ED-PEAK-LOCK-01** adds an optional SDK persist hook and a product-blind API enrich — not a Denali branch in `updateTour`. Do not hand-edit `denaliRuleSet.generated.ts`.
+
+| ID | Failure | Owner | Contract |
+| -- | ------- | ----- | -------- |
+| **ED-REV-UUID-01** | Review hero/rows flash raw destination/leader UUIDs while `loadDenaliReviewCatalog` is in flight (`mapIds` / `Map.get ?? id`). | `resolveDenaliReviewCatalogName` in `denali-review-format-logic.ts`; `DenaliReviewStep` already shows `review.loading`. | Never emit a UUID-shaped id as display text. Unresolved / loading → empty string so `pushRow` skips. Non-UUID slugs (themes) may still show the id if the catalog miss. Specs: `DEN-REV-CATALOG-01` + `WEB-DENALI-REVIEW-09`. |
+| **ED-GATHER-01** | Logistics always **writes** `{ name: "" }` station 1 into the draft (`useEffect` seed). Canonical looks dirty; submit can persist an empty point. | `denali-location-types.ts` (`isDenaliGatheringPointPopulated`, `omitEmptyDenaliGatheringPoints`, editor scaffold helper) + gathering field (no seed effect) + global invariant `omitEmptyGatheringPoints`. | UI may show one empty scaffold; **persist `[]`** until name/address/coords exist. Sanitize/invariants strip empty rows. |
+| **ED-GATHER-PERSIST-01** | Operator fills a station (name + OSM address) but review omits it and POST stores `gatheringPoints: []` / nested `[]`. | Field wrote RHF `tripDetails.logistics.gatheringPoints`; form adapter + review read canonical root `gatheringPoints`. | See [Gathering persist path](#gathering-persist-path-ed-gather-persist-01). |
+| **ED-SAVE-COPY-01** | Operators confuse header flush with footer PATCH. | Denali helper on flat-edit form; host `title` on `DraftManualSyncButton`. | Actions stay two primitives. Copy only. |
+| **ED-HIKE-MULTI-01** | `program.hikingGoHours` / `hikingReturnHours` visible on `*:multi_day` (confuse vs itinerary). | `cellOverrides` on those registry rows → `pnpm --filter @app-tour/workspace-denali run denali:codegen`. **RP-05 snapshot:** same hidden flags on multi-day cells in `apps/api/scripts/seed/definitions/denali-v1.json` (Denali matrix copy — not a new API invariant). | Hidden on multi-day cells; still optional on outdoor single-day. `hikingHoursApprox` unchanged. |
+| **ED-PEAK-RO-01** | Peak input `disabled` but `readOnly: false`. | `DenaliDestinationCatalogMetricField`: `readOnly={locked}` in addition to `disabled`. | Inspector/AT see read-only. |
+| **ED-PEAK-LOCK-01** | Crafted POST/PATCH could store a peak/trail metric other than the locked catalog value. | Denali `applyLockedDestinationCatalogMetricsToCanonical` on optional `wizardHost.normalizeCanonicalForPersist`. API enrich (main thread, before worker/engine) loads tenant destinations and calls the hook when present. | **Overwrite when locked** (same as UI prefill). Do **not** clear operator-entered values when the catalog does not lock. Skip when the metric field is not visible for the tour kind. Starter/Urban omit the hook → no extra `listDestinations`. Specs: `DEN-PEAK-LOCK-01*` + `API-PEAK-LOCK-01`. |
+
+**Persist lock (v12):**
+
+```text
+PATCH/POST body
+  → API enrich (optional hook only)
+  → listDestinations(tenant)  [opaque rows]
+  → plugin.wizardHost.normalizeCanonicalForPersist({ data, destinations })
+  → Denali: destinationId hit + catalog metric locked + field visible
+        → write catalog number onto tripDetails.overview.peakHeight | trailDistanceKm
+  → RuleEngine validateCanonical (sees locked values)
+```
+
+API must not branch on `plugin.id === "denali"` or name `peakHeight`. Destinations stay settings records; Denali interprets `altitudeM` / `typicalTrailDistanceKm`. Worker threads must **not** call settings — enrich runs on the HTTP/main path only.
+
+## Matrix visible-again + pair bounds (v13)
+
+Template/matrix cells hide and show fields. Hide is already owned by `structuralInvariant: { kind: "clearWhenNotVisible" }` (sanitize). The remaining hole is **visible-again**: the UI can remount a catalog-locked metric and paint the catalog number while canonical is still empty, so Continue emits `REQUIRED_FIELD_EMPTY`. That is a matrix/lifecycle gap, not a peakHeight special case.
+
+| ID | Failure | Owner | Contract |
+| -- | ------- | ----- | -------- |
+| **ED-CAT-SEED-01** | Mountain → nature (peak hidden + cleared) → mountain: locked peak shows catalog `3962` but Continue fails required. | `seedEmptyVisibleDestinationCatalogMetrics` after sanitize in `persistDenaliWizardDraftChange` (lookup from destination catalog). Metric field `useLayoutEffect` reseeds when catalog arrives later. | If the field is **visible again**, canonical is **empty**, and the current destination **locks** that metric → write the catalog string. Do **not** overwrite a non-empty operator value. Do **not** call full `applyDestinationCatalogPrefill` on every persist (that clears unlocked metrics). Hidden by template/matrix → no seed (sanitize already cleared). Specs: `DEN-CAT-SEED-01*`. |
+| **ED-DT-CLOCK-01** | Category remount re-commits the end calendar day and can replace a complete ISO clock with start `fallbackTime`. | `isDatetimePickerDateUnchanged` in `DenaliWizardDatetimePicker`; inherit still only via `resolveDatetimePickerTimeForDateCommit` (empty / invented midnight). | Same calendar day → no `onChange`. Date-without-clock / `00:00` with a real start clock still inherits (ED-DT-END-01). Specs: `datetime-end-inherit.spec.ts`. |
+| **ED-NUM-PAIR-01** | `capacityMin` > `capacityMax` and `participants.minimumAge` > `maximumAge` accepted through Continue/review. | `denali-numeric-pair-policy.ts` + `mergeDenaliNumericPairViolations` (same class as schedule dates). | Emit only when **both** fields are visible (matrix/template) **and** both parse as finite numbers **and** `min > max`. Empty optional min → skip. No `updateTour` / API branch. Codes: `DENALI_CAPACITY_MIN_AFTER_MAX`, `DENALI_AGE_MIN_AFTER_MAX`. |
+| **ED-REV-VIS-01** | Review omitted `participants.maximumAge` and `participants.fitnessLevel` even when the pricing composite showed them. | `pushRowWhenFieldVisible` in `denali-review-format-logic.ts` (same helper as peak/trail). | Review visibility = wizard visibility. Fitness display uses `fitnessLevelLabel` (`low` / `medium` / `high`); storage stays the enum. |
+| **ED-DT-CLEAR-01** | `endDateTime` lacked `clearWhenNotVisible` while `approximateReturnTime` had it — single-day cells could keep a stale multi-day end. | Registry `endDateTime.structuralInvariant` (sibling of return time). No `denali:codegen` (invariant is registry-owned, not a generated rule row). | Hide → clear on sanitize. Visible-again empty end is operator-owned (not catalog-seeded). |
+
+**Visible-again seed (not dest-change prefill):**
+
+```text
+category / matrix cell change
+  → persist rebase
+  → sanitizeWizardDraft  (clearWhenNotVisible)
+  → seedEmptyVisibleDestinationCatalogMetrics(draft, lookup(destinationId))
+        visible + canonical empty + catalog lock → write catalog string
+        else leave draft
+  → persist-if-changed
+```
+
+`applyDestinationCatalogPrefill` remains the **destination picker** primitive (peak vs trail vs generic). Persist must not re-run it on every keystroke.
+
+**Still deferred (product):** `projection.updatedAt` on memory GET still mirrors `createdAt` — freshness remains `rowVersion`. Do **not** merge header draft-flush with footer PATCH (`ED-SAVE-COPY-01`).
+
+## Gathering persist path (ED-GATHER-PERSIST-01)
+
+Live create (`/tours/new`) stored a filled Darband station in the composite UI, then review skipped the row and API canonical was `gatheringPoints: []` plus `tripDetails.logistics.gatheringPoints: []`. `omitEmptyGatheringPoints` (ED-GATHER-01) did **not** strip a populated row — the row never reached the form adapter.
+
+```text
+UI write  (bug)     tripDetails.logistics.gatheringPoints   ← populated
+draft.data.tripDetails.logistics.gatheringPoints            ← populated
+tourWizardDraftToDenaliForm reads canonicalPath
+  "gatheringPoints" → form tripDetails.logistics.gatheringPoints
+root missing → default []
+prepareDenaliSubmitArtifact / review getCanonicalValue("gatheringPoints")
+  → []
+```
+
+Registry SoT is already `canonicalPath: "gatheringPoints"` mapped to form `tripDetails.logistics.gatheringPoints` (`denaliCanonicalPathMap.generated.ts`). Composites, review, sanitize, and submit must use that **root**. Nested RHF path is a fallback read for in-memory drafts written before this fix.
+
+| Layer | Path |
+| ----- | ---- |
+| Field read | `resolveDenaliGatheringPointsFromStorage(root, nested)` — populated root wins; else populated nested |
+| Field write | canonical `gatheringPoints` (mirror nested so catalog-shaped drafts stay in sync) |
+| OSM pick | Picker `onChange` writes persist-safe `{ address, latitude, longitude }` only. Optional `onPlaceSelect(displayName)` fills gathering `name` when empty. Operator-typed name is not overwritten. `osmName` must not enter canonical. |
+| Sanitize | `promoteDenaliGatheringPointsOnDraft` **before** `tourWizardDraftToDenaliForm` so nested-only drafts survive Continue/submit |
+| Review | same resolve helper (not root-only) |
+| Persist | form adapter maps root → nested form → artifact writes root + `tripDetails` blob |
+
+Empty scaffold still must not persist (`ED-GATHER-01`). Specs: `DEN-GATHER-PERSIST-01*` in `denali-gathering-points.spec.ts` + review nested-only row.
+
+## Catalog recovery (ED-CAT-RETRY-01)
+
+`fetchDenaliCatalogJsonWithSoftRetry` retries **once** on 5xx/network then stops. Leader/theme/gear/language pickers used `useEffect([])` with no later refetch, so a cold BFF `ERR_CONNECTION_REFUSED` left «کاتالوگ موقتاً در دسترس نیست» for the whole create session (`leaderUserIds: []` on submit). Destinations that remount (edit) recovered.
+
+Contract: degraded notice offers **تلاش مجدد**; when the notice is visible, `visibilitychange` / window `focus` also reloads. Soft-retry on each attempt stays one-shot. No API change.
+
+## Optional empty (ED-EMPTY-OPT-01)
+
+Gear (logistics catalog) and guide languages are **optional**. An empty picker is a valid skip, including when the catalog is soft-degraded.
+
+| Surface | When | Contract |
+| ------- | ---- | -------- |
+| Field | `resolveDenaliOptionalEmptyReason`: degraded (soft-fail), catalog empty, or operator selected nothing | `DenaliOptionalEmptyNotice` — `role="status"` (never `alert`), `data-operator-optional-empty` (Wave H.n — operator theme must not use `data-denali-*` selectors). Copy: `composites.catalog.optionalEmpty`. Does **not** set `aria-invalid`. |
+| Field (services) | Both included/self buckets empty | `composites.tourServices.emptyBucket` states skip is allowed. |
+| Review | Visible `program.guideLanguageIds` / `participants.gearItems` / services with no values | Row value `review.optionalEmpty` (`emptyOptional: true`). Unresolved UUID names still omit the row (ED-REV-UUID-01) — that is loading/miss, not a skip. |
+| Validate / save | `required: false` on those paths; submit catalog loader returns `{}` on fetch throw | Empty `[]` must not emit `REQUIRED_FIELD_EMPTY`. Soft-degraded catalog must not block `prepareSubmitPayload` / PATCH. |
+
+```text
+loading          → no optional-empty (spinner / loading copy)
+hard catalog err → DenaliCatalogLoadNotice alert only
+soft-fail        → degraded notice + optional-empty (save still allowed)
+0 catalog rows   → settings empty copy + optional-empty
+N rows, 0 picked → picker stays; optional-empty (operator skip)
+N rows, k picked → selected summary only
+```
+
+Specs: `DN-EMPTY-OPT-01…` in `denali-optional-empty.spec.ts`; review `WEB-DENALI-REVIEW-11`; step validation `DN-EMPTY-OPT-04`.
+
+## Photo empty copy (ED-PHOTO-EMPTY-01)
+
+Tour photos and itinerary segment photos are **optional**. Empty is a skip, not a save blocker.
+
+| Surface | Copy | Contract |
+| ------- | ---- | -------- |
+| Photos composite (single-day) | `composites.photos.optionalEmpty` | `DenaliOptionalEmptyNotice` when `photos.length === 0`. |
+| Photos composite (multi-day / day photos) | `composites.photos.dayEmpty` | Same notice. Day assignment is a picker hint only (`DENALI_ITINERARY_PHOTO_DAY_IS_PICKER_HINT_ONLY`). |
+| Itinerary segment photos | `composites.itinerary.segmentPhotosEmpty` + `segmentPhotosGoToPhotos` | Status empty when the picker has no selectable photos. Helper copy only — the picker does not navigate. Does not require attaching photos to a segment. |
+| Review | `review.optionalEmpty` on `photos` when the list is empty | No `REQUIRED_FIELD_EMPTY`. |
+| Public catalog / Marketing | `detail.itinerarySegmentPhotosEmpty` | Segment with no `photoUrls` shows muted empty copy; the day/section still renders. Gallery cover fallbacks (PR-D-GLR) stay separate — do not invent itinerary photos. |
+
+`photos.required` stays **false**. Empty `[]` must persist. Specs: `DN-PHOTO-EMPTY-01…`; `WEB-DENALI-ITIN-21`; `MKT-09`.
+
+## Photo upload error a11y (ED-PHOTO-A11Y-01)
+
+Upload failure copy (`PHOTO_STORAGE_NOT_CONFIGURED` / Minio 503) lived inside the `<label>` wrapping `input[type=file]`, so the accessible name became «آپلود تصویر» + the error. Alert stays `role=alert` **outside** that label. Object-storage 503 remains an env/driver issue, not this UI contract.
+
+## Remaining operator polish (v16)
+
+Live create leftover after Phase 15. **No ×10 conversion.** Storage `priceCurrency` stays ISO `IRR`. Header draft-flush and footer PATCH stay two primitives.
+
+| ID | Failure | Contract |
+| -- | ------- | -------- |
+| **ED-CURR-01** | Wizard labels تومان; operator list/edit header `Intl` with `priceCurrency: "IRR"` painted **ریال** for the same digits. | `formatTourPrice` (apps/web) formats `IRR` as تومان / toman **only for plugin ids in the operator toman allowlist** (`OPERATOR_IRR_TOMAN_PLUGIN_IDS`, currently Denali). Harbor/Urban/other keep `Intl` currency style. **No** `pluginId === "denali"` token in `apps/web` (thin-shell purity). **No ×10.** Storage stays ISO `IRR`. Host presentation — not API / `platform-core`. Spec: `WEB-CURR-01` in `tours-list.spec.ts`. |
+| **ED-CURR-MKT-01** | Public catalog used the same `Intl` currency style → FA «ریال» / EN `IRR 2,500,000` for wizard تومان digits. | Marketing-local `formatCatalogPrice` (`apps/marketing`, not `formatTourPrice`, not finance). `IRR` → grouped digits + تومان/toman **only for `pluginId === "denali"`** (callers pass tenant `pluginId`). Other workspaces keep `Intl`. JSON-LD `offers.priceCurrency` stays `IRR`. **No ×10** until product YES. Spec: `MKT-CURR-01`. |
+| **ED-DEST-NATURE-01** | Nature tour destination + itinerary pickers listed `locationType=peak` rows (Tochal/Damavand). Peak altitude prefill was already skipped. | `isDenaliDestinationOfferedForTourKind` hides peaks when `readDenaliCanonicalBasics(kind).category === "nature"`. Currently selected peak remains in the option list so the control does not go blank. Mountain/desert/event unchanged. Specs: `DEN-DEST-NATURE-01*`. |
+| **ED-DT-EQ-COPY-01** | Guard is `Date.parse(end) <= Date.parse(start)` (equal instants rejected) but FA copy said only «قبل از شروع». | i18n: end **must be after** start (`باید بعد از شروع برنامه باشد` / `must be after the tour start`). Comparison unchanged. |
+
+## Asklim live-audit pack (v23/v24 — phased)
+
+Live create 2026-08-16: nature multi-day camping at آبشار اسکلیم (`97974fc2-…`). Gathering dual-write (ED-GATHER-PERSIST-01) held; **camp OSM did not survive POST**. **Do not start P2/P3 until P1 specs `DEN-CAMP-PERSIST-01*` are green** — later waves must not reopen ghost-path policy (`INV-DENALI-WIZ-003`).
+
+**Gate:** P1 (phase 21) → P2 (phase 22, parallel IDs) → P3 (phase 23). Implementation is Denali client/ACL only in P1; API `stripFormProfileForSubmit` stays unchanged.
+
+**P5-B snapshot (v27):** After Asklim registry/copy/review toman changes, re-export `apps/api/scripts/seed/definitions/denali-v1.json` (`pnpm --filter @apps/api run export:workspace-definition -- --workspace denali --out scripts/seed/definitions/denali-v1.json`) so DP/RP parity checksum matches the live package strip. Do not hand-edit the checksum.
+
+**Marketing visibility (not a code bug):** Public catalog (`GET /denali/catalog` → `apps/marketing`) only includes canonical `publishStatus === "active"`. Operator chrome calls that state **OPEN** and the control **Publish** (`DRAFT → OPEN`). If آبشار اسکلیم / Asklim is missing on `denali.localhost`, open the tour in operator and Publish. Do not change marketing filters, guest chrome, or unpublish policy (`OPEN → DRAFT` stays forbidden).
+
+### Phase order (do not skip)
+
+```text
+P1  ED-CAMP-PERSIST-01   location-zone ghosts → tripDetails.overview.*
+        │
+        ├─ blocked by: ghost strip must stay (do not persist root campPoint)
+        └─ unblocks: edit/GET round-trip of camp/summit/end
+P2  ED-DEST-REFETCH-01   destination catalog refetch when empty-after-filter
+P2  ED-REV-CURR-01       review money uses Denali toman grouping (no ×10)
+        │
+        └─ parallel after P1; no persist/registry change
+P3  ED-LOC-NATURE-01     nature logistics zone labels (copy)
+P3  ED-THEME-CAMP-01     nature/camping theme + gear catalog (seed/settings)
+P3  ED-PAY-DIFF-UX-01    paid-tour helper + difficulty unset affordance (copy/UX)
+```
+
+| User P | ID | Symptom (live) | Owner | Done when |
+| ------ | -- | -------------- | ----- | --------- |
+| **P1** | **ED-CAMP-PERSIST-01** | Review showed «کمپ آبشار اسکلیم» + OSM coords; `GET` had `campPoint: null` and `tripDetails.overview` only `trailDistanceKm`. Same class: `summitPoint` / `endPoint`. | Denali field + sanitize + `prepareDenaliSubmitArtifact`. **Do not** remove paths from `DENALI_FORM_PROFILE_GHOST_PATHS`. | POST/PATCH stores populated `{ label, address, lat, lng }` at `tripDetails.overview.campPoint` (and siblings). Edit hydrate + review resolve nested. Root ghosts still stripped. `osmName` forbidden. Specs: `DEN-CAMP-PERSIST-01*`. |
+| **P2** | **ED-DEST-REFETCH-01** | Settings added `nature_trail` Asklim; wizard tab still «مقصدی نیست» until full reload. `useDenaliDestinationCatalog` refetches on focus **only when `state.error !== null`**. Empty-after-filter is a successful peak list. | `use-destination-catalog.ts` (+ empty-state retry control). Mirror ED-CAT-RETRY-01 focus/visibility, but trigger when **offered** destinations for the current kind are empty — not only HTTP error. | Adding a destination in another tab + focus/visibility (or explicit retry on the empty notice) shows the new row without `location.reload`. Specs: `DEN-DEST-REFETCH-01*`. |
+| **P2** | **ED-REV-CURR-01** | Review painted `3200000` / `450000` while list card showed `۳٬۲۰۰٬۰۰۰ تومان`. | `denali-review-format-logic.ts` + Denali `formatGroupedDigitsString` / toman suffix. **Must not import** `apps/web` `formatTourPrice` (package boundary). Same digits, **no ×10**, storage stays IRR. | Review rows for `pricing.basePricePerPerson`, `transport.transportCost`, **and** `transport.dongAmount` match list grouping + تومان/toman. Specs: `DEN-REV-CURR-01*`. |
+| **P3** | **ED-LOC-NATURE-01** | Nature logistics still labels the summit zone «قله / نقطه اوج». | FA/EN `composites.locationTypes` kind-aware keys. Registry paths unchanged (`INV-DENALI-WIZ-019` — do not hide the zone). | `readDenaliCanonicalBasics(kind).category === "nature"` → summit copy is peak-free (e.g. «نقطه اوج مسیر»). Mountain unchanged. Specs: `DEN-LOC-NATURE-01*`. |
+| **P3** | **ED-THEME-CAMP-01** | Themes empty («از تنظیمات → تم‌های تور»); gear list only mountain poles. | Denali club **seed** (`seed-operator-smoke-catalog.ts`) + Settings empty-state already exists. Not a wizard schema change. | Seed includes a nature/camping theme (`formProfile: nature_trip`) and camping gear (tent + sleeping bag, `category: nature`). Wizard theme picker non-empty on club tenant for `nature_*`. Spec: `API-11.0-05` / club bootstrap assert. |
+| **P3** | **ED-PAY-DIFF-UX-01** | Paid checkbox default off hides the price field (by design). Difficulty unset thumb sits at 1 with «سطح سختی را انتخاب کنید» — ED-DIFF-01 already owns the slider math. | Copy/affordance only under paid checkbox; difficulty unset helper already exists — tighten if live still reads as “value is 1”. **Do not** default `requiresPayment: true`. **Do not** move unset thumb off min. | Unpaid state has `role=status` helper that price appears after checking paid. Difficulty unset copy remains distinct from a committed `1`. Specs: field render / copy. |
+
+### Nature camping seed (ED-THEME-CAMP-01)
+
+Denali club (`…000003`) catalog was mountain-only: theme `کوهستان` / `mountain_outdoor` and gear `عصای کوهنوردی` / `category: mountain`. Nature wizard filters themes via `resolveThemeCompatibleCategories` — `mountain_outdoor` → `["mountain"]` only, so the picker is empty. Operator smoke `…014` stays English SMK (one theme, one poles row).
+
+| Resource | Id suffix | Display (club FA) | Compatibility |
+| --- | --- | --- | --- |
+| Theme | `…000704` | کوهستان | `formProfile: mountain_outdoor` (unchanged) |
+| Theme | `…000707` | طبیعت / کمپینگ | `formProfile: nature_trip` → nature + desert |
+| Equipment | `…000701` | عصای کوهنوردی | `category: mountain`, theme `…704` |
+| Equipment | `…000708` | چادر | `category: nature`, icon `tent`, theme `…707` |
+| Equipment | `…000709` | کیسه خواب | `category: nature`, icon `sleeping_bag`, theme `…707` |
+
+Ensure path re-upserts these ids on every Denali club bootstrap (same as ED-LBL-CATALOG-01). Do not add camping rows to operator smoke `…014`.
+
+### Location-zone persist path (ED-CAMP-PERSIST-01)
+
+`startPoint` is the composite **anchor** and **may persist at root**. `summitPoint` / `campPoint` / `endPoint` are **ghost dependents** (`DENALI_FORM_PROFILE_GHOST_PATHS`, `INV-DENALI-WIZ-003`). Client sanitize skips them (`shouldPersistCanonicalPathFromForm` → false). `tourWizardDraftToDenaliForm` still copies `basicInfo.campPoint`; `projectDenaliWizardFormToCanonicalIngressData` writes **root** `campPoint`; API `stripFormProfileForSubmit` **deletes** that root. Nested `tripDetails.overview.campPoint` (registry `wire`) is never filled → GET loses the OSM camp.
+
+```text
+UI write (bug)     canonical root campPoint                 ← populated (review in-session)
+sanitize           skips ghost path
+form adapter       basicInfo.campPoint                      ← populated
+project artifact   data.campPoint                           ← populated
+API ghost strip    delete data.campPoint
+tripDetails.overview.campPoint                              ← missing
+GET / edit hydrate campPoint: null, overview without camp
+```
+
+```text
+UI write (fix)     root campPoint (in-session) + tripDetails.overview.campPoint (persist SoT)
+sanitize           promote populated root ghost → overview when nested empty
+prepareDenaliSubmitArtifact
+                   copy populated basicInfo.{summit,camp,end}Point
+                   onto data.tripDetails.overview.* (after form project, before HTTP)
+API ghost strip    delete root campPoint / summitPoint / endPoint  (unchanged)
+GET                tripDetails.overview.campPoint populated
+hydrate / review   resolveDenaliLocationZoneFromStorage(root, nested)
+public delivery    denali.location-zones reads root, then tripDetails.overview.{path}
+```
+
+| Layer | Path |
+| ----- | ---- |
+| Field read | `resolveDenaliLocationZoneFromStorage(root, tripDetails.overview.{path})` — populated root wins (in-session); else nested |
+| Field write | root (composite) **and** `tripDetails.overview.{path}` |
+| OSM | persist-safe `{ label, address, latitude, longitude }` only — no `osmName` |
+| Sanitize | promote root ghost → overview when nested empty; empty zones persist as omitted / `{}` not a fake pin |
+| Submit artifact | copy form `basicInfo.{summit,camp,end}Point` → `tripDetails.overview.*` so form-project overwrite of `tripDetails` cannot drop the zone |
+| Review | same resolve helper (`formatLocation`) |
+| API strip | **unchanged** — ghosts stay ghosts. `deleteCanonicalPath("campPoint")` deletes **root only**; nested `tripDetails.overview.campPoint` survives. |
+| Delivery enrich | **v24** — `enrich-canonical-delivery-payload.ts` `resolveDenaliLocationZonesDeliveryValue` reads root zone first, then `tripDetails.overview.{path}` when the root is empty (ghost strip). Workspace-agnostic canonical paths only — no `plugin.id === "denali"` in `updateTour`, no persist of root ghosts. Spec: nested-only camp/summit/end still join into `denali.location-zones`. |
+
+Do **not**: drop `campPoint` from `DENALI_FORM_PROFILE_GHOST_PATHS`; persist root ghosts; `plugin.id === "denali"` in `updateTour`; invent coordinates.
+
+**Delivery vs operator GET:** Operator edit hydrate already promotes nested overview → root via `promoteDenaliLocationZonesOnDraft`. Public/integration delivery (`enrichCanonicalDeliveryPayload`) never runs that promote; it previously called `getCanonicalValue(payload, "campPoint")` only, so a persisted Asklim camp vanished from `denali.location-zones` even though GET overview had the pin. Fallback is read-only: populated root still wins (in-session / startPoint anchor); empty root uses overview. Duplicate labels across root+nested are still de-duplicated.
+
+### Destination catalog refetch (ED-DEST-REFETCH-01)
+
+```text
+GET locations → 3 peaks (200)
+nature filter → offered.length === 0 → empty copy + settings link
+operator adds nature_trail in /settings/locations (other tab)
+wizard catalog Map still peaks-only  (error === null → no focus reload)
+```
+
+Contract: when **offered** destinations for the current tour kind are empty (or the empty notice is visible), `visibilitychange` / `window focus` / explicit retry call `reload()`. Successful non-empty lists do not refetch on every focus. Soft HTTP retry (ED-CAT-RETRY-01) unchanged.
+
+Metric-field `patchDenaliDestinationCatalogCache` must **broadcast** to every mounted `useDenaliDestinationCatalog` instance. A module singleton callback (last mount wins, cleanup nulls the hub) drops patches when destination + itinerary + locked-metric fields are all mounted. Listener `Set` subscribe/unsubscribe; no React context.
+
+### Review money (ED-REV-CURR-01)
+
+Wizard labels already say تومان. `getCanonicalStringValue` dumps the ASCII integer. Formatter lives in Denali `i18n-format` (`formatGroupedDigitsString` + تومان/toman). Host `formatTourPrice` stays in `apps/web` for list/header (`pluginId === "denali"`). Review must not cross the workspace→app import boundary.
+
+Money rows on review: `pricing.basePricePerPerson`, `transport.transportCost`, `transport.dongAmount`. Dong was left as a raw ASCII string after P2; same helper, no ×10.
+
+```text
+loading catalog ──► destination/leader display = "" (not UUID)
+catalog hit     ──► display = catalog name
+catalog miss + UUID ──► display = "" (never echo id)
+catalog miss + slug ──► display = slug
+```
+
 ## Data attributes
 
 | Attribute                                    | Use                                                                                                                    |
@@ -198,21 +501,67 @@ Imported via [`denali-admin.css`](../../../packages/workspaces/denali/theme/dena
 
 Selected day uses `aria-pressed="true"` (not `data-selected`). Dark mode re-binds `--operator-wizard-calendar-primary` via the same dual cascade as admin (`html.dark:has(body…)` + `body… .theme-dark`).
 
+**Calendar calendars (INV-DENALI-CAL-01):**
+
+Canonical / API / min / compare / `onSelect` are **Gregorian ISO** (`YYYY-MM-DD` civil date, ISO-8601 datetime). Jalali never enters `data`, RuleEngine, or `updateTour`.
+
+| Layer | Calendar | Notes |
+| ----- | -------- | ----- |
+| Storage + validation | Gregorian ISO | `startDateTime` / `endDateTime`, `minIsoDate`, `compareIsoDates`, `aria-label` on day cells |
+| Admin `locale=fa` | Jalali **presentation** | Month grid + trigger label (`formatIsoDateLabel`) convert at the adapter. Week starts Saturday. |
+| Admin `locale=en` | Gregorian presentation | Same ISO values; Sunday-first grid. |
+
+```text
+operator click (fa grid shows ۲۵ مرداد)
+  → cell.iso = "2026-08-16"          # Gregorian civil day
+  → datetime-local / ISO persist
+  → review/list: isoToDatetimeLocalInput → formatDatetimeLocalLabel(fa)
+        # display Jalali again; storage unchanged
+```
+
+Do **not** store `1405-05-25`. Do **not** convert in `apps/api` / `platform-core`. Reverse Jalali→Gregorian uses the same Intl forward mapping as `gregorianToJalaali` (civil-day binary search) — not a second formula and not a nested year/month/day scan. Shell twin: `apps/web/src/i18n/jalaali-calendar.ts` (Wave H.h — no Denali import from shell). Specs: `DN-CAL-01…07`, `WEB-CAL-01…03`.
+
 **Calendar UX (tour schedule):**
 
 | Behavior                | Contract                                                                                                                                                                                                                                                                                                               |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Day pick                | Clicking a day selects it and **closes** the popover (`LocalizedDatePicker` → `setOpen(false)`).                                                                                                                                                                                                                       |
 | Month / year drill-down | Header month and year are buttons (`operator-wizard-calendar__title-btn`); month view = 3×4 grid, year view = 12-year page with nav. `data-operator-wizard-calendar-view` = `days` \| `months` \| `years`.                                                                                                                 |
-| Tour start min date     | `startDateTime` only — `resolveDenaliDatetimeFieldMinIsoDate` in `src/ui/logic/denali-schedule-date-policy.ts` wires `minIsoDate={today}` into `DenaliDatetimeField` → `DenaliWizardDatetimePicker` → `LocalizedDatePicker` → `DenaliCalendar`. Past calendar days/months/years render `--disabled` and ignore clicks. |
-| Submit guard            | `mergeDenaliScheduleDateViolations` in `denali-wizard-validation.ts` emits `DENALI_TOUR_START_BEFORE_TODAY` when stored ISO datetime's **local calendar day** is before today.                                                                                                                                         |
+| Tour start min date     | `startDateTime` — `resolveDenaliDatetimeFieldMinIsoDate` in `src/ui/logic/denali-schedule-date-policy.ts` wires `minIsoDate={today}` into `DenaliDatetimeField` → `DenaliWizardDatetimePicker` → `LocalizedDatePicker` → `DenaliCalendar`. Past calendar days/months/years render `--disabled` and ignore clicks. |
+| Tour end min date       | **Single-day** (field hidden in UI) / default: start’s local ISO date so a later clock on day 1 stays selectable. **`*_multi` (INV-DENALI-MULTI-CAL-A):** min is the **next** local calendar day after start (`addIsoDateDays(startLocal, 1)`). Same-calendar-day multi-day is invalid even with a later clock. Empty/unparseable start → no end min (`undefined`; DN-SCHED-DATE-02). Edit grandfather (ED-DT-01) can leave start in the past; end min still follows that start (or start+1 when multi), **not** today. |
+| Submit guard            | `mergeDenaliScheduleDateViolations` in `denali-wizard-validation.ts` (create step + flat-edit full validate). Two codes, both i18n’d under `review.validation.*`: |
+
+**Schedule submit-guard logic (v10):**
+
+```text
+visible start? → local calendar(start) < today
+                 AND not ED-DT-01 grandfather (same local day as scheduleBaselineStartIso)
+                 → DENALI_TOUR_START_BEFORE_TODAY on start field id
+
+visible end?   → both ISO parse AND Date.parse(end) <= Date.parse(start)
+                 → DENALI_TOUR_END_BEFORE_START on end field id (denali.datetime-end)
+
+visible end + *_multi?
+                 → inclusive local calendar days(start, end) < 2
+                 → DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS on end field id
+```
+
+| Rule | Why this comparison |
+| ---- | ------------------- |
+| Start vs today | **Local calendar day**, not instant — a 23:00 pick on today must pass even if UTC date rolled. |
+| End vs start | **Full instant** (`Date.parse`) — same-day `06:00` → `18:00` is valid **on single-day**; `06:00` → previous calendar day, or same-day earlier clock, is not. Equal instants are rejected (zero-length tour). |
+| Multi-day span (**INV-DENALI-MULTI-CAL-A**) | **Distinct local calendar days**, not itinerary row count. `06:00` → next-day `18:00` = 2; same local YMD = 1 even if two itinerary shells exist. `estimateDenaliTourDayCount` returns that inclusive count (no min-2 clamp). Missing/inverted range → `undefined` (other guards own those cases). |
+| Step scope | On a wizard step, start/end checks run only when that canonical path is in the expanded step and **not hidden** (single-day hides `endDateTime`). Full validate (flat edit / review) runs both when values are present. |
+| Storage | Naive `…T06:00:00.000Z` wall-clock-as-Z is compared consistently on both fields; do not mix true UTC offsets here. |
+
+Specs: `DN-SCHED-DATE-01…08` in `packages/workspaces/denali/test/denali-schedule-date-policy.spec.ts`; `DN-MULTI-CAL-01…04` in `denali-itinerary-day-count.spec.ts`; `WEB-P11-7-08` empty end; `WEB-P11-7-09` end-before-start; `WEB-P11-7-10` same-calendar-day multi-day. i18n: `DENALI_TOUR_END_BEFORE_START` (end **after** start) and `DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS`.
 
 **Destination catalog (searchable select):**
 
 | Behavior | Contract                                                                                                                                                                                               |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Trigger  | `DenaliSearchableSelect` — native `<select>` when option count ≤ threshold (default 8); destination + itinerary segment pickers pass `searchableThreshold={0}` so any non-empty catalog is searchable. |
-| Filter   | `filterSelectOptionsByQuery` — same normalization as gear/leader pickers (`denali-picker-filter-logic`).                                                                                               |
+| Filter   | `filterSelectOptionsByQuery` — same normalization as gear/leader pickers (`denali-picker-filter-logic`). Nature tour kinds omit `locationType=peak` (`ED-DEST-NATURE-01`). |
 | Panel    | BEM `denali-searchable-select__*` in `wizard-fields.css`; search input reuses `denali-wizard-picker__search` + scroll list `denali-wizard-picker__scroll`.                                             |
 | Test ids | `denali-searchable-select-trigger`, `denali-searchable-select-search`, `denali-searchable-select-option-{id}`.                                                                                         |
 

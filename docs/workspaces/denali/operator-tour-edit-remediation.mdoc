@@ -1,9 +1,9 @@
 ---
 title: Denali operator tour edit — remediation contract
 doc_id: DENALI-OPERATOR-TOUR-EDIT-REMEDIATION
-version: "2026-08-06-v13"
+version: "2026-08-16-v28"
 phase: operator-admin
-apps: [web, api]
+apps: [web, api, marketing]
 workspace: denali
 ---
 
@@ -16,6 +16,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
 | Item | Why |
 | --- | --- |
 | Enable unpublish (`OPEN → DRAFT`) | Denali lifecycle allowlist is `DRAFT → OPEN` only (`isWorkspaceUnpublishTransitionAllowed` = false). Product policy — not a bug. |
+| Asklim (or any Denali tour) missing on marketing | Public catalog lists **published** tours only (`publishStatus === "active"` / lifecycle **OPEN**). Operator **Publish** is `DRAFT → OPEN`. Absence on `denali.localhost` means the tour is still DRAFT — **not** a marketing filter bug, **not** a reason to seed a second published clone, **not** a reason to allow `OPEN → DRAFT`. |
 | Broad `platform-core` validate rewrites | Prefer hydrate/serialize + clone roots alignment. |
 | Full monorepo gates without Architect YES | Use targeted package/web specs + `test:changed`. |
 
@@ -37,6 +38,7 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
 | **ED-LBL-THEME-01** | Theme picker shows FA name + raw `smoke-mountain` slug | Card always renders `theme.slug` under the name (dev/smoke leakage). **Fix:** operator wizard cards show display `name` only; slug stays catalog/settings SoT. | **9** | Create/edit theme cards show localized name without slug line |
 | **ED-UX-02** | Themes/equipment show `settings.errors.Failed to fetch` as `role=alert` when BFF/network fails | Catch stored browser `Error.message` (`Failed to fetch`) → coded lookup miss; only `*_HTTP_5xx` soft-failed. **Fix:** normalize network/load failures to soft `composites.catalog.degraded` (same class as ED-UX-01). | **9** | Catalog network fail uses status helper, not blocking alert; Continue still allowed |
 | **ED-DT-END-01** | Multi-day review shows end clock `۰۰:۰۰` after date-only pick | `joinDatetimeLocal` defaults empty time → invented midnight. **Fix:** inherit start clock on date commit; named invent helper; one-shot hydrate repair on end field. | **10** | End date pick / hydrate keeps start’s HH:mm; explicit non-midnight end still wins |
+| **ED-DT-RANGE-01** | Multi-day wizard **Continue** accepted `endDateTime` **before** `startDateTime` (calendar had no end min; submit guard only checked start-vs-today). Itinerary then fell back to `max(stored, 2)` because `estimateDenaliTourDayCount` returns `undefined` when `end < start`. | Denali-only: calendar min for end = start’s local day; `mergeDenaliScheduleDateViolations` emits `DENALI_TOUR_END_BEFORE_START` when `Date.parse(end) <= Date.parse(start)`. No API / `platform-core` change. | **11** | Basic-step + flat-edit save reject inverted range with i18n copy; same-day later clock still allowed; DN-SCHED-DATE-02/06 + WEB-P11-7-09 |
 | **ED-LIST-CAT-01** | Tours list: category/duration chips missing; filters stuck on «همه دسته‌ها» | `ensureTourListCategorySurface` can return `null` (plugin gate/load); page still set `categorySurfaceReady=true`, so filter groups stay empty / badges `isTourKindSlug`→false. **Fix:** mark ready only when surface non-null; retry once. | **10** | After warm, mountain filters + category badges render for Denali |
 
 ## Phase order
@@ -49,6 +51,19 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
   → 8 create-wizard UX (difficulty unset + list TZ + outOf + RTL ticks)
   → 9 theme card label + catalog network soft-fail
   → 10 end-date clock inherit + tour-list category surface ready gate
+  → 11 multi-day end ≥ start (ED-DT-RANGE-01) — Denali wizard/edit only
+  → 12 operator UX (ED-REV-UUID-01, ED-GATHER-01, ED-SAVE-COPY-01, ED-HIKE-MULTI-01, ED-PEAK-RO-01)
+  → 13 persist catalog metric lock (ED-PEAK-LOCK-01) — optional wizardHost hook + API enrich
+  → 14 matrix visible-again seed + pair bounds + review visibility + end clock/clear
+  → 15 gathering persist path + catalog retry + photo upload a11y
+  → 16 operator polish (IRR→toman label, hide peaks on nature, end-after-start copy)
+  → 17 INV-DENALI-MULTI-CAL-A (multi_day ≥ 2 distinct local calendar days)
+  → 18 ED-EMPTY-OPT-01 (optional empty for logistics gear/services + guide languages)
+  → 19 ED-PHOTO-EMPTY-01 (day photo + itinerary photo empty copy; persist allowed)
+  → 20 ED-CURR-MKT-01 (public catalog IRR label → تومان; no ×10)
+  → 21 ED-CAMP-PERSIST-01 (location-zone ghosts → tripDetails.overview)
+  → 22 ED-DEST-REFETCH-01 + ED-REV-CURR-01 (catalog refetch + review toman)
+  → 23 ED-LOC-NATURE-01 / ED-THEME-CAMP-01 / ED-PAY-DIFF-UX-01
 ```
 
 ## Invariants
@@ -72,19 +87,60 @@ Live audit (`denali.admin.localhost` / smoke tour `…0220`) found blockers on *
 | **8** ED-DIFF-01 / ED-TZ-01 / ED-LBL-DIFF-01 / ED-DIFF-TICK-01 | Done — unset thumb@min + gesture commit; list TZ via `isoToDatetimeLocalInput`; outOf JSX gap; RTL tick translate |
 | **9** ED-LBL-THEME-01 / ED-UX-02 | Done — hide theme slug; network/catalog load → soft degraded notice |
 | **10** ED-DT-END-01 / ED-LIST-CAT-01 | Done — end inherit + hydrate repair; category ready gate + failed/Retry; catalog soft-retry |
+| **11** ED-DT-RANGE-01 | Done — end calendar min = start local day; `DENALI_TOUR_END_BEFORE_START` on `Date.parse(end) <= Date.parse(start)` |
+| **12** ED-REV-UUID-01 / ED-GATHER-01 / ED-SAVE-COPY-01 / ED-HIKE-MULTI-01 / ED-PEAK-RO-01 | Done — Denali-only UI/copy/registry; see wizard-experience v11. |
+| **13** ED-PEAK-LOCK-01 | Done — optional `wizardHost.normalizeCanonicalForPersist`; API enrich is product-blind. No `plugin.id === "denali"` in `updateTour`. Memory `projection.updatedAt` still mirrors `createdAt`. |
+| **14** ED-CAT-SEED-01 / ED-DT-CLOCK-01 / ED-NUM-PAIR-01 / ED-REV-VIS-01 / ED-DT-CLEAR-01 | Done — Denali wizard/edit only. Visible-again catalog seed after sanitize; date-picker same-day no-op; min≤max when both visible+set; review uses `pushRowWhenFieldVisible`; `endDateTime` `clearWhenNotVisible`. No API / `updateTour` / `plugin.id === "denali"`. |
+| **15** ED-GATHER-PERSIST-01 / ED-CAT-RETRY-01 / ED-PHOTO-A11Y-01 | Done — Denali wizard/edit only. Gathering SoT is canonical `gatheringPoints`; nested RHF path is fallback + sanitize promote. Catalog degraded notice retries (button + focus). Photo upload error is outside the file `<label>`. |
+| **16** ED-CURR-01 / ED-DEST-NATURE-01 / ED-DT-EQ-COPY-01 | Done — operator list/header formats `IRR` as تومان (no ×10). Nature pickers hide `locationType=peak`. End-datetime copy covers equality (`must be after start`). Header/footer save stay two primitives. |
+| **17** ED-MULTI-CAL-01 / INV-DENALI-MULTI-CAL-A | Done — `multi_day` requires ≥2 distinct local calendar days. `estimateDenaliTourDayCount` is inclusive YMD count (no min-2 clamp; itinerary row count is not a day). Same-calendar-day multi-day emits `DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS`; end calendar min is start+1. |
+| **18** ED-EMPTY-OPT-01 | Done — logistics gear/services and guide languages show optional empty (`role=status`) when catalog is soft-degraded, catalog is empty, or the operator skips. Empty `[]` does not block Continue/save. |
+| **19** ED-PHOTO-EMPTY-01 | Done — day photos and itinerary segment photos have optional empty copy. Empty `photos: []` / no segment `photoIds` does not block save. Marketing itinerary shows muted empty copy; does not invent photos. |
+| **20** ED-CURR-MKT-01 | Done — public catalog `formatCatalogPrice` labels `IRR` as تومان/toman **for Denali `pluginId` only** (same digits). Harbor/Urban keep `Intl`. No ×10. JSON-LD stays ISO `IRR`. Operator `formatTourPrice` is the same Denali-only display rule. |
+| **21** ED-CAMP-PERSIST-01 | **Done** — persist `summitPoint` / `campPoint` / `endPoint` under `tripDetails.overview.*`. Ghost strip stays. Delivery enrich falls back to overview when root ghosts are absent. Specs `DEN-CAMP-PERSIST-01*` + nested-only `denali.location-zones`. |
+| **22** ED-DEST-REFETCH-01 / ED-REV-CURR-01 | **Done** — offered-empty destination catalog refetches on focus; review money (base / transportCost / **dongAmount**) uses Denali toman grouping; destination catalog patch broadcasts to all mounted hooks. |
+| **23** ED-LOC-NATURE-01 / ED-THEME-CAMP-01 / ED-PAY-DIFF-UX-01 | **Done** — nature summit copy; camping theme/gear seed; unpaid hint + difficulty unset copy. |
 
 ## Closure (2026-08-06)
 
-All phased IDs **ED-VAL-01 … ED-LIST-CAT-01** meet DoD (unit + live `denali.admin.localhost` where noted). No further phases in this pack.
+Phased IDs **ED-VAL-01 … ED-LIST-CAT-01** met DoD (unit + live `denali.admin.localhost` where noted).
+
+**v14 (2026-08-16):** Phase **11** / **ED-DT-RANGE-01** — inverted multi-day range was accepted at create Continue because `resolveDenaliDatetimeFieldMinIsoDate("endDateTime")` returned `undefined` and `mergeDenaliScheduleDateViolations` only emitted `DENALI_TOUR_START_BEFORE_TODAY`. Fix is Denali UI/validation only (no API, no `platform-core`).
+
+**v15 (2026-08-16):** Phase **13** / **ED-PEAK-LOCK-01** — crafted POST/PATCH could store a peak/trail number other than the locked catalog value. Persist enrich runs on the HTTP/main thread inside `enrichValidateBeforePersistInput` (after optional catalog-ref allowlists, before worker/RuleEngine). `applyWorkspacePersistCanonicalNormalize` calls `wizardHost.normalizeCanonicalForPersist` only when the workspace implements it; otherwise it must not `listDestinations`. Denali `applyLockedDestinationCatalogMetricsToCanonical` overwrites `tripDetails.overview.peakHeight` / `trailDistanceKm` when the destination row locks that metric **and** the field is visible for the tour kind. Unlocked / missing destination / hidden field → leave operator values. API does not name `peakHeight` or branch on `plugin.id === "denali"`. Worker entry stays `validateCanonicalBeforePersistSync` on already-enriched `body.data`.
+
+**v16 (2026-08-16):** Phase **14** — template/matrix hide already clears via `clearWhenNotVisible`. Visible-again did not re-seed catalog-locked metrics, so Continue validated empty canonical while the locked input painted catalog. Fix is Denali client persist + review/validation only: `seedEmptyVisibleDestinationCatalogMetrics` after sanitize (empty + visible + lock → catalog string; never a blanket `applyDestinationCatalogPrefill` on every keystroke). End clock: date picker must not re-commit the same local day. Numeric pairs: `min > max` only when both fields are visible and both set. Review: `participants.maximumAge` / `fitnessLevel` via `pushRowWhenFieldVisible`. `endDateTime` gains the same `clearWhenNotVisible` sibling as `approximateReturnTime`. No codegen unless generated rule rows change.
+
+**v17 (2026-08-16):** Phase **15** — live create stored a populated gathering station in the composite then persisted `[]` because the field wrote `tripDetails.logistics.gatheringPoints` while `tourWizardDraftToDenaliForm` / review read root `gatheringPoints`. Promote nested→root in sanitize before form mapping; field/review use `resolveDenaliGatheringPointsFromStorage`. Catalog pickers: one soft-retry was not enough after cold BFF reset — degraded notice gains explicit retry + focus/visibility reload. File-input accessible name must not include the upload error string. No API / `platform-core` / `plugin.id === "denali"`.
+
+**v18 (2026-08-16):** Phase **16** — remaining live-audit polish. Operator tour list/edit header used `Intl` currency style on hardcoded `priceCurrency: "IRR"` → «ریال» while wizard labels are تومان; same digits, no conversion. `formatTourPrice` special-cases `IRR` as تومان/toman. Nature destination + itinerary pickers omit peak catalog rows (`ED-DEST-NATURE-01`); selected peak stays listed so the control does not blank. `DENALI_TOUR_END_BEFORE_START` copy states the end must be **after** start (guard already rejects equality). Do not merge the two save buttons. No API / `platform-core` / `plugin.id === "denali"`.
+
+**v19 (2026-08-16):** Phase **17** / **INV-DENALI-MULTI-CAL-A** — product picked invariant A: `*_multi` must span **at least two distinct local calendar days**. Old `estimateDenaliTourDayCount` clamped `days < 2` to `2`, so a same-day later clock still scaffolded two itinerary rows and photos treated `itinerary.length >= 2` as two days. Count is now inclusive local YMD from start/end (undefined when inverted/unparseable). Validation `DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS` on `endDateTime` when the kind is multi and the span is 1. End date picker min for multi is start’s local day **+ 1**. Same-day later clock remains valid for single-day. No API / `platform-core` / `plugin.id === "denali"`.
+
+**v20 (2026-08-16):** Phase **18** / **ED-EMPTY-OPT-01** — empty logistics gear/services and guide languages are a valid skip. Soft-degraded catalog shows `role=status` optional-empty (not a blocking alert). Review paints `review.optionalEmpty` instead of omitting the row. Continue/save must not emit `REQUIRED_FIELD_EMPTY` for those `required: false` arrays. No API / `platform-core` / `plugin.id === "denali"`.
+
+**v21 (2026-08-16):** Phase **19** / **ED-PHOTO-EMPTY-01** — day-photo and itinerary-segment-photo empty copy. Wizard uses `DenaliOptionalEmptyNotice`. `photos` stays `required: false`; empty arrays persist. Public catalog itinerary shows `detail.itinerarySegmentPhotosEmpty` when a section has no `photoUrls` (gallery PR-9 fallbacks unchanged). No API / `platform-core` / `plugin.id === "denali"`.
+
+**v22 (2026-08-16):** Phase **20** / **ED-CURR-MKT-01** — public catalog painted `Intl` `style: currency` + `IRR` as ریال/`IRR` while wizard/operator list already say تومان for the same stored integer. Fix is **marketing-local** `formatCatalogPrice` only (grouped digits + تومان/toman). Do **not** ×10; do **not** change finance formatters or JSON-LD `priceCurrency`. Storage/egress stay ISO `IRR`. No API / `platform-core`.
+
+**v23 (2026-08-16):** Workspace isolation for toman display. Host formatters (`formatTourPrice`, `formatCatalogPrice`) must not treat every ISO `IRR` as Denali toman — Harbor/guest-club also store `IRR`. Toman label applies only when the host passes `pluginId === "denali"`. Still no API / `platform-core` / persist rewrite.
+
+**v24 (2026-08-16):** Asklim live-audit pack. Phase **21** persists location-zone ghosts onto `tripDetails.overview` (do not persist root `campPoint`). Phase **22** catalog refetch + review toman. Phase **23** nature labels / camping catalog / paid-difficulty copy. Full contract: [`wizard-experience.md`](wizard-experience.md) § Asklim live-audit pack. No `plugin.id === "denali"` in `updateTour`. No ×10. Specs: `DEN-CAMP-PERSIST-01*`, `DEN-DEST-REFETCH-01*`, `DEN-REV-CURR-01*`, `DEN-LOC-NATURE-01*`, `API-11.0-05`, `DEN-PAY-DIFF-UX-01*`.
+
+**v25 (2026-08-16):** Layer closure for ED-CAMP-PERSIST-01 public delivery. After ghost strip, `campPoint` / `summitPoint` / `endPoint` live only under `tripDetails.overview.*`. `enrichCanonicalDeliveryPayload` now resolves each zone from root, then `tripDetails.overview.{path}` — same canonical fallback as operator hydrate, without writing ghosts back onto the payload. `updateTour` still has no `plugin.id === "denali"` branch. `startPoint` remains the persistable composite anchor at root.
+
+**v26 (2026-08-16):** Phase **22** residual. Review `transport.dongAmount` uses the same `formatDenaliTomanAmount` helper as base price / transport cost (no ×10). Destination catalog patch is a listener `Set`, not a last-mount singleton, so metric saves update every mounted picker. No API / `platform-core` / `plugin.id === "denali"`.
+
+**v27 (2026-08-16):** Product policy note — Asklim missing on marketing is operator **Publish** (`DRAFT → OPEN`). Public catalog is published-only. Not a code bug; do not change filters or unpublish allowlist.
+
+**v28 (2026-08-16):** CI contract close — re-export `denali-v1.json` checksum after Asklim strip drift; operator optional-empty hook is `data-operator-optional-empty` (Wave H.n); IRR toman allowlist avoids `pluginId === "denali"` in `apps/web`; review `transport.transportCost` value is grouped toman.
 
 **Operator follow-ups outside this pack** (not blockers; do not reopen lifecycle / platform-core validate):
 
 | Item | Class | Notes |
 | --- | --- | --- |
 | Cold Next compile → intermittent BFF `503` on `/api/users`, `guide_languages`, drafts | Dev infra (mitigated) | Soft-fail notice + **one soft-retry** via `fetchDenaliCatalogJsonWithSoftRetry` on catalog pickers/destinations. Residual cold compile may still show degraded once. |
-| Logistics / guide-language empty optional UX | Product polish | Empty state is valid when catalog soft-degraded or operator skips. |
-| Day-photo hint / itinerary photo empty copy | Product polish | Non-blocking; out of edit-save critical path. |
-| Unpublish `OPEN → DRAFT` | Non-goal | Lifecycle policy. |
+| Unpublish `OPEN → DRAFT` | Non-goal | Lifecycle policy. Missing marketing card → **Publish** (`DRAFT → OPEN`), not unpublish. |
 | Portal CSS / auth gate on same git branch | Branch hygiene | Unrelated to this pack — split when committing. |
 
 **Suggested exit:** Architect reviews this file; commit remediation + related web/api/denali diffs as one (or split API Doc-First) PR when ready. Prefer `pre-commit:fast` / listed verification — not full gates without YES.
@@ -115,6 +171,70 @@ All phased IDs **ED-VAL-01 … ED-LIST-CAT-01** meet DoD (unit + live `denali.ad
 | --- | --- |
 | ED-DT-END-01 | `isUnsetOrInventedMidnightClock` + `repairInventedMidnightDatetimeLocal` + end-field one-shot hydrate + `fallbackTime` |
 | ED-LIST-CAT-01 | `tours-page-client.tsx` — ready only when surface ≠ null; retry once; failed state + Retry CTA |
+
+## Phase 11 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-DT-RANGE-01 | `denali-schedule-date-policy.ts` (`DENALI_TOUR_END_CANONICAL_PATH`, end min from start local day, `isDenaliTourEndDatetimeNotAfterStart`) → `DenaliDatetimeField` context → `mergeDenaliScheduleDateViolations` + `review.validation.DENALI_TOUR_END_BEFORE_START` |
+
+## Phase 13 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-PEAK-LOCK-01 | Denali `applyLockedDestinationCatalogMetricsToCanonical` → `wizardHost.normalizeCanonicalForPersist`. API `applyWorkspacePersistCanonicalNormalize` inside `enrichValidateBeforePersistInput` (main thread; worker receives already-locked `body.data`). |
+
+## Phase 20 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-CURR-MKT-01 | `apps/marketing/src/catalog/format-catalog-display.ts` `formatCatalogPrice` — Denali `pluginId` + `IRR` → تومان/toman grouped digits (list chip, home cards, facts, sticky, rail, logistics cost/dong). Other plugin ids keep `Intl`. JSON-LD unchanged. **No ×10.** |
+
+## Phase 19 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-PHOTO-EMPTY-01 | Wizard: `DenaliOptionalEmptyNotice` on photos + itinerary segment picker. Marketing: `detail.itinerarySegmentPhotosEmpty` on catalog itinerary segments with no `photoUrls`. |
+
+## Phase 18 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-EMPTY-OPT-01 | `resolveDenaliOptionalEmptyReason` + `DenaliOptionalEmptyNotice` on gear + guide languages (`data-operator-optional-empty`); review `emptyOptional` rows; tour-services empty-bucket copy. |
+
+## Phase 17 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-MULTI-CAL-01 / INV-DENALI-MULTI-CAL-A | `countInclusiveLocalCalendarDays` (`denaliDatetime.ts`) → `estimateDenaliTourDayCount` (no min-2) + `computeDenaliTourDayCount`. Guard: `isDenaliMultiDayCalendarSpanTooShort` → `DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS`. End min for `*_multi`: `addIsoDateDays(startLocal, 1)`. Photos/itinerary size from calendar count, not `itinerary.length`. |
+
+## Phase 16 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-CURR-01 | `apps/web/src/features/tours/tour-list-formatters.ts` `formatTourPrice` — `OPERATOR_IRR_TOMAN_PLUGIN_IDS` (Denali) + `IRR` → تومان/toman grouped digits (list card + edit header). No `pluginId === "denali"` token. Other plugin ids keep `Intl`. Storage stays `IRR`. |
+| ED-DEST-NATURE-01 | `denali-destination-picker-filter.ts` → destination field + itinerary segment destination |
+| ED-DT-EQ-COPY-01 | `messages/{fa,en}/wizard.json` `review.validation.DENALI_TOUR_END_BEFORE_START` |
+
+## Phase 14 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-CAT-SEED-01 | `seedEmptyVisibleDestinationCatalogMetrics` in `apply-destination-catalog-prefill.ts` → `persistDenaliWizardDraftChange` after sanitize (`lookupDestination`) + locked metric field `useLayoutEffect` |
+| ED-DT-CLOCK-01 | `isDatetimePickerDateUnchanged` + existing `resolveDatetimePickerTimeForDateCommit` in `DenaliWizardDatetimePicker` |
+| ED-NUM-PAIR-01 | `denali-numeric-pair-policy.ts` → `mergeDenaliNumericPairViolations` + `review.validation.DENALI_*_MIN_AFTER_MAX` |
+| ED-REV-VIS-01 | `denali-review-format-logic.ts` `pushRowWhenFieldVisible` for max age + fitness; `fitnessLevelLabel` |
+| ED-DT-CLEAR-01 | `denaliFieldRegistryData.ts` `endDateTime.structuralInvariant: { kind: "clearWhenNotVisible" }` (no `denali:codegen`) |
+
+## Phase 12 implementation map
+
+| ID | Owner path |
+| --- | --- |
+| ED-REV-UUID-01 | `resolveDenaliReviewCatalogName` — never display UUID-shaped catalog misses |
+| ED-GATHER-01 | gathering editor scaffold (no draft seed) + `omitEmptyGatheringPoints` invariant |
+| ED-SAVE-COPY-01 | Denali `flatEdit.draftVsTourSaveHint`; host `wizard.saveDraftHint` as button `title` only |
+| ED-HIKE-MULTI-01 | registry `cellOverrides` for go/return hours on `*:multi_day` + `denali:codegen` |
+| ED-PEAK-RO-01 | `DenaliDestinationCatalogMetricField` `readOnly={locked}` (client; API lock deferred) |
 
 ## ED-SEED-01 implementation map
 
@@ -148,5 +268,12 @@ pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/cata
 # Phase 10
 pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/datetime-end-inherit.spec.ts
 pnpm --filter @apps/web exec node --import tsx --import ./test/register-dom.mjs --test test/tours-list.spec.ts
+# Phase 11 ED-DT-RANGE-01
+pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/denali-schedule-date-policy.spec.ts
+pnpm --filter @apps/web exec node --import tsx --import ./test/register-dom.mjs --test test/denali-wizard-validation.spec.ts
+# Phase 14 visible-again / pairs / review / end clear
+pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/apply-destination-catalog-prefill.spec.ts test/datetime-end-inherit.spec.ts test/denali-numeric-pair-policy.spec.ts test/denali-review-catalog-name.spec.ts test/denali-schedule-fields.spec.ts
+# Phase 20 ED-CURR-MKT-01 public catalog IRR → toman (no ×10)
+pnpm --filter @apps/marketing exec node --import tsx --test test/marketing-catalog-display.spec.ts
 ```
 

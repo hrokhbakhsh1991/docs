@@ -23,11 +23,14 @@ import { parseStringArray } from "./denali-array-field-utils";
 import { parseDenaliGearItems, type DenaliGearItem } from "./denali-gear-types";
 import {
   DENALI_LOCATION_ZONE_PATHS,
-  parseDenaliGatheringPoints,
+  denaliLocationZoneOverviewPath,
   parseDenaliLocationData,
+  resolveDenaliGatheringPointsFromStorage,
+  resolveDenaliLocationZoneFromStorage,
 } from "./denali-location-types";
 import { parseDenaliTourPhotos, type DenaliTourPhoto } from "./denali-photo-types";
 import { formatSocialMediaLinkForReview } from "./denali-social-media-link-logic";
+import { formatDenaliTomanAmount, type AppLocale } from "../adapters/i18n-format";
 
 export type DenaliReviewCatalog = {
   readonly destinationNameById: ReadonlyMap<string, string>;
@@ -42,6 +45,8 @@ export type DenaliReviewRow = {
   readonly label: string;
   readonly value: string;
   readonly multiline?: boolean;
+  /** ED-EMPTY-OPT-01 — operator skip / empty optional catalog field. */
+  readonly emptyOptional?: boolean;
 };
 
 export type DenaliReviewCard = {
@@ -77,6 +82,7 @@ export type DenaliReviewFormatLabels = {
   readonly stepLabel: (stepId: string) => string;
   readonly tourKindLabel: (slug: string) => string;
   readonly transportModeLabel: (mode: string) => string;
+  readonly fitnessLevelLabel: (level: string) => string;
   readonly publishStatusLabel: (status: string) => string;
   readonly locationZoneLabel: (path: string) => string;
   /** Display-only — canonical storage stays ISO (INV-DENALI-REVIEW-01). */
@@ -89,6 +95,10 @@ export type DenaliReviewFormatLabels = {
   readonly dayLabel: (day: number) => string;
   readonly primaryGathering: string;
   readonly socialMediaTelegramAutoLabel: string;
+  /** ED-EMPTY-OPT-01 — review value when an optional catalog field was skipped. */
+  readonly optionalEmptyValue: string;
+  /** ED-REV-CURR-01 — review toman grouping. Defaults to fa. */
+  readonly locale?: AppLocale;
 };
 
 function pushRow(
@@ -109,6 +119,20 @@ function pushRow(
   });
 }
 
+function pushOptionalEmptyRow(
+  rows: DenaliReviewRow[],
+  canonicalPath: string,
+  label: string,
+  value: string
+): void {
+  rows.push({
+    canonicalPath,
+    label,
+    value,
+    emptyOptional: true,
+  });
+}
+
 function pushRowWhenFieldVisible(
   draft: DenaliTourWizardDraft,
   rows: DenaliReviewRow[],
@@ -124,6 +148,10 @@ function pushRowWhenFieldVisible(
   pushRow(rows, canonicalPath, labels.fieldLabel(canonicalPath), value, multiline);
 }
 
+function formatReviewTomanAmount(raw: string, labels: DenaliReviewFormatLabels): string {
+  return formatDenaliTomanAmount(raw, labels.locale ?? "fa");
+}
+
 function boolLabel(raw: string, labels: Pick<DenaliReviewFormatLabels, "yes" | "no">): string {
   if (raw === "true") {
     return labels.yes;
@@ -134,9 +162,39 @@ function boolLabel(raw: string, labels: Pick<DenaliReviewFormatLabels, "yes" | "
   return "";
 }
 
+/** RFC 4122 UUID (any version) — review must never echo these when the catalog miss. */
+const DENALI_REVIEW_OPAQUE_ID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isDenaliReviewOpaqueCatalogId(value: string): boolean {
+  return DENALI_REVIEW_OPAQUE_ID.test(value.trim());
+}
+
+/**
+ * ED-REV-UUID-01 / INV-DENALI-REVIEW-02 — catalog display name for an id.
+ * Loading or miss + UUID → empty (caller skips the row). Non-UUID slugs may pass through.
+ */
+export function resolveDenaliReviewCatalogName(
+  id: string,
+  catalog: ReadonlyMap<string, string>
+): string {
+  const trimmed = id.trim();
+  if (trimmed.length === 0) {
+    return "";
+  }
+  const named = catalog.get(trimmed);
+  if (named != null && named.trim().length > 0) {
+    return named.trim();
+  }
+  if (isDenaliReviewOpaqueCatalogId(trimmed)) {
+    return "";
+  }
+  return trimmed;
+}
+
 function mapIds(ids: readonly string[], catalog: ReadonlyMap<string, string>): string {
   return ids
-    .map((id) => catalog.get(id) ?? id)
+    .map((id) => resolveDenaliReviewCatalogName(id, catalog))
     .filter((entry) => entry.trim().length > 0)
     .join("، ");
 }
@@ -180,7 +238,7 @@ export function buildDenaliReviewHero(
     title,
     categoryLabel:
       category.trim().length > 0 ? labels.tourKindLabel(category) : "",
-    destination: catalog.destinationNameById.get(destinationId) ?? destinationId,
+    destination: resolveDenaliReviewCatalogName(destinationId, catalog.destinationNameById),
     schedule: scheduleParts.join(" → "),
     coverPhoto: resolveDenaliReviewCoverPhoto(draft),
   };
@@ -206,8 +264,10 @@ export function buildDenaliReviewSections(
     basicRows,
     "destinationId",
     labels.fieldLabel("destinationId"),
-    catalog.destinationNameById.get(getCanonicalStringValue(draft, "destinationId")) ??
-      getCanonicalStringValue(draft, "destinationId")
+    resolveDenaliReviewCatalogName(
+      getCanonicalStringValue(draft, "destinationId"),
+      catalog.destinationNameById
+    )
   );
   pushRowWhenFieldVisible(
     draft,
@@ -298,7 +358,16 @@ export function buildDenaliReviewSections(
     true
   );
   const photos = parseDenaliTourPhotos(getCanonicalValue(draft, "photos"));
-  pushRow(photoRows, "photos", labels.fieldLabel("photos"), labels.photoCount(photos.length));
+  if (photos.length === 0) {
+    pushOptionalEmptyRow(
+      photoRows,
+      "photos",
+      labels.fieldLabel("photos"),
+      labels.optionalEmptyValue
+    );
+  } else {
+    pushRow(photoRows, "photos", labels.fieldLabel("photos"), labels.photoCount(photos.length));
+  }
   if (photoRows.length > 0 || photos.length > 0) {
     sections.push({
       stepId: "denali_photos",
@@ -310,34 +379,49 @@ export function buildDenaliReviewSections(
 
   const programRows: DenaliReviewRow[] = [];
   const languageIds = parseStringArray(getCanonicalValue(draft, "program.guideLanguageIds"));
-  pushRow(
-    programRows,
-    "program.guideLanguageIds",
-    labels.fieldLabel("program.guideLanguageIds"),
-    mapIds(languageIds, catalog.languageNameById)
-  );
+  if (languageIds.length === 0) {
+    pushOptionalEmptyRow(
+      programRows,
+      "program.guideLanguageIds",
+      labels.fieldLabel("program.guideLanguageIds"),
+      labels.optionalEmptyValue
+    );
+  } else {
+    pushRow(
+      programRows,
+      "program.guideLanguageIds",
+      labels.fieldLabel("program.guideLanguageIds"),
+      mapIds(languageIds, catalog.languageNameById)
+    );
+  }
   pushRow(
     programRows,
     "program.difficultyLevel",
     labels.fieldLabel("program.difficultyLevel"),
     getCanonicalStringValue(draft, "program.difficultyLevel")
   );
-  pushRow(
+  pushRowWhenFieldVisible(
+    draft,
     programRows,
+    labels,
     "program.hikingHoursApprox",
-    labels.fieldLabel("program.hikingHoursApprox"),
+    "denali_program",
     getCanonicalStringValue(draft, "program.hikingHoursApprox")
   );
-  pushRow(
+  pushRowWhenFieldVisible(
+    draft,
     programRows,
+    labels,
     "program.hikingGoHours",
-    labels.fieldLabel("program.hikingGoHours"),
+    "denali_program",
     getCanonicalStringValue(draft, "program.hikingGoHours")
   );
-  pushRow(
+  pushRowWhenFieldVisible(
+    draft,
     programRows,
+    labels,
     "program.hikingReturnHours",
-    labels.fieldLabel("program.hikingReturnHours"),
+    "denali_program",
     getCanonicalStringValue(draft, "program.hikingReturnHours")
   );
   pushRowWhenFieldVisible(
@@ -378,10 +462,13 @@ export function buildDenaliReviewSections(
               if (segment.locationLabel?.trim()) {
                 parts.push(`@ ${segment.locationLabel.trim()}`);
               } else if (segment.destinationId?.trim()) {
-                const destinationName =
-                  catalog.destinationNameById.get(segment.destinationId.trim()) ??
-                  segment.destinationId.trim();
-                parts.push(`@ ${destinationName}`);
+                const destinationName = resolveDenaliReviewCatalogName(
+                  segment.destinationId.trim(),
+                  catalog.destinationNameById
+                );
+                if (destinationName.length > 0) {
+                  parts.push(`@ ${destinationName}`);
+                }
               }
               if (segment.photoIds != null && segment.photoIds.length > 0) {
                 const photoLabels = segment.photoIds
@@ -421,13 +508,13 @@ export function buildDenaliReviewSections(
     logisticsRows,
     "transport.transportCost",
     labels.fieldLabel("transport.transportCost"),
-    getCanonicalStringValue(draft, "transport.transportCost")
+    formatReviewTomanAmount(getCanonicalStringValue(draft, "transport.transportCost"), labels)
   );
   pushRow(
     logisticsRows,
     "transport.dongAmount",
     labels.fieldLabel("transport.dongAmount"),
-    getCanonicalStringValue(draft, "transport.dongAmount")
+    formatReviewTomanAmount(getCanonicalStringValue(draft, "transport.dongAmount"), labels)
   );
   pushRow(
     logisticsRows,
@@ -441,10 +528,18 @@ export function buildDenaliReviewSections(
       logisticsRows,
       zone.path,
       labels.locationZoneLabel(zone.path),
-      formatLocation(getCanonicalValue(draft, zone.path))
+      formatLocation(
+        resolveDenaliLocationZoneFromStorage(
+          getCanonicalValue(draft, zone.path),
+          getCanonicalValue(draft, denaliLocationZoneOverviewPath(zone.path))
+        )
+      )
     );
   }
-  const gatheringPoints = parseDenaliGatheringPoints(getCanonicalValue(draft, "gatheringPoints"));
+  const gatheringPoints = resolveDenaliGatheringPointsFromStorage(
+    getCanonicalValue(draft, "gatheringPoints"),
+    getCanonicalValue(draft, "tripDetails.logistics.gatheringPoints")
+  );
   for (const point of gatheringPoints) {
     const name = point.name?.trim() ?? "";
     const address = point.address?.trim() ?? "";
@@ -464,6 +559,22 @@ export function buildDenaliReviewSections(
     getCanonicalValue(draft, "tripDetails.overview.customServiceLabels")
   );
   const gear = parseDenaliGearItems(getCanonicalValue(draft, "participants.gearItems"));
+  if (gear.length === 0) {
+    pushOptionalEmptyRow(
+      logisticsRows,
+      "participants.gearItems",
+      labels.fieldLabel("participants.gearItems"),
+      labels.optionalEmptyValue
+    );
+  }
+  if (included.length === 0 && excluded.length === 0 && customLabels.length === 0) {
+    pushOptionalEmptyRow(
+      logisticsRows,
+      "tripDetails.logistics.includedServices",
+      labels.fieldLabel("tripDetails.logistics.includedServices"),
+      labels.optionalEmptyValue
+    );
+  }
   if (
     logisticsRows.length > 0 ||
     included.length > 0 ||
@@ -509,13 +620,29 @@ export function buildDenaliReviewSections(
     pricingRows,
     "pricing.basePricePerPerson",
     labels.fieldLabel("pricing.basePricePerPerson"),
-    getCanonicalStringValue(draft, "pricing.basePricePerPerson")
+    formatReviewTomanAmount(getCanonicalStringValue(draft, "pricing.basePricePerPerson"), labels)
   );
   pushRow(
     pricingRows,
     "participants.minimumAge",
     labels.fieldLabel("participants.minimumAge"),
     getCanonicalStringValue(draft, "participants.minimumAge")
+  );
+  pushRowWhenFieldVisible(
+    draft,
+    pricingRows,
+    labels,
+    "participants.maximumAge",
+    "denali_pricing",
+    getCanonicalStringValue(draft, "participants.maximumAge")
+  );
+  pushRowWhenFieldVisible(
+    draft,
+    pricingRows,
+    labels,
+    "participants.fitnessLevel",
+    "denali_pricing",
+    labels.fitnessLevelLabel(getCanonicalStringValue(draft, "participants.fitnessLevel"))
   );
   pushRow(
     pricingRows,

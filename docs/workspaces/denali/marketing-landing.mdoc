@@ -345,8 +345,11 @@ Add to `guestSeo.marketing` per workspace (like `listTitleKey`):
 |----------------|----------------|---------------|
 | `homeTitleKey` | `seo.homeTitle` | `seo.homeTitle` |
 | `homeDescriptionKey` | `seo.homeDescription` | `seo.homeDescription` |
+| `listTitleKey` | `seo.toursTitle` | `seo.toursTitle` |
 
-`generateMetadata` reads via `resolveGuestSeoForPlugin(pluginId).marketing.homeTitleKey`.
+`generateMetadata` reads via `resolveGuestSeoForPlugin(pluginId).marketing.homeTitleKey` / `listTitleKey`.
+
+**List title composition (BUG-14):** `seo.toursTitle` is the **document-title segment only** — `تورها` / `Tours`. It must **not** interpolate `{siteName}`. Layout `buildMarketingSiteMetadata` already sets Next `title.template` = `` `%s — ${siteName}` ``, so a segment that itself contains the site name becomes `shenski — تورها — shenski`. Home uses `seo.homeTitle` = `"{siteName}"` (absolute title, no extra segment) and is out of this contract. Tour detail sets `metadata.title` to the tour name only; OG/twitter append ` — ${siteName}` separately. List OG/twitter must follow the same split: `metadata.title` = segment, social title = `` `${segment} — ${siteName}` ``. Fallback when `listTitleKey` is absent is `t("nav.tours")`, not `` `${siteName} — ${t("nav.tours")}` ``. Never hardcode a club public name.
 
 ### 7.3 Legacy aliases (remove after smoke green)
 
@@ -445,6 +448,18 @@ section[data-marketing-home-hero]     # min-height, gradient overlay, white text
 | robots | prod index · non-prod noindex (existing) |
 
 **Post-MVP:** `WebSite` JSON-LD on `/`.
+
+### 10.1 `/tours` document title vs social title
+
+Next App Router applies the **layout** `title.template` to every child `metadata.title` that is a string (not an object that sets `absolute`). Marketing layout template is `` `%s — ${displayName}` `` where `displayName` is `tenants.theme.displayName` via `resolveGuestChromeDisplayName` (club public name; not plugin id `denali`).
+
+| Surface | `metadata.title` (segment) | Rendered `<title>` | `og:title` / `twitter:title` |
+| ------- | -------------------------- | ------------------ | ---------------------------- |
+| `/` | `seo.homeTitle` = `{siteName}` | `{siteName}` (home generateMetadata replaces layout default) | site name |
+| `/tours` | `seo.toursTitle` = `تورها` / `Tours` | `تورها — {siteName}` | `تورها — {siteName}` |
+| `/tours/{id}` | tour name | `{tour} — {siteName}` | `{tour} — {siteName}` |
+
+`buildMarketingToursListMetadata` therefore must **not** put `siteName` into `metadata.title`. It **does** put `siteName` into Open Graph / Twitter so crawlers that ignore the HTML `<title>` template still see the club name once. Tests: MKT-14 (segment), MKT-29 (twitter/OG include site name once).
 
 ---
 
@@ -1330,7 +1345,7 @@ export async function generateMetadata(): Promise<Metadata> {
   "seo": {
     "homeTitle": "{siteName}",
     "homeDescription": "Browse published programs and register online.",
-    "toursTitle": "{siteName} — Tours",
+    "toursTitle": "Tours",
     "toursDescription": "Published programs for {siteName}."
   },
   "home": {

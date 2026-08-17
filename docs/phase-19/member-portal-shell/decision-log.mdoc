@@ -181,7 +181,7 @@ extends:
 | **Status** | **IMPLEMENTED (2026-08-05)** — modal-first guest register + Denali skin for gate/modal body |
 | **Context** | Dual guest paths (inline phone→OTP on register **and** optional login modal) split auth UX; product wants one OTP path and intake-only register page. |
 | **Decision** | **PCMS-UX-MODAL-04:** Guest `/catalog/{id}/register` auto-opens login modal; page must not render inline auth steps. New member profile: display name required, email optional (existing `register-complete`). Session members unchanged (PCMS-REG-01 intake-only). Denali CSS: `login-page.css` gate hooks + `denali-form-controls.css` scopes `[data-portal-login-modal-body]`. |
-| **Consequences** | Register page gates on `buildRegistrationResumeInitialState`; guest auth gate + `PortalLoginModalOpener`; reopen via `PortalRegisterSignInLink`; client session probe may reload when SSR missed cookie (custom apex). Specs assert no guest `PublicCatalogRegistrationFlow` without resume. Thin `/login` keeps `data-portal-login-thin-host`. |
+| **Consequences** | Register page gates on `buildRegistrationResumeInitialState`; guest auth gate + `PortalLoginModalOpener`; reopen via `PortalRegisterSignInLink`; client session probe may reload when SSR missed cookie (custom apex). Specs assert no guest `PublicCatalogRegistrationFlow` without resume. **`/login` presentation superseded by DL-48:** page OTP (`data-portal-login-full-page`), not `data-portal-login-thin-host` and not auto-open `host="login"`. |
 | **Dependencies** | DL-40 · PCMS §5.0 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) |
 | **Open questions** | Optional backdrop-click dismiss. |
 | **Verify (2026-08-05 local)** | Guest register HTML: `data-portal-register-guest-auth=modal-first` + gate + modal, no inline phone. BFF: new mobile → profile → `register-complete` sets `atour_mb_session` `Domain=denali.localhost`; returning member → session without profile. Host: use `portal.denali.localhost:3003` (not bare localhost). |
@@ -540,17 +540,49 @@ extends:
 | **Dependencies** | [platform-portal-member-profile.mdoc](../platform-portal-member-profile.mdoc) INV-MP-AVATAR-01 · INV-MP-CACHE-01 |
 | **Open questions** | None. |
 
-### DL-44 — Auth/profile coded error UX + DEV OTP single source
+### DL-45 — Portal public-auth CORS (Phase 4)
 
 | Field | Value |
 | ----- | ----- |
-| **Status** | **PENDING SIGN-OFF** |
-| **Context** | Dual DEV OTP sources (random challenge log vs UI `1234` hint), stop-at-first `fieldErrors`, HTML5 English validation on onboarding, identical FA copy for `MOBILE_REQUIRED`/`MOBILE_INVALID`. |
-| **Decision** | (1) When static DEV OTP is enabled, API **issues** `1234` so challenge hash, `otp-dev` log, and UI hint share one value. (2) BFF emits distinct `MOBILE_REQUIRED` vs `MOBILE_INVALID`; UI clears presentation errors on edit; onboarding uses `noValidate` + coded alerts. (3) Profile BFF collect-all `fieldErrors`; clear-on-edit in UI; PATCH upstream OK + view-build fail still invalidates cache (INV-MP-CACHE-01 / INV-MP-ERR-01). |
-| **Consequences** | Shared helpers only in `catalog-registration-auth` / SDK; no portal business validators; no HTML5 as message source. |
-| **Dependencies** | [platform-portal-otp-flow.mdoc](../platform-portal-otp-flow.mdoc) · [platform-portal-member-profile.mdoc](../platform-portal-member-profile.mdoc) INV-MP-ERR-01 · INV-MP-CACHE-01 · INV-MP-AVATAR-02 |
+| **Status** | **IMPLEMENTED (2026-08-16)** |
+| **Context** | Guest-auth layers lock: Marketing may become a second OTP **UI** host only after CORS on Portal public-auth + PCMS amendment. Cookie write must stay Portal BFF. `/api/me/*` must stay same-origin. |
+| **Decision** | Allow credentialed CORS solely on `/api/public-auth/*`, origin-matched via GSH portal + paired marketing public origins. Add `GET /api/public-auth/session` boolean probe. Do not ship a Marketing transport adapter (Phase 5). Do not change cookie Domain helpers or `apps/api` public-auth. |
+| **Consequences** | Browser on `denali.club` / `{club}.localhost` can `fetch` portal public-auth with cookies; member profile BFF stays portal-private. |
+| **Dependencies** | PCMS-001 §5.4 · PCMS-CORS-01…05 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) §16 Phase 4 |
 | **Open questions** | None. |
 
+### DL-46 — Marketing Portal-origin auth host (Phase 5)
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **IMPLEMENTED (2026-08-16)** |
+| **Context** | Phase 4 CORS opened credentialed `fetch` from the paired marketing origin to Portal `/api/public-auth/*`. Marketing may now host the shared OTP/profile UI without becoming a cookie writer. |
+| **Decision** | Add `tryCreatePortalOriginGuestAuthTransport` (absolute portal public-auth + `GET /api/public-auth/session`). Mount `catalogRegistrationAuthFlowSteps` in a marketing modal. PDP tour sign-in opens that modal; `[data-marketing-register]` still goes to portal register. Host `onAuthenticated` reloads the current marketing URL. Do not add Marketing BFF, CORS `/api/me/*`, or delete `/login`. **Header Sign in wiring:** see **DL-47** (navigates to Portal `/login`; not the marketing modal). |
+| **Consequences** | Custom-apex guests can complete OTP without leaving marketing. `*.localhost` host-only cookies still fail-closed to guest CTAs. Portal remains the `/me/*` gate. |
+| **Dependencies** | PCMS-001 §5.5 · PCMS-MKT-AUTH-01…06 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) §16 Phase 5 |
+| **Open questions** | None. |
+
+### DL-47 — Marketing header Sign in stays Portal `/login` (Phase 5 surface split)
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **IMPLEMENTED (2026-08-16)** |
+| **Context** | DL-46 shipped a working Portal-origin marketing modal. Product: guests signing in from **chrome** should land on the dedicated Portal login page; the marketing modal exists so PDP «ورود» does not leave `/tours/{id}`. A later marketing login host may reuse the same modal — header must not capture that until asked. |
+| **Decision** | Header `[data-marketing-header-sign-in]` is a plain GSH `<a href={resolvePortalMemberLoginUrl}>` (Portal `/login` — presentation **DL-48** page OTP, not a portal modal). PDP `[data-marketing-tour-sign-in]` remains `MarketingLoginModalTrigger`. Keep `MarketingLoginModalProvider` in marketing layout. Auto-open `?auth=login` on marketing only for tour-detail pathnames. Do not delete Portal `/login`. Amend PCMS-MKT-AUTH-05 (1.5.1). |
+| **Consequences** | Home / list / other marketing pages never open `[data-marketing-login-modal]` from the header. PDP stay-on-page OTP is unchanged. |
+| **Dependencies** | PCMS-001 §5.5 · PCMS-MKT-AUTH-05 · DL-46 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) §16 Phase 5 |
+| **Open questions** | None. |
+
+### DL-48 — Portal `/login` is page OTP; PDP never leaves marketing (intake Auth UI Phase 2)
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **IMPLEMENTED (2026-08-16)** |
+| **Context** | DL-47 sends header Sign in to Portal `/login`. Live product: that page must run phone/OTP/profile **inline** (BUG-1). Auto-open `host="login"` modal blocked the page flow. Separately, API 502 showed the raw i18n key `catalogRegistration.errors.BACKEND_UNREACHABLE` (BUG-7), and PDP «ورود» fell through to portal `register?auth=login` when transport was missing / API blipped (BUG-8). |
+| **Decision** | `/login` mounts `data-portal-login-full-page` + `[data-portal-login-form-panel]` + `PublicCatalogRegistrationFlow` (`memberLoginEgress`). **No** `openLoginModal` on this route. Register page stays modal-first (PCMS-UX-MODAL-04). Marketing PDP trigger `preventDefault` whenever the modal provider is mounted; missing transport still opens the dialog with translated `BACKEND_UNREACHABLE`. GSH branding fetch keeps the last **successful** snapshot on network/5xx so chrome does not flash i18n `defaultSiteName` («باشگاه») during an API blip — still never hardcode `shenski`. |
+| **Consequences** | Header → page OTP. PDP stays on `/tours/{id}`. Cookie write / CORS / Layer A–E ownership unchanged. **Hygiene (PCMS 1.5.3):** `PortalLoginModalProvider` is register-only (no `host="login"` / `onLoginSessionReady`). Marketing modal context does not expose `canHostAuth`. Branding fail-soft: a later **successful** empty snapshot overwrites the previous success so a 502 cannot resurrect the old `displayName`. |
+| **Dependencies** | PCMS-001 1.5.3 · DL-47 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) |
+| **Open questions** | None. |
 
 ---
 
@@ -605,6 +637,10 @@ extends:
 | DL-42 | §54 | addendum §6 | REG paths | §5.5 | — | all |
 | DL-43 | profile Discard/avatar | platform-portal-member-profile INV-MP-AVATAR-01 | — | — | — | profile |
 | DL-44 | auth/profile error UX · DEV OTP | platform-portal-otp-flow · INV-MP-ERR-01 | — | — | — | auth+profile |
+| DL-45 | public-auth CORS Phase 4 | PCMS §5.4 | CORS-01…05 | guard-pcms-authority | P4 guest-auth |
+| DL-46 | Marketing origin OTP host Phase 5 | PCMS §5.5 | MKT-AUTH-01…06 | guard-pcms-authority | P5 guest-auth |
+| DL-47 | Header Sign in → Portal `/login`; modal PDP-only | PCMS §5.5 AUTH-05 | MKT-AUTH-05 | guard-pcms-authority | P5 guest-auth |
+| DL-48 | `/login` page OTP; PDP stay-on-marketing; branding fail-soft | PCMS 1.5.3 | LOGIN-01 · AUTH-05 | portal + marketing specs | intake Auth UI P2 |
 
 *BMC = [builder-migration-contract.mdoc](./builder-migration-contract.mdoc) · GCSN = [guest-cross-surface-nav-schema.mdoc](./guest-cross-surface-nav-schema.mdoc)*
 

@@ -172,17 +172,22 @@
       }
     },
     "datetimeEnd": {
-      "multiDayHint": "Required for multi-day tours — used to size the itinerary and per-day photo sections.",
+      "multiDayHint": "Required for multi-day tours and must be at least the next calendar day after start — itinerary and per-day photos use this span.",
       "singleDayHint": "Optional for single-day tours."
     },
     "catalog": {
-      "degraded": "Catalog is temporarily unavailable. You can still save this tour; pickers refresh when the service recovers."
+      "degraded": "Catalog is temporarily unavailable. You can still save this tour; pickers refresh when the service recovers.",
+      "retry": "Try again",
+      "optionalEmpty": "This is optional. You can continue and save without selecting anything."
     },
     "difficulty": {
       "level": "Level {level}",
       "helper": "1 to 10 in half steps (e.g. 6.5 or 7). 1 = easiest, 10 = hardest.",
       "outOf": "of {max}",
-      "unset": "Select difficulty…"
+      "unset": "Not set — move the slider to commit a level"
+    },
+    "pricing": {
+      "unpaidHint": "Turn on paid tour to enter the price per person."
     },
     "elevation": {
       "meters": "meters",
@@ -212,6 +217,7 @@
     "locationTypes": {
       "startPoint": "Start point",
       "summitPoint": "Summit point",
+      "summitPointNature": "High point on the route",
       "campPoint": "Camp point",
       "endPoint": "End point"
     },
@@ -228,7 +234,8 @@
       "previewAlt": "Tour photo preview",
       "multiDayHelper": "Upload a cover or gallery photo for each program day.",
       "singleDayHelper": "Upload images or paste URLs — up to {max, number} cover / gallery photos.",
-      "noPhotos": "No photos yet.",
+      "optionalEmpty": "Photos are optional. You can continue and save without uploading any.",
+      "dayEmpty": "No day photos yet. Assigning a photo per day is optional and does not block save.",
       "uploadImage": "Upload image",
       "storedInObjectStorage": "Stored in object storage.",
       "orImageUrl": "Or image URL",
@@ -280,7 +287,7 @@
       "selfProvidedPlaceholder": "e.g. Lunch, personal gear",
       "suggestionsLabel": "Quick add",
       "removeLabel": "Remove {name}",
-      "emptyBucket": "Nothing added yet.",
+      "emptyBucket": "Nothing added yet. Optional — skipping does not block save.",
       "suggestionsIncluded": [
         "Breakfast",
         "Lunch",
@@ -315,8 +322,8 @@
       "addSegment": "Add section",
       "resetRows": "Reset {count, number} day rows",
       "segmentPhotos": "Photos for this section",
-      "segmentPhotosEmpty": "Upload photos in the Photos step first.",
-      "segmentPhotosGoToPhotos": "Go to Photos step",
+      "segmentPhotosEmpty": "No photos for this program section. Optional — you can save without attaching photos.",
+      "segmentPhotosGoToPhotos": "Add photos in the Photos step first (optional).",
       "segmentPhotoToggle": "Select photo {label}",
       "segmentDestination": "Catalog location",
       "segmentDestinationPlaceholder": "Select location (optional)",
@@ -361,12 +368,14 @@
     "guideLanguages": {
       "helper": "Select languages your guides can offer on this tour.",
       "loading": "Loading guide languages…",
-      "empty": "No guide languages yet. Add them under Settings → Guide languages."
+      "empty": "No guide languages yet. Add them under Settings → Guide languages.",
+      "optionalEmpty": "This is optional. You can continue and save without selecting a guide language."
     },
     "gear": {
       "helper": "Choose equipment for your selected themes. Mark each item as required or optional.",
       "loading": "Loading equipment…",
       "empty": "No equipment matches the current themes. Add items under Settings → Equipment or pick different themes.",
+      "optionalEmpty": "Equipment is optional. You can continue and save without selecting gear.",
       "openEquipment": "Open equipment settings",
       "allThemes": "All themes",
       "selectedCount": "{count, number} items selected",
@@ -472,6 +481,9 @@
       "destinations": "Loading destinations…"
     }
   },
+  "flatEdit": {
+    "draftVsTourSaveHint": "Header “Save draft” only flushes the wizard draft. Footer “Save changes” PATCHes the tour."
+  },
   "review": {
     "intro": "Review everything below before creating the tour.",
     "loading": "Preparing summary…",
@@ -481,6 +493,7 @@
     "no": "No",
     "gearRequired": "Required",
     "gearOptional": "Optional",
+    "optionalEmpty": "Not selected (optional)",
     "photoCount": "{count, number} {count, plural, one {photo} other {photos}}",
     "dayLabel": "Day {day, number}",
     "primaryGathering": "Primary",
@@ -499,7 +512,11 @@
       "VALIDATION_RULE_REQUIRED_FIELD": "{field} is required",
       "DENALI_TOUR_TYPE_REQUIRED": "Select a tour type before continuing",
       "CARDINALITY_VIOLATION": "{field} exceeds allowed limits",
-      "DENALI_TOUR_START_BEFORE_TODAY": "{field} cannot be before today"
+      "DENALI_TOUR_START_BEFORE_TODAY": "{field} cannot be before today",
+      "DENALI_TOUR_END_BEFORE_START": "{field} must be after the tour start",
+      "DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS": "A multi-day tour must span at least two distinct calendar days",
+      "DENALI_CAPACITY_MIN_AFTER_MAX": "Minimum capacity cannot be greater than maximum capacity",
+      "DENALI_AGE_MIN_AFTER_MAX": "Minimum age cannot be greater than maximum age"
     },
     "publishStatus": {
       "helper": "Draft tours stay internal until you publish as active.",

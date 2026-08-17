@@ -2,6 +2,7 @@ import { UserRound, ShieldCheck, Backpack, Users } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding";
+import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 
 import { HOME_WHY_TILE_IDS, type HomeWhyTileId } from "./home-why-tile-ids";
 
@@ -19,7 +20,7 @@ export type HomeWhyProps = {
 
 export async function HomeWhy({ branding, whySectionAnchor }: HomeWhyProps) {
   const t = await getTranslations("catalog");
-  const siteName = branding.displayName ?? t("nav.defaultSiteName");
+  const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
   const copy = { siteName };
 
   return (

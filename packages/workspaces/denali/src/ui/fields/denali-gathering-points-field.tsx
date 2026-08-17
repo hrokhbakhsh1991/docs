@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 
 import {
@@ -14,12 +13,13 @@ import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-
 import { DenaliLocationAddressPicker } from "../components/denali-location-address-picker";
 import {
   DENALI_COMPOSITE_TEST_IDS,
+  DENALI_GATHERING_POINTS_CANONICAL_PATH,
+  DENALI_GATHERING_POINTS_NESTED_PATH,
   createEmptyDenaliGatheringPoint,
-  parseDenaliGatheringPoints,
+  resolveDenaliGatheringPointsEditorState,
+  resolveDenaliGatheringPointsFromStorage,
   type DenaliGatheringPoint,
 } from "../logic/denali-location-types";
-
-const GATHERING_POINTS_PATH = "tripDetails.logistics.gatheringPoints";
 
 type DenaliGatheringPointsFieldProps = {
   readonly draft: DenaliTourWizardDraft;
@@ -34,62 +34,55 @@ export function DenaliGatheringPointsField({
 }: DenaliGatheringPointsFieldProps) {
   const t = useTranslations("denali");
   const tCommon = useTranslations("denali.composites.common");
-  const seededRef = useRef(false);
   const draftRef = useLatestWizardDraft(draft);
 
-  const points = parseDenaliGatheringPoints(getCanonicalValue(draft, GATHERING_POINTS_PATH));
+  const stored = resolveDenaliGatheringPointsFromStorage(
+    getCanonicalValue(draft, DENALI_GATHERING_POINTS_CANONICAL_PATH),
+    getCanonicalValue(draft, DENALI_GATHERING_POINTS_NESTED_PATH)
+  );
+  const editor = resolveDenaliGatheringPointsEditorState(stored);
+  const points = editor.points;
   const label = resolveDenaliFieldLabel(t, "gatheringPoints");
 
   const updateGatheringPoints = (next: DenaliGatheringPoint[]) => {
-    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
-      setCanonicalValue(base, GATHERING_POINTS_PATH, next)
-    );
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) => {
+      const withRoot = setCanonicalValue(base, DENALI_GATHERING_POINTS_CANONICAL_PATH, next);
+      return setCanonicalValue(withRoot, DENALI_GATHERING_POINTS_NESTED_PATH, next);
+    });
   };
 
-  useEffect(() => {
-    if (seededRef.current || points.length > 0) {
-      return;
-    }
-    seededRef.current = true;
-    updateGatheringPoints([createEmptyDenaliGatheringPoint(true)]);
-  }, [points.length]);
+  const readCurrentOrScaffold = (): DenaliGatheringPoint[] => {
+    const current = resolveDenaliGatheringPointsFromStorage(
+      getCanonicalValue(draftRef.current, DENALI_GATHERING_POINTS_CANONICAL_PATH),
+      getCanonicalValue(draftRef.current, DENALI_GATHERING_POINTS_NESTED_PATH)
+    );
+    return current.length > 0 ? current : [createEmptyDenaliGatheringPoint(true)];
+  };
 
   const patchPoint = (index: number, patch: Partial<DenaliGatheringPoint>) => {
-    const currentPoints = parseDenaliGatheringPoints(
-      getCanonicalValue(draftRef.current, GATHERING_POINTS_PATH)
-    );
-    const next = currentPoints.map((point, pointIndex) =>
+    const next = readCurrentOrScaffold().map((point, pointIndex) =>
       pointIndex === index ? { ...point, ...patch } : point
     );
     updateGatheringPoints(next);
   };
 
   const addPoint = () => {
-    const currentPoints = parseDenaliGatheringPoints(
-      getCanonicalValue(draftRef.current, GATHERING_POINTS_PATH)
-    );
-    updateGatheringPoints([
-      ...currentPoints,
-      createEmptyDenaliGatheringPoint(currentPoints.length === 0),
-    ]);
+    const current = readCurrentOrScaffold();
+    updateGatheringPoints([...current, createEmptyDenaliGatheringPoint(current.length === 0)]);
   };
 
   const removePoint = (index: number) => {
-    const currentPoints = parseDenaliGatheringPoints(
-      getCanonicalValue(draftRef.current, GATHERING_POINTS_PATH)
-    );
-    if (currentPoints.length <= 1) {
+    const current = readCurrentOrScaffold();
+    if (current.length <= 1) {
       return;
     }
-    updateGatheringPoints(currentPoints.filter((_, pointIndex) => pointIndex !== index));
+    updateGatheringPoints(current.filter((_, pointIndex) => pointIndex !== index));
   };
 
   const setPrimary = (index: number) => {
-    const currentPoints = parseDenaliGatheringPoints(
-      getCanonicalValue(draftRef.current, GATHERING_POINTS_PATH)
-    );
+    const current = readCurrentOrScaffold();
     updateGatheringPoints(
-      currentPoints.map((point, pointIndex) => ({ ...point, isPrimary: pointIndex === index }))
+      current.map((point, pointIndex) => ({ ...point, isPrimary: pointIndex === index }))
     );
   };
 
@@ -98,6 +91,7 @@ export function DenaliGatheringPointsField({
       className="denali-wizard-composite"
       data-operator-wizard-surface="section"
       data-testid={DENALI_COMPOSITE_TEST_IDS.gatheringPoints}
+      data-gathering-scaffold={editor.scaffold ? "true" : "false"}
       aria-invalid={invalid || undefined}
     >
       <div className="denali-wizard-composite__header">
@@ -121,6 +115,14 @@ export function DenaliGatheringPointsField({
             testIdKey={`gathering-${index}`}
             value={point}
             onChange={(patch) => patchPoint(index, patch)}
+            onPlaceSelect={(place) => {
+              const current = readCurrentOrScaffold();
+              const currentName = (current[index]?.name ?? "").trim();
+              const osmName = place.displayName.trim();
+              if (currentName.length === 0 && osmName.length > 0) {
+                patchPoint(index, { name: osmName });
+              }
+            }}
             label={tCommon("address")}
             hint={t("composites.gatheringPoints.addressHint")}
           />

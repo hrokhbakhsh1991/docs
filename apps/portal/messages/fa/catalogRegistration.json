@@ -5,6 +5,10 @@
   "signInToRegister": "ورود برای ادامه ثبت‌نام",
   "backToTour": "بازگشت به تور",
   "backToMarketing": "بازگشت",
+  "chrome": {
+    "defaultSiteName": "باشگاه",
+    "siteDescription": "پورتال اعضا برای {siteName}."
+  },
   "phone": {
     "title": "ورود یا ثبت‌نام",
     "loginTitle": "ورود",
@@ -42,7 +46,9 @@
     "resend": "ارسال مجدد کد",
     "resendIn": "ارسال مجدد ({seconds} ثانیه)",
     "changePhone": "تغییر شماره",
-    "devHint": "کد توسعه: {code}"
+    "devHint": "کد توسعه: {code}",
+    "groupLabel": "کد یک‌بارمصرف",
+    "digitLabel": "رقم {index}"
   },
   "profile": {
     "title": "تکمیل پروفایل",
@@ -114,7 +120,8 @@
     "submit": "ثبت درخواست",
     "submitting": "در حال ارسال…",
     "partySizeInvalid": "تعداد نفرات معتبر وارد کنید.",
-    "nationalIdInvalid": "کد ملی ۱۰ رقمی معتبر وارد کنید.",
+    "nationalIdInvalid": "کد ملی باید دقیقاً ۱۰ رقم باشد.",
+    "nationalIdChecksumInvalid": "این کد ملی از نظر رقم کنترل معتبر نیست. ارقام را بررسی کنید.",
     "fatherNameInvalid": "نام پدر الزامی است.",
     "birthDateInvalid": "تاریخ تولد معتبر وارد کنید.",
     "transportIncomplete": "گزینه‌های حمل‌ونقل را کامل کنید."
@@ -143,6 +150,7 @@
     "DENALI_REGISTRATION_DUPLICATE": "قبلاً برای این تور ثبت‌نام کرده‌اید.",
     "BOOKING_GUEST_DUPLICATE": "این مهمان قبلاً برای این تور ثبت‌نام شده است (کد ملی، موبایل یا نام تکراری).",
     "SELF_IDENTITY_DUPLICATE": "این مشخصات قبلاً برای این تور ثبت شده است (کد ملی، موبایل یا نام).",
+    "BACKEND_UNREACHABLE": "ارتباط با سرور برقرار نشد. دوباره تلاش کنید.",
     "network": "خطایی رخ داد. دوباره تلاش کنید."
   },
   "sessionResume": {

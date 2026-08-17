@@ -169,6 +169,14 @@ describe("member-profile-bff.server (M2)", () => {
     });
   });
 
+  it("MP-BFF-08c PATCH checksum-invalid 10-digit national id is PROFILE_NATIONAL_ID_CHECKSUM", () => {
+    const err = parseMemberProfilePatchBody({ fields: { nationalId: "1234567890" } }, "denali");
+    assert.equal("code" in err && err.code, "PROFILE_NATIONAL_ID_CHECKSUM");
+    assert.deepEqual("fieldErrors" in err && err.fieldErrors, {
+      nationalId: "PROFILE_NATIONAL_ID_CHECKSUM",
+    });
+  });
+
   it("MP-BFF-08b PATCH collect-all fieldErrors for multiple invalid fields", () => {
     const err = parseMemberProfilePatchBody(
       { fields: { nationalId: "bad", birthDate: "1991-02-31", displayName: "" } },
@@ -264,6 +272,7 @@ describe("portal-member-profile-bff route (M2)", () => {
     assert.doesNotMatch(form, /session-profile/);
     assert.doesNotMatch(form, /\/\^\\d\{10\}/);
     assert.doesNotMatch(form, /nationalIdInvalid/);
+    assert.doesNotMatch(form, /classifyIranianNationalId/);
   });
 
   it("MP-AVATAR-01 Discard resets text fields only; avatar syncs last server URL", () => {
@@ -344,15 +353,18 @@ describe("portal-member-profile-bff route (M2)", () => {
     assert.match(route, /normalizePublicRegistrationMobile/);
   });
 
-  it("MP-A11Y-01 avatar exposes labeled preview and file input", () => {
+  it("MP-A11Y-01 avatar preview is named; file input is not a second upload control", () => {
     const avatar = readFileSync(
       join(repoRoot, "apps/portal/app/me/profile/member-profile-avatar.tsx"),
       "utf8"
     );
     assert.match(avatar, /avatarPhotoAlt/);
     assert.match(avatar, /avatarInitialsAlt/);
-    assert.match(avatar, /aria-label=\{t\("avatarUpload"\)\}/);
     assert.match(avatar, /role="img"/);
+    assert.match(avatar, /aria-hidden="true"/);
+    assert.match(avatar, /tabIndex=\{-1\}/);
+    assert.match(avatar, /\{uploading \? t\("avatarUploading"\) : t\("avatarUpload"\)\}/);
+    assert.doesNotMatch(avatar, /aria-label=\{t\("avatarUpload"\)\}/);
   });
 
   it("MP-M3-03 registration auth steps hydrate intake from profile BFF", () => {

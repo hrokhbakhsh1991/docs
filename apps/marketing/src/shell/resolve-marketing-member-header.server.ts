@@ -1,4 +1,7 @@
+import { getTranslations } from "next-intl/server";
+
 import {
+  resolveGuestMemberChipLabel,
   resolvePortalMemberModuleUrl,
   resolveTourOpsApiBaseUrl,
   sessionTenantMatchesDevCrossSurfaceHost,
@@ -29,12 +32,15 @@ function readTrimmedString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function resolveDisplayLabel(identity: IdentityMeUpstream): string {
-  return (
-    readTrimmedString(identity.displayName) ??
-    readTrimmedString(identity.mobile) ??
-    "Member"
-  );
+function resolveDisplayLabel(
+  identity: IdentityMeUpstream,
+  fallback: string
+): string {
+  return resolveGuestMemberChipLabel({
+    displayName: readTrimmedString(identity.displayName),
+    mobile: readTrimmedString(identity.mobile),
+    fallback,
+  });
 }
 
 /** Authenticated marketing header chip — portal profile egress when member cookie matches tenant. */
@@ -54,6 +60,9 @@ export async function resolveMarketingMemberHeader(
   if (profileHref === null) {
     return null;
   }
+
+  const t = await getTranslations("catalog");
+  const unnamed = t("nav.memberFallback");
 
   const token = await readMarketingMemberSessionToken();
   if (token === null) {
@@ -75,7 +84,7 @@ export async function resolveMarketingMemberHeader(
     });
   } catch {
     return {
-      displayName: "Member",
+      displayName: unnamed,
       profileHref,
       avatarUrl: null,
     };
@@ -83,7 +92,7 @@ export async function resolveMarketingMemberHeader(
 
   if (!backendRes.ok) {
     return {
-      displayName: "Member",
+      displayName: unnamed,
       profileHref,
       avatarUrl: null,
     };
@@ -91,7 +100,7 @@ export async function resolveMarketingMemberHeader(
 
   const identity = (await backendRes.json().catch(() => ({}))) as IdentityMeUpstream;
   return {
-    displayName: resolveDisplayLabel(identity),
+    displayName: resolveDisplayLabel(identity, unnamed),
     profileHref,
     avatarUrl: readTrimmedString(identity.avatarUrl),
   };

@@ -9,7 +9,7 @@ const defined = defineWorkspaceCodedError({
 export const DENALI_REGISTRATION_INVALID = defined.code as "DENALI_REGISTRATION_INVALID";
 export const DenaliRegistrationInvalidError = defined.ErrorClass;
 export function isDenaliRegistrationInvalidError(
-  error: unknown,
+  error: unknown
 ): error is InstanceType<typeof DenaliRegistrationInvalidError> {
   return defined.isError(error);
 }

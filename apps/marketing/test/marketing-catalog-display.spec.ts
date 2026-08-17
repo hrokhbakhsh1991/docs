@@ -61,7 +61,46 @@ describe("marketing catalog display", () => {
   });
 
   it("MKT-05 formatCatalogPrice handles null", () => {
-    assert.equal(formatCatalogPrice(null, "IRR", "en-US", "Price on request"), "Price on request");
+    assert.equal(
+      formatCatalogPrice(null, "IRR", "en-US", "Price on request", "denali"),
+      "Price on request"
+    );
+  });
+
+  it("MKT-CURR-01 Denali IRR catalog price uses toman label without ×10", () => {
+    assert.equal(
+      formatCatalogPrice(1200, "IRR", "en-US", "Price on request", "denali"),
+      "1,200 toman"
+    );
+    assert.equal(
+      formatCatalogPrice(2_500_000, "IRR", "en-US", "Price on request", "denali"),
+      "2,500,000 toman"
+    );
+    const faDigits = new Intl.NumberFormat("fa-IR", {
+      maximumFractionDigits: 0,
+      numberingSystem: "arabext",
+    }).format(1200);
+    assert.equal(
+      formatCatalogPrice(1200, "IRR", "fa-IR", "قیمت پس از استعلام", "denali"),
+      `${faDigits} تومان`
+    );
+    assert.equal(
+      formatCatalogPrice(1200, "IRR", "en-US", "Price on request", "denali").includes("12,000"),
+      false
+    );
+    const usd = formatCatalogPrice(1200, "USD", "en-US", "Price on request", "denali");
+    assert.match(usd, /1,200/);
+    assert.equal(usd.includes("toman"), false);
+  });
+
+  it("MKT-CURR-02 Harbor/Urban IRR keeps Intl and does not inherit Denali toman", () => {
+    const harbor = formatCatalogPrice(1200, "IRR", "en-US", "Price on request", "harbor");
+    const urban = formatCatalogPrice(1200, "IRR", "en-US", "Price on request", "urban");
+    const unlabeled = formatCatalogPrice(1200, "IRR", "en-US", "Price on request");
+    assert.equal(harbor.includes("toman"), false);
+    assert.equal(urban.includes("toman"), false);
+    assert.equal(unlabeled.includes("toman"), false);
+    assert.match(harbor, /1,200/);
   });
 });
 

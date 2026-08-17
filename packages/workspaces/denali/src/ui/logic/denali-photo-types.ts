@@ -1,3 +1,5 @@
+import { countInclusiveLocalCalendarDays } from "../../adapters/denaliDatetime";
+
 export type DenaliTourPhoto = {
   readonly id?: string;
   readonly label?: string;
@@ -31,21 +33,10 @@ export function isDenaliMultiDayTourKind(tourKind: string): boolean {
   return tourKind.endsWith("_multi");
 }
 
-/** Estimate day count from start/end ISO datetimes (inclusive calendar days, min 2 for multi-day). */
+/** Inclusive local calendar days from start/end ISO. Same YMD → 1; never clamps to 2. */
 export function estimateDenaliTourDayCount(
   startDateTime: string,
   endDateTime: string
 ): number | undefined {
-  const start = Date.parse(startDateTime);
-  const end = Date.parse(endDateTime);
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
-    return undefined;
-  }
-  const startDay = new Date(start);
-  const endDay = new Date(end);
-  startDay.setHours(0, 0, 0, 0);
-  endDay.setHours(0, 0, 0, 0);
-  const diffMs = endDay.getTime() - startDay.getTime();
-  const days = Math.floor(diffMs / 86_400_000) + 1;
-  return days >= 2 ? days : 2;
+  return countInclusiveLocalCalendarDays(startDateTime, endDateTime);
 }

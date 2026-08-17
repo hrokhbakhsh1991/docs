@@ -38,6 +38,7 @@ import {
   prepareDenaliTourPatchPayloadFromHostInput,
   sanitizeDenaliWizardDraftFromHostInput,
 } from "./denali-wizard-submit-payload";
+import { applyLockedDestinationCatalogMetricsToCanonical } from "../settings/apply-locked-destination-catalog-metrics";
 import { normalizeDenaliWizardTemplateGate } from "./normalize-denali-wizard-template-gate";
 import { ensureWizardHostAdapterSurface } from "./host-adapter-surface";
 import { ensureWizardCreateChromePackageSurface } from "./create-chrome-surface";
@@ -188,6 +189,10 @@ export const denaliWizardHostHooks = Object.freeze({
     },
     data: Readonly<Record<string, unknown>>
   ) => filterDenaliCanonicalValidationResult(result as ValidationResult, data),
-}) as WorkspaceWizardHostHooks;
+  normalizeCanonicalForPersist: (input: {
+    readonly data: Readonly<Record<string, unknown>>;
+    readonly destinations?: readonly Readonly<Record<string, unknown>>[];
+  }) => applyLockedDestinationCatalogMetricsToCanonical(input.data, input.destinations),
+} as WorkspaceWizardHostHooks);
 
 export { loadDenaliWizardRulesModule, resolveDenaliMatrixDimensionsFromDraft, applyContextualFieldRules };

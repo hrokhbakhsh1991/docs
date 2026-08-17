@@ -39,10 +39,19 @@ import type { DenaliWizardRuleEvalContext } from "./denali-wizard-rule-eval-cont
 import { isSocialMediaLinkWizardSatisfied } from "../ui/logic/denali-social-media-link-logic";
 import { sanitizeDenaliWizardDraftRecord } from "./denali-wizard-draft-sanitize";
 import {
+  DENALI_TOUR_END_CANONICAL_PATH,
   DENALI_TOUR_START_CANONICAL_PATH,
+  isDenaliMultiDayCalendarSpanTooShort,
+  isDenaliTourEndDatetimeNotAfterStart,
   isDenaliTourStartDatetimeBeforeMin,
   isDenaliTourStartGrandfatheredPastBaseline,
 } from "../ui/logic/denali-schedule-date-policy";
+import {
+  DENALI_WIZARD_NUMERIC_PAIRS,
+  isDenaliNumericMinAfterMax,
+  type DenaliWizardNumericPair,
+} from "../ui/logic/denali-numeric-pair-policy";
+import { isDenaliWizardFieldVisibleOnDraft } from "./denali-wizard-field-visibility";
 
 const DENALI_COMPOSITE_FIELD_BY_CANONICAL_PATH = new Map<string, DenaliFieldDefinition>(
   DENALI_FIELD_DEFINITIONS.flatMap((field) => {
@@ -342,12 +351,20 @@ export function validateDenaliWizardDraftSync(
   result = filterDenaliCompositeStorageViolations(result, { data: document.data });
 
   if (scope?.stepId == null || scope.visibleSteps == null) {
-    return mergeDenaliScheduleDateViolations(result, envelope, undefined, scope);
+    return mergeDenaliNumericPairViolations(
+      mergeDenaliScheduleDateViolations(result, envelope, undefined, scope),
+      envelope,
+      undefined
+    );
   }
 
   const step = scope.visibleSteps.find((entry) => entry.stepId === scope.stepId);
   if (step == null) {
-    return mergeDenaliScheduleDateViolations(result, envelope, undefined, scope);
+    return mergeDenaliNumericPairViolations(
+      mergeDenaliScheduleDateViolations(result, envelope, undefined, scope),
+      envelope,
+      undefined
+    );
   }
 
   const expandOptions: ExpandCompositeDependentsOptions = {
@@ -357,7 +374,11 @@ export function validateDenaliWizardDraftSync(
   };
   result = filterValidationToStep(result, step, expandOptions);
   result = mergeDenaliStepRequiredFieldViolations(result, envelope, step, expandOptions);
-  return mergeDenaliScheduleDateViolations(result, envelope, step, scope);
+  return mergeDenaliNumericPairViolations(
+    mergeDenaliScheduleDateViolations(result, envelope, step, scope),
+    envelope,
+    step
+  );
 }
 
 function isDenaliDraftFieldValueEmpty(
@@ -458,33 +479,74 @@ function mergeDenaliScheduleDateViolations(
   step?: RenderStepPlan,
   scope?: DenaliWizardValidationScope
 ): ValidationResult {
-  if (step != null) {
-    const expandedStep = expandStepFieldsForCompositeDependents(step);
-    const includesStart = expandedStep.fields.some(
+  const expandedStep = step != null ? expandStepFieldsForCompositeDependents(step) : undefined;
+  const startVisible =
+    expandedStep == null ||
+    expandedStep.fields.some(
       (field) => field.canonicalPath === DENALI_TOUR_START_CANONICAL_PATH && !field.hidden
     );
-    if (!includesStart) {
-      return result;
+  const endVisible =
+    expandedStep == null ||
+    expandedStep.fields.some(
+      (field) => field.canonicalPath === DENALI_TOUR_END_CANONICAL_PATH && !field.hidden
+    );
+
+  let next = result;
+  if (startVisible) {
+    next = mergeDenaliTourStartBeforeTodayViolation(next, envelope, scope);
+  }
+  if (endVisible) {
+    next = mergeDenaliTourEndBeforeStartViolation(next, envelope);
+    next = mergeDenaliTourMultiDayCalendarSpanViolation(next, envelope);
+  }
+  return next;
+}
+
+function isDenaliNumericPairVisible(
+  envelope: CanonicalWizardDraftEnvelope,
+  pair: DenaliWizardNumericPair,
+  expandedStep?: RenderStepPlan
+): boolean {
+  if (expandedStep == null) {
+    return (
+      isDenaliWizardFieldVisibleOnDraft(envelope, pair.minPath, pair.visibilityStep) &&
+      isDenaliWizardFieldVisibleOnDraft(envelope, pair.maxPath, pair.visibilityStep)
+    );
+  }
+  const minField = expandedStep.fields.find((field) => field.canonicalPath === pair.minPath);
+  const maxField = expandedStep.fields.find((field) => field.canonicalPath === pair.maxPath);
+  return minField != null && !minField.hidden && maxField != null && !maxField.hidden;
+}
+
+function mergeDenaliNumericPairViolations(
+  result: ValidationResult,
+  envelope: CanonicalWizardDraftEnvelope,
+  step?: RenderStepPlan
+): ValidationResult {
+  const expandedStep = step != null ? expandStepFieldsForCompositeDependents(step) : undefined;
+  let next = result;
+  for (const pair of DENALI_WIZARD_NUMERIC_PAIRS) {
+    if (!isDenaliNumericPairVisible(envelope, pair, expandedStep)) {
+      continue;
     }
+    const minRaw = getCanonicalStringFromDraft(envelope, pair.minPath);
+    const maxRaw = getCanonicalStringFromDraft(envelope, pair.maxPath);
+    if (!isDenaliNumericMinAfterMax(minRaw, maxRaw)) {
+      continue;
+    }
+    next = appendDenaliScheduleViolation(next, {
+      code: pair.code,
+      fieldId: denaliFieldIdForCanonicalPath(pair.minPath),
+      message: `"${pair.minPath}" cannot be greater than "${pair.maxPath}"`,
+    });
   }
+  return next;
+}
 
-  const startIso = getCanonicalStringFromDraft(envelope, DENALI_TOUR_START_CANONICAL_PATH);
-  if (startIso.trim().length === 0 || !isDenaliTourStartDatetimeBeforeMin(startIso)) {
-    return result;
-  }
-
-  if (
-    isDenaliTourStartGrandfatheredPastBaseline(startIso, scope?.scheduleBaselineStartIso)
-  ) {
-    return result;
-  }
-
-  const violation = {
-    code: "DENALI_TOUR_START_BEFORE_TODAY",
-    fieldId: denaliFieldIdForCanonicalPath(DENALI_TOUR_START_CANONICAL_PATH),
-    message: `Tour start cannot be before today at "${DENALI_TOUR_START_CANONICAL_PATH}"`,
-  };
-
+function appendDenaliScheduleViolation(
+  result: ValidationResult,
+  violation: { readonly code: string; readonly fieldId: string; readonly message: string }
+): ValidationResult {
   const duplicate = result.violations.some(
     (existing) =>
       existing.fieldId === violation.fieldId &&
@@ -493,11 +555,69 @@ function mergeDenaliScheduleDateViolations(
   if (duplicate) {
     return result;
   }
-
   return {
     ok: false,
     violations: [...result.violations, violation],
   };
+}
+
+function mergeDenaliTourStartBeforeTodayViolation(
+  result: ValidationResult,
+  envelope: CanonicalWizardDraftEnvelope,
+  scope?: DenaliWizardValidationScope
+): ValidationResult {
+  const startIso = getCanonicalStringFromDraft(envelope, DENALI_TOUR_START_CANONICAL_PATH);
+  if (startIso.trim().length === 0 || !isDenaliTourStartDatetimeBeforeMin(startIso)) {
+    return result;
+  }
+
+  if (isDenaliTourStartGrandfatheredPastBaseline(startIso, scope?.scheduleBaselineStartIso)) {
+    return result;
+  }
+
+  return appendDenaliScheduleViolation(result, {
+    code: "DENALI_TOUR_START_BEFORE_TODAY",
+    fieldId: denaliFieldIdForCanonicalPath(DENALI_TOUR_START_CANONICAL_PATH),
+    message: `Tour start cannot be before today at "${DENALI_TOUR_START_CANONICAL_PATH}"`,
+  });
+}
+
+function mergeDenaliTourEndBeforeStartViolation(
+  result: ValidationResult,
+  envelope: CanonicalWizardDraftEnvelope
+): ValidationResult {
+  const startIso = getCanonicalStringFromDraft(envelope, DENALI_TOUR_START_CANONICAL_PATH);
+  const endIso = getCanonicalStringFromDraft(envelope, DENALI_TOUR_END_CANONICAL_PATH);
+  if (startIso.trim().length === 0 || endIso.trim().length === 0) {
+    return result;
+  }
+  if (!isDenaliTourEndDatetimeNotAfterStart(startIso, endIso)) {
+    return result;
+  }
+
+  return appendDenaliScheduleViolation(result, {
+    code: "DENALI_TOUR_END_BEFORE_START",
+    fieldId: denaliFieldIdForCanonicalPath(DENALI_TOUR_END_CANONICAL_PATH),
+    message: `Tour end cannot be before or equal to start at "${DENALI_TOUR_END_CANONICAL_PATH}"`,
+  });
+}
+
+function mergeDenaliTourMultiDayCalendarSpanViolation(
+  result: ValidationResult,
+  envelope: CanonicalWizardDraftEnvelope
+): ValidationResult {
+  const tourKind = getCanonicalStringFromDraft(envelope, "category");
+  const startIso = getCanonicalStringFromDraft(envelope, DENALI_TOUR_START_CANONICAL_PATH);
+  const endIso = getCanonicalStringFromDraft(envelope, DENALI_TOUR_END_CANONICAL_PATH);
+  if (!isDenaliMultiDayCalendarSpanTooShort(tourKind, startIso, endIso)) {
+    return result;
+  }
+
+  return appendDenaliScheduleViolation(result, {
+    code: "DENALI_TOUR_MULTI_NEEDS_TWO_CALENDAR_DAYS",
+    fieldId: denaliFieldIdForCanonicalPath(DENALI_TOUR_END_CANONICAL_PATH),
+    message: `Multi-day tours need at least two distinct calendar days at "${DENALI_TOUR_END_CANONICAL_PATH}"`,
+  });
 }
 
 export type DenaliPublishReadinessValidationScope = {
