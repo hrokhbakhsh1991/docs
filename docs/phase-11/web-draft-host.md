@@ -257,6 +257,8 @@ const draft = useWorkspaceDraft<MySnapshot>({
 
 Denali create tour (`runDenaliWizardClearDraftSequence`) calls **`clearDraftAndReset(freshStart prefilled)`** — DELETE (skip verify GET when row already absent / 404) then PATCH `version: 0`. Failures surface via `wizard-clear-draft-error` alert; the clear button stays disabled until the sequence completes.
 
+Denali **flat edit** (`useDenaliFlatEditPageCore`) uses the same primitive after a successful tour PATCH: GET tour, then `clearDraftAndReset(seed stamped with `meta.sourceRowVersion`)`. There is **no** `clearDraft()` + `setData` fallback — that path is the 12.4d title-clobber race. If GET/reset throws, the tour PATCH has already succeeded; do not remap that failure to `unknown_error`.
+
 **Canonical draft rule (create wizard):** The UI must not render editable fields from a template fallback while `draftSync.data === null`. Show `wizard-draft-hydrate-loading` until the engine holds the envelope (remote hydrate or template seed via `setData`). This prevents “phantom typing” where `onChange` fires against a display-only fallback.
 
 **freshStart OCC:** When `meta.freshStart` transitions from off→on (clear-draft `setData`), the engine arms a one-shot bypass (`freshStartBypassPending`) and PATCHes at `version: 0`. After the first successful ack, subsequent edits use normal OCC even if `freshStart` remains in meta for merge semantics — prevents PATCH `version: 0` loops on every keystroke.

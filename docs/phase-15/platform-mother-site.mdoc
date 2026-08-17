@@ -24,7 +24,7 @@ Parser: `@app-tour/tenant-kernel` `parseMultiLevelTenantHost`.
 | Route | Mother host | Club host |
 |-------|-------------|-----------|
 | `/` | Gateway home + Super Admin CTA | Existing catalog home |
-| `/pricing` · `/about` · `/contact` | Maintenance stub | `notFound()` |
+| `/pricing` · `/about` · `/contact` | Maintenance stub | `notFound()` — **page** 404 (`catalog.pageNotFound` / `app/not-found.tsx`). Do not publish club about/pricing/contact pages. Tour unpublished stays on `app/tours/[tourId]/not-found.tsx` (`catalog.notFound`). |
 | `/tours/*` | unchanged routes (mother layout has no tours CTA on `/`) | Club catalog |
 
 Super Admin URL: `https://admin.{PLATFORM_ROOT_DOMAIN}` via `buildPlatformAdminUrl()`.

@@ -19,6 +19,13 @@ function showTransportFollowUp(
   return state.optInPersonalCar;
 }
 
+export function isDenaliIntakeDongOffered(
+  transport: PublicCatalogTransportSnapshot | undefined
+): boolean {
+  const amount = transport?.dongAmount;
+  return typeof amount === "number" && amount > 0;
+}
+
 function buildPayload(
   transport: PublicCatalogTransportSnapshot | undefined,
   state: PublicCatalogTransportIntakeState
@@ -44,6 +51,9 @@ function buildPayload(
   }
 
   if (state.hasPersonalCar === false) {
+    if (!isDenaliIntakeDongOffered(transport)) {
+      return { kind: "no_car_acquaintance" };
+    }
     if (state.paysDong === true) {
       return { kind: "no_car_dong" };
     }

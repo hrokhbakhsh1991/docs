@@ -37,6 +37,7 @@ export type CalendarDayCell = {
   readonly day: number;
   readonly month: number;
   readonly year: number;
+  /** Gregorian civil ISO `YYYY-MM-DD` — never a Jalali `1405-…` string (INV-DENALI-CAL-01). */
   readonly iso: string;
   readonly inCurrentMonth: boolean;
   readonly isToday: boolean;
@@ -51,6 +52,21 @@ export function compareIsoDates(left: string, right: string): number {
     return 0;
   }
   return left < right ? -1 : 1;
+}
+
+/** Add `deltaDays` to a Gregorian civil ISO `YYYY-MM-DD` (local calendar, not UTC). */
+export function addIsoDateDays(isoDate: string, deltaDays: number): string | null {
+  const parts = parseIsoDate(isoDate);
+  if (parts == null || !Number.isFinite(deltaDays)) {
+    return null;
+  }
+  const date = new Date(parts.year, parts.month - 1, parts.day);
+  date.setDate(date.getDate() + Math.trunc(deltaDays));
+  return toIsoDate({
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+  });
 }
 
 export function isoDatetimeToLocalIsoDate(isoDatetime: string): string | null {

@@ -1,5 +1,6 @@
 import type { PublicCatalogItinerarySegment } from "@app-tour/workspace-sdk";
 
+import { resolveMarketingCatalogPhotoUrl } from "@/home/resolve-home-tour-cover-url";
 import type { AppLocale } from "@/i18n/routing";
 import { toLocalizedDigits } from "@/i18n/format-localized-digits";
 
@@ -20,5 +21,12 @@ export function readCatalogItinerarySegmentPhotoUrls(
   if (urls == null || urls.length === 0) {
     return [];
   }
-  return urls.filter((url) => url.trim().length > 0);
+  const reachable: string[] = [];
+  for (const url of urls) {
+    const resolved = resolveMarketingCatalogPhotoUrl(url);
+    if (resolved != null) {
+      reachable.push(resolved);
+    }
+  }
+  return reachable;
 }

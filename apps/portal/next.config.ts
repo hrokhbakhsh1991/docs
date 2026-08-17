@@ -20,6 +20,9 @@ const nextConfig: NextConfig = {
   ],
   /** Wave C.b — product workspace packages from manifests (see guest-transpile-packages.generated.mjs). */
   transpilePackages: [...GUEST_TRANSPILE_PACKAGES],
+  async rewrites() {
+    return [{ source: "/favicon.ico", destination: "/icon.svg" }];
+  },
 };
 
 export default withNextIntl(nextConfig);

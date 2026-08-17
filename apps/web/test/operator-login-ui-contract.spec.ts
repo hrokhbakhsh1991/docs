@@ -49,6 +49,30 @@ describe("operator-login-ui-contract.spec.ts", () => {
     assert.doesNotMatch(loginForm, /data\.message/);
   });
 
+  it("GL-OTP-01-OP operator OTP sink is unnamed and cells use auth i18n", () => {
+    const otpInput = readFileSync(
+      join(WEB_ROOT, "src/features/auth/otp-segment-input.tsx"),
+      "utf8"
+    );
+    const faAuth = JSON.parse(
+      readFileSync(join(WEB_ROOT, "messages/fa/auth.json"), "utf8")
+    ) as { readonly otpDigitLabel?: string; readonly otpLabel?: string };
+    const enAuth = JSON.parse(
+      readFileSync(join(WEB_ROOT, "messages/en/auth.json"), "utf8")
+    ) as { readonly otpDigitLabel?: string; readonly otpLabel?: string };
+    assert.match(otpInput, /data-otp-autofill-sink/);
+    assert.match(otpInput, /aria-hidden="true"/);
+    assert.match(otpInput, /tabIndex=\{-1\}/);
+    assert.match(otpInput, /otpDigitLabel/);
+    assert.match(otpInput, /otpLabel/);
+    assert.doesNotMatch(otpInput, /Digit \$\{index/);
+    assert.doesNotMatch(loginForm, /htmlFor="otp"/);
+    assert.equal(faAuth.otpDigitLabel, "رقم {index}");
+    assert.equal(enAuth.otpDigitLabel, "Digit {index}");
+    assert.equal(faAuth.otpLabel, "رمز یک‌بارمصرف");
+    assert.equal(enAuth.otpLabel, "Verification code");
+  });
+
   it("WEB-LOGIN-UI-02 dev OTP hint gated to development", () => {
     assert.match(loginForm, /process\.env\.NODE_ENV === "development"/);
     assert.match(loginForm, /showDevOtpHint/);

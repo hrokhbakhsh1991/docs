@@ -42,6 +42,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
     notFound();
   }
   const t = await getTranslations("portalMember.detail");
+  const tAmend = await getTranslations("portalMember.intakeAmend");
   const [statusLabel, paymentStatusLabel, departureLabel, receiptStatus] = await Promise.all([
     localizeMemberRegistrationStatus(row.status),
     localizeMemberPaymentStatus(row.paymentStatus),
@@ -72,6 +73,29 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
       ? resolveMarketingTourDetailUrl(host, row.tourId)
       : null;
   const registrantTarget = row.registrantTarget === "other" ? "other" : "self";
+  const transportKind =
+    row.transportKind === "primary" ||
+    row.transportKind === "personal_car" ||
+    row.transportKind === "no_car_dong" ||
+    row.transportKind === "no_car_acquaintance"
+      ? row.transportKind
+      : null;
+  const transportKindLabel =
+    transportKind === "primary"
+      ? tAmend("noPersonalCar")
+      : transportKind === "personal_car"
+        ? tAmend("personalCar")
+        : transportKind === "no_car_dong"
+          ? tAmend("noCarDong")
+          : transportKind === "no_car_acquaintance"
+            ? tAmend("noCarAcquaintance")
+            : null;
+  const personalCarOccupants =
+    row.personalCarOccupants === 1 ||
+    row.personalCarOccupants === 2 ||
+    row.personalCarOccupants === 3
+      ? row.personalCarOccupants
+      : null;
   const guestLabel =
     typeof row.guestLabel === "string" && row.guestLabel.trim().length > 0
       ? row.guestLabel.trim()
@@ -120,6 +144,22 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                 {t("departure", { departureAt: departureLabel })}
               </p>
             </div>
+            {transportKind !== null && transportKindLabel !== null ? (
+              <div data-portal-member-detail-kpi data-kpi="transport">
+                <p data-portal-member-detail-kpi-label>{t("transportLabel")}</p>
+                <p
+                  data-portal-member-registration-transport
+                  data-transport-kind={transportKind}
+                >
+                  {transportKind === "personal_car" && personalCarOccupants !== null
+                    ? t("transportLineOccupants", {
+                        kind: transportKindLabel,
+                        occupants: personalCarOccupants,
+                      })
+                    : transportKindLabel}
+                </p>
+              </div>
+            ) : null}
           </div>
         </section>
         {showIntakeAmend && tour !== null ? (
@@ -130,6 +170,8 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             dongAvailable={
               typeof tour.transport?.dongAmount === "number" && tour.transport.dongAmount > 0
             }
+            {...(transportKind !== null ? { initialKind: transportKind } : {})}
+            {...(personalCarOccupants !== null ? { initialOccupants: personalCarOccupants } : {})}
           />
         ) : null}
         <MemberReceiptUploadForm

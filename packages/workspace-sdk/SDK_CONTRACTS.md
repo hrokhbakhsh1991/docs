@@ -559,6 +559,7 @@ Largest hook surface. Platform web host reads these instead of hardcoding plugin
 | `hydrateEditDraft?` | `{ canonicalData; activeEquipmentIds?; activeDestinationIds? }` | `Record<string, unknown>` | |
 | `prepareTourPatchPayload?` | `{ plugin; draft; rulesModule; evalContext; rowVersion; patchIntent?; catalog? }` | `unknown` | ⚠ should be `UpdateTourPayload` |
 | `filterEngineValidationResult?` | `result`, `data` | filtered `result` | |
+| `normalizeCanonicalForPersist?` | `{ data; destinations?: readonly Record<string, unknown>[] }` | `Record<string, unknown>` | Optional persist rewrite (ED-PEAK-LOCK-01). API enrich on the main thread only; worker must not call settings. Hosts that omit the hook skip `listDestinations`. |
 
 ```typescript
 type WizardDraftValidationResult = {
@@ -595,6 +596,7 @@ These are **not** function hooks on the plugin object but manifest-driven capabi
 | `catalogListFeatures` | `WORKSPACE_CATALOG_LIST_FEATURES` | `resolveCatalogListFeatures` |
 | `catalogDetailSections` | `WORKSPACE_CATALOG_DETAIL_SECTIONS` | `resolveCatalogDetailSections` |
 | `catalogPaths` | `WORKSPACE_CATALOG_LIST_PATHS` | `resolveCatalogListApiPath`, `resolveCatalogTourApiPath` |
+| `registrationForTourPaths` | `WORKSPACE_REGISTRATION_FOR_TOUR_API_PATHS` | `tryResolveCatalogRegistrationForTourApiPath` — manifest for-tour only; `null` when absent |
 | `productionTier` | `WORKSPACE_PRODUCTION_CERTIFICATION` | `resolveProductionCertificationForPlugin` |
 | `operatorCapabilities` | `WORKSPACE_OPERATOR_CAPABILITIES` | `operatorCapabilitySupportsUsersDirectory`, etc. |
 | `memberPortal` | `WORKSPACE_MEMBER_PORTAL_CONTRACTS` | `resolveMemberPortalContract` |
@@ -734,6 +736,7 @@ Functions workspace authors **call** (not implement):
 | `resolveGuestSeoForPlugin(pluginId)` | `WorkspaceGuestSeoConfig` | `GuestSeoNotConfiguredError` |
 | `resolveGuestConformanceLevelForPlugin(pluginId)` | `WorkspaceGuestConformanceLevel` | `GuestConformanceNotConfiguredError` |
 | `supportsCatalogRegistration(pluginId)` | `boolean` | — |
+| `tryResolveCatalogRegistrationForTourApiPath(pluginId, tourId)` | `string \| null` | — |
 | `validateStructuredData(json)` | `StructuredDataValidationResult` | — |
 
 ---

@@ -14,4 +14,5 @@ export const DENALI_GLOBAL_STRUCTURAL_INVARIANTS: readonly DenaliGlobalStructura
   },
   { kind: "syncProgramItineraryToDayCount" },
   { kind: "pruneItinerarySegmentPhotoIds" },
+  { kind: "omitEmptyGatheringPoints" },
 ];

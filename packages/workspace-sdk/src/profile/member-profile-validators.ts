@@ -11,16 +11,20 @@ export const MEMBER_PROFILE_FATHER_NAME_MAX_LENGTH = 200;
 const NATIONAL_ID_PATTERN = /^\d{10}$/;
 const BIRTH_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
+/** `format` = not 10 digits; `checksum` = 10 digits that fail IR checksum or all-same. */
+export type IranianNationalIdClass = "ok" | "format" | "checksum";
+
 /**
  * Iranian national ID checksum (`locale=IR` for platform field `nationalId`).
  * @see docs/phase-19/platform-portal-member-profile.mdoc field validator contract
  */
-function isValidIranianNationalId(digits: string): boolean {
+export function classifyIranianNationalId(value: string): IranianNationalIdClass {
+  const digits = value.trim();
   if (!NATIONAL_ID_PATTERN.test(digits)) {
-    return false;
+    return "format";
   }
   if (/^(\d)\1{9}$/.test(digits)) {
-    return false;
+    return "checksum";
   }
   let sum = 0;
   for (let index = 0; index < 9; index += 1) {
@@ -28,10 +32,8 @@ function isValidIranianNationalId(digits: string): boolean {
   }
   const remainder = sum % 11;
   const checkDigit = Number(digits[9]);
-  if (remainder < 2) {
-    return checkDigit === remainder;
-  }
-  return checkDigit === 11 - remainder;
+  const checksumOk = remainder < 2 ? checkDigit === remainder : checkDigit === 11 - remainder;
+  return checksumOk ? "ok" : "checksum";
 }
 
 function isValidCalendarIsoDate(value: string): boolean {
@@ -69,7 +71,11 @@ export function validateMemberProfileNationalId(value: string): string | null {
   if (trimmed.length === 0) {
     return null;
   }
-  return isValidIranianNationalId(trimmed) ? null : "PROFILE_NATIONAL_ID_INVALID";
+  const classified = classifyIranianNationalId(trimmed);
+  if (classified === "ok") {
+    return null;
+  }
+  return classified === "format" ? "PROFILE_NATIONAL_ID_INVALID" : "PROFILE_NATIONAL_ID_CHECKSUM";
 }
 
 export function validateMemberProfileBirthDate(value: string): string | null {

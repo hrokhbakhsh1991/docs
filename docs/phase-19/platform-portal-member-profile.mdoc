@@ -253,7 +253,7 @@ Validators live in `member-profile-validators.ts` — **BFF/API only**; portal U
 | Field | Accept empty clear? | Rules | Error code |
 | ----- | ------------------- | ----- | ---------- |
 | `birthDate` | Yes | Must match `YYYY-MM-DD`; must be a real calendar date (reject e.g. `1991-02-31`); must not be after **today** (UTC date ceiling) | `PROFILE_BIRTH_DATE_INVALID` |
-| `nationalId` | Yes | Platform field id `nationalId` means **Iranian national ID** (`locale=IR`): exactly 10 digits; reject all-same digits and all-zeros; apply standard IR checksum. Future locales = additional SDK validator packs — **not** portal branches and **not** `if (pluginId === "denali")`. | `PROFILE_NATIONAL_ID_INVALID` |
+| `nationalId` | Yes | Platform field id `nationalId` means **Iranian national ID** (`locale=IR`): exactly 10 digits; reject all-same digits and all-zeros; apply standard IR checksum. **Copy split (BUG-17):** not 10 digits → `PROFILE_NATIONAL_ID_INVALID`; 10 digits that fail checksum / all-same → `PROFILE_NATIONAL_ID_CHECKSUM`. Catalog intake (Denali HTTP + client) must call the same SDK `classifyIranianNationalId` — a tour must not accept an id that `/me/profile` later refuses. Future locales = additional SDK validator packs — **not** portal branches and **not** `if (pluginId === "denali")`. | `PROFILE_NATIONAL_ID_INVALID` · `PROFILE_NATIONAL_ID_CHECKSUM` |
 | `displayName` | No (required when editable) | Non-empty, max length | `PROFILE_DISPLAY_NAME_INVALID` |
 | `email` | Yes | Max length + basic email shape | `PROFILE_EMAIL_INVALID` |
 | `fatherName` | Yes | Max length | `PROFILE_FATHER_NAME_INVALID` |

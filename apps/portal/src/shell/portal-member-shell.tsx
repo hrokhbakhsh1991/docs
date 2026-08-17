@@ -31,6 +31,12 @@ export async function PortalMemberShell({
   children,
 }: PortalMemberShellProps) {
   const t = await getTranslations("portalMember.nav");
+  const navItems = bottomNav.map((item) =>
+    Object.freeze({
+      ...item,
+      label: t(item.labelKey),
+    })
+  );
 
   return (
     <div
@@ -64,7 +70,13 @@ export async function PortalMemberShell({
         <div data-portal-shell-main-inner>{children}</div>
       </div>
 
-      <PortalMemberBottomNav items={bottomNav} logoutTarget={marketingHomeUrl} />
+      <PortalMemberBottomNav
+        items={navItems}
+        logoutTarget={marketingHomeUrl}
+        primaryNavLabel={t("primaryNav")}
+        logoutLabel={t("logout")}
+        loggingOutLabel={t("loggingOut")}
+      />
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
+
 import type { MarketingCatalogCard } from "./catalog-types";
 
 type CatalogPresentationFields = Pick<
@@ -59,21 +61,40 @@ export function formatCatalogCardDates(
   return datesTbaLabel;
 }
 
+/** Denali stores toman digits in ISO `IRR`. Other workspaces keep Intl for `IRR`. */
+export function catalogIrrUsesTomanLabel(pluginId: string | undefined): boolean {
+  return pluginId === "denali";
+}
+
 export function formatCatalogPrice(
   amount: number | null | undefined,
   currency: string | undefined,
   dateLocale: string,
-  priceOnRequestLabel: string
+  priceOnRequestLabel: string,
+  pluginId?: string
 ): string {
   if (amount == null) {
     return priceOnRequestLabel;
   }
-  return new Intl.NumberFormat(dateLocale, {
-    style: "currency",
-    currency: currency?.trim() || "IRR",
-    maximumFractionDigits: 0,
-    ...(dateLocale.startsWith("fa") ? { numberingSystem: "arabext" } : {}),
-  }).format(amount);
+  const code = (currency?.trim() || "IRR").toUpperCase();
+  const isFa = dateLocale.startsWith("fa");
+  // ED-CURR-MKT-01 — Denali catalog IRR amounts are toman digits; ISO storage stays IRR.
+  // Do not ×10. Do not reuse operator formatTourPrice or finance formatters.
+  // Do not apply toman to Harbor/Urban/other IRR.
+  if (code === "IRR" && catalogIrrUsesTomanLabel(pluginId)) {
+    const unit = isFa ? "تومان" : "toman";
+    return `${formatLocalizedNumber(amount, isFa ? "fa" : "en", { maximumFractionDigits: 0 })} ${unit}`;
+  }
+  try {
+    return new Intl.NumberFormat(dateLocale, {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 0,
+      ...(isFa ? { numberingSystem: "arabext" } : {}),
+    }).format(amount);
+  } catch {
+    return `${formatLocalizedNumber(amount, isFa ? "fa" : "en", { maximumFractionDigits: 0 })} ${code}`;
+  }
 }
 
 export function formatCatalogDateRange(

@@ -8,6 +8,7 @@ import { after, before, describe, it } from "node:test";
 
 import { buildTenantBrandLogoObjectKey } from "@app-tour/workspace-sdk";
 
+import { DENALI_CLUB_PUBLIC_DISPLAY_NAME } from "../src/tenant/tenant-registry";
 import { createRequestListener } from "../src/app";
 import { resetIdentityRepositoryForTests } from "../src/identity/create-identity-repository";
 import { updateTenantRegistryRow } from "../src/tenant/update-tenant-registry-row";
@@ -253,6 +254,18 @@ describe("tenant-branding.spec.ts", () => {
     });
     assert.equal(response.status, 200);
     assert.equal((response.body as { primaryColor?: string }).primaryColor, "#059669");
+    assert.equal(
+      (response.body as { displayName?: string | null }).displayName,
+      DENALI_CLUB_PUBLIC_DISPLAY_NAME
+    );
+  });
+
+  it("GL-BRAND-02 GET /public/tenant-branding operator smoke has no club displayName", async () => {
+    const response = await requestHttp(port, "GET", "/public/tenant-branding", {
+      headers: { host: "operator.localhost" },
+    });
+    assert.equal(response.status, 200);
+    assert.equal((response.body as { displayName?: string | null }).displayName, null);
   });
 
   it("API-TB-14 GET /public/tenant-branding resolves x-forwarded-host (BFF loopback)", async () => {

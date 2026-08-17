@@ -72,6 +72,7 @@ export async function CatalogTourStats({
             tour.priceCurrency,
             dateLocale,
             t("detail.priceOnRequest"),
+            pluginId,
           )}
         </li>
       ) : null}

@@ -19,6 +19,9 @@ describe("catalog-intake renderer contract", () => {
     const renderer = readFileSync(rendererPath, "utf8");
     const denaliIntake = readFileSync(denaliIntakePath, "utf8");
     assert.match(renderer, /schema\.fields\.map/);
+    assert.match(renderer, /idPrefix/);
+    assert.match(renderer, /invalidFieldId/);
+    assert.doesNotMatch(renderer, /hasError/);
     assert.match(denaliIntake, /RenderIntakeForm/);
     assert.doesNotMatch(renderer, /denali|urban/);
   });

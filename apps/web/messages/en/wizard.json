@@ -24,6 +24,7 @@
   "presetApplied": "Tour preset applied to this draft.",
   "createButton": "Create tour",
   "saveDraft": "Save draft",
+  "saveDraftHint": "Saves the wizard draft only — does not update the tour.",
   "clearDraft": "Clear draft",
   "clearDraftConfirmTitle": "Clear draft?",
   "clearDraftConfirm": "Discard the current draft and start over?",

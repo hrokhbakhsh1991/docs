@@ -73,7 +73,7 @@ export function DenaliItineraryField({
       estimateDenaliTourDayCount(
         getCanonicalStringValue(draft, "startDateTime"),
         getCanonicalStringValue(draft, "endDateTime")
-      ) ?? Math.max(stored.length, 2)
+      ) ?? Math.max(stored.length, 1)
     );
   }, [draft, stored.length]);
 
@@ -297,6 +297,7 @@ export function DenaliItineraryField({
 
                 <DenaliItinerarySegmentDestinationField
                   destinationId={segment.destinationId}
+                  tourKind={getCanonicalStringValue(draft, "category")}
                   onChange={(selection) => {
                     if (selection.destinationId != null) {
                       updateSegment(dayIndex, segmentIndex, {

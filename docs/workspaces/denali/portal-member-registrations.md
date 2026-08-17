@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-MEMBER-REGISTRATIONS
-version: "2026-08-12-v8"
+version: "2026-08-16-v9"
 extends: platform-portal-member.mdoc
 workspace: denali
 apps: [portal]
@@ -93,7 +93,7 @@ Detail uses **booking.status** (from list row) **and** `receiptStatus`. Upload i
 
 | Condition | UI |
 | --------- | -- |
-| `status` = `pending` \| `waitlisted` | Awaiting club approval panel — **no** file input (`data-portal-member-receipt-awaiting-approval`); optional **intake amend** for transport (`data-portal-member-intake-amend`) via `PATCH /api/me/registrations/{id}/intake` before approve — see [registration-self-other-uniqueness.mdoc](./registration-self-other-uniqueness.mdoc) |
+| `status` = `pending` \| `waitlisted` | Awaiting club approval panel — **no** file input (`data-portal-member-receipt-awaiting-approval`); optional **intake amend** for transport (`data-portal-member-intake-amend`) via `PATCH /api/me/registrations/{id}/intake` before approve — see [registration-self-other-uniqueness.mdoc](./registration-self-other-uniqueness.mdoc). **Hydrate from saved scalars** (`transportKind` + `personalCarOccupants`) — never default the radios to club-transport / occupants `1` when intake already stored `personal_car`. Detail KPI `[data-portal-member-registration-transport]` shows the same current choice (not full `registrationIntake` JSON). |
 | `status` = `rejected` \| `cancelled` | Closed registration panel — **no** upload (`data-portal-member-receipt-closed`) |
 | `status` = `approved` ∧ `receiptStatus` = `none` | Upload form |
 | `status` = `approved` ∧ `receiptStatus` = `rejected` | Upload form + retry hint |
@@ -149,6 +149,7 @@ Stable selectors — **do not rename** without updating smoke specs.
 | `data-portal-member-receipt-view-tour` | Marketing tour CTA |
 | `data-portal-member-receipt-back-trips` | Trips list CTA |
 | `data-portal-member-intake-amend` | Pending/waitlisted transport amend panel (feature `memberPendingIntakeAmend`) |
+| `data-portal-member-registration-transport` | Detail KPI — current saved `transportKind` (BUG-18) |
 | `data-portal-member-intake-amend-saved` | Amend success status |
 | `data-portal-member-intake-amend-error` | Amend error alert |
 
@@ -184,8 +185,8 @@ Design SoT: `design-system/denali-club/MASTER.md` (primary `#059669`).
 | DEN-REG-01 | List page renders `data-portal-member-registrations` with Denali skin |
 | DEN-REG-02 | Detail renders upload hooks only when `status=approved` and `receiptStatus=none` |
 | DEN-REG-03 | Receipt submit disabled while upload in flight |
-| DEN-REG-04 | After upload, waiting panel visible; upload control gone (SMK-PTL-04) |
 | DEN-REG-05 | `status=pending` shows `data-portal-member-receipt-awaiting-approval`; no upload control |
+| DEN-REG-08 | Amend radios initialize from owned-detail `transportKind` / `personalCarOccupants` (not tour-mode defaults). Reload after PATCH keeps the saved kind. No `registrationIntake` blob on the member BFF item. |
 | DEN-REG-06 | List filter tabs render with counts; `?target=other` shows only `data-portal-member-registrant-target="other"` rows |
 | DEN-REG-07 | Self rows show `data-portal-member-registrant-self-badge`; other rows keep `forOtherBadge` |
 

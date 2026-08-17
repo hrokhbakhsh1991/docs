@@ -22,4 +22,18 @@ describe("merge-envelope-hook.spec.ts (P14-2-T03)", () => {
     const direct = mergeDenaliWizardDraftEnvelope(local, server);
     assert.deepEqual(viaHook, direct);
   });
+
+  it("preserves local sourceRowVersion across conflict merge", () => {
+    const merged = mergeDenaliWizardDraftEnvelope(
+      {
+        form: { data: { title: "Local" } },
+        meta: { currentStepIndex: 1, sourceRowVersion: 4 },
+      },
+      {
+        form: { data: { title: "Server" } },
+        meta: { currentStepIndex: 0, sourceRowVersion: 2 },
+      }
+    );
+    assert.equal(merged.meta.sourceRowVersion, 4);
+  });
 });

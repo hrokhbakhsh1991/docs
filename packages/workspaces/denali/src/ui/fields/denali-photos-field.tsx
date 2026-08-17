@@ -17,6 +17,7 @@ import { uploadDenaliWizardPhoto } from "../adapters/photo-upload-client";
 import { Button, Input, Select, type SelectOption } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { DenaliPhotoPreview } from "../components/denali-photo-preview";
+import { DenaliOptionalEmptyNotice } from "../components/denali-optional-empty-notice";
 import {
   DENALI_MAX_PHOTO_COUNT,
   estimateDenaliTourDayCount,
@@ -81,10 +82,6 @@ export function DenaliPhotosField({
 
   const dayCount = useMemo(() => {
     if (!multiDay) return undefined;
-    const itinerary = getCanonicalValue(draft, "program.itinerary");
-    if (Array.isArray(itinerary) && itinerary.length >= 2) {
-      return itinerary.length;
-    }
     return estimateDenaliTourDayCount(
       getCanonicalStringValue(draft, "startDateTime"),
       getCanonicalStringValue(draft, "endDateTime")
@@ -270,7 +267,11 @@ export function DenaliPhotosField({
       </div>
 
       {photos.length === 0 ? (
-        <p className="denali-wizard-composite__helper">{t("composites.photos.noPhotos")}</p>
+        <DenaliOptionalEmptyNotice testId={DENALI_PHOTOS_TEST_IDS.optionalEmpty}>
+          {multiDay
+            ? t("composites.photos.dayEmpty")
+            : t("composites.photos.optionalEmpty")}
+        </DenaliOptionalEmptyNotice>
       ) : null}
 
       <div className="denali-wizard-composite__photos-layout" data-operator-wizard-photo-grid>
@@ -315,21 +316,23 @@ export function DenaliPhotosField({
                 />
               </label>
               {uploadEnabled ? (
-                <label className="denali-wizard-composite__field">
-                  <span>{t("composites.photos.uploadImage")}</span>
-                  <Input
-                    ref={(element) => {
-                      if (photoId.length > 0) {
-                        fileInputRefs.current[photoId] = element;
-                      }
-                    }}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    data-operator-wizard-file-input
-                    data-testid={DENALI_PHOTOS_TEST_IDS.uploadInput}
-                    disabled={isUploading || photoId.length === 0}
-                    onChange={(event) => void handleFileSelected(photoId, event.target.files?.[0])}
-                  />
+                <>
+                  <label className="denali-wizard-composite__field">
+                    <span>{t("composites.photos.uploadImage")}</span>
+                    <Input
+                      ref={(element) => {
+                        if (photoId.length > 0) {
+                          fileInputRefs.current[photoId] = element;
+                        }
+                      }}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      data-operator-wizard-file-input
+                      data-testid={DENALI_PHOTOS_TEST_IDS.uploadInput}
+                      disabled={isUploading || photoId.length === 0}
+                      onChange={(event) => void handleFileSelected(photoId, event.target.files?.[0])}
+                    />
+                  </label>
                   {isUploading ? (
                     <p
                       className="denali-wizard-composite__helper"
@@ -349,7 +352,7 @@ export function DenaliPhotosField({
                       {photoUploadErrors[photoId]}
                     </p>
                   ) : null}
-                </label>
+                </>
               ) : null}
               <label className="denali-wizard-composite__field">
                 <span>

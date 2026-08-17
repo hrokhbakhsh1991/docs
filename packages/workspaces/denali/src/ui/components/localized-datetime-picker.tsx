@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 
 import {
+  isDatetimePickerDateUnchanged,
   joinDatetimeLocal,
   resolveDatetimePickerTimeForDateCommit,
   splitDatetimeLocal,
@@ -63,14 +64,17 @@ export function DenaliWizardDatetimePicker({
             invalid={invalid}
             aria-label={ariaLabel ?? t("pickDate")}
             className="operator-wizard-datetime__date-trigger"
-            onChange={(nextDate) =>
+            onChange={(nextDate) => {
+              if (isDatetimePickerDateUnchanged(nextDate, date)) {
+                return;
+              }
               onChange(
                 joinDatetimeLocal(
                   nextDate,
                   resolveDatetimePickerTimeForDateCommit(time, fallbackTime)
                 )
-              )
-            }
+              );
+            }}
           />
         </div>
         <div className="operator-wizard-datetime__divider" aria-hidden />

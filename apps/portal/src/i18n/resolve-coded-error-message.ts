@@ -2,6 +2,22 @@ type TranslateFn = (key: string, values?: Record<string, string | number>) => st
 
 const HTTP_ERROR_CODE = /^([A-Z0-9_]+)_HTTP_(\d+)$/;
 
+function looksLikeUnresolvedKey(message: string, key: string): boolean {
+  return message === key || message.endsWith(`.${key}`);
+}
+
+function tryNetworkFallback(t: TranslateFn, fallback: string): string {
+  try {
+    const network = t("network");
+    if (looksLikeUnresolvedKey(network, "network")) {
+      return fallback;
+    }
+    return network;
+  } catch {
+    return fallback;
+  }
+}
+
 /** Maps stable error codes (and `*_HTTP_<status>` variants) to localized copy when keys exist. */
 export function resolveCodedErrorMessage(
   t: TranslateFn,
@@ -16,14 +32,21 @@ export function resolveCodedErrorMessage(
     const [, prefix, status] = httpMatch;
     const httpKey = `${prefix}_HTTP_ERROR`;
     try {
-      return t(httpKey, { status });
+      const mapped = t(httpKey, { status });
+      if (!looksLikeUnresolvedKey(mapped, httpKey)) {
+        return mapped;
+      }
     } catch {
-      // fall through to raw code
+      // fall through
     }
   }
   try {
-    return t(trimmed);
+    const message = t(trimmed);
+    if (looksLikeUnresolvedKey(message, trimmed)) {
+      return tryNetworkFallback(t, trimmed);
+    }
+    return message;
   } catch {
-    return trimmed;
+    return tryNetworkFallback(t, trimmed);
   }
 }

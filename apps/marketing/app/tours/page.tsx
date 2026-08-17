@@ -25,6 +25,7 @@ import {
 } from "@/seo/build-marketing-catalog-list-jsonld";
 import { serializeMarketingJsonLd } from "@/seo/serialize-marketing-jsonld";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
+import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
 import { resolveCatalogListFeatures, resolveGuestSeoForPlugin } from "@app-tour/workspace-sdk";
 
@@ -49,10 +50,10 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   ]);
   const guestSeo = resolveGuestSeoForPlugin(bootstrap.pluginId).marketing;
   const t = await getTranslations("catalog");
-  const siteName = branding.displayName ?? t("nav.defaultSiteName");
+  const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
   const title = guestSeo.listTitleKey
     ? t(guestSeo.listTitleKey, { siteName })
-    : `${siteName} — ${t("nav.tours")}`;
+    : t("nav.tours");
   const description = guestSeo.listDescriptionKey
     ? t(guestSeo.listDescriptionKey, { siteName })
     : t("metadata.listDescription", { siteName });

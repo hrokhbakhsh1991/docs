@@ -28,6 +28,7 @@ import { cn } from "../../utils/cn";
 
 export type DenaliCalendarProps = {
   readonly value: string;
+  /** Gregorian civil ISO `YYYY-MM-DD` (INV-DENALI-CAL-01). */
   readonly onSelect: (isoDate: string) => void;
   readonly minIsoDate?: string;
   readonly className?: string;

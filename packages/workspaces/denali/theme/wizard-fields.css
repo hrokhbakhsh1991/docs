@@ -261,6 +261,13 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-compo
   color: var(--color-text-muted);
 }
 
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-operator-optional-empty] {
+  padding: var(--space-3, 0.75rem);
+  border: 1px dashed var(--color-border-subtle);
+  border-radius: var(--radius-md, 0.375rem);
+  background: var(--color-bg-muted, var(--color-bg-surface));
+}
+
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__meta {
   font-size: 0.75rem;
   color: var(--color-text-muted);

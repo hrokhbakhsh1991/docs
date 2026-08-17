@@ -60,9 +60,14 @@ describe("guest transpilePackages codegen (Wave C.b)", () => {
     assert.match(src, /@app-tour\/workspace-denali/);
   });
 
-  it("marketing platform set excludes portal-only catalog packages", () => {
+  it("marketing platform set excludes portal-only intake UI; includes Phase 5 auth packages", () => {
     assert.ok(!MARKETING_PLATFORM_TRANSPILE_PACKAGES.includes("@app-tour/catalog-intake-ui"));
     assert.ok(PORTAL_PLATFORM_TRANSPILE_PACKAGES.includes("@app-tour/catalog-intake-ui"));
+    assert.ok(
+      MARKETING_PLATFORM_TRANSPILE_PACKAGES.includes("@app-tour/catalog-registration-flow-ui")
+    );
+    assert.ok(MARKETING_PLATFORM_TRANSPILE_PACKAGES.includes("@app-tour/catalog-registration-auth"));
+    assert.ok(MARKETING_PLATFORM_TRANSPILE_PACKAGES.includes("@app-tour/ui-primitives"));
   });
 });
 

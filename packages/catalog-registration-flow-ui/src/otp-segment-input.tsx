@@ -1,14 +1,18 @@
 "use client";
 
 import { Input } from "@app-tour/ui-primitives/input";
+import { useLocale, useTranslations } from "next-intl";
 import {
   useCallback,
   useEffect,
   useId,
   useRef,
   type ClipboardEvent,
+  type CSSProperties,
   type KeyboardEvent,
 } from "react";
+
+import { formatOtpDigitIndex } from "./format-otp-digit-index";
 
 type OtpSegmentInputProps = {
   readonly id?: string;
@@ -21,6 +25,19 @@ type OtpSegmentInputProps = {
 };
 
 const OTP_SEGMENT_LENGTH = 4;
+
+/** Visually hide the group name; cells remain the only textboxes. */
+const visuallyHiddenStyle: CSSProperties = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: "hidden",
+  clip: "rect(0, 0, 0, 0)",
+  whiteSpace: "nowrap",
+  border: 0,
+};
 
 function normalizeOtpDigits(value: string): string {
   return value.replace(/\D/g, "").slice(0, OTP_SEGMENT_LENGTH);
@@ -40,8 +57,9 @@ export function OtpSegmentInput({
   "aria-invalid": ariaInvalid,
   "aria-describedby": ariaDescribedBy,
 }: OtpSegmentInputProps) {
+  const t = useTranslations("catalogRegistration");
+  const locale = useLocale();
   const labelId = useId();
-  const autofillSinkId = useId();
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const valueRef = useRef(value);
 
@@ -157,27 +175,16 @@ export function OtpSegmentInput({
     applyDigitsAtIndex(startIndex, event.clipboardData.getData("text"));
   }
 
-  function handleAutofillSinkChange(raw: string): void {
-    applyDigitsAtIndex(0, raw);
-  }
-
   return (
-    <div data-otp-segment-input dir="ltr">
-      <Input
-        id={id ?? autofillSinkId}
-        type="text"
-        inputMode="numeric"
-        autoComplete="one-time-code"
-        disabled={disabled}
-        tabIndex={-1}
-        aria-hidden
-        className="pointer-events-none absolute h-px w-px opacity-0"
-        value={value}
-        onChange={(event) => handleAutofillSinkChange(event.target.value)}
-      />
-      <div role="group" aria-labelledby={labelId} aria-describedby={ariaDescribedBy}>
-        <span id={labelId} className="sr-only">
-          OTP
+    <div data-otp-segment-input dir="ltr" style={{ position: "relative" }}>
+      <div
+        id={id}
+        role="group"
+        aria-labelledby={labelId}
+        aria-describedby={ariaDescribedBy}
+      >
+        <span id={labelId} style={visuallyHiddenStyle}>
+          {t("otp.groupLabel")}
         </span>
         <div data-otp-segment-cells>
           {cells.map((digit, index) => (
@@ -189,14 +196,16 @@ export function OtpSegmentInput({
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
-              autoComplete="off"
+              autoComplete={index === 0 ? "one-time-code" : "off"}
               autoCorrect="off"
               spellCheck={false}
-              maxLength={1}
+              maxLength={index === 0 ? OTP_SEGMENT_LENGTH : 1}
               value={digit}
               disabled={disabled}
               aria-invalid={ariaInvalid}
-              aria-label={`Digit ${index + 1}`}
+              aria-label={t("otp.digitLabel", {
+                index: formatOtpDigitIndex(index + 1, locale),
+              })}
               data-otp-cell={index}
               dir="ltr"
               onChange={(event) => handleCellChange(index, event.target.value)}

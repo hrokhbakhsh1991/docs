@@ -252,6 +252,29 @@ export function resolveDenaliTransportModeLabel(t: DenaliTranslator, mode: strin
   return mode.replace(/_/g, " ");
 }
 
+const DENALI_FITNESS_LEVEL_MESSAGE_KEYS = {
+  low: "composites.pricingParticipants.fitnessLow",
+  medium: "composites.pricingParticipants.fitnessMedium",
+  high: "composites.pricingParticipants.fitnessHigh",
+} as const;
+
+export function resolveDenaliFitnessLevelLabel(t: DenaliTranslator, level: string): string {
+  const key =
+    DENALI_FITNESS_LEVEL_MESSAGE_KEYS[level as keyof typeof DENALI_FITNESS_LEVEL_MESSAGE_KEYS];
+  if (key == null) {
+    return level;
+  }
+  try {
+    const label = t(key);
+    if (label !== key && label.length > 0) {
+      return label;
+    }
+  } catch {
+    // Missing message keys fall back to stored enum.
+  }
+  return level;
+}
+
 export function resolveDenaliTourKindLabel(t: DenaliTranslator, tourKind: string): string {
   try {
     const label = t(`tourKinds.${tourKind}`);

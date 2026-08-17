@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-08-12-v9"
+version: "2026-08-16-v20"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -27,12 +27,28 @@ Workspace-agnostic **guest registration shell** in `apps/portal`. Business rules
 app/layout.tsx
   PortalProviders
     PortalLoginModalProvider          ← design PCMS-UX-MODAL (dialog/sheet)
-  └── app/login/page.tsx              ← thin host · auto-open login modal
+  └── app/login/page.tsx              ← page SSR host · data-portal-login-full-page
+        PortalLoginThinHost story + data-portal-login-form-panel
+        PublicCatalogRegistrationFlow memberLoginEgress (phone/OTP/profile on the page)
+        onAuthenticated → completeMemberLoginEgress (portalReturn)
+        smoke tourId = flow plugin bootstrap only (no intake, no 404)
   └── app/catalog/[tourId]/register/page.tsx
         PortalAuthExperienceShell     ← FULL PAGE tour registration chrome
         session: PublicCatalogRegistrationFlow (intake-only)
         guest: auth gate + auto login modal (PCMS-UX-MODAL-04)
                reopen «ورود» · ?auth=login compatible
+               modal onAuthenticated → close + reload register URL
+
+@app-tour/catalog-registration-flow-ui
+  GuestAuthTransport                  ← network + probeSession only
+  createPortalSameOriginGuestAuthTransport  ← Portal: /api/public-auth/* + /api/me/profile
+  tryCreatePortalOriginGuestAuthTransport   ← Marketing: absolute portal /api/public-auth/* + /session
+  GuestAuthHostProvider               ← { transport, onAuthenticated }
+  phone / otp / profile steps         ← no fetch URLs, no location.assign, no intake hydrate
+
+Phase 4 (PCMS-CORS): Portal middleware CORS on `/api/public-auth/*` for the paired marketing origin.
+Phase 5: Marketing hosts the same OTP UI on **PDP** via the origin factory (stay on `/tours/{id}`). Header Sign in navigates to Portal `/login`. Cookie write stays Portal BFF.
+Portal `/login` is retained (middleware `/me/*` gate). Marketing must not add `app/api/public-auth` / `app/api/me`.
 ```
 
 **Design SoT (login modal):** [portal-member-login-modal.mdoc](../../phase-19/portal-member-login-modal.mdoc) · PCMS §5.0 · DL-40 · DL-41.
@@ -52,8 +68,8 @@ app/layout.tsx
 | `[data-portal-register-auth-gate]` | Card CTA while waiting for / after dismiss of login modal |
 | `[data-portal-register-auth-gate-lede]` | Gate helper copy (hidden when hero lede present) |
 | `[data-portal-register-sign-in-button]` | Primary reopen control inside the gate |
-| `[data-portal-login-thin-host]` | Thin `/login` host marker |
-| `[data-portal-login-host-lede]` | Fallback copy when modal closed; hidden while modal open |
+| `[data-portal-login-full-page]` | `/login` page host marker (phone/OTP/profile on the page) |
+| `[data-portal-login-form-panel]` | Page OTP panel (`#phone` lives here, not in a dialog) |
 
 **Login modal hooks (PCMS-UX-MODAL):**
 
@@ -62,7 +78,7 @@ app/layout.tsx
 | `[data-portal-login-modal]` | Modal root — Denali flex-centers on `[open]` (Preflight strips UA `margin: auto`) |
 | `[data-portal-login-modal-open]` | Open |
 | `[data-portal-login-modal-presentation="dialog"\|"sheet"]` | Desktop centered dialog · mobile bottom sheet |
-| `[data-portal-login-modal-host="login"\|"register"]` | Host page |
+| `[data-portal-login-modal-host="register"]` | Register-route modal only (`/login` is page OTP) |
 | `[data-portal-login-modal-body]` | OTP flow surface (shares Denali form controls) |
 | `[data-portal-login-modal-panel]` | Glass panel inside the flex frame |
 
@@ -78,7 +94,7 @@ Smoke URLs: `http://denali.portal.localhost:3003/login` · `/catalog/{tourId}/re
 
 | Route / trigger | User intent | UI | Intake |
 | --------------- | ----------- | -- | ------ |
-| `/login?portalReturn=/me/registrations` | Header / standalone sign-in | Thin host + **login modal** | **Never** |
+| `/login?portalReturn=/me/registrations` | Header / standalone sign-in | Page OTP (`data-portal-login-full-page` + form panel) | **Never** |
 | `/catalog/{id}/register` (guest) | Register for tour — auth first | Register chrome + **forced login modal** + auth gate | After OTP (intake-only) |
 | `/catalog/{id}/register?auth=login` | Deep link / reopen | Same as guest (compatible) | After OTP on **page** |
 | Register reopen «ورود» | Dismissed modal | Modal overlay again | After OTP on **page** |
@@ -90,7 +106,9 @@ Hooks:
 | ---- | ---- |
 | `[data-portal-return]` | Login host / modal — client egress fallback |
 | `[data-portal-register-sign-in-link]` | Guest register — opens login modal (same page) |
-| `[data-marketing-tour-sign-in]` | Marketing PDP → `register?auth=login` |
+| `[data-marketing-tour-sign-in]` | Marketing PDP **guest only** — marketing login modal (href fallback `register?auth=login`; hidden when marketing SSR can read a bound member session). Header Sign in is **not** this hook — it goes to Portal `/login`. |
+| `[data-marketing-view-registration]` | Marketing PDP **member-self** → portal `/me/registrations/{id}` |
+| `[data-marketing-register-another]` | Marketing PDP **member-self** secondary → `/catalog/{id}/register` (no `auth=login`) |
 
 Example tour sign-in URL: `/catalog/{tourId}/register?auth=login`
 
@@ -100,9 +118,9 @@ Example tour sign-in URL: `/catalog/{tourId}/register?auth=login`
 | --------------- | ------- |
 | `[data-registration-resume-pending]` | Client session probe before phone step — avoids flash of guest auth when cookie exists but SSR resume missed |
 | `[data-phone-hint="existing"]` | Returning member on register — copy switches to «تأیید موبایل برای ادامه» (preflight on blur + after send) |
-| `[data-marketing-tour-sign-in]` | Secondary PDP link — text CTA below primary register button |
+| `[data-marketing-tour-sign-in]` | Secondary PDP link — **guest only**; hidden for readable member sessions (Phase 3) |
 
-**Hydration (PCMS-UX-HYDRATE):** Login egress mode is **never** derived from `window.location` during React render. `apps/portal/app/login/page.tsx` passes `memberLoginEgress` into `PublicCatalogRegistrationFlow`, which forwards `RegistrationFlowContext.memberLoginEgress` to shared auth steps. Client-only `isMemberLoginEgressFromLocation()` remains for redirect target resolution (`portalReturn` query / `data-portal-return`) after OTP — not for SSR markup.
+**Hydration (PCMS-UX-HYDRATE):** Login egress mode is **never** derived from `window.location` during React render. `/login` is a **page** host (`data-portal-login-full-page`) that mounts `PublicCatalogRegistrationFlow` with `memberLoginEgress` (forwards to shared auth steps). Client-only `isMemberLoginEgressFromLocation()` remains for redirect target resolution (`portalReturn` query / `data-portal-return`) after OTP — not for SSR markup. The **register** route still auto-opens the shared modal (PCMS-UX-MODAL-04).
 
 ### Registration stepper modes
 
@@ -110,9 +128,9 @@ Example tour sign-in URL: `/catalog/{tourId}/register?auth=login`
 | ---- | ---- | ----------- |
 | `registration` | Guest register page (session present / after auth) | phone → otp → profile → intake |
 | `intake-only` | Member resume at intake (PCMS-REG-02) | intake only — auth steps hidden |
-| *(none)* | Login modal / `memberLoginEgress` | **No stepper** — title in modal header; flow still phone → OTP → profile |
+| *(none)* | Login page / register modal / `memberLoginEgress` | **No stepper** — title in page hero or modal header; flow still phone → OTP → profile |
 
-Hook: `[data-registration-stepper-mode="intake-only"]`. Wired in `public-catalog-registration-flow.tsx` when `initialRuntimeState.currentStep === "intake"` or client `data-registration-resume="intake"`. Login modal (`memberLoginEgress`) skips `CatalogRegistrationStepper` entirely.
+Hook: `[data-registration-stepper-mode="intake-only"]`. Wired in `public-catalog-registration-flow.tsx` when `initialRuntimeState.currentStep === "intake"` or client `data-registration-resume="intake"`. Login egress (`memberLoginEgress`) skips `CatalogRegistrationStepper` entirely.
 
 ### BFF (server)
 
@@ -139,6 +157,8 @@ Intake dispatch: `apps/portal/app/api/catalog/registrations/route.ts` calls SDK 
 
 **Ops note:** cold `next dev` compile of `/api/catalog/registrations` can take ~20s; clients with short timeouts may abort while the server still finishes — prefer Idempotency-Key + retry, not a second bare submit.
 
+**Submit → done (BUG-4):** `DenaliIntakeStep.handleSubmit` keeps `loading` (copy `intake.submitting`) only while `fetch` POSTs are in flight. After every participant POST returns, a full success calls `transitionFlowStep(dispatch, "done")` **inside the same client tree** — `DenaliDoneStep` mounts from that reducer event. The intake UI must **not** `router.refresh()`, wait on a follow-up `GET …/register?_rsc=…`, or keep the submitting label after the last 201. A 30s «در حال ارسال…» with a 201 already in the network log is a **dead/mismatched API or first compile of the BFF**, not a missing success panel. Partial failure still uses `data-denali-submit-results` (BUG-13).
+
 ### Intake field rules (2026-06-30)
 
 | Field | Profile step (new user) | Tour intake | Persist to profile (`self`) |
@@ -146,7 +166,7 @@ Intake dispatch: `apps/portal/app/api/catalog/registrations/route.ts` calls SDK 
 | Name (`fullName` / `displayName`) | Required | Hidden when profile/session already has name | Yes when `displayName` empty |
 | Email | Optional | **Not shown** — never collected at tour intake | — |
 | Party size | — | Fixed `1` (no UI field) | — |
-| National ID | — | When `nationalIdRequired` and profile empty | Yes |
+| National ID | — | When `nationalIdRequired` and profile empty | Yes — host + Denali client-logic use SDK `classifyIranianNationalId` (`ok` \| `format` \| `checksum`). Format fail → `intake.nationalIdInvalid`; 10 digits that fail checksum / all-same → `intake.nationalIdChecksumInvalid`. Portal UI must not contain the checksum (INV-MP-07). |
 | Father's name | — | When `fatherNameRequired` and profile empty | Yes |
 | Birth date | — | When `birthDateRequired` and profile empty | Yes |
 
@@ -163,16 +183,33 @@ Session defaults: `GET /api/me/profile` hydrates name (+ email for upstream only
 
 `registrantTarget=other` shows all tour-gated fields empty (booker fills guest).
 
+### Intake a11y — unique field ids (BUG-6)
+
+Each intake card must pass a distinct `idPrefix` into `RenderIntakeForm` so `htmlFor` / control `id` never collide across self + guest cards:
+
+| Card | `idPrefix` |
+|------|------------|
+| Self | `denali-intake-self` |
+| Other guest `n` (0-based) | `denali-intake-other-{n}` |
+
+`aria-invalid` and `aria-describedby` attach **only** to the field that failed (`invalidFieldId`), not every control on the form. Urban uses `idPrefix="urban-intake"` (single card). Platform `Input` must apply `aria-invalid` after `{...rest}` so callers cannot override it to a blanket `true`.
+
+### Member amend hydrate (BUG-18)
+
+Owned detail GET returns safe scalars `transportKind` + `personalCarOccupants` (not `registrationIntake`). `/me/registrations/{id}` KPI `[data-portal-member-registration-transport]` and `MemberIntakeAmendForm` hydrate from those scalars. Missing transport on a bus tour falls back to form default `primary` / occupants `1` — KPI renders only when the scalar is present.
+
 **Party size removed from intake UI (2026-07-02):** Denali registration is one participant per submission — a member registers **themself** (`self`) or **one other person** (`other`, whose identity fields the booker fills). The `partySize` UI field was removed from `DENALI_CATALOG_INTAKE_SCHEMA`; the flow now sends a fixed `partySize: 1` to the API. The API contract is **unchanged** — `denaliRegistrationPostSchema.partySize` (`z.number().int().min(1)`) and capacity/`spotsRemaining` math (`Σ approved.partySize`) still operate on the persisted value. To register additional people, the booker submits again per person (duplicate guard is guest user id + tour id, so distinct guests are allowed).
 
 Portal wires catalog flags: `register/page.tsx` → `PublicCatalogRegistrationFlow` → `RegistrationFlowContext.tourRequirements`.
 
 Duplicate booking guard: Denali **self** = member user id + tour id on an active self row (not email). **Other** = guest label / nationalId; same booker may submit multiple others. See [registration-self-other-uniqueness.mdoc](./registration-self-other-uniqueness.mdoc).
 
-**Register-page self gate (2026-08-10 · extended 2026-08-12):** SSR/client loads `GET /api/me/registrations/for-tour?tourId=` — when `self` is non-null, disable “برای خودم”, **keep guest cards available and submit-able**, and show `data-registration-self-already` with:
+**Register-page self gate (2026-08-10 · extended 2026-08-12 · Phase 3 empty-card 2026-08-16):** SSR/client loads `GET /api/me/registrations/for-tour?tourId=` — when `self` is non-null, disable “برای خودم”, **keep guest cards available and submit-able**, and show `data-registration-self-already` with:
 - copy that states self is locked **and** guests can still be added (`intake.selfAlreadyRegistered`);
 - detail CTA → `/me/registrations/{id}` (`data-registration-self-already-detail`);
 - my-trips CTA → `memberModuleHref` (`data-registration-self-already-trips`) when the host injects it.
+
+**Empty other-guest seed (Phase 3):** `DenaliIntakeStep` must **not** initialize `otherGuests` with one blank card solely because `selfTabLocked` / `existingSelfRegistrationId` is set. Returning members who already registered themselves used to land on an empty «مهمان» form that looked like a second self. Start with `otherGuests = []` and the empty toolbar (`[data-denali-other-guest-empty]` + `[data-denali-add-guest]`). `registrantTarget === "other"` on a **new** intake (self not locked) may still seed one draft. In-flow `lockSelfAsAlreadyRegistered` after a duplicate POST may still append a draft so the booker can continue with a guest in the same session.
 
 **Phone intake control (2026-08-12):** Schema widget `localized-digits` (Denali/Urban `phone`) must render as `type="text"` + `inputMode="numeric"` — **not** `type="number"`. Number inputs strip a leading `0` (Iranian mobiles) and expose a spinbutton, which makes guest submit look “broken” after a self lock even though the API accepts `other`. True numeric quantities keep `field.type === "number"`. Renderer: `packages/catalog-intake-ui/src/render-intake-field.tsx`.
 
@@ -220,8 +257,11 @@ Opt-in / shared-cars follow-up (only when visible):
 ```text
 Has personal car?
   yes → occupants: 1 | 2 | 3 (includes companions who do not pay dong separately)
-  no  → pays dong? yes (+ dongAmount) | no (acquaintance ride — no extra UI)
+  no  → if dongAmount > 0: pays dong? yes (no_car_dong) | no (acquaintance)
+        else: no dong radios — persist no_car_acquaintance (bus/minibus/train + allowPersonalCar without dong)
 ```
+
+Do **not** offer «بله، دونگ می‌دهم» when `dongAmount` is missing or `<= 0`. Host `normalizeDenaliRegistrationTransportIntake` already rejects `no_car_dong` in that case as `DENALI_REGISTRATION_INVALID` (typed workspace error → HTTP 400). The intake surface must not build that payload.
 
 Persisted on booking as `registrationIntake.transport`:
 

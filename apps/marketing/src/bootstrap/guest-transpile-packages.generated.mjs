@@ -9,8 +9,11 @@
 export const GUEST_TRANSPILE_PACKAGES = Object.freeze([
   "@app-tour/design-tokens",
   "@app-tour/theme-react",
+  "@app-tour/ui-primitives",
   "@app-tour/workspace-sdk",
   "@app-tour/guest-workspace-runtime",
+  "@app-tour/catalog-registration-auth",
+  "@app-tour/catalog-registration-flow-ui",
   "@app-tour/workspace-denali",
   "@app-tour/workspace-guest-club",
   "@app-tour/workspace-harbor",

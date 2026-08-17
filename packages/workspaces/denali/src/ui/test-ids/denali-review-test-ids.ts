@@ -7,6 +7,7 @@ export const DENALI_REVIEW_STEP_TEST_IDS = {
   photoGrid: "denali-review-photo-grid",
   section: (stepId: string) => `denali-review-section-${stepId}`,
   editSection: (stepId: string) => `denali-review-edit-${stepId}`,
+  optionalEmpty: "denali-review-optional-empty",
 } as const;
 
 export const DENALI_REVIEW_VALIDATION_TEST_IDS = {

@@ -12,9 +12,12 @@ import { Button, Input } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { fetchReverseGeocodeAddress } from "../adapters/reverse-geocode-client";
 import {
+  denaliLocationZoneOverviewPath,
   isDenaliLocationDataPopulated,
-  parseDenaliLocationData,
+  resolveDenaliLocationZoneFromStorage,
+  toPersistableDenaliLocationData,
   type DenaliLocationData,
+  type DenaliLocationZonePath,
 } from "../logic/denali-location-types";
 import { DenaliLocationAddressPicker } from "./denali-location-address-picker";
 
@@ -37,7 +40,11 @@ export function DenaliLocationPointEditor({
   const tLocation = useTranslations("denali.composites.location");
   const draftRef = useLatestWizardDraft(draft);
 
-  const location = parseDenaliLocationData(getCanonicalValue(draft, canonicalPath));
+  const nestedPath = denaliLocationZoneOverviewPath(canonicalPath as DenaliLocationZonePath);
+  const location = resolveDenaliLocationZoneFromStorage(
+    getCanonicalValue(draft, canonicalPath),
+    getCanonicalValue(draft, nestedPath)
+  );
   const populated = isDenaliLocationDataPopulated(location);
   const [open, setOpen] = useState(populated);
 
@@ -49,8 +56,13 @@ export function DenaliLocationPointEditor({
 
   const updateLocation = (patch: Partial<DenaliLocationData>) => {
     commitWizardDraftEdit(draftRef, onDraftChange, (base) => {
-      const current = parseDenaliLocationData(getCanonicalValue(base, canonicalPath));
-      return setCanonicalValue(base, canonicalPath, { ...current, ...patch });
+      const current = resolveDenaliLocationZoneFromStorage(
+        getCanonicalValue(base, canonicalPath),
+        getCanonicalValue(base, nestedPath)
+      );
+      const next = toPersistableDenaliLocationData({ ...current, ...patch });
+      const withRoot = setCanonicalValue(base, canonicalPath, next);
+      return setCanonicalValue(withRoot, nestedPath, next);
     });
   };
 

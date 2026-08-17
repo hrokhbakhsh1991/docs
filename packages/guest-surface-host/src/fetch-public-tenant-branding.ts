@@ -23,6 +23,41 @@ const EMPTY_BRANDING: PublicTenantBrandingSnapshot = {
   defaultLocale: null,
 };
 
+/** Last successful GET per branding host — fail-soft when the API blips (BUG-8). */
+const lastSuccessfulBrandingByHost = new Map<string, PublicTenantBrandingSnapshot>();
+
+export function resetPublicTenantBrandingSnapshotCacheForTests(): void {
+  lastSuccessfulBrandingByHost.clear();
+}
+
+function snapshotFromBody(body: {
+  displayName?: string | null;
+  primaryColor?: string | null;
+  logoUrl?: string | null;
+  defaultLocale?: string | null;
+  marketingHeroUrl?: string | null;
+}): PublicTenantBrandingSnapshot {
+  return {
+    displayName: body.displayName?.trim() || null,
+    primaryColor: body.primaryColor?.trim() || null,
+    logoUrl: body.logoUrl?.trim() || null,
+    defaultLocale: body.defaultLocale?.trim() || null,
+    marketingHeroUrl: body.marketingHeroUrl?.trim() || null,
+  };
+}
+
+function rememberSuccessfulSnapshot(
+  brandingHost: string,
+  snapshot: PublicTenantBrandingSnapshot
+): PublicTenantBrandingSnapshot {
+  lastSuccessfulBrandingByHost.set(brandingHost, snapshot);
+  return snapshot;
+}
+
+function fallbackSnapshot(brandingHost: string): PublicTenantBrandingSnapshot {
+  return lastSuccessfulBrandingByHost.get(brandingHost) ?? EMPTY_BRANDING;
+}
+
 /** Server-only — guest-safe tenant chrome from `GET /public/tenant-branding` (G-BOOT-05). */
 export async function fetchPublicTenantBrandingForHost(
   host: string,
@@ -41,7 +76,7 @@ export async function fetchPublicTenantBrandingForHost(
     };
     const res = await fetch(url, init);
     if (!res.ok) {
-      return EMPTY_BRANDING;
+      return fallbackSnapshot(brandingHost);
     }
     const body = (await res.json()) as {
       displayName?: string | null;
@@ -50,14 +85,8 @@ export async function fetchPublicTenantBrandingForHost(
       defaultLocale?: string | null;
       marketingHeroUrl?: string | null;
     };
-    return {
-      displayName: body.displayName?.trim() || null,
-      primaryColor: body.primaryColor?.trim() || null,
-      logoUrl: body.logoUrl?.trim() || null,
-      defaultLocale: body.defaultLocale?.trim() || null,
-      marketingHeroUrl: body.marketingHeroUrl?.trim() || null,
-    };
+    return rememberSuccessfulSnapshot(brandingHost, snapshotFromBody(body));
   } catch {
-    return EMPTY_BRANDING;
+    return fallbackSnapshot(brandingHost);
   }
 }

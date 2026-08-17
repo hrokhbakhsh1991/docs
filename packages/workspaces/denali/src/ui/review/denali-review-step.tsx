@@ -7,6 +7,7 @@ import type { RenderStepPlan } from "@app-tour/platform-core";
 import { loadDenaliReviewCatalog } from "../adapters/review-catalog-fetch";
 import {
   resolveDenaliFieldLabel,
+  resolveDenaliFitnessLevelLabel,
   resolveDenaliPublishStatusLabel,
   resolveDenaliTourKindLabel,
   resolveDenaliTransportModeLabel,
@@ -15,9 +16,13 @@ import { formatDatetimeLocalLabel } from "../adapters/datetime-format";
 import type { AppLocale } from "../adapters/i18n-format";
 import { DenaliPhotoPreview } from "../components/denali-photo-preview";
 import { EquipmentCatalogAvatar } from "../components/equipment-catalog-avatar";
-import type { DenaliTourWizardDraft } from "../../draft/denali-tour-wizard-draft";
+import {
+  type DenaliTourWizardDraft,
+  getCanonicalStringValue,
+} from "../../draft/denali-tour-wizard-draft";
 import type { DenaliGearItem } from "../logic/denali-gear-types";
 import { isoToDatetimeLocalInput } from "../logic/denali-datetime-utils";
+import { resolveDenaliLocationZoneLabelKey } from "../logic/denali-location-zone-labels";
 import {
   buildDenaliReviewHero,
   buildDenaliReviewSectionsFromVisibleSteps,
@@ -57,10 +62,15 @@ function ReviewGrid({ rows }: { readonly rows: readonly DenaliReviewRow[] }) {
           <dt className="operator-review__term">{row.label}</dt>
           <dd
             className={
-              row.multiline
-                ? "operator-review__value operator-review__value--multiline"
-                : "operator-review__value"
+              [
+                "operator-review__value",
+                row.multiline ? "operator-review__value--multiline" : "",
+                row.emptyOptional ? "operator-review__value--optional-empty" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")
             }
+            {...(row.emptyOptional ? { "data-operator-review-optional-empty": "" } : {})}
           >
             {row.value}
           </dd>
@@ -353,8 +363,10 @@ export function DenaliReviewStep({
       stepLabel: (stepId) => t(`steps.${stepId}`),
       tourKindLabel: (slug) => resolveDenaliTourKindLabel(t, slug),
       transportModeLabel: (mode) => resolveDenaliTransportModeLabel(t, mode),
+      fitnessLevelLabel: (level) => resolveDenaliFitnessLevelLabel(t, level),
       publishStatusLabel: (status) => resolveDenaliPublishStatusLabel(t, status),
-      locationZoneLabel: (path) => t(`composites.locationTypes.${path}`),
+      locationZoneLabel: (path) =>
+        t(resolveDenaliLocationZoneLabelKey(path, getCanonicalStringValue(draft, "category"))),
       formatDatetime: (iso) =>
         formatDatetimeLocalLabel(isoToDatetimeLocalInput(iso), locale),
       yes: t("review.yes"),
@@ -365,8 +377,10 @@ export function DenaliReviewStep({
       dayLabel: (day) => t("review.dayLabel", { day }),
       primaryGathering: t("review.primaryGathering"),
       socialMediaTelegramAutoLabel: t("composites.socialMedia.reviewTelegramAuto"),
+      optionalEmptyValue: t("review.optionalEmpty"),
+      locale,
     };
-  }, [t, locale]);
+  }, [t, locale, draft]);
 
   const hero = useMemo(
     () => buildDenaliReviewHero(draft, catalog, labels),

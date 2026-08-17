@@ -26,4 +26,15 @@ describe("resolve-denali-registration-transport", () => {
     );
     assert.deepEqual(result, { kind: "no_car_dong" });
   });
+
+  it("DN-TR-04 bus without dongAmount rejects no_car_dong", () => {
+    assert.throws(
+      () =>
+        normalizeDenaliRegistrationTransportIntake(
+          { kind: "no_car_dong" },
+          { transport: { mode: "bus", allowPersonalCar: true, transportCostAmount: 150000 } }
+        ),
+      /DENALI_REGISTRATION_INVALID/
+    );
+  });
 });

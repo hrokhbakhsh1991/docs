@@ -38,4 +38,10 @@ describe("catalog-page-gates.spec.ts — HOME-UNIT-09", () => {
     assert.match(bffSource, /availability/);
     assert.match(bffSource, /sort/);
   });
+
+  it("BUG-14 list metadata fallback is the tours label segment", () => {
+    assert.match(source, /guestSeo\.listTitleKey/);
+    assert.match(source, /t\("nav\.tours"\)/);
+    assert.doesNotMatch(source, /`\$\{siteName\} — \$\{t\("nav\.tours"\)\}`/);
+  });
 });

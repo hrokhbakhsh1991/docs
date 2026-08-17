@@ -12,7 +12,7 @@
   "seo": {
     "homeTitle": "{siteName}",
     "homeDescription": "برنامه‌های منتشرشده {siteName} را ببینید.",
-    "toursTitle": "{siteName} — تورها",
+    "toursTitle": "تورها",
     "toursDescription": "فهرست تورهای منتشرشده {siteName}."
   },
   "nav": {
@@ -26,6 +26,7 @@
     "account": "حساب کاربری",
     "primary": "ناوبری اصلی",
     "defaultSiteName": "باشگاه",
+    "memberFallback": "عضو",
     "openMenu": "باز کردن منو",
     "closeMenu": "بستن منو",
     "skipToContent": "رفتن به محتوای اصلی"
@@ -34,7 +35,7 @@
     "title": "تورها",
     "lead": "برنامه‌های منتشرشده — فیلتر بر اساس نوع، تاریخ و سختی.",
     "empty": "هنوز تور منتشرشده‌ای وجود ندارد.",
-    "emptyFiltered": "توری با این فیلترها پیدا نشد. فیلترها را پاک کنید یا «نمایش بیشتر» را بزنید.",
+    "emptyFiltered": "توری با این فیلترها پیدا نشد. فیلترها را پاک کنید یا «بازنشانی» را بزنید.",
     "viewTour": "مشاهده تور",
     "loadMore": "نمایش بیشتر",
     "resultsCount": "{count, number} برنامه",
@@ -101,6 +102,9 @@
     "defaultTourTitle": "تور",
     "backToTours": "بازگشت به تورها",
     "register": "ثبت‌نام",
+    "continueRegister": "ادامه ثبت‌نام",
+    "viewMyRegistration": "مشاهده ثبت‌نام من",
+    "registerAnotherGuest": "ثبت‌نام مهمان دیگر",
     "signInToRegister": "قبلاً ثبت‌نام کرده‌اید؟ ورود",
     "capacity": "ظرفیت: {count, number}",
     "spotsRemaining": "{count, number} جای خالی",
@@ -109,6 +113,7 @@
     "itineraryHeading": "برنامه روزانه",
     "itineraryDay": "روز {day, number}",
     "itinerarySegments": "بخش‌های برنامه",
+    "itinerarySegmentPhotosEmpty": "عکسی برای این بخش از برنامه روزانه ثبت نشده.",
     "policiesHeading": "قوانین و شرایط",
     "cancellationDeadline": "مهلت لغو: {hours, number} ساعت قبل از حرکت",
     "cancellationPenalty": "جریمه لغو: {percent, number}٪",
@@ -472,6 +477,13 @@
       "lead": "مشاهده برنامه‌های منتشرشده",
       "cta": "مشاهده تورها"
     }
+  },
+  "pageNotFound": {
+    "title": "صفحه یافت نشد",
+    "body": "این صفحه وجود ندارد یا در این باشگاه منتشر نشده است.",
+    "back": "بازگشت به صفحه اصلی",
+    "metadataTitle": "صفحه یافت نشد",
+    "metadataDescription": "این صفحه وجود ندارد."
   },
   "notFound": {
     "title": "تور یافت نشد",

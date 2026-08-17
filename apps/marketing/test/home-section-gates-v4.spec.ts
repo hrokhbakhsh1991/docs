@@ -176,5 +176,12 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
       /HomeHeroMountainStageClient/
     );
+    const heroMedia = readFileSync(
+      join(repoRoot, "apps/marketing/src/home/hero-static/home-hero-carousel-media.tsx"),
+      "utf8"
+    );
+    assert.match(heroMedia, /fetchPriority=\{index === 0 \? "high" : "low"\}/);
+    assert.match(heroMedia, /loading=\{index === 0 \? "eager" : "lazy"\}/);
+    assert.doesNotMatch(heroMedia, /from "next\/image"/);
   });
 });

@@ -1,6 +1,7 @@
 import type { PublicCatalogTransportSnapshot } from "@app-tour/workspace-sdk";
 import { isPublicCatalogOrganizedTransportMode } from "@app-tour/workspace-sdk";
 
+import { DenaliRegistrationInvalidError } from "./errors/denali-registration-invalid.error";
 import type {
   DenaliRegistrationTransportIntake,
   DenaliRegistrationTransportKind,
@@ -26,10 +27,10 @@ export function normalizeDenaliRegistrationTransportIntake(
 
   if (mode === "shared_cars") {
     if (input === undefined) {
-      throw new Error("DENALI_REGISTRATION_INVALID");
+      throw new DenaliRegistrationInvalidError();
     }
     if (input.kind === "primary") {
-      throw new Error("DENALI_REGISTRATION_INVALID");
+      throw new DenaliRegistrationInvalidError();
     }
   } else if (!allowPersonalCar) {
     return { kind: "primary" };
@@ -39,13 +40,13 @@ export function normalizeDenaliRegistrationTransportIntake(
 
   const kind = input?.kind;
   if (kind === undefined) {
-    throw new Error("DENALI_REGISTRATION_INVALID");
+    throw new DenaliRegistrationInvalidError();
   }
 
   if (kind === "personal_car") {
     const occupants = input.personalCarOccupants;
     if (occupants !== 1 && occupants !== 2 && occupants !== 3) {
-      throw new Error("DENALI_REGISTRATION_INVALID");
+      throw new DenaliRegistrationInvalidError();
     }
     return { kind: "personal_car", personalCarOccupants: occupants };
   }
@@ -53,7 +54,7 @@ export function normalizeDenaliRegistrationTransportIntake(
   if (kind === "no_car_dong") {
     const dongAmount = transport?.dongAmount;
     if (dongAmount === null || dongAmount === undefined || dongAmount <= 0) {
-      throw new Error("DENALI_REGISTRATION_INVALID");
+      throw new DenaliRegistrationInvalidError();
     }
     return { kind: "no_car_dong" };
   }
@@ -62,7 +63,7 @@ export function normalizeDenaliRegistrationTransportIntake(
     return { kind: "no_car_acquaintance" };
   }
 
-  throw new Error("DENALI_REGISTRATION_INVALID");
+  throw new DenaliRegistrationInvalidError();
 }
 
 export function requiresDenaliRegistrationTransportDeclaration(
@@ -92,10 +93,7 @@ export function estimateDenaliRegistrationPricePerPerson(input: {
 
   switch (input.intake.kind) {
     case "primary":
-      if (
-        transport !== undefined &&
-        isPublicCatalogOrganizedTransportMode(transport.mode)
-      ) {
+      if (transport !== undefined && isPublicCatalogOrganizedTransportMode(transport.mode)) {
         return base + transportCost;
       }
       return base;

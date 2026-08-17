@@ -52,4 +52,53 @@ describe("prepare-denali-submit-artifact.spec.ts — Phase 11.10", () => {
     const participants = doc.data.participants as Record<string, unknown>;
     assert.equal((participants.gearItems as unknown[]).length, 1);
   });
+
+  it("DEN-CAMP-PERSIST-01 copies campPoint onto tripDetails.overview and keeps trailDistanceKm", () => {
+    const form = buildDenaliTourCreateDefaultValues() as Record<string, unknown>;
+    const campPoint = {
+      label: "کمپ آبشار اسکلیم",
+      address: "آبشار آهکی اسکلیم, لفور",
+      latitude: 36.16399,
+      longitude: 52.76416,
+    };
+    form.basicInfo = {
+      ...(form.basicInfo as Record<string, unknown>),
+      campPoint,
+    };
+    form.tripDetails = {
+      ...(form.tripDetails as Record<string, unknown>),
+      overview: {
+        trailDistanceKm: 8,
+        customServiceLabels: [],
+      },
+    };
+
+    const data = prepareDenaliSubmitArtifact(form);
+    const overview = (data.tripDetails as Record<string, unknown>).overview as Record<
+      string,
+      unknown
+    >;
+    assert.deepEqual(overview.campPoint, campPoint);
+    assert.equal(overview.trailDistanceKm, 8);
+    assert.deepEqual(data.campPoint, campPoint);
+    assert.equal("osmName" in (overview.campPoint as object), false);
+  });
+
+  it("DEN-CAMP-PERSIST-01 copies summit and end ghosts onto overview", () => {
+    const form = buildDenaliTourCreateDefaultValues() as Record<string, unknown>;
+    const summitPoint = { label: "نقطه اوج مسیر" };
+    const endPoint = { address: "ترمینال شرق", latitude: 35.72, longitude: 51.52 };
+    form.basicInfo = {
+      ...(form.basicInfo as Record<string, unknown>),
+      summitPoint,
+      endPoint,
+    };
+
+    const data = prepareDenaliSubmitArtifact(form);
+    const overview = (data.tripDetails as Record<string, unknown> | undefined)?.overview as
+      | Record<string, unknown>
+      | undefined;
+    assert.deepEqual(overview?.summitPoint, summitPoint);
+    assert.deepEqual(overview?.endPoint, endPoint);
+  });
 });

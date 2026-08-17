@@ -12,7 +12,7 @@
   "seo": {
     "homeTitle": "{siteName}",
     "homeDescription": "Browse published programs from {siteName}.",
-    "toursTitle": "{siteName} — Tours",
+    "toursTitle": "Tours",
     "toursDescription": "Published tour catalog for {siteName}."
   },
   "nav": {
@@ -26,6 +26,7 @@
     "account": "Account",
     "primary": "Primary navigation",
     "defaultSiteName": "Club",
+    "memberFallback": "Member",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "skipToContent": "Skip to main content"
@@ -34,7 +35,7 @@
     "title": "Tours",
     "lead": "Browse published programs — filter by type, dates, and difficulty.",
     "empty": "No published tours yet.",
-    "emptyFiltered": "No tours match your filters. Try clearing filters or load more.",
+    "emptyFiltered": "No tours match your filters. Clear the filters or tap Reset.",
     "viewTour": "View tour",
     "loadMore": "Load more",
     "resultsCount": "{count, number} programs",
@@ -101,6 +102,9 @@
     "defaultTourTitle": "Tour",
     "backToTours": "Back to tours",
     "register": "Register",
+    "continueRegister": "Continue registration",
+    "viewMyRegistration": "View my registration",
+    "registerAnotherGuest": "Register another guest",
     "signInToRegister": "Already registered? Sign in",
     "capacity": "Capacity: {count}",
     "spotsRemaining": "{count} spots remaining",
@@ -109,6 +113,7 @@
     "itineraryHeading": "Day-by-day program",
     "itineraryDay": "Day {day, number}",
     "itinerarySegments": "Program sections",
+    "itinerarySegmentPhotosEmpty": "No photos for this program section.",
     "policiesHeading": "Policies & terms",
     "cancellationDeadline": "Cancellation deadline: {hours} hours before departure",
     "cancellationPenalty": "Cancellation penalty: {percent}%",
@@ -472,6 +477,13 @@
       "lead": "View published programs",
       "cta": "Browse tours"
     }
+  },
+  "pageNotFound": {
+    "title": "Page not found",
+    "body": "This page does not exist or is not published on this club.",
+    "back": "Back to home",
+    "metadataTitle": "Page not found",
+    "metadataDescription": "This page does not exist."
   },
   "notFound": {
     "title": "Tour not found",

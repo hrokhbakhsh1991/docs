@@ -32,6 +32,7 @@ export type DenaliStructuralInvariant =
 export type DenaliGlobalStructuralInvariant =
   | { readonly kind: "syncProgramItineraryToDayCount" }
   | { readonly kind: "pruneItinerarySegmentPhotoIds" }
+  | { readonly kind: "omitEmptyGatheringPoints" }
   | {
       readonly kind: "clearFieldWhenTransportMode";
       readonly targetCanonical: string;

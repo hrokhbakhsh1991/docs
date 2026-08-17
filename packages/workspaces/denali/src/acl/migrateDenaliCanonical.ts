@@ -4,6 +4,13 @@ import { DENALI_FIELD_DEFINITIONS } from "../field-registry/denaliFieldRegistryD
 import { DENALI_CANONICAL_OBJECT_ROOTS, buildDenaliWizardRoots } from "../denali-plugin-adapter";
 import { stripSocialMediaLinkForSubmit } from "../ui/logic/denali-social-media-link-logic";
 import {
+  DENALI_LOCATION_ZONE_GHOST_PATHS,
+  denaliLocationZoneOverviewPath,
+  isDenaliLocationDataPopulated,
+  parseDenaliLocationData,
+  toPersistableDenaliLocationData,
+} from "../ui/logic/denali-location-types";
+import {
   normalizeLegacyTripDetails,
   type LegacyTripDetailsBlob,
 } from "./normalizeLegacyTripDetails";
@@ -98,7 +105,37 @@ export function prepareDenaliSubmitArtifact(
   if (typeof link === "string") {
     writePath(data, "socialMediaLink", stripSocialMediaLinkForSubmit(link));
   }
+  copyDenaliLocationZoneGhostsOntoOverview(data, form);
   return data;
+}
+
+/**
+ * ED-CAMP-PERSIST-01 — form project writes root ghosts then replaces `tripDetails`.
+ * Copy populated summit/camp/end onto overview after that replace so API ghost
+ * strip does not drop the OSM zone.
+ */
+function copyDenaliLocationZoneGhostsOntoOverview(
+  data: Record<string, unknown>,
+  form: Record<string, unknown>
+): void {
+  for (const zone of DENALI_LOCATION_ZONE_GHOST_PATHS) {
+    const fromForm = parseDenaliLocationData(readPath(form, `basicInfo.${zone}`));
+    const fromRoot = parseDenaliLocationData(readPath(data, zone));
+    const fromOverview = parseDenaliLocationData(
+      readPath(data, denaliLocationZoneOverviewPath(zone))
+    );
+    const persistable = toPersistableDenaliLocationData(
+      isDenaliLocationDataPopulated(fromForm)
+        ? fromForm
+        : isDenaliLocationDataPopulated(fromRoot)
+          ? fromRoot
+          : fromOverview
+    );
+    if (persistable === undefined) {
+      continue;
+    }
+    writePath(data, denaliLocationZoneOverviewPath(zone), persistable);
+  }
 }
 
 function projectLegacyFormToCanonicalData(

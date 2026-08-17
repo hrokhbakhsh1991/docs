@@ -4,6 +4,52 @@ import { DenaliRegistrationNotFoundError } from "./errors/denali-registration-no
 import type { BookingPublicPort } from "./ports/public-booking.port";
 import type { DenaliTourStorePort } from "./ports/tour-store.port";
 
+export type DenaliOwnedTransportKind =
+  | "primary"
+  | "personal_car"
+  | "no_car_dong"
+  | "no_car_acquaintance";
+
+const OWNED_TRANSPORT_KINDS = new Set<string>([
+  "primary",
+  "personal_car",
+  "no_car_dong",
+  "no_car_acquaintance",
+]);
+
+export type DenaliOwnedTransportScalars = {
+  readonly transportKind?: DenaliOwnedTransportKind;
+  readonly personalCarOccupants?: 1 | 2 | 3;
+};
+
+/**
+ * Safe transport scalars for member BFF owned detail (BK-SAFE-01).
+ * Never return the raw `registrationIntake` blob to portal.
+ */
+export function readDenaliOwnedTransport(intake: unknown): DenaliOwnedTransportScalars {
+  if (intake === null || typeof intake !== "object") {
+    return {};
+  }
+  const transport = (intake as Record<string, unknown>).transport;
+  if (transport === null || typeof transport !== "object") {
+    return {};
+  }
+  const rec = transport as Record<string, unknown>;
+  const kind = rec.kind;
+  if (typeof kind !== "string" || !OWNED_TRANSPORT_KINDS.has(kind)) {
+    return {};
+  }
+  const transportKind = kind as DenaliOwnedTransportKind;
+  if (transportKind !== "personal_car") {
+    return { transportKind };
+  }
+  const occupants = rec.personalCarOccupants;
+  if (occupants === 1 || occupants === 2 || occupants === 3) {
+    return { transportKind, personalCarOccupants: occupants };
+  }
+  return { transportKind };
+}
+
 export type DenaliRegistrationOwnedDetail = {
   readonly id: string;
   readonly status: string;
@@ -15,6 +61,8 @@ export type DenaliRegistrationOwnedDetail = {
   readonly departureAt: string;
   readonly submittedAt: string;
   readonly partySize: number;
+  readonly transportKind?: DenaliOwnedTransportKind;
+  readonly personalCarOccupants?: 1 | 2 | 3;
   readonly dueCurrency?: string;
   readonly dueTotalMinor?: string;
   readonly dueLines?: readonly DenaliRegistrationDueLine[];
@@ -41,6 +89,8 @@ export async function getDenaliRegistrationOwned(params: {
     throw new DenaliRegistrationNotFoundError();
   }
 
+  const transportScalars = readDenaliOwnedTransport(owned.registrationIntake);
+
   const base: DenaliRegistrationOwnedDetail = {
     id: owned.id,
     status: owned.status,
@@ -52,6 +102,7 @@ export async function getDenaliRegistrationOwned(params: {
     departureAt: owned.departureAt,
     submittedAt: owned.submittedAt,
     partySize: owned.partySize,
+    ...transportScalars,
   };
 
   const tour = await params.store.findFirst({

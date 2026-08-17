@@ -12,15 +12,28 @@ export type TourSeatsFormatLabels = {
   readonly open: (accepted: number) => string;
 };
 
+/** Denali stores toman digits in ISO `IRR`. Other workspaces keep Intl for `IRR`. */
+const OPERATOR_IRR_TOMAN_PLUGIN_IDS = new Set<string>(["denali"]);
+
+export function operatorIrrUsesTomanLabel(pluginId: string | undefined): boolean {
+  return pluginId !== undefined && OPERATOR_IRR_TOMAN_PLUGIN_IDS.has(pluginId);
+}
+
 export function formatTourPrice(
   amount: number | null,
   currency: string | null,
-  locale: AppLocale = "en"
+  locale: AppLocale = "en",
+  pluginId?: string
 ): string | null {
   if (amount === null) {
     return null;
   }
   const code = currency?.trim().toUpperCase() ?? "USD";
+  // ED-CURR-01 — Denali operator amounts are toman; ISO storage stays IRR. Do not ×10.
+  if (code === "IRR" && operatorIrrUsesTomanLabel(pluginId)) {
+    const unit = locale === "fa" ? "تومان" : "toman";
+    return `${formatLocalizedNumber(amount, locale)} ${unit}`;
+  }
   try {
     return new Intl.NumberFormat(INTL_LOCALE[locale], {
       style: "currency",

@@ -10,17 +10,37 @@ type Props = {
   readonly allowPersonalCar: boolean;
   readonly sharedCarsMode: boolean;
   readonly dongAvailable: boolean;
+  readonly initialKind?: TransportKind;
+  readonly initialOccupants?: 1 | 2 | 3;
 };
+
+function resolveAmendKind(initialKind: TransportKind | undefined, sharedCarsMode: boolean): TransportKind {
+  if (
+    initialKind === "primary" ||
+    initialKind === "personal_car" ||
+    initialKind === "no_car_dong" ||
+    initialKind === "no_car_acquaintance"
+  ) {
+    return initialKind;
+  }
+  return sharedCarsMode ? "personal_car" : "primary";
+}
+
+function resolveAmendOccupants(initialOccupants: 1 | 2 | 3 | undefined): 1 | 2 | 3 {
+  return initialOccupants === 2 || initialOccupants === 3 ? initialOccupants : 1;
+}
 
 export function MemberIntakeAmendForm({
   registrationId,
   allowPersonalCar,
   sharedCarsMode,
   dongAvailable,
+  initialKind,
+  initialOccupants,
 }: Props) {
   const t = useTranslations("portalMember.intakeAmend");
-  const [kind, setKind] = useState<TransportKind>(sharedCarsMode ? "personal_car" : "primary");
-  const [occupants, setOccupants] = useState<1 | 2 | 3>(1);
+  const [kind, setKind] = useState<TransportKind>(() => resolveAmendKind(initialKind, sharedCarsMode));
+  const [occupants, setOccupants] = useState<1 | 2 | 3>(() => resolveAmendOccupants(initialOccupants));
   const [phase, setPhase] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   if (!allowPersonalCar && !sharedCarsMode) {

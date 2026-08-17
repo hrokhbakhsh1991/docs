@@ -9,4 +9,9 @@ describe("workspace-default-tenant-branding.spec.ts", () => {
     assert.equal(theme.primaryColor, "#059669");
     assert.equal(theme.cssVariables?.["--color-primary"], "#059669");
   });
+
+  it("GL-BRAND-02 denali workspace-type default has no club displayName", () => {
+    const theme = resolveDefaultTenantBranding("denali");
+    assert.equal(theme.displayName, undefined);
+  });
 });

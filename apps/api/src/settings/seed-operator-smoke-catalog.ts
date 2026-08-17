@@ -33,6 +33,9 @@ export const DENALI_DEV_SMOKE_CATALOG_IDS = {
   destinationDamavand: "00000000-0000-4000-8000-000000000705",
   destinationAlamKuh: "00000000-0000-4000-8000-000000000706",
   theme: "00000000-0000-4000-8000-000000000704",
+  themeNatureCamping: "00000000-0000-4000-8000-000000000707",
+  equipmentTent: "00000000-0000-4000-8000-000000000708",
+  equipmentSleepingBag: "00000000-0000-4000-8000-000000000709",
 } as const;
 
 /** Minimum active destinations for wizard destination combobox smoke (TW-05). */
@@ -53,6 +56,10 @@ const DENALI_CLUB_EQUIPMENT_NAME = "عصای کوهنوردی";
 const DENALI_CLUB_THEME_NAME = "کوهستان";
 /** Keep stable slug across renames so existing themeId FKs stay valid. */
 const DENALI_CLUB_THEME_SLUG = "smoke-mountain";
+const DENALI_CLUB_NATURE_THEME_NAME = "طبیعت / کمپینگ";
+const DENALI_CLUB_NATURE_THEME_SLUG = "nature-camping";
+const DENALI_CLUB_TENT_NAME = "چادر";
+const DENALI_CLUB_SLEEPING_BAG_NAME = "کیسه خواب";
 
 function resolveSmokeCatalogIds(
   tenantId: string
@@ -142,6 +149,62 @@ function buildSmokeTourTheme(tenantId: string): TourThemeResource {
   };
 }
 
+function buildDenaliClubNatureCampingTheme(tenantId: string): TourThemeResource {
+  const ids = DENALI_DEV_SMOKE_CATALOG_IDS;
+  return {
+    id: ids.themeNatureCamping,
+    tenantId,
+    name: DENALI_CLUB_NATURE_THEME_NAME,
+    slug: DENALI_CLUB_NATURE_THEME_SLUG,
+    formProfile: "nature_trip",
+    isActive: true,
+    sortOrder: 1,
+    createdAt: ISO_NOW,
+    updatedAt: ISO_NOW,
+  };
+}
+
+function buildDenaliClubCampingEquipment(tenantId: string): readonly EquipmentResource[] {
+  const ids = DENALI_DEV_SMOKE_CATALOG_IDS;
+  return [
+    {
+      id: ids.equipmentTent,
+      tenantId,
+      name: DENALI_CLUB_TENT_NAME,
+      category: "nature",
+      iconKey: "tent",
+      themeIds: [ids.themeNatureCamping],
+      sortOrder: 1,
+      createdAt: ISO_NOW,
+      updatedAt: ISO_NOW,
+    },
+    {
+      id: ids.equipmentSleepingBag,
+      tenantId,
+      name: DENALI_CLUB_SLEEPING_BAG_NAME,
+      category: "nature",
+      iconKey: "sleeping_bag",
+      themeIds: [ids.themeNatureCamping],
+      sortOrder: 2,
+      createdAt: ISO_NOW,
+      updatedAt: ISO_NOW,
+    },
+  ];
+}
+
+async function ensureDenaliDevSmokeNatureCampingCatalog(
+  repo: SettingsResourcesRepository,
+  tenantId: string
+): Promise<void> {
+  if (tenantId !== DENALI_SMOKE_TENANT_ID) {
+    return;
+  }
+  await repo.seedTourTheme(buildDenaliClubNatureCampingTheme(tenantId));
+  for (const item of buildDenaliClubCampingEquipment(tenantId)) {
+    await repo.seedEquipment(item);
+  }
+}
+
 async function ensureDenaliDevSmokeDestinations(
   repo: SettingsResourcesRepository,
   tenantId: string
@@ -191,6 +254,7 @@ async function ensureDenaliDevSmokeCatalogDisplayNames(
   }
   await repo.seedEquipment(buildSmokeEquipment(tenantId));
   await repo.seedTourTheme(buildSmokeTourTheme(tenantId));
+  await ensureDenaliDevSmokeNatureCampingCatalog(repo, tenantId);
 }
 
 export async function seedOperatorSmokeCatalog(
@@ -246,4 +310,5 @@ export async function seedOperatorSmokeCatalog(
     await repo.seedDestination(destination);
   }
   await repo.seedTourTheme(theme);
+  await ensureDenaliDevSmokeNatureCampingCatalog(repo, tenantId);
 }

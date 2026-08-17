@@ -21,6 +21,7 @@ const LABELS: DenaliReviewFormatLabels = {
   stepLabel: (stepId) => stepId,
   tourKindLabel: (slug) => slug,
   transportModeLabel: (mode) => mode,
+  fitnessLevelLabel: (level) => level,
   publishStatusLabel: (status) => status,
   locationZoneLabel: (path) => path,
   // Identity stub — production wires isoToDatetimeLocalInput + formatDatetimeLocalLabel.
@@ -33,6 +34,7 @@ const LABELS: DenaliReviewFormatLabels = {
   dayLabel: (day) => `day ${day}`,
   primaryGathering: "primary",
   socialMediaTelegramAutoLabel: "Telegram — auto",
+  optionalEmptyValue: "Not selected (optional)",
 };
 
 describe("denali-review-format-logic.spec.ts", () => {
@@ -131,6 +133,7 @@ describe("denali-review-format-logic.spec.ts", () => {
     assert.deepEqual(stepIds, [
       "denali_basic",
       "denali_photos",
+      "denali_program",
       "denali_logistics",
       "denali_pricing",
     ]);
@@ -329,13 +332,69 @@ describe("denali-review-format-logic.spec.ts", () => {
       },
       contentSteps,
       EMPTY_CATALOG,
-      LABELS
+      { ...LABELS, locale: "en" }
     );
     const logistics = sections.find((section) => section.stepId === "denali_logistics");
     assert.ok(logistics?.rows.some((row) => row.canonicalPath === "transport.transportCost"));
     assert.equal(
       logistics?.rows.find((row) => row.canonicalPath === "transport.transportCost")?.value,
-      "120000"
+      "120,000 toman"
     );
+  });
+
+  it("WEB-DENALI-REVIEW-09 does not echo UUID destination/leader when catalog is empty (ED-REV-UUID-01)", () => {
+    const destId = "00000000-0000-4000-8000-000000000705";
+    const leaderId = "00000000-0000-4000-8000-000000000101";
+    const empty: DenaliReviewCatalog = {
+      destinationNameById: new Map(),
+      leaderNameById: new Map(),
+      themeNameById: new Map(),
+      languageNameById: new Map(),
+    };
+    const draft = {
+      data: {
+        title: "Damavand",
+        category: "mountain_multi",
+        destinationId: destId,
+        leaderUserIds: [leaderId],
+        startDateTime: "2026-08-17T06:00:00.000Z",
+      },
+    };
+    const hero = buildDenaliReviewHero(draft, empty, LABELS);
+    assert.equal(hero.destination, "");
+    const sections = buildDenaliReviewSections(draft, empty, LABELS);
+    const basic = sections.find((section) => section.stepId === "denali_basic");
+    assert.equal(
+      basic?.rows.some((row) => row.value.includes(destId) || row.value.includes(leaderId)),
+      false
+    );
+  });
+
+  it("WEB-DENALI-REVIEW-11 optional empty rows for skipped gear, services, and guide languages", () => {
+    const sections = buildDenaliReviewSections(
+      {
+        data: {
+          title: "Skip optionals",
+          category: "mountain_day",
+          transport: { mode: "none" },
+          program: { guideLanguageIds: [] },
+          participants: { gearItems: [] },
+        },
+      },
+      EMPTY_CATALOG,
+      LABELS
+    );
+    const program = sections.find((section) => section.stepId === "denali_program");
+    const language = program?.rows.find((row) => row.canonicalPath === "program.guideLanguageIds");
+    assert.equal(language?.emptyOptional, true);
+    assert.equal(language?.value, "Not selected (optional)");
+
+    const logistics = sections.find((section) => section.stepId === "denali_logistics");
+    const gear = logistics?.rows.find((row) => row.canonicalPath === "participants.gearItems");
+    const services = logistics?.rows.find(
+      (row) => row.canonicalPath === "tripDetails.logistics.includedServices"
+    );
+    assert.equal(gear?.emptyOptional, true);
+    assert.equal(services?.emptyOptional, true);
   });
 });

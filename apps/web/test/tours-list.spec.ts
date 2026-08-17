@@ -138,6 +138,18 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.equal(formatTourSeats({ acceptedCount: 3, totalCapacity: 12 }), "3/12 seats");
   });
 
+  it("ED-CURR-01 Denali IRR operator price uses toman label without conversion", () => {
+    assert.equal(formatTourPrice(1200, "IRR", "en", "denali"), "1,200 toman");
+    assert.equal(
+      formatTourPrice(1200, "IRR", "fa", "denali"),
+      `${formatLocalizedNumber(1200, "fa")} تومان`
+    );
+    assert.equal(formatTourPrice(1200, "IRR", "fa", "denali")?.includes("ریال") ?? true, false);
+    assert.equal(formatTourPrice(1200, "USD", "en", "denali"), "$1,200");
+    const harborIrr = formatTourPrice(1200, "IRR", "en", "harbor");
+    assert.equal(harborIrr?.includes("toman") ?? true, false);
+  });
+
   it("ED-TZ-01 formatTourDeparture uses local wall clock (not naive ISO-Z digits)", async () => {
     const { formatDatetimeLocalLabel, isoToDatetimeLocalInput } = await import(
       "../src/i18n/datetime-format"

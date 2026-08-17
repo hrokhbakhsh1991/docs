@@ -22,6 +22,8 @@ type DenaliLocationAddressPickerProps = {
   readonly testIdKey: string;
   readonly value: DenaliLocationAddressValue;
   readonly onChange: (_patch: Partial<DenaliLocationAddressValue>) => void;
+  /** Optional place metadata (title). Must not be mixed into persisted location value. */
+  readonly onPlaceSelect?: (place: GeocodingSearchResult) => void;
   readonly label?: string;
   readonly hint?: string;
   /**
@@ -55,6 +57,7 @@ export function DenaliLocationAddressPicker({
   testIdKey,
   value,
   onChange,
+  onPlaceSelect,
   label,
   hint,
   mapMounted = true,
@@ -99,12 +102,13 @@ export function DenaliLocationAddressPicker({
       };
       setMapValue({ latitude: item.latitude, longitude: item.longitude });
       onChange(next);
+      onPlaceSelect?.(item);
       setQuery(item.addressText);
       clearResults();
       setDropdownOpen(false);
       setReversePending(false);
     },
-    [clearResults, onChange, setQuery]
+    [clearResults, onChange, onPlaceSelect, setQuery]
   );
 
   const handleSearchChange = useCallback(

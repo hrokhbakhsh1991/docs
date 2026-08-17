@@ -17,18 +17,20 @@ type CatalogItinerarySectionProps = {
   readonly locale: AppLocale;
   readonly sectionId?: string;
   readonly useAccordion?: boolean;
+  /** ED-PHOTO-EMPTY-01 — shown when a segment has no public photoUrls. */
+  readonly segmentPhotosEmpty?: string;
 };
 
 function CatalogItineraryDayBody({
   day,
-  dayLabel: _dayLabel,
   segmentsHeading,
   locale,
+  segmentPhotosEmpty,
 }: {
   readonly day: PublicCatalogItineraryDay;
-  readonly dayLabel: (dayNumber: number) => string;
   readonly segmentsHeading: string;
   readonly locale: AppLocale;
+  readonly segmentPhotosEmpty?: string;
 }) {
   const localize = (text: string) => toLocalizedDigits(text, locale);
 
@@ -57,6 +59,13 @@ function CatalogItineraryDayBody({
                         </li>
                       ))}
                     </ul>
+                  ) : segmentPhotosEmpty != null && segmentPhotosEmpty.length > 0 ? (
+                    <p
+                      data-marketing-catalog-segment-photos-empty
+                      role="status"
+                    >
+                      {segmentPhotosEmpty}
+                    </p>
                   ) : null}
                 </li>
               );
@@ -76,6 +85,7 @@ export function CatalogItinerarySection({
   locale,
   sectionId,
   useAccordion = false,
+  segmentPhotosEmpty,
 }: CatalogItinerarySectionProps) {
   if (days.length === 0) {
     return null;
@@ -94,9 +104,9 @@ export function CatalogItinerarySection({
         const body = (
           <CatalogItineraryDayBody
             day={day}
-            dayLabel={dayLabel}
             segmentsHeading={segmentsHeading}
             locale={locale}
+            segmentPhotosEmpty={segmentPhotosEmpty}
           />
         );
 

@@ -1,11 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   fetchDenaliCatalogJsonWithSoftRetry,
   isDenaliCatalogHttpSoftFail,
   isDenaliCatalogSoftFail,
 } from "../src/ui/adapters/catalog-soft-fail.ts";
+
+const SRC_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../src");
 
 describe("catalog-soft-fail (ED-UX-01 / ED-UX-02)", () => {
   it("DN-CAT-SOFT-01 treats 5xx and 429 as soft-fail", () => {
@@ -61,5 +66,40 @@ describe("catalog-soft-fail (ED-UX-01 / ED-UX-02)", () => {
       /TOUR_THEMES_HTTP_404/
     );
     assert.equal(calls, 1);
+  });
+
+  it("ED-CAT-RETRY-01 degraded notice exposes retry control", () => {
+    const src = readFileSync(join(SRC_ROOT, "ui/components/denali-catalog-load-notice.tsx"), "utf8");
+    assert.match(src, /denali-catalog-soft-fail-retry/);
+    assert.match(src, /onRetry/);
+    assert.match(src, /composites\.catalog\.retry/);
+  });
+
+  it("ED-CAT-RETRY-01 catalog pickers pass onRetry={reload}", () => {
+    const files = [
+      "ui/fields/denali-leader-user-ids-field.tsx",
+      "ui/fields/denali-destination-field.tsx",
+      "ui/fields/denali-gear-field.tsx",
+      "ui/fields/denali-guide-language-ids-field.tsx",
+      "ui/fields/denali-program-content-field.tsx",
+      "ui/components/denali-itinerary-segment-destination-field.tsx",
+    ];
+    for (const relative of files) {
+      const src = readFileSync(join(SRC_ROOT, relative), "utf8");
+      assert.match(src, /onRetry=\{reload\}/, relative);
+    }
+  });
+});
+
+describe("ED-PHOTO-A11Y-01", () => {
+  it("upload error alert is outside the file input label", () => {
+    const src = readFileSync(join(SRC_ROOT, "ui/fields/denali-photos-field.tsx"), "utf8");
+    const fileLabel = src.match(
+      /<label className="denali-wizard-composite__field">\s*<span>\{t\("composites\.photos\.uploadImage"\)\}<\/span>[\s\S]*?<\/label>/
+    );
+    assert.ok(fileLabel, "expected uploadImage file label");
+    assert.equal(/role="alert"/.test(fileLabel[0] ?? ""), false);
+    assert.match(src, /role="alert"/);
+    assert.match(src, /photoUploadErrors\[photoId\]/);
   });
 });

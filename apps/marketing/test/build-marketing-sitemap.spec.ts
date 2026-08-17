@@ -46,18 +46,33 @@ describe("build-marketing-sitemap", () => {
     assert.equal(entries[1]?.priority, 0.7);
   });
 
-  it("MKT-34b sitemap includes cover image URLs for tour detail entries", () => {
+  it("MKT-34b sitemap includes reachable cover image URLs for tour detail entries", () => {
     const entries = buildMarketingSitemapEntries({
       host: "denali.localhost:3002",
       tours: [
         {
           tourId: "tour-a",
-          coverImageUrl: "https://cdn.example/cover.jpg",
+          coverImageUrl: "https://cdn.example.com/cover.jpg",
         },
       ],
     });
 
-    assert.deepEqual(entries[1]?.images, ["https://cdn.example/cover.jpg"]);
+    assert.deepEqual(entries[1]?.images, ["https://cdn.example.com/cover.jpg"]);
+  });
+
+  it("MKT-34c sitemap omits unreachable smoke cover URLs", () => {
+    const entries = buildMarketingSitemapEntries({
+      host: "denali.localhost:3002",
+      tours: [
+        {
+          tourId: "tour-a",
+          coverImageUrl: "https://cdn.example/operator-smoke-cover.jpg",
+        },
+      ],
+    });
+
+    assert.equal(entries[1]?.url, "http://denali.localhost:3002/tours/tour-a");
+    assert.equal(entries[1]?.images, undefined);
   });
 
   it("MKT-30 robots disallow all when indexing disabled", () => {

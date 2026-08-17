@@ -17,7 +17,7 @@ status: CLOSED_INTENTIONAL
 | **UI component** | `apps/portal/src/features/auth/otp-segment-input.tsx` | Per-app thin shell |
 | **Hook** | `data-otp-segment-input` on root element | Both apps — Playwright contract |
 
-**Rationale:** Operator login and guest portal registration have different layout/a11y (admin chrome vs guest flow). P6 shares **normalization + segment behavior** only; full `OtpSegmentInput` package primitive is **post-P6** optional polish.
+**Rationale:** Operator login and guest portal registration have different layout/a11y (admin chrome vs guest flow). P6 shares **normalization + segment behavior** only; full `OtpSegmentInput` package primitive is **post-P6** optional polish. Live guest OTP is `catalog-registration-flow-ui`; the portal thin shell must still follow the same clipped-sink + i18n cell labels (`catalogRegistration.otp.*`) so a future rewire cannot revive English `Digit N`.
 
 ---
 

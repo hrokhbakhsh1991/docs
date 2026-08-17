@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  classifyIranianNationalId,
   validateMemberProfileBirthDate,
   validateMemberProfileDisplayName,
   validateMemberProfileNationalId,
@@ -38,7 +39,7 @@ describe("resolve-member-profile-capabilities", () => {
     assert.equal(typeof caps.validators.gender, "function");
     assert.equal(caps.validators.nationalId!("0013542419"), null);
     assert.equal(caps.validators.nationalId!("bad"), "PROFILE_NATIONAL_ID_INVALID");
-    assert.equal(caps.validators.nationalId!("1234567890"), "PROFILE_NATIONAL_ID_INVALID");
+    assert.equal(caps.validators.nationalId!("1234567890"), "PROFILE_NATIONAL_ID_CHECKSUM");
     assert.equal(caps.validators.birthDate!("1991-02-31"), "PROFILE_BIRTH_DATE_INVALID");
   });
 
@@ -69,9 +70,13 @@ describe("member-profile-validators", () => {
     assert.equal(validateMemberProfileNationalId(""), null);
     assert.equal(validateMemberProfileNationalId(VALID_IR_NATIONAL_ID), null);
     assert.equal(validateMemberProfileNationalId("123"), "PROFILE_NATIONAL_ID_INVALID");
-    assert.equal(validateMemberProfileNationalId("0000000000"), "PROFILE_NATIONAL_ID_INVALID");
-    assert.equal(validateMemberProfileNationalId("1111111111"), "PROFILE_NATIONAL_ID_INVALID");
-    assert.equal(validateMemberProfileNationalId("1234567890"), "PROFILE_NATIONAL_ID_INVALID");
+    assert.equal(validateMemberProfileNationalId("0000000000"), "PROFILE_NATIONAL_ID_CHECKSUM");
+    assert.equal(validateMemberProfileNationalId("1111111111"), "PROFILE_NATIONAL_ID_CHECKSUM");
+    assert.equal(validateMemberProfileNationalId("1234567890"), "PROFILE_NATIONAL_ID_CHECKSUM");
+    assert.equal(classifyIranianNationalId("123"), "format");
+    assert.equal(classifyIranianNationalId("1234567890"), "checksum");
+    assert.equal(classifyIranianNationalId(VALID_IR_NATIONAL_ID), "ok");
+    assert.equal(classifyIranianNationalId("2234567890"), "ok");
   });
 
   it("SDK-MP-VAL-02 birthDate accepts empty or real calendar date not after today", () => {

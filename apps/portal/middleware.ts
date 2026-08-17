@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { resolvePortalMemberLoginPath } from "@app-tour/guest-surface-host";
+import { resolvePortalMemberLoginPath, resolvePublicAuthCorsAllowOrigin } from "@app-tour/guest-surface-host";
 import { toCanonicalClubPortalHost } from "@app-tour/tenant-kernel";
 import { validateSessionTokenAsync } from "@app-tour/session-client";
 
@@ -11,6 +11,10 @@ import {
   setSessionCookieOnResponse,
   shouldRefreshDevMemberSessionCookieDomain,
 } from "@/auth/build-session-cookie";
+import {
+  applyPublicAuthCorsHeaders,
+  isPortalPublicAuthApiPath,
+} from "@/auth/apply-public-auth-cors";
 import { isDevWebSessionAllowed } from "@/tenant/auth-env";
 import { sessionTenantMatchesHost } from "@/tenant/session-host-binding";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
@@ -93,6 +97,22 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   const { pathname } = request.nextUrl;
   const host = resolvePortalIngressHost(request);
+  const publicAuthCorsOrigin = isPortalPublicAuthApiPath(pathname)
+    ? resolvePublicAuthCorsAllowOrigin({
+        ingressHost: host,
+        originHeader: request.headers.get("origin"),
+      })
+    : null;
+
+  if (request.method === "OPTIONS" && isPortalPublicAuthApiPath(pathname)) {
+    const preflight = new NextResponse(null, {
+      status: publicAuthCorsOrigin !== null ? 204 : 403,
+    });
+    if (publicAuthCorsOrigin !== null) {
+      applyPublicAuthCorsHeaders(preflight.headers, publicAuthCorsOrigin);
+    }
+    return preflight;
+  }
 
   const token = request.cookies.get(SESSION_TOKEN_COOKIE)?.value;
   const validation = await validateSessionTokenAsync(token);
@@ -147,6 +167,10 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     shouldRefreshDevMemberSessionCookieDomain(host)
   ) {
     setSessionCookieOnResponse(response.headers, token.trim(), host, "shared");
+  }
+
+  if (publicAuthCorsOrigin !== null) {
+    applyPublicAuthCorsHeaders(response.headers, publicAuthCorsOrigin);
   }
 
   return response;

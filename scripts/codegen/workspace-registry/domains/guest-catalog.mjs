@@ -7,6 +7,7 @@ import { assertOperatorShellManifest, assertWorkspaceCommerceManifest } from "./
 
 const CATALOG_LIST_ROUTE_KEY = /^GET \/[^/]+\/catalog$/;
 const CATALOG_DETAIL_ROUTE_KEY = /^GET \/[^/]+\/catalog\/:tourId$/;
+const REGISTRATION_FOR_TOUR_ROUTE_KEY = /^GET \/[^/]+\/registrations\/for-tour\/:tourId$/;
 
 function parseGetRoutePath(routeKey) {
   const spaceIndex = routeKey.indexOf(" ");
@@ -106,6 +107,79 @@ export function generateWorkspaceCatalogPaths(manifests) {
   return `${BANNER}
 /** Guest catalog list paths — derived from workspace.manifest.json httpRoutes. */
 export const WORKSPACE_CATALOG_LIST_PATHS: Readonly<Record<string, string>> = Object.freeze({
+${entries}
+});
+`;
+}
+
+/**
+ * Extract member self-gate registration API base from manifest httpRoutes.
+ * Source route: GET /{workspace}/registrations/for-tour/:tourId
+ * Stored path: /{workspace}/registrations (marketing SSR appends /for-tour/:tourId).
+ * @param {Record<string, unknown>} manifest
+ * @returns {{ readonly pluginId: string, readonly registrationApiPath: string } | null}
+ */
+export function extractRegistrationForTourPathFromManifest(manifest) {
+  const httpRoutes = manifest.httpRoutes;
+  if (httpRoutes === undefined || !Array.isArray(httpRoutes.groups)) {
+    return null;
+  }
+
+  let registrationApiPath = null;
+
+  for (let groupIndex = 0; groupIndex < httpRoutes.groups.length; groupIndex += 1) {
+    const group = httpRoutes.groups[groupIndex];
+    const paramHandlers = group.paramHandlers ?? {};
+    for (const routeKey of Object.keys(paramHandlers)) {
+      if (!REGISTRATION_FOR_TOUR_ROUTE_KEY.test(routeKey)) {
+        continue;
+      }
+      const path = parseGetRoutePath(routeKey);
+      if (path === null) {
+        continue;
+      }
+      const basePath = path.replace(/\/for-tour\/:tourId$/, "");
+      if (registrationApiPath !== null && registrationApiPath !== basePath) {
+        throw new Error(
+          `${manifest.id}: ambiguous registrations/for-tour route in httpRoutes.groups[${groupIndex}]`
+        );
+      }
+      registrationApiPath = basePath;
+    }
+  }
+
+  if (registrationApiPath === null) {
+    return null;
+  }
+
+  return Object.freeze({
+    pluginId: manifest.id,
+    registrationApiPath,
+  });
+}
+
+export function generateWorkspaceRegistrationForTourPaths(manifests) {
+  /** @type {Record<string, string>} */
+  const registrationPaths = {};
+  for (const manifest of manifests) {
+    const extracted = extractRegistrationForTourPathFromManifest(manifest);
+    if (extracted === null) {
+      continue;
+    }
+    registrationPaths[extracted.pluginId] = extracted.registrationApiPath;
+  }
+
+  const entries = Object.entries(registrationPaths)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(
+      ([pluginId, registrationApiPath]) =>
+        `  ${JSON.stringify(pluginId)}: ${JSON.stringify(registrationApiPath)},`
+    )
+    .join("\n");
+
+  return `${BANNER}
+/** Member for-tour registration API bases — derived from workspace.manifest.json httpRoutes. */
+export const WORKSPACE_REGISTRATION_FOR_TOUR_API_PATHS: Readonly<Record<string, string>> = Object.freeze({
 ${entries}
 });
 `;

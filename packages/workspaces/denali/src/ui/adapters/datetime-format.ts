@@ -64,6 +64,14 @@ export function resolveDatetimePickerTimeForDateCommit(
 }
 
 /**
+ * ED-DT-CLOCK-01 — date pickers may re-emit the current day on remount (tour-kind change).
+ * A complete ISO clock must not be rewritten just because the calendar day is unchanged.
+ */
+export function isDatetimePickerDateUnchanged(nextDate: string, currentDate: string): boolean {
+  return nextDate.trim() === currentDate.trim();
+}
+
+/**
  * Repair an end datetime-local wall that still carries invented midnight while start has a real clock.
  * Returns the repaired local string, or `null` when no repair is needed.
  */

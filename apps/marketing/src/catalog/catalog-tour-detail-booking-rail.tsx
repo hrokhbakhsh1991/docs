@@ -4,20 +4,23 @@ import type { MarketingCatalogCard } from "./catalog-types";
 import { formatCatalogPrice, shouldShowCatalogPrice } from "./format-catalog-display";
 import { CatalogTourDetailRegisterCta } from "./catalog-tour-detail-register-cta";
 import type { CatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
+import type { MarketingTourDetailCtaModel } from "./resolve-marketing-tour-detail-cta";
 import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
 
 export type CatalogTourDetailBookingRailProps = {
   readonly tour: MarketingCatalogCard;
+  readonly pluginId: string;
   readonly registration: CatalogTourRegistrationState;
-  readonly tourSignInUrl?: string | null;
+  readonly cta: MarketingTourDetailCtaModel;
 };
 
 export async function CatalogTourDetailBookingRail({
   tour,
+  pluginId,
   registration,
-  tourSignInUrl = null,
+  cta,
 }: CatalogTourDetailBookingRailProps) {
-  if (!registration.canRegister && !registration.isSoldOut) {
+  if (cta.primaryHref == null && !registration.isSoldOut) {
     return null;
   }
 
@@ -31,6 +34,7 @@ export async function CatalogTourDetailBookingRail({
         tour.priceCurrency,
         dateLocale,
         t("detail.priceOnRequest"),
+        pluginId,
       )
     : null;
 
@@ -44,7 +48,7 @@ export async function CatalogTourDetailBookingRail({
   return (
     <aside
       data-marketing-catalog-detail-booking-rail
-      {...(registration.canRegister ? { id: "catalog-detail-register" } : {})}
+      {...(cta.primaryHref != null || registration.canRegister ? { id: "catalog-detail-register" } : {})}
     >
       {priceLine != null ? (
         <p data-marketing-catalog-detail-rail-price>{priceLine}</p>
@@ -54,8 +58,10 @@ export async function CatalogTourDetailBookingRail({
       ) : null}
       <CatalogTourDetailRegisterCta
         registration={registration}
+        cta={cta}
         variant="rail"
-        tourSignInUrl={tourSignInUrl}
+        tourId={tour.id}
+        tourTitle={tour.title ?? ""}
       />
     </aside>
   );

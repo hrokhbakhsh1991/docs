@@ -54,6 +54,8 @@ Review is not a text dump of wizard labels — it mirrors composite surfaces:
 
 **Schedule / datetime display (INV-DENALI-REVIEW-01):** Canonical `startDateTime` / `endDateTime` stay ISO in the draft (storage SoT). Review **read-back** must not render raw `…T…Z` strings. Format via the same wall-clock path as the datetime composite: `isoToDatetimeLocalInput` → `formatDatetimeLocalLabel(locale)` through `DenaliReviewFormatLabels.formatDatetime`. Hero `schedule` and basic-section rows share that formatter. Specs: `WEB-DENALI-REVIEW-01` in `apps/web/test/denali-review-format-logic.spec.ts`.
 
+**Catalog labels (ED-REV-UUID-01 / INV-DENALI-REVIEW-02):** Destination, leaders, themes, languages, and itinerary `destinationId` resolve through `resolveDenaliReviewCatalogName`. A UUID-shaped id with no catalog hit must not appear in the hero or rows (empty → skip row). Loading uses `review.loading`; do not wait-block the rest of the summary (title/schedule still render). Specs: `DEN-REV-CATALOG-01`, `WEB-DENALI-REVIEW-09`.
+
 Section chrome uses `denali-review__section-header` (title + ghost **Edit** jump) — no `text-transform: uppercase` (FA-safe). Styles live in `packages/workspaces/denali/theme/wizard-review.css`.
 
 `DenaliPhotoPreview` accepts `readOnly` for review surfaces: signed-url fetch still runs; retry button is hidden and fallback uses `denali-review__photo-fallback`.

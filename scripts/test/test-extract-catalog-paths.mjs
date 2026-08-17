@@ -7,7 +7,9 @@ import { describe, it } from "node:test";
 import {
   discoverManifests,
   extractCatalogPathsFromManifest,
+  extractRegistrationForTourPathFromManifest,
   generateWorkspaceCatalogPaths,
+  generateWorkspaceRegistrationForTourPaths,
 } from "../generate-workspace-registry.mjs";
 
 describe("extractCatalogPathsFromManifest (PF-0.1.4)", () => {
@@ -35,6 +37,22 @@ describe("extractCatalogPathsFromManifest (PF-0.1.4)", () => {
     assert.match(generated, /"denali": "\/denali\/catalog"/);
     assert.match(generated, /"urban": "\/urban\/catalog"/);
     assert.doesNotMatch(generated, /"starter":/);
+  });
+
+  it("extractRegistrationForTourPathFromManifest emits denali base only", () => {
+    const manifests = discoverManifests();
+    const denali = manifests.find((m) => m.id === "denali");
+    const urban = manifests.find((m) => m.id === "urban");
+    assert.ok(denali);
+    assert.ok(urban);
+    assert.deepEqual(extractRegistrationForTourPathFromManifest(denali), {
+      pluginId: "denali",
+      registrationApiPath: "/denali/registrations",
+    });
+    assert.equal(extractRegistrationForTourPathFromManifest(urban), null);
+    const generated = generateWorkspaceRegistrationForTourPaths(manifests);
+    assert.match(generated, /"denali": "\/denali\/registrations"/);
+    assert.doesNotMatch(generated, /"urban":/);
   });
 
   it("guestCatalog.enabled without routes throws", () => {

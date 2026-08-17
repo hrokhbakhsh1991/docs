@@ -24,6 +24,7 @@
   "presetApplied": "پریست تور روی پیش‌نویس اعمال شد.",
   "createButton": "ساخت تور",
   "saveDraft": "ذخیره پیش‌نویس",
+  "saveDraftHint": "فقط پیش‌نویس ویزارد را ذخیره می‌کند — تور را به‌روز نمی‌کند.",
   "clearDraft": "پاک کردن پیش‌نویس",
   "clearDraftConfirmTitle": "پاک کردن پیش‌نویس؟",
   "clearDraftConfirm": "پیش‌نویس فعلی پاک شود و فرم از نو شروع شود؟",

@@ -8,6 +8,7 @@ import { isPlatformMotherHost } from "@/platform/is-platform-mother-host";
 import { buildMarketingAtomFeed } from "@/seo/build-marketing-atom-feed";
 import { shouldEmitMarketingSitemap } from "@/seo/build-marketing-sitemap";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
+import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 import { isMarketingSurfaceEnabled } from "@/tenant/marketing-site-surfaces";
 import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
 import { resolveMarketingSiteSurfacesForHost } from "@/tenant/resolve-marketing-site-surfaces";
@@ -44,7 +45,7 @@ export async function GET(): Promise<Response> {
     )(),
   ]);
 
-  const siteName = branding.displayName ?? t("nav.defaultSiteName");
+  const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
   const body = buildMarketingAtomFeed({ host, siteName, tours });
 
   return new Response(body, {

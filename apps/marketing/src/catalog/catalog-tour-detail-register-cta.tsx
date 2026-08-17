@@ -1,23 +1,31 @@
+import type { ReactNode } from "react";
 import { getTranslations } from "next-intl/server";
 
+import { MarketingLoginModalTrigger } from "@/auth/marketing-login-modal-trigger";
 import type { CatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
+import type { MarketingTourDetailCtaModel } from "./resolve-marketing-tour-detail-cta";
 
 export type CatalogTourDetailRegisterCtaProps = {
   readonly registration: CatalogTourRegistrationState;
-  readonly variant: "primary" | "secondary" | "rail";
+  readonly cta: MarketingTourDetailCtaModel;
+  readonly variant: "primary" | "secondary" | "rail" | "sticky";
   readonly assignRegisterAnchor?: boolean;
-  readonly tourSignInUrl?: string | null;
+  readonly tourId?: string;
+  readonly tourTitle?: string;
 };
 
 export async function CatalogTourDetailRegisterCta({
   registration,
+  cta,
   variant,
   assignRegisterAnchor = false,
-  tourSignInUrl = null,
+  tourId,
+  tourTitle,
 }: CatalogTourDetailRegisterCtaProps) {
   const t = await getTranslations("catalog");
+  const showViewSelf = cta.primaryKind === "view-self" && cta.primaryHref != null;
 
-  if (registration.isSoldOut) {
+  if (registration.isSoldOut && !showViewSelf) {
     return (
       <p data-marketing-catalog-detail-sold-out>
         {t("detail.soldOut")}
@@ -25,22 +33,58 @@ export async function CatalogTourDetailRegisterCta({
     );
   }
 
-  if (!registration.canRegister || registration.registrationUrl == null) {
+  if (cta.primaryHref == null || cta.primaryKind == null) {
     return null;
   }
 
-  const registerLabel = t("detail.register");
-  const signInLink =
-    tourSignInUrl != null && tourSignInUrl.trim().length > 0 ? (
-      <a href={tourSignInUrl} data-marketing-tour-sign-in>
-        {t("detail.signInToRegister")}
-      </a>
-    ) : null;
+  const primaryLabel =
+    cta.primaryKind === "continue"
+      ? t("detail.continueRegister")
+      : cta.primaryKind === "view-self"
+        ? t("detail.viewMyRegistration")
+        : t("detail.register");
 
-  const link = (
-    <a href={registration.registrationUrl} data-marketing-register>
-      {registerLabel}
-    </a>
+  const primary =
+    cta.primaryKind === "view-self" ? (
+      <a href={cta.primaryHref} data-marketing-view-registration>
+        {primaryLabel}
+      </a>
+    ) : (
+      <a href={cta.primaryHref} data-marketing-register>
+        {primaryLabel}
+      </a>
+    );
+
+  let secondary: ReactNode = null;
+  if (cta.secondaryKind === "sign-in" && cta.secondaryHref != null) {
+    secondary = (
+      <MarketingLoginModalTrigger
+        href={cta.secondaryHref}
+        host="pdp"
+        tourId={tourId}
+        tourTitle={tourTitle}
+        data-marketing-tour-sign-in
+      >
+        {t("detail.signInToRegister")}
+      </MarketingLoginModalTrigger>
+    );
+  } else if (cta.secondaryKind === "register-another" && cta.secondaryHref != null) {
+    secondary = (
+      <a
+        href={cta.secondaryHref}
+        data-marketing-register
+        data-marketing-register-another
+      >
+        {t("detail.registerAnotherGuest")}
+      </a>
+    );
+  }
+
+  const body = (
+    <>
+      {primary}
+      {secondary}
+    </>
   );
 
   switch (variant) {
@@ -48,24 +92,37 @@ export async function CatalogTourDetailRegisterCta({
       return (
         <div
           data-marketing-catalog-detail-cta-primary
+          data-marketing-tour-detail-cta-mode={cta.mode}
           {...(assignRegisterAnchor ? { id: "catalog-detail-register" } : {})}
         >
-          {link}
-          {signInLink}
+          {body}
         </div>
       );
     case "secondary":
       return (
-        <footer data-marketing-catalog-detail-actions>
-          {link}
-          {signInLink}
+        <footer
+          data-marketing-catalog-detail-actions
+          data-marketing-tour-detail-cta-mode={cta.mode}
+        >
+          {body}
         </footer>
       );
     case "rail":
       return (
-        <div data-marketing-catalog-detail-booking-rail-cta>
-          {link}
-          {signInLink}
+        <div
+          data-marketing-catalog-detail-booking-rail-cta
+          data-marketing-tour-detail-cta-mode={cta.mode}
+        >
+          {body}
+        </div>
+      );
+    case "sticky":
+      return (
+        <div
+          data-marketing-catalog-detail-sticky-cta
+          data-marketing-tour-detail-cta-mode={cta.mode}
+        >
+          {body}
         </div>
       );
     default:

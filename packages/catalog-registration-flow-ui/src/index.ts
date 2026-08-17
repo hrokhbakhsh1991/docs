@@ -3,7 +3,21 @@ export {
   CatalogRegistrationOtpStep,
   CatalogRegistrationProfileStep,
   catalogRegistrationAuthFlowSteps,
+  GuestAuthHostProvider,
+  useGuestAuthHost,
+  type GuestAuthHost,
 } from "./react";
+export {
+  createPortalSameOriginGuestAuthTransport,
+  tryCreatePortalOriginGuestAuthTransport,
+  createPortalOriginGuestAuthTransport,
+  parsePortalPublicOrigin,
+  GuestAuthTransportError,
+  isGuestAuthTransportError,
+  readGuestAuthFailureCode,
+  type GuestAuthTransport,
+  type GuestAuthVerifyOutcome,
+} from "./guest-auth-transport";
 export {
   readCatalogRegistrationFlowData,
   type CatalogRegistrationFlowData,
