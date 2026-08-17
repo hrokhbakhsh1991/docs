@@ -5,12 +5,48 @@ alwaysApply: true
 
 # Codebase Memory MCP (default)
 
-Use the `user-codebase-memory-mcp` MCP server before grep/file-by-file reads when exploring **this** codebase.
+Use the `codebase-memory-mcp` project server (or `user-codebase-memory-mcp` if
+the user installed it globally) **before** grep/file-by-file reads when exploring
+**this** codebase.
+
+Install (once per machine):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash
+```
+
+`/workspace` is refused as a single index root (too broad). Index the live trees
+below. Do **not** index `legacy/` (frozen Tour Ops; already in `.cbmignore`).
+
+## Indexed projects
+
+| Area | `project` | `repo_path` |
+|------|-----------|-------------|
+| Packages / SDK / workspaces | `app-tour-packages` | `/workspace/packages` |
+| Apps (api, web, portal, marketing) | `app-tour-apps` | `/workspace/apps` |
+| Docs | `app-tour-docs` | `/workspace/docs` |
+| Scripts / guards | `app-tour-scripts` | `/workspace/scripts` |
+| Infra / SQL | `app-tour-infra` | `/workspace/infra` |
+| Design-system tokens | `app-tour-design-system` | `/workspace/design-system` |
+
+Pass that `project` name on every graph tool call.
 
 ## Session start
 
-1. If the workspace is not indexed yet, call `index_repository` with the repo root path (or rely on `auto_index`).
-2. Use the indexed `project` name in every tool call that accepts `project`.
+1. `list_projects` — confirm the six projects above are present.
+2. If a tree is missing, `index_repository` that `repo_path` with the matching `--name`.
+3. `auto_index` is enabled after install; new sessions should pick up incremental updates.
+
+CLI equivalents (when MCP is not attached yet):
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+codebase-memory-mcp cli list_projects
+codebase-memory-mcp cli index_repository --repo-path /workspace/packages --name app-tour-packages
+codebase-memory-mcp cli get_architecture --project app-tour-packages
+codebase-memory-mcp cli search_graph --project app-tour-packages --name-pattern '.*Handler.*' --label Function
+codebase-memory-mcp cli trace_path --project app-tour-apps --function-name '<ExactName>' --direction both
+```
 
 ## Tool selection
 
@@ -23,6 +59,7 @@ Use the `user-codebase-memory-mcp` MCP server before grep/file-by-file reads whe
 | Uncommitted change impact | `detect_changes` |
 | Read a known symbol body | `get_code_snippet` (after `search_graph`) |
 | Multi-hop graph patterns | `query_graph` |
+| Coverage of cited paths | `check_index_coverage` |
 
 ## When NOT to use graph tools
 
@@ -32,4 +69,6 @@ Use the `user-codebase-memory-mcp` MCP server before grep/file-by-file reads whe
 
 ## Fallback
 
-If MCP is disconnected or returns empty results, fall back to `Grep` / `Read` and mention that indexing may be pending.
+If MCP is disconnected or returns empty results, use the CLI commands above, then
+`Grep` / `Read`. Say that indexing or MCP attach may be pending (new Cloud Agent
+sessions load `.cursor/mcp.json`; this session may need a restart).

@@ -1,3 +1,8 @@
 {
-  "mcpServers": {}
+  "mcpServers": {
+    "codebase-memory-mcp": {
+      "command": "bash",
+      "args": ["-lc", "exec codebase-memory-mcp"]
+    }
+  }
 }
