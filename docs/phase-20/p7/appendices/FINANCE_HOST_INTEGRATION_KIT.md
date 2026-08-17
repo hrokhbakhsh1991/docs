@@ -199,6 +199,7 @@ Paid → raisePaidInTx(tx) → Approved → outbox(ledgerCapture) last
 - If booking raise misses the registration → fail closed (`FINANCE_BOOKING_PAYMENT_SYNC_MISS` path); entire UoW rolls back.
 - Concurrent loser: throw `FINANCE_APPROVE_CONFLICT`; service may replay if winner already `Approved`+`Paid`.
 - Idempotent replay: if receipt already `Approved` and payment already `Paid`, return success without re-mutating.
+- **HTTP contract (APPROVE-RACE-01):** concurrent approve with different idempotency keys returns **only** `200` (winner or non-destructive replay) or `409` (`FINANCE_APPROVE_CONFLICT` / Prisma `P2002`/`P2034`). Do **not** emit `400 ZOD_VALIDATION_FAILED: receipt already Approved` or `cannot review receipt for payment with status Paid` on the approve path — those are race-visible states, not client validation. Host repository must coerce Prisma unique/write-conflict errors from the approve TX to `FINANCE_APPROVE_CONFLICT` so the engine replay branch can run.
 
 ### 3.2 Reject path
 

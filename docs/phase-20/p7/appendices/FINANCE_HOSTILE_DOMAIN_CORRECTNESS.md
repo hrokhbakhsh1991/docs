@@ -138,7 +138,7 @@ Engine builds plan via `ledgerPolicy.buildPaymentCaptureJournal`, then passes `l
 | Invariant | Enforcer |
 | --------- | -------- |
 | Atomic booking raise with payment/receipt | Host Prisma TX + booking port |
-| Concurrent loser → conflict or safe replay | `FINANCE_APPROVE_CONFLICT` + Approved+Paid replay |
+| Concurrent loser → conflict or safe replay | `FINANCE_APPROVE_CONFLICT` + Approved+Paid replay. Approve must **not** 400-ZOD when the loser observes `Approved` or payment `Paid` mid-race — that is `409` then replay. Prisma `P2002` (outbox `domain_event_id`) and `P2034` (interactive TX write conflict) are the same loser class; host maps them to `FINANCE_APPROVE_CONFLICT` / HTTP 409. |
 | Reject has no ledger / no booking raise | `updateReceiptReview` only |
 
 ### Adapter risk — **hostile**

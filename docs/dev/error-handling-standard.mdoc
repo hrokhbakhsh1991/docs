@@ -36,6 +36,11 @@ Known Prisma request errors are normalized **before** the generic `error.message
 | `P2002` | 409 | `conflict` | `UNIQUE_CONSTRAINT_VIOLATION` |
 | `P2003` | 422 | `foreign_key_violation` | `FOREIGN_KEY_VIOLATION` |
 | `P2025` | 404 | `not_found` | `RECORD_NOT_FOUND` |
+| `P2034` | 409 | `conflict` | `WRITE_CONFLICT` |
+
+**Why `P2034`:** Prisma interactive transactions that touch the same row (finance `approveManualReceiptAtomic`, HTTP idempotency lease insert) can fail with *write conflict / deadlock* (`P2034`) instead of a domain token. Unmapped, that becomes opaque **500** and flakes `APPROVE-RACE-01` (concurrent approve must be `200` replay or `409` conflict). Map to **409** `WRITE_CONFLICT` — same class as `P2002`, not a server bug.
+
+**Storage-path unique detection (not interceptor):** `enqueueOutboxEvent` and HTTP idempotency claim must treat duplicate `(tenant_id, domain_event_id)` / `(tenant_id, idempotency_key)` as *already inserted* (`false` / `wait`). Do **not** rely on `error instanceof Prisma.PrismaClientKnownRequestError` alone — driver-adapter / duck-typed errors expose `.code === "P2002"` without passing `instanceof`. Use [`isPrismaUniqueConstraintError`](../../apps/api/src/db/prisma-error-instance.ts) (`readPrismaErrorCode` + `Unique constraint failed` haystack). Missing this leak is a **500** on the concurrent loser, not a second ledger.
 
 Connection/auth failures (`P1000`, etc.) continue through [`database-connection-error.ts`](../../apps/api/src/db/database-connection-error.ts) → 503 `DATABASE_UNAVAILABLE`.
 
@@ -63,12 +68,15 @@ Any other `PrismaClient*Error` without explicit mapping → **500** `{ error: "i
 | API-DB-CONN-02…04 | same | password-auth haystack / not ETIMEDOUT / `DATABASE_UNAVAILABLE` constant |
 | API-DB-CONN-05 | `database-unavailable-error-interceptor.spec.ts` | P1000 → HTTP 503 JSON. Same skip rule when the Prisma ctor is missing. Crash-proofing of non-Prisma tokens is **07**, not a silent pass here. |
 | API-DB-CONN-06 | `prisma-error-instance.spec.ts` | missing/non-function ctor → `false`, no throw (fake class, not Prisma) |
+| API-DB-CONN-06c | `prisma-error-instance.spec.ts` | `readPrismaErrorCode` duck-reads string `.code` |
+| API-DB-CONN-06d | same | `isPrismaUniqueConstraintError` / `isPrismaConcurrencyConflict` — P2002/P2034 duck-read, no ctor required |
 | API-DB-CONN-07 / 07b | interceptor spec | generated workspace invalid binding → HTTP **400 JSON**, process stays up. 07 = plain `Error(code)` message map; 07b = duck-typed `{ code }` through generated `isError`. Do **not** import `@app-tour/workspace-*` from this interceptor spec. |
 | API-DB-CONN-08 | `database-connection-error.spec.ts` | opaque domain tokens are **not** connection errors and **must not throw**. Classifier specs stay workspace-id-free (`BOOKING_GUEST_DUPLICATE`, dummy tokens) — they must not name Denali/Harbor/Urban codes. |
 
 | Spec | Covers |
 |------|--------|
-| `src/db/prisma-error-instance.spec.ts` | API-DB-CONN-06 missing ctor does not throw |
+| `src/db/prisma-error-instance.spec.ts` | API-DB-CONN-06 missing ctor does not throw; 06c code duck-read; 06d unique/write-conflict |
+| `src/middleware/error-interceptor-prisma.spec.ts` | AP14-PRISMA-01…04 + **AP14-PRISMA-09** P2034 → 409 `WRITE_CONFLICT` |
 | `src/db/database-connection-error.spec.ts` | API-DB-CONN-01…04 + API-DB-CONN-08 domain token is not a connection error |
 | `src/middleware/database-unavailable-error-interceptor.spec.ts` | API-DB-CONN-05 P1000 → 503; API-DB-CONN-07 / 07b generated workspace invalid → 400 JSON |
 

@@ -1,8 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 
-import { Prisma } from "@prisma/client";
-
+import { isPrismaUniqueConstraintError } from "../db/prisma-error-instance";
 import { withTenantRls } from "../db/with-tenant-rls";
 import {
   reclaimStaleProcessingHttpIdempotencyRecords,
@@ -383,7 +382,7 @@ async function runWithPrismaIdempotency(
         });
         return { kind: "owner" as const, leaseOwner };
       } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        if (isPrismaUniqueConstraintError(error)) {
           return { kind: "wait" as const };
         }
         throw error;

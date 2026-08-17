@@ -1058,9 +1058,15 @@ export class FinanceService {
     }
 
     if (receipt.status !== "Pending") {
+      if (body.decision === "approve" && receipt.status === "Approved") {
+        throw new Error("FINANCE_APPROVE_CONFLICT");
+      }
       throw new Error(`ZOD_VALIDATION_FAILED: receipt already ${receipt.status}`);
     }
     if (payment.status !== "Pending") {
+      if (body.decision === "approve" && payment.status === "Paid") {
+        throw new Error("FINANCE_APPROVE_CONFLICT");
+      }
       throw new Error(
         `ZOD_VALIDATION_FAILED: cannot review receipt for payment with status ${payment.status}`
       );

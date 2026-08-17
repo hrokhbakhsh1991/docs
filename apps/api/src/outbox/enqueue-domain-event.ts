@@ -1,8 +1,10 @@
+import { Prisma } from "@prisma/client";
+
+import { isPrismaUniqueConstraintError } from "../db/prisma-error-instance";
 import { shouldAbortAtomicTx } from "../test-hooks/atomic-tx-test-abort";
-import { Prisma, type Prisma as PrismaTypes } from "@prisma/client";
 
 function isUniqueViolation(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+  return isPrismaUniqueConstraintError(error);
 }
 
 export type EnqueueOutboxEventInput = {
@@ -24,7 +26,7 @@ export type EnqueueOutboxEventInput = {
  * @returns true when a new row was inserted; false when duplicate `(tenant_id, domain_event_id)`.
  */
 export async function enqueueOutboxEvent(
-  tx: PrismaTypes.TransactionClient,
+  tx: Prisma.TransactionClient,
   input: EnqueueOutboxEventInput
 ): Promise<boolean> {
   if (shouldAbortAtomicTx("outbox")) {

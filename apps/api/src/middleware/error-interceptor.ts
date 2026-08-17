@@ -179,6 +179,8 @@ export function mapPrismaErrorToAppError(error: unknown): MappedAppError | null 
       return { status: 422, error: "foreign_key_violation", code: "FOREIGN_KEY_VIOLATION" };
     case "P2025":
       return { status: 404, error: "not_found", code: "RECORD_NOT_FOUND" };
+    case "P2034":
+      return { status: 409, error: "conflict", code: "WRITE_CONFLICT" };
     default:
       return null;
   }

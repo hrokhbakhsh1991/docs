@@ -152,4 +152,25 @@ describe("error-interceptor Prisma mapping (AP14 Faz 4)", () => {
     assert.equal(payload.code, "CANONICAL_VALIDATION_FAILED");
     assert.equal(payload.error, message);
   });
+
+  it("AP14-PRISMA-09 maps P2034 to 409 WRITE_CONFLICT", (t) => {
+    const Ctor = Prisma.PrismaClientKnownRequestError;
+    if (typeof Ctor !== "function") {
+      t.skip("PrismaClientKnownRequestError is not a constructor on this driver");
+      return;
+    }
+    const res = createMockResponse();
+    runHandle(
+      res,
+      new Ctor("Transaction failed due to a write conflict or a deadlock", {
+        code: "P2034",
+        clientVersion: "test",
+      })
+    );
+    assert.equal(res.statusCode, 409);
+    const payload = JSON.parse(res.body) as { error?: string; code?: string };
+    assert.equal(payload.code, "WRITE_CONFLICT");
+    assert.equal(payload.error, "conflict");
+    assert.doesNotMatch(res.body, /write conflict/i);
+  });
 });

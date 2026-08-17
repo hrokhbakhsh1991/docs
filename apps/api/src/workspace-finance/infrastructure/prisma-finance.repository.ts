@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../../db/with-tenant-rls";
+import { isPrismaConcurrencyConflict, isPrismaUniqueConstraintError } from "../../db/prisma-error-instance";
 import { loadRegistrationInvoiceFacts } from "../../finance/load-registration-invoice-facts";
 import { enqueueOutboxEvent } from "../../outbox/enqueue-domain-event";
 import { shouldAbortAtomicTx } from "../../test-hooks/atomic-tx-test-abort";
@@ -1008,7 +1009,8 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
   async approveManualReceiptAtomic(
     input: ApproveManualReceiptAtomicInput
   ): Promise<ApproveManualReceiptAtomicResult> {
-    return withTenantRls(input.tenantId, async (tx) => {
+    try {
+      return await withTenantRls(input.tenantId, async (tx) => {
       if (shouldAbortAtomicTx("finance_approve_before_commit")) {
         throw new Error("P5_ATOMIC_TX_TEST_ABORT");
       }
@@ -1132,7 +1134,13 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
         ledgerJournalId: input.journalId,
         bookingPaymentStatus,
       };
-    });
+      });
+    } catch (error: unknown) {
+      if (isPrismaConcurrencyConflict(error)) {
+        throw new Error("FINANCE_APPROVE_CONFLICT");
+      }
+      throw error;
+    }
   }
 
   /**
@@ -1418,7 +1426,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
       });
     } catch (error: unknown) {
       const isUniqueConflict =
-        (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") ||
+        isPrismaUniqueConstraintError(error) ||
         (error instanceof Error && error.message === "FINANCE_PREPAYMENT_CONFLICT");
       if (isUniqueConflict) {
         const replay = await loadExisting();

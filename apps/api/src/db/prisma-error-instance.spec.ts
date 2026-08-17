@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { isPrismaErrorOfType, readPrismaErrorCode } from "./prisma-error-instance";
+import {
+  isPrismaConcurrencyConflict,
+  isPrismaErrorOfType,
+  isPrismaUniqueConstraintError,
+  readPrismaErrorCode,
+} from "./prisma-error-instance";
 
 class FakePrismaKnownRequestError extends Error {
   readonly code = "P1000";
@@ -25,5 +30,18 @@ describe("isPrismaErrorOfType (API-DB-CONN-06)", () => {
     assert.equal(readPrismaErrorCode(new Error("x")), undefined);
     assert.equal(readPrismaErrorCode(null), undefined);
     assert.equal(readPrismaErrorCode({ code: 1000 }), undefined);
+  });
+
+  it("API-DB-CONN-06d unique + write-conflict duck-read without ctor", () => {
+    assert.equal(isPrismaUniqueConstraintError({ code: "P2002" }), true);
+    assert.equal(
+      isPrismaUniqueConstraintError(new Error("Unique constraint failed on the fields: (`email`)")),
+      true
+    );
+    assert.equal(isPrismaUniqueConstraintError(new Error("nope")), false);
+    assert.equal(isPrismaConcurrencyConflict({ code: "P2034" }), true);
+    assert.equal(isPrismaConcurrencyConflict({ code: "P2002" }), true);
+    assert.equal(isPrismaConcurrencyConflict(new Error("Transaction write conflict")), true);
+    assert.equal(isPrismaConcurrencyConflict(new Error("BOOKING_NOT_FOUND")), false);
   });
 });

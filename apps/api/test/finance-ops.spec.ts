@@ -707,8 +707,11 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
       }),
     ]);
     const successes = [a, b].filter((r) => r.status === 200);
-    assert.ok(successes.length >= 1);
-    assert.ok([a, b].every((r) => r.status === 200 || r.status === 409));
+    assert.ok(successes.length >= 1, `expected ≥1 success; statuses=${a.status},${b.status}`);
+    assert.ok(
+      [a, b].every((r) => r.status === 200 || r.status === 409),
+      `expected 200|409; statuses=${a.status},${b.status} bodies=${JSON.stringify([a.body, b.body])}`
+    );
     const ledgerCount = await admin.outboxEvent.count({
       where: {
         tenantId: denaliTenantId,
