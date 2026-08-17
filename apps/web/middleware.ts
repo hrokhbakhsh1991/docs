@@ -18,6 +18,7 @@ import {
 } from "@/platform/build-platform-session-cookie";
 import { isPlatformAdminHost } from "@/platform/is-platform-admin-host";
 import { parseMultiLevelTenantHost } from "@app-tour/tenant-kernel";
+import { resolveClubApexToAdminRedirect } from "@/tenant/resolve-club-apex-to-admin-redirect";
 import { isOperatorAdminHost } from "@/tenant/operator-admin-host";
 import {
   normalizeHostHeader,
@@ -215,6 +216,15 @@ export function middleware(request: NextRequest): NextResponse {
   const platformResponse = handlePlatformAdminHost(request, host);
   if (platformResponse !== null) {
     return platformResponse;
+  }
+
+  const clubApexAdminRedirect = resolveClubApexToAdminRedirect({
+    host,
+    pathname,
+    search: request.nextUrl.search,
+  });
+  if (clubApexAdminRedirect !== null) {
+    return NextResponse.redirect(new URL(clubApexAdminRedirect), 308);
   }
 
   const operatorAdminHome = resolveOperatorAdminRootRedirect({ pathname, host });

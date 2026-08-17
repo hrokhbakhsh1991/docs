@@ -22,18 +22,12 @@ export function resolveClubSubdomainFromHost(host: string): string | null {
   return null;
 }
 
-/** Club operator admin host — `{club}.admin.{root}` or legacy `{club}.localhost` apex in dev. */
+/** Club operator admin host — canonical `{club}.admin.{root}` only (WRS-001). */
 export function isOperatorAdminHost(host: string): boolean {
   const outcome = parseMultiLevelTenantHost(
     normalizeHostHeader(host),
     readPlatformRootDomainWeb(),
     readWebReservedHostLabels()
   );
-  if (outcome.kind === "club_admin") {
-    return true;
-  }
-  if (outcome.kind === "club_apex") {
-    return readPlatformRootDomainWeb() === "localhost";
-  }
-  return false;
+  return outcome.kind === "club_admin";
 }

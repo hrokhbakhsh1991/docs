@@ -32,35 +32,41 @@ afterEach(() => {
 });
 
 describe("auth-tenant-host-isolation.spec.ts", () => {
-  it("WEB-9.1-10 denali.localhost expects Denali tenant UUID", () => {
+  it("WEB-9.1-10 denali.admin.localhost expects Denali tenant UUID", () => {
     env.NODE_ENV = "development";
     env.ALLOW_DEV_WEB_SESSION = "true";
-    assert.equal(resolveExpectedTenantIdForHost("denali.localhost:3000"), DENALI_TENANT);
+    assert.equal(resolveExpectedTenantIdForHost("denali.admin.localhost:3000"), DENALI_TENANT);
   });
 
-  it("WEB-9.1-11 operator.localhost maps to operator smoke tenant", () => {
+  it("WEB-9.1-10b denali.localhost apex is not an admin host tenant map", () => {
     env.NODE_ENV = "development";
     env.ALLOW_DEV_WEB_SESSION = "true";
-    assert.equal(resolveExpectedTenantIdForHost("operator.localhost:3000"), OPERATOR_TENANT);
+    assert.equal(resolveExpectedTenantIdForHost("denali.localhost:3000"), null);
+  });
+
+  it("WEB-9.1-11 operator.admin.localhost maps to operator smoke tenant", () => {
+    env.NODE_ENV = "development";
+    env.ALLOW_DEV_WEB_SESSION = "true";
+    assert.equal(resolveExpectedTenantIdForHost("operator.admin.localhost:3000"), OPERATOR_TENANT);
   });
 
   it("WEB-9.1-12 Denali session rejected on operator host", () => {
     env.NODE_ENV = "development";
     env.ALLOW_DEV_WEB_SESSION = "true";
-    assert.equal(sessionTenantMatchesHost(DENALI_TENANT, "operator.localhost:3000"), false);
+    assert.equal(sessionTenantMatchesHost(DENALI_TENANT, "operator.admin.localhost:3000"), false);
   });
 
-  it("WEB-9.1-13 Denali session accepted on denali host", () => {
+  it("WEB-9.1-13 Denali session accepted on denali admin host", () => {
     env.NODE_ENV = "development";
     env.ALLOW_DEV_WEB_SESSION = "true";
-    assert.equal(sessionTenantMatchesHost(DENALI_TENANT, "denali.localhost:3000"), true);
+    assert.equal(sessionTenantMatchesHost(DENALI_TENANT, "denali.admin.localhost:3000"), true);
   });
 
-  it("WEB-9.1-14 urban host does not accept Denali session", () => {
+  it("WEB-9.1-14 urban admin host does not accept Denali session", () => {
     env.NODE_ENV = "development";
     env.ALLOW_DEV_WEB_SESSION = "true";
-    assert.equal(sessionTenantMatchesHost(DENALI_TENANT, "urban.localhost:3000"), false);
-    assert.equal(resolveExpectedTenantIdForHost("urban.localhost:3000"), URBAN_TENANT);
+    assert.equal(sessionTenantMatchesHost(DENALI_TENANT, "urban.admin.localhost:3000"), false);
+    assert.equal(resolveExpectedTenantIdForHost("urban.admin.localhost:3000"), URBAN_TENANT);
   });
 
   it("P8-1-N-002 production IP fallback binds operator session on VPS host", () => {

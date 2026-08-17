@@ -109,6 +109,8 @@ admin.denali.club        → operator panel
 
 WRS-D-ASYM-01: **Admin** still uses platform `{club}.admin.{root}` in dev vs `admin.{apex}` in prod. **Portal** on localhost mirrors prod label order (`portal.{club}.localhost`) so PCMS member cookies can share with marketing. Legacy `{club}.portal.localhost` is temporarily accepted and **308-redirected** to the inverted host (WRS-PORTAL-LEGACY-308). Non-localhost platform roots may still emit `{club}.portal.{root}` from URL builders until wildcard TLS is updated (no middleware rewrite for those roots in this gate).
 
+**WRS-ADMIN-LEGACY-308 (localhost):** `{club}.{root}` (`club_apex`) on **apps/web** (port 3000) is **not** an operator admin host. Middleware **308-redirects** all paths to `{club}.admin.{root}:{port}` (path + query preserved). Implementation: `apps/web/src/tenant/resolve-club-apex-to-admin-redirect.ts` · `apps/web/middleware.ts`. Dev `/etc/hosts` must map `*.admin.localhost` (see `scripts/cloud/agent-start.sh`). Bookmarks and smoke scripts must use `{club}.admin.localhost:3000`, not `{club}.localhost:3000`, for operator panels.
+
 ---
 
 ## 4. Route catalog

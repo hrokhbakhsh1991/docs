@@ -107,7 +107,7 @@ Per-app dev env files created by `scripts/cloud/agent-start.sh`:
 
 ```bash
 pnpm --filter @apps/api run dev         # http://127.0.0.1:3001/health -> {"status":"ok"}
-pnpm --filter @apps/web run dev         # operator admin  -> http://operator.localhost:3000/
+pnpm --filter @apps/web run dev         # operator admin  -> http://denali.admin.localhost:3000/ (WRS canonical)
 pnpm --filter @apps/marketing run dev   # public club     -> http://denali.localhost:3002/
 pnpm --filter @apps/portal run dev      # member portal   -> http://denali.portal.localhost:3003/
 ```

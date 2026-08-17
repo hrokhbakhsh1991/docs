@@ -12,7 +12,7 @@ The `(app)/**` operator panel is **invite-only**:
 
 See [`docs/phase-9/appendices/OPERATOR-LOGIN-FLOW.md`](../../docs/phase-9/appendices/OPERATOR-LOGIN-FLOW.md).
 
-**Workspace isolation (dev):** use host-specific URLs — e.g. `http://denali.localhost:3000` for Denali. Session JWT `tenant_id` must match the host; a Denali login cannot open `operator.localhost` or `urban.localhost` admin routes.
+**Workspace isolation (dev):** use canonical admin hosts — e.g. `http://denali.admin.localhost:3000` for Denali operator panel. Legacy `http://denali.localhost:3000` 308-redirects to admin (WRS-ADMIN-LEGACY-308). Session JWT `tenant_id` must match the host; a Denali login cannot open `operator.admin.localhost` or `urban.admin.localhost` admin routes.
 
 ## Central documentation
 

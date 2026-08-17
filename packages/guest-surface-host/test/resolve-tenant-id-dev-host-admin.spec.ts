@@ -33,4 +33,16 @@ describe("resolveTenantIdFromDevHost admin surface", () => {
       else process.env.ALLOW_DEV_WEB_SESSION = prev;
     }
   });
+
+  it("WRS-GSH-05 admin surface rejects club apex on web (WRS-ADMIN-LEGACY-308)", () => {
+    const prev = process.env.ALLOW_DEV_WEB_SESSION;
+    process.env.NODE_ENV = "development";
+    process.env.ALLOW_DEV_WEB_SESSION = "true";
+    try {
+      assert.equal(resolveTenantIdFromDevHost("denali.localhost:3000", "admin"), null);
+    } finally {
+      if (prev === undefined) delete process.env.ALLOW_DEV_WEB_SESSION;
+      else process.env.ALLOW_DEV_WEB_SESSION = prev;
+    }
+  });
 });

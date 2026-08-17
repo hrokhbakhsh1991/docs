@@ -61,8 +61,8 @@ EOF
 done
 
 # --- Dev host aliases for browser testing (host-based tenant routing) ---
-hosts_line="127.0.0.1 operator.localhost denali.localhost urban.localhost denali.portal.localhost operator.portal.localhost"
-if ! grep -q "operator.localhost" /etc/hosts 2>/dev/null; then
+hosts_line="127.0.0.1 operator.localhost denali.localhost urban.localhost denali.portal.localhost operator.portal.localhost denali.admin.localhost operator.admin.localhost urban.admin.localhost admin.localhost"
+if ! grep -q "denali.admin.localhost" /etc/hosts 2>/dev/null; then
   printf '%s\n' "$hosts_line" | sudo tee -a /etc/hosts >/dev/null 2>&1 \
     && echo "agent-start: added dev host aliases to /etc/hosts" || true
 fi
