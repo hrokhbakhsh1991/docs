@@ -9,6 +9,7 @@ extends:
   - docs/standards/member-session-portal-authority.mdoc
 code_sot:
   - packages/tenant-kernel/src/host/parse-multi-level-tenant-host.ts
+  - packages/tenant-kernel/src/host/canonicalize-club-admin-host.ts
   - packages/tenant-kernel/src/host/canonicalize-club-portal-host.ts
   - packages/tenant-kernel/src/host/build-dev-portal-public-base-url.ts
   - packages/tenant-kernel/src/host/build-dev-marketing-public-base-url.ts
@@ -105,11 +106,11 @@ admin.denali.club        → operator panel
 | ------- | --------------- | ------------------ | --------------------------- |
 | Public | `denali.localhost:3002` | `denali.club` | — |
 | User | `portal.denali.localhost:3003` | `portal.denali.club` | `denali.portal.localhost:3003` |
-| Admin | `denali.admin.localhost:3000` | `admin.denali.club` | — |
+| Admin | `admin.denali.localhost:3000` | `admin.denali.club` | `denali.admin.localhost:3000` |
 
-WRS-D-ASYM-01: **Admin** still uses platform `{club}.admin.{root}` in dev vs `admin.{apex}` in prod. **Portal** on localhost mirrors prod label order (`portal.{club}.localhost`) so PCMS member cookies can share with marketing. Legacy `{club}.portal.localhost` is temporarily accepted and **308-redirected** to the inverted host (WRS-PORTAL-LEGACY-308). Non-localhost platform roots may still emit `{club}.portal.{root}` from URL builders until wildcard TLS is updated (no middleware rewrite for those roots in this gate).
+WRS-D-ASYM-01 (resolved): **Admin** dev localhost now mirrors prod label order (`admin.{club}.localhost`), same inversion pattern as portal (`portal.{club}.localhost`). Legacy `{club}.admin.localhost` remains parsed for tenant resolution and is **308-redirected** to the canonical host (WRS-ADMIN-LEGACY-308). Non-localhost platform roots may still emit `{club}.admin.{root}` from URL builders until wildcard TLS is updated (no middleware rewrite for those roots in this gate).
 
-**WRS-ADMIN-LEGACY-308 (localhost):** `{club}.{root}` (`club_apex`) on **apps/web** (port 3000) is **not** an operator admin host. Middleware **308-redirects** all paths to `{club}.admin.{root}:{port}` (path + query preserved). Implementation: `apps/web/src/tenant/resolve-club-apex-to-admin-redirect.ts` · `apps/web/middleware.ts`. Dev `/etc/hosts` must map `*.admin.localhost` (see `scripts/cloud/agent-start.sh`). Bookmarks and smoke scripts must use `{club}.admin.localhost:3000`, not `{club}.localhost:3000`, for operator panels.
+**WRS-ADMIN-LEGACY-308 (localhost):** `{club}.{root}` (`club_apex`) on **apps/web** (port 3000) is **not** an operator admin host. Middleware **308-redirects** all paths to `admin.{club}.{root}:{port}` (path + query preserved). Legacy `{club}.admin.{root}` on the same port is **308-redirected** to `admin.{club}.{root}` before auth. Implementation: `apps/web/src/tenant/resolve-club-apex-to-admin-redirect.ts` · `packages/tenant-kernel/src/host/canonicalize-club-admin-host.ts` · `apps/web/middleware.ts`. Dev `/etc/hosts` must map both legacy and canonical admin hosts (see `scripts/cloud/agent-start.sh`). Bookmarks and smoke scripts should use `admin.denali.localhost:3000`.
 
 ---
 

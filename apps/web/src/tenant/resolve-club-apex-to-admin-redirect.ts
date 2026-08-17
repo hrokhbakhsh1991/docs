@@ -28,6 +28,6 @@ export function resolveClubApexToAdminRedirect(input: {
 
   const portMatch = /:(\d+)$/.exec(input.host.trim());
   const port = portMatch?.[1] ?? "3000";
-  const targetHost = `${outcome.subdomain}.admin.${rootDomain}:${port}`;
+  const targetHost = `admin.${outcome.subdomain}.${rootDomain}:${port}`;
   return `http://${targetHost}${input.pathname}${input.search}`;
 }

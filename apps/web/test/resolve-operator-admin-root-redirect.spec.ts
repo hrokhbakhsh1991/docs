@@ -13,6 +13,16 @@ describe("resolve-operator-admin-root-redirect.spec.ts — P6 admin home", () =>
     assert.equal(
       resolveOperatorAdminRootRedirect({
         pathname: "/",
+        host: "admin.denali.localhost:3000",
+      }),
+      OPERATOR_DASHBOARD_PATH
+    );
+  });
+
+  it("P6-ADM-ROOT-01b legacy club admin `/` redirects to dashboard", () => {
+    assert.equal(
+      resolveOperatorAdminRootRedirect({
+        pathname: "/",
         host: "denali.admin.localhost:3000",
       }),
       OPERATOR_DASHBOARD_PATH

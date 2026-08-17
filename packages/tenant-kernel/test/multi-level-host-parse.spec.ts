@@ -16,8 +16,13 @@ describe("parseMultiLevelTenantHost", () => {
     assert.equal(isPlatformAdminHost("admin.localhost", "localhost"), true);
   });
 
-  it("club admin", () => {
+  it("club admin legacy", () => {
     const outcome = parseMultiLevelTenantHost("alborz.admin.localhost", "localhost", reserved);
+    assert.deepEqual(outcome, { kind: "club_admin", subdomain: "alborz" });
+  });
+
+  it("club admin inverted (admin.{club}.{root})", () => {
+    const outcome = parseMultiLevelTenantHost("admin.alborz.localhost", "localhost", reserved);
     assert.deepEqual(outcome, { kind: "club_admin", subdomain: "alborz" });
   });
 

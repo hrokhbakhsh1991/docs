@@ -22,6 +22,7 @@ describe("platform-host-isolation", () => {
   it("4 host matrix", () => {
     assert.equal(parseWebHost("admin.localhost").kind, "platform_admin");
     assert.equal(parseWebHost("club.admin.localhost").kind, "club_admin");
+    assert.equal(parseWebHost("admin.club.localhost").kind, "club_admin");
     assert.equal(parseWebHost("club.portal.localhost").kind, "club_portal");
     assert.equal(parseWebHost("club.localhost").kind, "club_apex");
   });
@@ -35,6 +36,8 @@ describe("platform-host-isolation", () => {
     const middleware = readFileSync(new URL("../middleware.ts", import.meta.url), "utf8");
     assert.match(middleware, /blockPlatformOnClubAdminHost/);
     assert.match(middleware, /club_admin/);
+    assert.match(middleware, /toCanonicalClubAdminHost/);
+    assert.match(middleware, /redirectLegacyClubAdminHostIfNeeded/);
   });
 
   it("platform host dashboard redirect", () => {

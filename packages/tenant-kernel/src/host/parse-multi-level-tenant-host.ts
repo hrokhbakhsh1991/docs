@@ -43,12 +43,31 @@ export function parseMultiLevelTenantHost(
   }
 
   const host = normalizedHost.trim().toLowerCase();
+  const rootSuffix = `.${root}`;
   if (host === root) {
     return { kind: "apex" };
   }
 
   if (host === `admin.${root}`) {
     return { kind: "platform_admin" };
+  }
+
+  // admin.{club}.{root} — canonical local (WRS-D-ASYM-01) + prod-shaped platform admin
+  const adminPrefix = "admin.";
+  if (
+    host.startsWith(adminPrefix) &&
+    host.endsWith(rootSuffix) &&
+    host !== `admin.${root}`
+  ) {
+    const subdomain = host.slice(adminPrefix.length, -rootSuffix.length);
+    if (!subdomain || subdomain.includes(".")) {
+      return { kind: "outside_workspace" };
+    }
+    const invalid = validateClubSubdomain(subdomain, reservedLabels);
+    if (invalid) {
+      return invalid;
+    }
+    return { kind: "club_admin", subdomain };
   }
 
   const adminSuffix = `.admin.${root}`;
@@ -79,7 +98,6 @@ export function parseMultiLevelTenantHost(
 
   // portal.{club}.{root} — canonical local (PCMS-COOK-03) + prod-shaped platform portal
   const portalPrefix = "portal.";
-  const rootSuffix = `.${root}`;
   if (
     host.startsWith(portalPrefix) &&
     host.endsWith(rootSuffix) &&

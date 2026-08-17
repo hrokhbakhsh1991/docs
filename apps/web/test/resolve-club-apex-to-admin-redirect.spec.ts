@@ -11,11 +11,22 @@ describe("resolve-club-apex-to-admin-redirect.spec.ts — WRS-ADMIN-LEGACY-308",
         pathname: "/tours",
         search: "?status=all",
       }),
-      "http://denali.admin.localhost:3000/tours?status=all"
+      "http://admin.denali.localhost:3000/tours?status=all"
     );
   });
 
   it("WRS-ADM-308-02 canonical club admin host is not redirected", () => {
+    assert.equal(
+      resolveClubApexToAdminRedirect({
+        host: "admin.denali.localhost:3000",
+        pathname: "/tours",
+        search: "",
+      }),
+      null
+    );
+  });
+
+  it("WRS-ADM-308-02b legacy club admin host is not redirected here (308 in middleware)", () => {
     assert.equal(
       resolveClubApexToAdminRedirect({
         host: "denali.admin.localhost:3000",
