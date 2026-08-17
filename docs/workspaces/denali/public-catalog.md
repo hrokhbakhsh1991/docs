@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PUBLIC-CATALOG
-version: "2026-08-16-v30"
+version: "2026-08-17-v31"
 workspace: denali
 stack: workspace-sdk · workspace-denali/http · apps/marketing
 authority: MIGRATION-MAP.md §3.5 · docs/workspaces/denali/marketing-landing.mdoc
@@ -336,11 +336,11 @@ Ingress uses `x-forwarded-host` with `shop.` prefix stripped (same as branding).
 
 Implementation: `packages/guest-surface-host/src/resolve-guest-fetch-revalidate.ts` · `fetch-public-tenant-branding.ts`. Apps pass `resolveTourOpsApiBaseUrl()` — no duplicate branding fetch in M+P.
 
-Playwright smoke: **SMK-MKT-01** (`operator.localhost:3002/tours` · legacy `shop.operator.localhost:3002`); **SMK-MKT-05** (`urban.localhost:3002/tours` · urban skin + city filter); **SMK-MKT-03** marketing CTA → **portal** (`operator.portal.localhost:3003`) OTP → Denali intake → `[data-public-registration-success]`; Urban **SMK-P8-02** on `urban.portal.localhost:3003`; Denali **SMK-PTL-01** on `operator.portal.localhost:3003`.
+Playwright smoke: **SMK-MKT-01** (`operator.localhost:3002/tours` · legacy `shop.operator.localhost:3002`); **SMK-MKT-05** (`urban.localhost:3002/tours` · urban skin + city filter); **SMK-MKT-03** guest PDP register → marketing OTP modal → continue → portal intake (`operator.portal.localhost:3003`) → `[data-public-registration-success]`; Urban **SMK-P8-02** on `urban.portal.localhost:3003`; Denali **SMK-PTL-01** on `operator.portal.localhost:3003`.
 
 List catalog HTTP applies exposure redaction **sequentially** per page (not `Promise.all`) so Postgres dev hosts (`denali.localhost:3002`, `urban.localhost:3002`) stay under per-tenant DB budget (`TENANT_DB_BUDGET_EXCEEDED` / 503).
 
-Denali and Urban exposure resolvers (`resolve-denali-surface-exposure.ts`, `resolve-urban-surface-exposure.ts`) catch Prisma failures when `DATABASE_URL` is unset and fall back to registry-seeded field defaults — required for DB-less Playwright smokes (SMK-MKT-03 portal register, SMK-MKT-05 urban catalog).
+Denali and Urban exposure resolvers (`resolve-denali-surface-exposure.ts`, `resolve-urban-surface-exposure.ts`) catch Prisma failures when `DATABASE_URL` is unset and fall back to registry-seeded field defaults — required for DB-less Playwright smokes (SMK-MKT-03 marketing modal + portal intake, SMK-MKT-05 urban catalog).
 
 ### SEO metadata (M8)
 
@@ -736,7 +736,7 @@ sequenceDiagram
 | Public-auth BFF tests | `apps/portal/test/portal-public-auth-bff.spec.ts` · PR-09 |
 | Urban intake idempotency | `apps/portal` registration BFF (Urban idempotency header) |
 | M17 static guard | `scripts/guards/guard-public-catalog-m17.mjs` · `pnpm run guard:public-catalog-m17` |
-| Marketing register smoke | `apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts` · SMK-MKT-03 (full OTP + intake) · **GX-2 (2026-07-12):** `fixtures/smoke-published-tour.ts` resolves `…220` on `denali.localhost` / `…210` on operator; override via `SMOKE_PUBLISHED_TOUR_ID` |
+| Marketing register smoke | `apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts` · SMK-MKT-03 (PDP modal OTP + portal intake) · **GX-2 (2026-07-12):** `fixtures/smoke-published-tour.ts` resolves `…220` on `denali.localhost` / `…210` on operator; override via `SMOKE_PUBLISHED_TOUR_ID` |
 | Portal registration smoke | `apps/portal/tests/e2e/portal-registration-smoke.spec.ts` · SMK-PTL-01 · `pnpm --filter @apps/portal run test:smoke` (14 tests) |
 | Portal member smoke | `apps/portal/tests/e2e/portal-member-smoke.spec.ts` · SMK-PTL-02/04/05/06 |
 | Portal transport intake smoke | `apps/portal/tests/e2e/portal-registration-transport-smoke.spec.ts` · DEN-TRANS-01/02/03 |

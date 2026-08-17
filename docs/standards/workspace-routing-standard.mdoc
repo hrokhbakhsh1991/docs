@@ -1,7 +1,7 @@
 ---
 title: Workspace Routing Standard (WRS-001)
 standard_id: WRS-001
-version: 1.0.0
+version: 1.0.1
 status: active
 extends:
   - docs/phase-19/p6-host-addressing-architecture.mdoc
@@ -150,7 +150,8 @@ WRS-PATH-03: `:3000/tours` ≠ `:3002/tours`.
 ### 4.4 Cross-surface navigation
 
 ```text
-Marketing CTA     → Portal /catalog/{id}/register
+Marketing guest PDP (JS) → stay /tours/{id} · marketing OTP modal (PCMS-MKT-AUTH-05)
+Marketing guest href / member continue → Portal /catalog/{id}/register
 Portal home guest → Marketing /
 Web /catalog/*    → Marketing /tours (308)
 In-app tour links → relative /tours/{id} (same host)

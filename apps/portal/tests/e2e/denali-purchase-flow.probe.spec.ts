@@ -33,7 +33,7 @@ test.describe("Denali purchase flow (manual-only)", () => {
     "manual-only: needs marketing:3002 + denali.portal host + non-seed tour — use denali-probes for CI-adjacent multi-guest"
   );
 
-  test("Denali MKT browse → detail → portal register CTA", async ({ page }) => {
+  test("Denali MKT browse → detail → PDP register opens marketing modal", async ({ page }) => {
     await page.goto("http://denali.localhost:3002/tours", { waitUntil: "domcontentloaded" });
     await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText(DENALI_TOUR_TITLE)).toBeVisible({ timeout: 60_000 });
@@ -45,16 +45,13 @@ test.describe("Denali purchase flow (manual-only)", () => {
 
     const registerLink = page.locator("[data-marketing-register]");
     await expect(registerLink).toBeVisible();
-    await Promise.all([
-      page.waitForURL(/denali\.portal\.localhost.*\/catalog\/.*\/register/, { timeout: 60_000 }),
-      registerLink.first().click(),
-    ]);
-
-    await page.waitForSelector("[data-public-registration-phone][data-registration-ready]", {
-      timeout: 120_000,
+    await registerLink.first().click();
+    await expect(page).toHaveURL(/\/tours\/[^/?#]+/);
+    await expect(page).not.toHaveURL(/\/catalog\//);
+    await expect(page.locator('[data-marketing-login-modal-open="true"]')).toBeVisible({
+      timeout: 15_000,
     });
-    await expect(page.locator("[data-catalog-registration-page]")).toBeVisible();
-    await expect(page.locator('body[data-workspace-plugin="denali"]')).toBeAttached();
+    await expect(page.locator("[data-marketing-login-modal]")).toBeVisible();
   });
 
   test("Denali portal OTP + intake → success → /me/registrations", async ({ page }) => {

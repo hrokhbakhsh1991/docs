@@ -11,7 +11,7 @@ extends:
   - phase-mapping.mdoc
 ---
 
-# Member Portal Shell — Architecture Decision Log (DL-01 … DL-42)
+# Member Portal Shell — Architecture Decision Log (DL-01 … DL-49)
 
 **Authority:** Decisions extracted from Blueprint v9. **Every entry status: PENDING SIGN-OFF.**
 
@@ -584,6 +584,17 @@ extends:
 | **Dependencies** | PCMS-001 1.5.3 · DL-47 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) |
 | **Open questions** | None. |
 
+### DL-49 — Guest PDP «ثبت‌نام» opens marketing modal (Phase 6)
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **IMPLEMENTED (2026-08-17)** |
+| **Context** | DL-46/47 shipped a working PDP «ورود» modal but left `[data-marketing-register]` as a portal navigation. Product: logged-out guests who click «ثبت‌نام» on `/tours/{id}` must stay on marketing, complete phone/OTP/profile in the existing modal, then reload as a member. Header Sign in stays Portal `/login` (DL-47). Intake stays on portal after session exists. |
+| **Decision** | Guest `primaryKind === "register"` uses `MarketingLoginModalTrigger` (same provider as «ورود»). Member `continue` / `view-self` / `register-another` remain portal links. No marketing BFF, no cookie write, no header modal, no auto-open on home/list. Amend PCMS-MKT-AUTH-05/06 (1.5.4). |
+| **Consequences** | SMK-MKT-03 / guest funnel: modal OTP on PDP, then continue CTA → portal intake. No-JS `href` still lands on portal register. |
+| **Dependencies** | PCMS-001 §5.5 · DL-46 · DL-47 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) §16 Phase 6 |
+| **Open questions** | None. |
+
 ---
 
 *Promoted from Blueprint v9 · Architecture documentation only · Not implementation authorization*
@@ -641,6 +652,7 @@ extends:
 | DL-46 | Marketing origin OTP host Phase 5 | PCMS §5.5 | MKT-AUTH-01…06 | guard-pcms-authority | P5 guest-auth |
 | DL-47 | Header Sign in → Portal `/login`; modal PDP-only | PCMS §5.5 AUTH-05 | MKT-AUTH-05 | guard-pcms-authority | P5 guest-auth |
 | DL-48 | `/login` page OTP; PDP stay-on-marketing; branding fail-soft | PCMS 1.5.3 | LOGIN-01 · AUTH-05 | portal + marketing specs | intake Auth UI P2 |
+| DL-49 | Guest PDP register → marketing modal; header stays `/login` | PCMS 1.5.4 AUTH-05/06 | MKT-AUTH-05/06 | guard-pcms-authority | P6 guest-auth |
 
 *BMC = [builder-migration-contract.mdoc](./builder-migration-contract.mdoc) · GCSN = [guest-cross-surface-nav-schema.mdoc](./guest-cross-surface-nav-schema.mdoc)*
 

@@ -13,10 +13,8 @@
 import { expect, test } from "@playwright/test";
 
 import {
-  CATALOG_DEV_OTP,
   completeCatalogRegistrationIntake,
-  fillCatalogOtp,
-  submitCatalogPhoneForOtp,
+  completeGuestPdpRegisterModalThenOpenPortalIntake,
 } from "./fixtures/catalog-registration-otp";
 import {
   resolveSmokePublishedTourId,
@@ -47,25 +45,15 @@ test.describe("denali-guest-funnel.spec.ts — Phase 3 D01", () => {
       timeout: 60_000,
     });
 
-    const registerLink = page.locator("[data-marketing-register]").first();
-    await expect(registerLink).toBeVisible();
-    await Promise.all([
-      page.waitForURL(/\/catalog\/[^/]+\/register/, { timeout: 60_000 }),
-      registerLink.click(),
-    ]);
-
-    await page.waitForSelector("[data-public-registration-phone][data-registration-ready]", {
-      timeout: 120_000,
+    await completeGuestPdpRegisterModalThenOpenPortalIntake(page, {
+      phone,
+      fullName: "P3 D01 Guest",
+      email,
     });
+
     await expect(page.locator('body[data-workspace-plugin="denali"]')).toBeAttached({
       timeout: 30_000,
     });
-
-    await submitCatalogPhoneForOtp(page, phone);
-    await fillCatalogOtp(page, CATALOG_DEV_OTP);
-    await expect(
-      page.locator("[data-public-registration-profile], [data-public-registration-intake]")
-    ).toBeVisible({ timeout: 60_000 });
 
     await completeCatalogRegistrationIntake(page, {
       email,

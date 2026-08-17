@@ -1,10 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 import {
-  CATALOG_DEV_OTP,
   completeCatalogRegistrationIntake,
-  fillCatalogOtp,
-  submitCatalogPhoneForOtp,
+  completeGuestPdpRegisterModalThenOpenPortalIntake,
 } from "./fixtures/catalog-registration-otp";
 
 const HARBOR_PUBLISHED_TOUR_TITLE = "Harbor evening sail";
@@ -59,21 +57,11 @@ test("SMK-MKT-HARBOR-01c marketing register CTA completes OTP + harbor intake", 
     timeout: 60_000,
   });
 
-  const registerLink = page.locator("[data-marketing-register]").first();
-  await expect(registerLink).toBeVisible();
-  await Promise.all([
-    page.waitForURL(/\/catalog\/[^/]+\/register/, { timeout: 60_000 }),
-    registerLink.click(),
-  ]);
-  await page.waitForSelector("[data-public-registration-phone][data-registration-ready]", {
-    timeout: 120_000,
+  await completeGuestPdpRegisterModalThenOpenPortalIntake(page, {
+    phone: devPhone,
+    fullName: "Harbor Smoke Guest",
+    email: REGISTRATION_EMAIL,
   });
-
-  await submitCatalogPhoneForOtp(page, devPhone);
-  await fillCatalogOtp(page, CATALOG_DEV_OTP);
-  await expect(
-    page.locator("[data-public-registration-profile], [data-public-registration-intake]"),
-  ).toBeVisible({ timeout: 60_000 });
 
   await completeCatalogRegistrationIntake(page, {
     email: REGISTRATION_EMAIL,

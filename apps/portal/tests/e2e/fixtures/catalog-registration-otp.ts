@@ -73,6 +73,60 @@ export async function requestRegistrationOtp(page: Page, phone: string): Promise
   });
 }
 
+/**
+ * Guest PDP buy path (Phase 6 / DL-49): marketing «ثبت‌نام» opens OTP modal,
+ * reload as member, then continue CTA lands portal `/catalog/{id}/register`.
+ */
+export async function completeGuestPdpRegisterModalThenOpenPortalIntake(
+  page: Page,
+  input: {
+    readonly phone: string;
+    readonly fullName?: string;
+    readonly email?: string;
+  }
+): Promise<void> {
+  const fullName = input.fullName ?? "Denali Probe Guest";
+  const email = input.email ?? `pdp-modal-${Date.now()}@smoke.local`;
+  const registerLink = page.locator("[data-marketing-register]").first();
+  await expect(registerLink).toBeVisible();
+  await registerLink.click();
+  await expect(page).toHaveURL(/\/tours\/[^/?#]+/);
+  await expect(page).not.toHaveURL(/\/catalog\//);
+  await expect(page.locator('[data-marketing-login-modal-open="true"]')).toBeVisible({
+    timeout: 15_000,
+  });
+
+  await requestRegistrationOtp(page, input.phone);
+  await fillCatalogOtp(page, CATALOG_DEV_OTP);
+
+  const profileOrMember = page.locator(
+    "[data-public-registration-profile], [data-marketing-member-authenticated]"
+  );
+  await expect(profileOrMember.first()).toBeVisible({ timeout: 60_000 });
+
+  const profileStep = page.locator("[data-public-registration-profile]");
+  if (await profileStep.isVisible()) {
+    await page.locator("#displayName").fill(fullName);
+    const emailInput = page.locator("#profileEmail");
+    if (await emailInput.isVisible({ timeout: 500 }).catch(() => false)) {
+      await emailInput.fill(email);
+    }
+    await page.locator('[data-action="profile-continue"]').click();
+  }
+
+  await expect(page.locator("[data-marketing-member-authenticated]")).toBeVisible({
+    timeout: 60_000,
+  });
+  await expect(page.locator('[data-marketing-login-modal-open="true"]')).toHaveCount(0);
+
+  const continueLink = page.locator("[data-marketing-register]").first();
+  await expect(continueLink).toBeVisible();
+  await Promise.all([
+    page.waitForURL(/\/catalog\/[^/]+\/register/, { timeout: 60_000 }),
+    continueLink.click(),
+  ]);
+}
+
 export async function completeCatalogRegistrationIntake(
   page: Page,
   input: {

@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-MARKETING-CATALOG-UI
-version: "2026-08-16-v12"
+version: "2026-08-17-v14"
 extends: public-catalog.md
 apps: [marketing]
 phase: P6-1
@@ -151,11 +151,11 @@ Authority: [PCMS-001 §5.3](../../standards/member-session-portal-authority.mdoc
 
 **Problem:** After portal OTP the member returns to marketing (custom apex cookie share). Header already swapped Sign-in → profile chip, but the tour PDP still rendered «ثبت‌نام» + «قبلاً ثبت‌نام کرده‌اید؟ ورود» even when the member had an active self booking.
 
-**Decision:** Shape CTAs in marketing **SSR** from the existing read-only session probe + optional API for-tour. Do not add cookie write or `app/api/me/*` / `app/api/public-auth/*`. Phase 5 hosts OTP on marketing via Portal-origin transport ([PCMS-001 §5.5](../../standards/member-session-portal-authority.mdoc)); `[data-marketing-register]` still navigates to portal register.
+**Decision:** Shape CTAs in marketing **SSR** from the existing read-only session probe + optional API for-tour. Do not add cookie write or `app/api/me/*` / `app/api/public-auth/*`. Phase 5 hosts OTP on marketing via Portal-origin transport ([PCMS-001 §5.5](../../standards/member-session-portal-authority.mdoc)). Phase 6: guest `[data-marketing-register]` opens that modal; member continue still navigates to portal register.
 
 | Mode | When | Primary | Secondary | i18n |
 | ---- | ---- | ------- | --------- | ---- |
-| `guest` | Cookie missing / invalid / tenant bind fail | `data-marketing-register` → `resolveWebRegistrationUrl` | `data-marketing-tour-sign-in` → marketing modal (href fallback `resolveWebRegistrationLoginUrl`) | `detail.register` / `detail.signInToRegister` |
+| `guest` | Cookie missing / invalid / tenant bind fail | `data-marketing-register` → **marketing modal** (href fallback `resolveWebRegistrationUrl`) | `data-marketing-tour-sign-in` → same modal (href fallback `resolveWebRegistrationLoginUrl`) | `detail.register` / `detail.signInToRegister` |
 | `member-continue` | Session readable; for-tour `self` null, path missing, or fetch error | `data-marketing-register` → register URL **without** `auth=login` | none | `detail.continueRegister` |
 | `member-self` | Session readable; for-tour returns `self.id`; GSH builds detail URL | `data-marketing-view-registration` → `/me/registrations/{id}` | `data-marketing-register` + `data-marketing-register-another` when `canRegister` | `detail.viewMyRegistration` / `detail.registerAnotherGuest` |
 
@@ -179,11 +179,12 @@ Authority: [PCMS-001 §5.5](../../standards/member-session-portal-authority.mdoc
 
 Marketing hosts the shared phone/OTP/profile steps in `[data-marketing-login-modal]`. Transport `fetch`es the GSH portal public origin `/api/public-auth/*` with credentials. Cookie write stays Portal. After success, marketing reloads so SSR header + PDP CTA can see the member.
 
-| Surface | Phase 5 | Fallback (no-JS / no portal origin) |
+| Surface | Phase 5 / 6 | Fallback (no-JS / no portal origin) |
 | ------- | ------- | ----------------------------------- |
 | Header `[data-marketing-header-sign-in]` | **Navigate** to Portal `/login?portalReturn=/me/registrations` (page OTP). Not `MarketingLoginModalTrigger`. | Same `href` — no client intercept |
 | PDP `[data-marketing-tour-sign-in]` | Client trigger opens marketing modal; stay on `/tours/{id}` after reload | `href` = portal `register?auth=login` |
-| `[data-marketing-register]` | **Unchanged** — portal `/catalog/{id}/register` | — |
+| Guest `[data-marketing-register]` (primaryKind `register`) | Same PDP trigger as «ورود» — stay on `/tours/{id}` (Phase 6 / DL-49) | `href` = portal `/catalog/{id}/register` |
+| Member `[data-marketing-register]` (continue / register-another) | **Navigate** to portal `/catalog/{id}/register` (intake) | Same `href` |
 
 `MarketingLoginModalProvider` remains in `app/layout.tsx` so PDP (and a **future** marketing login host) can open `[data-marketing-login-modal]` without a second provider. `host="header"` on that dialog is reserved — do not attach it to chrome Sign in until product asks.
 
@@ -364,7 +365,7 @@ Spec: [`marketing-landing.mdoc`](./marketing-landing.mdoc) v7 · smoke: SMK-MKT-
 | `data-marketing-catalog-segment-photos-empty` | ED-PHOTO-EMPTY-01 — muted empty copy when a segment has no reachable `photoUrls` (day still renders) |
 | `data-marketing-catalog-detail-policies`     | policies section                                                                                      |
 | `data-marketing-catalog-detail-cancellation` | cancellation bullets                                                                                  |
-| `data-marketing-register`                    | registration CTA (**SMK-MKT-03**) → portal [`portal-registration-ui.md`](./portal-registration-ui.md) |
+| `data-marketing-register`                    | guest: **PDP marketing login modal** (SMK-MKT-03; href fallback portal register). member continue / register-another: portal [`portal-registration-ui.md`](./portal-registration-ui.md) |
 | `data-marketing-tour-sign-in`                | guest-only secondary — **PDP marketing login modal** (href fallback portal `register?auth=login`; Phase 3: omitted when member session is readable) |
 | `data-marketing-view-registration`           | member-self primary → portal `/me/registrations/{id}` |
 | `data-marketing-register-another`            | member-self secondary → portal `/catalog/{id}/register` (no `auth=login`) |
@@ -393,7 +394,8 @@ Spec: [`marketing-landing.mdoc`](./marketing-landing.mdoc) v7 · smoke: SMK-MKT-
 | SMK-MKT-01                | `marketing-catalog-smoke.spec.ts`       | catalog, header, toolbar, tour title                                       |
 | SMK-MKT-16                | same                                    | server category filter, active pill dismiss (PR-22)                        |
 | SMK-MKT-05                | `marketing-urban-catalog-smoke.spec.ts` | urban skin, city filter, no itinerary                                      |
-| SMK-MKT-03                | `marketing-catalog-smoke.spec.ts`       | tour-detail, register, portal OTP flow                                     |
+| SMK-MKT-03                | `marketing-catalog-smoke.spec.ts`       | PDP guest register modal OTP, continue to portal intake                    |
+| SMK-MKT-HEADER-01         | same                                    | header Sign in → Portal `/login` (no marketing modal)                      |
 | SMK-MKT-16                | same                                    | PR-22 category filter + active pill dismiss                                |
 | SMK-MKT-17                | `marketing-seo-pagination.spec.ts`      | filtered list `noindex, follow` (PR-22.1)                                  |
 | Itinerary                 | same (Denali tour)                      | itinerary, segment-photos                                                  |
@@ -728,4 +730,4 @@ pnpm --filter @apps/marketing run test:smoke:urban   # urban.localhost · explic
 
 Copy dev overrides from tracked `apps/marketing/.env.local.example` → `.env.local` (optional; dev API defaults via `@app-tour/guest-surface-host`).
 
-**Registration chain (SMK-MKT-03):** CTA from [marketing-catalog-ui.md](./marketing-catalog-ui.md) (`data-marketing-register`) → portal [portal-registration-ui.md](./portal-registration-ui.md) hooks.
+**Registration chain (SMK-MKT-03):** guest `[data-marketing-register]` opens the marketing OTP modal on `/tours/{id}`; after reload, member continue navigates to portal [portal-registration-ui.md](./portal-registration-ui.md) intake. Header Sign in stays Portal `/login` (SMK-MKT-HEADER-01).

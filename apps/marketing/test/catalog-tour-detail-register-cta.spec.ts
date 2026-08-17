@@ -7,6 +7,21 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 describe("catalog-tour-detail-register-cta — PCMS tour sign-in + Phase 3", () => {
+  it("MKT-PCMS-P6-01 guest register uses modal trigger; continue stays a portal anchor", () => {
+    const cta = readFileSync(
+      join(repoRoot, "apps/marketing/src/catalog/catalog-tour-detail-register-cta.tsx"),
+      "utf8"
+    );
+    assert.match(cta, /primaryKind === "register"/);
+    assert.match(
+      cta,
+      /cta\.primaryKind === "register" \? \(\s*<MarketingLoginModalTrigger[\s\S]*?data-marketing-register/
+    );
+    assert.match(cta, /<a href=\{cta\.primaryHref\} data-marketing-register>/);
+    assert.match(cta, /data-marketing-view-registration/);
+    assert.doesNotMatch(cta, /data-marketing-header-sign-in/);
+  });
+
   it("MKT-PCMS-03 exposes secondary tour sign-in link for guests", () => {
     const cta = readFileSync(
       join(repoRoot, "apps/marketing/src/catalog/catalog-tour-detail-register-cta.tsx"),

@@ -227,6 +227,25 @@ if (!marketingPdpCta.includes("MarketingLoginModalTrigger")) {
 if (!marketingPdpCta.includes('host="pdp"')) {
   violations.push("catalog-tour-detail-register-cta.tsx: PDP trigger must set host=\"pdp\"");
 }
+if (!marketingPdpCta.includes('cta.primaryKind === "register"')) {
+  violations.push(
+    "catalog-tour-detail-register-cta.tsx: guest primaryKind register must use MarketingLoginModalTrigger (PCMS-MKT-AUTH-05/06)"
+  );
+}
+if (
+  !/cta\.primaryKind === "register" \? \(\s*<MarketingLoginModalTrigger[\s\S]*?data-marketing-register/.test(
+    marketingPdpCta
+  )
+) {
+  violations.push(
+    "catalog-tour-detail-register-cta.tsx: guest register branch must open MarketingLoginModalTrigger (not a later sign-in trigger)"
+  );
+}
+if (!marketingPdpCta.includes("<a href={cta.primaryHref} data-marketing-register>")) {
+  violations.push(
+    "catalog-tour-detail-register-cta.tsx: member continue must remain a plain portal <a data-marketing-register>"
+  );
+}
 
 const originTransport = readRepo("packages/catalog-registration-flow-ui/src/guest-auth-transport.ts");
 if (!originTransport.includes("tryCreatePortalOriginGuestAuthTransport")) {

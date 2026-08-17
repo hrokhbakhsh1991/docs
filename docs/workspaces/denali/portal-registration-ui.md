@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-08-16-v20"
+version: "2026-08-17-v22"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -48,6 +48,7 @@ app/layout.tsx
 
 Phase 4 (PCMS-CORS): Portal middleware CORS on `/api/public-auth/*` for the paired marketing origin.
 Phase 5: Marketing hosts the same OTP UI on **PDP** via the origin factory (stay on `/tours/{id}`). Header Sign in navigates to Portal `/login`. Cookie write stays Portal BFF.
+Phase 6 (DL-49): guest PDP «ثبت‌نام» opens that marketing modal; member continue still navigates to portal register for intake.
 Portal `/login` is retained (middleware `/me/*` gate). Marketing must not add `app/api/public-auth` / `app/api/me`.
 ```
 
@@ -415,7 +416,7 @@ Bookings command center inspection panel and tour transport roster read `registr
 | DEN-TRANS-01 · 02 · 03 | `portal-registration-transport-smoke.spec.ts` | bus default (no UI) · personal-car opt-in · shared_cars dong |
 | SMK-PTL-02 · 04 · 05 · 06 | `portal-member-smoke.spec.ts` | member list · receipt · home redirect · logout |
 | DEN-PROF-01 · 02 · 03 | `portal-member-profile-smoke.spec.ts` | profile fields · PATCH persist · intake hide |
-| SMK-MKT-03 | `marketing-catalog-smoke.spec.ts` | marketing CTA → portal |
+| SMK-MKT-03 | `marketing-catalog-smoke.spec.ts` | PDP modal OTP → continue → portal intake |
 | SMK-P8-02 | `urban-e2e-integrity.spec.ts` | `urban.portal.localhost:3003` |
 
 ```bash

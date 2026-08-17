@@ -10,10 +10,8 @@
 import { expect, test } from "@playwright/test";
 
 import {
-  CATALOG_DEV_OTP,
   completeCatalogRegistrationIntake,
-  fillCatalogOtp,
-  requestRegistrationOtp,
+  completeGuestPdpRegisterModalThenOpenPortalIntake,
 } from "./fixtures/catalog-registration-otp";
 
 const DENALI_TOUR_ID = "5387d014-ee64-465a-9187-9b755eba04bb";
@@ -26,7 +24,7 @@ test.describe("Denali workspace purchase flow (manual-only)", () => {
     "manual-only: needs marketing:3002 + denali.portal host — not CI; see playwright.denali-probes.config.ts"
   );
 
-  test("marketing CTA → portal register → intake → /me/registrations", async ({ page }) => {
+  test("marketing CTA → PDP modal OTP → portal intake → /me/registrations", async ({ page }) => {
     const phone = `+1555${String(Date.now()).slice(-7)}`;
 
     await page.goto(`${MARKETING_BASE}/tours`, { waitUntil: "domcontentloaded" });
@@ -38,25 +36,11 @@ test.describe("Denali workspace purchase flow (manual-only)", () => {
       timeout: 60_000,
     });
 
-    const registerLink = page.locator("[data-marketing-register]");
-    await expect(registerLink).toBeVisible();
-    await Promise.all([
-      page.waitForURL(/denali\.portal\.localhost:3003\/catalog\/[^/]+\/register/, {
-        timeout: 120_000,
-      }),
-      registerLink.first().click(),
-    ]);
-
-    await page.waitForSelector("[data-public-registration-phone][data-registration-ready]", {
-      timeout: 120_000,
+    await completeGuestPdpRegisterModalThenOpenPortalIntake(page, {
+      phone,
+      fullName: "Denali Flow Guest",
     });
     await expect(page.locator("[data-catalog-registration-page]")).toBeVisible();
-
-    await requestRegistrationOtp(page, phone);
-    await fillCatalogOtp(page, CATALOG_DEV_OTP);
-    await expect(
-      page.locator("[data-public-registration-profile], [data-public-registration-intake]")
-    ).toBeVisible({ timeout: 60_000 });
 
     await completeCatalogRegistrationIntake(page, {
       fullName: "Denali Flow Guest",

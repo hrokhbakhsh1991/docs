@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Marketing harbor G1 smoke — SMK-MKT-HARBOR-01 (DG-4.7)
- * Catalog browse → portal register.
+ * Catalog browse → PDP modal OTP → portal intake.
  */
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 const marketingSmokeBaseUrl =

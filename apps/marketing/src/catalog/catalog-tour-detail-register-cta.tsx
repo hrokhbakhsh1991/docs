@@ -49,6 +49,16 @@ export async function CatalogTourDetailRegisterCta({
       <a href={cta.primaryHref} data-marketing-view-registration>
         {primaryLabel}
       </a>
+    ) : cta.primaryKind === "register" ? (
+      <MarketingLoginModalTrigger
+        href={cta.primaryHref}
+        host="pdp"
+        tourId={tourId}
+        tourTitle={tourTitle}
+        data-marketing-register
+      >
+        {primaryLabel}
+      </MarketingLoginModalTrigger>
     ) : (
       <a href={cta.primaryHref} data-marketing-register>
         {primaryLabel}

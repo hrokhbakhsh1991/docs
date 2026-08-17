@@ -54,7 +54,7 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
     }
   });
 
-  it("MKT-PCMS-P5-02 header navigates to /login; PDP sign-in keeps modal trigger", () => {
+  it("MKT-PCMS-P5-02 header navigates to /login; PDP guest register + sign-in keep modal trigger", () => {
     const shell = readFileSync(join(marketingRoot, "src/shell/marketing-shell.tsx"), "utf8");
     const trigger = readFileSync(
       join(marketingRoot, "src/auth/marketing-login-modal-trigger.tsx"),
@@ -73,7 +73,13 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
     assert.match(cta, /data-marketing-tour-sign-in/);
     assert.match(cta, /MarketingLoginModalTrigger/);
     assert.match(cta, /host="pdp"/);
+    assert.match(cta, /primaryKind === "register"/);
+    assert.match(
+      cta,
+      /cta\.primaryKind === "register" \? \(\s*<MarketingLoginModalTrigger[\s\S]*?data-marketing-register/
+    );
     assert.match(cta, /data-marketing-register/);
+    assert.match(cta, /<a href=\{cta\.primaryHref\} data-marketing-register>/);
     assert.doesNotMatch(cta, /tryCreatePortalOriginGuestAuthTransport/);
     assert.match(modal, /isMarketingTourDetailPathname/);
     assert.match(modal, /host: "pdp"/);

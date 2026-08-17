@@ -1,10 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 import {
-  CATALOG_DEV_OTP,
   completeCatalogRegistrationIntake,
-  fillCatalogOtp,
-  submitCatalogPhoneForOtp,
+  completeGuestPdpRegisterModalThenOpenPortalIntake,
 } from "./fixtures/catalog-registration-otp";
 import {
   resolveSmokePublishedTourId,
@@ -71,22 +69,11 @@ test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({
     timeout: 60_000,
   });
 
-  const registerLink = page.locator("[data-marketing-register]").first();
-  await expect(registerLink).toBeVisible();
-  await Promise.all([
-    page.waitForURL(/\/catalog\/[^/]+\/register/, { timeout: 60_000 }),
-    registerLink.click(),
-  ]);
-  await page.waitForSelector("[data-public-registration-phone][data-registration-ready]", {
-    timeout: 120_000,
+  await completeGuestPdpRegisterModalThenOpenPortalIntake(page, {
+    phone: devPhone,
+    fullName: "Marketing Smoke Guest",
+    email: REGISTRATION_EMAIL,
   });
-
-  await submitCatalogPhoneForOtp(page, devPhone);
-
-  await fillCatalogOtp(page, CATALOG_DEV_OTP);
-  await expect(
-    page.locator("[data-public-registration-profile], [data-public-registration-intake]")
-  ).toBeVisible({ timeout: 60_000 });
 
   await completeCatalogRegistrationIntake(page, {
     email: REGISTRATION_EMAIL,
@@ -96,6 +83,27 @@ test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({
 
   await expect(page.locator("[data-public-registration-success]")).toBeVisible({
     timeout: 60_000,
+  });
+});
+
+test("SMK-MKT-HEADER-01 header sign-in navigates to Portal /login (not marketing modal)", async ({
+  page,
+}) => {
+  await page.goto(`/tours/${SMOKE_PUBLISHED_TOUR_ID}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
+    timeout: 60_000,
+  });
+
+  const headerSignIn = page.locator("a[data-marketing-header-sign-in]").first();
+  await expect(headerSignIn).toBeVisible();
+  await Promise.all([
+    page.waitForURL(/\/login(?:\?|$)/, { timeout: 30_000 }),
+    headerSignIn.click(),
+  ]);
+  await expect(page).not.toHaveURL(/\/catalog\//);
+  await expect(page.locator("[data-marketing-login-modal-open='true']")).toHaveCount(0);
+  await expect(page.locator("[data-portal-login-full-page]")).toBeVisible({
+    timeout: 30_000,
   });
 });
 

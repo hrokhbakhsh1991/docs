@@ -18,6 +18,7 @@ describe("marketing shell — PCMS-03", () => {
     assert.match(shell, /portalMemberLoginUrl/);
     assert.match(shell, /href=\{portalMemberLoginUrl\}/);
     assert.doesNotMatch(shell, /MarketingLoginModalTrigger/);
+    assert.doesNotMatch(shell, /openLoginModal/);
     assert.doesNotMatch(shell, /resolvePortalMemberAreaUrl/);
   });
 
