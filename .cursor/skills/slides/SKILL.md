@@ -1,6 +1,6 @@
 ---
 name: slides
-description: Create strategic HTML presentations with Chart.js, design tokens, responsive layouts, copywriting formulas, and contextual slide strategies.
+description: "ON-DEMAND ONLY. HTML slide decks. Load only if user explicitly asks for a presentation. Do not auto-load."
 argument-hint: "[topic] [slide-count]"
 metadata:
   author: claudekit

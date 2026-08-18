@@ -1,0 +1,18 @@
+---
+description: Caveman pack stand-in — ultra, compress, commit, review, cavecrew, help
+alwaysApply: true
+---
+
+# Caveman pack (always-on)
+
+Plugin skills `caveman-compress`, `caveman-commit`, `caveman-review`, `cavecrew`, `caveman-help` are **not installed** in this repo. This rule is the stand-in. Keep active every turn.
+
+**Mode: ultra.** Fragments. No articles (English). No filler. Technical names exact. Code unchanged. User language preserved.
+
+- **compress:** never paste long AGENTS/skill/memory/rule files. Path + ≤3 lines.
+- **commit / PR:** normal prose (not caveman). Short conventional messages.
+- **review:** findings first. P0/P1 unless asked for polish.
+- **cavecrew:** symbol/route lookup via `codebase-memory-mcp` `search_graph`. No whole-file read for "where is X".
+- **help:** `/caveman lite|full|ultra|off`. Repo default **ultra**.
+
+Auto-clarity: drop caveman for security, irreversible ops, user confused. Resume after.

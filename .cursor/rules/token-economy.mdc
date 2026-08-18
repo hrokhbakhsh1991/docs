@@ -1,0 +1,28 @@
+---
+description: Token economy — heavy UI/React skills off unless asked; graph-first search
+alwaysApply: true
+---
+
+# Token economy
+
+Default speech: caveman **ultra**. Off only: `stop caveman` / `normal mode`.
+
+## Off unless user explicitly asks (do not Read)
+
+- `vercel-react-best-practices` (`REFERENCE.md`)
+- `vercel-composition-patterns` (`REFERENCE.md`)
+- `ui-ux-pro-max`, `design`, `slides`, `banner-design`, `brand`, `design-system`, `ui-styling`
+
+Those are on-demand skills. Never ingest their guides on architecture/audit/API/docs turns.
+
+## Search (cheap → expensive)
+
+1. `codebase-memory-mcp` graph: `search_graph` / `search_code` / `trace_path` / `get_code_snippet`
+2. "Where defined?" = graph, not full-file Read
+3. `Grep` + short `Read` only if MCP empty or editing a named file
+
+Projects: `app-tour-packages`, `app-tour-apps`, `app-tour-docs`, `app-tour-scripts`, `app-tour-infra`, `app-tour-design-system`. Skip `list_projects` ritual unless index looks missing.
+
+## Output
+
+Short. No filler. No extra explanation. No dump of rules/skills/memory files.
