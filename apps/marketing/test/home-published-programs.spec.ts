@@ -7,13 +7,10 @@ import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { PUBLISHED_PROGRAMS_MAX } from "../src/home/home-published-programs";
-
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 describe("home-published-programs.spec.ts", () => {
   it("caps visible programs at 6 and uses one catalog block", () => {
-    assert.equal(PUBLISHED_PROGRAMS_MAX, 6);
     const fullSource = readFileSync(
       join(repoRoot, "apps/marketing/src/home/guest-home-full.tsx"),
       "utf8"
@@ -26,6 +23,7 @@ describe("home-published-programs.spec.ts", () => {
       join(repoRoot, "apps/marketing/src/home/home-published-programs-card.tsx"),
       "utf8"
     );
+    assert.match(programsSource, /export const PUBLISHED_PROGRAMS_MAX = 6/);
     assert.match(fullSource, /showPrograms = sections\.featured \|\| sections\.latest/);
     assert.match(fullSource, /HomePublishedPrograms/);
     assert.doesNotMatch(fullSource, /<HomeFeatured/);
