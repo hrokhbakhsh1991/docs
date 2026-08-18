@@ -10,6 +10,9 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   > section[data-marketing-home-hero-peak-margin] {
   min-height: 100dvh;
   min-height: 100svh;
+  --color-primary: var(--denali-forest-600);
+  --color-primary-hover: var(--denali-forest-700);
+  --primary: var(--denali-forest-600);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
