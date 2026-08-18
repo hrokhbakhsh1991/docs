@@ -70,7 +70,7 @@ describe("home-destinations.spec.ts", () => {
     assert.match(aggregator, /@import "\.\/home\/destinations\.css"/);
     assert.match(css, /repeat\(3, minmax\(0, 1fr\)\)/);
     assert.match(css, /-webkit-line-clamp: 2/);
-    assert.match(css, /min-height: 2\.75rem/);
+    assert.match(css, /min-height: 44px/);
     assert.doesNotMatch(css, /scroll-snap-type:\s*x/);
     assert.doesNotMatch(css, /flex:\s*1\.4/);
     assert.doesNotMatch(css, /max-height:\s*0/);

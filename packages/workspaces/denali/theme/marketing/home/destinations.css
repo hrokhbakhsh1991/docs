@@ -112,6 +112,10 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   outline: none;
   scroll-snap-align: none;
   background: var(--mkt-hero-ink);
+  opacity: 1;
+  animation: none;
+  animation-timeline: auto;
+  animation-range: normal;
   transition:
     transform var(--mkt-motion-fast, 180ms) var(--mkt-ease-out, ease-out),
     box-shadow var(--mkt-motion-fast, 180ms) ease;
@@ -291,9 +295,10 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   box-sizing: border-box;
   margin: var(--space-1) 0 0;
   max-height: none;
-  min-height: 2.75rem;
-  min-width: 2.75rem;
-  padding: 0.5rem 1rem;
+  min-height: 44px;
+  height: auto;
+  min-width: 44px;
+  padding: 0.625rem 1rem;
   overflow: visible;
   opacity: 1;
   transform: none;
@@ -422,6 +427,24 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    article[data-marketing-home-destination-card],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    article[data-marketing-home-destination-card]:nth-child(2),
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-destinations]
+    article[data-marketing-home-destination-card]:nth-child(3) {
+    animation: none;
+    animation-timeline: auto;
+    animation-range: normal;
+    opacity: 1;
+  }
+
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     [data-marketing-home]
     section[data-marketing-home-destinations]
