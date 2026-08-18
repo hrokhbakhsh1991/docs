@@ -1005,26 +1005,25 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(actionsSection, /TourWorkspaceAdminPaymentCard/);
     assert.match(actionsSection, /TourWorkspaceAdvancedReceiptCard/);
     assert.match(actionsSection, /TourWorkspacePaymentOverrideActions/);
-    assert.match(actionsSection, /resolveTourWorkspaceDetailActionRecommendation/);
-    assert.match(actionsSection, /detailPrimaryActionEyebrow/);
-    assert.match(actionsSection, /detailSecondaryActionEyebrow/);
+    assert.doesNotMatch(actionsSection, /resolveTourWorkspaceDetailActionRecommendation/);
+    assert.match(actionsSection, /detailAdvancedToggle/);
     assert.match(actionsSection, /detailPrimaryPaymentTitle/);
-    assert.match(actionsSection, /detailSecondaryActionTitle/);
+    assert.match(actionsSection, /detailActionStateReviewCta/);
     assert.match(actionsSection, /detailActionStateReviewTitle/);
     assert.match(actionsSection, /detailActionStateReadOnlyTitle/);
     assert.match(actionsSection, /refreshKey=\{refreshKey\}/);
     assert.match(masterDetailLayout, /lg:h-\[calc\(100vh-8rem\)\]/);
     assert.match(masterDetailLayout, /lg:overflow-y-auto/);
     assert.ok(
-      actionsSection.indexOf('title={t("detailPrimaryPaymentTitle")}') <
-        actionsSection.lastIndexOf("<BookingFinancialStrip")
+      actionsSection.indexOf("<TourWorkspaceAdminPaymentCard") <
+        actionsSection.indexOf("<details")
     );
     assert.ok(
-      actionsSection.lastIndexOf("<BookingFinancialStrip") <
-        actionsSection.indexOf('title={t("detailSecondaryActionTitle")}')
+      actionsSection.indexOf("<details") <
+        actionsSection.indexOf("<TourWorkspacePaymentOverrideActions")
     );
     assert.ok(
-      actionsSection.indexOf('title={t("detailSecondaryActionTitle")}') <
+      actionsSection.indexOf("<TourWorkspacePaymentOverrideActions") <
         actionsSection.indexOf("<TourWorkspaceAdvancedReceiptCard")
     );
     assert.match(overrideActions, /obligation-override/);

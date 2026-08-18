@@ -276,6 +276,7 @@
       "detailPrimaryPaymentTitle": "Record the amount received",
       "detailPrimaryPaymentDescriptionUnpaid": "Use this when finance is recording money that has already been received or confirmed from the admin side.",
       "detailPrimaryPaymentDescriptionPartial": "Use this to record the next received amount while keeping any remaining balance visible for follow-up.",
+      "detailAdvancedToggle": "Advanced tools",
       "detailSecondaryActionTitle": "Change the expected amount only if the obligation itself is wrong",
       "detailSecondaryActionDescription": "Use this when the guest should owe a different amount. This changes the current obligation, not the payment history.",
       "workspacePaymentTitle": "Record the amount received",

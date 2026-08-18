@@ -688,7 +688,6 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
             registrationId={selectedRow.registrationId}
             canManage={canManage}
             actionMode={actionMode}
-            summaryStatus={detailData.detailState?.summaryStatus ?? null}
             hasActiveSchedule={hasActiveSchedule}
             rowKind={selectedRow.kind}
             invoice={detailData.invoice}

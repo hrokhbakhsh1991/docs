@@ -1,6 +1,6 @@
 # Tour Workspace Finance Inbox — Phased Redesign
 
-Status: **Phase 1 in progress** (list + chrome density). Phases 2–5 are not in this PR.
+Status: **Phase 2 in progress** (one primary action; review still hub CTA). Phase 1 landed on this stack. Phases 3–5 are not in this PR.
 
 The big-bang workspace finance redesign was reverted. This plan replaces both that attempt and the older four-section card in [`tour-workspace-payment-follow-up-audit.md`](./tour-workspace-payment-follow-up-audit.md) **for presentation**. Finance-core contracts, list inclusion rules, and state precedence in that audit stay valid.
 
@@ -146,7 +146,7 @@ The older audit’s “Section A–D always visible” is the wrong presentation
 
 ## Phase 1 — Density only (list + chrome copy)
 
-**Status:** in progress (this PR).
+**Status:** done.
 
 **Goal:** Same behavior, half the instructional text. Operator can scan the queue.
 
@@ -183,6 +183,8 @@ The older audit’s “Section A–D always visible” is the wrong presentation
 ---
 
 ## Phase 2 — One primary action (still hub for review)
+
+**Status:** in progress (this PR).
 
 **Goal:** Detail stops offering three tools at once. Review still leaves the tab.
 
