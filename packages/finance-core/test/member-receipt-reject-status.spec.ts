@@ -226,8 +226,13 @@ describe("member receipt status after reject (remaining SoT)", () => {
 
   it("D — portal detail does not override receipt status from booking paymentStatus", async () => {
     const { readFileSync } = await import("node:fs");
+    const { dirname, join } = await import("node:path");
+    const { fileURLToPath } = await import("node:url");
     const page = readFileSync(
-      new URL("../../../../apps/portal/app/me/registrations/[id]/page.tsx", import.meta.url),
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../../../apps/portal/app/me/registrations/[id]/page.tsx"
+      ),
       "utf8"
     );
     assert.doesNotMatch(page, /paymentStatus === ["']paid["']/);

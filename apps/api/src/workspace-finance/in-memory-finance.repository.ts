@@ -268,7 +268,24 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     if (matching.length === 0) {
       return null;
     }
-    matching.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    matching.sort((a, b) => {
+      const byCreated = b.createdAt.getTime() - a.createdAt.getTime();
+      if (byCreated !== 0) {
+        return byCreated;
+      }
+      const aReviewed = a.reviewedAt?.getTime() ?? 0;
+      const bReviewed = b.reviewedAt?.getTime() ?? 0;
+      if (bReviewed !== aReviewed) {
+        return bReviewed - aReviewed;
+      }
+      const rank = (status: string): number =>
+        status === "Pending" ? 3 : status === "Rejected" ? 2 : status === "Approved" ? 1 : 0;
+      const byStatus = rank(b.status) - rank(a.status);
+      if (byStatus !== 0) {
+        return byStatus;
+      }
+      return b.id.localeCompare(a.id);
+    });
     return matching[0] ?? null;
   }
 
