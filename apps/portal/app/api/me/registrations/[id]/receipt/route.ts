@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
-import { parseMemberReceiptStatus } from "@/me/member-receipt-status";
+import { parseMemberReceiptPanel } from "@/me/member-receipt-status";
 import { resolveTourOpsApiBaseUrl } from "@/env";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -58,10 +58,8 @@ export async function GET(req: Request, context: RouteContext): Promise<NextResp
       { status: res.status }
     );
   }
-  return NextResponse.json(
-    { ok: true, status: parseMemberReceiptStatus(payload.status) },
-    { status: 200 }
-  );
+  const panel = parseMemberReceiptPanel(payload);
+  return NextResponse.json({ ok: true, ...panel }, { status: 200 });
 }
 
 /**

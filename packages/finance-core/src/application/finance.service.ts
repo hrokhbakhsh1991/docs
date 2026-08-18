@@ -32,6 +32,7 @@ import {
   type FinanceRegistrationContext,
 } from "../domain/finance-registration-context";
 import {
+  isPositiveBalanceDueMinor,
   paginateFinanceExceptionItems,
   type FinanceExceptionItem,
 } from "../domain/finance-exception";
@@ -165,6 +166,30 @@ function assertCompositionDep(name: string, value: unknown): void {
       `FINANCE_SERVICE_DEP_REQUIRED: ${name} must be provided by the composition root`
     );
   }
+}
+
+export type MemberReceiptPanelStatus = "none" | "pending" | "rejected" | "paid" | "waived";
+export type MemberReceiptPreviewKind = "image" | "pdf" | "unknown";
+
+export type MemberReceiptStatusView = {
+  readonly status: MemberReceiptPanelStatus;
+  readonly remainingMinor: string | null;
+  readonly obligationMinor: string | null;
+  readonly paidMinor: string | null;
+  readonly currency: string | null;
+  readonly previewUrl: string | null;
+  readonly previewKind: MemberReceiptPreviewKind | null;
+};
+
+function previewKindFromFileKey(fileKey: string): MemberReceiptPreviewKind {
+  const lower = fileKey.trim().toLowerCase();
+  if (lower.endsWith(".pdf")) {
+    return "pdf";
+  }
+  if (/\.(png|jpe?g|webp|gif)$/.test(lower)) {
+    return "image";
+  }
+  return "unknown";
 }
 
 export class FinanceService {
@@ -977,7 +1002,7 @@ export class FinanceService {
   async getMemberReceiptStatusForRegistration(
     auth: FinanceActorContext,
     registrationId: string
-  ): Promise<{ readonly status: "none" | "pending" | "rejected" | "paid" }> {
+  ): Promise<MemberReceiptStatusView> {
     await this.gate(auth);
     this.authorization.assertReceiptSubmitAccess(auth);
 
@@ -990,39 +1015,111 @@ export class FinanceService {
       throw new Error("BOOKINGS_FORBIDDEN");
     }
 
-    const bookingPaymentStatus = await this.bookingPayments.getPaymentStatus({
+    const latestPromise = this.repository.findLatestReceiptForRegistration(
+      auth.tenantId,
+      registrationId
+    );
+    const collectionPromise = this.obligation.resolveRegistrationPaymentCollection({
       tenantId: auth.tenantId,
       registrationId,
     });
-    if (bookingPaymentStatus === "paid") {
-      return { status: "paid" };
+    const obligationPromise = this.obligation.resolveRegistrationObligation({
+      tenantId: auth.tenantId,
+      registrationId,
+    });
+    const invoicePromise = this.compileRegistrationInvoiceInternal(auth.tenantId, registrationId)
+      .then((invoice) => ({
+        remainingMinor: invoice.balanceDueMinor,
+        paidMinor: invoice.paidAmountMinor,
+        currency: invoice.currency,
+        remainingPositive: isPositiveBalanceDueMinor(invoice.balanceDueMinor),
+      }))
+      .catch(() => ({
+        remainingMinor: null as string | null,
+        paidMinor: null as string | null,
+        currency: null as string | null,
+        remainingPositive: false,
+      }));
+
+    const latest = await latestPromise;
+    const [collection, obligation, invoice, preview] = await Promise.all([
+      collectionPromise,
+      obligationPromise,
+      invoicePromise,
+      this.resolveMemberReceiptPreview(auth.tenantId, latest),
+    ]);
+    const zeroObligation =
+      collection === "free" ||
+      (obligation !== null && isZeroObligationMinor(obligation.obligationMinor));
+    const remainingMinor = invoice.remainingMinor;
+    const paidMinor = invoice.paidMinor;
+    const currency = invoice.currency ?? obligation?.currency ?? null;
+    const remainingPositive = invoice.remainingPositive;
+
+    const base = {
+      remainingMinor,
+      obligationMinor: obligation?.obligationMinor ?? null,
+      paidMinor,
+      currency,
+      previewUrl: preview.url,
+      previewKind: preview.kind,
+    };
+
+    if (remainingMinor === null) {
+      if (zeroObligation) {
+        return { ...base, remainingMinor: "0", status: "waived" };
+      }
+      if (latest === null) {
+        return { ...base, status: "none" };
+      }
+      if (latest.status === "Pending") {
+        return { ...base, status: "pending" };
+      }
+      if (latest.status === "Rejected") {
+        return { ...base, status: "rejected" };
+      }
+      return { ...base, status: "none" };
     }
 
-    const paymentStatuses = await this.repository.findPaymentStatusesByRegistration(
-      auth.tenantId,
-      registrationId
-    );
-    if (paymentStatuses.some((status) => status === "Paid")) {
-      return { status: "paid" };
+    if (!remainingPositive) {
+      if (zeroObligation) {
+        return { ...base, remainingMinor: remainingMinor ?? "0", status: "waived" };
+      }
+      return { ...base, remainingMinor: remainingMinor ?? "0", status: "paid" };
     }
 
-    const latest = await this.repository.findLatestReceiptForRegistration(
-      auth.tenantId,
-      registrationId
-    );
     if (latest === null) {
-      return { status: "none" };
+      return { ...base, status: "none" };
     }
     if (latest.status === "Pending") {
-      return { status: "pending" };
+      return { ...base, status: "pending" };
     }
     if (latest.status === "Rejected") {
-      return { status: "rejected" };
+      return { ...base, status: "rejected" };
     }
-    if (latest.status === "Approved") {
-      return { status: "paid" };
+    return { ...base, status: "none" };
+  }
+
+  private async resolveMemberReceiptPreview(
+    tenantId: string,
+    latest: { readonly fileKey: string } | null
+  ): Promise<{
+    readonly url: string | null;
+    readonly kind: MemberReceiptPreviewKind | null;
+  }> {
+    if (latest === null) {
+      return { url: null, kind: null };
     }
-    return { status: "none" };
+    const kind = previewKindFromFileKey(latest.fileKey);
+    try {
+      const url = await this.receiptProofStorage.getSignedReadUrl({
+        tenantId,
+        storageKey: latest.fileKey,
+      });
+      return { url, kind };
+    } catch {
+      return { url: null, kind };
+    }
   }
 
   async reviewReceipt(auth: FinanceActorContext, receiptId: string, body: ReviewReceiptBody) {

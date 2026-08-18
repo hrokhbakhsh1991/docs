@@ -516,7 +516,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           tenantId,
           payment: { tenantId, registrationId },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ createdAt: "desc" }, { reviewedAt: "desc" }, { id: "desc" }],
         include: {
           payment: {
             select: {

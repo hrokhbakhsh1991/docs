@@ -1,29 +1,25 @@
 import { cookies } from "next/headers";
 
 import {
-  parseMemberReceiptStatus,
-  type MemberReceiptStatus,
+  emptyMemberReceiptPanel,
+  parseMemberReceiptPanel,
+  type MemberReceiptPanel,
 } from "@/me/member-receipt-status";
 
-export type { MemberReceiptStatus };
-
-type ReceiptStatusBffResponse = {
-  readonly ok?: boolean;
-  readonly status?: MemberReceiptStatus;
-};
+export type { MemberReceiptPanel };
 
 /** SSR helper — same cookie forwarding as fetchMemberRegistrations. */
-export async function fetchMemberReceiptStatus(
+export async function fetchMemberReceiptPanel(
   host: string,
   registrationId: string
-): Promise<MemberReceiptStatus> {
+): Promise<MemberReceiptPanel> {
   const cookieStore = await cookies();
   const cookieHeader = cookieStore
     .getAll()
     .map((entry) => `${entry.name}=${entry.value}`)
     .join("; ");
   if (cookieHeader.length === 0) {
-    return "none";
+    return emptyMemberReceiptPanel();
   }
 
   const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
@@ -38,16 +34,16 @@ export async function fetchMemberReceiptStatus(
       }
     );
   } catch {
-    return "none";
+    return emptyMemberReceiptPanel();
   }
 
   if (!res.ok) {
-    return "none";
+    return emptyMemberReceiptPanel();
   }
 
-  const payload = (await res.json()) as ReceiptStatusBffResponse;
+  const payload = (await res.json()) as { ok?: boolean } & Record<string, unknown>;
   if (payload.ok !== true) {
-    return "none";
+    return emptyMemberReceiptPanel();
   }
-  return parseMemberReceiptStatus(payload.status);
+  return parseMemberReceiptPanel(payload);
 }

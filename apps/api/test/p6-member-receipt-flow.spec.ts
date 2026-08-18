@@ -74,6 +74,8 @@ describe("p6-member-receipt-flow", () => {
     );
     assert.equal(response.status, 200);
     assert.equal(response.body.status, "none");
+    assert.equal(typeof response.body.remainingMinor, "string");
+    assert.ok(BigInt(String(response.body.remainingMinor ?? "0").replace(/\D/g, "") || "0") > 0n);
   });
 
   it("P6-MR-01 POST /bookings/{id}/receipts creates pending receipt for member owner", async () => {
@@ -91,7 +93,12 @@ describe("p6-member-receipt-flow", () => {
   });
 
   it("P6-MR-01b GET /bookings/{id}/receipts returns pending after upload", async () => {
-    const response = await client.requestJson<{ status?: string }>(
+    const response = await client.requestJson<{
+      status?: string;
+      remainingMinor?: string | null;
+      previewKind?: string | null;
+      previewUrl?: string | null;
+    }>(
       "GET",
       `/bookings/${registrationId}/receipts`,
       {
@@ -100,6 +107,8 @@ describe("p6-member-receipt-flow", () => {
     );
     assert.equal(response.status, 200);
     assert.equal(response.body.status, "pending");
+    assert.equal(response.body.previewKind, "image");
+    assert.ok(BigInt(String(response.body.remainingMinor ?? "0").replace(/\D/g, "") || "0") > 0n);
   });
 
   it("P6-MR-01c pending booking cannot upload receipt (approve-then-pay)", async () => {

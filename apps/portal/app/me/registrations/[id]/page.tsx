@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
-import { fetchMemberReceiptStatus } from "@/me/fetch-member-receipt-status.server";
+import { fetchMemberReceiptPanel } from "@/me/fetch-member-receipt-status.server";
 import { fetchMemberRegistrationById } from "@/me/fetch-member-registration-by-id.server";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import {
@@ -43,11 +43,11 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
   }
   const t = await getTranslations("portalMember.detail");
   const tAmend = await getTranslations("portalMember.intakeAmend");
-  const [statusLabel, paymentStatusLabel, departureLabel, receiptStatus] = await Promise.all([
+  const [statusLabel, paymentStatusLabel, departureLabel, receiptPanel] = await Promise.all([
     localizeMemberRegistrationStatus(row.status),
     localizeMemberPaymentStatus(row.paymentStatus),
     formatMemberRegistrationDeparture(row.departureAt),
-    fetchMemberReceiptStatus(host, row.id),
+    fetchMemberReceiptPanel(host, row.id),
   ]);
 
   const lifecycleStatus = parseRegistrationLifecycleStatus(row.status) ?? "pending";
@@ -177,10 +177,10 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
         <MemberReceiptUploadForm
           registrationId={row.id}
           registrationStatus={lifecycleStatus}
-          initialStatus={row.paymentStatus === "paid" ? "paid" : receiptStatus}
+          initialPanel={receiptPanel}
           tripsListHref={tripsListHref}
           tourHref={tourHref}
-          due={
+          catalogDue={
             typeof row.dueTotalMinor === "string" &&
             row.dueTotalMinor.length > 0 &&
             typeof row.dueCurrency === "string" &&
