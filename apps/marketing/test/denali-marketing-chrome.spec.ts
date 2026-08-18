@@ -22,6 +22,15 @@ describe("denali-marketing-chrome.spec.ts", () => {
     assert.match(css, /width: 1\.25rem;/);
     assert.match(css, /font-size: 1rem;/);
     assert.match(css, /font-weight: 700;/);
+    assert.match(css, /font-family: var\(--font-sans-en\)/);
+    assert.match(
+      css,
+      /svg\[data-marketing-nav-drawer-toggle-icon\] \{[\s\S]*?width: 1\.25rem;/,
+    );
+    assert.match(
+      css,
+      /nav\[data-marketing-nav-drawer-panel\] \{[\s\S]*?--denali-mist-50/,
+    );
     assert.doesNotMatch(css, /data-marketing-nav-link-id="tours"/);
     assert.match(
       css,
@@ -37,6 +46,8 @@ describe("denali-marketing-chrome.spec.ts", () => {
     assert.match(footer, /footer\[data-marketing-footer\]/);
     assert.match(footer, /color: var\(--denali-forest-600\)/);
     assert.match(footer, /min-height: 2\.75rem;/);
+    assert.match(footer, /min-width: 2\.75rem;/);
+    assert.match(footer, /background: transparent;/);
     assert.doesNotMatch(footer, /var\(--color-text-link/);
     const entry = readFileSync(
       join(repoRoot, "packages/workspaces/denali/theme/marketing/home-landing.css"),
@@ -50,5 +61,22 @@ describe("denali-marketing-chrome.spec.ts", () => {
       join(repoRoot, "packages/workspaces/denali/theme/denali-marketing.css"),
     );
     assert.match(bundle, /a\[data-marketing-skip-link\] \{[\s\S]*?min-height: 2\.75rem;/);
+    assert.match(bundle, /a\[data-marketing-skip-link\] \{[\s\S]*?inset-inline-end:/);
+    assert.match(bundle, /a\[data-marketing-skip-link\]:focus,/);
+  });
+
+  it("nav drawer Escape closer is a shared MarketingShell client island", () => {
+    const shell = readFileSync(
+      join(repoRoot, "apps/marketing/src/shell/marketing-shell.tsx"),
+      "utf8",
+    );
+    const keyboard = readFileSync(
+      join(repoRoot, "apps/marketing/src/shell/marketing-nav-drawer-keyboard.tsx"),
+      "utf8",
+    );
+    assert.match(shell, /<MarketingNavDrawerKeyboard \/>/);
+    assert.match(keyboard, /"use client"/);
+    assert.match(keyboard, /event\.key !== "Escape"/);
+    assert.match(keyboard, /\[data-marketing-nav-drawer\]\[open\]/);
   });
 });

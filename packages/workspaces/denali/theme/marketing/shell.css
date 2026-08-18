@@ -1,7 +1,7 @@
 
 :is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"] a[data-marketing-skip-link] {
   position: absolute;
-  inset-inline-start: var(--space-4);
+  inset-inline-end: var(--space-4);
   top: var(--space-2);
   z-index: 60;
   display: inline-flex;
@@ -17,6 +17,8 @@
   transition: transform var(--mkt-motion-fast) ease;
 }
 
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
+  a[data-marketing-skip-link]:focus,
 :is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   a[data-marketing-skip-link]:focus-visible {
   transform: translateY(0);

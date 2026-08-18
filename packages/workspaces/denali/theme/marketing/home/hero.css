@@ -267,6 +267,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   a[data-marketing-brand]
   span[data-marketing-brand-title] {
+  font-family: var(--font-sans-en), ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -387,6 +388,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
+  summary[data-marketing-nav-drawer-toggle]
+  svg[data-marketing-nav-drawer-toggle-icon] {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
   details[data-marketing-nav-drawer]
   > summary[data-marketing-nav-drawer-toggle]:hover {
   background: color-mix(in srgb, #1a1f24 6%, transparent);
@@ -436,6 +445,45 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   color: #1a1f24;
   opacity: 1;
   font-weight: 700;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  details[data-marketing-nav-drawer][open]
+  nav[data-marketing-nav-drawer-panel] {
+  background: var(--denali-mist-50, #f4f7f4);
+  color: #1a1f24;
+  border: 1px solid color-mix(in srgb, #1a1f24 14%, transparent);
+  border-radius: 0;
+  box-shadow: 0 0.5rem 1.5rem color-mix(in srgb, #1a1f24 12%, transparent);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+@supports (backdrop-filter: blur(1rem)) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    header[data-marketing-header][data-marketing-header-overlay]
+    details[data-marketing-nav-drawer][open]
+    nav[data-marketing-nav-drawer-panel] {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--denali-mist-50, #f4f7f4);
+  }
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  nav[data-marketing-nav-drawer-panel]
+  a {
+  color: #1a1f24;
+  border-radius: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  nav[data-marketing-nav-drawer-panel]
+  a:hover {
+  background: color-mix(in srgb, #1a1f24 6%, transparent);
 }
 
 @media (min-width: 1024px) {

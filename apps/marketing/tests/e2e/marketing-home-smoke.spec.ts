@@ -206,6 +206,8 @@ test("SMK-MKT-HOME-08 mobile drawer opens nav panel", async ({ page }) => {
   await page.locator("[data-marketing-nav-drawer-toggle]").click();
   await expect(drawer).toHaveAttribute("open", "");
   await expect(page.locator("[data-marketing-nav-drawer-panel] a[href='/tours']").first()).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(drawer).not.toHaveAttribute("open", "");
 });
 
 test("SMK-MKT-HOME-09 English home CTA keeps locale on tours navigation", async ({ page }) => {

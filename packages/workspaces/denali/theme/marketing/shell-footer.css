@@ -41,6 +41,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   display: inline-flex;
   align-items: center;
   min-height: 2.75rem;
+  min-width: 2.75rem;
   padding-block: 0.5rem;
   color: var(--denali-forest-600);
   font-weight: 500;
@@ -66,8 +67,21 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   footer[data-marketing-footer]
   div[data-marketing-footer-newsletter] {
-  background: var(--color-bg-surface, #ffffff);
-  border-color: var(--color-border-default, #dce5dc);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin-block-start: var(--space-5);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  footer[data-marketing-footer]
+  div[data-marketing-footer-newsletter]
+  h3 {
+  margin: 0 0 0.25rem;
+  font-family: inherit;
+  font-size: var(--mkt-text-meta, 0.8125rem);
+  font-weight: 600;
 }
 
 @media (max-width: 47.99rem) {
