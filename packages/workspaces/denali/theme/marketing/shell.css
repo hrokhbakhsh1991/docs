@@ -1,11 +1,14 @@
 
 :is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"] a[data-marketing-skip-link] {
   position: absolute;
+  inset-inline-start: auto;
   inset-inline-end: var(--space-4);
   top: var(--space-2);
   z-index: 60;
   display: inline-flex;
   align-items: center;
+  width: max-content;
+  max-width: calc(100% - 2 * var(--space-4));
   min-height: 2.75rem;
   padding: 0.625rem 0.875rem;
   border-radius: var(--radius-md);

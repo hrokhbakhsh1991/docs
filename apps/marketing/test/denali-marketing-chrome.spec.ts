@@ -62,6 +62,7 @@ describe("denali-marketing-chrome.spec.ts", () => {
     );
     assert.match(bundle, /a\[data-marketing-skip-link\] \{[\s\S]*?min-height: 2\.75rem;/);
     assert.match(bundle, /a\[data-marketing-skip-link\] \{[\s\S]*?inset-inline-end:/);
+    assert.match(bundle, /a\[data-marketing-skip-link\] \{[\s\S]*?width: max-content;/);
     assert.match(bundle, /a\[data-marketing-skip-link\]:focus,/);
   });
 
