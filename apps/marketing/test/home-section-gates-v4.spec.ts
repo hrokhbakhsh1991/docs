@@ -176,6 +176,25 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
       /data-marketing-home-search/
     );
+    const programsSource = readFileSync(
+      join(repoRoot, "apps/marketing/src/home/home-published-programs.tsx"),
+      "utf8"
+    );
+    assert.match(programsSource, /data-marketing-home-search/);
+    assert.match(programsSource, /name="q"/);
+    assert.match(programsSource, /PUBLISHED_PROGRAMS_MAX/);
+    assert.match(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/guest-home-full.tsx"), "utf8"),
+      /HomePublishedPrograms/
+    );
+    assert.doesNotMatch(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/guest-home-full.tsx"), "utf8"),
+      /<HomeFeatured/
+    );
+    assert.doesNotMatch(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/guest-home-full.tsx"), "utf8"),
+      /<HomeLatestTours/
+    );
     assert.doesNotMatch(
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
       /HomeHeroMountainStageClient/

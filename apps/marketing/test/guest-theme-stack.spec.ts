@@ -123,6 +123,7 @@ describe("guest-theme-stack.spec.ts — marketing", () => {
     assert.match(skin, /--mkt-shadow-card:/);
     assert.match(skin, /section\[data-marketing-home-hero\]/);
     assert.match(skin, /section\[data-marketing-home-latest\]/);
+    assert.match(skin, /section\[data-marketing-home-programs\]/);
     assert.match(skin, /section\[data-marketing-home-trust\]/);
     assert.match(skin, /section\[data-marketing-home-final-cta\]/);
     assert.match(skin, /section\[data-marketing-home-faq\]/);

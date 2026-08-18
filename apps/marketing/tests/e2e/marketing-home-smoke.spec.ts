@@ -20,21 +20,27 @@ test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
   await expect(page.locator("[data-marketing-home-faq]")).toBeVisible();
   await expect(page.locator("[data-marketing-home-final-cta]")).toBeVisible();
 
-  const featured = page.locator("[data-marketing-home-featured]");
-  const latest = page.locator("[data-marketing-home-latest]");
-  const categories = page.locator("[data-marketing-home-categories]");
+  const programs = page.locator("[data-marketing-home-programs]");
   const gallery = page.locator("[data-marketing-home-gallery]");
 
-  if ((await featured.count()) > 0) {
-    await expect(featured).toBeVisible();
-  }
-  if ((await latest.count()) > 0) {
-    await expect(latest).toBeVisible();
-    await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible();
-  }
-  if ((await categories.count()) > 0) {
-    await expect(categories).toBeVisible();
-  }
+  await expect(page.locator("[data-marketing-home-featured]")).toHaveCount(0);
+  await expect(programs).toHaveCount(1);
+  await expect(page.locator("[data-marketing-home-latest]")).toHaveCount(1);
+  await expect(page.locator("section[data-marketing-home-categories]")).toHaveCount(0);
+  await expect(programs.locator("[data-marketing-home-search]")).toBeVisible();
+  await expect(programs.locator("[data-marketing-home-search] input[name='q']")).toBeVisible();
+  await expect(programs.locator("[data-marketing-home-category-chip]").first()).toHaveAttribute(
+    "href",
+    /category=/
+  );
+  await expect(programs.locator("[data-marketing-home-programs-view-all]")).toHaveAttribute(
+    "href",
+    /\/tours/
+  );
+  const cardCount = await programs.locator("[data-marketing-home-programs-card]").count();
+  expect(cardCount).toBeGreaterThan(0);
+  expect(cardCount).toBeLessThanOrEqual(6);
+  await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible();
   if ((await gallery.count()) > 0) {
     await expect(gallery).toBeVisible();
   }

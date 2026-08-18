@@ -7,9 +7,10 @@ import { resolveMarketingCategoryLabel } from "./resolve-marketing-category-labe
 
 export type HomeCategoriesProps = {
   readonly categories: readonly string[];
+  readonly embedded?: boolean;
 };
 
-export async function HomeCategories({ categories }: HomeCategoriesProps) {
+export async function HomeCategories({ categories, embedded = false }: HomeCategoriesProps) {
   if (categories.length === 0) {
     return null;
   }
@@ -24,24 +25,36 @@ export async function HomeCategories({ categories }: HomeCategoriesProps) {
     }))
   );
 
+  const chips = (
+    <div data-marketing-home-categories-row>
+      {categoryChips.map(({ category, label }) => (
+        <Link
+          key={category}
+          href={resolveMarketingToursListPath(locale, { category })}
+          data-marketing-home-category-chip
+          data-marketing-home-category-chip-id={category}
+        >
+          {label}
+        </Link>
+      ))}
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div data-marketing-home-categories data-marketing-home-categories-embedded>
+        {chips}
+      </div>
+    );
+  }
+
   return (
     <section data-marketing-home-categories>
       <header>
         <h2>{t("home.full.categories.title")}</h2>
         <p>{t("home.full.categories.lead")}</p>
       </header>
-      <div data-marketing-home-categories-row>
-        {categoryChips.map(({ category, label }) => (
-          <Link
-            key={category}
-            href={resolveMarketingToursListPath(locale, { category })}
-            data-marketing-home-category-chip
-            data-marketing-home-category-chip-id={category}
-          >
-            {label}
-          </Link>
-        ))}
-      </div>
+      {chips}
     </section>
   );
 }

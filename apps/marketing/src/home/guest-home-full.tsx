@@ -12,14 +12,13 @@ import { HomeBlogTeaser } from "./home-blog-teaser";
 import { HomeCategories } from "./home-categories";
 import { HomeDestinations } from "./home-destinations";
 import { HomeEquipment } from "./home-equipment";
-import { HomeFeatured } from "./home-featured";
 import { HomeFinalCta } from "./home-final-cta";
 import { HomeFaq } from "./home-faq";
 import { HomeGallery } from "./home-gallery";
 import { HomeHero } from "./home-hero";
 import { HomeJourney } from "./home-journey";
-import { HomeLatestTours } from "./home-latest-tours";
 import { HomePageJsonLd } from "./home-page-jsonld";
+import { HomePublishedPrograms, PUBLISHED_PROGRAMS_MAX } from "./home-published-programs";
 import { resolveHomeSectionVisibility } from "./home-section-gates";
 import { HomeTestimonials } from "./home-testimonials";
 import { HomeTrust } from "./home-trust";
@@ -50,16 +49,20 @@ export async function GuestHomeFull({
     categories.length,
     galleryPhotos.length
   );
-  const latestItems = landing.sections.latestTours
-    ? catalogItems.slice(0, landing.sections.latestToursLimit)
-    : [];
-  const featuredItems = landing.sections.featuredTours
-    ? catalogItems.slice(0, landing.sections.featuredToursLimit)
-    : [];
+  const showPrograms = sections.featured || sections.latest;
+  const programsLimit = Math.min(
+    PUBLISHED_PROGRAMS_MAX,
+    Math.max(
+      sections.featured ? landing.sections.featuredToursLimit : 0,
+      sections.latest ? landing.sections.latestToursLimit : 0
+    )
+  );
+  const programsItems = showPrograms ? catalogItems.slice(0, programsLimit) : [];
+  const nestCategoriesInPrograms = showPrograms && sections.categories;
   const heroImageUrl = resolveMarketingHeroImageUrl(branding);
   const whySectionAnchor = resolveHomeWhySectionAnchor(landing);
   const whySectionHref = resolveHomeWhySectionHref(landing);
-  const jsonLdItems = latestItems.map((item) => ({
+  const jsonLdItems = programsItems.map((item) => ({
     tourId: item.id,
     title: item.title?.trim() || t("detail.defaultTourTitle"),
   }));
@@ -76,11 +79,17 @@ export async function GuestHomeFull({
           destinationImageStems={landing.destinationImageStems}
         />
       ) : null}
-      {sections.featured ? (
-        <HomeFeatured items={featuredItems} pluginId={pluginId} branding={branding} />
+      {showPrograms ? (
+        <HomePublishedPrograms
+          items={programsItems}
+          pluginId={pluginId}
+          showSearch={sections.heroSearch}
+          categories={nestCategoriesInPrograms ? categories : []}
+        />
       ) : null}
-      {sections.latest ? <HomeLatestTours items={latestItems} pluginId={pluginId} /> : null}
-      {sections.categories ? <HomeCategories categories={categories} /> : null}
+      {sections.categories && !nestCategoriesInPrograms ? (
+        <HomeCategories categories={categories} />
+      ) : null}
       {sections.destinations ? (
         <HomeDestinations destinationSlugs={landing.destinationSlugs} />
       ) : null}
@@ -95,7 +104,7 @@ export async function GuestHomeFull({
       {sections.equipment ? <HomeEquipment /> : null}
       {sections.blogTeaser ? <HomeBlogTeaser /> : null}
       {sections.finalCta ? <HomeFinalCta /> : null}
-      {sections.latest ? <HomePageJsonLd host={host} items={jsonLdItems} /> : null}
+      {showPrograms ? <HomePageJsonLd host={host} items={jsonLdItems} /> : null}
     </div>
   );
 }

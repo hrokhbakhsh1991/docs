@@ -25,15 +25,16 @@ describe("home-fail-soft.spec.ts — HOME-UNIT-03", () => {
       join(repoRoot, "apps/marketing/src/home/guest-home-full.tsx"),
       "utf8"
     );
-    const latestSource = readFileSync(
-      join(repoRoot, "apps/marketing/src/home/home-latest-tours.tsx"),
+    const programsSource = readFileSync(
+      join(repoRoot, "apps/marketing/src/home/home-published-programs.tsx"),
       "utf8"
     );
     assert.match(fullSource, /resolveHomeSectionVisibility/);
     assert.match(fullSource, /sections\.latest/);
     assert.match(fullSource, /catalogItems/);
     assert.doesNotMatch(fullSource, /id="main-content"/);
-    assert.match(latestSource, /data-marketing-home-latest/);
-    assert.doesNotMatch(latestSource, /data-marketing-catalog-card/);
+    assert.match(programsSource, /data-marketing-home-latest/);
+    assert.match(programsSource, /data-marketing-home-programs/);
+    assert.doesNotMatch(programsSource, /data-marketing-catalog-card/);
   });
 });
