@@ -16,7 +16,22 @@ test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
   await expect(page.locator("[data-marketing-home-testimonials]")).toBeVisible();
   await expect(page.locator("[data-marketing-home-equipment]")).toBeVisible();
   await expect(page.locator("[data-marketing-skip-link]")).toHaveCount(1);
-  await expect(page.locator("[data-marketing-home-destinations]")).toBeVisible();
+  const destinations = page.locator("[data-marketing-home-destinations]");
+  await expect(destinations).toBeVisible();
+  await expect(destinations.locator("[data-marketing-home-destination-card]")).toHaveCount(3);
+  await expect(destinations.locator("[data-marketing-home-destination-link]")).toHaveCount(3);
+  const destinationHrefs = await destinations
+    .locator("[data-marketing-home-destination-link]")
+    .evaluateAll((links) =>
+      links.map((node) => (node as HTMLAnchorElement).getAttribute("href") ?? "")
+    );
+  expect(destinationHrefs.every((href) => href.includes("q="))).toBe(true);
+  expect(destinationHrefs.some((href) => href.includes("destination="))).toBe(false);
+  await expect(destinations.locator("[data-marketing-home-destination-link]").first()).toBeVisible();
+  await expect(
+    destinations.locator("[data-marketing-home-destination-card]").first()
+  ).not.toHaveAttribute("tabindex");
+  await expect(page.locator("[data-marketing-home-hero-selector] a")).toHaveCount(0);
   await expect(page.locator("[data-marketing-home-faq]")).toBeVisible();
   await expect(page.locator("[data-marketing-home-final-cta]")).toBeVisible();
 

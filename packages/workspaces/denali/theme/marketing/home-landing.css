@@ -1,7 +1,8 @@
 /**
  * Denali marketing Landing — named partials.
- * Imported last from denali-marketing.css so Hero + Programs win over
- * numbered PR patches without adding another `NN-pr-*.css` file.
+ * Imported last from denali-marketing.css so Hero + Programs + Destinations
+ * win over numbered PR patches without adding another `NN-pr-*.css` file.
  */
 @import "./home/hero.css";
 @import "./home/programs.css";
+@import "./home/destinations.css";

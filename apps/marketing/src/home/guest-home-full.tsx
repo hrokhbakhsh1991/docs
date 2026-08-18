@@ -91,7 +91,10 @@ export async function GuestHomeFull({
         <HomeCategories categories={categories} />
       ) : null}
       {sections.destinations ? (
-        <HomeDestinations destinationSlugs={landing.destinationSlugs} />
+        <HomeDestinations
+          destinationSlugs={landing.destinationSlugs}
+          destinationImageStems={landing.destinationImageStems}
+        />
       ) : null}
       {sections.trust ? <HomeTrust branding={branding} /> : null}
       {sections.whySection ? (
