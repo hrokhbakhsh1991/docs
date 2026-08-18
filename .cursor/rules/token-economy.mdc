@@ -1,0 +1,25 @@
+---
+description: "Token economy — heavy UI/Vercel skills off unless explicitly requested"
+alwaysApply: true
+---
+
+# Token economy
+
+Heavy skills OFF unless user **explicitly** names them or asks for that craft:
+
+- vercel-react-best-practices
+- vercel-composition-patterns
+- ui-ux-pro-max
+- design, design-system, ui-styling
+- slides, brand, banner-design
+
+Do **not** Read those SKILL.md / AGENTS.md on ordinary code work.
+
+## Cheap exploration
+
+1. `codebase-memory-mcp` first (`search_graph` / `search_code` / `trace_path`). Not full-file Read.
+2. "Where defined?" / symbol hunt → **cavecrew** (graph, then grep). No whole-file dump.
+3. Long rules/memory/docs → **caveman-compress** before quoting.
+4. Answers: short. No filler. No recap of the question.
+
+Prisma / `app-tour-architecture`: load only when that work is the task.

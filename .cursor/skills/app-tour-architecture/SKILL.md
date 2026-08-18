@@ -63,6 +63,6 @@ Forbidden without explicit **YES** / "Full Integrity Check":
 ## Skills to pair
 
 - Prisma work → `prisma-client-api` / `prisma-cli`
-- Next/React perf → `vercel-react-best-practices`
+- Next/React perf → `vercel-react-best-practices` **only if user explicitly asks** (token economy; not auto-load)
 - Playwright specs → `playwright-best-practices` (Playwright MCP already in Cloud Agents)
-- UI/tokens → existing `design-system` / `ui-styling` (do not add more design packs)
+- UI/tokens → `design-system` / `ui-styling` **only if user explicitly asks** (do not add more design packs)

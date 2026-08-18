@@ -1,6 +1,9 @@
 ---
 name: brand
-description: Brand voice, visual identity, messaging frameworks, asset management, brand consistency. Activate for branded content, tone of voice, marketing assets, brand compliance, style guides.
+description: >
+  OFF by default (token economy). Load ONLY when the user explicitly asks for
+  brand voice, style guide, or messaging framework work.
+disable-model-invocation: true
 argument-hint: "[update|review|create] [args]"
 metadata:
   author: claudekit

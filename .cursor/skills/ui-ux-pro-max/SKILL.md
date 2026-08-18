@@ -1,6 +1,9 @@
 ---
 name: ui-ux-pro-max
-description: Comprehensive design guide for web, mobile, and desktop applications. Contains 67 styles, 161 color palettes, 57 font pairings, 99 UX guidelines, and 25 chart types across 22 technology stacks.
+description: >
+  OFF by default (token economy). Load ONLY when the user explicitly asks for
+  UI/UX styles, palettes, font pairings, or chart-type recommendations.
+disable-model-invocation: true
 ---
 # ui-ux-pro-max
 
