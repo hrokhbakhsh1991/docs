@@ -67,9 +67,19 @@ test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
     String(cardCount)
   );
   await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible();
-  if ((await gallery.count()) > 0) {
-    await expect(gallery).toBeVisible();
-  }
+  await expect(gallery).toBeVisible();
+  await expect(gallery.locator("h2")).toHaveCount(1);
+  await expect(gallery.locator("[data-marketing-home-gallery-lead]")).toBeVisible();
+  await expect(gallery.locator("[data-marketing-home-gallery-item]")).toHaveCount(3);
+  await expect(gallery.locator("[data-marketing-home-gallery-view-all]")).toHaveCount(0);
+  await expect(gallery.locator("a[href*='/tours']")).toHaveCount(0);
+  await expect(gallery.getByRole("link", { name: /همه تورها|All tours/i })).toHaveCount(0);
+  await expect(gallery.locator("[data-marketing-catalog-detail-photo-trigger]")).toHaveCount(1);
+  await gallery.locator("[data-marketing-catalog-detail-photo-trigger]").click();
+  const lightbox = page.locator("[data-marketing-catalog-detail-photo-lightbox]");
+  await expect(lightbox).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(lightbox).not.toBeVisible();
 });
 
 test("SMK-MKT-HOME-02 iPhone viewport has no horizontal body overflow", async ({ page }) => {

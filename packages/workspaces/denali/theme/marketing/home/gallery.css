@@ -1,0 +1,448 @@
+/**
+ * Denali marketing Landing — Gallery (Slice 5).
+ * Compact editorial atmosphere: one primary still + two support thumbs.
+ * No catalog CTA. Shared lightbox internals are not restyled here.
+ * Imported last from marketing/home-landing.css so compact rest-state wins
+ * over numbered 21:9 / Ken Burns / snap-filmstrip / All-tours header patches.
+ */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  > section[data-marketing-home-gallery] {
+  --color-primary: var(--denali-forest-600);
+  --color-primary-hover: var(--denali-forest-700);
+  --primary: var(--denali-forest-600);
+  --mkt-section-reveal-keyframes: none;
+  --mkt-gallery-space-y: var(--space-8);
+  box-sizing: border-box;
+  max-width: none;
+  margin: 0;
+  padding-block: var(--space-8);
+  padding-inline: var(--catalog-page-padding-x);
+  background: var(--color-bg-page);
+  border: none;
+  border-block-start: none;
+  border-radius: 0;
+  box-shadow: none;
+  animation: none;
+  overflow: hidden;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  > section[data-marketing-home-gallery]
+  > [data-marketing-home-gallery-inner] {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--catalog-page-max-width);
+  margin-inline: auto;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  > [data-marketing-home-gallery-inner]
+  > header {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 42em;
+  margin-block: 0 var(--space-5);
+  width: auto;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  h2 {
+  margin: 0;
+  font-family: inherit;
+  font-size: var(--mkt-text-h2);
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-primary);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  p[data-marketing-home-gallery-lead] {
+  margin: 0;
+  max-width: 42em;
+  font-size: var(--mkt-text-body);
+  line-height: 1.7;
+  color: var(--color-text-muted, var(--color-text-secondary));
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  div[data-marketing-home-gallery-grid] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  figure[data-marketing-home-gallery-item] {
+  position: relative;
+  margin: 0;
+  overflow: visible;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  figure[data-marketing-home-gallery-item-primary] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  aspect-ratio: auto;
+  min-height: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  figure[data-marketing-home-gallery-item-primary]::after {
+  content: none;
+  display: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  figure[data-marketing-home-gallery-item-primary]:hover,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  figure[data-marketing-home-gallery-item-primary]:hover
+  img,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  div[data-marketing-home-gallery-support]
+  figure[data-marketing-home-gallery-item]:hover,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  div[data-marketing-home-gallery-support]
+  figure[data-marketing-home-gallery-item]:hover
+  img {
+  transform: none;
+  box-shadow: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  div[data-marketing-home-gallery-hero-controls] {
+  position: relative;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  max-height: 20rem;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--mkt-shadow-card);
+  background: var(--mkt-hero-ink, #0a120e);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  figure[data-marketing-home-gallery-item]
+  img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: none;
+  transition: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  button[data-marketing-catalog-detail-photo-trigger][data-marketing-catalog-detail-photo-trigger-overlay] {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  button[data-marketing-catalog-detail-photo-trigger]:focus-visible,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  button[data-marketing-home-gallery-hero-prev]:focus-visible,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  button[data-marketing-home-gallery-hero-next]:focus-visible,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  button[data-marketing-home-gallery-thumb]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  button[data-marketing-home-gallery-hero-prev],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  button[data-marketing-home-gallery-hero-next] {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: 0;
+  padding: 0;
+  border: var(--mkt-border-width) solid rgb(255 255 255 / 0.72);
+  border-radius: 999px;
+  background: rgb(10 18 14 / 0.55);
+  color: rgb(255 255 255 / 0.96);
+  box-shadow: none;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  button[data-marketing-home-gallery-hero-prev] {
+  inset-inline-start: var(--space-3);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  button[data-marketing-home-gallery-hero-next] {
+  inset-inline-end: var(--space-3);
+}
+
+html[dir="rtl"]
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  button[data-marketing-home-gallery-hero-prev]
+  svg,
+html[dir="rtl"]
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  button[data-marketing-home-gallery-hero-next]
+  svg {
+  transform: scaleX(-1);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  span[data-marketing-home-gallery-zoom-hint] {
+  position: absolute;
+  inset-block-end: var(--space-3);
+  inset-inline-end: var(--space-3);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  background: rgb(10 18 14 / 0.55);
+  color: rgb(255 255 255 / 0.96);
+  pointer-events: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  figcaption[data-marketing-home-gallery-caption] {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  display: block;
+  padding: 0;
+  pointer-events: auto;
+  background: none;
+  opacity: 1;
+  transform: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  span[data-marketing-home-gallery-caption-title] {
+  display: block;
+  font-size: var(--mkt-text-small);
+  font-weight: 500;
+  line-height: 1.7;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  div[data-marketing-home-gallery-filmstrip] {
+  position: relative;
+  margin-inline: 0;
+  display: block;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  button[data-marketing-home-gallery-scroll-prev],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  button[data-marketing-home-gallery-scroll-next] {
+  display: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  div[data-marketing-home-gallery-support] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  overflow-x: visible;
+  scroll-snap-type: none;
+  -webkit-overflow-scrolling: auto;
+  scrollbar-width: none;
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  div[data-marketing-home-gallery-support]
+  figure[data-marketing-home-gallery-item],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  div[data-marketing-home-gallery-support]
+  figure[data-marketing-home-gallery-item]:nth-child(odd),
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  div[data-marketing-home-gallery-support]
+  figure[data-marketing-home-gallery-item]:nth-child(even) {
+  flex: none;
+  width: auto;
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  box-shadow: none;
+  scroll-snap-align: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  button[data-marketing-home-gallery-thumb] {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-gallery]
+  figure[data-marketing-home-gallery-item-active="true"] {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (min-width: 48rem) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-gallery]
+    div[data-marketing-home-gallery-hero-controls] {
+    max-height: 22rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    > section[data-marketing-home-gallery] {
+    padding-block: var(--space-8);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-gallery]
+    div[data-marketing-home-gallery-hero-controls] {
+    max-height: 22rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-gallery]
+    figure[data-marketing-home-gallery-item],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-gallery]
+    figure[data-marketing-home-gallery-item]
+    img,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-gallery]
+    button[data-marketing-home-gallery-hero-prev],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-gallery]
+    button[data-marketing-home-gallery-hero-next] {
+    transform: none;
+    transition: none;
+    animation: none;
+  }
+}
