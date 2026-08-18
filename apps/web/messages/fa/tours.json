@@ -168,8 +168,14 @@
     "tabs": {
       "registrations": "ثبت‌نام‌ها",
       "waitlist": "لیست انتظار",
-      "transport": "حمل‌ونقل",
+      "transport": "تاییدشدگان",
       "finance": "پیگیری پرداخت"
+    },
+    "approvedQuickAccess": {
+      "title": "لیست نهایی اعضای تاییدشده",
+      "count": "{count, number} نفر تایید شده‌اند",
+      "empty": "هنوز عضوی تایید نشده است.",
+      "cta": "مشاهده لیست نهایی"
     },
     "finance": {
       "title": "پیگیری پرداخت تور",

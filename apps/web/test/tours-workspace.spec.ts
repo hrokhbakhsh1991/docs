@@ -81,6 +81,10 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
       TOUR_WORKSPACE_TEST_IDS.registrationsPanel,
       "operator-tour-workspace-registrations-panel"
     );
+    assert.equal(
+      TOUR_WORKSPACE_TEST_IDS.approvedQuickAccess,
+      "operator-tour-workspace-approved-quick-access"
+    );
   });
 
   it("WEB-9.3-W02 subnav resolver highlights active tab (CP-9.3-W02)", () => {
@@ -292,6 +296,8 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(client, /readonly includeFinance: boolean/);
     assert.doesNotMatch(client, /finance-nav-enablement/);
     assert.doesNotMatch(client, /void ensureFinanceNavSupported/);
+    assert.match(client, /approvedQuickAccess/);
+    assert.match(client, /navigateWorkspaceTab\?\.\("transport"\)/);
     assert.equal(
       pickTourCollectionRollup(
         [

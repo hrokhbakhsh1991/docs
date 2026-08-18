@@ -450,6 +450,33 @@ function TourWorkspaceLayoutInner({
         })}
       </nav>
 
+      {visibleActiveTab === "registrations" && opsCounts !== null ? (
+        <Card
+          data-operator-surface="card"
+          className="shadow-sm"
+          data-testid={TOUR_WORKSPACE_TEST_IDS.approvedQuickAccess}
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">{t("approvedQuickAccess.title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              {opsCounts.approved > 0
+                ? t("approvedQuickAccess.count", { count: opsCounts.approved })
+                : t("approvedQuickAccess.empty")}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => navigateWorkspaceTab?.("transport")}
+            >
+              {t("approvedQuickAccess.cta")}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <TourWorkspaceTabPanels
         activeTab={visibleActiveTab}
         session={session}

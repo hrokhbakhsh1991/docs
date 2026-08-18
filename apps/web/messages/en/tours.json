@@ -168,8 +168,14 @@
     "tabs": {
       "registrations": "Registrations",
       "waitlist": "Waitlist",
-      "transport": "Transport",
+      "transport": "Approved roster",
       "finance": "Payment follow-up"
+    },
+    "approvedQuickAccess": {
+      "title": "Final approved members",
+      "count": "{count, number} members approved",
+      "empty": "No members are approved yet.",
+      "cta": "View final list"
     },
     "finance": {
       "title": "Tour payment follow-up",
