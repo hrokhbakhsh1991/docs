@@ -1,10 +1,15 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import type { ReactNode } from "react";
-import { useRef, useState } from "react";
+import type { ChangeEvent, ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import type { MemberReceiptStatus } from "@/me/member-receipt-status";
+import {
+  parseMemberReceiptPanel,
+  type MemberReceiptPanel,
+  type MemberReceiptPreviewKind,
+  type MemberReceiptStatus,
+} from "@/me/member-receipt-status";
 import type { RegistrationLifecycleStatus } from "@/me/registration-lifecycle-status";
 
 export type MemberReceiptDueLine = {
@@ -21,10 +26,10 @@ export type MemberReceiptDue = {
 type Props = {
   readonly registrationId: string;
   readonly registrationStatus: RegistrationLifecycleStatus;
-  readonly initialStatus: MemberReceiptStatus;
+  readonly initialPanel: MemberReceiptPanel;
   readonly tripsListHref: string;
   readonly tourHref: string | null;
-  readonly due: MemberReceiptDue | null;
+  readonly catalogDue: MemberReceiptDue | null;
 };
 
 type ReceiptStateCardProps = {
@@ -44,18 +49,93 @@ function formatMinorAmount(amountMinor: string, currency: string): string {
   return currency.toUpperCase() === "IRR" ? `${formatted} ریال` : `${formatted} ${currency}`;
 }
 
+function isPositiveMinor(value: string | null): boolean {
+  if (value === null) {
+    return false;
+  }
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 0) {
+    return false;
+  }
+  try {
+    return BigInt(digits) > BigInt(0);
+  } catch {
+    return false;
+  }
+}
+
+function previewKindFromFile(file: File): MemberReceiptPreviewKind {
+  const type = file.type.trim().toLowerCase();
+  if (type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+    return "pdf";
+  }
+  if (type.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(file.name)) {
+    return "image";
+  }
+  return "unknown";
+}
+
+function ReceiptProofPreview({
+  kind,
+  src,
+  label,
+}: {
+  readonly kind: MemberReceiptPreviewKind;
+  readonly src: string;
+  readonly label: string;
+}) {
+  return (
+    <figure data-portal-member-receipt-preview data-preview-kind={kind}>
+      {kind === "pdf" ? (
+        <iframe title={label} src={src} data-portal-member-receipt-preview-frame />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element -- blob/signed receipt proof
+        <img src={src} alt={label} data-portal-member-receipt-preview-image />
+      )}
+      <figcaption>{label}</figcaption>
+    </figure>
+  );
+}
+
 export function MemberReceiptUploadForm({
   registrationId,
   registrationStatus,
-  initialStatus,
+  initialPanel,
   tripsListHref,
   tourHref,
-  due,
+  catalogDue,
 }: Props) {
   const t = useTranslations("portalMember.receipt");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [receiptStatus, setReceiptStatus] = useState<MemberReceiptStatus>(initialStatus);
+  const [panel, setPanel] = useState<MemberReceiptPanel>(initialPanel);
+  const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
+  const [localPreviewKind, setLocalPreviewKind] = useState<MemberReceiptPreviewKind | null>(
+    null
+  );
   const [uploadPhase, setUploadPhase] = useState<"idle" | "uploading" | "error">("idle");
+
+  useEffect(() => {
+    return () => {
+      if (localPreviewUrl !== null && localPreviewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(localPreviewUrl);
+      }
+    };
+  }, [localPreviewUrl]);
+
+  function replaceLocalPreview(file: File | undefined) {
+    setLocalPreviewUrl((current) => {
+      if (current !== null && current.startsWith("blob:")) {
+        URL.revokeObjectURL(current);
+      }
+      return file !== undefined ? URL.createObjectURL(file) : null;
+    });
+    setLocalPreviewKind(file !== undefined ? previewKindFromFile(file) : null);
+  }
+
+  function onFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    replaceLocalPreview(file);
+  }
 
   async function uploadReceipt() {
     const file = fileInputRef.current?.files?.[0];
@@ -71,7 +151,27 @@ export function MemberReceiptUploadForm({
         body,
       });
       if (res.ok) {
-        setReceiptStatus("pending");
+        let nextPanel: MemberReceiptPanel | null = null;
+        try {
+          const statusRes = await fetch(
+            `/api/me/registrations/${encodeURIComponent(registrationId)}/receipt`,
+            { method: "GET", cache: "no-store" }
+          );
+          if (statusRes.ok) {
+            nextPanel = parseMemberReceiptPanel(await statusRes.json());
+          }
+        } catch {
+          nextPanel = null;
+        }
+        setPanel((current) => {
+          const base = nextPanel ?? current;
+          return {
+            ...base,
+            status: base.status === "none" ? "pending" : base.status,
+            previewUrl: localPreviewUrl ?? base.previewUrl,
+            previewKind: localPreviewKind ?? base.previewKind,
+          };
+        });
         setUploadPhase("idle");
         return;
       }
@@ -113,16 +213,42 @@ export function MemberReceiptUploadForm({
     </div>
   );
 
+  const remainingMinor = panel.remainingMinor;
+  const remainingDue =
+    remainingMinor !== null &&
+    isPositiveMinor(remainingMinor) &&
+    typeof panel.currency === "string" &&
+    panel.currency.length > 0
+      ? remainingMinor
+      : null;
+  const showCatalogLines =
+    catalogDue !== null &&
+    remainingDue !== null &&
+    (remainingDue === catalogDue.totalMinor || remainingDue === panel.obligationMinor);
+  const dueCurrency = panel.currency ?? catalogDue?.currency ?? "IRR";
+
+  const previewSrc = localPreviewUrl ?? panel.previewUrl;
+  const previewKind = localPreviewKind ?? panel.previewKind;
+  const previewBlock =
+    previewSrc !== null && previewKind !== null ? (
+      <ReceiptProofPreview kind={previewKind} src={previewSrc} label={t("previewLabel")} />
+    ) : null;
+
   const dueBlock =
-    due !== null ? (
+    remainingDue !== null ? (
       <section data-portal-member-receipt-due>
         <h2>{t("dueTitle")}</h2>
         <p data-portal-member-receipt-due-total>
-          <strong>{t("dueTotal", { amount: formatMinorAmount(due.totalMinor, due.currency) })}</strong>
+          <strong>{t("dueRemaining", { amount: formatMinorAmount(remainingDue, dueCurrency) })}</strong>
         </p>
-        {due.lines.length > 0 ? (
+        {isPositiveMinor(panel.paidMinor) && panel.paidMinor !== null ? (
+          <p data-portal-member-receipt-due-paid>
+            {t("duePaid", { amount: formatMinorAmount(panel.paidMinor, dueCurrency) })}
+          </p>
+        ) : null}
+        {showCatalogLines && catalogDue !== null && catalogDue.lines.length > 0 ? (
           <ul data-portal-member-receipt-due-list>
-            {due.lines.map((line) => {
+            {catalogDue.lines.map((line) => {
               const label =
                 line.code === "trip"
                   ? t("dueLineTrip")
@@ -131,7 +257,7 @@ export function MemberReceiptUploadForm({
                     : t("dueLineTransport");
               return (
                 <li key={line.code} data-portal-member-receipt-due-line data-due-code={line.code}>
-                  {label}: {formatMinorAmount(line.amountMinor, due.currency)}
+                  {label}: {formatMinorAmount(line.amountMinor, dueCurrency)}
                 </li>
               );
             })}
@@ -141,6 +267,8 @@ export function MemberReceiptUploadForm({
       </section>
     ) : null;
 
+  const receiptStatus: MemberReceiptStatus = panel.status;
+
   if (receiptStatus === "paid") {
     return (
       <ReceiptStateCard
@@ -148,17 +276,34 @@ export function MemberReceiptUploadForm({
         title={t("paidTitle")}
         body={t("paidBody")}
       >
+        {previewBlock}
+        {actionLinks}
+      </ReceiptStateCard>
+    );
+  }
+
+  if (receiptStatus === "waived") {
+    return (
+      <ReceiptStateCard
+        rootProps={{ "data-portal-member-receipt-waived": "" }}
+        title={t("waivedTitle")}
+        body={t("waivedBody")}
+      >
         {actionLinks}
       </ReceiptStateCard>
     );
   }
 
   if (registrationStatus === "rejected" || registrationStatus === "cancelled") {
+    const closedReason = registrationStatus === "cancelled" ? "cancelled" : "rejected";
     return (
       <ReceiptStateCard
-        rootProps={{ "data-portal-member-receipt-closed": "" }}
-        title={t("closedTitle")}
-        body={t("closedBody")}
+        rootProps={{
+          "data-portal-member-receipt-closed": "",
+          "data-closed-reason": closedReason,
+        }}
+        title={closedReason === "cancelled" ? t("cancelledTitle") : t("rejectedTitle")}
+        body={closedReason === "cancelled" ? t("cancelledBody") : t("rejectedBody")}
       >
         {actionLinks}
       </ReceiptStateCard>
@@ -185,6 +330,7 @@ export function MemberReceiptUploadForm({
         body={t("waitingBody")}
       >
         {dueBlock}
+        {previewBlock}
         {actionLinks}
       </ReceiptStateCard>
     );
@@ -203,6 +349,7 @@ export function MemberReceiptUploadForm({
           {t("rejectedHint")}
         </p>
       ) : null}
+      {previewBlock}
       <div data-portal-member-receipt-upload-field>
         <label htmlFor="receipt-file">{t("label")}</label>
         <input
@@ -213,6 +360,7 @@ export function MemberReceiptUploadForm({
           accept="image/*,.pdf"
           required
           disabled={uploadPhase === "uploading"}
+          onChange={onFileChange}
         />
         <p data-portal-member-receipt-upload-hint>{t("uploadHint")}</p>
       </div>

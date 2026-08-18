@@ -1,6 +1,6 @@
 /**
- * Diagnosis probe — member receipt status after operator reject vs outstanding unpaid.
- * Documents current mapper behavior (not the desired product contract).
+ * Member receipt panel after operator reject — invoice remaining is money SoT.
+ * Status is never paid/waived while remaining > 0.
  */
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -121,7 +121,7 @@ function createService(
   );
 }
 
-describe("member receipt status after reject (diagnosis probe)", () => {
+describe("member receipt status after reject (remaining SoT)", () => {
   beforeEach(() => {
     resetInMemoryFinanceRepositoryForTests();
   });
@@ -149,6 +149,8 @@ describe("member receipt status after reject (diagnosis probe)", () => {
     const hit = outstanding.items.find((row) => row.registrationId === registrationId);
 
     assert.equal(member.status, "rejected");
+    assert.equal(member.previewKind, "image");
+    assert.ok(BigInt((member.remainingMinor ?? "0").replace(/\D/g, "")) > 0n);
     assert.equal(booking.paymentStatus, "unpaid");
     assert.equal(payment.status, "Pending");
     assert.ok(hit, "remaining invoice still outstanding after reject");
@@ -156,7 +158,7 @@ describe("member receipt status after reject (diagnosis probe)", () => {
     assert.equal(hit.bookingPaymentStatus, "unpaid");
   });
 
-  it("B — any Paid payment + later rejected receipt: member status is paid while remaining unpaid", async () => {
+  it("B — leftover Paid payment + later rejected receipt: member status is rejected while remaining unpaid", async () => {
     const registrationId = randomUUID();
     const booking = createBookingPort("unpaid");
     const repo = new InMemoryFinanceRepository(booking);
@@ -186,14 +188,14 @@ describe("member receipt status after reject (diagnosis probe)", () => {
     const outstanding = await finance.listOutstandingBalances(OPERATOR, { limit: 50 });
     const hit = outstanding.items.find((row) => row.registrationId === registrationId);
 
-    assert.equal(member.status, "paid", "current mapper short-circuits on any Paid payment");
+    assert.equal(member.status, "rejected");
     assert.equal(booking.paymentStatus, "unpaid");
     assert.ok(hit);
-    assert.ok(BigInt(hit.invoice.remainingMinor.replace(/\D/g, "")) > 0n);
+    assert.ok(BigInt((member.remainingMinor ?? "0").replace(/\D/g, "")) > 0n);
     assert.equal(hit.bookingPaymentStatus, "unpaid");
   });
 
-  it("C — booking already paid + reject pending receipt: member status stays paid", async () => {
+  it("C — booking ratchet paid + reject pending receipt: member status is rejected while remaining unpaid", async () => {
     const registrationId = randomUUID();
     const booking = createBookingPort("unpaid");
     const repo = new InMemoryFinanceRepository(booking);
@@ -217,18 +219,22 @@ describe("member receipt status after reject (diagnosis probe)", () => {
     await finance.reviewReceipt(OPERATOR, receipt.id, { decision: "reject", reviewNote: "late reject" });
 
     const member = await finance.getMemberReceiptStatusForRegistration(MEMBER, registrationId);
-    assert.equal(member.status, "paid", "booking paid short-circuit ignores Rejected latest receipt");
+    assert.equal(member.status, "rejected");
+    assert.ok(BigInt((member.remainingMinor ?? "0").replace(/\D/g, "")) > 0n);
     assert.equal(booking.paymentStatus, "paid");
   });
 
-  it("D — portal SSR override: paymentStatus paid wins over receipt rejected", () => {
-    const rowPaymentStatus = "paid" as const;
-    const receiptStatus = "rejected" as const;
-    const initialStatus = rowPaymentStatus === "paid" ? "paid" : receiptStatus;
-    assert.equal(initialStatus, "paid");
+  it("D — portal detail does not override receipt status from booking paymentStatus", async () => {
+    const { readFileSync } = await import("node:fs");
+    const page = readFileSync(
+      new URL("../../../../apps/portal/app/me/registrations/[id]/page.tsx", import.meta.url),
+      "utf8"
+    );
+    assert.doesNotMatch(page, /paymentStatus === ["']paid["']/);
+    assert.match(page, /initialPanel=\{receiptPanel\}/);
   });
 
-  it("E — partial approve then reject second receipt: member paid, outstanding remaining, booking partial", async () => {
+  it("E — partial approve then reject second receipt: member rejected, outstanding remaining, booking partial", async () => {
     const registrationId = randomUUID();
     const booking = createBookingPort("unpaid");
     const repo = new InMemoryFinanceRepository(booking);
@@ -265,8 +271,9 @@ describe("member receipt status after reject (diagnosis probe)", () => {
     const outstanding = await finance.listOutstandingBalances(OPERATOR, { limit: 50 });
     const hit = outstanding.items.find((row) => row.registrationId === registrationId);
 
-    assert.equal(member.status, "paid");
+    assert.equal(member.status, "rejected");
     assert.equal(booking.paymentStatus, "partial");
+    assert.ok(BigInt((member.remainingMinor ?? "0").replace(/\D/g, "")) > 0n);
     assert.ok(hit);
     assert.ok(BigInt(hit.invoice.remainingMinor.replace(/\D/g, "")) > 0n);
     assert.equal(hit.bookingPaymentStatus, "partial");

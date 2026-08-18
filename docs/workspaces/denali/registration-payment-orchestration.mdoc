@@ -1,7 +1,7 @@
 ---
 title: Denali registration ↔ payment orchestration
 doc_id: DENALI-REG-PAY-ORCH
-version: "2026-08-16-v9"
+version: "2026-08-18-v10"
 workspace: denali
 status: ACTIVE
 phase: P6-3 follow-on
@@ -37,8 +37,9 @@ create → booking.status=pending, paymentStatus=unpaid
 | ---------------- | --------------------- | ----------------------------- |
 | `pending` | **Forbidden** | — |
 | `waitlisted` | **Forbidden** | — |
-| `approved` + unpaid/partial | **Allowed** | After successful upload |
-| `approved` + paid | Form hidden (paid panel) | — |
+| `approved` + remaining > 0 (unpaid/partial) | **Allowed** | After successful upload |
+| `approved` + remaining = 0 (paid capture) | Form hidden (paid panel) | — |
+| `approved` + remaining = 0 (free / zero override) | Form hidden (**waived** panel — not receipt-confirmed) | — |
 | `rejected` | **Forbidden** | — |
 | `cancelled` | **Forbidden** | — |
 
@@ -71,17 +72,22 @@ Detail `/me/registrations/{id}` resolves panel from **both** axes:
 | Condition | Panel |
 | --------- | ----- |
 | `status` ∈ pending \| waitlisted | Awaiting club approval — **no** file input |
-| `status` ∈ rejected \| cancelled | Registration closed — **no** upload |
-| `status=approved` ∧ receipt `none`\|`rejected` | Upload form |
-| `status=approved` ∧ receipt `pending` | Waiting for finance review |
-| receipt `paid` | Paid confirmed |
+| `status` rejected / cancelled | Closed — split copy via `data-closed-reason` |
+| `status=approved` ∧ remaining > 0 ∧ receipt `none`\|`rejected` | Upload + remaining due (+ preview on pick / last proof) |
+| `status=approved` ∧ remaining > 0 ∧ receipt `pending` | Waiting + proof preview + remaining |
+| remaining = 0 ∧ waived | No-pay panel |
+| remaining = 0 ∧ paid | Paid confirmed |
+
+`GET /bookings/{id}/receipts` money SoT is invoice **remaining**. Booking `paymentStatus=paid` or any `Payment.status=Paid` must **not** hide remaining > 0. Latest `Rejected` receipt is visible whenever remaining > 0.
 
 Hooks (additive):
 
 | Hook | When |
 | ---- | ---- |
 | `data-portal-member-receipt-awaiting-approval` | Club approval pending / waitlisted |
-| `data-portal-member-receipt-closed` | rejected / cancelled |
+| `data-portal-member-receipt-closed` | rejected / cancelled (`data-closed-reason`) |
+| `data-portal-member-receipt-waived` | Free / zero override — no transfer required |
+| `data-portal-member-receipt-preview` | Member proof preview (file input or waiting) |
 
 Existing hooks (`data-portal-member-receipt-upload` · `-waiting` · `-paid`) unchanged.
 
@@ -176,15 +182,16 @@ Operator `createManualPayment` already accepted an explicit amount and logged ov
 
 ### Portal member due display (after club approve)
 
-On `/me/registrations/{id}` when lifecycle is `approved` and money is due (offline, unpaid/partial, receipt not yet paid):
+On `/me/registrations/{id}` when lifecycle is `approved` and money is due (offline, remaining > 0):
 
 | Surface | Contract |
 | ------- | -------- |
-| Owned GET `GET /denali/registrations/:id` | Includes `dueCurrency`, `dueTotalMinor`, and `dueLines[]` (`trip` · `dong` · `transport`) |
-| Receipt upload panel | Shows **total to transfer** + line breakdown before file input |
-| Hooks | `data-portal-member-receipt-due` · `data-portal-member-receipt-due-line` · `data-due-code` |
+| `GET /bookings/:id/receipts` | `remainingMinor` / `paidMinor` / `obligationMinor` — **transfer amount = remaining** |
+| Owned GET `GET /denali/registrations/:id` | Catalog `dueLines[]` (trip · dong · transport) for first unpaid explanation only |
+| Receipt upload / waiting panel | Headline remaining; catalog lines only when remaining equals list-price obligation |
+| Hooks | `data-portal-member-receipt-due` · `data-portal-member-receipt-due-line` · `data-due-code` · `data-portal-member-receipt-due-paid` |
 
-Display and Finance payment amount share the Denali due resolver — UI must not invent a parallel total. When due resolves `null` (no priced tour), omit the due block (legacy fallback amount remains Finance-only on upload).
+Portal must not show catalog list price as the amount to transfer after a partial capture or ops override. When remaining resolves unavailable, omit the due block (legacy fallback amount remains Finance-only on upload).
 
 ## Phase 3 — Per-tour registration approval mode (2026-08-06)
 
@@ -228,12 +235,12 @@ Rules:
 - When `free`, commercial obligation resolves to `obligationMinor: "0"` (no offline default amount).
 - After booking becomes `approved` (ops approve, bulk approve, or public auto-approve), host composition calls Finance `applyFreeCollectionPayment` — **no-op** when collection is offline or lifecycle is not approved.
 - Free paid is a **booking payment projection only** (`IBookingPaymentPort.syncStatus` → `paid`). No `PaymentIntent`, no receipt, no double-entry journal (zero money).
-- Member receipt submit: blocked when already `paid` or collection is `free` (`FINANCE_RECEIPT_NOT_REQUIRED`).
-- Member receipt status GET: if booking `paymentStatus=paid` → `{ status: "paid" }` even without a receipt row (portal paid panel).
+- Member receipt submit: blocked when remaining is already 0 or collection is `free` (`FINANCE_RECEIPT_NOT_REQUIRED`).
+- Member receipt status GET: remaining = 0 and free/zero-obligation → `{ status: "waived" }`. Remaining = 0 after capture → `{ status: "paid" }`. Remaining > 0 never returns `paid`.
 - Wizard UI for the field is **out of scope** — set via canonical / fixtures.
 - PC-07 unchanged for paid Denali tours: ingress remains `offline_receipt`.
 
-Portal: list/detail already show `paymentStatus`; receipt panel uses paid status from BFF (booking paid or receipt approved).
+Portal: list/detail KPI still show booking `paymentStatus`; the receipt **panel** uses remaining + `waived`/`paid` from `GET /bookings/{id}/receipts`, never the booking ratchet alone.
 
 ## Phase 5 — Personal obligation override / discount (2026-08-06)
 

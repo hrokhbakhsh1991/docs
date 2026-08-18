@@ -83,7 +83,9 @@ describe("portal-member-registrations", () => {
     assert.match(page, /data-portal-member-registration-detail/);
     assert.match(page, /data-portal-member-registrant-target/);
     assert.match(page, /resolveMemberPortalTripsListPath/);
-    assert.match(page, /fetchMemberReceiptStatus/);
+    assert.match(page, /fetchMemberReceiptPanel/);
+    assert.match(page, /initialPanel=\{receiptPanel\}/);
+    assert.doesNotMatch(page, /paymentStatus === ["']paid["']/);
     assert.match(page, /resolveMarketingTourDetailUrl/);
     assert.match(page, /data-portal-member-back/);
     assert.match(page, /\{t\("backToList"\)\}/);
@@ -94,6 +96,11 @@ describe("portal-member-registrations", () => {
     assert.match(form, /data-portal-member-receipt-closed/);
     assert.match(form, /data-portal-member-receipt-waiting/);
     assert.match(form, /data-portal-member-receipt-paid/);
+    assert.match(form, /data-portal-member-receipt-waived/);
+    assert.match(form, /data-portal-member-receipt-preview/);
+    assert.match(form, /data-closed-reason/);
+    assert.match(form, /createObjectURL/);
+    assert.match(form, /parseMemberReceiptPanel/);
     assert.match(form, /data-portal-member-receipt-view-tour/);
     assert.match(form, /data-portal-member-receipt-back-trips/);
     assert.match(form, /registrationStatus/);
@@ -167,6 +174,9 @@ describe("portal-member-registrations", () => {
     assert.match(skin, /\[data-portal-member-receipt-closed\]/);
     assert.match(skin, /\[data-portal-member-receipt-waiting\]/);
     assert.match(skin, /\[data-portal-member-receipt-paid\]/);
+    assert.match(skin, /\[data-portal-member-receipt-waived\]/);
+    assert.match(memberPages, /\[data-portal-member-receipt-preview\]/);
+    assert.match(memberPages, /\[data-portal-member-receipt-due\]/);
     assert.match(skin, /\[data-portal-member-intake-amend\]/);
     assert.match(skin, /\[data-public-auth-logout\]/);
     assert.match(memberPages, /\[data-portal-member-registrant-other-badge\]/);
@@ -228,6 +238,14 @@ describe("portal-member-registrations", () => {
     assert.match(en, /"trips"/);
     assert.match(fa, /"waitingTitle"/);
     assert.match(en, /"waitingTitle"/);
+    assert.match(fa, /"dueRemaining"/);
+    assert.match(en, /"dueRemaining"/);
+    assert.match(fa, /"previewLabel"/);
+    assert.match(en, /"previewLabel"/);
+    assert.match(fa, /"waivedTitle"/);
+    assert.match(en, /"waivedTitle"/);
+    assert.match(fa, /"cancelledTitle"/);
+    assert.match(en, /"cancelledTitle"/);
     assert.match(fa, /"viewTour"/);
     assert.match(en, /"viewTour"/);
     assert.match(fa, /"forOtherBadge"/);

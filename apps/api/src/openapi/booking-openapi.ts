@@ -402,15 +402,26 @@ export const BOOKING_OPENAPI_SCHEMAS: Record<string, Record<string, unknown>> = 
   BookingMemberReceiptStatusResponse: {
     type: "object",
     required: ["status"],
-    description: "Finance member receipt status for a booking registration.",
+    description:
+      "Member receipt panel for a booking. Money SoT is invoice remaining; status is never paid/waived while remaining > 0.",
     properties: {
       status: {
         type: "string",
-        enum: ["none", "pending", "rejected", "paid"],
+        enum: ["none", "pending", "rejected", "paid", "waived"],
         examples: ["pending"],
       },
+      remainingMinor: { type: "string", examples: ["1500000"] },
+      obligationMinor: { type: "string", examples: ["2500000"] },
+      paidMinor: { type: "string", examples: ["1000000"] },
+      currency: { type: "string", examples: ["IRR"] },
+      previewUrl: { type: "string", examples: ["https://example.test/proof"] },
+      previewKind: {
+        type: "string",
+        enum: ["image", "pdf", "unknown"],
+        examples: ["image"],
+      },
     },
-    examples: [{ status: "pending" }],
+    examples: [{ status: "pending", remainingMinor: "2500000", currency: "IRR" }],
   },
   BookingListSearchQuery: {
     type: "string",

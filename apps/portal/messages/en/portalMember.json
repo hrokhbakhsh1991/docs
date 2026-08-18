@@ -209,10 +209,19 @@
     "backToTrips": "Back to my trips",
     "dueTitle": "Amount due with receipt",
     "dueTotal": "Total: {amount}",
+    "dueRemaining": "Remaining: {amount}",
+    "duePaid": "Already paid: {amount}",
     "dueLineTrip": "Trip fee",
     "dueLineDong": "Dong",
     "dueLineTransport": "Transport",
-    "dueHint": "Your receipt should cover this total (trip plus dong/transport when applicable)."
+    "dueHint": "Your receipt should cover the remaining amount (trip plus dong/transport when applicable).",
+    "previewLabel": "Preview of your receipt",
+    "waivedTitle": "No payment needed",
+    "waivedBody": "The club confirmed this registration without a transfer. You do not need to upload a receipt.",
+    "cancelledTitle": "Registration cancelled",
+    "cancelledBody": "This registration was cancelled. Receipt upload is not available.",
+    "rejectedTitle": "Registration declined",
+    "rejectedBody": "The club declined this registration. Receipt upload is not available."
   },
   "intakeAmend": {
     "eyebrow": "Before approval",

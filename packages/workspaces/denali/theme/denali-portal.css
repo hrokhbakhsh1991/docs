@@ -708,6 +708,8 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-receipt-paid],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-waived],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-intake-amend] {
   display: flex;
   flex-direction: column;

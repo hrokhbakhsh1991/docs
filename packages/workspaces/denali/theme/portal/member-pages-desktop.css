@@ -102,7 +102,9 @@
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-portal-member-receipt-waiting],
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
-    [data-portal-member-receipt-paid] {
+    [data-portal-member-receipt-paid],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-waived] {
     padding: var(--space-6);
   }
 
@@ -115,7 +117,9 @@
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-portal-member-receipt-waiting],
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
-    [data-portal-member-receipt-paid] {
+    [data-portal-member-receipt-paid],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-waived] {
     width: 100%;
     max-width: 42rem;
     margin-inline: auto;
@@ -128,7 +132,9 @@
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-portal-member-receipt-waiting],
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
-    [data-portal-member-receipt-paid] {
+    [data-portal-member-receipt-paid],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-member-receipt-waived] {
     gap: var(--space-5);
   }
 }

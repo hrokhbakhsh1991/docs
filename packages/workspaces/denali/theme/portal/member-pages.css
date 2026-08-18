@@ -1084,7 +1084,9 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-receipt-waiting],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-receipt-paid] {
+  [data-portal-member-receipt-paid],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-waived] {
   position: relative;
   overflow: hidden;
 }
@@ -1096,7 +1098,9 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-receipt-waiting],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-receipt-paid] {
+  [data-portal-member-receipt-paid],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-waived] {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -1368,6 +1372,8 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-receipt-paid]::before,
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-waived]::before,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-receipt-upload]::before {
   content: "";
   width: 3rem;
@@ -1506,10 +1512,46 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-preview] {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-preview-image],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-preview-frame] {
+  width: 100%;
+  max-height: 18rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-muted);
+  object-fit: contain;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-preview-frame] {
+  min-height: 14rem;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-preview]
+  figcaption {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-receipt-waiting]
   p,
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-receipt-paid]
+  p,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-waived]
   p {
   margin: 0;
   font-size: 0.875rem;

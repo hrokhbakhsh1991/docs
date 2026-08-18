@@ -41,8 +41,8 @@ describe("portal-member-receipt-bff", () => {
     );
     assert.match(route, /export async function GET/);
     assert.match(route, /RECEIPT_STATUS_FAILED/);
-    assert.match(route, /parseMemberReceiptStatus/);
-    assert.match(route, /ok: true, status:/);
+    assert.match(route, /parseMemberReceiptPanel/);
+    assert.match(route, /\.\.\.panel/);
   });
 
   it("MEM-BFF-03d shared receipt status type is client-safe", () => {
@@ -55,8 +55,11 @@ describe("portal-member-receipt-bff", () => {
       "utf8"
     );
     assert.match(shared, /export type MemberReceiptStatus/);
-    assert.match(shared, /parseMemberReceiptStatus/);
+    assert.match(shared, /parseMemberReceiptPanel/);
+    assert.match(shared, /waived/);
     assert.match(form, /@\/me\/member-receipt-status/);
+    assert.match(form, /createObjectURL/);
+    assert.match(form, /data-portal-member-receipt-preview/);
   });
 
   it("MEM-BFF-04 member headers forward x-workspace-id from session", () => {

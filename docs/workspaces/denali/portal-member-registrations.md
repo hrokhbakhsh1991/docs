@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-MEMBER-REGISTRATIONS
-version: "2026-08-16-v9"
+version: "2026-08-18-v10"
 extends: platform-portal-member.mdoc
 workspace: denali
 apps: [portal]
@@ -87,26 +87,53 @@ Wired from `product.routes.ts`. Tests: `packages/workspaces/denali/test/registra
 
 ---
 
-## Member panel stages (2026-08-06 — approve-then-pay)
+## Member panel stages (2026-08-18 — remaining + waive + preview)
 
-Detail uses **booking.status** (from list row) **and** `receiptStatus`. Upload is never shown until the registration is `approved`.
+Detail `/me/registrations/{id}` is the **only** member money surface. It combines **booking.status** with Finance **invoice remaining** (not booking `paymentStatus` ratchet, not “any Paid payment”).
+
+`GET /bookings/{id}/receipts` (portal BFF `GET /api/me/registrations/{id}/receipt`) returns:
+
+| Field | Meaning |
+| ----- | ------- |
+| `status` | `none` \| `pending` \| `rejected` \| `paid` \| `waived` |
+| `remainingMinor` | Invoice `balanceDueMinor` — amount still to transfer |
+| `obligationMinor` | Resolved obligation (override wins over tour list price) |
+| `paidMinor` | Already captured |
+| `currency` | ISO currency |
+| `previewUrl` / `previewKind` | Signed (or fallback) proof for the **latest** receipt; `image` \| `pdf` \| `unknown` |
+
+**Money SoT:** if `remainingMinor > 0`, status is **never** `paid` or `waived`. Latest receipt then decides `pending` / `rejected` / `none` (Approved-but-remaining → `none`, upload the rest).
+
+**Settled (`remainingMinor` is 0):** `waived` when collection is `free` or resolved obligation is zero (ops override / club guest — **no** “receipt confirmed” copy). Otherwise `paid` (money actually captured).
+
+Do **not** set portal `initialStatus` from `row.paymentStatus === "paid"`.
 
 | Condition | UI |
 | --------- | -- |
-| `status` = `pending` \| `waitlisted` | Awaiting club approval panel — **no** file input (`data-portal-member-receipt-awaiting-approval`); optional **intake amend** for transport (`data-portal-member-intake-amend`) via `PATCH /api/me/registrations/{id}/intake` before approve — see [registration-self-other-uniqueness.mdoc](./registration-self-other-uniqueness.mdoc). **Hydrate from saved scalars** (`transportKind` + `personalCarOccupants`) — never default the radios to club-transport / occupants `1` when intake already stored `personal_car`. Detail KPI `[data-portal-member-registration-transport]` shows the same current choice (not full `registrationIntake` JSON). |
-| `status` = `rejected` \| `cancelled` | Closed registration panel — **no** upload (`data-portal-member-receipt-closed`) |
-| `status` = `approved` ∧ `receiptStatus` = `none` | Upload form |
-| `status` = `approved` ∧ `receiptStatus` = `rejected` | Upload form + retry hint |
-| `status` = `approved` ∧ `receiptStatus` = `pending` | Waiting panel («فیش ارسال شد · منتظر تأیید ادمین») — form hidden |
-| `receiptStatus` = `paid` | Payment confirmed panel — form hidden |
+| `status` = `pending` | Awaiting club approval (`data-portal-member-receipt-awaiting-approval`); optional intake amend |
+| `status` = `waitlisted` | Same awaiting card; KPI says waitlisted |
+| `status` = `rejected` | Closed — club rejected (`data-portal-member-receipt-closed` `data-closed-reason=rejected`) |
+| `status` = `cancelled` | Closed — cancelled (`data-portal-member-receipt-closed` `data-closed-reason=cancelled`) |
+| approved ∧ receipt `waived` | No-pay panel (`data-portal-member-receipt-waived`) — «نیازی به پرداخت نیست» |
+| approved ∧ receipt `paid` | Payment confirmed (`data-portal-member-receipt-paid`) — only when remaining is 0 |
+| approved ∧ receipt `pending` | Waiting + **proof preview** + remaining due |
+| approved ∧ receipt `rejected` | Upload + retry hint + remaining due + last-proof preview |
+| approved ∧ receipt `none` ∧ remaining > 0 | Upload + remaining due (partial leftover uses remaining, not catalog list price) |
+| approved ∧ remaining = 0 ∧ waived/paid | settled panels above |
 
-Server gate (source of truth): `POST` member receipt fails with `FINANCE_RECEIPT_REQUIRES_APPROVED_BOOKING` when booking is not `approved`.
+Due block (`data-portal-member-receipt-due`): headline is **remaining**, not catalog `obligationMinor`. Optional `data-portal-member-receipt-due-paid` when `paidMinor > 0`. Catalog `dueLines` (trip/dong/transport) only when remaining equals unresolved list-price obligation (first unpaid slip).
 
-**Auto-approve tours (phase 3):** When tour canonical has `pricing.registrationApproval: auto` and host capacity allows, create returns `approved` immediately — detail then shows the upload form (same gate). Capacity fail leaves `pending` (awaiting-approval UI).
+**Receipt preview:** file input shows a client object-URL preview **before** POST. After POST, waiting panel keeps that blob and/or `previewUrl` from GET (`data-portal-member-receipt-preview`). Image → `<img>`; PDF → `<iframe>` / object. Member stays on this URL (no redirect).
 
-**Free collection (phase 4):** When `pricing.paymentCollection: free`, after approve the booking `paymentStatus` becomes `paid` without a receipt. Detail prefers `paymentStatus=paid` → paid panel (`data-portal-member-receipt-paid`); upload stays hidden.
+**Intake amend** (pending/waitlisted): hydrate from saved `transportKind` + `personalCarOccupants` — never default radios to club-transport / occupants `1` when intake already stored `personal_car`. KPI `[data-portal-member-registration-transport]` shows the same choice.
 
-**Obligation override (phase 5):** Ops may set a per-registration amount via `PUT /finance/registrations/:id/obligation-override`. Member receipt amount uses that override. A zero override on an approved booking also marks paid (waive).
+Server gate: `POST` member receipt still fails with `FINANCE_RECEIPT_REQUIRES_APPROVED_BOOKING` when booking is not `approved`. `FINANCE_RECEIPT_NOT_REQUIRED` when remaining is already 0 (paid or waived).
+
+**Auto-approve tours (phase 3):** `pricing.registrationApproval: auto` + capacity → create returns `approved` → upload/waived/paid from remaining. Capacity fail stays `pending`.
+
+**Free collection (phase 4):** `pricing.paymentCollection: free` → remaining 0 → **waived** panel (not paid/receipt copy).
+
+**Obligation override (phase 5):** `PUT /finance/registrations/:id/obligation-override`. Zero on an approved booking → waived. Non-zero remaining uses the override amount, not the catalog list price.
 
 After upload, member **stays** on `/me/registrations/{id}` (no auto-redirect).
 
@@ -139,7 +166,9 @@ Stable selectors — **do not rename** without updating smoke specs.
 | `data-portal-member-registrant-other-badge` | Other badge copy |
 | `data-portal-member-registration-detail` | Detail page root (`main`) |
 | `data-portal-member-receipt-awaiting-approval` | Club approval pending / waitlisted |
-| `data-portal-member-receipt-closed` | rejected / cancelled — no upload |
+| `data-portal-member-receipt-closed` | rejected / cancelled — no upload (`data-closed-reason`) |
+| `data-portal-member-receipt-waived` | Free / zero override — no transfer |
+| `data-portal-member-receipt-preview` | Member proof preview (img / pdf) |
 | `data-portal-member-receipt-upload` | Receipt form shell (only when approved) |
 | `data-portal-member-receipt-submit` | Upload button |
 | `data-portal-member-receipt-success` | Brief post-POST flash (optional) |
@@ -167,7 +196,8 @@ Existing smokes: **SMK-PTL-02** (list) · **SMK-PTL-04** (receipt → waiting pa
 | Detail | `main[data-portal-member-registration-detail]` — metadata + receipt panel |
 | Receipt | `[data-portal-member-receipt-upload]` — file input + primary submit |
 | Awaiting / closed | `[data-portal-member-receipt-awaiting-approval]` · `[data-portal-member-receipt-closed]` |
-| Waiting / paid | `[data-portal-member-receipt-waiting]` · `[data-portal-member-receipt-paid]` |
+| Waiting / paid / waived | `[data-portal-member-receipt-waiting]` · `[data-portal-member-receipt-paid]` · `[data-portal-member-receipt-waived]` |
+| Preview | `[data-portal-member-receipt-preview]` |
 | Status badge | `[data-portal-member-registration-status-badge][data-status]` — `approved` · `pending` · `waitlisted` · `rejected` · `cancelled` |
 | Row meta | `[data-portal-member-registration-meta]` — payment + departure |
 | Empty state | `[data-portal-member-registrations-empty-state]` — message + CTA (PS-M2 · 2026-07-12) |
@@ -183,7 +213,7 @@ Design SoT: `design-system/denali-club/MASTER.md` (primary `#059669`).
 | ID | Assert |
 | -- | ------ |
 | DEN-REG-01 | List page renders `data-portal-member-registrations` with Denali skin |
-| DEN-REG-02 | Detail renders upload hooks only when `status=approved` and `receiptStatus=none` |
+| DEN-REG-02 | Detail renders upload hooks only when `status=approved`, remaining > 0, and receipt `none`/`rejected` |
 | DEN-REG-03 | Receipt submit disabled while upload in flight |
 | DEN-REG-05 | `status=pending` shows `data-portal-member-receipt-awaiting-approval`; no upload control |
 | DEN-REG-08 | Amend radios initialize from owned-detail `transportKind` / `personalCarOccupants` (not tour-mode defaults). Reload after PATCH keeps the saved kind. No `registrationIntake` blob on the member BFF item. |

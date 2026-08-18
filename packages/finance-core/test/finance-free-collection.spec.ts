@@ -198,7 +198,7 @@ describe("FIN-FREE-COLLECT phase 4", () => {
     );
   });
 
-  it("member receipt status paid when booking paymentStatus is paid", async () => {
+  it("member receipt status waived when collection is free and remaining is 0", async () => {
     const registrationId = randomUUID();
     const booking = createBookingPort({ lifecycle: "approved", paymentStatus: "paid" });
     const repo = new InMemoryFinanceRepository(booking);
@@ -223,6 +223,7 @@ describe("FIN-FREE-COLLECT phase 4", () => {
       memberAuth(),
       registrationId
     );
-    assert.equal(status.status, "paid");
+    assert.equal(status.status, "waived");
+    assert.equal(status.remainingMinor, "0");
   });
 });
