@@ -1,0 +1,25 @@
+/**
+ * Denali marketing Landing — overlay Header scrolled running-head.
+ * Walk rest-state (transparent ink) stays in home/hero.css.
+ * This file wins for [data-marketing-header-scrolled] after the Hero exits.
+ */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay][data-marketing-header-scrolled] {
+  background: var(--denali-mist-50, #f4f7f4);
+  background-color: var(--denali-mist-50, #f4f7f4);
+  border-bottom: var(--mkt-border-width, 1px) solid color-mix(in srgb, #1a1f24 10%, transparent);
+  box-shadow: 0 0.0625rem 0 rgba(15, 23, 42, 0.06);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: #1a1f24;
+}
+
+@supports (backdrop-filter: blur(0.75rem)) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    header[data-marketing-header][data-marketing-header-overlay][data-marketing-header-scrolled] {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--denali-mist-50, #f4f7f4);
+  }
+}

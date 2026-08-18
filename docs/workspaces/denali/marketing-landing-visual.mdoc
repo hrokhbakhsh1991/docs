@@ -1269,3 +1269,48 @@ pnpm run guard:marketing-home-hooks
 | Footer | `padding-inline: max(--catalog-page-padding-x, safe-area insets)` |
 
 **Verify:** 375px RTL — section headers, featured/latest cards, destinations row, and footer links share the same left/right inset as `[data-marketing-header-inner]`.
+
+---
+
+## Phase 8.5 — evidence-based visual polish (2026-08-18)
+
+**Mode:** LOCAL Denali marketing CSS + one overlay-Header scroll island. No new product, no catalog IA change, no fake program covers, Walk Hero unchanged.
+
+Phase 8.4 scored the **complete** landing 7.4. Two **visible-design P2** issues were polishable without touching asset/architecture debt:
+
+| Issue | Evidence | Fix |
+| ----- | -------- | --- |
+| Cool-gray smear | Destinations / Gallery / FAQ / Final CTA all computed `rgb(246, 247, 249)` because `background: var(--color-bg-page)` leaked platform `light.css` `#f6f7f9` | Pin **explicit Denali mist/white chapters** (do not restyle Final CTA card internals) |
+| Overlay Header on white Programs | Fixed transparent overlay sat on the programs title | Overlay Header becomes a **mist running-head** after the Walk Hero exits (`data-marketing-header-scrolled`) |
+
+### Section rhythm (after Why)
+
+```text
+Hero          photo
+Programs      --color-bg-surface (#fff)
+Destinations  --denali-mist-50   (#f4f7f4)   explicit; not --color-bg-page
+Why           --color-bg-surface (#fff)
+Gallery       --denali-mist-100  (#e8efe8)   deeper mist chapter
+FAQ           --color-bg-surface (#fff)
+Final CTA     --denali-mist-50   (section only; panel still forest-tint on white)
+Footer        --denali-mist-50
+```
+
+### Overlay Header scrolled state
+
+- Rest: Walk overlay stays transparent ink (`hero.css`).
+- Scrolled: `[data-marketing-header-scrolled]` + LOCAL `home/header-overlay-scrolled.css`.
+- Island: `MarketingHeaderOverlayScroll` in MarketingShell — no-ops unless overlay Header exists. Threshold = Walk Hero height minus Header height.
+- Ink stays `#1a1f24`. No dark glass, no Walk restyle.
+
+### FA H1 (P2 bilingual gap, local only)
+
+Vazirmatn stay. `font-weight: 800` + tighter tracking on FA Walk H1. No Calistoga-for-Persian. No layout change.
+
+### Out of scope (8.4 buckets)
+
+- Identical `fallback-tour-cover.webp` × 4 — **content/asset**. Do not invent CSS uniqueness.
+- Catalog search/chip on Programs — **architecture**.
+- Triple `/tours` verbs, empty alts, SHENSKI vs shenski, destination CTA row — P3 / copy.
+
+**Files:** `home/{destinations,gallery,faq,final-cta,hero}.css`, `home/header-overlay-scrolled.css`, `home-landing.css`, `marketing-header-overlay-scroll.tsx`, `marketing-shell.tsx`.

@@ -4,6 +4,7 @@
  * + Gallery + FAQ + Final CTA win over numbered PR patches without adding another `NN-pr-*.css` file.
  */
 @import "./home/hero.css";
+@import "./home/header-overlay-scrolled.css";
 @import "./home/programs.css";
 @import "./home/destinations.css";
 @import "./home/why.css";

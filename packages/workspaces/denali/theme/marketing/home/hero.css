@@ -95,6 +95,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]:lang(en)
   letter-spacing: -0.035em;
 }
 
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]:lang(fa)
+  [data-marketing-home]
+  section[data-marketing-home-hero-walk]
+  h1[data-marketing-home-title] {
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-home]
   section[data-marketing-home-hero-walk]

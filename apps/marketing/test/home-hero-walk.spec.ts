@@ -98,6 +98,8 @@ describe("home-hero-walk.spec.ts", () => {
     assert.match(css, /data-marketing-header-overlay/);
     assert.match(css, /gap: 5px/);
     assert.match(css, /width: 1\.25rem;/);
+    assert.match(css, /:lang\(fa\)/);
+    assert.match(css, /font-weight: 800;/);
     assert.doesNotMatch(css, /data-marketing-nav-link-id="tours"/);
     assert.match(
       css,

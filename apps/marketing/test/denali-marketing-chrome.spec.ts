@@ -80,4 +80,30 @@ describe("denali-marketing-chrome.spec.ts", () => {
     assert.match(keyboard, /event\.key !== "Escape"/);
     assert.match(keyboard, /\[data-marketing-nav-drawer\]\[open\]/);
   });
+
+  it("overlay Header gains a mist running-head after Walk Hero exits", () => {
+    const shell = readFileSync(
+      join(repoRoot, "apps/marketing/src/shell/marketing-shell.tsx"),
+      "utf8",
+    );
+    const scroll = readFileSync(
+      join(repoRoot, "apps/marketing/src/shell/marketing-header-overlay-scroll.tsx"),
+      "utf8",
+    );
+    const css = readFileSync(
+      join(repoRoot, "packages/workspaces/denali/theme/marketing/home/header-overlay-scrolled.css"),
+      "utf8",
+    );
+    const aggregator = readFileSync(
+      join(repoRoot, "packages/workspaces/denali/theme/marketing/home-landing.css"),
+      "utf8",
+    );
+    assert.match(shell, /<MarketingHeaderOverlayScroll \/>/);
+    assert.match(scroll, /"use client"/);
+    assert.match(scroll, /data-marketing-header-scrolled/);
+    assert.match(scroll, /data-marketing-home-hero-walk/);
+    assert.match(css, /data-marketing-header-scrolled/);
+    assert.match(css, /--denali-mist-50/);
+    assert.match(aggregator, /@import "\.\/home\/header-overlay-scrolled\.css"/);
+  });
 });

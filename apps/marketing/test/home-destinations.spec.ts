@@ -70,6 +70,7 @@ describe("home-destinations.spec.ts", () => {
     assert.match(css, /minmax\(14rem, 40%\) minmax\(0, 1fr\)/);
     assert.match(css, /-webkit-line-clamp: 2/);
     assert.match(css, /min-height: 44px/);
+    assert.match(css, /--denali-mist-50/);
     assert.match(css, /background: transparent/);
     assert.doesNotMatch(css, /color-mix\(in srgb, var\(--denali-forest-600\)/);
     assert.doesNotMatch(css, /scroll-snap-type:\s*x/);

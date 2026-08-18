@@ -9,6 +9,7 @@ import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 import type { GuestLandingFeatures } from "@app-tour/workspace-sdk";
 
 import { MarketingFooter } from "./marketing-footer";
+import { MarketingHeaderOverlayScroll } from "./marketing-header-overlay-scroll";
 import { MarketingNavDrawerKeyboard } from "./marketing-nav-drawer-keyboard";
 import { MarketingLocaleSwitcher } from "@/i18n/marketing-locale-switcher";
 import { isAppLocale, resolveMarketingLocalePath, routing } from "@/i18n/routing";
@@ -207,6 +208,7 @@ export async function MarketingShell({
               </nav>
             </details>
             <MarketingNavDrawerKeyboard />
+            <MarketingHeaderOverlayScroll />
           </div>
         </div>
       </header>

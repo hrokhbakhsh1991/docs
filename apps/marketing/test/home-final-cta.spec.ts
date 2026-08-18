@@ -75,6 +75,7 @@ describe("home-final-cta.spec.ts", () => {
     assert.match(css, /data-marketing-home-final-cta-inner/);
     assert.match(css, /data-marketing-home-final-cta-body/);
     assert.match(css, /--denali-forest-600/);
+    assert.match(css, /background: var\(--denali-mist-50/);
     assert.doesNotMatch(css, /var\(--color-accent\)/);
     assert.doesNotMatch(css, /url\(/);
     assert.doesNotMatch(faq, /data-marketing-home-final-cta/);
