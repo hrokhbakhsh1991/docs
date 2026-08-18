@@ -20,6 +20,9 @@ export type MemberProfileApiErrorBody = {
 
 const MEMBER_PROFILE_ERROR_MESSAGES: Readonly<Record<string, string>> = Object.freeze({
   AUTH_UNAUTHENTICATED: "Authentication required.",
+  AUTH_INVALID_TOKEN: "Session token signature invalid.",
+  AUTH_TOKEN_REVOKED: "Session is no longer valid.",
+  UNAUTHORIZED_INVALID_BEARER_TOKEN: "Session token is invalid.",
   BACKEND_UNREACHABLE: "Profile service is temporarily unavailable.",
   INVALID_JSON: "Request body is not valid JSON.",
   INVALID_PAYLOAD: "Profile payload is invalid.",

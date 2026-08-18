@@ -5,6 +5,7 @@ import { resolveMarketingPublicBaseUrl } from "@app-tour/guest-surface-host";
 
 import { fetchMemberProfile } from "@/me/fetch-member-profile.server";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
+import { redirectDeadMemberSession } from "@/me/redirect-dead-member-session.server";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
@@ -18,10 +19,27 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function MeProfilePage() {
   const host = await readPortalIngressHost();
   const bootstrap = await resolvePortalBootstrapForHost(host);
-  const profilePayload = await fetchMemberProfile(host);
+  const profileResult = await fetchMemberProfile(host);
   const t = await getTranslations("portalMember.profile");
 
-  if (profilePayload === null) {
+  if (profileResult.status === "ok") {
+    return (
+      <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="profile">
+        <main data-portal-member-profile>
+          <header data-portal-member-page-header>
+            <h1>{t("title")}</h1>
+            <p>{t("description")}</p>
+          </header>
+          <MemberProfileForm
+            profile={profileResult.payload.profile}
+            logoutTarget={resolveMarketingPublicBaseUrl(host)}
+          />
+        </main>
+      </MemberModuleEntitlementGate>
+    );
+  }
+
+  if (profileResult.status === "unavailable") {
     return (
       <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="profile">
         <main data-portal-member-profile>
@@ -34,18 +52,5 @@ export default async function MeProfilePage() {
     );
   }
 
-  return (
-    <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="profile">
-      <main data-portal-member-profile>
-        <header data-portal-member-page-header>
-          <h1>{t("title")}</h1>
-          <p>{t("description")}</p>
-        </header>
-        <MemberProfileForm
-          profile={profilePayload.profile}
-          logoutTarget={resolveMarketingPublicBaseUrl(host)}
-        />
-      </main>
-    </MemberModuleEntitlementGate>
-  );
+  redirectDeadMemberSession("/me/profile");
 }

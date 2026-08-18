@@ -256,8 +256,32 @@ describe("portal-member-profile-bff route (M2)", () => {
     );
     assert.match(page, /fetchMemberProfile/);
     assert.match(fetchModule, /\/api\/me\/profile/);
+    assert.match(fetchModule, /MemberProfileFetchResult/);
+    assert.match(fetchModule, /classifyMemberProfileBffFailure/);
     assert.doesNotMatch(page, /identity\/me/);
     assert.doesNotMatch(page, /resolveTourOpsApiBaseUrl/);
+    assert.doesNotMatch(page, /fetchMemberProfileFromSession/);
+  });
+
+  it("MP-SEC-03 layout and profile fail-close 401 via expire-session, keep 502 loadFailed", () => {
+    const layout = readFileSync(join(repoRoot, "apps/portal/app/me/layout.tsx"), "utf8");
+    const page = readFileSync(join(repoRoot, "apps/portal/app/me/profile/page.tsx"), "utf8");
+    const expire = readFileSync(
+      join(repoRoot, "apps/portal/app/api/public-auth/expire-session/route.ts"),
+      "utf8"
+    );
+    const headers = readFileSync(
+      join(repoRoot, "apps/portal/src/me/build-member-api-headers.server.ts"),
+      "utf8"
+    );
+    assert.match(layout, /redirectDeadMemberSession/);
+    assert.match(layout, /fetchMemberProfile/);
+    assert.match(page, /redirectDeadMemberSession/);
+    assert.match(page, /loadFailed/);
+    assert.match(expire, /clearSessionCookieOnResponse/);
+    assert.match(expire, /resolvePortalMemberLoginPath/);
+    assert.doesNotMatch(expire, /3002/);
+    assert.match(headers, /readMemberSessionToken/);
   });
 
   it("MP-M3-02 member profile form is capability-driven and uses profile BFF", () => {

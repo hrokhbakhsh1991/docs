@@ -160,7 +160,10 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     }
   }
 
+  const skipSessionCookieRefresh =
+    pathname === "/api/public-auth/expire-session" || pathname === "/api/public-auth/logout";
   if (
+    !skipSessionCookieRefresh &&
     validation.status === "valid" &&
     typeof token === "string" &&
     token.trim().length > 0 &&

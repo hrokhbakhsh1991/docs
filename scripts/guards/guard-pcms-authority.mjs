@@ -18,6 +18,10 @@ const REQUIRED_FILES = [
   "apps/marketing/src/shell/resolve-marketing-member-header.server.ts",
   "apps/portal/src/auth/apply-public-auth-cors.ts",
   "apps/portal/app/api/public-auth/session/route.ts",
+  "apps/portal/app/api/public-auth/expire-session/route.ts",
+  "apps/portal/src/me/classify-member-profile-bff-error.ts",
+  "apps/portal/src/me/redirect-dead-member-session.server.ts",
+  "apps/portal/src/me/fetch-member-profile.server.ts",
   "packages/guest-surface-host/src/resolve-public-auth-cors-allow-origin.ts",
   "apps/marketing/src/auth/marketing-login-modal.tsx",
   "apps/marketing/src/auth/marketing-login-auth-flow.tsx",
@@ -293,6 +297,53 @@ if (!sessionProbe.includes("ready")) {
 }
 if (/session_token|displayName/.test(sessionProbe)) {
   violations.push("public-auth/session: must not return token or profile PII");
+}
+
+const expireSession = readRepo("apps/portal/app/api/public-auth/expire-session/route.ts");
+if (!expireSession.includes("clearSessionCookieOnResponse")) {
+  violations.push("public-auth/expire-session: missing clearSessionCookieOnResponse (PCMS-SEC-03)");
+}
+if (!expireSession.includes("resolvePortalMemberLoginPath")) {
+  violations.push("public-auth/expire-session: must redirect to member login (PCMS-03 / PCMS-SEC-03)");
+}
+if (/denali\.localhost:3002|:3002\b/.test(expireSession)) {
+  violations.push("public-auth/expire-session: must not send dead sessions to marketing");
+}
+
+const meLayout = readRepo("apps/portal/app/me/layout.tsx");
+if (!meLayout.includes("redirectDeadMemberSession")) {
+  violations.push("me/layout.tsx: missing redirectDeadMemberSession (PCMS-SEC-03)");
+}
+if (!meLayout.includes("fetchMemberProfile")) {
+  violations.push("me/layout.tsx: missing fetchMemberProfile (PCMS-SEC-03)");
+}
+
+const meProfilePage = readRepo("apps/portal/app/me/profile/page.tsx");
+if (!meProfilePage.includes("redirectDeadMemberSession")) {
+  violations.push("me/profile/page.tsx: missing redirectDeadMemberSession (PCMS-SEC-03)");
+}
+if (!meProfilePage.includes("fetchMemberProfile")) {
+  violations.push("me/profile/page.tsx: missing fetchMemberProfile (MP-M3-01)");
+}
+if (meProfilePage.includes("identity/me") || meProfilePage.includes("fetchMemberProfileFromSession")) {
+  violations.push("me/profile/page.tsx: must keep fetchMemberProfile BFF (not identity/me)");
+}
+
+const fetchProfile = readRepo("apps/portal/src/me/fetch-member-profile.server.ts");
+if (!fetchProfile.includes("classifyMemberProfileBffFailure")) {
+  violations.push("fetch-member-profile.server.ts: missing classifyMemberProfileBffFailure");
+}
+if (!fetchProfile.includes("/api/me/profile")) {
+  violations.push("fetch-member-profile.server.ts: must self-fetch /api/me/profile");
+}
+
+const memberApiHeaders = readRepo("apps/portal/src/me/build-member-api-headers.server.ts");
+if (!memberApiHeaders.includes("readMemberSessionToken")) {
+  violations.push("build-member-api-headers.server.ts: Bearer must use readMemberSessionToken (PCMS-SEC-03)");
+}
+
+if (!pcmsDoc.includes("PCMS-SEC-03")) {
+  violations.push("PCMS-001 missing PCMS-SEC-03 dead-session fail-close");
 }
 
 for (const root of ["apps/portal/src", "apps/portal/app", "apps/portal"]) {

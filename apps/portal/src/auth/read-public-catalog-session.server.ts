@@ -28,7 +28,23 @@ function normalizeCatalogRole(
   return null;
 }
 
-async function readSessionTokenFromRequest(): Promise<string | undefined> {
+/** Raw Cookie header: `cookies()` first, then request `Cookie` (PCMS-SEC-03). */
+export async function readMemberCookieHeader(): Promise<string> {
+  const cookieStore = await cookies();
+  const fromStore = cookieStore
+    .getAll()
+    .map((entry) => `${entry.name}=${entry.value}`)
+    .join("; ");
+  if (fromStore.length > 0) {
+    return fromStore;
+  }
+
+  const headerStore = await headers();
+  return headerStore.get("cookie") ?? "";
+}
+
+/** Same token source for session decode and BFF `Authorization` (PCMS-SEC-03). */
+export async function readMemberSessionToken(): Promise<string | undefined> {
   const cookieStore = await cookies();
   const fromStore = cookieStore.get(SESSION_TOKEN_COOKIE)?.value?.trim();
   if (fromStore !== undefined && fromStore.length > 0) {
@@ -42,7 +58,7 @@ async function readSessionTokenFromRequest(): Promise<string | undefined> {
 
 /** M17 public catalog session — any ACTIVE membership role (not operator-owner-only). */
 export async function readPublicCatalogSessionFromCookies(): Promise<PublicCatalogSession | null> {
-  const token = await readSessionTokenFromRequest();
+  const token = await readMemberSessionToken();
   const validation = await validateSessionTokenAsync(token);
   if (validation.status !== "valid") {
     return null;

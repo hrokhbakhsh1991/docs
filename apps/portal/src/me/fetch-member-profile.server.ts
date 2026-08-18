@@ -1,16 +1,23 @@
-import { cookies } from "next/headers";
+import { cache } from "react";
 
+import { readMemberCookieHeader } from "@/auth/read-public-catalog-session.server";
+
+import { classifyMemberProfileBffFailure } from "./classify-member-profile-bff-error";
 import type { MemberProfileViewPayload } from "./member-profile-types";
 import { resolvePortalSelfFetchOrigin } from "./resolve-portal-self-fetch-origin";
 
-export async function fetchMemberProfile(host: string): Promise<MemberProfileViewPayload | null> {
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((entry) => `${entry.name}=${entry.value}`)
-    .join("; ");
+export type MemberProfileFetchResult =
+  | { readonly status: "ok"; readonly payload: MemberProfileViewPayload }
+  | { readonly status: "missing_cookie" }
+  | { readonly status: "unauthenticated" }
+  | { readonly status: "unavailable" };
+
+export const fetchMemberProfile = cache(async function fetchMemberProfile(
+  host: string
+): Promise<MemberProfileFetchResult> {
+  const cookieHeader = await readMemberCookieHeader();
   if (cookieHeader.length === 0) {
-    return null;
+    return { status: "missing_cookie" };
   }
 
   const { origin, ingressHost } = resolvePortalSelfFetchOrigin(host);
@@ -25,17 +32,20 @@ export async function fetchMemberProfile(host: string): Promise<MemberProfileVie
       cache: "no-store",
     });
   } catch {
-    return null;
+    return { status: "unavailable" };
   }
 
-  if (!res.ok) {
-    return null;
+  if (res.ok) {
+    const payload = (await res.json()) as MemberProfileViewPayload;
+    if (payload.ok === true) {
+      return { status: "ok", payload };
+    }
+    return { status: "unavailable" };
   }
 
-  const payload = (await res.json()) as MemberProfileViewPayload;
-  if (payload.ok !== true) {
-    return null;
-  }
-
-  return payload;
-}
+  const body = (await res.json().catch(() => ({}))) as {
+    readonly error?: { readonly code?: unknown };
+  };
+  const code = typeof body.error?.code === "string" ? body.error.code : undefined;
+  return { status: classifyMemberProfileBffFailure(res.status, code) };
+});

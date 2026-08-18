@@ -9,6 +9,7 @@ import { isMemberPortalEnabled } from "@app-tour/workspace-sdk";
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
 import { fetchMemberProfile } from "@/me/fetch-member-profile.server";
 import { MemberPortalDisabled } from "@/me/member-portal-disabled";
+import { redirectDeadMemberSession } from "@/me/redirect-dead-member-session.server";
 import { resolveMarketingPublicBaseUrl } from "@/marketing/resolve-marketing-public-url";
 import { resolveMemberEntitlementsForShell } from "@/me/resolve-member-entitlements-for-shell.server";
 import { PortalMemberShell } from "@/shell/portal-member-shell";
@@ -36,6 +37,12 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
     return <MemberPortalDisabled />;
   }
 
+  const requestHeaders = await headers();
+  const profileResult = await fetchMemberProfile(host);
+  if (profileResult.status === "unauthenticated" || profileResult.status === "missing_cookie") {
+    redirectDeadMemberSession(requestHeaders.get("x-pathname") ?? "/me/registrations");
+  }
+
   const branding = await fetchPublicTenantBrandingForHost(host);
   const tChrome = await getTranslations("catalogRegistration");
   const workspaceLabel = resolveGuestChromeDisplayName(
@@ -49,13 +56,11 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
     bootstrap.pluginId,
     grantedEntitlementKeys
   );
-  const requestHeaders = await headers();
   const embeddedHost = resolveEmbeddedMemberPortalHost({
     userAgent: requestHeaders.get("user-agent"),
   });
 
-  const profilePayload = await fetchMemberProfile(host);
-  const profile = profilePayload?.profile;
+  const profile = profileResult.status === "ok" ? profileResult.payload.profile : undefined;
   const tNav = await getTranslations("portalMember.nav");
   const memberHeader = {
     displayName: resolveGuestMemberChipLabel({
