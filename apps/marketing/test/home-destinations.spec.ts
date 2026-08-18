@@ -47,9 +47,10 @@ describe("home-destinations.spec.ts", () => {
     assert.match(heroStage, /role="radiogroup"/);
     assert.match(heroStage, /data-marketing-home-hero-destination/);
     assert.doesNotMatch(heroStage, /resolveMarketingToursListPath/);
-    assert.doesNotMatch(heroStage, /destination=/);
+    assert.doesNotMatch(heroStage, /[?&]destination=/);
     assert.match(hero, /resolveMarketingToursListPath\(locale\)/);
     assert.doesNotMatch(hero, /resolveMarketingToursListPath\(locale, \{ q:/);
+    assert.doesNotMatch(hero, /[?&]destination=/);
   });
 
   it("does not invent a destination query or restyle Programs", () => {
