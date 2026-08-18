@@ -212,9 +212,12 @@ test.describe("workspace nav instrumentation", () => {
       ).toBe(0);
     }
 
-    expect(summary.find((row) => row.label === "legacy segment /workspace/waitlist")?.urlAfter).toMatch(
-      /tab=waitlist/
-    );
+    const legacy = summary.find((row) => row.label === "legacy segment /workspace/waitlist");
+    expect(legacy?.urlAfter).toMatch(/tab=waitlist/);
+    expect(
+      legacy?.documentCount ?? 99,
+      "legacy cold load: middleware 308 + final document (Playwright counts both hops)"
+    ).toBeLessThanOrEqual(2);
 
     const crossRoute = summary.filter((row) =>
       ["header → edit tour", "header → open command center"].includes(row.label)

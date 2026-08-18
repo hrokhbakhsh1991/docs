@@ -13,6 +13,7 @@ import {
   listTourWorkspaceSubnavTabs,
   parseWorkspaceFocusRegistrationId,
   parseWorkspaceTabParam,
+  resolveTourWorkspaceLegacySegmentRedirect,
   resolveWorkspaceSubnavTab,
   workspaceBasePath,
   WORKSPACE_FOCUS_REGISTRATION_QUERY_KEY,
@@ -111,6 +112,20 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
       buildWorkspaceTabReplacePath(base, "registrations", new URLSearchParams("tab=waitlist")),
       base
     );
+    assert.equal(
+      resolveTourWorkspaceLegacySegmentRedirect(`${base}/waitlist`),
+      `${base}?tab=waitlist`
+    );
+    assert.equal(
+      resolveTourWorkspaceLegacySegmentRedirect(`${base}/transport/`),
+      `${base}?tab=transport`
+    );
+    assert.equal(
+      resolveTourWorkspaceLegacySegmentRedirect(`${base}/finance`),
+      `${base}?tab=finance`
+    );
+    assert.equal(resolveTourWorkspaceLegacySegmentRedirect(`${base}/registrations`), base);
+    assert.equal(resolveTourWorkspaceLegacySegmentRedirect(`${base}/edit`), null);
   });
 
   it("WEB-9.3-W03 list and edit link ids for workspace (CP-9.3-W03)", () => {

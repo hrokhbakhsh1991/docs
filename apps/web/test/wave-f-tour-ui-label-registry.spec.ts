@@ -60,7 +60,7 @@ describe("wave-f-tour-ui-label-registry.spec.ts — Wave F.c", () => {
       ),
       "utf8"
     );
-    assert.match(page, /redirect\(hrefForWorkspaceTab\(id,\s*"transport"\)\)/);
+    assert.match(page, /TourWorkspaceLegacyTabRedirect/);
     assert.match(client, /readonly pluginId: string/);
     assert.match(client, /resolveWizardTransportModeLabel/);
     assert.match(client, /useWorkspaceWizardTranslator/);
