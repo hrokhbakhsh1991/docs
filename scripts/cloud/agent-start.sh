@@ -60,11 +60,39 @@ API_INTERNAL_URL=http://127.0.0.1:3001
 EOF
 done
 
+# PCMS-SEC-02 — copy RS256 *public* verify material into guest surfaces (never private key).
+sync_jwt_public_verify_into_surface() {
+  local dest="$1"
+  local api_env="$repo_root/apps/api/.env.local"
+  [ -f "$api_env" ] || return 0
+  [ -f "$dest" ] || return 0
+  if grep -q '^AUTH_JWT_PUBLIC_KEY=' "$dest" 2>/dev/null; then
+    return 0
+  fi
+  {
+    echo ""
+    echo "# Copied from apps/api/.env.local — RS256 verify only (never AUTH_JWT_PRIVATE_KEY)"
+    grep -E '^AUTH_JWT_PUBLIC_KEY=' "$api_env" || true
+    grep -E '^AUTH_JWT_ISSUER=' "$api_env" || true
+    grep -E '^AUTH_JWT_AUDIENCE=' "$api_env" || true
+  } >> "$dest"
+  if grep -q '^AUTH_JWT_PUBLIC_KEY=' "$dest" 2>/dev/null; then
+    echo "agent-start: copied AUTH_JWT public verify env into $dest"
+  fi
+}
+for app in web marketing portal; do
+  sync_jwt_public_verify_into_surface "$repo_root/apps/$app/.env.local"
+done
+
 # --- Dev host aliases for browser testing (host-based tenant routing) ---
-hosts_line="127.0.0.1 operator.localhost denali.localhost urban.localhost denali.portal.localhost operator.portal.localhost denali.admin.localhost admin.denali.localhost operator.admin.localhost admin.operator.localhost urban.admin.localhost admin.urban.localhost operator.portal.localhost admin.localhost"
+hosts_line="127.0.0.1 operator.localhost denali.localhost urban.localhost denali.portal.localhost portal.denali.localhost operator.portal.localhost denali.admin.localhost admin.denali.localhost operator.admin.localhost admin.operator.localhost urban.admin.localhost admin.urban.localhost operator.portal.localhost admin.localhost"
 if ! grep -q "admin.denali.localhost" /etc/hosts 2>/dev/null; then
   printf '%s\n' "$hosts_line" | sudo tee -a /etc/hosts >/dev/null 2>&1 \
     && echo "agent-start: added dev host aliases to /etc/hosts" || true
+fi
+if ! grep -q "portal.denali.localhost" /etc/hosts 2>/dev/null; then
+  printf '%s\n' "127.0.0.1 portal.denali.localhost" | sudo tee -a /etc/hosts >/dev/null 2>&1 \
+    && echo "agent-start: added portal.denali.localhost to /etc/hosts" || true
 fi
 
 echo "agent-start: ready — run a surface with e.g. 'pnpm --filter @apps/web run dev'"
