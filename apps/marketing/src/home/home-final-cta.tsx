@@ -10,13 +10,15 @@ export async function HomeFinalCta() {
   const toursHref = resolveMarketingToursListPath(locale);
 
   return (
-    <section data-marketing-home-final-cta>
-      <div data-marketing-home-final-cta-body>
-        <h2>{t("home.full.finalCta.title")}</h2>
-        <p data-marketing-home-final-cta-lead>{t("home.full.finalCta.lead")}</p>
-        <Link href={toursHref} data-marketing-home-cta>
-          {t("home.full.finalCta.cta")}
-        </Link>
+    <section data-marketing-home-final-cta data-marketing-home-final-cta-panel>
+      <div data-marketing-home-final-cta-inner>
+        <div data-marketing-home-final-cta-body>
+          <h2>{t("home.full.finalCta.title")}</h2>
+          <p data-marketing-home-final-cta-lead>{t("home.full.finalCta.lead")}</p>
+          <Link href={toursHref} data-marketing-home-cta data-marketing-home-final-cta-action>
+            {t("home.full.finalCta.cta")}
+          </Link>
+        </div>
       </div>
     </section>
   );

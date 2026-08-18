@@ -95,7 +95,20 @@ test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
   await expect(gearItem).toHaveAttribute("open", "");
   await expect(gearAnswer).toBeVisible();
   await expect(gearAnswer).toContainText(/کفش مناسب|trail footwear/i);
-  await expect(page.locator("[data-marketing-home-final-cta]")).toBeVisible();
+
+  const finalCta = page.locator("[data-marketing-home-final-cta]");
+  await expect(finalCta).toHaveCount(1);
+  await expect(finalCta.locator("h2")).toHaveCount(1);
+  await expect(finalCta.locator("[data-marketing-home-final-cta-lead]")).toBeVisible();
+  await expect(finalCta.locator("a")).toHaveCount(1);
+  await expect(finalCta.locator("[data-marketing-home-cta]")).toHaveCount(1);
+  await expect(finalCta.locator("[data-marketing-home-final-cta-action]")).toHaveAttribute(
+    "href",
+    /\/tours/
+  );
+  await expect(finalCta.locator("[data-marketing-home-search]")).toHaveCount(0);
+  await expect(finalCta.locator("[data-marketing-home-cta-secondary]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-cta]")).toHaveCount(1);
 });
 
 test("SMK-MKT-HOME-02 iPhone viewport has no horizontal body overflow", async ({ page }) => {
