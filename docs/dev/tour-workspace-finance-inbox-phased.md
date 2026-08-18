@@ -1,6 +1,6 @@
 # Tour Workspace Finance Inbox — Phased Redesign
 
-Status: **Phase 2 in progress** (one primary action; review still hub CTA). Phase 1 landed on this stack. Phases 3–5 are not in this PR.
+Status: **Phase 3 in progress** (inline receipt review). Phases 1–2 landed on this stack. Phases 4–5 are not in this PR.
 
 The big-bang workspace finance redesign was reverted. This plan replaces both that attempt and the older four-section card in [`tour-workspace-payment-follow-up-audit.md`](./tour-workspace-payment-follow-up-audit.md) **for presentation**. Finance-core contracts, list inclusion rules, and state precedence in that audit stay valid.
 
@@ -184,7 +184,7 @@ The older audit’s “Section A–D always visible” is the wrong presentation
 
 ## Phase 2 — One primary action (still hub for review)
 
-**Status:** in progress (this PR).
+**Status:** done.
 
 **Goal:** Detail stops offering three tools at once. Review still leaves the tab.
 
@@ -221,6 +221,8 @@ The older audit’s “Section A–D always visible” is the wrong presentation
 ---
 
 ## Phase 3 — Inline receipt review (the real capability)
+
+**Status:** in progress (this PR).
 
 **Goal:** Admin finishes review without opening Finance hub.
 

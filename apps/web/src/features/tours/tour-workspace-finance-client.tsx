@@ -39,6 +39,7 @@ import {
 import { TourWorkspacePaymentActionsSection } from "@/features/tours/tour-workspace-payment-actions-section";
 import { TourWorkspacePaymentEvidenceList } from "@/features/tours/tour-workspace-payment-evidence-list";
 import { useTourWorkspacePaymentDetailData } from "@/features/tours/use-tour-workspace-payment-detail-data";
+import type { ReceiptReviewResultBanner } from "@/finance/finance-receipt-review-content";
 import type { TourWorkspacePaymentSummaryStatus } from "@/features/tours/tour-workspace-payment-follow-up-state";
 import {
   WorkspaceMasterDetailLayout,
@@ -208,6 +209,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     useState<TourWorkspacePaymentActionEvent | null>(null);
   const [financeMutationRefreshKey, setFinanceMutationRefreshKey] = useState(0);
   const [workspaceExitNotice, setWorkspaceExitNotice] = useState<string | null>(null);
+  const [receiptReviewNotice, setReceiptReviewNotice] = useState<string | null>(null);
   const [isNarrowViewport, setIsNarrowViewport] = useState(false);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const {
@@ -361,6 +363,31 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     [detailData, refreshWorkspaceFinanceView, selectedRow]
   );
 
+  const handleReceiptReviewed = useCallback(
+    (result: ReceiptReviewResultBanner) => {
+      setReceiptReviewNotice(
+        result.decision === "approve"
+          ? t("detailReceiptApprovedNotice")
+          : t("detailReceiptRejectedNotice")
+      );
+      setFinanceMutationRefreshKey((current) => current + 1);
+      const registrationId = result.registrationId?.trim() ?? selectedRow?.registrationId ?? null;
+      if (registrationId !== null) {
+        setHighlightedRegistrationId(registrationId);
+        setPendingFocusId(registrationId);
+      }
+      detailData.refresh();
+      refreshWorkspaceFinanceView();
+    },
+    [detailData, refreshWorkspaceFinanceView, selectedRow, t]
+  );
+
+  const pendingReceiptsForSelected = useMemo(
+    () =>
+      detailData.receipts.filter((receipt) => receipt.status.trim().toLowerCase() === "pending"),
+    [detailData.receipts]
+  );
+
   useEffect(() => {
     if (highlightedRegistrationId === null) {
       return;
@@ -468,14 +495,11 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
               ? t("workspacePaymentRecordedTitle")
               : tPayments("receiptSubmittedTitle")}
           </p>
-          {selectedPaymentAction.kind !== "prepayment_recorded" ? (
-            <OperatorInternalLink
-              href={buildTourFinanceHubHref(tourId, "receipts", selectedPaymentAction.registrationId)}
-              className="inline-flex text-sm font-medium text-primary underline-offset-2 hover:underline"
-            >
-              {tPayments("createResultOpenReceipts")}
-            </OperatorInternalLink>
-          ) : null}
+          {selectedPaymentAction.kind === "prepayment_recorded" ? (
+            <p className="text-xs text-muted-foreground">{t("workspacePaymentRecordedHint")}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">{t("detailReceiptSubmittedHint")}</p>
+          )}
         </div>
       ) : null;
 
@@ -495,11 +519,14 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
         : null;
     const recentPayments = detailData.payments.slice(0, 3);
     const recentReceipts = detailData.receipts.slice(0, 3);
+    const pendingReceiptsCount = pendingReceiptsForSelected.length;
     const hasActiveSchedule = hasActiveTourWorkspacePaymentSchedule(detailData.schedule);
     const actionMode =
-      detailData.detailState !== null
-        ? resolveTourWorkspaceDetailActionMode(detailData.detailState.summaryStatus)
-        : "active";
+      pendingReceiptsCount > 0
+        ? "review_receipt"
+        : detailData.detailState !== null
+          ? resolveTourWorkspaceDetailActionMode(detailData.detailState.summaryStatus)
+          : "active";
     const requirementDueAtLabel =
       detailData.detailState?.currentRequirement.kind === "schedule_item"
         ? formatDetailDate(locale, detailData.detailState.currentRequirement.dueAt)
@@ -512,6 +539,14 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     return (
       <div className="space-y-4">
         {paymentActionBanner}
+        {receiptReviewNotice !== null ? (
+          <p
+            className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-sm"
+            role="status"
+          >
+            {receiptReviewNotice}
+          </p>
+        ) : null}
         <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className={kindBadgeClass(selectedRow.kind)}>
               {kindStatusLabel(t, selectedRow.kind)}
@@ -691,6 +726,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
             hasActiveSchedule={hasActiveSchedule}
             rowKind={selectedRow.kind}
             invoice={detailData.invoice}
+            pendingReceipts={pendingReceiptsForSelected}
             refreshKey={financeMutationRefreshKey}
             onOverrideChanged={(event) => {
               setFinanceMutationRefreshKey((current) => current + 1);
@@ -707,6 +743,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
               refreshWorkspaceFinanceView();
             }}
             onPaymentChanged={handleRegistrationPaymentChanged}
+            onReceiptReviewed={handleReceiptReviewed}
           />
         ) : null}
 

@@ -5,6 +5,7 @@
 import { expect, test } from "@playwright/test";
 
 import { FINANCE_PAYMENTS_TEST_IDS } from "../../src/finance/finance-payments-logic";
+import { FINANCE_RECEIPTS_TEST_IDS } from "../../src/finance/finance-receipts-logic";
 import { TOUR_WORKSPACE_FINANCE_TEST_IDS } from "../../src/features/tours/tour-workspace-finance-logic";
 import { TOUR_WORKSPACE_TEST_IDS } from "../../src/features/tours/tour-workspace-types";
 import { OPERATOR_SMOKE_PUBLISHED_TOUR_ID } from "../../test/fixtures/p6-chain-guest-api";
@@ -174,5 +175,14 @@ test.describe("scenario-5 workspace finance create payment -> submit receipt", (
     const actionBanner = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.paymentActionResult);
     await expect(actionBanner).toBeVisible({ timeout: 20_000 });
     await expect(actionBanner).toHaveAttribute("data-action-kind", "receipt_submitted");
+    await expect(
+      page.getByRole("link", { name: /Open receipts|باز کردن رسیدها/i })
+    ).toHaveCount(0);
+    await expect(page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.inlineReceiptReview)).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByTestId(FINANCE_RECEIPTS_TEST_IDS.reviewForm)).toBeVisible({
+      timeout: 30_000,
+    });
   });
 });

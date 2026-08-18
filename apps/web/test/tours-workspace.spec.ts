@@ -959,7 +959,8 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(featureClient, /onClick=\{loadMore\}/);
     assert.match(featureClient, /detailExitNoticeNoPayment/);
     assert.match(featureClient, /detailExitNoticeBalanceUpdated/);
-    assert.match(featureClient, /handleRegistrationPaymentChanged/);
+    assert.match(featureClient, /handleReceiptReviewed/);
+    assert.match(featureClient, /pendingReceiptsForSelected/);
     assert.match(featureClient, /setFinanceMutationRefreshKey\(\(current\) => current \+ 1\)/);
     assert.match(featureClient, /setPendingFocusId\(event\.registrationId\)/);
     assert.match(featureClient, /selectedRow\?\.registrationId === event\.registrationId/);
@@ -1006,10 +1007,10 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(actionsSection, /TourWorkspaceAdvancedReceiptCard/);
     assert.match(actionsSection, /TourWorkspacePaymentOverrideActions/);
     assert.doesNotMatch(actionsSection, /resolveTourWorkspaceDetailActionRecommendation/);
+    assert.match(actionsSection, /TourWorkspaceInlineReceiptReview/);
     assert.match(actionsSection, /detailAdvancedToggle/);
     assert.match(actionsSection, /detailPrimaryPaymentTitle/);
-    assert.match(actionsSection, /detailActionStateReviewCta/);
-    assert.match(actionsSection, /detailActionStateReviewTitle/);
+    assert.doesNotMatch(actionsSection, /detailActionStateReviewCta/);
     assert.match(actionsSection, /detailActionStateReadOnlyTitle/);
     assert.match(actionsSection, /refreshKey=\{refreshKey\}/);
     assert.match(masterDetailLayout, /lg:h-\[calc\(100vh-8rem\)\]/);
