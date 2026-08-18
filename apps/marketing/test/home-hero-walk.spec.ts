@@ -36,7 +36,7 @@ describe("home-hero-walk.spec.ts", () => {
     assert.match(hero, /home\.full\.hero\.ctaPrimary/);
     assert.match(hero, /resolveMarketingToursListPath\(locale\)/);
     assert.match(hero, /<picture data-marketing-home-hero-media>/);
-    assert.match(hero, /media="\(max-width: 47\.9375rem\)"/);
+    assert.match(hero, /media="\(max-width: 48rem\)"/);
     assert.equal((hero.match(/<h1 /g) ?? []).length, 1);
     assert.equal((hero.match(/<Link /g) ?? []).length, 1);
     assert.doesNotMatch(hero, /data-marketing-home-hero-cinematic/);

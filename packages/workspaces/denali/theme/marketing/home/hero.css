@@ -147,6 +147,10 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-home]
   section[data-marketing-home-hero-walk]
+  a[data-marketing-home-cta]:focus,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-hero-walk]
   a[data-marketing-home-cta]:focus-visible {
   outline: 2px solid var(--denali-hero-ink);
   outline-offset: 3px;
@@ -158,7 +162,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     [data-marketing-home]
     section[data-marketing-home-hero-walk]
     img[data-marketing-home-hero-background] {
-    object-position: 32% 55%;
+    object-position: 34% 48%;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -176,7 +180,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 }
 
-@media (max-width: 47.9375rem) {
+@media (max-width: 48rem) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     [data-marketing-home]
     section[data-marketing-home-hero-walk]
@@ -244,8 +248,10 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   a[data-marketing-brand] {
+  direction: ltr;
   gap: 8px;
   color: #1a1f24;
+  align-items: center;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]

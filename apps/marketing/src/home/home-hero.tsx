@@ -25,7 +25,7 @@ export async function HomeHero({
   return (
     <section data-marketing-home-hero data-marketing-home-hero-walk>
       <picture data-marketing-home-hero-media>
-        <source media="(max-width: 47.9375rem)" srcSet={mobileSrc} />
+        <source media="(max-width: 48rem)" srcSet={mobileSrc} />
         <img
           src={heroImageUrl}
           alt={t("home.full.hero.imageAlt")}
