@@ -75,11 +75,7 @@ export function resolveTenantIdFromDevHost(
   }
 
   if (surface === "admin") {
-    if (
-      outcome.kind === "club_admin" ||
-      outcome.kind === "club_portal" ||
-      outcome.kind === "club_apex"
-    ) {
+    if (outcome.kind === "club_admin") {
       return mapSubdomain(outcome.subdomain);
     }
     return null;

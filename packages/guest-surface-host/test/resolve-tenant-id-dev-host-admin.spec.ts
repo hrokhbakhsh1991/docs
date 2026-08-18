@@ -4,13 +4,28 @@ import { describe, it } from "node:test";
 import { resolveTenantIdFromDevHost } from "../src/resolve-tenant-id-from-dev-host";
 
 describe("resolveTenantIdFromDevHost admin surface", () => {
-  it("WRS-GSH-03 admin surface resolves club admin host", () => {
+  it("WRS-GSH-03 admin surface resolves club admin host (legacy shape)", () => {
     const prev = process.env.ALLOW_DEV_WEB_SESSION;
     process.env.NODE_ENV = "development";
     process.env.ALLOW_DEV_WEB_SESSION = "true";
     try {
       assert.equal(
         resolveTenantIdFromDevHost("alborz.admin.localhost:3000", "admin"),
+        "00000000-0000-4000-8000-000000000003"
+      );
+    } finally {
+      if (prev === undefined) delete process.env.ALLOW_DEV_WEB_SESSION;
+      else process.env.ALLOW_DEV_WEB_SESSION = prev;
+    }
+  });
+
+  it("WRS-GSH-03b admin surface resolves canonical inverted localhost host", () => {
+    const prev = process.env.ALLOW_DEV_WEB_SESSION;
+    process.env.NODE_ENV = "development";
+    process.env.ALLOW_DEV_WEB_SESSION = "true";
+    try {
+      assert.equal(
+        resolveTenantIdFromDevHost("admin.alborz.localhost:3000", "admin"),
         "00000000-0000-4000-8000-000000000003"
       );
     } finally {
@@ -28,6 +43,18 @@ describe("resolveTenantIdFromDevHost admin surface", () => {
         resolveTenantIdFromDevHost("admin.denali.club:3000", "admin"),
         "00000000-0000-4000-8000-000000000003"
       );
+    } finally {
+      if (prev === undefined) delete process.env.ALLOW_DEV_WEB_SESSION;
+      else process.env.ALLOW_DEV_WEB_SESSION = prev;
+    }
+  });
+
+  it("WRS-GSH-05 admin surface rejects club apex on web (WRS-ADMIN-LEGACY-308)", () => {
+    const prev = process.env.ALLOW_DEV_WEB_SESSION;
+    process.env.NODE_ENV = "development";
+    process.env.ALLOW_DEV_WEB_SESSION = "true";
+    try {
+      assert.equal(resolveTenantIdFromDevHost("denali.localhost:3000", "admin"), null);
     } finally {
       if (prev === undefined) delete process.env.ALLOW_DEV_WEB_SESSION;
       else process.env.ALLOW_DEV_WEB_SESSION = prev;

@@ -17,7 +17,8 @@ import {
   validatePlatformSessionToken,
 } from "@/platform/build-platform-session-cookie";
 import { isPlatformAdminHost } from "@/platform/is-platform-admin-host";
-import { parseMultiLevelTenantHost } from "@app-tour/tenant-kernel";
+import { parseMultiLevelTenantHost, toCanonicalClubAdminHost } from "@app-tour/tenant-kernel";
+import { resolveClubApexToAdminRedirect } from "@/tenant/resolve-club-apex-to-admin-redirect";
 import { isOperatorAdminHost } from "@/tenant/operator-admin-host";
 import {
   normalizeHostHeader,
@@ -208,6 +209,17 @@ function blockOperatorOnWrongHost(request: NextRequest, host: string): NextRespo
   return null;
 }
 
+function redirectLegacyClubAdminHostIfNeeded(request: NextRequest, host: string): NextResponse | null {
+  const canonical = toCanonicalClubAdminHost(host, readPlatformRootDomainWeb(), readWebReservedHostLabels());
+  if (canonical === null) {
+    return null;
+  }
+
+  const target = request.nextUrl.clone();
+  target.host = canonical;
+  return NextResponse.redirect(target, 308);
+}
+
 export function middleware(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? request.nextUrl.host ?? "";
@@ -215,6 +227,20 @@ export function middleware(request: NextRequest): NextResponse {
   const platformResponse = handlePlatformAdminHost(request, host);
   if (platformResponse !== null) {
     return platformResponse;
+  }
+
+  const legacyAdminRedirect = redirectLegacyClubAdminHostIfNeeded(request, host);
+  if (legacyAdminRedirect !== null) {
+    return legacyAdminRedirect;
+  }
+
+  const clubApexAdminRedirect = resolveClubApexToAdminRedirect({
+    host,
+    pathname,
+    search: request.nextUrl.search,
+  });
+  if (clubApexAdminRedirect !== null) {
+    return NextResponse.redirect(new URL(clubApexAdminRedirect), 308);
   }
 
   const operatorAdminHome = resolveOperatorAdminRootRedirect({ pathname, host });

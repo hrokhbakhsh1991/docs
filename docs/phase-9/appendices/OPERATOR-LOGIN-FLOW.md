@@ -229,7 +229,8 @@ Dev fixture (Phase 9, `NODE_ENV=development`):
 
 | Host | Tenant UUID | Notes |
 | ---- | ----------- | ----- |
-| `denali.localhost:3000` | `…000003` | Phase 6 denali host label — **use this for Denali admin login** |
+| `denali.admin.localhost:3000` | `…000003` | **Canonical Denali operator admin** (WRS-001 · WRS-ADMIN-LEGACY-308) |
+| `denali.localhost:3000` | `…000003` | **Legacy apex on web** — 308 → `denali.admin.localhost:3000` (do not bookmark) |
 | `operator.localhost:3000` | `…000014` | Phase 9 operator smoke |
 | `localhost:3000` | env fallback | `TOUR_OPS_DEV_TENANT_ID` in `apps/web/.env.local` (Denali smoke uses `…000003`) |
 
@@ -246,7 +247,7 @@ Login fails after every restart when **any** row below is missing — not becaus
 | 3 | `STORAGE_DRIVER` consistent | `.env` may say `prisma` while `.env.local` says `memory` — pick **one** driver per machine; mixed files cause non-deterministic identity source |
 | 4 | **`STORAGE_DRIVER=prisma`** → run `pnpm --filter ./apps/api run db:seed` after migrate/reset | `db:seed` upserts Denali tenant **and** operator identity (`users` + `user_tenants`); in-memory auto-seed does **not** run under prisma |
 | 5 | **`STORAGE_DRIVER=memory`** → no DB identity required | `InMemoryIdentityRepository.createWithDevSeed()` seeds owner on each API process start |
-| 6 | Web host `denali.localhost:3000` | Session `tenant_id` must match host map — bare `localhost` only works when `TOUR_OPS_DEV_TENANT_ID=…000003` |
+| 6 | Web host `denali.admin.localhost:3000` | Session `tenant_id` must match host map — bare `localhost` only works when `TOUR_OPS_DEV_TENANT_ID=…000003` |
 | 7 | Denali green theme (`#0f766e`) | `tenants.theme` + `body[data-workspace-plugin=denali]` skin; run `db:seed` or rely on runtime merge (4.4) |
 
 **Symptom map:**

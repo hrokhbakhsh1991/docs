@@ -12,7 +12,7 @@ import { resolveProductionIngressLabelFromHost } from "./resolve-production-ingr
 
 /**
  * Expected tenant for the current Host header.
- * Dev: multi-level `{club}.admin.localhost` + legacy `{label}.localhost`.
+ * Dev: multi-level `{club}.admin.localhost` (WRS-001). Legacy `{club}.localhost` apex is not an admin host.
  * Production: host label resolution is ingress-owned — returns null (skip bind).
  */
 export function resolveExpectedTenantIdForHost(host: string): string | null {

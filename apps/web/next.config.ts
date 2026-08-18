@@ -19,7 +19,12 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: process.env.STAGING_WEB_BUILD === "1",
   },
-  allowedDevOrigins: ["admin.localhost", "*.admin.localhost"],
+  allowedDevOrigins: [
+    "admin.localhost",
+    "*.admin.localhost",
+    "admin.*.localhost",
+    "admin.denali.localhost",
+  ],
   async redirects() {
     // Wave H.i.b — legacy product URL → product-blind owner settings path.
     return [

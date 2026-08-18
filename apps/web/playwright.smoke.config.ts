@@ -13,12 +13,12 @@ export default defineConfig({
   timeout: 180_000,
   use: {
     ...devices["Desktop Chrome"],
-    baseURL: process.env.SMOKE_BASE_URL ?? "http://denali.localhost:3000",
+    baseURL: process.env.SMOKE_BASE_URL ?? "http://admin.denali.localhost:3000",
     viewport: { width: 1280, height: 900 },
   },
   webServer: {
     command: "node scripts/smoke-denali-e2e-servers.mjs",
-    url: "http://denali.localhost:3000/",
+    url: "http://admin.denali.localhost:3000/",
     reuseExistingServer: !process.env.CI && process.env.PW_NO_REUSE_SERVER !== "1",
     timeout: 240_000,
     stdout: "pipe",

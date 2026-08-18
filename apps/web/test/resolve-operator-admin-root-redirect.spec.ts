@@ -13,19 +13,29 @@ describe("resolve-operator-admin-root-redirect.spec.ts — P6 admin home", () =>
     assert.equal(
       resolveOperatorAdminRootRedirect({
         pathname: "/",
+        host: "admin.denali.localhost:3000",
+      }),
+      OPERATOR_DASHBOARD_PATH
+    );
+  });
+
+  it("P6-ADM-ROOT-01b legacy club admin `/` redirects to dashboard", () => {
+    assert.equal(
+      resolveOperatorAdminRootRedirect({
+        pathname: "/",
         host: "denali.admin.localhost:3000",
       }),
       OPERATOR_DASHBOARD_PATH
     );
   });
 
-  it("P6-ADM-ROOT-02 legacy dev club apex `/` redirects to dashboard", () => {
+  it("P6-ADM-ROOT-02 legacy dev club apex `/` is not an admin home (308 elsewhere)", () => {
     assert.equal(
       resolveOperatorAdminRootRedirect({
         pathname: "/",
         host: "denali.localhost:3000",
       }),
-      OPERATOR_DASHBOARD_PATH
+      null
     );
   });
 

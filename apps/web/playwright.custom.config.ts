@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const OPERATOR_SMOKE_BASE_URL =
-  process.env.PLAYWRIGHT_BASE_URL ?? "http://denali.admin.localhost:3000";
+  process.env.PLAYWRIGHT_BASE_URL ?? "http://admin.denali.localhost:3000";
 
 export default defineConfig({
   globalSetup: "./tests/e2e/operator-smoke-global-setup.ts",
