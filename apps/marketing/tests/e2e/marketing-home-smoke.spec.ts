@@ -10,8 +10,15 @@ test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
   await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-search]")).toHaveCount(0);
   await expect(page.locator("[data-marketing-home-hero-selector]")).toBeVisible();
   await expect(page.locator("[data-marketing-home-cta]").first()).toBeVisible();
-  await expect(page.locator("[data-marketing-home-trust]")).toBeVisible();
-  await expect(page.locator("[data-marketing-home-why]")).toBeVisible();
+  await expect(page.locator("[data-marketing-home-cta-secondary]")).toHaveAttribute("href", "#why-us");
+  await expect(page.locator("section[data-marketing-home-trust]")).toHaveCount(0);
+  const why = page.locator("[data-marketing-home-why]#why-us");
+  await expect(why).toBeVisible();
+  await expect(why.locator("h2")).toHaveCount(1);
+  await expect(why.locator("[data-marketing-home-why-kicker]")).toBeVisible();
+  await expect(why.locator("[data-marketing-home-why-item]")).toHaveCount(4);
+  await expect(why.locator("a")).toHaveCount(0);
+  await expect(why.locator("[data-marketing-home-cta]")).toHaveCount(0);
   await expect(page.locator("[data-marketing-home-journey]")).toBeVisible();
   await expect(page.locator("[data-marketing-home-testimonials]")).toBeVisible();
   await expect(page.locator("[data-marketing-home-equipment]")).toBeVisible();

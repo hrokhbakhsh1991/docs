@@ -62,6 +62,7 @@ export async function GuestHomeFull({
   const heroImageUrl = resolveMarketingHeroImageUrl(branding);
   const whySectionAnchor = resolveHomeWhySectionAnchor(landing);
   const whySectionHref = resolveHomeWhySectionHref(landing);
+  const nestTrustInWhy = sections.whySection && sections.trust;
   const jsonLdItems = programsItems.map((item) => ({
     tourId: item.id,
     title: item.title?.trim() || t("detail.defaultTourTitle"),
@@ -96,9 +97,13 @@ export async function GuestHomeFull({
           destinationImageStems={landing.destinationImageStems}
         />
       ) : null}
-      {sections.trust ? <HomeTrust branding={branding} /> : null}
+      {sections.trust && !nestTrustInWhy ? <HomeTrust branding={branding} /> : null}
       {sections.whySection ? (
-        <HomeWhy branding={branding} whySectionAnchor={whySectionAnchor} />
+        <HomeWhy
+          branding={branding}
+          whySectionAnchor={whySectionAnchor}
+          showTrustKicker={nestTrustInWhy}
+        />
       ) : null}
       {sections.journey ? <HomeJourney /> : null}
       {sections.testimonials ? <HomeTestimonials /> : null}

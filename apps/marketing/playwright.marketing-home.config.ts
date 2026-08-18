@@ -30,7 +30,7 @@ export default defineConfig({
   projects: [
     {
       name: "home-denali",
-      grep: /SMK-MKT-HOME-0(1|2|3|7|8)/,
+      grep: /SMK-MKT-HOME-0(1|2|3|7|8)|SMK-MKT-HOME-10/,
       use: {
         ...devices["Desktop Chrome"],
         ...iphone13Mobile,
