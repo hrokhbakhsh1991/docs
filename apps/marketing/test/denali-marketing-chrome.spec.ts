@@ -18,7 +18,7 @@ describe("denali-marketing-chrome.spec.ts", () => {
       "utf8",
     );
     assert.match(css, /header\[data-marketing-header\]\[data-marketing-header-overlay\]/);
-    assert.match(css, /gap: 6px/);
+    assert.match(css, /gap: 5px/);
     assert.match(css, /width: 1\.25rem;/);
     assert.match(css, /font-size: 1rem;/);
     assert.match(css, /font-weight: 700;/);

@@ -4,7 +4,7 @@
  * on the shell; consume --denali-forest-600 so footer stays Denali forest.
  */
 body[data-app-surface="marketing"][data-workspace-plugin="denali"] footer[data-marketing-footer] {
-  background: var(--color-bg-page, var(--denali-mist-50, #f4f7f4));
+  background: var(--denali-mist-50, #f4f7f4);
   color: var(--color-text-primary, #1a1f26);
 }
 

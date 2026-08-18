@@ -96,7 +96,7 @@ describe("home-hero-walk.spec.ts", () => {
     const css = readSrc("packages/workspaces/denali/theme/marketing/home/hero.css");
     assert.match(css, /data-marketing-home-hero-walk/);
     assert.match(css, /data-marketing-header-overlay/);
-    assert.match(css, /gap: 6px/);
+    assert.match(css, /gap: 5px/);
     assert.match(css, /width: 1\.25rem;/);
     assert.doesNotMatch(css, /data-marketing-nav-link-id="tours"/);
     assert.match(
