@@ -74,6 +74,33 @@ export function workspacePathForTour(tourId: string): string {
   return workspaceBasePath(tourId);
 }
 
+const LEGACY_WORKSPACE_SEGMENT_PATTERN =
+  /^\/tours\/([^/]+)\/workspace\/(waitlist|transport|finance|registrations)\/?$/;
+
+/**
+ * Canonical redirect target for legacy `/workspace/{segment}` bookmarks.
+ * Returns absolute path+query (e.g. `/tours/{id}/workspace?tab=waitlist`) or null.
+ */
+export function resolveTourWorkspaceLegacySegmentRedirect(pathname: string): string | null {
+  const match = LEGACY_WORKSPACE_SEGMENT_PATTERN.exec(pathname);
+  if (match === null) {
+    return null;
+  }
+  const rawTourId = match[1]?.trim() ?? "";
+  if (rawTourId.length === 0) {
+    return null;
+  }
+  const segment = match[2];
+  const base = `/tours/${rawTourId}/workspace`;
+  if (segment === "registrations") {
+    return base;
+  }
+  if (segment === "waitlist" || segment === "transport" || segment === "finance") {
+    return `${base}?tab=${segment}`;
+  }
+  return null;
+}
+
 export function resolveWorkspaceSubnavTab(
   pathname: string,
   tourId: string,

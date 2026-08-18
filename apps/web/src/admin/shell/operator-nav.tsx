@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarCheck,
@@ -15,6 +14,7 @@ import {
 import { useTranslations } from "next-intl";
 
 import { OPERATOR_WIZARD_PATH } from "@/admin/require-operator-session";
+import { OperatorInternalLink } from "@/features/tours/tour-internal-link";
 
 import { OperatorBrand } from "./operator-brand";
 import { OPERATOR_NAV_TEST_IDS, type OperatorNavItem } from "./operator-nav.types";
@@ -70,7 +70,7 @@ export function OperatorNav({
             const Icon = NAV_ICONS[item.pathKey];
             return (
               <li key={item.pathKey} data-operator-nav-item>
-                <Link
+                <OperatorInternalLink
                   href={item.href}
                   onClick={onNavigate}
                   aria-current={active ? "page" : undefined}
@@ -81,7 +81,7 @@ export function OperatorNav({
                     {Icon ? <Icon aria-hidden="true" data-operator-nav-icon-svg /> : null}
                   </span>
                   <span data-operator-nav-link-label>{tNav(item.pathKey)}</span>
-                </Link>
+                </OperatorInternalLink>
               </li>
             );
           })}
@@ -89,7 +89,7 @@ export function OperatorNav({
       </div>
 
       <div data-operator-sidebar-footer data-operator-nav-cta>
-        <Link
+        <OperatorInternalLink
           href={OPERATOR_WIZARD_PATH}
           onClick={onNavigate}
           data-testid={OPERATOR_NAV_TEST_IDS.newTourCta}
@@ -97,7 +97,7 @@ export function OperatorNav({
         >
           <Plus aria-hidden="true" data-operator-nav-cta-icon />
           <span>{tApp("newTour")}</span>
-        </Link>
+        </OperatorInternalLink>
       </div>
     </nav>
   );

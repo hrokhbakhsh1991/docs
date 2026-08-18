@@ -191,6 +191,9 @@ sequenceDiagram
 | Landmark    | Element                        | `data-testid`          |
 | ----------- | ------------------------------ | ---------------------- |
 | Navigation  | `<nav aria-label="Operator">`  | `operator-nav`         |
+
+**In-app sidebar links:** `operator-nav.tsx` uses `OperatorInternalLink` (`scroll={false}`, `prefetch={true}`) — same soft-nav defaults as tour workspace cross-links. Avoids unnecessary scroll jump; warms RSC for common hops under `force-dynamic` layout.
+
 | Main        | `<main id="operator-main">`    | `operator-main`        |
 | Skip link   | first focusable in shell       | `operator-skip-link`   |
 | Mobile menu | `aria-expanded` on menu button | `operator-menu-toggle` |

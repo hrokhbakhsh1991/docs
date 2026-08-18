@@ -97,7 +97,7 @@ function TourWorkspaceLayoutInner({
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
-    void fetchTourDetailCached(tourId, { force: reloadNonce > 0 })
+    void fetchTourDetailCached(tourId)
       .then((payload) => {
         if (!cancelled) {
           setDetail(payload);
@@ -116,7 +116,7 @@ function TourWorkspaceLayoutInner({
     return () => {
       cancelled = true;
     };
-  }, [tourId, reloadNonce]);
+  }, [tourId]);
 
   useEffect(() => {
     let cancelled = false;

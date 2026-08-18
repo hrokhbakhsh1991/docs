@@ -21,6 +21,7 @@ export type NavigateWorkspaceTabOptions = {
 };
 
 type TourWorkspaceChromeContextValue = {
+  /** Header KPI refresh nonce (ops counts + money KPIs) — not tour detail projection. */
   readonly reloadNonce: number;
   readonly reloadWorkspaceChrome: () => void;
   /** In-workspace tab switch — null outside workspace shell (use href deep links). */
