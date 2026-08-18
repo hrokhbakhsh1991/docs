@@ -280,6 +280,7 @@ describe("portal-member-profile-bff route (M2)", () => {
     assert.match(page, /loadFailed/);
     assert.match(expire, /clearSessionCookieOnResponse/);
     assert.match(expire, /resolvePortalMemberLoginPath/);
+    assert.doesNotMatch(expire, /catalog-registration-flow-ui/);
     assert.doesNotMatch(expire, /3002/);
     assert.match(headers, /readMemberSessionToken/);
   });

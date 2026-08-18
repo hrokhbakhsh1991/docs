@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { isSafePortalReturnPath } from "@app-tour/catalog-registration-flow-ui";
 import { resolvePortalMemberLoginPath } from "@app-tour/guest-surface-host";
 
 import { clearSessionCookieOnResponse } from "@/auth/build-session-cookie";
+import { isSafePortalReturnPath } from "@/auth/is-safe-portal-return-path";
 import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 
 export const dynamic = "force-dynamic";

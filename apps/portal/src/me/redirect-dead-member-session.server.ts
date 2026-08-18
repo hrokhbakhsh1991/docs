@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { isSafePortalReturnPath } from "@app-tour/catalog-registration-flow-ui";
+import { isSafePortalReturnPath } from "@/auth/is-safe-portal-return-path";
 
 const DEFAULT_RETURN_PATH = "/me/registrations";
 
