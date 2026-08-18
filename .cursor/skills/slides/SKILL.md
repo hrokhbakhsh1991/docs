@@ -1,6 +1,9 @@
 ---
 name: slides
-description: Create strategic HTML presentations with Chart.js, design tokens, responsive layouts, copywriting formulas, and contextual slide strategies.
+description: >
+  OFF by default (token economy). Load ONLY when the user explicitly asks to
+  create HTML slides or a presentation deck.
+disable-model-invocation: true
 argument-hint: "[topic] [slide-count]"
 metadata:
   author: claudekit
