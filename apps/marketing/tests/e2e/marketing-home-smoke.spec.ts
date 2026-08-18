@@ -19,9 +19,9 @@ test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
   await expect(why.locator("[data-marketing-home-why-item]")).toHaveCount(4);
   await expect(why.locator("a")).toHaveCount(0);
   await expect(why.locator("[data-marketing-home-cta]")).toHaveCount(0);
-  await expect(page.locator("[data-marketing-home-journey]")).toBeVisible();
-  await expect(page.locator("[data-marketing-home-testimonials]")).toBeVisible();
-  await expect(page.locator("[data-marketing-home-equipment]")).toBeVisible();
+  await expect(page.locator("[data-marketing-home-journey]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-testimonials]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-equipment]")).toHaveCount(0);
   await expect(page.locator("[data-marketing-skip-link]")).toHaveCount(1);
   const destinations = page.locator("[data-marketing-home-destinations]");
   await expect(destinations).toBeVisible();
@@ -80,6 +80,22 @@ test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
   await expect(lightbox).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(lightbox).not.toBeVisible();
+
+  const faq = page.locator("[data-marketing-home-faq]");
+  await expect(faq).toBeVisible();
+  await expect(faq.locator("h2")).toHaveCount(1);
+  await expect(faq.locator("details[data-marketing-home-faq-item]")).toHaveCount(6);
+  await expect(faq.locator("summary[data-marketing-home-faq-question]")).toHaveCount(6);
+  await expect(faq.locator("a")).toHaveCount(0);
+  await expect(faq.locator("[data-marketing-home-cta]")).toHaveCount(0);
+  const gearAnswer = faq.locator("[data-marketing-home-faq-answer-equipment]");
+  await expect(gearAnswer).toHaveCount(1);
+  const gearItem = faq.locator("details[data-marketing-home-faq-item]").nth(1);
+  await gearItem.locator("summary").click();
+  await expect(gearItem).toHaveAttribute("open", "");
+  await expect(gearAnswer).toBeVisible();
+  await expect(gearAnswer).toContainText(/کفش مناسب|trail footwear/i);
+  await expect(page.locator("[data-marketing-home-final-cta]")).toBeVisible();
 });
 
 test("SMK-MKT-HOME-02 iPhone viewport has no horizontal body overflow", async ({ page }) => {

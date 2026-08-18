@@ -1,0 +1,214 @@
+/**
+ * Denali marketing Landing — FAQ (Slice 6).
+ * Calm document column: native details rows, dividers, no cards/CTA.
+ * Equipment copy is composed into q2; this file only styles FAQ.
+ * Imported last from marketing/home-landing.css so document rest-state
+ * wins over numbered accordion-card / reveal patches.
+ */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  > section[data-marketing-home-faq]:not([hidden]):not([aria-hidden="true"]) {
+  --color-primary: var(--denali-forest-600);
+  --color-primary-hover: var(--denali-forest-700);
+  --primary: var(--denali-forest-600);
+  --mkt-section-reveal-keyframes: none;
+  box-sizing: border-box;
+  max-width: none;
+  margin: 0;
+  padding-block: var(--space-8);
+  padding-inline: var(--catalog-page-padding-x);
+  background: var(--color-bg-page);
+  border: none;
+  border-block-start: none;
+  border-radius: 0;
+  box-shadow: none;
+  animation: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  > section[data-marketing-home-faq]:not([hidden]):not([aria-hidden="true"])
+  > [data-marketing-home-faq-inner] {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--catalog-page-max-width);
+  margin-inline: auto;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-faq]
+  > [data-marketing-home-faq-inner]
+  > header,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-faq]
+  div[data-marketing-home-faq-list] {
+  max-width: 48rem;
+  margin-inline-start: 0;
+  margin-inline-end: auto;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-faq]
+  > [data-marketing-home-faq-inner]
+  > header {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: 0 var(--space-5);
+  width: auto;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-faq]
+  h2 {
+  margin: 0;
+  font-family: inherit;
+  font-size: var(--mkt-text-h2);
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-primary);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-faq]
+  div[data-marketing-home-faq-list] {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  border: none;
+  border-block-start: var(--mkt-border-width) solid var(--border);
+  background: transparent;
+  box-shadow: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-faq]
+  details[data-marketing-home-faq-item] {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  border-block-end: var(--mkt-border-width) solid var(--border);
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-faq]
+  summary[data-marketing-home-faq-question] {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-block: var(--space-3);
+  padding-inline: 0 2.75rem;
+  font-size: var(--mkt-text-body);
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  list-style: none;
+  background: transparent;
+  border: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-faq]
+  summary[data-marketing-home-faq-question]::-webkit-details-marker {
+  display: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-faq]
+  summary[data-marketing-home-faq-question]::after {
+  content: "+";
+  position: absolute;
+  inset-inline-end: 0;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  transform: translateY(-50%);
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  pointer-events: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-faq]
+  details[data-marketing-home-faq-item][open]
+  summary[data-marketing-home-faq-question] {
+  font-weight: 700;
+  background: transparent;
+  border: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-faq]
+  details[data-marketing-home-faq-item][open]
+  summary[data-marketing-home-faq-question]::after {
+  content: "−";
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-faq]
+  summary[data-marketing-home-faq-question]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  section[data-marketing-home-faq]
+  p[data-marketing-home-faq-answer] {
+  margin: 0;
+  padding-block: 0 var(--space-4);
+  padding-inline: 0;
+  border: none;
+  background: transparent;
+  font-size: var(--mkt-text-body);
+  line-height: 1.7;
+  color: var(--color-text-muted, var(--color-text-secondary));
+}
+
+@media (min-width: 64rem) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    > section[data-marketing-home-faq]:not([hidden]):not([aria-hidden="true"]) {
+    padding-block: var(--space-8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-faq]
+    details[data-marketing-home-faq-item],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-faq]
+    summary[data-marketing-home-faq-question]::after {
+    transition: none;
+    animation: none;
+  }
+}
