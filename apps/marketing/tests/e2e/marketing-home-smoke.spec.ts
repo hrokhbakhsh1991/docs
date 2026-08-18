@@ -7,7 +7,9 @@ const URBAN_DENYLIST = ["کوهنوردی", "طبیعت‌گردی"];
 test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-marketing-home-hero]")).toBeVisible({ timeout: 60_000 });
-  await expect(page.locator("[data-marketing-home-search]")).toBeVisible();
+  await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-search]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-hero-selector]")).toBeVisible();
+  await expect(page.locator("[data-marketing-home-cta]").first()).toBeVisible();
   await expect(page.locator("[data-marketing-home-trust]")).toBeVisible();
   await expect(page.locator("[data-marketing-home-why]")).toBeVisible();
   await expect(page.locator("[data-marketing-home-journey]")).toBeVisible();
@@ -52,8 +54,8 @@ test("SMK-MKT-HOME-02 iPhone viewport has no horizontal body overflow", async ({
 test("SMK-MKT-HOME-03 English locale shows home lead", async ({ page, baseURL }) => {
   await page.goto("/en/");
   await expect(page.locator("[data-marketing-home]")).toBeVisible({ timeout: 60_000 });
-  // Lead copy is tenant-dependent; assert stable lead slot renders in English locale.
-  await expect(page.locator("[data-marketing-home-lead]")).toBeVisible();
+  // Value-proposition H1 is tenant-dependent; assert the title slot renders in English locale.
+  await expect(page.locator("[data-marketing-home-title]")).toBeVisible();
   // Sanity check: ensure we're not accidentally rendering Persian digits/phrases on /en.
   const isUrban = baseURL?.includes("urban.localhost") ?? false;
   if (isUrban) {

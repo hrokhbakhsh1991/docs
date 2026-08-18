@@ -162,20 +162,33 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
     );
     assert.match(
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
+      /HomeHeroDestinationStage/
+    );
+    assert.doesNotMatch(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
       /HomeHeroStaticParallax/
     );
-    assert.match(
+    assert.doesNotMatch(
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
       /HomeHeroCarouselMedia/
     );
-    assert.match(
+    assert.doesNotMatch(
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
-      /data-marketing-home-hero-overlay-scrim/
+      /data-marketing-home-search/
     );
     assert.doesNotMatch(
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
       /HomeHeroMountainStageClient/
     );
+    const heroStage = readFileSync(
+      join(repoRoot, "apps/marketing/src/home/hero-static/home-hero-destination-stage.tsx"),
+      "utf8"
+    );
+    assert.match(heroStage, /data-marketing-home-hero-overlay-scrim/);
+    assert.match(heroStage, /role="radiogroup"/);
+    assert.match(heroStage, /fetchPriority=\{index === 0 \? "high" : "low"\}/);
+    assert.match(heroStage, /loading=\{index === 0 \? "eager" : "lazy"\}/);
+    assert.doesNotMatch(heroStage, /from "next\/image"/);
     const heroMedia = readFileSync(
       join(repoRoot, "apps/marketing/src/home/hero-static/home-hero-carousel-media.tsx"),
       "utf8"
