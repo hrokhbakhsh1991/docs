@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
@@ -24,23 +23,24 @@ export const metadata: Metadata = {
 
 export default async function MeLayout({ children }: { children: ReactNode }) {
   const host = await readPortalIngressHost();
+  const requestHeaders = await headers();
+  const returnPath = requestHeaders.get("x-pathname") ?? "/me/registrations";
   const session = await readPublicCatalogSessionFromCookies();
   if (session === null) {
-    redirect("/");
+    redirectDeadMemberSession(returnPath);
   }
 
   const bootstrap = await resolvePortalBootstrapForHost(host);
   if (session.tenantId !== bootstrap.tenantId) {
-    redirect("/");
+    redirectDeadMemberSession(returnPath);
   }
   if (!isMemberPortalEnabled(bootstrap.pluginId)) {
     return <MemberPortalDisabled />;
   }
 
-  const requestHeaders = await headers();
   const profileResult = await fetchMemberProfile(host);
   if (profileResult.status === "unauthenticated" || profileResult.status === "missing_cookie") {
-    redirectDeadMemberSession(requestHeaders.get("x-pathname") ?? "/me/registrations");
+    redirectDeadMemberSession(returnPath);
   }
 
   const branding = await fetchPublicTenantBrandingForHost(host);

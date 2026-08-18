@@ -276,6 +276,7 @@ describe("portal-member-profile-bff route (M2)", () => {
     );
     assert.match(layout, /redirectDeadMemberSession/);
     assert.match(layout, /fetchMemberProfile/);
+    assert.doesNotMatch(layout, /redirect\("\/"\)/);
     assert.match(page, /redirectDeadMemberSession/);
     assert.match(page, /loadFailed/);
     assert.match(expire, /clearSessionCookieOnResponse/);

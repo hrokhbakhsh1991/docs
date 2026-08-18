@@ -114,7 +114,7 @@ JWT decode in middleware is **not** proof the member still exists in identity. P
 2. Clear `atour_mb_session` via `clearSessionCookieOnResponse` (host-only **and** `Domain=<share-parent>` — PCMS-COOK-04)
 3. Redirect to **`/login?portalReturn=<safe /me path>`** (PCMS-03) — **not** marketing, **not** HTTP 501
 
-Egress lives on `GET /api/public-auth/expire-session` so Set-Cookie clear can attach to the redirect. `/me/layout` and `/me/profile` call this when `fetchMemberProfile` classifies the BFF failure as `unauthenticated`.
+Egress lives on `GET /api/public-auth/expire-session` so Set-Cookie clear can attach to the redirect. `/me/layout` and `/me/profile` call this when `fetchMemberProfile` classifies the BFF failure as `unauthenticated`. `/me/layout` also uses the same egress when session decode is `null` or JWT `tenant_id` ≠ portal bootstrap — **never** `redirect("/")` (portal `/` bounces toward marketing without clearing `atour_mb_session`).
 
 **Do not** fail-close **502** / `BACKEND_UNREACHABLE` / network errors — those are outages; keep `loadFailed` on the profile page and do not wipe the cookie.
 
@@ -371,6 +371,7 @@ When API runs with `STORAGE_DRIVER=memory` and `OPERATOR_SMOKE_E2E_SEED=1`, the 
 - Tour registration intake inside the login modal (portal **or** marketing)
 - Deleting `/login` without a replacement public host for `/me/*` guest redirects
 - Fail-open `/me/*` shell (fallback «عضو» + live nav) when profile BFF returns 401/403/404
+- `/me/layout` `redirect("/")` on missing session or tenant mismatch (must expire-session → `/login`)
 - Redirecting a dead member session to marketing **without** clearing `atour_mb_session`
 - Treating profile **502** / `BACKEND_UNREACHABLE` as logout
 - `NEXT_PUBLIC_*` cookie domain env

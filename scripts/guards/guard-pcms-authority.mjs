@@ -317,6 +317,9 @@ if (!meLayout.includes("redirectDeadMemberSession")) {
 if (!meLayout.includes("fetchMemberProfile")) {
   violations.push("me/layout.tsx: missing fetchMemberProfile (PCMS-SEC-03)");
 }
+if (meLayout.includes('redirect("/")')) {
+  violations.push("me/layout.tsx: missing/mismatch session must expire-session, not redirect / (PCMS-SEC-03)");
+}
 
 const meProfilePage = readRepo("apps/portal/app/me/profile/page.tsx");
 if (!meProfilePage.includes("redirectDeadMemberSession")) {
