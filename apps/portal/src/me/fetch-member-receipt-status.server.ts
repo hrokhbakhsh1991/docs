@@ -4,10 +4,9 @@ import {
   emptyMemberReceiptPanel,
   parseMemberReceiptPanel,
   type MemberReceiptPanel,
-  type MemberReceiptStatus,
 } from "@/me/member-receipt-status";
 
-export type { MemberReceiptPanel, MemberReceiptStatus };
+export type { MemberReceiptPanel };
 
 /** SSR helper — same cookie forwarding as fetchMemberRegistrations. */
 export async function fetchMemberReceiptPanel(
@@ -47,13 +46,4 @@ export async function fetchMemberReceiptPanel(
     return emptyMemberReceiptPanel();
   }
   return parseMemberReceiptPanel(payload);
-}
-
-/** @deprecated Prefer {@link fetchMemberReceiptPanel}. */
-export async function fetchMemberReceiptStatus(
-  host: string,
-  registrationId: string
-): Promise<MemberReceiptStatus> {
-  const panel = await fetchMemberReceiptPanel(host, registrationId);
-  return panel.status;
 }

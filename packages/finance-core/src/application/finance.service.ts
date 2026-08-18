@@ -1015,41 +1015,46 @@ export class FinanceService {
       throw new Error("BOOKINGS_FORBIDDEN");
     }
 
-    const latest = await this.repository.findLatestReceiptForRegistration(
+    const latestPromise = this.repository.findLatestReceiptForRegistration(
       auth.tenantId,
       registrationId
     );
-    const preview = await this.resolveMemberReceiptPreview(auth.tenantId, latest);
+    const collectionPromise = this.obligation.resolveRegistrationPaymentCollection({
+      tenantId: auth.tenantId,
+      registrationId,
+    });
+    const obligationPromise = this.obligation.resolveRegistrationObligation({
+      tenantId: auth.tenantId,
+      registrationId,
+    });
+    const invoicePromise = this.compileRegistrationInvoiceInternal(auth.tenantId, registrationId)
+      .then((invoice) => ({
+        remainingMinor: invoice.balanceDueMinor,
+        paidMinor: invoice.paidAmountMinor,
+        currency: invoice.currency,
+        remainingPositive: isPositiveBalanceDueMinor(invoice.balanceDueMinor),
+      }))
+      .catch(() => ({
+        remainingMinor: null as string | null,
+        paidMinor: null as string | null,
+        currency: null as string | null,
+        remainingPositive: false,
+      }));
 
-    const collection = await this.obligation.resolveRegistrationPaymentCollection({
-      tenantId: auth.tenantId,
-      registrationId,
-    });
-    const obligation = await this.obligation.resolveRegistrationObligation({
-      tenantId: auth.tenantId,
-      registrationId,
-    });
+    const latest = await latestPromise;
+    const [collection, obligation, invoice, preview] = await Promise.all([
+      collectionPromise,
+      obligationPromise,
+      invoicePromise,
+      this.resolveMemberReceiptPreview(auth.tenantId, latest),
+    ]);
     const zeroObligation =
       collection === "free" ||
       (obligation !== null && isZeroObligationMinor(obligation.obligationMinor));
-
-    let remainingMinor: string | null = null;
-    let paidMinor: string | null = null;
-    let currency: string | null = obligation?.currency ?? null;
-    let remainingPositive = false;
-    try {
-      const invoice = await this.compileRegistrationInvoiceInternal(
-        auth.tenantId,
-        registrationId
-      );
-      remainingMinor = invoice.balanceDueMinor;
-      paidMinor = invoice.paidAmountMinor;
-      currency = invoice.currency;
-      remainingPositive = isPositiveBalanceDueMinor(invoice.balanceDueMinor);
-    } catch {
-      remainingMinor = null;
-      paidMinor = null;
-    }
+    const remainingMinor = invoice.remainingMinor;
+    const paidMinor = invoice.paidMinor;
+    const currency = invoice.currency ?? obligation?.currency ?? null;
+    const remainingPositive = invoice.remainingPositive;
 
     const base = {
       remainingMinor,

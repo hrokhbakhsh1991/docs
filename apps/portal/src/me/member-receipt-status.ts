@@ -12,7 +12,7 @@ export type MemberReceiptPanel = {
   readonly previewKind: MemberReceiptPreviewKind | null;
 };
 
-const EMPTY_PANEL: MemberReceiptPanel = {
+const EMPTY_PANEL: MemberReceiptPanel = Object.freeze({
   status: "none",
   remainingMinor: null,
   obligationMinor: null,
@@ -20,7 +20,7 @@ const EMPTY_PANEL: MemberReceiptPanel = {
   currency: null,
   previewUrl: null,
   previewKind: null,
-};
+});
 
 export function parseMemberReceiptStatus(value: unknown): MemberReceiptStatus {
   if (
@@ -42,28 +42,28 @@ function parsePreviewKind(value: unknown): MemberReceiptPreviewKind | null {
   return null;
 }
 
-function parseMinor(value: unknown): string | null {
+function parseNonEmptyString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
 export function parseMemberReceiptPanel(payload: unknown): MemberReceiptPanel {
   if (payload === null || typeof payload !== "object") {
-    return EMPTY_PANEL;
+    return emptyMemberReceiptPanel();
   }
   const rec = payload as Record<string, unknown>;
   const previewKind = parsePreviewKind(rec.previewKind);
-  const previewUrl = parseMinor(rec.previewUrl);
+  const previewUrl = parseNonEmptyString(rec.previewUrl);
   return {
     status: parseMemberReceiptStatus(rec.status),
-    remainingMinor: parseMinor(rec.remainingMinor),
-    obligationMinor: parseMinor(rec.obligationMinor),
-    paidMinor: parseMinor(rec.paidMinor),
-    currency: parseMinor(rec.currency),
+    remainingMinor: parseNonEmptyString(rec.remainingMinor),
+    obligationMinor: parseNonEmptyString(rec.obligationMinor),
+    paidMinor: parseNonEmptyString(rec.paidMinor),
+    currency: parseNonEmptyString(rec.currency),
     previewUrl,
     previewKind: previewUrl !== null ? (previewKind ?? "unknown") : previewKind,
   };
 }
 
 export function emptyMemberReceiptPanel(): MemberReceiptPanel {
-  return EMPTY_PANEL;
+  return { ...EMPTY_PANEL };
 }

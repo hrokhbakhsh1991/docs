@@ -4,11 +4,10 @@ import { useTranslations } from "next-intl";
 import type { ChangeEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
-import {
-  parseMemberReceiptPanel,
-  type MemberReceiptPanel,
-  type MemberReceiptPreviewKind,
-  type MemberReceiptStatus,
+import type {
+  MemberReceiptPanel,
+  MemberReceiptPreviewKind,
+  MemberReceiptStatus,
 } from "@/me/member-receipt-status";
 import type { RegistrationLifecycleStatus } from "@/me/registration-lifecycle-status";
 
@@ -35,6 +34,7 @@ type Props = {
 type ReceiptStateCardProps = {
   readonly body: string;
   readonly children?: ReactNode;
+  readonly eyebrow: string;
   readonly rootProps: Record<string, string>;
   readonly title: string;
 };
@@ -97,6 +97,21 @@ function ReceiptProofPreview({
   );
 }
 
+function ReceiptStateCard({ body, children, eyebrow, rootProps, title }: ReceiptStateCardProps) {
+  return (
+    <div data-portal-member-receipt-state-card {...rootProps}>
+      <div data-portal-member-receipt-state-copy>
+        <p data-portal-member-receipt-state-eyebrow>{eyebrow}</p>
+        <p role="status" data-portal-member-receipt-state-title>
+          <strong>{title}</strong>
+        </p>
+        <p data-portal-member-receipt-state-body>{body}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function MemberReceiptUploadForm({
   registrationId,
   registrationStatus,
@@ -133,8 +148,7 @@ export function MemberReceiptUploadForm({
   }
 
   function onFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    replaceLocalPreview(file);
+    replaceLocalPreview(event.target.files?.[0]);
   }
 
   async function uploadReceipt() {
@@ -150,50 +164,20 @@ export function MemberReceiptUploadForm({
         method: "POST",
         body,
       });
-      if (res.ok) {
-        let nextPanel: MemberReceiptPanel | null = null;
-        try {
-          const statusRes = await fetch(
-            `/api/me/registrations/${encodeURIComponent(registrationId)}/receipt`,
-            { method: "GET", cache: "no-store" }
-          );
-          if (statusRes.ok) {
-            nextPanel = parseMemberReceiptPanel(await statusRes.json());
-          }
-        } catch {
-          nextPanel = null;
-        }
-        setPanel((current) => {
-          const base = nextPanel ?? current;
-          return {
-            ...base,
-            status: base.status === "none" ? "pending" : base.status,
-            previewUrl: localPreviewUrl ?? base.previewUrl,
-            previewKind: localPreviewKind ?? base.previewKind,
-          };
-        });
-        setUploadPhase("idle");
+      if (!res.ok) {
+        setUploadPhase("error");
         return;
       }
-      setUploadPhase("error");
+      setPanel((current) => ({
+        ...current,
+        status: "pending",
+        previewUrl: localPreviewUrl ?? current.previewUrl,
+        previewKind: localPreviewKind ?? current.previewKind,
+      }));
+      setUploadPhase("idle");
     } catch {
       setUploadPhase("error");
     }
-  }
-
-  function ReceiptStateCard({ body, children, rootProps, title }: ReceiptStateCardProps) {
-    return (
-      <div data-portal-member-receipt-state-card {...rootProps}>
-        <div data-portal-member-receipt-state-copy>
-          <p data-portal-member-receipt-state-eyebrow>{t("uploadEyebrow")}</p>
-          <p role="status" data-portal-member-receipt-state-title>
-            <strong>{title}</strong>
-          </p>
-          <p data-portal-member-receipt-state-body>{body}</p>
-        </div>
-        {children}
-      </div>
-    );
   }
 
   const actionLinks = (
@@ -238,10 +222,10 @@ export function MemberReceiptUploadForm({
     remainingDue !== null ? (
       <section data-portal-member-receipt-due>
         <h2>{t("dueTitle")}</h2>
-        <p data-portal-member-receipt-due-total>
+        <p data-portal-member-receipt-due-remaining>
           <strong>{t("dueRemaining", { amount: formatMinorAmount(remainingDue, dueCurrency) })}</strong>
         </p>
-        {isPositiveMinor(panel.paidMinor) && panel.paidMinor !== null ? (
+        {panel.paidMinor !== null && isPositiveMinor(panel.paidMinor) ? (
           <p data-portal-member-receipt-due-paid>
             {t("duePaid", { amount: formatMinorAmount(panel.paidMinor, dueCurrency) })}
           </p>
@@ -268,36 +252,13 @@ export function MemberReceiptUploadForm({
     ) : null;
 
   const receiptStatus: MemberReceiptStatus = panel.status;
-
-  if (receiptStatus === "paid") {
-    return (
-      <ReceiptStateCard
-        rootProps={{ "data-portal-member-receipt-paid": "" }}
-        title={t("paidTitle")}
-        body={t("paidBody")}
-      >
-        {previewBlock}
-        {actionLinks}
-      </ReceiptStateCard>
-    );
-  }
-
-  if (receiptStatus === "waived") {
-    return (
-      <ReceiptStateCard
-        rootProps={{ "data-portal-member-receipt-waived": "" }}
-        title={t("waivedTitle")}
-        body={t("waivedBody")}
-      >
-        {actionLinks}
-      </ReceiptStateCard>
-    );
-  }
+  const eyebrow = t("uploadEyebrow");
 
   if (registrationStatus === "rejected" || registrationStatus === "cancelled") {
     const closedReason = registrationStatus === "cancelled" ? "cancelled" : "rejected";
     return (
       <ReceiptStateCard
+        eyebrow={eyebrow}
         rootProps={{
           "data-portal-member-receipt-closed": "",
           "data-closed-reason": closedReason,
@@ -313,6 +274,7 @@ export function MemberReceiptUploadForm({
   if (registrationStatus === "pending" || registrationStatus === "waitlisted") {
     return (
       <ReceiptStateCard
+        eyebrow={eyebrow}
         rootProps={{ "data-portal-member-receipt-awaiting-approval": "" }}
         title={t("awaitingApprovalTitle")}
         body={t("awaitingApprovalBody")}
@@ -322,9 +284,37 @@ export function MemberReceiptUploadForm({
     );
   }
 
+  if (receiptStatus === "paid") {
+    return (
+      <ReceiptStateCard
+        eyebrow={eyebrow}
+        rootProps={{ "data-portal-member-receipt-paid": "" }}
+        title={t("paidTitle")}
+        body={t("paidBody")}
+      >
+        {previewBlock}
+        {actionLinks}
+      </ReceiptStateCard>
+    );
+  }
+
+  if (receiptStatus === "waived") {
+    return (
+      <ReceiptStateCard
+        eyebrow={eyebrow}
+        rootProps={{ "data-portal-member-receipt-waived": "" }}
+        title={t("waivedTitle")}
+        body={t("waivedBody")}
+      >
+        {actionLinks}
+      </ReceiptStateCard>
+    );
+  }
+
   if (receiptStatus === "pending") {
     return (
       <ReceiptStateCard
+        eyebrow={eyebrow}
         rootProps={{ "data-portal-member-receipt-waiting": "" }}
         title={t("waitingTitle")}
         body={t("waitingBody")}
@@ -339,7 +329,7 @@ export function MemberReceiptUploadForm({
   return (
     <div data-portal-member-receipt-upload>
       <div data-portal-member-detail-section-heading>
-        <p data-portal-member-receipt-upload-eyebrow>{t("uploadEyebrow")}</p>
+        <p data-portal-member-receipt-upload-eyebrow>{eyebrow}</p>
         <h2>{t("label")}</h2>
         <p>{t("uploadLede")}</p>
       </div>

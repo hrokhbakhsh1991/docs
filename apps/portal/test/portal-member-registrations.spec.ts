@@ -100,7 +100,14 @@ describe("portal-member-registrations", () => {
     assert.match(form, /data-portal-member-receipt-preview/);
     assert.match(form, /data-closed-reason/);
     assert.match(form, /createObjectURL/);
-    assert.match(form, /parseMemberReceiptPanel/);
+    const closedAt = form.indexOf('registrationStatus === "rejected"');
+    const awaitingAt = form.indexOf('registrationStatus === "pending"');
+    const paidAt = form.indexOf('receiptStatus === "paid"');
+    assert.ok(closedAt > 0 && awaitingAt > 0 && paidAt > 0);
+    assert.ok(
+      closedAt < paidAt && awaitingAt < paidAt,
+      "lifecycle closed/awaiting cards must win over paid/waived"
+    );
     assert.match(form, /data-portal-member-receipt-view-tour/);
     assert.match(form, /data-portal-member-receipt-back-trips/);
     assert.match(form, /registrationStatus/);

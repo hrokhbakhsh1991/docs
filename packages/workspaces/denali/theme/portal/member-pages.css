@@ -1482,7 +1482,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-receipt-due-total] {
+  [data-portal-member-receipt-due-remaining] {
   margin: 0;
   font-size: 1rem;
   color: var(--color-text-primary);

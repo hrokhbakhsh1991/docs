@@ -8,6 +8,7 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { mergeCatalogRegistrationHeaders } from "../src/catalog/build-catalog-registration-headers.server";
+import { parseMemberReceiptPanel } from "../src/me/member-receipt-status";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -60,6 +61,23 @@ describe("portal-member-receipt-bff", () => {
     assert.match(form, /@\/me\/member-receipt-status/);
     assert.match(form, /createObjectURL/);
     assert.match(form, /data-portal-member-receipt-preview/);
+    assert.doesNotMatch(form, /parseMemberReceiptPanel/);
+  });
+
+  it("MEM-BFF-03e parseMemberReceiptPanel maps remaining and waived", () => {
+    const panel = parseMemberReceiptPanel({
+      ok: true,
+      status: "waived",
+      remainingMinor: "0",
+      currency: "IRR",
+      previewUrl: "https://example.test/proof.jpg",
+      previewKind: "image",
+    });
+    assert.equal(panel.status, "waived");
+    assert.equal(panel.remainingMinor, "0");
+    assert.equal(panel.currency, "IRR");
+    assert.equal(panel.previewKind, "image");
+    assert.equal(parseMemberReceiptPanel({ status: "bogus" }).status, "none");
   });
 
   it("MEM-BFF-04 member headers forward x-workspace-id from session", () => {
