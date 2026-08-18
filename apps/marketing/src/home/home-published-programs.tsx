@@ -61,7 +61,7 @@ export async function HomePublishedPrograms({
           {categories.length > 0 ? <HomeCategories categories={categories} embedded /> : null}
         </header>
         {visibleItems.length > 0 ? (
-          <div data-marketing-home-programs-grid>
+          <div data-marketing-home-programs-grid data-programs-count={visibleItems.length}>
             {visibleItems.map((tour) => (
               <HomePublishedProgramsCard key={tour.id} tour={tour} pluginId={pluginId} />
             ))}

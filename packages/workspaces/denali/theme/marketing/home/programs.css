@@ -254,10 +254,20 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   color: var(--color-text-muted, var(--muted-foreground));
 }
 
+/*
+ * Adaptive equal-weight catalog (1–6 items).
+ * 390: 1 column.
+ * 768: 2 columns (1 item capped so it is not a full-width billboard).
+ * 1024+: 3-up flex; leftover last row is centered (5 → 3+2).
+ * Exactly 4 → 2×2 with a capped grid width (same card scale as 3-up, no orphan).
+ * Exactly 1–2 → start-aligned, capped width. No placeholders. No flagship span.
+ */
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-home]
   section[data-marketing-home-programs]
   div[data-marketing-home-programs-grid] {
+  --programs-gap-x: var(--space-4);
+  --programs-card-3: calc((100% - 2 * var(--programs-gap-x)) / 3);
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-4);
@@ -391,6 +401,13 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-6) var(--space-4);
   }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-programs]
+    div[data-marketing-home-programs-grid][data-programs-count="1"] {
+    grid-template-columns: minmax(0, 24rem);
+  }
 }
 
 @media (min-width: 64rem) {
@@ -398,7 +415,64 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     [data-marketing-home]
     section[data-marketing-home-programs]
     div[data-marketing-home-programs-grid] {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-6) var(--programs-gap-x);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-programs]
+    div[data-marketing-home-programs-grid]
+    > article[data-marketing-home-programs-card] {
+    flex: 0 1 var(--programs-card-3);
+    width: var(--programs-card-3);
+    max-width: var(--programs-card-3);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-programs]
+    div[data-marketing-home-programs-grid][data-programs-count="2"],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-programs]
+    div[data-marketing-home-programs-grid][data-programs-count="4"] {
+    justify-content: flex-start;
+    max-width: 50rem;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-programs]
+    div[data-marketing-home-programs-grid][data-programs-count="1"] {
+    justify-content: flex-start;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-programs]
+    div[data-marketing-home-programs-grid][data-programs-count="1"]
+    > article[data-marketing-home-programs-card] {
+    flex-basis: min(24rem, 100%);
+    width: min(24rem, 100%);
+    max-width: 24rem;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-programs]
+    div[data-marketing-home-programs-grid][data-programs-count="2"]
+    > article[data-marketing-home-programs-card],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-programs]
+    div[data-marketing-home-programs-grid][data-programs-count="4"]
+    > article[data-marketing-home-programs-card] {
+    flex-basis: calc((100% - var(--programs-gap-x)) / 2);
+    width: calc((100% - var(--programs-gap-x)) / 2);
+    max-width: calc((100% - var(--programs-gap-x)) / 2);
   }
 }
 

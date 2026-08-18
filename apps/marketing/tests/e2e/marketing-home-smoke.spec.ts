@@ -40,6 +40,10 @@ test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
   const cardCount = await programs.locator("[data-marketing-home-programs-card]").count();
   expect(cardCount).toBeGreaterThan(0);
   expect(cardCount).toBeLessThanOrEqual(6);
+  await expect(programs.locator("[data-marketing-home-programs-grid]")).toHaveAttribute(
+    "data-programs-count",
+    String(cardCount)
+  );
   await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible();
   if ((await gallery.count()) > 0) {
     await expect(gallery).toBeVisible();

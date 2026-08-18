@@ -37,7 +37,23 @@ describe("home-published-programs.spec.ts", () => {
     assert.match(cardSource, /data-marketing-home-programs-card-link/);
     assert.match(cardSource, /CatalogCoverImage/);
     assert.doesNotMatch(cardSource, /<Link href=\{detailHref\}>\{title\}<\/Link>/);
+    assert.match(programsSource, /data-programs-count=\{visibleItems\.length\}/);
     assert.doesNotMatch(cardSource, /flagship/);
+  });
+
+  it("adaptive grid CSS composes 1–6 items without a 3+1 orphan", () => {
+    const css = readFileSync(
+      join(repoRoot, "packages/workspaces/denali/theme/marketing/home/programs.css"),
+      "utf8"
+    );
+    assert.match(css, /data-programs-count="1"/);
+    assert.match(css, /data-programs-count="2"/);
+    assert.match(css, /data-programs-count="4"/);
+    assert.match(css, /max-width: 50rem/);
+    assert.match(css, /max-width: 24rem/);
+    assert.match(css, /justify-content: center/);
+    assert.match(css, /--programs-card-3:/);
+    assert.doesNotMatch(css, /grid-template-columns: repeat\(3,/);
   });
 
   it("category chips keep the category query contract", () => {
