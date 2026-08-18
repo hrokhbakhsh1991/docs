@@ -27,6 +27,9 @@
   transform: translateY(0);
   outline: 2px solid var(--foreground);
   outline-offset: 2px;
+  inset-inline-start: auto;
+  inset-inline-end: var(--space-4);
+  width: max-content;
 }
 
 :is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"] header[data-marketing-header] {
