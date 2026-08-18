@@ -7,10 +7,28 @@ const URBAN_DENYLIST = ["کوهنوردی", "طبیعت‌گردی"];
 test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-marketing-home-hero]")).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator("[data-marketing-home-hero] h1[data-marketing-home-title]")).toHaveCount(1);
+  await expect(page.locator("[data-marketing-home-title]")).toHaveText("بیا به کوه");
+  await expect(page.locator("[data-marketing-home-hero-support]")).toHaveText(
+    "برنامه‌های طبیعت‌گردی برای پیوستن."
+  );
   await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-search]")).toHaveCount(0);
-  await expect(page.locator("[data-marketing-home-hero-selector]")).toBeVisible();
+  await expect(page.locator("[data-marketing-home-hero-selector]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-hero] [role='radiogroup']")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-hero-destination]")).toHaveCount(
+    0
+  );
   await expect(page.locator("[data-marketing-home-cta]").first()).toBeVisible();
-  await expect(page.locator("[data-marketing-home-cta-secondary]")).toHaveAttribute("href", "#why-us");
+  await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-cta]")).toHaveCount(1);
+  await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-cta]")).toHaveAttribute(
+    "href",
+    /\/tours/
+  );
+  await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-cta]")).toHaveText(
+    "دیدن برنامه‌ها"
+  );
+  await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-cta-secondary]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-hero] a[href='#why-us']")).toHaveCount(0);
   await expect(page.locator("section[data-marketing-home-trust]")).toHaveCount(0);
   const why = page.locator("[data-marketing-home-why]#why-us");
   await expect(why).toBeVisible();
@@ -125,12 +143,18 @@ test("SMK-MKT-HOME-02 iPhone viewport has no horizontal body overflow", async ({
 test("SMK-MKT-HOME-03 English locale shows home lead", async ({ page, baseURL }) => {
   await page.goto("/en/");
   await expect(page.locator("[data-marketing-home]")).toBeVisible({ timeout: 60_000 });
-  // Value-proposition H1 is tenant-dependent; assert the title slot renders in English locale.
   await expect(page.locator("[data-marketing-home-title]")).toBeVisible();
-  // Sanity check: ensure we're not accidentally rendering Persian digits/phrases on /en.
   const isUrban = baseURL?.includes("urban.localhost") ?? false;
   if (isUrban) {
     await expect(page.getByText(/View published programs/i)).toBeVisible();
+  } else {
+    await expect(page.locator("[data-marketing-home-title]")).toHaveText("Come to the mountain");
+    await expect(page.locator("[data-marketing-home-hero-support]")).toHaveText(
+      "Nature programs you can join."
+    );
+    await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-cta]")).toHaveText(
+      "See programs"
+    );
   }
 });
 
@@ -191,9 +215,10 @@ test("SMK-MKT-HOME-09 English home CTA keeps locale on tours navigation", async 
   await expect(page).toHaveURL(/\/en\/tours(?:\?|$|\/)/);
 });
 
-test("SMK-MKT-HOME-10 hero secondary CTA uses manifest why anchor", async ({ page }) => {
+test("SMK-MKT-HOME-10 hero has no Why link; Why section keeps manifest anchor", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-marketing-home-hero]")).toBeVisible({ timeout: 60_000 });
-  await expect(page.locator("[data-marketing-home-cta-secondary]")).toHaveAttribute("href", "#why-us");
+  await expect(page.locator("[data-marketing-home-hero] [data-marketing-home-cta-secondary]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-hero] a[href='#why-us']")).toHaveCount(0);
   await expect(page.locator("[data-marketing-home-why]#why-us")).toBeVisible();
 });

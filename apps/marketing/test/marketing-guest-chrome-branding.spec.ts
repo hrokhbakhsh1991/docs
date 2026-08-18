@@ -12,7 +12,6 @@ const marketingRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CHROME_FILES = [
   "src/shell/marketing-shell.tsx",
   "src/shell/marketing-footer.tsx",
-  "src/home/home-hero.tsx",
   "src/home/home-why.tsx",
   "src/home/home-trust.tsx",
   "src/home/home-featured.tsx",

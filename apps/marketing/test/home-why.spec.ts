@@ -54,8 +54,8 @@ describe("home-why.spec.ts", () => {
     assert.doesNotMatch(whySource, /home\.full\.finalCta/);
     assert.doesNotMatch(whySource, /home\.full\.latest\.viewAll/);
     assert.doesNotMatch(whySource, /home\.full\.destinations\.explore/);
-    assert.match(heroSource, /data-marketing-home-cta-secondary/);
-    assert.match(heroSource, /href=\{whySectionHref\}/);
+    assert.doesNotMatch(heroSource, /data-marketing-home-cta-secondary/);
+    assert.doesNotMatch(heroSource, /href=\{whySectionHref\}/);
   });
 
   it("owns Why CSS as a named landing partial and does not restyle locked sections", () => {

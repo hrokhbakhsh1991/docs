@@ -158,9 +158,9 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
     );
     assert.match(
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
-      /data-marketing-home-hero-cinematic/
+      /data-marketing-home-hero-walk/
     );
-    assert.match(
+    assert.doesNotMatch(
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
       /HomeHeroDestinationStage/
     );

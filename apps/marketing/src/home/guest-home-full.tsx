@@ -2,7 +2,6 @@ import { getTranslations } from "next-intl/server";
 
 import type { MarketingCatalogCard } from "@/catalog/catalog-types";
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding";
-import { resolveMarketingHeroImageUrl } from "@/tenant/resolve-marketing-hero-image-url";
 
 import type { GuestLandingFeatures } from "@app-tour/workspace-sdk";
 
@@ -23,7 +22,8 @@ import { resolveHomeSectionVisibility } from "./home-section-gates";
 import { HomeTestimonials } from "./home-testimonials";
 import { HomeTrust } from "./home-trust";
 import { HomeWhy } from "./home-why";
-import { resolveHomeWhySectionAnchor, resolveHomeWhySectionHref } from "./resolve-home-why-section-anchor";
+import { resolveHomeWhySectionAnchor } from "./resolve-home-why-section-anchor";
+import { resolveMarketingHomeHeroMedia } from "./resolve-marketing-home-hero-media";
 
 export type GuestHomeFullProps = {
   readonly landing: GuestLandingFeatures;
@@ -59,9 +59,9 @@ export async function GuestHomeFull({
   );
   const programsItems = showPrograms ? catalogItems.slice(0, programsLimit) : [];
   const nestCategoriesInPrograms = showPrograms && sections.categories;
-  const heroImageUrl = resolveMarketingHeroImageUrl(branding);
+  const heroMedia = resolveMarketingHomeHeroMedia(branding);
+  const heroImageUrl = heroMedia.desktopSrc;
   const whySectionAnchor = resolveHomeWhySectionAnchor(landing);
-  const whySectionHref = resolveHomeWhySectionHref(landing);
   const nestTrustInWhy = sections.whySection && sections.trust;
   const jsonLdItems = programsItems.map((item) => ({
     tourId: item.id,
@@ -72,12 +72,10 @@ export async function GuestHomeFull({
     <div data-marketing-home data-slot="page-home">
       {sections.hero ? (
         <HomeHero
-          branding={branding}
-          showSearch={sections.heroSearch}
           heroImageUrl={heroImageUrl}
-          whySectionHref={sections.whySection ? whySectionHref : undefined}
-          destinationSlugs={landing.destinationSlugs}
-          destinationImageStems={landing.destinationImageStems}
+          heroImageMobileUrl={heroMedia.mobileSrc}
+          heroImageWidth={heroMedia.desktopWidth}
+          heroImageHeight={heroMedia.desktopHeight}
         />
       ) : null}
       {showPrograms ? (

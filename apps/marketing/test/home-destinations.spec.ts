@@ -39,15 +39,11 @@ describe("home-destinations.spec.ts", () => {
     );
   });
 
-  it("keeps Hero destination selector visual-only", () => {
-    const heroStage = readSrc(
-      "apps/marketing/src/home/hero-static/home-hero-destination-stage.tsx"
-    );
+  it("Hero has no destination selector; Destinations still use q=", () => {
     const hero = readSrc("apps/marketing/src/home/home-hero.tsx");
-    assert.match(heroStage, /role="radiogroup"/);
-    assert.match(heroStage, /data-marketing-home-hero-destination/);
-    assert.doesNotMatch(heroStage, /resolveMarketingToursListPath/);
-    assert.doesNotMatch(heroStage, /[?&]destination=/);
+    assert.doesNotMatch(hero, /HomeHeroDestinationStage/);
+    assert.doesNotMatch(hero, /role="radiogroup"/);
+    assert.doesNotMatch(hero, /data-marketing-home-hero-selector/);
     assert.match(hero, /resolveMarketingToursListPath\(locale\)/);
     assert.doesNotMatch(hero, /resolveMarketingToursListPath\(locale, \{ q:/);
     assert.doesNotMatch(hero, /[?&]destination=/);
