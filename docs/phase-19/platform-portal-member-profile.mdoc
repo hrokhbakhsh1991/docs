@@ -138,6 +138,9 @@ Legacy `session-profile` BFF and direct portal `identity/me` SSR were removed in
 | `POST /api/public-auth/request-otp` | OTP issue | KEEP |
 | `POST /api/public-auth/verify-otp` | OTP verify + cookie | KEEP |
 | `POST /api/public-auth/register-complete` | Onboarding profile | KEEP (onboarding only) |
+| `GET /api/public-auth/session` | Boolean cookie probe | KEEP |
+| `POST /api/public-auth/logout` | Clear member cookie | KEEP |
+| `GET /api/public-auth/expire-session` | PCMS-SEC-03 dead-session clear + `/login` | KEEP |
 | `GET/PATCH /api/public-auth/session-profile` | Legacy profile BFF | **REMOVED M4** — use `/api/me/profile` |
 
 ### Session handling (actual)
@@ -146,6 +149,7 @@ Legacy `session-profile` BFF and direct portal `identity/me` SSR were removed in
 2. `readPublicCatalogSessionFromCookies` decodes JWT; accepts `owner | admin | member | viewer`.
 3. `buildMemberApiHeaders` adds `Authorization: Bearer` + `x-user-id` + `x-actor-role` for member BFF calls.
 4. `me/profile/page.tsx` uses `fetchMemberProfile()` → same-origin `GET /api/me/profile` only.
+5. Profile BFF **401/403/404** → `GET /api/public-auth/expire-session` (clear cookie + `/login`). **502** stays `loadFailed`.
 
 ---
 
@@ -407,7 +411,7 @@ Source: `apps/api/src/identity/membership-metadata.ts` · `me.service.ts`.
 | Profile capability registry | This freeze + SDK | `resolveMemberProfileCapabilities` | **ALIGNED** | Low |
 | Single profile BFF | This freeze | `/api/me/profile` only | **ALIGNED** | Low |
 | Canonical contract v1 | Snapshot + portal types | `contractVersion: v1` | **ALIGNED** | Low |
-| SSR profile load | BFF-only | `fetchMemberProfile` | **ALIGNED** | Low |
+| SSR profile load | BFF-only + 401 fail-close | `fetchMemberProfile` + expire-session | **ALIGNED** | Low |
 | Legacy session-profile | Marked REMOVED M4 | File deleted | **ALIGNED** | Low |
 | `MemberProfileView` in SDK package export | Deferred | Portal-local types | **DEFERRED** | Low |
 | Logout BFF | Documented | Not implemented | **GAP** | Low (out of profile freeze) |
@@ -422,7 +426,7 @@ Source: `apps/api/src/identity/membership-metadata.ts` · `me.service.ts`.
 
 - Calls `fetchMemberProfile(host)` → same-origin `GET /api/me/profile`.
 - Does **not** call `identity/me` or legacy session-profile paths.
-- On failure shows `loadFailed` message (no silent empty form).
+- On failure: **401/403/404** → dead-session fail-close (`GET /api/public-auth/expire-session` → `/login`, cookie cleared). **502** / network → `loadFailed` message (no silent empty form, cookie kept).
 
 ### BFF vs direct API usage
 

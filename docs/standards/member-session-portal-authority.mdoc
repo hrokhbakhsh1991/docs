@@ -1,7 +1,7 @@
 ---
 title: Member Session Portal Authority (PCMS)
 standard_id: PCMS-001
-version: 1.5.4
+version: 1.5.5
 status: active
 extends:
   - docs/standards/workspace-routing-standard.mdoc
@@ -14,6 +14,10 @@ code_sot:
   - apps/portal/src/auth/build-session-cookie.ts
   - apps/portal/src/auth/apply-public-auth-cors.ts
   - apps/portal/app/api/public-auth/session/route.ts
+  - apps/portal/app/api/public-auth/expire-session/route.ts
+  - apps/portal/src/me/fetch-member-profile.server.ts
+  - apps/portal/src/me/classify-member-profile-bff-error.ts
+  - apps/portal/app/me/layout.tsx
   - apps/portal/app/catalog/[tourId]/register/page.tsx
   - apps/marketing/src/shell/marketing-shell.tsx
   - apps/marketing/src/auth/read-marketing-member-session.server.ts
@@ -100,7 +104,21 @@ Portal middleware and `readPublicCatalogSessionFromCookies` use `validateSession
 
 Full `sess_ver` vs DB membership version remains **API authority** on BFF upstream calls (`AUTH_TOKEN_REVOKED`). Middleware signature verify closes the forge gap; revoke is enforced on `/api/*` and `/api/me/*` upstream.
 
-When `AUTH_JWT_*` unset (unit tests / legacy dev), decode-only fallback remains for velocity.
+When `AUTH_JWT_*` unset (unit tests / legacy dev), decode-only fallback remains for velocity. **Dev Cloud / agent-start** must still copy `AUTH_JWT_PUBLIC_KEY` + issuer/audience from API into portal (and marketing/web) `.env.local` so Edge verify is on — otherwise a decode-valid JWT with a dead membership still enters `/me/*`.
+
+### Dead member session fail-close (PCMS-SEC-03 — 2026-08-18)
+
+JWT decode in middleware is **not** proof the member still exists in identity. Portal `/me/*` SSR must treat same-origin `GET /api/me/profile` **401/403/404** (and coded `AUTH_TOKEN_REVOKED` / `UNAUTHORIZED_INVALID_BEARER_TOKEN` / `AUTH_UNAUTHENTICATED`) as a **dead session**:
+
+1. Do **not** render `PortalMemberShell` with fallback chip «عضو» / `loadFailed` while nav stays live
+2. Clear `atour_mb_session` via `clearSessionCookieOnResponse` (host-only **and** `Domain=<share-parent>` — PCMS-COOK-04)
+3. Redirect to **`/login?portalReturn=<safe /me path>`** (PCMS-03) — **not** marketing, **not** HTTP 501
+
+Egress lives on `GET /api/public-auth/expire-session` so Set-Cookie clear can attach to the redirect. `/me/layout` and `/me/profile` call this when `fetchMemberProfile` classifies the BFF failure as `unauthenticated`.
+
+**Do not** fail-close **502** / `BACKEND_UNREACHABLE` / network errors — those are outages; keep `loadFailed` on the profile page and do not wipe the cookie.
+
+`buildMemberApiHeaders` must read the session token from the **same** source as `readPublicCatalogSessionFromCookies` (`cookies()` then raw `Cookie` header). Header-only fallback with no `Authorization` Bearer produces a ghost shell (session valid, profile 401).
 
 ---
 
@@ -352,6 +370,9 @@ When API runs with `STORAGE_DRIVER=memory` and `OPERATOR_SMOKE_E2E_SEED=1`, the 
 - Middleware OTP skip (resume decision lives on register **page** server component only)
 - Tour registration intake inside the login modal (portal **or** marketing)
 - Deleting `/login` without a replacement public host for `/me/*` guest redirects
+- Fail-open `/me/*` shell (fallback «عضو» + live nav) when profile BFF returns 401/403/404
+- Redirecting a dead member session to marketing **without** clearing `atour_mb_session`
+- Treating profile **502** / `BACKEND_UNREACHABLE` as logout
 - `NEXT_PUBLIC_*` cookie domain env
 
 ---
@@ -363,7 +384,7 @@ pnpm run guard:pcms-authority
 pnpm --filter @app-tour/tenant-kernel test
 pnpm --filter @app-tour/session-client test
 pnpm --filter @app-tour/guest-surface-host exec node --import tsx --test test/resolve-public-auth-cors-allow-origin.spec.ts
-pnpm --filter @apps/portal exec node --import tsx --test test/portal-public-auth-cors.spec.ts test/portal-public-auth-session.spec.ts test/build-session-cookie.spec.ts
+pnpm --filter @apps/portal exec node --import tsx --test test/portal-public-auth-cors.spec.ts test/portal-public-auth-session.spec.ts test/build-session-cookie.spec.ts test/classify-member-profile-bff-error.spec.ts test/portal-expire-session.spec.ts
 pnpm --filter @apps/portal run test -- test/portal-session-host-bind.spec.ts test/portal-registration-resume.spec.ts test/build-session-cookie.spec.ts
 pnpm --filter @app-tour/catalog-registration-flow-ui exec node --import tsx --test test/guest-auth-transport.spec.ts
 pnpm --filter @apps/marketing run test -- test/marketing-shell-portal-link.spec.ts test/resolve-web-registration-url.spec.ts test/catalog-tour-detail-register-cta.spec.ts test/resolve-marketing-tour-detail-cta.spec.ts test/marketing-phase-5-auth-host.spec.ts
