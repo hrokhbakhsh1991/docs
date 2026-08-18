@@ -119,6 +119,12 @@ if (!portalMiddleware.includes("resolvePortalBootstrapForHost")) {
 if (!portalMiddleware.includes("redirectToMemberLogin")) {
   violations.push("portal/middleware.ts: unauthenticated /me/* must redirect to member login");
 }
+if (portalMiddleware.includes("redirectHome") || portalMiddleware.includes('pathname = "/"')) {
+  violations.push("portal/middleware.ts: /me tenant mismatch must not redirectHome to / (PCMS-SEC-03)");
+}
+if (!portalMiddleware.includes("/login?portalReturn=%2Fme%2Fregistrations")) {
+  violations.push("portal/middleware.ts: login fallback must be /login, never / (PCMS-SEC-03)");
+}
 if (!portalMiddleware.includes("resolvePortalMemberLoginPath")) {
   violations.push("portal/middleware.ts: missing resolvePortalMemberLoginPath (PCMS-03)");
 }
@@ -320,6 +326,9 @@ if (!meLayout.includes("fetchMemberProfile")) {
 if (meLayout.includes('redirect("/")')) {
   violations.push("me/layout.tsx: missing/mismatch session must expire-session, not redirect / (PCMS-SEC-03)");
 }
+if (!meLayout.includes('entitlements.auth === "unauthenticated"')) {
+  violations.push("me/layout.tsx: entitlements unauthenticated must expire-session (PCMS-SEC-03)");
+}
 
 const meProfilePage = readRepo("apps/portal/app/me/profile/page.tsx");
 if (!meProfilePage.includes("redirectDeadMemberSession")) {
@@ -343,6 +352,24 @@ if (!fetchProfile.includes("/api/me/profile")) {
 const memberApiHeaders = readRepo("apps/portal/src/me/build-member-api-headers.server.ts");
 if (!memberApiHeaders.includes("readMemberSessionToken")) {
   violations.push("build-member-api-headers.server.ts: Bearer must use readMemberSessionToken (PCMS-SEC-03)");
+}
+
+const entitlementsBff = readRepo("apps/portal/src/me/member-entitlements-bff.server.ts");
+if (!entitlementsBff.includes("classifyMemberProfileBffFailure")) {
+  violations.push(
+    "member-entitlements-bff.server.ts: 401/403 must use classifyMemberProfileBffFailure (PCMS-SEC-03)"
+  );
+}
+if (!entitlementsBff.includes("cacheable")) {
+  violations.push("member-entitlements-bff.server.ts: missing cacheable flag (PCMS-SEC-03)");
+}
+
+const entitlementsRoute = readRepo("apps/portal/app/api/me/entitlements/route.ts");
+if (!entitlementsRoute.includes("result.cacheable")) {
+  violations.push("entitlements route: must write cache only when result.cacheable (PCMS-SEC-03)");
+}
+if (!entitlementsRoute.includes('result.auth === "unauthenticated"')) {
+  violations.push("entitlements route: dead session must 401, not SDK grants (PCMS-SEC-03)");
 }
 
 if (!pcmsDoc.includes("PCMS-SEC-03")) {

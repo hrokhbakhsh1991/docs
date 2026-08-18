@@ -36,12 +36,16 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   const sessionUserId = readSessionUserId(headers);
   const cacheControl = resolveMemberEntitlementsCacheControlHeader();
-  if (sessionUserId !== null) {
-    const cacheKey = buildMemberEntitlementsCacheKey({
-      tenantId: bootstrap.tenantId,
-      userId: sessionUserId,
-      pluginId: bootstrap.pluginId,
-    });
+  const cacheKey =
+    sessionUserId !== null
+      ? buildMemberEntitlementsCacheKey({
+          tenantId: bootstrap.tenantId,
+          userId: sessionUserId,
+          pluginId: bootstrap.pluginId,
+        })
+      : null;
+
+  if (cacheKey !== null) {
     const cached = readMemberEntitlementsCache(cacheKey);
     if (cached !== null) {
       return NextResponse.json(cached, {
@@ -49,28 +53,24 @@ export async function GET(req: Request): Promise<NextResponse> {
         headers: { "Cache-Control": cacheControl },
       });
     }
-
-    const payload = await resolveMemberEntitlementsPayload({
-      host,
-      tenantId: bootstrap.tenantId,
-      pluginId: bootstrap.pluginId,
-      apiHeaders: headers,
-    });
-    writeMemberEntitlementsCache(cacheKey, payload);
-    return NextResponse.json(payload, {
-      status: 200,
-      headers: { "Cache-Control": cacheControl },
-    });
   }
 
-  const payload = await resolveMemberEntitlementsPayload({
+  const result = await resolveMemberEntitlementsPayload({
     host,
     tenantId: bootstrap.tenantId,
     pluginId: bootstrap.pluginId,
     apiHeaders: headers,
   });
 
-  return NextResponse.json(payload, {
+  if (result.auth === "unauthenticated") {
+    return jsonError("unauthorized", 401);
+  }
+
+  if (cacheKey !== null && result.cacheable) {
+    writeMemberEntitlementsCache(cacheKey, result.payload);
+  }
+
+  return NextResponse.json(result.payload, {
     status: 200,
     headers: { "Cache-Control": cacheControl },
   });

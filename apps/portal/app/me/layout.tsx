@@ -51,7 +51,10 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
   );
   const logoUrl = branding.logoUrl ?? null;
   const entitlements = await resolveMemberEntitlementsForShell(host, bootstrap);
-  const grantedEntitlementKeys = entitlements?.granted ?? [];
+  if (entitlements === null || entitlements.auth === "unauthenticated") {
+    redirectDeadMemberSession(returnPath);
+  }
+  const grantedEntitlementKeys = entitlements.payload.granted;
   const { bottomNav } = resolvePortalMemberNavForPlugin(
     bootstrap.pluginId,
     grantedEntitlementKeys

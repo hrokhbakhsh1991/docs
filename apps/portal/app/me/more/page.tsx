@@ -20,7 +20,7 @@ export default async function MeMorePage() {
   const host = await readPortalIngressHost();
   const bootstrap = await resolvePortalBootstrapForHost(host);
   const entitlements = await resolveMemberEntitlementsForShell(host, bootstrap);
-  const granted = entitlements?.granted ?? [];
+  const granted = entitlements?.payload.granted ?? [];
   const { hubNav } = resolvePortalMemberNavForPlugin(bootstrap.pluginId, granted);
   const hubPayload = buildMemberHubPayload({
     tenantId: bootstrap.tenantId,

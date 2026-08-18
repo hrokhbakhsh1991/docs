@@ -32,7 +32,7 @@ export default async function MeHomePage() {
   const homePayload = buildMemberHomePayload({
     tenantId: bootstrap.tenantId,
     pluginId: bootstrap.pluginId,
-    grantedEntitlementKeys: entitlements?.granted ?? [],
+    grantedEntitlementKeys: entitlements?.payload.granted ?? [],
   });
 
   const quickLinks = homePayload.modules.filter(

@@ -176,13 +176,13 @@ See [platform-portal-member-entitlements.mdoc](./platform-portal-member-entitlem
 
 | State | Entry | Chrome |
 | ----- | ----- | ------ |
-| `REDIRECT_UNAUTH` | No JWT on `/me/*` | None → `/` |
+| `REDIRECT_UNAUTH` | No JWT / dead session on `/me/*` | None → expire-session → `/login?portalReturn=…` |
 | `REDIRECT_AUTH_HOME` | Valid JWT on `/` | None → default module |
 | `REGISTRATION_MINIMAL` | `/catalog/*/register` | Brand + back egress only |
-| `MEMBER_FULL` | Valid JWT on `/me/*` | Header + bottom nav + outlet |
-
-**First paint after login (BUG-2):** `/login` OTP then `completeMemberLoginEgress` → `/me/registrations` is a full navigation into `MEMBER_FULL`. Root `app/layout.tsx` already wraps `NextIntlClientProvider`. If RSC for `/me/*` fails and React retries the client payload without that provider, `useTranslations` in `PortalMemberBottomNav` throws (`NextIntlClientProvider was not found`) and Next paints the issues overlay on an otherwise-visible shell. **Contract:** the bottom-nav client component renders **pretranslated** `label` / `aria-label` / logout copy from `PortalMemberShell` (RSC `getTranslations("portalMember.nav")`). It must not call `useTranslations`. Header chrome stays RSC. Profile/user-menu clients may keep `useTranslations` because they are not on the login-egress first paint. Profile fetch in `me/layout` is already fail-soft (`null` → fallback chip).
+| `MEMBER_FULL` | Valid JWT **and** live identity on `/me/*` | Header + bottom nav + outlet |
 | `API_MEMBER` | `/api/me/*` | No shell |
+
+**First paint after login (BUG-2):** `/login` OTP then `completeMemberLoginEgress` → `/me/registrations` is a full navigation into `MEMBER_FULL`. Root `app/layout.tsx` already wraps `NextIntlClientProvider`. If RSC for `/me/*` fails and React retries the client payload without that provider, `useTranslations` in `PortalMemberBottomNav` throws (`NextIntlClientProvider was not found`) and Next paints the issues overlay on an otherwise-visible shell. **Contract:** the bottom-nav client component renders **pretranslated** `label` / `aria-label` / logout copy from `PortalMemberShell` (RSC `getTranslations("portalMember.nav")`). It must not call `useTranslations`. Header chrome stays RSC. Profile/user-menu clients may keep `useTranslations` because they are not on the login-egress first paint. **PCMS-SEC-03:** profile **401/403/404** fail-close via expire-session (do not paint `MEMBER_FULL` with fallback chip «عضو»). Profile **502** keeps `loadFailed` + fallback chip; entitlements **401** must not SDK-fallback to live nav.
 
 **Invariant:** Never `MEMBER_FULL` on registration path (DL-01).
 

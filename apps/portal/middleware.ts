@@ -34,17 +34,6 @@ function jsonAuthError(status: number, code: string, message: string): NextRespo
   return NextResponse.json({ ok: false, error: { code, message } }, { status });
 }
 
-function redirectHome(request: NextRequest, clearCookie: boolean, host: string): NextResponse {
-  const home = request.nextUrl.clone();
-  home.pathname = "/";
-  home.search = "";
-  const response = NextResponse.redirect(home);
-  if (clearCookie) {
-    clearSessionCookieOnResponse(response.headers, host);
-  }
-  return response;
-}
-
 function redirectToMemberLogin(
   request: NextRequest,
   clearCookie: boolean,
@@ -54,7 +43,7 @@ function redirectToMemberLogin(
   const loginPath =
     resolvePortalMemberLoginPath(host, returnPath) ??
     resolvePortalMemberLoginPath(host) ??
-    "/";
+    "/login?portalReturn=%2Fme%2Fregistrations";
   const parsed = new URL(loginPath, request.nextUrl.origin);
   const target = request.nextUrl.clone();
   target.pathname = parsed.pathname;
@@ -141,7 +130,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
           clearSessionCookieOnResponse(res.headers, host);
           return res;
         }
-        return redirectHome(request, true, host);
+        return redirectToMemberLogin(request, true, host);
       }
       response = forwardPathname(request, pathname);
     } else if (pathname.startsWith("/api/me/")) {

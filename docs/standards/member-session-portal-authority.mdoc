@@ -1,7 +1,7 @@
 ---
 title: Member Session Portal Authority (PCMS)
 standard_id: PCMS-001
-version: 1.5.5
+version: 1.5.6
 status: active
 extends:
   - docs/standards/workspace-routing-standard.mdoc
@@ -17,6 +17,7 @@ code_sot:
   - apps/portal/app/api/public-auth/expire-session/route.ts
   - apps/portal/src/me/fetch-member-profile.server.ts
   - apps/portal/src/me/classify-member-profile-bff-error.ts
+  - apps/portal/src/me/member-entitlements-bff.server.ts
   - apps/portal/app/me/layout.tsx
   - apps/portal/app/catalog/[tourId]/register/page.tsx
   - apps/marketing/src/shell/marketing-shell.tsx
@@ -119,6 +120,10 @@ Egress lives on `GET /api/public-auth/expire-session` so Set-Cookie clear can at
 **Do not** fail-close **502** / `BACKEND_UNREACHABLE` / network errors — those are outages; keep `loadFailed` on the profile page and do not wipe the cookie.
 
 `buildMemberApiHeaders` must read the session token from the **same** source as `readPublicCatalogSessionFromCookies` (`cookies()` then raw `Cookie` header). Header-only fallback with no `Authorization` Bearer produces a ghost shell (session valid, profile 401).
+
+Middleware on protected `/me/*` tenant mismatch must **`redirectToMemberLogin` + clear cookie** — not `redirectHome` to `/`. Unauthenticated `/me/*` fallback path is `/login?portalReturn=…`, never `/`.
+
+Entitlements BFF **401/403** must **not** fall back to `evaluateMemberPortalEntitlements` (that kept live nav without identity). Empty `granted`, **not cacheable**. **502** / network may still use the local SDK shim.
 
 ---
 
@@ -372,6 +377,8 @@ When API runs with `STORAGE_DRIVER=memory` and `OPERATOR_SMOKE_E2E_SEED=1`, the 
 - Deleting `/login` without a replacement public host for `/me/*` guest redirects
 - Fail-open `/me/*` shell (fallback «عضو» + live nav) when profile BFF returns 401/403/404
 - `/me/layout` `redirect("/")` on missing session or tenant mismatch (must expire-session → `/login`)
+- Middleware `/me/*` tenant mismatch `redirectHome` to `/` (must login + clear cookie)
+- Entitlements **401/403** falling back to local SDK grants (ghost nav)
 - Redirecting a dead member session to marketing **without** clearing `atour_mb_session`
 - Treating profile **502** / `BACKEND_UNREACHABLE` as logout
 - `NEXT_PUBLIC_*` cookie domain env
@@ -385,7 +392,7 @@ pnpm run guard:pcms-authority
 pnpm --filter @app-tour/tenant-kernel test
 pnpm --filter @app-tour/session-client test
 pnpm --filter @app-tour/guest-surface-host exec node --import tsx --test test/resolve-public-auth-cors-allow-origin.spec.ts
-pnpm --filter @apps/portal exec node --import tsx --test test/portal-public-auth-cors.spec.ts test/portal-public-auth-session.spec.ts test/build-session-cookie.spec.ts test/classify-member-profile-bff-error.spec.ts test/portal-expire-session.spec.ts
+pnpm --filter @apps/portal exec node --import tsx --test test/portal-public-auth-cors.spec.ts test/portal-public-auth-session.spec.ts test/build-session-cookie.spec.ts test/classify-member-profile-bff-error.spec.ts test/portal-expire-session.spec.ts test/resolve-member-entitlements-payload.spec.ts test/portal-member-entitlements.spec.ts test/portal-middleware.spec.ts
 pnpm --filter @apps/portal run test -- test/portal-session-host-bind.spec.ts test/portal-registration-resume.spec.ts test/build-session-cookie.spec.ts
 pnpm --filter @app-tour/catalog-registration-flow-ui exec node --import tsx --test test/guest-auth-transport.spec.ts
 pnpm --filter @apps/marketing run test -- test/marketing-shell-portal-link.spec.ts test/resolve-web-registration-url.spec.ts test/catalog-tour-detail-register-cta.spec.ts test/resolve-marketing-tour-detail-cta.spec.ts test/marketing-phase-5-auth-host.spec.ts

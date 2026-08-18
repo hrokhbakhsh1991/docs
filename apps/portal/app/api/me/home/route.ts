@@ -30,12 +30,15 @@ export async function GET(req: Request): Promise<NextResponse> {
     pluginId: bootstrap.pluginId,
     apiHeaders: headers,
   });
+  if (entitlements.auth === "unauthenticated") {
+    return jsonError("unauthorized", 401);
+  }
 
   return NextResponse.json(
     buildMemberHomePayload({
       tenantId: bootstrap.tenantId,
       pluginId: bootstrap.pluginId,
-      grantedEntitlementKeys: entitlements.granted,
+      grantedEntitlementKeys: entitlements.payload.granted,
     }),
     { status: 200, headers: { "Cache-Control": "private, no-store" } }
   );

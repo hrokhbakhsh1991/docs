@@ -18,6 +18,8 @@ describe("portal-member-entitlements — PS-5", () => {
     assert.match(route, /buildMemberApiHeaders/);
     assert.match(route, /resolveMemberEntitlementsPayload/);
     assert.match(route, /Authorization === undefined/);
+    assert.match(route, /result\.auth === "unauthenticated"/);
+    assert.match(route, /result\.cacheable/);
     assert.match(route, /401/);
   });
 
@@ -29,6 +31,8 @@ describe("portal-member-entitlements — PS-5", () => {
     assert.match(bff, /evaluateMemberPortalEntitlements/);
     assert.match(bff, /fetchMemberEntitlementsUpstream/);
     assert.match(bff, /resolveMemberEntitlementsPayload/);
+    assert.match(bff, /classifyMemberProfileBffFailure/);
+    assert.match(bff, /cacheable/);
   });
 
   it("PS6-ENT-01 entitlements route uses private BFF cache", () => {
@@ -78,5 +82,6 @@ describe("portal-member-entitlements — PS-5", () => {
     );
     assert.match(shell, /resolveMemberEntitlementsPayload/);
     assert.match(shell, /buildMemberApiHeaders/);
+    assert.match(shell, /result\.cacheable/);
   });
 });

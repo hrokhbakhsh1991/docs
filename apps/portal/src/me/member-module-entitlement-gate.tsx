@@ -26,7 +26,7 @@ export async function MemberModuleEntitlementGate({
   readonly children: ReactNode;
 }) {
   const entitlements = await resolveMemberEntitlementsForShell(host, bootstrap);
-  if (!isMemberModuleEntitled(moduleId, entitlements?.granted ?? [])) {
+  if (!isMemberModuleEntitled(moduleId, entitlements?.payload.granted ?? [])) {
     return <MemberModuleUnauthorized moduleId={moduleId} />;
   }
   return <>{children}</>;
@@ -43,7 +43,7 @@ export async function MemberMoreHubEntitlementGate({
   readonly children: ReactNode;
 }) {
   const entitlements = await resolveMemberEntitlementsForShell(host, bootstrap);
-  const granted = entitlements?.granted ?? [];
+  const granted = entitlements?.payload.granted ?? [];
   const { hubNav } = resolvePortalMemberNavForPlugin(bootstrap.pluginId, granted);
   if (hubNav.length === 0) {
     return <MemberModuleUnauthorized moduleId="more" />;

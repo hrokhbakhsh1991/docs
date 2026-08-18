@@ -36,7 +36,7 @@ export default async function MemberModuleDispatcherPage({
   }
 
   const entitlements = await resolveMemberEntitlementsForShell(host, bootstrap);
-  const grantedEntitlementKeys = entitlements?.granted ?? [];
+  const grantedEntitlementKeys = entitlements?.payload.granted ?? [];
   if (!isMemberModuleEntitled(moduleManifest.id, grantedEntitlementKeys)) {
     return <MemberModuleUnauthorized moduleId={moduleManifest.id} />;
   }

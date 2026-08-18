@@ -7,7 +7,7 @@ import {
 
 import {
   buildMemberEntitlementsPayload,
-  type MemberEntitlementsPayload,
+  type MemberEntitlementsResolveResult,
   resolveMemberEntitlementsPayload,
 } from "./member-entitlements-bff.server";
 
@@ -20,7 +20,7 @@ function readSessionUserId(headers: Record<string, string>): string | null {
 export async function resolveMemberEntitlementsForShell(
   host: string,
   bootstrap: { readonly tenantId: string; readonly pluginId: string }
-): Promise<MemberEntitlementsPayload | null> {
+): Promise<MemberEntitlementsResolveResult | null> {
   const headers = await buildMemberApiHeaders(host);
   if (headers.Authorization === undefined) {
     return null;
@@ -30,33 +30,34 @@ export async function resolveMemberEntitlementsForShell(
   }
 
   const sessionUserId = readSessionUserId(headers);
-  if (sessionUserId !== null) {
-    const cacheKey = buildMemberEntitlementsCacheKey({
-      tenantId: bootstrap.tenantId,
-      userId: sessionUserId,
-      pluginId: bootstrap.pluginId,
-    });
+  const cacheKey =
+    sessionUserId !== null
+      ? buildMemberEntitlementsCacheKey({
+          tenantId: bootstrap.tenantId,
+          userId: sessionUserId,
+          pluginId: bootstrap.pluginId,
+        })
+      : null;
+
+  if (cacheKey !== null) {
     const cached = readMemberEntitlementsCache(cacheKey);
     if (cached !== null) {
-      return cached;
+      return { auth: "ok", cacheable: true, payload: cached };
     }
-
-    const payload = await resolveMemberEntitlementsPayload({
-      host,
-      tenantId: bootstrap.tenantId,
-      pluginId: bootstrap.pluginId,
-      apiHeaders: headers,
-    });
-    writeMemberEntitlementsCache(cacheKey, payload);
-    return payload;
   }
 
-  return resolveMemberEntitlementsPayload({
+  const result = await resolveMemberEntitlementsPayload({
     host,
     tenantId: bootstrap.tenantId,
     pluginId: bootstrap.pluginId,
     apiHeaders: headers,
   });
+
+  if (cacheKey !== null && result.cacheable) {
+    writeMemberEntitlementsCache(cacheKey, result.payload);
+  }
+
+  return result;
 }
 
 export { buildMemberEntitlementsPayload };

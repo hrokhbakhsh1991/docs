@@ -57,6 +57,8 @@ describe("member-module-dispatcher — PS-5", () => {
     );
     assert.match(route, /buildMemberHomePayload/);
     assert.match(route, /Authorization === undefined/);
+    assert.match(route, /entitlements\.auth === "unauthenticated"/);
+    assert.match(route, /entitlements\.payload\.granted/);
   });
 
   it("PS5-DISP-03 home page consumes aggregate payload", () => {

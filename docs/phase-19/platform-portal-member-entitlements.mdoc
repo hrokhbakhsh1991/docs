@@ -105,17 +105,23 @@ flowchart LR
   Eval --> Denied["denied[]"]
 ```
 
-### 3.3 Runtime wiring (2026-07-05)
+### 3.3 Runtime wiring (2026-07-05 / PCMS-SEC-03 2026-08-18)
 
-**Portal BFF** proxies `GET /identity/me/entitlements` when API upstream is reachable; falls back to local evaluator (same SDK function, empty explicit grants) when upstream unreachable.
+**Portal BFF** proxies `GET /identity/me/entitlements` when API upstream is reachable.
+
+| Upstream outcome | BFF / shell | Cache |
+| ---------------- | ----------- | ----- |
+| `ok: true` | Use API `granted` / `denied` | **cacheable** (PS-6 TTL) |
+| HTTP **401/403/404** or dead-session codes (`AUTH_TOKEN_REVOKED`, `UNAUTHORIZED_INVALID_BEARER_TOKEN`, …) — same classifier as profile BFF | Empty `granted`. Route returns **401** `unauthorized`. Shell expire-session. **Do not** call `evaluateMemberPortalEntitlements` (that was the ghost-nav path) | **not cacheable** |
+| **5xx** / network / malformed body | Local SDK shim (`buildMemberEntitlementsPayload`, empty explicit grants) — outage, keep cookie | **not cacheable** |
 
 | Layer | Behavior |
 | ----- | -------- |
 | API upstream | Loads membership metadata → `evaluateMemberPortalEntitlements` |
-| Portal BFF | `fetchMemberEntitlementsUpstream` → cache → `resolveMemberEntitlementsPayload` |
-| `denied` | `registry − granted` with tier-aware reasons |
-| Cache | In-memory private TTL **30s max** (`MEMBER_ENTITLEMENTS_BFF_CACHE_TTL_MS`; `0` disables) |
-| Shell SSR | **`resolveMemberEntitlementsForShell`** — same payload path as BFF GET |
+| Portal BFF | `fetchMemberEntitlementsUpstream` → `classifyMemberProfileBffFailure` → cache only when `cacheable` |
+| `denied` | `registry − granted` with tier-aware reasons (ok + outage shim only) |
+| Cache | In-memory private TTL **30s max** (`MEMBER_ENTITLEMENTS_BFF_CACHE_TTL_MS`; `0` disables). Never write empty-401 or outage-shim payloads. |
+| Shell SSR | **`resolveMemberEntitlementsForShell`** — same resolve path as BFF GET; `auth === "unauthenticated"` → expire-session |
 
 **Paths:** `packages/workspace-sdk/src/portal/evaluate-member-portal-entitlements.ts`, `apps/api/src/identity/me.entitlements.service.ts`, `apps/portal/src/me/member-entitlements-bff.server.ts`, `apps/portal/src/me/member-entitlements-cache.server.ts`, `apps/portal/app/api/me/entitlements/route.ts`.
 
@@ -131,9 +137,9 @@ flowchart LR
 
 | Status | When | Body |
 | ------ | ---- | ---- |
-| 401 | No session | `{ ok: false, code: "unauthorized" }` |
-| 403 | Session tenant mismatch | `{ ok: false, code: "tenant_mismatch" }` |
-| 502 | API upstream failure | `{ ok: false, code: "upstream_error" }` |
+| 401 | No cookie **or** upstream dead session (401/403/404 / revoke codes) | `{ ok: false, code: "unauthorized" }` |
+| 403 | Session tenant mismatch at BFF (before upstream) | `{ ok: false, code: "tenant_mismatch" }` |
+| 200 | Outage (5xx / network) — SDK shim, not cacheable | entitlements payload (`ok: true`) |
 
 Deep link to unauthorized module (DL-21): in-portal 403 page — not marketing redirect.
 
