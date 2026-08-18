@@ -173,7 +173,7 @@
     },
     "finance": {
       "title": "Tour payment follow-up",
-      "description": "Only approved guests on this tour who still need to pay or have partial payments.",
+      "description": "Guests on this tour with a balance due or a receipt waiting.",
       "rollupTitle": "Tour totals",
       "expected": "Expected",
       "collected": "Collected",

@@ -951,7 +951,8 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(featureClient, /workspaceExitNotice/);
     assert.match(featureClient, /aria-pressed=\{selected\}/);
     assert.match(featureClient, /kindAccentClass/);
-    assert.match(featureClient, /guestListItemSelectedHint/);
+    assert.doesNotMatch(featureClient, /guestListItemSelectedHint/);
+    assert.doesNotMatch(featureClient, /guestListItemOpenHint/);
     assert.match(featureClient, /guestListItemRemainingLabel/);
     assert.match(featureClient, /guestRowsHasMore/);
     assert.match(featureClient, /loadingMore/);

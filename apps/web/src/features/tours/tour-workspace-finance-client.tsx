@@ -375,21 +375,29 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     }
   }, [highlightedRegistrationId, visibleRows]);
 
-  const awaitingRemainingMinor = useMemo(
-    () => sumOutstandingRemainingMinor(inbox.awaitingPayment),
-    [inbox.awaitingPayment]
+  const queueRemainingMinor = useMemo(
+    () =>
+      sumOutstandingRemainingMinor([
+        ...inbox.awaitingPayment,
+        ...inbox.partialOutstanding,
+      ]),
+    [inbox.awaitingPayment, inbox.partialOutstanding]
   );
-  const awaitingCurrency = inbox.awaitingPayment[0]?.invoice.currency ?? rollup?.currency ?? "IRR";
+  const queueCurrency =
+    inbox.awaitingPayment[0]?.invoice.currency ??
+    inbox.partialOutstanding[0]?.invoice.currency ??
+    rollup?.currency ??
+    "IRR";
   const remainingTotalLabel =
-    inbox.awaitingGuestCount > 0
-      ? formatMinorAmount(awaitingRemainingMinor, awaitingCurrency, locale)
+    inbox.guestRows.length > 0
+      ? formatMinorAmount(queueRemainingMinor, queueCurrency, locale)
       : null;
 
-  const awaitingLabel =
-    inbox.awaitingGuestCount === 1
+  const queueLabel =
+    inbox.guestRows.length === 1
       ? t("guestsAwaitingPaymentOne")
       : t("guestsAwaitingPayment", {
-          count: formatLocalizedNumber(inbox.awaitingGuestCount, locale),
+          count: formatLocalizedNumber(inbox.guestRows.length, locale),
         });
 
   const receiptsLabel =
@@ -504,8 +512,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     return (
       <div className="space-y-4">
         {paymentActionBanner}
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className={kindBadgeClass(selectedRow.kind)}>
               {kindStatusLabel(t, selectedRow.kind)}
             </Badge>
@@ -513,8 +520,6 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
               <span className="text-sm text-muted-foreground">{selectedAmountLabel}</span>
             ) : null}
           </div>
-          <p className="text-sm text-muted-foreground">{t("detailDescription")}</p>
-        </div>
 
         {detailData.loading ? (
           <div className="space-y-2">
@@ -797,7 +802,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
                       highlighted && !selected && "opacity-70"
                     )}
                   />
-                  <div className="min-w-0 flex-1 space-y-2 pl-1">
+                  <div className="min-w-0 flex-1 pl-1">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0 space-y-1">
                         <p
@@ -808,16 +813,9 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
                         >
                           {row.displayName}
                         </p>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                          <Badge variant="outline" className={kindBadgeClass(row.kind)}>
-                            {kindStatusLabel(t, row.kind)}
-                          </Badge>
-                          <span>
-                            {selected
-                              ? t("guestListItemSelectedHint")
-                              : t("guestListItemOpenHint")}
-                          </span>
-                        </div>
+                        <Badge variant="outline" className={kindBadgeClass(row.kind)}>
+                          {kindStatusLabel(t, row.kind)}
+                        </Badge>
                       </div>
                       {amountLabel !== null ? (
                         <div className="shrink-0 text-end">
@@ -834,17 +832,6 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
                           </p>
                         </div>
                       ) : null}
-                    </div>
-                    <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                      <span>{selected ? t("guestListItemSelected") : t("guestListItemOpen")}</span>
-                      <span
-                        className={cn(
-                          "transition-transform",
-                          selected ? "translate-x-0 text-primary" : "text-muted-foreground"
-                        )}
-                      >
-                        {selected ? t("guestListItemSelected") : t("guestListItemOpen")}
-                      </span>
                     </div>
                   </div>
                   <div className="sr-only">
@@ -959,36 +946,26 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
 
         {!panelBlocking && inbox.leadSection !== "settled" ? (
           <div
-            className="space-y-1 rounded-md border bg-muted/20 px-3 py-2 text-sm"
+            className="rounded-md border bg-muted/20 px-3 py-2 text-sm"
             data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.statusStrip}
           >
-            {inbox.awaitingGuestCount > 0 || inbox.partialOutstanding.length > 0 ? (
-              <p className="font-medium">
-                {inbox.awaitingGuestCount > 0 ? awaitingLabel : t("partialsNeedFollowUp")}
-                {remainingTotalLabel !== null
-                  ? ` · ${t("remainingTotal", { amount: remainingTotalLabel })}`
-                  : null}
-              </p>
-            ) : null}
-            {receipts.length > 0 ? (
-              <p className={inbox.awaitingGuestCount > 0 ? "text-muted-foreground" : "font-medium"}>
-                <OperatorInternalLink
-                  href={buildTourFinanceHubHref(tourId, "receipts")}
-                  className="underline-offset-2 hover:underline"
-                >
-                  {receiptsLabel}
-                </OperatorInternalLink>
-              </p>
-            ) : null}
-            {inbox.partialOutstanding.length > 0 ? (
-              <p className="text-muted-foreground">
-                {inbox.partialOutstanding.length === 1
-                  ? t("partialsToReviewOne")
-                  : t("partialsToReview", {
-                      count: formatLocalizedNumber(inbox.partialOutstanding.length, locale),
-                    })}
-              </p>
-            ) : null}
+            <p className="font-medium">
+              {inbox.guestRows.length > 0 ? queueLabel : null}
+              {inbox.guestRows.length > 0 && remainingTotalLabel !== null
+                ? ` · ${t("remainingTotal", { amount: remainingTotalLabel })}`
+                : null}
+              {receipts.length > 0 ? (
+                <>
+                  {inbox.guestRows.length > 0 || remainingTotalLabel !== null ? " · " : null}
+                  <OperatorInternalLink
+                    href={buildTourFinanceHubHref(tourId, "receipts")}
+                    className="underline-offset-2 hover:underline"
+                  >
+                    {receiptsLabel}
+                  </OperatorInternalLink>
+                </>
+              ) : null}
+            </p>
           </div>
         ) : null}
 
