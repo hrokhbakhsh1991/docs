@@ -81,13 +81,9 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] [data-marketi
   ) {
   position: relative;
   isolation: isolate;
-  display: flex;
-  flex-direction: column;
-  flex: none;
-  flex-basis: auto;
-  width: auto;
-  max-width: none;
-  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(8.25rem, 38%) minmax(0, 1fr);
+  min-height: 8.75rem;
   aspect-ratio: auto;
   overflow: hidden;
   border: 1px solid var(--border, var(--color-border-default));
@@ -127,8 +123,10 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] [data-marketi
   position: relative;
   inset: auto;
   z-index: 0;
-  width: 100%;
-  aspect-ratio: 16 / 9;
+  width: auto;
+  height: 100%;
+  min-height: 8.75rem;
+  aspect-ratio: auto;
   overflow: hidden;
   pointer-events: none;
   background: var(--mkt-hero-ink);
@@ -164,12 +162,12 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] [data-marketi
   z-index: 2;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: flex-start;
   gap: var(--space-1);
   height: auto;
   min-height: 0;
-  padding: var(--space-3) var(--space-4) var(--space-4);
+  padding: var(--space-3) var(--space-4);
   color: var(--color-text-primary);
   background: none;
   transform: none;
@@ -218,7 +216,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] [data-marketi
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"] [data-marketing-home] section[data-marketing-home-destinations]
   p[data-marketing-home-destination-description] {
-  display: -webkit-box;
+  display: none;
   margin: 0;
   max-height: none;
   overflow: hidden;
@@ -283,7 +281,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] [data-marketi
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"] [data-marketing-home] section[data-marketing-home-destinations]
   a[data-marketing-home-destination-link]:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--denali-forest-600);
   outline-offset: 3px;
   box-shadow: none;
 }
@@ -340,6 +338,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] [data-marketi
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"] [data-marketing-home] section[data-marketing-home-destinations]
     p[data-marketing-home-destination-description] {
+    display: -webkit-box;
     -webkit-line-clamp: 2;
   }
 }
@@ -364,6 +363,8 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] [data-marketi
     ) {
     display: flex;
     flex-direction: column;
+    grid-template-columns: none;
+    min-height: 0;
     aspect-ratio: 4 / 5;
     border: none;
     background: var(--mkt-hero-ink);
@@ -424,6 +425,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] [data-marketi
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"] [data-marketing-home] section[data-marketing-home-destinations]
     p[data-marketing-home-destination-description] {
+    display: -webkit-box;
     -webkit-line-clamp: 2;
   }
 
@@ -438,7 +440,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] [data-marketi
     a[data-marketing-home-destination-link]:focus-visible {
     outline: 2px solid #fff;
     outline-offset: 3px;
-    box-shadow: 0 0 0 4px var(--color-focus-ring, var(--denali-forest-600));
+    box-shadow: 0 0 0 4px var(--denali-forest-600);
   }
 }
 
