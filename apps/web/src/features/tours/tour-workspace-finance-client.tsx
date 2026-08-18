@@ -36,10 +36,11 @@ import {
   hasActiveTourWorkspacePaymentSchedule,
   resolveTourWorkspaceDetailActionMode,
 } from "@/features/tours/tour-workspace-payment-follow-up-actions";
+import { TourWorkspaceFinanceDetailHero } from "@/features/tours/tour-workspace-finance-detail-hero";
+import { TourWorkspaceFinanceDetailHistory } from "@/features/tours/tour-workspace-finance-detail-history";
 import { TourWorkspacePaymentActionsSection } from "@/features/tours/tour-workspace-payment-actions-section";
-import { TourWorkspacePaymentEvidenceList } from "@/features/tours/tour-workspace-payment-evidence-list";
 import { useTourWorkspacePaymentDetailData } from "@/features/tours/use-tour-workspace-payment-detail-data";
-import type { TourWorkspacePaymentSummaryStatus } from "@/features/tours/tour-workspace-payment-follow-up-state";
+import type { ReceiptReviewResultBanner } from "@/finance/finance-receipt-review-content";
 import {
   WorkspaceMasterDetailLayout,
   WorkspaceStickyDetailCard,
@@ -89,48 +90,6 @@ function kindAccentClass(kind: TourFinanceGuestKind): string {
     return "bg-sky-500/80";
   }
   return "bg-orange-500/80";
-}
-
-function DetailSection({
-  title,
-  description,
-  children,
-}: {
-  readonly title: string;
-  readonly description?: string;
-  readonly children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-lg border bg-muted/10 px-4 py-4">
-      <div className="space-y-1">
-        <p className="text-sm font-medium">{title}</p>
-        {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
-      </div>
-      <div className="mt-3">{children}</div>
-    </section>
-  );
-}
-
-function detailStatusLabel(
-  t: ReturnType<typeof useTranslations>,
-  status: TourWorkspacePaymentSummaryStatus
-): string {
-  switch (status) {
-    case "needs_payment":
-      return t("detailStatusNeedsPayment");
-    case "payment_under_review":
-      return t("detailStatusUnderReview");
-    case "paid_in_full":
-      return t("detailStatusPaidInFull");
-    case "no_payment_required":
-      return t("detailStatusNoPaymentRequired");
-    case "overdue":
-      return t("detailStatusOverdue");
-    case "credit_balance":
-      return t("detailStatusCreditBalance");
-    default:
-      return t("detailStatusUnknown");
-  }
 }
 
 function buildDetailAmountRows(
@@ -208,6 +167,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     useState<TourWorkspacePaymentActionEvent | null>(null);
   const [financeMutationRefreshKey, setFinanceMutationRefreshKey] = useState(0);
   const [workspaceExitNotice, setWorkspaceExitNotice] = useState<string | null>(null);
+  const [receiptReviewNotice, setReceiptReviewNotice] = useState<string | null>(null);
   const [isNarrowViewport, setIsNarrowViewport] = useState(false);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const {
@@ -361,6 +321,33 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     [detailData, refreshWorkspaceFinanceView, selectedRow]
   );
 
+  const handleReceiptReviewed = useCallback(
+    (result: ReceiptReviewResultBanner) => {
+      setReceiptReviewNotice(
+        result.decision === "approve"
+          ? t("detailReceiptApprovedNotice")
+          : t("detailReceiptRejectedNotice")
+      );
+      setFinanceMutationRefreshKey((current) => current + 1);
+      const registrationId = result.registrationId?.trim() ?? selectedRow?.registrationId ?? null;
+      if (registrationId !== null) {
+        setHighlightedRegistrationId(registrationId);
+        setPendingFocusId(registrationId);
+      }
+      detailData.refresh();
+      refreshWorkspaceFinanceView();
+    },
+    [detailData, refreshWorkspaceFinanceView, selectedRow, t]
+  );
+
+  const pendingReceiptsForSelected = useMemo(
+    () =>
+      detailData.receipts.filter(
+        (receipt) => receipt.status.trim().toLowerCase() === "pending"
+      ),
+    [detailData.receipts]
+  );
+
   useEffect(() => {
     if (highlightedRegistrationId === null) {
       return;
@@ -460,61 +447,34 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
               ? t("workspacePaymentRecordedTitle")
               : tPayments("receiptSubmittedTitle")}
           </p>
-          {selectedPaymentAction.kind !== "prepayment_recorded" ? (
-            <OperatorInternalLink
-              href={buildTourFinanceHubHref(tourId, "receipts", selectedPaymentAction.registrationId)}
-              className="inline-flex text-sm font-medium text-primary underline-offset-2 hover:underline"
-            >
-              {tPayments("createResultOpenReceipts")}
-            </OperatorInternalLink>
-          ) : null}
+          {selectedPaymentAction.kind === "prepayment_recorded" ? (
+            <p className="text-xs text-muted-foreground">{t("workspacePaymentRecordedHint")}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">{t("detailReceiptSubmittedHint")}</p>
+          )}
         </div>
       ) : null;
 
-    const selectedAmountLabel =
-      selectedRow.amountMinor !== null && selectedRow.currency !== null
-        ? formatMinorAmount(selectedRow.amountMinor, selectedRow.currency, locale)
-        : null;
-    const requirementAmountLabel =
-      detailData.detailState !== null &&
-      detailData.detailState.currentRequirement.amountMinor !== "0" &&
-      detailData.invoice !== null
-        ? formatMinorAmount(
-            detailData.detailState.currentRequirement.amountMinor,
-            detailData.invoice.currency,
-            locale
-          )
-        : null;
-    const recentPayments = detailData.payments.slice(0, 3);
-    const recentReceipts = detailData.receipts.slice(0, 3);
+    const receiptReviewBanner =
+      receiptReviewNotice !== null ? (
+        <p
+          className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-sm"
+          role="status"
+        >
+          {receiptReviewNotice}
+        </p>
+      ) : null;
+
     const hasActiveSchedule = hasActiveTourWorkspacePaymentSchedule(detailData.schedule);
     const actionMode =
       detailData.detailState !== null
         ? resolveTourWorkspaceDetailActionMode(detailData.detailState.summaryStatus)
         : "active";
-    const requirementDueAtLabel =
-      detailData.detailState?.currentRequirement.kind === "schedule_item"
-        ? formatDetailDate(locale, detailData.detailState.currentRequirement.dueAt)
-        : null;
-    const latestReceiptAtLabel = formatDetailDate(
-      locale,
-      detailData.detailState?.evidence.latestReceiptAt ?? null
-    );
 
     return (
       <div className="space-y-4">
         {paymentActionBanner}
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className={kindBadgeClass(selectedRow.kind)}>
-              {kindStatusLabel(t, selectedRow.kind)}
-            </Badge>
-            {selectedAmountLabel !== null ? (
-              <span className="text-sm text-muted-foreground">{selectedAmountLabel}</span>
-            ) : null}
-          </div>
-          <p className="text-sm text-muted-foreground">{t("detailDescription")}</p>
-        </div>
+        {receiptReviewBanner}
 
         {detailData.loading ? (
           <div className="space-y-2">
@@ -529,152 +489,14 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
         ) : null}
 
         {detailData.detailState !== null ? (
-          <>
-            <DetailSection
-              title={t("detailSummaryTitle")}
-              description={t("detailSummaryDescription")}
-            >
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="rounded-md border bg-background/70 px-3 py-3">
-                  <p className="text-xs text-muted-foreground">{t("detailStatusCardTitle")}</p>
-                  <p className="mt-1 text-sm font-medium">
-                    {detailStatusLabel(t, detailData.detailState.summaryStatus)}
-                  </p>
-                </div>
-                <div className="rounded-md border bg-background/70 px-3 py-3">
-                  <p className="text-xs text-muted-foreground">{t("detailRequirementTitle")}</p>
-                  <p className="mt-1 text-sm font-medium">
-                    {requirementAmountLabel ?? t("detailRequirementNone")}
-                  </p>
-                </div>
-              </div>
-              {detailAmountRows.length > 0 ? (
-                <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                  {detailAmountRows.map((item) => (
-                    <div key={item.label} className="rounded-md border bg-background/70 px-3 py-3">
-                      <p className="text-xs text-muted-foreground">{item.label}</p>
-                      <p className="mt-1 text-sm font-medium">{item.value}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </DetailSection>
-
-            <DetailSection
-              title={t("detailRequirementBlockTitle")}
-              description={t("detailRequirementBlockDescription")}
-            >
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <p>
-                  {t("detailRequirementSource")}:{" "}
-                  {detailData.detailState.currentRequirement.source === "schedule"
-                    ? t("detailRequirementSourceSchedule")
-                    : detailData.detailState.currentRequirement.source === "invoice"
-                      ? t("detailRequirementSourceInvoice")
-                      : t("detailRequirementSourceNone")}
-                </p>
-                {detailData.detailState.currentRequirement.kind === "schedule_item" ? (
-                  <p>
-                    {t("detailRequirementScheduleLabel")}:{" "}
-                    {detailData.detailState.currentRequirement.label}
-                  </p>
-                ) : null}
-                {requirementDueAtLabel !== null ? (
-                  <p>
-                    {t("detailRequirementDueAt")}: {requirementDueAtLabel}
-                  </p>
-                ) : null}
-                {detailData.detailState.currentRequirement.kind === "schedule_item" ? (
-                  <p>
-                    {t("detailRequirementScheduleStatus")}:{" "}
-                    {detailData.detailState.currentRequirement.status}
-                  </p>
-                ) : null}
-              </div>
-            </DetailSection>
-
-            <DetailSection
-              title={t("detailEvidenceTitle")}
-              description={t("detailEvidenceDescription")}
-            >
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">
-                    {t("detailPendingReceiptsCount", {
-                      count: formatLocalizedNumber(
-                        detailData.detailState.evidence.pendingReceiptsCount,
-                        locale
-                      ),
-                    })}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{t("detailPortalReceiptHint")}</p>
-                  <TourWorkspacePaymentEvidenceList
-                    receipts={recentReceipts}
-                    locale={locale}
-                    formatDetailDate={formatDetailDate}
-                  />
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm font-medium">
-                      {t("detailRecentPaymentsCount", {
-                        count: formatLocalizedNumber(recentPayments.length, locale),
-                      })}
-                    </p>
-                    {recentPayments.length > 0 ? (
-                      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                        {recentPayments.map((payment) => (
-                          <li key={payment.id}>
-                            {formatMinorAmount(payment.amount, payment.currency, locale)}
-                            {" · "}
-                            {payment.status}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        {t("detailNoRecentPayments")}
-                      </p>
-                    )}
-                  </div>
-                  <div className="rounded-md border bg-background/70 px-3 py-3">
-                    <p className="text-xs text-muted-foreground">{t("detailActivityTitle")}</p>
-                    <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                      <p>
-                        {t("detailManualPendingCount", {
-                          count: formatLocalizedNumber(
-                            detailData.detailState.evidence.pendingManualPaymentsCount,
-                            locale
-                          ),
-                        })}
-                      </p>
-                      <p>
-                        {t("detailPaidPaymentsCount", {
-                          count: formatLocalizedNumber(
-                            detailData.detailState.evidence.paidPaymentsCount,
-                            locale
-                          ),
-                        })}
-                      </p>
-                      <p>
-                        {t("detailCancelledPaymentsCount", {
-                          count: formatLocalizedNumber(
-                            detailData.detailState.evidence.cancelledPaymentsCount,
-                            locale
-                          ),
-                        })}
-                      </p>
-                      {latestReceiptAtLabel !== null ? (
-                        <p>
-                          {t("detailLatestReceiptAt")}: {latestReceiptAtLabel}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </DetailSection>
-          </>
+          <TourWorkspaceFinanceDetailHero
+            summaryStatus={detailData.detailState.summaryStatus}
+            detailState={detailData.detailState}
+            amountRows={detailAmountRows}
+            rowKind={selectedRow.kind}
+            locale={locale}
+            formatDetailDate={formatDetailDate}
+          />
         ) : null}
 
         {selectedRow.registrationId !== null ? (
@@ -687,6 +509,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
             hasActiveSchedule={hasActiveSchedule}
             rowKind={selectedRow.kind}
             invoice={detailData.invoice}
+            pendingReceipts={pendingReceiptsForSelected}
             refreshKey={financeMutationRefreshKey}
             onOverrideChanged={(event) => {
               setFinanceMutationRefreshKey((current) => current + 1);
@@ -703,6 +526,17 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
               refreshWorkspaceFinanceView();
             }}
             onPaymentChanged={handleRegistrationPaymentChanged}
+            onReceiptReviewed={handleReceiptReviewed}
+          />
+        ) : null}
+
+        {detailData.detailState !== null ? (
+          <TourWorkspaceFinanceDetailHistory
+            detailState={detailData.detailState}
+            payments={detailData.payments}
+            receipts={detailData.receipts}
+            locale={locale}
+            formatDetailDate={formatDetailDate}
           />
         ) : null}
 
@@ -737,7 +571,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
   const detailPanel = (
     <WorkspaceStickyDetailCard
       title={selectedRow?.displayName ?? t("detailTitle")}
-      description={t("detailTitle")}
+      description={selectedRow?.displayName ?? t("detailTitle")}
       testId={TOUR_WORKSPACE_FINANCE_TEST_IDS.detailPanel}
     >
       {renderDetailBody()}
@@ -797,7 +631,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
                       highlighted && !selected && "opacity-70"
                     )}
                   />
-                  <div className="min-w-0 flex-1 space-y-2 pl-1">
+                  <div className="min-w-0 flex-1 space-y-1 pl-1">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0 space-y-1">
                         <p
@@ -808,16 +642,9 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
                         >
                           {row.displayName}
                         </p>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                          <Badge variant="outline" className={kindBadgeClass(row.kind)}>
-                            {kindStatusLabel(t, row.kind)}
-                          </Badge>
-                          <span>
-                            {selected
-                              ? t("guestListItemSelectedHint")
-                              : t("guestListItemOpenHint")}
-                          </span>
-                        </div>
+                        <Badge variant="outline" className={kindBadgeClass(row.kind)}>
+                          {kindStatusLabel(t, row.kind)}
+                        </Badge>
                       </div>
                       {amountLabel !== null ? (
                         <div className="shrink-0 text-end">
@@ -834,17 +661,6 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
                           </p>
                         </div>
                       ) : null}
-                    </div>
-                    <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                      <span>{selected ? t("guestListItemSelected") : t("guestListItemOpen")}</span>
-                      <span
-                        className={cn(
-                          "transition-transform",
-                          selected ? "translate-x-0 text-primary" : "text-muted-foreground"
-                        )}
-                      >
-                        {selected ? t("guestListItemSelected") : t("guestListItemOpen")}
-                      </span>
                     </div>
                   </div>
                   <div className="sr-only">

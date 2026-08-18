@@ -34,6 +34,7 @@ export const TOUR_WORKSPACE_FINANCE_TEST_IDS = {
   openCase: "operator-tour-workspace-finance-open-case",
   followUpPayment: "operator-tour-workspace-finance-follow-up-payment",
   reviewPartial: "operator-tour-workspace-finance-review-partial",
+  inlineReceiptReview: "operator-tour-workspace-finance-inline-receipt-review",
 } as const;
 
 export type TourFinancePaymentTone = "unpaid" | "partial" | "unknown";

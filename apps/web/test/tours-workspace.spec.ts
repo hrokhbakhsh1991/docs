@@ -945,13 +945,15 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(featureClient, /detailPanel/);
     assert.match(featureClient, /WorkspaceMasterDetailLayout/);
     assert.match(featureClient, /WorkspaceStickyDetailCard/);
+    assert.match(featureClient, /TourWorkspaceFinanceDetailHero/);
+    assert.match(featureClient, /TourWorkspaceFinanceDetailHistory/);
     assert.match(featureClient, /TourWorkspacePaymentActionsSection/);
-    assert.match(featureClient, /TourWorkspacePaymentEvidenceList/);
     assert.match(featureClient, /resolveTourWorkspaceDetailActionMode/);
+    assert.match(featureClient, /handleReceiptReviewed/);
+    assert.match(featureClient, /pendingReceiptsForSelected/);
     assert.match(featureClient, /workspaceExitNotice/);
     assert.match(featureClient, /aria-pressed=\{selected\}/);
     assert.match(featureClient, /kindAccentClass/);
-    assert.match(featureClient, /guestListItemSelectedHint/);
     assert.match(featureClient, /guestListItemRemainingLabel/);
     assert.match(featureClient, /guestRowsHasMore/);
     assert.match(featureClient, /loadingMore/);
@@ -1004,28 +1006,20 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(actionsSection, /TourWorkspaceAdminPaymentCard/);
     assert.match(actionsSection, /TourWorkspaceAdvancedReceiptCard/);
     assert.match(actionsSection, /TourWorkspacePaymentOverrideActions/);
-    assert.match(actionsSection, /resolveTourWorkspaceDetailActionRecommendation/);
-    assert.match(actionsSection, /detailPrimaryActionEyebrow/);
-    assert.match(actionsSection, /detailSecondaryActionEyebrow/);
+    assert.match(actionsSection, /TourWorkspaceInlineReceiptReview/);
     assert.match(actionsSection, /detailPrimaryPaymentTitle/);
     assert.match(actionsSection, /detailSecondaryActionTitle/);
-    assert.match(actionsSection, /detailActionStateReviewTitle/);
+    assert.match(actionsSection, /detailAdvancedToggle/);
     assert.match(actionsSection, /detailActionStateReadOnlyTitle/);
     assert.match(actionsSection, /refreshKey=\{refreshKey\}/);
     assert.match(masterDetailLayout, /lg:h-\[calc\(100vh-8rem\)\]/);
     assert.match(masterDetailLayout, /lg:overflow-y-auto/);
     assert.ok(
-      actionsSection.indexOf('title={t("detailPrimaryPaymentTitle")}') <
+      actionsSection.indexOf("<TourWorkspaceAdminPaymentCard") <
         actionsSection.lastIndexOf("<BookingFinancialStrip")
     );
-    assert.ok(
-      actionsSection.lastIndexOf("<BookingFinancialStrip") <
-        actionsSection.indexOf('title={t("detailSecondaryActionTitle")}')
-    );
-    assert.ok(
-      actionsSection.indexOf('title={t("detailSecondaryActionTitle")}') <
-        actionsSection.indexOf("<TourWorkspaceAdvancedReceiptCard")
-    );
+    assert.ok(actionsSection.includes("detailAdvancedToggle"));
+    assert.ok(actionsSection.includes("<TourWorkspaceAdvancedReceiptCard"));
     assert.match(overrideActions, /obligation-override/);
     assert.match(advancedReceiptCard, /workspaceReceiptAdvancedTitle/);
     assert.match(overrideActions, /detailOverrideScheduleDescription/);
