@@ -14,7 +14,7 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 describe("denali-marketing-chrome.spec.ts", () => {
   it("overlay Header lockup stays Landing-local and quiet", () => {
     const css = readFileSync(
-      join(repoRoot, "packages/workspaces/denali/theme/marketing/home/hero.css"),
+      join(repoRoot, "packages/workspaces/denali/theme/marketing/home/header-overlay-scrolled.css"),
       "utf8",
     );
     assert.match(css, /header\[data-marketing-header\]\[data-marketing-header-overlay\]/);

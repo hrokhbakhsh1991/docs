@@ -94,15 +94,20 @@ describe("home-hero-walk.spec.ts", () => {
 
   it("owns Walk CSS in the existing Hero partial", () => {
     const css = readSrc("packages/workspaces/denali/theme/marketing/home/hero.css");
+    const overlay = readSrc(
+      "packages/workspaces/denali/theme/marketing/home/header-overlay-scrolled.css",
+    );
     assert.match(css, /data-marketing-home-hero-walk/);
-    assert.match(css, /data-marketing-header-overlay/);
-    assert.match(css, /gap: 5px/);
-    assert.match(css, /width: 1\.25rem;/);
+    assert.doesNotMatch(css, /data-marketing-header-overlay/);
+    assert.match(overlay, /data-marketing-header-overlay/);
+    assert.match(overlay, /gap: 5px/);
+    assert.match(overlay, /width: 1\.25rem;/);
     assert.match(css, /:lang\(fa\)/);
     assert.match(css, /font-weight: 800;/);
     assert.doesNotMatch(css, /data-marketing-nav-link-id="tours"/);
+    assert.doesNotMatch(overlay, /data-marketing-nav-link-id="tours"/);
     assert.match(
-      css,
+      overlay,
       /summary\[data-marketing-nav-drawer-toggle\] \{[\s\S]*?border-radius: 0;/,
     );
     assert.doesNotMatch(css, /data-marketing-home-hero-peak-margin/);

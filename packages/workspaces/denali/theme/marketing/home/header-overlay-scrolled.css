@@ -1,7 +1,284 @@
 /**
- * Denali marketing Landing — overlay Header scrolled running-head.
- * Walk rest-state (transparent ink) stays in home/hero.css.
- * This file wins for [data-marketing-header-scrolled] after the Hero exits.
+ * Denali marketing Landing — overlay Header rest-state + scrolled running-head.
+ * Walk Hero styles stay in home/hero.css. Rest-state (transparent ink) and
+ * [data-marketing-header-scrolled] both live here so the Walk partial stays ≤500.
+ * Scrolled rules win after Walk Hero exits because they are more specific.
+ */
+
+/* Home overlay Header — marketing-only, overlay hook already home-gated. */
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay] {
+  background: transparent;
+  background-color: transparent;
+  border-bottom: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: #1a1f24;
+}
+
+@supports (backdrop-filter: blur(0.75rem)) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    header[data-marketing-header][data-marketing-header-overlay] {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: transparent;
+  }
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-brand] {
+  direction: ltr;
+  gap: 5px;
+  color: #1a1f24;
+  align-items: center;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-brand]
+  svg[data-marketing-brand-icon] {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #1a1f24;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-brand]
+  span[data-marketing-brand-title] {
+  font-family: var(--font-sans-en), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  nav[data-marketing-header-nav] {
+  gap: 0.25rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  nav[data-marketing-header-nav]
+  a[data-marketing-nav-link] {
+  min-height: 2.75rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0;
+  background: transparent;
+  color: #1a1f24;
+  opacity: 0.78;
+  font-weight: 500;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  nav[data-marketing-header-nav]
+  a[data-marketing-nav-link]:hover {
+  background: transparent;
+  opacity: 1;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-header-sign-in],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-header-member],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-portal-member] {
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.65rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #1a1f24;
+  box-shadow: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-header-sign-in]:hover,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-header-member]:hover,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-portal-member]:hover {
+  background: color-mix(in srgb, #1a1f24 6%, transparent);
+  opacity: 1;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  [data-marketing-member-authenticated]
+  a[data-marketing-header-member] {
+  border: 0;
+  background: transparent;
+  color: #1a1f24;
+  box-shadow: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  [data-marketing-member-authenticated]
+  span[data-marketing-header-member-label],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  [data-marketing-member-authenticated]
+  span[data-marketing-header-member-hint],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  [data-marketing-member-authenticated]
+  svg[data-marketing-header-member-icon] {
+  color: #1a1f24;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  [data-marketing-member-authenticated]
+  span[data-marketing-header-member-hint] {
+  opacity: 0.62;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  [data-marketing-member-authenticated]
+  span[data-marketing-header-member-avatar-wrap] {
+  background: transparent;
+  box-shadow: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  details[data-marketing-nav-drawer]
+  > summary[data-marketing-nav-drawer-toggle] {
+  min-height: 44px;
+  min-width: 44px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #1a1f24;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  summary[data-marketing-nav-drawer-toggle]
+  svg[data-marketing-nav-drawer-toggle-icon] {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  details[data-marketing-nav-drawer]
+  > summary[data-marketing-nav-drawer-toggle]:hover {
+  background: color-mix(in srgb, #1a1f24 6%, transparent);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-brand]:focus-visible,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-nav-link]:focus-visible,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-header-sign-in]:focus-visible,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-header-member]:focus-visible,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-portal-member]:focus-visible,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  details[data-marketing-nav-drawer]
+  > summary[data-marketing-nav-drawer-toggle]:focus-visible {
+  outline: 2px solid #1a1f24;
+  outline-offset: 2px;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  div[data-marketing-locale-switcher]
+  button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #1a1f24;
+  opacity: 0.7;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  div[data-marketing-locale-switcher]
+  button[aria-pressed="true"] {
+  border: 0;
+  background: transparent;
+  color: #1a1f24;
+  opacity: 1;
+  font-weight: 700;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  details[data-marketing-nav-drawer][open]
+  nav[data-marketing-nav-drawer-panel] {
+  background: var(--denali-mist-50, #f4f7f4);
+  color: #1a1f24;
+  border: 1px solid color-mix(in srgb, #1a1f24 14%, transparent);
+  border-radius: 0;
+  box-shadow: 0 0.5rem 1.5rem color-mix(in srgb, #1a1f24 12%, transparent);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+@supports (backdrop-filter: blur(1rem)) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    header[data-marketing-header][data-marketing-header-overlay]
+    details[data-marketing-nav-drawer][open]
+    nav[data-marketing-nav-drawer-panel] {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--denali-mist-50, #f4f7f4);
+  }
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  nav[data-marketing-nav-drawer-panel]
+  a {
+  color: #1a1f24;
+  border-radius: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  nav[data-marketing-nav-drawer-panel]
+  a:hover {
+  background: color-mix(in srgb, #1a1f24 6%, transparent);
+}
+
+@media (min-width: 1024px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    header[data-marketing-header][data-marketing-header-overlay]
+    a[data-marketing-brand]
+    span[data-marketing-brand-title] {
+    font-size: 1rem;
+  }
+}
+
+/**
+ * Overlay Header scrolled running-head.
+ * More specific than rest-state above; wins after Walk Hero exits.
  */
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
