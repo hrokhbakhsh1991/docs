@@ -1,74 +1,37 @@
 ---
-description: Default to codebase-memory-mcp for code exploration, architecture, and call-chain analysis
+description: Graph-first code search via codebase-memory-mcp (never dump whole files)
 alwaysApply: true
 ---
 
-# Codebase Memory MCP (default)
+# Codebase Memory MCP
 
-Use the `codebase-memory-mcp` project server (or `user-codebase-memory-mcp` if
-the user installed it globally) **before** grep/file-by-file reads when exploring
-**this** codebase.
+Use `codebase-memory-mcp` **before** Grep/full-file Read when exploring this repo.
 
-Install (once per machine):
+Install (once): `curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash`
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash
-```
+Do **not** index `/workspace` or `legacy/`. Use:
 
-`/workspace` is refused as a single index root (too broad). Index the live trees
-below. Do **not** index `legacy/` (frozen Tour Ops; already in `.cbmignore`).
-
-## Indexed projects
-
-| Area | `project` | `repo_path` |
+| Work | `project` | `repo_path` |
 |------|-----------|-------------|
 | Packages / SDK / workspaces | `app-tour-packages` | `/workspace/packages` |
-| Apps (api, web, portal, marketing) | `app-tour-apps` | `/workspace/apps` |
+| Apps | `app-tour-apps` | `/workspace/apps` |
 | Docs | `app-tour-docs` | `/workspace/docs` |
 | Scripts / guards | `app-tour-scripts` | `/workspace/scripts` |
 | Infra / SQL | `app-tour-infra` | `/workspace/infra` |
-| Design-system tokens | `app-tour-design-system` | `/workspace/design-system` |
+| Tokens | `app-tour-design-system` | `/workspace/design-system` |
 
-Pass that `project` name on every graph tool call.
-
-## Session start
-
-1. `list_projects` — confirm the six projects above are present.
-2. If a tree is missing, `index_repository` that `repo_path` with the matching `--name`.
-3. `auto_index` is enabled after install; new sessions should pick up incremental updates.
-
-CLI equivalents (when MCP is not attached yet):
-
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-codebase-memory-mcp cli list_projects
-codebase-memory-mcp cli index_repository --repo-path /workspace/packages --name app-tour-packages
-codebase-memory-mcp cli get_architecture --project app-tour-packages
-codebase-memory-mcp cli search_graph --project app-tour-packages --name-pattern '.*Handler.*' --label Function
-codebase-memory-mcp cli trace_path --project app-tour-apps --function-name '<ExactName>' --direction both
-```
-
-## Tool selection
+Pass `project` on every graph call.
 
 | Task | Tool |
 |------|------|
-| Find definitions, classes, routes, symbols | `search_graph` |
-| Text search enriched with graph context | `search_code` |
-| Callers / callees / data flow | `trace_path` |
-| Architecture, modules, hotspots, layers | `get_architecture` |
-| Uncommitted change impact | `detect_changes` |
-| Read a known symbol body | `get_code_snippet` (after `search_graph`) |
-| Multi-hop graph patterns | `query_graph` |
-| Coverage of cited paths | `check_index_coverage` |
+| Definitions / routes / symbols | `search_graph` |
+| Text + graph | `search_code` |
+| Callers / callees | `trace_path` |
+| Architecture | `get_architecture` |
+| Uncommitted impact | `detect_changes` |
+| Known symbol body | `get_code_snippet` |
+| Multi-hop | `query_graph` |
 
-## When NOT to use graph tools
+Skip graph: editing a file user named; docs-only; one-off string in a known path.
 
-- Editing a file the user already pointed to
-- Config/docs-only questions with no code structure
-- One-off string search in a known file path
-
-## Fallback
-
-If MCP is disconnected or returns empty results, use the CLI commands above, then
-`Grep` / `Read`. Say that indexing or MCP attach may be pending (new Cloud Agent
-sessions load `.cursor/mcp.json`; this session may need a restart).
+Fallback if MCP empty: CLI `codebase-memory-mcp cli …` then `Grep`/`Read`. Say attach/index may be pending.
