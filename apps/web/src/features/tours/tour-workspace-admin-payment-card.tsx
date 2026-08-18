@@ -36,7 +36,6 @@ type TourWorkspaceAdminPaymentCardProps = {
   readonly onChanged?: (event: TourWorkspacePaymentActionEvent) => void;
   readonly className?: string;
   readonly refreshKey?: string | number;
-  readonly hideIntro?: boolean;
 };
 
 type PaymentActionBanner = {
@@ -62,7 +61,6 @@ export function TourWorkspaceAdminPaymentCard({
   onChanged,
   className,
   refreshKey,
-  hideIntro = false,
 }: TourWorkspaceAdminPaymentCardProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("tours.workspace.finance");
@@ -272,9 +270,7 @@ export function TourWorkspaceAdminPaymentCard({
         </p>
       ) : null}
       <div className="space-y-4">
-        {!hideIntro ? (
-          <p className="text-xs text-muted-foreground">{t("workspacePaymentDescription")}</p>
-        ) : null}
+        <p className="text-xs text-muted-foreground">{t("workspacePaymentDescription")}</p>
         <div data-operator-surface="card" className="rounded-md border bg-background px-4 py-4">
           <form
             className="grid gap-4"

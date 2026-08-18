@@ -5,7 +5,7 @@
 import { expect, test } from "@playwright/test";
 
 import { FINANCE_PAYMENTS_TEST_IDS } from "../../src/finance/finance-payments-logic";
-import { FINANCE_RECEIPTS_TEST_IDS, parseFinancePendingReceiptsResponse } from "../../src/finance/finance-receipts-logic";
+import { parseFinancePendingReceiptsResponse } from "../../src/finance/finance-receipts-logic";
 import { TOUR_WORKSPACE_FINANCE_TEST_IDS } from "../../src/features/tours/tour-workspace-finance-logic";
 import { TOUR_WORKSPACE_TEST_IDS } from "../../src/features/tours/tour-workspace-types";
 import {
@@ -226,13 +226,10 @@ test.describe("scenario-6 workspace finance under-review gating", () => {
       timeout: 30_000,
     });
 
-    console.log("S6: assert inline receipt review and hidden payment forms");
+    console.log("S6: assert review CTA and hidden forms");
     await expect(
-      page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.inlineReceiptReview)
+      page.getByRole("link", { name: /Open receipt review|باز کردن بررسی رسید/i })
     ).toBeVisible({
-      timeout: 30_000,
-    });
-    await expect(page.getByTestId(FINANCE_RECEIPTS_TEST_IDS.reviewForm)).toBeVisible({
       timeout: 30_000,
     });
 

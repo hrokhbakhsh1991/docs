@@ -5,7 +5,6 @@
 import { expect, test } from "@playwright/test";
 
 import { BOOKINGS_COMMAND_CENTER_TEST_IDS } from "../../src/features/bookings/bookings-command-center-types";
-import { FINANCE_PAYMENTS_TEST_IDS } from "../../src/finance/finance-payments-logic";
 import { TOUR_WORKSPACE_FINANCE_TEST_IDS } from "../../src/features/tours/tour-workspace-finance-logic";
 import { TOUR_WORKSPACE_TEST_IDS } from "../../src/features/tours/tour-workspace-types";
 import {
@@ -117,11 +116,10 @@ test.describe("scenario-1 approve unpaid → finance focus", () => {
       await expect(highlightedRow).toHaveClass(/ring/);
       const detailPanel = page.getByTestId(TOUR_WORKSPACE_FINANCE_TEST_IDS.detailPanel);
       await expect(detailPanel).toBeVisible({ timeout: 10_000 });
-      await expect(
-        detailPanel.getByTestId("operator-tour-workspace-finance-actions").or(
-          detailPanel.getByTestId(FINANCE_PAYMENTS_TEST_IDS.createForm)
-        )
-      ).toBeVisible({ timeout: 10_000 });
+      const primaryCta = detailPanel.locator(
+        `[data-testid^="${TOUR_WORKSPACE_FINANCE_TEST_IDS.followUpPayment}-"], [data-testid^="${TOUR_WORKSPACE_FINANCE_TEST_IDS.reviewPartial}-"]`
+      );
+      await expect(primaryCta.first()).toBeVisible({ timeout: 10_000 });
       await expect(
         detailPanel.getByTestId(`${TOUR_WORKSPACE_FINANCE_TEST_IDS.openCase}-${registrationId}`)
       ).toBeVisible();
