@@ -8,7 +8,7 @@
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-home]
-  > section[data-marketing-home-gallery] {
+  > section[data-marketing-home-gallery]:not([hidden]):not([aria-hidden="true"]) {
   --color-primary: var(--denali-forest-600);
   --color-primary-hover: var(--denali-forest-700);
   --primary: var(--denali-forest-600);
@@ -30,7 +30,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-home]
-  > section[data-marketing-home-gallery]
+  > section[data-marketing-home-gallery]:not([hidden]):not([aria-hidden="true"])
   > [data-marketing-home-gallery-inner] {
   box-sizing: border-box;
   width: 100%;
@@ -81,7 +81,9 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-home-gallery-grid] {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: auto;
   gap: var(--space-3);
+  min-height: 0;
   padding: 0;
   border: none;
   background: transparent;
@@ -110,9 +112,13 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   figure[data-marketing-home-gallery-item-primary] {
   display: flex;
   flex-direction: column;
+  grid-column: auto;
+  grid-row: auto;
   gap: var(--space-2);
   aspect-ratio: auto;
   min-height: 0;
+  height: auto;
+  align-self: start;
   border-radius: 0;
   box-shadow: none;
 }
@@ -339,7 +345,10 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-home-gallery-support] {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: auto;
+  align-content: start;
   gap: var(--space-3);
+  height: auto;
   margin: 0;
   padding: 0;
   overflow: visible;
@@ -360,16 +369,18 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-home]
   section[data-marketing-home-gallery]
   div[data-marketing-home-gallery-support]
-  figure[data-marketing-home-gallery-item]:nth-child(odd),
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  [data-marketing-home]
-  section[data-marketing-home-gallery]
-  div[data-marketing-home-gallery-support]
-  figure[data-marketing-home-gallery-item]:nth-child(even) {
+  figure[data-marketing-home-gallery-item]:first-child {
+  display: block;
   flex: none;
+  grid-column: auto;
+  grid-row: auto;
+  justify-self: stretch;
   width: auto;
-  aspect-ratio: 16 / 9;
+  max-width: none;
+  min-width: 0;
   min-height: 0;
+  max-height: 10rem;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
   border-radius: var(--radius-md);
   box-shadow: none;
@@ -406,12 +417,21 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     div[data-marketing-home-gallery-hero-controls] {
     max-height: 22rem;
   }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-home]
+    section[data-marketing-home-gallery]
+    div[data-marketing-home-gallery-support]
+    figure[data-marketing-home-gallery-item]:first-child {
+    grid-column: auto;
+    max-height: 10rem;
+  }
 }
 
 @media (min-width: 64rem) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     [data-marketing-home]
-    > section[data-marketing-home-gallery] {
+    > section[data-marketing-home-gallery]:not([hidden]):not([aria-hidden="true"]) {
     padding-block: var(--space-8);
   }
 
