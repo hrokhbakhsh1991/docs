@@ -32,6 +32,7 @@ describe("portal-member-entitlements — PS-5", () => {
     assert.match(bff, /fetchMemberEntitlementsUpstream/);
     assert.match(bff, /resolveMemberEntitlementsPayload/);
     assert.match(bff, /classifyMemberProfileBffFailure/);
+    assert.match(bff, /readMemberBffErrorCode/);
     assert.match(bff, /cacheable/);
   });
 

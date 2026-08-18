@@ -21,6 +21,7 @@ describe("portal public-auth expire-session — PCMS-SEC-03", () => {
     const location = res.headers.get("location") ?? "";
     assert.match(location, /\/login/);
     assert.match(location, /portalReturn=%2Fme%2Fprofile/);
+    assert.match(location, /^http:\/\/denali\.portal\.localhost:3003\/login/);
     assert.doesNotMatch(location, /denali\.localhost:3002/);
     assert.doesNotMatch(location, /:3002\//);
 

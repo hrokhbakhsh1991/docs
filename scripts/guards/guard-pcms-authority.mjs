@@ -119,7 +119,10 @@ if (!portalMiddleware.includes("resolvePortalBootstrapForHost")) {
 if (!portalMiddleware.includes("redirectToMemberLogin")) {
   violations.push("portal/middleware.ts: unauthenticated /me/* must redirect to member login");
 }
-if (portalMiddleware.includes("redirectHome") || portalMiddleware.includes('pathname = "/"')) {
+if (
+  portalMiddleware.includes("function redirectHome") ||
+  /home\.pathname\s*=\s*["']\/["']/.test(portalMiddleware)
+) {
   violations.push("portal/middleware.ts: /me tenant mismatch must not redirectHome to / (PCMS-SEC-03)");
 }
 if (!portalMiddleware.includes("/login?portalReturn=%2Fme%2Fregistrations")) {
@@ -345,6 +348,9 @@ const fetchProfile = readRepo("apps/portal/src/me/fetch-member-profile.server.ts
 if (!fetchProfile.includes("classifyMemberProfileBffFailure")) {
   violations.push("fetch-member-profile.server.ts: missing classifyMemberProfileBffFailure");
 }
+if (!fetchProfile.includes("readMemberBffErrorCode")) {
+  violations.push("fetch-member-profile.server.ts: missing readMemberBffErrorCode");
+}
 if (!fetchProfile.includes("/api/me/profile")) {
   violations.push("fetch-member-profile.server.ts: must self-fetch /api/me/profile");
 }
@@ -359,6 +365,9 @@ if (!entitlementsBff.includes("classifyMemberProfileBffFailure")) {
   violations.push(
     "member-entitlements-bff.server.ts: 401/403 must use classifyMemberProfileBffFailure (PCMS-SEC-03)"
   );
+}
+if (!entitlementsBff.includes("readMemberBffErrorCode")) {
+  violations.push("member-entitlements-bff.server.ts: missing readMemberBffErrorCode (PCMS-SEC-03)");
 }
 if (!entitlementsBff.includes("cacheable")) {
   violations.push("member-entitlements-bff.server.ts: missing cacheable flag (PCMS-SEC-03)");

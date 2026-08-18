@@ -4,7 +4,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { classifyMemberProfileBffFailure } from "../src/me/classify-member-profile-bff-error";
+import {
+  classifyMemberProfileBffFailure,
+  readMemberBffErrorCode,
+} from "../src/me/classify-member-profile-bff-error";
 
 describe("classifyMemberProfileBffFailure — PCMS-SEC-03", () => {
   it("treats 401/403/404 as unauthenticated", () => {
@@ -38,5 +41,21 @@ describe("classifyMemberProfileBffFailure — PCMS-SEC-03", () => {
     assert.equal(classifyMemberProfileBffFailure(503), "unavailable");
     assert.equal(classifyMemberProfileBffFailure(500, "BACKEND_UNREACHABLE"), "unavailable");
     assert.equal(classifyMemberProfileBffFailure(0), "unavailable");
+  });
+});
+
+describe("readMemberBffErrorCode — PCMS-SEC-03", () => {
+  it("reads profile nested error.code, API code, and string error", () => {
+    assert.equal(
+      readMemberBffErrorCode({ error: { code: "AUTH_TOKEN_REVOKED" } }),
+      "AUTH_TOKEN_REVOKED"
+    );
+    assert.equal(readMemberBffErrorCode({ code: "unauthorized" }), "unauthorized");
+    assert.equal(
+      readMemberBffErrorCode({ error: "UNAUTHORIZED_INVALID_BEARER_TOKEN" }),
+      "UNAUTHORIZED_INVALID_BEARER_TOKEN"
+    );
+    assert.equal(readMemberBffErrorCode({}), undefined);
+    assert.equal(readMemberBffErrorCode(null), undefined);
   });
 });

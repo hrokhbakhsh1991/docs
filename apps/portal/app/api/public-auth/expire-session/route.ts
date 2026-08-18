@@ -18,7 +18,11 @@ export async function GET(req: Request): Promise<NextResponse> {
     resolvePortalMemberLoginPath(host, returnPath) ??
     "/login?portalReturn=%2Fme%2Fregistrations";
 
-  const target = new URL(loginPath, requestUrl.origin);
+  const parsed = new URL(loginPath, requestUrl.origin);
+  const target = new URL(requestUrl.href);
+  target.pathname = parsed.pathname;
+  target.search = parsed.search;
+  target.hash = "";
   const response = NextResponse.redirect(target, 307);
   response.headers.set("Cache-Control", "no-store");
   clearSessionCookieOnResponse(response.headers, host);

@@ -2,7 +2,10 @@ import { evaluateMemberPortalEntitlements } from "@app-tour/workspace-sdk";
 
 import { resolveTourOpsApiBaseUrl } from "@/env";
 
-import { classifyMemberProfileBffFailure } from "./classify-member-profile-bff-error";
+import {
+  classifyMemberProfileBffFailure,
+  readMemberBffErrorCode,
+} from "./classify-member-profile-bff-error";
 
 export type MemberEntitlementDenial = {
   readonly key: string;
@@ -64,27 +67,6 @@ function emptyMemberEntitlementsPayload(input: {
   });
 }
 
-function readUpstreamErrorCode(body: unknown): string | undefined {
-  if (body === null || typeof body !== "object") {
-    return undefined;
-  }
-  const record = body as Record<string, unknown>;
-  if (typeof record.code === "string" && record.code.trim().length > 0) {
-    return record.code.trim();
-  }
-  const error = record.error;
-  if (typeof error === "string" && error.trim().length > 0) {
-    return error.trim();
-  }
-  if (error !== null && typeof error === "object") {
-    const nested = (error as { readonly code?: unknown }).code;
-    if (typeof nested === "string" && nested.trim().length > 0) {
-      return nested.trim();
-    }
-  }
-  return undefined;
-}
-
 export async function fetchMemberEntitlementsUpstream(
   host: string,
   apiHeaders: Record<string, string>
@@ -125,7 +107,7 @@ export async function fetchMemberEntitlementsUpstream(
   return {
     status: "http",
     httpStatus: backendRes.status,
-    code: readUpstreamErrorCode(body),
+    code: readMemberBffErrorCode(body),
   };
 }
 

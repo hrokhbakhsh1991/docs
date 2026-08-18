@@ -6,10 +6,10 @@ import type { ReactNode } from "react";
 import { resolveEmbeddedMemberPortalHost, resolveGuestChromeDisplayName, resolveGuestMemberChipLabel } from "@app-tour/guest-surface-host";
 import { isMemberPortalEnabled } from "@app-tour/workspace-sdk";
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
+import { resolveMarketingPublicBaseUrl } from "@/marketing/resolve-marketing-public-url";
 import { fetchMemberProfile } from "@/me/fetch-member-profile.server";
 import { MemberPortalDisabled } from "@/me/member-portal-disabled";
 import { redirectDeadMemberSession } from "@/me/redirect-dead-member-session.server";
-import { resolveMarketingPublicBaseUrl } from "@/marketing/resolve-marketing-public-url";
 import { resolveMemberEntitlementsForShell } from "@/me/resolve-member-entitlements-for-shell.server";
 import { PortalMemberShell } from "@/shell/portal-member-shell";
 import { resolvePortalMemberNavForPlugin } from "@/shell/resolve-portal-member-nav.server";
@@ -43,14 +43,12 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
     redirectDeadMemberSession(returnPath);
   }
 
-  const branding = await fetchPublicTenantBrandingForHost(host);
-  const tChrome = await getTranslations("catalogRegistration");
-  const workspaceLabel = resolveGuestChromeDisplayName(
-    branding.displayName,
-    tChrome("chrome.defaultSiteName")
-  );
-  const logoUrl = branding.logoUrl ?? null;
-  const entitlements = await resolveMemberEntitlementsForShell(host, bootstrap);
+  const [branding, entitlements, tChrome, tNav] = await Promise.all([
+    fetchPublicTenantBrandingForHost(host),
+    resolveMemberEntitlementsForShell(host, bootstrap),
+    getTranslations("catalogRegistration"),
+    getTranslations("portalMember.nav"),
+  ]);
   if (entitlements === null || entitlements.auth === "unauthenticated") {
     redirectDeadMemberSession(returnPath);
   }
@@ -64,7 +62,11 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
   });
 
   const profile = profileResult.status === "ok" ? profileResult.payload.profile : undefined;
-  const tNav = await getTranslations("portalMember.nav");
+  const workspaceLabel = resolveGuestChromeDisplayName(
+    branding.displayName,
+    tChrome("chrome.defaultSiteName")
+  );
+  const logoUrl = branding.logoUrl ?? null;
   const memberHeader = {
     displayName: resolveGuestMemberChipLabel({
       displayName: profile?.fields.displayName,

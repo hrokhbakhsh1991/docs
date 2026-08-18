@@ -2,7 +2,10 @@ import { cache } from "react";
 
 import { readMemberCookieHeader } from "@/auth/read-public-catalog-session.server";
 
-import { classifyMemberProfileBffFailure } from "./classify-member-profile-bff-error";
+import {
+  classifyMemberProfileBffFailure,
+  readMemberBffErrorCode,
+} from "./classify-member-profile-bff-error";
 import type { MemberProfileViewPayload } from "./member-profile-types";
 import { resolvePortalSelfFetchOrigin } from "./resolve-portal-self-fetch-origin";
 
@@ -43,9 +46,6 @@ export const fetchMemberProfile = cache(async function fetchMemberProfile(
     return { status: "unavailable" };
   }
 
-  const body = (await res.json().catch(() => ({}))) as {
-    readonly error?: { readonly code?: unknown };
-  };
-  const code = typeof body.error?.code === "string" ? body.error.code : undefined;
-  return { status: classifyMemberProfileBffFailure(res.status, code) };
+  const body = await res.json().catch(() => ({}));
+  return { status: classifyMemberProfileBffFailure(res.status, readMemberBffErrorCode(body)) };
 });
