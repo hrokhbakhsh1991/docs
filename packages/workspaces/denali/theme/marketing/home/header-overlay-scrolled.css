@@ -23,3 +23,9 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     background: var(--denali-mist-50, #f4f7f4);
   }
 }
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-home]
+  > section {
+  scroll-margin-block-start: var(--mkt-header-height);
+}

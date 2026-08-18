@@ -104,6 +104,7 @@ describe("denali-marketing-chrome.spec.ts", () => {
     assert.match(scroll, /data-marketing-home-hero-walk/);
     assert.match(css, /data-marketing-header-scrolled/);
     assert.match(css, /--denali-mist-50/);
+    assert.match(css, /scroll-margin-block-start: var\(--mkt-header-height\)/);
     assert.match(aggregator, /@import "\.\/home\/header-overlay-scrolled\.css"/);
   });
 });
