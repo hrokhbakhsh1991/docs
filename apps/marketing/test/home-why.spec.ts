@@ -74,6 +74,8 @@ describe("home-why.spec.ts", () => {
     assert.match(css, /data-marketing-home-why-rail/);
     assert.match(css, /repeat\(4, minmax\(0, 1fr\)\)/);
     assert.match(css, /repeat\(2, minmax\(0, 1fr\)\)/);
+    assert.match(css, /@media \(min-width: 80rem\)/);
+    assert.match(css, /background: var\(--color-bg-surface/);
     assert.match(css, /data-marketing-home-why-kicker/);
     assert.doesNotMatch(css, /box-shadow:\s*var\(--mkt-shadow-card\)/);
     assert.doesNotMatch(css, /backdrop-filter/);

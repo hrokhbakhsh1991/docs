@@ -65,8 +65,13 @@ describe("home-destinations.spec.ts", () => {
     assert.match(aggregator, /@import "\.\/home\/programs\.css"/);
     assert.match(aggregator, /@import "\.\/home\/destinations\.css"/);
     assert.match(css, /repeat\(3, minmax\(0, 1fr\)\)/);
+    assert.match(css, /@media \(min-width: 64rem\)/);
+    assert.match(css, /@media \(min-width: 48rem\) and \(max-width: 63\.9375rem\)/);
+    assert.match(css, /minmax\(14rem, 40%\) minmax\(0, 1fr\)/);
     assert.match(css, /-webkit-line-clamp: 2/);
     assert.match(css, /min-height: 44px/);
+    assert.match(css, /background: transparent/);
+    assert.doesNotMatch(css, /color-mix\(in srgb, var\(--denali-forest-600\)/);
     assert.doesNotMatch(css, /scroll-snap-type:\s*x/);
     assert.doesNotMatch(css, /flex:\s*1\.4/);
     assert.doesNotMatch(css, /max-height:\s*0/);
