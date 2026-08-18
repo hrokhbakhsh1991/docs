@@ -249,7 +249,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   a[data-marketing-brand] {
   direction: ltr;
-  gap: 8px;
+  gap: 6px;
   color: #1a1f24;
   align-items: center;
 }
@@ -258,17 +258,19 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   a[data-marketing-brand]
   svg[data-marketing-brand-icon] {
-  width: 1.375rem;
-  height: 1.375rem;
+  width: 1.25rem;
+  height: 1.25rem;
   color: #1a1f24;
+  /* Mountain mass sits high in the Lucide box; nudge to lock with caps. */
+  transform: translateY(1px);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   a[data-marketing-brand]
   span[data-marketing-brand-title] {
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1;
   text-transform: uppercase;
@@ -296,11 +298,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   nav[data-marketing-header-nav]
-  a[data-marketing-nav-link]:hover,
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  header[data-marketing-header][data-marketing-header-overlay]
-  nav[data-marketing-header-nav]
-  a[data-marketing-nav-link-id="tours"] {
+  a[data-marketing-nav-link]:hover {
   background: transparent;
   opacity: 1;
 }
@@ -314,8 +312,9 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   a[data-marketing-portal-member] {
-  gap: 0.4rem;
-  padding: 0.35rem 0.15rem;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.65rem;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -332,8 +331,8 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   a[data-marketing-portal-member]:hover {
-  background: transparent;
-  opacity: 0.78;
+  background: color-mix(in srgb, #1a1f24 6%, transparent);
+  opacity: 1;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -383,9 +382,39 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   min-height: 44px;
   min-width: 44px;
   border: 0;
-  border-radius: 4px;
+  border-radius: 0;
   background: transparent;
   color: #1a1f24;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  details[data-marketing-nav-drawer]
+  > summary[data-marketing-nav-drawer-toggle]:hover {
+  background: color-mix(in srgb, #1a1f24 6%, transparent);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-brand]:focus-visible,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-nav-link]:focus-visible,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-header-sign-in]:focus-visible,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-header-member]:focus-visible,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-portal-member]:focus-visible,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  details[data-marketing-nav-drawer]
+  > summary[data-marketing-nav-drawer-toggle]:focus-visible {
+  outline: 2px solid #1a1f24;
+  outline-offset: 2px;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -416,6 +445,6 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     header[data-marketing-header][data-marketing-header-overlay]
     a[data-marketing-brand]
     span[data-marketing-brand-title] {
-    font-size: 0.9375rem;
+    font-size: 1rem;
   }
 }
