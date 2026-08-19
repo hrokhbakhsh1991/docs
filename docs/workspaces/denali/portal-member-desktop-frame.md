@@ -1,17 +1,17 @@
-# Denali portal member — desktop frame (PS-VIS-5 → 5f)
+# Denali portal member — desktop frame (Denali Pocket)
 
 ```yaml
 doc_id: DENALI-PORTAL-MEMBER-DESKTOP
-version: "2026-07-17-v6"
+version: "2026-08-19-v7"
 extends: portal-member-ui.md
-phase: PS-VIS-5g
+phase: DENALI-POCKET-3.1
 ```
 
 ## Problem
 
-Mobile-first member shell looks correct on phones. The PS-VIS-5 **phone card** and later **marketing-parity header** (center nav + locale + drawer) duplicated the side rail and broke desktop layout (tall header, stacked center links, FA/EN). Header **Log out** next to the member chip also felt like chrome clutter, not an intentional account action.
+Mobile-first member shell is the authority. Earlier PS-VIS-5 **phone card** (`max-width: 64rem`, `max-height: calc(100dvh - 2rem)`, alpine stage, rounded floating window) made desktop feel like a marketing lightbox, not an account app. Marketing-parity header (center nav + locale + drawer) duplicated the side rail. Header **Log out** next to the member chip cluttered identity chrome.
 
-## Solution (PS-VIS-5c shell · 5e header · 5f logout · 5g sectioned profile)
+## Solution (Denali Pocket shell · PS-VIS-5e header · 5f logout · 5g sectioned profile)
 
 ### A. Desktop app shell (all `/me/*`)
 
@@ -19,11 +19,11 @@ At `≥48rem` (non-embedded):
 
 | Element | Behavior |
 | ------- | -------- |
-| Shell | Wide page card (`max-width: 64rem` → `72rem` at `≥64rem`), centered on alpine backdrop |
-| Header (**PS-VIS-5e**) | **Minimal chrome only:** brand → marketing home · member chip → `/me/profile`. **No** locale, **no** center nav, **no** logout in the header. |
+| Shell | **Full-viewport account app** (`min-height` / `max-height: 100dvh`, no centered phone-card, no alpine stage). Mist canvas. |
+| Header (**PS-VIS-5e**) | **Compact app bar (52px):** brand → marketing home · member chip → `/me/profile`. **No** locale, **no** center nav, **no** logout in the header. No marketing glass/blur. |
 | Nav | **Side rail** — `[data-portal-shell-bottom-nav]` vertical; thumb bar on mobile |
 | Logout (**PS-VIS-5f**) | **Desktop:** pinned footer of the side rail (`[data-portal-shell-nav-footer]`). **Mobile:** account session card on `/me/profile` (`[data-member-profile-session]`); nav footer hidden so the thumb bar stays for primary destinations only. |
-| Main | Scrolls in the content column |
+| Main | Scrolls in the content column (`overflow-y: auto`) |
 
 **Dual-app rule:** Marketing owns discover nav; Portal header is identity + egress to marketing brand only. Sign-out is an account action, not header chrome.
 
@@ -54,18 +54,18 @@ Hooks:
 
 | Viewport | Shell | Nav | Profile |
 | -------- | ----- | --- | ------- |
-| `< 48rem` | 36rem mobile | bottom bar | sticky save + cards |
-| `≥ 48rem` | 64rem page + side rail | vertical rail | **sectioned** profile (5g) |
-| `≥ 64rem` | 72rem | vertical rail | wider sectioned form (~52rem) |
+| `< 48rem` | full-bleed Pocket mobile | bottom bar | save + cards |
+| `≥ 48rem` | 100dvh account app + side rail | vertical rail | **sectioned** profile (5g) |
+| `≥ 64rem` | wider rail (14rem) | vertical rail | wider sectioned form (~52rem) |
 
 ## CSS / markup files
 
 | File | Scope |
 | ---- | ----- |
-| `portal/member-shell-desktop.css` | Backdrop, page shell, **side-rail nav** |
+| `portal/member-shell-desktop.css` | Mist canvas, full-viewport grid, **side-rail nav** |
 | `portal/member-pages-desktop.css` | Home/trips grids |
 | `portal/member-profile.css` | Mobile cards + **PS-VIS-5g sectioned** desktop |
-| `portal/marketing-header-parity.css` | Minimal header skin tokens (brand + chip) |
+| `portal/marketing-header-parity.css` | Pocket app-bar tokens (brand + chip; no marketing glass) |
 | `src/shell/portal-member-header.tsx` | **PS-VIS-5e** brand + chip |
 | `src/shell/portal-member-bottom-nav.tsx` | Primary nav + **PS-VIS-5f** desktop logout footer. **BUG-2:** labels come from RSC props (`item.label`, `primaryNavLabel`, logout strings) — no `useTranslations` in this client file. |
 | `app/me/profile/member-profile-form.tsx` | Hooks + `data-member-profile-layout`; mobile session/logout |
@@ -77,4 +77,4 @@ node --import ./test/css-hook.mjs --import tsx --test \
   test/portal-visual-wave5.spec.ts test/portal-visual-wave4.spec.ts test/guest-theme-stack.spec.ts
 ```
 
-Manual: 1440×900 — side rail visible, profile **sectioned** (no stacked card boxes), Save in footer; 390px cards unchanged.
+Manual: 1440×900 — side rail visible, **no floating phone-card**, mist canvas; profile **sectioned**; 390px compact header + thumb bar.

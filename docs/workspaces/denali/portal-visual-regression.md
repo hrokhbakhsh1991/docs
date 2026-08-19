@@ -12,13 +12,13 @@
 | SH-02b | `[data-portal-shell-nav-footer]` `[data-public-auth-logout]` | Desktop side-rail logout | 5f |
 | SH-02c | `[data-member-profile-session]` `[data-public-auth-logout]` | Mobile profile logout | 5f |
 | SH-03 | `[data-portal-shell-bottom-nav]` + `[data-portal-shell-nav-icon]` | Bottom nav icons (incl. profile when entitled) | 2 |
-| SH-05 | `[data-portal-shell-main]` alpine canvas | Member shell page bg | 4 |
+| SH-05 | `[data-portal-shell-main]` mist Pocket canvas | Member shell page bg | 4 / Pocket 3.1 |
 | SH-06 | `[data-portal-shell-user-menu]` profile chip + icon | Header user cluster | 4 |
-| DESK-01 | `member-shell-desktop.css` `@media (min-width: 48rem)` body `:has([data-portal-shell])` | Desktop backdrop | 5 |
-| DESK-02 | `[data-portal-shell]:not([data-embedded-host])` frame + shadow | Centered app card | 5 |
-| DESK-03 | Bottom nav `position: absolute` inside shell (desktop) | Nav not full-bleed | 5 |
+| DESK-01 | `member-shell-desktop.css` `@media (min-width: 48rem)` body `:has([data-portal-shell])` | Desktop mist canvas | 5 / Pocket 3.1 |
+| DESK-02 | `[data-portal-shell]:not([data-embedded-host])` full-viewport grid | Account app (no phone-card) | 5 / Pocket 3.1 |
+| DESK-03 | Bottom nav `position: relative` inside shell (desktop) | Nav not full-bleed | 5 |
 | DESK-04 | Home 3-col / trips 2-col `@media (min-width: 64rem)` | Page grids | 5 |
-| DESK-05 | Shell `max-height` + main `overflow-y: auto` | In-frame scroll | 5 |
+| DESK-05 | Shell `max-height: 100dvh` + main `overflow-y: auto` | In-app scroll | 5 / Pocket 3.1 |
 
 ## Registration (guest)
 
