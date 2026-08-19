@@ -32,8 +32,9 @@ Visual layer for **authenticated member routes** (`/me/*`) inside `PortalMemberS
 | `portal/member-profile.css` | Profile form + avatar (parity with auth form controls) |
 | `portal/denali-form-controls.css` | Shared inputs + primary CTA (auth card, profile, receipt) |
 | `portal/login-page.css` | Auth experience (imports form controls) |
+| `portal/alpine-login.css` | Denali `/login` Alpine Split only (`data-portal-login-full-page`) |
 
-Import order in `denali-portal.css`: semantic tokens → legacy inline rules → `login-page.css` → member pack → **desktop** (`member-shell-desktop`, `member-pages-desktop`). Form controls load via `@import` inside `login-page.css` and `member-profile.css`.
+Import order in `denali-portal.css`: semantic tokens → legacy inline rules → `login-page.css` → `alpine-login.css` → member pack → **desktop** (`member-shell-desktop`, `member-pages-desktop`). Form controls load via `@import` inside `login-page.css` and `member-profile.css`.
 
 Desktop frame: [portal-member-desktop-frame.md](./portal-member-desktop-frame.md) — centered shell card `≥48rem`, nav contained, body backdrop via `:has([data-portal-shell])`.
 

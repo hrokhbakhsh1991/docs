@@ -33,11 +33,12 @@
     "formEyebrow": "ورود با کد یک‌بارمصرف",
     "formDescription": "فقط شماره موبایل.",
     "sendCode": "ارسال کد",
-    "sending": "در حال ارسال…"
+    "sending": "در حال ارسال…",
+    "portalPhotoLabel": "البرز"
   },
   "otp": {
     "title": "کد تأیید را وارد کنید",
-    "loginTitle": "تأیید برای ورود",
+    "loginTitle": "کد",
     "sentTo": "کد به {phone} ارسال شد",
     "helper": "کد یک‌بارمصرف را وارد کنید.",
     "autoFillHint": "اگر پیامک روی همین دستگاه باشد، تکمیل کد سریع‌تر انجام می‌شود.",
@@ -56,7 +57,7 @@
     "description": "نام اجباری است. ایمیل اختیاری.",
     "loginDescription": "برای تکمیل ورود، نام خود را وارد کنید. ایمیل اختیاری است.",
     "nameLabel": "نام",
-    "emailLabel": "ایمیل (اختیاری)",
+    "emailLabel": "ایمیل، اختیاری",
     "continue": "ادامه",
     "loginContinue": "ورود",
     "saving": "در حال ذخیره…"
