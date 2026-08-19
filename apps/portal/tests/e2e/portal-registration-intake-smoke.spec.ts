@@ -63,7 +63,7 @@ test("DEN-INTAKE-03 other registrant tab shows participant fields on gated tour"
 }) => {
   await reachIntakeStep(page, OPERATOR_SMOKE_PARTICIPANT_TOUR_ID, INTAKE_PHONE);
 
-  await page.locator('[data-registration-target="other"]').click();
+  await page.locator("[data-denali-registrant-self-toggle] input").click();
   await expect(page.locator('[data-intake-field="nationalId"]')).toBeVisible();
   await expect(page.locator('[data-intake-field="fullName"]')).toBeVisible();
 
