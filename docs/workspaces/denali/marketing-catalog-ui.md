@@ -183,7 +183,7 @@ Marketing hosts the shared phone/OTP/profile steps in `[data-marketing-login-mod
 | ------- | ------- | ----------------------------------- |
 | Header `[data-marketing-header-sign-in]` | **Navigate** to Portal `/login?portalReturn=/me/registrations` (page OTP). Not `MarketingLoginModalTrigger`. | Same `href` — no client intercept |
 | PDP `[data-marketing-tour-sign-in]` | Client trigger opens marketing modal; stay on `/tours/{id}` after reload | `href` = portal `register?auth=login` |
-| Guest `[data-marketing-register]` (primaryKind `register`) | Same PDP trigger as «ورود» — stay on `/tours/{id}` (Phase 6 / DL-49) | `href` = portal `/catalog/{id}/register` |
+| Guest `[data-marketing-register]` (primaryKind `register`) | Same PDP trigger as «ورود» — stay on `/tours/{id}` (Phase 6 / DL-49). Client sets `data-marketing-register-ready="true"` only after hydrate + provider. Playwright SMK-MKT-03 must wait for that attr; clicking the SSR `<a href>` before hydrate navigates to `portal.{club}.localhost:3003/catalog/{id}/register`. | `href` = portal `/catalog/{id}/register` |
 | Member `[data-marketing-register]` (continue / register-another) | **Navigate** to portal `/catalog/{id}/register` (intake) | Same `href` |
 
 `MarketingLoginModalProvider` remains in `app/layout.tsx` so PDP (and a **future** marketing login host) can open `[data-marketing-login-modal]` without a second provider. `host="header"` on that dialog is reserved — do not attach it to chrome Sign in until product asks.

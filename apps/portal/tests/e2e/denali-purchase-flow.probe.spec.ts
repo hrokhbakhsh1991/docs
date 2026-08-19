@@ -43,8 +43,10 @@ test.describe("Denali purchase flow (manual-only)", () => {
       timeout: 60_000,
     });
 
-    const registerLink = page.locator("[data-marketing-register]");
-    await expect(registerLink).toBeVisible();
+    const registerLink = page.locator(
+      "[data-marketing-register][data-marketing-register-ready='true']"
+    );
+    await expect(registerLink.first()).toBeVisible({ timeout: 60_000 });
     await registerLink.first().click();
     await expect(page).toHaveURL(/\/tours\/[^/?#]+/);
     await expect(page).not.toHaveURL(/\/catalog\//);

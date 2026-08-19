@@ -17,8 +17,10 @@ export async function completeGuestPdpRegisterModalThenOpenPortalIntake(
   const fullName = input.fullName ?? "Marketing Smoke Guest";
   const email = input.email ?? `pdp-modal-${Date.now()}@smoke.local`;
   await expect(page.locator("[data-marketing-login-modal]")).toBeAttached();
-  const registerLink = page.locator("[data-marketing-register]").first();
-  await expect(registerLink).toBeVisible();
+  const registerLink = page
+    .locator("[data-marketing-register][data-marketing-register-ready='true']")
+    .first();
+  await expect(registerLink).toBeVisible({ timeout: 60_000 });
   await registerLink.click();
   await expect(page).toHaveURL(/\/tours\/[^/?#]+/);
   await expect(page).not.toHaveURL(/\/catalog\//);
