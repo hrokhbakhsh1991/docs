@@ -24,9 +24,9 @@ import {
   isDenaliIntakeDongOffered,
 } from "../denali-catalog-transport-intake";
 import {
-  denaliCatalogRegistrationFlowSurface,
   readDenaliFlowData,
 } from "./denali-registration-flow.surface";
+import { DenaliDoneStep } from "./denali-registration-flow.done-step";
 import {
   denaliRequiredIntakeCopyField,
   denaliIntakeNationalIdChecksumIssue,
@@ -1243,34 +1243,7 @@ export function DenaliIntakeStep({
     </form>
   );
 }
-
-export function DenaliDoneStep({ context, state }: RegistrationFlowStepProps) {
-  const t = useTranslations("catalogRegistration");
-  const attrs = denaliCatalogRegistrationFlowSurface.successDataAttributes?.(state, context) ?? {};
-  return (
-    <div data-public-registration-success data-denali-registration-ledger {...attrs}>
-      <p data-denali-success-kicker>{t("intake.kicker")}</p>
-      <h1 data-denali-success-title>{t("success.title")}</h1>
-      <p data-denali-success-tour role="status">
-        {t("success.message", { tourTitle: context.tourTitle })}
-      </p>
-      <div data-denali-success-actions>
-        {context.memberModuleHref !== null ? (
-          <p>
-            <a data-denali-success-primary href={context.memberModuleHref}>
-              {t("success.viewRegistrations")}
-            </a>
-          </p>
-        ) : null}
-        <p>
-          <a data-denali-success-secondary href={context.backHref}>
-            {t("success.backToTour")}
-          </a>
-        </p>
-      </div>
-    </div>
-  );
-}
+export { DenaliDoneStep };
 
 export const denaliRegistrationFlowSteps = Object.freeze({
   ...catalogRegistrationAuthFlowSteps,
