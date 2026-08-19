@@ -92,7 +92,7 @@ export function DenaliIntakeStep({
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
     const viewport = window.visualViewport;
-    if (viewport === undefined) return;
+    if (viewport == null) return;
     const syncKeyboard = (): void => {
       const overlap = window.innerHeight - viewport.height - viewport.offsetTop;
       formRef.current?.toggleAttribute("data-denali-keyboard-open", overlap > 120);
