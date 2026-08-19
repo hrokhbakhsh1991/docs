@@ -56,6 +56,23 @@ describe("portal-visual-wave4.spec.ts", () => {
     assert.match(links, /data-portal-member-home-quick-link-icon/);
   });
 
+  it("VIS-HOME-05 Pocket home has canvas title and next-action CTA", () => {
+    const css = readFileSync(join(denaliThemeRoot, "portal/member-pages.css"), "utf8");
+    const home = css.slice(
+      css.indexOf("/* ── Home (Pocket 3.3)"),
+      css.indexOf("/* ── Trips list (Pocket 3.2)")
+    );
+    assert.match(home, /background:\s*none/);
+    assert.match(home, /content:\s*none/);
+    assert.match(home, /portal-pocket-title-size/);
+    assert.match(home, /li:first-child/);
+    assert.match(home, /portal-pocket-cta-height/);
+    assert.doesNotMatch(home, /linear-gradient/);
+    assert.doesNotMatch(home, /radial-gradient/);
+    assert.doesNotMatch(home, /min-height:\s*10rem/);
+    assert.doesNotMatch(home, /#[0-9a-fA-F]{3,8}/);
+  });
+
   it("VIS-TRIP-03 registrations list exposes chevron + list hook", () => {
     const page = readPortal("app/me/registrations/page.tsx");
     assert.match(page, /data-portal-member-registrations-list/);

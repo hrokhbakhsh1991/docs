@@ -4,7 +4,7 @@
 doc_id: DENALI-PORTAL-MEMBER-DESKTOP
 version: "2026-08-19-v7"
 extends: portal-member-ui.md
-phase: DENALI-POCKET-3.1
+phase: DENALI-POCKET-3.3
 ```
 
 ## Problem
@@ -48,7 +48,7 @@ Hooks:
 - `data-member-profile-session` — mobile logout card (hidden on desktop; rail footer owns sign-out)
 - Existing `data-member-profile-save` / avatar / field hooks unchanged for smoke
 
-**Non-goals:** full shadcn Sidebar package, second settings nav inside profile, dashboard density for trips list, L2 platform shell rewrite.
+**Non-goals:** full shadcn Sidebar package, second settings nav inside profile, dashboard density for home or trips list, L2 platform shell rewrite.
 
 ## Breakpoints
 
@@ -63,7 +63,7 @@ Hooks:
 | File | Scope |
 | ---- | ----- |
 | `portal/member-shell-desktop.css` | Mist canvas, full-viewport grid, **side-rail nav** |
-| `portal/member-pages-desktop.css` | Home grids; **trips list stays one column** (Pocket 3.2) |
+| `portal/member-pages-desktop.css` | **Home + trips stay one column** (Pocket 3.3 / 3.2) |
 | `portal/member-profile.css` | Mobile cards + **PS-VIS-5g sectioned** desktop |
 | `portal/marketing-header-parity.css` | Pocket app-bar tokens (brand + chip; no marketing glass) |
 | `src/shell/portal-member-header.tsx` | **PS-VIS-5e** brand + chip |

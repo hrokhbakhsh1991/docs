@@ -17,7 +17,7 @@
 | DESK-01 | `member-shell-desktop.css` `@media (min-width: 48rem)` body `:has([data-portal-shell])` | Desktop mist canvas | 5 / Pocket 3.1 |
 | DESK-02 | `[data-portal-shell]:not([data-embedded-host])` full-viewport grid | Account app (no phone-card) | 5 / Pocket 3.1 |
 | DESK-03 | Bottom nav `position: relative` inside shell (desktop) | Nav not full-bleed | 5 |
-| DESK-04 | Home 3-col / trips 2-col `@media (min-width: 64rem)` | Page grids | 5 |
+| DESK-04 | Home + trips stay one column `@media (min-width: 64rem)` | Page lists | 5 / Pocket 3.2–3.3 |
 | DESK-05 | Shell `max-height: 100dvh` + main `overflow-y: auto` | In-app scroll | 5 / Pocket 3.1 |
 
 ## Registration (guest)
@@ -34,8 +34,9 @@
 
 | ID | Hook / selector | Surface | Wave |
 |----|-----------------|---------|------|
-| MEM-HOME-01 | `main[data-portal-member-home]` + `[data-portal-member-home-quick-links]` grid | Home | 4 |
-| MEM-HOME-02 | `[data-portal-member-home-quick-link-icon]` | Quick link cards | 4 |
+| MEM-HOME-01 | `main[data-portal-member-home]` + `[data-portal-member-home-quick-links]` | Home | 4 / 3.3 |
+| MEM-HOME-02 | `[data-portal-member-home-quick-link-icon]` | Next-action / secondary rows | 4 / 3.3 |
+| MEM-HOME-05 | Pocket home: canvas title, no hero gradient, first shortcut is next action | `/me/home` only | 3.3 |
 | MEM-TRIP-01 | `[data-portal-member-registration-row]` + status badge | Trips list | 2 |
 | MEM-TRIP-03 | `[data-portal-member-registrations-list]` + `[data-portal-member-row-chevron]` | Trips list affordance | 4 |
 | MEM-TRIP-05 | Pocket trips list: canvas title, no hero gradient, single-column rows | `/me/registrations` only | 3.2 |

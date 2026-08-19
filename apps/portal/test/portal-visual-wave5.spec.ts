@@ -42,11 +42,15 @@ describe("portal-visual-wave5.spec.ts", () => {
     assert.doesNotMatch(css, /\[data-portal-shell\]\s*\{/);
   });
 
-  it("DESK-04 member-pages-desktop.css widens home grids; trips stay one column", () => {
+  it("DESK-04 member-pages-desktop.css keeps home and trips one column", () => {
     const css = readFileSync(join(denaliThemeRoot, "portal/member-pages-desktop.css"), "utf8");
     assert.match(css, /@media \(min-width: 64rem\)/);
     assert.match(css, /\[data-portal-member-home-quick-links\]/);
-    assert.match(css, /repeat\(3,/);
+    assert.match(
+      css,
+      /\[data-portal-member-home-quick-links\]\s*\{\s*display:\s*flex;\s*flex-direction:\s*column/
+    );
+    assert.doesNotMatch(css, /grid-template-columns:\s*repeat\(/);
     assert.match(css, /\[data-portal-member-registrations-list\]/);
     assert.match(css, /flex-direction:\s*column/);
     assert.doesNotMatch(
