@@ -91,7 +91,7 @@ RTL: CSS Grid column 1 is inline-start, so the cream plane sits on the **right**
 
 OTP/profile hide the shell `h1` (`:has([data-public-registration-otp])`) and promote the step `h2` (`otp.loginTitle` / profile title). Login-egress phone step already omits the extra `h2`/description in `catalog-registration-auth-steps.tsx`.
 
-**Breakpoints (approved):** 1440/1024 = 42% cream plane; 768 = stacked masthead (not a squeezed 50/50); 430 band `9.25rem` (148px); 390 band `8rem` (128px); 360 band `6.75rem` (108px). Keyboard heuristic `@media (max-height: 32rem)` shrinks the band to `3.5rem` so the field + CTA stay in view.
+**Breakpoints (approved):** 1440/1024 = 42% cream plane; `max-width: 48rem` (768 inclusive) = stacked masthead (not a squeezed 50/50); 430 band `9.25rem` (148px); 390 band `8rem` (128px); 360 band `6.75rem` (108px). Keyboard heuristic `@media (max-height: 32rem)` shrinks the band to `3.5rem` so the field + CTA stay in view. Phone-step `[role=alert]` is forced `display: block` so it is not swallowed by `login-page.css` `> p:first-of-type { display: none }` (that rule targeted the removed loginEgress description). OTP hero card chrome is flattened; `[data-dev-otp-hint]` is hidden on this page.
 
 **Visible copy on `/login`:** FA `ورود` / `موبایل` / `ارسال کد` / `بازگشت`; OTP `کد` + phone digits. EN `Sign in` / `Mobile` / `Send code` / `Back`; OTP `Code` + phone. CSS hides OTP orbit, helper, autofill hint, and profile description on this page only. Legacy JSON keys (`portalHeroTitle`, story strings, `loginDescription`) stay for modal / register / marketing.
 

@@ -20,8 +20,12 @@ describe("portal alpine split login presentation", () => {
     assert.match(alpine, /max-height:\s*32rem/);
     assert.match(alpine, /\[data-portal-auth-layout\]/);
     assert.match(alpine, /display: contents/);
+    assert.match(alpine, /max-width:\s*48rem/);
     assert.match(alpine, /max-width:\s*24\.375rem/);
     assert.match(alpine, /max-width:\s*22\.5rem/);
+    assert.match(alpine, /\[data-portal-otp-hero\]/);
+    assert.match(alpine, /\[data-dev-otp-hint\]/);
+    assert.match(alpine, /p\[role="alert"\]|\[role="alert"\][\s\S]*display:\s*block/);
   });
 
   it("login page uses sparse title key and does not delete legacy copy keys", () => {

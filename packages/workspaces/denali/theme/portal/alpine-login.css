@@ -338,6 +338,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-login-page][data-portal-login-full-page]
   [data-portal-auth-layout]
   input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+  height: 3.25rem;
   min-height: 3.25rem;
   border-radius: 10px;
   border-color: #c9c4bb;
@@ -368,6 +369,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-login-page][data-portal-login-full-page]
   [data-action="profile-continue"] {
   margin-top: 1rem;
+  height: 3.25rem;
   min-height: 3.25rem;
   border-radius: 10px;
   background: var(--portal-alpine-forest);
@@ -409,8 +411,17 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-login-page][data-portal-login-full-page]
-  [role="alert"] {
+  :is(
+    [data-public-registration-phone],
+    [data-public-registration-otp],
+    [data-public-registration-profile]
+  )
+  > p[role="alert"] {
+  display: block;
   margin: 0.5rem 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
   font-size: 0.8125rem;
   font-weight: 500;
   color: #b4534a;
@@ -423,8 +434,25 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   box-shadow: none;
 }
 
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-otp-hero] {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  overflow: visible;
+  gap: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-dev-otp-hint] {
+  display: none;
+}
+
 /* Independent mobile masthead — not a squeezed split. */
-@media (max-width: 47.99rem) {
+@media (max-width: 48rem) {
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-login-page][data-portal-login-full-page] {
     --portal-alpine-band: 9.25rem;
