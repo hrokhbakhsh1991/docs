@@ -16,6 +16,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   --denali-ledger-danger: #b42318;
   --denali-ledger-radius: 10px;
   --denali-ledger-field: 52px;
+  --portal-auth-layout-max: 67.5rem;
   --portal-auth-layout-max-resume: 67.5rem;
   --portal-auth-card-background: transparent;
   --portal-auth-card-shadow: none;
@@ -23,6 +24,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   --portal-auth-card-padding: 0;
   --portal-auth-card-radius: 0;
   --portal-auth-stack-gap: 0;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -42,7 +47,8 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"]
   [data-portal-auth-layout] {
-  width: min(100%, var(--portal-auth-layout-max-resume));
+  width: min(100%, 67.5rem);
+  max-width: 67.5rem;
   padding: 0 1.5rem max(2.25rem, env(safe-area-inset-bottom, 0px));
 }
 
@@ -827,4 +833,152 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     transition: none !important;
     animation: none !important;
   }
+}
+
+/*
+ * Cascade lock — login-page.css + denali-form-controls.css restyle the same
+ * intake hooks (auth-card type=button fill, ≥48rem summary row). Scoped to
+ * Party Ledger intake only; no shared primitive restyle.
+ */
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-portal-auth-layout] {
+  width: min(100%, 67.5rem) !important;
+  max-width: 67.5rem !important;
+}
+
+@media (min-width: 701px) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-catalog-registration-page][data-registration-resume="intake"]
+    [data-denali-intake-layout] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 17.5rem) !important;
+    flex-direction: unset !important;
+    align-items: start !important;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-catalog-registration-page][data-registration-resume="intake"]
+    [data-denali-ledger-rail-col],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-catalog-registration-page][data-registration-resume="intake"]
+    [data-portal-auth-card]
+    [data-denali-intake-summary-card] {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    min-width: 15rem !important;
+    width: 100% !important;
+    max-width: none !important;
+    flex-shrink: 0 !important;
+    writing-mode: horizontal-tb !important;
+  }
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-denali-ledger-people],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-denali-ledger-people]
+  li,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-registration-price-hint],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-denali-price-per] {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+  white-space: normal !important;
+  writing-mode: horizontal-tb !important;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-portal-auth-card]
+  button[type="button"][data-denali-add-guest],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-portal-auth-card]
+  button[type="button"][data-denali-remove-guest] {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto !important;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0.35rem 0.15rem;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: var(--denali-ledger-ink) !important;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  cursor: pointer;
+  filter: none !important;
+  transform: none !important;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-portal-auth-card]
+  button[type="button"][data-denali-add-guest]:focus-visible,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-portal-auth-card]
+  button[type="button"][data-denali-remove-guest]:focus-visible {
+  outline: 3px solid rgb(5 150 105 / 0.45);
+  outline-offset: 2px;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-portal-auth-card]
+  button[type="button"][data-denali-remove-guest] {
+  color: var(--denali-ledger-muted) !important;
+  font-weight: 500;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-portal-auth-card]
+  button[type="button"][data-action="intake-submit"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  width: 100% !important;
+  height: var(--denali-ledger-field);
+  min-height: 44px;
+  margin: 0;
+  border: 0 !important;
+  border-radius: var(--denali-ledger-radius) !important;
+  background: #047857 !important;
+  background-image: none !important;
+  color: #fff !important;
+  font: inherit;
+  font-weight: 600;
+  box-shadow: none !important;
+  filter: none !important;
+  cursor: pointer;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-denali-success-actions] {
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-columns: none !important;
 }
