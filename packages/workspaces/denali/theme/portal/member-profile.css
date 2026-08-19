@@ -286,6 +286,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-profile]
+  [data-portal-member-profile]
   [data-member-profile-discard] {
   display: none;
 }
@@ -896,6 +897,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-profile]
+    [data-portal-member-profile]
     [data-member-profile-discard] {
     display: inline-flex;
     align-items: center;
