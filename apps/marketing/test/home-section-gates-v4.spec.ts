@@ -14,7 +14,6 @@ import { resolveHomeTourCoverUrl } from "../src/home/resolve-home-tour-cover-url
 import { MARKETING_FALLBACK_TOUR_COVER_PATH } from "../src/home/home-marketing-assets";
 import { buildMarketingHomeJsonLd } from "../src/seo/build-marketing-home-jsonld";
 import { resolveMarketingHeroImageUrl } from "../src/tenant/resolve-marketing-hero-image-url";
-import { resolveHomeHeroCarouselSlides } from "../src/home/resolve-home-hero-carousel-slides";
 import { FULL_LANDING, PREMIUM_LANDING } from "./home-landing-fixtures";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -71,21 +70,6 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
     assert.equal(
       resolveHomeTourCoverUrl("https://cdn.example/north-ridge.jpg"),
       MARKETING_FALLBACK_TOUR_COVER_PATH
-    );
-  });
-
-  it("resolveHomeHeroCarouselSlides dedupes and caps manifest destination frames", () => {
-    const slides = resolveHomeHeroCarouselSlides(
-      "/home/hero.webp",
-      ["alborz", "damavand", "zardkuh"],
-      { zardkuh: "zardkooh" }
-    );
-    assert.equal(slides.length, 4);
-    assert.equal(slides[0], "/home/hero.webp");
-    assert.equal(slides[3], "/home/destinations/zardkooh.webp");
-    assert.equal(
-      resolveHomeHeroCarouselSlides("https://cdn/custom-hero.jpg", [], {})[0],
-      "https://cdn/custom-hero.jpg"
     );
   });
 
@@ -158,9 +142,9 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
     );
     assert.match(
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
-      /data-marketing-home-hero-cinematic/
+      /data-marketing-home-hero-walk/
     );
-    assert.match(
+    assert.doesNotMatch(
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
       /HomeHeroDestinationStage/
     );
@@ -199,21 +183,9 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
       /HomeHeroMountainStageClient/
     );
-    const heroStage = readFileSync(
-      join(repoRoot, "apps/marketing/src/home/hero-static/home-hero-destination-stage.tsx"),
-      "utf8"
+    assert.doesNotMatch(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
+      /hero-static/
     );
-    assert.match(heroStage, /data-marketing-home-hero-overlay-scrim/);
-    assert.match(heroStage, /role="radiogroup"/);
-    assert.match(heroStage, /fetchPriority=\{index === 0 \? "high" : "low"\}/);
-    assert.match(heroStage, /loading=\{index === 0 \? "eager" : "lazy"\}/);
-    assert.doesNotMatch(heroStage, /from "next\/image"/);
-    const heroMedia = readFileSync(
-      join(repoRoot, "apps/marketing/src/home/hero-static/home-hero-carousel-media.tsx"),
-      "utf8"
-    );
-    assert.match(heroMedia, /fetchPriority=\{index === 0 \? "high" : "low"\}/);
-    assert.match(heroMedia, /loading=\{index === 0 \? "eager" : "lazy"\}/);
-    assert.doesNotMatch(heroMedia, /from "next\/image"/);
   });
 });

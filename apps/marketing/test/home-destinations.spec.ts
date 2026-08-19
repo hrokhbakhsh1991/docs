@@ -39,15 +39,11 @@ describe("home-destinations.spec.ts", () => {
     );
   });
 
-  it("keeps Hero destination selector visual-only", () => {
-    const heroStage = readSrc(
-      "apps/marketing/src/home/hero-static/home-hero-destination-stage.tsx"
-    );
+  it("Hero has no destination selector; Destinations still use q=", () => {
     const hero = readSrc("apps/marketing/src/home/home-hero.tsx");
-    assert.match(heroStage, /role="radiogroup"/);
-    assert.match(heroStage, /data-marketing-home-hero-destination/);
-    assert.doesNotMatch(heroStage, /resolveMarketingToursListPath/);
-    assert.doesNotMatch(heroStage, /[?&]destination=/);
+    assert.doesNotMatch(hero, /HomeHeroDestinationStage/);
+    assert.doesNotMatch(hero, /role="radiogroup"/);
+    assert.doesNotMatch(hero, /data-marketing-home-hero-selector/);
     assert.match(hero, /resolveMarketingToursListPath\(locale\)/);
     assert.doesNotMatch(hero, /resolveMarketingToursListPath\(locale, \{ q:/);
     assert.doesNotMatch(hero, /[?&]destination=/);
@@ -69,8 +65,14 @@ describe("home-destinations.spec.ts", () => {
     assert.match(aggregator, /@import "\.\/home\/programs\.css"/);
     assert.match(aggregator, /@import "\.\/home\/destinations\.css"/);
     assert.match(css, /repeat\(3, minmax\(0, 1fr\)\)/);
+    assert.match(css, /@media \(min-width: 64rem\)/);
+    assert.match(css, /@media \(min-width: 48rem\) and \(max-width: 63\.9375rem\)/);
+    assert.match(css, /minmax\(14rem, 40%\) minmax\(0, 1fr\)/);
     assert.match(css, /-webkit-line-clamp: 2/);
     assert.match(css, /min-height: 44px/);
+    assert.match(css, /--denali-mist-50/);
+    assert.match(css, /background: transparent/);
+    assert.doesNotMatch(css, /color-mix\(in srgb, var\(--denali-forest-600\)/);
     assert.doesNotMatch(css, /scroll-snap-type:\s*x/);
     assert.doesNotMatch(css, /flex:\s*1\.4/);
     assert.doesNotMatch(css, /max-height:\s*0/);

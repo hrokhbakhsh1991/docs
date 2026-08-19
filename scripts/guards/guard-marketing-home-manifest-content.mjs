@@ -11,7 +11,6 @@ const HOME_DIR = path.join(REPO_ROOT, "apps/marketing/src/home");
 
 /** @type {RegExp[]} */
 const FORBIDDEN = [/#why-denali/, /HOME_DESTINATION_IDS/, /home-destination-ids/];
-const CAROUSEL_FILE = path.join(HOME_DIR, "resolve-home-hero-carousel-slides.ts");
 
 /** @type {string[]} */
 const violations = [];
@@ -44,12 +43,7 @@ if (!guestHomeSource.includes("whySectionAnchor")) {
 }
 
 if (!guestHomeSource.includes("destinationImageStems")) {
-  violations.push("guest-home-full.tsx must pass landing.destinationImageStems to HomeHero");
-}
-
-const carouselSource = readFileSync(CAROUSEL_FILE, "utf8");
-if (/\/home\/destinations\/[a-z]+/.test(carouselSource)) {
-  violations.push("resolve-home-hero-carousel-slides.ts must not hardcode /home/destinations/* paths");
+  violations.push("guest-home-full.tsx must pass landing.destinationImageStems to HomeDestinations");
 }
 
 for (const file of walkTsx(HOME_DIR)) {

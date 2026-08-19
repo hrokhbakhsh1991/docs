@@ -20,6 +20,7 @@ export const SHELL_APPEARANCE_SCOPES = [
     files: [
       "apps/marketing/src/shell/marketing-shell.tsx",
       "apps/marketing/src/shell/marketing-footer.tsx",
+      "apps/marketing/src/shell/marketing-nav-drawer-keyboard.tsx",
       "apps/marketing/src/shell/marketing-providers.tsx",
     ],
   },
