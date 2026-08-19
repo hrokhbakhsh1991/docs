@@ -92,7 +92,7 @@ test("SMK-PTL-06 member logout clears session and blocks /me area", async ({ pag
     // desktop side rail
   } else {
     await page.goto("/me/profile");
-    await expect(page.locator("[data-portal-member-profile]")).toBeVisible({
+    await expect(page.locator("main[data-portal-member-profile]")).toBeVisible({
       timeout: 60_000,
     });
   }
