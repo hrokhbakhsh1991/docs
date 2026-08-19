@@ -96,6 +96,20 @@ describe("catalog-registration-auth-steps — PCMS-UX polish", () => {
     assert.equal(enOtp.otp?.groupLabel, "One-time code");
   });
 
+  it("login-egress OTP destination is the existing phone state, not a new API", () => {
+    const authSteps = readFileSync(
+      join(
+        repoRoot,
+        "packages/catalog-registration-flow-ui/src/catalog-registration-auth-steps.tsx"
+      ),
+      "utf8"
+    );
+    assert.match(authSteps, /readMemberLoginEgress\(context\) \? data\.phone : t\("otp\.sentTo"/);
+    assert.match(authSteps, /transport\.requestOtp/);
+    assert.match(authSteps, /transport\.verifyOtp/);
+    assert.match(authSteps, /PUBLIC_REGISTRATION_RESEND_COOLDOWN_SEC/);
+  });
+
   it("P1-TRANSPORT-01 auth steps do not own BFF URLs, navigation, or intake hydrate", () => {
     const authSteps = readFileSync(
       join(

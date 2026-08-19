@@ -267,7 +267,9 @@ export function CatalogRegistrationOtpStep({
           <p>{t("otp.helper")}</p>
         </div>
         <div data-portal-otp-meta>
-          <p data-portal-otp-phone-chip>{t("otp.sentTo", { phone: data.phone })}</p>
+          <p data-portal-otp-phone-chip>
+            {readMemberLoginEgress(context) ? data.phone : t("otp.sentTo", { phone: data.phone })}
+          </p>
           <p data-portal-otp-autofill-hint>{t("otp.autoFillHint")}</p>
         </div>
       </div>

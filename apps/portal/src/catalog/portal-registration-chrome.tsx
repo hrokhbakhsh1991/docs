@@ -28,9 +28,11 @@ export async function PortalRegistrationChrome({
       data-slot="registration-chrome"
       {...(memberLoginEgress ? { "data-member-login-egress": "" } : {})}
     >
-      <a href={backHref} data-portal-registration-back>
-        {memberLoginEgress ? t("backToMarketing") : t("backToTour")}
-      </a>
+      {memberLoginEgress ? null : (
+        <a href={backHref} data-portal-registration-back>
+          {t("backToTour")}
+        </a>
+      )}
       <div data-portal-registration-brand>
         {branding.logoUrl ? (
           <img
