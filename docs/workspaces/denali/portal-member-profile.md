@@ -2,12 +2,12 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-MEMBER-PROFILE
-version: "2026-08-05-v3"
+version: "2026-08-19-v4"
 extends: platform-portal-member-profile.mdoc
 workspace: denali
 apps: [portal]
-phase: P6-3
-authority: platform-portal-member-profile.mdoc · portal-registration-ui.md
+phase: DENALI-POCKET-3.5
+authority: platform-portal-member-profile.mdoc · portal-registration-ui.md · portal-member-ui.md
 ```
 
 ## Scope
@@ -107,17 +107,31 @@ Direct URL: `/me/profile`.
 
 Shared storage: `GET/PATCH /identity/me` · `membershipMetadata`. Portal must use `/api/me/profile` BFF only (INV-MP-01). Marketing has no settings page (PCMS-001).
 
-### Desktop layout (PS-VIS-5g · sectioned · 2026-07-17)
+### Visual (Denali Pocket 3.5)
 
-Mobile profile chrome stays the single-column **card** + sticky save (thumb zone). At `≥48rem`, Denali applies a **Linear / Vercel-style sectioned** settings layout (not nested admin cards, not a second settings sidebar — the shell side rail already owns portal IA):
+`/me/profile` is a **calm customer account page**, not a marketing settings stack. Skin only — GET/PATCH, OTP mobile change, avatar upload, logout, validators, and `data-*` hooks stay put. See [portal-member-ui.md](./portal-member-ui.md) and [portal-visual-regression.md](./portal-visual-regression.md) **MEM-PROF-05**.
+
+| Rule | Skin |
+| ---- | ---- |
+| Canvas title | `[data-portal-member-page-header]` sits on mist. No hero gradient, no orb |
+| Identity | Avatar preview + name + upload/remove as a quiet grouped row. Not a decorative photo card |
+| Sections | White hairline groups (`[data-member-profile-card]`), 12px radius, one shadow. Legends are section titles, not dotted marketing headings |
+| Mobile change | Hairline inset around the existing OTP machine. No tinted gradient panel |
+| Save | Sticky `[data-member-profile-actions]`. Solid `--color-primary` (`min-height: 3rem`). Discard hidden `<48rem`, shown on desktop |
+| Session | Quiet account row + outline logout (`--destructive`). Not a danger-wash card. Desktop hides the row; rail footer owns sign-out |
+| Type | Title 1.25rem / 650. Lede meta `0.8125rem` |
+
+### Desktop layout (PS-VIS-5g · sectioned · Pocket 3.5)
+
+Mobile stays single-column **grouped** surfaces + sticky save (thumb zone). At `≥48rem`, Denali applies a **Linear / Vercel-style sectioned** settings layout (not nested admin cards, not a second settings sidebar — the shell side rail already owns portal IA):
 
 1. Member shell: **side rail** + wide page ([portal-member-desktop-frame.md](./portal-member-desktop-frame.md)).
-2. Form root: `data-member-profile-layout="sectioned"` — sections keep `data-member-profile-card` hooks for E2E, but desktop skin **flattens** borders/shadows into hairline dividers.
+2. Form root: `data-member-profile-layout="sectioned"` — sections keep `data-member-profile-card` hooks for E2E, but desktop skin **flattens** borders/shadows into hairline dividers (no gradient cards, no photo orb).
 3. Avatar is a **horizontal** identity row (preview + actions), not a framed photo card.
-4. Fieldsets: 2-column field grid; `mobile` OTP spans full width; legends are section titles with a bottom rule.
-5. Footer `data-member-profile-actions`: Discard + Save (sticky, end-aligned).
+4. Fieldsets: 2-column field grid; `mobile` OTP spans full width; legends are section titles with a bottom rule. Fields are not nested mini-cards.
+5. Footer `data-member-profile-actions`: Discard + Save (sticky, end-aligned). Solid primary, no glass tray.
 
-**Non-goals:** nested settings sidebar inside profile, RHF rewrite, importing marketing CSS into profile.
+**Non-goals:** nested settings sidebar inside profile, RHF rewrite, importing marketing CSS into profile, changing OTP/avatar/save behavior.
 
 Authority: `member-profile.css` (skin) + `member-profile-form.tsx` (structure/hooks only). Smoke hooks preserved.
 
@@ -166,11 +180,12 @@ Covered by `MEM-PROF-01` in `portal-member-registrations.spec.ts` and **DEN-PROF
 | Rule | Detail |
 | ---- | ------ |
 | Scope | `body[data-app-surface="portal"][data-workspace-plugin="denali"]` |
-| Skin file | `packages/workspaces/denali/theme/denali-portal.css` |
+| Skin file | `packages/workspaces/denali/theme/portal/member-profile.css` (imported from `denali-portal.css`) |
 | Profile shell | `main[data-portal-member-profile]` inside `[data-portal-shell]` member chrome (PS-7) |
+| Pocket 3.5 | Canvas title + grouped sections + sticky solid save + quiet session. No decorative gradients |
 | E2E | `portal-member-profile-smoke.spec.ts` — DEN-PROF-01..05 |
 
-Design SoT: `design-system/denali-club/MASTER.md` (primary `#059669`).
+Design SoT: Pocket material in [portal-member-ui.md](./portal-member-ui.md). Forest primary from portal semantic tokens.
 
 ---
 

@@ -2,17 +2,17 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-MEMBER-UI
-version: "2026-08-19-v6"
+version: "2026-08-19-v7"
 extends: portal-registration-ui.md · platform-portal-member-shell-architecture.mdoc
 apps: [portal]
-phase: DENALI-POCKET-3.4
+phase: DENALI-POCKET-3.5
 ```
 
 ## Scope
 
 Visual layer for **authenticated member routes** (`/me/*`) inside `PortalMemberShell`. Business logic, entitlements, and BFF contracts unchanged.
 
-**Out of scope:** login/register auth shell (see [portal-registration-ui.md](./portal-registration-ui.md)), marketing, operator admin, `/me/home` (3.3 locked), `/me/registrations` (3.2 locked), `/me/profile`.
+**Out of scope:** login/register auth shell (see [portal-registration-ui.md](./portal-registration-ui.md)), marketing, operator admin, `/me/home` (3.3 locked), `/me/registrations` (3.2 locked), `/me/registrations/[id]` (3.4 locked).
 
 ## Design intent (Denali Pocket)
 
@@ -34,7 +34,7 @@ Premium **mobile-first customer app**, not a marketing site inside a portal.
 | `portal/member-shell.css` | Pocket chrome — canvas, compact header, thumb bar, type cascade |
 | `portal/member-shell-desktop.css` | Full-viewport account app + side rail (no floating phone-card) |
 | `portal/member-pages.css` | **3.3 Pocket home** + **3.2 Pocket trips list** + **3.4 Pocket trip detail** |
-| `portal/member-profile.css` | Profile form + avatar |
+| `portal/member-profile.css` | **3.5 Pocket profile** — canvas title, grouped account sections, quiet session |
 | `portal/denali-form-controls.css` | Shared inputs + solid primary / outline secondary / text tertiary |
 | `portal/login-page.css` | Auth experience (imports form controls) |
 | `portal/alpine-login.css` | Denali `/login` Alpine Split only (`data-portal-login-full-page`) |
@@ -63,7 +63,7 @@ Desktop: [portal-member-desktop-frame.md](./portal-member-desktop-frame.md) — 
 | `/me/home` | `data-portal-member-home` | Canvas `[data-portal-member-page-header]`, `[data-portal-member-home-quick-links]` (`li:first-child` = next action) |
 | `/me/registrations` | `data-portal-member-registrations` | `[data-portal-member-registration-row]`, `[data-portal-member-row-chevron]` |
 | `/me/registrations/[id]` | `data-portal-member-registration-detail` | Canvas `[data-portal-member-detail-app-bar]` + `[data-portal-member-detail-hero]` (hero hook kept; no gradient card) |
-| `/me/profile` | `data-portal-member-profile` | `[data-portal-member-profile]` form, `[data-member-profile-save]` |
+| `/me/profile` | `data-portal-member-profile` | Canvas `[data-portal-member-page-header]`, `[data-member-profile-card]`, `[data-member-profile-save]`, `[data-member-profile-session]` |
 | `/me/more` | `data-portal-member-more` | `[data-portal-member-hub-list]`, `[data-portal-member-hub-link-icon]` |
 | Module stub | `data-portal-member-module-stub` | `[data-portal-member-module-stub-card]`, `[data-portal-member-stub-back]` |
 
@@ -92,7 +92,7 @@ Customer-app home answers **“What should I do next?”** — not “What modul
 
 Hooks unchanged: `[data-portal-member-home]`, `[data-portal-member-home-lede]`, `[data-portal-member-home-quick-links]`, `[data-portal-member-home-quick-link-icon]`, `data-testid="portal-home-link-{id}"`. BFF `buildMemberHomePayload` unchanged.
 
-Trips list / detail / profile / more selectors must not pick up these rules except where they already shared a hook (`[data-portal-member-more]` keeps its own hero card).
+Trips list / detail / more selectors must not pick up these rules except where they already shared a hook (`[data-portal-member-more]` keeps its own hero card). Profile (3.5) uses the same canvas-title pattern under `main[data-portal-member-profile]`.
 
 ## Trips list (3.2 — `/me/registrations` only)
 
@@ -132,6 +132,31 @@ Customer trip page: **open → status → next action**. Visual reference: 3.2 l
 | Desktop | Single column (not hero + KPI 2-col grid) |
 
 Hooks unchanged: app-bar, back, hero, KPIs, guest badge, `[data-portal-member-receipt-*]`, `[data-portal-member-intake-amend]`. BFF + mutations unchanged.
+
+## Profile (3.5 — `/me/profile` only)
+
+Calm **customer account** page. Visual reference: iOS Settings grouping + Stripe/Vercel account clarity + Pocket material (3.1–3.4). **Not** a marketing settings dashboard.
+
+| Order | Surface |
+| ----- | ------- |
+| 1 | Canvas title on mist — account name + meta lede. No hero card, no gradient, no orb |
+| 2 | Identity — avatar + name as a quiet grouped row (preview + upload/remove). Same avatar BFF |
+| 3 | Sections — identity / participant as white hairline groups (one shadow). Desktop flattens to sectioned dividers (PS-VIS-5g) |
+| 4 | Save — sticky full-width solid `--color-primary` (`min-height: 3rem`). Discard stays hidden on mobile, visible on desktop |
+| 5 | Session — quiet logout row (`[data-member-profile-session]`). Outline `--destructive` control. Desktop still hides this; rail footer owns sign-out |
+
+| Rule | Implementation |
+| ---- | -------------- |
+| Canvas | `[data-portal-member-page-header]` is not a card: `background: none`, no gradient, no orb `::after` |
+| Inset | Profile `main` is a column on mist. Shell already pads 16px |
+| Type | Title 1.25rem / 650. Lede is meta (`0.8125rem`) |
+| Groups | `[data-member-profile-card]`: white surface, hairline, 12px radius, one `--denali-shadow-card`. No nested field boxes, no legend dots, no photo orb |
+| Mobile change | Same OTP flow; hairline inset, not a tinted gradient panel |
+| Save | `[data-member-profile-actions]` sticky in the thumb zone. Solid forest CTA. No gradient tray, no glass blur |
+| Session | Same hooks + `data-public-auth-logout`. Not a danger-wash card |
+| Desktop | `data-member-profile-layout="sectioned"`: 2-col field grid, horizontal avatar, Discard + Save row, session hidden |
+
+Hooks unchanged: page header, form `data-member-profile-layout="sectioned"`, cards, avatar, mobile-change, save/discard, session. Profile GET/PATCH, OTP, avatar upload, logout, validation, and form state unchanged.
 
 ## Verification
 
