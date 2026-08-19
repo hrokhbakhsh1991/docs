@@ -229,6 +229,13 @@ async function start() {
       console.warn("smoke-urban-e2e-servers: request-otp warm skipped:", error.message);
     }
   );
+  await warmPortalPath("/api/public-auth/verify-otp", "POST", {
+    phone: "+15550009901",
+    otp: "1234",
+    challenge_id: "warm",
+  }).catch((error) => {
+    console.warn("smoke-urban-e2e-servers: verify-otp warm skipped:", error.message);
+  });
   await warmPortalPath("/api/catalog/registrations", "GET").catch((error) => {
     console.warn("smoke-urban-e2e-servers: catalog registrations warm skipped:", error.message);
   });

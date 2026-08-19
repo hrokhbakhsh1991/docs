@@ -28,11 +28,7 @@ export async function submitCatalogPhoneForOtp(page: Page, phone: string): Promi
     ),
     sendCode.click(),
   ]);
-  const body = await response.text();
-  expect(
-    response.ok(),
-    `request-otp failed (${response.status()}): ${body.slice(0, 240)}`
-  ).toBeTruthy();
+  expect(response.ok(), `request-otp failed (${response.status()})`).toBeTruthy();
   await expect(page.locator("[data-public-registration-otp]")).toBeVisible({
     timeout: 60_000,
   });
@@ -69,11 +65,7 @@ export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
   }
 
   const response = await responsePromise;
-  const body = await response.text();
-  expect(
-    response.ok(),
-    `verify-otp failed (${response.status()}): ${body.slice(0, 240)}`
-  ).toBeTruthy();
+  expect(response.ok(), `verify-otp failed (${response.status()})`).toBeTruthy();
 }
 
 function intakeFieldInput(root: Locator, fieldId: string): Locator {
