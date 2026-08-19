@@ -85,9 +85,9 @@ Customer-app home answers **“What should I do next?”** — not “What modul
 | Canvas title | `[data-portal-member-page-header]` sits on mist. No hero card, no gradient, no orb `::after` |
 | Inset | Shell already pads `--space-4` (16px). Home `main` is `width: 100%` — do not wrap the page in a second card |
 | Type | Title 1.25rem / 650. Lede is meta (`0.8125rem`), not a marketing paragraph |
-| Next action | First entitled shortcut (`li:first-child`) is the primary CTA: solid `--color-primary`, `min-height: 3rem`, 12px radius. Same `href` / `data-testid` / icon hook as before |
+| Next action | First entitled shortcut (`li:first-child`) is a compact solid `--color-primary` bar (`min-height: 3rem`, 12px radius, label + chevron). Same `href` / `data-testid` / icon hook as before. Description is not painted on the CTA |
 | Secondary | Remaining shortcuts are compact hairline rows (label + meta + chevron), **not** 10rem tiles and **not** a second tab bar |
-| Quiet chrome | Section eyebrow pill and “Recommended” badge are not painted. Arrow `↗` becomes a chevron on secondary rows |
+| Quiet chrome | Section heading, eyebrow pill, and “Recommended” badge are not painted. Page title + lede carry the next-action copy. Arrow `↗` becomes a chevron on secondary rows |
 | Desktop | Single column (not a 2/3-col card grid) |
 
 Hooks unchanged: `[data-portal-member-home]`, `[data-portal-member-home-lede]`, `[data-portal-member-home-quick-links]`, `[data-portal-member-home-quick-link-icon]`, `data-testid="portal-home-link-{id}"`. BFF `buildMemberHomePayload` unchanged.

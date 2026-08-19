@@ -67,6 +67,7 @@ describe("portal-visual-wave4.spec.ts", () => {
     assert.match(home, /portal-pocket-title-size/);
     assert.match(home, /li:first-child/);
     assert.match(home, /portal-pocket-cta-height/);
+    assert.match(home, /\[data-portal-member-section-heading\] \{\s*display:\s*none/);
     assert.doesNotMatch(home, /linear-gradient/);
     assert.doesNotMatch(home, /radial-gradient/);
     assert.doesNotMatch(home, /min-height:\s*10rem/);

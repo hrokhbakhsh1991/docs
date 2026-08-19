@@ -40,7 +40,7 @@ Home is a **next-action canvas**, not a marketing welcome with module tiles. See
 | Rule | Skin |
 | ---- | ---- |
 | Title | On mist. No gradient hero card |
-| First entitled shortcut | Solid forest CTA (`li:first-child`) — “what should I do next?” |
+| First entitled shortcut | Compact solid primary bar (`li:first-child`, label + chevron) — “what should I do next?” |
 | Remaining shortcuts | Compact hairline rows with chevron. Not 10rem tiles. Not a duplicate of the thumb bar |
 | Data | Same BFF modules + i18n keys. No invented trip/payment/profile facts |
 
