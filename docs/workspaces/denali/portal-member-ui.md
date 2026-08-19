@@ -2,17 +2,17 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-MEMBER-UI
-version: "2026-08-19-v5"
+version: "2026-08-19-v6"
 extends: portal-registration-ui.md · platform-portal-member-shell-architecture.mdoc
 apps: [portal]
-phase: DENALI-POCKET-3.3
+phase: DENALI-POCKET-3.4
 ```
 
 ## Scope
 
 Visual layer for **authenticated member routes** (`/me/*`) inside `PortalMemberShell`. Business logic, entitlements, and BFF contracts unchanged.
 
-**Out of scope:** login/register auth shell (see [portal-registration-ui.md](./portal-registration-ui.md)), marketing, operator admin, `/me/registrations` (3.2 locked), `/me/registrations/[id]` detail, `/me/profile`.
+**Out of scope:** login/register auth shell (see [portal-registration-ui.md](./portal-registration-ui.md)), marketing, operator admin, `/me/home` (3.3 locked), `/me/registrations` (3.2 locked), `/me/profile`.
 
 ## Design intent (Denali Pocket)
 
@@ -33,7 +33,7 @@ Premium **mobile-first customer app**, not a marketing site inside a portal.
 | ---- | ---- |
 | `portal/member-shell.css` | Pocket chrome — canvas, compact header, thumb bar, type cascade |
 | `portal/member-shell-desktop.css` | Full-viewport account app + side rail (no floating phone-card) |
-| `portal/member-pages.css` | **3.3 Pocket home** + **3.2 Pocket trips list** + trip detail empty/hero (detail layout not 3.3) |
+| `portal/member-pages.css` | **3.3 Pocket home** + **3.2 Pocket trips list** + **3.4 Pocket trip detail** |
 | `portal/member-profile.css` | Profile form + avatar |
 | `portal/denali-form-controls.css` | Shared inputs + solid primary / outline secondary / text tertiary |
 | `portal/login-page.css` | Auth experience (imports form controls) |
@@ -79,7 +79,7 @@ Desktop: [portal-member-desktop-frame.md](./portal-member-desktop-frame.md) — 
 | ----- | ------------- | -------- |
 | `/me/home` | `data-portal-member-home` | Canvas `[data-portal-member-page-header]`, `[data-portal-member-home-quick-links]` (`li:first-child` = next action) |
 | `/me/registrations` | `data-portal-member-registrations` | `[data-portal-member-registration-row]`, `[data-portal-member-row-chevron]` |
-| `/me/registrations/[id]` | `data-portal-member-registration-detail` | `[data-portal-member-detail-app-bar]`, `[data-portal-member-detail-hero]` |
+| `/me/registrations/[id]` | `data-portal-member-registration-detail` | Canvas `[data-portal-member-detail-app-bar]` + `[data-portal-member-detail-hero]` (hero hook kept; no gradient card) |
 | `/me/profile` | `data-portal-member-profile` | `[data-portal-member-profile]` form, `[data-member-profile-save]` |
 | `/me/more` | `data-portal-member-more` | `[data-portal-member-hub-list]`, `[data-portal-member-hub-link-icon]` |
 | Module stub | `data-portal-member-module-stub` | `[data-portal-member-module-stub-card]`, `[data-portal-member-stub-back]` |
@@ -127,7 +127,28 @@ Airline **My Trips** scanning + Stripe quiet meta + Denali Pocket material. **No
 
 Hooks unchanged: `[data-portal-member-registrations]`, filter tabs, `[data-portal-member-registration-row]`, status/payment/departure, chevron, empty-state.
 
-Home / detail / profile selectors must not pick up these rules except where they already shared a hook (guest badge on detail keeps its own styles).
+## Trip detail (3.4 — `/me/registrations/[id]` only)
+
+Customer trip page: **open → status → next action**. Visual reference: 3.2 list + 3.3 canvas. **Not** a KPI dashboard. Receipt upload, intake amend, and payment states stay the same hooks and flows.
+
+| Order | Surface |
+| ----- | ------- |
+| 1 | Compact back (`[data-portal-member-detail-app-bar]`) — text, 44px, no pill |
+| 2 | Canvas title — tour name on mist. Eyebrow pill not painted. Lede is meta |
+| 3 | Status stack (`[data-portal-member-detail-kpis]`) — label + value rows, one column, no KPI cards |
+| 4 | Next action — existing receipt panel (upload / awaiting / waiting / paid / waived / closed) as one white hairline surface |
+| 5 | Secondary — intake amend, same form, no nested marketing cards |
+
+| Rule | Implementation |
+| ---- | -------------- |
+| Canvas | `[data-portal-member-detail-hero]` is not a card: `background: none`, no gradient, no orb `::before` |
+| Inset | Detail `main` is `width: 100%`. Shell already pads 16px |
+| Type | Title 1.25rem / 650. KPI labels meta. Status is text, not a chip tray |
+| Next action | One solid `--color-primary` CTA (`min-height: 3rem`) where a primary action already exists. Secondary links are outline/text. No gradient buttons |
+| Panels | Receipt + intake: white surface, hairline, 12px radius, one shadow. No decorative bars. Copy start-aligned, not a centered empty-state poster |
+| Desktop | Single column (not hero + KPI 2-col grid) |
+
+Hooks unchanged: app-bar, back, hero, KPIs, guest badge, `[data-portal-member-receipt-*]`, `[data-portal-member-intake-amend]`. BFF + mutations unchanged.
 
 ## Verification
 

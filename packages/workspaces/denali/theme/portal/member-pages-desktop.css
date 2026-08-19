@@ -53,29 +53,28 @@
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-registration-detail] {
-    max-width: 56rem;
+    max-width: none;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-registration-detail]
     [data-portal-member-detail-hero] {
-    padding: var(--space-6);
-    display: grid;
-    grid-template-columns: minmax(18rem, 0.92fr) minmax(20rem, 1.08fr);
-    align-items: start;
-    gap: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    gap: var(--space-3);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-registration-detail]
     [data-portal-member-detail-hero-content] {
-    max-width: 25rem;
+    max-width: none;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-registration-detail]
     [data-portal-member-detail-kpis] {
-    align-self: start;
+    align-self: stretch;
     justify-self: stretch;
   }
 
@@ -107,7 +106,7 @@
     [data-portal-member-receipt-paid],
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-portal-member-receipt-waived] {
-    padding: var(--space-6);
+    padding: var(--space-4);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -123,8 +122,8 @@
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-portal-member-receipt-waived] {
     width: 100%;
-    max-width: 42rem;
-    margin-inline: auto;
+    max-width: none;
+    margin-inline: 0;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]

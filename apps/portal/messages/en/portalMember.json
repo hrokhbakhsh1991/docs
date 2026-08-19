@@ -177,7 +177,7 @@
   "detail": {
     "backToList": "Back to my registrations",
     "summaryEyebrow": "Registration overview",
-    "lede": "Track your registration status, departure timing, and next action for this trip here.",
+    "lede": "Status, departure, and the next action for this trip.",
     "statusLabel": "Registration status",
     "departureLabel": "Departure window",
     "statusLine": "Status: {status} · Payment: {paymentStatus}",
