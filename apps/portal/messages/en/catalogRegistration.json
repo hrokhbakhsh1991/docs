@@ -67,7 +67,7 @@
     "inTour": "In the tour",
     "addGuestShort": "Add",
     "removeGuestShort": "Remove",
-    "partyCount": "{count} people",
+    "partyCount": "{count, plural, one {# person} other {# people}}",
     "myselfTag": "myself",
     "unnamedPerson": "Unnamed",
     "priceAmount": "{amount} IRR",
