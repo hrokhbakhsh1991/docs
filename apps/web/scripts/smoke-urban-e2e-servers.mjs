@@ -84,7 +84,25 @@ function freePort(port) {
   try {
     execSync(`fuser -k ${port}/tcp`, { stdio: "ignore" });
   } catch {
-    // port already free or fuser unavailable
+    // fuser missing (Cloud image) or port already free
+  }
+  try {
+    const out = execSync(`lsof -ti tcp:${port} -sTCP:LISTEN`, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    for (const pid of out.split(/\s+/).filter(Boolean)) {
+      const n = Number(pid);
+      if (Number.isInteger(n) && n > 1) {
+        try {
+          process.kill(n, "SIGTERM");
+        } catch {
+          // already gone
+        }
+      }
+    }
+  } catch {
+    // nothing listening
   }
 }
 
