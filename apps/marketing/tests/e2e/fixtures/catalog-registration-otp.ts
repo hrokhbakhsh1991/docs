@@ -314,15 +314,14 @@ export async function completeCatalogRegistrationIntake(
       await selectNoPersonalCarAndPayDong(card);
     }
   } else {
-    // Ensure Denali "for myself" stays selected when the toggle is present.
+    // Party Ledger keeps [data-denali-self-guest-card] in the DOM but CSS-hidden
+    // when profile already filled the self row (SMK-MKT-03). Do not require
+    // visibility — match apps/portal fixture.
     const selfCheckbox = page.locator("[data-denali-registrant-self-toggle] input");
     if (await selfCheckbox.isVisible({ timeout: 2_000 }).catch(() => false)) {
       if (!(await selfCheckbox.isChecked())) {
         await selfCheckbox.click({ force: true });
       }
-      await expect(page.locator("[data-denali-self-guest-card]")).toBeVisible({
-        timeout: 15_000,
-      });
     }
 
     await fillIntakeFieldInRootIfVisible(intakeRoot, "fullName", input.fullName);
