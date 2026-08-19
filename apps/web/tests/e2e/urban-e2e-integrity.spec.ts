@@ -35,7 +35,13 @@ test("SMK-P8-01 public catalog browse (anonymous)", async ({ page, context }) =>
 
 test("SMK-P8-02 public registration intake (OTP + tour intake)", async ({ page }) => {
   await page.goto(`${URBAN_PORTAL_BASE_URL}/catalog/${PUBLISHED_TOUR_ID}/register`);
-  await expect(page.locator("[data-public-registration-phone]")).toBeVisible({ timeout: 60_000 });
+  // PCMS-UX-MODAL-04 — guest register auto-opens OTP modal; phone lives inside the dialog.
+  await expect(page.locator("[data-portal-login-modal-open='true']")).toBeVisible({
+    timeout: 60_000,
+  });
+  await expect(page.locator("[data-public-registration-phone][data-registration-ready]")).toBeVisible({
+    timeout: 60_000,
+  });
 
   await page.getByLabel(/Mobile|موبایل/).fill(DEV_PHONE);
   await page.locator('[data-action="send-code"]').click();

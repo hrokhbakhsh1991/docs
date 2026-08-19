@@ -167,7 +167,11 @@ async function fillIntakeFieldInRootIfVisible(
   fieldId: string,
   value: string
 ): Promise<void> {
-  const inputEl = root.locator(`input[data-intake-field="${fieldId}"]`).first();
+  const inputEl = root
+    .locator(
+      `input[data-intake-field="${fieldId}"], textarea[data-intake-field="${fieldId}"], [data-intake-field="${fieldId}"] input`
+    )
+    .first();
   if (await inputEl.isVisible({ timeout: 2_000 }).catch(() => false)) {
     await inputEl.fill(value);
   }

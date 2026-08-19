@@ -5,9 +5,17 @@ export const CATALOG_DEV_OTP = "1234";
 
 export async function gotoPortalRegistration(page: Page, tourId: string): Promise<void> {
   await page.goto(`/catalog/${tourId}/register`, { waitUntil: "domcontentloaded" });
-  await page.waitForSelector("[data-public-registration-phone][data-registration-ready]", {
-    timeout: 120_000,
-  });
+  // Guest path: OTP modal (PCMS-UX-MODAL-04). Resume path: intake already ready.
+  await page
+    .locator(
+      "[data-portal-login-modal-open='true'], [data-public-registration-phone][data-registration-ready], [data-public-registration-intake][data-registration-ready]"
+    )
+    .first()
+    .waitFor({ state: "visible", timeout: 120_000 });
+  const phone = page.locator("[data-public-registration-phone][data-registration-ready]");
+  if (await phone.isVisible().catch(() => false)) {
+    return;
+  }
 }
 
 export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
@@ -179,7 +187,11 @@ export async function completeCatalogRegistrationIntake(
     fieldId: string,
     value: string
   ): Promise<void> => {
-    const inputEl = root.locator(`input[data-intake-field="${fieldId}"]`).first();
+    const inputEl = root
+      .locator(
+        `input[data-intake-field="${fieldId}"], textarea[data-intake-field="${fieldId}"], [data-intake-field="${fieldId}"] input`
+      )
+      .first();
     if (await inputEl.isVisible({ timeout: 1_000 }).catch(() => false)) {
       await inputEl.fill(value);
     }

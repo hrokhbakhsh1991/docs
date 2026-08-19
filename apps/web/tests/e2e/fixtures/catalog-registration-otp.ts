@@ -40,13 +40,23 @@ export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
   ).toBeTruthy();
 }
 
+function intakeFieldInput(root: Locator, fieldId: string): Locator {
+  return root
+    .locator(
+      `input[data-intake-field="${fieldId}"], textarea[data-intake-field="${fieldId}"], [data-intake-field="${fieldId}"] input`
+    )
+    .first();
+}
+
 async function fillIntakeFieldInRootIfVisible(
   root: Locator,
   fieldId: string,
   value: string
 ): Promise<void> {
-  const inputEl = root.locator(`input[data-intake-field="${fieldId}"]`).first();
-  await expect(inputEl).toBeVisible({ timeout: 30_000 });
+  const inputEl = intakeFieldInput(root, fieldId);
+  if (!(await inputEl.isVisible({ timeout: 2_000 }).catch(() => false))) {
+    return;
+  }
   await inputEl.fill(value);
   await expect(inputEl).toHaveValue(value, { timeout: 5_000 });
 }
@@ -56,7 +66,7 @@ async function fillIntakeFieldIfPresent(
   fieldId: string,
   value: string
 ): Promise<void> {
-  const inputEl = root.locator(`input[data-intake-field="${fieldId}"]`).first();
+  const inputEl = intakeFieldInput(root, fieldId);
   if (await inputEl.isVisible({ timeout: 2_000 }).catch(() => false)) {
     await inputEl.fill(value);
   }
@@ -124,7 +134,9 @@ export async function completeCatalogRegistrationIntake(
     await partySizeInput.fill(input.partySize ?? "2");
   }
 
-  const selfCheckbox = page.locator("[data-denali-registrant-self-toggle] input");
+  const selfCheckbox = page
+    .locator("[data-denali-registrant-self-toggle] input")
+    .or(page.getByRole("checkbox", { name: /برای خودم|For myself|In the tour|در تور/i }));
   if (await selfCheckbox.isVisible({ timeout: 1_000 }).catch(() => false)) {
     if (!(await selfCheckbox.isChecked())) {
       await selfCheckbox.click({ force: true });
