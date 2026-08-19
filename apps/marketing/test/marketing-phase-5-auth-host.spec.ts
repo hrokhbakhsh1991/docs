@@ -87,6 +87,8 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
     assert.match(modal, /host: "pdp"/);
     assert.match(modal, /data-marketing-login-unavailable/);
     assert.match(modal, /errors\.BACKEND_UNREACHABLE/);
+    assert.match(modal, /loginModalCancel/);
+    assert.doesNotMatch(modal, /data-marketing-login-modal-intro/);
   });
 
   it("MKT-PCMS-P5-05 marketing ?auth=login auto-open is PDP-only", () => {
@@ -107,10 +109,12 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
       assert.doesNotMatch(raw, /shenski/i);
       const data = JSON.parse(raw) as {
         loginPageTitle?: string;
+        loginModalCancel?: string;
         phone?: { loginTitle?: string };
         errors?: { network?: string; BACKEND_UNREACHABLE?: string };
       };
       assert.equal(typeof data.loginPageTitle, "string");
+      assert.equal(typeof data.loginModalCancel, "string");
       assert.equal(typeof data.phone?.loginTitle, "string");
       assert.equal(typeof data.errors?.network, "string");
       assert.equal(typeof data.errors?.BACKEND_UNREACHABLE, "string");
