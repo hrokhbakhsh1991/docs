@@ -64,7 +64,7 @@ Hooks:
 | ---- | ----- |
 | `portal/member-shell.css` | **3.1B compact app bar** (height lock, 2-col inner, brand + chip). Marketing header CSS not imported. |
 | `portal/member-shell-desktop.css` | Mist canvas, full-viewport grid, **side-rail nav**; header padding only — never restores marketing 3-col nav |
-| `portal/member-pages-desktop.css` | Home/trips grids |
+| `portal/member-pages-desktop.css` | Home grids; **trips list stays one column** (Pocket 3.2) |
 | `portal/member-profile.css` | Mobile cards + **PS-VIS-5g sectioned** desktop |
 | `src/shell/portal-member-header.tsx` | **PS-VIS-5e** brand + chip (`data-marketing-header*` hooks retained) |
 | `src/shell/portal-member-bottom-nav.tsx` | Primary nav + **PS-VIS-5f** desktop logout footer. **BUG-2:** labels come from RSC props (`item.label`, `primaryNavLabel`, logout strings) — no `useTranslations` in this client file. |

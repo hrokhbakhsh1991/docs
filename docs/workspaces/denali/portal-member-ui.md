@@ -2,17 +2,17 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-MEMBER-UI
-version: "2026-08-19-v3"
+version: "2026-08-19-v4"
 extends: portal-registration-ui.md · platform-portal-member-shell-architecture.mdoc
 apps: [portal]
-phase: DENALI-POCKET-3.1B
+phase: DENALI-POCKET-3.2
 ```
 
 ## Scope
 
 Visual layer for **authenticated member routes** (`/me/*`) inside `PortalMemberShell`. Business logic, entitlements, and BFF contracts unchanged.
 
-**Out of scope:** login/register auth shell (see [portal-registration-ui.md](./portal-registration-ui.md)), marketing, operator admin, page-module layout (home cards, trip rows — later Pocket slices).
+**Out of scope:** login/register auth shell (see [portal-registration-ui.md](./portal-registration-ui.md)), marketing, operator admin, `/me/home` cards, `/me/registrations/[id]` detail, `/me/profile`.
 
 ## Design intent (Denali Pocket)
 
@@ -33,7 +33,7 @@ Premium **mobile-first customer app**, not a marketing site inside a portal.
 | ---- | ---- |
 | `portal/member-shell.css` | Pocket chrome — canvas, compact header, thumb bar, type cascade |
 | `portal/member-shell-desktop.css` | Full-viewport account app + side rail (no floating phone-card) |
-| `portal/member-pages.css` | Home, trips list, trip detail, empty states (page pack — not 3.1) |
+| `portal/member-pages.css` | Home + **3.2 Pocket trips list** + trip detail empty/hero (detail layout not 3.2) |
 | `portal/member-profile.css` | Profile form + avatar |
 | `portal/denali-form-controls.css` | Shared inputs + solid primary / outline secondary / text tertiary |
 | `portal/login-page.css` | Auth experience (imports form controls) |
@@ -92,6 +92,24 @@ Desktop: [portal-member-desktop-frame.md](./portal-member-desktop-frame.md) — 
 | Trips | `http://denali.portal.localhost:3003/me/registrations` |
 | Profile | `http://denali.portal.localhost:3003/me/profile` |
 | More | `http://denali.portal.localhost:3003/me/more` |
+
+## Trips list (3.2 — `/me/registrations` only)
+
+Airline **My Trips** scanning + Stripe quiet meta + Denali Pocket material. **Not** a card dashboard.
+
+| Rule | Implementation |
+| ---- | -------------- |
+| Canvas title | `[data-portal-member-page-header]` sits on mist (`--color-bg-page`). No hero card, no gradient, no orb `::after` |
+| Inset | Shell already pads `--space-4` (16px). Trips `main` is `width: 100%` — do not wrap the page in a second card |
+| Type | Title 1.25rem / 650 (Pocket override). Lede is meta (`0.8125rem`), not a marketing paragraph |
+| Filters | Segmented text tabs on a hairline; 44px touch; count is text, not a chip tray |
+| Rows | One white surface, hairline, 12px radius, one shadow. Tour title + **one** status label + date/payment meta + chevron. Self/other is meta text, not a second chip |
+| Empty | Calm copy + solid forest CTA (`min-height: 3rem`). No radial wash, no gradient button |
+| Desktop | Single-column list (not a 2-col card grid). Slightly more inline padding at `≥48rem` |
+
+Hooks unchanged: `[data-portal-member-registrations]`, filter tabs, `[data-portal-member-registration-row]`, status/payment/departure, chevron, empty-state.
+
+Home / detail / profile selectors must not pick up these rules except where they already shared a hook (guest badge on detail keeps its own styles).
 
 ## Verification
 
