@@ -296,8 +296,8 @@ export async function createDenaliRegistration(params: {
     registrationIntake,
   });
 
-  // Phase 3 — tour canonical `pricing.registrationApproval` (default manual).
-  // Never trust client intake; mode comes only from loaded tour SoT.
+  // Phase 3.1 — tour SoT: pricing.registrationApproval or requiresManualAdminApproval.
+  // Never trust client intake; mode comes only from loaded tour canonical.
   if (resolveDenaliRegistrationApprovalMode(tour.canonical) !== "auto") {
     return created;
   }

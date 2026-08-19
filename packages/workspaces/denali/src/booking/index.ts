@@ -79,6 +79,8 @@ export {
 export { assertDenaliCreateValid } from "./validation";
 
 export {
+  applyDenaliRegistrationApprovalFromOperatorFlag,
+  denaliRegistrationApprovalFromManualFlag,
   resolveDenaliRegistrationApprovalMode,
   type DenaliRegistrationApprovalMode,
 } from "./resolve-denali-registration-approval-mode";

@@ -102,6 +102,26 @@ function readBoolean(value: unknown): boolean {
   return value === true;
 }
 
+function resolveAdminRegistrationApprovalMode(data: Record<string, unknown>): "manual" | "auto" {
+  const raw =
+    readString(readCanonicalPath(data, "pricing.registrationApproval")) ??
+    readString(readCanonicalPath(data, "pricingPayment.registrationApproval"));
+  if (raw === "auto") {
+    return "auto";
+  }
+  if (raw != null) {
+    return "manual";
+  }
+  const flag = data.requiresManualAdminApproval;
+  if (flag === true || flag === "true") {
+    return "manual";
+  }
+  if (flag === false || flag === "false") {
+    return "auto";
+  }
+  return "manual";
+}
+
 function readInteger(value: unknown): number | null {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return null;
@@ -114,9 +134,6 @@ export function extractWorkspaceAdminRegistrationRequirements(
 ): WorkspaceAdminRegistrationRequirements {
   const data = detail.canonical.data;
   const title = readString(data.title) ?? detail.projection.title;
-  const registrationApprovalRaw =
-    readString(readCanonicalPath(data, "pricing.registrationApproval")) ??
-    readString(readCanonicalPath(data, "pricingPayment.registrationApproval"));
   const transportModeRaw =
     readString(readCanonicalPath(data, "transport.mode")) ??
     readString(readCanonicalPath(data, "details.tripDetails.transportModes")) ??
@@ -132,7 +149,7 @@ export function extractWorkspaceAdminRegistrationRequirements(
     departureAt: readString(data.startDateTime) ?? detail.projection.departureAt,
     capacityMax: readInteger(data.capacityMax) ?? detail.projection.totalCapacity,
     basePricePerPerson: readInteger(readCanonicalPath(data, "pricing.basePricePerPerson")),
-    registrationApprovalMode: registrationApprovalRaw === "auto" ? "auto" : "manual",
+    registrationApprovalMode: resolveAdminRegistrationApprovalMode(data),
     participantRequirements: {
       nationalIdRequired:
         readBoolean(readCanonicalPath(data, "participantRequirements.nationalIdRequired")) ||

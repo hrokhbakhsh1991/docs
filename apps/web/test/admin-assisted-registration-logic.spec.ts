@@ -72,6 +72,36 @@ describe("admin-assisted-registration-logic", () => {
     assert.equal(form.transportKind, "personal_car");
   });
 
+  it("treats wizard checkbox off as auto when pricing.registrationApproval is absent", () => {
+    const requirements = extractWorkspaceAdminRegistrationRequirements({
+      ...TOUR_DETAIL,
+      canonical: {
+        data: {
+          ...TOUR_DETAIL.canonical.data,
+          pricing: { basePricePerPerson: 1250000 },
+          requiresManualAdminApproval: false,
+        },
+      },
+    });
+    assert.equal(requirements.registrationApprovalMode, "auto");
+    assert.equal(createDefaultAdminAssistedRegistrationForm(requirements).approveNow, true);
+  });
+
+  it("treats wizard checkbox on as manual when pricing.registrationApproval is absent", () => {
+    const requirements = extractWorkspaceAdminRegistrationRequirements({
+      ...TOUR_DETAIL,
+      canonical: {
+        data: {
+          ...TOUR_DETAIL.canonical.data,
+          pricing: { basePricePerPerson: 1250000 },
+          requiresManualAdminApproval: true,
+        },
+      },
+    });
+    assert.equal(requirements.registrationApprovalMode, "manual");
+    assert.equal(createDefaultAdminAssistedRegistrationForm(requirements).approveNow, false);
+  });
+
   it("validates step requirements before moving forward", () => {
     const requirements = extractWorkspaceAdminRegistrationRequirements(TOUR_DETAIL);
     const invalidIdentity = validateAdminAssistedRegistrationStep({

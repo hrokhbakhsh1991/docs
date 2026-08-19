@@ -13,6 +13,16 @@ const TENANT_ID = "00000000-0000-4000-8000-000000000003";
 const GUEST_USER_ID = "00000000-0000-4000-8000-000000000199";
 
 function storeWithApproval(mode: "manual" | "auto" | undefined): DenaliTourStorePort {
+  return storeWithCanonicalData(
+    mode !== undefined ? { pricing: { registrationApproval: mode } } : {}
+  );
+}
+
+function storeWithManualFlag(requiresManual: boolean): DenaliTourStorePort {
+  return storeWithCanonicalData({ requiresManualAdminApproval: requiresManual });
+}
+
+function storeWithCanonicalData(extra: Record<string, unknown>): DenaliTourStorePort {
   return {
     async listPage() {
       return { items: [] };
@@ -29,9 +39,7 @@ function storeWithApproval(mode: "manual" | "auto" | undefined): DenaliTourStore
             publishStatus: "active",
             capacityMax: 12,
             startDateTime: "2026-06-01T08:00:00.000Z",
-            ...(mode !== undefined
-              ? { pricing: { registrationApproval: mode } }
-              : {}),
+            ...extra,
           },
         },
       };
@@ -139,6 +147,43 @@ describe("registration-auto-approve — Denali Phase 3", () => {
         partySize: 1,
       },
       store: storeWithApproval(undefined),
+      bookingPort: port,
+    });
+    assert.equal(autoCalls.length, 0);
+    assert.equal(created.status, "pending");
+  });
+
+  it("DN-P3-R04 checkbox off auto-approves without pricing.registrationApproval", async () => {
+    const { port, createCalls, autoCalls } = trackingPort();
+    const created = await createDenaliRegistration({
+      tenantId: TENANT_ID,
+      workspaceType: "denali",
+      guestUserId: GUEST_USER_ID,
+      body: {
+        tourId: TOUR_ID,
+        contact: { fullName: "Checkbox Off Guest" },
+        partySize: 1,
+      },
+      store: storeWithManualFlag(false),
+      bookingPort: port,
+    });
+    assert.equal(createCalls.length, 1);
+    assert.equal(autoCalls.length, 1);
+    assert.equal(created.status, "approved");
+  });
+
+  it("DN-P3-R05 checkbox on stays pending", async () => {
+    const { port, autoCalls } = trackingPort();
+    const created = await createDenaliRegistration({
+      tenantId: TENANT_ID,
+      workspaceType: "denali",
+      guestUserId: GUEST_USER_ID,
+      body: {
+        tourId: TOUR_ID,
+        contact: { fullName: "Checkbox On Guest" },
+        partySize: 1,
+      },
+      store: storeWithManualFlag(true),
       bookingPort: port,
     });
     assert.equal(autoCalls.length, 0);

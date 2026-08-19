@@ -287,6 +287,8 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "booleanOptional",
     tags: ["optional_basic"] as const,
     ruleDefaults: { required: false, hidden: false },
+    notes:
+      "Operator SoT for public registration approval. false → pricing.registrationApproval auto (host autoApprove then offline pay); true → manual pending. Resolver also accepts the pricing string. Peak-count field stays display-only.",
   },
   {
     canonicalPath: "socialMediaLink",

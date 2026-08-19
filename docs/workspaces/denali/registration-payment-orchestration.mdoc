@@ -1,7 +1,7 @@
 ---
 title: Denali registration ↔ payment orchestration
 doc_id: DENALI-REG-PAY-ORCH
-version: "2026-08-18-v10"
+version: "2026-08-19-v11"
 workspace: denali
 status: ACTIVE
 phase: P6-3 follow-on
@@ -199,20 +199,55 @@ Canonical path (Denali tour document):
 
 | Path | Values | Default |
 | ---- | ------ | ------- |
-| `pricing.registrationApproval` | `manual` \| `auto` | `manual` (missing / unknown → manual) |
+| `pricing.registrationApproval` | `manual` \| `auto` | derived (see resolver) |
+| `requiresManualAdminApproval` | boolean (wizard also stores `"true"` / `"false"`) | missing → treat as unknown |
 
 ```text
-manual (default): create → pending → operator approve → receipt
-auto:             create → pending → host autoApprove (capacity OK) → approved → receipt
+manual: create → pending → operator approve → receipt
+auto:   create → pending → host autoApprove (capacity OK) → approved → receipt
 ```
+
+### Operator control (phase 3.1 — 2026-08-19)
+
+Wizard step `denali_basic` checkbox `requiresManualAdminApproval` (copy: نیاز به تأیید ادمین برای نهایی‌سازی رزرو) **is** the operator SoT for this policy. It is **not** a second independent switch.
+
+| Checkbox | Canonical flag | Derived `pricing.registrationApproval` | Public create |
+| -------- | -------------- | -------------------------------------- | ------------- |
+| Off (default) | `false` | `auto` | host `autoApprovePublicBooking` when capacity OK |
+| On | `true` | `manual` | stay `pending` until ops approve |
+| Never saved | missing | (omit) | fail closed `manual` |
+
+```mermaid
+flowchart TD
+  submit[Public registration create]
+  pending[booking.status pending]
+  resolve[resolveDenaliRegistrationApprovalMode]
+  autoNode[host autoApprove]
+  ops[Operator Bookings approve]
+  pay[Member offline receipt - remaining due]
+  submit --> pending --> resolve
+  resolve -->|"auto"| autoNode --> pay
+  resolve -->|"manual"| ops --> pay
+```
+
+Resolver precedence (`resolveDenaliRegistrationApprovalMode`):
+
+1. Explicit `pricing.registrationApproval` or `pricingPayment.registrationApproval` when the string is `auto` or `manual` (unknown strings fail closed to `manual`).
+2. Else operator flag `requiresManualAdminApproval`: `true` / `"true"` → `manual`; `false` / `"false"` → `auto`.
+3. Else missing both → `manual` (screened-club fail closed).
+
+Wizard persist (`prepareDenaliSubmitArtifact`) writes `pricing.registrationApproval` from the checkbox on every create/patch so admin-assisted registration and catalog consumers that only read the pricing path stay aligned. Existing published tours that stored only the checkbox still resolve via step 2.
+
+`participants.minRequiredPeaks` remains a **display** field when the checkbox is on (mountaineering + manual). It does **not** auto-approve by summit count.
+
+Payment is still `approve_then_offline_pay`. Auto means the member skips the club-approval wait and lands on the receipt panel (or waived/paid when remaining is 0). There is no instant gateway.
 
 Rules:
 
-- Only Denali public registration orchestration reads the field and may call `BookingPublicPort.autoApprovePublicBooking`.
+- Only Denali public registration orchestration reads the resolver and may call `BookingPublicPort.autoApprovePublicBooking`.
 - Host auto-approve: **no** ops CASL; requires booking `pending`, actor = submitter, capacity re-check in TX (same as ops approve).
 - If capacity blocks auto-approve → booking stays `pending` (fail closed to manual queue).
-- Operator manual create (`POST /bookings`) does **not** auto-approve.
-- Wizard UI for the field is **out of scope** for phase 3 — set via canonical / fixtures; UI can land later.
+- Operator manual create (`POST /bookings`) does **not** auto-approve from this resolver. Admin-assisted UI may pre-check `approveNow` when mode is `auto`.
 
 Portal: no special branch — when status is already `approved`, receipt upload panel opens (phase 1 gate).
 
@@ -321,7 +356,7 @@ After approve (or when override lands on an approved booking):
 
 | Phase | Content |
 | ----- | ------- |
-| 3.1 | Wizard / settings control for `pricing.registrationApproval` |
+| 3.1 | **Landed 2026-08-19** — wizard checkbox `requiresManualAdminApproval` drives `pricing.registrationApproval` (see Phase 3). |
 | 4.1 | Wizard / settings control for `pricing.paymentCollection` |
 | 5.1 | Ops UI panel for obligation override on `/finance` or `/bookings` |
 

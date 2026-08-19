@@ -129,7 +129,7 @@ Due block (`data-portal-member-receipt-due`): headline is **remaining**, not cat
 
 Server gate: `POST` member receipt still fails with `FINANCE_RECEIPT_REQUIRES_APPROVED_BOOKING` when booking is not `approved`. `FINANCE_RECEIPT_NOT_REQUIRED` when remaining is already 0 (paid or waived).
 
-**Auto-approve tours (phase 3):** `pricing.registrationApproval: auto` + capacity → create returns `approved` → upload/waived/paid from remaining. Capacity fail stays `pending`.
+**Auto-approve tours (phase 3 / 3.1):** Operator wizard checkbox `requiresManualAdminApproval` off → resolver `auto` (also writes `pricing.registrationApproval: auto` on persist). Capacity OK → create returns `approved` → upload/waived/paid from remaining. Checkbox on, or both fields missing → `pending` until club approve. Capacity fail stays `pending`. Authority: [registration-payment-orchestration.mdoc](./registration-payment-orchestration.mdoc) Phase 3.
 
 **Free collection (phase 4):** `pricing.paymentCollection: free` → remaining 0 → **waived** panel (not paid/receipt copy).
 

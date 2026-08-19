@@ -77,7 +77,7 @@ API upstream (frozen — reuse Phase 9.5 member filter + PS-5 entitlements):
 
 **Self / other uniqueness + amend authority:** [registration-self-other-uniqueness.mdoc](../workspaces/denali/registration-self-other-uniqueness.mdoc).
 
-**Approve-then-pay (2026-08-06):** Offline receipt upload is gated on booking lifecycle. Portal detail stages UI from `booking.status` (from `GET /bookings?view=mine`) before showing the upload form. Authority: [registration-payment-orchestration.mdoc](../workspaces/denali/registration-payment-orchestration.mdoc). Per-tour `pricing.registrationApproval: auto` may land the member already `approved` (phase 3). Per-tour `pricing.paymentCollection: free` marks `paymentStatus=paid` after approve without a receipt (phase 4).
+**Approve-then-pay (2026-08-06):** Offline receipt upload is gated on booking lifecycle. Portal detail stages UI from `booking.status` (from `GET /bookings?view=mine`) before showing the upload form. Authority: [registration-payment-orchestration.mdoc](../workspaces/denali/registration-payment-orchestration.mdoc). Per-tour `pricing.registrationApproval: auto` (wizard checkbox `requiresManualAdminApproval` off, phase 3.1) may land the member already `approved`. Per-tour `pricing.paymentCollection: free` marks `paymentStatus=paid` after approve without a receipt (phase 4).
 | `GET /api/me/entitlements` | `GET /identity/me/entitlements` | Registry effective modules for tenant workspace (bootstrap grant-all) |
 | `GET /api/me/home` | Portal-composed | Registry + entitlements aggregate (bootstrap) |
 
