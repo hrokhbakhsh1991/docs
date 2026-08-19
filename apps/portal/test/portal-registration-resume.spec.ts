@@ -15,7 +15,8 @@ describe("portal registration resume — PCMS-REG-01", () => {
     assert.match(page, /buildRegistrationResumeInitialState/);
     assert.match(page, /data-registration-resume/);
     assert.match(page, /initialRuntimeState/);
-    assert.match(page, /intake\.resumeLede/);
+    assert.match(page, /intake\.kicker/);
+    assert.match(page, /heroKicker/);
     assert.match(page, /sessionBadge/);
   });
 

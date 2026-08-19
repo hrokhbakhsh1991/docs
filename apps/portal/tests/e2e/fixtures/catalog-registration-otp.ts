@@ -179,7 +179,7 @@ export async function completeCatalogRegistrationIntake(
     fieldId: string,
     value: string
   ): Promise<void> => {
-    const inputEl = root.locator(`[data-intake-field="${fieldId}"]`).first();
+    const inputEl = root.locator(`input[data-intake-field="${fieldId}"]`).first();
     if (await inputEl.isVisible({ timeout: 1_000 }).catch(() => false)) {
       await inputEl.fill(value);
     }
@@ -209,9 +209,7 @@ export async function completeCatalogRegistrationIntake(
 
   if (registrantTarget === "other") {
     // Prefer role-based toggle so React controlled checkbox receives a real click.
-    const selfCheckbox = page.getByRole("checkbox", {
-      name: /برای خودم|For myself/i,
-    });
+    const selfCheckbox = page.locator("[data-denali-registrant-self-toggle] input");
     await selfCheckbox.waitFor({ state: "visible", timeout: 30_000 });
 
     const selfCard = page.locator("[data-denali-self-guest-card]");
@@ -233,12 +231,8 @@ export async function completeCatalogRegistrationIntake(
     await expect(selfCard).toHaveCount(0, { timeout: 15_000 });
 
     const guestCards = page.locator("[data-denali-other-guest-card]");
-    const addGuestButton = page.getByRole("button", {
-      name: /افزودن مهمان|Add guest/i,
-    });
-    const removeGuestButton = page.getByRole("button", {
-      name: /حذف مهمان|Remove guest/i,
-    });
+    const addGuestButton = page.locator("[data-denali-add-guest]");
+    const removeGuestButton = page.locator("[data-denali-remove-guest]");
 
     // Auto-seed may already create the first card; otherwise click Add once.
     if ((await guestCards.count()) === 0) {

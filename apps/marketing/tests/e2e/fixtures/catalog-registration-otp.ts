@@ -167,7 +167,7 @@ async function fillIntakeFieldInRootIfVisible(
   fieldId: string,
   value: string
 ): Promise<void> {
-  const inputEl = root.locator(`[data-intake-field="${fieldId}"]`).first();
+  const inputEl = root.locator(`input[data-intake-field="${fieldId}"]`).first();
   if (await inputEl.isVisible({ timeout: 2_000 }).catch(() => false)) {
     await inputEl.fill(value);
   }
@@ -227,9 +227,7 @@ export async function completeCatalogRegistrationIntake(
   const intakeRoot = page.locator("[data-public-registration-intake]");
 
   if (registrantTarget === "other") {
-    const selfCheckbox = page.getByRole("checkbox", {
-      name: /برای خودم|For myself/i,
-    });
+    const selfCheckbox = page.locator("[data-denali-registrant-self-toggle] input");
     if (await selfCheckbox.isVisible({ timeout: 2_000 }).catch(() => false)) {
       const selfCard = page.locator("[data-denali-self-guest-card]");
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -249,9 +247,7 @@ export async function completeCatalogRegistrationIntake(
     }
 
     const guestCards = page.locator("[data-denali-other-guest-card]");
-    const addGuestButton = page.getByRole("button", {
-      name: /افزودن مهمان|Add guest/i,
-    });
+    const addGuestButton = page.locator("[data-denali-add-guest]");
     if ((await guestCards.count()) === 0 && (await addGuestButton.count()) > 0) {
       await addGuestButton.first().click();
     }
@@ -282,9 +278,7 @@ export async function completeCatalogRegistrationIntake(
     }
   } else {
     // Ensure Denali "for myself" stays selected when the toggle is present.
-    const selfCheckbox = page.getByRole("checkbox", {
-      name: /برای خودم|For myself/i,
-    });
+    const selfCheckbox = page.locator("[data-denali-registrant-self-toggle] input");
     if (await selfCheckbox.isVisible({ timeout: 2_000 }).catch(() => false)) {
       if (!(await selfCheckbox.isChecked())) {
         await selfCheckbox.click({ force: true });

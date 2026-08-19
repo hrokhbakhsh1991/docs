@@ -76,4 +76,20 @@ describe("portal-visual-wave2.spec.ts", () => {
     assert.match(skin, /\[data-portal-auth-session-chip\]/);
     assert.match(skin, /\[data-denali-other-guest-list\]/);
   });
+
+  it("VIS-REG-05 denali Party Ledger skin owns intake presentation", () => {
+    const portalSkin = readFileSync(
+      join(repoRoot, "packages/workspaces/denali/theme/denali-portal.css"),
+      "utf8"
+    );
+    const ledger = readFileSync(
+      join(repoRoot, "packages/workspaces/denali/theme/portal/registration-ledger.css"),
+      "utf8"
+    );
+    assert.match(portalSkin, /portal\/registration-ledger\.css/);
+    assert.match(ledger, /data-registration-resume="intake"/);
+    assert.match(ledger, /data-denali-add-guest/);
+    assert.match(ledger, /minmax\(15rem, 17\.5rem\)/);
+    assert.match(ledger, /background: transparent !important/);
+  });
 });

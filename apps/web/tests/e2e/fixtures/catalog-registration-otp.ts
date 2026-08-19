@@ -45,7 +45,7 @@ async function fillIntakeFieldInRootIfVisible(
   fieldId: string,
   value: string
 ): Promise<void> {
-  const inputEl = root.locator(`[data-intake-field="${fieldId}"]`).first();
+  const inputEl = root.locator(`input[data-intake-field="${fieldId}"]`).first();
   await expect(inputEl).toBeVisible({ timeout: 30_000 });
   await inputEl.fill(value);
   await expect(inputEl).toHaveValue(value, { timeout: 5_000 });
@@ -56,7 +56,7 @@ async function fillIntakeFieldIfPresent(
   fieldId: string,
   value: string
 ): Promise<void> {
-  const inputEl = root.locator(`[data-intake-field="${fieldId}"]`).first();
+  const inputEl = root.locator(`input[data-intake-field="${fieldId}"]`).first();
   if (await inputEl.isVisible({ timeout: 2_000 }).catch(() => false)) {
     await inputEl.fill(value);
   }
@@ -124,9 +124,7 @@ export async function completeCatalogRegistrationIntake(
     await partySizeInput.fill(input.partySize ?? "2");
   }
 
-  const selfCheckbox = page.getByRole("checkbox", {
-    name: /برای خودم|For myself/i,
-  });
+  const selfCheckbox = page.locator("[data-denali-registrant-self-toggle] input");
   if (await selfCheckbox.isVisible({ timeout: 1_000 }).catch(() => false)) {
     if (!(await selfCheckbox.isChecked())) {
       await selfCheckbox.click({ force: true });
