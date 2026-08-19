@@ -2,8 +2,12 @@
 /**
  * Starts API + Web for Phase 8.4 urban smoke Playwright (SMK-P8-01..04).
  * Playwright gates on `127.0.0.1:3000/health` — avoid polling heavy `/` routes.
+ *
+ * Ephemeral RS256 from resolveSmokeApiJwtEnv() is minted this process. Reusing
+ * API/web/portal from a prior run signs cookies with a different key →
+ * invalid_signature → guest OTP loop (SMK-P8-02). Always free 3000–3003.
  */
-import { spawn, spawnSync } from "node:child_process";
+import { execSync, spawn, spawnSync } from "node:child_process";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -57,6 +61,7 @@ const webEnv = {
 
 const marketingEnv = {
   ...process.env,
+  ...jwtEnv,
   NODE_ENV: "development",
   ALLOW_DEV_WEB_SESSION: "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",
@@ -74,6 +79,14 @@ const portalEnv = {
   TOUR_OPS_DEV_WORKSPACE_ID: "00000000-0000-4000-8000-000000000403",
   PORTAL_DEV_PORT: "3003",
 };
+
+function freePort(port) {
+  try {
+    execSync(`fuser -k ${port}/tcp`, { stdio: "ignore" });
+  } catch {
+    // port already free or fuser unavailable
+  }
+}
 
 function waitForUrl(url, timeoutMs = 300_000) {
   const deadline = Date.now() + timeoutMs;
@@ -115,20 +128,6 @@ function waitForUrl(url, timeoutMs = 300_000) {
   });
 }
 
-async function probeStatus(url) {
-  return new Promise((resolve) => {
-    const req = http.get(url, (res) => {
-      res.resume();
-      resolve(res.statusCode ?? 0);
-    });
-    req.on("error", () => resolve(0));
-    req.setTimeout(5_000, () => {
-      req.destroy();
-      resolve(0);
-    });
-  });
-}
-
 const children = [];
 
 async function start() {
@@ -140,67 +139,49 @@ async function start() {
     throw new Error("smoke-urban-e2e-servers: workspace-urban build failed");
   }
 
-  const apiStatus = await probeStatus("http://127.0.0.1:3001/health");
-  const webStatus = await probeStatus("http://127.0.0.1:3000/health");
+  console.warn("smoke-urban-e2e-servers: freeing 3000–3003 so JWT matches portal/web");
+  freePort(3000);
+  freePort(3001);
+  freePort(3002);
+  freePort(3003);
+  await new Promise((resolve) => setTimeout(resolve, 2_000));
 
-  if (webStatus >= 500) {
-    throw new Error(
-      "Web on :3000 returns HTTP 500 (likely Next compile error). Stop existing dev servers and retry."
-    );
-  }
-
-  if (apiStatus !== 200) {
-    // Honor apiEnv.NODE_ENV=test — do not use `pnpm run dev` (forces development).
-    const api = spawn("node", ["--import", "tsx", "--env-file=.env", "--env-file=.env.local", "src/main.ts"], {
-      cwd: path.join(repoRoot, "apps/api"),
-      env: apiEnv,
-      stdio: "inherit",
-    });
-    children.push(api);
-    await waitForUrl("http://127.0.0.1:3001/health");
-  } else {
-    console.log("smoke-urban-e2e-servers: reusing API :3001");
-  }
-
-  if (webStatus <= 0 || webStatus >= 500) {
-    const web = spawn("pnpm", ["exec", "next", "dev", "--port", "3000"], {
-      cwd: webDir,
-      env: webEnv,
-      stdio: "inherit",
-    });
-    children.push(web);
-    await waitForUrl("http://127.0.0.1:3000/health");
-  } else {
-    console.log("smoke-urban-e2e-servers: reusing web :3000");
-  }
-
-  console.log("smoke-urban-e2e-servers: core stack ready (web :3000/health)");
-
-  const marketing = spawn("pnpm", ["exec", "next", "dev", "--port", "3002"], {
-    cwd: marketingDir,
-    env: marketingEnv,
+  // Honor apiEnv.NODE_ENV=test — do not use `pnpm run dev` (forces development).
+  // Do not pass --env-file=.env.local: that file can inject a second AUTH_JWT_PUBLIC_KEY.
+  const api = spawn("node", ["--import", "tsx", "src/main.ts"], {
+    cwd: path.join(repoRoot, "apps/api"),
+    env: apiEnv,
     stdio: "inherit",
   });
+  children.push(api);
+  await waitForUrl("http://127.0.0.1:3001/health");
+
   const portal = spawn("pnpm", ["exec", "next", "dev", "--port", "3003"], {
     cwd: portalDir,
     env: portalEnv,
     stdio: "inherit",
   });
-  children.push(marketing, portal);
-
-  void Promise.all([
+  const marketing = spawn("pnpm", ["exec", "next", "dev", "--port", "3002"], {
+    cwd: marketingDir,
+    env: marketingEnv,
+    stdio: "inherit",
+  });
+  children.push(portal, marketing);
+  await Promise.all([
     waitForUrl("http://127.0.0.1:3002/health"),
     waitForUrl("http://127.0.0.1:3003/health"),
-  ])
-    .then(() => {
-      console.log("smoke-urban-e2e-servers: marketing :3002 + portal :3003 ready");
-    })
-    .catch((error) => {
-      console.warn(
-        "smoke-urban-e2e-servers: marketing/portal warmup still pending:",
-        error instanceof Error ? error.message : error
-      );
-    });
+  ]);
+
+  // Web last — Playwright webServer.url is :3000/health; starting it after
+  // portal/marketing avoids SMK-P8 racing a cold :3002/:3003 compile.
+  const web = spawn("pnpm", ["exec", "next", "dev", "--port", "3000"], {
+    cwd: webDir,
+    env: webEnv,
+    stdio: "inherit",
+  });
+  children.push(web);
+  await waitForUrl("http://127.0.0.1:3000/health");
+  console.log("smoke-urban-e2e-servers: API + web + marketing + portal ready");
 }
 
 void start().catch((error) => {
