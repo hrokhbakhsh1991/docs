@@ -19,7 +19,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   margin: 0;
   padding-block: var(--space-8);
   padding-inline: var(--catalog-page-padding-x);
-  background: var(--color-bg-page);
+  background: var(--denali-mist-100, #e8efe8);
   border: none;
   border-block-start: none;
   border-radius: 0;

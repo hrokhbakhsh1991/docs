@@ -53,7 +53,11 @@ describe("home-published-programs.spec.ts", () => {
     assert.match(css, /max-width: 24rem/);
     assert.match(css, /justify-content: center/);
     assert.match(css, /--programs-card-3:/);
+    assert.match(css, /@media \(max-width: 47\.9375rem\)/);
+    assert.match(css, /grid-template-columns: 8\.75rem minmax\(0, 1fr\)/);
+    assert.match(css, /scroll-snap-type: none/);
     assert.doesNotMatch(css, /grid-template-columns: repeat\(3,/);
+    assert.doesNotMatch(css, /scroll-snap-type:\s*x/);
   });
 
   it("category chips keep the category query contract", () => {

@@ -18,20 +18,22 @@ describe("portal-visual-wave5.spec.ts", () => {
     assert.match(skin, /portal\/marketing-header-parity\.css/);
   });
 
-  it("DESK-02 member-shell-desktop.css uses page grid + side rail", () => {
+  it("DESK-02 member-shell-desktop.css uses full-viewport grid + side rail", () => {
     const css = readFileSync(join(denaliThemeRoot, "portal/member-shell-desktop.css"), "utf8");
     assert.match(css, /@media \(min-width: 48rem\)/);
     assert.match(css, /:has\(\[data-portal-shell\]\)/);
     assert.match(css, /\[data-portal-shell\]:not\(\[data-embedded-host\]\)/);
-    assert.match(css, /max-height:\s*calc\(100dvh - 2rem\)/);
+    assert.match(css, /max-height:\s*100dvh/);
+    assert.match(css, /min-height:\s*100dvh/);
     assert.match(css, /overflow-y:\s*auto/);
     assert.match(css, /grid-template-areas/);
     assert.match(css, /"main nav"/);
-    assert.match(css, /max-width:\s*64rem/);
-    assert.match(css, /border-radius/);
-    assert.match(css, /box-shadow/);
+    assert.match(css, /max-width:\s*none/);
+    assert.match(css, /border-radius:\s*0/);
+    assert.match(css, /box-shadow:\s*none/);
     assert.match(css, /data-portal-shell-nav-footer/);
     assert.match(css, /margin-top:\s*auto/);
+    assert.doesNotMatch(css, /max-width:\s*64rem/);
   });
 
   it("DESK-03 embedded host excluded from desktop frame", () => {
@@ -75,13 +77,14 @@ describe("portal-visual-wave5.spec.ts", () => {
       join(repoRoot, "docs/workspaces/denali/portal-member-desktop-frame.md"),
       "utf8"
     );
-    assert.match(doc, /PS-VIS-5c/);
+    assert.match(doc, /PS-VIS-5e/);
     assert.match(doc, /Side rail/);
     assert.match(doc, /sectioned/i);
-    assert.match(doc, /64rem/);
+    assert.match(doc, /100dvh/);
     assert.match(doc, /PS-VIS-5f/);
     assert.match(doc, /PS-VIS-5g/);
     assert.match(doc, /data-portal-shell-nav-footer/);
+    assert.match(doc, /phone-card/);
   });
 
   it("DESK-05 login-page.css widens and vertically centers auth on desktop", () => {
@@ -97,8 +100,9 @@ describe("portal-visual-wave5.spec.ts", () => {
       join(repoRoot, "docs/workspaces/denali/portal-member-desktop-frame.md"),
       "utf8"
     );
-    assert.match(doc, /alpine backdrop/i);
+    assert.match(doc, /mist canvas/i);
     assert.match(doc, /side rail/i);
+    assert.match(doc, /full-viewport/i);
   });
 
   it("DESK-07 portal-shell-visual E2E includes desktop frame screenshot", () => {

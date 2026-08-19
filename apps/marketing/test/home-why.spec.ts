@@ -54,8 +54,8 @@ describe("home-why.spec.ts", () => {
     assert.doesNotMatch(whySource, /home\.full\.finalCta/);
     assert.doesNotMatch(whySource, /home\.full\.latest\.viewAll/);
     assert.doesNotMatch(whySource, /home\.full\.destinations\.explore/);
-    assert.match(heroSource, /data-marketing-home-cta-secondary/);
-    assert.match(heroSource, /href=\{whySectionHref\}/);
+    assert.doesNotMatch(heroSource, /data-marketing-home-cta-secondary/);
+    assert.doesNotMatch(heroSource, /href=\{whySectionHref\}/);
   });
 
   it("owns Why CSS as a named landing partial and does not restyle locked sections", () => {
@@ -74,6 +74,8 @@ describe("home-why.spec.ts", () => {
     assert.match(css, /data-marketing-home-why-rail/);
     assert.match(css, /repeat\(4, minmax\(0, 1fr\)\)/);
     assert.match(css, /repeat\(2, minmax\(0, 1fr\)\)/);
+    assert.match(css, /@media \(min-width: 80rem\)/);
+    assert.match(css, /background: var\(--color-bg-surface/);
     assert.match(css, /data-marketing-home-why-kicker/);
     assert.doesNotMatch(css, /box-shadow:\s*var\(--mkt-shadow-card\)/);
     assert.doesNotMatch(css, /backdrop-filter/);

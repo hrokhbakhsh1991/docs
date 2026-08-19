@@ -61,6 +61,7 @@ describe("home-gallery.spec.ts", () => {
     assert.match(css, /scroll-snap-type: none/);
     assert.match(css, /figure\[data-marketing-home-gallery-item\]:first-child/);
     assert.match(css, /grid-column: auto/);
+    assert.match(css, /--denali-mist-100/);
     assert.doesNotMatch(css, /scale\(1\./);
     assert.doesNotMatch(why, /data-marketing-home-gallery/);
     assert.doesNotMatch(destinations, /data-marketing-home-gallery/);

@@ -16,6 +16,7 @@ function readMarketing(relativePath: string): string {
 const MARKETING_SHELL_FILES = [
   "src/shell/marketing-shell.tsx",
   "src/shell/marketing-footer.tsx",
+  "src/shell/marketing-nav-drawer-keyboard.tsx",
   "src/shell/marketing-providers.tsx",
 ] as const;
 

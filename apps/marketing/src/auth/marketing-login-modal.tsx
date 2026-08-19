@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent,
   type ReactNode,
 } from "react";
 import { useTranslations } from "next-intl";
@@ -18,6 +19,7 @@ import { isMarketingTourDetailPathname } from "./is-marketing-tour-detail-pathna
 import {
   MarketingLoginAuthFlow,
   type MarketingLoginAuthFlowInput,
+  type MarketingLoginAuthStage,
 } from "./marketing-login-auth-flow";
 
 /** `pdp` is the only wired host. `header` is reserved for a future marketing login surface. */
@@ -45,6 +47,19 @@ function resolvePresentation(): "dialog" | "sheet" {
     return "dialog";
   }
   return window.matchMedia(DESKTOP_MQ).matches ? "dialog" : "sheet";
+}
+
+function focusAuthField(root: HTMLElement | null): void {
+  if (root === null) {
+    return;
+  }
+  const otp = root.querySelector<HTMLInputElement>('[data-otp-cell="0"]');
+  if (otp !== null) {
+    otp.focus({ preventScroll: true });
+    return;
+  }
+  const phone = root.querySelector<HTMLInputElement>("#phone");
+  phone?.focus({ preventScroll: true });
 }
 
 export function useMarketingLoginModal(): MarketingLoginModalContextValue {
@@ -82,10 +97,12 @@ export function MarketingLoginModalProvider({
 }: MarketingLoginModalProviderProps) {
   const t = useTranslations("catalogRegistration");
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
   const autoOpenedRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [host, setHost] = useState<MarketingLoginModalHost>("pdp");
   const [flow, setFlow] = useState<MarketingLoginAuthFlowInput | null>(null);
+  const [stage, setStage] = useState<MarketingLoginAuthStage>("phone");
   const [presentation, setPresentation] = useState<"dialog" | "sheet">("dialog");
 
   const transport = useMemo(
@@ -96,9 +113,15 @@ export function MarketingLoginModalProvider({
   const closeLoginModal = useCallback(() => {
     setOpen(false);
     setFlow(null);
+    setStage("phone");
     const dialog = dialogRef.current;
     if (dialog?.open) {
       dialog.close();
+    }
+    const restore = restoreFocusRef.current;
+    restoreFocusRef.current = null;
+    if (restore !== null && typeof restore.focus === "function") {
+      restore.focus({ preventScroll: true });
     }
   }, []);
 
@@ -116,7 +139,10 @@ export function MarketingLoginModalProvider({
 
   const openLoginModal = useCallback(
     (options?: OpenMarketingLoginModalOptions) => {
+      const active = document.activeElement;
+      restoreFocusRef.current = active instanceof HTMLElement ? active : null;
       setHost(options?.host ?? "pdp");
+      setStage("phone");
       setFlow(buildFlow(options));
       setPresentation(resolvePresentation());
       setOpen(true);
@@ -138,6 +164,16 @@ export function MarketingLoginModalProvider({
   }, [open]);
 
   useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const id = window.requestAnimationFrame(() => {
+      focusAuthField(dialogRef.current);
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [open, stage]);
+
+  useEffect(() => {
     const mq = window.matchMedia(DESKTOP_MQ);
     const sync = () => {
       if (open) {
@@ -146,6 +182,29 @@ export function MarketingLoginModalProvider({
     };
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const dialog = dialogRef.current;
+    const viewport = window.visualViewport;
+    if (dialog === null || viewport == null) {
+      return;
+    }
+    const syncKeyboardInset = () => {
+      const inset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+      dialog.style.setProperty("--kb-inset", `${inset}px`);
+    };
+    syncKeyboardInset();
+    viewport.addEventListener("resize", syncKeyboardInset);
+    viewport.addEventListener("scroll", syncKeyboardInset);
+    return () => {
+      viewport.removeEventListener("resize", syncKeyboardInset);
+      viewport.removeEventListener("scroll", syncKeyboardInset);
+      dialog.style.removeProperty("--kb-inset");
+    };
   }, [open]);
 
   useEffect(() => {
@@ -169,6 +228,17 @@ export function MarketingLoginModalProvider({
     window.location.assign(`${url.pathname}${url.search}${url.hash}`);
   }, []);
 
+  const onDialogKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDialogElement>) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+      event.preventDefault();
+      closeLoginModal();
+    },
+    [closeLoginModal]
+  );
+
   const value = useMemo(
     (): MarketingLoginModalContextValue => ({
       open,
@@ -179,6 +249,8 @@ export function MarketingLoginModalProvider({
   );
 
   const titleId = "marketing-login-modal-title";
+  const heading = stage === "otp" ? t("stepper.otp") : t("loginPageTitle");
+  const cancelLabel = t("loginModalCancel");
 
   return (
     <MarketingLoginModalContext.Provider value={value}>
@@ -189,41 +261,29 @@ export function MarketingLoginModalProvider({
         data-marketing-login-modal-open={open ? "true" : "false"}
         data-marketing-login-modal-presentation={presentation}
         data-marketing-login-modal-host={host}
+        data-marketing-login-modal-stage={stage}
         aria-labelledby={open ? titleId : undefined}
         inert={!open}
         onCancel={(event) => {
           event.preventDefault();
-          closeLoginModal();
         }}
-        onClose={closeLoginModal}
+        onKeyDown={onDialogKeyDown}
       >
         {open ? (
           <div data-marketing-login-modal-panel>
             <header data-marketing-login-modal-header>
-              <h2 id={titleId}>{t("loginPageTitle")}</h2>
-              <button
-                type="button"
-                data-marketing-login-modal-close
-                aria-label={t("loginModalClose")}
-                onClick={closeLoginModal}
-              >
-                ×
+              <h2 id={titleId}>{heading}</h2>
+              <button type="button" data-marketing-login-modal-close onClick={closeLoginModal}>
+                {cancelLabel}
               </button>
             </header>
             {flow !== null && transport !== null ? (
               <div data-marketing-login-modal-body data-member-login-egress="">
-                <div data-marketing-login-modal-intro>
-                  <p data-marketing-login-modal-intro-eyebrow>{t("phone.loginTitle")}</p>
-                  <p data-marketing-login-modal-intro-lede>{t("phone.loginDescription")}</p>
-                  <div data-marketing-login-modal-intro-hints>
-                    <p>{t("phone.existingHint")}</p>
-                    <p>{t("phone.newHint")}</p>
-                  </div>
-                </div>
                 <MarketingLoginAuthFlow
                   flow={flow}
                   transport={transport}
                   onAuthenticated={onAuthenticated}
+                  onStageChange={setStage}
                 />
               </div>
             ) : (

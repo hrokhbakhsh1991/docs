@@ -2,6 +2,7 @@
   "pageTitle": "Register — {tourTitle}",
   "loginPageTitle": "Sign in",
   "loginModalClose": "Close sign in",
+  "loginModalCancel": "Cancel",
   "signInToRegister": "Sign in to continue registration",
   "backToTour": "Back to tour",
   "backToMarketing": "Back",
@@ -38,14 +39,14 @@
   "otp": {
     "title": "Enter verification code",
     "loginTitle": "Verify to sign in",
-    "sentTo": "Code sent to {phone}",
+    "sentTo": "{phone}",
     "helper": "Enter the one-time code.",
     "autoFillHint": "If the SMS is on this device, code entry should feel faster.",
     "verify": "Verify",
     "verifying": "Verifying…",
-    "resend": "Resend code",
+    "resend": "Resend",
     "resendIn": "Resend ({seconds}s)",
-    "changePhone": "Change phone",
+    "changePhone": "Change",
     "devHint": "Dev OTP: {code}",
     "groupLabel": "One-time code",
     "digitLabel": "Digit {index}"
@@ -133,7 +134,7 @@
     "viewRegistrations": "View my registrations"
   },
   "errors": {
-    "MOBILE_REQUIRED": "Enter your mobile number.",
+    "MOBILE_REQUIRED": "Enter a mobile number.",
     "MOBILE_INVALID": "Enter a valid mobile number.",
     "OTP_INVALID": "Invalid or expired code. Try again.",
     "OTP_EXPIRED": "Invalid or expired code. Try again.",

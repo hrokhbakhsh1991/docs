@@ -1,7 +1,7 @@
 ---
 title: Portal Member Login Modal
 doc_id: PCMS-LOGIN-MODAL
-version: "2026-08-17-v12"
+version: "2026-08-19-v13"
 status: design
 authority: docs/standards/member-session-portal-authority.mdoc
 apps: [portal, marketing]
@@ -195,11 +195,14 @@ apps/portal
 
 ## 9. Accessibility & responsive
 
+Portal `/login` page and `data-portal-login-modal` keep the contracts below. **Marketing PDP** `[data-marketing-login-modal]` is a separate Quiet Ledger skin (`37-mkt-login-modal.css`) — do not restyle Portal chrome to match it.
+
 | Viewport | Pattern | Notes |
 | -------- | ------- | ----- |
 | `min-width` desktop breakpoint (align Denali portal shell) | Centered dialog | Focus trap · Esc · backdrop click optional (product: prefer Esc + close button) |
-| Below breakpoint | Bottom sheet | Drag/close control · `env(safe-area-inset-bottom)` |
+| Below breakpoint | Bottom sheet | Portal register modal may keep a close control. **Marketing auth bridge:** no drag handle, no swipe-dismiss (in-progress OTP must not be discarded by a gesture). `env(safe-area-inset-bottom)` + `--kb-inset` from `visualViewport`. |
 | Both | `aria-modal="true"` · labelled by login title · restore focus to trigger |
+| Marketing bridge only | Dismiss | Escape + visible Cancel (`loginModalCancel`). Backdrop click is ignored. First focus is the phone field or OTP cell 0, not Close. |
 
 ## 10. Theme / CSS
 
@@ -214,7 +217,7 @@ apps/portal
 - Modal OTP controls: `denali-form-controls.css` scopes `[data-portal-login-modal-body]` alongside `[data-portal-auth-card]`.
 - **No registration stepper** inside the login modal (`memberLoginEgress` skips `CatalogRegistrationStepper`); modal header title is the only step chrome.
 - Register page full-viewport auth experience **unchanged** when modal closed.
-- `/login` page uses the existing `data-portal-login-full-page` alpine skin (story + form panel).
+- `/login` page uses the `data-portal-login-full-page` Alpine Split skin in `alpine-login.css`. Grid lives on `[data-portal-auth-layout]` because chrome is a sibling of the card; photo field is `~58%` desktop / independent masthead below `48rem` (and on short landscape `max-height: 32rem` and `max-width: 56rem`). Login Back is composed **after** the form in `PortalLoginThinHost` so Tab order matches visual order; register chrome is unchanged. Forest CTA override is page-scoped (do not restyle `denali-form-controls.css`). Story/highlight chips are not part of the member login page. Register modal skin is unchanged. Photography: existing Alborz still at `/auth/alborz.webp` (catalog crop — production asset debt until a dedicated hero exists).
 
 ## 11. Implementation phases (code later)
 

@@ -1,14 +1,18 @@
 /**
- * Denali portal — member shell chrome (PS-VIS-4).
+ * Denali portal — member shell chrome (Denali Pocket).
  * Scope: body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell]
+ * Canvas: mist. Chrome: compact app bar + thumb bar. No glass, orbs, or marketing display type.
  */
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell],
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-slot="shell"] {
-  max-width: 36rem;
+  max-width: none;
+  width: 100%;
   position: relative;
   isolation: isolate;
   background: var(--color-bg-page);
+  font-size: var(--portal-pocket-body-size, 0.9375rem);
+  --font-heading: var(--font-family-base, inherit);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-skip-link] {
@@ -24,12 +28,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-she
   border-radius: var(--radius-full, 9999px);
   background: var(--color-bg-surface);
   color: var(--color-text-primary);
-  font-size: 0.8125rem;
+  font-size: var(--portal-pocket-meta-size, 0.8125rem);
   font-weight: 700;
   text-decoration: none;
-  box-shadow:
-    0 0 0 1px color-mix(in oklab, var(--color-primary) 10%, transparent),
-    0 10px 24px rgb(4 47 46 / 0.12);
+  box-shadow: var(--denali-shadow-card, 0 1px 2px rgb(0 0 0 / 0.06));
   transition: transform 0.12s ease;
 }
 
@@ -41,19 +43,21 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-header],
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-slot="shell-header"] {
-  border-bottom: 1px solid color-mix(in oklab, var(--color-border-subtle) 80%, transparent);
-  background: color-mix(in oklab, var(--color-bg-surface) 88%, transparent);
-  backdrop-filter: blur(16px) saturate(1.15);
-  box-shadow: 0 1px 0 color-mix(in oklab, var(--color-primary) 6%, transparent);
+  min-height: var(--portal-pocket-header-height, 3.25rem);
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  backdrop-filter: none;
+  box-shadow: none;
 }
 
-/* Marketing-parity header owns its chrome — skip legacy portal header paint */
+/* Defeat marketing glass header imported for brand/chip hooks */
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   header[data-portal-shell-header][data-marketing-header],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   header[data-slot="shell-header"][data-marketing-header] {
-  border-bottom: none;
-  background: transparent;
+  min-height: var(--portal-pocket-header-height, 3.25rem);
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
   backdrop-filter: none;
   box-shadow: none;
 }
@@ -62,21 +66,29 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-she
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-slot="shell-brand"] {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
+  min-height: var(--portal-pocket-touch, 2.75rem);
   text-decoration: none;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-logo] {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: var(--radius-md);
-  box-shadow: var(--denali-shadow-card, 0 1px 2px rgb(0 0 0 / 0.06));
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  box-shadow: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  [data-marketing-brand-icon] {
+  width: 1.75rem;
+  height: 1.75rem;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-workspace-label] {
-  font-family: var(--font-heading, inherit);
-  font-size: 1rem;
-  font-weight: 400;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 650;
   line-height: 1.2;
   letter-spacing: -0.01em;
   color: var(--color-text-primary);
@@ -87,20 +99,18 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 2.75rem;
+  min-height: var(--portal-pocket-touch, 2.75rem);
   max-width: min(11.5rem, 42vw);
-  padding: var(--space-1) var(--space-2);
+  padding: 0.125rem 0.375rem 0.125rem 0.125rem;
   border-radius: 9999px;
-  border: 1px solid color-mix(in oklab, var(--color-border-default) 82%, transparent);
-  background: color-mix(in srgb, var(--color-bg-surface) 88%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
   color: var(--color-text-primary);
   text-decoration: none;
-  box-shadow: var(--denali-shadow-card, 0 1px 2px rgb(0 0 0 / 0.06));
+  box-shadow: none;
   transition:
     border-color 0.15s ease,
-    background 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.12s ease;
+    background 0.15s ease;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -108,11 +118,13 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   border-color: var(--color-border-default);
   background: var(--color-bg-surface);
   text-decoration: none;
+  transform: none;
+  box-shadow: none;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-marketing-header-member]:active {
-  transform: scale(0.985);
+  transform: none;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -127,6 +139,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   color: var(--color-primary);
   overflow: hidden;
   flex-shrink: 0;
+  box-shadow: none;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -150,29 +163,24 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.8125rem;
-  font-weight: 700;
+  font-size: var(--portal-pocket-meta-size, 0.8125rem);
+  font-weight: 650;
   line-height: 1.2;
   color: var(--color-text-primary);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-marketing-header-member-hint] {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  line-height: 1.2;
-  color: var(--color-text-muted);
+  display: none;
 }
 
 @media (max-width: 25rem) {
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-marketing-header-member] {
-    max-width: 3rem;
-    padding-inline: var(--space-1);
+    max-width: 2.75rem;
+    min-width: var(--portal-pocket-touch, 2.75rem);
+    padding: 0.125rem;
+    justify-content: center;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -192,13 +200,13 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  min-height: 2.25rem;
+  min-height: var(--portal-pocket-touch, 2.75rem);
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full, 9999px);
-  border: 1px solid color-mix(in oklab, var(--color-primary) 22%, transparent);
-  background: color-mix(in oklab, var(--color-primary) 8%, var(--color-bg-surface));
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
   color: var(--color-primary);
-  font-size: 0.8125rem;
+  font-size: var(--portal-pocket-meta-size, 0.8125rem);
   font-weight: 600;
   text-decoration: none;
 }
@@ -214,24 +222,25 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-user-menu]
   [data-portal-shell-nav-link]:hover {
   text-decoration: none;
-  background: color-mix(in oklab, var(--color-primary) 12%, var(--color-bg-surface));
+  background: color-mix(in oklab, var(--color-primary) 8%, var(--color-bg-surface));
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-user-menu]
   [data-portal-shell-nav-link][data-active="true"] {
-  border-color: color-mix(in oklab, var(--color-primary) 40%, transparent);
-  background: color-mix(in oklab, var(--color-primary) 14%, var(--color-bg-surface));
+  border-color: var(--color-primary);
+  background: var(--color-bg-surface);
+  color: var(--color-primary);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-user-menu]
   [data-public-auth-logout] {
-  min-height: 2.25rem;
+  min-height: var(--portal-pocket-touch, 2.75rem);
   padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-md);
+  border-radius: var(--portal-pocket-radius, 0.75rem);
   color: var(--color-text-muted);
-  font-size: 0.8125rem;
+  font-size: var(--portal-pocket-meta-size, 0.8125rem);
   font-weight: 600;
 }
 
@@ -245,73 +254,62 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-main],
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-slot="shell-main"] {
   min-height: calc(100dvh - 8.75rem);
-  /* Clear fixed bottom nav (min-height 3.25rem + nav padding) so primary CTAs are tappable (PAY-MB-01). */
-  padding: var(--space-5) var(--space-4)
-    calc(var(--space-7) + 3.25rem + var(--space-4) + env(safe-area-inset-bottom, 0px));
-  background:
-    radial-gradient(
-      ellipse 120% 45% at 50% -5%,
-      color-mix(in oklab, var(--color-primary) 9%, transparent),
-      transparent 62%
-    ),
-    linear-gradient(
-      180deg,
-      var(--color-bg-page) 0%,
-      color-mix(in oklab, var(--denali-alpine-600, var(--color-bg-muted)) 5%, var(--color-bg-page)) 100%
-    );
+  /* Clear fixed bottom nav so primary CTAs stay tappable (PAY-MB-01). */
+  padding: var(--space-4) var(--space-4)
+    calc(var(--space-6) + 3.25rem + var(--space-3) + env(safe-area-inset-bottom, 0px));
+  background: var(--color-bg-page);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-main-inner] {
-  width: min(100%, 60rem);
+  width: min(100%, 40rem);
   margin-inline: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-5);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-bottom-nav],
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-slot="shell-nav"] {
-  border-top: 1px solid color-mix(in oklab, var(--color-border-subtle) 85%, transparent);
-  background: color-mix(in oklab, var(--color-bg-surface) 92%, transparent);
-  backdrop-filter: blur(18px) saturate(1.2);
-  box-shadow:
-    0 -4px 24px rgb(4 47 46 / 0.06),
-    0 -1px 0 color-mix(in oklab, var(--color-primary) 5%, transparent);
-  padding-inline: var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  backdrop-filter: none;
+  box-shadow: none;
+  padding-inline: var(--space-2);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-bottom-nav]
   ul {
-  gap: var(--space-1);
-  padding-block: var(--space-2) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  gap: 0;
+  padding-block: var(--space-1) calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-bottom-nav]
   [data-portal-shell-nav-link] {
-  min-height: 3.25rem;
-  padding: var(--space-2) var(--space-1);
-  border-radius: calc(var(--radius) * 1.1);
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.125rem;
+  min-height: var(--portal-pocket-touch, 2.75rem);
+  padding: var(--space-1) var(--space-1);
+  border-radius: 0;
   color: var(--color-text-muted);
   text-decoration: none;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.12s ease;
+  background: transparent;
+  box-shadow: none;
+  transition: color 0.15s ease;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-bottom-nav]
   [data-portal-shell-nav-link]:active {
-  transform: scale(0.97);
+  transform: none;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-bottom-nav]
   [data-portal-shell-nav-link]:hover {
-  background: color-mix(in oklab, var(--color-primary) 7%, var(--color-bg-surface));
+  background: transparent;
   color: var(--color-text-secondary);
   text-decoration: none;
 }
@@ -319,11 +317,20 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-bottom-nav]
   [data-portal-shell-nav-link][data-active="true"] {
-  background: color-mix(in oklab, var(--color-primary) 12%, var(--color-bg-surface));
+  background: transparent;
   color: var(--color-primary);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in oklab, var(--color-primary) 18%, transparent),
-    0 6px 18px rgb(5 150 105 / 0.08);
+  box-shadow: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell-bottom-nav]
+  [data-portal-shell-nav-icon] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  color: inherit;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -336,9 +343,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-bottom-nav]
   [data-portal-shell-nav-label] {
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-size: var(--portal-pocket-nav-size, 0.75rem);
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -346,6 +354,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-nav-link][data-active="true"]
   [data-portal-shell-nav-label] {
   color: var(--color-primary);
+  font-weight: 600;
 }
 
 /* PS-VIS-5f — mobile: logout on profile only; hide rail footer from thumb bar */

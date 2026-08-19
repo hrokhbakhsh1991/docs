@@ -248,8 +248,10 @@
     "full": {
       "hero": {
         "eyebrow": "Mountain & nature programs",
-        "lead": "Published trips with qualified guides, fixed dates, and online registration.",
-        "ctaPrimary": "Browse tours",
+        "lead": "Come to the mountain",
+        "support": "Nature programs you can join.",
+        "imageAlt": "Mountain landscape with a hiker on the trail",
+        "ctaPrimary": "See programs",
         "ctaSecondary": "Why {siteName}?",
         "scrollHint": "Scroll to explore",
         "spotlight": {
