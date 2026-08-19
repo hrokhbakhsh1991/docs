@@ -14,12 +14,18 @@ function readHeroCss(): string {
 }
 
 describe("home-hero-css", () => {
-  it("Peak Margin scrim keeps logical gradient without literal rgb after to inline-end", () => {
+  it("Walk Hero owns landing CSS instead of Peak Margin carousel scrim", () => {
     const css = readHeroCss();
-    assert.match(css, /to inline-end/);
+    assert.match(css, /data-marketing-home-hero-walk/);
+    assert.match(css, /picture\[data-marketing-home-hero-media\]/);
+    assert.doesNotMatch(css, /data-marketing-home-hero-peak-margin/);
+    assert.doesNotMatch(css, /--mkt-hero-scrim-from/);
+  });
+
+  it("does not use cssnano-unsafe linear-gradient(to inline-end, rgb(...))", () => {
+    const css = readHeroCss();
     // Next cssnano-simple crashes on `linear-gradient(to inline-end, rgb(...))`.
-    // First color stop must be a var() so the minimizer skips the declaration.
+    // Walk dropped Peak Margin scrim; keep the pattern banned so it cannot return.
     assert.doesNotMatch(css, /to inline-end,\s*rgb\(/);
-    assert.match(css, /to inline-end,\s*var\(--mkt-hero-scrim-from/);
   });
 });
