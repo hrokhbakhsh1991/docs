@@ -51,6 +51,10 @@ describe("portal-visual-wave5.spec.ts", () => {
       /\[data-portal-member-home-quick-links\]\s*\{\s*display:\s*flex;\s*flex-direction:\s*column/
     );
     assert.doesNotMatch(css, /grid-template-columns:\s*repeat\(/);
+    assert.doesNotMatch(
+      css,
+      /\[data-portal-member-detail-hero\][\s\S]{0,240}grid-template-columns:\s*minmax/
+    );
     assert.match(css, /\[data-portal-member-registrations-list\]/);
     assert.match(css, /flex-direction:\s*column/);
     assert.doesNotMatch(

@@ -192,8 +192,8 @@ Existing smokes: **SMK-PTL-02** (list) · **SMK-PTL-04** (receipt → waiting pa
 | ---- | ------ |
 | Scope | `body[data-app-surface="portal"][data-workspace-plugin="denali"]` |
 | Skin file | `packages/workspaces/denali/theme/denali-portal.css` |
-| List | `main[data-portal-member-registrations]` — card rows, tour title links, status badge (PS-M2 · 2026-07-12) |
-| Detail | `main[data-portal-member-registration-detail]` — metadata + receipt panel |
+| List | Pocket 3.2 canvas rows — `main[data-portal-member-registrations]` |
+| Detail | Pocket 3.4 canvas trip page — `main[data-portal-member-registration-detail]` |
 | Receipt | `[data-portal-member-receipt-upload]` — file input + primary submit |
 | Awaiting / closed | `[data-portal-member-receipt-awaiting-approval]` · `[data-portal-member-receipt-closed]` |
 | Waiting / paid / waived | `[data-portal-member-receipt-waiting]` · `[data-portal-member-receipt-paid]` · `[data-portal-member-receipt-waived]` |

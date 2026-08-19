@@ -102,6 +102,22 @@ describe("portal-visual-wave4.spec.ts", () => {
     assert.match(page, /data-portal-member-back/);
   });
 
+  it("VIS-TRIP-06 Pocket trip detail has canvas title and stacked status", () => {
+    const css = readFileSync(join(denaliThemeRoot, "portal/member-pages.css"), "utf8");
+    const detail = css.slice(
+      css.indexOf("/* ── Trip detail (Pocket 3.4)"),
+      css.indexOf("/* ── More hub")
+    );
+    assert.match(detail, /background:\s*none/);
+    assert.match(detail, /content:\s*none/);
+    assert.match(detail, /portal-pocket-title-size/);
+    assert.match(detail, /flex-direction:\s*column/);
+    assert.doesNotMatch(detail, /linear-gradient/);
+    assert.doesNotMatch(detail, /radial-gradient/);
+    assert.doesNotMatch(detail, /repeat\(2,/);
+    assert.doesNotMatch(detail, /#[0-9a-fA-F]{3,8}/);
+  });
+
   it("VIS-PROF-03 profile page header + avatar data hooks", () => {
     const page = readPortal("app/me/profile/page.tsx");
     const avatar = readPortal("app/me/profile/member-profile-avatar.tsx");
