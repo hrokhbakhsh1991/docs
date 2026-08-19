@@ -33,11 +33,12 @@
     "formEyebrow": "One-time code sign in",
     "formDescription": "Just your mobile number.",
     "sendCode": "Send code",
-    "sending": "Sending…"
+    "sending": "Sending…",
+    "portalPhotoLabel": "Alborz"
   },
   "otp": {
     "title": "Enter verification code",
-    "loginTitle": "Verify to sign in",
+    "loginTitle": "Code",
     "sentTo": "Code sent to {phone}",
     "helper": "Enter the one-time code.",
     "autoFillHint": "If the SMS is on this device, code entry should feel faster.",

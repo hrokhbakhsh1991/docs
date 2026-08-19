@@ -811,6 +811,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 @import "./portal/login-page.css";
+@import "./portal/alpine-login.css";
 @import "./portal/member-shell.css";
 @import "./portal/member-shell-desktop.css";
 @import "./portal/member-pages.css";

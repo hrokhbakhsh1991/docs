@@ -1,0 +1,560 @@
+/**
+ * Denali Portal `/login` — Alpine Split (Phase 2.1 approved).
+ * Scoped to member login full page only. Does not restyle register modal,
+ * catalog registration card, or shared form-control primitives globally.
+ *
+ * Photography: existing first-party Alborz still
+ * (`apps/marketing/public/home/destinations/alborz.webp` copy at
+ * `apps/portal/public/auth/alborz.webp`). PRODUCTION AUTH ASSET DEBT:
+ * destination catalog crop, not a dedicated licensed auth commission.
+ *
+ * Shell constraint: `PortalRegistrationChrome` is a sibling of
+ * `[data-portal-auth-card]`, not a child. The split grid is therefore on
+ * `[data-portal-auth-layout]`; card / content / chrome use `display: contents`.
+ */
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page] {
+  --portal-alpine-cream: #f6f1ea;
+  --portal-alpine-ink: #1a1f26;
+  --portal-alpine-forest: #047857;
+  --portal-alpine-forest-600: #059669;
+  --portal-alpine-form: 20.5rem;
+  --portal-alpine-band: 8rem;
+  justify-content: stretch;
+  padding: 0;
+  background: var(--portal-alpine-cream);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-auth-backdrop] {
+  display: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-auth-layout] {
+  display: grid;
+  grid-template-columns: minmax(20.5rem, 42%) minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  min-height: 100dvh;
+  box-sizing: border-box;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-auth-card],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-auth-content],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-login-page-shell],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-registration-chrome] {
+  display: contents;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-registration-brand] {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: end;
+  width: min(var(--portal-alpine-form), calc(100% - 5rem));
+  margin-inline-end: 2.5rem;
+  margin-block-start: 2.5rem;
+  padding: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-registration-logo] {
+  display: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-registration-workspace-label] {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  color: var(--portal-alpine-forest);
+}
+
+html[dir="rtl"]
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-registration-workspace-label] {
+  letter-spacing: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-auth-hero] {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: end;
+  width: min(var(--portal-alpine-form), calc(100% - 5rem));
+  margin-inline-end: 2.5rem;
+  padding: 4rem 0 0;
+  gap: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-auth-hero]
+  h1 {
+  font-family: inherit;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--portal-alpine-ink);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-auth-session-chip],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-auth-lede] {
+  display: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-login-form-panel] {
+  grid-column: 1;
+  grid-row: 3;
+  justify-self: end;
+  align-self: start;
+  width: min(var(--portal-alpine-form), calc(100% - 5rem));
+  margin-inline-end: 2.5rem;
+  margin-block: 1.375rem 0.875rem;
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-registration-back] {
+  grid-column: 1;
+  grid-row: 4;
+  justify-self: end;
+  width: min(var(--portal-alpine-form), calc(100% - 5rem));
+  margin-inline-end: 2.5rem;
+  margin-block: 0 2.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--portal-alpine-forest);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-registration-back]:hover {
+  background: none;
+  border: 0;
+  text-decoration: underline;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-login-photo-field] {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  min-height: 100%;
+  background-color: #1a1f26;
+  background-image: url("/auth/alborz.webp");
+  background-size: cover;
+  background-position: 42% 40%;
+}
+
+html[dir="ltr"]
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-login-photo-field] {
+  background-position: 58% 40%;
+}
+
+/* Phone step: shell h1 is the title. OTP/profile: step heading becomes the title. */
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]:has(
+    [data-public-registration-otp]
+  )
+  [data-portal-auth-hero],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]:has(
+    [data-public-registration-profile]
+  )
+  [data-portal-auth-hero] {
+  display: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]:has(
+    [data-public-registration-otp]
+  )
+  [data-portal-login-form-panel],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]:has(
+    [data-public-registration-profile]
+  )
+  [data-portal-login-form-panel] {
+  grid-row: 2;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]:has(
+    [data-public-registration-otp]
+  )
+  [data-portal-registration-back],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]:has(
+    [data-public-registration-profile]
+  )
+  [data-portal-registration-back] {
+  grid-row: 4;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-public-registration-otp]
+  h2,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-public-registration-profile]
+  h2 {
+  margin: 0 0 0.75rem;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--portal-alpine-ink);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-otp-hero]
+  > p,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-otp-copy]
+  > p,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-otp-orbit],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-otp-autofill-hint],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-public-registration-profile]
+  > p {
+  display: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-otp-phone-chip] {
+  margin: -0.125rem 0 1.125rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: start;
+}
+
+html[dir="rtl"]
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-otp-phone-chip] {
+  text-align: end;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-public-registration-otp]
+  > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-public-registration-phone]
+  > label,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-public-registration-profile]
+  > label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-otp-segment-cells] {
+  gap: 0.625rem;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-otp-cell] {
+  min-height: 3.5rem;
+  border-radius: 10px;
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  box-shadow: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-auth-layout]
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+  min-height: 3.25rem;
+  border-radius: 10px;
+  border-color: #c9c4bb;
+  background: #fffdf9;
+  box-shadow: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-auth-layout]
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-auth-layout]
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus-visible {
+  border-color: var(--portal-alpine-forest-600);
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(5 150 105 / 0.28);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-action="send-code"],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-action="verify-otp"],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-action="profile-continue"] {
+  margin-top: 1rem;
+  min-height: 3.25rem;
+  border-radius: 10px;
+  background: var(--portal-alpine-forest);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-otp-secondary-actions] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.875rem;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-otp-secondary-actions]
+  button {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-otp-secondary-actions]
+  button:last-child {
+  color: var(--portal-alpine-forest);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [role="alert"] {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #b4534a;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  input[aria-invalid="true"] {
+  border-color: #b4534a;
+  box-shadow: none;
+}
+
+/* Independent mobile masthead — not a squeezed split. */
+@media (max-width: 47.99rem) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page] {
+    --portal-alpine-band: 9.25rem;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page]
+    [data-portal-auth-layout] {
+    grid-template-columns: 1fr;
+    grid-template-rows: var(--portal-alpine-band) auto auto 1fr auto;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page]
+    [data-portal-login-photo-field] {
+    grid-column: 1;
+    grid-row: 1;
+    min-height: var(--portal-alpine-band);
+    background-position: 50% 28%;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page]
+    [data-portal-registration-brand] {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: stretch;
+    width: auto;
+    margin: 1.25rem 1.5rem 0;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page]
+    [data-portal-auth-hero] {
+    grid-column: 1;
+    grid-row: 3;
+    justify-self: stretch;
+    width: auto;
+    margin: 0 1.5rem;
+    padding: 0.85rem 0 0;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page]
+    [data-portal-auth-hero]
+    h1,
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page]
+    [data-public-registration-otp]
+    h2,
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page]
+    [data-public-registration-profile]
+    h2 {
+    font-size: 2rem;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page]
+    [data-portal-login-form-panel] {
+    grid-column: 1;
+    grid-row: 4;
+    justify-self: stretch;
+    width: auto;
+    margin: 0.75rem 1.5rem 0.75rem;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page]
+    [data-portal-registration-back] {
+    grid-column: 1;
+    grid-row: 5;
+    justify-self: stretch;
+    width: auto;
+    margin: 0 1.5rem 1.5rem;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page]:has(
+      [data-public-registration-otp]
+    )
+    [data-portal-login-form-panel],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page]:has(
+      [data-public-registration-profile]
+    )
+    [data-portal-login-form-panel] {
+    grid-row: 3;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page]:has(
+      [data-public-registration-otp]
+    )
+    [data-portal-registration-back],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page]:has(
+      [data-public-registration-profile]
+    )
+    [data-portal-registration-back] {
+    grid-row: 5;
+  }
+}
+
+@media (max-width: 24.375rem) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page] {
+    --portal-alpine-band: 8rem;
+  }
+}
+
+@media (max-width: 22.5rem) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page] {
+    --portal-alpine-band: 6.75rem;
+  }
+}
+
+/* Keyboard-open heuristic: short viewport keeps field + CTA in view. */
+@media (max-height: 32rem) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page] {
+    --portal-alpine-band: 3.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-login-page][data-portal-login-full-page]
+    [data-portal-login-photo-field] {
+    background-attachment: scroll;
+  }
+}

@@ -149,7 +149,9 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
       "utf8"
     );
     assert.match(thinHost, /data-portal-login-form-panel/);
+    assert.match(thinHost, /data-portal-login-photo-field/);
     assert.match(thinHost, /PublicCatalogRegistrationFlow/);
+    assert.doesNotMatch(thinHost, /data-portal-login-story-panel/);
     assert.match(thinHost, /memberLoginEgress/);
     assert.match(thinHost, /completeMemberLoginEgress/);
     assert.doesNotMatch(thinHost, /openLoginModal/);

@@ -17,6 +17,8 @@ type Props = {
  * DL-48 — `/login` page host. Phone / OTP / profile run on the page.
  * Register-route modal is unchanged (PCMS-UX-MODAL-04) and is the only
  * remaining `PortalLoginModalProvider` host.
+ *
+ * Alpine Split: photography field + form plane. Auth callbacks unchanged.
  */
 export function PortalLoginThinHost({ flow, portalReturn }: Props) {
   const t = useTranslations("catalogRegistration");
@@ -27,28 +29,12 @@ export function PortalLoginThinHost({ flow, portalReturn }: Props) {
 
   return (
     <div data-portal-login-page-shell="" data-portal-return={portalReturn}>
-      <section data-portal-login-story-panel="">
-        <div data-portal-login-story-copy>
-          <p data-portal-login-story-eyebrow>{t("phone.formEyebrow")}</p>
-          <h2 data-portal-login-story-title>{t("phone.portalStoryTitle")}</h2>
-          <p data-portal-login-story-description>{t("phone.portalStoryDescription")}</p>
-        </div>
-        <ul data-portal-login-story-highlights>
-          <li data-portal-login-story-highlight="">
-            <strong>{t("phone.portalHighlightOne")}</strong>
-            <span> {t("phone.portalHighlightOneCaption")}</span>
-          </li>
-          <li data-portal-login-story-highlight="">
-            <strong>{t("phone.portalHighlightTwo")}</strong>
-            <span> {t("phone.portalHighlightTwoCaption")}</span>
-          </li>
-        </ul>
-      </section>
+      <section
+        data-portal-login-photo-field=""
+        role="img"
+        aria-label={t("phone.portalPhotoLabel")}
+      />
       <section data-portal-login-form-panel="">
-        <header data-portal-login-form-panel-header>
-          <p data-portal-login-form-panel-eyebrow>{t("phone.loginTitle")}</p>
-          <p data-portal-login-form-panel-description>{t("phone.loginDescription")}</p>
-        </header>
         <PublicCatalogRegistrationFlow
           workspace={flow.workspace}
           tenantId={flow.tenantId}

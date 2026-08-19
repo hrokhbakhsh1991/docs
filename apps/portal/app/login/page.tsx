@@ -88,8 +88,8 @@ export default async function PortalMemberLoginPage({ searchParams }: PageProps)
     <PortalAuthExperienceShell
       branding={branding}
       backHref={backHref}
-      heroTitle={t("phone.portalHeroTitle")}
-      sessionBadge={branding.displayName?.trim() || null}
+      heroTitle={t("phone.loginTitle")}
+      sessionBadge={null}
       memberLoginEgress
       pageKind="login"
       workspace={workspace}

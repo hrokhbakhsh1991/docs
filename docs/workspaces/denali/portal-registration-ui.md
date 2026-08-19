@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-08-17-v22"
+version: "2026-08-19-v23"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -28,7 +28,7 @@ app/layout.tsx
   PortalProviders
     PortalLoginModalProvider          ← design PCMS-UX-MODAL (dialog/sheet)
   └── app/login/page.tsx              ← page SSR host · data-portal-login-full-page
-        PortalLoginThinHost story + data-portal-login-form-panel
+        PortalLoginThinHost Alpine Split: photo field + data-portal-login-form-panel
         PublicCatalogRegistrationFlow memberLoginEgress (phone/OTP/profile on the page)
         onAuthenticated → completeMemberLoginEgress (portalReturn)
         smoke tourId = flow plugin bootstrap only (no intake, no 404)
@@ -71,6 +71,33 @@ Portal `/login` is retained (middleware `/me/*` gate). Marketing must not add `a
 | `[data-portal-register-sign-in-button]` | Primary reopen control inside the gate |
 | `[data-portal-login-full-page]` | `/login` page host marker (phone/OTP/profile on the page) |
 | `[data-portal-login-form-panel]` | Page OTP panel (`#phone` lives here, not in a dialog) |
+| `[data-portal-login-photo-field]` | Alpine Split photography pane (Denali `/login` only; existing Alborz still) |
+
+### Alpine Split layout (`/login` only)
+
+Denali `/login` (`main[data-portal-member-login-page][data-portal-login-full-page]`) is a photography split, not the glass card used on catalog register or the register login modal. Skin file: `packages/workspaces/denali/theme/portal/alpine-login.css` (imported after `login-page.css`).
+
+**Why the grid is on the layout, not the card:** `PortalRegistrationChrome` is a **sibling** of `[data-portal-auth-card]`. Putting columns only on the card would park the wordmark/back above the entire split. Alpine therefore grids `[data-portal-auth-layout]` and sets `display: contents` on chrome, card, `[data-portal-auth-content]`, and `[data-portal-login-page-shell]` so photo, brand, hero, form, and back are grid items.
+
+| Grid item | Desktop (`≥48rem`) | Mobile (`<48rem`) |
+| --------- | ------------------- | ----------------- |
+| Photo field | column 2, all rows (~58%) | row 1 independent masthead band |
+| Wordmark | column 1 row 1, 328px, `justify-self: end` (photo seam) | row 2 |
+| Shell `h1` (`phone.loginTitle`) | column 1 row 2 | row 3 |
+| Form panel | column 1 row 3 | row 4 |
+| Back (`backToMarketing`) | column 1 last row, under CTA | last row |
+
+RTL: CSS Grid column 1 is inline-start, so the cream plane sits on the **right** and the photo on the **left**. LTR reverses. Do not add extra `dir` column swaps.
+
+OTP/profile hide the shell `h1` (`:has([data-public-registration-otp])`) and promote the step `h2` (`otp.loginTitle` / profile title). Login-egress phone step already omits the extra `h2`/description in `catalog-registration-auth-steps.tsx`.
+
+**Breakpoints (approved):** 1440/1024 = 42% cream plane; 768 = stacked masthead (not a squeezed 50/50); 430 band `9.25rem` (148px); 390 band `8rem` (128px); 360 band `6.75rem` (108px). Keyboard heuristic `@media (max-height: 32rem)` shrinks the band to `3.5rem` so the field + CTA stay in view.
+
+**Visible copy on `/login`:** FA `ورود` / `موبایل` / `ارسال کد` / `بازگشت`; OTP `کد` + phone digits. EN `Sign in` / `Mobile` / `Send code` / `Back`; OTP `Code` + phone. CSS hides OTP orbit, helper, autofill hint, and profile description on this page only. Legacy JSON keys (`portalHeroTitle`, story strings, `loginDescription`) stay for modal / register / marketing.
+
+**Photography:** `apps/portal/public/auth/alborz.webp` is a byte-identical copy of `apps/marketing/public/home/destinations/alborz.webp` (1200×780 WebP). CSS uses Next public path `url("/auth/alborz.webp")`. First-party destination still. **PRODUCTION AUTH ASSET DEBT:** crop is a catalog destination image, not a dedicated licensed portal-auth hero.
+
+**Isolation:** selectors require both `data-portal-member-login-page` and `data-portal-login-full-page`. Must not match `[data-portal-login-modal-body]` or `[data-catalog-registration-page]`. Do not restyle `denali-form-controls.css` globally. Auth callbacks unchanged: `onAuthenticated` → `completeMemberLoginEgress`.
 
 **Login modal hooks (PCMS-UX-MODAL):**
 
