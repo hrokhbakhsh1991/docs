@@ -190,6 +190,17 @@ Marketing hosts the shared phone/OTP/profile steps in `[data-marketing-login-mod
 
 **Skin (Denali):** `37-mkt-login-modal.css` imported last from `denali-marketing.css`. Scope `body[data-app-surface="marketing"][data-workspace-plugin="denali"]` + `data-marketing-login-modal*`. Do not reuse `data-portal-login-modal` (portal CSS is `body[data-app-surface="portal"]`).
 
+**Quiet Ledger (auth-bridge visual, 2026-08-19):** Marketing PDP modal is a presentation wrapper only. Auth method, Portal-origin transport, cookie probe, `onAuthenticated` reload, and error codes stay unchanged. Portal `/login` and `data-portal-login-modal` are out of scope.
+
+| Concern | Contract |
+| ------- | -------- |
+| Copy | Header is the only title: phone/profile `loginPageTitle` (ورود / Sign in); OTP `stepper.otp` (کد / Code). No intro eyebrow, lede, or hint cards. OTP meta is the phone (`otp.sentTo` = `{phone}`). Close visible string is `loginModalCancel` (انصراف / Cancel), 44×44 text control — not ×. |
+| Desktop / tablet | `@media (min-width: 48rem)` centered dialog, panel **372px**, 12px radius, 1px `--color-border-subtle`, forest primary CTA. Layout comes from CSS; JS may mirror `matchMedia` onto `data-marketing-login-modal-presentation` for tests — never `window.innerWidth`. |
+| Mobile | Below 48rem: bottom sheet, 16px top radius, hug content. Phone `max-height: min(58svh, 28rem)`; OTP `min(72svh, 36rem)`. Padding `12px + env(safe-area-inset-bottom)`. `--kb-inset` from `visualViewport` keeps the sheet above the IME. No drag handle. No swipe-dismiss. |
+| Dismiss | Escape and Cancel close. Backdrop click does **not** close (prevents losing in-progress phone/OTP). |
+| Focus | After `showModal`, focus `#phone` or `[data-otp-cell="0"]` — never Close first. On close, restore focus to the trigger. |
+| Shared steps | `catalogRegistrationAuthFlowSteps` stay Portal-default in the DOM. Marketing CSS hides `[data-portal-otp-orbit]`, `[data-portal-otp-copy]`, autofill hint, and the extra OTP `<label>`. Secondary OTP actions (`[data-portal-otp-secondary-actions] button`) are muted text links, not primary bars. Field errors are inline (`role=alert`) — no error card. |
+
 **Import budget:** `scripts/guards/guard-marketing-skin-import-integrity.mjs` allows at most **37** CSS partials under `theme/marketing/components/` (current tree uses 36 files through `37-mkt-login-modal.css`). Every partial must be `@import`ed from `denali-marketing.css` — orphans fail the guard (CTL-CORE / marketing-guard).
 
 ---
