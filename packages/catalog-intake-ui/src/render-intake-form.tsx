@@ -28,16 +28,17 @@ export function RenderIntakeForm({
       {schema.fields.map((field) => {
         const fieldInvalid = invalidFieldId === field.id;
         return (
-          <RenderIntakeField
-            key={field.id}
-            field={field}
-            value={values[field.id] ?? ""}
-            label={resolveLabel(field)}
-            onChange={(value) => onChange(field.id, value)}
-            idPrefix={idPrefix}
-            describedBy={fieldInvalid ? errorId : undefined}
-            invalid={fieldInvalid}
-          />
+          <div key={field.id} data-intake-field-block data-intake-field={field.id}>
+            <RenderIntakeField
+              field={field}
+              value={values[field.id] ?? ""}
+              label={resolveLabel(field)}
+              onChange={(value) => onChange(field.id, value)}
+              idPrefix={idPrefix}
+              describedBy={fieldInvalid ? errorId : undefined}
+              invalid={fieldInvalid}
+            />
+          </div>
         );
       })}
     </div>

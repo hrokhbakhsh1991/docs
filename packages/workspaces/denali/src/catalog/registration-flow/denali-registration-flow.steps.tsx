@@ -17,7 +17,7 @@ import {
 } from "@app-tour/workspace-sdk";
 import { classifyPublicRegistrationMobileInput } from "@app-tour/catalog-registration-auth";
 import { useTranslations } from "next-intl";
-import { useEffect, useId, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 
 import {
   denaliCatalogTransportIntakeSurface,
@@ -89,6 +89,29 @@ export function DenaliIntakeStep({
   useEffect(() => {
     setClientReady(true);
   }, []);
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (viewport === undefined) return;
+    const syncKeyboard = (): void => {
+      const overlap = window.innerHeight - viewport.height - viewport.offsetTop;
+      formRef.current?.toggleAttribute("data-denali-keyboard-open", overlap > 120);
+    };
+    viewport.addEventListener("resize", syncKeyboard);
+    viewport.addEventListener("scroll", syncKeyboard);
+    return () => {
+      viewport.removeEventListener("resize", syncKeyboard);
+      viewport.removeEventListener("scroll", syncKeyboard);
+    };
+  }, []);
+  useEffect(() => {
+    if (invalidField === null) return;
+    const prefix =
+      invalidField.scope === "self"
+        ? "denali-intake-self"
+        : `denali-intake-other-${invalidField.idx}`;
+    document.getElementById(`${prefix}-${invalidField.fieldId}`)?.focus();
+  }, [invalidField]);
   const [submitResults, setSubmitResults] = useState<
     | readonly {
         readonly target: "self" | "other";
@@ -283,7 +306,6 @@ export function DenaliIntakeStep({
   ]);
 
   const travelerDraftCount = (selfSelected ? 1 : 0) + otherGuests.length;
-  const guestDraftCount = otherGuests.length;
   const canAddGuest = !loading && otherGuests.length < DENALI_MAX_OTHER_GUESTS;
 
   function updateSelfField(fieldId: string, value: string): void {
@@ -539,40 +561,87 @@ export function DenaliIntakeStep({
     transitionFlowStep(dispatch, "done");
   }
 
+  const selfDisplayName = (selfDraft.intakeName || data.intakeName).trim();
+  const namedParty = [
+    ...(selfSelected && selfDisplayName.length > 0 ? [selfDisplayName] : []),
+    ...otherGuests.map((guest) => guest.intakeName.trim()).filter((name) => name.length > 0),
+  ];
+  const partyLineText =
+    namedParty.length > 0
+      ? namedParty.join(" · ")
+      : t("intake.partyCount", { count: travelerDraftCount });
+  const formattedPrice =
+    estimatedPrice !== null ? estimatedPrice.toLocaleString() : null;
+  const submitDisabled =
+    loading || !clientReady || (!selfSelected && otherGuests.length === 0);
+  const ctaAlert =
+    error !== null && invalidField === null ? (
+      <p id={errorId} role="alert" data-denali-cta-alert>
+        {error}
+      </p>
+    ) : null;
+  function fieldAlert(scope: "self" | "other", idx: number) {
+    if (
+      error === null ||
+      invalidField === null ||
+      invalidField.scope !== scope ||
+      invalidField.idx !== idx
+    ) {
+      return null;
+    }
+    return (
+      <p id={errorId} role="alert" data-denali-field-alert>
+        {error}
+      </p>
+    );
+  }
+
   return (
     <form
+      ref={formRef}
       noValidate
       onSubmit={handleSubmit}
       data-public-registration-intake
+      data-denali-registration-ledger
       data-registration-ready={clientReady ? "" : undefined}
       data-tour-id={context.tourId}
     >
-      <header data-denali-intake-header>
-        <p data-denali-intake-stage-eyebrow>{t("intake.stageEyebrow")}</p>
-        <h2>{t("intake.title")}</h2>
-        <p data-denali-intake-stage-lede>{t("intake.stageLede")}</p>
-        {selfTabLocked ? (
-          <p data-registration-self-already role="status">
-            {t("intake.selfAlreadyRegistered")}{" "}
-            {effectiveSelfRegistrationId !== null ? (
-              <a
-                data-registration-self-already-detail
-                href={`/me/registrations/${encodeURIComponent(effectiveSelfRegistrationId)}`}
-              >
-                {t("intake.viewOrEditRegistration")}
+      <a href="#denali-ledger-main" data-denali-skip>
+        {t("intake.skipToForm")}
+      </a>
+      {selfTabLocked ? (
+        <p data-registration-self-already role="status">
+          {t("intake.selfAlreadyRegistered")}{" "}
+          {effectiveSelfRegistrationId !== null ? (
+            <a
+              data-registration-self-already-detail
+              href={`/me/registrations/${encodeURIComponent(effectiveSelfRegistrationId)}`}
+            >
+              {t("intake.viewOrEditRegistration")}
+            </a>
+          ) : null}
+          {context.memberModuleHref !== null ? (
+            <>
+              {effectiveSelfRegistrationId !== null ? " · " : null}
+              <a data-registration-self-already-trips href={context.memberModuleHref}>
+                {t("intake.viewMyTrips")}
               </a>
-            ) : null}
-            {context.memberModuleHref !== null ? (
-              <>
-                {effectiveSelfRegistrationId !== null ? " · " : null}
-                <a data-registration-self-already-trips href={context.memberModuleHref}>
-                  {t("intake.viewMyTrips")}
-                </a>
-              </>
-            ) : null}
-          </p>
-        ) : null}
-      </header>
+            </>
+          ) : null}
+        </p>
+      ) : null}
+      {travelerDraftCount > 0 ? (
+        <p data-denali-party-line>
+          {partyLineText}
+          {formattedPrice !== null ? (
+            <>
+              {" · "}
+              <strong>{t("intake.priceAmount", { amount: formattedPrice })}</strong>{" "}
+              <span>{t("intake.perPerson")}</span>
+            </>
+          ) : null}
+        </p>
+      ) : null}
 
       {submitResults !== null && submitResults.some((r) => !r.ok) ? (
         <div data-denali-submit-results role="alert" aria-live="polite">
@@ -620,12 +689,14 @@ export function DenaliIntakeStep({
       ) : null}
 
       <div data-denali-intake-layout>
+        <div data-denali-ledger-main id="denali-ledger-main">
         <section data-denali-intake-section data-denali-intake-section-kind="self">
-          <div data-denali-intake-section-header data-denali-intake-section-header-kind="self">
-            <div data-denali-intake-section-copy>
-              <h3>{t("intake.selfSectionTitle")}</h3>
-              <p data-denali-intake-section-description>{t("intake.selfSectionDescription")}</p>
-            </div>
+          <div data-denali-self-ident>
+            {selfDisplayName.length > 0 || showKnownNameHintSelf ? (
+              <h2 data-denali-self-name>{selfDisplayName || data.intakeName}</h2>
+            ) : (
+              <h2 data-denali-self-name>{t("intake.selfSectionTitle")}</h2>
+            )}
             <div data-denali-intake-section-control>
               {selfTabLocked ? (
                 <p data-denali-self-locked-chip>{t("intake.selfSectionLocked")}</p>
@@ -650,7 +721,7 @@ export function DenaliIntakeStep({
                         });
                       }}
                     />
-                    <span>{t("intake.forSelfTab")}</span>
+                    <span>{t("intake.inTour")}</span>
                   </label>
                 </div>
               )}
@@ -659,9 +730,6 @@ export function DenaliIntakeStep({
 
           {selfSelected ? (
             <div data-denali-self-guest-card>
-              {showKnownNameHintSelf ? (
-                <p data-intake-known-name>{t("intake.knownNameHint", { name: data.intakeName })}</p>
-              ) : null}
               <RenderIntakeForm
                 schema={effectiveSchemaSelf}
                 values={{
@@ -816,94 +884,63 @@ export function DenaliIntakeStep({
                   ) : null}
                 </fieldset>
               ) : null}
+              {fieldAlert("self", 0)}
             </div>
           ) : null}
         </section>
 
-        {otherGuests.length === 0 ? (
-          <section
-            data-registration-other-guest-list
-            data-denali-other-guest-list
-            data-denali-other-guest-empty
-            aria-label={t("intake.otherGuestsTitle")}
-          >
-            <div data-denali-intake-section-header data-denali-intake-section-header-kind="guests">
-              <div data-denali-intake-section-copy>
-                <h3>{t("intake.otherGuestsTitle")}</h3>
-                <p data-denali-intake-section-description>{t("intake.otherGuestsDescription")}</p>
-              </div>
+        <section
+          data-registration-other-guest-list
+          data-denali-other-guest-list
+          {...(otherGuests.length === 0 ? { "data-denali-other-guest-empty": "" } : {})}
+          aria-label={t("intake.otherGuestsTitle")}
+        >
+          <div data-denali-other-guest-header>
+            <div
+              data-denali-intake-section-header
+              data-denali-intake-section-header-kind="guests"
+            >
+              <h2 data-denali-guests-legend>{t("intake.otherGuestsTitle")}</h2>
               <div data-denali-other-guest-toolbar>
-                <p data-denali-intake-section-badge>
-                  {t("intake.guestCount", { count: guestDraftCount })}
-                </p>
+                {canAddGuest ? (
+                  <button
+                    type="button"
+                    data-denali-add-guest
+                    data-denali-add-guest-variant={otherGuests.length === 0 ? "empty" : "inline"}
+                    disabled={loading}
+                    onClick={() =>
+                      setOtherGuests((prev) =>
+                        prev.length >= DENALI_MAX_OTHER_GUESTS
+                          ? prev
+                          : [...prev, createEmptyOtherDraft()]
+                      )
+                    }
+                  >
+                    {t("intake.addGuestShort")}
+                  </button>
+                ) : null}
               </div>
             </div>
-            <div data-denali-other-guest-empty-state>
-              <p data-denali-other-guest-empty-lede>{t("intake.otherGuestsEmpty")}</p>
-              <button
-                type="button"
-                data-denali-add-guest
-                data-denali-add-guest-variant="empty"
-                disabled={loading}
-                onClick={() => setOtherGuests([createEmptyOtherDraft()])}
-              >
-                {t("intake.addGuest")}
-              </button>
-            </div>
-          </section>
-        ) : (
-          <section
-            data-registration-other-guest-list
-            data-denali-other-guest-list
-            aria-label={t("intake.otherGuestsTitle")}
-          >
-            <div data-denali-other-guest-header>
-              <div
-                data-denali-intake-section-header
-                data-denali-intake-section-header-kind="guests"
-              >
-                <div data-denali-intake-section-copy>
-                  <h3>{t("intake.otherGuestsTitle")}</h3>
-                  <p data-denali-intake-section-description>{t("intake.otherGuestsDescription")}</p>
-                </div>
-                <div data-denali-other-guest-toolbar>
-                  <p data-denali-intake-section-badge>
-                    {t("intake.guestCount", { count: guestDraftCount })}
-                  </p>
-                  {canAddGuest ? (
-                    <button
-                      type="button"
-                      data-denali-add-guest
-                      data-denali-add-guest-variant="inline"
-                      onClick={() =>
-                        setOtherGuests((prev) =>
-                          prev.length >= DENALI_MAX_OTHER_GUESTS
-                            ? prev
-                            : [...prev, createEmptyOtherDraft()]
-                        )
-                      }
-                    >
-                      {t("intake.addGuest")}
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-              {otherGuests.length >= DENALI_MAX_OTHER_GUESTS ? (
-                <p data-denali-guest-limit role="status">
-                  {t("intake.guestLimitReached", { max: DENALI_MAX_OTHER_GUESTS })}
-                </p>
-              ) : null}
-            </div>
+            {otherGuests.length >= DENALI_MAX_OTHER_GUESTS ? (
+              <p data-denali-guest-limit role="status">
+                {t("intake.guestLimitReached", { max: DENALI_MAX_OTHER_GUESTS })}
+              </p>
+            ) : null}
+          </div>
 
+          {otherGuests.length > 0 ? (
             <div data-denali-other-guest-cards>
               {otherGuests.map((guest, guestIdx) => {
                 const transportFollowUpVisible = transportSurface.showTransportFollowUp(
                   context.tourTransport,
                   guest.transportState
                 );
+                const guestName = guest.intakeName.trim();
                 return (
                   <div key={guestIdx} data-denali-other-guest-card data-denali-guest-idx={guestIdx}>
-                    <h4>{t("intake.guestCardTitle", { index: guestIdx + 1 })}</h4>
+                    {guestName.length > 0 ? (
+                      <h3 data-denali-guest-name>{guestName}</h3>
+                    ) : null}
                     <RenderIntakeForm
                       schema={effectiveSchemaOther}
                       values={{
@@ -1106,56 +1143,68 @@ export function DenaliIntakeStep({
                           setOtherGuests((prev) => prev.filter((_, idx) => idx !== guestIdx))
                         }
                       >
-                        {t("intake.removeGuest")}
+                        {t("intake.removeGuestShort")}
                       </button>
                     ) : null}
+                    {fieldAlert("other", guestIdx)}
                   </div>
                 );
               })}
             </div>
-          </section>
-        )}
-      </div>
-
-      <div data-denali-intake-submit-bar>
-        <div data-denali-intake-summary-card>
-          <div data-denali-intake-summary-topline>
-            <p data-denali-intake-summary-title>{t("intake.summaryTitle")}</p>
-            <div data-denali-intake-summary-stats>
-              <p data-denali-intake-summary-stat>
-                <span>{t("intake.summaryTravelersLabel")}</span>
-                <strong>{travelerDraftCount}</strong>
-              </p>
-              <p data-denali-intake-summary-stat>
-                <span>{t("intake.summaryGuestsLabel")}</span>
-                <strong>{guestDraftCount}</strong>
-              </p>
-            </div>
-          </div>
-          {estimatedPrice !== null ? (
-            <p data-registration-price-hint>
-              {t("intake.estimatedPrice", { amount: estimatedPrice.toLocaleString() })}
-            </p>
           ) : null}
-          <p data-denali-intake-summary-label>{t("intake.submitHint")}</p>
+        </section>
         </div>
 
-        {error !== null ? (
-          <p id={errorId} role="alert">
-            {error}
-          </p>
-        ) : null}
+        <div data-denali-ledger-rail-col>
+        <aside
+          data-denali-intake-summary-card
+          data-denali-ledger-rail
+          aria-label={t("intake.summaryRailLabel")}
+        >
+          <p data-denali-intake-summary-title>{t("intake.summaryTitle")}</p>
+          <ul data-denali-ledger-people>
+            {selfSelected && (selfDisplayName.length > 0 || showKnownNameHintSelf) ? (
+              <li>
+                {selfDisplayName || data.intakeName}{" "}
+                <span data-denali-person-tag>{t("intake.myselfTag")}</span>
+              </li>
+            ) : null}
+            {otherGuests.map((guest, guestIdx) => {
+              const name = guest.intakeName.trim();
+              return (
+                <li key={guestIdx}>
+                  {name.length > 0 ? name : t("intake.unnamedPerson")}
+                </li>
+              );
+            })}
+          </ul>
+          {formattedPrice !== null ? (
+            <>
+              <p data-registration-price-hint>
+                {t("intake.priceAmount", { amount: formattedPrice })}
+              </p>
+              <p data-denali-price-per>{t("intake.perPerson")}</p>
+            </>
+          ) : null}
+        </aside>
 
-        <div data-denali-intake-submit-actions>
-          <p data-denali-intake-submit-state>{t("intake.summaryReady")}</p>
-          <button
-            type="button"
-            disabled={loading || !clientReady || (!selfSelected && otherGuests.length === 0)}
-            data-action="intake-submit"
-            onClick={() => void handleSubmit()}
-          >
-            {loading ? t("intake.submitting") : t("intake.submit")}
-          </button>
+        <div
+          data-denali-intake-submit-bar
+          role="region"
+          aria-label={t("intake.stickySubmitLabel")}
+        >
+          {ctaAlert}
+          <div data-denali-intake-submit-actions>
+            <button
+              type="button"
+              disabled={submitDisabled}
+              data-action="intake-submit"
+              onClick={() => void handleSubmit()}
+            >
+              {loading ? t("intake.submitting") : t("intake.submit")}
+            </button>
+          </div>
+        </div>
         </div>
       </div>
     </form>
@@ -1166,27 +1215,24 @@ export function DenaliDoneStep({ context, state }: RegistrationFlowStepProps) {
   const t = useTranslations("catalogRegistration");
   const attrs = denaliCatalogRegistrationFlowSurface.successDataAttributes?.(state, context) ?? {};
   return (
-    <div data-public-registration-success {...attrs}>
-      <div data-denali-success-card>
-        <div data-denali-success-hero aria-hidden="true">
-          <span data-denali-success-orbit="outer" />
-          <span data-denali-success-orbit="inner" />
-          <span data-denali-success-check>+</span>
-        </div>
-        <div data-denali-success-copy>
-          <p data-denali-success-eyebrow>{t("success.eyebrow")}</p>
-          <p role="status">{t("success.message", { tourTitle: context.tourTitle })}</p>
-          <p data-denali-success-lede>{t("success.lede")}</p>
-        </div>
-      </div>
+    <div data-public-registration-success data-denali-registration-ledger {...attrs}>
+      <p data-denali-success-kicker>{t("intake.kicker")}</p>
+      <h1 data-denali-success-title>{t("success.title")}</h1>
+      <p data-denali-success-tour role="status">
+        {t("success.message", { tourTitle: context.tourTitle })}
+      </p>
       <div data-denali-success-actions>
         {context.memberModuleHref !== null ? (
           <p>
-            <a href={context.memberModuleHref}>{t("success.viewRegistrations")}</a>
+            <a data-denali-success-primary href={context.memberModuleHref}>
+              {t("success.viewRegistrations")}
+            </a>
           </p>
         ) : null}
         <p>
-          <a href={context.backHref}>{t("success.backToTour")}</a>
+          <a data-denali-success-secondary href={context.backHref}>
+            {t("success.backToTour")}
+          </a>
         </p>
       </div>
     </div>

@@ -118,7 +118,8 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
 
   const resumeAtIntake = registrationResume !== null;
   // PCMS-UX-MODAL-04 — guests auth in modal only; page is intake after session.
-  const heroLede = resumeAtIntake ? t("intake.resumeLede") : t("phone.loginDescription");
+  const heroLede = resumeAtIntake ? null : t("phone.loginDescription");
+  const heroKicker = resumeAtIntake ? t("intake.kicker") : null;
   const sessionBadge =
     registrationResume !== null && registrationResume.memberMobile !== null
       ? t("intake.signedInBadge", { mobile: registrationResume.memberMobile })
@@ -137,7 +138,8 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
     <PortalAuthExperienceShell
       branding={branding}
       backHref={backHref}
-      heroTitle={t("pageTitle", { tourTitle })}
+      heroTitle={resumeAtIntake ? tourTitle : t("pageTitle", { tourTitle })}
+      heroKicker={heroKicker}
       heroLede={heroLede}
       sessionBadge={sessionBadge}
       pageKind="registration"

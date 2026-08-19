@@ -7,6 +7,7 @@ export type PortalAuthExperienceShellProps = {
   readonly branding: PublicTenantBrandingSnapshot;
   readonly backHref: string;
   readonly heroTitle: string;
+  readonly heroKicker?: string | null;
   readonly heroLede?: string | null;
   readonly sessionBadge?: string | null;
   readonly memberLoginEgress?: boolean;
@@ -21,6 +22,7 @@ export function PortalAuthExperienceShell({
   branding,
   backHref,
   heroTitle,
+  heroKicker = null,
   heroLede = null,
   sessionBadge = null,
   memberLoginEgress = false,
@@ -48,6 +50,9 @@ export function PortalAuthExperienceShell({
         />
         <section data-portal-auth-card>
           <header data-portal-auth-hero>
+            {heroKicker !== null && heroKicker.trim().length > 0 ? (
+              <p data-portal-auth-kicker>{heroKicker}</p>
+            ) : null}
             <h1>{heroTitle}</h1>
             {sessionBadge !== null && sessionBadge.trim().length > 0 ? (
               <p data-portal-auth-session-chip>{sessionBadge}</p>
