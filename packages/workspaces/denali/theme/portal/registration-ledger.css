@@ -151,6 +151,28 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-denali-intake-progress] {
+  margin: 0.75rem 0 0;
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--denali-ledger-forest) 8%, transparent);
+  color: var(--denali-ledger-forest);
+  font-size: 12px;
+  font-weight: 600;
+  width: fit-content;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-denali-self-tag] {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--denali-ledger-muted);
+  vertical-align: middle;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"]:has(
     [data-public-registration-success]
   )
@@ -695,15 +717,18 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"]
-  [data-denali-success-primary] {
+  [data-denali-success-primary],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-denali-success-primary]:visited {
   display: flex;
   align-items: center;
   justify-content: center;
   height: var(--denali-ledger-field);
   min-height: 44px;
   border-radius: var(--denali-ledger-radius);
-  background: var(--denali-ledger-forest);
-  color: #fff;
+  background: var(--denali-ledger-forest) !important;
+  color: #fff !important;
   font-weight: 600;
   text-decoration: none;
 }
@@ -729,22 +754,15 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   }
 }
 
-/* 768 stays two-column on purpose */
-@media (max-width: 768px) {
-  body[data-app-surface="portal"][data-workspace-plugin="denali"]
-    main[data-catalog-registration-page][data-registration-resume="intake"]
-    [data-denali-intake-layout] {
-    gap: 1.5rem;
-    grid-template-columns: minmax(0, 1fr) 15rem;
-  }
-}
+/* 768 and below intentionally stack; two-column was too cramped */
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-catalog-registration-page][data-registration-resume="intake"]
     [data-portal-auth-layout] {
     width: 100%;
     padding: 0 0.875rem max(5.25rem, calc(env(safe-area-inset-bottom, 0px) + 4.5rem));
+    scroll-padding-bottom: 5.5rem;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -847,7 +865,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   max-width: 67.5rem !important;
 }
 
-@media (min-width: 701px) {
+@media (min-width: 769px) {
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-catalog-registration-page][data-registration-resume="intake"]
     [data-denali-intake-layout] {
@@ -896,6 +914,15 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   word-break: normal !important;
   white-space: normal !important;
   writing-mode: horizontal-tb !important;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-registration-price-hint] {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]

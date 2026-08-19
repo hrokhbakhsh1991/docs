@@ -16,7 +16,7 @@ import {
   type RegistrationFlowStepProps,
 } from "@app-tour/workspace-sdk";
 import { classifyPublicRegistrationMobileInput } from "@app-tour/catalog-registration-auth";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 
 import {
@@ -74,6 +74,7 @@ export function DenaliIntakeStep({
   resolveError,
 }: RegistrationFlowStepProps) {
   const t = useTranslations("catalogRegistration");
+  const locale = useLocale();
   const data = readDenaliFlowData(state);
   const errorId = useId();
   const [loading, setLoading] = useState(false);
@@ -91,17 +92,36 @@ export function DenaliIntakeStep({
   }, []);
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
-    const viewport = window.visualViewport;
-    if (viewport == null) return;
+    const form = formRef.current;
+    if (form == null) return;
+    const isMobile = () => window.innerWidth <= 700;
     const syncKeyboard = (): void => {
-      const overlap = window.innerHeight - viewport.height - viewport.offsetTop;
-      formRef.current?.toggleAttribute("data-denali-keyboard-open", overlap > 120);
+      if (!isMobile()) {
+        form.removeAttribute("data-denali-keyboard-open");
+        return;
+      }
+      const viewport = window.visualViewport;
+      if (viewport != null) {
+        const overlap = window.innerHeight - viewport.height - viewport.offsetTop;
+        form.toggleAttribute("data-denali-keyboard-open", overlap > 120);
+        return;
+      }
+      const active = document.activeElement;
+      const isInput = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement;
+      form.toggleAttribute("data-denali-keyboard-open", isInput);
     };
-    viewport.addEventListener("resize", syncKeyboard);
-    viewport.addEventListener("scroll", syncKeyboard);
+    const onFocusIn = () => { if (isMobile()) syncKeyboard(); };
+    const onFocusOut = () => { if (isMobile()) requestAnimationFrame(syncKeyboard); };
+    const viewport = window.visualViewport;
+    viewport?.addEventListener("resize", syncKeyboard);
+    viewport?.addEventListener("scroll", syncKeyboard);
+    form.addEventListener("focusin", onFocusIn);
+    form.addEventListener("focusout", onFocusOut);
     return () => {
-      viewport.removeEventListener("resize", syncKeyboard);
-      viewport.removeEventListener("scroll", syncKeyboard);
+      viewport?.removeEventListener("resize", syncKeyboard);
+      viewport?.removeEventListener("scroll", syncKeyboard);
+      form.removeEventListener("focusin", onFocusIn);
+      form.removeEventListener("focusout", onFocusOut);
     };
   }, []);
   useEffect(() => {
@@ -570,8 +590,9 @@ export function DenaliIntakeStep({
     namedParty.length > 0
       ? namedParty.join(" · ")
       : t("intake.partyCount", { count: travelerDraftCount });
+  const priceLocale = locale === "fa" ? "fa-IR" : "en-US";
   const formattedPrice =
-    estimatedPrice !== null ? estimatedPrice.toLocaleString() : null;
+    estimatedPrice !== null ? estimatedPrice.toLocaleString(priceLocale) : null;
   const submitDisabled =
     loading || !clientReady || (!selfSelected && otherGuests.length === 0);
   const ctaAlert =
@@ -609,6 +630,12 @@ export function DenaliIntakeStep({
       <a href="#denali-ledger-main" data-denali-skip>
         {t("intake.skipToForm")}
       </a>
+      <p data-denali-intake-progress aria-live="polite">
+        {t("intake.stageEyebrow")}
+        {travelerDraftCount > 0 ? (
+          <> · {t("intake.partyCount", { count: travelerDraftCount })}</>
+        ) : null}
+      </p>
       {selfTabLocked ? (
         <p data-registration-self-already role="status">
           {t("intake.selfAlreadyRegistered")}{" "}
@@ -692,11 +719,13 @@ export function DenaliIntakeStep({
         <div data-denali-ledger-main id="denali-ledger-main">
         <section data-denali-intake-section data-denali-intake-section-kind="self">
           <div data-denali-self-ident>
-            {selfDisplayName.length > 0 || showKnownNameHintSelf ? (
-              <h2 data-denali-self-name>{selfDisplayName || data.intakeName}</h2>
-            ) : (
-              <h2 data-denali-self-name>{t("intake.selfSectionTitle")}</h2>
-            )}
+            <h2 data-denali-self-name>
+              {selfDisplayName.length > 0 || showKnownNameHintSelf
+                ? (selfDisplayName || data.intakeName)
+                : t("intake.selfSectionTitle")}
+              {" "}
+              <span data-denali-self-tag>{t("intake.myselfTag")}</span>
+            </h2>
             <div data-denali-intake-section-control>
               {selfTabLocked ? (
                 <p data-denali-self-locked-chip>{t("intake.selfSectionLocked")}</p>
@@ -938,9 +967,11 @@ export function DenaliIntakeStep({
                 const guestName = guest.intakeName.trim();
                 return (
                   <div key={guestIdx} data-denali-other-guest-card data-denali-guest-idx={guestIdx}>
-                    {guestName.length > 0 ? (
-                      <h3 data-denali-guest-name>{guestName}</h3>
-                    ) : null}
+                    <h3 data-denali-guest-name>
+                      {guestName.length > 0
+                        ? guestName
+                        : t("intake.guestCardTitle", { index: guestIdx + 1 })}
+                    </h3>
                     <RenderIntakeForm
                       schema={effectiveSchemaOther}
                       values={{
@@ -1173,7 +1204,9 @@ export function DenaliIntakeStep({
               const name = guest.intakeName.trim();
               return (
                 <li key={guestIdx}>
-                  {name.length > 0 ? name : t("intake.unnamedPerson")}
+                  {name.length > 0
+                    ? name
+                    : t("intake.guestCardTitle", { index: guestIdx + 1 })}
                 </li>
               );
             })}
