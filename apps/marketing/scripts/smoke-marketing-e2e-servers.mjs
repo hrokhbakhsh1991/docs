@@ -5,7 +5,6 @@
  */
 import { execSync, spawn } from "node:child_process";
 import http from "node:http";
-import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -18,8 +17,6 @@ const portalDir = path.join(repoRoot, "apps/portal");
 
 const DENALI_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
-const DENALI_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000220";
-const OPERATOR_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 const marketingSmokeBaseUrl =
   process.env.SMOKE_MARKETING_BASE_URL?.trim() || "http://denali.localhost:3002";
 const marketingSmokeOrigin = new URL(marketingSmokeBaseUrl);
@@ -29,9 +26,6 @@ const smokeUsesDenaliHost =
 const operatorSmokeTenantId =
   process.env.TOUR_OPS_DEV_TENANT_ID?.trim() ||
   (smokeUsesDenaliHost ? DENALI_SMOKE_TENANT_ID : OPERATOR_SMOKE_TENANT_ID);
-const operatorSmokeSeedTourId = smokeUsesDenaliHost
-  ? DENALI_SMOKE_PUBLISHED_TOUR_ID
-  : OPERATOR_SMOKE_PUBLISHED_TOUR_ID;
 const portalWarmHost =
   process.env.SMOKE_PORTAL_HOST?.trim() ||
   (marketingSmokeOrigin.hostname === "denali.club"
@@ -39,21 +33,6 @@ const portalWarmHost =
     : smokeUsesDenaliHost
       ? "portal.denali.localhost:3003"
       : "portal.operator.localhost:3003");
-const forceFreshServers = process.env.PW_NO_REUSE_SERVER === "1";
-
-function isPortListening(port) {
-  return new Promise((resolve) => {
-    const socket = net.connect({ port, host: "127.0.0.1" });
-    const done = (open) => {
-      socket.removeAllListeners();
-      socket.destroy();
-      resolve(open);
-    };
-    socket.once("connect", () => done(true));
-    socket.once("error", () => done(false));
-    socket.setTimeout(1_500, () => done(false));
-  });
-}
 
 function freePort(port) {
   try {
@@ -96,31 +75,6 @@ function keepAlive() {
   return new Promise(() => {});
 }
 
-/** Refuse stale API reuse when the targeted public catalog seed is missing. */
-async function probeSmokeSeedReady() {
-  return new Promise((resolve) => {
-    const req = http.request(
-      {
-        hostname: "127.0.0.1",
-        port: 3001,
-        path: `/denali/catalog/${operatorSmokeSeedTourId}`,
-        method: "GET",
-        headers: { "x-tenant-id": operatorSmokeTenantId },
-      },
-      (res) => {
-        res.resume();
-        resolve(res.statusCode === 200);
-      }
-    );
-    req.on("error", () => resolve(false));
-    req.setTimeout(3_000, () => {
-      req.destroy();
-      resolve(false);
-    });
-    req.end();
-  });
-}
-
 const jwtEnv = await resolveSmokeApiJwtEnv();
 
 const apiEnv = {
@@ -157,6 +111,7 @@ const portalEnv = {
 
 const marketingEnv = {
   ...process.env,
+  ...jwtEnv,
   NODE_ENV: "development",
   ALLOW_DEV_WEB_SESSION: "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",
@@ -184,67 +139,37 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 try {
-  if (forceFreshServers) {
-    console.warn("smoke-marketing-e2e-servers: PW_NO_REUSE_SERVER=1 — freeing ports 3001–3003");
-    freePort(3001);
-    freePort(3002);
-    freePort(3003);
-    await new Promise((resolve) => setTimeout(resolve, 2_000));
-  }
+  // Ephemeral RS256 pair is minted this process. Reusing API/portal from a
+  // prior run signs cookies with a different key → invalid_signature → guest OTP
+  // loop on portal register (SMK-MKT-03).
+  console.warn("smoke-marketing-e2e-servers: freeing 3001–3003 so JWT matches portal");
+  freePort(3001);
+  freePort(3002);
+  freePort(3003);
+  await new Promise((resolve) => setTimeout(resolve, 2_000));
 
-  let apiListening = await isPortListening(3001);
-  const portalListening = await isPortListening(3003);
-  const marketingListening = await isPortListening(3002);
+  api = spawn("node", ["--import", "tsx", "src/main.ts"], {
+    cwd: path.join(repoRoot, "apps/api"),
+    env: apiEnv,
+    stdio: "inherit",
+  });
+  await waitForUrl("http://127.0.0.1:3001/health");
 
-  if (apiListening) {
-    const seedReady = await probeSmokeSeedReady();
-    if (!seedReady) {
-      console.warn(
-        "smoke-marketing-e2e-servers: port 3001 busy without targeted marketing smoke seed — restarting API"
-      );
-      freePort(3001);
-      await new Promise((resolve) => setTimeout(resolve, 2_000));
-      apiListening = false;
-    }
-  }
+  cleanNextDevCache(portalDir);
+  portal = spawn("pnpm", ["exec", "next", "dev", "--port", "3003"], {
+    cwd: portalDir,
+    env: portalEnv,
+    stdio: "inherit",
+  });
+  await waitForUrl("http://127.0.0.1:3003/health");
 
-  if (!apiListening) {
-    api = spawn("node", ["--import", "tsx", "src/main.ts"], {
-      cwd: path.join(repoRoot, "apps/api"),
-      env: apiEnv,
-      stdio: "inherit",
-    });
-    await waitForUrl("http://127.0.0.1:3001/health");
-  } else {
-    console.log("smoke-marketing-e2e-servers: reusing API on 3001");
-    await waitForUrl("http://127.0.0.1:3001/health", 30_000);
-  }
-
-  if (!portalListening) {
-    cleanNextDevCache(portalDir);
-    portal = spawn("pnpm", ["exec", "next", "dev", "--port", "3003"], {
-      cwd: portalDir,
-      env: portalEnv,
-      stdio: "inherit",
-    });
-    await waitForUrl("http://127.0.0.1:3003/health");
-  } else {
-    console.log("smoke-marketing-e2e-servers: reusing portal on 3003");
-    await waitForUrl("http://127.0.0.1:3003/health", 30_000);
-  }
-
-  if (!marketingListening) {
-    cleanNextDevCache(marketingDir);
-    marketing = spawn("pnpm", ["exec", "next", "dev", "--port", "3002"], {
-      cwd: marketingDir,
-      env: marketingEnv,
-      stdio: "inherit",
-    });
-    await waitForUrl("http://127.0.0.1:3002/health");
-  } else {
-    console.log("smoke-marketing-e2e-servers: reusing marketing on 3002");
-    await waitForUrl("http://127.0.0.1:3002/health", 30_000);
-  }
+  cleanNextDevCache(marketingDir);
+  marketing = spawn("pnpm", ["exec", "next", "dev", "--port", "3002"], {
+    cwd: marketingDir,
+    env: marketingEnv,
+    stdio: "inherit",
+  });
+  await waitForUrl("http://127.0.0.1:3002/health");
 
   // Warm portal public-auth BFF before SMK-MKT-03 send-code (first compile can exceed 60s).
   await waitForUrl("http://127.0.0.1:3003/health", 30_000);

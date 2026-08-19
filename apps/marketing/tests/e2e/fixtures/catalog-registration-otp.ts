@@ -46,7 +46,15 @@ export async function completeGuestPdpRegisterModalThenOpenPortalIntake(
     if (await emailInput.isVisible({ timeout: 500 }).catch(() => false)) {
       await emailInput.fill(email);
     }
-    await page.locator('[data-action="profile-continue"]').click();
+    await Promise.all([
+      page.waitForResponse(
+        (res) =>
+          res.request().method() === "POST" &&
+          res.url().includes("/api/public-auth/register-complete"),
+        { timeout: 90_000 }
+      ),
+      page.locator('[data-action="profile-continue"]').click(),
+    ]);
   }
 
   await expect(page.locator("[data-marketing-member-authenticated]")).toBeVisible({
@@ -218,6 +226,25 @@ export async function completeCatalogRegistrationIntake(
     readonly expectSuccess?: boolean;
   }
 ): Promise<void> {
+  // Chromium 3PCD partitions CORS Set-Cookie to the marketing site. Portal
+  // register is a new top-level site and may show OTP again (first-party set).
+  const portalAuthGate = page.locator(
+    "dialog[open] [data-public-registration-phone][data-registration-ready], [data-public-registration-profile], [data-public-registration-intake][data-registration-ready]"
+  );
+  await portalAuthGate.first().waitFor({ state: "visible", timeout: 120_000 });
+
+  for (let otpPass = 0; otpPass < 2; otpPass++) {
+    const portalOtpPhone = page.locator(
+      "dialog[open] [data-public-registration-phone][data-registration-ready]"
+    );
+    if (!input.phone || !(await portalOtpPhone.isVisible().catch(() => false))) {
+      break;
+    }
+    await submitCatalogPhoneForOtp(page, input.phone);
+    await fillCatalogOtp(page, CATALOG_DEV_OTP);
+    await portalAuthGate.first().waitFor({ state: "visible", timeout: 120_000 });
+  }
+
   const profileStep = page.locator("[data-public-registration-profile]");
   if (await profileStep.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await page.locator("#displayName").fill(input.fullName);

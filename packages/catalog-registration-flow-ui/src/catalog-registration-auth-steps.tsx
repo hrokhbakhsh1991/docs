@@ -33,11 +33,13 @@ async function finishHostAuthenticated(
   resolveError: (code: string) => string
 ): Promise<void> {
   try {
-    const { ready } = await host.transport.probeSession();
-    if (!ready) {
-      setError(resolveError("network"));
-      return;
-    }
+    // Bounded cookie probe (same-origin portal). Marketing CORS GET is often
+    // 3PCD-hidden; Domain= cookie is already first-party — still reload.
+    await host.transport.probeSession();
+  } catch {
+    // PCMS-MKT-AUTH-03 — probe throw must not skip host continuation.
+  }
+  try {
     await host.onAuthenticated();
   } catch (error) {
     setError(resolveError(readGuestAuthFailureCode(error)));

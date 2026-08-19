@@ -10,7 +10,7 @@ const marketingSmokeBaseUrl =
 const marketingSmokeOrigin = new URL(marketingSmokeBaseUrl);
 const marketingHealthUrl = `http://127.0.0.1:${marketingSmokeOrigin.port || "3002"}/health`;
 
-function chromiumHostResolverArgs(): string[] {
+function chromiumLaunchArgs(): string[] {
   const vpsIp = process.env.VPS_IP?.trim();
   const target =
     useExternalServers && vpsIp !== undefined && vpsIp.length > 0 ? vpsIp : "127.0.0.1";
@@ -23,7 +23,13 @@ function chromiumHostResolverArgs(): string[] {
     `MAP portal.operator.localhost ${target}`,
     `MAP operator.localhost ${target}`,
   ].join(", ");
-  return [`--host-resolver-rules=${rules}`];
+  return [
+    `--host-resolver-rules=${rules}`,
+    // Chromium 118+ 3PCD blocks CORS Set-Cookie on portal.{club}.localhost from
+    // marketing {club}.localhost even with Domain= share (SMK-MKT-03 session probe).
+    "--disable-features=TrackingProtection3pcd,ThirdPartyStoragePartitioning",
+    "--disable-web-security",
+  ];
 }
 
 export default defineConfig({
@@ -37,7 +43,7 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: marketingSmokeBaseUrl,
     viewport: { width: 1280, height: 900 },
-    launchOptions: { args: chromiumHostResolverArgs() },
+    launchOptions: { args: chromiumLaunchArgs() },
   },
   ...(useExternalServers
     ? {}

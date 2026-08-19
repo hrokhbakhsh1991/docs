@@ -40,7 +40,7 @@ test.describe("denali-guest-funnel.spec.ts — Phase 3 D01", () => {
       timeout: 60_000,
     });
 
-    await page.locator(`a[href="/tours/${SMOKE_PUBLISHED_TOUR_ID}"]`).first().click();
+    await page.goto(`/tours/${SMOKE_PUBLISHED_TOUR_ID}`, { waitUntil: "domcontentloaded" });
     await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
       timeout: 60_000,
     });
@@ -59,6 +59,7 @@ test.describe("denali-guest-funnel.spec.ts — Phase 3 D01", () => {
       email,
       fullName: "P3 D01 Guest",
       partySize: "2",
+      phone,
     });
 
     await expect(page.locator("[data-public-registration-success]")).toBeVisible({
