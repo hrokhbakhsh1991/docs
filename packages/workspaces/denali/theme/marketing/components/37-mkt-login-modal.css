@@ -147,7 +147,11 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   > label,
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-body]
-  [data-dev-otp-hint] {
+  [data-dev-otp-hint],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-public-registration-phone][data-phone-hint]
+  > p {
   display: none;
 }
 

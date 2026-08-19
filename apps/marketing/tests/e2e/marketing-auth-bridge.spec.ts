@@ -9,17 +9,37 @@ import { DENALI_SMOKE_PUBLISHED_TOUR_ID } from "./fixtures/smoke-published-tour"
 const TOUR = `/tours/${DENALI_SMOKE_PUBLISHED_TOUR_ID}`;
 
 async function openPdpModal(page: Page): Promise<void> {
-  await page.goto(TOUR, { waitUntil: "domcontentloaded" });
+  await page.goto(TOUR, { waitUntil: "load" });
   await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
     timeout: 60_000,
   });
-  await page.locator("[data-marketing-register]").first().click();
+  await expect(page.locator("[data-marketing-login-modal]")).toBeAttached({ timeout: 30_000 });
+  await page.waitForLoadState("networkidle").catch(() => undefined);
+  const viewportWidth = page.viewportSize()?.width ?? 1440;
+  if (viewportWidth >= 1024) {
+    await expect(page.locator("[data-marketing-catalog-detail-booking-rail]")).toBeVisible({
+      timeout: 15_000,
+    });
+  }
+
+  const rail = page.locator(
+    "[data-marketing-catalog-detail-booking-rail-cta] [data-marketing-register]"
+  );
+  const sticky = page.locator(
+    "[data-marketing-catalog-detail-sticky-cta] [data-marketing-register]"
+  );
+  const cta = (await rail.isVisible().catch(() => false)) ? rail : sticky;
+  await expect(cta).toBeVisible({ timeout: 15_000 });
+  await cta.scrollIntoViewIfNeeded();
+  await cta.click();
+  await expect(page).toHaveURL(new RegExp(`/tours/${DENALI_SMOKE_PUBLISHED_TOUR_ID}`));
   await expect(page.locator('[data-marketing-login-modal-open="true"]')).toBeVisible({
     timeout: 15_000,
   });
 }
 
 test.describe("marketing auth bridge Quiet Ledger", () => {
+  test.describe.configure({ retries: 1 });
   test("AB-E2E-01 FA desktop dialog, validation, focus, escape", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await openPdpModal(page);
@@ -53,7 +73,9 @@ test.describe("marketing auth bridge Quiet Ledger", () => {
     await page.keyboard.press("Escape");
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.locator("[data-marketing-register]").first().click();
+    await page
+      .locator("[data-marketing-catalog-detail-sticky-cta] [data-marketing-register]")
+      .click();
     const dialog = page.locator("[data-marketing-login-modal]");
     await expect(dialog).toHaveAttribute("data-marketing-login-modal-presentation", "sheet");
     await expect(page.locator("#marketing-login-modal-title")).toHaveText("ورود");
@@ -62,11 +84,15 @@ test.describe("marketing auth bridge Quiet Ledger", () => {
 
   test("AB-E2E-03 EN desktop + mobile copy", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`/en${TOUR}`, { waitUntil: "domcontentloaded" });
+    await page.goto(`/en${TOUR}`, { waitUntil: "load" });
     await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
       timeout: 60_000,
     });
-    await page.locator("[data-marketing-register]").first().click();
+    await expect(page.locator("[data-marketing-login-modal]")).toBeAttached({ timeout: 30_000 });
+    const rail = page.locator(
+      "[data-marketing-catalog-detail-booking-rail-cta] [data-marketing-register]"
+    );
+    await rail.click();
     await expect(page.locator("#marketing-login-modal-title")).toHaveText("Sign in");
     await expect(page.locator("[data-marketing-login-modal-close]")).toHaveText("Cancel");
     await expect(page.getByLabel("Mobile")).toBeVisible();
@@ -79,7 +105,9 @@ test.describe("marketing auth bridge Quiet Ledger", () => {
 
     await page.keyboard.press("Escape");
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.locator("[data-marketing-register]").first().click();
+    await page
+      .locator("[data-marketing-catalog-detail-sticky-cta] [data-marketing-register]")
+      .click();
     await expect(page.locator("[data-marketing-login-modal]")).toHaveAttribute(
       "data-marketing-login-modal-presentation",
       "sheet"

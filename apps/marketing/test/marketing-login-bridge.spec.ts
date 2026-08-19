@@ -63,7 +63,7 @@ describe("marketing login Quiet Ledger bridge", () => {
     assert.match(css, /58svh/);
     assert.match(css, /72svh/);
     assert.match(css, /safe-area-inset-bottom/);
-    assert.match(css, /data-portal-otp-orbit/);
+    assert.match(css, /data-phone-hint/);
     assert.match(css, /data-portal-otp-secondary-actions/);
     assert.match(css, /aria-invalid="true"/);
     assert.doesNotMatch(css, /\[data-portal-login-modal\]/);
