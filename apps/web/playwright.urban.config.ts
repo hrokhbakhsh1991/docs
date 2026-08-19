@@ -7,6 +7,18 @@ import { defineConfig, devices } from "@playwright/test";
 const urbanWebGateUrl =
   process.env.SMOKE_WEB_GATE_URL ?? "http://127.0.0.1:3000/health";
 
+function chromiumHostResolverArgs(): string[] {
+  const rules = [
+    "MAP urban.localhost 127.0.0.1",
+    "MAP portal.urban.localhost 127.0.0.1",
+    "MAP urban.portal.localhost 127.0.0.1",
+    "MAP workspace-owner-smoke.localhost 127.0.0.1",
+    "MAP workspace-member-smoke.localhost 127.0.0.1",
+    "MAP shop.urban.localhost 127.0.0.1",
+  ].join(", ");
+  return [`--host-resolver-rules=${rules}`];
+}
+
 export default defineConfig({
   globalSetup: "./tests/e2e/urban-e2e-global-setup.ts",
   testDir: "./tests/e2e",
@@ -19,6 +31,7 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: process.env.SMOKE_WEB_BASE_URL ?? "http://urban.localhost:3000",
     viewport: { width: 1280, height: 900 },
+    launchOptions: { args: chromiumHostResolverArgs() },
   },
   webServer: {
     command: "node scripts/smoke-urban-e2e-servers.mjs",

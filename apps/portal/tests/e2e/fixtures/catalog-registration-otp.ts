@@ -5,10 +5,11 @@ export const CATALOG_DEV_OTP = "1234";
 
 export async function gotoPortalRegistration(page: Page, tourId: string): Promise<void> {
   await page.goto(`/catalog/${tourId}/register`, { waitUntil: "domcontentloaded" });
-  // Guest path: OTP modal (PCMS-UX-MODAL-04). Resume path: intake already ready.
+  // Guest path: OTP phone inside dialog[open] (PCMS-UX-MODAL-04). Resume: intake.
+  // Do not toBeVisible on the <dialog> itself — Preflight 0×0 box until L2 flex frame.
   await page
     .locator(
-      "[data-portal-login-modal-open='true'], [data-public-registration-phone][data-registration-ready], [data-public-registration-intake][data-registration-ready]"
+      "dialog[open][data-portal-login-modal-open='true'] [data-public-registration-phone][data-registration-ready], [data-public-registration-intake][data-registration-ready]"
     )
     .first()
     .waitFor({ state: "visible", timeout: 120_000 });
@@ -95,14 +96,17 @@ export async function completeGuestPdpRegisterModalThenOpenPortalIntake(
 ): Promise<void> {
   const fullName = input.fullName ?? "Denali Probe Guest";
   const email = input.email ?? `pdp-modal-${Date.now()}@smoke.local`;
+  await expect(page.locator("[data-marketing-login-modal]")).toBeAttached();
   const registerLink = page.locator("[data-marketing-register]").first();
   await expect(registerLink).toBeVisible();
   await registerLink.click();
   await expect(page).toHaveURL(/\/tours\/[^/?#]+/);
   await expect(page).not.toHaveURL(/\/catalog\//);
-  await expect(page.locator('[data-marketing-login-modal-open="true"]')).toBeVisible({
-    timeout: 15_000,
-  });
+  await expect(
+    page.locator(
+      'dialog[open][data-marketing-login-modal-open="true"] [data-public-registration-phone][data-registration-ready]'
+    )
+  ).toBeVisible({ timeout: 15_000 });
 
   await requestRegistrationOtp(page, input.phone);
   await fillCatalogOtp(page, CATALOG_DEV_OTP);

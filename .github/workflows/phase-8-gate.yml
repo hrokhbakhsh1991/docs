@@ -213,7 +213,7 @@ jobs:
 
       - name: Configure dev smoke hosts
         run: |
-          grep -q 'urban.localhost' /etc/hosts || echo '127.0.0.1 urban.localhost workspace-owner-smoke.localhost workspace-member-smoke.localhost shop.urban.localhost' | sudo tee -a /etc/hosts
+          grep -q 'portal.urban.localhost' /etc/hosts || echo '127.0.0.1 urban.localhost portal.urban.localhost urban.portal.localhost workspace-owner-smoke.localhost workspace-member-smoke.localhost shop.urban.localhost' | sudo tee -a /etc/hosts
 
       - name: Urban E2E integrity (SMK-P8-01..04)
         # Charter gate is SMK-P8 only — urban-wizard-create (SMK-P15-W-D2) is Phase 15.

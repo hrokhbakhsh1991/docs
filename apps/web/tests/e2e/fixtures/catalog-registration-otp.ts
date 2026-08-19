@@ -2,6 +2,42 @@ import { expect, type Locator, type Page } from "@playwright/test";
 
 export const CATALOG_DEV_OTP = "1234";
 
+export async function fillCatalogPhone(page: Page, phone: string): Promise<void> {
+  const phoneStep = page.locator(
+    "[data-public-registration-phone][data-registration-ready]"
+  );
+  await phoneStep.waitFor({ state: "visible", timeout: 60_000 });
+  const input = phoneStep.locator("#phone");
+  await input.click();
+  await input.fill("");
+  await input.pressSequentially(phone, { delay: 15 });
+  await expect(input).not.toHaveValue("");
+}
+
+export async function submitCatalogPhoneForOtp(page: Page, phone: string): Promise<void> {
+  await fillCatalogPhone(page, phone);
+  const sendCode = page.locator('[data-action="send-code"]');
+  await expect(sendCode).toBeEnabled({ timeout: 15_000 });
+
+  const [response] = await Promise.all([
+    page.waitForResponse(
+      (res) =>
+        res.request().method() === "POST" &&
+        res.url().includes("/api/public-auth/request-otp"),
+      { timeout: 90_000 }
+    ),
+    sendCode.click(),
+  ]);
+  const body = await response.text();
+  expect(
+    response.ok(),
+    `request-otp failed (${response.status()}): ${body.slice(0, 240)}`
+  ).toBeTruthy();
+  await expect(page.locator("[data-public-registration-otp]")).toBeVisible({
+    timeout: 60_000,
+  });
+}
+
 /**
  * OtpSegmentInput auto-submits via onComplete — do not click verify.
  * Fill cells one-by-one to avoid rAF focus races with keyboard.type.

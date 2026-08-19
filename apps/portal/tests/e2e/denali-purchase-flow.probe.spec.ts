@@ -48,10 +48,11 @@ test.describe("Denali purchase flow (manual-only)", () => {
     await registerLink.first().click();
     await expect(page).toHaveURL(/\/tours\/[^/?#]+/);
     await expect(page).not.toHaveURL(/\/catalog\//);
-    await expect(page.locator('[data-marketing-login-modal-open="true"]')).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(page.locator("[data-marketing-login-modal]")).toBeVisible();
+    await expect(
+      page.locator(
+        'dialog[open][data-marketing-login-modal-open="true"] [data-public-registration-phone][data-registration-ready]'
+      )
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test("Denali portal OTP + intake → success → /me/registrations", async ({ page }) => {

@@ -16,14 +16,18 @@ export async function completeGuestPdpRegisterModalThenOpenPortalIntake(
 ): Promise<void> {
   const fullName = input.fullName ?? "Marketing Smoke Guest";
   const email = input.email ?? `pdp-modal-${Date.now()}@smoke.local`;
+  await expect(page.locator("[data-marketing-login-modal]")).toBeAttached();
   const registerLink = page.locator("[data-marketing-register]").first();
   await expect(registerLink).toBeVisible();
   await registerLink.click();
   await expect(page).toHaveURL(/\/tours\/[^/?#]+/);
   await expect(page).not.toHaveURL(/\/catalog\//);
-  await expect(page.locator('[data-marketing-login-modal-open="true"]')).toBeVisible({
-    timeout: 15_000,
-  });
+  await expect(page.locator("[data-marketing-login-unavailable]")).toHaveCount(0);
+  await expect(
+    page.locator(
+      'dialog[open][data-marketing-login-modal-open="true"] [data-public-registration-phone][data-registration-ready]'
+    )
+  ).toBeVisible({ timeout: 15_000 });
 
   await submitCatalogPhoneForOtp(page, input.phone);
   await fillCatalogOtp(page, CATALOG_DEV_OTP);
