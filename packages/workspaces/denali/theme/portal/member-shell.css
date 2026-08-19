@@ -129,8 +129,14 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   max-height: 1.5rem;
 }
 
-body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-brand],
-body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-slot="shell-brand"] {
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  header[data-portal-shell-header]
+  [data-portal-shell-brand],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  header[data-portal-shell-header]
+  [data-slot="shell-brand"] {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -139,6 +145,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-slot="shel
   grid-column: 1;
   justify-self: start;
   text-decoration: none;
+  color: var(--color-text-primary);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-logo] {
@@ -150,9 +157,12 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-she
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell]
+  header[data-portal-shell-header]
   [data-marketing-brand-icon] {
   width: 1.75rem;
   height: 1.75rem;
+  color: var(--color-accent, var(--color-primary));
+  flex-shrink: 0;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell-workspace-label] {
