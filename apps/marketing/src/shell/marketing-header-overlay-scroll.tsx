@@ -15,13 +15,14 @@ export function MarketingHeaderOverlayScroll() {
       return;
     }
 
+    const overlayHeader = header;
     const hero = document.querySelector<HTMLElement>("[data-marketing-home-hero-walk]");
 
     function sync() {
       const limit = hero
-        ? Math.max(8, hero.offsetHeight - header.offsetHeight)
-        : header.offsetHeight;
-      header.toggleAttribute("data-marketing-header-scrolled", window.scrollY >= limit);
+        ? Math.max(8, hero.offsetHeight - overlayHeader.offsetHeight)
+        : overlayHeader.offsetHeight;
+      overlayHeader.toggleAttribute("data-marketing-header-scrolled", window.scrollY >= limit);
     }
 
     sync();
@@ -30,7 +31,7 @@ export function MarketingHeaderOverlayScroll() {
     return () => {
       window.removeEventListener("scroll", sync);
       window.removeEventListener("resize", sync);
-      header.removeAttribute("data-marketing-header-scrolled");
+      overlayHeader.removeAttribute("data-marketing-header-scrolled");
     };
   }, []);
 
