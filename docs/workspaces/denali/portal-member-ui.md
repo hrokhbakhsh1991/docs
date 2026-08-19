@@ -1,52 +1,58 @@
-# Denali portal member UI — mobile-first skin
+# Denali portal member UI — Denali Pocket foundation
 
 ```yaml
 doc_id: DENALI-PORTAL-MEMBER-UI
-version: "2026-07-14-v1"
+version: "2026-08-19-v2"
 extends: portal-registration-ui.md · platform-portal-member-shell-architecture.mdoc
 apps: [portal]
-phase: PS-VIS-4
+phase: DENALI-POCKET-3.1
 ```
 
 ## Scope
 
 Visual layer for **authenticated member routes** (`/me/*`) inside `PortalMemberShell`. Business logic, entitlements, and BFF contracts unchanged.
 
-**Out of scope:** login/register auth shell (see [portal-registration-ui.md](./portal-registration-ui.md)), marketing, operator admin.
+**Out of scope:** login/register auth shell (see [portal-registration-ui.md](./portal-registration-ui.md)), marketing, operator admin, page-module layout (home cards, trip rows — later Pocket slices).
 
-## Design intent (mobile-first)
+## Design intent (Denali Pocket)
+
+Premium **mobile-first customer app**, not a marketing site inside a portal.
 
 | Principle | Implementation |
 | --------- | -------------- |
-| App frame | Fixed bottom nav + sticky header; content scrolls in `[data-portal-shell-main]` |
-| Denali continuity | Alpine muted page canvas + glass cards (lighter than auth backdrop) |
-| Thumb zone | CTAs min-height 3rem; bottom nav safe-area; save bar above nav |
+| App frame | Compact sticky header (48–52px) + mist canvas + fixed thumb bar; content scrolls in `[data-portal-shell-main]` |
+| Material | Mist page (`--color-bg-page`) · white surfaces · forest primary · alpine **only** for attention/action (not chrome wash) |
+| Type | FA Vazirmatn / EN Inter. Title 1.25rem / 650. Body 0.9375rem. Meta 0.8125rem. Nav 0.75rem / 600. No display/Calistoga on `/me/*` |
+| Elevation | One shadow (`--denali-shadow-card`). No glass stack, no decorative orbs, no gradient CTAs |
+| Thumb zone | Nav links min 44px; primary CTA 48px / 12px radius / solid forest |
 | Hook-only skin | Workspace CSS on `data-*`; no Tailwind in `packages/workspaces/denali/theme/` |
 
 ## CSS files (L3)
 
 | File | Owns |
 | ---- | ---- |
-| `portal/member-shell.css` | Shell chrome — header, bottom nav, page canvas |
-| `portal/member-pages.css` | Home, trips list, trip detail, empty states |
-| `portal/member-profile.css` | Profile form + avatar (parity with auth form controls) |
-| `portal/denali-form-controls.css` | Shared inputs + primary CTA (auth card, profile, receipt) |
+| `portal/member-shell.css` | Pocket chrome — canvas, compact header, thumb bar, type cascade |
+| `portal/member-shell-desktop.css` | Full-viewport account app + side rail (no floating phone-card) |
+| `portal/member-pages.css` | Home, trips list, trip detail, empty states (page pack — not 3.1) |
+| `portal/member-profile.css` | Profile form + avatar |
+| `portal/denali-form-controls.css` | Shared inputs + solid primary / outline secondary / text tertiary |
 | `portal/login-page.css` | Auth experience (imports form controls) |
+| `portal/marketing-header-parity.css` | Defeats marketing header layout; Pocket app-bar tokens |
 
-Import order in `denali-portal.css`: semantic tokens → legacy inline rules → `login-page.css` → member pack → **desktop** (`member-shell-desktop`, `member-pages-desktop`). Form controls load via `@import` inside `login-page.css` and `member-profile.css`.
+Import order in `denali-portal.css`: semantic tokens → legacy inline rules → `login-page.css` → member pack → desktop → **Pocket type override** after page pack so title/meta win over display headings.
 
-Desktop frame: [portal-member-desktop-frame.md](./portal-member-desktop-frame.md) — centered shell card `≥48rem`, nav contained, body backdrop via `:has([data-portal-shell])`.
+Desktop: [portal-member-desktop-frame.md](./portal-member-desktop-frame.md) — full-bleed rail + mist canvas at `≥48rem`. Embedded hosts keep mobile chrome.
 
 ## Shell hooks
 
 | Hook | Purpose |
 | ---- | ------- |
 | `[data-portal-shell]` | Root frame (platform) |
-| `[data-portal-shell-header]` | Sticky app bar |
-| `[data-portal-shell-main]` | Scrollable content + alpine canvas |
+| `[data-portal-shell-header]` | Sticky app bar (52px Pocket) |
+| `[data-portal-shell-main]` | Scrollable content + mist canvas |
 | `[data-portal-shell-bottom-nav]` | Primary tab bar |
-| `[data-portal-shell-nav-link][data-active="true"]` | Active tab pill |
-| `[data-portal-shell-user-menu]` | Profile + logout cluster |
+| `[data-portal-shell-nav-link][data-active="true"]` | Active tab — forest color, no glass pill |
+| `[data-portal-shell-user-menu]` | Profile + logout cluster (legacy hook) |
 
 ## Page hooks
 
@@ -69,7 +75,9 @@ Desktop frame: [portal-member-desktop-frame.md](./portal-member-desktop-frame.md
 | More | `http://denali.portal.localhost:3003/me/more` |
 
 ## Verification
-pnpm --filter @apps/portal test -- test/portal-visual-wave4.spec.ts test/guest-theme-stack.spec.ts
+
+```bash
+pnpm --filter @apps/portal test -- test/portal-visual-wave4.spec.ts test/portal-visual-wave5.spec.ts test/guest-theme-stack.spec.ts
 ```
 
-Manual (375px viewport): no horizontal scroll; active tab visible; trips cards tappable; profile save full-width above bottom nav.
+Manual: 390px compact header + thumb bar (no glass pill); 768px same chrome; 1440px full-bleed rail, no floating card.
