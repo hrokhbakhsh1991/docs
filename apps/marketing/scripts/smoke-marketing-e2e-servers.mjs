@@ -93,6 +93,36 @@ function keepAlive() {
   return new Promise(() => {});
 }
 
+function warmPortalPath(path, method = "GET", body = null) {
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        hostname: "127.0.0.1",
+        port: 3003,
+        path,
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          host: portalWarmHost,
+        },
+      },
+      (res) => {
+        res.resume();
+        if (res.statusCode && res.statusCode < 500) {
+          resolve();
+          return;
+        }
+        reject(new Error(`warm ${method} ${path} failed: ${res.statusCode}`));
+      }
+    );
+    req.on("error", reject);
+    if (body !== null) {
+      req.write(JSON.stringify(body));
+    }
+    req.end();
+  });
+}
+
 const jwtEnv = await resolveSmokeApiJwtEnv();
 
 const apiEnv = {
@@ -189,34 +219,16 @@ try {
   });
   await waitForUrl("http://127.0.0.1:3002/health");
 
-  // Warm portal public-auth BFF before SMK-MKT-03 send-code (first compile can exceed 60s).
+  // Warm portal BFF before SMK-MKT-03 (first compile can exceed 60s and Fast
+  // Refresh-reloads the register document mid POST /api/catalog/registrations).
   await waitForUrl("http://127.0.0.1:3003/health", 30_000);
-  await new Promise((resolve, reject) => {
-    const req = http.request(
-      {
-        hostname: "127.0.0.1",
-        port: 3003,
-        path: "/api/public-auth/request-otp",
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          host: portalWarmHost,
-        },
-      },
-      (res) => {
-        res.resume();
-        if (res.statusCode && res.statusCode < 500) {
-          resolve();
-          return;
-        }
-        reject(new Error(`warm request-otp failed: ${res.statusCode}`));
-      }
-    );
-    req.on("error", reject);
-    req.write(JSON.stringify({ phone: "+15550009901" }));
-    req.end();
-  }).catch((error) => {
-    console.warn("smoke-marketing-e2e-servers: request-otp warm skipped:", error.message);
+  await warmPortalPath("/api/public-auth/request-otp", "POST", { phone: "+15550009901" }).catch(
+    (error) => {
+      console.warn("smoke-marketing-e2e-servers: request-otp warm skipped:", error.message);
+    }
+  );
+  await warmPortalPath("/api/catalog/registrations", "GET").catch((error) => {
+    console.warn("smoke-marketing-e2e-servers: catalog registrations warm skipped:", error.message);
   });
 
   console.log("smoke-marketing-e2e-servers: API + portal + marketing ready");

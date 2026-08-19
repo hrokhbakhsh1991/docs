@@ -362,19 +362,17 @@ export async function completeCatalogRegistrationIntake(
   const submit = page.locator('[data-action="intake-submit"]');
   await expect(submit).toBeEnabled({ timeout: 15_000 });
 
-  const [response] = await Promise.all([
-    page.waitForResponse(
-      (res) =>
-        res.request().method() === "POST" &&
-        res.url().includes("/api/catalog/registrations"),
-      { timeout: 90_000 }
-    ),
-    submit.click({ noWaitAfter: true }),
-  ]);
-  const body = await response.text();
+  const responsePromise = page.waitForResponse(
+    (res) =>
+      res.request().method() === "POST" &&
+      res.url().includes("/api/catalog/registrations"),
+    { timeout: 90_000 }
+  );
+  await submit.click({ noWaitAfter: true });
+  const response = await responsePromise;
   expect(
     response.ok(),
-    `catalog registration failed (${response.status()}): ${body.slice(0, 240)}`
+    `catalog registration failed (${response.status()})`
   ).toBeTruthy();
 
   if (expectSuccess) {
