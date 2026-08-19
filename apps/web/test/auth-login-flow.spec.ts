@@ -65,7 +65,8 @@ describe("auth-login-flow.spec.ts — Phase 9.1 BFF", () => {
   it("BFF-9.1-04 middleware fail-closed redirects anonymous (app) routes", async () => {
     const { NextRequest } = await import("next/server");
     const { middleware } = await import("../middleware");
-    const req = new NextRequest("http://denali.admin.localhost:3000/bookings");
+    // Canonical inverted admin host — legacy `{club}.admin.localhost` 308s first (WRS-ADMIN-LEGACY-308).
+    const req = new NextRequest("http://admin.denali.localhost:3000/bookings");
     const res = await middleware(req);
     assert.ok(res.status >= 300 && res.status < 400);
     const location = res.headers.get("location") ?? "";
@@ -97,7 +98,8 @@ describe("auth-login-flow.spec.ts — Phase 9.1 BFF", () => {
   it("BFF-9.1-06 middleware blocks anonymous BFF /api/users with 401", async () => {
     const { NextRequest } = await import("next/server");
     const { middleware } = await import("../middleware");
-    const req = new NextRequest("http://denali.localhost:3000/api/users");
+    // Club apex on apps/web 308s to admin host; auth 401 is on the canonical admin host.
+    const req = new NextRequest("http://admin.denali.localhost:3000/api/users");
     const res = await middleware(req);
     assert.equal(res.status, 401);
     const body = (await res.json()) as { error?: { code?: string } };
