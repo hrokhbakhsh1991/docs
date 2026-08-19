@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { createCanonicalDocument } from "@app-tour/workspace-sdk";
+import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 
 import {
   guestHasApprovedOnEachTour,
@@ -10,18 +10,28 @@ import {
   selectLastPublishedTourIds,
 } from "../src/booking/recent-tour-attendance.ts";
 
+function tourCanonical(
+  data: Record<string, unknown>,
+  roots: readonly string[]
+): CanonicalDocument {
+  return {
+    schemaVersion: 1,
+    roots: [...roots],
+    data,
+  };
+}
+
 function tour(id: string, start: string, publishStatus: "active" | "draft" = "active") {
   return {
     id,
-    canonical: createCanonicalDocument({
-      schemaVersion: 1,
-      roots: ["basics"],
-      data: {
+    canonical: tourCanonical(
+      {
         title: id,
         publishStatus,
         startDateTime: start,
       },
-    }),
+      ["title", "publishStatus", "startDateTime"]
+    ),
   };
 }
 
@@ -35,11 +45,10 @@ describe("recent-tour-attendance — Denali Phase 3.2", () => {
   });
 
   it("reads nested participants.autoApproveMinRecentTours from canonical", () => {
-    const canonical = createCanonicalDocument({
-      schemaVersion: 1,
-      roots: ["basics"],
-      data: { participants: { autoApproveMinRecentTours: "2" } },
-    });
+    const canonical = tourCanonical(
+      { participants: { autoApproveMinRecentTours: "2" } },
+      ["participants"]
+    );
     assert.equal(readDenaliAutoApproveMinRecentToursFromCanonical(canonical), 2);
   });
 
@@ -52,11 +61,10 @@ describe("recent-tour-attendance — Denali Phase 3.2", () => {
         tour("draft", "2026-05-20T08:00:00.000Z", "draft"),
         tour("old-b", "2026-05-10T08:00:00.000Z"),
         tour("old-a", "2026-05-15T08:00:00.000Z"),
-        { id: "no-start", canonical: createCanonicalDocument({
-          schemaVersion: 1,
-          roots: ["basics"],
-          data: { publishStatus: "active" },
-        }) },
+        {
+          id: "no-start",
+          canonical: tourCanonical({ publishStatus: "active" }, ["publishStatus"]),
+        },
       ],
       excludeTourId: current,
       beforeStartMs: Date.parse("2026-06-01T08:00:00.000Z"),
@@ -65,7 +73,7 @@ describe("recent-tour-attendance — Denali Phase 3.2", () => {
     assert.deepEqual(ranked, ["old-a", "old-b"]);
   });
 
-  it("fail-closes when club has fewer than N past published tours", () => {
+  it("fail-closes when club has fewer than N published past tours", () => {
     const ranked = selectLastPublishedTourIds({
       tours: [tour("only", "2026-05-01T08:00:00.000Z")],
       excludeTourId: "current",
