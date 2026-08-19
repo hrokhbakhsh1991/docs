@@ -28,6 +28,7 @@ import {
 import { isPlatformPublicPath } from "@/platform/require-platform-ops-session";
 import { shouldBypassMiddlewareForDevE2eHost } from "@/tenant/resolve-dev-e2e-host-bypass";
 import { sessionTenantMatchesHost } from "@/tenant/session-host-binding";
+import { resolveTourWorkspaceLegacySegmentRedirect } from "@/features/tours/tour-workspace-logic";
 
 const ADMIN_PATH_PREFIXES = [
   "/dashboard",
@@ -256,6 +257,15 @@ export function middleware(request: NextRequest): NextResponse {
   const operatorHostGate = blockOperatorOnWrongHost(request, host);
   if (operatorHostGate !== null) {
     return operatorHostGate;
+  }
+
+  const legacyWorkspaceRedirect = resolveTourWorkspaceLegacySegmentRedirect(pathname);
+  if (legacyWorkspaceRedirect !== null) {
+    const target = request.nextUrl.clone();
+    const canonical = new URL(legacyWorkspaceRedirect, request.url);
+    target.pathname = canonical.pathname;
+    target.search = canonical.search;
+    return NextResponse.redirect(target, 308);
   }
 
   const isBffApi = isProtectedBffApiPath(pathname);

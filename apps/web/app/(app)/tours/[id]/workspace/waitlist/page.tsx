@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation";
-
-import { hrefForWorkspaceTab } from "@/features/tours/tour-workspace-logic";
+import {
+  TourWorkspaceLegacyTabRedirect,
+} from "@/features/tours/tour-workspace-legacy-tab-redirect";
 
 type TourWorkspaceWaitlistRedirectProps = {
   readonly params: Promise<{ id: string }>;
@@ -11,5 +11,5 @@ export default async function TourWorkspaceWaitlistRedirectPage({
   params,
 }: TourWorkspaceWaitlistRedirectProps) {
   const { id } = await params;
-  redirect(hrefForWorkspaceTab(id, "waitlist"));
+  return <TourWorkspaceLegacyTabRedirect tourId={id} tab="waitlist" />;
 }

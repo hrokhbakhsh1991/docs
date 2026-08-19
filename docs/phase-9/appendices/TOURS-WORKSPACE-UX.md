@@ -26,7 +26,14 @@ Provide the **workspace chrome** operators use to manage tour registrations, wai
 | Finance | `…/workspace?tab=finance` | **Complete** — Tour Money Inbox (H-10/H-11): status→actions→guest list for **this tour only**; not Finance Hub. See TOURS-WORKSPACE-COMPLETE §8 |
 | Operator register | `(app)/tours/[id]/register` | **R4** — out of R3 |
 
-Legacy segment paths (`/workspace/waitlist`, `/transport`, `/finance`) **redirect** to the canonical `?tab=` query (deep-link compatibility only).
+Legacy segment paths (`/workspace/waitlist`, `/transport`, `/finance`, `/registrations`) **canonicalize** to the `?tab=` query (deep-link compatibility only):
+
+| Layer | Behavior |
+| ----- | -------- |
+| **Middleware (308)** | Cold loads / bookmarks — one hop to `/workspace?tab=` before RSC |
+| **Client redirect page** | In-app `<Link>` / client nav to legacy segment — `router.replace(..., { scroll: false })` without server `redirect()` double document |
+
+Finance capability gating remains on the workspace layout (invalid `?tab=finance` → replace to registrations).
 
 ---
 
@@ -43,7 +50,7 @@ Subnav tabs: registrations · waitlist · transport · finance (finance capabili
 
 **Tab navigation (H-09):** Subnav and header KPI clicks use `<button type="button">` + `router.replace(buildWorkspaceTabReplacePath(...), { scroll: false })` — same pattern as [`FINANCE-OPS-UX.md`](./FINANCE-OPS-UX.md) §5. Avoid raw `<Link href="?tab=…">` for in-shell tab switches (prevents heavy RSC re-fetch under `(app)/layout` `force-dynamic`).
 
-**Lazy keep-alive panels:** `tour-workspace-tab-panels.tsx` mounts each tab client on **first visit**, then toggles `hidden` — not all four eagerly on initial load.
+**Chrome reload after ops/finance mutations:** `reloadWorkspaceChrome()` bumps a **header-only** nonce (ops KPI counts + money KPIs). Tour detail projection is **not** force-refetched — avoids header skeleton flash on approve/reject.
 
 ---
 
@@ -54,7 +61,7 @@ Subnav tabs: registrations · waitlist · transport · finance (finance capabili
 | Subnav + tab resolver | `apps/web/src/features/tours/tour-workspace-logic.ts` (`buildWorkspaceTabReplacePath`, `hrefForWorkspaceTab`) |
 | Layout shell + tab buttons | `apps/web/app/(app)/tours/[id]/workspace/tour-workspace-layout-client.tsx` |
 | Lazy keep-alive panels | `apps/web/app/(app)/tours/[id]/workspace/tour-workspace-tab-panels.tsx` |
-| Legacy segment redirects | `workspace/waitlist/page.tsx` · `transport/page.tsx` · `finance/page.tsx` → `?tab=` |
+| Legacy segment redirects | `middleware.ts` 308 + `tour-workspace-legacy-tab-redirect.tsx` · thin `workspace/{waitlist,transport,finance,registrations}/page.tsx` |
 | Entry from list/edit | `tour-card.tsx` · `tour-edit-page-client.tsx` |
 
 Tour header reuses `GET /api/tours/{id}` projection (same BFF as edit).

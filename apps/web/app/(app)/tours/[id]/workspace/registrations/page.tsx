@@ -1,4 +1,6 @@
-import { redirect } from "next/navigation";
+import {
+  TourWorkspaceRegistrationsAliasRedirect,
+} from "@/features/tours/tour-workspace-legacy-tab-redirect";
 
 type TourWorkspaceRegistrationsAliasPageProps = {
   readonly params: Promise<{ id: string }>;
@@ -9,5 +11,5 @@ export default async function TourWorkspaceRegistrationsAliasPage({
   params,
 }: TourWorkspaceRegistrationsAliasPageProps) {
   const { id } = await params;
-  redirect(`/tours/${encodeURIComponent(id)}/workspace`);
+  return <TourWorkspaceRegistrationsAliasRedirect tourId={id} />;
 }
