@@ -31,6 +31,7 @@ const EMPTY_DRAFT_SKIP_PATHS = new Set([
   "approximateReturnTime",
   "requiresLocalGuide",
   "requiresManualAdminApproval",
+  "participants.autoApproveMinRecentTours",
 ]);
 
 const EMPTY_DRAFT_SEED_TITLE_PATTERNS = [/^تور جدید$/i, /^new tour$/i] as const;

@@ -59,6 +59,7 @@ describe("BK-B1.4 BookingPublicPort neutrality", () => {
     assert.equal(typeof port.createPendingBooking, "function");
     assert.equal(typeof port.autoApprovePublicBooking, "function");
     assert.equal(typeof port.sumApprovedPartySizeByTourIds, "function");
+    assert.equal(typeof port.listApprovedTourIdsByGuest, "function");
   });
 
   it("contracts package exports BookingPublicPort (SoT); Denali re-exports contracts", () => {

@@ -65,6 +65,7 @@ export function buildDenaliTourCreateDefaultValues(): DenaliCreateTourWizardForm
       birthDateRequired: false,
       sportsInsuranceRequired: false,
       minRequiredPeaks: undefined,
+      autoApproveMinRecentTours: undefined,
       fitnessPrerequisiteText: undefined,
       gearItems: [],
     },

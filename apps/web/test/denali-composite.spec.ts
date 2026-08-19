@@ -36,6 +36,7 @@ describe("denali-composite.spec.ts", () => {
       "denali.gear",
       "denali.program-content",
       "denali.peak-experience",
+      "denali.recent-tour-auto-approve",
       "denali.pricing-payment",
       "denali.pricing-participants",
       "denali.approximate-return-time",

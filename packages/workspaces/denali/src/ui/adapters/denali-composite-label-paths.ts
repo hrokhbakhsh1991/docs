@@ -13,6 +13,7 @@ export const DENALI_COMPOSITE_LABEL_CANONICAL_PATH: Readonly<Record<string, stri
   "denali.pricing-participants": "participants.minimumAge",
   "denali.pricing-payment": "pricing.requiresPayment",
   "denali.peak-experience": "participants.minRequiredPeaks",
+  "denali.recent-tour-auto-approve": "participants.autoApproveMinRecentTours",
   "denali.approximate-return-time": "approximateReturnTime",
   "denali.program-content": "program.themeIds",
   "denali.itinerary": "program.itinerary",

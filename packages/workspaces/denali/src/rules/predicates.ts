@@ -1,3 +1,4 @@
+import { denaliRegistrationApprovalFromManualFlag } from "../booking/resolve-denali-registration-approval-mode";
 import {
   denaliCanonicalBasicsFromTourKind,
   isDenaliMountainCategory,
@@ -25,8 +26,17 @@ export function isDenaliMountaineeringTourType(
 export function isPeakExperienceVisible(form: DenaliCreateTourWizardForm): boolean {
   return (
     isDenaliMountaineeringTourType(form.basicInfo.tourType) &&
-    form.basicInfo.requiresManualAdminApproval === true
+    isManualAdminApprovalRequired(form)
   );
+}
+
+/**
+ * Recent-tour auto-approve threshold — all categories, only when the operator
+ * checkbox is on. Must not use `whenTruthy` (`"false"` strings are truthy).
+ */
+export function isManualAdminApprovalRequired(form: DenaliCreateTourWizardForm): boolean {
+  return denaliRegistrationApprovalFromManualFlag(form.basicInfo.requiresManualAdminApproval) ===
+    "manual";
 }
 
 /** Organizer group liability insurance — always offered on the pricing step. */

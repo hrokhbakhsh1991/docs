@@ -66,6 +66,14 @@
         "staticRequired": false
       },
       {
+        "canonicalPath": "participants.autoApproveMinRecentTours",
+        "formPath": "participantRequirements.autoApproveMinRecentTours",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
         "canonicalPath": "requiresLocalGuide",
         "formPath": "basicInfo.requiresLocalGuide",
         "visible": true,
@@ -544,6 +552,14 @@
         "staticRequired": false
       },
       {
+        "canonicalPath": "participants.autoApproveMinRecentTours",
+        "formPath": "participantRequirements.autoApproveMinRecentTours",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
         "canonicalPath": "requiresLocalGuide",
         "formPath": "basicInfo.requiresLocalGuide",
         "visible": true,
@@ -1016,6 +1032,14 @@
       {
         "canonicalPath": "localGuideName",
         "formPath": "basicInfo.localGuideName",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.autoApproveMinRecentTours",
+        "formPath": "participantRequirements.autoApproveMinRecentTours",
         "visible": false,
         "required": false,
         "staticHidden": false,

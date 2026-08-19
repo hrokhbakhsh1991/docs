@@ -24,6 +24,7 @@ import { DenaliItineraryField } from "../fields/denali-itinerary-field";
 import { DenaliLeaderUserIdsField } from "../fields/denali-leader-user-ids-field";
 import { DenaliLocationZonesField } from "../fields/denali-location-zones-field";
 import { DenaliPeakExperienceField } from "../fields/denali-peak-experience-field";
+import { DenaliRecentTourAutoApproveField } from "../fields/denali-recent-tour-auto-approve-field";
 import { DenaliPhotosField } from "../fields/denali-photos-field";
 import { DenaliPricingParticipantsField } from "../fields/denali-pricing-participants-field";
 import { DenaliPricingPaymentField } from "../fields/denali-pricing-payment-field";
@@ -157,6 +158,14 @@ const DENALI_COMPOSITE_RENDERERS: Readonly<Record<DenaliImplementedCompositeId, 
     ),
     "denali.peak-experience": ({ draft, onDraftChange, field, invalid }) => (
       <DenaliPeakExperienceField
+        draft={draft}
+        onDraftChange={onDraftChange}
+        required={field.required}
+        invalid={invalid}
+      />
+    ),
+    "denali.recent-tour-auto-approve": ({ draft, onDraftChange, field, invalid }) => (
+      <DenaliRecentTourAutoApproveField
         draft={draft}
         onDraftChange={onDraftChange}
         required={field.required}

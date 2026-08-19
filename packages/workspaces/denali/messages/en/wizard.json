@@ -69,6 +69,7 @@
       "sportsInsuranceRequired": "Personal sports / mountaineering insurance",
       "fitnessPrerequisiteText": "Fitness / experience prerequisite",
       "minRequiredPeaks": "Minimum summits climbed (auto-approval)",
+      "autoApproveMinRecentTours": "Auto-approve after recent club tours",
       "medicationsRequired": "Collect medications at registration",
       "allergiesRequired": "Collect allergies (food, medicine, environment)",
       "dietaryRequirementsRequired": "Collect dietary restrictions",
@@ -472,6 +473,15 @@
         "2": "At least 2 summits",
         "3": "At least 3 summits",
         "4": "At least 4 summits"
+      }
+    },
+    "recentTourAutoApprove": {
+      "placeholder": "No auto-approve (always leader approval)",
+      "helper": "When admin approval is on: members with an approved booking on each of the last 1, 2, or 3 published club tours before this one skip the leader wait. Leave empty to require approval for everyone.",
+      "options": {
+        "1": "Attended the last 1 tour",
+        "2": "Attended the last 2 tours",
+        "3": "Attended the last 3 tours"
       }
     },
     "loading": {

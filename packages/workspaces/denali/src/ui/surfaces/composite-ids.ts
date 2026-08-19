@@ -13,6 +13,7 @@ export const DENALI_IMPLEMENTED_COMPOSITE_IDS = [
   "denali.gear",
   "denali.program-content",
   "denali.peak-experience",
+  "denali.recent-tour-auto-approve",
   "denali.pricing-payment",
   "denali.pricing-participants",
   "denali.approximate-return-time",

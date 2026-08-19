@@ -71,6 +71,14 @@ export interface BookingRepositoryPort {
     submittedByUserId: string,
     limit: number
   ): Promise<BookingRecord[]>;
+  /**
+   * Unique tour ids with `status=approved` submitted by this user,
+   * excluding `registrantTarget=other`. Cap 500. Not an HTTP list projection.
+   */
+  listApprovedTourIdsBySubmittedUser(
+    tenantId: string,
+    submittedByUserId: string
+  ): Promise<readonly string[]>;
   sumApprovedPartySizeByTourIds(
     tenantId: string,
     tourIds: readonly string[]

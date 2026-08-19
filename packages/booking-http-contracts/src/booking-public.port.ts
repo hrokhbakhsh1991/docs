@@ -124,4 +124,10 @@ export interface BookingPublicPort {
     readonly guestPhone?: string;
     readonly registrationIntakePatch: Readonly<Record<string, unknown>>;
   }): Promise<BookingPublicCreateResult | null>;
+  /**
+   * Unique tour ids with an **approved** booking submitted by this guest
+   * (`registrantTarget ≠ other`). Optional — Denali recent-tour auto-approve
+   * fail-closes when missing. Cap is host-defined (500).
+   */
+  listApprovedTourIdsByGuest?(tenantId: string, guestUserId: string): Promise<readonly string[]>;
 }

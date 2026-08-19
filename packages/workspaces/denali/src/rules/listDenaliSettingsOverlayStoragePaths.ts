@@ -20,6 +20,7 @@ export const DENALI_MODERN_SETTINGS_OVERLAY_STORAGE_PATHS = [
   "participants.gearItems",
   "participants.maximumAge",
   "participants.minRequiredPeaks",
+  "participants.autoApproveMinRecentTours",
   "participants.minimumAge",
   "participants.nationalIdRequired",
   "participants.fatherNameRequired",

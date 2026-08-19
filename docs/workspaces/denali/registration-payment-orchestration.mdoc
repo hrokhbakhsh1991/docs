@@ -1,7 +1,7 @@
 ---
 title: Denali registration ↔ payment orchestration
 doc_id: DENALI-REG-PAY-ORCH
-version: "2026-08-19-v11"
+version: "2026-08-19-v12"
 workspace: denali
 status: ACTIVE
 phase: P6-3 follow-on
@@ -240,6 +240,31 @@ Wizard persist (`prepareDenaliSubmitArtifact`) writes `pricing.registrationAppro
 
 `participants.minRequiredPeaks` remains a **display** field when the checkbox is on (mountaineering + manual). It does **not** auto-approve by summit count.
 
+### Manual + recent-tour bypass (phase 3.2 — 2026-08-19)
+
+When the checkbox is **on** (`manual`), the operator may set `participants.autoApproveMinRecentTours` to `1` · `2` · `3`. Empty / `0` / missing = no bypass (stay pending).
+
+```text
+manual + no N:     create → pending → ops approve
+manual + N set:    create → pending → if guest has approved **self** bookings on each of the last N
+                   published club tours that started **before** this tour → host autoApprove
+                   else stay pending
+```
+
+| Rule | Behavior |
+| ---- | -------- |
+| Last N window | Published (`publishStatus: active`) tours of this tenant whose `startDateTime` is **strictly before** this tour’s start (fallback `now` if this tour has no start). Newest first. Skip current `tourId`. Future published tours are **not** in the window. Missing `startDateTime` on a candidate excludes it. |
+| Attendance | Booking `status=approved` **and** `registrantTarget ≠ other` for that guest on **each** of those N tours. History scan capped at 500 rows. |
+| Club has fewer than N published past tours | Fail closed — pending |
+| Anonymous / public-catalog guest id | Fail closed — pending |
+| `registrantTarget=other` (this create) | Fail closed — pending (history is the member, seat is not) |
+| `BookingPublicPort.listApprovedTourIdsByGuest` missing | Fail closed — pending (optional on the port so Harbor mocks stay compiling) |
+| Checkbox off (`auto`) | Everyone auto-approves; N is cleared when the field is not visible (`clearWhenNotVisible`) |
+
+Host adapter (`createHostBookingPublicAdapter`) implements `listApprovedTourIdsByGuest` via `BookingRepositoryPort.listApprovedTourIdsBySubmittedUser` (Prisma + memory). Denali product routes must not import `apps/api`.
+
+Wizard: field is on `denali_basic`, immediately after the approval checkbox, **all categories**. Visible only when `requiresManualAdminApproval` is boolean/`"true"` true (dedicated contextual kind — not `whenTruthy`, because the string `"false"` is truthy). Copy offers 1 / 2 / 3 last tours. `participants.minRequiredPeaks` stays display-only (mountaineering + checkbox); it is **not** this bypass.
+
 Payment is still `approve_then_offline_pay`. Auto means the member skips the club-approval wait and lands on the receipt panel (or waived/paid when remaining is 0). There is no instant gateway.
 
 Rules:
@@ -357,6 +382,7 @@ After approve (or when override lands on an approved booking):
 | Phase | Content |
 | ----- | ------- |
 | 3.1 | **Landed 2026-08-19** — wizard checkbox `requiresManualAdminApproval` drives `pricing.registrationApproval` (see Phase 3). |
+| 3.2 | **Landed 2026-08-19** — manual + `participants.autoApproveMinRecentTours` (1–3 last published club tours). |
 | 4.1 | Wizard / settings control for `pricing.paymentCollection` |
 | 5.1 | Ops UI panel for obligation override on `/finance` or `/bookings` |
 

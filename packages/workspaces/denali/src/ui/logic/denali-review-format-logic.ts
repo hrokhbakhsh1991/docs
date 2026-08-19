@@ -320,6 +320,14 @@ export function buildDenaliReviewSections(
     labels.fieldLabel("requiresManualAdminApproval"),
     boolLabel(getCanonicalStringValue(draft, "requiresManualAdminApproval"), labels)
   );
+  pushRowWhenFieldVisible(
+    draft,
+    basicRows,
+    labels,
+    "participants.autoApproveMinRecentTours",
+    "denali_basic",
+    getCanonicalStringValue(draft, "participants.autoApproveMinRecentTours")
+  );
   pushRow(
     basicRows,
     "socialMediaLink",
