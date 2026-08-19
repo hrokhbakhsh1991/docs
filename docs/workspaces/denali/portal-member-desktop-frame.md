@@ -63,7 +63,7 @@ Hooks:
 | File | Scope |
 | ---- | ----- |
 | `portal/member-shell-desktop.css` | Mist canvas, full-viewport grid, **side-rail nav** |
-| `portal/member-pages-desktop.css` | Home/trips grids |
+| `portal/member-pages-desktop.css` | Home grids; **trips list stays one column** (Pocket 3.2) |
 | `portal/member-profile.css` | Mobile cards + **PS-VIS-5g sectioned** desktop |
 | `portal/marketing-header-parity.css` | Pocket app-bar tokens (brand + chip; no marketing glass) |
 | `src/shell/portal-member-header.tsx` | **PS-VIS-5e** brand + chip |

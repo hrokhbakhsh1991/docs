@@ -62,6 +62,21 @@ describe("portal-visual-wave4.spec.ts", () => {
     assert.match(page, /data-portal-member-row-chevron/);
   });
 
+  it("VIS-TRIP-05 Pocket trips list has canvas title and no hero gradient", () => {
+    const css = readFileSync(join(denaliThemeRoot, "portal/member-pages.css"), "utf8");
+    const trips = css.slice(
+      css.indexOf("/* ── Trips list (Pocket 3.2)"),
+      css.indexOf("/* ── Trip detail")
+    );
+    assert.match(trips, /background:\s*none/);
+    assert.match(trips, /content:\s*none/);
+    assert.match(trips, /portal-pocket-title-size/);
+    assert.match(trips, /portal-pocket-touch/);
+    assert.doesNotMatch(trips, /linear-gradient/);
+    assert.doesNotMatch(trips, /radial-gradient/);
+    assert.doesNotMatch(trips, /#[0-9a-fA-F]{3,8}/);
+  });
+
   it("VIS-TRIP-04 detail page uses app bar + hero section", () => {
     const page = readPortal("app/me/registrations/[id]/page.tsx");
     assert.match(page, /data-portal-member-detail-app-bar/);

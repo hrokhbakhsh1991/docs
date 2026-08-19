@@ -42,13 +42,17 @@ describe("portal-visual-wave5.spec.ts", () => {
     assert.doesNotMatch(css, /\[data-portal-shell\]\s*\{/);
   });
 
-  it("DESK-04 member-pages-desktop.css widens grids at 64rem", () => {
+  it("DESK-04 member-pages-desktop.css widens home grids; trips stay one column", () => {
     const css = readFileSync(join(denaliThemeRoot, "portal/member-pages-desktop.css"), "utf8");
     assert.match(css, /@media \(min-width: 64rem\)/);
     assert.match(css, /\[data-portal-member-home-quick-links\]/);
     assert.match(css, /repeat\(3,/);
     assert.match(css, /\[data-portal-member-registrations-list\]/);
-    assert.match(css, /repeat\(2,/);
+    assert.match(css, /flex-direction:\s*column/);
+    assert.doesNotMatch(
+      css.split("[data-portal-member-registrations-list]")[1]?.split("}")[0] ?? "",
+      /repeat\(2,/
+    );
   });
 
   it("DESK-08 profile uses sectioned settings layout (PS-VIS-5g)", () => {

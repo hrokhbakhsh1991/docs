@@ -38,6 +38,7 @@
 | MEM-HOME-02 | `[data-portal-member-home-quick-link-icon]` | Quick link cards | 4 |
 | MEM-TRIP-01 | `[data-portal-member-registration-row]` + status badge | Trips list | 2 |
 | MEM-TRIP-03 | `[data-portal-member-registrations-list]` + `[data-portal-member-row-chevron]` | Trips list affordance | 4 |
+| MEM-TRIP-05 | Pocket trips list: canvas title, no hero gradient, single-column rows | `/me/registrations` only | 3.2 |
 | MEM-TRIP-04 | `[data-portal-member-detail-app-bar]` + `[data-portal-member-detail-hero]` | Trip detail | 4 |
 | MEM-TRIP-02 | `[data-portal-member-registrations-empty-cta]` | Empty → marketing `/tours` | 3 |
 | MEM-WALLET-01 | `main[data-portal-member-module-stub][data-portal-member-module-id="wallet"]` | Hidden wallet stub | 3 |

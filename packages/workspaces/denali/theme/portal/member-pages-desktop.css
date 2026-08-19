@@ -29,24 +29,26 @@
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-registrations]
     [data-portal-member-registrations-list] {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-registrations]
     [data-portal-member-registration-row] {
-    height: 100%;
+    height: auto;
+    padding-inline: var(--space-4) var(--space-8);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-registrations]
     [data-portal-member-registrations-empty-state] {
-    grid-column: 1 / -1;
-    max-width: 46rem;
-    margin-inline: auto;
-    min-height: min(30rem, calc(100dvh - 15rem));
+    grid-column: auto;
+    max-width: none;
+    margin-inline: 0;
+    min-height: 0;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
