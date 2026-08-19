@@ -854,6 +854,27 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell]
+  main[data-portal-member-profile]
+  [data-portal-member-page-header]
+  h1 {
+  font-family: inherit;
+  font-size: var(--portal-pocket-title-size);
+  font-weight: var(--portal-pocket-title-weight);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  main[data-portal-member-profile]
+  [data-portal-member-page-header]
+  > p {
+  font-size: var(--portal-pocket-meta-size);
+  line-height: 1.45;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
   main[data-portal-member-home]
   [data-portal-member-home-lede] {
   font-size: var(--portal-pocket-meta-size);

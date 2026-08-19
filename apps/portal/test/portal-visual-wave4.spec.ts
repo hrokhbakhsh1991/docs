@@ -157,6 +157,19 @@ describe("portal-visual-wave4.spec.ts", () => {
     assert.match(controls, /\[data-action-kind="tertiary"\]/);
   });
 
+  it("VIS-PROF-05 Pocket profile has canvas title and no hero gradient", () => {
+    const css = readFileSync(join(denaliThemeRoot, "portal/member-profile.css"), "utf8");
+    const profile = css.slice(css.indexOf("/* ── Profile (Pocket 3.5)"));
+    assert.match(profile, /background:\s*none/);
+    assert.match(profile, /content:\s*none/);
+    assert.match(profile, /portal-pocket-title-size/);
+    assert.match(profile, /position:\s*sticky/);
+    assert.match(profile, /portal-pocket-cta-height/);
+    assert.doesNotMatch(profile, /linear-gradient/);
+    assert.doesNotMatch(profile, /radial-gradient/);
+    assert.doesNotMatch(profile, /#[0-9a-fA-F]{3,8}/);
+  });
+
   it("VIS-MORE-01 more hub uses icon list component", () => {
     const page = readPortal("app/me/more/page.tsx");
     const list = readPortal("app/me/more/member-more-hub-list.tsx");

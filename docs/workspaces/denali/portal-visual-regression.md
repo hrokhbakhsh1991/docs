@@ -49,6 +49,7 @@
 | MEM-STUB-01 | `[data-portal-member-stub-back]` | Module stub back CTA | 5 |
 | MEM-PROF-01 | `main[data-portal-member-profile]` | Profile form | — |
 | MEM-PROF-02 | `[data-member-profile-field="gender"] select` | Gender select (SDK enum) | — |
+| MEM-PROF-05 | Pocket profile: canvas title, grouped sections, no hero gradient, sticky solid save, quiet session | `/me/profile` only | 3.5 |
 
 ## Token parity (D1)
 
@@ -66,6 +67,7 @@
 | Login | `http://denali.portal.localhost:3003/login` |
 | Home | `http://denali.portal.localhost:3003/me/home` |
 | Trips | `http://denali.portal.localhost:3003/me/registrations` |
+| Profile | `http://denali.portal.localhost:3003/me/profile` |
 | Wallet (grant required) | `http://denali.portal.localhost:3003/me/wallet` |
 
 ## Automated coverage
@@ -75,7 +77,7 @@
 | `apps/portal/test/portal-visual-wave1.spec.ts` | REG-01, SH-01, SH-02 |
 | `apps/portal/test/portal-visual-wave2.spec.ts` | REG-02, SH-03 |
 | `apps/portal/test/portal-visual-wave3.spec.ts` | MEM-TRIP-02, MEM-WALLET-01, TOK hooks |
-| `apps/portal/test/portal-visual-wave4.spec.ts` | SH-05/06, MEM-HOME-02, MEM-TRIP-03/04, VIS-FORM-01, MEM-MORE-01, MEM-STUB-01 |
+| `apps/portal/test/portal-visual-wave4.spec.ts` | SH-05/06, MEM-HOME-02, MEM-TRIP-03/04, VIS-FORM-01, MEM-MORE-01, MEM-STUB-01, MEM-PROF-05 |
 | `apps/portal/test/portal-visual-wave5.spec.ts` | DESK-01..04 desktop frame + auth layout |
 | `apps/portal/test/guest-theme-stack.spec.ts` | TOK-01 skin import |
 | `apps/marketing/test/resolve-app-locale.spec.ts` | GX-1 (`MKT-GX-01`) |
