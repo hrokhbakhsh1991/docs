@@ -23,6 +23,8 @@ const DENALI_DESTINATION_SLUGS = resolveGuestLandingFeatures("denali").destinati
 const REQUIRED_HOME_KEYS = [
   "home.full.hero.eyebrow",
   "home.full.hero.lead",
+  "home.full.hero.support",
+  "home.full.hero.imageAlt",
   "home.full.hero.ctaPrimary",
   "home.full.hero.ctaSecondary",
   "home.full.hero.scrollHint",

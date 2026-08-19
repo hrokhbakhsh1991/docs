@@ -1,0 +1,103 @@
+/**
+ * Denali marketing footer chrome.
+ * Tenant theme wrappers set --color-text-link / --color-primary to platform blue
+ * on the shell; consume --denali-forest-600 so footer stays Denali forest.
+ */
+body[data-app-surface="marketing"][data-workspace-plugin="denali"] footer[data-marketing-footer] {
+  background: var(--denali-mist-50, #f4f7f4);
+  color: var(--color-text-primary, #1a1f26);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  footer[data-marketing-footer]
+  div[data-marketing-footer-column]:first-child
+  h2 {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  footer[data-marketing-footer]
+  div[data-marketing-footer-column]
+  h3 {
+  font-size: var(--mkt-text-meta, 0.8125rem);
+  font-weight: 600;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  footer[data-marketing-footer]
+  div[data-marketing-footer-column]
+  ul {
+  gap: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  footer[data-marketing-footer]
+  div[data-marketing-footer-column]
+  a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding-block: 0.5rem;
+  color: var(--denali-forest-600);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  footer[data-marketing-footer]
+  div[data-marketing-footer-column]
+  a:hover {
+  color: var(--denali-forest-700, #047857);
+  opacity: 1;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  footer[data-marketing-footer]
+  div[data-marketing-footer-column]
+  a:focus-visible {
+  outline: 2px solid var(--denali-forest-600);
+  outline-offset: 2px;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  footer[data-marketing-footer]
+  div[data-marketing-footer-newsletter] {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin-block-start: var(--space-5);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  footer[data-marketing-footer]
+  div[data-marketing-footer-newsletter]
+  h3 {
+  margin: 0 0 0.25rem;
+  font-family: inherit;
+  font-size: var(--mkt-text-meta, 0.8125rem);
+  font-weight: 600;
+}
+
+@media (max-width: 47.99rem) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"] footer[data-marketing-footer] {
+    padding-block-start: var(--space-8);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    footer[data-marketing-footer]
+    div[data-marketing-footer-grid] {
+    gap: var(--space-4);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    footer[data-marketing-footer]
+    div[data-marketing-footer-newsletter] {
+    margin-block-start: var(--space-5);
+  }
+}

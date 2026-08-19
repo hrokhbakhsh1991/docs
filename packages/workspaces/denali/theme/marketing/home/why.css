@@ -9,7 +9,7 @@
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-home]
-  > section[data-marketing-home-why] {
+  > section[data-marketing-home-why]:not([hidden]):not([aria-hidden="true"]) {
   --color-primary: var(--denali-forest-600);
   --color-primary-hover: var(--denali-forest-700);
   --primary: var(--denali-forest-600);
@@ -17,9 +17,10 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   box-sizing: border-box;
   max-width: none;
   margin: 0;
-  padding-block: var(--mkt-section-pad-y);
+  padding-block-start: var(--space-8);
+  padding-block-end: var(--mkt-section-pad-y);
   padding-inline: var(--catalog-page-padding-x);
-  background: var(--color-bg-page);
+  background: var(--color-bg-surface, var(--card));
   border-radius: 0;
   box-shadow: none;
   animation: none;
@@ -263,13 +264,13 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 }
 
-@media (min-width: 64rem) {
+@media (min-width: 80rem) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     [data-marketing-home]
     section[data-marketing-home-why]
     > [data-marketing-home-why-inner]
     > header {
-    margin-block-end: var(--space-10);
+    margin-block-end: var(--space-8);
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]

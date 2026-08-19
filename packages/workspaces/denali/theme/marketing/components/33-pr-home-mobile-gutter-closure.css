@@ -49,15 +49,6 @@
     padding-block: calc(var(--space-8) + var(--space-4));
   }
 
-  /* Hero copy aligns with header inner + catalog pages */
-  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    section[data-marketing-home-hero-cinematic]
-    div[data-marketing-home-hero-layout] {
-    padding-inline: var(--catalog-page-padding-x);
-    padding-block-end: var(--space-6);
-    padding-block-start: calc(var(--mkt-header-height) + var(--space-4));
-  }
-
   /* In-gutter horizontal scroll — no negative-margin breakout */
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     div[data-marketing-home-featured-bento],

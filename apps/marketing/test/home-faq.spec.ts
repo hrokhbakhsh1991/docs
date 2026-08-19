@@ -98,6 +98,7 @@ describe("home-faq.spec.ts", () => {
     assert.match(css, /data-marketing-home-faq-inner/);
     assert.match(css, /max-width: 48rem/);
     assert.match(css, /min-height: 2.75rem/);
+    assert.match(css, /--color-bg-surface/);
     assert.doesNotMatch(css, /box-shadow: var\(--mkt-shadow-card\)/);
     assert.doesNotMatch(gallery, /data-marketing-home-faq/);
     assert.doesNotMatch(why, /data-marketing-home-faq/);

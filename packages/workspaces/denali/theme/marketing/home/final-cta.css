@@ -29,7 +29,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   border: none;
   border-block-start: none;
   border-radius: 0;
-  background: var(--color-bg-page);
+  background: var(--denali-mist-50, #f4f7f4);
   color: var(--color-text-primary);
   text-align: start;
   box-shadow: none;
