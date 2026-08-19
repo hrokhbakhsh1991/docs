@@ -33,10 +33,13 @@ describe("portal-visual-wave4.spec.ts", () => {
     assert.match(controls, /\[data-member-profile-save\]/);
   });
 
-  it("VIS-SHELL-05 member-shell.css styles alpine canvas", () => {
+  it("VIS-SHELL-05 member-shell.css styles mist Pocket canvas", () => {
     const css = readFileSync(join(denaliThemeRoot, "portal/member-shell.css"), "utf8");
     assert.match(css, /\[data-portal-shell-main\]/);
-    assert.match(css, /radial-gradient/);
+    assert.match(css, /--color-bg-page/);
+    assert.doesNotMatch(css, /radial-gradient/);
+    assert.match(css, /backdrop-filter:\s*none/);
+    assert.match(css, /portal-pocket-nav-size/);
   });
 
   it("VIS-SHELL-06 user menu exposes profile icon hook", () => {
@@ -83,8 +86,11 @@ describe("portal-visual-wave4.spec.ts", () => {
     assert.match(css, /\[data-member-profile-card\]/);
     assert.match(css, /data-member-profile-layout="sectioned"/);
     const controls = readFileSync(join(denaliThemeRoot, "portal/denali-form-controls.css"), "utf8");
-    assert.match(controls, /linear-gradient/);
+    assert.match(controls, /background:\s*var\(--color-primary\)/);
+    assert.doesNotMatch(controls, /linear-gradient/);
     assert.match(controls, /\[data-member-profile-save\]/);
+    assert.match(controls, /\[data-action-kind="secondary"\]/);
+    assert.match(controls, /\[data-action-kind="tertiary"\]/);
   });
 
   it("VIS-MORE-01 more hub uses icon list component", () => {

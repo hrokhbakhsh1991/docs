@@ -17,7 +17,7 @@ export type PortalMemberHeaderProps = {
 };
 
 /**
- * Minimal member portal header (PS-VIS-5e).
+ * Compact member portal header (Denali Pocket / PS-VIS-5e).
  * Brand → marketing · member chip → profile.
  * Logout lives in side-rail footer (desktop) / profile session (mobile) — PS-VIS-5f.
  */
@@ -50,8 +50,8 @@ export async function PortalMemberHeader({
               alt=""
               data-marketing-logo
               data-portal-shell-logo
-              height={36}
-              width={36}
+              height={32}
+              width={32}
             />
           ) : (
             <Mountain aria-hidden="true" data-marketing-brand-icon />

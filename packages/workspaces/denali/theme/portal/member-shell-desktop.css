@@ -1,25 +1,15 @@
 /**
- * Denali portal — desktop member shell (PS-VIS-5c).
+ * Denali portal — desktop member shell (Denali Pocket).
  * Mobile (<48rem): no rules — member-shell.css authority.
  * Embedded host: excluded — keeps full-bleed mobile chrome.
  *
- * Desktop: wide page + side rail (same bottom-nav hooks, vertical).
+ * Desktop: full-viewport account app + side rail (same bottom-nav hooks, vertical).
+ * No floating phone-card. No alpine marketing stage.
  */
 
 @media (min-width: 48rem) {
   body[data-app-surface="portal"][data-workspace-plugin="denali"]:has([data-portal-shell]) {
-    background:
-      radial-gradient(
-        ellipse 80% 50% at 50% -10%,
-        color-mix(in oklab, var(--color-primary) 14%, transparent),
-        transparent 65%
-      ),
-      linear-gradient(
-        168deg,
-        var(--color-bg-page) 0%,
-        color-mix(in oklab, var(--denali-alpine-600, var(--color-bg-muted)) 8%, var(--color-bg-page)) 55%,
-        var(--color-bg-muted) 100%
-      );
+    background: var(--color-bg-page);
     min-height: 100dvh;
   }
 
@@ -35,22 +25,15 @@
     grid-template-areas:
       "header header"
       "main nav";
-    max-width: 64rem;
-    max-height: calc(100dvh - 2rem);
-    min-height: calc(100dvh - 2rem);
-    margin: 1rem auto;
-    border-radius: calc(var(--radius) * 1.5);
-    border: 1px solid color-mix(in oklab, var(--color-border-subtle) 75%, transparent);
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--color-bg-surface) 74%, transparent),
-        color-mix(in srgb, var(--color-bg-page) 96%, white)
-      );
-    box-shadow:
-      0 0 0 1px color-mix(in oklab, var(--color-primary) 4%, transparent),
-      0 30px 60px rgb(4 47 46 / 0.12),
-      0 10px 22px rgb(4 47 46 / 0.07);
+    max-width: none;
+    width: 100%;
+    max-height: 100dvh;
+    min-height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+    border: none;
+    background: var(--color-bg-page);
+    box-shadow: none;
     overflow: hidden;
     isolation: isolate;
   }
@@ -72,7 +55,6 @@
       "nav main";
   }
 
-  /* RTL override removed — default is RTL-first (nav end / right) */
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-portal-shell]:not([data-embedded-host])
     [data-portal-shell-header],
@@ -92,18 +74,8 @@
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: var(--space-7) var(--space-6) var(--space-8);
-    background:
-      radial-gradient(
-        ellipse 100% 40% at 50% 0%,
-        color-mix(in oklab, var(--color-primary) 6%, transparent),
-        transparent 58%
-      ),
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--color-bg-page) 96%, white),
-        color-mix(in oklab, var(--color-bg-muted) 28%, var(--color-bg-page))
-      );
+    padding: var(--space-6) var(--space-6) var(--space-8);
+    background: var(--color-bg-page);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -112,8 +84,8 @@
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-slot="shell"]:not([data-embedded-host])
     [data-portal-shell-main-inner] {
-    width: min(100%, 58rem);
-    gap: var(--space-7);
+    width: min(100%, 48rem);
+    gap: var(--space-6);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -130,14 +102,9 @@
     align-items: stretch;
     padding: var(--space-4) var(--space-3);
     border-top: none;
-    border-inline-start: 1px solid color-mix(in oklab, var(--color-border-subtle) 85%, transparent);
+    border-inline-start: 1px solid var(--color-border-subtle);
     border-radius: 0;
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in oklab, var(--color-bg-surface) 92%, white),
-        color-mix(in oklab, var(--color-bg-muted) 40%, var(--color-bg-surface))
-      );
+    background: var(--color-bg-surface);
     box-shadow: none;
     backdrop-filter: none;
   }
@@ -151,7 +118,7 @@
     [data-slot="shell"]:not([data-embedded-host])
     [data-slot="shell-nav"] {
     border-inline-start: none;
-    border-inline-end: 1px solid color-mix(in oklab, var(--color-border-subtle) 85%, transparent);
+    border-inline-end: 1px solid var(--color-border-subtle);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -183,9 +150,23 @@
     flex-direction: row;
     justify-content: flex-start;
     gap: var(--space-3);
-    min-height: 2.9rem;
+    min-height: 2.75rem;
     padding: var(--space-2) var(--space-3);
     width: 100%;
+    border-radius: var(--portal-pocket-radius, 0.75rem);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]:not([data-embedded-host])
+    [data-portal-shell-bottom-nav]
+    [data-portal-shell-nav-link][data-active="true"],
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-slot="shell"]:not([data-embedded-host])
+    [data-slot="shell-nav"]
+    [data-portal-shell-nav-link][data-active="true"] {
+    background: color-mix(in oklab, var(--color-primary) 8%, var(--color-bg-surface));
+    color: var(--color-primary);
+    box-shadow: none;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -196,7 +177,7 @@
     [data-slot="shell"]:not([data-embedded-host])
     [data-slot="shell-nav"]
     [data-portal-shell-nav-label] {
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 600;
     letter-spacing: 0;
   }
@@ -210,7 +191,7 @@
     flex-direction: column;
     margin-top: auto;
     padding-top: var(--space-3);
-    border-top: 1px solid color-mix(in oklab, var(--color-border-subtle) 85%, transparent);
+    border-top: 1px solid var(--color-border-subtle);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -227,7 +208,7 @@
     margin: 0;
     padding: var(--space-2) var(--space-3);
     border: none;
-    border-radius: calc(var(--radius) * 1.1);
+    border-radius: var(--portal-pocket-radius, 0.75rem);
     background: transparent;
     color: var(--color-text-muted);
     font-size: 0.8125rem;
@@ -265,7 +246,6 @@
     [data-portal-shell]:not([data-embedded-host]),
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-slot="shell"]:not([data-embedded-host]) {
-    max-width: 72rem;
     grid-template-columns: minmax(0, 1fr) 14rem;
   }
 

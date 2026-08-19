@@ -1,29 +1,48 @@
 /**
- * Portal member header skin (PS-VIS-5e minimal).
- * Reuses Denali marketing brand + member-chip tokens; forces always-visible
- * toolbar (brand | chip + logout). No center nav / drawer / locale.
+ * Portal member header skin (Denali Pocket / PS-VIS-5e).
+ * Imports marketing brand + member-chip structure, then defeats marketing glass
+ * so `/me` reads as a 52px app bar (brand | avatar), not a website header.
  */
 @import "../marketing/shell.css";
 @import "../marketing/components/34-mkt-header-member.css";
 @import "../marketing/components/35-mkt-header-desktop.css";
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] {
-  --catalog-page-max-width: 72rem;
+  --catalog-page-max-width: none;
   --catalog-page-padding-x: max(
     var(--space-4),
     env(safe-area-inset-left, 0px),
     env(safe-area-inset-right, 0px)
   );
-  --mkt-header-height: 4rem;
-  --mkt-text-h2: clamp(1.125rem, 2vw, 1.375rem);
+  --mkt-header-height: var(--portal-pocket-header-height, 3.25rem);
+  --mkt-text-h2: 1.25rem;
   --mkt-text-meta: 0.8125rem;
   --mkt-text-small: 0.875rem;
   --mkt-border-width: 0.0625rem;
   --mkt-motion-fast: 150ms;
   --card: var(--color-bg-surface);
   --foreground: var(--color-text-primary);
-  --border: var(--color-border-default);
+  --border: var(--color-border-subtle);
   --primary: var(--color-primary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  header[data-portal-member-header-minimal] {
+  min-height: var(--portal-pocket-header-height, 3.25rem);
+  background: var(--color-bg-surface);
+  border-bottom: 1px solid var(--color-border-subtle);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+@supports (backdrop-filter: blur(0.75rem)) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    header[data-portal-member-header-minimal] {
+    backdrop-filter: none;
+    background: var(--color-bg-surface);
+  }
 }
 
 /* Minimal header: always 2 columns — brand | actions */
@@ -32,6 +51,8 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   header[data-portal-member-header-minimal]
   div[data-marketing-header-inner] {
   max-width: none;
+  min-height: var(--portal-pocket-header-height, 3.25rem);
+  padding-block: 0;
   padding-inline: var(--space-4);
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-3);
@@ -60,6 +81,24 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   header[data-portal-member-header-minimal]
   a[data-marketing-header-member] {
   max-width: min(100%, 13rem);
+  background: var(--color-bg-surface);
+  box-shadow: none;
+  transform: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  header[data-portal-member-header-minimal]
+  a[data-marketing-header-member]:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  header[data-portal-member-header-minimal]
+  span[data-marketing-header-member-avatar-wrap] {
+  box-shadow: none;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -134,9 +173,9 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
     [data-portal-shell]
     header[data-portal-member-header-minimal]
     a[data-marketing-header-member] {
-    max-width: 3rem;
-    min-width: 3rem;
-    padding-inline: var(--space-1);
+    max-width: 2.75rem;
+    min-width: 2.75rem;
+    padding-inline: 0.125rem;
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
