@@ -851,3 +851,11 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   font-size: var(--portal-pocket-body-size);
   line-height: 1.5;
 }
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  main[data-portal-member-home]
+  [data-portal-member-home-lede] {
+  font-size: var(--portal-pocket-meta-size);
+  line-height: 1.45;
+}

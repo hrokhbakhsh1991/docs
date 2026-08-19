@@ -140,10 +140,10 @@
   },
   "home": {
     "title": "Home",
-    "lede": "Your member hub — more modules arrive as your workspace enables them.",
-    "quickLinksEyebrow": "Start here",
-    "quickLinksTitle": "Quick access",
-    "quickLinksLede": "Jump straight into the member actions you use most.",
+    "lede": "Continue with the next member action.",
+    "quickLinksEyebrow": "Next",
+    "quickLinksTitle": "Next",
+    "quickLinksLede": "Open trips, then profile if you need to update details.",
     "quickLinksRecommended": "Recommended",
     "linkDescriptions": {
       "default": "Open this module to continue the next part of your member journey.",

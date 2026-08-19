@@ -2,17 +2,17 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-MEMBER-UI
-version: "2026-08-19-v4"
+version: "2026-08-19-v5"
 extends: portal-registration-ui.md · platform-portal-member-shell-architecture.mdoc
 apps: [portal]
-phase: DENALI-POCKET-3.2
+phase: DENALI-POCKET-3.3
 ```
 
 ## Scope
 
 Visual layer for **authenticated member routes** (`/me/*`) inside `PortalMemberShell`. Business logic, entitlements, and BFF contracts unchanged.
 
-**Out of scope:** login/register auth shell (see [portal-registration-ui.md](./portal-registration-ui.md)), marketing, operator admin, `/me/home` cards, `/me/registrations/[id]` detail, `/me/profile`.
+**Out of scope:** login/register auth shell (see [portal-registration-ui.md](./portal-registration-ui.md)), marketing, operator admin, `/me/registrations` (3.2 locked), `/me/registrations/[id]` detail, `/me/profile`.
 
 ## Design intent (Denali Pocket)
 
@@ -33,7 +33,7 @@ Premium **mobile-first customer app**, not a marketing site inside a portal.
 | ---- | ---- |
 | `portal/member-shell.css` | Pocket chrome — canvas, compact header, thumb bar, type cascade |
 | `portal/member-shell-desktop.css` | Full-viewport account app + side rail (no floating phone-card) |
-| `portal/member-pages.css` | Home + **3.2 Pocket trips list** + trip detail empty/hero (detail layout not 3.2) |
+| `portal/member-pages.css` | **3.3 Pocket home** + **3.2 Pocket trips list** + trip detail empty/hero (detail layout not 3.3) |
 | `portal/member-profile.css` | Profile form + avatar |
 | `portal/denali-form-controls.css` | Shared inputs + solid primary / outline secondary / text tertiary |
 | `portal/login-page.css` | Auth experience (imports form controls) |
@@ -77,7 +77,7 @@ Desktop: [portal-member-desktop-frame.md](./portal-member-desktop-frame.md) — 
 
 | Route | `main` marker | Sections |
 | ----- | ------------- | -------- |
-| `/me/home` | `data-portal-member-home` | `[data-portal-member-page-header]`, `[data-portal-member-home-quick-links]` |
+| `/me/home` | `data-portal-member-home` | Canvas `[data-portal-member-page-header]`, `[data-portal-member-home-quick-links]` (`li:first-child` = next action) |
 | `/me/registrations` | `data-portal-member-registrations` | `[data-portal-member-registration-row]`, `[data-portal-member-row-chevron]` |
 | `/me/registrations/[id]` | `data-portal-member-registration-detail` | `[data-portal-member-detail-app-bar]`, `[data-portal-member-detail-hero]` |
 | `/me/profile` | `data-portal-member-profile` | `[data-portal-member-profile]` form, `[data-member-profile-save]` |
@@ -92,6 +92,24 @@ Desktop: [portal-member-desktop-frame.md](./portal-member-desktop-frame.md) — 
 | Trips | `http://denali.portal.localhost:3003/me/registrations` |
 | Profile | `http://denali.portal.localhost:3003/me/profile` |
 | More | `http://denali.portal.localhost:3003/me/more` |
+
+## Home (3.3 — `/me/home` only)
+
+Customer-app home answers **“What should I do next?”** — not “What modules exist?”. Visual reference: 3.2 trips list (canvas title, compact hierarchy, one obvious action). **No** invented trip, payment, or profile facts.
+
+| Rule | Implementation |
+| ---- | -------------- |
+| Canvas title | `[data-portal-member-page-header]` sits on mist. No hero card, no gradient, no orb `::after` |
+| Inset | Shell already pads `--space-4` (16px). Home `main` is `width: 100%` — do not wrap the page in a second card |
+| Type | Title 1.25rem / 650. Lede is meta (`0.8125rem`), not a marketing paragraph |
+| Next action | First entitled shortcut (`li:first-child`) is a compact solid `--color-primary` bar (`min-height: 3rem`, 12px radius, label + chevron). Same `href` / `data-testid` / icon hook as before. Description is not painted on the CTA |
+| Secondary | Remaining shortcuts are compact hairline rows (label + meta + chevron), **not** 10rem tiles and **not** a second tab bar |
+| Quiet chrome | Section heading, eyebrow pill, and “Recommended” badge are not painted. Page title + lede carry the next-action copy. Arrow `↗` becomes a chevron on secondary rows |
+| Desktop | Single column (not a 2/3-col card grid) |
+
+Hooks unchanged: `[data-portal-member-home]`, `[data-portal-member-home-lede]`, `[data-portal-member-home-quick-links]`, `[data-portal-member-home-quick-link-icon]`, `data-testid="portal-home-link-{id}"`. BFF `buildMemberHomePayload` unchanged.
+
+Trips list / detail / profile / more selectors must not pick up these rules except where they already shared a hook (`[data-portal-member-more]` keeps its own hero card).
 
 ## Trips list (3.2 — `/me/registrations` only)
 
