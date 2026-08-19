@@ -62,6 +62,9 @@
     [data-slot="shell"]:not([data-embedded-host])
     [data-slot="shell-header"] {
     grid-area: header;
+    padding: 0;
+    height: var(--portal-pocket-header-height, 3.25rem);
+    max-height: var(--portal-pocket-header-height, 3.25rem);
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]

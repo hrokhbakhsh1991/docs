@@ -42,6 +42,21 @@ describe("portal-visual-wave4.spec.ts", () => {
     assert.match(css, /portal-pocket-nav-size/);
   });
 
+  it("VIS-SHELL-07 member header is a compact portal-owned app bar", () => {
+    const css = readFileSync(join(denaliThemeRoot, "portal/member-shell.css"), "utf8");
+    const skin = readFileSync(join(denaliThemeRoot, "denali-portal.css"), "utf8");
+    assert.match(css, /height:\s*var\(--portal-pocket-header-height/);
+    assert.match(css, /max-height:\s*var\(--portal-pocket-header-height/);
+    assert.match(css, /padding-block:\s*0/);
+    assert.match(css, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto/);
+    assert.match(css, /Do not import marketing header CSS/);
+    assert.doesNotMatch(css, /@import/);
+    assert.doesNotMatch(skin, /marketing\/shell\.css/);
+    assert.doesNotMatch(skin, /34-mkt-header-member/);
+    assert.doesNotMatch(skin, /35-mkt-header-desktop/);
+    assert.doesNotMatch(skin, /marketing-header-parity/);
+  });
+
   it("VIS-SHELL-06 user menu exposes profile icon hook", () => {
     const menu = readPortal("src/shell/portal-member-user-menu.tsx");
     assert.match(menu, /PortalNavIcon/);

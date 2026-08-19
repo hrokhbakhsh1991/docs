@@ -2,10 +2,10 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-MEMBER-UI
-version: "2026-08-19-v2"
+version: "2026-08-19-v3"
 extends: portal-registration-ui.md · platform-portal-member-shell-architecture.mdoc
 apps: [portal]
-phase: DENALI-POCKET-3.1
+phase: DENALI-POCKET-3.1B
 ```
 
 ## Scope
@@ -39,9 +39,26 @@ Premium **mobile-first customer app**, not a marketing site inside a portal.
 | `portal/login-page.css` | Auth experience (imports form controls) |
 | `portal/alpine-login.css` | Denali `/login` Alpine Split only (`data-portal-login-full-page`) |
 | `portal/registration-ledger.css` | Party Ledger registration (`/register`) — not member `/me` |
-| `portal/marketing-header-parity.css` | Defeats marketing header layout; Pocket app-bar tokens |
 
 Import order in `denali-portal.css`: semantic tokens → legacy inline rules → `login-page.css` → `registration-ledger.css` → `alpine-login.css` → member pack → desktop → **Pocket type override** after page pack so title/meta win over display headings. Form controls load via `@import` inside `login-page.css` and `member-profile.css`.
+
+### Header CSS ownership (3.1B)
+
+Member `/me/*` app bar is **portal-owned**. Marketing header layout CSS must not load on the portal surface.
+
+| Pack | Owner | Surfaces |
+| ---- | ----- | -------- |
+| `marketing/shell.css` | Marketing header layout (sticky glass bar, inner padding, 2-col then desktop 3-col) | `denali-marketing.css` only |
+| `marketing/components/34-mkt-header-member.css` | Marketing member chip (tinted glass, hover lift) | `denali-marketing.css` only |
+| `marketing/components/35-mkt-header-desktop.css` | Marketing ≥1024px centered nav + toolbar | `denali-marketing.css` only |
+| `portal/member-shell.css` | Compact 48–52px app bar: brand \| profile chip. Solid surface. No glass, no center nav, no locale, no header logout | authenticated `[data-portal-shell]` only |
+| `portal/member-shell-desktop.css` | Side rail + full-viewport grid; header stays compact (extra inline padding only) | `/me/*` at `≥48rem`, non-embedded |
+
+`denali-portal.css` must **not** `@import` `marketing/shell.css`, `34-mkt-header-member.css`, `35-mkt-header-desktop.css`, or a parity shim that re-imports them.
+
+Markup may keep `data-marketing-header*` hooks for contracts/tests. Visual ownership is the portal member shell, not marketing cascade.
+
+Height contract: `[data-portal-shell-header]` `height` / `min-height` / `max-height` = `--portal-pocket-header-height` (3.25rem / 52px), `box-sizing: border-box`, `padding: 0`. This overrides L2 `fallback-guest-portal-shell.css` (`min-height: 3.5rem` + `padding: var(--space-3) var(--space-4)`), which otherwise inflates the bar to ~77–79px even when the inner row is 52px. Inner `[data-marketing-header-inner]` is a 2-column grid with `padding-block: 0`. Interactive brand + chip `min-height: 44px` (`--portal-pocket-touch`).
 
 Desktop: [portal-member-desktop-frame.md](./portal-member-desktop-frame.md) — full-bleed rail + mist canvas at `≥48rem`. Embedded hosts keep mobile chrome.
 

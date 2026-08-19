@@ -11,11 +11,15 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const denaliThemeRoot = join(repoRoot, "packages/workspaces/denali/theme");
 
 describe("portal-visual-wave5.spec.ts", () => {
-  it("DESK-01 denali-portal imports desktop skin pack", () => {
+  it("DESK-01 denali-portal imports desktop skin pack; member header is portal-owned", () => {
     const skin = readFileSync(join(denaliThemeRoot, "denali-portal.css"), "utf8");
     assert.match(skin, /portal\/member-shell-desktop\.css/);
     assert.match(skin, /portal\/member-pages-desktop\.css/);
-    assert.match(skin, /portal\/marketing-header-parity\.css/);
+    assert.match(skin, /portal\/member-shell\.css/);
+    assert.doesNotMatch(skin, /portal\/marketing-header-parity\.css/);
+    assert.doesNotMatch(skin, /marketing\/shell\.css/);
+    assert.doesNotMatch(skin, /34-mkt-header-member\.css/);
+    assert.doesNotMatch(skin, /35-mkt-header-desktop\.css/);
   });
 
   it("DESK-02 member-shell-desktop.css uses full-viewport grid + side rail", () => {

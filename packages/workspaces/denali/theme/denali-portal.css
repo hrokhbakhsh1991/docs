@@ -827,7 +827,6 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 @import "./portal/member-pages.css";
 @import "./portal/member-pages-desktop.css";
 @import "./portal/member-profile.css";
-@import "./portal/marketing-header-parity.css";
 
 /* Denali Pocket type — after page pack so /me titles beat display headings */
 body[data-app-surface="portal"][data-workspace-plugin="denali"]

@@ -8,6 +8,7 @@
 | ID | Hook / selector | Surface | Wave |
 |----|-----------------|---------|------|
 | SH-01 | `[data-portal-shell-header]` + `[data-portal-member-header-minimal]` + brand/logo | Member shell | 1 |
+| SH-01b | Portal member header CSS owned by `member-shell.css`; `denali-portal.css` must not import marketing header layout CSS | Compact 48–52px app bar | 3.1B |
 | SH-02 | `[data-marketing-header-member]` (chip → profile; no header logout) | Member header identity | 1 / 5e |
 | SH-02b | `[data-portal-shell-nav-footer]` `[data-public-auth-logout]` | Desktop side-rail logout | 5f |
 | SH-02c | `[data-member-profile-session]` `[data-public-auth-logout]` | Mobile profile logout | 5f |
