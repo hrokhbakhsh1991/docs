@@ -195,11 +195,14 @@ apps/portal
 
 ## 9. Accessibility & responsive
 
+Portal `/login` page and `data-portal-login-modal` keep the contracts below. **Marketing PDP** `[data-marketing-login-modal]` is a separate Quiet Ledger skin (`37-mkt-login-modal.css`) — do not restyle Portal chrome to match it.
+
 | Viewport | Pattern | Notes |
 | -------- | ------- | ----- |
 | `min-width` desktop breakpoint (align Denali portal shell) | Centered dialog | Focus trap · Esc · backdrop click optional (product: prefer Esc + close button) |
-| Below breakpoint | Bottom sheet | Drag/close control · `env(safe-area-inset-bottom)` |
+| Below breakpoint | Bottom sheet | Portal register modal may keep a close control. **Marketing auth bridge:** no drag handle, no swipe-dismiss (in-progress OTP must not be discarded by a gesture). `env(safe-area-inset-bottom)` + `--kb-inset` from `visualViewport`. |
 | Both | `aria-modal="true"` · labelled by login title · restore focus to trigger |
+| Marketing bridge only | Dismiss | Escape + visible Cancel (`loginModalCancel`). Backdrop click is ignored. First focus is the phone field or OTP cell 0, not Close. |
 
 ## 10. Theme / CSS
 

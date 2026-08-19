@@ -1,10 +1,11 @@
 /**
- * MKT-37 — marketing login modal (Phase 5 Portal-origin OTP host).
- * Scoped to marketing surface; do not reuse data-portal-login-modal.
+ * MKT-37 — Quiet Ledger marketing login modal.
+ * Scoped to marketing + Denali. Do not reuse portal login-modal hooks.
  */
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal] {
+  --kb-inset: 0px;
   border: none;
   padding: 0;
   background: transparent;
@@ -33,34 +34,23 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal]::backdrop {
-  background:
-    linear-gradient(180deg, rgb(4 47 46 / 0.34), rgb(4 47 46 / 0.58)),
-    radial-gradient(circle at top, rgb(5 150 105 / 0.18), transparent 46%);
+  background: rgb(11 18 32 / 0.5);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-panel] {
   box-sizing: border-box;
-  width: min(100vw - 2rem, 28rem);
-  max-height: min(90dvh, 40rem);
+  width: 23.25rem;
+  max-width: calc(100vw - 2rem);
+  max-height: min(90svh, 40rem);
   overflow: auto;
+  overscroll-behavior: contain;
   margin: 0;
-  border-radius: calc(var(--radius) * 1.5);
-  border: 1px solid color-mix(in oklab, var(--color-border-subtle) 90%, white);
-  background: color-mix(in srgb, var(--color-bg-surface) 96%, white);
-  box-shadow:
-    0 0 0 1px color-mix(in oklab, var(--color-primary) 5%, transparent),
-    0 24px 48px rgb(4 47 46 / 0.18),
-    0 8px 18px rgb(4 47 46 / 0.08);
-  padding: var(--space-4);
-}
-
-@supports (backdrop-filter: blur(0.75rem)) {
-  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    [data-marketing-login-modal-panel] {
-    backdrop-filter: blur(0.6rem) saturate(120%);
-    background: color-mix(in srgb, var(--color-bg-surface) 92%, transparent);
-  }
+  border-radius: 12px;
+  border: 1px solid var(--color-border-subtle, #dce5dc);
+  background: var(--color-bg-surface, #fff);
+  box-shadow: 0 16px 36px rgb(15 23 42 / 0.14);
+  padding: 18px 20px 20px;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -68,10 +58,11 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid color-mix(in oklab, var(--color-border-subtle) 84%, white);
+  gap: 12px;
+  min-height: 44px;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -79,151 +70,166 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   h2 {
   margin: 0;
   font-family: var(--font-heading, inherit);
-  font-size: 1.35rem;
+  font-size: 1.375rem;
   font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--color-text-primary, #1a1f26);
+}
+
+html[lang="fa"]
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-header]
+  h2 {
+  font-family: var(--font-body, inherit);
+  font-size: 1.3125rem;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-close] {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border: 1px solid color-mix(in oklab, var(--color-border-default) 82%, transparent);
-  border-radius: 9999px;
-  background: color-mix(in oklab, var(--color-bg-surface) 88%, white);
-  font-size: 1.2rem;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   line-height: 1;
+  color: var(--color-text-secondary, #3f4738);
   cursor: pointer;
-  color: var(--color-text-secondary);
-  padding: 0;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-close]:hover {
-  border-color: var(--color-border-default);
-  background: var(--color-bg-surface);
-  color: var(--color-text-primary);
+  color: var(--color-text-primary, #1a1f26);
+  background: transparent;
+  border: 0;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-close]:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  box-shadow: 0 0 0 3px var(--color-focus-ring, rgb(5 150 105 / 0.32));
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-body] {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 0;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  [data-marketing-login-modal-intro] {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-1) 0 var(--space-2);
+  [data-marketing-login-modal-body]
+  [data-marketing-login-modal-intro],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-portal-otp-orbit],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-portal-otp-copy],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-portal-otp-autofill-hint],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-public-registration-otp]
+  > label,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-dev-otp-hint] {
+  display: none;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  [data-marketing-login-modal-intro-eyebrow] {
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  min-height: 1.9rem;
+  [data-marketing-login-modal-body]
+  [data-portal-otp-meta] {
+  margin: 0 0 10px;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-portal-otp-phone-chip] {
   margin: 0;
-  padding: 0.3rem 0.7rem;
-  border-radius: 9999px;
-  border: 1px solid color-mix(in oklab, var(--color-primary) 28%, white);
-  background: color-mix(in oklab, var(--color-primary) 10%, white);
-  color: var(--color-primary);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  [data-marketing-login-modal-intro-lede] {
-  margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.7;
-  color: var(--color-text-secondary);
-}
-
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  [data-marketing-login-modal-intro-hints] {
-  display: grid;
-  gap: var(--space-2);
-}
-
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  [data-marketing-login-modal-intro-hints]
-  p {
-  margin: 0;
-  padding: var(--space-3);
-  border-radius: calc(var(--radius) * 0.95);
-  border: 1px solid color-mix(in oklab, var(--color-border-subtle) 80%, white);
-  background: color-mix(in oklab, var(--color-bg-muted) 70%, white);
   font-size: 0.8125rem;
-  line-height: 1.65;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted, #6f7768);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-body]
   label {
-  font-size: 0.8125rem;
+  display: block;
+  margin: 0 0 6px;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--color-text-secondary);
+  letter-spacing: 0.02em;
+  color: var(--color-text-secondary, #3f4738);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-body]
   input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
   width: 100%;
-  min-height: 3rem;
-  padding: 0.875rem 0.95rem;
-  border-radius: calc(var(--radius) * 1.1);
-  border: 1px solid var(--color-border-default);
-  background: color-mix(in srgb, var(--color-bg-surface) 94%, white);
+  min-height: 48px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-default, #dce5dc);
+  background: #fff;
   font: inherit;
   font-size: 1rem;
   line-height: 1.35;
-  color: var(--color-text-primary);
+  color: var(--color-text-primary, #1a1f26);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-body]
   input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus-visible {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  border-color: var(--color-primary, #059669);
+  box-shadow: 0 0 0 3px var(--color-focus-ring, rgb(5 150 105 / 0.32));
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-body]
-  :is(button[type="submit"], button[type="button"]:not([data-marketing-login-modal-close])) {
-  display: inline-flex;
+  input[aria-invalid="true"] {
+  border-color: var(--color-danger, #b91c1c);
+  box-shadow: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-public-registration-phone]
+  > button[data-action="send-code"],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-action="verify-otp"],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-action="profile-continue"] {
+  display: flex;
   align-items: center;
   justify-content: center;
-  align-self: stretch;
   width: 100%;
-  min-height: 3rem;
-  margin-top: var(--space-1);
-  border: none;
-  border-radius: calc(var(--radius) * 1.1);
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, var(--color-primary) 92%, white),
-    var(--color-primary)
-  );
-  color: var(--color-primary-fg);
+  min-height: 48px;
+  margin-top: 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--color-primary, #059669);
+  color: var(--color-primary-fg, #fff);
+  font: inherit;
   font-size: 0.9375rem;
   font-weight: 700;
   cursor: pointer;
@@ -231,34 +237,44 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-body]
-  :is(button[type="submit"], button[type="button"]:not([data-marketing-login-modal-close])):disabled {
-  opacity: 0.6;
+  [data-public-registration-phone]
+  > button[data-action="send-code"]:disabled,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-action="verify-otp"]:disabled,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-action="profile-continue"]:disabled {
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-body]
   [role="alert"] {
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid color-mix(in oklab, var(--destructive) 35%, white);
-  background: color-mix(in oklab, var(--destructive) 8%, white);
-  color: var(--destructive);
+  margin: 6px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-danger, #b91c1c);
+  font-size: 0.8125rem;
+  font-weight: 500;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-body]
   [data-otp-segment-input] {
-  display: grid;
-  gap: var(--space-2);
+  display: block;
+  margin: 0 0 14px;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-body]
   [data-otp-segment-cells] {
   display: flex;
-  justify-content: space-between;
-  gap: var(--space-2);
+  gap: 6px;
+  direction: ltr;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -266,28 +282,118 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-otp-cell] {
   flex: 1 1 0;
   min-width: 0;
-  min-height: 3rem;
+  min-height: 52px;
+  padding: 0;
   text-align: center;
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   font-variant-numeric: tabular-nums;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-portal-otp-actions] {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-portal-otp-secondary-actions] {
+  display: flex;
+  gap: 20px;
+  margin-top: 4px;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-portal-otp-secondary-actions]
+  button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: auto;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--color-text-secondary, #3f4738);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-modal-body]
+  [data-portal-otp-secondary-actions]
+  button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-login-unavailable] {
+  margin: 0;
+  color: var(--color-danger, #b91c1c);
+  font-size: 0.875rem;
 }
 
 @media (max-width: 47.99rem) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    [data-marketing-login-modal][data-marketing-login-modal-presentation="sheet"][open],
+    [data-marketing-login-modal][open],
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    [data-marketing-login-modal][data-marketing-login-modal-presentation="sheet"][data-marketing-login-modal-open="true"] {
+    [data-marketing-login-modal][data-marketing-login-modal-open="true"] {
     align-items: flex-end;
     justify-content: center;
+    padding-bottom: var(--kb-inset, 0px);
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-    [data-marketing-login-modal][data-marketing-login-modal-presentation="sheet"]
     [data-marketing-login-modal-panel] {
     width: 100%;
     max-width: none;
-    max-height: min(92dvh, 44rem);
-    border-radius: calc(var(--radius) * 1.5) calc(var(--radius) * 1.5) 0 0;
-    padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+    max-height: min(58svh, 28rem);
+    border-radius: 16px 16px 0 0;
+    border-bottom: 0;
+    box-shadow: 0 -10px 28px rgb(15 23 42 / 0.16);
+    padding: 8px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-login-modal][data-marketing-login-modal-stage="otp"]
+    [data-marketing-login-modal-panel],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-login-modal][data-marketing-login-modal-stage="profile"]
+    [data-marketing-login-modal-panel] {
+    max-height: min(72svh, 36rem);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-login-modal-header] {
+    margin-bottom: 10px;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-login-modal-body]
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+    min-height: 52px;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-login-modal-body]
+    [data-public-registration-phone]
+    > button[data-action="send-code"],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-login-modal-body]
+    [data-action="verify-otp"],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-login-modal-body]
+    [data-action="profile-continue"] {
+    min-height: 52px;
+    font-size: 1rem;
+    margin-top: 12px;
   }
 }

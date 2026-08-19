@@ -13,7 +13,7 @@ import {
   type RegistrationFlowContext,
 } from "@app-tour/workspace-sdk";
 import { useTranslations } from "next-intl";
-import { useCallback, useMemo, useReducer } from "react";
+import { useCallback, useEffect, useMemo, useReducer } from "react";
 
 import { resolveMarketingLoginError } from "./resolve-marketing-login-error";
 
@@ -26,13 +26,21 @@ export type MarketingLoginAuthFlowInput = {
   readonly memberModuleHref: string | null;
 };
 
+export type MarketingLoginAuthStage = "phone" | "otp" | "profile";
+
 type Props = {
   readonly flow: MarketingLoginAuthFlowInput;
   readonly transport: GuestAuthTransport;
   readonly onAuthenticated: () => void | Promise<void>;
+  readonly onStageChange?: (stage: MarketingLoginAuthStage) => void;
 };
 
-export function MarketingLoginAuthFlow({ flow, transport, onAuthenticated }: Props) {
+export function MarketingLoginAuthFlow({
+  flow,
+  transport,
+  onAuthenticated,
+  onStageChange,
+}: Props) {
   const t = useTranslations("catalogRegistration");
   const context = useMemo(
     (): RegistrationFlowContext => ({
@@ -53,6 +61,13 @@ export function MarketingLoginAuthFlow({ flow, transport, onAuthenticated }: Pro
   );
 
   const resolveError = useCallback((code: string) => resolveMarketingLoginError(t, code), [t]);
+
+  useEffect(() => {
+    const next = state.currentStep;
+    if (next === "phone" || next === "otp" || next === "profile") {
+      onStageChange?.(next);
+    }
+  }, [onStageChange, state.currentStep]);
 
   const Step = catalogRegistrationAuthFlowSteps[state.currentStep as keyof typeof catalogRegistrationAuthFlowSteps];
   if (Step === undefined) {
