@@ -57,9 +57,10 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   section[data-marketing-home-hero-peak-margin]
   div[data-marketing-home-hero-overlay-scrim] {
   z-index: 2;
+  /* First stop uses var() so Next cssnano-simple does not crash on `to inline-end`. */
   background: linear-gradient(
     to inline-end,
-    rgb(10 18 14 / 0.72) 0%,
+    var(--mkt-hero-scrim-from, rgb(10 18 14 / 0.72)) 0%,
     rgb(10 18 14 / 0.42) 28%,
     rgb(10 18 14 / 0.14) 46%,
     transparent 64%
@@ -72,7 +73,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-home-hero-overlay-scrim][data-hero-story="damavand"] {
   background: linear-gradient(
     to inline-end,
-    rgb(10 18 14 / 0.8) 0%,
+    var(--mkt-hero-scrim-from-damavand, rgb(10 18 14 / 0.8)) 0%,
     rgb(10 18 14 / 0.5) 32%,
     rgb(10 18 14 / 0.16) 50%,
     transparent 66%
@@ -384,7 +385,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     background:
       linear-gradient(
         to inline-end,
-        rgb(10 18 14 / 0.7) 0%,
+        var(--mkt-hero-scrim-from-mobile, rgb(10 18 14 / 0.7)) 0%,
         rgb(10 18 14 / 0.28) 55%,
         transparent 78%
       ),
