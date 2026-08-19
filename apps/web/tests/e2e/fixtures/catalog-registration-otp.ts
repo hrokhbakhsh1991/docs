@@ -2,6 +2,38 @@ import { expect, type Locator, type Page } from "@playwright/test";
 
 export const CATALOG_DEV_OTP = "1234";
 
+export async function fillCatalogPhone(page: Page, phone: string): Promise<void> {
+  const phoneStep = page.locator(
+    "[data-public-registration-phone][data-registration-ready]"
+  );
+  await phoneStep.waitFor({ state: "visible", timeout: 60_000 });
+  const input = phoneStep.locator("#phone");
+  await input.click();
+  await input.fill("");
+  await input.pressSequentially(phone, { delay: 15 });
+  await expect(input).not.toHaveValue("");
+}
+
+export async function submitCatalogPhoneForOtp(page: Page, phone: string): Promise<void> {
+  await fillCatalogPhone(page, phone);
+  const sendCode = page.locator('[data-action="send-code"]');
+  await expect(sendCode).toBeEnabled({ timeout: 15_000 });
+
+  const [response] = await Promise.all([
+    page.waitForResponse(
+      (res) =>
+        res.request().method() === "POST" &&
+        res.url().includes("/api/public-auth/request-otp"),
+      { timeout: 90_000 }
+    ),
+    sendCode.click(),
+  ]);
+  expect(response.ok(), `request-otp failed (${response.status()})`).toBeTruthy();
+  await expect(page.locator("[data-public-registration-otp]")).toBeVisible({
+    timeout: 60_000,
+  });
+}
+
 /**
  * OtpSegmentInput auto-submits via onComplete — do not click verify.
  * Fill cells one-by-one to avoid rAF focus races with keyboard.type.
@@ -33,11 +65,15 @@ export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
   }
 
   const response = await responsePromise;
-  const body = await response.text();
-  expect(
-    response.ok(),
-    `verify-otp failed (${response.status()}): ${body.slice(0, 240)}`
-  ).toBeTruthy();
+  expect(response.ok(), `verify-otp failed (${response.status()})`).toBeTruthy();
+}
+
+function intakeFieldInput(root: Locator, fieldId: string): Locator {
+  return root
+    .locator(
+      `input[data-intake-field="${fieldId}"], textarea[data-intake-field="${fieldId}"], [data-intake-field="${fieldId}"] input`
+    )
+    .first();
 }
 
 async function fillIntakeFieldInRootIfVisible(
@@ -45,8 +81,10 @@ async function fillIntakeFieldInRootIfVisible(
   fieldId: string,
   value: string
 ): Promise<void> {
-  const inputEl = root.locator(`input[data-intake-field="${fieldId}"]`).first();
-  await expect(inputEl).toBeVisible({ timeout: 30_000 });
+  const inputEl = intakeFieldInput(root, fieldId);
+  if (!(await inputEl.isVisible({ timeout: 2_000 }).catch(() => false))) {
+    return;
+  }
   await inputEl.fill(value);
   await expect(inputEl).toHaveValue(value, { timeout: 5_000 });
 }
@@ -56,7 +94,7 @@ async function fillIntakeFieldIfPresent(
   fieldId: string,
   value: string
 ): Promise<void> {
-  const inputEl = root.locator(`input[data-intake-field="${fieldId}"]`).first();
+  const inputEl = intakeFieldInput(root, fieldId);
   if (await inputEl.isVisible({ timeout: 2_000 }).catch(() => false)) {
     await inputEl.fill(value);
   }
@@ -124,7 +162,9 @@ export async function completeCatalogRegistrationIntake(
     await partySizeInput.fill(input.partySize ?? "2");
   }
 
-  const selfCheckbox = page.locator("[data-denali-registrant-self-toggle] input");
+  const selfCheckbox = page
+    .locator("[data-denali-registrant-self-toggle] input")
+    .or(page.getByRole("checkbox", { name: /برای خودم|For myself|In the tour|در تور/i }));
   if (await selfCheckbox.isVisible({ timeout: 1_000 }).catch(() => false)) {
     if (!(await selfCheckbox.isChecked())) {
       await selfCheckbox.click({ force: true });

@@ -89,7 +89,6 @@ function ReceiptProofPreview({
       {kind === "pdf" ? (
         <iframe title={label} src={src} data-portal-member-receipt-preview-frame />
       ) : (
-        // eslint-disable-next-line @next/next/no-img-element -- blob/signed receipt proof
         <img src={src} alt={label} data-portal-member-receipt-preview-image />
       )}
       <figcaption>{label}</figcaption>

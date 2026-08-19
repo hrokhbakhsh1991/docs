@@ -18,7 +18,16 @@ describe("resolve-dev-e2e-host-bypass", () => {
         shouldBypassMiddlewareForDevE2eHost("workspace-owner-smoke.localhost:3000"),
         true
       );
+      assert.equal(
+        shouldBypassMiddlewareForDevE2eHost("admin.workspace-owner-smoke.localhost:3000"),
+        true
+      );
+      assert.equal(
+        shouldBypassMiddlewareForDevE2eHost("workspace-owner-smoke.admin.localhost:3000"),
+        true
+      );
       assert.equal(shouldBypassMiddlewareForDevE2eHost("denali.localhost:3000"), false);
+      assert.equal(shouldBypassMiddlewareForDevE2eHost("admin.localhost:3000"), false);
     } finally {
       env.NODE_ENV = prevNode;
     }

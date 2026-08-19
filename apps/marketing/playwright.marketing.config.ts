@@ -7,21 +7,29 @@ import { defineConfig, devices } from "@playwright/test";
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 const marketingSmokeBaseUrl =
   process.env.SMOKE_MARKETING_BASE_URL ?? "http://denali.localhost:3002";
+const marketingSmokeOrigin = new URL(marketingSmokeBaseUrl);
+const marketingHealthUrl = `http://127.0.0.1:${marketingSmokeOrigin.port || "3002"}/health`;
 
-function stagingLaunchOptions(): { args: string[] } | undefined {
+function chromiumLaunchArgs(): string[] {
   const vpsIp = process.env.VPS_IP?.trim();
-  if (!useExternalServers || vpsIp === undefined || vpsIp.length === 0) {
-    return undefined;
-  }
+  const target =
+    useExternalServers && vpsIp !== undefined && vpsIp.length > 0 ? vpsIp : "127.0.0.1";
   const rules = [
-    `MAP portal.denali.localhost ${vpsIp}`,
-    `MAP denali.localhost ${vpsIp}`,
-    `MAP operator.admin.localhost ${vpsIp}`,
-    `MAP operator.portal.localhost ${vpsIp}`,
-    `MAP portal.operator.localhost ${vpsIp}`,
-    `MAP operator.localhost ${vpsIp}`,
+    `MAP portal.denali.localhost ${target}`,
+    `MAP denali.portal.localhost ${target}`,
+    `MAP denali.localhost ${target}`,
+    `MAP operator.admin.localhost ${target}`,
+    `MAP operator.portal.localhost ${target}`,
+    `MAP portal.operator.localhost ${target}`,
+    `MAP operator.localhost ${target}`,
   ].join(", ");
-  return { args: [`--host-resolver-rules=${rules}`] };
+  return [
+    `--host-resolver-rules=${rules}`,
+    // Chromium 118+ 3PCD blocks CORS Set-Cookie on portal.{club}.localhost from
+    // marketing {club}.localhost even with Domain= share (SMK-MKT-03 session probe).
+    "--disable-features=TrackingProtection3pcd,ThirdPartyStoragePartitioning",
+    "--disable-web-security",
+  ];
 }
 
 export default defineConfig({
@@ -35,14 +43,14 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: marketingSmokeBaseUrl,
     viewport: { width: 1280, height: 900 },
-    ...(stagingLaunchOptions() ? { launchOptions: stagingLaunchOptions() } : {}),
+    launchOptions: { args: chromiumLaunchArgs() },
   },
   ...(useExternalServers
     ? {}
     : {
         webServer: {
           command: "node scripts/smoke-marketing-e2e-servers.mjs",
-          url: `${marketingSmokeBaseUrl}/health`,
+          url: marketingHealthUrl,
           reuseExistingServer: !process.env.CI && process.env.PW_NO_REUSE_SERVER !== "1",
           timeout: 360_000,
           stdout: "pipe",

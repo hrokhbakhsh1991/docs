@@ -60,6 +60,11 @@ describe("guest-theme-stack.spec.ts — portal", () => {
     assert.match(fallback, /\[data-portal-shell\]/);
     assert.match(fallback, /\[data-portal-shell-header\]/);
     assert.match(fallback, /\[data-portal-shell-bottom-nav\]/);
+    assert.match(fallback, /\[data-portal-login-modal\]\[open\]/);
+    assert.match(
+      fallback,
+      /\[data-portal-login-modal\]\[open\][\s\S]*display:\s*flex[\s\S]*justify-content:\s*center/
+    );
     assert.doesNotMatch(fallback, /var\(--primary\)/);
     const starterSkinPath = join(repoRoot, "packages/workspaces/starter/theme/starter-portal.css");
     const starterSkin = readFileSync(starterSkinPath, "utf8");
@@ -135,5 +140,7 @@ describe("guest-theme-stack.spec.ts — portal", () => {
     assert.match(config, /allowedDevOrigins/);
     assert.match(config, /\*\.portal\.localhost/);
     assert.match(config, /portal\.denali\.localhost/);
+    assert.match(config, /portal\.urban\.localhost/);
+    assert.match(config, /urban\.localhost/);
   });
 });

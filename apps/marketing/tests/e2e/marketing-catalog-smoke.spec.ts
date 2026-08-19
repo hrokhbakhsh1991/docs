@@ -64,7 +64,8 @@ test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({
   const devPhone = `+1555${String(Date.now()).slice(-7)}`;
   await page.goto("/tours", { waitUntil: "domcontentloaded" });
   await expect(page.getByText(SMOKE_PUBLISHED_TOUR_TITLE)).toBeVisible({ timeout: 60_000 });
-  await openSmokeTourDetail(page);
+  // Direct goto — click-during first compile of /tours/[tourId] Fast-Refresh-reloads /tours.
+  await page.goto(`/tours/${SMOKE_PUBLISHED_TOUR_ID}`, { waitUntil: "domcontentloaded" });
   await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
     timeout: 60_000,
   });
@@ -79,6 +80,7 @@ test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({
     email: REGISTRATION_EMAIL,
     fullName: "Marketing Smoke Guest",
     partySize: "2",
+    phone: devPhone,
   });
 
   await expect(page.locator("[data-public-registration-success]")).toBeVisible({

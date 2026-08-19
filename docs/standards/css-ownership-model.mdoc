@@ -16,7 +16,7 @@ Strict four-layer appearance stack. **globals.css is not a layer** — import-on
 | ----- | ------- | ---- | --------- |
 | **L0 Tokens** | `@app-tour/design-tokens` (`primitives`, `semantics`, `themes`) | `--color-*`, `--space-*`, `--radius` | `data-*` selectors, page rules |
 | **L1 Primitives** | `@app-tour/ui-primitives` | Atom CSS modules bound to L0 | Shell hooks, workspace scope |
-| **L2 Shell** | `design-tokens` bootstrap fallbacks (`fallback-guest-*`, `operator-admin-appearance` structure) | Layout on `data-slot` / `data-*` hooks | Brand hex colors, workspace names |
+| **L2 Shell** | `design-tokens` bootstrap fallbacks (`fallback-guest-*`, `operator-admin-appearance` structure) | Layout on `data-slot` / `data-*` hooks, including native `[data-portal-login-modal][open]` viewport flex frame (Preflight kills UA `dialog` margin — without this, Urban/starter OTP modals are 0×0) | Brand hex colors, workspace names |
 | **L3 Skin** | `packages/workspaces/<id>/theme/` | Scoped overrides on `body[data-app-surface][data-workspace-plugin]` | `:root` unscoped tokens, `!important` (except Radix escape allowlist) |
 
 ## Bootstrap manifests (globals.css imports)

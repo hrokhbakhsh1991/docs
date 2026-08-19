@@ -16,14 +16,20 @@ export async function completeGuestPdpRegisterModalThenOpenPortalIntake(
 ): Promise<void> {
   const fullName = input.fullName ?? "Marketing Smoke Guest";
   const email = input.email ?? `pdp-modal-${Date.now()}@smoke.local`;
-  const registerLink = page.locator("[data-marketing-register]").first();
-  await expect(registerLink).toBeVisible();
+  await expect(page.locator("[data-marketing-login-modal]")).toBeAttached();
+  const registerLink = page
+    .locator("[data-marketing-register][data-marketing-register-ready='true']")
+    .first();
+  await expect(registerLink).toBeVisible({ timeout: 60_000 });
   await registerLink.click();
   await expect(page).toHaveURL(/\/tours\/[^/?#]+/);
   await expect(page).not.toHaveURL(/\/catalog\//);
-  await expect(page.locator('[data-marketing-login-modal-open="true"]')).toBeVisible({
-    timeout: 15_000,
-  });
+  await expect(page.locator("[data-marketing-login-unavailable]")).toHaveCount(0);
+  await expect(
+    page.locator(
+      'dialog[open][data-marketing-login-modal-open="true"] [data-public-registration-phone][data-registration-ready]'
+    )
+  ).toBeVisible({ timeout: 15_000 });
 
   await submitCatalogPhoneForOtp(page, input.phone);
   await fillCatalogOtp(page, CATALOG_DEV_OTP);
@@ -40,7 +46,15 @@ export async function completeGuestPdpRegisterModalThenOpenPortalIntake(
     if (await emailInput.isVisible({ timeout: 500 }).catch(() => false)) {
       await emailInput.fill(email);
     }
-    await page.locator('[data-action="profile-continue"]').click();
+    await Promise.all([
+      page.waitForResponse(
+        (res) =>
+          res.request().method() === "POST" &&
+          res.url().includes("/api/public-auth/register-complete"),
+        { timeout: 90_000 }
+      ),
+      page.locator('[data-action="profile-continue"]').click(),
+    ]);
   }
 
   await expect(page.locator("[data-marketing-member-authenticated]")).toBeVisible({
@@ -83,7 +97,7 @@ export async function submitCatalogPhoneForOtp(page: Page, phone: string): Promi
     ),
     sendCode.click(),
   ]);
-  const body = await response.text();
+  const body = await response.text().catch(() => "");
   expect(
     response.ok(),
     `request-otp failed (${response.status()}): ${body.slice(0, 240)}`
@@ -125,7 +139,7 @@ export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
   }
 
   const response = await responsePromise;
-  const body = await response.text();
+  const body = await response.text().catch(() => "");
   expect(
     response.ok(),
     `verify-otp failed (${response.status()}): ${body.slice(0, 240)}`
@@ -155,7 +169,7 @@ export async function requestRegistrationOtp(page: Page, phone: string): Promise
   );
   await sendCode.click();
   const response = await otpResponse;
-  const body = await response.text();
+  const body = await response.text().catch(() => "");
   expect(
     response.ok(),
     `request-otp failed (${response.status()}): ${body.slice(0, 240)}`
@@ -167,7 +181,11 @@ async function fillIntakeFieldInRootIfVisible(
   fieldId: string,
   value: string
 ): Promise<void> {
-  const inputEl = root.locator(`input[data-intake-field="${fieldId}"]`).first();
+  const inputEl = root
+    .locator(
+      `input[data-intake-field="${fieldId}"], textarea[data-intake-field="${fieldId}"], [data-intake-field="${fieldId}"] input`
+    )
+    .first();
   if (await inputEl.isVisible({ timeout: 2_000 }).catch(() => false)) {
     await inputEl.fill(value);
   }
@@ -208,6 +226,25 @@ export async function completeCatalogRegistrationIntake(
     readonly expectSuccess?: boolean;
   }
 ): Promise<void> {
+  // Chromium 3PCD partitions CORS Set-Cookie to the marketing site. Portal
+  // register is a new top-level site and may show OTP again (first-party set).
+  const portalAuthGate = page.locator(
+    "dialog[open] [data-public-registration-phone][data-registration-ready], [data-public-registration-profile], [data-public-registration-intake][data-registration-ready]"
+  );
+  await portalAuthGate.first().waitFor({ state: "visible", timeout: 120_000 });
+
+  for (let otpPass = 0; otpPass < 2; otpPass++) {
+    const portalOtpPhone = page.locator(
+      "dialog[open] [data-public-registration-phone][data-registration-ready]"
+    );
+    if (!input.phone || !(await portalOtpPhone.isVisible().catch(() => false))) {
+      break;
+    }
+    await submitCatalogPhoneForOtp(page, input.phone);
+    await fillCatalogOtp(page, CATALOG_DEV_OTP);
+    await portalAuthGate.first().waitFor({ state: "visible", timeout: 120_000 });
+  }
+
   const profileStep = page.locator("[data-public-registration-profile]");
   if (await profileStep.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await page.locator("#displayName").fill(input.fullName);
@@ -277,15 +314,14 @@ export async function completeCatalogRegistrationIntake(
       await selectNoPersonalCarAndPayDong(card);
     }
   } else {
-    // Ensure Denali "for myself" stays selected when the toggle is present.
+    // Party Ledger keeps [data-denali-self-guest-card] in the DOM but CSS-hidden
+    // when profile already filled the self row (SMK-MKT-03). Do not require
+    // visibility — match apps/portal fixture.
     const selfCheckbox = page.locator("[data-denali-registrant-self-toggle] input");
     if (await selfCheckbox.isVisible({ timeout: 2_000 }).catch(() => false)) {
       if (!(await selfCheckbox.isChecked())) {
         await selfCheckbox.click({ force: true });
       }
-      await expect(page.locator("[data-denali-self-guest-card]")).toBeVisible({
-        timeout: 15_000,
-      });
     }
 
     await fillIntakeFieldInRootIfVisible(intakeRoot, "fullName", input.fullName);
@@ -326,19 +362,17 @@ export async function completeCatalogRegistrationIntake(
   const submit = page.locator('[data-action="intake-submit"]');
   await expect(submit).toBeEnabled({ timeout: 15_000 });
 
-  const [response] = await Promise.all([
-    page.waitForResponse(
-      (res) =>
-        res.request().method() === "POST" &&
-        res.url().includes("/api/catalog/registrations"),
-      { timeout: 90_000 }
-    ),
-    submit.click({ noWaitAfter: true }),
-  ]);
-  const body = await response.text();
+  const responsePromise = page.waitForResponse(
+    (res) =>
+      res.request().method() === "POST" &&
+      res.url().includes("/api/catalog/registrations"),
+    { timeout: 90_000 }
+  );
+  await submit.click({ noWaitAfter: true });
+  const response = await responsePromise;
   expect(
     response.ok(),
-    `catalog registration failed (${response.status()}): ${body.slice(0, 240)}`
+    `catalog registration failed (${response.status()})`
   ).toBeTruthy();
 
   if (expectSuccess) {

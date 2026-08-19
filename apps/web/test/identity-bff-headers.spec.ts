@@ -27,7 +27,7 @@ describe("identity-bff-headers.spec.ts — M17.2", () => {
   it("OP-BFF-01 dev host map resolves denali tenant", async () => {
     process.env.NODE_ENV = "development";
     process.env.ALLOW_DEV_WEB_SESSION = "true";
-    const tenantId = await resolveOperatorBffTenantId("denali.localhost:3000");
+    const tenantId = await resolveOperatorBffTenantId("admin.denali.localhost:3000");
     assert.equal(tenantId, "00000000-0000-4000-8000-000000000003");
   });
 

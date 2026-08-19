@@ -169,6 +169,10 @@ jobs:
       - run: pnpm run guard:jsonld-xss
       - run: node scripts/validate-json-ld.mjs --all-fixtures
       - run: pnpm --filter @apps/marketing exec playwright install --with-deps chromium
+      - name: Configure denali smoke hosts (IPv4; nss-myhostname may prefer ::1)
+        run: |
+          grep -q 'portal.denali.localhost' /etc/hosts || \
+            echo '127.0.0.1 denali.localhost portal.denali.localhost denali.portal.localhost operator.localhost portal.operator.localhost operator.portal.localhost' | sudo tee -a /etc/hosts
       - name: SMK-MKT-01..04, SMK-MKT-16
         env:
           CI: "true"

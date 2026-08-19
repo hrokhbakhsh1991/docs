@@ -5,9 +5,18 @@ export const CATALOG_DEV_OTP = "1234";
 
 export async function gotoPortalRegistration(page: Page, tourId: string): Promise<void> {
   await page.goto(`/catalog/${tourId}/register`, { waitUntil: "domcontentloaded" });
-  await page.waitForSelector("[data-public-registration-phone][data-registration-ready]", {
-    timeout: 120_000,
-  });
+  // Guest path: OTP phone inside dialog[open] (PCMS-UX-MODAL-04). Resume: intake.
+  // Do not toBeVisible on the <dialog> itself — Preflight 0×0 box until L2 flex frame.
+  await page
+    .locator(
+      "dialog[open][data-portal-login-modal-open='true'] [data-public-registration-phone][data-registration-ready], [data-public-registration-intake][data-registration-ready]"
+    )
+    .first()
+    .waitFor({ state: "visible", timeout: 120_000 });
+  const phone = page.locator("[data-public-registration-phone][data-registration-ready]");
+  if (await phone.isVisible().catch(() => false)) {
+    return;
+  }
 }
 
 export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
@@ -87,14 +96,19 @@ export async function completeGuestPdpRegisterModalThenOpenPortalIntake(
 ): Promise<void> {
   const fullName = input.fullName ?? "Denali Probe Guest";
   const email = input.email ?? `pdp-modal-${Date.now()}@smoke.local`;
-  const registerLink = page.locator("[data-marketing-register]").first();
+  await expect(page.locator("[data-marketing-login-modal]")).toBeAttached();
+  const registerLink = page
+    .locator("[data-marketing-register][data-marketing-register-ready='true']")
+    .first();
   await expect(registerLink).toBeVisible();
   await registerLink.click();
   await expect(page).toHaveURL(/\/tours\/[^/?#]+/);
   await expect(page).not.toHaveURL(/\/catalog\//);
-  await expect(page.locator('[data-marketing-login-modal-open="true"]')).toBeVisible({
-    timeout: 15_000,
-  });
+  await expect(
+    page.locator(
+      'dialog[open][data-marketing-login-modal-open="true"] [data-public-registration-phone][data-registration-ready]'
+    )
+  ).toBeVisible({ timeout: 15_000 });
 
   await requestRegistrationOtp(page, input.phone);
   await fillCatalogOtp(page, CATALOG_DEV_OTP);
@@ -179,7 +193,11 @@ export async function completeCatalogRegistrationIntake(
     fieldId: string,
     value: string
   ): Promise<void> => {
-    const inputEl = root.locator(`input[data-intake-field="${fieldId}"]`).first();
+    const inputEl = root
+      .locator(
+        `input[data-intake-field="${fieldId}"], textarea[data-intake-field="${fieldId}"], [data-intake-field="${fieldId}"] input`
+      )
+      .first();
     if (await inputEl.isVisible({ timeout: 1_000 }).catch(() => false)) {
       await inputEl.fill(value);
     }

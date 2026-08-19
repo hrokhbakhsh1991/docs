@@ -139,6 +139,7 @@ pnpm run p6:staging-gate   # requires DATABASE_URL
 | SMK-P9-04 status assertion fails | Operator UI is fa-IR — expect `تأییدشده` not literal `approved` |
 | SMK-MKT-05 detail 404 / empty catalog | Stale API on `:3001` without urban seed — use `PW_NO_REUSE_SERVER=1` or kill ports · probe checks list **and** detail endpoints |
 | SMK-MKT-03 portal register 503 | Stale portal/API without operator seed or Denali exposure Prisma without DB — use `PW_NO_REUSE_SERVER=1` · probe checks `/denali/catalog/:tourId` |
+| SMK-MKT-03 / SMK-P8 guest OTP after `register-complete` | `resolveSmokeApiJwtEnv()` mints a **new** RS256 pair every smoke-script process. Reusing API/portal on `:3001`/`:3003` from a prior run signs `atour_mb_session` with key A while this process injects key B into portal/web → middleware `invalid_signature` → cookie cleared → guest OTP loop. `smoke-marketing-e2e-servers.mjs` and `smoke-urban-e2e-servers.mjs` **must** free 3000–3003 (`fuser -k` when present, else `lsof -ti tcp:PORT -sTCP:LISTEN` + SIGTERM) and spawn API+surfaces with the **same** `jwtEnv`. Spread `jwtEnv` into API, portal, web, **and** marketing (SSR `validateSessionTokenAsync`). Do not `spawn` API with `--env-file=.env.local` if that file holds a different `AUTH_JWT_PUBLIC_KEY`. |
 | Urban marketing skin missing | Run `pnpm run generate:workspace-registry` — `workspace-guest-theme-stylesheets.generated.ts` must import `urban-marketing.css` |
 
 ---
