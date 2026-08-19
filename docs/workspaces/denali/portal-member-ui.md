@@ -2,17 +2,17 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-MEMBER-UI
-version: "2026-08-19-v7"
+version: "2026-08-19-v8"
 extends: portal-registration-ui.md · platform-portal-member-shell-architecture.mdoc
 apps: [portal]
-phase: DENALI-POCKET-3.5
+phase: DENALI-POCKET-4
 ```
 
 ## Scope
 
 Visual layer for **authenticated member routes** (`/me/*`) inside `PortalMemberShell`. Business logic, entitlements, and BFF contracts unchanged.
 
-**Out of scope:** login/register auth shell (see [portal-registration-ui.md](./portal-registration-ui.md)), marketing, operator admin, `/me/home` (3.3 locked), `/me/registrations` (3.2 locked), `/me/registrations/[id]` (3.4 locked).
+**Out of scope:** login/register auth shell (see [portal-registration-ui.md](./portal-registration-ui.md)), marketing, operator admin. Page IA for 3.2–3.5 is **locked** — Phase 4 only flattens leftover chrome so every `/me` surface shares one Pocket language.
 
 ## Design intent (Denali Pocket)
 
@@ -33,7 +33,7 @@ Premium **mobile-first customer app**, not a marketing site inside a portal.
 | ---- | ---- |
 | `portal/member-shell.css` | Pocket chrome — canvas, compact header, thumb bar, type cascade |
 | `portal/member-shell-desktop.css` | Full-viewport account app + side rail (no floating phone-card) |
-| `portal/member-pages.css` | **3.3 Pocket home** + **3.2 Pocket trips list** + **3.4 Pocket trip detail** |
+| `portal/member-pages.css` | **3.3 Pocket home** + **3.2 Pocket trips list** + **3.4 Pocket trip detail** + **4 More hub / stubs** |
 | `portal/member-profile.css` | **3.5 Pocket profile** — canvas title, grouped account sections, quiet session |
 | `portal/denali-form-controls.css` | Shared inputs + solid primary / outline secondary / text tertiary |
 | `portal/login-page.css` | Auth experience (imports form controls) |
@@ -174,6 +174,24 @@ Calm **customer account** page. Visual reference: iOS Settings grouping + Stripe
 | Desktop | `data-member-profile-layout="sectioned"`: 2-col field grid, horizontal avatar, Discard + Save row, session hidden |
 
 Hooks unchanged: page header, form `data-member-profile-layout="sectioned"`, cards, avatar, mobile-change, save/discard, session. Profile GET/PATCH, OTP, avatar upload, logout, validation, and form state unchanged.
+
+## Phase 4 — final visual audit
+
+Cross-page check after 3.1B–3.5. **No new UX.** Skin only. Login / register stay Alpine/Ledger.
+
+| Surface | 3.x status | Phase 4 finding | Polish |
+| ------- | ---------- | --------------- | ------ |
+| Shell header / thumb / rail | 3.1B locked | Compact 52px + mist + forest active tab | Rail logout hex fallback `#b42318` → `--destructive` |
+| `/me/home` | 3.3 locked | Canvas title + next-action bar | None |
+| `/me/registrations` | 3.2 locked | Canvas title + hairline rows | None |
+| `/me/registrations/[id]` | 3.4 locked | Canvas title + stacked status | Receipt error token `--color-danger` → `--destructive` |
+| `/me/profile` | 3.5 locked | Canvas title + grouped account | None |
+| `/me/more` | leftover | Gradient hero, eyebrow pills, 5rem gradient tiles | Canvas title, hide eyebrows, compact hairline rows |
+| Module stub / unauthorized | leftover | Orb poster + gradient back CTA | Quiet surface + solid `--color-primary` (`min-height: 3rem`) |
+
+Shared type: every `[data-portal-member-page-header] > p` uses meta (`0.8125rem`), matching home/trips/detail/profile ledes.
+
+Hooks unchanged on more/stub: `[data-portal-member-more]`, hub list/icon/description/count/eyebrow (eyebrow not painted), `[data-portal-member-stub-back]`.
 
 ## Verification
 
