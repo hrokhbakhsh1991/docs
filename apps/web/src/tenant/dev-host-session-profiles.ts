@@ -1,4 +1,5 @@
 import type { TenantKernelResolveInput } from "./tenant-kernel.types";
+import { readDevE2eSmokeHostLabel } from "./resolve-dev-e2e-host-bypass";
 
 const WORKSPACE_SMOKE_E2E_WORKSPACE_ID = "00000000-0000-4000-8000-000000000403";
 const WORKSPACE_SMOKE_E2E_OWNER_USER_ID = "00000000-0000-4000-8000-000000000401";
@@ -29,23 +30,20 @@ export const DEV_HOST_SESSION_PROFILES: Readonly<
 
 export const DEV_HOST_SESSION_PROFILE_KEYS = new Set(Object.keys(DEV_HOST_SESSION_PROFILES));
 
-/** Caller must gate with isDevWebSessionAllowed() (Edge middleware env inlining). */
 export function hasDevHostSmokeSessionProfile(host: string): boolean {
-  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "";
-  const match = /^([a-z0-9-]+)\.localhost$/.exec(hostname);
-  if (!match?.[1]) {
+  const label = readDevE2eSmokeHostLabel(host);
+  if (label === null) {
     return false;
   }
-  return DEV_HOST_SESSION_PROFILE_KEYS.has(match[1]);
+  return DEV_HOST_SESSION_PROFILE_KEYS.has(label);
 }
 
 export function resolveDevSessionProfileFromHost(
   host: string
 ): Partial<TenantKernelResolveInput> | null {
-  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "";
-  const match = /^([a-z0-9-]+)\.localhost$/.exec(hostname);
-  if (!match?.[1]) {
+  const label = readDevE2eSmokeHostLabel(host);
+  if (label === null) {
     return null;
   }
-  return DEV_HOST_SESSION_PROFILES[match[1]] ?? null;
+  return DEV_HOST_SESSION_PROFILES[label] ?? null;
 }

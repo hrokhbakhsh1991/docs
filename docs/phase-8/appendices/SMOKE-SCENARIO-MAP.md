@@ -47,7 +47,11 @@ Authority: [`docs/workspaces/denali/public-catalog.md`](../../workspaces/denali/
 
 ---
 
-## Host / env (all scenarios)
+**Host / env (all scenarios)**
+
+WRS-ADMIN-LEGACY-308 308s `{label}.localhost` on apps/web to `admin.{label}.localhost`. SMK-P8-03/04 smoke labels (`workspace-owner-smoke`, `workspace-member-smoke`) **must** still match after that hop: `shouldBypassMiddlewareForDevE2eHost` + `resolveDevSessionProfileFromHost` parse apex, `admin.{label}.localhost`, and `{label}.admin.localhost`. Playwright `--host-resolver-rules` and CI `/etc/hosts` must MAP `admin.workspace-owner-smoke.localhost` + `admin.workspace-member-smoke.localhost`. Without that, the owner settings goto lands on `/auth/login` and `POST /api/auth/request-otp` 403s.
+
+SMK-P8-02: first compile of portal `phone-preflight` Fast-Refresh-reloads register and drops `waitForResponse(request-otp)`. `smoke-urban-e2e-servers.mjs` warms `/api/public-auth/request-otp` + `phone-preflight` before Playwright starts.
 
 ```bash
 export NODE_ENV=test

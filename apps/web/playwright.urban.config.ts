@@ -14,6 +14,10 @@ function chromiumHostResolverArgs(): string[] {
     "MAP urban.portal.localhost 127.0.0.1",
     "MAP workspace-owner-smoke.localhost 127.0.0.1",
     "MAP workspace-member-smoke.localhost 127.0.0.1",
+    "MAP admin.workspace-owner-smoke.localhost 127.0.0.1",
+    "MAP admin.workspace-member-smoke.localhost 127.0.0.1",
+    "MAP workspace-owner-smoke.admin.localhost 127.0.0.1",
+    "MAP workspace-member-smoke.admin.localhost 127.0.0.1",
     "MAP shop.urban.localhost 127.0.0.1",
   ].join(", ");
   return [`--host-resolver-rules=${rules}`];

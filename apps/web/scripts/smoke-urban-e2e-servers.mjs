@@ -146,6 +146,36 @@ function waitForUrl(url, timeoutMs = 300_000) {
   });
 }
 
+function warmPortalPath(path, method = "GET", body = null) {
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        hostname: "127.0.0.1",
+        port: 3003,
+        path,
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          host: "urban.localhost:3003",
+        },
+      },
+      (res) => {
+        res.resume();
+        if (res.statusCode && res.statusCode < 500) {
+          resolve();
+          return;
+        }
+        reject(new Error(`warm ${method} ${path} failed: ${res.statusCode}`));
+      }
+    );
+    req.on("error", reject);
+    if (body !== null) {
+      req.write(JSON.stringify(body));
+    }
+    req.end();
+  });
+}
+
 const children = [];
 
 async function start() {
@@ -189,6 +219,19 @@ async function start() {
     waitForUrl("http://127.0.0.1:3002/health"),
     waitForUrl("http://127.0.0.1:3003/health"),
   ]);
+  await warmPortalPath("/api/public-auth/phone-preflight", "POST", {
+    phone: "+15550009901",
+  }).catch((error) => {
+    console.warn("smoke-urban-e2e-servers: phone-preflight warm skipped:", error.message);
+  });
+  await warmPortalPath("/api/public-auth/request-otp", "POST", { phone: "+15550009901" }).catch(
+    (error) => {
+      console.warn("smoke-urban-e2e-servers: request-otp warm skipped:", error.message);
+    }
+  );
+  await warmPortalPath("/api/catalog/registrations", "GET").catch((error) => {
+    console.warn("smoke-urban-e2e-servers: catalog registrations warm skipped:", error.message);
+  });
 
   // Web last — Playwright webServer.url is :3000/health; starting it after
   // portal/marketing avoids SMK-P8 racing a cold :3002/:3003 compile.
