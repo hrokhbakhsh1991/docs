@@ -47,8 +47,8 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   overscroll-behavior: contain;
   margin: 0;
   border-radius: 12px;
-  border: 1px solid var(--color-border-subtle, #dce5dc);
-  background: var(--color-bg-surface, #fff);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
   box-shadow: 0 16px 36px rgb(15 23 42 / 0.14);
   padding: 18px 20px 20px;
 }
@@ -74,7 +74,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   font-weight: 400;
   letter-spacing: -0.03em;
   line-height: 1.15;
-  color: var(--color-text-primary, #1a1f26);
+  color: var(--color-text-primary);
 }
 
 html[lang="fa"]
@@ -105,13 +105,13 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   font-weight: 600;
   letter-spacing: 0.01em;
   line-height: 1;
-  color: var(--color-text-secondary, #3f4738);
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-close]:hover {
-  color: var(--color-text-primary, #1a1f26);
+  color: var(--color-text-primary);
   background: transparent;
   border: 0;
 }
@@ -119,7 +119,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-close]:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-focus-ring, rgb(5 150 105 / 0.32));
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -166,7 +166,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-portal-otp-phone-chip] {
   margin: 0;
   font-size: 0.8125rem;
-  color: var(--color-text-muted, #6f7768);
+  color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
   direction: ltr;
   unicode-bidi: isolate;
@@ -180,7 +180,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--color-text-secondary, #3f4738);
+  color: var(--color-text-secondary);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -190,26 +190,26 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   min-height: 48px;
   padding: 0 12px;
   border-radius: 10px;
-  border: 1px solid var(--color-border-default, #dce5dc);
-  background: #fff;
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
   font: inherit;
   font-size: 1rem;
   line-height: 1.35;
-  color: var(--color-text-primary, #1a1f26);
+  color: var(--color-text-primary);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-body]
   input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus-visible {
   outline: none;
-  border-color: var(--color-primary, #059669);
-  box-shadow: 0 0 0 3px var(--color-focus-ring, rgb(5 150 105 / 0.32));
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-modal-body]
   input[aria-invalid="true"] {
-  border-color: var(--color-danger, #b91c1c);
+  border-color: var(--color-danger);
   box-shadow: none;
 }
 
@@ -231,8 +231,8 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   margin-top: 14px;
   border: 0;
   border-radius: 10px;
-  background: var(--color-primary, #059669);
-  color: var(--color-primary-fg, #fff);
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
   font: inherit;
   font-size: 0.9375rem;
   font-weight: 700;
@@ -261,7 +261,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: var(--color-danger, #b91c1c);
+  color: var(--color-danger);
   font-size: 0.8125rem;
   font-weight: 500;
 }
@@ -323,7 +323,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   border: 0;
   border-radius: 0;
   background: none;
-  color: var(--color-text-secondary, #3f4738);
+  color: var(--color-text-secondary);
   font: inherit;
   font-size: 0.875rem;
   font-weight: 500;
@@ -341,7 +341,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   [data-marketing-login-unavailable] {
   margin: 0;
-  color: var(--color-danger, #b91c1c);
+  color: var(--color-danger);
   font-size: 0.875rem;
 }
 
