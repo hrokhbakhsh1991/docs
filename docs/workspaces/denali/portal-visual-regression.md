@@ -9,7 +9,8 @@
 |----|-----------------|---------|------|
 | SH-01 | `[data-portal-shell-header]` + `[data-portal-member-header-minimal]` + brand/logo | Member shell | 1 |
 | SH-02 | `[data-marketing-header-member]` (chip → profile; no header logout) | Member header identity | 1 / 5e |
-| SH-02b | `[data-portal-shell-nav-footer]` `[data-public-auth-logout]` | Desktop side-rail logout | 5f |
+| SH-02b | `[data-portal-shell-nav-footer]` `[data-public-auth-logout]` | Desktop side-rail logout | 5f / 4 |
+| SH-07 | Pocket chrome: no raw danger hex in `member-shell-desktop.css` | Rail logout uses `--destructive` | 4 |
 | SH-02c | `[data-member-profile-session]` `[data-public-auth-logout]` | Mobile profile logout | 5f |
 | SH-03 | `[data-portal-shell-bottom-nav]` + `[data-portal-shell-nav-icon]` | Bottom nav icons (incl. profile when entitled) | 2 |
 | SH-05 | `[data-portal-shell-main]` mist Pocket canvas | Member shell page bg | 4 / Pocket 3.1 |
@@ -45,7 +46,9 @@
 | MEM-TRIP-02 | `[data-portal-member-registrations-empty-cta]` | Empty → marketing `/tours` | 3 |
 | MEM-WALLET-01 | `main[data-portal-member-module-stub][data-portal-member-module-id="wallet"]` | Hidden wallet stub | 3 |
 | MEM-MORE-01 | `main[data-portal-member-more]` + `[data-portal-member-hub-link-icon]` | More hub list | 5 |
+| MEM-MORE-05 | Pocket more hub: canvas title, compact hairline rows, no hero gradient | `/me/more` only | 4 |
 | MEM-STUB-01 | `[data-portal-member-stub-back]` | Module stub back CTA | 5 |
+| MEM-STUB-05 | Pocket stub: quiet surface, solid back CTA, no orbs | module stub / unauthorized | 4 |
 | MEM-PROF-01 | `main[data-portal-member-profile]` | Profile form | — |
 | MEM-PROF-02 | `[data-member-profile-field="gender"] select` | Gender select (SDK enum) | — |
 | MEM-PROF-05 | Pocket profile: canvas title, grouped sections, no hero gradient, sticky solid save, quiet session | `/me/profile` only | 3.5 |
@@ -67,6 +70,7 @@
 | Home | `http://denali.portal.localhost:3003/me/home` |
 | Trips | `http://denali.portal.localhost:3003/me/registrations` |
 | Profile | `http://denali.portal.localhost:3003/me/profile` |
+| More | `http://denali.portal.localhost:3003/me/more` |
 | Wallet (grant required) | `http://denali.portal.localhost:3003/me/wallet` |
 
 ## Automated coverage
@@ -76,7 +80,7 @@
 | `apps/portal/test/portal-visual-wave1.spec.ts` | REG-01, SH-01, SH-02 |
 | `apps/portal/test/portal-visual-wave2.spec.ts` | REG-02, SH-03 |
 | `apps/portal/test/portal-visual-wave3.spec.ts` | MEM-TRIP-02, MEM-WALLET-01, TOK hooks |
-| `apps/portal/test/portal-visual-wave4.spec.ts` | SH-05/06, MEM-HOME-02, MEM-TRIP-03/04, VIS-FORM-01, MEM-MORE-01, MEM-STUB-01, MEM-PROF-05 |
+| `apps/portal/test/portal-visual-wave4.spec.ts` | SH-05/06/07, MEM-HOME-02, MEM-TRIP-03/04, VIS-FORM-01, MEM-MORE-01/05, MEM-STUB-01/05, MEM-PROF-05 |
 | `apps/portal/test/portal-visual-wave5.spec.ts` | DESK-01..04 desktop frame + auth layout |
 | `apps/portal/test/guest-theme-stack.spec.ts` | TOK-01 skin import |
 | `apps/marketing/test/resolve-app-locale.spec.ts` | GX-1 (`MKT-GX-01`) |

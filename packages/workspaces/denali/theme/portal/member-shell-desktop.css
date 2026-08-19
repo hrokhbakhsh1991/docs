@@ -225,8 +225,8 @@
     [data-portal-shell-bottom-nav]
     [data-portal-shell-nav-footer]
     [data-public-auth-logout]:hover:not(:disabled) {
-    background: color-mix(in oklab, var(--color-danger, #b42318) 8%, var(--color-bg-surface));
-    color: var(--color-danger, #b42318);
+    background: color-mix(in oklab, var(--destructive) 8%, var(--color-bg-surface));
+    color: var(--destructive);
     text-decoration: none;
   }
 

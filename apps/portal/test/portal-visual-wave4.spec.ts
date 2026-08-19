@@ -166,10 +166,40 @@ describe("portal-visual-wave4.spec.ts", () => {
     assert.match(list, /data-portal-member-hub-card-count/);
   });
 
+  it("VIS-MORE-05 Pocket more hub has canvas title and compact rows", () => {
+    const css = readFileSync(join(denaliThemeRoot, "portal/member-pages.css"), "utf8");
+    const more = css.slice(css.indexOf("/* ── More hub (Pocket 4)"));
+    assert.match(more, /background:\s*none/);
+    assert.match(more, /content:\s*none/);
+    assert.match(more, /portal-pocket-title-size/);
+    assert.match(more, /portal-pocket-touch/);
+    assert.match(more, /\[data-portal-member-hub-section-eyebrow\],/);
+    assert.match(more, /display:\s*none/);
+    assert.doesNotMatch(more, /linear-gradient/);
+    assert.doesNotMatch(more, /radial-gradient/);
+    assert.doesNotMatch(more, /min-height:\s*5rem/);
+    assert.doesNotMatch(more, /#[0-9a-fA-F]{3,8}/);
+  });
+
   it("VIS-STUB-01 module stub exposes back link hook", () => {
     const stub = readFileSync(join(portalRoot, "src/me/member-module-stub.tsx"), "utf8");
     assert.match(stub, /data-portal-member-stub-back/);
     assert.match(stub, /data-portal-member-page-header/);
     assert.match(stub, /data-portal-member-module-stub-card/);
+  });
+
+  it("VIS-STUB-05 Pocket stub uses solid CTA and no orbs", () => {
+    const css = readFileSync(join(denaliThemeRoot, "portal/member-pages.css"), "utf8");
+    const more = css.slice(css.indexOf("/* ── More hub (Pocket 4)"));
+    assert.match(more, /\[data-portal-member-stub-back\]/);
+    assert.match(more, /portal-pocket-cta-height/);
+    assert.match(more, /background:\s*var\(--color-primary\)/);
+    assert.match(more, /\[data-portal-member-status-mark\] \{\s*display:\s*none/);
+  });
+
+  it("VIS-SHELL-07 Pocket desktop chrome has no danger hex fallback", () => {
+    const css = readFileSync(join(denaliThemeRoot, "portal/member-shell-desktop.css"), "utf8");
+    assert.match(css, /--destructive/);
+    assert.doesNotMatch(css, /#[0-9a-fA-F]{3,8}/);
   });
 });

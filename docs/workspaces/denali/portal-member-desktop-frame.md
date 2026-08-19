@@ -4,7 +4,7 @@
 doc_id: DENALI-PORTAL-MEMBER-DESKTOP
 version: "2026-08-19-v8"
 extends: portal-member-ui.md
-phase: DENALI-POCKET-3.5
+phase: DENALI-POCKET-4
 ```
 
 ## Problem
@@ -22,7 +22,7 @@ At `≥48rem` (non-embedded):
 | Shell | **Full-viewport account app** (`min-height` / `max-height: 100dvh`, no centered phone-card, no alpine stage). Mist canvas. |
 | Header (**PS-VIS-5e**) | **Compact app bar (52px):** brand → marketing home · member chip → `/me/profile`. **No** locale, **no** center nav, **no** logout in the header. No marketing glass/blur. |
 | Nav | **Side rail** — `[data-portal-shell-bottom-nav]` vertical; thumb bar on mobile |
-| Logout (**PS-VIS-5f**) | **Desktop:** pinned footer of the side rail (`[data-portal-shell-nav-footer]`). **Mobile:** quiet account session row on `/me/profile` (`[data-member-profile-session]`); nav footer hidden so the thumb bar stays for primary destinations only. |
+| Logout (**PS-VIS-5f**) | **Desktop:** pinned footer of the side rail (`[data-portal-shell-nav-footer]`), `--destructive` hover (no hex). **Mobile:** quiet account session row on `/me/profile` (`[data-member-profile-session]`); nav footer hidden so the thumb bar stays for primary destinations only. |
 | Main | Scrolls in the content column (`overflow-y: auto`) |
 
 **Dual-app rule:** Marketing owns discover nav; Portal header is identity + egress to marketing brand only. Sign-out is an account action, not header chrome.

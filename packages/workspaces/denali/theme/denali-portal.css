@@ -849,8 +849,8 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell]
   [data-portal-member-page-header]
   > p {
-  font-size: var(--portal-pocket-body-size);
-  line-height: 1.5;
+  font-size: var(--portal-pocket-meta-size);
+  line-height: 1.45;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
