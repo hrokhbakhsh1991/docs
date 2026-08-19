@@ -213,7 +213,7 @@ apps/portal
 - Modal OTP controls: `denali-form-controls.css` scopes `[data-portal-login-modal-body]` alongside `[data-portal-auth-card]`.
 - **No registration stepper** inside the login modal (`memberLoginEgress` skips `CatalogRegistrationStepper`); modal header title is the only step chrome.
 - Register page full-viewport auth experience **unchanged** when modal closed.
-- `/login` page uses the `data-portal-login-full-page` Alpine Split skin in `alpine-login.css`. Grid lives on `[data-portal-auth-layout]` because chrome is a sibling of the card; photo field is `~58%` desktop / independent masthead below `48rem`. Story/highlight chips are not part of the member login page. Register modal skin is unchanged. Photography: existing Alborz still at `/auth/alborz.webp` (catalog crop — production asset debt until a dedicated hero exists).
+- `/login` page uses the `data-portal-login-full-page` Alpine Split skin in `alpine-login.css`. Grid lives on `[data-portal-auth-layout]` because chrome is a sibling of the card; photo field is `~58%` desktop / independent masthead below `48rem` (and on short landscape `max-height: 32rem` and `max-width: 56rem`). Login Back is composed **after** the form in `PortalLoginThinHost` so Tab order matches visual order; register chrome is unchanged. Forest CTA override is page-scoped (do not restyle `denali-form-controls.css`). Story/highlight chips are not part of the member login page. Register modal skin is unchanged. Photography: existing Alborz still at `/auth/alborz.webp` (catalog crop — production asset debt until a dedicated hero exists).
 
 ## 11. Implementation phases (code later)
 

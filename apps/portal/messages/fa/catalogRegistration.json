@@ -57,7 +57,7 @@
     "description": "نام اجباری است. ایمیل اختیاری.",
     "loginDescription": "برای تکمیل ورود، نام خود را وارد کنید. ایمیل اختیاری است.",
     "nameLabel": "نام",
-    "emailLabel": "ایمیل (اختیاری)",
+    "emailLabel": "ایمیل، اختیاری",
     "continue": "ادامه",
     "loginContinue": "ورود",
     "saving": "در حال ذخیره…"

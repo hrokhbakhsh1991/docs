@@ -51,6 +51,9 @@ export function PortalLoginThinHost({ flow, portalReturn }: Props) {
           onAuthenticated={onAuthenticated}
         />
       </section>
+      <a href={flow.backHref} data-portal-registration-back>
+        {t("backToMarketing")}
+      </a>
     </div>
   );
 }

@@ -35,7 +35,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-login-page][data-portal-login-full-page]
   [data-portal-auth-layout] {
   display: grid;
-  grid-template-columns: minmax(20.5rem, 42%) minmax(0, 1fr);
+  grid-template-columns: minmax(25.5rem, 42%) minmax(0, 1fr);
   grid-template-rows: auto auto 1fr auto;
   width: 100%;
   max-width: none;
@@ -361,21 +361,33 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-login-page][data-portal-login-full-page]
-  [data-action="send-code"],
-body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-portal-member-login-page][data-portal-login-full-page]
-  [data-action="verify-otp"],
-body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-portal-member-login-page][data-portal-login-full-page]
-  [data-action="profile-continue"] {
+  [data-portal-auth-card]
+  :is(
+    button[type="button"][data-action="send-code"],
+    button[type="button"][data-action="verify-otp"],
+    button[type="submit"][data-action="profile-continue"]
+  ) {
   margin-top: 1rem;
   height: 3.25rem;
   min-height: 3.25rem;
   border-radius: 10px;
   background: var(--portal-alpine-forest);
+  background-image: none;
   color: #fff;
   font-weight: 600;
   box-shadow: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page][data-portal-login-full-page]
+  [data-portal-auth-card]
+  :is(
+    button[type="button"][data-action="send-code"],
+    button[type="button"][data-action="verify-otp"],
+    button[type="submit"][data-action="profile-continue"]
+  ):not(:disabled):hover {
+  box-shadow: none;
+  filter: brightness(1.04);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -451,8 +463,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   display: none;
 }
 
-/* Independent mobile masthead — not a squeezed split. */
-@media (max-width: 48rem) {
+/* Independent mobile masthead — not a squeezed split.
+   Also stack short landscape phones (width still >48rem, height ≤32rem)
+   without collapsing a wide short desktop (e.g. 1440×500). */
+@media (max-width: 48rem), (max-height: 32rem) and (max-width: 56rem) {
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-login-page][data-portal-login-full-page] {
     --portal-alpine-band: 9.25rem;

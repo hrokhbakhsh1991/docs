@@ -20,12 +20,38 @@ describe("portal alpine split login presentation", () => {
     assert.match(alpine, /max-height:\s*32rem/);
     assert.match(alpine, /\[data-portal-auth-layout\]/);
     assert.match(alpine, /display: contents/);
+    assert.match(alpine, /minmax\(25\.5rem,\s*42%\)/);
     assert.match(alpine, /max-width:\s*48rem/);
+    assert.match(alpine, /max-width:\s*56rem/);
     assert.match(alpine, /max-width:\s*24\.375rem/);
     assert.match(alpine, /max-width:\s*22\.5rem/);
     assert.match(alpine, /\[data-portal-otp-hero\]/);
     assert.match(alpine, /\[data-dev-otp-hint\]/);
     assert.match(alpine, /p\[role="alert"\]|\[role="alert"\][\s\S]*display:\s*block/);
+    assert.match(
+      alpine,
+      /\[data-portal-auth-card\][\s\S]*button\[type="button"\]\[data-action="send-code"\]/
+    );
+    assert.match(alpine, /background-image:\s*none/);
+    assert.doesNotMatch(alpine, /denali-form-controls/);
+  });
+
+  it("login Back is after the form in DOM so Tab matches visual order", () => {
+    const chrome = readFileSync(
+      join(repoRoot, "apps/portal/src/catalog/portal-registration-chrome.tsx"),
+      "utf8"
+    );
+    const thinHost = readFileSync(
+      join(repoRoot, "apps/portal/src/auth/portal-login-thin-host.tsx"),
+      "utf8"
+    );
+    assert.match(chrome, /memberLoginEgress \? null/);
+    assert.match(chrome, /backToTour/);
+    assert.doesNotMatch(chrome, /backToMarketing/);
+    const formIdx = thinHost.indexOf("data-portal-login-form-panel");
+    const backIdx = thinHost.indexOf("data-portal-registration-back");
+    assert.ok(formIdx > 0 && backIdx > formIdx, "back must follow form panel in thin host");
+    assert.match(thinHost, /backToMarketing/);
   });
 
   it("login page uses sparse title key and does not delete legacy copy keys", () => {
@@ -35,6 +61,7 @@ describe("portal alpine split login presentation", () => {
     ) as {
       phone: Record<string, string>;
       otp: Record<string, string>;
+      profile: Record<string, string>;
     };
     const en = JSON.parse(
       readFileSync(join(repoRoot, "apps/portal/messages/en/catalogRegistration.json"), "utf8")
@@ -47,6 +74,8 @@ describe("portal alpine split login presentation", () => {
     assert.equal(en.phone.loginTitle, "Sign in");
     assert.equal(fa.otp.loginTitle, "کد");
     assert.equal(en.otp.loginTitle, "Code");
+    assert.equal(fa.profile.emailLabel, "ایمیل، اختیاری");
+    assert.doesNotMatch(fa.profile.emailLabel, /[()]/);
     assert.ok(fa.phone.portalHeroTitle);
     assert.ok(fa.phone.portalStoryTitle);
     assert.ok(en.phone.portalHeroTitle);

@@ -150,6 +150,7 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
     );
     assert.match(thinHost, /data-portal-login-form-panel/);
     assert.match(thinHost, /data-portal-login-photo-field/);
+    assert.match(thinHost, /data-portal-registration-back/);
     assert.match(thinHost, /PublicCatalogRegistrationFlow/);
     assert.doesNotMatch(thinHost, /data-portal-login-story-panel/);
     assert.match(thinHost, /memberLoginEgress/);
