@@ -203,11 +203,12 @@ apps/portal
 
 ## 10. Theme / CSS
 
-- Extend `packages/workspaces/denali/theme/portal/login-page.css` with `[data-portal-login-modal]` — do **not** reuse `main[data-portal-member-login-page] { min-height: 100dvh }` on the modal panel.
-- **Dialog centering (required):** Tailwind / Preflight resets native `<dialog>` `margin: auto`, so an open modal collapses to the top-inline-start corner (top-right under RTL). Denali skin must re-center with a full-viewport flex frame on `[data-portal-login-modal][open]` / `[data-portal-login-modal-open="true"]`:
-  - Desktop (`presentation="dialog"`): `display: flex; align-items: center; justify-content: center; inset/width/height cover viewport; margin: 0; transparent surface`.
+- Extend `packages/workspaces/denali/theme/portal/login-page.css` with `[data-portal-login-modal]` brand overlay — do **not** reuse `main[data-portal-member-login-page] { min-height: 100dvh }` on the modal panel.
+- **Dialog centering (L2, required for every workspace):** Tailwind / Preflight sets `dialog { margin: 0 }`, which kills UA `margin: auto` centering. An open native `<dialog>` then collapses to a 0×0 box at the inline-start corner (top-right under RTL). Playwright treats that as **not visible**, so `toBeVisible()` on `[data-portal-login-modal-open="true"]` fails (Urban SMK-P8-02: Urban L3 has no modal rules). The frame lives in `packages/design-tokens/src/fallback-guest-portal-shell.css` on `body[data-app-surface="portal"] [data-portal-login-modal][open]` / `[data-portal-login-modal-open="true"]` — not only in Denali L3:
+  - Desktop (`presentation="dialog"`): `position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; width/height cover viewport; margin: 0; transparent surface`.
   - Mobile sheet (`presentation="sheet"`): same frame with `align-items: flex-end` so the panel docks to the bottom safe area.
   - Panel keeps `width: min(100vw - 2rem, 28rem)` (dialog) / full bleed (sheet); do **not** rely on UA dialog margin alone.
+  - L3 Denali may overlay backdrop gradient / radius / tokens. It must not drop the flex frame. E2E waits on `dialog[open] … [data-public-registration-phone][data-registration-ready]`, not the dialog box itself.
 - Register-host modal: hide gate chrome while the modal is open (`body:has([data-portal-login-modal-open="true"])`). `/login` no longer uses host-lede (page form).
 - Guest gate (PCMS-UX-MODAL-04): `[data-portal-register-guest-auth]` · `[data-portal-register-auth-gate]` · primary `[data-portal-register-sign-in-button]` — muted while modal open.
 - Modal OTP controls: `denali-form-controls.css` scopes `[data-portal-login-modal-body]` alongside `[data-portal-auth-card]`.
