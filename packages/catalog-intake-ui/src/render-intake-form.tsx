@@ -28,7 +28,7 @@ export function RenderIntakeForm({
       {schema.fields.map((field) => {
         const fieldInvalid = invalidFieldId === field.id;
         return (
-          <div key={field.id} data-intake-field-block data-intake-field={field.id}>
+          <div key={field.id} data-intake-field-block={field.id}>
             <RenderIntakeField
               field={field}
               value={values[field.id] ?? ""}

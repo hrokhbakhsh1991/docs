@@ -382,13 +382,13 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"]
-  [data-intake-field-block][data-intake-field="fullName"],
+  [data-intake-field-block="fullName"],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"]
-  [data-intake-field-block][data-intake-field="phone"],
+  [data-intake-field-block="phone"],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-catalog-registration-page][data-registration-resume="intake"]
-  [data-intake-field-block][data-intake-field="notes"] {
+  [data-intake-field-block="notes"] {
   grid-column: 1 / -1;
 }
 
