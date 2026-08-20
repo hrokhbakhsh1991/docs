@@ -53,6 +53,9 @@ export type {
   DenaliRegistrationDueLineCode,
 } from "./resolve-denali-registration-obligation";
 export {
+  resolveDenaliAllowMembershipDiscount,
+} from "./resolve-denali-allow-membership-discount";
+export {
   resolveDenaliPaymentCollectionMode,
   type DenaliPaymentCollectionMode,
 } from "./resolve-denali-payment-collection-mode";

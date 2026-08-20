@@ -152,3 +152,4 @@ export {
   type CommercialQuoteVersion,
   type CreateCommercialQuoteVersionInput,
 } from "./commercial-quote";
+export { readTourAllowMembershipDiscount } from "./commercial-quote";

@@ -767,6 +767,17 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     contextualVisibility: { kind: "groupInsuranceVisible" },
   },
   {
+    canonicalPath: "pricing.allowMembershipDiscount",
+    stepId: "denali_pricing",
+    rhfPath: "pricingPayment.allowMembershipDiscount",
+    zodPath: "pricingPayment.allowMembershipDiscount",
+    zodKind: "booleanOptional",
+    tags: ["core"] as const,
+    ruleDefaults: { required: false, hidden: false },
+    contextualVisibility: { kind: "whenTruthy", watchCanonical: "pricing.requiresPayment" },
+    notes: "DEC-CQ-011 — Finance quote freeze gate; default false when unset.",
+  },
+  {
     canonicalPath: "participants.nationalIdRequired",
     stepId: "denali_pricing",
     rhfPath: "participantRequirements.nationalIdRequired",

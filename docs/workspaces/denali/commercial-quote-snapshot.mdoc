@@ -217,6 +217,10 @@ Pure Finance reducer in `packages/finance-core/src/domain/commercial-quote/membe
 
 Prisma repository maps to `CommercialQuoteVersion.memberDiscount` on create/reload. Invoice compile unchanged (`payableMinor` only).
 
+### CQ-2D membership discount gate verification (implemented)
+
+Catalog field **`pricing.allowMembershipDiscount`** (wizard `pricingPayment.allowMembershipDiscount`) — Catalog owns storage; default fail-closed. Finance reads via `readTourAllowMembershipDiscount` at freeze; discount requires **both** gate true and Identity `(tenantId, userId)` fact. Denali resolver: `resolveDenaliAllowMembershipDiscount`.
+
 ### Reducer precedence at freeze
 
 When multiple facts exist, **one primary `source`** per version:

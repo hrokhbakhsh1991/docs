@@ -38,3 +38,4 @@ export {
   type CommercialQuoteFreezeInput,
   type CommercialQuotePaymentCollectionMode,
 } from "./freeze-input";
+export { readTourAllowMembershipDiscount } from "./read-tour-membership-discount-gate";
