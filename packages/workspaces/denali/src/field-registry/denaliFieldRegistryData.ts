@@ -775,7 +775,8 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     tags: ["core"] as const,
     ruleDefaults: { required: false, hidden: false },
     contextualVisibility: { kind: "whenTruthy", watchCanonical: "pricing.requiresPayment" },
-    notes: "DEC-CQ-011 / Discount MVP 2A — Finance quote freeze gate; UI default false; missing fail-closed.",
+    notes:
+      "DEC-CQ-011 / Discount MVP 2A + 2A.1 — Finance quote freeze gate; pricing.requiresPayment composite dependent; UI default false; missing fail-closed.",
   },
   {
     canonicalPath: "participants.nationalIdRequired",
