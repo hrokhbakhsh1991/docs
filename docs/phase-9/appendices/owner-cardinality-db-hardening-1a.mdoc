@@ -1,0 +1,114 @@
+---
+title: Owner DB Hardening 1-A — audit and partial unique index
+description: Production validation + constraint preparation for exactly-one ACTIVE owner (defense in depth after P1.3-B service wire).
+---
+
+# Owner DB Hardening 1-A
+
+```yaml
+id: OWNER-CARDINALITY-DB-HARDENING-1A
+version: "2026-08-20"
+status: LOCKED
+phase: P1.3-C / Owner-DB-1A
+authority: owner-cardinality-invariant.mdoc · users-rbac.policy.ts
+decisions: [DEC-OWN-DB-001, DEC-OWN-DB-002, DEC-OWN-DB-003, DEC-OWN-DB-004]
+related:
+  - owner-cardinality-invariant.mdoc
+  - ../../workspaces/denali/user-benefits-commercial-roadmap.mdoc
+```
+
+## Locked rule
+
+Each tenant must have **exactly one** `UserTenant` with `role = owner` **and** `status = ACTIVE`, **except** the provisioning window with a pending owner invite (zero ACTIVE owners allowed until accept).
+
+```text
+isActiveOwner ⇔ role = owner AND status = ACTIVE
+```
+
+Suspended / non-ACTIVE `role=owner` rows do **not** count toward the unique index.
+
+## Scope
+
+| In | Out |
+| -- | --- |
+| Live data audit (staging first) | UI |
+| Manual remediation plan (no auto-fix) | Discount / wallet / credit |
+| Partial unique index migration | Owner lifecycle changes |
+| Migration safety + tests | Triggers |
+
+## Step 1 — Live data audit
+
+**Runner:** `pnpm --filter @apps/api run audit:owner-cardinality`
+
+**Requires:** `DATABASE_URL_ADMIN` (preferred) or `DATABASE_URL` with admin/bypass-RLS access.
+
+**Queries (see `scripts/audit-owner-cardinality.sql`):**
+
+1. Multiple ACTIVE owners per tenant
+2. Zero ACTIVE owners **with** at least one membership (classify provisioning vs invalid)
+3. Role distribution
+4. Status distribution
+5. Soft owners (`role=owner` AND `status <> ACTIVE`)
+
+**Do not auto-fix.** Export findings for manual remediation.
+
+## Step 2 — Remediation plan (manual)
+
+| Finding | Recommended action |
+| ------- | ------------------ |
+| Multiple ACTIVE owners | Keep one canonical owner; demote others to `admin` (or agreed role) via controlled transfer/ops |
+| Zero ACTIVE owners + pending `operator_pending_invites` with `role=owner` + `INVITED` | **Provisioning** — leave until invite accept |
+| Zero ACTIVE owners + memberships, **no** pending owner invite | **Invalid active tenant** — assign/create owner via bootstrap invite or ops |
+| Soft owners only | Allowed by index; ensure one ACTIVE owner exists for live tenants |
+
+## Step 3 — Constraint design
+
+After audit green (zero multi-owner tenants):
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS uq_user_tenants_one_active_owner
+  ON user_tenants (tenant_id)
+  WHERE role = 'owner' AND status = 'ACTIVE';
+```
+
+| Design choice | Lock |
+| ------------- | ---- |
+| Partial unique index | DEC-OWN-DB-001 |
+| No trigger | DEC-OWN-DB-002 |
+| No owner lifecycle change | DEC-OWN-DB-002 |
+| Migration preflight fails on multi-owner | DEC-OWN-DB-003 |
+
+## Step 4 — Migration safety
+
+| Check | Status |
+| ----- | ------ |
+| Services already enforce invariant (P1.3-B) | Defense in depth — index is not the only gate |
+| Transfer demotes previous owner **before** promoting target | Compatible with unique index (never 2 ACTIVE owners mid-tx) |
+| Bootstrap / provisioning with 0 ACTIVE owners | Index allows zero matching rows |
+| Index is defense in depth | DEC-OWN-DB-004 |
+
+## Step 5 — Tests
+
+| Test | Coverage |
+| ---- | -------- |
+| Migration SQL shape validation | Always-on |
+| Postgres: second ACTIVE owner insert rejected | Requires `DATABASE_URL` + `DATABASE_URL_ADMIN` |
+| Postgres: ownership transfer still works | Same |
+| Memory: bootstrap owner invite (OWN-INT-06) | Existing wire suite |
+| Memory: transfer yields one ACTIVE owner (OWN-INT-04) | Existing wire suite |
+
+## Apply gate
+
+| Environment | Gate |
+| ----------- | ---- |
+| Local / CI with empty or seeded clean data | Migration may apply |
+| Staging / production | **Audit green first** — zero multi-ACTIVE-owner tenants |
+
+## Decision index
+
+| ID | Decision |
+| -- | -------- |
+| DEC-OWN-DB-001 | Enforce with partial unique index on `(tenant_id) WHERE role=owner AND status=ACTIVE` |
+| DEC-OWN-DB-002 | No trigger; no owner lifecycle redesign |
+| DEC-OWN-DB-003 | Migration preflight aborts if any tenant has >1 ACTIVE owner |
+| DEC-OWN-DB-004 | Index is defense in depth; service policy remains source of product errors |
