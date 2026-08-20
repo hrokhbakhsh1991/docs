@@ -15,6 +15,8 @@ import {
 } from "./in-memory-identity.repository";
 import { getIdentityRepository } from "./create-identity-repository";
 import { createMobileOtpChallenge } from "./otp.service";
+import type { PendingInviteRecord } from "./in-memory-identity.repository";
+import { OPERATOR_INVITE_STATUS_INVITED } from "./invite-lifecycle";
 import {
   compileUserBookingSummaryFromCounts,
 } from "./compile-user-booking-summary";
@@ -243,28 +245,28 @@ export async function inviteWorkspaceUser(
     throw new InvitePhoneInvalidError();
   }
 
-  return repo.createPendingInvite({
+  const created = await repo.createPendingInvite({
     tenantId: auth.tenantId,
     phone,
     role: body.role,
     nameNote: body.nameNote,
     invitedByUserId: auth.userId,
   });
+  return {
+    inviteId: created.inviteId,
+    inviteToken: created.inviteToken,
+    phone: created.phone,
+    role: created.role,
+    status: OPERATOR_INVITE_STATUS_INVITED,
+  };
 }
 
-function toPendingInviteRow(record: {
-  readonly inviteId: string;
-  readonly phone: string;
-  readonly role: InviteUserResponse["role"];
-  readonly status: "INVITED";
-  readonly nameNote?: string;
-  readonly invitedByUserId: string;
-}): PendingInviteRow {
+function toPendingInviteRow(record: PendingInviteRecord): PendingInviteRow {
   return {
     inviteId: record.inviteId,
     phone: record.phone,
     role: record.role,
-    status: record.status,
+    status: OPERATOR_INVITE_STATUS_INVITED,
     nameNote: record.nameNote ?? null,
     invitedByUserId: record.invitedByUserId,
   };

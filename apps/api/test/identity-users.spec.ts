@@ -12,8 +12,10 @@ import {
   seedOperatorIdentityFixture,
 } from "./fixtures/operator-identity-fixture";
 import { getIdentityRepository } from "../src/identity/create-identity-repository";
-import { InviteAlreadyPendingError } from "../src/identity/in-memory-identity.repository";
+import { InviteAlreadyPendingError, InviteLifecycleError } from "../src/identity/in-memory-identity.repository";
 import { inviteWorkspaceUser } from "../src/identity/users.service";
+import { acceptWorkspaceInvite } from "../src/identity/invites.service";
+import { buildExpiredPendingInviteSeed, buildPendingInviteSeed } from "./fixtures/pending-invite-fixture";
 import { installHttpTestClient } from "./http-test-client";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
@@ -181,15 +183,16 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
   it("API-9.4-08 DELETE unknown invite returns 404 cross-tenant safe (R2)", async () => {
     const repo = getIdentityRepository();
     const foreignInviteId = "00000000-0000-4000-8000-000000009999";
-    repo.seedPendingInvite({
-      inviteId: foreignInviteId,
-      inviteToken: "00000000-0000-4000-8000-000000009998",
-      tenantId: "00000000-0000-4000-8000-000000000099",
-      phone: "+15550005555",
-      role: "member",
-      status: "INVITED",
-      invitedByUserId: "foreign-user",
-    });
+    repo.seedPendingInvite(
+      buildPendingInviteSeed({
+        inviteId: foreignInviteId,
+        inviteToken: "00000000-0000-4000-8000-000000009998",
+        tenantId: "00000000-0000-4000-8000-000000000099",
+        phone: "+15550005555",
+        role: "member",
+        invitedByUserId: "foreign-user",
+      })
+    );
 
     const response = await client.requestJson<UsersApiResponse>(
       "DELETE",
@@ -460,15 +463,16 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
   it("API-9.4-22 cross-tenant accept returns 403 (R5 · CP-9.4-05)", async () => {
     const repo = getIdentityRepository();
     const token = "00000000-0000-4000-8000-000000009997";
-    repo.seedPendingInvite({
-      inviteId: "00000000-0000-4000-8000-000000009996",
-      inviteToken: token,
-      tenantId: "00000000-0000-4000-8000-000000000099",
-      phone: OPERATOR_SMOKE.ownerMobile,
-      role: "member",
-      status: "INVITED",
-      invitedByUserId: "foreign-user",
-    });
+    repo.seedPendingInvite(
+      buildPendingInviteSeed({
+        inviteId: "00000000-0000-4000-8000-000000009996",
+        inviteToken: token,
+        tenantId: "00000000-0000-4000-8000-000000000099",
+        phone: OPERATOR_SMOKE.ownerMobile,
+        role: "member",
+        invitedByUserId: "foreign-user",
+      })
+    );
 
     const response = await client.requestJson<UsersApiResponse>(
       "POST",
@@ -980,5 +984,169 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
     const pending = await repo.listPendingInvitesByTenant(OPERATOR_SMOKE.tenantId);
     const matching = pending.filter((row) => row.phone === phone);
     assert.equal(matching.length, 1);
+  });
+
+  it("INVITE-TTL-01 pending invite before expiry accepts successfully", async () => {
+    const inviteeId = "00000000-0000-4000-8000-000000000881";
+    const inviteeMobile = "+15550008881";
+    const repo = getIdentityRepository();
+    repo.seedUser({ id: inviteeId, mobile: inviteeMobile });
+
+    const created = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
+      headers: operatorAuthHeaders(),
+      body: { phone: inviteeMobile, role: "member" },
+    });
+    assert.equal(created.status, 201);
+    const inviteToken = created.body.inviteToken;
+    assert.ok(typeof inviteToken === "string");
+
+    const accepted = await client.requestJson<UsersApiResponse>(
+      "POST",
+      `/auth/invite/${inviteToken}/accept`,
+      {
+        headers: {
+          ...operatorAuthHeaders(),
+          "x-user-id": inviteeId,
+          "x-workspace-id": "ws-invitee-ttl-01",
+        },
+      }
+    );
+    assert.equal(accepted.status, 200);
+    assert.equal(accepted.body.userId, inviteeId);
+    const membership = await repo.findMembership(inviteeId, OPERATOR_SMOKE.tenantId);
+    assert.ok(membership);
+    assert.equal(membership?.status, "ACTIVE");
+  });
+
+  it("INVITE-TTL-02 expired invite accept is rejected without membership", async () => {
+    const inviteeId = "00000000-0000-4000-8000-000000000882";
+    const inviteeMobile = "+15550008882";
+    const token = "00000000-0000-4000-8000-000000000882";
+    const repo = getIdentityRepository();
+    repo.seedUser({ id: inviteeId, mobile: inviteeMobile });
+    repo.seedPendingInvite(
+      buildExpiredPendingInviteSeed({
+        inviteId: "00000000-0000-4000-8000-000000000883",
+        inviteToken: token,
+        tenantId: OPERATOR_SMOKE.tenantId,
+        phone: inviteeMobile,
+        role: "member",
+        invitedByUserId: OPERATOR_SMOKE.ownerUserId,
+      })
+    );
+
+    const accepted = await client.requestJson<UsersApiResponse>(
+      "POST",
+      `/auth/invite/${token}/accept`,
+      {
+        headers: {
+          ...operatorAuthHeaders(),
+          "x-user-id": inviteeId,
+          "x-workspace-id": "ws-invitee-ttl-02",
+        },
+      }
+    );
+    assert.equal(accepted.status, 410);
+    assert.equal(accepted.body.code, "INVITE_EXPIRED");
+    assert.equal(await repo.findMembership(inviteeId, OPERATOR_SMOKE.tenantId), null);
+  });
+
+  it("INVITE-TTL-03 revoked invite accept is rejected", async () => {
+    const inviteeId = "00000000-0000-4000-8000-000000000884";
+    const inviteeMobile = "+15550008884";
+    const repo = getIdentityRepository();
+    repo.seedUser({ id: inviteeId, mobile: inviteeMobile });
+
+    const created = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
+      headers: operatorAuthHeaders(),
+      body: { phone: inviteeMobile, role: "viewer" },
+    });
+    assert.equal(created.status, 201);
+    const inviteId = created.body.inviteId;
+    const inviteToken = created.body.inviteToken;
+    assert.ok(typeof inviteId === "string" && typeof inviteToken === "string");
+
+    const revoked = await client.requestJson<UsersApiResponse>(
+      "DELETE",
+      `/users/invites/${inviteId}`,
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(revoked.status, 204);
+
+    const accepted = await client.requestJson<UsersApiResponse>(
+      "POST",
+      `/auth/invite/${inviteToken}/accept`,
+      {
+        headers: {
+          ...operatorAuthHeaders(),
+          "x-user-id": inviteeId,
+          "x-workspace-id": "ws-invitee-ttl-03",
+        },
+      }
+    );
+    assert.equal(accepted.status, 410);
+    assert.equal(accepted.body.code, "INVITE_REVOKED");
+    assert.equal(await repo.findMembership(inviteeId, OPERATOR_SMOKE.tenantId), null);
+  });
+
+  it("INVITE-TTL-04 invite expiry is isolated per tenant", async () => {
+    const phone = "+15550008885";
+    const inviteeId = "00000000-0000-4000-8000-000000000885";
+    const tenantB = "00000000-0000-4000-8000-000000000088";
+    const tokenA = "00000000-0000-4000-8000-000000000885";
+    const tokenB = "00000000-0000-4000-8000-000000000886";
+    const repo = getIdentityRepository();
+    repo.seedUser({ id: inviteeId, mobile: phone });
+
+    repo.seedPendingInvite(
+      buildExpiredPendingInviteSeed({
+        inviteId: "00000000-0000-4000-8000-000000000887",
+        inviteToken: tokenA,
+        tenantId: OPERATOR_SMOKE.tenantId,
+        phone,
+        role: "member",
+        invitedByUserId: OPERATOR_SMOKE.ownerUserId,
+      })
+    );
+    repo.seedPendingInvite(
+      buildPendingInviteSeed({
+        inviteId: "00000000-0000-4000-8000-000000000888",
+        inviteToken: tokenB,
+        tenantId: tenantB,
+        phone,
+        role: "member",
+        invitedByUserId: "00000000-0000-4000-8000-000000000188",
+      })
+    );
+
+    const tenantAAuth = {
+      userId: inviteeId,
+      tenantId: OPERATOR_SMOKE.tenantId,
+      role: "owner" as const,
+      status: "ACTIVE" as const,
+      workspaceId: "ws-invitee-ttl-04a",
+    };
+    const tenantBAuth = {
+      userId: inviteeId,
+      tenantId: tenantB,
+      role: "owner" as const,
+      status: "ACTIVE" as const,
+      workspaceId: "ws-invitee-ttl-04b",
+    };
+
+    await assert.rejects(
+      () => acceptWorkspaceInvite(tenantAAuth, tokenA, repo),
+      (error: unknown) => {
+        assert.ok(error instanceof InviteLifecycleError);
+        assert.equal(error.code, "INVITE_EXPIRED");
+        return true;
+      }
+    );
+    assert.equal(await repo.findMembership(inviteeId, OPERATOR_SMOKE.tenantId), null);
+
+    const acceptedB = await acceptWorkspaceInvite(tenantBAuth, tokenB, repo);
+    assert.equal(acceptedB.userId, inviteeId);
+    assert.equal(acceptedB.tenantId, tenantB);
+    assert.ok(await repo.findMembership(inviteeId, tenantB));
   });
 });

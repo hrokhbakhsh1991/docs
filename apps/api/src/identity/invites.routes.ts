@@ -10,6 +10,7 @@ import {
 } from "./invites.service";
 import {
   InviteAcceptConflictError,
+  InviteLifecycleError,
   InviteNotFoundError,
 } from "./in-memory-identity.repository";
 import { INVITE_ACCEPT_OWNER_PROTECTED } from "./users-rbac.policy";
@@ -55,6 +56,10 @@ export async function handleAcceptInvite(
         return;
       }
       sendHttpError(res, 409, { error: "conflict", code: error.code });
+      return;
+    }
+    if (error instanceof InviteLifecycleError) {
+      sendHttpError(res, 410, { error: "gone", code: error.code, inviteId: error.inviteId });
       return;
     }
     handleHttpError(res, error);

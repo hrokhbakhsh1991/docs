@@ -6,10 +6,14 @@ import {
   evaluateMembershipRemoval,
   evaluateInviteAccept,
   evaluateInviteCreate,
+  evaluateInviteLifecycleForAccept,
   RBAC_INSUFFICIENT_ROLE_PRIVILEGE,
   INVITE_ACCEPT_OWNER_PROTECTED,
   INVITE_ACCEPT_MEMBERSHIP_EXISTS,
   INVITE_ALREADY_PENDING,
+  INVITE_EXPIRED,
+  INVITE_REVOKED,
+  INVITE_ALREADY_ACCEPTED,
 } from "../src/identity/users-rbac.policy";
 
 describe("users-rbac.policy (DEC-P9-019)", () => {
@@ -114,5 +118,44 @@ describe("users-rbac.policy (DEC-P9-019)", () => {
   it("RBAC-INVITE-06 no pending invite allows create", () => {
     const decision = evaluateInviteCreate({ existingPendingInvite: null });
     assert.equal(decision.ok, true);
+  });
+
+  it("RBAC-INVITE-07 active invite before expiry allows accept lifecycle", () => {
+    const decision = evaluateInviteLifecycleForAccept({
+      status: "INVITED",
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    assert.equal(decision.ok, true);
+  });
+
+  it("RBAC-INVITE-08 expired invite rejects accept lifecycle", () => {
+    const decision = evaluateInviteLifecycleForAccept({
+      status: "INVITED",
+      expiresAt: new Date(Date.now() - 60_000),
+    });
+    assert.equal(decision.ok, false);
+    if (!decision.ok) {
+      assert.equal(decision.code, INVITE_EXPIRED);
+    }
+  });
+
+  it("RBAC-INVITE-09 revoked and accepted invite reject accept lifecycle", () => {
+    for (const status of ["REVOKED", "ACCEPTED", "EXPIRED"] as const) {
+      const decision = evaluateInviteLifecycleForAccept({
+        status,
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+      assert.equal(decision.ok, false);
+      if (!decision.ok) {
+        assert.equal(
+          decision.code,
+          status === "REVOKED"
+            ? INVITE_REVOKED
+            : status === "ACCEPTED"
+              ? INVITE_ALREADY_ACCEPTED
+              : INVITE_EXPIRED
+        );
+      }
+    }
   });
 });

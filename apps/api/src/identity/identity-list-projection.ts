@@ -21,4 +21,6 @@ export const PENDING_INVITE_LIST_SELECT = {
   status: true,
   nameNote: true,
   invitedByUserId: true,
+  createdAt: true,
+  expiresAt: true,
 } as const;

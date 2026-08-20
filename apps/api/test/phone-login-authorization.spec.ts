@@ -16,6 +16,7 @@ import {
 } from "../src/identity/phone-login-authorization";
 import { OPERATOR_SMOKE } from "./fixtures/operator-smoke-e2e-tenant";
 import { seedOperatorIdentityFixture } from "./fixtures/operator-identity-fixture";
+import { buildPendingInviteSeed } from "./fixtures/pending-invite-fixture";
 import { installMemoryStorageDriverForDescribe } from "./test-helpers";
 
 installMemoryStorageDriverForDescribe();
@@ -65,15 +66,16 @@ describe("phone-login-authorization.spec.ts", () => {
   it("AUTHZ-05 pending invite authorizes invitee mobile", async () => {
     const repo = resetIdentityRepositoryForTests();
     seedOperatorIdentityFixture();
-    repo.seedPendingInvite({
-      inviteId: "00000000-0000-4000-8000-000000000601",
-      inviteToken: "00000000-0000-4000-8000-000000000602",
-      tenantId: OPERATOR_SMOKE.tenantId,
-      phone: OPERATOR_SMOKE.inviteMobile,
-      role: "member",
-      status: "INVITED",
-      invitedByUserId: OPERATOR_SMOKE.ownerUserId,
-    });
+    repo.seedPendingInvite(
+      buildPendingInviteSeed({
+        inviteId: "00000000-0000-4000-8000-000000000601",
+        inviteToken: "00000000-0000-4000-8000-000000000602",
+        tenantId: OPERATOR_SMOKE.tenantId,
+        phone: OPERATOR_SMOKE.inviteMobile,
+        role: "member",
+        invitedByUserId: OPERATOR_SMOKE.ownerUserId,
+      })
+    );
     const authorized = await isPhoneAuthorizedForTenantLogin(
       OPERATOR_SMOKE.tenantId,
       OPERATOR_SMOKE.inviteMobile,

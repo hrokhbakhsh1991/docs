@@ -20,6 +20,9 @@ export const RBAC_INSUFFICIENT_ROLE_PRIVILEGE = "RBAC_INSUFFICIENT_ROLE_PRIVILEG
 export const INVITE_ACCEPT_OWNER_PROTECTED = "INVITE_ACCEPT_OWNER_PROTECTED" as const;
 export const INVITE_ACCEPT_MEMBERSHIP_EXISTS = "INVITE_ACCEPT_MEMBERSHIP_EXISTS" as const;
 export const INVITE_ALREADY_PENDING = "INVITE_ALREADY_PENDING" as const;
+export const INVITE_EXPIRED = "INVITE_EXPIRED" as const;
+export const INVITE_REVOKED = "INVITE_REVOKED" as const;
+export const INVITE_ALREADY_ACCEPTED = "INVITE_ALREADY_ACCEPTED" as const;
 
 export type RbacPolicyFailure = {
   readonly ok: false;
@@ -135,6 +138,46 @@ export function evaluateInviteCreate(input: {
 }): InviteCreateDecision {
   if (input.existingPendingInvite !== null) {
     return { ok: false, code: INVITE_ALREADY_PENDING };
+  }
+  return { ok: true };
+}
+
+export type InviteLifecycleFailure = {
+  readonly ok: false;
+  readonly code:
+    | typeof INVITE_EXPIRED
+    | typeof INVITE_REVOKED
+    | typeof INVITE_ALREADY_ACCEPTED;
+};
+
+export type InviteLifecycleDecision = RbacPolicySuccess | InviteLifecycleFailure;
+
+/**
+ * Accept is allowed only for active INVITED rows before expiresAt.
+ * Expired INVITED is rejected (caller may persist EXPIRED at write boundary).
+ */
+export function evaluateInviteLifecycleForAccept(input: {
+  readonly status: string;
+  readonly expiresAt: Date;
+  readonly now?: Date;
+}): InviteLifecycleDecision {
+  const now = input.now ?? new Date();
+  const status = input.status.trim().toUpperCase();
+
+  if (status === "ACCEPTED") {
+    return { ok: false, code: INVITE_ALREADY_ACCEPTED };
+  }
+  if (status === "REVOKED") {
+    return { ok: false, code: INVITE_REVOKED };
+  }
+  if (status === "EXPIRED") {
+    return { ok: false, code: INVITE_EXPIRED };
+  }
+  if (status !== "INVITED") {
+    return { ok: false, code: INVITE_REVOKED };
+  }
+  if (input.expiresAt.getTime() <= now.getTime()) {
+    return { ok: false, code: INVITE_EXPIRED };
   }
   return { ok: true };
 }

@@ -14,6 +14,7 @@ import {
   operatorAuthHeaders,
   seedOperatorIdentityFixture,
 } from "./fixtures/operator-identity-fixture";
+import { buildPendingInviteSeed } from "./fixtures/pending-invite-fixture";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
 installMemoryStorageDriverForDescribe();
@@ -115,26 +116,17 @@ describe("identity-login-preflight.spec.ts", () => {
   });
 
   it("AUTH-PF-05 pending invite mobile passes preflight and request-otp gate", async () => {
-    const repo = getIdentityRepository() as {
-      seedPendingInvite(record: {
-        inviteId: string;
-        inviteToken: string;
-        tenantId: string;
-        phone: string;
-        role: "member";
-        status: "INVITED";
-        invitedByUserId: string;
-      }): void;
-    };
-    repo.seedPendingInvite({
-      inviteId: "00000000-0000-4000-8000-000000000501",
-      inviteToken: "00000000-0000-4000-8000-000000000502",
-      tenantId: OPERATOR_SMOKE.tenantId,
-      phone: OPERATOR_SMOKE.inviteMobile,
-      role: "member",
-      status: "INVITED",
-      invitedByUserId: OPERATOR_SMOKE.ownerUserId,
-    });
+    const repo = getIdentityRepository();
+    repo.seedPendingInvite(
+      buildPendingInviteSeed({
+        inviteId: "00000000-0000-4000-8000-000000000501",
+        inviteToken: "00000000-0000-4000-8000-000000000502",
+        tenantId: OPERATOR_SMOKE.tenantId,
+        phone: OPERATOR_SMOKE.inviteMobile,
+        role: "member",
+        invitedByUserId: OPERATOR_SMOKE.ownerUserId,
+      })
+    );
 
     const preflight = await httpJson("POST", "/auth/phone-preflight", {
       headers: operatorAuthHeaders(),

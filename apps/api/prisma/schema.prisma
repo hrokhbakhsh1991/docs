@@ -465,6 +465,7 @@ model OperatorPendingInvite {
   nameNote        String?  @map("name_note")
   invitedByUserId String   @map("invited_by_user_id") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at")
+  expiresAt       DateTime @map("expires_at")
   tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, status], map: "idx_operator_pending_invites_tenant_status")
