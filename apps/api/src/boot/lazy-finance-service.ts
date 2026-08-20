@@ -31,6 +31,7 @@ import { HostFinanceScheduleAdapter } from "../workspace-finance/infrastructure/
 import { createFinanceObligationPort } from "../workspace-finance/finance-obligation.factory";
 import { resetFinanceCommercialQuoteStoreForTests } from "../workspace-finance/finance-commercial-quote-store";
 import { HostCommercialQuoteRepository } from "../workspace-finance/infrastructure/host-commercial-quote.repository";
+import { createCommercialQuoteServiceWithMemberDiscount } from "../workspace-finance/create-commercial-quote-service";
 import { CommercialQuoteService } from "@app-tour/finance-core/application";
 import { nullFinanceArObservationPort } from "@app-tour/finance-core/ports";
 import { resolveFinanceWorkspaceTypeForTenant } from "../workspace-finance/resolve-finance-workspace-type-for-tenant";
@@ -189,7 +190,7 @@ export async function getOrCreateFinanceServiceForWorkspaceType(
       if (sharedCommercialQuoteRepository === null) {
         sharedCommercialQuoteRepository = new HostCommercialQuoteRepository();
       }
-      commercialQuotes = new CommercialQuoteService(
+      commercialQuotes = createCommercialQuoteServiceWithMemberDiscount(
         sharedCommercialQuoteRepository,
         obligation,
         sharedClock!

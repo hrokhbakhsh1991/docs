@@ -52,8 +52,9 @@ export class InMemoryCommercialQuoteRepository implements CommercialQuoteReposit
       calculationVersion: input.calculationVersion ?? "quote-v1",
       supersedesVersionId: input.supersedesVersionId ?? null,
       createdAt: input.createdAt ?? new Date().toISOString(),
-      ...(input.tourId !== undefined ? { tourId: input.tourId } : {}),
-    };
+    ...(input.tourId !== undefined ? { tourId: input.tourId } : {}),
+    ...(input.memberDiscount !== undefined ? { memberDiscount: input.memberDiscount } : {}),
+  };
 
     quotesById.set(row.id, row);
     return cloneQuote(row);

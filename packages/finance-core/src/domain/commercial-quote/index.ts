@@ -31,3 +31,10 @@ export {
   type MemberDiscountQuoteMetadata,
   type MemberDiscountReducerResult,
 } from "./member-discount";
+export {
+  buildCommercialQuoteFreezeInput,
+  commercialQuoteMatchesFreezeInput,
+  type BuildCommercialQuoteFreezeInputArgs,
+  type CommercialQuoteFreezeInput,
+  type CommercialQuotePaymentCollectionMode,
+} from "./freeze-input";

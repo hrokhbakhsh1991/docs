@@ -1,13 +1,13 @@
 /**
- * Commercial Quote application service — version lifecycle + money-path freeze (CQ-1A / CQ-1B).
+ * Commercial Quote application service — version lifecycle + money-path freeze (CQ-1A / CQ-1B / CQ-2B).
  */
 
 import {
   assertCommercialQuoteChainNotLocked,
   assertCommercialQuoteMinor,
+  buildCommercialQuoteFreezeInput,
+  commercialQuoteMatchesFreezeInput,
   COMMERCIAL_QUOTE_CALCULATION_VERSION,
-  liveObligationMatchesQuoteVersion,
-  mapLiveObligationToQuoteInput,
   normalizeCommercialQuoteCurrency,
   type CommercialQuoteVersion,
   type CreateCommercialQuoteVersionInput,
@@ -15,6 +15,8 @@ import {
 import type { FinanceObligationPort } from "../ports/finance-receipt-defaults.port";
 import type { FinanceClockPort } from "../ports/finance-clock.port";
 import type { CommercialQuoteRepositoryPort } from "../ports/commercial-quote-repository.port";
+import type { CommercialQuoteFreezeContextPort } from "../ports/commercial-quote-freeze-context.port";
+import type { MembershipDiscountReadPort } from "../ports/membership-discount-read.port";
 
 function normalizeCreateInput(
   input: CreateCommercialQuoteVersionInput
@@ -30,6 +32,7 @@ function normalizeCreateInput(
     supersedesVersionId: input.supersedesVersionId ?? null,
     ...(input.createdAt !== undefined ? { createdAt: input.createdAt } : {}),
     ...(input.tourId !== undefined ? { tourId: input.tourId.trim() } : {}),
+    ...(input.memberDiscount !== undefined ? { memberDiscount: input.memberDiscount } : {}),
   };
 }
 
@@ -37,7 +40,9 @@ export class CommercialQuoteService {
   constructor(
     private readonly quotes: CommercialQuoteRepositoryPort,
     private readonly obligation: FinanceObligationPort,
-    private readonly clock: FinanceClockPort
+    private readonly clock: FinanceClockPort,
+    private readonly freezeContext: CommercialQuoteFreezeContextPort | null = null,
+    private readonly membershipDiscount: MembershipDiscountReadPort | null = null
   ) {}
 
   async getActiveQuote(
@@ -81,16 +86,46 @@ export class CommercialQuoteService {
       return null;
     }
 
+    const paymentCollection = await this.obligation.resolveRegistrationPaymentCollection({
+      tenantId: normalizedTenantId,
+      registrationId: normalizedRegistrationId,
+    });
+
+    const freezeContext =
+      this.freezeContext === null
+        ? { memberUserId: null, allowMembershipDiscount: false }
+        : (await this.freezeContext.resolveRegistrationFreezeContext({
+            tenantId: normalizedTenantId,
+            registrationId: normalizedRegistrationId,
+          })) ?? { memberUserId: null, allowMembershipDiscount: false };
+
+    let membershipDiscountPercentage: number | null = null;
+    if (
+      this.membershipDiscount !== null &&
+      freezeContext.memberUserId !== null &&
+      freezeContext.allowMembershipDiscount
+    ) {
+      membershipDiscountPercentage =
+        await this.membershipDiscount.getMembershipDiscountPercentage(
+          normalizedTenantId,
+          freezeContext.memberUserId
+        );
+    }
+
     const quoteInput = normalizeCreateInput(
-      mapLiveObligationToQuoteInput({
+      buildCommercialQuoteFreezeInput({
         tenantId: normalizedTenantId,
         registrationId: normalizedRegistrationId,
         obligation: resolved,
+        paymentCollection,
+        memberUserId: freezeContext.memberUserId,
+        allowMembershipDiscount: freezeContext.allowMembershipDiscount,
+        membershipDiscountPercentage,
         createdAt: this.clock.nowIso(),
       })
     );
 
-    if (active !== null && liveObligationMatchesQuoteVersion(resolved, active)) {
+    if (active !== null && commercialQuoteMatchesFreezeInput(active, quoteInput)) {
       return active;
     }
     if (active !== null) {

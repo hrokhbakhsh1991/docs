@@ -53,6 +53,7 @@ export function createCommercialQuoteVersion(
     supersedesVersionId: input.supersedesVersionId ?? null,
     createdAt: input.createdAt ?? new Date().toISOString(),
     ...(input.tourId !== undefined ? { tourId: input.tourId } : {}),
+    ...(input.memberDiscount !== undefined ? { memberDiscount: input.memberDiscount } : {}),
   };
 
   quotesById.set(row.id, row);

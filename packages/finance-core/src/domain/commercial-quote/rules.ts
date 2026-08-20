@@ -59,6 +59,25 @@ export function commercialQuoteCommercialFieldsEqual(
     left.versionNumber === right.versionNumber &&
     left.supersedesVersionId === right.supersedesVersionId &&
     left.createdAt === right.createdAt &&
-    left.tourId === right.tourId
+    left.tourId === right.tourId &&
+    memberDiscountMetadataEqual(left.memberDiscount, right.memberDiscount)
+  );
+}
+
+function memberDiscountMetadataEqual(
+  left: CommercialQuoteVersion["memberDiscount"],
+  right: CommercialQuoteVersion["memberDiscount"]
+): boolean {
+  if (left === undefined && right === undefined) {
+    return true;
+  }
+  if (left === undefined || right === undefined) {
+    return false;
+  }
+  return (
+    left.percentageApplied === right.percentageApplied &&
+    left.discountMinor === right.discountMinor &&
+    left.memberUserId === right.memberUserId &&
+    left.membershipReference === right.membershipReference
   );
 }

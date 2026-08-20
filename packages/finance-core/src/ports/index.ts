@@ -111,6 +111,10 @@ export type {
 } from "./commercial-quote-repository.port";
 export type { MembershipDiscountReadPort } from "./membership-discount-read.port";
 export type {
+  CommercialQuoteFreezeContext,
+  CommercialQuoteFreezeContextPort,
+} from "./commercial-quote-freeze-context.port";
+export type {
   FinanceRegistrationDisplay,
   RegistrationDisplayPort,
 } from "./registration-display.port";

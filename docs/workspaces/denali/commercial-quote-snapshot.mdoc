@@ -202,6 +202,10 @@ Pure Finance reducer in `packages/finance-core/src/domain/commercial-quote/membe
 - `MembershipDiscountReadPort.getMembershipDiscountPercentage(tenantId, userId)` — interface only; Identity implements in CQ-2B+.
 - 0 / null percentage → no reducer (`source` stays `tour_canonical` at wiring time).
 
+### CQ-2B member discount freeze (implemented — orchestration only)
+
+`CommercialQuoteService.ensureFrozenForMoneyPath` runs the locked pipeline: gross → override → free collection → `allowMembershipDiscount` gate → `(tenantId, memberUserId)` Identity read → reducer. Host implements `CommercialQuoteFreezeContextPort` + `MembershipDiscountReadPort`; finance-core has no Identity imports. Optional `memberDiscount` metadata on quote versions (in-memory persistence; Prisma column in CQ-2C).
+
 ### Reducer precedence at freeze
 
 When multiple facts exist, **one primary `source`** per version:

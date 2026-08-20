@@ -3,6 +3,8 @@
  * Pure value objects — no persistence or Prisma shapes.
  */
 
+import type { MemberDiscountQuoteMetadata } from "./member-discount";
+
 export const COMMERCIAL_QUOTE_SOURCES = [
   "tour_canonical",
   "operator_override",
@@ -36,6 +38,7 @@ export type CommercialQuoteVersion = {
   readonly supersedesVersionId: string | null;
   readonly createdAt: string;
   readonly tourId?: string;
+  readonly memberDiscount?: MemberDiscountQuoteMetadata;
 };
 
 export type CreateCommercialQuoteVersionInput = {
@@ -49,4 +52,5 @@ export type CreateCommercialQuoteVersionInput = {
   readonly supersedesVersionId?: string | null;
   readonly createdAt?: string;
   readonly tourId?: string;
+  readonly memberDiscount?: MemberDiscountQuoteMetadata;
 };

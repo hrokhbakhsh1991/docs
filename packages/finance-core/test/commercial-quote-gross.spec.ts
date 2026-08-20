@@ -94,11 +94,14 @@ function approvedBookingPort(): IBookingPaymentPort {
   };
 }
 
-function createHarness(obligation: LiveRegistrationObligation) {
+function createHarness(
+  obligation: LiveRegistrationObligation,
+  collection: "offline" | "free" = "offline"
+) {
   const booking = approvedBookingPort();
   const repo = new InMemoryFinanceRepository(booking);
   const quoteRepo = new InMemoryCommercialQuoteRepository();
-  const port = obligationPort(obligation);
+  const port = obligationPort(obligation, collection);
   const commercialQuotes = new CommercialQuoteService(quoteRepo, port, FakeClock);
   const finance = createFinanceService(
     createFakeLedgerPolicy(),
