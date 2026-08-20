@@ -8,10 +8,10 @@ import {
 } from "./migration-head-preflight";
 
 describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
-  it("expected head matches tip migration folder (active_self_unique)", () => {
+  it("expected head matches tip migration folder (commercial_quote_member_discount)", () => {
     assert.equal(
       EXPECTED_PRISMA_MIGRATION_HEAD,
-      "20260810120000_operator_registration_active_self_unique"
+      "20260820150000_finance_commercial_quote_member_discount"
     );
   });
 

@@ -45,12 +45,19 @@ After a failed `migrate deploy`, the DB schema may sit at migration **N-1** whil
 | `20260807120000_operator_registration_departure_keyset_index` | Bookings ops | Departure keyset index |
 | `20260809120000_finance_refunds` | Finance | Durable finance refunds + RLS |
 | `20260810120000_operator_registration_active_self_unique` | Denali self/other | Replace submitter-wide unique with self-only partial unique |
+| `20260820130000_operator_pending_invite_expires_at` | User stack P1.2 | `operator_pending_invites.expires_at` NOT NULL (7-day backfill) |
+| `20260820140000_finance_commercial_quotes` | CQ-1C | `finance_commercial_quotes` version chain + tenant RLS + `app_tour` DML |
+| `20260820150000_finance_commercial_quote_member_discount` | CQ-2C | Member-discount provenance columns on quote versions |
 
-Current head: **`20260810120000_operator_registration_active_self_unique`** — must move in lockstep with `prisma/migrations/`.
+Current head: **`20260820150000_finance_commercial_quote_member_discount`** — must move in lockstep with `prisma/migrations/`.
 
-**Why self-unique tip:** Denali allows one booker to register multiple `other` guests; legacy `uq_operator_reg_active_user` blocked that. See [registration-self-other-uniqueness.mdoc](../../workspaces/denali/registration-self-other-uniqueness.mdoc).
+**Why this tip:** Prisma folder order is lexicographic. User + Finance + Discount landed three folders after `active_self_unique`. Tip is the last of that chain (`member_discount` columns on `finance_commercial_quotes`). Skipping the bump left `EXPECTED_PRISMA_MIGRATION_HEAD` at `20260810120000_operator_registration_active_self_unique` while the tip folder was `20260820150000_*` — `guard:migration-head-preflight` FAIL (MR-P0-003) and `booking-postgres-gate` red.
 
-`REQUIRED_PRISMA_MIGRATION_NAMES` must include prior intermediates that production probes still require (e.g. phone unique + portal member plans) **and** the tip folder name. Bump both the tip constant and the required list in the same PR as any new migration folder (MASTER `MR-P0-003`).
+**Self-unique stays required, not tip:** Denali still needs `20260810120000_operator_registration_active_self_unique` applied on production (one booker, many `other` guests). That folder name moves into `REQUIRED_PRISMA_MIGRATION_NAMES` as an intermediate so boot still fails if that uniqueness migration is missing even when a later tip row exists. See [registration-self-other-uniqueness.mdoc](../../workspaces/denali/registration-self-other-uniqueness.mdoc).
+
+**Quote table contract (tip chain):** `20260820140000` creates immutable quote versions (`tenant_id`, `registration_id`, `version_number` unique) with FORCE RLS. `20260820150000` adds nullable provenance: `member_discount_percentage_applied`, `member_discount_minor`, `member_discount_member_user_id`, `member_discount_membership_reference`. Production that has the table but not the discount columns would still mismatch the embedded tip. See [commercial-quote-snapshot.mdoc](../../workspaces/denali/commercial-quote-snapshot.mdoc).
+
+`REQUIRED_PRISMA_MIGRATION_NAMES` must include prior intermediates that production probes still require (e.g. phone unique + portal member plans + self-unique + invite TTL + commercial quotes table) **and** the tip folder name. Bump both the tip constant and the required list in the same PR as any new migration folder (MASTER `MR-P0-003`).
 
 **CI:** `booking-postgres-gate` runs `guard:migration-head-preflight` before migrate so a stale constant fails the release path (MASTER `MR-P0-003`).
 
