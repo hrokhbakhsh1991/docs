@@ -329,7 +329,7 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
       }
     );
     assert.equal(response.status, 403);
-    assert.equal(response.body.code, "RBAC_SELF_ROLE_CHANGE_FORBIDDEN");
+    assert.equal(response.body.code, "RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN");
   });
 
   it("API-9.4-15 owner PATCH member rewards persists discount (R4)", async () => {
@@ -727,7 +727,7 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
       { headers: operatorAuthHeaders() }
     );
     assert.equal(response.status, 403);
-    assert.equal(response.body.code, "RBAC_SELF_ROLE_CHANGE_FORBIDDEN");
+    assert.equal(response.body.code, "RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN");
   });
 
   it("API-9.4-28 suspended member still listed in GET /users (R1)", async () => {

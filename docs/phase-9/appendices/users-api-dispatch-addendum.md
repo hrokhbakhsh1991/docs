@@ -143,7 +143,7 @@ Gate: **`isOwner`**. Per-target RBAC matches single-user routes. Role changes ap
 
 **Invite lifecycle / TTL:** Pending invites carry `expiresAt` (default 7d). Accept before expiry; after expiry → **410** `INVITE_EXPIRED`. Revoke → **410** `INVITE_REVOKED`. Rows retained as `ACCEPTED` / `EXPIRED` / `REVOKED`. Resend (R6) does **not** extend TTL or rotate token. See [`invite-lifecycle-invariant.mdoc`](invite-lifecycle-invariant.mdoc).
 
-**Owner cardinality (P1.3-A, policy only):** exactly one `UserTenant` with `role=owner` **and** `status=ACTIVE` per tenant. See [`owner-cardinality-invariant.mdoc`](owner-cardinality-invariant.mdoc). Mutation wiring is a later subphase.
+**Owner cardinality (P1.3-B):** exactly one `UserTenant` with `role=owner` **and** `status=ACTIVE` per tenant. Enforced in `users.service` / `invites.service` via `users-rbac.policy.ts`. See [`owner-cardinality-invariant.mdoc`](owner-cardinality-invariant.mdoc).
 
 ## Urban regression (RULE-P9-002)
 

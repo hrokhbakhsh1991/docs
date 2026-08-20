@@ -273,6 +273,25 @@ export function evaluateOwnerCreate(input: {
   return { ok: true };
 }
 
+/** Shared write-boundary assert for platform owner invite accept (service + repo). */
+export function assertOwnerCreateAllowed(activeOwnerCount: number): void {
+  const decision = evaluateOwnerCreate({ activeOwnerCount });
+  if (!decision.ok) {
+    throw new OwnerCreateForbiddenError();
+  }
+}
+
+/** Reject second ACTIVE owner at invite-accept write boundary. */
+export class OwnerCreateForbiddenError extends Error {
+  readonly statusCode = 403 as const;
+  readonly code = RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN;
+
+  constructor() {
+    super(RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN);
+    this.name = "OwnerCreateForbiddenError";
+  }
+}
+
 export type OwnershipTransferSuccess = RbacPolicySuccess & {
   readonly previousOwnerNewRole: "admin";
   readonly targetNewRole: "owner";

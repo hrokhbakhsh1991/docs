@@ -25,9 +25,11 @@ import {
   INVITE_ALREADY_PENDING,
   INVITE_EXPIRED,
   INVITE_REVOKED,
+  assertOwnerCreateAllowed,
   evaluateInviteAccept,
   evaluateInviteCreate,
   evaluateInviteLifecycleForAccept,
+  isActiveOwner,
 } from "./users-rbac.policy";
 import {
   matchesDirectoryPair,
@@ -62,7 +64,8 @@ export type PendingInviteRecord = {
   readonly inviteToken: string;
   readonly tenantId: string;
   readonly phone: string;
-  readonly role: InvitableWorkspaceRole;
+  /** Workspace invites: admin|member|viewer. Platform bootstrap may use owner. */
+  readonly role: InvitableWorkspaceRole | "owner";
   readonly status: OperatorInviteLifecycleStatus;
   readonly createdAt: Date;
   readonly expiresAt: Date;
@@ -564,6 +567,17 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     const key = membershipKey(userId, invite.tenantId);
     const existing = this.memberships.get(key);
     assertInviteAcceptCreatesMembership(existing === undefined ? null : existing.role);
+
+    // P1.3-B write-boundary race guard — same evaluateOwnerCreate as service.
+    if (invite.role === "owner") {
+      let activeOwnerCount = 0;
+      for (const row of this.memberships.values()) {
+        if (row.tenantId === invite.tenantId && isActiveOwner({ role: row.role, status: row.status })) {
+          activeOwnerCount += 1;
+        }
+      }
+      assertOwnerCreateAllowed(activeOwnerCount);
+    }
 
     const membership: IdentityMembershipRecord = {
       userId,

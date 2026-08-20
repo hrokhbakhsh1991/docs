@@ -1,6 +1,6 @@
 ---
 title: Exactly one ACTIVE owner invariant
-description: Domain policy — each tenant has exactly one UserTenant with role=owner AND status=ACTIVE. Policy-only in P1.3-A (no migration, no mutation wiring).
+description: Domain policy — each tenant has exactly one UserTenant with role=owner AND status=ACTIVE. Wired into mutation flows in P1.3-B (no migration yet).
 ---
 
 # Exactly one ACTIVE owner invariant
@@ -9,8 +9,8 @@ description: Domain policy — each tenant has exactly one UserTenant with role=
 id: OWNER-CARDINALITY-INVARIANT
 version: "2026-08-20"
 status: LOCKED
-phase: P1.3-A
-authority: users-rbac.policy.ts
+phase: P1.3-B
+authority: users-rbac.policy.ts · users.service.ts · invites.service.ts
 decisions: [DEC-P9-015, DEC-P9-018, DEC-P9-019]
 related:
   - subphases/9.4-users-rbac.md
@@ -28,21 +28,32 @@ Every tenant/workspace has **exactly one ACTIVE owner**.
 isActiveOwner ⇔ role = owner AND status = ACTIVE
 ```
 
-Suspended `role=owner` rows are **not** owners for cardinality. Zero ACTIVE owners is invalid (except the documented provision bootstrap window, which P1.3-A policy treats as `evaluateOwnerCreate` allow). Multiple ACTIVE owners is invalid.
+Suspended `role=owner` rows are **not** owners for cardinality. Zero ACTIVE owners is invalid (except the documented provision bootstrap window, which `evaluateOwnerCreate` allows). Multiple ACTIVE owners is invalid.
 
 ## Policy location
 
-Pure functions in `apps/api/src/identity/users-rbac.policy.ts` (same module as rank / invite-accept / invite-lifecycle). Not controller-only. P1.3-A does **not** wire callers; mutation paths stay on existing rank checks until P1.3-B.
+Pure functions in `apps/api/src/identity/users-rbac.policy.ts`. Callers (P1.3-B):
 
-| Question | Function |
-| -------- | -------- |
-| PATCH demote owner? | `evaluateOwnerRoleChange` |
-| Remove membership? | `evaluateOwnerMembershipRemoval` |
-| Suspend membership? | `evaluateOwnerMembershipSuspend` |
-| Create owner membership? | `evaluateOwnerCreate` |
-| Transfer ownership? | `evaluateOwnershipTransfer` |
+| Mutation | Service | Policy |
+| -------- | ------- | ------ |
+| PATCH role | `patchWorkspaceUserRoleCore` | `evaluateOwnerRoleChange` then rank |
+| DELETE member | `removeWorkspaceUser` | `evaluateOwnerMembershipRemoval` then rank |
+| PATCH suspend | `suspendWorkspaceUserCore` | `evaluateOwnerMembershipSuspend` then rank |
+| Ownership transfer | `transferWorkspaceOwnership` | `evaluateOwnershipTransfer` then repo |
+| Invite accept (`role=owner`) | `acceptWorkspaceInvite` | `evaluateOwnerCreate` after join-only check |
+| Bulk role / remove / suspend | same cores | no parallel checks |
 
-Helper: `isActiveOwner({ role, status })`.
+## Repository boundary
+
+- **Service-enforced** for PATCH / remove / suspend (directory always goes through `users.service`). Repo `updateMembershipRole` / `removeMembership` / `updateMembershipStatus` stay thin — no duplicated policy copy.
+- **Transfer** repo keeps structural checks (membership exists, target ACTIVE); **cardinality** is decided in service via `evaluateOwnershipTransfer` before persist.
+- **Owner invite accept:** service calls `evaluateOwnerCreate`; `acceptPendingInvite` also re-checks when `invite.role === owner` (write-boundary race guard, same policy function — not a second ruleset).
+
+## Non-goals (P1.3-B)
+
+- No Prisma migration / partial unique index (later).
+- No UI / route / HTTP contract changes.
+- No parallel RBAC module.
 
 ## Decision table
 
@@ -68,14 +79,7 @@ ACTIVE owner count after = 1
 
 Transfer is rejected when `activeOwnerUserIds` is not exactly `[actorUserId]` — extras would remain owner after the swap, violating exactly-one.
 
-## Non-goals (P1.3-A)
-
-- No Prisma migration / partial unique index (P1.3-B+).
-- No service/repository wiring.
-- No HTTP contract change.
-- No UI.
-
-## Sequence (intended later wiring)
+## Sequence
 
 ```mermaid
 sequenceDiagram

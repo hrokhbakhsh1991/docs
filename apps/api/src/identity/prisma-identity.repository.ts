@@ -45,7 +45,9 @@ import {
 } from "./in-memory-identity.repository";
 import {
   INVITE_EXPIRED,
+  assertOwnerCreateAllowed,
   evaluateInviteLifecycleForAccept,
+  isActiveOwner,
 } from "./users-rbac.policy";
 import {
   mergeMembershipMetadata,
@@ -551,6 +553,18 @@ export class PrismaIdentityRepository implements IdentityRepository {
         where: { userId_tenantId: { userId, tenantId: invite.tenantId } },
       });
       assertInviteAcceptCreatesMembership(existing === null ? null : existing.role);
+
+      // P1.3-B write-boundary race guard — same evaluateOwnerCreate as service.
+      if (invite.role === "owner") {
+        const ownerRows = await tx.userTenant.findMany({
+          where: { tenantId: invite.tenantId, role: "owner", status: "ACTIVE" },
+          select: { userId: true, role: true, status: true },
+        });
+        const activeOwnerCount = ownerRows.filter((row) =>
+          isActiveOwner({ role: row.role, status: row.status })
+        ).length;
+        assertOwnerCreateAllowed(activeOwnerCount);
+      }
 
       const membership: IdentityMembershipRecord = {
         userId,

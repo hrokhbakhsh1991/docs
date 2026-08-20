@@ -13,7 +13,10 @@ import {
   InviteLifecycleError,
   InviteNotFoundError,
 } from "./in-memory-identity.repository";
-import { INVITE_ACCEPT_OWNER_PROTECTED } from "./users-rbac.policy";
+import {
+  INVITE_ACCEPT_OWNER_PROTECTED,
+  OwnerCreateForbiddenError,
+} from "./users-rbac.policy";
 import { requireOperatorSession } from "./require-operator-session";
 import { IdentityRequiredError } from "./identity.errors";
 
@@ -60,6 +63,10 @@ export async function handleAcceptInvite(
     }
     if (error instanceof InviteLifecycleError) {
       sendHttpError(res, 410, { error: "gone", code: error.code, inviteId: error.inviteId });
+      return;
+    }
+    if (error instanceof OwnerCreateForbiddenError) {
+      sendHttpError(res, 403, { error: "forbidden", code: error.code });
       return;
     }
     handleHttpError(res, error);

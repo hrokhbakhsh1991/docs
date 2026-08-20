@@ -146,7 +146,7 @@ describe("users-bulk.spec.ts — Phase 9.4 API R8", () => {
     assert.equal(response.body.items?.length, 2);
     assert.equal(response.body.failures?.length, 1);
     assert.equal(response.body.failures?.[0]?.userId, OPERATOR_SMOKE.ownerUserId);
-    assert.equal(response.body.failures?.[0]?.code, "RBAC_SELF_ROLE_CHANGE_FORBIDDEN");
+    assert.equal(response.body.failures?.[0]?.code, "RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN");
   });
 
   it("API-9.4-42 empty userIds returns 400 BULK_USER_IDS_REQUIRED (R8)", async () => {

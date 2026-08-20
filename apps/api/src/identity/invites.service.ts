@@ -9,7 +9,9 @@ import {
 import type { AcceptInviteResponse } from "./users.types";
 import {
   INVITE_EXPIRED,
+  assertOwnerCreateAllowed,
   evaluateInviteLifecycleForAccept,
+  isActiveOwner,
 } from "./users-rbac.policy";
 import { OPERATOR_INVITE_STATUS_INVITED } from "./invite-lifecycle";
 
@@ -63,6 +65,15 @@ export async function acceptWorkspaceInvite(
 
   const existing = await repo.findMembership(auth.userId, invite.tenantId);
   assertInviteAcceptCreatesMembership(existing === null ? null : existing.role);
+
+  // P1.3-B: platform owner invite → exactly-one ACTIVE owner (bootstrap vs reject).
+  if (invite.role === "owner") {
+    const memberships = await repo.listMembershipsByTenant(invite.tenantId);
+    const activeOwnerCount = memberships.filter((row) =>
+      isActiveOwner({ role: row.role, status: row.status })
+    ).length;
+    assertOwnerCreateAllowed(activeOwnerCount);
+  }
 
   const membership = await repo.acceptPendingInvite(invite.tenantId, inviteToken, auth.userId);
   if (membership === null) {
