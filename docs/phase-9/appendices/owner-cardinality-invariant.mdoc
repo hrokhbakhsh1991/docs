@@ -1,0 +1,92 @@
+---
+title: Exactly one ACTIVE owner invariant
+description: Domain policy — each tenant has exactly one UserTenant with role=owner AND status=ACTIVE. Policy-only in P1.3-A (no migration, no mutation wiring).
+---
+
+# Exactly one ACTIVE owner invariant
+
+```yaml
+id: OWNER-CARDINALITY-INVARIANT
+version: "2026-08-20"
+status: LOCKED
+phase: P1.3-A
+authority: users-rbac.policy.ts
+decisions: [DEC-P9-015, DEC-P9-018, DEC-P9-019]
+related:
+  - subphases/9.4-users-rbac.md
+  - users-api-dispatch-addendum.md
+  - invite-accept-membership-invariant.mdoc
+```
+
+## Locked product rule
+
+Every tenant/workspace has **exactly one ACTIVE owner**.
+
+**Owner** is not role-alone:
+
+```text
+isActiveOwner ⇔ role = owner AND status = ACTIVE
+```
+
+Suspended `role=owner` rows are **not** owners for cardinality. Zero ACTIVE owners is invalid (except the documented provision bootstrap window, which P1.3-A policy treats as `evaluateOwnerCreate` allow). Multiple ACTIVE owners is invalid.
+
+## Policy location
+
+Pure functions in `apps/api/src/identity/users-rbac.policy.ts` (same module as rank / invite-accept / invite-lifecycle). Not controller-only. P1.3-A does **not** wire callers; mutation paths stay on existing rank checks until P1.3-B.
+
+| Question | Function |
+| -------- | -------- |
+| PATCH demote owner? | `evaluateOwnerRoleChange` |
+| Remove membership? | `evaluateOwnerMembershipRemoval` |
+| Suspend membership? | `evaluateOwnerMembershipSuspend` |
+| Create owner membership? | `evaluateOwnerCreate` |
+| Transfer ownership? | `evaluateOwnershipTransfer` |
+
+Helper: `isActiveOwner({ role, status })`.
+
+## Decision table
+
+| Action | Allow | Reject | Code (existing vocabulary) |
+| ------ | ----- | ------ | -------------------------- |
+| PATCH role when target is ACTIVE owner | never (transfer only) | always | `RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN` |
+| PATCH role when target `role=owner` (any status) | never | always | `RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN` |
+| Remove ACTIVE owner | never | always | `RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN` |
+| Remove when remaining ACTIVE owners would be 0 | never | always | `RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN` |
+| Suspend ACTIVE owner | never | always | `RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN` |
+| Suspend when remaining ACTIVE owners would be 0 | never | always | `RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN` |
+| Create owner, `activeOwnerCount = 0` | bootstrap | — | — |
+| Create owner, `activeOwnerCount ≥ 1` | never | always | `RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN` |
+| Transfer | actor is the unique ACTIVE owner; target exists, ACTIVE, not that owner | otherwise | `OWNERSHIP_TRANSFER_FORBIDDEN` / `OWNERSHIP_TRANSFER_TARGET_INVALID` |
+
+### Transfer result (when ok)
+
+```text
+actor  : owner + ACTIVE  →  admin + ACTIVE
+target : (any non-owner role) + ACTIVE  →  owner + ACTIVE
+ACTIVE owner count after = 1
+```
+
+Transfer is rejected when `activeOwnerUserIds` is not exactly `[actorUserId]` — extras would remain owner after the swap, violating exactly-one.
+
+## Non-goals (P1.3-A)
+
+- No Prisma migration / partial unique index (P1.3-B+).
+- No service/repository wiring.
+- No HTTP contract change.
+- No UI.
+
+## Sequence (intended later wiring)
+
+```mermaid
+sequenceDiagram
+  participant S as users.service / invites.service
+  participant P as users-rbac.policy
+  participant R as IdentityRepository
+  S->>R: load memberships (role + status) for tenant
+  S->>P: evaluateOwner*
+  alt reject
+    P-->>S: coded failure
+  else allow
+    S->>R: persist
+  end
+```

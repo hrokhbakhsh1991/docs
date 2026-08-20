@@ -125,7 +125,7 @@ Gate: **`isOwner`**. Per-target RBAC matches single-user routes. Role changes ap
 | -------------------------------------------- | ---- | ----------------------------- |
 | `RBAC_SELF_ROLE_CHANGE_FORBIDDEN`            | 403  | Actor patches self            |
 | `RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN`       | 403  | PATCH or invite assigns owner |
-| `RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN` | 403  | Target is owner               |
+| `RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN` | 403  | Target is owner **or** mutation would leave zero ACTIVE owners (P1.3-A policy) |
 | `RBAC_INSUFFICIENT_ROLE_PRIVILEGE`           | 403  | Actor rank ≤ target           |
 | `INVITE_ACCEPT_OWNER_PROTECTED`              | 403  | Accept would overwrite an existing **owner** `UserTenant` |
 | `INVITE_ACCEPT_MEMBERSHIP_EXISTS`            | 409  | Accept when membership already exists (active **or** suspended); not an implicit reactivate |
@@ -142,6 +142,8 @@ Gate: **`isOwner`**. Per-target RBAC matches single-user routes. Role changes ap
 **Active invite uniqueness:** `POST /users/invite` allows at most one **INVITED** row per `(tenantId, normalized phone)`. Duplicate create → **409** `INVITE_ALREADY_PENDING` (existing `inviteId` in body). See [`invite-active-uniqueness-invariant.mdoc`](invite-active-uniqueness-invariant.mdoc).
 
 **Invite lifecycle / TTL:** Pending invites carry `expiresAt` (default 7d). Accept before expiry; after expiry → **410** `INVITE_EXPIRED`. Revoke → **410** `INVITE_REVOKED`. Rows retained as `ACCEPTED` / `EXPIRED` / `REVOKED`. Resend (R6) does **not** extend TTL or rotate token. See [`invite-lifecycle-invariant.mdoc`](invite-lifecycle-invariant.mdoc).
+
+**Owner cardinality (P1.3-A, policy only):** exactly one `UserTenant` with `role=owner` **and** `status=ACTIVE` per tenant. See [`owner-cardinality-invariant.mdoc`](owner-cardinality-invariant.mdoc). Mutation wiring is a later subphase.
 
 ## Urban regression (RULE-P9-002)
 
