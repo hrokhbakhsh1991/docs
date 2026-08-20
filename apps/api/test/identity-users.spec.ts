@@ -479,6 +479,132 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
     assert.equal(response.body.code, "INVITE_TENANT_MISMATCH");
   });
 
+  it("API-9.4-22b accept does not overwrite existing owner (INVITE-ACCEPT-MEMBERSHIP-INVARIANT)", async () => {
+    const repo = getIdentityRepository();
+    const before = await repo.findMembership(OPERATOR_SMOKE.ownerUserId, OPERATOR_SMOKE.tenantId);
+    assert.ok(before);
+    assert.equal(before.role, "owner");
+    const sessionVersionBefore = before.sessionVersion;
+
+    const created = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
+      headers: operatorAuthHeaders(),
+      body: { phone: OPERATOR_SMOKE.ownerMobile, role: "member" },
+    });
+    assert.equal(created.status, 201);
+    const inviteToken = created.body.inviteToken;
+    assert.ok(typeof inviteToken === "string");
+
+    const accepted = await client.requestJson<UsersApiResponse>(
+      "POST",
+      `/auth/invite/${inviteToken}/accept`,
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(accepted.status, 403);
+    assert.equal(accepted.body.code, "INVITE_ACCEPT_OWNER_PROTECTED");
+
+    const after = await repo.findMembership(OPERATOR_SMOKE.ownerUserId, OPERATOR_SMOKE.tenantId);
+    assert.ok(after);
+    assert.equal(after.role, "owner");
+    assert.equal(after.status, "ACTIVE");
+    assert.equal(after.sessionVersion, sessionVersionBefore);
+
+    const pending = await client.requestJson<UsersApiResponse>("GET", "/users/invites", {
+      headers: operatorAuthHeaders(),
+    });
+    const pendingPhones = (pending.body.items ?? []).map((row) => row.phone);
+    assert.ok(pendingPhones.includes(OPERATOR_SMOKE.ownerMobile));
+  });
+
+  it("API-9.4-22c accept does not overwrite existing member (INVITE-ACCEPT-MEMBERSHIP-INVARIANT)", async () => {
+    const repo = getIdentityRepository();
+    const before = await repo.findMembership(OPERATOR_SMOKE.memberUserId, OPERATOR_SMOKE.tenantId);
+    assert.ok(before);
+    assert.equal(before.role, "member");
+    const sessionVersionBefore = before.sessionVersion;
+
+    const created = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
+      headers: operatorAuthHeaders(),
+      body: { phone: OPERATOR_SMOKE.memberMobile, role: "admin" },
+    });
+    assert.equal(created.status, 201);
+    const inviteToken = created.body.inviteToken;
+    assert.ok(typeof inviteToken === "string");
+
+    const accepted = await client.requestJson<UsersApiResponse>(
+      "POST",
+      `/auth/invite/${inviteToken}/accept`,
+      {
+        headers: {
+          ...operatorAuthHeaders(),
+          "x-user-id": OPERATOR_SMOKE.memberUserId,
+          "x-actor-role": "member",
+        },
+      }
+    );
+    assert.equal(accepted.status, 409);
+    assert.equal(accepted.body.code, "INVITE_ACCEPT_MEMBERSHIP_EXISTS");
+
+    const after = await repo.findMembership(OPERATOR_SMOKE.memberUserId, OPERATOR_SMOKE.tenantId);
+    assert.ok(after);
+    assert.equal(after.role, "member");
+    assert.equal(after.sessionVersion, sessionVersionBefore);
+
+    const rows = await repo.listMembershipsByTenant(OPERATOR_SMOKE.tenantId);
+    const forMember = rows.filter((row) => row.userId === OPERATOR_SMOKE.memberUserId);
+    assert.equal(forMember.length, 1);
+  });
+
+  it("API-9.4-22d accept creates membership in A and leaves workspace B untouched", async () => {
+    const repo = getIdentityRepository();
+    const otherTenantId = "00000000-0000-4000-8000-000000000088";
+    const userId = "00000000-0000-4000-8000-000000000188";
+    const mobile = "+15550001888";
+    repo.seedUser({ id: userId, mobile });
+    repo.seedMembership({
+      userId,
+      tenantId: otherTenantId,
+      role: "owner",
+      status: "ACTIVE",
+      sessionVersion: 4,
+      workspaceId: "ws-foreign-b",
+    });
+
+    const created = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
+      headers: operatorAuthHeaders(),
+      body: { phone: mobile, role: "member" },
+    });
+    assert.equal(created.status, 201);
+    const inviteToken = created.body.inviteToken;
+    assert.ok(typeof inviteToken === "string");
+
+    const accepted = await client.requestJson<UsersApiResponse>(
+      "POST",
+      `/auth/invite/${inviteToken}/accept`,
+      {
+        headers: {
+          ...operatorAuthHeaders(),
+          "x-user-id": userId,
+          "x-actor-role": "member",
+          "x-workspace-id": "ws-invitee-pending",
+        },
+      }
+    );
+    assert.equal(accepted.status, 200);
+    assert.equal(accepted.body.role, "member");
+    assert.equal(accepted.body.userId, userId);
+
+    const membershipA = await repo.findMembership(userId, OPERATOR_SMOKE.tenantId);
+    assert.ok(membershipA);
+    assert.equal(membershipA.role, "member");
+    assert.equal(membershipA.status, "ACTIVE");
+
+    const membershipB = await repo.findMembership(userId, otherTenantId);
+    assert.ok(membershipB);
+    assert.equal(membershipB.role, "owner");
+    assert.equal(membershipB.sessionVersion, 4);
+    assert.equal(membershipB.status, "ACTIVE");
+  });
+
   it("API-9.4-09 owner POST resend returns same pending row (R2)", async () => {
     const created = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
       headers: operatorAuthHeaders(),

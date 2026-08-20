@@ -30,6 +30,7 @@ import {
   MembershipNotFoundError,
   OwnershipTransferForbiddenError,
   OwnershipTransferTargetInvalidError,
+  assertInviteAcceptCreatesMembership,
 } from "./in-memory-identity.repository";
 import {
   mergeMembershipMetadata,
@@ -461,40 +462,26 @@ export class PrismaIdentityRepository implements IdentityRepository {
       const existing = await tx.userTenant.findUnique({
         where: { userId_tenantId: { userId, tenantId: invite.tenantId } },
       });
+      assertInviteAcceptCreatesMembership(existing === null ? null : existing.role);
 
-      const membership: IdentityMembershipRecord =
-        existing === null
-          ? {
-              userId,
-              tenantId: invite.tenantId,
-              role: invite.role,
-              status: "ACTIVE",
-              sessionVersion: 1,
-              workspaceId: `ws-invite-${userId.slice(0, 8)}`,
-            }
-          : {
-              ...toMembershipRecord(existing),
-              role: invite.role,
-              status: "ACTIVE",
-              sessionVersion: existing.sessionVersion + 1,
-            };
+      const membership: IdentityMembershipRecord = {
+        userId,
+        tenantId: invite.tenantId,
+        role: invite.role,
+        status: "ACTIVE",
+        sessionVersion: 1,
+        workspaceId: `ws-invite-${userId.slice(0, 8)}`,
+      };
 
-      await tx.userTenant.upsert({
-        where: { userId_tenantId: { userId, tenantId: invite.tenantId } },
-        create: {
+      await tx.userTenant.create({
+        data: {
           userId,
           tenantId: invite.tenantId,
           role: membership.role,
           status: membership.status,
           sessionVersion: membership.sessionVersion,
           workspaceId: membership.workspaceId ?? null,
-          membershipMetadata: existing?.membershipMetadata ?? {},
-        },
-        update: {
-          role: membership.role,
-          status: membership.status,
-          sessionVersion: membership.sessionVersion,
-          ...(membership.workspaceId !== undefined ? { workspaceId: membership.workspaceId } : {}),
+          membershipMetadata: {},
         },
       });
 

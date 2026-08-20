@@ -1,7 +1,10 @@
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { getIdentityRepository, type IdentityRepository } from "./create-identity-repository";
-import { InviteNotFoundError } from "./in-memory-identity.repository";
+import {
+  InviteNotFoundError,
+  assertInviteAcceptCreatesMembership,
+} from "./in-memory-identity.repository";
 import type { AcceptInviteResponse } from "./users.types";
 
 export class InvitePhoneMismatchError extends Error {
@@ -40,6 +43,9 @@ export async function acceptWorkspaceInvite(
   if (user === null || user.mobile !== invite.phone) {
     throw new InvitePhoneMismatchError();
   }
+
+  const existing = await repo.findMembership(auth.userId, invite.tenantId);
+  assertInviteAcceptCreatesMembership(existing === null ? null : existing.role);
 
   const membership = await repo.acceptPendingInvite(invite.tenantId, inviteToken, auth.userId);
   if (membership === null) {

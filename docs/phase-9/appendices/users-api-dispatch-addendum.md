@@ -127,9 +127,13 @@ Gate: **`isOwner`**. Per-target RBAC matches single-user routes. Role changes ap
 | `RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN`       | 403  | PATCH or invite assigns owner |
 | `RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN` | 403  | Target is owner               |
 | `RBAC_INSUFFICIENT_ROLE_PRIVILEGE`           | 403  | Actor rank ≤ target           |
+| `INVITE_ACCEPT_OWNER_PROTECTED`              | 403  | Accept would overwrite an existing **owner** `UserTenant` |
+| `INVITE_ACCEPT_MEMBERSHIP_EXISTS`            | 409  | Accept when membership already exists (active **or** suspended); not an implicit reactivate |
 | `MEMBERSHIP_ALREADY_SUSPENDED`               | 409  | PATCH suspend on SUSPENDED row |
 | `MEMBERSHIP_NOT_SUSPENDED`                   | 409  | PATCH reactivate on ACTIVE row |
 | `OPERATOR_FORBIDDEN`                         | 403  | Member on admin surface       |
+
+**Invite accept invariant:** `POST /auth/invite/{token}/accept` creates a membership only when no `UserTenant` exists for `(userId, invite.tenantId)`. Existing rows are never upserted (role / status / `sessionVersion` unchanged; invite row not consumed). See [`invite-accept-membership-invariant.mdoc`](invite-accept-membership-invariant.mdoc).
 
 ## Urban regression (RULE-P9-002)
 

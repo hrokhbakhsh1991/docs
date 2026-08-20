@@ -4,7 +4,10 @@ import { describe, it } from "node:test";
 import {
   evaluateMembershipRoleChange,
   evaluateMembershipRemoval,
+  evaluateInviteAccept,
   RBAC_INSUFFICIENT_ROLE_PRIVILEGE,
+  INVITE_ACCEPT_OWNER_PROTECTED,
+  INVITE_ACCEPT_MEMBERSHIP_EXISTS,
 } from "../src/identity/users-rbac.policy";
 
 describe("users-rbac.policy (DEC-P9-019)", () => {
@@ -63,5 +66,36 @@ describe("users-rbac.policy (DEC-P9-019)", () => {
       newRole: "viewer",
     });
     assert.equal(decision.ok, false);
+  });
+
+  it("RBAC-INVITE-01 no existing membership allows accept", () => {
+    const decision = evaluateInviteAccept({ existingMembershipRole: null });
+    assert.equal(decision.ok, true);
+  });
+
+  it("RBAC-INVITE-02 existing owner is protected", () => {
+    const decision = evaluateInviteAccept({ existingMembershipRole: "owner" });
+    assert.equal(decision.ok, false);
+    if (!decision.ok) {
+      assert.equal(decision.code, INVITE_ACCEPT_OWNER_PROTECTED);
+    }
+  });
+
+  it("RBAC-INVITE-03 existing member/admin/viewer is duplicate", () => {
+    for (const role of ["admin", "member", "viewer"] as const) {
+      const decision = evaluateInviteAccept({ existingMembershipRole: role });
+      assert.equal(decision.ok, false);
+      if (!decision.ok) {
+        assert.equal(decision.code, INVITE_ACCEPT_MEMBERSHIP_EXISTS);
+      }
+    }
+  });
+
+  it("RBAC-INVITE-04 suspended membership uses same duplicate reject (not implicit reactivate)", () => {
+    const decision = evaluateInviteAccept({ existingMembershipRole: "member" });
+    assert.equal(decision.ok, false);
+    if (!decision.ok) {
+      assert.equal(decision.code, INVITE_ACCEPT_MEMBERSHIP_EXISTS);
+    }
   });
 });

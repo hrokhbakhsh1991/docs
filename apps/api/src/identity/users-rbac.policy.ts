@@ -17,6 +17,8 @@ export const RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN = "RBAC_OWNER_ROLE_ASSIGNMENT_
 export const RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN =
   "RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN" as const;
 export const RBAC_INSUFFICIENT_ROLE_PRIVILEGE = "RBAC_INSUFFICIENT_ROLE_PRIVILEGE" as const;
+export const INVITE_ACCEPT_OWNER_PROTECTED = "INVITE_ACCEPT_OWNER_PROTECTED" as const;
+export const INVITE_ACCEPT_MEMBERSHIP_EXISTS = "INVITE_ACCEPT_MEMBERSHIP_EXISTS" as const;
 
 export type RbacPolicyFailure = {
   readonly ok: false;
@@ -89,4 +91,30 @@ export function evaluateMembershipRemoval(input: {
   }
 
   return { ok: true };
+}
+
+export type InviteAcceptFailure = {
+  readonly ok: false;
+  readonly code: typeof INVITE_ACCEPT_OWNER_PROTECTED | typeof INVITE_ACCEPT_MEMBERSHIP_EXISTS;
+};
+
+export type InviteAcceptDecision = RbacPolicySuccess | InviteAcceptFailure;
+
+/**
+ * Invite accept is join-only. Existing UserTenant in the invite tenant must not be upserted.
+ * Suspended rows are rejected — reactivate stays PATCH /users/{id}/reactivate.
+ */
+export function evaluateInviteAccept(input: {
+  readonly existingMembershipRole: string | null;
+}): InviteAcceptDecision {
+  if (input.existingMembershipRole === null) {
+    return { ok: true };
+  }
+
+  const role = input.existingMembershipRole.trim().toLowerCase();
+  if (role === "owner") {
+    return { ok: false, code: INVITE_ACCEPT_OWNER_PROTECTED };
+  }
+
+  return { ok: false, code: INVITE_ACCEPT_MEMBERSHIP_EXISTS };
 }

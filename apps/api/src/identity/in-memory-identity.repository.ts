@@ -10,6 +10,11 @@ import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
 import { MobileAlreadyRegisteredError } from "./identity.errors";
 import type { InvitableWorkspaceRole, UsersListQuery } from "./users.types";
 import {
+  INVITE_ACCEPT_MEMBERSHIP_EXISTS,
+  INVITE_ACCEPT_OWNER_PROTECTED,
+  evaluateInviteAccept,
+} from "./users-rbac.policy";
+import {
   matchesDirectoryPair,
   sortDirectoryPairs,
 } from "./users-directory-query";
@@ -488,22 +493,16 @@ export class InMemoryIdentityRepository implements IdentityRepository {
 
     const key = membershipKey(userId, invite.tenantId);
     const existing = this.memberships.get(key);
-    const membership: IdentityMembershipRecord =
-      existing === undefined
-        ? {
-            userId,
-            tenantId: invite.tenantId,
-            role: invite.role,
-            status: "ACTIVE",
-            sessionVersion: 1,
-            workspaceId: `ws-invite-${userId.slice(0, 8)}`,
-          }
-        : {
-            ...existing,
-            role: invite.role,
-            status: "ACTIVE",
-            sessionVersion: existing.sessionVersion + 1,
-          };
+    assertInviteAcceptCreatesMembership(existing === undefined ? null : existing.role);
+
+    const membership: IdentityMembershipRecord = {
+      userId,
+      tenantId: invite.tenantId,
+      role: invite.role,
+      status: "ACTIVE",
+      sessionVersion: 1,
+      workspaceId: `ws-invite-${userId.slice(0, 8)}`,
+    };
 
     this.memberships.set(key, membership);
     this.invites.delete(invite.inviteId);
@@ -742,6 +741,25 @@ export class InviteNotFoundError extends Error {
   constructor(readonly inviteId: string) {
     super(`INVITE_NOT_FOUND:${inviteId}`);
     this.name = "InviteNotFoundError";
+  }
+}
+
+export class InviteAcceptConflictError extends Error {
+  readonly code: typeof INVITE_ACCEPT_OWNER_PROTECTED | typeof INVITE_ACCEPT_MEMBERSHIP_EXISTS;
+
+  constructor(code: InviteAcceptConflictError["code"]) {
+    super(code);
+    this.name = "InviteAcceptConflictError";
+    this.code = code;
+  }
+}
+
+export function assertInviteAcceptCreatesMembership(
+  existingMembershipRole: string | null
+): void {
+  const decision = evaluateInviteAccept({ existingMembershipRole });
+  if (!decision.ok) {
+    throw new InviteAcceptConflictError(decision.code);
   }
 }
 
