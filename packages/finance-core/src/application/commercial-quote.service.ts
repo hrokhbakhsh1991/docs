@@ -1,16 +1,19 @@
 /**
- * Commercial Quote application service — version lifecycle only (CQ-1A).
- * No invoice, payment, or live obligation wiring in this phase.
+ * Commercial Quote application service — version lifecycle + money-path freeze (CQ-1A / CQ-1B).
  */
 
 import {
   assertCommercialQuoteChainNotLocked,
   assertCommercialQuoteMinor,
   COMMERCIAL_QUOTE_CALCULATION_VERSION,
+  liveObligationMatchesQuoteVersion,
+  mapLiveObligationToQuoteInput,
   normalizeCommercialQuoteCurrency,
   type CommercialQuoteVersion,
   type CreateCommercialQuoteVersionInput,
 } from "../domain/commercial-quote";
+import type { FinanceObligationPort } from "../ports/finance-receipt-defaults.port";
+import type { FinanceClockPort } from "../ports/finance-clock.port";
 import type { CommercialQuoteRepositoryPort } from "../ports/commercial-quote-repository.port";
 
 function normalizeCreateInput(
@@ -31,7 +34,11 @@ function normalizeCreateInput(
 }
 
 export class CommercialQuoteService {
-  constructor(private readonly quotes: CommercialQuoteRepositoryPort) {}
+  constructor(
+    private readonly quotes: CommercialQuoteRepositoryPort,
+    private readonly obligation: FinanceObligationPort,
+    private readonly clock: FinanceClockPort
+  ) {}
 
   async getActiveQuote(
     tenantId: string,
@@ -45,6 +52,54 @@ export class CommercialQuoteService {
     registrationId: string
   ): Promise<readonly CommercialQuoteVersion[]> {
     return this.quotes.getChain(tenantId.trim(), registrationId.trim());
+  }
+
+  /**
+   * DEC-CQ-008 — freeze on money path when registration is quotable.
+   * Returns null when obligation cannot resolve (legacy path continues).
+   */
+  async ensureFrozenForMoneyPath(
+    tenantId: string,
+    registrationId: string
+  ): Promise<CommercialQuoteVersion | null> {
+    const normalizedTenantId = tenantId.trim();
+    const normalizedRegistrationId = registrationId.trim();
+
+    const active = await this.quotes.getActive(normalizedTenantId, normalizedRegistrationId);
+    if (active?.status === "LOCKED") {
+      return active;
+    }
+
+    const chain = await this.quotes.getChain(normalizedTenantId, normalizedRegistrationId);
+    assertCommercialQuoteChainNotLocked(chain);
+
+    const resolved = await this.obligation.resolveRegistrationObligation({
+      tenantId: normalizedTenantId,
+      registrationId: normalizedRegistrationId,
+    });
+    if (resolved === null) {
+      return null;
+    }
+
+    const quoteInput = normalizeCreateInput(
+      mapLiveObligationToQuoteInput({
+        tenantId: normalizedTenantId,
+        registrationId: normalizedRegistrationId,
+        obligation: resolved,
+        createdAt: this.clock.nowIso(),
+      })
+    );
+
+    if (active !== null && liveObligationMatchesQuoteVersion(resolved, active)) {
+      return active;
+    }
+    if (active !== null) {
+      return this.supersedeQuote(quoteInput);
+    }
+    if (chain.length === 0) {
+      return this.createQuoteVersion(quoteInput);
+    }
+    return this.supersedeQuote(quoteInput);
   }
 
   /** First version on an empty, unlocked chain. */

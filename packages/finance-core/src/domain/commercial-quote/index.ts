@@ -15,3 +15,9 @@ export {
   normalizeCommercialQuoteCurrency,
   selectActiveCommercialQuote,
 } from "./rules";
+export {
+  liveObligationMatchesQuoteVersion,
+  mapLiveObligationSourceToQuoteSource,
+  mapLiveObligationToQuoteInput,
+  type LiveRegistrationObligation,
+} from "./map-obligation";

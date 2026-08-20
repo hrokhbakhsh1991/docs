@@ -29,6 +29,10 @@ import { HostFinancePersistenceModeAdapter } from "../workspace-finance/infrastr
 import { HostFinanceReceiptProofUrlAdapter } from "../workspace-finance/infrastructure/host-finance-receipt-proof-url.adapter";
 import { HostFinanceScheduleAdapter } from "../workspace-finance/infrastructure/host-finance-schedule.adapter";
 import { createFinanceObligationPort } from "../workspace-finance/finance-obligation.factory";
+import { resetFinanceCommercialQuoteStoreForTests } from "../workspace-finance/finance-commercial-quote-store";
+import { HostCommercialQuoteRepository } from "../workspace-finance/infrastructure/host-commercial-quote.repository";
+import { CommercialQuoteService } from "@app-tour/finance-core/application";
+import { nullFinanceArObservationPort } from "@app-tour/finance-core/ports";
 import { resolveFinanceWorkspaceTypeForTenant } from "../workspace-finance/resolve-finance-workspace-type-for-tenant";
 import { createBookingPaymentPort } from "../bookings/create-booking-payment-port";
 import { getBookingsRepository } from "../bookings/create-bookings-repository";
@@ -63,6 +67,9 @@ let sharedLogger: FinanceLoggerPort | null = null;
 let sharedClock: FinanceClockPort | null = null;
 /** workspaceType → obligation port (commercial pricing bind may differ per workspace). */
 const obligationByWorkspaceType = new Map<string, FinanceObligationPort>();
+/** workspaceType → commercial quote service (Finance-owned freeze lifecycle). */
+const commercialQuoteByWorkspaceType = new Map<string, CommercialQuoteService>();
+let sharedCommercialQuoteRepository: HostCommercialQuoteRepository | null = null;
 
 function getPlatformBookingPayments(): IBookingPaymentPort {
   if (platformBookingPayments === null) {
@@ -82,6 +89,8 @@ export function resetLazyFinanceServiceForTests(): void {
   financeServiceByWorkspaceType.clear();
   financeServiceInflightByWorkspaceType.clear();
   obligationByWorkspaceType.clear();
+  commercialQuoteByWorkspaceType.clear();
+  sharedCommercialQuoteRepository = null;
   platformBookingPayments = null;
   platformFinanceRepository = null;
   sharedRegistrationDisplay = null;
@@ -93,6 +102,7 @@ export function resetLazyFinanceServiceForTests(): void {
   sharedSchedules = null;
   sharedLogger = null;
   sharedClock = null;
+  resetFinanceCommercialQuoteStoreForTests();
   resetFinanceRepositoryForTests();
 }
 
@@ -174,6 +184,19 @@ export async function getOrCreateFinanceServiceForWorkspaceType(
       obligationByWorkspaceType.set(normalized, obligation);
     }
 
+    let commercialQuotes = commercialQuoteByWorkspaceType.get(normalized);
+    if (commercialQuotes === undefined) {
+      if (sharedCommercialQuoteRepository === null) {
+        sharedCommercialQuoteRepository = new HostCommercialQuoteRepository();
+      }
+      commercialQuotes = new CommercialQuoteService(
+        sharedCommercialQuoteRepository,
+        obligation,
+        sharedClock!
+      );
+      commercialQuoteByWorkspaceType.set(normalized, commercialQuotes);
+    }
+
     const service = createFinanceService(
       deps.ledgerPolicy,
       repository,
@@ -188,7 +211,10 @@ export async function getOrCreateFinanceServiceForWorkspaceType(
       sharedSchedules,
       sharedLogger,
       sharedClock,
-      obligation
+      obligation,
+      "0",
+      nullFinanceArObservationPort,
+      commercialQuotes
     );
 
     const composed =

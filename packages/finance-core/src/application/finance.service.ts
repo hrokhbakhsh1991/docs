@@ -68,6 +68,7 @@ import type { FinanceRepositoryPort } from "../ports/finance-repository.port";
 import type { FinanceSchedulePort } from "../ports/finance-schedule.port";
 import type { RegistrationDisplayPort } from "../ports/registration-display.port";
 import { nullFinanceObligationPort } from "../ports/null-finance-obligation.port";
+import { CommercialQuoteService } from "./commercial-quote.service";
 import {
   buildOperatorRefundNextCursor,
   buildRefundResultWithInvoice,
@@ -209,7 +210,8 @@ export class FinanceService {
     private readonly clock: FinanceClockPort,
     private readonly obligation: FinanceObligationPort,
     private readonly obligationToleranceMinor: string = "0",
-    private readonly arObservation: FinanceArObservationPort = nullFinanceArObservationPort
+    private readonly arObservation: FinanceArObservationPort = nullFinanceArObservationPort,
+    private readonly commercialQuotes: CommercialQuoteService | null = null
   ) {
     assertCompositionDep("ledgerPolicy", ledgerPolicy);
     assertCompositionDep("repository", repository);
@@ -226,6 +228,47 @@ export class FinanceService {
     assertCompositionDep("clock", clock);
     assertCompositionDep("obligation", obligation);
     assertCompositionDep("arObservation", arObservation);
+  }
+
+  private async ensureQuoteFrozenForMoneyPath(
+    tenantId: string,
+    registrationId: string
+  ): Promise<void> {
+    if (this.commercialQuotes === null) {
+      return;
+    }
+    await this.commercialQuotes.ensureFrozenForMoneyPath(tenantId, registrationId);
+  }
+
+  private async lockQuoteAfterCapture(tenantId: string, registrationId: string): Promise<void> {
+    if (this.commercialQuotes === null) {
+      return;
+    }
+    try {
+      await this.commercialQuotes.lockQuoteChain(tenantId, registrationId);
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message === "COMMERCIAL_QUOTE_NOT_FOUND") {
+        return;
+      }
+      throw error;
+    }
+  }
+
+  private async resolveInvoiceObligationMinor(
+    tenantId: string,
+    registrationId: string
+  ): Promise<string | undefined> {
+    if (this.commercialQuotes !== null) {
+      const quote = await this.commercialQuotes.getActiveQuote(tenantId, registrationId);
+      if (quote !== null) {
+        return quote.payableMinor;
+      }
+    }
+    const obligation = await this.obligation.resolveRegistrationObligation({
+      tenantId,
+      registrationId,
+    });
+    return obligation?.obligationMinor;
   }
 
   private async gate(auth: FinanceActorContext): Promise<FinanceWorkspaceGateResult> {
@@ -644,6 +687,7 @@ export class FinanceService {
       auth.tenantId,
       body.registrationId
     );
+    await this.ensureQuoteFrozenForMoneyPath(auth.tenantId, body.registrationId);
     const invoice = await this.compileRegistrationInvoiceInternal(
       auth.tenantId,
       body.registrationId
@@ -854,6 +898,7 @@ export class FinanceService {
       input.registrationId
     );
     if (payment === null) {
+      await this.ensureQuoteFrozenForMoneyPath(auth.tenantId, input.registrationId);
       const statuses = await this.repository.findPaymentStatusesByRegistration(
         auth.tenantId,
         input.registrationId
@@ -973,6 +1018,16 @@ export class FinanceService {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
 
+    if (this.commercialQuotes !== null) {
+      const active = await this.commercialQuotes.getActiveQuote(
+        auth.tenantId,
+        input.registrationId
+      );
+      if (active?.status === "LOCKED") {
+        throw new Error("COMMERCIAL_QUOTE_CHAIN_LOCKED");
+      }
+    }
+
     const written = await this.obligation.setRegistrationObligationOverride({
       tenantId: auth.tenantId,
       registrationId: input.registrationId,
@@ -984,6 +1039,8 @@ export class FinanceService {
     if (!written) {
       throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_MISS");
     }
+
+    await this.ensureQuoteFrozenForMoneyPath(auth.tenantId, input.registrationId);
 
     const freePaid = await this.applyFreeCollectionPayment({
       tenantId: auth.tenantId,
@@ -1172,6 +1229,7 @@ export class FinanceService {
     let approveObligationMinor: string | undefined;
     let approveScheduleAmountsMinor: readonly string[] = [];
     if (body.decision === "approve") {
+      await this.ensureQuoteFrozenForMoneyPath(auth.tenantId, payment.registrationId);
       const obligation = await this.obligation.resolveRegistrationObligation({
         tenantId: auth.tenantId,
         registrationId: payment.registrationId,
@@ -1267,6 +1325,7 @@ export class FinanceService {
         this.recordLedgerCapture(auth, gate.workspaceType, "success");
       }
       this.recordLatency(auth, gate.workspaceType, "approve", approveStartedAtMs);
+      await this.lockQuoteAfterCapture(auth.tenantId, payment.registrationId);
       return approved;
     } catch (error: unknown) {
       // Concurrent approve: loser may lose Pending guards; if winner already committed, replay.
@@ -1285,6 +1344,7 @@ export class FinanceService {
       ) {
         this.recordApprove(auth, gate.workspaceType, "replay");
         this.recordLatency(auth, gate.workspaceType, "approve", approveStartedAtMs);
+        await this.lockQuoteAfterCapture(auth.tenantId, latest.payment.registrationId);
         return {
           id: latest.id,
           status: latest.status,
@@ -1362,6 +1422,7 @@ export class FinanceService {
     if (trimmedKey.length === 0) {
       throw new Error("IDEMPOTENCY_KEY_REQUIRED");
     }
+    await this.ensureQuoteFrozenForMoneyPath(auth.tenantId, body.registrationId);
     const method = body.method.trim().length > 0 ? body.method.trim() : "Manual";
     const ids = buildPrepaymentDomainEventIds(body.registrationId, trimmedKey);
     const recordedAtIso = this.clock.nowIso();
@@ -1413,6 +1474,7 @@ export class FinanceService {
         "partial",
         ids.prepaymentDomainEventId
       );
+      await this.lockQuoteAfterCapture(auth.tenantId, body.registrationId);
       return {
         id: recorded.id,
         registrationId: recorded.registrationId,
@@ -1477,6 +1539,7 @@ export class FinanceService {
   async generatePaymentSchedule(auth: FinanceActorContext, body: GenerateScheduleBody) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
+    await this.ensureQuoteFrozenForMoneyPath(auth.tenantId, body.registrationId);
     const items = buildPaymentScheduleItems({
       registrationId: body.registrationId,
       template: body.template,
@@ -1546,10 +1609,7 @@ export class FinanceService {
   ) {
     const facts = await this.repository.getRegistrationInvoiceFacts(tenantId, registrationId);
     const scheduleItems = await this.schedules.getSchedule(tenantId, registrationId);
-    const obligation = await this.obligation.resolveRegistrationObligation({
-      tenantId,
-      registrationId,
-    });
+    const obligationMinor = await this.resolveInvoiceObligationMinor(tenantId, registrationId);
     return compileRegistrationInvoice({
       registrationId,
       currency: facts.currency,
@@ -1558,7 +1618,7 @@ export class FinanceService {
       paymentAmountsMinor: facts.paymentAmountsMinor,
       scheduleAmountsMinor: scheduleItems.map((item) => item.amountMinor),
       refundedCompletedMinor: facts.refundedCompletedMinor,
-      ...(obligation !== null ? { obligationMinor: obligation.obligationMinor } : {}),
+      ...(obligationMinor !== undefined ? { obligationMinor } : {}),
     });
   }
 
@@ -2052,7 +2112,8 @@ export function createFinanceService(
   clock: FinanceClockPort,
   obligation: FinanceObligationPort = nullFinanceObligationPort,
   obligationToleranceMinor = "0",
-  arObservation: FinanceArObservationPort = nullFinanceArObservationPort
+  arObservation: FinanceArObservationPort = nullFinanceArObservationPort,
+  commercialQuotes: CommercialQuoteService | null = null
 ): FinanceService {
   return new FinanceService(
     ledgerPolicy,
@@ -2070,6 +2131,7 @@ export function createFinanceService(
     clock,
     obligation,
     obligationToleranceMinor,
-    arObservation
+    arObservation,
+    commercialQuotes
   );
 }

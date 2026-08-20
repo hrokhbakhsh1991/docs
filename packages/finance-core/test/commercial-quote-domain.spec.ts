@@ -9,6 +9,10 @@ import {
   commercialQuoteCommercialFieldsEqual,
   type CommercialQuoteVersion,
 } from "../src/domain/commercial-quote/index.ts";
+import type { FinanceObligationPort } from "@app-tour/finance-http-contracts";
+import {
+  FakeClock,
+} from "./isolation/fakes.ts";
 import {
   InMemoryCommercialQuoteRepository,
   resetInMemoryCommercialQuoteRepositoryForTests,
@@ -17,6 +21,23 @@ import {
 const TENANT_A = "00000000-0000-4000-8000-0000000000aa";
 const TENANT_B = "00000000-0000-4000-8000-0000000000bb";
 const REGISTRATION = "00000000-0000-4000-8000-000000000101";
+
+function staticObligation(
+  amountMinor = "5000000",
+  source: "tour_canonical" | "operator_override" = "tour_canonical"
+): FinanceObligationPort {
+  return {
+    async resolveRegistrationObligation() {
+      return { currency: "IRR", obligationMinor: amountMinor, source };
+    },
+    async resolveRegistrationPaymentCollection() {
+      return "offline";
+    },
+    async setRegistrationObligationOverride() {
+      return false;
+    },
+  };
+}
 
 function baseInput(overrides: Partial<Parameters<CommercialQuoteService["createQuoteVersion"]>[0]> = {}) {
   return {
@@ -37,7 +58,7 @@ describe("commercial-quote-domain.spec.ts — CQ-1A", () => {
   beforeEach(() => {
     resetInMemoryCommercialQuoteRepositoryForTests();
     repository = new InMemoryCommercialQuoteRepository();
-    service = new CommercialQuoteService(repository);
+    service = new CommercialQuoteService(repository, staticObligation(), FakeClock);
   });
 
   it("CQ-DOMAIN-01: create first quote", async () => {
