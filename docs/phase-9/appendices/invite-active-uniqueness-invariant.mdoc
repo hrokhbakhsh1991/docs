@@ -25,7 +25,7 @@ related:
 
 **Scope:** `(tenantId, normalizedPhone)` where `status = INVITED`.
 
-**Active** means the row is listed by `findPendingInviteByPhone` / `GET /users/invites` (status `INVITED` only). Revoked rows are **deleted** (not a secondary status today). Accepted rows are **deleted** on consume.
+**Active** means the row is listed by `findPendingInviteByPhone` / `GET /users/invites`: `status = INVITED` **and** `expiresAt > now`. Terminal rows (`ACCEPTED`, `EXPIRED`, `REVOKED`) are retained for audit but do not block a new invite.
 
 ```text
 existing INVITED row for (tenantId, normalizeLoginMobile(phone))?
@@ -44,7 +44,7 @@ Evaluated by `evaluateInviteCreate` in `users-rbac.policy.ts`. Enforced inside *
 | No active invite | **Allow** — insert row | **201** | — |
 | Active invite exists (same tenant + normalized phone) | **Reject** — no second row | **409** | `INVITE_ALREADY_PENDING` |
 | Same phone, different tenant | **Allow** — tenant isolation | **201** | — |
-| Prior invite revoked or accepted (row gone) | **Allow** — no active row | **201** | — |
+| Prior invite revoked, expired, or accepted | **Allow** — no active row | **201** | — |
 | Existing workspace membership | **Unchanged** — invite create does not mutate `UserTenant` (P0 accept invariant separate) | — | — |
 
 ## Concurrency
@@ -60,7 +60,7 @@ Future P1 may add a partial unique index `(tenantId, phone) WHERE status = 'INVI
 
 ## Non-goals (this change)
 
-- No invite TTL / expiry status (P1 follow-up).
+- Invite TTL / lifecycle — see [`invite-lifecycle-invariant.mdoc`](invite-lifecycle-invariant.mdoc).
 - No UI or route changes.
 - No permission model changes.
 - No second invite subsystem.

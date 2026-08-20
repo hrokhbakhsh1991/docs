@@ -130,6 +130,9 @@ Gate: **`isOwner`**. Per-target RBAC matches single-user routes. Role changes ap
 | `INVITE_ACCEPT_OWNER_PROTECTED`              | 403  | Accept would overwrite an existing **owner** `UserTenant` |
 | `INVITE_ACCEPT_MEMBERSHIP_EXISTS`            | 409  | Accept when membership already exists (active **or** suspended); not an implicit reactivate |
 | `INVITE_ALREADY_PENDING`                     | 409  | POST invite when an **INVITED** row already exists for `(tenantId, normalized phone)`; body includes existing `inviteId` |
+| `INVITE_EXPIRED`                             | 410  | Accept after `expiresAt` (lazy `INVITED → EXPIRED`) |
+| `INVITE_REVOKED`                             | 410  | Accept on owner-revoked row |
+| `INVITE_ALREADY_ACCEPTED`                    | 410  | Accept replay on consumed invite |
 | `MEMBERSHIP_ALREADY_SUSPENDED`               | 409  | PATCH suspend on SUSPENDED row |
 | `MEMBERSHIP_NOT_SUSPENDED`                   | 409  | PATCH reactivate on ACTIVE row |
 | `OPERATOR_FORBIDDEN`                         | 403  | Member on admin surface       |
@@ -137,6 +140,8 @@ Gate: **`isOwner`**. Per-target RBAC matches single-user routes. Role changes ap
 **Invite accept invariant:** `POST /auth/invite/{token}/accept` creates a membership only when no `UserTenant` exists for `(userId, invite.tenantId)`. Existing rows are never upserted (role / status / `sessionVersion` unchanged; invite row not consumed). See [`invite-accept-membership-invariant.mdoc`](invite-accept-membership-invariant.mdoc).
 
 **Active invite uniqueness:** `POST /users/invite` allows at most one **INVITED** row per `(tenantId, normalized phone)`. Duplicate create → **409** `INVITE_ALREADY_PENDING` (existing `inviteId` in body). See [`invite-active-uniqueness-invariant.mdoc`](invite-active-uniqueness-invariant.mdoc).
+
+**Invite lifecycle / TTL:** Pending invites carry `expiresAt` (default 7d). Accept before expiry; after expiry → **410** `INVITE_EXPIRED`. Revoke → **410** `INVITE_REVOKED`. Rows retained as `ACCEPTED` / `EXPIRED` / `REVOKED`. Resend (R6) does **not** extend TTL or rotate token. See [`invite-lifecycle-invariant.mdoc`](invite-lifecycle-invariant.mdoc).
 
 ## Urban regression (RULE-P9-002)
 
