@@ -10,6 +10,7 @@ import { resolveWizardCreateViewSurface } from "@/wizard/wizard-create-view-regi
 import { resolveWizardCatalogPrefetchProvider } from "@/wizard/wizard-host-adapter-registry";
 import { useAppSession } from "@/providers/app-session-context";
 import {
+  CreateTourWizardBootstrapFrame,
   CreateTourWizardCloneError,
   CreateTourWizardClonePhotoRemintWarning,
   CreateTourWizardHeader,
@@ -61,7 +62,11 @@ export function OperatorCreateTourWizardClientReady({
 
   const viewSurface = resolveWizardCreateViewSurface(plugin.id);
   if (viewSurface == null) {
-    return <CreateTourWizardLoadingMessage />;
+    return (
+      <CreateTourWizardBootstrapFrame>
+        <CreateTourWizardLoadingMessage />
+      </CreateTourWizardBootstrapFrame>
+    );
   }
   const CreateTourWizardView = viewSurface.CreateTourWizardView;
 
@@ -73,7 +78,11 @@ export function OperatorCreateTourWizardClientReady({
       resolveSubmitError={resolveSubmitError}
       slots={{
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- product view slot props
-        renderLoading: (props: any) => <CreateTourWizardLoadingMessage {...props} />,
+        renderLoading: (props: any) => (
+          <CreateTourWizardBootstrapFrame>
+            <CreateTourWizardLoadingMessage {...props} />
+          </CreateTourWizardBootstrapFrame>
+        ),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- product view slot props
         renderCloneError: (props: any) => <CreateTourWizardCloneError {...props} />,
         renderNotConfigured: () => <CreateTourWizardNotConfigured />,

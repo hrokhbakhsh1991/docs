@@ -28,6 +28,11 @@ describe("Wave I.9 — create wizard async plugin", () => {
     assert.match(ready, /useOperatorCreateTourWizard\(\{\s*plugin,/);
     assert.match(ready, /useWorkspaceWizardTranslator\(session\.pluginId\)/);
     assert.match(ready, /platformCreateTourDraftKey\(session\.pluginId\)/);
+    assert.match(ready, /CreateTourWizardBootstrapFrame/);
+    assert.match(
+      ready,
+      /renderLoading:\s*\(props:\s*any\)\s*=>\s*\(\s*<CreateTourWizardBootstrapFrame>/
+    );
     assert.doesNotMatch(ready, /useWorkspaceWizardTranslator\(\"denali\"\)/);
     assert.doesNotMatch(ready, /platformCreateTourDraftKey\(\"denali\"\)/);
   });
