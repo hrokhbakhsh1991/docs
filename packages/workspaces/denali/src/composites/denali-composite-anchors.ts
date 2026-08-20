@@ -34,6 +34,7 @@ export const DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR: Readonly<
     "pricing.prepaymentPercent",
     "pricing.basePricePerPerson",
     "pricing.includesTourInsurance",
+    "pricing.allowMembershipDiscount",
   ],
   // INV-DENALI-WIZ-013 — contextualRequired leaves inside denali.transport-mode.
   "transport.mode": [
@@ -85,6 +86,7 @@ export const DENALI_COMPOSITE_DEPENDENT_PATHS = new Set<string>([
   "pricing.prepaymentPercent",
   "pricing.basePricePerPerson",
   "pricing.includesTourInsurance",
+  "pricing.allowMembershipDiscount",
   "tripDetails.logistics.excludedServices",
 ]);
 

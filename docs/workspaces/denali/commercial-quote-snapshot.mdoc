@@ -223,6 +223,8 @@ Catalog field **`pricing.allowMembershipDiscount`** (wizard `pricingPayment.allo
 
 **Discount MVP 2A (UI):** Operator pricing composite exposes a checkbox for `pricing.allowMembershipDiscount` when `pricing.requiresPayment` is true. Defaults to false; unset legacy tours remain fail-closed (no discount).
 
+**Discount MVP 2A.1 (composite wiring):** `pricing.allowMembershipDiscount` is a **dependent** of the `pricing.requiresPayment` composite anchor (`DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR` / `DENALI_COMPOSITE_DEPENDENT_PATHS`), same pattern as prepayment, base price, and insurance. SDUI must not emit a standalone boolean renderer for the gate — only the `denali.pricing-payment` surface. When `requiresPayment` is false, the control is hidden; a stored `"true"` may remain in canonical (no clear-on-hide). Finance still ignores unpaid/free tours via free-collection precedence — Catalog does not change that rule. Templates that list only the payment anchor do not duplicate the gate field. Proof: GATE-COMP-01..04.
+
 **Discount MVP 2B (flow verification):** Full journey proven via CQ-E2E-01..05 + CQ-DISC-FLOW-01..07 + CQ-DISC-PERSIST-04 + GATE-01..05 + Postgres CQ persist. Eligible 20% → `member_discount`; gate false → `tour_canonical`; cross-tenant isolation; freeze snapshot stable under live price and Identity % change; override wins.
 
 ### Reducer precedence at freeze
