@@ -204,7 +204,18 @@ Pure Finance reducer in `packages/finance-core/src/domain/commercial-quote/membe
 
 ### CQ-2B member discount freeze (implemented — orchestration only)
 
-`CommercialQuoteService.ensureFrozenForMoneyPath` runs the locked pipeline: gross → override → free collection → `allowMembershipDiscount` gate → `(tenantId, memberUserId)` Identity read → reducer. Host implements `CommercialQuoteFreezeContextPort` + `MembershipDiscountReadPort`; finance-core has no Identity imports. Optional `memberDiscount` metadata on quote versions (in-memory persistence; Prisma column in CQ-2C).
+`CommercialQuoteService.ensureFrozenForMoneyPath` runs the locked pipeline: gross → override → free collection → `allowMembershipDiscount` gate → `(tenantId, memberUserId)` Identity read → reducer. Host implements `CommercialQuoteFreezeContextPort` + `MembershipDiscountReadPort`; finance-core has no Identity imports.
+
+### CQ-2C member discount persistence (implemented)
+
+`finance_commercial_quotes` nullable columns when `source = member_discount`:
+
+- `member_discount_percentage_applied`
+- `member_discount_minor`
+- `member_discount_member_user_id`
+- `member_discount_membership_reference`
+
+Prisma repository maps to `CommercialQuoteVersion.memberDiscount` on create/reload. Invoice compile unchanged (`payableMinor` only).
 
 ### Reducer precedence at freeze
 

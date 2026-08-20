@@ -426,6 +426,10 @@ model FinanceCommercialQuote {
   calculationVersion  String   @map("calculation_version")
   supersedesVersionId String?  @map("supersedes_version_id") @db.Uuid
   createdAt           DateTime @default(now()) @map("created_at")
+  memberDiscountPercentageApplied Int?    @map("member_discount_percentage_applied")
+  memberDiscountMinor             String? @map("member_discount_minor")
+  memberDiscountMemberUserId      String? @map("member_discount_member_user_id") @db.Uuid
+  memberDiscountMembershipReference String? @map("member_discount_membership_reference")
   tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, registrationId, versionNumber])

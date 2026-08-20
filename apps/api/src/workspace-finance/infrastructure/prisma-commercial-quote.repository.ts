@@ -1,5 +1,5 @@
 /**
- * Prisma + tenant RLS implementation of {@link CommercialQuoteRepositoryPort} (CQ-1C).
+ * Prisma + tenant RLS implementation of {@link CommercialQuoteRepositoryPort} (CQ-1C / CQ-2C).
  */
 import type { FinanceCommercialQuote } from "@prisma/client";
 
@@ -9,12 +9,31 @@ import {
   type CommercialQuoteStatus,
   type CommercialQuoteVersion,
   type CreateCommercialQuoteVersionInput,
+  type MemberDiscountQuoteMetadata,
 } from "@app-tour/finance-core/domain";
 import type { CommercialQuoteRepositoryPort } from "@app-tour/finance-core/ports";
 
 import { withTenantRls } from "../../db/with-tenant-rls";
 
+function mapMemberDiscountMetadata(row: FinanceCommercialQuote): MemberDiscountQuoteMetadata | undefined {
+  if (
+    row.memberDiscountPercentageApplied === null ||
+    row.memberDiscountMinor === null ||
+    row.memberDiscountMemberUserId === null ||
+    row.memberDiscountMembershipReference === null
+  ) {
+    return undefined;
+  }
+  return {
+    percentageApplied: row.memberDiscountPercentageApplied,
+    discountMinor: row.memberDiscountMinor,
+    memberUserId: row.memberDiscountMemberUserId,
+    membershipReference: row.memberDiscountMembershipReference,
+  };
+}
+
 function mapCommercialQuoteRow(row: FinanceCommercialQuote): CommercialQuoteVersion {
+  const memberDiscount = mapMemberDiscountMetadata(row);
   return {
     id: row.id,
     tenantId: row.tenantId,
@@ -28,6 +47,32 @@ function mapCommercialQuoteRow(row: FinanceCommercialQuote): CommercialQuoteVers
     calculationVersion: row.calculationVersion,
     supersedesVersionId: row.supersedesVersionId,
     createdAt: row.createdAt.toISOString(),
+    ...(memberDiscount !== undefined ? { memberDiscount } : {}),
+  };
+}
+
+function memberDiscountCreateFields(
+  memberDiscount: MemberDiscountQuoteMetadata | undefined
+): Pick<
+  FinanceCommercialQuote,
+  | "memberDiscountPercentageApplied"
+  | "memberDiscountMinor"
+  | "memberDiscountMemberUserId"
+  | "memberDiscountMembershipReference"
+> {
+  if (memberDiscount === undefined) {
+    return {
+      memberDiscountPercentageApplied: null,
+      memberDiscountMinor: null,
+      memberDiscountMemberUserId: null,
+      memberDiscountMembershipReference: null,
+    };
+  }
+  return {
+    memberDiscountPercentageApplied: memberDiscount.percentageApplied,
+    memberDiscountMinor: memberDiscount.discountMinor,
+    memberDiscountMemberUserId: memberDiscount.memberUserId,
+    memberDiscountMembershipReference: memberDiscount.membershipReference,
   };
 }
 
@@ -75,6 +120,7 @@ export class PrismaCommercialQuoteRepository implements CommercialQuoteRepositor
           source: input.source,
           calculationVersion: input.calculationVersion ?? "quote-v1",
           supersedesVersionId: input.supersedesVersionId ?? null,
+          ...memberDiscountCreateFields(input.memberDiscount),
           ...(input.createdAt !== undefined ? { createdAt: new Date(input.createdAt) } : {}),
         },
       });
