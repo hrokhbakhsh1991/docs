@@ -7,8 +7,30 @@ import type {
 } from "@app-tour/workspace-sdk";
 
 import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
+import {
+  computeInviteExpiresAt,
+  isOperatorInviteActive,
+  OPERATOR_INVITE_STATUS_ACCEPTED,
+  OPERATOR_INVITE_STATUS_EXPIRED,
+  OPERATOR_INVITE_STATUS_INVITED,
+  OPERATOR_INVITE_STATUS_REVOKED,
+  type OperatorInviteLifecycleStatus,
+} from "./invite-lifecycle";
 import { MobileAlreadyRegisteredError } from "./identity.errors";
 import type { InvitableWorkspaceRole, UsersListQuery } from "./users.types";
+import {
+  INVITE_ACCEPT_MEMBERSHIP_EXISTS,
+  INVITE_ACCEPT_OWNER_PROTECTED,
+  INVITE_ALREADY_ACCEPTED,
+  INVITE_ALREADY_PENDING,
+  INVITE_EXPIRED,
+  INVITE_REVOKED,
+  assertOwnerCreateAllowed,
+  evaluateInviteAccept,
+  evaluateInviteCreate,
+  evaluateInviteLifecycleForAccept,
+  isActiveOwner,
+} from "./users-rbac.policy";
 import {
   matchesDirectoryPair,
   sortDirectoryPairs,
@@ -42,8 +64,11 @@ export type PendingInviteRecord = {
   readonly inviteToken: string;
   readonly tenantId: string;
   readonly phone: string;
-  readonly role: InvitableWorkspaceRole;
-  readonly status: "INVITED";
+  /** Workspace invites: admin|member|viewer. Platform bootstrap may use owner. */
+  readonly role: InvitableWorkspaceRole | "owner";
+  readonly status: OperatorInviteLifecycleStatus;
+  readonly createdAt: Date;
+  readonly expiresAt: Date;
   readonly nameNote?: string;
   readonly invitedByUserId: string;
 };
@@ -125,7 +150,9 @@ export type IdentityRepository = {
     tenantId: string,
     inviteToken: string
   ): Promise<PendingInviteRecord | null>;
+  findInviteByToken(inviteToken: string): Promise<PendingInviteRecord | null>;
   findPendingInviteForAccept(inviteToken: string): Promise<PendingInviteRecord | null>;
+  markInviteExpired(inviteId: string): Promise<void>;
   acceptPendingInvite(
     tenantId: string,
     inviteToken: string,
@@ -204,6 +231,7 @@ export class InMemoryIdentityRepository implements IdentityRepository {
   private readonly challenges = new Map<string, OtpChallengeRecord>();
   private readonly invites = new Map<string, PendingInviteRecord>();
   private readonly invitesByToken = new Map<string, string>();
+  private readonly invitesByTenantPhone = new Map<string, string>();
   private readonly roleAudits: UserRoleAuditRecord[] = [];
 
   static createWithDevSeed(): InMemoryIdentityRepository {
@@ -399,15 +427,31 @@ export class InMemoryIdentityRepository implements IdentityRepository {
   }
 
   async createPendingInvite(input: CreatePendingInviteInput): Promise<PendingInviteRecord> {
+    const phone = normalizeMobile(input.phone);
+    const now = new Date();
+    const existing =
+      [...this.invites.values()].find(
+        (invite) =>
+          invite.tenantId === input.tenantId &&
+          invite.phone === phone &&
+          isOperatorInviteActive(invite, now)
+      ) ?? null;
+    if (existing !== null) {
+      assertInviteCreateDoesNotDuplicate(existing);
+    }
+
     const inviteId = randomUUID();
     const inviteToken = randomUUID();
+    const createdAt = new Date();
     const record: PendingInviteRecord = {
       inviteId,
       inviteToken,
       tenantId: input.tenantId,
-      phone: normalizeMobile(input.phone),
+      phone,
       role: input.role,
-      status: "INVITED",
+      status: OPERATOR_INVITE_STATUS_INVITED,
+      createdAt,
+      expiresAt: computeInviteExpiresAt(createdAt),
       ...(input.nameNote !== undefined && input.nameNote.trim().length > 0
         ? { nameNote: input.nameNote.trim() }
         : {}),
@@ -415,12 +459,14 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     };
     this.invites.set(inviteId, record);
     this.invitesByToken.set(inviteToken, inviteId);
+    this.syncActiveInvitePhoneIndex(record);
     return record;
   }
 
   async listPendingInvitesByTenant(tenantId: string): Promise<readonly PendingInviteRecord[]> {
+    const now = new Date();
     return [...this.invites.values()].filter(
-      (row) => row.tenantId === tenantId && row.status === "INVITED"
+      (row) => row.tenantId === tenantId && isOperatorInviteActive(row, now)
     );
   }
 
@@ -429,12 +475,15 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     phone: string
   ): Promise<PendingInviteRecord | null> {
     const normalized = normalizeMobile(phone);
-    return (
+    const now = new Date();
+    const row =
       [...this.invites.values()].find(
-        (row) =>
-          row.tenantId === tenantId && row.status === "INVITED" && row.phone === normalized
-      ) ?? null
-    );
+        (invite) =>
+          invite.tenantId === tenantId &&
+          invite.phone === normalized &&
+          isOperatorInviteActive(invite, now)
+      ) ?? null;
+    return row === null ? null : { ...row };
   }
 
   async findPendingInvite(
@@ -442,7 +491,7 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     inviteId: string
   ): Promise<PendingInviteRecord | null> {
     const row = this.invites.get(inviteId);
-    if (row === undefined || row.tenantId !== tenantId || row.status !== "INVITED") {
+    if (row === undefined || row.tenantId !== tenantId || !isOperatorInviteActive(row)) {
       return null;
     }
     return { ...row };
@@ -452,23 +501,41 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     tenantId: string,
     inviteToken: string
   ): Promise<PendingInviteRecord | null> {
-    const inviteId = this.invitesByToken.get(inviteToken.trim());
-    if (inviteId === undefined) {
+    const invite = await this.findInviteByToken(inviteToken);
+    if (invite === null || invite.tenantId !== tenantId || !isOperatorInviteActive(invite)) {
       return null;
     }
-    return this.findPendingInvite(tenantId, inviteId);
+    return invite;
   }
 
-  async findPendingInviteForAccept(inviteToken: string): Promise<PendingInviteRecord | null> {
+  async findInviteByToken(inviteToken: string): Promise<PendingInviteRecord | null> {
     const inviteId = this.invitesByToken.get(inviteToken.trim());
     if (inviteId === undefined) {
       return null;
     }
     const row = this.invites.get(inviteId);
-    if (row === undefined || row.status !== "INVITED") {
+    return row === undefined ? null : { ...row };
+  }
+
+  async findPendingInviteForAccept(inviteToken: string): Promise<PendingInviteRecord | null> {
+    const invite = await this.findInviteByToken(inviteToken);
+    if (invite === null || !isOperatorInviteActive(invite)) {
       return null;
     }
-    return { ...row };
+    return invite;
+  }
+
+  async markInviteExpired(inviteId: string): Promise<void> {
+    const row = this.invites.get(inviteId);
+    if (row === undefined || row.status !== OPERATOR_INVITE_STATUS_INVITED) {
+      return;
+    }
+    const updated: PendingInviteRecord = {
+      ...row,
+      status: OPERATOR_INVITE_STATUS_EXPIRED,
+    };
+    this.invites.set(inviteId, updated);
+    this.clearActiveInvitePhoneIndex(updated);
   }
 
   async acceptPendingInvite(
@@ -476,9 +543,20 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     inviteToken: string,
     userId: string
   ): Promise<IdentityMembershipRecord | null> {
-    const invite = await this.findPendingInviteByToken(tenantId, inviteToken);
-    if (invite === null) {
+    const invite = await this.findInviteByToken(inviteToken);
+    if (invite === null || invite.tenantId !== tenantId) {
       return null;
+    }
+
+    const lifecycle = evaluateInviteLifecycleForAccept({
+      status: invite.status,
+      expiresAt: invite.expiresAt,
+    });
+    if (!lifecycle.ok) {
+      if (lifecycle.code === INVITE_EXPIRED && invite.status === OPERATOR_INVITE_STATUS_INVITED) {
+        await this.markInviteExpired(invite.inviteId);
+      }
+      throw new InviteLifecycleError(lifecycle.code, invite.inviteId);
     }
 
     const user = await this.findUserById(userId);
@@ -488,36 +566,62 @@ export class InMemoryIdentityRepository implements IdentityRepository {
 
     const key = membershipKey(userId, invite.tenantId);
     const existing = this.memberships.get(key);
-    const membership: IdentityMembershipRecord =
-      existing === undefined
-        ? {
-            userId,
-            tenantId: invite.tenantId,
-            role: invite.role,
-            status: "ACTIVE",
-            sessionVersion: 1,
-            workspaceId: `ws-invite-${userId.slice(0, 8)}`,
-          }
-        : {
-            ...existing,
-            role: invite.role,
-            status: "ACTIVE",
-            sessionVersion: existing.sessionVersion + 1,
-          };
+    assertInviteAcceptCreatesMembership(existing === undefined ? null : existing.role);
+
+    // P1.3-B write-boundary race guard — same evaluateOwnerCreate as service.
+    if (invite.role === "owner") {
+      let activeOwnerCount = 0;
+      for (const row of this.memberships.values()) {
+        if (row.tenantId === invite.tenantId && isActiveOwner({ role: row.role, status: row.status })) {
+          activeOwnerCount += 1;
+        }
+      }
+      assertOwnerCreateAllowed(activeOwnerCount);
+    }
+
+    const membership: IdentityMembershipRecord = {
+      userId,
+      tenantId: invite.tenantId,
+      role: invite.role,
+      status: "ACTIVE",
+      sessionVersion: 1,
+      workspaceId: `ws-invite-${userId.slice(0, 8)}`,
+    };
 
     this.memberships.set(key, membership);
-    this.invites.delete(invite.inviteId);
-    this.invitesByToken.delete(invite.inviteToken);
+    const accepted: PendingInviteRecord = {
+      ...invite,
+      status: OPERATOR_INVITE_STATUS_ACCEPTED,
+    };
+    this.invites.set(invite.inviteId, accepted);
+    this.clearActiveInvitePhoneIndex(accepted);
     return membership;
   }
 
   async revokePendingInvite(tenantId: string, inviteId: string): Promise<void> {
     const row = this.invites.get(inviteId);
-    if (row === undefined || row.tenantId !== tenantId) {
+    if (row === undefined || row.tenantId !== tenantId || !isOperatorInviteActive(row)) {
       throw new InviteNotFoundError(inviteId);
     }
-    this.invites.delete(inviteId);
-    this.invitesByToken.delete(row.inviteToken);
+    const revoked: PendingInviteRecord = {
+      ...row,
+      status: OPERATOR_INVITE_STATUS_REVOKED,
+    };
+    this.invites.set(inviteId, revoked);
+    this.clearActiveInvitePhoneIndex(revoked);
+  }
+
+  private syncActiveInvitePhoneIndex(invite: PendingInviteRecord): void {
+    if (isOperatorInviteActive(invite)) {
+      this.invitesByTenantPhone.set(pendingInvitePhoneKey(invite.tenantId, invite.phone), invite.inviteId);
+    }
+  }
+
+  private clearActiveInvitePhoneIndex(invite: PendingInviteRecord): void {
+    const phoneKey = pendingInvitePhoneKey(invite.tenantId, invite.phone);
+    if (this.invitesByTenantPhone.get(phoneKey) === invite.inviteId) {
+      this.invitesByTenantPhone.delete(phoneKey);
+    }
   }
 
   async updateMembershipRole(
@@ -733,6 +837,7 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     const stored = { ...record };
     this.invites.set(stored.inviteId, stored);
     this.invitesByToken.set(stored.inviteToken, stored.inviteId);
+    this.syncActiveInvitePhoneIndex(stored);
   }
 }
 
@@ -742,6 +847,64 @@ export class InviteNotFoundError extends Error {
   constructor(readonly inviteId: string) {
     super(`INVITE_NOT_FOUND:${inviteId}`);
     this.name = "InviteNotFoundError";
+  }
+}
+
+export class InviteAcceptConflictError extends Error {
+  readonly code: typeof INVITE_ACCEPT_OWNER_PROTECTED | typeof INVITE_ACCEPT_MEMBERSHIP_EXISTS;
+
+  constructor(code: InviteAcceptConflictError["code"]) {
+    super(code);
+    this.name = "InviteAcceptConflictError";
+    this.code = code;
+  }
+}
+
+export class InviteAlreadyPendingError extends Error {
+  readonly code = INVITE_ALREADY_PENDING;
+
+  constructor(readonly existingInvite: PendingInviteRecord) {
+    super(INVITE_ALREADY_PENDING);
+    this.name = "InviteAlreadyPendingError";
+  }
+}
+
+export class InviteLifecycleError extends Error {
+  readonly code: typeof INVITE_EXPIRED | typeof INVITE_REVOKED | typeof INVITE_ALREADY_ACCEPTED;
+
+  constructor(
+    code: InviteLifecycleError["code"],
+    readonly inviteId: string
+  ) {
+    super(code);
+    this.name = "InviteLifecycleError";
+    this.code = code;
+  }
+}
+
+export function assertInviteAcceptCreatesMembership(
+  existingMembershipRole: string | null
+): void {
+  const decision = evaluateInviteAccept({ existingMembershipRole });
+  if (!decision.ok) {
+    throw new InviteAcceptConflictError(decision.code);
+  }
+}
+
+export function assertInviteLifecycleAllowsAccept(invite: PendingInviteRecord): void {
+  const decision = evaluateInviteLifecycleForAccept({
+    status: invite.status,
+    expiresAt: invite.expiresAt,
+  });
+  if (!decision.ok) {
+    throw new InviteLifecycleError(decision.code, invite.inviteId);
+  }
+}
+
+export function assertInviteCreateDoesNotDuplicate(existingInvite: PendingInviteRecord): void {
+  const decision = evaluateInviteCreate({ existingPendingInvite: existingInvite });
+  if (!decision.ok) {
+    throw new InviteAlreadyPendingError(existingInvite);
   }
 }
 
@@ -880,6 +1043,10 @@ function seedUrbanSmokeE2eFixture(repo: InMemoryIdentityRepository): void {
 
 function membershipKey(userId: string, tenantId: string): string {
   return `${userId}:${tenantId}`;
+}
+
+function pendingInvitePhoneKey(tenantId: string, phone: string): string {
+  return `${tenantId}:${normalizeMobile(phone)}`;
 }
 
 function normalizeMobile(mobile: string): string {

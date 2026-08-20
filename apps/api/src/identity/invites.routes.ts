@@ -8,7 +8,15 @@ import {
   InvitePhoneMismatchError,
   InviteTenantMismatchError,
 } from "./invites.service";
-import { InviteNotFoundError } from "./in-memory-identity.repository";
+import {
+  InviteAcceptConflictError,
+  InviteLifecycleError,
+  InviteNotFoundError,
+} from "./in-memory-identity.repository";
+import {
+  INVITE_ACCEPT_OWNER_PROTECTED,
+  OwnerCreateForbiddenError,
+} from "./users-rbac.policy";
 import { requireOperatorSession } from "./require-operator-session";
 import { IdentityRequiredError } from "./identity.errors";
 
@@ -42,6 +50,22 @@ export async function handleAcceptInvite(
       return;
     }
     if (error instanceof InviteTenantMismatchError) {
+      sendHttpError(res, 403, { error: "forbidden", code: error.code });
+      return;
+    }
+    if (error instanceof InviteAcceptConflictError) {
+      if (error.code === INVITE_ACCEPT_OWNER_PROTECTED) {
+        sendHttpError(res, 403, { error: "forbidden", code: error.code });
+        return;
+      }
+      sendHttpError(res, 409, { error: "conflict", code: error.code });
+      return;
+    }
+    if (error instanceof InviteLifecycleError) {
+      sendHttpError(res, 410, { error: "gone", code: error.code, inviteId: error.inviteId });
+      return;
+    }
+    if (error instanceof OwnerCreateForbiddenError) {
       sendHttpError(res, 403, { error: "forbidden", code: error.code });
       return;
     }

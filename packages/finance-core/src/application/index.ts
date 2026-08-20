@@ -9,6 +9,7 @@ export {
   FinanceService,
   hashFinanceHttpIdempotencyKey,
 } from "./finance.service";
+export { CommercialQuoteService } from "./commercial-quote.service";
 export {
   FINANCE_LATENCY_BUDGET_MS,
   FINANCE_METRIC,

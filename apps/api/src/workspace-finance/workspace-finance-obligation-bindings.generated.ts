@@ -14,6 +14,10 @@ export const WORKSPACE_FINANCE_OBLIGATION_BINDINGS = {
       const mod = await import("@app-tour/workspace-denali/host/finance");
       return mod.resolveDenaliPaymentCollectionMode;
     },
+    loadGrossResolve: async () => {
+      const mod = await import("@app-tour/workspace-denali/host/finance");
+      return mod.resolveDenaliRegistrationGrossObligationMinor;
+    },
   },
 } as const;
 

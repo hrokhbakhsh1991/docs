@@ -24,13 +24,31 @@ import type {
   UserRoleAuditRecord,
 } from "./in-memory-identity.repository";
 import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
+import {
+  computeInviteExpiresAt,
+  isOperatorInviteActive,
+  OPERATOR_INVITE_STATUS_ACCEPTED,
+  OPERATOR_INVITE_STATUS_EXPIRED,
+  OPERATOR_INVITE_STATUS_INVITED,
+  OPERATOR_INVITE_STATUS_REVOKED,
+  type OperatorInviteLifecycleStatus,
+} from "./invite-lifecycle";
 import { MobileAlreadyRegisteredError } from "./identity.errors";
 import {
   InviteNotFoundError,
   MembershipNotFoundError,
   OwnershipTransferForbiddenError,
   OwnershipTransferTargetInvalidError,
+  assertInviteAcceptCreatesMembership,
+  assertInviteCreateDoesNotDuplicate,
+  InviteLifecycleError,
 } from "./in-memory-identity.repository";
+import {
+  INVITE_EXPIRED,
+  assertOwnerCreateAllowed,
+  evaluateInviteLifecycleForAccept,
+  isActiveOwner,
+} from "./users-rbac.policy";
 import {
   mergeMembershipMetadata,
   readMembershipMetadata,
@@ -104,6 +122,8 @@ function toPendingInviteRecord(row: {
   status: string;
   nameNote: string | null;
   invitedByUserId: string;
+  createdAt: Date;
+  expiresAt: Date;
 }): PendingInviteRecord {
   return {
     inviteId: row.inviteId,
@@ -111,10 +131,19 @@ function toPendingInviteRecord(row: {
     tenantId: row.tenantId,
     phone: row.phone,
     role: row.role as PendingInviteRecord["role"],
-    status: "INVITED",
+    status: row.status as OperatorInviteLifecycleStatus,
+    createdAt: row.createdAt,
+    expiresAt: row.expiresAt,
     ...(row.nameNote !== null && row.nameNote.length > 0 ? { nameNote: row.nameNote } : {}),
     invitedByUserId: row.invitedByUserId,
   };
+}
+
+function activePendingInviteWhere(now: Date = new Date()) {
+  return {
+    status: OPERATOR_INVITE_STATUS_INVITED,
+    expiresAt: { gt: now },
+  } as const;
 }
 
 function toDirectoryPairFromRawRow(row: {
@@ -363,29 +392,56 @@ export class PrismaIdentityRepository implements IdentityRepository {
   async createPendingInvite(input: CreatePendingInviteInput): Promise<PendingInviteRecord> {
     const inviteId = randomUUID();
     const inviteToken = randomUUID();
-    const row = await withTenantRls(input.tenantId, (tx) =>
-      tx.operatorPendingInvite.create({
+    const phone = normalizeMobile(input.phone);
+    const lockKey = `${input.tenantId.trim()}:${phone}`;
+    const createdAt = new Date();
+    const expiresAt = computeInviteExpiresAt(createdAt);
+
+    const row = await withTenantRls(input.tenantId, async (tx) => {
+      await tx.$executeRaw`
+        SELECT pg_advisory_xact_lock(
+          ('x' || substr(md5(${lockKey}), 1, 8))::bit(32)::int,
+          ('x' || substr(md5(${lockKey}), 9, 8))::bit(32)::int
+        )
+      `;
+
+      const existing = await tx.operatorPendingInvite.findFirst({
+        where: {
+          tenantId: input.tenantId,
+          phone,
+          ...activePendingInviteWhere(createdAt),
+        },
+        select: PENDING_INVITE_LIST_SELECT,
+      });
+      if (existing !== null) {
+        assertInviteCreateDoesNotDuplicate(toPendingInviteRecord(existing));
+      }
+
+      return tx.operatorPendingInvite.create({
         data: {
           inviteId,
           inviteToken,
           tenantId: input.tenantId,
-          phone: normalizeMobile(input.phone),
+          phone,
           role: input.role,
-          status: "INVITED",
+          status: OPERATOR_INVITE_STATUS_INVITED,
+          createdAt,
+          expiresAt,
           ...(input.nameNote !== undefined && input.nameNote.trim().length > 0
             ? { nameNote: input.nameNote.trim() }
             : {}),
           invitedByUserId: input.invitedByUserId,
         },
-      })
-    );
+      });
+    });
     return toPendingInviteRecord(row);
   }
 
   async listPendingInvitesByTenant(tenantId: string): Promise<readonly PendingInviteRecord[]> {
+    const now = new Date();
     const rows = await withTenantRls(tenantId, (tx) =>
       tx.operatorPendingInvite.findMany({
-        where: { tenantId, status: "INVITED" },
+        where: { tenantId, ...activePendingInviteWhere(now) },
         select: PENDING_INVITE_LIST_SELECT,
         orderBy: { inviteId: "asc" },
         take: MAX_PENDING_INVITES_PER_TENANT,
@@ -402,8 +458,8 @@ export class PrismaIdentityRepository implements IdentityRepository {
       tx.operatorPendingInvite.findFirst({
         where: {
           tenantId,
-          status: "INVITED",
           phone: normalizeMobile(phone),
+          ...activePendingInviteWhere(),
         },
         select: PENDING_INVITE_LIST_SELECT,
       })
@@ -417,7 +473,8 @@ export class PrismaIdentityRepository implements IdentityRepository {
   ): Promise<PendingInviteRecord | null> {
     const row = await withTenantRls(tenantId, (tx) =>
       tx.operatorPendingInvite.findFirst({
-        where: { inviteId, tenantId, status: "INVITED" },
+        where: { inviteId, tenantId, ...activePendingInviteWhere() },
+        select: PENDING_INVITE_LIST_SELECT,
       })
     );
     return row === null ? null : toPendingInviteRecord(row);
@@ -429,17 +486,40 @@ export class PrismaIdentityRepository implements IdentityRepository {
   ): Promise<PendingInviteRecord | null> {
     const row = await withTenantRls(tenantId, (tx) =>
       tx.operatorPendingInvite.findFirst({
-        where: { inviteToken: inviteToken.trim(), tenantId, status: "INVITED" },
+        where: {
+          inviteToken: inviteToken.trim(),
+          tenantId,
+          ...activePendingInviteWhere(),
+        },
+        select: PENDING_INVITE_LIST_SELECT,
       })
     );
     return row === null ? null : toPendingInviteRecord(row);
   }
 
-  async findPendingInviteForAccept(inviteToken: string): Promise<PendingInviteRecord | null> {
-    const row = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_PENDING_INVITE).operatorPendingInvite.findFirst({
-      where: { inviteToken: inviteToken.trim(), status: "INVITED" },
+  async findInviteByToken(inviteToken: string): Promise<PendingInviteRecord | null> {
+    const row = await getIdentityAdminClient(
+      IDENTITY_ADMIN_REASON.ID_PENDING_INVITE
+    ).operatorPendingInvite.findFirst({
+      where: { inviteToken: inviteToken.trim() },
+      select: PENDING_INVITE_LIST_SELECT,
     });
     return row === null ? null : toPendingInviteRecord(row);
+  }
+
+  async findPendingInviteForAccept(inviteToken: string): Promise<PendingInviteRecord | null> {
+    const invite = await this.findInviteByToken(inviteToken);
+    if (invite === null || !isOperatorInviteActive(invite)) {
+      return null;
+    }
+    return invite;
+  }
+
+  async markInviteExpired(inviteId: string): Promise<void> {
+    await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_PENDING_INVITE).operatorPendingInvite.updateMany({
+      where: { inviteId, status: OPERATOR_INVITE_STATUS_INVITED },
+      data: { status: OPERATOR_INVITE_STATUS_EXPIRED },
+    });
   }
 
   async acceptPendingInvite(
@@ -447,9 +527,20 @@ export class PrismaIdentityRepository implements IdentityRepository {
     inviteToken: string,
     userId: string
   ): Promise<IdentityMembershipRecord | null> {
-    const invite = await this.findPendingInviteByToken(tenantId, inviteToken);
-    if (invite === null) {
+    const invite = await this.findInviteByToken(inviteToken);
+    if (invite === null || invite.tenantId !== tenantId) {
       return null;
+    }
+
+    const lifecycle = evaluateInviteLifecycleForAccept({
+      status: invite.status,
+      expiresAt: invite.expiresAt,
+    });
+    if (!lifecycle.ok) {
+      if (lifecycle.code === INVITE_EXPIRED && invite.status === OPERATOR_INVITE_STATUS_INVITED) {
+        await this.markInviteExpired(invite.inviteId);
+      }
+      throw new InviteLifecycleError(lifecycle.code, invite.inviteId);
     }
 
     const user = await this.findUserById(userId);
@@ -461,44 +552,45 @@ export class PrismaIdentityRepository implements IdentityRepository {
       const existing = await tx.userTenant.findUnique({
         where: { userId_tenantId: { userId, tenantId: invite.tenantId } },
       });
+      assertInviteAcceptCreatesMembership(existing === null ? null : existing.role);
 
-      const membership: IdentityMembershipRecord =
-        existing === null
-          ? {
-              userId,
-              tenantId: invite.tenantId,
-              role: invite.role,
-              status: "ACTIVE",
-              sessionVersion: 1,
-              workspaceId: `ws-invite-${userId.slice(0, 8)}`,
-            }
-          : {
-              ...toMembershipRecord(existing),
-              role: invite.role,
-              status: "ACTIVE",
-              sessionVersion: existing.sessionVersion + 1,
-            };
+      // P1.3-B write-boundary race guard — same evaluateOwnerCreate as service.
+      if (invite.role === "owner") {
+        const ownerRows = await tx.userTenant.findMany({
+          where: { tenantId: invite.tenantId, role: "owner", status: "ACTIVE" },
+          select: { userId: true, role: true, status: true },
+        });
+        const activeOwnerCount = ownerRows.filter((row) =>
+          isActiveOwner({ role: row.role, status: row.status })
+        ).length;
+        assertOwnerCreateAllowed(activeOwnerCount);
+      }
 
-      await tx.userTenant.upsert({
-        where: { userId_tenantId: { userId, tenantId: invite.tenantId } },
-        create: {
+      const membership: IdentityMembershipRecord = {
+        userId,
+        tenantId: invite.tenantId,
+        role: invite.role,
+        status: "ACTIVE",
+        sessionVersion: 1,
+        workspaceId: `ws-invite-${userId.slice(0, 8)}`,
+      };
+
+      await tx.userTenant.create({
+        data: {
           userId,
           tenantId: invite.tenantId,
           role: membership.role,
           status: membership.status,
           sessionVersion: membership.sessionVersion,
           workspaceId: membership.workspaceId ?? null,
-          membershipMetadata: existing?.membershipMetadata ?? {},
-        },
-        update: {
-          role: membership.role,
-          status: membership.status,
-          sessionVersion: membership.sessionVersion,
-          ...(membership.workspaceId !== undefined ? { workspaceId: membership.workspaceId } : {}),
+          membershipMetadata: {},
         },
       });
 
-      await tx.operatorPendingInvite.delete({ where: { inviteId: invite.inviteId } });
+      await tx.operatorPendingInvite.update({
+        where: { inviteId: invite.inviteId },
+        data: { status: OPERATOR_INVITE_STATUS_ACCEPTED },
+      });
       return membership;
     });
   }
@@ -506,12 +598,16 @@ export class PrismaIdentityRepository implements IdentityRepository {
   async revokePendingInvite(tenantId: string, inviteId: string): Promise<void> {
     await withTenantRls(tenantId, async (tx) => {
       const row = await tx.operatorPendingInvite.findFirst({
-        where: { inviteId, tenantId, status: "INVITED" },
+        where: { inviteId, tenantId, ...activePendingInviteWhere() },
+        select: PENDING_INVITE_LIST_SELECT,
       });
       if (row === null) {
         throw new InviteNotFoundError(inviteId);
       }
-      await tx.operatorPendingInvite.delete({ where: { inviteId: row.inviteId } });
+      await tx.operatorPendingInvite.update({
+        where: { inviteId: row.inviteId },
+        data: { status: OPERATOR_INVITE_STATUS_REVOKED },
+      });
     });
   }
 

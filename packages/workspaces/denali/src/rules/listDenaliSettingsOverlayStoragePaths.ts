@@ -30,6 +30,7 @@ export const DENALI_MODERN_SETTINGS_OVERLAY_STORAGE_PATHS = [
   "policies.cancellationPenaltyPercentage",
   "policies.policiesText",
   "pricing.basePricePerPerson",
+  "pricing.allowMembershipDiscount",
   "pricing.includesTourInsurance",
   "pricing.prepaymentEnabled",
   "pricing.prepaymentPercent",

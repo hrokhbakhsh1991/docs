@@ -1,0 +1,85 @@
+---
+title: Active pending invite uniqueness invariant
+description: Domain rule — at most one INVITED row per (tenantId, normalized phone) on POST /users/invite.
+---
+
+# Active pending invite uniqueness invariant
+
+```yaml
+id: INVITE-ACTIVE-UNIQUENESS-INVARIANT
+version: "2026-08-20"
+status: LOCKED
+authority: users-rbac.policy.ts · in-memory/prisma identity repositories · users.service.ts
+decisions: [DEC-P9-015, DEC-P9-018]
+related:
+  - subphases/9.4-users-rbac.md
+  - users-api-dispatch-addendum.md
+  - invite-accept-membership-invariant.mdoc
+```
+
+## Problem
+
+`POST /users/invite` always inserted a new `OperatorPendingInvite` row. Same workspace could accumulate multiple **INVITED** rows for one normalized phone — ambiguous queue, duplicate OTP paths, noisy directory.
+
+## Rule (domain)
+
+**Scope:** `(tenantId, normalizedPhone)` where `status = INVITED`.
+
+**Active** means the row is listed by `findPendingInviteByPhone` / `GET /users/invites`: `status = INVITED` **and** `expiresAt > now`. Terminal rows (`ACCEPTED`, `EXPIRED`, `REVOKED`) are retained for audit but do not block a new invite.
+
+```text
+existing INVITED row for (tenantId, normalizeLoginMobile(phone))?
+  no  → create pending invite (201)
+  yes → reject; do not insert; return 409 INVITE_ALREADY_PENDING with existing inviteId
+```
+
+Phone normalization uses the same path as login and accept: `normalizeLoginMobile` → `canonicalizeLoginMobile` (e.g. `0912…` and `+98912…` resolve to one key).
+
+Evaluated by `evaluateInviteCreate` in `users-rbac.policy.ts`. Enforced inside **`createPendingInvite`** on both identity repositories (write boundary). Not a controller-only check.
+
+### Case table
+
+| Case | Decision | HTTP | Code |
+| ---- | -------- | ---- | ---- |
+| No active invite | **Allow** — insert row | **201** | — |
+| Active invite exists (same tenant + normalized phone) | **Reject** — no second row | **409** | `INVITE_ALREADY_PENDING` |
+| Same phone, different tenant | **Allow** — tenant isolation | **201** | — |
+| Prior invite revoked, expired, or accepted | **Allow** — no active row | **201** | — |
+| Existing workspace membership | **Unchanged** — invite create does not mutate `UserTenant` (P0 accept invariant separate) | — | — |
+
+## Concurrency
+
+Two concurrent `POST /users/invite` for the same `(tenantId, phone)` must not leave two active rows.
+
+| Driver | Mechanism |
+| ------ | --------- |
+| Memory | Single-threaded check + insert in `createPendingInvite`; secondary index `invitesByTenantPhone` |
+| Prisma | Transaction + `pg_advisory_xact_lock(hashtext(tenantId:phone))` then `findFirst` + `create` |
+
+Future P1 may add a partial unique index `(tenantId, phone) WHERE status = 'INVITED'`; this phase does **not** add migrations.
+
+## Non-goals (this change)
+
+- Invite TTL / lifecycle — see [`invite-lifecycle-invariant.mdoc`](invite-lifecycle-invariant.mdoc).
+- No UI or route changes.
+- No permission model changes.
+- No second invite subsystem.
+
+## Sequence
+
+```mermaid
+sequenceDiagram
+  participant S as inviteWorkspaceUser
+  participant R as createPendingInvite
+  participant P as evaluateInviteCreate
+  S->>R: tenantId + normalized phone
+  R->>R: lock / index lookup
+  R->>P: existing INVITED row?
+  alt duplicate
+    P-->>R: INVITE_ALREADY_PENDING
+    R-->>S: throw InviteAlreadyPendingError
+  else allow
+    R->>R: insert invite
+    R-->>S: PendingInviteRecord
+  end
+```

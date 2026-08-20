@@ -1,0 +1,122 @@
+---
+title: Operator invite lifecycle and expiry
+description: Domain rule — workspace invites are time-bounded INVITED rows with terminal ACCEPTED / EXPIRED / REVOKED states; accept is join-only and lifecycle-gated.
+---
+
+# Operator invite lifecycle and expiry
+
+```yaml
+id: INVITE-LIFECYCLE-INVARIANT
+version: "2026-08-20"
+status: LOCKED
+authority: invite-lifecycle.ts · users-rbac.policy.ts · invites.service.ts · identity repositories
+decisions: [DEC-P9-015, DEC-P9-018]
+related:
+  - invite-accept-membership-invariant.mdoc
+  - invite-active-uniqueness-invariant.mdoc
+  - users-api-dispatch-addendum.md
+```
+
+## Current storage (pre-P1.2 baseline)
+
+| Field | Type | Notes |
+| ----- | ---- | ----- |
+| `inviteId` | UUID PK | Stable audit id |
+| `inviteToken` | UUID unique | Accept URL token |
+| `tenantId` | UUID FK | Tenant scope |
+| `phone` | text | Normalized on write |
+| `role` | text | admin \| member \| viewer |
+| `status` | text | Default **`INVITED`** (pending/active) |
+| `nameNote` | text? | Optional owner note |
+| `invitedByUserId` | UUID | Owner who sent invite |
+| `createdAt` | timestamptz | Row creation |
+| `expiresAt` | timestamptz | **Added P1.2** — hard accept deadline |
+
+**Status vocabulary**
+
+| Stored status | Meaning | Listed in `GET /users/invites` | Acceptable |
+| ------------- | ------- | -------------------------------- | ---------- |
+| `INVITED` | Pending / active (diagram: **PENDING**) | Yes, when `expiresAt > now` | Yes, when not expired |
+| `ACCEPTED` | Consumed; membership created | No | No |
+| `EXPIRED` | TTL elapsed; row retained | No | No |
+| `REVOKED` | Owner revoked; row retained | No | No |
+
+API responses keep **`status: "INVITED"`** for pending queue rows (no UI change). Terminal rows are omitted from the pending list.
+
+**Migration:** required — add `expires_at` NOT NULL, backfill `created_at + 7 days` for existing `INVITED` rows.
+
+## Lifecycle diagram
+
+```text
+                    create (POST /users/invite)
+                              |
+                              v
+                         INVITED (pending)
+                         expiresAt set
+                    /        |         \
+         accept OK    lazy TTL      owner DELETE
+              |       on accept          |
+              v           |              v
+          ACCEPTED     EXPIRED       REVOKED
+         (retained)   (retained)    (retained)
+```
+
+Rows are **not deleted** on accept/revoke/expiry (audit trail). P1.1 duplicate guard treats only **active** invites (`INVITED` + unexpired) as blocking.
+
+## Expiry rules
+
+- TTL default: **7 days** (`OPERATOR_INVITE_TTL_MS` env override; tests use explicit `expiresAt` on seeds).
+- **Before expiry:** accept allowed (subject to P0 membership invariant).
+- **After expiry:** accept rejected with **410** `INVITE_EXPIRED`; lazy transition `INVITED → EXPIRED` at accept boundary; no `UserTenant` write; invite row retained.
+
+## Resend (Option B — chosen)
+
+`POST /users/invites/{id}/resend` (R6):
+
+- Dispatches login OTP only.
+- **Does not** extend `expiresAt`.
+- **Does not** rotate `inviteToken` (shared accept links stay valid until expiry/revoke/accept).
+- Fails **404** when invite is not active (`EXPIRED` / `REVOKED` / `ACCEPTED` or past TTL).
+
+Rationale: resend is an OTP nudge on the existing invite window, not a new invitation. Extending TTL on every resend would allow indefinite invites via repeated resend spam.
+
+## Revoke
+
+`DELETE /users/invites/{id}`:
+
+- Sets `status = REVOKED` (row retained).
+- Clears active-phone index (P1.1).
+- Accept → **410** `INVITE_REVOKED`.
+- New invite for same phone allowed (no active row).
+
+## Accept security
+
+| Terminal / invalid state | HTTP | Code | Side effects |
+| ------------------------ | ---- | ---- | ------------ |
+| Missing token | 404 | `INVITE_NOT_FOUND` | none |
+| `EXPIRED` (or lazy-expired) | 410 | `INVITE_EXPIRED` | status → `EXPIRED` if was `INVITED` |
+| `REVOKED` | 410 | `INVITE_REVOKED` | none |
+| `ACCEPTED` | 410 | `INVITE_ALREADY_ACCEPTED` | none |
+| Cross-tenant token | 403 | `INVITE_TENANT_MISMATCH` | none |
+| Phone mismatch | 403 | `INVITE_PHONE_MISMATCH` | none |
+| Existing membership (P0) | 403/409 | owner/member codes | none |
+
+Tenant isolation unchanged: lifecycle evaluated per `(inviteToken → tenantId)`; expiry in workspace A does not affect workspace B.
+
+## Sequence (accept)
+
+```mermaid
+sequenceDiagram
+  participant S as acceptWorkspaceInvite
+  participant L as evaluateInviteLifecycleForAccept
+  participant R as acceptPendingInvite
+  S->>R: findInviteByToken (any status)
+  alt missing
+    S-->>S: INVITE_NOT_FOUND
+  else lifecycle reject
+    S->>L: status + expiresAt
+    L-->>S: EXPIRED / REVOKED / ACCEPTED
+  else allow
+    S->>R: mark ACCEPTED + insert UserTenant
+  end
+```

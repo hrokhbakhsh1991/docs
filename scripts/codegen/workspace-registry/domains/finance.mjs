@@ -626,6 +626,12 @@ export function generateWorkspaceFinanceObligationBindings(manifests) {
         : null;
     const paymentCollectionSpec =
       paymentCollection !== null ? importSpecifier(m.package, paymentCollection.module) : null;
+    const obligationGross =
+      finance.registrationObligationGross !== undefined
+        ? assertModuleExport(finance.registrationObligationGross, m.id, "registrationObligationGross")
+        : null;
+    const obligationGrossSpec =
+      obligationGross !== null ? importSpecifier(m.package, obligationGross.module) : null;
     for (const wt of workspaceTypes) {
       if (typeof wt !== "string" || wt.trim().length === 0) {
         continue;
@@ -638,11 +644,19 @@ export function generateWorkspaceFinanceObligationBindings(manifests) {
       return mod.${paymentCollection.export};
     },`
           : "";
+      const obligationGrossBlock =
+        obligationGross !== null && obligationGrossSpec !== null
+          ? `
+    loadGrossResolve: async () => {
+      const mod = await import(${JSON.stringify(obligationGrossSpec)});
+      return mod.${obligationGross.export};
+    },`
+          : "";
       bindingEntries.push(`  ${JSON.stringify(wt.trim().toLowerCase())}: {
     loadResolve: async () => {
       const mod = await import(${JSON.stringify(spec)});
       return mod.${obligation.export};
-    },${paymentCollectionBlock}
+    },${paymentCollectionBlock}${obligationGrossBlock}
   },`);
     }
   }

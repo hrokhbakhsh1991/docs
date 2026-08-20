@@ -251,7 +251,7 @@ When `POST /auth/verify-otp` finds a **user row** but **no ACTIVE membership**, 
 2. Response includes `pendingInvite: true` (BFF maps to cookie via `login-web-session`).
 3. Subsequent bearer requests hit `requireOperatorSession` → `hydrateMembershipFromDb` throws `AuthTokenRevokedError` → fallback `resolvePendingInviteAuth`.
 
-**Synthetic auth context:** `resolvePendingInviteAuth` returns `status: "SUSPENDED"` (not `INVITED` — `MembershipStatus` SDK union is `ACTIVE | SUSPENDED` only). `isAuthzGranted` stays **false** until accept creates an ACTIVE membership. Accept route (`POST /auth/invite/{token}/accept`) only needs `userId` + `tenantId` + phone match — not full tenant grants.
+**Synthetic auth context:** `resolvePendingInviteAuth` returns `status: "SUSPENDED"` (not `INVITED` — `MembershipStatus` SDK union is `ACTIVE | SUSPENDED` only). `isAuthzGranted` stays **false** until accept creates an ACTIVE membership. Accept route (`POST /auth/invite/{token}/accept`) only needs `userId` + `tenantId` + phone match — not full tenant grants. Accept **creates** membership when no `UserTenant` exists for that pair; it must **not** upsert an existing owner/member/suspended row ([`invite-accept-membership-invariant.mdoc`](invite-accept-membership-invariant.mdoc)).
 
 **Login chain (web):** `login-web-session` → `GET /auth/ability-context` (200 with `canManageTenant: false`) → optional `POST /auth/invite/{token}/accept` when `?invite=` present → redirect `/dashboard`.
 

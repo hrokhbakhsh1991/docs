@@ -44,6 +44,7 @@ export const DENALI_CANONICAL_TO_FORM_PATH_MAP: Record<string, string> = {
   "policies.cancellationPenaltyPercentage": "policies.cancellationPenaltyPercentage",
   "policies.medicalFitnessDeclarationRequired": "policies.medicalFitnessDeclarationRequired",
   "policies.policiesText": "policies.policiesText",
+  "pricing.allowMembershipDiscount": "pricingPayment.allowMembershipDiscount",
   "pricing.basePricePerPerson": "pricingPayment.basePricePerPerson",
   "pricing.includesTourInsurance": "pricingPayment.includesTourInsurance",
   "pricing.paymentMode": "pricingPayment.paymentMode",

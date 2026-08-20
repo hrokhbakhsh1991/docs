@@ -8,12 +8,15 @@ import type {
 } from "./in-memory-identity.repository";
 import {
   InviteNotFoundError,
+  InviteAlreadyPendingError,
   MembershipNotFoundError,
   OwnershipTransferForbiddenError,
   OwnershipTransferTargetInvalidError,
 } from "./in-memory-identity.repository";
 import { getIdentityRepository } from "./create-identity-repository";
 import { createMobileOtpChallenge } from "./otp.service";
+import type { PendingInviteRecord } from "./in-memory-identity.repository";
+import { OPERATOR_INVITE_STATUS_INVITED } from "./invite-lifecycle";
 import {
   compileUserBookingSummaryFromCounts,
 } from "./compile-user-booking-summary";
@@ -25,6 +28,13 @@ import { isLoginMobileFormatValid, normalizeLoginMobile } from "./phone-login-au
 import {
   evaluateMembershipRemoval,
   evaluateMembershipRoleChange,
+  evaluateOwnerMembershipRemoval,
+  evaluateOwnerMembershipSuspend,
+  evaluateOwnerRoleChange,
+  evaluateOwnershipTransfer,
+  isActiveOwner,
+  OWNERSHIP_TRANSFER_FORBIDDEN,
+  OWNERSHIP_TRANSFER_TARGET_INVALID,
   RBAC_INSUFFICIENT_ROLE_PRIVILEGE,
   RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN,
   RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN,
@@ -36,6 +46,7 @@ import {
   WORKSPACE_REWARD_BADGE_IDS,
   type InviteUserRequest,
   type InviteUserResponse,
+  type InvitableWorkspaceRole,
   type PatchUserRoleRequest,
   type PatchUserRoleResponse,
   type PatchUserRewardsRequest,
@@ -97,11 +108,40 @@ export class UsersRbacForbiddenError extends Error {
   }
 }
 
+function throwUsersRbacFromOwnerCardinality(
+  code:
+    | typeof RBAC_SELF_ROLE_CHANGE_FORBIDDEN
+    | typeof RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN
+    | typeof RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN
+    | typeof RBAC_INSUFFICIENT_ROLE_PRIVILEGE
+    | typeof OWNERSHIP_TRANSFER_FORBIDDEN
+    | typeof OWNERSHIP_TRANSFER_TARGET_INVALID
+): never {
+  if (
+    code === RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN ||
+    code === RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN
+  ) {
+    throw new UsersRbacForbiddenError(code);
+  }
+  throw new UsersRbacForbiddenError(RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN);
+}
+
 async function assertUsersDirectoryAccess(auth: TenantAuthContext): Promise<void> {
   if (auth.role !== "owner") {
     throw new UsersDirectoryForbiddenError();
   }
   await assertOperatorUsersWorkspace(auth.tenantId);
+}
+
+/** ACTIVE owners only — role=owner AND status=ACTIVE. */
+export async function listActiveOwnerUserIds(
+  tenantId: string,
+  repo: IdentityRepository
+): Promise<readonly string[]> {
+  const memberships = await repo.listMembershipsByTenant(tenantId);
+  return memberships
+    .filter((row) => isActiveOwner({ role: row.role, status: row.status }))
+    .map((row) => row.userId);
 }
 
 async function appendMembershipAudit(
@@ -242,28 +282,32 @@ export async function inviteWorkspaceUser(
     throw new InvitePhoneInvalidError();
   }
 
-  return repo.createPendingInvite({
+  const created = await repo.createPendingInvite({
     tenantId: auth.tenantId,
     phone,
     role: body.role,
     nameNote: body.nameNote,
     invitedByUserId: auth.userId,
   });
+  return {
+    inviteId: created.inviteId,
+    inviteToken: created.inviteToken,
+    phone: created.phone,
+    role: created.role as InvitableWorkspaceRole,
+    status: OPERATOR_INVITE_STATUS_INVITED,
+  };
 }
 
-function toPendingInviteRow(record: {
-  readonly inviteId: string;
-  readonly phone: string;
-  readonly role: InviteUserResponse["role"];
-  readonly status: "INVITED";
-  readonly nameNote?: string;
-  readonly invitedByUserId: string;
-}): PendingInviteRow {
+function toPendingInviteRow(record: PendingInviteRecord): PendingInviteRow | null {
+  if (record.role === "owner") {
+    // Platform owner invites stay off workspace invite list DTO (no contract widen).
+    return null;
+  }
   return {
     inviteId: record.inviteId,
     phone: record.phone,
     role: record.role,
-    status: record.status,
+    status: OPERATOR_INVITE_STATUS_INVITED,
     nameNote: record.nameNote ?? null,
     invitedByUserId: record.invitedByUserId,
   };
@@ -274,9 +318,9 @@ export async function listPendingInvites(
   repo: IdentityRepository = getIdentityRepository()
 ): Promise<PendingInvitesListResponse> {
   await assertUsersDirectoryAccess(auth);
-  const items = (await repo.listPendingInvitesByTenant(auth.tenantId)).map((row) =>
-    toPendingInviteRow(row)
-  );
+  const items = (await repo.listPendingInvitesByTenant(auth.tenantId))
+    .map((row) => toPendingInviteRow(row))
+    .filter((row): row is PendingInviteRow => row !== null);
   return { items, total: items.length };
 }
 
@@ -299,8 +343,12 @@ export async function resendPendingInvite(
   if (row === null || row.tenantId !== auth.tenantId) {
     throw new InviteNotFoundError(inviteId);
   }
+  const mapped = toPendingInviteRow(row);
+  if (mapped === null) {
+    throw new InviteNotFoundError(inviteId);
+  }
   await createMobileOtpChallenge(row.phone, repo);
-  return { ...toPendingInviteRow(row), otpSent: true };
+  return { ...mapped, otpSent: true };
 }
 
 function assertPatchableRole(role: string): PatchableWorkspaceRole {
@@ -322,6 +370,15 @@ async function patchWorkspaceUserRoleCore(
     (await repo.findMembership(targetUserId, auth.tenantId));
   if (membership == null) {
     throw new MembershipNotFoundError(targetUserId);
+  }
+
+  const ownerDecision = evaluateOwnerRoleChange({
+    targetRole: membership.role,
+    targetStatus: membership.status,
+    newRole,
+  });
+  if (!ownerDecision.ok) {
+    throwUsersRbacFromOwnerCardinality(ownerDecision.code);
   }
 
   const decision = evaluateMembershipRoleChange({
@@ -371,6 +428,16 @@ export async function removeWorkspaceUser(
   const membership = await repo.findMembership(targetUserId, auth.tenantId);
   if (membership === null) {
     throw new MembershipNotFoundError(targetUserId);
+  }
+
+  const activeOwnerCount = (await listActiveOwnerUserIds(auth.tenantId, repo)).length;
+  const ownerDecision = evaluateOwnerMembershipRemoval({
+    targetRole: membership.role,
+    targetStatus: membership.status,
+    activeOwnerCount,
+  });
+  if (!ownerDecision.ok) {
+    throwUsersRbacFromOwnerCardinality(ownerDecision.code);
   }
 
   const decision = evaluateMembershipRemoval({
@@ -435,12 +502,24 @@ async function suspendWorkspaceUserCore(
   repo: IdentityRepository,
   prefetch?: BulkUserMutationPrefetch
 ): Promise<MembershipWithUserPair> {
-  const membership = await assertManageableMembership(
-    auth,
-    targetUserId,
-    repo,
-    prefetch?.memberships.get(targetUserId)
-  );
+  const membership =
+    prefetch?.memberships.get(targetUserId) ??
+    (await repo.findMembership(targetUserId, auth.tenantId));
+  if (membership == null) {
+    throw new MembershipNotFoundError(targetUserId);
+  }
+
+  const activeOwnerCount = (await listActiveOwnerUserIds(auth.tenantId, repo)).length;
+  const ownerDecision = evaluateOwnerMembershipSuspend({
+    targetRole: membership.role,
+    targetStatus: membership.status,
+    activeOwnerCount,
+  });
+  if (!ownerDecision.ok) {
+    throwUsersRbacFromOwnerCardinality(ownerDecision.code);
+  }
+
+  await assertManageableMembership(auth, targetUserId, repo, membership);
   if (membership.status === "SUSPENDED") {
     throw new MembershipStatusConflictError("MEMBERSHIP_ALREADY_SUSPENDED");
   }
@@ -578,18 +657,34 @@ export async function transferWorkspaceOwnership(
   newOwnerUserId: string,
   repo: IdentityRepository = getIdentityRepository()
 ): Promise<TransferWorkspaceOwnershipResponse> {
-  if (auth.role !== "owner" || auth.tenantId !== tenantId) {
+  if (auth.tenantId !== tenantId) {
     throw new OwnershipTransferForbiddenError("OWNER_ONLY");
   }
-  if (auth.userId === newOwnerUserId) {
-    throw new OwnershipTransferTargetInvalidError(newOwnerUserId);
+
+  const actorMembership = await repo.findMembership(auth.userId, tenantId);
+  const targetMembership = await repo.findMembership(newOwnerUserId, tenantId);
+  const activeOwnerUserIds = await listActiveOwnerUserIds(tenantId, repo);
+
+  const decision = evaluateOwnershipTransfer({
+    actorUserId: auth.userId,
+    actorRole: actorMembership?.role ?? auth.role,
+    actorStatus: actorMembership?.status ?? "ACTIVE",
+    targetUserId: newOwnerUserId,
+    targetExists: targetMembership !== null,
+    targetRole: targetMembership?.role ?? null,
+    targetStatus: targetMembership?.status ?? null,
+    activeOwnerUserIds,
+  });
+  if (!decision.ok) {
+    if (decision.code === OWNERSHIP_TRANSFER_TARGET_INVALID) {
+      throw new OwnershipTransferTargetInvalidError(newOwnerUserId);
+    }
+    throw new OwnershipTransferForbiddenError(
+      decision.code === OWNERSHIP_TRANSFER_FORBIDDEN ? "OWNER_ONLY" : decision.code
+    );
   }
 
-  const targetMembership = await repo.findMembership(newOwnerUserId, tenantId);
-  if (targetMembership === null) {
-    throw new OwnershipTransferTargetInvalidError(newOwnerUserId);
-  }
-  const targetOldRole = normalizeMembershipRole(targetMembership.role);
+  const targetOldRole = normalizeMembershipRole(targetMembership!.role);
 
   const result = await repo.transferWorkspaceOwnership(tenantId, auth.userId, newOwnerUserId);
   await appendMembershipAudit(repo, {
@@ -598,7 +693,7 @@ export async function transferWorkspaceOwnership(
     actorUserId: auth.userId,
     eventKind: "role_change",
     oldRole: "owner",
-    newRole: "admin",
+    newRole: decision.previousOwnerNewRole,
   });
   await appendMembershipAudit(repo, {
     tenantId,
@@ -606,7 +701,7 @@ export async function transferWorkspaceOwnership(
     actorUserId: auth.userId,
     eventKind: "role_change",
     oldRole: targetOldRole,
-    newRole: "owner",
+    newRole: decision.targetNewRole,
   });
   return {
     tenantId,
@@ -840,6 +935,7 @@ export async function bulkRemoveWorkspaceUsers(
 
 export {
   InviteNotFoundError,
+  InviteAlreadyPendingError,
   MembershipNotFoundError,
   OwnershipTransferForbiddenError,
   OwnershipTransferTargetInvalidError,

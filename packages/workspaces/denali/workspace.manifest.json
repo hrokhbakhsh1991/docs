@@ -163,6 +163,10 @@
       "module": "./finance",
       "export": "resolveDenaliRegistrationObligationMinor"
     },
+    "registrationObligationGross": {
+      "module": "./finance",
+      "export": "resolveDenaliRegistrationGrossObligationMinor"
+    },
     "paymentCollection": {
       "module": "./finance",
       "export": "resolveDenaliPaymentCollectionMode"

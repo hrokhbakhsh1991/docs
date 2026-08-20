@@ -105,6 +105,16 @@ export type { FinanceSchedulePort } from "./finance-schedule.port";
 /** Schedule item shape — SoT in domain; re-exported for port implementers. */
 export type { PaymentScheduleItem } from "./finance-schedule.port";
 export type {
+  CommercialQuoteRepositoryPort,
+  CommercialQuoteVersion,
+  CreateCommercialQuoteVersionInput,
+} from "./commercial-quote-repository.port";
+export type { MembershipDiscountReadPort } from "./membership-discount-read.port";
+export type {
+  CommercialQuoteFreezeContext,
+  CommercialQuoteFreezeContextPort,
+} from "./commercial-quote-freeze-context.port";
+export type {
   FinanceRegistrationDisplay,
   RegistrationDisplayPort,
 } from "./registration-display.port";

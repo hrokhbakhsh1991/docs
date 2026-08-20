@@ -44,7 +44,7 @@ Table gained RLS in migration `20260707110000_operator_pending_invites_rls`.
 | `findPendingInvite(tenantId, inviteId)` | `withTenantRls` + `findFirst({ inviteId, tenantId })` |
 | `findPendingInviteByToken(tenantId, token)` | `withTenantRls` + `findFirst({ inviteToken, tenantId })` |
 | `revokePendingInvite(tenantId, inviteId)` | `withTenantRls` + `delete({ where: { inviteId } })` |
-| `acceptPendingInvite(tenantId, token, userId)` | Scoped token lookup inside `withTenantRls` transaction |
+| `acceptPendingInvite(tenantId, token, userId)` | Scoped token lookup inside `withTenantRls` transaction. **Insert-only** when no `UserTenant` exists; existing owner/member/suspended rows throw `InviteAcceptConflictError` (no role overwrite, invite not deleted). |
 
 Service callers pass `auth.tenantId` from [`invites.service.ts`](../../apps/api/src/identity/invites.service.ts) and [`users.service.ts`](../../apps/api/src/identity/users.service.ts).
 

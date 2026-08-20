@@ -1,0 +1,82 @@
+---
+title: Invite accept membership invariant
+description: Domain rule — POST /auth/invite/{token}/accept must not overwrite an existing UserTenant row (owner protection + duplicate membership).
+---
+
+# Invite accept membership invariant
+
+```yaml
+id: INVITE-ACCEPT-MEMBERSHIP-INVARIANT
+version: "2026-08-20"
+status: LOCKED
+authority: users-rbac.policy.ts · invites.service.ts
+decisions: [DEC-P9-015, DEC-P9-018, DEC-P9-019]
+related:
+  - subphases/9.4-users-rbac.md
+  - users-api-dispatch-addendum.md
+```
+
+## Problem
+
+`acceptPendingInvite` historically **upserted** `UserTenant`:
+
+- No row → create with invite role (correct).
+- Existing row → **overwrite `role` + bump `sessionVersion` + force `ACTIVE`**.
+
+That path bypassed `evaluateMembershipRoleChange` / `evaluateMembershipRemoval`. An owner could invite their own phone as `member` and accept — last owner destroyed without `transferWorkspaceOwnership`.
+
+## Rule (domain)
+
+Evaluated by `evaluateInviteAccept` in `users-rbac.policy.ts`. Enforced **before** persist in `acceptWorkspaceInvite` (`invites.service.ts`) and again inside both identity repositories (write-boundary race guard). Not a controller-only check. Not a second CASL matrix.
+
+```text
+existing UserTenant for (userId, invite.tenantId)?
+  no  → create membership with invite role (admin|member|viewer)
+  yes → reject; do not write role/status/sessionVersion; do not delete invite; do not append audit
+```
+
+### Case table
+
+| Existing row | Decision | HTTP | Code |
+| ------------ | -------- | ---- | ---- |
+| None | **Allow** — insert membership, consume invite | 200 | — |
+| `role = owner` (any status) | **Reject** — owner row unchanged | **403** | `INVITE_ACCEPT_OWNER_PROTECTED` |
+| `admin` / `member` / `viewer` **ACTIVE** | **Reject** — duplicate membership; owner must PATCH role / DELETE / suspend explicitly | **409** | `INVITE_ACCEPT_MEMBERSHIP_EXISTS` |
+| Same roles **SUSPENDED** | **Reject** — reactivate is `PATCH /users/{id}/reactivate` only, not invite accept | **409** | `INVITE_ACCEPT_MEMBERSHIP_EXISTS` |
+
+Suspended is **not** an implicit reactivate. Invite accept is join-only.
+
+### Cross-tenant
+
+Lookup is `(auth.userId, invite.tenantId)`. Membership in workspace B does not block creating membership in workspace A. Workspace B row is not read or written.
+
+```
+User (global mobile)
+ ├── UserTenant { tenantId: A, role: member }   ← accept invite to A creates this
+ └── UserTenant { tenantId: B, role: owner }    ← untouched
+```
+
+## Non-goals (this change)
+
+- Active invite uniqueness is **P1.1** — see [`invite-active-uniqueness-invariant.mdoc`](invite-active-uniqueness-invariant.mdoc).
+- Invite TTL / lifecycle — **P1.2** [`invite-lifecycle-invariant.mdoc`](invite-lifecycle-invariant.mdoc).
+- No Prisma migration / partial unique index on owner (P1).
+- No UI copy or layout changes.
+
+## Sequence
+
+```mermaid
+sequenceDiagram
+  participant S as acceptWorkspaceInvite
+  participant P as evaluateInviteAccept
+  participant R as IdentityRepository
+  S->>S: load invite + phone/tenant match
+  S->>R: findMembership(userId, invite.tenantId)
+  S->>P: existing role or null
+  alt reject
+    P-->>S: OWNER_PROTECTED or MEMBERSHIP_EXISTS
+    S-->>S: throw InviteAcceptConflictError
+  else allow
+    S->>R: acceptPendingInvite (insert only)
+  end
+```

@@ -26,6 +26,7 @@ model Tenant {
   payments                    Payment[]
   paymentReceipts             PaymentReceipt[]
   financeSchedules            FinanceSchedule[]
+  financeCommercialQuotes     FinanceCommercialQuote[]
   financeRefunds              FinanceRefund[]
   urbanRegistrations          UrbanRegistration[]
   userTenants                 UserTenant[]
@@ -411,6 +412,32 @@ model FinanceSchedule {
   @@map("finance_schedules")
 }
 
+/// CQ-1C — immutable commercial quote versions per registration (Finance-owned).
+model FinanceCommercialQuote {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  registrationId      String   @map("registration_id") @db.Uuid
+  versionNumber       Int      @map("version_number")
+  status              String
+  grossMinor          String   @map("gross_minor")
+  payableMinor        String   @map("payable_minor")
+  currency            String   @db.VarChar(8)
+  source              String
+  calculationVersion  String   @map("calculation_version")
+  supersedesVersionId String?  @map("supersedes_version_id") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at")
+  memberDiscountPercentageApplied Int?    @map("member_discount_percentage_applied")
+  memberDiscountMinor             String? @map("member_discount_minor")
+  memberDiscountMemberUserId      String? @map("member_discount_member_user_id") @db.Uuid
+  memberDiscountMembershipReference String? @map("member_discount_membership_reference")
+  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, registrationId, versionNumber])
+  @@index([tenantId, registrationId])
+  @@index([tenantId, registrationId, status])
+  @@map("finance_commercial_quotes")
+}
+
 /// Phase 9.1 — global operator identity (mobile login).
 model User {
   id          String       @id @default(uuid()) @db.Uuid
@@ -465,6 +492,7 @@ model OperatorPendingInvite {
   nameNote        String?  @map("name_note")
   invitedByUserId String   @map("invited_by_user_id") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at")
+  expiresAt       DateTime @map("expires_at")
   tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, status], map: "idx_operator_pending_invites_tenant_status")

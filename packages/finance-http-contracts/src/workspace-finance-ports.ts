@@ -85,7 +85,13 @@ export interface FinanceReceiptDefaultsPort {
 /** Workspace resolves what the registration owes (minor units) — FC-2. */
 export type FinanceRegistrationObligation = {
   readonly currency: string;
+  /** Final payable obligation Finance treats as money-path total. */
   readonly obligationMinor: string;
+  /**
+   * Raw commercial amount before reducers (override, free collection, future discount).
+   * When omitted, Finance assumes gross equals payable.
+   */
+  readonly grossObligationMinor?: string;
   readonly source: "tour_canonical" | "schedule" | "operator_override" | "unknown";
 };
 

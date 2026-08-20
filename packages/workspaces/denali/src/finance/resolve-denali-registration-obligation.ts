@@ -98,15 +98,25 @@ function scaleMinor(perPerson: number, partySize: number): string {
   return (BigInt(perPerson) * BigInt(partySize)).toString();
 }
 
+type ResolveDenaliRegistrationDueBreakdownOptions = {
+  /** When true (default), free-collection tours waive payable to zero. */
+  readonly waiveFreeCollection?: boolean;
+};
+
 /**
  * Transport-aware due breakdown for member display + Finance obligation.
  */
-export function resolveDenaliRegistrationDueBreakdown(input: {
-  readonly tourCanonical: unknown;
-  readonly partySize: number;
-  readonly currency?: string;
-  readonly registrationIntake?: unknown;
-}): DenaliRegistrationObligation | null {
+export function resolveDenaliRegistrationDueBreakdown(
+  input: {
+    readonly tourCanonical: unknown;
+    readonly partySize: number;
+    readonly currency?: string;
+    readonly registrationIntake?: unknown;
+  },
+  options: ResolveDenaliRegistrationDueBreakdownOptions = {}
+): DenaliRegistrationObligation | null {
+  const waiveFreeCollection = options.waiveFreeCollection !== false;
+
   if (!Number.isFinite(input.partySize) || input.partySize < 1) {
     return null;
   }
@@ -118,7 +128,10 @@ export function resolveDenaliRegistrationDueBreakdown(input: {
 
   const currency = (input.currency ?? "IRR").toUpperCase();
 
-  if (resolveDenaliPaymentCollectionMode(input.tourCanonical) === "free") {
+  if (
+    waiveFreeCollection &&
+    resolveDenaliPaymentCollectionMode(input.tourCanonical) === "free"
+  ) {
     return {
       currency,
       obligationMinor: "0",
@@ -180,4 +193,14 @@ export function resolveDenaliRegistrationObligationMinor(input: {
   readonly registrationIntake?: unknown;
 }): DenaliRegistrationObligation | null {
   return resolveDenaliRegistrationDueBreakdown(input);
+}
+
+/** Gross list + add-ons before free-collection waive — Finance quote provenance only. */
+export function resolveDenaliRegistrationGrossObligationMinor(input: {
+  readonly tourCanonical: unknown;
+  readonly partySize: number;
+  readonly currency?: string;
+  readonly registrationIntake?: unknown;
+}): DenaliRegistrationObligation | null {
+  return resolveDenaliRegistrationDueBreakdown(input, { waiveFreeCollection: false });
 }
