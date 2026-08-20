@@ -1,0 +1,395 @@
+---
+title: Commercial Quote Snapshot
+doc_id: DENALI-COMMERCIAL-QUOTE
+version: "2026-08-20-v2"
+workspace: denali
+status: LOCKED
+phase: pre-implementation
+authority: finance-domain-product-analysis.mdoc · registration-payment-orchestration.mdoc · owner-cardinality-invariant.mdoc
+related:
+  - registration-payment-orchestration.mdoc
+  - finance-domain-product-analysis.mdoc
+decisions: [DEC-CQ-001, DEC-CQ-002, DEC-CQ-003, DEC-CQ-004, DEC-CQ-005, DEC-CQ-006, DEC-CQ-007, DEC-CQ-008, DEC-CQ-009, DEC-CQ-010, DEC-CQ-011, DEC-CQ-012, DEC-CQ-013]
+---
+
+# Commercial Quote Snapshot
+
+Architecture contract for a **Finance-owned**, **versioned** payable obligation snapshot on a registration. Locked before implementation of member discounts, credits, and future commercial adjustments.
+
+```yaml
+id: COMMERCIAL-QUOTE-SNAPSHOT
+rule: One active commercial quote per registration until payment lock; versions supersede, never mutate.
+```
+
+## 1. Purpose
+
+### What is Commercial Quote?
+
+A **server-computed, auditable, versioned payable obligation snapshot** for **one registration** at **one point in time**.
+
+It answers: *“What did we agree this registration owed, commercially, at freeze time?”*
+
+Each version records at minimum:
+
+- **Gross** — list + add-ons from tour canonical inputs and registration facts (party size, intake).
+- **Payable** — final obligation after **one** commercial reducer (see §4).
+- **Provenance** — which reducer applied and when the version was frozen.
+
+Commercial Quote is the **historical commercial contract** between catalog inputs and Finance money layers. It is not recomputed from live tour price after freeze (except legacy fallback — §8).
+
+### What Commercial Quote is NOT
+
+| Concept | Role | Why not Commercial Quote |
+| ------- | ---- | ------------------------ |
+| **Invoice** | Finance read model (`invoiceTotal`, `paid`, `balanceDue`) | Compiled from quote + schedule + wallet; derived, not the agreement |
+| **Payment** | Posted cash (intent, receipt, capture) | Ledger fact; immutable money movement |
+| **Wallet** | Registration prepayment progress | Reduces balance due; does not redefine list or payable |
+| **Credit** | Spendable member balance (future) | Applies **after** payable toward balance due |
+| **Tour price** | Catalog SoT (`pricing.basePricePerPerson`, transport costs) | Mutable product data; quote **references** tour at freeze, does not replace tour |
+
+---
+
+## 2. Domain Ownership
+
+### Catalog owns
+
+- Tour canonical pricing (list price per person, payment collection mode).
+- Add-on **inputs** embedded in tour canonical (transport cost, dong amount, organized transport mode).
+- Tour-level gates for membership discounts when product adds them — canonical field name **`allowMembershipDiscount`** (DEC-CQ-011).
+
+Catalog **does not** apply member percentages or persist registration payable.
+
+### Booking owns
+
+- Registration **facts**: `tourId`, `partySize`, departure context, registrant identity linkage.
+- **Intake inputs**: transport kind, personal car occupants, registrant target, and other host JSON the workspace resolver reads.
+- Lifecycle status (`pending`, `approved`, …) and Finance-projected `paymentStatus` on the registration row.
+
+Booking **does not** own commercial math, quote versions, quote storage, or interpret payable amounts.
+
+### Finance owns
+
+- **Commercial Quote storage** (DEC-CQ-009) — dedicated Finance persistence; not booking/intake payload.
+- **Commercial Quote** (create, version, supersede, lock).
+- **Commercial adjustments** at freeze time (override, member discount, future coupon — exclusive reducer).
+- **Payable obligation** as historical snapshot and as input to invoice compilation.
+- **Invoice interpretation** (total / paid / balance due) from quote + schedule + wallet facts.
+- **Payments, prepayments, refunds** (cash ledger).
+
+Finance is the **final price owner** for what a registration owed at agreement time.
+
+### Identity owns
+
+- **Member eligibility facts** on `UserTenant` membership (tenant-scoped), e.g. `rewards.permanentDiscountPercentage`, loyalty badges, labels.
+
+Identity **does not** calculate money, apply discounts to payable, or store quote versions. Finance **reads** eligibility facts at quote freeze using `(userId, tenantId)`.
+
+---
+
+## 3. Lifecycle
+
+### States
+
+Each quote **version** is in exactly one state:
+
+| State | Meaning |
+| ----- | ------- |
+| **CREATED / FROZEN** | Active commercial version; used for obligation input until superseded or locked |
+| **SUPERSEDED** | Replaced by a newer version; retained for audit; not used for new money interpretation |
+| **LOCKED** | Registration has successful payment capture; no further versions; immutable commercial history |
+
+**Active quote (DEC-CQ-010)** = **latest non-superseded** quote version for `(tenantId, registrationId)` on a chain that is not **LOCKED**.
+
+Only **one** active quote at a time pre-lock. Quote versions are **immutable**; any recalculation creates a **new version** and marks the prior version **SUPERSEDED**.
+
+### Creation
+
+**Lock (DEC-CQ-001 · DEC-CQ-008):** Create on **first money-meaningful Finance freeze**, **before** any successful payment capture.
+
+**MVP trigger (Option C — locked):** A quote is created when **both** are true:
+
+1. Registration is **quotable** (tour + party size + sufficient intake for gross resolution).
+2. A **Finance money path begins** — Finance is asked to resolve obligation for a **money decision**, not passive display.
+
+**Money-path examples (freeze):**
+
+- Member payment flow opened (intent, checkout, receipt upload).
+- Operator receipt/payment review opened for a registration.
+- Finance obligation resolve requested for capture, approval, or override that affects payable.
+
+**Explicit non-triggers (do not freeze):**
+
+- Registration creation alone (intake may still change).
+- Every obligation resolve on passive page views (catalog browse, read-only registration detail).
+- Booking lifecycle transitions without a money path.
+
+**Rejected alternatives:**
+
+| Option | Verdict | Reason |
+| ------ | ------- | ------ |
+| A — Registration creation | **Rejected** | Intake/amend still pending; freezes unused registrations |
+| B — Every obligation resolve | **Rejected** | Freezes on views; drift risk before money matters |
+| D — Explicit operator freeze only | **Rejected for MVP** | Too manual; member payment paths need automatic freeze |
+
+### Replacement
+
+**Lock (DEC-CQ-002):** **New version + supersede.** **Never mutate** a published quote version.
+
+| Event | Pre-payment | Post-payment (LOCKED) |
+| ----- | ----------- | --------------------- |
+| Transport / intake amend | New version; recompute gross/payable | **Forbidden** — use credit/refund ops |
+| Operator override | New version; `source = operator_override` | **Forbidden** |
+| Member discount change on UserTenant | Does **not** retro-change existing quotes; new registrations only | **Forbidden** |
+| Tour list price edit | Does **not** edit old quotes | **N/A** |
+| Future coupon | New version with coupon reducer | **Forbidden** |
+
+Older version → **SUPERSEDED**; chain preserved for support and audit.
+
+### Payment lock
+
+**Lock (DEC-CQ-003):** After **first successful payment capture** (prepayment or payment with non-zero collected):
+
+- Commercial quote chain → **LOCKED**.
+- No new versions, no supersede, no amend.
+- Further money movement = payments, refunds, future **credits** only.
+
+---
+
+## 4. Calculation Order
+
+Locked commercial pipeline (server-only; client never submits payable):
+
+```text
+1. Resolve gross obligation
+      tour canonical + party size + registration intake add-ons
+      → grossMinor
+
+2. Apply ONE commercial reducer (exclusive; no stacking engine)
+      operator override     → payable = override minor
+   OR free collection       → payable = 0
+   OR future coupon         → payable per coupon rule
+   OR member discount       → payable = floor(gross × (100 − pct) / 100)
+   OR none                  → payable = grossMinor
+
+3. Persist Commercial Quote version (gross, payable, source, metadata)
+
+4. Invoice compilation
+      schedule sum (if present and policy-valid) OR quote payable
+      → invoiceTotal; then wallet/payments → paid, balanceDue
+
+5. Payment / wallet / credit layer
+      credits (future) reduce balance due after payable
+      wallet/prepayment counts as paid toward invoice
+```
+
+### Reducer precedence at freeze
+
+When multiple facts exist, **one primary `source`** per version:
+
+1. **Operator override** wins over all (explicit deal replaces list math).
+2. **Free collection** (tour) → payable 0.
+3. **Coupon** (future) — exclusive; not combined with member % in MVP.
+4. **Member discount** — from Identity fact, applied to gross when tour `allowMembershipDiscount` is true (default TBD at product wire).
+5. **Tour canonical** — payable = gross.
+
+No stacking of percentage + coupon + override on the same version.
+
+### Schedule interaction
+
+**Lock (DEC-CQ-005 · DEC-CQ-012):** Installment **schedule must originate from** the active quote’s `payableMinor`. Schedule sum must equal quote payable; schedule does **not** independently define commercial obligation.
+
+**Before payment (pre-LOCK):**
+
+- Schedule is generated or amended **from** active quote payable.
+- Schedule-affecting commercial changes (intake amend, override, reducer change) → **new quote version** + supersede → schedule regenerated from new payable.
+
+**After payment (LOCKED):**
+
+- Quote chain **LOCKED** — no new versions.
+- Schedule **cannot silently change** commercial obligation; further money movement is payment/refund/credit only.
+
+Invoice compile precedence when quote exists:
+
+```text
+IF active quote exists:
+  obligation input = quote.payableMinor
+ELSE (legacy):
+  obligation input = live resolver
+
+IF schedule exists AND schedule sum > 0:
+  invoiceTotal = schedule sum   (must reconcile to quote payable; ops error if not)
+ELSE:
+  invoiceTotal = obligation input
+```
+
+First schedule creation **after** first quote freeze; no standalone schedule before freeze.
+
+### Refund relationship
+
+**Refund is cash-ledger based.**
+
+Commercial Quote:
+
+- Explains **historical obligation** (gross, discount, payable) for support and disputes.
+- **Does not** define refund amount.
+
+Refund cap remains:
+
+```text
+refundableRemaining = collected (payments + prepay) − completed refunds
+```
+
+Refunds return **money actually collected**, capped there — not pre-discount list price.
+
+---
+
+## 5. Storage (MVP direction)
+
+**Lock (DEC-CQ-009):** **Dedicated Finance commercial quote storage** — Finance owns persistence, versioning, and audit.
+
+| Option | MVP verdict |
+| ------ | ------------- |
+| A — Booking/intake bag | **Rejected** — couples finance data to booking payload; weak versioning/audit |
+| B — Finance-owned store | **Locked** — correct ownership boundary; supports version chain |
+
+Initial implementation may be **minimal** (version rows + supersede pointer). This contract does **not** prescribe APIs or a promotion engine.
+
+**CQ-1C persistence (implemented):** table `finance_commercial_quotes` — one immutable row per version; `status` transitions only for supersede/lock; all queries tenant-scoped via RLS. Memory driver retains process-local store for fast tests.
+
+Booking/intake may retain transitional fields (e.g. today’s obligation override) until migration; **authoritative quote history lives in Finance storage** after first freeze.
+
+---
+
+## 6. Version Contents (conceptual)
+
+Design fields only — **no prescribed storage table or API** in this contract.
+
+### Required on each version
+
+| Field | Meaning |
+| ----- | ------- |
+| Identity of version | Unique id within Finance domain |
+| `tenantId` | Tenant scope |
+| `registrationId` | Registration scope |
+| `currency` | ISO currency (uppercase) |
+| `grossMinor` | List + add-ons before reducer |
+| `payableMinor` | Agreed obligation after reducer |
+| `source` | Primary reducer: `tour_canonical` · `member_discount` · `operator_override` · `free_collection` · `coupon` (future) |
+| `calculationVersion` | Formula semver (e.g. `quote-v1`) for safe evolution |
+| `createdAt` | Freeze timestamp |
+
+### Optional (recommended for audit)
+
+| Field | Meaning |
+| ----- | ------- |
+| Discount detail | e.g. percent applied, discount minor |
+| Override detail | actor, timestamp, reason |
+| Line breakdown | trip / transport / dong lines matching workspace resolver |
+| Supersedes link | Pointer to prior version |
+| Version number | Monotonic per registration |
+| Tour reference | Tour id at freeze (drift detection vs live catalog) |
+
+---
+
+## 7. Integration Points
+
+| Step | Owner | Uses Commercial Quote |
+| ---- | ----- | --------------------- |
+| Workspace gross resolver | Catalog + workspace bind | **Input** to gross only |
+| Quote freeze | Finance | **Creates** version |
+| Identity membership read | Identity → Finance | **Input** to member reducer at freeze |
+| Invoice compile | Finance | **Reads** active quote payable (legacy: live obligation) |
+| Member receipt / payment | Finance | **Requires** quote or legacy fallback; respects LOCKED |
+| Refund | Finance | **Ignores** quote for cap; may **display** quote for context |
+| Operator override (today) | Finance | **Creates** quote version with `source=operator_override`; legacy intake override valid until first freeze |
+
+Member-facing catalog estimate may mirror gross formula for UX; **Commercial Quote** is authoritative at freeze.
+
+---
+
+## 8. Multi-Tenant Rules
+
+Every Commercial Quote version is scoped by:
+
+- `tenantId`
+- `registrationId`
+
+All Finance reads and writes require tenant context (same boundary as bookings and obligation port today).
+
+Member benefit lookup at freeze:
+
+```text
+(userId, tenantId) → UserTenant rewards facts
+```
+
+**Never** `userId` alone. No cross-tenant discount selection. No “best discount across clubs.”
+
+---
+
+## 9. Legacy Compatibility
+
+**Lock (DEC-CQ-007 · DEC-CQ-013):**
+
+Registrations **without** a Commercial Quote:
+
+- **Continue live obligation resolution** (current behavior: tour + override intake + live compile).
+- **No silent historical rewrite** of implied obligation.
+- **No automatic backfill** on deploy.
+
+On **next money-meaningful Finance action** (DEC-CQ-008 money path):
+
+- Create **quote v1** from current inputs at that moment.
+- Subsequent flow uses frozen quote rules (version chain, supersede, lock).
+
+Bulk backfill of historical registrations remains **optional** and out of scope for MVP.
+
+Existing `registrationIntake.obligationOverride` remains valid until quote exists; first freeze records override as a quote version with `source=operator_override` or equivalent provenance, then Finance storage is authoritative.
+
+---
+
+## 10. Future Extensions
+
+### Allowed future (within this architecture)
+
+| Extension | Layer | Rule |
+| --------- | ----- | ---- |
+| **Member credit** | Finance balance | Applies **after** payable; reduces `balanceDue`; not in quote reducer |
+| **Coupon** | Finance at freeze | **Exclusive** reducer on new quote version |
+| **Club tiers** | Identity facts + optional Finance mapping | Facts on UserTenant; % or tier resolution at freeze only |
+| **Wallet integration** | Finance payment layer | Prepayment toward invoice; unchanged quote |
+| **Tour discount gate** | Catalog `allowMembershipDiscount` | Input to whether member reducer runs at step 2 |
+
+### Boundaries (do not break)
+
+- **Credit** applies after payable — never redefines gross or quote payable retroactively.
+- **Wallet** is payment layer — not a discount on list price.
+- **Identity** stores facts only — Finance applies them once at freeze.
+- **No stacking engine** — one primary `source` per quote version unless a future decision explicitly replaces DEC-CQ-002.
+
+---
+
+## 11. Decision Index
+
+| Id | Decision |
+| -- | -------- |
+| DEC-CQ-001 | Finance owns Commercial Quote; create on first money-meaningful freeze before capture |
+| DEC-CQ-002 | Versions supersede; never mutate published quote |
+| DEC-CQ-003 | Immutable after first successful payment capture |
+| DEC-CQ-004 | One exclusive commercial reducer per version |
+| DEC-CQ-005 | Schedule generated from quote payable; compile reconciles schedule to quote |
+| DEC-CQ-006 | Refunds remain collected-minus-refunded; quote is explanatory |
+| DEC-CQ-007 | Legacy registrations live-fallback until next freeze |
+| DEC-CQ-008 | **Freeze trigger:** quotable registration + Finance money path begins; not create, not every resolve, not page views |
+| DEC-CQ-009 | **Storage:** dedicated Finance-owned commercial quote persistence; reject intake-bag as SoT |
+| DEC-CQ-010 | **Versioning:** immutable versions; recalc → new version + supersede; active = latest non-superseded |
+| DEC-CQ-011 | **Discount gate naming:** catalog field `allowMembershipDiscount` (not `allowMemberDiscount`) |
+| DEC-CQ-012 | **Schedule:** must originate from quote; pre-lock schedule changes via new quote version; post-lock no silent obligation change |
+| DEC-CQ-013 | **Legacy:** live fallback until next money action; v1 on freeze; no historical auto-rewrite or deploy backfill |
+
+---
+
+## Related documents
+
+- [`registration-payment-orchestration.mdoc`](registration-payment-orchestration.mdoc) — override intake bag, obligation port, payment gates
+- [`finance-domain-product-analysis.mdoc`](finance-domain-product-analysis.mdoc) — invoice, wallet, obligation ownership matrix
+- [`docs/phase-9/appendices/owner-cardinality-invariant.mdoc`](../../phase-9/appendices/owner-cardinality-invariant.mdoc) — Identity membership facts (separate from commercial quote)

@@ -26,6 +26,7 @@ model Tenant {
   payments                    Payment[]
   paymentReceipts             PaymentReceipt[]
   financeSchedules            FinanceSchedule[]
+  financeCommercialQuotes     FinanceCommercialQuote[]
   financeRefunds              FinanceRefund[]
   urbanRegistrations          UrbanRegistration[]
   userTenants                 UserTenant[]
@@ -409,6 +410,28 @@ model FinanceSchedule {
   @@index([tenantId, registrationId])
   @@index([tenantId, status])
   @@map("finance_schedules")
+}
+
+/// CQ-1C — immutable commercial quote versions per registration (Finance-owned).
+model FinanceCommercialQuote {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  registrationId      String   @map("registration_id") @db.Uuid
+  versionNumber       Int      @map("version_number")
+  status              String
+  grossMinor          String   @map("gross_minor")
+  payableMinor        String   @map("payable_minor")
+  currency            String   @db.VarChar(8)
+  source              String
+  calculationVersion  String   @map("calculation_version")
+  supersedesVersionId String?  @map("supersedes_version_id") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at")
+  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, registrationId, versionNumber])
+  @@index([tenantId, registrationId])
+  @@index([tenantId, registrationId, status])
+  @@map("finance_commercial_quotes")
 }
 
 /// Phase 9.1 — global operator identity (mobile login).

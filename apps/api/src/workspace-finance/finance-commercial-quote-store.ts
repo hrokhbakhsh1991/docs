@@ -1,6 +1,6 @@
 /**
- * Process-wide in-memory commercial quote store (CQ-1B).
- * Prisma persistence lands in a later phase — memory driver + pre-migration host path.
+ * Process-wide in-memory commercial quote store (CQ-1B / CQ-1C test + memory driver).
+ * Durable path: {@link PrismaCommercialQuoteRepository} via {@link HostCommercialQuoteRepository}.
  */
 import { randomUUID } from "node:crypto";
 
