@@ -301,6 +301,18 @@ Initial implementation may be **minimal** (version rows + supersede pointer). Th
 
 **CQ-1C persistence (implemented):** table `finance_commercial_quotes` — one immutable row per version; `status` transitions only for supersede/lock; all queries tenant-scoped via RLS. Memory driver retains process-local store for fast tests.
 
+**Host adapter map (API `workspace-finance/infrastructure/`, no workspace policy):** FIN-P1.9-01 / FIN-P1.3-01 snapshot the `.ts` files in that folder. Product math stays in `@app-tour/finance-core`; these files are host ports only. After User + Finance + Discount, the quote/discount adapters must appear in that snapshot or Phase 5/6 fail:
+
+| File | Port / role |
+| ---- | ----------- |
+| `host-commercial-quote.repository.ts` | `CommercialQuoteRepositoryPort` — memory vs Prisma by `STORAGE_DRIVER` |
+| `prisma-commercial-quote.repository.ts` | Durable CQ-1C/CQ-2C rows + RLS via `withTenantRls` |
+| `identity-membership-discount-read.adapter.ts` | `MembershipDiscountReadPort` — Identity membership %; finance-core must not import Identity |
+| `registration-commercial-quote-freeze-context.adapter.ts` | `CommercialQuoteFreezeContextPort` — booking + tour canonical at freeze |
+| `read-tour-membership-discount-gate.ts` | Re-export `readTourAllowMembershipDiscount` (DEC-CQ-011); host stays workspace-agnostic |
+
+`create-commercial-quote-service.ts` (top-level host factory) wires freeze + discount ports into `CommercialQuoteService`. Snapshot tests list **infrastructure/*.ts** only; factory stay is covered by DEC-P10-006 top-level allowlist.
+
 **CQ-1B PostgreSQL verification (dev):** fresh `tour_db` migrate deploy applies `20260820140000_finance_commercial_quotes` + member-discount columns; Prisma specs `CQ-DB-01..04` and `CQ-DISC-PERSIST-01..03` pass on real Postgres (create/reload, supersede chain, lock, tenant isolation, member discount metadata). Invoice compile continues to use `payableMinor` only (`CQ-GROSS-04`, `CQ-DISC-PERSIST-04`).
 
 Booking/intake may retain transitional fields (e.g. today’s obligation override) until migration; **authoritative quote history lives in Finance storage** after first freeze.
