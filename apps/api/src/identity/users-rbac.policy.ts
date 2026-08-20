@@ -19,6 +19,7 @@ export const RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN =
 export const RBAC_INSUFFICIENT_ROLE_PRIVILEGE = "RBAC_INSUFFICIENT_ROLE_PRIVILEGE" as const;
 export const INVITE_ACCEPT_OWNER_PROTECTED = "INVITE_ACCEPT_OWNER_PROTECTED" as const;
 export const INVITE_ACCEPT_MEMBERSHIP_EXISTS = "INVITE_ACCEPT_MEMBERSHIP_EXISTS" as const;
+export const INVITE_ALREADY_PENDING = "INVITE_ALREADY_PENDING" as const;
 
 export type RbacPolicyFailure = {
   readonly ok: false;
@@ -117,4 +118,23 @@ export function evaluateInviteAccept(input: {
   }
 
   return { ok: false, code: INVITE_ACCEPT_MEMBERSHIP_EXISTS };
+}
+
+export type InviteCreateFailure = {
+  readonly ok: false;
+  readonly code: typeof INVITE_ALREADY_PENDING;
+};
+
+export type InviteCreateDecision = RbacPolicySuccess | InviteCreateFailure;
+
+/**
+ * At most one INVITED row per (tenantId, normalized phone). Checked at createPendingInvite write boundary.
+ */
+export function evaluateInviteCreate(input: {
+  readonly existingPendingInvite: { readonly inviteId: string } | null;
+}): InviteCreateDecision {
+  if (input.existingPendingInvite !== null) {
+    return { ok: false, code: INVITE_ALREADY_PENDING };
+  }
+  return { ok: true };
 }

@@ -5,9 +5,11 @@ import {
   evaluateMembershipRoleChange,
   evaluateMembershipRemoval,
   evaluateInviteAccept,
+  evaluateInviteCreate,
   RBAC_INSUFFICIENT_ROLE_PRIVILEGE,
   INVITE_ACCEPT_OWNER_PROTECTED,
   INVITE_ACCEPT_MEMBERSHIP_EXISTS,
+  INVITE_ALREADY_PENDING,
 } from "../src/identity/users-rbac.policy";
 
 describe("users-rbac.policy (DEC-P9-019)", () => {
@@ -97,5 +99,20 @@ describe("users-rbac.policy (DEC-P9-019)", () => {
     if (!decision.ok) {
       assert.equal(decision.code, INVITE_ACCEPT_MEMBERSHIP_EXISTS);
     }
+  });
+
+  it("RBAC-INVITE-05 active pending invite blocks duplicate create", () => {
+    const decision = evaluateInviteCreate({
+      existingPendingInvite: { inviteId: "00000000-0000-4000-8000-000000000777" },
+    });
+    assert.equal(decision.ok, false);
+    if (!decision.ok) {
+      assert.equal(decision.code, INVITE_ALREADY_PENDING);
+    }
+  });
+
+  it("RBAC-INVITE-06 no pending invite allows create", () => {
+    const decision = evaluateInviteCreate({ existingPendingInvite: null });
+    assert.equal(decision.ok, true);
   });
 });

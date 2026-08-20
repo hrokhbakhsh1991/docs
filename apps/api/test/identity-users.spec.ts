@@ -12,6 +12,8 @@ import {
   seedOperatorIdentityFixture,
 } from "./fixtures/operator-identity-fixture";
 import { getIdentityRepository } from "../src/identity/create-identity-repository";
+import { InviteAlreadyPendingError } from "../src/identity/in-memory-identity.repository";
+import { inviteWorkspaceUser } from "../src/identity/users.service";
 import { installHttpTestClient } from "./http-test-client";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
@@ -867,5 +869,116 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
       assert.ok("gender" in row);
       assert.ok(row.gender === null || typeof row.gender === "string");
     }
+  });
+
+  it("INVITE-DUP-01 same tenant same phone rejects duplicate active invite", async () => {
+    const phoneCanonical = "+989120000701";
+    const first = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
+      headers: operatorAuthHeaders(),
+      body: { phone: phoneCanonical, role: "member", nameNote: "First invite" },
+    });
+    assert.equal(first.status, 201);
+    assert.ok(typeof first.body.inviteId === "string");
+
+    const second = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
+      headers: operatorAuthHeaders(),
+      body: { phone: "09120000701", role: "admin" },
+    });
+    assert.equal(second.status, 409);
+    assert.equal(second.body.code, "INVITE_ALREADY_PENDING");
+    assert.equal(second.body.inviteId, first.body.inviteId);
+
+    const list = await client.requestJson<UsersApiResponse>("GET", "/users/invites", {
+      headers: operatorAuthHeaders(),
+    });
+    assert.equal(list.status, 200);
+    const matching = (list.body.items ?? []).filter((row) => row.phone === phoneCanonical);
+    assert.equal(matching.length, 1);
+  });
+
+  it("INVITE-DUP-02 same phone different tenant both allowed", async () => {
+    const repo = getIdentityRepository();
+    const phone = "+15550007702";
+    const tenantA = OPERATOR_SMOKE.tenantId;
+    const tenantB = "00000000-0000-4000-8000-000000000099";
+
+    const tenantAInvite = await repo.createPendingInvite({
+      tenantId: tenantA,
+      phone,
+      role: "member",
+      invitedByUserId: OPERATOR_SMOKE.ownerUserId,
+    });
+    const tenantBInvite = await repo.createPendingInvite({
+      tenantId: tenantB,
+      phone,
+      role: "viewer",
+      invitedByUserId: "00000000-0000-4000-8000-000000000199",
+    });
+
+    assert.notEqual(tenantAInvite.inviteId, tenantBInvite.inviteId);
+    const pendingA = (await repo.listPendingInvitesByTenant(tenantA)).filter(
+      (row) => row.phone === phone
+    );
+    const pendingB = (await repo.listPendingInvitesByTenant(tenantB)).filter(
+      (row) => row.phone === phone
+    );
+    assert.equal(pendingA.length, 1);
+    assert.equal(pendingB.length, 1);
+  });
+
+  it("INVITE-DUP-03 revoked invite allows new active invite for same phone", async () => {
+    const phone = "+15550007703";
+    const created = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
+      headers: operatorAuthHeaders(),
+      body: { phone, role: "member" },
+    });
+    assert.equal(created.status, 201);
+    const inviteId = created.body.inviteId;
+    assert.ok(typeof inviteId === "string");
+
+    const revoked = await client.requestJson<UsersApiResponse>(
+      "DELETE",
+      `/users/invites/${inviteId}`,
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(revoked.status, 204);
+
+    const again = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
+      headers: operatorAuthHeaders(),
+      body: { phone, role: "admin" },
+    });
+    assert.equal(again.status, 201);
+    assert.notEqual(again.body.inviteId, inviteId);
+  });
+
+  it("INVITE-DUP-04 concurrent invite creation leaves one active invite", async () => {
+    const repo = getIdentityRepository();
+    const phone = "+15550007704";
+    const ownerAuth = {
+      userId: OPERATOR_SMOKE.ownerUserId,
+      tenantId: OPERATOR_SMOKE.tenantId,
+      role: "owner" as const,
+      status: "ACTIVE" as const,
+      workspaceId: "ws-operator-smoke",
+    };
+
+    const results = await Promise.allSettled([
+      inviteWorkspaceUser(ownerAuth, { phone, role: "member" }, repo),
+      inviteWorkspaceUser(ownerAuth, { phone, role: "member" }, repo),
+    ]);
+
+    const fulfilled = results.filter((result) => result.status === "fulfilled");
+    const rejected = results.filter((result) => result.status === "rejected");
+    assert.equal(fulfilled.length, 1);
+    assert.equal(rejected.length, 1);
+    const failure = rejected[0];
+    assert.equal(failure?.status, "rejected");
+    if (failure?.status === "rejected") {
+      assert.ok(failure.reason instanceof InviteAlreadyPendingError);
+    }
+
+    const pending = await repo.listPendingInvitesByTenant(OPERATOR_SMOKE.tenantId);
+    const matching = pending.filter((row) => row.phone === phone);
+    assert.equal(matching.length, 1);
   });
 });

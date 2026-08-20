@@ -31,6 +31,7 @@ import {
   OwnershipTransferForbiddenError,
   OwnershipTransferTargetInvalidError,
   assertInviteAcceptCreatesMembership,
+  assertInviteCreateDoesNotDuplicate,
 } from "./in-memory-identity.repository";
 import {
   mergeMembershipMetadata,
@@ -364,13 +365,35 @@ export class PrismaIdentityRepository implements IdentityRepository {
   async createPendingInvite(input: CreatePendingInviteInput): Promise<PendingInviteRecord> {
     const inviteId = randomUUID();
     const inviteToken = randomUUID();
-    const row = await withTenantRls(input.tenantId, (tx) =>
-      tx.operatorPendingInvite.create({
+    const phone = normalizeMobile(input.phone);
+    const lockKey = `${input.tenantId.trim()}:${phone}`;
+
+    const row = await withTenantRls(input.tenantId, async (tx) => {
+      await tx.$executeRaw`
+        SELECT pg_advisory_xact_lock(
+          ('x' || substr(md5(${lockKey}), 1, 8))::bit(32)::int,
+          ('x' || substr(md5(${lockKey}), 9, 8))::bit(32)::int
+        )
+      `;
+
+      const existing = await tx.operatorPendingInvite.findFirst({
+        where: {
+          tenantId: input.tenantId,
+          status: "INVITED",
+          phone,
+        },
+        select: PENDING_INVITE_LIST_SELECT,
+      });
+      if (existing !== null) {
+        assertInviteCreateDoesNotDuplicate(toPendingInviteRecord(existing));
+      }
+
+      return tx.operatorPendingInvite.create({
         data: {
           inviteId,
           inviteToken,
           tenantId: input.tenantId,
-          phone: normalizeMobile(input.phone),
+          phone,
           role: input.role,
           status: "INVITED",
           ...(input.nameNote !== undefined && input.nameNote.trim().length > 0
@@ -378,8 +401,8 @@ export class PrismaIdentityRepository implements IdentityRepository {
             : {}),
           invitedByUserId: input.invitedByUserId,
         },
-      })
-    );
+      });
+    });
     return toPendingInviteRecord(row);
   }
 

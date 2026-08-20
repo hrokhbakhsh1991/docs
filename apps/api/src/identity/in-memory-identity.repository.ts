@@ -12,7 +12,9 @@ import type { InvitableWorkspaceRole, UsersListQuery } from "./users.types";
 import {
   INVITE_ACCEPT_MEMBERSHIP_EXISTS,
   INVITE_ACCEPT_OWNER_PROTECTED,
+  INVITE_ALREADY_PENDING,
   evaluateInviteAccept,
+  evaluateInviteCreate,
 } from "./users-rbac.policy";
 import {
   matchesDirectoryPair,
@@ -209,6 +211,7 @@ export class InMemoryIdentityRepository implements IdentityRepository {
   private readonly challenges = new Map<string, OtpChallengeRecord>();
   private readonly invites = new Map<string, PendingInviteRecord>();
   private readonly invitesByToken = new Map<string, string>();
+  private readonly invitesByTenantPhone = new Map<string, string>();
   private readonly roleAudits: UserRoleAuditRecord[] = [];
 
   static createWithDevSeed(): InMemoryIdentityRepository {
@@ -404,13 +407,23 @@ export class InMemoryIdentityRepository implements IdentityRepository {
   }
 
   async createPendingInvite(input: CreatePendingInviteInput): Promise<PendingInviteRecord> {
+    const phone = normalizeMobile(input.phone);
+    const phoneKey = pendingInvitePhoneKey(input.tenantId, phone);
+    const existingInviteId = this.invitesByTenantPhone.get(phoneKey);
+    if (existingInviteId !== undefined) {
+      const existing = this.invites.get(existingInviteId);
+      if (existing !== undefined && existing.status === "INVITED") {
+        assertInviteCreateDoesNotDuplicate(existing);
+      }
+    }
+
     const inviteId = randomUUID();
     const inviteToken = randomUUID();
     const record: PendingInviteRecord = {
       inviteId,
       inviteToken,
       tenantId: input.tenantId,
-      phone: normalizeMobile(input.phone),
+      phone,
       role: input.role,
       status: "INVITED",
       ...(input.nameNote !== undefined && input.nameNote.trim().length > 0
@@ -420,6 +433,7 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     };
     this.invites.set(inviteId, record);
     this.invitesByToken.set(inviteToken, inviteId);
+    this.invitesByTenantPhone.set(phoneKey, inviteId);
     return record;
   }
 
@@ -505,8 +519,7 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     };
 
     this.memberships.set(key, membership);
-    this.invites.delete(invite.inviteId);
-    this.invitesByToken.delete(invite.inviteToken);
+    this.clearPendingInviteIndexes(invite);
     return membership;
   }
 
@@ -515,8 +528,13 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     if (row === undefined || row.tenantId !== tenantId) {
       throw new InviteNotFoundError(inviteId);
     }
-    this.invites.delete(inviteId);
-    this.invitesByToken.delete(row.inviteToken);
+    this.clearPendingInviteIndexes(row);
+  }
+
+  private clearPendingInviteIndexes(invite: PendingInviteRecord): void {
+    this.invites.delete(invite.inviteId);
+    this.invitesByToken.delete(invite.inviteToken);
+    this.invitesByTenantPhone.delete(pendingInvitePhoneKey(invite.tenantId, invite.phone));
   }
 
   async updateMembershipRole(
@@ -732,6 +750,12 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     const stored = { ...record };
     this.invites.set(stored.inviteId, stored);
     this.invitesByToken.set(stored.inviteToken, stored.inviteId);
+    if (stored.status === "INVITED") {
+      this.invitesByTenantPhone.set(
+        pendingInvitePhoneKey(stored.tenantId, stored.phone),
+        stored.inviteId
+      );
+    }
   }
 }
 
@@ -754,12 +778,28 @@ export class InviteAcceptConflictError extends Error {
   }
 }
 
+export class InviteAlreadyPendingError extends Error {
+  readonly code = INVITE_ALREADY_PENDING;
+
+  constructor(readonly existingInvite: PendingInviteRecord) {
+    super(INVITE_ALREADY_PENDING);
+    this.name = "InviteAlreadyPendingError";
+  }
+}
+
 export function assertInviteAcceptCreatesMembership(
   existingMembershipRole: string | null
 ): void {
   const decision = evaluateInviteAccept({ existingMembershipRole });
   if (!decision.ok) {
     throw new InviteAcceptConflictError(decision.code);
+  }
+}
+
+export function assertInviteCreateDoesNotDuplicate(existingInvite: PendingInviteRecord): void {
+  const decision = evaluateInviteCreate({ existingPendingInvite: existingInvite });
+  if (!decision.ok) {
+    throw new InviteAlreadyPendingError(existingInvite);
   }
 }
 
@@ -898,6 +938,10 @@ function seedUrbanSmokeE2eFixture(repo: InMemoryIdentityRepository): void {
 
 function membershipKey(userId: string, tenantId: string): string {
   return `${userId}:${tenantId}`;
+}
+
+function pendingInvitePhoneKey(tenantId: string, phone: string): string {
+  return `${tenantId}:${normalizeMobile(phone)}`;
 }
 
 function normalizeMobile(mobile: string): string {

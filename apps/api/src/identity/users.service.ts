@@ -8,6 +8,7 @@ import type {
 } from "./in-memory-identity.repository";
 import {
   InviteNotFoundError,
+  InviteAlreadyPendingError,
   MembershipNotFoundError,
   OwnershipTransferForbiddenError,
   OwnershipTransferTargetInvalidError,
@@ -840,6 +841,7 @@ export async function bulkRemoveWorkspaceUsers(
 
 export {
   InviteNotFoundError,
+  InviteAlreadyPendingError,
   MembershipNotFoundError,
   OwnershipTransferForbiddenError,
   OwnershipTransferTargetInvalidError,
