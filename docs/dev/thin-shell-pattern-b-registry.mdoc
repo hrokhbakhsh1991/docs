@@ -36,6 +36,25 @@ globalThis[KEY].set(pluginId, surface)
 shell peek(pluginId) → surface | null   // fail-closed when cold / unknown id
 ```
 
+## Pattern B — warm ownership (create vs flat-edit)
+
+`wizardHost.ensureReady` warms **create + shared** Pattern B surfaces (host-adapter,
+createChrome, createView, operatorUi, labels, wizardSurfaces). It does **not** warm
+flat-edit chrome/form/page.
+
+Flat-edit page client owns:
+
+```ts
+await warmOperatorWizardShell(pluginId);
+await Promise.all([
+  ensureFlatEditChromeReady(plugin),
+  ensureFlatEditFormReady(plugin),
+  ensureFlatEditPageReady(plugin),
+]);
+```
+
+Capability shapes unchanged. See [`docs/dev/wizard-create-warm-ownership.mdoc`](./wizard-create-warm-ownership.mdoc).
+
 ## Inventory (4bl–4bs) — all Map-keyed
 
 | Global key | Capability | Phase |

@@ -1,8 +1,8 @@
 /**
  * Thin Shell Phase 4af / 4aj / 4bp — product-blind shell reader for flat-edit page.
  * Workspace packages publish on a `Map<pluginId, surface>` from package
- * `flatEditPage.ensureReady` (and wizardHost.ensureReady). Phase 4aj: generated
- * binder deleted — registry only. Phase 4bp: peek keyed by pluginId.
+ * `flatEditPage.ensureReady` (flat-edit page warm; not wizardHost.ensureReady).
+ * Phase 4aj: generated binder deleted — registry only. Phase 4bp: peek keyed by pluginId.
  */
 
 import type { ComponentType } from "react";
