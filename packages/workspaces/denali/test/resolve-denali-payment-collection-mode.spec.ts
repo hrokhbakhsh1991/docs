@@ -45,3 +45,25 @@ describe("resolveDenaliRegistrationObligationMinor — free collection", () => {
     assert.equal(resolved.currency, "IRR");
   });
 });
+
+describe("resolveDenaliRegistrationGrossObligationMinor — free collection", () => {
+  it("preserves list gross when paymentCollection is free", async () => {
+    const { resolveDenaliRegistrationGrossObligationMinor } = await import(
+      "../src/finance/resolve-denali-registration-obligation.ts"
+    );
+    const resolved = resolveDenaliRegistrationGrossObligationMinor({
+      tourCanonical: {
+        data: {
+          pricing: {
+            paymentCollection: "free",
+            paymentMode: "offline_receipt",
+            basePricePerPerson: 2_500_000,
+          },
+        },
+      },
+      partySize: 2,
+    });
+    assert.ok(resolved !== null);
+    assert.equal(resolved.obligationMinor, "5000000");
+  });
+});

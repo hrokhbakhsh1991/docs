@@ -42,7 +42,11 @@ export {
   handleTourCreatedLedgerEvent,
   type TourCreatedLedgerPayload,
 } from "./handlers/tour-created-ledger";
-export { resolveDenaliRegistrationObligationMinor, resolveDenaliRegistrationDueBreakdown } from "./resolve-denali-registration-obligation";
+export {
+  resolveDenaliRegistrationDueBreakdown,
+  resolveDenaliRegistrationGrossObligationMinor,
+  resolveDenaliRegistrationObligationMinor,
+} from "./resolve-denali-registration-obligation";
 export type {
   DenaliRegistrationObligation,
   DenaliRegistrationDueLine,

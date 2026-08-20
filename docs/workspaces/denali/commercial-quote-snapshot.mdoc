@@ -182,6 +182,16 @@ Locked commercial pipeline (server-only; client never submits payable):
       wallet/prepayment counts as paid toward invoice
 ```
 
+### CQ-1D freeze mapping (implemented)
+
+| Case | `grossMinor` | `payableMinor` | `source` |
+| ---- | ------------ | -------------- | -------- |
+| Normal tour | live obligation | same | `tour_canonical` |
+| Operator override | workspace gross resolver | override minor | `operator_override` |
+| Free collection | gross list + add-ons | `0` | `free_collection` |
+
+Workspace resolver exposes optional `grossObligationMinor` on `FinanceRegistrationObligation`; Finance `mapLiveObligationToQuoteInput` persists both fields. Denali gross bind skips free-collection waive only — pricing formulas unchanged.
+
 ### Reducer precedence at freeze
 
 When multiple facts exist, **one primary `source`** per version:

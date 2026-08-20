@@ -133,6 +133,7 @@ export {
   liveObligationMatchesQuoteVersion,
   mapLiveObligationSourceToQuoteSource,
   mapLiveObligationToQuoteInput,
+  resolveLiveObligationGrossMinor,
   type LiveRegistrationObligation,
   type CommercialQuoteSource,
   type CommercialQuoteStatus,

@@ -46,6 +46,22 @@ export async function createFinanceObligationPort(
     resolvePaymentCollection = await binding.loadPaymentCollection();
   }
 
+  let resolveGrossObligation:
+    | ((input: {
+        readonly tourCanonical: unknown;
+        readonly partySize: number;
+        readonly currency?: string;
+        readonly registrationIntake?: unknown;
+      }) => {
+        readonly currency: string;
+        readonly obligationMinor: string;
+        readonly source: "tour_canonical" | "schedule" | "operator_override" | "unknown";
+      } | null)
+    | undefined;
+  if ("loadGrossResolve" in binding && typeof binding.loadGrossResolve === "function") {
+    resolveGrossObligation = await binding.loadGrossResolve();
+  }
+
   const receiptDefaults = await resolveFinanceReceiptDefaults(normalized);
   const resolveDefaultCurrency = () => receiptDefaults.offlineReceiptPaymentDefaults().currency;
 
@@ -54,6 +70,7 @@ export async function createFinanceObligationPort(
     createTourStorageRepository(),
     resolve,
     resolveDefaultCurrency,
-    resolvePaymentCollection
+    resolvePaymentCollection,
+    resolveGrossObligation
   );
 }

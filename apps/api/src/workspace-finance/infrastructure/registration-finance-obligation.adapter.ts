@@ -5,6 +5,7 @@ import type {
 } from "@app-tour/finance-http-contracts";
 import {
   buildObligationOverrideIntakeValue,
+  isZeroObligationMinor,
   OBLIGATION_OVERRIDE_INTAKE_KEY,
   readObligationOverrideFromIntake,
 } from "@app-tour/finance-core";
@@ -45,8 +46,25 @@ export class RegistrationFinanceObligationAdapter implements FinanceObligationPo
     /** Fallback currency when tour pricing cannot resolve (receipt-defaults / workspace commerce). */
     private readonly resolveDefaultCurrency: () => string,
     private readonly resolvePaymentCollection: RegistrationPaymentCollectionResolver = () =>
-      "offline"
+      "offline",
+    /** Optional gross resolver — preserves list price when payable is waived or overridden. */
+    private readonly resolveGrossObligation?: RegistrationObligationResolver
   ) {}
+
+  private resolveGrossPricing(input: {
+    readonly tourCanonical: unknown;
+    readonly partySize: number;
+    readonly registrationIntake?: unknown;
+  }) {
+    const resolver = this.resolveGrossObligation ?? this.resolveObligation;
+    return resolver({
+      tourCanonical: input.tourCanonical,
+      partySize: input.partySize,
+      ...(input.registrationIntake !== undefined
+        ? { registrationIntake: input.registrationIntake }
+        : {}),
+    });
+  }
 
   private async loadTourCanonical(
     tenantId: string,
@@ -78,7 +96,7 @@ export class RegistrationFinanceObligationAdapter implements FinanceObligationPo
       const base =
         tour === null
           ? null
-          : this.resolveObligation({
+          : this.resolveGrossPricing({
               tourCanonical: tour.canonical,
               partySize: booking.partySize,
               ...(booking.registrationIntake !== undefined
@@ -88,6 +106,7 @@ export class RegistrationFinanceObligationAdapter implements FinanceObligationPo
       return {
         currency: base?.currency ?? this.resolveDefaultCurrency(),
         obligationMinor: override.obligationMinor,
+        ...(base !== null ? { grossObligationMinor: base.obligationMinor } : {}),
         source: "operator_override" as const,
       };
     }
@@ -106,6 +125,30 @@ export class RegistrationFinanceObligationAdapter implements FinanceObligationPo
     if (resolved === null) {
       return null;
     }
+
+    const collectionMode = this.resolvePaymentCollection(tour.canonical);
+    if (
+      collectionMode === "free" &&
+      isZeroObligationMinor(resolved.obligationMinor) &&
+      this.resolveGrossObligation !== undefined
+    ) {
+      const gross = this.resolveGrossPricing({
+        tourCanonical: tour.canonical,
+        partySize: booking.partySize,
+        ...(booking.registrationIntake !== undefined
+          ? { registrationIntake: booking.registrationIntake }
+          : {}),
+      });
+      if (gross !== null) {
+        return {
+          currency: resolved.currency,
+          obligationMinor: resolved.obligationMinor,
+          grossObligationMinor: gross.obligationMinor,
+          source: resolved.source,
+        };
+      }
+    }
+
     return {
       currency: resolved.currency,
       obligationMinor: resolved.obligationMinor,

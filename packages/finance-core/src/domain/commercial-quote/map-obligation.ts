@@ -1,5 +1,5 @@
 /**
- * Map live obligation resolution → commercial quote freeze input (CQ-1B Phase 1).
+ * Map live obligation resolution → commercial quote freeze input (CQ-1B / CQ-1D).
  * No Denali / workspace imports — consumes FinanceRegistrationObligation shape only.
  */
 
@@ -9,8 +9,18 @@ import type { CommercialQuoteSource, CreateCommercialQuoteVersionInput } from ".
 export type LiveRegistrationObligation = {
   readonly currency: string;
   readonly obligationMinor: string;
+  readonly grossObligationMinor?: string;
   readonly source: "tour_canonical" | "schedule" | "operator_override" | "unknown";
 };
+
+function normalizeMinor(raw: string): string {
+  return raw.replace(/\D/g, "");
+}
+
+export function resolveLiveObligationGrossMinor(obligation: LiveRegistrationObligation): string {
+  const gross = obligation.grossObligationMinor ?? obligation.obligationMinor;
+  return normalizeMinor(gross);
+}
 
 export function mapLiveObligationSourceToQuoteSource(
   obligation: LiveRegistrationObligation
@@ -24,18 +34,19 @@ export function mapLiveObligationSourceToQuoteSource(
   return "tour_canonical";
 }
 
-/** Phase 1 — gross equals payable until member-discount reducer lands. */
+/** Maps workspace obligation → quote freeze input; gross and payable may diverge (CQ-1D). */
 export function mapLiveObligationToQuoteInput(input: {
   readonly tenantId: string;
   readonly registrationId: string;
   readonly obligation: LiveRegistrationObligation;
   readonly createdAt?: string;
 }): CreateCommercialQuoteVersionInput {
-  const payableMinor = input.obligation.obligationMinor.replace(/\D/g, "");
+  const payableMinor = normalizeMinor(input.obligation.obligationMinor);
+  const grossMinor = resolveLiveObligationGrossMinor(input.obligation);
   return {
     tenantId: input.tenantId,
     registrationId: input.registrationId,
-    grossMinor: payableMinor,
+    grossMinor,
     payableMinor,
     currency: input.obligation.currency,
     source: mapLiveObligationSourceToQuoteSource(input.obligation),
@@ -46,6 +57,7 @@ export function mapLiveObligationToQuoteInput(input: {
 export function liveObligationMatchesQuoteVersion(
   obligation: LiveRegistrationObligation,
   quote: {
+    readonly grossMinor: string;
     readonly payableMinor: string;
     readonly currency: string;
     readonly source: CommercialQuoteSource;
@@ -53,7 +65,8 @@ export function liveObligationMatchesQuoteVersion(
 ): boolean {
   const mappedSource = mapLiveObligationSourceToQuoteSource(obligation);
   return (
-    quote.payableMinor.replace(/\D/g, "") === obligation.obligationMinor.replace(/\D/g, "") &&
+    normalizeMinor(quote.payableMinor) === normalizeMinor(obligation.obligationMinor) &&
+    normalizeMinor(quote.grossMinor) === resolveLiveObligationGrossMinor(obligation) &&
     quote.currency.toUpperCase() === obligation.currency.toUpperCase() &&
     quote.source === mappedSource
   );

@@ -19,5 +19,6 @@ export {
   liveObligationMatchesQuoteVersion,
   mapLiveObligationSourceToQuoteSource,
   mapLiveObligationToQuoteInput,
+  resolveLiveObligationGrossMinor,
   type LiveRegistrationObligation,
 } from "./map-obligation";
