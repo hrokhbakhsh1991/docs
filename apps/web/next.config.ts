@@ -49,22 +49,40 @@ const nextConfig: NextConfig = {
       __dirname,
       "../../packages/finance-case-encounter-ui/src/index.ts"
     );
+    // Option C — resolve Denali plugin entry from src so native import() survives
+    // (dist CJS collapses Pattern B dynamic imports into one mega-chunk).
+    // Plugin specifier only — do not alias the whole @app-tour/workspace-denali package.
+    const denaliPluginSrc = path.resolve(
+      __dirname,
+      "../../packages/workspaces/denali/src/denali.plugin.ts"
+    );
     // Prefer replacement plugin — alias may already be a webpack5 array on CI.
     config.plugins.push(
       new webpack.NormalModuleReplacementPlugin(
         /^@app-tour\/finance-case-encounter-ui$/,
         encounterUiRoot
+      ),
+      new webpack.NormalModuleReplacementPlugin(
+        /^@app-tour\/workspace-denali\/plugin$/,
+        denaliPluginSrc
       )
     );
     if (Array.isArray(config.resolve.alias)) {
-      config.resolve.alias.push({
-        name: "@app-tour/finance-case-encounter-ui",
-        alias: encounterUiRoot,
-      });
+      config.resolve.alias.push(
+        {
+          name: "@app-tour/finance-case-encounter-ui",
+          alias: encounterUiRoot,
+        },
+        {
+          name: "@app-tour/workspace-denali/plugin",
+          alias: denaliPluginSrc,
+        }
+      );
     } else {
       config.resolve.alias = {
         ...(config.resolve.alias ?? {}),
         "@app-tour/finance-case-encounter-ui": encounterUiRoot,
+        "@app-tour/workspace-denali/plugin": denaliPluginSrc,
       };
     }
     if (!isServer) {
