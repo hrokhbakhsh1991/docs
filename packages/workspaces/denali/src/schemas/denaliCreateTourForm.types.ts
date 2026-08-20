@@ -48,8 +48,8 @@ export interface DenaliCreateTourWizardForm {
     basePricePerPerson: number | undefined;
     paymentMode: string | undefined;
     includesTourInsurance: boolean;
-    /** DEC-CQ-011 — when true, Finance may apply tenant membership discount at quote freeze. */
-    allowMembershipDiscount?: boolean;
+    /** DEC-CQ-011 — when true, Finance may apply tenant membership discount at quote freeze. Default false. */
+    allowMembershipDiscount: boolean;
   };
   participantRequirements: {
     minimumAge: number | undefined;

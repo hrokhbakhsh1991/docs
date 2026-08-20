@@ -93,7 +93,8 @@
       "prepaymentPercent": "Prepayment percent of total amount",
       "basePricePerPerson": "Price per person",
       "paymentMode": "Payment method",
-      "includesTourInsurance": "Tour includes organizer group liability insurance"
+      "includesTourInsurance": "Tour includes organizer group liability insurance",
+      "allowMembershipDiscount": "Allow membership discount on this tour"
     },
     "policies": {
       "cancellationDeadlineHours": "Cancellation deadline (hours before departure)",

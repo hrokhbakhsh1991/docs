@@ -44,4 +44,19 @@ describe("read-tour-membership-discount-gate.spec.ts — CQ-2D", () => {
       true
     );
   });
+
+  it("GATE-04: accepts wizard draft string true and rejects string false", () => {
+    assert.equal(
+      readTourAllowMembershipDiscount({
+        data: { pricing: { allowMembershipDiscount: "true" } },
+      }),
+      true
+    );
+    assert.equal(
+      readTourAllowMembershipDiscount({
+        data: { pricing: { allowMembershipDiscount: "false" } },
+      }),
+      false
+    );
+  });
 });

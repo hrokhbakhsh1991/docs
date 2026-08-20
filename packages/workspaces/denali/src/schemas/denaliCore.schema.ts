@@ -55,7 +55,8 @@ export function buildDenaliTourCreateDefaultValues(): DenaliCreateTourWizardForm
       basePricePerPerson: undefined,
       paymentMode: undefined,
       includesTourInsurance: false,
-      allowMembershipDiscount: undefined,
+      /** Fail closed — Finance ignores membership discount unless explicitly true. */
+      allowMembershipDiscount: false,
     },
     participantRequirements: {
       minimumAge: undefined,
