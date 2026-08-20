@@ -39,8 +39,10 @@ shell peek(pluginId) → surface | null   // fail-closed when cold / unknown id
 ## Pattern B — warm ownership (create vs flat-edit)
 
 `wizardHost.ensureReady` warms **create + shared** Pattern B surfaces (host-adapter,
-createChrome, createView, operatorUi, labels, wizardSurfaces). It does **not** warm
-flat-edit chrome/form/page.
+createChrome, createView, operatorUi, labels, **composite** via
+`ensureWizardCompositePackageSurface`). It does **not** warm flat-edit chrome/form/page
+or the **review** UI module. Review loads on demand when the shell reaches
+`reviewStepId` (`ensureGeneratedReviewSurface` → capability `wizardSurfaces.ensureReady`).
 
 Flat-edit page client owns:
 

@@ -1,5 +1,5 @@
 ---
-title: Wizard create warm ownership (create vs flat-edit)
+title: Wizard create warm ownership (create vs flat-edit vs review)
 format: markdoc
 doc_role: architecture_sot
 extends:
@@ -20,45 +20,66 @@ UI surfaces in one `Promise.all`, so `/tours/new` paid for flat-edit-only chunks
 - `wizard-flat-edit-form-surface`
 - `wizard-flat-edit-page-surface`
 
+After flat-edit was split off create warm, create still paid for the **review** half of
+`wizardSurfaces` (composite + review imported together). Review chrome is unused until
+the operator reaches the review step.
+
 ## Decision (ownership split)
 
 | Path | Warm entry | Surfaces owned |
 | --- | --- | --- |
-| Create `/tours/new` | `warmOperatorWizardShell` → `wizardHost.ensureReady` only | host-adapter, createChrome, createView, operatorUi, labels, wizardSurfaces (composite+review) |
-| Flat-edit `…/tours/[id]/edit` | `warmOperatorWizardShell` **then** `ensureFlatEditChromeReady` + `ensureFlatEditFormReady` + `ensureFlatEditPageReady` | same shared set **plus** the three flat-edit Pattern B surfaces |
+| Create `/tours/new` | `warmOperatorWizardShell` → `wizardHost.ensureReady` only | host-adapter, createChrome, createView, operatorUi, labels, **composite only** (via `ensureWizardCompositePackageSurface`) |
+| Review step (first paint of `reviewStepId`) | `WorkspaceWizardHost` awaits `ensureGeneratedReviewSurface` | review surface (capability `wizardSurfaces.ensureReady` still publishes composite+review) |
+| Flat-edit `…/tours/[id]/edit` | `warmOperatorWizardShell` **then** `ensureFlatEditChromeReady` + `ensureFlatEditFormReady` + `ensureFlatEditPageReady` | shared create set **plus** the three flat-edit Pattern B surfaces |
 
 ### Non-goals
 
-- No change to SDK capability **shape** (`flatEditChrome|Form|Page.ensureReady` remain).
+- No change to SDK capability **shape** (`wizardSurfaces.ensureReady`, `flatEditChrome|Form|Page.ensureReady` remain).
 - No change to `warmOperatorWizardShell` API.
 - No change to create/draft lifecycle or createView/createChrome contracts.
 - Flat-edit package `ensure*` stay idempotent (cache hit returns existing surface).
+- Labels + composite stay on create warm; step-nav validation still falls back to platform summary when Denali review is cold.
 
 ### Contract notes
 
-- `wizardHost.ensureReady` must **not** import flat-edit UI surfaces (create must stay lean).
+- `wizardHost.ensureReady` must **not** import flat-edit UI surfaces **or** the review UI module (create must stay lean).
+- Package helpers split: `ensureWizardCompositePackageSurface` (create warm) vs
+  `ensureWizardReviewPackageSurface` (on-demand) vs
+  `ensureWizardSurfacesPackageSurface` (capability `ensureReady` = both; TS-4AS-04).
 - Flat-edit page client must not mount Ready until the three flat-edit peeks are non-null
   (or equivalent ensures completed). Cached plugin from create warm alone is insufficient.
+- Shell must **not** eagerly `ensureGeneratedReviewSurface` on mount; only when
+  `activeStep.stepId === reviewStepId`, and review chrome must wait until that ensure resolves.
 - Capability bag still exposes per-surface `ensureReady` for on-demand / edit callers.
 
 ## Before / after dependency graph
 
 ```text
-BEFORE (create = edit warm set)
+BEFORE (create paid review)
 warmOperatorWizardShell
   └─ wizardHost.ensureReady
        ├─ host-adapter
        ├─ createChrome + createView
-       ├─ flatEditChrome + flatEditForm + flatEditPage   ← create paid this
-       ├─ operatorUi + labels + wizardSurfaces
+       ├─ operatorUi + labels
+       └─ wizardSurfaces → composite + review   ← create paid review
+
+WorkspaceWizardHost mount
+  └─ ensureGeneratedReviewSurface (eager)       ← also forced review warm
 
 AFTER
 warmOperatorWizardShell (/tours/new)
   └─ wizardHost.ensureReady
        ├─ host-adapter
        ├─ createChrome + createView
-       ├─ operatorUi + labels + wizardSurfaces
-       └─ (no flat-edit UI)
+       ├─ operatorUi + labels
+       └─ ensureWizardCompositePackageSurface   ← composite only
+
+WorkspaceWizardHost
+  ├─ mount: labels + composite ensure (no review)
+  └─ when activeStep === reviewStepId:
+       await ensureGeneratedReviewSurface
+       → capabilities.wizardSurfaces.ensureReady (composite+review; composite cache hit)
+       → renderReviewChrome only after review peek non-null
 
 flat-edit page client
   ├─ warmOperatorWizardShell  (shared set above)
@@ -74,7 +95,9 @@ flat-edit page client
 ```bash
 pnpm --filter @apps/web run test:file \
   test/wizard-create-warm-ownership.spec.ts \
+  test/wizard-create-review-defer.spec.ts \
   test/thin-shell-warm-ownership-matrix.spec.ts \
+  test/thin-shell-wizard-surfaces-capability.spec.ts \
   test/thin-shell-flat-edit-chrome-capability.spec.ts \
   test/thin-shell-flat-edit-form-capability.spec.ts \
   test/thin-shell-flat-edit-page-capability.spec.ts \
@@ -83,4 +106,4 @@ pnpm --filter @apps/web run test:file \
   test/warm-operator-wizard-shell.spec.ts
 ```
 
-Rebuild Denali after host-hook changes: `pnpm --filter @app-cloud/workspace-denali run build`.
+Rebuild Denali after host-hook / surfaces changes: `pnpm --filter @app-cloud/workspace-denali run build`.

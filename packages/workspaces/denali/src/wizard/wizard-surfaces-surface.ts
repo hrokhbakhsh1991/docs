@@ -2,6 +2,9 @@
  * Thin Shell Phase 4as / 4bl — package-owned wizard composite/review surface registry.
  * String-keyed dynamic import keeps plugin/wizard tsc free of static `src/ui`.
  * Phase 4bl: publish key = `DENALI_WORKSPACE_PLUGIN_ID`.
+ *
+ * Create warm owns composite only; review loads on demand (review step / capability ensureReady).
+ * @see docs/dev/wizard-create-warm-ownership.mdoc
  */
 
 import { DENALI_WORKSPACE_PLUGIN_ID } from "../denali-identity";
@@ -54,31 +57,44 @@ export function peekWizardReviewSurface(surfaceId: string): WizardReviewSurface 
 }
 
 /**
+ * Warm + publish Denali composite under surface id matching plugin id.
+ * Create `wizardHost.ensureReady` path — does not import review UI.
+ */
+export async function ensureWizardCompositePackageSurface(): Promise<WizardCompositeSurface> {
+  const surfaceId = DENALI_WORKSPACE_PLUGIN_ID;
+  const existing = peekWizardCompositeSurface(surfaceId);
+  if (existing != null) {
+    return existing;
+  }
+  const compositeMod = await import("../ui/surfaces/composite-surface");
+  const surface = compositeMod.createDenaliCompositeSurface() as WizardCompositeSurface;
+  getCompositeCache().set(surfaceId, surface);
+  return surface;
+}
+
+/**
+ * Warm + publish Denali review under surface id matching plugin id.
+ * Invoked on demand when the review step is reached (via capability ensureReady).
+ */
+export async function ensureWizardReviewPackageSurface(): Promise<WizardReviewSurface> {
+  const surfaceId = DENALI_WORKSPACE_PLUGIN_ID;
+  const existing = peekWizardReviewSurface(surfaceId);
+  if (existing != null) {
+    return existing;
+  }
+  const reviewMod = await import("../ui/surfaces/review-surface");
+  const surface = reviewMod.createDenaliReviewSurface() as WizardReviewSurface;
+  getReviewCache().set(surfaceId, surface);
+  return surface;
+}
+
+/**
  * Warm + publish Denali composite + review under surface id matching plugin id.
- * Idempotent. Invoked from `capabilities.wizardSurfaces.ensureReady` and wizardHost.
+ * Idempotent. Invoked from `capabilities.wizardSurfaces.ensureReady` (TS-4AS-04).
  */
 export async function ensureWizardSurfacesPackageSurface(): Promise<void> {
-  const surfaceId = DENALI_WORKSPACE_PLUGIN_ID;
-  const compositeExisting = peekWizardCompositeSurface(surfaceId);
-  const reviewExisting = peekWizardReviewSurface(surfaceId);
-  if (compositeExisting != null && reviewExisting != null) {
-    return;
-  }
-
-  const [compositeMod, reviewMod] = await Promise.all([
-    import("../ui/surfaces/composite-surface"),
-    import("../ui/surfaces/review-surface"),
+  await Promise.all([
+    ensureWizardCompositePackageSurface(),
+    ensureWizardReviewPackageSurface(),
   ]);
-  if (compositeExisting == null) {
-    getCompositeCache().set(
-      surfaceId,
-      compositeMod.createDenaliCompositeSurface() as WizardCompositeSurface
-    );
-  }
-  if (reviewExisting == null) {
-    getReviewCache().set(
-      surfaceId,
-      reviewMod.createDenaliReviewSurface() as WizardReviewSurface
-    );
-  }
 }
