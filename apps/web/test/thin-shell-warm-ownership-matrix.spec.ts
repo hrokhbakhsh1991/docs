@@ -78,7 +78,9 @@ describe("thin-shell-warm-ownership-matrix — runtime ensureReady", () => {
   const PAGE = "app-cloud.wizardFlatEditPageSurface";
   const CREATE_CHROME = "app-cloud.wizardCreateChromeSurface";
   const CREATE_VIEW = "app-cloud.wizardCreateViewSurface";
-  const KEYS = [CHROME, FORM, PAGE, CREATE_CHROME, CREATE_VIEW];
+  const COMPOSITE = "app-cloud.wizardCompositeSurfaceCache";
+  const REVIEW = "app-cloud.wizardReviewSurfaceCache";
+  const KEYS = [CHROME, FORM, PAGE, CREATE_CHROME, CREATE_VIEW, COMPOSITE, REVIEW];
 
   function clear() {
     const g = globalThis as Record<string, unknown>;
@@ -101,6 +103,14 @@ describe("thin-shell-warm-ownership-matrix — runtime ensureReady", () => {
     assert.ok(peek(CREATE_VIEW, plugin.id));
   });
 
+  it("A2) wizardHost.ensureReady warms composite but leaves review cold", async () => {
+    clear();
+    const plugin = getDenaliPlugin();
+    await plugin.capabilities?.wizardHost?.ensureReady?.();
+    assert.ok(peek(COMPOSITE, plugin.id), "create warm must publish composite");
+    assert.equal(peek(REVIEW, plugin.id), null, "create warm must not publish review");
+  });
+
   it("B) flatEdit*.ensureReady publish edit surfaces", async () => {
     clear();
     const plugin = getDenaliPlugin();
@@ -115,6 +125,16 @@ describe("thin-shell-warm-ownership-matrix — runtime ensureReady", () => {
     assert.ok(peek(PAGE, plugin.id));
   });
 
+  it("C) wizardSurfaces.ensureReady publishes review after create warm", async () => {
+    clear();
+    const plugin = getDenaliPlugin();
+    await plugin.capabilities?.wizardHost?.ensureReady?.();
+    assert.equal(peek(REVIEW, plugin.id), null);
+    await plugin.capabilities?.wizardSurfaces?.ensureReady?.();
+    assert.ok(peek(COMPOSITE, plugin.id));
+    assert.ok(peek(REVIEW, plugin.id));
+  });
+
   it("source: denali wizardHost.ensureReady omits flat-edit package ensures", () => {
     const hooks = readFileSync(
       resolve(WEB_ROOT, "../../packages/workspaces/denali/src/wizard/denali-wizard-host-hooks.ts"),
@@ -123,5 +143,7 @@ describe("thin-shell-warm-ownership-matrix — runtime ensureReady", () => {
     assert.doesNotMatch(hooks, /ensureWizardFlatEditChromePackageSurface/);
     assert.doesNotMatch(hooks, /ensureWizardFlatEditFormPackageSurface/);
     assert.doesNotMatch(hooks, /ensureWizardFlatEditPagePackageSurface/);
+    assert.match(hooks, /ensureWizardCompositePackageSurface/);
+    assert.doesNotMatch(hooks, /ensureWizardSurfacesPackageSurface/);
   });
 });

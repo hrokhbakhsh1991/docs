@@ -45,14 +45,15 @@ import { ensureWizardCreateChromePackageSurface } from "./create-chrome-surface"
 import { ensureWizardCreateViewPackageSurface } from "./create-view-surface";
 import { ensureOperatorUiComponentsPackageSurface } from "./operator-ui-surface";
 import { ensureWizardLabelResolverPackageSurface } from "./label-resolver-surface";
-import { ensureWizardSurfacesPackageSurface } from "./wizard-surfaces-surface";
+import { ensureWizardCompositePackageSurface } from "./wizard-surfaces-surface";
 
 export type { DenaliWizardRulesModule } from "./denali-wizard-rules-module";
 
 /**
- * Create + shared warm only (host-adapter, create chrome/view, operator UI, labels, surfaces).
+ * Create + shared warm only (host-adapter, create chrome/view, operator UI, labels, composite).
  * Flat-edit chrome/form/page stay on `capabilities.flatEdit*.ensureReady` — owned by the
  * flat-edit page client so `/tours/new` does not pay for edit-only UI chunks.
+ * Review surface stays cold until the review step awaits `ensureGeneratedReviewSurface`.
  * @see docs/dev/wizard-create-warm-ownership.mdoc
  */
 async function ensureDenaliWizardHostReady(): Promise<void> {
@@ -62,7 +63,7 @@ async function ensureDenaliWizardHostReady(): Promise<void> {
     ensureWizardCreateViewPackageSurface(),
     ensureOperatorUiComponentsPackageSurface(),
     ensureWizardLabelResolverPackageSurface(),
-    ensureWizardSurfacesPackageSurface(),
+    ensureWizardCompositePackageSurface(),
   ]);
 }
 
