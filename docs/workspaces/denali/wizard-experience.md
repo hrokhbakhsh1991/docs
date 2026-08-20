@@ -619,6 +619,8 @@ Server actions (`createTourAction`, `updateTourAction`) return structured `{ sta
 | Field labels | Workspace label resolver | Same workspace translator |
 | Client-side draft validation list | Product `FlatEditValidationList` from flat-edit page surface registry | `denali.review.validation.*` codes; shell suppresses duplicate `WizardSubmitErrorAlert` when issues are present |
 
+**Warm ownership (create vs flat-edit):** `wizardHost.ensureReady` (via `warmOperatorWizardShell`) warms create + shared surfaces only. Flat-edit chrome/form/page Pattern B surfaces are warmed on the flat-edit page client via `ensureFlatEditChromeReady` / `ensureFlatEditFormReady` / `ensureFlatEditPageReady` after the shared shell warm — so `/tours/new` does not load edit-only UI chunks. See [`docs/dev/wizard-create-warm-ownership.mdoc`](../../dev/wizard-create-warm-ownership.mdoc).
+
 If localize is wired to shell `wizard` alone, next-intl echoes missing keys such as `wizard.validation.invalidValue` in the footer — that is a shell wiring bug, not a Denali message pack gap.
 
 Validation failures show Persian field labels (e.g. «نقطه شروع») — not English canonical paths or HTTP codes.

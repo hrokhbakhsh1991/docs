@@ -1,8 +1,8 @@
 /**
  * Thin Shell Phase 4ac / 4ah / 4bm — product-blind shell reader for flat-edit chrome.
  * Workspace packages publish on a `Map<pluginId, surface>` from package
- * `flatEditChrome.ensureReady` (and wizardHost.ensureReady). Phase 4ah: generated
- * binder deleted — registry only. Phase 4bm: peek keyed by pluginId.
+ * `flatEditChrome.ensureReady` (flat-edit page warm; not wizardHost.ensureReady).
+ * Phase 4ah: generated binder deleted — registry only. Phase 4bm: peek keyed by pluginId.
  */
 
 export const WIZARD_FLAT_EDIT_CHROME_SURFACE_KEY = "app-cloud.wizardFlatEditChromeSurface";
@@ -40,7 +40,7 @@ function requireWizardFlatEditChromeSurface(pluginId: string): WizardFlatEditChr
   const surface = peekWizardFlatEditChromeSurface(pluginId);
   if (surface == null) {
     throw new Error(
-      "Wizard flat-edit chrome cold (call flatEditChrome.ensureReady / warmOperatorWizardShell first)"
+      "Wizard flat-edit chrome cold (call flatEditChrome.ensureReady first)"
     );
   }
   return surface;

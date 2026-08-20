@@ -55,7 +55,8 @@ export function requireWizardFlatEditChromeSurface(
 
 /**
  * Warm + publish flat-edit chrome surface under plugin id. Idempotent.
- * Invoked from `capabilities.flatEditChrome.ensureReady` and wizardHost ensureReady.
+ * Invoked from `capabilities.flatEditChrome.ensureReady` (flat-edit page owns warm).
+ * Not part of `wizardHost.ensureReady` — create warm must stay lean.
  */
 export async function ensureWizardFlatEditChromePackageSurface(
   pluginId: string = DENALI_WORKSPACE_PLUGIN_ID
