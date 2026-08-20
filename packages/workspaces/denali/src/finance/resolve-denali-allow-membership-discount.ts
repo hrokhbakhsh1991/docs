@@ -25,5 +25,6 @@ export function resolveDenaliAllowMembershipDiscount(tourCanonical: unknown): bo
   const raw =
     readCanonicalPath(data, "pricing.allowMembershipDiscount") ??
     readCanonicalPath(data, "pricingPayment.allowMembershipDiscount");
-  return raw === true;
+  // Wizard draft stores booleans as "true"/"false" strings until submit coerce.
+  return raw === true || raw === "true";
 }

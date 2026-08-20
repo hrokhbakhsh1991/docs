@@ -219,7 +219,11 @@ Prisma repository maps to `CommercialQuoteVersion.memberDiscount` on create/relo
 
 ### CQ-2D membership discount gate verification (implemented)
 
-Catalog field **`pricing.allowMembershipDiscount`** (wizard `pricingPayment.allowMembershipDiscount`) — Catalog owns storage; default fail-closed. Finance reads via `readTourAllowMembershipDiscount` at freeze; discount requires **both** gate true and Identity `(tenantId, userId)` fact. Denali resolver: `resolveDenaliAllowMembershipDiscount`.
+Catalog field **`pricing.allowMembershipDiscount`** (wizard `pricingPayment.allowMembershipDiscount`) — Catalog owns storage; default fail-closed (`false` / missing). Finance reads via `readTourAllowMembershipDiscount` at freeze; discount requires **both** gate true and Identity `(tenantId, userId)` fact. Denali resolver: `resolveDenaliAllowMembershipDiscount`.
+
+**Discount MVP 2A (UI):** Operator pricing composite exposes a checkbox for `pricing.allowMembershipDiscount` when `pricing.requiresPayment` is true. Defaults to false; unset legacy tours remain fail-closed (no discount).
+
+**Discount MVP 2B (flow verification):** Full journey proven via CQ-E2E-01..05 + CQ-DISC-FLOW-01..07 + CQ-DISC-PERSIST-04 + GATE-01..05 + Postgres CQ persist. Eligible 20% → `member_discount`; gate false → `tour_canonical`; cross-tenant isolation; freeze snapshot stable under live price and Identity % change; override wins.
 
 ### Reducer precedence at freeze
 
@@ -228,7 +232,7 @@ When multiple facts exist, **one primary `source`** per version:
 1. **Operator override** wins over all (explicit deal replaces list math).
 2. **Free collection** (tour) → payable 0.
 3. **Coupon** (future) — exclusive; not combined with member % in MVP.
-4. **Member discount** — from Identity fact, applied to gross when tour `allowMembershipDiscount` is true (default TBD at product wire).
+4. **Member discount** — from Identity fact, applied to gross when tour `allowMembershipDiscount` is true (default **false** / fail-closed when unset).
 5. **Tour canonical** — payable = gross.
 
 No stacking of percentage + coupon + override on the same version.

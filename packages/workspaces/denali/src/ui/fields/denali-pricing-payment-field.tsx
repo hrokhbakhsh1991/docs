@@ -15,6 +15,7 @@ import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-
 export const DENALI_PRICING_TEST_IDS = {
   pricing: "denali-composite-pricing-payment",
   unpaidHint: "denali-pricing-unpaid-hint",
+  allowMembershipDiscount: "denali-pricing-allow-membership-discount",
 } as const;
 
 type DenaliPricingPaymentFieldProps = {
@@ -46,6 +47,11 @@ export function DenaliPricingPaymentField({
   const requiresPaymentLabel = resolveDenaliFieldLabel(t, "pricing.requiresPayment");
   const prepaymentLabel = resolveDenaliFieldLabel(t, "pricing.prepaymentEnabled");
   const insuranceLabel = resolveDenaliFieldLabel(t, "pricing.includesTourInsurance");
+  const allowMembershipDiscountLabel = resolveDenaliFieldLabel(
+    t,
+    "pricing.allowMembershipDiscount"
+  );
+  const allowMembershipDiscount = boolFromDraft(draft, "pricing.allowMembershipDiscount");
   const priceInvalid =
     invalid ||
     validationIssuePaths.some(
@@ -120,6 +126,20 @@ export function DenaliPricingPaymentField({
               aria-required
               invalid={priceInvalid}
             />
+          </label>
+
+          <label
+            className="denali-wizard-composite__field-row"
+            data-testid={DENALI_PRICING_TEST_IDS.allowMembershipDiscount}
+          >
+            <Checkbox
+              aria-label={allowMembershipDiscountLabel}
+              checked={allowMembershipDiscount}
+              onChange={(event) =>
+                setBool("pricing.allowMembershipDiscount", event.target.checked)
+              }
+            />
+            <span>{allowMembershipDiscountLabel}</span>
           </label>
         </>
       ) : null}

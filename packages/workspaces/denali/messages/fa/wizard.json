@@ -93,7 +93,8 @@
       "prepaymentPercent": "درصد پیش‌پرداخت از مبلغ کل",
       "basePricePerPerson": "قیمت به ازای هر نفر (تومان)",
       "paymentMode": "روش پرداخت",
-      "includesTourInsurance": "این تور شامل بیمه مسئولیت گروهی سازمان‌دهنده است"
+      "includesTourInsurance": "این تور شامل بیمه مسئولیت گروهی سازمان‌دهنده است",
+      "allowMembershipDiscount": "اجازه اعمال تخفیف عضویت روی این تور"
     },
     "policies": {
       "cancellationDeadlineHours": "مهلت لغو (ساعت قبل از حرکت)",

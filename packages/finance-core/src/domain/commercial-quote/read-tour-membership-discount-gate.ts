@@ -11,7 +11,11 @@ function readRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function readAllowMembershipDiscountFromPricing(pricing: Record<string, unknown> | null): boolean {
-  return pricing !== null && pricing.allowMembershipDiscount === true;
+  if (pricing === null) {
+    return false;
+  }
+  const raw = pricing.allowMembershipDiscount;
+  return raw === true || raw === "true";
 }
 
 function unwrapCanonicalDocument(tourCanonical: unknown): Record<string, unknown> | null {
