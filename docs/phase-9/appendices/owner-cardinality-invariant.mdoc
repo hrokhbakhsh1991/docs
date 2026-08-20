@@ -1,6 +1,6 @@
 ---
 title: Exactly one ACTIVE owner invariant
-description: Domain policy — each tenant has exactly one UserTenant with role=owner AND status=ACTIVE. Wired into mutation flows in P1.3-B (no migration yet).
+description: Domain policy — each tenant has exactly one UserTenant with role=owner AND status=ACTIVE. Wired in P1.3-B; DB partial unique index prepared in Owner-DB-1A.
 ---
 
 # Exactly one ACTIVE owner invariant
@@ -9,13 +9,14 @@ description: Domain policy — each tenant has exactly one UserTenant with role=
 id: OWNER-CARDINALITY-INVARIANT
 version: "2026-08-20"
 status: LOCKED
-phase: P1.3-B
+phase: P1.3-B · Owner-DB-1A
 authority: users-rbac.policy.ts · users.service.ts · invites.service.ts
-decisions: [DEC-P9-015, DEC-P9-018, DEC-P9-019]
+decisions: [DEC-P9-015, DEC-P9-018, DEC-P9-019, DEC-OWN-DB-001, DEC-OWN-DB-002, DEC-OWN-DB-003, DEC-OWN-DB-004]
 related:
   - subphases/9.4-users-rbac.md
   - users-api-dispatch-addendum.md
   - invite-accept-membership-invariant.mdoc
+  - owner-cardinality-db-hardening-1a.mdoc
 ```
 
 ## Locked product rule
@@ -51,9 +52,23 @@ Pure functions in `apps/api/src/identity/users-rbac.policy.ts`. Callers (P1.3-B)
 
 ## Non-goals (P1.3-B)
 
-- No Prisma migration / partial unique index (later).
 - No UI / route / HTTP contract changes.
 - No parallel RBAC module.
+- No auto-remediation of bad production rows.
+
+## Owner-DB-1A — DB defense in depth
+
+Partial unique index (after staging audit green):
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS uq_user_tenants_one_active_owner
+  ON user_tenants (tenant_id)
+  WHERE role = 'owner' AND status = 'ACTIVE';
+```
+
+- **No trigger.** Lifecycle unchanged.
+- Provisioning with zero ACTIVE owners (pending owner invite) remains valid.
+- Full audit / remediation / apply gate: [`owner-cardinality-db-hardening-1a.mdoc`](owner-cardinality-db-hardening-1a.mdoc).
 
 ## Decision table
 

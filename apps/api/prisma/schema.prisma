@@ -422,6 +422,9 @@ model User {
 }
 
 /// Phase 9.1 — tenant membership + JWT sessionVersion invalidation (DEC-P9-012).
+/// Owner-DB-1A: partial unique index `uq_user_tenants_one_active_owner`
+/// on (tenant_id) WHERE role='owner' AND status='ACTIVE' (SQL migration only —
+/// Prisma schema cannot express partial unique indexes).
 model UserTenant {
   userId             String   @map("user_id") @db.Uuid
   tenantId           String   @map("tenant_id") @db.Uuid
