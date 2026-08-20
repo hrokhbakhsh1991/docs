@@ -17,4 +17,12 @@ describe("admin-bootstrap-parity (ASB-001)", () => {
     assert.doesNotMatch(kernel, /fetchPublicTenantContextForHost/);
     assert.match(wrapper, /resolveAdminBootstrapForHost/);
   });
+
+  it("operator (app)/layout bootstraps via resolveRequestBootstrapAppSession (JWT overlay)", () => {
+    const layout = readFileSync(join(webRoot, "app/(app)/layout.tsx"), "utf8");
+    assert.match(layout, /resolveRequestBootstrapAppSession/);
+    assert.doesNotMatch(layout, /resolveBootstrapAppSessionForHost\(/);
+    assert.match(layout, /ensureFinanceNavSupported/);
+    assert.match(layout, /ensureWizardCreate/);
+  });
 });

@@ -18,7 +18,7 @@ import { resolveWorkspaceLabelFromMessages } from "@/i18n/resolve-workspace-labe
 import { fetchTenantThemeForContext } from "@/tenant/fetch-tenant-theme.server";
 import { isDevWebSessionAllowed } from "@/tenant/auth-env";
 import { hasDevHostSmokeSessionProfile } from "@/tenant/dev-host-session-profiles";
-import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
+import { resolveRequestBootstrapAppSession } from "@/tenant/tenant-kernel";
 import { fetchOperatorProfileServer } from "@/features/settings/fetch-operator-profile.server";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,9 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
   const pathname = headerList.get("x-pathname") ?? "/dashboard";
-  const bootstrap = await resolveBootstrapAppSessionForHost(host);
+  // Authenticated operator shell: JWT tenant → pluginId (not host guest / env starter fallback).
+  // Anonymous path inside helper still uses host bootstrap unchanged.
+  const bootstrap = await resolveRequestBootstrapAppSession();
   const devSmokeHost =
     isDevWebSessionAllowed() && hasDevHostSmokeSessionProfile(host);
 
