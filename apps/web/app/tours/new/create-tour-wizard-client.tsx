@@ -9,6 +9,7 @@ import {
   OperatorCreateTourWizardClientReady,
 } from "./create-tour-wizard-client-ready";
 import {
+  CreateTourWizardBootstrapFrame,
   CreateTourWizardLoadError,
   CreateTourWizardLoadingMessage,
 } from "@/wizard/create-tour-wizard-chrome";
@@ -66,7 +67,9 @@ export function OperatorCreateTourWizardClient({
   if (bootstrap.status === "loading") {
     return (
       <OperatorCreateTourWizardCatalogShell initialLocationsResponse={initialLocationsResponse}>
-        <CreateTourWizardLoadingMessage />
+        <CreateTourWizardBootstrapFrame>
+          <CreateTourWizardLoadingMessage />
+        </CreateTourWizardBootstrapFrame>
       </OperatorCreateTourWizardCatalogShell>
     );
   }
@@ -74,10 +77,12 @@ export function OperatorCreateTourWizardClient({
   if (bootstrap.status === "error") {
     return (
       <OperatorCreateTourWizardCatalogShell initialLocationsResponse={initialLocationsResponse}>
-        <CreateTourWizardLoadError
-          code={bootstrap.code}
-          onRetry={() => setAttempt((current) => current + 1)}
-        />
+        <CreateTourWizardBootstrapFrame>
+          <CreateTourWizardLoadError
+            code={bootstrap.code}
+            onRetry={() => setAttempt((current) => current + 1)}
+          />
+        </CreateTourWizardBootstrapFrame>
       </OperatorCreateTourWizardCatalogShell>
     );
   }
