@@ -28,12 +28,29 @@ resolveAdminBootstrapForWebHost(host)
 | GSH | `packages/guest-surface-host/src/resolve-admin-surface-bootstrap.ts` |
 | Web wrapper | `apps/web/src/tenant/resolve-admin-bootstrap.server.ts` |
 | Layout kernel | `apps/web/src/tenant/tenant-kernel.server.ts` |
+| Request overlay | `apps/web/src/tenant/resolve-request-bootstrap.server.ts` — `resolveRequestBootstrapAppSession` |
 | Identity BFF | `apps/web/src/auth/identity-bff-headers.ts` |
+
+## Operator app shell (`(app)/layout`)
+
+Authenticated operator chrome (nav enablement, wizardCreate / financeNav warm caches, `OperatorShell.pluginId`) **must** resolve bootstrap via `resolveRequestBootstrapAppSession()`:
+
+```text
+resolveRequestBootstrapAppSession()
+  → resolveBootstrapAppSessionForHost(host)          # anonymous / pre-cookie baseline
+  → if session cookie valid:
+       resolveBootstrapAppSession(JWT claims, host)  # tenant_id → pluginId (UUID map)
+```
+
+**Why:** Under `next start` (`NODE_ENV=production`), guest `isDevGuestHostAllowed` keeps the PHASE_43 host→tenant map closed. Bare `resolveBootstrapAppSessionForHost` then falls through to env starter defaults, while the signed operator JWT still maps to Denali — shell/nav would seed `starter` and hide Users/Finance / flat-edit extended chrome. JWT overlay keeps ASB/host guest behavior for unauthenticated requests and does not widen guest host permissions.
+
+Root layout (`app/layout.tsx`) remains on `resolveBootstrapAppSessionForHostAsync` (ASB-001) plus its own JWT rebind for body/`AppProviders` — separate from the operator shell path above.
 
 ## Forbidden
 
 - Direct `fetchPublicTenantContextForHost` in web kernel with env fallback when API returns null (fail-soft).
 - Duplicate tenant resolution logic outside GSH + thin web wrapper.
+- Operator `(app)/layout` using bare `resolveBootstrapAppSessionForHost` for shell/nav/capability warm (session cookie present).
 
 ## Guards + specs
 

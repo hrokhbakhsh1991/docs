@@ -602,6 +602,8 @@ Server actions (`createTourAction`, `updateTourAction`) return structured `{ sta
 
 `createTourAction` **must** call `resolveRequestBootstrapAppSession()` (host + signed session cookie), not bare `resolveBootstrapAppSession()`. The env-only bootstrap (`dev-tenant-local` / `default` workspace) makes `POST /tours` return `500 internal_error` even when the operator UI shows the correct Denali tenant from layout bootstrap.
 
+**Operator shell bind:** `apps/web/app/(app)/layout.tsx` likewise uses `resolveRequestBootstrapAppSession()` for `OperatorShell.pluginId`, nav enablement (Users / Finance), and wizardCreate / financeNav warm caches — so authenticated Denali sessions do not seed `starter` when host guest maps are closed under `next start`. See [`docs/standards/admin-surface-bootstrap.mdoc`](../../standards/admin-surface-bootstrap.mdoc) § Operator app shell.
+
 | Layer                             | Responsibility                                                                     |
 | --------------------------------- | ---------------------------------------------------------------------------------- |
 | `parseTourApiErrorBody`           | Split API `code` vs human `error` message                                          |
