@@ -1,38 +1,43 @@
 # Owner Cardinality Audit Report
 
-**Timestamp:** 2026-08-20 (cloud agent session)
+## Staging (1-A.2)
 
-**Connection:** *not available* — `DATABASE_URL_ADMIN` / `DATABASE_URL` unset in Cloud Agent environment.
+**Status:** BLOCKED — `DATABASE_URL_ADMIN` staging secret not provided (user skipped).
 
-**Index apply gate (multi-ACTIVE-owner):** **BLOCKED — staging audit not yet run**
+Do **not** treat staging/production as green from this file alone.
 
-> Auto-fix is forbidden. Manual actions only.
+---
 
-## Environment blocker
+## Development verification (1-A.3)
 
-Cloud Agent requested secrets:
+**Timestamp:** 2026-08-20T10:04:53.985Z
 
-- `DATABASE_URL_ADMIN` (required) — staging admin / bypass-RLS
-- `DATABASE_URL` (optional)
+**Connection:** local PostgreSQL 16 — `postgresql://postgres@127.0.0.1:5432/tour_db` (`DATABASE_URL_ADMIN`)
 
-After secrets are available, run:
+**Index apply gate (this database):** GREEN
+
+| Check | Result |
+| ----- | ------ |
+| Multiple ACTIVE owners | **0** |
+| Zero ACTIVE (provisioning) | **0** |
+| Zero ACTIVE (invalid) | **0** |
+| Soft owners | **0** |
+| After `db:seed` | denali tenant has exactly **1** ACTIVE owner; other seeded tenants have **0** memberships (no violation) |
+
+### Commands used
 
 ```bash
+export DATABASE_URL='postgresql://app_cloud:app_cloud@127.0.0.1:5432/tour_db'
+export DATABASE_URL_ADMIN='postgresql://postgres:postgres@127.0.0.1:5432/tour_db'
+pnpm --filter @apps/api run db:migrate:deploy
+pnpm --filter @apps/api run db:seed
 pnpm --filter @apps/api run audit:owner-cardinality
 ```
 
-This regenerates this report from live queries in `apps/api/scripts/audit-owner-cardinality.sql`.
+### Migration
 
-## Expected sections (when live)
+`20260820160000_user_tenants_one_active_owner` applied successfully on fresh DB.
 
-1. Multiple ACTIVE owners
-2. Zero ACTIVE owners (provisioning vs invalid)
-3. Role distribution
-4. Status distribution
-5. Soft owners
+Index present:
 
-## Apply gate
-
-Do **not** apply `uq_user_tenants_one_active_owner` to staging/production until this report shows **GREEN** for multi-ACTIVE-owner count = 0.
-
-Migration file is prepared with the same preflight (`OWNER_CARDINALITY_AUDIT_FAILED`) so apply fails closed if data is dirty.
+`uq_user_tenants_one_active_owner` UNIQUE `(tenant_id) WHERE role = 'owner' AND status = 'ACTIVE'`
