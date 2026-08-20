@@ -41,6 +41,19 @@ export function CreateTourWizardLoadingMessage(props: {
   );
 }
 
+/**
+ * Bootstrap / warm chrome — page title stays visible while plugin warm or load error runs.
+ * Does not mount draft sync, steps, or Ready orchestration.
+ */
+export function CreateTourWizardBootstrapFrame(props: { readonly children: ReactNode }) {
+  return (
+    <div className="new-tour-wizard-page" data-new-tour-wizard>
+      <CreateTourWizardPageHeader />
+      {props.children}
+    </div>
+  );
+}
+
 export function CreateTourWizardNotConfigured() {
   const t = useTranslations("wizard");
   return (
