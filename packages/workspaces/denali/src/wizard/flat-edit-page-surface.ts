@@ -56,7 +56,8 @@ export function requireWizardFlatEditPageSurface(
 
 /**
  * Warm + publish flat-edit page surface under plugin id. Idempotent.
- * Invoked from `capabilities.flatEditPage.ensureReady` and wizardHost ensureReady.
+ * Invoked from `capabilities.flatEditPage.ensureReady` (flat-edit page owns warm).
+ * Not part of `wizardHost.ensureReady` — create warm must stay lean.
  */
 export async function ensureWizardFlatEditPagePackageSurface(
   pluginId: string = DENALI_WORKSPACE_PLUGIN_ID

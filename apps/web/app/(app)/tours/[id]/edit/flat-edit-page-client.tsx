@@ -4,8 +4,18 @@ import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
+import {
+  ensureFlatEditChromeReady,
+  ensureFlatEditFormReady,
+  ensureFlatEditPageReady,
+} from "@app-tour/workspace-sdk";
 
-import { resolveWizardFlatEditPageSurface } from "@/wizard/wizard-flat-edit-page-registry";
+import { peekWizardFlatEditChromeSurface } from "@/wizard/wizard-flat-edit-chrome-registry";
+import { peekWizardFlatEditFormSurface } from "@/wizard/wizard-flat-edit-form-registry";
+import {
+  peekWizardFlatEditPageSurface,
+  resolveWizardFlatEditPageSurface,
+} from "@/wizard/wizard-flat-edit-page-registry";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -49,15 +59,40 @@ type OperatorFlatEditPageClientProps = {
   readonly tourId: string;
 };
 
+/** True when flat-edit Pattern B surfaces are already published for pluginId. */
+function areFlatEditSurfacesWarm(pluginId: string): boolean {
+  return (
+    peekWizardFlatEditChromeSurface(pluginId) != null &&
+    peekWizardFlatEditFormSurface(pluginId) != null &&
+    peekWizardFlatEditPageSurface(pluginId) != null
+  );
+}
+
+/**
+ * Shared host warm + flat-edit-only Pattern B surfaces (idempotent).
+ * @see docs/dev/wizard-create-warm-ownership.mdoc
+ */
+async function warmFlatEditOperatorShell(pluginId: string): Promise<WorkspacePlugin> {
+  const loaded = await warmOperatorWizardShell(pluginId);
+  await Promise.all([
+    ensureFlatEditChromeReady(loaded),
+    ensureFlatEditFormReady(loaded),
+    ensureFlatEditPageReady(loaded),
+  ]);
+  return loaded;
+}
+
 /** Wave B.c / I.6 — load plugin via registry (session.pluginId), then mount orchestration hook. */
 export function OperatorFlatEditPageClient({ session, tourId }: OperatorFlatEditPageClientProps) {
-  const [plugin, setPlugin] = useState<WorkspacePlugin | null>(() =>
-    readCachedTourPlugin(session.pluginId)
-  );
+  const [plugin, setPlugin] = useState<WorkspacePlugin | null>(() => {
+    const cached = readCachedTourPlugin(session.pluginId);
+    // Create warm alone leaves flat-edit surfaces cold — do not mount Ready from that cache.
+    return cached != null && areFlatEditSurfacesWarm(session.pluginId) ? cached : null;
+  });
 
   useEffect(() => {
     let cancelled = false;
-    void warmOperatorWizardShell(session.pluginId).then((loaded) => {
+    void warmFlatEditOperatorShell(session.pluginId).then((loaded) => {
       if (!cancelled) {
         setPlugin(loaded);
       }

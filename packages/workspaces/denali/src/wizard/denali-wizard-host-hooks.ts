@@ -42,25 +42,24 @@ import { applyLockedDestinationCatalogMetricsToCanonical } from "../settings/app
 import { normalizeDenaliWizardTemplateGate } from "./normalize-denali-wizard-template-gate";
 import { ensureWizardHostAdapterSurface } from "./host-adapter-surface";
 import { ensureWizardCreateChromePackageSurface } from "./create-chrome-surface";
-import { ensureWizardFlatEditChromePackageSurface } from "./flat-edit-chrome-surface";
 import { ensureWizardCreateViewPackageSurface } from "./create-view-surface";
-import { ensureWizardFlatEditFormPackageSurface } from "./flat-edit-form-surface";
-import { ensureWizardFlatEditPagePackageSurface } from "./flat-edit-page-surface";
 import { ensureOperatorUiComponentsPackageSurface } from "./operator-ui-surface";
 import { ensureWizardLabelResolverPackageSurface } from "./label-resolver-surface";
 import { ensureWizardSurfacesPackageSurface } from "./wizard-surfaces-surface";
 
 export type { DenaliWizardRulesModule } from "./denali-wizard-rules-module";
 
-/** Thin Shell Phase 2b/4ab–4af/4ao/4aq/4as — ensureReady fills host-adapter + chrome + operator UI + labels + surfaces. */
+/**
+ * Create + shared warm only (host-adapter, create chrome/view, operator UI, labels, surfaces).
+ * Flat-edit chrome/form/page stay on `capabilities.flatEdit*.ensureReady` — owned by the
+ * flat-edit page client so `/tours/new` does not pay for edit-only UI chunks.
+ * @see docs/dev/wizard-create-warm-ownership.mdoc
+ */
 async function ensureDenaliWizardHostReady(): Promise<void> {
   await Promise.all([
     ensureWizardHostAdapterSurface(),
     ensureWizardCreateChromePackageSurface(),
-    ensureWizardFlatEditChromePackageSurface(),
     ensureWizardCreateViewPackageSurface(),
-    ensureWizardFlatEditFormPackageSurface(),
-    ensureWizardFlatEditPagePackageSurface(),
     ensureOperatorUiComponentsPackageSurface(),
     ensureWizardLabelResolverPackageSurface(),
     ensureWizardSurfacesPackageSurface(),

@@ -1,0 +1,86 @@
+---
+title: Wizard create warm ownership (create vs flat-edit)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/thin-shell-pattern-b-registry.mdoc
+  - docs/dev/wave-i-9-create-wizard-async-plugin.mdoc
+  - docs/dev/wave-b-async-flat-edit-plugin.mdoc
+---
+
+# Wizard create warm ownership
+
+## Problem
+
+`warmOperatorWizardShell(pluginId)` awaits `ensureWizardHostReady` → workspace
+`wizardHost.ensureReady`. Denali historically warmed **create + flat-edit + shared**
+UI surfaces in one `Promise.all`, so `/tours/new` paid for flat-edit-only chunks:
+
+- `wizard-flat-edit-chrome-surface`
+- `wizard-flat-edit-form-surface`
+- `wizard-flat-edit-page-surface`
+
+## Decision (ownership split)
+
+| Path | Warm entry | Surfaces owned |
+| --- | --- | --- |
+| Create `/tours/new` | `warmOperatorWizardShell` → `wizardHost.ensureReady` only | host-adapter, createChrome, createView, operatorUi, labels, wizardSurfaces (composite+review) |
+| Flat-edit `…/tours/[id]/edit` | `warmOperatorWizardShell` **then** `ensureFlatEditChromeReady` + `ensureFlatEditFormReady` + `ensureFlatEditPageReady` | same shared set **plus** the three flat-edit Pattern B surfaces |
+
+### Non-goals
+
+- No change to SDK capability **shape** (`flatEditChrome|Form|Page.ensureReady` remain).
+- No change to `warmOperatorWizardShell` API.
+- No change to create/draft lifecycle or createView/createChrome contracts.
+- Flat-edit package `ensure*` stay idempotent (cache hit returns existing surface).
+
+### Contract notes
+
+- `wizardHost.ensureReady` must **not** import flat-edit UI surfaces (create must stay lean).
+- Flat-edit page client must not mount Ready until the three flat-edit peeks are non-null
+  (or equivalent ensures completed). Cached plugin from create warm alone is insufficient.
+- Capability bag still exposes per-surface `ensureReady` for on-demand / edit callers.
+
+## Before / after dependency graph
+
+```text
+BEFORE (create = edit warm set)
+warmOperatorWizardShell
+  └─ wizardHost.ensureReady
+       ├─ host-adapter
+       ├─ createChrome + createView
+       ├─ flatEditChrome + flatEditForm + flatEditPage   ← create paid this
+       ├─ operatorUi + labels + wizardSurfaces
+
+AFTER
+warmOperatorWizardShell (/tours/new)
+  └─ wizardHost.ensureReady
+       ├─ host-adapter
+       ├─ createChrome + createView
+       ├─ operatorUi + labels + wizardSurfaces
+       └─ (no flat-edit UI)
+
+flat-edit page client
+  ├─ warmOperatorWizardShell  (shared set above)
+  └─ Promise.all(
+       ensureFlatEditChromeReady,
+       ensureFlatEditFormReady,
+       ensureFlatEditPageReady
+     )
+```
+
+## Verify
+
+```bash
+pnpm --filter @apps/web run test:file \
+  test/wizard-create-warm-ownership.spec.ts \
+  test/thin-shell-warm-ownership-matrix.spec.ts \
+  test/thin-shell-flat-edit-chrome-capability.spec.ts \
+  test/thin-shell-flat-edit-form-capability.spec.ts \
+  test/thin-shell-flat-edit-page-capability.spec.ts \
+  test/wave-i-9-create-wizard-async-plugin.spec.ts \
+  test/wave-i-6-session-plugin-load.spec.ts \
+  test/warm-operator-wizard-shell.spec.ts
+```
+
+Rebuild Denali after host-hook changes: `pnpm --filter @app-cloud/workspace-denali run build`.
