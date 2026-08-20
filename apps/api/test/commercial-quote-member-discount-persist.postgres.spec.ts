@@ -125,7 +125,7 @@ describe(
 
 describe("commercial-quote-member-discount-persist.postgres.spec.ts skip marker", {
   skip: hasDatabase,
-}) {
+}, () => {
   it("CQ-DISC-PERSIST-REQUIRES_DATABASE", () => {
     assert.ok(true);
   });
