@@ -22,3 +22,12 @@ export {
   resolveLiveObligationGrossMinor,
   type LiveRegistrationObligation,
 } from "./map-obligation";
+export {
+  applyMemberDiscountToGross,
+  buildMemberDiscountQuoteMetadata,
+  buildMembershipReference,
+  normalizeMemberDiscountPercentage,
+  tryApplyMemberDiscountReducer,
+  type MemberDiscountQuoteMetadata,
+  type MemberDiscountReducerResult,
+} from "./member-discount";

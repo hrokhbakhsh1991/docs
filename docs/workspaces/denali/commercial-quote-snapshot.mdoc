@@ -192,6 +192,16 @@ Locked commercial pipeline (server-only; client never submits payable):
 
 Workspace resolver exposes optional `grossObligationMinor` on `FinanceRegistrationObligation`; Finance `mapLiveObligationToQuoteInput` persists both fields. Denali gross bind skips free-collection waive only — pricing formulas unchanged.
 
+### CQ-2A member discount domain (implemented — domain only)
+
+Pure Finance reducer in `packages/finance-core/src/domain/commercial-quote/member-discount.ts`:
+
+- `source = member_discount` when reducer applies (percentage 1–100).
+- Formula: `payableMinor = floor(grossMinor × (100 − pct) / 100)`; `discountMinor = grossMinor − payableMinor`.
+- `MemberDiscountQuoteMetadata`: `percentageApplied`, `discountMinor`, `memberUserId`, `membershipReference` (`userTenant:{tenantId}:{userId}`).
+- `MembershipDiscountReadPort.getMembershipDiscountPercentage(tenantId, userId)` — interface only; Identity implements in CQ-2B+.
+- 0 / null percentage → no reducer (`source` stays `tour_canonical` at wiring time).
+
 ### Reducer precedence at freeze
 
 When multiple facts exist, **one primary `source`** per version:

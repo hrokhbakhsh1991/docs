@@ -109,6 +109,7 @@ export type {
   CommercialQuoteVersion,
   CreateCommercialQuoteVersionInput,
 } from "./commercial-quote-repository.port";
+export type { MembershipDiscountReadPort } from "./membership-discount-read.port";
 export type {
   FinanceRegistrationDisplay,
   RegistrationDisplayPort,

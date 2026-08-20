@@ -7,6 +7,7 @@ export const COMMERCIAL_QUOTE_SOURCES = [
   "tour_canonical",
   "operator_override",
   "free_collection",
+  "member_discount",
 ] as const;
 
 export type CommercialQuoteSource = (typeof COMMERCIAL_QUOTE_SOURCES)[number];
