@@ -40,6 +40,7 @@ import { ensureGeneratedLabelResolver } from "@/wizard/wizard-label-registry";
 import {
   ensureGeneratedCompositeSurface,
   ensureGeneratedReviewSurface,
+  resolveGeneratedReviewSurface,
 } from "@/wizard/wizard-surface-registry";
 
 import { canLoadWorkspaceWizard } from "./wizard-access";
@@ -236,7 +237,6 @@ export function WorkspaceWizardHost({
     void Promise.all([
       ensureGeneratedLabelResolver(pluginId),
       ensureGeneratedCompositeSurface(pluginId),
-      ensureGeneratedReviewSurface(pluginId),
     ]);
   }, [pluginId]);
 
@@ -248,14 +248,18 @@ export function WorkspaceWizardHost({
     void Promise.all([
       ensureGeneratedLabelResolver(host.fieldLabelSurfaceId),
       ensureGeneratedCompositeSurface(host.compositeSurfaceId),
-      ensureGeneratedReviewSurface(host.reviewSurfaceId),
-      ensureGeneratedReviewSurface(host.validationSurfaceId),
     ]);
   }, [workspacePlugin]);
 
   const wizardHost =
     workspacePlugin != null ? resolveWizardHostCapability(workspacePlugin) : undefined;
   const reviewStepId = wizardHost?.reviewStepId;
+  /** Bumps when review surface finishes on-demand warm so peeks re-resolve. */
+  const [reviewSurfaceEpoch, setReviewSurfaceEpoch] = useState(0);
+  const [reviewSurfaceStatus, setReviewSurfaceStatus] = useState<"idle" | "loading" | "ready">(
+    "idle"
+  );
+
   const translateWorkspaceMessage = useWorkspaceWizardTranslator(wizardHost?.wizardMessageNamespace);
   const resolveDefaultStepLabel = useCallback(
     (stepId: string) => {
@@ -272,7 +276,7 @@ export function WorkspaceWizardHost({
   );
   const reviewSurface = useMemo(
     () => resolveWizardReviewSurface(wizardHost?.reviewSurfaceId),
-    [wizardHost?.reviewSurfaceId]
+    [wizardHost?.reviewSurfaceId, reviewSurfaceEpoch]
   );
   const validationSurface = useMemo(
     () =>
@@ -280,7 +284,7 @@ export function WorkspaceWizardHost({
         wizardHost?.validationSurfaceId,
         wizardHost?.reviewSurfaceId
       ),
-    [wizardHost?.validationSurfaceId, wizardHost?.reviewSurfaceId]
+    [wizardHost?.validationSurfaceId, wizardHost?.reviewSurfaceId, reviewSurfaceEpoch]
   );
 
   const dimensionsKey = useMemo(() => {
@@ -397,6 +401,45 @@ export function WorkspaceWizardHost({
     }
     return resolvedVisibleSteps.filter((step) => step.stepId !== reviewStepId);
   }, [resolvedVisibleSteps, reviewStepId]);
+
+  const activeStepIdForReviewWarm =
+    resolvedVisibleSteps != null
+      ? resolvedVisibleSteps[clampWizardStepIndex(activeStepIndex, resolvedVisibleSteps.length)]
+          ?.stepId
+      : undefined;
+
+  useEffect(() => {
+    if (workspacePlugin == null || reviewStepId == null) {
+      setReviewSurfaceStatus("idle");
+      return;
+    }
+    if (activeStepIdForReviewWarm !== reviewStepId) {
+      setReviewSurfaceStatus("idle");
+      return;
+    }
+    const host = resolveWizardHostCapability(workspacePlugin);
+    const surfaceIds = [...new Set([host?.reviewSurfaceId, host?.validationSurfaceId])].filter(
+      (id): id is string => typeof id === "string" && id.trim().length > 0
+    );
+    const allWarm =
+      surfaceIds.length === 0 || surfaceIds.every((id) => resolveGeneratedReviewSurface(id) != null);
+    if (allWarm) {
+      setReviewSurfaceStatus("ready");
+      return;
+    }
+    let cancelled = false;
+    setReviewSurfaceStatus("loading");
+    void (async () => {
+      await Promise.all(surfaceIds.map((id) => ensureGeneratedReviewSurface(id)));
+      if (!cancelled) {
+        setReviewSurfaceEpoch((epoch) => epoch + 1);
+        setReviewSurfaceStatus("ready");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [workspacePlugin, reviewStepId, activeStepIdForReviewWarm]);
 
   const stepSignature = useMemo(
     () => stepDescriptors.map((step) => step.stepId).join("|"),
@@ -789,19 +832,24 @@ export function WorkspaceWizardHost({
             ) : null}
             {wizardHost?.usesReviewStep === true &&
             reviewStepId != null &&
-            activeStep.stepId === reviewStepId &&
-            reviewSurface?.renderReviewChrome != null ? (
-              reviewSurface.renderReviewChrome({
-                draft,
-                onDraftChange,
-                reviewValidationIssues,
-                stepDescriptors,
-                contentSteps,
-                onNavigateToStep: goToStepById,
-                onFocusIssue: handleFocusValidationIssue,
-                fieldLabelSurfaceId: wizardHost?.fieldLabelSurfaceId,
-                translateWorkspaceMessage,
-              })
+            activeStep.stepId === reviewStepId ? (
+              reviewSurfaceStatus !== "ready" || reviewSurface?.renderReviewChrome == null ? (
+                <p data-workspace-wizard-review-loading aria-busy="true">
+                  {tWizard("host.loading")}
+                </p>
+              ) : (
+                reviewSurface.renderReviewChrome({
+                  draft,
+                  onDraftChange,
+                  reviewValidationIssues,
+                  stepDescriptors,
+                  contentSteps,
+                  onNavigateToStep: goToStepById,
+                  onFocusIssue: handleFocusValidationIssue,
+                  fieldLabelSurfaceId: wizardHost?.fieldLabelSurfaceId,
+                  translateWorkspaceMessage,
+                })
+              )
             ) : null}
             {activeStep.fields
               .filter(

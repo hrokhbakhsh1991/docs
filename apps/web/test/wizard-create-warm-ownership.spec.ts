@@ -31,6 +31,9 @@ describe("wizard-create-warm-ownership (shell wiring)", () => {
     assert.match(hooks, /ensureWizardCreateChromePackageSurface/);
     assert.match(hooks, /ensureWizardCreateViewPackageSurface/);
     assert.match(hooks, /ensureWizardHostAdapterSurface/);
+    assert.match(hooks, /ensureWizardCompositePackageSurface/);
+    assert.doesNotMatch(hooks, /ensureWizardSurfacesPackageSurface/);
+    assert.doesNotMatch(hooks, /ensureWizardReviewPackageSurface/);
   });
 
   it("A) create /tours/new client warms via shell only (no flat-edit ensure)", () => {
