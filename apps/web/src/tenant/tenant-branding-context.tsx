@@ -9,6 +9,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useLocale } from "next-intl";
+
+import {
+  resolveTenantBrandingDisplayName,
+  type TenantDefaultLocale,
+} from "@app-tour/workspace-sdk";
 
 import { fetchTenantBranding } from "@/features/settings/tenant-brand-logo-client";
 
@@ -19,12 +25,16 @@ import {
 } from "./tenant-branding-logo-cache";
 
 export type TenantBrandingPatch = {
+  readonly displayNameFa?: string | null;
+  readonly displayNameEn?: string | null;
   readonly displayName?: string | null;
   readonly logoUrl?: string | null;
 };
 
 type TenantBrandingContextValue = {
   readonly logoUrl: string | null;
+  readonly displayNameFa: string | null;
+  readonly displayNameEn: string | null;
   readonly displayName: string | null;
   readonly pluginId: string;
   readonly workspaceLabel: string;
@@ -49,6 +59,8 @@ export function TenantBrandingProvider({
 }: TenantBrandingProviderProps) {
   const [revision, setRevision] = useState(0);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [displayNameFa, setDisplayNameFa] = useState<string | null>(null);
+  const [displayNameEn, setDisplayNameEn] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(initialDisplayName?.trim() || null);
 
   useEffect(() => {
@@ -73,6 +85,8 @@ export function TenantBrandingProvider({
         }
         setLogoUrl(url);
         if (branding !== null) {
+          setDisplayNameFa(branding.displayNameFa?.trim() || null);
+          setDisplayNameEn(branding.displayNameEn?.trim() || null);
           setDisplayName(branding.displayName?.trim() || null);
         }
       })
@@ -88,6 +102,12 @@ export function TenantBrandingProvider({
 
   const invalidateBranding = useCallback((patch?: TenantBrandingPatch) => {
     bumpTenantBrandingLogoCache();
+    if (patch?.displayNameFa !== undefined) {
+      setDisplayNameFa(patch.displayNameFa?.trim() || null);
+    }
+    if (patch?.displayNameEn !== undefined) {
+      setDisplayNameEn(patch.displayNameEn?.trim() || null);
+    }
     if (patch?.displayName !== undefined) {
       setDisplayName(patch.displayName?.trim() || null);
     }
@@ -100,13 +120,15 @@ export function TenantBrandingProvider({
   const value = useMemo(
     () => ({
       logoUrl,
+      displayNameFa,
+      displayNameEn,
       displayName,
       pluginId,
       workspaceLabel,
       revision,
       invalidateBranding,
     }),
-    [displayName, invalidateBranding, logoUrl, pluginId, revision, workspaceLabel]
+    [displayName, displayNameEn, displayNameFa, invalidateBranding, logoUrl, pluginId, revision, workspaceLabel]
   );
 
   return <TenantBrandingContext.Provider value={value}>{children}</TenantBrandingContext.Provider>;
@@ -130,11 +152,23 @@ export function useTenantBrandTitle(
   fallbackWorkspaceLabel?: string
 ): string {
   const branding = useTenantBrandingOptional();
-  return (
-    branding?.displayName?.trim() ||
-    fallbackDisplayName?.trim() ||
-    fallbackWorkspaceLabel?.trim() ||
-    branding?.workspaceLabel?.trim() ||
-    ""
+  const locale = (useLocale() === "fa" ? "fa" : "en") as TenantDefaultLocale;
+  const displayNameSource = branding
+    ? {
+        ...(branding.displayNameFa !== null ? { displayNameFa: branding.displayNameFa } : {}),
+        ...(branding.displayNameEn !== null ? { displayNameEn: branding.displayNameEn } : {}),
+        ...(branding.displayName !== null
+          ? { displayName: branding.displayName }
+          : fallbackDisplayName !== undefined && fallbackDisplayName !== null
+            ? { displayName: fallbackDisplayName }
+            : {}),
+      }
+    : fallbackDisplayName !== undefined && fallbackDisplayName !== null
+      ? { displayName: fallbackDisplayName }
+      : {};
+  return resolveTenantBrandingDisplayName(
+    displayNameSource,
+    locale,
+    fallbackWorkspaceLabel ?? branding?.workspaceLabel ?? null
   );
 }

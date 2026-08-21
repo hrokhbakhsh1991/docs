@@ -19,7 +19,7 @@ import { BRANDING_SETTINGS_TEST_IDS } from "@/features/settings/branding-types";
 import type { TenantBrandingServerPrefetch } from "@/features/settings/fetch-tenant-branding.server";
 import {
   fetchTenantBranding,
-  patchTenantBrandingDisplayName,
+  patchTenantBrandingDisplayNames,
   removeTenantBrandLogo,
   resolveTenantBrandLogoPreviewUrl,
   uploadTenantBrandLogo,
@@ -27,6 +27,19 @@ import {
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import { useTenantBrandingOptional } from "@/tenant/tenant-branding-context";
 import { validateTenantBrandLogoFile } from "@/features/settings/validate-tenant-brand-logo-file";
+
+function resolveLocalizedBrandName(
+  localizedValue: string | null | undefined,
+  otherLocalizedValue: string | null | undefined,
+  legacyValue: string | null | undefined
+): string {
+  return (
+    localizedValue?.trim() ||
+    otherLocalizedValue?.trim() ||
+    legacyValue?.trim() ||
+    ""
+  );
+}
 
 type BrandingSettingsClientProps = {
   readonly session: OperatorSessionContext;
@@ -45,7 +58,23 @@ export function BrandingSettingsClient({
   const router = useRouter();
   const brandingContext = useTenantBrandingOptional();
   const canManage = isAdminOrOwnerRole(session.role);
-  const [displayName, setDisplayName] = useState(initialBranding?.branding.displayName ?? "");
+  const [legacyDisplayName, setLegacyDisplayName] = useState(
+    initialBranding?.branding.displayName ?? ""
+  );
+  const [displayNameFa, setDisplayNameFa] = useState(
+    resolveLocalizedBrandName(
+      initialBranding?.branding.displayNameFa,
+      initialBranding?.branding.displayNameEn,
+      initialBranding?.branding.displayName
+    )
+  );
+  const [displayNameEn, setDisplayNameEn] = useState(
+    resolveLocalizedBrandName(
+      initialBranding?.branding.displayNameEn,
+      initialBranding?.branding.displayNameFa,
+      initialBranding?.branding.displayName
+    )
+  );
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(
     initialBranding?.logoPreviewUrl ?? null
   );
@@ -60,6 +89,8 @@ export function BrandingSettingsClient({
   const workspaceLabel = session.workspaceType;
 
   function notifyBrandingChanged(patch?: {
+    readonly displayNameFa?: string | null;
+    readonly displayNameEn?: string | null;
     readonly displayName?: string | null;
     readonly logoUrl?: string | null;
   }): void {
@@ -80,7 +111,13 @@ export function BrandingSettingsClient({
         if (cancelled) {
           return;
         }
-        setDisplayName(branding.displayName ?? "");
+        setLegacyDisplayName(branding.displayName ?? "");
+        setDisplayNameFa(
+          resolveLocalizedBrandName(branding.displayNameFa, branding.displayNameEn, branding.displayName)
+        );
+        setDisplayNameEn(
+          resolveLocalizedBrandName(branding.displayNameEn, branding.displayNameFa, branding.displayName)
+        );
         if (branding.logo?.storageKey) {
           const url = await resolveTenantBrandLogoPreviewUrl();
           if (!cancelled) {
@@ -113,13 +150,29 @@ export function BrandingSettingsClient({
     setError(null);
     setSaved(false);
     try {
-      const branding = await patchTenantBrandingDisplayName(
-        displayName.trim().length > 0 ? displayName.trim() : null
+      const branding = await patchTenantBrandingDisplayNames({
+        displayNameFa: displayNameFa.trim().length > 0 ? displayNameFa.trim() : null,
+        displayNameEn: displayNameEn.trim().length > 0 ? displayNameEn.trim() : null,
+      });
+      const nextDisplayNameFa = resolveLocalizedBrandName(
+        branding.displayNameFa,
+        branding.displayNameEn,
+        branding.displayName
       );
-      const nextDisplayName = branding.displayName ?? "";
-      setDisplayName(nextDisplayName);
+      const nextDisplayNameEn = resolveLocalizedBrandName(
+        branding.displayNameEn,
+        branding.displayNameFa,
+        branding.displayName
+      );
+      setLegacyDisplayName(branding.displayName ?? "");
+      setDisplayNameFa(nextDisplayNameFa);
+      setDisplayNameEn(nextDisplayNameEn);
       setSaved(true);
-      notifyBrandingChanged({ displayName: nextDisplayName });
+      notifyBrandingChanged({
+        displayNameFa: nextDisplayNameFa,
+        displayNameEn: nextDisplayNameEn,
+        displayName: branding.displayName ?? null,
+      });
     } catch (saveError: unknown) {
       setError(saveError instanceof Error ? saveError.message : "BRANDING_SAVE_FAILED");
     } finally {
@@ -212,6 +265,63 @@ export function BrandingSettingsClient({
             <CardDescription>{t("logoSectionDescription")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="grid gap-3 rounded-xl border bg-muted/20 p-3 sm:grid-cols-2">
+              <div
+                className="flex items-center gap-3 rounded-lg border bg-background px-3 py-2 shadow-sm"
+                data-testid={BRANDING_SETTINGS_TEST_IDS.previewFa}
+              >
+                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border bg-muted/40">
+                  {logoPreviewUrl !== null ? (
+                    <img
+                      src={logoPreviewUrl}
+                      alt={t("logoPreviewAlt")}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <TenantBrandMark
+                      pluginId={pluginId}
+                      workspaceLabel={displayNameFa.trim() || displayNameEn.trim() || workspaceLabel}
+                      className="h-6 w-6"
+                      preferLogo={false}
+                    />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">FA</p>
+                  <p className="truncate text-sm font-semibold">
+                    {displayNameFa.trim() || displayNameEn.trim() || legacyDisplayName || workspaceLabel}
+                  </p>
+                </div>
+              </div>
+              <div
+                className="flex items-center gap-3 rounded-lg border bg-background px-3 py-2 shadow-sm"
+                data-testid={BRANDING_SETTINGS_TEST_IDS.previewEn}
+              >
+                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border bg-muted/40">
+                  {logoPreviewUrl !== null ? (
+                    <img
+                      src={logoPreviewUrl}
+                      alt={t("logoPreviewAlt")}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <TenantBrandMark
+                      pluginId={pluginId}
+                      workspaceLabel={displayNameEn.trim() || displayNameFa.trim() || workspaceLabel}
+                      className="h-6 w-6"
+                      preferLogo={false}
+                    />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">EN</p>
+                  <p className="truncate text-sm font-semibold">
+                    {displayNameEn.trim() || displayNameFa.trim() || legacyDisplayName || workspaceLabel}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center gap-4">
               <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border bg-muted/40">
                 {logoPreviewUrl !== null ? (
@@ -264,15 +374,29 @@ export function BrandingSettingsClient({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="branding-display-name">{t("displayNameLabel")}</Label>
+              <Label htmlFor="branding-display-name-fa">{t("displayNameFaLabel")}</Label>
               <Input
-                id="branding-display-name"
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
+                id="branding-display-name-fa"
+                value={displayNameFa}
+                onChange={(event) => setDisplayNameFa(event.target.value)}
                 maxLength={80}
                 readOnly={!canManage}
                 disabled={!canManage}
                 data-testid={BRANDING_SETTINGS_TEST_IDS.displayName}
+              />
+              <p className="text-xs text-muted-foreground">{t("displayNameHelper")}</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="branding-display-name-en">{t("displayNameEnLabel")}</Label>
+              <Input
+                id="branding-display-name-en"
+                value={displayNameEn}
+                onChange={(event) => setDisplayNameEn(event.target.value)}
+                maxLength={80}
+                readOnly={!canManage}
+                disabled={!canManage}
+                data-testid={BRANDING_SETTINGS_TEST_IDS.displayNameEn}
               />
               <p className="text-xs text-muted-foreground">{t("displayNameHelper")}</p>
             </div>
@@ -291,7 +415,7 @@ export function BrandingSettingsClient({
                 disabled={saving}
                 data-testid={BRANDING_SETTINGS_TEST_IDS.save}
               >
-                {saving ? t("saving") : t("saveDisplayName")}
+                {saving ? t("saving") : t("saveDisplayNames")}
               </Button>
             ) : null}
           </CardContent>

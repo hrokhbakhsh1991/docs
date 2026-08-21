@@ -23,5 +23,9 @@ describe("branding-server-prefetch.spec.ts", () => {
     );
     assert.match(clientSource, /initialBranding/);
     assert.match(clientSource, /skipInitialFetchRef/);
+    assert.match(clientSource, /patchTenantBrandingDisplayNames/);
+    assert.match(clientSource, /displayNameFaLabel/);
+    assert.match(clientSource, /displayNameEnLabel/);
+    assert.match(clientSource, /saveDisplayNames/);
   });
 });

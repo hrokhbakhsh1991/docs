@@ -45,6 +45,13 @@ describe("tenant-branding-contract.spec.ts", () => {
     assert.match(bridge, /TenantBrandMark/);
   });
 
+  it("WEB-TENANT-BRANDING-03b admin layout resolves workspace display name via shared resolver", () => {
+    const layout = readFileSync(join(WEB_ROOT, "app/(app)/layout.tsx"), "utf8");
+    assert.match(layout, /resolveTenantBrandingDisplayName/);
+    assert.match(layout, /TenantDefaultLocale/);
+    assert.match(layout, /workspaceLabel/);
+  });
+
   it("WEB-TENANT-BRANDING-04 public BFF delegates server branding helper (GSH chain)", () => {
     const route = readFileSync(
       join(WEB_ROOT, "app/api/public/tenant-branding/route.ts"),

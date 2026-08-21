@@ -1,7 +1,7 @@
 import { headers, cookies } from "next/headers";
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import {
   requireOperatorSessionWeb,
@@ -20,6 +20,10 @@ import { isDevWebSessionAllowed } from "@/tenant/auth-env";
 import { hasDevHostSmokeSessionProfile } from "@/tenant/dev-host-session-profiles";
 import { resolveRequestBootstrapAppSession } from "@/tenant/tenant-kernel";
 import { fetchOperatorProfileServer } from "@/features/settings/fetch-operator-profile.server";
+import {
+  resolveTenantBrandingDisplayName,
+  type TenantDefaultLocale,
+} from "@app-tour/workspace-sdk";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +71,7 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
 
   const tenantTheme = await fetchTenantThemeForContext(bootstrap.context, host);
   const operatorProfile = await fetchOperatorProfileServer();
+  const locale = (await getLocale()) === "fa" ? "fa" : "en";
   const tWorkspaces = await getTranslations("app.workspaces");
   await ensureFinanceNavSupported(bootstrap.session.pluginId);
   const wizardCreate = await ensureWizardCreate(bootstrap.session.pluginId);
@@ -79,12 +84,21 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   const rawSession = cookieStore.get(SESSION_TOKEN_COOKIE)?.value ?? "";
   const impersonationReadonly =
     decodeJwtPayload(rawSession)?.platform_impersonation_readonly === true;
+  const workspaceLabel = resolveWorkspaceLabelFromMessages(
+    tWorkspaces,
+    bootstrap.session.pluginId
+  );
+  const displayName = resolveTenantBrandingDisplayName(
+    tenantTheme ?? {},
+    locale as TenantDefaultLocale,
+    workspaceLabel
+  );
 
   return (
     <OperatorShell
       session={session!}
-      workspaceLabel={resolveWorkspaceLabelFromMessages(tWorkspaces, bootstrap.session.pluginId)}
-      displayName={tenantTheme?.displayName ?? null}
+      workspaceLabel={workspaceLabel}
+      displayName={displayName}
       operatorProfileDisplayName={operatorProfile?.displayName ?? null}
       operatorProfileAvatarUrl={operatorProfile?.avatarUrl ?? null}
       pluginId={bootstrap.session.pluginId}

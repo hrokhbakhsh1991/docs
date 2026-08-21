@@ -160,9 +160,10 @@
     "uploadLogo": "Upload logo",
     "uploading": "Uploading…",
     "removeLogo": "Remove logo",
-    "displayNameLabel": "Display name",
+    "displayNameFaLabel": "Persian display name",
+    "displayNameEnLabel": "English display name",
     "displayNameHelper": "Shown instead of the workspace product name when set.",
-    "saveDisplayName": "Save display name",
+    "saveDisplayNames": "Save names",
     "saving": "Saving…",
     "saved": "Branding updated.",
     "readOnlyBanner": "You can view workspace branding, but only owners and admins can change it."

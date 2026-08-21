@@ -160,9 +160,10 @@
     "uploadLogo": "آپلود لوگو",
     "uploading": "در حال آپلود…",
     "removeLogo": "حذف لوگو",
-    "displayNameLabel": "نام نمایشی",
+    "displayNameFaLabel": "نام فارسی",
+    "displayNameEnLabel": "نام انگلیسی",
     "displayNameHelper": "به‌جای نام محصول workspace نمایش داده می‌شود.",
-    "saveDisplayName": "ذخیره نام نمایشی",
+    "saveDisplayNames": "ذخیره نام‌ها",
     "saving": "در حال ذخیره…",
     "saved": "برند به‌روزرسانی شد.",
     "readOnlyBanner": "می‌توانید برند workspace را ببینید؛ فقط مالک و مدیر می‌توانند آن را تغییر دهند."
