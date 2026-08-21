@@ -127,6 +127,7 @@ export {
   resolveOperatorShellNavCapability,
   resolveFinanceNavCapability,
   resolveFinanceOpsCapability,
+  resolveMemberPortalRenderersCapability,
   resolveBookingOpsCapability,
   resolveWizardCreateCapability,
 } from "./workspace-plugin-capabilities";

@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 
 import {
   MemberPortalUnknownRouteError,
+  getWorkspaceMemberPortalRenderer,
   resolveMemberPortalModuleByRoutePath,
 } from "@app-tour/workspace-sdk";
 
@@ -39,6 +41,15 @@ export default async function MemberModuleDispatcherPage({
   const grantedEntitlementKeys = entitlements?.payload.granted ?? [];
   if (!isMemberModuleEntitled(moduleManifest.id, grantedEntitlementKeys)) {
     return <MemberModuleUnauthorized moduleId={moduleManifest.id} />;
+  }
+
+  const renderer = getWorkspaceMemberPortalRenderer(bootstrap.pluginId, moduleManifest.id);
+  if (renderer !== undefined) {
+    const rendered = await renderer({
+      moduleId: moduleManifest.id,
+      routePath: moduleManifest.routePath,
+    });
+    return rendered as ReactNode;
   }
 
   return (

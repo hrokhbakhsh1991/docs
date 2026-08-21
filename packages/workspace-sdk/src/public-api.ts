@@ -1,5 +1,10 @@
 /** Root barrel surface — re-exported from `index.ts` only. */
 export {
+  clearWorkspaceMemberPortalRenderersForTests,
+  getWorkspaceMemberPortalRenderer,
+  registerWorkspaceMemberPortalRenderers,
+} from "./portal/member-portal-renderer-registry";
+export {
   assertCanonicalDocument,
   assertCanonicalDocumentRoots,
   assertCanonicalPathSegments,
@@ -145,6 +150,7 @@ export {
   noopWorkspaceDraftTombstoneBinding,
   topLevelRootsRemoved,
   isNonEmptyRootValue,
+  resolveMemberPortalRenderersCapability,
   type WorkspaceDraftTombstoneBinding,
   type WorkspaceSdkValidationError,
   type WorkspaceSdkValidationErrorCode,

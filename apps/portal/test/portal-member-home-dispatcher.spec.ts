@@ -48,6 +48,9 @@ describe("member-module-dispatcher — PS-5", () => {
     assert.match(page, /MemberPortalUnknownRouteError/);
     assert.match(page, /MemberModuleUnauthorized/);
     assert.match(page, /MemberModuleStub/);
+    assert.match(page, /getWorkspaceMemberPortalRenderer/);
+    assert.match(page, /moduleManifest\.id/);
+    assert.doesNotMatch(page, /pluginId\s*===\s*["'][^"']+["']/);
   });
 
   it("PS5-DISP-02 home BFF route requires session", () => {

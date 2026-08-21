@@ -504,6 +504,17 @@ describe("workspace-plugin-capabilities — Phase 4r/4s", () => {
     assert.equal(resolveFinanceOpsCapability({}), undefined);
   });
 
+
+  it("SDK-4BE-03 registers a future member renderer without host dispatch", () => {
+    clearWorkspaceMemberPortalRenderersForTests();
+    const renderer = (props: { readonly moduleId: string }) => props.moduleId;
+    registerWorkspaceMemberPortalRenderers("future-workspace", {
+      renderers: { custom: renderer },
+    });
+    assert.equal(getWorkspaceMemberPortalRenderer("future-workspace", "custom"), renderer);
+    clearWorkspaceMemberPortalRenderersForTests();
+  });
+
   it("SDK-4BF-01 resolveBookingOpsCapability reads capabilities.bookingOps", () => {
     const bookingOps = {
       resolveManifest: (_theme?: unknown | null) =>

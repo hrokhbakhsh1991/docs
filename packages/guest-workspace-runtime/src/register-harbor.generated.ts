@@ -5,7 +5,7 @@
  * Location: packages/guest-workspace-runtime (P5.3) — product dynamic imports stay package-owned.
  */
 
-import { registerWorkspaceIntakePlugin, registerWorkspaceRegistrationFlowPlugin } from "@app-tour/workspace-sdk";
+import { registerWorkspaceIntakePlugin, registerWorkspaceMemberPortalRenderers, registerWorkspaceRegistrationFlowPlugin } from "@app-tour/workspace-sdk";
 import { registerWorkspaceRegistrationFlowSteps } from "@app-tour/workspace-plugin-host/registration-flow";
 
 /** Intake registrar for "harbor" — plugin entry only (no registration-flow UI graph). */
@@ -18,6 +18,7 @@ export async function registerWorkspaceIntakeHARBORFromManifest(): Promise<void>
       catalogIntake: plugin.catalogIntake,
     });
   }
+  registerWorkspaceMemberPortalRenderers(plugin.id, plugin.capabilities?.memberPortalRenderers);
 }
 
 /** Full registrar for "harbor" — intake, transport, and registration-flow surfaces. */
@@ -30,6 +31,7 @@ export async function registerWorkspacePluginHARBORFromManifest(): Promise<void>
       catalogIntake: plugin.catalogIntake,
     });
   }
+  registerWorkspaceMemberPortalRenderers(plugin.id, plugin.capabilities?.memberPortalRenderers);
   const { harborCatalogRegistrationFlowSurface } = await import("@app-tour/workspace-harbor/host/catalog-registration-flow");
   const { HarborIntakeStep, HarborDoneStep } = await import("@app-tour/workspace-harbor/host/catalog-registration-flow/react");
   const { CatalogRegistrationOtpStep, CatalogRegistrationPhoneStep, CatalogRegistrationProfileStep } = await import("@app-tour/catalog-registration-flow-ui/react");

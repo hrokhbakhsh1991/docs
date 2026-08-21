@@ -5,7 +5,7 @@
  * Location: packages/guest-workspace-runtime (P5.3) — product dynamic imports stay package-owned.
  */
 
-import { registerWorkspaceIntakePlugin, registerWorkspaceRegistrationFlowPlugin } from "@app-tour/workspace-sdk";
+import { registerWorkspaceIntakePlugin, registerWorkspaceMemberPortalRenderers, registerWorkspaceRegistrationFlowPlugin } from "@app-tour/workspace-sdk";
 import { registerWorkspaceRegistrationFlowSteps } from "@app-tour/workspace-plugin-host/registration-flow";
 
 /** Intake registrar for "urban" — plugin entry only (no registration-flow UI graph). */
@@ -18,6 +18,7 @@ export async function registerWorkspaceIntakeURBANFromManifest(): Promise<void> 
       catalogIntake: plugin.catalogIntake,
     });
   }
+  registerWorkspaceMemberPortalRenderers(plugin.id, plugin.capabilities?.memberPortalRenderers);
 }
 
 /** Full registrar for "urban" — intake, transport, and registration-flow surfaces. */
@@ -30,6 +31,7 @@ export async function registerWorkspacePluginURBANFromManifest(): Promise<void> 
       catalogIntake: plugin.catalogIntake,
     });
   }
+  registerWorkspaceMemberPortalRenderers(plugin.id, plugin.capabilities?.memberPortalRenderers);
   const { urbanCatalogRegistrationFlowSurface } = await import("@app-tour/workspace-urban/host/catalog-registration-flow");
   const { UrbanIntakeStep, UrbanDoneStep } = await import("@app-tour/workspace-urban/host/catalog-registration-flow/react");
   const { CatalogRegistrationOtpStep, CatalogRegistrationPhoneStep, CatalogRegistrationProfileStep } = await import("@app-tour/catalog-registration-flow-ui/react");

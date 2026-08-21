@@ -119,9 +119,9 @@ export function generatePortalPluginRegister(manifest, allManifests) {
   const hasFlow = manifest.catalogRegistrationFlow !== undefined;
 
   const sdkImports = hasFlow
-    ? `import { registerWorkspaceIntakePlugin, registerWorkspaceRegistrationFlowPlugin } from "@app-tour/workspace-sdk";
+    ? `import { registerWorkspaceIntakePlugin, registerWorkspaceMemberPortalRenderers, registerWorkspaceRegistrationFlowPlugin } from "@app-tour/workspace-sdk";
 import { registerWorkspaceRegistrationFlowSteps } from "@app-tour/workspace-plugin-host/registration-flow";`
-    : `import { registerWorkspaceIntakePlugin } from "@app-tour/workspace-sdk";`;
+    : `import { registerWorkspaceIntakePlugin, registerWorkspaceMemberPortalRenderers } from "@app-tour/workspace-sdk";`;
 
   const intakeBody = `  const { ${pluginExport} } = await import("${pluginSpec}");
   const plugin = ${pluginExport}();
@@ -130,7 +130,8 @@ import { registerWorkspaceRegistrationFlowSteps } from "@app-tour/workspace-plug
       id: plugin.id,
       catalogIntake: plugin.catalogIntake,
     });
-  }`;
+  }
+  registerWorkspaceMemberPortalRenderers(plugin.id, plugin.capabilities?.memberPortalRenderers);`;
 
   const flowBody = generatePortalRegistrationFlowBody(manifest, allManifests);
 

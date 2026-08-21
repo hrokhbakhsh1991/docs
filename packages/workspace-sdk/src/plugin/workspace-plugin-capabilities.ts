@@ -227,6 +227,17 @@ export type WorkspaceBookingOpsCapability = {
   readonly resolveManifest: (theme?: unknown | null) => RegistrationOpsManifest;
 };
 
+export type MemberPortalModuleRendererProps = {
+  readonly moduleId: string;
+  readonly routePath: string;
+};
+
+export type WorkspaceMemberPortalRenderersCapability = {
+  readonly renderers: Readonly<
+    Record<string, (props: MemberPortalModuleRendererProps) => unknown>
+  >;
+};
+
 /**
  * Wizard create / extended operator chrome (Thin Shell Phase 4bg).
  * Pure data — mirrors manifest `wizardCreate.extendedChrome` (+ optional brand mark).
@@ -400,6 +411,8 @@ export type WorkspacePluginCapabilities = {
   readonly financeOps?: WorkspaceFinanceOpsCapability;
   /** Phase 4bf — pure booking ops panel resolve (theme-aware). */
   readonly bookingOps?: WorkspaceBookingOpsCapability;
+  /** Optional server-rendered custom member modules. */
+  readonly memberPortalRenderers?: WorkspaceMemberPortalRenderersCapability;
   /** Phase 4bg — extended create chrome + optional brand fallback mark. */
   readonly wizardCreate?: WorkspaceWizardCreateCapability;
 };
@@ -655,6 +668,12 @@ export function resolveBookingOpsCapability(
   plugin: Pick<WorkspacePluginCapabilityHostSlice, "capabilities">
 ): WorkspaceBookingOpsCapability | undefined {
   return plugin.capabilities?.bookingOps;
+}
+
+export function resolveMemberPortalRenderersCapability(
+  plugin: Pick<WorkspacePluginCapabilityHostSlice, "capabilities">
+): WorkspaceMemberPortalRenderersCapability | undefined {
+  return plugin.capabilities?.memberPortalRenderers;
 }
 
 /** Resolve wizard-create capability from the bag (no legacy fallback). */
