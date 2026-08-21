@@ -118,7 +118,9 @@ function forwardPathname(request: NextRequest, pathname: string): NextResponse {
 
 function isPlatformPublicBffPath(pathname: string): boolean {
   return (
-    pathname === "/api/platform/auth/login" || pathname === "/api/platform/auth/request-otp"
+    pathname === "/api/platform/auth/login" ||
+    pathname === "/api/platform/auth/request-otp" ||
+    pathname === "/api/platform/auth/logout"
   );
 }
 
