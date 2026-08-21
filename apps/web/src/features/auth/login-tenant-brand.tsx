@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 
 import { TenantBrandFallbackMark } from "@/admin/shell/tenant-brand-fallback-mark";
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding.server";
@@ -11,6 +12,7 @@ type LoginTenantBrandProps = {
 };
 
 export function LoginTenantBrand({ pluginId, initialBranding }: LoginTenantBrandProps) {
+  const locale = useLocale();
   const [displayName, setDisplayName] = useState<string | null>(
     initialBranding?.displayName ?? null
   );
@@ -18,13 +20,18 @@ export function LoginTenantBrand({ pluginId, initialBranding }: LoginTenantBrand
 
   useEffect(() => {
     let cancelled = false;
-    void fetch("/api/public/tenant-branding", { cache: "no-store" })
+    void fetch("/api/public/tenant-branding", {
+      cache: "no-store",
+      headers: { "x-tenant-locale": locale },
+    })
       .then(async (response) => {
         if (!response.ok) {
           return null;
         }
         return (await response.json()) as {
           displayName?: string | null;
+          displayNameFa?: string | null;
+          displayNameEn?: string | null;
           logoUrl?: string | null;
         };
       })
@@ -32,7 +39,12 @@ export function LoginTenantBrand({ pluginId, initialBranding }: LoginTenantBrand
         if (cancelled || payload === null) {
           return;
         }
-        setDisplayName(payload.displayName?.trim() || null);
+        setDisplayName(
+          payload.displayName?.trim() ||
+            payload.displayNameFa?.trim() ||
+            payload.displayNameEn?.trim() ||
+            null
+        );
         setLogoUrl(payload.logoUrl?.trim() || null);
       })
       .catch(() => {
@@ -41,7 +53,7 @@ export function LoginTenantBrand({ pluginId, initialBranding }: LoginTenantBrand
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [locale]);
 
   const altLabel = displayName ?? "Brand";
 

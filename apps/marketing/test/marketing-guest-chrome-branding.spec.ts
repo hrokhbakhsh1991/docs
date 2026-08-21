@@ -24,6 +24,13 @@ const CHROME_FILES = [
 ] as const;
 
 describe("marketing-guest-chrome-branding.spec.ts", () => {
+  it("GL-BRAND-01b marketing branding helper forwards locale into public fetch", () => {
+    const helper = readFileSync(join(marketingRoot, "src/tenant/fetch-public-tenant-branding.ts"), "utf8");
+    assert.match(helper, /getLocale/);
+    assert.match(helper, /locale\?: "fa" \| "en" \| null/);
+    assert.match(helper, /locale: resolvedLocale/);
+  });
+
   it("GL-BRAND-01 siteName call sites use resolveGuestChromeDisplayName, not pluginId", () => {
     for (const relative of CHROME_FILES) {
       const source = readFileSync(join(marketingRoot, relative), "utf8");

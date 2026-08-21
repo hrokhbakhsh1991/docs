@@ -19,7 +19,10 @@ describe("fetchPublicTenantBrandingForHost fail-soft cache (BUG-8)", () => {
     globalThis.fetch = (async () => {
       calls += 1;
       if (calls === 1) {
-        return new Response(JSON.stringify({ displayName: "live-club" }), { status: 200 });
+        return new Response(
+          JSON.stringify({ displayName: "live-club", displayNameFa: "کلاب" }),
+          { status: 200 }
+        );
       }
       return new Response("", { status: 502 });
     }) as typeof fetch;
@@ -34,6 +37,47 @@ describe("fetchPublicTenantBrandingForHost fail-soft cache (BUG-8)", () => {
     });
     assert.equal(second.displayName, "live-club");
     assert.equal(calls, 2);
+  });
+
+  it("GL-BRAND-FAILSOFT-01b keeps locale-specific snapshots separate", async () => {
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls += 1;
+      if (calls === 1) {
+        return new Response(
+          JSON.stringify({ displayName: "denali-fa", logoUrl: "https://cdn.example/logo.png" }),
+          { status: 200 }
+        );
+      }
+      if (calls === 2) {
+        return new Response(
+          JSON.stringify({ displayName: "denali-en", logoUrl: "https://cdn.example/logo.png" }),
+          { status: 200 }
+        );
+      }
+      return new Response("", { status: 502 });
+    }) as typeof fetch;
+
+    const fa = await fetchPublicTenantBrandingForHost("denali.localhost", {
+      apiBaseUrl: "http://127.0.0.1:3001",
+      locale: "fa",
+    });
+    const en = await fetchPublicTenantBrandingForHost("denali.localhost", {
+      apiBaseUrl: "http://127.0.0.1:3001",
+      locale: "en",
+    });
+    assert.equal(fa.displayName, "denali-fa");
+    assert.equal(fa.logoUrl, "https://cdn.example/logo.png");
+    assert.equal(en.displayName, "denali-en");
+    assert.equal(en.logoUrl, "https://cdn.example/logo.png");
+
+    const failSoftFa = await fetchPublicTenantBrandingForHost("denali.localhost", {
+      apiBaseUrl: "http://127.0.0.1:3001",
+      locale: "fa",
+    });
+    assert.equal(failSoftFa.displayName, "denali-fa");
+    assert.equal(failSoftFa.logoUrl, "https://cdn.example/logo.png");
+    assert.equal(calls, 3);
   });
 
   it("GL-BRAND-FAILSOFT-02 returns empty snapshot when nothing succeeded yet", async () => {

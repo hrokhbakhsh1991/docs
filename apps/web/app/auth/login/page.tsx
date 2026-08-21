@@ -48,6 +48,8 @@ export default async function AuthLoginPage({ searchParams }: AuthLoginPageProps
         pluginId="platform"
         initialBranding={{
           displayName: "Platform Control Center",
+          displayNameFa: null,
+          displayNameEn: null,
           logoUrl: null,
           primaryColor: null,
           defaultLocale: null,

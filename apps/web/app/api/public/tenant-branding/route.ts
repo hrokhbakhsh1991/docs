@@ -7,6 +7,8 @@ import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-b
 export async function GET(): Promise<NextResponse> {
   const headerList = await headers();
   const host = headerList.get("host")?.split(":")[0] ?? "localhost";
-  const branding = await fetchPublicTenantBrandingForHost(host);
+  const localeHeader = headerList.get("x-tenant-locale");
+  const locale = localeHeader === "fa" || localeHeader === "en" ? localeHeader : null;
+  const branding = await fetchPublicTenantBrandingForHost(host, locale);
   return NextResponse.json(branding, { status: 200 });
 }

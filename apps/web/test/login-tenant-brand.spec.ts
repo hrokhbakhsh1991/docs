@@ -20,6 +20,10 @@ describe("login-tenant-brand.spec.ts", () => {
       join(WEB_ROOT, "src/features/auth/login-tenant-brand.tsx"),
       "utf8"
     );
+    assert.match(loginBrand, /useLocale/);
+    assert.match(loginBrand, /x-tenant-locale/);
+    assert.match(loginBrand, /displayNameFa\?\.trim\(\)/);
+    assert.match(loginBrand, /displayNameEn\?\.trim\(\)/);
     assert.match(loginBrand, /TenantBrandFallbackMark/);
     assert.match(loginBrand, /pluginId/);
     assert.doesNotMatch(loginBrand, /DenaliLogoMark/);

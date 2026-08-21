@@ -1,8 +1,9 @@
-import { resolveGuestBrandingRevalidateSeconds } from "./resolve-guest-fetch-revalidate";
 import { resolvePublicBrandingHost } from "./resolve-public-branding-host";
 
 export type PublicTenantBrandingSnapshot = {
   readonly displayName: string | null;
+  readonly displayNameFa: string | null;
+  readonly displayNameEn: string | null;
   readonly primaryColor: string | null;
   readonly logoUrl: string | null;
   readonly defaultLocale: string | null;
@@ -13,11 +14,13 @@ export type PublicTenantBrandingSnapshot = {
 export type FetchPublicTenantBrandingOptions = {
   readonly apiBaseUrl: string;
   readonly onBeforeFetch?: () => void;
-  readonly nextRevalidate?: number;
+  readonly locale?: "fa" | "en" | null;
 };
 
 const EMPTY_BRANDING: PublicTenantBrandingSnapshot = {
   displayName: null,
+  displayNameFa: null,
+  displayNameEn: null,
   primaryColor: null,
   logoUrl: null,
   defaultLocale: null,
@@ -32,6 +35,8 @@ export function resetPublicTenantBrandingSnapshotCacheForTests(): void {
 
 function snapshotFromBody(body: {
   displayName?: string | null;
+  displayNameFa?: string | null;
+  displayNameEn?: string | null;
   primaryColor?: string | null;
   logoUrl?: string | null;
   defaultLocale?: string | null;
@@ -39,6 +44,8 @@ function snapshotFromBody(body: {
 }): PublicTenantBrandingSnapshot {
   return {
     displayName: body.displayName?.trim() || null,
+    displayNameFa: body.displayNameFa?.trim() || null,
+    displayNameEn: body.displayNameEn?.trim() || null,
     primaryColor: body.primaryColor?.trim() || null,
     logoUrl: body.logoUrl?.trim() || null,
     defaultLocale: body.defaultLocale?.trim() || null,
@@ -64,29 +71,35 @@ export async function fetchPublicTenantBrandingForHost(
   options: FetchPublicTenantBrandingOptions
 ): Promise<PublicTenantBrandingSnapshot> {
   options.onBeforeFetch?.();
-  const brandingHost = resolvePublicBrandingHost(host);
+  const resolvedHost = resolvePublicBrandingHost(host);
+  const cacheKey = `${resolvedHost}::${options.locale ?? "default"}`;
   const url = `${options.apiBaseUrl.replace(/\/$/, "")}/public/tenant-branding`;
-  const revalidate = options.nextRevalidate ?? resolveGuestBrandingRevalidateSeconds();
 
   try {
-    const isDev = process.env.NODE_ENV === "development";
-    const init: RequestInit & { next?: { revalidate: number } } = {
-      headers: { "x-forwarded-host": brandingHost },
-      ...(isDev ? { cache: "no-store" } : { next: { revalidate } }),
+    const init: RequestInit = {
+      headers: {
+        "x-forwarded-host": resolvedHost,
+        ...(options.locale !== undefined && options.locale !== null
+          ? { "x-tenant-locale": options.locale }
+          : {}),
+      },
+      cache: "no-store",
     };
     const res = await fetch(url, init);
     if (!res.ok) {
-      return fallbackSnapshot(brandingHost);
+      return fallbackSnapshot(cacheKey);
     }
     const body = (await res.json()) as {
       displayName?: string | null;
+      displayNameFa?: string | null;
+      displayNameEn?: string | null;
       primaryColor?: string | null;
       logoUrl?: string | null;
       defaultLocale?: string | null;
       marketingHeroUrl?: string | null;
     };
-    return rememberSuccessfulSnapshot(brandingHost, snapshotFromBody(body));
+    return rememberSuccessfulSnapshot(cacheKey, snapshotFromBody(body));
   } catch {
-    return fallbackSnapshot(brandingHost);
+    return fallbackSnapshot(cacheKey);
   }
 }

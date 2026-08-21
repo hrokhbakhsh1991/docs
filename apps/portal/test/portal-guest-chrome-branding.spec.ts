@@ -29,6 +29,13 @@ function readMarketingDefaultSiteName(locale: "fa" | "en"): string | undefined {
 }
 
 describe("portal-guest-chrome-branding.spec.ts", () => {
+  it("GL-BRAND-01b portal branding helper forwards locale into public fetch", () => {
+    const helper = readPortal("src/tenant/fetch-public-tenant-branding.ts");
+    assert.match(helper, /getLocale/);
+    assert.match(helper, /locale\?: "fa" \| "en" \| null/);
+    assert.match(helper, /locale: resolvedLocale/);
+  });
+
   it("GL-BRAND-01 login chrome uses shared displayName helper, not Portal", () => {
     const chrome = readPortal("src/catalog/portal-registration-chrome.tsx");
     assert.match(chrome, /resolveGuestChromeDisplayName/);
