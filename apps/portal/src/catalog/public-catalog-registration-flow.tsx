@@ -25,6 +25,7 @@ import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 
 import { resolveCatalogRegistrationErrorMessage } from "@/features/catalog/resolve-catalog-registration-error";
 import { CatalogRegistrationStepper } from "@/catalog/catalog-registration-stepper";
+import type { PortalCommercialPricingPreview } from "@/catalog/commercial-pricing-preview";
 
 export type PublicCatalogRegistrationFlowProps = {
   readonly workspace: string;
@@ -33,6 +34,7 @@ export type PublicCatalogRegistrationFlowProps = {
   readonly tourTitle: string;
   readonly tourPoliciesText?: string | null;
   readonly tourPriceAmount?: number | null;
+  readonly commercialPricingPreview?: PortalCommercialPricingPreview | null;
   readonly tourTransport?: PublicCatalogTransportSnapshot;
   readonly tourNationalIdRequired?: boolean;
   readonly tourFatherNameRequired?: boolean;
@@ -63,6 +65,7 @@ export function PublicCatalogRegistrationFlow({
   tourTitle,
   tourPoliciesText,
   tourPriceAmount = null,
+  commercialPricingPreview = null,
   tourTransport,
   tourNationalIdRequired = false,
   tourFatherNameRequired = false,
@@ -90,6 +93,7 @@ export function PublicCatalogRegistrationFlow({
       tourTitle,
       tourPoliciesText,
       tourPriceAmount,
+      commercialPricingPreview,
       tourTransport,
       tourRequirements: {
         nationalIdRequired: tourNationalIdRequired,
@@ -117,6 +121,7 @@ export function PublicCatalogRegistrationFlow({
       tourNationalIdRequired,
       tourPoliciesText,
       tourPriceAmount,
+      commercialPricingPreview,
       tourTitle,
       tourTransport,
       workspace,
@@ -160,14 +165,7 @@ export function PublicCatalogRegistrationFlow({
       state.data.displayName.trim(),
       state.data.profileEmail.trim()
     );
-  }, [
-    context,
-    dispatch,
-    memberLoginEgress,
-    onAuthenticated,
-    onMemberLoginSessionReady,
-    state,
-  ]);
+  }, [context, dispatch, memberLoginEgress, onAuthenticated, onMemberLoginSessionReady, state]);
 
   const [resumedWithoutServer, setResumedWithoutServer] = useState(false);
   const [sessionResumeStatus, setSessionResumeStatus] = useState<SessionResumeStatus>(() => {
@@ -219,9 +217,7 @@ export function PublicCatalogRegistrationFlow({
   }, [context, flowPlugin, initialRuntimeState, memberLoginEgress, state.currentStep, tenantId]);
 
   const resumeAtIntake =
-    state.currentStep === "intake" &&
-    initialRuntimeState === undefined &&
-    resumedWithoutServer;
+    state.currentStep === "intake" && initialRuntimeState === undefined && resumedWithoutServer;
 
   const resolveError = useCallback(
     (code: string) => resolveCatalogRegistrationErrorMessage(t, code),
@@ -232,17 +228,12 @@ export function PublicCatalogRegistrationFlow({
     return <p role="alert">{resolveError("REGISTRATION_CLOSED")}</p>;
   }
 
-  const isResumeAtIntake =
-    initialRuntimeState?.currentStep === "intake" || resumeAtIntake;
+  const isResumeAtIntake = initialRuntimeState?.currentStep === "intake" || resumeAtIntake;
   // Login modal: no stepper chrome (PCMS-03-UX) — modal header title is enough.
   const showStepper = !memberLoginEgress;
   const stepperMode = isResumeAtIntake ? "intake-only" : "registration";
 
-  if (
-    sessionResumeStatus === "checking" &&
-    state.currentStep === "phone" &&
-    !memberLoginEgress
-  ) {
+  if (sessionResumeStatus === "checking" && state.currentStep === "phone" && !memberLoginEgress) {
     return (
       <div data-public-registration-flow data-registration-resume-pending aria-busy="true">
         <div data-registration-resume-pending-card>

@@ -39,6 +39,7 @@ import {
   handlePublicRequestOtp,
   handlePublicVerifyOtp,
 } from "./identity/public-auth.routes";
+import { handleCatalogCommercialPricingPreview } from "./catalog/commercial-pricing-preview.routes";
 import {
   handleBulkPatchUserRole,
   handleBulkReactivateUsers,
@@ -234,6 +235,11 @@ async function dispatchRequest(
 
   if (method === "POST" && url.pathname === "/public/auth/register/complete") {
     await handlePublicRegisterComplete(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/catalog/pricing-preview") {
+    await handleCatalogCommercialPricingPreview(req, res);
     return;
   }
 
@@ -711,41 +717,42 @@ async function dispatchRequest(
   }
 
   const workspaceExposureControlPlaneMatch = url.pathname.match(
-    /^\/workspaces\/([^/]+)\/exposure\/control-plane$/,
+    /^\/workspaces\/([^/]+)\/exposure\/control-plane$/
   );
   if (workspaceExposureControlPlaneMatch && method === "GET") {
     const { handleGetWorkspaceExposureControlPlane } = await import("./exposure/exposure.routes");
     await handleGetWorkspaceExposureControlPlane(
       req,
       res,
-      decodeURIComponent(workspaceExposureControlPlaneMatch[1]!),
+      decodeURIComponent(workspaceExposureControlPlaneMatch[1]!)
     );
     return;
   }
 
   const workspaceExposureSurfacesMatch = url.pathname.match(
-    /^\/workspaces\/([^/]+)\/exposure\/surfaces$/,
+    /^\/workspaces\/([^/]+)\/exposure\/surfaces$/
   );
   if (workspaceExposureSurfacesMatch && method === "GET") {
     const { handleGetWorkspaceExposureSurfaces } = await import("./exposure/exposure.routes");
     await handleGetWorkspaceExposureSurfaces(
       req,
       res,
-      decodeURIComponent(workspaceExposureSurfacesMatch[1]!),
+      decodeURIComponent(workspaceExposureSurfacesMatch[1]!)
     );
     return;
   }
 
   const workspaceSurfaceExposureIntentMatch = url.pathname.match(
-    /^\/workspaces\/([^/]+)\/exposure\/surfaces\/([^/]+)$/,
+    /^\/workspaces\/([^/]+)\/exposure\/surfaces\/([^/]+)$/
   );
   if (workspaceSurfaceExposureIntentMatch && method === "PATCH") {
-    const { handlePatchWorkspaceSurfaceExposureIntent } = await import("./exposure/exposure.routes");
+    const { handlePatchWorkspaceSurfaceExposureIntent } =
+      await import("./exposure/exposure.routes");
     await handlePatchWorkspaceSurfaceExposureIntent(
       req,
       res,
       decodeURIComponent(workspaceSurfaceExposureIntentMatch[1]!),
-      decodeURIComponent(workspaceSurfaceExposureIntentMatch[2]!),
+      decodeURIComponent(workspaceSurfaceExposureIntentMatch[2]!)
     );
     return;
   }

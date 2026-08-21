@@ -72,6 +72,16 @@
     "myselfTag": "myself",
     "unnamedPerson": "Unnamed",
     "priceAmount": "{amount} IRR",
+    "pricingPreviewLoading": "Loading final price…",
+    "originalTourPrice": "Tour price",
+    "membershipDiscount": "Membership discount {percentage}%",
+    "discountAmount": "-{amount} IRR",
+    "yourPrice": "Your price",
+    "memberPriceSummary": "member price",
+    "ancillary": {
+      "transport": "Transport",
+      "dong": "Vehicle share"
+    },
     "perPerson": "per person",
     "skipToForm": "Skip to form",
     "summaryRailLabel": "Summary",

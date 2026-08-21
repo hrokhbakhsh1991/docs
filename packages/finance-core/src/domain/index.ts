@@ -7,7 +7,11 @@ export type {
   PaymentScheduleItem,
   PrepaymentRecord,
 } from "./schedule";
-export { buildPaymentScheduleItems, reschedulePaymentScheduleItem, waivePaymentScheduleItem } from "./schedule";
+export {
+  buildPaymentScheduleItems,
+  reschedulePaymentScheduleItem,
+  waivePaymentScheduleItem,
+} from "./schedule";
 export {
   compileRegistrationInvoice,
   type CompileInvoiceBalancesInput,
@@ -133,6 +137,7 @@ export {
   liveObligationMatchesQuoteVersion,
   mapLiveObligationSourceToQuoteSource,
   mapLiveObligationToQuoteInput,
+  resolveLiveObligationDiscountableBaseMinor,
   resolveLiveObligationGrossMinor,
   applyMemberDiscountToGross,
   buildMemberDiscountQuoteMetadata,

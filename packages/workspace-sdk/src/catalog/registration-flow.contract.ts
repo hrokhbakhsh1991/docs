@@ -14,6 +14,16 @@ export type RegistrationFlowContext = {
   readonly tourTitle: string;
   readonly tourPoliciesText?: string | null;
   readonly tourPriceAmount?: number | null;
+  readonly commercialPricingPreview?: {
+    readonly grossMinor: string;
+    readonly discountableBaseMinor: string;
+    readonly memberDiscountPercentage: number;
+    readonly memberDiscountMinor: string;
+    readonly payableMinor: string;
+    readonly currency: string;
+    readonly source: string;
+    readonly lines: readonly { readonly code: string; readonly amountMinor: string }[];
+  } | null;
   readonly tourTransport?: PublicCatalogTransportSnapshot;
   readonly tourRequirements?: RegistrationFlowTourRequirements;
   readonly backHref: string;

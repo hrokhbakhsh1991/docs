@@ -13,6 +13,7 @@ import {
   transitionFlowStep,
   validateIntakeSchemaValues,
   type IntakeField,
+  type RegistrationFlowContext,
   type RegistrationFlowStepProps,
 } from "@app-tour/workspace-sdk";
 import { classifyPublicRegistrationMobileInput } from "@app-tour/catalog-registration-auth";
@@ -23,9 +24,7 @@ import {
   denaliCatalogTransportIntakeSurface,
   isDenaliIntakeDongOffered,
 } from "../denali-catalog-transport-intake";
-import {
-  readDenaliFlowData,
-} from "./denali-registration-flow.surface";
+import { readDenaliFlowData } from "./denali-registration-flow.surface";
 import { DenaliDoneStep } from "./denali-registration-flow.done-step";
 import {
   denaliRequiredIntakeCopyField,
@@ -42,6 +41,25 @@ export {
   CatalogRegistrationOtpStep as DenaliOtpStep,
   CatalogRegistrationProfileStep as DenaliProfileStep,
 };
+
+type CommercialPricingPreview = NonNullable<RegistrationFlowContext["commercialPricingPreview"]>;
+
+function parseMinorToNumber(minor: string): number | null {
+  const digits = minor.replace(/\D/g, "");
+  if (digits.length === 0) {
+    return null;
+  }
+  const parsed = Number.parseInt(digits, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatMinor(minor: string, locale: string): string | null {
+  const value = parseMinorToNumber(minor);
+  if (value === null) {
+    return null;
+  }
+  return value.toLocaleString(locale);
+}
 
 function intakeValidationMessage(
   t: ReturnType<typeof useTranslations>,
@@ -110,8 +128,12 @@ export function DenaliIntakeStep({
       const isInput = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement;
       form.toggleAttribute("data-denali-keyboard-open", isInput);
     };
-    const onFocusIn = () => { if (isMobile()) syncKeyboard(); };
-    const onFocusOut = () => { if (isMobile()) requestAnimationFrame(syncKeyboard); };
+    const onFocusIn = () => {
+      if (isMobile()) syncKeyboard();
+    };
+    const onFocusOut = () => {
+      if (isMobile()) requestAnimationFrame(syncKeyboard);
+    };
     const viewport = window.visualViewport;
     viewport?.addEventListener("resize", syncKeyboard);
     viewport?.addEventListener("scroll", syncKeyboard);
@@ -324,6 +346,63 @@ export function DenaliIntakeStep({
     data.transportState,
     transportSurface,
   ]);
+  const previewTransportKind = useMemo(() => {
+    const candidateTransportState = selfSelected
+      ? selfDraft.transportState
+      : (otherGuests[0]?.transportState ?? data.transportState);
+    const transportPayload = transportSurface.buildPayload(
+      context.tourTransport,
+      candidateTransportState
+    );
+    return transportPayload?.kind ?? "primary";
+  }, [
+    selfSelected,
+    selfDraft.transportState,
+    otherGuests,
+    data.transportState,
+    context.tourTransport,
+    transportSurface,
+  ]);
+  const [commercialPricingPreview, setCommercialPricingPreview] =
+    useState<CommercialPricingPreview | null>(context.commercialPricingPreview ?? null);
+  const [commercialPricingPreviewLoading, setCommercialPricingPreviewLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCommercialPricingPreviewLoading(true);
+    void (async () => {
+      try {
+        const params = new URLSearchParams({
+          tourId: context.tourId,
+          partySize: "1",
+          transportKind: previewTransportKind,
+        });
+        const res = await fetch(`/api/catalog/pricing-preview?${params}`, {
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        const body = (await res.json()) as {
+          readonly ok?: boolean;
+          readonly preview?: CommercialPricingPreview;
+        };
+        if (cancelled) {
+          return;
+        }
+        setCommercialPricingPreview(res.ok && body.ok === true ? (body.preview ?? null) : null);
+      } catch {
+        if (!cancelled) {
+          setCommercialPricingPreview(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setCommercialPricingPreviewLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [context.tourId, previewTransportKind]);
 
   const travelerDraftCount = (selfSelected ? 1 : 0) + otherGuests.length;
   const canAddGuest = !loading && otherGuests.length < DENALI_MAX_OTHER_GUESTS;
@@ -593,8 +672,24 @@ export function DenaliIntakeStep({
   const priceLocale = locale === "fa" ? "fa-IR" : "en-US";
   const formattedPrice =
     estimatedPrice !== null ? estimatedPrice.toLocaleString(priceLocale) : null;
-  const submitDisabled =
-    loading || !clientReady || (!selfSelected && otherGuests.length === 0);
+  const previewDiscountMinor = commercialPricingPreview?.memberDiscountMinor ?? "0";
+  const hasMembershipDiscount =
+    commercialPricingPreview?.source === "member_discount" &&
+    (parseMinorToNumber(previewDiscountMinor) ?? 0) > 0;
+  const formattedPreviewGross =
+    commercialPricingPreview !== null
+      ? formatMinor(commercialPricingPreview.grossMinor, priceLocale)
+      : null;
+  const formattedPreviewDiscount = hasMembershipDiscount
+    ? formatMinor(previewDiscountMinor, priceLocale)
+    : null;
+  const formattedPreviewPayable =
+    commercialPricingPreview !== null
+      ? formatMinor(commercialPricingPreview.payableMinor, priceLocale)
+      : null;
+  const previewAncillaryLines =
+    commercialPricingPreview?.lines.filter((line) => line.code !== "trip") ?? [];
+  const submitDisabled = loading || !clientReady || (!selfSelected && otherGuests.length === 0);
   const ctaAlert =
     error !== null && invalidField === null ? (
       <p id={errorId} role="alert" data-denali-cta-alert>
@@ -660,7 +755,7 @@ export function DenaliIntakeStep({
       {travelerDraftCount > 0 ? (
         <p data-denali-party-line>
           {partyLineText}
-          {formattedPrice !== null ? (
+          {!hasMembershipDiscount && formattedPrice !== null ? (
             <>
               {" · "}
               <strong>{t("intake.priceAmount", { amount: formattedPrice })}</strong>{" "}
@@ -668,6 +763,55 @@ export function DenaliIntakeStep({
             </>
           ) : null}
         </p>
+      ) : null}
+      {commercialPricingPreviewLoading ? (
+        <p data-registration-pricing-preview-loading role="status">
+          {t("intake.pricingPreviewLoading")}
+        </p>
+      ) : null}
+      {formattedPreviewPayable !== null ? (
+        <div data-registration-pricing-preview>
+          <div data-registration-pricing-row="gross">
+            <span>{t("intake.originalTourPrice")}</span>
+            <strong data-registration-pricing-gross>
+              {t("intake.priceAmount", {
+                amount: formattedPreviewGross ?? formattedPreviewPayable,
+              })}
+            </strong>
+          </div>
+          {hasMembershipDiscount && formattedPreviewDiscount !== null ? (
+            <div data-registration-pricing-row="membership-discount">
+              <span>
+                {t("intake.membershipDiscount", {
+                  percentage: commercialPricingPreview?.memberDiscountPercentage ?? 0,
+                })}
+              </span>
+              <strong data-registration-pricing-discount>
+                {t("intake.discountAmount", { amount: formattedPreviewDiscount })}
+              </strong>
+            </div>
+          ) : null}
+          {previewAncillaryLines.map((line) => {
+            const amount = formatMinor(line.amountMinor, priceLocale);
+            if (amount === null) {
+              return null;
+            }
+            return (
+              <div key={line.code} data-registration-pricing-row={`ancillary-${line.code}`}>
+                <span>{t(`intake.ancillary.${line.code}`)}</span>
+                <strong>{t("intake.priceAmount", { amount })}</strong>
+              </div>
+            );
+          })}
+          {hasMembershipDiscount ? (
+            <div data-registration-pricing-row="payable">
+              <span>{t("intake.yourPrice")}</span>
+              <strong data-registration-pricing-payable>
+                {t("intake.priceAmount", { amount: formattedPreviewPayable })}
+              </strong>
+            </div>
+          ) : null}
+        </div>
       ) : null}
 
       {submitResults !== null && submitResults.some((r) => !r.ok) ? (
@@ -717,381 +861,413 @@ export function DenaliIntakeStep({
 
       <div data-denali-intake-layout>
         <div data-denali-ledger-main id="denali-ledger-main">
-        <section data-denali-intake-section data-denali-intake-section-kind="self">
-          <div data-denali-self-ident>
-            <h2 data-denali-self-name>
-              {selfDisplayName.length > 0 || showKnownNameHintSelf
-                ? (selfDisplayName || data.intakeName)
-                : t("intake.selfSectionTitle")}
-              {" "}
-              <span data-denali-self-tag>{t("intake.myselfTag")}</span>
-            </h2>
-            <div data-denali-intake-section-control>
-              {selfTabLocked ? (
-                <p data-denali-self-locked-chip>{t("intake.selfSectionLocked")}</p>
-              ) : (
-                <div data-denali-registrant-self-toggle>
-                  <label>
+          <section data-denali-intake-section data-denali-intake-section-kind="self">
+            <div data-denali-self-ident>
+              <h2 data-denali-self-name>
+                {selfDisplayName.length > 0 || showKnownNameHintSelf
+                  ? selfDisplayName || data.intakeName
+                  : t("intake.selfSectionTitle")}{" "}
+                <span data-denali-self-tag>{t("intake.myselfTag")}</span>
+              </h2>
+              <div data-denali-intake-section-control>
+                {selfTabLocked ? (
+                  <p data-denali-self-locked-chip>{t("intake.selfSectionLocked")}</p>
+                ) : (
+                  <div data-denali-registrant-self-toggle>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={selfSelected}
+                        disabled={selfTabLocked}
+                        onChange={() => {
+                          // Toggle from React state (not e.target.checked) so automation/DOM drift
+                          // cannot leave selfSelected true while the native box looks unchecked.
+                          setSelfSelected((prev) => {
+                            const next = !prev;
+                            if (!next) {
+                              setOtherGuests((guests) =>
+                                guests.length === 0 ? [createEmptyOtherDraft()] : guests
+                              );
+                            }
+                            return next;
+                          });
+                        }}
+                      />
+                      <span>{t("intake.inTour")}</span>
+                    </label>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {selfSelected ? (
+              <div data-denali-self-guest-card>
+                <RenderIntakeForm
+                  schema={effectiveSchemaSelf}
+                  values={{
+                    fullName: selfDraft.intakeName,
+                    phone: selfDraft.intakePhone,
+                    nationalId: selfDraft.intakeNationalId,
+                    fatherName: selfDraft.intakeFatherName,
+                    birthDate: selfDraft.intakeBirthDate,
+                    email: selfDraft.intakeEmail,
+                    partySize: selfDraft.partySize,
+                    notes: selfDraft.notes,
+                  }}
+                  onChange={(fieldId, value) => updateSelfField(fieldId, value)}
+                  resolveLabel={(field: IntakeField) => t(field.labelKey)}
+                  idPrefix="denali-intake-self"
+                  errorId={errorId}
+                  invalidFieldId={invalidField?.scope === "self" ? invalidField.fieldId : undefined}
+                />
+
+                {personalCarOptInVisible ? (
+                  <label
+                    className="portal-registration-transport-opt-in"
+                    data-public-registration-personal-car-opt-in
+                  >
                     <input
                       type="checkbox"
-                      checked={selfSelected}
-                      disabled={selfTabLocked}
-                      onChange={() => {
-                        // Toggle from React state (not e.target.checked) so automation/DOM drift
-                        // cannot leave selfSelected true while the native box looks unchecked.
-                        setSelfSelected((prev) => {
-                          const next = !prev;
-                          if (!next) {
-                            setOtherGuests((guests) =>
-                              guests.length === 0 ? [createEmptyOtherDraft()] : guests
-                            );
-                          }
-                          return next;
-                        });
-                      }}
-                    />
-                    <span>{t("intake.inTour")}</span>
-                  </label>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {selfSelected ? (
-            <div data-denali-self-guest-card>
-              <RenderIntakeForm
-                schema={effectiveSchemaSelf}
-                values={{
-                  fullName: selfDraft.intakeName,
-                  phone: selfDraft.intakePhone,
-                  nationalId: selfDraft.intakeNationalId,
-                  fatherName: selfDraft.intakeFatherName,
-                  birthDate: selfDraft.intakeBirthDate,
-                  email: selfDraft.intakeEmail,
-                  partySize: selfDraft.partySize,
-                  notes: selfDraft.notes,
-                }}
-                onChange={(fieldId, value) => updateSelfField(fieldId, value)}
-                resolveLabel={(field: IntakeField) => t(field.labelKey)}
-                idPrefix="denali-intake-self"
-                errorId={errorId}
-                invalidFieldId={
-                  invalidField?.scope === "self" ? invalidField.fieldId : undefined
-                }
-              />
-
-              {personalCarOptInVisible ? (
-                <label
-                  className="portal-registration-transport-opt-in"
-                  data-public-registration-personal-car-opt-in
-                >
-                  <input
-                    type="checkbox"
-                    checked={selfDraft.transportState.optInPersonalCar}
-                    onChange={(event) =>
-                      setSelfDraft((prev) => ({
-                        ...prev,
-                        transportState: {
-                          ...prev.transportState,
-                          optInPersonalCar: event.target.checked,
-                          hasPersonalCar: null,
-                          personalCarOccupants: null,
-                          paysDong: null,
-                        },
-                      }))
-                    }
-                  />
-                  <span>{t("intake.personalCarOptIn")}</span>
-                </label>
-              ) : null}
-
-              {transportSurface.showTransportFollowUp(
-                context.tourTransport,
-                selfDraft.transportState
-              ) ? (
-                <fieldset data-public-registration-transport>
-                  <legend>{t("intake.transportLegend")}</legend>
-                  <p>{t("intake.hasPersonalCarQuestion")}</p>
-
-                  <label>
-                    <input
-                      type="radio"
-                      name="hasPersonalCar-self"
-                      checked={selfDraft.transportState.hasPersonalCar === true}
-                      onChange={() =>
+                      checked={selfDraft.transportState.optInPersonalCar}
+                      onChange={(event) =>
                         setSelfDraft((prev) => ({
                           ...prev,
                           transportState: {
                             ...prev.transportState,
-                            hasPersonalCar: true,
-                            paysDong: null,
-                          },
-                        }))
-                      }
-                    />
-                    {t("intake.hasPersonalCarYes")}
-                  </label>
-
-                  <label>
-                    <input
-                      type="radio"
-                      name="hasPersonalCar-self"
-                      checked={selfDraft.transportState.hasPersonalCar === false}
-                      onChange={() =>
-                        setSelfDraft((prev) => ({
-                          ...prev,
-                          transportState: {
-                            ...prev.transportState,
-                            hasPersonalCar: false,
+                            optInPersonalCar: event.target.checked,
+                            hasPersonalCar: null,
                             personalCarOccupants: null,
                             paysDong: null,
                           },
                         }))
                       }
                     />
-                    {t("intake.hasPersonalCarNo")}
+                    <span>{t("intake.personalCarOptIn")}</span>
                   </label>
+                ) : null}
 
-                  {selfDraft.transportState.hasPersonalCar === true ? (
-                    <div data-public-registration-transport-occupants>
-                      <p>{t("intake.personalCarOccupantsLabel")}</p>
-                      {([1, 2, 3] as const).map((count) => (
-                        <label key={count}>
+                {transportSurface.showTransportFollowUp(
+                  context.tourTransport,
+                  selfDraft.transportState
+                ) ? (
+                  <fieldset data-public-registration-transport>
+                    <legend>{t("intake.transportLegend")}</legend>
+                    <p>{t("intake.hasPersonalCarQuestion")}</p>
+
+                    <label>
+                      <input
+                        type="radio"
+                        name="hasPersonalCar-self"
+                        checked={selfDraft.transportState.hasPersonalCar === true}
+                        onChange={() =>
+                          setSelfDraft((prev) => ({
+                            ...prev,
+                            transportState: {
+                              ...prev.transportState,
+                              hasPersonalCar: true,
+                              paysDong: null,
+                            },
+                          }))
+                        }
+                      />
+                      {t("intake.hasPersonalCarYes")}
+                    </label>
+
+                    <label>
+                      <input
+                        type="radio"
+                        name="hasPersonalCar-self"
+                        checked={selfDraft.transportState.hasPersonalCar === false}
+                        onChange={() =>
+                          setSelfDraft((prev) => ({
+                            ...prev,
+                            transportState: {
+                              ...prev.transportState,
+                              hasPersonalCar: false,
+                              personalCarOccupants: null,
+                              paysDong: null,
+                            },
+                          }))
+                        }
+                      />
+                      {t("intake.hasPersonalCarNo")}
+                    </label>
+
+                    {selfDraft.transportState.hasPersonalCar === true ? (
+                      <div data-public-registration-transport-occupants>
+                        <p>{t("intake.personalCarOccupantsLabel")}</p>
+                        {([1, 2, 3] as const).map((count) => (
+                          <label key={count}>
+                            <input
+                              type="radio"
+                              name="personalCarOccupants-self"
+                              checked={selfDraft.transportState.personalCarOccupants === count}
+                              onChange={() =>
+                                setSelfDraft((prev) => ({
+                                  ...prev,
+                                  transportState: {
+                                    ...prev.transportState,
+                                    personalCarOccupants: count,
+                                  },
+                                }))
+                              }
+                            />
+                            {t(`intake.personalCarOccupants.${count}`)}
+                          </label>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {selfDraft.transportState.hasPersonalCar === false &&
+                    isDenaliIntakeDongOffered(context.tourTransport) ? (
+                      <div data-public-registration-transport-dong>
+                        <p>{t("intake.paysDongQuestion")}</p>
+                        <label>
                           <input
                             type="radio"
-                            name="personalCarOccupants-self"
-                            checked={selfDraft.transportState.personalCarOccupants === count}
+                            name="paysDong-self"
+                            checked={selfDraft.transportState.paysDong === true}
                             onChange={() =>
                               setSelfDraft((prev) => ({
                                 ...prev,
-                                transportState: {
-                                  ...prev.transportState,
-                                  personalCarOccupants: count,
-                                },
+                                transportState: { ...prev.transportState, paysDong: true },
                               }))
                             }
                           />
-                          {t(`intake.personalCarOccupants.${count}`)}
+                          {t("intake.paysDongYes")}
                         </label>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  {selfDraft.transportState.hasPersonalCar === false &&
-                  isDenaliIntakeDongOffered(context.tourTransport) ? (
-                    <div data-public-registration-transport-dong>
-                      <p>{t("intake.paysDongQuestion")}</p>
-                      <label>
-                        <input
-                          type="radio"
-                          name="paysDong-self"
-                          checked={selfDraft.transportState.paysDong === true}
-                          onChange={() =>
-                            setSelfDraft((prev) => ({
-                              ...prev,
-                              transportState: { ...prev.transportState, paysDong: true },
-                            }))
-                          }
-                        />
-                        {t("intake.paysDongYes")}
-                      </label>
-                      <label>
-                        <input
-                          type="radio"
-                          name="paysDong-self"
-                          checked={selfDraft.transportState.paysDong === false}
-                          onChange={() =>
-                            setSelfDraft((prev) => ({
-                              ...prev,
-                              transportState: { ...prev.transportState, paysDong: false },
-                            }))
-                          }
-                        />
-                        {t("intake.paysDongNo")}
-                      </label>
-                    </div>
-                  ) : null}
-                </fieldset>
-              ) : null}
-              {fieldAlert("self", 0)}
-            </div>
-          ) : null}
-        </section>
-
-        <section
-          data-registration-other-guest-list
-          data-denali-other-guest-list
-          {...(otherGuests.length === 0 ? { "data-denali-other-guest-empty": "" } : {})}
-          aria-label={t("intake.otherGuestsTitle")}
-        >
-          <div data-denali-other-guest-header>
-            <div
-              data-denali-intake-section-header
-              data-denali-intake-section-header-kind="guests"
-            >
-              <h2 data-denali-guests-legend>{t("intake.otherGuestsTitle")}</h2>
-              <div data-denali-other-guest-toolbar>
-                {canAddGuest ? (
-                  <button
-                    type="button"
-                    data-denali-add-guest
-                    data-denali-add-guest-variant={otherGuests.length === 0 ? "empty" : "inline"}
-                    disabled={loading}
-                    onClick={() =>
-                      setOtherGuests((prev) =>
-                        prev.length >= DENALI_MAX_OTHER_GUESTS
-                          ? prev
-                          : [...prev, createEmptyOtherDraft()]
-                      )
-                    }
-                  >
-                    {t("intake.addGuestShort")}
-                  </button>
-                ) : null}
-              </div>
-            </div>
-            {otherGuests.length >= DENALI_MAX_OTHER_GUESTS ? (
-              <p data-denali-guest-limit role="status">
-                {t("intake.guestLimitReached", { max: DENALI_MAX_OTHER_GUESTS })}
-              </p>
-            ) : null}
-          </div>
-
-          {otherGuests.length > 0 ? (
-            <div data-denali-other-guest-cards>
-              {otherGuests.map((guest, guestIdx) => {
-                const transportFollowUpVisible = transportSurface.showTransportFollowUp(
-                  context.tourTransport,
-                  guest.transportState
-                );
-                const guestName = guest.intakeName.trim();
-                return (
-                  <div key={guestIdx} data-denali-other-guest-card data-denali-guest-idx={guestIdx}>
-                    <h3 data-denali-guest-name>
-                      {guestName.length > 0
-                        ? guestName
-                        : t("intake.guestCardTitle", { index: guestIdx + 1 })}
-                    </h3>
-                    <RenderIntakeForm
-                      schema={effectiveSchemaOther}
-                      values={{
-                        fullName: guest.intakeName,
-                        phone: guest.intakePhone,
-                        nationalId: guest.intakeNationalId,
-                        fatherName: guest.intakeFatherName,
-                        birthDate: guest.intakeBirthDate,
-                        email: guest.intakeEmail,
-                        partySize: guest.partySize,
-                        notes: guest.notes,
-                      }}
-                      onChange={(fieldId, value) => updateGuestField(guestIdx, fieldId, value)}
-                      resolveLabel={(field: IntakeField) => t(field.labelKey)}
-                      idPrefix={`denali-intake-other-${guestIdx}`}
-                      errorId={errorId}
-                      invalidFieldId={
-                        invalidField?.scope === "other" && invalidField.idx === guestIdx
-                          ? invalidField.fieldId
-                          : undefined
-                      }
-                    />
-
-                    {personalCarOptInVisible ? (
-                      <label
-                        className="portal-registration-transport-opt-in"
-                        data-public-registration-personal-car-opt-in
-                        data-denali-guest-transport={guestIdx}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={guest.transportState.optInPersonalCar}
-                          onChange={(event) => {
-                            const checked = event.target.checked;
-                            setOtherGuests((prev) =>
-                              prev.map((g, idx) => {
-                                if (idx !== guestIdx) return g;
-                                return {
-                                  ...g,
-                                  transportState: {
-                                    ...g.transportState,
-                                    optInPersonalCar: checked,
-                                    hasPersonalCar: null,
-                                    personalCarOccupants: null,
-                                    paysDong: null,
-                                  },
-                                };
-                              })
-                            );
-                          }}
-                        />
-                        <span>{t("intake.personalCarOptIn")}</span>
-                      </label>
+                        <label>
+                          <input
+                            type="radio"
+                            name="paysDong-self"
+                            checked={selfDraft.transportState.paysDong === false}
+                            onChange={() =>
+                              setSelfDraft((prev) => ({
+                                ...prev,
+                                transportState: { ...prev.transportState, paysDong: false },
+                              }))
+                            }
+                          />
+                          {t("intake.paysDongNo")}
+                        </label>
+                      </div>
                     ) : null}
+                  </fieldset>
+                ) : null}
+                {fieldAlert("self", 0)}
+              </div>
+            ) : null}
+          </section>
 
-                    {transportFollowUpVisible ? (
-                      <fieldset data-public-registration-transport>
-                        <legend>{t("intake.transportLegend")}</legend>
-                        <p>{t("intake.hasPersonalCarQuestion")}</p>
+          <section
+            data-registration-other-guest-list
+            data-denali-other-guest-list
+            {...(otherGuests.length === 0 ? { "data-denali-other-guest-empty": "" } : {})}
+            aria-label={t("intake.otherGuestsTitle")}
+          >
+            <div data-denali-other-guest-header>
+              <div
+                data-denali-intake-section-header
+                data-denali-intake-section-header-kind="guests"
+              >
+                <h2 data-denali-guests-legend>{t("intake.otherGuestsTitle")}</h2>
+                <div data-denali-other-guest-toolbar>
+                  {canAddGuest ? (
+                    <button
+                      type="button"
+                      data-denali-add-guest
+                      data-denali-add-guest-variant={otherGuests.length === 0 ? "empty" : "inline"}
+                      disabled={loading}
+                      onClick={() =>
+                        setOtherGuests((prev) =>
+                          prev.length >= DENALI_MAX_OTHER_GUESTS
+                            ? prev
+                            : [...prev, createEmptyOtherDraft()]
+                        )
+                      }
+                    >
+                      {t("intake.addGuestShort")}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+              {otherGuests.length >= DENALI_MAX_OTHER_GUESTS ? (
+                <p data-denali-guest-limit role="status">
+                  {t("intake.guestLimitReached", { max: DENALI_MAX_OTHER_GUESTS })}
+                </p>
+              ) : null}
+            </div>
 
-                        <label>
+            {otherGuests.length > 0 ? (
+              <div data-denali-other-guest-cards>
+                {otherGuests.map((guest, guestIdx) => {
+                  const transportFollowUpVisible = transportSurface.showTransportFollowUp(
+                    context.tourTransport,
+                    guest.transportState
+                  );
+                  const guestName = guest.intakeName.trim();
+                  return (
+                    <div
+                      key={guestIdx}
+                      data-denali-other-guest-card
+                      data-denali-guest-idx={guestIdx}
+                    >
+                      <h3 data-denali-guest-name>
+                        {guestName.length > 0
+                          ? guestName
+                          : t("intake.guestCardTitle", { index: guestIdx + 1 })}
+                      </h3>
+                      <RenderIntakeForm
+                        schema={effectiveSchemaOther}
+                        values={{
+                          fullName: guest.intakeName,
+                          phone: guest.intakePhone,
+                          nationalId: guest.intakeNationalId,
+                          fatherName: guest.intakeFatherName,
+                          birthDate: guest.intakeBirthDate,
+                          email: guest.intakeEmail,
+                          partySize: guest.partySize,
+                          notes: guest.notes,
+                        }}
+                        onChange={(fieldId, value) => updateGuestField(guestIdx, fieldId, value)}
+                        resolveLabel={(field: IntakeField) => t(field.labelKey)}
+                        idPrefix={`denali-intake-other-${guestIdx}`}
+                        errorId={errorId}
+                        invalidFieldId={
+                          invalidField?.scope === "other" && invalidField.idx === guestIdx
+                            ? invalidField.fieldId
+                            : undefined
+                        }
+                      />
+
+                      {personalCarOptInVisible ? (
+                        <label
+                          className="portal-registration-transport-opt-in"
+                          data-public-registration-personal-car-opt-in
+                          data-denali-guest-transport={guestIdx}
+                        >
                           <input
-                            type="radio"
-                            name={`hasPersonalCar-${guestIdx}`}
-                            checked={guest.transportState.hasPersonalCar === true}
-                            onChange={() =>
+                            type="checkbox"
+                            checked={guest.transportState.optInPersonalCar}
+                            onChange={(event) => {
+                              const checked = event.target.checked;
                               setOtherGuests((prev) =>
-                                prev.map((g, idx) =>
-                                  idx === guestIdx
-                                    ? {
-                                        ...g,
-                                        transportState: {
-                                          ...g.transportState,
-                                          hasPersonalCar: true,
-                                          paysDong: null,
-                                        },
-                                      }
-                                    : g
-                                )
-                              )
-                            }
+                                prev.map((g, idx) => {
+                                  if (idx !== guestIdx) return g;
+                                  return {
+                                    ...g,
+                                    transportState: {
+                                      ...g.transportState,
+                                      optInPersonalCar: checked,
+                                      hasPersonalCar: null,
+                                      personalCarOccupants: null,
+                                      paysDong: null,
+                                    },
+                                  };
+                                })
+                              );
+                            }}
                           />
-                          {t("intake.hasPersonalCarYes")}
+                          <span>{t("intake.personalCarOptIn")}</span>
                         </label>
+                      ) : null}
 
-                        <label>
-                          <input
-                            type="radio"
-                            name={`hasPersonalCar-${guestIdx}`}
-                            checked={guest.transportState.hasPersonalCar === false}
-                            onChange={() =>
-                              setOtherGuests((prev) =>
-                                prev.map((g, idx) =>
-                                  idx === guestIdx
-                                    ? {
-                                        ...g,
-                                        transportState: {
-                                          ...g.transportState,
-                                          hasPersonalCar: false,
-                                          personalCarOccupants: null,
-                                          paysDong: null,
-                                        },
-                                      }
-                                    : g
+                      {transportFollowUpVisible ? (
+                        <fieldset data-public-registration-transport>
+                          <legend>{t("intake.transportLegend")}</legend>
+                          <p>{t("intake.hasPersonalCarQuestion")}</p>
+
+                          <label>
+                            <input
+                              type="radio"
+                              name={`hasPersonalCar-${guestIdx}`}
+                              checked={guest.transportState.hasPersonalCar === true}
+                              onChange={() =>
+                                setOtherGuests((prev) =>
+                                  prev.map((g, idx) =>
+                                    idx === guestIdx
+                                      ? {
+                                          ...g,
+                                          transportState: {
+                                            ...g.transportState,
+                                            hasPersonalCar: true,
+                                            paysDong: null,
+                                          },
+                                        }
+                                      : g
+                                  )
                                 )
-                              )
-                            }
-                          />
-                          {t("intake.hasPersonalCarNo")}
-                        </label>
+                              }
+                            />
+                            {t("intake.hasPersonalCarYes")}
+                          </label>
 
-                        {guest.transportState.hasPersonalCar === true ? (
-                          <div data-public-registration-transport-occupants>
-                            <p>{t("intake.personalCarOccupantsLabel")}</p>
-                            {([1, 2, 3] as const).map((count) => (
-                              <label key={count}>
+                          <label>
+                            <input
+                              type="radio"
+                              name={`hasPersonalCar-${guestIdx}`}
+                              checked={guest.transportState.hasPersonalCar === false}
+                              onChange={() =>
+                                setOtherGuests((prev) =>
+                                  prev.map((g, idx) =>
+                                    idx === guestIdx
+                                      ? {
+                                          ...g,
+                                          transportState: {
+                                            ...g.transportState,
+                                            hasPersonalCar: false,
+                                            personalCarOccupants: null,
+                                            paysDong: null,
+                                          },
+                                        }
+                                      : g
+                                  )
+                                )
+                              }
+                            />
+                            {t("intake.hasPersonalCarNo")}
+                          </label>
+
+                          {guest.transportState.hasPersonalCar === true ? (
+                            <div data-public-registration-transport-occupants>
+                              <p>{t("intake.personalCarOccupantsLabel")}</p>
+                              {([1, 2, 3] as const).map((count) => (
+                                <label key={count}>
+                                  <input
+                                    type="radio"
+                                    name={`personalCarOccupants-${guestIdx}`}
+                                    checked={guest.transportState.personalCarOccupants === count}
+                                    onChange={() =>
+                                      setOtherGuests((prev) =>
+                                        prev.map((g, idx) =>
+                                          idx === guestIdx
+                                            ? {
+                                                ...g,
+                                                transportState: {
+                                                  ...g.transportState,
+                                                  personalCarOccupants: count,
+                                                },
+                                              }
+                                            : g
+                                        )
+                                      )
+                                    }
+                                  />
+                                  {t(`intake.personalCarOccupants.${count}`)}
+                                </label>
+                              ))}
+                            </div>
+                          ) : null}
+
+                          {guest.transportState.hasPersonalCar === false &&
+                          isDenaliIntakeDongOffered(context.tourTransport) ? (
+                            <div data-public-registration-transport-dong>
+                              <p>{t("intake.paysDongQuestion")}</p>
+                              <label>
                                 <input
                                   type="radio"
-                                  name={`personalCarOccupants-${guestIdx}`}
-                                  checked={guest.transportState.personalCarOccupants === count}
+                                  name={`paysDong-${guestIdx}`}
+                                  checked={guest.transportState.paysDong === true}
                                   onChange={() =>
                                     setOtherGuests((prev) =>
                                       prev.map((g, idx) =>
@@ -1100,7 +1276,7 @@ export function DenaliIntakeStep({
                                               ...g,
                                               transportState: {
                                                 ...g.transportState,
-                                                personalCarOccupants: count,
+                                                paysDong: true,
                                               },
                                             }
                                           : g
@@ -1108,136 +1284,115 @@ export function DenaliIntakeStep({
                                     )
                                   }
                                 />
-                                {t(`intake.personalCarOccupants.${count}`)}
+                                {t("intake.paysDongYes")}
                               </label>
-                            ))}
-                          </div>
-                        ) : null}
-
-                        {guest.transportState.hasPersonalCar === false &&
-                        isDenaliIntakeDongOffered(context.tourTransport) ? (
-                          <div data-public-registration-transport-dong>
-                            <p>{t("intake.paysDongQuestion")}</p>
-                            <label>
-                              <input
-                                type="radio"
-                                name={`paysDong-${guestIdx}`}
-                                checked={guest.transportState.paysDong === true}
-                                onChange={() =>
-                                  setOtherGuests((prev) =>
-                                    prev.map((g, idx) =>
-                                      idx === guestIdx
-                                        ? {
-                                            ...g,
-                                            transportState: { ...g.transportState, paysDong: true },
-                                          }
-                                        : g
+                              <label>
+                                <input
+                                  type="radio"
+                                  name={`paysDong-${guestIdx}`}
+                                  checked={guest.transportState.paysDong === false}
+                                  onChange={() =>
+                                    setOtherGuests((prev) =>
+                                      prev.map((g, idx) =>
+                                        idx === guestIdx
+                                          ? {
+                                              ...g,
+                                              transportState: {
+                                                ...g.transportState,
+                                                paysDong: false,
+                                              },
+                                            }
+                                          : g
+                                      )
                                     )
-                                  )
-                                }
-                              />
-                              {t("intake.paysDongYes")}
-                            </label>
-                            <label>
-                              <input
-                                type="radio"
-                                name={`paysDong-${guestIdx}`}
-                                checked={guest.transportState.paysDong === false}
-                                onChange={() =>
-                                  setOtherGuests((prev) =>
-                                    prev.map((g, idx) =>
-                                      idx === guestIdx
-                                        ? {
-                                            ...g,
-                                            transportState: {
-                                              ...g.transportState,
-                                              paysDong: false,
-                                            },
-                                          }
-                                        : g
-                                    )
-                                  )
-                                }
-                              />
-                              {t("intake.paysDongNo")}
-                            </label>
-                          </div>
-                        ) : null}
-                      </fieldset>
-                    ) : null}
+                                  }
+                                />
+                                {t("intake.paysDongNo")}
+                              </label>
+                            </div>
+                          ) : null}
+                        </fieldset>
+                      ) : null}
 
-                    {otherGuests.length > 1 ? (
-                      <button
-                        type="button"
-                        data-denali-remove-guest
-                        onClick={() =>
-                          setOtherGuests((prev) => prev.filter((_, idx) => idx !== guestIdx))
-                        }
-                      >
-                        {t("intake.removeGuestShort")}
-                      </button>
-                    ) : null}
-                    {fieldAlert("other", guestIdx)}
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
-        </section>
+                      {otherGuests.length > 1 ? (
+                        <button
+                          type="button"
+                          data-denali-remove-guest
+                          onClick={() =>
+                            setOtherGuests((prev) => prev.filter((_, idx) => idx !== guestIdx))
+                          }
+                        >
+                          {t("intake.removeGuestShort")}
+                        </button>
+                      ) : null}
+                      {fieldAlert("other", guestIdx)}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+          </section>
         </div>
 
         <div data-denali-ledger-rail-col>
-        <aside
-          data-denali-intake-summary-card
-          data-denali-ledger-rail
-          aria-label={t("intake.summaryRailLabel")}
-        >
-          <p data-denali-intake-summary-title>{t("intake.summaryTitle")}</p>
-          <ul data-denali-ledger-people>
-            {selfSelected && (selfDisplayName.length > 0 || showKnownNameHintSelf) ? (
-              <li>
-                {selfDisplayName || data.intakeName}{" "}
-                <span data-denali-person-tag>{t("intake.myselfTag")}</span>
-              </li>
-            ) : null}
-            {otherGuests.map((guest, guestIdx) => {
-              const name = guest.intakeName.trim();
-              return (
-                <li key={guestIdx}>
-                  {name.length > 0
-                    ? name
-                    : t("intake.guestCardTitle", { index: guestIdx + 1 })}
+          <aside
+            data-denali-intake-summary-card
+            data-denali-ledger-rail
+            aria-label={t("intake.summaryRailLabel")}
+          >
+            <p data-denali-intake-summary-title>{t("intake.summaryTitle")}</p>
+            <ul data-denali-ledger-people>
+              {selfSelected && (selfDisplayName.length > 0 || showKnownNameHintSelf) ? (
+                <li>
+                  {selfDisplayName || data.intakeName}{" "}
+                  <span data-denali-person-tag>{t("intake.myselfTag")}</span>
                 </li>
-              );
-            })}
-          </ul>
-          {formattedPrice !== null ? (
-            <>
-              <p data-registration-price-hint>
-                {t("intake.priceAmount", { amount: formattedPrice })}
-              </p>
-              <p data-denali-price-per>{t("intake.perPerson")}</p>
-            </>
-          ) : null}
-        </aside>
+              ) : null}
+              {otherGuests.map((guest, guestIdx) => {
+                const name = guest.intakeName.trim();
+                return (
+                  <li key={guestIdx}>
+                    {name.length > 0 ? name : t("intake.guestCardTitle", { index: guestIdx + 1 })}
+                  </li>
+                );
+              })}
+            </ul>
+            {formattedPreviewPayable !== null ? (
+              <>
+                <p data-registration-price-hint>
+                  {t("intake.priceAmount", { amount: formattedPreviewPayable })}
+                </p>
+                <p data-denali-price-per>
+                  {hasMembershipDiscount ? t("intake.memberPriceSummary") : t("intake.perPerson")}
+                </p>
+              </>
+            ) : formattedPrice !== null ? (
+              <>
+                <p data-registration-price-hint>
+                  {t("intake.priceAmount", { amount: formattedPrice })}
+                </p>
+                <p data-denali-price-per>{t("intake.perPerson")}</p>
+              </>
+            ) : null}
+          </aside>
 
-        <div
-          data-denali-intake-submit-bar
-          role="region"
-          aria-label={t("intake.stickySubmitLabel")}
-        >
-          {ctaAlert}
-          <div data-denali-intake-submit-actions>
-            <button
-              type="button"
-              disabled={submitDisabled}
-              data-action="intake-submit"
-              onClick={() => void handleSubmit()}
-            >
-              {loading ? t("intake.submitting") : t("intake.submit")}
-            </button>
+          <div
+            data-denali-intake-submit-bar
+            role="region"
+            aria-label={t("intake.stickySubmitLabel")}
+          >
+            {ctaAlert}
+            <div data-denali-intake-submit-actions>
+              <button
+                type="button"
+                disabled={submitDisabled}
+                data-action="intake-submit"
+                onClick={() => void handleSubmit()}
+              >
+                {loading ? t("intake.submitting") : t("intake.submit")}
+              </button>
+            </div>
           </div>
-        </div>
         </div>
       </div>
     </form>

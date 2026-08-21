@@ -72,6 +72,16 @@
     "myselfTag": "خودم",
     "unnamedPerson": "بدون نام",
     "priceAmount": "{amount} تومان",
+    "pricingPreviewLoading": "در حال دریافت قیمت نهایی…",
+    "originalTourPrice": "قیمت تور",
+    "membershipDiscount": "تخفیف عضویت {percentage}٪",
+    "discountAmount": "−{amount} تومان",
+    "yourPrice": "قیمت برای شما",
+    "memberPriceSummary": "قیمت عضویت",
+    "ancillary": {
+      "transport": "خودرو",
+      "dong": "دنگ خودرو"
+    },
     "perPerson": "هر نفر",
     "skipToForm": "رفتن به فرم",
     "summaryRailLabel": "خلاصه",
