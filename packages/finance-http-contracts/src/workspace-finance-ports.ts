@@ -68,9 +68,7 @@ export interface FinanceLedgerPolicyPort {
   /**
    * Optional — TourCreated Path B paid ledger. Denali implements; fixture workspaces omit.
    */
-  buildTourCreatedPaidJournal?(
-    input: BuildTourCreatedPaidJournalInput
-  ): FinanceLedgerCapturePlan;
+  buildTourCreatedPaidJournal?(input: BuildTourCreatedPaidJournalInput): FinanceLedgerCapturePlan;
 }
 
 export type FinanceOfflineReceiptDefaults = {
@@ -92,6 +90,8 @@ export type FinanceRegistrationObligation = {
    * When omitted, Finance assumes gross equals payable.
    */
   readonly grossObligationMinor?: string;
+  /** Amount eligible for membership/base-price reducers; add-ons remain outside this base. */
+  readonly discountableBaseMinor?: string;
   readonly source: "tour_canonical" | "schedule" | "operator_override" | "unknown";
 };
 

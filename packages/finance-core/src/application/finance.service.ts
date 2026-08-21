@@ -24,7 +24,12 @@ import {
   isManualPaymentAmountOverRemaining,
 } from "../domain/manual-payment-debt-policy";
 import { isZeroObligationMinor } from "../domain/obligation-override";
-import { buildPaymentScheduleItems, reschedulePaymentScheduleItem, waivePaymentScheduleItem, type PaymentScheduleItem } from "../domain/schedule";
+import {
+  buildPaymentScheduleItems,
+  reschedulePaymentScheduleItem,
+  waivePaymentScheduleItem,
+  type PaymentScheduleItem,
+} from "../domain/schedule";
 import {
   attachFinanceRegistrationContext,
   filterRowsByRegistrationId,
@@ -53,9 +58,7 @@ import type {
   FinanceWorkspaceGateResult,
 } from "../ports/finance-capability.port";
 import type { FinanceClockPort } from "../ports/finance-clock.port";
-import type {
-  FinanceArObservationPort,
-} from "../ports/finance-ar-observation.port";
+import type { FinanceArObservationPort } from "../ports/finance-ar-observation.port";
 import { nullFinanceArObservationPort } from "../ports/finance-ar-observation.port";
 import type { FinanceLedgerPolicyPort } from "../ports/finance-ledger-policy.port";
 import type { FinanceLoggerPort } from "../ports/finance-log.port";
@@ -145,8 +148,7 @@ function mapLedgerEventRow(row: FinanceLedgerOutboxRow): Record<string, unknown>
       ? (row.payload as Record<string, unknown>)
       : {};
   const lines = Array.isArray(payload.lines) ? payload.lines : [];
-  const registrationId =
-    typeof payload.registrationId === "string" ? payload.registrationId : null;
+  const registrationId = typeof payload.registrationId === "string" ? payload.registrationId : null;
   const journalId =
     (typeof payload.journalId === "string" && payload.journalId.trim()) || row.aggregateId;
   return {
@@ -235,6 +237,20 @@ export class FinanceService {
     registrationId: string
   ): Promise<void> {
     if (this.commercialQuotes === null) {
+      return;
+    }
+    await this.commercialQuotes.ensureFrozenForMoneyPath(tenantId, registrationId);
+  }
+
+  private async ensureQuoteExistsForInvoiceRead(
+    tenantId: string,
+    registrationId: string
+  ): Promise<void> {
+    if (this.commercialQuotes === null) {
+      return;
+    }
+    const active = await this.commercialQuotes.getActiveQuote(tenantId, registrationId);
+    if (active !== null) {
       return;
     }
     await this.commercialQuotes.ensureFrozenForMoneyPath(tenantId, registrationId);
@@ -463,8 +479,7 @@ export class FinanceService {
       withRegistration.map((row) => row.registrationId)
     );
     return filtered.map((row) => {
-      const registrationIdValue =
-        typeof row.registrationId === "string" ? row.registrationId : "";
+      const registrationIdValue = typeof row.registrationId === "string" ? row.registrationId : "";
       if (registrationIdValue.length === 0) {
         return { ...row, registrationContext: null };
       }
@@ -525,15 +540,10 @@ export class FinanceService {
     this.authorization.assertOperatorAccess(auth);
 
     const limit = normalizeListLimit(query.limit);
-    const loaded = await loadOutstandingBalanceItems(
-      this.outstandingOperatorDeps(),
-      auth.tenantId
-    );
+    const loaded = await loadOutstandingBalanceItems(this.outstandingOperatorDeps(), auth.tenantId);
     const tourId = normalizeOptionalTourId(query.tourId);
     const items =
-      tourId !== undefined
-        ? loaded.filter((row) => row.identity.tourId === tourId)
-        : loaded;
+      tourId !== undefined ? loaded.filter((row) => row.identity.tourId === tourId) : loaded;
 
     return paginateOutstandingBalanceItems({
       items,
@@ -568,9 +578,7 @@ export class FinanceService {
     const aggregated = aggregateTourCollectionFromOutstanding(outstanding);
     const tourId = normalizeOptionalTourId(query.tourId);
     const tours =
-      tourId !== undefined
-        ? aggregated.filter((row) => row.tourId === tourId)
-        : aggregated;
+      tourId !== undefined ? aggregated.filter((row) => row.tourId === tourId) : aggregated;
 
     return paginateTourCollectionItems({
       items: tours,
@@ -762,8 +770,7 @@ export class FinanceService {
       reasonCode: body.reasonCode,
       reasonNote: body.reasonNote,
     });
-    const trimmedKey =
-      typeof idempotencyKey === "string" ? idempotencyKey.trim() : "";
+    const trimmedKey = typeof idempotencyKey === "string" ? idempotencyKey.trim() : "";
     const idempotencyKeyHash =
       trimmedKey.length > 0 ? hashFinanceHttpIdempotencyKey(trimmedKey) : undefined;
     const cancelled = await this.repository.cancelPendingManualPaymentAtomic({
@@ -791,11 +798,7 @@ export class FinanceService {
     };
   }
 
-  async submitReceipt(
-    auth: FinanceActorContext,
-    body: SubmitReceiptBody,
-    idempotencyKey?: string
-  ) {
+  async submitReceipt(auth: FinanceActorContext, body: SubmitReceiptBody, idempotencyKey?: string) {
     const gate = await this.gate(auth);
     this.authorization.assertReceiptSubmitAccess(auth);
     const trimmedKey = idempotencyKey?.trim() ?? "";
@@ -886,10 +889,7 @@ export class FinanceService {
       tenantId: auth.tenantId,
       registrationId: input.registrationId,
     });
-    if (
-      obligationForGate !== null &&
-      isZeroObligationMinor(obligationForGate.obligationMinor)
-    ) {
+    if (obligationForGate !== null && isZeroObligationMinor(obligationForGate.obligationMinor)) {
       throw new Error("FINANCE_RECEIPT_NOT_REQUIRED");
     }
 
@@ -924,8 +924,7 @@ export class FinanceService {
           : obligation !== null
             ? obligation.obligationMinor
             : offlineDefaults.amountMinor;
-      const currency =
-        obligation !== null ? obligation.currency : offlineDefaults.currency;
+      const currency = obligation !== null ? obligation.currency : offlineDefaults.currency;
       payment = await this.repository.createManualPayment({
         tenantId: auth.tenantId,
         registrationId: input.registrationId,
@@ -951,7 +950,10 @@ export class FinanceService {
   async applyFreeCollectionPayment(input: {
     readonly tenantId: string;
     readonly registrationId: string;
-  }): Promise<{ readonly applied: boolean; readonly paymentStatus: "unpaid" | "partial" | "paid" | null }> {
+  }): Promise<{
+    readonly applied: boolean;
+    readonly paymentStatus: "unpaid" | "partial" | "paid" | null;
+  }> {
     const lifecycle = await this.bookingPayments.getRegistrationLifecycleStatus({
       tenantId: input.tenantId,
       registrationId: input.registrationId,
@@ -972,8 +974,7 @@ export class FinanceService {
       tenantId: input.tenantId,
       registrationId: input.registrationId,
     });
-    const zeroObligation =
-      obligation !== null && isZeroObligationMinor(obligation.obligationMinor);
+    const zeroObligation = obligation !== null && isZeroObligationMinor(obligation.obligationMinor);
     if (collection !== "free" && !zeroObligation) {
       const current = await this.bookingPayments.getPaymentStatus({
         tenantId: input.tenantId,
@@ -1192,11 +1193,7 @@ export class FinanceService {
     }
 
     // Phase 4B H0.1 — approve retry-safe after idempotency reclaim (non-destructive replay).
-    if (
-      body.decision === "approve" &&
-      receipt.status === "Approved" &&
-      payment.status === "Paid"
-    ) {
+    if (body.decision === "approve" && receipt.status === "Approved" && payment.status === "Paid") {
       this.recordApprove(auth, gate.workspaceType, "replay");
       return {
         id: receipt.id,
@@ -1234,10 +1231,7 @@ export class FinanceService {
         tenantId: auth.tenantId,
         registrationId: payment.registrationId,
       });
-      const scheduleItems = await this.schedules.getSchedule(
-        auth.tenantId,
-        payment.registrationId
-      );
+      const scheduleItems = await this.schedules.getSchedule(auth.tenantId, payment.registrationId);
       approveScheduleAmountsMinor = scheduleItems.map((item) => item.amountMinor);
       if (obligation !== null) {
         approveObligationMinor = obligation.obligationMinor;
@@ -1514,11 +1508,7 @@ export class FinanceService {
     return { registrationId, paymentStatus, recovered: true };
   }
 
-  async listPaymentSchedules(
-    auth: FinanceActorContext,
-    registrationId?: string,
-    tourId?: string
-  ) {
+  async listPaymentSchedules(auth: FinanceActorContext, registrationId?: string, tourId?: string) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
     const scoped = await this.filterListRowsByScope(
@@ -1600,13 +1590,11 @@ export class FinanceService {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
     const normalizedRegistrationId = registrationId.trim();
+    await this.ensureQuoteExistsForInvoiceRead(auth.tenantId, normalizedRegistrationId);
     return this.compileRegistrationInvoiceInternal(auth.tenantId, normalizedRegistrationId);
   }
 
-  private async compileRegistrationInvoiceInternal(
-    tenantId: string,
-    registrationId: string
-  ) {
+  private async compileRegistrationInvoiceInternal(tenantId: string, registrationId: string) {
     const facts = await this.repository.getRegistrationInvoiceFacts(tenantId, registrationId);
     const scheduleItems = await this.schedules.getSchedule(tenantId, registrationId);
     const obligationMinor = await this.resolveInvoiceObligationMinor(tenantId, registrationId);
@@ -1695,8 +1683,7 @@ export class FinanceService {
       reasonCode: body.reasonCode,
       reasonNote: body.reasonNote,
     });
-    const trimmedKey =
-      typeof body.idempotencyKey === "string" ? body.idempotencyKey.trim() : "";
+    const trimmedKey = typeof body.idempotencyKey === "string" ? body.idempotencyKey.trim() : "";
     if (trimmedKey.length > 0) {
       const existing = await this.repository.findRefundByCreationIdempotencyKey(
         auth.tenantId,
@@ -1707,10 +1694,7 @@ export class FinanceService {
       }
     }
 
-    const facts = await this.repository.getRegistrationInvoiceFacts(
-      auth.tenantId,
-      registrationId
-    );
+    const facts = await this.repository.getRegistrationInvoiceFacts(auth.tenantId, registrationId);
     const source = await resolveRequestRefundSource(this.refundOperatorDeps(), {
       tenantId: auth.tenantId,
       registrationId,
@@ -1752,7 +1736,11 @@ export class FinanceService {
   async approveRefund(auth: FinanceActorContext, refundId: string) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
-    const existing = await loadRefundOrThrowNotFound(this.refundOperatorDeps(), auth.tenantId, refundId);
+    const existing = await loadRefundOrThrowNotFound(
+      this.refundOperatorDeps(),
+      auth.tenantId,
+      refundId
+    );
     if (existing.status === "Approved") {
       return { ...mapRefundRow(existing), replay: true as const };
     }
@@ -1776,7 +1764,11 @@ export class FinanceService {
   ) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
-    const existing = await loadRefundOrThrowNotFound(this.refundOperatorDeps(), auth.tenantId, refundId);
+    const existing = await loadRefundOrThrowNotFound(
+      this.refundOperatorDeps(),
+      auth.tenantId,
+      refundId
+    );
     assertRefundTransition(existing.status, "Rejected");
     const updated = await this.repository.transitionRefundStatus({
       tenantId: auth.tenantId,
@@ -1794,7 +1786,11 @@ export class FinanceService {
   async cancelRefund(auth: FinanceActorContext, refundId: string) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
-    const existing = await loadRefundOrThrowNotFound(this.refundOperatorDeps(), auth.tenantId, refundId);
+    const existing = await loadRefundOrThrowNotFound(
+      this.refundOperatorDeps(),
+      auth.tenantId,
+      refundId
+    );
     assertRefundTransition(existing.status, "Cancelled");
     const updated = await this.repository.transitionRefundStatus({
       tenantId: auth.tenantId,
@@ -1818,7 +1814,11 @@ export class FinanceService {
   ) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
-    const existing = await loadRefundOrThrowNotFound(this.refundOperatorDeps(), auth.tenantId, refundId);
+    const existing = await loadRefundOrThrowNotFound(
+      this.refundOperatorDeps(),
+      auth.tenantId,
+      refundId
+    );
     if (existing.status === "Completed") {
       const result = await buildRefundResultWithInvoice(this.refundOperatorDeps(), {
         tenantId: auth.tenantId,
@@ -1838,10 +1838,7 @@ export class FinanceService {
       if (existing.paymentId === null) {
         throw new Error("REFUND_SOURCE_INVALID");
       }
-      const payment = await this.repository.findPaymentById(
-        auth.tenantId,
-        existing.paymentId
-      );
+      const payment = await this.repository.findPaymentById(auth.tenantId, existing.paymentId);
       if (payment === null || payment.status !== "Paid" || payment.method !== "Manual") {
         throw new Error("REFUND_PAYMENT_NOT_PAID");
       }
@@ -1929,7 +1926,11 @@ export class FinanceService {
       cursor: normalized.cursor,
     });
 
-    const items = await enrichOperatorRefundRows(this.refundOperatorDeps(), auth.tenantId, page.rows);
+    const items = await enrichOperatorRefundRows(
+      this.refundOperatorDeps(),
+      auth.tenantId,
+      page.rows
+    );
     const nextCursor = buildOperatorRefundNextCursor({
       hasMore: page.hasMore,
       rows: page.rows,
@@ -1945,7 +1946,11 @@ export class FinanceService {
   ): Promise<OperatorRefundItem> {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
-    const row = await loadRefundOrThrowNotFound(this.refundOperatorDeps(), auth.tenantId, refundId.trim());
+    const row = await loadRefundOrThrowNotFound(
+      this.refundOperatorDeps(),
+      auth.tenantId,
+      refundId.trim()
+    );
     const [item] = await enrichOperatorRefundRows(this.refundOperatorDeps(), auth.tenantId, [row]);
     if (item === undefined) {
       throw new Error("REFUND_NOT_FOUND");
@@ -1987,11 +1992,11 @@ export class FinanceService {
       });
       if (updated === null) {
         this.logger.warn({
-            event: "finance.booking_payment_sync.miss",
-            tenantId,
-            registrationId,
-            paymentStatus,
-          });
+          event: "finance.booking_payment_sync.miss",
+          tenantId,
+          registrationId,
+          paymentStatus,
+        });
         throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_MISS");
       }
       return updated;
@@ -2000,12 +2005,12 @@ export class FinanceService {
         throw error;
       }
       this.logger.warn({
-          event: "finance.booking_payment_sync.failed",
-          tenantId,
-          registrationId,
-          paymentStatus,
-          error: error instanceof Error ? error.message : String(error),
-        });
+        event: "finance.booking_payment_sync.failed",
+        tenantId,
+        registrationId,
+        paymentStatus,
+        error: error instanceof Error ? error.message : String(error),
+      });
       throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_FAILED");
     }
   }
@@ -2037,13 +2042,13 @@ export class FinanceService {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.warn({
-          event: "finance.prepayment.booking_sync.degraded",
-          tenantId,
-          registrationId,
-          paymentStatus,
-          error: message,
-          prepaymentDomainEventId: prepaymentDomainEventId ?? null,
-        });
+        event: "finance.prepayment.booking_sync.degraded",
+        tenantId,
+        registrationId,
+        paymentStatus,
+        error: message,
+        prepaymentDomainEventId: prepaymentDomainEventId ?? null,
+      });
       if (this.storageDriver.isDurablePersistence()) {
         await this.persistBookingSyncDegradedWithRetries({
           tenantId,
@@ -2086,13 +2091,13 @@ export class FinanceService {
       1
     );
     this.logger.error({
-        event: "finance.prepayment.booking_sync.degraded_persist_failed",
-        tenantId: input.tenantId,
-        registrationId: input.registrationId,
-        paymentStatus: input.paymentStatus,
-        prepaymentDomainEventId: input.prepaymentDomainEventId,
-        error: lastError instanceof Error ? lastError.message : String(lastError),
-      });
+      event: "finance.prepayment.booking_sync.degraded_persist_failed",
+      tenantId: input.tenantId,
+      registrationId: input.registrationId,
+      paymentStatus: input.paymentStatus,
+      prepaymentDomainEventId: input.prepaymentDomainEventId,
+      error: lastError instanceof Error ? lastError.message : String(lastError),
+    });
   }
 }
 

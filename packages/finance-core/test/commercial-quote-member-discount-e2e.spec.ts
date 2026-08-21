@@ -138,8 +138,7 @@ function createHarness(input: {
     obligationPort,
     FakeClock,
     createTourGateFreezeContext(input.tourCanonical),
-    input.membershipDiscount ??
-      createMembershipDiscountByTenant({ [TENANT_A]: 20, [TENANT_B]: 0 })
+    input.membershipDiscount ?? createMembershipDiscountByTenant({ [TENANT_A]: 20, [TENANT_B]: 0 })
   );
 
   const finance = createFinanceService(
@@ -189,6 +188,76 @@ describe("commercial-quote-member-discount-e2e.spec.ts — CQ-2D", () => {
     assert.equal(active.grossMinor, "5000000");
     assert.equal(active.payableMinor, "4000000");
     assert.equal(active.memberDiscount?.percentageApplied, 20);
+  });
+
+  it("CQ-E2E-01b: portal-style invoice read freezes 20% member discount", async () => {
+    const registrationId = randomUUID();
+    const { finance, quoteRepo } = createHarness({
+      tourCanonical: tourCanonicalGate(true),
+      obligation: {
+        currency: "IRR",
+        obligationMinor: "1000000",
+        source: "tour_canonical",
+      },
+    });
+
+    const invoice = await finance.getRegistrationInvoice(opsAuth(), registrationId);
+
+    const active = await quoteRepo.getActive(TENANT_A, registrationId);
+    assert.ok(active !== null);
+    assert.equal(active.source, "member_discount");
+    assert.equal(active.grossMinor, "1000000");
+    assert.equal(active.payableMinor, "800000");
+    assert.equal(active.memberDiscount?.percentageApplied, 20);
+    assert.equal(active.memberDiscount?.discountMinor, "200000");
+    assert.equal(invoice.invoiceTotalMinor, "800000");
+  });
+
+  it("CQ-E2E-01c: portal-style invoice read keeps zero-discount member at canonical gross", async () => {
+    const registrationId = randomUUID();
+    const { finance, quoteRepo } = createHarness({
+      tenantId: TENANT_B,
+      tourCanonical: tourCanonicalGate(true),
+      obligation: {
+        currency: "IRR",
+        obligationMinor: "1000000",
+        source: "tour_canonical",
+      },
+    });
+
+    const invoice = await finance.getRegistrationInvoice(opsAuth(TENANT_B), registrationId);
+
+    const active = await quoteRepo.getActive(TENANT_B, registrationId);
+    assert.ok(active !== null);
+    assert.equal(active.source, "tour_canonical");
+    assert.equal(active.grossMinor, "1000000");
+    assert.equal(active.payableMinor, "1000000");
+    assert.equal(active.memberDiscount, undefined);
+    assert.equal(invoice.invoiceTotalMinor, "1000000");
+  });
+
+  it("CQ-E2E-01d: membership discount applies only to discountable tour base", async () => {
+    const registrationId = randomUUID();
+    const { finance, quoteRepo } = createHarness({
+      tourCanonical: tourCanonicalGate(true),
+      obligation: {
+        currency: "IRR",
+        obligationMinor: "1300000",
+        grossObligationMinor: "1300000",
+        discountableBaseMinor: "1000000",
+        source: "tour_canonical",
+      },
+    });
+
+    const invoice = await finance.getRegistrationInvoice(opsAuth(), registrationId);
+
+    const active = await quoteRepo.getActive(TENANT_A, registrationId);
+    assert.ok(active !== null);
+    assert.equal(active.source, "member_discount");
+    assert.equal(active.grossMinor, "1300000");
+    assert.equal(active.memberDiscount?.discountMinor, "200000");
+    assert.equal(active.payableMinor, "1100000");
+    assert.equal(invoice.invoiceTotalMinor, "1100000");
   });
 
   it("CQ-E2E-02: tour gate false ignores membership discount", async () => {

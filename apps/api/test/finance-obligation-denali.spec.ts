@@ -10,6 +10,7 @@ import { describe, it } from "node:test";
 import { compileRegistrationInvoice } from "@app-tour/finance-core";
 import { createFinanceObligationPort } from "../src/workspace-finance/finance-obligation.factory.ts";
 import { RegistrationFinanceObligationAdapter } from "../src/workspace-finance/infrastructure/registration-finance-obligation.adapter.ts";
+import { resolveDenaliRegistrationObligationMinor } from "../../../packages/workspaces/denali/src/finance/resolve-denali-registration-obligation.ts";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -32,6 +33,53 @@ describe("finance-obligation-denali.spec.ts — FC-2", () => {
     const port = await createFinanceObligationPort("denali");
     assert.ok(port instanceof RegistrationFinanceObligationAdapter);
     assert.ok((await createFinanceObligationPort("finance-ws5")) !== port);
+  });
+
+  it("CP-FC2-04 Denali adapter exposes trip line as discountable base", async () => {
+    const booking = {
+      tourId: "tour-1",
+      partySize: 1,
+      registrationIntake: { transport: { kind: "primary" } },
+    };
+    const tour = {
+      canonical: {
+        data: {
+          pricing: { basePricePerPerson: 1_000_000, paymentMode: "offline_receipt" },
+          transport: { mode: "bus", transportCost: 300_000 },
+        },
+        schemaVersion: 1,
+      },
+    };
+    const adapter = new RegistrationFinanceObligationAdapter(
+      {
+        async getById(registrationId: string, tenantId: string) {
+          assert.equal(registrationId, "reg-1");
+          assert.equal(tenantId, "tenant-1");
+          return booking;
+        },
+        async mergeRegistrationIntake() {
+          return null;
+        },
+      },
+      {
+        async getById(tourId: string, tenantId: string) {
+          assert.equal(tourId, "tour-1");
+          assert.equal(tenantId, "tenant-1");
+          return tour;
+        },
+      },
+      resolveDenaliRegistrationObligationMinor,
+      () => "IRR"
+    );
+
+    const obligation = await adapter.resolveRegistrationObligation({
+      tenantId: "tenant-1",
+      registrationId: "reg-1",
+    });
+
+    assert.ok(obligation !== null);
+    assert.equal(obligation.obligationMinor, "1300000");
+    assert.equal(obligation.discountableBaseMinor, "1000000");
   });
 
   it("CP-FC2-03 FinanceService wires obligation checks (create warn + approve block)", () => {

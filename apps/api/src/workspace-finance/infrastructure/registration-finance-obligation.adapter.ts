@@ -23,6 +23,7 @@ export type RegistrationObligationResolver = (input: {
 }) => {
   readonly currency: string;
   readonly obligationMinor: string;
+  readonly lines?: readonly { readonly code: string; readonly amountMinor: string }[];
   readonly source: "tour_canonical" | "schedule" | "operator_override" | "unknown";
 } | null;
 
@@ -66,6 +67,13 @@ export class RegistrationFinanceObligationAdapter implements FinanceObligationPo
     });
   }
 
+  private resolveDiscountableBaseMinor(
+    obligation: ReturnType<RegistrationObligationResolver>
+  ): string | undefined {
+    const tripLine = obligation?.lines?.find((line) => line.code === "trip");
+    return tripLine?.amountMinor;
+  }
+
   private async loadTourCanonical(
     tenantId: string,
     registrationId: string
@@ -103,10 +111,16 @@ export class RegistrationFinanceObligationAdapter implements FinanceObligationPo
                 ? { registrationIntake: booking.registrationIntake }
                 : {}),
             });
+      const discountableBaseMinor = this.resolveDiscountableBaseMinor(base);
       return {
         currency: base?.currency ?? this.resolveDefaultCurrency(),
         obligationMinor: override.obligationMinor,
-        ...(base !== null ? { grossObligationMinor: base.obligationMinor } : {}),
+        ...(base !== null
+          ? {
+              grossObligationMinor: base.obligationMinor,
+              ...(discountableBaseMinor !== undefined ? { discountableBaseMinor } : {}),
+            }
+          : {}),
         source: "operator_override" as const,
       };
     }
@@ -140,18 +154,22 @@ export class RegistrationFinanceObligationAdapter implements FinanceObligationPo
           : {}),
       });
       if (gross !== null) {
+        const discountableBaseMinor = this.resolveDiscountableBaseMinor(gross);
         return {
           currency: resolved.currency,
           obligationMinor: resolved.obligationMinor,
           grossObligationMinor: gross.obligationMinor,
+          ...(discountableBaseMinor !== undefined ? { discountableBaseMinor } : {}),
           source: resolved.source,
         };
       }
     }
 
+    const discountableBaseMinor = this.resolveDiscountableBaseMinor(resolved);
     return {
       currency: resolved.currency,
       obligationMinor: resolved.obligationMinor,
+      ...(discountableBaseMinor !== undefined ? { discountableBaseMinor } : {}),
       source: resolved.source,
     };
   }

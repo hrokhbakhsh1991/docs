@@ -10,6 +10,7 @@ export type LiveRegistrationObligation = {
   readonly currency: string;
   readonly obligationMinor: string;
   readonly grossObligationMinor?: string;
+  readonly discountableBaseMinor?: string;
   readonly source: "tour_canonical" | "schedule" | "operator_override" | "unknown";
 };
 
@@ -20,6 +21,16 @@ function normalizeMinor(raw: string): string {
 export function resolveLiveObligationGrossMinor(obligation: LiveRegistrationObligation): string {
   const gross = obligation.grossObligationMinor ?? obligation.obligationMinor;
   return normalizeMinor(gross);
+}
+
+export function resolveLiveObligationDiscountableBaseMinor(
+  obligation: LiveRegistrationObligation
+): string {
+  const base =
+    obligation.discountableBaseMinor ??
+    obligation.grossObligationMinor ??
+    obligation.obligationMinor;
+  return normalizeMinor(base);
 }
 
 export function mapLiveObligationSourceToQuoteSource(

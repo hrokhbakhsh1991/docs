@@ -156,13 +156,14 @@ describe("commercial-quote-flow.spec.ts — CQ-1B", () => {
     assert.equal(active.status, "FROZEN");
   });
 
-  it("CQ-FLOW-02: passive invoice read does not create quote", async () => {
+  it("CQ-FLOW-02: invoice read freezes quote for the money path", async () => {
     const registrationId = randomUUID();
     const { finance, quoteRepo } = createHarness();
 
-    await finance.getRegistrationInvoice(opsAuth(), registrationId);
+    const invoice = await finance.getRegistrationInvoice(opsAuth(), registrationId);
 
-    assert.equal(await quoteRepo.getActive(TENANT_A, registrationId), null);
+    assert.equal(invoice.invoiceTotalMinor, "5000000");
+    assert.equal((await quoteRepo.getActive(TENANT_A, registrationId))?.payableMinor, "5000000");
   });
 
   it("CQ-FLOW-03: invoice uses quote when available", async () => {

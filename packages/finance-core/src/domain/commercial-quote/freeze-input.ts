@@ -9,6 +9,7 @@ import {
   type MemberDiscountQuoteMetadata,
 } from "./member-discount";
 import {
+  resolveLiveObligationDiscountableBaseMinor,
   resolveLiveObligationGrossMinor,
   type LiveRegistrationObligation,
 } from "./map-obligation";
@@ -70,8 +71,9 @@ export function buildCommercialQuoteFreezeInput(
     };
   }
 
+  const discountableBaseMinor = resolveLiveObligationDiscountableBaseMinor(args.obligation);
   const reduced = tryApplyMemberDiscountReducer({
-    grossMinor,
+    grossMinor: discountableBaseMinor,
     percentage: args.membershipDiscountPercentage,
   });
   if (reduced === null) {
@@ -84,7 +86,7 @@ export function buildCommercialQuoteFreezeInput(
 
   return {
     ...base,
-    payableMinor: reduced.payableMinor,
+    payableMinor: (BigInt(grossMinor) - BigInt(reduced.discountMinor)).toString(),
     source: "member_discount",
     memberDiscount: buildMemberDiscountQuoteMetadata({
       tenantId: args.tenantId,
