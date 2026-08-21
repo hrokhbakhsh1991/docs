@@ -97,6 +97,16 @@
       }
     }
   },
+  "pricing": {
+    "originalTourPrice": "قیمت تور",
+    "membershipDiscount": "تخفیف عضویت {percent}٪",
+    "membershipDiscountCompact": "{percent}٪ تخفیف عضویت",
+    "yourPrice": "قیمت برای شما",
+    "ancillary": {
+      "transport": "خودرو",
+      "dong": "دونگی"
+    }
+  },
   "detail": {
     "untitled": "تور بدون عنوان",
     "defaultTourTitle": "تور",

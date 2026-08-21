@@ -31,10 +31,16 @@ import { tourHasRegisterPreviewData } from "./build-catalog-register-preview-ite
 import { tourHasOverflowGalleryPhotos } from "./build-catalog-tour-photo-set";
 import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-catalog-category-label";
 import type { MarketingCatalogCard } from "./catalog-types";
+import type { MarketingCommercialPricingPreview } from "./commercial-pricing-preview";
 import { formatCatalogCardDescription } from "./format-catalog-display";
 import { resolveCatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
 import type { MarketingTourDetailCtaModel } from "./resolve-marketing-tour-detail-cta";
-import { isAppLocale, resolveIntlDateLocale, resolveMarketingToursListPath, type AppLocale } from "@/i18n/routing";
+import {
+  isAppLocale,
+  resolveIntlDateLocale,
+  resolveMarketingToursListPath,
+  type AppLocale,
+} from "@/i18n/routing";
 import { resolveHomeTourCoverUrl } from "@/home/resolve-home-tour-cover-url";
 import { buildValidatedMarketingTourStructuredData } from "@/seo/build-validated-marketing-structured-data";
 import { buildTourDetailBreadcrumbJsonLd } from "@/seo/build-breadcrumb-jsonld";
@@ -46,6 +52,7 @@ export type CatalogTourDetailProps = {
   readonly registrationUrl: string | null;
   readonly cta: MarketingTourDetailCtaModel;
   readonly pluginId: string;
+  readonly pricingPreview?: MarketingCommercialPricingPreview | null;
 };
 
 function tourHasPolicies(tour: MarketingCatalogCard): boolean {
@@ -62,23 +69,23 @@ export async function CatalogTourDetail({
   registrationUrl,
   cta,
   pluginId,
+  pricingPreview = null,
 }: CatalogTourDetailProps) {
   const sections = resolveCatalogDetailSections(pluginId);
   const catalogSurface = await resolveMarketingCatalogSurface(pluginId);
-  const detailPdpGates =
-    catalogSurface?.resolveDetailPdpGates({
-      tour,
-      hasOverflowGallery: tourHasOverflowGalleryPhotos(tour),
-      hasRegisterPreview: tourHasRegisterPreviewData(tour),
-    }) ?? {
-      showHeroGallery: false,
-      showReadiness: false,
-      showLogistics: false,
-      showGear: false,
-      showGalleryNav: false,
-      showRegisterPreview: false,
-      showFaq: false,
-    };
+  const detailPdpGates = catalogSurface?.resolveDetailPdpGates({
+    tour,
+    hasOverflowGallery: tourHasOverflowGalleryPhotos(tour),
+    hasRegisterPreview: tourHasRegisterPreviewData(tour),
+  }) ?? {
+    showHeroGallery: false,
+    showReadiness: false,
+    showLogistics: false,
+    showGear: false,
+    showGalleryNav: false,
+    showRegisterPreview: false,
+    showFaq: false,
+  };
   const hasExtendedCatalogLayout = hasMarketingCatalogSurface(pluginId);
   const t = await getTranslations("catalog");
   const localeRaw = await getLocale();
@@ -190,8 +197,12 @@ export async function CatalogTourDetail({
               <div data-marketing-catalog-detail-long-description>{longDescription}</div>
             ) : null}
 
-            {hasExtendedCatalogLayout ? <CatalogTourDetailReadiness tour={tour} pluginId={pluginId} /> : null}
-            {hasExtendedCatalogLayout ? <CatalogTourDetailGallery tour={tour} title={title} /> : null}
+            {hasExtendedCatalogLayout ? (
+              <CatalogTourDetailReadiness tour={tour} pluginId={pluginId} />
+            ) : null}
+            {hasExtendedCatalogLayout ? (
+              <CatalogTourDetailGallery tour={tour} title={title} />
+            ) : null}
 
             <div data-marketing-catalog-detail-body>
               {showItinerary ? (
@@ -230,6 +241,7 @@ export async function CatalogTourDetail({
             pluginId={pluginId}
             registration={registration}
             cta={cta}
+            pricingPreview={pricingPreview}
           />
         </div>
 
@@ -238,6 +250,7 @@ export async function CatalogTourDetail({
           pluginId={pluginId}
           registration={registration}
           cta={cta}
+          pricingPreview={pricingPreview}
         />
 
         {detailJsonLdGraph != null ? (

@@ -434,6 +434,48 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  span[data-marketing-catalog-card-member-price] {
+  position: absolute;
+  inset-block-end: var(--space-3);
+  inset-inline-start: var(--space-3);
+  z-index: 1;
+  display: grid;
+  gap: 0.08rem;
+  max-width: min(13rem, calc(100% - var(--space-6)));
+  padding: 0.45rem 0.65rem;
+  border-radius: 0.9rem;
+  color: var(--color-primary-fg);
+  background: color-mix(in srgb, var(--color-primary) 90%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.18);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  span[data-marketing-catalog-card-member-price-original] {
+  font-size: 0.7rem;
+  font-weight: 650;
+  line-height: 1.15;
+  opacity: 0.78;
+  text-decoration: line-through;
+  text-decoration-thickness: 0.08em;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  span[data-marketing-catalog-card-member-price-payable] {
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  span[data-marketing-catalog-card-member-price-benefit] {
+  font-size: 0.67rem;
+  font-weight: 750;
+  line-height: 1.2;
+  color: color-mix(in srgb, var(--color-primary-fg) 88%, var(--background));
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   span[data-marketing-catalog-card-spots] {
   inset-block-end: var(--space-3);
   inset-inline-end: var(--space-3);

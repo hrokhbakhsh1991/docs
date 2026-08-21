@@ -39,7 +39,10 @@ import {
   handlePublicRequestOtp,
   handlePublicVerifyOtp,
 } from "./identity/public-auth.routes";
-import { handleCatalogCommercialPricingPreview } from "./catalog/commercial-pricing-preview.routes";
+import {
+  handleCatalogCommercialPricingPreview,
+  handleCatalogCommercialPricingPreviews,
+} from "./catalog/commercial-pricing-preview.routes";
 import {
   handleBulkPatchUserRole,
   handleBulkReactivateUsers,
@@ -240,6 +243,11 @@ async function dispatchRequest(
 
   if (method === "GET" && url.pathname === "/catalog/pricing-preview") {
     await handleCatalogCommercialPricingPreview(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/catalog/pricing-previews") {
+    await handleCatalogCommercialPricingPreviews(req, res);
     return;
   }
 

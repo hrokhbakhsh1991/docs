@@ -97,6 +97,16 @@
       }
     }
   },
+  "pricing": {
+    "originalTourPrice": "Tour price",
+    "membershipDiscount": "Membership discount {percent}%",
+    "membershipDiscountCompact": "{percent}% membership discount",
+    "yourPrice": "Your price",
+    "ancillary": {
+      "transport": "Vehicle",
+      "dong": "Shared ride"
+    }
+  },
   "detail": {
     "untitled": "Untitled tour",
     "defaultTourTitle": "Tour",

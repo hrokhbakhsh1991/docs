@@ -17,8 +17,12 @@ import {
 } from "@/catalog/catalog-list-query";
 import { deriveCatalogFilterOptions } from "@/catalog/derive-catalog-filter-options";
 import { fetchCatalogList } from "@/catalog/fetch-catalog-list";
+import { fetchCommercialPricingPreviews } from "@/catalog/fetch-commercial-pricing-previews.server";
 import { isAppLocale, resolveMarketingLocalePath, routing } from "@/i18n/routing";
-import { buildMarketingToursListMetadata, shouldNoindexMarketingListPage } from "@/seo/build-marketing-metadata";
+import {
+  buildMarketingToursListMetadata,
+  shouldNoindexMarketingListPage,
+} from "@/seo/build-marketing-metadata";
 import {
   buildMarketingCatalogListJsonLd,
   shouldEmitMarketingCatalogListJsonLd,
@@ -51,9 +55,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const guestSeo = resolveGuestSeoForPlugin(bootstrap.pluginId).marketing;
   const t = await getTranslations("catalog");
   const siteName = resolveGuestChromeDisplayName(branding.displayName, t("nav.defaultSiteName"));
-  const title = guestSeo.listTitleKey
-    ? t(guestSeo.listTitleKey, { siteName })
-    : t("nav.tours");
+  const title = guestSeo.listTitleKey ? t(guestSeo.listTitleKey, { siteName }) : t("nav.tours");
   const description = guestSeo.listDescriptionKey
     ? t(guestSeo.listDescriptionKey, { siteName })
     : t("metadata.listDescription", { siteName });
@@ -102,6 +104,12 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
     serverListFilters,
     bootstrap.pluginId
   );
+  const pricingPreviews = await fetchCommercialPricingPreviews({
+    host,
+    tenantId: bootstrap.tenantId,
+    workspace: bootstrap.pluginId,
+    tourIds: items.map((item) => item.id),
+  });
   const listJsonLd =
     shouldEmitMarketingCatalogListJsonLd({ cursor: filters.cursor }) && items.length > 0
       ? buildMarketingCatalogListJsonLd({
@@ -115,8 +123,7 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
       : null;
   const loadMoreHref =
     nextCursor != null ? buildCatalogListHref(listPath, filters, nextCursor) : null;
-  const firstPageHref =
-    filters.cursor != null ? buildCatalogListHref(listPath, filters) : null;
+  const firstPageHref = filters.cursor != null ? buildCatalogListHref(listPath, filters) : null;
   const isPaginated = filters.cursor != null || nextCursor != null;
   const showFilterScopeNotice = clientFiltersActive && nextCursor != null;
   const resultsLabel = isPaginated
@@ -154,7 +161,11 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
             : t("list.empty")}
         </p>
       ) : (
-        <CatalogTourList items={items} pluginId={bootstrap.pluginId} />
+        <CatalogTourList
+          items={items}
+          pluginId={bootstrap.pluginId}
+          pricingPreviews={pricingPreviews}
+        />
       )}
       {loadMoreHref != null || firstPageHref != null ? (
         <nav data-marketing-catalog-pagination>

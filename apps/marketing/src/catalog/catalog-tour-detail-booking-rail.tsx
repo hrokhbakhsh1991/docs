@@ -1,6 +1,8 @@
 import { getLocale, getTranslations } from "next-intl/server";
 
 import type { MarketingCatalogCard } from "./catalog-types";
+import { CatalogCommercialPricingBreakdown } from "./catalog-commercial-pricing";
+import type { MarketingCommercialPricingPreview } from "./commercial-pricing-preview";
 import { formatCatalogPrice, shouldShowCatalogPrice } from "./format-catalog-display";
 import { CatalogTourDetailRegisterCta } from "./catalog-tour-detail-register-cta";
 import type { CatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
@@ -12,6 +14,7 @@ export type CatalogTourDetailBookingRailProps = {
   readonly pluginId: string;
   readonly registration: CatalogTourRegistrationState;
   readonly cta: MarketingTourDetailCtaModel;
+  readonly pricingPreview?: MarketingCommercialPricingPreview | null;
 };
 
 export async function CatalogTourDetailBookingRail({
@@ -19,6 +22,7 @@ export async function CatalogTourDetailBookingRail({
   pluginId,
   registration,
   cta,
+  pricingPreview = null,
 }: CatalogTourDetailBookingRailProps) {
   if (cta.primaryHref == null && !registration.isSoldOut) {
     return null;
@@ -34,7 +38,7 @@ export async function CatalogTourDetailBookingRail({
         tour.priceCurrency,
         dateLocale,
         t("detail.priceOnRequest"),
-        pluginId,
+        pluginId
       )
     : null;
 
@@ -48,11 +52,17 @@ export async function CatalogTourDetailBookingRail({
   return (
     <aside
       data-marketing-catalog-detail-booking-rail
-      {...(cta.primaryHref != null || registration.canRegister ? { id: "catalog-detail-register" } : {})}
+      {...(cta.primaryHref != null || registration.canRegister
+        ? { id: "catalog-detail-register" }
+        : {})}
     >
-      {priceLine != null ? (
-        <p data-marketing-catalog-detail-rail-price>{priceLine}</p>
-      ) : null}
+      <CatalogCommercialPricingBreakdown
+        preview={pricingPreview}
+        canonicalPrice={priceLine}
+        dateLocale={dateLocale}
+        pluginId={pluginId}
+        t={t}
+      />
       {capacityLine != null ? (
         <p data-marketing-catalog-detail-rail-capacity>{capacityLine}</p>
       ) : null}

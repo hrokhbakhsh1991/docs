@@ -4,11 +4,15 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { CatalogTourDetail } from "@/catalog/catalog-tour-detail";
+import { fetchCommercialPricingPreviews } from "@/catalog/fetch-commercial-pricing-previews.server";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import { resolveCatalogTourRegistrationState } from "@/catalog/resolve-catalog-tour-registration-state";
 import { resolveMarketingTourDetailCta } from "@/catalog/resolve-marketing-tour-detail-cta.server";
 import { isAppLocale, routing } from "@/i18n/routing";
-import { resolveWebRegistrationLoginUrl, resolveWebRegistrationUrl } from "@/portal/resolve-web-registration-url";
+import {
+  resolveWebRegistrationLoginUrl,
+  resolveWebRegistrationUrl,
+} from "@/portal/resolve-web-registration-url";
 import {
   buildMarketingNotFoundMetadata,
   buildMarketingTourDetailMetadata,
@@ -77,6 +81,12 @@ export default async function MarketingTourDetailPage({ params }: PageProps) {
     tourSignInUrl,
     canRegister: registration.canRegister,
   });
+  const pricingPreviews = await fetchCommercialPricingPreviews({
+    host,
+    tenantId: bootstrap.tenantId,
+    workspace: bootstrap.pluginId,
+    tourIds: [tourId],
+  });
 
   return (
     <div data-marketing-catalog-detail-page data-slot="page-catalog-detail">
@@ -85,6 +95,7 @@ export default async function MarketingTourDetailPage({ params }: PageProps) {
         registrationUrl={registrationUrl}
         cta={cta}
         pluginId={bootstrap.pluginId}
+        pricingPreview={pricingPreviews[tourId] ?? null}
       />
     </div>
   );

@@ -1,4 +1,3 @@
-
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   details[data-marketing-catalog-itinerary-day]
   summary::-webkit-details-marker {
@@ -50,6 +49,51 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     margin: 0;
     font-size: 1.25rem;
     font-weight: 700;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-commercial-pricing] {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-commercial-pricing-row] {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    color: var(--muted-foreground);
+    font-size: var(--mkt-text-small);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-commercial-pricing-row]
+    strong {
+    color: var(--foreground);
+    font-size: var(--mkt-text-body);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-commercial-pricing-row="membership-discount"]
+    strong {
+    color: var(--color-primary);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-commercial-pricing-row="payable"] {
+    margin-top: var(--space-1);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border);
+    color: var(--foreground);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-commercial-pricing-row="payable"]
+    strong {
+    font-size: 1.25rem;
+    font-weight: 800;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]

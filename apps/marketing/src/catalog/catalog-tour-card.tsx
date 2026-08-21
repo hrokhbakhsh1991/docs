@@ -9,20 +9,32 @@ import { hasMarketingCatalogSurface } from "./resolve-marketing-catalog-surface"
 
 import { CatalogCoverImage } from "./catalog-cover-image";
 import type { MarketingCatalogCard } from "./catalog-types";
+import { CatalogCommercialPricingCompact } from "./catalog-commercial-pricing";
+import type { MarketingCommercialPricingPreview } from "./commercial-pricing-preview";
 import {
   formatCatalogCardDates,
   formatCatalogCardDescription,
   formatCatalogPrice,
   shouldShowCatalogPrice,
 } from "./format-catalog-display";
-import { isAppLocale, resolveIntlDateLocale, resolveMarketingLocalePath, type AppLocale } from "@/i18n/routing";
+import {
+  isAppLocale,
+  resolveIntlDateLocale,
+  resolveMarketingLocalePath,
+  type AppLocale,
+} from "@/i18n/routing";
 
 export type CatalogTourCardProps = {
   readonly tour: MarketingCatalogCard;
   readonly pluginId: string;
+  readonly pricingPreview?: MarketingCommercialPricingPreview | null;
 };
 
-export async function CatalogTourCard({ tour, pluginId }: CatalogTourCardProps) {
+export async function CatalogTourCard({
+  tour,
+  pluginId,
+  pricingPreview = null,
+}: CatalogTourCardProps) {
   const t = await getTranslations("catalog");
   const localeRaw = await getLocale();
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
@@ -38,18 +50,33 @@ export async function CatalogTourCard({ tour, pluginId }: CatalogTourCardProps) 
   const categoryLabel = await resolveMarketingCatalogCardCategoryLabel(categorySlug, t);
   const showPrice = shouldShowCatalogPrice(tour);
   const priceLine = showPrice
-    ? formatCatalogPrice(tour.priceAmount, tour.priceCurrency, dateLocale, t("detail.priceOnRequest"), pluginId)
+    ? formatCatalogPrice(
+        tour.priceAmount,
+        tour.priceCurrency,
+        dateLocale,
+        t("detail.priceOnRequest"),
+        pluginId
+      )
     : null;
   const coverSrc = resolveHomeTourCoverUrl(tour.coverImageUrl);
   const soldOut = tour.spotsRemaining === 0;
 
   return (
-    <article data-marketing-catalog-card {...(soldOut ? { "data-marketing-catalog-card-sold-out": true } : {})}>
+    <article
+      data-marketing-catalog-card
+      {...(soldOut ? { "data-marketing-catalog-card-sold-out": true } : {})}
+    >
       <figure data-marketing-catalog-card-media>
         <Link href={detailHref} data-marketing-catalog-card-cover>
           <CatalogCoverImage src={coverSrc} alt={title} width={640} height={360} cover />
         </Link>
-        {priceLine ? <span data-marketing-catalog-card-price>{priceLine}</span> : null}
+        <CatalogCommercialPricingCompact
+          preview={pricingPreview}
+          canonicalPrice={priceLine}
+          dateLocale={dateLocale}
+          pluginId={pluginId}
+          t={t}
+        />
         {soldOut ? (
           <span data-marketing-catalog-card-spots>{t("list.card.soldOut")}</span>
         ) : tour.spotsRemaining != null && tour.spotsRemaining <= 5 ? (
@@ -62,9 +89,7 @@ export async function CatalogTourCard({ tour, pluginId }: CatalogTourCardProps) 
         <h2 data-marketing-catalog-card-title>
           <Link href={detailHref}>{title}</Link>
         </h2>
-        {categoryLabel ? (
-          <p data-marketing-catalog-card-category>{categoryLabel}</p>
-        ) : null}
+        {categoryLabel ? <p data-marketing-catalog-card-category>{categoryLabel}</p> : null}
         {datesLine ? <p data-marketing-catalog-card-dates>{datesLine}</p> : null}
         {summaryLine ? (
           <p data-marketing-catalog-card-summary>{summaryLine}</p>

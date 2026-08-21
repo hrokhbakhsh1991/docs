@@ -1,6 +1,8 @@
 import { getLocale, getTranslations } from "next-intl/server";
 
 import type { MarketingCatalogCard } from "./catalog-types";
+import { CatalogCommercialPricingBreakdown } from "./catalog-commercial-pricing";
+import type { MarketingCommercialPricingPreview } from "./commercial-pricing-preview";
 import { CatalogTourDetailRegisterCta } from "./catalog-tour-detail-register-cta";
 import { formatCatalogPrice, shouldShowCatalogPrice } from "./format-catalog-display";
 import type { CatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
@@ -12,6 +14,7 @@ export type CatalogTourDetailStickyBarProps = {
   readonly pluginId: string;
   readonly registration: CatalogTourRegistrationState;
   readonly cta: MarketingTourDetailCtaModel;
+  readonly pricingPreview?: MarketingCommercialPricingPreview | null;
 };
 
 export async function CatalogTourDetailStickyBar({
@@ -19,6 +22,7 @@ export async function CatalogTourDetailStickyBar({
   pluginId,
   registration,
   cta,
+  pricingPreview = null,
 }: CatalogTourDetailStickyBarProps) {
   if (cta.primaryHref == null && !registration.isSoldOut) {
     return null;
@@ -34,15 +38,20 @@ export async function CatalogTourDetailStickyBar({
         tour.priceCurrency,
         dateLocale,
         t("detail.priceOnRequest"),
-        pluginId,
+        pluginId
       )
     : null;
 
   return (
     <div data-marketing-catalog-detail-sticky-bar>
-      {priceLine != null ? (
-        <span data-marketing-catalog-detail-sticky-price>{priceLine}</span>
-      ) : null}
+      <CatalogCommercialPricingBreakdown
+        preview={pricingPreview}
+        canonicalPrice={priceLine}
+        dateLocale={dateLocale}
+        pluginId={pluginId}
+        t={t}
+        compact
+      />
       {registration.isSoldOut && cta.primaryKind !== "view-self" ? (
         <p data-marketing-catalog-detail-sold-out>{t("detail.soldOut")}</p>
       ) : (
