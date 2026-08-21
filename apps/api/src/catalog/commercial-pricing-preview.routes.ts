@@ -10,6 +10,7 @@ import { sendJson } from "../http/json";
 import { requireOperatorSession } from "../identity/require-operator-session";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
 import { createTourStorageRepository } from "../storage/create-tour-storage";
+import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { IdentityMembershipDiscountReadAdapter } from "../workspace-finance/infrastructure/identity-membership-discount-read.adapter";
 import {
   isFinanceObligationBindingRegistered,
@@ -40,6 +41,24 @@ function readRegistrationIntake(req: IncomingMessage): {
 } {
   const transportKind = readQueryString(req, "transportKind");
   return transportKind.length > 0 ? { transport: { kind: transportKind } } : {};
+}
+
+function normalizeWorkspaceType(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+export async function resolveCommercialPricingWorkspace(
+  req: IncomingMessage,
+  tenantId: string,
+  resolveTenantWorkspace: (tenantId: string) => Promise<string> = resolveWorkspaceTypeForTenant
+): Promise<string | null> {
+  const tenantWorkspace = normalizeWorkspaceType(await resolveTenantWorkspace(tenantId));
+  const requestedWorkspace = normalizeWorkspaceType(readQueryString(req, "workspace"));
+
+  if (requestedWorkspace.length > 0 && requestedWorkspace !== tenantWorkspace) {
+    return null;
+  }
+  return tenantWorkspace;
 }
 
 type CommercialPricingPreviewDto = {
@@ -123,8 +142,11 @@ export async function handleCatalogCommercialPricingPreview(
 ): Promise<void> {
   try {
     const auth = await requireOperatorSession(req);
-    const workspace = readQueryString(req, "workspace") || "denali";
-    const normalizedWorkspace = workspace.toLowerCase();
+    const normalizedWorkspace = await resolveCommercialPricingWorkspace(req, auth.tenantId);
+    if (normalizedWorkspace === null) {
+      sendHttpError(res, 404, { error: "not_found", code: "WORKSPACE_PRICING_UNAVAILABLE" });
+      return;
+    }
     const tourId = readQueryString(req, "tourId");
     if (tourId.length === 0) {
       sendHttpError(res, 400, { error: "bad_request", code: "TOUR_ID_REQUIRED" });
@@ -163,8 +185,11 @@ export async function handleCatalogCommercialPricingPreviews(
 ): Promise<void> {
   try {
     const auth = await requireOperatorSession(req);
-    const workspace = readQueryString(req, "workspace") || "denali";
-    const normalizedWorkspace = workspace.toLowerCase();
+    const normalizedWorkspace = await resolveCommercialPricingWorkspace(req, auth.tenantId);
+    if (normalizedWorkspace === null) {
+      sendHttpError(res, 404, { error: "not_found", code: "WORKSPACE_PRICING_UNAVAILABLE" });
+      return;
+    }
     if (!isFinanceObligationBindingRegistered(normalizedWorkspace)) {
       sendHttpError(res, 404, { error: "not_found", code: "WORKSPACE_PRICING_UNAVAILABLE" });
       return;
