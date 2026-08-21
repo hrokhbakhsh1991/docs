@@ -1,7 +1,8 @@
 import { createCanonicalDocument, type CanonicalDocument } from "@app-tour/workspace-sdk";
 
-import { DENALI_FIELD_DEFINITIONS } from "../field-registry/denaliFieldRegistryData";
+import { applyDenaliRegistrationApprovalFromOperatorFlag } from "../booking/resolve-denali-registration-approval-mode";
 import { DENALI_CANONICAL_OBJECT_ROOTS, buildDenaliWizardRoots } from "../denali-plugin-adapter";
+import { DENALI_FIELD_DEFINITIONS } from "../field-registry/denaliFieldRegistryData";
 import { stripSocialMediaLinkForSubmit } from "../ui/logic/denali-social-media-link-logic";
 import {
   DENALI_LOCATION_ZONE_GHOST_PATHS,
@@ -105,6 +106,7 @@ export function prepareDenaliSubmitArtifact(
   if (typeof link === "string") {
     writePath(data, "socialMediaLink", stripSocialMediaLinkForSubmit(link));
   }
+  applyDenaliRegistrationApprovalFromOperatorFlag(data);
   copyDenaliLocationZoneGhostsOntoOverview(data, form);
   return data;
 }

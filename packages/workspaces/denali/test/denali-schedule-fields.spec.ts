@@ -51,6 +51,7 @@ function baseForm(tourType: string): DenaliCreateTourWizardForm {
       nationalIdRequired: false,
       sportsInsuranceRequired: false,
       minRequiredPeaks: undefined,
+      autoApproveMinRecentTours: undefined,
       fitnessPrerequisiteText: undefined,
       gearItems: [],
     },
@@ -125,5 +126,36 @@ describe("denali-schedule-fields.spec.ts", () => {
     const next = applyDenaliStructuralInvariants(form);
     assert.equal(next.basicInfo.endDateTime, "2026-07-03T18:00:00.000Z");
     assert.equal(next.basicInfo.approximateReturnTime, undefined);
+  });
+
+  it("DN-SCHED-05 recent-tour auto-approve field hidden unless approval checkbox on", () => {
+    const off = baseForm("desert_day");
+    assert.equal(
+      evaluateFormFieldRule(off, "participants.autoApproveMinRecentTours", "denali_basic").visible,
+      false
+    );
+    const on = baseForm("desert_day");
+    on.basicInfo.requiresManualAdminApproval = true;
+    assert.equal(
+      evaluateFormFieldRule(on, "participants.autoApproveMinRecentTours", "denali_basic").visible,
+      true
+    );
+    const falseString = baseForm("nature_day");
+    falseString.basicInfo.requiresManualAdminApproval = "false" as unknown as boolean;
+    assert.equal(
+      evaluateFormFieldRule(
+        falseString,
+        "participants.autoApproveMinRecentTours",
+        "denali_basic"
+      ).visible,
+      false
+    );
+  });
+
+  it("DN-SCHED-06 recent-tour auto-approve clears when checkbox off", () => {
+    const form = baseForm("mountain_day");
+    form.participantRequirements.autoApproveMinRecentTours = 2;
+    const next = applyDenaliStructuralInvariants(form);
+    assert.equal(next.participantRequirements.autoApproveMinRecentTours, undefined);
   });
 });

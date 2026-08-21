@@ -19,6 +19,7 @@ export const DENALI_FIELD_COMPLETION_WEIGHTS: Readonly<Record<string, number>> =
   requiresLocalGuide: 1,
   localGuideName: 1,
   requiresManualAdminApproval: 1,
+  "participants.autoApproveMinRecentTours": 1,
   socialMediaLink: 2,
   "program.themeIds": 3,
   "program.shortDescription": 6,

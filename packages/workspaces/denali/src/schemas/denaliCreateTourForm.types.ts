@@ -60,6 +60,7 @@ export interface DenaliCreateTourWizardForm {
     birthDateRequired: boolean;
     sportsInsuranceRequired: boolean;
     minRequiredPeaks: number | undefined;
+    autoApproveMinRecentTours: number | undefined;
     fitnessPrerequisiteText: string | undefined;
     gearItems: Array<Record<string, unknown>>;
   };

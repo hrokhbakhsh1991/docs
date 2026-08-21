@@ -344,6 +344,38 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     return rows.map((row) => toBookingListRecord(row));
   }
 
+  async listApprovedTourIdsBySubmittedUser(
+    tenantId: string,
+    submittedByUserId: string
+  ): Promise<readonly string[]> {
+    const rows = await withTenantRls(tenantId, (tx) =>
+      tx.operatorRegistration.findMany({
+        where: { tenantId, submittedByUserId, status: "approved" },
+        select: { tourId: true, registrationIntake: true },
+        take: MAX_MEMBER_BOOKINGS_LIST_CAP,
+      })
+    );
+    const ids: string[] = [];
+    const seen = new Set<string>();
+    for (const row of rows) {
+      const intake =
+        row.registrationIntake !== null &&
+        typeof row.registrationIntake === "object" &&
+        !Array.isArray(row.registrationIntake)
+          ? (row.registrationIntake as Readonly<Record<string, unknown>>)
+          : undefined;
+      if (readRegistrantTargetFromIntake(intake) === "other") {
+        continue;
+      }
+      if (seen.has(row.tourId)) {
+        continue;
+      }
+      seen.add(row.tourId);
+      ids.push(row.tourId);
+    }
+    return ids;
+  }
+
   async listByTenantPage(input: BookingListPageInput): Promise<BookingListPageOutput> {
     const baseWhere = buildBookingListWhere(input);
     const sortMode = input.sort === "departureAt" ? "departureAt" : "submittedAt";

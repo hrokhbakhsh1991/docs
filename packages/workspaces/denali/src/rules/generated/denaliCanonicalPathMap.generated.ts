@@ -23,6 +23,7 @@ export const DENALI_CANONICAL_TO_FORM_PATH_MAP: Record<string, string> = {
   "localGuideName": "basicInfo.localGuideName",
   "meetingPoint": "basicInfo.meetingPoint",
   "participants.allergiesRequired": "participantRequirements.allergiesRequired",
+  "participants.autoApproveMinRecentTours": "participantRequirements.autoApproveMinRecentTours",
   "participants.birthDateRequired": "participantRequirements.birthDateRequired",
   "participants.dietaryRequirementsRequired": "participantRequirements.dietaryRequirementsRequired",
   "participants.emergencyContactRequired": "participantRequirements.emergencyContactRequired",

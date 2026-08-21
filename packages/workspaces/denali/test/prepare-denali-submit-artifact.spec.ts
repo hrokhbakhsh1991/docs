@@ -101,4 +101,28 @@ describe("prepare-denali-submit-artifact.spec.ts — Phase 11.10", () => {
     assert.deepEqual(overview?.summitPoint, summitPoint);
     assert.deepEqual(overview?.endPoint, endPoint);
   });
+
+  it("DEN-P3-1 persist writes pricing.registrationApproval auto when checkbox is off", () => {
+    const form = buildDenaliTourCreateDefaultValues() as Record<string, unknown>;
+    const data = prepareDenaliSubmitArtifact(form);
+    const pricing = data.pricing as Record<string, unknown>;
+    assert.equal(
+      (form.basicInfo as { requiresManualAdminApproval: boolean }).requiresManualAdminApproval,
+      false
+    );
+    assert.equal(data.requiresManualAdminApproval, false);
+    assert.equal(pricing.registrationApproval, "auto");
+  });
+
+  it("DEN-P3-1 persist writes pricing.registrationApproval manual when checkbox is on", () => {
+    const form = buildDenaliTourCreateDefaultValues() as Record<string, unknown>;
+    form.basicInfo = {
+      ...(form.basicInfo as Record<string, unknown>),
+      requiresManualAdminApproval: true,
+    };
+    const data = prepareDenaliSubmitArtifact(form);
+    const pricing = data.pricing as Record<string, unknown>;
+    assert.equal(data.requiresManualAdminApproval, true);
+    assert.equal(pricing.registrationApproval, "manual");
+  });
 });

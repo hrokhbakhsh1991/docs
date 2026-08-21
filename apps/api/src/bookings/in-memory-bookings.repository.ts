@@ -278,6 +278,31 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       .map(toBookingListRecord);
   }
 
+  async listApprovedTourIdsBySubmittedUser(
+    tenantId: string,
+    submittedByUserId: string
+  ): Promise<readonly string[]> {
+    const ids: string[] = [];
+    const seen = new Set<string>();
+    for (const row of this.memberBookingsForUser(tenantId, submittedByUserId)) {
+      if (row.status !== "approved") {
+        continue;
+      }
+      if (readRegistrantTargetFromIntake(row.registrationIntake) === "other") {
+        continue;
+      }
+      if (seen.has(row.tourId)) {
+        continue;
+      }
+      seen.add(row.tourId);
+      ids.push(row.tourId);
+      if (ids.length >= MAX_MEMBER_BOOKINGS_LIST_CAP) {
+        break;
+      }
+    }
+    return ids;
+  }
+
   async listByTenantPage(input: BookingListPageInput): Promise<BookingListPageOutput> {
     let rows = [...bookingsStore.values()].filter((row) => row.tenantId === input.tenantId);
     rows = rows.filter((row) => matchesBookingListFilters(row, input));

@@ -117,6 +117,7 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
       countCancelledBookingsBySubmittedUser: async () => 0,
       countCompletedTripsBySubmittedUser: async () => 0,
       listRecentBySubmittedUser: async () => [],
+      listApprovedTourIdsBySubmittedUser: async () => [],
       sumApprovedPartySizeByTourIds: async () => ({}),
       getById: async () => null,
       getByIds: async () => [],

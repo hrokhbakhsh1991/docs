@@ -239,6 +239,17 @@
           "group": "General"
         },
         {
+          "id": "denali.recent-tour-auto-approve",
+          "canonicalPath": "participants.autoApproveMinRecentTours",
+          "stepId": "denali_basic",
+          "kind": "number",
+          "required": false,
+          "tags": [
+            "optional_basic"
+          ],
+          "group": "General"
+        },
+        {
           "id": "denali.social-media-link",
           "canonicalPath": "socialMediaLink",
           "stepId": "denali_basic",
@@ -724,6 +735,11 @@
               "hidden": false
             },
             {
+              "fieldId": "denali.recent-tour-auto-approve",
+              "required": false,
+              "hidden": false
+            },
+            {
               "fieldId": "participants.birthDateRequired",
               "required": false,
               "hidden": false
@@ -929,6 +945,11 @@
             },
             {
               "fieldId": "localGuideName",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.recent-tour-auto-approve",
               "required": false,
               "hidden": false
             },
@@ -1142,6 +1163,11 @@
               "hidden": false
             },
             {
+              "fieldId": "denali.recent-tour-auto-approve",
+              "required": false,
+              "hidden": false
+            },
+            {
               "fieldId": "participants.birthDateRequired",
               "required": false,
               "hidden": false
@@ -1347,6 +1373,11 @@
             },
             {
               "fieldId": "localGuideName",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.recent-tour-auto-approve",
               "required": false,
               "hidden": false
             },
@@ -1560,6 +1591,11 @@
               "hidden": false
             },
             {
+              "fieldId": "denali.recent-tour-auto-approve",
+              "required": false,
+              "hidden": false
+            },
+            {
               "fieldId": "participants.birthDateRequired",
               "required": false,
               "hidden": false
@@ -1765,6 +1801,11 @@
             },
             {
               "fieldId": "localGuideName",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.recent-tour-auto-approve",
               "required": false,
               "hidden": false
             },
@@ -1978,6 +2019,11 @@
               "hidden": false
             },
             {
+              "fieldId": "denali.recent-tour-auto-approve",
+              "required": false,
+              "hidden": false
+            },
+            {
               "fieldId": "participants.birthDateRequired",
               "required": false,
               "hidden": false
@@ -2187,6 +2233,11 @@
               "hidden": false
             },
             {
+              "fieldId": "denali.recent-tour-auto-approve",
+              "required": false,
+              "hidden": false
+            },
+            {
               "fieldId": "participants.birthDateRequired",
               "required": false,
               "hidden": false
@@ -2391,5 +2442,5 @@
       "wizardCapacityStepRedundant": false
     }
   },
-  "checksum": "0c7971f80cb51bae0879b57ac3bd5033ed01bc719051d8dfe88e8ef32ecdd00d"
+  "checksum": "1bcd588b19b8ad5823e1d22a7affb8b5ba8ea9ce6aae8400e439758b112b06d8"
 }

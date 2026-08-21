@@ -79,6 +79,20 @@ export {
 export { assertDenaliCreateValid } from "./validation";
 
 export {
+  applyDenaliRegistrationApprovalFromOperatorFlag,
+  denaliRegistrationApprovalFromManualFlag,
   resolveDenaliRegistrationApprovalMode,
   type DenaliRegistrationApprovalMode,
 } from "./resolve-denali-registration-approval-mode";
+
+export {
+  DENALI_APPROVED_TOUR_HISTORY_SCAN_CAP,
+  DENALI_AUTO_APPROVE_MIN_RECENT_TOURS_VALUES,
+  denaliGuestQualifiesForRecentTourBypass,
+  guestHasApprovedOnEachTour,
+  parseDenaliAutoApproveMinRecentTours,
+  readDenaliAutoApproveMinRecentToursFromCanonical,
+  readDenaliTourStartMs,
+  selectLastPublishedTourIds,
+  type DenaliAutoApproveMinRecentTours,
+} from "./recent-tour-attendance";

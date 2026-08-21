@@ -159,5 +159,8 @@ export function createHostBookingPublicAdapter(): BookingPublicPort {
         },
       });
     },
+    async listApprovedTourIdsByGuest(tenantId, guestUserId) {
+      return getBookingsRepository().listApprovedTourIdsBySubmittedUser(tenantId, guestUserId);
+    },
   };
 }

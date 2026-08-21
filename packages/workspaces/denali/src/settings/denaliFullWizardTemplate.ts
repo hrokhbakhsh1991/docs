@@ -51,6 +51,7 @@ export function buildDenaliFullWizardTemplateSteps(): readonly DenaliWizardTempl
         field("requiresLocalGuide"),
         field("localGuideName"),
         field("requiresManualAdminApproval"),
+        field("participants.autoApproveMinRecentTours"),
         field("socialMediaLink"),
       ],
     },

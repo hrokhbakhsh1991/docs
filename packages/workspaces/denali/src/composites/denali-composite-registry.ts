@@ -26,6 +26,7 @@ export const DENALI_COMPOSITE_BY_CANONICAL_PATH: Readonly<
   "tripDetails.overview.trailDistanceKm": "denali.destination-catalog-metric.trail-distance",
   "participants.minimumAge": "denali.pricing-participants",
   "pricing.requiresPayment": "denali.pricing-payment",
+  "participants.autoApproveMinRecentTours": "denali.recent-tour-auto-approve",
 };
 
 /** zodKind → composite renderer id (legacy `DENALI_ZOD_KIND_COMPONENTS`). */

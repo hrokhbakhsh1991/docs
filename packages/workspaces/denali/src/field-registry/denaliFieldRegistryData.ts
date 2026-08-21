@@ -287,6 +287,22 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "booleanOptional",
     tags: ["optional_basic"] as const,
     ruleDefaults: { required: false, hidden: false },
+    notes:
+      "Operator SoT for public registration approval. false → pricing.registrationApproval auto (host autoApprove then offline pay); true → manual pending. Resolver also accepts the pricing string. Peak-count field stays display-only. Phase 3.2 recent-tour bypass is participants.autoApproveMinRecentTours.",
+  },
+  {
+    canonicalPath: "participants.autoApproveMinRecentTours",
+    stepId: "denali_basic",
+    rhfPath: "participantRequirements.autoApproveMinRecentTours",
+    zodPath: "participantRequirements.autoApproveMinRecentTours",
+    zodKind: "optionalInt",
+    tags: ["optional_basic"] as const,
+    ruleDefaults: { required: false, hidden: false },
+    settingsSurface: "section",
+    contextualVisibility: { kind: "manualAdminApprovalRequired" },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
+    notes:
+      "Phase 3.2 — when checkbox is on, 1|2|3 = auto-approve guests with approved self bookings on each of the last N published club tours before this one. Empty/0 = no bypass.",
   },
   {
     canonicalPath: "socialMediaLink",

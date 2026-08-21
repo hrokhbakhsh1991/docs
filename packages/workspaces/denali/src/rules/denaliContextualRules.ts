@@ -22,7 +22,7 @@ import { getWorkspaceUiCapabilityFlags } from "../types/legacy/shared-contracts"
 import { hasDenaliWizardClassification } from "../normalize/resolveRuleModel";
 
 import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "./generated/denaliCanonicalPathMap.generated";
-import { isGroupInsuranceVisible, isPeakExperienceVisible } from "./predicates";
+import { isGroupInsuranceVisible, isManualAdminApprovalRequired, isPeakExperienceVisible } from "./predicates";
 
 import type { DenaliUIContextOptions } from "./denali-ui-context-options";
 
@@ -103,6 +103,8 @@ export function evaluateDenaliContextualRule(
       return !denaliTourKindToIsMultiDay(form.basicInfo.tourType as DenaliTourKind);
     case "peakExperienceVisible":
       return isPeakExperienceVisible(form);
+    case "manualAdminApprovalRequired":
+      return isManualAdminApprovalRequired(form);
     case "groupInsuranceVisible":
       return isGroupInsuranceVisible();
     case "telegramIntegrationActive": {

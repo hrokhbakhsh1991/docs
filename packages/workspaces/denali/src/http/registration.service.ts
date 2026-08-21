@@ -9,6 +9,7 @@ import {
 import {
   assertDenaliCreateValid,
   buildDenaliBookingCreatePolicyContext,
+  denaliGuestQualifiesForRecentTourBypass,
   resolveDenaliRegistrationApprovalMode,
 } from "../booking";
 import { DENALI_WORKSPACE_TYPE } from "../denali-identity";
@@ -42,6 +43,44 @@ export type DenaliGuestProfilePatch = {
 };
 
 const PUBLIC_CATALOG_GUEST_USER_ID = WORKSPACE_PUBLIC_CATALOG_GUEST_USER_ID;
+
+async function finalizePublicRegistrationApproval(input: {
+  readonly tenantId: string;
+  readonly guestUserId: string;
+  readonly registrantTarget: "self" | "other";
+  readonly tourId: string;
+  readonly tourCanonical: unknown;
+  readonly store: DenaliTourStorePort;
+  readonly bookingPort: BookingPublicPort;
+  readonly pending: { readonly id: string; readonly status: string };
+}): Promise<{ readonly id: string; readonly status: string }> {
+  if (resolveDenaliRegistrationApprovalMode(input.tourCanonical) === "auto") {
+    return input.bookingPort.autoApprovePublicBooking({
+      tenantId: input.tenantId,
+      bookingId: input.pending.id,
+      actorUserId: input.guestUserId,
+    });
+  }
+
+  const qualifies = await denaliGuestQualifiesForRecentTourBypass({
+    tourCanonical: input.tourCanonical,
+    currentTourId: input.tourId,
+    guestUserId: input.guestUserId,
+    registrantTarget: input.registrantTarget,
+    tenantId: input.tenantId,
+    store: input.store,
+    bookingPort: input.bookingPort,
+  });
+  if (!qualifies) {
+    return input.pending;
+  }
+
+  return input.bookingPort.autoApprovePublicBooking({
+    tenantId: input.tenantId,
+    bookingId: input.pending.id,
+    actorUserId: input.guestUserId,
+  });
+}
 
 export async function createDenaliRegistration(params: {
   readonly tenantId: string;
@@ -270,13 +309,15 @@ export async function createDenaliRegistration(params: {
           registrationIntakePatch: registrationIntake,
         });
         if (reclassified !== null) {
-          if (resolveDenaliRegistrationApprovalMode(tour.canonical) !== "auto") {
-            return reclassified;
-          }
-          return params.bookingPort.autoApprovePublicBooking({
+          return finalizePublicRegistrationApproval({
             tenantId: params.tenantId,
-            bookingId: reclassified.id,
-            actorUserId: params.guestUserId,
+            guestUserId: params.guestUserId,
+            registrantTarget,
+            tourId: params.body.tourId,
+            tourCanonical: tour.canonical,
+            store: params.store,
+            bookingPort: params.bookingPort,
+            pending: reclassified,
           });
         }
       }
@@ -296,15 +337,16 @@ export async function createDenaliRegistration(params: {
     registrationIntake,
   });
 
-  // Phase 3 — tour canonical `pricing.registrationApproval` (default manual).
-  // Never trust client intake; mode comes only from loaded tour SoT.
-  if (resolveDenaliRegistrationApprovalMode(tour.canonical) !== "auto") {
-    return created;
-  }
-
-  return params.bookingPort.autoApprovePublicBooking({
+  // Phase 3.1 / 3.2 — tour SoT: pricing.registrationApproval or requiresManualAdminApproval.
+  // Never trust client intake; mode + recent-tour bypass come only from loaded tour canonical.
+  return finalizePublicRegistrationApproval({
     tenantId: params.tenantId,
-    bookingId: created.id,
-    actorUserId: params.guestUserId,
+    guestUserId: params.guestUserId,
+    registrantTarget,
+    tourId: params.body.tourId,
+    tourCanonical: tour.canonical,
+    store: params.store,
+    bookingPort: params.bookingPort,
+    pending: created,
   });
 }

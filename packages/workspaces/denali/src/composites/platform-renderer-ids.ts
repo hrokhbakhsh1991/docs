@@ -28,6 +28,7 @@ export const DENALI_COMPOSITE_RENDERER_IDS = [
   "denali.gear",
   "denali.location-zones",
   "denali.peak-experience",
+  "denali.recent-tour-auto-approve",
   "denali.program-content",
   "denali.custom-services",
   "denali.tour-services",
