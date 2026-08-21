@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import { adaptWorkspaceFieldPolicyManifest } from "@app-tour/platform-core";
 import { starterWorkspacePlugin } from "@app-tour/workspace-sdk";
+import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali";
 
 import { enrichCanonicalDeliveryPayload } from "./enrich-canonical-delivery-payload";
 
@@ -11,6 +13,8 @@ const STARTER_DEFINITIONS = adaptWorkspaceFieldPolicyManifest({
   manifest: starterWorkspacePlugin.fieldPolicy!,
   fieldRegistry: starterWorkspacePlugin.fieldRegistry,
 }).definitions;
+const DENALI_DELIVERY_PROJECTOR =
+  getDenaliWorkspacePlugin().integrationSurface?.projectCanonicalDeliveryFields;
 
 describe("enrichCanonicalDeliveryPayload", () => {
   it("extracts eligible field values from canonical payload paths", () => {
@@ -154,6 +158,7 @@ describe("enrichCanonicalDeliveryPayload", () => {
         endPoint: {},
       },
       eligibleFieldIds: ["denali.location-zones"],
+      projectCanonicalDeliveryFields: DENALI_DELIVERY_PROJECTOR,
       definitions: [
         {
           id: "denali.location-zones",
@@ -183,6 +188,7 @@ describe("enrichCanonicalDeliveryPayload", () => {
         },
       },
       eligibleFieldIds: ["denali.location-zones"],
+      projectCanonicalDeliveryFields: DENALI_DELIVERY_PROJECTOR,
       definitions: [
         {
           id: "denali.location-zones",
@@ -203,6 +209,7 @@ describe("enrichCanonicalDeliveryPayload", () => {
     const enriched = enrichCanonicalDeliveryPayload({
       payload: { startPoint: {}, endPoint: { label: "   " } },
       eligibleFieldIds: ["denali.location-zones"],
+      projectCanonicalDeliveryFields: DENALI_DELIVERY_PROJECTOR,
       definitions: [
         {
           id: "denali.location-zones",
@@ -215,5 +222,45 @@ describe("enrichCanonicalDeliveryPayload", () => {
     });
 
     assert.deepEqual(enriched.fieldValues, {});
+  });
+
+  it("uses no Denali projection when the workspace supplies no enrichment", () => {
+    const enriched = enrichCanonicalDeliveryPayload({
+      payload: { startPoint: { label: "Only root" }, summitPoint: { label: "Other" } },
+      eligibleFieldIds: ["future.composite"],
+      definitions: [
+        {
+          id: "future.composite",
+          workspaceType: "future",
+          canonicalPath: "futureValue",
+          kind: "text",
+          version: 1,
+        },
+      ],
+    });
+    assert.deepEqual(enriched.fieldValues, {});
+  });
+
+  it("accepts a future workspace projection without changing generic enrichment", () => {
+    const enriched = enrichCanonicalDeliveryPayload({
+      payload: { futureValue: "neutral" },
+      eligibleFieldIds: ["future.composite"],
+      definitions: [
+        {
+          id: "future.composite",
+          workspaceType: "future",
+          canonicalPath: "futureValue",
+          kind: "text",
+          version: 1,
+        },
+      ],
+      projectCanonicalDeliveryFields: ({ payload }) => ({
+        "future.composite": String(payload.futureValue) + " projected",
+      }),
+    });
+    assert.deepEqual(enriched.fieldValues, { "future.composite": "neutral projected" });
+
+    const source = readFileSync("src/integrations/application/enrich-canonical-delivery-payload.ts", "utf8");
+    assert.doesNotMatch(source, /denali\.location-zones|DENALI_LOCATION/);
   });
 });

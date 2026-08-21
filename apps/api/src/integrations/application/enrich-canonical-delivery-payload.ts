@@ -1,4 +1,5 @@
 import { getCanonicalValue, type FieldDefinition, type FieldPolicyEntityState } from "@app-tour/platform-core";
+import type { WorkspaceCanonicalDeliveryProjectionInput } from "@app-tour/workspace-sdk";
 
 export type CanonicalDeliveryPayload = {
   /** Eligible field ids mapped to resolved delivery-safe string values. */
@@ -13,17 +14,14 @@ export type EnrichCanonicalDeliveryPayloadInput = {
   readonly entityState?: FieldPolicyEntityState;
   /** Catalog-resolved display strings keyed by canonical path (for example `destinationId`). */
   readonly referenceDisplayValues?: Readonly<Record<string, string>>;
+  readonly projectCanonicalDeliveryFields?: (
+    input: WorkspaceCanonicalDeliveryProjectionInput
+  ) => Readonly<Record<string, string>>;
 };
 
 const ISO_DATE_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})/;
 const DELIVERY_DATE_TIME_LOCALE = "fa-IR";
 const DELIVERY_DATE_TIME_TIME_ZONE = "Asia/Tehran";
-
-/** Denali composite location field — renders all populated trip zones in selection order. */
-const DENALI_LOCATION_ZONES_FIELD_ID = "denali.location-zones";
-const DENALI_LOCATION_ZONE_PATHS = ["startPoint", "summitPoint", "campPoint", "endPoint"] as const;
-/** Ghost dependents persist here after form-profile strip (ED-CAMP-PERSIST-01). */
-const DENALI_LOCATION_ZONE_OVERVIEW_PREFIX = "tripDetails.overview";
 
 function coerceLocationDataToDeliveryString(value: unknown): string | undefined {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -80,40 +78,6 @@ function coerceToDeliveryString(
 }
 
 /**
- * Root zone first (startPoint anchor / in-session ghosts); empty root falls back to
- * `tripDetails.overview.{path}` after INV-DENALI-WIZ-003 ghost strip.
- */
-function resolveDenaliLocationZoneDeliveryString(
-  payload: Readonly<Record<string, unknown>>,
-  zonePath: (typeof DENALI_LOCATION_ZONE_PATHS)[number],
-): string | undefined {
-  const fromRoot = coerceLocationDataToDeliveryString(getCanonicalValue(payload, zonePath));
-  if (fromRoot !== undefined) {
-    return fromRoot;
-  }
-  return coerceLocationDataToDeliveryString(
-    getCanonicalValue(payload, `${DENALI_LOCATION_ZONE_OVERVIEW_PREFIX}.${zonePath}`),
-  );
-}
-
-/**
- * Aggregates the Denali location-zone composite (start/summit/camp/end) into a single
- * comma-joined delivery value. Empty zones are skipped; returns undefined when none are set.
- */
-function resolveDenaliLocationZonesDeliveryValue(
-  payload: Readonly<Record<string, unknown>>,
-): string | undefined {
-  const labels: string[] = [];
-  for (const zonePath of DENALI_LOCATION_ZONE_PATHS) {
-    const label = resolveDenaliLocationZoneDeliveryString(payload, zonePath);
-    if (label !== undefined && !labels.includes(label)) {
-      labels.push(label);
-    }
-  }
-  return labels.length > 0 ? labels.join("، ") : undefined;
-}
-
-/**
  * Resolves a human-facing delivery value for reference ids (e.g. `destinationId` → `destination.name`).
  * Workspace-agnostic: uses canonical companion paths only — no provider or catalog HTTP.
  */
@@ -159,13 +123,6 @@ export function enrichCanonicalDeliveryPayload(
   const values: Record<string, string> = {};
 
   for (const fieldId of input.eligibleFieldIds) {
-    if (fieldId === DENALI_LOCATION_ZONES_FIELD_ID) {
-      const zonesValue = resolveDenaliLocationZonesDeliveryValue(input.payload);
-      if (zonesValue !== undefined) {
-        values[fieldId] = zonesValue;
-      }
-      continue;
-    }
     const canonicalPath = canonicalPathById.get(fieldId);
     if (canonicalPath === undefined) {
       continue;
@@ -177,6 +134,16 @@ export function enrichCanonicalDeliveryPayload(
     if (value !== undefined) {
       values[fieldId] = value;
     }
+  }
+
+  const projected = input.projectCanonicalDeliveryFields?.({
+    payload: input.payload,
+    eligibleFieldIds: input.eligibleFieldIds,
+    definitions: input.definitions,
+    referenceDisplayValues: input.referenceDisplayValues,
+  });
+  if (projected !== undefined) {
+    Object.assign(values, projected);
   }
 
   return { fieldValues: values };

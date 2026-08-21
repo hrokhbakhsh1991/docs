@@ -266,6 +266,7 @@ export {
   type WorkspaceIntegrationEventMapping,
   type WorkspaceIntegrationEventPolicyDefault,
   type WorkspaceIntegrationProviderSurface,
+  type WorkspaceCanonicalDeliveryProjectionInput,
   type WorkspaceIntegrationSurface,
 } from "./operator/integrations/workspace-integration-surface";
 export {

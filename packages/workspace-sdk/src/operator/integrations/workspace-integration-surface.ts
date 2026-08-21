@@ -30,11 +30,25 @@ export type WorkspaceIntegrationProviderSurface = {
   readonly eventMappings: readonly WorkspaceIntegrationEventMapping[];
 };
 
+export type WorkspaceCanonicalDeliveryProjectionInput = {
+  readonly payload: Readonly<Record<string, unknown>>;
+  readonly eligibleFieldIds: readonly string[];
+  readonly definitions: readonly {
+    readonly id: string;
+    readonly canonicalPath: string;
+    readonly kind: string;
+  }[];
+  readonly referenceDisplayValues?: Readonly<Record<string, string>>;
+};
+
 export type WorkspaceIntegrationSurface = {
   readonly manifestVersion: 1;
   readonly providers: readonly WorkspaceIntegrationProviderSurface[];
   /** Outbound message templates keyed by domain event type. Supports `{{title}}`, `{{aggregateId}}`, `{{eventType}}`. */
   readonly messageTemplates?: Readonly<Record<string, string>>;
+  readonly projectCanonicalDeliveryFields?: (
+    input: WorkspaceCanonicalDeliveryProjectionInput
+  ) => Readonly<Record<string, string>>;
 };
 
 const INTEGRATION_FIELD_KINDS: readonly IntegrationFieldKind[] = ["string", "secret"] as const;

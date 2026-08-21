@@ -380,6 +380,9 @@ export async function dispatchIntegrationDomainEvent(
   const runtimeMode = resolveFieldExposureRuntimeMode();
 
   const workspaceType = await resolveWorkspaceType(row.tenantId);
+  const workspacePlugin = await resolveWorkspacePluginForType(workspaceType);
+  const projectCanonicalDeliveryFields =
+    workspacePlugin.integrationSurface?.projectCanonicalDeliveryFields;
   const payload = resolveIntegrationDispatchPayload(row);
 
   const decisions = await policyEngine.evaluate({
@@ -539,6 +542,7 @@ export async function dispatchIntegrationDomainEvent(
             eligibleFieldIds: activeDeliveryFieldIds.fieldIds,
             definitions: deliveryPolicy.definitions,
             referenceDisplayValues,
+            projectCanonicalDeliveryFields,
           });
 
     const authoritativeDeliveryFields = {
