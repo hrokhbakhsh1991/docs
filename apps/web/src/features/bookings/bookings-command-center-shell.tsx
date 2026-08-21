@@ -831,7 +831,7 @@ export function BookingsPageClient({
 
       {canManageOps && summary !== null && !embedded ? (
         <div
-          className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4"
+          className="flex flex-wrap items-center gap-2"
           data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.kpiStrip}
         >
           <BookingsKpiCard
@@ -872,44 +872,6 @@ export function BookingsPageClient({
         </div>
       ) : null}
 
-      {canManageOps ? (
-        <div
-          className="flex flex-col gap-2"
-          data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.primaryChrome}
-        >
-          <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-4 lg:gap-y-2">
-            <BookingsOpsPresetsBar query={query} onReplaceQuery={replaceQuery} />
-            <BookingsUpcomingFacetButton query={query} onReplaceQuery={replaceQuery} />
-          </div>
-          <p
-            className="text-xs text-muted-foreground"
-            data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.presetsHint}
-          >
-            {t("presetsHint")}
-          </p>
-          {query.departureWithinDays.length > 0 ? (
-            <p
-              className="text-xs text-muted-foreground"
-              data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.departureWindowHint}
-            >
-              {t("departureWindowActive", { days: query.departureWithinDays })}
-            </p>
-          ) : null}
-          {lockedTour.length === 0 &&
-          summary !== null &&
-          (summary.tourChips.length > 0 || query.tourId.length > 0) ? (
-            <BookingsTourChipBar
-              chips={summary.tourChips}
-              query={query}
-              listItems={listData?.items ?? []}
-              locale={locale}
-              onAllTours={() => replaceQuery({ ...query, tourId: "" })}
-              onSelectTour={(tourId) => replaceQuery(toggleTourChipFilter(query, tourId))}
-            />
-          ) : null}
-        </div>
-      ) : null}
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -943,6 +905,44 @@ export function BookingsPageClient({
           ) : null}
         </div>
       </div>
+
+      {canManageOps ? (
+        <div
+          className="flex flex-col gap-2"
+          data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.primaryChrome}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <BookingsOpsPresetsBar query={query} onReplaceQuery={replaceQuery} />
+            <BookingsUpcomingFacetButton query={query} onReplaceQuery={replaceQuery} />
+          </div>
+          <p
+            className="text-xs text-muted-foreground"
+            data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.presetsHint}
+          >
+            {t("presetsHint")}
+          </p>
+          {query.departureWithinDays.length > 0 ? (
+            <p
+              className="text-xs text-muted-foreground"
+              data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.departureWindowHint}
+            >
+              {t("departureWindowActive", { days: query.departureWithinDays })}
+            </p>
+          ) : null}
+          {lockedTour.length === 0 &&
+          summary !== null &&
+          (summary.tourChips.length > 0 || query.tourId.length > 0) ? (
+            <BookingsTourChipBar
+              chips={summary.tourChips}
+              query={query}
+              listItems={listData?.items ?? []}
+              locale={locale}
+              onAllTours={() => replaceQuery({ ...query, tourId: "" })}
+              onSelectTour={(tourId) => replaceQuery(toggleTourChipFilter(query, tourId))}
+            />
+          ) : null}
+        </div>
+      ) : null}
 
       {advancedFiltersOpen ? (
         <div
@@ -1001,7 +1001,7 @@ export function BookingsPageClient({
           >
             {allPageApprovableSelected ? t("clearSelection") : t("selectAllApprovable")}
           </Button>
-          {bulkApprovableIds.length > 0 ? (
+          {bulkSelectedIds.length > 0 && bulkApprovableIds.length > 0 ? (
             <Button
               disabled={actionBusy}
               data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.bulkApproveButton}

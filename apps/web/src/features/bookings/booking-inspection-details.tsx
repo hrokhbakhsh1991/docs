@@ -62,6 +62,10 @@ export function BookingInspectionDetails({
   includeActionTestIds = true,
 }: BookingInspectionDetailsProps) {
   const t = useTranslations("bookings");
+  const identityLabel =
+    booking.registrantTarget === "self"
+      ? t("intake.registrantSelf")
+      : t("intake.registrantOther");
   return (
     <>
       <div className="space-y-1">
@@ -86,6 +90,9 @@ export function BookingInspectionDetails({
             {idCopied ? t("copiedId") : t("copyId")}
           </Button>
         </div>
+        <Badge variant="outline" className="w-fit">
+          {identityLabel}
+        </Badge>
       </div>
       <dl className="grid grid-cols-2 gap-2 text-sm">
         <dt className="text-muted-foreground">{t("fields.party")}</dt>
@@ -140,14 +147,6 @@ export function BookingInspectionDetails({
           </>
         ) : null}
       </dl>
-      {/* PR21-G2: money state before ops/cancel so finance is not buried. */}
-      <BookingFinancialStrip
-        registrationId={booking.id}
-        bookingPaymentStatus={booking.paymentStatus}
-        bookingStatus={booking.status}
-      />
-      <BookingRegistrationIntakeDetails booking={booking} />
-      <BookingActivityTimeline booking={booking} />
       {canManageOps && (canActOnSelected || canWaitlistSelected || canCancelSelected) ? (
         <BookingActionButtons
           busy={actionBusy}
@@ -162,6 +161,14 @@ export function BookingInspectionDetails({
           includeTestIds={includeActionTestIds}
         />
       ) : null}
+      {/* PR21-G2: money state before ops/cancel so finance is not buried. */}
+      <BookingFinancialStrip
+        registrationId={booking.id}
+        bookingPaymentStatus={booking.paymentStatus}
+        bookingStatus={booking.status}
+      />
+      <BookingRegistrationIntakeDetails booking={booking} />
+      <BookingActivityTimeline booking={booking} />
     </>
   );
 }

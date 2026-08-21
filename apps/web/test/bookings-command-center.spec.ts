@@ -1269,6 +1269,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.match(pageSource, /kpi\.pendingAria/);
     assert.match(pageSource, /kpi\.waitlistAria/);
     assert.match(pageSource, /data-queue-list="dense"/);
+    assert.match(pageSource, /bulkSelectedIds\.length > 0 && bulkApprovableIds\.length > 0/);
     // Layout / show-all-tours demoted out of page primary imports (UX-BKG-53).
     assert.doesNotMatch(pageSource, /import \{ BookingsLayoutSwitch/);
     assert.doesNotMatch(pageSource, /import \{ BookingsTourChipScopeToggle/);
@@ -1294,6 +1295,13 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.match(rowSource, /border-b/);
     assert.doesNotMatch(rowSource, /rounded-lg border/);
     assert.doesNotMatch(rowSource, /BookingCapacityBar/);
+    assert.match(rowSource, /intake\.registrantSelf/);
+
+    const detailSource = readFileSync(
+      new URL("../src/features/bookings/booking-inspection-details.tsx", import.meta.url),
+      "utf8"
+    );
+    assert.ok(detailSource.indexOf("BookingActionButtons") < detailSource.indexOf("BookingFinancialStrip"));
 
     const timelineKeepsWindow = applyBookingsCommandCenterLayout(
       { ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY, departureWithinDays: "14" },

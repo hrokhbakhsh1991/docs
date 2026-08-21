@@ -56,6 +56,10 @@ export function BookingInboxRow({
 }: BookingInboxRowProps) {
   const t = useTranslations("bookings");
   const locale = useLocale() as AppLocale;
+  const identityLabel =
+    item.registrantTarget === "self"
+      ? t("intake.registrantSelf")
+      : t("intake.registrantOther");
   const capacityLabel = formatCapacitySnapshotLabel(item.capacitySnapshot, locale);
   const urgencySlot = resolveBookingRowUrgencySlot(item);
   const pendingAgeDays =
@@ -92,8 +96,13 @@ export function BookingInboxRow({
         className="min-w-0 flex-1 py-2 pe-2 text-start"
       >
         <div className="flex min-w-0 items-start justify-between gap-3">
-          <div className="min-w-0 flex-1 space-y-0.5">
-            <p className="truncate text-sm font-medium leading-5">{item.guestLabel}</p>
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <p className="truncate text-sm font-medium leading-5">{item.guestLabel}</p>
+              <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                {identityLabel}
+              </Badge>
+            </div>
             <p className="truncate text-xs leading-4 text-muted-foreground">
               {item.tourTitle}
               {" · "}
@@ -101,7 +110,8 @@ export function BookingInboxRow({
               {" · "}
               {formatBookingDeparture(item.departureAt, locale)}
               {capacityLabel !== null ? ` · ${capacityLabel}` : ""}
-              {" · "}
+            </p>
+            <p className="truncate text-[11px] leading-4 text-muted-foreground/80">
               {t("submittedShort", { date: formatBookingDateTime(item.submittedAt, locale) })}
               {pendingAgeDays !== null
                 ? ` · ${t("pendingAgeDays", { days: pendingAgeDays })}`

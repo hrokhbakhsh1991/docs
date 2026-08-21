@@ -1,6 +1,5 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
 import type { AppLocale } from "@/i18n/routing";
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 
@@ -23,14 +22,18 @@ export function BookingsKpiCard({
   ariaLabel,
 }: BookingsKpiCardProps) {
   const content = (
-    <CardContent className="px-3 py-2.5">
+    <>
       <p className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="text-xl font-semibold tabular-nums">{formatLocalizedNumber(value, locale)}</p>
-    </CardContent>
+      <p className="text-sm font-semibold tabular-nums">{formatLocalizedNumber(value, locale)}</p>
+    </>
   );
 
   if (onClick === undefined) {
-    return <Card className="shadow-none">{content}</Card>;
+    return (
+      <div className="inline-flex items-center gap-3 rounded-full border border-border/70 bg-muted/10 px-3 py-2">
+        {content}
+      </div>
+    );
   }
 
   return (
@@ -39,15 +42,17 @@ export function BookingsKpiCard({
       onClick={onClick}
       aria-label={ariaLabel ?? label}
       aria-pressed={active}
-      className={`rounded-lg text-start transition-colors ${
+      className={`inline-flex items-center text-start transition-colors ${
         active ? "ring-2 ring-primary" : "hover:opacity-90"
       }`}
     >
-      <Card
-        className={`shadow-none ${active ? "border-primary" : "border-border/70 bg-muted/20"}`}
+      <span
+        className={`inline-flex items-center gap-3 rounded-full border px-3 py-2 ${
+          active ? "border-primary bg-background" : "border-border/70 bg-muted/10"
+        }`}
       >
         {content}
-      </Card>
+      </span>
     </button>
   );
 }
