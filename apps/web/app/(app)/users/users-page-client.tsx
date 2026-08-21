@@ -896,7 +896,7 @@ export function UsersPageClient({
             onToggleUserSelected={handleToggleUserSelected}
             onToggleSelectAll={handleToggleSelectAll}
           />
-          <ul className="grid grid-cols-1 gap-4 md:hidden">
+          <ul className="grid grid-cols-1 gap-4 xl:hidden">
             {visibleUsers.map((user) => (
               <li key={user.userId}>
                 <UsersDirectoryMobileCard

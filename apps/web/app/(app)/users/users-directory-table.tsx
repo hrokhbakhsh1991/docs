@@ -74,7 +74,7 @@ export function UsersDirectoryTable({
 
   return (
     <div
-      className="hidden overflow-x-auto rounded-xl border md:block"
+      className="hidden overflow-x-auto rounded-xl border xl:block"
       data-testid={USERS_DIRECTORY_TEST_IDS.tableDesktop}
     >
       <table className="w-full min-w-[44rem] border-collapse text-sm" data-operator-users-table>
