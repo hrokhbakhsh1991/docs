@@ -20,12 +20,12 @@ Meanwhile the template gate already receives `session.pluginId`. Async load igno
 
 ## Decision
 
-1. **Create** (`useOperatorCreateTourWizard`):  
-   `loadWizardWorkspacePlugin(session.pluginId)` with `useCallback` deps on `session.pluginId`.
+1. **Create** (`useOperatorCreateTourWizard` / create page client):  
+   `loadWizardWorkspacePlugin(session.pluginId)` or `warmOperatorWizardShell(session.pluginId)` with effect deps on `session.pluginId`.
 2. **Flat-edit** (`OperatorFlatEditPageClient`):  
-   `loadWizardWorkspacePlugin(session.pluginId)` inside `useEffect`, deps `[session.pluginId]`.
+   `warmFlatEditOperatorShell(session.pluginId)` inside `useEffect`, deps `[session.pluginId]`. Helper calls `warmOperatorWizardShell(pluginId)` then the three flat-edit `ensure*`s. Do **not** require a direct `warmOperatorWizardShell(session.pluginId)` string in the flat-edit client (that is the create-path shape).
 3. **Flat-edit translator**: `useWorkspaceWizardTranslator(session.pluginId)` — drop hard-coded `DENALI_PLUGIN_ID` on that path.
-4. Keep `DENALI_PLUGIN_ID` as the **default parameter** on `loadWizardWorkspacePlugin` for stray/test callers; production wizard paths must pass session id (enforced by Wave I.6 specs).
+4. Keep `DENALI_PLUGIN_ID` as the **default parameter** on `loadWizardWorkspacePlugin` for stray/test callers; production wizard paths must pass session id (enforced by Wave I.6 specs + P2-D4.a-03).
 
 ## Out of scope
 
@@ -50,7 +50,7 @@ sequenceDiagram
 
 ## Status
 
-**DONE** — create + flat-edit async load and flat-edit translator use `session.pluginId`.
+**DONE** — create + flat-edit async load and flat-edit translator use `session.pluginId`. Flat-edit warm goes through `warmFlatEditOperatorShell(session.pluginId)` (not a bare `warmOperatorWizardShell(session.pluginId)` call).
 
 ## Verify
 

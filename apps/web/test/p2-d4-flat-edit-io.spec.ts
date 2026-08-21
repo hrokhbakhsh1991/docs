@@ -31,7 +31,8 @@ describe("p2-d4-flat-edit-io.spec.ts — P2-D4.a", () => {
 
   it("P2-D4.a-03 page client loads plugin via registry before mounting hook (Wave B.c / I.6)", () => {
     const client = readWeb("app/(app)/tours/[id]/edit/flat-edit-page-client.tsx");
-    assert.match(client, /warmOperatorWizardShell\(session\.pluginId\)/);
+    assert.match(client, /warmFlatEditOperatorShell\(session\.pluginId\)/);
+    assert.match(client, /warmOperatorWizardShell\(pluginId\)/);
     assert.match(client, /useOperatorFlatEditPage\(\{ session, tourId, plugin \}/);
   });
 

@@ -30,6 +30,23 @@ useOperatorFlatEditPage
 
 Hook source must not embed `/api/tours/` or `/api/settings/tour-wizard-template` string literals — those live in the web adapter.
 
+### P2-D4.a-03 — plugin load before hook mount
+
+`OperatorFlatEditPageClient` must warm via **session plugin id**, then mount `useOperatorFlatEditPage` only after the plugin object exists (Wave B.c / I.6).
+
+Current wiring (create-warm split):
+
+```text
+OperatorFlatEditPageClient
+  useEffect → warmFlatEditOperatorShell(session.pluginId)
+    → warmOperatorWizardShell(pluginId)     # shared create set
+    → Promise.all(ensureFlatEditChrome|Form|PageReady)
+  then OperatorFlatEditPageClientReady
+    → useOperatorFlatEditPage({ session, tourId, plugin })
+```
+
+`P2-D4.a-03` must **not** require a literal `warmOperatorWizardShell(session.pluginId)` in the flat-edit client. That call shape belongs to `/tours/new` (`create-tour-wizard-client.tsx`). Flat-edit wraps the same `pluginId` argument through `warmFlatEditOperatorShell` so create does not pay for edit-only chunks ([wizard-create-warm-ownership.mdoc](./wizard-create-warm-ownership.mdoc)). Wave I.6-02 already asserts `warmFlatEditOperatorShell(session.pluginId)` + `warmOperatorWizardShell(pluginId)`.
+
 ## Non-goals
 
 | Item | Disposition |

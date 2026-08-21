@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 /** Must match latest prisma/migrations folder name (DEC-097 / MR-P0-003). */
 export const EXPECTED_PRISMA_MIGRATION_HEAD =
-  "20260810120000_operator_registration_active_self_unique";
+  "20260820150000_finance_commercial_quote_member_discount";
 
 /** Required intermediate migrations that must exist even if tip row is present. */
 export const REQUIRED_PRISMA_MIGRATION_NAMES = [
@@ -13,6 +13,9 @@ export const REQUIRED_PRISMA_MIGRATION_NAMES = [
   "20260803120000_http_idempotency_app_tour_grants",
   "20260807120000_operator_registration_departure_keyset_index",
   "20260809120000_finance_refunds",
+  "20260810120000_operator_registration_active_self_unique",
+  "20260820130000_operator_pending_invite_expires_at",
+  "20260820140000_finance_commercial_quotes",
   EXPECTED_PRISMA_MIGRATION_HEAD,
 ] as const;
 

@@ -105,6 +105,7 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
       [
         "booking-payment.adapter.ts",
         "booking-registration-display.adapter.ts",
+        "host-commercial-quote.repository.ts",
         "host-finance-access.adapter.ts",
         "host-finance-capability.adapter.ts",
         "host-finance-clock.adapter.ts",
@@ -113,8 +114,12 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
         "host-finance-persistence-mode.adapter.ts",
         "host-finance-receipt-proof-url.adapter.ts",
         "host-finance-schedule.adapter.ts",
+        "identity-membership-discount-read.adapter.ts",
+        "prisma-commercial-quote.repository.ts",
         "prisma-finance.repository.ts",
         "prisma-workspace-outbox-writer.ts",
+        "read-tour-membership-discount-gate.ts",
+        "registration-commercial-quote-freeze-context.adapter.ts",
         "registration-finance-obligation.adapter.ts",
       ].sort()
     );

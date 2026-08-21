@@ -225,6 +225,8 @@ Catalog field **`pricing.allowMembershipDiscount`** (wizard `pricingPayment.allo
 
 **Discount MVP 2A.1 (composite wiring):** `pricing.allowMembershipDiscount` is a **dependent** of the `pricing.requiresPayment` composite anchor (`DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR` / `DENALI_COMPOSITE_DEPENDENT_PATHS`), same pattern as prepayment, base price, and insurance. SDUI must not emit a standalone boolean renderer for the gate — only the `denali.pricing-payment` surface. When `requiresPayment` is false, the control is hidden; a stored `"true"` may remain in canonical (no clear-on-hide). Finance still ignores unpaid/free tours via free-collection precedence — Catalog does not change that rule. Templates that list only the payment anchor do not duplicate the gate field. Proof: GATE-COMP-01..04.
 
+**Registry parity:** adding the gate field makes `DENALI_FIELD_DEFINITIONS.length` **76** (was 75). `registry-parity.spec.ts` + `evaluate-form-rules.expected.json` must include the new `denali_pricing` row (`canonicalPath: pricing.allowMembershipDiscount`, `visible: false` on unpaid goldens). Skipping that update fails Phase 6 fast-closure (`@app-tour/workspace-denali` test) even when GATE-COMP specs pass.
+
 **Discount MVP 2B (flow verification):** Full journey proven via CQ-E2E-01..05 + CQ-DISC-FLOW-01..07 + CQ-DISC-PERSIST-04 + GATE-01..05 + Postgres CQ persist. Eligible 20% → `member_discount`; gate false → `tour_canonical`; cross-tenant isolation; freeze snapshot stable under live price and Identity % change; override wins.
 
 ### Reducer precedence at freeze
@@ -300,6 +302,18 @@ Refunds return **money actually collected**, capped there — not pre-discount l
 Initial implementation may be **minimal** (version rows + supersede pointer). This contract does **not** prescribe APIs or a promotion engine.
 
 **CQ-1C persistence (implemented):** table `finance_commercial_quotes` — one immutable row per version; `status` transitions only for supersede/lock; all queries tenant-scoped via RLS. Memory driver retains process-local store for fast tests.
+
+**Host adapter map (API `workspace-finance/infrastructure/`, no workspace policy):** FIN-P1.9-01 / FIN-P1.3-01 snapshot the `.ts` files in that folder. Product math stays in `@app-tour/finance-core`; these files are host ports only. After User + Finance + Discount, the quote/discount adapters must appear in that snapshot or Phase 5/6 fail:
+
+| File | Port / role |
+| ---- | ----------- |
+| `host-commercial-quote.repository.ts` | `CommercialQuoteRepositoryPort` — memory vs Prisma by `STORAGE_DRIVER` |
+| `prisma-commercial-quote.repository.ts` | Durable CQ-1C/CQ-2C rows + RLS via `withTenantRls` |
+| `identity-membership-discount-read.adapter.ts` | `MembershipDiscountReadPort` — Identity membership %; finance-core must not import Identity |
+| `registration-commercial-quote-freeze-context.adapter.ts` | `CommercialQuoteFreezeContextPort` — booking + tour canonical at freeze |
+| `read-tour-membership-discount-gate.ts` | Re-export `readTourAllowMembershipDiscount` (DEC-CQ-011); host stays workspace-agnostic |
+
+`create-commercial-quote-service.ts` (top-level host factory) wires freeze + discount ports into `CommercialQuoteService`. Snapshot tests list **infrastructure/*.ts** only; factory stay is covered by DEC-P10-006 top-level allowlist.
 
 **CQ-1B PostgreSQL verification (dev):** fresh `tour_db` migrate deploy applies `20260820140000_finance_commercial_quotes` + member-discount columns; Prisma specs `CQ-DB-01..04` and `CQ-DISC-PERSIST-01..03` pass on real Postgres (create/reload, supersede chain, lock, tenant isolation, member discount metadata). Invoice compile continues to use `payableMinor` only (`CQ-GROSS-04`, `CQ-DISC-PERSIST-04`).
 
