@@ -13,4 +13,5 @@ export const OPERATOR_NAV_TEST_IDS = {
   themeToggle: "operator-theme-toggle",
   brand: "operator-brand",
   newTourCta: "operator-new-tour-cta",
+  sidebarCollapse: "operator-sidebar-collapse",
 } as const;

@@ -3,6 +3,7 @@
  * Authority: docs/phase-9/subphases/9.2-admin-shell.md · REQ-P9-020
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
@@ -28,6 +29,20 @@ describe("dashboard-smoke.spec.ts — Phase 9.2", () => {
     assert.equal(OPERATOR_NAV_TEST_IDS.nav, "operator-nav");
     assert.equal(OPERATOR_NAV_TEST_IDS.main, "operator-main");
     assert.equal(OPERATOR_NAV_TEST_IDS.menuToggle, "operator-menu-toggle");
+  });
+
+  it("WEB-9.2-02b shell restores persisted sidebar preference after mount", () => {
+    const shellSource = readFileSync("src/admin/shell/operator-shell.tsx", "utf8");
+    const shellCss = readFileSync(
+      "../../packages/design-tokens/src/operator-shell-structure.css",
+      "utf8"
+    );
+
+    assert.match(shellSource, /operator-sidebar-collapsed/);
+    assert.match(shellSource, /readStoredSidebarCollapsed/);
+    assert.match(shellSource, /data-operator-sidebar-ready/);
+    assert.doesNotMatch(shellSource, /suppressHydrationWarning/);
+    assert.match(shellCss, /data-operator-sidebar-ready="false"/);
   });
 
   it("WEB-9.2-06 dashboard widget registry renders grid landmarks", () => {

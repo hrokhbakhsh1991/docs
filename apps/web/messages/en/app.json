@@ -7,6 +7,8 @@
   "skipToMain": "Skip to content",
   "openMenu": "Open menu",
   "closeMenu": "Close menu",
+  "collapseNavigation": "Collapse navigation",
+  "expandNavigation": "Expand navigation",
   "toggleTheme": "Toggle theme",
   "accountMenu": "Account menu",
   "roleLabel": "Role: {role}",

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { clearOperatorWelcomeSession } from "@/admin/onboarding/operator-welcome-dismiss";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -18,6 +18,16 @@ import {
   seedWizardCreate,
   type WizardCreateCacheEntry,
 } from "@/workspace/wizard-create-registry";
+
+const OPERATOR_SIDEBAR_STORAGE_KEY = "operator-sidebar-collapsed";
+
+function readStoredSidebarCollapsed() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.localStorage.getItem(OPERATOR_SIDEBAR_STORAGE_KEY) === "true";
+}
 
 export type OperatorShellProps = {
   readonly session: OperatorSessionContext;
@@ -49,9 +59,21 @@ export function OperatorShell({
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [headerScrolled, setHeaderScrolled] = useState(false);
+  const [sidebarPreferenceReady, setSidebarPreferenceReady] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const locale = useLocale();
   const tApp = useTranslations("app");
   const drawerSide = locale === "fa" ? "right" : "left";
+
+  useEffect(() => {
+    setSidebarCollapsed(readStoredSidebarCollapsed());
+    setSidebarPreferenceReady(true);
+  }, []);
+
+  const handleSidebarCollapsedChange = useCallback((collapsed: boolean) => {
+    setSidebarCollapsed(collapsed);
+    window.localStorage.setItem(OPERATOR_SIDEBAR_STORAGE_KEY, collapsed ? "true" : "false");
+  }, []);
 
   const handleLogout = useCallback(async () => {
     clearOperatorWelcomeSession();
@@ -134,6 +156,8 @@ export function OperatorShell({
       <div data-operator-shell-body>
         <aside
           data-operator-sidebar
+          data-operator-sidebar-collapsed={sidebarCollapsed ? "true" : "false"}
+          data-operator-sidebar-ready={sidebarPreferenceReady ? "true" : "false"}
           data-slot="shell-sidebar"
           aria-hidden={false}
         >
@@ -143,6 +167,8 @@ export function OperatorShell({
               workspaceLabel={workspaceLabel}
               displayName={displayName}
               pluginId={pluginId}
+              collapsed={sidebarCollapsed}
+              onCollapsedChange={handleSidebarCollapsedChange}
             />
           </div>
         </aside>

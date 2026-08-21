@@ -7,6 +7,8 @@
   "skipToMain": "پرش به محتوای اصلی",
   "openMenu": "باز کردن منو",
   "closeMenu": "بستن منو",
+  "collapseNavigation": "جمع کردن ناوبری",
+  "expandNavigation": "باز کردن ناوبری",
   "toggleTheme": "تغییر پوسته",
   "accountMenu": "منوی حساب کاربری",
   "roleLabel": "نقش: {role}",
