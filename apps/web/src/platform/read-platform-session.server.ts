@@ -8,13 +8,17 @@ import {
 
 export async function readPlatformOpsSessionFromCookies(): Promise<PlatformOpsSessionPayload | null> {
   const cookieStore = await cookies();
-  const validation = validatePlatformSessionToken(cookieStore.get(PLATFORM_SESSION_COOKIE)?.value);
+  const validation = await validatePlatformSessionToken(
+    cookieStore.get(PLATFORM_SESSION_COOKIE)?.value
+  );
   return validation.status === "valid" ? validation.session : null;
 }
 
-export function readPlatformOpsSessionFromRequest(req: Request): PlatformOpsSessionPayload | null {
+export async function readPlatformOpsSessionFromRequest(
+  req: Request
+): Promise<PlatformOpsSessionPayload | null> {
   const header = req.headers.get("cookie") ?? "";
   const match = header.match(new RegExp(`(?:^|;\\s*)${PLATFORM_SESSION_COOKIE}=([^;]*)`));
-  const validation = validatePlatformSessionToken(match?.[1]);
+  const validation = await validatePlatformSessionToken(match?.[1]);
   return validation.status === "valid" ? validation.session : null;
 }

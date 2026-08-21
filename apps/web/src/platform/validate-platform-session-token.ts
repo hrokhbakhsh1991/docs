@@ -1,4 +1,9 @@
-import { decodeJwtPayload, isJwtExpired } from "@app-tour/session-client";
+import {
+  decodeJwtPayload,
+  isJwtExpired,
+  isJwtVerifyConfigured,
+  verifySessionJwtSignature,
+} from "@app-tour/session-client";
 
 import type { PlatformOpsSessionPayload } from "./platform-session-types";
 
@@ -6,7 +11,8 @@ export type PlatformSessionValidation =
   | { status: "valid"; session: PlatformOpsSessionPayload }
   | { status: "missing" }
   | { status: "expired" }
-  | { status: "invalid_claims" };
+  | { status: "invalid_claims" }
+  | { status: "invalid_signature" };
 
 function normalizePlatformRole(
   role: string | undefined
@@ -17,9 +23,9 @@ function normalizePlatformRole(
   return null;
 }
 
-export function validatePlatformSessionToken(
+export async function validatePlatformSessionToken(
   raw: string | undefined | null
-): PlatformSessionValidation {
+): Promise<PlatformSessionValidation> {
   const token = typeof raw === "string" ? raw.trim() : "";
   if (token.length === 0) {
     return { status: "missing" };
@@ -39,6 +45,11 @@ export function validatePlatformSessionToken(
     return { status: "invalid_claims" };
   }
 
+  // Platform BFF credentials may only be minted from a signed browser session.
+  if (!isJwtVerifyConfigured() || !(await verifySessionJwtSignature(token))) {
+    return { status: "invalid_signature" };
+  }
+
   const phone = typeof claims?.sub === "string" ? claims.sub.trim() : "";
   const platformRoleRaw =
     typeof (claims as { platform_role?: string } | null)?.platform_role === "string"
@@ -53,7 +64,7 @@ export function validatePlatformSessionToken(
 }
 
 /** @deprecated Legacy JSON cookies — use validatePlatformSessionToken. */
-export function parsePlatformSession(raw: string | undefined): PlatformOpsSessionPayload | null {
-  const validated = validatePlatformSessionToken(raw);
+export async function parsePlatformSession(raw: string | undefined): Promise<PlatformOpsSessionPayload | null> {
+  const validated = await validatePlatformSessionToken(raw);
   return validated.status === "valid" ? validated.session : null;
 }

@@ -135,7 +135,7 @@ function redirectToPlatformLogin(request: NextRequest): NextResponse {
   return NextResponse.redirect(loginUrl);
 }
 
-function handlePlatformAdminHost(request: NextRequest, host: string): NextResponse | null {
+async function handlePlatformAdminHost(request: NextRequest, host: string): Promise<NextResponse | null> {
   if (!isPlatformAdminHost(host)) {
     return null;
   }
@@ -162,7 +162,9 @@ function handlePlatformAdminHost(request: NextRequest, host: string): NextRespon
     return forwardPathname(request, pathname);
   }
 
-  const validation = validatePlatformSessionToken(request.cookies.get(PLATFORM_SESSION_COOKIE)?.value);
+  const validation = await validatePlatformSessionToken(
+    request.cookies.get(PLATFORM_SESSION_COOKIE)?.value
+  );
   if (validation.status === "valid") {
     return forwardPathname(request, pathname);
   }
@@ -220,11 +222,11 @@ function redirectLegacyClubAdminHostIfNeeded(request: NextRequest, host: string)
   return NextResponse.redirect(target, 308);
 }
 
-export function middleware(request: NextRequest): NextResponse {
+export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? request.nextUrl.host ?? "";
 
-  const platformResponse = handlePlatformAdminHost(request, host);
+  const platformResponse = await handlePlatformAdminHost(request, host);
   if (platformResponse !== null) {
     return platformResponse;
   }
