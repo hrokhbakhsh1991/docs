@@ -7,8 +7,12 @@ export type TenantDefaultLocale = "fa" | "en";
 export type TenantThemeConfig = {
   readonly primaryColor?: string;
   readonly cssVariables?: Readonly<Record<string, string>>;
-  /** Organization display name — sidebar, login, wizard bridge. */
+  /** Legacy organization display name — kept for backward compatibility during migration. */
   readonly displayName?: string;
+  /** Localized organization display name for Persian UI surfaces. */
+  readonly displayNameFa?: string;
+  /** Localized organization display name for English UI surfaces. */
+  readonly displayNameEn?: string;
   /** MinIO object reference — render via signed URL, not CSS. */
   readonly logo?: TenantBrandLogo;
   /** Default marketing/portal locale when user has no locale cookie. */

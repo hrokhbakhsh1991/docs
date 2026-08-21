@@ -26,6 +26,9 @@ export async function updateTenantRegistryRow(
     if (isStaticTenantRegistryAllowed()) {
       const devTenant = findTenantById(normalized);
       invalidateTenantRegistryCache(normalized, devTenant?.subdomain);
+      if (data.theme !== undefined) {
+        setCachedTenantThemeById(normalized, data.theme);
+      }
       return { id: normalized, subdomain: devTenant?.subdomain ?? normalized };
     }
     throw new Error(`updateTenantRegistryRow: DATABASE_URL required for tenant ${normalized}`);
@@ -44,6 +47,9 @@ export async function updateTenantRegistryRow(
           setCachedTenantThemeById(normalized, data.theme);
         }
         invalidateTenantRegistryCache(normalized, devTenant.subdomain);
+        if (data.theme !== undefined) {
+          setCachedTenantThemeById(normalized, data.theme);
+        }
         return { id: normalized, subdomain: devTenant.subdomain };
       }
     }

@@ -32,6 +32,8 @@ installMemoryStorageDriverForDescribe();
 
 type BrandingResponse = {
   readonly displayName?: string | null;
+  readonly displayNameFa?: string | null;
+  readonly displayNameEn?: string | null;
   readonly logo?: { readonly storageKey?: string } | null;
   readonly code?: string;
 };
@@ -207,16 +209,39 @@ describe("tenant-branding.spec.ts", () => {
   });
 
   it("API-TB-09 PATCH /settings/branding owner succeeds", async () => {
-    const response = await requestHttp(port, "PATCH", "/settings/branding", {
-      headers: {
-        ...ownerHeaders(),
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ displayName: "Alpine Ops" }),
+    const original = await requestHttp(port, "GET", "/settings/branding", {
+      headers: ownerHeaders(),
     });
-    assert.equal(response.status, 200);
-    assert.ok("displayName" in response.body);
-    assert.ok("logo" in response.body);
+    try {
+      const response = await requestHttp(port, "PATCH", "/settings/branding", {
+        headers: {
+          ...ownerHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          displayNameFa: "آلپاین اوپس",
+          displayNameEn: "Alpine Ops",
+        }),
+      });
+      assert.equal(response.status, 200);
+      assert.ok("displayName" in response.body);
+      assert.equal(response.body.displayNameFa, "آلپاین اوپس");
+      assert.equal(response.body.displayNameEn, "Alpine Ops");
+      assert.ok("logo" in response.body);
+    } finally {
+      const restoreResponse = await requestHttp(port, "PATCH", "/settings/branding", {
+        headers: {
+          ...ownerHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          displayName: original.body.displayName ?? null,
+          displayNameFa: original.body.displayNameFa ?? null,
+          displayNameEn: original.body.displayNameEn ?? null,
+        }),
+      });
+      assert.equal(restoreResponse.status, 200);
+    }
   });
 
   it("API-TB-04 POST /settings/branding/logo without Content-Type returns 400", async () => {
@@ -258,6 +283,8 @@ describe("tenant-branding.spec.ts", () => {
       (response.body as { displayName?: string | null }).displayName,
       DENALI_CLUB_PUBLIC_DISPLAY_NAME
     );
+    assert.equal((response.body as { displayNameFa?: string | null }).displayNameFa, null);
+    assert.equal((response.body as { displayNameEn?: string | null }).displayNameEn, null);
   });
 
   it("GL-BRAND-02 GET /public/tenant-branding operator smoke has no club displayName", async () => {
@@ -303,6 +330,45 @@ describe("tenant-branding.spec.ts", () => {
     const body = response.body as { primaryColor?: string; defaultLocale?: string };
     assert.equal(body.primaryColor, "#0d9488");
     assert.equal(body.defaultLocale, "en");
+  });
+
+  it("API-TB-18 localized branding API read/write", async () => {
+    const original = await requestHttp(port, "GET", "/settings/branding", {
+      headers: ownerHeaders(),
+    });
+    try {
+      const patchResponse = await requestHttp(port, "PATCH", "/settings/branding", {
+        headers: {
+          ...ownerHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          displayNameFa: "دنالی تست",
+          displayNameEn: "Denali Test",
+        }),
+      });
+      assert.equal(patchResponse.status, 200);
+      const readResponse = await requestHttp(port, "GET", "/settings/branding", {
+        headers: ownerHeaders(),
+      });
+      assert.equal(readResponse.status, 200);
+      assert.equal(readResponse.body.displayNameFa, "دنالی تست");
+      assert.equal(readResponse.body.displayNameEn, "Denali Test");
+      assert.equal(readResponse.body.displayName, "Denali Test");
+    } finally {
+      const restoreResponse = await requestHttp(port, "PATCH", "/settings/branding", {
+        headers: {
+          ...ownerHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          displayName: original.body.displayName ?? null,
+          displayNameFa: original.body.displayNameFa ?? null,
+          displayNameEn: original.body.displayNameEn ?? null,
+        }),
+      });
+      assert.equal(restoreResponse.status, 200);
+    }
   });
 
   it("API-TB-06 GET /settings/branding/logo/url without logo returns 404", async () => {

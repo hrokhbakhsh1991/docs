@@ -15,6 +15,10 @@ export {
   isTenantBrandingEmpty,
   resolveEffectiveTenantBranding,
 } from "./tenant-branding-merge";
+export {
+  resolveTenantBrandingDisplayName,
+  type TenantBrandingDisplayNameSource,
+} from "./tenant-branding-resolver";
 export type { WorkspaceThemeContract } from "./workspace-theme.contract";
 export {
   tryValidateTenantTheme,

@@ -49,6 +49,20 @@ function assertPrimaryColor(rawValue: unknown): string {
   return trimmed;
 }
 
+function assertDisplayName(rawValue: unknown, fieldName: string): string {
+  if (typeof rawValue !== "string") {
+    fail("TENANT_INVALID_SHAPE", `tenant.${fieldName} must be a string`);
+  }
+  const trimmed = rawValue.trim();
+  if (trimmed.length === 0) {
+    fail("TENANT_INVALID_SHAPE", `tenant.${fieldName} must be non-empty`);
+  }
+  if (trimmed.length > MAX_TENANT_DISPLAY_NAME_LENGTH) {
+    fail("TENANT_INVALID_SHAPE", `tenant.${fieldName} exceeds max length`);
+  }
+  return trimmed;
+}
+
 /**
  * Validates and returns a sanitized tenant theme for DOM injection.
  * Applies the same CSS value safety rules as workspace theme ingress.
@@ -62,6 +76,8 @@ export function validateTenantTheme(theme: unknown): SealedTenantTheme {
     primaryColor?: string;
     cssVariables?: Record<string, string>;
     displayName?: string;
+    displayNameFa?: string;
+    displayNameEn?: string;
     logo?: TenantBrandLogo;
     defaultLocale?: TenantDefaultLocale;
   } = {};
@@ -71,17 +87,15 @@ export function validateTenantTheme(theme: unknown): SealedTenantTheme {
   }
 
   if (theme.displayName !== undefined) {
-    if (typeof theme.displayName !== "string") {
-      fail("TENANT_INVALID_SHAPE", "tenant.displayName must be a string");
-    }
-    const trimmed = theme.displayName.trim();
-    if (trimmed.length === 0) {
-      fail("TENANT_INVALID_SHAPE", "tenant.displayName must be non-empty");
-    }
-    if (trimmed.length > MAX_TENANT_DISPLAY_NAME_LENGTH) {
-      fail("TENANT_INVALID_SHAPE", "tenant.displayName exceeds max length");
-    }
-    result.displayName = trimmed;
+    result.displayName = assertDisplayName(theme.displayName, "displayName");
+  }
+
+  if (theme.displayNameFa !== undefined) {
+    result.displayNameFa = assertDisplayName(theme.displayNameFa, "displayNameFa");
+  }
+
+  if (theme.displayNameEn !== undefined) {
+    result.displayNameEn = assertDisplayName(theme.displayNameEn, "displayNameEn");
   }
 
   if (theme.logo !== undefined) {

@@ -1,10 +1,12 @@
 import {
   DEFAULT_WORKSPACE_TYPE_BINDINGS,
   resolveEffectiveTenantBranding,
+  resolveTenantBrandingDisplayName,
   resolveWorkspacePluginIdForType,
   validateTenantTheme,
   type TenantAuthContext,
   type TenantThemeConfig,
+  type TenantDefaultLocale,
   type WorkspaceTypeId,
 } from "@app-tour/workspace-sdk";
 
@@ -49,15 +51,58 @@ async function readMergedTheme(tenantId: string): Promise<TenantThemeConfig> {
 
 export type TenantBrandingResponse = {
   readonly displayName: string | null;
+  readonly displayNameFa: string | null;
+  readonly displayNameEn: string | null;
   readonly logo: { readonly storageKey: string; readonly contentType: string | null } | null;
   readonly primaryColor: string | null;
 };
+
+function trimToNull(value: string | null | undefined): string | null {
+  const trimmed = value?.trim() ?? "";
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function setThemeDisplayNameField(
+  raw: Record<string, unknown>,
+  field: "displayName" | "displayNameFa" | "displayNameEn",
+  value: string | null | undefined
+): void {
+  if (value === undefined) {
+    return;
+  }
+  const trimmed = trimToNull(value);
+  if (trimmed === null) {
+    delete raw[field];
+    return;
+  }
+  raw[field] = trimmed;
+}
+
+function ensureLegacyDisplayNameFallback(raw: Record<string, unknown>): void {
+  const legacy = trimToNull(typeof raw.displayName === "string" ? raw.displayName : undefined);
+  if (legacy !== null) {
+    raw.displayName = legacy;
+    return;
+  }
+  const localized =
+    trimToNull(typeof raw.displayNameEn === "string" ? raw.displayNameEn : undefined) ??
+    trimToNull(typeof raw.displayNameFa === "string" ? raw.displayNameFa : undefined);
+  if (localized !== null) {
+    raw.displayName = localized;
+  }
+}
 
 export async function getTenantBranding(auth: TenantAuthContext): Promise<TenantBrandingResponse> {
   await assertWorkspaceBrandingModuleAccess(auth, "read");
   const theme = await readMergedTheme(auth.tenantId);
   return {
-    displayName: theme.displayName?.trim() ?? null,
+    displayName:
+      theme.displayName?.trim() ??
+      theme.displayNameEn?.trim() ??
+      theme.displayNameFa?.trim() ??
+      null,
+    displayNameFa: theme.displayNameFa?.trim() ?? null,
+    displayNameEn: theme.displayNameEn?.trim() ?? null,
     logo: theme.logo?.storageKey
       ? {
           storageKey: theme.logo.storageKey,
@@ -70,7 +115,11 @@ export async function getTenantBranding(auth: TenantAuthContext): Promise<Tenant
 
 export async function patchTenantBranding(
   auth: TenantAuthContext,
-  input: { readonly displayName?: string | null }
+  input: {
+    readonly displayName?: string | null;
+    readonly displayNameFa?: string | null;
+    readonly displayNameEn?: string | null;
+  }
 ): Promise<TenantBrandingResponse> {
   await assertWorkspaceBrandingModuleAccess(auth, "mutate");
   const tenant = await resolveRegisteredTenantById(auth.tenantId);
@@ -83,13 +132,15 @@ export async function patchTenantBranding(
   if (input.displayName === null) {
     delete raw.displayName;
   } else if (input.displayName !== undefined) {
-    const trimmed = input.displayName.trim();
-    if (trimmed.length === 0) {
-      delete raw.displayName;
-    } else {
-      raw.displayName = trimmed;
-    }
+    setThemeDisplayNameField(raw, "displayName", input.displayName);
   }
+  if (input.displayNameFa !== undefined) {
+    setThemeDisplayNameField(raw, "displayNameFa", input.displayNameFa);
+  }
+  if (input.displayNameEn !== undefined) {
+    setThemeDisplayNameField(raw, "displayNameEn", input.displayNameEn);
+  }
+  ensureLegacyDisplayNameFallback(raw);
 
   validateTenantTheme(raw);
   await updateTenantRegistryRow(auth.tenantId, {
@@ -183,8 +234,13 @@ export async function resolveTenantBrandLogoUrl(
   return { url, storageKey };
 }
 
-export async function resolvePublicTenantBrandingBySubdomain(subdomain: string): Promise<{
+export async function resolvePublicTenantBrandingBySubdomain(
+  subdomain: string,
+  localeInput?: string | null
+): Promise<{
   readonly displayName: string | null;
+  readonly displayNameFa: string | null;
+  readonly displayNameEn: string | null;
   readonly primaryColor: string | null;
   readonly logoUrl: string | null;
   readonly defaultLocale: string | null;
@@ -194,7 +250,17 @@ export async function resolvePublicTenantBrandingBySubdomain(subdomain: string):
   if (tenant === null) {
     throw new Error("TENANT_NOT_FOUND");
   }
-  const theme = await readMergedTheme(tenant.id);
+  const themeJson = await resolveTenantThemeJsonById(tenant.id);
+  const theme = resolveEffectiveTenantBranding(
+    themeRecordFromJson(themeJson ?? tenant.theme),
+    resolveDefaultTenantBranding(tenant.workspaceType)
+  );
+  const locale: TenantDefaultLocale =
+    localeInput === "fa" || localeInput === "en"
+      ? localeInput
+      : theme.defaultLocale === "fa" || theme.defaultLocale === "en"
+        ? theme.defaultLocale
+        : "en";
   let logoUrl: string | null = null;
   const storageKey = theme.logo?.storageKey?.trim() ?? "";
   if (storageKey.length > 0) {
@@ -209,7 +275,9 @@ export async function resolvePublicTenantBrandingBySubdomain(subdomain: string):
     }
   }
   return {
-    displayName: theme.displayName?.trim() ?? null,
+    displayName: resolveTenantBrandingDisplayName(theme, locale, null) || null,
+    displayNameFa: theme.displayNameFa?.trim() ?? null,
+    displayNameEn: theme.displayNameEn?.trim() ?? null,
     primaryColor: theme.primaryColor ?? null,
     logoUrl,
     defaultLocale: theme.defaultLocale ?? null,

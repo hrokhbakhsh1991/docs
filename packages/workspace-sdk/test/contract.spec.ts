@@ -222,6 +222,7 @@ const ALLOWED_ROOT_RUNTIME_EXPORTS = new Set([
   "resolveGuestCrossSurfaceNav",
   "resolveGuestLandingFeatures",
   "resolveGuestSeoForPlugin",
+  "resolveTenantBrandingDisplayName",
   "resolveHostProbeCapability",
   "resolveIntakeSchema",
   "resolveIntakeSubmitValues",

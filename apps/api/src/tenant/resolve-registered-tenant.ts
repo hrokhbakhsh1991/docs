@@ -40,6 +40,8 @@ function themeFromJson(theme: unknown): TenantThemeConfig {
       ? (record.cssVariables as Record<string, string>)
       : undefined;
   const displayName = typeof record.displayName === "string" ? record.displayName : undefined;
+  const displayNameFa = typeof record.displayNameFa === "string" ? record.displayNameFa : undefined;
+  const displayNameEn = typeof record.displayNameEn === "string" ? record.displayNameEn : undefined;
   const defaultLocale =
     record.defaultLocale === "en" || record.defaultLocale === "fa"
       ? record.defaultLocale
@@ -60,6 +62,8 @@ function themeFromJson(theme: unknown): TenantThemeConfig {
     ...(primaryColor !== undefined ? { primaryColor } : {}),
     ...(cssVariables !== undefined ? { cssVariables } : {}),
     ...(displayName !== undefined ? { displayName } : {}),
+    ...(displayNameFa !== undefined ? { displayNameFa } : {}),
+    ...(displayNameEn !== undefined ? { displayNameEn } : {}),
     ...(defaultLocale !== undefined ? { defaultLocale } : {}),
     ...(logo !== undefined ? { logo } : {}),
   };
@@ -110,8 +114,19 @@ export async function resolveRegisteredTenantById(
   if (isStaticTenantRegistryAllowed() || canResolveDevTenantRegistryFallback()) {
     const devTenant = findTenantById(normalized);
     if (devTenant !== null) {
-      setCachedTenantById(normalized, devTenant);
-      return devTenant;
+      const cachedTheme = getCachedTenantThemeById(normalized);
+      const tenant =
+        cachedTheme !== undefined
+          ? {
+              ...devTenant,
+              theme: resolveEffectiveTenantBranding(
+                themeFromJson(cachedTheme),
+                devTenant.theme
+              ),
+            }
+          : devTenant;
+      setCachedTenantById(normalized, tenant);
+      return tenant;
     }
   }
   if (process.env.DATABASE_URL?.trim() && isPersistedTenantUuid(normalized)) {
@@ -144,8 +159,19 @@ export async function resolveRegisteredTenantBySubdomain(
   if (isStaticTenantRegistryAllowed() || canResolveDevTenantRegistryFallback()) {
     const devTenant = findTenantBySubdomain(normalized);
     if (devTenant !== null) {
-      setCachedTenantBySubdomain(normalized, devTenant);
-      return devTenant;
+      const cachedTheme = getCachedTenantThemeById(devTenant.id.trim().toLowerCase());
+      const tenant =
+        cachedTheme !== undefined
+          ? {
+              ...devTenant,
+              theme: resolveEffectiveTenantBranding(
+                themeFromJson(cachedTheme),
+                devTenant.theme
+              ),
+            }
+          : devTenant;
+      setCachedTenantBySubdomain(normalized, tenant);
+      return tenant;
     }
   }
   if (process.env.DATABASE_URL?.trim()) {

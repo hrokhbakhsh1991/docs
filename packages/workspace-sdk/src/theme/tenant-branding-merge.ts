@@ -6,7 +6,13 @@ export function isTenantBrandingEmpty(theme: TenantThemeConfig): boolean {
     return false;
   }
   const displayName = theme.displayName?.trim();
-  if (displayName !== undefined && displayName.length > 0) {
+  const displayNameFa = theme.displayNameFa?.trim();
+  const displayNameEn = theme.displayNameEn?.trim();
+  if (
+    (displayName !== undefined && displayName.length > 0) ||
+    (displayNameFa !== undefined && displayNameFa.length > 0) ||
+    (displayNameEn !== undefined && displayNameEn.length > 0)
+  ) {
     return false;
   }
   const logoKey = theme.logo?.storageKey?.trim();
@@ -38,6 +44,8 @@ export function resolveEffectiveTenantBranding(
         ? { cssVariables: { ...fallback.cssVariables } }
         : {}),
       ...(fallback.displayName !== undefined ? { displayName: fallback.displayName } : {}),
+      ...(fallback.displayNameFa !== undefined ? { displayNameFa: fallback.displayNameFa } : {}),
+      ...(fallback.displayNameEn !== undefined ? { displayNameEn: fallback.displayNameEn } : {}),
       ...(fallback.logo !== undefined ? { logo: { ...fallback.logo } } : {}),
       ...(fallback.defaultLocale !== undefined ? { defaultLocale: fallback.defaultLocale } : {}),
     };

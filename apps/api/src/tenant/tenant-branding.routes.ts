@@ -96,15 +96,23 @@ export async function handlePatchTenantBranding(
   try {
     const auth = await requireOperatorSession(req);
     const body = await readIdentityRequestBody(req);
-    const displayName =
-      typeof body === "object" && body !== null && "displayName" in body
-        ? (body as { displayName?: string | null }).displayName
-        : undefined;
+    const payload =
+      typeof body === "object" && body !== null
+        ? (body as {
+            readonly displayName?: string | null;
+            readonly displayNameFa?: string | null;
+            readonly displayNameEn?: string | null;
+          })
+        : {};
     await runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const branding = await patchTenantBranding(auth, { displayName });
+        const branding = await patchTenantBranding(auth, {
+          displayName: payload.displayName,
+          displayNameFa: payload.displayNameFa,
+          displayNameEn: payload.displayNameEn,
+        });
         sendJson(res, 200, branding);
       },
       { rateLimit: "write" }
@@ -192,7 +200,10 @@ export async function handlePublicTenantBranding(
       sendHttpError(res, 404, { error: "not_found", code: "TENANT_HOST_UNKNOWN" });
       return;
     }
-    const branding = await resolvePublicTenantBrandingBySubdomain(subdomain);
+    const localeHeader = req.headers["x-tenant-locale"];
+    const locale =
+      Array.isArray(localeHeader) ? localeHeader[0] ?? null : localeHeader?.toString().trim() ?? null;
+    const branding = await resolvePublicTenantBrandingBySubdomain(subdomain, locale);
     sendJson(res, 200, branding);
   } catch (error) {
     mapBrandingError(res, error);

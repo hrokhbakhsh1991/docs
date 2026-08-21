@@ -27,9 +27,22 @@ describe("tenant-branding-merge", () => {
     assert.equal(theme.defaultLocale, "en");
   });
 
+  it("resolveEffectiveTenantBranding preserves localized display names", () => {
+    const stored = {
+      displayNameFa: "دنالی",
+      displayNameEn: "Denali",
+      cssVariables: { "--color-primary": "#0d9488" },
+    };
+    const theme = resolveEffectiveTenantBranding(stored, {});
+    assert.equal(theme.displayNameFa, "دنالی");
+    assert.equal(theme.displayNameEn, "Denali");
+  });
+
   it("isTenantBrandingEmpty treats blank primary and css as empty", () => {
     assert.equal(isTenantBrandingEmpty({}), true);
     assert.equal(isTenantBrandingEmpty({ primaryColor: "  " }), true);
     assert.equal(isTenantBrandingEmpty({ primaryColor: "#059669" }), false);
+    assert.equal(isTenantBrandingEmpty({ displayNameFa: "دنالی" }), false);
+    assert.equal(isTenantBrandingEmpty({ displayNameEn: "Denali" }), false);
   });
 });
