@@ -9,6 +9,7 @@ import {
   commercialQuoteMatchesFreezeInput,
   COMMERCIAL_QUOTE_CALCULATION_VERSION,
   normalizeCommercialQuoteCurrency,
+  type CommercialQuoteFreezeInput,
   type CommercialQuoteVersion,
   type CreateCommercialQuoteVersionInput,
 } from "../domain/commercial-quote";
@@ -59,6 +60,69 @@ export class CommercialQuoteService {
     return this.quotes.getChain(tenantId.trim(), registrationId.trim());
   }
 
+  private async buildCurrentQuoteInput(
+    tenantId: string,
+    registrationId: string
+  ): Promise<CommercialQuoteFreezeInput | null> {
+    const normalizedTenantId = tenantId.trim();
+    const normalizedRegistrationId = registrationId.trim();
+    const resolved = await this.obligation.resolveRegistrationObligation({
+      tenantId: normalizedTenantId,
+      registrationId: normalizedRegistrationId,
+    });
+    if (resolved === null) {
+      return null;
+    }
+
+    const paymentCollection = await this.obligation.resolveRegistrationPaymentCollection({
+      tenantId: normalizedTenantId,
+      registrationId: normalizedRegistrationId,
+    });
+
+    const freezeContext =
+      this.freezeContext === null
+        ? { memberUserId: null, allowMembershipDiscount: false }
+        : ((await this.freezeContext.resolveRegistrationFreezeContext({
+            tenantId: normalizedTenantId,
+            registrationId: normalizedRegistrationId,
+          })) ?? { memberUserId: null, allowMembershipDiscount: false });
+
+    let membershipDiscountPercentage: number | null = null;
+    if (
+      this.membershipDiscount !== null &&
+      freezeContext.memberUserId !== null &&
+      freezeContext.allowMembershipDiscount
+    ) {
+      membershipDiscountPercentage = await this.membershipDiscount.getMembershipDiscountPercentage(
+        normalizedTenantId,
+        freezeContext.memberUserId
+      );
+    }
+
+    return normalizeCreateInput(
+      buildCommercialQuoteFreezeInput({
+        tenantId: normalizedTenantId,
+        registrationId: normalizedRegistrationId,
+        obligation: resolved,
+        paymentCollection,
+        memberUserId: freezeContext.memberUserId,
+        allowMembershipDiscount: freezeContext.allowMembershipDiscount,
+        membershipDiscountPercentage,
+        createdAt: this.clock.nowIso(),
+      })
+    );
+  }
+
+  /**
+   * Passive read preview. Shares the freeze reducer but never creates or supersedes quote rows.
+   */
+  async resolveCommercialQuotePreview(
+    tenantId: string,
+    registrationId: string
+  ): Promise<CommercialQuoteFreezeInput | null> {
+    return this.buildCurrentQuoteInput(tenantId, registrationId);
+  }
+
   /**
    * DEC-CQ-008 — freeze on money path when registration is quotable.
    * Returns null when obligation cannot resolve (legacy path continues).
@@ -78,52 +142,13 @@ export class CommercialQuoteService {
     const chain = await this.quotes.getChain(normalizedTenantId, normalizedRegistrationId);
     assertCommercialQuoteChainNotLocked(chain);
 
-    const resolved = await this.obligation.resolveRegistrationObligation({
-      tenantId: normalizedTenantId,
-      registrationId: normalizedRegistrationId,
-    });
-    if (resolved === null) {
+    const quoteInput = await this.buildCurrentQuoteInput(
+      normalizedTenantId,
+      normalizedRegistrationId
+    );
+    if (quoteInput === null) {
       return null;
     }
-
-    const paymentCollection = await this.obligation.resolveRegistrationPaymentCollection({
-      tenantId: normalizedTenantId,
-      registrationId: normalizedRegistrationId,
-    });
-
-    const freezeContext =
-      this.freezeContext === null
-        ? { memberUserId: null, allowMembershipDiscount: false }
-        : (await this.freezeContext.resolveRegistrationFreezeContext({
-            tenantId: normalizedTenantId,
-            registrationId: normalizedRegistrationId,
-          })) ?? { memberUserId: null, allowMembershipDiscount: false };
-
-    let membershipDiscountPercentage: number | null = null;
-    if (
-      this.membershipDiscount !== null &&
-      freezeContext.memberUserId !== null &&
-      freezeContext.allowMembershipDiscount
-    ) {
-      membershipDiscountPercentage =
-        await this.membershipDiscount.getMembershipDiscountPercentage(
-          normalizedTenantId,
-          freezeContext.memberUserId
-        );
-    }
-
-    const quoteInput = normalizeCreateInput(
-      buildCommercialQuoteFreezeInput({
-        tenantId: normalizedTenantId,
-        registrationId: normalizedRegistrationId,
-        obligation: resolved,
-        paymentCollection,
-        memberUserId: freezeContext.memberUserId,
-        allowMembershipDiscount: freezeContext.allowMembershipDiscount,
-        membershipDiscountPercentage,
-        createdAt: this.clock.nowIso(),
-      })
-    );
 
     if (active !== null && commercialQuoteMatchesFreezeInput(active, quoteInput)) {
       return active;

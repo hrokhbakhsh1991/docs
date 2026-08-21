@@ -242,20 +242,6 @@ export class FinanceService {
     await this.commercialQuotes.ensureFrozenForMoneyPath(tenantId, registrationId);
   }
 
-  private async ensureQuoteExistsForInvoiceRead(
-    tenantId: string,
-    registrationId: string
-  ): Promise<void> {
-    if (this.commercialQuotes === null) {
-      return;
-    }
-    const active = await this.commercialQuotes.getActiveQuote(tenantId, registrationId);
-    if (active !== null) {
-      return;
-    }
-    await this.commercialQuotes.ensureFrozenForMoneyPath(tenantId, registrationId);
-  }
-
   private async lockQuoteAfterCapture(tenantId: string, registrationId: string): Promise<void> {
     if (this.commercialQuotes === null) {
       return;
@@ -278,6 +264,13 @@ export class FinanceService {
       const quote = await this.commercialQuotes.getActiveQuote(tenantId, registrationId);
       if (quote !== null) {
         return quote.payableMinor;
+      }
+      const preview = await this.commercialQuotes.resolveCommercialQuotePreview(
+        tenantId,
+        registrationId
+      );
+      if (preview !== null) {
+        return preview.payableMinor;
       }
     }
     const obligation = await this.obligation.resolveRegistrationObligation({
@@ -1590,7 +1583,6 @@ export class FinanceService {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
     const normalizedRegistrationId = registrationId.trim();
-    await this.ensureQuoteExistsForInvoiceRead(auth.tenantId, normalizedRegistrationId);
     return this.compileRegistrationInvoiceInternal(auth.tenantId, normalizedRegistrationId);
   }
 

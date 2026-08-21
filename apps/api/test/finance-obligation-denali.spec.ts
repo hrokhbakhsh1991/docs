@@ -10,7 +10,6 @@ import { describe, it } from "node:test";
 import { compileRegistrationInvoice } from "@app-tour/finance-core";
 import { createFinanceObligationPort } from "../src/workspace-finance/finance-obligation.factory.ts";
 import { RegistrationFinanceObligationAdapter } from "../src/workspace-finance/infrastructure/registration-finance-obligation.adapter.ts";
-import { resolveDenaliRegistrationObligationMinor } from "../../../packages/workspaces/denali/src/finance/resolve-denali-registration-obligation.ts";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -68,7 +67,15 @@ describe("finance-obligation-denali.spec.ts — FC-2", () => {
           return tour;
         },
       },
-      resolveDenaliRegistrationObligationMinor,
+      () => ({
+        currency: "IRR",
+        obligationMinor: "1300000",
+        source: "tour_canonical",
+        lines: [
+          { code: "trip", amountMinor: "1000000" },
+          { code: "transport", amountMinor: "300000" },
+        ],
+      }),
       () => "IRR"
     );
 
