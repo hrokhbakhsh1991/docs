@@ -1,12 +1,14 @@
 import { logger } from "../observability/logger";
 
 export function deliverOtpCode(mobile: string, code: string): void {
+  void mobile;
+  void code;
   if (process.env.RESEND_API_KEY?.trim()) {
     return;
   }
-  if (process.env.NODE_ENV === "production") {
+  const nodeEnv = process.env.NODE_ENV?.trim();
+  if (nodeEnv !== "development" && nodeEnv !== "test") {
     return;
   }
-  // Dev/staging without SMS provider — visible in API logs only (never returned in HTTP body).
-  logger.info({ mobile: mobile.trim(), code }, "otp-dev delivery");
+  logger.info({ event: "otp.delivery.dev_fallback" }, "otp.delivery.dev_fallback");
 }
