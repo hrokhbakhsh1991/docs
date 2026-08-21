@@ -8,7 +8,7 @@ export async function proxyPlatformApi(
   upstreamPath: string,
   init: RequestInit = {}
 ): Promise<Response> {
-  const session = readPlatformOpsSessionFromRequest(req);
+  const session = await readPlatformOpsSessionFromRequest(req);
   if (session === null) {
     return Response.json(
       { error: { code: "PLATFORM_UNAUTHORIZED", message: "Platform session required" } },
