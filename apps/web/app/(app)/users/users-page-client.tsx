@@ -1,12 +1,9 @@
 "use client";
 
-import { Checkbox } from "@app-tour/ui-primitives/checkbox";
-import { Input as PrimitiveInput } from "@app-tour/ui-primitives/input";
-
 import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Download, Plus, Search, UserPlus } from "lucide-react";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { PageHeader as AdminPageHeader } from "@/admin/patterns/page-header";
@@ -50,16 +47,13 @@ import {
   buildInviteRequestBody,
   buildUsersCsvContent,
   buildUsersCsvFilename,
-  canManageUserRow,
   filterUsersDirectoryByStatus,
   toUsersCsvRows,
   USERS_OWNERSHIP_TRANSFER_UI_ENABLED,
+  canManageUserRow,
 } from "@/features/users/users-page-logic";
 import {
-  addRewardLabel,
   buildRewardsPatchPayload,
-  LOYALTY_REWARD_BADGE_IDS,
-  removeRewardLabel,
   resolveLoyaltyTierFromBadges,
   type LoyaltyTier,
 } from "@/features/users/users-rewards-logic";
@@ -68,10 +62,7 @@ import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 
 import { resolveUsersDirectoryBodyState } from "./users-directory-gate";
 import { UsersDirectoryLockedPanel } from "./users-directory-locked-panel";
-import {
-  UsersDirectoryMobileCard,
-  UsersDirectoryRowActionsSheet,
-} from "./users-directory-row-actions-sheet";
+import { UsersDirectoryMobileCard } from "./users-directory-row-actions-sheet";
 import { UsersDirectoryTable } from "./users-directory-table";
 import { UsersDirectoryBulkToolbar } from "./users-directory-bulk-toolbar";
 import { UsersMemberDetailSheet } from "./users-member-detail-sheet";
@@ -94,7 +85,6 @@ export function UsersPageClient({
   const t = useTranslations("users");
   const tErrors = useTranslations("users.errors");
   const tCommon = useTranslations("common");
-  const locale = useLocale();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -132,7 +122,6 @@ export function UsersPageClient({
   const invitePreview = useMemo(() => resolveInviteRolePreviewKeys(inviteRole), [inviteRole]);
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
-  const [rewardsUser, setRewardsUser] = useState<UsersDirectoryRow | null>(null);
   const [rewardsDiscount, setRewardsDiscount] = useState("");
   const [rewardsSelectableLeader, setRewardsSelectableLeader] = useState(false);
   const [rewardsLeaderBuddy, setRewardsLeaderBuddy] = useState(false);
@@ -141,8 +130,6 @@ export function UsersPageClient({
   const [rewardsLabelDraft, setRewardsLabelDraft] = useState("");
   const [rewardsSaving, setRewardsSaving] = useState(false);
   const [rewardsError, setRewardsError] = useState<string | null>(null);
-  const [actionsUser, setActionsUser] = useState<UsersDirectoryRow | null>(null);
-  const [actionsOpen, setActionsOpen] = useState(false);
   const [detailUser, setDetailUser] = useState<UsersDirectoryRow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<ReadonlySet<string>>(() => new Set());
@@ -150,7 +137,22 @@ export function UsersPageClient({
 
   const canManage = isOwnerRole(session.role);
 
+  const prepareRewardsForm = (user: UsersDirectoryRow) => {
+    setRewardsDiscount(
+      user.permanentDiscountPercentage === null || user.permanentDiscountPercentage === undefined
+        ? ""
+        : String(user.permanentDiscountPercentage)
+    );
+    setRewardsSelectableLeader(user.isSelectableLeader ?? false);
+    setRewardsLeaderBuddy(user.rewardBadges?.includes("LEADER_BUDDY") ?? false);
+    setRewardsLoyaltyTier(resolveLoyaltyTierFromBadges(user.rewardBadges));
+    setRewardsLabels(user.labels ?? []);
+    setRewardsLabelDraft("");
+    setRewardsError(null);
+  };
+
   const openMemberDetail = (user: UsersDirectoryRow) => {
+    prepareRewardsForm(user);
     setDetailUser(user);
     setDetailOpen(true);
   };
@@ -328,6 +330,17 @@ export function UsersPageClient({
   useEffect(() => {
     setSelectedUserIds(new Set());
   }, [query.tab, query.search, query.role, query.status, query.sort]);
+
+  useEffect(() => {
+    if (detailUser === null) {
+      return;
+    }
+    const refreshed = listItems.find((user) => user.userId === detailUser.userId);
+    if (refreshed !== undefined && refreshed !== detailUser) {
+      setDetailUser(refreshed);
+      prepareRewardsForm(refreshed);
+    }
+  }, [detailUser, listItems]);
 
   const handleToggleUserSelected = (userId: string, selected: boolean) => {
     setSelectedUserIds((current) => {
@@ -539,34 +552,14 @@ export function UsersPageClient({
     }
   };
 
-  const openRewardsModal = (user: UsersDirectoryRow) => {
-    setRewardsUser(user);
-    setRewardsDiscount(
-      user.permanentDiscountPercentage === null || user.permanentDiscountPercentage === undefined
-        ? ""
-        : String(user.permanentDiscountPercentage)
-    );
-    setRewardsSelectableLeader(user.isSelectableLeader ?? false);
-    setRewardsLeaderBuddy(user.rewardBadges?.includes("LEADER_BUDDY") ?? false);
-    setRewardsLoyaltyTier(resolveLoyaltyTierFromBadges(user.rewardBadges));
-    setRewardsLabels(user.labels ?? []);
-    setRewardsLabelDraft("");
-    setRewardsError(null);
-  };
-
-  const closeRewardsModal = () => {
-    setRewardsUser(null);
-    setRewardsError(null);
-  };
-
   const handleSaveRewards = async () => {
-    if (rewardsUser === null) {
+    if (detailUser === null) {
       return;
     }
     setRewardsSaving(true);
     setRewardsError(null);
     const built = buildRewardsPatchPayload({
-      previous: rewardsUser,
+      previous: detailUser,
       discountRaw: rewardsDiscount,
       loyaltyTier: rewardsLoyaltyTier,
       labels: rewardsLabels,
@@ -580,7 +573,7 @@ export function UsersPageClient({
     }
 
     try {
-      const response = await fetch(`/api/users/${rewardsUser.userId}/rewards`, {
+      const response = await fetch(`/api/users/${detailUser.userId}/rewards`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(built.payload),
@@ -588,7 +581,6 @@ export function UsersPageClient({
       if (!response.ok) {
         throw new Error(`USERS_REWARDS_HTTP_${response.status}`);
       }
-      closeRewardsModal();
       setFetchNonce((value) => value + 1);
     } catch (rewardsFailure: unknown) {
       setRewardsError(
@@ -693,6 +685,24 @@ export function UsersPageClient({
             />
           </div>
 
+          {hasActiveFilters ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() =>
+                replaceQuery({
+                  ...query,
+                  search: "",
+                  role: "all",
+                  status: "all",
+                })
+              }
+            >
+              {t("filters.clear")}
+            </Button>
+          ) : null}
+
           <div className="flex flex-wrap gap-2" data-testid={USERS_DIRECTORY_TEST_IDS.roleFilter}>
             {ROLE_FILTER_OPTIONS.map((option) => (
               <Button
@@ -755,6 +765,10 @@ export function UsersPageClient({
             <DialogDescription>{t("inviteForm.description")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+              <p className="text-muted-foreground">{t("inviteForm.workspace")}</p>
+              <p className="font-medium">{t("inviteForm.workspaceValue")}</p>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="invite-phone">{t("inviteForm.phone")}</Label>
               <LocalizedNumericInput
@@ -796,6 +810,10 @@ export function UsersPageClient({
                 value={inviteNote}
                 onChange={(event) => setInviteNote(event.target.value)}
               />
+            </div>
+            <div className="space-y-1 rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+              <p>{t("inviteForm.expires")}</p>
+              <p>{t("inviteForm.acceptance")}</p>
             </div>
             {inviteError ? (
               <p role="alert" className="text-sm text-destructive">
@@ -873,12 +891,6 @@ export function UsersPageClient({
             users={visibleUsers}
             session={session}
             busyUserId={rowActionId}
-            locale={locale}
-            onPatchRole={(userId, role) => void handlePatchRole(userId, role)}
-            onRemove={(userId) => void handleRemoveUser(userId)}
-            onSuspend={(userId) => void handleSuspendUser(userId)}
-            onReactivate={(userId) => void handleReactivateUser(userId)}
-            onOpenRewards={openRewardsModal}
             onOpenDetails={openMemberDetail}
             selectedUserIds={selectedUserIds}
             onToggleUserSelected={handleToggleUserSelected}
@@ -893,10 +905,6 @@ export function UsersPageClient({
                   busy={rowActionId === user.userId}
                   selected={selectedUserIds.has(user.userId)}
                   onToggleSelected={(selected) => handleToggleUserSelected(user.userId, selected)}
-                  onOpenActions={() => {
-                    setActionsUser(user);
-                    setActionsOpen(true);
-                  }}
                   onOpenDetails={() => openMemberDetail(user)}
                 />
               </li>
@@ -950,220 +958,53 @@ export function UsersPageClient({
         </p>
       ) : null}
 
-      <Dialog
-        open={rewardsUser !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            closeRewardsModal();
-          }
-        }}
-      >
-        <DialogContent
-          className="max-h-[90vh] max-w-lg overflow-y-auto"
-          data-testid={USERS_DIRECTORY_TEST_IDS.rewardsModal}
-        >
-          <DialogHeader>
-            <DialogTitle>
-              {rewardsUser ? t("rewards.title", { name: rewardsUser.displayName }) : ""}
-            </DialogTitle>
-            <DialogDescription>{t("rewards.description")}</DialogDescription>
-          </DialogHeader>
-          {rewardsUser ? (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="rewards-discount">{t("rewards.discountLabel")}</Label>
-                <LocalizedNumericInput
-                  id="rewards-discount"
-                  mode="digits"
-                  maxLength={3}
-                  value={rewardsDiscount}
-                  placeholder={t("rewards.discountPlaceholder")}
-                  onChange={setRewardsDiscount}
-                />
-              </div>
-
-              <fieldset
-                className="space-y-2"
-                data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLoyaltyTier}
-              >
-                <legend className="text-sm font-medium">{t("rewards.loyaltyTierLabel")}</legend>
-                <div className="flex flex-wrap gap-3 text-sm">
-                  <label className="flex items-center gap-2">
-                    <PrimitiveInput
-                      type="radio"
-                      name="rewards-loyalty-tier"
-                      className="h-4 w-4 shrink-0 p-0"
-                      checked={rewardsLoyaltyTier === "none"}
-                      onChange={() => setRewardsLoyaltyTier("none")}
-                    />
-                    {t("rewards.loyaltyNone")}
-                  </label>
-                  {LOYALTY_REWARD_BADGE_IDS.map((badgeId) => (
-                    <label key={badgeId} className="flex items-center gap-2">
-                      <PrimitiveInput
-                        type="radio"
-                        name="rewards-loyalty-tier"
-                        className="h-4 w-4 shrink-0 p-0"
-                        checked={rewardsLoyaltyTier === badgeId}
-                        onChange={() => setRewardsLoyaltyTier(badgeId)}
-                      />
-                      {badgeId === "VIP_MEMBER"
-                        ? t("rewards.loyaltyVip")
-                        : t("rewards.loyaltyGold")}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-
-              <div className="space-y-2">
-                <Label htmlFor="rewards-label-input">{t("rewards.labelsLabel")}</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="rewards-label-input"
-                    value={rewardsLabelDraft}
-                    placeholder={t("rewards.labelsPlaceholder")}
-                    data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLabelInput}
-                    onChange={(event) => setRewardsLabelDraft(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        setRewardsLabels((current) => addRewardLabel(current, rewardsLabelDraft));
-                        setRewardsLabelDraft("");
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLabelAdd}
-                    onClick={() => {
-                      setRewardsLabels((current) => addRewardLabel(current, rewardsLabelDraft));
-                      setRewardsLabelDraft("");
-                    }}
-                  >
-                    {t("rewards.labelsAdd")}
-                  </Button>
-                </div>
-                {rewardsLabels.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">{t("rewards.labelsEmpty")}</p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {rewardsLabels.map((label, index) => (
-                      <Badge
-                        key={`${label}-${index}`}
-                        variant="secondary"
-                        className="gap-1"
-                        data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLabelChip}
-                      >
-                        {label}
-                        <button
-                          type="button"
-                          className="ms-1 text-xs opacity-70 hover:opacity-100"
-                          aria-label={`Remove ${label}`}
-                          onClick={() =>
-                            setRewardsLabels((current) => removeRewardLabel(current, index))
-                          }
-                        >
-                          ×
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={rewardsSelectableLeader}
-                  onChange={(event) => setRewardsSelectableLeader(event.target.checked)}
-                />
-                {t("rewards.selectableLeader")}
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={rewardsLeaderBuddy}
-                  data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLeaderBuddy}
-                  onChange={(event) => setRewardsLeaderBuddy(event.target.checked)}
-                />
-                {t("rewards.leaderBuddyToggle")}
-              </label>
-              {rewardsError ? (
-                <p role="alert" className="text-sm text-destructive">
-                  {resolveCodedErrorMessage(tErrors, rewardsError)}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={closeRewardsModal}>
-              {tCommon("cancel")}
-            </Button>
-            <Button
-              type="button"
-              disabled={rewardsSaving || rewardsUser === null}
-              data-testid={USERS_DIRECTORY_TEST_IDS.rewardsSave}
-              onClick={() => void handleSaveRewards()}
-            >
-              {rewardsSaving ? t("rewards.saving") : t("rewards.save")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <UsersDirectoryRowActionsSheet
-        user={actionsUser}
-        session={session}
-        busy={actionsUser !== null && rowActionId === actionsUser.userId}
-        open={actionsOpen}
-        onOpenChange={(open) => {
-          setActionsOpen(open);
-          if (!open) {
-            setActionsUser(null);
-          }
-        }}
-        onPatchRole={(role) => {
-          if (actionsUser !== null) {
-            void handlePatchRole(actionsUser.userId, role);
-          }
-        }}
-        onRemove={() => {
-          if (actionsUser !== null) {
-            void handleRemoveUser(actionsUser.userId);
-          }
-        }}
-        onSuspend={() => {
-          if (actionsUser !== null) {
-            void handleSuspendUser(actionsUser.userId);
-          }
-        }}
-        onReactivate={() => {
-          if (actionsUser !== null) {
-            void handleReactivateUser(actionsUser.userId);
-          }
-        }}
-        onOpenRewards={() => {
-          if (actionsUser !== null) {
-            openRewardsModal(actionsUser);
-          }
-        }}
-        onOpenDetails={() => {
-          if (actionsUser !== null) {
-            openMemberDetail(actionsUser);
-            setActionsOpen(false);
-            setActionsUser(null);
-          }
-        }}
-      />
-
       <UsersMemberDetailSheet
         user={detailUser}
+        session={session}
         open={detailOpen}
+        busy={detailUser !== null && rowActionId === detailUser.userId}
+        rewardsDiscount={rewardsDiscount}
+        rewardsSelectableLeader={rewardsSelectableLeader}
+        rewardsLeaderBuddy={rewardsLeaderBuddy}
+        rewardsLoyaltyTier={rewardsLoyaltyTier}
+        rewardsLabels={rewardsLabels}
+        rewardsLabelDraft={rewardsLabelDraft}
+        rewardsSaving={rewardsSaving}
+        rewardsError={rewardsError}
         onOpenChange={(open) => {
           setDetailOpen(open);
           if (!open) {
             setDetailUser(null);
+            setRewardsError(null);
           }
         }}
+        onPatchRole={(role) => {
+          if (detailUser !== null) {
+            void handlePatchRole(detailUser.userId, role);
+          }
+        }}
+        onSuspend={() => {
+          if (detailUser !== null) {
+            void handleSuspendUser(detailUser.userId);
+          }
+        }}
+        onReactivate={() => {
+          if (detailUser !== null) {
+            void handleReactivateUser(detailUser.userId);
+          }
+        }}
+        onRemove={() => {
+          if (detailUser !== null) {
+            void handleRemoveUser(detailUser.userId);
+          }
+        }}
+        onRewardsDiscountChange={setRewardsDiscount}
+        onRewardsSelectableLeaderChange={setRewardsSelectableLeader}
+        onRewardsLeaderBuddyChange={setRewardsLeaderBuddy}
+        onRewardsLoyaltyTierChange={setRewardsLoyaltyTier}
+        onRewardsLabelsChange={setRewardsLabels}
+        onRewardsLabelDraftChange={setRewardsLabelDraft}
+        onSaveRewards={() => void handleSaveRewards()}
       />
     </div>
   );

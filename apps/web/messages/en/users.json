@@ -29,13 +29,20 @@
     "active": "Active",
     "suspended": "Suspended"
   },
+  "filters": {
+    "clear": "Clear filters"
+  },
   "inviteForm": {
     "title": "Invite teammate",
     "description": "Send a workspace invite to a phone number and choose the member role.",
+    "workspace": "Workspace",
+    "workspaceValue": "Denali workspace",
     "phone": "Phone",
     "phonePlaceholder": "+15550001234",
     "role": "Role",
     "nameNote": "Name note (optional)",
+    "expires": "Expires in 7 days",
+    "acceptance": "They become an active workspace member after accepting the invite.",
     "sending": "Sending…",
     "send": "Send invite",
     "preview": {
@@ -64,6 +71,7 @@
   "rewards": {
     "title": "Rewards — {name}",
     "description": "Edit workspace-scoped rewards for this member.",
+    "scopeNote": "These benefits apply to this workspace membership.",
     "discountLabel": "Permanent discount (%)",
     "discountPlaceholder": "0–100",
     "loyaltyTierLabel": "Loyalty tier",
@@ -84,6 +92,7 @@
   "actions": {
     "openRowMenu": "Row actions",
     "details": "Details",
+    "openMember": "Open member",
     "resend": "Resend",
     "revoke": "Revoke",
     "setRole": "Set {role}",
@@ -101,6 +110,10 @@
     "email_desc": "Contact Z→A"
   },
   "table": {
+    "member": "Member",
+    "access": "Access",
+    "benefits": "Benefits",
+    "action": "Action",
     "name": "Name",
     "phone": "Phone",
     "gender": "Gender",
@@ -109,6 +122,17 @@
     "badges": "Badges",
     "lastActive": "Last active",
     "actions": "Actions"
+  },
+  "benefits": {
+    "discountValue": "{value}% discount",
+    "none": "No benefits"
+  },
+  "owner": {
+    "protectedShort": "Protected",
+    "protectedBadge": "Protected owner",
+    "protectedNote": "This member is the workspace owner.",
+    "transferBeforeChange": "This member is the workspace owner. Transfer ownership before changing protected access.",
+    "rewardsProtected": "Owner benefits are protected in this workspace."
   },
   "loadingMore": "Loading more…",
   "bulk": {
@@ -125,6 +149,29 @@
     "removeConfirm": "Remove selected teammates from the organization?"
   },
   "memberDetail": {
+    "description": "Manage this workspace member's current access, benefits, activity, and allowed safety actions.",
+    "sections": {
+      "currentState": "Current state",
+      "access": "Access",
+      "benefits": "Benefits",
+      "activity": "Activity",
+      "danger": "Danger zone"
+    },
+    "fields": {
+      "role": "Role",
+      "status": "Status",
+      "discount": "Permanent discount",
+      "badges": "Labels and badges"
+    },
+    "accessDescription": "Change this member's workspace access without leaving context.",
+    "currentRole": "Current role: {role}",
+    "notManageable": "You cannot change this member from this surface.",
+    "activityDescription": "Recent workspace changes and trip summary.",
+    "recentHistory": "Recent history",
+    "tripSummary": "Trip summary",
+    "showMore": "Show more activity",
+    "showLess": "Show less",
+    "removeDescription": "Removing a membership is different from suspension and requires confirmation.",
     "tabs": {
       "history": "Activity",
       "trips": "Trips"

@@ -196,9 +196,12 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     );
   });
 
-  it("WEB-9.4-11 rewards modal landmarks exposed (R4)", () => {
+  it("WEB-9.4-11 member management benefits landmarks exposed (R4)", () => {
     assert.equal(USERS_DIRECTORY_TEST_IDS.rowRewards, "operator-users-row-rewards");
-    assert.equal(USERS_DIRECTORY_TEST_IDS.rewardsModal, "operator-users-rewards-modal");
+    assert.equal(
+      USERS_DIRECTORY_TEST_IDS.memberDetailBenefits,
+      "operator-users-member-benefits"
+    );
     assert.equal(USERS_DIRECTORY_TEST_IDS.rewardsSave, "operator-users-rewards-save");
     assert.equal(
       USERS_DIRECTORY_TEST_IDS.rewardsLoyaltyTier,
@@ -211,20 +214,34 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
   it("WEB-9.4-11b users dialogs provide accessible descriptions", () => {
     const pageSource = readFileSync("app/(app)/users/users-page-client.tsx", "utf8");
     const detailsSource = readFileSync("app/(app)/users/users-member-detail-sheet.tsx", "utf8");
-    const actionsSource = readFileSync(
-      "app/(app)/users/users-directory-row-actions-sheet.tsx",
-      "utf8"
-    );
     assert.match(
       pageSource,
       /<DialogDescription>\{t\("inviteForm\.description"\)\}<\/DialogDescription>/
     );
     assert.match(
-      pageSource,
-      /<DialogDescription>\{t\("rewards\.description"\)\}<\/DialogDescription>/
+      detailsSource,
+      /<span className="sr-only">\{t\("memberDetail\.description"\)\}<\/span>/
     );
-    assert.match(detailsSource, /<DialogDescription>\{user\.phone \?\? "—"\}<\/DialogDescription>/);
-    assert.match(actionsSource, /<SheetDescription>\{user\.phone \?\? "—"\}<\/SheetDescription>/);
+  });
+
+  it("WEB-9.4-11c users table exposes focused management columns", () => {
+    assert.equal(
+      USERS_DIRECTORY_TEST_IDS.tableMemberHeader,
+      "operator-users-table-member-header"
+    );
+    assert.equal(
+      USERS_DIRECTORY_TEST_IDS.tableAccessHeader,
+      "operator-users-table-access-header"
+    );
+    assert.equal(
+      USERS_DIRECTORY_TEST_IDS.tableBenefitsHeader,
+      "operator-users-table-benefits-header"
+    );
+    assert.equal(
+      USERS_DIRECTORY_TEST_IDS.tableActionHeader,
+      "operator-users-table-action-header"
+    );
+    assert.equal(USERS_DIRECTORY_TEST_IDS.memberCard, "operator-users-member-card");
   });
 
   it("WEB-9.4-15 suspend/reactivate row landmarks exposed (R1)", () => {
@@ -410,7 +427,6 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     assert.equal(USERS_DIRECTORY_TEST_IDS.rowSelect, "operator-users-row-select");
     assert.equal(USERS_DIRECTORY_TEST_IDS.rowSelectAll, "operator-users-row-select-all");
     assert.equal(USERS_DIRECTORY_TEST_IDS.rowAvatar, "operator-users-row-avatar");
-    assert.equal(USERS_DIRECTORY_TEST_IDS.rowGender, "operator-users-row-gender");
   });
 
   it("WEB-9.4-24 R2 rewards leader buddy toggle landmark", () => {

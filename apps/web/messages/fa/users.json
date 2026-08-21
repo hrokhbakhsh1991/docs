@@ -29,13 +29,20 @@
     "active": "فعال",
     "suspended": "معطل"
   },
+  "filters": {
+    "clear": "پاک کردن فیلترها"
+  },
   "inviteForm": {
     "title": "دعوت هم‌تیمی",
     "description": "دعوت سازمانی را برای یک شماره تلفن ارسال کنید و نقش عضو را انتخاب کنید.",
+    "workspace": "سازمان",
+    "workspaceValue": "فضای کاری دنالی",
     "phone": "تلفن",
     "phonePlaceholder": "+989121234567",
     "role": "نقش",
     "nameNote": "یادداشت نام (اختیاری)",
+    "expires": "انقضا تا ۷ روز",
+    "acceptance": "پس از پذیرش دعوت، به عضو فعال همین سازمان تبدیل می‌شود.",
     "sending": "در حال ارسال…",
     "send": "ارسال دعوت",
     "preview": {
@@ -64,6 +71,7 @@
   "rewards": {
     "title": "پاداش — {name}",
     "description": "پاداش‌های محدود به همین سازمان را برای این عضو ویرایش کنید.",
+    "scopeNote": "این مزایا فقط برای عضویت همین سازمان اعمال می‌شوند.",
     "discountLabel": "تخفیف دائمی (٪)",
     "discountPlaceholder": "۰–۱۰۰",
     "loyaltyTierLabel": "سطح وفاداری",
@@ -84,6 +92,7 @@
   "actions": {
     "openRowMenu": "عملیات ردیف",
     "details": "جزئیات",
+    "openMember": "باز کردن عضو",
     "resend": "ارسال مجدد",
     "revoke": "لغو",
     "setRole": "تنظیم {role}",
@@ -101,6 +110,10 @@
     "email_desc": "تماس Z→A"
   },
   "table": {
+    "member": "عضو",
+    "access": "دسترسی",
+    "benefits": "مزایا",
+    "action": "عملیات",
     "name": "نام",
     "phone": "تلفن",
     "gender": "جنسیت",
@@ -109,6 +122,17 @@
     "badges": "نشان‌ها",
     "lastActive": "آخرین فعالیت",
     "actions": "عملیات"
+  },
+  "benefits": {
+    "discountValue": "{value}% تخفیف",
+    "none": "بدون مزایا"
+  },
+  "owner": {
+    "protectedShort": "محافظت‌شده",
+    "protectedBadge": "مالک محافظت‌شده",
+    "protectedNote": "این عضو مالک فضای کاری است.",
+    "transferBeforeChange": "این عضو مالک فضای کاری است. پیش از تغییر دسترسی محافظت‌شده، مالکیت را منتقل کنید.",
+    "rewardsProtected": "مزایای مالک در این فضای کاری محافظت‌شده است."
   },
   "loadingMore": "در حال بارگذاری…",
   "bulk": {
@@ -125,6 +149,29 @@
     "removeConfirm": "هم‌تیمی‌های انتخاب‌شده از سازمان حذف شوند؟"
   },
   "memberDetail": {
+    "description": "دسترسی، مزایا، فعالیت و اقدام‌های مجاز این عضو سازمان را مدیریت کنید.",
+    "sections": {
+      "currentState": "وضعیت فعلی",
+      "access": "دسترسی",
+      "benefits": "مزایا",
+      "activity": "فعالیت",
+      "danger": "ناحیه حساس"
+    },
+    "fields": {
+      "role": "نقش",
+      "status": "وضعیت",
+      "discount": "تخفیف دائمی",
+      "badges": "برچسب‌ها و نشان‌ها"
+    },
+    "accessDescription": "دسترسی این عضو را بدون خروج از زمینه تغییر دهید.",
+    "currentRole": "نقش فعلی: {role}",
+    "notManageable": "امکان تغییر این عضو از این بخش وجود ندارد.",
+    "activityDescription": "تغییرات اخیر سازمان و خلاصه سفرها.",
+    "recentHistory": "تاریخچه اخیر",
+    "tripSummary": "خلاصه سفرها",
+    "showMore": "نمایش فعالیت بیشتر",
+    "showLess": "نمایش کمتر",
+    "removeDescription": "حذف عضویت با تعلیق متفاوت است و نیاز به تایید دارد.",
     "tabs": {
       "history": "فعالیت",
       "trips": "سفرها"
