@@ -15,7 +15,6 @@ export const TOUR_WORKSPACE_TEST_IDS = {
   waitlistPanel: "operator-tour-workspace-waitlist-panel",
   transportPanel: "operator-tour-workspace-transport-panel",
   financePanel: "operator-tour-workspace-finance-panel",
-  approvedQuickAccess: "operator-tour-workspace-approved-quick-access",
   openBookings: "operator-tour-workspace-open-bookings",
   openFinance: "operator-tour-workspace-open-finance",
   roleBanner: "operator-tour-workspace-role-banner",

@@ -38,6 +38,8 @@ type BookingInboxRowProps = {
   readonly inlineApproveBusy?: boolean;
   readonly onInlineApprove?: () => void;
   readonly onInlineApproveDisarm?: () => void;
+  /** Hide repeated tour title when the parent surface is already tour-scoped. */
+  readonly showTourTitle?: boolean;
 };
 
 /** UX-BKG-55 — compact selectable list row (not a per-item card). */
@@ -53,6 +55,7 @@ export function BookingInboxRow({
   inlineApproveBusy = false,
   onInlineApprove,
   onInlineApproveDisarm,
+  showTourTitle = true,
 }: BookingInboxRowProps) {
   const t = useTranslations("bookings");
   const locale = useLocale() as AppLocale;
@@ -64,6 +67,14 @@ export function BookingInboxRow({
   const urgencySlot = resolveBookingRowUrgencySlot(item);
   const pendingAgeDays =
     urgencySlot === "aging" ? resolveBookingPendingAgeDays(item) : null;
+  const rowMetaParts = [
+    ...(showTourTitle ? [item.tourTitle] : []),
+    t("partyShort", { count: item.partySize }),
+    formatBookingDeparture(item.departureAt, locale),
+  ];
+  if (capacityLabel !== null) {
+    rowMetaParts.push(capacityLabel);
+  }
 
   return (
     <div
@@ -104,12 +115,7 @@ export function BookingInboxRow({
               </Badge>
             </div>
             <p className="truncate text-xs leading-4 text-muted-foreground">
-              {item.tourTitle}
-              {" · "}
-              {t("partyShort", { count: item.partySize })}
-              {" · "}
-              {formatBookingDeparture(item.departureAt, locale)}
-              {capacityLabel !== null ? ` · ${capacityLabel}` : ""}
+              {rowMetaParts.join(" · ")}
             </p>
             <p className="truncate text-[11px] leading-4 text-muted-foreground/80">
               {t("submittedShort", { date: formatBookingDateTime(item.submittedAt, locale) })}

@@ -81,9 +81,10 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
       TOUR_WORKSPACE_TEST_IDS.registrationsPanel,
       "operator-tour-workspace-registrations-panel"
     );
+    assert.equal(TOUR_WORKSPACE_TEST_IDS.headerKpis, "operator-tour-workspace-header-kpis");
     assert.equal(
-      TOUR_WORKSPACE_TEST_IDS.approvedQuickAccess,
-      "operator-tour-workspace-approved-quick-access"
+      TOUR_WORKSPACE_TEST_IDS.headerMoneyKpis,
+      "operator-tour-workspace-header-money-kpis"
     );
   });
 
@@ -296,8 +297,8 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(client, /readonly includeFinance: boolean/);
     assert.doesNotMatch(client, /finance-nav-enablement/);
     assert.doesNotMatch(client, /void ensureFinanceNavSupported/);
-    assert.match(client, /approvedQuickAccess/);
-    assert.match(client, /navigateWorkspaceTab\?\.\("transport"\)/);
+    assert.doesNotMatch(client, /approvedQuickAccess/);
+    assert.match(client, /navigateWorkspaceTab\("registrations"\)/);
     assert.equal(
       pickTourCollectionRollup(
         [

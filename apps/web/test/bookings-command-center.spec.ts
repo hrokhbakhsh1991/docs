@@ -1263,7 +1263,8 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     );
     assert.match(pageSource, /BookingsDisplayMenu/);
     assert.match(pageSource, /advancedFiltersOpen/);
-    assert.match(pageSource, /showTourScope=\{canManageOps\}/);
+    assert.match(pageSource, /showStatusFilter=\{lockedStatusFilter\.length === 0\}/);
+    assert.match(pageSource, /showTourScope=\{!embedded && canManageOps\}/);
     assert.match(pageSource, /presetsHint/);
     assert.match(pageSource, /inspectionActionsHint/);
     assert.match(pageSource, /kpi\.pendingAria/);

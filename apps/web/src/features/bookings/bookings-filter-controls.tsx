@@ -18,6 +18,8 @@ type BookingsFilterControlsProps = {
   readonly query: BookingsCommandCenterQuery;
   readonly hasActiveFilters: boolean;
   readonly onReplaceQuery: (next: BookingsCommandCenterQuery) => void;
+  /** When false, hide the lifecycle filter row (used by locked waitlist scope). */
+  readonly showStatusFilter?: boolean;
   /** UX-BKG-53 — Show all tours lives in advanced Filters. */
   readonly showTourScope?: boolean;
 };
@@ -26,26 +28,29 @@ export function BookingsFilterControls({
   query,
   hasActiveFilters,
   onReplaceQuery,
+  showStatusFilter = true,
   showTourScope = false,
 }: BookingsFilterControlsProps) {
   const t = useTranslations("bookings");
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs font-medium text-muted-foreground">{t("advancedFiltersHeading")}</p>
-      <div className="flex flex-wrap gap-1">
-        {BOOKING_STATUS_FILTER_OPTIONS.map((status) => (
-          <Button
-            key={status}
-            size="sm"
-            variant={query.status === status ? "default" : "outline"}
-            onClick={() =>
-              onReplaceQuery({ ...query, status, approvedWithinDays: "" })
-            }
-          >
-            {t(`status.${status}`)}
-          </Button>
-        ))}
-      </div>
+      {showStatusFilter ? (
+        <div className="flex flex-wrap gap-1">
+          {BOOKING_STATUS_FILTER_OPTIONS.map((status) => (
+            <Button
+              key={status}
+              size="sm"
+              variant={query.status === status ? "default" : "outline"}
+              onClick={() =>
+                onReplaceQuery({ ...query, status, approvedWithinDays: "" })
+              }
+            >
+              {t(`status.${status}`)}
+            </Button>
+          ))}
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-1">
         {PAYMENT_STATUS_FILTER_OPTIONS.map((paymentStatus) => (
           <Button

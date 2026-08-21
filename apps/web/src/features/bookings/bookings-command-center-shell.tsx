@@ -174,6 +174,7 @@ export function BookingsPageClient({
       : {}),
   }));
   const query: BookingsCommandCenterQuery = embedded ? embeddedQuery : urlQuery;
+  const isWorkspaceEmbed = embedded && lockedTour.length > 0;
 
   const [searchInput, setSearchInput] = useState(query.search);
   const [listData, setListData] = useState<BookingsListResponse | null>(
@@ -742,7 +743,7 @@ export function BookingsPageClient({
     await runBookingAction("approve", bookingId);
   };
 
-  const showLeaderBanner = leaderAlias || isLeaderReviewAlias(query.scope);
+  const showLeaderBanner = !embedded && (leaderAlias || isLeaderReviewAlias(query.scope));
   const canActOnSelected =
     canManageOps &&
     selectedBooking !== null &&
@@ -784,6 +785,7 @@ export function BookingsPageClient({
         inlineApproveArmed={armedInlineApproveId === item.id}
         onInlineApprove={() => handleInlineApproveClick(item.id)}
         onInlineApproveDisarm={clearInlineApproveArm}
+        showTourTitle={!isWorkspaceEmbed}
       />
     );
   };
@@ -900,13 +902,13 @@ export function BookingsPageClient({
               />
             ) : null}
           </Button>
-          {canManageOps ? (
+          {canManageOps && !embedded ? (
             <BookingsDisplayMenu query={query} onReplaceQuery={replaceQuery} />
           ) : null}
         </div>
       </div>
 
-      {canManageOps ? (
+      {canManageOps && !embedded ? (
         <div
           className="flex flex-col gap-2"
           data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.primaryChrome}
@@ -953,12 +955,13 @@ export function BookingsPageClient({
             query={query}
             hasActiveFilters={hasActiveFilters}
             onReplaceQuery={replaceQuery}
-            showTourScope={canManageOps}
+            showStatusFilter={lockedStatusFilter.length === 0}
+            showTourScope={!embedded && canManageOps}
           />
         </div>
       ) : null}
 
-      {canManageOps && query.status === "all" ? (
+      {canManageOps && !embedded && query.status === "all" ? (
         <p
           className="text-xs text-muted-foreground"
           data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.historyHint}

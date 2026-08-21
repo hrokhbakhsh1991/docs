@@ -333,10 +333,7 @@ function TourWorkspaceLayoutInner({
               </p>
             ) : null}
             {opsCounts !== null ? (
-              <dl
-                className="grid grid-cols-3 gap-3 text-center sm:max-w-lg sm:text-start"
-                data-testid={TOUR_WORKSPACE_TEST_IDS.headerKpis}
-              >
+              <div className="flex flex-wrap gap-2" data-testid={TOUR_WORKSPACE_TEST_IDS.headerKpis}>
                 {(
                   [
                     ["pending", t("header.pending")],
@@ -347,7 +344,7 @@ function TourWorkspaceLayoutInner({
                   <button
                     key={key}
                     type="button"
-                    className="rounded-md border bg-muted/30 px-3 py-2 text-start transition-colors hover:bg-muted"
+                    className="inline-flex items-center gap-2 rounded-full border bg-muted/30 px-3 py-1.5 text-left transition-colors hover:bg-muted"
                     onClick={() =>
                       navigateWorkspaceTab?.(
                         key === "waitlisted"
@@ -358,52 +355,49 @@ function TourWorkspaceLayoutInner({
                       )
                     }
                   >
-                    <dt className="text-xs text-muted-foreground">{label}</dt>
-                    <dd className="text-lg font-semibold">
+                    <span className="text-xs text-muted-foreground">{label}</span>
+                    <span className="text-sm font-semibold">
                       {formatLocalizedNumber(opsCounts[key], locale)}
-                    </dd>
+                    </span>
                   </button>
                 ))}
-              </dl>
+              </div>
             ) : null}
             {moneyKpis !== null ? (
-              <dl
-                className="grid grid-cols-2 gap-3 text-center sm:max-w-lg sm:grid-cols-4 sm:text-start"
-                data-testid={TOUR_WORKSPACE_TEST_IDS.headerMoneyKpis}
-              >
+              <div className="flex flex-wrap gap-2" data-testid={TOUR_WORKSPACE_TEST_IDS.headerMoneyKpis}>
                 <button
                   type="button"
-                  className="rounded-md border bg-muted/30 px-3 py-2 text-start transition-colors hover:bg-muted"
+                  className="inline-flex items-center gap-2 rounded-full border bg-muted/30 px-3 py-1.5 text-left transition-colors hover:bg-muted"
                   onClick={() => navigateWorkspaceTab?.("finance")}
                 >
-                  <dt className="text-xs text-muted-foreground">{t("header.expected")}</dt>
-                  <dd className="text-sm font-semibold">{moneyKpis.expectedLabel ?? "—"}</dd>
+                  <span className="text-xs text-muted-foreground">{t("header.expected")}</span>
+                  <span className="text-sm font-semibold">{moneyKpis.expectedLabel ?? "—"}</span>
                 </button>
                 <button
                   type="button"
-                  className="rounded-md border bg-muted/30 px-3 py-2 text-start transition-colors hover:bg-muted"
+                  className="inline-flex items-center gap-2 rounded-full border bg-muted/30 px-3 py-1.5 text-left transition-colors hover:bg-muted"
                   onClick={() => navigateWorkspaceTab?.("finance")}
                 >
-                  <dt className="text-xs text-muted-foreground">{t("header.collected")}</dt>
-                  <dd className="text-sm font-semibold">{moneyKpis.collectedLabel ?? "—"}</dd>
+                  <span className="text-xs text-muted-foreground">{t("header.collected")}</span>
+                  <span className="text-sm font-semibold">{moneyKpis.collectedLabel ?? "—"}</span>
                 </button>
                 <button
                   type="button"
-                  className="rounded-md border bg-muted/30 px-3 py-2 text-start transition-colors hover:bg-muted"
+                  className="inline-flex items-center gap-2 rounded-full border bg-muted/30 px-3 py-1.5 text-left transition-colors hover:bg-muted"
                   onClick={() => navigateWorkspaceTab?.("finance")}
                 >
-                  <dt className="text-xs text-muted-foreground">{t("header.balanceDue")}</dt>
-                  <dd className="text-sm font-semibold">{moneyKpis.balanceDueLabel ?? "—"}</dd>
+                  <span className="text-xs text-muted-foreground">{t("header.balanceDue")}</span>
+                  <span className="text-sm font-semibold">{moneyKpis.balanceDueLabel ?? "—"}</span>
                 </button>
                 <button
                   type="button"
-                  className="rounded-md border bg-muted/30 px-3 py-2 text-start transition-colors hover:bg-muted"
+                  className="inline-flex items-center gap-2 rounded-full border bg-muted/30 px-3 py-1.5 text-left transition-colors hover:bg-muted"
                   onClick={() => navigateWorkspaceTab?.("finance")}
                 >
-                  <dt className="text-xs text-muted-foreground">{t("header.pendingReceipts")}</dt>
-                  <dd className="text-lg font-semibold">{moneyKpis.pendingReceiptsLabel}</dd>
+                  <span className="text-xs text-muted-foreground">{t("header.pendingReceipts")}</span>
+                  <span className="text-sm font-semibold">{moneyKpis.pendingReceiptsLabel}</span>
                 </button>
-              </dl>
+              </div>
             ) : null}
           </CardContent>
         </Card>
@@ -449,33 +443,6 @@ function TourWorkspaceLayoutInner({
           );
         })}
       </nav>
-
-      {visibleActiveTab === "registrations" && opsCounts !== null ? (
-        <Card
-          data-operator-surface="card"
-          className="shadow-sm"
-          data-testid={TOUR_WORKSPACE_TEST_IDS.approvedQuickAccess}
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">{t("approvedQuickAccess.title")}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">
-              {opsCounts.approved > 0
-                ? t("approvedQuickAccess.count", { count: opsCounts.approved })
-                : t("approvedQuickAccess.empty")}
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => navigateWorkspaceTab?.("transport")}
-            >
-              {t("approvedQuickAccess.cta")}
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
 
       <TourWorkspaceTabPanels
         activeTab={visibleActiveTab}
