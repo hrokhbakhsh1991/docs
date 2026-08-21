@@ -1,9 +1,10 @@
-import { isKnownEquipmentIconKey } from "@app-tour/workspace-denali/settings/equipment-icon-registry";
-
 import { SettingsResourceInvalidError } from "./settings-resource-errors";
 
+export type EquipmentIconKeyValidator = (value: string) => boolean;
+
 export function parseEquipmentIconKeyInput(
-  value: unknown
+  value: unknown,
+  validateEquipmentIconKey?: EquipmentIconKeyValidator
 ): string | null | undefined {
   if (value === undefined) {
     return undefined;
@@ -18,7 +19,7 @@ export function parseEquipmentIconKeyInput(
   if (trimmed.length === 0) {
     return null;
   }
-  if (!isKnownEquipmentIconKey(trimmed)) {
+  if (validateEquipmentIconKey?.(trimmed) !== true) {
     throw new SettingsResourceInvalidError();
   }
   return trimmed;

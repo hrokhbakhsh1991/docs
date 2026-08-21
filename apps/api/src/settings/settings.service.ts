@@ -6,6 +6,7 @@ import { SettingsResourceNotFoundError } from "./in-memory-settings-resources.re
 import { getSettingsResourcesRepository } from "./create-settings-resources-repository";
 import {
   listSettingsModuleMetadataForTenant,
+  resolveEquipmentIconKeyValidatorForTenant,
   resolveSettingsModuleForTenant,
   SettingsModuleUnknownError,
 } from "./settings-registry";
@@ -211,7 +212,13 @@ export async function createSettingsResource(
     }
     let iconKey: string | null | undefined;
     try {
-      iconKey = parseEquipmentIconKeyInput(equipmentBody.iconKey);
+      const validateEquipmentIconKey = await resolveEquipmentIconKeyValidatorForTenant(
+        auth.tenantId
+      );
+      iconKey = parseEquipmentIconKeyInput(
+        equipmentBody.iconKey,
+        validateEquipmentIconKey
+      );
     } catch {
       throw new SettingsResourceInvalidError();
     }
@@ -383,7 +390,13 @@ export async function patchSettingsResource(
     }
     let iconKey: string | null | undefined;
     try {
-      iconKey = parseEquipmentIconKeyInput(equipmentBody.iconKey);
+      const validateEquipmentIconKey = await resolveEquipmentIconKeyValidatorForTenant(
+        auth.tenantId
+      );
+      iconKey = parseEquipmentIconKeyInput(
+        equipmentBody.iconKey,
+        validateEquipmentIconKey
+      );
     } catch {
       throw new SettingsResourceInvalidError();
     }

@@ -7,6 +7,7 @@ import {
   type OperatorSettingsSurface,
   type SettingsModuleManifest,
 } from "@app-tour/workspace-sdk";
+import { isKnownEquipmentIconKey } from "./equipment-icon-registry";
 
 const DENALI_SETTINGS_MODULES = Object.freeze([
   Object.freeze({
@@ -114,6 +115,7 @@ export const DENALI_BACKEND_REQUIRED_MODULE_IDS = Object.freeze(
 export const denaliOperatorSettingsSurface = Object.freeze({
   manifestVersion: 1 as const,
   modules: DENALI_SETTINGS_MODULES,
+  validateEquipmentIconKey: isKnownEquipmentIconKey,
 }) satisfies OperatorSettingsSurface;
 
 export function getDenaliOperatorSettingsSurface(): OperatorSettingsSurface {

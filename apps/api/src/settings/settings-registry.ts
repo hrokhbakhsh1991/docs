@@ -55,3 +55,11 @@ export async function resolveSettingsModuleByConfigKeyForTenant(
   }
   return module;
 }
+
+export async function resolveEquipmentIconKeyValidatorForTenant(
+  tenantId: string
+): Promise<((value: string) => boolean) | undefined> {
+  const workspaceType = await resolveWorkspaceTypeForTenant(tenantId);
+  const plugin = await resolveWorkspacePluginForType(workspaceType);
+  return plugin.operatorSettings?.validateEquipmentIconKey;
+}

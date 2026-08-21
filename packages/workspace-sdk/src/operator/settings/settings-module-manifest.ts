@@ -35,6 +35,7 @@ export type SettingsModuleManifest = {
 export type OperatorSettingsSurface = {
   readonly manifestVersion: 1;
   readonly modules: readonly SettingsModuleManifest[];
+  readonly validateEquipmentIconKey?: (value: string) => boolean;
 };
 
 function isSettingsModuleKind(value: string): value is SettingsModuleKind {
