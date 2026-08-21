@@ -3,6 +3,7 @@
  * Authority: docs/phase-9/appendices/USERS-DIRECTORY-UX.md
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import { resolveUsersDirectoryBodyState } from "../app/(app)/users/users-directory-gate";
@@ -170,7 +171,7 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     assert.equal(USERS_DIRECTORY_TEST_IDS.rowRemove, "operator-users-row-remove");
   });
 
-  it("WEB-9.4-16 owner can edit own rewards but not self role actions (USR-11)", () => {
+  it("WEB-9.4-16 owner rewards action follows protected-role policy (USR-11)", () => {
     const ownerRow = {
       userId: "o1",
       tenantId: "t1",
@@ -180,8 +181,19 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
       phone: null,
     };
     assert.equal(canManageUserRow("owner", "o1", ownerRow), false);
-    assert.equal(canEditUserRewards("owner", "o1", ownerRow), true);
+    assert.equal(canEditUserRewards("owner", "o1", ownerRow), false);
     assert.equal(canEditUserRewards("member", "m1", ownerRow), false);
+    assert.equal(
+      canEditUserRewards("owner", "o1", {
+        userId: "m1",
+        tenantId: "t1",
+        role: "member",
+        status: "ACTIVE",
+        displayName: "Member",
+        phone: null,
+      }),
+      true
+    );
   });
 
   it("WEB-9.4-11 rewards modal landmarks exposed (R4)", () => {
@@ -194,6 +206,25 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     );
     assert.equal(USERS_DIRECTORY_TEST_IDS.rewardsLabelInput, "operator-users-rewards-label-input");
     assert.equal(USERS_DIRECTORY_TEST_IDS.rowMicroBadges, "operator-users-row-micro-badges");
+  });
+
+  it("WEB-9.4-11b users dialogs provide accessible descriptions", () => {
+    const pageSource = readFileSync("app/(app)/users/users-page-client.tsx", "utf8");
+    const detailsSource = readFileSync("app/(app)/users/users-member-detail-sheet.tsx", "utf8");
+    const actionsSource = readFileSync(
+      "app/(app)/users/users-directory-row-actions-sheet.tsx",
+      "utf8"
+    );
+    assert.match(
+      pageSource,
+      /<DialogDescription>\{t\("inviteForm\.description"\)\}<\/DialogDescription>/
+    );
+    assert.match(
+      pageSource,
+      /<DialogDescription>\{t\("rewards\.description"\)\}<\/DialogDescription>/
+    );
+    assert.match(detailsSource, /<DialogDescription>\{user\.phone \?\? "—"\}<\/DialogDescription>/);
+    assert.match(actionsSource, /<SheetDescription>\{user\.phone \?\? "—"\}<\/SheetDescription>/);
   });
 
   it("WEB-9.4-15 suspend/reactivate row landmarks exposed (R1)", () => {

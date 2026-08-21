@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -30,11 +31,7 @@ type UsersMemberDetailSheetProps = {
   readonly onOpenChange: (open: boolean) => void;
 };
 
-export function UsersMemberDetailSheet({
-  user,
-  open,
-  onOpenChange,
-}: UsersMemberDetailSheetProps) {
+export function UsersMemberDetailSheet({ user, open, onOpenChange }: UsersMemberDetailSheetProps) {
   const t = useTranslations("users");
   const tBookingsStatus = useTranslations("bookings.status");
   const tErrors = useTranslations("users.errors");
@@ -126,7 +123,9 @@ export function UsersMemberDetailSheet({
 
   const resolveRoleLabel = (raw: string): string => {
     if (raw === "ACTIVE" || raw === "SUSPENDED" || raw === "REMOVED") {
-      return t(`status.${raw === "REMOVED" ? "removed" : raw === "SUSPENDED" ? "suspended" : "active"}`);
+      return t(
+        `status.${raw === "REMOVED" ? "removed" : raw === "SUSPENDED" ? "suspended" : "active"}`
+      );
     }
     if (raw === "rewards") {
       return t("memberDetail.eventLabels.rewards");
@@ -170,7 +169,9 @@ export function UsersMemberDetailSheet({
     if (Number.isNaN(date.getTime())) {
       return iso;
     }
-    return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(date);
+    return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(
+      date
+    );
   };
 
   return (
@@ -181,7 +182,7 @@ export function UsersMemberDetailSheet({
       >
         <DialogHeader className="shrink-0 border-b px-6 pb-4 pt-6">
           <DialogTitle>{user.displayName}</DialogTitle>
-          <p className="text-sm text-muted-foreground">{user.phone ?? "—"}</p>
+          <DialogDescription>{user.phone ?? "—"}</DialogDescription>
         </DialogHeader>
 
         <div className="flex shrink-0 gap-2 border-b px-6 py-2">
@@ -205,15 +206,23 @@ export function UsersMemberDetailSheet({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
           {activeTab === "history" && historyLoading ? (
-            <Skeleton className="h-32 w-full rounded-lg" data-testid={USERS_DIRECTORY_TEST_IDS.memberDetailLoading} />
+            <Skeleton
+              className="h-32 w-full rounded-lg"
+              data-testid={USERS_DIRECTORY_TEST_IDS.memberDetailLoading}
+            />
           ) : null}
           {activeTab === "trips" && tripsLoading ? (
-            <Skeleton className="h-32 w-full rounded-lg" data-testid={USERS_DIRECTORY_TEST_IDS.memberDetailLoading} />
+            <Skeleton
+              className="h-32 w-full rounded-lg"
+              data-testid={USERS_DIRECTORY_TEST_IDS.memberDetailLoading}
+            />
           ) : null}
 
           {activeTab === "history" && historyError !== null ? (
             <div className="space-y-2" role="alert">
-              <p className="text-sm text-destructive">{resolveCodedErrorMessage(tErrors, historyError)}</p>
+              <p className="text-sm text-destructive">
+                {resolveCodedErrorMessage(tErrors, historyError)}
+              </p>
               <Button type="button" size="sm" variant="outline" onClick={retryLoad}>
                 {t("memberDetail.retry")}
               </Button>
@@ -222,7 +231,9 @@ export function UsersMemberDetailSheet({
 
           {activeTab === "trips" && tripsError !== null ? (
             <div className="space-y-2" role="alert">
-              <p className="text-sm text-destructive">{resolveCodedErrorMessage(tErrors, tripsError)}</p>
+              <p className="text-sm text-destructive">
+                {resolveCodedErrorMessage(tErrors, tripsError)}
+              </p>
               <Button type="button" size="sm" variant="outline" onClick={retryLoad}>
                 {t("memberDetail.retry")}
               </Button>
@@ -235,7 +246,10 @@ export function UsersMemberDetailSheet({
                 <p className="text-sm text-muted-foreground">{t("memberDetail.historyEmpty")}</p>
               ) : (
                 history?.items.map((entry, index) => (
-                  <div key={`${entry.createdAt}-${index}`} className="rounded-lg border p-3 text-sm">
+                  <div
+                    key={`${entry.createdAt}-${index}`}
+                    className="rounded-lg border p-3 text-sm"
+                  >
                     <p className="font-medium">{resolveHistorySummary(entry)}</p>
                     <p className="text-muted-foreground">
                       {t("memberDetail.byActor", { actor: entry.actorMobile })}
@@ -250,7 +264,9 @@ export function UsersMemberDetailSheet({
           {!tripsLoading && tripsError === null && activeTab === "trips" ? (
             <div className="space-y-4" data-testid={USERS_DIRECTORY_TEST_IDS.memberDetailTrips}>
               <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary">{t("memberDetail.totalTrips", { count: trips?.totalTrips ?? 0 })}</Badge>
+                <Badge variant="secondary">
+                  {t("memberDetail.totalTrips", { count: trips?.totalTrips ?? 0 })}
+                </Badge>
                 <Badge variant="outline">
                   {t("memberDetail.completedTrips", { count: trips?.completedTrips ?? 0 })}
                 </Badge>

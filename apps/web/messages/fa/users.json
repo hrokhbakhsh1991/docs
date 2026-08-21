@@ -31,6 +31,7 @@
   },
   "inviteForm": {
     "title": "دعوت هم‌تیمی",
+    "description": "دعوت سازمانی را برای یک شماره تلفن ارسال کنید و نقش عضو را انتخاب کنید.",
     "phone": "تلفن",
     "phonePlaceholder": "+989121234567",
     "role": "نقش",
@@ -62,6 +63,7 @@
   },
   "rewards": {
     "title": "پاداش — {name}",
+    "description": "پاداش‌های محدود به همین سازمان را برای این عضو ویرایش کنید.",
     "discountLabel": "تخفیف دائمی (٪)",
     "discountPlaceholder": "۰–۱۰۰",
     "loyaltyTierLabel": "سطح وفاداری",

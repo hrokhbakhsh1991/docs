@@ -442,14 +442,27 @@ export class PrismaIdentityRepository implements IdentityRepository {
 
   async listPendingInvitesByTenant(tenantId: string): Promise<readonly PendingInviteRecord[]> {
     const now = new Date();
-    const rows = await withTenantRls(tenantId, (tx) =>
-      tx.operatorPendingInvite.findMany({
+    const rows = await withTenantRls(tenantId, async (tx) => {
+      const pending = await tx.operatorPendingInvite.findMany({
         where: { tenantId, ...activePendingInviteWhere(now) },
         select: PENDING_INVITE_LIST_SELECT,
         orderBy: { inviteId: "asc" },
         take: MAX_PENDING_INVITES_PER_TENANT,
-      })
-    );
+      });
+      const phones = [...new Set(pending.map((row) => row.phone))];
+      const activeMembers =
+        phones.length === 0
+          ? []
+          : await tx.user.findMany({
+              where: {
+                mobile: { in: phones },
+                memberships: { some: { tenantId, status: "ACTIVE" } },
+              },
+              select: { mobile: true },
+            });
+      const activePhones = new Set(activeMembers.map((row) => row.mobile));
+      return pending.filter((row) => !activePhones.has(row.phone));
+    });
     return rows.map((row) => toPendingInviteRecord(row));
   }
 
@@ -457,16 +470,27 @@ export class PrismaIdentityRepository implements IdentityRepository {
     tenantId: string,
     phone: string
   ): Promise<PendingInviteRecord | null> {
-    const row = await withTenantRls(tenantId, (tx) =>
-      tx.operatorPendingInvite.findFirst({
+    const row = await withTenantRls(tenantId, async (tx) => {
+      const invite = await tx.operatorPendingInvite.findFirst({
         where: {
           tenantId,
           phone: normalizeMobile(phone),
           ...activePendingInviteWhere(),
         },
         select: PENDING_INVITE_LIST_SELECT,
-      })
-    );
+      });
+      if (invite === null) {
+        return null;
+      }
+      const activeMember = await tx.user.findFirst({
+        where: {
+          mobile: invite.phone,
+          memberships: { some: { tenantId, status: "ACTIVE" } },
+        },
+        select: { id: true },
+      });
+      return activeMember === null ? invite : null;
+    });
     return row === null ? null : toPendingInviteRecord(row);
   }
 
@@ -936,6 +960,10 @@ export class PrismaIdentityRepository implements IdentityRepository {
           sessionVersion: (existing?.sessionVersion ?? 0) + 1,
           membershipMetadata: metadata,
         },
+      });
+      await tx.operatorPendingInvite.updateMany({
+        where: { tenantId: input.tenantId, phone: mobile, ...activePendingInviteWhere() },
+        data: { status: OPERATOR_INVITE_STATUS_ACCEPTED },
       });
       return toMembershipRecord(row);
     });

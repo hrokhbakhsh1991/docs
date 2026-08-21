@@ -12,10 +12,16 @@ import {
   seedOperatorIdentityFixture,
 } from "./fixtures/operator-identity-fixture";
 import { getIdentityRepository } from "../src/identity/create-identity-repository";
-import { InviteAlreadyPendingError, InviteLifecycleError } from "../src/identity/in-memory-identity.repository";
+import {
+  InviteAlreadyPendingError,
+  InviteLifecycleError,
+} from "../src/identity/in-memory-identity.repository";
 import { inviteWorkspaceUser } from "../src/identity/users.service";
 import { acceptWorkspaceInvite } from "../src/identity/invites.service";
-import { buildExpiredPendingInviteSeed, buildPendingInviteSeed } from "./fixtures/pending-invite-fixture";
+import {
+  buildExpiredPendingInviteSeed,
+  buildPendingInviteSeed,
+} from "./fixtures/pending-invite-fixture";
 import { installHttpTestClient } from "./http-test-client";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
@@ -514,11 +520,14 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
     assert.equal(after.status, "ACTIVE");
     assert.equal(after.sessionVersion, sessionVersionBefore);
 
+    const storedInvite = await repo.findInviteByToken(inviteToken);
+    assert.equal(storedInvite?.status, "INVITED");
+
     const pending = await client.requestJson<UsersApiResponse>("GET", "/users/invites", {
       headers: operatorAuthHeaders(),
     });
     const pendingPhones = (pending.body.items ?? []).map((row) => row.phone);
-    assert.ok(pendingPhones.includes(OPERATOR_SMOKE.ownerMobile));
+    assert.ok(!pendingPhones.includes(OPERATOR_SMOKE.ownerMobile));
   });
 
   it("API-9.4-22c accept does not overwrite existing member (INVITE-ACCEPT-MEMBERSHIP-INVARIANT)", async () => {
@@ -984,6 +993,42 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
     const pending = await repo.listPendingInvitesByTenant(OPERATOR_SMOKE.tenantId);
     const matching = pending.filter((row) => row.phone === phone);
     assert.equal(matching.length, 1);
+  });
+
+  it("INVITE-LIFECYCLE-02 public guest onboarding accepts matching pending invite", async () => {
+    const repo = getIdentityRepository();
+    const phone = "+15550007712";
+
+    const created = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
+      headers: operatorAuthHeaders(),
+      body: { phone, role: "member", nameNote: "Public guest lifecycle" },
+    });
+    assert.equal(created.status, 201);
+    const inviteToken = created.body.inviteToken;
+    assert.ok(typeof inviteToken === "string");
+
+    const before = await client.requestJson<UsersApiResponse>("GET", "/users/invites", {
+      headers: operatorAuthHeaders(),
+    });
+    assert.equal(before.status, 200);
+    assert.equal((before.body.items ?? []).filter((row) => row.phone === phone).length, 1);
+
+    const registered = await repo.registerPublicGuest({
+      tenantId: OPERATOR_SMOKE.tenantId,
+      mobile: phone,
+      displayName: "Public Guest Member",
+    });
+    assert.equal(registered.membership.status, "ACTIVE");
+    assert.equal(registered.membership.role, "member");
+
+    const storedInvite = await repo.findInviteByToken(inviteToken);
+    assert.equal(storedInvite?.status, "ACCEPTED");
+
+    const after = await client.requestJson<UsersApiResponse>("GET", "/users/invites", {
+      headers: operatorAuthHeaders(),
+    });
+    assert.equal(after.status, 200);
+    assert.equal((after.body.items ?? []).filter((row) => row.phone === phone).length, 0);
   });
 
   it("INVITE-TTL-01 pending invite before expiry accepts successfully", async () => {

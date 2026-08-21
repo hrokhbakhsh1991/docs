@@ -31,6 +31,7 @@
   },
   "inviteForm": {
     "title": "Invite teammate",
+    "description": "Send a workspace invite to a phone number and choose the member role.",
     "phone": "Phone",
     "phonePlaceholder": "+15550001234",
     "role": "Role",
@@ -62,6 +63,7 @@
   },
   "rewards": {
     "title": "Rewards — {name}",
+    "description": "Edit workspace-scoped rewards for this member.",
     "discountLabel": "Permanent discount (%)",
     "discountPlaceholder": "0–100",
     "loyaltyTierLabel": "Loyalty tier",

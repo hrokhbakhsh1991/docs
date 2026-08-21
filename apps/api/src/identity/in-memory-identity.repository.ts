@@ -31,10 +31,7 @@ import {
   evaluateInviteLifecycleForAccept,
   isActiveOwner,
 } from "./users-rbac.policy";
-import {
-  matchesDirectoryPair,
-  sortDirectoryPairs,
-} from "./users-directory-query";
+import { matchesDirectoryPair, sortDirectoryPairs } from "./users-directory-query";
 import type { UsersDirectoryListFilters } from "./users-directory-list-projection";
 import type {
   IdentityMembershipRecord,
@@ -125,13 +122,8 @@ export type IdentityRepository = {
     userIds: readonly string[]
   ): Promise<ReadonlyMap<string, IdentityMembershipRecord>>;
   listMembershipsByTenant(tenantId: string): Promise<readonly IdentityMembershipRecord[]>;
-  listMembershipsWithUsersByTenant(
-    tenantId: string
-  ): Promise<readonly MembershipWithUserRecord[]>;
-  countMembershipsDirectory(
-    tenantId: string,
-    filters: UsersDirectoryListFilters
-  ): Promise<number>;
+  listMembershipsWithUsersByTenant(tenantId: string): Promise<readonly MembershipWithUserRecord[]>;
+  countMembershipsDirectory(tenantId: string, filters: UsersDirectoryListFilters): Promise<number>;
   listMembershipsWithUsersDirectoryPage(
     tenantId: string,
     filters: UsersDirectoryListFilters,
@@ -254,7 +246,9 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     return this.usersById.get(userId) ?? null;
   }
 
-  async findUsersByIds(userIds: readonly string[]): Promise<ReadonlyMap<string, IdentityUserRecord>> {
+  async findUsersByIds(
+    userIds: readonly string[]
+  ): Promise<ReadonlyMap<string, IdentityUserRecord>> {
     const map = new Map<string, IdentityUserRecord>();
     for (const userId of new Set(userIds)) {
       const user = this.usersById.get(userId);
@@ -387,6 +381,7 @@ export class InMemoryIdentityRepository implements IdentityRepository {
           };
 
     this.memberships.set(key, membership);
+    this.acceptActiveInvitesForMembership(input.tenantId, mobile);
     return { user, membership };
   }
 
@@ -466,7 +461,10 @@ export class InMemoryIdentityRepository implements IdentityRepository {
   async listPendingInvitesByTenant(tenantId: string): Promise<readonly PendingInviteRecord[]> {
     const now = new Date();
     return [...this.invites.values()].filter(
-      (row) => row.tenantId === tenantId && isOperatorInviteActive(row, now)
+      (row) =>
+        row.tenantId === tenantId &&
+        isOperatorInviteActive(row, now) &&
+        !this.hasActiveMembershipForPhone(row.tenantId, row.phone)
     );
   }
 
@@ -481,15 +479,13 @@ export class InMemoryIdentityRepository implements IdentityRepository {
         (invite) =>
           invite.tenantId === tenantId &&
           invite.phone === normalized &&
-          isOperatorInviteActive(invite, now)
+          isOperatorInviteActive(invite, now) &&
+          !this.hasActiveMembershipForPhone(invite.tenantId, invite.phone)
       ) ?? null;
     return row === null ? null : { ...row };
   }
 
-  async findPendingInvite(
-    tenantId: string,
-    inviteId: string
-  ): Promise<PendingInviteRecord | null> {
+  async findPendingInvite(tenantId: string, inviteId: string): Promise<PendingInviteRecord | null> {
     const row = this.invites.get(inviteId);
     if (row === undefined || row.tenantId !== tenantId || !isOperatorInviteActive(row)) {
       return null;
@@ -572,7 +568,10 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     if (invite.role === "owner") {
       let activeOwnerCount = 0;
       for (const row of this.memberships.values()) {
-        if (row.tenantId === invite.tenantId && isActiveOwner({ role: row.role, status: row.status })) {
+        if (
+          row.tenantId === invite.tenantId &&
+          isActiveOwner({ role: row.role, status: row.status })
+        ) {
           activeOwnerCount += 1;
         }
       }
@@ -613,7 +612,10 @@ export class InMemoryIdentityRepository implements IdentityRepository {
 
   private syncActiveInvitePhoneIndex(invite: PendingInviteRecord): void {
     if (isOperatorInviteActive(invite)) {
-      this.invitesByTenantPhone.set(pendingInvitePhoneKey(invite.tenantId, invite.phone), invite.inviteId);
+      this.invitesByTenantPhone.set(
+        pendingInvitePhoneKey(invite.tenantId, invite.phone),
+        invite.inviteId
+      );
     }
   }
 
@@ -621,6 +623,34 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     const phoneKey = pendingInvitePhoneKey(invite.tenantId, invite.phone);
     if (this.invitesByTenantPhone.get(phoneKey) === invite.inviteId) {
       this.invitesByTenantPhone.delete(phoneKey);
+    }
+  }
+
+  private hasActiveMembershipForPhone(tenantId: string, phone: string): boolean {
+    const user = this.usersByMobile.get(normalizeMobile(phone));
+    if (user === undefined) {
+      return false;
+    }
+    const membership = this.memberships.get(membershipKey(user.id, tenantId));
+    return membership?.status === "ACTIVE";
+  }
+
+  private acceptActiveInvitesForMembership(tenantId: string, phone: string): void {
+    const now = new Date();
+    for (const invite of this.invites.values()) {
+      if (
+        invite.tenantId !== tenantId ||
+        invite.phone !== phone ||
+        !isOperatorInviteActive(invite, now)
+      ) {
+        continue;
+      }
+      const accepted: PendingInviteRecord = {
+        ...invite,
+        status: OPERATOR_INVITE_STATUS_ACCEPTED,
+      };
+      this.invites.set(invite.inviteId, accepted);
+      this.clearActiveInvitePhoneIndex(invite);
     }
   }
 
@@ -882,9 +912,7 @@ export class InviteLifecycleError extends Error {
   }
 }
 
-export function assertInviteAcceptCreatesMembership(
-  existingMembershipRole: string | null
-): void {
+export function assertInviteAcceptCreatesMembership(existingMembershipRole: string | null): void {
   const decision = evaluateInviteAccept({ existingMembershipRole });
   if (!decision.ok) {
     throw new InviteAcceptConflictError(decision.code);

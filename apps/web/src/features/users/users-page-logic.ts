@@ -71,14 +71,14 @@ export function canManageUserRow(
   return rank[actorRole] > rank[target.role as ActorRole];
 }
 
-/** Owner/admin may edit their own rewards profile; role/suspend/remove stay gated by {@link canManageUserRow}. */
+/** Rewards editing follows the backend protected-role contract: owner rewards are immutable here. */
 export function canEditUserRewards(
   actorRole: ActorRole,
   actorUserId: string,
   target: UsersDirectoryRow
 ): boolean {
-  if (target.userId === actorUserId && (actorRole === "owner" || actorRole === "admin")) {
-    return true;
+  if (target.role === "owner") {
+    return false;
   }
   return canManageUserRow(actorRole, actorUserId, target);
 }

@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -751,6 +752,7 @@ export function UsersPageClient({
               <UserPlus className="h-5 w-5" />
               {t("inviteForm.title")}
             </DialogTitle>
+            <DialogDescription>{t("inviteForm.description")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -964,124 +966,132 @@ export function UsersPageClient({
             <DialogTitle>
               {rewardsUser ? t("rewards.title", { name: rewardsUser.displayName }) : ""}
             </DialogTitle>
+            <DialogDescription>{t("rewards.description")}</DialogDescription>
           </DialogHeader>
           {rewardsUser ? (
             <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="rewards-discount">{t("rewards.discountLabel")}</Label>
-              <LocalizedNumericInput
-                id="rewards-discount"
-                mode="digits"
-                maxLength={3}
-                value={rewardsDiscount}
-                placeholder={t("rewards.discountPlaceholder")}
-                onChange={setRewardsDiscount}
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="rewards-discount">{t("rewards.discountLabel")}</Label>
+                <LocalizedNumericInput
+                  id="rewards-discount"
+                  mode="digits"
+                  maxLength={3}
+                  value={rewardsDiscount}
+                  placeholder={t("rewards.discountPlaceholder")}
+                  onChange={setRewardsDiscount}
+                />
+              </div>
 
-            <fieldset className="space-y-2" data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLoyaltyTier}>
-              <legend className="text-sm font-medium">{t("rewards.loyaltyTierLabel")}</legend>
-              <div className="flex flex-wrap gap-3 text-sm">
-                <label className="flex items-center gap-2">
-                  <PrimitiveInput
-                    type="radio"
-                    name="rewards-loyalty-tier"
-                    className="h-4 w-4 shrink-0 p-0"
-                    checked={rewardsLoyaltyTier === "none"}
-                    onChange={() => setRewardsLoyaltyTier("none")}
-                  />
-                  {t("rewards.loyaltyNone")}
-                </label>
-                {LOYALTY_REWARD_BADGE_IDS.map((badgeId) => (
-                  <label key={badgeId} className="flex items-center gap-2">
+              <fieldset
+                className="space-y-2"
+                data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLoyaltyTier}
+              >
+                <legend className="text-sm font-medium">{t("rewards.loyaltyTierLabel")}</legend>
+                <div className="flex flex-wrap gap-3 text-sm">
+                  <label className="flex items-center gap-2">
                     <PrimitiveInput
                       type="radio"
                       name="rewards-loyalty-tier"
                       className="h-4 w-4 shrink-0 p-0"
-                      checked={rewardsLoyaltyTier === badgeId}
-                      onChange={() => setRewardsLoyaltyTier(badgeId)}
+                      checked={rewardsLoyaltyTier === "none"}
+                      onChange={() => setRewardsLoyaltyTier("none")}
                     />
-                    {badgeId === "VIP_MEMBER" ? t("rewards.loyaltyVip") : t("rewards.loyaltyGold")}
+                    {t("rewards.loyaltyNone")}
                   </label>
-                ))}
-              </div>
-            </fieldset>
-
-            <div className="space-y-2">
-              <Label htmlFor="rewards-label-input">{t("rewards.labelsLabel")}</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="rewards-label-input"
-                  value={rewardsLabelDraft}
-                  placeholder={t("rewards.labelsPlaceholder")}
-                  data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLabelInput}
-                  onChange={(event) => setRewardsLabelDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      setRewardsLabels((current) => addRewardLabel(current, rewardsLabelDraft));
-                      setRewardsLabelDraft("");
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLabelAdd}
-                  onClick={() => {
-                    setRewardsLabels((current) => addRewardLabel(current, rewardsLabelDraft));
-                    setRewardsLabelDraft("");
-                  }}
-                >
-                  {t("rewards.labelsAdd")}
-                </Button>
-              </div>
-              {rewardsLabels.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("rewards.labelsEmpty")}</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {rewardsLabels.map((label, index) => (
-                    <Badge
-                      key={`${label}-${index}`}
-                      variant="secondary"
-                      className="gap-1"
-                      data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLabelChip}
-                    >
-                      {label}
-                      <button
-                        type="button"
-                        className="ms-1 text-xs opacity-70 hover:opacity-100"
-                        aria-label={`Remove ${label}`}
-                        onClick={() => setRewardsLabels((current) => removeRewardLabel(current, index))}
-                      >
-                        ×
-                      </button>
-                    </Badge>
+                  {LOYALTY_REWARD_BADGE_IDS.map((badgeId) => (
+                    <label key={badgeId} className="flex items-center gap-2">
+                      <PrimitiveInput
+                        type="radio"
+                        name="rewards-loyalty-tier"
+                        className="h-4 w-4 shrink-0 p-0"
+                        checked={rewardsLoyaltyTier === badgeId}
+                        onChange={() => setRewardsLoyaltyTier(badgeId)}
+                      />
+                      {badgeId === "VIP_MEMBER"
+                        ? t("rewards.loyaltyVip")
+                        : t("rewards.loyaltyGold")}
+                    </label>
                   ))}
                 </div>
-              )}
-            </div>
+              </fieldset>
 
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={rewardsSelectableLeader}
-                onChange={(event) => setRewardsSelectableLeader(event.target.checked)}
-              />
-              {t("rewards.selectableLeader")}
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={rewardsLeaderBuddy}
-                data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLeaderBuddy}
-                onChange={(event) => setRewardsLeaderBuddy(event.target.checked)}
-              />
-              {t("rewards.leaderBuddyToggle")}
-            </label>
-            {rewardsError ? (
-              <p role="alert" className="text-sm text-destructive">
-                {resolveCodedErrorMessage(tErrors, rewardsError)}
-              </p>
-            ) : null}
+              <div className="space-y-2">
+                <Label htmlFor="rewards-label-input">{t("rewards.labelsLabel")}</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="rewards-label-input"
+                    value={rewardsLabelDraft}
+                    placeholder={t("rewards.labelsPlaceholder")}
+                    data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLabelInput}
+                    onChange={(event) => setRewardsLabelDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        setRewardsLabels((current) => addRewardLabel(current, rewardsLabelDraft));
+                        setRewardsLabelDraft("");
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLabelAdd}
+                    onClick={() => {
+                      setRewardsLabels((current) => addRewardLabel(current, rewardsLabelDraft));
+                      setRewardsLabelDraft("");
+                    }}
+                  >
+                    {t("rewards.labelsAdd")}
+                  </Button>
+                </div>
+                {rewardsLabels.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t("rewards.labelsEmpty")}</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {rewardsLabels.map((label, index) => (
+                      <Badge
+                        key={`${label}-${index}`}
+                        variant="secondary"
+                        className="gap-1"
+                        data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLabelChip}
+                      >
+                        {label}
+                        <button
+                          type="button"
+                          className="ms-1 text-xs opacity-70 hover:opacity-100"
+                          aria-label={`Remove ${label}`}
+                          onClick={() =>
+                            setRewardsLabels((current) => removeRewardLabel(current, index))
+                          }
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={rewardsSelectableLeader}
+                  onChange={(event) => setRewardsSelectableLeader(event.target.checked)}
+                />
+                {t("rewards.selectableLeader")}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={rewardsLeaderBuddy}
+                  data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLeaderBuddy}
+                  onChange={(event) => setRewardsLeaderBuddy(event.target.checked)}
+                />
+                {t("rewards.leaderBuddyToggle")}
+              </label>
+              {rewardsError ? (
+                <p role="alert" className="text-sm text-destructive">
+                  {resolveCodedErrorMessage(tErrors, rewardsError)}
+                </p>
+              ) : null}
             </div>
           ) : null}
           <DialogFooter>

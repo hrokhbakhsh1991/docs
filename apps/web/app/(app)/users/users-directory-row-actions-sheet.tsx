@@ -7,7 +7,13 @@ import { useTranslations } from "next-intl";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   USERS_DIRECTORY_TEST_IDS,
   type InvitableWorkspaceRole,
@@ -70,6 +76,7 @@ export function UsersDirectoryRowActionsSheet({
       >
         <SheetHeader>
           <SheetTitle>{user.displayName}</SheetTitle>
+          <SheetDescription>{user.phone ?? "—"}</SheetDescription>
         </SheetHeader>
         <div className="mt-4 space-y-4">
           <UserMicroBadges user={user} />
