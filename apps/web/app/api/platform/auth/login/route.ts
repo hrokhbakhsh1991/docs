@@ -85,7 +85,6 @@ export async function POST(req: Request): Promise<NextResponse> {
       ok: true,
       phone,
       role,
-      platform_session_token: verifyPayload.platformSessionToken,
     },
     { status: 200 }
   );

@@ -3,8 +3,6 @@
  */
 import { expect, type Page } from "@playwright/test";
 
-import { PLATFORM_SESSION_COOKIE } from "../../src/platform/build-platform-session-cookie";
-
 export const PLATFORM_OPS_PHONE = "+989121234567";
 export const PLATFORM_DEV_OTP = "1234";
 
@@ -25,19 +23,8 @@ export async function loginPlatformOps(page: Page): Promise<void> {
     },
   });
   expect(loginRes.ok()).toBeTruthy();
-  const loginBody = (await loginRes.json()) as { platform_session_token?: string };
-  expect(typeof loginBody.platform_session_token).toBe("string");
-
-  await page.context().addCookies([
-    {
-      name: PLATFORM_SESSION_COOKIE,
-      value: loginBody.platform_session_token!,
-      domain: "admin.localhost",
-      path: "/",
-      httpOnly: true,
-      sameSite: "Lax",
-    },
-  ]);
+  const loginBody = (await loginRes.json()) as { role?: string };
+  expect(typeof loginBody.role).toBe("string");
 
   const workspacesRes = await page.request.get("/api/platform/workspaces");
   expect(workspacesRes.ok()).toBeTruthy();
