@@ -52,7 +52,6 @@ import {
 import {
   mergeMembershipMetadata,
   readMembershipMetadata,
-  writeMembershipMetadata,
   writePublicProfileMetadata,
 } from "./membership-metadata";
 import {
@@ -211,7 +210,9 @@ export class PrismaIdentityRepository implements IdentityRepository {
     return row === null ? null : { id: row.id, mobile: row.mobile };
   }
 
-  async findUsersByIds(userIds: readonly string[]): Promise<ReadonlyMap<string, IdentityUserRecord>> {
+  async findUsersByIds(
+    userIds: readonly string[]
+  ): Promise<ReadonlyMap<string, IdentityUserRecord>> {
     if (userIds.length === 0) {
       return new Map();
     }
@@ -366,7 +367,9 @@ export class PrismaIdentityRepository implements IdentityRepository {
   }
 
   async findOtpChallenge(challengeId: string): Promise<OtpChallengeRecord | null> {
-    const row = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_OTP).mobileOtpChallenge.findUnique({
+    const row = await getIdentityAdminClient(
+      IDENTITY_ADMIN_REASON.ID_OTP
+    ).mobileOtpChallenge.findUnique({
       where: { id: challengeId.trim() },
     });
     if (row === null) {
@@ -467,10 +470,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
     return row === null ? null : toPendingInviteRecord(row);
   }
 
-  async findPendingInvite(
-    tenantId: string,
-    inviteId: string
-  ): Promise<PendingInviteRecord | null> {
+  async findPendingInvite(tenantId: string, inviteId: string): Promise<PendingInviteRecord | null> {
     const row = await withTenantRls(tenantId, (tx) =>
       tx.operatorPendingInvite.findFirst({
         where: { inviteId, tenantId, ...activePendingInviteWhere() },
@@ -516,7 +516,9 @@ export class PrismaIdentityRepository implements IdentityRepository {
   }
 
   async markInviteExpired(inviteId: string): Promise<void> {
-    await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_PENDING_INVITE).operatorPendingInvite.updateMany({
+    await getIdentityAdminClient(
+      IDENTITY_ADMIN_REASON.ID_PENDING_INVITE
+    ).operatorPendingInvite.updateMany({
       where: { inviteId, status: OPERATOR_INVITE_STATUS_INVITED },
       data: { status: OPERATOR_INVITE_STATUS_EXPIRED },
     });
@@ -686,8 +688,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
       return tx.userTenant.update({
         where: { userId_tenantId: { userId, tenantId } },
         data: {
-          membershipMetadata: writeMembershipMetadata({
-            ...(metadata.displayName !== undefined ? { displayName: metadata.displayName } : {}),
+          membershipMetadata: mergeMembershipMetadata(row.membershipMetadata, {
             rewards: mergedRewards,
           }),
         },
@@ -742,19 +743,16 @@ export class PrismaIdentityRepository implements IdentityRepository {
       return tx.userTenant.update({
         where: { userId_tenantId: { userId, tenantId } },
         data: {
-          membershipMetadata: mergeMembershipMetadata(
-            row.membershipMetadata,
-            {
-              ...(patch.displayName !== undefined ? { displayName: patch.displayName.trim() } : {}),
-              ...(patch.email !== undefined
-                ? { email: patch.email === null ? undefined : patch.email.trim() }
-                : {}),
-              ...("gender" in patch ? { gender: patch.gender ?? null } : {}),
-              ...(patch.nationalId !== undefined ? { nationalId: patch.nationalId.trim() } : {}),
-              ...(patch.fatherName !== undefined ? { fatherName: patch.fatherName.trim() } : {}),
-              ...(patch.birthDate !== undefined ? { birthDate: patch.birthDate.trim() } : {}),
-            } as Parameters<typeof mergeMembershipMetadata>[1],
-          ),
+          membershipMetadata: mergeMembershipMetadata(row.membershipMetadata, {
+            ...(patch.displayName !== undefined ? { displayName: patch.displayName.trim() } : {}),
+            ...(patch.email !== undefined
+              ? { email: patch.email === null ? undefined : patch.email.trim() }
+              : {}),
+            ...("gender" in patch ? { gender: patch.gender ?? null } : {}),
+            ...(patch.nationalId !== undefined ? { nationalId: patch.nationalId.trim() } : {}),
+            ...(patch.fatherName !== undefined ? { fatherName: patch.fatherName.trim() } : {}),
+            ...(patch.birthDate !== undefined ? { birthDate: patch.birthDate.trim() } : {}),
+          } as Parameters<typeof mergeMembershipMetadata>[1]),
         },
       });
     });
@@ -897,9 +895,13 @@ export class PrismaIdentityRepository implements IdentityRepository {
     const displayName = input.displayName.trim();
     const email = input.email?.trim();
 
-    let userRow = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_USER_READ).user.findUnique({ where: { mobile } });
+    let userRow = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_USER_READ).user.findUnique({
+      where: { mobile },
+    });
     if (userRow === null) {
-      userRow = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_USER_WRITE).user.create({ data: { mobile } });
+      userRow = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_USER_WRITE).user.create({
+        data: { mobile },
+      });
     }
     const user: IdentityUserRecord = { id: userRow.id, mobile: userRow.mobile };
 
@@ -961,15 +963,14 @@ export class PrismaIdentityRepository implements IdentityRepository {
         data: { sessionVersion: { increment: 1 } },
       });
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new MobileAlreadyRegisteredError();
       }
       throw error;
     }
-    const row = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_USER_READ).user.findUnique({ where: { id: userId } });
+    const row = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_USER_READ).user.findUnique({
+      where: { id: userId },
+    });
     if (row === null) {
       throw new MembershipNotFoundError(userId);
     }

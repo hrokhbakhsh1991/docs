@@ -33,6 +33,15 @@ function readRewards(metadata: Prisma.JsonValue | undefined): MembershipRewardsR
     return undefined;
   }
   const record = metadata as Record<string, unknown>;
+  const nestedRewards = record.rewards;
+  if (
+    nestedRewards !== null &&
+    nestedRewards !== undefined &&
+    typeof nestedRewards === "object" &&
+    !Array.isArray(nestedRewards)
+  ) {
+    return readRewards(nestedRewards as Prisma.JsonValue);
+  }
   const rewards: MembershipRewardsRecord = {};
   if ("permanentDiscountPercentage" in record) {
     const value = record.permanentDiscountPercentage;
@@ -141,7 +150,9 @@ function readPortalModuleGrantsArray(raw: unknown): readonly string[] {
   if (!Array.isArray(raw)) {
     return Object.freeze([]);
   }
-  const moduleIds = raw.filter((entry): entry is string => typeof entry === "string" && entry.length > 0);
+  const moduleIds = raw.filter(
+    (entry): entry is string => typeof entry === "string" && entry.length > 0
+  );
   return Object.freeze([...new Set(moduleIds)]);
 }
 
@@ -194,7 +205,7 @@ export function writeMembershipMetadata(input: MembershipMetadataFields): Prisma
       ? { birthDate: input.birthDate }
       : {}),
     ...(input.gender !== undefined ? { gender: input.gender } : {}),
-    ...(input.rewards !== undefined ? writeRewards(input.rewards) : {}),
+    ...(input.rewards !== undefined ? { rewards: writeRewards(input.rewards) } : {}),
     ...(input.avatar !== undefined ? { avatar: writeAvatar(input.avatar) } : {}),
     ...(input.portalModuleGrants !== undefined && input.portalModuleGrants.length > 0
       ? { portalModuleGrants: [...input.portalModuleGrants] }
@@ -233,8 +244,11 @@ export function mergeMembershipMetadata(
     ...(nextGender !== undefined ? { gender: nextGender } : {}),
     ...(nextAvatar !== undefined ? { avatar: nextAvatar } : {}),
     portalModuleGrants:
-      patch.portalModuleGrants !== undefined ? patch.portalModuleGrants : current.portalModuleGrants,
-    portalPlanCode: patch.portalPlanCode !== undefined ? patch.portalPlanCode : current.portalPlanCode,
+      patch.portalModuleGrants !== undefined
+        ? patch.portalModuleGrants
+        : current.portalModuleGrants,
+    portalPlanCode:
+      patch.portalPlanCode !== undefined ? patch.portalPlanCode : current.portalPlanCode,
     portalCapabilityFlags:
       patch.portalCapabilityFlags !== undefined
         ? patch.portalCapabilityFlags
