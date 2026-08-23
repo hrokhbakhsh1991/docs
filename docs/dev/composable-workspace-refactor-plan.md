@@ -459,7 +459,7 @@ Refinement vs requested shape (evidence-based):
   - Files: design doc `docs/dev/cw3-01-tour-publish-visibility-port.md` (port interface, manifest `publishVisibilityModule`/`publishVisibilityExport`, adapter matrix, DEC-CW-07 deps, risks). Production types/codegen deferred to CW3-02.
   - Deps: CW1-02, CW1-04, CW0-02 (does not depend on deferred Urban capacity tasks CW1-03/05/06). Risk: **MEDIUM** (design only).
 
-- **CW3-02** `[ ]` **Codegen: publish-visibility dispatch bindings**
+- **CW3-02** `[x]` **Codegen: publish-visibility dispatch bindings**
   - Files: `scripts/codegen/workspace-registry/domains/` (canonical/tour domain), new `*.generated.ts` dispatch.
   - Validation: `generate-workspace-registry.mjs --check` determinism; goldens CW0-02.
   - Deps: CW3-01. Risk: **MEDIUM**.
@@ -513,23 +513,23 @@ Refinement vs requested shape (evidence-based):
 
 > Gate: DEC-CW-01 and DEC-CW-03 must be answered before CW4-05+.
 
-- **CW4-01** `[ ]` **Booking transition table census (host vs Denali parallel graph)**
+- **CW4-01** `[x]` **Booking transition table census (host vs Denali parallel graph)**
   - Invariant: documented diff between `BookingsService` enforced edges and `DENALI_BOOKING_TRANSITIONS`; both allow pending→{approved,waitlisted,rejected,cancelled}, waitlisted→{approved,rejected,cancelled}, approved→cancelled.
   - Evidence: TRUTH §13–18; FEAS Step 4.
   - Deps: CW0-04. Risk: **LOW**.
 
-- **CW4-02** `[ ]` **Promote host transition table to exported contract (booking-http-contracts or tour-core)**
+- **CW4-02** `[x]` **Promote host transition table to exported contract (booking-http-contracts or tour-core)**
   - Invariant: single machine-readable edge list; host service consumes it; wire enum unchanged.
   - Files: `packages/booking-http-contracts/src/` (+ service import).
   - Validation: `booking-lifecycle.spec.ts` unchanged.
   - Deps: CW4-01. Risk: **MEDIUM**.
 
-- **CW4-03** `[ ]` **Denali ops manifest statusPipeline derives from shared contract**
+- **CW4-03** `[x]` **Denali ops manifest statusPipeline derives from shared contract**
   - Invariant: `bookings-ops-manifest.spec.ts` DN-B1-OPS-01 alignment becomes derivation, not manual sync.
   - Files: `packages/workspaces/denali/src/bookings/ops-manifest.ts`, `booking/status.ts`.
   - Deps: CW4-02. Risk: **MEDIUM**.
 
-- **CW4-04** `[ ]` **Demote `denali/booking/lifecycle.ts` to derived/test-parity module**
+- **CW4-04** `[x]` **Demote `denali/booking/lifecycle.ts` to derived/test-parity module**
   - Invariant: no production consumer relies on the parallel graph for authorization; history-append model either moved to shared contract or explicitly workspace-retained (documented).
   - Rollback: keep parallel file; mark `[v]` pending closure.
   - Deps: CW4-03. Risk: **MEDIUM**.

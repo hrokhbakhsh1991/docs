@@ -187,7 +187,15 @@
         "formProfileGhostPathsModule": { "type": "string" },
         "formProfileGhostPathsExport": { "type": "string" },
         "validationSyncOnly": { "type": "boolean" },
-        "catalogRefEnrichment": { "type": "boolean" }
+        "catalogRefEnrichment": { "type": "boolean" },
+        "publishVisibilityModule": {
+          "type": "string",
+          "description": "Module exporting public catalog visibility predicate (CW3-01)"
+        },
+        "publishVisibilityExport": {
+          "type": "string",
+          "description": "Export name: (canonical) => boolean; true when tour is publicly visible"
+        }
       }
     },
     "workspaceFinance": {

@@ -9,8 +9,11 @@ extends:
 code_sot:
   - apps/api/src/canonical/workspace-canonical-tour-dispatch.ts
   - apps/api/src/canonical/workspace-canonical-tour-bindings.generated.ts
+  - apps/api/src/canonical/workspace-publish-visibility-dispatch.ts
+  - apps/api/src/canonical/workspace-publish-visibility-bindings.generated.ts
   - apps/api/src/tours/workspace-tour-write-dispatch.ts
   - scripts/codegen/workspace-registry/domains/tour-api.mjs
+  - packages/workspace-sdk/src/tour/tour-publish-visibility.port.ts
   - apps/api/src/canonical/workspace-catalog-ref-allowlist-resolvers.generated.ts
   - apps/api/src/tours/workspace-wizard-rules-bindings.generated.ts
   - apps/api/src/integrations/platform/workspace-integration-capabilities.generated.ts
@@ -37,6 +40,7 @@ mandatory_for:
 | Read publish label | `readTourPublishStatusLabel` | `workspace-canonical-tour-bindings.generated.ts` |
 | Detect publish transition | `detectTourPublishTransition` | same |
 | Migrate canonical | `resolveMigrateCanonicalHook` | same |
+| Public catalog visibility | `isTourPubliclyVisible` | `workspace-publish-visibility-bindings.generated.ts` |
 | Tour write side effects | `workspace-tour-write-dispatch.ts` | `tour-api.mjs` |
 
 **Forbidden in platform handlers:**
@@ -58,6 +62,23 @@ const label = readTourPublishStatusLabel(workspaceType, canonical);
 ```
 
 Published vs draft inference uses **lifecycle contract + canonical labels** (`published`, `active`, or `lifecycle.publishStatus`) — never a hard-coded plugin id.
+
+### Publish visibility dispatch (CW3-02)
+
+Workspaces that expose public catalog or published-tour registration declare on `canonicalTour`:
+
+| Manifest field | Role | Example (Denali) |
+| -------------- | ---- | ---------------- |
+| `publishVisibilityModule` | Package-relative module exporting `(canonical) => boolean` | `./catalog/denali-publish-status` |
+| `publishVisibilityExport` | Named export — true when tour is publicly visible | `isDenaliTourPublished` |
+
+Codegen (`scripts/codegen/workspace-registry/domains/tour-api.mjs`) emits `WORKSPACE_PUBLISH_VISIBILITY_BINDINGS`. Host code calls `isTourPubliclyVisible(workspaceType, canonical)` from `workspace-publish-visibility-dispatch.ts`.
+
+**Behavior invariant:** unknown/unbound workspace → `false` (fail-closed); **no** Denali fallback. Adapters preserve workspace vocabulary (`active`, `published`; `archived` not visible).
+
+**Required when:** `canonicalTour` + `tourWrite` for publish-golden workspaces (`denali`, `urban`, `harbor`).
+
+**Verification:** `apps/api/test/workspace-publish-visibility-bindings.spec.ts`, CW0-02 publish-transition goldens.
 
 ### Form profile ghost paths (manifest → binding)
 
