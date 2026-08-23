@@ -95,6 +95,9 @@ Each row is one future `--check --domain=<id>` boundary. Keys match `generateAll
 | `member` | `memberProfileCapabilities`, `memberPortalContracts`, `memberPortalSurfaces` | workspace-sdk portal (contracts via sibling script) |
 | `http` | `httpRoutes`, `httpHandlerLoaders`, `httpErrorMap` | apps/api http + middleware |
 | `settings-api` | `settingsEnrichers`, `equipmentIconKeyValidator`, `devBootstrap`, `wizardTemplateEnforcement`, `wizardTemplatePathAliases` | apps/api settings |
+| `profile-expansion` | `profileExpansionAudit` | workspace-sdk manifest audit (CW6-02) |
+| `equipment` | `workspaceEquipmentCapabilities`, `equipmentIconKeyValidator` | workspace-sdk catalog + api settings dispatch (CW7-02) |
+| `validation-pipeline` | `capabilityValidationBindings` | apps/api tours pipeline dispatch (CW8-02) |
 | `dev` | `devPluginIds` | guest-surface-host dev map |
 | `operator` | `operatorCapabilities`, `ownerSettingsPanelLoaders`, `workspaceCommerceFreeze` (Phase 4bc: **operatorShellNav** removed — capability owns Phase 3 links) | workspace-sdk operator + web bootstrap |
 | `finance` | `workspaceFinance`, `workspaceFinanceCapabilities`, `workspaceFinanceOps` (API), … (Phase 4bd: **workspaceFinanceNav** removed; Phase 4be: **web finance-ops binder** removed — `capabilities.financeOps` owns hub panels resolve) | API finance + web via capability |

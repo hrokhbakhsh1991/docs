@@ -653,6 +653,8 @@ Refinement vs requested shape (evidence-based):
 
 **Integration sign-off (CW-WAVE-6A, 2026-08-23):** Design-first contract freeze — CW6-01, CW7-01, CW8-01 design `[v]`; DEC-CW-05 evidence packet published. **No shared manifest schema / codegen integration** (coordinator-owned for CW6-02 / CW7-02 / CW8-02). **Do NOT start CW6-02+, CW7-02+, CW8-02+, or CW5-10** until Wave 6B implementation slice authorized.
 
+**Integration sign-off (CW-WAVE-6B, 2026-08-23):** CW6-02, CW7-02, CW8-02 `[x]` — coordinator-owned schema/codegen integration complete. Profile expansion, `workspaceEquipment` block, validation pipeline runner behind `WORKSPACE_VALIDATION_PIPELINE=1`. Denali equipment migrated to block; legacy path default preserved. Progress **56/91** `[x]`. **Do NOT start CW6-03+, CW7-03+, CW8-03+** without next wave authorization.
+
 **Integration sign-off (CW-WAVE-6A reconciliation, 2026-08-23):** Coordinator reconciliation complete. CW6-01, CW7-01, CW8-01 `[x]` — design closure checklists satisfied per contract docs. Unified manifest composition model reconciled — **no material conflicts** ([`cw-wave-6a-manifest-composition-model.md`](cw-wave-6a-manifest-composition-model.md)). Profile + top-level capability blocks + `workspacePolicy` aligned; nested `capabilities` namespace **not** adopted. DEC-CW-05 remains **OPEN** (CW5-10 `[!]`). Progress **53/91** `[x]`. **Wave 6B** authorized for CW6-02, CW7-02, CW8-02 coordinator-owned schema/codegen slice.
 
 **CW-5 core exit (unblocks CW-6/7/8):** **COMPLETE** (2026-08-23) — CW5-01..04, CW5-06..09, CW5-11 `[x]`; tour-core owns neutral orchestration; CW5-10 remains `[!]` deferred.
@@ -668,8 +670,9 @@ Refinement vs requested shape (evidence-based):
   - Evidence: AUDIT §12 Phase 2; FEAS Step 8. **Design contract:** [`docs/dev/cw6-01-starter-profile-contract.md`](cw6-01-starter-profile-contract.md) — **PASS**; binding `profile: "<id>"` + platform catalog; author manifest overrides; unified model [`cw-wave-6a-manifest-composition-model.md`](cw-wave-6a-manifest-composition-model.md). CW6-02 implements expansion.
   - Deps: CW5-11. Risk: **MEDIUM** (design only).
 
-- **CW6-02** `[ ]` **Codegen profile expansion + `--check` determinism**
-  - Files: `manifest.schema.ts`, `generate-workspace-registry.mjs`, new domain module.
+- **CW6-02** `[x]` **Codegen profile expansion + `--check` determinism**
+  - Files: `manifest.schema.ts`, `profile-expansion.mjs`, `profiles/`, audit artifact.
+  - Evidence: [`docs/dev/cw6-02-profile-expansion-codegen.md`](cw6-02-profile-expansion-codegen.md).
   - Deps: CW6-01. Risk: **MEDIUM**.
 
 - **CW6-03** `[ ]` **`starter-outdoor` profile definition (composes existing RC capabilities: booking, finance, registration-flow, catalog presentation, member profile)**
@@ -708,7 +711,8 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
 
 - **CW7-01** `[x]` Equipment: manifest block design (`workspaceEquipment`) + persistence statement (host `workspace_equipment` table stays host-owned reference data) — **design complete (2026-08-23); codegen closed in CW7-02**
   - Evidence: AUDIT §6 WL; FEAS §5. **Design contract:** [`docs/dev/cw7-01-workspace-equipment-contract.md`](cw7-01-workspace-equipment-contract.md) — **PASS**; top-level `workspaceEquipment` block (repo convention); host persistence; Denali icon registry boundary; unified model [`cw-wave-6a-manifest-composition-model.md`](cw-wave-6a-manifest-composition-model.md). CW7-02 implements codegen. Deps: CW5-11, CW2-05. Risk: **MEDIUM** (design only).
-- **CW7-02** `[ ]` Equipment: codegen bindings + Denali adapter (icon registry stays Denali). Deps: CW7-01. Risk: **MEDIUM**.
+- **CW7-02** `[x]` Equipment: codegen bindings + Denali adapter (icon registry stays Denali). Deps: CW7-01. Risk: **MEDIUM**.
+  - Evidence: [`docs/dev/cw7-02-workspace-equipment-codegen.md`](cw7-02-workspace-equipment-codegen.md).
 - **CW7-03** `[ ]` Equipment: field-registry fragment as optional module; Denali parity goldens. Deps: CW7-02. Risk: **HIGH**.
 - **CW7-04** `[ ]` Equipment: isolation test (workspace without module has zero equipment surface). Deps: CW7-03. Risk: **LOW**.
 - **CW7-05** `[ ]` Transport: manifest block design (`workspaceTransport`) — generic snapshot contract only; dong/personal-car stays Denali policy. Evidence: TRUTH §24 MUST-NOT. Deps: CW5-11. Risk: **MEDIUM**.

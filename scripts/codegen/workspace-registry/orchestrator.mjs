@@ -14,7 +14,7 @@ import {
 } from "./domains/member-portal.mjs";
 
 import { REPO_ROOT } from "./constants.mjs";
-import { discoverManifests } from "./manifest-loader.mjs";
+import { discoverManifests, discoverAuthorManifests } from "./manifest-loader.mjs";
 import {
   assertManifestWebModules,
   assertNoDottedKeysInWizardJson,
@@ -135,6 +135,13 @@ import {
   generateWizardMediaRouteBindings,
   generateWorkspaceWizardMessageLoads,
 } from "./domains/wizard-admin.mjs";
+import { generateProfileExpansionAudit } from "./domains/profile-expansion.mjs";
+import {
+  assertWorkspaceEquipmentManifest,
+  generateWorkspaceEquipmentCapabilities,
+  generateWorkspaceEquipmentBindings,
+} from "./domains/equipment.mjs";
+import { generateWorkspaceCapabilityValidationBindings } from "./domains/validation-pipeline.mjs";
 
 /** @type {Record<string, readonly string[]>} */
 export const DOMAIN_OUTPUT_KEYS = {
@@ -190,6 +197,9 @@ export const DOMAIN_OUTPUT_KEYS = {
   booking: ["workspaceBooking", "workspaceBookingCapabilities", "workspaceBookingDependencies", "workspaceBookingEventReactions"],
   exposure: ["exposureHostBindings"],
   integration: ["integrationCapabilities"],
+  "profile-expansion": ["profileExpansionAudit"],
+  equipment: ["workspaceEquipmentCapabilities", "equipmentIconKeyValidator"],
+  "validation-pipeline": ["capabilityValidationBindings"],
 };
 
 export const OUTPUT_KEYS = Object.freeze([
@@ -262,12 +272,16 @@ export const OUTPUT_KEYS = Object.freeze([
   "httpHandlerLoaders",
   "httpErrorMap",
   "productHttpHostBindings",
+  "profileExpansionAudit",
+  "workspaceEquipmentCapabilities",
+  "capabilityValidationBindings",
 ]);
 
-export function generateAllOutputs(manifests) {
+export function generateAllOutputs(manifests, authorManifests = manifests) {
   for (const manifest of manifests) {
     assertGuestExtensionsManifest(manifest);
     assertHttpRoutesManifest(manifest);
+    assertWorkspaceEquipmentManifest(manifest);
   }
 
   // P3.1.b — validate registration manifests; do not emit legacy monolithic *FromManifest files.
@@ -275,6 +289,8 @@ export function generateAllOutputs(manifests) {
   generateWorkspaceIntakePluginBootstrap(manifests);
   generateWorkspaceRegistrationFlowPlugins(manifests);
   generateWorkspaceRegistrationTransportInitializers(manifests);
+
+  const equipmentOutputs = generateWorkspaceEquipmentBindings(manifests);
 
   return {
     ...generatePortalRegisterOutputs(manifests),
@@ -338,7 +354,7 @@ export function generateAllOutputs(manifests) {
     catalogRefResolvers: generateCatalogRefAllowlistResolvers(manifests),
     apiWizardRules: generateApiWizardRulesBindings(manifests),
     settingsEnrichers: generateSettingsEnrichers(manifests),
-    equipmentIconKeyValidator: generateEquipmentIconKeyValidatorBindings(manifests),
+    equipmentIconKeyValidator: equipmentOutputs.iconKeyValidator,
     wizardTemplateEnforcement: generateWizardTemplateEnforcementBindings(manifests),
     wizardTemplatePathAliases: generateWizardTemplatePathAliasBindings(manifests),
     devBootstrap: generateDevBootstrapBindings(manifests),
@@ -347,6 +363,9 @@ export function generateAllOutputs(manifests) {
     httpRoutes: generateWorkspaceHttpRoutes(manifests),
     httpHandlerLoaders: generateWorkspaceHttpHandlerLoaders(manifests),
     httpErrorMap: generateWorkspaceHttpErrorMap(manifests),
+    profileExpansionAudit: generateProfileExpansionAudit(authorManifests),
+    workspaceEquipmentCapabilities: equipmentOutputs.capabilities,
+    capabilityValidationBindings: generateWorkspaceCapabilityValidationBindings(manifests),
   };
 }
 
@@ -595,6 +614,18 @@ export const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/api/src/http/workspace-product-http-host-bindings.generated.ts"
   ),
+  profileExpansionAudit: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/manifest/workspace-profile-expansion-audit.generated.ts"
+  ),
+  workspaceEquipmentCapabilities: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-equipment-capabilities.generated.ts"
+  ),
+  capabilityValidationBindings: join(
+    REPO_ROOT,
+    "apps/api/src/tours/workspace-capability-validation-bindings.generated.ts"
+  ),
 };
 
 /**
@@ -678,13 +709,14 @@ export function runWorkspaceRegistryCli(argv = process.argv) {
   const strictWebModules = argv.includes("--strict");
   const domainId = parseDomainId(argv);
 
+  const authorManifests = discoverAuthorManifests();
   const manifests = discoverManifests();
   const keysToSync = resolveOutputKeys(domainId, manifests);
   const outputPaths = resolveOutputPaths(manifests);
   assertMemberPortalL4ReferenceWorkspaces(manifests);
   assertWizardI18nAssets(manifests);
   assertManifestWebModules(manifests, { strict: strictWebModules });
-  const generated = generateAllOutputs(manifests);
+  const generated = generateAllOutputs(manifests, authorManifests);
 
   if (checkOnly) {
     const onDisk = readOutputs(outputPaths);
