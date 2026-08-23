@@ -278,7 +278,7 @@ Refinement vs requested shape (evidence-based):
   - Rollback: delete harness.
   - Deps: —. Risk: **LOW**.
 
-- **CW0-02** `[ ]` **Publish transition goldens (Denali/Urban/Harbor/Starter)**
+- **CW0-02** `[x]` **Publish transition goldens (Denali/Urban/Harbor/Starter)**
   - Invariant: `detectDenaliTourPublishTransition` (`draft`↔`active`), urban nested `tour.publishStatus` `published`, harbor `published`, starter lifecycle `DRAFT→OPEN` produce identical results pre/post any CW-3 change.
   - Evidence: TRUTH §5; `denali-tour-publish-transition.spec.ts`, `tour-publish-transition.spec.ts`.
   - Files: fixtures capturing canonical before/after pairs per workspace.

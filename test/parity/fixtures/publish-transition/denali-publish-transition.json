@@ -1,0 +1,51 @@
+{
+  "id": "CW0-02-denali-publish-transition",
+  "input": {
+    "readCases": [
+      {
+        "label": "flat-active",
+        "canonical": {
+          "schemaVersion": 1,
+          "roots": ["publishStatus"],
+          "data": { "publishStatus": "active" }
+        }
+      },
+      {
+        "label": "nested-draft",
+        "canonical": {
+          "schemaVersion": 1,
+          "roots": ["basicInfo"],
+          "data": { "basicInfo": { "publishStatus": "draft" } }
+        }
+      }
+    ],
+    "transitionCases": [
+      {
+        "label": "draft-to-active",
+        "before": { "publishStatus": "draft" },
+        "after": { "publishStatus": "active" }
+      },
+      {
+        "label": "active-to-draft",
+        "before": { "publishStatus": "active" },
+        "after": { "publishStatus": "draft" }
+      },
+      {
+        "label": "draft-no-change",
+        "before": { "publishStatus": "draft" },
+        "after": { "publishStatus": "draft" }
+      }
+    ]
+  },
+  "expected": {
+    "readResults": [
+      { "label": "flat-active", "status": "active" },
+      { "label": "nested-draft", "status": "draft" }
+    ],
+    "transitionResults": [
+      { "label": "draft-to-active", "transition": "published" },
+      { "label": "active-to-draft", "transition": "unpublished" },
+      { "label": "draft-no-change", "transition": null }
+    ]
+  }
+}

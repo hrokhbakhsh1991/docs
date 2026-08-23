@@ -1,0 +1,33 @@
+{
+  "id": "CW0-02-starter-lifecycle-draft-open",
+  "input": {
+    "cases": [
+      {
+        "label": "draft-to-open-allowed",
+        "fromStatus": "DRAFT",
+        "toStatus": "OPEN"
+      },
+      {
+        "label": "open-to-draft-rejected",
+        "fromStatus": "OPEN",
+        "toStatus": "DRAFT"
+      },
+      {
+        "label": "draft-no-change",
+        "fromStatus": "DRAFT",
+        "toStatus": "DRAFT"
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      { "label": "draft-to-open-allowed", "ok": true },
+      {
+        "label": "open-to-draft-rejected",
+        "ok": false,
+        "error": "TOUR_LIFECYCLE_TRANSITION_REJECTED:OPEN->DRAFT"
+      },
+      { "label": "draft-no-change", "ok": true }
+    ]
+  }
+}
