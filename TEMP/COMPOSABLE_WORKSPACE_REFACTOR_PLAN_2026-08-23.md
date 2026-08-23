@@ -1,7 +1,5 @@
 # COMPOSABLE WORKSPACE REFACTOR MASTER PLAN
 
-> **Tracked copy (2026-08-23):** Mirror of `TEMP/COMPOSABLE_WORKSPACE_REFACTOR_PLAN_2026-08-23.md` for IDE/git access. `TEMP/` is gitignored — chat links to it do not open. Canonical promotion per **Versioning / canonical ledger** below still applies at CW-S1.
-
 **Ledger id:** CW-PLAN-2026-08-23  
 **Status:** PLANNING — no execution started  
 **Mandatory evidence inputs (do not re-audit):**
@@ -10,7 +8,7 @@
 - `.architecture-analysis/TOUR-DOMAIN-TRUTH-MAP.md` (TRUTH)
 - `.architecture-analysis/SHARED-TOUR-CORE-EXTRACTION-FEASIBILITY.md` (FEAS)
 
-This TEMP file is the **planning source only** until the first approved execution slice. It is not yet a durable execution ledger because `TEMP/` is gitignored.
+This TEMP file is the **planning source** until CW-S1 promotes the ledger to `docs/dev/` (see Versioning below). This filename is the one tracked exception under `TEMP/`.
 
 Status markers: `[ ]` not started · `[v]` implementation/evidence exists, closure verification required · `[x]` complete · `[!]` blocked
 

@@ -6,7 +6,8 @@ dist/
 out/
 coverage/
 legacy/
-TEMP/
+TEMP/*
+!TEMP/COMPOSABLE_WORKSPACE_REFACTOR_PLAN_2026-08-23.md
 *.tsbuildinfo
 pnpm-lock.yaml
 package-lock.yaml
