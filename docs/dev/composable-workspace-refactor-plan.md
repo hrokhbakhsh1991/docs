@@ -728,7 +728,7 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
   - Evidence: [`docs/dev/cw7-03-equipment-field-module.md`](cw7-03-equipment-field-module.md).
 - **CW7-04** `[x]` Equipment: isolation test (workspace without module has zero equipment surface). Deps: CW7-03. Risk: **LOW**.
   - Evidence: [`docs/dev/cw7-04-equipment-isolation.md`](cw7-04-equipment-isolation.md), `cw7-04-equipment-isolation.spec.mjs`.
-- **CW7-05** `[ ]` Transport: manifest block design (`workspaceTransport`) — generic snapshot contract only; dong/personal-car stays Denali policy. Evidence: TRUTH §24 MUST-NOT. Deps: CW5-11. Risk: **MEDIUM**.
+- **CW7-05** `[v]` Transport: manifest block design (`workspaceTransport`) — generic snapshot contract only; dong/personal-car stays Denali policy. Evidence: TRUTH §24 MUST-NOT. **Design contract:** [`docs/dev/cw7-05-workspace-transport-contract.md`](cw7-05-workspace-transport-contract.md) — **PASS**; top-level `workspaceTransport` block; tour canonical + intake persistence; Denali dong/personal-car boundary; legacy `transportInitializerExport` alias path. CW7-06 implements codegen. Deps: CW5-11. Risk: **MEDIUM** (design only).
 - **CW7-06** `[ ]` Transport: intake initializer + registration snapshot via capability binding (existing `transportInitializerExport` generalized). Deps: CW7-05. Risk: **HIGH**.
 - **CW7-07** `[ ]` Transport: Denali adapter migration + parity (registration flow goldens, roster projections `transportKind` unchanged). Deps: CW7-06. Risk: **HIGH**.
 - **CW7-08** `[ ]` Transport: isolation test. Deps: CW7-07. Risk: **LOW**.
