@@ -138,6 +138,7 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 
 ### DEC-CW-02 — archive: generic lifecycle vs workspace/vertical capability
 
+- **Evidence packet:** [`docs/dev/decisions/DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md) (Worker D, 2026-08-23) — per-workspace behavior census, CW0-02 gap analysis, options A/B/C, impact on exposure/catalog/reminders; **PROPOSAL: Option B (workspace capability)**.
 - **Evidence:** TRUTH §6 — Urban-only; Denali has no archive path.
 - **Blocks directly:** CW3-05 archive-row final semantics; CW5-04 archive enumeration only; CW9-05 archive assertions only.
 - **Blocks transitively:** no whole task when the documented not-published placeholder is used; only archive-specific acceptance evidence is deferred.
@@ -447,10 +448,10 @@ Refinement vs requested shape (evidence-based):
 
 ### CW-3 — Publish/Lifecycle Ports
 
-- **CW3-01** `[ ]` **Design `TourPublishVisibilityPort` + manifest declaration**
+- **CW3-01** `[v]` **Design `TourPublishVisibilityPort` + manifest declaration** — **design complete (2026-08-23)**
   - Invariant: port answers "is publicly visible" per workspace without host label knowledge; Denali `active`, Urban/Harbor `published` preserved verbatim.
   - Evidence: FEAS §2.2, §3 Step 1; TRUTH §5, §30.
-  - Files: `packages/workspace-sdk/src/tour/` new port type; manifest schema field (extends existing `canonicalTour` block); design doc in ledger appendix.
+  - Files: design doc `docs/dev/cw3-01-tour-publish-visibility-port.md` (port interface, manifest `publishVisibilityModule`/`publishVisibilityExport`, adapter matrix, DEC-CW-07 deps, risks). Production types/codegen deferred to CW3-02.
   - Deps: CW1-02, CW1-04, CW0-02 (does not depend on deferred Urban capacity tasks CW1-03/05/06). Risk: **MEDIUM** (design only).
 
 - **CW3-02** `[ ]` **Codegen: publish-visibility dispatch bindings**
@@ -914,7 +915,7 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | `approved` vs `confirmed` | pending DEC-CW-01 | — |
 | `waitlisted` vs `waitlist` | pending DEC-CW-01 | — |
 | `active` vs `published` labels | INTENTIONAL after CW-3 mapping | CW3-05 |
-| Archive Urban-only | pending DEC-CW-02 | — |
+| Archive Urban-only | pending DEC-CW-02 | [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md) |
 | Capacity at approve vs at create | pending DEC-CW-03 | — |
 | Flat vs nested canonical shape | INTENTIONAL (workspace canonical ownership) | list-projection port CW3-07 |
 
