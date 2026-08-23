@@ -100,3 +100,13 @@ export {
   assertBookingStandardCapacity,
   readTourCapacityMaxFromIntake,
 } from "./booking-create-policy.rules";
+
+export {
+  BOOKING_ACTIVE_GUEST_PARTIAL_UNIQUES,
+  BOOKING_DUPLICATE_ACTIVE_STATUS_EXCLUSIONS,
+  BOOKING_DUPLICATE_PROBE_KINDS,
+  BOOKING_DUPLICATE_PROBE_PORT_METHODS,
+  BOOKING_GUEST_DUPLICATE_DOMAIN_ERROR,
+  isBookingDuplicateProbeKind,
+  type BookingDuplicateProbeKind,
+} from "./booking-duplicate-protection.contract";

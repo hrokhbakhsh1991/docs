@@ -546,9 +546,9 @@ Refinement vs requested shape (evidence-based):
   - Files: `apps/portal/src/me/format-member-registration-display.server.ts` (+ i18n) only after decision.
   - Deps: DEC-CW-04. Risk: **MEDIUM**.
 
-- **CW4-07** `[ ]` **Shared invariant extraction: duplicate-protection contract doc + negative tests**
+- **CW4-07** `[x]` **Shared invariant extraction: duplicate-protection contract doc + negative tests**
   - Invariant: booking DB partial uniques + probe kinds documented as capability behavior; urban email-unique documented as workspace policy; no code unification.
-  - Evidence: TRUTH §12.
+  - Evidence: TRUTH §12; `docs/dev/cw4-duplicate-protection-contract.md`; `booking-duplicate-protection.contract.ts`; parity golden `CW4-07-workspace-duplicate-policies`.
   - Deps: CW0-04. Risk: **LOW**.
 
 - **CW4-08** `[ ]` **Explicit divergence ledger (intentional vs debt)**
