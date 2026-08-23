@@ -150,6 +150,7 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 
 ### DEC-CW-03 — capacity-decision-at-create as first-class strategy
 
+- **Evidence packet:** [`docs/dev/decisions/DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md) (PROPOSAL — Option A dual strategies; 2026-08-23).
 - **Evidence:** TRUTH §11, §13; FEAS §2.2 — Urban decides `confirmed`/`waitlist` at create; booking decides at approve.
 - **Blocks directly:** CW1-03, CW1-05, CW1-06; CW4-05; CW5-03 Urban-strategy portion, CW5-05; CW9-05.
 - **Blocks transitively:** CW9-06, CW9-07, CW9-09, CW9-10 full different-vertical closure. It does not block CW-3 or the CW-5 core exit.
@@ -499,6 +500,8 @@ Refinement vs requested shape (evidence-based):
   - Deps: CW3-06. Risk: **LOW**.
 
 **Exit CW-3:** host consumes ports/mappings; each workspace keeps its own vocabulary; all goldens byte-identical.
+
+**Integration sign-off (CW-WAVE-3A, 2026-08-23):** Docs-only wave — four worker branches merged to `main`. CW2-01 `[x]` DEC-CW-06 evidence packet [`DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md) (PROPOSAL Option E hybrid). CW3-01 `[v]` design complete [`cw3-01-tour-publish-visibility-port.md`](cw3-01-tour-publish-visibility-port.md) — production/codegen deferred to CW3-02+. Decision evidence packets (awaiting Architect): DEC-CW-02 [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md) (PROPOSAL Option B capability); DEC-CW-03 [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md) (PROPOSAL Option A dual strategies). **STOP** for Architect on DEC-CW-02, DEC-CW-03, DEC-CW-06 before CW2-02/03/07, CW1-03/05/06, CW3-05 archive final semantics. Integration commits: `b30f3979` (CW2-01), `d1c0e69a` (CW3-01), `4f0ca24d` (DEC-CW-02), `08b3076f` (DEC-CW-03).
 
 ---
 
@@ -916,7 +919,7 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | `waitlisted` vs `waitlist` | pending DEC-CW-01 | — |
 | `active` vs `published` labels | INTENTIONAL after CW-3 mapping | CW3-05 |
 | Archive Urban-only | pending DEC-CW-02 | [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md) |
-| Capacity at approve vs at create | pending DEC-CW-03 | — |
+| Capacity at approve vs at create | pending DEC-CW-03 | [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md) |
 | Flat vs nested canonical shape | INTENTIONAL (workspace canonical ownership) | list-projection port CW3-07 |
 
 ## Appendix B — Phase closure sign-offs
@@ -926,6 +929,7 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | CW-0 | `pnpm run test:parity`; `docs/dev/cw-metrics-baseline.json`; integration HEAD `3cd634d8` | CW coordinator | 2026-08-23 |
 | CW-1 | — | — | — |
 | CW-2 | `pnpm --filter @app-tour/guest-workspace-runtime test` (11/11); `pnpm run test:parity` (19/19); `pnpm run generate:workspace-registry --check`; `guard:architecture` + `guard:import-boundary` + `guard:tour-core-boundary` + `guard:no-workspace-type-branches` + `guard:api-workspace-isolation`; integration HEAD `f022e35d` (harbor runtime dep) + codegen sync for `collectGuestRuntimeProductPackages` registration-flow union | CW coordinator | 2026-08-23 |
+| CW-3 (Wave 3A design) | CW2-01 `[x]` + CW3-01 `[v]`; evidence [`DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md), [`cw3-01-tour-publish-visibility-port.md`](cw3-01-tour-publish-visibility-port.md), [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md), [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md); docs-only merge; DEC-CW-02/03/06 PROPOSAL pending Architect | CW coordinator | 2026-08-23 |
 | CW-3 | — | — | — |
 | CW-4 | — | — | — |
 | CW-5 | — | — | — |
