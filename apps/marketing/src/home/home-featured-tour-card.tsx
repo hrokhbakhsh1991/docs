@@ -8,7 +8,7 @@ import {
   formatCatalogPrice,
   shouldShowCatalogPrice,
 } from "@/catalog/format-catalog-display";
-import { resolveMarketingCatalogSurface } from "@/catalog/resolve-marketing-catalog-surface";
+import { resolveCatalogPriceDisplay } from "@/catalog/resolve-catalog-price-display";
 import {
   isAppLocale,
   resolveIntlDateLocale,
@@ -35,7 +35,7 @@ export async function HomeFeaturedTourCard({
   const localeRaw = await getLocale();
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
   const dateLocale = resolveIntlDateLocale(locale);
-  const catalogSurface = await resolveMarketingCatalogSurface(pluginId);
+  const priceDisplayPolicy = resolveCatalogPriceDisplay(pluginId);
   const detailHref = resolveMarketingTourDetailPath(tour.id, locale);
   const title = tour.title?.trim() || t("detail.untitled");
   const datesLine = formatCatalogCardDates(tour, dateLocale, t("detail.datesTba"));
@@ -46,7 +46,7 @@ export async function HomeFeaturedTourCard({
         tour.priceCurrency,
         dateLocale,
         t("detail.priceOnRequest"),
-        catalogSurface
+        priceDisplayPolicy
       )
     : null;
   const coverSrc = resolveHomeTourCoverUrl(tour.coverImageUrl);

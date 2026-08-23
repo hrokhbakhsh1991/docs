@@ -1,13 +1,13 @@
+import type { CatalogPriceDisplayPolicy } from "@app-tour/workspace-sdk";
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 
 import type { MarketingCatalogCard } from "./catalog-types";
-import type { MarketingCatalogSurface } from "./marketing-catalog-surface-types";
 
 type CatalogPresentationFields = Pick<
   MarketingCatalogCard,
   "listSubtitle" | "listDescription" | "showListPrice" | "priceAmount"
 >;
-export type CatalogPriceDisplayPolicy = Pick<MarketingCatalogSurface, "irrDisplayUnit">;
+export type { CatalogPriceDisplayPolicy };
 
 /** Normalized subtitle from egress presentation fields (Track A). */
 export function formatCatalogCardSubtitle(card: MarketingCatalogCard): string {

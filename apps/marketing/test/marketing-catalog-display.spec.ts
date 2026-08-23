@@ -111,6 +111,12 @@ describe("marketing catalog display", () => {
     assert.match(harbor, /1,200/);
   });
 
+  it("MKT-CURR-02b manifest resolver drives Denali toman without marketing surface", () => {
+    const { resolveCatalogPriceDisplay } = require("@app-tour/workspace-sdk");
+    assert.deepEqual(resolveCatalogPriceDisplay("denali"), { irrDisplayUnit: "toman" });
+    assert.equal(resolveCatalogPriceDisplay("urban"), null);
+  });
+
   it("MKT-CURR-03 missing currency remains price-on-request instead of defaulting to IRR", () => {
     assert.equal(
       formatCatalogPrice(1200, undefined, "en-US", "Price on request"),

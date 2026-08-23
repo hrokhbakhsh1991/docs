@@ -8,7 +8,7 @@ import { CatalogTourDetailRegisterCta } from "./catalog-tour-detail-register-cta
 import type { CatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
 import type { MarketingTourDetailCtaModel } from "./resolve-marketing-tour-detail-cta";
 import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
-import { resolveMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
+import { resolveCatalogPriceDisplay } from "./resolve-catalog-price-display";
 
 export type CatalogTourDetailBookingRailProps = {
   readonly tour: MarketingCatalogCard;
@@ -33,14 +33,14 @@ export async function CatalogTourDetailBookingRail({
   const localeRaw = await getLocale();
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
   const dateLocale = resolveIntlDateLocale(locale);
-  const catalogSurface = await resolveMarketingCatalogSurface(pluginId);
+  const priceDisplayPolicy = resolveCatalogPriceDisplay(pluginId);
   const priceLine = shouldShowCatalogPrice(tour)
     ? formatCatalogPrice(
         tour.priceAmount,
         tour.priceCurrency,
         dateLocale,
         t("detail.priceOnRequest"),
-        catalogSurface
+        priceDisplayPolicy
       )
     : null;
 
@@ -62,7 +62,7 @@ export async function CatalogTourDetailBookingRail({
         preview={pricingPreview}
         canonicalPrice={priceLine}
         dateLocale={dateLocale}
-        priceDisplayPolicy={catalogSurface}
+        priceDisplayPolicy={priceDisplayPolicy}
         t={t}
       />
       {capacityLine != null ? (
