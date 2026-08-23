@@ -179,7 +179,7 @@ Domain workers add outputs **through** orchestrator domain modules only.
 
 **OPEN** — no Architect approval. Blocks **CW5-10 only**. Does not block Wave 6B profile/equipment/pipeline implementation.
 
-**Evidence recommendation:** Option D (hybrid) — platform noop default + optional manifest `wizardResume` with `mode: "noop"` or `mode: "module"` binding. Defer generic `fieldInference` until second workspace needs shared inference.
+**Evidence recommendation:** **Option C** (§11) — noop platform default + optional `resolveInitialStepIndex` hook; optional manifest `wizardResume` for CW5-10 inspectability only. **OPEN** — Architect approval required. Defer generic `fieldInference` until second workspace needs shared inference.
 
 ---
 
