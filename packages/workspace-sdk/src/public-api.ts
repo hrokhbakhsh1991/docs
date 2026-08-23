@@ -283,6 +283,7 @@ export {
   type TourListProjection,
   type TourListProjectionFields,
   type TourListProjectionExtractor,
+  type TourListProjectionBinding,
   type TourListRowMeta,
   type TourListStatus,
   type TourUiStatus,

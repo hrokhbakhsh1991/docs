@@ -123,6 +123,8 @@
     "publishTransitionExport": "detectDenaliTourPublishTransition",
     "publishVisibilityModule": "./catalog/denali-publish-status",
     "publishVisibilityExport": "isDenaliTourPublished",
+    "tourListProjectionModule": "./list/tour-list-projection",
+    "tourListProjectionExport": "extractDenaliTourListProjection",
     "publishLabelMapping": {
       "publishedLabels": ["active"],
       "notPublishedLabels": ["draft"]

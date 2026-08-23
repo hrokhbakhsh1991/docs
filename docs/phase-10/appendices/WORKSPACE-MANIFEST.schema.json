@@ -192,11 +192,19 @@
           "type": "string",
           "description": "Module exporting public catalog visibility predicate (CW3-01)"
         },
-        "publishVisibilityExport": {
-          "type": "string",
-          "description": "Export name: (canonical) => boolean; true when tour is publicly visible"
-        },
-        "publishLabelMapping": {
+    "publishVisibilityExport": {
+      "type": "string",
+      "description": "Export name: (canonical) => boolean; true when tour is publicly visible"
+    },
+    "tourListProjectionModule": {
+      "type": "string",
+      "description": "Module exporting operator tour list projection extractor (CW3-07)"
+    },
+    "tourListProjectionExport": {
+      "type": "string",
+      "description": "Export name: (canonical) => TourListProjectionFields"
+    },
+    "publishLabelMapping": {
           "type": "object",
           "additionalProperties": false,
           "required": ["publishedLabels", "notPublishedLabels"],

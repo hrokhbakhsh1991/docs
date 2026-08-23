@@ -87,7 +87,9 @@ import {
   generateOutboxSideEffects,
   generatePublishLabelMappings,
   generatePublishVisibilityBindings,
+  generateTourListProjectionBindings,
   generateTourWriteBindings,
+  generateWebTourListProjectionDispatch,
 } from "./domains/tour-api.mjs";
 import {
   assertMemberProfileManifest,
@@ -136,7 +138,7 @@ import {
 /** @type {Record<string, readonly string[]>} */
 export const DOMAIN_OUTPUT_KEYS = {
   "core-registry": ["sdk", "api", "web", "manifestBoundaryAllowlist"],
-  "tour-api": ["tourWrite", "canonicalTour", "publishVisibility", "publishLabelMapping", "outbox", "catalogRefResolvers", "apiWizardRules"],
+  "tour-api": ["tourWrite", "canonicalTour", "publishVisibility", "publishLabelMapping", "tourListProjection", "tourListProjectionWeb", "outbox", "catalogRefResolvers", "apiWizardRules"],
   "wizard-admin": [
     "wizardMedia",
     "wizardMediaRoutes",
@@ -198,6 +200,8 @@ export const OUTPUT_KEYS = Object.freeze([
   "canonicalTour",
   "publishVisibility",
   "publishLabelMapping",
+  "tourListProjection",
+  "tourListProjectionWeb",
   "wizardMedia",
   "wizardMediaRoutes",
   "wizardMediaBackendRoutes",
@@ -280,6 +284,8 @@ export function generateAllOutputs(manifests) {
     canonicalTour: generateCanonicalTourBindings(manifests),
     publishVisibility: generatePublishVisibilityBindings(manifests),
     publishLabelMapping: generatePublishLabelMappings(manifests),
+    tourListProjection: generateTourListProjectionBindings(manifests),
+    tourListProjectionWeb: generateWebTourListProjectionDispatch(manifests),
     wizardMedia: generateWizardMediaBindings(manifests),
     wizardMediaRoutes: generateWizardMediaRouteBindings(manifests),
     wizardMediaBackendRoutes: generateWizardMediaBackendRouteBindings(manifests),
@@ -358,6 +364,14 @@ export const OUTPUT_PATHS = {
   publishLabelMapping: join(
     REPO_ROOT,
     "apps/api/src/canonical/workspace-publish-label-mappings.generated.ts"
+  ),
+  tourListProjection: join(
+    REPO_ROOT,
+    "apps/api/src/tours/workspace-tour-list-projection-bindings.generated.ts"
+  ),
+  tourListProjectionWeb: join(
+    REPO_ROOT,
+    "apps/web/src/features/tours/workspace-tour-list-projection-dispatch.generated.ts"
   ),
   wizardMedia: join(REPO_ROOT, "apps/api/src/tours/workspace-wizard-media-bindings.generated.ts"),
   wizardMediaRoutes: join(

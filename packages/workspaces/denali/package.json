@@ -150,6 +150,10 @@
       "types": "./dist/tours/tour-list-category-surface.d.ts",
       "default": "./dist/tours/tour-list-category-surface.js"
     },
+    "./host/list/tour-list-projection": {
+      "types": "./dist/list/tour-list-projection.d.ts",
+      "default": "./dist/list/tour-list-projection.js"
+    },
     "./host/photos": {
       "types": "./dist/photos/index.d.ts",
       "default": "./dist/photos/index.js"

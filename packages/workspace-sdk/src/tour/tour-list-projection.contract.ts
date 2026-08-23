@@ -45,6 +45,11 @@ export type TourListProjectionExtractor = {
   extractTourListProjection(canonical: CanonicalDocument): TourListProjectionFields;
 };
 
+export type TourListProjectionBinding = {
+  readonly workspaceType: string;
+  readonly extractTourListProjection: TourListProjectionExtractor["extractTourListProjection"];
+};
+
 export type OperatorTourListSurface = {
   readonly extractTourListProjection: TourListProjectionExtractor["extractTourListProjection"];
 };

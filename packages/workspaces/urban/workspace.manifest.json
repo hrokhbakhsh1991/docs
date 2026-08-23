@@ -77,6 +77,8 @@
     "publishTransitionExport": "detectUrbanTourPublishTransition",
     "publishVisibilityModule": "./http/publish-status",
     "publishVisibilityExport": "isUrbanTourPublished",
+    "tourListProjectionModule": "./list/tour-list-projection",
+    "tourListProjectionExport": "extractUrbanTourListProjection",
     "publishLabelMapping": {
       "publishedLabels": ["published"],
       "notPublishedLabels": ["draft"],

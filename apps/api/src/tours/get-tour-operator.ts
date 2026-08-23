@@ -1,14 +1,13 @@
 import {
   buildTourListProjection,
   type TourListProjection,
-  type TourListProjectionFields,
 } from "@app-tour/workspace-sdk";
 import type { CanonicalDocument, TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { enrichTourListProjectionWithAcceptedCount } from "../bookings/enrich-tour-accepted-counts";
 import { enrichTourListProjectionCoverImageUrl } from "./enrich-tour-list-cover-image-url";
 import type { TourRecord } from "../db/tour-record";
-import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
+import { resolveTourListProjectionExtractorForWorkspace } from "./workspace-tour-list-projection-dispatch";
 import type { ToursService } from "./tours.service";
 
 export type OperatorTourDetailResponse = {
@@ -19,50 +18,12 @@ export type OperatorTourDetailResponse = {
   readonly projection: TourListProjection;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object";
-}
-
-function readStarterTitle(canonical: CanonicalDocument): string {
-  const data = canonical.data;
-  if (!isRecord(data)) {
-    return "Untitled tour";
-  }
-  const basics = data.basics;
-  if (isRecord(basics) && typeof basics.title === "string" && basics.title.trim().length > 0) {
-    return basics.title.trim();
-  }
-  if (typeof data.title === "string" && data.title.trim().length > 0) {
-    return data.title.trim();
-  }
-  return "Untitled tour";
-}
-
-function defaultExtractTourListProjection(canonical: CanonicalDocument): TourListProjectionFields {
-  return Object.freeze({
-    title: readStarterTitle(canonical),
-    shortDescription: null,
-    listStatus: "draft",
-    uiStatus: "draft",
-    priceAmount: null,
-    priceCurrency: null,
-    totalCapacity: null,
-    acceptedCount: 0,
-    category: null,
-    coverImageUrl: null,
-    coverImageStorageKey: null,
-    departureAt: null,
-  });
-}
-
 export async function buildOperatorTourDetailResponse(
   record: TourRecord,
   tenantId: string,
   workspaceType: string
 ): Promise<OperatorTourDetailResponse> {
-  const plugin = await resolveWorkspacePluginForType(workspaceType);
-  const extract =
-    plugin.tourList?.extractTourListProjection ?? defaultExtractTourListProjection;
+  const extract = resolveTourListProjectionExtractorForWorkspace(workspaceType);
   const baseProjection = buildTourListProjection(
     {
       id: record.id,

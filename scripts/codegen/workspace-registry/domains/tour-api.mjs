@@ -3,6 +3,7 @@ import { assertNoDuplicateEmittedSymbols, importSpecifier } from "../utils.mjs";
 
 const PUBLISH_VISIBILITY_REQUIRED_WORKSPACES = new Set(["denali", "urban", "harbor"]);
 const PUBLISH_LABEL_MAPPING_REQUIRED_WORKSPACES = new Set(["denali", "urban", "harbor"]);
+const TOUR_LIST_PROJECTION_REQUIRED_WORKSPACES = new Set(["denali", "urban"]);
 
 function namedImportLine(names, specifier) {
   if (names.length <= 1) {
@@ -284,6 +285,181 @@ ${[...importLines].join("\n")}
 export const WORKSPACE_PUBLISH_VISIBILITY_BINDINGS = [
 ${bindingBlocks.join("\n")}
 ] as const;
+`;
+}
+
+/** @param {ReturnType<typeof import("../manifest-loader.mjs").discoverManifests>} manifests */
+export function validateTourListProjectionManifests(manifests) {
+  for (const m of manifests) {
+    const ct = m.canonicalTour;
+    const tw = m.tourWrite;
+    const hasModule = ct?.tourListProjectionModule !== undefined;
+    const hasExport = ct?.tourListProjectionExport !== undefined;
+    if (hasModule !== hasExport) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: canonicalTour.tourListProjectionModule and tourListProjectionExport must both be set or both omitted`
+      );
+    }
+    if (
+      tw !== undefined &&
+      ct !== undefined &&
+      TOUR_LIST_PROJECTION_REQUIRED_WORKSPACES.has(m.id) &&
+      !hasModule
+    ) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: canonicalTour.tourListProjectionModule and tourListProjectionExport are required for list-projection golden workspaces with tourWrite`
+      );
+    }
+  }
+}
+
+/** @param {ReturnType<typeof import("../manifest-loader.mjs").discoverManifests>} manifests */
+export function generateTourListProjectionBindings(manifests) {
+  validateTourListProjectionManifests(manifests);
+
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const bindingBlocks = [];
+
+  for (const m of manifests) {
+    const ct = m.canonicalTour;
+    const tw = m.tourWrite;
+    if (ct?.tourListProjectionModule === undefined) {
+      continue;
+    }
+    if (tw === undefined) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: canonicalTour.tourListProjectionModule requires tourWrite.workspaceTypeExport`
+      );
+    }
+    const projectionSpec = importSpecifier(m.package, ct.tourListProjectionModule);
+    importLines.add(namedImportLine([ct.tourListProjectionExport], projectionSpec));
+    importLines.add(namedImportLine([tw.workspaceTypeExport], m.package));
+    bindingBlocks.push(`  {
+    workspaceType: ${tw.workspaceTypeExport},
+    extractTourListProjection: ${ct.tourListProjectionExport},
+  },`);
+  }
+
+  if (bindingBlocks.length === 0) {
+    return `${BANNER}
+export const WORKSPACE_TOUR_LIST_PROJECTION_BINDINGS = [] as const;
+`;
+  }
+
+  return `${BANNER}
+${[...importLines].join("\n")}
+
+export const WORKSPACE_TOUR_LIST_PROJECTION_BINDINGS = [
+${bindingBlocks.join("\n")}
+] as const;
+`;
+}
+
+/** @param {ReturnType<typeof import("../manifest-loader.mjs").discoverManifests>} manifests */
+export function generateWebTourListProjectionDispatch(manifests) {
+  validateTourListProjectionManifests(manifests);
+
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const bindingBlocks = [];
+
+  for (const m of manifests) {
+    const ct = m.canonicalTour;
+    const tw = m.tourWrite;
+    if (ct?.tourListProjectionModule === undefined) {
+      continue;
+    }
+    if (tw === undefined) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: canonicalTour.tourListProjectionModule requires tourWrite.workspaceTypeExport`
+      );
+    }
+    const projectionSpec = importSpecifier(m.package, ct.tourListProjectionModule);
+    importLines.add(namedImportLine([ct.tourListProjectionExport], projectionSpec));
+    importLines.add(namedImportLine([tw.workspaceTypeExport], m.package));
+    bindingBlocks.push(`  {
+    workspaceType: ${tw.workspaceTypeExport},
+    extractTourListProjection: ${ct.tourListProjectionExport},
+  },`);
+  }
+
+  if (bindingBlocks.length === 0) {
+    return `${BANNER}
+import type { CanonicalDocument, TourListProjectionFields } from "@app-tour/workspace-sdk";
+
+export function extractTourListProjectionForWorkspace(
+  _workspaceType: string | undefined,
+  canonical: CanonicalDocument,
+): TourListProjectionFields {
+  return Object.freeze({
+    title: "Untitled tour",
+    shortDescription: null,
+    listStatus: "draft",
+    uiStatus: "draft",
+    priceAmount: null,
+    priceCurrency: null,
+    totalCapacity: null,
+    acceptedCount: 0,
+    category: null,
+    coverImageUrl: null,
+    coverImageStorageKey: null,
+    departureAt: null,
+  });
+}
+`;
+  }
+
+  return `${BANNER}
+import type { CanonicalDocument, TourListProjectionFields } from "@app-tour/workspace-sdk";
+${[...importLines].join("\n")}
+
+const WORKSPACE_TOUR_LIST_PROJECTION_BINDINGS = [
+${bindingBlocks.join("\n")}
+] as const;
+
+const bindingsByWorkspaceType = Object.freeze(
+  Object.fromEntries(
+    WORKSPACE_TOUR_LIST_PROJECTION_BINDINGS.map((binding) => [
+      binding.workspaceType as string,
+      binding,
+    ])
+  )
+) as Readonly<Record<string, (typeof WORKSPACE_TOUR_LIST_PROJECTION_BINDINGS)[number]>>;
+
+function defaultExtractTourListProjection(canonical: CanonicalDocument): TourListProjectionFields {
+  return Object.freeze({
+    title: "Untitled tour",
+    shortDescription: null,
+    listStatus: "draft",
+    uiStatus: "draft",
+    priceAmount: null,
+    priceCurrency: null,
+    totalCapacity: null,
+    acceptedCount: 0,
+    category: null,
+    coverImageUrl: null,
+    coverImageStorageKey: null,
+    departureAt: null,
+  });
+}
+
+/** CW3-07 — manifest-bound operator tour list projection dispatch for web surfaces. */
+export function extractTourListProjectionForWorkspace(
+  workspaceType: string | undefined,
+  canonical: CanonicalDocument,
+): TourListProjectionFields {
+  if (workspaceType === undefined) {
+    return defaultExtractTourListProjection(canonical);
+  }
+  const binding = bindingsByWorkspaceType[workspaceType];
+  if (binding === undefined) {
+    return defaultExtractTourListProjection(canonical);
+  }
+  return binding.extractTourListProjection(canonical);
+}
 `;
 }
 

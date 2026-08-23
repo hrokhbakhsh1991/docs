@@ -14,9 +14,6 @@ import type { TourStorageRepository } from "../db/tour.repository";
 import { ensureDevMemoryTourSeedForTenant } from "../storage/create-tour-storage";
 import { getActiveWorkspaceType } from "../tenant/tenant-request-context";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
-import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
-
-import type {
   OperatorListSortBy,
   OperatorListSortDir,
   OperatorListStatusFilter,
@@ -110,9 +107,7 @@ export async function listToursOperator(
     activeWorkspaceType !== undefined && activeWorkspaceType.length > 0
       ? activeWorkspaceType
       : await resolveWorkspaceTypeForTenant(tenantId);
-  const plugin = await resolveWorkspacePluginForType(workspaceType);
-  const extract =
-    plugin.tourList?.extractTourListProjection ?? defaultExtractTourListProjection;
+  const extract = resolveTourListProjectionExtractorForWorkspace(workspaceType);
 
   const scopedRepo = new ScopedTourRepository(store, ability);
   const pageResult = await scopedRepo.listOperatorToursPage(tenantId, query);

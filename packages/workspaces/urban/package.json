@@ -38,6 +38,10 @@
       "types": "./dist/tours/index.d.ts",
       "default": "./dist/tours/index.js"
     },
+    "./host/list/tour-list-projection": {
+      "types": "./dist/list/tour-list-projection.d.ts",
+      "default": "./dist/list/tour-list-projection.js"
+    },
     "./host/auth": {
       "types": "./dist/auth/index.d.ts",
       "default": "./dist/auth/index.js"
