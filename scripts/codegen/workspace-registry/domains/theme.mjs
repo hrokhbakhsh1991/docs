@@ -183,6 +183,16 @@ export function collectGuestRuntimeProductPackages(manifests) {
     ...collectGuestProductTranspilePackages(manifests, "portal"),
     ...collectGuestProductTranspilePackages(manifests, "marketing"),
   ]);
+  // CW2-04: registration-flow registrars import product packages even when
+  // clientBundle.includeInDefault is false (stub/proof workspaces like harbor).
+  for (const m of selectPortalRegisterManifests(manifests)) {
+    if (m.catalogRegistrationFlow === undefined) {
+      continue;
+    }
+    if (typeof m.package === "string" && m.package.length > 0) {
+      packages.add(m.package);
+    }
+  }
   return [...packages].sort((a, b) => a.localeCompare(b));
 }
 
@@ -193,13 +203,21 @@ export function collectGuestRuntimeProductPackages(manifests) {
  * @returns {string[]}
  */
 export function collectGuestRuntimeProductPackagesForEnv(manifests, env = process.env) {
-  const collected = [
-    ...new Set([
-      ...collectGuestProductTranspilePackages(manifests, "portal", env),
-      ...collectGuestProductTranspilePackages(manifests, "marketing", env),
-    ]),
-  ].sort((a, b) => a.localeCompare(b));
-  return applyDeployProfileToProductPackages(collected, env).packages;
+  /** @type {Set<string>} */
+  const packages = new Set([
+    ...collectGuestProductTranspilePackages(manifests, "portal", env),
+    ...collectGuestProductTranspilePackages(manifests, "marketing", env),
+  ]);
+  for (const m of filterManifestsByDeployProfile(selectPortalRegisterManifests(manifests), env)) {
+    if (m.catalogRegistrationFlow === undefined) {
+      continue;
+    }
+    if (typeof m.package === "string" && m.package.length > 0) {
+      packages.add(m.package);
+    }
+  }
+  return applyDeployProfileToProductPackages([...packages].sort((a, b) => a.localeCompare(b)), env)
+    .packages;
 }
 
 /**

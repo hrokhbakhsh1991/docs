@@ -41,6 +41,12 @@ const FIXTURES = [
     clientBundle: { includeInDefault: false },
     guestThemeStylesheets: { portal: ["theme/proof.css"], marketing: ["theme/proof.css"] },
   },
+  {
+    id: "harbor-stub",
+    package: "@app-tour/workspace-harbor",
+    clientBundle: { includeInDefault: false },
+    catalogRegistrationFlow: { surfaceExport: "harborCatalogRegistrationFlowSurface" },
+  },
 ];
 
 describe("guest transpilePackages codegen (Wave C.b)", () => {
@@ -88,6 +94,15 @@ describe("guest transpilePackages codegen (Wave C.b)", () => {
 });
 
 describe("guest-runtime product deps (Wave C.c)", () => {
+  it("includes registration-flow packages even when clientBundle opts out of default", async () => {
+    const { collectGuestRuntimeProductPackages } = await import(
+      "../codegen/workspace-registry/domains/theme.mjs"
+    );
+    const products = collectGuestRuntimeProductPackages(FIXTURES);
+    assert.ok(products.includes("@app-tour/workspace-harbor"));
+    assert.ok(!products.includes("@app-tour/workspace-proof-fixture"));
+  });
+
   it("buildGuestRuntimeDependencies keeps platform deps and syncs products", async () => {
     const { buildGuestRuntimeDependencies, collectGuestRuntimeProductPackages } = await import(
       "../codegen/workspace-registry/domains/theme.mjs"
