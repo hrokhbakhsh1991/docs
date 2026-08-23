@@ -52,7 +52,9 @@
     "module": "./exposure",
     "surfaceDefaultFieldIdsExport": "resolveUrbanSurfaceDefaultFieldIds",
     "mapSurfaceToFieldPolicyExport": "mapUrbanExposureSurfaceToFieldPolicySurface",
-    "exposureCoordinateTypeExport": "UrbanExposureCoordinate"
+    "exposureCoordinateTypeExport": "UrbanExposureCoordinate",
+    "surfaceExposureResolverHostModule": "resolve-urban-surface-exposure",
+    "surfaceExposureResolverBuilderExport": "buildUrbanExposureResolverPort"
   },
   "productHttpHost": {
     "module": "./http",

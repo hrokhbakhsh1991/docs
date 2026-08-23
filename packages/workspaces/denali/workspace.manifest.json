@@ -255,7 +255,9 @@
     "surfaceDefaultFieldIdsExport": "resolveDenaliSurfaceDefaultFieldIds",
     "mapSurfaceToFieldPolicyExport": "mapDenaliExposureSurfaceToFieldPolicySurface",
     "reminderOffsetsExport": "DENALI_REMINDER_OFFSETS",
-    "exposureCoordinateTypeExport": "DenaliExposureCoordinate"
+    "exposureCoordinateTypeExport": "DenaliExposureCoordinate",
+    "surfaceExposureResolverHostModule": "resolve-denali-surface-exposure",
+    "surfaceExposureResolverBuilderExport": "buildDenaliExposureResolverPort"
   },
   "productHttpHost": {
     "module": "./http",

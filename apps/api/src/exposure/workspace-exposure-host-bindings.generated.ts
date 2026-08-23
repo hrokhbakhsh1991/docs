@@ -6,3 +6,6 @@
 
 export { DENALI_REMINDER_OFFSETS, mapDenaliExposureSurfaceToFieldPolicySurface, resolveDenaliSurfaceDefaultFieldIds, type DenaliExposureCoordinate } from "@app-tour/workspace-denali/host/exposure";
 export { mapUrbanExposureSurfaceToFieldPolicySurface, resolveUrbanSurfaceDefaultFieldIds, type UrbanExposureCoordinate } from "@app-tour/workspace-urban/host/exposure";
+
+export { buildDenaliExposureResolverPort } from "./resolve-denali-surface-exposure";
+export { buildUrbanExposureResolverPort } from "./resolve-urban-surface-exposure";

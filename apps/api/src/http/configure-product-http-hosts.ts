@@ -14,9 +14,11 @@ import {
   type UrbanHttpHostPorts,
   type UrbanProductRouteDeps,
 } from "./workspace-product-http-host-bindings.generated";
-import { buildDenaliExposureResolverPort } from "../exposure/resolve-denali-surface-exposure";
+import {
+  buildDenaliExposureResolverPort,
+  buildUrbanExposureResolverPort,
+} from "../exposure/workspace-exposure-host-bindings.generated";
 import { buildDenaliReminderFeedPort } from "../exposure/denali-reminder-activation.repository";
-import { buildUrbanExposureResolverPort } from "../exposure/resolve-urban-surface-exposure";
 import { createHostBookingPublicAdapter } from "../bookings/infrastructure/host-booking-public.adapter";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
 import { getSettingsResourcesRepository } from "../settings/create-settings-resources-repository";

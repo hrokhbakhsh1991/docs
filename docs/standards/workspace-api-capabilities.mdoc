@@ -98,6 +98,26 @@ Manifest `wizardTemplate.pathAliases` + `aliasCatalogWorkspaceType` → `resolve
 
 Manifest `exposureHost` → `workspace-exposure-host-bindings.generated.ts` re-exports scheduler + surface resolver host surface (allowlist **0**).
 
+### Surface exposure resolver port builders (CW2-06)
+
+Workspaces that wire catalog/reminder HTTP redaction through a host-owned exposure resolver declare two additional manifest fields on `exposureHost`:
+
+| Manifest field | Role | Example (Denali) |
+| -------------- | ---- | ---------------- |
+| `surfaceExposureResolverHostModule` | Basename of the API host adapter module under `apps/api/src/exposure/` (no extension) | `resolve-denali-surface-exposure` |
+| `surfaceExposureResolverBuilderExport` | Factory exported by that module | `buildDenaliExposureResolverPort` |
+
+Codegen (`scripts/codegen/workspace-registry/domains/exposure.mjs`) emits:
+
+1. Workspace-package re-exports (`resolveDenaliSurfaceDefaultFieldIds`, `mapDenaliExposureSurfaceToFieldPolicySurface`, `DENALI_REMINDER_OFFSETS`, coordinate types) — unchanged.
+2. Host adapter re-exports: `export { buildDenaliExposureResolverPort } from "./resolve-denali-surface-exposure";` (one line per manifest row with both fields set).
+
+**Consumer rule:** `configure-product-http-hosts.ts` and other platform-neutral configure modules import exposure resolver builders **only** from `workspace-exposure-host-bindings.generated.ts`. Direct imports of `resolve-*-surface-exposure.ts` from configure code are forbidden.
+
+**Behavior invariant:** Each builder wraps the workspace-specific `resolve*SurfaceVisibleFieldIds` path with a fixed `workspaceType` string and synthetic auth context — identical to the pre-CW2-06 hand wiring. Harbor and workspaces without `exposureHost` omit the resolver fields; no default-to-Denali fallback is generated.
+
+**Verification:** `field-exposure-denali-catalog-redaction.contract.spec.ts`, `field-exposure-urban-catalog-redaction.contract.spec.ts`, `field-exposure-denali-multi-surface.contract.spec.ts` (host still references `build*ExposureResolverPort` via generated import).
+
 ---
 
 ## 2. Lifecycle gate (EPH II-A)

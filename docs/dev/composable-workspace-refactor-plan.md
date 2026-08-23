@@ -427,7 +427,7 @@ Refinement vs requested shape (evidence-based):
   - Validation: `settings-resources.spec.ts`, `denali-equipment-icon-registry.spec.ts`.
   - Deps: CW0-01. Risk: **MEDIUM**.
 
-- **CW2-06** `[ ]` **Exposure resolver imports via generated bindings only**
+- **CW2-06** `[x]` **Exposure resolver imports via generated bindings only**
   - Invariant: `configure-product-http-hosts.ts` no direct `resolve-denali-surface-exposure` import; behavior identical.
   - Evidence: FEAS §2.4; AUDIT §7 P2.
   - Files: `apps/api/src/http/configure-product-http-hosts.ts`, `apps/api/src/exposure/workspace-exposure-host-bindings.generated.ts` (codegen extension).
