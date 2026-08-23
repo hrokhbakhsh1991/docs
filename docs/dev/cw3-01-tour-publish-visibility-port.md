@@ -351,7 +351,7 @@ tour-core  ───────► booking-http-contracts (future port re-home 
 - [ ] Codegen: `WORKSPACE_PUBLISH_VISIBILITY_BINDINGS` + `isTourPubliclyVisible` dispatch
 - [ ] Manifest entries: denali, urban; add harbor `canonicalTour` block
 - [ ] Align `PublicCatalogSurface` plugin wiring to manifest export
-- [ ] CW3-03: migrate one catalog consumer (marketing or portal)
+- [x] CW3-03: migrate one catalog consumer (marketing invalidation predicate)
 - [ ] CW3-04: registration gate injection via dispatch
 - [ ] Guard (CW3-09): fail on direct `is*TourPublished` imports in neutral host code
 
@@ -365,7 +365,7 @@ tour-core  ───────► booking-http-contracts (future port re-home 
 | `TourPublishVisibilityPort` production types | **Not started** (CW3-02) |
 | Manifest schema / workspace manifests | **Not started** (CW3-02) |
 | Codegen dispatch | **Not started** (CW3-02) |
-| Consumer migrations | **Not started** (CW3-03+) |
+| Consumer migrations | **CW3-03 complete** (marketing invalidation); CW3-04+ not started |
 | Publish label mapping / heuristic removal | **Not started** (CW3-05+) |
 
 **CW3-01 closure:** design review only. Architect verification required before CW3-02 execution.
