@@ -1,12 +1,17 @@
 import type { CanonicalDocument, WorkspacePlugin, WorkspaceViolation } from "@app-tour/workspace-sdk";
 
 import { readTourPublishStatusLabel } from "../canonical/workspace-canonical-tour-dispatch.ts";
+import { mapTourPublishStatusLabelToBucket } from "../canonical/workspace-publish-label-mapping-dispatch.ts";
 import type { ValidateBeforePersistInput, ValidationMode } from "./canonical-validation-sync.types";
 import { getWizardRulesModuleSyncForWorkspace } from "./workspace-wizard-rules-bindings.generated.ts";
 
 export type { ValidationMode } from "./canonical-validation-sync.types";
 
-function isPublishedPublishStatusLabel(label: string | undefined): boolean {
+function isPublishedPublishStatusLabel(workspaceType: string, label: string | undefined): boolean {
+  const bucket = mapTourPublishStatusLabelToBucket(workspaceType, label);
+  if (bucket !== undefined) {
+    return bucket === "published";
+  }
   if (label === undefined) {
     return false;
   }
@@ -22,7 +27,7 @@ export function resolveValidationMode(
     return input.validationMode;
   }
   const label = readTourPublishStatusLabel(input.workspaceType, document);
-  return isPublishedPublishStatusLabel(label) ? "publish" : "draft";
+  return isPublishedPublishStatusLabel(input.workspaceType, label) ? "publish" : "draft";
 }
 
 function draftEnvelope(document: CanonicalDocument): Readonly<Record<string, unknown>> {

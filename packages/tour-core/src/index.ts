@@ -35,6 +35,11 @@ export {
 export { readFiniteCapacityNumber } from "./capacity/read-finite-capacity";
 
 export {
+  mergeShallowCanonicalPatchData,
+  type CanonicalPatchData,
+} from "./canonical/canonical-patch-merge";
+
+export {
   assertWorkspaceRegistrationContactBasics,
   assertWorkspaceTypeOrThrow,
   createTourDepartureNotSetValidationError,
