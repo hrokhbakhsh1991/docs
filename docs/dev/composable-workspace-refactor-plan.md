@@ -667,6 +667,8 @@ Refinement vs requested shape (evidence-based):
 
 **CW-6A contract freeze (unblocks parallel implementation workers):** **COMPLETE** (2026-08-23) — starter profile, equipment capability, validation pipeline contracts frozen in `docs/dev/cw6-01-starter-profile-contract.md`, `docs/dev/cw7-01-workspace-equipment-contract.md`, `docs/dev/cw8-01-validation-pipeline-contract.md`; DEC-CW-05 evidence in `docs/dev/decisions/DEC-CW-05-evidence.md`.
 
+**CW-6 full exit:** **COMPLETE** (2026-08-23) — CW6-01..07 + CW6-05B `[x]`; profile catalog, overrides, certification, and workspace-policy join proven without interim architecture.
+
 ---
 
 ### CW-6 — Starter Profile
@@ -710,7 +712,7 @@ Refinement vs requested shape (evidence-based):
   - Deps: CW6-06. Risk: **LOW**.
 
 **CW-6 profile-core exit:** CW6-01..04, CW6-05A, CW6-06..07 complete; new manifest boots a working minimal workspace with declarative theme/intake/config overrides; no clone.  
-**CW-6 full exit:** additionally CW6-05B complete after CW8-03; workspace-policy override proven without interim architecture.
+**CW-6 full exit:** CW6-05B complete after CW8-03; workspace-policy override proven without interim architecture. **Phase CW-6 COMPLETE** (2026-08-23).
 
 ---
 
@@ -1014,7 +1016,7 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | CW-4 (partial/core)            | CW4-01..04, CW4-07 `[x]` booking SoT + duplicate-protection contract; CW4-05+ gated on DEC-CW-01                                                                                                                                                                                                                              | CW coordinator | 2026-08-23 |
 | CW-5 (Wave 5B)                 | CW5-07..09 + CW5-11 `[x]`; **CW-5 CORE EXIT COMPLETE**; CW5-10 deferred DEC-CW-05                                                                                                                                                                                                                                             | CW coordinator | 2026-08-23 |
 | CW-6A (Wave 6A reconciliation) | CW6-01, CW7-01, CW8-01 `[x]`; unified manifest model [`cw-wave-6a-manifest-composition-model.md`](cw-wave-6a-manifest-composition-model.md); DEC-CW-05 OPEN; progress 53/91                                                                                                                                                   | CW coordinator | 2026-08-23 |
-| CW-6                           | —                                                                                                                                                                                                                                                                                                                             | —              | —          |
+| CW-6                           | CW6-01..07 + CW6-05B `[x]`; profile + policy override proof; **CW-6 COMPLETE**; progress 68/91                                                                                                                                                                                                                                | CW coordinator | 2026-08-23 |
 | CW-7                           | —                                                                                                                                                                                                                                                                                                                             | —              | —          |
 | CW-8                           | —                                                                                                                                                                                                                                                                                                                             | —              | —          |
 | CW-9                           | —                                                                                                                                                                                                                                                                                                                             | —              | —          |
