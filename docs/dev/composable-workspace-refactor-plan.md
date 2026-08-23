@@ -179,6 +179,7 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 ### DEC-CW-05 — wizard resume placement
 
 - **Evidence:** TRUTH §20 — `resolveDenaliInitialStepIndex` Denali-only; platform default noop.
+- **Evidence packet:** [`docs/dev/decisions/DEC-CW-05-evidence.md`](decisions/DEC-CW-05-evidence.md) (2026-08-23, Wave 6A) — host/SDK census, Starter/Urban noop vs Denali inference, options A/B/C/D; **PROPOSAL Option D** (noop default + optional manifest `wizardResume` module binding).
 - **Blocks directly:** CW5-10 only.
 - **Blocks transitively:** none.
 - **Does NOT block exactly:** CW0-01..10; CW1-01..06; CW2-01..07; CW3-01..09; CW4-01..08; CW5-01..09, CW5-11; CW6-01..04, CW6-05A, CW6-05B, CW6-06..07; CW7-01..15; CW8-01..07; CW9-01..10.
@@ -648,17 +649,21 @@ Refinement vs requested shape (evidence-based):
   - Closure (2026-08-23, Wave 5B): tour-core 25/25 tests; parity 22/22; guards PASS.
   - Deps: CW5-01..04, CW5-06..09. Risk: **LOW**.
 
-**Integration sign-off (CW-WAVE-5B, 2026-08-23):** CW5-07..09 + CW5-11 complete. Serial write-path migrations green. `baseline:cw-compare` PASS; `directWorkspaceImports` +5 informational (API tour-core consumers). **CW-5 CORE EXIT COMPLETE** (CW5-10 deferred per DEC-CW-05). Integrated HEAD recorded at Wave 5B closure commit. **Do NOT start CW-6.**
+**Integration sign-off (CW-WAVE-5B, 2026-08-23):** CW5-07..09 + CW5-11 complete. Serial write-path migrations green. `baseline:cw-compare` PASS; `directWorkspaceImports` +5 informational (API tour-core consumers). **CW-5 CORE EXIT COMPLETE** (CW5-10 deferred per DEC-CW-05). Integrated HEAD recorded at Wave 5B closure commit.
+
+**Integration sign-off (CW-WAVE-6A, 2026-08-23):** Design-first contract freeze — CW6-01, CW7-01, CW8-01 design `[v]`; DEC-CW-05 evidence packet published. **No shared manifest schema / codegen integration** (coordinator-owned for CW6-02 / CW7-02 / CW8-02). **Do NOT start CW6-02+, CW7-02+, CW8-02+, or CW5-10** until Wave 6B implementation slice authorized.
 
 **CW-5 core exit (unblocks CW-6/7/8):** **COMPLETE** (2026-08-23) — CW5-01..04, CW5-06..09, CW5-11 `[x]`; tour-core owns neutral orchestration; CW5-10 remains `[!]` deferred.
+
+**CW-6A contract freeze (unblocks parallel implementation workers):** **COMPLETE** (2026-08-23) — starter profile, equipment capability, validation pipeline contracts frozen in `docs/dev/cw6-01-starter-profile-contract.md`, `docs/dev/cw7-01-workspace-equipment-contract.md`, `docs/dev/cw8-01-validation-pipeline-contract.md`; DEC-CW-05 evidence in `docs/dev/decisions/DEC-CW-05-evidence.md`.
 
 ---
 
 ### CW-6 — Starter Profile
 
-- **CW6-01** `[ ]` **Profile schema design (`profiles` or `extends` manifest block)**
+- **CW6-01** `[v]` **Profile schema design (`profiles` or `extends` manifest block)**
   - Invariant: profile = named bundle of capability blocks + defaults; expansion is codegen-time, deterministic, inspectable.
-  - Evidence: AUDIT §12 Phase 2; FEAS Step 8.
+  - Evidence: AUDIT §12 Phase 2; FEAS Step 8. **Design contract:** [`docs/dev/cw6-01-starter-profile-contract.md`](cw6-01-starter-profile-contract.md) — **PASS**; binding `profile: "<id>"` + platform catalog; author manifest overrides; CW6-02 implements expansion.
   - Deps: CW5-11. Risk: **MEDIUM**.
 
 - **CW6-02** `[ ]` **Codegen profile expansion + `--check` determinism**
@@ -699,7 +704,7 @@ Refinement vs requested shape (evidence-based):
 
 Per-capability required artifacts (applies to every CW7 block): configuration contract (manifest block), validation seam, UI seam, persistence ownership statement, registration mechanism (codegen), isolation tests.
 
-- **CW7-01** `[ ]` Equipment: manifest block design (`workspaceEquipment`) + persistence statement (host `workspace_equipment` table stays host-owned reference data). Evidence: AUDIT §6 WL; FEAS §5. Deps: CW5-11, CW2-05. Risk: **MEDIUM**.
+- **CW7-01** `[v]` Equipment: manifest block design (`workspaceEquipment`) + persistence statement (host `workspace_equipment` table stays host-owned reference data). Evidence: AUDIT §6 WL; FEAS §5. **Design contract:** [`docs/dev/cw7-01-workspace-equipment-contract.md`](cw7-01-workspace-equipment-contract.md) — **PASS**; `workspaceEquipment` block; host persistence; Denali icon registry boundary; CW7-02 implements codegen. Deps: CW5-11, CW2-05. Risk: **MEDIUM**.
 - **CW7-02** `[ ]` Equipment: codegen bindings + Denali adapter (icon registry stays Denali). Deps: CW7-01. Risk: **MEDIUM**.
 - **CW7-03** `[ ]` Equipment: field-registry fragment as optional module; Denali parity goldens. Deps: CW7-02. Risk: **HIGH**.
 - **CW7-04** `[ ]` Equipment: isolation test (workspace without module has zero equipment surface). Deps: CW7-03. Risk: **LOW**.
@@ -721,9 +726,9 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
 
 ### CW-8 — Workspace Policy Pipeline
 
-- **CW8-01** `[ ]` **Pipeline contract design: `sharedValidation → capabilityValidation → workspacePolicyValidation`**
+- **CW8-01** `[v]` **Pipeline contract design: `sharedValidation → capabilityValidation → workspacePolicyValidation`**
   - Invariant: ordered, short-circuit semantics defined; existing flat hooks (`WorkspaceValidationHooks`, `validatePublishReadiness`) mapped into stages without behavior change for Denali/Urban.
-  - Evidence: AUDIT §7 missing seam; FEAS §2.2.
+  - Evidence: AUDIT §7 missing seam; FEAS §2.2. **Design contract:** [`docs/dev/cw8-01-validation-pipeline-contract.md`](cw8-01-validation-pipeline-contract.md) — **PASS**; three-stage short-circuit; CW8-03 `workspacePolicy` seam preview; CW8-02 implements runner.
   - Deps: CW5-11. Risk: **MEDIUM**.
 
 - **CW8-02** `[ ]` **Host runner implementation behind flag; legacy path default**
