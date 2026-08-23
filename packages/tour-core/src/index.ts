@@ -8,4 +8,16 @@ export {
   withSpotsRemaining,
 } from "./capacity/spots-remaining";
 
+export {
+  atCreateCapacityStrategy,
+  resolveRegistrationCapacityDecision,
+  sumAcceptedRegistrationSeats,
+} from "./capacity/at-create-strategy";
+
+export type {
+  AtCreateCapacityDecision,
+  AtCreateCapacityInput,
+  AtCreateCapacityPolicy,
+} from "./capacity/at-create-strategy";
+
 export const TOUR_CORE_PACKAGE_MARKER = "tour-core" as const;
