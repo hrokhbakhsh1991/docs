@@ -1,0 +1,23 @@
+{
+  "id": "CW0-07-minimal-workspace-wizard",
+  "input": {
+    "urbanGoldenFile": "urban-tour-minimal.json",
+    "starterDraft": {
+      "basics": { "title": "Starter tour", "featured": false },
+      "details": { "summary": "ok", "status": "draft" }
+    },
+    "starterOpenStatus": "open"
+  },
+  "expected": {
+    "urban": {
+      "draftGate": null,
+      "publishGate": null,
+      "draftSync": { "ok": true, "violations": [] }
+    },
+    "starter": {
+      "draftGate": null,
+      "publishGate": null,
+      "draftSync": { "ok": true, "violations": [] }
+    }
+  }
+}

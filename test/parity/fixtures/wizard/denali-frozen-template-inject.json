@@ -1,0 +1,35 @@
+{
+  "id": "CW0-07-denali-frozen-template-inject",
+  "input": {
+    "steps": [
+      {
+        "stepId": "denali_basic",
+        "enabled": true,
+        "fields": [{ "canonicalPath": "leaderUserIds" }]
+      }
+    ]
+  },
+  "expected": {
+    "steps": [
+      {
+        "stepId": "denali_basic",
+        "fields": [
+          "category",
+          "title",
+          "destinationId",
+          "startDateTime",
+          "capacityMax",
+          "leaderUserIds"
+        ]
+      },
+      {
+        "stepId": "denali_photos",
+        "fields": ["program.themeIds", "photos"]
+      },
+      {
+        "stepId": "denali_logistics",
+        "fields": ["transport.mode"]
+      }
+    ]
+  }
+}

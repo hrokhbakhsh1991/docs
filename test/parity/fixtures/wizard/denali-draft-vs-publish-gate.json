@@ -1,0 +1,14 @@
+{
+  "id": "CW0-07-denali-draft-vs-publish-gate",
+  "input": {
+    "goldenFormFile": "tour-minimal.json",
+    "publishStatus": "active"
+  },
+  "expected": {
+    "draftGate": null,
+    "publishGate": {
+      "code": "VALIDATION_RULE_REQUIRED_FIELD",
+      "message": "این فیلد الزامی است."
+    }
+  }
+}
