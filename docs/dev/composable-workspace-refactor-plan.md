@@ -36,16 +36,16 @@ Until that copy, this TEMP file is authoritative for planning only. Afterward, o
 
 **Boundary choice:** new package `packages/tour-core` (`@app-tour/tour-core`) is preferred. **Dependency direction is governed by DEC-CW-07 below**, which supersedes the earlier FEAS assumption `tour-core → workspace-sdk`.
 
-| Aspect | Decision | Evidence |
-|--------|----------|----------|
-| **Why a new package** | Tour/registration behavior needs an enforceable domain boundary separate from wizard engine and plugin SDK. Existing precedent: `booking-http-contracts` and `finance-core` are domain packages with explicit ownership | FEAS §4 |
-| **Why not `platform-core`** | Its `package.json` description is "Schema-driven wizard engine — workspace-agnostic"; its test surface (purity, cold-start, runtime-isolation contracts) certifies an **engine**, not business orchestration. Mixing tour lifecycle into it couples engine release cadence to domain churn and dilutes its purity guards | FEAS §4; `packages/platform-core/package.json` |
-| **Why not `workspace-sdk`** | Already 173 src TS files defining the **plugin contract**; adding orchestration makes it a dumping ground. Compatibility imports must not force a cycle; DEC-CW-07 places tour-facing contracts below or in tour-core, with SDK adapting/re-exporting one-way | FEAS §1, §4; cycle analysis below |
-| **Allowed dependencies** | Per DEC-CW-07: `tour-core → booking-http-contracts` (and standard library) only; `workspace-sdk → tour-core` is allowed for compatibility re-exports. A future lower-level `tour-contracts` package requires a new recorded decision | DEC-CW-07 |
-| **Forbidden dependencies** | `@app-tour/platform-core` (engine↔domain cycle risk), `packages/workspaces/*` (inverts ownership), `apps/*` (packages never import apps), `finance-core` (finance stays a peer capability; interaction via ports only) | FEAS §2.5 |
-| **Ownership boundary** | tour-core owns: pure tour/registration math, port **interfaces** (publish visibility, capacity, list projection, registration orchestration), generic transition-table infrastructure. tour-core must NOT own: canonical field paths, publish label strings, workspace vocabularies, UI, persistence, adapters | TRUTH §SAFE / §MUST-NOT |
-| **Boundary enforcement** | depcruise rule + import-boundary AST guard added in CW1-01, extended CW5-01; `guard:workspace-registry-fresh` unaffected | AUDIT §15 |
-| **Reversal / rollback strategy** | Every moved SDK export leaves a one-way SDK compatibility re-export from tour-core until CW5-09. If the boundary proves wrong before CW5-09: restore implementations in SDK/original owners, repoint exports, remove consumers of tour-core, then delete package. No consumer imports are retired before census. After CW5-09 reversal cost rises; CW5-09 requires explicit architecture review | DEC-CW-07; CW5-09 |
+| Aspect                           | Decision                                                                                                                                                                                                                                                                                                                                                                                        | Evidence                                       |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| **Why a new package**            | Tour/registration behavior needs an enforceable domain boundary separate from wizard engine and plugin SDK. Existing precedent: `booking-http-contracts` and `finance-core` are domain packages with explicit ownership                                                                                                                                                                         | FEAS §4                                        |
+| **Why not `platform-core`**      | Its `package.json` description is "Schema-driven wizard engine — workspace-agnostic"; its test surface (purity, cold-start, runtime-isolation contracts) certifies an **engine**, not business orchestration. Mixing tour lifecycle into it couples engine release cadence to domain churn and dilutes its purity guards                                                                        | FEAS §4; `packages/platform-core/package.json` |
+| **Why not `workspace-sdk`**      | Already 173 src TS files defining the **plugin contract**; adding orchestration makes it a dumping ground. Compatibility imports must not force a cycle; DEC-CW-07 places tour-facing contracts below or in tour-core, with SDK adapting/re-exporting one-way                                                                                                                                   | FEAS §1, §4; cycle analysis below              |
+| **Allowed dependencies**         | Per DEC-CW-07: `tour-core → booking-http-contracts` (and standard library) only; `workspace-sdk → tour-core` is allowed for compatibility re-exports. A future lower-level `tour-contracts` package requires a new recorded decision                                                                                                                                                            | DEC-CW-07                                      |
+| **Forbidden dependencies**       | `@app-tour/platform-core` (engine↔domain cycle risk), `packages/workspaces/*` (inverts ownership), `apps/*` (packages never import apps), `finance-core` (finance stays a peer capability; interaction via ports only)                                                                                                                                                                          | FEAS §2.5                                      |
+| **Ownership boundary**           | tour-core owns: pure tour/registration math, port **interfaces** (publish visibility, capacity, list projection, registration orchestration), generic transition-table infrastructure. tour-core must NOT own: canonical field paths, publish label strings, workspace vocabularies, UI, persistence, adapters                                                                                  | TRUTH §SAFE / §MUST-NOT                        |
+| **Boundary enforcement**         | depcruise rule + import-boundary AST guard added in CW1-01, extended CW5-01; `guard:workspace-registry-fresh` unaffected                                                                                                                                                                                                                                                                        | AUDIT §15                                      |
+| **Reversal / rollback strategy** | Every moved SDK export leaves a one-way SDK compatibility re-export from tour-core until CW5-09. If the boundary proves wrong before CW5-09: restore implementations in SDK/original owners, repoint exports, remove consumers of tour-core, then delete package. No consumer imports are retired before census. After CW5-09 reversal cost rises; CW5-09 requires explicit architecture review | DEC-CW-07; CW5-09                              |
 
 ---
 
@@ -67,17 +67,17 @@ The plan has **10 phases (CW-0…CW-9), 91 implementation/evidence tasks** plus 
 
 ## Current baseline
 
-| Fact | Evidence |
-|------|----------|
-| Wizard engine + canonical validation generic and tested | AUDIT §4; `platform-core` engine specs |
-| Booking pipeline shared when `workspaceBooking` bound; statuses `pending/approved/waitlisted/rejected/cancelled` | TRUTH §13–18; `booking-lifecycle.spec.ts` |
-| Urban registration: `confirmed`/`waitlist` decided at create via `resolveRegistrationCapacityDecision`; own table | TRUTH §9, §11; `registration-capacity.service.ts` |
+| Fact                                                                                                                                               | Evidence                                          |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Wizard engine + canonical validation generic and tested                                                                                            | AUDIT §4; `platform-core` engine specs            |
+| Booking pipeline shared when `workspaceBooking` bound; statuses `pending/approved/waitlisted/rejected/cancelled`                                   | TRUTH §13–18; `booking-lifecycle.spec.ts`         |
+| Urban registration: `confirmed`/`waitlist` decided at create via `resolveRegistrationCapacityDecision`; own table                                  | TRUTH §9, §11; `registration-capacity.service.ts` |
 | Publish vocabulary split: Denali `active`, Urban/Harbor `published` (+`archived`), plugin lifecycle `DRAFT/OPEN`; API bridges via label heuristics | TRUTH §5; `assert-tour-publish-lifecycle-gate.ts` |
-| P1 host coupling: `ensure-registration-flow.client.ts` hand switch; IRR/toman `pluginId === "denali"` in marketing + web | AUDIT §7–8; FEAS §1 UI table |
-| 40+ hand-written API files import `@app-tour/workspace-denali` (excl. generated) | FEAS §2.4 |
-| Parallel Denali booking lifecycle graph duplicates host transitions | TRUTH §MUST NOT; FEAS §2.3 |
-| New similar workspace today: ~80–120 hand modules (Denali-fork) | FEAS §6 |
-| Guards: isolation, no-branch, registry freshness, certification all green baseline | AUDIT §15 |
+| P1 host coupling: `ensure-registration-flow.client.ts` hand switch; IRR/toman `pluginId === "denali"` in marketing + web                           | AUDIT §7–8; FEAS §1 UI table                      |
+| 40+ hand-written API files import `@app-tour/workspace-denali` (excl. generated)                                                                   | FEAS §2.4                                         |
+| Parallel Denali booking lifecycle graph duplicates host transitions                                                                                | TRUTH §MUST NOT; FEAS §2.3                        |
+| New similar workspace today: ~80–120 hand modules (Denali-fork)                                                                                    | FEAS §6                                           |
+| Guards: isolation, no-branch, registry freshness, certification all green baseline                                                                 | AUDIT §15                                         |
 
 ---
 
@@ -253,18 +253,18 @@ Refinement vs requested shape (evidence-based):
 
 ## Phase table
 
-| Phase | Goal | Tasks | Risk | Dependencies | Exit criteria |
-|-------|------|-------|------|--------------|---------------|
-| **CW-0** | Freeze externally observable behavior; golden/contract evidence + reproducible metrics baseline | 10 | LOW | — | Parity harness exists; all listed behaviors snapshotted; metrics baseline frozen; zero behavior change |
-| **CW-1** | Extract proven-generic pure functions with compat re-exports | 6 | LOW | CW-0, DEC-CW-07; DEC-CW-03 for CW1-03/05/06 | CW1-02/04 may close independently; full phase requires DEC-CW-03 and all consumers green |
-| **CW-2** | Remove P1 host/customer branching via config/registry | 7 | MEDIUM | CW-0 | Named host files free of workspace ids; guards extended; DEC-CW-06 resolved |
-| **CW-3** | Neutral publish visibility/label ports; vocabulary preserved | 9 | HIGH | CW1-02/04 partial exit | Host lifecycle gate consumes manifest-declared labels; no hard-coded `published`/`active` heuristic without manifest entry |
-| **CW-4** | Single booking lifecycle SoT; explicit intentional divergence | 8 | MEDIUM–HIGH | CW-3, DEC-CW-01, DEC-CW-03 | Parallel Denali graph demoted/removed; divergence documented as contract |
-| **CW-5** | `@app-tour/tour-core` orchestration package | 11 | HIGH | CW-3 + CW4-01..04/07 for core exit; DEC-CW-01/03 for CW5-05/full exit | Core exit certifies neutral orchestration; full exit adds decided registration strategy |
-| **CW-6** | Declarative Starter Profile (composition, not clone base) | 8 | MEDIUM | CW-5 for profile core; CW8-03 for CW6-05B/full exit | Profile-core exit: CW6-01..04,05A,06,07; full exit adds policy override proof CW6-05B |
-| **CW-7** | Tour-domain capabilities: Transport, Equipment, Itinerary, Pricing fields, Membership link, Difficulty/Fitness | 15 | HIGH | CW-5 | Each shipped capability has contract+seams+isolation tests; Denali behavior unchanged |
-| **CW-8** | Policy pipeline: shared → capability → workspace validation | 7 | MEDIUM | CW-5 | Ordered pipeline with certification; no core branching for workspace rules |
-| **CW-9** | Synthetic-workspace certification (similar club + different vertical) | 10 | MEDIUM | CW6 profile core + CW6-05B, CW-8, ≥1 CW-7 capability | Metrics targets met; both synthetic workspaces onboard with zero host edits |
+| Phase    | Goal                                                                                                           | Tasks | Risk        | Dependencies                                                          | Exit criteria                                                                                                              |
+| -------- | -------------------------------------------------------------------------------------------------------------- | ----- | ----------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **CW-0** | Freeze externally observable behavior; golden/contract evidence + reproducible metrics baseline                | 10    | LOW         | —                                                                     | Parity harness exists; all listed behaviors snapshotted; metrics baseline frozen; zero behavior change                     |
+| **CW-1** | Extract proven-generic pure functions with compat re-exports                                                   | 6     | LOW         | CW-0, DEC-CW-07; DEC-CW-03 for CW1-03/05/06                           | CW1-02/04 may close independently; full phase requires DEC-CW-03 and all consumers green                                   |
+| **CW-2** | Remove P1 host/customer branching via config/registry                                                          | 7     | MEDIUM      | CW-0                                                                  | Named host files free of workspace ids; guards extended; DEC-CW-06 resolved                                                |
+| **CW-3** | Neutral publish visibility/label ports; vocabulary preserved                                                   | 9     | HIGH        | CW1-02/04 partial exit                                                | Host lifecycle gate consumes manifest-declared labels; no hard-coded `published`/`active` heuristic without manifest entry |
+| **CW-4** | Single booking lifecycle SoT; explicit intentional divergence                                                  | 8     | MEDIUM–HIGH | CW-3, DEC-CW-01, DEC-CW-03                                            | Parallel Denali graph demoted/removed; divergence documented as contract                                                   |
+| **CW-5** | `@app-tour/tour-core` orchestration package                                                                    | 11    | HIGH        | CW-3 + CW4-01..04/07 for core exit; DEC-CW-01/03 for CW5-05/full exit | Core exit certifies neutral orchestration; full exit adds decided registration strategy                                    |
+| **CW-6** | Declarative Starter Profile (composition, not clone base)                                                      | 8     | MEDIUM      | CW-5 for profile core; CW8-03 for CW6-05B/full exit                   | Profile-core exit: CW6-01..04,05A,06,07; full exit adds policy override proof CW6-05B                                      |
+| **CW-7** | Tour-domain capabilities: Transport, Equipment, Itinerary, Pricing fields, Membership link, Difficulty/Fitness | 15    | HIGH        | CW-5                                                                  | Each shipped capability has contract+seams+isolation tests; Denali behavior unchanged                                      |
+| **CW-8** | Policy pipeline: shared → capability → workspace validation                                                    | 7     | MEDIUM      | CW-5                                                                  | Ordered pipeline with certification; no core branching for workspace rules                                                 |
+| **CW-9** | Synthetic-workspace certification (similar club + different vertical)                                          | 10    | MEDIUM      | CW6 profile core + CW6-05B, CW-8, ≥1 CW-7 capability                  | Metrics targets met; both synthetic workspaces onboard with zero host edits                                                |
 
 **Total: 91 implementation/evidence tasks + 7 decision records** (contingency range 74–94 tasks; see Estimation).
 
@@ -427,7 +427,7 @@ Refinement vs requested shape (evidence-based):
   - Evidence: AUDIT §7 P1; FEAS Step 7.
   - Files: `packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts`; codegen domain `registration.mjs` (extend to emit loader).
   - Focused validation: `guest-runtime-register-isolation.spec.ts`; portal flow contract spec per workspace.
-  - Regression: portal E2E smoke (SMK-PTL-*).
+  - Regression: portal E2E smoke (SMK-PTL-\*).
   - Rollback: keep old switch behind unused export until census zero.
   - Deps: CW0-01. Risk: **MEDIUM**.
   - **Closure (2026-08-23):** hand `switch(pluginId)` retired from `ensure-registration-flow.client.ts`; consumer binds `invokeWorkspacePluginRegister` via `bind-workspace-plugin-register-invokers.ts` → `workspace-plugin-register-manifest.generated.ts` + per-workspace `register-*.generated.ts` (source: `registration.mjs`). Parity: `ensure-registration-flow.client.spec.ts` (all four flow workspaces); isolation: `guest-runtime-register-isolation.spec.ts`. Compat path: **retired** (zero-consumer census on hand switch).
@@ -587,7 +587,7 @@ Refinement vs requested shape (evidence-based):
 ### CW-5 — Shared Tour Core Orchestration
 
 - **CW5-01** `[x]` **tour-core architecture doc + boundary guard hardening**
-  - Invariant: DEC-CW-07 directions enforced: tour-core forbidden imports include workspace-sdk, platform-core, workspaces/*, apps/*, finance-core.
+  - Invariant: DEC-CW-07 directions enforced: tour-core forbidden imports include workspace-sdk, platform-core, workspaces/_, apps/_, finance-core.
   - Evidence: [`cw5-01-tour-core-architecture.md`](cw5-01-tour-core-architecture.md); `guard-boundary.mjs` package.json ratchet; import-boundary AST tour-core scan; depcruise `tour-core-*` rules.
   - Closure (2026-08-23, Wave 5A): boundary contract spec; guards PASS; no behavioral change.
   - Deps: CW1-01, DEC-CW-07. Risk: **LOW**.
@@ -653,6 +653,8 @@ Refinement vs requested shape (evidence-based):
 
 **Integration sign-off (CW-WAVE-6A, 2026-08-23):** Design-first contract freeze — CW6-01, CW7-01, CW8-01 design `[v]`; DEC-CW-05 evidence packet published. **No shared manifest schema / codegen integration** (coordinator-owned for CW6-02 / CW7-02 / CW8-02). **Do NOT start CW6-02+, CW7-02+, CW8-02+, or CW5-10** until Wave 6B implementation slice authorized.
 
+**Integration sign-off (CW-WAVE-6A reconciliation, 2026-08-23):** Coordinator reconciliation complete. CW6-01, CW7-01, CW8-01 `[x]` — design closure checklists satisfied per contract docs. Unified manifest composition model reconciled — **no material conflicts** ([`cw-wave-6a-manifest-composition-model.md`](cw-wave-6a-manifest-composition-model.md)). Profile + top-level capability blocks + `workspacePolicy` aligned; nested `capabilities` namespace **not** adopted. DEC-CW-05 remains **OPEN** (CW5-10 `[!]`). Progress **53/91** `[x]`. **Wave 6B** authorized for CW6-02, CW7-02, CW8-02 coordinator-owned schema/codegen slice.
+
 **CW-5 core exit (unblocks CW-6/7/8):** **COMPLETE** (2026-08-23) — CW5-01..04, CW5-06..09, CW5-11 `[x]`; tour-core owns neutral orchestration; CW5-10 remains `[!]` deferred.
 
 **CW-6A contract freeze (unblocks parallel implementation workers):** **COMPLETE** (2026-08-23) — starter profile, equipment capability, validation pipeline contracts frozen in `docs/dev/cw6-01-starter-profile-contract.md`, `docs/dev/cw7-01-workspace-equipment-contract.md`, `docs/dev/cw8-01-validation-pipeline-contract.md`; DEC-CW-05 evidence in `docs/dev/decisions/DEC-CW-05-evidence.md`.
@@ -661,10 +663,10 @@ Refinement vs requested shape (evidence-based):
 
 ### CW-6 — Starter Profile
 
-- **CW6-01** `[v]` **Profile schema design (`profiles` or `extends` manifest block)**
+- **CW6-01** `[x]` **Profile schema design (`profiles` or `extends` manifest block)** — **design complete (2026-08-23); expansion closed in CW6-02**
   - Invariant: profile = named bundle of capability blocks + defaults; expansion is codegen-time, deterministic, inspectable.
-  - Evidence: AUDIT §12 Phase 2; FEAS Step 8. **Design contract:** [`docs/dev/cw6-01-starter-profile-contract.md`](cw6-01-starter-profile-contract.md) — **PASS**; binding `profile: "<id>"` + platform catalog; author manifest overrides; CW6-02 implements expansion.
-  - Deps: CW5-11. Risk: **MEDIUM**.
+  - Evidence: AUDIT §12 Phase 2; FEAS Step 8. **Design contract:** [`docs/dev/cw6-01-starter-profile-contract.md`](cw6-01-starter-profile-contract.md) — **PASS**; binding `profile: "<id>"` + platform catalog; author manifest overrides; unified model [`cw-wave-6a-manifest-composition-model.md`](cw-wave-6a-manifest-composition-model.md). CW6-02 implements expansion.
+  - Deps: CW5-11. Risk: **MEDIUM** (design only).
 
 - **CW6-02** `[ ]` **Codegen profile expansion + `--check` determinism**
   - Files: `manifest.schema.ts`, `generate-workspace-registry.mjs`, new domain module.
@@ -704,7 +706,8 @@ Refinement vs requested shape (evidence-based):
 
 Per-capability required artifacts (applies to every CW7 block): configuration contract (manifest block), validation seam, UI seam, persistence ownership statement, registration mechanism (codegen), isolation tests.
 
-- **CW7-01** `[v]` Equipment: manifest block design (`workspaceEquipment`) + persistence statement (host `workspace_equipment` table stays host-owned reference data). Evidence: AUDIT §6 WL; FEAS §5. **Design contract:** [`docs/dev/cw7-01-workspace-equipment-contract.md`](cw7-01-workspace-equipment-contract.md) — **PASS**; `workspaceEquipment` block; host persistence; Denali icon registry boundary; CW7-02 implements codegen. Deps: CW5-11, CW2-05. Risk: **MEDIUM**.
+- **CW7-01** `[x]` Equipment: manifest block design (`workspaceEquipment`) + persistence statement (host `workspace_equipment` table stays host-owned reference data) — **design complete (2026-08-23); codegen closed in CW7-02**
+  - Evidence: AUDIT §6 WL; FEAS §5. **Design contract:** [`docs/dev/cw7-01-workspace-equipment-contract.md`](cw7-01-workspace-equipment-contract.md) — **PASS**; top-level `workspaceEquipment` block (repo convention); host persistence; Denali icon registry boundary; unified model [`cw-wave-6a-manifest-composition-model.md`](cw-wave-6a-manifest-composition-model.md). CW7-02 implements codegen. Deps: CW5-11, CW2-05. Risk: **MEDIUM** (design only).
 - **CW7-02** `[ ]` Equipment: codegen bindings + Denali adapter (icon registry stays Denali). Deps: CW7-01. Risk: **MEDIUM**.
 - **CW7-03** `[ ]` Equipment: field-registry fragment as optional module; Denali parity goldens. Deps: CW7-02. Risk: **HIGH**.
 - **CW7-04** `[ ]` Equipment: isolation test (workspace without module has zero equipment surface). Deps: CW7-03. Risk: **LOW**.
@@ -726,10 +729,10 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
 
 ### CW-8 — Workspace Policy Pipeline
 
-- **CW8-01** `[v]` **Pipeline contract design: `sharedValidation → capabilityValidation → workspacePolicyValidation`**
+- **CW8-01** `[x]` **Pipeline contract design: `sharedValidation → capabilityValidation → workspacePolicyValidation`** — **design complete (2026-08-23); runner closed in CW8-02**
   - Invariant: ordered, short-circuit semantics defined; existing flat hooks (`WorkspaceValidationHooks`, `validatePublishReadiness`) mapped into stages without behavior change for Denali/Urban.
-  - Evidence: AUDIT §7 missing seam; FEAS §2.2. **Design contract:** [`docs/dev/cw8-01-validation-pipeline-contract.md`](cw8-01-validation-pipeline-contract.md) — **PASS**; three-stage short-circuit; CW8-03 `workspacePolicy` seam preview; CW8-02 implements runner.
-  - Deps: CW5-11. Risk: **MEDIUM**.
+  - Evidence: AUDIT §7 missing seam; FEAS §2.2. **Design contract:** [`docs/dev/cw8-01-validation-pipeline-contract.md`](cw8-01-validation-pipeline-contract.md) — **PASS**; three-stage short-circuit; CW8-03 `workspacePolicy` seam preview; unified model [`cw-wave-6a-manifest-composition-model.md`](cw-wave-6a-manifest-composition-model.md). CW8-02 implements runner.
+  - Deps: CW5-11. Risk: **MEDIUM** (design only).
 
 - **CW8-02** `[ ]` **Host runner implementation behind flag; legacy path default**
   - Files: `apps/api/src/tours/run-workspace-validation-hooks.ts` successor.
@@ -790,19 +793,19 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
 
 All baseline values below are provisional estimates; CW0-10 replaces them with exact machine-counted values from the CW0-09 script. CW9-08 reruns the identical script.
 
-| Metric | Baseline (frozen at CW0-10) | Target at CW-9 |
-|--------|------------------------------|----------------|
-| Hand-written modules to onboard similar workspace | 458 Denali TS/TSX + 14 guest scaffold TS/TSX (machine count) | **≤ 30** (manifest+policy+branding+adapters) |
-| Generic host files edited per new workspace | 5 manual host edit paths (machine count) | **0** (dev-host mapping automated or documented as env, not code) |
-| Copied Denali modules per new workspace | field registry + composites + hooks (~30–40% of 393) | **0** |
-| Workspace-ID branches in neutral production code (non-generated) | 33 (machine count; see cw-metrics-baseline.json) | **0** |
-| Shared Tour rules with single ownership | singleOwnerRatio 0.6923 across TRUTH catalog (machine count) | **100% of SAFE-CANDIDATES list single-owned in tour-core/host** |
-| Formal composable capabilities | 4 qualified formal capabilities (machine count) | **≥ 5 tour-domain** (equipment, transport, difficulty/fitness, itinerary, pricing-fields) |
-| Blast radius — publish validation change | platform-core + 3 workspaces' rules | platform-core + rule data only (no host bridges) |
-| Blast radius — capacity rule change | API + denali (+ divergent urban path) | tour-core contract + adapters |
-| Blast radius — new shared wizard field | every workspace registry by hand | profile/capability module + opt-in |
-| Blast radius — waitlist fix | API + denali + urban separately | booking contract single edit (urban per DEC-CW-01/03) |
-| Blast radius — new reusable capability | schema+codegen+api+sdk (works today) | unchanged (already good) — keep ≤ current |
+| Metric                                                           | Baseline (frozen at CW0-10)                                  | Target at CW-9                                                                            |
+| ---------------------------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| Hand-written modules to onboard similar workspace                | 458 Denali TS/TSX + 14 guest scaffold TS/TSX (machine count) | **≤ 30** (manifest+policy+branding+adapters)                                              |
+| Generic host files edited per new workspace                      | 5 manual host edit paths (machine count)                     | **0** (dev-host mapping automated or documented as env, not code)                         |
+| Copied Denali modules per new workspace                          | field registry + composites + hooks (~30–40% of 393)         | **0**                                                                                     |
+| Workspace-ID branches in neutral production code (non-generated) | 33 (machine count; see cw-metrics-baseline.json)             | **0**                                                                                     |
+| Shared Tour rules with single ownership                          | singleOwnerRatio 0.6923 across TRUTH catalog (machine count) | **100% of SAFE-CANDIDATES list single-owned in tour-core/host**                           |
+| Formal composable capabilities                                   | 4 qualified formal capabilities (machine count)              | **≥ 5 tour-domain** (equipment, transport, difficulty/fitness, itinerary, pricing-fields) |
+| Blast radius — publish validation change                         | platform-core + 3 workspaces' rules                          | platform-core + rule data only (no host bridges)                                          |
+| Blast radius — capacity rule change                              | API + denali (+ divergent urban path)                        | tour-core contract + adapters                                                             |
+| Blast radius — new shared wizard field                           | every workspace registry by hand                             | profile/capability module + opt-in                                                        |
+| Blast radius — waitlist fix                                      | API + denali + urban separately                              | booking contract single edit (urban per DEC-CW-01/03)                                     |
+| Blast radius — new reusable capability                           | schema+codegen+api+sdk (works today)                         | unchanged (already good) — keep ≤ current                                                 |
 
 Measurement rules for every metric are fixed in CW0-09 (script), making baseline and CW-9 rerun directly comparable.
 
@@ -834,19 +837,19 @@ Additional binding rules:
 
 Architecture is consistent (not half-migrated) if execution stops after:
 
-| Pause point | State left behind |
-|-------------|-------------------|
-| **After CW-0** | Pure additive test assets; zero risk |
+| Pause point                      | State left behind                                                                                    |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **After CW-0**                   | Pure additive test assets; zero risk                                                                 |
 | **After CW1-02/04 partial exit** | tour-core has proven-generic spots math; Urban capacity strategy remains untouched pending DEC-CW-03 |
-| **After full CW-1** | DEC-CW-03 disposition recorded; any moved Urban strategy is explicit; compat paths remain valid |
-| **After CW-2** | Host cleaner; no structural change pending |
-| **After CW-3** | Ports live; vocabularies intact; heuristics gone — stable plateau |
-| **After CW-4** | Single booking SoT; divergence documented — stable plateau |
-| **After CW-5 core exit** | neutral tour-core complete without unresolved registration strategy; **best long-pause point** |
-| **After CW-6 profile-core exit** | Profile + theme/intake/config overrides shipped; policy proof correctly waits for CW8-03 |
-| **After CW6-05B** | Full Starter Profile including policy override proof complete |
-| **After each CW-7 capability** | Each capability is independently complete |
-| **After CW-8** | Pipeline live; certification optional but recommended |
+| **After full CW-1**              | DEC-CW-03 disposition recorded; any moved Urban strategy is explicit; compat paths remain valid      |
+| **After CW-2**                   | Host cleaner; no structural change pending                                                           |
+| **After CW-3**                   | Ports live; vocabularies intact; heuristics gone — stable plateau                                    |
+| **After CW-4**                   | Single booking SoT; divergence documented — stable plateau                                           |
+| **After CW-5 core exit**         | neutral tour-core complete without unresolved registration strategy; **best long-pause point**       |
+| **After CW-6 profile-core exit** | Profile + theme/intake/config overrides shipped; policy proof correctly waits for CW8-03             |
+| **After CW6-05B**                | Full Starter Profile including policy override proof complete                                        |
+| **After each CW-7 capability**   | Each capability is independently complete                                                            |
+| **After CW-8**                   | Pipeline live; certification optional but recommended                                                |
 
 **Do NOT pause mid-CW-3 (between CW3-05 and CW3-06)** or mid-consumer-migration in any strangler sequence.
 
@@ -856,12 +859,12 @@ Architecture is consistent (not half-migrated) if execution stops after:
 
 **Evidence does not prove that onboarding earlier is unsafe.** The Denali-adapter-fork path is certified and viable today (AUDIT §14: "onboard similar club via Denali adapter fork + manifest — works today, high maintenance"; harbor/PROD-4 prove admission). Therefore this section is a **risk/cost recommendation**, and commercial timing may override it with eyes open.
 
-| Onboard after… | Risk accepted | Cost accepted |
-|----------------|---------------|---------------|
-| **Nothing (today)** | Publish-label heuristics must absorb a 4th vocabulary (TRUTH §5); customer-branch formatters may gain another `pluginId` entry (AUDIT §8) | Full Denali-fork maintenance (~80–120 hand modules); every CW phase later runs against 3 production workspaces instead of 2 — parity/migration effort grows roughly linearly with workspaces |
-| **CW-0 only** | Same as above | Same, but golden parity floor protects the migration itself |
-| **CW-0..CW-2** | Publish-label heuristics risk remains | Fork cost remains; no new customer-branch debt accrues |
-| **CW-0..CW-3 (recommended)** | Residual: booking SoT duplication (CW-4) — contained, test-covered | Fork cost remains but new workspace binds ports, not heuristics |
+| Onboard after…               | Risk accepted                                                                                                                             | Cost accepted                                                                                                                                                                                |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nothing (today)**          | Publish-label heuristics must absorb a 4th vocabulary (TRUTH §5); customer-branch formatters may gain another `pluginId` entry (AUDIT §8) | Full Denali-fork maintenance (~80–120 hand modules); every CW phase later runs against 3 production workspaces instead of 2 — parity/migration effort grows roughly linearly with workspaces |
+| **CW-0 only**                | Same as above                                                                                                                             | Same, but golden parity floor protects the migration itself                                                                                                                                  |
+| **CW-0..CW-2**               | Publish-label heuristics risk remains                                                                                                     | Fork cost remains; no new customer-branch debt accrues                                                                                                                                       |
+| **CW-0..CW-3 (recommended)** | Residual: booking SoT duplication (CW-4) — contained, test-covered                                                                        | Fork cost remains but new workspace binds ports, not heuristics                                                                                                                              |
 
 **Recommendation:** complete **CW-0..CW-3** before signing the next similar club when schedule allows; if the deal cannot wait, minimum **CW-0** (parity floor + frozen metrics baseline) plus an explicit note in this ledger that a third workspace was onboarded pre-ports, which raises CW-3/CW-5 migration effort.
 
@@ -873,18 +876,18 @@ Architecture is consistent (not half-migrated) if execution stops after:
 
 ## Estimated size
 
-| Phase | Tasks | LOW | MEDIUM | HIGH |
-|-------|-------|-----|--------|------|
-| CW-0 | 10 | 10 | 0 | 0 |
-| CW-1 | 6 | 6 | 0 | 0 |
-| CW-2 | 7 | 2 | 5 | 0 |
-| CW-3 | 9 | 1 | 5 | 3 |
-| CW-4 | 8 | 3 | 4 | 1 |
-| CW-5 | 11 | 10 | 1 | 0 |
-| CW-6 | 8 | 3 | 5 | 0 |
-| CW-7 | 15 | 5 | 7 | 3 |
-| CW-8 | 7 | 1 | 5 | 1 |
-| CW-9 | 10 | 5 | 5 | 0 |
+| Phase     | Tasks  | LOW    | MEDIUM | HIGH   |
+| --------- | ------ | ------ | ------ | ------ |
+| CW-0      | 10     | 10     | 0      | 0      |
+| CW-1      | 6      | 6      | 0      | 0      |
+| CW-2      | 7      | 2      | 5      | 0      |
+| CW-3      | 9      | 1      | 5      | 3      |
+| CW-4      | 8      | 3      | 4      | 1      |
+| CW-5      | 11     | 10     | 1      | 0      |
+| CW-6      | 8      | 3      | 5      | 0      |
+| CW-7      | 15     | 5      | 7      | 3      |
+| CW-8      | 7      | 1      | 5      | 1      |
+| CW-9      | 10     | 5      | 5      | 0      |
 | **Total** | **91** | **38** | **42** | **11** |
 
 - Contingency range: **74–94** (some CW-7 capabilities may merge tasks; DEC outcomes may add follow-ups).
@@ -948,17 +951,17 @@ Explicitly NOT in slice 1: any CW-2 coupling fix (CW2-02/03 need DEC-CW-06), any
 
 Validated against this file after hardening:
 
-| Check | Result |
-|-------|--------|
-| Task IDs | **91 definitions, 91 unique; no duplicates** |
-| Phase totals | `10+6+7+9+8+11+8+15+7+10 = 91` |
-| Risk totals | **38 LOW + 42 MEDIUM + 11 HIGH = 91**; every task has exactly one normalized risk |
-| Decision records | **7 unique** (`DEC-CW-01..07`) |
-| Dependency references | Every `CW*-*` and `DEC-CW-*` token in a `Deps` field resolves to a defined task/decision |
-| Blocked tasks | Every `[!]` task names or transitively references a DEC gate |
-| Graph alignment | CW-3 uses CW1-02/04 partial exit; CW-5 core does not require gated CW5-05; CW6-05B is explicit CW-6/CW-8 join; CW-9 requires CW6-05B |
-| Pause safety | No pause declared between new-path introduction and first-consumer parity/removal; CW-1 partial pause leaves old Urban path untouched |
-| Later-phase dependency | CW-6 profile-core exit excludes CW6-05B; full CW-6 exit explicitly waits for CW8-03 — no undocumented interim hook |
+| Check                  | Result                                                                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Task IDs               | **91 definitions, 91 unique; no duplicates**                                                                                          |
+| Phase totals           | `10+6+7+9+8+11+8+15+7+10 = 91`                                                                                                        |
+| Risk totals            | **38 LOW + 42 MEDIUM + 11 HIGH = 91**; every task has exactly one normalized risk                                                     |
+| Decision records       | **7 unique** (`DEC-CW-01..07`)                                                                                                        |
+| Dependency references  | Every `CW*-*` and `DEC-CW-*` token in a `Deps` field resolves to a defined task/decision                                              |
+| Blocked tasks          | Every `[!]` task names or transitively references a DEC gate                                                                          |
+| Graph alignment        | CW-3 uses CW1-02/04 partial exit; CW-5 core does not require gated CW5-05; CW6-05B is explicit CW-6/CW-8 join; CW-9 requires CW6-05B  |
+| Pause safety           | No pause declared between new-path introduction and first-consumer parity/removal; CW-1 partial pause leaves old Urban path untouched |
+| Later-phase dependency | CW-6 profile-core exit excludes CW6-05B; full CW-6 exit explicitly waits for CW8-03 — no undocumented interim hook                    |
 
 Validation command shape (planning-time, read-only): parse task headings; assert uniqueness; extract normalized `Risk`; sum by phase; parse `Deps` references against task/decision sets. Re-run whenever ledger task IDs/dependencies change.
 
@@ -966,33 +969,34 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 
 ## Appendix A — Divergence ledger (populated at CW4-08)
 
-| Divergence | Classification | Contract/ticket |
-|------------|----------------|-----------------|
-| `approved` vs `confirmed` | INTENTIONAL(contract) — DEC-CW-01 Option B; distinct wire strings + `registrationOccupiesSeat` predicate | [`DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md), [`cw4-05-registration-model-divergence-contract.md`](cw4-05-registration-model-divergence-contract.md) |
-| `waitlisted` vs `waitlist` | INTENTIONAL(contract) — DEC-CW-01 Option B; distinct lifecycle roles; `registrationQueuedWithoutSeat` | [`DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md), [`cw4-05-registration-model-divergence-contract.md`](cw4-05-registration-model-divergence-contract.md) |
-| Portal member display for Urban wire labels | INTENTIONAL(contract) — DEC-CW-04 Option B; native→semantic codegen map | [`DEC-CW-04-evidence.md`](decisions/DEC-CW-04-evidence.md), member-portal registry §registrationStatusDisplay |
-| `active` vs `published` labels | INTENTIONAL after CW-3 mapping | CW3-05 |
-| Archive Urban-only | INTENTIONAL (optional capability, DEC-CW-02 Option B) | [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md) |
-| Capacity at approve vs at create | INTENTIONAL (dual strategies, DEC-CW-03 Option A) | [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md) |
-| Flat vs nested canonical shape | INTENTIONAL (workspace canonical ownership) | list-projection port CW3-07 |
+| Divergence                                  | Classification                                                                                           | Contract/ticket                                                                                                                                                    |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `approved` vs `confirmed`                   | INTENTIONAL(contract) — DEC-CW-01 Option B; distinct wire strings + `registrationOccupiesSeat` predicate | [`DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md), [`cw4-05-registration-model-divergence-contract.md`](cw4-05-registration-model-divergence-contract.md) |
+| `waitlisted` vs `waitlist`                  | INTENTIONAL(contract) — DEC-CW-01 Option B; distinct lifecycle roles; `registrationQueuedWithoutSeat`    | [`DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md), [`cw4-05-registration-model-divergence-contract.md`](cw4-05-registration-model-divergence-contract.md) |
+| Portal member display for Urban wire labels | INTENTIONAL(contract) — DEC-CW-04 Option B; native→semantic codegen map                                  | [`DEC-CW-04-evidence.md`](decisions/DEC-CW-04-evidence.md), member-portal registry §registrationStatusDisplay                                                      |
+| `active` vs `published` labels              | INTENTIONAL after CW-3 mapping                                                                           | CW3-05                                                                                                                                                             |
+| Archive Urban-only                          | INTENTIONAL (optional capability, DEC-CW-02 Option B)                                                    | [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md)                                                                                                         |
+| Capacity at approve vs at create            | INTENTIONAL (dual strategies, DEC-CW-03 Option A)                                                        | [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md)                                                                                                         |
+| Flat vs nested canonical shape              | INTENTIONAL (workspace canonical ownership)                                                              | list-projection port CW3-07                                                                                                                                        |
 
 ## Appendix B — Phase closure sign-offs
 
-| Phase | Exit evidence link | Reviewer | Date |
-|-------|--------------------|----------|------|
-| CW-0 | `pnpm run test:parity`; `docs/dev/cw-metrics-baseline.json`; integration HEAD `3cd634d8` | CW coordinator | 2026-08-23 |
-| CW-1 | CW1-03/05/06 complete; `atCreateCapacityStrategy` + `operatorApprovalCapacityStrategy` in tour-core; Urban host migrated; consumer census (`cw1-06-capacity-consumer-census.spec.ts`); `pnpm run test:parity` (19/19); tour-core 11/11; integration base `4acbdfc7` | CW coordinator | 2026-08-23 |
-| CW-2 | Wave 2 `f022e35d` + Wave 3B CW2-02/03/07; DEC-CW-06 Option E (`catalogPresentation.priceDisplay` + codegen); `guard:no-workspace-type-branches` extended; `pnpm run test:parity` (19/19); registry `--check`; all boundary guards PASS | CW coordinator | 2026-08-23 |
-| CW-3 (Wave 3A design) | CW2-01 `[x]` + CW3-01 `[v]`; evidence [`DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md), [`cw3-01-tour-publish-visibility-port.md`](cw3-01-tour-publish-visibility-port.md), [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md), [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md); docs-only merge | CW coordinator | 2026-08-23 |
-| CW-3 | CW3-01..09 `[x]`; Wave 3E sign-off; **CW-3 COMPLETE** | CW coordinator | 2026-08-23 |
-| CW-4 | CW4-01..08 `[x]`; booking SoT + divergence contracts + portal display; **CW-4 COMPLETE** | CW coordinator | 2026-08-23 |
-| CW-4 (partial/core) | CW4-01..04, CW4-07 `[x]` booking SoT + duplicate-protection contract; CW4-05+ gated on DEC-CW-01 | CW coordinator | 2026-08-23 |
-| CW-5 (Wave 5B) | CW5-07..09 + CW5-11 `[x]`; **CW-5 CORE EXIT COMPLETE**; CW5-10 deferred DEC-CW-05 | CW coordinator | 2026-08-23 |
-| CW-6 | — | — | — |
-| CW-7 | — | — | — |
-| CW-8 | — | — | — |
-| CW-9 | — | — | — |
+| Phase                          | Exit evidence link                                                                                                                                                                                                                                                                                                            | Reviewer       | Date       |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | ---------- |
+| CW-0                           | `pnpm run test:parity`; `docs/dev/cw-metrics-baseline.json`; integration HEAD `3cd634d8`                                                                                                                                                                                                                                      | CW coordinator | 2026-08-23 |
+| CW-1                           | CW1-03/05/06 complete; `atCreateCapacityStrategy` + `operatorApprovalCapacityStrategy` in tour-core; Urban host migrated; consumer census (`cw1-06-capacity-consumer-census.spec.ts`); `pnpm run test:parity` (19/19); tour-core 11/11; integration base `4acbdfc7`                                                           | CW coordinator | 2026-08-23 |
+| CW-2                           | Wave 2 `f022e35d` + Wave 3B CW2-02/03/07; DEC-CW-06 Option E (`catalogPresentation.priceDisplay` + codegen); `guard:no-workspace-type-branches` extended; `pnpm run test:parity` (19/19); registry `--check`; all boundary guards PASS                                                                                        | CW coordinator | 2026-08-23 |
+| CW-3 (Wave 3A design)          | CW2-01 `[x]` + CW3-01 `[v]`; evidence [`DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md), [`cw3-01-tour-publish-visibility-port.md`](cw3-01-tour-publish-visibility-port.md), [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md), [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md); docs-only merge | CW coordinator | 2026-08-23 |
+| CW-3                           | CW3-01..09 `[x]`; Wave 3E sign-off; **CW-3 COMPLETE**                                                                                                                                                                                                                                                                         | CW coordinator | 2026-08-23 |
+| CW-4                           | CW4-01..08 `[x]`; booking SoT + divergence contracts + portal display; **CW-4 COMPLETE**                                                                                                                                                                                                                                      | CW coordinator | 2026-08-23 |
+| CW-4 (partial/core)            | CW4-01..04, CW4-07 `[x]` booking SoT + duplicate-protection contract; CW4-05+ gated on DEC-CW-01                                                                                                                                                                                                                              | CW coordinator | 2026-08-23 |
+| CW-5 (Wave 5B)                 | CW5-07..09 + CW5-11 `[x]`; **CW-5 CORE EXIT COMPLETE**; CW5-10 deferred DEC-CW-05                                                                                                                                                                                                                                             | CW coordinator | 2026-08-23 |
+| CW-6A (Wave 6A reconciliation) | CW6-01, CW7-01, CW8-01 `[x]`; unified manifest model [`cw-wave-6a-manifest-composition-model.md`](cw-wave-6a-manifest-composition-model.md); DEC-CW-05 OPEN; progress 53/91                                                                                                                                                   | CW coordinator | 2026-08-23 |
+| CW-6                           | —                                                                                                                                                                                                                                                                                                                             | —              | —          |
+| CW-7                           | —                                                                                                                                                                                                                                                                                                                             | —              | —          |
+| CW-8                           | —                                                                                                                                                                                                                                                                                                                             | —              | —          |
+| CW-9                           | —                                                                                                                                                                                                                                                                                                                             | —              | —          |
 
 ---
 
-*Architect, documentation status: Not Needed (planning artifact under TEMP/, outside docs gate). Link to docs: n/a.*
+_Architect, documentation status: Not Needed (planning artifact under TEMP/, outside docs gate). Link to docs: n/a._
