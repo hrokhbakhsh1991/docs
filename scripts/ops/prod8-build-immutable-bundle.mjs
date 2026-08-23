@@ -6,17 +6,27 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const outRoot = join(root, ".artifacts/prod8");
-const bundleDir = join(outRoot, "bundle");
+const args = process.argv.slice(2);
+const doBuild = args.includes("--build");
+const artifactRootIdx = args.indexOf("--artifact-root");
+const artifactRootArg = artifactRootIdx >= 0 ? args[artifactRootIdx + 1] : null;
+const gitShaIdx = args.indexOf("--git-sha");
+const gitShaOverride = gitShaIdx >= 0 ? args[gitShaIdx + 1] : null;
 
-function run(args) {
-  const r = spawnSync(args[0], args.slice(1), {
-    cwd: root,
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const packagingRoot = join(scriptDir, "../..");
+const root = artifactRootArg || packagingRoot;
+const outRoot = join(packagingRoot, ".artifacts/prod8");
+const gitCwd = packagingRoot;
+
+function run(cmdArgs, opts = {}) {
+  const r = spawnSync(cmdArgs[0], cmdArgs.slice(1), {
+    cwd: opts.cwd || gitCwd,
     encoding: "utf8",
     maxBuffer: 128 * 1024 * 1024,
+    env: opts.env,
   });
-  if (r.status !== 0) throw new Error(r.stderr || r.stdout || `${args.join(" ")} failed`);
+  if (r.status !== 0) throw new Error(r.stderr || r.stdout || `${cmdArgs.join(" ")} failed`);
   return (r.stdout || "").trim();
 }
 
@@ -47,21 +57,30 @@ function sha256Dir(dir) {
   return h.digest("hex");
 }
 
-const doBuild = process.argv.includes("--build");
-const gitSha = run(["git", "rev-parse", "HEAD"]);
-const resolvedSha = run(["git", "rev-parse", "--verify", "HEAD^{commit}"]);
+const gitSha = gitShaOverride || run(["git", "rev-parse", "HEAD"]);
+const resolvedSha = gitShaOverride
+  ? gitShaOverride
+  : run(["git", "rev-parse", "--verify", "HEAD^{commit}"]);
 if (gitSha !== resolvedSha) {
   console.error(`prod8-build-immutable-bundle: FAIL — HEAD ${gitSha} != resolved commit ${resolvedSha}`);
   process.exit(1);
 }
-const status = run(["git", "status", "--porcelain"]);
+
+const status = artifactRootArg ? "" : run(["git", "status", "--porcelain"]);
 const dirty = status.length > 0;
 
-run([process.execPath, join(root, "scripts/ops/prod8-artifact-preflight.mjs")]);
+if (!artifactRootArg) {
+  run([process.execPath, join(packagingRoot, "scripts/ops/prod8-artifact-preflight.mjs")]);
+}
 
 mkdirSync(outRoot, { recursive: true });
 const sbomPath = join(outRoot, "app-tour.cdx.json");
-run([process.execPath, join(root, "scripts/ops/sbom-from-pnpm-lock.mjs"), "--out", sbomPath]);
+run([
+  process.execPath,
+  join(packagingRoot, "scripts/ops/sbom-from-pnpm-lock.mjs"),
+  "--out",
+  sbomPath,
+]);
 
 const surfaces = [
   { id: "api", dist: "apps/api/dist", entry: "apps/api/dist/main.js" },
@@ -91,6 +110,7 @@ const artifacts = {};
 let buildComplete = true;
 for (const surface of surfaces) {
   const entryPath = join(root, surface.entry);
+  const distPath = join(root, surface.dist);
   const present = existsSync(entryPath);
   if (!present) buildComplete = false;
   artifacts[surface.id] = {
@@ -98,7 +118,7 @@ for (const surface of surfaces) {
     entry: surface.entry,
     present,
     sha256: present ? sha256File(entryPath) : null,
-    tree_sha256: existsSync(join(root, surface.dist)) ? sha256Dir(join(root, surface.dist)) : null,
+    tree_sha256: existsSync(distPath) ? sha256Dir(distPath) : null,
   };
 }
 
@@ -154,6 +174,7 @@ const buildManifest = {
   resolved_commit_sha: resolvedSha,
   generated_at: new Date().toISOString(),
   dirty_worktree: dirty,
+  artifact_root: artifactRootArg || packagingRoot,
   build_complete: buildComplete,
   surfaces: artifacts,
   migrations: migrationManifest,
@@ -172,7 +193,7 @@ const provenance = {
     ? "dirty worktree — do not attest as clean immutable RC"
     : buildComplete
       ? "external signing not configured in local session"
-      : "build outputs incomplete — run with --build on clean checkout",
+      : "build outputs incomplete — run package-immutable-release.sh on clean checkout",
   local_checksum_provenance: !dirty && buildComplete,
   same_digest_required: true,
   same_digest_staging_production_verified: "NOT_YET_VERIFIED",
@@ -206,6 +227,7 @@ writeFileSync(join(outRoot, "build-manifest.json"), `${JSON.stringify(buildManif
 writeFileSync(join(outRoot, "provenance.json"), `${JSON.stringify(provenance, null, 2)}\n`);
 writeFileSync(join(outRoot, "immutable-bundle.json"), `${JSON.stringify(bundle, null, 2)}\n`);
 
+const bundleDir = join(outRoot, `bundle-${gitSha.slice(0, 12)}`);
 if (buildComplete && !dirty) {
   mkdirSync(bundleDir, { recursive: true });
   for (const surface of surfaces) {
@@ -220,6 +242,15 @@ if (buildComplete && !dirty) {
   writeFileSync(join(metaDir, "provenance.json"), `${JSON.stringify(provenance, null, 2)}\n`);
   writeFileSync(join(metaDir, "migrations-index.json"), `${JSON.stringify(migrationManifest, null, 2)}\n`);
   cpSync(sbomPath, join(metaDir, "app-tour.cdx.json"));
+
+  if (artifactRootArg) {
+    const stagingMeta = join(root, "deploy-metadata");
+    mkdirSync(stagingMeta, { recursive: true });
+    writeFileSync(join(stagingMeta, "build-manifest.json"), `${JSON.stringify(buildManifest, null, 2)}\n`);
+    writeFileSync(join(stagingMeta, "provenance.json"), `${JSON.stringify(provenance, null, 2)}\n`);
+    writeFileSync(join(stagingMeta, "immutable-bundle.json"), `${JSON.stringify(bundle, null, 2)}\n`);
+    cpSync(sbomPath, join(stagingMeta, "app-tour.cdx.json"));
+  }
 }
 
 console.log(

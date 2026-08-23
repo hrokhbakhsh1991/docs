@@ -15,7 +15,7 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
-node scripts/ops/prod8-build-immutable-bundle.mjs --build
+node scripts/ops/prod8-artifact-preflight.mjs
 
 rm -rf "$STAGING"
 mkdir -p "$STAGING"
@@ -27,6 +27,8 @@ git archive "$SHA" | tar -x -C "$STAGING"
   /usr/local/bin/pnpm install --frozen-lockfile
   DEPLOY_PATH="$STAGING" bash scripts/vps-deploy/build-operator-vps.sh
 )
+
+node scripts/ops/prod8-build-immutable-bundle.mjs --artifact-root "$STAGING" --git-sha "$SHA"
 
 mkdir -p "$OUT_DIR"
 tar -czf "$TARBALL" -C "$STAGING" .
