@@ -21,6 +21,7 @@ export const WORKSPACE_PROFILE_EXPANSION_AUDIT = {
   "finance-ws6": null,
   "guest-club": null,
   "harbor": null,
+  "policy-cert": null,
   "starter": null,
   "urban": null,
 } as const satisfies Record<string, WorkspaceProfileExpansionAuditEntry | null>;

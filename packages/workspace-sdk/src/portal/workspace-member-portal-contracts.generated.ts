@@ -113,6 +113,7 @@ export const WORKSPACE_MEMBER_PORTAL_CONTRACTS: Readonly<
     ] as const satisfies readonly MemberModuleManifest[]),
   }),
   "harbor": Object.freeze({ availability: "off" as const }),
+  "policy-cert": Object.freeze({ availability: "off" as const }),
   "starter": Object.freeze({ availability: "off" as const }),
   "urban": Object.freeze({
     availability: "minimal",

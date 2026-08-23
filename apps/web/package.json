@@ -85,6 +85,7 @@
     "@app-tour/workspace-finance-ws5": "workspace:*",
     "@app-tour/workspace-guest-club": "workspace:*",
     "@app-tour/workspace-harbor": "workspace:*",
+    "@app-tour/workspace-policy-cert": "workspace:*",
     "@app-tour/workspace-starter": "workspace:*",
     "@app-tour/workspace-urban": "workspace:*",
     "@happy-dom/global-registrator": "^17.4.4",

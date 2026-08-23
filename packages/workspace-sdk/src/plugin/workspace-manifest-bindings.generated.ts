@@ -40,6 +40,7 @@ export const WORKSPACE_MANIFEST_BINDINGS: readonly {
   { workspaceType: "finance-ws5", pluginId: "finance-ws5" },
   { workspaceType: "guest-club", pluginId: "guest-club" },
   { workspaceType: "harbor", pluginId: "harbor" },
+  { workspaceType: "policy-cert", pluginId: "policy-cert" },
   {
     workspaceType: "starter",
     pluginId: "starter",

@@ -106,6 +106,9 @@ importers:
       '@app-tour/workspace-harbor':
         specifier: workspace:*
         version: link:../../packages/workspaces/harbor
+      '@app-tour/workspace-policy-cert':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/policy-cert
       '@app-tour/workspace-sdk':
         specifier: workspace:*
         version: link:../../packages/workspace-sdk
@@ -497,6 +500,9 @@ importers:
       '@app-tour/workspace-harbor':
         specifier: workspace:*
         version: link:../../packages/workspaces/harbor
+      '@app-tour/workspace-policy-cert':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/policy-cert
       '@app-tour/workspace-starter':
         specifier: workspace:*
         version: link:../../packages/workspaces/starter
@@ -1416,6 +1422,31 @@ importers:
       react:
         specifier: ^19.0.0
         version: 19.2.7
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/workspaces/policy-cert:
+    dependencies:
+      '@app-tour/design-tokens':
+        specifier: workspace:*
+        version: link:../../design-tokens
+      '@app-tour/platform-core':
+        specifier: workspace:*
+        version: link:../../platform-core
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
       tsx:
         specifier: ^4.20.6
         version: 4.22.4

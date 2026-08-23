@@ -15,6 +15,7 @@ export const API_WORKSPACE_PLUGIN_IDS = [
   "finance-ws5",
   "guest-club",
   "harbor",
+  "policy-cert",
   "starter",
   "urban",
 ] as const;
@@ -62,6 +63,10 @@ export async function loadApiWorkspacePluginByIdFromManifest(
     }
     case "harbor": {
       const mod = await import("@app-tour/workspace-harbor/plugin");
+      return mod.getWorkspacePlugin();
+    }
+    case "policy-cert": {
+      const mod = await import("@app-tour/workspace-policy-cert/plugin");
       return mod.getWorkspacePlugin();
     }
     case "starter": {

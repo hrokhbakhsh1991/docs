@@ -121,6 +121,11 @@ export function loadProfileCatalog() {
     if (!isPlainObject(raw.capabilityDefaults)) {
       throw new Error(`${filePath}: capabilityDefaults object is required`);
     }
+    if (raw.capabilityDefaults.workspacePolicy !== undefined) {
+      throw new Error(
+        `${filePath}: workspacePolicy forbidden in profile catalog — author manifest only`
+      );
+    }
     if (catalog.has(raw.id)) {
       throw new Error(`${filePath}: duplicate profile id "${raw.id}"`);
     }
