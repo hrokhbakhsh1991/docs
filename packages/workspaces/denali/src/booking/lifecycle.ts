@@ -1,23 +1,15 @@
 /**
- * Denali booking status state machine + history append model.
- * Pure domain — no I/O, no shell, no SDK changes.
+ * Denali booking lifecycle — history append model (workspace-retained, CW4-04).
+ * Transition edges derive from `@app-tour/booking-http-contracts` (CW4-02 SoT).
+ * Host authorization uses shared contract via BookingsService repositories.
  */
 
 import {
-  isDenaliBookingTerminalStatus,
-  type DenaliBookingStatus,
-} from "./status";
+  canTransitionBookingStatus,
+  listBookingTransitionsFrom,
+} from "@app-tour/booking-http-contracts";
 
-/** Allowed edges (from → to[]). Terminal statuses have no outbound edges. */
-const DENALI_BOOKING_TRANSITIONS: {
-  readonly [K in DenaliBookingStatus]: readonly DenaliBookingStatus[];
-} = {
-  pending: ["approved", "waitlisted", "rejected", "cancelled"],
-  waitlisted: ["approved", "rejected", "cancelled"],
-  approved: ["cancelled"],
-  rejected: [],
-  cancelled: [],
-};
+import type { DenaliBookingStatus } from "./status";
 
 export type DenaliBookingTransitionAction =
   | "create"
@@ -44,23 +36,19 @@ export type DenaliBookingSnapshot = {
   readonly history: readonly DenaliBookingHistoryEntry[];
 };
 
+/** Compat alias — edges from shared contract (CW4-04). */
 export function listDenaliBookingTransitionsFrom(
   from: DenaliBookingStatus
 ): readonly DenaliBookingStatus[] {
-  return DENALI_BOOKING_TRANSITIONS[from];
+  return listBookingTransitionsFrom(from);
 }
 
+/** Compat alias — edges from shared contract (CW4-04). */
 export function canTransitionDenaliBooking(
   from: DenaliBookingStatus,
   to: DenaliBookingStatus
 ): boolean {
-  if (from === to) {
-    return false;
-  }
-  if (isDenaliBookingTerminalStatus(from)) {
-    return false;
-  }
-  return DENALI_BOOKING_TRANSITIONS[from].includes(to);
+  return canTransitionBookingStatus(from, to);
 }
 
 export function assertCanTransitionDenaliBooking(

@@ -4,11 +4,9 @@ import {
   BOOKING_APPROVE_OUTBOX_EVENT_TYPE,
   BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
   BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
-} from "../../packages/booking-http-contracts/src/booking-lifecycle-events.ts";
-import {
-  canTransitionDenaliBooking,
-  listDenaliBookingTransitionsFrom,
-} from "../../packages/workspaces/denali/src/booking/lifecycle.ts";
+  canTransitionBookingStatus,
+  listBookingTransitionsFrom,
+} from "../../packages/booking-http-contracts/src/index.ts";
 import { assertGoldenParity, fixturePath } from "./lib/golden-harness.mjs";
 
 /**
@@ -34,7 +32,7 @@ function resolveBookingTransitionOutboxEvent(input) {
 }
 
 describe("registration lifecycle parity goldens (CW0-04)", () => {
-  it("booking path transition edges match Denali/host lifecycle graph", () => {
+  it("booking path transition edges match shared contract (CW4-02 SoT)", () => {
     assertGoldenParity({
       id: "CW0-04-transition-edges",
       fixturePath: fixturePath("registration-lifecycle/transition-edges.json"),
@@ -45,7 +43,7 @@ describe("registration lifecycle parity goldens (CW0-04)", () => {
         /** @type {Record<string, readonly string[]>} */
         const edgesByFrom = {};
         for (const status of typed.statuses) {
-          edgesByFrom[status] = listDenaliBookingTransitionsFrom(
+          edgesByFrom[status] = listBookingTransitionsFrom(
             /** @type {import("@app-tour/booking-http-contracts").BookingStatus} */ (
               status
             )
@@ -80,7 +78,7 @@ describe("registration lifecycle parity goldens (CW0-04)", () => {
     });
   });
 
-  it("illegal edges are rejected by canTransitionDenaliBooking", () => {
+  it("illegal edges are rejected by canTransitionBookingStatus", () => {
     const illegal = [
       { from: "rejected", to: "approved" },
       { from: "cancelled", to: "approved" },
@@ -89,7 +87,7 @@ describe("registration lifecycle parity goldens (CW0-04)", () => {
     ];
     for (const edge of illegal) {
       if (
-        canTransitionDenaliBooking(
+        canTransitionBookingStatus(
           /** @type {import("@app-tour/booking-http-contracts").BookingStatus} */ (
             edge.from
           ),
