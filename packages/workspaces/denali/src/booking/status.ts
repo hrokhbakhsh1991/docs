@@ -1,26 +1,21 @@
 /**
- * Denali booking status vocabulary — aligned with ops pipeline + HTTP contracts.
- * @see packages/booking-http-contracts/src/booking-status.ts
+ * Denali booking status vocabulary — derives from shared booking contract (CW4-03).
+ * @see packages/booking-http-contracts/src/booking-lifecycle-transitions.ts
  * @see src/bookings/ops-manifest.ts statusPipeline
  */
 
-import type { BookingStatus } from "@app-tour/booking-http-contracts";
+import {
+  BOOKING_STATUS_PIPELINE,
+  BOOKING_TERMINAL_STATUSES,
+  type BookingStatus,
+} from "@app-tour/booking-http-contracts";
 
 export type DenaliBookingStatus = BookingStatus;
 
-/** Same order as `denaliRegistrationOpsManifest.statusPipeline`. */
-export const DENALI_BOOKING_STATUS_PIPELINE = Object.freeze([
-  "pending",
-  "approved",
-  "waitlisted",
-  "rejected",
-  "cancelled",
-] as const satisfies readonly DenaliBookingStatus[]);
+/** Derived from `BOOKING_STATUS_PIPELINE` — same order as ops manifest. */
+export const DENALI_BOOKING_STATUS_PIPELINE = BOOKING_STATUS_PIPELINE;
 
-export const DENALI_BOOKING_TERMINAL_STATUSES = Object.freeze([
-  "rejected",
-  "cancelled",
-] as const satisfies readonly DenaliBookingStatus[]);
+export const DENALI_BOOKING_TERMINAL_STATUSES = BOOKING_TERMINAL_STATUSES;
 
 export function isDenaliBookingStatus(value: unknown): value is DenaliBookingStatus {
   return (

@@ -3,10 +3,10 @@
  * Phase B1.6 — also exposed as workspaceBooking.opsManifest (Finance ops mirror).
  * @see docs/phase-9/appendices/BOOKINGS-OPS-UX.md §5
  *
- * Status vocabulary must stay aligned with `src/booking` lifecycle
- * (`DENALI_BOOKING_STATUS_PIPELINE`). Transition rules live in booking domain —
- * this file only declares operator UX (views, actions, abilities).
+ * `statusPipeline` derives from shared booking contract (CW4-03).
+ * Transition rules: `booking-http-contracts` — this file declares operator UX only.
  */
+import { BOOKING_STATUS_PIPELINE } from "@app-tour/booking-http-contracts";
 import {
   validateRegistrationOpsManifest,
   type RegistrationOpsManifest,
@@ -16,13 +16,7 @@ export const denaliRegistrationOpsManifest = Object.freeze({
   id: "denali_registration_ops",
   defaultView: "inbox_table",
   views: Object.freeze(["inbox_table", "tour_board", "departure_timeline"] as const),
-  statusPipeline: Object.freeze([
-    "pending",
-    "approved",
-    "waitlisted",
-    "rejected",
-    "cancelled",
-  ] as const),
+  statusPipeline: BOOKING_STATUS_PIPELINE,
   kpiCards: Object.freeze([
     "pending",
     "approved_today",
