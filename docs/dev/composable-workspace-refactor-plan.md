@@ -163,6 +163,7 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 
 ### DEC-CW-04 — member-portal status display for non-booking workspaces
 
+- **Evidence packet:** [`docs/dev/decisions/DEC-CW-04-evidence.md`](decisions/DEC-CW-04-evidence.md) (2026-08-23) — CW0-05 parity, portal display code, Urban registration vocabulary, PCMS-001 localization ownership; options A/B/C; **Option B PROPOSAL** (neutral member display semantics + manifest codegen map; persistence native).
 - **Evidence:** TRUTH §27 — `format-member-registration-display.server.ts` translates booking vocabulary only; `confirmed` falls through as raw string.
 - **Blocks directly:** CW4-06, CW9-06.
 - **Blocks transitively:** CW9-10 full different-vertical certification sign-off.
