@@ -112,10 +112,7 @@ const SHARED_TOUR_RULE_CATALOG = [
   {
     id: "computeSpotsRemaining",
     symbols: ["computeSpotsRemaining", "withSpotsRemaining"],
-    permittedOwners: [
-      "packages/workspaces/denali",
-      "packages/tour-core",
-    ],
+    permittedOwners: ["packages/tour-core"],
   },
   {
     id: "assertTourCapacityInTx",

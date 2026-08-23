@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 
 import {
   computeSpotsRemaining,
-} from "../../packages/workspaces/denali/src/catalog/compute-spots-remaining.ts";
+} from "@app-tour/tour-core";
 import { assertGoldenParity, fixturePath } from "./lib/golden-harness.mjs";
 
 describe("spots remaining parity goldens (CW0-06)", () => {

@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import {
   computeSpotsRemaining,
   withSpotsRemaining,
-} from "../src/catalog/compute-spots-remaining";
+} from "@app-tour/tour-core";
 
 const BASE_CARD = Object.freeze({
   id: "00000000-0000-4000-8000-000000000210",
