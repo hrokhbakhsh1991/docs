@@ -769,9 +769,6 @@ importers:
       '@app-tour/catalog-registration-flow-ui':
         specifier: workspace:*
         version: link:../catalog-registration-flow-ui
-      '@app-tour/workspace-alpine':
-        specifier: workspace:*
-        version: link:../workspaces/alpine
       '@app-tour/workspace-denali':
         specifier: workspace:*
         version: link:../workspaces/denali
