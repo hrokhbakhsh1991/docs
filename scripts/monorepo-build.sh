@@ -31,6 +31,7 @@ bash scripts/with-monorepo-build-lock.sh bash -c '
   pnpm --dir packages/workspaces/urban run build
   pnpm --dir packages/workspaces/guest-club run build
   pnpm --dir packages/workspaces/acme run build
+  pnpm --dir packages/workspaces/alpine run build
   pnpm --dir packages/workspaces/harbor run build
   pnpm --dir packages/platform-events run build
   pnpm --dir packages/finance-core run build

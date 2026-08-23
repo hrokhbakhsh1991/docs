@@ -7,6 +7,13 @@ DEPLOY_PATH="${DEPLOY_PATH:-/opt/app-tour}"
 ENV_DIR="${ENV_DIR:-/etc/app-tour}"
 APP_USER="${APP_USER:-app-tour}"
 UNIT_PREFIX="${UNIT_PREFIX:-app-tour}"
+DEPLOY_ROOT="${DEPLOY_ROOT:-}"
+CURRENT_LINK="${CURRENT_LINK:-${DEPLOY_ROOT:+$DEPLOY_ROOT/current}}"
+
+# Immutable releases: systemd units follow the active release pointer.
+if [[ -n "$CURRENT_LINK" && -L "$CURRENT_LINK" ]]; then
+  DEPLOY_PATH="$CURRENT_LINK"
+fi
 
 [[ "$(id -u)" -eq 0 ]] || {
   echo "install-systemd-units: run as root" >&2

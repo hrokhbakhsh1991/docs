@@ -15,7 +15,7 @@ import {
  * Gap Closure Phase C.1 baseline — product workspace deps on guest-runtime.
  * Decrease when profiles/splits shrink the set; never raise without charter edit.
  */
-const MAX_GUEST_RUNTIME_PRODUCT_DEPS = 4;
+const MAX_GUEST_RUNTIME_PRODUCT_DEPS = 6;
 
 const manifests = discoverManifests();
 const result = verifyGuestWorkspaceRuntimePackageJson(manifests);

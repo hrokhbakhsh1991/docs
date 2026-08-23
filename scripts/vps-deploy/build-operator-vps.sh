@@ -62,6 +62,11 @@ build_pkg @app-tour/session-client
 build_pkg @app-tour/platform-events
 pnpm --filter @app-tour/wizard-navigation run build 2>/dev/null || true
 pnpm --filter @app-tour/draft-engine run build 2>/dev/null || true
+build_pkg @app-tour/booking-http-contracts
+build_pkg @app-tour/finance-http-contracts
+build_pkg @app-tour/finance-http
+build_pkg @app-tour/catalog-intake-ui
+build_pkg @app-tour/catalog-registration-flow-ui
 build_pkg @app-tour/workspace-denali
 build_pkg @app-tour/workspace-urban
 
@@ -72,7 +77,21 @@ if [[ ! -f "${DEPLOY_PATH}/apps/api/dist/main.js" ]]; then
   exit 1
 fi
 
+build_pkg @app-tour/iran-mountain-landmarks
+
 build_web_production
+
+build_pkg @app-tour/workspace-alpine
+build_pkg @app-tour/workspace-harbor
+
+# guest-workspace-runtime generated registrars import alpine/harbor; portal owns direct deps (PROD-6 collapse).
+link_guest_workspace_runtime_optional_deps() {
+  local link_root="${DEPLOY_PATH}/packages/guest-workspace-runtime/node_modules/@app-tour"
+  mkdir -p "$link_root"
+  ln -sfn ../../../workspaces/alpine "$link_root/workspace-alpine"
+  ln -sfn ../../../workspaces/harbor "$link_root/workspace-harbor"
+}
+link_guest_workspace_runtime_optional_deps
 
 build_next_app() {
   local app_dir="$1"

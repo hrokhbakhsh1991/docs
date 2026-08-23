@@ -182,6 +182,9 @@ export function collectGuestRuntimeProductPackages(manifests) {
   const packages = new Set([
     ...collectGuestProductTranspilePackages(manifests, "portal"),
     ...collectGuestProductTranspilePackages(manifests, "marketing"),
+    ...selectPortalRegisterManifests(manifests)
+      .map((m) => m.package)
+      .filter((pkg) => typeof pkg === "string" && pkg.length > 0),
   ]);
   return [...packages].sort((a, b) => a.localeCompare(b));
 }

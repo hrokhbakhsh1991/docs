@@ -1,0 +1,44 @@
+# PROD-8 VPS alert ownership and severity matrix
+# Apply alongside deploy/alerts/phase5-slo.yaml when Prometheus is provisioned.
+schema_version: prod8-vps-alert-ownership.1
+owner: platform-release
+on_call_rotation: infrastructure-owner
+escalation:
+  - level: L1
+    contact: release-owner
+    response_sla_minutes: 30
+  - level: L2
+    contact: platform-architecture
+    response_sla_minutes: 60
+  - level: L3
+    contact: repository-owner
+    response_sla_minutes: 240
+alerts:
+  - name: AppTourOutboxFailedRows
+    severity: critical
+    owner: platform
+    runbook: docs/phase-5/appendices/outbox-failed-replay.md
+  - name: AppTourDbCircuitOpen
+    severity: critical
+    owner: infrastructure
+    runbook: docs/phase-23/runbooks/p10-incident-four-process.md#inc-06--postgres-unavailable
+  - name: AppTourHealthProbeLatencyHigh
+    severity: warning
+    owner: platform
+    runbook: docs/phase-5/appendices/health-probe-latency-monitor.md
+  - name: AppTourLogShutdownFlushTimeout
+    severity: warning
+    owner: platform
+    runbook: docs/phase-5/appendices/fof-log-03-shutdown-tail-acceptance.md
+  - name: AppTourDiskPressure
+    severity: warning
+    owner: infrastructure
+    runbook: docs/phase-23/runbooks/p10-incident-four-process.md#inc-07--disk--oom
+  - name: AppTourMigrationHeadDrift
+    severity: critical
+    owner: release
+    runbook: docs/phase-4/production-deploy-checklist.md#bad-deployment-rollback-dec-098--rb-gap-0104
+  - name: AppTourDeploymentShaDrift
+    severity: warning
+    owner: release
+    runbook: docs/platform/PROD-8-OPERATIONS.md#deployment-sha-drift

@@ -1,6 +1,6 @@
 # VPS deploy — four-process platform (P10 Profile C + P8 Profile B)
 
-Push to **`main`** → GitHub Actions runs `scripts/vps-deploy/remote-deploy.sh` on the VPS via SSH.
+Push to **`main`** no longer triggers production deploy (PROD-8). Use GitHub Actions **Deploy VPS (immutable RC)** with an approved `release_ref` after L3 gate passes. See [`docs/platform/PROD-8-OPERATIONS.md`](../../docs/platform/PROD-8-OPERATIONS.md).
 
 **Four processes:** API · web · marketing · portal — each with its own env file under `/etc/app-tour/`.
 
