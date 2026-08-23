@@ -182,7 +182,7 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 
 ### DEC-CW-06 — currency/locale display config shape
 
-- **Evidence:** AUDIT §8 — IRR/toman keyed on `pluginId === "denali"`; replacement config target (manifest block vs tenant config) undesigned.
+- **Evidence:** AUDIT §8 — IRR/toman keyed on `pluginId === "denali"`; replacement config target (manifest block vs tenant config) undesigned. **CW2-01 evidence packet:** [`docs/dev/decisions/DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md) (enumerates current policy seams, options, baseline drift at `7d3daac6`).
 - **Blocks directly:** CW2-02, CW2-03, CW2-07 currency-specific assertions, CW7-11.
 - **Blocks transitively:** CW7-12 (depends on CW7-11). Equipment/Transport minimum and CW-9 remain executable.
 - **Does NOT block exactly:** CW0-01..10; CW1-01..06; CW2-01, CW2-04..06; CW3-01..09; CW4-01..08; CW5-01..11; CW6-01..04, CW6-05A, CW6-05B, CW6-06..07; CW7-01..10, CW7-13..15; CW8-01..07; CW9-01..10.
@@ -393,8 +393,9 @@ Refinement vs requested shape (evidence-based):
 
 ### CW-2 — Host / Customer Coupling Removal
 
-- **CW2-01** `[ ]` **Prepare DEC-CW-06 evidence packet**
+- **CW2-01** `[x]` **Prepare DEC-CW-06 evidence packet**
   - Objective: enumerate current formatter inputs and compare manifest-vs-tenant-config options without selecting product semantics.
+  - Evidence: [`docs/dev/decisions/DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md) — policy-driven formatters at `7d3daac6`; manifest shape still open; Option E (hybrid manifest `catalogPresentation.priceDisplay` + codegen) marked **PROPOSAL** for Architect.
   - Deps: CW0-09. Risk: **LOW**. Decision remains external.
 
 - **CW2-02** `[!]` **Replace marketing IRR/toman `pluginId === "denali"` (blocked: DEC-CW-06)**
