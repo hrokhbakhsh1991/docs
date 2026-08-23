@@ -195,6 +195,34 @@
         "publishVisibilityExport": {
           "type": "string",
           "description": "Export name: (canonical) => boolean; true when tour is publicly visible"
+        },
+        "publishLabelMapping": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["publishedLabels", "notPublishedLabels"],
+          "properties": {
+            "publishedLabels": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 },
+              "description": "Wire labels that map to lifecycle.publishStatus (CW3-05)"
+            },
+            "notPublishedLabels": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 },
+              "description": "Wire labels that map to lifecycle.initialStatus (CW3-05)"
+            },
+            "archiveCapability": {
+              "type": "boolean",
+              "description": "Optional archive product extension (DEC-CW-02 Option B); not a generic lifecycle state"
+            },
+            "optionalArchiveLabels": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "description": "Archive wire labels when archiveCapability is true; map to notPublished bucket"
+            }
+          }
         }
       }
     },

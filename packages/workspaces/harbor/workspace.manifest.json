@@ -60,7 +60,15 @@
     "publishStatusReadExport": "readHarborTourPublishStatusFromCanonical",
     "publishTransitionExport": "detectHarborTourPublishTransition",
     "publishVisibilityModule": "./catalog",
-    "publishVisibilityExport": "isHarborTourPublished"
+    "publishVisibilityExport": "isHarborTourPublished",
+    "publishLabelMapping": {
+      "publishedLabels": ["published"],
+      "notPublishedLabels": ["draft"]
+    },
+    "publishLabelMapping": {
+      "publishedLabels": ["published"],
+      "notPublishedLabels": ["draft"]
+    }
   },
   "httpErrors": [
     {

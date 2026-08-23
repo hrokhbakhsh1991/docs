@@ -13,9 +13,12 @@ code_sot:
   - apps/api/src/canonical/workspace-publish-visibility-bindings.generated.ts
   - apps/api/src/marketing/should-invalidate-marketing-catalog.ts
   - apps/api/src/marketing/marketing-catalog-visibility-compat.ts
+  - apps/api/src/canonical/workspace-publish-label-mappings.generated.ts
+  - apps/api/src/canonical/workspace-publish-label-mapping-dispatch.ts
   - apps/api/src/tours/workspace-tour-write-dispatch.ts
   - scripts/codegen/workspace-registry/domains/tour-api.mjs
   - packages/workspace-sdk/src/tour/tour-publish-visibility.port.ts
+  - packages/workspace-sdk/src/tour/tour-publish-label-mapping.contract.ts
   - apps/api/src/canonical/workspace-catalog-ref-allowlist-resolvers.generated.ts
   - apps/api/src/tours/workspace-wizard-rules-bindings.generated.ts
   - apps/api/src/integrations/platform/workspace-integration-capabilities.generated.ts
@@ -43,6 +46,7 @@ mandatory_for:
 | Detect publish transition | `detectTourPublishTransition` | same |
 | Migrate canonical | `resolveMigrateCanonicalHook` | same |
 | Public catalog visibility | `isTourPubliclyVisible` | `workspace-publish-visibility-bindings.generated.ts` |
+| Publish label → lifecycle bucket | `mapTourPublishStatusLabelToBucket` | `workspace-publish-label-mappings.generated.ts` |
 | Tour write side effects | `workspace-tour-write-dispatch.ts` | `tour-api.mjs` |
 
 **Forbidden in platform handlers:**
@@ -97,6 +101,26 @@ Codegen (`scripts/codegen/workspace-registry/domains/tour-api.mjs`) emits `WORKS
 **Rollback:** revert predicate to `publicCatalog.isPublished` inside the `publicCatalog` gate; dispatch import removed.
 
 **Later consumers (not CW3-03):** workspace HTTP `filterWorkspacePublishedTours` call sites, registration `requireWorkspacePublishedTour`, portal catalog gates (CW3-04+).
+
+### Publish label mapping dispatch (CW3-05)
+
+Workspaces with `canonicalTour` + `tourWrite` declare wire-label tables on `canonicalTour.publishLabelMapping`:
+
+| Manifest field | Role |
+| -------------- | ---- |
+| `publishedLabels` | Canonical strings → `lifecycle.publishStatus` via neutral `published` bucket |
+| `notPublishedLabels` | Canonical strings → `lifecycle.initialStatus` via `notPublished` bucket |
+| `archiveCapability` | Optional (Urban). Archive is workspace capability, not generic lifecycle state (DEC-CW-02 Option B) |
+| `optionalArchiveLabels` | When `archiveCapability: true` — archive wire labels map to `notPublished` placeholder |
+
+Codegen emits `WORKSPACE_PUBLISH_LABEL_MAPPINGS`. Host code calls:
+
+- `mapTourPublishStatusLabelToBucket(workspaceType, label)` — fail-closed on unknown workspace or label
+- `resolveTourPublishLifecycleStatusFromLabel({ workspaceType, lifecycle, label })` — CW3-06 consumer for lifecycle gate
+
+**Preserved vocabulary:** Denali `draft`/`active`; Urban `draft`/`published`/`archived`; Harbor `published`/`draft`; Starter no binding until `canonicalTour` ships.
+
+**Verification:** `packages/workspace-sdk/test/tour-publish-label-mapping.contract.spec.ts`, `apps/api/test/workspace-publish-label-mapping-dispatch.spec.ts`.
 
 ### Form profile ghost paths (manifest → binding)
 

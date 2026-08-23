@@ -2,6 +2,7 @@ import { BANNER } from "../constants.mjs";
 import { assertNoDuplicateEmittedSymbols, importSpecifier } from "../utils.mjs";
 
 const PUBLISH_VISIBILITY_REQUIRED_WORKSPACES = new Set(["denali", "urban", "harbor"]);
+const PUBLISH_LABEL_MAPPING_REQUIRED_WORKSPACES = new Set(["denali", "urban", "harbor"]);
 
 function namedImportLine(names, specifier) {
   if (names.length <= 1) {
@@ -119,6 +120,130 @@ export function validatePublishVisibilityManifests(manifests) {
   }
 }
 
+function validatePublishLabelMappingBlock(workspaceId, mapping) {
+  if (!Array.isArray(mapping.publishedLabels) || mapping.publishedLabels.length === 0) {
+    throw new Error(
+      `workspace.manifest.json ${workspaceId}: publishLabelMapping.publishedLabels must be a non-empty array`
+    );
+  }
+  if (!Array.isArray(mapping.notPublishedLabels) || mapping.notPublishedLabels.length === 0) {
+    throw new Error(
+      `workspace.manifest.json ${workspaceId}: publishLabelMapping.notPublishedLabels must be a non-empty array`
+    );
+  }
+  const publishedSet = new Set(mapping.publishedLabels);
+  for (const label of mapping.notPublishedLabels) {
+    if (publishedSet.has(label)) {
+      throw new Error(
+        `workspace.manifest.json ${workspaceId}: publish label "${label}" appears in both publishedLabels and notPublishedLabels`
+      );
+    }
+  }
+  const hasArchiveCapability = mapping.archiveCapability === true;
+  const optionalArchiveLabels = mapping.optionalArchiveLabels;
+  if (optionalArchiveLabels !== undefined && !hasArchiveCapability) {
+    throw new Error(
+      `workspace.manifest.json ${workspaceId}: publishLabelMapping.optionalArchiveLabels requires archiveCapability: true`
+    );
+  }
+  if (hasArchiveCapability) {
+    if (!Array.isArray(optionalArchiveLabels) || optionalArchiveLabels.length === 0) {
+      throw new Error(
+        `workspace.manifest.json ${workspaceId}: publishLabelMapping.optionalArchiveLabels is required when archiveCapability is true`
+      );
+    }
+    for (const label of optionalArchiveLabels) {
+      if (publishedSet.has(label)) {
+        throw new Error(
+          `workspace.manifest.json ${workspaceId}: archive label "${label}" must not appear in publishedLabels`
+        );
+      }
+    }
+  }
+}
+
+/** @param {ReturnType<typeof import("../manifest-loader.mjs").discoverManifests>} manifests */
+export function validatePublishLabelMappingManifests(manifests) {
+  for (const m of manifests) {
+    const ct = m.canonicalTour;
+    const tw = m.tourWrite;
+    const mapping = ct?.publishLabelMapping;
+    if (mapping === undefined) {
+      if (
+        tw !== undefined &&
+        ct !== undefined &&
+        PUBLISH_LABEL_MAPPING_REQUIRED_WORKSPACES.has(m.id)
+      ) {
+        throw new Error(
+          `workspace.manifest.json ${m.id}: canonicalTour.publishLabelMapping is required for publish-golden workspaces with tourWrite`
+        );
+      }
+      continue;
+    }
+    validatePublishLabelMappingBlock(m.id, mapping);
+  }
+}
+
+function serializePublishLabelMapping(mapping) {
+  const lines = [
+    `    publishedLabels: ${JSON.stringify(mapping.publishedLabels)},`,
+    `    notPublishedLabels: ${JSON.stringify(mapping.notPublishedLabels)},`,
+  ];
+  if (mapping.archiveCapability === true) {
+    lines.push(`    archiveCapability: true as const,`);
+  }
+  if (mapping.optionalArchiveLabels !== undefined) {
+    lines.push(`    optionalArchiveLabels: ${JSON.stringify(mapping.optionalArchiveLabels)},`);
+  }
+  return lines.join("\n");
+}
+
+/** @param {ReturnType<typeof import("../manifest-loader.mjs").discoverManifests>} manifests */
+export function generatePublishLabelMappings(manifests) {
+  validatePublishLabelMappingManifests(manifests);
+
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const bindingBlocks = [];
+
+  for (const m of manifests) {
+    const ct = m.canonicalTour;
+    const tw = m.tourWrite;
+    const mapping = ct?.publishLabelMapping;
+    if (mapping === undefined) {
+      continue;
+    }
+    if (tw === undefined) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: canonicalTour.publishLabelMapping requires tourWrite.workspaceTypeExport`
+      );
+    }
+    importLines.add(namedImportLine([tw.workspaceTypeExport], m.package));
+    bindingBlocks.push(`  {
+    workspaceType: ${tw.workspaceTypeExport},
+    mapping: {
+${serializePublishLabelMapping(mapping)}
+    },
+  },`);
+  }
+
+  if (bindingBlocks.length === 0) {
+    return `${BANNER}
+export const WORKSPACE_PUBLISH_LABEL_MAPPINGS = [] as const;
+`;
+  }
+
+  return `${BANNER}
+${[...importLines].join("\n")}
+
+export const WORKSPACE_PUBLISH_LABEL_MAPPINGS = [
+${bindingBlocks.join("\n")}
+] as const;
+`;
+}
+
+/** @param {ReturnType<typeof import("../manifest-loader.mjs").discoverManifests>} manifests */
 export function generatePublishVisibilityBindings(manifests) {
   validatePublishVisibilityManifests(manifests);
 

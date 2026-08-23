@@ -123,6 +123,14 @@
     "publishTransitionExport": "detectDenaliTourPublishTransition",
     "publishVisibilityModule": "./catalog/denali-publish-status",
     "publishVisibilityExport": "isDenaliTourPublished",
+    "publishLabelMapping": {
+      "publishedLabels": ["active"],
+      "notPublishedLabels": ["draft"]
+    },
+    "publishLabelMapping": {
+      "publishedLabels": ["active"],
+      "notPublishedLabels": ["draft"]
+    },
     "migrateModule": "./acl",
     "migrateExport": "migrateDenaliCanonical",
     "legacySoTRootExport": "LEGACY_TRIP_DETAILS_SOT_ROOT",

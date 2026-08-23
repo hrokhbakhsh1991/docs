@@ -305,6 +305,12 @@ export {
   type TourPublishVisibilityPredicate,
 } from "./tour/tour-publish-visibility.port";
 export {
+  type TourPublishVisibilityBucket,
+  type WorkspacePublishLabelMapping,
+  mapPublishLabelToVisibilityBucket,
+  resolveLifecycleStatusFromVisibilityBucket,
+} from "./tour/tour-publish-label-mapping.contract";
+export {
   resolveCatalogListApiPath,
   resolveCatalogTourApiPath,
   UnknownCatalogPluginError,
