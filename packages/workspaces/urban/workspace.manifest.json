@@ -237,5 +237,9 @@
       "module": "@app-tour/workspace-urban/host/settings/owner-panel",
       "exportName": "WorkspaceOwnerSettingsPanel"
     }
+  },
+  "workspacePolicy": {
+    "module": "./policy/tour-policy",
+    "export": "createUrbanTourWorkspacePolicyValidator"
   }
 }

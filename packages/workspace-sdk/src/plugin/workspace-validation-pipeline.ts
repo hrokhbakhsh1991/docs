@@ -42,7 +42,7 @@ export type WorkspaceValidationPipeline = {
 export type WorkspacePolicyValidator = {
   readonly validate?: (ctx: WorkspaceValidationPipelineContext) => WorkspaceViolation | null;
   /**
-   * CW8-04 — when true and `WORKSPACE_VALIDATION_PIPELINE_DENALI_POLICY=1`, host runner
+   * CW8-04/CW8-05 — when true and workspace policy flag is set, host runner
    * skips flat hooks + publish gate for this workspace (strangler migration).
    */
   readonly supersedesFlatHooks?: boolean;
