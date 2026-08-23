@@ -82,6 +82,7 @@ pkg_for_path() {
     apps/web/*) echo "@apps/web" ;;
     apps/portal/*) echo "@apps/portal" ;;
     apps/marketing/*) echo "@apps/marketing" ;;
+    test/parity/*) echo "__parity__" ;;
     scripts/* | infra/* | docs/* | reports/* | .github/* | .husky/*)
       echo "__scripts__"
       ;;
@@ -402,6 +403,13 @@ for pkg in $TARGETS; do
     fi
   elif [ "$pkg" = "@apps/web" ] && [ "$MODE" = "pre-commit" ]; then
     if run_web_tests; then
+      echo "$digest" >"$cache_file"
+    else
+      FAILED=1
+    fi
+  elif [ "$pkg" = "__parity__" ]; then
+    echo "test-changed: RUN pnpm run test:parity"
+    if pnpm run test:parity; then
       echo "$digest" >"$cache_file"
     else
       FAILED=1

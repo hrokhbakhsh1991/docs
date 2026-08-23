@@ -1,0 +1,10 @@
+{
+  "id": "CW0-01-harness-roundtrip",
+  "input": {
+    "values": [2, 3, 5]
+  },
+  "expected": {
+    "sum": 10,
+    "count": 3
+  }
+}

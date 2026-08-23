@@ -1,0 +1,14 @@
+{
+  "id": "CW0-03-urban-confirmed-sum",
+  "input": {
+    "rows": [
+      { "status": "confirmed", "partySize": 2 },
+      { "status": "waitlist", "partySize": 5 },
+      { "status": "cancelled", "partySize": 3 },
+      { "status": "confirmed", "partySize": 1 }
+    ]
+  },
+  "expected": {
+    "acceptedSeats": 3
+  }
+}
