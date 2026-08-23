@@ -344,7 +344,7 @@ Refinement vs requested shape (evidence-based):
 
 ### CW-1 — Pure Shared Domain Math
 
-- **CW1-01** `[ ]` **Create `@app-tour/tour-core` package shell (math-only scope)**
+- **CW1-01** `[x]` **Create `@app-tour/tour-core` package shell (math-only scope)**
   - Objective: package skeleton with the Package Decision Record dependency rules enforced.
   - Invariant: `workspace-sdk → tour-core → booking-http-contracts`; tour-core imports no workspace-sdk/platform-core/workspace/app modules; depcruise rule added.
   - Evidence: DEC-CW-07; Package decision record.
@@ -354,7 +354,7 @@ Refinement vs requested shape (evidence-based):
   - Rollback: delete package (no consumers yet).
   - Deps: CW0-01, DEC-CW-07 approval (metrics baseline CW0-10 must land before CW1-02, not before empty shell). Risk: **LOW**.
 
-- **CW1-02** `[ ]` **Move `computeSpotsRemaining` / `withSpotsRemaining`**
+- **CW1-02** `[x]` **Move `computeSpotsRemaining` / `withSpotsRemaining`**
   - Invariant: identical outputs for all golden fixtures (CW0-06).
   - Evidence: FEAS §2.1; TRUTH §29 (safe candidate).
   - Files: from `packages/workspaces/denali/src/catalog/compute-spots-remaining.ts` → `packages/tour-core/src/capacity/spots-remaining.ts`; **compat re-export left at old path**.

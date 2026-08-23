@@ -1135,6 +1135,9 @@ importers:
       '@app-tour/theme-react':
         specifier: workspace:*
         version: link:../../theme-react
+      '@app-tour/tour-core':
+        specifier: workspace:*
+        version: link:../../tour-core
       '@app-tour/ui-primitives':
         specifier: workspace:*
         version: link:../../ui-primitives
