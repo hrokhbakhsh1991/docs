@@ -22,9 +22,10 @@ mkdir -p "$STAGING"
 git archive "$SHA" | tar -x -C "$STAGING"
 (
   cd "$STAGING"
+  export DEPLOY_PATH="$STAGING"
   export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
   /usr/local/bin/pnpm install --frozen-lockfile
-  bash scripts/vps-deploy/build-operator-vps.sh
+  DEPLOY_PATH="$STAGING" bash scripts/vps-deploy/build-operator-vps.sh
 )
 
 mkdir -p "$OUT_DIR"

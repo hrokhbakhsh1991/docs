@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** PROD-8 R8-02..R8-06 — immutable release bundle manifest, checksums, SBOM, provenance, fingerprint. */
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -75,7 +75,16 @@ if (doBuild) {
     console.error("prod8-build-immutable-bundle: FAIL — --build requires clean worktree");
     process.exit(1);
   }
-  run(["pnpm", "run", "build:operator-vps"]);
+  const buildEnv = { ...process.env, DEPLOY_PATH: root };
+  const build = spawnSync("pnpm", ["run", "build:operator-vps"], {
+    cwd: root,
+    encoding: "utf8",
+    maxBuffer: 128 * 1024 * 1024,
+    env: buildEnv,
+  });
+  if (build.status !== 0) {
+    throw new Error(build.stderr || build.stdout || "pnpm run build:operator-vps failed");
+  }
 }
 
 const artifacts = {};
