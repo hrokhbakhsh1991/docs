@@ -2,7 +2,7 @@
 
 **Ledger task:** CW5-10 (deferred)  
 **Decision id:** DEC-CW-05  
-**Status:** Evidence only — **no product semantics chosen**  
+**Status:** Final recommendation packet (Wave 6A closure) — Architect approval pending  
 **Repository ref:** Wave 5B closure (`cursor/cw-wave-5b-5f5b`)  
 **Prepared:** 2026-08-23 (Wave 6A, Worker D)  
 **Decision owners:** Operator wizard product owner + Architect  
@@ -239,6 +239,114 @@ or
 | `apps/web/src/wizard/workspace-wizard-host.tsx` | unchanged if hook still injected via plugin |
 | `packages/workspaces/denali/test/resolve-initial-step-index.spec.ts` | parity |
 | `apps/web/test/wizard-host-boundary.spec.ts` | host boundary |
+
+---
+
+## 11. Final recommendation (Wave 6A closure — code-driven)
+
+### 11.1 Decision
+
+**RECOMMENDATION: C (primary)** — optional workspace hook with **noop platform default**.
+
+**CW5-10 binding layer (inspectability only):** manifest `wizardResume` with `mode: "noop"` or `mode: "module"` (Option D sub-shape). Does **not** change ownership: algorithm stays workspace-owned; codegen only wires the existing hook.
+
+**Reject:**
+
+| Option | Verdict | Code evidence |
+|--------|---------|---------------|
+| **A — tour-core** | **REJECT** | `packages/tour-core` has zero `resume` / `resolveInitialStep` / wizard-draft symbols. Tour-core owns neutral write-path orchestration (CW-5 exit), not operator wizard UX policy. |
+| **B — platform-core / wizard engine** | **REJECT** | `PlatformWizardEngine` builds render plans and validates — no resume. `createPlatformWizardHostHooks` exposes validation + dimensions only; **no** `resolveInitialStepIndex`. |
+| **D — entirely workspace-owned** | **REJECT as sole label** | Host mount orchestration is already platform-owned (`workspace-wizard-host.tsx`); workspaces own **inference algorithm** only. Pure D omits the frozen SDK/host contract. |
+
+**Do not promote Denali:** `resolveDenaliInitialStepIndex` (~250 lines) encodes Denali phantom scalars (`draft`, `none`, `mountain_day`), `EMPTY_DRAFT_SKIP_PATHS`, seed title patterns (`تور جدید`, `new tour`), and `DENALI_CANONICAL_TO_FORM_PATH_MAP` legacy path reads. No second workspace needs this algorithm today; Starter/Urban intentionally noop.
+
+### 11.2 Ownership matrix
+
+| Layer | Package / surface | Owns |
+|-------|-------------------|------|
+| **Mount orchestration** | `apps/web` `WorkspaceWizardHost` | Call `resolveInitialStepIndex` **once** when `draftHydrated`, `savedStepIndex === 0`, hook present, `!resumeAppliedRef`, `!suppressDraftStepInference`; honor `draftResumeEpoch` after clear; re-anchor on plan change via `stepId` (`resolveWizardStepIndexAfterPlanChange`). |
+| **Hook contract** | `workspace-sdk` `WorkspaceWizardHostHooks` | Optional `resolveInitialStepIndex?` input shape (`draft`, `visibleSteps`, `savedStepIndex`, `skipFieldInference?`) → `number`. |
+| **Platform default** | `platform-core` `createPlatformWizardHostHooks` | Step validation + matrix dimensions — **no resume hook** (implicit noop). |
+| **Wizard engine** | `platform-core` `PlatformWizardEngine` | Generic render plan + validation — **no resume**. |
+| **Inference algorithm** | Workspace package (Denali today) | Field-inference policy when hook is supplied. Omit hook → noop. |
+| **tour-core** | — | **Nothing** resume-related. |
+
+### 11.3 Default behavior
+
+- **Platform default = noop:** host skips inference when `wizardHost?.resolveInitialStepIndex == null` (`workspace-wizard-host.tsx` L469–471).
+- **Starter / Urban:** `createPlatformWizardHostHooks` — no resume hook; saved `currentStepIndex` is authoritative.
+- **Denali:** supplies `resolveDenaliInitialStepIndexFromHostInput` via `denaliWizardHostHooks`.
+- **Saved index > 0:** inference never runs (Denali `resolveDenaliInitialStepIndex` L202–204; host L487–489). Explicit operator step choice preserved.
+
+### 11.4 Extension seam
+
+1. **Runtime (frozen):** `WorkspaceWizardHostHooks.resolveInitialStepIndex?` — workspace plugin / codegen-injected hook.
+2. **CW5-10 manifest (inspectability):** optional `wizardResume`:
+
+```json
+{ "mode": "noop" }
+```
+
+or
+
+```json
+{
+  "mode": "module",
+  "module": "./wizard/resolve-initial-step-index",
+  "export": "resolveDenaliInitialStepIndexFromHostInput"
+}
+```
+
+3. **Profile composition (CW6):** `starter-outdoor` may set `wizardResume: { "mode": "noop" }` explicitly; matches CW6-01 noop-default posture for minimal wizards.
+4. **Defer:** generic `fieldInference` manifest mode until a **second** workspace needs shared inference without copying Denali (new decision + TRUTH update).
+
+### 11.5 Evaluation criteria (inspected)
+
+| Criterion | Finding |
+|-----------|---------|
+| **Saved draft compatibility** | Envelope persists `meta.currentStepIndex` (numeric), not `stepId`. Inference only when index `=== 0`. Denali `freshStart` + `mergeDenaliWizardDraftEnvelope` + `suppressDraftStepInference` prevent stale server index wins. Golden specs: `resolve-initial-step-index.spec.ts`, `denali-wizard-draft-binding.spec.ts`. |
+| **Wizard step IDs / order** | Inference iterates `visibleSteps` (post template + contextual rules) using `stepId` + per-step `canonicalPath` fields. Plan changes at runtime re-anchor by `stepId`, not persisted index. |
+| **Workspace-specific step sets** | Denali multi-step + review; Starter/Urban minimal — noop acceptable (no product spec for Starter resume). |
+| **Starter Profile (CW6)** | CW6-01 profile `capabilityDefaults` do not include wizard resume; noop remains valid default. Profile must not clone Denali inference modules (CW6-01 §2). |
+| **Future capabilities add/remove steps** | Mount-time inference uses **current** `visibleSteps`; index-0 drafts adapt. Persisted index > 0 may drift if step order changes — mitigated by runtime `stepId` re-anchoring on plan change, not by moving resume to engine. |
+| **Resume after manifest/profile evolution** | Codegen-time profile expansion does not affect runtime inference unless hook binding changes. Changing hook export requires parity golden run. |
+| **Persisted step index vs step ID** | **Index persisted** (`currentStepIndex`); **stepId used** only for plan-change anchoring and validation routing. Migrating persistence to stepId is **out of scope** for DEC-CW-05 / CW5-10. |
+| **Domain policy vs engine concern** | **Domain/workspace policy** (what counts as user progress, phantom defaults). **Engine concern** = render plan + validate only. **Host concern** = when to invoke hook. |
+
+### 11.6 Backward compatibility impact
+
+| Risk | Mitigation |
+|------|------------|
+| Denali production drafts at `currentStepIndex: 0` with partial data | Keep `resolveDenaliInitialStepIndex` in Denali package; run existing `DEN-RESUME-*` / `DN-RESUME-*` goldens unchanged. |
+| Host hook signature | Frozen; extend only via existing `skipFieldInference`. |
+| Starter/Urban noop | Unchanged — no hook today. |
+| Manifest `wizardResume` addition | Optional block; absent manifest ≡ current TS hook wiring. |
+
+### 11.7 CW5-10 implementation effect (if approved)
+
+**In scope:**
+
+- Add optional `wizardResume` manifest block + codegen domain (`wizard-host.mjs`) projecting `noop` or `module` → `wizardHost.resolveInitialStepIndex`.
+- Denali `workspace.manifest.json` declares `mode: "module"` pointing at existing export.
+- `starter-outdoor` profile (CW6-03) may declare `mode: "noop"` explicitly.
+- Boundary guard: `WEB-12-HOST-04` — host must not import Denali resume directly.
+- Parity: `resolve-initial-step-index.spec.ts`, `denali-wizard-draft-contract.spec.ts`, `wizard-host-boundary.spec.ts`.
+
+**Out of scope (explicit):**
+
+- Move inference to `tour-core` or `platform-core`.
+- Generic `fieldInference` platform algorithm.
+- Persist `stepId` instead of `currentStepIndex`.
+- Shared manifest schema changes beyond optional `wizardResume` (coordinator-owned at CW5-10 / CW6-02 boundary).
+- Reopen CW-5 tour-core behavior.
+
+**Effort:** LOW–MEDIUM (manifest + codegen binding; algorithm unchanged).
+
+### 11.8 Architect sign-off checklist
+
+1. Confirm Starter/Urban **noop** remains product-acceptable for minimal wizards.
+2. Approve **C + manifest inspectability** (not A/B).
+3. Authorize CW5-10 in Wave 6B implementation slice (after coordinator schema gate).
 
 ---
 
