@@ -734,9 +734,11 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
   - Evidence: AUDIT §7 missing seam; FEAS §2.2. **Design contract:** [`docs/dev/cw8-01-validation-pipeline-contract.md`](cw8-01-validation-pipeline-contract.md) — **PASS**; three-stage short-circuit; CW8-03 `workspacePolicy` seam preview; unified model [`cw-wave-6a-manifest-composition-model.md`](cw-wave-6a-manifest-composition-model.md). CW8-02 implements runner.
   - Deps: CW5-11. Risk: **MEDIUM** (design only).
 
-- **CW8-02** `[ ]` **Host runner implementation behind flag; legacy path default**
-  - Files: `apps/api/src/tours/run-workspace-validation-hooks.ts` successor.
-  - Focused validation: pipeline-order unit tests. Deps: CW8-01. Risk: **MEDIUM**.
+- **CW8-02** `[x]` **Host runner implementation behind flag; legacy path default**
+  - Files: `apps/api/src/tours/run-workspace-validation-pipeline.ts`, `packages/workspace-sdk/src/plugin/workspace-validation-pipeline.ts`.
+  - Flag: `WORKSPACE_VALIDATION_PIPELINE=1` (opt-in); legacy flat path default until CW8-06.
+  - Focused validation: pipeline-order unit tests + flag parity specs. Deps: CW8-01. Risk: **MEDIUM**.
+  - Evidence: [`docs/dev/cw8-02-validation-pipeline-runner.md`](cw8-02-validation-pipeline-runner.md).
 
 - **CW8-03** `[ ]` **Workspace policy hook seam (manifest-declared policy module per workspace)**
   - Invariant: a new workspace adds 2 custom rules via one policy module, zero host edits.

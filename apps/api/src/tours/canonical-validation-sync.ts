@@ -28,7 +28,12 @@ import {
   pickStarterCreateDataForValidation,
   shouldUseStarterValidationForDenaliCreate,
 } from "./bridge-denali-operator-create-body";
+import { isWorkspaceValidationPipelineEnabled } from "./is-workspace-validation-pipeline-enabled";
 import { runWorkspaceValidationHooks } from "./run-workspace-validation-hooks";
+import {
+  formatPipelineViolationMessage,
+  runWorkspaceValidationPipeline,
+} from "./run-workspace-validation-pipeline";
 import {
   resolveValidationMode,
   runValidationModePublishGate,
@@ -275,53 +280,72 @@ function validateCanonicalDocumentWithEngine(
 
   assertCanonicalDocument(document);
 
-  let result = engine.validateCanonical(document, {
-    tenantId: input.tenantId,
-    dimensions: resolveValidationDimensions(
-      validationPlugin,
-      validationVariant,
-      document.data as Record<string, unknown>
-    ),
-  });
-  const filterResult = validationPlugin.wizardHost?.filterEngineValidationResult;
-  if (filterResult != null) {
-    result = filterResult(
-      result,
-      document.data as Record<string, unknown>
-    ) as typeof result;
-  }
-
-  if (!result.ok) {
-    const message = result.violations.map((v) => v.message).join("; ");
-    throwValidationFailure(`CANONICAL_VALIDATION_FAILED: ${message}`);
-  }
-
-  const hookViolation = runWorkspaceValidationHooks(validationPlugin, document);
-  if (hookViolation != null) {
-    throwValidationFailure(
-      `CANONICAL_VALIDATION_FAILED: ${hookViolation.code}: ${hookViolation.message}`
-    );
-  }
-
-  const validationMode = resolveValidationMode(input, document);
-  const publishViolation = runValidationModePublishGate(
+  const validationDimensions = resolveValidationDimensions(
     validationPlugin,
-    document,
-    validationMode,
-    input.workspaceType
+    validationVariant,
+    document.data as Record<string, unknown>
   );
-  if (publishViolation != null) {
-    throwValidationFailure(
-      `CANONICAL_VALIDATION_FAILED: ${publishViolation.code}: ${publishViolation.message}`
-    );
-  }
+  const validationMode = resolveValidationMode(input, document);
 
-  if (validationMode === "publish" && input.catalogRefAllowlists != null) {
-    const catalogViolation = assertCatalogRefIntegrity(document, input.catalogRefAllowlists);
-    if (catalogViolation != null) {
+  if (isWorkspaceValidationPipelineEnabled()) {
+    const pipelineViolation = runWorkspaceValidationPipeline({
+      plugin: validationPlugin,
+      document,
+      workspaceType: input.workspaceType,
+      tenantId: input.tenantId,
+      validationMode,
+      validationVariant,
+      catalogRefAllowlists: input.catalogRefAllowlists,
+      dimensions: validationDimensions,
+      engine,
+    });
+    if (pipelineViolation != null) {
+      throwValidationFailure(formatPipelineViolationMessage(pipelineViolation));
+    }
+  } else {
+    let result = engine.validateCanonical(document, {
+      tenantId: input.tenantId,
+      dimensions: validationDimensions,
+    });
+    const filterResult = validationPlugin.wizardHost?.filterEngineValidationResult;
+    if (filterResult != null) {
+      result = filterResult(
+        result,
+        document.data as Record<string, unknown>
+      ) as typeof result;
+    }
+
+    if (!result.ok) {
+      const message = result.violations.map((v) => v.message).join("; ");
+      throwValidationFailure(`CANONICAL_VALIDATION_FAILED: ${message}`);
+    }
+
+    const hookViolation = runWorkspaceValidationHooks(validationPlugin, document);
+    if (hookViolation != null) {
       throwValidationFailure(
-        `CANONICAL_VALIDATION_FAILED: ${catalogViolation.code}: ${catalogViolation.message}`
+        `CANONICAL_VALIDATION_FAILED: ${hookViolation.code}: ${hookViolation.message}`
       );
+    }
+
+    const publishViolation = runValidationModePublishGate(
+      validationPlugin,
+      document,
+      validationMode,
+      input.workspaceType
+    );
+    if (publishViolation != null) {
+      throwValidationFailure(
+        `CANONICAL_VALIDATION_FAILED: ${publishViolation.code}: ${publishViolation.message}`
+      );
+    }
+
+    if (validationMode === "publish" && input.catalogRefAllowlists != null) {
+      const catalogViolation = assertCatalogRefIntegrity(document, input.catalogRefAllowlists);
+      if (catalogViolation != null) {
+        throwValidationFailure(
+          `CANONICAL_VALIDATION_FAILED: ${catalogViolation.code}: ${catalogViolation.message}`
+        );
+      }
     }
   }
 

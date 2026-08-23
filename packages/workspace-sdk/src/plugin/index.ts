@@ -45,6 +45,16 @@ export {
   type WorkspaceValidationHooks,
   type WorkspaceViolation,
 } from "./workspace-validation";
+export {
+  type ValidationMode,
+  type WorkspacePolicyValidator,
+  type WorkspaceValidationCatalogRefAllowlists,
+  type WorkspaceValidationPipeline,
+  type WorkspaceValidationPipelineContext,
+  type WorkspaceValidationPipelineStage,
+  type WorkspaceValidationPipelineStageId,
+  type WorkspaceValidationPipelineViolation,
+} from "./workspace-validation-pipeline";
 export { type WorkspaceWizardMode, type WorkspaceWizardSurface } from "./workspace-wizard-surface";
 export type { WorkspaceWizardMediaHooks } from "./workspace-wizard-media-hooks";
 export type {
