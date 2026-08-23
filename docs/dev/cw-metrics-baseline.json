@@ -1,0 +1,2240 @@
+{
+  "evidence": {
+    "exclusionNotes": [
+      "packages/workspaces/**",
+      "legacy/**",
+      "**/*.generated.ts",
+      "**/*.spec.ts",
+      "**/*.test.ts",
+      "fixtures and smoke paths"
+    ],
+    "inclusionRoots": [
+      "apps/api/src",
+      "apps/marketing/src",
+      "apps/portal/src",
+      "apps/web/src",
+      "packages/*/src (excluding packages/workspaces)"
+    ],
+    "workspaceIds": [
+      "acme",
+      "booking-ws2",
+      "denali",
+      "finance-ws2",
+      "finance-ws3",
+      "finance-ws4",
+      "finance-ws5",
+      "finance-ws6",
+      "guest-club",
+      "harbor",
+      "starter",
+      "urban"
+    ]
+  },
+  "metrics": {
+    "directWorkspaceImports": {
+      "byWorkspace": {
+        "@app-tour/workspace-denali": 3,
+        "@app-tour/workspace-guest-club": 2,
+        "@app-tour/workspace-harbor": 2,
+        "@app-tour/workspace-plugin-host": 3,
+        "@app-tour/workspace-sdk": 231,
+        "@app-tour/workspace-urban": 2
+      },
+      "count": 243,
+      "denaliCount": 3,
+      "hits": [
+        {
+          "line": 1,
+          "path": "apps/api/src/auth/request-context.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/bookings/enrich-tour-accepted-counts.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/canonical/assert-catalog-ref-integrity.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/canonical/assert-tour-lifecycle-transition.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/canonical/assert-tour-publish-lifecycle-gate.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/api/src/canonical/assert-tour-publish-lifecycle-gate.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "apps/api/src/canonical/atomic-canonical-tour-persist.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/canonical/build-tour-published-outbox-payload.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/canonical/canonical-tour.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/api/src/canonical/canonical-tour.service.ts",
+          "specifier": "@app-tour/workspace-sdk/metadata",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/canonical/migrate-canonical-workspace.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/canonical/pre-transaction-validation.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/canonical/projection-sync.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 6,
+          "path": "apps/api/src/canonical/validation-worker-pool.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/canonical/workspace-canonical-tour-dispatch.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/db/tour-record.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/exposure/exposure-catalog.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/exposure/exposure-control-plane.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/exposure/exposure-engine-preview.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/exposure/exposure-field-catalog.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/exposure/exposure-simulation.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/exposure/resolve-denali-surface-exposure.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/exposure/resolve-urban-surface-exposure.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/exposure/resolve-workspace-exposure-surfaces.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/exposure/start-denali-exposure-reminder-scheduler.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/exposure/workspace-exposure-surfaces.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/api/src/http/bind-request-context.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "apps/api/src/identity/auth.routes.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/identity/invites.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "apps/api/src/identity/me.avatar.routes.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/identity/me.entitlements.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/identity/me.mobile.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/identity/me.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/api/src/identity/me.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/identity/me.types.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/identity/operator-avatar.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/api/src/identity/require-operator-session.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/identity/resolve-pending-invite-auth.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/identity/users-rbac.policy.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/api/src/identity/users-workspace-guard.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/identity/users.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/identity/users.types.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 6,
+          "path": "apps/api/src/integrations/application/delivery-field-definitions.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 4,
+          "path": "apps/api/src/integrations/http/integrations.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/integrations/platform/resolve-integration-surface.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/marketing/maybe-schedule-marketing-catalog-revalidate.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/marketing/should-invalidate-marketing-catalog.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/outbox/reconcile-tour-projection.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/platform/assert-workspace-definition-renderer-allowlist.ts",
+          "specifier": "@app-tour/workspace-sdk/metadata",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/api/src/platform/assert-workspace-definition-renderer-allowlist.ts",
+          "specifier": "@app-tour/workspace-sdk/metadata",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/platform/platform-tenant-detail.dto.ts",
+          "specifier": "@app-tour/workspace-sdk/metadata",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 7,
+          "path": "apps/api/src/platform/publish-platform-workspace-definition-version.ts",
+          "specifier": "@app-tour/workspace-sdk/metadata/checksum",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/registrations/assert-paid-tour-open-gate.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/api/src/registrations/assert-paid-tour-open-gate.ts",
+          "specifier": "@app-tour/workspace-sdk/metadata",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/settings/parse-equipment-icon-key.ts",
+          "specifier": "@app-tour/workspace-denali/settings/equipment-icon-registry",
+          "workspacePackage": "@app-tour/workspace-denali"
+        },
+        {
+          "line": 3,
+          "path": "apps/api/src/settings/settings-audit-emitter.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/settings/settings-branding-module-access.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/settings/settings-config.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/settings/settings-explore.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/settings/settings-exposure-module-access.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/settings/settings-registry.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/settings/settings.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/api/src/settings/settings.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/settings/settings.types.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/settings/wizard-template-catalog.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "apps/api/src/storage/prisma-tour.repository.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/storage/tour-storage.interface.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/tenant-kernel/parse-bearer.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/api/src/tenant-kernel/parse-bearer.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/tenant-kernel/parse-jwt-bearer.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/api/src/tenant-kernel/parse-jwt-bearer.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/api/src/tenant-kernel/tenant-kernel.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/tenant/resolve-registered-tenant.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 24,
+          "path": "apps/api/src/tenant/tenant-branding.routes.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/tenant/tenant-registry.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/tenant/workspace-default-tenant-branding.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/tours/apply-workspace-persist-canonical-normalize.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/tours/apply-workspace-server-clone-photo-remint.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 91,
+          "path": "apps/api/src/tours/bridge-denali-operator-create-body.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 93,
+          "path": "apps/api/src/tours/bridge-denali-operator-create-body.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/tours/canonical-validation.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/tours/enrich-tour-list-cover-image-url.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 6,
+          "path": "apps/api/src/tours/get-tour-operator.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 6,
+          "path": "apps/api/src/tours/list-tours-operator.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/tours/resolve-validation-mode.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/tours/tours.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 8,
+          "path": "apps/api/src/tours/tours.service.ts",
+          "specifier": "@app-tour/workspace-sdk/metadata",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/tours/workspace-tour-write-dispatch.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/workspace-drafts/reapply-server-envelope-tombstones.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/workspace-drafts/workspace-draft-events-emitter.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/workspace-drafts/workspace-drafts.service.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/workspace-finance/assert-finance-access.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 6,
+          "path": "apps/api/src/workspace-finance/case/command-bridge/finance-service-review-receipt-adapter.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 11,
+          "path": "apps/api/src/workspace-finance/case/command-bridge/run-finance-case-command-review-receipt-http.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 9,
+          "path": "apps/api/src/workspace-finance/case/encounter/load-finance-case-encounter-http.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "apps/api/src/workspace-finance/finance-receipt-upload.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 6,
+          "path": "apps/api/src/workspace-finance/infrastructure/host-finance-access.adapter.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/workspace-metadata/assert-workspace-commerce-gateway-blocked.ts",
+          "specifier": "@app-tour/workspace-sdk/metadata",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 6,
+          "path": "apps/api/src/workspace-metadata/build-workspace-definition-export.ts",
+          "specifier": "@app-tour/workspace-sdk/metadata/checksum",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 7,
+          "path": "apps/api/src/workspace-metadata/build-workspace-definition-export.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 6,
+          "path": "apps/api/src/workspace-metadata/metadata-plugin-adapter.ts",
+          "specifier": "@app-tour/workspace-sdk/metadata",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/workspace/resolve-workspace-plugin-for-tenant-context.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/api/src/workspace/workspace-plugins.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/catalog/build-catalog-map-link.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/catalog/build-catalog-register-preview-items.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/catalog/build-catalog-tour-detail-facts.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/catalog/catalog-itinerary-display-logic.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/catalog/catalog-itinerary-section.tsx",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "apps/marketing/src/catalog/catalog-tour-detail-facts.tsx",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "apps/marketing/src/catalog/catalog-tour-detail-logistics.tsx",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 5,
+          "path": "apps/marketing/src/catalog/catalog-tour-detail.tsx",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "apps/marketing/src/catalog/catalog-tour-stats.tsx",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/catalog/catalog-types.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 9,
+          "path": "apps/marketing/src/catalog/fetch-catalog-list.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/catalog/fetch-catalog-tour.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 5,
+          "path": "apps/marketing/src/catalog/fetch-marketing-member-self-registration-for-tour.server.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/catalog/resolve-catalog-transport-label-key.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/home/fetch-home-catalog-items.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/home/fetch-home-latest-items.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 6,
+          "path": "apps/marketing/src/home/guest-home-full.tsx",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 4,
+          "path": "apps/marketing/src/home/guest-home-minimal.tsx",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/home/home-section-gates.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/home/render-home-page.tsx",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/home/resolve-home-catalog-fetch-limit.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/home/resolve-home-why-section-anchor.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/portal/resolve-web-registration-url.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 4,
+          "path": "apps/marketing/src/seo/build-marketing-metadata.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/marketing/src/seo/build-validated-marketing-structured-data.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 9,
+          "path": "apps/marketing/src/shell/marketing-shell.tsx",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 10,
+          "path": "apps/portal/src/catalog/public-catalog-registration-flow.tsx",
+          "specifier": "@app-tour/workspace-plugin-host/registration-flow",
+          "workspacePackage": "@app-tour/workspace-plugin-host"
+        },
+        {
+          "line": 1,
+          "path": "apps/portal/src/catalog/resolve-intake-defaults.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/portal/src/me/member-entitlements-bff.server.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/portal/src/me/member-hub-bff.server.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "apps/portal/src/me/member-module-entitlement-gate.tsx",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 5,
+          "path": "apps/portal/src/me/member-profile-contract-alignment.server.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/portal/src/me/member-profile-contract.server.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/portal/src/me/member-profile-runtime-truth.server.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/portal/src/me/member-profile-types.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 4,
+          "path": "apps/web/src/admin/require-operator-session.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 5,
+          "path": "apps/web/src/bootstrap/load-workspace-host-probe.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 6,
+          "path": "apps/web/src/bootstrap/resolve-bootstrap-workspace-plugin.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/bootstrap/workspace-plugin-load-cache.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/bootstrap/workspace-plugin-registry.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 6,
+          "path": "apps/web/src/bootstrap/workspace-plugins.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 7,
+          "path": "apps/web/src/bootstrap/workspace-plugins.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/web/src/draft/draft-unification-v3-options.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "apps/web/src/draft/draft-unification-v3-options.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/draft/normalize-wizard-remote-envelope-for-plugin.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/draft/tour-wizard-draft-envelope.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 8,
+          "path": "apps/web/src/features/bookings/booking-ops-capability-contract.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 7,
+          "path": "apps/web/src/features/bookings/booking-ops-panels.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/features/settings/profile-settings-logic.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 6,
+          "path": "apps/web/src/features/settings/wizard-template-preset.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/features/tours/tour-route-cache.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/web/src/features/users/users-directory-types.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/features/users/users-page-logic.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "apps/web/src/platform/club-commerce-badge.tsx",
+          "specifier": "@app-tour/workspace-sdk/metadata",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/platform/resolve-workspace-production-tier.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/platform/workspace-builder/build-preview-plugin-from-draft.ts",
+          "specifier": "@app-tour/workspace-sdk/metadata",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/web/src/platform/workspace-builder/build-preview-plugin-from-draft.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/platform/workspace-builder/builder-draft-state.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 7,
+          "path": "apps/web/src/platform/workspace-builder/builder-draft-state.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "apps/web/src/platform/workspace-builder/field-inspector.tsx",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "apps/web/src/platform/workspace-builder/preview-panel.tsx",
+          "specifier": "@app-tour/workspace-sdk/metadata",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/session/app-session.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/tenant/fetch-tenant-theme.server.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "apps/web/src/tenant/resolve-request-bootstrap.server.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 5,
+          "path": "apps/web/src/tenant/tenant-kernel.server.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/web/src/tenant/tenant-kernel.shared.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/tenant/tenant-kernel.types.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 16,
+          "path": "apps/web/src/tenant/tenant-kernel.types.ts",
+          "specifier": "@app-tour/workspace-sdk/auth",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 17,
+          "path": "apps/web/src/tenant/tenant-kernel.types.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 18,
+          "path": "apps/web/src/tenant/tenant-kernel.types.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 5,
+          "path": "apps/web/src/tours/create-tour.server.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/tours/read-wizard-draft-field-value.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/web/src/tours/read-wizard-draft-field-value.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/tours/tour-clone-hydrate-logic.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 5,
+          "path": "apps/web/src/tours/update-tour.server.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 6,
+          "path": "apps/web/src/tours/wizard-create-prefill-hooks.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 5,
+          "path": "apps/web/src/tours/wizard-create-template-gate.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/tours/wizard-template-catalog-logic.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 6,
+          "path": "apps/web/src/wizard/adapt-metadata-payload-to-workspace-plugin.ts",
+          "specifier": "@app-tour/workspace-sdk/metadata",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/web/src/wizard/build-visible-wizard-steps.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 5,
+          "path": "apps/web/src/wizard/build-wizard-step-validation-call-input.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/wizard/load-workspace-plugin.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/wizard/operator-flat-edit-page-io.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/wizard/platform-wizard-draft-binding.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/wizard/resolve-operator-workspace-plugin.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "apps/web/src/wizard/resolve-operator-workspace-plugin.ts",
+          "specifier": "@app-tour/workspace-sdk/metadata",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 7,
+          "path": "apps/web/src/wizard/use-create-tour-wizard.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 7,
+          "path": "apps/web/src/wizard/use-flat-edit-page.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/wizard/warm-operator-wizard-shell.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "apps/web/src/wizard/wizard-access.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 4,
+          "path": "apps/web/src/wizard/wizard-field.tsx",
+          "specifier": "@app-tour/workspace-sdk/plugin-types",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "packages/catalog-intake-ui/src/render-intake-field.tsx",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/catalog-intake-ui/src/render-intake-form.tsx",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 5,
+          "path": "packages/catalog-registration-flow-ui/src/flow-data.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/finance-http/src/finance-service.port.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "packages/finance-http/src/host-ports.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 5,
+          "path": "packages/guest-workspace-runtime/src/bind-workspace-plugin-register-invokers.ts",
+          "specifier": "@app-tour/workspace-plugin-host/register-safe",
+          "workspacePackage": "@app-tour/workspace-plugin-host"
+        },
+        {
+          "line": 12,
+          "path": "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts",
+          "specifier": "@app-tour/workspace-denali/host/catalog-registration-flow/react",
+          "workspacePackage": "@app-tour/workspace-denali"
+        },
+        {
+          "line": 13,
+          "path": "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts",
+          "specifier": "@app-tour/workspace-denali/plugin",
+          "workspacePackage": "@app-tour/workspace-denali"
+        },
+        {
+          "line": 14,
+          "path": "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts",
+          "specifier": "@app-tour/workspace-guest-club/host/catalog-registration-flow",
+          "workspacePackage": "@app-tour/workspace-guest-club"
+        },
+        {
+          "line": 19,
+          "path": "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts",
+          "specifier": "@app-tour/workspace-guest-club/plugin",
+          "workspacePackage": "@app-tour/workspace-guest-club"
+        },
+        {
+          "line": 20,
+          "path": "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts",
+          "specifier": "@app-tour/workspace-harbor/host/catalog-registration-flow",
+          "workspacePackage": "@app-tour/workspace-harbor"
+        },
+        {
+          "line": 25,
+          "path": "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts",
+          "specifier": "@app-tour/workspace-harbor/plugin",
+          "workspacePackage": "@app-tour/workspace-harbor"
+        },
+        {
+          "line": 26,
+          "path": "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts",
+          "specifier": "@app-tour/workspace-urban/host/catalog-registration-flow",
+          "workspacePackage": "@app-tour/workspace-urban"
+        },
+        {
+          "line": 31,
+          "path": "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts",
+          "specifier": "@app-tour/workspace-urban/plugin",
+          "workspacePackage": "@app-tour/workspace-urban"
+        },
+        {
+          "line": 37,
+          "path": "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts",
+          "specifier": "@app-tour/workspace-plugin-host/registration-flow",
+          "workspacePackage": "@app-tour/workspace-plugin-host"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/contracts/canonical-field-validation-contract.ts",
+          "specifier": "@app-tour/workspace-sdk/plugin-types",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/engine/field-visibility.ts",
+          "specifier": "@app-tour/workspace-sdk/plugin-types",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/engine/platform-wizard.engine.ts",
+          "specifier": "@app-tour/workspace-sdk/ingress",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/engine/render-plan.steps.ts",
+          "specifier": "@app-tour/workspace-sdk/plugin-types",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/engine/render-plan.ts",
+          "specifier": "@app-tour/workspace-sdk/registry",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "packages/platform-core/src/engine/render-plan.ts",
+          "specifier": "@app-tour/workspace-sdk/plugin-types",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/engine/rule-cell-index.ts",
+          "specifier": "@app-tour/workspace-sdk/registry",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/engine/rule-engine.scope.ts",
+          "specifier": "@app-tour/workspace-sdk/registry",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/engine/rule-resolution.ts",
+          "specifier": "@app-tour/workspace-sdk/registry",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/engine/rule.engine.ts",
+          "specifier": "@app-tour/workspace-sdk/registry",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/engine/validate-canonical-document.ts",
+          "specifier": "@app-tour/workspace-sdk/ingress",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/engine/validate-canonical-field.ts",
+          "specifier": "@app-tour/workspace-sdk/plugin-types",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/errors/ingress-sanitization-map.ts",
+          "specifier": "@app-tour/workspace-sdk/ingress",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 12,
+          "path": "packages/platform-core/src/errors/sdk-error-map.ts",
+          "specifier": "@app-tour/workspace-sdk/plugin-types",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 7,
+          "path": "packages/platform-core/src/field-policy/adapters/workspace-field-policy-manifest.ts",
+          "specifier": "@app-tour/workspace-sdk/registry",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/host/create-platform-wizard-host-hooks.ts",
+          "specifier": "@app-tour/workspace-sdk/canonical",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 2,
+          "path": "packages/platform-core/src/host/create-platform-wizard-host-hooks.ts",
+          "specifier": "@app-tour/workspace-sdk/plugin-types",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "packages/platform-core/src/host/create-platform-wizard-host-hooks.ts",
+          "specifier": "@app-tour/workspace-sdk/plugin",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/types/effective-field-state.ts",
+          "specifier": "@app-tour/workspace-sdk/plugin-types",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/types/render-plan.ts",
+          "specifier": "@app-tour/workspace-sdk/plugin-types",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/utils/canonical-path.ts",
+          "specifier": "@app-tour/workspace-sdk/canonical",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/utils/canonical-value-text.ts",
+          "specifier": "@app-tour/workspace-sdk/plugin-types",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/platform-core/src/utils/canonical-value.ts",
+          "specifier": "@app-tour/workspace-sdk/plugin-types",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 4,
+          "path": "packages/theme-react/src/ingress/theme-ingress-guard.spec.tsx",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 5,
+          "path": "packages/theme-react/src/ingress/useThemeIngressGuard.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/theme-react/src/providers/map-theme-to-css-variables.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 7,
+          "path": "packages/theme-react/src/providers/providers.spec.tsx",
+          "specifier": "@app-tour/workspace-sdk/auth",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 8,
+          "path": "packages/theme-react/src/providers/providers.spec.tsx",
+          "specifier": "@app-tour/workspace-sdk/auth/casl",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 3,
+          "path": "packages/theme-react/src/providers/TenantThemeProvider.tsx",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 12,
+          "path": "packages/theme-react/src/providers/ThemeProviderChain.tsx",
+          "specifier": "@app-tour/workspace-sdk/auth/casl",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 13,
+          "path": "packages/theme-react/src/providers/WorkspaceThemeProvider.tsx",
+          "specifier": "@app-tour/workspace-sdk/auth/casl",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 14,
+          "path": "packages/theme-react/src/providers/WorkspaceThemeProvider.tsx",
+          "specifier": "@app-tour/workspace-sdk/auth/casl",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/theme-react/src/types/tenant-theme.config.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        },
+        {
+          "line": 1,
+          "path": "packages/workspace-plugin-host/src/registration-flow.ts",
+          "specifier": "@app-tour/workspace-sdk",
+          "workspacePackage": "@app-tour/workspace-sdk"
+        }
+      ]
+    },
+    "formalReusableCapabilities": {
+      "capabilities": [
+        {
+          "capabilityKey": "catalogRegistrationFlow",
+          "certificationSpecPresent": true,
+          "generatedBindingPresent": true,
+          "manifestKeyPresent": true,
+          "missingCriteria": [],
+          "qualified": true,
+          "workspaceId": "denali"
+        },
+        {
+          "capabilityKey": "catalogRegistrationFlow",
+          "certificationSpecPresent": true,
+          "generatedBindingPresent": true,
+          "manifestKeyPresent": true,
+          "missingCriteria": [],
+          "qualified": true,
+          "workspaceId": "guest-club"
+        },
+        {
+          "capabilityKey": "catalogRegistrationFlow",
+          "certificationSpecPresent": true,
+          "generatedBindingPresent": true,
+          "manifestKeyPresent": true,
+          "missingCriteria": [],
+          "qualified": true,
+          "workspaceId": "harbor"
+        },
+        {
+          "capabilityKey": "catalogRegistrationFlow",
+          "certificationSpecPresent": true,
+          "generatedBindingPresent": true,
+          "manifestKeyPresent": true,
+          "missingCriteria": [],
+          "qualified": true,
+          "workspaceId": "urban"
+        }
+      ],
+      "qualifiedCount": 4,
+      "rejected": [
+        {
+          "capabilityKey": "workspaceBooking",
+          "certificationSpecPresent": false,
+          "generatedBindingPresent": true,
+          "manifestKeyPresent": true,
+          "missingCriteria": [
+            "certification-spec"
+          ],
+          "qualified": false,
+          "workspaceId": "booking-ws2"
+        },
+        {
+          "capabilityKey": "workspaceBooking",
+          "certificationSpecPresent": false,
+          "generatedBindingPresent": true,
+          "manifestKeyPresent": true,
+          "missingCriteria": [
+            "certification-spec"
+          ],
+          "qualified": false,
+          "workspaceId": "denali"
+        },
+        {
+          "capabilityKey": "workspaceFinance",
+          "certificationSpecPresent": false,
+          "generatedBindingPresent": true,
+          "manifestKeyPresent": true,
+          "missingCriteria": [
+            "certification-spec"
+          ],
+          "qualified": false,
+          "workspaceId": "denali"
+        },
+        {
+          "capabilityKey": "workspaceFinance",
+          "certificationSpecPresent": false,
+          "generatedBindingPresent": false,
+          "manifestKeyPresent": true,
+          "missingCriteria": [
+            "certification-spec",
+            "generated-binding"
+          ],
+          "qualified": false,
+          "workspaceId": "finance-ws2"
+        },
+        {
+          "capabilityKey": "workspaceFinance",
+          "certificationSpecPresent": false,
+          "generatedBindingPresent": false,
+          "manifestKeyPresent": true,
+          "missingCriteria": [
+            "certification-spec",
+            "generated-binding"
+          ],
+          "qualified": false,
+          "workspaceId": "finance-ws3"
+        },
+        {
+          "capabilityKey": "workspaceFinance",
+          "certificationSpecPresent": false,
+          "generatedBindingPresent": false,
+          "manifestKeyPresent": true,
+          "missingCriteria": [
+            "certification-spec",
+            "generated-binding"
+          ],
+          "qualified": false,
+          "workspaceId": "finance-ws4"
+        },
+        {
+          "capabilityKey": "workspaceFinance",
+          "certificationSpecPresent": false,
+          "generatedBindingPresent": true,
+          "manifestKeyPresent": true,
+          "missingCriteria": [
+            "certification-spec"
+          ],
+          "qualified": false,
+          "workspaceId": "finance-ws5"
+        },
+        {
+          "capabilityKey": "workspaceFinance",
+          "certificationSpecPresent": false,
+          "generatedBindingPresent": false,
+          "manifestKeyPresent": true,
+          "missingCriteria": [
+            "certification-spec",
+            "generated-binding"
+          ],
+          "qualified": false,
+          "workspaceId": "finance-ws6"
+        }
+      ],
+      "rejectedCount": 8
+    },
+    "genericHostEditsForOnboarding": {
+      "count": 5,
+      "generatedRegistryOutputCount": 14,
+      "manualHostEditPaths": [
+        "apps/api/src/http/configure-product-http-hosts.ts",
+        "apps/api/src/http/configure-workspace-denali-product-http-host.ts",
+        "apps/marketing/src/catalog/format-catalog-display.ts",
+        "apps/web/src/features/tours/tour-list-formatters.ts",
+        "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts"
+      ],
+      "plannedManualOutsideWorkspace": [
+        "apps/api/src/http/configure-product-http-hosts.ts",
+        "apps/api/src/http/configure-workspace-denali-product-http-host.ts",
+        "apps/marketing/src/catalog/format-catalog-display.ts",
+        "apps/web/src/features/tours/tour-list-formatters.ts",
+        "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts"
+      ],
+      "similarWorkspaceId": "cert-club"
+    },
+    "manualCopiedModules": {
+      "copiedModulePairCount": 0,
+      "copiedModulePairs": [],
+      "copiedModuleSimilarityThreshold": 0.85,
+      "denaliSourceTsTsxCount": 458,
+      "guestScaffoldPaths": [
+        "packages/workspaces/cert-club/src/catalog/catalog-intake.ts",
+        "packages/workspaces/cert-club/src/catalog/cert-club-smoke-catalog.fixture.ts",
+        "packages/workspaces/cert-club/src/catalog/index.ts",
+        "packages/workspaces/cert-club/src/catalog/registration-flow/index.ts",
+        "packages/workspaces/cert-club/src/catalog/registration-flow/react.ts",
+        "packages/workspaces/cert-club/src/catalog/registration-flow/registration-flow.steps.tsx",
+        "packages/workspaces/cert-club/src/catalog/registration-flow/registration-flow.surface.ts",
+        "packages/workspaces/cert-club/src/cert-club.plugin.ts",
+        "packages/workspaces/cert-club/src/http/cert-club-catalog-http.ts",
+        "packages/workspaces/cert-club/src/http/index.ts",
+        "packages/workspaces/cert-club/src/http/routes-manifest.ts",
+        "packages/workspaces/cert-club/src/http/routes.ts",
+        "packages/workspaces/cert-club/src/index.ts",
+        "packages/workspaces/cert-club/src/smoke/tenant.ts"
+      ],
+      "guestScaffoldTsTsxCount": 14,
+      "harborSourceTsTsxCount": 21
+    },
+    "sharedTourRulesSingleOwnership": {
+      "catalogRuleCount": 13,
+      "rules": [
+        {
+          "id": "parseCanonicalDocumentFromStorage",
+          "implementationSiteCount": 1,
+          "implementationSites": [
+            {
+              "line": 89,
+              "path": "packages/workspace-sdk/src/ingress/parse-canonical-document.ts",
+              "symbol": "parseCanonicalDocumentFromStorage"
+            }
+          ],
+          "outsidePermittedOwnerSiteCount": 0,
+          "outsidePermittedOwnerSites": [],
+          "permittedOwners": [
+            "packages/workspace-sdk"
+          ],
+          "reexportSiteCount": 0,
+          "reexportSites": [],
+          "singleOwner": true,
+          "symbols": [
+            "parseCanonicalDocumentFromStorage"
+          ]
+        },
+        {
+          "id": "wizard-render-plan-steps",
+          "implementationSiteCount": 3,
+          "implementationSites": [
+            {
+              "line": 12,
+              "path": "packages/platform-core/src/engine/render-plan.steps.ts",
+              "symbol": "listStepIds"
+            },
+            {
+              "line": 65,
+              "path": "packages/platform-core/src/engine/render-plan.steps.ts",
+              "symbol": "listActiveSteps"
+            },
+            {
+              "line": 25,
+              "path": "packages/platform-core/src/engine/render-plan.ts",
+              "symbol": "buildRenderPlan"
+            }
+          ],
+          "outsidePermittedOwnerSiteCount": 0,
+          "outsidePermittedOwnerSites": [],
+          "permittedOwners": [
+            "packages/platform-core"
+          ],
+          "reexportSiteCount": 1,
+          "reexportSites": [
+            {
+              "line": 122,
+              "path": "packages/platform-core/src/engine/render-plan.ts",
+              "symbol": "listStepIds"
+            }
+          ],
+          "singleOwner": false,
+          "symbols": [
+            "buildRenderPlan",
+            "listActiveSteps",
+            "listStepIds"
+          ]
+        },
+        {
+          "id": "validateCanonicalDocument",
+          "implementationSiteCount": 1,
+          "implementationSites": [
+            {
+              "line": 18,
+              "path": "packages/platform-core/src/engine/validate-canonical-document.ts",
+              "symbol": "validateCanonicalDocument"
+            }
+          ],
+          "outsidePermittedOwnerSiteCount": 0,
+          "outsidePermittedOwnerSites": [],
+          "permittedOwners": [
+            "packages/platform-core"
+          ],
+          "reexportSiteCount": 0,
+          "reexportSites": [],
+          "singleOwner": true,
+          "symbols": [
+            "validateCanonicalDocument"
+          ]
+        },
+        {
+          "id": "validateLifecycleGraph",
+          "implementationSiteCount": 1,
+          "implementationSites": [
+            {
+              "line": 8,
+              "path": "packages/workspace-sdk/src/plugin/workspace-lifecycle-validation.ts",
+              "symbol": "validateLifecycleGraph"
+            }
+          ],
+          "outsidePermittedOwnerSiteCount": 0,
+          "outsidePermittedOwnerSites": [],
+          "permittedOwners": [
+            "packages/workspace-sdk"
+          ],
+          "reexportSiteCount": 0,
+          "reexportSites": [],
+          "singleOwner": true,
+          "symbols": [
+            "validateLifecycleGraph"
+          ]
+        },
+        {
+          "id": "booking-status-vocabulary",
+          "implementationSiteCount": 2,
+          "implementationSites": [
+            {
+              "line": 277,
+              "path": "apps/api/src/bookings/create-bookings-service.ts",
+              "symbol": "rejectBooking"
+            },
+            {
+              "line": 14,
+              "path": "packages/booking-http-contracts/src/booking-status.ts",
+              "symbol": "BOOKING_STATUSES"
+            }
+          ],
+          "outsidePermittedOwnerSiteCount": 0,
+          "outsidePermittedOwnerSites": [],
+          "permittedOwners": [
+            "apps/api/src/bookings",
+            "packages/booking-http-contracts"
+          ],
+          "reexportSiteCount": 0,
+          "reexportSites": [],
+          "singleOwner": false,
+          "symbols": [
+            "BOOKING_STATUSES",
+            "rejectBooking"
+          ]
+        },
+        {
+          "id": "sumApprovedPartySizeInTx",
+          "implementationSiteCount": 1,
+          "implementationSites": [
+            {
+              "line": 198,
+              "path": "apps/api/src/bookings/create-bookings-service.ts",
+              "symbol": "sumApprovedPartySizeByTourIds"
+            }
+          ],
+          "outsidePermittedOwnerSiteCount": 0,
+          "outsidePermittedOwnerSites": [],
+          "permittedOwners": [
+            "apps/api/src/bookings"
+          ],
+          "reexportSiteCount": 0,
+          "reexportSites": [],
+          "singleOwner": true,
+          "symbols": [
+            "sumApprovedPartySizeByTourIds",
+            "sumApprovedPartySizeInTx"
+          ]
+        },
+        {
+          "id": "rejectBooking-silent",
+          "implementationSiteCount": 1,
+          "implementationSites": [
+            {
+              "line": 277,
+              "path": "apps/api/src/bookings/create-bookings-service.ts",
+              "symbol": "rejectBooking"
+            }
+          ],
+          "outsidePermittedOwnerSiteCount": 0,
+          "outsidePermittedOwnerSites": [],
+          "permittedOwners": [
+            "apps/api/src/bookings"
+          ],
+          "reexportSiteCount": 0,
+          "reexportSites": [],
+          "singleOwner": true,
+          "symbols": [
+            "rejectBooking"
+          ]
+        },
+        {
+          "id": "registration-capacity-decision",
+          "implementationSiteCount": 2,
+          "implementationSites": [
+            {
+              "line": 31,
+              "path": "apps/api/src/registrations/registration-capacity.service.ts",
+              "symbol": "sumAcceptedRegistrationSeats"
+            },
+            {
+              "line": 47,
+              "path": "apps/api/src/registrations/registration-capacity.service.ts",
+              "symbol": "resolveRegistrationCapacityDecision"
+            }
+          ],
+          "outsidePermittedOwnerSiteCount": 0,
+          "outsidePermittedOwnerSites": [],
+          "permittedOwners": [
+            "apps/api/src/registrations"
+          ],
+          "reexportSiteCount": 0,
+          "reexportSites": [],
+          "singleOwner": false,
+          "symbols": [
+            "resolveRegistrationCapacityDecision",
+            "sumAcceptedRegistrationSeats"
+          ]
+        },
+        {
+          "id": "requireWorkspacePublishedTour",
+          "implementationSiteCount": 1,
+          "implementationSites": [
+            {
+              "line": 87,
+              "path": "packages/workspace-sdk/src/http/workspace-registration-guards.ts",
+              "symbol": "requireWorkspacePublishedTour"
+            }
+          ],
+          "outsidePermittedOwnerSiteCount": 0,
+          "outsidePermittedOwnerSites": [],
+          "permittedOwners": [
+            "apps/api",
+            "packages/workspace-sdk"
+          ],
+          "reexportSiteCount": 0,
+          "reexportSites": [],
+          "singleOwner": true,
+          "symbols": [
+            "requireWorkspacePublishedTour"
+          ]
+        },
+        {
+          "id": "createTourDepartureNotSetValidationError",
+          "implementationSiteCount": 1,
+          "implementationSites": [
+            {
+              "line": 33,
+              "path": "packages/workspace-sdk/src/http/workspace-registration-guards.ts",
+              "symbol": "createTourDepartureNotSetValidationError"
+            }
+          ],
+          "outsidePermittedOwnerSiteCount": 0,
+          "outsidePermittedOwnerSites": [],
+          "permittedOwners": [
+            "apps/api",
+            "packages/workspace-sdk"
+          ],
+          "reexportSiteCount": 0,
+          "reexportSites": [],
+          "singleOwner": true,
+          "symbols": [
+            "createTourDepartureNotSetValidationError"
+          ]
+        },
+        {
+          "id": "computeSpotsRemaining",
+          "implementationSiteCount": 2,
+          "implementationSites": [
+            {
+              "line": 3,
+              "path": "packages/workspaces/denali/src/catalog/compute-spots-remaining.ts",
+              "symbol": "computeSpotsRemaining"
+            },
+            {
+              "line": 13,
+              "path": "packages/workspaces/denali/src/catalog/compute-spots-remaining.ts",
+              "symbol": "withSpotsRemaining"
+            }
+          ],
+          "outsidePermittedOwnerSiteCount": 0,
+          "outsidePermittedOwnerSites": [],
+          "permittedOwners": [
+            "packages/tour-core",
+            "packages/workspaces/denali"
+          ],
+          "reexportSiteCount": 0,
+          "reexportSites": [],
+          "singleOwner": false,
+          "symbols": [
+            "computeSpotsRemaining",
+            "withSpotsRemaining"
+          ]
+        },
+        {
+          "id": "assertTourCapacityInTx",
+          "implementationSiteCount": 1,
+          "implementationSites": [
+            {
+              "line": 7,
+              "path": "apps/api/src/canonical/assert-tour-capacity-in-tx.ts",
+              "symbol": "assertTourCapacityInTx"
+            }
+          ],
+          "outsidePermittedOwnerSiteCount": 0,
+          "outsidePermittedOwnerSites": [],
+          "permittedOwners": [
+            "apps/api/src/canonical"
+          ],
+          "reexportSiteCount": 0,
+          "reexportSites": [],
+          "singleOwner": true,
+          "symbols": [
+            "assertTourCapacityInTx"
+          ]
+        },
+        {
+          "id": "assertWorkspaceRegistrationContactBasics",
+          "implementationSiteCount": 1,
+          "implementationSites": [
+            {
+              "line": 125,
+              "path": "packages/workspace-sdk/src/http/workspace-registration-guards.ts",
+              "symbol": "assertWorkspaceRegistrationContactBasics"
+            }
+          ],
+          "outsidePermittedOwnerSiteCount": 0,
+          "outsidePermittedOwnerSites": [],
+          "permittedOwners": [
+            "packages/workspace-sdk"
+          ],
+          "reexportSiteCount": 0,
+          "reexportSites": [],
+          "singleOwner": true,
+          "symbols": [
+            "assertWorkspaceRegistrationContactBasics"
+          ]
+        }
+      ],
+      "singleOwnerCount": 9,
+      "singleOwnerRatio": 0.6923
+    },
+    "workspaceIdBranches": {
+      "allowlist": [
+        {
+          "path": "apps/api/src/tenant/resolve-workspace-type.ts",
+          "rationale": "Phase 11 smoke tenant workspace-type resolution (DEC-P11-001)"
+        }
+      ],
+      "allowlistedHits": [
+        {
+          "kind": "equality",
+          "line": 32,
+          "path": "apps/api/src/tenant/resolve-workspace-type.ts",
+          "workspaceId": "urban"
+        }
+      ],
+      "count": 33,
+      "hits": [
+        {
+          "kind": "literal-set",
+          "line": 79,
+          "path": "apps/api/src/audit/audit-logger.ts",
+          "workspaceId": "starter"
+        },
+        {
+          "kind": "equality",
+          "line": 222,
+          "path": "apps/api/src/boot/lazy-finance-service.ts",
+          "workspaceId": "denali"
+        },
+        {
+          "kind": "literal-set",
+          "line": 87,
+          "path": "apps/api/src/canonical/atomic-canonical-tour-persist.ts",
+          "workspaceId": "starter"
+        },
+        {
+          "kind": "literal-set",
+          "line": 322,
+          "path": "apps/api/src/canonical/atomic-canonical-tour-persist.ts",
+          "workspaceId": "starter"
+        },
+        {
+          "kind": "literal-set",
+          "line": 166,
+          "path": "apps/api/src/exposure/resolve-denali-surface-exposure.ts",
+          "workspaceId": "denali"
+        },
+        {
+          "kind": "literal-set",
+          "line": 153,
+          "path": "apps/api/src/exposure/resolve-urban-surface-exposure.ts",
+          "workspaceId": "urban"
+        },
+        {
+          "kind": "literal-set",
+          "line": 63,
+          "path": "apps/api/src/exposure/start-denali-exposure-reminder-scheduler.ts",
+          "workspaceId": "denali"
+        },
+        {
+          "kind": "literal-set",
+          "line": 130,
+          "path": "apps/api/src/http/request-logging.ts",
+          "workspaceId": "starter"
+        },
+        {
+          "kind": "literal-set",
+          "line": 92,
+          "path": "apps/api/src/integrations/migration/run-tour-published-exposure-remap.ts",
+          "workspaceId": "denali"
+        },
+        {
+          "kind": "literal-set",
+          "line": 104,
+          "path": "apps/api/src/internal/provisioning.service.ts",
+          "workspaceId": "denali"
+        },
+        {
+          "kind": "literal-set",
+          "line": 115,
+          "path": "apps/api/src/internal/provisioning.service.ts",
+          "workspaceId": "urban"
+        },
+        {
+          "kind": "literal-set",
+          "line": 125,
+          "path": "apps/api/src/internal/provisioning.service.ts",
+          "workspaceId": "denali"
+        },
+        {
+          "kind": "literal-set",
+          "line": 262,
+          "path": "apps/api/src/internal/provisioning.service.ts",
+          "workspaceId": "starter"
+        },
+        {
+          "kind": "literal-set",
+          "line": 25,
+          "path": "apps/api/src/tenant/tenant-registry.ts",
+          "workspaceId": "starter"
+        },
+        {
+          "kind": "literal-set",
+          "line": 31,
+          "path": "apps/api/src/tenant/tenant-registry.ts",
+          "workspaceId": "starter"
+        },
+        {
+          "kind": "literal-set",
+          "line": 37,
+          "path": "apps/api/src/tenant/tenant-registry.ts",
+          "workspaceId": "denali"
+        },
+        {
+          "kind": "literal-set",
+          "line": 47,
+          "path": "apps/api/src/tenant/tenant-registry.ts",
+          "workspaceId": "urban"
+        },
+        {
+          "kind": "literal-set",
+          "line": 57,
+          "path": "apps/api/src/tenant/tenant-registry.ts",
+          "workspaceId": "denali"
+        },
+        {
+          "kind": "literal-set",
+          "line": 63,
+          "path": "apps/api/src/tenant/tenant-registry.ts",
+          "workspaceId": "booking-ws2"
+        },
+        {
+          "kind": "literal-set",
+          "line": 69,
+          "path": "apps/api/src/tenant/tenant-registry.ts",
+          "workspaceId": "urban"
+        },
+        {
+          "kind": "literal-set",
+          "line": 226,
+          "path": "apps/api/src/tours/canonical-validation-sync.ts",
+          "workspaceId": "starter"
+        },
+        {
+          "kind": "literal-set",
+          "line": 58,
+          "path": "apps/api/src/tours/canonical-validation.ts",
+          "workspaceId": "starter"
+        },
+        {
+          "kind": "literal-set",
+          "line": 109,
+          "path": "apps/api/src/workspace-drafts/workspace-drafts.service.ts",
+          "workspaceId": "starter"
+        },
+        {
+          "kind": "literal-set",
+          "line": 74,
+          "path": "apps/api/src/workspace-finance/finance-service-host-fakes.ts",
+          "workspaceId": "denali"
+        },
+        {
+          "kind": "literal-set",
+          "line": 27,
+          "path": "apps/api/src/workspace-metadata/build-workspace-definition-export.ts",
+          "workspaceId": "denali"
+        },
+        {
+          "kind": "literal-set",
+          "line": 32,
+          "path": "apps/api/src/workspace-metadata/build-workspace-definition-export.ts",
+          "workspaceId": "starter"
+        },
+        {
+          "kind": "literal-set",
+          "line": 37,
+          "path": "apps/api/src/workspace-metadata/build-workspace-definition-export.ts",
+          "workspaceId": "urban"
+        },
+        {
+          "kind": "equality",
+          "line": 66,
+          "path": "apps/marketing/src/catalog/format-catalog-display.ts",
+          "workspaceId": "denali"
+        },
+        {
+          "kind": "equality",
+          "line": 47,
+          "path": "apps/web/src/bootstrap/resolve-bootstrap-workspace-plugin.client.ts",
+          "workspaceId": "starter"
+        },
+        {
+          "kind": "switch-case",
+          "line": 69,
+          "path": "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts",
+          "workspaceId": "denali"
+        },
+        {
+          "kind": "switch-case",
+          "line": 80,
+          "path": "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts",
+          "workspaceId": "guest-club"
+        },
+        {
+          "kind": "switch-case",
+          "line": 96,
+          "path": "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts",
+          "workspaceId": "harbor"
+        },
+        {
+          "kind": "switch-case",
+          "line": 112,
+          "path": "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts",
+          "workspaceId": "urban"
+        }
+      ]
+    }
+  },
+  "repositoryRef": "b7da2c429c2d1e921e7d624aa2165c3179037df8",
+  "rulesVersion": 1,
+  "schemaVersion": 1
+}

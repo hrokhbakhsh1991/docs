@@ -1,0 +1,22 @@
+{
+  "id": "CW0-03-booking-approved-sum",
+  "input": {
+    "rows": [
+      { "status": "pending", "partySize": 4, "tourId": "tour-a" },
+      { "status": "approved", "partySize": 3, "tourId": "tour-a" },
+      { "status": "approved", "partySize": 2, "tourId": "tour-a" },
+      { "status": "waitlisted", "partySize": 5, "tourId": "tour-a" },
+      { "status": "rejected", "partySize": 1, "tourId": "tour-a" },
+      { "status": "cancelled", "partySize": 6, "tourId": "tour-a" },
+      { "status": "approved", "partySize": 4, "tourId": "tour-b" }
+    ],
+    "tenantId": "tenant-a",
+    "tourIds": ["tour-a", "tour-b"]
+  },
+  "expected": {
+    "totalsByTourId": {
+      "tour-a": 5,
+      "tour-b": 4
+    }
+  }
+}

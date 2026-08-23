@@ -1,0 +1,39 @@
+{
+  "id": "CW0-07-denali-frozen-paths",
+  "input": {
+    "pathsToCheck": [
+      "category",
+      "title",
+      "destinationId",
+      "startDateTime",
+      "capacityMax",
+      "photos",
+      "program.themeIds",
+      "transport.mode",
+      "leaderUserIds"
+    ]
+  },
+  "expected": {
+    "frozenPaths": [
+      "category",
+      "title",
+      "destinationId",
+      "startDateTime",
+      "capacityMax",
+      "program.themeIds",
+      "photos",
+      "transport.mode"
+    ],
+    "frozenChecks": [
+      { "path": "category", "frozen": true },
+      { "path": "title", "frozen": true },
+      { "path": "destinationId", "frozen": true },
+      { "path": "startDateTime", "frozen": true },
+      { "path": "capacityMax", "frozen": true },
+      { "path": "photos", "frozen": true },
+      { "path": "program.themeIds", "frozen": true },
+      { "path": "transport.mode", "frozen": true },
+      { "path": "leaderUserIds", "frozen": false }
+    ]
+  }
+}

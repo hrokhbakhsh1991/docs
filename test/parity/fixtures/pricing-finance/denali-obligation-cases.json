@@ -1,0 +1,103 @@
+{
+  "id": "CW0-08-denali-obligation-cases",
+  "input": {
+    "cases": [
+      {
+        "label": "offline-receipt-party-2",
+        "tourCanonical": {
+          "pricing": {
+            "basePricePerPerson": 2500000,
+            "paymentMode": "offline_receipt"
+          }
+        },
+        "partySize": 2
+      },
+      {
+        "label": "gateway-null",
+        "tourCanonical": {
+          "pricing": {
+            "basePricePerPerson": 2500000,
+            "paymentMode": "gateway"
+          }
+        },
+        "partySize": 1
+      },
+      {
+        "label": "missing-base-price",
+        "tourCanonical": {
+          "pricing": { "paymentMode": "offline_receipt" }
+        },
+        "partySize": 1
+      },
+      {
+        "label": "wrapped-canonical",
+        "tourCanonical": {
+          "data": {
+            "pricing": {
+              "basePricePerPerson": 2500000,
+              "paymentMode": "offline_receipt"
+            }
+          },
+          "schemaVersion": 1,
+          "roots": {}
+        },
+        "partySize": 1
+      },
+      {
+        "label": "currency-usd",
+        "tourCanonical": {
+          "pricing": {
+            "basePricePerPerson": 1000,
+            "paymentMode": "offline_receipt"
+          }
+        },
+        "partySize": 3,
+        "currency": "usd"
+      },
+      {
+        "label": "invalid-party-size",
+        "tourCanonical": {
+          "pricing": {
+            "basePricePerPerson": 1000,
+            "paymentMode": "offline_receipt"
+          }
+        },
+        "partySize": 0
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      {
+        "label": "offline-receipt-party-2",
+        "resolved": {
+          "currency": "IRR",
+          "obligationMinor": "5000000",
+          "source": "tour_canonical",
+          "lines": [{ "code": "trip", "amountMinor": "5000000" }]
+        }
+      },
+      { "label": "gateway-null", "resolved": null },
+      { "label": "missing-base-price", "resolved": null },
+      {
+        "label": "wrapped-canonical",
+        "resolved": {
+          "currency": "IRR",
+          "obligationMinor": "2500000",
+          "source": "tour_canonical",
+          "lines": [{ "code": "trip", "amountMinor": "2500000" }]
+        }
+      },
+      {
+        "label": "currency-usd",
+        "resolved": {
+          "currency": "USD",
+          "obligationMinor": "3000",
+          "source": "tour_canonical",
+          "lines": [{ "code": "trip", "amountMinor": "3000" }]
+        }
+      },
+      { "label": "invalid-party-size", "resolved": null }
+    ]
+  }
+}

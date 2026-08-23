@@ -1,0 +1,15 @@
+{
+  "id": "CW0-04-transition-edges",
+  "input": {
+    "statuses": ["pending", "approved", "waitlisted", "rejected", "cancelled"]
+  },
+  "expected": {
+    "edgesByFrom": {
+      "pending": ["approved", "waitlisted", "rejected", "cancelled"],
+      "approved": ["cancelled"],
+      "waitlisted": ["approved", "rejected", "cancelled"],
+      "rejected": [],
+      "cancelled": []
+    }
+  }
+}

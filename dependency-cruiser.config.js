@@ -230,7 +230,7 @@ module.exports = {
       severity: "error",
       from: { path: "^apps/api" },
       to: {
-        path: `^packages/(?!workspace-sdk|platform-core|platform-events|tenant-kernel|finance-core|finance-http|finance-http-contracts|booking-http-contracts|${DEPCRUISE_API_WORKSPACES_ALLOW_ALT}|config)`,
+        path: `^packages/(?!workspace-sdk|platform-core|platform-events|tenant-kernel|finance-core|finance-http|finance-http-contracts|booking-http-contracts|tour-core|${DEPCRUISE_API_WORKSPACES_ALLOW_ALT}|config)`,
       },
     },
     {
@@ -314,6 +314,51 @@ module.exports = {
       },
       to: {
         path: "^packages/(?!finance-core|finance-http-contracts)(/|$)",
+      },
+    },
+    {
+      name: "tour-core-no-apps",
+      comment: "CW-S1 — tour-core must not depend on application layers",
+      severity: "error",
+      from: { path: "^packages/tour-core" },
+      to: { path: "^apps/" },
+    },
+    {
+      name: "tour-core-no-workspaces",
+      comment: "CW-S1 — tour-core must not depend on workspace implementations",
+      severity: "error",
+      from: { path: "^packages/tour-core" },
+      to: { path: "^packages/workspaces" },
+    },
+    {
+      name: "tour-core-no-workspace-sdk",
+      comment: "DEC-CW-07 — tour-core must not import workspace-sdk (cycle risk)",
+      severity: "error",
+      from: { path: "^packages/tour-core" },
+      to: { path: "(^packages/workspace-sdk|@app-tour/workspace-sdk)" },
+    },
+    {
+      name: "tour-core-no-platform-core",
+      comment: "DEC-CW-07 — tour-core must not import platform-core",
+      severity: "error",
+      from: { path: "^packages/tour-core" },
+      to: { path: "(^packages/platform-core|@app-tour/platform-core)" },
+    },
+    {
+      name: "tour-core-no-finance-core",
+      comment: "CW-S1 — tour-core must not import finance-core",
+      severity: "error",
+      from: { path: "^packages/tour-core" },
+      to: { path: "(^packages/finance-core|@app-tour/finance-core)" },
+    },
+    {
+      name: "tour-core-allowed-package-deps",
+      comment:
+        "DEC-CW-07 — tour-core may depend only on itself and booking-http-contracts among monorepo packages",
+      severity: "error",
+      from: { path: "^packages/tour-core" },
+      to: {
+        path: "^packages/(?!tour-core|booking-http-contracts|config)(/|$)",
       },
     },
   ],

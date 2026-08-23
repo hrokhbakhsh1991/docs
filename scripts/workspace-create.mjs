@@ -1034,6 +1034,47 @@ export function scaffoldWorkspace({ repoRoot = REPO_ROOT, id, guest = false }) {
   return { dir, pkgName: ctx.pkgName, guest };
 }
 
+/**
+ * CW0-09 — repo-relative paths a guest L3 scaffold would create (no disk writes).
+ * @param {string} id
+ * @returns {string[]}
+ */
+export function planGuestWorkspaceScaffoldPaths(id) {
+  if (!id || !/^[a-z][a-z0-9-]*$/.test(id)) {
+    throw new Error(`Invalid workspace id "${id ?? ""}" — use kebab-case [a-z0-9-]`);
+  }
+  const ctx = createContext(id);
+  const base = `packages/workspaces/${id}`;
+  const fixtureStem = ctx.smokeFixtureFile.replace(/\.ts$/, "");
+  const catalogHttpStem = ctx.catalogHttpFile.replace(/\.ts$/, "");
+  return [
+    `${base}/design-language/MASTER.md`,
+    `${base}/package.json`,
+    `${base}/src/catalog/catalog-intake.ts`,
+    `${base}/src/catalog/index.ts`,
+    `${base}/src/catalog/${ctx.smokeFixtureFile}`,
+    `${base}/src/catalog/registration-flow/index.ts`,
+    `${base}/src/catalog/registration-flow/react.ts`,
+    `${base}/src/catalog/registration-flow/registration-flow.steps.tsx`,
+    `${base}/src/catalog/registration-flow/registration-flow.surface.ts`,
+    `${base}/src/http/index.ts`,
+    `${base}/src/http/${ctx.catalogHttpFile}`,
+    `${base}/src/http/routes-manifest.ts`,
+    `${base}/src/http/routes.ts`,
+    `${base}/src/index.ts`,
+    `${base}/src/${ctx.id}.plugin.ts`,
+    `${base}/src/smoke/tenant.ts`,
+    `${base}/test/guest-clone-budget.spec.ts`,
+    `${base}/test/guest-smoke-http.spec.ts`,
+    `${base}/test/scaffold.spec.ts`,
+    `${base}/theme/marketing.css`,
+    `${base}/theme/tokens.css`,
+    `${base}/tsconfig.flow.json`,
+    `${base}/tsconfig.json`,
+    `${base}/workspace.manifest.json`,
+  ].sort();
+}
+
 function usage() {
   console.error("Usage: pnpm run workspace:create -- <workspace-id> [--guest]");
   console.error("Example: pnpm run workspace:create -- climbing-club --guest");

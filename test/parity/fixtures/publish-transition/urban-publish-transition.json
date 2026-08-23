@@ -1,0 +1,36 @@
+{
+  "id": "CW0-02-urban-publish-transition",
+  "input": {
+    "readCases": [
+      {
+        "label": "nested-published",
+        "canonical": {
+          "schemaVersion": 1,
+          "roots": ["tour"],
+          "data": { "tour": { "publishStatus": "published", "title": "City walk" } }
+        }
+      }
+    ],
+    "transitionCases": [
+      {
+        "label": "draft-to-published",
+        "before": { "tour": { "publishStatus": "draft", "title": "Walk" } },
+        "after": { "tour": { "publishStatus": "published", "title": "Walk" } }
+      },
+      {
+        "label": "published-no-change",
+        "before": { "tour": { "publishStatus": "published", "title": "Walk" } },
+        "after": { "tour": { "publishStatus": "published", "title": "Walk" } }
+      }
+    ]
+  },
+  "expected": {
+    "readResults": [
+      { "label": "nested-published", "status": "published" }
+    ],
+    "transitionResults": [
+      { "label": "draft-to-published", "transition": "published" },
+      { "label": "published-no-change", "transition": null }
+    ]
+  }
+}

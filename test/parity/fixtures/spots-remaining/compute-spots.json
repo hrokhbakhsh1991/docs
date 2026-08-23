@@ -1,0 +1,19 @@
+{
+  "id": "CW0-06-compute-spots",
+  "input": {
+    "cases": [
+      { "totalCapacity": 12, "approvedPartySize": 4, "label": "subtract-approved" },
+      { "totalCapacity": 12, "approvedPartySize": 20, "label": "never-negative" },
+      { "totalCapacity": null, "approvedPartySize": 3, "label": "null-capacity" },
+      { "totalCapacity": 10, "approvedPartySize": 0, "label": "zero-approved" }
+    ]
+  },
+  "expected": {
+    "results": [
+      { "label": "subtract-approved", "spotsRemaining": 8 },
+      { "label": "never-negative", "spotsRemaining": 0 },
+      { "label": "null-capacity", "spotsRemaining": null },
+      { "label": "zero-approved", "spotsRemaining": 10 }
+    ]
+  }
+}

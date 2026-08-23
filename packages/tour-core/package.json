@@ -1,0 +1,36 @@
+{
+  "name": "@app-tour/tour-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared tour domain pure rules — CW-S1 math-only scope",
+  "license": "UNLICENSED",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "package.json"],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\"",
+    "guard:boundary": "node ./scripts/guard-boundary.mjs"
+  },
+  "dependencies": {
+    "@app-tour/booking-http-contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

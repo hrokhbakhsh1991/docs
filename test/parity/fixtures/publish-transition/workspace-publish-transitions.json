@@ -1,0 +1,116 @@
+{
+  "id": "CW0-02-publish-transitions",
+  "input": {
+    "cases": [
+      {
+        "workspace": "denali",
+        "label": "draft-to-active",
+        "before": { "publishStatus": "draft" },
+        "after": { "publishStatus": "active" }
+      },
+      {
+        "workspace": "denali",
+        "label": "active-to-draft",
+        "before": { "publishStatus": "active" },
+        "after": { "publishStatus": "draft" }
+      },
+      {
+        "workspace": "denali",
+        "label": "draft-stable",
+        "before": { "publishStatus": "draft" },
+        "after": { "publishStatus": "draft" }
+      },
+      {
+        "workspace": "denali",
+        "label": "nested-basicInfo-draft-to-active",
+        "before": { "basicInfo": { "publishStatus": "draft" } },
+        "after": { "basicInfo": { "publishStatus": "active" } }
+      },
+      {
+        "workspace": "urban",
+        "label": "nested-tour-draft-to-published",
+        "before": { "tour": { "publishStatus": "draft", "title": "City walk" } },
+        "after": { "tour": { "publishStatus": "published", "title": "City walk" } }
+      },
+      {
+        "workspace": "urban",
+        "label": "nested-tour-published-stable",
+        "before": { "tour": { "publishStatus": "published", "title": "City walk" } },
+        "after": { "tour": { "publishStatus": "published", "title": "City walk" } }
+      },
+      {
+        "workspace": "harbor",
+        "label": "flat-draft-to-published",
+        "before": { "publishStatus": "draft", "title": "Harbor event" },
+        "after": { "publishStatus": "published", "title": "Harbor event" }
+      },
+      {
+        "workspace": "harbor",
+        "label": "nested-tour-status-to-published",
+        "before": { "tour": { "status": "draft", "title": "Harbor nested" } },
+        "after": { "tour": { "status": "published", "title": "Harbor nested" } }
+      },
+      {
+        "workspace": "starter",
+        "label": "lifecycle-draft-to-open-allowed",
+        "fromStatus": "DRAFT",
+        "toStatus": "OPEN"
+      },
+      {
+        "workspace": "starter",
+        "label": "lifecycle-open-to-draft-disallowed",
+        "fromStatus": "OPEN",
+        "toStatus": "DRAFT"
+      },
+      {
+        "workspace": "starter",
+        "label": "publish-transition-draft-to-open",
+        "wasPublished": false,
+        "isPublished": true
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      { "workspace": "denali", "label": "draft-to-active", "transition": "published" },
+      { "workspace": "denali", "label": "active-to-draft", "transition": "unpublished" },
+      { "workspace": "denali", "label": "draft-stable", "transition": null },
+      {
+        "workspace": "denali",
+        "label": "nested-basicInfo-draft-to-active",
+        "transition": "published"
+      },
+      {
+        "workspace": "urban",
+        "label": "nested-tour-draft-to-published",
+        "transition": "published"
+      },
+      { "workspace": "urban", "label": "nested-tour-published-stable", "transition": null },
+      {
+        "workspace": "harbor",
+        "label": "flat-draft-to-published",
+        "transition": "published"
+      },
+      {
+        "workspace": "harbor",
+        "label": "nested-tour-status-to-published",
+        "transition": "published"
+      },
+      {
+        "workspace": "starter",
+        "label": "lifecycle-draft-to-open-allowed",
+        "lifecycleAllowed": true
+      },
+      {
+        "workspace": "starter",
+        "label": "lifecycle-open-to-draft-disallowed",
+        "lifecycleAllowed": false
+      },
+      {
+        "workspace": "starter",
+        "label": "publish-transition-draft-to-open",
+        "transition": "published"
+      }
+    ]
+  }
+}

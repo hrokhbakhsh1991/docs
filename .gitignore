@@ -38,8 +38,9 @@ legacy/apps/web/test-results/
 legacy/apps/web/storybook-static/
 legacy/apps/web/.memlab/
 
-# Local scratch (never commit)
-TEMP/
+# Local scratch (never commit except tracked planning ledger)
+TEMP/*
+!TEMP/COMPOSABLE_WORKSPACE_REFACTOR_PLAN_2026-08-23.md
 docs/temp/
 legacy/reports/phase-0-environment-*
 reports/p4-cold-path-fan-in.json

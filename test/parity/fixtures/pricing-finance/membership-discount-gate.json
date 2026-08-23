@@ -1,0 +1,62 @@
+{
+  "id": "CW0-08-membership-discount-gate",
+  "input": {
+    "cases": [
+      {
+        "label": "explicit-true",
+        "tourCanonical": {
+          "data": {
+            "pricing": {
+              "allowMembershipDiscount": true,
+              "basePricePerPerson": 1000000
+            }
+          }
+        }
+      },
+      {
+        "label": "explicit-false",
+        "tourCanonical": {
+          "data": { "pricing": { "allowMembershipDiscount": false } }
+        }
+      },
+      {
+        "label": "gate-missing-fail-closed",
+        "tourCanonical": {
+          "data": { "pricing": { "basePricePerPerson": 1000000 } }
+        }
+      },
+      { "label": "null-canonical", "tourCanonical": null },
+      { "label": "empty-object", "tourCanonical": {} },
+      {
+        "label": "pricing-payment-alias",
+        "tourCanonical": {
+          "pricingPayment": { "allowMembershipDiscount": true }
+        }
+      },
+      {
+        "label": "string-true",
+        "tourCanonical": {
+          "data": { "pricing": { "allowMembershipDiscount": "true" } }
+        }
+      },
+      {
+        "label": "string-false",
+        "tourCanonical": {
+          "data": { "pricing": { "allowMembershipDiscount": "false" } }
+        }
+      }
+    ]
+  },
+  "expected": {
+    "results": [
+      { "label": "explicit-true", "allowed": true },
+      { "label": "explicit-false", "allowed": false },
+      { "label": "gate-missing-fail-closed", "allowed": false },
+      { "label": "null-canonical", "allowed": false },
+      { "label": "empty-object", "allowed": false },
+      { "label": "pricing-payment-alias", "allowed": true },
+      { "label": "string-true", "allowed": true },
+      { "label": "string-false", "allowed": false }
+    ]
+  }
+}

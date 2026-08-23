@@ -1,0 +1,64 @@
+{
+  "id": "CW0-02-harbor-publish-transition",
+  "input": {
+    "publishedCases": [
+      {
+        "label": "flat-publishStatus",
+        "canonical": {
+          "schemaVersion": 1,
+          "roots": [],
+          "data": { "publishStatus": "published" }
+        }
+      },
+      {
+        "label": "nested-status-published",
+        "canonical": {
+          "schemaVersion": 1,
+          "roots": ["tour"],
+          "data": {
+            "tour": {
+              "title": "Nested sail",
+              "city": "bushehr",
+              "status": "published"
+            }
+          }
+        }
+      },
+      {
+        "label": "flat-draft",
+        "canonical": {
+          "schemaVersion": 1,
+          "roots": [],
+          "data": { "status": "draft" }
+        }
+      }
+    ],
+    "transitionCases": [
+      {
+        "label": "draft-to-published-flat",
+        "before": { "publishStatus": "draft", "title": "Evening sail" },
+        "after": { "publishStatus": "published", "title": "Evening sail" }
+      },
+      {
+        "label": "nested-draft-to-published",
+        "before": {
+          "tour": { "title": "Nested sail", "city": "bushehr", "status": "draft" }
+        },
+        "after": {
+          "tour": { "title": "Nested sail", "city": "bushehr", "status": "published" }
+        }
+      }
+    ]
+  },
+  "expected": {
+    "publishedResults": [
+      { "label": "flat-publishStatus", "isPublished": true },
+      { "label": "nested-status-published", "isPublished": true },
+      { "label": "flat-draft", "isPublished": false }
+    ],
+    "transitionResults": [
+      { "label": "draft-to-published-flat", "transition": "published" },
+      { "label": "nested-draft-to-published", "transition": "published" }
+    ]
+  }
+}

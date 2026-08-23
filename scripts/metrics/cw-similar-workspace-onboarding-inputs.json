@@ -1,0 +1,37 @@
+{
+  "similarWorkspaceId": "cert-club",
+  "operations": [
+    {
+      "id": "workspace:create-guest",
+      "type": "planner",
+      "planner": "guest-scaffold"
+    },
+    {
+      "id": "generate:workspace-registry",
+      "type": "generated-outputs"
+    }
+  ],
+  "generatedRegistryOutputs": [
+    "packages/workspace-sdk/src/plugin/workspace-manifest-bindings.generated.ts",
+    "apps/api/src/workspace/workspace-plugin-registry.generated.ts",
+    "apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts",
+    "apps/api/src/tours/workspace-tour-write-bindings.generated.ts",
+    "apps/api/src/canonical/workspace-canonical-tour-bindings.generated.ts",
+    "apps/api/src/tours/workspace-wizard-media-bindings.generated.ts",
+    "apps/web/src/bootstrap/wizard-media-route-bindings.generated.ts",
+    "apps/web/src/bootstrap/wizard-media-backend-route-bindings.generated.ts",
+    "apps/web/src/bootstrap/wizard-i18n-translator-hooks.generated.ts",
+    "apps/web/src/bootstrap/workspace-wizard-message-loads.generated.ts",
+    "apps/api/src/tours/workspace-wizard-clone-remint-bindings.generated.ts",
+    "apps/web/src/bootstrap/workspace-theme-stylesheets.generated.ts",
+    "apps/web/src/bootstrap/workspace-theme-css-modules.generated.d.ts",
+    "packages/guest-workspace-runtime/src/workspace-guest-theme-stylesheets.portal.generated.ts"
+  ],
+  "manualHostEditPaths": [
+    "apps/api/src/http/configure-workspace-denali-product-http-host.ts",
+    "apps/api/src/http/configure-product-http-hosts.ts",
+    "apps/web/src/features/tours/tour-list-formatters.ts",
+    "apps/marketing/src/catalog/format-catalog-display.ts",
+    "packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts"
+  ]
+}
