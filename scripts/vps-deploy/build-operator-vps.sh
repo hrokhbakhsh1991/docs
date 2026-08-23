@@ -65,6 +65,8 @@ pnpm --filter @app-tour/draft-engine run build 2>/dev/null || true
 build_pkg @app-tour/booking-http-contracts
 build_pkg @app-tour/finance-http-contracts
 build_pkg @app-tour/finance-http
+build_pkg @app-tour/catalog-intake-ui
+build_pkg @app-tour/catalog-registration-flow-ui
 build_pkg @app-tour/workspace-denali
 build_pkg @app-tour/workspace-urban
 
