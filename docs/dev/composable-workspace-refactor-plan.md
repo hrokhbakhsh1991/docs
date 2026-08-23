@@ -289,7 +289,7 @@ Refinement vs requested shape (evidence-based):
   - Evidence: TRUTH §8–10; `booking-approve-capacity.spec.ts`, `registration-capacity.spec.ts`.
   - Files: fixtures for both stores. Deps: CW0-01. Risk: **LOW**.
 
-- **CW0-04** `[ ]` **Registration lifecycle goldens (booking path)**
+- **CW0-04** `[x]` **Registration lifecycle goldens (booking path)**
   - Invariant: pending→approved/waitlisted/rejected/cancelled edges + outbox events (`registration.approved`, `.waitlisted`, `.cancelled`; reject silent).
   - Evidence: TRUTH §13–18; `booking-lifecycle.spec.ts`, `booking-reject-lifecycle.spec.ts`.
   - Deps: CW0-01. Risk: **LOW**.

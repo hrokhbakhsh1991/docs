@@ -1,0 +1,67 @@
+{
+  "id": "CW0-04-outbox-semantics",
+  "input": {
+    "cases": [
+      { "action": "approve", "from": "pending", "to": "approved" },
+      { "action": "approve", "from": "waitlisted", "to": "approved" },
+      { "action": "waitlist", "from": "pending", "to": "waitlisted" },
+      { "action": "reject", "from": "pending", "to": "rejected" },
+      { "action": "reject", "from": "waitlisted", "to": "rejected" },
+      { "action": "cancel", "from": "pending", "to": "cancelled" },
+      { "action": "cancel", "from": "approved", "to": "cancelled" },
+      { "action": "cancel", "from": "waitlisted", "to": "cancelled" }
+    ]
+  },
+  "expected": {
+    "results": [
+      {
+        "action": "approve",
+        "from": "pending",
+        "to": "approved",
+        "outboxEventType": "registration.approved"
+      },
+      {
+        "action": "approve",
+        "from": "waitlisted",
+        "to": "approved",
+        "outboxEventType": "registration.approved"
+      },
+      {
+        "action": "waitlist",
+        "from": "pending",
+        "to": "waitlisted",
+        "outboxEventType": "registration.waitlisted"
+      },
+      {
+        "action": "reject",
+        "from": "pending",
+        "to": "rejected",
+        "outboxEventType": null
+      },
+      {
+        "action": "reject",
+        "from": "waitlisted",
+        "to": "rejected",
+        "outboxEventType": null
+      },
+      {
+        "action": "cancel",
+        "from": "pending",
+        "to": "cancelled",
+        "outboxEventType": "registration.cancelled"
+      },
+      {
+        "action": "cancel",
+        "from": "approved",
+        "to": "cancelled",
+        "outboxEventType": "registration.cancelled"
+      },
+      {
+        "action": "cancel",
+        "from": "waitlisted",
+        "to": "cancelled",
+        "outboxEventType": "registration.cancelled"
+      }
+    ]
+  }
+}
