@@ -305,12 +305,12 @@ Refinement vs requested shape (evidence-based):
   - Evidence: TRUTH §29; `compute-spots-remaining.spec.ts`, `catalog-spots-enrichment.spec.ts`.
   - Deps: CW0-01. Risk: **LOW**.
 
-- **CW0-07** `[ ]` **Wizard validation + frozen-field goldens**
+- **CW0-07** `[x]` **Wizard validation + frozen-field goldens**
   - Invariant: Denali frozen set (category, title, destinationId, startDateTime, capacityMax, photos anchor, transport.mode) enforced; engine draft-vs-publish mode outputs stable; starter/urban minimal paths stable.
   - Evidence: TRUTH §19, §21–22; `ensure-tour-kind-template-field.spec.ts`, `canonical-validation-draft-vs-publish.spec.ts`.
   - Deps: CW0-01. Risk: **LOW**.
 
-- **CW0-08** `[ ]` **Pricing/finance linkage goldens (affected surface only)**
+- **CW0-08** `[x]` **Pricing/finance linkage goldens (affected surface only)**
   - Invariant: `resolveDenaliRegistrationObligationMinor` outputs; membership discount gate `readTourAllowMembershipDiscount` fail-closed behavior.
   - Evidence: TRUTH §25–26; `finance-obligation-denali.spec.ts`, `read-tour-membership-discount-gate.spec.ts`.
   - Deps: CW0-01. Risk: **LOW**.
