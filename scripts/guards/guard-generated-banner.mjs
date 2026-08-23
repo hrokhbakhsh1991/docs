@@ -19,6 +19,7 @@ const GENERATED_PATHS = [
   "packages/workspace-sdk/src/catalog/workspace-catalog-paths.generated.ts",
   "packages/workspace-sdk/src/catalog/workspace-catalog-list-features.generated.ts",
   "packages/workspace-sdk/src/catalog/workspace-catalog-detail-sections.generated.ts",
+  "packages/workspace-sdk/src/catalog/workspace-catalog-price-display.generated.ts",
   "packages/workspace-sdk/src/catalog/workspace-guest-conformance.generated.ts",
   "packages/workspace-sdk/src/profile/workspace-member-profile-capabilities.generated.ts",
   "packages/guest-surface-host/src/workspace-dev-plugin-ids.generated.ts",

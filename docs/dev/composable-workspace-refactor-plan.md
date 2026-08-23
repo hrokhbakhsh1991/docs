@@ -138,7 +138,8 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 
 ### DEC-CW-02 — archive: generic lifecycle vs workspace/vertical capability
 
-- **Evidence packet:** [`docs/dev/decisions/DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md) (Worker D, 2026-08-23) — per-workspace behavior census, CW0-02 gap analysis, options A/B/C, impact on exposure/catalog/reminders; **PROPOSAL: Option B (workspace capability)**.
+- **Decision:** **APPROVED by Architect (2026-08-23).** **Option B** — archive remains an optional workspace/vertical capability, **not** a mandatory generic lifecycle state in tour-core/SDK.
+- **Evidence packet:** [`docs/dev/decisions/DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md) (Worker D, 2026-08-23) — per-workspace behavior census, CW0-02 gap analysis, options A/B/C, impact on exposure/catalog/reminders.
 - **Evidence:** TRUTH §6 — Urban-only; Denali has no archive path.
 - **Blocks directly:** CW3-05 archive-row final semantics; CW5-04 archive enumeration only; CW9-05 archive assertions only.
 - **Blocks transitively:** no whole task when the documented not-published placeholder is used; only archive-specific acceptance evidence is deferred.
@@ -150,15 +151,15 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 
 ### DEC-CW-03 — capacity-decision-at-create as first-class strategy
 
-- **Evidence packet:** [`docs/dev/decisions/DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md) (PROPOSAL — Option A dual strategies; 2026-08-23).
+- **Decision:** **APPROVED by Architect (2026-08-23).** **Option A** — dual first-class capacity strategies (`operatorApprovalCapacityStrategy` + `atCreateCapacityStrategy`); **no** vocab/persistence unification.
+- **Evidence packet:** [`docs/dev/decisions/DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md).
 - **Evidence:** TRUTH §11, §13; FEAS §2.2 — Urban decides `confirmed`/`waitlist` at create; booking decides at approve.
-- **Blocks directly:** CW1-03, CW1-05, CW1-06; CW4-05; CW5-03 Urban-strategy portion, CW5-05; CW9-05.
+- **Blocks directly:** CW4-05; CW5-03 Urban-strategy portion, CW5-05; CW9-05 (CW1-03/05/06 unblocked).
 - **Blocks transitively:** CW9-06, CW9-07, CW9-09, CW9-10 full different-vertical closure. It does not block CW-3 or the CW-5 core exit.
-- **Does NOT block exactly:** CW0-01..10; CW1-01..02, CW1-04; CW2-01..07; CW3-01..09; CW4-01..04, CW4-06..08; CW5-01..02, CW5-03 non-Urban portion, CW5-04, CW5-06..11; CW6-01..04, CW6-05A, CW6-05B, CW6-06..07; CW7-01..15; CW8-01..07; CW9-01..04, CW9-08 (club-only run).
-- **Latest safe point:** CW1-02 may complete; decision required before CW1-03. CW-1 may pause after CW1-04 with CW1-03/05/06 deferred.
+- **Does NOT block exactly:** CW0-01..10; CW1-01..06; CW2-01..07; CW3-01..09; CW4-01..04, CW4-06..08; CW5-01..02, CW5-03 non-Urban portion, CW5-04, CW5-06..11; CW6-01..04, CW6-05A, CW6-05B, CW6-06..07; CW7-01..15; CW8-01..07; CW9-01..04, CW9-08 (club-only run).
+- **Latest safe point:** CW1-03/05/06 executable; implemented in CW1 wave.
 - **Decision owner:** Registration product owner + Architect + data owner.
-- **Evidence required:** desired reusable strategy contract, Urban roadmap, booking-capability adoption intent, capacity timing invariants, persistence constraints.
-- **While unresolved:** **DEFER CW1-03/05/06 and downstream strategy tasks; CONTINUE OTHER TASKS**.
+- **Status:** **APPROVED** — Option A implemented (tour-core `atCreateCapacityStrategy`).
 
 ### DEC-CW-04 — member-portal status display for non-booking workspaces
 
@@ -184,6 +185,7 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 
 ### DEC-CW-06 — currency/locale display config shape
 
+- **Decision:** **APPROVED by Architect (2026-08-23).** **Option E** — hybrid manifest `catalogPresentation.priceDisplay` + codegen projection into `tourCommercial` / marketing surface bindings.
 - **Evidence:** AUDIT §8 — IRR/toman keyed on `pluginId === "denali"`; replacement config target (manifest block vs tenant config) undesigned. **CW2-01 evidence packet:** [`docs/dev/decisions/DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md) (enumerates current policy seams, options, baseline drift at `7d3daac6`).
 - **Blocks directly:** CW2-02, CW2-03, CW2-07 currency-specific assertions, CW7-11.
 - **Blocks transitively:** CW7-12 (depends on CW7-11). Equipment/Transport minimum and CW-9 remain executable.
@@ -365,31 +367,31 @@ Refinement vs requested shape (evidence-based):
   - Rollback: restore original file; delete tour-core copy.
   - Deps: CW1-01, CW0-06, CW0-10 (baseline frozen before ownership count changes). Risk: **LOW**.
 
-- **CW1-03** `[!]` **Urban capacity-decision ownership (blocked: DEC-CW-03)**
-  - Safe treatment selected: **Option B — keep implementation in its current API/Urban ownership until product semantics are decided.** No Urban `confirmed`/`waitlist` behavior enters tour-core merely because it is pure.
-  - After DEC-CW-03: either (a) move it as an explicitly named reusable at-create strategy, preserving vocabulary, or (b) retain it as Urban-owned and close this task with ownership certification only.
-  - Invariant: strings `confirmed`/`waitlist` preserved exactly; urban host wiring (`configure-product-http-hosts.ts` `decideRegistrationStatus`) behavior identical.
-  - Evidence: FEAS §2.1 with rename warning; TRUTH §9.
-  - Files after decision only: `apps/api/src/registrations/registration-capacity.service.ts`; potential destination determined by DEC-CW-03.
-  - Focused validation: `registration-capacity.spec.ts`.
+- **CW1-03** `[x]` **At-create capacity strategy in tour-core (DEC-CW-03 Option A)**
+  - Invariant: strings `confirmed`/`waitlist` preserved exactly; pure math in `packages/tour-core/src/capacity/at-create-strategy.ts` as `atCreateCapacityStrategy` + `sumAcceptedRegistrationSeats`.
+  - Evidence: FEAS §2.1; TRUTH §9; DEC-CW-03 Option A approved.
+  - Files: `packages/tour-core/src/capacity/at-create-strategy.ts`; compat re-export `apps/api/src/registrations/registration-capacity.service.ts` (`@deprecated`).
+  - Focused validation: `packages/tour-core/test/at-create-strategy.spec.ts`, `registration-capacity.spec.ts`.
   - Regression: `urban-catalog-registration.spec.ts`.
-  - Rollback: no-op while deferred; after decision use compat path.
-  - Deps: CW1-01, CW0-03, DEC-CW-03. Risk: **LOW** (ownership-only/move-only; semantic changes forbidden).
+  - Rollback: restore inline implementation in API service; delete tour-core copy.
+  - Deps: CW1-01, CW0-03, DEC-CW-03. Risk: **LOW**.
 
 - **CW1-04** `[x]` **Migrate Denali catalog consumer to tour-core import**
   - Invariant: zero behavior diff (goldens CW0-06).
   - Files: denali catalog enrichment imports; compat re-export retained for other consumers.
   - Deps: CW1-02. Risk: **LOW**.
 
-- **CW1-05** `[!]` **Migrate urban host wiring only if DEC-CW-03 chooses reusable strategy**
-  - Files: `apps/api/src/http/configure-product-http-hosts.ts`.
+- **CW1-05** `[x]` **Migrate urban host wiring to explicit at-create strategy contract**
+  - Invariant: `configure-product-http-hosts.ts` binds `decideRegistrationStatus` via `decideUrbanRegistrationStatus` → `atCreateCapacityStrategy` + `assertRegistrationCapacityDecision`.
+  - Files: `apps/api/src/http/configure-product-http-hosts.ts`, `apps/api/src/registrations/registration-capacity.service.ts`.
   - Deps: CW1-03, DEC-CW-03. Risk: **LOW**.
 
-- **CW1-06** `[!]` **Consumer census + old-path retirement check (blocked until DEC-CW-03 disposes CW1-03/05)**
-  - Invariant: grep census shows zero non-re-export consumers of old paths; re-exports annotated `@deprecated` but NOT removed (removal is CW-5 cleanup after full census).
-  - Deps: CW1-04, CW1-05 (or DEC-CW-03 decision to retain Urban path, which closes CW1-05 as not applicable). Risk: **LOW**.
+- **CW1-06** `[x]` **Consumer census + old-path retirement check**
+  - Census (2026-08-23): pure-math consumers migrated — `configure-product-http-hosts.ts`, `test/parity/capacity.golden.spec.mjs` → tour-core. Remaining non-re-export compat consumers: `registration-capacity.spec.ts` (adapter tests), `registrations/index.ts` (barrel), `error-interceptor.ts` (error class only). **Retirement conditions NOT satisfied** — `@deprecated` compat re-exports retained per CW-5 cleanup gate.
+  - Invariant: grep census documents intentional compat path; re-exports annotated `@deprecated` but NOT removed.
+  - Deps: CW1-04, CW1-05. Risk: **LOW**.
 
-**Exit CW-1:** CW1-02/04 form a stable partial exit with identical Denali behavior. Full phase closure requires DEC-CW-03 disposition for CW1-03/05/06; both workspaces green; tour-core has no workspace imports and no workspace-sdk import.
+**Exit CW-1:** CW1-02/04/03/05/06 complete; tour-core has no workspace imports and no workspace-sdk import. Full phase closure: both workspaces green on all CW-1 validations.
 
 ---
 
@@ -400,18 +402,20 @@ Refinement vs requested shape (evidence-based):
   - Evidence: [`docs/dev/decisions/DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md) — policy-driven formatters at `7d3daac6`; manifest shape still open; Option E (hybrid manifest `catalogPresentation.priceDisplay` + codegen) marked **PROPOSAL** for Architect.
   - Deps: CW0-09. Risk: **LOW**. Decision remains external.
 
-- **CW2-02** `[!]` **Replace marketing IRR/toman `pluginId === "denali"` (blocked: DEC-CW-06)**
+- **CW2-02** `[x]` **Replace marketing IRR/toman `pluginId === "denali"` (DEC-CW-06 Option E)**
   - Invariant: Denali tenants render exactly as today (toman label); other workspaces unchanged; no workspace id in `format-catalog-display.ts`.
-  - Evidence: AUDIT §8; FEAS §1 UI table.
-  - Files: `apps/marketing/src/catalog/format-catalog-display.ts`; config source per DEC-CW-06 (likely manifest `catalogPresentation` extension + codegen).
-  - Focused validation: marketing catalog snapshot per-workspace.
-  - Regression: `guard-marketing-denali-boundary.mjs`; marketing specs.
-  - Rollback: restore pluginId check (single file).
+  - Evidence: AUDIT §8; FEAS §1 UI table; [`DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md) Option E approved.
+  - Files: `apps/marketing/src/catalog/format-catalog-display.ts`; `catalogPresentation.priceDisplay` manifest + `resolveCatalogPriceDisplay()` codegen (`workspace-catalog-price-display.generated.ts`).
+  - Focused validation: marketing catalog snapshot per-workspace; `resolve-catalog-price-display.spec.ts`.
+  - Regression: `guard-marketing-denali-boundary.mjs`; marketing specs (`MKT-CURR-01`..`03`).
+  - Rollback: restore marketing surface `irrDisplayUnit` source (manifest row + resolver).
   - Deps: CW2-01, CW0-01. Risk: **MEDIUM**.
+  - **Closure (2026-08-23):** Marketing `priceDisplayPolicy` wired to manifest `catalogPresentation.priceDisplay` → `WORKSPACE_CATALOG_PRICE_DISPLAY` → `resolveCatalogPriceDisplay(pluginId)`. Denali `irrDisplayUnit` removed from `marketing-catalog-surface.ts` (single manifest source). Fail-closed: unknown `pluginId` → `UnknownCatalogPresentationPluginError`; absent `priceDisplay` → `null` (Intl).
 
-- **CW2-03** `[!]` **Replace operator tour-list IRR set `["denali"]` (blocked: DEC-CW-06)**
+- **CW2-03** `[x]` **Replace operator tour-list IRR set `["denali"]` (blocked: DEC-CW-06)**
   - Files: `apps/web/src/features/tours/tour-list-formatters.ts`; same config seam as CW2-02.
   - Invariant/validation analogous. Deps: CW2-01. Risk: **MEDIUM**.
+  - **Closure (2026-08-23):** Operator `formatTourPrice` consumes `resolveTourPriceDisplayPolicy` → `resolveCatalogPriceDisplay` (manifest `catalogPresentation.priceDisplay` codegen). Denali `irrDisplayUnit` removed from `denali.plugin.ts` tourCommercial bag; prepayment resolver retained. Specs: `tours-list.spec.ts` (CW2-03), `tour-price-display-policy.spec.ts`.
 
 - **CW2-04** `[x]` **Replace hand `switch(pluginId)` in `ensure-registration-flow.client.ts` with generated registry**
   - Invariant: identical flow module loaded per workspace (denali, guest-club, harbor, urban); lazy-load timing preserved.

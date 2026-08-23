@@ -334,6 +334,10 @@ export {
   type CatalogDetailSections,
 } from "./catalog/resolve-catalog-detail-sections";
 export {
+  resolveCatalogPriceDisplay,
+  type CatalogPriceDisplayPolicy,
+} from "./catalog/resolve-catalog-price-display";
+export {
   resolveGuestLandingFeatures,
   UnknownGuestLandingPluginError,
   type GuestLandingFeatures,

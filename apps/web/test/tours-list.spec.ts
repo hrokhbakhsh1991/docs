@@ -31,6 +31,7 @@ import {
   formatTourPrice,
   formatTourSeats,
 } from "../src/features/tours/tour-list-formatters";
+import { resolveTourPriceDisplayPolicy } from "../src/features/tours/resolve-tour-price-display-policy";
 import { formatLocalizedNumber } from "../src/i18n/format-localized-digits";
 
 const PLUGIN_ID = "denali";
@@ -158,6 +159,14 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.equal(formatTourPrice(1200, "USD", "en", tomanPolicy), "$1,200");
     const harborIrr = formatTourPrice(1200, "IRR", "en");
     assert.equal(harborIrr?.includes("toman") ?? true, false);
+  });
+
+  it("CW2-03 Denali IRR operator price reads manifest priceDisplay without plugin cache", () => {
+    const denaliPolicy = resolveTourPriceDisplayPolicy("denali");
+    assert.deepEqual(denaliPolicy, { irrDisplayUnit: "toman" });
+    assert.equal(formatTourPrice(1200, "IRR", "en", denaliPolicy), "1,200 toman");
+    assert.equal(resolveTourPriceDisplayPolicy("urban"), null);
+    assert.equal(resolveTourPriceDisplayPolicy("starter"), null);
   });
 
   it("ED-TZ-01 formatTourDeparture uses local wall clock (not naive ISO-Z digits)", async () => {

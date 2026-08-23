@@ -42,6 +42,7 @@ import {
   generateWorkspaceCatalogDetailSections,
   generateWorkspaceCatalogListFeatures,
   generateWorkspaceCatalogPaths,
+  generateWorkspaceCatalogPriceDisplay,
   generateWorkspaceRegistrationForTourPaths,
   generateWorkspaceGuestConformance,
   generateWorkspaceProductionCertification,
@@ -158,6 +159,7 @@ export const DOMAIN_OUTPUT_KEYS = {
     "registrationForTourPaths",
     "catalogListFeatures",
     "catalogDetailSections",
+    "catalogPriceDisplay",
     "guestConformance",
     "productionCertification",
     "guestSeo",
@@ -210,6 +212,7 @@ export const OUTPUT_KEYS = Object.freeze([
   "registrationForTourPaths",
   "catalogListFeatures",
   "catalogDetailSections",
+  "catalogPriceDisplay",
   "operatorCapabilities",
   "ownerSettingsPanelLoaders",
   "workspaceCommerceFreeze",
@@ -289,6 +292,7 @@ export function generateAllOutputs(manifests) {
     registrationForTourPaths: generateWorkspaceRegistrationForTourPaths(manifests),
     catalogListFeatures: generateWorkspaceCatalogListFeatures(manifests),
     catalogDetailSections: generateWorkspaceCatalogDetailSections(manifests),
+    catalogPriceDisplay: generateWorkspaceCatalogPriceDisplay(manifests),
     operatorCapabilities: generateWorkspaceOperatorCapabilities(manifests),
     ownerSettingsPanelLoaders: generateWorkspaceOwnerSettingsPanelLoaders(manifests),
     workspaceCommerceFreeze: generateWorkspaceCommerceFreezeBindings(manifests),
@@ -409,6 +413,10 @@ export const OUTPUT_PATHS = {
   catalogDetailSections: join(
     REPO_ROOT,
     "packages/workspace-sdk/src/catalog/workspace-catalog-detail-sections.generated.ts"
+  ),
+  catalogPriceDisplay: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-catalog-price-display.generated.ts"
   ),
   operatorCapabilities: join(
     REPO_ROOT,

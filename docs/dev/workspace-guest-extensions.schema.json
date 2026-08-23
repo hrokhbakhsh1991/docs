@@ -303,6 +303,13 @@
             "itinerary": { "type": "boolean" },
             "policies": { "type": "boolean" }
           }
+        },
+        "priceDisplay": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "irrDisplayUnit": { "type": "string", "enum": ["toman"] }
+          }
         }
       }
     },

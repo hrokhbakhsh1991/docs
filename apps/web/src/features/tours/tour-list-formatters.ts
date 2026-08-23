@@ -1,7 +1,7 @@
 import type { AppLocale } from "@/i18n/routing";
 import { formatDatetimeLocalLabel, isoToDatetimeLocalInput } from "@/i18n/datetime-format";
 import { formatLocalizedNumber, INTL_LOCALE } from "@/i18n/format-localized-digits";
-import type { WorkspaceTourCommercialCapability } from "@app-tour/workspace-sdk";
+import type { CatalogPriceDisplayPolicy } from "@app-tour/workspace-sdk";
 
 import type { TourListProjection } from "./operator-tours-types";
 
@@ -14,7 +14,7 @@ export function formatTourPrice(
   amount: number | null,
   currency: string | null,
   locale: AppLocale = "en",
-  commercialPolicy?: Pick<WorkspaceTourCommercialCapability, "irrDisplayUnit"> | null
+  priceDisplayPolicy?: CatalogPriceDisplayPolicy | null
 ): string | null {
   if (amount === null) {
     return null;
@@ -24,7 +24,7 @@ export function formatTourPrice(
     return null;
   }
   // Workspace policy owns the display unit; ISO storage stays IRR. Do not ×10.
-  if (code === "IRR" && commercialPolicy?.irrDisplayUnit === "toman") {
+  if (code === "IRR" && priceDisplayPolicy?.irrDisplayUnit === "toman") {
     const unit = locale === "fa" ? "تومان" : "toman";
     return `${formatLocalizedNumber(amount, locale)} ${unit}`;
   }

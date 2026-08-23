@@ -208,6 +208,7 @@ const ALLOWED_ROOT_RUNTIME_EXPORTS = new Set([
   "resolveCatalogDetailSections",
   "resolveCatalogListApiPath",
   "resolveCatalogListFeatures",
+  "resolveCatalogPriceDisplay",
   "resolveCatalogRegistrationApiPath",
   "tryResolveCatalogRegistrationForTourApiPath",
   "resolveCatalogTourApiPath",

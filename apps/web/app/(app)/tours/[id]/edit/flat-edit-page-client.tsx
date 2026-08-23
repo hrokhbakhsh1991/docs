@@ -22,8 +22,8 @@ import { Button } from "@/components/ui/button";
 import { TOUR_EDIT_TEST_IDS } from "@/features/tours/operator-tour-detail-types";
 import type { TourUiStatus } from "@/features/tours/operator-tours-types";
 import { TourInternalLink } from "@/features/tours/tour-internal-link";
+import { resolveTourPriceDisplayPolicy } from "@/features/tours/resolve-tour-price-display-policy";
 import {
-  readCachedTourCommercialCapability,
   readCachedTourPlugin,
 } from "@/features/tours/tour-route-cache";
 import {
@@ -188,7 +188,7 @@ function OperatorFlatEditPageClientReady({
             detail.projection.priceAmount,
             detail.projection.priceCurrency,
             locale,
-            readCachedTourCommercialCapability(session.pluginId)
+            resolveTourPriceDisplayPolicy(session.pluginId)
           );
           const departureLabel = formatTourDeparture(detail.projection.departureAt, locale);
           const seatsLabel = formatSeats(detail.projection);

@@ -730,6 +730,23 @@ export function assertCatalogPresentationManifest(manifest) {
       throw new Error(`${manifest.id}: catalogPresentation.detailSections.${key} must be boolean`);
     }
   }
+  const priceDisplay = presentation.priceDisplay;
+  if (priceDisplay !== undefined) {
+    if (priceDisplay === null || typeof priceDisplay !== "object" || Array.isArray(priceDisplay)) {
+      throw new Error(`${manifest.id}: catalogPresentation.priceDisplay must be an object when present`);
+    }
+    const irrDisplayUnit = priceDisplay.irrDisplayUnit;
+    if (irrDisplayUnit !== undefined && irrDisplayUnit !== "toman") {
+      throw new Error(
+        `${manifest.id}: catalogPresentation.priceDisplay.irrDisplayUnit must be "toman" when present`
+      );
+    }
+    for (const key of Object.keys(priceDisplay)) {
+      if (key !== "irrDisplayUnit") {
+        throw new Error(`${manifest.id}: catalogPresentation.priceDisplay unknown key "${key}"`);
+      }
+    }
+  }
   assertGuestLandingManifest(manifest);
 }
 
@@ -1434,6 +1451,43 @@ export const WORKSPACE_CATALOG_DETAIL_SECTIONS: Readonly<
       readonly policies: boolean;
     }>
   >
+> = Object.freeze({
+${entries}
+});
+`;
+}
+
+/** @param {ReturnType<typeof discoverManifests>} manifests */
+export function generateWorkspaceCatalogPriceDisplay(manifests) {
+  /** @type {Record<string, { irrDisplayUnit?: "toman" }>} */
+  const priceDisplayByPlugin = {};
+  for (const manifest of manifests) {
+    assertCatalogPresentationManifest(manifest);
+    if (manifest.catalogPresentation === undefined) {
+      continue;
+    }
+    const priceDisplay = manifest.catalogPresentation.priceDisplay;
+    if (priceDisplay?.irrDisplayUnit === "toman") {
+      priceDisplayByPlugin[manifest.id] = Object.freeze({ irrDisplayUnit: "toman" });
+    } else {
+      priceDisplayByPlugin[manifest.id] = Object.freeze({});
+    }
+  }
+
+  const entries = Object.entries(priceDisplayByPlugin)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([pluginId, value]) => {
+      if (value.irrDisplayUnit === "toman") {
+        return `  ${JSON.stringify(pluginId)}: Object.freeze({ irrDisplayUnit: "toman" }),`;
+      }
+      return `  ${JSON.stringify(pluginId)}: Object.freeze({}),`;
+    })
+    .join("\n");
+
+  return `${BANNER}
+/** Marketing catalog price display — derived from workspace.manifest.json catalogPresentation.priceDisplay. */
+export const WORKSPACE_CATALOG_PRICE_DISPLAY: Readonly<
+  Record<string, Readonly<{ readonly irrDisplayUnit?: "toman" }>>
 > = Object.freeze({
 ${entries}
 });

@@ -245,7 +245,6 @@ export function createDenaliWorkspacePlugin(): WorkspacePlugin {
       templateEditor: denaliWizardTemplateEditor,
       tourListCategory: denaliTourListCategorySurface,
       tourCommercial: deepFreeze({
-        irrDisplayUnit: "toman" as const,
         resolveSuggestedPrepaymentMinor: resolveDenaliSuggestedPrepaymentMinor,
       }),
       settingsDestination: denaliDestinationSettingsSurface,

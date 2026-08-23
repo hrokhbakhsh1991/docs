@@ -16,7 +16,7 @@ import {
   formatTourPrice,
   formatTourSeats,
 } from "@/features/tours/tour-list-formatters";
-import { readCachedTourCommercialCapability } from "@/features/tours/tour-route-cache";
+import { resolveTourPriceDisplayPolicy } from "@/features/tours/resolve-tour-price-display-policy";
 import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
 import { resolveWizardTourDurationLabel } from "@/wizard/wizard-label-surface-registry";
 import type { AppLocale } from "@/i18n/routing";
@@ -62,7 +62,7 @@ export function TourCard({ pluginId, tour, canManage, showExtendedCard = false }
     tour.priceAmount,
     tour.priceCurrency,
     locale,
-    readCachedTourCommercialCapability(pluginId)
+    resolveTourPriceDisplayPolicy(pluginId)
   );
   const departureLabel = formatTourDeparture(tour.departureAt, locale);
   const seatsLabel = formatTourSeats(tour, {
