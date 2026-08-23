@@ -1,0 +1,32 @@
+{
+  "id": "CW4-07-workspace-duplicate-policies",
+  "input": {},
+  "expected": {
+    "bookingCapability": {
+      "persistenceTable": "operator_registrations",
+      "partialUniques": [
+        "uq_operator_reg_active_email",
+        "uq_operator_reg_active_self",
+        "uq_operator_reg_active_label",
+        "uq_operator_reg_active_national_id"
+      ],
+      "probeKinds": ["user", "label", "email", "nationalId", "phone"],
+      "hostDomainError": "BOOKING_GUEST_DUPLICATE",
+      "workspacePreCreateErrors": [
+        "DENALI_REGISTRATION_DUPLICATE",
+        "HARBOR_REGISTRATION_DUPLICATE"
+      ]
+    },
+    "urbanWorkspacePolicy": {
+      "persistenceTable": "urban_registrations",
+      "uniqueIndex": "uq_urban_reg_tenant_tour_email",
+      "uniqueKeys": ["tenant_id", "tour_id", "email"],
+      "conflictCode": "URBAN_REGISTRATION_DUPLICATE",
+      "usesBookingPublicPort": false
+    },
+    "intentionalDivergence": {
+      "unifiedPersistence": false,
+      "sharedProbeKinds": false
+    }
+  }
+}

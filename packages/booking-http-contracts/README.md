@@ -11,6 +11,7 @@ Portable **wire** contracts for operator Booking HTTP.
 - Create / approve / reject / bulk / summary response DTOs
 - Hand parsers moved from `apps/api` `bookings.routes.ts` (behavior-identical)
 - **`BookingPublicPort`** (+ create input/result) — host public create / duplicate / occupancy (Phase B1.4)
+- **Duplicate-protection contract** (`booking-duplicate-protection.contract.ts`) — probe kinds + partial-unique index SoT (CW4-07)
 
 ## Does not own
 
