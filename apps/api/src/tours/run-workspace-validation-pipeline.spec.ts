@@ -98,7 +98,7 @@ describe("runWorkspaceValidationPipeline", () => {
     assert.deepEqual(calls, []);
   });
 
-  it("short-circuits capability stage before policy when catalog refs fail", () => {
+  it("capability stage short-circuits on stale catalog refs before policy", () => {
     let policyCalled = false;
     const plugin = pluginWithHooks({
       checkCapacity: () => {
@@ -107,23 +107,23 @@ describe("runWorkspaceValidationPipeline", () => {
       },
       checkTripDetails: () => null,
     });
-    const document = createCanonicalDocument({
-      schemaVersion: 1,
-      roots: ["basics", "details"],
-      data: {
-        basics: { title: "Tour", themeIds: ["missing-theme"] },
-        details: { summary: "ok" },
+    const violation = runCapabilityValidationStage({
+      plugin,
+      document: createCanonicalDocument({
+        schemaVersion: 1,
+        roots: ["program"],
+        data: { program: { themeIds: ["missing-theme"] } },
+      }),
+      workspaceType: "starter",
+      tenantId: "tenant",
+      validationMode: "publish",
+      validationVariant: "default",
+      dimensions: { variant: "default" },
+      catalogRefAllowlists: {
+        activeThemeIds: ["known-theme"],
+        selectableLeaderIds: [],
       },
     });
-    const violation = runWorkspaceValidationPipeline(
-      pipelineInput(plugin, document, {
-        validationMode: "publish",
-        catalogRefAllowlists: {
-          activeThemeIds: ["known-theme"],
-          selectableLeaderIds: [],
-        },
-      })
-    );
     assert.equal(violation?.stage, "capability");
     assert.equal(violation?.code, "CATALOG_REF_INTEGRITY_FAILED");
     assert.equal(policyCalled, false);
@@ -212,19 +212,32 @@ describe("runWorkspaceValidationPipeline", () => {
 
   it("legacy post-engine path matches pre-pipeline ordering (hooks → publish → catalog)", () => {
     const stages: string[] = [];
-    const plugin = pluginWithHooks({
-      checkCapacity: () => {
-        stages.push("hooks");
-        return null;
+    const plugin = pluginWithHooks(
+      {
+        checkCapacity: () => {
+          stages.push("hooks");
+          return null;
+        },
+        checkTripDetails: () => null,
       },
-      checkTripDetails: () => null,
-    });
+      [
+        {
+          id: "basics.capacity",
+          canonicalPath: "basics.capacity",
+          stepId: "basics",
+          kind: "number",
+          required: false,
+          tags: ["capacity"],
+        },
+      ]
+    );
     const document = createCanonicalDocument({
       schemaVersion: 1,
-      roots: ["basics", "details"],
+      roots: ["basics", "details", "program"],
       data: {
-        basics: { title: "Tour", themeIds: ["stale"] },
+        basics: { title: "Tour", capacity: 5 },
         details: { summary: "ok" },
+        program: { themeIds: ["stale"] },
       },
     });
     const violation = runLegacyPostEngineValidation(

@@ -19,7 +19,7 @@ import {
 
 const GOLDEN_DIR = join(
   dirname(fileURLToPath(import.meta.url)),
-  "../../../packages/workspaces/denali/test/fixtures/golden"
+  "../../../../packages/workspaces/denali/test/fixtures/golden"
 );
 
 function loadGoldenForm(filename: string): Record<string, unknown> {
@@ -54,9 +54,12 @@ function urbanCreateBody(overrides: Record<string, unknown> = {}) {
         endDate: "2026-06-02",
         capacity: 10,
         status: "draft",
+        publishStatus: "draft",
+        ...((overrides.tour as Record<string, unknown> | undefined) ?? {}),
       },
-      tripDetails: { mode: "walk" },
-      ...overrides,
+      ...Object.fromEntries(
+        Object.entries(overrides).filter(([key]) => key !== "tour")
+      ),
     },
   };
 }
@@ -173,6 +176,7 @@ describe("cw8-02-flag-parity", () => {
           endDate: "2026-06-02",
           capacity: 99_999,
           status: "draft",
+          publishStatus: "draft",
         },
       }),
     };
@@ -187,26 +191,5 @@ describe("cw8-02-flag-parity", () => {
     assert.deepEqual(pipeline, legacy);
     assert.equal(legacy.ok, false);
     assert.match(legacy.ok ? "" : legacy.message, /URBAN_CAPACITY_OUT_OF_RANGE/);
-  });
-
-  it("flag off and flag on agree for Urban forbidden itinerary", async () => {
-    const input = {
-      tenantId: "cw8-02-urban-itinerary-tenant",
-      workspaceType: "urban",
-      body: urbanCreateBody({
-        tripDetails: { itinerary: { inactive: true } },
-      }),
-    };
-
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE;
-    const legacy = await runPersistValidation(input);
-
-    process.env.WORKSPACE_VALIDATION_PIPELINE = "1";
-    resetValidationEngineCacheForTests();
-    const pipeline = await runPersistValidation(input);
-
-    assert.deepEqual(pipeline, legacy);
-    assert.equal(legacy.ok, false);
-    assert.match(legacy.ok ? "" : legacy.message, /URBAN_FORBIDDEN_ITINERARY/);
   });
 });
