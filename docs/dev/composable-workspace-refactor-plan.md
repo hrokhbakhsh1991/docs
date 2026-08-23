@@ -138,6 +138,7 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 
 ### DEC-CW-02 — archive: generic lifecycle vs workspace/vertical capability
 
+- **Evidence packet:** [`docs/dev/decisions/DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md) (Worker D, 2026-08-23) — per-workspace behavior census, CW0-02 gap analysis, options A/B/C, impact on exposure/catalog/reminders; **PROPOSAL: Option B (workspace capability)**.
 - **Evidence:** TRUTH §6 — Urban-only; Denali has no archive path.
 - **Blocks directly:** CW3-05 archive-row final semantics; CW5-04 archive enumeration only; CW9-05 archive assertions only.
 - **Blocks transitively:** no whole task when the documented not-published placeholder is used; only archive-specific acceptance evidence is deferred.
@@ -913,7 +914,7 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | `approved` vs `confirmed` | pending DEC-CW-01 | — |
 | `waitlisted` vs `waitlist` | pending DEC-CW-01 | — |
 | `active` vs `published` labels | INTENTIONAL after CW-3 mapping | CW3-05 |
-| Archive Urban-only | pending DEC-CW-02 | — |
+| Archive Urban-only | pending DEC-CW-02 | [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md) |
 | Capacity at approve vs at create | pending DEC-CW-03 | — |
 | Flat vs nested canonical shape | INTENTIONAL (workspace canonical ownership) | list-projection port CW3-07 |
 
