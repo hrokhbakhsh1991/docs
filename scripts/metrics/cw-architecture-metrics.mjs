@@ -4,7 +4,7 @@
  * Usage: node scripts/metrics/cw-architecture-metrics.mjs
  */
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -137,9 +137,10 @@ const EXCLUDE_PATH_SEGMENTS = [
   "/node_modules/",
   "/dist/",
   "/legacy/",
-  "/packages/workspaces/",
   "/fixtures/",
 ];
+
+const EXCLUDE_REPO_PREFIXES = ["legacy/", "packages/workspaces/"];
 
 const EXCLUDE_FILE_PATTERNS = [
   /\.generated\.ts$/,
@@ -211,8 +212,13 @@ function shouldScanFile(abs, includeWorkspaces = false) {
   if (!rel.endsWith(".ts") && !rel.endsWith(".tsx")) {
     return false;
   }
+  for (const prefix of EXCLUDE_REPO_PREFIXES) {
+    if (prefix === "packages/workspaces/" && includeWorkspaces) continue;
+    if (rel.startsWith(prefix)) {
+      return false;
+    }
+  }
   for (const seg of EXCLUDE_PATH_SEGMENTS) {
-    if (!includeWorkspaces && seg === "/packages/workspaces/") continue;
     if (rel.includes(seg)) {
       return false;
     }
@@ -765,4 +771,14 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   main();
 }
 
-export { buildMetrics, stableStringify, SCHEMA_VERSION, RULES_VERSION };
+export {
+  buildMetrics,
+  stableStringify,
+  SCHEMA_VERSION,
+  RULES_VERSION,
+  shouldScanFile,
+  INCLUDE_ROOTS,
+  EXCLUDE_PATH_SEGMENTS,
+  EXCLUDE_REPO_PREFIXES,
+  EXCLUDE_FILE_PATTERNS,
+};
