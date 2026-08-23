@@ -10,7 +10,7 @@ STAGING="${OUT_DIR}/staging-${SHA}"
 TARBALL="${OUT_DIR}/prod8-release-${SHA}.tar.gz"
 
 cd "$ROOT"
-if [[ -n "$(git status --porcelain)" ]]; then
+if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
   echo "[package-immutable] ERROR: clean worktree required" >&2
   exit 1
 fi
