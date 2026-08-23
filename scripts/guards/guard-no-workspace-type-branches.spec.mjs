@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 
 import {
+  hasCanonicalPublishLabelHeuristic,
   hasPluginIdBranch,
   hasPluginIdFallback,
   hasWorkspaceTypeBranch,
@@ -66,5 +67,17 @@ describe("guard-no-workspace-type-branches matchers", () => {
       "utf8"
     );
     assert.doesNotMatch(guard, /apps\/api\/src\/tenant\/resolve-workspace-type\.ts/);
+  });
+
+  it("CW3-09 rejects publish-label heuristics in canonical host code", () => {
+    assert.equal(hasCanonicalPublishLabelHeuristic(`return label === "published";`), true);
+    assert.equal(hasCanonicalPublishLabelHeuristic(`return label === "active";`), true);
+    assert.equal(
+      hasCanonicalPublishLabelHeuristic(`return label === "published" || label === "active";`),
+      true
+    );
+    assert.equal(hasCanonicalPublishLabelHeuristic(`return status === "published";`), true);
+    assert.equal(hasCanonicalPublishLabelHeuristic(`return publishStatus === "active";`), true);
+    assert.equal(hasCanonicalPublishLabelHeuristic(`return mapTourPublishStatusLabelToBucket("denali", label);`), false);
   });
 });

@@ -137,7 +137,9 @@ Workspaces with `canonicalTour` + `tourWrite` declare wire-label tables on `cano
 Codegen emits `WORKSPACE_PUBLISH_LABEL_MAPPINGS`. Host code calls:
 
 - `mapTourPublishStatusLabelToBucket(workspaceType, label)` — fail-closed on unknown workspace or label
-- `resolveTourPublishLifecycleStatusFromLabel({ workspaceType, lifecycle, label })` — CW3-06 consumer for lifecycle gate
+- `resolveTourPublishLifecycleStatusFromLabel({ workspaceType, lifecycle, label })` — **CW3-06** lifecycle gate consumer (manifest mapping primary; compat heuristic fallback in `publish-lifecycle-label-compat.ts`)
+
+**CW3-06 closure:** `assert-tour-publish-lifecycle-gate.ts` uses mapping dispatch; strangler compat retained in `publish-lifecycle-label-compat.ts` for parity proofs (`cw3-06-publish-lifecycle-gate.spec.ts`).
 
 **Preserved vocabulary:** Denali `draft`/`active`; Urban `draft`/`published`/`archived`; Harbor `published`/`draft`; Starter no binding until `canonicalTour` ships.
 

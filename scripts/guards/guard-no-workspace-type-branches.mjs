@@ -85,7 +85,36 @@ export function hasPluginIdFallback(line) {
   return PLUGIN_ID_FALLBACK_PATTERN.test(line);
 }
 
+/** CW3-09 — publish wire-label heuristics in neutral canonical host code. */
+const CANONICAL_PUBLISH_LABEL_SINGLE_PATTERN =
+  /\b(?:label|status|publishStatus)\s*(?:={2,3}|!={1,2})\s*["'](?:published|active)["']/;
+const CANONICAL_PUBLISH_LABEL_COMBINED_PATTERN =
+  /\b(?:label|status|publishStatus)\s*===\s*["']published["']\s*\|\|\s*(?:label|status|publishStatus)\s*===\s*["']active["']/;
+
+/** @param {string} line */
+export function hasCanonicalPublishLabelHeuristic(line) {
+  return (
+    CANONICAL_PUBLISH_LABEL_SINGLE_PATTERN.test(line) ||
+    CANONICAL_PUBLISH_LABEL_COMBINED_PATTERN.test(line)
+  );
+}
+
+/** @param {string} rel */
+function isCanonicalPublishLabelHeuristicExcluded(rel) {
+  if (rel.endsWith(".generated.ts")) {
+    return true;
+  }
+  if (rel === "apps/api/src/canonical/publish-lifecycle-label-compat.ts") {
+    return true;
+  }
+  if (rel === "apps/api/src/canonical/workspace-publish-label-mapping-dispatch.ts") {
+    return true;
+  }
+  return false;
+}
+
 const API_ROOT = path.join(REPO_ROOT, "apps/api/src");
+const CANONICAL_ROOT = path.join(API_ROOT, "canonical");
 const C2_TARGETS = [
   "apps/web/app/(app)/tours/tours-page-client.tsx",
   "apps/web/app/(app)/settings/tour-wizard-template/wizard-template-client.tsx",
@@ -141,6 +170,21 @@ for (const abs of walkTsFiles(API_ROOT)) {
     }
     if (hasWorkspaceTypeFallback(lines[i])) {
       violations.push(`${rel}:${i + 1}: forbidden workspaceType fallback — ${lines[i].trim()}`);
+    }
+  }
+}
+
+for (const abs of walkTsFiles(CANONICAL_ROOT)) {
+  const rel = path.relative(REPO_ROOT, abs);
+  if (isApiExcluded(rel) || isCanonicalPublishLabelHeuristicExcluded(rel)) {
+    continue;
+  }
+  const lines = readFileSync(abs, "utf8").split("\n");
+  for (let i = 0; i < lines.length; i += 1) {
+    if (hasCanonicalPublishLabelHeuristic(lines[i])) {
+      violations.push(
+        `${rel}:${i + 1}: forbidden publish-label heuristic — ${lines[i].trim()}`
+      );
     }
   }
 }
