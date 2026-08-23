@@ -76,7 +76,13 @@
     "publishStatusReadExport": "readUrbanTourPublishStatusFromCanonical",
     "publishTransitionExport": "detectUrbanTourPublishTransition",
     "publishVisibilityModule": "./http/publish-status",
-    "publishVisibilityExport": "isUrbanTourPublished"
+    "publishVisibilityExport": "isUrbanTourPublished",
+    "publishLabelMapping": {
+      "publishedLabels": ["published"],
+      "notPublishedLabels": ["draft"],
+      "archiveCapability": true,
+      "optionalArchiveLabels": ["archived"]
+    }
   },
   "wizardI18n": {
     "messageNamespace": "urban"

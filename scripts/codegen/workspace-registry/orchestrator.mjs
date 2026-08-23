@@ -85,6 +85,7 @@ import {
   generateCanonicalTourBindings,
   generateCatalogRefAllowlistResolvers,
   generateOutboxSideEffects,
+  generatePublishLabelMappings,
   generatePublishVisibilityBindings,
   generateTourWriteBindings,
 } from "./domains/tour-api.mjs";
@@ -135,7 +136,7 @@ import {
 /** @type {Record<string, readonly string[]>} */
 export const DOMAIN_OUTPUT_KEYS = {
   "core-registry": ["sdk", "api", "web", "manifestBoundaryAllowlist"],
-  "tour-api": ["tourWrite", "canonicalTour", "publishVisibility", "outbox", "catalogRefResolvers", "apiWizardRules"],
+  "tour-api": ["tourWrite", "canonicalTour", "publishVisibility", "publishLabelMapping", "outbox", "catalogRefResolvers", "apiWizardRules"],
   "wizard-admin": [
     "wizardMedia",
     "wizardMediaRoutes",
@@ -196,6 +197,7 @@ export const OUTPUT_KEYS = Object.freeze([
   "tourWrite",
   "canonicalTour",
   "publishVisibility",
+  "publishLabelMapping",
   "wizardMedia",
   "wizardMediaRoutes",
   "wizardMediaBackendRoutes",
@@ -277,6 +279,7 @@ export function generateAllOutputs(manifests) {
     tourWrite: generateTourWriteBindings(manifests),
     canonicalTour: generateCanonicalTourBindings(manifests),
     publishVisibility: generatePublishVisibilityBindings(manifests),
+    publishLabelMapping: generatePublishLabelMappings(manifests),
     wizardMedia: generateWizardMediaBindings(manifests),
     wizardMediaRoutes: generateWizardMediaRouteBindings(manifests),
     wizardMediaBackendRoutes: generateWizardMediaBackendRouteBindings(manifests),
@@ -351,6 +354,10 @@ export const OUTPUT_PATHS = {
   publishVisibility: join(
     REPO_ROOT,
     "apps/api/src/canonical/workspace-publish-visibility-bindings.generated.ts"
+  ),
+  publishLabelMapping: join(
+    REPO_ROOT,
+    "apps/api/src/canonical/workspace-publish-label-mappings.generated.ts"
   ),
   wizardMedia: join(REPO_ROOT, "apps/api/src/tours/workspace-wizard-media-bindings.generated.ts"),
   wizardMediaRoutes: join(

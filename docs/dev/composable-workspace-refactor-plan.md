@@ -478,13 +478,15 @@ Refinement vs requested shape (evidence-based):
   - Files: `requireWorkspacePublishedTour` call sites (denali/urban/harbor registration services keep same behavior via injected checker — already injectable, formalize source).
   - Deps: CW3-03. Risk: **MEDIUM**.
 
-- **CW3-05** `[ ]` **Design neutral publish-label mapping table (manifest-declared, wire-only)**
+- **CW3-05** `[x]` **Design neutral publish-label mapping table (manifest-declared, wire-only)**
   - Invariant: no global rename; mapping = workspace canonical strings → lifecycle contract states; Denali `active→OPEN-equivalent`, urban `published→…`, `archived` handling **deferred to DEC-CW-02** (map to non-published bucket until decided).
   - Evidence: TRUTH §2, §5; FEAS Step 2.
   - Deps: CW3-01; DEC-CW-02 for archive placement (partial block allowed: `archived` treated as not-published placeholder documented).
   - Risk: **HIGH** (design).
+  - **Closure (2026-08-23):** SDK contract `tour-publish-label-mapping.contract.ts`; manifest `publishLabelMapping` (denali/urban/harbor); codegen `WORKSPACE_PUBLISH_LABEL_MAPPINGS`; API dispatch `workspace-publish-label-mapping-dispatch.ts`; Urban `archived` → `notPublished` per DEC-CW-02 Option B. Evidence: [`cw3-05-publish-label-mapping.md`](cw3-05-publish-label-mapping.md).
 
-- **CW3-06** `[ ]` **Replace `isPublishedPublishStatusLabel` heuristics with manifest mapping**
+**Integration sign-off (CW-WAVE-3C, 2026-08-23):** Workers CW3-03 (marketing `shouldInvalidateMarketingCatalog` → `isTourPubliclyVisible`), CW3-05 (publish-label mapping contract + codegen), CW4-07 (duplicate-protection contract + negative tests), DEC-CW-01 evidence (PROPOSAL Option B), DEC-CW-04 evidence (PROPOSAL Option B). Evidence: `cw3-03-marketing-catalog-visibility.spec.ts`, `workspace-publish-label-mapping-dispatch.spec.ts`, `duplicate-protection.golden.spec.mjs`, [`DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md), [`DEC-CW-04-evidence.md`](decisions/DEC-CW-04-evidence.md). Integration: `generate:workspace-registry --check` PASS; `test:parity` 19/19; boundary guards PASS. **Forbidden slices not started:** CW3-04,06..09, CW4-05+.
+
   - Invariant: `assertTourPublishLifecycleOnUpdate` outcomes identical for all CW0-02 golden pairs.
   - Files: `apps/api/src/canonical/assert-tour-publish-lifecycle-gate.ts`, `workspace-canonical-tour-dispatch.ts`.
   - Focused validation: goldens; `tour-publish-transition.spec.ts`.
@@ -938,8 +940,8 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | CW-1 | CW1-03/05/06 complete; `atCreateCapacityStrategy` + `operatorApprovalCapacityStrategy` in tour-core; Urban host migrated; consumer census (`cw1-06-capacity-consumer-census.spec.ts`); `pnpm run test:parity` (19/19); tour-core 11/11; integration base `4acbdfc7` | CW coordinator | 2026-08-23 |
 | CW-2 | Wave 2 `f022e35d` + Wave 3B CW2-02/03/07; DEC-CW-06 Option E (`catalogPresentation.priceDisplay` + codegen); `guard:no-workspace-type-branches` extended; `pnpm run test:parity` (19/19); registry `--check`; all boundary guards PASS | CW coordinator | 2026-08-23 |
 | CW-3 (Wave 3A design) | CW2-01 `[x]` + CW3-01 `[v]`; evidence [`DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md), [`cw3-01-tour-publish-visibility-port.md`](cw3-01-tour-publish-visibility-port.md), [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md), [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md); docs-only merge | CW coordinator | 2026-08-23 |
-| CW-3 (partial) | CW3-02 `[x]` codegen dispatch bindings; CW3-03 `[x]` marketing invalidation consumer → `isTourPubliclyVisible`; CW3-04+ not started | CW coordinator | 2026-08-23 |
-| CW-4 (partial/core) | CW4-01..04 `[x]` booking transition SoT in `booking-http-contracts`; Denali ops manifest + lifecycle derived; CW4-05+ gated on DEC-CW-01 | CW coordinator | 2026-08-23 |
+| CW-3 (partial) | CW3-02/03/05 `[x]`; CW3-04+ not started; Wave 3C sign-off | CW coordinator | 2026-08-23 |
+| CW-4 (partial/core) | CW4-01..04, CW4-07 `[x]` booking SoT + duplicate-protection contract; CW4-05+ gated on DEC-CW-01 | CW coordinator | 2026-08-23 |
 | CW-5 | — | — | — |
 | CW-6 | — | — | — |
 | CW-7 | — | — | — |
