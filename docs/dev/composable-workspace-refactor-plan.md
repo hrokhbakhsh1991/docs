@@ -446,10 +446,11 @@ Refinement vs requested shape (evidence-based):
 
 ### CW-3 — Publish/Lifecycle Ports
 
-- **CW3-01** `[ ]` **Design `TourPublishVisibilityPort` + manifest declaration**
+- **CW3-01** `[v]` **Design `TourPublishVisibilityPort` + manifest declaration** — design-complete
   - Invariant: port answers "is publicly visible" per workspace without host label knowledge; Denali `active`, Urban/Harbor `published` preserved verbatim.
-  - Evidence: FEAS §2.2, §3 Step 1; TRUTH §5, §30.
-  - Files: `packages/workspace-sdk/src/tour/` new port type; manifest schema field (extends existing `canonicalTour` block); design doc in ledger appendix.
+  - Evidence: FEAS §2.2, §3 Step 1; TRUTH §5, §30; CW0-02 publish-transition goldens.
+  - Design doc: [`docs/dev/cw3-01-tour-publish-visibility-port.md`](./cw3-01-tour-publish-visibility-port.md) (port interface, manifest `publishVisibilityModule`/`publishVisibilityExport`, dispatch shape, fail-closed, DEC-CW-07 ownership, DEC-CW-02 Urban `archived` as not-visible).
+  - Files (CW3-02+): `packages/tour-core/src/ports/tour-publish-visibility.port.ts`; `packages/workspace-sdk/src/tour/` dispatch + generated bindings; manifest `canonicalTour` extension; harbor `canonicalTour` block.
   - Deps: CW1-02, CW1-04, CW0-02 (does not depend on deferred Urban capacity tasks CW1-03/05/06). Risk: **MEDIUM** (design only).
 
 - **CW3-02** `[ ]` **Codegen: publish-visibility dispatch bindings**
