@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 
 import {
   computeSpotsRemaining,
-} from "@app-tour/tour-core";
+} from "../../packages/tour-core/src/capacity/spots-remaining.ts";
 import { assertGoldenParity, fixturePath } from "./lib/golden-harness.mjs";
 
 describe("spots remaining parity goldens (CW0-06)", () => {
