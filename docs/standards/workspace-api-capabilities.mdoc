@@ -11,6 +11,8 @@ code_sot:
   - apps/api/src/canonical/workspace-canonical-tour-bindings.generated.ts
   - apps/api/src/canonical/workspace-publish-visibility-dispatch.ts
   - apps/api/src/canonical/workspace-publish-visibility-bindings.generated.ts
+  - apps/api/src/marketing/should-invalidate-marketing-catalog.ts
+  - apps/api/src/marketing/marketing-catalog-visibility-compat.ts
   - apps/api/src/tours/workspace-tour-write-dispatch.ts
   - scripts/codegen/workspace-registry/domains/tour-api.mjs
   - packages/workspace-sdk/src/tour/tour-publish-visibility.port.ts
@@ -79,6 +81,22 @@ Codegen (`scripts/codegen/workspace-registry/domains/tour-api.mjs`) emits `WORKS
 **Required when:** `canonicalTour` + `tourWrite` for publish-golden workspaces (`denali`, `urban`, `harbor`).
 
 **Verification:** `apps/api/test/workspace-publish-visibility-bindings.spec.ts`, CW0-02 publish-transition goldens.
+
+### Publish visibility consumer migration (CW3-03)
+
+**First consumer (strangler):** `shouldInvalidateMarketingCatalog` in `apps/api/src/marketing/should-invalidate-marketing-catalog.ts`.
+
+| Layer | Role |
+| ----- | ---- |
+| **Gate** | `publicCatalog?.isPublished` on workspace plugin — retained until census zero. Workspaces without `publicCatalog` (starter, harbor) → `false` immediately; no dispatch call. |
+| **Predicate** | `isTourPubliclyVisible(workspaceType, canonical)` from `workspace-publish-visibility-dispatch.ts` replaces direct `publicCatalog.isPublished(canonical)` for gated workspaces (denali, urban). |
+| **Compat** | `isTourPublishedViaPublicCatalogPlugin` in `marketing-catalog-visibility-compat.ts` — old plugin predicate path for parity proofs; not used in production predicate. |
+
+**Invariant:** unpublished/non-visible tours never trigger marketing catalog invalidation (negative fixtures per workspace in `marketing-catalog-revalidate.spec.ts`).
+
+**Rollback:** revert predicate to `publicCatalog.isPublished` inside the `publicCatalog` gate; dispatch import removed.
+
+**Later consumers (not CW3-03):** workspace HTTP `filterWorkspacePublishedTours` call sites, registration `requireWorkspacePublishedTour`, portal catalog gates (CW3-04+).
 
 ### Form profile ghost paths (manifest → binding)
 

@@ -467,11 +467,12 @@ Refinement vs requested shape (evidence-based):
   - Validation: `generate-workspace-registry.mjs --check` determinism; goldens CW0-02.
   - Deps: CW3-01. Risk: **MEDIUM**.
 
-- **CW3-03** `[ ]` **Migrate marketing/portal catalog gating to visibility port (one consumer)**
+- **CW3-03** `[x]` **Migrate marketing/portal catalog gating to visibility port (one consumer)**
   - Invariant: unpublished tours never exposed (negative fixtures per workspace).
   - Regression: `denali-catalog-exposure-prd.spec.ts`, `urban-public-catalog.spec.ts`, `to-harbor-catalog-card.spec.ts`.
   - Rollback: consumer flips back to direct `is*TourPublished` import.
   - Deps: CW3-02. Risk: **HIGH** (public exposure surface).
+  - **Closure (2026-08-23):** First consumer `shouldInvalidateMarketingCatalog` → `isTourPubliclyVisible` dispatch; `publicCatalog` plugin gate retained (starter/harbor); compat `marketing-catalog-visibility-compat.ts`; parity `cw3-03-marketing-catalog-visibility.spec.ts`.
 
 - **CW3-04** `[ ]` **Migrate registration published-tour gate to port (second consumer)**
   - Files: `requireWorkspacePublishedTour` call sites (denali/urban/harbor registration services keep same behavior via injected checker — already injectable, formalize source).
@@ -937,7 +938,7 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | CW-1 | CW1-03/05/06 complete; `atCreateCapacityStrategy` + `operatorApprovalCapacityStrategy` in tour-core; Urban host migrated; consumer census (`cw1-06-capacity-consumer-census.spec.ts`); `pnpm run test:parity` (19/19); tour-core 11/11; integration base `4acbdfc7` | CW coordinator | 2026-08-23 |
 | CW-2 | Wave 2 `f022e35d` + Wave 3B CW2-02/03/07; DEC-CW-06 Option E (`catalogPresentation.priceDisplay` + codegen); `guard:no-workspace-type-branches` extended; `pnpm run test:parity` (19/19); registry `--check`; all boundary guards PASS | CW coordinator | 2026-08-23 |
 | CW-3 (Wave 3A design) | CW2-01 `[x]` + CW3-01 `[v]`; evidence [`DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md), [`cw3-01-tour-publish-visibility-port.md`](cw3-01-tour-publish-visibility-port.md), [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md), [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md); docs-only merge | CW coordinator | 2026-08-23 |
-| CW-3 (partial) | CW3-02 `[x]` codegen dispatch bindings + manifest rows (denali/urban/harbor); `workspace-publish-visibility-dispatch.spec.ts` 3/3; CW3-03+ not started | CW coordinator | 2026-08-23 |
+| CW-3 (partial) | CW3-02 `[x]` codegen dispatch bindings; CW3-03 `[x]` marketing invalidation consumer → `isTourPubliclyVisible`; CW3-04+ not started | CW coordinator | 2026-08-23 |
 | CW-4 (partial/core) | CW4-01..04 `[x]` booking transition SoT in `booking-http-contracts`; Denali ops manifest + lifecycle derived; CW4-05+ gated on DEC-CW-01 | CW coordinator | 2026-08-23 |
 | CW-5 | — | — | — |
 | CW-6 | — | — | — |
