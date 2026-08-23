@@ -1,0 +1,39 @@
+{
+  "id": "starter-outdoor",
+  "version": 1,
+  "description": "Outdoor club preset — booking + finance + registration-flow + catalog presentation + member profile",
+  "capabilityDefaults": {
+    "workspaceBooking": {
+      "supported": true,
+      "defaultModuleEnabledWhenUnset": true
+    },
+    "workspaceFinance": {
+      "supported": true,
+      "defaultModuleEnabledWhenUnset": true
+    },
+    "catalogRegistrationFlow": {
+      "steps": {
+        "mode": "shared"
+      }
+    },
+    "catalogPresentation": {
+      "listFeatures": {
+        "cityFilter": false
+      },
+      "detailSections": {
+        "difficulty": true,
+        "fitness": true,
+        "itinerary": true,
+        "policies": true
+      }
+    },
+    "memberProfile": {
+      "editableFields": ["displayName", "email"],
+      "readOnlyFields": ["mobile"],
+      "mobileChangeViaOtp": true
+    },
+    "tenantBrandingDefaults": {
+      "primaryColor": "#2563eb"
+    }
+  }
+}

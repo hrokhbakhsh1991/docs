@@ -21,6 +21,42 @@ const pluginEntrySchema = z.object({
   export: z.string().min(1),
 });
 
+/** CW6-02 — platform profile catalog reference (expanded at codegen). */
+export const WorkspaceProfileRefSchema = z
+  .string()
+  .regex(/^[a-z][a-z0-9-]{0,63}$/, "profile must be a lowercase slug");
+
+const workspaceEquipmentModuleBindingSchema = z.object({
+  module: z.string().min(1),
+  export: z.string().min(1),
+});
+
+const workspaceEquipmentEnricherBindingSchema = workspaceEquipmentModuleBindingSchema.extend({
+  targetField: z.string().min(1),
+  sourceField: z.string().min(1),
+});
+
+/** CW7-02 — equipment capability block (top-level manifest extension). */
+export const WorkspaceEquipmentBlockSchema = z.object({
+  supported: z.boolean(),
+  defaultModuleEnabledWhenUnset: z.boolean().optional(),
+  capabilities: z
+    .object({
+      operatorSettings: z.boolean().optional(),
+      wizardTourField: z.boolean().optional(),
+      catalogDetailSection: z.boolean().optional(),
+      guestLandingSection: z.boolean().optional(),
+      registrationSnapshot: z.boolean().optional(),
+    })
+    .optional(),
+  iconKeyValidator: workspaceEquipmentModuleBindingSchema.optional(),
+  settingsEnricher: workspaceEquipmentEnricherBindingSchema.optional(),
+  settingsEquipmentUi: workspaceEquipmentModuleBindingSchema.optional(),
+  fieldModule: workspaceEquipmentModuleBindingSchema.optional(),
+  wizardComposite: workspaceEquipmentModuleBindingSchema.optional(),
+  themeFilter: workspaceEquipmentModuleBindingSchema.optional(),
+});
+
 const guestCrossSurfaceNavLinkSchema = z.object({
   id: z
     .string()
@@ -124,6 +160,8 @@ export const WorkspaceManifestCiSchema = z
     package: z.string().min(1),
     workspaceTypes: z.array(z.string().min(1)).min(1),
     plugin: pluginEntrySchema,
+    profile: WorkspaceProfileRefSchema.optional(),
+    workspaceEquipment: WorkspaceEquipmentBlockSchema.optional(),
     theme: ManifestThemeBlockSchema.optional(),
     guestCrossSurfaceNav: guestCrossSurfaceNavSchema.optional(),
   })

@@ -2,12 +2,13 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { DEFAULT_WORKSPACES_DIR } from "./constants.mjs";
+import { applyProfileExpansion } from "./domains/profile-expansion.mjs";
 
 /**
- * Discover and validate workspace.manifest.json under packages/workspaces/.
+ * Discover author workspace.manifest.json under packages/workspaces/ (pre-profile expansion).
  * @param {string} [workspacesDir]
  */
-export function discoverManifests(workspacesDir = DEFAULT_WORKSPACES_DIR) {
+export function discoverAuthorManifests(workspacesDir = DEFAULT_WORKSPACES_DIR) {
   const manifests = [];
   for (const ent of readdirSync(workspacesDir, { withFileTypes: true })) {
     if (!ent.isDirectory()) continue;
@@ -25,4 +26,12 @@ export function discoverManifests(workspacesDir = DEFAULT_WORKSPACES_DIR) {
     throw new Error(`No workspace.manifest.json found under ${workspacesDir}`);
   }
   return manifests.sort((a, b) => a.id.localeCompare(b.id));
+}
+
+/**
+ * Discover effective manifests — profile expansion applied before codegen (CW6-02).
+ * @param {string} [workspacesDir]
+ */
+export function discoverManifests(workspacesDir = DEFAULT_WORKSPACES_DIR) {
+  return applyProfileExpansion(discoverAuthorManifests(workspacesDir));
 }
