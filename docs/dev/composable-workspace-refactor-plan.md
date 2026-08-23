@@ -440,6 +440,8 @@ Refinement vs requested shape (evidence-based):
 
 **Exit CW-2:** named host files contain no workspace identity; guards updated; Denali rendering byte-identical.
 
+**Integration sign-off (CW-WAVE-2, 2026-08-23):** Re-certification at `f022e35d` unblocked prior harbor `guest-workspace-runtime` dep gap (`fix(cw2-04)`). Registry `--check` required codegen alignment: `collectGuestRuntimeProductPackages` now unions `catalogRegistrationFlow` manifest packages even when `clientBundle.includeInDefault` is false (harbor stub). Evidence bundle: guest-runtime 11/11, parity 19/19, registry check PASS, boundary guards PASS. CW2-02/03 remain `[!]` (DEC-CW-06); CW2-07 pending.
+
 ---
 
 ### CW-3 — Publish/Lifecycle Ports
@@ -921,7 +923,7 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 |-------|--------------------|----------|------|
 | CW-0 | `pnpm run test:parity`; `docs/dev/cw-metrics-baseline.json`; integration HEAD `3cd634d8` | CW coordinator | 2026-08-23 |
 | CW-1 | — | — | — |
-| CW-2 | — | — | — |
+| CW-2 | `pnpm --filter @app-tour/guest-workspace-runtime test` (11/11); `pnpm run test:parity` (19/19); `pnpm run generate:workspace-registry --check`; `guard:architecture` + `guard:import-boundary` + `guard:tour-core-boundary` + `guard:no-workspace-type-branches` + `guard:api-workspace-isolation`; integration HEAD `f022e35d` (harbor runtime dep) + codegen sync for `collectGuestRuntimeProductPackages` registration-flow union | CW coordinator | 2026-08-23 |
 | CW-3 | — | — | — |
 | CW-4 | — | — | — |
 | CW-5 | — | — | — |
