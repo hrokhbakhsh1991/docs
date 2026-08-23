@@ -31,10 +31,7 @@ import { setCachedTenantThemeById } from "../tenant/tenant-registry-cache";
 import { updateTenantRegistryRow } from "../tenant/update-tenant-registry-row";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
 import { assertPublicRegistrationThrottle } from "../registrations/public-registration-throttle.ts";
-import {
-  assertRegistrationCapacityDecision,
-  resolveRegistrationCapacityDecision,
-} from "../registrations/registration-capacity.service.ts";
+import { decideUrbanRegistrationStatus } from "../registrations/registration-capacity.service.ts";
 import { runWithHttpRequestContext } from "./bind-request-context";
 import {
   hashIdempotentRequest,
@@ -185,7 +182,6 @@ configureUrbanHttpHost({
         finish as () => Promise<Record<string, unknown>>,
       )) as UrbanHttpHostPorts["registration"]["runIdempotentHttpMutation"],
     idempotencyKeyRequiredCode: IDEMPOTENCY_KEY_REQUIRED,
-    decideRegistrationStatus: (input) =>
-      assertRegistrationCapacityDecision(resolveRegistrationCapacityDecision(input)),
+    decideRegistrationStatus: decideUrbanRegistrationStatus,
   },
 });

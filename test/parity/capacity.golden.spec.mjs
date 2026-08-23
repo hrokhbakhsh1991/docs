@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 
-import { sumAcceptedRegistrationSeats } from "../../apps/api/src/registrations/registration-capacity.service.ts";
+import { sumAcceptedRegistrationSeats } from "../../packages/tour-core/src/capacity/at-create-strategy.ts";
 import { assertGoldenParity, fixturePath } from "./lib/golden-harness.mjs";
 
 /**

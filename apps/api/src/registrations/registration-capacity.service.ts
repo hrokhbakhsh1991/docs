@@ -1,3 +1,12 @@
+import {
+  atCreateCapacityStrategy,
+  resolveRegistrationCapacityDecision as resolveRegistrationCapacityDecisionCore,
+  sumAcceptedRegistrationSeats as sumAcceptedRegistrationSeatsCore,
+  type AtCreateCapacityDecision,
+  type AtCreateCapacityInput,
+  type AtCreateCapacityPolicy,
+} from "@app-tour/tour-core";
+
 export class RegistrationCapacityExceededError extends Error {
   readonly code = "REGISTRATION_CAPACITY_EXCEEDED" as const;
   readonly statusCode = 409 as const;
@@ -14,62 +23,23 @@ export function isRegistrationCapacityExceededError(
   return error instanceof RegistrationCapacityExceededError;
 }
 
-export type RegistrationCapacityPolicy = "open" | "waitlist" | "closed";
+/** @deprecated Import from `@app-tour/tour-core` — Urban adapter compat re-export (CW1-03). */
+export type RegistrationCapacityPolicy = AtCreateCapacityPolicy;
 
-export type RegistrationCapacityDecision =
-  | { readonly kind: "accept"; readonly status: "confirmed" }
-  | { readonly kind: "waitlist"; readonly status: "waitlist" }
-  | { readonly kind: "reject"; readonly code: "REGISTRATION_CAPACITY_EXCEEDED" | "REGISTRATION_CLOSED" };
+/** @deprecated Import from `@app-tour/tour-core` — Urban adapter compat re-export (CW1-03). */
+export type RegistrationCapacityDecision = AtCreateCapacityDecision;
 
-export type ResolveRegistrationCapacityInput = {
-  readonly tourCapacity: number | null;
-  readonly acceptedSeats: number;
-  readonly requestedPartySize: number;
-  readonly policy: RegistrationCapacityPolicy;
-};
+/** @deprecated Import from `@app-tour/tour-core` — Urban adapter compat re-export (CW1-03). */
+export type ResolveRegistrationCapacityInput = AtCreateCapacityInput;
 
-export function sumAcceptedRegistrationSeats(
-  rows: readonly { readonly status: string; readonly partySize: number | null }[]
-): number {
-  let total = 0;
-  for (const row of rows) {
-    if (row.status !== "confirmed") {
-      continue;
-    }
-    total += row.partySize ?? 1;
-  }
-  return total;
-}
+/** @deprecated Import {@link sumAcceptedRegistrationSeats} from `@app-tour/tour-core`. */
+export const sumAcceptedRegistrationSeats = sumAcceptedRegistrationSeatsCore;
 
-/**
- * P5-E-N-002 — seat capacity + waitlist decision (REG-01..02).
- */
+/** @deprecated Import {@link atCreateCapacityStrategy} from `@app-tour/tour-core`. */
 export function resolveRegistrationCapacityDecision(
   input: ResolveRegistrationCapacityInput
 ): RegistrationCapacityDecision {
-  if (input.policy === "closed") {
-    return { kind: "reject", code: "REGISTRATION_CLOSED" };
-  }
-
-  const partySize =
-    Number.isInteger(input.requestedPartySize) && input.requestedPartySize > 0
-      ? input.requestedPartySize
-      : 1;
-
-  if (input.tourCapacity === null) {
-    return { kind: "accept", status: "confirmed" };
-  }
-
-  const remaining = input.tourCapacity - input.acceptedSeats;
-  if (partySize <= remaining) {
-    return { kind: "accept", status: "confirmed" };
-  }
-
-  if (input.policy === "waitlist") {
-    return { kind: "waitlist", status: "waitlist" };
-  }
-
-  return { kind: "reject", code: "REGISTRATION_CAPACITY_EXCEEDED" };
+  return resolveRegistrationCapacityDecisionCore(input);
 }
 
 export function assertRegistrationCapacityDecision(
@@ -82,4 +52,11 @@ export function assertRegistrationCapacityDecision(
     throw new RegistrationCapacityExceededError();
   }
   return decision.status;
+}
+
+/** Urban host adapter: maps tour-core at-create strategy output to workspace vocabulary. */
+export function decideUrbanRegistrationStatus(
+  input: ResolveRegistrationCapacityInput
+): "confirmed" | "waitlist" {
+  return assertRegistrationCapacityDecision(atCreateCapacityStrategy(input));
 }

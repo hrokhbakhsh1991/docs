@@ -70,6 +70,9 @@ importers:
       '@app-tour/tenant-kernel':
         specifier: workspace:*
         version: link:../../packages/tenant-kernel
+      '@app-tour/tour-core':
+        specifier: workspace:*
+        version: link:../../packages/tour-core
       '@app-tour/workspace-acme':
         specifier: workspace:*
         version: link:../../packages/workspaces/acme
