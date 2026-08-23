@@ -57,6 +57,7 @@ import {
 } from "./domains/dev.mjs";
 import {
   generateDevBootstrapBindings,
+  generateEquipmentIconKeyValidatorBindings,
   generateSettingsEnrichers,
   generateWizardTemplateEnforcementBindings,
   generateWizardTemplatePathAliasBindings,
@@ -168,7 +169,7 @@ export const DOMAIN_OUTPUT_KEYS = {
   ],
   member: ["memberProfileCapabilities", "memberPortalContracts", "memberPortalSurfaces"],
   http: ["httpRoutes", "httpHandlerLoaders", "httpErrorMap", "productHttpHostBindings"],
-  "settings-api": ["settingsEnrichers", "devBootstrap", "wizardTemplateEnforcement", "wizardTemplatePathAliases"],
+  "settings-api": ["settingsEnrichers", "equipmentIconKeyValidator", "devBootstrap", "wizardTemplateEnforcement", "wizardTemplatePathAliases"],
   dev: ["devPluginIds"],
   operator: ["operatorCapabilities", "ownerSettingsPanelLoaders", "workspaceCommerceFreeze"],
   finance: [
@@ -242,6 +243,7 @@ export const OUTPUT_KEYS = Object.freeze([
   "wizardTemplateEnforcement",
   "wizardTemplatePathAliases",
   "settingsEnrichers",
+  "equipmentIconKeyValidator",
   "devBootstrap",
   "httpRoutes",
   "httpHandlerLoaders",
@@ -317,6 +319,7 @@ export function generateAllOutputs(manifests) {
     catalogRefResolvers: generateCatalogRefAllowlistResolvers(manifests),
     apiWizardRules: generateApiWizardRulesBindings(manifests),
     settingsEnrichers: generateSettingsEnrichers(manifests),
+    equipmentIconKeyValidator: generateEquipmentIconKeyValidatorBindings(manifests),
     wizardTemplateEnforcement: generateWizardTemplateEnforcementBindings(manifests),
     wizardTemplatePathAliases: generateWizardTemplatePathAliasBindings(manifests),
     devBootstrap: generateDevBootstrapBindings(manifests),
@@ -527,6 +530,10 @@ export const OUTPUT_PATHS = {
   settingsEnrichers: join(
     REPO_ROOT,
     "apps/api/src/settings/workspace-settings-enrichers.generated.ts"
+  ),
+  equipmentIconKeyValidator: join(
+    REPO_ROOT,
+    "apps/api/src/settings/workspace-equipment-icon-key-validator-bindings.generated.ts"
   ),
   devBootstrap: join(
     REPO_ROOT,

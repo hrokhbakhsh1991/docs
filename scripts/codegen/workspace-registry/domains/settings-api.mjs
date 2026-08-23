@@ -97,6 +97,69 @@ export function enrichSettingsModuleList<T>(workspaceType: string, moduleId: str
 `;
 }
 
+export function generateEquipmentIconKeyValidatorBindings(manifests) {
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const bindingBlocks = [];
+
+  for (const m of manifests) {
+    const validator = m.equipmentIconKeyValidator;
+    if (validator === undefined) {
+      continue;
+    }
+    const workspaceType = m.workspaceTypes?.[0];
+    if (typeof workspaceType !== "string" || workspaceType.length === 0) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: equipmentIconKeyValidator requires workspaceTypes[0]`
+      );
+    }
+    const { module: modulePath, export: exportName } = validator;
+    for (const key of ["module", "export"]) {
+      if (typeof validator[key] !== "string" || validator[key].trim().length === 0) {
+        throw new Error(
+          `workspace.manifest.json ${m.id}: equipmentIconKeyValidator.${key} is required`
+        );
+      }
+    }
+    const spec = importSpecifier(m.package, modulePath);
+    importLines.add(`import { ${exportName} } from "${spec}";`);
+    bindingBlocks.push(`  {
+    workspaceType: ${JSON.stringify(workspaceType)},
+    validateEquipmentIconKey: ${exportName},
+  },`);
+  }
+
+  if (bindingBlocks.length === 0) {
+    return `${BANNER}
+export const WORKSPACE_EQUIPMENT_ICON_KEY_VALIDATOR_BINDINGS = [] as const;
+
+export function resolveEquipmentIconKeyValidator(
+  _workspaceType: string
+): ((value: string) => boolean) | undefined {
+  return undefined;
+}
+`;
+  }
+
+  return `${BANNER}
+${[...importLines].join("\n")}
+
+export const WORKSPACE_EQUIPMENT_ICON_KEY_VALIDATOR_BINDINGS = [
+${bindingBlocks.join("\n")}
+] as const;
+
+export function resolveEquipmentIconKeyValidator(
+  workspaceType: string
+): ((value: string) => boolean) | undefined {
+  const binding = WORKSPACE_EQUIPMENT_ICON_KEY_VALIDATOR_BINDINGS.find(
+    (entry) => entry.workspaceType === workspaceType
+  );
+  return binding?.validateEquipmentIconKey;
+}
+`;
+}
+
 export function generateDevBootstrapBindings(manifests) {
   /** @type {Set<string>} */
   const importLines = new Set();

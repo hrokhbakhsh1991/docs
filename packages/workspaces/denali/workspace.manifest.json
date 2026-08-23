@@ -432,6 +432,10 @@
       "sourceField": "category"
     }
   ],
+  "equipmentIconKeyValidator": {
+    "module": "./settings/equipment-icon-registry",
+    "export": "isKnownEquipmentIconKey"
+  },
   "devBootstrap": {
     "pluginTenantIds": [
       "00000000-0000-4000-8000-000000000003",

@@ -2,6 +2,7 @@ import type { SettingsModuleManifest } from "@app-tour/workspace-sdk";
 
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
+import { resolveEquipmentIconKeyValidator } from "./workspace-equipment-icon-key-validator-bindings.generated";
 
 export class SettingsModuleUnknownError extends Error {
   readonly code = "SETTINGS_MODULE_UNKNOWN" as const;
@@ -60,6 +61,5 @@ export async function resolveEquipmentIconKeyValidatorForTenant(
   tenantId: string
 ): Promise<((value: string) => boolean) | undefined> {
   const workspaceType = await resolveWorkspaceTypeForTenant(tenantId);
-  const plugin = await resolveWorkspacePluginForType(workspaceType);
-  return plugin.operatorSettings?.validateEquipmentIconKey;
+  return resolveEquipmentIconKeyValidator(workspaceType);
 }

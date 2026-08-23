@@ -2,16 +2,17 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-import { isKnownEquipmentIconKey } from "@app-tour/workspace-denali/settings/equipment-icon-registry";
-
 import { parseEquipmentIconKeyInput } from "./parse-equipment-icon-key";
+import { resolveEquipmentIconKeyValidator } from "./workspace-equipment-icon-key-validator-bindings.generated";
 import { SettingsResourceInvalidError } from "./settings-resource-errors";
 
 describe("parseEquipmentIconKeyInput", () => {
   it("preserves Denali valid and invalid key behavior through its injected validator", () => {
-    assert.equal(parseEquipmentIconKeyInput("  backpack ", isKnownEquipmentIconKey), "backpack");
+    const denaliValidator = resolveEquipmentIconKeyValidator("denali");
+    assert.ok(denaliValidator);
+    assert.equal(parseEquipmentIconKeyInput("  backpack ", denaliValidator), "backpack");
     assert.throws(
-      () => parseEquipmentIconKeyInput("not_a_real_icon", isKnownEquipmentIconKey),
+      () => parseEquipmentIconKeyInput("not_a_real_icon", denaliValidator),
       SettingsResourceInvalidError
     );
   });
