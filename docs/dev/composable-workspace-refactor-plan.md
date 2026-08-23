@@ -179,7 +179,7 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 ### DEC-CW-05 — wizard resume placement
 
 - **Evidence:** TRUTH §20 — `resolveDenaliInitialStepIndex` Denali-only; platform default noop.
-- **Evidence packet:** [`docs/dev/decisions/DEC-CW-05-evidence.md`](decisions/DEC-CW-05-evidence.md) (2026-08-23, Wave 6A) — host/SDK census, Starter/Urban noop vs Denali inference, options A/B/C/D; **PROPOSAL Option D** (noop default + optional manifest `wizardResume` module binding).
+- **Evidence packet:** [`docs/dev/decisions/DEC-CW-05-evidence.md`](decisions/DEC-CW-05-evidence.md) (2026-08-23, Wave 6A) — host/SDK census, Starter/Urban noop vs Denali inference; **§11 RECOMMENDATION Option C** (noop platform default + optional `resolveInitialStepIndex` hook; optional manifest `wizardResume` for inspectability in CW5-10). **Status: OPEN** — Architect approval required before CW5-10.
 - **Blocks directly:** CW5-10 only.
 - **Blocks transitively:** none.
 - **Does NOT block exactly:** CW0-01..10; CW1-01..06; CW2-01..07; CW3-01..09; CW4-01..08; CW5-01..09, CW5-11; CW6-01..04, CW6-05A, CW6-05B, CW6-06..07; CW7-01..15; CW8-01..07; CW9-01..10.
