@@ -94,17 +94,20 @@ const SHARED_TOUR_RULE_CATALOG = [
   {
     id: "registration-capacity-decision",
     symbols: ["resolveRegistrationCapacityDecision", "sumAcceptedRegistrationSeats"],
-    permittedOwners: ["apps/api/src/registrations"],
+    permittedOwners: [
+      "packages/tour-core",
+      "apps/api/src/registrations",
+    ],
   },
   {
     id: "requireWorkspacePublishedTour",
     symbols: ["requireWorkspacePublishedTour"],
-    permittedOwners: ["packages/workspace-sdk", "apps/api"],
+    permittedOwners: ["packages/tour-core", "packages/workspace-sdk", "apps/api"],
   },
   {
     id: "createTourDepartureNotSetValidationError",
     symbols: ["createTourDepartureNotSetValidationError"],
-    permittedOwners: ["packages/workspace-sdk", "apps/api"],
+    permittedOwners: ["packages/tour-core", "packages/workspace-sdk", "apps/api"],
   },
   {
     id: "computeSpotsRemaining",
@@ -122,7 +125,7 @@ const SHARED_TOUR_RULE_CATALOG = [
   {
     id: "assertWorkspaceRegistrationContactBasics",
     symbols: ["assertWorkspaceRegistrationContactBasics"],
-    permittedOwners: ["packages/workspace-sdk"],
+    permittedOwners: ["packages/tour-core", "packages/workspace-sdk"],
   },
 ];
 

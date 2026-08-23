@@ -1047,6 +1047,9 @@ importers:
       '@app-tour/catalog-registration-auth':
         specifier: workspace:*
         version: link:../catalog-registration-auth
+      '@app-tour/tour-core':
+        specifier: workspace:*
+        version: link:../tour-core
       server-only:
         specifier: ^0.0.1
         version: 0.0.1

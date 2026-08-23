@@ -65,6 +65,22 @@ const FORBIDDEN = [
 
 const FORBIDDEN_VM_SPECIFIERS = [/^vm$/, /^node:vm$/];
 
+/** DEC-CW-07 — tour-core may not import SDK/platform/workspace/finance packages. */
+const TOUR_CORE_FORBIDDEN_SPECIFIERS = [
+  /@app-tour\/workspace-sdk\b/,
+  /@app-tour\/platform-core\b/,
+  /@app-tour\/finance-core\b/,
+  /@app-tour\/workspace-/,
+];
+
+function isTourCoreSourceFile(filePath) {
+  return filePath.includes(`${path.sep}packages${path.sep}tour-core${path.sep}`);
+}
+
+function isForbiddenTourCoreModule(specText) {
+  return TOUR_CORE_FORBIDDEN_SPECIFIERS.some((re) => re.test(specText));
+}
+
 const VM_RUN_METHODS = new Set([
   "runInThisContext",
   "runInNewContext",
@@ -281,6 +297,9 @@ function recordModuleSpec(hits, filePath, sf, node, spec) {
   }
   if (isForbiddenModule(spec.text)) {
     pushHit(hits, filePath, sf, node, spec.text, "forbidden-module");
+  }
+  if (isTourCoreSourceFile(filePath) && isForbiddenTourCoreModule(spec.text)) {
+    pushHit(hits, filePath, sf, node, spec.text, "tour-core-forbidden-module");
   }
 }
 

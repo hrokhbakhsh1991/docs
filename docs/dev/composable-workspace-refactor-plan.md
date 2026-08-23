@@ -585,33 +585,43 @@ Refinement vs requested shape (evidence-based):
 
 ### CW-5 — Shared Tour Core Orchestration
 
-- **CW5-01** `[ ]` **tour-core architecture doc + boundary guard hardening**
+- **CW5-01** `[x]` **tour-core architecture doc + boundary guard hardening**
   - Invariant: DEC-CW-07 directions enforced: tour-core forbidden imports include workspace-sdk, platform-core, workspaces/*, apps/*, finance-core.
-  - Evidence: DEC-CW-07; FEAS §2.5.
+  - Evidence: [`cw5-01-tour-core-architecture.md`](cw5-01-tour-core-architecture.md); `guard-boundary.mjs` package.json ratchet; import-boundary AST tour-core scan; depcruise `tour-core-*` rules.
+  - Closure (2026-08-23, Wave 5A): boundary contract spec; guards PASS; no behavioral change.
   - Deps: CW1-01, DEC-CW-07. Risk: **LOW**.
 
-- **CW5-02** `[ ]` **Registration guard interfaces move (published-tour gate, departure-not-set, contact basics)**
+- **CW5-02** `[x]` **Registration guard interfaces move (published-tour gate, departure-not-set, contact basics)**
   - Invariant: SDK imports/re-exports tour-core one-way; tour-core uses its own structural types and never imports SDK; behavior identical (goldens CW0-04).
-  - Files: implementation from `workspace-sdk/src/http/workspace-registration-guards.ts` → tour-core; SDK path becomes one-way compatibility adapter/re-export.
+  - Files: `packages/tour-core/src/registration/registration-guards.ts`; SDK `workspace-registration-guards.ts` → one-way re-export.
+  - Closure (2026-08-23, Wave 5A): `http-plib-dg1.spec.ts` PASS; parity CW0-04 unchanged.
   - Deps: CW3-04. Risk: **MEDIUM**.
 
-- **CW5-03** `[ ]` **Generic capacity contracts (definition port + occupancy port)**
+- **CW5-03** `[x]` **Generic capacity contracts (definition port + occupancy port)**
   - Invariant: capacity **paths** stay workspace adapters (`capacityMax` vs `tour.capacity` vs harbor chain); tour-core holds only the port types + arithmetic.
-  - Evidence: TRUTH §8; FEAS §2.2.
+  - Files: `capacity-definition.port.ts`, `occupancy.port.ts`, `read-finite-capacity.ts`.
+  - Closure (2026-08-23, Wave 5A): `capacity-port.spec.ts`; CW0-03/CW0-06 parity unchanged.
   - Deps: CW1-02; DEC-CW-03 + CW1-03 only for an Urban at-create strategy portion. Risk: **MEDIUM**.
 
-- **CW5-04** `[ ]` **Publish orchestration port set (visibility + label mapping + transition detection) formalized in tour-core**
+- **CW5-04** `[x]` **Publish orchestration port set (visibility + label mapping + transition detection) formalized in tour-core**
   - Invariant: CW-3 dispatch types re-homed; consumers unchanged via re-exports.
+  - Files: `publish-visibility.port.ts`, `publish-label-mapping.ts`, `publish-transition.ts`; SDK compat re-exports.
+  - Closure (2026-08-23, Wave 5A): CW0-02 publish goldens; CW3-06/08 specs unchanged.
   - Deps: CW3-06..08. Risk: **MEDIUM**.
 
-- **CW5-05** `[!]` **Registration orchestration interfaces (blocked: DEC-CW-01)**
-  - Invariant: expresses BOTH models per DEC-CW-03 outcome — booking pending-pipeline and capacity-decision-at-create — as first-class strategies OR booking-only with urban explicitly outside; no forced convergence.
-  - Deps: CW4-05 (gate). Risk: **HIGH**. `[!]` until DEC-CW-03.
+- **CW5-05** `[x]` **Registration orchestration interfaces (DEC-CW-01 + DEC-CW-03 APPROVED)**
+  - Invariant: expresses BOTH models per DEC-CW-03 — booking pending-pipeline and capacity-decision-at-create; no forced convergence.
+  - Files: `registration-model.contract.ts`; SDK `registration-model-divergence.contract.ts` re-export.
+  - Closure (2026-08-23, Wave 5A): `registration-model-divergence.contract.spec.ts`; CW4-05 contract preserved.
+  - Deps: CW4-05 (gate). Risk: **HIGH**.
 
-- **CW5-06** `[ ]` **Shared state-transition infrastructure (generic transition table type + assert helper)**
+- **CW5-06** `[x]` **Shared state-transition infrastructure (generic transition table type + assert helper)**
   - Invariant: generic `TransitionTable<S>` used by booking contract (CW4-02) without changing edges.
+  - Files: `transition-table.ts`, `booking-lifecycle-consumer.ts`; booking-http-contracts unchanged.
+  - Closure (2026-08-23, Wave 5A): `booking-lifecycle-consumer.spec.ts` proves byte-identical edges vs contract.
   - Deps: CW4-02. Risk: **MEDIUM**.
 
+**Integration sign-off (CW-WAVE-5A, 2026-08-23):** CW5-01..06 complete. Architect CW-5 APPROVED. `workspace-sdk → tour-core` dependency added; coordinator-integrated `packages/tour-core/src/index.ts`. Evidence: tour-core 20/20 tests; SDK compat specs PASS; `test:parity` 22/22; architecture/isolation guards PASS; `baseline:cw-compare` PASS (singleOwnerCount 9→9; `directWorkspaceImports` +4 informational). **CW-5 IN PROGRESS** (CW5-07..09, CW5-11 remain). **STOP** — do not execute CW5-07+ in Wave 5A.
 - **CW5-07** `[ ]` **API canonical orchestration consumes tour-core interfaces (one write-path consumer: publish gate)**
   - Files: `apps/api/src/canonical/canonical-tour.service.ts` imports (types only) from tour-core.
   - Focused validation: full tour write integration suite; goldens.
@@ -858,7 +868,7 @@ Architecture is consistent (not half-migrated) if execution stops after:
 | CW-2 | 7 | 2 | 5 | 0 |
 | CW-3 | 9 | 1 | 5 | 3 |
 | CW-4 | 8 | 3 | 4 | 1 |
-| CW-5 | 11 | 2 | 6 | 3 |
+| CW-5 | 11 | 6 | 5 | 0 |
 | CW-6 | 8 | 3 | 5 | 0 |
 | CW-7 | 15 | 5 | 7 | 3 |
 | CW-8 | 7 | 1 | 5 | 1 |

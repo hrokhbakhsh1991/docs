@@ -25,6 +25,45 @@ const FORBIDDEN = [
 /** @type {string[]} */
 const ALLOWED = ["@app-tour/booking-http-contracts"];
 
+const FORBIDDEN_PACKAGE_DEPS = [
+  "@app-tour/workspace-sdk",
+  "@app-tour/platform-core",
+  "@app-tour/finance-core",
+];
+
+/** @type {RegExp[]} */
+const FORBIDDEN_PACKAGE_DEP_PREFIXES = [/^@app-tour\/workspace-/];
+
+function readPackageJsonDeps() {
+  const pkgPath = path.join(PKG_ROOT, "package.json");
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+  const fields = ["dependencies", "devDependencies", "peerDependencies"];
+  /** @type {string[]} */
+  const deps = [];
+  for (const field of fields) {
+    const block = pkg[field];
+    if (block && typeof block === "object") {
+      deps.push(...Object.keys(block));
+    }
+  }
+  return deps;
+}
+
+/** @type {string[]} */
+const pkgDepViolations = [];
+for (const dep of readPackageJsonDeps()) {
+  if (ALLOWED.includes(dep)) continue;
+  if (FORBIDDEN_PACKAGE_DEPS.includes(dep)) {
+    pkgDepViolations.push(`package.json forbidden dependency ${dep}`);
+    continue;
+  }
+  for (const prefix of FORBIDDEN_PACKAGE_DEP_PREFIXES) {
+    if (prefix.test(dep)) {
+      pkgDepViolations.push(`package.json forbidden dependency ${dep}`);
+    }
+  }
+}
+
 function walk(dir) {
   /** @type {string[]} */
   const out = [];
@@ -63,6 +102,12 @@ for (const file of walk(CORE_SRC)) {
 if (violations.length > 0) {
   console.error("tour-core guard-boundary: FAIL");
   for (const v of violations) console.error(`  - ${v}`);
+  process.exit(1);
+}
+
+if (pkgDepViolations.length > 0) {
+  console.error("tour-core guard-boundary: FAIL (package.json)");
+  for (const v of pkgDepViolations) console.error(`  - ${v}`);
   process.exit(1);
 }
 

@@ -64,6 +64,7 @@ export const IMPORT_BOUNDARY_DENALI_BREACH_ALLOWLIST = [
 export const IMPORT_BOUNDARY_SCAN_ROOTS = [
   "packages/workspace-sdk",
   "packages/platform-core",
+  "packages/tour-core",
   "packages/theme-react",
   "packages/design-tokens",
   "packages/ui-primitives",
