@@ -43,6 +43,7 @@ Admin Next `transpilePackages` hand list → Wave G.a [`wave-g-admin-transpile-p
 
 - `guard:transpile-product-ceiling` — product `@app-tour/workspace-*` entries in portal/marketing/admin generated transpile lists ≤ ceiling **4** (decrease only; same set as guest-runtime product deps).
 - `filterProductPackagesByDeployProfile` in theme codegen domain — pure helper for profile-scoped emits.
+- `clientBundle.includeInDefault: false` lets registry/proof workspaces keep manifest-driven wiring while staying out of the committed default frontend bundle. The default ceiling remains fail-closed at **4**; deploy-profile APPLY may still intentionally select an opted-out workspace for image-only generated artifacts.
 - Charter: [`saas-platform-remediation.mdoc`](./saas-platform-remediation.mdoc).
 
 ## Gap Closure Phase C.2b

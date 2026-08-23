@@ -2,7 +2,7 @@ import type { MarketingCatalogCard } from "./catalog-types";
 import { formatCatalogCardDates, formatCatalogCardSubtitle } from "./format-catalog-display";
 
 export type BuildCatalogTourMetaLineOptions = {
-  /** Localized Denali category — avoids raw slug from `listSubtitle`. */
+  /** Localized category — avoids raw slug from `listSubtitle`. */
   readonly categoryLabel?: string | null;
 };
 

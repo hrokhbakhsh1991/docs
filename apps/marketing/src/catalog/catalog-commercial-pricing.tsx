@@ -1,6 +1,6 @@
 import type { MarketingCommercialPricingPreview } from "./commercial-pricing-preview";
 import { hasMarketingMembershipDiscount } from "./commercial-pricing-preview";
-import { formatCatalogPrice } from "./format-catalog-display";
+import { formatCatalogPrice, type CatalogPriceDisplayPolicy } from "./format-catalog-display";
 
 type CatalogTranslation = (key: string, values?: Record<string, string | number>) => string;
 
@@ -14,12 +14,12 @@ function formatPreviewMinor(
   currency: string,
   dateLocale: string,
   priceOnRequestLabel: string,
-  pluginId: string
+  priceDisplayPolicy: CatalogPriceDisplayPolicy | null
 ): string | null {
   const amount = parseMinorAmount(amountMinor);
   return amount === null
     ? null
-    : formatCatalogPrice(amount, currency, dateLocale, priceOnRequestLabel, pluginId);
+    : formatCatalogPrice(amount, currency, dateLocale, priceOnRequestLabel, priceDisplayPolicy);
 }
 
 function ancillaryLabel(code: string, t: CatalogTranslation): string {
@@ -36,13 +36,13 @@ export function CatalogCommercialPricingCompact({
   preview,
   canonicalPrice,
   dateLocale,
-  pluginId,
+  priceDisplayPolicy,
   t,
 }: {
   readonly preview: MarketingCommercialPricingPreview | null | undefined;
   readonly canonicalPrice: string | null;
   readonly dateLocale: string;
-  readonly pluginId: string;
+  readonly priceDisplayPolicy: CatalogPriceDisplayPolicy | null;
   readonly t: CatalogTranslation;
 }) {
   if (!hasMarketingMembershipDiscount(preview)) {
@@ -56,14 +56,14 @@ export function CatalogCommercialPricingCompact({
     preview.currency,
     dateLocale,
     t("detail.priceOnRequest"),
-    pluginId
+    priceDisplayPolicy
   );
   const payable = formatPreviewMinor(
     preview.payableMinor,
     preview.currency,
     dateLocale,
     t("detail.priceOnRequest"),
-    pluginId
+    priceDisplayPolicy
   );
   if (gross === null || payable === null) {
     return canonicalPrice != null ? (
@@ -88,14 +88,14 @@ export function CatalogCommercialPricingBreakdown({
   preview,
   canonicalPrice,
   dateLocale,
-  pluginId,
+  priceDisplayPolicy,
   t,
   compact = false,
 }: {
   readonly preview: MarketingCommercialPricingPreview | null | undefined;
   readonly canonicalPrice: string | null;
   readonly dateLocale: string;
-  readonly pluginId: string;
+  readonly priceDisplayPolicy: CatalogPriceDisplayPolicy | null;
   readonly t: CatalogTranslation;
   readonly compact?: boolean;
 }) {
@@ -115,21 +115,21 @@ export function CatalogCommercialPricingBreakdown({
     preview.currency,
     dateLocale,
     t("detail.priceOnRequest"),
-    pluginId
+    priceDisplayPolicy
   );
   const discount = formatPreviewMinor(
     preview.memberDiscountMinor,
     preview.currency,
     dateLocale,
     t("detail.priceOnRequest"),
-    pluginId
+    priceDisplayPolicy
   );
   const payable = formatPreviewMinor(
     preview.payableMinor,
     preview.currency,
     dateLocale,
     t("detail.priceOnRequest"),
-    pluginId
+    priceDisplayPolicy
   );
   if (gross === null || discount === null || payable === null) {
     if (compact) {
@@ -167,7 +167,7 @@ export function CatalogCommercialPricingBreakdown({
           preview.currency,
           dateLocale,
           t("detail.priceOnRequest"),
-          pluginId
+          priceDisplayPolicy
         );
         return amount === null ? null : (
           <div

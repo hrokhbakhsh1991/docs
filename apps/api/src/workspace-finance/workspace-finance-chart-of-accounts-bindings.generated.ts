@@ -5,6 +5,12 @@
  */
 
 export const WORKSPACE_FINANCE_CHART_OF_ACCOUNTS_BINDINGS = {
+  "alpine": {
+    loadAccounts: async () => {
+      const mod = await import("@app-tour/workspace-alpine/host/finance");
+      return mod.ALPINE_LEDGER_ACCOUNTS;
+    },
+  },
   "denali": {
     loadAccounts: async () => {
       const mod = await import("@app-tour/workspace-denali/host/finance");

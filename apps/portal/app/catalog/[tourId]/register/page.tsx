@@ -13,16 +13,15 @@ import { bindWorkspacePluginRegisterInvokers } from "@app-tour/guest-workspace-r
 
 import { PortalLoginModalOpener } from "@/auth/portal-login-modal-opener";
 import { PortalRegisterGuestAuthGate } from "@/auth/portal-register-guest-auth-gate";
+import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
-import { buildRegistrationResumeInitialState } from "@/catalog/build-registration-resume-initial-state.server";
 import { PublicCatalogRegistrationFlow } from "@/catalog/public-catalog-registration-flow";
-import { fetchCommercialPricingPreview } from "@/catalog/fetch-commercial-pricing-preview.server";
-import { fetchMemberSelfRegistrationForTour } from "@/me/fetch-member-self-registration-for-tour.server";
 import { resolvePortalRegistrationBackHref } from "@/marketing/resolve-portal-registration-back-href.server";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 import { PortalAuthExperienceShell } from "@/catalog/portal-auth-experience-shell";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
+import { sessionMemberMatchesPortalGuestSurface } from "@/tenant/session-host-binding";
 
 export const dynamic = "force-dynamic";
 
@@ -92,50 +91,14 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
   const tourTitle = tour.title || "Tour";
   const workspace = bootstrap.pluginId;
 
-  const registrationContext = {
-    pluginId: workspace,
-    tenantId: bootstrap.tenantId,
-    tourId,
-    tourTitle,
-    tourPoliciesText: tour.policiesText ?? null,
-    tourPriceAmount: tour.priceAmount ?? null,
-    tourTransport: tour.transport,
-    tourRequirements: {
-      nationalIdRequired: tour.nationalIdRequired === true,
-      fatherNameRequired: tour.fatherNameRequired === true,
-      birthDateRequired: tour.birthDateRequired === true,
-    },
-    backHref,
-    memberModuleHref,
-  };
-
-  const registrationResume = await buildRegistrationResumeInitialState(
-    host,
-    bootstrap.tenantId,
-    registrationContext
-  );
-
-  const existingSelf =
-    registrationResume !== null ? await fetchMemberSelfRegistrationForTour(host, tourId) : null;
-  const commercialPricingPreview =
-    registrationResume !== null
-      ? await fetchCommercialPricingPreview({
-          host,
-          workspace,
-          tourId,
-          partySize: 1,
-          transportKind: "primary",
-        })
-      : null;
-
-  const resumeAtIntake = registrationResume !== null;
+  const session = await readPublicCatalogSessionFromCookies();
+  const resumeAtIntake =
+    session !== null &&
+    sessionMemberMatchesPortalGuestSurface(session.tenantId, host, bootstrap.tenantId);
   // PCMS-UX-MODAL-04 — guests auth in modal only; page is intake after session.
   const heroLede = resumeAtIntake ? null : t("phone.loginDescription");
   const heroKicker = resumeAtIntake ? t("intake.kicker") : null;
-  const sessionBadge =
-    registrationResume !== null && registrationResume.memberMobile !== null
-      ? t("intake.signedInBadge", { mobile: registrationResume.memberMobile })
-      : null;
+  const sessionBadge = null;
 
   const loginFlow = {
     workspace,
@@ -162,7 +125,7 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
           : { "data-portal-register-guest-auth": "modal-first" }
       }
     >
-      {registrationResume !== null ? (
+      {resumeAtIntake ? (
         <PublicCatalogRegistrationFlow
           workspace={workspace}
           tenantId={bootstrap.tenantId}
@@ -170,15 +133,12 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
           tourTitle={tourTitle}
           tourPoliciesText={tour.policiesText ?? null}
           tourPriceAmount={tour.priceAmount ?? null}
-          commercialPricingPreview={commercialPricingPreview}
           tourTransport={tour.transport}
           tourNationalIdRequired={tour.nationalIdRequired === true}
           tourFatherNameRequired={tour.fatherNameRequired === true}
           tourBirthDateRequired={tour.birthDateRequired === true}
           backHref={backHref}
           memberModuleHref={memberModuleHref}
-          initialRuntimeState={registrationResume.initialState}
-          existingSelfRegistrationId={existingSelf?.id ?? null}
         />
       ) : (
         <>

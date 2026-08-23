@@ -45,7 +45,7 @@ export type CatalogListFilters = {
   readonly city?: string;
 };
 
-/** Denali/Urban public catalog API max page size (`public-catalog.md`). */
+/** Public catalog API max page size (`public-catalog.md`). */
 export const CATALOG_API_MAX_LIMIT = 50;
 
 export const CATALOG_DEFAULT_PAGE_LIMIT = 20;
@@ -76,7 +76,8 @@ export function parseCatalogListFilters(
       ? Number(difficultyRaw)
       : undefined;
   const fitness = readCatalogListQueryValue(input.fitness);
-  const availability = readCatalogListQueryValue(input.availability) === "open" ? "open" : undefined;
+  const availability =
+    readCatalogListQueryValue(input.availability) === "open" ? "open" : undefined;
   const q = readCatalogListQueryValue(input.q);
   const categoryRaw = readCatalogListQueryValue(input.category);
   const category =
@@ -140,9 +141,7 @@ export function catalogListHasClientFilters(
   serverListFilters: readonly string[] = []
 ): boolean {
   return (
-    (filters.q != null &&
-      filters.q.length > 0 &&
-      !serverListFilters.includes("q")) ||
+    (filters.q != null && filters.q.length > 0 && !serverListFilters.includes("q")) ||
     (filters.category != null &&
       filters.category.length > 0 &&
       !serverListFilters.includes("category")) ||
@@ -195,7 +194,9 @@ export function catalogFiltersToQueryInput(
   return {
     ...(filters.city != null && filters.city.length > 0 ? { city: filters.city } : {}),
     ...(filters.q != null && filters.q.length > 0 ? { q: filters.q } : {}),
-    ...(filters.category != null && filters.category.length > 0 ? { category: filters.category } : {}),
+    ...(filters.category != null && filters.category.length > 0
+      ? { category: filters.category }
+      : {}),
     ...(filters.difficulty != null ? { difficulty: String(filters.difficulty) } : {}),
     ...(filters.fitness != null && filters.fitness.length > 0 ? { fitness: filters.fitness } : {}),
     ...(filters.availability === "open" ? { availability: "open" } : {}),

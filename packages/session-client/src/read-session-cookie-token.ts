@@ -14,3 +14,24 @@ export function readSessionTokenFromCookieHeader(
     return match[1].trim();
   }
 }
+
+export type SessionTokenHeaderReader = {
+  readonly get: (name: string) => string | null;
+};
+
+/** Read bearer-or-cookie session token from request headers. Bearer takes precedence. */
+export function readSessionTokenFromRequestHeaders(
+  headers: SessionTokenHeaderReader,
+  cookieName: string
+): string | undefined {
+  const authorization = headers.get("authorization")?.trim();
+  if (authorization?.toLowerCase().startsWith("bearer ")) {
+    const bearer = authorization.slice(7).trim();
+    if (bearer.length > 0) {
+      return bearer;
+    }
+  }
+
+  const cookieToken = readSessionTokenFromCookieHeader(headers.get("cookie") ?? "", cookieName);
+  return cookieToken !== undefined && cookieToken.length > 0 ? cookieToken : undefined;
+}

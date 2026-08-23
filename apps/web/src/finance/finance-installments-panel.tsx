@@ -35,7 +35,10 @@ import { FinanceRegistrationIdentity } from "@/finance/finance-registration-iden
 import { FinanceRegistrationPicker } from "@/finance/finance-registration-picker";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import type { AppLocale } from "@/i18n/routing";
-import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
+import {
+  localizeFinanceMessage,
+  toFinanceClientErrorCode,
+} from "@/i18n/resolve-finance-error-message";
 
 type FinanceInstallmentsPanelProps = {
   readonly session: OperatorSessionContext;
@@ -47,7 +50,7 @@ const EMPTY_GENERATE_FORM: GenerateScheduleFormState = {
   depositPercent: "30",
   installmentCount: "3",
   firstDueAt: "",
-  currency: "IRR",
+  currency: "",
 };
 
 function resolveInstallmentStatusLabel(t: (key: string) => string, status: string): string {
@@ -80,9 +83,7 @@ function ScheduleCard({
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
   const progress = installmentProgressPercent(item);
-  const dueDate = new Date(item.dueAt).toLocaleDateString(
-    locale === "fa" ? "fa-IR" : "en-US"
-  );
+  const dueDate = new Date(item.dueAt).toLocaleDateString(locale === "fa" ? "fa-IR" : "en-US");
   const [waiveReason, setWaiveReason] = useState("");
   const [rescheduleDueAt, setRescheduleDueAt] = useState(item.dueAt);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -133,9 +134,7 @@ function ScheduleCard({
         </div>
         <Badge variant="outline">{resolveInstallmentStatusLabel(t, item.status)}</Badge>
       </div>
-      <p className="mt-2 font-medium">
-        {formatMinorAmount(item.amountMinor, currency, locale)}
-      </p>
+      <p className="mt-2 font-medium">{formatMinorAmount(item.amountMinor, currency, locale)}</p>
       <p className="text-xs text-muted-foreground">
         {t("paidOfTotal", {
           paid: formatMinorAmount(item.paidMinor, currency, locale),
@@ -144,7 +143,10 @@ function ScheduleCard({
       </p>
       <p className="text-xs text-muted-foreground">{tCommon("due", { date: dueDate })}</p>
       {item.status === "partial" ? (
-        <p className="mt-1 text-xs text-amber-700 dark:text-amber-400" data-testid="finance-installment-partial-hint">
+        <p
+          className="mt-1 text-xs text-amber-700 dark:text-amber-400"
+          data-testid="finance-installment-partial-hint"
+        >
           {t("partialHint")}
         </p>
       ) : null}
@@ -291,8 +293,7 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
 
   const board = useMemo(() => groupInstallmentsByBoardColumn(items), [items]);
   const refresh = () => setFetchNonce((value) => value + 1);
-  const boardCurrency =
-    form.currency.trim().length >= 3 ? form.currency.trim().toUpperCase() : "IRR";
+  const boardCurrency = form.currency.trim().length >= 3 ? form.currency.trim().toUpperCase() : "";
 
   const handleItemPatched = (next: PaymentScheduleItem) => {
     setItems((current) => current.map((row) => (row.id === next.id ? next : row)));
@@ -402,9 +403,7 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
                 <LocalizedDatetimePicker
                   id="schedule-first-due"
                   value={form.firstDueAt}
-                  onChange={(firstDueAt) =>
-                    setForm((current) => ({ ...current, firstDueAt }))
-                  }
+                  onChange={(firstDueAt) => setForm((current) => ({ ...current, firstDueAt }))}
                 />
               </div>
               <div className="space-y-2">

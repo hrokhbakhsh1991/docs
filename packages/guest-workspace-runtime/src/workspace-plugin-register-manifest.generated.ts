@@ -6,9 +6,10 @@
  */
 
 /** Sorted trunk plugin ids — cache bust when codegen regen changes membership. */
-export const WORKSPACE_PLUGIN_REGISTER_REVISION = "denali,guest-club,harbor,starter,urban";
+export const WORKSPACE_PLUGIN_REGISTER_REVISION = "alpine,denali,guest-club,harbor,starter,urban";
 
 export const WORKSPACE_PLUGIN_REGISTER_IDS = Object.freeze([
+  "alpine",
   "denali",
   "guest-club",
   "harbor",
@@ -19,6 +20,11 @@ export const WORKSPACE_PLUGIN_REGISTER_IDS = Object.freeze([
 /** Dynamic per-plugin full registrar — product imports live in register-*.generated.ts. */
 export async function invokeWorkspacePluginRegister(pluginId: string): Promise<void> {
   switch (pluginId) {
+    case "alpine": {
+      const mod = await import("./register-alpine.generated");
+      await mod.registerWorkspacePluginALPINEFromManifest();
+      return;
+    }
     case "denali": {
       const mod = await import("./register-denali.generated");
       await mod.registerWorkspacePluginDENALIFromManifest();
@@ -52,6 +58,11 @@ export async function invokeWorkspacePluginRegister(pluginId: string): Promise<v
 /** Dynamic per-plugin intake registrar — plugin entry only (API dispatch path). */
 export async function invokeWorkspaceIntakeRegister(pluginId: string): Promise<void> {
   switch (pluginId) {
+    case "alpine": {
+      const mod = await import("./register-alpine.generated");
+      await mod.registerWorkspaceIntakeALPINEFromManifest();
+      return;
+    }
     case "denali": {
       const mod = await import("./register-denali.generated");
       await mod.registerWorkspaceIntakeDENALIFromManifest();

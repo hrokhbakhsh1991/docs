@@ -810,6 +810,7 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     );
     assert.match(adapter, /I-06/);
     assert.match(adapter, /details.*tripDetails/);
+    assert.doesNotMatch(adapter, /packages\/workspaces\/denali/);
   });
 
   it("TW-C remediations — finance tourId query + opsActions defaults + register test id", () => {
@@ -961,6 +962,8 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.doesNotMatch(featureClient, /guestListItemSelectedHint/);
     assert.doesNotMatch(featureClient, /guestListItemOpenHint/);
     assert.match(featureClient, /guestListItemRemainingLabel/);
+    assert.match(featureClient, /queueCurrency !== null/);
+    assert.doesNotMatch(featureClient, /rollup\?\.currency \?\?\s*"IRR"/);
     assert.match(featureClient, /guestRowsHasMore/);
     assert.match(featureClient, /loadingMore/);
     assert.match(featureClient, /onClick=\{loadMore\}/);
@@ -1023,8 +1026,7 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.match(masterDetailLayout, /lg:h-\[calc\(100vh-8rem\)\]/);
     assert.match(masterDetailLayout, /lg:overflow-y-auto/);
     assert.ok(
-      actionsSection.indexOf("<TourWorkspaceAdminPaymentCard") <
-        actionsSection.indexOf("<details")
+      actionsSection.indexOf("<TourWorkspaceAdminPaymentCard") < actionsSection.indexOf("<details")
     );
     assert.ok(
       actionsSection.indexOf("<details") <
@@ -1035,6 +1037,8 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
         actionsSection.indexOf("<TourWorkspaceAdvancedReceiptCard")
     );
     assert.match(overrideActions, /obligation-override/);
+    assert.match(overrideActions, /const currency = invoice\?\.currency \?\? ""/);
+    assert.doesNotMatch(overrideActions, /invoice\?\.currency \?\? "IRR"/);
     assert.match(advancedReceiptCard, /workspaceReceiptAdvancedTitle/);
     assert.match(overrideActions, /detailOverrideScheduleDescription/);
     assert.match(overrideActions, /withFinanceRegistrationQuery\(\s*"\/finance\?tab=installments"/);

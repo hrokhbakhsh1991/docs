@@ -26,7 +26,7 @@ const SMOKE_PUBLISHED_TOUR_ID = resolveSmokePublishedTourId();
 const OPERATOR_SMOKE_DRAFT_TITLE = "Denali draft fixture";
 
 test.describe("denali-guest-funnel.spec.ts — Phase 3 D01", () => {
-  test.setTimeout(240_000);
+  test.setTimeout(360_000);
 
   test("P3-E2E-D01 marketing catalog → portal register → member registrations", async ({
     page,

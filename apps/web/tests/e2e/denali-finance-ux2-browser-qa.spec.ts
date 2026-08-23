@@ -20,11 +20,7 @@ import {
   OPERATOR_OWNER_MOBILE,
 } from "../../test/fixtures/operator-owner-session";
 
-const ARTIFACT_DIR = path.join(
-  process.cwd(),
-  "test-results",
-  "finance-ux2-browser-qa"
-);
+const ARTIFACT_DIR = path.join(process.cwd(), "test-results", "finance-ux2-browser-qa");
 
 const VIEWPORTS = {
   desktop1440: { width: 1440, height: 900 },
@@ -110,23 +106,26 @@ async function assertNeedsActionHierarchy(page: Page): Promise<void> {
   });
   await expect(page.getByTestId(FINANCE_OVERVIEW_TEST_IDS.attentionSection)).toBeVisible();
 
-  const order = await page.evaluate((ids) => {
-    const needsEl = document.querySelector(`[data-testid="${ids.needs}"]`);
-    if (!needsEl) {
-      return null;
+  const order = await page.evaluate(
+    (ids) => {
+      const needsEl = document.querySelector(`[data-testid="${ids.needs}"]`);
+      if (!needsEl) {
+        return null;
+      }
+      const children = [
+        ...needsEl.querySelectorAll(
+          `[data-testid="${ids.refunds}"], [data-testid="${ids.queues}"], [data-testid="${ids.exceptions}"]`
+        ),
+      ];
+      return children.map((el) => el.getAttribute("data-testid"));
+    },
+    {
+      needs: FINANCE_OVERVIEW_TEST_IDS.needsActionSection,
+      refunds: FINANCE_OVERVIEW_TEST_IDS.refundsAwaiting,
+      queues: FINANCE_OVERVIEW_TEST_IDS.collectionQueues,
+      exceptions: FINANCE_EXCEPTIONS_TEST_IDS.panel,
     }
-    const children = [
-      ...needsEl.querySelectorAll(
-        `[data-testid="${ids.refunds}"], [data-testid="${ids.queues}"], [data-testid="${ids.exceptions}"]`
-      ),
-    ];
-    return children.map((el) => el.getAttribute("data-testid"));
-  }, {
-    needs: FINANCE_OVERVIEW_TEST_IDS.needsActionSection,
-    refunds: FINANCE_OVERVIEW_TEST_IDS.refundsAwaiting,
-    queues: FINANCE_OVERVIEW_TEST_IDS.collectionQueues,
-    exceptions: FINANCE_EXCEPTIONS_TEST_IDS.panel,
-  });
+  );
 
   expect(order, "Needs action child order").not.toBeNull();
   const refundIdx = order!.indexOf(FINANCE_OVERVIEW_TEST_IDS.refundsAwaiting);
@@ -136,9 +135,7 @@ async function assertNeedsActionHierarchy(page: Page): Promise<void> {
 
   // Quiet empty refunds OR list — never hide the card
   const empty = page.getByTestId(FINANCE_OVERVIEW_TEST_IDS.refundsAwaitingEmpty);
-  const listRows = page
-    .getByTestId(FINANCE_OVERVIEW_TEST_IDS.refundsAwaiting)
-    .locator("li");
+  const listRows = page.getByTestId(FINANCE_OVERVIEW_TEST_IDS.refundsAwaiting).locator("li");
   await expect(empty.or(listRows.first())).toBeVisible();
 }
 
@@ -325,7 +322,7 @@ test.describe("PR23 UX2 Finance browser QA", () => {
 
     // Prefill visual path without inventing a Paid payment
     await page.goto(
-      "/finance?tab=refunds&registrationId=reg-ux2-qa&paymentId=pay-ux2-qa&amountMinor=2500000",
+      "/finance?tab=refunds&registrationId=reg-ux2-qa&paymentId=pay-ux2-qa&amountMinor=2500000&currency=IRR",
       { waitUntil: "domcontentloaded" }
     );
     await expect(page.getByTestId(FINANCE_REFUNDS_TEST_IDS.panel)).toBeVisible({

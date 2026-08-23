@@ -18,6 +18,15 @@ describe("canonical timestamp unify (DEC-077 / CLK-F-01/02)", () => {
     assert.doesNotMatch(source, /const createdAt = new Date\(\)/);
   });
 
+  it("atomic persist does not invent a starter workspace context", () => {
+    const source = readSource("canonical/atomic-canonical-tour-persist.ts");
+    assert.doesNotMatch(
+      source,
+      /workspaceType:\s*getActiveWorkspaceType\(\)\s*\?\?\s*["']starter["']/
+    );
+    assert.match(source, /workspaceType:\s*getActiveWorkspaceType\(\)/);
+  });
+
   it("enqueue and audit accept explicit createdAt for DB authority", () => {
     const audit = readSource("audit/audit-logger.ts");
     const enqueue = readSource("outbox/enqueue-domain-event.ts");

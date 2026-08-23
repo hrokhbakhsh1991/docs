@@ -40,9 +40,16 @@ describe("PR17-A command center commercial meaning", () => {
       join(WEB_ROOT, "app/(app)/finance/finance-command-center.tsx"),
       "utf8"
     );
+    assert.match(shell, /const commercialMeaningRegistrationId =/);
+    assert.match(
+      shell,
+      /const canShowCommercialMeaning = commercialMeaningRegistrationId !== null/
+    );
+    assert.match(shell, /viewMode === "meaning" && canShowCommercialMeaning/);
+    assert.doesNotMatch(shell, /viewMode === "meaning" && registrationId/);
     assert.match(shell, /finance-view-mode/);
     assert.match(shell, /viewCommercialMeaning/);
-    assert.match(shell, /FinanceCommercialMeaningEmbed|OperatorCaseEncounterPanel/);
+    assert.match(shell, /FinanceCommercialMeaningEmbed|FinanceCaseEncounterPanel/);
     assert.match(shell, /FinancePaymentsPanel/);
     assert.match(shell, /FinanceReceiptsPanel/);
     assert.match(shell, /FinanceLedgerPanel/);
@@ -52,7 +59,7 @@ describe("PR17-A command center commercial meaning", () => {
   });
 
   it("encounter panel is GET-only refresh; no finance-core / CaseOutput / gateway", () => {
-    const panel = readFileSync(join(FINANCE_SRC, "denali-case-encounter-panel.tsx"), "utf8");
+    const panel = readFileSync(join(FINANCE_SRC, "finance-case-encounter-panel.tsx"), "utf8");
     assert.match(panel, /method:\s*"GET"/);
     assert.match(panel, /cache:\s*"no-store"/);
     assert.doesNotMatch(panel, /@app-tour\/finance-core/);

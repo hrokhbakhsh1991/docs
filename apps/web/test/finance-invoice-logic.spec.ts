@@ -26,6 +26,19 @@ describe("finance-invoice-logic.spec.ts — Phase 9.7 R2", () => {
     assert.equal(invoice.balanceDueMinor, "7000000");
   });
 
+  it("WEB-9.7-INV-01b parseRegistrationInvoice does not invent a workspace currency", () => {
+    const registrationId = randomUUID();
+    const invoice = parseRegistrationInvoice({
+      registrationId,
+      invoiceTotalMinor: "10000000",
+      paidAmountMinor: "3000000",
+      balanceDueMinor: "7000000",
+      walletNetMinor: "3000000",
+    });
+    assert.ok(invoice);
+    assert.equal(invoice.currency, "");
+  });
+
   it("WEB-9.7-INV-02 validateInvoiceLookupRegistrationId rejects invalid uuid", () => {
     const result = validateInvoiceLookupRegistrationId("bad-id");
     assert.equal(result.ok, false);

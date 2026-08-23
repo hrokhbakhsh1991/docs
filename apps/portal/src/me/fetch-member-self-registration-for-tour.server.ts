@@ -1,32 +1,55 @@
-import { cookies } from "next/headers";
+import { registerWorkspaceIntakeSafe } from "@app-tour/workspace-plugin-host/register-safe";
+import { bindWorkspacePluginRegisterInvokers } from "@app-tour/guest-workspace-runtime/bind-register-invokers";
+import { getWorkspaceIntakePlugin, resolveIntakeSchema } from "@app-tour/workspace-sdk";
+
+import { resolveTourOpsApiBaseUrl } from "@/env";
+import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
+import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
 export type MemberSelfRegistrationRef = {
   readonly id: string;
   readonly status: string;
 };
 
-/** SSR — active self registration on a tour for the signed-in member (Denali). */
+const MEMBER_SELF_REGISTRATION_FETCH_TIMEOUT_MS = 10_000;
+
+/** SSR — active self registration on a tour for the signed-in member. */
 export async function fetchMemberSelfRegistrationForTour(
   host: string,
   tourId: string
 ): Promise<MemberSelfRegistrationRef | null> {
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((entry) => `${entry.name}=${entry.value}`)
-    .join("; ");
-  if (cookieHeader.length === 0) {
+  const id = tourId.trim();
+  if (id.length === 0) {
     return null;
   }
 
-  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+  const bootstrap = await resolvePortalBootstrapForHost(host);
+  const headers = await buildMemberApiHeaders(host);
+  if (headers.Authorization === undefined) {
+    return null;
+  }
+
+  bindWorkspacePluginRegisterInvokers();
+  await registerWorkspaceIntakeSafe(bootstrap.pluginId);
+  const features = resolveIntakeSchema(bootstrap.pluginId).features;
+  if (features.selfRegistrationGate !== true) {
+    return null;
+  }
+
+  const intake = getWorkspaceIntakePlugin(bootstrap.pluginId)?.catalogIntake;
+  const apiPath = intake?.registrationApiPath?.trim() ?? "";
+  if (apiPath.length === 0) {
+    return null;
+  }
+
   try {
     const res = await fetch(
-      `${protocol}://${host}/api/me/registrations/for-tour?tourId=${encodeURIComponent(tourId)}`,
+      `${resolveTourOpsApiBaseUrl()}${apiPath}/for-tour/${encodeURIComponent(id)}`,
       {
         method: "GET",
-        headers: { cookie: cookieHeader },
+        headers,
         cache: "no-store",
+        signal: AbortSignal.timeout(MEMBER_SELF_REGISTRATION_FETCH_TIMEOUT_MS),
       }
     );
     if (!res.ok) {

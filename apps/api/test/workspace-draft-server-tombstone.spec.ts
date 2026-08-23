@@ -2,6 +2,8 @@
  * Track A — server-authoritative tombstone recompute on PATCH (operator.wizard)
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { before, describe, it } from "node:test";
 
 import { createRequestListener } from "../src/app";
@@ -15,6 +17,8 @@ import { getIdentityRepository } from "../src/identity/create-identity-repositor
 import { OPERATOR_SMOKE } from "./fixtures/operator-smoke-e2e-tenant";
 import { installHttpTestClient } from "./http-test-client";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
+import { patchWorkspaceDraft } from "../src/workspace-drafts/workspace-drafts.service";
+import { WorkspaceDraftWorkspaceTypeRequiredError } from "../src/workspace-drafts/workspace-drafts.errors";
 
 installMemoryStorageDriverForDescribe();
 
@@ -194,5 +198,37 @@ describe("workspace-draft-server-tombstone.spec.ts — Track A", () => {
     };
     assert.equal("photos" in persisted.form.data, false);
     assert.equal(persisted.meta.deletedRoots, undefined);
+  });
+
+  it("A5 tombstone-gated patch requires an active workspaceType context", async () => {
+    resetDraftStoresForTests();
+
+    await assert.rejects(
+      () =>
+        patchWorkspaceDraft(
+          {
+            tenantId: STARTER_TENANT_ID,
+            userId: OPERATOR_SMOKE.ownerUserId,
+            role: "owner",
+            status: "ACTIVE",
+          },
+          {
+            workspaceId: STARTER_WORKSPACE_ID,
+            draftNamespace: WIZARD_NAMESPACE,
+            draftKey: DRAFT_KEY,
+          },
+          patchBody({ form: { data: { title: "No workspace context" } }, meta: {} })
+        ),
+      WorkspaceDraftWorkspaceTypeRequiredError
+    );
+  });
+
+  it("A6 workspace draft tombstone path does not default to starter", () => {
+    const source = readFileSync(
+      join(import.meta.dirname, "../src/workspace-drafts/workspace-drafts.service.ts"),
+      "utf8"
+    );
+    assert.doesNotMatch(source, /getActiveWorkspaceType\(\)\s*\?\?\s*["']starter["']/);
+    assert.match(source, /WorkspaceDraftWorkspaceTypeRequiredError/);
   });
 });

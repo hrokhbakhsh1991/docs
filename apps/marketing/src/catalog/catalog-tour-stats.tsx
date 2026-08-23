@@ -3,10 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { resolveCatalogDetailSections } from "@app-tour/workspace-sdk";
 
 import type { MarketingCatalogCard } from "./catalog-types";
-import {
-  formatCatalogPrice,
-  shouldShowCatalogPrice,
-} from "./format-catalog-display";
+import { formatCatalogPrice, shouldShowCatalogPrice } from "./format-catalog-display";
 import { resolveMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
 import { resolveMarketingCatalogFitnessLabel } from "./resolve-marketing-catalog-fitness-label";
 import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
@@ -72,7 +69,7 @@ export async function CatalogTourStats({
             tour.priceCurrency,
             dateLocale,
             t("detail.priceOnRequest"),
-            pluginId,
+            surface
           )}
         </li>
       ) : null}

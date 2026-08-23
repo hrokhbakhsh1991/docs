@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import { enrichSettingsModuleList } from "../src/settings/workspace-settings-enrichers.generated";
@@ -34,5 +35,14 @@ describe("enrich-equipment-compatible-categories", () => {
       },
     ])[0]!;
     assert.deepEqual(enriched.compatibleCategories, []);
+  });
+
+  it("keeps settings resource type comments workspace-generic", () => {
+    const source = readFileSync(
+      new URL("../src/settings/settings.types.ts", import.meta.url),
+      "utf8"
+    );
+    assert.equal(source.includes("Denali closed icon registry key"), false);
+    assert.equal(source.includes("Denali wizard"), false);
   });
 });

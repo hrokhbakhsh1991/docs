@@ -9,6 +9,7 @@ import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 /** Product trunk plugin ids from workspace.manifest.json (excludes registryOnly fixtures). */
 export const API_WORKSPACE_PLUGIN_IDS = [
   "acme",
+  "alpine",
   "booking-ws2",
   "denali",
   "finance-ws5",
@@ -37,6 +38,10 @@ export async function loadApiWorkspacePluginByIdFromManifest(
     switch (pluginId) {
     case "acme": {
       const mod = await import("@app-tour/workspace-acme/plugin");
+      return mod.getWorkspacePlugin();
+    }
+    case "alpine": {
+      const mod = await import("@app-tour/workspace-alpine/plugin");
       return mod.getWorkspacePlugin();
     }
     case "booking-ws2": {

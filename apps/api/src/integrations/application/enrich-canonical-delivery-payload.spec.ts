@@ -138,8 +138,20 @@ describe("enrichCanonicalDeliveryPayload", () => {
       },
       eligibleFieldIds: ["labelled", "addressOnly"],
       definitions: [
-        { id: "labelled", workspaceType: "denali", canonicalPath: "labelled", kind: "text", version: 1 },
-        { id: "addressOnly", workspaceType: "denali", canonicalPath: "addressOnly", kind: "text", version: 1 },
+        {
+          id: "labelled",
+          workspaceType: "denali",
+          canonicalPath: "labelled",
+          kind: "text",
+          version: 1,
+        },
+        {
+          id: "addressOnly",
+          workspaceType: "denali",
+          canonicalPath: "addressOnly",
+          kind: "text",
+          version: 1,
+        },
       ],
     });
 
@@ -260,7 +272,10 @@ describe("enrichCanonicalDeliveryPayload", () => {
     });
     assert.deepEqual(enriched.fieldValues, { "future.composite": "neutral projected" });
 
-    const source = readFileSync("src/integrations/application/enrich-canonical-delivery-payload.ts", "utf8");
+    const source = readFileSync(
+      "src/integrations/application/enrich-canonical-delivery-payload.ts",
+      "utf8"
+    );
     assert.doesNotMatch(source, /denali\.location-zones|DENALI_LOCATION/);
   });
 });

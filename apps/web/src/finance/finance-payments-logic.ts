@@ -40,8 +40,7 @@ export const MANUAL_PAYMENT_CANCEL_REASON_CODES = [
   "other",
 ] as const;
 
-export type ManualPaymentCancelReasonCode =
-  (typeof MANUAL_PAYMENT_CANCEL_REASON_CODES)[number];
+export type ManualPaymentCancelReasonCode = (typeof MANUAL_PAYMENT_CANCEL_REASON_CODES)[number];
 
 export type FinancePaymentRow = {
   readonly id: string;
@@ -66,8 +65,7 @@ export type CreateManualPaymentFormState = {
   readonly currency: string;
 };
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function parseFinancePaymentRow(entry: Record<string, unknown>): FinancePaymentRow | null {
   const id = String(entry.id ?? "");
@@ -78,7 +76,7 @@ function parseFinancePaymentRow(entry: Record<string, unknown>): FinancePaymentR
     id,
     registrationId: String(entry.registrationId ?? ""),
     amount: String(entry.amount ?? "0"),
-    currency: String(entry.currency ?? "IRR"),
+    currency: String(entry.currency ?? ""),
     method: String(entry.method ?? "Manual"),
     status: String(entry.status ?? ""),
     provider: String(entry.provider ?? ""),
@@ -97,7 +95,9 @@ export function parseFinancePaymentsListResponse(raw: unknown): FinancePaymentsL
     return { items: [] };
   }
   const items = record.items
-    .filter((entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null)
+    .filter(
+      (entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null
+    )
     .map((entry) => parseFinancePaymentRow(entry))
     .filter((entry): entry is FinancePaymentRow => entry !== null);
   return { items };
@@ -160,9 +160,7 @@ export function validateCancelPendingManualPaymentForm(
 ):
   | { ok: true; value: { reasonCode: ManualPaymentCancelReasonCode; reasonNote?: string } }
   | { ok: false; error: "REASON_REQUIRED" | "REASON_NOTE_REQUIRED" } {
-  if (
-    !(MANUAL_PAYMENT_CANCEL_REASON_CODES as readonly string[]).includes(input.reasonCode)
-  ) {
+  if (!(MANUAL_PAYMENT_CANCEL_REASON_CODES as readonly string[]).includes(input.reasonCode)) {
     return { ok: false, error: "REASON_REQUIRED" };
   }
   const reasonCode = input.reasonCode as ManualPaymentCancelReasonCode;
@@ -241,7 +239,9 @@ export function mapCancelPendingManualPaymentHttpError(
 ): CancelPendingManualPaymentClientError {
   const code =
     raw !== null && typeof raw === "object"
-      ? String((raw as Record<string, unknown>).code ?? (raw as Record<string, unknown>).error ?? "")
+      ? String(
+          (raw as Record<string, unknown>).code ?? (raw as Record<string, unknown>).error ?? ""
+        )
       : "";
   if (status === 404 || code === "PAYMENT_NOT_FOUND") {
     return "PAYMENT_NOT_FOUND";
@@ -293,7 +293,9 @@ export function validateCreateManualPaymentForm(
   };
 }
 
-export function paymentStatusTone(status: string): "default" | "warning" | "success" | "destructive" {
+export function paymentStatusTone(
+  status: string
+): "default" | "warning" | "success" | "destructive" {
   if (status === "Paid") {
     return "success";
   }

@@ -1,6 +1,6 @@
 /**
  * PR14-A — Map CaseCommandIntent → reviewReceipt bridge intent + SoT port shape.
- * Workspace injects SoT implementation; Denali uses FinanceService.reviewReceipt.
+ * Workspace capability injects the SoT implementation.
  */
 
 import type { CaseCommandIntent } from "./case-command-intent";
@@ -9,7 +9,7 @@ import type { MappedReviewReceiptCommand } from "./map-review-receipt";
 import type { ReviewReceiptBridgeIntent } from "./types";
 
 /**
- * Portable SoT port — Denali binds FinanceService; future workspace binds its command.
+ * Portable SoT port — each workspace binds its own command implementation.
  * finance-core never implements this.
  */
 export type ReviewReceiptSoTPort = {
@@ -28,9 +28,7 @@ export type ReviewReceiptSoTPort = {
 /**
  * Convert architecture intent → Host pilot bridge intent.
  */
-export function toReviewReceiptBridgeIntent(
-  intent: CaseCommandIntent
-): ReviewReceiptBridgeIntent {
+export function toReviewReceiptBridgeIntent(intent: CaseCommandIntent): ReviewReceiptBridgeIntent {
   if (intent.action.command !== "reviewReceipt") {
     throw new CaseCommandIntentInvalidError("unsupported_command");
   }
@@ -60,8 +58,6 @@ export function toReviewReceiptBridgeIntent(
 /**
  * Validate CaseCommandIntent and produce SoT args (no mutation).
  */
-export function mapCaseCommandIntent(
-  intent: CaseCommandIntent
-): MappedReviewReceiptCommand {
+export function mapCaseCommandIntent(intent: CaseCommandIntent): MappedReviewReceiptCommand {
   return mapReviewReceiptIntent(toReviewReceiptBridgeIntent(intent));
 }

@@ -43,7 +43,10 @@ function parseCommandCenterStatusParam(statusRaw: string | null): BookingStatus 
   if (trimmed === "actionable") {
     return "actionable";
   }
-  const parts = trimmed.split(",").map((part) => part.trim()).filter((part) => part.length > 0);
+  const parts = trimmed
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
   if (
     parts.length === BOOKINGS_WORK_QUEUE_STATUSES.length &&
     BOOKINGS_WORK_QUEUE_STATUSES.every((value) => parts.includes(value))
@@ -246,9 +249,7 @@ export function isBulkApprovable(item: BookingListItem): boolean {
 /** Kill switch for UX-BKG-48 inline Approve chrome. */
 export const BOOKINGS_INLINE_APPROVE_ENABLED = true;
 
-export function canInlineApproveBooking(
-  item: Pick<BookingListItem, "status">
-): boolean {
+export function canInlineApproveBooking(item: Pick<BookingListItem, "status">): boolean {
   return item.status === "pending" || item.status === "waitlisted";
 }
 
@@ -350,10 +351,7 @@ export function resolveBookingRowTransportLabel(
   if (intake === undefined) {
     return null;
   }
-  return formatRegistrationIntakeTransportLabel(
-    parseRegistrationIntakeRecord(intake),
-    labels
-  );
+  return formatRegistrationIntakeTransportLabel(parseRegistrationIntakeRecord(intake), labels);
 }
 
 export function truncateBookingRowTransportLabel(
@@ -375,8 +373,7 @@ export function filterBulkApprovableIds(
   selectedIds: readonly string[],
   maxBatch: number = BULK_APPROVE_MAX_BATCH
 ): string[] {
-  const cap =
-    Number.isFinite(maxBatch) && maxBatch > 0 ? Math.floor(maxBatch) : BULK_APPROVE_MAX_BATCH;
+  const cap = Number.isFinite(maxBatch) && maxBatch >= 0 ? Math.floor(maxBatch) : 0;
   const itemById = new Map(items.map((item) => [item.id, item]));
   return selectedIds
     .filter((id) => {
@@ -510,9 +507,7 @@ export type BookingDepartureUrgency = "overdue" | "soon" | "none";
 
 export type BookingRowUrgencySlot = "overdue" | "soon" | "aging" | "none";
 
-function isBookingDepartureUrgencyEligible(
-  status: BookingListItem["status"]
-): boolean {
+function isBookingDepartureUrgencyEligible(status: BookingListItem["status"]): boolean {
   return status !== "cancelled" && status !== "rejected";
 }
 
@@ -643,8 +638,7 @@ export function resolveInboxSelectionAfterKey(
   if (items.length === 0) {
     return null;
   }
-  const currentIndex =
-    selectedId === null ? -1 : items.findIndex((item) => item.id === selectedId);
+  const currentIndex = selectedId === null ? -1 : items.findIndex((item) => item.id === selectedId);
   if (key === "ArrowDown") {
     const next = currentIndex < 0 ? 0 : Math.min(items.length - 1, currentIndex + 1);
     return items[next]?.id ?? null;
@@ -778,9 +772,7 @@ export function resolveBookingsKpiStatusFilter(
   return patch.status ?? DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY.status;
 }
 
-export function bookingsCommandCenterHasActiveFilters(
-  query: BookingsCommandCenterQuery
-): boolean {
+export function bookingsCommandCenterHasActiveFilters(query: BookingsCommandCenterQuery): boolean {
   return (
     query.status !== DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY.status ||
     query.paymentStatus !== DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY.paymentStatus ||
@@ -799,11 +791,8 @@ export function bookingsCommandCenterHasActiveFilters(
  * Drives Filters button badge. Omits `sort`: Focus preset / By-departure Display set
  * `sort=departureAt` without opening Filters.
  */
-export function bookingsAdvancedFiltersDirty(
-  query: BookingsCommandCenterQuery
-): boolean {
-  const statusIsFineGrain =
-    query.status !== "actionable" && query.status !== "all";
+export function bookingsAdvancedFiltersDirty(query: BookingsCommandCenterQuery): boolean {
+  const statusIsFineGrain = query.status !== "actionable" && query.status !== "all";
   return (
     query.paymentStatus !== DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY.paymentStatus ||
     query.tourChipScope === "all" ||
@@ -826,8 +815,7 @@ export function listBulkApprovableIds(
   items: readonly BookingListItem[],
   maxBatch: number = BULK_APPROVE_MAX_BATCH
 ): string[] {
-  const cap =
-    Number.isFinite(maxBatch) && maxBatch > 0 ? Math.floor(maxBatch) : BULK_APPROVE_MAX_BATCH;
+  const cap = Number.isFinite(maxBatch) && maxBatch >= 0 ? Math.floor(maxBatch) : 0;
   return items
     .filter(isBulkApprovable)
     .map((item) => item.id)
@@ -835,9 +823,7 @@ export function listBulkApprovableIds(
 }
 
 export function isBookingCancellable(item: BookingListItem): boolean {
-  return (
-    item.status === "pending" || item.status === "waitlisted" || item.status === "approved"
-  );
+  return item.status === "pending" || item.status === "waitlisted" || item.status === "approved";
 }
 
 export function isBookingWaitlistable(item: BookingListItem): boolean {
@@ -906,11 +892,7 @@ export function buildBookingLifecycleActionNotice(input: {
     registrationId,
     showFinanceLink,
     historyStatus:
-      input.action === "reject"
-        ? "rejected"
-        : input.action === "cancel"
-          ? "cancelled"
-          : undefined,
+      input.action === "reject" ? "rejected" : input.action === "cancel" ? "cancelled" : undefined,
   };
 }
 

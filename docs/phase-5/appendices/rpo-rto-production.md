@@ -73,6 +73,6 @@ Drill proves **backup/restore mechanics** on disposable CI Postgres — not prod
 ## Verification
 
 ```bash
-pnpm run guard:rpo-rto-restore-drill
+pnpm --filter @apps/api run guard:rpo-rto-restore-drill
 bash scripts/restore-drill-smoke.sh   # requires DATABASE_URL_ADMIN + pg_dump/psql
 ```

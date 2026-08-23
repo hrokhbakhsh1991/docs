@@ -135,7 +135,8 @@ function parseExceptionItem(raw: unknown): FinanceExceptionListItem | null {
       ? (record.identity as Record<string, unknown>)
       : {};
   const memberDisplayName =
-    typeof identityRaw.memberDisplayName === "string" && identityRaw.memberDisplayName.trim().length > 0
+    typeof identityRaw.memberDisplayName === "string" &&
+    identityRaw.memberDisplayName.trim().length > 0
       ? identityRaw.memberDisplayName.trim()
       : null;
   const tourTitle =
@@ -169,7 +170,7 @@ function parseExceptionItem(raw: unknown): FinanceExceptionListItem | null {
       id: paymentId,
       status: paymentStatus,
       amount: String(paymentRaw.amount ?? ""),
-      currency: String(paymentRaw.currency ?? "IRR"),
+      currency: String(paymentRaw.currency ?? ""),
       method: String(paymentRaw.method ?? "Manual"),
     },
     reason,

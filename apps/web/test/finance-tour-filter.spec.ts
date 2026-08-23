@@ -41,6 +41,7 @@ describe("finance-tour-filter.spec.ts — FC-3", () => {
         {
           tourId: "tour-1",
           tourTitle: "North Ridge",
+          currency: "CAD",
           paidCount: 2,
           paidMinor: "5000000",
           pendingCount: 1,
@@ -49,6 +50,7 @@ describe("finance-tour-filter.spec.ts — FC-3", () => {
     });
     assert.equal(parsed.items.length, 1);
     assert.equal(parsed.items[0]?.tourTitle, "North Ridge");
+    assert.equal(parsed.items[0]?.currency, "CAD");
     assert.equal(parsed.items[0]?.paidMinor, "5000000");
   });
 
@@ -62,12 +64,18 @@ describe("finance-tour-filter.spec.ts — FC-3", () => {
       "utf8"
     );
     const ledger = readFileSync(resolve(WEB_ROOT, "src/finance/finance-ledger-panel.tsx"), "utf8");
+    const overview = readFileSync(
+      resolve(WEB_ROOT, "src/finance/finance-overview-panel.tsx"),
+      "utf8"
+    );
     const filter = readFileSync(resolve(WEB_ROOT, "src/finance/finance-tour-filter.tsx"), "utf8");
     assert.match(hub, /FinanceTourFilter/);
     assert.match(hub, /finance-tour-filter-banner/);
     assert.match(payments, /withFinanceListScopeQuery/);
     assert.match(payments, /tourFilter/);
     assert.match(ledger, /withFinanceListScopeQuery/);
+    assert.match(overview, /formatMinorAmount\(row\.paidMinor, row\.currency, locale\)/);
+    assert.doesNotMatch(overview, /formatMinorAmount\(row\.paidMinor, "IRR", locale\)/);
     assert.match(filter, new RegExp(FINANCE_TOUR_FILTER_TEST_IDS.root));
   });
 });

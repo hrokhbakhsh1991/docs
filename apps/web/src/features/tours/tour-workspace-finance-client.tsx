@@ -403,20 +403,16 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
   }, [highlightedRegistrationId, visibleRows]);
 
   const queueRemainingMinor = useMemo(
-    () =>
-      sumOutstandingRemainingMinor([
-        ...inbox.awaitingPayment,
-        ...inbox.partialOutstanding,
-      ]),
+    () => sumOutstandingRemainingMinor([...inbox.awaitingPayment, ...inbox.partialOutstanding]),
     [inbox.awaitingPayment, inbox.partialOutstanding]
   );
   const queueCurrency =
     inbox.awaitingPayment[0]?.invoice.currency ??
     inbox.partialOutstanding[0]?.invoice.currency ??
     rollup?.currency ??
-    "IRR";
+    null;
   const remainingTotalLabel =
-    inbox.guestRows.length > 0
+    inbox.guestRows.length > 0 && queueCurrency !== null
       ? formatMinorAmount(queueRemainingMinor, queueCurrency, locale)
       : null;
 
@@ -548,13 +544,13 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           </p>
         ) : null}
         <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className={kindBadgeClass(selectedRow.kind)}>
-              {kindStatusLabel(t, selectedRow.kind)}
-            </Badge>
-            {selectedAmountLabel !== null ? (
-              <span className="text-sm text-muted-foreground">{selectedAmountLabel}</span>
-            ) : null}
-          </div>
+          <Badge variant="outline" className={kindBadgeClass(selectedRow.kind)}>
+            {kindStatusLabel(t, selectedRow.kind)}
+          </Badge>
+          {selectedAmountLabel !== null ? (
+            <span className="text-sm text-muted-foreground">{selectedAmountLabel}</span>
+          ) : null}
+        </div>
 
         {detailData.loading ? (
           <div className="space-y-2">
@@ -720,6 +716,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
         {selectedRow.registrationId !== null ? (
           <TourWorkspacePaymentActionsSection
             tourId={tourId}
+            pluginId={session.pluginId}
             registrationId={selectedRow.registrationId}
             canManage={canManage}
             actionMode={actionMode}

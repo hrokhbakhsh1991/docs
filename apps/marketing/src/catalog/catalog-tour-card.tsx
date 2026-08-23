@@ -5,7 +5,10 @@ import { resolveHomeTourCoverUrl } from "@/home/resolve-home-tour-cover-url";
 
 import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-catalog-category-label";
 import { buildCatalogListCardSummary } from "./build-catalog-list-card-summary";
-import { hasMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
+import {
+  hasMarketingCatalogSurface,
+  resolveMarketingCatalogSurface,
+} from "./resolve-marketing-catalog-surface";
 
 import { CatalogCoverImage } from "./catalog-cover-image";
 import type { MarketingCatalogCard } from "./catalog-types";
@@ -42,6 +45,7 @@ export async function CatalogTourCard({
   const detailHref = resolveMarketingLocalePath(`/tours/${tour.id}`, locale);
   const title = tour.title?.trim() || t("detail.untitled");
   const hasExtendedCatalogLayout = hasMarketingCatalogSurface(pluginId);
+  const catalogSurface = await resolveMarketingCatalogSurface(pluginId);
   const summaryLine = await buildCatalogListCardSummary(tour, t, { pluginId });
   const description =
     !hasExtendedCatalogLayout && summaryLine == null ? formatCatalogCardDescription(tour) : null;
@@ -55,7 +59,7 @@ export async function CatalogTourCard({
         tour.priceCurrency,
         dateLocale,
         t("detail.priceOnRequest"),
-        pluginId
+        catalogSurface
       )
     : null;
   const coverSrc = resolveHomeTourCoverUrl(tour.coverImageUrl);
@@ -74,7 +78,7 @@ export async function CatalogTourCard({
           preview={pricingPreview}
           canonicalPrice={priceLine}
           dateLocale={dateLocale}
-          pluginId={pluginId}
+          priceDisplayPolicy={catalogSurface}
           t={t}
         />
         {soldOut ? (

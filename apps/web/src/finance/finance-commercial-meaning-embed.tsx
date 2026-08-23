@@ -6,7 +6,7 @@ import type {
   CaseEncounterHostLifecycleEvent,
 } from "@/finance/finance-case-encounter-ui";
 
-import { OperatorCaseEncounterPanel } from "@/finance/denali-case-encounter-panel";
+import { FinanceCaseEncounterPanel } from "@/finance/finance-case-encounter-panel";
 import {
   FinanceCaseCommandReviewReceiptUi,
   type FinanceCaseCommandReviewReceiptContext,
@@ -120,7 +120,7 @@ export function FinanceCommercialMeaningEmbed({
       data-registration-id={registrationId}
       data-command-ui={commandUiEnabled ? "enabled" : "disabled"}
     >
-      <OperatorCaseEncounterPanel
+      <FinanceCaseEncounterPanel
         key={`${registrationId}:${reloadToken}`}
         registrationId={registrationId}
         counterpartyId={counterpartyId}

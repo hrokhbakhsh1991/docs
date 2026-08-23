@@ -1,6 +1,15 @@
 import { BANNER } from "../constants.mjs";
 import { assertNoDuplicateEmittedSymbols, importSpecifier } from "../utils.mjs";
 
+function namedImportLine(names, specifier) {
+  if (names.length <= 1) {
+    return `import { ${names.join(", ")} } from "${specifier}";`;
+  }
+  return `import {
+  ${names.join(",\n  ")},
+} from "${specifier}";`;
+}
+
 export function generateCanonicalTourBindings(manifests) {
   const withCanonicalTour = manifests.filter((m) => m.canonicalTour !== undefined);
   if (withCanonicalTour.length === 0) {
@@ -18,12 +27,14 @@ export const WORKSPACE_CANONICAL_TOUR_BINDINGS = [] as const;
     const ct = m.canonicalTour;
     const tw = m.tourWrite;
     if (tw === undefined) {
-      throw new Error(`workspace.manifest.json ${m.id}: canonicalTour requires tourWrite.workspaceTypeExport`);
+      throw new Error(
+        `workspace.manifest.json ${m.id}: canonicalTour requires tourWrite.workspaceTypeExport`
+      );
     }
-    importLines.add(`import { ${tw.workspaceTypeExport} } from "${m.package}";`);
+    importLines.add(namedImportLine([tw.workspaceTypeExport], m.package));
     const publishSpec = importSpecifier(m.package, ct.publishStatusModule);
     importLines.add(
-      `import { ${ct.publishStatusReadExport}, ${ct.publishTransitionExport} } from "${publishSpec}";`
+      namedImportLine([ct.publishStatusReadExport, ct.publishTransitionExport], publishSpec)
     );
     let migrateField = "";
     if (ct.migrateModule !== undefined && ct.migrateExport !== undefined) {
@@ -41,7 +52,7 @@ export const WORKSPACE_CANONICAL_TOUR_BINDINGS = [] as const;
           ct.legacySoTRootExport,
           ct.currentSchemaVersionExport,
           ct.legacySchemaVersionExport,
-          ct.wrapLegacyExport,
+          ct.wrapLegacyExport
         );
         migrateSurfaceFields = `
     legacySoTRoot: ${ct.legacySoTRootExport},
@@ -49,13 +60,16 @@ export const WORKSPACE_CANONICAL_TOUR_BINDINGS = [] as const;
     legacySchemaVersion: ${ct.legacySchemaVersionExport},
     wrapLegacyCanonical: ${ct.wrapLegacyExport},`;
       }
-      importLines.add(`import { ${migrateImports.join(", ")} } from "${migrateSpec}";`);
+      importLines.add(namedImportLine(migrateImports, migrateSpec));
       migrateField = `\n    migrateCanonical: ${ct.migrateExport},${migrateSurfaceFields}`;
     }
     let formProfileGhostPathsField = "";
-    if (ct.formProfileGhostPathsModule !== undefined && ct.formProfileGhostPathsExport !== undefined) {
+    if (
+      ct.formProfileGhostPathsModule !== undefined &&
+      ct.formProfileGhostPathsExport !== undefined
+    ) {
       const ghostSpec = importSpecifier(m.package, ct.formProfileGhostPathsModule);
-      importLines.add(`import { ${ct.formProfileGhostPathsExport} } from "${ghostSpec}";`);
+      importLines.add(namedImportLine([ct.formProfileGhostPathsExport], ghostSpec));
       formProfileGhostPathsField = `\n    formProfileGhostPaths: ${ct.formProfileGhostPathsExport},`;
     }
     const validationSyncOnlyField =

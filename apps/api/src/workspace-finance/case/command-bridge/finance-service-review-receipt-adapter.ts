@@ -18,7 +18,7 @@ export type FinanceReviewReceiptService = {
 
 /**
  * Bind live FinanceService to the bridge SoT port.
- * Denali uses this adapter; future workspaces inject their own port.
+ * Workspace-specific composition decides whether this adapter is the right SoT binding.
  */
 export function createFinanceServiceReviewReceiptAdapter(
   finance: FinanceReviewReceiptService,

@@ -104,6 +104,7 @@ export async function assertProductionDatabaseIntegrity(): Promise<void> {
   if (!databaseUrl) {
     return;
   }
+  const migrationMetadataUrl = process.env.DATABASE_URL_ADMIN?.trim() || databaseUrl;
 
   const probe = new PrismaClient({
     datasources: { db: { url: databaseUrl } },
@@ -123,7 +124,7 @@ export async function assertProductionDatabaseIntegrity(): Promise<void> {
         AND c.relname IN (${Prisma.join(TENANT_RLS_TABLES)})
     `;
     assertTenantTablesHaveRls(rlsRows);
-    await assertProductionMigrationHead(databaseUrl);
+    await assertProductionMigrationHead(migrationMetadataUrl);
   } finally {
     await probe.$disconnect();
   }

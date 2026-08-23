@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import type { ServerResponse } from "node:http";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 
 import { handleHttpError, resolveCorrelationId } from "./error-interceptor";
@@ -74,16 +76,60 @@ describe("handleHttpError — FINANCE_WORKSPACE_UNSUPPORTED (urban fail-closed)"
   it("maps FINANCE_WORKSPACE_UNSUPPORTED: workspaceType=urban to 404 stable code (not 500)", () => {
     const res = createMockResponse();
     void runWithTraceContext("finance-unsupported-trace", () => {
-      handleHttpError(
-        res,
-        new Error(`${FINANCE_WORKSPACE_UNSUPPORTED}: workspaceType=urban`)
-      );
+      handleHttpError(res, new Error(`${FINANCE_WORKSPACE_UNSUPPORTED}: workspaceType=urban`));
     });
     assert.equal(res.statusCode, 404);
     const body = JSON.parse(res.body) as { error?: string; code?: string };
     assert.equal(body.error, FINANCE_WORKSPACE_UNSUPPORTED);
     assert.equal(body.code, FINANCE_WORKSPACE_UNSUPPORTED);
     assert.equal(res.body.includes("workspaceType"), false);
+  });
+});
+
+describe("handleHttpError — generic forbidden domain tokens", () => {
+  function createMockResponse(): ServerResponse & {
+    statusCode: number;
+    body: string;
+  } {
+    return {
+      statusCode: 0,
+      body: "",
+      writableEnded: false,
+      setHeader() {},
+      end(payload?: string) {
+        if (payload !== undefined) {
+          this.body = payload;
+        }
+        this.writableEnded = true;
+      },
+    } as unknown as ServerResponse & { statusCode: number; body: string };
+  }
+
+  it("maps any safe *_FORBIDDEN token to 403 without product-specific branches", () => {
+    const res = createMockResponse();
+    void runWithTraceContext("generic-forbidden-trace", () => {
+      handleHttpError(res, new Error("ALPINE_PHOTO_REMINT_DEST_FORBIDDEN"));
+    });
+
+    assert.equal(res.statusCode, 403);
+    const body = JSON.parse(res.body) as { error?: string; code?: string };
+    assert.equal(body.error, "ALPINE_PHOTO_REMINT_DEST_FORBIDDEN");
+    assert.equal(body.code, "ALPINE_PHOTO_REMINT_DEST_FORBIDDEN");
+
+    const source = readFileSync(join(import.meta.dirname, "error-interceptor.ts"), "utf8");
+    assert.doesNotMatch(source, /DENALI_PHOTO_REMINT_DEST_FORBIDDEN/);
+    assert.match(source, /_FORBIDDEN/);
+  });
+});
+
+describe("handleHttpError — mapper source hygiene", () => {
+  it("does not duplicate workspace registration invalid branches", () => {
+    const source = readFileSync(join(import.meta.dirname, "error-interceptor.ts"), "utf8");
+    const urbanRegistrationInvalidBranches = source.match(
+      /message\.startsWith\("URBAN_REGISTRATION_INVALID"\)/g
+    );
+
+    assert.equal(urbanRegistrationInvalidBranches?.length, 1);
   });
 });
 

@@ -51,10 +51,7 @@ export type WorkspaceDraftShellCapability = {
    * Phase 4am — read canonical draft field (legacy path fallbacks).
    * Package-owned pure helper; draft shape is opaque to the shell.
    */
-  readonly readDraftFieldValue?: (
-    draft: Record<string, unknown>,
-    canonicalPath: string
-  ) => unknown;
+  readonly readDraftFieldValue?: (draft: Record<string, unknown>, canonicalPath: string) => unknown;
   /**
    * Phase 4am — optional tombstone shadow compare after successful push.
    * Package-owned; no-ops when mode is off.
@@ -211,6 +208,10 @@ export type WorkspaceFinanceNavCapability = {
   readonly supported: true;
 };
 
+export type WorkspaceFinanceCaseMeaningCapability = {
+  readonly supported: true;
+};
+
 /**
  * Finance ops panel resolve (Thin Shell Phase 4be).
  * Pure — no React. Return is `unknown` at the SDK boundary; shell casts.
@@ -233,9 +234,7 @@ export type MemberPortalModuleRendererProps = {
 };
 
 export type WorkspaceMemberPortalRenderersCapability = {
-  readonly renderers: Readonly<
-    Record<string, (props: MemberPortalModuleRendererProps) => unknown>
-  >;
+  readonly renderers: Readonly<Record<string, (props: MemberPortalModuleRendererProps) => unknown>>;
 };
 
 /**
@@ -261,9 +260,7 @@ export type WorkspaceWizardSurfacesCapability = {
  * Return is `unknown` at the SDK boundary; shell casts to its payload type.
  */
 export type WorkspaceTemplatePresetCapability = {
-  readonly buildFullTemplatePreset: (
-    seedLabel?: string
-  ) => unknown | Promise<unknown>;
+  readonly buildFullTemplatePreset: (seedLabel?: string) => unknown | Promise<unknown>;
 };
 
 /**
@@ -324,9 +321,17 @@ export type WorkspaceTourListCategoryCapability = {
   readonly filterGroups: readonly WorkspaceTourListCategoryFilterGroup[];
   readonly isTourKindSlug: (value: string | null) => boolean;
   readonly isTourCategoryGroup: (value: string) => boolean;
-  readonly resolveTourKindDuration: (
-    category: string | null
-  ) => "single_day" | "multi_day" | null;
+  readonly resolveTourKindDuration: (category: string | null) => "single_day" | "multi_day" | null;
+};
+
+/** Workspace-owned commercial presentation and prepayment policy. */
+export type WorkspaceTourCommercialCapability = {
+  readonly irrDisplayUnit?: "toman";
+  readonly resolveSuggestedPrepaymentMinor?: (input: {
+    readonly tourCanonicalData: unknown;
+    readonly invoiceTotalMinor: string;
+    readonly balanceDueMinor: string;
+  }) => string | null;
 };
 
 /**
@@ -397,6 +402,8 @@ export type WorkspacePluginCapabilities = {
   readonly templateEditor?: WorkspaceTemplateEditorCapability;
   /** Phase 4ax — pure tour-list category/filter surface. */
   readonly tourListCategory?: WorkspaceTourListCategoryCapability;
+  /** Optional workspace-owned tour commercial presentation/prepayment policy. */
+  readonly tourCommercial?: WorkspaceTourCommercialCapability;
   /** Phase 4az — pure destination settings surface. */
   readonly settingsDestination?: WorkspaceSettingsDestinationCapability;
   /** Phase 4ba — package-owned settings equipment UI warm (no React on plugin). */
@@ -407,6 +414,7 @@ export type WorkspacePluginCapabilities = {
   readonly operatorShellNav?: WorkspaceOperatorShellNavCapability;
   /** Phase 4bd — pure finance hub enablement (workspaceFinance.supported). */
   readonly financeNav?: WorkspaceFinanceNavCapability;
+  readonly financeCaseMeaning?: WorkspaceFinanceCaseMeaningCapability;
   /** Phase 4be — pure finance ops panel resolve (theme-aware). */
   readonly financeOps?: WorkspaceFinanceOpsCapability;
   /** Phase 4bf — pure booking ops panel resolve (theme-aware). */
@@ -607,6 +615,13 @@ export function resolveTourListCategoryCapability(
   return plugin.capabilities?.tourListCategory;
 }
 
+/** Resolve workspace-owned tour commercial policy from the capability bag. */
+export function resolveTourCommercialCapability(
+  plugin: Pick<WorkspacePluginCapabilityHostSlice, "capabilities">
+): WorkspaceTourCommercialCapability | undefined {
+  return plugin.capabilities?.tourCommercial;
+}
+
 /** Resolve settings-destination surface from the bag (no legacy fallback). */
 export function resolveSettingsDestinationCapability(
   plugin: Pick<WorkspacePluginCapabilityHostSlice, "capabilities">
@@ -654,6 +669,12 @@ export function resolveFinanceNavCapability(
   plugin: Pick<WorkspacePluginCapabilityHostSlice, "capabilities">
 ): WorkspaceFinanceNavCapability | undefined {
   return plugin.capabilities?.financeNav;
+}
+
+export function resolveFinanceCaseMeaningCapability(
+  plugin: Pick<WorkspacePluginCapabilityHostSlice, "capabilities">
+): WorkspaceFinanceCaseMeaningCapability | undefined {
+  return plugin.capabilities?.financeCaseMeaning;
 }
 
 /** Resolve finance-ops panel capability from the bag (no legacy fallback). */

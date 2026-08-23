@@ -33,17 +33,16 @@ export async function emitTourCreatedPaidLedgerExclusive(
 ): Promise<TourCreatedPaidLedgerExclusiveResult> {
   const registrationId = input.registrationId.trim();
   const paidAmountMinor = input.paidAmountMinor.trim();
+  const currency = input.currency.trim();
   const tourCreatedDomainEventId = input.tourCreatedDomainEventId.trim();
-  if (!registrationId || !paidAmountMinor || !tourCreatedDomainEventId) {
+  if (!registrationId || !paidAmountMinor || !currency || !tourCreatedDomainEventId) {
     return "skipped";
   }
 
   const workspaceType = await resolveFinanceWorkspaceTypeForTenant(input.tenantId);
   const policy = await resolveFinanceLedgerPolicy(workspaceType);
   if (typeof policy.buildTourCreatedPaidJournal !== "function") {
-    throw new Error(
-      `FINANCE_TOUR_CREATED_LEDGER_UNSUPPORTED: workspaceType=${workspaceType}`
-    );
+    throw new Error(`FINANCE_TOUR_CREATED_LEDGER_UNSUPPORTED: workspaceType=${workspaceType}`);
   }
 
   return withTenantRls(input.tenantId, async (tx) => {
@@ -52,7 +51,6 @@ export async function emitTourCreatedPaidLedgerExclusive(
       return "skipped";
     }
 
-    const currency = input.currency.trim() || "USD";
     const capture = policy.buildTourCreatedPaidJournal!({
       tenantId: input.tenantId,
       registrationId,

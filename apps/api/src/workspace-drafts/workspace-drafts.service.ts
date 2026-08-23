@@ -8,6 +8,7 @@ import {
   WorkspaceDraftForbiddenError,
   WorkspaceDraftNotFoundError,
   WorkspaceDraftTombstoneInvariantError,
+  WorkspaceDraftWorkspaceTypeRequiredError,
 } from "./workspace-drafts.errors";
 import { emitWorkspaceDraftEvent } from "./workspace-draft-events-emitter";
 import {
@@ -19,10 +20,7 @@ import type {
   WorkspaceDraftEventListItem,
   WorkspaceDraftEventRecord,
 } from "./workspace-draft-events.types";
-import type {
-  WorkspaceDraftIndexItem,
-  WorkspaceDraftSyncPayload,
-} from "./workspace-drafts.types";
+import type { WorkspaceDraftIndexItem, WorkspaceDraftSyncPayload } from "./workspace-drafts.types";
 
 export type WorkspaceDraftRouteParams = {
   readonly workspaceId: string;
@@ -106,12 +104,15 @@ export async function patchWorkspaceDraft(
 
   if (ENVELOPE_TOMBSTONE_PATCH_NAMESPACES.has(params.draftNamespace)) {
     const existing = await repo.get(key);
-    const workspaceType = getActiveWorkspaceType() ?? "starter";
+    const workspaceType = getActiveWorkspaceType();
+    if (workspaceType === undefined) {
+      throw new WorkspaceDraftWorkspaceTypeRequiredError();
+    }
     const plugin = await resolveWorkspacePluginForType(workspaceType);
     dataToPersist = reapplyServerEnvelopeTombstones(
       existing?.data,
       body.data,
-      plugin.draftTombstone,
+      plugin.draftTombstone
     );
     const tombstoneCheck = assertEnvelopeTombstoneInvariants(dataToPersist);
     if (!tombstoneCheck.ok) {

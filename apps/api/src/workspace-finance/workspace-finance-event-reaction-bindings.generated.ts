@@ -5,6 +5,13 @@
  */
 
 export const WORKSPACE_FINANCE_EVENT_REACTION_BINDINGS = {
+  "alpine": {
+    requiresHostIo: false as const,
+    create: async () => {
+      const mod = await import("@app-tour/workspace-alpine/host/finance");
+      return new mod.AlpineTourCreatedFinanceReactionAdapter();
+    },
+  },
   "denali": {
     requiresHostIo: true as const,
     create: async (hostIo: unknown) => {

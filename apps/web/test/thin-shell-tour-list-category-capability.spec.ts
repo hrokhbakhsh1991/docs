@@ -4,15 +4,28 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { describe, it } from "node:test";
+import { after, before, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { getWorkspacePlugin as getDenaliPlugin } from "@app-tour/workspace-denali";
 import { resolveTourListCategoryCapability } from "@app-tour/workspace-sdk";
 
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const previousAllowDenaliWebPlugin = process.env.ALLOW_DENALI_WEB_PLUGIN;
 
 describe("thin-shell-tour-list-category-capability — Phase 4ax", () => {
+  before(() => {
+    process.env.ALLOW_DENALI_WEB_PLUGIN = "true";
+  });
+
+  after(() => {
+    if (previousAllowDenaliWebPlugin === undefined) {
+      delete process.env.ALLOW_DENALI_WEB_PLUGIN;
+      return;
+    }
+    process.env.ALLOW_DENALI_WEB_PLUGIN = previousAllowDenaliWebPlugin;
+  });
+
   it("TS-4AX-01 denali publishes capabilities.tourListCategory surface", () => {
     const plugin = getDenaliPlugin();
     const surface = resolveTourListCategoryCapability(plugin);
@@ -37,10 +50,7 @@ describe("thin-shell-tour-list-category-capability — Phase 4ax", () => {
       resolve(WEB_ROOT, "src/features/tours/tour-list-category-logic.ts"),
       "utf8"
     );
-    const page = readFileSync(
-      resolve(WEB_ROOT, "app/(app)/tours/tours-page-client.tsx"),
-      "utf8"
-    );
+    const page = readFileSync(resolve(WEB_ROOT, "app/(app)/tours/tours-page-client.tsx"), "utf8");
 
     assert.match(registry, /resolveTourListCategoryCapability/);
     assert.match(registry, /app-cloud\.tourListCategoryCache/);
@@ -54,9 +64,8 @@ describe("thin-shell-tour-list-category-capability — Phase 4ax", () => {
   });
 
   it("TS-4AX-03 ensure + sync resolve publish surface under denali plugin id", async () => {
-    const { ensureTourListCategorySurface, resolveTourListCategorySurface } = await import(
-      "../src/features/tours/tour-list-category-registry"
-    );
+    const { ensureTourListCategorySurface, resolveTourListCategorySurface } =
+      await import("../src/features/tours/tour-list-category-registry");
     const warmed = await ensureTourListCategorySurface("denali");
     assert.ok(warmed);
     assert.ok(warmed.isTourKindSlug("mountain_day"));

@@ -1,7 +1,7 @@
 /**
  * I-06 — thin host adapter for tour canonical transport modes.
  * Single place for path knowledge (`details.tripDetails.transportModes` + fallbacks).
- * No import from `packages/workspaces/denali` — capability/translator stays elsewhere.
+ * No import from workspace package internals — capability/translator stays elsewhere.
  *
  * @see docs/phase-9/appendices/TOURS-WORKSPACE-UX-HARDENING-PLAN.md (I-06)
  */
@@ -13,7 +13,9 @@ function readTransportModesValue(raw: unknown): readonly string[] {
   if (!Array.isArray(raw)) {
     return [];
   }
-  return raw.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
+  return raw.filter(
+    (entry): entry is string => typeof entry === "string" && entry.trim().length > 0
+  );
 }
 
 function readNestedTransportModes(

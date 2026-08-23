@@ -11,6 +11,7 @@ export type FinanceWorkspaceCapabilities = {
   readonly ledgerCapture: boolean;
   readonly eventReactions: FinanceEventReactionCapability;
   readonly ops: boolean;
+  readonly caseMeaning: boolean;
 };
 
 /**
@@ -20,17 +21,26 @@ export type FinanceWorkspaceCapabilities = {
  * Both may claim ledgerCapture for HTTP receipt/payment journals.
  */
 export const WORKSPACE_FINANCE_CAPABILITIES = {
-  "denali": {
+  alpine: {
+    supported: true as const,
+    ledgerCapture: true as const,
+    eventReactions: "ack-only" as const,
+    ops: true as const,
+    caseMeaning: false as const,
+  },
+  denali: {
     supported: true as const,
     ledgerCapture: true as const,
     eventReactions: "durable-outbox" as const,
     ops: true as const,
+    caseMeaning: true as const,
   },
   "finance-ws5": {
     supported: true as const,
     ledgerCapture: true as const,
     eventReactions: "ack-only" as const,
     ops: true as const,
+    caseMeaning: false as const,
   },
 } as const satisfies Record<string, FinanceWorkspaceCapabilities>;
 
@@ -41,7 +51,9 @@ export function getFinanceWorkspaceCapabilities(
   if (key.length === 0) {
     return null;
   }
-  const caps = (WORKSPACE_FINANCE_CAPABILITIES as Record<string, FinanceWorkspaceCapabilities>)[key];
+  const caps = (WORKSPACE_FINANCE_CAPABILITIES as Record<string, FinanceWorkspaceCapabilities>)[
+    key
+  ];
   return caps ?? null;
 }
 
@@ -51,7 +63,7 @@ export function listFinanceCapableWorkspaceTypes(): readonly string[] {
 
 export function financeWorkspaceHasCapability(
   workspaceType: string,
-  capability: "ledgerCapture" | "ops"
+  capability: "ledgerCapture" | "ops" | "caseMeaning"
 ): boolean {
   const caps = getFinanceWorkspaceCapabilities(workspaceType);
   if (caps === null) {

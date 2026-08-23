@@ -2,7 +2,7 @@
  * Curated Case public surface — `@app-tour/finance-core/case` (PR4.5-B).
  *
  * Allowed: execution, shadow, ports, portable facts, CaseOutput types, assembler.
- * Forbidden: rules/* internals, Denali/adapters, Prisma, Case persistence.
+ * Forbidden: rules/* internals, product adapters, Prisma, Case persistence.
  */
 
 export type {

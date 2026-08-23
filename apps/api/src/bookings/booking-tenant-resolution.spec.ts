@@ -164,7 +164,7 @@ describe("BK-B1.5 booking tenant resolution", { concurrency: false }, () => {
     assert.equal(getBookingsRepository(), repo);
   });
 
-  it("unsupported tenant / workspace fails closed (no silent Denali fallback)", async () => {
+  it("unsupported tenant / workspace fails closed (no product silent fallback)", async () => {
     await assert.rejects(
       () => resolveBookingWorkspaceTypeForTenant(URBAN_TENANT_ID),
       (error: unknown) =>
@@ -207,10 +207,15 @@ describe("BK-B1.5 booking tenant resolution", { concurrency: false }, () => {
 
   it("boot misuse: no tenant-less resolveBookingsService / BOOT_BOOKING_WORKSPACE_TYPE", () => {
     const composition = readFileSync(join(here, "create-bookings-service.ts"), "utf8");
-    const resolveMod = readFileSync(join(here, "resolve-booking-workspace-type-for-tenant.ts"), "utf8");
+    const resolveMod = readFileSync(
+      join(here, "resolve-booking-workspace-type-for-tenant.ts"),
+      "utf8"
+    );
     assert.doesNotMatch(composition, /export function resolveBookingsService\s*\(/);
     assert.doesNotMatch(composition, /BOOT_BOOKING_WORKSPACE_TYPE/);
+    assert.doesNotMatch(composition, /Denali host/);
     assert.doesNotMatch(resolveMod, /BOOT_BOOKING_WORKSPACE_TYPE/);
+    assert.doesNotMatch(resolveMod, /Denali silent fallback/);
     assert.match(composition, /export async function resolveBookingsServiceForTenant/);
   });
 

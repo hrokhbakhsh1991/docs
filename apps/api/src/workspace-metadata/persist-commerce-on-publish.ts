@@ -10,7 +10,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 /**
  * P5-C-N-003 — ensure workspace definition publish payloads carry explicit commerce config.
- * Default: offline_receipt (Denali-compatible baseline for non-gateway workspaces).
+ * Default: offline receipt for non-gateway workspaces.
  */
 export function mergeCommerceIntoWorkspaceDefinitionPayload(payload: unknown): unknown {
   if (!isPlainObject(payload)) {

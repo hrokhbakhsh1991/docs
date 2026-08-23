@@ -18,16 +18,27 @@ describe("commerce-schema (P5-C SCH-01..03)", () => {
       parseWorkspaceCommerceConfig({ paymentMode: "offline_receipt" }),
       DEFAULT_WORKSPACE_COMMERCE_CONFIG
     );
-    assert.deepEqual(parseWorkspaceCommerceConfig({ paymentMode: "gateway", gatewayProvider: "zibal" }), {
-      paymentMode: "gateway",
-      gatewayProvider: "zibal",
-      currency: "IRR",
-    });
+    assert.deepEqual(
+      parseWorkspaceCommerceConfig({
+        paymentMode: "gateway",
+        gatewayProvider: "zibal",
+        currency: "CAD",
+      }),
+      {
+        paymentMode: "gateway",
+        gatewayProvider: "zibal",
+        currency: "CAD",
+      }
+    );
   });
 
   it("SCH-02 gatewayProvider accepts zibal, stripe, or null", () => {
     assert.equal(
-      parseWorkspaceCommerceConfig({ paymentMode: "gateway", gatewayProvider: "stripe" }).gatewayProvider,
+      parseWorkspaceCommerceConfig({
+        paymentMode: "gateway",
+        gatewayProvider: "stripe",
+        currency: "USD",
+      }).gatewayProvider,
       "stripe"
     );
     assert.equal(parseWorkspaceCommerceConfig({}).gatewayProvider, null);
@@ -38,8 +49,24 @@ describe("commerce-schema (P5-C SCH-01..03)", () => {
     assert.equal(workspaceCommerceConfigSchema.parse({}).paymentMode, "offline_receipt");
   });
 
+  it("SCH-03b default commerce does not invent a workspace currency", () => {
+    assert.equal(DEFAULT_WORKSPACE_COMMERCE_CONFIG.currency, "");
+    assert.equal(workspaceCommerceConfigSchema.parse({}).currency, "");
+  });
+
   it("GU-01 shape rejects gateway mode without provider", () => {
-    const result = safeParseWorkspaceCommerceConfig({ paymentMode: "gateway", gatewayProvider: null });
+    const result = safeParseWorkspaceCommerceConfig({
+      paymentMode: "gateway",
+      gatewayProvider: null,
+    });
+    assert.equal(result.success, false);
+  });
+
+  it("GU-01b shape rejects gateway mode without explicit currency", () => {
+    const result = safeParseWorkspaceCommerceConfig({
+      paymentMode: "gateway",
+      gatewayProvider: "zibal",
+    });
     assert.equal(result.success, false);
   });
 

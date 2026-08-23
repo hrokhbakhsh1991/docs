@@ -12,6 +12,7 @@ const ADMIN_URL =
 /** NOBYPASSRLS app role — must not see rows without session tenant. */
 const APP_TOUR_URL =
   process.env.DATABASE_URL_APP_TOUR?.trim() ??
+  process.env.DATABASE_URL?.trim() ??
   "postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db";
 
 /**

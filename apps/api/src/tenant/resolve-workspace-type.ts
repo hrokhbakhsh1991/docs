@@ -1,6 +1,5 @@
 import { resolveRegisteredTenantById } from "./resolve-registered-tenant";
-
-const URBAN_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000004";
+import { resolveWorkspaceDevSmokeTenantByTenantId } from "../settings/resolve-workspace-dev-smoke-tenant";
 
 export const WORKSPACE_TYPE_UNRESOLVED = "WORKSPACE_TYPE_UNRESOLVED";
 
@@ -26,10 +25,11 @@ export async function resolveWorkspaceTypeForTenant(tenantId: string): Promise<s
   }
   const registered = await resolveRegisteredTenantById(tenantId);
   const override = process.env.URBAN_TEST_WORKSPACE_TYPE?.trim();
+  const smokeBinding = resolveWorkspaceDevSmokeTenantByTenantId(tenantId);
   if (
     process.env.NODE_ENV === "test" &&
     override &&
-    (tenantId === URBAN_SMOKE_TENANT_ID || registered?.workspaceType === "urban")
+    (smokeBinding?.workspaceId === override || registered?.workspaceType === override)
   ) {
     return override;
   }

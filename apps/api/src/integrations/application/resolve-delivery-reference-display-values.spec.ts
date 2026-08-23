@@ -35,6 +35,7 @@ describe("resolveDeliveryReferenceDisplayValues", () => {
     const values = await resolveDeliveryReferenceDisplayValues({
       tenantId,
       workspaceType: "denali",
+      providerId: "telegram",
       payload: {
         tenantId,
         destinationId: destination.id,
@@ -61,9 +62,32 @@ describe("resolveDeliveryReferenceDisplayValues", () => {
     const values = await resolveDeliveryReferenceDisplayValues({
       tenantId: "tenant-a",
       workspaceType: "starter",
+      providerId: "telegram",
       payload: { destinationId: "dest-1" },
       eligibleFieldIds: ["denali.destination"],
       definitions: [],
+    });
+
+    assert.deepEqual(values, {});
+  });
+
+  it("returns an empty map when the provider does not declare reference display fields", async () => {
+    process.env.STORAGE_DRIVER = "memory";
+    const values = await resolveDeliveryReferenceDisplayValues({
+      tenantId: "tenant-a",
+      workspaceType: "denali",
+      providerId: "email",
+      payload: { destinationId: "dest-1" },
+      eligibleFieldIds: ["denali.destination"],
+      definitions: [
+        {
+          id: "denali.destination",
+          workspaceType: "denali",
+          canonicalPath: "destinationId",
+          kind: "text",
+          version: 1,
+        },
+      ],
     });
 
     assert.deepEqual(values, {});

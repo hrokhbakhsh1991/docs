@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
 
-import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali";
-import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban";
-
 import {
   clearWorkspaceIntakePluginRegistryForTests,
   registerWorkspaceIntakePlugin,
@@ -14,18 +11,21 @@ import {
   resolveIntakeSubmitValues,
   validateIntakeSchemaValues,
 } from "../src/catalog/resolve-intake-schema";
+import {
+  denaliCatalogIntakeFixture,
+  urbanCatalogIntakeFixture,
+} from "./fixtures/catalog-intake-plugins";
 
 function bootstrapIntakePluginsForTests(): void {
   clearWorkspaceIntakePluginRegistryForTests();
-  for (const plugin of [getDenaliWorkspacePlugin(), getUrbanWorkspacePlugin()]) {
-    if (plugin.catalogIntake === undefined) {
-      continue;
-    }
-    registerWorkspaceIntakePlugin({
-      id: plugin.id,
-      catalogIntake: plugin.catalogIntake,
-    });
-  }
+  registerWorkspaceIntakePlugin({
+    id: "denali",
+    catalogIntake: denaliCatalogIntakeFixture,
+  });
+  registerWorkspaceIntakePlugin({
+    id: "urban",
+    catalogIntake: urbanCatalogIntakeFixture,
+  });
 }
 
 describe("resolve-intake-schema (registry)", () => {
@@ -45,12 +45,10 @@ describe("resolve-intake-schema (registry)", () => {
 
   it("SDK-SCH-02 urban plugin schema maps email intake", () => {
     const schema = resolveIntakeSchema("urban");
-    assert.deepEqual(schema.fields.map((field) => field.id), [
-      "fullName",
-      "partySize",
-      "email",
-      "notes",
-    ]);
+    assert.deepEqual(
+      schema.fields.map((field) => field.id),
+      ["fullName", "partySize", "email", "notes"]
+    );
     assert.equal(schema.features.notesAtIntake, true);
     assert.equal(schema.features.successDataAttributes?.["data-urban-registration-success"], true);
   });
@@ -70,7 +68,10 @@ describe("resolve-intake-schema (registry)", () => {
         birthDateRequired: true,
       },
     });
-    assert.deepEqual(effective.fields.map((field) => field.id), []);
+    assert.deepEqual(
+      effective.fields.map((field) => field.id),
+      []
+    );
   });
 
   it("SDK-SCH-04b effective schema omits participant fields when tour flags false", () => {
@@ -78,7 +79,10 @@ describe("resolve-intake-schema (registry)", () => {
       registrantTarget: "self",
       session: {},
     });
-    assert.deepEqual(effective.fields.map((field) => field.id), ["fullName"]);
+    assert.deepEqual(
+      effective.fields.map((field) => field.id),
+      ["fullName"]
+    );
   });
 
   it("SDK-SCH-05 submit values merge session fallbacks for hidden fields", () => {

@@ -7,12 +7,24 @@
  */
 import {
   resolveFinanceOpsCapability,
+  resolveFinanceCaseMeaningCapability,
 } from "@app-tour/workspace-sdk";
 
 import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
 import type { FinanceOpsCapability } from "@/finance/finance-ops-capability-contract";
 
 export type { FinanceOpsCapability, FinanceOpsManifest } from "@/finance/finance-ops-capability-contract";
+
+export async function resolveFinanceCaseMeaningForHub(pluginId: string): Promise<boolean> {
+  const id = pluginId.trim();
+  if (id.length === 0) return false;
+  try {
+    const plugin = await loadBootstrapWorkspacePlugin(id);
+    return resolveFinanceCaseMeaningCapability(plugin)?.supported === true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Resolve finance ops capability for the command center.

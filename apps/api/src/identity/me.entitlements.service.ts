@@ -9,11 +9,9 @@ import {
 
 import { getIdentityRepository } from "./create-identity-repository";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
+import { UNAUTHORIZED_MISSING_WORKSPACE_ID } from "../tenant-kernel/auth-errors";
 
-export type MemberEntitlementDenialReason =
-  | "not_entitled"
-  | "module_disabled"
-  | "plan_limit";
+export type MemberEntitlementDenialReason = "not_entitled" | "module_disabled" | "plan_limit";
 
 export type MemberEntitlementDenial = {
   readonly key: string;
@@ -37,6 +35,11 @@ export type MemberEntitlementsResponse = {
 export async function getMemberEntitlements(
   auth: TenantAuthContext
 ): Promise<MemberEntitlementsResponse> {
+  const workspaceId = auth.workspaceId?.trim();
+  if (workspaceId === undefined || workspaceId.length === 0) {
+    throw new Error(UNAUTHORIZED_MISSING_WORKSPACE_ID);
+  }
+
   const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
   const pluginId = resolveWorkspacePluginIdForType(
     workspaceType as WorkspaceTypeId,
@@ -44,7 +47,7 @@ export async function getMemberEntitlements(
   );
 
   if (pluginId === null) {
-    return emptyMemberEntitlements(auth.tenantId, workspaceType);
+    return emptyMemberEntitlements(auth.tenantId, workspaceId);
   }
 
   try {
@@ -55,7 +58,7 @@ export async function getMemberEntitlements(
     return Object.freeze({
       ok: true,
       tenantId: auth.tenantId,
-      workspaceId: pluginId,
+      workspaceId,
       evaluatedAt: new Date().toISOString(),
       granted: evaluation.granted,
       denied: evaluation.denied,
@@ -69,7 +72,7 @@ export async function getMemberEntitlements(
     });
   } catch (error) {
     if (error instanceof MemberPortalNotConfiguredError) {
-      return emptyMemberEntitlements(auth.tenantId, pluginId);
+      return emptyMemberEntitlements(auth.tenantId, workspaceId);
     }
     throw error;
   }

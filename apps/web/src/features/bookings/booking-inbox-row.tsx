@@ -82,8 +82,10 @@ export function BookingInboxRow({
       data-queue-row="dense"
       role="option"
       aria-selected={selected}
-      className={`group flex w-full min-w-0 items-center gap-2 border-b border-border/60 last:border-b-0 ${
-        selected ? "bg-primary/5" : "hover:bg-muted/40"
+      className={`group flex w-full min-w-0 items-stretch gap-2 border-b border-border/60 transition-colors last:border-b-0 ${
+        selected
+          ? "bg-primary/5 shadow-[inset_0_0_0_1px_rgb(59_130_246/0.16)]"
+          : "hover:bg-muted/40 focus-within:bg-muted/30"
       } ${inlineApproveArmed ? "ring-2 ring-inset ring-primary/40" : ""}`}
     >
       <span
@@ -104,12 +106,12 @@ export function BookingInboxRow({
       <button
         type="button"
         onClick={onSelect}
-        className="min-w-0 flex-1 py-2 pe-2 text-start"
+        className="min-w-0 flex-1 py-2.5 pe-2 text-start outline-none"
       >
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <p className="truncate text-sm font-medium leading-5">{item.guestLabel}</p>
+              <p className="truncate text-sm font-medium leading-5 text-foreground">{item.guestLabel}</p>
               <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
                 {identityLabel}
               </Badge>
@@ -124,7 +126,7 @@ export function BookingInboxRow({
                 : ""}
             </p>
           </div>
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 pt-0.5">
             <BookingDepartureUrgencyBadge item={item} />
             <Badge variant={bookingStatusBadgeVariant(item.status)} className="h-5 px-1.5 text-[10px]">
               {t(`status.${item.status}`)}

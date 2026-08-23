@@ -8,6 +8,9 @@ cd "$ROOT"
 # Dist-backed packages must precede consumers (denali needs contracts + finance-http + platform-core).
 bash scripts/with-monorepo-build-lock.sh bash -c '
   set -euo pipefail
+  # Root build establishes every API workspace dependency above; prevent the
+  # API package prebuild from rebuilding the same graph before tsc.
+  export APP_TOUR_SKIP_API_WORKSPACE_DEPS=1
   pnpm --dir packages/catalog-registration-auth run build
   pnpm --dir packages/workspace-sdk run build
   pnpm --dir packages/workspace-plugin-host run build

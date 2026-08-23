@@ -68,15 +68,15 @@ function StepRail({
   const t = useTranslations("bookings.adminDialog.steps");
   const activeIndex = steps.indexOf(activeStep);
   return (
-    <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="operator-admin-registration-steps">
+    <ol
+      className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+      data-testid="operator-admin-registration-steps"
+    >
       {steps.map((step, index) => {
-        const state = index < activeIndex ? "complete" : index === activeIndex ? "current" : "upcoming";
+        const state =
+          index < activeIndex ? "complete" : index === activeIndex ? "current" : "upcoming";
         return (
-          <li
-            key={step}
-            className="rounded-md border px-3 py-2 text-xs"
-            data-step-state={state}
-          >
+          <li key={step} className="rounded-md border px-3 py-2 text-xs" data-step-state={state}>
             <div className="font-medium">{index + 1}</div>
             <div className="text-muted-foreground">{t(step)}</div>
           </li>
@@ -104,7 +104,9 @@ export function AdminAssistedRegistrationDialog({
   const visibleSteps = useMemo(
     () =>
       ADMIN_ASSISTED_REGISTRATION_STEPS.filter((step) =>
-        step === "requirements" ? requirements !== null && stepHasVisibleRequirements(requirements) : true
+        step === "requirements"
+          ? requirements !== null && stepHasVisibleRequirements(requirements)
+          : true
       ),
     [requirements]
   );
@@ -177,7 +179,7 @@ export function AdminAssistedRegistrationDialog({
   const transportChoices = requirements === null ? [] : resolveTransportChoices(requirements);
   const basePriceLabel =
     requirements?.basePricePerPerson !== null && requirements?.basePricePerPerson !== undefined
-      ? formatAdminAssistedMoneyLabel(requirements.basePricePerPerson, "IRR")
+      ? formatAdminAssistedMoneyLabel(requirements.basePricePerPerson)
       : null;
 
   const updateField = <K extends keyof AdminAssistedRegistrationFormState>(
@@ -272,15 +274,20 @@ export function AdminAssistedRegistrationDialog({
         throw new Error(readErrorCode(created, `BOOKING_CREATE_HTTP_${createResponse.status}`));
       }
       if (approveNow) {
-        const approveResponse = await fetch(`/api/bookings/${encodeURIComponent(created.id)}/approve`, {
-          method: "POST",
-        });
+        const approveResponse = await fetch(
+          `/api/bookings/${encodeURIComponent(created.id)}/approve`,
+          {
+            method: "POST",
+          }
+        );
         if (!approveResponse.ok) {
           const approvePayload = (await approveResponse.json().catch(() => ({}))) as {
             code?: string;
             error?: string;
           };
-          throw new Error(readErrorCode(approvePayload, `BOOKING_APPROVE_HTTP_${approveResponse.status}`));
+          throw new Error(
+            readErrorCode(approvePayload, `BOOKING_APPROVE_HTTP_${approveResponse.status}`)
+          );
         }
       }
       onOpenChange(false);
@@ -291,7 +298,8 @@ export function AdminAssistedRegistrationDialog({
     }
   };
 
-  const localizedError = error === null ? null : resolveCodedErrorMessage(tErrors, error) ?? error;
+  const localizedError =
+    error === null ? null : (resolveCodedErrorMessage(tErrors, error) ?? error);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -364,7 +372,9 @@ export function AdminAssistedRegistrationDialog({
               {form.registrantMode === "member" ? (
                 <div className="space-y-4 rounded-lg border p-4">
                   <div className="space-y-2">
-                    <Label htmlFor="admin-registration-member-search">{t("fields.memberSearch")}</Label>
+                    <Label htmlFor="admin-registration-member-search">
+                      {t("fields.memberSearch")}
+                    </Label>
                     <Input
                       id="admin-registration-member-search"
                       value={memberSearch}
@@ -380,7 +390,9 @@ export function AdminAssistedRegistrationDialog({
                     <div className="rounded-md bg-muted/40 p-3 text-sm">
                       <p className="font-medium">{form.memberDisplayName || form.guestLabel}</p>
                       <p className="text-muted-foreground">
-                        {[form.guestPhone, form.guestEmail].filter((value) => value.trim().length > 0).join(" · ")}
+                        {[form.guestPhone, form.guestEmail]
+                          .filter((value) => value.trim().length > 0)
+                          .join(" · ")}
                       </p>
                     </div>
                   ) : null}
@@ -402,10 +414,14 @@ export function AdminAssistedRegistrationDialog({
                           <span>
                             <span className="block font-medium">{user.displayName}</span>
                             <span className="block text-xs text-muted-foreground">
-                              {[user.phone, user.email].filter((value) => (value ?? "").trim().length > 0).join(" · ")}
+                              {[user.phone, user.email]
+                                .filter((value) => (value ?? "").trim().length > 0)
+                                .join(" · ")}
                             </span>
                           </span>
-                          <span className="text-xs text-muted-foreground">{t("actions.select")}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {t("actions.select")}
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -420,43 +436,43 @@ export function AdminAssistedRegistrationDialog({
               ) : null}
 
               {form.registrantMode === "guest" ? (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="admin-registration-name">{t("fields.fullName")}</Label>
-                  <Input
-                    id="admin-registration-name"
-                    value={form.guestLabel}
-                    onChange={(event) => updateField("guestLabel", event.target.value)}
-                  />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="admin-registration-name">{t("fields.fullName")}</Label>
+                    <Input
+                      id="admin-registration-name"
+                      value={form.guestLabel}
+                      onChange={(event) => updateField("guestLabel", event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-registration-phone">{t("fields.phone")}</Label>
+                    <LocalizedNumericInput
+                      id="admin-registration-phone"
+                      mode="phone"
+                      value={form.guestPhone}
+                      onChange={(value) => updateField("guestPhone", value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-registration-email">{t("fields.email")}</Label>
+                    <Input
+                      id="admin-registration-email"
+                      type="email"
+                      value={form.guestEmail}
+                      onChange={(event) => updateField("guestEmail", event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-registration-party">{t("fields.partySize")}</Label>
+                    <LocalizedNumericInput
+                      id="admin-registration-party"
+                      mode="digits"
+                      value={form.partySize}
+                      onChange={(value) => updateField("partySize", value)}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="admin-registration-phone">{t("fields.phone")}</Label>
-                  <LocalizedNumericInput
-                    id="admin-registration-phone"
-                    mode="phone"
-                    value={form.guestPhone}
-                    onChange={(value) => updateField("guestPhone", value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="admin-registration-email">{t("fields.email")}</Label>
-                  <Input
-                    id="admin-registration-email"
-                    type="email"
-                    value={form.guestEmail}
-                    onChange={(event) => updateField("guestEmail", event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="admin-registration-party">{t("fields.partySize")}</Label>
-                  <LocalizedNumericInput
-                    id="admin-registration-party"
-                    mode="digits"
-                    value={form.partySize}
-                    onChange={(value) => updateField("partySize", value)}
-                  />
-                </div>
-              </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
@@ -593,10 +609,14 @@ export function AdminAssistedRegistrationDialog({
             <div className="space-y-4 text-sm">
               <div className="rounded-lg border p-4">
                 <p className="font-medium">
-                  {form.registrantMode === "member" ? form.memberDisplayName || form.guestLabel : form.guestLabel}
+                  {form.registrantMode === "member"
+                    ? form.memberDisplayName || form.guestLabel
+                    : form.guestLabel}
                 </p>
                 <p className="text-muted-foreground">
-                  {[form.guestPhone, form.guestEmail].filter((value) => value.trim().length > 0).join(" · ")}
+                  {[form.guestPhone, form.guestEmail]
+                    .filter((value) => value.trim().length > 0)
+                    .join(" · ")}
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">
                   {t(`registrantMode.${form.registrantMode}`)}
@@ -605,7 +625,9 @@ export function AdminAssistedRegistrationDialog({
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-lg border p-4">
                   <p className="text-muted-foreground">{t("review.partySize")}</p>
-                  <p className="font-medium">{new Intl.NumberFormat(locale).format(Number(form.partySize || "0"))}</p>
+                  <p className="font-medium">
+                    {new Intl.NumberFormat(locale).format(Number(form.partySize || "0"))}
+                  </p>
                 </div>
                 <div className="rounded-lg border p-4">
                   <p className="text-muted-foreground">{t("review.paymentStatus")}</p>
@@ -633,7 +655,12 @@ export function AdminAssistedRegistrationDialog({
         </div>
 
         <DialogFooter className="border-t px-6 py-4">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
             {t("actions.cancel")}
           </Button>
           {stepIndex > 0 ? (
@@ -642,7 +669,11 @@ export function AdminAssistedRegistrationDialog({
             </Button>
           ) : null}
           {stepIndex < visibleSteps.length - 1 ? (
-            <Button type="button" onClick={goNext} disabled={submitting || requirements === null || form === null}>
+            <Button
+              type="button"
+              onClick={goNext}
+              disabled={submitting || requirements === null || form === null}
+            >
               {t("actions.next")}
             </Button>
           ) : (
@@ -658,7 +689,9 @@ export function AdminAssistedRegistrationDialog({
               <Button
                 type="button"
                 onClick={() => void handleSubmit(true)}
-                disabled={submitting || requirements === null || form === null || session.role === "viewer"}
+                disabled={
+                  submitting || requirements === null || form === null || session.role === "viewer"
+                }
               >
                 {t("actions.createAndApprove")}
               </Button>

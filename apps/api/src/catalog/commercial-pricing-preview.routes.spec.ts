@@ -2,9 +2,7 @@ import assert from "node:assert/strict";
 import type { IncomingMessage } from "node:http";
 import { describe, it } from "node:test";
 
-import {
-  resolveCommercialPricingWorkspace,
-} from "./commercial-pricing-preview.routes";
+import { resolveCommercialPricingWorkspace } from "./commercial-pricing-preview.routes";
 
 function request(url: string): IncomingMessage {
   return { url } as IncomingMessage;
@@ -15,11 +13,19 @@ describe("commercial pricing workspace binding", () => {
     const resolver = async () => "denali";
 
     assert.equal(
-      await resolveCommercialPricingWorkspace(request("/catalog/pricing-preview"), "tenant-denali", resolver),
+      await resolveCommercialPricingWorkspace(
+        request("/catalog/pricing-preview"),
+        "tenant-denali",
+        resolver
+      ),
       "denali"
     );
     assert.equal(
-      await resolveCommercialPricingWorkspace(request("/catalog/pricing-previews"), "tenant-denali", resolver),
+      await resolveCommercialPricingWorkspace(
+        request("/catalog/pricing-previews"),
+        "tenant-denali",
+        resolver
+      ),
       "denali"
     );
   });
@@ -49,11 +55,19 @@ describe("commercial pricing workspace binding", () => {
     const resolver = async () => "urban";
 
     assert.equal(
-      await resolveCommercialPricingWorkspace(request("/catalog/pricing-preview"), "tenant-urban", resolver),
+      await resolveCommercialPricingWorkspace(
+        request("/catalog/pricing-preview"),
+        "tenant-urban",
+        resolver
+      ),
       "urban"
     );
     assert.equal(
-      await resolveCommercialPricingWorkspace(request("/catalog/pricing-previews"), "tenant-urban", resolver),
+      await resolveCommercialPricingWorkspace(
+        request("/catalog/pricing-previews"),
+        "tenant-urban",
+        resolver
+      ),
       "urban"
     );
   });
@@ -102,8 +116,14 @@ describe("commercial pricing workspace binding", () => {
       fs.readFile(new URL("./commercial-pricing-preview.routes.ts", import.meta.url), "utf8")
     );
 
-    assert.match(source, /handleCatalogCommercialPricingPreview[\s\S]*resolveCommercialPricingWorkspace/);
-    assert.match(source, /handleCatalogCommercialPricingPreviews[\s\S]*resolveCommercialPricingWorkspace/);
+    assert.match(
+      source,
+      /handleCatalogCommercialPricingPreview[\s\S]*resolveCommercialPricingWorkspace/
+    );
+    assert.match(
+      source,
+      /handleCatalogCommercialPricingPreviews[\s\S]*resolveCommercialPricingWorkspace/
+    );
     assert.match(source, /getById\(input\.tourId, input\.tenantId\)/);
     assert.match(source, /tenantId: auth\.tenantId/);
     assert.doesNotMatch(source, /(?:\|\||\?\?)\s*["']denali["']/);

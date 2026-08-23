@@ -35,7 +35,10 @@ import {
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import type { AppLocale } from "@/i18n/routing";
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
-import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
+import {
+  localizeFinanceMessage,
+  toFinanceClientErrorCode,
+} from "@/i18n/resolve-finance-error-message";
 import { FinanceExceptionsFollowUpSection } from "@/finance/finance-exceptions-panel";
 import {
   parseOutstandingBalancesResponse,
@@ -66,10 +69,7 @@ function attentionKindLabel(
   return labels[kind];
 }
 
-function attentionActionLabel(
-  kind: FinanceAttentionKind,
-  t: (key: string) => string
-): string {
+function attentionActionLabel(kind: FinanceAttentionKind, t: (key: string) => string): string {
   if (kind === "pending-receipt") {
     return t("attentionActionReceipt");
   }
@@ -390,10 +390,7 @@ export function FinanceOverviewPanel({
         ) : null}
 
         {!loading && !error ? (
-          <div
-            className="space-y-2"
-            data-testid={FINANCE_OVERVIEW_TEST_IDS.collectionQueues}
-          >
+          <div className="space-y-2" data-testid={FINANCE_OVERVIEW_TEST_IDS.collectionQueues}>
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {t("collectionQueuesTitle")}
             </p>
@@ -623,7 +620,9 @@ export function FinanceOverviewPanel({
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">{formatLocalizedNumber(card.value, locale)}</p>
+                    <p className="text-2xl font-bold">
+                      {formatLocalizedNumber(card.value, locale)}
+                    </p>
                     {card.href ? (
                       <Link href={card.href} className="text-xs text-primary hover:underline">
                         {kpiCardActionLabel(card.id, t)}
@@ -661,7 +660,9 @@ export function FinanceOverviewPanel({
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {t("collectedByTourTitle")}
               </CardTitle>
-              <p className="text-xs font-normal text-muted-foreground">{t("collectedByTourHint")}</p>
+              <p className="text-xs font-normal text-muted-foreground">
+                {t("collectedByTourHint")}
+              </p>
             </CardHeader>
             <CardContent>
               {paidByTour.length === 0 ? (
@@ -670,7 +671,7 @@ export function FinanceOverviewPanel({
                 <ul className="divide-y rounded-md border">
                   {paidByTour.map((row) => (
                     <li
-                      key={row.tourId}
+                      key={`${row.tourId}:${row.currency}`}
                       className="flex flex-col gap-1 p-3 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div>
@@ -686,7 +687,7 @@ export function FinanceOverviewPanel({
                         href={`/finance?tab=payments&tourId=${encodeURIComponent(row.tourId)}`}
                         className="text-sm text-primary hover:underline"
                       >
-                        {formatMinorAmount(row.paidMinor, "IRR", locale)}
+                        {formatMinorAmount(row.paidMinor, row.currency, locale)}
                       </Link>
                     </li>
                   ))}
@@ -733,7 +734,9 @@ export function FinanceOverviewPanel({
                           ) : null}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Badge variant="outline">{tCommon("lines", { count: event.lineCount })}</Badge>
+                          <Badge variant="outline">
+                            {tCommon("lines", { count: event.lineCount })}
+                          </Badge>
                           <span>{formatFinanceTimestamp(event.createdAt, locale)}</span>
                         </div>
                       </li>
@@ -749,7 +752,12 @@ export function FinanceOverviewPanel({
             </Card>
 
             <div className="space-y-1">
-              <Button asChild size="sm" variant="ghost" className="h-auto px-0 text-muted-foreground">
+              <Button
+                asChild
+                size="sm"
+                variant="ghost"
+                className="h-auto px-0 text-muted-foreground"
+              >
                 <Link
                   href="/settings/reconciliation-triage"
                   data-testid={FINANCE_OVERVIEW_TEST_IDS.triageLink}

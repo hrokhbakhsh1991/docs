@@ -85,7 +85,7 @@ function extractTripDetails(
 
 /**
  * Phase 3 API — workspace plugin validation hooks after platform-core {@link validateCanonical}.
- * Registry-driven extraction (capacity / tripDetails / transportModes); Denali-specific rules live in workspace plugins (phase 6).
+ * Registry-driven extraction (capacity / tripDetails / transportModes); workspace-specific rules live in plugins.
  */
 export function runWorkspaceValidationHooks(
   plugin: WorkspacePlugin,

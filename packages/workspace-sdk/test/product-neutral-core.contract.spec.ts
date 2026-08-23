@@ -8,19 +8,6 @@ const SDK_SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../s
 
 const ALLOWLIST_PATHS = new Set([
   path.join(SDK_SRC, "plugin/workspace-manifest-bindings.generated.ts"),
-  path.join(SDK_SRC, "auth/operator-surface.ts"),
-  path.join(SDK_SRC, "catalog/resolve-catalog-api-path.ts"),
-  path.join(SDK_SRC, "catalog/resolve-catalog-list-features.ts"),
-  path.join(SDK_SRC, "catalog/resolve-catalog-detail-sections.ts"),
-  path.join(SDK_SRC, "catalog/resolve-catalog-registration-support.ts"),
-  path.join(SDK_SRC, "catalog/resolve-catalog-registration-api-path.ts"),
-  path.join(SDK_SRC, "catalog/resolve-guest-landing-features.ts"),
-  path.join(SDK_SRC, "catalog/resolve-catalog-intake-capabilities.ts"),
-  path.join(SDK_SRC, "catalog/build-catalog-registration-upstream-request.ts"),
-  path.join(SDK_SRC, "profile/resolve-member-profile-capabilities.ts"),
-  path.join(SDK_SRC, "plugin/workspace-plugin.contract.ts"),
-  path.join(SDK_SRC, "plugin/workspace-wizard-host-hooks.ts"),
-  path.join(SDK_SRC, "tour/public-catalog.contract.ts"),
 ]);
 
 const PRODUCT_PATTERN = /\b(denali|urban)\b/i;

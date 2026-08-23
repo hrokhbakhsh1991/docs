@@ -2,6 +2,8 @@
  * Phase 11.0 — operator smoke workspace type alignment (DEC-P11-001)
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 
 import { OPERATOR_SMOKE } from "./fixtures/operator-smoke-e2e-tenant";
@@ -11,6 +13,7 @@ const URBAN_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000004";
 
 const ENV_SNAPSHOT = {
   OPERATOR_SMOKE_E2E_SEED: process.env.OPERATOR_SMOKE_E2E_SEED,
+  NODE_ENV: process.env.NODE_ENV,
   STORAGE_DRIVER: process.env.STORAGE_DRIVER,
   URBAN_TEST_WORKSPACE_TYPE: process.env.URBAN_TEST_WORKSPACE_TYPE,
 };
@@ -20,6 +23,11 @@ afterEach(() => {
     delete process.env.OPERATOR_SMOKE_E2E_SEED;
   } else {
     process.env.OPERATOR_SMOKE_E2E_SEED = ENV_SNAPSHOT.OPERATOR_SMOKE_E2E_SEED;
+  }
+  if (ENV_SNAPSHOT.NODE_ENV === undefined) {
+    delete process.env.NODE_ENV;
+  } else {
+    process.env.NODE_ENV = ENV_SNAPSHOT.NODE_ENV;
   }
   if (ENV_SNAPSHOT.STORAGE_DRIVER === undefined) {
     delete process.env.STORAGE_DRIVER;
@@ -57,5 +65,16 @@ describe("resolve-workspace-type.spec.ts — Phase 11.0", () => {
       () => resolveWorkspaceTypeForTenant("00000000-0000-4000-8000-00000000dead"),
       /WORKSPACE_TYPE_UNRESOLVED/
     );
+  });
+
+  it("API-11.0-03 test override is generated-binding driven, not a hard-coded product branch", () => {
+    const source = readFileSync(
+      join(import.meta.dirname, "../src/tenant/resolve-workspace-type.ts"),
+      "utf8"
+    );
+    assert.doesNotMatch(source, /00000000-0000-4000-8000-000000000004/);
+    assert.doesNotMatch(source, /workspaceType\s*===\s*["']urban["']/);
+    assert.doesNotMatch(source, /workspaceId\s*===\s*["']urban["']/);
+    assert.match(source, /resolveWorkspaceDevSmokeTenantByTenantId/);
   });
 });

@@ -6,9 +6,7 @@ import {
   MemberPortalDisabledError,
   resolveMemberPortalContract,
 } from "./member-portal-contract";
-import {
-  memberPortalEntitlementKey,
-} from "./platform-member-portal-modules";
+import { memberPortalEntitlementKey } from "./platform-member-portal-modules";
 
 export class MemberPortalNotConfiguredError extends Error {
   readonly code = "MEMBER_PORTAL_NOT_CONFIGURED" as const;
@@ -90,7 +88,9 @@ export function resolveMemberPortalModuleByRoutePath(
 }
 
 /** Entitlement keys for effective registry modules (PS-5 bootstrap — DL-09). */
-export function listMemberPortalEntitlementKeys(pluginId: WorkspacePluginId | string): readonly string[] {
+export function listMemberPortalEntitlementKeys(
+  pluginId: WorkspacePluginId | string
+): readonly string[] {
   const surface = requireEnabledSurface(pluginId);
   return Object.freeze(surface.modules.map((module) => memberPortalEntitlementKey(module.id)));
 }

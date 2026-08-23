@@ -870,7 +870,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     );
     let paid = BigInt(0);
     const paymentAmountsMinor: string[] = [];
-    let currency = "IRR";
+    let currency = "";
     for (const row of rows) {
       const digits = row.amount.replace(/\D/g, "") || "0";
       paymentAmountsMinor.push(digits);

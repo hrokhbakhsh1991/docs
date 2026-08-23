@@ -34,6 +34,24 @@ describe("finance-prepayments-logic.spec.ts — Phase 9.7 R2", () => {
     assert.equal(parsed.items[0]?.amountMinor, "1000000");
   });
 
+  it("WEB-9.7-R2-01b parsePrepaymentsListResponse does not invent a workspace currency", () => {
+    const registrationId = randomUUID();
+    const parsed = parsePrepaymentsListResponse({
+      items: [
+        {
+          id: "evt-without-currency",
+          registrationId,
+          amountMinor: "1000000",
+          method: "Manual",
+          note: null,
+          recordedAt: "2026-06-09T12:00:00.000Z",
+        },
+      ],
+    });
+    assert.equal(parsed.items.length, 1);
+    assert.equal(parsed.items[0]?.currency, "");
+  });
+
   it("WEB-9.7-R2-02 validateRecordPrepaymentForm rejects invalid UUID", () => {
     const result = validateRecordPrepaymentForm({
       registrationId: "not-a-uuid",

@@ -2,13 +2,8 @@
 
 import { useTranslations } from "next-intl";
 
-/** Denali catalog registration steps (workspace flow order). */
-export const CATALOG_REGISTRATION_STEPPER_IDS = [
-  "phone",
-  "otp",
-  "profile",
-  "intake",
-] as const;
+/** Catalog registration steps (workspace flow order). */
+export const CATALOG_REGISTRATION_STEPPER_IDS = ["phone", "otp", "profile", "intake"] as const;
 
 /** Member login egress — OTP shell only (no tour intake). */
 export const MEMBER_LOGIN_STEPPER_IDS = ["phone", "otp", "profile"] as const;
@@ -16,8 +11,7 @@ export const MEMBER_LOGIN_STEPPER_IDS = ["phone", "otp", "profile"] as const;
 /** Session resume at tour intake — hide auth steps (PCMS-REG-01). */
 export const INTAKE_ONLY_STEPPER_IDS = ["intake"] as const;
 
-export type CatalogRegistrationStepperId =
-  (typeof CATALOG_REGISTRATION_STEPPER_IDS)[number];
+export type CatalogRegistrationStepperId = (typeof CATALOG_REGISTRATION_STEPPER_IDS)[number];
 
 export type CatalogRegistrationStepperMode = "registration" | "login" | "intake-only";
 

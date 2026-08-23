@@ -33,7 +33,10 @@ import { ReceiptProofPreview } from "@/finance/receipt-proof-preview";
 import { formatFinanceTimestamp } from "@/finance/finance-reports-logic";
 import { emitFinanceCaseCommandUiTelemetry } from "@/finance/finance-case-command-ui-telemetry";
 import type { AppLocale } from "@/i18n/routing";
-import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
+import {
+  localizeFinanceMessage,
+  toFinanceClientErrorCode,
+} from "@/i18n/resolve-finance-error-message";
 import { cn } from "@/lib/utils";
 
 export type ReceiptReviewResultBanner = {
@@ -61,10 +64,7 @@ function resolvePaymentStatusLabel(t: (key: string) => string, status: string): 
   }
 }
 
-function formatReceiptWaitRelativeLabel(
-  parts: ReceiptWaitRelative,
-  locale: AppLocale
-): string {
+function formatReceiptWaitRelativeLabel(parts: ReceiptWaitRelative, locale: AppLocale): string {
   const rtf = new Intl.RelativeTimeFormat(locale === "fa" ? "fa" : "en", {
     numeric: "auto",
   });
@@ -152,8 +152,13 @@ function ReceiptMoneyGlance({
 
       {paymentAmount !== null ? (
         <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-border/60 pt-2">
-          <p className="text-base font-semibold tabular-nums" data-testid={FINANCE_RECEIPTS_TEST_IDS.submittedAmount}>
-            <span className="me-1 text-xs font-normal text-muted-foreground">{t("submittedAmount")}</span>
+          <p
+            className="text-base font-semibold tabular-nums"
+            data-testid={FINANCE_RECEIPTS_TEST_IDS.submittedAmount}
+          >
+            <span className="me-1 text-xs font-normal text-muted-foreground">
+              {t("submittedAmount")}
+            </span>
             {formatMinorAmount(paymentAmount, currency, locale)}
           </p>
           {labels !== null ? (
@@ -304,7 +309,7 @@ export function FinanceReceiptReviewContent({
       if (registrationIdForCache.trim().length >= 32) {
         invalidateFinanceRegistrationCaches(registrationIdForCache);
       }
-      const currency = receipt.payment?.currency ?? invoice?.currency ?? "IRR";
+      const currency = receipt.payment?.currency ?? invoice?.currency ?? "";
       let remainingMinor: string | null = null;
       if (validated.value.decision === "approve" && receipt.payment !== null && invoice !== null) {
         remainingMinor = remainingAfterApproveMinor(
@@ -324,10 +329,7 @@ export function FinanceReceiptReviewContent({
           receipt.payment?.registrationId ??
           receipt.registrationContext?.registrationId ??
           undefined,
-        paymentId:
-          receipt.paymentId.trim().length > 0
-            ? receipt.paymentId
-            : receipt.payment?.id,
+        paymentId: receipt.paymentId.trim().length > 0 ? receipt.paymentId : receipt.payment?.id,
       });
     } catch (reviewError: unknown) {
       setError(toFinanceClientErrorCode(reviewError, "REVIEW_RECEIPT_FAILED"));
@@ -336,7 +338,7 @@ export function FinanceReceiptReviewContent({
     }
   };
 
-  const currency = receipt.payment?.currency ?? invoice?.currency ?? "IRR";
+  const currency = receipt.payment?.currency ?? invoice?.currency ?? "";
   const busy = busyDecision !== null;
 
   return (
@@ -382,11 +384,19 @@ export function FinanceReceiptReviewContent({
             amountFit={amountFit}
           />
         ) : (
-          <Skeleton className="h-20 w-full" data-testid={FINANCE_RECEIPTS_TEST_IDS.financialContext} />
+          <Skeleton
+            className="h-20 w-full"
+            data-testid={FINANCE_RECEIPTS_TEST_IDS.financialContext}
+          />
         )
       ) : receipt.payment !== null ? (
-        <p className="text-base font-semibold tabular-nums" data-testid={FINANCE_RECEIPTS_TEST_IDS.submittedAmount}>
-          <span className="me-1 text-xs font-normal text-muted-foreground">{t("submittedAmount")}</span>
+        <p
+          className="text-base font-semibold tabular-nums"
+          data-testid={FINANCE_RECEIPTS_TEST_IDS.submittedAmount}
+        >
+          <span className="me-1 text-xs font-normal text-muted-foreground">
+            {t("submittedAmount")}
+          </span>
           {formatMinorAmount(receipt.payment.amount, currency, locale)}
         </p>
       ) : null}
@@ -410,10 +420,7 @@ export function FinanceReceiptReviewContent({
           </span>
         ) : null}
         {agingBand !== null ? (
-          <span
-            data-testid={FINANCE_RECEIPTS_TEST_IDS.agingBand}
-            data-aging-band={agingBand}
-          >
+          <span data-testid={FINANCE_RECEIPTS_TEST_IDS.agingBand} data-aging-band={agingBand}>
             {agingBandLabel(agingBand, t)}
           </span>
         ) : null}
@@ -424,14 +431,13 @@ export function FinanceReceiptReviewContent({
         ) : null}
       </div>
 
-      <ReceiptProofPreview
-        receiptId={receipt.id}
-        fileKey={receipt.fileKey}
-        expanded={proofOpen}
-      />
+      <ReceiptProofPreview receiptId={receipt.id} fileKey={receipt.fileKey} expanded={proofOpen} />
 
       {canManage ? (
-        <div className="space-y-2 border-t border-border/50 pt-2" data-testid={FINANCE_RECEIPTS_TEST_IDS.reviewForm}>
+        <div
+          className="space-y-2 border-t border-border/50 pt-2"
+          data-testid={FINANCE_RECEIPTS_TEST_IDS.reviewForm}
+        >
           {labels !== null ? (
             <p
               className="text-sm font-medium text-foreground"

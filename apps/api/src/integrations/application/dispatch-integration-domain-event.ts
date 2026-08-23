@@ -529,6 +529,7 @@ export async function dispatchIntegrationDomainEvent(
         : await resolveReferenceDisplayValues({
             tenantId: row.tenantId,
             workspaceType,
+            providerId: decision.exposureCoordinate.surface,
             payload,
             eligibleFieldIds: activeDeliveryFieldIds.fieldIds,
             definitions: deliveryPolicy.definitions,

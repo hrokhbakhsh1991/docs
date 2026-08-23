@@ -40,11 +40,9 @@ export type MarketingCatalogSurface = {
   readonly difficultyLevels: readonly number[];
   readonly fitnessLevels: readonly string[];
   readonly difficultyMax: number;
+  readonly irrDisplayUnit?: "toman";
   isCategoryGroup(value: string): value is MarketingCategoryGroup;
-  matchesCategoryFilter(
-    tourCategory: string | null | undefined,
-    filterCategory: string
-  ): boolean;
+  matchesCategoryFilter(tourCategory: string | null | undefined, filterCategory: string): boolean;
   snapDifficultyLevel(value: number): number;
   resolveCategoryFamily(category: string | null | undefined): MarketingCategoryGroup | null;
   resolveDetailPdpGates(input: {

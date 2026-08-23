@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
@@ -13,7 +14,7 @@ import {
 
 describe("catalog-list-query.spec.ts — PR-21.1", () => {
   it("widens fetch limit only when narrowing filters are client-side", () => {
-    const denaliServerFilters = [
+    const workspaceServerFilters = [
       "q",
       "category",
       "difficulty",
@@ -26,13 +27,13 @@ describe("catalog-list-query.spec.ts — PR-21.1", () => {
     assert.equal(resolveCatalogListFetchLimit(parseCatalogListFilters({ q: "damavand" })), 50);
     assert.equal(
       resolveCatalogListFetchLimit(parseCatalogListFilters({ q: "damavand" }), [
-        ...denaliServerFilters,
+        ...workspaceServerFilters,
       ]),
       20
     );
     assert.equal(
       resolveCatalogListFetchLimit(parseCatalogListFilters({ category: "mountain" }), [
-        ...denaliServerFilters,
+        ...workspaceServerFilters,
       ]),
       20
     );
@@ -40,10 +41,7 @@ describe("catalog-list-query.spec.ts — PR-21.1", () => {
       resolveCatalogListFetchLimit(parseCatalogListFilters({ category: "mountain" })),
       50
     );
-    assert.equal(
-      resolveCatalogListFetchLimit(parseCatalogListFilters({ sort: "price_asc" })),
-      20
-    );
+    assert.equal(resolveCatalogListFetchLimit(parseCatalogListFilters({ sort: "price_asc" })), 20);
     assert.equal(
       resolveCatalogListFetchLimit(parseCatalogListFilters({ fitness: "low" }), [
         "q",
@@ -82,7 +80,7 @@ describe("catalog-list-query.spec.ts — PR-21.1", () => {
   });
 
   it("detects active filters for pills even when server-backed", () => {
-    const denaliServerFilters = [
+    const workspaceServerFilters = [
       "q",
       "category",
       "difficulty",
@@ -92,13 +90,13 @@ describe("catalog-list-query.spec.ts — PR-21.1", () => {
     ] as const;
     assert.equal(
       catalogListHasActiveFilters(parseCatalogListFilters({ category: "mountain" }), [
-        ...denaliServerFilters,
+        ...workspaceServerFilters,
       ]),
       true
     );
     assert.equal(
       catalogListHasActiveFilters(parseCatalogListFilters({ sort: "price_asc" }), [
-        ...denaliServerFilters,
+        ...workspaceServerFilters,
       ]),
       true
     );
@@ -145,5 +143,13 @@ describe("catalog-list-query.spec.ts — PR-21.1", () => {
     assert.doesNotMatch(href, /cursor=/);
     assert.doesNotMatch(href, /q=/);
     assert.match(href, /category=mountain_multi/);
+  });
+
+  it("keeps catalog query comments workspace-generic", () => {
+    const source = readFileSync(
+      new URL("../src/catalog/catalog-list-query.ts", import.meta.url),
+      "utf8"
+    );
+    assert.equal(source.includes("Denali/Urban public catalog API max page size"), false);
   });
 });

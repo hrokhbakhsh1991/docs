@@ -10,10 +10,7 @@ import {
 } from "../settings/resolve-workspace-dev-smoke-tenant";
 
 import { appendAuditEvent, AUDIT_ACTION_TENANT_PROVISIONED } from "../audit/audit-logger";
-import {
-  PLATFORM_ADMIN_REASON,
-  getPlatformAdminClient,
-} from "../platform/platform-admin-client";
+import { PLATFORM_ADMIN_REASON, getPlatformAdminClient } from "../platform/platform-admin-client";
 import { invalidateTenantRegistryCache } from "../tenant/tenant-registry-cache";
 import {
   canResolveDevTenantRegistryFallback,
@@ -87,7 +84,7 @@ export class ProvisioningService {
     assertProvisioningDevelopmentOnly();
     const results: ProvisionedTenant[] = [];
     for (const subdomain of PHASE_43_SEED_SUBDOMAINS) {
-      results.push(await this.upsertSeedTenant({ subdomain }));
+      results.push(await this.upsertSeedTenant({ subdomain, workspaceType: "starter" }));
     }
     return results;
   }
@@ -131,6 +128,7 @@ export class ProvisioningService {
    */
   async provisionTenant(input: ProvisionTenantInput): Promise<ProvisionedTenant> {
     assertProvisioningDevelopmentOnly();
+    await assertProvisionTenantCreateNotAlreadyPresent(input);
     const identity = resolveTenantIdentity(input);
     await assertTenantNotAlreadyPresent(identity.tenantId, identity.subdomain);
     return createTenantRow(identity);
@@ -200,6 +198,27 @@ async function assertTenantNotAlreadyPresent(tenantId: string, subdomain: string
   }
 }
 
+async function assertProvisionTenantCreateNotAlreadyPresent(
+  input: ProvisionTenantInput
+): Promise<void> {
+  const subdomain = input.subdomain.trim().toLowerCase();
+  const tenantId = input.tenantId?.trim();
+  if (tenantId !== undefined && tenantId.length > 0) {
+    assertValidTenantUuid(tenantId);
+    await assertTenantNotAlreadyPresent(tenantId, subdomain);
+    return;
+  }
+
+  const prisma = getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_PROVISION);
+  const bySubdomain = await prisma.tenant.findUnique({
+    where: { subdomain },
+    select: { id: true },
+  });
+  if (bySubdomain !== null) {
+    throw new TenantProvisionConflictError("TENANT_SUBDOMAIN_ALREADY_EXISTS");
+  }
+}
+
 async function createTenantRow(identity: ResolvedTenantIdentity): Promise<ProvisionedTenant> {
   const prisma = getPlatformAdminClient(PLATFORM_ADMIN_REASON.PLATFORM_PROVISION);
   const row = await prisma.$transaction(async (tx) => {
@@ -219,13 +238,17 @@ async function createTenantRow(identity: ResolvedTenantIdentity): Promise<Provis
       },
     });
 
-    await runWithTenantContext(created.id, async () => {
-      await appendAuditEvent(tx, {
-        action: AUDIT_ACTION_TENANT_PROVISIONED,
-        entityType: "tenant",
-        entityId: created.id,
-      });
-    });
+    await runWithTenantContext(
+      created.id,
+      async () => {
+        await appendAuditEvent(tx, {
+          action: AUDIT_ACTION_TENANT_PROVISIONED,
+          entityType: "tenant",
+          entityId: created.id,
+        });
+      },
+      { workspaceType: identity.workspaceType }
+    );
 
     return created;
   });
@@ -240,9 +263,7 @@ async function createTenantRow(identity: ResolvedTenantIdentity): Promise<Provis
 
 function resolveTenantIdentity(input: ProvisionTenantInput): ResolvedTenantIdentity {
   const subdomain = input.subdomain.trim().toLowerCase();
-  const seedManifest = isStaticTenantRegistryAllowed()
-    ? findTenantBySubdomain(subdomain)
-    : null;
+  const seedManifest = isStaticTenantRegistryAllowed() ? findTenantBySubdomain(subdomain) : null;
   const registered = seedManifest;
   const seedTenantId = isPhase43SeedSubdomain(subdomain)
     ? PHASE_43_SEED_TENANT_IDS[subdomain]
@@ -259,7 +280,11 @@ function resolveTenantIdentity(input: ProvisionTenantInput): ResolvedTenantIdent
     throw new Error("PROVISIONING_TENANT_ID_MISMATCH");
   }
 
-  const workspaceType = input.workspaceType ?? seedManifest?.workspaceType ?? registered?.workspaceType ?? "starter";
+  const workspaceType =
+    input.workspaceType ?? seedManifest?.workspaceType ?? registered?.workspaceType;
+  if (workspaceType === undefined || workspaceType.trim().length === 0) {
+    throw new Error("PROVISIONING_WORKSPACE_TYPE_REQUIRED");
+  }
   const status = input.status ?? TENANT_STATUS_ACTIVE;
   const theme: Prisma.InputJsonValue = coerceInputJson(
     input.theme ?? seedManifest?.theme ?? resolveDefaultTenantBranding(workspaceType)

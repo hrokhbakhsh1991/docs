@@ -122,6 +122,7 @@ function outstandingRow(input: {
   total: string;
   paid: string;
   remaining: string;
+  currency?: string;
 }): OutstandingBalanceItem {
   return {
     registrationId: input.registrationId,
@@ -134,7 +135,7 @@ function outstandingRow(input: {
       totalMinor: input.total,
       paidMinor: input.paid,
       remainingMinor: input.remaining,
-      currency: "IRR",
+      currency: input.currency ?? "IRR",
     },
     bookingPaymentStatus: "unpaid",
     occurredAt: "2026-01-01T00:00:00.000Z",
@@ -175,7 +176,10 @@ describe("tour-collections PR23-D2", () => {
     assert.equal(hit.registrationsCount, 2);
     assert.equal(hit.tourTitle, "Alborz");
     assert.ok(BigInt(hit.remainingMinor) > 0n);
-    assert.equal(BigInt(hit.invoiceTotalMinor), BigInt(hit.collectedMinor) + BigInt(hit.remainingMinor));
+    assert.equal(
+      BigInt(hit.invoiceTotalMinor),
+      BigInt(hit.collectedMinor) + BigInt(hit.remainingMinor)
+    );
   });
 
   it("D2-B — different tours stay separate", async () => {
@@ -289,7 +293,24 @@ describe("tour-collections PR23-D2", () => {
     assert.equal(a.invoiceTotalMinor, "1500");
     assert.equal(a.collectedMinor, "200");
     assert.equal(a.remainingMinor, "1300");
+    assert.equal(a.currency, "IRR");
     assert.equal(b.remainingMinor, "300");
+  });
+
+  it("D2-E2 — pure aggregation does not invent a product currency", () => {
+    const tours = aggregateTourCollectionFromOutstanding([
+      outstandingRow({
+        registrationId: "r-currency",
+        tourId: TOUR_A,
+        tourTitle: "Neutral",
+        total: "1000",
+        paid: "0",
+        remaining: "1000",
+        currency: "",
+      }),
+    ]);
+
+    assert.equal(tours[0]?.currency, "");
   });
 
   it("D2-F — cursor continuation + remaining DESC ordering", () => {
@@ -323,10 +344,7 @@ describe("tour-collections PR23-D2", () => {
   });
 
   it("D2-G — boundary: D2 uses outstanding path; no gateway / payment aggregate / mutation", () => {
-    const service = readFileSync(
-      resolve(PKG_ROOT, "src/application/finance.service.ts"),
-      "utf8"
-    );
+    const service = readFileSync(resolve(PKG_ROOT, "src/application/finance.service.ts"), "utf8");
     const start = service.indexOf("async listTourCollectionSummary");
     assert.ok(start > 0);
     const end = service.indexOf("async listPendingReceipts", start);

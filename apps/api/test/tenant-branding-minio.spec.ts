@@ -3,16 +3,14 @@
  * @see docs/workspaces/tenant-branding.md
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
   buildTenantBrandLogoObjectKey,
   assertTenantBrandLogoKeyTenantScope,
 } from "@app-tour/workspace-sdk";
-import {
-  ensureMinioPhotoBucket,
-  pingMinioPhotoStorage,
-} from "@app-tour/workspace-denali";
+import { ensureMinioPhotoBucket, pingMinioPhotoStorage } from "@app-tour/workspace-denali";
 
 import {
   deleteTenantBrandLogoObject,
@@ -49,42 +47,46 @@ describe("tenant-branding-minio.spec.ts", () => {
     );
   });
 
-  it(
-    "PUT + signed GET round-trip when MinIO is available",
-    { skip: minioSkip },
-    async (t) => {
-      assert.ok(minioConfig);
-      try {
-        await ensureMinioPhotoBucket(minioConfig);
-        assert.ok(
-          await pingMinioPhotoStorage(minioConfig),
-          "MinIO bucket must exist after ensureMinioPhotoBucket"
-        );
+  it("keeps host wizard media storage comments workspace-generic", () => {
+    const source = readFileSync(
+      new URL("../src/tenant/workspace-branding-photo-storage.ts", import.meta.url),
+      "utf8"
+    );
+    assert.equal(source.includes("denali today"), false);
+  });
 
-        const { storageKey } = await putTenantBrandLogo({
-          tenantId: tenantA,
-          body: PNG_HEADER,
-          contentType: "image/png",
-        });
-        assert.equal(storageKey, buildTenantBrandLogoObjectKey(tenantA));
+  it("PUT + signed GET round-trip when MinIO is available", { skip: minioSkip }, async (t) => {
+    assert.ok(minioConfig);
+    try {
+      await ensureMinioPhotoBucket(minioConfig);
+      assert.ok(
+        await pingMinioPhotoStorage(minioConfig),
+        "MinIO bucket must exist after ensureMinioPhotoBucket"
+      );
 
-        const signedUrl = await getTenantBrandLogoSignedReadUrl({
-          tenantId: tenantA,
-          storageKey,
-        });
-        assert.match(signedUrl, /^https?:\/\//);
+      const { storageKey } = await putTenantBrandLogo({
+        tenantId: tenantA,
+        body: PNG_HEADER,
+        contentType: "image/png",
+      });
+      assert.equal(storageKey, buildTenantBrandLogoObjectKey(tenantA));
 
-        const res = await fetch(signedUrl);
-        assert.equal(res.status, 200);
+      const signedUrl = await getTenantBrandLogoSignedReadUrl({
+        tenantId: tenantA,
+        storageKey,
+      });
+      assert.match(signedUrl, /^https?:\/\//);
 
-        await deleteTenantBrandLogoObject({ tenantId: tenantA, storageKey });
-      } catch (error) {
-        if (isMinioEnvironmentFailure(error)) {
-          t.skip(minioEnvironmentSkipReason(error));
-          return;
-        }
-        throw error;
+      const res = await fetch(signedUrl);
+      assert.equal(res.status, 200);
+
+      await deleteTenantBrandLogoObject({ tenantId: tenantA, storageKey });
+    } catch (error) {
+      if (isMinioEnvironmentFailure(error)) {
+        t.skip(minioEnvironmentSkipReason(error));
+        return;
       }
+      throw error;
     }
-  );
+  });
 });

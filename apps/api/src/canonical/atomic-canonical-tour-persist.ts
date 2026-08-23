@@ -13,10 +13,7 @@ import {
 import { pseudonymizeAuditActorId } from "../audit/audit-pseudonym";
 import { readTourCapLimits } from "../db/tour-cap-config";
 import { TourCapacityExceededError, tourCapacityErrorMessage } from "../db/tour-capacity.error";
-import {
-  withCanonicalStatement,
-  withCanonicalTransaction,
-} from "../db/with-canonical-transaction";
+import { withCanonicalStatement, withCanonicalTransaction } from "../db/with-canonical-transaction";
 import { getActiveTraceId } from "../observability/trace-request-context";
 import {
   buildTourPublishedDomainEventId,
@@ -84,7 +81,7 @@ export async function persistNewTourAtomically(
   }
   return runWithTenantContext(input.tenantId, () => persistNewTourAtomicallyInContext(input), {
     actorId: getActiveActorId(),
-    workspaceType: getActiveWorkspaceType() ?? "starter",
+    workspaceType: getActiveWorkspaceType(),
   });
 }
 
@@ -319,7 +316,7 @@ export async function persistTourUpdateAtomically(
   }
   return runWithTenantContext(input.tenantId, () => persistTourUpdateAtomicallyInContext(input), {
     actorId: getActiveActorId(),
-    workspaceType: getActiveWorkspaceType() ?? "starter",
+    workspaceType: getActiveWorkspaceType(),
   });
 }
 
@@ -425,7 +422,7 @@ async function enqueueTourPublishedOutboxIfPublic(
     readonly canonical: CanonicalDocument;
     readonly projections: ReturnType<typeof deriveTourProjections>;
     readonly createdAt: Date;
-  },
+  }
 ): Promise<void> {
   const workspaceType = getActiveWorkspaceType();
   const publishStatusLabel = readTourPublishStatusLabel(workspaceType, input.canonical);

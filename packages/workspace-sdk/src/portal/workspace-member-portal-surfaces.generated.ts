@@ -10,6 +10,36 @@ import type { MemberModuleManifest, MemberPortalSurface } from "./member-module-
 export const WORKSPACE_MEMBER_PORTAL_SURFACES: Readonly<
   Record<string, MemberPortalSurface>
 > = Object.freeze({
+  "alpine": Object.freeze({
+    manifestVersion: 1 as const,
+    defaultPrimaryModuleId: "trips",
+    modules: Object.freeze([
+      Object.freeze({
+        id: "trips",
+        routePath: "/me/registrations",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "trips",
+        }),
+      }),
+      Object.freeze({
+        id: "profile",
+        routePath: "/me/profile",
+        nav: Object.freeze({
+          tier: "user_menu",
+          labelKey: "profile",
+        }),
+      }),
+      Object.freeze({
+        id: "alpine-notes",
+        routePath: "/me/alpine-notes",
+        nav: Object.freeze({
+          tier: "secondary",
+          labelKey: "alpineNotes",
+        }),
+      }),
+    ] as const satisfies readonly MemberModuleManifest[]),
+  }),
   "denali": Object.freeze({
     manifestVersion: 1 as const,
     defaultPrimaryModuleId: "trips",

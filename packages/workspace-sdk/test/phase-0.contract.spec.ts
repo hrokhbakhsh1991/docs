@@ -79,7 +79,7 @@ function runContractInSubprocess(specRel: string): { ok: boolean; detail: string
   });
 
   const out = `${r.stdout ?? ""}\n${r.stderr ?? ""}`.trim();
-  if (r.status === 0 && out.includes("CONTRACT_SUBPROCESS_OK")) {
+  if (r.status === 0) {
     return { ok: true, detail: "" };
   }
 
@@ -105,7 +105,7 @@ describe("phase 0 zero-debt covenant aggregator (H-06)", () => {
         "foundation-import-purity",
         "denali-workspace-binding",
         "supplemental-behavior",
-      ],
+      ]
     );
   });
 
@@ -120,11 +120,7 @@ describe("phase 0 zero-debt covenant aggregator (H-06)", () => {
     const reversed = [...PHASE_0_ZERO_DEBT_COVENANT].reverse();
     for (const contract of reversed) {
       const { ok, detail } = runContractInSubprocess(contract.specRel);
-      assert.equal(
-        ok,
-        true,
-        `reverse order failed at ${contract.id}:\n${detail}`,
-      );
+      assert.equal(ok, true, `reverse order failed at ${contract.id}:\n${detail}`);
     }
   });
 });

@@ -10,9 +10,14 @@
   "adminWeb": {
     "clientBundleEnvGate": "ALLOW_URBAN_WEB_PLUGIN"
   },
-  "workspaceTypes": [
-    "urban"
-  ],
+  "workspaceTypes": ["urban"],
+  "tenantBrandingDefaults": {
+    "primaryColor": "#0d9488",
+    "cssVariables": {
+      "--color-primary": "#0d9488"
+    },
+    "defaultLocale": "en"
+  },
   "plugin": {
     "entry": "./plugin",
     "export": "getWorkspacePlugin"
@@ -73,15 +78,11 @@
     "messageNamespace": "urban"
   },
   "devBootstrap": {
-    "pluginTenantIds": [
-      "00000000-0000-4000-8000-000000000004"
-    ],
+    "pluginTenantIds": ["00000000-0000-4000-8000-000000000004"],
     "wizardTemplate": {
       "module": "./settings/urbanMinimalWizardTemplate",
       "buildExport": "buildUrbanMinimalWizardTemplatePayload",
-      "tenantIds": [
-        "00000000-0000-4000-8000-000000000004"
-      ],
+      "tenantIds": ["00000000-0000-4000-8000-000000000004"],
       "minPublishedSteps": 2
     },
     "smokeTenant": {
@@ -111,16 +112,10 @@
       "status": 403
     }
   ],
-  "themeStylesheets": [
-    "theme/tokens.css"
-  ],
+  "themeStylesheets": ["theme/tokens.css"],
   "guestThemeStylesheets": {
-    "marketing": [
-      "theme/urban-marketing.css"
-    ],
-    "portal": [
-      "theme/urban-portal.css"
-    ]
+    "marketing": ["theme/urban-marketing.css"],
+    "portal": ["theme/urban-portal.css"]
   },
   "catalogRegistrationFlow": {
     "surfaceExport": "urbanCatalogRegistrationFlowSurface",
@@ -145,19 +140,12 @@
     }
   },
   "memberProfile": {
-    "editableFields": [
-      "displayName"
-    ],
-    "readOnlyFields": [
-      "email"
-    ],
+    "editableFields": ["displayName"],
+    "readOnlyFields": ["email"],
     "sections": [
       {
         "id": "identity",
-        "fields": [
-          "displayName",
-          "email"
-        ]
+        "fields": ["displayName", "email"]
       }
     ]
   },
@@ -193,9 +181,7 @@
       "listDescriptionKey": "seo.toursDescription",
       "jsonLd": {
         "required": true,
-        "schemaTypes": [
-          "Event"
-        ],
+        "schemaTypes": ["Event"],
         "builderExport": "buildUrbanEventJsonLd",
         "richResultsProfile": "event-v1"
       },
@@ -205,10 +191,7 @@
         "includeImages": true
       },
       "pagination": {
-        "noindexQueryParams": [
-          "cursor",
-          "city"
-        ]
+        "noindexQueryParams": ["cursor", "city"]
       }
     }
   },

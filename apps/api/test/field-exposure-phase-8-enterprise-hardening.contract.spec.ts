@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -7,6 +8,7 @@ import { describe, it } from "node:test";
 import { getWorkspaceExposureCatalog } from "../src/exposure/exposure-catalog.service";
 import { EXPOSURE_RESOLVER_VERSION, resolveExposureDecision } from "../src/exposure/resolve-exposure-decision";
 import { REGISTRY_DELIVERABLE_EXPOSURE_PROFILE_SEED } from "../src/exposure/exposure-profile";
+import { getPrismaAdmin } from "../src/db/prisma";
 
 const REPO_ROOT = join(process.cwd(), "..", "..");
 const EXPOSURE_DOC = join(REPO_ROOT, "docs/architecture/field-exposure-system.md");
@@ -45,15 +47,21 @@ describe("field exposure phase 8 enterprise hardening contract", () => {
   });
 
   it("serves a native exposure catalog response independent from integration meta", async () => {
-    const catalog = await getWorkspaceExposureCatalog(
-      {
-        tenantId: "00000000-0000-4000-8000-000000000014",
-        userId: "00000000-0000-4000-8000-000000000101",
-        workspaceId: "denali",
-        role: "owner",
-      },
-      "denali",
-    );
+    const fallbackTenant = await createDenaliTenantWithoutWizardTemplate();
+    let catalog: Awaited<ReturnType<typeof getWorkspaceExposureCatalog>>;
+    try {
+      catalog = await getWorkspaceExposureCatalog(
+        {
+          tenantId: fallbackTenant.tenantId,
+          userId: "00000000-0000-4000-8000-000000000101",
+          workspaceId: "denali",
+          role: "owner",
+        },
+        "denali",
+      );
+    } finally {
+      await fallbackTenant.cleanup();
+    }
 
     assert.equal(catalog.workspaceType, "denali");
     assert.equal(catalog.source, "registry_deliverable_migration_seed");
@@ -148,3 +156,32 @@ describe("field exposure phase 8 enterprise hardening contract", () => {
     assert.equal(result.status, 0, result.stderr || result.stdout || "guard failed");
   });
 });
+
+async function createDenaliTenantWithoutWizardTemplate(): Promise<{
+  readonly tenantId: string;
+  readonly cleanup: () => Promise<void>;
+}> {
+  if (!process.env.DATABASE_URL?.trim()) {
+    return {
+      tenantId: "00000000-0000-4000-8000-000000000014",
+      cleanup: async () => {},
+    };
+  }
+
+  const tenantId = randomUUID();
+  const admin = getPrismaAdmin();
+  await admin.tenant.create({
+    data: {
+      id: tenantId,
+      subdomain: `exposure-contract-${tenantId.slice(0, 8)}`,
+      workspaceType: "denali",
+      theme: {},
+    },
+  });
+  return {
+    tenantId,
+    cleanup: async () => {
+      await admin.tenant.deleteMany({ where: { id: tenantId } });
+    },
+  };
+}

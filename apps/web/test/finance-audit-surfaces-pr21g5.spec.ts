@@ -49,7 +49,10 @@ describe("finance audit surfaces PR21-G5", () => {
     assert.match(panel, /density="compact"/);
     assert.match(panel, /technicalDetails/);
     // Raw event type is inside technical details, not the primary title path.
-    const rowFn = panel.slice(panel.indexOf("function LedgerEventRow"), panel.indexOf("export function FinanceLedgerPanel"));
+    const rowFn = panel.slice(
+      panel.indexOf("function LedgerEventRow"),
+      panel.indexOf("export function FinanceLedgerPanel")
+    );
     assert.match(rowFn, /<details/);
     assert.doesNotMatch(rowFn, /<p className="font-medium">\{event\.eventType\}/);
   });
@@ -96,7 +99,7 @@ describe("finance audit surfaces PR21-G5", () => {
 
   it("G5-F: buildCaseEncounterLabels maps refresh + loading from translator", () => {
     const labelsSrc = readFileSync(
-      resolve(WEB_ROOT, "src/finance/denali-case-encounter-labels.ts"),
+      resolve(WEB_ROOT, "src/finance/finance-case-encounter-labels.ts"),
       "utf8"
     );
     assert.match(labelsSrc, /export function buildCaseEncounterLabels/);
@@ -107,7 +110,7 @@ describe("finance audit surfaces PR21-G5", () => {
 
   it("G5-H: Meaning panel uses locale labels; host loading/error test ids preserved in package", () => {
     const panel = readFileSync(
-      resolve(WEB_ROOT, "src/finance/denali-case-encounter-panel.tsx"),
+      resolve(WEB_ROOT, "src/finance/finance-case-encounter-panel.tsx"),
       "utf8"
     );
     assert.match(panel, /buildCaseEncounterLabels/);
@@ -143,7 +146,7 @@ describe("finance audit surfaces PR21-G5", () => {
 
   it("G5-I: refresh remains non-mutating re-fetch (panel + host)", () => {
     const panel = readFileSync(
-      resolve(WEB_ROOT, "src/finance/denali-case-encounter-panel.tsx"),
+      resolve(WEB_ROOT, "src/finance/finance-case-encounter-panel.tsx"),
       "utf8"
     );
     assert.match(panel, /method:\s*"GET"/);
@@ -156,8 +159,8 @@ describe("finance audit surfaces PR21-G5", () => {
   it("G5 safety: no FinanceService / finance-core in touched presentation modules", () => {
     for (const rel of [
       "src/finance/finance-ledger-panel.tsx",
-      "src/finance/denali-case-encounter-panel.tsx",
-      "src/finance/denali-case-encounter-labels.ts",
+      "src/finance/finance-case-encounter-panel.tsx",
+      "src/finance/finance-case-encounter-labels.ts",
       "src/finance/finance-registration-filter-chip.tsx",
     ]) {
       const src = readFileSync(resolve(WEB_ROOT, rel), "utf8");

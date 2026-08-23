@@ -1,16 +1,16 @@
 /**
  * Public marketing catalog contract — workspace-owned card shape (ADR-MKT-003).
- * @see docs/workspaces/denali/public-catalog.md
  */
 import type { CanonicalDocument } from "../canonical/canonical-document";
-import type {
+import type { PublicCatalogTransportSnapshot } from "./public-catalog-transport";
+
+export type {
+  PublicCatalogTransportMode,
   PublicCatalogTransportSnapshot,
 } from "./public-catalog-transport";
-
-export type { PublicCatalogTransportMode, PublicCatalogTransportSnapshot } from "./public-catalog-transport";
 export { isPublicCatalogOrganizedTransportMode } from "./public-catalog-transport";
 
-/** Egress-safe itinerary segment on public catalog cards (Denali multi-day tours). */
+/** Egress-safe itinerary segment on public catalog cards. */
 export type PublicCatalogItinerarySegment = {
   readonly title: string;
   readonly kind?: string;
@@ -27,7 +27,7 @@ export type PublicCatalogItineraryDay = {
   readonly segments: readonly PublicCatalogItinerarySegment[];
 };
 
-/** Egress-safe gear row for public catalog detail (Denali). */
+/** Egress-safe gear row for public catalog detail. */
 export type PublicCatalogGearItem = {
   readonly name: string;
   readonly isRequired: boolean;
@@ -57,7 +57,7 @@ export type PublicCatalogCard = {
   readonly difficultyLevel?: number | null;
   readonly fitnessLevel?: string | null;
   readonly itineraryDays?: readonly PublicCatalogItineraryDay[];
-  /** Denali legal step — public cancellation / terms copy (egress-safe). */
+  /** Public cancellation / terms copy (egress-safe). */
   readonly policiesText?: string | null;
   /** When true, portal intake may collect national ID if member profile lacks one. */
   readonly nationalIdRequired?: boolean;
@@ -75,11 +75,11 @@ export type PublicCatalogCard = {
   readonly listSubtitle?: string | null;
   /** Normalized list/detail description — workspace sets at egress (Track A). */
   readonly listDescription?: string | null;
-  /** When false, marketing hides price row (e.g. Urban). Default: show when `priceAmount` set. */
+  /** When false, marketing hides price row. Default: show when `priceAmount` set. */
   readonly showListPrice?: boolean;
   /** ISO-8601 catalog freshness for sitemap lastmod and JSON-LD dateModified (workspace egress). */
   readonly catalogUpdatedAt?: string | null;
-  /** PR-D — resolved destination display name (Denali). */
+  /** PR-D — resolved destination display name. */
   readonly destinationLabel?: string | null;
   readonly longDescription?: string | null;
   readonly hikingHoursApprox?: number | null;

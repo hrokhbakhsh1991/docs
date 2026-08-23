@@ -22,7 +22,9 @@ function coerceLocationDataToDeliveryString(value: unknown): string | undefined 
   return address.length > 0 ? address : undefined;
 }
 
-function projectDenaliLocationZones(input: WorkspaceCanonicalDeliveryProjectionInput): Readonly<Record<string, string>> {
+function projectDenaliLocationZones(
+  input: WorkspaceCanonicalDeliveryProjectionInput
+): Readonly<Record<string, string>> {
   if (!input.eligibleFieldIds.includes(DENALI_LOCATION_ZONES_FIELD_ID)) {
     return {};
   }

@@ -51,6 +51,7 @@ export function OperatorNav({
 }: OperatorNavProps) {
   const pathname = usePathname();
   const tNav = useTranslations("nav");
+  const tTours = useTranslations("tours.shell");
   const tApp = useTranslations("app");
   const CollapseIcon = collapsed ? PanelLeftOpen : PanelLeftClose;
 
@@ -76,7 +77,10 @@ export function OperatorNav({
           {items.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = NAV_ICONS[item.pathKey];
-            const label = tNav(item.pathKey);
+            const label =
+              item.labelNamespace === "tours.shell" && item.labelKey !== undefined
+                ? tTours(item.labelKey)
+                : tNav(item.labelKey ?? item.pathKey);
             return (
               <li key={item.pathKey} data-operator-nav-item>
                 <Link
@@ -131,7 +135,7 @@ export function OperatorNav({
             onClick={() => onCollapsedChange(!collapsed)}
           >
             <CollapseIcon aria-hidden="true" data-operator-sidebar-collapse-icon />
-            <span data-operator-sidebar-collapse-label>
+            <span data-operator-sidebar-collapse-label className="sr-only">
               {collapsed ? tApp("expandNavigation") : tApp("collapseNavigation")}
             </span>
           </button>

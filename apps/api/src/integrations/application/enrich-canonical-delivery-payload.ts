@@ -1,4 +1,8 @@
-import { getCanonicalValue, type FieldDefinition, type FieldPolicyEntityState } from "@app-tour/platform-core";
+import {
+  getCanonicalValue,
+  type FieldDefinition,
+  type FieldPolicyEntityState,
+} from "@app-tour/platform-core";
 import type { WorkspaceCanonicalDeliveryProjectionInput } from "@app-tour/workspace-sdk";
 
 export type CanonicalDeliveryPayload = {
@@ -56,7 +60,7 @@ function formatDeliveryDateTimeString(value: string, includeTime: boolean): stri
 
 function coerceToDeliveryString(
   value: unknown,
-  options?: { readonly kind?: FieldDefinition["kind"] },
+  options?: { readonly kind?: FieldDefinition["kind"] }
 ): string | undefined {
   if (value === null || value === undefined) {
     return undefined;
@@ -87,7 +91,7 @@ function resolveCanonicalDeliveryValue(
   options: {
     readonly kind?: FieldDefinition["kind"];
     readonly referenceDisplayValues?: Readonly<Record<string, string>>;
-  } = {},
+  } = {}
 ): string | undefined {
   if (canonicalPath.endsWith("Id") && canonicalPath.length > 2) {
     const catalogDisplay = options.referenceDisplayValues?.[canonicalPath]?.trim();
@@ -112,13 +116,13 @@ function resolveCanonicalDeliveryValue(
  * No FieldPolicy, provider formatting, or outbound HTTP.
  */
 export function enrichCanonicalDeliveryPayload(
-  input: EnrichCanonicalDeliveryPayloadInput,
+  input: EnrichCanonicalDeliveryPayloadInput
 ): CanonicalDeliveryPayload {
   const canonicalPathById = new Map(
-    input.definitions.map((definition) => [definition.id, definition.canonicalPath] as const),
+    input.definitions.map((definition) => [definition.id, definition.canonicalPath] as const)
   );
   const definitionById = new Map(
-    input.definitions.map((definition) => [definition.id, definition] as const),
+    input.definitions.map((definition) => [definition.id, definition] as const)
   );
   const values: Record<string, string> = {};
 

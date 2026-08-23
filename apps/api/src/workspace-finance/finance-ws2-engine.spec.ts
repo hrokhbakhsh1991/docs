@@ -133,8 +133,14 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
       resolve(FINANCE_ROOT, "../../../../packages/finance-core/src/application/finance.service.ts"),
       "utf8"
     );
-    assert.doesNotMatch(serviceSrc, /FinanceWs2|finance-ws2-chart|finance-ws2-ledger|finance-ws2-receipt/);
-    assert.doesNotMatch(serviceSrc, /DenaliFinanceLedgerPolicyAdapter|DenaliFinanceReceiptDefaultsAdapter/);
+    assert.doesNotMatch(
+      serviceSrc,
+      /FinanceWs2|finance-ws2-chart|finance-ws2-ledger|finance-ws2-receipt/
+    );
+    assert.doesNotMatch(
+      serviceSrc,
+      /DenaliFinanceLedgerPolicyAdapter|DenaliFinanceReceiptDefaultsAdapter/
+    );
     assert.doesNotMatch(serviceSrc, /finance-dependency-registry/);
 
     const topLevel = readdirSync(FINANCE_ROOT);
@@ -148,6 +154,7 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
       [
         "booking-payment.adapter.ts",
         "booking-registration-display.adapter.ts",
+        "host-commercial-quote.repository.ts",
         "host-finance-access.adapter.ts",
         "host-finance-capability.adapter.ts",
         "host-finance-clock.adapter.ts",
@@ -156,15 +163,25 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
         "host-finance-persistence-mode.adapter.ts",
         "host-finance-receipt-proof-url.adapter.ts",
         "host-finance-schedule.adapter.ts",
+        "identity-membership-discount-read.adapter.ts",
+        "prisma-commercial-quote.repository.ts",
         "prisma-finance.repository.ts",
         "prisma-workspace-outbox-writer.ts",
+        "read-tour-membership-discount-gate.ts",
+        "registration-commercial-quote-freeze-context.adapter.ts",
         "registration-finance-obligation.adapter.ts",
       ].sort()
     );
 
-    const depRegistry = readFileSync(resolve(FINANCE_ROOT, "finance-dependency-registry.ts"), "utf8");
+    const depRegistry = readFileSync(
+      resolve(FINANCE_ROOT, "finance-dependency-registry.ts"),
+      "utf8"
+    );
     assert.match(depRegistry, /workspace-finance-dependency-bindings\.generated/);
-    assert.doesNotMatch(depRegistry, /DenaliFinanceLedgerPolicyAdapter|FinanceWs2LedgerPolicyAdapter/);
+    assert.doesNotMatch(
+      depRegistry,
+      /DenaliFinanceLedgerPolicyAdapter|FinanceWs2LedgerPolicyAdapter/
+    );
   });
 
   it("FIN-P1.3-02 / P1.10 WS2 modules live in workspace package without Denali imports", () => {
@@ -192,10 +209,13 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
   });
 
   it("FIN-P1.3-04 defaults selection: IRR/Denali vs USD/WS2", async () => {
-    assert.deepEqual((await resolveFinanceReceiptDefaults(DENALI)).offlineReceiptPaymentDefaults(), {
-      amountMinor: "2500000",
-      currency: "IRR",
-    });
+    assert.deepEqual(
+      (await resolveFinanceReceiptDefaults(DENALI)).offlineReceiptPaymentDefaults(),
+      {
+        amountMinor: "2500000",
+        currency: "IRR",
+      }
+    );
     assert.deepEqual((await resolveFinanceReceiptDefaults(WS2)).offlineReceiptPaymentDefaults(), {
       amountMinor: "10000",
       currency: "USD",
@@ -235,7 +255,9 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
       currency: "IRR",
       capturedAtIso: "2026-07-18T00:00:00.000Z",
     });
-    assert.ok(denaliPlan.lines.some((l) => l.account === "gl:leader-registration-payment-clearing"));
+    assert.ok(
+      denaliPlan.lines.some((l) => l.account === "gl:leader-registration-payment-clearing")
+    );
     assert.ok(denaliPlan.lines.some((l) => l.account === `booking:${registrationId}`));
   });
 

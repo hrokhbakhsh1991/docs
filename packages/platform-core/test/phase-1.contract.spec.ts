@@ -11,6 +11,10 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
+import type { WorkspacePlugin } from "@app-tour/workspace-sdk/plugin-types";
+
+import { stripWorkspacePluginForWizardEngine } from "../src/engine/platform-wizard.engine";
+import { createTestStarterPlugin } from "./fixtures/starter.fixture";
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REPO_ROOT = path.resolve(PKG_ROOT, "../..");
@@ -19,12 +23,12 @@ const RENDER_PLAN_STEPS_SPEC = path.join(
   "test",
   "unit",
   "engine",
-  "render-plan.steps.spec.ts",
+  "render-plan.steps.spec.ts"
 );
 const CRUISE_STARTER_HELPER = path.join(PKG_ROOT, "test/lib/cruise-no-starter-plugin.mjs");
 
 /** Minimum behavioral rows in this file (not a package test-count floor). */
-export const PHASE_1_MIN_BEHAVIOR_CONTRACTS = 14;
+export const PHASE_1_MIN_BEHAVIOR_CONTRACTS = 15;
 
 export const PHASE_1_CLOSURE_CONTRACTS = [
   {
@@ -48,6 +52,12 @@ export const PHASE_1_CLOSURE_CONTRACTS = [
   {
     id: "headless-plugin-ingress",
     title: "plugin ingress uses includeTheme:false at create (sanitizePluginAtCreate)",
+    specRel: "test/phase-1.contract.spec.ts",
+    guardIds: ["g11_phase1_contract_behaviors"],
+  },
+  {
+    id: "wizard-engine-strip-host-surfaces",
+    title: "wizard engine strips host-only callable surfaces before ingress",
     specRel: "test/phase-1.contract.spec.ts",
     guardIds: ["g11_phase1_contract_behaviors"],
   },
@@ -114,10 +124,7 @@ export const PHASE_1_CLOSURE_CONTRACTS = [
   },
 ] as const;
 
-const FORBIDDEN_PRODUCTION_IMPORTS = [
-  "@app-tour/workspace-sdk",
-  "@casl/ability",
-];
+const FORBIDDEN_PRODUCTION_IMPORTS = ["@app-tour/workspace-sdk", "@casl/ability"];
 
 const ALLOWED_EXTERNAL_PREFIX = "@app-tour/workspace-sdk";
 
@@ -150,12 +157,12 @@ function assertBuildRuntimeUsesHeadlessPluginIngress(): void {
   assert.match(
     text,
     /parseWorkspacePluginFromStorage\([^)]*\{\s*includeTheme:\s*false\s*\}/,
-    "plugin ingress must use includeTheme: false at create (sanitizePluginAtCreate)",
+    "plugin ingress must use includeTheme: false at create (sanitizePluginAtCreate)"
   );
   assert.match(
     text,
     /sanitizePluginAtCreate/,
-    "create must clone/freeze plugin at construction (IB-003)",
+    "create must clone/freeze plugin at construction (IB-003)"
   );
 }
 
@@ -177,7 +184,10 @@ function assertTestsAvoidStarterSingleton(): void {
         continue;
       }
       const text = fs.readFileSync(full, "utf8");
-      if (/getStarterWorkspacePlugin\s*\(/.test(text) || /import\s*\{[^}]*getStarterWorkspacePlugin/.test(text)) {
+      if (
+        /getStarterWorkspacePlugin\s*\(/.test(text) ||
+        /import\s*\{[^}]*getStarterWorkspacePlugin/.test(text)
+      ) {
         violations.push(`${path.relative(PKG_ROOT, full)}: getStarterWorkspacePlugin`);
       }
     }
@@ -187,7 +197,7 @@ function assertTestsAvoidStarterSingleton(): void {
   assert.equal(
     violations.length,
     0,
-    `tests must use createTestStarterPlugin(), not SDK singleton:\n${violations.join("\n")}`,
+    `tests must use createTestStarterPlugin(), not SDK singleton:\n${violations.join("\n")}`
   );
 }
 
@@ -241,17 +251,13 @@ function assertNoFromPluginInProductionSrc(): void {
   }
 
   walk(srcRoot);
-  assert.equal(
-    hits.length,
-    0,
-    `production src must not reference fromPlugin:\n${hits.join("\n")}`,
-  );
+  assert.equal(hits.length, 0, `production src must not reference fromPlugin:\n${hits.join("\n")}`);
 }
 
 function assertSingleFacadeExport(): void {
-  const pkg = JSON.parse(
-    fs.readFileSync(path.join(PKG_ROOT, "package.json"), "utf8"),
-  ) as { exports?: Record<string, unknown> };
+  const pkg = JSON.parse(fs.readFileSync(path.join(PKG_ROOT, "package.json"), "utf8")) as {
+    exports?: Record<string, unknown>;
+  };
   const exports = pkg.exports ?? {};
   assert.deepEqual(Object.keys(exports).sort(), [".", "./*"]);
   assert.ok(typeof exports["."] === "object" && exports["."] !== null);
@@ -262,11 +268,11 @@ function assertSubphase14NamingLaw(): void {
   assert.equal(
     fs.existsSync(path.join(PKG_ROOT, "src", "engine", "step.engine.ts")),
     false,
-    "src/engine/step.engine.ts must not exist — use render-plan.steps.ts",
+    "src/engine/step.engine.ts must not exist — use render-plan.steps.ts"
   );
   assert.ok(
     fs.existsSync(RENDER_PLAN_STEPS_SPEC),
-    "test/unit/engine/render-plan.steps.spec.ts required for subphase 1.4",
+    "test/unit/engine/render-plan.steps.spec.ts required for subphase 1.4"
   );
 }
 
@@ -276,7 +282,7 @@ function assertFacadeTestRatioMinimum(): void {
   assert.match(
     text,
     /export const PHASE_1_FACADE_TEST_RATIO_MIN\s*=\s*0\.6\s*;/,
-    "g13 facade ratio minimum must be 0.6 in gate-thresholds.mjs",
+    "g13 facade ratio minimum must be 0.6 in gate-thresholds.mjs"
   );
 }
 
@@ -285,7 +291,7 @@ function assertFieldValidationContractModule(): void {
     PKG_ROOT,
     "src",
     "contracts",
-    "canonical-field-validation-contract.ts",
+    "canonical-field-validation-contract.ts"
   );
   assert.ok(fs.existsSync(contractPath), "canonical-field-validation-contract.ts required");
   const text = fs.readFileSync(contractPath, "utf8");
@@ -294,14 +300,14 @@ function assertFieldValidationContractModule(): void {
   assert.ok(text.includes("passesHiddenFieldKindGate"));
   assert.ok(
     text.includes("isEmptyCanonicalValue"),
-    "passesHiddenFieldKindGate must delegate to isEmptyCanonicalValue",
+    "passesHiddenFieldKindGate must delegate to isEmptyCanonicalValue"
   );
 
   const validateFieldPath = path.join(PKG_ROOT, "src", "engine", "validate-canonical-field.ts");
   const validateFieldText = fs.readFileSync(validateFieldPath, "utf8");
   assert.ok(
     validateFieldText.includes("passesHiddenFieldKindGate"),
-    "validate-canonical-field must call passesHiddenFieldKindGate (BL-01)",
+    "validate-canonical-field must call passesHiddenFieldKindGate (BL-01)"
   );
 }
 
@@ -334,7 +340,7 @@ function assertTestsUseSdkSubpathsOnly(): void {
   assert.equal(
     violations.length,
     0,
-    `platform-core tests must use @app-tour/workspace-sdk/* subpaths:\n${violations.join("\n")}`,
+    `platform-core tests must use @app-tour/workspace-sdk/* subpaths:\n${violations.join("\n")}`
   );
 }
 
@@ -347,7 +353,9 @@ function assertProductionSrcUsesSdkOnly(): void {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         if (entry.name === "__fixtures__") {
-          violations.push(`${path.relative(PKG_ROOT, full)}: __fixtures__ must not live under src/`);
+          violations.push(
+            `${path.relative(PKG_ROOT, full)}: __fixtures__ must not live under src/`
+          );
           continue;
         }
         walk(full);
@@ -375,7 +383,10 @@ function assertProductionSrcUsesSdkOnly(): void {
         }
       }
 
-      if (text.includes("__fixtures__/starter.fixture") || text.includes("getStarterWorkspacePlugin")) {
+      if (
+        text.includes("__fixtures__/starter.fixture") ||
+        text.includes("getStarterWorkspacePlugin")
+      ) {
         violations.push(`${rel} must not reference starter fixture or getStarterWorkspacePlugin`);
       }
     }
@@ -385,11 +396,15 @@ function assertProductionSrcUsesSdkOnly(): void {
   assert.equal(
     violations.length,
     0,
-    `platform-core production src purity violations:\n${violations.join("\n")}`,
+    `platform-core production src purity violations:\n${violations.join("\n")}`
   );
 }
 
-function cruiseStarterPluginViolations(): { rule?: { name?: string }; from?: string; to?: string }[] {
+function cruiseStarterPluginViolations(): {
+  rule?: { name?: string };
+  from?: string;
+  to?: string;
+}[] {
   const r = spawnSync(process.execPath, [CRUISE_STARTER_HELPER], {
     cwd: REPO_ROOT,
     encoding: "utf8",
@@ -406,7 +421,7 @@ function cruiseStarterPluginViolations(): { rule?: { name?: string }; from?: str
   }
 
   throw new Error(
-    `depcruise starter-plugin check failed (exit ${r.status}): ${(r.stderr ?? stdout).trim()}`,
+    `depcruise starter-plugin check failed (exit ${r.status}): ${(r.stderr ?? stdout).trim()}`
   );
 }
 
@@ -417,6 +432,20 @@ describe("phase 1 closure contract", () => {
 
   it("plugin ingress parses with includeTheme: false at create", () => {
     assertBuildRuntimeUsesHeadlessPluginIngress();
+  });
+
+  it("wizard engine strip removes host-only callable integration surface", () => {
+    const plugin = {
+      ...createTestStarterPlugin(),
+      integrationSurface: {
+        manifestVersion: 1,
+        providers: [],
+        projectCanonicalDeliveryFields: () => ({}),
+      },
+    } satisfies WorkspacePlugin;
+
+    const stripped = stripWorkspacePluginForWizardEngine(plugin);
+    assert.equal(stripped.integrationSurface, undefined);
   });
 
   it("subphase 1.4 uses render-plan.steps.spec.ts and forbids step.engine.ts", () => {
@@ -454,7 +483,7 @@ describe("phase 1 closure contract", () => {
       0,
       violations.length
         ? `starter plugin import violations:\n${violations.map((v) => `${v.from} → ${v.to}`).join("\n")}`
-        : undefined,
+        : undefined
     );
   });
 
@@ -463,7 +492,7 @@ describe("phase 1 closure contract", () => {
     assert.equal(fs.existsSync(legacy), false, "move starter fixture to test/fixtures only");
     assert.ok(
       fs.existsSync(path.join(PKG_ROOT, "test", "fixtures", "starter.fixture.ts")),
-      "test/fixtures/starter.fixture.ts required",
+      "test/fixtures/starter.fixture.ts required"
     );
   });
 
@@ -513,14 +542,14 @@ describe("phase 1 closure contract", () => {
   it("facade-integration.spec.ts exists for g12 behavioral gate", () => {
     assert.ok(
       fs.existsSync(path.join(PKG_ROOT, "test", "facade-integration.spec.ts")),
-      "test/facade-integration.spec.ts required for Phase 1 facade gate",
+      "test/facade-integration.spec.ts required for Phase 1 facade gate"
     );
   });
 
   it("starter.fixture exports createFreshStarterPlugin factory alias", () => {
     const source = fs.readFileSync(
       path.join(PKG_ROOT, "test", "fixtures", "starter.fixture.ts"),
-      "utf8",
+      "utf8"
     );
     assert.match(source, /export const createFreshStarterPlugin = createTestStarterPlugin/);
     assert.equal(source.includes("getStarterWorkspacePlugin"), false);
@@ -537,12 +566,9 @@ describe("phase 1 closure contract", () => {
   it("facade-integration.spec.ts defines at least five behavioral tests", () => {
     const source = fs.readFileSync(
       path.join(PKG_ROOT, "test", "facade-integration.spec.ts"),
-      "utf8",
+      "utf8"
     );
     const itCount = (source.match(/\bit\s*\(/g) ?? []).length;
-    assert.ok(
-      itCount >= 5,
-      `facade-integration.spec.ts must have ≥5 it blocks (found ${itCount})`,
-    );
+    assert.ok(itCount >= 5, `facade-integration.spec.ts must have ≥5 it blocks (found ${itCount})`);
   });
 });

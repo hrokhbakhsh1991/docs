@@ -8,7 +8,7 @@ import { resolveWizardTemplatePathAliasBinding } from "./workspace-wizard-templa
 
 import type { WizardTemplatePayloadV1 } from "./settings.types";
 
-/** INV-WIZ-002 — denali Layer C rows carry this tag via `denali-plugin-adapter`. */
+/** INV-WIZ-002 — workspace adapters tag rows that must stay out of the editable overlay. */
 const WIZARD_OVERLAY_EXCLUDE_TAG = "wizard_overlay_exclude" as const;
 
 /** INV-WIZ-009 — roadmap rows visible in palette but not activatable. */
@@ -31,9 +31,7 @@ function isWizardTemplatePaletteField(
   return true;
 }
 
-function isWizardTemplateSelectableField(field: {
-  readonly tags?: readonly string[];
-}): boolean {
+function isWizardTemplateSelectableField(field: { readonly tags?: readonly string[] }): boolean {
   return !field.tags?.includes(WIZARD_PALETTE_ROADMAP_TAG);
 }
 
@@ -110,7 +108,9 @@ export async function assertWizardTemplateFieldsKnown(
       if (path.length === 0) {
         continue;
       }
-      const registryField = plugin.fieldRegistry.fields.find((entry) => entry.canonicalPath === path);
+      const registryField = plugin.fieldRegistry.fields.find(
+        (entry) => entry.canonicalPath === path
+      );
       if (
         registryField != null &&
         isWizardTemplatePaletteField(registryField, inactiveFieldGroups) &&
@@ -125,7 +125,7 @@ export async function assertWizardTemplateFieldsKnown(
   }
 }
 
-export async function assertDenaliWizardTemplateFrozenFieldsForTenant(
+export async function assertWorkspaceWizardTemplateEnforcedFieldsForTenant(
   tenantId: string,
   payload: WizardTemplatePayloadV1
 ): Promise<void> {
@@ -150,14 +150,14 @@ export async function assertDenaliWizardTemplateFrozenFieldsForTenant(
       typeof (error as { canonicalPath: unknown }).canonicalPath === "string"
     ) {
       throw new SettingsWizardFrozenFieldMissingError(
-        (error as { canonicalPath: string }).canonicalPath,
+        (error as { canonicalPath: string }).canonicalPath
       );
     }
     throw error;
   }
 }
 
-export function normalizeDenaliWizardTemplatePayloadForTenant(
+export function normalizeWorkspaceWizardTemplatePayloadForTenant(
   workspaceType: string,
   payload: WizardTemplatePayloadV1
 ): WizardTemplatePayloadV1 {

@@ -50,12 +50,7 @@ type WorkspaceProductRouteDeps = {
   ) => Promise<void>;
 };
 
-type HandlerDispatchKind =
-  | "bare"
-  | "product"
-  | "product-param"
-  | "finance"
-  | "finance-param";
+type HandlerDispatchKind = "bare" | "product" | "product-param" | "finance" | "finance-param";
 
 const HANDLER_DISPATCH_KIND = {
   handleFinanceCreateManualPayment: "finance",
@@ -148,12 +143,10 @@ function workspaceProductDeps(deps: WorkspaceRouteRegistrarDeps): WorkspaceProdu
 }
 
 /**
- * Phase 1.5 C2A — do not eager-resolve FinanceService (that forced Denali boot type).
+ * Phase 1.5 C2A — do not eager-resolve FinanceService with a product boot type.
  * Optional inject remains for tests; production handlers resolve via auth.tenantId.
  */
-function financeRouteDeps(
-  deps: WorkspaceRouteRegistrarDeps
-): { financeService?: FinanceService } {
+function financeRouteDeps(deps: WorkspaceRouteRegistrarDeps): { financeService?: FinanceService } {
   if (deps.financeService !== undefined) {
     return { financeService: deps.financeService };
   }
@@ -243,14 +236,7 @@ export async function tryDispatchWorkspaceRoutes(
     const match = pathname.match(route.pathPattern);
     if (match) {
       const handler = await resolveHandler(route.handlerKey);
-      await dispatchWorkspaceHandler(
-        route.handlerKey,
-        req,
-        res,
-        handler,
-        deps,
-        match[1]!
-      );
+      await dispatchWorkspaceHandler(route.handlerKey, req, res, handler, deps, match[1]!);
       return true;
     }
   }

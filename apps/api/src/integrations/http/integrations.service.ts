@@ -132,8 +132,8 @@ function assertIntegrationSystemReady(): void {
 
 /**
  * Authorizes a workspace-scoped integration request.
- * The path `workspaceId` is the workspace TYPE slug (e.g. `denali`), while the JWT
- * `workspace_id` claim carries the workspace INSTANCE id (e.g. `ws-denali-dev`).
+ * The path `workspaceId` is the workspace TYPE slug, while the JWT
+ * `workspace_id` claim carries the workspace INSTANCE id.
  * Accept either the instance id (exact) or the tenant's resolved workspace type.
  */
 async function assertWorkspaceScope(auth: TenantAuthContext, workspaceId: string): Promise<void> {
@@ -475,7 +475,7 @@ async function resolvePublicEventPolicies(input: {
       workspaceType: input.workspaceType,
       providerId: input.provider,
       persistedPolicies: input.persistedPolicies,
-    }),
+    })
   );
 }
 
@@ -527,7 +527,7 @@ async function legacyTelegramToPublicDto(
 
 async function loadConnectionPoliciesAndIntents(
   tenantId: string,
-  connectionId: string,
+  connectionId: string
 ): Promise<{
   readonly policies: Awaited<
     ReturnType<ReturnType<typeof createIntegrationPolicyRepository>["listPoliciesForConnection"]>
@@ -561,7 +561,7 @@ async function loadConnectionPoliciesAndIntents(
       await exposureIntentRepository.listForConnectionScope({
         tenantId,
         connectionId,
-      }),
+      })
     );
   } catch (error) {
     logger.warn({
@@ -578,7 +578,7 @@ async function loadConnectionPoliciesAndIntents(
 function appendTourPublishedPolicyDriftWarning(
   row: IntegrationConnectionRecord,
   policies: readonly { readonly eventType: string; readonly enabled: boolean }[],
-  loadWarnings: IntegrationConnectionLoadWarning[],
+  loadWarnings: IntegrationConnectionLoadWarning[]
 ): void {
   if (
     shouldWarnTourPublishedPolicyDrift({
@@ -603,7 +603,7 @@ async function toPublicDto(
 ): Promise<IntegrationConnectionPublicDto> {
   const { policies, exposureIntents, loadWarnings } = await loadConnectionPoliciesAndIntents(
     tenantId,
-    row.id,
+    row.id
   );
   appendTourPublishedPolicyDriftWarning(row, policies, [...loadWarnings]);
 
@@ -843,11 +843,11 @@ export async function patchIntegration(
 
     const config =
       typeof record.config === "object" && record.config !== null
-        ? (await normalizeIntegrationPatchConfigFromSurface({
+        ? ((await normalizeIntegrationPatchConfigFromSurface({
             workspaceType: existing.workspaceType,
             provider: existing.provider as IntegrationProviderId,
             rawConfig: record.config as Record<string, unknown>,
-          }) as Prisma.InputJsonValue)
+          })) as Prisma.InputJsonValue)
         : undefined;
     const capabilities =
       record.capabilities !== undefined
@@ -978,7 +978,7 @@ function parseOptionalFieldDecorations(
   input: {
     readonly allowedFieldIds: ReadonlySet<string>;
     readonly selectedFieldIds: readonly string[];
-  },
+  }
 ) {
   if (value === undefined) {
     return undefined;
@@ -1008,7 +1008,7 @@ function parseOptionalTemplateId(value: unknown): string | null | undefined {
 
 function parseOptionalExposureIntentSurface(
   value: unknown,
-  allowedProviderIds: readonly string[],
+  allowedProviderIds: readonly string[]
 ): string | undefined {
   if (value === undefined) {
     return undefined;
@@ -1042,7 +1042,7 @@ function parseOptionalExposureIntentAudience(value: unknown): string | undefined
 
 function parseOptionalExposureIntentTrigger(
   value: unknown,
-  allowedEventTypes: readonly string[],
+  allowedEventTypes: readonly string[]
 ): string | undefined {
   if (value === undefined) {
     return undefined;
@@ -1064,7 +1064,7 @@ export async function patchConnectionExposureIntentForIntegration(
   auth: TenantAuthContext,
   integrationId: string,
   eventTypeRaw: string,
-  body: unknown,
+  body: unknown
 ): Promise<IntegrationConnectionPublicDto> {
   assertIntegrationSystemReady();
   await assertWorkspaceExposureModuleAccess(auth, "mutate");
@@ -1084,7 +1084,7 @@ export async function patchConnectionExposureIntentForIntegration(
   const existing = await withTenantRls(auth.tenantId, async (tx) =>
     tx.integrationConnection.findFirst({
       where: { id: integrationId, tenantId: auth.tenantId },
-    }),
+    })
   );
   if (existing === null) {
     throw new IntegrationNotFoundError();
@@ -1102,14 +1102,14 @@ export async function patchConnectionExposureIntentForIntegration(
 
   const surface = parseOptionalExposureIntentSurface(
     record.surface,
-    meta.providers.map((provider) => provider.id),
+    meta.providers.map((provider) => provider.id)
   );
   const audience = parseOptionalExposureIntentAudience(record.audience);
   const trigger = parseOptionalExposureIntentTrigger(record.trigger, allowedEventTypes);
 
   const catalogFieldIds = await exposureSelectableCatalogFieldIds(
     auth.tenantId,
-    existing.workspaceType,
+    existing.workspaceType
   );
   assertSelectedFieldsAllowed(selectedFieldIds, catalogFieldIds);
   assertMessageTemplateAllowed({
@@ -1162,7 +1162,7 @@ export async function patchConnectionExposureIntentForIntegration(
     "patch",
     "exposure",
     `${existing.id}:${eventType}`,
-    `Patched exposure intent for ${eventType} on connection ${existing.id}`,
+    `Patched exposure intent for ${eventType} on connection ${existing.id}`
   );
 
   return getIntegrationDetail(auth, integrationId);

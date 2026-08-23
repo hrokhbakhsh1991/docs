@@ -9,6 +9,7 @@ export const WORKSPACE_PRODUCTION_CERTIFICATION: Readonly<
   Record<string, "stub" | "certified">
 > = Object.freeze({
   "acme": "stub",
+  "alpine": "stub",
   "booking-ws2": "stub",
   "denali": "certified",
   "finance-ws2": "stub",

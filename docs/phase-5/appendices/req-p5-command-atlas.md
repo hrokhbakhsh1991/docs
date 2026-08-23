@@ -11,7 +11,7 @@ prerequisite: pnpm run phase-4:gate
 nvm use && corepack enable && pnpm install
 pnpm run phase-5:gate
 # = db:test-reset + build + test (P5 perf env) + phase-4:gate + phase-5:guard
-# UNCHANGED — still nests phase-4:gate → phase-3:gate
+# Canonical phase-5 gate; historical phase-4/phase-3 nesting is not executed.
 ```
 
 ## Static guard (scaffold — not runtime / not 5.6 alone)

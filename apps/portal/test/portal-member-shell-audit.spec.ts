@@ -24,7 +24,10 @@ describe("member-portal-shell-audit — PS-1..PS-5 closure", () => {
     const layout = read("apps/portal/app/me/layout.tsx");
     assert.match(layout, /resolvePortalMemberNavForPlugin/);
     assert.match(read("packages/workspaces/denali/workspace.manifest.json"), /"memberPortal"/);
-    assert.match(read("packages/workspaces/denali/workspace.manifest.json"), /"memberModuleId": "trips"/);
+    assert.match(
+      read("packages/workspaces/denali/workspace.manifest.json"),
+      /"memberModuleId": "trips"/
+    );
   });
 
   it("AUDIT-03 PS-3 GSH module URL builder exists", () => {
@@ -35,13 +38,19 @@ describe("member-portal-shell-audit — PS-1..PS-5 closure", () => {
   });
 
   it("AUDIT-04 PS-4 marketing manifest nav + portal robots", () => {
-    assert.doesNotMatch(read("apps/marketing/src/shell/marketing-shell.tsx"), /FULL_LANDING_NAV_LINKS/);
+    assert.doesNotMatch(
+      read("apps/marketing/src/shell/marketing-shell.tsx"),
+      /FULL_LANDING_NAV_LINKS/
+    );
     assert.match(read("apps/portal/app/robots.ts"), /disallow.*\/api\//);
   });
 
   it("AUDIT-05 PS-5 entitlements API + portal proxy + dispatcher", () => {
     assert.match(read("apps/api/src/app.ts"), /\/identity\/me\/entitlements/);
-    assert.match(read("apps/portal/app/api/me/entitlements/route.ts"), /resolveMemberEntitlementsPayload/);
+    assert.match(
+      read("apps/portal/app/api/me/entitlements/route.ts"),
+      /resolveMemberEntitlementsPayload/
+    );
     assert.match(read("apps/portal/app/me/[...modulePath]/page.tsx"), /MemberModuleUnauthorized/);
     assert.match(read("apps/portal/app/me/home/page.tsx"), /data-portal-member-home/);
   });
@@ -61,10 +70,7 @@ describe("member-portal-shell-audit — PS-1..PS-5 closure", () => {
       "apps/portal/app/me/more/page.tsx",
     ]) {
       const source = read(relPath);
-      assert.match(
-        source,
-        /MemberModuleEntitlementGate|MemberMoreHubEntitlementGate/
-      );
+      assert.match(source, /MemberModuleEntitlementGate|MemberMoreHubEntitlementGate/);
     }
   });
 
@@ -76,6 +82,9 @@ describe("member-portal-shell-audit — PS-1..PS-5 closure", () => {
     );
     assert.match(read("apps/portal/app/me/layout.tsx"), /resolveEmbeddedMemberPortalHost/);
     assert.match(read("apps/portal/src/shell/portal-member-shell.tsx"), /data-embedded-host/);
-    assert.match(read("scripts/generate-workspace-registry.mjs"), /assertMemberPortalL4ReferenceWorkspaces/);
+    assert.match(
+      read("scripts/generate-workspace-registry.mjs"),
+      /assertMemberPortalL4ReferenceWorkspaces/
+    );
   });
 });

@@ -75,11 +75,11 @@
     },
     "text-muted": {
       "$type": "color",
-      "$value": "#6f7768"
+      "$value": "#626a5c"
     },
     "text-link": {
       "$type": "color",
-      "$value": "{denali.forest-600}"
+      "$value": "{denali.forest-700}"
     },
     "border-default": {
       "$type": "color",

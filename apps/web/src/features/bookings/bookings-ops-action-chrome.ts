@@ -1,9 +1,8 @@
 /**
  * Phase 1 manifest → Command Center action chrome (UX-BKG-46).
- * Null / unbound workspace keeps Denali-shaped hardcode defaults.
+ * Null / unbound workspace must not invent product-shaped command affordances.
  */
 import type { BookingOpsCapability } from "@/features/bookings/booking-ops-capability-contract";
-import { BULK_APPROVE_MAX_BATCH } from "@/features/bookings/bookings-command-center-types";
 
 export type BookingsOpsActionChrome = {
   readonly bulkApproveMaxBatch: number;
@@ -11,8 +10,8 @@ export type BookingsOpsActionChrome = {
 };
 
 export const DEFAULT_BOOKINGS_OPS_ACTION_CHROME: BookingsOpsActionChrome = Object.freeze({
-  bulkApproveMaxBatch: BULK_APPROVE_MAX_BATCH,
-  rejectRequiresReason: false,
+  bulkApproveMaxBatch: 0,
+  rejectRequiresReason: true,
 });
 
 export function resolveBookingsOpsActionChrome(
@@ -25,7 +24,7 @@ export function resolveBookingsOpsActionChrome(
   const bulkApproveMaxBatch =
     typeof rawMax === "number" && Number.isFinite(rawMax) && rawMax > 0
       ? Math.floor(rawMax)
-      : BULK_APPROVE_MAX_BATCH;
+      : DEFAULT_BOOKINGS_OPS_ACTION_CHROME.bulkApproveMaxBatch;
   return {
     bulkApproveMaxBatch,
     rejectRequiresReason: manifest.actions.reject.requiresReason === true,

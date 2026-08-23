@@ -9,14 +9,8 @@ import { describe, it } from "node:test";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const USERS_SERVICE = path.join(REPO_ROOT, "src/identity/users.service.ts");
-const OPERATOR_AVATAR_STORAGE = path.join(
-  REPO_ROOT,
-  "src/identity/operator-avatar-storage.ts"
-);
-const INTEGRATIONS_SERVICE = path.join(
-  REPO_ROOT,
-  "src/integrations/http/integrations.service.ts"
-);
+const OPERATOR_AVATAR_STORAGE = path.join(REPO_ROOT, "src/identity/operator-avatar-storage.ts");
+const INTEGRATIONS_SERVICE = path.join(REPO_ROOT, "src/integrations/http/integrations.service.ts");
 
 describe("service-batch-patterns.spec.ts", () => {
   it("SVC-BATCH-01 runBulkMutation loads prefetch before loop", () => {
@@ -33,6 +27,12 @@ describe("service-batch-patterns.spec.ts", () => {
     assert.ok(body !== undefined);
     assert.match(body, /syncIntegrationEventPoliciesInTransaction/);
     assert.doesNotMatch(body, /for\s*\([\s\S]*integrationEventPolicy\.upsert/);
+  });
+
+  it("SVC-BATCH-02b integration workspace scope comments stay product-neutral", () => {
+    const source = fs.readFileSync(INTEGRATIONS_SERVICE, "utf8");
+    assert.doesNotMatch(source, /workspace TYPE slug \(e\.g\. `denali`\)/);
+    assert.doesNotMatch(source, /workspace INSTANCE id \(e\.g\. `ws-denali-dev`\)/);
   });
 
   it("SVC-BATCH-03 listUsersDirectory batch-resolves avatar URLs", () => {

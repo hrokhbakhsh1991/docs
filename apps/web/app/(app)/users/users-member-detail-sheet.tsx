@@ -75,12 +75,20 @@ function StatusBadge({ user }: { readonly user: UsersDirectoryRow }) {
   const t = useTranslations("users");
   if (user.status === "SUSPENDED") {
     return (
-      <Badge variant="destructive" data-testid={USERS_DIRECTORY_TEST_IDS.rowStatusSuspended}>
+      <Badge
+        variant="destructive"
+        className="h-5 px-1.5 text-[10px]"
+        data-testid={USERS_DIRECTORY_TEST_IDS.rowStatusSuspended}
+      >
         {t("status.suspended")}
       </Badge>
     );
   }
-  return <Badge variant="outline">{t("status.active")}</Badge>;
+  return (
+    <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+      {t("status.active")}
+    </Badge>
+  );
 }
 
 function DetailSection({
@@ -95,8 +103,8 @@ function DetailSection({
   readonly children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border bg-card p-4" data-testid={testId}>
-      <div className="mb-4 space-y-1">
+    <section className="rounded-2xl border border-border/70 bg-card/80 p-4 shadow-sm" data-testid={testId}>
+      <div className="mb-3 space-y-1">
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
       </div>
@@ -212,8 +220,15 @@ export function UsersMemberDetailSheet({
     user.permanentDiscountPercentage !== null &&
     user.permanentDiscountPercentage !== undefined &&
     user.permanentDiscountPercentage > 0;
+  const parsedRewardsDiscount = Number(rewardsDiscount.trim());
+  const rewardsDiscountVisible =
+    rewardsDiscount.trim().length > 0 &&
+    Number.isFinite(parsedRewardsDiscount) &&
+    parsedRewardsDiscount > 0;
+  const rewardsLoyaltyVisible = rewardsLoyaltyTier !== "none";
   const visibleHistory = activityExpanded ? history?.items : history?.items.slice(0, 4);
   const visibleTrips = activityExpanded ? trips?.trips : trips?.trips.slice(0, 3);
+  const sheetSide = locale === "fa" ? "left" : "right";
 
   const resolveRoleLabel = (raw: string): string => {
     if (raw === "ACTIVE" || raw === "SUSPENDED" || raw === "REMOVED") {
@@ -258,10 +273,12 @@ export function UsersMemberDetailSheet({
     );
   };
 
+  const rewardSummary = rewardsDiscountVisible || rewardsLoyaltyVisible;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        side="right"
+        side={sheetSide}
         className="flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
         data-testid={USERS_DIRECTORY_TEST_IDS.memberDetail}
       >
@@ -387,6 +404,36 @@ export function UsersMemberDetailSheet({
           >
             {canRewards ? (
               <div className="space-y-4">
+                {rewardSummary ? (
+                  <div className="rounded-xl border border-border/60 bg-muted/30 px-3 py-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          {t("rewards.discountLabel")}
+                        </p>
+                        <p className="text-sm font-medium leading-5">
+                          {rewardsDiscountVisible
+                            ? t("benefits.discountValue", { value: parsedRewardsDiscount })
+                            : t("benefits.none")}
+                        </p>
+                      </div>
+                      <div className="space-y-1 sm:text-end">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          {t("rewards.loyaltyTierLabel")}
+                        </p>
+                        {rewardsLoyaltyVisible ? (
+                          <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                            {rewardsLoyaltyTier === "VIP_MEMBER"
+                              ? t("rewards.loyaltyVip")
+                              : t("rewards.loyaltyGold")}
+                          </Badge>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">{t("benefits.none")}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="space-y-2">
                   <Label htmlFor="member-benefits-discount">{t("rewards.discountLabel")}</Label>
                   <LocalizedNumericInput
@@ -405,8 +452,8 @@ export function UsersMemberDetailSheet({
                   data-testid={USERS_DIRECTORY_TEST_IDS.rewardsLoyaltyTier}
                 >
                   <legend className="text-sm font-medium">{t("rewards.loyaltyTierLabel")}</legend>
-                  <div className="flex flex-wrap gap-3 text-sm">
-                    <label className="flex items-center gap-2">
+                  <div className="flex flex-wrap gap-2 text-sm">
+                    <label className="flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1.5">
                       <PrimitiveInput
                         type="radio"
                         name="member-benefits-loyalty-tier"
@@ -417,7 +464,10 @@ export function UsersMemberDetailSheet({
                       {t("rewards.loyaltyNone")}
                     </label>
                     {LOYALTY_REWARD_BADGE_IDS.map((badgeId) => (
-                      <label key={badgeId} className="flex items-center gap-2">
+                      <label
+                        key={badgeId}
+                        className="flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1.5"
+                      >
                         <PrimitiveInput
                           type="radio"
                           name="member-benefits-loyalty-tier"
@@ -566,7 +616,7 @@ export function UsersMemberDetailSheet({
                     visibleHistory?.map((entry, index) => (
                       <div
                         key={`${entry.createdAt}-${index}`}
-                        className="rounded-lg border p-3 text-sm"
+                        className="rounded-xl border border-border/70 bg-background/60 p-3 text-sm"
                       >
                         <p className="font-medium">{resolveHistorySummary(entry)}</p>
                         <p className="text-muted-foreground">
@@ -586,13 +636,13 @@ export function UsersMemberDetailSheet({
                     {t("memberDetail.tripSummary")}
                   </h4>
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary">
+                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
                       {t("memberDetail.totalTrips", { count: trips?.totalTrips ?? 0 })}
                     </Badge>
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
                       {t("memberDetail.completedTrips", { count: trips?.completedTrips ?? 0 })}
                     </Badge>
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
                       {t("memberDetail.cancelledTrips", { count: trips?.cancelledTrips ?? 0 })}
                     </Badge>
                   </div>
@@ -601,7 +651,10 @@ export function UsersMemberDetailSheet({
                   ) : (
                     <ul className="space-y-2">
                       {visibleTrips?.map((trip) => (
-                        <li key={trip.bookingId} className="rounded-lg border p-3 text-sm">
+                        <li
+                          key={trip.bookingId}
+                          className="rounded-xl border border-border/70 bg-background/60 p-3 text-sm"
+                        >
                           <p className="font-medium">{trip.tourTitle}</p>
                           <p className="text-muted-foreground">
                             {t("memberDetail.tripMeta", {
@@ -635,15 +688,17 @@ export function UsersMemberDetailSheet({
               description={t("memberDetail.removeDescription")}
               testId={USERS_DIRECTORY_TEST_IDS.memberDetailDanger}
             >
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={busy}
-                data-testid={USERS_DIRECTORY_TEST_IDS.rowRemove}
-                onClick={onRemove}
-              >
-                {t("actions.remove")}
-              </Button>
+              <div className="flex justify-start">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={busy}
+                  data-testid={USERS_DIRECTORY_TEST_IDS.rowRemove}
+                  onClick={onRemove}
+                >
+                  {t("actions.remove")}
+                </Button>
+              </div>
             </DetailSection>
           ) : null}
         </div>

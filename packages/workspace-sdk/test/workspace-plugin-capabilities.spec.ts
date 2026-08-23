@@ -34,8 +34,13 @@ import {
   ensureSettingsExposureSurfacesUiReady,
   resolveOperatorShellNavCapability,
   resolveFinanceNavCapability,
+  resolveFinanceCaseMeaningCapability,
   resolveFinanceOpsCapability,
   resolveBookingOpsCapability,
+  resolveMemberPortalRenderersCapability,
+  getWorkspaceMemberPortalRenderer,
+  registerWorkspaceMemberPortalRenderers,
+  clearWorkspaceMemberPortalRenderersForTests,
   resolveWizardCreateCapability,
   resolveWizardHostCapability,
   type WorkspacePluginCapabilities,
@@ -307,12 +312,9 @@ describe("workspace-plugin-capabilities — Phase 4r/4s", () => {
 
   it("SDK-4AP-01 resolveTourActionSubmitCapability reads capabilities.tourActionSubmit", () => {
     const tourActionSubmit = {
-      encode: (payload: { status: number; code: string; message: string }) =>
-        `X:${payload.code}`,
+      encode: (payload: { status: number; code: string; message: string }) => `X:${payload.code}`,
       decode: (raw: string) =>
-        raw.startsWith("X:")
-          ? { status: 400, code: raw.slice(2), message: "m" }
-          : null,
+        raw.startsWith("X:") ? { status: 400, code: raw.slice(2), message: "m" } : null,
     };
     assert.equal(
       resolveTourActionSubmitCapability({ capabilities: { tourActionSubmit } })?.encode({
@@ -366,7 +368,8 @@ describe("workspace-plugin-capabilities — Phase 4r/4s", () => {
       buildFullTemplatePreset: (seedLabel?: string) => ({ seedLabel: seedLabel ?? "x", steps: [] }),
     };
     assert.equal(
-      resolveTemplatePresetCapability({ capabilities: { templatePreset } })?.buildFullTemplatePreset,
+      resolveTemplatePresetCapability({ capabilities: { templatePreset } })
+        ?.buildFullTemplatePreset,
       templatePreset.buildFullTemplatePreset
     );
     assert.equal(resolveTemplatePresetCapability({}), undefined);
@@ -486,10 +489,7 @@ describe("workspace-plugin-capabilities — Phase 4r/4s", () => {
 
   it("SDK-4BD-01 resolveFinanceNavCapability reads capabilities.financeNav", () => {
     const financeNav = { supported: true as const };
-    assert.equal(
-      resolveFinanceNavCapability({ capabilities: { financeNav } })?.supported,
-      true
-    );
+    assert.equal(resolveFinanceNavCapability({ capabilities: { financeNav } })?.supported, true);
     assert.equal(resolveFinanceNavCapability({}), undefined);
   });
 
@@ -504,6 +504,14 @@ describe("workspace-plugin-capabilities — Phase 4r/4s", () => {
     assert.equal(resolveFinanceOpsCapability({}), undefined);
   });
 
+  it("SDK-4BE-02 resolves optional Finance case meaning capability", () => {
+    const financeCaseMeaning = { supported: true as const };
+    assert.equal(
+      resolveFinanceCaseMeaningCapability({ capabilities: { financeCaseMeaning } })?.supported,
+      true
+    );
+    assert.equal(resolveFinanceCaseMeaningCapability({}), undefined);
+  });
 
   it("SDK-4BE-03 registers a future member renderer without host dispatch", () => {
     clearWorkspaceMemberPortalRenderersForTests();
@@ -517,8 +525,7 @@ describe("workspace-plugin-capabilities — Phase 4r/4s", () => {
 
   it("SDK-4BF-01 resolveBookingOpsCapability reads capabilities.bookingOps", () => {
     const bookingOps = {
-      resolveManifest: (_theme?: unknown | null) =>
-        ({ id: "fixture_registration_ops" }) as never,
+      resolveManifest: (_theme?: unknown | null) => ({ id: "fixture_registration_ops" }) as never,
     };
     assert.equal(
       resolveBookingOpsCapability({ capabilities: { bookingOps } })?.resolveManifest,

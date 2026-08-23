@@ -1,46 +1,26 @@
-import type { TenantThemeConfig } from "@app-tour/workspace-sdk";
+import { DEFAULT_WORKSPACE_TYPE_BINDINGS, type TenantThemeConfig } from "@app-tour/workspace-sdk";
 
 /**
  * Dev/provision defaults for `tenants.theme` keyed by workspace_type.
- * Product-specific literals live here (not workspace-sdk — P5-T04 product-neutral core).
+ * Product-specific literals come from workspace manifests via generated bindings.
  *
  * @see docs/phase-4/subphases/4.4-tenant-theme.md
  */
-export const DEFAULT_TENANT_BRANDING_BY_WORKSPACE_TYPE = Object.freeze({
-  starter: Object.freeze({
-    primaryColor: "#2563eb",
-    cssVariables: Object.freeze({ "--color-primary": "#2563eb" }),
-  }),
-  denali: Object.freeze({
-    primaryColor: "#059669",
-    cssVariables: Object.freeze({
-      "--color-primary": "#059669",
-      "--color-primary-hover": "#047857",
-    }),
-  }),
-  urban: Object.freeze({
-    primaryColor: "#0d9488",
-    cssVariables: Object.freeze({ "--color-primary": "#0d9488" }),
-    defaultLocale: "en" as const,
-  }),
-} satisfies Readonly<Record<string, TenantThemeConfig>>);
+const BRANDING_BY_WORKSPACE_TYPE = new Map(
+  DEFAULT_WORKSPACE_TYPE_BINDINGS.map((binding) => [
+    binding.workspaceType,
+    binding.tenantBrandingDefaults,
+  ])
+);
 
 export function resolveDefaultTenantBranding(workspaceType: string): TenantThemeConfig {
   const key = workspaceType.trim().toLowerCase();
-  const preset =
-    DEFAULT_TENANT_BRANDING_BY_WORKSPACE_TYPE[
-      key as keyof typeof DEFAULT_TENANT_BRANDING_BY_WORKSPACE_TYPE
-    ];
-  if (preset === undefined) {
+  const defaults = BRANDING_BY_WORKSPACE_TYPE.get(key);
+  if (defaults === undefined) {
     return {};
   }
   return {
-    ...(preset.primaryColor !== undefined ? { primaryColor: preset.primaryColor } : {}),
-    ...(preset.cssVariables !== undefined
-      ? { cssVariables: { ...preset.cssVariables } }
-      : {}),
-    ...("defaultLocale" in preset && preset.defaultLocale !== undefined
-      ? { defaultLocale: preset.defaultLocale }
-      : {}),
+    ...defaults,
+    ...(defaults.cssVariables !== undefined ? { cssVariables: { ...defaults.cssVariables } } : {}),
   };
 }

@@ -1,6 +1,6 @@
 /**
  * Phase B1.5 / B2.1 — tenant → workspaceType for Booking composition.
- * Fail-closed on unsupported / unknown workspace types (no Denali silent fallback).
+ * Fail-closed on unsupported / unknown workspace types (no product silent fallback).
  */
 
 import {

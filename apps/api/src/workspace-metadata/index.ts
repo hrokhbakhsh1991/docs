@@ -29,7 +29,6 @@ export {
 } from "./workspace-definition.repository.ts";
 export {
   buildWorkspaceDefinitionExport,
-  DEFAULT_WORKSPACE_DEFINITION_EXPORTS,
   parseWorkspaceDefinitionExportFile,
   type WorkspaceDefinitionExportFile,
   type WorkspaceDefinitionExportMeta,

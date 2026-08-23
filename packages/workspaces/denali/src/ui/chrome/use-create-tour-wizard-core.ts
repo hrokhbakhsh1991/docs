@@ -101,7 +101,7 @@ export type DenaliCreateTourWizardCoreInput = {
   readonly session: DenaliCreateTourWizardSession;
   readonly gate: DenaliCreateTourWizardGate;
   readonly runtimeGates?: DenaliWizardRuntimeGates;
-  readonly denaliPlugin: WorkspacePlugin;
+  readonly workspacePlugin: WorkspacePlugin;
   readonly draftSync: DenaliCreateTourDraftSync;
   readonly draftIndex: DenaliCreateTourDraftIndex;
   readonly clearDraft: DenaliWizardClearDraftHandle;
@@ -214,12 +214,7 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
     return () => {
       cancelled = true;
     };
-  }, [
-    input.cloneTourId,
-    input.gate.published,
-    input.wizardSessionId,
-    input.session.pluginId,
-  ]);
+  }, [input.cloneTourId, input.gate.published, input.wizardSessionId, input.session.pluginId]);
 
   const denaliEnvelope = input.draftSync.data;
   const denaliEnvelopeRef = useRef(denaliEnvelope);
@@ -259,9 +254,7 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
     draftSyncRef.current.setData(
       prepareEnvelopeRef.current(
         envelope.form,
-        buildDenaliWizardFreshStartMeta(
-          envelope.meta.wizardSessionId ?? input.wizardSessionId
-        )
+        buildDenaliWizardFreshStartMeta(envelope.meta.wizardSessionId ?? input.wizardSessionId)
       )
     );
   }, [
@@ -294,15 +287,12 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
   }, [draftDataKey]);
 
   const getEnvelope = useCallback(() => denaliEnvelopeRef.current, []);
-  const setEnvelope = useCallback(
-    (prepared: DenaliCreateTourWizardDraftEnvelope) => {
-      draftSyncRef.current.setData(prepared);
-    },
-    []
-  );
+  const setEnvelope = useCallback((prepared: DenaliCreateTourWizardDraftEnvelope) => {
+    draftSyncRef.current.setData(prepared);
+  }, []);
 
   const { wizardRuleEvalContext, onDraftChange } = useDenaliWizardRuleSync({
-    plugin: input.denaliPlugin,
+    plugin: input.workspacePlugin,
     draft,
     getEnvelope,
     setEnvelope,
@@ -346,7 +336,7 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
     startTransition(async () => {
       try {
         const outcome = await runDenaliCreateTourSubmit({
-          plugin: input.denaliPlugin,
+          plugin: input.workspacePlugin,
           draft,
           denaliRules: denaliRules as unknown as StrictDenaliWizardRulesModule | null,
           wizardRuleEvalContext,
@@ -373,7 +363,9 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
               status: result.status,
               code: result.code,
               message: result.message,
-              ...(result.correlationId !== undefined ? { correlationId: result.correlationId } : {}),
+              ...(result.correlationId !== undefined
+                ? { correlationId: result.correlationId }
+                : {}),
             })
           );
           return;
@@ -391,7 +383,7 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
       }
     });
   }, [
-    input.denaliPlugin,
+    input.workspacePlugin,
     input.session.tenantId,
     input.gate,
     input.createTourAction,

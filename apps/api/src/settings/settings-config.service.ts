@@ -3,9 +3,9 @@ import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 import { getSettingsConfigRepository } from "./create-settings-config-repository";
 import { emitSettingsConfigAudit } from "./settings-audit-emitter";
 import {
-  assertDenaliWizardTemplateFrozenFieldsForTenant,
+  assertWorkspaceWizardTemplateEnforcedFieldsForTenant,
   assertWizardTemplateFieldsKnown,
-  normalizeDenaliWizardTemplatePayloadForTenant,
+  normalizeWorkspaceWizardTemplatePayloadForTenant,
 } from "./wizard-template-catalog";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import {
@@ -87,7 +87,10 @@ function migrateWizardTemplatePayload(
     seedLabel: typeof payload.seedLabel === "string" ? payload.seedLabel : "",
     sections: Array.isArray(payload.sections)
       ? payload.sections
-          .filter((section): section is Record<string, unknown> => typeof section === "object" && section !== null)
+          .filter(
+            (section): section is Record<string, unknown> =>
+              typeof section === "object" && section !== null
+          )
           .map((section) => ({
             id: typeof section.id === "string" ? section.id : "section",
             label: typeof section.label === "string" ? section.label : "Section",
@@ -137,7 +140,8 @@ function normalizeFieldRulesOverlay(raw: unknown): WizardTemplatePayloadV1["fiel
     return undefined;
   }
   const entries = Object.entries(raw as Record<string, unknown>).filter(
-    ([key, value]) => key.trim().length > 0 && value != null && typeof value === "object" && !Array.isArray(value)
+    ([key, value]) =>
+      key.trim().length > 0 && value != null && typeof value === "object" && !Array.isArray(value)
   );
   if (entries.length === 0) {
     return undefined;
@@ -149,7 +153,10 @@ function normalizeWizardTemplatePayload(payload: Record<string, unknown>): Wizar
   const seedLabel = typeof payload.seedLabel === "string" ? payload.seedLabel : "";
   const sections = Array.isArray(payload.sections)
     ? payload.sections
-        .filter((section): section is Record<string, unknown> => typeof section === "object" && section !== null)
+        .filter(
+          (section): section is Record<string, unknown> =>
+            typeof section === "object" && section !== null
+        )
         .map((section) => ({
           id: typeof section.id === "string" ? section.id : "section",
           label: typeof section.label === "string" ? section.label : "Section",
@@ -159,11 +166,13 @@ function normalizeWizardTemplatePayload(payload: Record<string, unknown>): Wizar
 
   let normalized: WizardTemplatePayloadV1 = {
     seedLabel,
-    sections: sections.length > 0 ? sections : WIZARD_TEMPLATE_WORKSPACE_DEFAULT.sections.map((s) => ({ ...s })),
+    sections:
+      sections.length > 0
+        ? sections
+        : WIZARD_TEMPLATE_WORKSPACE_DEFAULT.sections.map((s) => ({ ...s })),
   };
 
-  const baseProfile =
-    typeof payload.baseProfile === "string" ? payload.baseProfile.trim() : "";
+  const baseProfile = typeof payload.baseProfile === "string" ? payload.baseProfile.trim() : "";
   if (baseProfile.length > 0) {
     normalized = { ...normalized, baseProfile };
   }
@@ -198,11 +207,23 @@ function normalizeMatchRule(raw: Record<string, unknown>): PresetsAdvancedMatchR
     return null;
   }
   const tourType =
-    raw.tourType === null ? null : typeof raw.tourType === "string" ? raw.tourType.trim() || null : null;
+    raw.tourType === null
+      ? null
+      : typeof raw.tourType === "string"
+        ? raw.tourType.trim() || null
+        : null;
   const themeId =
-    raw.themeId === null ? null : typeof raw.themeId === "string" ? raw.themeId.trim() || null : null;
+    raw.themeId === null
+      ? null
+      : typeof raw.themeId === "string"
+        ? raw.themeId.trim() || null
+        : null;
   const presetId =
-    raw.presetId === null ? null : typeof raw.presetId === "string" ? raw.presetId.trim() || null : null;
+    raw.presetId === null
+      ? null
+      : typeof raw.presetId === "string"
+        ? raw.presetId.trim() || null
+        : null;
   return {
     id,
     tourType,
@@ -222,7 +243,9 @@ function migratePresetsAdvancedPayload(
   return normalizePresetsAdvancedPayload(payload);
 }
 
-function normalizePresetsAdvancedPayload(payload: Record<string, unknown>): PresetsAdvancedPayloadV1 {
+function normalizePresetsAdvancedPayload(
+  payload: Record<string, unknown>
+): PresetsAdvancedPayloadV1 {
   const autoMatchEnabled = payload.autoMatchEnabled === true;
   const defaultPresetId =
     payload.defaultPresetId === null
@@ -232,7 +255,9 @@ function normalizePresetsAdvancedPayload(payload: Record<string, unknown>): Pres
         : null;
   const matchRules = Array.isArray(payload.matchRules)
     ? payload.matchRules
-        .filter((rule): rule is Record<string, unknown> => typeof rule === "object" && rule !== null)
+        .filter(
+          (rule): rule is Record<string, unknown> => typeof rule === "object" && rule !== null
+        )
         .map((rule) => normalizeMatchRule(rule))
         .filter((rule): rule is PresetsAdvancedMatchRule => rule !== null)
     : [];
@@ -339,8 +364,8 @@ async function putWizardTemplateConfig(
   let payload = normalizeWizardTemplatePayload(body.payload as unknown as Record<string, unknown>);
   const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
   await assertWizardTemplateFieldsKnown(auth.tenantId, payload);
-  await assertDenaliWizardTemplateFrozenFieldsForTenant(auth.tenantId, payload);
-  payload = normalizeDenaliWizardTemplatePayloadForTenant(workspaceType, payload);
+  await assertWorkspaceWizardTemplateEnforcedFieldsForTenant(auth.tenantId, payload);
+  payload = normalizeWorkspaceWizardTemplatePayloadForTenant(workspaceType, payload);
   const repo = getSettingsConfigRepository();
   const saved = await repo.put(auth.tenantId, configKey, {
     configVersion: expectedVersion,
@@ -369,7 +394,9 @@ async function putPresetsAdvancedConfig(
     throw new SettingsConfigVersionUnsupportedError(body.configVersion);
   }
 
-  const payload = normalizePresetsAdvancedPayload(body.payload as unknown as Record<string, unknown>);
+  const payload = normalizePresetsAdvancedPayload(
+    body.payload as unknown as Record<string, unknown>
+  );
   const repo = getSettingsConfigRepository();
   const saved = await repo.put(auth.tenantId, configKey, {
     configVersion: expectedVersion,

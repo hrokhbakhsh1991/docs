@@ -8,7 +8,7 @@ const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 const marketingSmokeBaseUrl =
   process.env.SMOKE_MARKETING_BASE_URL ?? "http://denali.localhost:3002";
 const marketingSmokeOrigin = new URL(marketingSmokeBaseUrl);
-const marketingHealthUrl = `http://127.0.0.1:${marketingSmokeOrigin.port || "3002"}/health`;
+const marketingReadinessUrl = `http://127.0.0.1:${process.env.MARKETING_SMOKE_READY_PORT ?? "3012"}/ready`;
 
 function chromiumLaunchArgs(): string[] {
   const vpsIp = process.env.VPS_IP?.trim();
@@ -50,9 +50,9 @@ export default defineConfig({
     : {
         webServer: {
           command: "node scripts/smoke-marketing-e2e-servers.mjs",
-          url: marketingHealthUrl,
+          url: marketingReadinessUrl,
           reuseExistingServer: !process.env.CI && process.env.PW_NO_REUSE_SERVER !== "1",
-          timeout: 360_000,
+          timeout: 720_000,
           stdout: "pipe",
           stderr: "pipe",
         },

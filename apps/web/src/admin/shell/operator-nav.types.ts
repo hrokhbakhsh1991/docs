@@ -1,6 +1,8 @@
 export type OperatorNavItem = {
   readonly pathKey: string;
   readonly href: string;
+  readonly labelKey?: string;
+  readonly labelNamespace?: "nav" | "tours.shell";
 };
 
 export const OPERATOR_NAV_TEST_IDS = {

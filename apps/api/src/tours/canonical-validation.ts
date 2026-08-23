@@ -5,9 +5,7 @@ import { isWorkspaceMetadataEnabled } from "../workspace-metadata/is-workspace-m
 import { runValidationOffThread } from "../canonical/validation-worker-pool";
 import type { CreateTourBody } from "./create-tour.schema";
 import type { ValidateBeforePersistInput } from "./canonical-validation-sync.types";
-import {
-  validateCanonicalBeforePersistAsync,
-} from "./canonical-validation-sync";
+import { validateCanonicalBeforePersistAsync } from "./canonical-validation-sync";
 import { applyWorkspacePersistCanonicalNormalize } from "./apply-workspace-persist-canonical-normalize";
 
 async function enrichValidateBeforePersistInput(
@@ -55,7 +53,7 @@ export async function validateCanonicalBeforePersist(
 export async function buildValidatedCanonicalDocument(
   body: CreateTourBody,
   tenantId: string,
-  workspaceType = "starter"
+  workspaceType: string
 ): Promise<CanonicalDocument> {
   return validateCanonicalBeforePersist({ body, tenantId, workspaceType });
 }

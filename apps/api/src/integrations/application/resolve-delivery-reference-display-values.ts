@@ -16,14 +16,16 @@ function readTenantId(payload: Readonly<Record<string, unknown>>): string | null
 }
 
 function readCanonicalPathByFieldId(
-  definitions: readonly FieldDefinition[],
+  definitions: readonly FieldDefinition[]
 ): ReadonlyMap<string, string> {
-  return new Map(definitions.map((definition) => [definition.id, definition.canonicalPath] as const));
+  return new Map(
+    definitions.map((definition) => [definition.id, definition.canonicalPath] as const)
+  );
 }
 
 function readReferenceId(
   payload: Readonly<Record<string, unknown>>,
-  canonicalPath: string,
+  canonicalPath: string
 ): string | null {
   const raw = getCanonicalValue(payload, canonicalPath);
   if (typeof raw !== "string") {
@@ -40,24 +42,25 @@ function readReferenceId(
 export async function resolveDeliveryReferenceDisplayValues(input: {
   readonly tenantId: string;
   readonly workspaceType: string | null;
+  readonly providerId: string;
   readonly payload: Readonly<Record<string, unknown>>;
   readonly eligibleFieldIds: readonly string[];
   readonly definitions: readonly FieldDefinition[];
 }): Promise<Readonly<Record<string, string>>> {
-  if (!supportsDeliveryReferenceDisplay(input.workspaceType)) {
+  if (!supportsDeliveryReferenceDisplay(input.workspaceType, input.providerId)) {
     return {};
   }
 
-  const eligibleFieldIds = listDeliveryReferenceDisplayFieldIds(input.workspaceType);
+  const eligibleFieldIds = listDeliveryReferenceDisplayFieldIds(
+    input.workspaceType,
+    input.providerId
+  );
   const tenantId = readTenantId(input.payload) ?? input.tenantId;
   const canonicalPathById = readCanonicalPathByFieldId(input.definitions);
   const values: Record<string, string> = {};
 
   const destinationFieldId = eligibleFieldIds.find((fieldId) => fieldId.endsWith(".destination"));
-  if (
-    destinationFieldId !== undefined &&
-    input.eligibleFieldIds.includes(destinationFieldId)
-  ) {
+  if (destinationFieldId !== undefined && input.eligibleFieldIds.includes(destinationFieldId)) {
     const destinationPath = canonicalPathById.get(destinationFieldId) ?? "destinationId";
     const destinationId = readReferenceId(input.payload, destinationPath);
     if (destinationId !== null) {

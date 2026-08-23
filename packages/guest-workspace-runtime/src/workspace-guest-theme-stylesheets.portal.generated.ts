@@ -3,6 +3,8 @@
  * Source: workspace.manifest.json per workspace package.
  * Regenerate: pnpm run generate:workspace-registry
  */
+/// <reference path="./workspace-theme-css.d.ts" />
+
 
 /** Starter workspace owns the default portal L3 skin (Phase D.2). */
 export const WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN =

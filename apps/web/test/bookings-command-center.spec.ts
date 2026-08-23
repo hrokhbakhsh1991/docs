@@ -162,6 +162,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       ),
       ["p1", "p2"]
     );
+    assert.deepEqual(filterBulkApprovableIds(items, ["b1"], 0), []);
 
     const paymentQuery = parseBookingsCommandCenterQuery(
       new URLSearchParams("paymentStatus=unpaid")
@@ -286,10 +287,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       parseBookingsCommandCenterQuery(new URLSearchParams("status=pending,waitlisted")).status,
       "actionable"
     );
-    assert.equal(
-      parseBookingsCommandCenterQuery(new URLSearchParams("status=all")).status,
-      "all"
-    );
+    assert.equal(parseBookingsCommandCenterQuery(new URLSearchParams("status=all")).status, "all");
     assert.match(
       serializeBookingsCommandCenterQuery({
         ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY,
@@ -328,7 +326,10 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       /approvedWithinDays=1/
     );
 
-    assert.equal(bookingsCommandCenterHasActiveFilters(DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY), false);
+    assert.equal(
+      bookingsCommandCenterHasActiveFilters(DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY),
+      false
+    );
     assert.equal(
       bookingsCommandCenterHasActiveFilters({
         ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY,
@@ -380,6 +381,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       },
     ];
     assert.deepEqual(listBulkApprovableIds(items), ["b1"]);
+    assert.deepEqual(listBulkApprovableIds(items, 0), []);
     assert.deepEqual(
       listBulkApprovableIds(
         [
@@ -401,7 +403,10 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.deepEqual(bulk.approvedIds, ["a"]);
     assert.deepEqual(bulk.skippedIds, ["b", "c"]);
 
-    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.clearFiltersButton, "operator-bookings-clear-filters");
+    assert.equal(
+      BOOKINGS_COMMAND_CENTER_TEST_IDS.clearFiltersButton,
+      "operator-bookings-clear-filters"
+    );
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.waitlistButton, "operator-bookings-waitlist");
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelButton, "operator-bookings-cancel");
     assert.equal(
@@ -454,18 +459,18 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     );
     // UX-BKG-52 — first click arms; second confirms; different row re-arms.
     assert.equal(BOOKINGS_INLINE_APPROVE_ARM_MS, 3_000);
-    assert.deepEqual(
-      resolveInlineApproveClick({ armedBookingId: null, clickedBookingId: "b1" }),
-      { kind: "arm", armedBookingId: "b1" }
-    );
-    assert.deepEqual(
-      resolveInlineApproveClick({ armedBookingId: "b1", clickedBookingId: "b1" }),
-      { kind: "confirm", bookingId: "b1" }
-    );
-    assert.deepEqual(
-      resolveInlineApproveClick({ armedBookingId: "b1", clickedBookingId: "b2" }),
-      { kind: "arm", armedBookingId: "b2" }
-    );
+    assert.deepEqual(resolveInlineApproveClick({ armedBookingId: null, clickedBookingId: "b1" }), {
+      kind: "arm",
+      armedBookingId: "b1",
+    });
+    assert.deepEqual(resolveInlineApproveClick({ armedBookingId: "b1", clickedBookingId: "b1" }), {
+      kind: "confirm",
+      bookingId: "b1",
+    });
+    assert.deepEqual(resolveInlineApproveClick({ armedBookingId: "b1", clickedBookingId: "b2" }), {
+      kind: "arm",
+      armedBookingId: "b2",
+    });
     assert.equal(
       BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelConfirmDialog,
       "operator-bookings-cancel-confirm"
@@ -515,7 +520,10 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       "/bookings?tourId=tour-1&status=rejected&view=ops"
     );
 
-    assert.equal(buildBookingLifecycleActionNotice({ action: "approve", guestLabel: "  " }).kind, "none");
+    assert.equal(
+      buildBookingLifecycleActionNotice({ action: "approve", guestLabel: "  " }).kind,
+      "none"
+    );
 
     const enSafety = JSON.parse(
       readFileSync(new URL("../messages/en/bookings.json", import.meta.url), "utf8")
@@ -525,7 +533,6 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     };
     assert.match(enSafety.cancelDialogTitle, /Cancel/i);
     assert.equal(enSafety.inlineApproveConfirm, "Confirm? (2nd click)");
-
 
     assert.equal(BOOKINGS_QUEUE_FRESHNESS_COOLDOWN_MS, 45_000);
     assert.equal(
@@ -595,15 +602,9 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     };
     // Deprecated row helpers retained for unit coverage; list no longer ships intake (UX-BKG-50 amend).
     assert.equal(resolveBookingRowTransportLabel(undefined, transportLabels), null);
+    assert.equal(resolveBookingRowTransportLabel({ tourCapacityMax: 12 }, transportLabels), null);
     assert.equal(
-      resolveBookingRowTransportLabel({ tourCapacityMax: 12 }, transportLabels),
-      null
-    );
-    assert.equal(
-      resolveBookingRowTransportLabel(
-        { transport: { kind: "primary" } },
-        transportLabels
-      ),
+      resolveBookingRowTransportLabel({ transport: { kind: "primary" } }, transportLabels),
       "Primary"
     );
     assert.equal(
@@ -614,10 +615,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       "Personal car · 2 seats"
     );
     assert.equal(truncateBookingRowTransportLabel("Short"), "Short");
-    assert.equal(
-      truncateBookingRowTransportLabel("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 10),
-      "ABCDEFGHI…"
-    );
+    assert.equal(truncateBookingRowTransportLabel("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 10), "ABCDEFGHI…");
   });
 
   it("WEB-9.5-08 P2 display sort, departureWithinDays, datetime helpers", () => {
@@ -732,7 +730,10 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.equal(resolveInboxSelectionAfterKey(items, "b2", "ArrowUp"), "b1");
 
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectDialog, "operator-bookings-reject-dialog");
-    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.bulkConfirmDialog, "operator-bookings-bulk-confirm");
+    assert.equal(
+      BOOKINGS_COMMAND_CENTER_TEST_IDS.bulkConfirmDialog,
+      "operator-bookings-bulk-confirm"
+    );
     assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.capacityBar, "operator-bookings-capacity");
     assert.equal(
       matchesBookingsMobileInspectionViewport((q) => q.includes("1023")),
@@ -785,10 +786,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.equal(withActive[0]?.tourId, "legacy");
     assert.equal(withActive.length, 3);
     assert.equal(
-      resolveActiveTourChipFallbackTitle(
-        [{ tourId: "legacy", tourTitle: "From List" }],
-        "legacy"
-      ),
+      resolveActiveTourChipFallbackTitle([{ tourId: "legacy", tourTitle: "From List" }], "legacy"),
       "From List"
     );
   });
@@ -937,9 +935,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.equal(with30.departureWithinDays, "30");
     assert.equal(applyBookingsDepartureWindowChip(with30, 30).departureWithinDays, "");
 
-    const parsed14 = parseBookingsCommandCenterQuery(
-      new URLSearchParams("departureWithinDays=14")
-    );
+    const parsed14 = parseBookingsCommandCenterQuery(new URLSearchParams("departureWithinDays=14"));
     assert.equal(parsed14.departureWithinDays, "14");
     assert.match(serializeBookingsCommandCenterQuery(parsed14), /departureWithinDays=14/);
 
@@ -986,10 +982,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       BOOKINGS_COMMAND_CENTER_TEST_IDS.tourChipScopeAll,
       "operator-bookings-tour-chip-scope-all"
     );
-    assert.equal(
-      BOOKINGS_COMMAND_CENTER_TEST_IDS.historyHint,
-      "operator-bookings-history-hint"
-    );
+    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.historyHint, "operator-bookings-history-hint");
 
     const withAll = toggleBookingsTourChipScopeAll(DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY);
     assert.equal(withAll.tourChipScope, "all");
@@ -1000,10 +993,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       "all"
     );
     assert.equal(buildBookingsSummaryApiQuery(DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY), "");
-    assert.equal(
-      toggleBookingsTourChipScopeAll(withAll).tourChipScope,
-      ""
-    );
+    assert.equal(toggleBookingsTourChipScopeAll(withAll).tourChipScope, "");
     assert.equal(bookingsCommandCenterHasActiveFilters(withAll), true);
   });
 
@@ -1066,10 +1056,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.equal(upcoming.layout, "inbox");
     assert.equal(resolveActiveBookingsOpsPreset(upcoming), "upcoming");
 
-    const boardThenUpcoming = applyBookingsOpsPreset(
-      { ...work, layout: "board" },
-      "upcoming"
-    );
+    const boardThenUpcoming = applyBookingsOpsPreset({ ...work, layout: "board" }, "upcoming");
     assert.equal(boardThenUpcoming.layout, "board");
     assert.equal(boardThenUpcoming.status, "actionable");
 
@@ -1194,10 +1181,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
     assert.match(faBookings.presetsHint, /صف کار/);
     assert.match(faBookings.emptyInbox, /کار تمام/);
 
-    assert.equal(
-      BOOKINGS_COMMAND_CENTER_TEST_IDS.presetsHint,
-      "operator-bookings-presets-hint"
-    );
+    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.presetsHint, "operator-bookings-presets-hint");
     assert.equal(
       BOOKINGS_COMMAND_CENTER_TEST_IDS.inspectionActionsHint,
       "operator-bookings-inspection-actions-hint"
@@ -1208,10 +1192,7 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       BOOKINGS_COMMAND_CENTER_TEST_IDS.primaryChrome,
       "operator-bookings-primary-chrome"
     );
-    assert.equal(
-      BOOKINGS_COMMAND_CENTER_TEST_IDS.displayMenu,
-      "operator-bookings-display-menu"
-    );
+    assert.equal(BOOKINGS_COMMAND_CENTER_TEST_IDS.displayMenu, "operator-bookings-display-menu");
     assert.equal(
       BOOKINGS_COMMAND_CENTER_TEST_IDS.advancedFiltersPanel,
       "operator-bookings-advanced-filters"
@@ -1302,7 +1283,9 @@ describe("bookings-command-center.spec.ts — Phase 9.5 Web", () => {
       new URL("../src/features/bookings/booking-inspection-details.tsx", import.meta.url),
       "utf8"
     );
-    assert.ok(detailSource.indexOf("BookingActionButtons") < detailSource.indexOf("BookingFinancialStrip"));
+    assert.ok(
+      detailSource.indexOf("BookingActionButtons") < detailSource.indexOf("BookingFinancialStrip")
+    );
 
     const timelineKeepsWindow = applyBookingsCommandCenterLayout(
       { ...DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY, departureWithinDays: "14" },

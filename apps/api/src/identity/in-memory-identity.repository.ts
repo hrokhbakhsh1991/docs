@@ -963,9 +963,9 @@ export class OwnershipTransferTargetInvalidError extends Error {
   }
 }
 
-/** Phase 6.6 denali host — sync resolve-host-tenant.ts `denali` label */
+/** Phase 6.6 dev host tenant — sync resolve-host-tenant.ts fixture labels. */
 const DENALI_DEV_HOST_TENANT_ID = "00000000-0000-4000-8000-000000000003";
-/** Phase 8.4 urban smoke — sync URBAN_SMOKE_E2E fixture */
+/** Phase 8.4 workspace smoke — sync URBAN_SMOKE_E2E fixture. */
 const URBAN_SMOKE_E2E_TENANT_ID = "00000000-0000-4000-8000-000000000004";
 const URBAN_SMOKE_E2E_WORKSPACE_ID = "00000000-0000-4000-8000-000000000403";
 const URBAN_SMOKE_E2E_OWNER_USER_ID = "00000000-0000-4000-8000-000000000401";
@@ -1028,7 +1028,7 @@ function seedOperatorSmokeDevFixture(repo: InMemoryIdentityRepository): void {
     sessionVersion: 1,
     displayName: owner.displayName,
   };
-  // Denali host login — operator.localhost / urban.localhost must not share this owner row.
+  // Host-specific login fixtures must not share this owner row across tenants.
   repo.seedMembership({
     ...ownerMembership,
     tenantId: DENALI_DEV_HOST_TENANT_ID,

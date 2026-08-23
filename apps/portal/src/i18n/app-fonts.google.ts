@@ -12,7 +12,7 @@ export const inter = Inter({
   display: "swap",
 });
 
-/** Denali Club display headings — design-system/denali-club/MASTER.md */
+/** Display heading font for branded guest/member surfaces. */
 export const calistoga = Calistoga({
   weight: "400",
   subsets: ["latin"],

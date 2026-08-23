@@ -1,0 +1,45 @@
+name: prod-6-security-release
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "scripts/ops/**"
+      - "apps/**"
+      - "packages/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prod-6-security-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  security-release:
+    name: PROD-6 security release checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup platform
+        uses: ./.github/actions/setup-platform
+
+      - name: Run PROD-6 security release gate
+        run: pnpm run prod6:security-release
+
+      - name: Upload PROD-6 release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-6-release-evidence
+          path: .artifacts/prod6/
+          if-no-files-found: ignore

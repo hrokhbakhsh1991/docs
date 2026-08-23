@@ -215,10 +215,7 @@ export async function createSettingsResource(
       const validateEquipmentIconKey = await resolveEquipmentIconKeyValidatorForTenant(
         auth.tenantId
       );
-      iconKey = parseEquipmentIconKeyInput(
-        equipmentBody.iconKey,
-        validateEquipmentIconKey
-      );
+      iconKey = parseEquipmentIconKeyInput(equipmentBody.iconKey, validateEquipmentIconKey);
     } catch {
       throw new SettingsResourceInvalidError();
     }
@@ -393,10 +390,7 @@ export async function patchSettingsResource(
       const validateEquipmentIconKey = await resolveEquipmentIconKeyValidatorForTenant(
         auth.tenantId
       );
-      iconKey = parseEquipmentIconKeyInput(
-        equipmentBody.iconKey,
-        validateEquipmentIconKey
-      );
+      iconKey = parseEquipmentIconKeyInput(equipmentBody.iconKey, validateEquipmentIconKey);
     } catch {
       throw new SettingsResourceInvalidError();
     }

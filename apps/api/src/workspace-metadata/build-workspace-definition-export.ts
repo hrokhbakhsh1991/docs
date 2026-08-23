@@ -18,26 +18,6 @@ export type WorkspaceDefinitionExportFile = WorkspaceDefinitionExportMeta & {
   readonly checksum: string;
 };
 
-export const DEFAULT_WORKSPACE_DEFINITION_EXPORTS: Readonly<
-  Record<string, WorkspaceDefinitionExportMeta>
-> = {
-  denali: {
-    definitionId: "denali-tour-ops",
-    displayName: "Denali Tour Ops",
-    workspaceType: "denali",
-  },
-  starter: {
-    definitionId: "starter-shell",
-    displayName: "Starter Shell",
-    workspaceType: "starter",
-  },
-  urban: {
-    definitionId: "urban-minimal",
-    displayName: "Urban Minimal",
-    workspaceType: "urban",
-  },
-};
-
 export function buildWorkspaceDefinitionExport(input: {
   plugin: WorkspacePlugin;
   meta: WorkspaceDefinitionExportMeta;

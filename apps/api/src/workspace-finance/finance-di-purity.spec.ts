@@ -228,7 +228,10 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
     assert.match(serviceSrc, /FinanceActorContext/);
     assert.match(serviceSrc, /FinanceClockPort/);
     assert.doesNotMatch(serviceSrc, /@app-tour\/workspace-sdk/);
-    assert.doesNotMatch(serviceSrc, /assert-finance-access|finance-schedule-store|console\.(warn|error)/);
+    assert.doesNotMatch(
+      serviceSrc,
+      /assert-finance-access|finance-schedule-store|console\.(warn|error)/
+    );
     assert.doesNotMatch(serviceSrc, /process\.env\.DATABASE_URL/);
     assert.doesNotMatch(serviceSrc, /workspace-/);
     // Phase 1.16/1.20 acceptance — FinanceService must not reference host modules/env/console.
@@ -239,20 +242,14 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
       serviceSrc,
       /from ["']\.\/finance\.repository["']|from ["']\.\/infrastructure\/prisma-finance/
     );
-    assert.match(
-      serviceSrc,
-      /from ["']\.\.\/ports\/finance-repository\.port["']/
-    );
+    assert.match(serviceSrc, /from ["']\.\.\/ports\/finance-repository\.port["']/);
 
     const inMemorySrc = readFileSync(
       resolve(REPO_ROOT, "apps/api/src/workspace-finance/in-memory-finance.repository.ts"),
       "utf8"
     );
     assert.doesNotMatch(inMemorySrc, /@prisma\/client|withTenantRls/);
-    assert.match(
-      inMemorySrc,
-      /from ["']\.\/ports\/finance-repository\.port["']/
-    );
+    assert.match(inMemorySrc, /from ["']\.\/ports\/finance-repository\.port["']/);
     assert.match(inMemorySrc, /implements FinanceRepositoryPort/);
 
     const factorySrc = readFileSync(
@@ -334,5 +331,16 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
     );
     assert.equal(typeof service.reviewReceipt, "function");
     assert.equal(typeof service.recordPrepayment, "function");
+  });
+
+  it("FIN-DI-04 test host fakes do not encode production workspace ids", async () => {
+    const result = await fakePermissiveCapability.assertEnabled(DENALI_TENANT_ID);
+    assert.equal(result.workspaceType, "finance-test");
+
+    const source = readFileSync(
+      resolve(REPO_ROOT, "apps/api/src/workspace-finance/finance-service-host-fakes.ts"),
+      "utf8"
+    );
+    assert.doesNotMatch(source, /workspaceType:\s*["'](?:denali|urban|starter)["']/);
   });
 });

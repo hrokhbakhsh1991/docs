@@ -10,6 +10,7 @@ import { URBAN_SMOKE_TENANT_ID as URBAN_PACKAGE_SMOKE_TENANT_ID } from "@app-tou
 import {
   DENALI_SMOKE_SUBDOMAIN,
   DENALI_SMOKE_TENANT_ID as HOST_DENALI_SMOKE_TENANT_ID,
+  resolveWorkspaceDevSmokeTenantByTenantId,
   resolveWorkspaceDevSmokeTenant,
   URBAN_SMOKE_SUBDOMAIN,
   URBAN_SMOKE_TENANT_ID as HOST_URBAN_SMOKE_TENANT_ID,
@@ -32,6 +33,7 @@ describe("resolve-workspace-dev-smoke-tenant.spec.ts — P0 PR-7b", () => {
     assert.equal(binding.subdomain, "urban");
     assert.equal(HOST_URBAN_SMOKE_TENANT_ID, URBAN_PACKAGE_SMOKE_TENANT_ID);
     assert.equal(URBAN_SMOKE_SUBDOMAIN, "urban");
+    assert.equal(resolveWorkspaceDevSmokeTenantByTenantId(binding.tenantId)?.workspaceId, "urban");
   });
 
   it("API-P0-07B-03 unknown workspace throws", () => {

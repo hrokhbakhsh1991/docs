@@ -96,7 +96,7 @@ describe("PR17-B commercial meaning hardening", () => {
   });
 
   it("panel requires executionId + GET timeout; no finance-core / CaseOutput / gateway", () => {
-    const panel = readFileSync(join(FINANCE_SRC, "denali-case-encounter-panel.tsx"), "utf8");
+    const panel = readFileSync(join(FINANCE_SRC, "finance-case-encounter-panel.tsx"), "utf8");
     assert.match(panel, /executionId/);
     assert.match(panel, /AbortController/);
     assert.match(panel, /method:\s*"GET"/);
@@ -124,7 +124,10 @@ describe("PR17-B commercial meaning hardening", () => {
         src,
         /import\s+(?:type\s+)?\{[^}]*\b(CaseOutput|FactSnapshot)\b[^}]*\}\s+from/
       );
-      assert.doesNotMatch(src, /createManualPayment|approveReceipt|runReviewReceiptCommandBridge|FinanceService/);
+      assert.doesNotMatch(
+        src,
+        /createManualPayment|approveReceipt|runReviewReceiptCommandBridge|FinanceService/
+      );
     }
   });
 
@@ -138,7 +141,7 @@ describe("PR17-B commercial meaning hardening", () => {
     const files = readdirSync(FINANCE_SRC).filter(
       (n) =>
         n.includes("commercial-meaning") ||
-        n.includes("denali-case-encounter") ||
+        n.includes("finance-case-encounter") ||
         n === "finance-command-center-view.ts"
     );
     assert.ok(files.length >= 3);
@@ -148,6 +151,7 @@ describe("PR17-B commercial meaning hardening", () => {
         src,
         /from\s+["']@app-tour\/finance-core|import\s+["']@app-tour\/finance-core/
       );
+      assert.doesNotMatch(src, /denali-case-encounter|OperatorCaseEncounterPanel/);
     }
   });
 });

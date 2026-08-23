@@ -20,11 +20,11 @@ export type EquipmentResource = {
   readonly tenantId: string;
   readonly name: string;
   readonly category: string | null;
-  /** Denali closed icon registry key; null = initials fallback in wizard. */
+  /** Workspace icon registry key; null = initials fallback in wizard. */
   readonly iconKey: string | null;
   /** Tour theme ids from operator settings (`/settings/tour-themes`). Empty = all themes. */
   readonly themeIds: readonly string[];
-  /** Denali wizard — tour categories compatible with this equipment row (DEC-P12-001 / 12.1). */
+  /** Workspace wizard tour categories compatible with this equipment row. */
   readonly compatibleCategories?: readonly string[];
   readonly sortOrder: number;
   readonly createdAt: string;
@@ -138,7 +138,7 @@ export type TourThemeResource = {
   readonly name: string;
   readonly slug: string;
   readonly formProfile: string | null;
-  /** Denali wizard — tour categories compatible with this theme's formProfile (DEC-P11-016). */
+  /** Workspace wizard tour categories compatible with this theme's formProfile. */
   readonly compatibleCategories?: readonly string[];
   readonly isActive: boolean;
   readonly sortOrder: number;

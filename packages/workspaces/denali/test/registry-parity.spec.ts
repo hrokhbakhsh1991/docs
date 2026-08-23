@@ -19,7 +19,7 @@ import { denaliPluginForWizardEngine } from "../src/plugin-for-wizard-engine";
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const GOLDEN_DIR = join(PACKAGE_ROOT, "test/fixtures/golden");
 
-const LEGACY_FIELD_REGISTRY_COUNT = 75;
+const LEGACY_FIELD_REGISTRY_COUNT = 76;
 
 function loadGoldenForm(filename: string): DenaliCreateTourWizardForm {
   const raw = JSON.parse(readFileSync(join(GOLDEN_DIR, filename), "utf8")) as Record<
@@ -63,7 +63,7 @@ function snapshotEvaluateFormRules(form: DenaliCreateTourWizardForm): Record<str
 }
 
 describe("registry-parity.spec.ts (REQ-P6-006,007,008,015,023)", () => {
-  it("field registry id count matches legacy manifest (75)", () => {
+  it("field registry id count matches legacy manifest (76)", () => {
     assert.equal(DENALI_FIELD_DEFINITIONS.length, LEGACY_FIELD_REGISTRY_COUNT);
     assert.equal(listDenaliRegistryCanonicalPaths().length, LEGACY_FIELD_REGISTRY_COUNT);
   });

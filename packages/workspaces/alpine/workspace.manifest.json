@@ -1,0 +1,98 @@
+{
+  "id": "alpine",
+  "version": 1,
+  "pluginApiVersion": 1,
+  "guestExtensionsVersion": 1,
+  "guestConformance": {
+    "productionTier": "stub"
+  },
+  "package": "@app-tour/workspace-alpine",
+  "clientBundle": {
+    "includeInDefault": false
+  },
+  "workspaceTypes": [
+    "alpine"
+  ],
+  "tenantBrandingDefaults": {
+    "primaryColor": "#1d4ed8",
+    "cssVariables": {
+      "--color-primary": "#1d4ed8",
+      "--color-primary-hover": "#1e40af"
+    }
+  },
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  },
+  "web": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  },
+  "tourWrite": {
+    "module": "./tours",
+    "workspaceTypeExport": "ALPINE_WORKSPACE_TYPE",
+    "mergeExport": "mergeAlpineCanonicalPatchData",
+    "publishGateExport": "alpineTourPatchRequiresOwner",
+    "publishSurfaceExport": "ALPINE_TOUR_PUBLISH_FIELDS_OWNER_SURFACE"
+  },
+  "workspaceFinance": {
+    "supported": true,
+    "defaultModuleEnabledWhenUnset": true,
+    "capabilities": {
+      "ledgerCapture": true,
+      "eventReactions": "ack-only",
+      "ops": true,
+      "caseMeaning": false
+    },
+    "ledgerPolicy": {
+      "module": "./finance",
+      "export": "AlpineLedgerPolicyAdapter"
+    },
+    "receiptDefaults": {
+      "module": "./finance",
+      "export": "AlpineReceiptDefaultsAdapter"
+    },
+    "chartOfAccounts": {
+      "module": "./finance",
+      "export": "ALPINE_LEDGER_ACCOUNTS"
+    },
+    "eventReaction": {
+      "module": "./finance",
+      "export": "AlpineTourCreatedFinanceReactionAdapter",
+      "requiresHostIo": false
+    },
+    "opsManifest": {
+      "module": "./finance/manifest",
+      "defaultExport": "DEFAULT_ALPINE_FINANCE_OPS_MANIFEST",
+      "resolveFromThemeExport": "resolveAlpineFinanceOpsManifestFromTheme"
+    }
+  },
+  "themeStylesheets": [
+    "theme/tokens.css"
+  ],
+  "guestThemeStylesheets": {
+    "portal": [
+      "theme/alpine-portal.css"
+    ]
+  },
+  "memberPortal": {
+    "manifestVersion": 2,
+    "availability": "minimal",
+    "preset": "guest-minimal-v1",
+    "modules": [
+      {
+        "id": "alpine-notes",
+        "routePath": "/me/alpine-notes",
+        "nav": {
+          "tier": "secondary",
+          "labelKey": "alpineNotes"
+        }
+      }
+    ]
+  },
+  "operatorCapabilities": {
+    "usersDirectory": false,
+    "reconciliationTriage": false,
+    "fieldExposureSurfaces": false
+  }
+}

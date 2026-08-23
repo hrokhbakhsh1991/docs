@@ -1,7 +1,6 @@
 import { WORKSPACE_DEV_SMOKE_TENANT_BINDINGS } from "./workspace-dev-bootstrap-bindings.generated";
 
-export type WorkspaceDevSmokeTenantBinding =
-  (typeof WORKSPACE_DEV_SMOKE_TENANT_BINDINGS)[number];
+export type WorkspaceDevSmokeTenantBinding = (typeof WORKSPACE_DEV_SMOKE_TENANT_BINDINGS)[number];
 
 export function resolveWorkspaceDevSmokeTenant(
   workspaceId: string
@@ -13,6 +12,12 @@ export function resolveWorkspaceDevSmokeTenant(
     throw new Error(`WORKSPACE_DEV_SMOKE_TENANT_NOT_FOUND:${workspaceId}`);
   }
   return binding;
+}
+
+export function resolveWorkspaceDevSmokeTenantByTenantId(
+  tenantId: string
+): WorkspaceDevSmokeTenantBinding | null {
+  return WORKSPACE_DEV_SMOKE_TENANT_BINDINGS.find((entry) => entry.tenantId === tenantId) ?? null;
 }
 
 const denaliSmokeBinding = resolveWorkspaceDevSmokeTenant("denali");

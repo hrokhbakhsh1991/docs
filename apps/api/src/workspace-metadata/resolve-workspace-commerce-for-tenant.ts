@@ -5,7 +5,11 @@ import {
 } from "@app-tour/workspace-sdk/metadata";
 
 import type { PlatformTenantRepository } from "../platform/platform-tenant.repository.ts";
-import { findTenantById, canResolveDevTenantRegistryFallback, isStaticTenantRegistryAllowed } from "../tenant/tenant-registry.ts";
+import {
+  findTenantById,
+  canResolveDevTenantRegistryFallback,
+  isStaticTenantRegistryAllowed,
+} from "../tenant/tenant-registry.ts";
 import { isWorkspaceMetadataEnabled } from "./is-workspace-metadata-enabled.ts";
 import {
   isWorkspaceMetadataEnabledForTenant,
@@ -19,14 +23,17 @@ import { mergeCommerceIntoWorkspaceDefinitionPayload } from "./persist-commerce-
 import { readTenantWorkspaceMetadataBinding } from "./read-tenant-workspace-metadata-binding.ts";
 import { WorkspaceDefinitionRepository } from "./workspace-definition.repository.ts";
 
+function resolveRequiredFrozenWorkspaceCommerce(workspaceType: string): WorkspaceCommerceConfig {
+  const frozen = resolveFrozenWorkspaceCommerce(workspaceType);
+  if (frozen === null) {
+    throw new Error(`WORKSPACE_FROZEN_COMMERCE_MISSING:${workspaceType}`);
+  }
+  return frozen;
+}
+
 /** Compat alias — SoT is manifest `commerce.frozen` via codegen (Wave F.b / PC-07). */
 export const DENALI_FROZEN_COMMERCE_CONFIG: WorkspaceCommerceConfig =
-  resolveFrozenWorkspaceCommerce("denali") ??
-  Object.freeze({
-    paymentMode: "offline_receipt",
-    gatewayProvider: null,
-    currency: "IRR",
-  });
+  resolveRequiredFrozenWorkspaceCommerce("denali");
 
 /**
  * P5-C-N-004 — resolve workspace commerce from metadata binding or package default.

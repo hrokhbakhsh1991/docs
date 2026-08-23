@@ -1,5 +1,15 @@
 import { BANNER } from "../constants.mjs";
 
+function tsObjectKey(key) {
+  return /^[$A-Z_a-z][$\w]*$/.test(key) ? key : JSON.stringify(key);
+}
+
+function tsObjectLiteral(entries) {
+  return `{ ${entries
+    .map(([key, value]) => `${tsObjectKey(key)}: ${JSON.stringify(value)}`)
+    .join(", ")} }`;
+}
+
 export function generateWorkspaceIntegrationCapabilities(manifests) {
   /** @type {string[]} */
   const importLines = [];
@@ -24,10 +34,8 @@ export function generateWorkspaceIntegrationCapabilities(manifests) {
       const deprecatedLiteral =
         deprecatedEvents.length === 0
           ? "undefined"
-          : `Object.freeze(${JSON.stringify(
-              Object.fromEntries(
-                deprecatedEvents.map((entry) => [entry.eventType, entry.supersededBy])
-              )
+          : `Object.freeze(${tsObjectLiteral(
+              deprecatedEvents.map((entry) => [entry.eventType, entry.supersededBy])
             )})`;
       const deliveryFieldIds = Array.isArray(config.deliveryReferenceDisplayFieldIds)
         ? JSON.stringify(config.deliveryReferenceDisplayFieldIds)
@@ -62,6 +70,13 @@ export function requiresTourPublishedPolicyDriftCheck(
   return false;
 }
 
+export function listTourPublishedPolicyDriftCheckTargets(): readonly {
+  readonly workspaceType: string;
+  readonly providerId: string;
+}[] {
+  return [];
+}
+
 export function supportsTourPublishedExposureRemap(
   _workspaceType: string | null,
   _surface: string
@@ -69,11 +84,24 @@ export function supportsTourPublishedExposureRemap(
   return false;
 }
 
-export function supportsDeliveryReferenceDisplay(_workspaceType: string | null): boolean {
+export function listTourPublishedExposureRemapTargets(): readonly {
+  readonly workspaceType: string;
+  readonly providerId: string;
+}[] {
+  return [];
+}
+
+export function supportsDeliveryReferenceDisplay(
+  _workspaceType: string | null,
+  _providerId: string
+): boolean {
   return false;
 }
 
-export function listDeliveryReferenceDisplayFieldIds(_workspaceType: string | null): readonly string[] {
+export function listDeliveryReferenceDisplayFieldIds(
+  _workspaceType: string | null,
+  _providerId: string
+): readonly string[] {
   return [];
 }
 `;
@@ -122,6 +150,18 @@ export function requiresTourPublishedPolicyDriftCheck(
   return binding?.tourPublishedPolicyDriftCheck === true;
 }
 
+export function listTourPublishedPolicyDriftCheckTargets(): readonly {
+  readonly workspaceType: string;
+  readonly providerId: string;
+}[] {
+  return WORKSPACE_INTEGRATION_CAPABILITY_BINDINGS.filter(
+    (entry) => entry.tourPublishedPolicyDriftCheck === true
+  ).map((entry) => ({
+    workspaceType: entry.workspaceType,
+    providerId: entry.providerId,
+  }));
+}
+
 export function supportsTourPublishedExposureRemap(
   workspaceType: string | null,
   surface: string
@@ -138,7 +178,22 @@ export function supportsTourPublishedExposureRemap(
   );
 }
 
-export function supportsDeliveryReferenceDisplay(workspaceType: string | null): boolean {
+export function listTourPublishedExposureRemapTargets(): readonly {
+  readonly workspaceType: string;
+  readonly providerId: string;
+}[] {
+  return WORKSPACE_INTEGRATION_CAPABILITY_BINDINGS.filter(
+    (entry) => entry.tourPublishedExposureRemap === true
+  ).map((entry) => ({
+    workspaceType: entry.workspaceType,
+    providerId: entry.providerId,
+  }));
+}
+
+export function supportsDeliveryReferenceDisplay(
+  workspaceType: string | null,
+  providerId: string
+): boolean {
   const normalizedWorkspaceType = normalizeWorkspaceType(workspaceType);
   if (normalizedWorkspaceType === null) {
     return false;
@@ -146,20 +201,22 @@ export function supportsDeliveryReferenceDisplay(workspaceType: string | null): 
   return WORKSPACE_INTEGRATION_CAPABILITY_BINDINGS.some(
     (entry) =>
       entry.workspaceType === normalizedWorkspaceType &&
+      entry.providerId === providerId &&
       Array.isArray(entry.deliveryReferenceDisplayFieldIds) &&
       entry.deliveryReferenceDisplayFieldIds.length > 0
   );
 }
 
 export function listDeliveryReferenceDisplayFieldIds(
-  workspaceType: string | null
+  workspaceType: string | null,
+  providerId: string
 ): readonly string[] {
   const normalizedWorkspaceType = normalizeWorkspaceType(workspaceType);
   if (normalizedWorkspaceType === null) {
     return [];
   }
   const binding = WORKSPACE_INTEGRATION_CAPABILITY_BINDINGS.find(
-    (entry) => entry.workspaceType === normalizedWorkspaceType
+    (entry) => entry.workspaceType === normalizedWorkspaceType && entry.providerId === providerId
   );
   return binding?.deliveryReferenceDisplayFieldIds ?? [];
 }

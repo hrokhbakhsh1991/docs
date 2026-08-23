@@ -12,7 +12,7 @@ function resolveHostWizardMediaBinding(): WorkspaceWizardMediaBinding {
 
 const hostWizardMediaBinding = resolveHostWizardMediaBinding();
 
-/** Host Minio config — first manifest wizardMedia binding (denali today). */
+/** Host Minio config — resolved from the first manifest wizardMedia binding. */
 export function readTenantBrandLogoMinioConfigFromEnv(): ReturnType<
   WorkspaceWizardMediaBinding["readPhotoConfigFromEnv"]
 > {

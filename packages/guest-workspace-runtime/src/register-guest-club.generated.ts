@@ -5,7 +5,11 @@
  * Location: packages/guest-workspace-runtime (P5.3) — product dynamic imports stay package-owned.
  */
 
-import { registerWorkspaceIntakePlugin, registerWorkspaceMemberPortalRenderers, registerWorkspaceRegistrationFlowPlugin } from "@app-tour/workspace-sdk";
+import {
+  registerWorkspaceIntakePlugin,
+  registerWorkspaceMemberPortalRenderers,
+  registerWorkspaceRegistrationFlowPlugin,
+} from "@app-tour/workspace-sdk";
 import { registerWorkspaceRegistrationFlowSteps } from "@app-tour/workspace-plugin-host/registration-flow";
 
 /** Intake registrar for "guest-club" — plugin entry only (no registration-flow UI graph). */
@@ -32,9 +36,15 @@ export async function registerWorkspacePluginGUEST_CLUBFromManifest(): Promise<v
     });
   }
   registerWorkspaceMemberPortalRenderers(plugin.id, plugin.capabilities?.memberPortalRenderers);
-  const { guestClubCatalogRegistrationFlowSurface } = await import("@app-tour/workspace-guest-club/host/catalog-registration-flow");
-  const { GuestClubIntakeStep, GuestClubDoneStep } = await import("@app-tour/workspace-guest-club/host/catalog-registration-flow/react");
-  const { CatalogRegistrationOtpStep, CatalogRegistrationPhoneStep, CatalogRegistrationProfileStep } = await import("@app-tour/catalog-registration-flow-ui/react");
+  const { guestClubCatalogRegistrationFlowSurface } =
+    await import("@app-tour/workspace-guest-club/host/catalog-registration-flow");
+  const { GuestClubIntakeStep, GuestClubDoneStep } =
+    await import("@app-tour/workspace-guest-club/host/catalog-registration-flow/react");
+  const {
+    CatalogRegistrationOtpStep,
+    CatalogRegistrationPhoneStep,
+    CatalogRegistrationProfileStep,
+  } = await import("@app-tour/catalog-registration-flow-ui/react");
   registerWorkspaceRegistrationFlowPlugin({
     id: "guest-club",
     catalogRegistrationFlow: guestClubCatalogRegistrationFlowSurface,

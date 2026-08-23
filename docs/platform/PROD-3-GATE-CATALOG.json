@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "program": "PROD-READINESS-2026-08",
+  "tiers": {
+    "L0": { "owner": "tooling", "timeoutSeconds": 60, "environment": "local" },
+    "L1": { "owner": "platform", "timeoutSeconds": 1800, "environment": "ci" },
+    "L2": { "owner": "platform", "timeoutSeconds": 3600, "environment": "ci" },
+    "L3": { "owner": "release", "timeoutSeconds": 3600, "environment": "ci-release" },
+    "L4": { "owner": "release", "timeoutSeconds": 1800, "environment": "staging" },
+    "L5": { "owner": "operations", "timeoutSeconds": 300, "environment": "production" }
+  },
+  "nodes": [
+    { "id": "l0.node-engine", "tier": "L0", "owner": "tooling", "paths": ["**/*"], "command": "pnpm run check:node-engine", "sideEffects": "none", "dependsOn": [] },
+    { "id": "l0.precommit", "tier": "L0", "owner": "tooling", "paths": ["**/*"], "command": "pnpm run pre-commit:fast", "sideEffects": "none", "dependsOn": ["l0.node-engine"] },
+    { "id": "l1.boundaries", "tier": "L1", "owner": "platform", "paths": ["packages/**", "apps/**", "scripts/**"], "command": "pnpm run guard:import-boundary", "sideEffects": "none", "dependsOn": ["l0.node-engine"] },
+    { "id": "l1.typecheck", "tier": "L1", "owner": "platform", "paths": ["packages/**", "apps/**"], "command": "pnpm run typecheck", "sideEffects": "none", "dependsOn": ["l1.boundaries"] },
+    { "id": "l1.unit", "tier": "L1", "owner": "platform", "paths": ["packages/**", "apps/**"], "command": "pnpm run test:changed:gate", "sideEffects": "none", "dependsOn": ["l1.typecheck"] },
+    { "id": "l2.build", "tier": "L2", "owner": "platform", "paths": ["packages/**", "apps/**"], "command": "pnpm build", "sideEffects": "workspace-artifacts", "dependsOn": ["l1.unit"] },
+    { "id": "l2.architecture", "tier": "L2", "owner": "platform", "paths": ["packages/**", "apps/**", "scripts/**"], "command": "pnpm run guard:architecture", "sideEffects": "none", "dependsOn": ["l2.build"] },
+    { "id": "l2.integration", "tier": "L2", "owner": "platform", "paths": ["apps/**", "packages/**"], "command": "pnpm run gate:l2:integration", "sideEffects": "test-database-when-configured", "dependsOn": ["l2.architecture"] },
+    { "id": "l3.postgres", "tier": "L3", "owner": "release", "paths": ["apps/api/prisma/**", "infra/**"], "command": "pnpm run phase-5:runtime-proof", "sideEffects": "test-database", "dependsOn": ["l2.integration"] },
+    { "id": "l3.security", "tier": "L3", "owner": "security", "paths": ["apps/**", "packages/**", "pnpm-lock.yaml"], "command": "pnpm run phase-6:guard", "sideEffects": "none", "dependsOn": ["l2.integration"] },
+    { "id": "l3.package", "tier": "L3", "owner": "release", "paths": ["package.json", "packages/**", "pnpm-lock.yaml"], "command": "pnpm run guard:artifact-surface", "sideEffects": "none", "dependsOn": ["l2.build"] },
+    { "id": "l3.e2e", "tier": "L3", "owner": "qa", "paths": ["apps/**/tests/**"], "command": "env PHASE_7_SKIP_CI_INTEGRITY=1 pnpm run phase-7:adversarial-gate", "sideEffects": "none", "dependsOn": ["l2.integration"] },
+    { "id": "l3.migration", "tier": "L3", "owner": "data", "paths": ["apps/api/prisma/**", "infra/sql/**"], "command": "pnpm run db:migrate:deploy", "sideEffects": "database-schema", "dependsOn": ["l3.postgres"] },
+    { "id": "l3.performance", "tier": "L3", "owner": "platform", "paths": ["apps/api/**"], "command": "pnpm run phase-5:guard", "sideEffects": "none", "dependsOn": ["l3.postgres"] },
+    { "id": "l4.staging-smoke", "tier": "L4", "owner": "release", "paths": ["apps/**", "infra/**"], "command": "pnpm run smoke:staging", "sideEffects": "staging-read-only", "dependsOn": ["l3.postgres", "l3.security", "l3.package", "l3.e2e", "l3.migration", "l3.performance"] },
+    { "id": "l5.production-smoke", "tier": "L5", "owner": "operations", "paths": ["apps/**", "infra/**"], "command": "pnpm run smoke:production", "sideEffects": "production-read-only", "dependsOn": ["l4.staging-smoke"] }
+  ]
+}

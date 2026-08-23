@@ -13,7 +13,7 @@ export const FINANCE_CASE_ENCOUNTER_SAMPLE_RATE_ENV = "FINANCE_CASE_ENCOUNTER_SA
 export const FINANCE_CASE_ENCOUNTER_MODE_ENV = "FINANCE_CASE_ENCOUNTER_MODE";
 
 /**
- * Explicit Denali operator rollout strategy.
+ * Explicit operator rollout strategy.
  * Ladder: disabled → pilot → internal → sampled → full
  */
 export type FinanceCaseEncounterRolloutMode =
@@ -76,9 +76,7 @@ export function resolveFinanceCaseEncounterRolloutMode(
   return "full";
 }
 
-function isLegacyEnabledFlag(
-  env: NodeJS.ProcessEnv | Record<string, string | undefined>
-): boolean {
+function isLegacyEnabledFlag(env: NodeJS.ProcessEnv | Record<string, string | undefined>): boolean {
   const raw = env[FINANCE_CASE_ENCOUNTER_ENABLED_ENV];
   if (raw === undefined || raw === null) {
     return false;

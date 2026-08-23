@@ -22,6 +22,13 @@ import {
 const PKG_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const DIST_INDEX = resolve(PKG_ROOT, "dist/index.js");
 const DIST_CASE_PUBLIC_API = resolve(PKG_ROOT, "dist/case/public-api.js");
+const PRODUCT_NEUTRAL_CASE_SOURCE_FILES = [
+  "src/case/encounter/project-case-encounter.ts",
+  "src/case/facts/fact-groups.ts",
+  "src/case/ports/case-fact-read-scope.ts",
+  "src/case/public-api.ts",
+  "src/domain/commercial-quote/map-obligation.ts",
+] as const;
 
 function ensureFinanceCoreDistBuilt(): void {
   if (existsSync(DIST_INDEX) && existsSync(DIST_CASE_PUBLIC_API)) {
@@ -37,9 +44,7 @@ function ensureFinanceCoreDistBuilt(): void {
 
 /** CJS export presence without createRequire (import-boundary forbids dynamic require). */
 function cjsDefinesExport(js: string, name: string): boolean {
-  return new RegExp(
-    String.raw`Object\.defineProperty\(exports,\s*"${name}"`,
-  ).test(js);
+  return new RegExp(String.raw`Object\.defineProperty\(exports,\s*"${name}"`).test(js);
 }
 
 const SCOPE: CaseFactReadScope = {
@@ -95,6 +100,13 @@ describe("finance-core case surface PR4.5-B", () => {
     const pkg = JSON.parse(readFileSync(resolve(PKG_ROOT, "package.json"), "utf8"));
     const deps = { ...pkg.dependencies, ...pkg.devDependencies };
     assert.equal(deps["@app-tour/workspace-denali"], undefined);
+  });
+
+  it("3b — Case core source comments stay product-neutral", () => {
+    for (const sourceFile of PRODUCT_NEUTRAL_CASE_SOURCE_FILES) {
+      const source = readFileSync(resolve(PKG_ROOT, sourceFile), "utf8");
+      assert.doesNotMatch(source, /\bdenali\b/i, sourceFile);
+    }
   });
 
   it("7 — same snapshot produces same CaseOutput", async () => {

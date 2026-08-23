@@ -18,8 +18,8 @@ export type WorkspaceWizardTranslator = ((
  * Phase 4bh — single dynamic `useTranslations(activeNs)` (platform `wizard` when unbound).
  * Generated code no longer fans out `useTranslations` across every product namespace.
  *
- * Keys are relative to the active namespace (e.g. `tourKinds.mountain_day` under `denali`,
- * not `denali.tourKinds.mountain_day`).
+ * Keys are relative to the active namespace (e.g. `tourKinds.mountain_day` under a workspace
+ * namespace, not `workspaceId.tourKinds.mountain_day`).
  */
 export function useWorkspaceWizardTranslator(
   wizardMessageNamespace?: string
@@ -33,10 +33,8 @@ export function useWorkspaceWizardTranslator(
   const translate = useTranslations(activeNamespace);
 
   return useMemo(() => {
-    const translator = ((
-      key: string,
-      values?: Record<string, string | number | Date>
-    ) => (values != null ? translate(key, values) : translate(key))) as WorkspaceWizardTranslator;
+    const translator = ((key: string, values?: Record<string, string | number | Date>) =>
+      values != null ? translate(key, values) : translate(key)) as WorkspaceWizardTranslator;
     translator.has = (key: string) => translate.has(key);
     return translator;
   }, [translate]);

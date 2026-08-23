@@ -2,6 +2,8 @@ import type { PortalCommercialPricingPreview } from "@/catalog/commercial-pricin
 import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
 import { resolveTourOpsApiBaseUrl } from "@/env";
 
+const COMMERCIAL_PRICING_PREVIEW_TIMEOUT_MS = 10_000;
+
 export async function fetchCommercialPricingPreview(input: {
   readonly host: string;
   readonly workspace: string;
@@ -32,6 +34,7 @@ export async function fetchCommercialPricingPreview(input: {
         host: input.host.split(":")[0] ?? input.host,
       },
       cache: "no-store",
+      signal: AbortSignal.timeout(COMMERCIAL_PRICING_PREVIEW_TIMEOUT_MS),
     });
     const body = (await res.json().catch(() => ({}))) as {
       readonly ok?: boolean;

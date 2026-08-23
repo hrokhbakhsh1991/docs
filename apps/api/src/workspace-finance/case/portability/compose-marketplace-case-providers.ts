@@ -59,7 +59,9 @@ export type MarketplaceCaseReadSource = {
   readonly recon?: MarketplaceReconCue;
 };
 
-function mapPayment(sot: MarketplacePaymentSoT | null): CaseFactProviderResult<CasePaymentFactBundle> {
+function mapPayment(
+  sot: MarketplacePaymentSoT | null
+): CaseFactProviderResult<CasePaymentFactBundle> {
   if (sot === null) {
     return {
       ok: true,
@@ -149,7 +151,7 @@ function mapMoney(sot: MarketplacePaymentSoT | null): CaseFactProviderResult<Mon
         collectionPolicy: knownFact("no_money_due"),
         amountDue: knownFact("0"),
         remaining: knownFact("0"),
-        currency: knownFact("IRR"),
+        currency: unknownFact("marketplace_money_currency_not_applicable"),
         scheduleKind: knownFact("none"),
         partialScopeDeclared: knownFact(false),
       },
@@ -182,7 +184,9 @@ export class MarketplacePaymentCaseFactProvider implements CasePaymentFactPort {
 export class MarketplaceEvidenceCaseFactProvider implements CaseEvidenceFactPort {
   constructor(private readonly source: MarketplaceCaseReadSource) {}
 
-  async readEvidenceFacts(_scope: CaseFactReadScope): Promise<CaseFactProviderResult<EvidenceFacts>> {
+  async readEvidenceFacts(
+    _scope: CaseFactReadScope
+  ): Promise<CaseFactProviderResult<EvidenceFacts>> {
     return mapEvidence(this.source.evidence);
   }
 }
@@ -198,15 +202,17 @@ export class MarketplaceObligationCaseFactProvider implements CaseObligationFact
 export class MarketplaceLifecycleCaseFactProvider implements CaseLifecycleFactPort {
   constructor(private readonly source: MarketplaceCaseReadSource) {}
 
-  async readLifecycleFacts(
-    _scope: CaseFactReadScope
-  ): Promise<CaseFactProviderResult<{
-    eligibility: { lifecycleEligibility: ReturnType<typeof knownFact<"eligible" | "not_eligible">> };
-    exceptionCues: {
-      closedWithLeftoverArtifacts: ReturnType<typeof knownFact<boolean>>;
-      meaningConflict: ReturnType<typeof knownFact<boolean>>;
-    };
-  }>> {
+  async readLifecycleFacts(_scope: CaseFactReadScope): Promise<
+    CaseFactProviderResult<{
+      eligibility: {
+        lifecycleEligibility: ReturnType<typeof knownFact<"eligible" | "not_eligible">>;
+      };
+      exceptionCues: {
+        closedWithLeftoverArtifacts: ReturnType<typeof knownFact<boolean>>;
+        meaningConflict: ReturnType<typeof knownFact<boolean>>;
+      };
+    }>
+  > {
     const lifecycleEligibility =
       this.source.lifecycle.orderState === "cancelled"
         ? knownFact<"not_eligible">("not_eligible")

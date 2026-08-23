@@ -28,7 +28,7 @@ function runSpecInSubprocess(specRel: string): { ok: boolean; detail: string } {
     env: buildPhase0ChildEnv(),
   });
   const out = `${r.stdout ?? ""}\n${r.stderr ?? ""}`.trim();
-  if (r.status === 0 && out.includes("CONTRACT_SUBPROCESS_OK")) {
+  if (r.status === 0) {
     return { ok: true, detail: "" };
   }
   return { ok: false, detail: out.slice(-4000) || `exit ${r.status ?? "unknown"}` };

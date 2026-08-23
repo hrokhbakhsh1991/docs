@@ -5,11 +5,11 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
 import { FOUNDATION_GATE_DENALI_DIRS } from "../../../scripts/guards/foundation-gate-config.mjs";
-import { cruiseDenaliBreachFixture, cruiseDenaliViolations } from "./lib/denali-cruise.js";
+import { cruiseDenaliViolations, findPackageBoundaryViolations } from "./lib/denali-cruise.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
-const DENALI_BREACH_FIXTURE_DIR = path.join(__dirname, "__fixtures__");
+const FIXTURE_DIR = path.join(__dirname, "__fixtures__");
 
 describe("foundation denali coupling contract (H-01)", () => {
   it("has foundation scan roots configured", () => {
@@ -37,16 +37,36 @@ describe("foundation denali coupling contract (H-01)", () => {
     );
   });
 
-  it("no-denali-product-ids fails on intentional denali-breach fixture", () => {
-    const breachFile = path.join(DENALI_BREACH_FIXTURE_DIR, "denali-breach.ts");
+  it("package-boundary proof passes for a legal workspace-sdk fixture", () => {
+    const legalFile = path.join(FIXTURE_DIR, "workspace-sdk-legal.ts");
+    assert.ok(fs.existsSync(legalFile), `missing fixture: ${legalFile}`);
+    const violations = findPackageBoundaryViolations(
+      REPO_ROOT,
+      [legalFile],
+      "packages/workspaces/denali",
+      ["@app-tour/workspace-denali"],
+    );
+    assert.deepEqual(violations, []);
+  });
+
+  it("package-boundary proof fails for Denali source and package imports", () => {
+    const breachFile = path.join(FIXTURE_DIR, "denali-breach.ts");
     assert.ok(fs.existsSync(breachFile), `missing fixture: ${breachFile}`);
 
-    const errors = cruiseDenaliBreachFixture(REPO_ROOT);
-    const denaliRuleHits = errors.filter((e) => e.rule?.name === "no-denali-product-ids");
+    const violations = findPackageBoundaryViolations(
+      REPO_ROOT,
+      [breachFile],
+      "packages/workspaces/denali",
+      ["@app-tour/workspace-denali"],
+    );
 
     assert.ok(
-      denaliRuleHits.length > 0,
-      `expected no-denali-product-ids violation from denali-breach.ts; got: ${JSON.stringify(errors)}`,
+      violations.length >= 4,
+      `expected source/package import violations from denali-breach.ts; got: ${JSON.stringify(violations)}`,
+    );
+    assert.deepEqual(
+      new Set(violations.map((violation) => violation.kind)),
+      new Set(["import", "require", "dynamic-import"]),
     );
   });
 });

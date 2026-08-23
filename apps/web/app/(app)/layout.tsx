@@ -11,6 +11,7 @@ import { OperatorShell } from "@/admin/shell/operator-shell";
 import { ensureFinanceNavSupported } from "@/finance/finance-nav-enablement";
 import { ensureWizardCreate } from "@/workspace/wizard-create-registry";
 import { resolveOperatorNav } from "@/admin/shell/resolve-operator-nav";
+import { ensureOperatorShellNavLinks } from "@/shell/operator-shell-nav-registry";
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
 import { decodeJwtPayload } from "@app-tour/session-client";
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
@@ -41,8 +42,7 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   // Authenticated operator shell: JWT tenant → pluginId (not host guest / env starter fallback).
   // Anonymous path inside helper still uses host bootstrap unchanged.
   const bootstrap = await resolveRequestBootstrapAppSession();
-  const devSmokeHost =
-    isDevWebSessionAllowed() && hasDevHostSmokeSessionProfile(host);
+  const devSmokeHost = isDevWebSessionAllowed() && hasDevHostSmokeSessionProfile(host);
 
   let session = await readOperatorSessionFromCookies();
   if (session === null && devSmokeHost) {
@@ -75,19 +75,18 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   const tWorkspaces = await getTranslations("app.workspaces");
   await ensureFinanceNavSupported(bootstrap.session.pluginId);
   const wizardCreate = await ensureWizardCreate(bootstrap.session.pluginId);
+  const workspaceNavLinks = await ensureOperatorShellNavLinks(bootstrap.session.pluginId);
   const navItems = resolveOperatorNav({
     session: session!,
     pluginId: bootstrap.session.pluginId,
+    workspaceLinks: workspaceNavLinks,
   });
 
   const cookieStore = await cookies();
   const rawSession = cookieStore.get(SESSION_TOKEN_COOKIE)?.value ?? "";
   const impersonationReadonly =
     decodeJwtPayload(rawSession)?.platform_impersonation_readonly === true;
-  const workspaceLabel = resolveWorkspaceLabelFromMessages(
-    tWorkspaces,
-    bootstrap.session.pluginId
-  );
+  const workspaceLabel = resolveWorkspaceLabelFromMessages(tWorkspaces, bootstrap.session.pluginId);
   const displayName = resolveTenantBrandingDisplayName(
     tenantTheme ?? {},
     locale as TenantDefaultLocale,

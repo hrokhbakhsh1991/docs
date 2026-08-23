@@ -4,7 +4,10 @@
  * No Prisma client imports, RLS helpers, or concrete repository class unions here.
  */
 
-import type { FinanceLedgerCapturePlan, FinanceLedgerJournalLine } from "@app-tour/finance-http-contracts";
+import type {
+  FinanceLedgerCapturePlan,
+  FinanceLedgerJournalLine,
+} from "@app-tour/finance-http-contracts";
 import type {
   FinanceRefundRow,
   RefundReasonCode,
@@ -66,6 +69,7 @@ export type CancelPendingManualPaymentAtomicResult = {
 export type FinanceTourPaymentAggregateRow = {
   readonly tourId: string;
   readonly tourTitle: string;
+  readonly currency: string;
   readonly paidCount: number;
   readonly paidMinor: string;
   readonly pendingCount: number;
@@ -384,9 +388,7 @@ export interface FinanceRepositoryPort {
    * PR23-C2 — source rows for operator exceptions (no invoice / booking enrichment).
    * E1 already applies payment-scoped latest-receipt = Rejected.
    */
-  listFinanceExceptionSources(
-    tenantId: string
-  ): Promise<ListFinanceExceptionSourcesResult>;
+  listFinanceExceptionSources(tenantId: string): Promise<ListFinanceExceptionSourcesResult>;
 
   /**
    * PR23-D1 — registration candidates for outstanding AR (no invoice amounts).
@@ -420,9 +422,7 @@ export interface FinanceRepositoryPort {
 
   listPrepayments(tenantId: string, limit: number): Promise<readonly FinancePrepaymentListRow[]>;
 
-  recordPrepaymentAtomic(
-    input: RecordPrepaymentAtomicInput
-  ): Promise<RecordPrepaymentAtomicResult>;
+  recordPrepaymentAtomic(input: RecordPrepaymentAtomicInput): Promise<RecordPrepaymentAtomicResult>;
 
   recordPrepaymentBookingSyncDegraded(input: {
     readonly tenantId: string;

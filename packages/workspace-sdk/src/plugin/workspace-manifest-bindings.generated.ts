@@ -6,17 +6,59 @@
 
 import type { WorkspacePluginId } from "./workspace-plugin-id";
 import type { WorkspaceTypeId } from "./workspace-type";
+import type { TenantThemeConfig } from "../theme/tenant-theme.contract";
 
 export const WORKSPACE_MANIFEST_BINDINGS: readonly {
   readonly workspaceType: WorkspaceTypeId;
   readonly pluginId: WorkspacePluginId;
+  readonly tenantBrandingDefaults?: TenantThemeConfig;
 }[] = [
   { workspaceType: "acme", pluginId: "acme" },
+  {
+    workspaceType: "alpine",
+    pluginId: "alpine",
+    tenantBrandingDefaults: {
+      primaryColor: "#1d4ed8",
+      cssVariables: {
+        "--color-primary": "#1d4ed8",
+        "--color-primary-hover": "#1e40af",
+      },
+    } as const,
+  },
   { workspaceType: "booking-ws2", pluginId: "booking-ws2" },
-  { workspaceType: "denali", pluginId: "denali" },
+  {
+    workspaceType: "denali",
+    pluginId: "denali",
+    tenantBrandingDefaults: {
+      primaryColor: "#059669",
+      cssVariables: {
+        "--color-primary": "#059669",
+        "--color-primary-hover": "#047857",
+      },
+    } as const,
+  },
   { workspaceType: "finance-ws5", pluginId: "finance-ws5" },
   { workspaceType: "guest-club", pluginId: "guest-club" },
   { workspaceType: "harbor", pluginId: "harbor" },
-  { workspaceType: "starter", pluginId: "starter" },
-  { workspaceType: "urban", pluginId: "urban" },
+  {
+    workspaceType: "starter",
+    pluginId: "starter",
+    tenantBrandingDefaults: {
+      primaryColor: "#2563eb",
+      cssVariables: {
+        "--color-primary": "#2563eb",
+      },
+    } as const,
+  },
+  {
+    workspaceType: "urban",
+    pluginId: "urban",
+    tenantBrandingDefaults: {
+      primaryColor: "#0d9488",
+      cssVariables: {
+        "--color-primary": "#0d9488",
+      },
+      defaultLocale: "en",
+    } as const,
+  },
 ];

@@ -1,0 +1,56 @@
+{
+  "gate": "phase-7-adversarial",
+  "date": "2026-08-23",
+  "gitSha": "12335c64",
+  "ok": true,
+  "databaseUrl": true,
+  "checks": [
+    {
+      "id": "genericity-rev",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "audit-log-fields",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "ADV-P7-P0-01",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "ADV-P7-P0-02",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "ADV-P7-P0-03",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "ADV-P7-P0-04",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "ADV-P7-P0-05",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "ADV-P7-P0-06",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "ADV-P7-P0-07",
+      "ok": true,
+      "detail": "skipped by env",
+      "skipped": true
+    }
+  ],
+  "note": "7.8 closure — ADVERSARIAL-MATRIX P0 + ci:integrity"
+}

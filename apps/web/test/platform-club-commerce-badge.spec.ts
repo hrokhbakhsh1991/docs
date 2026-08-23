@@ -57,10 +57,16 @@ describe("platform-club-commerce-badge (P5-C UI-02)", () => {
       new URL("../src/platform/club-detail/platform-club-detail.types.ts", import.meta.url),
       "utf8"
     );
+    const loader = readFileSync(
+      new URL("../src/platform/club-detail/load-platform-club-detail.server.ts", import.meta.url),
+      "utf8"
+    );
     assert.match(tab, /workspaceCommerce:/);
     assert.match(tab, /paymentMode=\{workspaceCommerce\.paymentMode\}/);
     assert.match(tab, /gatewayProvider=\{workspaceCommerce\.gatewayProvider\}/);
     assert.match(client, /workspaceCommerce=\{detail\.workspaceCommerce\}/);
     assert.match(types, /workspaceCommerce:/);
+    assert.match(loader, /currency: ""/);
+    assert.doesNotMatch(loader, /currency: "IRR"/);
   });
 });

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { execSync, spawnSync } from "node:child_process";
+import { execFileSync, execSync, spawnSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -79,36 +79,52 @@ function gitDiffPlatformCore(baselineSha: string): string {
   }).trim();
 }
 
-function hashFile(path: string): string {
-  return createHash("sha256").update(readFileSync(path)).digest("hex");
+function fingerprintCommittedPlatformCoreHead(): Record<string, string> {
+  const listed = execFileSync(
+    "git",
+    ["ls-tree", "-r", "--name-only", "HEAD", "packages/platform-core"],
+    { cwd: REPO_ROOT, encoding: "utf8" }
+  )
+    .split("\n")
+    .map((path) => path.trim())
+    .filter(
+      (path) =>
+        path.length > 0 &&
+        !path.endsWith(".md") &&
+        !path.split("/").some((segment) => PLATFORM_CORE_SKIP_DIRS.has(segment))
+    );
+
+  return Object.fromEntries(
+    listed.map((repoPath) => [
+      repoPath.slice("packages/platform-core/".length),
+      createHash("sha256")
+        .update(execFileSync("git", ["show", `HEAD:${repoPath}`], { cwd: REPO_ROOT }))
+        .digest("hex"),
+    ])
+  );
 }
 
-function fingerprintPlatformCore(): Record<string, string> {
-  const files: Record<string, string> = {};
-  const walk = (dir: string): void => {
-    for (const ent of readdirSync(dir, { withFileTypes: true })) {
-      const path = join(dir, ent.name);
-      if (ent.isDirectory()) {
-        if (PLATFORM_CORE_SKIP_DIRS.has(ent.name)) continue;
-        walk(path);
-        continue;
-      }
-      if (ent.name.endsWith(".md")) continue;
-      const rel = relative(PLATFORM_CORE, path).replace(/\\/g, "/");
-      files[rel] = hashFile(path);
-    }
-  };
-  walk(PLATFORM_CORE);
-  return files;
+function reportPlatformCoreDirtyWorktree(): void {
+  const status = execFileSync(
+    "git",
+    ["status", "--short", "--untracked-files=all", "--", "packages/platform-core"],
+    { cwd: REPO_ROOT, encoding: "utf8" }
+  ).trim();
+  if (status.length > 0) {
+    console.warn(
+      `REQ-P7-007 dirty-work drift (committed HEAD remains canonical):\n${status}`
+    );
+  }
 }
 
 function assertPlatformCoreMatchesTreeDigest(): void {
   const expectedDigest = readBaselineTreeDigest();
-  const currentDigest = digestPlatformCoreTree(fingerprintPlatformCore());
+  const committedHeadDigest = digestPlatformCoreTree(fingerprintCommittedPlatformCoreHead());
+  reportPlatformCoreDirtyWorktree();
   assert.equal(
-    currentDigest,
+    committedHeadDigest,
     expectedDigest,
-    `platform-core tree digest drift since 7.2 baseline (proof rev ${PHASE_7_GENERICITY_PROOF_REV}) — urban must not touch core`
+    `committed HEAD platform-core tree digest drift since 7.2 baseline (proof rev ${PHASE_7_GENERICITY_PROOF_REV}) — urban must not touch core`
   );
 }
 

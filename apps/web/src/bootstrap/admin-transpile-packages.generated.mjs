@@ -17,7 +17,6 @@ export const ADMIN_TRANSPILE_PACKAGES = Object.freeze([
   "@app-tour/finance-case-encounter-ui",
   "@app-tour/workspace-denali",
   "@app-tour/workspace-guest-club",
-  "@app-tour/workspace-harbor",
   "@app-tour/workspace-starter",
   "@app-tour/workspace-urban",
 ]);

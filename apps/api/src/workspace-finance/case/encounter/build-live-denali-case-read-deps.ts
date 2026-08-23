@@ -7,13 +7,28 @@ import { getBookingsRepository } from "../../../bookings/create-bookings-reposit
 import { createFinanceObligationPort } from "../../finance-obligation.factory";
 import { createFinanceRepository } from "../../finance-repository.factory";
 import { resolveFinanceWorkspaceTypeForTenant } from "../../resolve-finance-workspace-type-for-tenant";
+import { financeWorkspaceHasCapability } from "../../workspace-finance-capabilities.generated";
 import type { HostDenaliCaseReadDeps } from "../host-denali-case-read-source";
 import { listPaymentsForRegistration } from "../list-payments-for-registration";
+
+export class FinanceCaseMeaningWorkspaceUnsupportedError extends Error {
+  constructor(readonly workspaceType: string) {
+    super(`Finance Case Meaning is not supported for workspace '${workspaceType}'`);
+    this.name = "FinanceCaseMeaningWorkspaceUnsupportedError";
+  }
+}
+
+export function assertFinanceCaseMeaningWorkspace(workspaceType: string): void {
+  if (!financeWorkspaceHasCapability(workspaceType, "caseMeaning")) {
+    throw new FinanceCaseMeaningWorkspaceUnsupportedError(workspaceType);
+  }
+}
 
 export async function buildLiveDenaliCaseReadDepsForTenant(
   tenantId: string
 ): Promise<Omit<HostDenaliCaseReadDeps, "tenantId">> {
   const workspaceType = await resolveFinanceWorkspaceTypeForTenant(tenantId);
+  assertFinanceCaseMeaningWorkspace(workspaceType);
   const repository = createFinanceRepository(createBookingPaymentPort());
   const obligation = await createFinanceObligationPort(workspaceType);
   return {

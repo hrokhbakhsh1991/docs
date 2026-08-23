@@ -5,7 +5,11 @@
  * Location: packages/guest-workspace-runtime (P5.3) — product dynamic imports stay package-owned.
  */
 
-import { registerWorkspaceIntakePlugin, registerWorkspaceMemberPortalRenderers, registerWorkspaceRegistrationFlowPlugin } from "@app-tour/workspace-sdk";
+import {
+  registerWorkspaceIntakePlugin,
+  registerWorkspaceMemberPortalRenderers,
+  registerWorkspaceRegistrationFlowPlugin,
+} from "@app-tour/workspace-sdk";
 import { registerWorkspaceRegistrationFlowSteps } from "@app-tour/workspace-plugin-host/registration-flow";
 
 /** Intake registrar for "denali" — plugin entry only (no registration-flow UI graph). */
@@ -32,11 +36,14 @@ export async function registerWorkspacePluginDENALIFromManifest(): Promise<void>
     });
   }
   registerWorkspaceMemberPortalRenderers(plugin.id, plugin.capabilities?.memberPortalRenderers);
-  const { registerDenaliCatalogRegistrationTransportInitializer } = await import("@app-tour/workspace-denali/host/catalog-registration-flow");
+  const { registerDenaliCatalogRegistrationTransportInitializer } =
+    await import("@app-tour/workspace-denali/host/catalog-registration-flow");
   registerDenaliCatalogRegistrationTransportInitializer();
 
-  const { denaliCatalogRegistrationFlowSurface } = await import("@app-tour/workspace-denali/host/catalog-registration-flow");
-  const { denaliRegistrationFlowSteps } = await import("@app-tour/workspace-denali/host/catalog-registration-flow/react");
+  const { denaliCatalogRegistrationFlowSurface } =
+    await import("@app-tour/workspace-denali/host/catalog-registration-flow");
+  const { denaliRegistrationFlowSteps } =
+    await import("@app-tour/workspace-denali/host/catalog-registration-flow/react");
   registerWorkspaceRegistrationFlowPlugin({
     id: "denali",
     catalogRegistrationFlow: denaliCatalogRegistrationFlowSurface,

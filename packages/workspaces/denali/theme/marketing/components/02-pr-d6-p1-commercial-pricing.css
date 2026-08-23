@@ -1,0 +1,39 @@
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-sticky-bar]
+  div[data-marketing-commercial-pricing][data-marketing-commercial-pricing-compact] {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 0.1rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-sticky-bar]
+  div[data-marketing-commercial-pricing][data-marketing-commercial-pricing-compact]
+  div[data-marketing-commercial-pricing-row] {
+  display: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-sticky-bar]
+  div[data-marketing-commercial-pricing][data-marketing-commercial-pricing-compact]
+  div[data-marketing-commercial-pricing-row="membership-discount"],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-sticky-bar]
+  div[data-marketing-commercial-pricing][data-marketing-commercial-pricing-compact]
+  div[data-marketing-commercial-pricing-row="payable"] {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 0.75rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-sticky-bar]
+  div[data-marketing-commercial-pricing][data-marketing-commercial-pricing-compact]
+  div[data-marketing-commercial-pricing-row="payable"]
+  strong {
+  font-size: var(--mkt-text-body);
+  font-weight: 800;
+}

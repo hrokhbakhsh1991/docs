@@ -27,6 +27,10 @@ const SERVICE = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "../src/application/finance.service.ts"
 );
+const IN_MEMORY_REPOSITORY_FAKE = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "isolation/in-memory-finance.repository.ts"
+);
 
 const fakeLedger: FinanceLedgerPolicyPort = {
   buildPaymentCaptureJournal: () => ({
@@ -106,6 +110,11 @@ describe("FIN-P2.2.x FinanceService pure application service", () => {
     assert.doesNotMatch(src, /@app-tour\/workspace-/);
     assert.match(src, /FinanceCapabilityPort/);
     assert.match(src, /capability\.assertEnabled/);
+  });
+
+  it("test repository fake does not invent a product currency for invoice facts", () => {
+    const src = readFileSync(IN_MEMORY_REPOSITORY_FAKE, "utf8");
+    assert.doesNotMatch(src, /let\s+currency\s*=\s*"IRR"/);
   });
 
   it("constructs via createFinanceService with fake adapters only", async () => {

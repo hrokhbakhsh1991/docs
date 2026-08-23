@@ -6,9 +6,8 @@
  * Does NOT set DEPCRUISE_MONOREPO_GUARD (fixtures are included when targeted).
  */
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { guardDepcruiseBin } from "../../../scripts/guards/lib/guard-require.mjs";
+import { guardDepcruiseMain } from "../../../scripts/guards/lib/guard-require.mjs";
 
 const absRoots = process.argv.slice(2);
 if (absRoots.length === 0) {
@@ -18,30 +17,24 @@ if (absRoots.length === 0) {
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const configPath = path.join(repoRoot, "dependency-cruiser.config.js");
-const depcruiseBin = guardDepcruiseBin();
+const { cruise } = await import(guardDepcruiseMain());
 
 const relRoots = absRoots.map((abs) =>
   path.relative(repoRoot, abs).split(path.sep).join("/")
 );
 
-const r = spawnSync(
-  depcruiseBin,
-  [...relRoots, "--config", configPath, "--output-type", "json"],
+const result = await cruise(
+  relRoots,
   {
-    cwd: repoRoot,
-    encoding: "utf8",
-    maxBuffer: 16 * 1024 * 1024,
-  }
+    outputType: "json",
+    config: { extends: configPath },
+  },
+  { bustTheCache: true }
 );
 
-if (r.error) {
-  console.error(r.error.message);
-  process.exit(2);
-}
-
-const stdout = (r.stdout ?? "").trim();
+const stdout = String(result?.output ?? "").trim();
 if (!stdout) {
-  console.error((r.stderr ?? "depcruise produced no output").trim());
+  console.error("depcruise produced no output");
   process.exit(2);
 }
 

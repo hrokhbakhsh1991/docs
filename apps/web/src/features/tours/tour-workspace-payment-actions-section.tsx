@@ -26,6 +26,7 @@ type TourWorkspacePaymentActionsSectionProps = {
   readonly invoice: RegistrationInvoice | null;
   readonly pendingReceipts: readonly FinancePendingReceipt[];
   readonly refreshKey?: string | number;
+  readonly pluginId: string;
   readonly onOverrideChanged: (event: {
     readonly registrationId: string;
     readonly obligationMinor: string;
@@ -44,6 +45,7 @@ export function TourWorkspacePaymentActionsSection({
   invoice,
   pendingReceipts,
   refreshKey,
+  pluginId,
   onOverrideChanged,
   onPaymentChanged,
   onReceiptReviewed,
@@ -128,6 +130,7 @@ export function TourWorkspacePaymentActionsSection({
           registrationId={registrationId}
           canManage={canManage}
           refreshKey={refreshKey}
+          pluginId={pluginId}
           onChanged={onPaymentChanged}
         />
       </div>

@@ -18,6 +18,7 @@ import type { DenaliCaseReadSourcePort } from "../../case-read/denali-case-read-
 import { toCaseEncounterPresentation, assertPresentationBoundary } from "../encounter/index.ts";
 import {
   composeMarketplaceCaseFactProviders,
+  MarketplaceObligationCaseFactProvider,
   composeStaticPortableCaseProviders,
   portableAuditNone,
   portableEligibleLifecycle,
@@ -182,6 +183,28 @@ describe("PR13-C workspace portability proof", () => {
     }
   });
 
+  it("2b — Marketplace no-money state does not invent a product currency", async () => {
+    const provider = new MarketplaceObligationCaseFactProvider({
+      payment: null,
+      evidence: { proofKind: "none", progress: "none" },
+      lifecycle: { orderState: "active" },
+    });
+
+    const result = await provider.readMoneyFacts({
+      caseKey: "buyer_payment:ord-no-money:primary",
+      subjectId: "ord-no-money",
+      subjectKind: "buyer_payment",
+      counterpartyId: "buyer",
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.value.currency.kind, "unknown");
+    assert.notEqual(
+      result.value.currency.kind === "known" ? result.value.currency.value : "",
+      "IRR"
+    );
+  });
+
   it("3 — No workspace imports in finance-core", () => {
     for (const file of walkTs(FINANCE_CORE_SRC)) {
       const src = readFileSync(file, "utf8");
@@ -306,6 +329,14 @@ describe("PR13-C workspace portability proof", () => {
         /CommandBridge|approveBooking|reviewReceipt|createManualPayment|submitReceipt\(/
       );
     }
+  });
+
+  it("9 — Marketplace portability source has no hard-coded product currency fallback", () => {
+    const source = readFileSync(
+      join(PORTABILITY_DIR, "compose-marketplace-case-providers.ts"),
+      "utf8"
+    );
+    assert.doesNotMatch(source, /currency:\s*knownFact\(["']IRR["']\)/);
   });
 
   it("scenario A — Denali manual payment", async () => {

@@ -2,10 +2,7 @@ import type { Prisma } from "@prisma/client";
 
 import { MAX_PAYMENTS_PER_REGISTRATION } from "../workspace-finance/finance-list-projection";
 
-type InvoiceFactsTx = Pick<
-  Prisma.TransactionClient,
-  "$queryRaw" | "payment" | "outboxEvent"
->;
+type InvoiceFactsTx = Pick<Prisma.TransactionClient, "$queryRaw" | "payment" | "outboxEvent">;
 
 export type RegistrationInvoiceFacts = {
   readonly prepaymentMinor: string;
@@ -67,14 +64,18 @@ export async function loadRegistrationInvoiceFacts(
       }),
     ]);
 
-  let currency = "IRR";
+  let currency = "";
   const latestPayload =
     latestPrepayment?.payload !== null &&
     latestPrepayment?.payload !== undefined &&
     typeof latestPrepayment.payload === "object"
       ? (latestPrepayment.payload as Record<string, unknown>)
       : null;
-  if (latestPayload !== null && typeof latestPayload.currency === "string" && latestPayload.currency.length > 0) {
+  if (
+    latestPayload !== null &&
+    typeof latestPayload.currency === "string" &&
+    latestPayload.currency.length > 0
+  ) {
     currency = latestPayload.currency;
   }
 

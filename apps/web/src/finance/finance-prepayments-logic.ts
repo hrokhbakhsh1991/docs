@@ -42,8 +42,7 @@ export type RecordPrepaymentValidation =
   | { readonly ok: true; readonly value: RecordPrepaymentFormState }
   | { readonly ok: false; readonly error: string };
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function parsePrepaymentsListResponse(raw: unknown): PrepaymentsListResponse {
   if (raw === null || typeof raw !== "object") {
@@ -55,12 +54,14 @@ export function parsePrepaymentsListResponse(raw: unknown): PrepaymentsListRespo
     return { items: [] };
   }
   const items = itemsRaw
-    .filter((entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null)
+    .filter(
+      (entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null
+    )
     .map((entry) => ({
       id: String(entry.id ?? ""),
       registrationId: String(entry.registrationId ?? ""),
       amountMinor: String(entry.amountMinor ?? "0"),
-      currency: String(entry.currency ?? "IRR"),
+      currency: String(entry.currency ?? ""),
       method: String(entry.method ?? "Manual"),
       note: typeof entry.note === "string" ? entry.note : null,
       recordedAt: String(entry.recordedAt ?? ""),
@@ -70,7 +71,9 @@ export function parsePrepaymentsListResponse(raw: unknown): PrepaymentsListRespo
   return { items };
 }
 
-export function validateRecordPrepaymentForm(input: RecordPrepaymentFormState): RecordPrepaymentValidation {
+export function validateRecordPrepaymentForm(
+  input: RecordPrepaymentFormState
+): RecordPrepaymentValidation {
   const registrationId = input.registrationId.trim();
   if (!UUID_PATTERN.test(registrationId)) {
     return { ok: false, error: "REGISTRATION_ID_INVALID" };

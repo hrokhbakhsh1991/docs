@@ -11,10 +11,10 @@ import {
   type CaseEncounterViewContract,
 } from "@/finance/finance-case-encounter-ui";
 
-import { buildCaseEncounterLabels } from "@/finance/denali-case-encounter-labels";
+import { buildCaseEncounterLabels } from "@/finance/finance-case-encounter-labels";
 import { FINANCE_COMMERCIAL_MEANING_DEFAULT_TIMEOUT_MS } from "@/finance/finance-commercial-meaning-contract";
 
-type OperatorCaseEncounterPanelProps = {
+type FinanceCaseEncounterPanelProps = {
   readonly registrationId: string;
   readonly counterpartyId?: string;
   readonly loadTimeoutMs?: number;
@@ -51,12 +51,12 @@ function isCommandCapability(value: unknown): value is CaseCommandCapabilityCont
   return Array.isArray(rr.availableTokens) && typeof rr.endpoint === "string";
 }
 
-export function OperatorCaseEncounterPanel({
+export function FinanceCaseEncounterPanel({
   registrationId,
   counterpartyId,
   loadTimeoutMs = FINANCE_COMMERCIAL_MEANING_DEFAULT_TIMEOUT_MS,
   onLifecycle,
-}: OperatorCaseEncounterPanelProps) {
+}: FinanceCaseEncounterPanelProps) {
   const t = useTranslations("finance.caseEncounter");
   const labels = useMemo(() => buildCaseEncounterLabels(t), [t]);
 
@@ -118,7 +118,7 @@ export function OperatorCaseEncounterPanel({
   }, [registrationId, counterpartyId, loadTimeoutMs, t]);
 
   return (
-    <div data-testid="denali-case-encounter-panel">
+    <div data-testid="finance-case-encounter-panel">
       <CaseEncounterReadOnlyHost
         loadEncounter={loadEncounter}
         labels={labels}

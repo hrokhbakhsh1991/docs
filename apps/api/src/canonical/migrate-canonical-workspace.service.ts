@@ -14,6 +14,7 @@ export type MigrateCanonicalWorkspaceResult = {
 };
 
 type CanonicalMigrationSurface = {
+  readonly workspaceType: string;
   readonly legacySoTRoot: string;
   readonly currentSchemaVersion: number;
   readonly legacySchemaVersion: number;
@@ -36,10 +37,12 @@ function resolveCanonicalMigrationSurface(
     return undefined;
   }
   return {
+    workspaceType,
     legacySoTRoot: binding.legacySoTRoot as string,
     currentSchemaVersion: binding.currentSchemaVersion as number,
     legacySchemaVersion: binding.legacySchemaVersion as number,
-    wrapLegacyCanonical: binding.wrapLegacyCanonical as CanonicalMigrationSurface["wrapLegacyCanonical"],
+    wrapLegacyCanonical:
+      binding.wrapLegacyCanonical as CanonicalMigrationSurface["wrapLegacyCanonical"],
   };
 }
 
@@ -118,10 +121,14 @@ function assertNoDualWriteSoT(
   surface: CanonicalMigrationSurface
 ): void {
   if (canonical.data[surface.legacySoTRoot] != null) {
-    throw new Error("MIGRATE_DENALI_DUAL_WRITE_SOT");
+    throw new Error(
+      `MIGRATE_CANONICAL_DUAL_WRITE_SOT:${surface.workspaceType}:${surface.legacySoTRoot}`
+    );
   }
   if (canonical.roots.includes(surface.legacySoTRoot)) {
-    throw new Error("MIGRATE_DENALI_DUAL_WRITE_SOT");
+    throw new Error(
+      `MIGRATE_CANONICAL_DUAL_WRITE_SOT:${surface.workspaceType}:${surface.legacySoTRoot}`
+    );
   }
 }
 
@@ -202,7 +209,5 @@ export function isLegacyTripDetailsSchemaVersion(
   schemaVersion: number,
   workspaceType: string
 ): boolean {
-  return (
-    schemaVersion === requireCanonicalMigrationSurface(workspaceType).legacySchemaVersion
-  );
+  return schemaVersion === requireCanonicalMigrationSurface(workspaceType).legacySchemaVersion;
 }

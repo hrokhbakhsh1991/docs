@@ -49,14 +49,15 @@ describe("thin-shell-architecture-purity — Phase 4q DoD locks", () => {
     assert.deepEqual(hits, []);
   });
 
-  it("hand-written apps/web has no DEFAULT_* product plugin fallbacks", () => {
+  it("hand-written apps/web has no DEFAULT_* product plugin/workspace fallbacks", () => {
     const files = [...walkSourceFiles(SRC), ...walkSourceFiles(APP)].filter(
       (p) => !p.includes(".generated.")
     );
     const hits: string[] = [];
     const patterns = [
       /DEFAULT_[A-Z0-9_]*(PLUGIN|WORKSPACE)[A-Z0-9_]*\s*=\s*["'](denali|starter|urban)["']/,
-      /pluginId\s*\?\?\s*["'](denali|starter|urban)["']/,
+      /\b(pluginId|workspaceType)\b\s*(?:\?\?|\|\|)\s*["'](denali|starter|urban)["']/,
+      /\b(pluginId|workspaceType)\b\s*=\s*[\s\S]{0,180}\?\s*[\s\S]{0,180}:\s*["'](denali|starter|urban)["']/,
     ];
     for (const abs of files) {
       const text = readFileSync(abs, "utf8");
@@ -82,7 +83,8 @@ describe("thin-shell-architecture-purity — Phase 4q DoD locks", () => {
     const generated = walkSourceFiles(BOOTSTRAP).filter((p) => p.includes(".generated."));
     const hits: string[] = [];
     // Static value imports of product packages (type-only imports from workspace-sdk are OK).
-    const re = /(?:^|\n)\s*import\s+(?!type\b)[^;]*\s+from\s+["']@app-cloud\/workspace-(?!sdk)[^"']+["']/m;
+    const re =
+      /(?:^|\n)\s*import\s+(?!type\b)[^;]*\s+from\s+["']@app-cloud\/workspace-(?!sdk)[^"']+["']/m;
     for (const abs of generated) {
       const text = readFileSync(abs, "utf8");
       if (re.test(text)) hits.push(relative(WEB_ROOT, abs));

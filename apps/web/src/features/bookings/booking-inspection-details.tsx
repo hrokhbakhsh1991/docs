@@ -147,6 +147,12 @@ export function BookingInspectionDetails({
           </>
         ) : null}
       </dl>
+      {/* PR21-G2: money state before ops/cancel so finance is not buried. */}
+      <BookingFinancialStrip
+        registrationId={booking.id}
+        bookingPaymentStatus={booking.paymentStatus}
+        bookingStatus={booking.status}
+      />
       {canManageOps && (canActOnSelected || canWaitlistSelected || canCancelSelected) ? (
         <BookingActionButtons
           busy={actionBusy}
@@ -161,12 +167,6 @@ export function BookingInspectionDetails({
           includeTestIds={includeActionTestIds}
         />
       ) : null}
-      {/* PR21-G2: money state before ops/cancel so finance is not buried. */}
-      <BookingFinancialStrip
-        registrationId={booking.id}
-        bookingPaymentStatus={booking.paymentStatus}
-        bookingStatus={booking.status}
-      />
       <BookingRegistrationIntakeDetails booking={booking} />
       <BookingActivityTimeline booking={booking} />
     </>

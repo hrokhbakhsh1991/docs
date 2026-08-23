@@ -45,7 +45,10 @@ describe("resolve-member-portal-modules.spec.ts — workspace-sdk", () => {
     if (contract.availability === "off") {
       assert.fail("expected minimal");
     }
-    assert.equal(contract.surface.modules.some((module) => module.id === "home"), false);
+    assert.equal(
+      contract.surface.modules.some((module) => module.id === "home"),
+      false
+    );
     assert.equal(contract.surface.modules.length, 2);
   });
 

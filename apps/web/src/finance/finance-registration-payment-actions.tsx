@@ -33,7 +33,10 @@ import {
 import { invalidateFinanceRegistrationCaches } from "@/finance/finance-registration-fetch-cache";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import type { AppLocale } from "@/i18n/routing";
-import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
+import {
+  localizeFinanceMessage,
+  toFinanceClientErrorCode,
+} from "@/i18n/resolve-finance-error-message";
 import { cn } from "@/lib/utils";
 
 type FinanceRegistrationPaymentActionsProps = {
@@ -62,6 +65,8 @@ const EMPTY_RECEIPT_FORM: SubmitReceiptFormState = {
   note: "",
 };
 
+const DEFAULT_PAYMENT_CURRENCY = "";
+
 export function FinanceRegistrationPaymentActions({
   registrationId,
   canManage,
@@ -77,7 +82,7 @@ export function FinanceRegistrationPaymentActions({
   const normalizedRegistrationId = registrationId.trim();
   const [invoice, setInvoice] = useState<RegistrationInvoice | null>(null);
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("IRR");
+  const [currency, setCurrency] = useState(DEFAULT_PAYMENT_CURRENCY);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [actionBanner, setActionBanner] = useState<PaymentActionBanner | null>(null);
@@ -92,7 +97,7 @@ export function FinanceRegistrationPaymentActions({
 
   useEffect(() => {
     setAmount("");
-    setCurrency("IRR");
+    setCurrency(DEFAULT_PAYMENT_CURRENCY);
     setFormError(null);
     setActionBanner(null);
     setReceiptForm(EMPTY_RECEIPT_FORM);
@@ -274,11 +279,7 @@ export function FinanceRegistrationPaymentActions({
         >
           <span className="font-medium">{t("createResultTitle")}</span>
           {" — "}
-          {formatMinorAmount(
-            actionBanner.payment.amount,
-            actionBanner.payment.currency,
-            locale
-          )}
+          {formatMinorAmount(actionBanner.payment.amount, actionBanner.payment.currency, locale)}
           {" · "}
           {t("createResultNext")}
           {actionBanner.payment.registrationId.length >= 32 ? (
@@ -304,8 +305,7 @@ export function FinanceRegistrationPaymentActions({
         >
           <span className="font-medium">{t("receiptSubmittedTitle")}</span>
           {" — "}
-          {t("receiptSubmittedNext")}
-          {" "}
+          {t("receiptSubmittedNext")}{" "}
           <Link
             href={buildFinancePaymentReceiptsHref(actionBanner.registrationId)}
             className="font-medium text-primary underline-offset-2 hover:underline"
@@ -425,7 +425,10 @@ export function FinanceRegistrationPaymentActions({
                     }
                     setReceiptUploadError(null);
                     setReceiptUploadBusy(true);
-                    void uploadFinanceReceiptProof({ registrationId: normalizedRegistrationId, file })
+                    void uploadFinanceReceiptProof({
+                      registrationId: normalizedRegistrationId,
+                      file,
+                    })
                       .then((fileKey) => {
                         if (fileKey === null) {
                           throw new Error("RECEIPT_UPLOAD_FAILED");

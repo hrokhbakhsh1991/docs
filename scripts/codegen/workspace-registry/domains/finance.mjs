@@ -4,6 +4,10 @@ import { importSpecifier } from "../utils.mjs";
 /** @type {ReadonlySet<string>} */
 const FINANCE_EVENT_REACTION_CAPABILITIES = new Set(["durable-outbox", "ack-only", "none"]);
 
+function tsObjectKey(value) {
+  return /^[A-Za-z_$][\w$]*$/.test(value) ? value : JSON.stringify(value);
+}
+
 /**
  * Finance B2.3 — `supported` is product enablement only; money guarantees live in capabilities.
  *
@@ -101,9 +105,7 @@ export function assertFinanceCapabilities(m) {
       );
     }
   } else if (finance.opsManifest !== undefined) {
-    throw new Error(
-      `workspace.manifest.json ${m.id}: opsManifest requires capabilities.ops=true`
-    );
+    throw new Error(`workspace.manifest.json ${m.id}: opsManifest requires capabilities.ops=true`);
   }
 }
 
@@ -138,11 +140,12 @@ export function generateWorkspaceFinanceCapabilities(manifests) {
       if (typeof wt !== "string" || wt.trim().length === 0) {
         continue;
       }
-      capabilityEntries.push(`  ${JSON.stringify(wt.trim().toLowerCase())}: {
+      capabilityEntries.push(`  ${tsObjectKey(wt.trim().toLowerCase())}: {
     supported: true as const,
     ledgerCapture: ${caps.ledgerCapture === true ? "true" : "false"} as const,
     eventReactions: ${JSON.stringify(caps.eventReactions)} as const,
     ops: ${caps.ops === true ? "true" : "false"} as const,
+    caseMeaning: ${caps.caseMeaning === true ? "true" : "false"} as const,
   },`);
     }
   }
@@ -156,6 +159,7 @@ export type FinanceWorkspaceCapabilities = {
   readonly ledgerCapture: boolean;
   readonly eventReactions: FinanceEventReactionCapability;
   readonly ops: boolean;
+  readonly caseMeaning: boolean;
 };
 
 export const WORKSPACE_FINANCE_CAPABILITIES = {} as const;
@@ -172,7 +176,7 @@ export function listFinanceCapableWorkspaceTypes(): readonly string[] {
 
 export function financeWorkspaceHasCapability(
   _workspaceType: string,
-  _capability: "ledgerCapture" | "ops"
+  _capability: "ledgerCapture" | "ops" | "caseMeaning"
 ): boolean {
   return false;
 }
@@ -193,6 +197,7 @@ export type FinanceWorkspaceCapabilities = {
   readonly ledgerCapture: boolean;
   readonly eventReactions: FinanceEventReactionCapability;
   readonly ops: boolean;
+  readonly caseMeaning: boolean;
 };
 
 /**
@@ -212,7 +217,9 @@ export function getFinanceWorkspaceCapabilities(
   if (key.length === 0) {
     return null;
   }
-  const caps = (WORKSPACE_FINANCE_CAPABILITIES as Record<string, FinanceWorkspaceCapabilities>)[key];
+  const caps = (WORKSPACE_FINANCE_CAPABILITIES as Record<string, FinanceWorkspaceCapabilities>)[
+    key
+  ];
   return caps ?? null;
 }
 
@@ -222,7 +229,7 @@ export function listFinanceCapableWorkspaceTypes(): readonly string[] {
 
 export function financeWorkspaceHasCapability(
   workspaceType: string,
-  capability: "ledgerCapture" | "ops"
+  capability: "ledgerCapture" | "ops" | "caseMeaning"
 ): boolean {
   const caps = getFinanceWorkspaceCapabilities(workspaceType);
   if (caps === null) {
@@ -365,10 +372,14 @@ function assertModuleExport(block, workspaceId, field) {
   }
   const rec = /** @type {Record<string, unknown>} */ (block);
   if (typeof rec.module !== "string" || rec.module.length === 0) {
-    throw new Error(`workspace.manifest.json ${workspaceId}: workspaceFinance.${field}.module required`);
+    throw new Error(
+      `workspace.manifest.json ${workspaceId}: workspaceFinance.${field}.module required`
+    );
   }
   if (typeof rec.export !== "string" || rec.export.length === 0) {
-    throw new Error(`workspace.manifest.json ${workspaceId}: workspaceFinance.${field}.export required`);
+    throw new Error(
+      `workspace.manifest.json ${workspaceId}: workspaceFinance.${field}.export required`
+    );
   }
   return { module: rec.module, export: rec.export };
 }
@@ -376,6 +387,8 @@ function assertModuleExport(block, workspaceId, field) {
 export function generateWorkspaceFinanceDependencyBindings(manifests) {
   /** @type {string[]} */
   const bindingEntries = [];
+  /** @type {string[]} */
+  const decoratorImports = [];
 
   for (const m of manifests) {
     const finance = m.workspaceFinance;
@@ -394,9 +407,27 @@ export function generateWorkspaceFinanceDependencyBindings(manifests) {
     }
     const ledger = assertModuleExport(finance.ledgerPolicy, m.id, "ledgerPolicy");
     const defaults = assertModuleExport(finance.receiptDefaults, m.id, "receiptDefaults");
+    const decorator = finance.serviceDecorator;
+    if (decorator !== undefined) {
+      if (
+        typeof decorator.hostModule !== "string" ||
+        decorator.hostModule.length === 0 ||
+        typeof decorator.export !== "string" ||
+        decorator.export.length === 0
+      ) {
+        throw new Error(
+          `workspace.manifest.json ${m.id}: workspaceFinance.serviceDecorator requires hostModule and export`
+        );
+      }
+      decoratorImports.push(
+        `import { ${decorator.export} } from ${JSON.stringify(decorator.hostModule)};`
+      );
+    }
     const workspaceTypes = Array.isArray(m.workspaceTypes) ? m.workspaceTypes : [];
     if (workspaceTypes.length === 0) {
-      throw new Error(`workspace.manifest.json ${m.id}: workspaceTypes required for finance dependency bindings`);
+      throw new Error(
+        `workspace.manifest.json ${m.id}: workspaceTypes required for finance dependency bindings`
+      );
     }
 
     const ledgerSpec = importSpecifier(m.package, ledger.module);
@@ -404,9 +435,11 @@ export function generateWorkspaceFinanceDependencyBindings(manifests) {
 
     for (const wt of workspaceTypes) {
       if (typeof wt !== "string" || wt.trim().length === 0) {
-        throw new Error(`workspace.manifest.json ${m.id}: invalid workspaceType in finance dependency bindings`);
+        throw new Error(
+          `workspace.manifest.json ${m.id}: invalid workspaceType in finance dependency bindings`
+        );
       }
-      bindingEntries.push(`  ${JSON.stringify(wt.trim().toLowerCase())}: {
+      bindingEntries.push(`  ${tsObjectKey(wt.trim().toLowerCase())}: {
     createLedgerPolicy: async () => {
       const mod = await import(${JSON.stringify(ledgerSpec)});
       return new mod.${ledger.export}();
@@ -415,7 +448,7 @@ export function generateWorkspaceFinanceDependencyBindings(manifests) {
       const mod = await import(${JSON.stringify(defaultsSpec)});
       return new mod.${defaults.export}();
     },
-  },`);
+${decorator === undefined ? "" : `    decorateFinanceService: ${decorator.export},\n`}  },`);
     }
   }
 
@@ -434,6 +467,7 @@ export function listFinanceDependencyWorkspaceTypes(): readonly string[] {
   }
 
   return `${BANNER}
+${[...new Set(decoratorImports)].join("\n")}
 export const WORKSPACE_FINANCE_DEPENDENCY_BINDINGS = {
 ${bindingEntries.join("\n")}
 } as const;
@@ -550,7 +584,9 @@ export function generateWorkspaceFinanceChartOfAccountsBindings(manifests) {
     const coa = assertModuleExport(finance.chartOfAccounts, m.id, "chartOfAccounts");
     const workspaceTypes = Array.isArray(m.workspaceTypes) ? m.workspaceTypes : [];
     if (workspaceTypes.length === 0) {
-      throw new Error(`workspace.manifest.json ${m.id}: workspaceTypes required for chartOfAccounts`);
+      throw new Error(
+        `workspace.manifest.json ${m.id}: workspaceTypes required for chartOfAccounts`
+      );
     }
     const spec = importSpecifier(m.package, coa.module);
     for (const wt of workspaceTypes) {
@@ -628,7 +664,11 @@ export function generateWorkspaceFinanceObligationBindings(manifests) {
       paymentCollection !== null ? importSpecifier(m.package, paymentCollection.module) : null;
     const obligationGross =
       finance.registrationObligationGross !== undefined
-        ? assertModuleExport(finance.registrationObligationGross, m.id, "registrationObligationGross")
+        ? assertModuleExport(
+            finance.registrationObligationGross,
+            m.id,
+            "registrationObligationGross"
+          )
         : null;
     const obligationGrossSpec =
       obligationGross !== null ? importSpecifier(m.package, obligationGross.module) : null;
@@ -689,4 +729,3 @@ export function listFinanceObligationWorkspaceTypes(): readonly string[] {
 }
 `;
 }
-

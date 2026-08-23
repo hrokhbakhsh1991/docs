@@ -35,6 +35,12 @@ const FIXTURES = [
     package: "@app-tour/workspace-finance-ws2",
     workspaceFinance: { registryOnly: true },
   },
+  {
+    id: "proof-fixture",
+    package: "@app-tour/workspace-proof-fixture",
+    clientBundle: { includeInDefault: false },
+    guestThemeStylesheets: { portal: ["theme/proof.css"], marketing: ["theme/proof.css"] },
+  },
 ];
 
 describe("guest transpilePackages codegen (Wave C.b)", () => {
@@ -44,11 +50,21 @@ describe("guest transpilePackages codegen (Wave C.b)", () => {
     assert.ok(portal.includes("@app-tour/workspace-denali"));
     assert.ok(portal.includes("@app-tour/workspace-urban"));
     assert.ok(!portal.includes("@app-tour/workspace-finance-ws2"));
+    assert.ok(!portal.includes("@app-tour/workspace-proof-fixture"));
   });
 
   it("marketing includes marketingCatalog packages", () => {
     const marketing = collectGuestProductTranspilePackages(FIXTURES, "marketing");
     assert.ok(marketing.includes("@app-tour/workspace-denali"));
+    assert.ok(!marketing.includes("@app-tour/workspace-proof-fixture"));
+  });
+
+  it("APPLY=1 may intentionally include a default-bundle opt-out workspace", () => {
+    const portal = collectGuestProductTranspilePackages(FIXTURES, "portal", {
+      WORKSPACE_DEPLOY_PROFILE_APPLY: "1",
+      WORKSPACE_DEPLOY_PROFILE: "proof-fixture",
+    });
+    assert.deepEqual(portal, ["@app-tour/workspace-proof-fixture"]);
   });
 
   it("generated module lists platform then products", () => {

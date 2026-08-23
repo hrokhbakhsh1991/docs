@@ -56,6 +56,11 @@ describe("dashboard-smoke.spec.ts — Phase 9.2", () => {
     await ensureFinanceNavSupported("urban");
     const denaliNav = resolveOperatorNav({ session: OWNER_SESSION, pluginId: "denali" });
     const urbanNav = resolveOperatorNav({ session: OWNER_SESSION, pluginId: "urban" });
+    assert.deepEqual(denaliNav.slice(0, 3).map((item) => item.href), [
+      "/dashboard",
+      "/tours",
+      "/bookings",
+    ]);
     assert.ok(denaliNav.some((item) => item.pathKey === "finance"));
     assert.equal(
       urbanNav.some((item) => item.pathKey === "finance"),

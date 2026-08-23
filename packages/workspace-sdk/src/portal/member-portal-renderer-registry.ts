@@ -3,10 +3,7 @@ import type {
   WorkspaceMemberPortalRenderersCapability,
 } from "../plugin/workspace-plugin-capabilities";
 
-const renderersByPlugin = new Map<
-  string,
-  WorkspaceMemberPortalRenderersCapability["renderers"]
->();
+const renderersByPlugin = new Map<string, WorkspaceMemberPortalRenderersCapability["renderers"]>();
 
 export function registerWorkspaceMemberPortalRenderers(
   pluginId: string,

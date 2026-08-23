@@ -1,11 +1,13 @@
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 
 import type { MarketingCatalogCard } from "./catalog-types";
+import type { MarketingCatalogSurface } from "./marketing-catalog-surface-types";
 
 type CatalogPresentationFields = Pick<
   MarketingCatalogCard,
   "listSubtitle" | "listDescription" | "showListPrice" | "priceAmount"
 >;
+export type CatalogPriceDisplayPolicy = Pick<MarketingCatalogSurface, "irrDisplayUnit">;
 
 /** Normalized subtitle from egress presentation fields (Track A). */
 export function formatCatalogCardSubtitle(card: MarketingCatalogCard): string {
@@ -17,11 +19,11 @@ export function formatCatalogCardSubtitle(card: MarketingCatalogCard): string {
   if (category !== undefined && category.length > 0) {
     return category;
   }
-  const urbanLine = [card.city, card.venueName]
+  const locationLine = [card.city, card.venueName]
     .filter((part): part is string => part != null && part.trim().length > 0)
     .join(" · ");
-  if (urbanLine.length > 0) {
-    return urbanLine;
+  if (locationLine.length > 0) {
+    return locationLine;
   }
   return "—";
 }
@@ -36,7 +38,7 @@ export function formatCatalogCardDescription(card: MarketingCatalogCard): string
   return text.length > 0 ? text : null;
 }
 
-/** Date line — prefers Denali departure/end, falls back to Urban start/end. */
+/** Date line — prefers canonical departure/end, then presentation start/end. */
 export function formatCatalogCardDates(
   card: MarketingCatalogCard,
   dateLocale: string,
@@ -61,9 +63,11 @@ export function formatCatalogCardDates(
   return datesTbaLabel;
 }
 
-/** Denali stores toman digits in ISO `IRR`. Other workspaces keep Intl for `IRR`. */
-export function catalogIrrUsesTomanLabel(pluginId: string | undefined): boolean {
-  return pluginId === "denali";
+/** Workspace policy owns the display unit; ISO storage stays IRR. */
+export function catalogIrrUsesTomanLabel(
+  priceDisplayPolicy: CatalogPriceDisplayPolicy | null | undefined
+): boolean {
+  return priceDisplayPolicy?.irrDisplayUnit === "toman";
 }
 
 export function formatCatalogPrice(
@@ -71,17 +75,20 @@ export function formatCatalogPrice(
   currency: string | undefined,
   dateLocale: string,
   priceOnRequestLabel: string,
-  pluginId?: string
+  priceDisplayPolicy?: CatalogPriceDisplayPolicy | null
 ): string {
   if (amount == null) {
     return priceOnRequestLabel;
   }
-  const code = (currency?.trim() || "IRR").toUpperCase();
+  const code = currency?.trim().toUpperCase() ?? "";
+  if (code.length === 0) {
+    return priceOnRequestLabel;
+  }
   const isFa = dateLocale.startsWith("fa");
-  // ED-CURR-MKT-01 — Denali catalog IRR amounts are toman digits; ISO storage stays IRR.
+  // ED-CURR-MKT-01 — some catalog IRR amounts are toman digits; ISO storage stays IRR.
   // Do not ×10. Do not reuse operator formatTourPrice or finance formatters.
-  // Do not apply toman to Harbor/Urban/other IRR.
-  if (code === "IRR" && catalogIrrUsesTomanLabel(pluginId)) {
+  // Do not apply toman unless the workspace-owned marketing surface declares it.
+  if (code === "IRR" && catalogIrrUsesTomanLabel(priceDisplayPolicy)) {
     const unit = isFa ? "تومان" : "toman";
     return `${formatLocalizedNumber(amount, isFa ? "fa" : "en", { maximumFractionDigits: 0 })} ${unit}`;
   }
@@ -107,9 +114,7 @@ export function formatCatalogDateRange(
     month: "short",
     day: "numeric",
     year: "numeric",
-    ...(dateLocale.startsWith("fa")
-      ? { calendar: "persian", numberingSystem: "arabext" }
-      : {}),
+    ...(dateLocale.startsWith("fa") ? { calendar: "persian", numberingSystem: "arabext" } : {}),
   };
 
   if (!departureAt) {

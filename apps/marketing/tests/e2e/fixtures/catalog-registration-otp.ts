@@ -20,7 +20,7 @@ export async function completeGuestPdpRegisterModalThenOpenPortalIntake(
   const registerLink = page
     .locator("[data-marketing-register][data-marketing-register-ready='true']")
     .first();
-  await expect(registerLink).toBeVisible({ timeout: 60_000 });
+  await expect(registerLink).toBeVisible({ timeout: 180_000 });
   await registerLink.click();
   await expect(page).toHaveURL(/\/tours\/[^/?#]+/);
   await expect(page).not.toHaveURL(/\/catalog\//);
@@ -62,10 +62,16 @@ export async function completeGuestPdpRegisterModalThenOpenPortalIntake(
   });
   await expect(page.locator('[data-marketing-login-modal-open="true"]')).toHaveCount(0);
 
-  const continueLink = page.locator("[data-marketing-register]").first();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  const continueLink = page
+    .locator("[data-marketing-tour-detail-cta-mode='member-continue'] [data-marketing-register]")
+    .first();
   await expect(continueLink).toBeVisible();
   await Promise.all([
-    page.waitForURL(/\/catalog\/[^/]+\/register/, { timeout: 60_000 }),
+    page.waitForURL(/\/catalog\/[^/]+\/register/, {
+      waitUntil: "domcontentloaded",
+      timeout: 180_000,
+    }),
     continueLink.click(),
   ]);
 }

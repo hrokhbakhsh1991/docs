@@ -5,7 +5,10 @@
  * Location: packages/guest-workspace-runtime (P5.3) — product dynamic imports stay package-owned.
  */
 
-import { registerWorkspaceIntakePlugin, registerWorkspaceMemberPortalRenderers } from "@app-tour/workspace-sdk";
+import {
+  registerWorkspaceIntakePlugin,
+  registerWorkspaceMemberPortalRenderers,
+} from "@app-tour/workspace-sdk";
 
 /** Intake registrar for "starter" — plugin entry only (no registration-flow UI graph). */
 export async function registerWorkspaceIntakeSTARTERFromManifest(): Promise<void> {

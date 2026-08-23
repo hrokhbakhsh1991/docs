@@ -3,9 +3,13 @@
   "version": 1,
   "pluginApiVersion": 1,
   "package": "@app-tour/workspace-starter",
-  "workspaceTypes": [
-    "starter"
-  ],
+  "workspaceTypes": ["starter"],
+  "tenantBrandingDefaults": {
+    "primaryColor": "#2563eb",
+    "cssVariables": {
+      "--color-primary": "#2563eb"
+    }
+  },
   "plugin": {
     "entry": ".",
     "export": "getWorkspacePlugin"
@@ -15,7 +19,5 @@
     "export": "getWorkspacePlugin"
   },
   "wizardCreate": {},
-  "themeStylesheets": [
-    "theme/tokens.css"
-  ]
+  "themeStylesheets": ["theme/tokens.css"]
 }

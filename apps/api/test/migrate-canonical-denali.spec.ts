@@ -47,13 +47,23 @@ describe("migrate-canonical-denali.spec.ts (REQ-P6-017, RULE-P6-010)", () => {
     assert.equal(workspaceSupportsCanonicalMigration("urban"), false);
   });
 
+  it("uses generic dual-write migration error codes in the workspace migration host", () => {
+    const source = readFileSync(
+      join(import.meta.dirname, "../src/canonical/migrate-canonical-workspace.service.ts"),
+      "utf8"
+    );
+
+    assert.match(source, /MIGRATE_CANONICAL_DUAL_WRITE_SOT/);
+    assert.doesNotMatch(source, /MIGRATE_DENALI_DUAL_WRITE_SOT/);
+  });
+
   it("PSR-4b-defaults: migrateWorkspaceCanonicalForTenant requires workspaceType", async () => {
     await assert.rejects(
       () =>
         migrateWorkspaceCanonicalForTenant({} as never, "tenant-x", {
           allowlist: new Set(["tenant-x"]),
         }),
-      /MIGRATE_CANONICAL_WORKSPACE_TYPE_REQUIRED/,
+      /MIGRATE_CANONICAL_WORKSPACE_TYPE_REQUIRED/
     );
   });
 });

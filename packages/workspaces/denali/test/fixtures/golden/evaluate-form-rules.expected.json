@@ -402,6 +402,14 @@
         "staticRequired": false
       },
       {
+        "canonicalPath": "pricing.allowMembershipDiscount",
+        "formPath": "pricingPayment.allowMembershipDiscount",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
         "canonicalPath": "pricing.basePricePerPerson",
         "formPath": "pricingPayment.basePricePerPerson",
         "visible": false,
@@ -880,6 +888,14 @@
         "staticRequired": false
       },
       {
+        "canonicalPath": "pricing.allowMembershipDiscount",
+        "formPath": "pricingPayment.allowMembershipDiscount",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
         "canonicalPath": "pricing.basePricePerPerson",
         "formPath": "pricingPayment.basePricePerPerson",
         "visible": true,
@@ -1352,6 +1368,14 @@
       {
         "canonicalPath": "participants.sportsInsuranceRequired",
         "formPath": "participantRequirements.sportsInsuranceRequired",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "pricing.allowMembershipDiscount",
+        "formPath": "pricingPayment.allowMembershipDiscount",
         "visible": true,
         "required": false,
         "staticHidden": false,

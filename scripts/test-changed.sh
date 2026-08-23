@@ -48,11 +48,13 @@ collect_diff() {
 
 if [ "$MODE" = "pre-commit" ]; then
   CHANGED="$(git diff --cached --name-only 2>/dev/null | sort -u)"
+elif [ "$MODE" = "gate" ]; then
+  CHANGED="$(git diff --name-only origin/main 2>/dev/null; git ls-files --others --exclude-standard)"
 else
   CHANGED="$(collect_diff "$BASE" | sort -u)"
 fi
 
-if [ "$MODE" = "pre-commit" ] && [ -z "$(echo "$CHANGED" | tr -d '[:space:]')" ]; then
+if { [ "$MODE" = "pre-commit" ] || [ "$MODE" = "gate" ]; } && [ -z "$(echo "$CHANGED" | tr -d '[:space:]')" ]; then
   echo "test-changed: no staged files (mode=$MODE) — skip"
   exit 0
 fi
@@ -143,7 +145,7 @@ while IFS= read -r path; do
   [ -z "$path" ] && continue
   p="$(pkg_for_path "$path")"
   [ -z "$p" ] && continue
-  if [ "$MODE" = "pre-commit" ]; then
+  if [ "$MODE" = "pre-commit" ] || [ "$MODE" = "gate" ]; then
     if [ "$p" = "__scripts__" ]; then
       continue
     fi
@@ -184,6 +186,9 @@ hash_paths() {
       else
         echo "content=DELETED"
       fi
+    elif [ "$MODE" = "gate" ] && [ -f "$path" ]; then
+      content_hash="$(sha256sum "$path" | awk '{print $1}')"
+      printf "content=%s\n" "$content_hash"
     elif git cat-file -e "HEAD:$path" 2>/dev/null; then
       content_hash="$(git show "HEAD:$path" | sha256sum | awk '{print $1}')"
       printf "content=%s\n" "$content_hash"
@@ -204,6 +209,8 @@ hash_file_if_present() {
     else
       echo "MISSING"
     fi
+  elif [ "$MODE" = "gate" ] && [ -f "$path" ]; then
+    echo "$(sha256sum "$path" | awk '{print $1}')"
   elif git cat-file -e "HEAD:$path" 2>/dev/null; then
     content_hash="$(git show "HEAD:$path" | sha256sum | awk '{print $1}')"
     echo "$content_hash"
@@ -236,7 +243,7 @@ hash_pkg() {
     @apps/marketing) prefix="apps/marketing" ;;
     *) return 1 ;;
   esac
-  if [ "$MODE" = "pre-commit" ]; then
+  if [ "$MODE" = "pre-commit" ] || [ "$MODE" = "gate" ]; then
     relevant_paths="$(echo "$CHANGED" | grep "^${prefix}/" || true)"
   else
     # CI targets may be selected because an upstream dependency changed.
@@ -305,7 +312,7 @@ pkg_dir() {
 }
 
 run_api_tests() {
-  if [ "$MODE" = "pre-commit" ]; then
+  if [ "$MODE" = "pre-commit" ] || [ "$MODE" = "gate" ]; then
     local resolve_json specs_list fallback
     resolve_json="$(printf '%s\n' "$CHANGED" | node "$ROOT/scripts/lib/resolve-api-test-specs.mjs")"
     fallback="$(node -e "process.stdout.write(JSON.parse(process.argv[1]).fallbackBaseline?'yes':'no')" "$resolve_json")"
@@ -318,8 +325,9 @@ run_api_tests() {
         test/tours-operator.spec.ts
       return $?
     fi
-    specs_list="$(node -e "
-      const specs = JSON.parse(process.argv[1]).specs;
+    specs_list="$(TEST_CHANGED_GATE="$([ "$MODE" = "gate" ] && echo 1 || true)" node -e "
+      const allSpecs = JSON.parse(process.argv[1]).specs;
+      const specs = process.env.TEST_CHANGED_GATE ? allSpecs.filter((spec) => !/(performance|perf|stress|postgres|nightly)/i.test(spec)) : allSpecs;
       if (!specs.length) process.exit(2);
       process.stdout.write(specs.join(' '));
     " "$resolve_json")" || {
@@ -370,7 +378,7 @@ for pkg in $TARGETS; do
   fi
   safe_name="$(echo "$pkg" | tr '/:@' '___')"
 
-  if { [ "$pkg" = "@apps/api" ] || [ "$pkg" = "@apps/web" ]; } && [ "$MODE" = "pre-commit" ]; then
+  if { [ "$pkg" = "@apps/api" ] || [ "$pkg" = "@apps/web" ]; } && { [ "$MODE" = "pre-commit" ] || [ "$MODE" = "gate" ]; }; then
     if [ "$pkg" = "@apps/api" ]; then
       resolve_json="$(printf '%s\n' "$CHANGED" | node "$ROOT/scripts/lib/resolve-api-test-specs.mjs")"
     else
@@ -400,7 +408,7 @@ for pkg in $TARGETS; do
     else
       FAILED=1
     fi
-  elif [ "$pkg" = "@apps/web" ] && [ "$MODE" = "pre-commit" ]; then
+  elif [ "$pkg" = "@apps/web" ] && { [ "$MODE" = "pre-commit" ] || [ "$MODE" = "gate" ]; }; then
     if run_web_tests; then
       echo "$digest" >"$cache_file"
     else

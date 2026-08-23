@@ -69,8 +69,8 @@ export default async function PortalMemberLoginPage({ searchParams }: PageProps)
     pluginId: bootstrap.pluginId,
     tourId,
   });
-  // Smoke tour id bootstraps the OTP page flow plugin only. Operator smoke
-  // (denali plugin + tenant …0014) may lack denali.club login tour …0220 — do not 404.
+  // Smoke tour id bootstraps the OTP page flow plugin only. Some operator smoke
+  // tenants may lack the member-login catalog tour — do not 404.
   const tourTitle =
     tour?.title?.trim() ||
     resolveGuestChromeDisplayName(branding.displayName, t("chrome.defaultSiteName"));

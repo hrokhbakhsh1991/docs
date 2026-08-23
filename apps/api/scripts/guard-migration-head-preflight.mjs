@@ -33,6 +33,15 @@ if (!embedded) {
     `EXPECTED_PRISMA_MIGRATION_HEAD (${embedded}) must match latest migration (${latest})`
   );
 }
+if (!preflight.includes("readLocalMigrationChecksums")) {
+  violations.push("migration-head-preflight.ts must read local migration checksums");
+}
+if (!preflight.includes("assertMigrationChecksumsMatch")) {
+  violations.push("migration-head-preflight.ts must assert applied migration checksums");
+}
+if (!preflight.includes("PRODUCTION_MIGRATION_CHECKSUM_MISMATCH")) {
+  violations.push("migration-head-preflight.ts must emit structured checksum mismatch errors");
+}
 
 const integrity = read("src/db/assert-production-database-integrity.ts");
 if (!integrity.includes("assertProductionMigrationHead")) {

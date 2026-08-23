@@ -30,10 +30,7 @@ describe("member-home-bff — PS-5", () => {
   });
 
   it("PS5-HOME-04 isMemberModuleEntitled checks entitlement key", () => {
-    assert.equal(
-      isMemberModuleEntitled("trips", ["member.module.trips"]),
-      true
-    );
+    assert.equal(isMemberModuleEntitled("trips", ["member.module.trips"]), true);
     assert.equal(isMemberModuleEntitled("trips", []), false);
   });
 });
@@ -50,14 +47,17 @@ describe("member-module-dispatcher — PS-5", () => {
     assert.match(page, /MemberModuleStub/);
     assert.match(page, /getWorkspaceMemberPortalRenderer/);
     assert.match(page, /moduleManifest\.id/);
+    assert.ok(
+      page.indexOf("getWorkspaceMemberPortalRenderer") < page.indexOf("<MemberModuleStub"),
+      "workspace renderer lookup must happen before stub fallback"
+    );
+    assert.match(page, /if \(renderer !== undefined\)/);
+    assert.match(page, /return rendered as ReactNode/);
     assert.doesNotMatch(page, /pluginId\s*===\s*["'][^"']+["']/);
   });
 
   it("PS5-DISP-02 home BFF route requires session", () => {
-    const route = readFileSync(
-      join(repoRoot, "apps/portal/app/api/me/home/route.ts"),
-      "utf8"
-    );
+    const route = readFileSync(join(repoRoot, "apps/portal/app/api/me/home/route.ts"), "utf8");
     assert.match(route, /buildMemberHomePayload/);
     assert.match(route, /Authorization === undefined/);
     assert.match(route, /entitlements\.auth === "unauthenticated"/);

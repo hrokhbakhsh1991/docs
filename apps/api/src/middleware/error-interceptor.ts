@@ -235,13 +235,16 @@ function clientSafeValidationMessage(failure: ValidationFailure): string {
   return message;
 }
 
+function isForbiddenErrorToken(message: string): boolean {
+  return /^[A-Z0-9_]+_FORBIDDEN$/.test(message);
+}
+
 function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("UNAUTHORIZED_")) return 401;
-  if (message.startsWith("FORBIDDEN_")) return 403;
+  if (message.startsWith("FORBIDDEN_") || isForbiddenErrorToken(message)) return 403;
   if (message === "BOOKINGS_FORBIDDEN") return 403;
   if (message.startsWith("INVALID_TENANT_AUTH_CONTEXT")) return 401;
   if (message.startsWith("ZOD_VALIDATION_FAILED")) return 400;
-  if (message.startsWith("URBAN_REGISTRATION_INVALID")) return 400;
   if (message.startsWith("URBAN_REGISTRATION_INVALID")) return 400;
   if (message.startsWith("CANONICAL_VALIDATION_FAILED")) return 400;
   if (message.startsWith("TOUR_LIFECYCLE_")) return 400;
@@ -254,7 +257,6 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("TOUR_NOT_FOUND")) return 404;
   if (message === "TENANT_NOT_FOUND") return 404;
   if (message.startsWith("TOUR_CLONE_UNSUPPORTED")) return 422;
-  if (message.startsWith("DENALI_PHOTO_REMINT_DEST_FORBIDDEN")) return 403;
   if (
     message === WORKSPACE_TYPE_UNRESOLVED ||
     message.startsWith(`${WORKSPACE_TYPE_UNRESOLVED}:`)

@@ -236,7 +236,7 @@ describe("platform-workspace-definition-publish", () => {
         fields: [
           ...payloadV1.fieldRegistry.fields,
           {
-            id: "pb.extra.field",
+            id: "platform.photos",
             canonicalPath: "basics.pbExtra",
             stepId: payloadV1.wizard.roots[0] ?? "basics",
             kind: "text" as const,

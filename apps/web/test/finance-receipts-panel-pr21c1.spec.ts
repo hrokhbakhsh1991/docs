@@ -34,6 +34,8 @@ describe("finance-receipts-panel PR21-D", () => {
     assert.match(review, /approving/);
     assert.match(review, /rejecting/);
     assert.match(review, /variant="ghost"/);
+    assert.match(review, /receipt\.payment\?\.currency \?\? invoice\?\.currency \?\? ""/);
+    assert.doesNotMatch(review, /receipt\.payment\?\.currency \?\? invoice\?\.currency \?\? "IRR"/);
   });
 
   it("PR21-D: FA result copy does not leak Latin unpaid", () => {

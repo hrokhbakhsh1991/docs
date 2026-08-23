@@ -1,32 +1,32 @@
 import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
 
-import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali";
-import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban";
-
-import {
-  buildCatalogRegistrationUpstreamRequest,
-  CatalogRegistrationPayloadInvalidError,
-} from "../src/catalog/build-catalog-registration-upstream-request";
+import { buildCatalogRegistrationUpstreamRequest } from "../src/catalog/build-catalog-registration-upstream-request";
 import { resolveCatalogRegistrationApiPath } from "../src/catalog/resolve-catalog-registration-api-path";
 import { supportsCatalogRegistration } from "../src/catalog/resolve-catalog-registration-support";
-import { resolveIntakeSchema, IntakePluginNotRegisteredError } from "../src/catalog/resolve-intake-schema";
+import {
+  resolveIntakeSchema,
+  IntakePluginNotRegisteredError,
+} from "../src/catalog/resolve-intake-schema";
 import {
   clearWorkspaceIntakePluginRegistryForTests,
   registerWorkspaceIntakePlugin,
 } from "../src/catalog/workspace-intake-plugin-registry";
+import {
+  denaliCatalogIntakeFixture,
+  urbanCatalogIntakeFixture,
+} from "./fixtures/catalog-intake-plugins";
 
 function bootstrapIntakePluginsForTests(): void {
   clearWorkspaceIntakePluginRegistryForTests();
-  for (const plugin of [getDenaliWorkspacePlugin(), getUrbanWorkspacePlugin()]) {
-    if (plugin.catalogIntake === undefined) {
-      continue;
-    }
-    registerWorkspaceIntakePlugin({
-      id: plugin.id,
-      catalogIntake: plugin.catalogIntake,
-    });
-  }
+  registerWorkspaceIntakePlugin({
+    id: "denali",
+    catalogIntake: denaliCatalogIntakeFixture,
+  });
+  registerWorkspaceIntakePlugin({
+    id: "urban",
+    catalogIntake: urbanCatalogIntakeFixture,
+  });
 }
 
 describe("catalog-registration-dispatch (registry)", () => {

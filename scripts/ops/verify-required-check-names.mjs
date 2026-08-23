@@ -29,6 +29,10 @@ const WORKFLOW_EXPECTATIONS = [
     file: ".github/workflows/booking-postgres-gate.yml",
     requiredNames: [...BOOKING_POSTGRES_REQUIRED_CHECKS],
   },
+  {
+    file: ".github/workflows/prod-3-release-gate.yml",
+    requiredNames: ["Production readiness L3 release gate"],
+  },
 ];
 
 /**

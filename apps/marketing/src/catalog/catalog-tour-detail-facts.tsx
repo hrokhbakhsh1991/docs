@@ -32,6 +32,7 @@ export async function CatalogTourDetailFacts({
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
   const dateLocale = resolveIntlDateLocale(locale);
   const registration = resolveCatalogTourRegistrationState(tour, registrationUrl);
+  const surface = await resolveMarketingCatalogSurface(pluginId);
 
   const priceValue = shouldShowCatalogPrice(tour)
     ? formatCatalogPrice(
@@ -39,7 +40,7 @@ export async function CatalogTourDetailFacts({
         tour.priceCurrency,
         dateLocale,
         t("detail.priceOnRequest"),
-        pluginId,
+        surface
       )
     : null;
 
@@ -55,7 +56,6 @@ export async function CatalogTourDetailFacts({
       ? resolveMarketingCatalogFitnessLabel(tour.fitnessLevel, t)
       : null;
 
-  const surface = await resolveMarketingCatalogSurface(pluginId);
   const difficultyMax = surface?.difficultyMax ?? 10;
 
   const difficultyValue =

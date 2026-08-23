@@ -41,10 +41,9 @@ function parseMinorDigits(raw: string): bigint {
 }
 
 export function encodeTourCollectionCursor(input: TourCollectionCursor): string {
-  return Buffer.from(
-    `${input.remainingMinor}${CURSOR_SEP}${input.tourId}`,
-    "utf8"
-  ).toString("base64url");
+  return Buffer.from(`${input.remainingMinor}${CURSOR_SEP}${input.tourId}`, "utf8").toString(
+    "base64url"
+  );
 }
 
 export function decodeTourCollectionCursor(raw: string): TourCollectionCursor | null {
@@ -131,7 +130,7 @@ export function aggregateTourCollectionFromOutstanding(
         invoiceTotal: total,
         collected: paid,
         remaining,
-        currency: item.invoice.currency || "IRR",
+        currency: item.invoice.currency,
       });
       continue;
     }

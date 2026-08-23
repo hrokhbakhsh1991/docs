@@ -53,6 +53,8 @@ import {
 import { assertPresentationBoundary } from "./to-case-encounter-presentation";
 import { withEncounterGatewayTimeout } from "./timeout-payment-gateway";
 import { deriveFinanceCaseCommandCapability } from "@app-tour/finance-http-contracts";
+import { getFinanceWorkspaceCapabilities } from "../../workspace-finance-capabilities.generated";
+import { resolveFinanceWorkspaceTypeForTenant } from "../../resolve-finance-workspace-type-for-tenant";
 
 export type LoadFinanceCaseEncounterHttpInput = {
   readonly auth: TenantAuthContext;
@@ -67,7 +69,9 @@ export type LoadFinanceCaseEncounterHttpInput = {
   readonly authorization?: CaseEncounterViewAuthorizer;
   /** Test seam — defaults to resolveFinanceServiceForTenant. */
   readonly warmFinanceService?: () => Promise<void>;
-  /** Test seam — defaults to live Denali presentation loader. */
+  /** Test seam — defaults to tenant finance workspace resolution. */
+  readonly resolveWorkspaceType?: (tenantId: string) => Promise<string>;
+  /** Test seam — defaults to the live workspace presentation loader. */
   readonly loadPresentation?: (
     input: LoadDenaliCaseEncounterPresentationInput
   ) => Promise<CaseEncounterPresentationResponse>;
@@ -108,8 +112,8 @@ export async function loadFinanceCaseEncounterHttp(
   const telemetry = input.telemetry ?? getEncounterTelemetrySink();
   const authorization = input.authorization ?? new HostFinanceAccessAdapter();
   const loadPresentation = input.loadPresentation ?? loadDenaliCaseEncounterPresentation;
-  const rolloutMode: FinanceCaseEncounterRolloutMode =
-    resolveFinanceCaseEncounterRolloutMode(env);
+  const resolveWorkspaceType = input.resolveWorkspaceType ?? resolveFinanceWorkspaceTypeForTenant;
+  const rolloutMode: FinanceCaseEncounterRolloutMode = resolveFinanceCaseEncounterRolloutMode(env);
 
   const emitFeedback = (
     feedback: EncounterOperatorFeedbackEvent,
@@ -197,6 +201,32 @@ export async function loadFinanceCaseEncounterHttp(
     };
   }
 
+  // Explicit presentation injection is a host test seam; production uses the
+  // live workspace Case stack and must pass the tenant capability gate first.
+  if (input.loadPresentation === undefined) {
+    let workspaceType: string;
+    try {
+      workspaceType = await resolveWorkspaceType(input.auth.tenantId);
+    } catch {
+      return {
+        status: 503,
+        error: {
+          code: "CASE_ENCOUNTER_UNAVAILABLE",
+          message: "Case Encounter temporarily unavailable",
+        },
+      };
+    }
+    if (getFinanceWorkspaceCapabilities(workspaceType)?.caseMeaning !== true) {
+      return {
+        status: 503,
+        error: {
+          code: "CASE_ENCOUNTER_UNAVAILABLE",
+          message: "Case Encounter temporarily unavailable",
+        },
+      };
+    }
+  }
+
   // Warm FinanceService only when Encounter will execute — disable must not gate mutations.
   if (input.warmFinanceService !== undefined) {
     await input.warmFinanceService();
@@ -208,8 +238,7 @@ export async function loadFinanceCaseEncounterHttp(
   }
 
   const execStarted = now();
-  const executionTimeoutMs =
-    input.executionTimeoutMs ?? resolveEncounterExecutionTimeoutMs(env);
+  const executionTimeoutMs = input.executionTimeoutMs ?? resolveEncounterExecutionTimeoutMs(env);
   const gatewayTimeoutMs = resolveEncounterGatewayTimeoutMs(env);
 
   try {
@@ -304,7 +333,10 @@ export async function loadFinanceCaseEncounterHttp(
     // PR15-H — observation-only: track optional ledger/signal degradation without UI severity.
     if (body.providerObservation !== undefined) {
       const providers = body.providerObservation.providers as Partial<
-        Record<EncounterProviderName, { invoked: boolean; ok: boolean; degraded: boolean; failureReason?: string }>
+        Record<
+          EncounterProviderName,
+          { invoked: boolean; ok: boolean; degraded: boolean; failureReason?: string }
+        >
       >;
       for (const event of listProviderDegradationTelemetryEvents({
         tenantId: input.auth.tenantId,

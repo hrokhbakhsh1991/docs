@@ -28,10 +28,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, "../../../../../..");
 const UI_SRC = join(REPO_ROOT, "packages/finance-case-encounter-ui/src");
 const WEB_FINANCE = join(REPO_ROOT, "apps/web/src/finance");
-const WEB_CASE_PAGE = join(
-  REPO_ROOT,
-  "apps/web/app/(app)/finance/case/[registrationId]/page.tsx"
-);
+const WEB_CASE_PAGE = join(REPO_ROOT, "apps/web/app/(app)/finance/case/[registrationId]/page.tsx");
 
 function walkTs(dir: string, files: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -138,7 +135,9 @@ describe("PR12-A Denali operator Encounter wiring", () => {
   it("1 — UI package imports EncounterView contract only (no CaseOutput / FactSnapshot)", () => {
     for (const file of walkTs(UI_SRC)) {
       const src = readFileSync(file, "utf8");
-      const imports = src.split("\n").filter((l) => /\bfrom\s+["']/.test(l) || /^\s*import\s+["']/.test(l));
+      const imports = src
+        .split("\n")
+        .filter((l) => /\bfrom\s+["']/.test(l) || /^\s*import\s+["']/.test(l));
       for (const line of imports) {
         assert.doesNotMatch(line, /finance-core|CaseOutput|FactSnapshot/);
       }
@@ -147,8 +146,8 @@ describe("PR12-A Denali operator Encounter wiring", () => {
 
   it("2 — Web Denali encounter sources do not import CaseOutput / FactSnapshot", () => {
     const files = [
-      join(WEB_FINANCE, "denali-case-encounter-panel.tsx"),
-      join(WEB_FINANCE, "denali-case-encounter-labels.ts"),
+      join(WEB_FINANCE, "finance-case-encounter-panel.tsx"),
+      join(WEB_FINANCE, "finance-case-encounter-labels.ts"),
       WEB_CASE_PAGE,
     ];
     for (const file of files) {
@@ -341,7 +340,7 @@ describe("PR12-A Denali operator Encounter wiring", () => {
       const src = readFileSync(file, "utf8");
       assert.doesNotMatch(
         src,
-        /finance-case-encounter-ui|CaseEncounterReadOnlyScreen|DenaliCaseEncounterPanel/
+        /finance-case-encounter-ui|CaseEncounterReadOnlyScreen|FinanceCaseEncounterPanel/
       );
     }
   });

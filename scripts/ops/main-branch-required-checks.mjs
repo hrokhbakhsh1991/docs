@@ -3,6 +3,7 @@
  * Keep in sync with workflow YAML — enforced by verify-required-check-names.mjs.
  */
 export const MAIN_BRANCH_REQUIRED_CHECKS = [
+  "Production readiness L3 release gate",
   "Phase 0 foundation gate",
   "Phase 0 integration gate",
   "Phase 1 platform-core gate",

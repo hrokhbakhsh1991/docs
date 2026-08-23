@@ -123,6 +123,7 @@ describe("portal-member-plan-bp7.spec.ts — SK3 BP-7", () => {
 
     const entitlements = await client.requestJson<{
       ok?: boolean;
+      workspaceId?: string;
       granted?: string[];
       denied?: unknown[];
       planCode?: string;
@@ -140,6 +141,7 @@ describe("portal-member-plan-bp7.spec.ts — SK3 BP-7", () => {
     });
     assert.equal(entitlements.status, 200);
     assert.equal(entitlements.body.ok, true);
+    assert.equal(entitlements.body.workspaceId, memberWorkspaceId);
     assert.equal(entitlements.body.planCode, "http-tenant-plan");
     assert.ok((entitlements.body.entitlementsRevision ?? 0) >= 1);
     assert.equal(entitlements.body.capabilities?.["member.module.wallet.read"], true);

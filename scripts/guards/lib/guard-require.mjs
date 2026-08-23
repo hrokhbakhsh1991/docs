@@ -40,10 +40,6 @@ export function guardDepcruiseMain() {
 
 /** dependency-cruiser CLI entry (not root node_modules/.bin). */
 export function guardDepcruiseBin() {
-  const shim = path.join(GUARDS_DIR, "node_modules", ".bin", "depcruise");
-  if (fs.existsSync(shim)) {
-    return shim;
-  }
   const pkgRoot = dependencyCruiserRoot();
   const pkg = JSON.parse(
     fs.readFileSync(path.join(pkgRoot, "package.json"), "utf8"),

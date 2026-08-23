@@ -15,6 +15,7 @@ import {
   WorkspaceDraftInvalidBodyError,
   WorkspaceDraftNotFoundError,
   WorkspaceDraftTombstoneInvariantError,
+  WorkspaceDraftWorkspaceTypeRequiredError,
 } from "./workspace-drafts.errors";
 import {
   clampWorkspaceDraftEventsLimit,
@@ -51,6 +52,10 @@ function handleWorkspaceDraftRouteError(res: ServerResponse, error: unknown): vo
   }
   if (error instanceof WorkspaceDraftInvalidBodyError) {
     sendHttpError(res, 400, { error: "invalid_body", code: error.code });
+    return;
+  }
+  if (error instanceof WorkspaceDraftWorkspaceTypeRequiredError) {
+    sendHttpError(res, 400, { error: "workspace_type_required", code: error.code });
     return;
   }
   if (error instanceof WorkspaceDraftTombstoneInvariantError) {
@@ -94,9 +99,7 @@ function parsePatchBody(body: unknown): WorkspaceDraftSyncPayload | null {
 async function withWorkspaceDraftHandler(
   req: IncomingMessage,
   res: ServerResponse,
-  run: (
-    auth: Awaited<ReturnType<typeof requireOperatorSession>>
-  ) => Promise<void>,
+  run: (auth: Awaited<ReturnType<typeof requireOperatorSession>>) => Promise<void>,
   rateLimit: "read" | "write"
 ): Promise<void> {
   try {

@@ -1,7 +1,10 @@
 import { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../../db/with-tenant-rls";
-import { isPrismaConcurrencyConflict, isPrismaUniqueConstraintError } from "../../db/prisma-error-instance";
+import {
+  isPrismaConcurrencyConflict,
+  isPrismaUniqueConstraintError,
+} from "../../db/prisma-error-instance";
 import { loadRegistrationInvoiceFacts } from "../../finance/load-registration-invoice-facts";
 import { enqueueOutboxEvent } from "../../outbox/enqueue-domain-event";
 import { shouldAbortAtomicTx } from "../../test-hooks/atomic-tx-test-abort";
@@ -261,6 +264,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
         Array<{
           tour_id: string;
           tour_title: string;
+          currency: string;
           paid_count: bigint;
           paid_minor: string;
           pending_count: bigint;
@@ -269,6 +273,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
         SELECT
           r.tour_id,
           COALESCE(MAX(r.tour_title), '') AS tour_title,
+          p.currency,
           COUNT(*) FILTER (WHERE p.status = 'Paid')::bigint AS paid_count,
           COALESCE(
             SUM(CASE WHEN p.status = 'Paid' THEN p.amount::numeric ELSE 0 END),
@@ -280,12 +285,13 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           ON r.id = p.registration_id AND r.tenant_id = p.tenant_id
         WHERE p.tenant_id = ${tenantId}::uuid
           ${tourFilter}
-        GROUP BY r.tour_id
-        ORDER BY r.tour_id ASC
+        GROUP BY r.tour_id, p.currency
+        ORDER BY r.tour_id ASC, p.currency ASC
       `);
       return rows.map((row) => ({
         tourId: row.tour_id,
         tourTitle: row.tour_title,
+        currency: row.currency,
         paidCount: Number(row.paid_count),
         paidMinor: row.paid_minor,
         pendingCount: Number(row.pending_count),
@@ -760,9 +766,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
     });
   }
 
-  async listFinanceExceptionSources(
-    tenantId: string
-  ): Promise<ListFinanceExceptionSourcesResult> {
+  async listFinanceExceptionSources(tenantId: string): Promise<ListFinanceExceptionSourcesResult> {
     return withTenantRls(tenantId, async (tx) => {
       type E1Raw = {
         payment_id: string;
@@ -845,9 +849,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
         cancelledPayments: cancelled.map((payment) => {
           const event = cancelByPayment.get(payment.id);
           const payload =
-            event !== undefined &&
-            typeof event.payload === "object" &&
-            event.payload !== null
+            event !== undefined && typeof event.payload === "object" && event.payload !== null
               ? (event.payload as { reasonCode?: string; occurredAt?: string })
               : null;
           const fromPayload =
@@ -855,7 +857,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           const occurredAt =
             fromPayload !== null && !Number.isNaN(fromPayload.getTime())
               ? fromPayload
-              : payment.updatedAt ?? payment.createdAt;
+              : (payment.updatedAt ?? payment.createdAt);
           return {
             paymentId: payment.id,
             registrationId: payment.registrationId,
@@ -1011,129 +1013,138 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
   ): Promise<ApproveManualReceiptAtomicResult> {
     try {
       return await withTenantRls(input.tenantId, async (tx) => {
-      if (shouldAbortAtomicTx("finance_approve_before_commit")) {
-        throw new Error("P5_ATOMIC_TX_TEST_ABORT");
-      }
-
-      const paymentUpdated = await tx.payment.updateMany({
-        where: {
-          id: input.paymentId,
-          tenantId: input.tenantId,
-          status: "Pending",
-        },
-        data: {
-          status: "Paid",
-          paidAt: new Date(),
-          ledgerJournalId: input.journalId,
-        },
-      });
-      if (paymentUpdated.count !== 1) {
-        throw new Error("FINANCE_APPROVE_CONFLICT");
-      }
-
-      if (shouldAbortAtomicTx("finance_approve_after_payment")) {
-        throw new Error("P5_ATOMIC_TX_TEST_ABORT");
-      }
-
-      let bookingPaymentStatus: ApproveManualReceiptAtomicResult["bookingPaymentStatus"];
-      try {
-        const facts = await loadRegistrationInvoiceFacts(tx, input.tenantId, input.registrationId);
-        const paymentStatus = resolveApproveBookingPaymentStatus({
-          registrationId: input.registrationId,
-          currency: facts.currency,
-          prepaymentMinor: facts.prepaymentMinor,
-          paidPaymentsMinor: facts.paidPaymentsMinor,
-          paymentAmountsMinor: facts.paymentAmountsMinor,
-          scheduleAmountsMinor: input.scheduleAmountsMinor,
-          refundedCompletedMinor: facts.refundedCompletedMinor,
-          ...(input.obligationMinor !== undefined
-            ? { obligationMinor: input.obligationMinor }
-            : {}),
-        });
-        bookingPaymentStatus = await this.bookingPayments.raisePaidInTx(tx as FinanceTransactionPort, {
-          tenantId: input.tenantId,
-          registrationId: input.registrationId,
-          paymentStatus,
-        });
-      } catch (error: unknown) {
-        if (
-          error instanceof Error &&
-          (error.message === "FINANCE_BOOKING_PAYMENT_SYNC_MISS" ||
-            error.message === "FINANCE_BOOKING_PAYMENT_SYNC_FAILED" ||
-            error.message === "P5_ATOMIC_TX_TEST_ABORT")
-        ) {
-          throw error;
+        if (shouldAbortAtomicTx("finance_approve_before_commit")) {
+          throw new Error("P5_ATOMIC_TX_TEST_ABORT");
         }
-        throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_FAILED");
-      }
 
-      if (shouldAbortAtomicTx("finance_approve_after_booking")) {
-        throw new Error("P5_ATOMIC_TX_TEST_ABORT");
-      }
+        const paymentUpdated = await tx.payment.updateMany({
+          where: {
+            id: input.paymentId,
+            tenantId: input.tenantId,
+            status: "Pending",
+          },
+          data: {
+            status: "Paid",
+            paidAt: new Date(),
+            ledgerJournalId: input.journalId,
+          },
+        });
+        if (paymentUpdated.count !== 1) {
+          throw new Error("FINANCE_APPROVE_CONFLICT");
+        }
 
-      const receiptUpdated = await tx.paymentReceipt.updateMany({
-        where: {
-          id: input.receiptId,
+        if (shouldAbortAtomicTx("finance_approve_after_payment")) {
+          throw new Error("P5_ATOMIC_TX_TEST_ABORT");
+        }
+
+        let bookingPaymentStatus: ApproveManualReceiptAtomicResult["bookingPaymentStatus"];
+        try {
+          const facts = await loadRegistrationInvoiceFacts(
+            tx,
+            input.tenantId,
+            input.registrationId
+          );
+          const paymentStatus = resolveApproveBookingPaymentStatus({
+            registrationId: input.registrationId,
+            currency: facts.currency,
+            prepaymentMinor: facts.prepaymentMinor,
+            paidPaymentsMinor: facts.paidPaymentsMinor,
+            paymentAmountsMinor: facts.paymentAmountsMinor,
+            scheduleAmountsMinor: input.scheduleAmountsMinor,
+            refundedCompletedMinor: facts.refundedCompletedMinor,
+            ...(input.obligationMinor !== undefined
+              ? { obligationMinor: input.obligationMinor }
+              : {}),
+          });
+          bookingPaymentStatus = await this.bookingPayments.raisePaidInTx(
+            tx as FinanceTransactionPort,
+            {
+              tenantId: input.tenantId,
+              registrationId: input.registrationId,
+              paymentStatus,
+            }
+          );
+        } catch (error: unknown) {
+          if (
+            error instanceof Error &&
+            (error.message === "FINANCE_BOOKING_PAYMENT_SYNC_MISS" ||
+              error.message === "FINANCE_BOOKING_PAYMENT_SYNC_FAILED" ||
+              error.message === "P5_ATOMIC_TX_TEST_ABORT")
+          ) {
+            throw error;
+          }
+          throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_FAILED");
+        }
+
+        if (shouldAbortAtomicTx("finance_approve_after_booking")) {
+          throw new Error("P5_ATOMIC_TX_TEST_ABORT");
+        }
+
+        const receiptUpdated = await tx.paymentReceipt.updateMany({
+          where: {
+            id: input.receiptId,
+            tenantId: input.tenantId,
+            status: "Pending",
+          },
+          data: {
+            status: "Approved",
+            reviewedByUserId: input.reviewedByUserId,
+            reviewedAt: new Date(),
+            reviewNote: input.reviewNote ?? null,
+            ledgerJournalId: input.journalId,
+          },
+        });
+        if (receiptUpdated.count !== 1) {
+          throw new Error("FINANCE_APPROVE_CONFLICT");
+        }
+
+        const updated = await tx.paymentReceipt.findFirstOrThrow({
+          where: { id: input.receiptId, tenantId: input.tenantId },
+          select: {
+            id: true,
+            status: true,
+            reviewNote: true,
+            reviewedAt: true,
+          },
+        });
+
+        if (shouldAbortAtomicTx("finance_approve_after_receipt")) {
+          throw new Error("P5_ATOMIC_TX_TEST_ABORT");
+        }
+
+        // Prisma path is durable: Paid without a non-empty capture is forbidden.
+        const capture = input.ledgerCapture;
+        if (capture === undefined || capture.lines.length === 0) {
+          throw new Error("FINANCE_LEDGER_CAPTURE_EMPTY");
+        }
+
+        // Path A XOR Path B: block only when TourCreated already credited the wallet.
+        // Multiple payment captures for partial collection are allowed (PR20-D).
+        await advisoryLockRegistrationWalletCredit(tx, input.tenantId, input.registrationId);
+        if (
+          await registrationHasTourCreatedWalletCredit(tx, input.tenantId, input.registrationId)
+        ) {
+          throw new Error("FINANCE_DUPLICATE_OBLIGATION_CREDIT");
+        }
+
+        const inserted = await enqueueFinanceLedgerCaptureOutbox({
+          outboxWriter: createTxScopedOutboxWriter(tx),
           tenantId: input.tenantId,
-          status: "Pending",
-        },
-        data: {
-          status: "Approved",
-          reviewedByUserId: input.reviewedByUserId,
-          reviewedAt: new Date(),
-          reviewNote: input.reviewNote ?? null,
+          registrationId: input.registrationId,
+          capture,
+        });
+        if (!inserted) {
+          throw new Error("FINANCE_APPROVE_CONFLICT");
+        }
+
+        return {
+          id: updated.id,
+          status: updated.status,
+          reviewNote: updated.reviewNote,
+          reviewedAt: updated.reviewedAt?.toISOString() ?? null,
           ledgerJournalId: input.journalId,
-        },
-      });
-      if (receiptUpdated.count !== 1) {
-        throw new Error("FINANCE_APPROVE_CONFLICT");
-      }
-
-      const updated = await tx.paymentReceipt.findFirstOrThrow({
-        where: { id: input.receiptId, tenantId: input.tenantId },
-        select: {
-          id: true,
-          status: true,
-          reviewNote: true,
-          reviewedAt: true,
-        },
-      });
-
-      if (shouldAbortAtomicTx("finance_approve_after_receipt")) {
-        throw new Error("P5_ATOMIC_TX_TEST_ABORT");
-      }
-
-      // Prisma path is durable: Paid without a non-empty capture is forbidden.
-      const capture = input.ledgerCapture;
-      if (capture === undefined || capture.lines.length === 0) {
-        throw new Error("FINANCE_LEDGER_CAPTURE_EMPTY");
-      }
-
-      // Path A XOR Path B: block only when TourCreated already credited the wallet.
-      // Multiple payment captures for partial collection are allowed (PR20-D).
-      await advisoryLockRegistrationWalletCredit(tx, input.tenantId, input.registrationId);
-      if (await registrationHasTourCreatedWalletCredit(tx, input.tenantId, input.registrationId)) {
-        throw new Error("FINANCE_DUPLICATE_OBLIGATION_CREDIT");
-      }
-
-      const inserted = await enqueueFinanceLedgerCaptureOutbox({
-        outboxWriter: createTxScopedOutboxWriter(tx),
-        tenantId: input.tenantId,
-        registrationId: input.registrationId,
-        capture,
-      });
-      if (!inserted) {
-        throw new Error("FINANCE_APPROVE_CONFLICT");
-      }
-
-      return {
-        id: updated.id,
-        status: updated.status,
-        reviewNote: updated.reviewNote,
-        reviewedAt: updated.reviewedAt?.toISOString() ?? null,
-        ledgerJournalId: input.journalId,
-        bookingPaymentStatus,
-      };
+          bookingPaymentStatus,
+        };
       });
     } catch (error: unknown) {
       if (isPrismaConcurrencyConflict(error)) {
@@ -1194,9 +1205,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           select: { payload: true },
         });
         const auditPayload =
-          prior !== null &&
-          typeof prior.payload === "object" &&
-          prior.payload !== null
+          prior !== null && typeof prior.payload === "object" && prior.payload !== null
             ? (prior.payload as CancelPendingManualPaymentAtomicResult["auditPayload"])
             : buildAudit(row);
         return {
@@ -1297,7 +1306,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           id: row.id,
           registrationId: String(payload.registrationId ?? ""),
           amountMinor: String(payload.amountMinor ?? "0"),
-          currency: String(payload.currency ?? "IRR"),
+          currency: String(payload.currency ?? ""),
           method: String(payload.method ?? "Manual"),
           note: typeof payload.note === "string" ? payload.note : null,
           recordedAt:
@@ -1624,9 +1633,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
     return withTenantRls(query.tenantId, async (tx) => {
       const where: Prisma.FinanceRefundWhereInput = {
         tenantId: query.tenantId,
-        ...(query.registrationId !== undefined
-          ? { registrationId: query.registrationId }
-          : {}),
+        ...(query.registrationId !== undefined ? { registrationId: query.registrationId } : {}),
         ...(query.status !== undefined ? { status: query.status } : {}),
       };
 
@@ -1667,9 +1674,7 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           status: "Completed",
           ...(query.paymentId !== undefined ? { paymentId: query.paymentId } : {}),
           ...(query.sourceKind !== undefined ? { sourceKind: query.sourceKind } : {}),
-          ...(query.excludeRefundId !== undefined
-            ? { id: { not: query.excludeRefundId } }
-            : {}),
+          ...(query.excludeRefundId !== undefined ? { id: { not: query.excludeRefundId } } : {}),
         },
         select: { amountMinor: true },
       });

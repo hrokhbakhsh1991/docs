@@ -88,14 +88,8 @@ describe("finance-exceptions PR23-C3", () => {
     assert.equal(page.items[0]?.type, FINANCE_EXCEPTION_TYPE.CANCELLED_PAYMENT_WITH_BALANCE);
     assert.equal(page.items[1]?.type, FINANCE_EXCEPTION_TYPE.REJECTED_RECEIPT_PENDING_PAYMENT);
     assert.equal(page.items[1]?.reason, "blurry");
-    assert.equal(
-      page.items[1]?.href.payments,
-      "/finance?tab=payments&registrationId=reg-1"
-    );
-    assert.equal(
-      page.items[1]?.href.receipts,
-      "/finance?tab=receipts&registrationId=reg-1"
-    );
+    assert.equal(page.items[1]?.href.payments, "/finance?tab=payments&registrationId=reg-1");
+    assert.equal(page.items[1]?.href.receipts, "/finance?tab=receipts&registrationId=reg-1");
   });
 
   it("C3-B — E2 parse keeps Cancelled status and payments href only", () => {
@@ -111,6 +105,18 @@ describe("finance-exceptions PR23-C3", () => {
     assert.equal(hasExceptionReceiptsHref(item), false);
     assert.equal(item.href.payments.includes("tab=payments"), true);
     assert.equal(item.href.payments.includes("registrationId=reg-2"), true);
+  });
+
+  it("C3-B2 — exception payment parser does not invent workspace currency", () => {
+    const sample = sampleE1();
+    const { currency: _currency, ...paymentWithoutCurrency } = sample.payment;
+    const page = parseFinanceExceptionsResponse({
+      items: [{ ...sample, payment: paymentWithoutCurrency }],
+      nextCursor: null,
+      hasMore: false,
+    });
+    assert.equal(page.items.length, 1);
+    assert.equal(page.items[0]?.payment.currency, "");
   });
 
   it("C3-C — empty / invalid payloads do not invent exceptions", () => {

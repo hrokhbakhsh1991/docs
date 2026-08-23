@@ -3,8 +3,8 @@
  * INV-DENALI-CAL-01 — storage/API values remain Gregorian ISO (YYYY-MM-DD).
  * Reverse mapping searches civil days with the same forward Intl conversion
  * (no second formula, no nested year/month/day scan).
- * Wave H.h twin of packages/workspaces/denali/src/ui/adapters/jalaali-calendar.ts
- * (shell must not import the Denali package).
+ * Shared shell copy of the workspace-local calendar adapter; keep product
+ * packages out of the shell import graph.
  */
 
 export type JalaaliDate = { readonly jy: number; readonly jm: number; readonly jd: number };

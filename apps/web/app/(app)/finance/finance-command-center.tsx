@@ -20,10 +20,13 @@ import { FinanceLedgerPanel } from "@/finance/finance-ledger-panel";
 import {
   listVisibleFinanceTabs,
   parseFinanceTab,
-  resolveFinanceOpsCapabilityForHub,
   type FinanceCommandCenterTab,
   type FinanceOpsCapability,
 } from "@/finance/finance-nav-access";
+import {
+  resolveFinanceCaseMeaningForHub,
+  resolveFinanceOpsCapabilityForHub,
+} from "@/finance/finance-ops-panels";
 import { FinanceOverviewPanel } from "@/finance/finance-overview-panel";
 import { FinancePaymentsPanel } from "@/finance/finance-payments-panel";
 import { FinancePrepaymentsPanel } from "@/finance/finance-prepayments-panel";
@@ -56,10 +59,17 @@ export function FinanceCommandCenter({
   const router = useRouter();
 
   const [capability, setCapability] = useState<FinanceOpsCapability | null | undefined>(undefined);
+  const [caseMeaningAvailable, setCaseMeaningAvailable] = useState<boolean | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
     setCapability(undefined);
+    setCaseMeaningAvailable(undefined);
+    void resolveFinanceCaseMeaningForHub(session.pluginId).then((next) => {
+      if (!cancelled) {
+        setCaseMeaningAvailable(next);
+      }
+    });
     void resolveFinanceOpsCapabilityForHub(theme, session.pluginId).then((next) => {
       if (!cancelled) {
         setCapability(next);
@@ -71,7 +81,8 @@ export function FinanceCommandCenter({
   }, [theme, session.pluginId]);
 
   const visibleTabs = useMemo(
-    () => (capability === null || capability === undefined ? [] : listVisibleFinanceTabs(capability)),
+    () =>
+      capability === null || capability === undefined ? [] : listVisibleFinanceTabs(capability),
     [capability]
   );
   const activeTab = useMemo(
@@ -87,6 +98,9 @@ export function FinanceCommandCenter({
   const showPrepayments = capability?.panels.prepayments === true;
   const showInstallments = capability?.panels.installments === true;
   const firstCustomerOpsChrome = !showPrepayments && !showInstallments;
+  const commercialMeaningRegistrationId =
+    registrationId !== null && caseMeaningAvailable === true ? registrationId : null;
+  const canShowCommercialMeaning = commercialMeaningRegistrationId !== null;
 
   const selectTab = useCallback(
     (tab: FinanceCommandCenterTab) => {
@@ -123,7 +137,7 @@ export function FinanceCommandCenter({
     [pathname, registrationId, router, searchParams, viewMode]
   );
 
-  if (capability === undefined || capability === null) {
+  if (capability === undefined || capability === null || caseMeaningAvailable === undefined) {
     return null;
   }
 
@@ -135,7 +149,7 @@ export function FinanceCommandCenter({
       />
 
       {/* Meaning mode only when a registration is in context — avoids expert vocabulary on empty hub. */}
-      {registrationId ? (
+      {canShowCommercialMeaning ? (
         <nav
           data-testid="finance-view-mode"
           className="flex gap-1 rounded-lg border bg-muted/40 p-1"
@@ -172,13 +186,13 @@ export function FinanceCommandCenter({
         </nav>
       ) : null}
 
-      {viewMode === "meaning" && registrationId ? (
+      {viewMode === "meaning" && canShowCommercialMeaning ? (
         <div className="space-y-4" data-testid="finance-commercial-meaning">
           <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
             {t("commercialMeaningGuidanceSimple")}
           </p>
           <FinanceRegistrationFilterChip
-            registrationId={registrationId}
+            registrationId={commercialMeaningRegistrationId}
             filteredLabel={t("filteredByRegistration")}
             clearLabel={t("clearRegistrationFilter")}
             technicalIdLabel={t("registrationTechnicalId")}
@@ -193,7 +207,7 @@ export function FinanceCommandCenter({
             }}
           />
           <FinanceCommercialMeaningEmbed
-            registrationId={registrationId}
+            registrationId={commercialMeaningRegistrationId}
             counterpartyId={counterpartyId}
             commandUiEnabled={commandUiEnabled}
           />
@@ -207,7 +221,7 @@ export function FinanceCommandCenter({
             {firstCustomerOpsChrome ? t("tabGuidanceFirstCustomerUx1") : t("tabGuidance")}
           </p>
 
-          {registrationId ? (
+          {canShowCommercialMeaning ? (
             <div
               className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm"
               data-testid="finance-open-commercial-meaning"
@@ -215,7 +229,7 @@ export function FinanceCommandCenter({
               <span className="text-muted-foreground">{t("openCommercialMeaningHint")}</span>
               <a
                 className="text-primary underline-offset-2 hover:underline"
-                href={buildFinanceCommercialMeaningHref(registrationId)}
+                href={buildFinanceCommercialMeaningHref(commercialMeaningRegistrationId)}
                 data-testid="finance-open-commercial-meaning-link"
               >
                 {t("viewCommercialMeaning")}
@@ -250,7 +264,9 @@ export function FinanceCommandCenter({
                   </ul>
                 </div>
                 <div className="space-y-1 border-t pt-2">
-                  <p className="text-xs font-medium text-foreground">{t("operatorStateVocabTitle")}</p>
+                  <p className="text-xs font-medium text-foreground">
+                    {t("operatorStateVocabTitle")}
+                  </p>
                   <ul className="list-disc space-y-0.5 ps-5 text-xs text-muted-foreground">
                     <li>{t("operatorStateVocabRecorded")}</li>
                     <li>{t("operatorStateVocabBookingPaid")}</li>
@@ -304,9 +320,7 @@ export function FinanceCommandCenter({
               data-testid="finance-tour-filter-banner"
             >
               <span className="text-muted-foreground">{t("filteredByTour")}</span>
-              <span className="text-sm font-medium">
-                {t("tourFilterActiveHint")}
-              </span>
+              <span className="text-sm font-medium">{t("tourFilterActiveHint")}</span>
               <Button asChild variant="outline" size="sm" data-testid="finance-open-tour-workspace">
                 <Link href={workspaceBasePath(searchParams.get("tourId") ?? "")}>
                   {tWorkspace("openWorkspace")}

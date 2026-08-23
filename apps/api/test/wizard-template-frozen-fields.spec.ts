@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
@@ -9,14 +10,14 @@ import {
 import { URBAN_SMOKE_TENANT_ID } from "@app-tour/workspace-urban";
 
 import {
-  assertDenaliWizardTemplateFrozenFieldsForTenant,
-  normalizeDenaliWizardTemplatePayloadForTenant,
+  assertWorkspaceWizardTemplateEnforcedFieldsForTenant,
+  normalizeWorkspaceWizardTemplatePayloadForTenant,
   SettingsWizardFrozenFieldMissingError,
 } from "../src/settings/wizard-template-catalog";
 
 describe("wizard-template-frozen-fields.spec.ts", () => {
-  it("API-WIZ-FRZ-01 normalizeDenaliWizardTemplatePayloadForTenant injects frozen for denali", () => {
-    const normalized = normalizeDenaliWizardTemplatePayloadForTenant("denali", {
+  it("API-WIZ-FRZ-01 normalizeWorkspaceWizardTemplatePayloadForTenant injects enforced fields for denali", () => {
+    const normalized = normalizeWorkspaceWizardTemplatePayloadForTenant("denali", {
       published: true,
       steps: [{ stepId: "denali_basic", enabled: true, fields: [{ canonicalPath: "title" }] }],
     });
@@ -27,10 +28,10 @@ describe("wizard-template-frozen-fields.spec.ts", () => {
     );
   });
 
-  it("API-WIZ-FRZ-02 assertDenaliWizardTemplateFrozenFieldsForTenant rejects missing frozen field", async () => {
+  it("API-WIZ-FRZ-02 assertWorkspaceWizardTemplateEnforcedFieldsForTenant rejects missing enforced field", async () => {
     await assert.rejects(
       () =>
-        assertDenaliWizardTemplateFrozenFieldsForTenant(DENALI_SMOKE_TENANT_ID, {
+        assertWorkspaceWizardTemplateEnforcedFieldsForTenant(DENALI_SMOKE_TENANT_ID, {
           published: true,
           steps: [{ stepId: "denali_basic", enabled: true, fields: [{ canonicalPath: "title" }] }],
         }),
@@ -40,7 +41,7 @@ describe("wizard-template-frozen-fields.spec.ts", () => {
 
   it("API-WIZ-FRZ-03 starter workspace skips frozen assert", async () => {
     await assert.doesNotReject(() =>
-      assertDenaliWizardTemplateFrozenFieldsForTenant(URBAN_SMOKE_TENANT_ID, {
+      assertWorkspaceWizardTemplateEnforcedFieldsForTenant(URBAN_SMOKE_TENANT_ID, {
         published: true,
         steps: [{ stepId: "basics", enabled: true, fields: [{ canonicalPath: "basics.title" }] }],
       })
@@ -62,5 +63,14 @@ describe("wizard-template-frozen-fields.spec.ts", () => {
   it("API-WIZ-FRZ-05 normalize payload steps is no-op when unpublished", () => {
     const payload = { published: false, steps: [] };
     assert.deepEqual(normalizeDenaliWizardTemplatePayloadSteps(payload), payload);
+  });
+
+  it("API-WIZ-FRZ-06 settings service uses workspace-named template enforcement", () => {
+    const source = readFileSync(
+      new URL("../src/settings/settings-config.service.ts", import.meta.url),
+      "utf8"
+    );
+    assert.equal(source.includes("assertDenaliWizardTemplateFrozenFieldsForTenant"), false);
+    assert.equal(source.includes("normalizeDenaliWizardTemplatePayloadForTenant"), false);
   });
 });

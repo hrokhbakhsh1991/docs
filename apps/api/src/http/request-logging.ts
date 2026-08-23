@@ -127,7 +127,7 @@ export function withRequestLogging(
         ...(tenantId !== undefined
           ? {
               tenantId,
-              workspaceType: getActiveWorkspaceType() ?? "starter",
+              workspaceType: getActiveWorkspaceType() ?? "unknown",
               tenantTier: getActiveTenantTier() ?? "pool",
             }
           : {}),

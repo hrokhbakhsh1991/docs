@@ -20,3 +20,10 @@ export function bindWorkspacePluginRegisterInvokers(): void {
   });
   bound = true;
 }
+
+export function resetWorkspacePluginRegisterInvokersBindingForTests(): void {
+  if (process.env.NODE_ENV !== "test") {
+    return;
+  }
+  bound = false;
+}

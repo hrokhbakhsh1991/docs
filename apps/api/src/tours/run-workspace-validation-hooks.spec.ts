@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import { createCanonicalDocument } from "@app-tour/workspace-sdk/canonical";
@@ -31,6 +32,13 @@ function pluginWithHooks(
 }
 
 describe("runWorkspaceValidationHooks", () => {
+  it("keeps the API validation hook boundary workspace-generic", () => {
+    const source = readFileSync(new URL("./run-workspace-validation-hooks.ts", import.meta.url), {
+      encoding: "utf8",
+    });
+    assert.equal(source.includes("Denali-specific rules live"), false);
+  });
+
   it("returns null for starter noop hooks (no capacity/tripDetails fields)", () => {
     const plugin = starterPlugin();
     const document = createCanonicalDocument({

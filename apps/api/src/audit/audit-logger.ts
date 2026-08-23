@@ -13,11 +13,7 @@ export const AUDIT_ACTION_TOUR_PUBLISHED = "TOUR_PUBLISHED";
 export const AUDIT_ACTION_TOUR_UNPUBLISHED = "TOUR_UNPUBLISHED";
 export const AUDIT_ACTION_TENANT_PROVISIONED = "TENANT_PROVISIONED";
 
-const AUDIT_METADATA_ALLOWLIST = [
-  "workspaceType",
-  "fromPublishStatus",
-  "toPublishStatus",
-] as const;
+const AUDIT_METADATA_ALLOWLIST = ["workspaceType", "fromPublishStatus", "toPublishStatus"] as const;
 
 export type AppendAuditEventInput = {
   readonly action: string;
@@ -68,7 +64,9 @@ export async function appendTourPublishTransitionAuditEvent(
     entityId: input.tourId,
     ...(input.createdAt !== undefined ? { createdAt: input.createdAt } : {}),
     metadata: {
-      ...(input.fromPublishStatus !== undefined ? { fromPublishStatus: input.fromPublishStatus } : {}),
+      ...(input.fromPublishStatus !== undefined
+        ? { fromPublishStatus: input.fromPublishStatus }
+        : {}),
       ...(input.toPublishStatus !== undefined ? { toPublishStatus: input.toPublishStatus } : {}),
     },
   });
@@ -76,7 +74,7 @@ export async function appendTourPublishTransitionAuditEvent(
 
 /** Allowlisted audit metadata — caller extras are dropped (LOG-COL-03 / DEC-034). */
 export function buildAuditMetadata(input: AppendAuditEventInput): Prisma.InputJsonValue {
-  const workspaceType = getActiveWorkspaceType() ?? "starter";
+  const workspaceType = getActiveWorkspaceType() ?? "unknown";
   const metadata: Record<string, unknown> = { workspaceType };
 
   if (

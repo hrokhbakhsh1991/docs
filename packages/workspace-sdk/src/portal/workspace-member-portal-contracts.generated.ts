@@ -21,6 +21,37 @@ export const WORKSPACE_MEMBER_PORTAL_CONTRACTS: Readonly<
   Record<string, MemberPortalContractRow>
 > = Object.freeze({
   "acme": Object.freeze({ availability: "off" as const }),
+  "alpine": Object.freeze({
+    availability: "minimal",
+    includePlatformHome: false,
+    defaultPrimaryModuleId: "trips",
+    modules: Object.freeze([
+      Object.freeze({
+        id: "trips",
+        routePath: "/me/registrations",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "trips",
+        }),
+      }),
+      Object.freeze({
+        id: "profile",
+        routePath: "/me/profile",
+        nav: Object.freeze({
+          tier: "user_menu",
+          labelKey: "profile",
+        }),
+      }),
+      Object.freeze({
+        id: "alpine-notes",
+        routePath: "/me/alpine-notes",
+        nav: Object.freeze({
+          tier: "secondary",
+          labelKey: "alpineNotes",
+        }),
+      }),
+    ] as const satisfies readonly MemberModuleManifest[]),
+  }),
   "booking-ws2": Object.freeze({ availability: "off" as const }),
   "denali": Object.freeze({
     availability: "full",

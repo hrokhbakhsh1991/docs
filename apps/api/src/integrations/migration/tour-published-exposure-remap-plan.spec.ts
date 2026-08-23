@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 
+import { listTourPublishedExposureRemapTargets } from "../../integrations/platform/workspace-integration-capabilities.generated.ts";
 import {
   buildTourPublishedRemapUpsert,
   mergeTourPublishedRemapUpsert,
@@ -11,8 +14,11 @@ import {
   TOUR_PUBLISHED_SEEDED_TEMPLATE,
 } from "./tour-published-exposure-remap-plan";
 
+const HERE = import.meta.dirname;
+const REMAP_RUNNER_SRC = join(HERE, "run-tour-published-exposure-remap.ts");
+
 function candidate(
-  overrides: Partial<Parameters<typeof planTourPublishedExposureRemap>[0]["source"]> = {},
+  overrides: Partial<Parameters<typeof planTourPublishedExposureRemap>[0]["source"]> = {}
 ) {
   return {
     id: "intent-source",
@@ -68,7 +74,7 @@ describe("tour-published-exposure-remap-plan", () => {
       candidate({
         selectedFieldIds: ["denali.destination", "title"],
         templateOverrideId: "Custom {{field:title}}",
-      }),
+      })
     );
     assert.deepEqual(merged.selectedFieldIds, ["title", "denali.destination"]);
     assert.equal(merged.templateOverrideId, "Custom {{field:title}}");
@@ -80,7 +86,7 @@ describe("tour-published-exposure-remap-plan", () => {
         candidate({ id: "source-1", selectedFieldIds: ["title"] }),
         candidate({ id: "source-2", selectedFieldIds: ["denali.destination"] }),
       ],
-      [],
+      []
     );
     assert.equal(plans[0]?.action, "remap");
     assert.equal(plans[1]?.action, "merge");
@@ -89,7 +95,7 @@ describe("tour-published-exposure-remap-plan", () => {
   it("rewrites only the seeded TourCreated template", () => {
     assert.equal(
       rewriteTourPublishedTemplateOverride(TOUR_CREATED_SEEDED_TEMPLATE),
-      TOUR_PUBLISHED_SEEDED_TEMPLATE,
+      TOUR_PUBLISHED_SEEDED_TEMPLATE
     );
     assert.equal(rewriteTourPublishedTemplateOverride("Keep me"), "Keep me");
   });
@@ -102,9 +108,21 @@ describe("tour-published-exposure-remap-plan", () => {
             workspaceType: null,
             profileId: "legacy-without-suffix",
             trigger: "TourCreated",
-          }),
+          })
         ),
-      /TOUR_PUBLISHED_REMAP_WORKSPACE_TYPE_REQUIRED/,
+      /TOUR_PUBLISHED_REMAP_WORKSPACE_TYPE_REQUIRED/
     );
+  });
+
+  it("runner lists remap rows from generated capability targets", () => {
+    assert.deepEqual(listTourPublishedExposureRemapTargets(), [
+      { workspaceType: "denali", providerId: "telegram" },
+    ]);
+
+    const source = readFileSync(REMAP_RUNNER_SRC, "utf8");
+    assert.match(source, /listTourPublishedExposureRemapTargets/);
+    assert.match(source, /targets\.map/);
+    assert.doesNotMatch(source, /workspaceType:\s*"denali"/);
+    assert.doesNotMatch(source, /surface:\s*"telegram"/);
   });
 });

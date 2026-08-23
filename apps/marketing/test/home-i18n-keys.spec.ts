@@ -166,4 +166,18 @@ describe("home-i18n-keys.spec.ts — HOME-UNIT-02", () => {
       "both locales must define all required home keys"
     );
   });
+
+  it("keeps shared home section id comments workspace-generic", () => {
+    const categorySource = readFileSync(
+      join(repoRoot, "apps/marketing/src/home/home-category-slugs.ts"),
+      "utf8"
+    );
+    const whySource = readFileSync(
+      join(repoRoot, "apps/marketing/src/home/home-why-tile-ids.ts"),
+      "utf8"
+    );
+
+    assert.equal(categorySource.includes("Denali tour-kind slugs"), false);
+    assert.equal(whySource.includes("Why Denali value ids"), false);
+  });
 });

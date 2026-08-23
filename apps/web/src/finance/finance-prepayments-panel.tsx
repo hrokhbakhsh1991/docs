@@ -16,9 +16,7 @@ import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-
 import { FinanceInvoiceBalanceCard } from "@/finance/finance-invoice-balance-card";
 import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
 import { FinanceRegistrationPicker } from "@/finance/finance-registration-picker";
-import {
-  withFinanceListScopeQuery,
-} from "@/finance/finance-registration-context";
+import { withFinanceListScopeQuery } from "@/finance/finance-registration-context";
 import { fetchFinanceListWithRetry } from "@/finance/fetch-finance-list-with-retry";
 import {
   FINANCE_INVOICE_TEST_IDS,
@@ -36,7 +34,10 @@ import {
   type PrepaymentsListResponse,
   type RecordPrepaymentFormState,
 } from "@/finance/finance-prepayments-logic";
-import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
+import {
+  localizeFinanceMessage,
+  toFinanceClientErrorCode,
+} from "@/i18n/resolve-finance-error-message";
 import type { AppLocale } from "@/i18n/routing";
 
 type FinancePrepaymentsPanelProps = {
@@ -47,7 +48,7 @@ type FinancePrepaymentsPanelProps = {
 const EMPTY_FORM: RecordPrepaymentFormState = {
   registrationId: "",
   amountMinor: "",
-  currency: "IRR",
+  currency: "",
   method: "Manual",
   note: "",
 };
@@ -201,9 +202,7 @@ export function FinancePrepaymentsPanel({
             onChange={(registrationId) => {
               setInvoiceLookupId(registrationId);
               setForm((current) =>
-                current.registrationId.length === 0
-                  ? { ...current, registrationId }
-                  : current
+                current.registrationId.length === 0 ? { ...current, registrationId } : current
               );
             }}
           />
@@ -239,9 +238,7 @@ export function FinancePrepaymentsPanel({
                   mode="digits"
                   groupThousands
                   value={form.amountMinor}
-                  onChange={(amountMinor) =>
-                    setForm((current) => ({ ...current, amountMinor }))
-                  }
+                  onChange={(amountMinor) => setForm((current) => ({ ...current, amountMinor }))}
                   placeholder="5000000"
                 />
               </div>
@@ -326,7 +323,10 @@ export function FinancePrepaymentsPanel({
               data-testid={FINANCE_PREPAYMENTS_TEST_IDS.list}
             >
               {items.map((item) => (
-                <li key={item.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <li
+                  key={item.id}
+                  className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
                   <div className="space-y-1">
                     <p className="font-medium">
                       {formatMinorAmount(item.amountMinor, item.currency, locale)}

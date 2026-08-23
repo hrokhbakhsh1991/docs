@@ -23,10 +23,17 @@ import {
   validateRecordPrepaymentForm,
 } from "@/finance/finance-prepayments-logic";
 import { resolveTourSuggestedPrepaymentMinor } from "@/features/tours/resolve-tour-suggested-prepayment-minor";
-import { fetchTourDetailCached, readCachedTourDetail } from "@/features/tours/tour-route-cache";
+import {
+  fetchTourDetailCached,
+  readCachedTourCommercialCapability,
+  readCachedTourDetail,
+} from "@/features/tours/tour-route-cache";
 import type { TourWorkspacePaymentActionEvent } from "@/features/tours/tour-workspace-finance-logic";
 import type { AppLocale } from "@/i18n/routing";
-import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
+import {
+  localizeFinanceMessage,
+  toFinanceClientErrorCode,
+} from "@/i18n/resolve-finance-error-message";
 import { cn } from "@/lib/utils";
 
 type TourWorkspaceAdminPaymentCardProps = {
@@ -36,6 +43,7 @@ type TourWorkspaceAdminPaymentCardProps = {
   readonly onChanged?: (event: TourWorkspacePaymentActionEvent) => void;
   readonly className?: string;
   readonly refreshKey?: string | number;
+  readonly pluginId: string;
 };
 
 type PaymentActionBanner = {
@@ -45,6 +53,8 @@ type PaymentActionBanner = {
   readonly currency: string;
   readonly remainingMinor: string;
 };
+
+const DEFAULT_PAYMENT_CURRENCY = "";
 
 function parseMinor(value: string): bigint {
   const digits = value.trim();
@@ -61,6 +71,7 @@ export function TourWorkspaceAdminPaymentCard({
   onChanged,
   className,
   refreshKey,
+  pluginId,
 }: TourWorkspaceAdminPaymentCardProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("tours.workspace.finance");
@@ -72,19 +83,19 @@ export function TourWorkspaceAdminPaymentCard({
   const normalizedTourId = tourId.trim();
   const [invoice, setInvoice] = useState<RegistrationInvoice | null>(null);
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("IRR");
+  const [currency, setCurrency] = useState(DEFAULT_PAYMENT_CURRENCY);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [actionBanner, setActionBanner] = useState<PaymentActionBanner | null>(null);
   const [invoiceLoaded, setInvoiceLoaded] = useState(false);
-  const [tourCanonicalData, setTourCanonicalData] = useState<Record<string, unknown> | null>(() =>
-    readCachedTourDetail(normalizedTourId)?.canonical.data ?? null
+  const [tourCanonicalData, setTourCanonicalData] = useState<Record<string, unknown> | null>(
+    () => readCachedTourDetail(normalizedTourId)?.canonical.data ?? null
   );
   const amountPrefilledRef = useRef<string | null>(null);
 
   useEffect(() => {
     setAmount("");
-    setCurrency("IRR");
+    setCurrency(DEFAULT_PAYMENT_CURRENCY);
     setFormError(null);
     setActionBanner(null);
     amountPrefilledRef.current = null;
@@ -159,6 +170,7 @@ export function TourWorkspaceAdminPaymentCard({
             tourCanonicalData,
             invoiceTotalMinor: invoice.invoiceTotalMinor,
             balanceDueMinor: invoice.balanceDueMinor,
+            commercialPolicy: readCachedTourCommercialCapability(pluginId),
           })
         : null;
     setAmount(suggested ?? resolveSuggestedPaymentAmountMinor(invoice));
@@ -232,11 +244,12 @@ export function TourWorkspaceAdminPaymentCard({
     invoice !== null
       ? formatMinorAmount(
           tourCanonicalData !== null
-            ? resolveTourSuggestedPrepaymentMinor({
+            ? (resolveTourSuggestedPrepaymentMinor({
                 tourCanonicalData,
                 invoiceTotalMinor: invoice.invoiceTotalMinor,
                 balanceDueMinor: invoice.balanceDueMinor,
-              }) ?? resolveSuggestedPaymentAmountMinor(invoice)
+                commercialPolicy: readCachedTourCommercialCapability(pluginId),
+              }) ?? resolveSuggestedPaymentAmountMinor(invoice))
             : resolveSuggestedPaymentAmountMinor(invoice),
           invoice.currency,
           locale
@@ -256,8 +269,7 @@ export function TourWorkspaceAdminPaymentCard({
           {" — "}
           {formatMinorAmount(actionBanner.amountMinor, actionBanner.currency, locale)}
           {" · "}
-          {t("workspacePaymentRecordedHint")}
-          {" "}
+          {t("workspacePaymentRecordedHint")}{" "}
           {parseMinor(actionBanner.remainingMinor) > BigInt(0)
             ? t("workspacePaymentRecordedRemaining", {
                 amount: formatMinorAmount(

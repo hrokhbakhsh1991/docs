@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
-import { OperatorCaseEncounterPanel } from "@/finance/denali-case-encounter-panel";
+import { FinanceCaseEncounterPanel } from "@/finance/finance-case-encounter-panel";
 import { ensureFinanceRouteAllowed } from "@/finance/finance-nav-enablement";
 import { buildFinancePageMetadata } from "@/i18n/finance-page-metadata";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const dynamic = "force-dynamic";
 
 /**
- * Denali operator read-only Case Encounter (PR12-A).
+ * Operator read-only Case Encounter (PR12-A).
  * No mutation chrome — understandability only.
  */
 export default async function FinanceCaseEncounterPage({ params }: PageProps) {
@@ -49,7 +49,7 @@ export default async function FinanceCaseEncounterPage({ params }: PageProps) {
           execution — nothing is saved as Case state.
         </p>
       </header>
-      <OperatorCaseEncounterPanel registrationId={registrationId.trim()} />
+      <FinanceCaseEncounterPanel registrationId={registrationId.trim()} />
     </main>
   );
 }

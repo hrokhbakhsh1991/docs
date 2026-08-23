@@ -33,11 +33,7 @@ export type WorkspaceAdminRegistrationRequirements = {
   };
 };
 
-export type AdminAssistedRegistrationStep =
-  | "identity"
-  | "requirements"
-  | "logistics"
-  | "review";
+export type AdminAssistedRegistrationStep = "identity" | "requirements" | "logistics" | "review";
 
 export type AdminAssistedRegistrationFormState = {
   readonly registrantMode: "member" | "guest";
@@ -212,12 +208,14 @@ export function stepHasVisibleRequirements(
 
 export function formatAdminAssistedMoneyLabel(
   amount: number | null,
-  currency: string = "IRR"
+  currency?: string | null
 ): string | null {
   if (amount === null) {
     return null;
   }
-  return new Intl.NumberFormat("fa-IR").format(amount) + ` ${currency}`;
+  const formattedAmount = new Intl.NumberFormat("fa-IR").format(amount);
+  const normalizedCurrency = currency?.trim();
+  return normalizedCurrency ? `${formattedAmount} ${normalizedCurrency}` : formattedAmount;
 }
 
 export function validateAdminAssistedRegistrationStep(input: {
@@ -310,7 +308,9 @@ export function buildAdminAssistedRegistrationPayload(input: {
         ? input.form.memberDisplayName.trim()
         : input.form.guestLabel.trim(),
     guestPhone: input.form.guestPhone.trim(),
-    ...(input.form.guestEmail.trim().length > 0 ? { guestEmail: input.form.guestEmail.trim() } : {}),
+    ...(input.form.guestEmail.trim().length > 0
+      ? { guestEmail: input.form.guestEmail.trim() }
+      : {}),
     ...(input.form.registrantMode === "member" && input.form.memberUserId.trim().length > 0
       ? { memberUserId: input.form.memberUserId.trim() }
       : {}),

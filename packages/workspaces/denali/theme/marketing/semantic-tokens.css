@@ -16,8 +16,8 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
   --color-primary-hover: var(--denali-forest-700);
   --color-success: #166534;
   --color-success-bg: #dcfce7;
-  --color-text-link: var(--denali-forest-600);
-  --color-text-muted: #6f7768;
+  --color-text-link: var(--denali-forest-700);
+  --color-text-muted: #626a5c;
   --color-text-primary: #1a1f26;
   --color-text-secondary: #4a5244;
   --color-warning: #b45309;

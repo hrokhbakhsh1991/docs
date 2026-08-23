@@ -1,7 +1,7 @@
 import type { PublicCatalogCard } from "@app-tour/workspace-sdk";
 
-/** Urban-only egress fields on marketing JSON (legacy + M2b). */
-export type UrbanCatalogCardExtensions = {
+/** Optional presentation egress fields on marketing JSON across workspace adapters. */
+export type MarketingCatalogPresentationExtensions = {
   readonly city?: string | null;
   readonly venueName?: string | null;
   readonly catalogSummary?: string | null;
@@ -12,11 +12,11 @@ export type UrbanCatalogCardExtensions = {
 };
 
 /**
- * Marketing catalog card — SDK `PublicCatalogCard` + Urban extensions.
+ * Marketing catalog card — SDK `PublicCatalogCard` + presentation extensions.
  * `title` optional for partial upstream payloads before strict validation.
  */
 export type MarketingCatalogCard = Omit<PublicCatalogCard, "title"> &
-  UrbanCatalogCardExtensions & {
+  MarketingCatalogPresentationExtensions & {
     readonly title?: string | null;
   };
 

@@ -78,6 +78,7 @@ export type {
   WorkspaceTemplateEditorCapability,
   WorkspaceTemplateEditorCatalogFieldMeta,
   WorkspaceTourListCategoryCapability,
+  WorkspaceTourCommercialCapability,
   WorkspaceTourListCategoryFilterGroup,
   WorkspaceSettingsDestinationCapability,
   WorkspaceSettingsDestinationLocationType,
@@ -119,6 +120,7 @@ export {
   resolveSettingsHubFallbackCapability,
   resolveTemplateEditorCapability,
   resolveTourListCategoryCapability,
+  resolveTourCommercialCapability,
   resolveSettingsDestinationCapability,
   resolveSettingsEquipmentUiCapability,
   ensureSettingsEquipmentUiReady,
@@ -126,9 +128,10 @@ export {
   ensureSettingsExposureSurfacesUiReady,
   resolveOperatorShellNavCapability,
   resolveFinanceNavCapability,
+  resolveFinanceCaseMeaningCapability,
   resolveFinanceOpsCapability,
-  resolveMemberPortalRenderersCapability,
   resolveBookingOpsCapability,
+  resolveMemberPortalRenderersCapability,
   resolveWizardCreateCapability,
 } from "./workspace-plugin-capabilities";
 export type {

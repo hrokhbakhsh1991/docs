@@ -105,6 +105,7 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
       [
         "booking-payment.adapter.ts",
         "booking-registration-display.adapter.ts",
+        "host-commercial-quote.repository.ts",
         "host-finance-access.adapter.ts",
         "host-finance-capability.adapter.ts",
         "host-finance-clock.adapter.ts",
@@ -113,8 +114,12 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
         "host-finance-persistence-mode.adapter.ts",
         "host-finance-receipt-proof-url.adapter.ts",
         "host-finance-schedule.adapter.ts",
+        "identity-membership-discount-read.adapter.ts",
+        "prisma-commercial-quote.repository.ts",
         "prisma-finance.repository.ts",
         "prisma-workspace-outbox-writer.ts",
+        "read-tour-membership-discount-gate.ts",
+        "registration-commercial-quote-freeze-context.adapter.ts",
         "registration-finance-obligation.adapter.ts",
       ].sort()
     );
@@ -167,12 +172,15 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
       resolve(REPO_ROOT, "apps/api/src/workspace-finance/workspace-finance-dependency-bindings.generated.ts"),
       "utf8"
     );
-    assert.match(gen, /"denali"/);
+    assert.match(gen, /(?:"denali"|\bdenali\s*:)/);
     assert.match(gen, /"finance-ws2"/);
     assert.match(gen, /DenaliFinanceLedgerPolicyAdapter/);
     assert.match(gen, /FinanceWs2LedgerPolicyAdapter/);
     assert.match(gen, /await import\("@app-tour\/workspace-denali\/host\/finance"\)/);
-    assert.doesNotMatch(gen, /^import \{/m);
+    assert.match(
+      gen,
+      /^import \{ wrapFinanceServiceWithCaseShadow \} from "\.\/case\/wrap-finance-service-case-shadow";/m
+    );
   });
 
   it("FIN-P1.10-02 / P1.9 generated event reaction bindings include denali and finance-ws5 only", () => {

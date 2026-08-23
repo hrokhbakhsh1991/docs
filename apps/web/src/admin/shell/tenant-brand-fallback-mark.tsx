@@ -20,10 +20,17 @@ export function TenantBrandFallbackMark({
   // Touch capability resolve so warm/seed stays wired; H.e.b will resolve components by kind.
   const _declaredKind = resolveWizardCustomBrandFallbackMark(pluginId);
   void _declaredKind;
+  const initial = Array.from(workspaceLabel.trim())[0] ?? "W";
 
   return (
-    <span className={className} data-tenant-brand-initial aria-hidden>
-      {workspaceLabel.slice(0, 1).toUpperCase()}
+    <span
+      className={`${className ?? ""} inline-flex items-center justify-center`}
+      data-tenant-brand-fallback
+      data-tenant-brand-initial
+      data-workspace-label={workspaceLabel}
+      aria-hidden
+    >
+      {initial}
     </span>
   );
 }

@@ -38,8 +38,6 @@ import { resolveFinanceWorkspaceTypeForTenant } from "../workspace-finance/resol
 import { createBookingPaymentPort } from "../bookings/create-booking-payment-port";
 import { getBookingsRepository } from "../bookings/create-bookings-repository";
 import type { FinanceObligationPort } from "@app-tour/finance-http-contracts";
-import { listPaymentsForRegistration } from "../workspace-finance/case/list-payments-for-registration";
-import { wrapFinanceServiceWithCaseShadow } from "../workspace-finance/case/wrap-finance-service-case-shadow";
 
 /** workspaceType → FinanceService (workspace policies differ; platform I/O is shared). */
 const financeServiceByWorkspaceType = new Map<string, FinanceService>();
@@ -219,32 +217,24 @@ export async function getOrCreateFinanceServiceForWorkspaceType(
     );
 
     const composed =
-      normalized === "denali"
-        ? wrapFinanceServiceWithCaseShadow(service, {
-            bookings: getBookingsRepository(),
-            finance: {
-              findLatestReceiptForRegistration: (tenantId, registrationId) =>
-                repository.findLatestReceiptForRegistration(tenantId, registrationId),
-              getRegistrationInvoiceFacts: (tenantId, registrationId) =>
-                repository.getRegistrationInvoiceFacts(tenantId, registrationId),
-              findPaymentStatusesByRegistration: (tenantId, registrationId) =>
-                repository.findPaymentStatusesByRegistration(tenantId, registrationId),
-              findFirstPendingManualPayment: (tenantId, registrationId) =>
-                repository.findFirstPendingManualPayment(tenantId, registrationId),
-              listPendingReceipts: (tenantId, query) =>
-                repository.listPendingReceipts(tenantId, query),
-              listLedgerEvents: (tenantId, limit) =>
-                repository.listLedgerEvents(tenantId, limit),
-              listPaymentsForRegistration: (tenantId, registrationId) =>
-                listPaymentsForRegistration(repository, tenantId, registrationId),
-              findPaymentById: (tenantId, paymentId) =>
-                repository.findPaymentById(tenantId, paymentId),
-              findReceiptById: (tenantId, receiptId) =>
-                repository.findReceiptById(tenantId, receiptId),
-            },
-            obligation,
-          })
-        : service;
+      deps.decorateFinanceService?.(service, {
+        bookings: getBookingsRepository(),
+        finance: {
+          findLatestReceiptForRegistration: (tenantId, registrationId) =>
+            repository.findLatestReceiptForRegistration(tenantId, registrationId),
+          getRegistrationInvoiceFacts: (tenantId, registrationId) =>
+            repository.getRegistrationInvoiceFacts(tenantId, registrationId),
+          findPaymentStatusesByRegistration: (tenantId, registrationId) =>
+            repository.findPaymentStatusesByRegistration(tenantId, registrationId),
+          findFirstPendingManualPayment: (tenantId, registrationId) =>
+            repository.findFirstPendingManualPayment(tenantId, registrationId),
+          listPendingReceipts: (tenantId, query) => repository.listPendingReceipts(tenantId, query),
+          listLedgerEvents: (tenantId, limit) => repository.listLedgerEvents(tenantId, limit),
+          findPaymentById: (tenantId, paymentId) => repository.findPaymentById(tenantId, paymentId),
+          findReceiptById: (tenantId, receiptId) => repository.findReceiptById(tenantId, receiptId),
+        },
+        obligation,
+      }) ?? service;
 
     financeServiceByWorkspaceType.set(normalized, composed);
     return composed;
@@ -259,7 +249,7 @@ export async function getOrCreateFinanceServiceForWorkspaceType(
 }
 
 /**
- * Boot / legacy composition root — Denali workspace type.
+ * Boot / legacy composition root — workspace type comes from the boot resolver.
  * HTTP and authenticated call sites must use {@link resolveFinanceServiceForTenant}.
  */
 export async function resolveLazyFinanceService(

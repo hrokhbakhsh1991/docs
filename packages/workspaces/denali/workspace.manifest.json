@@ -10,9 +10,14 @@
   "adminWeb": {
     "clientBundleEnvGate": "ALLOW_DENALI_WEB_PLUGIN"
   },
-  "workspaceTypes": [
-    "denali"
-  ],
+  "workspaceTypes": ["denali"],
+  "tenantBrandingDefaults": {
+    "primaryColor": "#059669",
+    "cssVariables": {
+      "--color-primary": "#059669",
+      "--color-primary-hover": "#047857"
+    }
+  },
   "plugin": {
     "entry": "./plugin",
     "export": "getWorkspacePlugin"
@@ -26,9 +31,7 @@
       "eventType": "TourCreated",
       "module": "./finance/tour-created-ledger",
       "export": "handleTourCreatedLedgerEvent",
-      "workspaceTypes": [
-        "denali"
-      ],
+      "workspaceTypes": ["denali"],
       "hostSideEffect": {
         "adapterModule": "./finance/api-tour-created-adapter",
         "export": "runTourCreatedFinanceSideEffect",
@@ -135,7 +138,8 @@
     "capabilities": {
       "ledgerCapture": true,
       "eventReactions": "durable-outbox",
-      "ops": true
+      "ops": true,
+      "caseMeaning": true
     },
     "ledgerPolicy": {
       "module": "./finance",
@@ -144,6 +148,10 @@
     "receiptDefaults": {
       "module": "./finance",
       "export": "DenaliFinanceReceiptDefaultsAdapter"
+    },
+    "serviceDecorator": {
+      "hostModule": "./case/wrap-finance-service-case-shadow",
+      "export": "wrapFinanceServiceWithCaseShadow"
     },
     "eventReaction": {
       "module": "./finance",
@@ -234,9 +242,7 @@
           "supersededBy": "TourPublished"
         }
       ],
-      "deliveryReferenceDisplayFieldIds": [
-        "denali.destination"
-      ]
+      "deliveryReferenceDisplayFieldIds": ["denali.destination"]
     }
   },
   "wizardTemplateEnforcement": {
@@ -283,9 +289,7 @@
     "remintCanonicalExport": "remintDenaliClonePhotosInCanonical",
     "executeTourRemintExport": "executeDenaliTourPhotoRemintPlan"
   },
-  "themeStylesheets": [
-    "theme/denali-admin.css"
-  ],
+  "themeStylesheets": ["theme/denali-admin.css"],
   "wizardCreate": {
     "extendedChrome": true
   },
@@ -308,12 +312,8 @@
     }
   },
   "guestThemeStylesheets": {
-    "portal": [
-      "theme/denali-portal.css"
-    ],
-    "marketing": [
-      "theme/denali-marketing.css"
-    ]
+    "portal": ["theme/denali-portal.css"],
+    "marketing": ["theme/denali-marketing.css"]
   },
   "catalogRegistrationFlow": {
     "surfaceExport": "denaliCatalogRegistrationFlowSurface",
@@ -326,14 +326,7 @@
   "catalogPresentation": {
     "listFeatures": {
       "cityFilter": false,
-      "serverListFilters": [
-        "q",
-        "category",
-        "difficulty",
-        "fitness",
-        "availability",
-        "sort"
-      ]
+      "serverListFilters": ["q", "category", "difficulty", "fitness", "availability", "sort"]
     },
     "detailSections": {
       "difficulty": true,
@@ -343,46 +336,24 @@
     }
   },
   "memberProfile": {
-    "editableFields": [
-      "displayName",
-      "email",
-      "gender",
-      "nationalId",
-      "fatherName",
-      "birthDate"
-    ],
-    "readOnlyFields": [
-      "mobile"
-    ],
+    "editableFields": ["displayName", "email", "gender", "nationalId", "fatherName", "birthDate"],
+    "readOnlyFields": ["mobile"],
     "mobileChangeViaOtp": true,
     "sections": [
       {
         "id": "identity",
-        "fields": [
-          "displayName",
-          "mobile",
-          "email",
-          "gender"
-        ]
+        "fields": ["displayName", "mobile", "email", "gender"]
       },
       {
         "id": "participant",
-        "fields": [
-          "nationalId",
-          "fatherName",
-          "birthDate"
-        ]
+        "fields": ["nationalId", "fatherName", "birthDate"]
       }
     ]
   },
   "guestLanding": {
     "variant": "full",
     "whySectionAnchor": "why-us",
-    "destinationSlugs": [
-      "alborz",
-      "damavand",
-      "zardkuh"
-    ],
+    "destinationSlugs": ["alborz", "damavand", "zardkuh"],
     "destinationImageStems": {
       "zardkuh": "zardkooh"
     },
@@ -420,9 +391,7 @@
       "listDescriptionKey": "seo.toursDescription",
       "jsonLd": {
         "required": true,
-        "schemaTypes": [
-          "TouristTrip"
-        ],
+        "schemaTypes": ["TouristTrip"],
         "builderExport": "buildDenaliTouristTripJsonLd",
         "richResultsProfile": "tourist-trip-v1"
       },
@@ -469,10 +438,7 @@
     "wizardTemplate": {
       "module": "./settings/denaliFullWizardTemplate",
       "buildExport": "buildDenaliTenantWizardTemplatePayload",
-      "tenantIds": [
-        "00000000-0000-4000-8000-000000000003",
-        "00000000-0000-4000-8000-000000000014"
-      ],
+      "tenantIds": ["00000000-0000-4000-8000-000000000003", "00000000-0000-4000-8000-000000000014"],
       "minPublishedSteps": 2
     },
     "smokeTenant": {

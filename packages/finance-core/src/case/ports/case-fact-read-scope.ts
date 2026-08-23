@@ -1,5 +1,5 @@
 /**
- * Scope for Case fact reads — portable ids only (no Denali types).
+ * Scope for Case fact reads — portable ids only (no product-specific types).
  */
 
 import type { CaseSubjectKind } from "../facts/fact-groups";
@@ -21,14 +21,16 @@ export type CaseFactProviderFailureReason =
   | "unsupported"
   | "not_found";
 
-export type CaseFactProviderResult<T> = {
-  readonly ok: true;
-  readonly value: T;
-  readonly degraded?: false;
-} | {
-  readonly ok: false;
-  readonly failureReason: CaseFactProviderFailureReason;
-  /** Partial or fully-unknown facts — never invented zeros. */
-  readonly value: T;
-  readonly degraded: true;
-};
+export type CaseFactProviderResult<T> =
+  | {
+      readonly ok: true;
+      readonly value: T;
+      readonly degraded?: false;
+    }
+  | {
+      readonly ok: false;
+      readonly failureReason: CaseFactProviderFailureReason;
+      /** Partial or fully-unknown facts — never invented zeros. */
+      readonly value: T;
+      readonly degraded: true;
+    };

@@ -11,14 +11,14 @@ export const dynamic = "force-dynamic";
 
 export default async function PortalHomePage() {
   const host = await readPortalIngressHost();
+  const bootstrap = await resolvePortalBootstrapForHost(host);
   const session = await readPublicCatalogSessionFromCookies();
   if (session !== null) {
-    const bootstrap = await resolvePortalBootstrapForHost(host);
     const memberRoute = tryResolveMemberPortalDefaultRoutePath(bootstrap.pluginId);
     if (memberRoute !== null) {
       redirect(memberRoute);
     }
   }
 
-  redirect(resolvePortalGuestEgressUrl(host));
+  redirect(resolvePortalGuestEgressUrl(host, bootstrap.pluginId));
 }

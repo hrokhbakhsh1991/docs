@@ -21,4 +21,19 @@ describe("finance-installments-panel.spec.ts — FC-4", () => {
     assert.match(panel, /FINANCE_INSTALLMENTS_TEST_IDS\.waiveButton/);
     assert.match(panel, /FINANCE_INSTALLMENTS_TEST_IDS\.rescheduleButton/);
   });
+
+  it("WEB-FC4-02 generate form does not default to a workspace currency", () => {
+    const panel = readFileSync(
+      resolve(WEB_ROOT, "src/finance/finance-installments-panel.tsx"),
+      "utf8"
+    );
+    assert.match(panel, /const EMPTY_GENERATE_FORM: GenerateScheduleFormState = \{/);
+    assert.match(panel, /currency: ""/);
+    assert.match(
+      panel,
+      /const boardCurrency = form\.currency\.trim\(\)\.length >= 3 \? form\.currency\.trim\(\)\.toUpperCase\(\) : ""/
+    );
+    assert.doesNotMatch(panel, /currency: "IRR"/);
+    assert.doesNotMatch(panel, /: "IRR"/);
+  });
 });

@@ -491,39 +491,3 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   background: var(--mkt-destructive-strong);
   border-color: transparent;
 }
-
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  article[data-marketing-catalog-card][data-marketing-catalog-card-sold-out]
-  figure[data-marketing-catalog-card-media]::after {
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.15) 0%, rgba(15, 23, 42, 0.35) 100%);
-}
-
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  p[data-marketing-catalog-card-dates] {
-  margin: 0;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  color: var(--color-primary);
-}
-
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  p[data-marketing-catalog-card-description],
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  p[data-marketing-catalog-card-summary] {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  overflow: hidden;
-}
-
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  ul[data-marketing-catalog-card-stats]
-  li {
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-  border: var(--mkt-border-width) solid var(--border);
-  background: color-mix(in srgb, var(--muted) 35%, var(--background));
-  font-size: 0.75rem;
-  font-weight: 600;
-}

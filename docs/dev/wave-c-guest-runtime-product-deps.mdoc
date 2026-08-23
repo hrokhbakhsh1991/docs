@@ -45,6 +45,14 @@ WORKSPACE_DEPLOY_PROFILE_APPLY=1 WORKSPACE_DEPLOY_PROFILE=urban,starter \
 
 Never commit the rewritten `packages/guest-workspace-runtime/package.json`. Normal `generate:workspace-registry` ignores deploy-profile env for guest-runtime deps (unlike transpile emit in C.2b).
 
+Registry/proof workspaces may opt out of the committed default guest-runtime/client bundle with:
+
+```json
+"clientBundle": { "includeInDefault": false }
+```
+
+This does not weaken the ceiling. It keeps the default full-trunk client bundle at the documented product set while preserving explicit `WORKSPACE_DEPLOY_PROFILE_APPLY=1` image-build selection for opted-out workspaces.
+
 ## Verify
 
 ```bash

@@ -64,7 +64,9 @@ jobs:
           printf '%s\n' "$VPS_SSH_KEY" >"$KEY_FILE"
           chmod 600 "$KEY_FILE"
           USER="${VPS_USER:-root}"
-          ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no "${USER}@${VPS_HOST}" \
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          ssh -i "$KEY_FILE" -o StrictHostKeyChecking=yes "${USER}@${VPS_HOST}" \
             "journalctl -u app-tour-staging-api -n 40 --no-pager; \
              journalctl -u app-tour-staging-web -n 40 --no-pager; \
              journalctl -u app-tour-staging-marketing -n 40 --no-pager; \

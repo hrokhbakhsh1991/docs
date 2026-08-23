@@ -14,4 +14,11 @@ describe("workspace-default-tenant-branding.spec.ts", () => {
     const theme = resolveDefaultTenantBranding("denali");
     assert.equal(theme.displayName, undefined);
   });
+
+  it("keeps non-Denali and unknown workspace defaults isolated", () => {
+    const urban = resolveDefaultTenantBranding("urban");
+    assert.equal(urban.primaryColor, "#0d9488");
+    assert.notEqual(urban.primaryColor, "#059669");
+    assert.deepEqual(resolveDefaultTenantBranding("future-workspace"), {});
+  });
 });

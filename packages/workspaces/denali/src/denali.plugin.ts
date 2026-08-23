@@ -28,10 +28,7 @@ import {
   DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
   denaliEditTourDraftKey,
 } from "./draft/denali-wizard-draft-binding";
-import {
-  isDenaliFreshStartEnvelope,
-  mergeDenaliWizardDraftEnvelope,
-} from "./draft/merge-envelope";
+import { isDenaliFreshStartEnvelope, mergeDenaliWizardDraftEnvelope } from "./draft/merge-envelope";
 import {
   buildDenaliCreatePrefilledForm,
   type DenaliTemplateGatePrefill,
@@ -63,6 +60,7 @@ import {
 } from "./settings/denali-fallback-settings-modules";
 import { denaliWizardTemplateEditor } from "./settings/wizard-template-editor";
 import { denaliTourListCategorySurface } from "./tours/tour-list-category-surface";
+import { resolveDenaliSuggestedPrepaymentMinor } from "./bookings/resolve-denali-prepayment-policy";
 import { denaliDestinationSettingsSurface } from "./settings/destination-settings-surface";
 import {
   DEFAULT_FINANCE_OPS_MANIFEST,
@@ -162,8 +160,7 @@ export function createDenaliWorkspacePlugin(): WorkspacePlugin {
         operatorDraftNamespace: DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
         editTourDraftKey: denaliEditTourDraftKey,
         createWizardDraftSessionId: createDenaliWizardDraftSessionId,
-        isFreshStartEnvelope: (envelope: unknown) =>
-          isDenaliFreshStartEnvelope(envelope as never),
+        isFreshStartEnvelope: (envelope: unknown) => isDenaliFreshStartEnvelope(envelope as never),
         resolveDraftMerge: (mode: string) => {
           // Mirror resolveDenaliDraftMerge without importing denali.plugin (cycle).
           if (mode === "on") {
@@ -247,6 +244,10 @@ export function createDenaliWorkspacePlugin(): WorkspacePlugin {
       }),
       templateEditor: denaliWizardTemplateEditor,
       tourListCategory: denaliTourListCategorySurface,
+      tourCommercial: deepFreeze({
+        irrDisplayUnit: "toman" as const,
+        resolveSuggestedPrepaymentMinor: resolveDenaliSuggestedPrepaymentMinor,
+      }),
       settingsDestination: denaliDestinationSettingsSurface,
       settingsEquipmentUi: deepFreeze({
         ensureReady: async () => {
@@ -259,6 +260,7 @@ export function createDenaliWorkspacePlugin(): WorkspacePlugin {
         },
       }),
       financeNav: deepFreeze({ supported: true as const }),
+      financeCaseMeaning: deepFreeze({ supported: true as const }),
       financeOps: deepFreeze({
         resolveManifest: (theme: unknown = null) =>
           theme === null || theme === undefined

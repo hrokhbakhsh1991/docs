@@ -37,6 +37,25 @@ describe("finance-payments-logic.spec.ts — Phase 9.7 R1", () => {
     assert.equal(parsed.items[0]?.status, "Pending");
   });
 
+  it("WEB-9.7-PAY-01b parseFinancePaymentsListResponse does not invent a workspace currency", () => {
+    const parsed = parseFinancePaymentsListResponse({
+      items: [
+        {
+          id: "pay-without-currency",
+          registrationId: randomUUID(),
+          amount: "1000000",
+          method: "Manual",
+          status: "Pending",
+          provider: "manual",
+          paidAt: null,
+          createdAt: "2026-06-09T12:00:00.000Z",
+        },
+      ],
+    });
+    assert.equal(parsed.items.length, 1);
+    assert.equal(parsed.items[0]?.currency, "");
+  });
+
   it("WEB-9.7-PAY-02 validateCreateManualPaymentForm rejects invalid amount", () => {
     const result = validateCreateManualPaymentForm({
       registrationId: randomUUID(),

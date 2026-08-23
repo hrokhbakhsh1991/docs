@@ -71,7 +71,7 @@ export interface WorkspacePlugin {
   readonly publicCatalog?: PublicCatalogSurface;
   /** Phase 11.6 — `?clone=tourId` wizard draft hydrator (DEC-P11-007). */
   readonly tourClone?: TourCloneHydrator;
-  /** Phase 12.0 — generic web wizard host behavior (DEC-P12-001). Denali first implementer. */
+  /** Phase 12.0 — generic web wizard host behavior (DEC-P12-001). */
   readonly wizardHost?: WorkspaceWizardHostHooks;
   /**
    * Thin Shell Phase 4r — host-facing capability bag (additive).

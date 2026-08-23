@@ -56,7 +56,7 @@ export function TourWorkspacePaymentOverrideActions({
     return null;
   }
 
-  const currency = invoice?.currency ?? "IRR";
+  const currency = invoice?.currency ?? "";
   const hasInvoice = invoice !== null;
   const savedAmountLabel =
     savedAmountMinor !== null ? formatMinorAmount(savedAmountMinor, currency, locale) : null;

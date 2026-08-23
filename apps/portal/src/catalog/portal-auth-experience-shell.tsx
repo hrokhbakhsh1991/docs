@@ -17,7 +17,7 @@ export type PortalAuthExperienceShellProps = {
   readonly children: ReactNode;
 };
 
-/** Shared Denali auth shell — login + catalog registration OTP steps (PS-VIS / PCMS-03). */
+/** Shared portal auth shell — login + catalog registration OTP steps (PS-VIS / PCMS-03). */
 export function PortalAuthExperienceShell({
   branding,
   backHref,

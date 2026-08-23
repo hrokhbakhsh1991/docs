@@ -15,10 +15,7 @@ describe("operator-login-ui-contract.spec.ts", () => {
     join(WEB_ROOT, "src/auth/navigate-after-auth-session-change.ts"),
     "utf8"
   );
-  const requestOtpRoute = readFileSync(
-    join(WEB_ROOT, "app/api/auth/request-otp/route.ts"),
-    "utf8"
-  );
+  const requestOtpRoute = readFileSync(join(WEB_ROOT, "app/api/auth/request-otp/route.ts"), "utf8");
   const loginSessionRoute = readFileSync(
     join(WEB_ROOT, "app/api/auth/login-web-session/route.ts"),
     "utf8"
@@ -38,6 +35,10 @@ describe("operator-login-ui-contract.spec.ts", () => {
   );
   const operatorShell = readFileSync(join(WEB_ROOT, "src/admin/shell/operator-shell.tsx"), "utf8");
 
+  it("WEB-LOGIN-UI-00 keeps dev owner login guidance product-generic", () => {
+    assert.doesNotMatch(loginForm, /Denali seed owner/);
+  });
+
   it("WEB-LOGIN-UI-01 login form uses OtpSegmentInput and coded error resolver", () => {
     assert.match(loginForm, /OtpSegmentInput/);
     assert.match(loginForm, /resolveLoginErrorMessage/);
@@ -54,12 +55,14 @@ describe("operator-login-ui-contract.spec.ts", () => {
       join(WEB_ROOT, "src/features/auth/otp-segment-input.tsx"),
       "utf8"
     );
-    const faAuth = JSON.parse(
-      readFileSync(join(WEB_ROOT, "messages/fa/auth.json"), "utf8")
-    ) as { readonly otpDigitLabel?: string; readonly otpLabel?: string };
-    const enAuth = JSON.parse(
-      readFileSync(join(WEB_ROOT, "messages/en/auth.json"), "utf8")
-    ) as { readonly otpDigitLabel?: string; readonly otpLabel?: string };
+    const faAuth = JSON.parse(readFileSync(join(WEB_ROOT, "messages/fa/auth.json"), "utf8")) as {
+      readonly otpDigitLabel?: string;
+      readonly otpLabel?: string;
+    };
+    const enAuth = JSON.parse(readFileSync(join(WEB_ROOT, "messages/en/auth.json"), "utf8")) as {
+      readonly otpDigitLabel?: string;
+      readonly otpLabel?: string;
+    };
     assert.match(otpInput, /data-otp-autofill-sink/);
     assert.match(otpInput, /aria-hidden="true"/);
     assert.match(otpInput, /tabIndex=\{-1\}/);

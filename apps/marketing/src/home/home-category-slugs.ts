@@ -1,4 +1,4 @@
-/** Denali tour-kind slugs mirrored for marketing category chip labels (canonical `category`). */
+/** Workspace category slugs mirrored for marketing category chip labels (canonical `category`). */
 export const HOME_CATEGORY_SLUGS = [
   "mountain_day",
   "mountain_multi",

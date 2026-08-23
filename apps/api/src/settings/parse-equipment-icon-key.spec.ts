@@ -35,6 +35,9 @@ describe("parseEquipmentIconKeyInput", () => {
   it("preserves neutral optional-field semantics", () => {
     assert.equal(parseEquipmentIconKeyInput(undefined), undefined);
     assert.equal(parseEquipmentIconKeyInput(null), null);
-    assert.equal(parseEquipmentIconKeyInput("  ", () => true), null);
+    assert.equal(
+      parseEquipmentIconKeyInput("  ", () => true),
+      null
+    );
   });
 });

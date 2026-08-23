@@ -3,6 +3,8 @@
  * Source: workspace.manifest.json per workspace package.
  * Regenerate: pnpm run generate:workspace-registry
  */
+/// <reference path="./workspace-theme-css.d.ts" />
+
 
 /** Starter workspace owns the default marketing L3 skin (Phase D.3). */
 export const WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN =
@@ -12,7 +14,6 @@ export const WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN =
 export const WORKSPACE_GUEST_MARKETING_THEME_REGISTRY = Object.freeze({
   "denali": Object.freeze(["theme/denali-marketing.css"]),
   "guest-club": Object.freeze(["theme/marketing/marketing.css"]),
-  "harbor": Object.freeze(["theme/marketing.css"]),
   "urban": Object.freeze(["theme/urban-marketing.css"]),
 }) as Readonly<Record<string, readonly string[]>>;
 
@@ -26,10 +27,6 @@ export async function importGuestMarketingThemeForPlugin(pluginId: string): Prom
 
     case "guest-club":
       await import("@app-tour/workspace-guest-club/theme/marketing/marketing.css");
-      return;
-
-    case "harbor":
-      await import("@app-tour/workspace-harbor/theme/marketing.css");
       return;
 
     case "urban":

@@ -13,7 +13,8 @@ export async function fetchPublicTenantBrandingForHost(
   host: string,
   locale?: "fa" | "en" | null
 ): Promise<PublicTenantBrandingSnapshot> {
-  const resolvedLocale = locale ?? ((await getLocale()) === "fa" ? "fa" : "en");
+  const resolvedLocale =
+    locale === undefined ? ((await getLocale()) === "fa" ? "fa" : "en") : locale;
   return fetchGuestPublicTenantBrandingForHost(host, {
     apiBaseUrl: resolveTourOpsApiBaseUrl(),
     onBeforeFetch: assertGuestBffProductionConfig,

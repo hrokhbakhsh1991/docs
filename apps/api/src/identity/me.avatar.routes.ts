@@ -15,6 +15,18 @@ import {
 import { assertOperatorAvatarUploadContentType } from "./operator-avatar-storage";
 import { requireOperatorSession } from "./require-operator-session";
 
+function readOperatorAvatarInvalidBodyErrorCode(error: unknown): string | null {
+  const message = error instanceof Error ? error.message : String(error);
+  const token = message.split(":", 1)[0]?.trim() ?? "";
+  if (token.length === 0) {
+    return null;
+  }
+  if (token === "CONTENT_TYPE_REQUIRED" || token.startsWith("OPERATOR_AVATAR_")) {
+    return token;
+  }
+  return null;
+}
+
 function mapOperatorAvatarError(res: ServerResponse, error: unknown): void {
   if (error instanceof MembershipNotFoundError) {
     sendHttpError(res, 404, { error: "not_found", code: error.code, userId: error.userId });
@@ -29,12 +41,9 @@ function mapOperatorAvatarError(res: ServerResponse, error: unknown): void {
     sendHttpError(res, 404, { error: "not_found", code: "OPERATOR_AVATAR_NOT_SET" });
     return;
   }
-  if (
-    message.startsWith("OPERATOR_AVATAR_") ||
-    message === "CONTENT_TYPE_REQUIRED" ||
-    message.includes("CONTENT_TYPE")
-  ) {
-    sendHttpError(res, 400, { error: "invalid_body", code: message });
+  const invalidBodyCode = readOperatorAvatarInvalidBodyErrorCode(error);
+  if (invalidBodyCode !== null) {
+    sendHttpError(res, 400, { error: "invalid_body", code: invalidBodyCode });
     return;
   }
   handleHttpError(res, error);

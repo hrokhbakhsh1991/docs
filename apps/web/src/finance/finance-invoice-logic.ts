@@ -12,8 +12,7 @@ export type RegistrationInvoice = {
   readonly walletNetMinor: string;
 };
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function parseRegistrationInvoice(raw: unknown): RegistrationInvoice | null {
   if (raw === null || typeof raw !== "object") {
@@ -26,7 +25,7 @@ export function parseRegistrationInvoice(raw: unknown): RegistrationInvoice | nu
   }
   return {
     registrationId,
-    currency: String(record.currency ?? "IRR"),
+    currency: String(record.currency ?? ""),
     invoiceTotalMinor: String(record.invoiceTotalMinor ?? "0"),
     paidAmountMinor: String(record.paidAmountMinor ?? "0"),
     balanceDueMinor: String(record.balanceDueMinor ?? "0"),

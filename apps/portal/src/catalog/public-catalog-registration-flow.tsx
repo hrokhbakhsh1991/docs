@@ -58,7 +58,49 @@ export type PublicCatalogRegistrationFlowProps = {
 
 type SessionResumeStatus = "checking" | "ready";
 
-export function PublicCatalogRegistrationFlow({
+export function PublicCatalogRegistrationFlow(props: PublicCatalogRegistrationFlowProps) {
+  const t = useTranslations("catalogRegistration");
+  const [registrationClientReady, setRegistrationClientReady] = useState(() => {
+    return (
+      getWorkspaceRegistrationFlowPlugin(props.workspace) !== null &&
+      getWorkspaceRegistrationFlowSteps(props.workspace) !== null
+    );
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    const alreadyReady =
+      getWorkspaceRegistrationFlowPlugin(props.workspace) !== null &&
+      getWorkspaceRegistrationFlowSteps(props.workspace) !== null;
+    if (alreadyReady) {
+      setRegistrationClientReady(true);
+      return () => {
+        cancelled = true;
+      };
+    }
+    setRegistrationClientReady(false);
+    void ensureWorkspaceRegistrationFlowClient(props.workspace).then(() => {
+      if (!cancelled) {
+        setRegistrationClientReady(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [props.workspace]);
+
+  if (!registrationClientReady) {
+    return (
+      <div data-public-registration-flow data-registration-bootstrap-pending aria-busy="true">
+        <p role="status">{t("sessionResume.pending")}</p>
+      </div>
+    );
+  }
+
+  return <PublicCatalogRegistrationFlowReady {...props} />;
+}
+
+function PublicCatalogRegistrationFlowReady({
   workspace,
   tenantId,
   tourId,
@@ -80,7 +122,6 @@ export function PublicCatalogRegistrationFlow({
   existingSelfRegistrationId = null,
 }: PublicCatalogRegistrationFlowProps) {
   const t = useTranslations("catalogRegistration");
-  ensureWorkspaceRegistrationFlowClient(workspace);
   const flowPlugin = getWorkspaceRegistrationFlowPlugin(workspace);
   const steps = getWorkspaceRegistrationFlowSteps(workspace);
   const transport = useMemo(() => createPortalSameOriginGuestAuthTransport(), []);

@@ -1,6 +1,6 @@
 /**
  * Pure CaseOutput → CaseEncounterView projection (PR6-A).
- * No rules/*, no writes, no Denali, no interpretation.
+ * No rules/*, no writes, no product adapters, no interpretation.
  */
 
 import type { CaseOutput, CompletenessClass } from "../output/case-output";

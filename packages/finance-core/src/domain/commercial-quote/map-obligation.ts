@@ -1,6 +1,6 @@
 /**
  * Map live obligation resolution → commercial quote freeze input (CQ-1B / CQ-1D).
- * No Denali / workspace imports — consumes FinanceRegistrationObligation shape only.
+ * No workspace imports — consumes FinanceRegistrationObligation shape only.
  */
 
 import { isZeroObligationMinor } from "../obligation-override";

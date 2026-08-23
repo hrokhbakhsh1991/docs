@@ -25,7 +25,11 @@ describe("finance-registration-payment-actions.spec.ts", () => {
   it("resets local form and banner state when registration changes", () => {
     assert.match(source, /useEffect\(\(\) => \{/);
     assert.match(source, /setAmount\(""\)/);
-    assert.match(source, /setCurrency\("IRR"\)/);
+    assert.match(source, /const DEFAULT_PAYMENT_CURRENCY = ""/);
+    assert.match(source, /useState\(DEFAULT_PAYMENT_CURRENCY\)/);
+    assert.match(source, /setCurrency\(DEFAULT_PAYMENT_CURRENCY\)/);
+    assert.match(source, /setCurrency\(invoice\.currency\)/);
+    assert.doesNotMatch(source, /setCurrency\("IRR"\)/);
     assert.match(source, /setActionBanner\(null\)/);
     assert.match(source, /setReceiptForm\(EMPTY_RECEIPT_FORM\)/);
     assert.match(source, /setAdvancedOpen\(false\)/);

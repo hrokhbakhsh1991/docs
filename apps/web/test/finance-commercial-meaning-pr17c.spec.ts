@@ -111,7 +111,7 @@ describe("PR17-C commercial meaning feedback", () => {
     const names = readdirSync(FINANCE_SRC).filter(
       (n) =>
         n.includes("commercial-meaning") ||
-        n === "denali-case-encounter-panel.tsx" ||
+        n === "finance-case-encounter-panel.tsx" ||
         n === "finance-command-center-view.ts"
     );
     for (const name of names) {

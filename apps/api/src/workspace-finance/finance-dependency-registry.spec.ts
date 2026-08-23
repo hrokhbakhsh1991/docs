@@ -10,6 +10,7 @@ import {
   resolveFinanceBookingPayments,
   resolveFinanceLedgerPolicy,
   resolveFinanceReceiptDefaults,
+  resolveFinanceWorkspaceDependencies,
 } from "./finance-dependency-registry.ts";
 import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter.ts";
 import { DenaliFinanceLedgerPolicyAdapter } from "@app-tour/workspace-denali";
@@ -21,6 +22,7 @@ import {
 } from "@app-tour/workspace-finance-ws2";
 import { FinanceWs2LedgerPolicyAdapter } from "@app-tour/workspace-finance-ws2";
 import { FinanceWs2ReceiptDefaultsAdapter } from "@app-tour/workspace-finance-ws2";
+import type { FinanceService } from "./finance.service.ts";
 
 const DENALI = "denali";
 const WS2 = FINANCE_WS2_WORKSPACE_TYPE;
@@ -74,8 +76,7 @@ describe("finance-dependency-registry", { concurrency: false }, () => {
     await assert.rejects(
       () => resolveFinanceReceiptDefaults("not-a-workspace"),
       (error: unknown) =>
-        error instanceof Error &&
-        error.message.startsWith("FINANCE_RECEIPT_DEFAULTS_UNSUPPORTED:")
+        error instanceof Error && error.message.startsWith("FINANCE_RECEIPT_DEFAULTS_UNSUPPORTED:")
     );
   });
 
@@ -136,7 +137,10 @@ describe("finance-dependency-registry", { concurrency: false }, () => {
     const accounts = capture.lines.map((line) => line.account);
     assert.deepEqual(
       accounts.sort(),
-      [FINANCE_WS2_LEDGER_ACCOUNTS.OPERATOR_CASH_CLEARING, financeWs2BookingWalletId(registrationId)].sort()
+      [
+        FINANCE_WS2_LEDGER_ACCOUNTS.OPERATOR_CASH_CLEARING,
+        financeWs2BookingWalletId(registrationId),
+      ].sort()
     );
     assert.ok(!accounts.some((a) => a.startsWith("gl:") || a.startsWith("booking:")));
     assert.equal(capture.domainEventId, `payment:${paymentId}:ledger-capture-anchor`);
@@ -144,6 +148,7 @@ describe("finance-dependency-registry", { concurrency: false }, () => {
 
   it("FIN-REG-11 registered workspace types include denali and finance-ws*", () => {
     assert.deepEqual(listRegisteredFinanceWorkspaceTypes(), [
+      "alpine",
       DENALI,
       WS2,
       "finance-ws3",
@@ -163,6 +168,114 @@ describe("finance-dependency-registry", { concurrency: false }, () => {
       () => resolveFinanceBookingPayments("urban"),
       (error: unknown) =>
         error instanceof Error && error.message.startsWith("FINANCE_BOOKING_PAYMENT_UNSUPPORTED:")
+    );
+  });
+
+  it("FIN-REG-14 denali registers a finance-service decorator; ws2 does not", async () => {
+    const denali = await resolveFinanceWorkspaceDependencies(DENALI);
+    const ws2 = await resolveFinanceWorkspaceDependencies(WS2);
+    assert.equal(typeof denali.decorateFinanceService, "function");
+    assert.equal(ws2.decorateFinanceService, undefined);
+  });
+
+  it("FIN-REG-15 denali decorator preserves finance return values", async () => {
+    const denali = await resolveFinanceWorkspaceDependencies(DENALI);
+    assert.equal(typeof denali.decorateFinanceService, "function");
+
+    const service = {
+      async createManualPayment() {
+        return { paymentId: "p-1", status: "pending" as const };
+      },
+      async submitReceipt() {
+        return { receiptId: "r-1", status: "submitted" as const };
+      },
+      async reviewReceipt() {
+        return { receiptId: "r-1", status: "approved" as const };
+      },
+      async getRegistrationInvoice() {
+        return { invoiceId: "inv-1", totalMinor: "1000" };
+      },
+    } as unknown as FinanceService;
+
+    const wrapped = denali.decorateFinanceService!(service, {
+      env: { FINANCE_CASE_SHADOW_ENABLED: "false" },
+      bookings: {
+        async getById() {
+          return null;
+        },
+      },
+      finance: {
+        async findLatestReceiptForRegistration() {
+          return null;
+        },
+        async getRegistrationInvoiceFacts() {
+          return {
+            prepaymentMinor: "0",
+            paidPaymentsMinor: "0",
+            paymentAmountsMinor: [],
+            currency: "IRR",
+          };
+        },
+        async findPaymentStatusesByRegistration() {
+          return [];
+        },
+        async findFirstPendingManualPayment() {
+          return null;
+        },
+        async listPendingReceipts() {
+          return { rows: [], nextCursor: null, hasMore: false };
+        },
+        async listLedgerEvents() {
+          return [];
+        },
+        async findPaymentById() {
+          return null;
+        },
+        async findReceiptById() {
+          return null;
+        },
+      },
+      obligation: {
+        async resolveRegistrationObligation() {
+          return { currency: "IRR", obligationMinor: "1000", source: "tour_canonical" as const };
+        },
+        async resolveRegistrationPaymentCollection() {
+          return "offline" as const;
+        },
+      },
+    });
+
+    assert.equal(wrapped, service);
+    assert.deepEqual(
+      await wrapped.createManualPayment(
+        { tenantId: "t-1", userId: "u-1", roles: [] } as never,
+        { registrationId: "reg-1" } as never,
+        "idem-1"
+      ),
+      { paymentId: "p-1", status: "pending" }
+    );
+    assert.deepEqual(
+      await wrapped.submitReceipt(
+        { tenantId: "t-1", userId: "u-1", roles: [] } as never,
+        { paymentId: "pay-1" } as never,
+        "idem-2"
+      ),
+      { receiptId: "r-1", status: "submitted" }
+    );
+    assert.deepEqual(
+      await wrapped.reviewReceipt(
+        { tenantId: "t-1", userId: "u-1", roles: [] } as never,
+        "receipt-1",
+        { decision: "Approved" } as never
+      ),
+      { receiptId: "r-1", status: "approved" }
+    );
+    assert.deepEqual(
+      await wrapped.getRegistrationInvoice(
+        { tenantId: "t-1", userId: "u-1", roles: [] } as never,
+        "reg-1"
+      ),
+      { invoiceId: "inv-1", totalMinor: "1000" }
     );
   });
 });

@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { before, describe, it } from "node:test";
+import { after, before, describe, it } from "node:test";
 
 import { OPERATOR_WIZARD_PATH } from "../src/admin/require-operator-session";
 import { ensureTourListCategorySurface } from "../src/features/tours/tour-list-category-registry";
@@ -34,10 +34,20 @@ import {
 import { formatLocalizedNumber } from "../src/i18n/format-localized-digits";
 
 const PLUGIN_ID = "denali";
+const previousAllowDenaliWebPlugin = process.env.ALLOW_DENALI_WEB_PLUGIN;
 
 describe("tours-list.spec.ts — Phase 9.3 Web", () => {
   before(async () => {
+    process.env.ALLOW_DENALI_WEB_PLUGIN = "true";
     await ensureTourListCategorySurface(PLUGIN_ID);
+  });
+
+  after(() => {
+    if (previousAllowDenaliWebPlugin === undefined) {
+      delete process.env.ALLOW_DENALI_WEB_PLUGIN;
+      return;
+    }
+    process.env.ALLOW_DENALI_WEB_PLUGIN = previousAllowDenaliWebPlugin;
   });
 
   it("WEB-9.3-01 tour list exposes page landmarks (CP-9.3-L06)", () => {
@@ -123,37 +133,36 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
 
   it("WEB-9.3-05 empty catalog vs filter semantics (CP-9.3-L08)", () => {
     assert.equal(tourListQueryHasFilters(DEFAULT_TOUR_LIST_QUERY), false);
-    assert.equal(
-      tourListQueryHasFilters({ ...DEFAULT_TOUR_LIST_QUERY, search: "desert" }),
-      true
-    );
+    assert.equal(tourListQueryHasFilters({ ...DEFAULT_TOUR_LIST_QUERY, search: "desert" }), true);
     assert.equal(TOURS_LIST_TEST_IDS.emptyCatalog, "operator-tours-empty-catalog");
     assert.equal(TOURS_LIST_TEST_IDS.empty, "operator-tours-empty");
   });
 
   it("tour list formatters produce stable card meta labels", () => {
     assert.equal(formatTourPrice(1200, "USD", "en"), "$1,200");
+    assert.equal(formatTourPrice(1200, "", "en"), null);
+    assert.equal(formatTourPrice(1200, null, "fa"), null);
     const departure = formatTourDeparture("2026-07-15T12:00:00.000Z", "en");
     assert.ok(departure !== null && departure.includes("2026"));
     assert.equal(formatTourSeats({ acceptedCount: 3, totalCapacity: 12 }), "3/12 seats");
   });
 
   it("ED-CURR-01 Denali IRR operator price uses toman label without conversion", () => {
-    assert.equal(formatTourPrice(1200, "IRR", "en", "denali"), "1,200 toman");
+    const tomanPolicy = { irrDisplayUnit: "toman" as const };
+    assert.equal(formatTourPrice(1200, "IRR", "en", tomanPolicy), "1,200 toman");
     assert.equal(
-      formatTourPrice(1200, "IRR", "fa", "denali"),
+      formatTourPrice(1200, "IRR", "fa", tomanPolicy),
       `${formatLocalizedNumber(1200, "fa")} تومان`
     );
-    assert.equal(formatTourPrice(1200, "IRR", "fa", "denali")?.includes("ریال") ?? true, false);
-    assert.equal(formatTourPrice(1200, "USD", "en", "denali"), "$1,200");
-    const harborIrr = formatTourPrice(1200, "IRR", "en", "harbor");
+    assert.equal(formatTourPrice(1200, "IRR", "fa", tomanPolicy)?.includes("ریال") ?? true, false);
+    assert.equal(formatTourPrice(1200, "USD", "en", tomanPolicy), "$1,200");
+    const harborIrr = formatTourPrice(1200, "IRR", "en");
     assert.equal(harborIrr?.includes("toman") ?? true, false);
   });
 
   it("ED-TZ-01 formatTourDeparture uses local wall clock (not naive ISO-Z digits)", async () => {
-    const { formatDatetimeLocalLabel, isoToDatetimeLocalInput } = await import(
-      "../src/i18n/datetime-format"
-    );
+    const { formatDatetimeLocalLabel, isoToDatetimeLocalInput } =
+      await import("../src/i18n/datetime-format");
     const iso = "2026-08-15T02:30:00.000Z";
     const expected = formatDatetimeLocalLabel(isoToDatetimeLocalInput(iso), "en");
     assert.equal(formatTourDeparture(iso, "en"), expected);
@@ -196,7 +205,10 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
           format.seatsOpen.replace("{accepted, number}", formatLocalizedNumber(accepted, "fa")),
       }
     );
-    assert.equal(seatsLabel, `${formatLocalizedNumber(3, "fa")}/${formatLocalizedNumber(12, "fa")} نفر`);
+    assert.equal(
+      seatsLabel,
+      `${formatLocalizedNumber(3, "fa")}/${formatLocalizedNumber(12, "fa")} نفر`
+    );
     const faPrice = formatTourPrice(1200, "USD", "fa");
     assert.notEqual(faPrice, "$1,200");
     assert.equal(faPrice?.includes("۲۰۰") ?? faPrice?.includes("200"), true);

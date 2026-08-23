@@ -3,15 +3,17 @@ import { describe, it } from "node:test";
 
 import {
   EXPECTED_PRISMA_MIGRATION_HEAD,
+  assertMigrationChecksumsMatch,
   assertMigrationHeadMatches,
+  formatMigrationChecksumMismatch,
   formatMigrationHeadMismatch,
 } from "./migration-head-preflight";
 
 describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
-  it("expected head matches tip migration folder (active_self_unique)", () => {
+  it("expected head matches tip migration folder (operator_user_role_audit_app_tour_grants)", () => {
     assert.equal(
       EXPECTED_PRISMA_MIGRATION_HEAD,
-      "20260810120000_operator_registration_active_self_unique"
+      "20260821100000_operator_user_role_audit_app_tour_grants"
     );
   });
 
@@ -35,6 +37,37 @@ describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
     assert.equal(
       formatMigrationHeadMismatch("expected", undefined),
       "PRODUCTION_MIGRATION_HEAD_MISMATCH:expected:none"
+    );
+  });
+
+  it("accepts matching migration checksums", () => {
+    assert.doesNotThrow(() =>
+      assertMigrationChecksumsMatch(
+        [{ migration_name: "20260101000000_example", checksum: "abc123" }],
+        [{ migration_name: "20260101000000_example", checksum: "abc123" }]
+      )
+    );
+  });
+
+  it("throws on checksum drift with structured message", () => {
+    assert.throws(
+      () =>
+        assertMigrationChecksumsMatch(
+          [{ migration_name: "20260101000000_example", checksum: "old" }],
+          [{ migration_name: "20260101000000_example", checksum: "new" }]
+        ),
+      /PRODUCTION_MIGRATION_CHECKSUM_MISMATCH:20260101000000_example:new:old/
+    );
+  });
+
+  it("throws on missing local or missing DB migration rows", () => {
+    assert.equal(
+      formatMigrationChecksumMismatch("missing-local", undefined, "db"),
+      "PRODUCTION_MIGRATION_CHECKSUM_MISMATCH:missing-local:missing_local:db"
+    );
+    assert.equal(
+      formatMigrationChecksumMismatch("missing-db", "local", undefined),
+      "PRODUCTION_MIGRATION_CHECKSUM_MISMATCH:missing-db:local:missing_db"
     );
   });
 });

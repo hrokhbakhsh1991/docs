@@ -42,6 +42,7 @@ export function FinanceRefundsPanel() {
   const registrationFilter = searchParams.get("registrationId")?.trim() || "";
   const paymentPrefill = searchParams.get("paymentId")?.trim() || "";
   const amountPrefill = searchParams.get("amountMinor")?.trim() || "";
+  const currencyPrefill = searchParams.get("currency")?.trim().toUpperCase() || "";
 
   const [items, setItems] = useState<readonly FinanceRefundListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,12 +122,7 @@ export function FinanceRefundsPanel() {
   );
 
   const runMutation = useCallback(
-    async (
-      refundId: string,
-      path: string,
-      body?: Record<string, unknown>,
-      idempotent = false
-    ) => {
+    async (refundId: string, path: string, body?: Record<string, unknown>, idempotent = false) => {
       setBusyId(refundId);
       setActionError(null);
       setCompleteHandoff(null);
@@ -164,20 +160,17 @@ export function FinanceRefundsPanel() {
             (typeof responseBody.registrationId === "string" &&
             responseBody.registrationId.trim().length > 0
               ? responseBody.registrationId.trim()
-              : null) ?? fromList?.registrationId ?? null;
+              : null) ??
+            fromList?.registrationId ??
+            null;
           if (
             invoice &&
             typeof invoice.remainingMinor === "string" &&
             typeof invoice.currency === "string"
           ) {
-            const remaining = formatMinorAmount(
-              invoice.remainingMinor,
-              invoice.currency,
-              locale
-            );
+            const remaining = formatMinorAmount(invoice.remainingMinor, invoice.currency, locale);
             const remainingDigits = invoice.remainingMinor.replace(/\D/g, "");
-            const reopened =
-              remainingDigits.length > 0 && remainingDigits !== "0";
+            const reopened = remainingDigits.length > 0 && remainingDigits !== "0";
             setActionSuccess(
               reopened
                 ? t("completeSuccessReopened", { remaining })
@@ -193,11 +186,7 @@ export function FinanceRefundsPanel() {
             }
           } else {
             setActionSuccess(t("completeSuccess"));
-            setCompleteHandoff(
-              registrationId
-                ? { registrationId, showOutstanding: false }
-                : null
-            );
+            setCompleteHandoff(registrationId ? { registrationId, showOutstanding: false } : null);
           }
         } else {
           setActionSuccess(null);
@@ -268,11 +257,10 @@ export function FinanceRefundsPanel() {
     t,
   ]);
 
-  const empty = useMemo(() => !loading && items.length === 0 && error === null, [
-    loading,
-    items.length,
-    error,
-  ]);
+  const empty = useMemo(
+    () => !loading && items.length === 0 && error === null,
+    [loading, items.length, error]
+  );
 
   return (
     <div className="space-y-4" data-testid={FINANCE_REFUNDS_TEST_IDS.panel}>
@@ -291,9 +279,7 @@ export function FinanceRefundsPanel() {
               data-testid={FINANCE_REFUNDS_TEST_IDS.statusFilter}
               className="h-9 rounded-md border bg-background px-2 text-sm"
               value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter((e.target.value || "") as "" | RefundStatus)
-              }
+              onChange={(e) => setStatusFilter((e.target.value || "") as "" | RefundStatus)}
             >
               <option value="">{t("statusAll")}</option>
               {REFUND_STATUSES.map((status) => (
@@ -347,7 +333,11 @@ export function FinanceRefundsPanel() {
             </div>
           ) : null}
           {actionError ? (
-            <p className="text-sm text-destructive" role="alert" data-testid={FINANCE_REFUNDS_TEST_IDS.error}>
+            <p
+              className="text-sm text-destructive"
+              role="alert"
+              data-testid={FINANCE_REFUNDS_TEST_IDS.error}
+            >
               {actionError}
             </p>
           ) : null}
@@ -364,12 +354,12 @@ export function FinanceRefundsPanel() {
             {paymentPrefill ? (
               <p className="text-xs text-muted-foreground">{t("requestFromPaymentHint")}</p>
             ) : null}
-            {reqAmount.trim().length > 0 ? (
+            {reqAmount.trim().length > 0 && currencyPrefill.length > 0 ? (
               <p
                 className="text-lg font-semibold tabular-nums"
                 data-testid={FINANCE_REFUNDS_TEST_IDS.amountHero}
               >
-                {formatMinorAmount(reqAmount.trim(), "IRR", locale)}
+                {formatMinorAmount(reqAmount.trim(), currencyPrefill, locale)}
               </p>
             ) : null}
             <div className="grid gap-2 sm:grid-cols-2">
@@ -540,7 +530,10 @@ export function FinanceRefundsPanel() {
                         </span>
                       ) : null}
                     </p>
-                    <p className="text-sm font-medium" data-testid={FINANCE_REFUNDS_TEST_IDS.amount}>
+                    <p
+                      className="text-sm font-medium"
+                      data-testid={FINANCE_REFUNDS_TEST_IDS.amount}
+                    >
                       {formatMinorAmount(item.amountMinor, item.currency, locale)}
                     </p>
                     <p className="text-xs text-muted-foreground">

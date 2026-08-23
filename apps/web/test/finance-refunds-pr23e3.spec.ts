@@ -93,10 +93,7 @@ describe("finance-refunds-pr23e3", () => {
   });
 
   it("maps server cap / transition errors", () => {
-    assert.equal(
-      mapRefundMutationHttpError(409, { code: "REFUND_OVER_CAP" }),
-      "REFUND_OVER_CAP"
-    );
+    assert.equal(mapRefundMutationHttpError(409, { code: "REFUND_OVER_CAP" }), "REFUND_OVER_CAP");
     assert.equal(
       mapRefundMutationHttpError(409, { code: "REFUND_NOT_TRANSITIONABLE" }),
       "REFUND_NOT_TRANSITIONABLE"
@@ -113,18 +110,12 @@ describe("finance-refunds-pr23e3", () => {
   });
 
   it("logic forbids client money arithmetic", () => {
-    const logic = readFileSync(
-      resolve(WEB_ROOT, "src/finance/finance-refunds-logic.ts"),
-      "utf8"
-    );
+    const logic = readFileSync(resolve(WEB_ROOT, "src/finance/finance-refunds-logic.ts"), "utf8");
     assert.equal(financeRefundsLogicForbidsClientMoneyMath(logic), true);
   });
 
   it("panel wires Complete / reject / cancel without PSP", () => {
-    const panel = readFileSync(
-      resolve(WEB_ROOT, "src/finance/finance-refunds-panel.tsx"),
-      "utf8"
-    );
+    const panel = readFileSync(resolve(WEB_ROOT, "src/finance/finance-refunds-panel.tsx"), "utf8");
     assert.match(panel, /\/api\/finance\/refunds\/\$\{item\.id\}\/complete/);
     assert.match(panel, /\/api\/finance\/refunds\/\$\{item\.id\}\/reject/);
     assert.match(panel, /\/api\/finance\/refunds\/\$\{item\.id\}\/cancel/);
@@ -132,13 +123,26 @@ describe("finance-refunds-pr23e3", () => {
     assert.doesNotMatch(panel, /walletNet|refundableRemaining/);
   });
 
+  it("refund prefill preview uses payment currency instead of inventing IRR", () => {
+    const panel = readFileSync(resolve(WEB_ROOT, "src/finance/finance-refunds-panel.tsx"), "utf8");
+    const payments = readFileSync(
+      resolve(WEB_ROOT, "src/finance/finance-payments-panel.tsx"),
+      "utf8"
+    );
+
+    assert.match(payments, /currency=\$\{encodeURIComponent\(row\.currency\)\}/);
+    assert.match(panel, /searchParams\.get\("currency"\)/);
+    assert.match(panel, /formatMinorAmount\(reqAmount\.trim\(\), currencyPrefill, locale\)/);
+    assert.doesNotMatch(panel, /formatMinorAmount\(reqAmount\.trim\(\), "IRR", locale\)/);
+  });
+
   it("FA/EN refund vocabulary distinct from payment Pending", () => {
-    const en = JSON.parse(
-      readFileSync(resolve(WEB_ROOT, "messages/en/finance.json"), "utf8")
-    ) as { refunds: Record<string, string> };
-    const fa = JSON.parse(
-      readFileSync(resolve(WEB_ROOT, "messages/fa/finance.json"), "utf8")
-    ) as { refunds: Record<string, string> };
+    const en = JSON.parse(readFileSync(resolve(WEB_ROOT, "messages/en/finance.json"), "utf8")) as {
+      refunds: Record<string, string>;
+    };
+    const fa = JSON.parse(readFileSync(resolve(WEB_ROOT, "messages/fa/finance.json"), "utf8")) as {
+      refunds: Record<string, string>;
+    };
     assert.equal(en.refunds.statusRequested, "Requested");
     assert.equal(en.refunds.statusCompleted, "Completed");
     assert.equal(fa.refunds.statusRequested, "درخواست‌شده");

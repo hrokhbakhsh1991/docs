@@ -126,6 +126,29 @@ describe("PR12-C Denali Encounter production readiness", () => {
     );
   });
 
+  it("1b — workspace without Case Meaning capability never enters live Case stack", async () => {
+    let executed = 0;
+    const result = await loadFinanceCaseEncounterHttp({
+      auth: operatorAuth(),
+      registrationId: "reg-ws5",
+      counterpartyId: "cp",
+      deps: {},
+      env: { FINANCE_CASE_ENCOUNTER_MODE: "full" },
+      authorization: { assertOperatorAccess() {} },
+      resolveWorkspaceType: async () => "finance-ws5",
+      warmFinanceService: async () => {
+        executed += 1;
+      },
+      loadPresentation: undefined,
+    });
+
+    assert.equal(result.status, 503);
+    if (result.status === 503) {
+      assert.equal(result.error.code, "CASE_ENCOUNTER_UNAVAILABLE");
+    }
+    assert.equal(executed, 0);
+  });
+
   it("2 — Slow provider => bounded response + unknown/degraded preserved", async () => {
     const inner = new InMemoryPaymentGateway();
     const slow: typeof inner = {
@@ -206,7 +229,10 @@ describe("PR12-C Denali Encounter production readiness", () => {
   });
 
   it("4 — FinanceService mutations unaffected", () => {
-    const httpLoader = readFileSync(join(ENCOUNTER_DIR, "load-finance-case-encounter-http.ts"), "utf8");
+    const httpLoader = readFileSync(
+      join(ENCOUNTER_DIR, "load-finance-case-encounter-http.ts"),
+      "utf8"
+    );
     const health = readFileSync(join(ENCOUNTER_DIR, "encounter-rollout-health.ts"), "utf8");
     assert.doesNotMatch(
       httpLoader,

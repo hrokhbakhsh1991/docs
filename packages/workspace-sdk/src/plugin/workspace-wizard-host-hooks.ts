@@ -34,7 +34,7 @@ export type WorkspaceWizardHostHooks = {
    * Shell calls this on the loaded plugin; must not require product id switches in apps/web.
    */
   readonly ensureReady?: () => Promise<void>;
-  /** Review/read-back step id (e.g. Denali `"review"`). Host reserves UX for this step. */
+  /** Review/read-back step id. Host reserves UX for this step. */
   readonly reviewStepId?: string;
   /** Show completion / quality header above the stepper. */
   readonly showCompletionHeader?: boolean;
@@ -43,13 +43,13 @@ export type WorkspaceWizardHostHooks = {
   /** Block step Next until workspace step validation passes. */
   readonly usesStepValidation?: boolean;
   /**
-   * Lazy workspace rules module (Denali: evaluateFormFieldRule bundle).
+   * Lazy workspace rules module.
    * Opaque to the host — only passed back into workspace-specific adapters.
    */
   readonly loadRulesModule?: () => Promise<unknown>;
   /**
    * Resolve rule matrix dimensions from canonical draft + optional rules module.
-   * Example: Denali category × duration from tour kind slug.
+   * Example: derive matrix dimensions from a category or duration slug.
    */
   readonly resolveMatrixDimensionsFromDraft?: (
     draft: Readonly<Record<string, unknown>>,
@@ -66,7 +66,7 @@ export type WorkspaceWizardHostHooks = {
   readonly usesReviewStep?: boolean;
   /**
    * Canonical path for the review-step field lifted from the engine plan (INV-WIZ-002).
-   * Denali: `"publishStatus"`. Host appends this field on the injected review step only.
+   * Host appends this field on the injected review step only.
    */
   readonly reviewFieldCanonicalPath?: string;
   /** Extra data-* attributes on wizard host root (workspace skin markers). */
@@ -77,7 +77,7 @@ export type WorkspaceWizardHostHooks = {
   readonly validationSurfaceId?: string;
   /** Registry key for composite field widgets (Phase 12.1b). */
   readonly compositeSurfaceId?: string;
-  /** next-intl namespace for workspace wizard copy (e.g. Denali `"denali"`). */
+  /** next-intl namespace for workspace wizard copy. */
   readonly wizardMessageNamespace?: string;
   /** Registry key for workspace field label resolver (Phase 12.1b). */
   readonly fieldLabelSurfaceId?: string;
@@ -183,7 +183,7 @@ export type WorkspaceWizardHostHooks = {
     readonly rulesModule: unknown;
     readonly evalContext: unknown;
     readonly rowVersion: number;
-    /** Phase 12.4c — save strips publish fields; publish sets active (Denali). Default save. */
+    /** Phase 12.4c — save strips publish fields; publish may set an active status. Default save. */
     readonly patchIntent?: "save" | "publish" | "unpublish";
     readonly catalog?: {
       readonly activeEquipmentIds?: readonly string[];

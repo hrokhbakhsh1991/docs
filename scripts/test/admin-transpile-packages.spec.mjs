@@ -42,6 +42,12 @@ const FIXTURES = [
     workspaceFinance: { registryOnly: true },
     themeStylesheets: ["theme/x.css"],
   },
+  {
+    id: "proof-fixture",
+    package: "@app-tour/workspace-proof-fixture",
+    clientBundle: { includeInDefault: false },
+    themeStylesheets: ["theme/proof.css"],
+  },
 ];
 
 describe("admin transpilePackages codegen (Wave G.a)", () => {
@@ -52,6 +58,15 @@ describe("admin transpilePackages codegen (Wave G.a)", () => {
     assert.ok(products.includes("@app-tour/workspace-urban"));
     assert.ok(products.includes("@app-tour/workspace-guest-club"));
     assert.ok(!products.includes("@app-tour/workspace-finance-ws2"));
+    assert.ok(!products.includes("@app-tour/workspace-proof-fixture"));
+  });
+
+  it("APPLY=1 may intentionally include a default-bundle opt-out workspace", () => {
+    const products = collectAdminProductTranspilePackages(FIXTURES, {
+      WORKSPACE_DEPLOY_PROFILE_APPLY: "1",
+      WORKSPACE_DEPLOY_PROFILE: "proof-fixture",
+    });
+    assert.deepEqual(products, ["@app-tour/workspace-proof-fixture"]);
   });
 
   it("generated module lists platform then products", () => {

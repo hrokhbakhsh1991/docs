@@ -45,6 +45,11 @@ function parseWizardPhotoUploadHeaders(
   return { sessionId, photoId, contentType };
 }
 
+export function readWizardPhotoDomainErrorCode(message: string): string | null {
+  const token = message.split(":", 1)[0]?.trim() ?? "";
+  return /^[A-Z0-9_]+_PHOTO_[A-Z0-9_]+$/.test(token) ? token : null;
+}
+
 /** Same message-code pattern as `mapBrandingError` in tenant-branding.routes.ts. */
 function mapWizardPhotoError(res: ServerResponse, error: unknown): void {
   const message = error instanceof Error ? error.message : String(error);
@@ -60,8 +65,9 @@ function mapWizardPhotoError(res: ServerResponse, error: unknown): void {
     sendHttpError(res, 503, { error: "service_unavailable", code: "PHOTO_STORAGE_UNAVAILABLE" });
     return;
   }
-  if (message.startsWith("DENALI_PHOTO_")) {
-    sendHttpError(res, 400, { error: "invalid_body", code: message });
+  const photoDomainCode = readWizardPhotoDomainErrorCode(message);
+  if (photoDomainCode !== null) {
+    sendHttpError(res, 400, { error: "invalid_body", code: photoDomainCode });
     return;
   }
   handleHttpError(res, error);
@@ -158,8 +164,7 @@ export async function handleGetWizardPhotoUrl(
     }
 
     const readKeyAllowed =
-      "isOperatorReadKeyAllowed" in media &&
-      typeof media.isOperatorReadKeyAllowed === "function"
+      "isOperatorReadKeyAllowed" in media && typeof media.isOperatorReadKeyAllowed === "function"
         ? media.isOperatorReadKeyAllowed(auth.tenantId, storageKey)
         : media.isDraftReadKeyAllowed(auth.tenantId, storageKey);
     if (!readKeyAllowed) {

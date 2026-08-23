@@ -39,4 +39,12 @@ describe("tour-workspace-admin-payment-card.spec.ts", () => {
     assert.match(source, /FinanceInvoiceBalanceCard[\s\S]*refreshKey=\{refreshKey\}/);
     assert.doesNotMatch(source, /setAdvancedOpen\(true\)/);
   });
+
+  it("does not default workspace payment currency to a product-specific value before invoice load", () => {
+    assert.match(source, /const DEFAULT_PAYMENT_CURRENCY = ""/);
+    assert.match(source, /useState\(DEFAULT_PAYMENT_CURRENCY\)/);
+    assert.match(source, /setCurrency\(DEFAULT_PAYMENT_CURRENCY\)/);
+    assert.match(source, /setCurrency\(invoice\.currency\)/);
+    assert.doesNotMatch(source, /setCurrency\("IRR"\)/);
+  });
 });

@@ -75,8 +75,9 @@ function checkArchitectureGuard() {
   const depcruiseBin = guardDepcruiseBin();
   const r = IS_FOUNDATION_SCOPE
     ? spawnSync(
-        depcruiseBin,
+        process.execPath,
         [
+          depcruiseBin,
           "packages/workspace-sdk",
           "packages/config",
           "--config",

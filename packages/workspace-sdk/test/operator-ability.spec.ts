@@ -3,6 +3,7 @@
  * Authority: docs/phase-9/appendices/CASL-OPERATOR-SPEC.md
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import { buildTenantAuthz } from "../src/auth/tenant-authz";
@@ -102,6 +103,15 @@ describe("operator-ability.spec.ts — Phase 9.1", () => {
     );
   });
 
+  it("SDK-9.1-05b operator surface grant denies non-operator prefixes generically", () => {
+    const authz = authzFor("owner");
+    assert.equal(authz.canPerformOperatorSurface("alpine.settings.update"), false);
+    const source = readFileSync(new URL("../src/auth/operator-surface.ts", import.meta.url), {
+      encoding: "utf8",
+    });
+    assert.equal(source.includes('surface.startsWith("urban.")'), false);
+  });
+
   it("SDK-9.6-01 denali admin operator.settings.equipment.mutate", () => {
     const authz = authzFor("admin");
     assert.equal(authz.canPerformOperatorSurface("operator.settings.equipment.mutate"), true);
@@ -119,6 +129,9 @@ describe("operator-ability.spec.ts — Phase 9.1", () => {
 
   it("SDK-9.6-04 denali member allowed operator.settings.workspace_branding.read", () => {
     const authz = authzFor("member");
-    assert.equal(authz.canPerformOperatorSurface("operator.settings.workspace_branding.read"), true);
+    assert.equal(
+      authz.canPerformOperatorSurface("operator.settings.workspace_branding.read"),
+      true
+    );
   });
 });

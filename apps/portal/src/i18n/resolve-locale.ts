@@ -25,7 +25,7 @@ export async function resolveRequestLocale(): Promise<AppLocale> {
   const headerList = await headers();
   const host = headerList.get("host")?.trim() ?? "";
   if (host.length > 0) {
-    const branding = await fetchPublicTenantBrandingForHost(host);
+    const branding = await fetchPublicTenantBrandingForHost(host, null);
     return resolveAppLocale({
       cookieLocale: null,
       tenantDefaultLocale: branding.defaultLocale,

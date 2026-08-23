@@ -5,33 +5,26 @@
  * Exit 0 + "[]" when clean; exit 1 + JSON errors otherwise.
  */
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { guardDepcruiseBin } from "../../../../scripts/guards/lib/guard-require.mjs";
+import { guardDepcruiseMain } from "../../../../scripts/guards/lib/guard-require.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 const configPath = path.join(repoRoot, "dependency-cruiser.config.js");
-const depcruiseBin = guardDepcruiseBin();
+const { cruise } = await import(guardDepcruiseMain());
 const cruiseTarget = "packages/platform-core/src";
 
-const r = spawnSync(
-  depcruiseBin,
-  [cruiseTarget, "--config", configPath, "--output-type", "json"],
+const result = await cruise(
+  [cruiseTarget],
   {
-    cwd: repoRoot,
-    encoding: "utf8",
-    maxBuffer: 16 * 1024 * 1024,
+    outputType: "json",
+    config: { extends: configPath },
   },
+  { bustTheCache: true },
 );
 
-if (r.error) {
-  console.error(r.error.message);
-  process.exit(2);
-}
-
-const stdout = (r.stdout ?? "").trim();
+const stdout = String(result?.output ?? "").trim();
 if (!stdout) {
-  console.error((r.stderr ?? "depcruise produced no output").trim());
+  console.error("depcruise produced no output");
   process.exit(2);
 }
 

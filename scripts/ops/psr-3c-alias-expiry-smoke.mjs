@@ -33,6 +33,7 @@ if (!wf.includes("phase-0:foundation-gate")) {
 
 const { MAIN_BRANCH_REQUIRED_CHECKS } = require(join(root, "scripts/ops/main-branch-required-checks.mjs"));
 const expected = [
+  "Production readiness L3 release gate",
   "Phase 0 foundation gate",
   "Phase 0 integration gate",
   "Phase 1 platform-core gate",
@@ -54,8 +55,8 @@ if (/pnpm run guard:documentation-sync/.test(readme)) {
 }
 
 const execCount = Object.keys(scripts).filter((k) => !k.startsWith("//")).length;
-if (execCount !== 308) {
-  fail(`expected 308 executables, got ${execCount}`);
+if (execCount !== 323) {
+  fail(`expected 323 executables after PROD-3 gate tooling, got ${execCount}`);
 }
 
 if (!process.exitCode) {

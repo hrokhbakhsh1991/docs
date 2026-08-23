@@ -17,7 +17,7 @@ export type PortalMemberHeaderProps = {
 };
 
 /**
- * Compact member portal header (Denali Pocket / PS-VIS-5e).
+ * Compact member portal header (PS-VIS-5e).
  * Brand → marketing · member chip → profile.
  * Logout lives in side-rail footer (desktop) / profile session (mobile) — PS-VIS-5f.
  */

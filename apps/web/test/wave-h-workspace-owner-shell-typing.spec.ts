@@ -36,6 +36,16 @@ describe("Wave H.m — workspace-owner shell typing", () => {
     assert.doesNotMatch(page, /@app-cloud\/workspace-urban/);
   });
 
+  it("H.m-02b page binds access workspaceType from the resolved session", () => {
+    const page = readFileSync(join(ROUTE, "page.tsx"), "utf8");
+    assert.match(page, /const workspaceType = resolved\.session\.pluginId/);
+    assert.doesNotMatch(page, /:\s*["']starter["']/);
+    assert.doesNotMatch(
+      page,
+      /workspaceType\s*=\s*[\s\S]{0,120}\?\s*[\s\S]{0,120}:\s*["']starter["']/
+    );
+  });
+
   it("H.m-03 canLoad allowed branch render token is WorkspaceOwnerSettingsPanel", () => {
     const branch = resolveUrbanSettingsPageBranch({
       authz: {

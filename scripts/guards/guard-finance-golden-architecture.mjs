@@ -167,7 +167,10 @@ function runG5() {
     !/from\s+["']@app-tour\/workspace-denali["']/.test(dep) &&
     !/DenaliTourCreatedFinanceReactionAdapter/.test(react) &&
     !/new Map\(\[\[/.test(react);
-  const genHasTypes = /"denali"/.test(depG) && /"finance-ws2"/.test(depG) && /"denali"/.test(reactG);
+  const genHasTypes =
+    /\bdenali\b\s*:|["']denali["']/.test(depG) &&
+    /"finance-ws2"/.test(depG) &&
+    /\bdenali\b\s*:|["']denali["']/.test(reactG);
 
   const ok = usesGenerated && noHandAdapters && genHasTypes;
   record(

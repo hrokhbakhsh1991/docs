@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PSR-3a — assert the twelve public front doors resolve in root package.json.
+ * PSR-3a — assert the public front doors resolve in root package.json.
  * Does not run verify:full, db:migrate, generate, or heavy gates.
  */
 import { readFileSync } from "node:fs";
@@ -17,12 +17,16 @@ const doors = [
   "typecheck",
   "test",
   "verify:fast",
+  "verify:pr",
+  "verify:main",
   "verify:product",
   "verify:full",
   "generate",
   "workspace:create",
   "db:migrate",
   "release:verify",
+  "smoke:staging",
+  "smoke:production",
 ];
 
 const missing = doors.filter((k) => !scripts[k]);
@@ -41,7 +45,7 @@ const expect = {
   typecheck: "pnpm run lint",
   generate: "pnpm run generate:workspace-registry",
   "db:migrate": "pnpm run db:migrate:deploy",
-  "release:verify": "pnpm run verify:product",
+  "release:verify": "node scripts/ops/run-gate-catalog.mjs --tier=L3",
 };
 for (const [k, v] of Object.entries(expect)) {
   if (scripts[k] !== v) {
@@ -55,7 +59,7 @@ if (scripts["verify:fast"] === scripts["verify:product"] || scripts["verify:prod
   process.exit(1);
 }
 
-console.log("front-doors: present (12)");
+console.log(`front-doors: present (${doors.length})`);
 console.log("  release:verify →", scripts["release:verify"]);
 console.log("  generate →", scripts.generate);
 console.log("  db:migrate →", scripts["db:migrate"], "(DB side effect — not executed here)");

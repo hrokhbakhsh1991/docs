@@ -10,6 +10,8 @@ import type { FinanceSchedulePort } from "./ports/finance-schedule.port";
 import type { FinanceObligationPort } from "@app-tour/finance-http-contracts";
 import type { PaymentScheduleItem } from "./finance-schedule-domain";
 
+const TEST_FINANCE_WORKSPACE_TYPE = "finance-test";
+
 /** Memory-driver equivalent — skip durable ledger / degraded outbox side-effects. */
 export const fakeMemoryPersistenceMode: FinanceStorageDriverPort = {
   isDurablePersistence: () => false,
@@ -71,7 +73,7 @@ export const fakeFixedClock: FinanceClockPort = {
 /** Permissive capability — unit tests that already seed a finance-supported tenant. */
 export const fakePermissiveCapability: FinanceCapabilityPort = {
   async assertEnabled(_tenantId: string) {
-    return { workspaceType: "denali", theme: {} };
+    return { workspaceType: TEST_FINANCE_WORKSPACE_TYPE, theme: {} };
   },
 };
 

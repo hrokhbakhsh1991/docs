@@ -3,6 +3,8 @@
  * @see docs/phase-18/platform-workspace-commerce.mdoc
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 
 import {
@@ -20,6 +22,7 @@ import {
 
 const env = process.env as Record<string, string | undefined>;
 const envSnapshot = { WORKSPACE_METADATA_ENABLED: env.WORKSPACE_METADATA_ENABLED };
+const REPO_ROOT = join(import.meta.dirname, "../../..");
 
 afterEach(() => {
   if (envSnapshot.WORKSPACE_METADATA_ENABLED !== undefined) {
@@ -38,6 +41,7 @@ describe("workspace-metadata-commerce-inherit (P5-C N-004)", () => {
       metadataBinding: { definitionId: "starter-v1", definitionVersion: 1 },
     });
     assert.deepEqual(commerce, DEFAULT_WORKSPACE_COMMERCE_CONFIG);
+    assert.equal(commerce.currency, "");
   });
 
   it("inherits commerce block from bound definition payload", async () => {
@@ -89,6 +93,7 @@ describe("workspace-metadata-commerce-inherit (P5-C N-004)", () => {
     });
 
     assert.deepEqual(commerce, DEFAULT_WORKSPACE_COMMERCE_CONFIG);
+    assert.equal(commerce.currency, "");
   });
 
   it("denali workspace always resolves offline_receipt regardless of binding", async () => {
@@ -105,11 +110,26 @@ describe("workspace-metadata-commerce-inherit (P5-C N-004)", () => {
     assert.deepEqual(commerce, DENALI_FROZEN_COMMERCE_CONFIG);
   });
 
+  it("does not hide missing generated frozen commerce behind an API currency fallback", () => {
+    const source = readFileSync(
+      join(REPO_ROOT, "apps/api/src/workspace-metadata/resolve-workspace-commerce-for-tenant.ts"),
+      "utf8"
+    );
+    const publishMergeSource = readFileSync(
+      join(REPO_ROOT, "apps/api/src/workspace-metadata/persist-commerce-on-publish.ts"),
+      "utf8"
+    );
+
+    assert.match(source, /resolveRequiredFrozenWorkspaceCommerce\("denali"\)/);
+    assert.doesNotMatch(source, /currency:\s*"IRR"/);
+    assert.doesNotMatch(source, /resolveFrozenWorkspaceCommerce\("denali"\)\s*\?\?/);
+    assert.doesNotMatch(publishMergeSource, /Denali-compatible/);
+  });
+
   it("dev registry tenant resolves commerce without platform DB row", async () => {
     delete env.WORKSPACE_METADATA_ENABLED;
-    const { readTenantWorkspaceMetadataBinding } = await import(
-      "../src/workspace-metadata/read-tenant-workspace-metadata-binding.ts"
-    );
+    const { readTenantWorkspaceMetadataBinding } =
+      await import("../src/workspace-metadata/read-tenant-workspace-metadata-binding.ts");
     const binding = await readTenantWorkspaceMetadataBinding(
       "00000000-0000-4000-8000-000000000001",
       {
@@ -128,5 +148,6 @@ describe("workspace-metadata-commerce-inherit (P5-C N-004)", () => {
       metadataBinding: binding!.metadataBinding,
     });
     assert.deepEqual(commerce, DEFAULT_WORKSPACE_COMMERCE_CONFIG);
+    assert.equal(commerce.currency, "");
   });
 });

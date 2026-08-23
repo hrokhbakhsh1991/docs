@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 
 import { buildAuditMetadata, appendAuditEvent } from "./audit-logger";
@@ -19,8 +21,30 @@ describe("audit logger privacy (LOG-COL-03)", () => {
           title: "secret",
         },
       });
-      assert.deepEqual(metadata, { workspaceType: "starter" });
+      assert.deepEqual(metadata, { workspaceType: "unknown" });
     });
+  });
+
+  it("uses active workspace type when the tenant context supplies one", async () => {
+    await runWithTenantContext(
+      integrationTenantId(),
+      async () => {
+        const metadata = buildAuditMetadata({
+          action: "TOUR_CREATED",
+          entityType: "tour",
+          entityId: "00000000-0000-4000-8000-000000000001",
+          metadata: { workspaceType: "ignored-from-input" },
+        });
+        assert.deepEqual(metadata, { workspaceType: "denali" });
+      },
+      { workspaceType: "denali" }
+    );
+  });
+
+  it("does not invent starter workspace metadata", () => {
+    const source = readFileSync(join(import.meta.dirname, "audit-logger.ts"), "utf8");
+    assert.doesNotMatch(source, /getActiveWorkspaceType\(\)\s*\?\?\s*["']starter["']/);
+    assert.match(source, /getActiveWorkspaceType\(\)\s*\?\?\s*["']unknown["']/);
   });
 
   it("pseudonymizeAuditActorId is stable and tenant-scoped", () => {

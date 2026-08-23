@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 /**
  * Phase C — platform must not branch on workspace ids in guarded surfaces.
- * C1: no workspaceType === "urban" in apps/api/src (except generated + tests).
- * C2: no pluginId === "denali" in tours/wizard-template page clients.
- * C4: no isDenaliOperatorSession / isDenali / denali imports in guarded web surfaces.
- * C3: no @app-tour/workspace-denali imports in apps/marketing/src/catalog.
+ * C1: no workspaceType === "<workspace-id>" in apps/api/src (except generated + tests).
+ * C2: no pluginId === "<workspace-id>" in tours/wizard-template page clients.
+ * C3/C4: no product-local shims/imports in guarded shell/catalog surfaces.
  * @see docs/architecture/platform-architecture-v2.md
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -45,14 +44,42 @@ function isApiExcluded(rel) {
   if (rel.endsWith(".spec.ts")) {
     return true;
   }
-  if (rel === "apps/api/src/tenant/resolve-workspace-type.ts") {
-    return true;
-  }
   return false;
 }
 
-const urbanPattern = /workspaceType\s*===\s*["']urban["']/;
-const pluginIdPattern = /pluginId\s*===\s*["']denali["']/;
+const WORKSPACE_ID_LITERAL = String.raw`["'](?!(?:string|number|boolean|object|undefined|function|symbol|bigint|unknown|platform)["'])[a-z][a-z0-9-]*["']`;
+const WORKSPACE_TYPE_BRANCH_PATTERN = new RegExp(
+  String.raw`\bworkspaceType\s*(?:={2,3}|!={1,2})\s*${WORKSPACE_ID_LITERAL}|${WORKSPACE_ID_LITERAL}\s*(?:={2,3}|!={1,2})\s*\bworkspaceType\b`
+);
+const PLUGIN_ID_BRANCH_PATTERN = new RegExp(
+  String.raw`\bpluginId\s*(?:={2,3}|!={1,2})\s*${WORKSPACE_ID_LITERAL}|${WORKSPACE_ID_LITERAL}\s*(?:={2,3}|!={1,2})\s*\bpluginId\b`
+);
+const WORKSPACE_TYPE_FALLBACK_PATTERN = new RegExp(
+  String.raw`\bworkspaceType\b\s*(?:\?\?|\|\|)\s*${WORKSPACE_ID_LITERAL}|\bworkspaceType\b\s*=\s*[\s\S]{0,180}\?\s*[\s\S]{0,180}:\s*${WORKSPACE_ID_LITERAL}`
+);
+const PLUGIN_ID_FALLBACK_PATTERN = new RegExp(
+  String.raw`\bpluginId\b\s*(?:\?\?|\|\|)\s*${WORKSPACE_ID_LITERAL}|\bpluginId\b\s*=\s*[\s\S]{0,180}\?\s*[\s\S]{0,180}:\s*${WORKSPACE_ID_LITERAL}`
+);
+
+/** @param {string} line */
+export function hasWorkspaceTypeBranch(line) {
+  return WORKSPACE_TYPE_BRANCH_PATTERN.test(line);
+}
+
+/** @param {string} line */
+export function hasPluginIdBranch(line) {
+  return PLUGIN_ID_BRANCH_PATTERN.test(line);
+}
+
+/** @param {string} line */
+export function hasWorkspaceTypeFallback(line) {
+  return WORKSPACE_TYPE_FALLBACK_PATTERN.test(line);
+}
+
+/** @param {string} line */
+export function hasPluginIdFallback(line) {
+  return PLUGIN_ID_FALLBACK_PATTERN.test(line);
+}
 
 const API_ROOT = path.join(REPO_ROOT, "apps/api/src");
 const C2_TARGETS = [
@@ -105,8 +132,11 @@ for (const abs of walkTsFiles(API_ROOT)) {
   }
   const lines = readFileSync(abs, "utf8").split("\n");
   for (let i = 0; i < lines.length; i += 1) {
-    if (urbanPattern.test(lines[i])) {
-      violations.push(`${rel}:${i + 1}: forbidden workspaceType urban branch — ${lines[i].trim()}`);
+    if (hasWorkspaceTypeBranch(lines[i])) {
+      violations.push(`${rel}:${i + 1}: forbidden workspaceType branch — ${lines[i].trim()}`);
+    }
+    if (hasWorkspaceTypeFallback(lines[i])) {
+      violations.push(`${rel}:${i + 1}: forbidden workspaceType fallback — ${lines[i].trim()}`);
     }
   }
 }
@@ -118,8 +148,11 @@ for (const rel of C2_TARGETS) {
   }
   const lines = readFileSync(abs, "utf8").split("\n");
   for (let i = 0; i < lines.length; i += 1) {
-    if (pluginIdPattern.test(lines[i])) {
-      violations.push(`${rel}:${i + 1}: forbidden pluginId denali branch — ${lines[i].trim()}`);
+    if (hasPluginIdBranch(lines[i])) {
+      violations.push(`${rel}:${i + 1}: forbidden pluginId branch — ${lines[i].trim()}`);
+    }
+    if (hasPluginIdFallback(lines[i])) {
+      violations.push(`${rel}:${i + 1}: forbidden pluginId fallback — ${lines[i].trim()}`);
     }
   }
 }
@@ -139,7 +172,9 @@ for (const rel of C4_WEB_TARGETS) {
       violations.push(`${rel}:${i + 1}: forbidden isDenali local — ${lines[i].trim()}`);
     }
     if (denaliFieldIdPrefixPattern.test(lines[i])) {
-      violations.push(`${rel}:${i + 1}: forbidden denali fieldId prefix branch — ${lines[i].trim()}`);
+      violations.push(
+        `${rel}:${i + 1}: forbidden denali fieldId prefix branch — ${lines[i].trim()}`
+      );
     }
     if (denaliImportPattern.test(lines[i])) {
       violations.push(`${rel}:${i + 1}: forbidden workspace-denali import — ${lines[i].trim()}`);
@@ -154,7 +189,9 @@ for (const abs of walkTsFiles(MARKETING_CATALOG_ROOT)) {
   const lines = readFileSync(abs, "utf8").split("\n");
   for (let i = 0; i < lines.length; i += 1) {
     if (denaliImportPattern.test(lines[i])) {
-      violations.push(`${rel}:${i + 1}: forbidden workspace-denali import in marketing catalog — ${lines[i].trim()}`);
+      violations.push(
+        `${rel}:${i + 1}: forbidden workspace-denali import in marketing catalog — ${lines[i].trim()}`
+      );
     }
   }
 }

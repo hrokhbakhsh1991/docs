@@ -1,8 +1,3 @@
-/**
- * Denali presentation labels for Case Encounter (PR12-A / PR21-G5).
- * Product terminology only — never changes owner / posture / money meaning.
- */
-
 import {
   DEFAULT_CASE_ENCOUNTER_LABELS,
   type CaseEncounterLabelBundle,
@@ -12,7 +7,7 @@ type Translate = (key: string) => string;
 
 /**
  * Build locale-aware encounter chrome from `finance.caseEncounter` messages.
- * Domain enums stay display labels only — no semantic remapping.
+ * Domain enums stay display labels only; this layer performs no semantic remapping.
  */
 export function buildCaseEncounterLabels(t: Translate): CaseEncounterLabelBundle {
   return {
@@ -115,8 +110,8 @@ export function buildCaseEncounterLabels(t: Translate): CaseEncounterLabelBundle
   };
 }
 
-/** Static English Denali overlay (tests / non-locale call sites). */
-export const DENALI_CASE_ENCOUNTER_LABELS: CaseEncounterLabelBundle = {
+/** Static English overlay for tests / non-locale call sites. */
+export const FINANCE_CASE_ENCOUNTER_LABELS: CaseEncounterLabelBundle = {
   ...DEFAULT_CASE_ENCOUNTER_LABELS,
   sections: {
     ...DEFAULT_CASE_ENCOUNTER_LABELS.sections,
@@ -131,7 +126,7 @@ export const DENALI_CASE_ENCOUNTER_LABELS: CaseEncounterLabelBundle = {
   fields: {
     ...DEFAULT_CASE_ENCOUNTER_LABELS.fields,
     refresh: "Refresh",
-    loading: "Loading case…",
+    loading: "Loading case...",
     loadError: "Could not load financial case",
     subjectKind: "Subject kind",
     subjectId: "Registration id",
@@ -140,10 +135,10 @@ export const DENALI_CASE_ENCOUNTER_LABELS: CaseEncounterLabelBundle = {
   },
   surfaceStates: {
     ...DEFAULT_CASE_ENCOUNTER_LABELS.surfaceStates,
-    loading: "Loading case…",
+    loading: "Loading case...",
     unavailable: "Financial case unavailable",
     degraded: "Case available with degraded facts",
-    incomplete: "Case incomplete — inspect coverage",
+    incomplete: "Case incomplete - inspect coverage",
     normal: "Case ready",
   },
   subjectKind: {

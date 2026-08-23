@@ -7,6 +7,7 @@
 @import "./marketing/shell.css";
 @import "./marketing/components/01-block-p2.css";
 @import "./marketing/components/02-pr-d6-p1.css";
+@import "./marketing/components/02-pr-d6-p1-commercial-pricing.css";
 @import "./marketing/components/03-pr-d6-p2.css";
 @import "./marketing/components/04-pr-d2-p1.css";
 @import "./marketing/components/05-pr-d2-p2.css";
@@ -29,6 +30,7 @@
 @import "./marketing/components/24-pr-20n.css";
 @import "./marketing/components/25-pr-20o.css";
 @import "./marketing/components/26-pr-21-p1.css";
+@import "./marketing/components/26-pr-21-p1-cards.css";
 @import "./marketing/components/27-pr-21-p2.css";
 @import "./marketing/components/28-pr-d6b.css";
 @import "./marketing/components/29-mkt-icon-metrics.css";

@@ -16,9 +16,7 @@ import {
   resetLazyFinanceServiceForTests,
 } from "../boot/lazy-finance-service.ts";
 import { resolveFinanceWorkspaceDependencies } from "./finance-dependency-registry.ts";
-import {
-  resolveWorkspaceFinanceEventReaction,
-} from "./finance-event-reaction-registry.ts";
+import { resolveWorkspaceFinanceEventReaction } from "./finance-event-reaction-registry.ts";
 import { resolveFinanceChartOfAccounts } from "./finance-chart-of-accounts-registry.ts";
 import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter.ts";
 
@@ -54,10 +52,7 @@ async function assertWorkspacePolicyDivergence(): Promise<void> {
 
   const denaliCoa = await resolveFinanceChartOfAccounts(DENALI);
   const ws5Coa = await resolveFinanceChartOfAccounts(WS5);
-  assert.notEqual(
-    denaliCoa.REGISTRATION_LEADER_PAYMENT_CLEARING,
-    ws5Coa.OPERATOR_CASH_CLEARING
-  );
+  assert.notEqual(denaliCoa.REGISTRATION_LEADER_PAYMENT_CLEARING, ws5Coa.OPERATOR_CASH_CLEARING);
 }
 
 async function assertEventReactionDivergence(): Promise<void> {
@@ -118,7 +113,10 @@ describe("FIN-B2.2 finance composition isolation", { concurrency: false }, () =>
 
   it("shared repository is intentional — Prisma path uses withTenantRls (tenant isolation)", () => {
     const src = readFileSync(
-      resolve(REPO_ROOT, "apps/api/src/workspace-finance/infrastructure/prisma-finance.repository.ts"),
+      resolve(
+        REPO_ROOT,
+        "apps/api/src/workspace-finance/infrastructure/prisma-finance.repository.ts"
+      ),
       "utf8"
     );
     const calls = (src.match(/\bwithTenantRls\s*\(/g) ?? []).length;
@@ -128,8 +126,13 @@ describe("FIN-B2.2 finance composition isolation", { concurrency: false }, () =>
       "utf8"
     );
     assert.match(factory, /Process-wide finance repository \(intentional\)/);
-    const lazy = readFileSync(resolve(REPO_ROOT, "apps/api/src/boot/lazy-finance-service.ts"), "utf8");
+    const lazy = readFileSync(
+      resolve(REPO_ROOT, "apps/api/src/boot/lazy-finance-service.ts"),
+      "utf8"
+    );
     assert.match(lazy, /no first-wins/);
+    assert.doesNotMatch(lazy, /normalized === "denali"/);
+    assert.doesNotMatch(lazy, /wrapFinanceServiceWithCaseShadow/);
     assert.doesNotMatch(lazy, /sharedBookingPayments = deps\.bookingPayments/);
   });
 

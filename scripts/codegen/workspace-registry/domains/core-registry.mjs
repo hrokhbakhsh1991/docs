@@ -13,19 +13,47 @@ export function productWorkspaceManifests(manifests) {
  */
 export function generateSdkBindings(manifests) {
   const product = productWorkspaceManifests(manifests);
+  const renderObjectKey = (key) => (/^[A-Za-z_$][\w$]*$/.test(key) ? key : JSON.stringify(key));
+  const renderTenantBrandingValue = (value, indent = 4) => {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) {
+      return JSON.stringify(value);
+    }
+    const entries = Object.entries(value);
+    if (entries.length === 0) {
+      return "{}";
+    }
+    const current = " ".repeat(indent);
+    const next = " ".repeat(indent + 2);
+    const fields = entries
+      .map(
+        ([key, child]) =>
+          `${next}${renderObjectKey(key)}: ${renderTenantBrandingValue(child, indent + 2)},`
+      )
+      .join("\n");
+    return `{\n${fields}\n${current}}`;
+  };
   const lines = product.flatMap((m) =>
-    m.workspaceTypes.map(
-      (wt) => `  { workspaceType: ${JSON.stringify(wt)}, pluginId: ${JSON.stringify(m.id)} },`
-    )
+    m.workspaceTypes.map((wt) => {
+      if (m.tenantBrandingDefaults === undefined) {
+        return `  { workspaceType: ${JSON.stringify(wt)}, pluginId: ${JSON.stringify(m.id)} },`;
+      }
+      return `  {
+    workspaceType: ${JSON.stringify(wt)},
+    pluginId: ${JSON.stringify(m.id)},
+    tenantBrandingDefaults: ${renderTenantBrandingValue(m.tenantBrandingDefaults)} as const,
+  },`;
+    })
   );
 
   return `${BANNER}
 import type { WorkspacePluginId } from "./workspace-plugin-id";
 import type { WorkspaceTypeId } from "./workspace-type";
+import type { TenantThemeConfig } from "../theme/tenant-theme.contract";
 
 export const WORKSPACE_MANIFEST_BINDINGS: readonly {
   readonly workspaceType: WorkspaceTypeId;
   readonly pluginId: WorkspacePluginId;
+  readonly tenantBrandingDefaults?: TenantThemeConfig;
 }[] = [
 ${lines.join("\n")}
 ];

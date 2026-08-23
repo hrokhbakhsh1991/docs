@@ -1,13 +1,17 @@
+import { Prisma } from "@prisma/client";
+
 import { getPrisma } from "../db/prisma";
 
 import type { PersistedIntegrationEventPolicy } from "../integrations/platform/resolve-effective-integration-event-catalog";
-import { requiresTourPublishedPolicyDriftCheck } from "../integrations/platform/workspace-integration-capabilities.generated.ts";
+import {
+  listTourPublishedPolicyDriftCheckTargets,
+  requiresTourPublishedPolicyDriftCheck,
+} from "../integrations/platform/workspace-integration-capabilities.generated.ts";
 
-export const TOUR_PUBLISHED_ROLLOUT_GATE_FATAL_ENV =
-  "TOUR_PUBLISHED_ROLLOUT_GATE_FATAL" as const;
+export const TOUR_PUBLISHED_ROLLOUT_GATE_FATAL_ENV = "TOUR_PUBLISHED_ROLLOUT_GATE_FATAL" as const;
 
 export function isTourPublishedRolloutGateFatalEnabled(
-  value: string | null | undefined = process.env[TOUR_PUBLISHED_ROLLOUT_GATE_FATAL_ENV],
+  value: string | null | undefined = process.env[TOUR_PUBLISHED_ROLLOUT_GATE_FATAL_ENV]
 ): boolean {
   return value?.trim().toLowerCase() === "true";
 }
@@ -26,17 +30,29 @@ export function shouldWarnTourPublishedPolicyDrift(input: {
     return false;
   }
   return !input.persistedPolicies.some(
-    (policy) => policy.eventType === "TourPublished" && policy.enabled,
+    (policy) => policy.eventType === "TourPublished" && policy.enabled
   );
 }
 
 export async function countTourPublishedPolicyDriftConnections(): Promise<number> {
+  const targets = listTourPublishedPolicyDriftCheckTargets();
+  if (targets.length === 0) {
+    return 0;
+  }
+  const targetRows = Prisma.join(
+    targets.map((target) => Prisma.sql`(${target.workspaceType}, ${target.providerId})`),
+    ","
+  );
   const rows = await getPrisma().$queryRaw<Array<{ drift_count: bigint }>>`
+    WITH drift_targets(workspace_type, provider) AS (
+      VALUES ${targetRows}
+    )
     SELECT COUNT(*)::bigint AS drift_count
     FROM integration_connections ic
-    WHERE ic.provider = 'telegram'
-      AND ic.workspace_type = 'denali'
-      AND ic.enabled = true
+    INNER JOIN drift_targets dt
+      ON dt.workspace_type = ic.workspace_type
+     AND dt.provider = ic.provider
+    WHERE ic.enabled = true
       AND ic.status = 'enabled'
       AND NOT EXISTS (
         SELECT 1

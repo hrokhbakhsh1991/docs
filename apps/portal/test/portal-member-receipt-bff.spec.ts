@@ -62,6 +62,8 @@ describe("portal-member-receipt-bff", () => {
     assert.match(form, /createObjectURL/);
     assert.match(form, /data-portal-member-receipt-preview/);
     assert.doesNotMatch(form, /parseMemberReceiptPanel/);
+    assert.doesNotMatch(form, /catalogDue\?\.currency\s*\?\?\s*["']IRR["']/);
+    assert.doesNotMatch(form, /dueCurrency\s*=.*["']IRR["']/);
   });
 
   it("MEM-BFF-03e parseMemberReceiptPanel maps remaining and waived", () => {

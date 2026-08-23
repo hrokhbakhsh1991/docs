@@ -7,7 +7,10 @@ import { sendJson } from "../http/json";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
 import { requireOperatorSession } from "../identity/require-operator-session";
 import { readIdentityRequestBody } from "../identity/read-identity-request-body";
-import { SettingsModuleNotSupportedError, SettingsMutationForbiddenError } from "../settings/settings.service";
+import {
+  SettingsModuleNotSupportedError,
+  SettingsMutationForbiddenError,
+} from "../settings/settings.service";
 import { SettingsWorkspaceForbiddenError } from "../settings/settings-workspace-errors";
 import { SettingsModuleUnknownError } from "../settings/settings-registry";
 
@@ -22,7 +25,24 @@ import {
 } from "./tenant-branding.service";
 import { assertTenantBrandLogoUploadContentType } from "./tenant-branding-storage";
 import { TENANT_BRAND_LOGO_MAX_BYTES } from "@app-tour/workspace-sdk";
-import { resolvePublicIngressSubdomain, resolvePublicIngressSurfaceKind } from "./resolve-public-ingress-subdomain";
+import {
+  resolvePublicIngressSubdomain,
+  resolvePublicIngressSurfaceKind,
+} from "./resolve-public-ingress-subdomain";
+
+export function readTenantBrandingInvalidBodyErrorCode(message: string): string | null {
+  const token = message.split(":", 1)[0]?.trim() ?? "";
+  if (/^TENANT_BRAND_LOGO_[A-Z0-9_]+$/.test(token)) {
+    return token;
+  }
+  if (/^[A-Z0-9_]+_PHOTO_[A-Z0-9_]+$/.test(token)) {
+    return token;
+  }
+  if (token.includes("CONTENT_TYPE")) {
+    return token;
+  }
+  return null;
+}
 
 function mapBrandingError(res: ServerResponse, error: unknown): void {
   if (error instanceof SettingsMutationForbiddenError) {
@@ -58,12 +78,9 @@ function mapBrandingError(res: ServerResponse, error: unknown): void {
     sendHttpError(res, 404, { error: "not_found", code: "TENANT_BRAND_LOGO_NOT_SET" });
     return;
   }
-  if (
-    message.startsWith("TENANT_BRAND_LOGO_") ||
-    message.startsWith("DENALI_PHOTO_") ||
-    message.includes("CONTENT_TYPE")
-  ) {
-    sendHttpError(res, 400, { error: "invalid_body", code: message });
+  const invalidBodyCode = readTenantBrandingInvalidBodyErrorCode(message);
+  if (invalidBodyCode !== null) {
+    sendHttpError(res, 400, { error: "invalid_body", code: invalidBodyCode });
     return;
   }
   handleHttpError(res, error);
@@ -201,8 +218,9 @@ export async function handlePublicTenantBranding(
       return;
     }
     const localeHeader = req.headers["x-tenant-locale"];
-    const locale =
-      Array.isArray(localeHeader) ? localeHeader[0] ?? null : localeHeader?.toString().trim() ?? null;
+    const locale = Array.isArray(localeHeader)
+      ? (localeHeader[0] ?? null)
+      : (localeHeader?.toString().trim() ?? null);
     const branding = await resolvePublicTenantBrandingBySubdomain(subdomain, locale);
     sendJson(res, 200, branding);
   } catch (error) {

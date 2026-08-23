@@ -109,31 +109,21 @@ export function useOperatorCreateTourWizard(options: {
   const prepareEnvelope = useCallback(
     (form: TourWizardDraft, meta: OperatorWizardDraftMeta) =>
       prepareWizardDraftEnvelope(wizardPlugin, form, meta, () => {
-        throw new Error(
-          `wizardHost.prepareDraftEnvelope missing for plugin ${wizardPlugin.id}`
-        );
+        throw new Error(`wizardHost.prepareDraftEnvelope missing for plugin ${wizardPlugin.id}`);
       }) as NewTourWizardDraftEnvelope,
     [wizardPlugin]
   );
   const normalizeRemoteEnvelope = useCallback(
     (envelope: NewTourWizardDraftEnvelope) =>
       normalizeWizardRemoteEnvelope(wizardPlugin, envelope, () => {
-        throw new Error(
-          `wizardHost.normalizeRemoteEnvelope missing for plugin ${wizardPlugin.id}`
-        );
+        throw new Error(`wizardHost.normalizeRemoteEnvelope missing for plugin ${wizardPlugin.id}`);
       }),
     [wizardPlugin]
   );
   const draftSchemaGateRef = useRef<DraftSchemaGate<NewTourWizardDraftEnvelope> | null>(null);
-  const draftSchemaGate = useMemo(
-    () => createDeferredDraftSchemaGate(draftSchemaGateRef),
-    []
-  );
+  const draftSchemaGate = useMemo(() => createDeferredDraftSchemaGate(draftSchemaGateRef), []);
 
-  const draftMergeFn = resolveDraftMergeForPlugin(
-    wizardPlugin,
-    resolveDraftUnificationV3Mode()
-  );
+  const draftMergeFn = resolveDraftMergeForPlugin(wizardPlugin, resolveDraftUnificationV3Mode());
   const createTourDraftIdentity =
     resolveCreateTourDraftIdentityForPlugin(wizardPlugin) ??
     createTourRemoteDraftIdentity(wizardPlugin.id);
@@ -251,13 +241,12 @@ export function useOperatorCreateTourWizard(options: {
     },
     gate,
     runtimeGates: integrationRuntime,
-    denaliPlugin: wizardPlugin,
+    workspacePlugin: wizardPlugin,
     draftSync,
     draftIndex,
     clearDraft,
     wizardSessionId,
     prepareEnvelope,
-    // Product core still expects this branded prop key (Gap Closure B.11 residual).
     draftSchemaGateRef,
     hydrateCreateTourFromClone,
     createTourAction,

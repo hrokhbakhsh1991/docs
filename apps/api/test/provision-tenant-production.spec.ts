@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { after, describe, it } from "node:test";
 
 import { assertProductionCertifiedWorkspaceType } from "../src/internal/assert-production-certified-workspace.ts";
 import { ProvisioningDevOnlyError } from "../src/internal/provisioning-guard.ts";
-import {
-  WorkspaceNotCertifiedForProductionError,
-} from "../src/internal/provisioning.errors.ts";
+import { WorkspaceNotCertifiedForProductionError } from "../src/internal/provisioning.errors.ts";
 import { ProvisioningService } from "../src/internal/provisioning.service.ts";
 
 describe("P1-N-044: provisionTenantProduction", () => {
@@ -37,6 +37,28 @@ describe("P1-N-044: provisionTenantProduction", () => {
   it("production method exists without dev guard on the class", () => {
     process.env.NODE_ENV = "production";
     assert.ok(typeof service.provisionTenantProduction === "function");
+  });
+
+  it("requires explicit workspaceType for unknown tenant identities", async () => {
+    process.env.NODE_ENV = "production";
+
+    await assert.rejects(
+      () =>
+        service.provisionTenantProduction({
+          subdomain: "unknown-workspace-type",
+          tenantId: "00000000-0000-4000-8000-000000000098",
+        }),
+      /PROVISIONING_WORKSPACE_TYPE_REQUIRED/
+    );
+  });
+
+  it("does not silently default unknown tenant identities to starter", () => {
+    const source = readFileSync(
+      join(import.meta.dirname, "../src/internal/provisioning.service.ts"),
+      "utf8"
+    );
+    assert.doesNotMatch(source, /workspaceType[^;\n]*\?\?\s*["']starter["']/);
+    assert.match(source, /PROVISIONING_WORKSPACE_TYPE_REQUIRED/);
   });
 });
 

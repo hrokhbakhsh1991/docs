@@ -14,26 +14,20 @@ describe("wizard-label-surface-registry enum fallback", () => {
   it("resolves readable labels from translator when resolver cache is not warm", () => {
     const translate = (key: string): string =>
       (
-        {
+        ({
           "tourKinds.mountain_multi": "کوهنوردی — چندروزه",
           "composites.tourKind.categories.mountain": "کوهنوردی",
           "composites.tourKind.durations.multi_day": "چندروزه",
           "transportModes.shared_cars": "ماشین‌های مشترک (دنگ)",
-        } as Record<string, string>
+        }) as Record<string, string>
       )[key] ?? key;
 
     assert.equal(
       resolveWizardTourKindLabel(undefined, translate, "mountain_multi"),
       "کوهنوردی — چندروزه"
     );
-    assert.equal(
-      resolveWizardTourCategoryGroupLabel(undefined, translate, "mountain"),
-      "کوهنوردی"
-    );
-    assert.equal(
-      resolveWizardTourDurationLabel(undefined, translate, "multi_day"),
-      "چندروزه"
-    );
+    assert.equal(resolveWizardTourCategoryGroupLabel(undefined, translate, "mountain"), "کوهنوردی");
+    assert.equal(resolveWizardTourDurationLabel(undefined, translate, "multi_day"), "چندروزه");
     assert.equal(
       resolveWizardEnumOptionLabel(
         undefined,
@@ -52,16 +46,13 @@ describe("wizard-label-surface-registry enum fallback", () => {
       resolveWizardTourKindLabel(undefined, translate, "mountain_multi"),
       "mountain multi"
     );
-    assert.equal(
-      resolveWizardTourDurationLabel(undefined, translate, "multi_day"),
-      "multi day"
-    );
+    assert.equal(resolveWizardTourDurationLabel(undefined, translate, "multi_day"), "multi day");
   });
 
   it("resolves tourKinds and composites keys under the active workspace namespace", () => {
     const translate = (key: string): string =>
       (
-        {
+        ({
           "composites.tourKind.categories.mountain": "کوهنوردی",
           "tourKinds.mountain_day": "کوهنوردی — تک‌روزه",
           "tourKinds.mountain_multi": "کوهنوردی — چندروزه",
@@ -76,11 +67,14 @@ describe("wizard-label-surface-registry enum fallback", () => {
           "tourKinds.event_reading_multi": "رویداد — کتابخوانی (چندروزه)",
           "tourKinds.event_cinema": "رویداد — سینما (تک‌روزه)",
           "tourKinds.event_cinema_multi": "رویداد — سینما (چندروزه)",
-        } as Record<string, string>
+        }) as Record<string, string>
       )[key] ?? key;
 
     assert.equal(resolveWizardTourCategoryGroupLabel(undefined, translate, "mountain"), "کوهنوردی");
-    assert.equal(resolveWizardTourKindLabel(undefined, translate, "mountain_day"), "کوهنوردی — تک‌روزه");
+    assert.equal(
+      resolveWizardTourKindLabel(undefined, translate, "mountain_day"),
+      "کوهنوردی — تک‌روزه"
+    );
     assert.equal(
       resolveWizardTourKindLabel(undefined, translate, "event_cinema_multi"),
       "رویداد — سینما (چندروزه)"
@@ -170,12 +164,33 @@ describe("wizard-label-surface-registry enum fallback", () => {
     );
   });
 
-  it("ignores unresolved denali.denali.* strings and continues to tourKinds", () => {
+  it("treats unresolved prefixed workspace keys as generic missing labels", () => {
+    const surfaceId = "alpine-test-surface-unresolved";
+    const cache = new Map<string, unknown>();
+    cache.set(surfaceId, {
+      resolveFieldLabel: () => "noop",
+      resolveStepLabel: () => "noop",
+      resolveEnumOptionLabel: () => "alpine.fields.tour.kind",
+    });
+    Object.assign(globalThis as Record<string, unknown>, {
+      [WIZARD_LABEL_RESOLVER_CACHE_KEY]: cache,
+    });
+
+    const translate = (key: string): string =>
+      key === "tourKinds.mountain_day" ? "Alpine day trek" : key;
+
+    assert.equal(
+      resolveWizardTourKindLabel(surfaceId, translate, "mountain_day"),
+      "Alpine day trek"
+    );
+  });
+
+  it("ignores unresolved workspace-prefixed key strings and continues to tourKinds", () => {
     const translate = (key: string): string => {
       if (key === "tourKinds.mountain_day") {
         return "کوهنوردی — تک‌روزه";
       }
-      return `denali.${key}`;
+      return `alpine.${key}`;
     };
 
     assert.equal(

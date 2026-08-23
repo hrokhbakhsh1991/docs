@@ -5,6 +5,7 @@ import {
   buildAdminAssistedRegistrationPayload,
   createDefaultAdminAssistedRegistrationForm,
   extractWorkspaceAdminRegistrationRequirements,
+  formatAdminAssistedMoneyLabel,
   resolveTransportChoices,
   stepHasVisibleRequirements,
   validateAdminAssistedRegistrationStep,
@@ -70,6 +71,12 @@ describe("admin-assisted-registration-logic", () => {
 
     assert.equal(form.approveNow, true);
     assert.equal(form.transportKind, "personal_car");
+  });
+
+  it("formats money labels without inventing a workspace currency", () => {
+    assert.equal(formatAdminAssistedMoneyLabel(null), null);
+    assert.equal(formatAdminAssistedMoneyLabel(1250000), "۱٬۲۵۰٬۰۰۰");
+    assert.equal(formatAdminAssistedMoneyLabel(1250000, "EUR"), "۱٬۲۵۰٬۰۰۰ EUR");
   });
 
   it("validates step requirements before moving forward", () => {

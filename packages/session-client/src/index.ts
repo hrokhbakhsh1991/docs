@@ -3,11 +3,7 @@ export {
   SESSION_COOKIE_MAX_AGE_SECONDS,
   type SessionSurface,
 } from "./session-cookie-names";
-export {
-  decodeJwtPayload,
-  isJwtExpired,
-  type SessionJwtClaims,
-} from "./decode-jwt-payload";
+export { decodeJwtPayload, isJwtExpired, type SessionJwtClaims } from "./decode-jwt-payload";
 export {
   validateSessionToken,
   type SessionTokenValidation,
@@ -33,4 +29,19 @@ export {
   type SessionCookieOptions,
   type SessionCookieWriteOptions,
 } from "./session-cookie";
-export { readSessionTokenFromCookieHeader } from "./read-session-cookie-token";
+export {
+  readSessionTokenFromCookieHeader,
+  readSessionTokenFromRequestHeaders,
+  type SessionTokenHeaderReader,
+} from "./read-session-cookie-token";
+export {
+  assertBffLoginRateLimit,
+  checkBffLoginRateLimit,
+  readBffLoginRateLimitKey,
+  resetBffLoginRateLimitForTests,
+  type BffLoginRateLimitRequest,
+} from "./bff-login-rate-limit";
+export {
+  buildIdentityBffHeadersForTenant,
+  type IdentityBffHeaderOptions,
+} from "./identity-bff-headers";

@@ -7,6 +7,8 @@ import type { MemberProfileViewPayload } from "@/me/member-profile-types";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 import { resolveTourOpsApiBaseUrl } from "@/env";
 
+const MEMBER_PROFILE_FETCH_TIMEOUT_MS = 10_000;
+
 /**
  * PCMS-REG-01 SSR resume — same upstream as profile BFF GET (allowlisted).
  * Loopback `/api/me/profile` self-fetch can miss `Domain=<apex>` cookies on document SSR.
@@ -35,6 +37,7 @@ export async function fetchMemberProfileFromSession(
         host: ingressHostname,
       },
       cache: "no-store",
+      signal: AbortSignal.timeout(MEMBER_PROFILE_FETCH_TIMEOUT_MS),
     });
   } catch {
     return null;

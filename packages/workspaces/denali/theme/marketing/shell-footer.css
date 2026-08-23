@@ -1,7 +1,7 @@
 /**
  * Denali marketing footer chrome.
  * Tenant theme wrappers set --color-text-link / --color-primary to platform blue
- * on the shell; consume --denali-forest-600 so footer stays Denali forest.
+ * on the shell; consume --denali-forest-700 so footer stays Denali forest and WCAG AA.
  */
 body[data-app-surface="marketing"][data-workspace-plugin="denali"] footer[data-marketing-footer] {
   background: var(--denali-mist-50, #f4f7f4);
@@ -43,7 +43,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   min-height: 2.75rem;
   min-width: 2.75rem;
   padding-block: 0.5rem;
-  color: var(--denali-forest-600);
+  color: var(--denali-forest-700);
   font-weight: 500;
   text-decoration: none;
 }

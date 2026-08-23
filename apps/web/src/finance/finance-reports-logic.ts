@@ -41,10 +41,7 @@ export const FINANCE_LEDGER_TEST_IDS = {
 } as const;
 
 /** Known ledger outbox event type suffixes (presentation map only). */
-export const FINANCE_LEDGER_KNOWN_EVENT_KEYS = [
-  "double_entry_applied",
-  "capture",
-] as const;
+export const FINANCE_LEDGER_KNOWN_EVENT_KEYS = ["double_entry_applied", "capture"] as const;
 
 export type FinanceLedgerKnownEventKey = (typeof FINANCE_LEDGER_KNOWN_EVENT_KEYS)[number];
 
@@ -91,6 +88,7 @@ export type FinanceLedgerListResponse = {
 export type FinanceTourAggregateRow = {
   readonly tourId: string;
   readonly tourTitle: string;
+  readonly currency: string;
   readonly paidCount: number;
   readonly paidMinor: string;
   readonly pendingCount: number;
@@ -109,10 +107,13 @@ export function parseFinanceByTourReport(raw: unknown): FinanceByTourReport {
     return { items: [] };
   }
   const items = record.items
-    .filter((entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null)
+    .filter(
+      (entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null
+    )
     .map((entry) => ({
       tourId: String(entry.tourId ?? ""),
       tourTitle: String(entry.tourTitle ?? ""),
+      currency: String(entry.currency ?? ""),
       paidCount: readCount(entry.paidCount),
       paidMinor: String(entry.paidMinor ?? "0"),
       pendingCount: readCount(entry.pendingCount),
@@ -152,7 +153,9 @@ export function parseFinanceLedgerListResponse(raw: unknown): FinanceLedgerListR
     return { items: [] };
   }
   const items = record.items
-    .filter((entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null)
+    .filter(
+      (entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null
+    )
     .map((entry) => ({
       outboxEventId: String(entry.outboxEventId ?? entry.id ?? ""),
       eventType: String(entry.eventType ?? ""),
@@ -253,11 +256,12 @@ export function buildFinanceLedgerCsvContent(rows: readonly FinanceLedgerCsvRow[
   return [header, ...lines].join("\n");
 }
 
-export function buildFinanceLedgerCsvFilename(
-  tenantSlug: string,
-  date: Date = new Date()
-): string {
-  const normalized = tenantSlug.trim().toLowerCase().replaceAll(/[^a-z0-9-]+/g, "-") || "tenant";
+export function buildFinanceLedgerCsvFilename(tenantSlug: string, date: Date = new Date()): string {
+  const normalized =
+    tenantSlug
+      .trim()
+      .toLowerCase()
+      .replaceAll(/[^a-z0-9-]+/g, "-") || "tenant";
   const stamp = date.toISOString().slice(0, 10);
   return `finance-ledger-${normalized}-${stamp}.csv`;
 }
@@ -318,10 +322,7 @@ export function buildFinanceKpiCards(
 /** Phase E — up to 3 operator attention rows with registration identity (no money math). */
 export const FINANCE_ATTENTION_SAMPLE_LIMIT = 3;
 
-export type FinanceAttentionKind =
-  | "overdue-installment"
-  | "pending-receipt"
-  | "pending-manual";
+export type FinanceAttentionKind = "overdue-installment" | "pending-receipt" | "pending-manual";
 
 export type FinanceAttentionSample = {
   readonly id: string;
@@ -449,7 +450,6 @@ export function resolveFinanceAttentionOverflow(
     morePendingManual,
     morePendingReceipt,
     moreOverdueInstallment,
-    hasOverflow:
-      morePendingManual > 0 || morePendingReceipt > 0 || moreOverdueInstallment > 0,
+    hasOverflow: morePendingManual > 0 || morePendingReceipt > 0 || moreOverdueInstallment > 0,
   };
 }

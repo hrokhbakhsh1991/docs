@@ -27,6 +27,7 @@ import { TourInternalLink } from "@/features/tours/tour-internal-link";
 import {
   fetchTourDetailCached,
   invalidateCachedTourDetail,
+  readCachedTourCommercialCapability,
   readCachedTourDetail,
 } from "@/features/tours/tour-route-cache";
 import type { AppLocale } from "@/i18n/routing";
@@ -198,7 +199,7 @@ function TourEditTitlePageClient({ session, tourId }: TourEditPageClientProps) {
     detail.projection.priceAmount,
     detail.projection.priceCurrency,
     locale,
-    session.pluginId
+    readCachedTourCommercialCapability(session.pluginId)
   );
   const departureLabel = formatTourDeparture(detail.projection.departureAt, locale);
   const seatsLabel = formatTourSeats(detail.projection, {

@@ -44,7 +44,7 @@ describe("denali-marketing-chrome.spec.ts", () => {
       "utf8",
     );
     assert.match(footer, /footer\[data-marketing-footer\]/);
-    assert.match(footer, /color: var\(--denali-forest-600\)/);
+    assert.match(footer, /color: var\(--denali-forest-700\)/);
     assert.match(footer, /min-height: 2\.75rem;/);
     assert.match(footer, /min-width: 2\.75rem;/);
     assert.match(footer, /background: transparent;/);

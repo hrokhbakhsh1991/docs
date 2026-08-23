@@ -21,11 +21,9 @@ export type DenaliMarketingCatalogSurface = {
   readonly difficultyLevels: readonly number[];
   readonly fitnessLevels: readonly string[];
   readonly difficultyMax: number;
+  readonly irrDisplayUnit?: "toman";
   isCategoryGroup(value: string): value is DenaliMarketingCategoryGroup;
-  matchesCategoryFilter(
-    tourCategory: string | null | undefined,
-    filterCategory: string
-  ): boolean;
+  matchesCategoryFilter(tourCategory: string | null | undefined, filterCategory: string): boolean;
   snapDifficultyLevel(value: number): number;
   resolveCategoryFamily(category: string | null | undefined): DenaliMarketingCategoryGroup | null;
   resolveDetailPdpGates(
@@ -38,6 +36,7 @@ export const denaliMarketingCatalogSurface: DenaliMarketingCatalogSurface = Obje
   difficultyLevels: DENALI_MARKETING_DIFFICULTY_LEVELS,
   fitnessLevels: DENALI_MARKETING_FITNESS_LEVELS,
   difficultyMax: DENALI_MARKETING_DIFFICULTY_MAX,
+  irrDisplayUnit: "toman",
   isCategoryGroup: isDenaliMarketingCategoryGroup,
   matchesCategoryFilter: matchesDenaliMarketingCategoryFilter,
   snapDifficultyLevel: snapDenaliCatalogDifficultyLevel,

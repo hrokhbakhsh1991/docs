@@ -12,7 +12,7 @@ export const WORKSPACE_INTEGRATION_CAPABILITY_BINDINGS = [
     providerId: "telegram",
     tourPublishedPolicyDriftCheck: true,
     tourPublishedExposureRemap: true,
-    deprecatedEventTypes: Object.freeze({"TourCreated":"TourPublished"}),
+    deprecatedEventTypes: Object.freeze({ TourCreated: "TourPublished" }),
     deliveryReferenceDisplayFieldIds: ["denali.destination"],
   },
 ] as const;
@@ -53,6 +53,18 @@ export function requiresTourPublishedPolicyDriftCheck(
   return binding?.tourPublishedPolicyDriftCheck === true;
 }
 
+export function listTourPublishedPolicyDriftCheckTargets(): readonly {
+  readonly workspaceType: string;
+  readonly providerId: string;
+}[] {
+  return WORKSPACE_INTEGRATION_CAPABILITY_BINDINGS.filter(
+    (entry) => entry.tourPublishedPolicyDriftCheck === true
+  ).map((entry) => ({
+    workspaceType: entry.workspaceType,
+    providerId: entry.providerId,
+  }));
+}
+
 export function supportsTourPublishedExposureRemap(
   workspaceType: string | null,
   surface: string
@@ -69,7 +81,22 @@ export function supportsTourPublishedExposureRemap(
   );
 }
 
-export function supportsDeliveryReferenceDisplay(workspaceType: string | null): boolean {
+export function listTourPublishedExposureRemapTargets(): readonly {
+  readonly workspaceType: string;
+  readonly providerId: string;
+}[] {
+  return WORKSPACE_INTEGRATION_CAPABILITY_BINDINGS.filter(
+    (entry) => entry.tourPublishedExposureRemap === true
+  ).map((entry) => ({
+    workspaceType: entry.workspaceType,
+    providerId: entry.providerId,
+  }));
+}
+
+export function supportsDeliveryReferenceDisplay(
+  workspaceType: string | null,
+  providerId: string
+): boolean {
   const normalizedWorkspaceType = normalizeWorkspaceType(workspaceType);
   if (normalizedWorkspaceType === null) {
     return false;
@@ -77,20 +104,22 @@ export function supportsDeliveryReferenceDisplay(workspaceType: string | null): 
   return WORKSPACE_INTEGRATION_CAPABILITY_BINDINGS.some(
     (entry) =>
       entry.workspaceType === normalizedWorkspaceType &&
+      entry.providerId === providerId &&
       Array.isArray(entry.deliveryReferenceDisplayFieldIds) &&
       entry.deliveryReferenceDisplayFieldIds.length > 0
   );
 }
 
 export function listDeliveryReferenceDisplayFieldIds(
-  workspaceType: string | null
+  workspaceType: string | null,
+  providerId: string
 ): readonly string[] {
   const normalizedWorkspaceType = normalizeWorkspaceType(workspaceType);
   if (normalizedWorkspaceType === null) {
     return [];
   }
   const binding = WORKSPACE_INTEGRATION_CAPABILITY_BINDINGS.find(
-    (entry) => entry.workspaceType === normalizedWorkspaceType
+    (entry) => entry.workspaceType === normalizedWorkspaceType && entry.providerId === providerId
   );
   return binding?.deliveryReferenceDisplayFieldIds ?? [];
 }

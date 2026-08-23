@@ -14,11 +14,6 @@ export function assertWorkspaceDefinitionRendererAllowlist(
     if (isAllowedPlatformRendererId(field.id)) {
       continue;
     }
-    if (field.id.startsWith("denali.") || field.id.startsWith("workspace.")) {
-      throw new PlatformRendererNotAllowed(field.id);
-    }
-    if (field.id.startsWith("platform.")) {
-      throw new PlatformRendererNotAllowed(field.id);
-    }
+    throw new PlatformRendererNotAllowed(field.id);
   }
 }

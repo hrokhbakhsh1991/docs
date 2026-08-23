@@ -4,6 +4,9 @@
   "pluginApiVersion": 1,
   "guestExtensionsVersion": 1,
   "package": "@app-tour/workspace-harbor",
+  "clientBundle": {
+    "includeInDefault": false
+  },
   "workspaceTypes": [
     "harbor"
   ],

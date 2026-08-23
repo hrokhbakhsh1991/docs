@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
@@ -9,10 +10,7 @@ import {
 
 describe("buildTourPublishedOutboxPayload", () => {
   it("builds deterministic domain event id", () => {
-    assert.equal(
-      buildTourPublishedDomainEventId("tour-1", 3),
-      "TourPublished:tour-1:3",
-    );
+    assert.equal(buildTourPublishedDomainEventId("tour-1", 3), "TourPublished:tour-1:3");
   });
 
   it("recognizes public publish labels", () => {
@@ -21,6 +19,11 @@ describe("buildTourPublishedOutboxPayload", () => {
     assert.equal(isPublicPublishStatusLabel("PUBLISHED"), true);
     assert.equal(isPublicPublishStatusLabel("draft"), false);
     assert.equal(isPublicPublishStatusLabel(undefined), false);
+  });
+
+  it("keeps publish status normalization comments workspace-generic", () => {
+    const source = readFileSync(new URL("./publish-status-labels.ts", import.meta.url), "utf8");
+    assert.doesNotMatch(source, /Denali `active`/);
   });
 
   it("freezes deliverySnapshot from canonical data", () => {

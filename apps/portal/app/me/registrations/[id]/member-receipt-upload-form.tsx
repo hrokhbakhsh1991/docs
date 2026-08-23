@@ -123,9 +123,7 @@ export function MemberReceiptUploadForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [panel, setPanel] = useState<MemberReceiptPanel>(initialPanel);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
-  const [localPreviewKind, setLocalPreviewKind] = useState<MemberReceiptPreviewKind | null>(
-    null
-  );
+  const [localPreviewKind, setLocalPreviewKind] = useState<MemberReceiptPreviewKind | null>(null);
   const [uploadPhase, setUploadPhase] = useState<"idle" | "uploading" | "error">("idle");
 
   useEffect(() => {
@@ -159,10 +157,13 @@ export function MemberReceiptUploadForm({
     const body = new FormData();
     body.append("file", file);
     try {
-      const res = await fetch(`/api/me/registrations/${encodeURIComponent(registrationId)}/receipt`, {
-        method: "POST",
-        body,
-      });
+      const res = await fetch(
+        `/api/me/registrations/${encodeURIComponent(registrationId)}/receipt`,
+        {
+          method: "POST",
+          body,
+        }
+      );
       if (!res.ok) {
         setUploadPhase("error");
         return;
@@ -181,11 +182,7 @@ export function MemberReceiptUploadForm({
 
   const actionLinks = (
     <div data-portal-member-receipt-actions>
-      <a
-        href={tripsListHref}
-        data-portal-member-receipt-back-trips
-        data-action-kind="secondary"
-      >
+      <a href={tripsListHref} data-portal-member-receipt-back-trips data-action-kind="secondary">
         {t("backToTrips")}
       </a>
       {tourHref !== null ? (
@@ -208,7 +205,8 @@ export function MemberReceiptUploadForm({
     catalogDue !== null &&
     remainingDue !== null &&
     (remainingDue === catalogDue.totalMinor || remainingDue === panel.obligationMinor);
-  const dueCurrency = panel.currency ?? catalogDue?.currency ?? "IRR";
+  const dueCurrency =
+    typeof panel.currency === "string" && panel.currency.length > 0 ? panel.currency : null;
 
   const previewSrc = localPreviewUrl ?? panel.previewUrl;
   const previewKind = localPreviewKind ?? panel.previewKind;
@@ -218,11 +216,13 @@ export function MemberReceiptUploadForm({
     ) : null;
 
   const dueBlock =
-    remainingDue !== null ? (
+    remainingDue !== null && dueCurrency !== null ? (
       <section data-portal-member-receipt-due>
         <h2>{t("dueTitle")}</h2>
         <p data-portal-member-receipt-due-remaining>
-          <strong>{t("dueRemaining", { amount: formatMinorAmount(remainingDue, dueCurrency) })}</strong>
+          <strong>
+            {t("dueRemaining", { amount: formatMinorAmount(remainingDue, dueCurrency) })}
+          </strong>
         </p>
         {panel.paidMinor !== null && isPositiveMinor(panel.paidMinor) ? (
           <p data-portal-member-receipt-due-paid>

@@ -33,27 +33,39 @@ const CAPTURE_INPUT = {
 };
 
 describe("finance supported workspace capability matrix (B2.3)", () => {
-  it("production set is denali + finance-ws5 with explicit capability grades", () => {
-    assert.deepEqual(listFinanceCapableWorkspaceTypes(), ["denali", "finance-ws5"]);
+  it("supported set includes production workspaces plus the Alpine PROD-4 fixture", () => {
+    assert.deepEqual(listFinanceCapableWorkspaceTypes(), ["alpine", "denali", "finance-ws5"]);
+    assert.equal(isFinanceSupportedWorkspace("alpine"), true);
     assert.equal(isFinanceSupportedWorkspace("denali"), true);
     assert.equal(isFinanceSupportedWorkspace("finance-ws5"), true);
 
+    const alpine = getFinanceWorkspaceCapabilities("alpine");
     const denali = getFinanceWorkspaceCapabilities("denali");
     const ws5 = getFinanceWorkspaceCapabilities("finance-ws5");
+    assert.ok(alpine);
     assert.ok(denali);
     assert.ok(ws5);
 
+    assert.deepEqual(alpine, {
+      supported: true,
+      ledgerCapture: true,
+      eventReactions: "ack-only",
+      ops: true,
+      caseMeaning: false,
+    });
     assert.deepEqual(denali, {
       supported: true,
       ledgerCapture: true,
       eventReactions: "durable-outbox",
       ops: true,
+      caseMeaning: true,
     });
     assert.deepEqual(ws5, {
       supported: true,
       ledgerCapture: true,
       eventReactions: "ack-only",
       ops: true,
+      caseMeaning: false,
     });
     assert.notEqual(
       denali.eventReactions,
@@ -74,9 +86,10 @@ describe("finance supported workspace capability matrix (B2.3)", () => {
 
   it("every claimed capability has a matching runtime binding (no hollow claims)", async () => {
     for (const workspaceType of listFinanceCapableWorkspaceTypes()) {
-      const caps = WORKSPACE_FINANCE_CAPABILITIES[
-        workspaceType as keyof typeof WORKSPACE_FINANCE_CAPABILITIES
-      ];
+      const caps =
+        WORKSPACE_FINANCE_CAPABILITIES[
+          workspaceType as keyof typeof WORKSPACE_FINANCE_CAPABILITIES
+        ];
       assert.equal(isFinanceSupportedWorkspace(workspaceType), true);
 
       if (caps.ledgerCapture) {

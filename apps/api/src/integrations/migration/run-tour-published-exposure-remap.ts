@@ -1,11 +1,15 @@
 import { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../../db/with-tenant-rls";
-import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../../db/background-admin-client";
+import {
+  getBackgroundAdminClient,
+  BACKGROUND_ADMIN_REASON,
+} from "../../db/background-admin-client";
 import { disconnectPrisma } from "../../db/prisma";
 import { createExposureIntentRepository } from "../../exposure/prisma-exposure-intent.repository";
 import type { ExposureFieldDecorations } from "../../exposure/exposure-intent";
 import type { ExposureIntentMode } from "../../exposure/exposure-intent";
+import { listTourPublishedExposureRemapTargets } from "../../integrations/platform/workspace-integration-capabilities.generated.ts";
 import {
   isTourPublishedExposureRemapCandidate,
   planTourPublishedExposureRemapBatch,
@@ -83,14 +87,18 @@ function mapRow(row: {
   };
 }
 
-async function listExposureIntentRows(
-  tenantId?: string,
-): Promise<ExposureIntentRemapCandidate[]> {
+async function listExposureIntentRows(tenantId?: string): Promise<ExposureIntentRemapCandidate[]> {
+  const targets = listTourPublishedExposureRemapTargets();
+  if (targets.length === 0) {
+    return [];
+  }
   const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_INTEGRATION_MIGRATION);
   const rows = await admin.exposureIntent.findMany({
     where: {
-      workspaceType: "denali",
-      surface: "telegram",
+      OR: targets.map((target) => ({
+        workspaceType: target.workspaceType,
+        surface: target.providerId,
+      })),
       ...(tenantId === undefined ? {} : { tenantId }),
     },
     orderBy: [{ tenantId: "asc" }, { updatedAt: "asc" }],
@@ -133,7 +141,7 @@ async function applyPlanItem(plan: TourPublishedExposureRemapPlanItem): Promise<
 }
 
 export async function runTourPublishedExposureRemap(
-  options: RunTourPublishedExposureRemapOptions,
+  options: RunTourPublishedExposureRemapOptions
 ): Promise<RunTourPublishedExposureRemapResult> {
   const rows = await listExposureIntentRows(options.tenantId);
   const { sources, publishedTargets } = splitRemapSets(rows);
@@ -145,7 +153,7 @@ export async function runTourPublishedExposureRemap(
       planned,
       applied: [],
       skipped: planned.filter(
-        (item) => item.action === "skip_already_published" || item.action === "skip_invalid",
+        (item) => item.action === "skip_already_published" || item.action === "skip_invalid"
       ),
     };
   }
@@ -170,16 +178,14 @@ export async function runTourPublishedExposureRemap(
 }
 
 export async function verifyTourPublishedExposureRemap(
-  tenantId?: string,
+  tenantId?: string
 ): Promise<VerifyTourPublishedExposureRemapResult> {
   const rows = await listExposureIntentRows(tenantId);
   const remainingCandidates = rows.filter(isTourPublishedExposureRemapCandidate).length;
   return { remainingCandidates };
 }
 
-export async function runTourPublishedExposureRemapCli(
-  argv: readonly string[],
-): Promise<void> {
+export async function runTourPublishedExposureRemapCli(argv: readonly string[]): Promise<void> {
   const tenantId = readArg(argv, "tenant");
   const dryRun = !argv.includes("--apply");
   const verifyOnly = argv.includes("--verify");
@@ -187,10 +193,7 @@ export async function runTourPublishedExposureRemapCli(
   try {
     if (verifyOnly) {
       const result = await verifyTourPublishedExposureRemap(tenantId);
-      console.log(
-        "TOUR_PUBLISHED_EXPOSURE_REMAP_VERIFY",
-        JSON.stringify(result),
-      );
+      console.log("TOUR_PUBLISHED_EXPOSURE_REMAP_VERIFY", JSON.stringify(result));
       if (result.remainingCandidates > 0) {
         process.exitCode = 2;
       }
@@ -207,7 +210,7 @@ export async function runTourPublishedExposureRemapCli(
         skipped: result.skipped.length,
         remaps: result.planned.filter((item) => item.action === "remap").length,
         merges: result.planned.filter((item) => item.action === "merge").length,
-      }),
+      })
     );
   } finally {
     await disconnectPrisma();

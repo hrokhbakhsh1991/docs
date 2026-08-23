@@ -5,6 +5,7 @@ import {
   fetchPublicTenantContextForHost,
   isDevGuestHostAllowed,
   PHASE_43_HOST_TENANT_IDS,
+  resolveMemberLoginCatalogTourId,
   resolvePublicBrandingHost,
   resolveTenantIdFromDevHost,
   resolveTenantIdFromIngressLabel,
@@ -66,9 +67,8 @@ describe("guest-surface-host", () => {
   });
 
   it("resolveDevPluginIdForTenantId uses UUID map not hostname", async () => {
-    const { resolveDevPluginIdForTenantId, DevPluginIdUnresolvedError } = await import(
-      "../src/resolve-dev-plugin-id"
-    );
+    const { resolveDevPluginIdForTenantId, DevPluginIdUnresolvedError } =
+      await import("../src/resolve-dev-plugin-id");
     assert.equal(resolveDevPluginIdForTenantId("00000000-0000-4000-8000-000000000014"), "denali");
     assert.equal(resolveDevPluginIdForTenantId("00000000-0000-4000-8000-000000000004"), "urban");
     assert.throws(
@@ -87,5 +87,35 @@ describe("guest-surface-host", () => {
     });
     assert.equal(called, true);
     assert.equal(result, null);
+  });
+
+  it("resolveMemberLoginCatalogTourId does not silently fall back to operator tour for unknown plugins", () => {
+    const prevLoginTour = process.env.PORTAL_MEMBER_LOGIN_TOUR_ID;
+    const prevDevTour = process.env.PORTAL_DEV_GUEST_TOUR_ID;
+    delete process.env.PORTAL_MEMBER_LOGIN_TOUR_ID;
+    delete process.env.PORTAL_DEV_GUEST_TOUR_ID;
+    try {
+      assert.equal(
+        resolveMemberLoginCatalogTourId("denali"),
+        "00000000-0000-4000-8000-000000000220"
+      );
+      assert.throws(
+        () => resolveMemberLoginCatalogTourId("alpine"),
+        /MEMBER_LOGIN_CATALOG_TOUR_ID_UNRESOLVED/
+      );
+      process.env.PORTAL_MEMBER_LOGIN_TOUR_ID = " tour-env ";
+      assert.equal(resolveMemberLoginCatalogTourId("alpine"), "tour-env");
+    } finally {
+      if (prevLoginTour === undefined) {
+        delete process.env.PORTAL_MEMBER_LOGIN_TOUR_ID;
+      } else {
+        process.env.PORTAL_MEMBER_LOGIN_TOUR_ID = prevLoginTour;
+      }
+      if (prevDevTour === undefined) {
+        delete process.env.PORTAL_DEV_GUEST_TOUR_ID;
+      } else {
+        process.env.PORTAL_DEV_GUEST_TOUR_ID = prevDevTour;
+      }
+    }
   });
 });

@@ -21,13 +21,10 @@ function isUnresolvedEnumTranslation(key: string, translated: string): boolean {
   if (value === key) {
     return true;
   }
-  if (value === `denali.${key}`) {
-    return true;
-  }
   if (value.endsWith(`.${key}`)) {
     return true;
   }
-  return /^(denali\.)?(fields|composites|validation|steps|enumOptions|tourKinds|transportModes|paymentModes|review)\./.test(
+  return /^(?:[a-z][a-z0-9_-]*\.)?(fields|composites|validation|steps|enumOptions|tourKinds|transportModes|paymentModes|review)\./i.test(
     value
   );
 }
@@ -37,8 +34,8 @@ type WizardLabelTranslate = ((key: string) => string) & {
 };
 
 /**
- * Relative keys under the active workspace namespace (`useTranslations("denali")`).
- * Do not prefix with `denali.` — that doubles the namespace and logs MISSING_MESSAGE.
+ * Relative keys under the active workspace namespace (`useTranslations(activeWorkspace)`).
+ * Do not prefix with the workspace id — that doubles the namespace and logs MISSING_MESSAGE.
  */
 function buildEnumFallbackKeys(canonicalPath: string, value: string): readonly string[] {
   return [

@@ -12,8 +12,11 @@ import {
   type UsersDirectoryRow,
 } from "@/features/users/users-directory-types";
 import { canManageUserRow } from "@/features/users/users-page-logic";
+import {
+  collectUserRowMicroBadges,
+  resolveLoyaltyTierFromBadges,
+} from "@/features/users/users-rewards-logic";
 
-import { UserMicroBadges } from "./users-directory-user-micro-badges";
 import { UsersDirectoryAvatar } from "./users-directory-avatar";
 
 type UsersDirectoryTableProps = {
@@ -31,6 +34,7 @@ const HEAD_CELL =
 const BODY_CELL = "px-4 py-3 text-start align-middle";
 const SELECT_HEAD_CELL = "w-11 px-3 py-3 text-start align-middle";
 const SELECT_BODY_CELL = "w-11 px-3 py-3 text-start align-middle";
+const COMPACT_BADGE_CLASS = "h-5 px-1.5 text-[10px]";
 
 function formatPhoneCell(phone: string | null): ReactNode {
   if (phone === null || phone.trim().length === 0) {
@@ -45,15 +49,56 @@ function formatPhoneCell(phone: string | null): ReactNode {
 
 function formatDiscount(user: UsersDirectoryRow, translate: ReturnType<typeof useTranslations>) {
   const discount = user.permanentDiscountPercentage;
-  if (discount !== null && discount !== undefined && discount > 0) {
-    return (
-      <div className="space-y-1">
-        <p className="font-medium">{translate("benefits.discountValue", { value: discount })}</p>
-        <UserMicroBadges user={user} compact />
-      </div>
-    );
+  const loyaltyTier = resolveLoyaltyTierFromBadges(user.rewardBadges);
+  const extraBadges = collectUserRowMicroBadges(user).filter(
+    (badge) => badge.kind !== "discount" && badge.kind !== "loyalty"
+  );
+  const hasDiscount = discount !== null && discount !== undefined && discount > 0;
+  const hasBenefits = hasDiscount || loyaltyTier !== "none" || extraBadges.length > 0;
+
+  if (!hasBenefits) {
+    return <span className="text-muted-foreground">{translate("benefits.none")}</span>;
   }
-  return <span className="text-muted-foreground">{translate("benefits.none")}</span>;
+
+  return (
+    <div className="space-y-1.5">
+      {hasDiscount ? (
+        <p className="font-medium leading-5">{translate("benefits.discountValue", { value: discount })}</p>
+      ) : null}
+      {loyaltyTier !== "none" ? (
+        <p className="text-xs font-medium leading-4 text-muted-foreground">
+          {loyaltyTier === "VIP_MEMBER"
+            ? translate("rewards.loyaltyVip")
+            : translate("rewards.loyaltyGold")}
+        </p>
+      ) : null}
+      {extraBadges.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {extraBadges.map((badge, index) => {
+            if (badge.kind === "label") {
+              return (
+                <Badge key={`label-${badge.text}-${index}`} variant="secondary" className={COMPACT_BADGE_CLASS}>
+                  {badge.text}
+                </Badge>
+              );
+            }
+            if (badge.kind === "selectableLeader") {
+              return (
+                <Badge key={`leader-${index}`} variant="outline" className={COMPACT_BADGE_CLASS}>
+                  {translate("rewards.rowLeaderBadge")}
+                </Badge>
+              );
+            }
+            return (
+              <Badge key={`leader-buddy-${index}`} variant="outline" className={COMPACT_BADGE_CLASS}>
+                {translate("rewards.leaderBuddyBadge")}
+              </Badge>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function UsersDirectoryTable({
@@ -74,7 +119,7 @@ export function UsersDirectoryTable({
 
   return (
     <div
-      className="hidden overflow-x-auto rounded-xl border xl:block"
+      className="hidden overflow-x-auto rounded-xl border bg-card/40 xl:block"
       data-testid={USERS_DIRECTORY_TEST_IDS.tableDesktop}
     >
       <table className="w-full min-w-[44rem] border-collapse text-sm" data-operator-users-table>
@@ -126,7 +171,10 @@ export function UsersDirectoryTable({
             const busy = busyUserId === user.userId;
 
             return (
-              <tr key={user.userId} className="border-b last:border-b-0">
+              <tr
+                key={user.userId}
+                className="border-b transition-colors hover:bg-muted/30 focus-within:bg-muted/30 last:border-b-0"
+              >
                 <td className={SELECT_BODY_CELL}>
                   {manageable ? (
                     <Checkbox
@@ -141,26 +189,34 @@ export function UsersDirectoryTable({
                 <td className={`${BODY_CELL} font-medium`}>
                   <div className="flex min-w-0 items-center gap-3">
                     <UsersDirectoryAvatar user={user} size="sm" />
-                    <div className="min-w-0">
-                      <p className="truncate">{user.displayName}</p>
-                      <p className="truncate text-sm font-normal">{formatPhoneCell(user.phone)}</p>
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="truncate leading-5">{user.displayName}</p>
+                      <p className="truncate text-sm font-normal leading-4 text-muted-foreground">
+                        {formatPhoneCell(user.phone)}
+                      </p>
                     </div>
                   </div>
                 </td>
                 <td className={BODY_CELL}>
-                  <div className="flex flex-wrap gap-1.5">
-                    <Badge variant={user.role === "owner" ? "default" : "secondary"}>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge
+                      variant={user.role === "owner" ? "default" : "secondary"}
+                      className={COMPACT_BADGE_CLASS}
+                    >
                       {t(`roles.${user.role}`)}
                     </Badge>
                     {isSuspended ? (
                       <Badge
                         variant="destructive"
+                        className={COMPACT_BADGE_CLASS}
                         data-testid={USERS_DIRECTORY_TEST_IDS.rowStatusSuspended}
                       >
                         {t("status.suspended")}
                       </Badge>
                     ) : (
-                      <Badge variant="outline">{t("status.active")}</Badge>
+                      <Badge variant="outline" className={COMPACT_BADGE_CLASS}>
+                        {t("status.active")}
+                      </Badge>
                     )}
                     {user.role === "owner" ? (
                       <span className="text-xs text-muted-foreground">

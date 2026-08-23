@@ -1,4 +1,4 @@
-import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
+import type { WorkspacePlugin, WorkspaceTourCommercialCapability } from "@app-tour/workspace-sdk";
 
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
 
@@ -14,14 +14,17 @@ export function writeCachedTourPlugin(pluginId: string, plugin: WorkspacePlugin)
   pluginById.set(pluginId.trim(), plugin);
 }
 
+export function readCachedTourCommercialCapability(
+  pluginId: string
+): WorkspaceTourCommercialCapability | null {
+  return readCachedTourPlugin(pluginId)?.capabilities?.tourCommercial ?? null;
+}
+
 export function readCachedTourDetail(tourId: string): OperatorTourDetailResponse | null {
   return tourDetailById.get(tourId.trim()) ?? null;
 }
 
-export function writeCachedTourDetail(
-  tourId: string,
-  detail: OperatorTourDetailResponse
-): void {
+export function writeCachedTourDetail(tourId: string, detail: OperatorTourDetailResponse): void {
   tourDetailById.set(tourId.trim(), detail);
 }
 

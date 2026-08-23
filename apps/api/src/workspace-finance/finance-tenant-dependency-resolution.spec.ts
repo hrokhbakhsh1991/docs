@@ -128,6 +128,7 @@ describe("finance-tenant-dependency-resolution.spec.ts — Phase 1.5 C1", { conc
     assert.ok((await resolveFinanceLedgerPolicy(DENALI)) instanceof DenaliFinanceLedgerPolicyAdapter);
     assert.equal(typeof service.getSummary, "function");
     assert.deepEqual(listRegisteredFinanceWorkspaceTypes(), [
+      "alpine",
       DENALI,
       WS2,
       "finance-ws3",

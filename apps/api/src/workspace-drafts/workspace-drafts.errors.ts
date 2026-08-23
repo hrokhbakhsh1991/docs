@@ -25,11 +25,23 @@ export class WorkspaceDraftInvalidBodyError extends Error {
   }
 }
 
+export class WorkspaceDraftWorkspaceTypeRequiredError extends Error {
+  readonly code = "WORKSPACE_DRAFT_WORKSPACE_TYPE_REQUIRED" as const;
+
+  constructor() {
+    super("WORKSPACE_DRAFT_WORKSPACE_TYPE_REQUIRED");
+    this.name = "WorkspaceDraftWorkspaceTypeRequiredError";
+  }
+}
+
 export class WorkspaceDraftTombstoneInvariantError extends Error {
   readonly code: "TOMBSTONE_RESURRECTION" | "DELETED_ROOTS_NOT_ARRAY";
   readonly keys?: readonly string[];
 
-  constructor(code: "TOMBSTONE_RESURRECTION" | "DELETED_ROOTS_NOT_ARRAY", keys?: readonly string[]) {
+  constructor(
+    code: "TOMBSTONE_RESURRECTION" | "DELETED_ROOTS_NOT_ARRAY",
+    keys?: readonly string[]
+  ) {
     super(code);
     this.name = "WorkspaceDraftTombstoneInvariantError";
     this.code = code;

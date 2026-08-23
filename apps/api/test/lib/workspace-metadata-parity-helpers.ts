@@ -7,13 +7,18 @@ import { stripWorkspacePluginToDefinitionPayload } from "@app-tour/workspace-sdk
 
 import {
   buildWorkspaceDefinitionExport,
-  DEFAULT_WORKSPACE_DEFINITION_EXPORTS,
   parseWorkspaceDefinitionExportFile,
   type WorkspaceDefinitionExportFile,
+  type WorkspaceDefinitionExportMeta,
 } from "../../src/workspace-metadata/build-workspace-definition-export.ts";
 import { resolveWorkspacePluginForType } from "../../src/workspace/resolve-workspace-plugin.ts";
 
 const API_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
+const DENALI_WORKSPACE_DEFINITION_EXPORT_META: WorkspaceDefinitionExportMeta = {
+  definitionId: "denali-tour-ops",
+  displayName: "Denali Tour Ops",
+  workspaceType: "denali",
+};
 
 export function loadDenaliSeedExport(): WorkspaceDefinitionExportFile {
   const raw = JSON.parse(
@@ -26,7 +31,7 @@ export async function buildLiveDenaliExport(): Promise<WorkspaceDefinitionExport
   const plugin = await resolveWorkspacePluginForType("denali");
   return buildWorkspaceDefinitionExport({
     plugin,
-    meta: DEFAULT_WORKSPACE_DEFINITION_EXPORTS.denali,
+    meta: DENALI_WORKSPACE_DEFINITION_EXPORT_META,
   });
 }
 

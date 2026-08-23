@@ -42,6 +42,30 @@ export function portalRegisterOutputKey(workspaceId) {
   return `portalRegister_${workspaceId.replace(/-/g, "_")}`;
 }
 
+function namedImportLine(names, specifier) {
+  if (names.length <= 1) {
+    return `import { ${names.join(", ")} } from "${specifier}";`;
+  }
+  return `import {
+  ${names.join(",\n  ")},
+} from "${specifier}";`;
+}
+
+function awaitNamedImportLine(names, specifier, indent = "  ") {
+  const inlinePattern = `${indent}const { ${names.join(", ")} }`;
+  const inlineLine = `${inlinePattern} = await import("${specifier}");`;
+  if (inlineLine.length <= 100) {
+    return inlineLine;
+  }
+  if (inlinePattern.length <= 80) {
+    return `${inlinePattern} =
+${indent}  await import("${specifier}");`;
+  }
+  return `${indent}const {
+${names.map((name) => `${indent}  ${name},`).join("\n")}
+${indent}} = await import("${specifier}");`;
+}
+
 /**
  * @param {ReturnType<typeof discoverManifests>[number]} manifest
  * @param {ReturnType<typeof discoverManifests>} allManifests
@@ -61,7 +85,7 @@ function generatePortalRegistrationFlowBody(manifest, allManifests) {
 
   if (typeof cfg.transportInitializerExport === "string") {
     lines.push(
-      `  const { ${cfg.transportInitializerExport} } = await import("${surfaceSpec}");`,
+      awaitNamedImportLine([cfg.transportInitializerExport], surfaceSpec),
       `  ${cfg.transportInitializerExport}();`,
       ""
     );
@@ -69,8 +93,8 @@ function generatePortalRegistrationFlowBody(manifest, allManifests) {
 
   if (cfg.steps.mode === "bundle") {
     lines.push(
-      `  const { ${cfg.surfaceExport} } = await import("${surfaceSpec}");`,
-      `  const { ${cfg.steps.export} } = await import("${reactSpec}");`,
+      awaitNamedImportLine([cfg.surfaceExport], surfaceSpec),
+      awaitNamedImportLine([cfg.steps.export], reactSpec),
       `  registerWorkspaceRegistrationFlowPlugin({`,
       `    id: ${JSON.stringify(manifest.id)},`,
       `    catalogRegistrationFlow: ${cfg.surfaceExport},`,
@@ -89,9 +113,16 @@ function generatePortalRegistrationFlowBody(manifest, allManifests) {
   const intake = cfg.steps.components.intake;
   const done = cfg.steps.components.done;
   lines.push(
-    `  const { ${cfg.surfaceExport} } = await import("${surfaceSpec}");`,
-    `  const { ${intake}, ${done} } = await import("${reactSpec}");`,
-    `  const { CatalogRegistrationOtpStep, CatalogRegistrationPhoneStep, CatalogRegistrationProfileStep } = await import("@app-tour/catalog-registration-flow-ui/react");`,
+    awaitNamedImportLine([cfg.surfaceExport], surfaceSpec),
+    awaitNamedImportLine([intake, done], reactSpec),
+    awaitNamedImportLine(
+      [
+        "CatalogRegistrationOtpStep",
+        "CatalogRegistrationPhoneStep",
+        "CatalogRegistrationProfileStep",
+      ],
+      "@app-tour/catalog-registration-flow-ui/react"
+    ),
     `  registerWorkspaceRegistrationFlowPlugin({`,
     `    id: ${JSON.stringify(manifest.id)},`,
     `    catalogRegistrationFlow: ${cfg.surfaceExport},`,
@@ -119,11 +150,21 @@ export function generatePortalPluginRegister(manifest, allManifests) {
   const hasFlow = manifest.catalogRegistrationFlow !== undefined;
 
   const sdkImports = hasFlow
-    ? `import { registerWorkspaceIntakePlugin, registerWorkspaceMemberPortalRenderers, registerWorkspaceRegistrationFlowPlugin } from "@app-tour/workspace-sdk";
+    ? `${namedImportLine(
+        [
+          "registerWorkspaceIntakePlugin",
+          "registerWorkspaceMemberPortalRenderers",
+          "registerWorkspaceRegistrationFlowPlugin",
+        ],
+        "@app-tour/workspace-sdk"
+      )}
 import { registerWorkspaceRegistrationFlowSteps } from "@app-tour/workspace-plugin-host/registration-flow";`
-    : `import { registerWorkspaceIntakePlugin, registerWorkspaceMemberPortalRenderers } from "@app-tour/workspace-sdk";`;
+    : namedImportLine(
+        ["registerWorkspaceIntakePlugin", "registerWorkspaceMemberPortalRenderers"],
+        "@app-tour/workspace-sdk"
+      );
 
-  const intakeBody = `  const { ${pluginExport} } = await import("${pluginSpec}");
+  const intakeBody = `${awaitNamedImportLine([pluginExport], pluginSpec)}
   const plugin = ${pluginExport}();
   if (plugin.catalogIntake !== undefined) {
     registerWorkspaceIntakePlugin({
@@ -264,7 +305,9 @@ export function assertCatalogRegistrationFlowManifest(manifest, allManifests) {
   }
   if (steps.mode === "bundle") {
     if (typeof steps.export !== "string" || steps.export.length === 0) {
-      throw new Error(`${manifest.id}: catalogRegistrationFlow.steps.export is required for bundle mode`);
+      throw new Error(
+        `${manifest.id}: catalogRegistrationFlow.steps.export is required for bundle mode`
+      );
     }
     return;
   }
@@ -290,16 +333,22 @@ export function assertCatalogRegistrationFlowManifest(manifest, allManifests) {
     }
     const components = steps.components;
     if (components === undefined || typeof components !== "object") {
-      throw new Error(`${manifest.id}: catalogRegistrationFlow.steps.components is required for compose mode`);
+      throw new Error(
+        `${manifest.id}: catalogRegistrationFlow.steps.components is required for compose mode`
+      );
     }
     for (const key of ["intake", "done"]) {
       if (typeof components[key] !== "string" || components[key].length === 0) {
-        throw new Error(`${manifest.id}: catalogRegistrationFlow.steps.components.${key} is required`);
+        throw new Error(
+          `${manifest.id}: catalogRegistrationFlow.steps.components.${key} is required`
+        );
       }
     }
     return;
   }
-  throw new Error(`${manifest.id}: catalogRegistrationFlow.steps.mode must be "bundle" or "compose"`);
+  throw new Error(
+    `${manifest.id}: catalogRegistrationFlow.steps.mode must be "bundle" or "compose"`
+  );
 }
 
 /** @param {ReturnType<typeof discoverManifests>} manifests */
@@ -317,9 +366,7 @@ export function generateWorkspaceRegistrationFlowPlugins(manifests) {
   for (const manifest of configured) {
     const cfg = manifest.catalogRegistrationFlow;
     const surfaceSpec = importSpecifier(manifest.package, "./catalog-registration-flow");
-    importLines.add(
-      `import { ${cfg.surfaceExport} } from "${surfaceSpec}";`
-    );
+    importLines.add(`import { ${cfg.surfaceExport} } from "${surfaceSpec}";`);
 
     if (cfg.steps.mode === "bundle") {
       const stepsSpec = importSpecifier(manifest.package, "./catalog-registration-flow/react");
@@ -397,7 +444,10 @@ export function assertCatalogRegistrationTransportInitializerManifest(manifest) 
   if (cfg === undefined || cfg.transportInitializerExport === undefined) {
     return;
   }
-  if (typeof cfg.transportInitializerExport !== "string" || cfg.transportInitializerExport.length === 0) {
+  if (
+    typeof cfg.transportInitializerExport !== "string" ||
+    cfg.transportInitializerExport.length === 0
+  ) {
     throw new Error(
       `${manifest.id}: catalogRegistrationFlow.transportInitializerExport must be a non-empty string`
     );

@@ -15,13 +15,13 @@ type StorageLayerTourRepo = StorageTourStorageRepository & {
 };
 
 function isStorageLayerTourRepo(
-  store: DbTourStorageRepository | StorageTourStorageRepository,
+  store: DbTourStorageRepository | StorageTourStorageRepository
 ): store is StorageLayerTourRepo {
   return typeof (store as StorageTourStorageRepository).listByTenant === "function";
 }
 
 /**
- * Shared host tour-store resolution for product HTTP hosts (Denali + Urban).
+ * Shared host tour-store resolution for generated product HTTP hosts.
  * Accepts opaque deps.tourStore — product route-deps types stay behind the generated façade.
  */
 export async function resolveProductTourStore(deps: {

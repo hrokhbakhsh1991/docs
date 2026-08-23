@@ -57,23 +57,61 @@ export const ADMIN_PLATFORM_TRANSPILE_PACKAGES = Object.freeze([
 ]);
 
 /**
+ * Manifest-level client bundle policy. Registry/proof workspaces may remain in
+ * manifest codegen while opting out of the default committed frontend bundle.
+ * Deploy-profile APPLY remains authoritative for image-specific bundles.
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest} manifest
+ * @returns {boolean}
+ */
+export function isDefaultClientBundleManifest(manifest) {
+  const cfg = manifest.clientBundle;
+  if (cfg === undefined) {
+    return true;
+  }
+  if (typeof cfg !== "object" || cfg === null || Array.isArray(cfg)) {
+    throw new Error(`${manifest.id}: clientBundle must be an object`);
+  }
+  const include = cfg.includeInDefault;
+  if (include !== undefined && typeof include !== "boolean") {
+    throw new Error(`${manifest.id}: clientBundle.includeInDefault must be boolean`);
+  }
+  return include !== false;
+}
+
+/**
+ * Default client bundles exclude manifest-declared proof fixtures that opt out.
+ * With WORKSPACE_DEPLOY_PROFILE_APPLY=1, profile membership is explicit and may
+ * select any manifest package for image-only generated artifacts.
+ * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env]
+ */
+export function filterClientBundleManifests(manifests, env = process.env) {
+  const resolved = resolveWorkspaceDeployProfile(env);
+  if (resolved.applied) {
+    return filterManifestsByDeployProfile(manifests, env);
+  }
+  return manifests.filter((manifest) => isDefaultClientBundleManifest(manifest));
+}
+
+/**
  * Product workspace packages that guest Next apps must transpile (Wave C.b).
  * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
  * @param {"portal" | "marketing"} surface
  * @returns {string[]}
  */
-export function collectGuestProductTranspilePackages(manifests, surface) {
+export function collectGuestProductTranspilePackages(manifests, surface, env = process.env) {
   if (surface !== "portal" && surface !== "marketing") {
     throw new Error(`collectGuestProductTranspilePackages: unknown surface ${surface}`);
   }
   /** @type {Set<string>} */
   const packages = new Set();
-  const starter = manifests.find((m) => m.id === "starter");
+  const scoped = filterClientBundleManifests(manifests, env);
+  const starter = scoped.find((m) => m.id === "starter");
   if (starter?.package) {
     packages.add(starter.package);
   }
 
-  for (const m of manifests) {
+  for (const m of scoped) {
     if (m.workspaceFinance?.registryOnly === true || m.workspaceBooking?.registryOnly === true) {
       continue;
     }
@@ -93,7 +131,7 @@ export function collectGuestProductTranspilePackages(manifests, surface) {
   }
 
   if (surface === "portal") {
-    for (const m of selectPortalRegisterManifests(manifests)) {
+    for (const m of selectPortalRegisterManifests(scoped)) {
       if (typeof m.package === "string" && m.package.length > 0) {
         packages.add(m.package);
       }
@@ -109,15 +147,16 @@ export function collectGuestProductTranspilePackages(manifests, surface) {
  * @param {import("../manifest-loader.mjs").WorkspaceManifest[]} manifests
  * @returns {string[]}
  */
-export function collectAdminProductTranspilePackages(manifests) {
+export function collectAdminProductTranspilePackages(manifests, env = process.env) {
   /** @type {Set<string>} */
   const packages = new Set();
-  const starter = manifests.find((m) => m.id === "starter");
+  const scoped = filterClientBundleManifests(manifests, env);
+  const starter = scoped.find((m) => m.id === "starter");
   if (starter?.package) {
     packages.add(starter.package);
   }
 
-  for (const m of manifests) {
+  for (const m of scoped) {
     if (m.workspaceFinance?.registryOnly === true || m.workspaceBooking?.registryOnly === true) {
       continue;
     }
@@ -154,7 +193,12 @@ export function collectGuestRuntimeProductPackages(manifests) {
  * @returns {string[]}
  */
 export function collectGuestRuntimeProductPackagesForEnv(manifests, env = process.env) {
-  const collected = collectGuestRuntimeProductPackages(manifests);
+  const collected = [
+    ...new Set([
+      ...collectGuestProductTranspilePackages(manifests, "portal", env),
+      ...collectGuestProductTranspilePackages(manifests, "marketing", env),
+    ]),
+  ].sort((a, b) => a.localeCompare(b));
   return applyDeployProfileToProductPackages(collected, env).packages;
 }
 
@@ -560,7 +604,7 @@ export function generateGuestTranspilePackages(manifests, surface, env = process
     surface === "portal"
       ? PORTAL_PLATFORM_TRANSPILE_PACKAGES
       : MARKETING_PLATFORM_TRANSPILE_PACKAGES;
-  const collected = collectGuestProductTranspilePackages(manifests, surface);
+  const collected = collectGuestProductTranspilePackages(manifests, surface, env);
   const { packages: products, profileNote } = applyDeployProfileToProductPackages(collected, env);
   const merged = [...platform, ...products.filter((pkg) => !platform.includes(pkg))];
   const profileLine = profileNote != null ? `\n * ${profileNote}` : "";
@@ -581,7 +625,7 @@ ${merged.map((pkg) => `  ${JSON.stringify(pkg)},`).join("\n")}
  * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} [env]
  */
 export function generateAdminTranspilePackages(manifests, env = process.env) {
-  const collected = collectAdminProductTranspilePackages(manifests);
+  const collected = collectAdminProductTranspilePackages(manifests, env);
   const { packages: products, profileNote } = applyDeployProfileToProductPackages(collected, env);
   const merged = [
     ...ADMIN_PLATFORM_TRANSPILE_PACKAGES,
@@ -662,7 +706,7 @@ export function collectAdminClientWorkspaceIgnoreRows(manifests) {
 export function buildDeployProfileBundlePlan(manifests, env = process.env) {
   const resolved = resolveWorkspaceDeployProfile(env);
   const adminTranspileProducts = applyDeployProfileToProductPackages(
-    collectAdminProductTranspilePackages(manifests),
+    collectAdminProductTranspilePackages(manifests, env),
     env
   ).packages;
   const guestRuntimeProducts = collectGuestRuntimeProductPackagesForEnv(manifests, env);
@@ -834,7 +878,7 @@ ${[...importLines].sort().join("\n")}
 export function generateAdminThemeStylesheetLoader(manifests, env = process.env) {
   /** @type {{ id: string; package: string; sheets: string[] }[]} */
   const entries = [];
-  const scoped = filterManifestsByDeployProfile(manifests, env);
+  const scoped = filterClientBundleManifests(manifests, env);
   for (const m of scoped) {
     const sheets = Array.isArray(m.themeStylesheets) ? m.themeStylesheets : [];
     if (sheets.length === 0) {
@@ -975,7 +1019,7 @@ export function generateGuestThemeStylesheetLoader(manifests, surface, env = pro
 
   /** @type {{ id: string; package: string; sheets: string[] }[]} */
   const entries = [];
-  const scoped = filterManifestsByDeployProfile(manifests, env);
+  const scoped = filterClientBundleManifests(manifests, env);
 
   for (const m of scoped) {
     const guest = m.guestThemeStylesheets;
@@ -1020,7 +1064,9 @@ export function generateGuestThemeStylesheetLoader(manifests, surface, env = pro
     })
     .join("\n\n");
 
-  return `${BANNER}${
+  return `${BANNER}/// <reference path="./workspace-theme-css.d.ts" />
+
+${
     surface === "portal"
       ? `
 /** Starter workspace owns the default portal L3 skin (Phase D.2). */

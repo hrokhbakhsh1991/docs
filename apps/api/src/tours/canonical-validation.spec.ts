@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
 import { PlatformWizardEngine } from "@app-tour/platform-core";
@@ -58,17 +60,20 @@ describe("buildValidatedCanonicalDocument (P0-CRIT-01b)", () => {
 
     await buildValidatedCanonicalDocument(
       { data: { basics: { title: "Tenant A tour" }, details: { summary: "a" } } },
-      "tenant-a"
+      "tenant-a",
+      "starter"
     );
     await buildValidatedCanonicalDocument(
       { data: { basics: { title: "Tenant B tour" }, details: { summary: "b" } } },
-      "tenant-b"
+      "tenant-b",
+      "starter"
     );
     assert.equal(tracker.createCount, 2, "distinct tenants must not share a cached engine");
 
     await buildValidatedCanonicalDocument(
       { data: { basics: { title: "Tenant A again" }, details: { summary: "a2" } } },
-      "tenant-a"
+      "tenant-a",
+      "starter"
     );
     assert.equal(tracker.createCount, 2, "same tenant reuses cached engine");
 
@@ -89,11 +94,13 @@ describe("buildValidatedCanonicalDocument (P0-CRIT-01b)", () => {
   it("keeps tenant A and tenant B canonical data isolated back-to-back", async () => {
     const docA = await buildValidatedCanonicalDocument(
       { data: { basics: { title: "Only tenant A" }, details: { summary: "" } } },
-      "tenant-a"
+      "tenant-a",
+      "starter"
     );
     const docB = await buildValidatedCanonicalDocument(
       { data: { basics: { title: "Only tenant B" }, details: { summary: "" } } },
-      "tenant-b"
+      "tenant-b",
+      "starter"
     );
 
     assert.equal(docA.data?.basics?.title, "Only tenant A");
@@ -109,14 +116,22 @@ describe("buildValidatedCanonicalDocument (P0-CRIT-01b)", () => {
             details: { summary: "" },
           },
         },
-        "tenant-a"
+        "tenant-a",
+        "starter"
       );
     }
 
     const docB = await buildValidatedCanonicalDocument(
       { data: { basics: { title: "B-after-burst-A" }, details: { summary: "" } } },
-      "tenant-b"
+      "tenant-b",
+      "starter"
     );
     assert.equal(docB.data?.basics?.title, "B-after-burst-A");
+  });
+
+  it("requires callers to pass workspaceType explicitly", () => {
+    const source = readFileSync(join(import.meta.dirname, "canonical-validation.ts"), "utf8");
+    assert.doesNotMatch(source, /workspaceType\s*=\s*["']starter["']/);
+    assert.match(source, /workspaceType:\s*string/);
   });
 });

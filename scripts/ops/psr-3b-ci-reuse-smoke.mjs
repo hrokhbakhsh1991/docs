@@ -37,6 +37,7 @@ const { MAIN_BRANCH_REQUIRED_CHECKS } = require(
   join(root, "scripts/ops/main-branch-required-checks.mjs"),
 );
 const expected = [
+  "Production readiness L3 release gate",
   "Phase 0 foundation gate",
   "Phase 0 integration gate",
   "Phase 1 platform-core gate",

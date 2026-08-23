@@ -10,6 +10,7 @@ import {
 } from "@app-tour/workspace-sdk";
 
 import { loadBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
+import { writeCachedTourPlugin } from "@/features/tours/tour-route-cache";
 import type { TourListCategorySurface } from "@/features/tours/tour-list-category-surface-types";
 
 export const TOUR_LIST_CATEGORY_CACHE_KEY = "app-cloud.tourListCategoryCache";
@@ -50,6 +51,7 @@ export async function ensureTourListCategorySurface(
   }
   try {
     const plugin = await loadBootstrapWorkspacePlugin(pluginId);
+    writeCachedTourPlugin(pluginId, plugin);
     const surface = surfaceFromPlugin(plugin);
     if (surface == null) {
       return null;

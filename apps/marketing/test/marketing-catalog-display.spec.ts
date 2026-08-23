@@ -62,18 +62,20 @@ describe("marketing catalog display", () => {
 
   it("MKT-05 formatCatalogPrice handles null", () => {
     assert.equal(
-      formatCatalogPrice(null, "IRR", "en-US", "Price on request", "denali"),
+      formatCatalogPrice(null, "IRR", "en-US", "Price on request", { irrDisplayUnit: "toman" }),
       "Price on request"
     );
   });
 
   it("MKT-CURR-01 Denali IRR catalog price uses toman label without ×10", () => {
     assert.equal(
-      formatCatalogPrice(1200, "IRR", "en-US", "Price on request", "denali"),
+      formatCatalogPrice(1200, "IRR", "en-US", "Price on request", { irrDisplayUnit: "toman" }),
       "1,200 toman"
     );
     assert.equal(
-      formatCatalogPrice(2_500_000, "IRR", "en-US", "Price on request", "denali"),
+      formatCatalogPrice(2_500_000, "IRR", "en-US", "Price on request", {
+        irrDisplayUnit: "toman",
+      }),
       "2,500,000 toman"
     );
     const faDigits = new Intl.NumberFormat("fa-IR", {
@@ -81,26 +83,39 @@ describe("marketing catalog display", () => {
       numberingSystem: "arabext",
     }).format(1200);
     assert.equal(
-      formatCatalogPrice(1200, "IRR", "fa-IR", "قیمت پس از استعلام", "denali"),
+      formatCatalogPrice(1200, "IRR", "fa-IR", "قیمت پس از استعلام", {
+        irrDisplayUnit: "toman",
+      }),
       `${faDigits} تومان`
     );
     assert.equal(
-      formatCatalogPrice(1200, "IRR", "en-US", "Price on request", "denali").includes("12,000"),
+      formatCatalogPrice(1200, "IRR", "en-US", "Price on request", {
+        irrDisplayUnit: "toman",
+      }).includes("12,000"),
       false
     );
-    const usd = formatCatalogPrice(1200, "USD", "en-US", "Price on request", "denali");
+    const usd = formatCatalogPrice(1200, "USD", "en-US", "Price on request", {
+      irrDisplayUnit: "toman",
+    });
     assert.match(usd, /1,200/);
     assert.equal(usd.includes("toman"), false);
   });
 
   it("MKT-CURR-02 Harbor/Urban IRR keeps Intl and does not inherit Denali toman", () => {
-    const harbor = formatCatalogPrice(1200, "IRR", "en-US", "Price on request", "harbor");
-    const urban = formatCatalogPrice(1200, "IRR", "en-US", "Price on request", "urban");
+    const harbor = formatCatalogPrice(1200, "IRR", "en-US", "Price on request", null);
+    const urban = formatCatalogPrice(1200, "IRR", "en-US", "Price on request", null);
     const unlabeled = formatCatalogPrice(1200, "IRR", "en-US", "Price on request");
     assert.equal(harbor.includes("toman"), false);
     assert.equal(urban.includes("toman"), false);
     assert.equal(unlabeled.includes("toman"), false);
     assert.match(harbor, /1,200/);
+  });
+
+  it("MKT-CURR-03 missing currency remains price-on-request instead of defaulting to IRR", () => {
+    assert.equal(
+      formatCatalogPrice(1200, undefined, "en-US", "Price on request"),
+      "Price on request"
+    );
   });
 });
 

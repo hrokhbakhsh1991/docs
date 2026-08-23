@@ -34,9 +34,8 @@ type Step = "phone" | "otp";
 
 const RESEND_COOLDOWN_SEC = 45;
 /** Dev owner login — ASCII in state/API; LocalizedNumericInput shows Persian digits when locale is fa.
- * Must match operator smoke / Denali seed owner (`operator-smoke-identity.mjs`). */
-const DEV_LOGIN_PHONE =
-  process.env.NEXT_PUBLIC_DEV_LOGIN_PHONE?.trim() || "+15550001001";
+ * Must match the operator smoke owner (`operator-smoke-identity.mjs`). */
+const DEV_LOGIN_PHONE = process.env.NEXT_PUBLIC_DEV_LOGIN_PHONE?.trim() || "+15550001001";
 const DEV_LOGIN_OTP = process.env.NEXT_PUBLIC_DEV_LOGIN_OTP?.trim() || "1234";
 
 function initialLoginPhone(): string {
@@ -239,9 +238,7 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
           method: "POST",
         });
         if (!acceptRes.ok) {
-          setOtpError(
-            t("errors.inviteAcceptFailed", { status: acceptRes.status })
-          );
+          setOtpError(t("errors.inviteAcceptFailed", { status: acceptRes.status }));
           return;
         }
       }
@@ -384,7 +381,9 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
               }}
             >
               <div className="space-y-2">
-                <p className="text-center text-sm text-muted-foreground sm:text-start">{t("otpLabel")}</p>
+                <p className="text-center text-sm text-muted-foreground sm:text-start">
+                  {t("otpLabel")}
+                </p>
                 <OtpSegmentInput
                   value={otp}
                   onChange={(value) => {

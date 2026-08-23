@@ -1,5 +1,6 @@
 declare module "*.css";
 
+declare module "@app-tour/workspace-alpine/theme/alpine-portal.css";
 declare module "@app-tour/workspace-denali/theme/denali-portal.css";
 declare module "@app-tour/workspace-denali/theme/denali-marketing.css";
 declare module "@app-tour/workspace-guest-club/theme/guest-club-portal.css";

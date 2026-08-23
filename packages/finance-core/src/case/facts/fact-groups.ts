@@ -1,5 +1,5 @@
 /**
- * Portable Case fact groups — no product/Denali types.
+ * Portable Case fact groups — no product-specific types.
  */
 
 import type { AmountMinorFact, PresenceFact, TriFact } from "./fact-tokens";

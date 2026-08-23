@@ -1,9 +1,7 @@
 import type { AppLocale } from "@/i18n/routing";
-import {
-  formatDatetimeLocalLabel,
-  isoToDatetimeLocalInput,
-} from "@/i18n/datetime-format";
+import { formatDatetimeLocalLabel, isoToDatetimeLocalInput } from "@/i18n/datetime-format";
 import { formatLocalizedNumber, INTL_LOCALE } from "@/i18n/format-localized-digits";
+import type { WorkspaceTourCommercialCapability } from "@app-tour/workspace-sdk";
 
 import type { TourListProjection } from "./operator-tours-types";
 
@@ -12,25 +10,21 @@ export type TourSeatsFormatLabels = {
   readonly open: (accepted: number) => string;
 };
 
-/** Denali stores toman digits in ISO `IRR`. Other workspaces keep Intl for `IRR`. */
-const OPERATOR_IRR_TOMAN_PLUGIN_IDS = new Set<string>(["denali"]);
-
-export function operatorIrrUsesTomanLabel(pluginId: string | undefined): boolean {
-  return pluginId !== undefined && OPERATOR_IRR_TOMAN_PLUGIN_IDS.has(pluginId);
-}
-
 export function formatTourPrice(
   amount: number | null,
   currency: string | null,
   locale: AppLocale = "en",
-  pluginId?: string
+  commercialPolicy?: Pick<WorkspaceTourCommercialCapability, "irrDisplayUnit"> | null
 ): string | null {
   if (amount === null) {
     return null;
   }
-  const code = currency?.trim().toUpperCase() ?? "USD";
-  // ED-CURR-01 — Denali operator amounts are toman; ISO storage stays IRR. Do not ×10.
-  if (code === "IRR" && operatorIrrUsesTomanLabel(pluginId)) {
+  const code = currency?.trim().toUpperCase() ?? "";
+  if (code.length === 0) {
+    return null;
+  }
+  // Workspace policy owns the display unit; ISO storage stays IRR. Do not ×10.
+  if (code === "IRR" && commercialPolicy?.irrDisplayUnit === "toman") {
     const unit = locale === "fa" ? "تومان" : "toman";
     return `${formatLocalizedNumber(amount, locale)} ${unit}`;
   }
@@ -45,10 +39,7 @@ export function formatTourPrice(
   }
 }
 
-export function formatTourDeparture(
-  iso: string | null,
-  locale: AppLocale = "en"
-): string | null {
+export function formatTourDeparture(iso: string | null, locale: AppLocale = "en"): string | null {
   if (iso === null || iso.trim().length === 0) {
     return null;
   }

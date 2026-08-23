@@ -46,6 +46,31 @@ describe("finance-receipts-logic.spec.ts — Phase 9.7 R1", () => {
     assert.equal(parsed.items[0]?.payment?.amount, "1000000");
   });
 
+  it("WEB-9.7-REC-01b parseFinancePendingReceiptsResponse does not invent payment currency", () => {
+    const paymentId = randomUUID();
+    const parsed = parseFinancePendingReceiptsResponse({
+      items: [
+        {
+          id: "rcpt-without-payment-currency",
+          paymentId,
+          fileKey: "receipts/pay/proof.jpg",
+          status: "Pending",
+          note: "bank transfer",
+          createdAt: "2026-06-09T12:00:00.000Z",
+          payment: {
+            id: paymentId,
+            registrationId: randomUUID(),
+            amount: "1000000",
+            method: "Manual",
+            status: "Pending",
+          },
+        },
+      ],
+    });
+    assert.equal(parsed.items.length, 1);
+    assert.equal(parsed.items[0]?.payment?.currency, "");
+  });
+
   it("WEB-9.7-REC-02 validateReviewReceiptForm accepts approve", () => {
     const result = validateReviewReceiptForm({
       decision: "approve",
@@ -92,10 +117,7 @@ describe("finance-receipts-logic.spec.ts — Phase 9.7 R1", () => {
     assert.equal(isReceiptPdfFileKey("receipts/x/proof.pdf"), true);
     assert.equal(isBrowserReachableReceiptUrl("https://cdn.example/proof.jpg"), true);
     assert.equal(isBrowserReachableReceiptUrl("/api/finance/receipts/r1/file"), true);
-    assert.equal(
-      isBrowserReachableReceiptUrl("/internal/finance/receipts/1/file?key=a"),
-      false
-    );
+    assert.equal(isBrowserReachableReceiptUrl("/internal/finance/receipts/1/file?key=a"), false);
   });
 
   it("WEB-9.7-REC-06 parseFinanceReceiptUrlPayload", () => {

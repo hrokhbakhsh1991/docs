@@ -11,10 +11,12 @@ import {
   listFinanceDependencyWorkspaceTypes,
   WORKSPACE_FINANCE_DEPENDENCY_BINDINGS,
 } from "./workspace-finance-dependency-bindings.generated";
+import type { FinanceService } from "./finance.service";
 import type { IBookingPaymentPort } from "./ports/booking-payment.port";
 import type { FinanceLedgerPolicyPort } from "./ports/finance-ledger-policy.port";
 import type { FinanceReceiptDefaultsPort } from "./ports/finance-receipt-defaults.port";
 import { createBookingPaymentPort } from "../bookings/create-booking-payment-port";
+import type { FinanceCaseShadowWrapDeps } from "./case/wrap-finance-service-case-shadow";
 
 /** Fail-closed: boot must set `FINANCE_BOOT_WORKSPACE_TYPE` explicitly (no denali default). */
 export const FINANCE_BOOT_WORKSPACE_TYPE_REQUIRED = "FINANCE_BOOT_WORKSPACE_TYPE_REQUIRED";
@@ -23,13 +25,23 @@ export type FinanceWorkspaceDependencyFactories = {
   readonly createLedgerPolicy: () => Promise<FinanceLedgerPolicyPort>;
   readonly createReceiptDefaults: () => Promise<FinanceReceiptDefaultsPort>;
   readonly createBookingPayments: () => IBookingPaymentPort;
+  readonly decorateFinanceService?: FinanceWorkspaceDecorator;
 };
+
+export type FinanceWorkspaceDecorator = (
+  service: FinanceService,
+  context: FinanceCaseShadowWrapDeps
+) => FinanceService;
 
 export type FinanceWorkspaceDependencies = {
   readonly workspaceType: string;
   readonly ledgerPolicy: FinanceLedgerPolicyPort;
   readonly receiptDefaults: FinanceReceiptDefaultsPort;
   readonly bookingPayments: IBookingPaymentPort;
+  readonly decorateFinanceService?: (
+    service: FinanceService,
+    context: FinanceCaseShadowWrapDeps
+  ) => FinanceService;
 };
 
 function normalizeWorkspaceType(workspaceType: string): string {
@@ -82,6 +94,8 @@ function requireRegisteredFactories(
     createLedgerPolicy: binding.createLedgerPolicy,
     createReceiptDefaults: binding.createReceiptDefaults,
     createBookingPayments: createPlatformBookingPayments,
+    decorateFinanceService:
+      "decorateFinanceService" in binding ? binding.decorateFinanceService : undefined,
   };
 }
 
@@ -150,5 +164,6 @@ export async function resolveFinanceWorkspaceDependencies(
     ledgerPolicy,
     receiptDefaults,
     bookingPayments: factories.createBookingPayments(),
+    decorateFinanceService: factories.decorateFinanceService,
   };
 }

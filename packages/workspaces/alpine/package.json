@@ -1,0 +1,52 @@
+{
+  "name": "@app-tour/workspace-alpine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Synthetic Alpine workspace fixture for PROD-4 drop-in admission proof",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "default": "./dist/plugin.js"
+    },
+    "./host/finance": {
+      "types": "./dist/finance/index.d.ts",
+      "default": "./dist/finance/index.js"
+    },
+    "./host/finance/manifest": {
+      "types": "./dist/finance/finance-ops-manifest.d.ts",
+      "default": "./dist/finance/finance-ops-manifest.js"
+    },
+    "./host/tours": {
+      "types": "./dist/tours/index.d.ts",
+      "default": "./dist/tours/index.js"
+    },
+    "./theme/tokens.css": "./theme/tokens.css",
+    "./theme/alpine-portal.css": "./theme/alpine-portal.css"
+  },
+  "files": [
+    "dist",
+    "theme/tokens.css",
+    "theme/alpine-portal.css"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc --noEmit",
+    "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
+  },
+  "dependencies": {
+    "@app-tour/finance-http-contracts": "workspace:*",
+    "@app-tour/workspace-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

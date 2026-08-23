@@ -22,10 +22,7 @@ export type CanPerformOperatorSurfaceOptions = {
 };
 
 /** Fallback when manifest not passed — readonly explorer modules members may read. */
-const MEMBER_READABLE_SETTINGS_MODULE_IDS = new Set<string>([
-  "audit_trail",
-  "workspace_branding",
-]);
+const MEMBER_READABLE_SETTINGS_MODULE_IDS = new Set<string>(["audit_trail", "workspace_branding"]);
 
 const OWNER_ONLY_OPERATOR_SURFACES = new Set<string>([
   "operator.users.read",
@@ -72,10 +69,6 @@ export function evaluateOperatorSurfaceGrant(
   options?: CanPerformOperatorSurfaceOptions
 ): boolean {
   if (!isAuthzGranted(context)) {
-    return false;
-  }
-
-  if (surface.startsWith("urban.")) {
     return false;
   }
 

@@ -27,7 +27,7 @@ export async function loadPlatformClubDetailFromResponse(
     workspaceCommerce: body.workspaceCommerce ?? {
       paymentMode: "offline_receipt",
       gatewayProvider: null,
-      currency: "IRR",
+      currency: "",
     },
     integrationsPlane: body.integrationsPlane ?? resolveIntegrationsPlaneStatusFromEnv(),
   };

@@ -7,6 +7,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
+import { loadRegistrationInvoiceFacts } from "../src/finance/load-registration-invoice-facts";
+
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const FINANCE_REPO = path.join(
   REPO_ROOT,
@@ -33,5 +35,50 @@ describe("finance-registration-invoice-facts.spec.ts", () => {
     assert.match(source, /\$queryRaw/);
     assert.match(source, /finance\.prepayment\.recorded/);
     assert.match(source, /take:\s*MAX_PAYMENTS_PER_REGISTRATION/);
+  });
+
+  it("FIN-INV-04 does not invent a product currency when facts carry none", async () => {
+    const queryRows = [[{ sum: "0" }], [{ sum: "0" }], [{ sum: "0" }]];
+    const tx = {
+      $queryRaw: async () => queryRows.shift(),
+      payment: {
+        findMany: async () => [],
+      },
+      outboxEvent: {
+        findFirst: async () => null,
+      },
+    };
+
+    const facts = await loadRegistrationInvoiceFacts(tx as never, "tenant-id", "registration-id");
+
+    assert.equal(facts.currency, "");
+  });
+
+  it("FIN-INV-05 keeps currency resolved from stored prepayment or payment facts", async () => {
+    const queryRows = [[{ sum: "2500" }], [{ sum: "1000" }], [{ sum: "0" }]];
+    const tx = {
+      $queryRaw: async () => queryRows.shift(),
+      payment: {
+        findMany: async () => [{ amount: "1000", currency: "CAD", status: "Paid" }],
+      },
+      outboxEvent: {
+        findFirst: async () => ({ payload: { currency: "USD" } }),
+      },
+    };
+
+    const facts = await loadRegistrationInvoiceFacts(tx as never, "tenant-id", "registration-id");
+
+    assert.equal(facts.currency, "CAD");
+  });
+
+  it("FIN-INV-06 source keeps invoice fact loaders workspace-neutral for currency fallback", () => {
+    const source = fs.readFileSync(INVOICE_FACTS, "utf8");
+    const memorySource = fs.readFileSync(
+      path.join(REPO_ROOT, "src/workspace-finance/in-memory-finance.repository.ts"),
+      "utf8"
+    );
+
+    assert.doesNotMatch(source, /let\s+currency\s*=\s*"IRR"/);
+    assert.doesNotMatch(memorySource, /let\s+currency\s*=\s*"IRR"/);
   });
 });

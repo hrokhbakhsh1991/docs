@@ -2,7 +2,10 @@
  * Phase 9.6 — identity-me API
  */
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { before, describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { createRequestListener } from "../src/app";
 import {
@@ -14,6 +17,9 @@ import { installHttpTestClient } from "./http-test-client";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
 installMemoryStorageDriverForDescribe();
+
+const API_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const IDENTITY_ME_AVATAR_ROUTES = path.join(API_ROOT, "src/identity/me.avatar.routes.ts");
 
 type ProfileResponse = {
   readonly userId?: string;
@@ -146,5 +152,16 @@ describe("identity-me.spec.ts — Phase 9.6 S9-R7", () => {
     });
     assert.equal(response.status, 400);
     assert.equal(response.body.code, "OPERATOR_AVATAR_CONTENT_TYPE_INVALID");
+  });
+
+  it("API-9.6-ME-08 avatar error mapper returns only allowlisted invalid-body tokens", () => {
+    const source = fs.readFileSync(IDENTITY_ME_AVATAR_ROUTES, "utf8");
+    const body = source.match(
+      /function mapOperatorAvatarError\([\s\S]*?\n\}\n\nexport async function handleUploadIdentityMeAvatar/
+    )?.[0];
+    assert.ok(body, "mapOperatorAvatarError body must be present");
+    assert.doesNotMatch(body, /includes\("CONTENT_TYPE"\)/);
+    assert.doesNotMatch(body, /code:\s*message/);
+    assert.match(source, /message\.split\(":", 1\)/);
   });
 });

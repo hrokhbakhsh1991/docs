@@ -57,7 +57,10 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
   });
 
   it("WEB-13.6-01 wizard-field has no denali prefix fallback", () => {
-    const source = readFileSync(join(import.meta.dirname, "../src/wizard/wizard-field.tsx"), "utf8");
+    const source = readFileSync(
+      join(import.meta.dirname, "../src/wizard/wizard-field.tsx"),
+      "utf8"
+    );
     assert.doesNotMatch(source, /startsWith\(["']denali\./);
     assert.doesNotMatch(source, /@app-tour\/workspace-denali/);
     assert.match(source, /resolveWizardEnumOptionLabel/);
@@ -67,7 +70,10 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
   it("P14-0b-04b/4aw wizard template editor binder deleted; registry owns surface", () => {
     assert.equal(
       existsSync(
-        join(import.meta.dirname, "../src/bootstrap/workspace-wizard-template-editor-bindings.generated.ts")
+        join(
+          import.meta.dirname,
+          "../src/bootstrap/workspace-wizard-template-editor-bindings.generated.ts"
+        )
       ),
       false
     );
@@ -84,7 +90,10 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
 
   it("P14-0b-04 wizard-template-client has no pluginId denali branches", () => {
     const source = readFileSync(
-      join(import.meta.dirname, "../app/(app)/settings/tour-wizard-template/wizard-template-client.tsx"),
+      join(
+        import.meta.dirname,
+        "../app/(app)/settings/tour-wizard-template/wizard-template-client.tsx"
+      ),
       "utf8"
     );
     assert.doesNotMatch(source, /pluginId\s*===\s*["']denali["']/);
@@ -105,6 +114,8 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     assert.doesNotMatch(source, /useGeneratedWorkspaceWizardTranslators/);
     assert.doesNotMatch(source, /useTranslations\(["']denali["']\)/);
     assert.doesNotMatch(source, /useTranslations\(["']urban["']\)/);
+    assert.doesNotMatch(source, /under `denali`/);
+    assert.doesNotMatch(source, /`denali\.tourKinds\.mountain_day`/);
   });
 
   it("P14-3-04 wizard-bridge-shell uses extended create binding", () => {
@@ -137,7 +148,10 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     assert.doesNotMatch(operatorBrand, /WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS/);
     assert.doesNotMatch(welcome, /WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS/);
     assert.doesNotMatch(fallbackMark, /pluginId\s*===\s*["']denali["']/);
-    assert.doesNotMatch(fallbackMark, /DenaliLogoMark|denali-logo-mark|fallbackMark\s*===\s*["']denali["']/);
+    assert.doesNotMatch(
+      fallbackMark,
+      /DenaliLogoMark|denali-logo-mark|fallbackMark\s*===\s*["']denali["']/
+    );
     assert.match(fallbackMark, /resolveWizardCustomBrandFallbackMark/);
     assert.doesNotMatch(fallbackMark, /WORKSPACE_WIZARD_CUSTOM_BRAND_FALLBACK_MARKS/);
     assert.match(fallbackMark, /data-tenant-brand-initial/);
@@ -155,19 +169,13 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
   });
 
   it("P14-0b-08 wizard-template-gate spec has no denali invariant imports", () => {
-    const source = readFileSync(
-      join(import.meta.dirname, "wizard-template-gate.spec.ts"),
-      "utf8"
-    );
+    const source = readFileSync(join(import.meta.dirname, "wizard-template-gate.spec.ts"), "utf8");
     assert.doesNotMatch(source, /@app-tour\/workspace-denali\/wizard\/template-invariants/);
     assert.match(source, /normalizeWizardTemplateGate/);
   });
 
   it("P14-0b-06c load-messages uses codegen workspace wizard imports", () => {
-    const source = readFileSync(
-      join(import.meta.dirname, "../src/i18n/load-messages.ts"),
-      "utf8"
-    );
+    const source = readFileSync(join(import.meta.dirname, "../src/i18n/load-messages.ts"), "utf8");
     assert.doesNotMatch(source, /@app-tour\/workspace-denali/);
     assert.match(source, /loadWorkspaceWizardMessagesForLocale/);
   });
@@ -232,7 +240,10 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     );
     assert.ok(
       existsSync(
-        join(REPO_ROOT, "packages/workspaces/denali/src/ui/chrome/denali-create-tour-wizard-view.tsx")
+        join(
+          REPO_ROOT,
+          "packages/workspaces/denali/src/ui/chrome/denali-create-tour-wizard-view.tsx"
+        )
       )
     );
   });
@@ -319,6 +330,8 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
       "utf8"
     );
     assert.match(hook, /useOperatorCreateTourWizardCore/);
+    assert.match(hook, /workspacePlugin: wizardPlugin/);
+    assert.doesNotMatch(hook, /denaliPlugin: wizardPlugin/);
     assert.match(createCore, /runDenaliCreateTourSubmit/);
     assert.match(submitLogic, /submitDenaliCreateTour/);
     assert.match(payload, /loadDenaliSubmitCatalogIds/);
@@ -366,7 +379,9 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
       "rule-sync shell shim removed (PR-5c)"
     );
     assert.ok(
-      !existsSync(join(import.meta.dirname, "../src/wizard/denali/use-denali-flat-edit-rule-sync.ts")),
+      !existsSync(
+        join(import.meta.dirname, "../src/wizard/denali/use-denali-flat-edit-rule-sync.ts")
+      ),
       "flat-edit rule-sync shim removed (PR-5b)"
     );
   });
@@ -433,7 +448,10 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     assert.match(binding, /resolveDraftMergeForPlugin/);
     assert.doesNotMatch(binding, /workspace-wizard-draft-shell-bindings\.generated/);
     assert.doesNotMatch(binding, /getWorkspacePluginFromDraftShell/);
-    assert.match(hostRuntime, /WIZARD_HOST_ADAPTER_SURFACE_KEY|app-cloud\.wizardHostAdapterSurface/);
+    assert.match(
+      hostRuntime,
+      /WIZARD_HOST_ADAPTER_SURFACE_KEY|app-cloud\.wizardHostAdapterSurface/
+    );
     assert.equal(
       existsSync(join(import.meta.dirname, "../src/wizard/host-adapter-runtime.ts")),
       false

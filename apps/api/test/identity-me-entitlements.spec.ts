@@ -2,6 +2,8 @@
  * PS-5 — identity/me/entitlements API upstream
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { before, describe, it } from "node:test";
 
 import { createRequestListener } from "../src/app";
@@ -70,12 +72,21 @@ describe("identity-me-entitlements.spec.ts — PS-5", () => {
     );
     assert.equal(response.status, 200);
     assert.equal(response.body.ok, true);
-    assert.equal(response.body.workspaceId, "denali");
+    assert.equal(response.body.workspaceId, memberWorkspaceId);
     assert.ok(response.body.granted?.includes("member.module.home"));
     assert.ok(response.body.granted?.includes("member.module.trips"));
     assert.ok(response.body.granted?.includes("member.module.profile"));
-    assert.deepEqual(response.body.denied, [
-      { key: "member.module.wallet", reason: "plan_limit" },
-    ]);
+    assert.deepEqual(response.body.denied, [{ key: "member.module.wallet", reason: "plan_limit" }]);
+  });
+
+  it("API-ME-ENT-03 service reports auth workspaceId, not plugin/workspace type", () => {
+    const source = readFileSync(
+      join(import.meta.dirname, "../src/identity/me.entitlements.service.ts"),
+      "utf8"
+    );
+    assert.match(source, /workspaceId = auth\.workspaceId\?\.trim\(\)/);
+    assert.doesNotMatch(source, /workspaceId:\s*pluginId/);
+    assert.doesNotMatch(source, /emptyMemberEntitlements\(auth\.tenantId,\s*pluginId\)/);
+    assert.doesNotMatch(source, /emptyMemberEntitlements\(auth\.tenantId,\s*workspaceType\)/);
   });
 });

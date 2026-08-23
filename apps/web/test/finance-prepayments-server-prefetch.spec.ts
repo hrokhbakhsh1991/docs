@@ -22,4 +22,15 @@ describe("finance-prepayments-server-prefetch.spec.ts", () => {
     assert.match(panelSource, /initialPrepayments/);
     assert.match(panelSource, /skipInitialFetchRef/);
   });
+
+  it("PREPAYMENTS-03 prepayment form does not default to a workspace currency", () => {
+    const panelSource = readFileSync(
+      resolve(WEB_ROOT, "src/finance/finance-prepayments-panel.tsx"),
+      "utf8"
+    );
+    assert.match(panelSource, /const EMPTY_FORM: RecordPrepaymentFormState = \{/);
+    assert.match(panelSource, /currency: ""/);
+    assert.match(panelSource, /currency: invoice\.currency/);
+    assert.doesNotMatch(panelSource, /currency: "IRR"/);
+  });
 });

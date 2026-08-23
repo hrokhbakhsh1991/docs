@@ -66,7 +66,10 @@ import { fetchFinanceListWithRetry } from "@/finance/fetch-finance-list-with-ret
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import { formatFinanceTimestamp } from "@/finance/finance-reports-logic";
 import type { AppLocale } from "@/i18n/routing";
-import { localizeFinanceMessage, toFinanceClientErrorCode } from "@/i18n/resolve-finance-error-message";
+import {
+  localizeFinanceMessage,
+  toFinanceClientErrorCode,
+} from "@/i18n/resolve-finance-error-message";
 
 type FinancePaymentsPanelProps = {
   readonly session: OperatorSessionContext;
@@ -76,7 +79,7 @@ type FinancePaymentsPanelProps = {
 const EMPTY_FORM: CreateManualPaymentFormState = {
   registrationId: "",
   amount: "",
-  currency: "IRR",
+  currency: "",
 };
 
 const EMPTY_RECEIPT_FORM: SubmitReceiptFormState = {
@@ -208,7 +211,7 @@ function PaymentRow({
         </Link>
         {isFinancePaymentPaidStatus(row.status) && isFinancePaymentManualMethod(row.method) ? (
           <Link
-            href={`/finance?tab=refunds&registrationId=${encodeURIComponent(row.registrationId)}&paymentId=${encodeURIComponent(row.id)}&amountMinor=${encodeURIComponent(row.amount)}`}
+            href={`/finance?tab=refunds&registrationId=${encodeURIComponent(row.registrationId)}&paymentId=${encodeURIComponent(row.id)}&amountMinor=${encodeURIComponent(row.amount)}&currency=${encodeURIComponent(row.currency)}`}
             className="font-medium text-primary underline-offset-2 hover:underline"
             data-testid="finance-payment-request-refund"
           >
@@ -230,9 +233,7 @@ function PaymentRow({
             className="text-muted-foreground"
             data-testid={FINANCE_PAYMENTS_TEST_IDS.rowAdvanced}
           >
-            <summary className="cursor-pointer select-none text-xs">
-              {t("rowAdvancedShow")}
-            </summary>
+            <summary className="cursor-pointer select-none text-xs">{t("rowAdvancedShow")}</summary>
             <button
               type="button"
               className="mt-1 text-xs text-muted-foreground underline-offset-2 hover:underline"
@@ -267,9 +268,7 @@ export function FinancePaymentsPanel({
   const [loading, setLoading] = useState(initialPayments === null);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<CreateManualPaymentFormState>(() =>
-    registrationScoped
-      ? { ...EMPTY_FORM, registrationId: registrationFilter!.trim() }
-      : EMPTY_FORM
+    registrationScoped ? { ...EMPTY_FORM, registrationId: registrationFilter!.trim() } : EMPTY_FORM
   );
   const [formError, setFormError] = useState<string | null>(null);
   const [receiptForm, setReceiptForm] = useState<SubmitReceiptFormState>(EMPTY_RECEIPT_FORM);
@@ -406,7 +405,10 @@ export function FinancePaymentsPanel({
         }
         amountPrefilledForRegistrationRef.current = registrationId;
         setForm((current) => {
-          if (current.registrationId.trim() !== registrationId || current.amount.trim().length > 0) {
+          if (
+            current.registrationId.trim() !== registrationId ||
+            current.amount.trim().length > 0
+          ) {
             return current;
           }
           return {
@@ -442,8 +444,7 @@ export function FinancePaymentsPanel({
     }
     const id = registrationFilter.trim();
     const match = items.find(
-      (row) =>
-        row.registrationId.trim() === id && row.registrationContext !== null
+      (row) => row.registrationId.trim() === id && row.registrationContext !== null
     );
     return match?.registrationContext ?? null;
   }, [items, registrationFilter, registrationScoped]);
@@ -670,10 +671,7 @@ export function FinancePaymentsPanel({
         <p className="text-sm font-normal text-muted-foreground">{t("createManualHint")}</p>
       </CardHeader>
       <CardContent>
-        <details
-          ref={createDetailsRef}
-          data-testid={FINANCE_PAYMENTS_TEST_IDS.createDetails}
-        >
+        <details ref={createDetailsRef} data-testid={FINANCE_PAYMENTS_TEST_IDS.createDetails}>
           <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
             {t("createManualShow")}
           </summary>
@@ -796,9 +794,7 @@ export function FinancePaymentsPanel({
                     })
                     .catch((uploadError: unknown) => {
                       setReceiptUploadError(
-                        uploadError instanceof Error
-                          ? uploadError.message
-                          : "RECEIPT_UPLOAD_FAILED"
+                        uploadError instanceof Error ? uploadError.message : "RECEIPT_UPLOAD_FAILED"
                       );
                     })
                     .finally(() => {
@@ -931,9 +927,7 @@ export function FinancePaymentsPanel({
               <option value="all">{t("statusFilterAll")}</option>
               <option value="Pending">{resolveFinancePaymentStatusLabel(t, "Pending")}</option>
               <option value="Paid">{resolveFinancePaymentStatusLabel(t, "Paid")}</option>
-              <option value="Cancelled">
-                {resolveFinancePaymentStatusLabel(t, "Cancelled")}
-              </option>
+              <option value="Cancelled">{resolveFinancePaymentStatusLabel(t, "Cancelled")}</option>
               <option value="Failed">{resolveFinancePaymentStatusLabel(t, "Failed")}</option>
             </select>
             <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={loading}>
@@ -976,10 +970,7 @@ export function FinancePaymentsPanel({
             </p>
           ) : null}
           {!loading && !error && visibleItems.length === 0 ? (
-            <p
-              className="text-sm text-muted-foreground"
-              data-testid={emptyMessage.testId}
-            >
+            <p className="text-sm text-muted-foreground" data-testid={emptyMessage.testId}>
               {t(emptyMessage.key)}
             </p>
           ) : null}
@@ -1046,7 +1037,8 @@ export function FinancePaymentsPanel({
                 onChange={(event) =>
                   setCancelForm((current) => ({
                     ...current,
-                    reasonCode: event.target.value as CancelPendingManualPaymentFormState["reasonCode"],
+                    reasonCode: event.target
+                      .value as CancelPendingManualPaymentFormState["reasonCode"],
                   }))
                 }
               >

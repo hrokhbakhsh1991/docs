@@ -1,10 +1,16 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 
+import { listTourPublishedPolicyDriftCheckTargets } from "../integrations/platform/workspace-integration-capabilities.generated.ts";
 import {
   isTourPublishedRolloutGateFatalEnabled,
   shouldWarnTourPublishedPolicyDrift,
 } from "./tour-published-policy-drift";
+
+const HERE = import.meta.dirname;
+const HEALTH_SRC = join(HERE, "tour-published-policy-drift.ts");
 
 describe("tour-published-policy-drift", () => {
   it("detects missing TourPublished policy on enabled denali telegram connections", () => {
@@ -16,7 +22,7 @@ describe("tour-published-policy-drift", () => {
         status: "enabled",
         persistedPolicies: [{ eventType: "TourCreated", enabled: true }],
       }),
-      true,
+      true
     );
     assert.equal(
       shouldWarnTourPublishedPolicyDrift({
@@ -26,7 +32,7 @@ describe("tour-published-policy-drift", () => {
         status: "enabled",
         persistedPolicies: [{ eventType: "TourPublished", enabled: true }],
       }),
-      false,
+      false
     );
   });
 
@@ -39,7 +45,7 @@ describe("tour-published-policy-drift", () => {
         status: "enabled",
         persistedPolicies: [],
       }),
-      false,
+      false
     );
     assert.equal(
       shouldWarnTourPublishedPolicyDrift({
@@ -49,8 +55,19 @@ describe("tour-published-policy-drift", () => {
         status: "disabled",
         persistedPolicies: [],
       }),
-      false,
+      false
     );
+  });
+
+  it("uses generated drift-check targets instead of a Denali-only SQL literal", () => {
+    const targets = listTourPublishedPolicyDriftCheckTargets();
+    assert.deepEqual(targets, [{ workspaceType: "denali", providerId: "telegram" }]);
+
+    const source = readFileSync(HEALTH_SRC, "utf8");
+    assert.match(source, /listTourPublishedPolicyDriftCheckTargets/);
+    assert.match(source, /WITH drift_targets/);
+    assert.doesNotMatch(source, /workspace_type\s*=\s*['"]denali['"]/);
+    assert.doesNotMatch(source, /provider\s*=\s*['"]telegram['"]/);
   });
 
   it("enables fatal rollout gate only with explicit env", () => {

@@ -11,18 +11,37 @@ import { fileURLToPath } from "node:url";
 
 import {
   buildWorkspaceDefinitionExport,
-  DEFAULT_WORKSPACE_DEFINITION_EXPORTS,
+  type WorkspaceDefinitionExportMeta,
 } from "../src/workspace-metadata/build-workspace-definition-export.ts";
 import { logger } from "../src/observability/logger.ts";
 import { resolveWorkspacePluginForType } from "../src/workspace/resolve-workspace-plugin.ts";
 
-function parseArgs(argv: string[]): {
+const WORKSPACE_DEFINITION_EXPORT_PRESETS: Readonly<Record<string, WorkspaceDefinitionExportMeta>> =
+  {
+    denali: {
+      definitionId: "denali-tour-ops",
+      displayName: "Denali Tour Ops",
+      workspaceType: "denali",
+    },
+    starter: {
+      definitionId: "starter-shell",
+      displayName: "Starter Shell",
+      workspaceType: "starter",
+    },
+    urban: {
+      definitionId: "urban-minimal",
+      displayName: "Urban Minimal",
+      workspaceType: "urban",
+    },
+  };
+
+export function parseWorkspaceDefinitionExportArgs(argv: string[]): {
   workspace: string;
   out: string;
   definitionId?: string;
   displayName?: string;
 } {
-  let workspace = "denali";
+  let workspace: string | undefined;
   let out = "";
   let definitionId: string | undefined;
   let displayName: string | undefined;
@@ -30,7 +49,7 @@ function parseArgs(argv: string[]): {
   for (let i = 2; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--workspace" && argv[i + 1]) {
-      workspace = argv[++i] ?? workspace;
+      workspace = argv[++i];
       continue;
     }
     if (arg === "--out" && argv[i + 1]) {
@@ -47,6 +66,11 @@ function parseArgs(argv: string[]): {
     }
   }
 
+  if (workspace === undefined || workspace.trim().length === 0) {
+    throw new Error("WORKSPACE_DEFINITION_EXPORT_WORKSPACE_REQUIRED");
+  }
+  workspace = workspace.trim();
+
   if (!out) {
     out = resolve(
       dirname(fileURLToPath(import.meta.url)),
@@ -61,8 +85,8 @@ function parseArgs(argv: string[]): {
 }
 
 async function main(): Promise<void> {
-  const args = parseArgs(process.argv);
-  const defaults = DEFAULT_WORKSPACE_DEFINITION_EXPORTS[args.workspace];
+  const args = parseWorkspaceDefinitionExportArgs(process.argv);
+  const defaults = WORKSPACE_DEFINITION_EXPORT_PRESETS[args.workspace];
   if (!defaults && !args.definitionId) {
     throw new Error(`UNKNOWN_WORKSPACE_EXPORT:${args.workspace}`);
   }
@@ -91,14 +115,19 @@ async function main(): Promise<void> {
   );
 }
 
-main().catch((error: unknown) => {
-  logger.error(
-    {
-      event: "workspace.definition.export_failed",
-      code: "WORKSPACE_DEFINITION_EXPORT_FAILED",
-      message: error instanceof Error ? error.message : String(error),
-    },
-    "workspace definition export failed"
-  );
-  process.exit(1);
-});
+const isDirectRun =
+  process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isDirectRun) {
+  main().catch((error: unknown) => {
+    logger.error(
+      {
+        event: "workspace.definition.export_failed",
+        code: "WORKSPACE_DEFINITION_EXPORT_FAILED",
+        message: error instanceof Error ? error.message : String(error),
+      },
+      "workspace definition export failed"
+    );
+    process.exit(1);
+  });
+}

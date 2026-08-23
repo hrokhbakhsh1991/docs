@@ -1,8 +1,5 @@
 import { parseWorkspacePluginFromStorage } from "@app-tour/workspace-sdk/ingress";
-import type {
-  CanonicalDocument,
-  WorkspacePlugin,
-} from "@app-tour/workspace-sdk/plugin-types";
+import type { CanonicalDocument, WorkspacePlugin } from "@app-tour/workspace-sdk/plugin-types";
 
 import { validationResultFromPlatformError } from "../errors/ingress-bridge";
 import { PlatformCoreError } from "../errors/platform-core.error";
@@ -54,9 +51,7 @@ function stripNonIngressPluginSurfaces(plugin: WorkspacePlugin): WorkspacePlugin
  * Strip callable / non-ingress plugin surfaces before wizard engine bootstrap (DG-3.5).
  * Shared by PlatformWizardEngine, platform host hooks, and workspace thin wrappers.
  */
-export function stripWorkspacePluginForWizardEngine(
-  plugin: WorkspacePlugin,
-): WorkspacePlugin {
+export function stripWorkspacePluginForWizardEngine(plugin: WorkspacePlugin): WorkspacePlugin {
   const {
     tourList: _tourList,
     tourClone: _tourClone,
@@ -66,6 +61,7 @@ export function stripWorkspacePluginForWizardEngine(
     draftTombstone: _draftTombstone,
     operatorSettings: _operatorSettings,
     exposureSurface: _exposureSurface,
+    integrationSurface: _integrationSurface,
     // Runtime capability bags hold ensureReady / UI hooks — not plain ingress data.
     capabilities: _capabilities,
     ...wizardPlugin
@@ -99,19 +95,15 @@ export class PlatformWizardEngine {
   private readonly pluginInput: WorkspacePlugin;
   private runtime: WizardRuntime | null = null;
 
-  private constructor(
-    plugin: WorkspacePlugin,
-    options: PlatformWizardEngineInternalOptions,
-  ) {
+  private constructor(plugin: WorkspacePlugin, options: PlatformWizardEngineInternalOptions) {
     this.pluginInput = sanitizePluginAtCreate(plugin);
-    this.ruleEngineScopePolicy =
-      options.ruleEngineScopePolicy ?? DEFAULT_RULE_ENGINE_SCOPE_POLICY;
+    this.ruleEngineScopePolicy = options.ruleEngineScopePolicy ?? DEFAULT_RULE_ENGINE_SCOPE_POLICY;
   }
 
   /** Clones plugin via headless ingress — does not build field/rule engines until `tryInit`. */
   static create(
     plugin: WorkspacePlugin,
-    options: PlatformWizardEngineOptions = {},
+    options: PlatformWizardEngineOptions = {}
   ): PlatformWizardEngine {
     return new PlatformWizardEngine(plugin, options);
   }
@@ -119,7 +111,7 @@ export class PlatformWizardEngine {
   /** Package-internal — not exported from index.ts. */
   static createForTests(
     plugin: WorkspacePlugin,
-    options: PlatformWizardEngineInternalOptions = {},
+    options: PlatformWizardEngineInternalOptions = {}
   ): PlatformWizardEngine {
     return new PlatformWizardEngine(plugin, options);
   }
@@ -148,7 +140,7 @@ export class PlatformWizardEngine {
 
   static tryFromPlugin(
     plugin: WorkspacePlugin,
-    options: PlatformWizardEngineOptions = {},
+    options: PlatformWizardEngineOptions = {}
   ): PlatformResult<PlatformWizardEngine> {
     let engine: PlatformWizardEngine;
     try {
@@ -174,9 +166,7 @@ export class PlatformWizardEngine {
     try {
       const resolution = normalizeRuleContext(context);
       const { plugin, fieldEngine, ruleEngine } = ready.value;
-      return platformOk(
-        buildRenderPlan(plugin.wizard, fieldEngine, ruleEngine, resolution),
-      );
+      return platformOk(buildRenderPlan(plugin.wizard, fieldEngine, ruleEngine, resolution));
     } catch (error: unknown) {
       if (error instanceof PlatformCoreError) {
         return platformFail(error.code, error.message, error.details);
@@ -227,7 +217,7 @@ export class PlatformWizardEngine {
     const ruleEngine = RuleEngine.tryCreate(
       validated.value.ruleSet,
       fieldEngine.value,
-      this.ruleEngineScopePolicy,
+      this.ruleEngineScopePolicy
     );
     if (!ruleEngine.ok) {
       return ruleEngine;
@@ -244,7 +234,7 @@ export class PlatformWizardEngine {
 /** Package-internal test factory — not exported from index.ts. */
 export function createPlatformWizardEngineForTests(
   plugin: WorkspacePlugin,
-  options: PlatformWizardEngineInternalOptions = {},
+  options: PlatformWizardEngineInternalOptions = {}
 ): PlatformWizardEngine {
   return PlatformWizardEngine.createForTests(plugin, options);
 }

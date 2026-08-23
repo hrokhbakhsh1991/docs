@@ -36,6 +36,10 @@ describe("finance-payments PR21-E", () => {
     assert.match(panel, /registrationScoped/);
     assert.doesNotMatch(panel, /needs operator review|Needs review/i);
     assert.match(panel, /usePaymentForAdvanced/);
+    assert.match(panel, /const EMPTY_FORM: CreateManualPaymentFormState = \{/);
+    assert.match(panel, /currency: ""/);
+    assert.match(panel, /currency: invoice\.currency/);
+    assert.doesNotMatch(panel, /currency: "IRR"/);
     // List card appears before create form in JSX order (queue hygiene).
     const listIdx = panel.indexOf("FINANCE_PAYMENTS_TEST_IDS.list");
     const createRenderIdx = panel.lastIndexOf("{createFormCard}");

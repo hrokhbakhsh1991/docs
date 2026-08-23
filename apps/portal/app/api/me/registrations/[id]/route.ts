@@ -18,7 +18,7 @@ type UpstreamOwnedBody = {
 
 /**
  * Member-owned registration detail for SSR `/me/registrations/[id]`.
- * Upstream: GET `{registrationApiPath}/:id` (Denali owned GET).
+ * Upstream: GET `{registrationApiPath}/:id` from the workspace intake contract.
  */
 export async function GET(req: Request, context: RouteContext): Promise<NextResponse> {
   const host = resolvePortalIngressHost(req);

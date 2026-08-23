@@ -34,12 +34,14 @@ describe("workspace-commerce-single-mode (P5-C GU-01)", () => {
     assert.equal(result.success, false);
   });
 
-  it("GU-01 accepts gateway mode when provider is set", () => {
+  it("GU-01 accepts gateway mode when provider and currency are set", () => {
     const parsed = workspaceCommerceConfigSchema.parse({
       paymentMode: "gateway",
       gatewayProvider: "stripe",
+      currency: "USD",
     });
     assert.equal(parsed.gatewayProvider, "stripe");
+    assert.equal(parsed.currency, "USD");
   });
 
   it("GU-01 schema source is workspace-sdk commerce-schema", () => {
@@ -48,5 +50,6 @@ describe("workspace-commerce-single-mode (P5-C GU-01)", () => {
       "utf8"
     );
     assert.match(schema, /gatewayProvider is required when paymentMode is gateway/);
+    assert.match(schema, /currency is required when paymentMode is gateway/);
   });
 });

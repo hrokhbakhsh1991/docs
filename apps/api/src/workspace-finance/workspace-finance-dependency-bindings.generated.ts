@@ -4,8 +4,19 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
+import { wrapFinanceServiceWithCaseShadow } from "./case/wrap-finance-service-case-shadow";
 export const WORKSPACE_FINANCE_DEPENDENCY_BINDINGS = {
-  "denali": {
+  alpine: {
+    createLedgerPolicy: async () => {
+      const mod = await import("@app-tour/workspace-alpine/host/finance");
+      return new mod.AlpineLedgerPolicyAdapter();
+    },
+    createReceiptDefaults: async () => {
+      const mod = await import("@app-tour/workspace-alpine/host/finance");
+      return new mod.AlpineReceiptDefaultsAdapter();
+    },
+  },
+  denali: {
     createLedgerPolicy: async () => {
       const mod = await import("@app-tour/workspace-denali/host/finance");
       return new mod.DenaliFinanceLedgerPolicyAdapter();
@@ -14,6 +25,7 @@ export const WORKSPACE_FINANCE_DEPENDENCY_BINDINGS = {
       const mod = await import("@app-tour/workspace-denali/host/finance");
       return new mod.DenaliFinanceReceiptDefaultsAdapter();
     },
+    decorateFinanceService: wrapFinanceServiceWithCaseShadow,
   },
   "finance-ws2": {
     createLedgerPolicy: async () => {

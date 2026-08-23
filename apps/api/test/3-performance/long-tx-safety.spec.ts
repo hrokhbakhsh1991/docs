@@ -88,6 +88,10 @@ function withPoolTestUrl(url: string): string {
   return upsertQueryParam(withLimit, "pool_timeout", String(POOL_TIMEOUT_SEC));
 }
 
+function withLongTxSafetyApplicationName(url: string, applicationName: string): string {
+  return upsertQueryParam(withPoolTestUrl(url), "application_name", applicationName);
+}
+
 function authHeaders(tenantId: string): Record<string, string> {
   return {
     "x-tenant-id": tenantId,
@@ -99,12 +103,16 @@ function authHeaders(tenantId: string): Record<string, string> {
   };
 }
 
-async function countAppTourConnections(admin: PrismaClient): Promise<ConnectionSnapshot> {
+async function countAppTourConnections(
+  admin: PrismaClient,
+  applicationName: string
+): Promise<ConnectionSnapshot> {
   const rows = await admin.$queryRaw<Array<{ state: string | null; count: number }>>`
     SELECT state, count(*)::int AS count
     FROM pg_stat_activity
     WHERE usename = 'app_tour'
       AND datname = current_database()
+      AND application_name = ${applicationName}
     GROUP BY state
   `;
 
@@ -130,13 +138,14 @@ async function countAppTourConnections(admin: PrismaClient): Promise<ConnectionS
 
 async function waitForConnectionDrain(
   admin: PrismaClient,
+  applicationName: string,
   maxAttempts = 20,
   delayMs = 50
 ): Promise<ConnectionSnapshot> {
-  let snapshot = await countAppTourConnections(admin);
+  let snapshot = await countAppTourConnections(admin, applicationName);
   for (let attempt = 0; attempt < maxAttempts && snapshot.idleInTransaction > 0; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, delayMs));
-    snapshot = await countAppTourConnections(admin);
+    snapshot = await countAppTourConnections(admin, applicationName);
   }
   return snapshot;
 }
@@ -162,6 +171,7 @@ describe(
     const priorStorageDriver = process.env.STORAGE_DRIVER;
     const priorValidateDelay = process.env.P5_VALIDATE_DELAY_MS;
     const priorDatabaseUrl = process.env.DATABASE_URL;
+    const applicationName = `long_tx_safety_${runId}`;
     let lastReport: LongTxSafetyReport | undefined;
 
     before(async () => {
@@ -174,7 +184,10 @@ describe(
           10
         ) || DEFAULT_VALIDATE_DELAY_MS
       );
-      process.env.DATABASE_URL = withPoolTestUrl(process.env.DATABASE_URL?.trim() ?? APP_TOUR_BASE);
+      process.env.DATABASE_URL = withLongTxSafetyApplicationName(
+        process.env.DATABASE_URL?.trim() ?? APP_TOUR_BASE,
+        applicationName
+      );
       await disconnectPrisma();
       admin = getPrismaAdmin();
 
@@ -287,8 +300,8 @@ describe(
       const samplingStartMs = VALIDATION_SAMPLE_MARGIN_MS;
       const samplingEndMs = validateDelayMs - VALIDATION_SAMPLE_MARGIN_MS;
 
-      await waitForConnectionDrain(admin);
-      const baseline = await countAppTourConnections(admin);
+      await waitForConnectionDrain(admin, applicationName);
+      const baseline = await countAppTourConnections(admin, applicationName);
 
       let maxIdleDeltaDuringValidation = 0;
       let validationSampleCount = 0;
@@ -300,7 +313,15 @@ describe(
 
       const sampleUntil = createStart + samplingEndMs;
       while (performance.now() < sampleUntil) {
-        const snapshot = await countAppTourConnections(admin);
+        const sampleStartedAt = performance.now();
+        if (sampleStartedAt >= sampleUntil) {
+          break;
+        }
+        const snapshot = await countAppTourConnections(admin, applicationName);
+        const sampleFinishedAt = performance.now();
+        if (sampleFinishedAt >= sampleUntil) {
+          break;
+        }
         validationSampleCount += 1;
         const delta = snapshot.idleInTransaction - baseline.idleInTransaction;
         if (delta > maxIdleDeltaDuringValidation) {
@@ -361,7 +382,7 @@ describe(
         10
       );
 
-      await waitForConnectionDrain(admin);
+      await waitForConnectionDrain(admin, applicationName);
 
       const createPromise = httpRequest("/tours", "POST", validTourBody(`long-tx-${runId}-b`));
 

@@ -1,6 +1,6 @@
 /**
  * Host composition root for BookingsService (B0.5 + B1.5 tenant resolve + B2.0 binding).
- * Routes / Denali host keep calling façade functions — those resolve here.
+ * Routes / product HTTP hosts keep calling façade functions — those resolve here.
  *
  * Invariant (B2.0): tenantId → workspaceType. Callers must not pick a workspaceType
  * for a tenant; façades always resolve type from tenant, then bind the runtime.
@@ -243,9 +243,8 @@ export async function approveBooking(
     await resolveBookingsServiceForTenant(auth.tenantId)
   ).approveBooking(auth, bookingId);
   if (result.status === "approved") {
-    const { applyFreeCollectionAfterBookingApprove } = await import(
-      "../workspace-finance/apply-free-collection-after-booking-approve"
-    );
+    const { applyFreeCollectionAfterBookingApprove } =
+      await import("../workspace-finance/apply-free-collection-after-booking-approve");
     await applyFreeCollectionAfterBookingApprove({
       tenantId: auth.tenantId,
       bookingId: result.id,
@@ -263,9 +262,8 @@ export async function autoApprovePublicBooking(input: {
     await resolveBookingsServiceForTenant(input.tenantId)
   ).autoApprovePublicBooking(input);
   if (result.status === "approved") {
-    const { applyFreeCollectionAfterBookingApprove } = await import(
-      "../workspace-finance/apply-free-collection-after-booking-approve"
-    );
+    const { applyFreeCollectionAfterBookingApprove } =
+      await import("../workspace-finance/apply-free-collection-after-booking-approve");
     await applyFreeCollectionAfterBookingApprove({
       tenantId: input.tenantId,
       bookingId: result.id,
@@ -308,9 +306,8 @@ export async function bulkApproveBookings(
     await resolveBookingsServiceForTenant(auth.tenantId)
   ).bulkApproveBookings(auth, body);
   if (result.approvedIds.length > 0) {
-    const { applyFreeCollectionAfterBookingApprove } = await import(
-      "../workspace-finance/apply-free-collection-after-booking-approve"
-    );
+    const { applyFreeCollectionAfterBookingApprove } =
+      await import("../workspace-finance/apply-free-collection-after-booking-approve");
     for (const bookingId of result.approvedIds) {
       await applyFreeCollectionAfterBookingApprove({
         tenantId: auth.tenantId,

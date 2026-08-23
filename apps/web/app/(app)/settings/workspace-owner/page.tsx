@@ -18,10 +18,7 @@ export default async function WorkspaceOwnerSettingsPage() {
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
   const resolved = await resolveBootstrapAppSessionForHost(host);
-  const workspaceType =
-    resolved.session.pluginId === WORKSPACE_OWNER_SETTINGS_PLUGIN_ID
-      ? WORKSPACE_OWNER_SETTINGS_PLUGIN_ID
-      : "starter";
+  const workspaceType = resolved.session.pluginId;
 
   const branch = resolveWorkspaceOwnerSettingsPageBranch({
     authz: resolved.scopedAuthz.authz,

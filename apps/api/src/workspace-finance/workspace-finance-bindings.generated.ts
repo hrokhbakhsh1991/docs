@@ -6,6 +6,10 @@
 
 export const WORKSPACE_FINANCE_BINDINGS = [
   {
+    workspaceType: "alpine",
+    defaultModuleEnabledWhenUnset: true as const,
+  },
+  {
     workspaceType: "denali",
     defaultModuleEnabledWhenUnset: true as const,
   },

@@ -1,10 +1,9 @@
+import { resolveMemberLoginCatalogTourId } from "@app-tour/guest-surface-host";
+
 import { resolveMarketingPublicBaseUrl } from "./resolve-marketing-public-url";
 
-const DEFAULT_DEV_GUEST_TOUR_ID = "00000000-0000-4000-8000-000000000210";
-
-function catalogGuestRegisterPath(): string {
-  const tourId =
-    process.env.PORTAL_DEV_GUEST_TOUR_ID?.trim() || DEFAULT_DEV_GUEST_TOUR_ID;
+function catalogGuestRegisterPath(pluginId: string | null): string {
+  const tourId = resolveMemberLoginCatalogTourId(pluginId);
   return `/catalog/${tourId}/register`;
 }
 
@@ -20,10 +19,7 @@ function configuredMarketingUrlIsHealthFallback(): boolean {
   }
 }
 
-function marketingUrlIsPortalHealthFallback(
-  marketingUrl: string,
-  portalHost: string
-): boolean {
+function marketingUrlIsPortalHealthFallback(marketingUrl: string, portalHost: string): boolean {
   try {
     const target = new URL(marketingUrl);
     const portalHostname = portalHost.split(":")[0];
@@ -42,14 +38,14 @@ export function isPortalOnlyDevMarketing(): boolean {
 }
 
 /** Guest egress when portal `/` has no member session (PCMS-003). */
-export function resolvePortalGuestEgressUrl(portalHost: string): string {
+export function resolvePortalGuestEgressUrl(portalHost: string, pluginId: string | null): string {
   if (configuredMarketingUrlIsHealthFallback()) {
-    return catalogGuestRegisterPath();
+    return catalogGuestRegisterPath(pluginId);
   }
 
   const marketingUrl = resolveMarketingPublicBaseUrl(portalHost);
   if (marketingUrlIsPortalHealthFallback(marketingUrl, portalHost)) {
-    return catalogGuestRegisterPath();
+    return catalogGuestRegisterPath(pluginId);
   }
   return marketingUrl;
 }

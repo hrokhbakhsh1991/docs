@@ -235,7 +235,9 @@ export function parseFinancePendingReceiptsResponse(raw: unknown): FinancePendin
     return { items: [], nextCursor: null, hasMore: false };
   }
   const items = record.items
-    .filter((entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null)
+    .filter(
+      (entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null
+    )
     .map((entry) => {
       const paymentRaw = entry.payment;
       const payment =
@@ -244,7 +246,7 @@ export function parseFinancePendingReceiptsResponse(raw: unknown): FinancePendin
               id: String((paymentRaw as Record<string, unknown>).id ?? ""),
               registrationId: String((paymentRaw as Record<string, unknown>).registrationId ?? ""),
               amount: String((paymentRaw as Record<string, unknown>).amount ?? "0"),
-              currency: String((paymentRaw as Record<string, unknown>).currency ?? "IRR"),
+              currency: String((paymentRaw as Record<string, unknown>).currency ?? ""),
               method: String((paymentRaw as Record<string, unknown>).method ?? "Manual"),
               status: String((paymentRaw as Record<string, unknown>).status ?? ""),
             }
@@ -266,11 +268,7 @@ export function parseFinancePendingReceiptsResponse(raw: unknown): FinancePendin
       ? record.nextCursor.trim()
       : null;
   const hasMore =
-    record.hasMore === true
-      ? true
-      : record.hasMore === false
-        ? false
-        : nextCursor !== null;
+    record.hasMore === true ? true : record.hasMore === false ? false : nextCursor !== null;
   return { items, nextCursor, hasMore };
 }
 
@@ -312,7 +310,9 @@ export type FinanceReceiptReviewResponse = {
   readonly bookingPaymentStatus?: "unpaid" | "partial" | "paid";
 };
 
-export function parseFinanceReceiptReviewResponse(raw: unknown): FinanceReceiptReviewResponse | null {
+export function parseFinanceReceiptReviewResponse(
+  raw: unknown
+): FinanceReceiptReviewResponse | null {
   if (raw === null || typeof raw !== "object") {
     return null;
   }
