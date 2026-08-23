@@ -32,8 +32,22 @@ extends:
 | `includePlatformHome` | boolean | optional | Default: `false` for minimal, `true` for full |
 | `defaultPrimaryModuleId` | string | when no preset | Must exist in effective modules |
 | `modules` | array | when no preset | Workspace-owned modules only (DL-30) |
+| `registrationStatusDisplay` | object | optional | DEC-CW-04 — native wire status → `MemberRegistrationDisplayStatus` semantic; codegen → `WORKSPACE_MEMBER_REGISTRATION_STATUS_DISPLAY` |
 
-**Presets**
+**Registration status display (CW4-06 / DEC-CW-04 Option B)**
+
+When `memberPortal.availability` is `minimal` or `full`, portal localizes registration `status` via manifest codegen — not booking-only allowlists.
+
+| Default source | When used |
+| ---------------- | --------- |
+| `workspaceBooking` manifest | Booking vocabulary → semantic map (`pending` → `pending_review`, `approved` → `accepted`, …) |
+| `catalogRegistrationFlow` without `workspaceBooking` | At-create vocabulary (`confirmed` → `accepted`, `waitlist` → `waitlisted`, …) |
+| Explicit `registrationStatusDisplay` | Overrides defaults; required for Urban wire labels in manifest for auditability |
+
+Portal i18n namespace: `portalMember.registrations.displayStatusLabels.{semantic}`.
+
+Wire `status` on API/BFF responses remains workspace-native (no persistence rename).
+
 
 | Preset | Modules | Platform `home` |
 | ------ | ------- | ------------- |

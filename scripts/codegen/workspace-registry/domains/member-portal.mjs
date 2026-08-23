@@ -320,3 +320,98 @@ ${entries}
 });
 `;
 }
+
+/** DEC-CW-04 Option B — default native→semantic maps when manifest omits explicit block. */
+const DEFAULT_BOOKING_REGISTRATION_STATUS_DISPLAY = Object.freeze({
+  pending: "pending_review",
+  approved: "accepted",
+  waitlisted: "waitlisted",
+  rejected: "rejected",
+  cancelled: "cancelled",
+});
+
+const DEFAULT_AT_CREATE_REGISTRATION_STATUS_DISPLAY = Object.freeze({
+  confirmed: "accepted",
+  waitlist: "waitlisted",
+  cancelled: "cancelled",
+});
+
+/**
+ * @param {ReturnType<typeof import("../manifest-loader.mjs").discoverManifests>[number]} manifest
+ */
+function resolveRegistrationStatusDisplayMap(manifest) {
+  const memberPortal = manifest.memberPortal;
+  if (
+    memberPortal !== undefined &&
+    typeof memberPortal === "object" &&
+    memberPortal.registrationStatusDisplay !== undefined
+  ) {
+    return memberPortal.registrationStatusDisplay;
+  }
+  if (manifest.workspaceBooking !== undefined) {
+    return DEFAULT_BOOKING_REGISTRATION_STATUS_DISPLAY;
+  }
+  if (manifest.catalogRegistrationFlow !== undefined) {
+    return DEFAULT_AT_CREATE_REGISTRATION_STATUS_DISPLAY;
+  }
+  return undefined;
+}
+
+function serializeRegistrationStatusDisplayMap(map) {
+  const entries = Object.entries(map)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([native, semantic]) => `      ${JSON.stringify(native)}: ${JSON.stringify(semantic)},`)
+    .join("\n");
+  return `Object.freeze({\n${entries}\n    })`;
+}
+
+/** @param {ReturnType<typeof import("../manifest-loader.mjs").discoverManifests>} manifests */
+export function generateWorkspaceMemberRegistrationStatusDisplay(manifests) {
+  /** @type {Record<string, string>} */
+  const rows = {};
+  for (const manifest of manifests) {
+    const availability = normalizeMemberPortalAvailability(manifest);
+    if (availability === "off") {
+      continue;
+    }
+    const displayMap = resolveRegistrationStatusDisplayMap(manifest);
+    if (displayMap === undefined) {
+      continue;
+    }
+    rows[manifest.id] = `  ${JSON.stringify(manifest.id)}: ${serializeRegistrationStatusDisplayMap(displayMap)},`;
+  }
+
+  const entries = Object.entries(rows)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, block]) => block)
+    .join("\n");
+
+  if (entries.length === 0) {
+    return `${BANNER}
+import type { MemberRegistrationDisplayStatus } from "../registration/member-registration-display-status";
+
+export type WorkspaceMemberRegistrationStatusDisplayMap = Readonly<
+  Record<string, MemberRegistrationDisplayStatus>
+>;
+
+export const WORKSPACE_MEMBER_REGISTRATION_STATUS_DISPLAY: Readonly<
+  Record<string, WorkspaceMemberRegistrationStatusDisplayMap>
+> = Object.freeze({});
+`;
+  }
+
+  return `${BANNER}
+import type { MemberRegistrationDisplayStatus } from "../registration/member-registration-display-status";
+
+export type WorkspaceMemberRegistrationStatusDisplayMap = Readonly<
+  Record<string, MemberRegistrationDisplayStatus>
+>;
+
+/** SSOT — native wire status → member display semantic (manifest → codegen). */
+export const WORKSPACE_MEMBER_REGISTRATION_STATUS_DISPLAY: Readonly<
+  Record<string, WorkspaceMemberRegistrationStatusDisplayMap>
+> = Object.freeze({
+${entries}
+});
+`;
+}

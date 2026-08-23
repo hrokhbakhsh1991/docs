@@ -210,7 +210,12 @@
   "memberPortal": {
     "manifestVersion": 2,
     "availability": "minimal",
-    "preset": "guest-minimal-v1"
+    "preset": "guest-minimal-v1",
+    "registrationStatusDisplay": {
+      "confirmed": "accepted",
+      "waitlist": "waitlisted",
+      "cancelled": "cancelled"
+    }
   },
   "operatorCapabilities": {
     "usersDirectory": false,

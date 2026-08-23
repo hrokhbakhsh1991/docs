@@ -8,6 +8,7 @@ import {
   assertMemberPortalManifest,
   generateWorkspaceMemberPortalContracts,
   generateWorkspaceMemberPortalSurfaces,
+  generateWorkspaceMemberRegistrationStatusDisplay,
   normalizeMemberPortalAvailability,
   resolveEffectiveMemberPortalConfig,
 } from "./domains/member-portal.mjs";
@@ -173,7 +174,7 @@ export const DOMAIN_OUTPUT_KEYS = {
   registration: [
     // P5.1 — portal/host register keys resolved dynamically via resolveRegistrationOutputKeys()
   ],
-  member: ["memberProfileCapabilities", "memberPortalContracts", "memberPortalSurfaces"],
+  member: ["memberProfileCapabilities", "memberPortalContracts", "memberPortalSurfaces", "memberPortalRegistrationStatusDisplay"],
   http: ["httpRoutes", "httpHandlerLoaders", "httpErrorMap", "productHttpHostBindings"],
   "settings-api": ["settingsEnrichers", "equipmentIconKeyValidator", "devBootstrap", "wizardTemplateEnforcement", "wizardTemplatePathAliases"],
   dev: ["devPluginIds"],
@@ -241,6 +242,7 @@ export const OUTPUT_KEYS = Object.freeze([
   "memberProfileCapabilities",
   "memberPortalContracts",
   "memberPortalSurfaces",
+  "memberPortalRegistrationStatusDisplay",
   "guestCrossSurfaceNav",
   "guestConformance",
   "productionCertification",
@@ -326,6 +328,7 @@ export function generateAllOutputs(manifests) {
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
     memberPortalContracts: generateWorkspaceMemberPortalContracts(manifests),
     memberPortalSurfaces: generateWorkspaceMemberPortalSurfaces(manifests),
+    memberPortalRegistrationStatusDisplay: generateWorkspaceMemberRegistrationStatusDisplay(manifests),
     guestCrossSurfaceNav: generateWorkspaceGuestCrossSurfaceNav(manifests),
     guestConformance: generateWorkspaceGuestConformance(manifests),
     productionCertification: generateWorkspaceProductionCertification(manifests),
@@ -525,6 +528,10 @@ export const OUTPUT_PATHS = {
   memberPortalSurfaces: join(
     REPO_ROOT,
     "packages/workspace-sdk/src/portal/workspace-member-portal-surfaces.generated.ts"
+  ),
+  memberPortalRegistrationStatusDisplay: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/portal/workspace-member-registration-status-display.generated.ts"
   ),
   guestCrossSurfaceNav: join(
     REPO_ROOT,

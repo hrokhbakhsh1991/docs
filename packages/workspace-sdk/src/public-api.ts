@@ -312,6 +312,24 @@ export {
   resolveLifecycleStatusFromVisibilityBucket,
 } from "./tour/tour-publish-label-mapping.contract";
 export {
+  type MemberRegistrationDisplayStatus,
+  MEMBER_REGISTRATION_DISPLAY_STATUSES,
+  isMemberRegistrationDisplayStatus,
+} from "./registration/member-registration-display-status";
+export {
+  type RegistrationCapacityStrategy,
+  type RegistrationLifecycleProfile,
+  type RegistrationModelContract,
+  BOOKING_REGISTRATION_MODEL,
+  URBAN_REGISTRATION_MODEL,
+  registrationAwaitingOperatorDecision,
+  registrationOccupiesSeat,
+  registrationQueuedWithoutSeat,
+  registrationTerminalNegative,
+  registrationVoided,
+} from "./registration/registration-model-divergence.contract";
+export { resolveMemberRegistrationDisplayStatus } from "./portal/resolve-member-registration-display-status";
+export {
   resolveCatalogListApiPath,
   resolveCatalogTourApiPath,
   UnknownCatalogPluginError,

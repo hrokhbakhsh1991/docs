@@ -1,7 +1,7 @@
 # DEC-CW-01 — `approved` vs `confirmed` state model evidence packet
 
 **Decision id:** DEC-CW-01  
-**Status:** PROPOSAL (awaiting Architect + Registration product owner)  
+**Status:** APPROVED — Option B (Architect, 2026-08-23, Wave 3E)
 **Prepared:** 2026-08-23 (CW Wave 3A, decision-evidence track)  
 **Repository ref:** `main` (post CW4-01..04, DEC-CW-03 Option A implemented)  
 **Canonical ledger:** [`docs/dev/composable-workspace-refactor-plan.md`](../composable-workspace-refactor-plan.md) — DEC-CW-01 section  

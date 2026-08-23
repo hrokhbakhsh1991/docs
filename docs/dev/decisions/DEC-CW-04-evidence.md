@@ -1,7 +1,7 @@
 # DEC-CW-04 — Member-portal status display for non-booking workspaces (evidence packet)
 
 **Decision id:** DEC-CW-04  
-**Status:** PROPOSAL (awaiting Portal product owner + Registration product owner + Architect)  
+**Status:** APPROVED — Option B (Architect, 2026-08-23, Wave 3E)
 **Prepared:** 2026-08-23 (CW Wave 3A, decision-evidence track)  
 **Repository ref:** `7d3daac6`  
 **Canonical ledger:** [`docs/dev/composable-workspace-refactor-plan.md`](../composable-workspace-refactor-plan.md) — DEC-CW-04 section

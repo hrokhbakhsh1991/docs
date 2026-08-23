@@ -41,6 +41,13 @@
       "rejected": "رد شده",
       "cancelled": "لغو شده"
     },
+    "displayStatusLabels": {
+      "pending_review": "در انتظار بررسی",
+      "accepted": "تأیید شده",
+      "waitlisted": "لیست انتظار",
+      "rejected": "رد شده",
+      "cancelled": "لغو شده"
+    },
     "paymentStatusLabels": {
       "unpaid": "پرداخت نشده",
       "partial": "پرداخت جزئی",

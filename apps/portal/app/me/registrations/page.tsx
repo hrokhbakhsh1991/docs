@@ -57,7 +57,7 @@ export default async function MeRegistrationsPage({
         item,
         registrantTarget,
         guestLabel,
-        statusLabel: await localizeMemberRegistrationStatus(item.status),
+        statusLabel: await localizeMemberRegistrationStatus(item.status, bootstrap.pluginId),
         paymentStatusLabel: await localizeMemberPaymentStatus(item.paymentStatus),
         departureLabel: await formatMemberRegistrationDeparture(item.departureAt),
       };

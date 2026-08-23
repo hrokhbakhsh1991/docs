@@ -1,4 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
+import {
+  resolveMemberRegistrationDisplayStatus,
+} from "@app-tour/workspace-sdk";
 
 const BOOKING_STATUSES = [
   "pending",
@@ -13,7 +16,7 @@ const PAYMENT_STATUSES = ["unpaid", "partial", "paid"] as const;
 function translateKnownKey(
   translate: (key: string) => string,
   value: string,
-  known: readonly string[]
+  known: readonly string[],
 ): string {
   return known.includes(value) ? translate(value) : value;
 }
@@ -30,7 +33,15 @@ export async function formatMemberRegistrationDeparture(iso: string): Promise<st
   }).format(new Date(parsed));
 }
 
-export async function localizeMemberRegistrationStatus(status: string): Promise<string> {
+export async function localizeMemberRegistrationStatus(
+  status: string,
+  workspaceId: string,
+): Promise<string> {
+  const semantic = resolveMemberRegistrationDisplayStatus(workspaceId, status);
+  if (semantic !== undefined) {
+    const t = await getTranslations("portalMember.registrations.displayStatusLabels");
+    return t(semantic);
+  }
   const t = await getTranslations("portalMember.registrations.statusLabels");
   return translateKnownKey((key) => t(key), status, BOOKING_STATUSES);
 }

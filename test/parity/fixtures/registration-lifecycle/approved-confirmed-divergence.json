@@ -12,7 +12,14 @@
       "capacityConsumingStatus": "confirmed",
       "vocabulary": ["confirmed", "waitlist", "cancelled"]
     },
-    "portalLabelStatuses": ["pending", "approved", "waitlisted", "rejected", "cancelled"],
-    "portalLabelExcludes": ["confirmed", "waitlist"]
+    "portalDisplaySemantics": [
+      "pending_review",
+      "accepted",
+      "waitlisted",
+      "rejected",
+      "cancelled"
+    ],
+    "portalWireLabelExcludes": ["confirmed", "waitlist"],
+    "portalLabelExcludes": []
   }
 }

@@ -41,6 +41,13 @@
       "rejected": "Rejected",
       "cancelled": "Cancelled"
     },
+    "displayStatusLabels": {
+      "pending_review": "Pending review",
+      "accepted": "Confirmed",
+      "waitlisted": "Waitlisted",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
     "paymentStatusLabels": {
       "unpaid": "Unpaid",
       "partial": "Partially paid",

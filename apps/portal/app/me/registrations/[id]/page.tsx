@@ -44,7 +44,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
   const t = await getTranslations("portalMember.detail");
   const tAmend = await getTranslations("portalMember.intakeAmend");
   const [statusLabel, paymentStatusLabel, departureLabel, receiptPanel] = await Promise.all([
-    localizeMemberRegistrationStatus(row.status),
+    localizeMemberRegistrationStatus(row.status, bootstrap.pluginId),
     localizeMemberPaymentStatus(row.paymentStatus),
     formatMemberRegistrationDeparture(row.departureAt),
     fetchMemberReceiptPanel(host, row.id),
