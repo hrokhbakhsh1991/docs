@@ -76,6 +76,17 @@ export {
 } from "./booking-lifecycle-events";
 
 export {
+  BOOKING_LIFECYCLE_TRANSITIONS,
+  BOOKING_STATUS_PIPELINE,
+  BOOKING_TERMINAL_STATUSES,
+  assertCanTransitionBookingStatus,
+  canTransitionBookingStatus,
+  isBookingTerminalStatus,
+  listBookingSourceStatusesForTarget,
+  listBookingTransitionsFrom,
+} from "./booking-lifecycle-transitions";
+
+export {
   BOOKING_POLICY_CASE_A_GUEST_LABEL,
   type BookingCapacityPolicyPort,
   type BookingCreatePolicyContext,

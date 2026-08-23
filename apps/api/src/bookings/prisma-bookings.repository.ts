@@ -1,5 +1,10 @@
 import { Prisma } from "@prisma/client";
 
+import {
+  canTransitionBookingStatus,
+  listBookingSourceStatusesForTarget,
+} from "@app-tour/booking-http-contracts";
+
 import { withTenantRls } from "../db/with-tenant-rls";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
 import { normalizeBookingSearchQuery } from "./booking-list-query";
@@ -969,7 +974,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       if (current === null) {
         throw new BookingNotFoundError();
       }
-      if (current.status !== "pending" && current.status !== "waitlisted") {
+      if (!canTransitionBookingStatus(current.status as BookingStatus, "approved")) {
         throw new BookingStatusConflictError(current.status as BookingStatus);
       }
 
@@ -990,7 +995,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         where: {
           id: current.id,
           tenantId: input.tenantId,
-          status: { in: ["pending", "waitlisted"] },
+          status: { in: [...listBookingSourceStatusesForTarget("approved")] },
         },
         data: { status: "approved", approvedAt },
       });
@@ -1048,8 +1053,8 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         where: { tenantId: input.tenantId, id: { in: [...input.ids] } },
         take: input.ids.length,
       });
-      const eligiblePreview = rows.filter(
-        (row) => row.status === "pending" || row.status === "waitlisted"
+      const eligiblePreview = rows.filter((row) =>
+        canTransitionBookingStatus(row.status as BookingStatus, "approved")
       );
       if (eligiblePreview.length === 0) {
         return [];
@@ -1072,7 +1077,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         if (row === null) {
           continue;
         }
-        if (row.status !== "pending" && row.status !== "waitlisted") {
+        if (!canTransitionBookingStatus(row.status as BookingStatus, "approved")) {
           continue;
         }
 
@@ -1101,7 +1106,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           where: {
             id: row.id,
             tenantId: input.tenantId,
-            status: { in: ["pending", "waitlisted"] },
+            status: { in: [...listBookingSourceStatusesForTarget("approved")] },
           },
           data: { status: "approved", approvedAt },
         });
@@ -1168,7 +1173,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         where: {
           id: input.bookingId,
           tenantId: input.tenantId,
-          status: { in: ["pending", "waitlisted"] },
+          status: { in: [...listBookingSourceStatusesForTarget("rejected")] },
         },
         data: {
           status: "rejected",
@@ -1211,7 +1216,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         where: {
           id: input.bookingId,
           tenantId: input.tenantId,
-          status: "pending",
+          status: { in: [...listBookingSourceStatusesForTarget("waitlisted")] },
         },
         data: { status: "waitlisted", approvedAt: null },
       });
@@ -1265,11 +1270,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       if (current === null) {
         throw new BookingNotFoundError();
       }
-      if (
-        current.status !== "pending" &&
-        current.status !== "waitlisted" &&
-        current.status !== "approved"
-      ) {
+      if (!canTransitionBookingStatus(current.status as BookingStatus, "cancelled")) {
         throw new BookingStatusConflictError(current.status as BookingStatus);
       }
       const previousStatus = current.status;
@@ -1278,7 +1279,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         where: {
           id: current.id,
           tenantId: input.tenantId,
-          status: { in: ["pending", "waitlisted", "approved"] },
+          status: { in: [...listBookingSourceStatusesForTarget("cancelled")] },
         },
         data: { status: "cancelled", approvedAt: null },
       });

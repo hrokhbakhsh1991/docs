@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 
 import {
+  canTransitionBookingStatus,
+  listBookingSourceStatusesForTarget,
+} from "@app-tour/booking-http-contracts";
+
+import {
   compareBookingsByDepartureAtAsc,
   compareBookingsBySubmittedAtDesc,
   isBookingAfterDepartureKeysetCursor,
@@ -699,7 +704,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
         if (current === undefined || current.tenantId !== input.tenantId) {
           throw new BookingNotFoundError();
         }
-        if (current.status !== "pending" && current.status !== "waitlisted") {
+        if (!canTransitionBookingStatus(current.status, "approved")) {
           throw new BookingStatusConflictError(current.status);
         }
 
@@ -777,7 +782,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
           if (current === undefined || current.tenantId !== input.tenantId) {
             continue;
           }
-          if (current.status !== "pending" && current.status !== "waitlisted") {
+          if (!canTransitionBookingStatus(current.status, "approved")) {
             continue;
           }
 
@@ -849,7 +854,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     if (current === undefined || current.tenantId !== input.tenantId) {
       throw new BookingNotFoundError();
     }
-    if (current.status !== "pending" && current.status !== "waitlisted") {
+    if (!canTransitionBookingStatus(current.status, "rejected")) {
       throw new BookingStatusConflictError(current.status);
     }
     const rejectReason =
@@ -875,7 +880,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     if (current === undefined || current.tenantId !== input.tenantId) {
       throw new BookingNotFoundError();
     }
-    if (current.status !== "pending") {
+    if (!canTransitionBookingStatus(current.status, "waitlisted")) {
       throw new BookingStatusConflictError(current.status);
     }
     const waitlistedAt = new Date().toISOString();
@@ -912,11 +917,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     if (current === undefined || current.tenantId !== input.tenantId) {
       throw new BookingNotFoundError();
     }
-    if (
-      current.status !== "pending" &&
-      current.status !== "waitlisted" &&
-      current.status !== "approved"
-    ) {
+    if (!canTransitionBookingStatus(current.status, "cancelled")) {
       throw new BookingStatusConflictError(current.status);
     }
     const cancelledAt = new Date().toISOString();
