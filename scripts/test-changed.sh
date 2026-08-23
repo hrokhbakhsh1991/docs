@@ -67,6 +67,7 @@ pkg_for_path() {
   case "$1" in
     packages/workspace-sdk/*) echo "@app-tour/workspace-sdk" ;;
     packages/platform-core/*) echo "@app-tour/platform-core" ;;
+    packages/tour-core/*) echo "@app-tour/tour-core" ;;
     packages/design-tokens/*) echo "@app-tour/design-tokens" ;;
     packages/ui-primitives/*) echo "@app-tour/ui-primitives" ;;
     packages/theme-react/*) echo "@app-tour/theme-react" ;;

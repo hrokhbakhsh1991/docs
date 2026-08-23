@@ -22,6 +22,7 @@
     "guard:import-boundary": "node scripts/guards/import-boundary-ast.mjs",
     "guard:finance-core-boundary": "node scripts/guards/guard-finance-core-boundary.mjs",
     "guard:booking-boundary": "node scripts/guards/guard-booking-boundary.mjs",
+    "guard:tour-core-boundary": "node scripts/guards/guard-tour-core-boundary.mjs",
     "guard:finance-golden": "node scripts/guards/guard-finance-golden-architecture.mjs",
     "guard:field-policy-boundary": "node scripts/guards/field-policy-boundary.mjs",
     "guard:field-exposure-phase-0": "node scripts/guards/field-exposure-phase-0-guard.mjs",
