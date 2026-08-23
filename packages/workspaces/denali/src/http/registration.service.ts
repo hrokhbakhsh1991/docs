@@ -17,8 +17,8 @@ import {
   resolveDenaliRegistrationContactPhone,
   validateDenaliRegistrationPayload,
 } from "./registration.validation";
-import { isDenaliTourPublished } from "../catalog/denali-publish-status";
 import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";
+import { resolveDenaliRegistrationTourPublishVisibility } from "../registration/denali-registration-tour-publish-visibility";
 
 import { DenaliRegistrationDuplicateError } from "./errors/denali-registration-conflict.error";
 import { DenaliWorkspaceRequiredError } from "./errors/denali-workspace-required.error";
@@ -72,7 +72,7 @@ export async function createDenaliRegistration(params: {
         tenantId: params.tenantId,
         id: params.body.tourId,
       }),
-    isPublished: isDenaliTourPublished,
+    isPublished: resolveDenaliRegistrationTourPublishVisibility,
     getCanonical: (row) => row.canonical,
   });
 

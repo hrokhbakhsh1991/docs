@@ -4,8 +4,8 @@ import {
 } from "@app-tour/workspace-sdk";
 
 import { DENALI_WORKSPACE_TYPE } from "../denali-identity";
-import { isDenaliTourPublished } from "../catalog/denali-publish-status";
 import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";
+import { resolveDenaliRegistrationTourPublishVisibility } from "../registration/denali-registration-tour-publish-visibility";
 import { DenaliRegistrationInvalidError } from "./errors/denali-registration-invalid.error";
 import { DenaliRegistrationNotAmendableError } from "./errors/denali-registration-not-amendable.error";
 import { DenaliRegistrationNotFoundError } from "./errors/denali-registration-not-found.error";
@@ -67,7 +67,7 @@ export async function amendDenaliRegistrationIntake(params: {
         tenantId: params.tenantId,
         id: owned.tourId,
       }),
-    isPublished: isDenaliTourPublished,
+    isPublished: resolveDenaliRegistrationTourPublishVisibility,
     getCanonical: (row) => row.canonical,
   });
   const card = toDenaliCatalogCard(tour);

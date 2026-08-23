@@ -13,10 +13,8 @@ import {
 } from "@app-tour/workspace-sdk";
 
 import { HARBOR_WORKSPACE_TYPE } from "../harbor.plugin";
-import {
-  isHarborTourPublished,
-  toHarborCatalogCard,
-} from "../catalog/to-harbor-catalog-card";
+import { toHarborCatalogCard } from "../catalog/to-harbor-catalog-card";
+import { resolveHarborRegistrationTourPublishVisibility } from "./harbor-registration-tour-publish-visibility";
 import type { HarborTourStorePort } from "../http/harbor-http-host";
 import { HarborRegistrationDuplicateError } from "./harbor-registration-duplicate.error";
 import { HarborWorkspaceRequiredError } from "./harbor-workspace-required.error";
@@ -75,7 +73,7 @@ export async function createHarborRegistration(params: {
         tenantId: params.tenantId,
         id: params.body.tourId,
       }),
-    isPublished: isHarborTourPublished,
+    isPublished: resolveHarborRegistrationTourPublishVisibility,
     getCanonical: (row) => row.canonical,
   });
 

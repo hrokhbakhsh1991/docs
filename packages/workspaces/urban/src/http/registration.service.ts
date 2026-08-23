@@ -11,7 +11,7 @@ import { UrbanRegistrationDuplicateError } from "./errors/urban-registration-con
 import { UrbanRegistrationClosedError } from "./errors/urban-registration-closed.error";
 import { UrbanWorkspaceRequiredError } from "./errors/urban-workspace-required.error";
 import { getUrbanHttpHost } from "./host-runtime";
-import { isUrbanTourPublished } from "./publish-status";
+import { resolveUrbanRegistrationTourPublishVisibility } from "./urban-registration-tour-publish-visibility";
 import type { UrbanTourStorePort } from "./ports/tour-store.port";
 import {
   getUrbanRegistrationRepository,
@@ -44,7 +44,7 @@ export async function createUrbanRegistration(params: {
         tenantId: params.tenantId,
         id: params.body.tourId,
       }),
-    isPublished: isUrbanTourPublished,
+    isPublished: resolveUrbanRegistrationTourPublishVisibility,
     getCanonical: (row) => row.canonical,
   });
 
