@@ -13,7 +13,7 @@ import {
   resolveDenaliExposureCoordinate,
 } from "../exposure/denali-exposure-surfaces";
 
-import { withSpotsRemaining } from "../catalog/compute-spots-remaining";
+import { withSpotsRemaining } from "@app-tour/tour-core";
 import { applyDenaliCatalogCardExposure } from "../catalog/denali-catalog-exposure-bindings";
 import { isDenaliTourPublished } from "../catalog/denali-publish-status";
 import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";

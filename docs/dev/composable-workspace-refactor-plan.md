@@ -374,7 +374,7 @@ Refinement vs requested shape (evidence-based):
   - Rollback: no-op while deferred; after decision use compat path.
   - Deps: CW1-01, CW0-03, DEC-CW-03. Risk: **LOW** (ownership-only/move-only; semantic changes forbidden).
 
-- **CW1-04** `[ ]` **Migrate Denali catalog consumer to tour-core import**
+- **CW1-04** `[x]` **Migrate Denali catalog consumer to tour-core import**
   - Invariant: zero behavior diff (goldens CW0-06).
   - Files: denali catalog enrichment imports; compat re-export retained for other consumers.
   - Deps: CW1-02. Risk: **LOW**.
