@@ -1,0 +1,4 @@
+/* ProfileCert workspace theme — extend --ws-* tokens */
+:root {
+  --ws-color-accent: #2563eb;
+}

@@ -20,6 +20,7 @@ export const WORKSPACE_PRODUCTION_CERTIFICATION: Readonly<
   "guest-club": "stub",
   "harbor": "stub",
   "policy-cert": "stub",
+  "profile-cert": "stub",
   "starter": "stub",
   "urban": "stub",
 });

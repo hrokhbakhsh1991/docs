@@ -697,9 +697,7 @@ export function assertCatalogPresentationManifest(manifest) {
   const hasCatalogRoutes = extractCatalogPathsFromManifest(manifest) !== null;
   const presentation = manifest.catalogPresentation;
   if (!hasCatalogRoutes) {
-    if (presentation !== undefined) {
-      throw new Error(`${manifest.id}: catalogPresentation requires catalog httpRoutes`);
-    }
+    // CW6-05A — profile-expanded catalogPresentation without guest catalog routes is allowed.
     return;
   }
   if (presentation === undefined || typeof presentation !== "object") {

@@ -5,6 +5,7 @@
  */
 
 import type { WorkspacePolicyValidator } from "@app-tour/workspace-sdk";
+import { createDenaliTourWorkspacePolicyValidator as denali_workspace_policy } from "@app-tour/workspace-denali/host/policy/tour-policy";
 import { createTourWorkspacePolicyValidator as policy_cert_workspace_policy } from "@app-tour/workspace-policy-cert/host/policy/tour-policy";
 
 export type WorkspacePolicyValidatorBinding = {
@@ -14,6 +15,10 @@ export type WorkspacePolicyValidatorBinding = {
 
 /** Manifest-declared workspace policy validators — one factory per workspace manifest. */
 export const WORKSPACE_POLICY_VALIDATOR_BINDINGS: readonly WorkspacePolicyValidatorBinding[] = [
+  {
+    workspaceType: "denali",
+    createValidator: denali_workspace_policy,
+  },
   {
     workspaceType: "policy-cert",
     createValidator: policy_cert_workspace_policy,

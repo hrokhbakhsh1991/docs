@@ -51,6 +51,8 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handleGetGuestClubCatalogTour"
   | "handleGetHarborCatalog"
   | "handleGetHarborCatalogTour"
+  | "handleGetProfileCertCatalog"
+  | "handleGetProfileCertCatalogTour"
   | "handleGetUrbanCatalog"
   | "handleGetUrbanCatalogTour"
   | "handleGetUrbanSettings"
@@ -59,6 +61,7 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handlePostDenaliRegistration"
   | "handlePostGuestClubRegistration"
   | "handlePostHarborRegistration"
+  | "handlePostProfileCertRegistration"
   | "handlePostUrbanRegistration";
 
 export type WorkspaceHttpPackageHandlers = Pick<
@@ -115,6 +118,9 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
   handleGetHarborCatalog: "@app-tour/workspace-harbor/host/http",
   handleGetHarborCatalogTour: "@app-tour/workspace-harbor/host/http",
   handlePostHarborRegistration: "@app-tour/workspace-harbor/host/http",
+  handleGetProfileCertCatalog: "@app-tour/workspace-profile-cert/http",
+  handleGetProfileCertCatalogTour: "@app-tour/workspace-profile-cert/http",
+  handlePostProfileCertRegistration: "@app-tour/workspace-profile-cert/http",
   handleGetUrbanCatalog: "@app-tour/workspace-urban/host/http",
   handleGetUrbanCatalogTour: "@app-tour/workspace-urban/host/http",
   handleGetUrbanSettings: "@app-tour/workspace-urban/host/http",
@@ -127,6 +133,7 @@ const WORKSPACE_HTTP_HANDLER_PACKAGES = Object.freeze([
   "@app-tour/workspace-denali/host/http",
   "@app-tour/workspace-guest-club/host/http",
   "@app-tour/workspace-harbor/host/http",
+  "@app-tour/workspace-profile-cert/http",
   "@app-tour/workspace-urban/host/http",
 ] as const);
 
@@ -204,6 +211,14 @@ export async function loadWorkspaceHttpHandlersForPackage(
         handleGetHarborCatalog: mod.handleGetHarborCatalog,
         handleGetHarborCatalogTour: mod.handleGetHarborCatalogTour,
         handlePostHarborRegistration: mod.handlePostHarborRegistration,
+      };
+    }
+    case "@app-tour/workspace-profile-cert/http": {
+      const mod = await import("@app-tour/workspace-profile-cert/http");
+      return {
+        handleGetProfileCertCatalog: mod.handleGetProfileCertCatalog,
+        handleGetProfileCertCatalogTour: mod.handleGetProfileCertCatalogTour,
+        handlePostProfileCertRegistration: mod.handlePostProfileCertRegistration,
       };
     }
     case "@app-tour/workspace-urban/host/http": {

@@ -9,6 +9,7 @@ export const DEV_PLUGIN_ID_BY_TENANT_ID: Readonly<Record<string, string>> = Obje
   "00000000-0000-4000-8000-000000000003": "denali",
   "00000000-0000-4000-8000-000000000004": "urban",
   "00000000-0000-4000-8000-000000000014": "denali",
+  "78951423-370e-4eb8-b5bc-11c643fd775e": "profile-cert",
   "eb29a07b-40bb-4e06-9e35-522cb22dab02": "guest-club",
   "fbdcae8a-2cd8-4c2c-898c-f408bd51321a": "harbor",
 });

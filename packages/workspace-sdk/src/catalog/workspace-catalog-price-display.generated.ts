@@ -11,5 +11,6 @@ export const WORKSPACE_CATALOG_PRICE_DISPLAY: Readonly<
   "denali": Object.freeze({ irrDisplayUnit: "toman" }),
   "guest-club": Object.freeze({}),
   "harbor": Object.freeze({}),
+  "profile-cert": Object.freeze({}),
   "urban": Object.freeze({}),
 });

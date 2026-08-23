@@ -22,6 +22,10 @@ export const WORKSPACE_PROFILE_EXPANSION_AUDIT = {
   "guest-club": null,
   "harbor": null,
   "policy-cert": null,
+  "profile-cert": {
+    profileId: "starter-outdoor",
+    overriddenPaths: ["catalogPresentation.detailSections.difficulty","catalogPresentation.detailSections.fitness","catalogPresentation.listFeatures.cityFilter","catalogRegistrationFlow.steps.components.done","catalogRegistrationFlow.steps.components.intake","catalogRegistrationFlow.surfaceExport","devBootstrap","guestConformance","guestExtensionsVersion","guestLanding","guestSeo","guestThemeStylesheets","http","httpRoutes","memberProfile.editableFields","memberProfile.mobileChangeViaOtp","memberProfile.readOnlyFields","memberProfile.sections","operatorCapabilities","pluginApiVersion","tenantBrandingDefaults.cssVariables","tenantBrandingDefaults.primaryColor","themeStylesheets","web","workspaceBooking.supported","workspaceEquipment","workspaceFinance.supported"],
+  },
   "starter": null,
   "urban": null,
 } as const satisfies Record<string, WorkspaceProfileExpansionAuditEntry | null>;

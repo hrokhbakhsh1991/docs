@@ -1,0 +1,51 @@
+{
+  "id": "profile-cert",
+  "version": 1,
+  "profile": "starter-outdoor",
+  "package": "@app-tour/workspace-profile-cert",
+  "workspaceTypes": ["profile-cert"],
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  },
+  "web": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  },
+  "themeStylesheets": ["theme/tokens.css"],
+  "tenantBrandingDefaults": {
+    "primaryColor": "#0d9488",
+    "cssVariables": {
+      "--color-primary": "#0d9488"
+    }
+  },
+  "catalogPresentation": {
+    "listFeatures": {
+      "cityFilter": true
+    },
+    "detailSections": {
+      "difficulty": false,
+      "fitness": false,
+      "itinerary": true,
+      "policies": true
+    }
+  },
+  "memberProfile": {
+    "editableFields": ["displayName"],
+    "readOnlyFields": ["email", "mobile"],
+    "mobileChangeViaOtp": false
+  },
+  "catalogRegistrationFlow": {
+    "steps": {
+      "mode": "compose",
+      "reuseAuthStepsFrom": "shared",
+      "components": {
+        "intake": "ProfileCertIntakeStep",
+        "done": "ProfileCertDoneStep"
+      }
+    }
+  },
+  "workspaceEquipment": {
+    "supported": false
+  }
+}

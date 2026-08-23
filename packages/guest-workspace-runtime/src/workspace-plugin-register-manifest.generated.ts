@@ -6,13 +6,14 @@
  */
 
 /** Sorted trunk plugin ids — cache bust when codegen regen changes membership. */
-export const WORKSPACE_PLUGIN_REGISTER_REVISION = "alpine,denali,guest-club,harbor,starter,urban";
+export const WORKSPACE_PLUGIN_REGISTER_REVISION = "alpine,denali,guest-club,harbor,profile-cert,starter,urban";
 
 export const WORKSPACE_PLUGIN_REGISTER_IDS = Object.freeze([
   "alpine",
   "denali",
   "guest-club",
   "harbor",
+  "profile-cert",
   "starter",
   "urban",
 ]) as readonly string[];
@@ -38,6 +39,11 @@ export async function invokeWorkspacePluginRegister(pluginId: string): Promise<v
     case "harbor": {
       const mod = await import("./register-harbor.generated");
       await mod.registerWorkspacePluginHARBORFromManifest();
+      return;
+    }
+    case "profile-cert": {
+      const mod = await import("./register-profile-cert.generated");
+      await mod.registerWorkspacePluginPROFILE_CERTFromManifest();
       return;
     }
     case "starter": {
@@ -76,6 +82,11 @@ export async function invokeWorkspaceIntakeRegister(pluginId: string): Promise<v
     case "harbor": {
       const mod = await import("./register-harbor.generated");
       await mod.registerWorkspaceIntakeHARBORFromManifest();
+      return;
+    }
+    case "profile-cert": {
+      const mod = await import("./register-profile-cert.generated");
+      await mod.registerWorkspaceIntakePROFILE_CERTFromManifest();
       return;
     }
     case "starter": {

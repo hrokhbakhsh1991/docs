@@ -641,5 +641,9 @@
   },
   "settingsHubFallback": {
     "enabled": true
+  },
+  "workspacePolicy": {
+    "module": "./policy/tour-policy",
+    "export": "createDenaliTourWorkspacePolicyValidator"
   }
 }

@@ -20,6 +20,7 @@ export const WORKSPACE_GUEST_CONFORMANCE_LEVELS: Readonly<
   "guest-club": "L3",
   "harbor": "L3",
   "policy-cert": "L0",
+  "profile-cert": "L3",
   "starter": "L0",
   "urban": "L3",
 });

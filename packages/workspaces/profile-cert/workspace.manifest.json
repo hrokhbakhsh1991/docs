@@ -1,0 +1,169 @@
+{
+  "id": "profile-cert",
+  "version": 1,
+  "pluginApiVersion": 1,
+  "guestExtensionsVersion": 1,
+  "profile": "starter-outdoor",
+  "package": "@app-tour/workspace-profile-cert",
+  "workspaceTypes": [
+    "profile-cert"
+  ],
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  },
+  "web": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  },
+  "guestConformance": {
+    "productionTier": "stub"
+  },
+  "http": {
+    "prefix": "/profile-cert",
+    "module": "./http/routes"
+  },
+  "httpRoutes": {
+    "handlerPackage": "@app-tour/workspace-profile-cert/http",
+    "loadHandlersFromPackage": true,
+    "groups": [
+      {
+        "manifestExport": "PROFILE_CERT_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /profile-cert/catalog": "handleGetProfileCertCatalog",
+          "POST /profile-cert/registrations": "handlePostProfileCertRegistration"
+        },
+        "paramHandlers": {
+          "GET /profile-cert/catalog/:tourId": "handleGetProfileCertCatalogTour"
+        }
+      }
+    ]
+  },
+  "devBootstrap": {
+    "pluginTenantIds": [
+      "78951423-370e-4eb8-b5bc-11c643fd775e"
+    ],
+    "smokeTenant": {
+      "tenantIdExport": "PROFILE_CERT_SMOKE_TENANT_ID",
+      "subdomainExport": "PROFILE_CERT_SMOKE_SUBDOMAIN"
+    }
+  },
+  "themeStylesheets": [
+    "theme/tokens.css"
+  ],
+  "guestThemeStylesheets": {
+    "marketing": [
+      "theme/marketing.css"
+    ]
+  },
+  "catalogRegistrationFlow": {
+    "surfaceExport": "profileCertCatalogRegistrationFlowSurface",
+    "steps": {
+      "mode": "compose",
+      "reuseAuthStepsFrom": "shared",
+      "components": {
+        "intake": "ProfileCertIntakeStep",
+        "done": "ProfileCertDoneStep"
+      }
+    }
+  },
+  "catalogPresentation": {
+    "listFeatures": {
+      "cityFilter": true
+    },
+    "detailSections": {
+      "difficulty": false,
+      "fitness": false,
+      "itinerary": true,
+      "policies": true
+    }
+  },
+  "guestLanding": {
+    "variant": "minimal",
+    "sections": {
+      "hero": false,
+      "latestTours": false,
+      "latestToursLimit": 0,
+      "trust": false,
+      "finalCta": false,
+      "faq": false,
+      "footer": false,
+      "whySection": false,
+      "journey": false,
+      "testimonials": false,
+      "featuredTours": false,
+      "featuredToursLimit": 0,
+      "categories": false,
+      "destinations": false,
+      "heroSearch": false,
+      "gallery": false,
+      "equipment": false,
+      "blogTeaser": false
+    },
+    "i18nProfile": "minimal"
+  },
+  "memberProfile": {
+    "editableFields": [
+      "displayName"
+    ],
+    "readOnlyFields": [
+      "email",
+      "mobile"
+    ],
+    "mobileChangeViaOtp": false,
+    "sections": [
+      {
+        "id": "identity",
+        "fields": [
+          "displayName",
+          "email"
+        ]
+      }
+    ]
+  },
+  "guestSeo": {
+    "marketing": {
+      "homeTitleKey": "seo.homeTitle",
+      "homeDescriptionKey": "seo.homeDescription",
+      "listTitleKey": "seo.toursTitle",
+      "listDescriptionKey": "seo.toursDescription",
+      "jsonLd": {
+        "required": true,
+        "schemaTypes": [
+          "Event"
+        ],
+        "builderExport": "buildProfileCertEventJsonLd",
+        "richResultsProfile": "event-stub-v1"
+      },
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": 0.8
+      },
+      "pagination": {
+        "noindexQueryParams": [
+          "cursor"
+        ]
+      }
+    }
+  },
+  "operatorCapabilities": {
+    "usersDirectory": false,
+    "reconciliationTriage": false,
+    "fieldExposureSurfaces": false
+  },
+  "tenantBrandingDefaults": {
+    "primaryColor": "#0d9488",
+    "cssVariables": {
+      "--color-primary": "#0d9488"
+    }
+  },
+  "workspaceBooking": {
+    "supported": false
+  },
+  "workspaceFinance": {
+    "supported": false
+  },
+  "workspaceEquipment": {
+    "supported": false
+  }
+}

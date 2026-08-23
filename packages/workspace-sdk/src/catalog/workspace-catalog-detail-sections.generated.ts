@@ -34,6 +34,12 @@ export const WORKSPACE_CATALOG_DETAIL_SECTIONS: Readonly<
     itinerary: false,
     policies: true,
   }),
+  "profile-cert": Object.freeze({
+    difficulty: false,
+    fitness: false,
+    itinerary: true,
+    policies: true,
+  }),
   "urban": Object.freeze({
     difficulty: false,
     fitness: false,

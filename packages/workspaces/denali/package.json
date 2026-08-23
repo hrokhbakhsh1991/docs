@@ -14,6 +14,14 @@
       "types": "./dist/denali.plugin.d.ts",
       "default": "./dist/denali.plugin.js"
     },
+    "./policy/tour-policy": {
+      "types": "./dist/policy/tour-policy.d.ts",
+      "default": "./dist/policy/tour-policy.js"
+    },
+    "./host/policy/tour-policy": {
+      "types": "./dist/policy/tour-policy.d.ts",
+      "default": "./dist/policy/tour-policy.js"
+    },
     "./host/adapters/canonical-basics": {
       "types": "./dist/adapters/canonical-basics.d.ts",
       "default": "./dist/adapters/canonical-basics.js"

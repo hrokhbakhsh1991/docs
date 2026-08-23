@@ -9,5 +9,6 @@ export const WORKSPACE_CATALOG_LIST_PATHS: Readonly<Record<string, string>> = Ob
   "denali": "/denali/catalog",
   "guest-club": "/guest-club/catalog",
   "harbor": "/harbor/catalog",
+  "profile-cert": "/profile-cert/catalog",
   "urban": "/urban/catalog",
 });

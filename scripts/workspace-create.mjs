@@ -4,9 +4,14 @@
  * Usage: pnpm run workspace:create -- climbing-club [--guest]
  */
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+
+import {
+  expandAuthorManifest,
+  loadProfileCatalog,
+} from "./codegen/workspace-registry/domains/profile-expansion.mjs";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -39,23 +44,55 @@ function writeJson(file, value) {
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function writeBaseManifest(dir, ctx) {
-  writeJson(join(dir, "workspace.manifest.json"), {
+function writeProfileExpansionSnapshot(dir, effectiveManifest) {
+  writeJson(join(dir, "profile.expanded.snapshot.json"), effectiveManifest);
+}
+
+/**
+ * @param {string} workspaceId
+ * @param {string} profileId
+ * @param {Record<string, unknown>} authorManifest
+ * @returns {Record<string, unknown>}
+ */
+function resolveProfileExpandedManifest(workspaceId, profileId, authorManifest) {
+  const catalog = loadProfileCatalog();
+  const { effective } = expandAuthorManifest(
+    {
+      ...authorManifest,
+      id: workspaceId,
+      profile: profileId,
+    },
+    catalog
+  );
+  return effective;
+}
+
+function writeBaseManifest(dir, ctx, profileId) {
+  /** @type {Record<string, unknown>} */
+  const manifest = {
     id: ctx.id,
     version: 1,
     package: ctx.pkgName,
     workspaceTypes: [ctx.id],
     plugin: { entry: "./plugin", export: ctx.canonicalExportFn },
     web: { entry: "./plugin", export: ctx.canonicalExportFn },
-  });
+  };
+  if (profileId !== undefined) {
+    manifest.profile = profileId;
+  }
+  writeJson(join(dir, "workspace.manifest.json"), manifest);
+  return manifest;
 }
 
-function writeGuestManifest(dir, ctx) {
-  writeJson(join(dir, "workspace.manifest.json"), buildGuestManifestObject(ctx.id));
+function writeGuestManifest(dir, ctx, profileId) {
+  writeJson(join(dir, "workspace.manifest.json"), buildGuestManifestObject(ctx.id, profileId));
 }
 
-/** @param {string} id */
-export function buildGuestManifestObject(id) {
+/**
+ * @param {string} id
+ * @param {string | undefined} [profileId]
+ */
+export function buildGuestManifestObject(id, profileId) {
   const ctx = createContext(id);
   const basePath = `/${ctx.id}`;
   return {
@@ -63,6 +100,7 @@ export function buildGuestManifestObject(id) {
     version: 1,
     pluginApiVersion: 1,
     guestExtensionsVersion: 1,
+    ...(profileId !== undefined ? { profile: profileId } : {}),
     package: ctx.pkgName,
     workspaceTypes: [ctx.id],
     plugin: { entry: "./plugin", export: ctx.canonicalExportFn },
@@ -999,10 +1037,33 @@ function createContext(id) {
   };
 }
 
-export function scaffoldWorkspace({ repoRoot = REPO_ROOT, id, guest = false }) {
+/**
+ * @param {string | undefined} profileId
+ * @param {string} [repoRoot]
+ */
+export function assertProfileCatalogEntry(profileId, repoRoot = REPO_ROOT) {
+  if (profileId === undefined) {
+    return;
+  }
+  if (typeof profileId !== "string" || profileId.trim().length === 0) {
+    throw new Error(`Invalid profile id "${profileId ?? ""}"`);
+  }
+  const catalog = loadProfileCatalog();
+  if (!catalog.has(profileId)) {
+    throw new Error(`PROFILE_NOT_FOUND — unknown profile "${profileId}"`);
+  }
+}
+
+export function scaffoldWorkspace({
+  repoRoot = REPO_ROOT,
+  id,
+  guest = false,
+  profile,
+}) {
   if (!id || !/^[a-z][a-z0-9-]*$/.test(id)) {
     throw new Error(`Invalid workspace id "${id ?? ""}" — use kebab-case [a-z0-9-]`);
   }
+  assertProfileCatalogEntry(profile, repoRoot);
   const ctx = createContext(id);
   const dir = join(repoRoot, "packages/workspaces", id);
   if (existsSync(dir)) {
@@ -1013,25 +1074,38 @@ export function scaffoldWorkspace({ repoRoot = REPO_ROOT, id, guest = false }) {
   mkdirSync(join(dir, "test"), { recursive: true });
   mkdirSync(join(dir, "theme"), { recursive: true });
 
-  if (guest) writeGuestManifest(dir, ctx);
-  else writeBaseManifest(dir, ctx);
-  writePackageJson(dir, ctx, guest);
-  writeTsconfig(dir, guest);
-  writePlugin(dir, ctx, guest);
-  writeIndex(dir, ctx, guest);
+  /** @type {Record<string, unknown>} */
+  let authorManifest;
+  if (guest || profile !== undefined) {
+    authorManifest = buildGuestManifestObject(id, profile);
+    writeGuestManifest(dir, ctx, profile);
+  } else {
+    authorManifest = writeBaseManifest(dir, ctx, profile);
+  }
+  if (profile !== undefined) {
+    writeProfileExpansionSnapshot(
+      dir,
+      resolveProfileExpandedManifest(id, profile, authorManifest)
+    );
+  }
+  const useGuest = guest || profile !== undefined;
+  writePackageJson(dir, ctx, useGuest);
+  writeTsconfig(dir, useGuest);
+  writePlugin(dir, ctx, useGuest);
+  writeIndex(dir, ctx, useGuest);
   writeScaffoldSpec(dir, ctx);
-  writeTheme(dir, ctx, guest);
-  if (guest) {
+  writeTheme(dir, ctx, useGuest);
+  if (useGuest) {
     writeDesignLanguage(dir, ctx);
   }
-  if (guest) {
+  if (useGuest) {
     writeGuestCatalog(dir, ctx);
     writeGuestRegistrationFlow(dir, ctx);
     writeGuestHttp(dir, ctx);
     writeGuestSmoke(dir, ctx);
     writeGuestPackageTests(dir, ctx);
   }
-  return { dir, pkgName: ctx.pkgName, guest };
+  return { dir, pkgName: ctx.pkgName, guest: useGuest, profile };
 }
 
 /**
@@ -1039,6 +1113,39 @@ export function scaffoldWorkspace({ repoRoot = REPO_ROOT, id, guest = false }) {
  * @param {string} id
  * @returns {string[]}
  */
+/**
+ * CW6-04 — repo-relative paths for profile scaffold (no disk writes).
+ * @param {string} id
+ * @param {string} profileId
+ * @param {boolean} guest
+ * @returns {string[]}
+ */
+export function planProfileWorkspaceScaffoldPaths(id, profileId, guest = false) {
+  if (!id || !/^[a-z][a-z0-9-]*$/.test(id)) {
+    throw new Error(`Invalid workspace id "${id ?? ""}" — use kebab-case [a-z0-9-]`);
+  }
+  if (!profileId || profileId.trim().length === 0) {
+    throw new Error("profileId is required for planProfileWorkspaceScaffoldPaths");
+  }
+  const base = guest ? planGuestWorkspaceScaffoldPaths(id) : planBaseWorkspaceScaffoldPaths(id);
+  return [...base, `packages/workspaces/${id}/profile.expanded.snapshot.json`].sort();
+}
+
+/** @param {string} id @returns {string[]} */
+function planBaseWorkspaceScaffoldPaths(id) {
+  const ctx = createContext(id);
+  const base = `packages/workspaces/${id}`;
+  return [
+    `${base}/package.json`,
+    `${base}/src/index.ts`,
+    `${base}/src/${ctx.id}.plugin.ts`,
+    `${base}/test/scaffold.spec.ts`,
+    `${base}/theme/tokens.css`,
+    `${base}/tsconfig.json`,
+    `${base}/workspace.manifest.json`,
+  ].sort();
+}
+
 export function planGuestWorkspaceScaffoldPaths(id) {
   if (!id || !/^[a-z][a-z0-9-]*$/.test(id)) {
     throw new Error(`Invalid workspace id "${id ?? ""}" — use kebab-case [a-z0-9-]`);
@@ -1076,24 +1183,91 @@ export function planGuestWorkspaceScaffoldPaths(id) {
 }
 
 function usage() {
-  console.error("Usage: pnpm run workspace:create -- <workspace-id> [--guest]");
+  console.error("Usage: pnpm run workspace:create -- <workspace-id> [--guest] [--profile <profile-id>]");
   console.error("Example: pnpm run workspace:create -- climbing-club --guest");
+  console.error("Example: pnpm run workspace:create -- outdoor-club --profile starter-outdoor");
   process.exit(1);
 }
 
+/**
+ * @param {string[]} args
+ * @returns {{ id: string, guest: boolean, profile?: string, dryRun: boolean }}
+ */
+export function parseWorkspaceCreateArgs(args) {
+  const trimmed = args.filter((arg) => arg !== "--");
+  const id = trimmed[0]?.trim();
+  if (!id || id.startsWith("-")) {
+    throw new Error("WORKSPACE_CREATE_USAGE");
+  }
+  let guest = false;
+  let dryRun = false;
+  /** @type {string | undefined} */
+  let profile;
+  for (let index = 1; index < trimmed.length; index += 1) {
+    const token = trimmed[index];
+    if (token === "--guest") {
+      guest = true;
+      continue;
+    }
+    if (token === "--dry-run") {
+      dryRun = true;
+      continue;
+    }
+    if (token === "--profile") {
+      const next = trimmed[index + 1]?.trim();
+      if (!next || next.startsWith("-")) {
+        throw new Error("WORKSPACE_CREATE_PROFILE_VALUE_REQUIRED");
+      }
+      profile = next;
+      index += 1;
+      continue;
+    }
+    throw new Error(`Unknown option: ${token}`);
+  }
+  return { id, guest, profile, dryRun };
+}
+
 function main(argv) {
-  const args = argv.slice(2).filter((arg) => arg !== "--");
-  const id = args[0]?.trim();
-  if (!id || id.startsWith("-")) usage();
-  const flags = new Set(args.slice(1));
-  const unknown = [...flags].filter((flag) => flag !== "--guest");
-  if (unknown.length > 0) {
-    console.error(`Unknown option: ${unknown.join(", ")}`);
-    usage();
+  const args = argv.slice(2);
+  let parsed;
+  try {
+    parsed = parseWorkspaceCreateArgs(args);
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "WORKSPACE_CREATE_USAGE") {
+        usage();
+      }
+      console.error(error.message);
+      if (error.message === "WORKSPACE_CREATE_PROFILE_VALUE_REQUIRED") {
+        usage();
+      }
+      process.exit(1);
+    }
+    throw error;
   }
   try {
-    const result = scaffoldWorkspace({ id, guest: flags.has("--guest") });
-    console.log(`workspace:create — scaffolded ${result.pkgName}${result.guest ? " (guest L3)" : ""}`);
+    if (parsed.dryRun) {
+      assertProfileCatalogEntry(parsed.profile, REPO_ROOT);
+      const paths =
+        parsed.profile != null
+          ? planProfileWorkspaceScaffoldPaths(parsed.id, parsed.profile, parsed.guest || parsed.profile != null)
+          : parsed.guest
+            ? planGuestWorkspaceScaffoldPaths(parsed.id)
+            : planBaseWorkspaceScaffoldPaths(parsed.id);
+      console.log("workspace:create — dry-run file plan:");
+      for (const path of paths) {
+        console.log(`  ${path}`);
+      }
+      return;
+    }
+    const result = scaffoldWorkspace(parsed);
+    const labels = [
+      result.guest ? "guest L3" : null,
+      result.profile ? `profile ${result.profile}` : null,
+    ].filter(Boolean);
+    console.log(
+      `workspace:create — scaffolded ${result.pkgName}${labels.length > 0 ? ` (${labels.join(", ")})` : ""}`
+    );
     console.log(`  ${result.dir}`);
     console.log("Next:");
     console.log("  pnpm install");

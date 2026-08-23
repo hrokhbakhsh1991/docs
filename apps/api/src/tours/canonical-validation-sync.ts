@@ -38,6 +38,7 @@ import {
   resolveValidationMode,
   runValidationModePublishGate,
 } from "./resolve-validation-mode";
+import { getWizardRulesModuleSyncForWorkspace } from "./workspace-wizard-rules-bindings.generated.ts";
 import type { ValidateBeforePersistInput } from "./canonical-validation-sync.types";
 
 export type { ValidateBeforePersistInput, ValidationMode } from "./canonical-validation-sync.types";
@@ -287,6 +288,13 @@ function validateCanonicalDocumentWithEngine(
   );
   const validationMode = resolveValidationMode(input, document);
 
+  let rulesModule: unknown;
+  try {
+    rulesModule = getWizardRulesModuleSyncForWorkspace(input.workspaceType);
+  } catch {
+    rulesModule = undefined;
+  }
+
   if (isWorkspaceValidationPipelineEnabled()) {
     const pipelineViolation = runWorkspaceValidationPipeline({
       plugin: validationPlugin,
@@ -297,6 +305,7 @@ function validateCanonicalDocumentWithEngine(
       validationVariant,
       catalogRefAllowlists: input.catalogRefAllowlists,
       dimensions: validationDimensions,
+      rulesModule,
       engine,
     });
     if (pipelineViolation != null) {

@@ -42,6 +42,16 @@ export const WORKSPACE_MANIFEST_BINDINGS: readonly {
   { workspaceType: "harbor", pluginId: "harbor" },
   { workspaceType: "policy-cert", pluginId: "policy-cert" },
   {
+    workspaceType: "profile-cert",
+    pluginId: "profile-cert",
+    tenantBrandingDefaults: {
+      primaryColor: "#0d9488",
+      cssVariables: {
+        "--color-primary": "#0d9488",
+      },
+    } as const,
+  },
+  {
     workspaceType: "starter",
     pluginId: "starter",
     tenantBrandingDefaults: {

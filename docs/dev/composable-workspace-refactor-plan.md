@@ -657,6 +657,8 @@ Refinement vs requested shape (evidence-based):
 
 **Integration sign-off (CW-WAVE-6C, 2026-08-23):** CW6-03, CW7-03, CW8-03 `[x]` — `starter-outdoor` profile catalog, Denali equipment field fragment + codegen bindings, manifest `workspacePolicy` seam with synthetic `policy-cert` proof workspace. Unified composition: profile + `workspaceEquipment` + `workspacePolicy` on effective manifest (spec). Aggregate gates green at integrated HEAD. Progress **59/91** `[x]`. **Next safe wave:** CW6-04, CW6-05A, CW6-06, CW7-04, CW8-04 — CW6-05B unlocked (CW8-03 closed; still needs CW6-04).
 
+**Integration sign-off (CW-WAVE-6D, 2026-08-23):** CW6-04, CW6-05A, CW6-06, CW7-04, CW8-04 `[x]` — `workspace:create --profile` guest scaffold, `profile-cert` theme/intake/config override proof, profile certification exact capability set, equipment isolation suite (starter/guest-club/urban), Denali pipeline stage parity via CW0-07 goldens. Progress **64/91** `[x]`. **Next safe slice:** CW6-05B (profile + policy join), CW6-07 (profile authoring guide). **Forbidden:** CW9, CW5-10, CW7-05+, CW8-05+.
+
 **Integration sign-off (CW-WAVE-6A reconciliation, 2026-08-23):** Coordinator reconciliation complete. CW6-01, CW7-01, CW8-01 `[x]` — design closure checklists satisfied per contract docs. Unified manifest composition model reconciled — **no material conflicts** ([`cw-wave-6a-manifest-composition-model.md`](cw-wave-6a-manifest-composition-model.md)). Profile + top-level capability blocks + `workspacePolicy` aligned; nested `capabilities` namespace **not** adopted. DEC-CW-05 remains **OPEN** (CW5-10 `[!]`). Progress **53/91** `[x]`. **Wave 6B** authorized for CW6-02, CW7-02, CW8-02 coordinator-owned schema/codegen slice.
 
 **CW-5 core exit (unblocks CW-6/7/8):** **COMPLETE** (2026-08-23) — CW5-01..04, CW5-06..09, CW5-11 `[x]`; tour-core owns neutral orchestration; CW5-10 remains `[!]` deferred.
@@ -682,20 +684,22 @@ Refinement vs requested shape (evidence-based):
   - Evidence: [`profiles/starter-outdoor.profile.json`](../../profiles/starter-outdoor.profile.json), `starter-outdoor-profile.spec.mjs`.
   - Deps: CW6-02. Risk: **MEDIUM**.
 
-- **CW6-04** `[ ]` **`workspace:create --profile` scaffold path**
+- **CW6-04** `[x]` **`workspace:create --profile` scaffold path**
   - Files: `scripts/workspace-create.mjs` extension.
+  - Evidence: [`docs/dev/cw6-04-workspace-create-profile.md`](cw6-04-workspace-create-profile.md), `workspace-create-profile.spec.mjs`.
   - Deps: CW6-03. Risk: **LOW**.
 
-- **CW6-05A** `[ ]` **Theme/intake/config override proof (independent profile-core proof)**
+- **CW6-05A** `[x]` **Theme/intake/config override proof (independent profile-core proof)**
   - Invariant: synthetic profile workspace overrides branding/theme, intake fields, and supported config via existing declarative seams only; no policy hook and no core edits.
+  - Evidence: [`docs/dev/cw6-05a-profile-override-proof.md`](cw6-05a-profile-override-proof.md), `scripts/test/fixtures/profile-cert.manifest.json`, `profile-cert-override.spec.mjs`.
   - Deps: CW6-04. Risk: **MEDIUM**.
 
 - **CW6-05B** `[ ]` **Workspace-policy override proof (CW-6/CW-8 join)**
   - Invariant: synthetic profile workspace adds workspace policy through the formal CW8-03 seam; no interim hook, no host/core edits.
   - Deps: CW6-04, CW8-03. Risk: **MEDIUM**.
 
-- **CW6-06** `[ ]` **Profile certification test (manifest → expected capability set, exact)**
-  - Evidence: AUDIT §15 missing-cert #1.
+- **CW6-06** `[x]` **Profile certification test (manifest → expected capability set, exact)**
+  - Evidence: [`docs/dev/cw6-06-profile-certification.md`](cw6-06-profile-certification.md), `profile-certification.spec.mjs`.
   - Deps: CW6-03. Risk: **LOW**.
 
 - **CW6-07** `[ ]` **Docs: profile authoring guide (in ledger appendix / docs gate per repo rules at execution time)**
@@ -718,7 +722,8 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
   - Evidence: [`docs/dev/cw7-02-workspace-equipment-codegen.md`](cw7-02-workspace-equipment-codegen.md).
 - **CW7-03** `[x]` Equipment: field-registry fragment as optional module; Denali parity goldens. Deps: CW7-02. Risk: **HIGH**.
   - Evidence: [`docs/dev/cw7-03-equipment-field-module.md`](cw7-03-equipment-field-module.md).
-- **CW7-04** `[ ]` Equipment: isolation test (workspace without module has zero equipment surface). Deps: CW7-03. Risk: **LOW**.
+- **CW7-04** `[x]` Equipment: isolation test (workspace without module has zero equipment surface). Deps: CW7-03. Risk: **LOW**.
+  - Evidence: [`docs/dev/cw7-04-equipment-isolation.md`](cw7-04-equipment-isolation.md), `cw7-04-equipment-isolation.spec.mjs`.
 - **CW7-05** `[ ]` Transport: manifest block design (`workspaceTransport`) — generic snapshot contract only; dong/personal-car stays Denali policy. Evidence: TRUTH §24 MUST-NOT. Deps: CW5-11. Risk: **MEDIUM**.
 - **CW7-06** `[ ]` Transport: intake initializer + registration snapshot via capability binding (existing `transportInitializerExport` generalized). Deps: CW7-05. Risk: **HIGH**.
 - **CW7-07** `[ ]` Transport: Denali adapter migration + parity (registration flow goldens, roster projections `transportKind` unchanged). Deps: CW7-06. Risk: **HIGH**.
@@ -753,7 +758,8 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
   - Evidence: [`docs/dev/cw8-03-workspace-policy-seam.md`](cw8-03-workspace-policy-seam.md), `workspace-policy-module.spec.ts`.
   - Deps: CW8-02. Risk: **MEDIUM**.
 
-- **CW8-04** `[ ]` **Denali migration to pipeline stages (parity via CW0-07 goldens)**
+- **CW8-04** `[x]` **Denali migration to pipeline stages (parity via CW0-07 goldens)**
+  - Evidence: [`docs/dev/cw8-04-denali-pipeline-migration.md`](cw8-04-denali-pipeline-migration.md), `cw8-04-denali-pipeline-parity.spec.ts`.
   - Deps: CW8-03. Risk: **HIGH**.
 
 - **CW8-05** `[ ]` **Urban migration to pipeline stages**

@@ -41,6 +41,11 @@ export type WorkspaceValidationPipeline = {
 /** CW8-03 preview — additive policy rules only; cannot skip shared/capability stages. */
 export type WorkspacePolicyValidator = {
   readonly validate?: (ctx: WorkspaceValidationPipelineContext) => WorkspaceViolation | null;
+  /**
+   * CW8-04 — when true and `WORKSPACE_VALIDATION_PIPELINE_DENALI_POLICY=1`, host runner
+   * skips flat hooks + publish gate for this workspace (strangler migration).
+   */
+  readonly supersedesFlatHooks?: boolean;
 };
 
 export type WorkspaceValidationPipelineStageId =

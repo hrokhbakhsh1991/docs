@@ -109,6 +109,9 @@ importers:
       '@app-tour/workspace-policy-cert':
         specifier: workspace:*
         version: link:../../packages/workspaces/policy-cert
+      '@app-tour/workspace-profile-cert':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/profile-cert
       '@app-tour/workspace-sdk':
         specifier: workspace:*
         version: link:../../packages/workspace-sdk
@@ -503,6 +506,9 @@ importers:
       '@app-tour/workspace-policy-cert':
         specifier: workspace:*
         version: link:../../packages/workspaces/policy-cert
+      '@app-tour/workspace-profile-cert':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/profile-cert
       '@app-tour/workspace-starter':
         specifier: workspace:*
         version: link:../../packages/workspaces/starter
@@ -790,6 +796,9 @@ importers:
       '@app-tour/workspace-plugin-host':
         specifier: workspace:*
         version: link:../workspace-plugin-host
+      '@app-tour/workspace-profile-cert':
+        specifier: workspace:*
+        version: link:../workspaces/profile-cert
       '@app-tour/workspace-sdk':
         specifier: workspace:*
         version: link:../workspace-sdk
@@ -1447,6 +1456,43 @@ importers:
       '@types/node':
         specifier: ^24.0.0
         version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/workspaces/profile-cert:
+    dependencies:
+      '@app-tour/catalog-registration-auth':
+        specifier: workspace:*
+        version: link:../../catalog-registration-auth
+      '@app-tour/design-tokens':
+        specifier: workspace:*
+        version: link:../../design-tokens
+      '@app-tour/platform-core':
+        specifier: workspace:*
+        version: link:../../platform-core
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../../workspace-sdk
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.7(react@19.2.7)
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.16
+      react:
+        specifier: ^19.0.0
+        version: 19.2.7
       tsx:
         specifier: ^4.20.6
         version: 4.22.4

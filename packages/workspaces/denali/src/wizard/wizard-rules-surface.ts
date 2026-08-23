@@ -18,11 +18,14 @@ export type DenaliWizardRulesSurface = {
   readonly tourKindValues: typeof DENALI_TOUR_KIND_VALUES;
 };
 
-export const denaliWizardRulesSurface: DenaliWizardRulesSurface = Object.freeze({
+export const denaliWizardRulesSurface: DenaliWizardRulesSurface & {
+  readonly buildDefaultForm: typeof buildDenaliTourCreateDefaultValues;
+} = Object.freeze({
   evaluateFormFieldRule,
   applyDenaliInvariantState,
   resolveDenaliRuleSetFromTemplate,
   buildDenaliTourCreateDefaultValues,
+  buildDefaultForm: buildDenaliTourCreateDefaultValues,
   readDenaliCanonicalBasics,
   canonicalToFormPathMap: DENALI_CANONICAL_TO_FORM_PATH_MAP,
   tourKindValues: DENALI_TOUR_KIND_VALUES,

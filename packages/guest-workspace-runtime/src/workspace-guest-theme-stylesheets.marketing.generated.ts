@@ -14,6 +14,7 @@ export const WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN =
 export const WORKSPACE_GUEST_MARKETING_THEME_REGISTRY = Object.freeze({
   "denali": Object.freeze(["theme/denali-marketing.css"]),
   "guest-club": Object.freeze(["theme/marketing/marketing.css"]),
+  "profile-cert": Object.freeze(["theme/marketing.css"]),
   "urban": Object.freeze(["theme/urban-marketing.css"]),
 }) as Readonly<Record<string, readonly string[]>>;
 
@@ -27,6 +28,10 @@ export async function importGuestMarketingThemeForPlugin(pluginId: string): Prom
 
     case "guest-club":
       await import("@app-tour/workspace-guest-club/theme/marketing/marketing.css");
+      return;
+
+    case "profile-cert":
+      await import("@app-tour/workspace-profile-cert/theme/marketing.css");
       return;
 
     case "urban":

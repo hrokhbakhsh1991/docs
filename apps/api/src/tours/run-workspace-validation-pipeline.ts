@@ -9,6 +9,7 @@ import type {
 } from "@app-tour/workspace-sdk";
 
 import { assertCatalogRefIntegrity } from "../canonical/assert-catalog-ref-integrity.ts";
+import { isWorkspaceValidationPipelineDenaliPolicyEnabled } from "./is-workspace-validation-pipeline-denali-policy-enabled.ts";
 import { runValidationModePublishGate } from "./resolve-validation-mode.ts";
 import { runWorkspaceValidationHooks } from "./run-workspace-validation-hooks.ts";
 import { WORKSPACE_CAPABILITY_VALIDATORS } from "./workspace-capability-validation-bindings.generated.ts";
@@ -79,26 +80,38 @@ export function runCapabilityValidationStage(
 export function runWorkspacePolicyValidationStage(
   ctx: WorkspaceValidationPipelineContext
 ): WorkspaceValidationPipelineViolation | null {
-  const hookViolation = runWorkspaceValidationHooks(ctx.plugin, ctx.document);
-  if (hookViolation != null) {
-    return withStage("workspacePolicy", hookViolation);
-  }
-
-  const publishViolation = runValidationModePublishGate(
-    ctx.plugin,
-    ctx.document,
-    ctx.validationMode,
-    ctx.workspaceType
-  );
-  if (publishViolation != null) {
-    return withStage("workspacePolicy", publishViolation);
-  }
-
   const policyValidator = resolveWorkspacePolicyValidator(ctx.workspaceType);
+  const supersedesFlatHooks =
+    policyValidator?.supersedesFlatHooks === true &&
+    isWorkspaceValidationPipelineDenaliPolicyEnabled();
+
+  if (!supersedesFlatHooks) {
+    const hookViolation = runWorkspaceValidationHooks(ctx.plugin, ctx.document);
+    if (hookViolation != null) {
+      return withStage("workspacePolicy", hookViolation);
+    }
+
+    const publishViolation = runValidationModePublishGate(
+      ctx.plugin,
+      ctx.document,
+      ctx.validationMode,
+      ctx.workspaceType
+    );
+    if (publishViolation != null) {
+      return withStage("workspacePolicy", publishViolation);
+    }
+  }
+
   if (policyValidator?.validate != null) {
-    const policyViolation = policyValidator.validate(ctx);
-    if (policyViolation != null) {
-      return withStage("workspacePolicy", policyViolation);
+    const shouldRunPolicy =
+      policyValidator.supersedesFlatHooks === true
+        ? isWorkspaceValidationPipelineDenaliPolicyEnabled()
+        : true;
+    if (shouldRunPolicy) {
+      const policyViolation = policyValidator.validate(ctx);
+      if (policyViolation != null) {
+        return withStage("workspacePolicy", policyViolation);
+      }
     }
   }
 
