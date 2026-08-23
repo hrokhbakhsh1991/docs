@@ -1,10 +1,10 @@
+import { mapPublishLabelToVisibilityBucket } from "@app-tour/tour-core";
 import {
-  mapPublishLabelToVisibilityBucket,
   resolveLifecycleStatusFromVisibilityBucket,
-  type TourPublishVisibilityBucket,
   type WorkspaceLifecycleContract,
-  type WorkspacePublishLabelMapping,
 } from "@app-tour/workspace-sdk";
+
+import type { TourPublishVisibilityBucket, WorkspacePublishLabelMapping } from "@app-tour/tour-core";
 
 import { WORKSPACE_PUBLISH_LABEL_MAPPINGS } from "./workspace-publish-label-mappings.generated";
 

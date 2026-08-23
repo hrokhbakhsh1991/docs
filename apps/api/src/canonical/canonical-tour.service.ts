@@ -47,9 +47,12 @@ import {
 } from "./pre-transaction-validation";
 import { PHASE_32_CANONICAL_STORAGE } from "./canonical-storage";
 import { maybeScheduleMarketingCatalogRevalidate } from "../marketing/maybe-schedule-marketing-catalog-revalidate";
-import { assertTourPublishLifecycleOnUpdate } from "./assert-tour-publish-lifecycle-gate";
+import type { TourPublishVisibilityBucket as CanonicalTourWritePublishBucket } from "@app-tour/tour-core";
+import { assertCanonicalTourWritePublishGate } from "./canonical-tour-publish-orchestration";
 import { assertPaidTourOpenCommerceGateOnPublishTransition } from "../registrations/assert-paid-tour-open-gate.ts";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
+
+export type { CanonicalTourWritePublishBucket };
 
 export type CanonicalTourWriteInput = {
   readonly ability: ApiAbility;
@@ -244,7 +247,7 @@ export class CanonicalTourService {
       validationVariant: input.validationVariant,
     });
 
-    assertTourPublishLifecycleOnUpdate({
+    assertCanonicalTourWritePublishGate({
       workspaceType: input.workspaceType,
       lifecycle: (await resolveWorkspacePluginForType(input.workspaceType)).lifecycle,
       before: existing.canonical,
