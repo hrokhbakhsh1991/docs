@@ -127,7 +127,8 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 ### DEC-CW-01 — `confirmed` vs `approved` state model
 
 - **Question:** distinct concepts (two registration models) or one normalized state model with per-workspace strategy?
-- **Evidence of ambiguity:** TRUTH §9, §14, §27 — portal label map excludes `confirmed`; separate tables.
+- **Evidence packet:** [`docs/dev/decisions/DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md) (2026-08-23) — CW0-04/05 parity, TRUTH §9/14/16/17/27, booking vs Urban specs, DEC-CW-03 alignment; **PROPOSAL Option B** (dual models + neutral orchestration predicates; no string/table merge).
+- **Evidence of ambiguity:** TRUTH §9, §14, §27 — portal label map excludes `confirmed`; separate tables; CW0-05 executable divergence contract.
 - **Blocks directly:** CW4-05, CW4-08 (final classification rows), CW5-05, CW9-05.
 - **Blocks transitively:** CW9-06, CW9-07, CW9-09, CW9-10 full different-vertical closure. CW9-08 may still publish club-only metrics.
 - **Does NOT block exactly:** CW0-01..10; CW1-01..06; CW2-01..07; CW3-01..09; CW4-01..04, CW4-06..07; CW5-01..04, CW5-06..11; CW6-01..04, CW6-05A, CW6-05B, CW6-06..07; CW7-01..15; CW8-01..07; CW9-01..04, CW9-08 (club-only run).
@@ -925,8 +926,8 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 
 | Divergence | Classification | Contract/ticket |
 |------------|----------------|-----------------|
-| `approved` vs `confirmed` | pending DEC-CW-01 | — |
-| `waitlisted` vs `waitlist` | pending DEC-CW-01 | — |
+| `approved` vs `confirmed` | pending DEC-CW-01 (PROPOSAL Option B: distinct strings + neutral `occupiesSeat` / strategy metadata) | [`DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md) |
+| `waitlisted` vs `waitlist` | pending DEC-CW-01 (PROPOSAL: distinct lifecycle roles; no string normalize) | [`DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md) |
 | `active` vs `published` labels | INTENTIONAL after CW-3 mapping | CW3-05 |
 | Archive Urban-only | INTENTIONAL (optional capability, DEC-CW-02 Option B) | [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md) |
 | Capacity at approve vs at create | INTENTIONAL (dual strategies, DEC-CW-03 Option A) | [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md) |
