@@ -17,7 +17,7 @@ describe("profile-cert (CW6-05A)", () => {
   it("overrides branding, intake fields, and catalog config via declarative seams only", () => {
     const author = JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
     assert.equal(author.profile, "starter-outdoor");
-    assert.equal(author.workspacePolicy, undefined);
+    assert.equal(author.workspacePolicy?.module, "./policy/tour-policy");
 
     const catalog = loadProfileCatalog();
     const { effective, audit } = expandAuthorManifest(author, catalog);
@@ -35,7 +35,8 @@ describe("profile-cert (CW6-05A)", () => {
     assert.equal(effective.workspaceBooking?.supported, true);
     assert.equal(effective.workspaceFinance?.supported, true);
     assert.equal(effective.workspaceEquipment?.supported, false);
-    assert.equal(effective.workspacePolicy, undefined);
+    assert.equal(effective.workspacePolicy?.module, "./policy/tour-policy");
+    assert.equal(effective.workspacePolicy?.export, "createTourWorkspacePolicyValidator");
     assert.equal(effective.profile, undefined);
   });
 });

@@ -165,5 +165,9 @@
   },
   "workspaceEquipment": {
     "supported": false
+  },
+  "workspacePolicy": {
+    "module": "./policy/tour-policy",
+    "export": "createTourWorkspacePolicyValidator"
   }
 }

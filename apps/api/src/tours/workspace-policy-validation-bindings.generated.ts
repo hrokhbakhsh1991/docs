@@ -7,6 +7,7 @@
 import type { WorkspacePolicyValidator } from "@app-tour/workspace-sdk";
 import { createDenaliTourWorkspacePolicyValidator as denali_workspace_policy } from "@app-tour/workspace-denali/host/policy/tour-policy";
 import { createTourWorkspacePolicyValidator as policy_cert_workspace_policy } from "@app-tour/workspace-policy-cert/host/policy/tour-policy";
+import { createTourWorkspacePolicyValidator as profile_cert_workspace_policy } from "@app-tour/workspace-profile-cert/host/policy/tour-policy";
 
 export type WorkspacePolicyValidatorBinding = {
   readonly workspaceType: string;
@@ -22,6 +23,10 @@ export const WORKSPACE_POLICY_VALIDATOR_BINDINGS: readonly WorkspacePolicyValida
   {
     workspaceType: "policy-cert",
     createValidator: policy_cert_workspace_policy,
+  },
+  {
+    workspaceType: "profile-cert",
+    createValidator: profile_cert_workspace_policy,
   },
 ] as const;
 

@@ -35,7 +35,15 @@
       "types": "./dist/http/routes.d.ts",
       "default": "./dist/http/routes.js"
     },
-    "./theme/marketing.css": "./theme/marketing.css"
+    "./theme/marketing.css": "./theme/marketing.css",
+    "./policy/tour-policy": {
+      "types": "./dist/policy/tour-policy.d.ts",
+      "default": "./dist/policy/tour-policy.js"
+    },
+    "./host/policy/tour-policy": {
+      "types": "./dist/policy/tour-policy.d.ts",
+      "default": "./dist/policy/tour-policy.js"
+    }
   },
   "files": [
     "dist",

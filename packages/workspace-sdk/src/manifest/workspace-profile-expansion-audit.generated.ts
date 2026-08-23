@@ -24,7 +24,7 @@ export const WORKSPACE_PROFILE_EXPANSION_AUDIT = {
   "policy-cert": null,
   "profile-cert": {
     profileId: "starter-outdoor",
-    overriddenPaths: ["catalogPresentation.detailSections.difficulty","catalogPresentation.detailSections.fitness","catalogPresentation.listFeatures.cityFilter","catalogRegistrationFlow.steps.components.done","catalogRegistrationFlow.steps.components.intake","catalogRegistrationFlow.surfaceExport","devBootstrap","guestConformance","guestExtensionsVersion","guestLanding","guestSeo","guestThemeStylesheets","http","httpRoutes","memberProfile.editableFields","memberProfile.mobileChangeViaOtp","memberProfile.readOnlyFields","memberProfile.sections","operatorCapabilities","pluginApiVersion","tenantBrandingDefaults.cssVariables","tenantBrandingDefaults.primaryColor","themeStylesheets","web","workspaceBooking.supported","workspaceEquipment","workspaceFinance.supported"],
+    overriddenPaths: ["catalogPresentation.detailSections.difficulty","catalogPresentation.detailSections.fitness","catalogPresentation.listFeatures.cityFilter","catalogRegistrationFlow.steps.components.done","catalogRegistrationFlow.steps.components.intake","catalogRegistrationFlow.surfaceExport","devBootstrap","guestConformance","guestExtensionsVersion","guestLanding","guestSeo","guestThemeStylesheets","http","httpRoutes","memberProfile.editableFields","memberProfile.mobileChangeViaOtp","memberProfile.readOnlyFields","memberProfile.sections","operatorCapabilities","pluginApiVersion","tenantBrandingDefaults.cssVariables","tenantBrandingDefaults.primaryColor","themeStylesheets","web","workspaceBooking.supported","workspaceEquipment","workspaceFinance.supported","workspacePolicy"],
   },
   "starter": null,
   "urban": null,

@@ -68,6 +68,7 @@ describe("profile certification (CW6-06)", () => {
     assert.deepEqual(sortedCapabilityKeys(effective), [
       ...STARTER_OUTDOOR_CAPABILITY_KEYS,
       "workspaceEquipment",
+      "workspacePolicy",
     ].sort());
     assert.equal(effective.tenantBrandingDefaults?.primaryColor, "#0d9488");
     assert.equal(effective.catalogPresentation?.listFeatures?.cityFilter, true);
