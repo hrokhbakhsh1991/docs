@@ -458,10 +458,10 @@ Refinement vs requested shape (evidence-based):
 
 ### CW-3 — Publish/Lifecycle Ports
 
-- **CW3-01** `[v]` **Design `TourPublishVisibilityPort` + manifest declaration** — **design complete (2026-08-23)**
+- **CW3-01** `[x]` **Design `TourPublishVisibilityPort` + manifest declaration** — **design complete (2026-08-23); codegen closed in CW3-02**
   - Invariant: port answers "is publicly visible" per workspace without host label knowledge; Denali `active`, Urban/Harbor `published` preserved verbatim.
   - Evidence: FEAS §2.2, §3 Step 1; TRUTH §5, §30.
-  - Files: design doc `docs/dev/cw3-01-tour-publish-visibility-port.md` (port interface, manifest `publishVisibilityModule`/`publishVisibilityExport`, adapter matrix, DEC-CW-07 deps, risks). Production types/codegen deferred to CW3-02.
+  - Files: design doc `docs/dev/cw3-01-tour-publish-visibility-port.md` (port interface, manifest `publishVisibilityModule`/`publishVisibilityExport`, adapter matrix, DEC-CW-07 deps, risks). Production types/codegen delivered in CW3-02 (`8d61b38f`).
   - Deps: CW1-02, CW1-04, CW0-02 (does not depend on deferred Urban capacity tasks CW1-03/05/06). Risk: **MEDIUM** (design only).
 
 - **CW3-02** `[x]` **Codegen: publish-visibility dispatch bindings**
@@ -487,8 +487,7 @@ Refinement vs requested shape (evidence-based):
   - Risk: **HIGH** (design).
   - **Closure (2026-08-23):** SDK contract `tour-publish-label-mapping.contract.ts`; manifest `publishLabelMapping` (denali/urban/harbor); codegen `WORKSPACE_PUBLISH_LABEL_MAPPINGS`; API dispatch `workspace-publish-label-mapping-dispatch.ts`; Urban `archived` → `notPublished` per DEC-CW-02 Option B. Evidence: [`cw3-05-publish-label-mapping.md`](cw3-05-publish-label-mapping.md).
 
-**Integration sign-off (CW-WAVE-3C, 2026-08-23):** Workers CW3-03 (marketing `shouldInvalidateMarketingCatalog` → `isTourPubliclyVisible`), CW3-05 (publish-label mapping contract + codegen), CW4-07 (duplicate-protection contract + negative tests), DEC-CW-01 evidence (PROPOSAL Option B), DEC-CW-04 evidence (PROPOSAL Option B). Evidence: `cw3-03-marketing-catalog-visibility.spec.ts`, `workspace-publish-label-mapping-dispatch.spec.ts`, `duplicate-protection.golden.spec.mjs`, [`DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md), [`DEC-CW-04-evidence.md`](decisions/DEC-CW-04-evidence.md). Integration: `generate:workspace-registry --check` PASS; `test:parity` 19/19; boundary guards PASS. **Forbidden slices not started:** CW3-04,06..09, CW4-05+.
-
+- **CW3-06** `[ ]` **Migrate publish lifecycle gate to manifest-declared label mapping (no heuristic branch)**
   - Invariant: `assertTourPublishLifecycleOnUpdate` outcomes identical for all CW0-02 golden pairs.
   - Files: `apps/api/src/canonical/assert-tour-publish-lifecycle-gate.ts`, `workspace-canonical-tour-dispatch.ts`.
   - Focused validation: goldens; `tour-publish-transition.spec.ts`.
@@ -510,6 +509,8 @@ Refinement vs requested shape (evidence-based):
 - **CW3-09** `[ ]` **Guard: no hard-coded publish label heuristic in host**
   - Invariant: CI fails on new `=== "published" || === "active"` style checks in `apps/api/src/canonical` outside generated/mapping code.
   - Deps: CW3-06. Risk: **LOW**.
+
+**Integration sign-off (CW-WAVE-3C, 2026-08-23):** Integration HEAD `ac0b617d`. Workers CW3-03 (marketing `shouldInvalidateMarketingCatalog` → `isTourPubliclyVisible`), CW3-05 (publish-label mapping contract + codegen), CW4-07 (duplicate-protection contract + negative tests), DEC-CW-01 evidence (PROPOSAL Option B, `87ba318b`), DEC-CW-04 evidence (PROPOSAL Option B, `bfe84d62`). Evidence: `cw3-03-marketing-catalog-visibility.spec.ts`, `workspace-publish-label-mapping-dispatch.spec.ts`, `duplicate-protection.golden.spec.mjs`, [`DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md), [`DEC-CW-04-evidence.md`](decisions/DEC-CW-04-evidence.md). Integration: `generate:workspace-registry --check` PASS; `test:parity` 22/22; boundary guards PASS. **Forbidden slices not started:** CW3-04,06..09, CW4-05+.
 
 **Exit CW-3:** host consumes ports/mappings; each workspace keeps its own vocabulary; all goldens byte-identical.
 
@@ -542,7 +543,7 @@ Refinement vs requested shape (evidence-based):
   - Rollback: keep parallel file; mark `[v]` pending closure.
   - Deps: CW4-03. Risk: **MEDIUM**.
 
-- **CW4-05** `[!]` **Registration model divergence contract (blocked: DEC-CW-01, DEC-CW-03)**
+- **CW4-05** `[!]` **Registration model divergence contract (blocked: DEC-CW-01)**
   - Objective: encode the decided relationship (distinct models vs strategy-unified) as SDK contract + certification spec.
   - Invariant: whichever decision — `urban_registrations` behavior unchanged unless product migration is separately approved.
   - Deps: CW4-02; DEC gates. Risk: **HIGH** (semantics).
@@ -585,7 +586,7 @@ Refinement vs requested shape (evidence-based):
   - Invariant: CW-3 dispatch types re-homed; consumers unchanged via re-exports.
   - Deps: CW3-06..08. Risk: **MEDIUM**.
 
-- **CW5-05** `[!]` **Registration orchestration interfaces (blocked: DEC-CW-01, DEC-CW-03)**
+- **CW5-05** `[!]` **Registration orchestration interfaces (blocked: DEC-CW-01)**
   - Invariant: expresses BOTH models per DEC-CW-03 outcome — booking pending-pipeline and capacity-decision-at-create — as first-class strategies OR booking-only with urban explicitly outside; no forced convergence.
   - Deps: CW4-05 (gate). Risk: **HIGH**. `[!]` until DEC-CW-03.
 
@@ -673,8 +674,8 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
 - **CW7-08** `[ ]` Transport: isolation test. Deps: CW7-07. Risk: **LOW**.
 - **CW7-09** `[ ]` Difficulty/Fitness: presentation gates already manifest (`catalogPresentation`); add optional field-module contract; Denali fields stay vertical. Deps: CW5-11. Risk: **MEDIUM**.
 - **CW7-10** `[ ]` Itinerary: capability block (detail-section gate exists); wizard composite stays workspace UI. Deps: CW5-11. Risk: **MEDIUM**.
-- **CW7-11** `[!]` Pricing fields: base-price field module contract; IRR/toman remains workspace config (blocked: DEC-CW-06 through CW2-02/03). Deps: CW5-11, CW2-02/03. Risk: **MEDIUM**.
-- **CW7-12** `[!]` Membership link: formalize `pricing.allowMembershipDiscount` as capability-declared field consumed by finance gate (transitively blocked by DEC-CW-06 through CW7-11). Evidence: TRUTH §25; AUDIT §6 SC-small. Deps: CW7-11. Risk: **LOW**.
+- **CW7-11** `[ ]` Pricing fields: base-price field module contract; IRR/toman remains workspace config (DEC-CW-06 Option E approved; CW2-02/03 complete). Deps: CW5-11, CW2-02/03. Risk: **MEDIUM**.
+- **CW7-12** `[ ]` Membership link: formalize `pricing.allowMembershipDiscount` as capability-declared field consumed by finance gate. Evidence: TRUTH §25; AUDIT §6 SC-small. Deps: CW7-11. Risk: **LOW**.
 - **CW7-13** `[ ]` Capability composition matrix test (enable/disable combinations on synthetic manifest; registry `--check` deterministic). Deps: CW7-04, CW7-08 (min: equipment+transport). Risk: **MEDIUM**.
 - **CW7-14** `[ ]` Denali full regression checkpoint (certified suite + goldens) after each shipped capability — recurring gate task. Risk: **LOW** each run.
 - **CW7-15** `[ ]` Guard: capability modules cannot import Denali product ids (extend `denali-coupling.contract.spec.ts` scope to capability packages). Deps: CW7-02. Risk: **LOW**.
@@ -727,8 +728,8 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
   - Deps: CW9-02, CW6-05B. Risk: **MEDIUM**.
 - **CW9-04** `[ ]` **cert-club: full behavior suite (publish, registration, capacity, waitlist, spots remaining) green**
   - Deps: CW9-03. Risk: **MEDIUM**.
-- **CW9-05** `[!]` **Synthetic different-vertical workspace (blocked: DEC-CW-01, DEC-CW-03)**
-  - Deps: CW9-01, CW6-05A, CW6-05B, CW8-07; DEC-CW-01/03 resolved. Risk: **MEDIUM**.
+- **CW9-05** `[!]` **Synthetic different-vertical workspace (blocked: DEC-CW-01)**
+  - Deps: CW9-01, CW6-05A, CW6-05B, CW8-07; DEC-CW-03 resolved. Risk: **MEDIUM**.
 - **CW9-06** `[!]` **cert-events member-status display (blocked: DEC-CW-04)**
   - Deps: CW9-05. Risk: **MEDIUM**.
 - **CW9-07** `[ ]` **Registry regeneration determinism proof (two runs byte-identical) with both synthetic workspaces**
@@ -942,7 +943,7 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | CW-1 | CW1-03/05/06 complete; `atCreateCapacityStrategy` + `operatorApprovalCapacityStrategy` in tour-core; Urban host migrated; consumer census (`cw1-06-capacity-consumer-census.spec.ts`); `pnpm run test:parity` (19/19); tour-core 11/11; integration base `4acbdfc7` | CW coordinator | 2026-08-23 |
 | CW-2 | Wave 2 `f022e35d` + Wave 3B CW2-02/03/07; DEC-CW-06 Option E (`catalogPresentation.priceDisplay` + codegen); `guard:no-workspace-type-branches` extended; `pnpm run test:parity` (19/19); registry `--check`; all boundary guards PASS | CW coordinator | 2026-08-23 |
 | CW-3 (Wave 3A design) | CW2-01 `[x]` + CW3-01 `[v]`; evidence [`DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md), [`cw3-01-tour-publish-visibility-port.md`](cw3-01-tour-publish-visibility-port.md), [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md), [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md); docs-only merge | CW coordinator | 2026-08-23 |
-| CW-3 (partial) | CW3-02/03/05 `[x]`; CW3-04+ not started; Wave 3C sign-off | CW coordinator | 2026-08-23 |
+| CW-3 (partial) | CW3-01..03/05 `[x]`; CW3-04/06..09 not started; Wave 3C sign-off at `ac0b617d` + evidence `bfe84d62` | CW coordinator | 2026-08-23 |
 | CW-4 (partial/core) | CW4-01..04, CW4-07 `[x]` booking SoT + duplicate-protection contract; CW4-05+ gated on DEC-CW-01 | CW coordinator | 2026-08-23 |
 | CW-5 | — | — | — |
 | CW-6 | — | — | — |
