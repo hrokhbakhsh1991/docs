@@ -17,6 +17,11 @@ import {
   wrapLegacyTripDetailsForMigration,
 } from "@app-tour/workspace-denali/host/acl";
 import { DENALI_FORM_PROFILE_GHOST_PATHS } from "@app-tour/workspace-denali/host/composites/wizard-composite-registry-surface";
+import { HARBOR_WORKSPACE_TYPE } from "@app-tour/workspace-harbor";
+import {
+  readHarborTourPublishStatusFromCanonical,
+  detectHarborTourPublishTransition,
+} from "@app-tour/workspace-harbor/host/tours";
 import { URBAN_WORKSPACE_TYPE } from "@app-tour/workspace-urban";
 import {
   readUrbanTourPublishStatusFromCanonical,
@@ -36,6 +41,11 @@ export const WORKSPACE_CANONICAL_TOUR_BINDINGS = [
     formProfileGhostPaths: DENALI_FORM_PROFILE_GHOST_PATHS,
     validationSyncOnly: true as const,
     catalogRefEnrichment: true as const,
+  },
+  {
+    workspaceType: HARBOR_WORKSPACE_TYPE,
+    readPublishStatusFromCanonical: readHarborTourPublishStatusFromCanonical,
+    detectPublishTransition: detectHarborTourPublishTransition,
   },
   {
     workspaceType: URBAN_WORKSPACE_TYPE,

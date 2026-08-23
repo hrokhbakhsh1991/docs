@@ -300,6 +300,11 @@ export {
   isPublicCatalogOrganizedTransportMode,
 } from "./tour/public-catalog.contract";
 export {
+  type TourPublishVisibilityBinding,
+  type TourPublishVisibilityPort,
+  type TourPublishVisibilityPredicate,
+} from "./tour/tour-publish-visibility.port";
+export {
   resolveCatalogListApiPath,
   resolveCatalogTourApiPath,
   UnknownCatalogPluginError,

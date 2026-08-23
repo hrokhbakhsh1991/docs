@@ -1,6 +1,8 @@
 import { BANNER } from "../constants.mjs";
 import { assertNoDuplicateEmittedSymbols, importSpecifier } from "../utils.mjs";
 
+const PUBLISH_VISIBILITY_REQUIRED_WORKSPACES = new Set(["denali", "urban", "harbor"]);
+
 function namedImportLine(names, specifier) {
   if (names.length <= 1) {
     return `import { ${names.join(", ")} } from "${specifier}";`;
@@ -87,6 +89,74 @@ export const WORKSPACE_CANONICAL_TOUR_BINDINGS = [] as const;
 ${[...importLines].join("\n")}
 
 export const WORKSPACE_CANONICAL_TOUR_BINDINGS = [
+${bindingBlocks.join("\n")}
+] as const;
+`;
+}
+
+/** @param {ReturnType<typeof import("../manifest-loader.mjs").discoverManifests>} manifests */
+export function validatePublishVisibilityManifests(manifests) {
+  for (const m of manifests) {
+    const ct = m.canonicalTour;
+    const tw = m.tourWrite;
+    const hasModule = ct?.publishVisibilityModule !== undefined;
+    const hasExport = ct?.publishVisibilityExport !== undefined;
+    if (hasModule !== hasExport) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: canonicalTour.publishVisibilityModule and publishVisibilityExport must both be set or both omitted`
+      );
+    }
+    if (
+      tw !== undefined &&
+      ct !== undefined &&
+      PUBLISH_VISIBILITY_REQUIRED_WORKSPACES.has(m.id) &&
+      !hasModule
+    ) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: canonicalTour.publishVisibilityModule and publishVisibilityExport are required for publish-golden workspaces with tourWrite`
+      );
+    }
+  }
+}
+
+export function generatePublishVisibilityBindings(manifests) {
+  validatePublishVisibilityManifests(manifests);
+
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const bindingBlocks = [];
+
+  for (const m of manifests) {
+    const ct = m.canonicalTour;
+    const tw = m.tourWrite;
+    if (ct?.publishVisibilityModule === undefined) {
+      continue;
+    }
+    if (tw === undefined) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: canonicalTour.publishVisibilityModule requires tourWrite.workspaceTypeExport`
+      );
+    }
+    const visibilitySpec = importSpecifier(m.package, ct.publishVisibilityModule);
+    importLines.add(namedImportLine([ct.publishVisibilityExport], visibilitySpec));
+    importLines.add(namedImportLine([tw.workspaceTypeExport], m.package));
+    bindingBlocks.push(`  {
+    workspaceType: ${tw.workspaceTypeExport},
+    isTourPubliclyVisible: ${ct.publishVisibilityExport},
+  },`);
+  }
+
+  if (bindingBlocks.length === 0) {
+    return `${BANNER}
+export const WORKSPACE_PUBLISH_VISIBILITY_BINDINGS = [] as const;
+`;
+  }
+
+  return `${BANNER}
+${[...importLines].join("\n")}
+
+export const WORKSPACE_PUBLISH_VISIBILITY_BINDINGS = [
 ${bindingBlocks.join("\n")}
 ] as const;
 `;

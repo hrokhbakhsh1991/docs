@@ -16,6 +16,8 @@ import { FINANCE_WS5_WORKSPACE_TYPE } from "@app-tour/workspace-finance-ws5";
 import { mergeFinanceWs5CanonicalPatchData, financeWs5TourPatchRequiresOwner, FINANCE_WS5_TOUR_PUBLISH_FIELDS_OWNER_SURFACE } from "@app-tour/workspace-finance-ws5/host/tours";
 import { FINANCE_WS6_WORKSPACE_TYPE } from "@app-tour/workspace-finance-ws6";
 import { mergeFinanceWs6CanonicalPatchData, financeWs6TourPatchRequiresOwner, FINANCE_WS6_TOUR_PUBLISH_FIELDS_OWNER_SURFACE } from "@app-tour/workspace-finance-ws6/host/tours";
+import { HARBOR_WORKSPACE_TYPE } from "@app-tour/workspace-harbor";
+import { mergeHarborCanonicalPatchData, harborTourPatchRequiresOwner, HARBOR_TOUR_PUBLISH_FIELDS_OWNER_SURFACE } from "@app-tour/workspace-harbor/host/tours";
 import { URBAN_WORKSPACE_TYPE } from "@app-tour/workspace-urban";
 import { mergeUrbanCanonicalPatchData, urbanTourPatchRequiresOwner, URBAN_TOUR_PUBLISH_FIELDS_OWNER_SURFACE } from "@app-tour/workspace-urban/host/tours";
 import { assertWorkspaceOwner } from "@app-tour/workspace-urban/host/http";
@@ -58,6 +60,12 @@ export const WORKSPACE_TOUR_WRITE_BINDINGS = [
     mergeCanonicalPatch: mergeFinanceWs6CanonicalPatchData,
     publishFieldGate: financeWs6TourPatchRequiresOwner,
     publishOwnerSurface: FINANCE_WS6_TOUR_PUBLISH_FIELDS_OWNER_SURFACE,
+  },
+  {
+    workspaceType: HARBOR_WORKSPACE_TYPE,
+    mergeCanonicalPatch: mergeHarborCanonicalPatchData,
+    publishFieldGate: harborTourPatchRequiresOwner,
+    publishOwnerSurface: HARBOR_TOUR_PUBLISH_FIELDS_OWNER_SURFACE,
   },
   {
     workspaceType: URBAN_WORKSPACE_TYPE,
