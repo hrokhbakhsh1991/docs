@@ -211,10 +211,10 @@ sudo -u app-tour pnpm run bootstrap:dev-jwt >> /tmp/jwt.txt
 # paste AUTH_JWT_* lines into /etc/app-tour/api.env
 ```
 
-First deploy manually:
+First deploy manually (installs standalone pnpm if missing, then `remote-deploy.sh`):
 
 ```bash
-bash /opt/app-tour/scripts/vps-deploy/remote-deploy.sh
+FORCE_BOOTSTRAP=1 bash /opt/app-tour/scripts/vps-deploy/resume-vps-deploy.sh
 ```
 
 Pre-commit hotfix sync from a local worktree (no `git push` yet):
