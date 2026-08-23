@@ -294,7 +294,7 @@ Refinement vs requested shape (evidence-based):
   - Evidence: TRUTH §13–18; `booking-lifecycle.spec.ts`, `booking-reject-lifecycle.spec.ts`.
   - Deps: CW0-01. Risk: **LOW**.
 
-- **CW0-05** `[ ]` **`approved`/`confirmed` divergence contract spec**
+- **CW0-05** `[x]` **`approved`/`confirmed` divergence contract spec**
   - Invariant: documented, executable assertion that the two vocabularies live in different stores and neither maps onto the other today (negative test: portal label map excludes `confirmed`).
   - Evidence: TRUTH §14, §27.
   - Files: new contract spec in `test/parity/`.
