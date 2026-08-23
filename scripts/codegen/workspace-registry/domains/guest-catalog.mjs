@@ -1,4 +1,5 @@
 import { BANNER } from "../constants.mjs";
+import { resolveWorkspaceEquipmentManifest } from "./equipment.mjs";
 import {
   normalizeMemberPortalAvailability,
   resolveEffectiveMemberPortalConfig,
@@ -463,7 +464,13 @@ export function assertGuestExtensionsManifest(manifest) {
     "wizardDraftShell",
     "wizardCreateChrome",
   ]) {
-    const block = manifest[key];
+    let block = manifest[key];
+    if (key === "settingsEquipmentUi" && block === undefined) {
+      const equipment = resolveWorkspaceEquipmentManifest(manifest);
+      if (equipment?.supported === true && equipment.settingsEquipmentUi !== undefined) {
+        block = equipment.settingsEquipmentUi;
+      }
+    }
     if (block === undefined) {
       continue;
     }

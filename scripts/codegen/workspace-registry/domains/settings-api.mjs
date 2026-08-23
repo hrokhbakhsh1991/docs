@@ -1,5 +1,13 @@
 import { BANNER } from "../constants.mjs";
 import { importSpecifier } from "../utils.mjs";
+import {
+  generateWorkspaceEquipmentIconKeyValidatorBindings,
+  resolveWorkspaceEquipmentManifest,
+} from "./equipment.mjs";
+
+export function generateEquipmentIconKeyValidatorBindings(manifests) {
+  return generateWorkspaceEquipmentIconKeyValidatorBindings(manifests);
+}
 
 export function generateSettingsEnrichers(manifests) {
   /** @type {{ workspaceType: string; settingsModuleId: string; enrichListBody: string }[]} */
@@ -10,7 +18,37 @@ export function generateSettingsEnrichers(manifests) {
   let needsThemeType = false;
 
   for (const m of manifests) {
-    if (!Array.isArray(m.settingsEnrichers) || m.settingsEnrichers.length === 0) continue;
+    const equipmentBlock = resolveWorkspaceEquipmentManifest(m);
+    const equipmentEnricherFromBlock =
+      equipmentBlock?.supported === true ? equipmentBlock.settingsEnricher : undefined;
+
+    if (!Array.isArray(m.settingsEnrichers) || m.settingsEnrichers.length === 0) {
+      if (equipmentEnricherFromBlock !== undefined) {
+        const workspaceType = m.workspaceTypes?.[0];
+        if (typeof workspaceType !== "string") {
+          throw new Error(`workspace.manifest.json ${m.id}: settingsEnrichers requires workspaceTypes`);
+        }
+        const {
+          module: modulePath,
+          export: exportName,
+          targetField,
+          sourceField,
+        } = equipmentEnricherFromBlock;
+        const spec = importSpecifier(m.package, modulePath);
+        importLines.add(`import { ${exportName} } from "${spec}";`);
+        needsEquipmentType = true;
+        bindings.push({
+          workspaceType,
+          settingsModuleId: "equipment",
+          resourceType: "EquipmentResource",
+          enrichListBody: `items.map((item) => Object.freeze({
+      ...item,
+      ${JSON.stringify(targetField)}: ${exportName}(item[${JSON.stringify(sourceField)}]),
+    }))`,
+        });
+      }
+      continue;
+    }
     const workspaceType = m.workspaceTypes?.[0];
     if (typeof workspaceType !== "string") {
       throw new Error(`workspace.manifest.json ${m.id}: settingsEnrichers requires workspaceTypes`);
@@ -23,6 +61,9 @@ export function generateSettingsEnrichers(manifests) {
         targetField,
         sourceField,
       } = enricher;
+      if (settingsModuleId === "equipment" && equipmentEnricherFromBlock !== undefined) {
+        continue;
+      }
       for (const key of ["settingsModuleId", "module", "export", "targetField", "sourceField"]) {
         if (typeof enricher[key] !== "string" || enricher[key].trim().length === 0) {
           throw new Error(
@@ -43,6 +84,31 @@ export function generateSettingsEnrichers(manifests) {
         settingsModuleId,
         resourceType:
           settingsModuleId === "equipment" ? "EquipmentResource" : "TourThemeResource",
+        enrichListBody: `items.map((item) => Object.freeze({
+      ...item,
+      ${JSON.stringify(targetField)}: ${exportName}(item[${JSON.stringify(sourceField)}]),
+    }))`,
+      });
+    }
+    if (
+      equipmentEnricherFromBlock !== undefined &&
+      !bindings.some(
+        (entry) => entry.workspaceType === workspaceType && entry.settingsModuleId === "equipment"
+      )
+    ) {
+      const {
+        module: modulePath,
+        export: exportName,
+        targetField,
+        sourceField,
+      } = equipmentEnricherFromBlock;
+      const spec = importSpecifier(m.package, modulePath);
+      importLines.add(`import { ${exportName} } from "${spec}";`);
+      needsEquipmentType = true;
+      bindings.push({
+        workspaceType,
+        settingsModuleId: "equipment",
+        resourceType: "EquipmentResource",
         enrichListBody: `items.map((item) => Object.freeze({
       ...item,
       ${JSON.stringify(targetField)}: ${exportName}(item[${JSON.stringify(sourceField)}]),
@@ -93,69 +159,6 @@ export function enrichSettingsModuleList<T>(workspaceType: string, moduleId: str
     return [...items];
   }
   return binding.enrichList(items as never) as T[];
-}
-`;
-}
-
-export function generateEquipmentIconKeyValidatorBindings(manifests) {
-  /** @type {Set<string>} */
-  const importLines = new Set();
-  /** @type {string[]} */
-  const bindingBlocks = [];
-
-  for (const m of manifests) {
-    const validator = m.equipmentIconKeyValidator;
-    if (validator === undefined) {
-      continue;
-    }
-    const workspaceType = m.workspaceTypes?.[0];
-    if (typeof workspaceType !== "string" || workspaceType.length === 0) {
-      throw new Error(
-        `workspace.manifest.json ${m.id}: equipmentIconKeyValidator requires workspaceTypes[0]`
-      );
-    }
-    const { module: modulePath, export: exportName } = validator;
-    for (const key of ["module", "export"]) {
-      if (typeof validator[key] !== "string" || validator[key].trim().length === 0) {
-        throw new Error(
-          `workspace.manifest.json ${m.id}: equipmentIconKeyValidator.${key} is required`
-        );
-      }
-    }
-    const spec = importSpecifier(m.package, modulePath);
-    importLines.add(`import { ${exportName} } from "${spec}";`);
-    bindingBlocks.push(`  {
-    workspaceType: ${JSON.stringify(workspaceType)},
-    validateEquipmentIconKey: ${exportName},
-  },`);
-  }
-
-  if (bindingBlocks.length === 0) {
-    return `${BANNER}
-export const WORKSPACE_EQUIPMENT_ICON_KEY_VALIDATOR_BINDINGS = [] as const;
-
-export function resolveEquipmentIconKeyValidator(
-  _workspaceType: string
-): ((value: string) => boolean) | undefined {
-  return undefined;
-}
-`;
-  }
-
-  return `${BANNER}
-${[...importLines].join("\n")}
-
-export const WORKSPACE_EQUIPMENT_ICON_KEY_VALIDATOR_BINDINGS = [
-${bindingBlocks.join("\n")}
-] as const;
-
-export function resolveEquipmentIconKeyValidator(
-  workspaceType: string
-): ((value: string) => boolean) | undefined {
-  const binding = WORKSPACE_EQUIPMENT_ICON_KEY_VALIDATOR_BINDINGS.find(
-    (entry) => entry.workspaceType === workspaceType
-  );
-  return binding?.validateEquipmentIconKey;
 }
 `;
 }

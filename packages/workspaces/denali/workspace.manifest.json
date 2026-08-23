@@ -438,18 +438,36 @@
       "export": "resolveThemeCompatibleCategories",
       "targetField": "compatibleCategories",
       "sourceField": "formProfile"
+    }
+  ],
+  "workspaceEquipment": {
+    "supported": true,
+    "defaultModuleEnabledWhenUnset": true,
+    "capabilities": {
+      "operatorSettings": true,
+      "wizardTourField": true,
+      "catalogDetailSection": true,
+      "guestLandingSection": false,
+      "registrationSnapshot": true
     },
-    {
-      "settingsModuleId": "equipment",
+    "iconKeyValidator": {
+      "module": "./settings/equipment-icon-registry",
+      "export": "isKnownEquipmentIconKey"
+    },
+    "settingsEnricher": {
       "module": "./settings/equipment-compatible-categories",
       "export": "resolveEquipmentCompatibleCategories",
       "targetField": "compatibleCategories",
       "sourceField": "category"
+    },
+    "settingsEquipmentUi": {
+      "module": "./ui/settings/settings-equipment-ui-surface",
+      "export": "denaliSettingsEquipmentUiSurface"
+    },
+    "themeFilter": {
+      "module": "./settings/equipment-compatible-themes",
+      "export": "isEquipmentCompatibleWithTourThemes"
     }
-  ],
-  "equipmentIconKeyValidator": {
-    "module": "./settings/equipment-icon-registry",
-    "export": "isKnownEquipmentIconKey"
   },
   "devBootstrap": {
     "pluginTenantIds": [
@@ -548,10 +566,6 @@
   "settingsDestinationSurface": {
     "module": "./settings/destination-settings-surface",
     "export": "denaliDestinationSettingsSurface"
-  },
-  "settingsEquipmentUi": {
-    "module": "./ui/settings/settings-equipment-ui-surface",
-    "export": "denaliSettingsEquipmentUiSurface"
   },
   "settingsExposureSurfacesUi": {
     "module": "./ui/settings/settings-exposure-surfaces-ui-surface",
