@@ -107,6 +107,11 @@ export function assertWorkspaceEquipmentManifest(manifest) {
       );
     }
   }
+  if (caps.wizardTourField === true && equipment.fieldModule === undefined) {
+    throw new Error(
+      `workspace.manifest.json ${manifest.id}: capabilities.wizardTourField requires fieldModule`
+    );
+  }
 }
 
 /**
@@ -280,6 +285,7 @@ export function generateWorkspaceEquipmentBindings(manifests) {
     settingsEnricher: generateWorkspaceEquipmentSettingsEnricherBindings(manifests),
     settingsUi: generateWorkspaceEquipmentSettingsUiBindings(manifests),
     capabilities: generateWorkspaceEquipmentCapabilities(manifests),
+    fieldModule: generateWorkspaceEquipmentFieldModuleBindings(manifests),
   };
 }
 
@@ -401,4 +407,94 @@ export function generateWorkspaceEquipmentSettingsEnricherBindings(manifests) {
   }
 
   return { importLines: [...importLines], bindings };
+}
+
+/**
+ * CW7-03 — optional field-registry fragment bindings from workspaceEquipment.fieldModule.
+ *
+ * @param {readonly Record<string, unknown>[]} manifests
+ */
+export function generateWorkspaceEquipmentFieldModuleBindings(manifests) {
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const bindingBlocks = [];
+
+  for (const manifest of manifests) {
+    const equipment = resolveWorkspaceEquipmentManifest(manifest);
+    if (equipment === undefined || equipment.supported !== true) {
+      continue;
+    }
+    const caps = equipment.capabilities ?? {};
+    if (caps.wizardTourField !== true) {
+      continue;
+    }
+    const fieldModule = equipment.fieldModule;
+    if (fieldModule === undefined) {
+      continue;
+    }
+    const workspaceType = manifest.workspaceTypes?.[0];
+    if (typeof workspaceType !== "string" || workspaceType.trim().length === 0) {
+      throw new Error(
+        `workspace.manifest.json ${manifest.id}: workspaceEquipment.fieldModule requires workspaceTypes[0]`
+      );
+    }
+    for (const key of ["module", "export"]) {
+      if (typeof fieldModule[key] !== "string" || fieldModule[key].trim().length === 0) {
+        throw new Error(
+          `workspace.manifest.json ${manifest.id}: workspaceEquipment.fieldModule.${key} is required`
+        );
+      }
+    }
+    const alias = `${String(manifest.id).replace(/-/g, "_")}_equipment_field_module`;
+    const spec = importSpecifier(manifest.package, fieldModule.module);
+    importLines.add(`import { ${fieldModule.export} as ${alias} } from "${spec}";`);
+    bindingBlocks.push(`  {
+    workspaceType: ${JSON.stringify(workspaceType)},
+    fieldRegistryFragment: ${alias},
+  },`);
+  }
+
+  if (bindingBlocks.length === 0) {
+    return `${BANNER}
+import type { WorkspaceEquipmentFieldRegistryFragment } from "@app-tour/workspace-sdk/equipment";
+
+export type WorkspaceEquipmentFieldModuleBinding = {
+  readonly workspaceType: string;
+  readonly fieldRegistryFragment: WorkspaceEquipmentFieldRegistryFragment;
+};
+
+export const WORKSPACE_EQUIPMENT_FIELD_MODULE_BINDINGS: readonly WorkspaceEquipmentFieldModuleBinding[] =
+  [];
+
+export function resolveWorkspaceEquipmentFieldRegistryFragment(
+  _workspaceType: string
+): WorkspaceEquipmentFieldRegistryFragment | undefined {
+  return undefined;
+}
+`;
+  }
+
+  return `${BANNER}
+import type { WorkspaceEquipmentFieldRegistryFragment } from "@app-tour/workspace-sdk/equipment";
+${[...importLines].join("\n")}
+
+export type WorkspaceEquipmentFieldModuleBinding = {
+  readonly workspaceType: string;
+  readonly fieldRegistryFragment: WorkspaceEquipmentFieldRegistryFragment;
+};
+
+export const WORKSPACE_EQUIPMENT_FIELD_MODULE_BINDINGS: readonly WorkspaceEquipmentFieldModuleBinding[] = [
+${bindingBlocks.join("\n")}
+] as const;
+
+export function resolveWorkspaceEquipmentFieldRegistryFragment(
+  workspaceType: string
+): WorkspaceEquipmentFieldRegistryFragment | undefined {
+  const binding = WORKSPACE_EQUIPMENT_FIELD_MODULE_BINDINGS.find(
+    (entry) => entry.workspaceType === workspaceType
+  );
+  return binding?.fieldRegistryFragment;
+}
+`;
 }

@@ -4,6 +4,7 @@
  */
 
 import type { DenaliCreateWizardStepId } from "../layout/stepIds";
+import { denaliEquipmentFieldModule } from "./denali-equipment-tour-field-module";
 import type { DenaliMatrixCell, DenaliMatrixTag } from "./denaliRuleMatrixRecipes";
 import type {
   DenaliContextualRule,
@@ -534,19 +535,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
       { kind: "derived", description: "May set logistics.returnPoint." },
     ],
   },
-  {
-    canonicalPath: "participants.gearItems",
-    stepId: "denali_logistics",
-    rhfPath: "participantRequirements.gearItems",
-    zodPath: "participantRequirements.gearItems",
-    zodKind: "gearItems",
-    tags: ["gear"] as const,
-    ruleDefaults: { required: false, hidden: false },
-    wire: {
-      kind: "derived",
-      description: "Splits into tripDetails.participation gearRequiredIds / gearOptionalIds.",
-    },
-  },
+  ...(denaliEquipmentFieldModule.fields as readonly DenaliFieldDefinition[]),
   {
     canonicalPath: "tripDetails.logistics.includedServices",
     stepId: "denali_logistics",

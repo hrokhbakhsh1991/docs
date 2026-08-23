@@ -464,6 +464,10 @@
       "module": "./ui/settings/settings-equipment-ui-surface",
       "export": "denaliSettingsEquipmentUiSurface"
     },
+    "fieldModule": {
+      "module": "./field-registry/denali-equipment-field-module",
+      "export": "denaliEquipmentFieldRegistryFragment"
+    },
     "themeFilter": {
       "module": "./settings/equipment-compatible-themes",
       "export": "isEquipmentCompatibleWithTourThemes"

@@ -1,4 +1,7 @@
 export {
+  mergeWorkspaceFieldRegistryWithEquipmentFragments,
+} from "./merge-workspace-field-registry-with-equipment-fragments";
+export {
   type WorkspaceFieldKind,
   type WorkspaceFieldRegistry,
   type WorkspaceFieldRegistryEntry,

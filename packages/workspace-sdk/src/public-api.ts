@@ -241,8 +241,8 @@ export type {
 } from "./auth/index";
 export {
   getWorkspaceRuleCell,
+  mergeWorkspaceFieldRegistryWithEquipmentFragments,
   validateFieldPolicyManifest,
-  type WorkspaceFieldKind,
   type WorkspaceFieldPolicyDefinition,
   type WorkspaceFieldPolicyManifest,
   type WorkspaceFieldPolicyRule,
@@ -255,6 +255,7 @@ export {
   type WorkspaceRuleFieldOverride,
   type WorkspaceRuleSet,
 } from "./registry";
+export type { WorkspaceFieldKind } from "./registry/field-registry";
 export {
   validateRegistrationOpsManifest,
   type OperatorRegistrationOpsSurface,
@@ -382,6 +383,18 @@ export {
   type GuestLandingVariant,
 } from "./catalog/resolve-guest-landing-features";
 export { WORKSPACE_GUEST_LANDING } from "./catalog/workspace-guest-landing.generated";
+export {
+  getWorkspaceEquipmentCapabilities,
+  type WorkspaceEquipmentCapabilities,
+} from "./catalog/workspace-equipment-capabilities.generated";
+export {
+  defineWorkspaceEquipmentFieldFragment,
+  listWorkspaceEquipmentCanonicalPaths,
+  type WorkspaceEquipmentFieldFragment,
+  type WorkspaceEquipmentFieldRegistryFragment,
+  type WorkspaceEquipmentFieldWireProjection,
+  type WorkspaceEquipmentTourFieldConfig,
+} from "./equipment";
 export {
   resolveGuestSeoForPlugin,
   GuestSeoNotConfiguredError,

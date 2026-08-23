@@ -62,6 +62,10 @@
       "types": "./dist/settings/equipment-icon-registry.d.ts",
       "default": "./dist/settings/equipment-icon-registry.js"
     },
+    "./field-registry/denali-equipment-field-module": {
+      "types": "./dist/field-registry/denali-equipment-field-module.d.ts",
+      "default": "./dist/field-registry/denali-equipment-field-module.js"
+    },
     "./settings/equipment-compatible-themes": {
       "types": "./dist/settings/equipment-compatible-themes.d.ts",
       "default": "./dist/settings/equipment-compatible-themes.js"
