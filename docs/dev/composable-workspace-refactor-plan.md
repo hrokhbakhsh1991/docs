@@ -394,9 +394,10 @@ Refinement vs requested shape (evidence-based):
 
 ### CW-2 — Host / Customer Coupling Removal
 
-- **CW2-01** `[ ]` **Prepare DEC-CW-06 evidence packet**
+- **CW2-01** `[x]` **Prepare DEC-CW-06 evidence packet**
   - Objective: enumerate current formatter inputs and compare manifest-vs-tenant-config options without selecting product semantics.
   - Deps: CW0-09. Risk: **LOW**. Decision remains external.
+  - **Closure (2026-08-23):** [`docs/dev/decisions/DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md) — OPTIONS A/B/C, runtime architecture inspection, tradeoffs, **PROPOSAL Option C** (`commercePresentation` manifest default + tenant override; separate from frozen `commerce`). Baseline: formatters already use `irrDisplayUnit` policy (no `pluginId === "denali"` in formatter files); config still in Denali TS until CW2-02/03. Unblocks evidence review for CW2-02, CW2-03, CW2-07, CW7-11 pending Architect approval.
 
 - **CW2-02** `[!]` **Replace marketing IRR/toman `pluginId === "denali"` (blocked: DEC-CW-06)**
   - Invariant: Denali tenants render exactly as today (toman label); other workspaces unchanged; no workspace id in `format-catalog-display.ts`.
