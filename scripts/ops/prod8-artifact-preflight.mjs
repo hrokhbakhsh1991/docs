@@ -31,6 +31,16 @@ const gitSha = run(["git", "rev-parse", "HEAD"]);
 if (gitSha.status !== 0) fail("git rev-parse HEAD failed");
 const sha = gitSha.stdout.trim();
 
+const resolved = run(["git", "rev-parse", "--verify", "HEAD^{commit}"]);
+if (resolved.status !== 0) fail("git rev-parse --verify HEAD^{commit} failed");
+const resolvedSha = resolved.stdout.trim();
+if (sha !== resolvedSha) fail(`HEAD ${sha} does not resolve to commit ${resolvedSha}`);
+
+const expectedSha = process.env.PROD8_EXPECT_SHA?.trim();
+if (expectedSha && expectedSha !== resolvedSha) {
+  fail(`expected SHA ${expectedSha} but resolved ${resolvedSha}`);
+}
+
 const status = run(["git", "status", "--porcelain"]);
 if (status.status !== 0) fail("git status failed");
 const dirtyLines = status.stdout
@@ -65,6 +75,7 @@ const report = {
   schema_version: "prod8-artifact-preflight.1",
   task: "R8-01",
   git_sha: sha,
+  resolved_commit_sha: resolvedSha,
   checked_at: new Date().toISOString(),
   dirty_worktree: dirty,
   dirty_paths: dirtyLines,

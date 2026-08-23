@@ -77,6 +77,8 @@
     "prod8:ops-readiness": "node scripts/ops/prod8-ops-readiness.mjs",
     "prod8:backup-freshness": "node scripts/ops/prod8-backup-freshness-check.mjs",
     "prod8:deployment-gate": "node scripts/ops/prod8-deployment-gate.mjs",
+    "prod8:validate-rc-ref": "node scripts/ops/prod8-validate-rc-ref.mjs",
+    "prod8:contract:test": "node --test scripts/ops/prod8-deployment-contract.test.mjs scripts/ops/prod8-deployment-gate.test.mjs",
     "prod8:package-release": "bash scripts/vps-deploy/package-immutable-release.sh",
     "smoke:staging": "node scripts/ops/smoke-deployment.mjs staging",
     "smoke:production": "node scripts/ops/smoke-deployment.mjs production",

@@ -32,11 +32,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate RC tag policy
+        run: node scripts/ops/prod8-validate-rc-ref.mjs "${{ github.event.inputs.release_ref }}"
+
       - name: Resolve release ref to SHA
         id: resolve
         run: |
           REF="${{ github.event.inputs.release_ref }}"
-          SHA="$(git rev-parse "$REF^{commit}")"
+          SHA="$(node scripts/ops/prod8-validate-rc-ref.mjs "$REF" --print-sha)"
           echo "git_sha=$SHA" >> "$GITHUB_OUTPUT"
           echo "Resolved $REF -> $SHA"
 

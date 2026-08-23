@@ -84,7 +84,10 @@ RELEASE_SHA="$RELEASE_SHA" DEPLOY_ROOT="$DEPLOY_ROOT" \
   bash "${DEPLOY_PATH}/scripts/vps-deploy/activate-immutable-release.sh"
 
 ACTIVE_PATH="$(readlink -f "$CURRENT_LINK")"
-bash "${ACTIVE_PATH}/scripts/vps-deploy/install-systemd-units.sh"
+[[ "$ACTIVE_PATH" == "${RELEASES_DIR}/${RELEASE_SHA}" ]] || die "current symlink did not point to ${RELEASE_SHA}"
+
+export DEPLOY_ROOT CURRENT_LINK
+DEPLOY_PATH="$CURRENT_LINK" bash "${ACTIVE_PATH}/scripts/vps-deploy/install-systemd-units.sh"
 
 log "restart four-process units"
 systemctl restart "${UNIT_PREFIX}-api.service"
@@ -98,11 +101,13 @@ if [[ -f "$ENV_DIR/marketing.env" && -f "$ENV_DIR/portal.env" ]]; then
     if [[ -n "$PREVIOUS_SHA" ]]; then
       LATEST_DUMP="$(ls -1t /var/backups/app-cloud/pre-migrate-*.dump 2>/dev/null | head -1 || true)"
       if [[ -n "$LATEST_DUMP" ]]; then
-        ROLLBACK_SHA="$PREVIOUS_SHA" ROLLBACK_DB_DUMP="$LATEST_DUMP" \
+        if ! ROLLBACK_SHA="$PREVIOUS_SHA" ROLLBACK_DB_DUMP="$LATEST_DUMP" \
           DEPLOY_PATH="$ACTIVE_PATH" ENV_DIR="$ENV_DIR" UNIT_PREFIX="$UNIT_PREFIX" \
-          bash "${ACTIVE_PATH}/scripts/vps-deploy/rollback-vps.sh" || true
+          bash "${ACTIVE_PATH}/scripts/vps-deploy/rollback-vps.sh"; then
+          die "smoke failed and automatic rollback failed — incident procedure INC-02 required (docs/phase-23/runbooks/p10-incident-four-process.md)"
+        fi
       else
-        die "smoke failed and no restore point for paired rollback — see docs/phase-23/runbooks/p10-incident-four-process.md INC-02"
+        die "smoke failed and no restore point for paired rollback — incident procedure INC-02 required"
       fi
     else
       die "smoke failed with no previous release — incident procedure required"

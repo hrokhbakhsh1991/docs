@@ -49,6 +49,11 @@ function sha256Dir(dir) {
 
 const doBuild = process.argv.includes("--build");
 const gitSha = run(["git", "rev-parse", "HEAD"]);
+const resolvedSha = run(["git", "rev-parse", "--verify", "HEAD^{commit}"]);
+if (gitSha !== resolvedSha) {
+  console.error(`prod8-build-immutable-bundle: FAIL — HEAD ${gitSha} != resolved commit ${resolvedSha}`);
+  process.exit(1);
+}
 const status = run(["git", "status", "--porcelain"]);
 const dirty = status.length > 0;
 
@@ -137,6 +142,7 @@ const deploymentFingerprint = createHash("sha256").update(checksumInputs.join("\
 const buildManifest = {
   schema_version: "prod8-build-manifest.1",
   git_sha: gitSha,
+  resolved_commit_sha: resolvedSha,
   generated_at: new Date().toISOString(),
   dirty_worktree: dirty,
   build_complete: buildComplete,
@@ -148,8 +154,9 @@ const buildManifest = {
 };
 
 const provenance = {
-  schema_version: "prod8-provenance.1",
+  schema_version: "prod8-provenance.2",
   git_sha: gitSha,
+  resolved_commit_sha: resolvedSha,
   dirty_worktree: dirty,
   signed_attestation: false,
   signed_attestation_blocker: dirty
@@ -157,8 +164,9 @@ const provenance = {
     : buildComplete
       ? "external signing not configured in local session"
       : "build outputs incomplete — run with --build on clean checkout",
-  local_checksum_provenance: true,
-  same_digest_staging_production: true,
+  local_checksum_provenance: !dirty && buildComplete,
+  same_digest_required: true,
+  same_digest_staging_production_verified: "NOT_YET_VERIFIED",
   digest_policy:
     "staging and production must deploy the same deployment_fingerprint from one RC build",
 };

@@ -30,10 +30,13 @@ if (/push:\s*\n\s*branches:\s*\n\s*-\s*main/.test(deployWorkflow)) {
 }
 
 // R8-08 — approved RC/tag
-if (deployWorkflow.includes("inputs:") && /release_ref|rc_tag|release_tag/.test(deployWorkflow)) {
-  pass("R8-08", "deploy workflow requires explicit RC/tag input");
+if (
+  deployWorkflow.includes("prod8-validate-rc-ref.mjs") &&
+  existsSync(join(root, "scripts/ops/prod8-validate-rc-ref.mjs"))
+) {
+  pass("R8-08", "deploy workflow enforces rc-* tag policy via prod8-validate-rc-ref");
 } else {
-  fail("R8-08", "deploy workflow missing RC/tag input gate");
+  fail("R8-08", "deploy workflow missing RC/tag policy enforcement");
 }
 
 // R8-09 — production environment approval
@@ -56,6 +59,7 @@ if (
 
 const immutableDeploy = readFileSync(join(root, "scripts/vps-deploy/deploy-immutable-release.sh"), "utf8");
 const activate = readFileSync(join(root, "scripts/vps-deploy/activate-immutable-release.sh"), "utf8");
+const systemdInstall = readFileSync(join(root, "scripts/vps-deploy/install-systemd-units.sh"), "utf8");
 const immutableBody = immutableDeploy
   .split("\n")
   .filter((line) => !line.trim().startsWith("#"))
@@ -67,10 +71,15 @@ if (!/\bpnpm\s+install\b/.test(immutableBody) && !/build-operator-vps/.test(immu
 }
 
 // R8-12 — versioned release directories / atomic switch
-if (/releases/.test(activate) && /ln -sfn/.test(activate) && /current/.test(activate)) {
-  pass("R8-12", "versioned release directories with atomic current symlink");
+if (
+  /releases/.test(activate) &&
+  /ln -sfn/.test(activate) &&
+  /current/.test(activate) &&
+  /CURRENT_LINK/.test(systemdInstall)
+) {
+  pass("R8-12", "versioned releases with current symlink consumed by systemd install");
 } else {
-  fail("R8-12", "atomic versioned release switch missing");
+  fail("R8-12", "atomic versioned release switch missing or systemd mismatch");
 }
 
 const remoteDeploy = readFileSync(join(root, "scripts/vps-deploy/remote-deploy.sh"), "utf8");
@@ -106,8 +115,12 @@ if (immutableDeploy.includes("smoke-four-process.sh") || remoteDeploy.includes("
 }
 
 // R8-17 — rollback + incident on unsafe schema
-if (rollback.includes("ROLLBACK_DB_DUMP") && rollback.includes("ROLLBACK_CODE_ONLY")) {
-  pass("R8-17", "paired rollback with explicit code-only unsafe path");
+if (
+  rollback.includes("ROLLBACK_DB_DUMP") &&
+  rollback.includes("ROLLBACK_CODE_ONLY") &&
+  !/rollback-vps\.sh.*\|\|\s*true/s.test(immutableDeploy)
+) {
+  pass("R8-17", "paired rollback with fail-closed automatic rollback path");
 } else {
   fail("R8-17", "rollback safety controls incomplete");
 }

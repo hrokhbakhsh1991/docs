@@ -16,12 +16,16 @@ const report = {
   latest_dump: null,
   age_hours: null,
   status: "SKIP",
+  blocks_production_acceptance: true,
+  environment_applicable: false,
 };
 
 if (!existsSync(dumpDir)) {
   report.status = "SKIP";
   report.reason = `dump directory not accessible locally: ${dumpDir}`;
+  report.environment_applicable = false;
 } else {
+  report.environment_applicable = true;
   const dumps = readdirSync(dumpDir)
     .filter((name) => name.startsWith("pre-migrate-") && name.endsWith(".dump"))
     .map((name) => {
@@ -52,5 +56,7 @@ mkdirSync(outDir, { recursive: true });
 writeFileSync(join(outDir, "backup-freshness.json"), `${JSON.stringify(report, null, 2)}\n`);
 
 const code = report.status === "FAIL" ? 1 : 0;
-console.log(`prod8-backup-freshness: ${report.status} — dir=${dumpDir} latest=${report.latest_dump ?? "none"}`);
+console.log(
+  `prod8-backup-freshness: ${report.status} — dir=${dumpDir} latest=${report.latest_dump ?? "none"} blocks_production=${report.blocks_production_acceptance}`,
+);
 process.exit(code);
