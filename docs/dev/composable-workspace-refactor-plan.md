@@ -149,6 +149,7 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 
 ### DEC-CW-03 — capacity-decision-at-create as first-class strategy
 
+- **Evidence packet:** [`docs/dev/decisions/DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md) (PROPOSAL — Option A dual strategies; 2026-08-23).
 - **Evidence:** TRUTH §11, §13; FEAS §2.2 — Urban decides `confirmed`/`waitlist` at create; booking decides at approve.
 - **Blocks directly:** CW1-03, CW1-05, CW1-06; CW4-05; CW5-03 Urban-strategy portion, CW5-05; CW9-05.
 - **Blocks transitively:** CW9-06, CW9-07, CW9-09, CW9-10 full different-vertical closure. It does not block CW-3 or the CW-5 core exit.
@@ -914,7 +915,7 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | `waitlisted` vs `waitlist` | pending DEC-CW-01 | — |
 | `active` vs `published` labels | INTENTIONAL after CW-3 mapping | CW3-05 |
 | Archive Urban-only | pending DEC-CW-02 | — |
-| Capacity at approve vs at create | pending DEC-CW-03 | — |
+| Capacity at approve vs at create | pending DEC-CW-03 | [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md) |
 | Flat vs nested canonical shape | INTENTIONAL (workspace canonical ownership) | list-projection port CW3-07 |
 
 ## Appendix B — Phase closure sign-offs
