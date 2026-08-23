@@ -123,4 +123,14 @@ describe("cw-architecture-metrics self-test (CW0-09)", () => {
     assert.equal(baseline.rulesVersion, 1);
     assert.ok(baseline.metrics);
   });
+
+  it("baseline:cw-compare passes against frozen baseline (PRE-CW5 gate)", () => {
+    const compareScript = join(REPO_ROOT, "scripts/guards/cw-baseline-compare.mjs");
+    const r = spawnSync(process.execPath, [compareScript], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+    });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.match(r.stdout ?? "", /cw-baseline-compare: PASS/);
+  });
 });

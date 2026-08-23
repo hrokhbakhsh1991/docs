@@ -73,5 +73,6 @@ export function registrationVoided(
   contract: RegistrationModelContract,
   status: string,
 ): boolean {
+  void contract;
   return status === "cancelled";
 }

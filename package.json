@@ -112,6 +112,7 @@
     "phase-0:integration-gate": "pnpm run guard:workspace-manifests && pnpm build && pnpm test && pnpm run test:contract:monorepo && pnpm run test:adversarial && DOC_SYNC_SCOPE=foundation pnpm run guard:doc-sync && PHASE_0_GUARD_REPORT=integration node scripts/guards/phase-0-guard.mjs && pnpm run guard:architecture && pnpm run guard:import-boundary && pnpm run baseline:metrics",
     "phase-0:integration-gate:pr": "pnpm run guard:workspace-manifests && pnpm build && pnpm run test:changed && pnpm run test:contract:monorepo && pnpm run test:adversarial && DOC_SYNC_SCOPE=foundation pnpm run guard:doc-sync && PHASE_0_GUARD_REPORT=integration node scripts/guards/phase-0-guard.mjs && pnpm run guard:architecture && pnpm run guard:import-boundary && pnpm run baseline:metrics",
     "baseline:metrics": "node scripts/guards/baseline-metrics.mjs",
+    "baseline:cw-compare": "node scripts/guards/cw-baseline-compare.mjs",
     "phase-0:gate": "pnpm run phase-0:foundation-gate && pnpm run phase-0:integration-gate",
     "phase-1:guard": "node scripts/guards/phase-1-guard.mjs",
     "phase-1:gate": "pnpm build && pnpm --filter @app-tour/platform-core test && pnpm --filter @app-tour/platform-core run test:phase-1 && pnpm run guard:architecture && pnpm run guard:import-boundary && pnpm run guard:symlink && pnpm run phase-1:guard",

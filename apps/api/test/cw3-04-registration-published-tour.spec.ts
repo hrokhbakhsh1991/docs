@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 
 import {
-  isRegistrationTourPublishedViaDirectWorkspaceExport,
+  isRegistrationTourPublishedViaGeneratedBinding,
   isRegistrationTourPublishedViaDispatch,
 } from "../src/registrations/registration-published-tour-visibility-compat";
 
@@ -46,11 +46,11 @@ describe("CW3-04 registration published-tour visibility dispatch migration", () 
     const draft = denaliCanonical("draft");
     assert.equal(
       isRegistrationTourPublishedViaDispatch("denali", active),
-      isRegistrationTourPublishedViaDirectWorkspaceExport("denali", active),
+      isRegistrationTourPublishedViaGeneratedBinding("denali", active),
     );
     assert.equal(
       isRegistrationTourPublishedViaDispatch("denali", draft),
-      isRegistrationTourPublishedViaDirectWorkspaceExport("denali", draft),
+      isRegistrationTourPublishedViaGeneratedBinding("denali", draft),
     );
     assert.equal(isRegistrationTourPublishedViaDispatch("denali", active), true);
     assert.equal(isRegistrationTourPublishedViaDispatch("denali", draft), false);
@@ -61,11 +61,11 @@ describe("CW3-04 registration published-tour visibility dispatch migration", () 
     const archived = urbanCanonical("archived");
     assert.equal(
       isRegistrationTourPublishedViaDispatch("urban", published),
-      isRegistrationTourPublishedViaDirectWorkspaceExport("urban", published),
+      isRegistrationTourPublishedViaGeneratedBinding("urban", published),
     );
     assert.equal(
       isRegistrationTourPublishedViaDispatch("urban", archived),
-      isRegistrationTourPublishedViaDirectWorkspaceExport("urban", archived),
+      isRegistrationTourPublishedViaGeneratedBinding("urban", archived),
     );
     assert.equal(isRegistrationTourPublishedViaDispatch("urban", published), true);
     assert.equal(isRegistrationTourPublishedViaDispatch("urban", archived), false);
@@ -76,11 +76,11 @@ describe("CW3-04 registration published-tour visibility dispatch migration", () 
     const draft = harborCanonical("draft");
     assert.equal(
       isRegistrationTourPublishedViaDispatch("harbor", published),
-      isRegistrationTourPublishedViaDirectWorkspaceExport("harbor", published),
+      isRegistrationTourPublishedViaGeneratedBinding("harbor", published),
     );
     assert.equal(
       isRegistrationTourPublishedViaDispatch("harbor", draft),
-      isRegistrationTourPublishedViaDirectWorkspaceExport("harbor", draft),
+      isRegistrationTourPublishedViaGeneratedBinding("harbor", draft),
     );
     assert.equal(isRegistrationTourPublishedViaDispatch("harbor", published), true);
     assert.equal(isRegistrationTourPublishedViaDispatch("harbor", draft), false);
@@ -89,7 +89,7 @@ describe("CW3-04 registration published-tour visibility dispatch migration", () 
   it("CW3-04-04 starter fail-closed — dispatch and binding both false", () => {
     const active = denaliCanonical("active");
     assert.equal(isRegistrationTourPublishedViaDispatch("starter", active), false);
-    assert.equal(isRegistrationTourPublishedViaDirectWorkspaceExport("starter", active), false);
+    assert.equal(isRegistrationTourPublishedViaGeneratedBinding("starter", active), false);
   });
 
   it("CW3-04-05 negative — unpublished tours reject registration path (denali draft, urban archived)", () => {
@@ -99,11 +99,11 @@ describe("CW3-04 registration published-tour visibility dispatch migration", () 
       false,
     );
     assert.equal(
-      isRegistrationTourPublishedViaDirectWorkspaceExport("denali", denaliCanonical("draft")),
+      isRegistrationTourPublishedViaGeneratedBinding("denali", denaliCanonical("draft")),
       false,
     );
     assert.equal(
-      isRegistrationTourPublishedViaDirectWorkspaceExport("urban", urbanCanonical("archived")),
+      isRegistrationTourPublishedViaGeneratedBinding("urban", urbanCanonical("archived")),
       false,
     );
   });

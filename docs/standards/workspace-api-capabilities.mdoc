@@ -108,7 +108,7 @@ Codegen (`scripts/codegen/workspace-registry/domains/tour-api.mjs`) emits `WORKS
 | ----- | ---- |
 | **Binding** | Workspace `*-registration-tour-publish-visibility.ts` modules — manifest `publishVisibilityExport` formalized for `requireWorkspacePublishedTour({ isPublished })`. |
 | **Dispatch parity** | `isTourPubliclyVisible(workspaceType, canonical)` from `workspace-publish-visibility-dispatch.ts` must match binding modules (see `cw3-04-registration-published-tour.spec.ts`). |
-| **Compat** | `isRegistrationTourPublishedViaDirectWorkspaceExport` in `registration-published-tour-visibility-compat.ts` — direct export path retained until census zero. |
+| **Compat** | `isRegistrationTourPublishedViaGeneratedBinding` in `registration-published-tour-visibility-compat.ts` — codegen binding path retained until census zero (no direct `host/` imports). |
 
 **Verification:** `apps/api/test/cw3-04-registration-published-tour.spec.ts`, CW0-02 publish-transition goldens, `workspace-publish-visibility-bindings.spec.ts`.
 

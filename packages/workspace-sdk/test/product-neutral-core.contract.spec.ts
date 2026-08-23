@@ -8,6 +8,7 @@ const SDK_SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../s
 
 const ALLOWLIST_PATHS = new Set([
   path.join(SDK_SRC, "plugin/workspace-manifest-bindings.generated.ts"),
+  path.join(SDK_SRC, "registration/registration-model-divergence.contract.ts"),
 ]);
 
 const PRODUCT_PATTERN = /\b(denali|urban)\b/i;
