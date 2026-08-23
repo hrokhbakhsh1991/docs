@@ -1,0 +1,46 @@
+{
+  "schema_version": "prod8-vps-dashboard.1",
+  "title": "App Tour VPS — availability and saturation",
+  "description": "Template dashboard for four-process VPS stack. Import when Prometheus scrapes API /metrics.",
+  "panels": [
+    {
+      "id": "availability",
+      "title": "Process availability",
+      "targets": [
+        "up{job=\"app-tour-api\"}",
+        "up{job=\"app-tour-web\"}",
+        "up{job=\"app-tour-marketing\"}",
+        "up{job=\"app-tour-portal\"}"
+      ]
+    },
+    {
+      "id": "latency",
+      "title": "HTTP latency p95/p99",
+      "targets": [
+        "histogram_quantile(0.95, sum(rate(http_request_duration_ms_bucket[5m])) by (le))",
+        "histogram_quantile(0.99, sum(rate(http_request_duration_ms_bucket[5m])) by (le))"
+      ]
+    },
+    {
+      "id": "error_rate",
+      "title": "HTTP 5xx rate",
+      "targets": ["sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))"]
+    },
+    {
+      "id": "db_pool",
+      "title": "DB pool saturation",
+      "targets": ["increase(db_pool_saturated_total[5m])", "max(db_circuit_open)"]
+    },
+    {
+      "id": "redis",
+      "title": "Redis connectivity",
+      "targets": ["redis_connected", "redis_command_errors_total"]
+    },
+    {
+      "id": "outbox",
+      "title": "Outbox backlog",
+      "targets": ["sum(outbox_pending_total)", "outbox_relay_oldest_pending_age_seconds"]
+    }
+  ],
+  "runbook_url": "docs/platform/PROD-8-OPERATIONS.md"
+}

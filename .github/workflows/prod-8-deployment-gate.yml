@@ -1,0 +1,46 @@
+name: PROD-8 deployment gate
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/deploy-vps.yml"
+      - ".github/workflows/prod-8-deployment-gate.yml"
+      - "scripts/ops/prod8-*.mjs"
+      - "scripts/vps-deploy/deploy-immutable-release.sh"
+      - "scripts/vps-deploy/activate-immutable-release.sh"
+      - "scripts/vps-deploy/package-immutable-release.sh"
+      - "deploy/ops/**"
+      - "docs/platform/PROD-8-OPERATIONS.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prod-8-deployment-gate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deployment-gate:
+    name: PROD-8 deployment and ops gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup platform
+        uses: ./.github/actions/setup-platform
+
+      - name: Run PROD-8 deployment gate
+        run: pnpm run prod8:deployment-gate
+
+      - name: Upload PROD-8 gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-8-deployment-gate
+          path: .artifacts/prod8/
+          if-no-files-found: ignore
