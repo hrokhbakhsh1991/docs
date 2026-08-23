@@ -77,6 +77,8 @@ if [[ ! -f "${DEPLOY_PATH}/apps/api/dist/main.js" ]]; then
   exit 1
 fi
 
+build_pkg @app-tour/iran-mountain-landmarks
+
 build_web_production
 
 build_next_app() {
