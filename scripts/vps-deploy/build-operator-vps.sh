@@ -84,6 +84,15 @@ build_web_production
 build_pkg @app-tour/workspace-alpine
 build_pkg @app-tour/workspace-harbor
 
+# guest-workspace-runtime generated registrars import alpine/harbor; portal owns direct deps (PROD-6 collapse).
+link_guest_workspace_runtime_optional_deps() {
+  local link_root="${DEPLOY_PATH}/packages/guest-workspace-runtime/node_modules/@app-tour"
+  mkdir -p "$link_root"
+  ln -sfn ../../../workspaces/alpine "$link_root/workspace-alpine"
+  ln -sfn ../../../workspaces/harbor "$link_root/workspace-harbor"
+}
+link_guest_workspace_runtime_optional_deps
+
 build_next_app() {
   local app_dir="$1"
   local label="$2"
