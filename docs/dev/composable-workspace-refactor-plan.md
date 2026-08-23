@@ -147,7 +147,7 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 - **Latest safe point:** CW3-05 may complete with the placeholder; decision required before CW-5 encodes any lifecycle-state enum containing archive, i.e. before CW5-04 closure review.
 - **Decision owner:** Tour product owner + Architect.
 - **Evidence required:** Denali archive product requirement, Urban archive transition rules, catalog visibility after archive, restoration/unarchive requirement.
-- **While unresolved:** **DEFER archive-specific rows; CONTINUE OTHER TASKS**.
+- **Status:** **APPROVED** — archive remains optional capability; archive-specific CW3-05/CW5-04 rows deferred per Option B.
 
 ### DEC-CW-03 — capacity-decision-at-create as first-class strategy
 
@@ -190,10 +190,10 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 - **Blocks directly:** CW2-02, CW2-03, CW2-07 currency-specific assertions, CW7-11.
 - **Blocks transitively:** CW7-12 (depends on CW7-11). Equipment/Transport minimum and CW-9 remain executable.
 - **Does NOT block exactly:** CW0-01..10; CW1-01..06; CW2-01, CW2-04..06; CW3-01..09; CW4-01..08; CW5-01..11; CW6-01..04, CW6-05A, CW6-05B, CW6-06..07; CW7-01..10, CW7-13..15; CW8-01..07; CW9-01..10.
-- **Latest safe point:** CW-2 may start and complete CW2-04..06 first; decision required before CW2-02.
+- **Latest safe point:** CW2-02/03/07 complete; CW7-11 unblocked.
 - **Decision owner:** Pricing product owner + Architect.
 - **Evidence required:** tenant-vs-workspace override requirement, currency/scale contract, localization ownership, runtime configurability requirement.
-- **While unresolved:** **DEFER CW2-02/03, CW2-07 currency guard, CW7-11; CONTINUE OTHER TASKS**.
+- **Status:** **APPROVED** — Option E implemented (`catalogPresentation.priceDisplay` manifest + `resolveCatalogPriceDisplay` codegen).
 
 ### DEC-CW-07 — tour-core dependency direction and compatibility strategy
 
@@ -391,7 +391,7 @@ Refinement vs requested shape (evidence-based):
   - Invariant: grep census documents intentional compat path; re-exports annotated `@deprecated` but NOT removed.
   - Deps: CW1-04, CW1-05. Risk: **LOW**.
 
-**Exit CW-1:** CW1-02/04/03/05/06 complete; tour-core has no workspace imports and no workspace-sdk import. Full phase closure: both workspaces green on all CW-1 validations.
+**Exit CW-1:** CW1-02/04/03/05/06 complete; tour-core has no workspace imports and no workspace-sdk import. **Phase CW-1 COMPLETE (2026-08-23).**
 
 ---
 
@@ -441,13 +441,16 @@ Refinement vs requested shape (evidence-based):
   - Validation: exposure specs; reminder scheduler smoke.
   - Deps: CW0-01. Risk: **MEDIUM**.
 
-- **CW2-07** `[ ]` **Extend `guard-no-workspace-type-branches.mjs` to lock CW-2 wins**
+- **CW2-07** `[x]` **Extend `guard-no-workspace-type-branches.mjs` to lock CW-2 wins**
   - Invariant: guard fails on reintroduction of the removed patterns (marketing formatter, tour-list formatter, guest runtime switch).
   - Deps: CW2-02..06. Risk: **LOW**.
+  - **Closure (2026-08-23):** Guard extended for marketing catalog `pluginId` branches, `pluginId+IRR` currency branches, `OPERATOR_IRR_TOMAN_PLUGIN_IDS` in `tour-list-formatters.ts`. `guard:no-workspace-type-branches` PASS.
 
-**Exit CW-2:** named host files contain no workspace identity; guards updated; Denali rendering byte-identical.
+**Exit CW-2:** named host files contain no workspace identity; guards updated; Denali rendering byte-identical. **Phase CW-2 COMPLETE (2026-08-23).**
 
-**Integration sign-off (CW-WAVE-2, 2026-08-23):** Re-certification at `f022e35d` unblocked prior harbor `guest-workspace-runtime` dep gap (`fix(cw2-04)`). Registry `--check` required codegen alignment: `collectGuestRuntimeProductPackages` now unions `catalogRegistrationFlow` manifest packages even when `clientBundle.includeInDefault` is false (harbor stub). Evidence bundle: guest-runtime 11/11, parity 19/19, registry check PASS, boundary guards PASS. CW2-02/03 remain `[!]` (DEC-CW-06); CW2-07 pending.
+**Integration sign-off (CW-WAVE-2, 2026-08-23):** Re-certification at `f022e35d` unblocked prior harbor `guest-workspace-runtime` dep gap (`fix(cw2-04)`). Registry `--check` required codegen alignment: `collectGuestRuntimeProductPackages` now unions `catalogRegistrationFlow` manifest packages even when `clientBundle.includeInDefault` is false (harbor stub). Evidence bundle: guest-runtime 11/11, parity 19/19, registry check PASS, boundary guards PASS. CW2-02/03 deferred pending DEC-CW-06 (resolved in Wave 3B).
+
+**Integration sign-off (CW-WAVE-3B, 2026-08-23):** Base `4acbdfc7`. Architect decisions recorded APPROVED: DEC-CW-02 Option B, DEC-CW-03 Option A, DEC-CW-06 Option E. Serialization: shared `catalogPresentation.priceDisplay` manifest schema + `resolveCatalogPriceDisplay` codegen (`workspace-catalog-price-display.generated.ts`). Workers: CW2-02/03 (marketing + operator priceDisplay), CW1-03/05/06 (dual capacity strategies), CW3-02 (publish-visibility dispatch bindings), CW4-01..04 (booking SoT). Integration HEAD pending final commit. Evidence: `generate:workspace-registry --check` PASS; `test:parity` 19/19; guards (`architecture`, `import-boundary`, `tour-core-boundary`, `no-workspace-type-branches`, `api-workspace-isolation`) PASS; focused specs (tour-core capacity, publish-visibility dispatch, CW1-06 census, marketing catalog display). `workspaceIdBranches` 33→16 (observational; baseline not updated).
 
 ---
 
@@ -922,8 +925,8 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | `approved` vs `confirmed` | pending DEC-CW-01 | — |
 | `waitlisted` vs `waitlist` | pending DEC-CW-01 | — |
 | `active` vs `published` labels | INTENTIONAL after CW-3 mapping | CW3-05 |
-| Archive Urban-only | pending DEC-CW-02 | [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md) |
-| Capacity at approve vs at create | pending DEC-CW-03 | [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md) |
+| Archive Urban-only | INTENTIONAL (optional capability, DEC-CW-02 Option B) | [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md) |
+| Capacity at approve vs at create | INTENTIONAL (dual strategies, DEC-CW-03 Option A) | [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md) |
 | Flat vs nested canonical shape | INTENTIONAL (workspace canonical ownership) | list-projection port CW3-07 |
 
 ## Appendix B — Phase closure sign-offs
@@ -931,11 +934,11 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | Phase | Exit evidence link | Reviewer | Date |
 |-------|--------------------|----------|------|
 | CW-0 | `pnpm run test:parity`; `docs/dev/cw-metrics-baseline.json`; integration HEAD `3cd634d8` | CW coordinator | 2026-08-23 |
-| CW-1 | — | — | — |
-| CW-2 | `pnpm --filter @app-tour/guest-workspace-runtime test` (11/11); `pnpm run test:parity` (19/19); `pnpm run generate:workspace-registry --check`; `guard:architecture` + `guard:import-boundary` + `guard:tour-core-boundary` + `guard:no-workspace-type-branches` + `guard:api-workspace-isolation`; integration HEAD `f022e35d` (harbor runtime dep) + codegen sync for `collectGuestRuntimeProductPackages` registration-flow union | CW coordinator | 2026-08-23 |
-| CW-3 (Wave 3A design) | CW2-01 `[x]` + CW3-01 `[v]`; evidence [`DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md), [`cw3-01-tour-publish-visibility-port.md`](cw3-01-tour-publish-visibility-port.md), [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md), [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md); docs-only merge; DEC-CW-02/03/06 PROPOSAL pending Architect | CW coordinator | 2026-08-23 |
-| CW-3 | — | — | — |
-| CW-4 | — | — | — |
+| CW-1 | CW1-03/05/06 complete; `atCreateCapacityStrategy` + `operatorApprovalCapacityStrategy` in tour-core; Urban host migrated; consumer census (`cw1-06-capacity-consumer-census.spec.ts`); `pnpm run test:parity` (19/19); tour-core 11/11; integration base `4acbdfc7` | CW coordinator | 2026-08-23 |
+| CW-2 | Wave 2 `f022e35d` + Wave 3B CW2-02/03/07; DEC-CW-06 Option E (`catalogPresentation.priceDisplay` + codegen); `guard:no-workspace-type-branches` extended; `pnpm run test:parity` (19/19); registry `--check`; all boundary guards PASS | CW coordinator | 2026-08-23 |
+| CW-3 (Wave 3A design) | CW2-01 `[x]` + CW3-01 `[v]`; evidence [`DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md), [`cw3-01-tour-publish-visibility-port.md`](cw3-01-tour-publish-visibility-port.md), [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md), [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md); docs-only merge | CW coordinator | 2026-08-23 |
+| CW-3 (partial) | CW3-02 `[x]` codegen dispatch bindings + manifest rows (denali/urban/harbor); `workspace-publish-visibility-dispatch.spec.ts` 3/3; CW3-03+ not started | CW coordinator | 2026-08-23 |
+| CW-4 (partial/core) | CW4-01..04 `[x]` booking transition SoT in `booking-http-contracts`; Denali ops manifest + lifecycle derived; CW4-05+ gated on DEC-CW-01 | CW coordinator | 2026-08-23 |
 | CW-5 | — | — | — |
 | CW-6 | — | — | — |
 | CW-7 | — | — | — |

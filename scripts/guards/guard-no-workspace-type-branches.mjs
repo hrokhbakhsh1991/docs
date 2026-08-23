@@ -54,6 +54,10 @@ const WORKSPACE_TYPE_BRANCH_PATTERN = new RegExp(
 const PLUGIN_ID_BRANCH_PATTERN = new RegExp(
   String.raw`\bpluginId\s*(?:={2,3}|!={1,2})\s*${WORKSPACE_ID_LITERAL}|${WORKSPACE_ID_LITERAL}\s*(?:={2,3}|!={1,2})\s*\bpluginId\b`
 );
+const OPERATOR_IRR_TOMAN_PLUGIN_IDS_PATTERN =
+  /\bOPERATOR_IRR_TOMAN_PLUGIN_IDS\b/;
+const PLUGIN_ID_DENALI_IRR_PATTERN =
+  /\bpluginId\s*(?:={2,3}|!={1,2})\s*["']denali["'].*\bIRR\b|\bIRR\b.*\bpluginId\s*(?:={2,3}|!={1,2})\s*["']denali["']/;
 const WORKSPACE_TYPE_FALLBACK_PATTERN = new RegExp(
   String.raw`\bworkspaceType\b\s*(?:\?\?|\|\|)\s*${WORKSPACE_ID_LITERAL}|\bworkspaceType\b\s*=\s*[\s\S]{0,180}\?\s*[\s\S]{0,180}:\s*${WORKSPACE_ID_LITERAL}`
 );
@@ -183,6 +187,10 @@ for (const rel of C4_WEB_TARGETS) {
 }
 
 const MARKETING_CATALOG_ROOT = path.join(REPO_ROOT, "apps/marketing/src/catalog");
+const WEB_TOUR_FORMATTERS = path.join(
+  REPO_ROOT,
+  "apps/web/src/features/tours/tour-list-formatters.ts"
+);
 
 for (const abs of walkTsFiles(MARKETING_CATALOG_ROOT)) {
   const rel = path.relative(REPO_ROOT, abs);
@@ -191,6 +199,34 @@ for (const abs of walkTsFiles(MARKETING_CATALOG_ROOT)) {
     if (denaliImportPattern.test(lines[i])) {
       violations.push(
         `${rel}:${i + 1}: forbidden workspace-denali import in marketing catalog — ${lines[i].trim()}`
+      );
+    }
+    if (hasPluginIdBranch(lines[i])) {
+      violations.push(`${rel}:${i + 1}: forbidden pluginId branch — ${lines[i].trim()}`);
+    }
+    if (PLUGIN_ID_DENALI_IRR_PATTERN.test(lines[i])) {
+      violations.push(
+        `${rel}:${i + 1}: forbidden pluginId+IRR currency branch — ${lines[i].trim()}`
+      );
+    }
+  }
+}
+
+if (existsSync(WEB_TOUR_FORMATTERS)) {
+  const rel = path.relative(REPO_ROOT, WEB_TOUR_FORMATTERS);
+  const lines = readFileSync(WEB_TOUR_FORMATTERS, "utf8").split("\n");
+  for (let i = 0; i < lines.length; i += 1) {
+    if (OPERATOR_IRR_TOMAN_PLUGIN_IDS_PATTERN.test(lines[i])) {
+      violations.push(
+        `${rel}:${i + 1}: forbidden OPERATOR_IRR_TOMAN_PLUGIN_IDS — ${lines[i].trim()}`
+      );
+    }
+    if (hasPluginIdBranch(lines[i])) {
+      violations.push(`${rel}:${i + 1}: forbidden pluginId branch — ${lines[i].trim()}`);
+    }
+    if (PLUGIN_ID_DENALI_IRR_PATTERN.test(lines[i])) {
+      violations.push(
+        `${rel}:${i + 1}: forbidden pluginId+IRR currency branch — ${lines[i].trim()}`
       );
     }
   }
