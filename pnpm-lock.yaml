@@ -769,12 +769,18 @@ importers:
       '@app-tour/catalog-registration-flow-ui':
         specifier: workspace:*
         version: link:../catalog-registration-flow-ui
+      '@app-tour/workspace-alpine':
+        specifier: workspace:*
+        version: link:../workspaces/alpine
       '@app-tour/workspace-denali':
         specifier: workspace:*
         version: link:../workspaces/denali
       '@app-tour/workspace-guest-club':
         specifier: workspace:*
         version: link:../workspaces/guest-club
+      '@app-tour/workspace-harbor':
+        specifier: workspace:*
+        version: link:../workspaces/harbor
       '@app-tour/workspace-plugin-host':
         specifier: workspace:*
         version: link:../workspace-plugin-host
