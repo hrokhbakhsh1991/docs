@@ -1,0 +1,21 @@
+{
+  "id": "policy-cert",
+  "version": 1,
+  "package": "@app-tour/workspace-policy-cert",
+  "workspaceTypes": ["policy-cert"],
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  },
+  "web": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  },
+  "workspaceEquipment": {
+    "supported": false
+  },
+  "workspacePolicy": {
+    "module": "./policy/tour-policy",
+    "export": "createTourWorkspacePolicyValidator"
+  }
+}

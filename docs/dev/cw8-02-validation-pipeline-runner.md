@@ -17,7 +17,9 @@ Infrastructure-only strangler pattern:
 | Default (`WORKSPACE_VALIDATION_PIPELINE` unset / `0`) | Legacy flat sequence in `validateCanonicalDocumentWithEngine` — unchanged |
 | Opt-in (`WORKSPACE_VALIDATION_PIPELINE=1`) | `runWorkspaceValidationPipeline` — three ordered stages |
 
-**Out of scope (CW8-03+):** manifest `workspacePolicy` module, Denali/Urban workspace migration, capability validator codegen domain.
+**Out of scope (CW8-03+):** Denali/Urban workspace migration (CW8-04/05), legacy flat-hook removal (CW8-06).
+
+**CW8-03:** manifest `workspacePolicy` module wired via `workspace-policy-validation-bindings.generated.ts` — see [`cw8-03-workspace-policy-seam.md`](cw8-03-workspace-policy-seam.md).
 
 ---
 
@@ -52,8 +54,7 @@ Publish lifecycle gate (`assertCanonicalTourWritePublishGate`) remains **outside
 
 1. `runWorkspaceValidationHooks` — registry extract + `checkCapacity` / `checkTripDetails`
 2. When `validationMode === "publish"`: `runValidationModePublishGate` (`validatePublishReadiness`)
-
-`workspacePolicy` manifest module (CW8-03) deferred — flat hooks only.
+3. Manifest `workspacePolicy` module via `resolveWorkspacePolicyValidator` (CW8-03)
 
 ---
 

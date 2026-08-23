@@ -26,15 +26,20 @@ export const WorkspaceProfileRefSchema = z
   .string()
   .regex(/^[a-z][a-z0-9-]{0,63}$/, "profile must be a lowercase slug");
 
-const workspaceEquipmentModuleBindingSchema = z.object({
+const workspaceModuleBindingSchema = z.object({
   module: z.string().min(1),
   export: z.string().min(1),
 });
+
+const workspaceEquipmentModuleBindingSchema = workspaceModuleBindingSchema;
 
 const workspaceEquipmentEnricherBindingSchema = workspaceEquipmentModuleBindingSchema.extend({
   targetField: z.string().min(1),
   sourceField: z.string().min(1),
 });
+
+/** CW8-03 — manifest-declared workspace policy validator factory. */
+export const WorkspacePolicyBlockSchema = workspaceModuleBindingSchema;
 
 /** CW7-02 — equipment capability block (top-level manifest extension). */
 export const WorkspaceEquipmentBlockSchema = z.object({
@@ -162,6 +167,7 @@ export const WorkspaceManifestCiSchema = z
     plugin: pluginEntrySchema,
     profile: WorkspaceProfileRefSchema.optional(),
     workspaceEquipment: WorkspaceEquipmentBlockSchema.optional(),
+    workspacePolicy: WorkspacePolicyBlockSchema.optional(),
     theme: ManifestThemeBlockSchema.optional(),
     guestCrossSurfaceNav: guestCrossSurfaceNavSchema.optional(),
   })

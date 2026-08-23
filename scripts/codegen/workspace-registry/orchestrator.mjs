@@ -141,7 +141,7 @@ import {
   generateWorkspaceEquipmentCapabilities,
   generateWorkspaceEquipmentBindings,
 } from "./domains/equipment.mjs";
-import { generateWorkspaceCapabilityValidationBindings } from "./domains/validation-pipeline.mjs";
+import { generateWorkspaceCapabilityValidationBindings, generateWorkspacePolicyValidationBindings } from "./domains/validation-pipeline.mjs";
 
 /** @type {Record<string, readonly string[]>} */
 export const DOMAIN_OUTPUT_KEYS = {
@@ -198,8 +198,8 @@ export const DOMAIN_OUTPUT_KEYS = {
   exposure: ["exposureHostBindings"],
   integration: ["integrationCapabilities"],
   "profile-expansion": ["profileExpansionAudit"],
-  equipment: ["workspaceEquipmentCapabilities", "equipmentIconKeyValidator"],
-  "validation-pipeline": ["capabilityValidationBindings"],
+  equipment: ["workspaceEquipmentCapabilities", "equipmentIconKeyValidator", "workspaceEquipmentFieldModule"],
+  "validation-pipeline": ["capabilityValidationBindings", "workspacePolicyBindings"],
 };
 
 export const OUTPUT_KEYS = Object.freeze([
@@ -274,7 +274,9 @@ export const OUTPUT_KEYS = Object.freeze([
   "productHttpHostBindings",
   "profileExpansionAudit",
   "workspaceEquipmentCapabilities",
+  "workspaceEquipmentFieldModule",
   "capabilityValidationBindings",
+  "workspacePolicyBindings",
 ]);
 
 export function generateAllOutputs(manifests, authorManifests = manifests) {
@@ -365,7 +367,9 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     httpErrorMap: generateWorkspaceHttpErrorMap(manifests),
     profileExpansionAudit: generateProfileExpansionAudit(authorManifests),
     workspaceEquipmentCapabilities: equipmentOutputs.capabilities,
+    workspaceEquipmentFieldModule: equipmentOutputs.fieldModule,
     capabilityValidationBindings: generateWorkspaceCapabilityValidationBindings(manifests),
+    workspacePolicyBindings: generateWorkspacePolicyValidationBindings(manifests),
   };
 }
 
@@ -622,9 +626,17 @@ export const OUTPUT_PATHS = {
     REPO_ROOT,
     "packages/workspace-sdk/src/catalog/workspace-equipment-capabilities.generated.ts"
   ),
+  workspaceEquipmentFieldModule: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-equipment-field-module-bindings.generated.ts"
+  ),
   capabilityValidationBindings: join(
     REPO_ROOT,
     "apps/api/src/tours/workspace-capability-validation-bindings.generated.ts"
+  ),
+  workspacePolicyBindings: join(
+    REPO_ROOT,
+    "apps/api/src/tours/workspace-policy-validation-bindings.generated.ts"
   ),
 };
 

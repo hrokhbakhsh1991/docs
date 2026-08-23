@@ -12,6 +12,7 @@ import { assertCatalogRefIntegrity } from "../canonical/assert-catalog-ref-integ
 import { runValidationModePublishGate } from "./resolve-validation-mode.ts";
 import { runWorkspaceValidationHooks } from "./run-workspace-validation-hooks.ts";
 import { WORKSPACE_CAPABILITY_VALIDATORS } from "./workspace-capability-validation-bindings.generated.ts";
+import { resolveWorkspacePolicyValidator } from "./workspace-policy-validation-bindings.generated.ts";
 
 export type RunWorkspaceValidationPipelineInput = WorkspaceValidationPipelineContext & {
   readonly engine: PlatformWizardEngine;
@@ -91,6 +92,14 @@ export function runWorkspacePolicyValidationStage(
   );
   if (publishViolation != null) {
     return withStage("workspacePolicy", publishViolation);
+  }
+
+  const policyValidator = resolveWorkspacePolicyValidator(ctx.workspaceType);
+  if (policyValidator?.validate != null) {
+    const policyViolation = policyValidator.validate(ctx);
+    if (policyViolation != null) {
+      return withStage("workspacePolicy", policyViolation);
+    }
   }
 
   return null;
