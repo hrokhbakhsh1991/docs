@@ -621,29 +621,36 @@ Refinement vs requested shape (evidence-based):
   - Closure (2026-08-23, Wave 5A): `booking-lifecycle-consumer.spec.ts` proves byte-identical edges vs contract.
   - Deps: CW4-02. Risk: **MEDIUM**.
 
-**Integration sign-off (CW-WAVE-5A, 2026-08-23):** CW5-01..06 complete. Architect CW-5 APPROVED. `workspace-sdk → tour-core` dependency added; coordinator-integrated `packages/tour-core/src/index.ts`. Evidence: tour-core 20/20 tests; SDK compat specs PASS; `test:parity` 22/22; architecture/isolation guards PASS; `baseline:cw-compare` PASS (singleOwnerCount 9→9; `directWorkspaceImports` +4 informational). **CW-5 IN PROGRESS** (CW5-07..09, CW5-11 remain). **STOP** — do not execute CW5-07+ in Wave 5A.
-- **CW5-07** `[ ]` **API canonical orchestration consumes tour-core interfaces (one write-path consumer: publish gate)**
-  - Files: `apps/api/src/canonical/canonical-tour.service.ts` imports (types only) from tour-core.
-  - Focused validation: full tour write integration suite; goldens.
-  - Rollback: type re-import from old locations.
+**Integration sign-off (CW-WAVE-5A, 2026-08-23):** CW5-01..06 complete. Architect CW-5 APPROVED. `workspace-sdk → tour-core` dependency added; coordinator-integrated `packages/tour-core/src/index.ts`. Evidence: tour-core 20/20 tests; SDK compat specs PASS; `test:parity` 22/22; architecture/isolation guards PASS; `baseline:cw-compare` PASS (singleOwnerCount 9→9; `directWorkspaceImports` +4 informational). **STOP** — Wave 5B authorized for CW5-07+.
+
+- **CW5-07** `[x]` **API canonical orchestration consumes tour-core interfaces (one write-path consumer: publish gate)**
+  - Files: `canonical-tour-publish-orchestration.ts`; `canonical-tour.service.ts` type import + `assertCanonicalTourWritePublishGate`; label dispatch imports `@app-tour/tour-core`.
+  - Closure (2026-08-23, Wave 5B): `cw5-07-canonical-tour-publish-gate.spec.ts`; CW3-06 + publish integration specs PASS.
+  - Rollback: restore `assertTourPublishLifecycleOnUpdate` direct call in service.
   - Deps: CW5-04. Risk: **HIGH**.
 
-- **CW5-08** `[ ]` **Second consumer migration (tours validation-mode / dispatch)**
-  - Files: `apps/api/src/tours/resolve-validation-mode.ts`, `workspace-tour-write-dispatch.ts`.
+- **CW5-08** `[x]` **Second consumer migration (tours validation-mode / dispatch)**
+  - Files: `resolve-validation-mode.ts` (manifest label bucket); `workspace-tour-write-dispatch.ts` (`mergeShallowCanonicalPatchData` from tour-core).
+  - Closure (2026-08-23, Wave 5B): `cw5-08-validation-mode.spec.ts`; `workspace-tour-write-dispatch.spec.ts` PASS.
   - Deps: CW5-07. Risk: **HIGH**.
 
-- **CW5-09** `[ ]` **Deprecated re-export retirement (CW-1..CW-5 accumulated)**
-  - Invariant: zero consumers via census before each deletion; one deletion per commit.
+- **CW5-09** `[x]` **Deprecated re-export retirement (CW-1..CW-5 accumulated)**
+  - Retired: `packages/workspaces/denali/src/catalog/compute-spots-remaining.ts` (consumers migrated to `@app-tour/tour-core`).
+  - Census: `cw5-09-compatibility-census.spec.ts` — SDK/API compat paths retained (public API + active consumers).
+  - Closure (2026-08-23, Wave 5B): one logical retirement commit; parity CW0-06 unchanged.
   - Deps: CW5-07/08. Risk: **MEDIUM**.
 
 - **CW5-10** `[!]` **Wizard-resume placement (blocked: DEC-CW-05)**
-  - Deps: DEC-CW-05. Risk: **MEDIUM**. `[!]` until decided.
+  - Deps: DEC-CW-05. Risk: **MEDIUM**. **DEFERRED** — do not execute.
 
-- **CW5-11** `[ ]` **tour-core certification spec (no workspace imports; parity suite green; public API snapshot)**
-  - Deps: CW5-01..04, CW5-06..09. CW5-05 registration strategy is separately gated and not required for core package certification. Risk: **LOW**.
+- **CW5-11** `[x]` **tour-core certification spec (no workspace imports; parity suite green; public API snapshot)**
+  - Evidence: `cw5-11-certification.spec.ts` — dependency proof + public API snapshot.
+  - Closure (2026-08-23, Wave 5B): tour-core 25/25 tests; parity 22/22; guards PASS.
+  - Deps: CW5-01..04, CW5-06..09. Risk: **LOW**.
 
-**CW-5 core exit (unblocks CW-6/7/8):** CW5-01..04, CW5-06..09, CW5-11 complete; tour-core owns neutral publish/capacity/transition infrastructure, with vertical/workspace rules excluded.  
-**CW-5 full exit:** additionally CW5-05 complete after DEC-CW-01/03; CW5-10 may remain deferred per DEC-CW-05.
+**Integration sign-off (CW-WAVE-5B, 2026-08-23):** CW5-07..09 + CW5-11 complete. Serial write-path migrations green. `baseline:cw-compare` PASS; `directWorkspaceImports` +5 informational (API tour-core consumers). **CW-5 CORE EXIT COMPLETE** (CW5-10 deferred per DEC-CW-05). Integrated HEAD recorded at Wave 5B closure commit. **Do NOT start CW-6.**
+
+**CW-5 core exit (unblocks CW-6/7/8):** **COMPLETE** (2026-08-23) — CW5-01..04, CW5-06..09, CW5-11 `[x]`; tour-core owns neutral orchestration; CW5-10 remains `[!]` deferred.
 
 ---
 
@@ -868,7 +875,7 @@ Architecture is consistent (not half-migrated) if execution stops after:
 | CW-2 | 7 | 2 | 5 | 0 |
 | CW-3 | 9 | 1 | 5 | 3 |
 | CW-4 | 8 | 3 | 4 | 1 |
-| CW-5 | 11 | 6 | 5 | 0 |
+| CW-5 | 11 | 10 | 1 | 0 |
 | CW-6 | 8 | 3 | 5 | 0 |
 | CW-7 | 15 | 5 | 7 | 3 |
 | CW-8 | 7 | 1 | 5 | 1 |
@@ -975,7 +982,7 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | CW-3 | CW3-01..09 `[x]`; Wave 3E sign-off; **CW-3 COMPLETE** | CW coordinator | 2026-08-23 |
 | CW-4 | CW4-01..08 `[x]`; booking SoT + divergence contracts + portal display; **CW-4 COMPLETE** | CW coordinator | 2026-08-23 |
 | CW-4 (partial/core) | CW4-01..04, CW4-07 `[x]` booking SoT + duplicate-protection contract; CW4-05+ gated on DEC-CW-01 | CW coordinator | 2026-08-23 |
-| CW-5 | — | — | — |
+| CW-5 (Wave 5B) | CW5-07..09 + CW5-11 `[x]`; **CW-5 CORE EXIT COMPLETE**; CW5-10 deferred DEC-CW-05 | CW coordinator | 2026-08-23 |
 | CW-6 | — | — | — |
 | CW-7 | — | — | — |
 | CW-8 | — | — | — |
