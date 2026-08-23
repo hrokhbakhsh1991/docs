@@ -410,7 +410,7 @@ Refinement vs requested shape (evidence-based):
   - Files: `apps/web/src/features/tours/tour-list-formatters.ts`; same config seam as CW2-02.
   - Invariant/validation analogous. Deps: CW2-01. Risk: **MEDIUM**.
 
-- **CW2-04** `[ ]` **Replace hand `switch(pluginId)` in `ensure-registration-flow.client.ts` with generated registry**
+- **CW2-04** `[x]` **Replace hand `switch(pluginId)` in `ensure-registration-flow.client.ts` with generated registry**
   - Invariant: identical flow module loaded per workspace (denali, guest-club, harbor, urban); lazy-load timing preserved.
   - Evidence: AUDIT §7 P1; FEAS Step 7.
   - Files: `packages/guest-workspace-runtime/src/ensure-registration-flow.client.ts`; codegen domain `registration.mjs` (extend to emit loader).
@@ -418,6 +418,7 @@ Refinement vs requested shape (evidence-based):
   - Regression: portal E2E smoke (SMK-PTL-*).
   - Rollback: keep old switch behind unused export until census zero.
   - Deps: CW0-01. Risk: **MEDIUM**.
+  - **Closure (2026-08-23):** hand `switch(pluginId)` retired from `ensure-registration-flow.client.ts`; consumer binds `invokeWorkspacePluginRegister` via `bind-workspace-plugin-register-invokers.ts` → `workspace-plugin-register-manifest.generated.ts` + per-workspace `register-*.generated.ts` (source: `registration.mjs`). Parity: `ensure-registration-flow.client.spec.ts` (all four flow workspaces); isolation: `guest-runtime-register-isolation.spec.ts`. Compat path: **retired** (zero-consumer census on hand switch).
 
 - **CW2-05** `[ ]` **Equipment icon key parsing behind generated settings binding**
   - Invariant: same accepted icon keys for Denali; workspaces without equipment module unaffected.
