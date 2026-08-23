@@ -657,6 +657,8 @@ Refinement vs requested shape (evidence-based):
 
 **Integration sign-off (CW-WAVE-6C, 2026-08-23):** CW6-03, CW7-03, CW8-03 `[x]` — `starter-outdoor` profile catalog, Denali equipment field fragment + codegen bindings, manifest `workspacePolicy` seam with synthetic `policy-cert` proof workspace. Unified composition: profile + `workspaceEquipment` + `workspacePolicy` on effective manifest (spec). Aggregate gates green at integrated HEAD. Progress **59/91** `[x]`. **Next safe wave:** CW6-04, CW6-05A, CW6-06, CW7-04, CW8-04 — CW6-05B unlocked (CW8-03 closed; still needs CW6-04).
 
+**Integration sign-off (CW-WAVE-6E, 2026-08-23):** CW6-05B, CW6-07 `[x]` — `profile-cert` joins `starter-outdoor` profile with author `workspacePolicy` via CW8-03 seam; profile authoring guide published. Progress **66/91** `[x]`. **Next safe slice:** CW7-05+ transport (forbidden until authorized), CW8-05 Urban, CW9. **Forbidden:** CW9, CW5-10, CW7-05+, CW8-05+ unless explicitly scoped.
+
 **Integration sign-off (CW-WAVE-6D, 2026-08-23):** CW6-04, CW6-05A, CW6-06, CW7-04, CW8-04 `[x]` — `workspace:create --profile` guest scaffold, `profile-cert` theme/intake/config override proof, profile certification exact capability set, equipment isolation suite (starter/guest-club/urban), Denali pipeline stage parity via CW0-07 goldens. Progress **64/91** `[x]`. **Next safe slice:** CW6-05B (profile + policy join), CW6-07 (profile authoring guide). **Forbidden:** CW9, CW5-10, CW7-05+, CW8-05+.
 
 **Integration sign-off (CW-WAVE-6A reconciliation, 2026-08-23):** Coordinator reconciliation complete. CW6-01, CW7-01, CW8-01 `[x]` — design closure checklists satisfied per contract docs. Unified manifest composition model reconciled — **no material conflicts** ([`cw-wave-6a-manifest-composition-model.md`](cw-wave-6a-manifest-composition-model.md)). Profile + top-level capability blocks + `workspacePolicy` aligned; nested `capabilities` namespace **not** adopted. DEC-CW-05 remains **OPEN** (CW5-10 `[!]`). Progress **53/91** `[x]`. **Wave 6B** authorized for CW6-02, CW7-02, CW8-02 coordinator-owned schema/codegen slice.
@@ -694,15 +696,17 @@ Refinement vs requested shape (evidence-based):
   - Evidence: [`docs/dev/cw6-05a-profile-override-proof.md`](cw6-05a-profile-override-proof.md), `scripts/test/fixtures/profile-cert.manifest.json`, `profile-cert-override.spec.mjs`.
   - Deps: CW6-04. Risk: **MEDIUM**.
 
-- **CW6-05B** `[ ]` **Workspace-policy override proof (CW-6/CW-8 join)**
+- **CW6-05B** `[x]` **Workspace-policy override proof (CW-6/CW-8 join)**
   - Invariant: synthetic profile workspace adds workspace policy through the formal CW8-03 seam; no interim hook, no host/core edits.
+  - Evidence: [`docs/dev/cw6-05b-profile-policy-override-proof.md`](cw6-05b-profile-policy-override-proof.md), `profile-policy-override.spec.mjs`, `profile-policy-override.spec.ts`.
   - Deps: CW6-04, CW8-03. Risk: **MEDIUM**.
 
 - **CW6-06** `[x]` **Profile certification test (manifest → expected capability set, exact)**
   - Evidence: [`docs/dev/cw6-06-profile-certification.md`](cw6-06-profile-certification.md), `profile-certification.spec.mjs`.
   - Deps: CW6-03. Risk: **LOW**.
 
-- **CW6-07** `[ ]` **Docs: profile authoring guide (in ledger appendix / docs gate per repo rules at execution time)**
+- **CW6-07** `[x]` **Docs: profile authoring guide (in ledger appendix / docs gate per repo rules at execution time)**
+  - Evidence: [`docs/dev/cw6-07-profile-authoring-guide.md`](cw6-07-profile-authoring-guide.md).
   - Deps: CW6-06. Risk: **LOW**.
 
 **CW-6 profile-core exit:** CW6-01..04, CW6-05A, CW6-06..07 complete; new manifest boots a working minimal workspace with declarative theme/intake/config overrides; no clone.  
