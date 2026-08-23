@@ -420,7 +420,7 @@ Refinement vs requested shape (evidence-based):
   - Deps: CW0-01. Risk: **MEDIUM**.
   - **Closure (2026-08-23):** hand `switch(pluginId)` retired from `ensure-registration-flow.client.ts`; consumer binds `invokeWorkspacePluginRegister` via `bind-workspace-plugin-register-invokers.ts` → `workspace-plugin-register-manifest.generated.ts` + per-workspace `register-*.generated.ts` (source: `registration.mjs`). Parity: `ensure-registration-flow.client.spec.ts` (all four flow workspaces); isolation: `guest-runtime-register-isolation.spec.ts`. Compat path: **retired** (zero-consumer census on hand switch).
 
-- **CW2-05** `[ ]` **Equipment icon key parsing behind generated settings binding**
+- **CW2-05** `[x]` **Equipment icon key parsing behind generated settings binding**
   - Invariant: same accepted icon keys for Denali; workspaces without equipment module unaffected.
   - Evidence: FEAS §2.4 (`parse-equipment-icon-key.ts` imports Denali registry directly).
   - Files: `apps/api/src/settings/parse-equipment-icon-key.ts`; codegen `settings-api.mjs` binding.

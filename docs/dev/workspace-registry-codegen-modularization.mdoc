@@ -94,7 +94,7 @@ Each row is one future `--check --domain=<id>` boundary. Keys match `generateAll
 | `registration` | `workspaceIntakePlugins`, `registrationFlowPlugins`, `registrationTransportInitializers` | workspace-plugin-host |
 | `member` | `memberProfileCapabilities`, `memberPortalContracts`, `memberPortalSurfaces` | workspace-sdk portal (contracts via sibling script) |
 | `http` | `httpRoutes`, `httpHandlerLoaders`, `httpErrorMap` | apps/api http + middleware |
-| `settings-api` | `settingsEnrichers`, `devBootstrap` | apps/api settings |
+| `settings-api` | `settingsEnrichers`, `equipmentIconKeyValidator`, `devBootstrap`, `wizardTemplateEnforcement`, `wizardTemplatePathAliases` | apps/api settings |
 | `dev` | `devPluginIds` | guest-surface-host dev map |
 | `operator` | `operatorCapabilities`, `ownerSettingsPanelLoaders`, `workspaceCommerceFreeze` (Phase 4bc: **operatorShellNav** removed — capability owns Phase 3 links) | workspace-sdk operator + web bootstrap |
 | `finance` | `workspaceFinance`, `workspaceFinanceCapabilities`, `workspaceFinanceOps` (API), … (Phase 4bd: **workspaceFinanceNav** removed; Phase 4be: **web finance-ops binder** removed — `capabilities.financeOps` owns hub panels resolve) | API finance + web via capability |
@@ -195,7 +195,7 @@ Orchestrator imports the above; entry script re-exports test-facing symbols. **~
 | `domains/http-routes.mjs` | `generateWorkspaceHttpRoutes`, `generateWorkspaceHttpHandlerLoaders`, `generateWorkspaceHttpErrorMap`, `assertHttpRoutesManifest` | ✅ |
 | `domains/guest-catalog.mjs` | catalog paths, presentation, conformance, SEO, landing, cross-surface nav, `assertGuestExtensionsManifest` | ✅ |
 | `domains/tour-api.mjs` | `generateTourWriteBindings`, `generateCanonicalTourBindings`, `generateOutboxSideEffects` | ✅ |
-| `domains/settings-api.mjs` | `generateSettingsEnrichers`, `generateDevBootstrapBindings` | ✅ |
+| `domains/settings-api.mjs` | `generateSettingsEnrichers`, `generateEquipmentIconKeyValidatorBindings`, `generateDevBootstrapBindings`, `generateWizardTemplateEnforcementBindings`, `generateWizardTemplatePathAliasBindings` | ✅ |
 | `domains/dev.mjs` | `generateWorkspaceDevPluginIds`, `assertDevBootstrapPluginTenantIds` | ✅ |
 | `domains/operator.mjs` | `generateWorkspaceOperatorCapabilities` | ✅ |
 | `domains/member.mjs` | `assertMemberProfileManifest`, `generateWorkspaceMemberProfileCapabilities` | ✅ |

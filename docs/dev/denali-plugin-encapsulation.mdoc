@@ -38,9 +38,20 @@ Manifest-bound **operator settings** modules (`settingsEnrichers`, `devBootstrap
 
 **Operator-smoke tenant `…014`:** `devBootstrap.wizardTemplate.tenantIds` must include both Denali smoke (`…003`) and operator smoke (`…014`) so memory/dev boot publishes a template for `operator.admin.localhost`. See [`denali-operator-smoke-wizard-template-seed.mdoc`](./denali-operator-smoke-wizard-template-seed.mdoc).
 
-**PSR-4b-host-imports-close (2026-07-31):** `parse-equipment-icon-key.ts` is the sole
-`approved-settings-contract` allowlist entry for API host branded imports — excluded from the
-unapproved host-source ceiling (must stay 0). See
+**CW2-05 equipment icon key validator (2026-08-23):** Workspaces that support equipment
+`iconKey` declare `equipmentIconKeyValidator` on `workspace.manifest.json` (`module` +
+`export` under `./settings/*`). Codegen emits
+`apps/api/src/settings/workspace-equipment-icon-key-validator-bindings.generated.ts` with
+`resolveEquipmentIconKeyValidator(workspaceType)`. `parse-equipment-icon-key.ts` stays
+platform-neutral (trim/null/invalid semantics only); `settings-registry.ts` resolves the
+validator from generated bindings — not from `plugin.operatorSettings` or direct Denali
+registry imports. Workspaces without the manifest block omit a binding row; equipment
+`iconKey` on those tenants rejects any non-empty value (same as pre-binding optional-field
+semantics). Denali registry + SVG assets remain Denali-owned; no platform default registry.
+
+**PSR-4b-host-imports-close (2026-07-31):** `parse-equipment-icon-key.ts` no longer imports
+workspace packages; generated bindings hold the sole API→`./settings/*` equipment icon
+imports. See
 [`psr-4b-host-imports-close.mdoc`](../audits/snapshots/2026-07-31/psr-4b-host-imports-close.mdoc).
 
 **PSR-4b-exports (2026-07-31, partial):** host-private peel **۳۹→۳۴** (−۵ proven-dead keys:
@@ -77,6 +88,7 @@ expired in code; tsconfig compat aliases removed; `host/http` paths retained. Se
 | Manifest field | Example `module` | Generated import |
 | -------------- | ---------------- | ---------------- |
 | `settingsEnrichers[].module` | `./settings/theme-compatible-categories` | `@app-tour/workspace-denali/settings/theme-compatible-categories` |
+| `equipmentIconKeyValidator.module` | `./settings/equipment-icon-registry` | `@app-tour/workspace-denali/settings/equipment-icon-registry` |
 | `devBootstrap.wizardTemplate.module` | `./settings/denaliFullWizardTemplate` | `@app-tour/workspace-denali/settings/denaliFullWizardTemplate` |
 | `web.surfaces[].module` (settings) | `./settings/wizard-template-editor` | `@app-tour/workspace-denali/settings/wizard-template-editor` |
 
