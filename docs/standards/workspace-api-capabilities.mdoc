@@ -100,7 +100,28 @@ Codegen (`scripts/codegen/workspace-registry/domains/tour-api.mjs`) emits `WORKS
 
 **Rollback:** revert predicate to `publicCatalog.isPublished` inside the `publicCatalog` gate; dispatch import removed.
 
-**Later consumers (not CW3-03):** workspace HTTP `filterWorkspacePublishedTours` call sites, registration `requireWorkspacePublishedTour`, portal catalog gates (CW3-04+).
+**Later consumers (not CW3-03):** workspace HTTP `filterWorkspacePublishedTours` call sites, portal catalog gates.
+
+### Registration published-tour dispatch (CW3-04)
+
+| Layer | Role |
+| ----- | ---- |
+| **Binding** | Workspace `*-registration-tour-publish-visibility.ts` modules — manifest `publishVisibilityExport` formalized for `requireWorkspacePublishedTour({ isPublished })`. |
+| **Dispatch parity** | `isTourPubliclyVisible(workspaceType, canonical)` from `workspace-publish-visibility-dispatch.ts` must match binding modules (see `cw3-04-registration-published-tour.spec.ts`). |
+| **Compat** | `isRegistrationTourPublishedViaDirectWorkspaceExport` in `registration-published-tour-visibility-compat.ts` — direct export path retained until census zero. |
+
+**Verification:** `apps/api/test/cw3-04-registration-published-tour.spec.ts`, CW0-02 publish-transition goldens, `workspace-publish-visibility-bindings.spec.ts`.
+
+### Tour list projection dispatch (CW3-07)
+
+Manifest `canonicalTour.tourListProjectionModule` + `tourListProjectionExport` (denali, urban). Codegen emits `WORKSPACE_TOUR_LIST_PROJECTION_BINDINGS`. Host code calls:
+
+- `extractTourListProjectionForWorkspace(workspaceType, canonical)` — API `workspace-tour-list-projection-dispatch.ts`
+- `extractTourListProjectionForWorkspace` — web `workspace-tour-list-projection-dispatch.generated.ts`
+
+**Compat:** `extractTourListProjectionViaPlugin` in `tour-list-projection-compat.ts` — plugin `tourList` path retained for parity proofs.
+
+**Verification:** `packages/workspaces/*/test/tour-list-projection.spec.ts`, `apps/api/test/cw3-07-tour-list-projection-dispatch.spec.ts`.
 
 ### Publish label mapping dispatch (CW3-05)
 

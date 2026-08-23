@@ -476,9 +476,10 @@ Refinement vs requested shape (evidence-based):
   - Deps: CW3-02. Risk: **HIGH** (public exposure surface).
   - **Closure (2026-08-23):** First consumer `shouldInvalidateMarketingCatalog` → `isTourPubliclyVisible` dispatch; `publicCatalog` plugin gate retained (starter/harbor); compat `marketing-catalog-visibility-compat.ts`; parity `cw3-03-marketing-catalog-visibility.spec.ts`.
 
-- **CW3-04** `[ ]` **Migrate registration published-tour gate to port (second consumer)**
+- **CW3-04** `[x]` **Migrate registration published-tour gate to port (second consumer)**
   - Files: `requireWorkspacePublishedTour` call sites (denali/urban/harbor registration services keep same behavior via injected checker — already injectable, formalize source).
   - Deps: CW3-03. Risk: **MEDIUM**.
+  - **Closure (2026-08-23):** Registration services use manifest-bound `*-registration-tour-publish-visibility` modules; API compat `registration-published-tour-visibility-compat.ts`; parity `cw3-04-registration-published-tour.spec.ts`. Strangler: direct `is*TourPublished` exports retained for census.
 
 - **CW3-05** `[x]` **Design neutral publish-label mapping table (manifest-declared, wire-only)**
   - Invariant: no global rename; mapping = workspace canonical strings → lifecycle contract states; Denali `active→OPEN-equivalent`, urban `published→…`, `archived` handling **deferred to DEC-CW-02** (map to non-published bucket until decided).
@@ -495,12 +496,13 @@ Refinement vs requested shape (evidence-based):
   - Rollback: heuristic branch retained behind flag until parity proven, then removed (strangler).
   - Deps: CW3-05, CW3-02. Risk: **HIGH**.
 
-- **CW3-07** `[ ]` **List projection dispatch (`extractTourListProjection` via generated bindings)**
+- **CW3-07** `[x]` **List projection dispatch (`extractTourListProjection` via generated bindings)**
   - Invariant: operator list chips identical (denali `active→open/active`, urban `published/archived/draft`).
   - Evidence: FEAS Step 5; TRUTH §6.
   - Files: `workspace-sdk/src/tour/tour-list-projection.contract.ts` + codegen + web consumer.
   - Validation: both `tour-list-projection.spec.ts` files.
   - Deps: CW3-02. Risk: **MEDIUM**.
+  - **Closure (2026-08-23):** Manifest `tourListProjectionModule`/`tourListProjectionExport` (denali/urban); codegen `WORKSPACE_TOUR_LIST_PROJECTION_BINDINGS`; API dispatch `workspace-tour-list-projection-dispatch.ts`; web consumer `tour-list-projection-dispatch.ts` + generated dispatch; compat `tour-list-projection-compat.ts`; parity `cw3-07-tour-list-projection-dispatch.spec.ts`.
 
 - **CW3-08** `[ ]` **Publish-transition detector behind dispatch (census + migrate consumers)**
   - Invariant: outbox emission points unchanged (CW0-02, CW0-04 goldens).
@@ -509,6 +511,8 @@ Refinement vs requested shape (evidence-based):
 - **CW3-09** `[ ]` **Guard: no hard-coded publish label heuristic in host**
   - Invariant: CI fails on new `=== "published" || === "active"` style checks in `apps/api/src/canonical` outside generated/mapping code.
   - Deps: CW3-06. Risk: **LOW**.
+
+**Integration sign-off (CW-WAVE-3D, 2026-08-23):** Workers CW3-04 (registration published-tour gate → manifest-bound visibility modules + dispatch parity), CW3-07 (list projection codegen dispatch + web consumer). Evidence: `cw3-04-registration-published-tour.spec.ts`, `cw3-07-tour-list-projection-dispatch.spec.ts`. Integration: `generate:workspace-registry --check` PASS; `test:parity` 22/22; boundary guards PASS. **Forbidden slices not started:** CW3-06,08..09, CW4-05+. **DEC-CW-01/04 remain OPEN** — no Architect approval recorded.
 
 **Integration sign-off (CW-WAVE-3C, 2026-08-23):** Integration HEAD `ac0b617d`. Workers CW3-03 (marketing `shouldInvalidateMarketingCatalog` → `isTourPubliclyVisible`), CW3-05 (publish-label mapping contract + codegen), CW4-07 (duplicate-protection contract + negative tests), DEC-CW-01 evidence (PROPOSAL Option B, `87ba318b`), DEC-CW-04 evidence (PROPOSAL Option B, `bfe84d62`). Evidence: `cw3-03-marketing-catalog-visibility.spec.ts`, `workspace-publish-label-mapping-dispatch.spec.ts`, `duplicate-protection.golden.spec.mjs`, [`DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md), [`DEC-CW-04-evidence.md`](decisions/DEC-CW-04-evidence.md). Integration: `generate:workspace-registry --check` PASS; `test:parity` 22/22; boundary guards PASS. **Forbidden slices not started:** CW3-04,06..09, CW4-05+.
 
@@ -943,7 +947,7 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | CW-1 | CW1-03/05/06 complete; `atCreateCapacityStrategy` + `operatorApprovalCapacityStrategy` in tour-core; Urban host migrated; consumer census (`cw1-06-capacity-consumer-census.spec.ts`); `pnpm run test:parity` (19/19); tour-core 11/11; integration base `4acbdfc7` | CW coordinator | 2026-08-23 |
 | CW-2 | Wave 2 `f022e35d` + Wave 3B CW2-02/03/07; DEC-CW-06 Option E (`catalogPresentation.priceDisplay` + codegen); `guard:no-workspace-type-branches` extended; `pnpm run test:parity` (19/19); registry `--check`; all boundary guards PASS | CW coordinator | 2026-08-23 |
 | CW-3 (Wave 3A design) | CW2-01 `[x]` + CW3-01 `[v]`; evidence [`DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md), [`cw3-01-tour-publish-visibility-port.md`](cw3-01-tour-publish-visibility-port.md), [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md), [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md); docs-only merge | CW coordinator | 2026-08-23 |
-| CW-3 (partial) | CW3-01..03/05 `[x]`; CW3-04/06..09 not started; Wave 3C sign-off at `ac0b617d` + evidence `bfe84d62` | CW coordinator | 2026-08-23 |
+| CW-3 (partial) | CW3-01..05/07 `[x]`; CW3-04 `[x]`; CW3-06/08..09 not started; Wave 3D sign-off | CW coordinator | 2026-08-23 |
 | CW-4 (partial/core) | CW4-01..04, CW4-07 `[x]` booking SoT + duplicate-protection contract; CW4-05+ gated on DEC-CW-01 | CW coordinator | 2026-08-23 |
 | CW-5 | — | — | — |
 | CW-6 | — | — | — |
