@@ -30,6 +30,10 @@
       "types": "./dist/http/routes.d.ts",
       "default": "./dist/http/routes.js"
     },
+    "./host/http/publish-status": {
+      "types": "./dist/http/publish-status.d.ts",
+      "default": "./dist/http/publish-status.js"
+    },
     "./host/tours": {
       "types": "./dist/tours/index.d.ts",
       "default": "./dist/tours/index.js"

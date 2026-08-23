@@ -48,6 +48,20 @@
     "portsTypeExport": "HarborHttpHostPorts",
     "extraTypeExports": ["BookingPublicPort"]
   },
+  "tourWrite": {
+    "module": "./tours",
+    "workspaceTypeExport": "HARBOR_WORKSPACE_TYPE",
+    "mergeExport": "mergeHarborCanonicalPatchData",
+    "publishGateExport": "harborTourPatchRequiresOwner",
+    "publishSurfaceExport": "HARBOR_TOUR_PUBLISH_FIELDS_OWNER_SURFACE"
+  },
+  "canonicalTour": {
+    "publishStatusModule": "./tours",
+    "publishStatusReadExport": "readHarborTourPublishStatusFromCanonical",
+    "publishTransitionExport": "detectHarborTourPublishTransition",
+    "publishVisibilityModule": "./catalog",
+    "publishVisibilityExport": "isHarborTourPublished"
+  },
   "httpErrors": [
     {
       "isErrorExport": "isHarborRegistrationDuplicateError",

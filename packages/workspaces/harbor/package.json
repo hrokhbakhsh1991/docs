@@ -35,6 +35,10 @@
       "types": "./dist/http/routes.d.ts",
       "default": "./dist/http/routes.js"
     },
+    "./host/tours": {
+      "types": "./dist/tours/index.d.ts",
+      "default": "./dist/tours/index.js"
+    },
     "./theme/marketing.css": "./theme/marketing.css"
   },
   "files": [

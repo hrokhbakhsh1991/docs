@@ -26,6 +26,10 @@
       "types": "./dist/catalog/fetch-denali-catalog-tour.d.ts",
       "default": "./dist/catalog/fetch-denali-catalog-tour.js"
     },
+    "./host/catalog/denali-publish-status": {
+      "types": "./dist/catalog/denali-publish-status.d.ts",
+      "default": "./dist/catalog/denali-publish-status.js"
+    },
     "./host/catalog-registration-flow/react": {
       "types": "./dist/catalog/registration-flow/react.d.ts",
       "default": "./dist/catalog/registration-flow/react.js"

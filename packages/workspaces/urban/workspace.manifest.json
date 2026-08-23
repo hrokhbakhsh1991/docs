@@ -74,7 +74,9 @@
   "canonicalTour": {
     "publishStatusModule": "./tours",
     "publishStatusReadExport": "readUrbanTourPublishStatusFromCanonical",
-    "publishTransitionExport": "detectUrbanTourPublishTransition"
+    "publishTransitionExport": "detectUrbanTourPublishTransition",
+    "publishVisibilityModule": "./http/publish-status",
+    "publishVisibilityExport": "isUrbanTourPublished"
   },
   "wizardI18n": {
     "messageNamespace": "urban"
