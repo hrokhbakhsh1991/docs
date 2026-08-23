@@ -81,6 +81,9 @@ build_pkg @app-tour/iran-mountain-landmarks
 
 build_web_production
 
+build_pkg @app-tour/workspace-alpine
+build_pkg @app-tour/workspace-harbor
+
 build_next_app() {
   local app_dir="$1"
   local label="$2"
