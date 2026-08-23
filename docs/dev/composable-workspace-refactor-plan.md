@@ -126,6 +126,7 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 
 ### DEC-CW-01 — `confirmed` vs `approved` state model
 
+- **Decision:** **APPROVED by Architect (2026-08-23, Wave 3E).** **Option B** — dual registration persistence models (`operator_registrations` vs `urban_registrations`) with neutral orchestration predicates only; **no** `approved↔confirmed` or `waitlisted↔waitlist` string normalization; **no** persistence merge.
 - **Question:** distinct concepts (two registration models) or one normalized state model with per-workspace strategy?
 - **Evidence packet:** [`docs/dev/decisions/DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md) (2026-08-23) — CW0-04/05 parity, TRUTH §9/14/16/17/27, booking vs Urban specs, DEC-CW-03 alignment; **PROPOSAL Option B** (dual models + neutral orchestration predicates; no string/table merge).
 - **Evidence of ambiguity:** TRUTH §9, §14, §27 — portal label map excludes `confirmed`; separate tables; CW0-05 executable divergence contract.
@@ -164,6 +165,7 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 
 ### DEC-CW-04 — member-portal status display for non-booking workspaces
 
+- **Decision:** **APPROVED by Architect (2026-08-23, Wave 3E).** **Option B** — neutral member display semantics (`pending_review` | `accepted` | `waitlisted` | `rejected` | `cancelled`) via manifest codegen map; portal owns i18n; persistence wire vocabulary stays native.
 - **Evidence packet:** [`docs/dev/decisions/DEC-CW-04-evidence.md`](decisions/DEC-CW-04-evidence.md) (2026-08-23) — CW0-05 parity, portal display code, Urban registration vocabulary, PCMS-001 localization ownership; options A/B/C; **Option B PROPOSAL** (neutral member display semantics + manifest codegen map; persistence native).
 - **Evidence:** TRUTH §27 — `format-member-registration-display.server.ts` translates booking vocabulary only; `confirmed` falls through as raw string.
 - **Blocks directly:** CW4-06, CW9-06.
@@ -488,13 +490,14 @@ Refinement vs requested shape (evidence-based):
   - Risk: **HIGH** (design).
   - **Closure (2026-08-23):** SDK contract `tour-publish-label-mapping.contract.ts`; manifest `publishLabelMapping` (denali/urban/harbor); codegen `WORKSPACE_PUBLISH_LABEL_MAPPINGS`; API dispatch `workspace-publish-label-mapping-dispatch.ts`; Urban `archived` → `notPublished` per DEC-CW-02 Option B. Evidence: [`cw3-05-publish-label-mapping.md`](cw3-05-publish-label-mapping.md).
 
-- **CW3-06** `[ ]` **Migrate publish lifecycle gate to manifest-declared label mapping (no heuristic branch)**
+- **CW3-06** `[x]` **Migrate publish lifecycle gate to manifest-declared label mapping (no heuristic branch)**
   - Invariant: `assertTourPublishLifecycleOnUpdate` outcomes identical for all CW0-02 golden pairs.
   - Files: `apps/api/src/canonical/assert-tour-publish-lifecycle-gate.ts`, `workspace-canonical-tour-dispatch.ts`.
   - Focused validation: goldens; `tour-publish-transition.spec.ts`.
   - Regression: publish e2e (denali metadata-path publish integration spec).
   - Rollback: heuristic branch retained behind flag until parity proven, then removed (strangler).
   - Deps: CW3-05, CW3-02. Risk: **HIGH**.
+  - **Closure (2026-08-23, Wave 3E):** Manifest mapping primary via `resolveTourPublishLifecycleStatusFromLabel`; strangler compat `publish-lifecycle-label-compat.ts`; parity `cw3-06-publish-lifecycle-gate.spec.ts`; denali/urban/harbor publish integration specs PASS.
 
 - **CW3-07** `[x]` **List projection dispatch (`extractTourListProjection` via generated bindings)**
   - Invariant: operator list chips identical (denali `active→open/active`, urban `published/archived/draft`).
@@ -504,13 +507,17 @@ Refinement vs requested shape (evidence-based):
   - Deps: CW3-02. Risk: **MEDIUM**.
   - **Closure (2026-08-23):** Manifest `tourListProjectionModule`/`tourListProjectionExport` (denali/urban); codegen `WORKSPACE_TOUR_LIST_PROJECTION_BINDINGS`; API dispatch `workspace-tour-list-projection-dispatch.ts`; web consumer `tour-list-projection-dispatch.ts` + generated dispatch; compat `tour-list-projection-compat.ts`; parity `cw3-07-tour-list-projection-dispatch.spec.ts`.
 
-- **CW3-08** `[ ]` **Publish-transition detector behind dispatch (census + migrate consumers)**
+- **CW3-08** `[x]` **Publish-transition detector behind dispatch (census + migrate consumers)**
   - Invariant: outbox emission points unchanged (CW0-02, CW0-04 goldens).
   - Deps: CW3-06. Risk: **MEDIUM**.
+  - **Closure (2026-08-23, Wave 3E):** All consumers import `detectTourPublishTransition` via `workspace-canonical-tour-dispatch` or `tour-publish-transition-audit` re-export; census `cw3-08-publish-transition-detector-census.spec.ts`; zero direct workspace publish-transition imports.
 
-- **CW3-09** `[ ]` **Guard: no hard-coded publish label heuristic in host**
+- **CW3-09** `[x]` **Guard: no hard-coded publish label heuristic in host**
   - Invariant: CI fails on new `=== "published" || === "active"` style checks in `apps/api/src/canonical` outside generated/mapping code.
   - Deps: CW3-06. Risk: **LOW**.
+  - **Closure (2026-08-23, Wave 3E):** `guard-no-workspace-type-branches.mjs` extended with `hasCanonicalPublishLabelHeuristic`; negative matcher spec; compat allowlist for `publish-lifecycle-label-compat.ts`.
+
+**Integration sign-off (CW-WAVE-3E, 2026-08-23):** DEC-CW-01 Option B + DEC-CW-04 Option B **APPROVED**. Workers CW3-06 (publish lifecycle gate → manifest mapping + strangler compat), CW3-08 (publish-transition detector census), CW3-09 (publish-label heuristic guard). Evidence: `cw3-06-publish-lifecycle-gate.spec.ts`, `cw3-08-publish-transition-detector-census.spec.ts`, guard matcher spec. Integration: `generate:workspace-registry --check` PASS; `test:parity` 22/22; publish integration specs PASS; boundary guards PASS (api-workspace-isolation: pre-existing CW3-04 compat imports only). **CW-3 COMPLETE.**
 
 **Integration sign-off (CW-WAVE-3D, 2026-08-23):** Workers CW3-04 (registration published-tour gate → manifest-bound visibility modules + dispatch parity), CW3-07 (list projection codegen dispatch + web consumer). Evidence: `cw3-04-registration-published-tour.spec.ts`, `cw3-07-tour-list-projection-dispatch.spec.ts`. Integration: `generate:workspace-registry --check` PASS; `test:parity` 22/22; boundary guards PASS. **Forbidden slices not started:** CW3-06,08..09, CW4-05+. **DEC-CW-01/04 remain OPEN** — no Architect approval recorded.
 
@@ -547,23 +554,28 @@ Refinement vs requested shape (evidence-based):
   - Rollback: keep parallel file; mark `[v]` pending closure.
   - Deps: CW4-03. Risk: **MEDIUM**.
 
-- **CW4-05** `[!]` **Registration model divergence contract (blocked: DEC-CW-01)**
+- **CW4-05** `[x]` **Registration model divergence contract (blocked: DEC-CW-01)**
   - Objective: encode the decided relationship (distinct models vs strategy-unified) as SDK contract + certification spec.
   - Invariant: whichever decision — `urban_registrations` behavior unchanged unless product migration is separately approved.
   - Deps: CW4-02; DEC gates. Risk: **HIGH** (semantics).
+  - **Closure (2026-08-23, Wave 3E):** DEC-CW-01 Option B APPROVED; contract `registration-model-divergence.contract.ts`; certification `registration-model-divergence.contract.spec.ts`; doc [`cw4-05-registration-model-divergence-contract.md`](cw4-05-registration-model-divergence-contract.md).
 
-- **CW4-06** `[!]` **Portal member-status mapping per DEC-CW-04**
+- **CW4-06** `[x]` **Portal member-status mapping per DEC-CW-04**
   - Files: `apps/portal/src/me/format-member-registration-display.server.ts` (+ i18n) only after decision.
   - Deps: DEC-CW-04. Risk: **MEDIUM**.
+  - **Closure (2026-08-23, Wave 3E):** Manifest `registrationStatusDisplay` + codegen `WORKSPACE_MEMBER_REGISTRATION_STATUS_DISPLAY`; portal `resolveMemberRegistrationDisplayStatus` + `displayStatusLabels` i18n; Urban `confirmed`/`waitlist` → semantic labels; CW0-05 updated.
 
 - **CW4-07** `[x]` **Shared invariant extraction: duplicate-protection contract doc + negative tests**
   - Invariant: booking DB partial uniques + probe kinds documented as capability behavior; urban email-unique documented as workspace policy; no code unification.
   - Evidence: TRUTH §12; `docs/dev/cw4-duplicate-protection-contract.md`; `booking-duplicate-protection.contract.ts`; parity golden `CW4-07-workspace-duplicate-policies`.
   - Deps: CW0-04. Risk: **LOW**.
 
-- **CW4-08** `[ ]` **Explicit divergence ledger (intentional vs debt)**
+- **CW4-08** `[x]` **Explicit divergence ledger (intentional vs debt)**
   - Invariant: every TRUTH §Semantic-divergence row labeled `INTENTIONAL(contract)` or `DEBT(ticket)` in this file's appendix; no silent drift.
   - Deps: CW4-05 (or DEC answers). Risk: **LOW**.
+  - **Closure (2026-08-23, Wave 3E):** Appendix A rows classified per DEC-CW-01/04 approvals.
+
+**Integration sign-off (CW-WAVE-3E CW-4, 2026-08-23):** CW4-05/06/08 complete after DEC-CW-01/04 APPROVED. Evidence: SDK contract spec, portal display codegen, CW0-05 parity update. **CW-4 COMPLETE.**
 
 **Exit CW-4:** one enforced transition SoT for booking; divergences explicit contracts; nothing merged "for neatness".
 
@@ -932,8 +944,9 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 
 | Divergence | Classification | Contract/ticket |
 |------------|----------------|-----------------|
-| `approved` vs `confirmed` | pending DEC-CW-01 (PROPOSAL Option B: distinct strings + neutral `occupiesSeat` / strategy metadata) | [`DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md) |
-| `waitlisted` vs `waitlist` | pending DEC-CW-01 (PROPOSAL: distinct lifecycle roles; no string normalize) | [`DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md) |
+| `approved` vs `confirmed` | INTENTIONAL(contract) — DEC-CW-01 Option B; distinct wire strings + `registrationOccupiesSeat` predicate | [`DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md), [`cw4-05-registration-model-divergence-contract.md`](cw4-05-registration-model-divergence-contract.md) |
+| `waitlisted` vs `waitlist` | INTENTIONAL(contract) — DEC-CW-01 Option B; distinct lifecycle roles; `registrationQueuedWithoutSeat` | [`DEC-CW-01-evidence.md`](decisions/DEC-CW-01-evidence.md), [`cw4-05-registration-model-divergence-contract.md`](cw4-05-registration-model-divergence-contract.md) |
+| Portal member display for Urban wire labels | INTENTIONAL(contract) — DEC-CW-04 Option B; native→semantic codegen map | [`DEC-CW-04-evidence.md`](decisions/DEC-CW-04-evidence.md), member-portal registry §registrationStatusDisplay |
 | `active` vs `published` labels | INTENTIONAL after CW-3 mapping | CW3-05 |
 | Archive Urban-only | INTENTIONAL (optional capability, DEC-CW-02 Option B) | [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md) |
 | Capacity at approve vs at create | INTENTIONAL (dual strategies, DEC-CW-03 Option A) | [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md) |
@@ -947,7 +960,8 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | CW-1 | CW1-03/05/06 complete; `atCreateCapacityStrategy` + `operatorApprovalCapacityStrategy` in tour-core; Urban host migrated; consumer census (`cw1-06-capacity-consumer-census.spec.ts`); `pnpm run test:parity` (19/19); tour-core 11/11; integration base `4acbdfc7` | CW coordinator | 2026-08-23 |
 | CW-2 | Wave 2 `f022e35d` + Wave 3B CW2-02/03/07; DEC-CW-06 Option E (`catalogPresentation.priceDisplay` + codegen); `guard:no-workspace-type-branches` extended; `pnpm run test:parity` (19/19); registry `--check`; all boundary guards PASS | CW coordinator | 2026-08-23 |
 | CW-3 (Wave 3A design) | CW2-01 `[x]` + CW3-01 `[v]`; evidence [`DEC-CW-06-evidence.md`](decisions/DEC-CW-06-evidence.md), [`cw3-01-tour-publish-visibility-port.md`](cw3-01-tour-publish-visibility-port.md), [`DEC-CW-02-evidence.md`](decisions/DEC-CW-02-evidence.md), [`DEC-CW-03-evidence.md`](decisions/DEC-CW-03-evidence.md); docs-only merge | CW coordinator | 2026-08-23 |
-| CW-3 (partial) | CW3-01..05/07 `[x]`; CW3-04 `[x]`; CW3-06/08..09 not started; Wave 3D sign-off | CW coordinator | 2026-08-23 |
+| CW-3 | CW3-01..09 `[x]`; Wave 3E sign-off; **CW-3 COMPLETE** | CW coordinator | 2026-08-23 |
+| CW-4 | CW4-01..08 `[x]`; booking SoT + divergence contracts + portal display; **CW-4 COMPLETE** | CW coordinator | 2026-08-23 |
 | CW-4 (partial/core) | CW4-01..04, CW4-07 `[x]` booking SoT + duplicate-protection contract; CW4-05+ gated on DEC-CW-01 | CW coordinator | 2026-08-23 |
 | CW-5 | — | — | — |
 | CW-6 | — | — | — |
