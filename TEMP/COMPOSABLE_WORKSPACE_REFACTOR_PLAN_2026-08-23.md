@@ -278,7 +278,7 @@ Refinement vs requested shape (evidence-based):
   - Rollback: delete harness.
   - Deps: —. Risk: **LOW**.
 
-- **CW0-02** `[ ]` **Publish transition goldens (Denali/Urban/Harbor/Starter)**
+- **CW0-02** `[x]` **Publish transition goldens (Denali/Urban/Harbor/Starter)**
   - Invariant: `detectDenaliTourPublishTransition` (`draft`↔`active`), urban nested `tour.publishStatus` `published`, harbor `published`, starter lifecycle `DRAFT→OPEN` produce identical results pre/post any CW-3 change.
   - Evidence: TRUTH §5; `denali-tour-publish-transition.spec.ts`, `tour-publish-transition.spec.ts`.
   - Files: fixtures capturing canonical before/after pairs per workspace.
@@ -294,7 +294,7 @@ Refinement vs requested shape (evidence-based):
   - Evidence: TRUTH §13–18; `booking-lifecycle.spec.ts`, `booking-reject-lifecycle.spec.ts`.
   - Deps: CW0-01. Risk: **LOW**.
 
-- **CW0-05** `[ ]` **`approved`/`confirmed` divergence contract spec**
+- **CW0-05** `[x]` **`approved`/`confirmed` divergence contract spec**
   - Invariant: documented, executable assertion that the two vocabularies live in different stores and neither maps onto the other today (negative test: portal label map excludes `confirmed`).
   - Evidence: TRUTH §14, §27.
   - Files: new contract spec in `test/parity/`.
@@ -305,12 +305,12 @@ Refinement vs requested shape (evidence-based):
   - Evidence: TRUTH §29; `compute-spots-remaining.spec.ts`, `catalog-spots-enrichment.spec.ts`.
   - Deps: CW0-01. Risk: **LOW**.
 
-- **CW0-07** `[ ]` **Wizard validation + frozen-field goldens**
+- **CW0-07** `[x]` **Wizard validation + frozen-field goldens**
   - Invariant: Denali frozen set (category, title, destinationId, startDateTime, capacityMax, photos anchor, transport.mode) enforced; engine draft-vs-publish mode outputs stable; starter/urban minimal paths stable.
   - Evidence: TRUTH §19, §21–22; `ensure-tour-kind-template-field.spec.ts`, `canonical-validation-draft-vs-publish.spec.ts`.
   - Deps: CW0-01. Risk: **LOW**.
 
-- **CW0-08** `[ ]` **Pricing/finance linkage goldens (affected surface only)**
+- **CW0-08** `[x]` **Pricing/finance linkage goldens (affected surface only)**
   - Invariant: `resolveDenaliRegistrationObligationMinor` outputs; membership discount gate `readTourAllowMembershipDiscount` fail-closed behavior.
   - Evidence: TRUTH §25–26; `finance-obligation-denali.spec.ts`, `read-tour-membership-discount-gate.spec.ts`.
   - Deps: CW0-01. Risk: **LOW**.
