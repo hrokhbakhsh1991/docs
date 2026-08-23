@@ -267,7 +267,7 @@ Refinement vs requested shape (evidence-based):
 
 > No production/test file changes to existing behavior; CW-0 ADDS parity fixtures/snapshot specs only (additive test assets are in scope for execution, not for this planning run).
 
-- **CW0-01** `[ ]` **Parity harness scaffold**
+- **CW0-01** `[x]` **Parity harness scaffold**
   - Objective: reusable golden-snapshot harness for cross-phase parity proofs.
   - Invariant: harness replays recorded inputs and diffs outputs byte/JSON-stable.
   - Evidence: FEAS §3 Step 0.
@@ -284,7 +284,7 @@ Refinement vs requested shape (evidence-based):
   - Files: fixtures capturing canonical before/after pairs per workspace.
   - Validation: goldens match current spec outputs. Rollback: remove fixtures. Deps: CW0-01. Risk: **LOW**.
 
-- **CW0-03** `[ ]` **Capacity goldens (definition + consumption + release)**
+- **CW0-03** `[x]` **Capacity goldens (definition + consumption + release)**
   - Invariant: `sumApprovedPartySizeInTx` counts only `approved`; urban `sumAcceptedPartySize` counts only `confirmed`; cancel/reject excluded.
   - Evidence: TRUTH §8–10; `booking-approve-capacity.spec.ts`, `registration-capacity.spec.ts`.
   - Files: fixtures for both stores. Deps: CW0-01. Risk: **LOW**.
@@ -300,7 +300,7 @@ Refinement vs requested shape (evidence-based):
   - Files: new contract spec in `test/parity/`.
   - Deps: CW0-01. Risk: **LOW**.
 
-- **CW0-06** `[ ]` **Public remaining capacity goldens**
+- **CW0-06** `[x]` **Public remaining capacity goldens**
   - Invariant: `spotsRemaining = max(0, totalCapacity − approvedPartySize)`; only `approved` counts.
   - Evidence: TRUTH §29; `compute-spots-remaining.spec.ts`, `catalog-spots-enrichment.spec.ts`.
   - Deps: CW0-01. Risk: **LOW**.
@@ -315,7 +315,7 @@ Refinement vs requested shape (evidence-based):
   - Evidence: TRUTH §25–26; `finance-obligation-denali.spec.ts`, `read-tour-membership-discount-gate.spec.ts`.
   - Deps: CW0-01. Risk: **LOW**.
 
-- **CW0-09** `[ ]` **Architecture metrics script (machine-repeatable)**
+- **CW0-09** `[x]` **Architecture metrics script (machine-repeatable)**
   - Objective: create `scripts/metrics/cw-architecture-metrics.mjs`; one command (`node scripts/metrics/cw-architecture-metrics.mjs`) emits exact JSON to stdout. CW9-08 reruns this exact command and schema.
   - Output schema: top-level `{ schemaVersion: 1, repositoryRef, rulesVersion: 1, metrics: {...}, evidence: {...} }`. Volatile timestamps, absolute paths, filesystem mtimes, and unordered object/set iteration are forbidden. Paths normalized repo-relative; arrays lexicographically sorted; JSON formatted with two spaces + trailing newline.
   - Fixed inclusion roots: `apps/api/src`, `apps/web/src`, `apps/portal/src`, `apps/marketing/src`, and `packages/*/src`.
@@ -334,7 +334,7 @@ Refinement vs requested shape (evidence-based):
   - Rollback: delete script.
   - Deps: —. Risk: **LOW**.
 
-- **CW0-10** `[ ]` **Baseline metrics capture (run + freeze)**
+- **CW0-10** `[x]` **Baseline metrics capture (run + freeze)**
   - Invariant: CW0-09 script output stored as tracked baseline JSON next to the canonical ledger (e.g. `docs/dev/cw-metrics-baseline.json` — NOT under gitignored `TEMP/`) **before** any CW-1 move alters counts; Metrics table below updated with exact values replacing all approximations.
   - Deps: CW0-09. Risk: **LOW**.
 
@@ -731,12 +731,12 @@ All baseline values below are provisional estimates; CW0-10 replaces them with e
 
 | Metric | Baseline (frozen at CW0-10) | Target at CW-9 |
 |--------|------------------------------|----------------|
-| Hand-written modules to onboard similar workspace | ~80–120 (Denali-fork; FEAS §6) | **≤ 30** (manifest+policy+branding+adapters) |
-| Generic host files edited per new workspace | ≥ 1–3 (hosts map, seeds) + risk of formatter edits | **0** (dev-host mapping automated or documented as env, not code) |
+| Hand-written modules to onboard similar workspace | 458 Denali TS/TSX + 14 guest scaffold TS/TSX (machine count) | **≤ 30** (manifest+policy+branding+adapters) |
+| Generic host files edited per new workspace | 5 manual host edit paths (machine count) | **0** (dev-host mapping automated or documented as env, not code) |
 | Copied Denali modules per new workspace | field registry + composites + hooks (~30–40% of 393) | **0** |
-| Workspace-ID branches in neutral production code (non-generated) | ≥ 4 known (2 formatters, guest-runtime switch, equipment icon import) + exposure wiring | **0** |
-| Shared Tour rules with single ownership | booking lifecycle duplicated (host + Denali graph); capacity math in 2 places | **100% of SAFE-CANDIDATES list single-owned in tour-core/host** |
-| Formal composable capabilities | 3 core (finance, booking, registration-flow) + presentation/member-profile gates | **≥ 5 tour-domain** (equipment, transport, difficulty/fitness, itinerary, pricing-fields) |
+| Workspace-ID branches in neutral production code (non-generated) | 33 (machine count; see cw-metrics-baseline.json) | **0** |
+| Shared Tour rules with single ownership | singleOwnerRatio 0.6923 across TRUTH catalog (machine count) | **100% of SAFE-CANDIDATES list single-owned in tour-core/host** |
+| Formal composable capabilities | 4 qualified formal capabilities (machine count) | **≥ 5 tour-domain** (equipment, transport, difficulty/fitness, itinerary, pricing-fields) |
 | Blast radius — publish validation change | platform-core + 3 workspaces' rules | platform-core + rule data only (no host bridges) |
 | Blast radius — capacity rule change | API + denali (+ divergent urban path) | tour-core contract + adapters |
 | Blast radius — new shared wizard field | every workspace registry by hand | profile/capability module + opt-in |

@@ -15,6 +15,8 @@
     "typecheck": "pnpm run lint",
     "test": "node scripts/verify-phase-7-genericity-proof-rev.mjs && pnpm --filter @app-tour/workspace-sdk run test && pnpm --filter @app-tour/platform-core run test && pnpm --filter @app-tour/design-tokens run test && pnpm --filter @app-tour/workspace-starter run test && pnpm --filter @app-tour/workspace-urban run test && pnpm --filter @app-tour/ui-primitives run test && pnpm --filter @app-tour/theme-react run test && pnpm --filter @app-tour/tenant-kernel run test && pnpm --filter @app-tour/platform-events run test && pnpm --filter @apps/api run test && pnpm --filter @apps/web run test",
     "test:parity": "NODE_ENV=test node --import ./apps/api/node_modules/tsx/dist/esm/index.mjs --test test/parity/**/*.spec.mjs",
+    "cw:architecture-metrics": "node scripts/metrics/cw-architecture-metrics.mjs",
+    "test:cw-metrics": "NODE_ENV=test node --test scripts/metrics/cw-architecture-metrics.self.spec.mjs",
     "test:adversarial": "pnpm --filter @app-tour/workspace-sdk exec -- env NODE_ENV=test node --import tsx --test test/adversarial-canonical-ingress.spec.ts test/storage-ingress-immutability.spec.ts && pnpm --filter @app-tour/platform-core exec -- env NODE_ENV=test node --import tsx --test test/adversarial-validation.spec.ts test/adversarial-plugin-ingress.spec.ts test/rule-engine-concurrency.spec.ts test/runtime-isolation.spec.ts",
     "guard:architecture": "node scripts/guards/lib/depcruise-architecture.mjs",
     "guard:import-boundary": "node scripts/guards/import-boundary-ast.mjs",
