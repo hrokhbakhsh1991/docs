@@ -29,6 +29,17 @@ install_deploy_prereqs() {
   apt-get install -y postgresql-client python3 2>/dev/null || true
 }
 
+install_pnpm_standalone() {
+  # remote-deploy expects /usr/local/bin/pnpm. Corepack under sudo -u app-tour
+  # can fail (EACCES on /root/package.json) — use standalone pnpm instead.
+  if [[ ! -x /usr/local/pnpm/pnpm ]]; then
+    log "installing standalone pnpm 10.6.5"
+    curl -fsSL https://get.pnpm.io/install.sh | env PNPM_HOME=/usr/local/pnpm PNPM_VERSION=10.6.5 SHELL=/bin/bash bash -
+  fi
+  ln -sf /usr/local/pnpm/pnpm /usr/local/bin/pnpm
+  log "pnpm $(/usr/local/bin/pnpm -v)"
+}
+
 ensure_app_user() {
   if ! id "$APP_USER" >/dev/null 2>&1; then
     useradd --system --create-home --home-dir "$DEPLOY_PATH" --shell /bin/bash "$APP_USER"
@@ -85,15 +96,17 @@ main() {
   }
   install_node_24_if_needed
   install_deploy_prereqs
+  install_pnpm_standalone
   ensure_app_user
   clone_or_update_repo
+  git config --global --add safe.directory "$DEPLOY_PATH" || true
   install_env_templates
   install_systemd_units
   log "bootstrap done"
   log "next: edit $ENV_DIR/api.env (DATABASE_URL + DATABASE_URL_ADMIN)"
   log "next: edit $ENV_DIR/{web,marketing,portal}.env (TOUR_OPS_API_URL must match api PORT)"
   log "verify: bash $DEPLOY_PATH/scripts/vps-deploy/verify-env-coherence.sh --all"
-  log "deploy: sudo -u $APP_USER bash $DEPLOY_PATH/scripts/vps-deploy/remote-deploy.sh"
+  log "deploy: FORCE_BOOTSTRAP=1 bash $DEPLOY_PATH/scripts/vps-deploy/resume-vps-deploy.sh"
 }
 
 main "$@"
