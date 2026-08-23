@@ -338,7 +338,7 @@ Refinement vs requested shape (evidence-based):
   - Invariant: CW0-09 script output stored as tracked baseline JSON next to the canonical ledger (e.g. `docs/dev/cw-metrics-baseline.json` — NOT under gitignored `TEMP/`) **before** any CW-1 move alters counts; Metrics table below updated with exact values replacing all approximations.
   - Deps: CW0-09. Risk: **LOW**.
 
-**Exit CW-0:** all ten `[x]`; parity harness green in CI fast path; metrics baseline frozen; no diff in existing specs.
+**Exit CW-0:** **COMPLETE** (2026-08-23 integration closure). All ten CW0-01..10 `[x]` with direct evidence; `pnpm run test:parity` green (19/19); metrics baseline `docs/dev/cw-metrics-baseline.json` frozen at `repositoryRef` `b7da2c42` with `schemaVersion`/`rulesVersion` 1; HEAD metrics differ only post-CW1-02 `computeSpotsRemaining` move (expected). Integration HEAD `3cd634d8`; CW0-07/08 certified via `wizard-frozen.golden.spec.mjs` and `pricing-finance.golden.spec.mjs`.
 
 ---
 
@@ -918,7 +918,7 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 
 | Phase | Exit evidence link | Reviewer | Date |
 |-------|--------------------|----------|------|
-| CW-0 | — | — | — |
+| CW-0 | `pnpm run test:parity`; `docs/dev/cw-metrics-baseline.json`; integration HEAD `3cd634d8` | CW coordinator | 2026-08-23 |
 | CW-1 | — | — | — |
 | CW-2 | — | — | — |
 | CW-3 | — | — | — |
