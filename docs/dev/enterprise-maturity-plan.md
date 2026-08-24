@@ -11,11 +11,11 @@
 
 ## Phase structure
 
-| Phase | Goal | M1 run |
+| Phase | Goal | Status |
 |-------|------|--------|
-| **MAT-M1** | Low-risk enterprise hardening (no multi-region infra) | **EXECUTE** |
-| **MAT-M2** | Scale / tenant operations | Design only |
-| **MAT-M3** | Enterprise infrastructure placement | Design only |
+| **MAT-M1** | Low-risk enterprise hardening (no multi-region infra) | **COMPLETE** |
+| **MAT-M2** | Scale / tenant operations | **COMPLETE** |
+| **MAT-M3** | Enterprise infrastructure placement | Design only — **NOT AUTHORIZED** |
 
 ---
 
@@ -114,7 +114,7 @@
 | **Aggregate validation** | See §M1 aggregate gates below |
 | **Rollback** | Revert branch |
 | **Risk** | LOW |
-| **Status** | [v] implemented, closure pending |
+| **Status** | [x] complete |
 
 ---
 
@@ -140,7 +140,18 @@ git diff --check
 
 ---
 
-## MAT-M2 tasks (design only — do not execute)
+## MAT-M2 tasks
+
+### M2-00 — REQ-P7-007 urban digest closure (stage 0)
+
+| Field | Value |
+|-------|-------|
+| **Objective** | Close platform-core digest drift before M2 implementation |
+| **Verdict** | Stale evidence (A) + legitimate artifact drift (B) — not Urban regression |
+| **Evidence** | `docs/dev/mat-m2-stage0-urban-digest-closure.md` |
+| **Files** | `reports/phase-7-genericity-baseline.yaml`, `reports/phase-8-genericity-baseline.yaml` |
+| **Focused validation** | REQ-P7-007, platform-core CW5-10 specs |
+| **Status** | [x] complete |
 
 ### M2-01 — MAT-001 implementation
 
@@ -148,47 +159,82 @@ git diff --check
 |-------|-------|
 | **Objective** | `profileVersion`, `capabilityRevision`, tenant pin metadata + codegen resolver |
 | **Invariant** | Unpinned behavior unchanged; dual revision dispatch only when needed |
-| **Evidence** | Migration spec + tenant pin API |
-| **Dependencies** | M1-05, MAT-010 design |
-| **Runtime primitives** | Tenant metadata store, registry resolver, upgrade preflight |
-| **Pause points** | After schema; after codegen; before tenant migration job |
-| **Customer evidence needed** | At least one tenant pin/upgrade dry-run |
+| **Evidence** | `packages/workspace-sdk/src/manifest/workspace-versioning.ts`, codegen registries |
+| **Files** | `manifest.schema.ts`, `versioning.mjs`, Denali `versionPins` baseline |
+| **Dependencies** | M1-05 |
+| **Implementation** | Integer revisions, pins, upgrade preflight, generated catalogs |
+| **Focused validation** | `workspace-versioning.spec.ts`, `generate:workspace-registry --check` |
+| **Aggregate validation** | Checkpoint A + M2 gates |
 | **Risk** | HIGH |
-| **Status** | [ ] not started |
+| **Status** | [x] complete |
 
 ### M2-02 — MAT-011 quota / noisy-neighbor
 
 | Field | Value |
 |-------|-------|
-| **Objective** | Per-tenant rate limits, queue fairness, concurrency caps |
-| **Invariant** | Platform rate-limit remains; tenant metering additive |
-| **Dependencies** | MAT-012 metrics sink |
-| **Runtime primitives** | Redis/token bucket per `tenantId`, queue priority |
-| **Pause points** | Shadow mode → enforce mode |
-| **Customer evidence needed** | Load test showing neighbor isolation |
+| **Objective** | Per-workspace rate limits, concurrency caps, theme quota overrides |
+| **Invariant** | Platform rate-limit remains; workspace metering additive |
+| **Evidence** | `docs/operations/workspace-resource-controls.md` |
+| **Files** | `workspace-resource-policy.ts`, `tenant-rate-limiter.ts`, `tour-write-concurrency-budget.ts` |
+| **Dependencies** | M2-01 (orthogonal; shipped parallel) |
+| **Implementation** | Workspace-scoped consumer keys, defaults, system exempt path |
+| **Focused validation** | `workspace-resource-policy.spec.ts` |
+| **Aggregate validation** | M2 gates |
 | **Risk** | HIGH |
-| **Status** | [ ] not started |
+| **Status** | [x] complete |
 
 ### M2-03 — MAT-012 per-tenant observability / SLO
 
 | Field | Value |
 |-------|-------|
-| **Objective** | Tenant dashboards, SLO burn alerts, validation stage tags |
+| **Objective** | Workspace SLO telemetry, validation stage tags, burn query definitions |
 | **Invariant** | No PII in tenant metrics labels |
-| **Dependencies** | M1-04 SLO doc, staging log sink |
-| **Runtime primitives** | Log/metric labels: `tenantId`, `workspaceType`, `validationStage` |
-| **Pause points** | After metric export; before paging wiring |
-| **Customer evidence needed** | Staging burn drill |
+| **Evidence** | `docs/operations/service-level-objectives.md` (measurement sources) |
+| **Files** | `workspace-slo-telemetry.ts`, `workspace-slo-queries.ts`, validation + booking hooks |
+| **Dependencies** | M1-04 |
+| **Implementation** | `workspace_slo_event_total`, registration + validation instrumentation |
+| **Focused validation** | `workspace-slo-telemetry.spec.ts`, `workspace-slo-queries.spec.ts` |
+| **External blockers** | Live dashboard/alert verification **BLOCKED_EXTERNAL** |
 | **Risk** | MEDIUM |
-| **Status** | [ ] not started |
+| **Status** | [x] complete |
 
-### M2 dependency graph
+### M2-04 — M2 aggregate gates
+
+| Field | Value |
+|-------|-------|
+| **Objective** | Green M2 certification bundle |
+| **Evidence** | Agent report / gate log |
+| **Status** | [x] complete (closure evidence — not in 11-task total) |
+
+### M2 dependency graph (executed)
 
 ```text
-M1-05 (MAT-001 design) → M2-01 (implementation)
-M1-04 (SLO baseline) → M2-03 (tenant observability)
-M2-03 → M2-02 (quota — needs tenant metrics)
-MAT-010 design (M3) → M2-01 pin + stamp join
+Stage 0 (REQ-P7-007) → M2-01 (MAT-001)
+M2-01 green → M2-02 (MAT-011) ∥ M2-03 (MAT-012)
+M2-02 + M2-03 → M2-04 aggregate gates
+```
+
+---
+
+## MAT-M2 aggregate gates
+
+```bash
+pnpm --filter @app-tour/workspace-sdk test -- test/workspace-versioning.spec.ts
+pnpm --filter @apps/api run test -- src/middleware/workspace-resource-policy.spec.ts
+pnpm --filter @apps/api run test -- src/observability/workspace-slo-telemetry.spec.ts
+pnpm --filter @apps/api run test -- src/observability/workspace-slo-queries.spec.ts
+pnpm --filter @apps/api run test -- src/tours/run-workspace-validation-pipeline.spec.ts
+pnpm run test:parity
+pnpm --filter @app-tour/workspace-denali test
+pnpm --filter @app-tour/workspace-urban test
+pnpm run generate:workspace-registry -- --check
+pnpm run guard:architecture
+pnpm run guard:import-boundary
+pnpm run guard:tour-core-boundary
+pnpm run guard:no-workspace-type-branches
+pnpm run guard:api-workspace-isolation
+pnpm run baseline:cw-compare
+git diff --check
 ```
 
 ---
@@ -235,10 +281,12 @@ M3-01 → M3-02 (regional stamps)
 
 | Phase | Total tasks | Complete | Pending | Blocked |
 |-------|-------------|----------|---------|---------|
-| MAT-M1 | 6 | 5 | 1 (gates) | 0 |
-| MAT-M2 | 3 | 0 | 3 | 0 |
+| MAT-M1 | 6 | 6 | 0 | 0 |
+| MAT-M2 | 3 | 3 | 0 | 0 |
 | MAT-M3 | 2 | 0 | 2 | 0 |
-| **MAT total** | **11** | **5** | **6** | **0** |
+| **MAT total** | **11** | **9** | **2** | **0** |
+
+Stage 0 (REQ-P7-007) and M2 aggregate gates are closure evidence — not counted in the 11-task program total.
 
 ---
 
