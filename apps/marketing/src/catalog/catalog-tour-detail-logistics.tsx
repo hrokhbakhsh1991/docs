@@ -6,7 +6,7 @@ import { buildCatalogMapLink } from "./build-catalog-map-link";
 import type { MarketingCatalogCard } from "./catalog-types";
 import { formatCatalogPrice } from "./format-catalog-display";
 import { resolveCatalogTransportLabelKey } from "./resolve-catalog-transport-label-key";
-import { resolveMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
+import { resolveCatalogPriceDisplay } from "./resolve-catalog-price-display";
 import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
 import { toLocalizedDigits } from "@/i18n/format-localized-digits";
 
@@ -23,7 +23,7 @@ export async function CatalogTourDetailLogistics({
   const localeRaw = await getLocale();
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
   const dateLocale = resolveIntlDateLocale(locale);
-  const catalogSurface = await resolveMarketingCatalogSurface(pluginId);
+  const priceDisplayPolicy = resolveCatalogPriceDisplay(pluginId);
   const transport = tour.transport;
   const gatheringLabel =
     tour.gatheringPoint?.label?.trim() || tour.meetingPointText?.trim() || null;
@@ -44,7 +44,7 @@ export async function CatalogTourDetailLogistics({
           tour.priceCurrency,
           dateLocale,
           t("detail.priceOnRequest"),
-          catalogSurface
+          priceDisplayPolicy
         )
       : null;
   const dongAmount =
@@ -54,7 +54,7 @@ export async function CatalogTourDetailLogistics({
           tour.priceCurrency,
           dateLocale,
           t("detail.priceOnRequest"),
-          catalogSurface
+          priceDisplayPolicy
         )
       : null;
 

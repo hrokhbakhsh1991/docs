@@ -10,6 +10,7 @@ import {
   shouldShowCatalogPrice,
 } from "./format-catalog-display";
 import { resolveMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
+import { resolveCatalogPriceDisplay } from "./resolve-catalog-price-display";
 import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-catalog-category-label";
 import { resolveMarketingCatalogFitnessLabel } from "./resolve-marketing-catalog-fitness-label";
 import { resolveCatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
@@ -33,6 +34,7 @@ export async function CatalogTourDetailFacts({
   const dateLocale = resolveIntlDateLocale(locale);
   const registration = resolveCatalogTourRegistrationState(tour, registrationUrl);
   const surface = await resolveMarketingCatalogSurface(pluginId);
+  const priceDisplayPolicy = resolveCatalogPriceDisplay(pluginId);
 
   const priceValue = shouldShowCatalogPrice(tour)
     ? formatCatalogPrice(
@@ -40,7 +42,7 @@ export async function CatalogTourDetailFacts({
         tour.priceCurrency,
         dateLocale,
         t("detail.priceOnRequest"),
-        surface
+        priceDisplayPolicy
       )
     : null;
 
