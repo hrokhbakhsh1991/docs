@@ -31,6 +31,26 @@ const workspaceModuleBindingSchema = z.object({
   export: z.string().min(1),
 });
 
+/** MAT-001 — optional integer capability contract revision (default 1 at resolver). */
+const capabilityRevisionField = {
+  capabilityRevision: z.number().int().positive().optional(),
+};
+
+/** MAT-001 — workspace/tenant version pins (manifest or theme JSON). */
+export const WorkspaceVersionPinProfileSchema = z.object({
+  id: z.string().min(1),
+  profileVersion: z.number().int().positive(),
+});
+
+export const WorkspaceVersionPinCapabilitySchema = z.object({
+  revision: z.number().int().positive(),
+});
+
+export const WorkspaceVersionPinsSchema = z.object({
+  profilePin: WorkspaceVersionPinProfileSchema.optional(),
+  capabilityPins: z.record(WorkspaceVersionPinCapabilitySchema).optional(),
+});
+
 const workspaceEquipmentModuleBindingSchema = workspaceModuleBindingSchema;
 
 const workspaceEquipmentEnricherBindingSchema = workspaceEquipmentModuleBindingSchema.extend({
@@ -63,6 +83,7 @@ export const WorkspaceWizardResumeBlockSchema = z.discriminatedUnion("mode", [
 /** CW7-06 — transport capability block (top-level manifest extension). */
 export const WorkspaceTransportBlockSchema = z.object({
   supported: z.boolean(),
+  ...capabilityRevisionField,
   capabilities: z
     .object({
       wizardTourField: z.boolean().optional(),
@@ -85,6 +106,7 @@ export const WorkspaceTransportBlockSchema = z.object({
 /** CW7-09 — difficulty/fitness capability block (top-level manifest extension). */
 export const WorkspaceDifficultyFitnessBlockSchema = z.object({
   supported: z.boolean(),
+  ...capabilityRevisionField,
   capabilities: z
     .object({
       wizardTourField: z.boolean().optional(),
@@ -100,6 +122,7 @@ export const WorkspaceDifficultyFitnessBlockSchema = z.object({
 /** CW7-11 — pricing capability block (top-level manifest extension). */
 export const WorkspacePricingBlockSchema = z.object({
   supported: z.boolean(),
+  ...capabilityRevisionField,
   capabilities: z
     .object({
       wizardTourField: z.boolean().optional(),
@@ -114,6 +137,7 @@ export const WorkspacePricingBlockSchema = z.object({
 /** CW7-10 — itinerary capability block (top-level manifest extension). */
 export const WorkspaceItineraryBlockSchema = z.object({
   supported: z.boolean(),
+  ...capabilityRevisionField,
   capabilities: z
     .object({
       wizardTourField: z.boolean().optional(),
@@ -127,6 +151,7 @@ export const WorkspaceItineraryBlockSchema = z.object({
 /** CW7-02 — equipment capability block (top-level manifest extension). */
 export const WorkspaceEquipmentBlockSchema = z.object({
   supported: z.boolean(),
+  ...capabilityRevisionField,
   defaultModuleEnabledWhenUnset: z.boolean().optional(),
   capabilities: z
     .object({
@@ -249,6 +274,7 @@ export const WorkspaceManifestCiSchema = z
     workspaceTypes: z.array(z.string().min(1)).min(1),
     plugin: pluginEntrySchema,
     profile: WorkspaceProfileRefSchema.optional(),
+    versionPins: WorkspaceVersionPinsSchema.optional(),
     workspaceEquipment: WorkspaceEquipmentBlockSchema.optional(),
     workspaceDifficultyFitness: WorkspaceDifficultyFitnessBlockSchema.optional(),
     workspaceItinerary: WorkspaceItineraryBlockSchema.optional(),

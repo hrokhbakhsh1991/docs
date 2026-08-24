@@ -11,6 +11,17 @@
     "clientBundleEnvGate": "ALLOW_DENALI_WEB_PLUGIN"
   },
   "workspaceTypes": ["denali"],
+  "versionPins": {
+    "capabilityPins": {
+      "workspaceBooking": { "revision": 1 },
+      "workspaceDifficultyFitness": { "revision": 1 },
+      "workspaceEquipment": { "revision": 1 },
+      "workspaceFinance": { "revision": 1 },
+      "workspaceItinerary": { "revision": 1 },
+      "workspacePricing": { "revision": 1 },
+      "workspaceTransport": { "revision": 1 }
+    }
+  },
   "tenantBrandingDefaults": {
     "primaryColor": "#059669",
     "cssVariables": {

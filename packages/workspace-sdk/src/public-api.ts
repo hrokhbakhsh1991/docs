@@ -732,6 +732,43 @@ export {
 } from "./http/workspace-tour-patch-publish-fields";
 
 export {
+  DEFAULT_CAPABILITY_REVISION,
+  parseWorkspaceVersionPinsFromTheme,
+  readCapabilityBlockRevision,
+  readProfileCatalogVersion,
+  resolveEffectiveCapabilityRevision,
+  resolveEffectiveProfileVersion,
+  runWorkspaceUpgradePreflight,
+  type WorkspaceCapabilityPin,
+  type WorkspaceProfilePin,
+  type WorkspaceUpgradePreflightInput,
+  type WorkspaceUpgradePreflightResult,
+  type WorkspaceVersionPins,
+  type WorkspaceVersioningErrorCode,
+  type WorkspaceVersioningViolation,
+} from "./manifest/workspace-versioning";
+export {
+  WORKSPACE_CAPABILITY_REVISION_REGISTRY,
+  listWorkspaceCapabilityRevisions,
+  resolveRegisteredCapabilityRevision,
+  type WorkspaceCapabilityRevisionRegistry,
+} from "./manifest/workspace-capability-revision-registry.generated";
+export {
+  WORKSPACE_PROFILE_VERSION_REGISTRY,
+  listSupportedProfileVersions,
+  type WorkspaceProfileVersionRegistry,
+} from "./manifest/workspace-profile-version-registry.generated";
+export {
+  WORKSPACE_CAPABILITY_VERSION_CATALOG,
+  WORKSPACE_PROFILE_VERSION_CATALOG,
+  createWorkspaceUpgradePreflightInput,
+} from "./manifest/workspace-versioning-catalog.generated";
+export {
+  WorkspaceVersionPinCapabilitySchema,
+  WorkspaceVersionPinProfileSchema,
+  WorkspaceVersionPinsSchema,
+} from "./manifest.schema";
+export {
   assertWorkspaceTypeOrThrow,
   assertWorkspaceRegistrationContactBasics,
   createTourDepartureNotSetValidationError,

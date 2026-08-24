@@ -162,6 +162,11 @@ import {
   generateWorkspacePricingBindings,
 } from "./domains/pricing.mjs";
 import { generateWorkspaceCapabilityValidationBindings, generateWorkspacePolicyValidationBindings } from "./domains/validation-pipeline.mjs";
+import {
+  generateWorkspaceCapabilityRevisionRegistry,
+  generateWorkspaceProfileVersionRegistry,
+  generateWorkspaceVersioningCatalog,
+} from "./domains/versioning.mjs";
 
 /** @type {Record<string, readonly string[]>} */
 export const DOMAIN_OUTPUT_KEYS = {
@@ -245,6 +250,11 @@ export const DOMAIN_OUTPUT_KEYS = {
     "workspacePricingWizardComposite",
   ],
   "validation-pipeline": ["capabilityValidationBindings", "workspacePolicyBindings"],
+  versioning: [
+    "workspaceCapabilityRevisionRegistry",
+    "workspaceProfileVersionRegistry",
+    "workspaceVersioningCatalog",
+  ],
 };
 
 export const OUTPUT_KEYS = Object.freeze([
@@ -339,6 +349,9 @@ export const OUTPUT_KEYS = Object.freeze([
   "workspacePricingWizardComposite",
   "capabilityValidationBindings",
   "workspacePolicyBindings",
+  "workspaceCapabilityRevisionRegistry",
+  "workspaceProfileVersionRegistry",
+  "workspaceVersioningCatalog",
 ]);
 
 export function generateAllOutputs(manifests, authorManifests = manifests) {
@@ -457,6 +470,9 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     workspacePricingWizardComposite: pricingOutputs.wizardComposite,
     capabilityValidationBindings: generateWorkspaceCapabilityValidationBindings(manifests),
     workspacePolicyBindings: generateWorkspacePolicyValidationBindings(manifests),
+    workspaceCapabilityRevisionRegistry: generateWorkspaceCapabilityRevisionRegistry(manifests),
+    workspaceProfileVersionRegistry: generateWorkspaceProfileVersionRegistry(manifests),
+    workspaceVersioningCatalog: generateWorkspaceVersioningCatalog(manifests),
   };
 }
 
@@ -792,6 +808,18 @@ export const OUTPUT_PATHS = {
   workspacePolicyBindings: join(
     REPO_ROOT,
     "apps/api/src/tours/workspace-policy-validation-bindings.generated.ts"
+  ),
+  workspaceCapabilityRevisionRegistry: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/manifest/workspace-capability-revision-registry.generated.ts"
+  ),
+  workspaceProfileVersionRegistry: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/manifest/workspace-profile-version-registry.generated.ts"
+  ),
+  workspaceVersioningCatalog: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/manifest/workspace-versioning-catalog.generated.ts"
   ),
 };
 
