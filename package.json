@@ -254,6 +254,7 @@
     "guard:workspace-export-surface": "node scripts/guards/guard-workspace-export-surface.mjs",
     "guard:api-workspace-settings-import": "node scripts/guards/guard-api-workspace-settings-import.mjs",
     "guard:api-workspace-isolation": "node scripts/guards/guard-api-workspace-isolation.mjs",
+    "guard:deprecation-policy": "node scripts/guards/guard-deprecation-policy.mjs",
     "guard:unbounded-list": "node scripts/guards/guard-unbounded-list.mjs",
     "guard:repository-n-plus-one": "node scripts/guards/guard-repository-n-plus-one.mjs",
     "audit:findmany-scan": "node scripts/audit-findmany-scan.mjs",
