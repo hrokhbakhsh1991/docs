@@ -49,3 +49,31 @@ export {
   type ResolveTenantRouteOptions,
 } from "./resolve-tenant-route";
 export { TenantConnectionRouter, type TenantRouteLookup } from "./tenant-connection-router";
+export {
+  WORKSPACE_INFRASTRUCTURE_MISCONFIGURED,
+  WORKSPACE_INFRASTRUCTURE_PLACEMENT_MODES,
+  WORKSPACE_INFRASTRUCTURE_REGION_VIOLATION,
+  WORKSPACE_INFRASTRUCTURE_UNKNOWN_PLACEMENT,
+  RESIDENCY_POLICIES,
+  type DeploymentStampCatalog,
+  type InfrastructureTargetCatalog,
+  type RegionId,
+  type ResidencyPolicy,
+  type SharedInfrastructureDefaults,
+  type WorkspaceBundleDescriptor,
+  type WorkspaceInfrastructurePlacement,
+  type WorkspaceInfrastructurePlacementMode,
+  type WorkspaceInfrastructureResolution,
+  type WorkspaceInfrastructureResourceEndpoints,
+} from "./workspace-infrastructure-placement";
+export { computeWorkspaceBundleFingerprint } from "./workspace-bundle-fingerprint";
+export {
+  assertRegionAllowed,
+  validateRegionalResourceMix,
+  type RegionalResourceDescriptor,
+} from "./workspace-residency-policy";
+export {
+  createWorkspaceBindingId,
+  resolveWorkspaceInfrastructure,
+  type ResolveWorkspaceInfrastructureInput,
+} from "./resolve-workspace-infrastructure";
