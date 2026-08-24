@@ -1,6 +1,5 @@
 import { BANNER } from "../constants.mjs";
 import { importSpecifier } from "../utils.mjs";
-import { readCatalogPresentation } from "./guest-catalog.mjs";
 
 const DIFFICULTY_FITNESS_SURFACE_KEYS = [
   "wizardTourField",
@@ -8,6 +7,17 @@ const DIFFICULTY_FITNESS_SURFACE_KEYS = [
   "catalogListFilters",
   "catalogMarketingFilters",
 ];
+
+/**
+ * @param {Record<string, unknown>} manifest
+ */
+function readCatalogPresentation(manifest) {
+  const presentation = manifest.catalogPresentation;
+  if (presentation === undefined || typeof presentation !== "object" || presentation === null) {
+    return undefined;
+  }
+  return presentation;
+}
 
 /**
  * Resolve workspaceDifficultyFitness block with legacy Denali alias from catalogPresentation.

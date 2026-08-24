@@ -1,4 +1,4 @@
-import type { WorkspaceDifficultyFitnessFieldRegistryFragment } from "@app-tour/workspace-sdk/difficulty-fitness";
+import type { WorkspaceDifficultyFitnessFieldRegistryFragment } from "@app-tour/workspace-sdk";
 
 import { denaliRegistryPresentationFields } from "./denali-integration-field-presentation";
 import {
@@ -10,7 +10,8 @@ const difficultyTourField = denaliDifficultyFitnessFieldModule.fields[0];
 
 /**
  * CW7-09 — workspace field-registry slice bound via manifest `fieldModule`.
- * Difficulty is a standalone registry row; fitness is a composite dependent (denali.pricing-participants).
+ * Fitness (`participants.fitnessLevel`) remains inside `denali.pricing-participants` composite
+ * until a future composite split; tour-field module still declares both paths.
  */
 export const denaliDifficultyFitnessFieldRegistryFragment: WorkspaceDifficultyFitnessFieldRegistryFragment =
   Object.freeze({

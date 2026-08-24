@@ -70,6 +70,14 @@
       "types": "./dist/difficulty-fitness/index.d.ts",
       "default": "./dist/difficulty-fitness/index.js"
     },
+    "./transport": {
+      "types": "./dist/transport/index.d.ts",
+      "default": "./dist/transport/index.js"
+    },
+    "./itinerary": {
+      "types": "./dist/itinerary/index.d.ts",
+      "default": "./dist/itinerary/index.js"
+    },
     "./http": {
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"

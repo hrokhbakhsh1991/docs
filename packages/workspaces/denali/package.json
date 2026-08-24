@@ -94,6 +94,22 @@
       "types": "./dist/field-registry/denali-difficulty-fitness-field-module.d.ts",
       "default": "./dist/field-registry/denali-difficulty-fitness-field-module.js"
     },
+    "./field-registry/denali-transport-field-module": {
+      "types": "./dist/field-registry/denali-transport-field-module.d.ts",
+      "default": "./dist/field-registry/denali-transport-field-module.js"
+    },
+    "./field-registry/denali-itinerary-field-module": {
+      "types": "./dist/field-registry/denali-itinerary-field-module.d.ts",
+      "default": "./dist/field-registry/denali-itinerary-field-module.js"
+    },
+    "./composites/denali-transport-composite-binding": {
+      "types": "./dist/composites/denali-transport-composite-binding.d.ts",
+      "default": "./dist/composites/denali-transport-composite-binding.js"
+    },
+    "./composites/denali-itinerary-composite-binding": {
+      "types": "./dist/composites/denali-itinerary-composite-binding.d.ts",
+      "default": "./dist/composites/denali-itinerary-composite-binding.js"
+    },
     "./marketing/denali-difficulty-fitness-filter-presentation": {
       "types": "./dist/marketing/denali-difficulty-fitness-filter-presentation.d.ts",
       "default": "./dist/marketing/denali-difficulty-fitness-filter-presentation.js"

@@ -1,4 +1,4 @@
-import { defineWorkspaceDifficultyFitnessFieldFragments } from "@app-tour/workspace-sdk/difficulty-fitness";
+import { defineWorkspaceDifficultyFitnessFieldFragments } from "@app-tour/workspace-sdk";
 
 import type { DenaliCreateWizardStepId } from "../layout/stepIds";
 

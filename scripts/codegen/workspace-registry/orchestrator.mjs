@@ -141,10 +141,6 @@ import {
   generateWorkspaceEquipmentBindings,
 } from "./domains/equipment.mjs";
 import {
-  assertWorkspaceItineraryManifest,
-  generateWorkspaceItineraryBindings,
-} from "./domains/itinerary.mjs";
-import {
   assertWorkspaceTransportManifest,
   generateWorkspaceTransportBindings,
   resolveTransportRegistrationInitializerExport,
@@ -217,13 +213,6 @@ export const DOMAIN_OUTPUT_KEYS = {
     "catalogIntakeTransportSurfaces",
     "registrationTransportNormalizers",
     "registrationTransportInitializers",
-    "workspaceTransportFieldModule",
-    "workspaceTransportWizardComposite",
-  ],
-  itinerary: [
-    "workspaceItineraryCapabilities",
-    "workspaceItineraryFieldModule",
-    "workspaceItineraryWizardComposite",
   ],
   "difficulty-fitness": [
     "workspaceDifficultyFitnessCapabilities",
@@ -311,14 +300,9 @@ export const OUTPUT_KEYS = Object.freeze([
   "catalogIntakeTransportSurfaces",
   "registrationTransportNormalizers",
   "registrationTransportInitializers",
-  "workspaceTransportFieldModule",
-  "workspaceTransportWizardComposite",
   "workspaceDifficultyFitnessCapabilities",
   "workspaceDifficultyFitnessFieldModule",
   "workspaceDifficultyFitnessFilterPresentation",
-  "workspaceItineraryCapabilities",
-  "workspaceItineraryFieldModule",
-  "workspaceItineraryWizardComposite",
   "capabilityValidationBindings",
   "workspacePolicyBindings",
 ]);
