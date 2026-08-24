@@ -3,7 +3,7 @@
 ```yaml
 plan_id: DP-4-EXECUTION-2026-08-24
 authority: docs/dev/denali-product-completion-plan.md
-status: READY_FOR_IMPLEMENTATION
+status: IMPLEMENTED_AUTOMATED_VERIFIED — browser closure pending (b6c4fbb2)
 approved_gates:
   DEN-PROD-09: "D+B+C composite — see docs/workspaces/denali/member-cancellation-policy.mdoc"
   DEN-PROD-12: "Portal inbox required; email async optional; SMS deferred; lifecycle independent of provider"

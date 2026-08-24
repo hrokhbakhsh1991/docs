@@ -3,14 +3,15 @@
 ```yaml
 plan_id: DENALI-PRODUCT-COMPLETION-2026-08-24
 program: Denali Product Completion (DP)
-mode: PLANNING_ONLY — no product behavior change in this run
-authority_audit: docs/dev/denali-product-completeness-audit.md
-status: READY_FOR_PRODUCT_DECISIONS
-production_code_changed: NO
-tests_changed: NO
-db_changed: NO
-commit: NO
-push: NO
+mode: EXECUTION_IN_PROGRESS — truth reconciled 2026-08-24 @ 09ba2b09
+authority_audit: docs/dev/production-closure-ledger.md (supersedes missing denali-product-completeness-audit.md)
+closure_ledger: docs/dev/production-closure-ledger.md
+runtime_findings: docs/dev/denali-runtime-findings.md
+status: RUNTIME_CLOSURE_PENDING
+production_code_changed: YES (DP-1..6 on main)
+tests_changed: YES
+db_changed: YES (payment holds, settlement in-memory, refund hooks)
+reconciled_commit: 09ba2b09906fde8d7104489fa8401ef4d9ab2e99
 ```
 
 This is the **canonical execution ledger** for making Denali operationally complete for a real paying club.
@@ -54,18 +55,20 @@ Cursor **must not infer unresolved product semantics**. Unresolved gates stay `[
 
 ## Executive summary
 
-Denali is **PILOT_READY_WITH_GAPS** (audit 2026-08-24). Core club ops exist: wizard, publish, catalog, OTP registration, operator approve/waitlist/reject, offline receipt collection, finance review, partial payments, operator cancel, manual refunds.
+Denali is **IMPLEMENTED_PAID_OPS_PENDING_RUNTIME_CLOSURE** (reconciled 2026-08-24 @ `09ba2b09`). Core club ops exist: wizard, publish, catalog, OTP registration, operator approve/waitlist/reject, offline receipt collection, finance review, partial payments, operator cancel, manual refunds.
 
-What blocks **real paid operations**:
+**DP-1..6 production implementations exist on `main`.** Browser/runtime certification and external production gates are **not uniformly closed**. See `docs/dev/production-closure-ledger.md`.
 
-1. Approved-unpaid holds a seat **forever** (no `paymentDueAt`, no expiry).
-2. No product definition of **final participant**.
-3. Operator cannot answer “who is coming AND paid?” from one surface.
-4. Tour mutations after registrations have **no freeze / notify / reprice policy**.
-5. Member notifications are **event-only** (no inbox).
-6. Driver/personal-car **settlement does not exist**.
-7. Cancel and refund are **disconnected manual workflows**.
-8. Post-tour closure **does not exist**.
+Pre-DP gaps — **addressed in code** (runtime proof pending):
+
+1. Approved-unpaid indefinite hold → **DP-1** payment holds + expiry worker.
+2. Final participant semantics → **DP-2** `isFinalParticipant` in code (**DEN-PROD-03 PROPOSED, not signed**).
+3. Operator single roster surface → **DP-2** tour workspace operational roster API.
+4. Tour mutation after registrations → **DP-3** enforcement + matrix.
+5. Member notifications inbox → **DP-4** portal inbox dispatch.
+6. Driver settlement → **DP-5** in-memory v1 (**optional / N/A first launch** if no driver pay).
+7. Cancel ↔ refund orchestration → **DP-6** `FinanceRefund` hooks.
+8. Post-tour closure → **DP-7 not started** (deferred minimum slice).
 
 This program freezes current truth (DP-0), resolves DEN-PROD gates, then implements money/capacity-safe slices in order. **Wallet is not required for MINIMUM PILOT.** Wallet is deferred unless DEN-PROD-05 reverses that.
 
@@ -165,8 +168,8 @@ Design **must** support configurable policy even if first customer picks a singl
 
 | Field | Content |
 |-------|---------|
-| **Status** | `[!]` |
-| **Current behavior** | No single enum. Dual axis: `booking.status` + `booking.paymentStatus` + invoice remaining. Transport roster = **all approved**. Finance inbox = AR remaining. |
+| **Status** | `[!]` **OPEN** — **PROPOSED in DP-2 code** (`isFinalParticipant := approved && remainingMinor===0`); not product-signed |
+| **Current behavior** | DP-2 exposes `operational` (approved) vs `final` (approved + financially settled) filters. Transport default = approved. See `production-closure-ledger.md` § DEN-PROD-03. |
 | **Product question** | Which semantic is “on the trip”? Compare: registration approved / payment complete / operationally confirmed / actually attending. **Do not collapse unless product decides.** |
 | **Options** | (A) Approved = operational roster (current transport tab) (B) Paid or waived = commercial confirmed (C) Operator “confirmed attending” third axis (D) Day-of attendance (DP-7) separate from pre-departure roster |
 | **Consequences** | Drives DP-2 projection filters, exports, DEN-PROD-06 passenger set. |
@@ -200,7 +203,7 @@ Design **must** support configurable policy even if first customer picks a singl
 
 | Field | Content |
 |-------|---------|
-| **Status** | `[!]` |
+| **Status** | **DEFERRED_POST_PRODUCTION** (2026-08-24 product direction) |
 | **Current behavior** | Member wallet = hidden stub. Operator prepayments panel **off**. Finance ledger ≠ wallet. |
 | **Product question** | Launch now without Wallet vs Wallet before paid operations? |
 | **Options** | (A) **Not required** for MINIMUM PILOT / MINIMUM PAID OPERATIONS (audit recommendation) (B) Required before any paid ops (C) Required only if DEN-PROD-08 = wallet credit or DP-5 pays drivers internally |
@@ -219,8 +222,8 @@ Design **must** support configurable policy even if first customer picks a singl
 
 | Field | Content |
 |-------|---------|
-| **Status** | `[!]` |
-| **Current behavior** | `dongAmount` = **passenger pricing**, not driver pay. No compensation. Offered seats ≠ assigned ≠ carried. |
+| **Status** | `[v]` **Approved** — `docs/workspaces/denali/driver-settlement.mdoc` (DP-5); optional first launch |
+| **Current behavior** | DP-5 implements min(offered, assigned) at roster freeze. Assignment UI partial (TW-C-06 deferred). |
 | **Product question** | Compensate on offered seats, assigned passengers, or actually carried? |
 | **Options** | (A) Offered seat count at registration (B) Assigned passengers at roster freeze (C) Actually carried (attendance) (D) Operator-entered carried count |
 | **Consequences** | A can overpay. C requires DP-7 attendance. B requires allocation model (today **not implemented**). |
@@ -236,8 +239,8 @@ Design **must** support configurable policy even if first customer picks a singl
 
 | Field | Content |
 |-------|---------|
-| **Status** | `[!]` |
-| **Current behavior** | N/A |
+| **Status** | `[v]` **Approved** — `docs/workspaces/denali/driver-settlement.mdoc` (operator confirm after freeze) |
+| **Current behavior** | DP-5 settlement lifecycle: freeze → confirm → payable → paid. |
 | **Product question** | Payable at allocation, roster freeze, departure, completion, or operator confirmation? |
 | **Options** | (A) On passenger allocation (B) Roster freeze (C) Tour departure (D) Tour completion (E) Operator confirmation only |
 | **Consequences** | A/B risk paying before trip runs. D depends on DP-7. E is safest for MINIMUM PAID OPERATIONS without post-tour. |
@@ -253,8 +256,8 @@ Design **must** support configurable policy even if first customer picks a singl
 
 | Field | Content |
 |-------|---------|
-| **Status** | `[!]` |
-| **Current behavior** | Manual `FinanceRefund` lifecycle (`request/approve/complete/reject/cancel`). Destination is **operator-completed offline** (evidence file/note). No wallet credit path. |
+| **Status** | `[v]` **Approved (initial release)** — `docs/workspaces/denali/refund-orchestration.mdoc` manual payout only |
+| **Current behavior** | DP-6 orchestrates `FinanceRefund` draft on cancel; operator completes offline in Finance Hub. |
 | **Product question** | Original payment method vs manual payout vs wallet vs configurable? |
 | **Options** | (A) Manual payout only (current, encode as product) (B) Original method (no gateway today — **not operable** until gateway) (C) Wallet credit (needs DEN-PROD-05 ≠ A) (D) Configurable per refund |
 | **Consequences** | A unblocks DP-6 orchestration without Wallet. B blocked by no gateway. |
@@ -359,10 +362,10 @@ Design **must** support configurable policy even if first customer picks a singl
 | ID | Objective | Invariant | Decision deps | Files / modules | DB | Automated coverage | Browser | Rollback | Risk | Status |
 |----|-----------|-----------|---------------|-----------------|-----|--------------------|---------|----------|------|--------|
 | DP0-01 | Executable current-behavior pack (approve, unpaid, seats, capacity, waitlist, obligation, partial pay, refund, personal-car, roster, portal, mutation) | Document **as-is**, no target invention | — | Audit + cited tests (`SMK-P9-04`, `SMK-PTL-04`, `PAY-FIN-02`, `DN-CAT-05`, `DEN-TRANS-*`, `DN-READ-05`) | None | Re-run **existing** targeted specs only; attach logs to freeze pack | Baseline capture current UI | N/A | LOW | `[ ]` |
-| DP0-02 | Sign DEN-PROD-01…12 records (or signed DEFER with date) | Unsigned gate remains `[!]` | Product owner | This plan | None | Decision checklist in CI doc-guard (optional later) | — | N/A | LOW | `[~]` 01/02/04/11 `[v]` in `dp-1-execution-plan.md`; 03,05–10,12 still `[!]` |
+| DP0-02 | Sign DEN-PROD-01…12 records (or signed DEFER with date) | Unsigned gate remains `[!]` | Product owner | This plan | None | Decision checklist in CI doc-guard (optional later) | — | N/A | LOW | `[~]` 01/02/04/08/09/10/11/12 `[v]`; 03 `[!]` PROPOSED; 05 DEFERRED; 06/07 `[v]` in workspace docs |
 | DP0-03 | Freeze DP-1 20-scenario **expected** columns only after 01/02/04/11 | No expected states invented | DEN-PROD-01,02,04,11 | `docs/dev/dp-1-execution-plan.md` § 20-scenario matrix | None | Matrix review | — | N/A | LOW | `[v]` |
 | DP0-04 | Contract inventory: Booking / Finance / Portal / Transport / Outbox / Scheduler | No silent contract expansion | — | `booking-http-contracts`, `finance-http`, `registration-payment-orchestration.mdoc`, `cw7-05-workspace-transport-contract.md` | None | Inventory appendix | — | N/A | LOW | `[ ]` |
-| DP0-05 | Sign MINIMUM PILOT vs MINIMUM PAID OPERATIONS scope | Pilot must not silently include Wallet/settlement | DEN-PROD-05 | This plan | None | — | — | N/A | LOW | `[!]` |
+| DP0-05 | Sign MINIMUM PILOT vs MINIMUM PAID OPERATIONS scope | Pilot must not silently include Wallet/settlement | DEN-PROD-05 | This plan | None | — | — | N/A | LOW | `[!]` — see `production-closure-ledger.md` § FIRST CUSTOMER |
 | DP0-06 | Physical baseline: operator login→list; portal registration detail awaiting approval; finance outstanding; transport roster | Evidence of **current** product | — | apps/web, portal, marketing | None | — | Desktop 1440 operator; portal 1440+390 | N/A | LOW | `[ ]` |
 | DP0-07 | Inventory wizard gap `registrationApproval` / `paymentCollection` (no UI) | Do not implement in DP-0 | — | `denali-wizard-template-roadmap.ts` | None | — | Screenshot settings vs wizard | N/A | LOW | `[ ]` |
 | DP0-08 | Phase closure: all freeze artifacts stored; gates signed or deferred | No DP-1 impl until DP0-02 for 01/02/04 | DP0-02 | `docs/dev/` | None | Doc presence | Baseline pack attached | N/A | LOW | `[ ]` |
@@ -375,7 +378,9 @@ Design **must** support configurable policy even if first customer picks a singl
 
 ### DP-1 — Payment Deadline / Approved-Unpaid Lifecycle
 
-**Execution plan:** `docs/dev/dp-1-execution-plan.md` — status **READY_FOR_TEST_FIRST_IMPLEMENTATION**.
+**Reconciled status (2026-08-24 @ `09ba2b09`):** implementation **`[v]`** · automated **`[v]`** (25/25 @ `9bbf358e`, see `dp-1-execution-plan.md`) · browser **`[ ]`** · phase closure **`[v]`** (not `[x]`).
+
+Task rows below mix historical planning markers with post-implementation truth; prefer **closure ledger** for closure decisions.
 
 **Do not execute production behavior until failing DP-1 tests exist (see execution plan § First implementation slice).**
 
@@ -418,8 +423,8 @@ Design **must** support configurable policy even if first customer picks a singl
 | DP1-16 | Financial safety: no duplicate obligation, integer minor units | Existing finance invariants | 11 | finance-core | — | Finance regression | — | — | FINANCIAL_HIGH | `[!]` |
 | DP1-17 | Memory driver + Postgres parity | Dev memory API must not lie | — | in-memory bookings repo | — | Dual driver tests | — | — | HIGH | `[!]` |
 | DP1-18 | Automated cert pack for 20 scenarios | Matrix attached | 01,02,04 | `packages/workspaces/denali/test`, `apps/api/test` | — | All 20 | — | — | HIGH | `[v]` |
-| DP1-19 | Browser cert pack | UI+network+domain | 01,02,04 | Playwright + evidence dir | — | — | See browser matrix | — | HIGH | `[!]` |
-| DP1-20 | Phase closure | `[v]` then `[x]` | DP1-18, DP1-19 | — | — | — | RUNTIME_FINDING process | — | HIGH | `[!]` |
+| DP1-19 | Browser cert pack | UI+network+domain | 01,02,04 | Playwright + evidence dir | — | — | See browser matrix | — | HIGH | `[ ]` |
+| DP1-20 | Phase closure | `[v]` then `[x]` | DP1-18, DP1-19 | — | — | — | RUNTIME_FINDING process | — | HIGH | `[v]` |
 
 **Strangler pause rule:** do not pause between writing dueAt and running expiry (split-brain holds). Pause only after worker **off** and column unused, or after full DP-1 `[x]`.
 
@@ -441,8 +446,8 @@ Read-model / projection. **Do not merge Bookings and Finance tables.** SoT remai
 | DP2-08 | Driver + passenger grouping | Intake `personal_car` + occupants; **assignment still absent** | 06 | Transport scalars | — | DEN-TRANS regression | Browser | — | MEDIUM | `[v]` |
 | DP2-09 | Deadline column if DP-1 live | Same dueAt | DP-1 | Compose | — | S17 | Browser | — | MEDIUM | `[v]` |
 | DP2-10 | Export (CSV) optional | Not required for MINIMUM PILOT | — | Web | — | — | — | — | LOW | `[ ]` FUTURE |
-| DP2-11 | Browser cert | Operator 1440; tablet 768 optional | 03 | — | — | — | Required | — | MEDIUM | `[!]` |
-| DP2-12 | Phase closure | `[x]` only with browser | — | — | — | — | — | — | MEDIUM | `[!]` |
+| DP2-11 | Browser cert | Operator 1440; tablet 768 optional | 03 | — | — | — | Required | — | MEDIUM | `[v]` STALE — prior `[x]` reverted `9126e966`; no artifact on `main` |
+| DP2-12 | Phase closure | `[x]` only with browser | — | — | — | — | — | — | MEDIUM | `[v]` |
 
 ---
 
@@ -473,28 +478,32 @@ Field classes (product fills after DEN-PROD-10). Engineering must not assign cla
 
 ### DP-4 — Member Self-Service + Notifications
 
+**Reconciled status (2026-08-24 @ `b6c4fbb2`):** implementation **`[v]`** · automated **`[v]`** · browser **`[ ]`** · phase closure **`[v]`**.
+
 Distinguish: **EVENT_EXISTS** / **NOTIFICATION_DELIVERY_EXISTS** / **PORTAL_INBOX_EXISTS**.
 
-Current: approved = EVENT + structured delivery adapter; **PORTAL_INBOX_EXISTS = no**.
+Current: DP-4 ships inbox dispatch + member cancel API (`b6c4fbb2`). Portal inbox UI exists; browser cert pending.
 
 | ID | Objective | Invariant | Decision deps | Modules | DB | Automated | Browser | Rollback | Risk | Status |
 |----|-----------|-----------|---------------|---------|-----|-----------|---------|----------|------|--------|
-| DP4-01 | Member cancel API (if 09 ≠ D) | Same TX rules as operator cancel | 09 | Portal BFF, Bookings | Status | Domain+HTTP | Portal 1440+390 | Disable route | HIGH | `[!]` |
-| DP4-02 | Member cancel UX + copy | No button if forbidden | 09 | Portal | — | Component | Mobile | Hide | MEDIUM | `[!]` |
-| DP4-03 | Payment deadline + payment state on detail | Same dueAt as DP-1 | 01 | Portal | Read | S16 | Mobile+desktop | — | MEDIUM | `[!]` |
+| DP4-01 | Member cancel API (if 09 ≠ D) | Same TX rules as operator cancel | 09 | Portal BFF, Bookings | Status | Domain+HTTP | Portal 1440+390 | Disable route | HIGH | `[v]` |
+| DP4-02 | Member cancel UX + copy | No button if forbidden | 09 | Portal | — | Component | Mobile | Hide | MEDIUM | `[v]` |
+| DP4-03 | Payment deadline + payment state on detail | Same dueAt as DP-1 | 01 | Portal | Read | S16 | Mobile+desktop | — | MEDIUM | `[v]` |
 | DP4-04 | Approval / waitlist explanation copy | Dual-axis clear | 03 | i18n | — | — | Browser | — | LOW | `[ ]` |
-| DP4-05 | Tour-change notification | Delivery per 12 | 10,12 | Notifications | Outbox | Dispatch tests | Inbox if A | Flag | MEDIUM | `[!]` |
-| DP4-06 | Payment due / expiring notification | Not event-only | 01,12 | Notifications | — | Dispatch | — | Flag | MEDIUM | `[!]` |
-| DP4-07 | Expired / cancelled / refund status on portal | Honest labels | 04,08,09 | Portal | — | Contract | Browser | — | MEDIUM | `[!]` |
-| DP4-08 | Portal inbox module (if 12 includes A) | Entitlements; isolation | 12 | `apps/portal` | Store TBD | Isolation | Desktop+mobile | Hidden tier | MEDIUM | `[!]` |
-| DP4-09 | Email/SMS (if 12 includes B/C) | Idempotent templates | 12 | Delivery adapters | — | Adapter tests | — | Flag | MEDIUM | `[!]` |
-| DP4-10 | Reject notification (today silent) | Product: keep silent or add event | 12 | Outbox policy CW0-04 | — | — | — | — | MEDIUM | `[!]` extra product note |
-| DP4-11 | Browser cert | Member journeys | 09,12 | — | — | — | 1440+390 | — | MEDIUM | `[!]` |
-| DP4-12 | Phase closure | Delivery ≠ event | 12 | — | — | — | — | — | MEDIUM | `[!]` |
+| DP4-05 | Tour-change notification | Delivery per 12 | 10,12 | Notifications | Outbox | Dispatch tests | Inbox if A | Flag | MEDIUM | `[v]` |
+| DP4-06 | Payment due / expiring notification | Not event-only | 01,12 | Notifications | — | Dispatch | — | Flag | MEDIUM | `[ ]` |
+| DP4-07 | Expired / cancelled / refund status on portal | Honest labels | 04,08,09 | Portal | — | Contract | Browser | — | MEDIUM | `[v]` |
+| DP4-08 | Portal inbox module (if 12 includes A) | Entitlements; isolation | 12 | `apps/portal` | Store TBD | Isolation | Desktop+mobile | Hidden tier | MEDIUM | `[v]` |
+| DP4-09 | Email/SMS (if 12 includes B/C) | Idempotent templates | 12 | Delivery adapters | — | Adapter tests | — | Flag | MEDIUM | `[ ]` DEFER optional |
+| DP4-10 | Reject notification (today silent) | Product: keep silent or add event | 12 | Outbox policy CW0-04 | — | — | — | — | MEDIUM | `[v]` |
+| DP4-11 | Browser cert | Member journeys | 09,12 | — | — | — | 1440+390 | — | MEDIUM | `[ ]` |
+| DP4-12 | Phase closure | Delivery ≠ event | 12 | — | — | — | — | — | MEDIUM | `[v]` |
 
 ---
 
 ### DP-5 — Driver / Personal-Car Settlement
+
+**Reconciled status (2026-08-24 @ `1d0fd635`):** implementation **`[v]`** (in-memory v1) · automated **`[v]`** · browser **`[ ]`** · first-launch scope **`[N/A]`** unless driver pay promised — see closure ledger.
 
 **Boundary:** Transport → **allocation/carried facts** → **Settlement** → Finance payout/credit. **Transport MUST NOT mutate Wallet/ledger balance.**
 
@@ -504,22 +513,22 @@ Scenario to plan (not execute): driver offers **3** seats, **2** assigned/carrie
 
 | ID | Objective | Invariant | Decision deps | Modules | DB | Automated | Browser | Rollback | Risk | Status |
 |----|-----------|-----------|---------------|---------|-----|-----------|---------|----------|------|--------|
-| DP5-01 | Settlement domain (workspace-owned vs finance submodule) | No Transport ledger writes | 05,06,07 | New module TBD — **not** `workspace-sdk` Denali leak | New tables | Domain | — | Unused tables | FINANCIAL_HIGH | `[!]` |
-| DP5-02 | Offered capacity vs assigned vs carried fields | Three numbers stored distinctly | 06 | Transport + settlement | Columns | Unit | — | — | HIGH | `[!]` |
-| DP5-03 | Allocation (if 06 needs assigned) | Today assignment **out of scope** TW-C-06 — product may keep manual carried | 06 | Tour workspace | — | — | UI | — | HIGH | `[!]` |
-| DP5-04 | Compensation amount (integer minor) | Idempotent calc | 06 | Settlement | — | Domain | — | — | FINANCIAL_HIGH | `[!]` |
-| DP5-05 | Status machine: draft/confirmed/payable/paid/corrected | No double pay | 07 | Settlement+Finance | Status | Domain | — | — | FINANCIAL_HIGH | `[!]` |
-| DP5-06 | Operator approval of settlement | Audit | 07 | Web | — | HTTP | 1440 | — | HIGH | `[!]` |
-| DP5-07 | Finance payout/credit seam (not Wallet required) | XOR with future Wallet | 05,08 | finance-core port | Payment or ledger | Finance tests | — | — | FINANCIAL_HIGH | `[!]` |
-| DP5-08 | Passenger cancel impact | Recalc or freeze per 06/07 | 09 | Settlement | — | Domain | — | — | HIGH | `[!]` |
-| DP5-09 | Driver cancel | Void/correct settlement | — | Settlement | — | Domain | — | — | HIGH | `[!]` |
-| DP5-10 | Tour cancel | Batch void | — | Settlement+DP-6 | — | Integration | — | — | HIGH | `[!]` |
-| DP5-11 | Correction + audit | Immutable evidence + reversal | — | Settlement | — | Domain | — | — | FINANCIAL_HIGH | `[!]` |
-| DP5-12 | Isolation | Tenant | — | — | tenant_id | Negative | — | — | HIGH | `[ ]` |
-| DP5-13 | 3-offer / 2-carried golden | Matches 06 | 06,07 | — | — | Domain+E2E | Browser | — | FINANCIAL_HIGH | `[!]` |
-| DP5-14 | Migration | Empty prod assumption forbidden | — | Prisma | Yes | Migrate | — | Expand | MEDIUM | `[!]` |
-| DP5-15 | Browser cert | Operator settlement UI | 06,07 | — | — | — | 1440 | — | HIGH | `[!]` |
-| DP5-16 | Phase closure | — | — | — | — | — | — | — | FINANCIAL_HIGH | `[!]` |
+| DP5-01 | Settlement domain (workspace-owned vs finance submodule) | No Transport ledger writes | 05,06,07 | API settlement module | In-memory tables | Domain | — | Unused tables | FINANCIAL_HIGH | `[v]` |
+| DP5-02 | Offered capacity vs assigned vs carried fields | Three numbers stored distinctly | 06 | Transport + settlement | Columns | Unit | — | — | HIGH | `[v]` |
+| DP5-03 | Allocation (if 06 needs assigned) | Today assignment **out of scope** TW-C-06 — product may keep manual carried | 06 | Tour workspace | — | — | UI | — | HIGH | `[v]` |
+| DP5-04 | Compensation amount (integer minor) | Idempotent calc | 06 | Settlement | — | Domain | — | — | FINANCIAL_HIGH | `[v]` |
+| DP5-05 | Status machine: draft/confirmed/payable/paid/corrected | No double pay | 07 | Settlement+Finance | Status | Domain | — | — | FINANCIAL_HIGH | `[v]` |
+| DP5-06 | Operator approval of settlement | Audit | 07 | Web | — | HTTP | 1440 | — | HIGH | `[v]` |
+| DP5-07 | Finance payout/credit seam (not Wallet required) | XOR with future Wallet | 05,08 | finance-core port | Payment or ledger | Finance tests | — | — | FINANCIAL_HIGH | `[v]` |
+| DP5-08 | Passenger cancel impact | Recalc or freeze per 06/07 | 09 | Settlement | — | Domain | — | — | HIGH | `[v]` |
+| DP5-09 | Driver cancel | Void/correct settlement | — | Settlement | — | Domain | — | — | HIGH | `[v]` |
+| DP5-10 | Tour cancel | Batch void | — | Settlement+DP-6 | — | Integration | — | — | HIGH | `[v]` |
+| DP5-11 | Correction + audit | Immutable evidence + reversal | — | Settlement | — | Domain | — | — | FINANCIAL_HIGH | `[v]` |
+| DP5-12 | Isolation | Tenant | — | — | tenant_id | Negative | — | — | HIGH | `[v]` |
+| DP5-13 | 3-offer / 2-carried golden | Matches 06 | 06,07 | — | — | Domain+E2E | Browser | — | FINANCIAL_HIGH | `[v]` |
+| DP5-14 | Migration | Empty prod assumption forbidden | — | Prisma | Yes | Migrate | — | Expand | MEDIUM | `[ ]` in-memory only |
+| DP5-15 | Browser cert | Operator settlement UI | 06,07 | — | — | — | 1440 | — | HIGH | `[ ]` |
+| DP5-16 | Phase closure | — | — | — | — | — | — | — | FINANCIAL_HIGH | `[v]` |
 
 **MINIMUM PAID OPERATIONS:** DP-5 is **REQUIRED** only for clubs compensating drivers in-product. Otherwise **SOON_AFTER_LAUNCH** / **FUTURE** per DP-7 classification. First-customer clubs using bus-only can defer.
 
@@ -527,22 +536,24 @@ Scenario to plan (not execute): driver offers **3** seats, **2** assigned/carrie
 
 ### DP-6 — Refund & Cancellation Completion
 
+**Reconciled status (2026-08-24 @ `14514e9f`):** implementation **`[v]`** · automated **`[v]`** (9/9 commit message) · browser **`[ ]`** · phase closure **`[v]`**.
+
 **Reuse** `FinanceRefund` + `/finance/refunds*`. Do not duplicate refund state machines.
 
 | ID | Objective | Invariant | Decision deps | Modules | DB | Automated | Browser | Rollback | Risk | Status |
 |----|-----------|-----------|---------------|---------|-----|-----------|---------|----------|------|--------|
-| DP6-01 | Member cancel → eligibility | Per 09 | 09 | Portal+Bookings | Status | Domain | Portal | — | HIGH | `[!]` |
-| DP6-02 | Operator cancel → eligibility | Capacity release already exists | — | Bookings | Status | Regression | Operator | — | MEDIUM | `[ ]` |
-| DP6-03 | Paid registration cancel | Refund request created or explicit skip | 08 | Bookings→Finance hook | Refund row | No double refund | Both | Flag | FINANCIAL_HIGH | `[!]` |
-| DP6-04 | Expiry (DP-1) vs refund | Unpaid expiry typically **no refund** | 04,08 | Worker | — | Domain | — | — | HIGH | `[!]` |
-| DP6-05 | Amount policy | Penalty from catalog fields **or** full — product | 08,09 | Finance | — | Domain | — | — | FINANCIAL_HIGH | `[!]` |
-| DP6-06 | Destination | Manual vs wallet | 05,08 | Refund complete | Evidence | — | Operator complete | — | FINANCIAL_HIGH | `[!]` |
-| DP6-07 | Partial payment refund | Remaining + captured | 08 | finance-core | — | Existing partial + new | — | — | FINANCIAL_HIGH | `[!]` |
-| DP6-08 | Tour cancellation | Bulk cancel + refunds | 08,10 | Tours+Bookings+Finance | Many | Isolation+idempotency | Operator | — | FINANCIAL_HIGH | `[!]` |
-| DP6-09 | Waitlist impact | Seats free → optional promote | 04 | Bookings | Occupancy | Integration | — | — | HIGH | `[!]` |
-| DP6-10 | Events/audit | Outbox + refund audit | — | Existing | — | Tests | — | — | MEDIUM | `[ ]` |
-| DP6-11 | Browser cert | Paid cancel+refund path | 08,09 | — | — | — | 1440 + portal | — | HIGH | `[!]` |
-| DP6-12 | Phase closure | — | — | — | — | — | — | — | FINANCIAL_HIGH | `[!]` |
+| DP6-01 | Member cancel → eligibility | Per 09 | 09 | Portal+Bookings | Status | Domain | Portal | — | HIGH | `[v]` |
+| DP6-02 | Operator cancel → eligibility | Capacity release already exists | — | Bookings | Status | Regression | Operator | — | MEDIUM | `[v]` |
+| DP6-03 | Paid registration cancel | Refund request created or explicit skip | 08 | Bookings→Finance hook | Refund row | No double refund | Both | Flag | FINANCIAL_HIGH | `[v]` |
+| DP6-04 | Expiry (DP-1) vs refund | Unpaid expiry typically **no refund** | 04,08 | Worker | — | Domain | — | — | HIGH | `[v]` |
+| DP6-05 | Amount policy | Penalty from catalog fields **or** full — product | 08,09 | Finance | — | Domain | — | — | FINANCIAL_HIGH | `[v]` |
+| DP6-06 | Destination | Manual vs wallet | 05,08 | Refund complete | Evidence | — | Operator complete | — | FINANCIAL_HIGH | `[v]` manual payout |
+| DP6-07 | Partial payment refund | Remaining + captured | 08 | finance-core | — | Existing partial + new | — | — | FINANCIAL_HIGH | `[v]` |
+| DP6-08 | Tour cancellation | Bulk cancel + refunds | 08,10 | Tours+Bookings+Finance | Many | Isolation+idempotency | Operator | — | FINANCIAL_HIGH | `[v]` |
+| DP6-09 | Waitlist impact | Seats free → optional promote | 04 | Bookings | Occupancy | Integration | — | — | HIGH | `[v]` |
+| DP6-10 | Events/audit | Outbox + refund audit | — | Existing | — | Tests | — | — | MEDIUM | `[v]` |
+| DP6-11 | Browser cert | Paid cancel+refund path | 08,09 | — | — | — | 1440 + portal | — | HIGH | `[ ]` |
+| DP6-12 | Phase closure | — | — | — | — | — | — | — | FINANCIAL_HIGH | `[v]` |
 
 ---
 
@@ -832,16 +843,41 @@ Task count (approx.): DP-0 8 + DP-1 20 + DP-2 12 + DP-3 14 + DP-4 12 + DP-5 16 +
 
 ---
 
+## FIRST CUSTOMER — DENALI scope lock
+
+Canonical detail: `docs/dev/production-closure-ledger.md` § FIRST CUSTOMER.
+
+| Capability | Classification |
+|------------|----------------|
+| Offline finance / receipts | **REQUIRED_FOR_PAID_OPERATIONS** |
+| DP-1 payment deadline / expiry | **REQUIRED_FOR_PAID_OPERATIONS** |
+| DP-2 roster | **REQUIRED_FOR_PAID_OPERATIONS** |
+| DP-3 tour mutation safety | **REQUIRED_FOR_PAID_OPERATIONS** |
+| DP-4 member cancel + portal inbox | **REQUIRED_FOR_PAID_OPERATIONS** |
+| DP-6 cancel ↔ refund orchestration | **REQUIRED_FOR_PAID_OPERATIONS** |
+| Payment expiry live replay | **REQUIRED_FOR_PAID_OPERATIONS** (browser pending) |
+| Wallet | **DEFERRED_POST_PRODUCTION** |
+| DP-5 driver settlement | **OPTIONAL_FOR_LAUNCH** — `[N/A]` if bus-only / no in-product driver pay |
+| DP-7 post-tour closure | **DEFERRED_POST_PRODUCTION** (minimum slice) |
+| DP-8 Golden cert | **REQUIRED_BEFORE_GO_LIVE** |
+| Ticketing / Weather | **DEFERRED_POST_PRODUCTION** |
+
+**PRODUCT_DECISION_REQUIRED:** Confirm bus-only (DP-5 N/A) vs personal-car driver compensation in-product.
+
+---
+
 ## First implementation slice
 
-**NOT production implementation.**
+**NOT production implementation — superseded by DP-1..6 on `main`.**
 
-1. Complete **DP0-01, DP0-04, DP0-06, DP0-07** (evidence freeze + baseline browser of **current** product).
-2. **DONE:** DEN-PROD-01, 02, 04, 11 approved — `docs/dev/dp-1-execution-plan.md`. Remaining: **DEN-PROD-05** (Wallet) and other gates.
-3. **NEXT:** Write **failing automated tests** per `dp-1-execution-plan.md` § First implementation slice (DP1-A/B/C/D).
-4. DP-1 production behavior only after S1 integration tests green.
+Historical planning slice (completed):
 
-No Wallet. No settlement. No schema. No jobs. No status changes in this planning run.
+1. ~~Complete **DP0-01, DP0-04, DP0-06, DP0-07**~~ — partial; see closure ledger.
+2. **DONE:** DEN-PROD-01, 02, 04, 11 approved — `docs/dev/dp-1-execution-plan.md`.
+3. **DONE:** DP-1..6 implementation on `main` @ `09ba2b09`.
+4. **NEXT (Wave B):** Browser/runtime closure DP-1, DP-2, DP-3, DP-4, DP-6 — see `production-closure-ledger.md`.
+
+No Wallet. No new architecture refactors in Wave B.
 
 ---
 
@@ -865,8 +901,8 @@ Before changing `apps/api`, `packages/workspace-sdk`, or `packages/platform-core
 
 ---
 
-Architect, documentation status: **Updated**. Link to docs: `docs/dev/denali-product-completion-plan.md`.
+Architect, documentation status: **Updated**. Link to docs: `docs/dev/denali-product-completion-plan.md`, `docs/dev/production-closure-ledger.md`.
 
 ---
 
-**DENALI-PRODUCT-PLAN READY_FOR_PRODUCT_DECISIONS**
+**DENALI-PRODUCT-PLAN RUNTIME_CLOSURE_PENDING** (truth reconciled 2026-08-24)
