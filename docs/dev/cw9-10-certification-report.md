@@ -19,7 +19,7 @@
 | 9 | Urban/different-vertical preserved? | **YES** — `cert-events` native `confirmed/waitlist/cancelled` + display map |
 | 10 | Generated outputs deterministic? | **YES** — CW9-07 two-run byte-identical |
 | 11 | Metrics improved vs CW0? | **YES** — see metrics table |
-| 12 | Target architecture achieved? | **YES** — executable certification below |
+| 12 | Target architecture achieved? | **QUALIFIED YES** — executable certification with stub-tier cert fixtures + 16 legacy provisioning literals (see REM-001) |
 
 ## DEC-CW-05 / CW5-10
 
@@ -31,10 +31,11 @@
 
 | Dimension | Result |
 |-----------|--------|
+| **productionTier** | **stub** (cert fixture — not next-customer production path; REM-008) |
 | Onboarding | `pnpm run workspace:create -- cert-club --profile starter-outdoor --guest` |
 | Manual src modules | 17 TS/TSX (14 guest scaffold + policy + transport stubs) |
 | Host edits | 0 |
-| Capabilities | Equipment + transport runtime; finance/booking composed via profile (stub-tier author override) |
+| Capabilities | Equipment + transport runtime; finance/booking composed via profile (**stub-tier** `supported:false` — no `tourWrite`; REM-001) |
 | Policy | `CERT_CLUB_TITLE_TOO_SHORT`, `CERT_CLUB_BLOCKED_WORD` |
 | Behavior | 22 tests PASS (policy, HTTP smoke, composition, CW9-04 behavior) |
 
@@ -43,6 +44,7 @@
 | Dimension | Result |
 |-----------|--------|
 | Vertical | Events / at-create registration (DEC-CW-03) |
+| **productionTier** | **stub** (cert fixture — not next-customer ready; REM-008) |
 | Registration strategy | Guest smoke HTTP; no booking pipeline binding |
 | Member display | `confirmed→accepted`, `waitlist→waitlisted`, `cancelled→cancelled` (DEC-CW-04) |
 | Behavior | 9 tests PASS |
@@ -51,9 +53,9 @@
 
 | Metric | Baseline (CW0-10) | Final | Target | Status |
 |--------|-------------------|-------|--------|--------|
-| workspaceIdBranches | 33 | 16 | 0 | **Improved** (accepted legacy provisioning literals; `baseline:cw-compare` PASS) |
+| workspaceIdBranches | 33 | 16 | 0 | **Ratcheted** (`baseline:cw-compare` PASS; target 0 not met — REM-001) |
 | directWorkspaceImports | 243 | 248 | informational | +5 tour-core consumers (expected) |
-| genericHostEditsForOnboarding | 5 | 5 | 0 | **Met** (no new edits) |
+| genericHostEditsForOnboarding | 5 | 5 | 0 | **Met** (no new edits since CW0) |
 | copiedDenaliModules | 0 | 0 | 0 | **Met** |
 | formalReusableCapabilities (qualified) | 4 | 7 | ≥5 | **Met** |
 | guest scaffold TS/TSX (cert-club) | 14 planner | 14 | ≤30 | **Met** |
@@ -88,7 +90,9 @@
 | CW9-07 determinism | PASS |
 | `git diff --check` | PASS |
 
-**Note:** `foundation-import-purity-audit --production-only` reports 4 dynamic-import dispatch edges (3 Denali + 1 cert-club) — same class as pre-CW9 Denali dispatch; classified **metric-definition limitation** (generated SDK dispatch must reference workspace packages).
+**Note:** `foundation-import-purity-audit --production-only` previously reported 4 dynamic-import dispatch edges (3 Denali + 1 cert-club). REM-006 allowlists architecturally required codegen dispatch shims; gate now PASS in `verify:cw-closure`.
+
+**Remediation:** See [`composable-platform-remediation-plan.md`](composable-platform-remediation-plan.md) (REM-001–REM-009).
 
 ## Architecture verdict
 

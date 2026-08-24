@@ -808,7 +808,8 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
   - Invariant: no Denali clone; no generic host edits; branding data-driven.
   - Deps: CW9-01, CW6-04, CW6-05A, CW7-13, CW8-07. Risk: **MEDIUM**.
 - **CW9-03** `[x]` **cert-club: enable equipment+transport+finance+booking; two custom policy rules via CW-8 seam**
-  - Evidence: equipment+transport runtime; profile composes finance/booking; stub-tier author override; `cert-club-composition.spec.ts`, `cert-club-policy.spec.ts`
+  - Evidence: equipment+transport runtime; profile composes finance/booking; **stub-tier** author override (`supported:false`, no `tourWrite`); `cert-club-composition.spec.ts`, `cert-club-policy.spec.ts`
+  - **REM-001 exception:** finance/booking are profile-composed stubs, not full production behavior path
   - Deps: CW9-02, CW6-05B. Risk: **MEDIUM**.
 - **CW9-04** `[x]` **cert-club: full behavior suite (publish, registration, capacity, waitlist, spots remaining) green**
   - Evidence: `cert-club-behavior.spec.ts` (22/22 cert-club suite PASS)
@@ -823,10 +824,12 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
   - Deps: CW9-03, CW9-05. Risk: **LOW**.
 - **CW9-08** `[x]` **Metrics rerun: execute the unchanged CW0-09 script; diff vs frozen CW0-10 baseline; publish deltas in ledger**
   - Evidence: [`cw9-10-certification-report.md`](cw9-10-certification-report.md) §Final metrics; `baseline:cw-compare` PASS
+  - **REM-001 exception:** `workspaceIdBranches` target 0 not met (16 remain); ratchet PASS only
   - Invariant: same script, same rules — targets judged on identical measurement semantics; any script change between CW0 and CW9 requires re-running baseline on a pre-CW-1 ref for comparability.
   - Deps: CW9-04, CW9-06 (or CW9-04 alone if DEC-CW-04 still open — club metrics publishable independently). Risk: **LOW**.
 - **CW9-09** `[x]` **Guard sweep: all isolation/boundary/branch guards green with synthetics present**
-  - Evidence: CW9-10 report §Final gates; CW7 isolation scripts PASS
+  - Evidence: CW9-10 report §Final gates; CW7 isolation scripts PASS; `verify:cw-closure` (REM-004)
+  - **REM-006:** foundation-import-purity codegen dispatch allowlist closes false FAIL
   - Deps: CW9-07. Risk: **LOW**.
 - **CW9-10** `[x]` **Certification report + synthetic workspace retirement decision (keep as fixtures vs remove)**
   - Evidence: [`cw9-10-certification-report.md`](cw9-10-certification-report.md) — **KEEP_AS_CERT_FIXTURES**
@@ -1044,7 +1047,7 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | CW-8                           | CW8-01..07 `[x]`; validation pipeline sole path; **CW-8 COMPLETE**                                                                                                                                                                                                                                                            | CW coordinator | 2026-08-24 |
 | CW-9                           | CW9-01..10 `[x]`; cert-club + cert-events fixtures; [`cw9-10-certification-report.md`](cw9-10-certification-report.md); **CW-9 COMPLETE**; progress **91/91**                                                                                                                                                                  | CW coordinator | 2026-08-24 |
 
-**Program closure (2026-08-24):** **COMPOSABLE WORKSPACE REFACTOR = COMPLETE** — 91/91 tasks; integrated HEAD at closure commit; metrics vs frozen baseline in CW9-10 report; Architect closure recorded; synthetic workspaces **KEEP_AS_CERT_FIXTURES**.
+**Program closure (2026-08-24):** **COMPOSABLE WORKSPACE REFACTOR = COMPLETE (certified-with-exceptions)** — 91/91 tasks marked; REMEDIATION #1 (2026-08-24) corrects CW9 false-pass items — see [`composable-platform-remediation-plan.md`](composable-platform-remediation-plan.md). Metrics vs frozen baseline in CW9-10 report; synthetic workspaces **KEEP_AS_CERT_FIXTURES** (`productionTier: stub`).
 
 ---
 
