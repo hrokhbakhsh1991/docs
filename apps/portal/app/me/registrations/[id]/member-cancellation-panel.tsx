@@ -8,6 +8,12 @@ type CancellationEligibility = {
   readonly eligible: boolean;
   readonly mode: string;
   readonly reasonCode?: string;
+  readonly refund?: {
+    readonly eligibleRefundMinor: string;
+    readonly penaltyMinor: string;
+    readonly currency: string;
+    readonly hasOpenRefundRequest: boolean;
+  };
 };
 
 type Props = {
@@ -71,6 +77,14 @@ export function MemberCancellationPanel({ registrationId, registrationStatus }: 
 
   return (
     <section data-portal-member-cancel data-portal-member-cancel-eligible={eligibility.eligible}>
+      {eligibility.refund !== undefined ? (
+        <p data-portal-member-refund-eligible={eligibility.refund.eligibleRefundMinor}>
+          {t("refundEligible", {
+            amount: eligibility.refund.eligibleRefundMinor,
+            currency: eligibility.refund.currency,
+          })}
+        </p>
+      ) : null}
       {eligibility.eligible ? (
         <>
           <p data-portal-member-cancel-hint>

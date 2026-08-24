@@ -227,6 +227,15 @@
     "rejectedTitle": "Registration declined",
     "rejectedBody": "The club declined this registration. Receipt upload is not available."
   },
+  "cancellation": {
+    "withdrawHint": "You can withdraw this registration before the club approves it.",
+    "requestHint": "Paid registrations require club review. Submit a cancellation request.",
+    "withdrawAction": "Withdraw registration",
+    "requestAction": "Request cancellation",
+    "blocked": "Cancellation is not available ({reason}).",
+    "error": "Could not submit cancellation ({code}).",
+    "refundEligible": "Eligible refund: {amount} {currency}"
+  },
   "intakeAmend": {
     "eyebrow": "Before approval",
     "title": "Update registration details",

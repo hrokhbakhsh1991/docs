@@ -3,13 +3,16 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   handleApproveBooking,
   handleBulkApproveBookings,
+  handleApproveMemberCancellation,
   handleCancelBooking,
+  handleCancelTour,
   handleCreateBooking,
   handleGetBooking,
   handleGetBookingReceiptStatus,
   handleGetBookingsSummary,
   handleGetMemberCancellation,
   handleGetMemberNotifications,
+  handleGetRefundEligibility,
   handleListBookings,
   handlePostBookingReceipt,
   handlePostMemberCancellation,
@@ -467,6 +470,20 @@ async function dispatchRequest(
     }
   }
 
+  const memberCancellationApproveMatch = url.pathname.match(
+    /^\/bookings\/([^/]+)\/member-cancellation\/approve$/
+  );
+  if (method === "POST" && memberCancellationApproveMatch) {
+    await handleApproveMemberCancellation(req, res, memberCancellationApproveMatch[1]!);
+    return;
+  }
+
+  const refundEligibilityMatch = url.pathname.match(/^\/bookings\/([^/]+)\/refund-eligibility$/);
+  if (method === "GET" && refundEligibilityMatch) {
+    await handleGetRefundEligibility(req, res, refundEligibilityMatch[1]!);
+    return;
+  }
+
   if (method === "GET" && url.pathname === "/member/notifications") {
     await handleGetMemberNotifications(req, res);
     return;
@@ -516,6 +533,12 @@ async function dispatchRequest(
   const tourCloneMatch = url.pathname?.match(/^\/tours\/([^/]+)\/clone$/);
   if (method === "POST" && tourCloneMatch) {
     await handlers.handleCloneTour(req, res, tourDeps, tourCloneMatch[1]!);
+    return;
+  }
+
+  const tourCancelMatch = url.pathname?.match(/^\/tours\/([^/]+)\/cancel$/);
+  if (method === "POST" && tourCancelMatch) {
+    await handleCancelTour(req, res, tourCancelMatch[1]!);
     return;
   }
 

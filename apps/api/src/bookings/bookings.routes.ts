@@ -36,7 +36,11 @@ import {
 import {
   getMemberCancellationEligibility,
   submitMemberCancellation,
+  approveMemberCancellationRequestForBooking,
 } from "./member-cancellation.service";
+import { buildRefundEligibilitySnapshot } from "../finance/refund-orchestration.service.ts";
+import { resolveCancellationPolicyForBooking } from "../finance/resolve-cancellation-policy-for-booking.ts";
+import { cancelTourRegistrations } from "./tour-cancellation.service.ts";
 import { listMemberNotificationInbox } from "../notifications/member-notification-inbox.repository";
 import { submitBinaryMemberReceiptAfterOwnership } from "./submit-binary-member-receipt-after-ownership";
 
@@ -418,6 +422,87 @@ export async function handlePostMemberCancellation(
     if (mapMemberCancellationError(res, error)) {
       return;
     }
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleGetRefundEligibility(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const policy = await resolveCancellationPolicyForBooking({
+          tenantId: auth.tenantId,
+          bookingId,
+        });
+        const snapshot = await buildRefundEligibilitySnapshot({
+          tenantId: auth.tenantId,
+          actorUserId: auth.userId,
+          registrationId: bookingId,
+          applyPenalty: false,
+          cancellationPenaltyPercentage: policy.cancellationPenaltyPercentage,
+        });
+        sendJson(res, 200, snapshot);
+      },
+      { rateLimit: "read" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleApproveMemberCancellation(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await approveMemberCancellationRequestForBooking(auth, bookingId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message === "MEMBER_CANCELLATION_REQUEST_NOT_FOUND") {
+      sendHttpError(res, 404, {
+        error: "not_found",
+        code: "MEMBER_CANCELLATION_REQUEST_NOT_FOUND",
+      });
+      return;
+    }
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleCancelTour(
+  req: IncomingMessage,
+  res: ServerResponse,
+  tourId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await cancelTourRegistrations(auth, tourId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
     handleHttpError(res, error);
   }
 }

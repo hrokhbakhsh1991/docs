@@ -61,3 +61,16 @@ export function findPendingMemberCancellationRequest(
   }
   return null;
 }
+
+export function approveMemberCancellationRequest(
+  tenantId: string,
+  requestId: string
+): MemberCancellationRequestRecord | null {
+  const row = requests.get(requestId);
+  if (row === undefined || row.tenantId !== tenantId || row.status !== "pending") {
+    return null;
+  }
+  const updated: MemberCancellationRequestRecord = { ...row, status: "approved" };
+  requests.set(requestId, updated);
+  return updated;
+}

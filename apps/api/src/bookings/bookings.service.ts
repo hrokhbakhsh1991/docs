@@ -40,6 +40,7 @@ import {
   BookingNotFoundError,
 } from "./bookings.errors";
 import { resolveUtcApprovedWithinDaysWindow } from "./booking-list-query";
+import { runPostCancelSideEffects } from "./post-cancel-side-effects.ts";
 import { recordRegistrationSloEvent } from "../observability/workspace-slo-telemetry.ts";
 
 const BULK_APPROVE_MAX_BATCH = 25;
@@ -767,10 +768,23 @@ export class BookingsService {
   ): Promise<CancelBookingResponse> {
     await this.assertTenantBound(auth.tenantId);
     this.authorization.assertOpsAccess(auth);
+    const before = await this.repository.getById(bookingId, auth.tenantId);
+    if (before === null) {
+      throw new BookingNotFoundError();
+    }
+    const previousStatus = before.status;
     const updated = await this.repository.cancelBooking({
       bookingId,
       tenantId: auth.tenantId,
       outboxEvent: BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
+      cancelSource: "operator",
+    });
+    await runPostCancelSideEffects({
+      auth,
+      booking: { ...before, status: "cancelled", cancelSource: "operator" },
+      previousStatus,
+      cancelDomainEventId: `registration.cancelled:${bookingId}`,
+      cancelSource: "operator",
     });
     return { id: updated.id, status: updated.status };
   }

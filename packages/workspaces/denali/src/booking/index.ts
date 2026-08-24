@@ -90,3 +90,9 @@ export {
   type MemberCancellationMode,
   type MemberCancellationReasonCode,
 } from "./member-cancellation-policy";
+
+export {
+  computeDenaliRefundEligibility,
+  type ComputeDenaliRefundEligibilityInput,
+  type DenaliRefundEligibility,
+} from "./refund-eligibility";

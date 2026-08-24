@@ -1,24 +1,33 @@
 /**
- * DP-4 — member cancellation orchestration (DEN-PROD-09).
+ * DP-4 / DP-6 — member cancellation orchestration (DEN-PROD-09).
  */
 import { BOOKING_CANCEL_OUTBOX_EVENT_TYPE } from "@app-tour/booking-http-contracts";
-import { evaluateDenaliMemberCancellationEligibility } from "@app-tour/workspace-denali/host/booking";
 
 import { closePaymentHoldOnOperatorCancel } from "../finance/apply-payment-hold-after-booking-approve.ts";
+import { buildRefundEligibilitySnapshot } from "../finance/refund-orchestration.service.ts";
+import { resolveCancellationPolicyForBooking } from "../finance/resolve-cancellation-policy-for-booking.ts";
 import type { BookingActorContext } from "./ports/booking-actor-context.ts";
 import { BookingNotFoundError } from "./bookings.errors.ts";
 import { getBookingsRepository } from "./create-bookings-repository.ts";
-import {
-  setBookingPaymentDueAtProjection,
-} from "./in-memory-bookings.repository.ts";
-import { promoteOldestWaitlistedGuest } from "./promote-waitlist-after-seat-release.ts";
+import { runPostCancelSideEffects } from "./post-cancel-side-effects.ts";
 import type { BookingRecord } from "./bookings.types.ts";
-import { createMemberCancellationRequest } from "./member-cancellation-request.repository.ts";
+import {
+  approveMemberCancellationRequest,
+  createMemberCancellationRequest,
+  findPendingMemberCancellationRequest,
+} from "./member-cancellation-request.repository.ts";
+import { evaluateDenaliMemberCancellationEligibility } from "@app-tour/workspace-denali/host/booking";
 
 export type MemberCancellationEligibilityResponse = {
   readonly eligible: boolean;
   readonly mode: string;
   readonly reasonCode?: string;
+  readonly refund?: {
+    readonly eligibleRefundMinor: string;
+    readonly penaltyMinor: string;
+    readonly currency: string;
+    readonly hasOpenRefundRequest: boolean;
+  };
 };
 
 export type MemberCancellationResult =
@@ -42,7 +51,7 @@ export function resolveMemberCancellationEligibilityForBooking(
     readonly nowIso: string;
     readonly cancellationDeadlineHours?: number | null;
   }
-): MemberCancellationEligibilityResponse {
+): Omit<MemberCancellationEligibilityResponse, "refund"> {
   const eligibility = evaluateDenaliMemberCancellationEligibility({
     status: booking.status,
     paymentStatus: booking.paymentStatus,
@@ -69,18 +78,43 @@ export async function getMemberCancellationEligibility(
     throw new BookingNotFoundError();
   }
   assertMemberOwnsBooking(booking, auth);
-  return resolveMemberCancellationEligibilityForBooking(booking, {
-    nowIso: new Date().toISOString(),
-    cancellationDeadlineHours,
+  const policy = await resolveCancellationPolicyForBooking({
+    tenantId: auth.tenantId,
+    bookingId,
   });
+  const hours = cancellationDeadlineHours ?? policy.cancellationDeadlineHours;
+  const base = resolveMemberCancellationEligibilityForBooking(booking, {
+    nowIso: new Date().toISOString(),
+    cancellationDeadlineHours: hours,
+  });
+
+  if (booking.paymentStatus === "paid" || booking.paymentStatus === "partial") {
+    const refund = await buildRefundEligibilitySnapshot({
+      tenantId: auth.tenantId,
+      actorUserId: auth.userId,
+      registrationId: bookingId,
+      applyPenalty: false,
+      cancellationPenaltyPercentage: policy.cancellationPenaltyPercentage,
+    });
+    return {
+      ...base,
+      refund: {
+        eligibleRefundMinor: refund.eligibleRefundMinor,
+        penaltyMinor: refund.penaltyMinor,
+        currency: refund.currency,
+        hasOpenRefundRequest: refund.hasOpenRefundRequest,
+      },
+    };
+  }
+
+  return base;
 }
 
 async function executeMemberCancel(
   auth: BookingActorContext,
   booking: BookingRecord
 ): Promise<MemberCancellationResult> {
-  const wasApproved = booking.status === "approved";
-  const tourId = booking.tourId;
+  const previousStatus = booking.status;
 
   await getBookingsRepository().cancelBooking({
     bookingId: booking.id,
@@ -89,18 +123,13 @@ async function executeMemberCancel(
     cancelSource: "member",
   });
 
-  if (wasApproved) {
-    await closePaymentHoldOnOperatorCancel({
-      tenantId: auth.tenantId,
-      bookingId: booking.id,
-    });
-    setBookingPaymentDueAtProjection({
-      tenantId: auth.tenantId,
-      bookingId: booking.id,
-      paymentDueAt: null,
-    });
-    await promoteOldestWaitlistedGuest({ tenantId: auth.tenantId, tourId });
-  }
+  await runPostCancelSideEffects({
+    auth,
+    booking: { ...booking, status: "cancelled", cancelSource: "member" },
+    previousStatus,
+    cancelDomainEventId: `registration.cancelled:${booking.id}`,
+    cancelSource: "member",
+  });
 
   return { kind: "cancelled", bookingId: booking.id, status: "cancelled" };
 }
@@ -117,9 +146,14 @@ export async function submitMemberCancellation(
   }
   assertMemberOwnsBooking(booking, auth);
 
+  const policy = await resolveCancellationPolicyForBooking({
+    tenantId: auth.tenantId,
+    bookingId,
+  });
   const eligibility = resolveMemberCancellationEligibilityForBooking(booking, {
     nowIso: new Date().toISOString(),
-    cancellationDeadlineHours,
+    cancellationDeadlineHours:
+      cancellationDeadlineHours ?? policy.cancellationDeadlineHours,
   });
 
   if (!eligibility.eligible) {
@@ -142,5 +176,22 @@ export async function submitMemberCancellation(
     };
   }
 
+  return executeMemberCancel(auth, booking);
+}
+
+export async function approveMemberCancellationRequestForBooking(
+  auth: BookingActorContext,
+  bookingId: string
+): Promise<MemberCancellationResult> {
+  const repo = getBookingsRepository();
+  const booking = await repo.getById(bookingId, auth.tenantId);
+  if (booking === null) {
+    throw new BookingNotFoundError();
+  }
+  const pending = findPendingMemberCancellationRequest(auth.tenantId, bookingId);
+  if (pending === null) {
+    throw new Error("MEMBER_CANCELLATION_REQUEST_NOT_FOUND");
+  }
+  approveMemberCancellationRequest(auth.tenantId, pending.id);
   return executeMemberCancel(auth, booking);
 }

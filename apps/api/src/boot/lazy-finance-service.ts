@@ -85,6 +85,11 @@ function getPlatformFinanceRepository(): FinanceRepositoryPort {
   return platformFinanceRepository;
 }
 
+/** Test-only — shared finance repository after first lazy compose. */
+export function getPlatformFinanceRepositoryForTests(): FinanceRepositoryPort {
+  return getPlatformFinanceRepository();
+}
+
 export function resetLazyFinanceServiceForTests(): void {
   financeServiceByWorkspaceType.clear();
   financeServiceInflightByWorkspaceType.clear();
