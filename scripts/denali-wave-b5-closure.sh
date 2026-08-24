@@ -52,13 +52,15 @@ operator_login() {
 }
 
 member_login() {
-  local ch
+  local ch token
   rm -f "$MEM_JAR"
   ch="$(curl -sfL -c "$MEM_JAR" -b "$MEM_JAR" -H "Host: $PORTAL_HOST" -H 'content-type: application/json' \
     -d "{\"phone\":\"$MEM_PHONE\"}" "$PORTAL/api/public-auth/request-otp" | jq -r '.challenge_id')"
   curl -sfL -c "$MEM_JAR" -b "$MEM_JAR" -H "Host: $PORTAL_HOST" -H 'content-type: application/json' \
     -d "{\"phone\":\"$MEM_PHONE\",\"otp\":\"1234\",\"challenge_id\":\"$ch\"}" \
     "$PORTAL/api/public-auth/verify-otp" | jq . > "$EVID/member-login.json"
+  token="$(jq -r '.session_token // empty' "$EVID/member-login.json")"
+  [[ -n "$token" ]] || { log "member login missing session_token"; return 1; }
 }
 
 member_create_registration() {
@@ -90,15 +92,60 @@ operator_manual_payment() {
     "$API/finance/payments/manual"
 }
 
+find_member_refund_registration() {
+  local items existing cancelled paid pending
+  items="$(curl -sfL -b "$MEM_JAR" -H "Host: $PORTAL_HOST" "$PORTAL/api/me/registrations" | jq -c '.data.items // []')"
+  cancelled="$(jq -r --arg t "$REFUND_TOUR" \
+    '.[] | select(.tourId==$t and .status=="cancelled" and .paymentStatus=="paid") | .id' <<<"$items" | head -1)"
+  if [[ -n "$cancelled" ]]; then
+    echo "$cancelled"
+    return 0
+  fi
+  paid="$(jq -r --arg t "$REFUND_TOUR" \
+    '.[] | select(.tourId==$t and .paymentStatus=="paid") | .id' <<<"$items" | head -1)"
+  if [[ -n "$paid" ]]; then
+    echo "$paid"
+    return 0
+  fi
+  pending="$(jq -r --arg t "$REFUND_TOUR" \
+    '.[] | select(.tourId==$t) | .id' <<<"$items" | head -1)"
+  [[ -n "$pending" ]] && echo "$pending"
+}
+
 seed_dp6_member_refund() {
-  local reg
-  reg="$(member_create_registration "Member Refund B5" "$REFUND_TOUR")"
+  local reg status payment refunds
+  reg="$(find_member_refund_registration || true)"
+  if [[ -z "${reg:-}" ]]; then
+    reg="$(member_create_registration "Member Refund B5" "$REFUND_TOUR")"
+  else
+    log "reuse member-owned registration $reg on tour $REFUND_TOUR"
+    jq -n --arg id "$reg" '{reusedRegistrationId:$id}' > "$EVID/dp6-reuse.json"
+  fi
   [[ -n "$reg" ]] || return 1
-  approve_booking "$reg" >/dev/null
-  operator_manual_payment "$reg" refund | grep -q '^201$'
-  api_op -H 'content-type: application/json' -X POST "$API/bookings/$reg/cancel" \
-    -d '{"reason":"wave_b5_portal_refund"}' | jq . > "$EVID/dp6-operator-cancel.json"
-  api_op "$API/finance/refunds?registrationId=$reg" | jq . > "$EVID/dp6-operator-refunds.json"
+
+  status="$(curl -sfL -b "$MEM_JAR" -H "Host: $PORTAL_HOST" \
+    "$PORTAL/api/me/registrations/$reg" | jq -r '.data.status // empty')"
+  payment="$(curl -sfL -b "$MEM_JAR" -H "Host: $PORTAL_HOST" \
+    "$PORTAL/api/me/registrations/$reg" | jq -r '.data.paymentStatus // empty')"
+
+  if [[ "$status" != "approved" && "$status" != "cancelled" ]]; then
+    approve_booking "$reg" >/dev/null
+    status="approved"
+  fi
+  if [[ "$status" == "approved" && "$payment" != "paid" ]]; then
+    operator_manual_payment "$reg" refund | grep -q '^201$'
+    payment="paid"
+  fi
+  if [[ "$status" != "cancelled" ]]; then
+    api_op -H 'content-type: application/json' -X POST "$API/bookings/$reg/cancel" \
+      -d '{"reason":"wave_b5_portal_refund"}' | jq . > "$EVID/dp6-operator-cancel.json"
+  fi
+  refunds="$(api_op "$API/finance/refunds?registrationId=$reg" | jq -c '.items // .data // []')"
+  echo "$refunds" > "$EVID/dp6-operator-refunds.json"
+  if ! jq -e 'length > 0' <<<"$refunds" >/dev/null 2>&1; then
+    log "DP-6 seed: no FinanceRefund row after cancel for $reg"
+    return 1
+  fi
   echo "$reg"
 }
 
