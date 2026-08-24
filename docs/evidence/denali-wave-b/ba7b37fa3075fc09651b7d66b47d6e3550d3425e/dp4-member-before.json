@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "data": {
+    "id": "b6595743-4cff-4648-921e-026ed00e8a52",
+    "status": "approved",
+    "tourId": "00000000-0000-4000-8000-000000000901",
+    "tourTitle": "DP1 Payment Deadline Tour",
+    "guestLabel": "Member Self Cancel",
+    "registrantTarget": "self",
+    "paymentStatus": "unpaid",
+    "departureAt": "2026-09-07T08:00:00.000Z",
+    "submittedAt": "2026-08-24T22:09:32.088Z",
+    "partySize": 1,
+    "paymentDueAt": "2026-08-25T22:09:32.095Z",
+    "transportKind": "primary",
+    "dueCurrency": "IRR",
+    "dueTotalMinor": "2500000",
+    "dueLines": [
+      {
+        "code": "trip",
+        "amountMinor": "2500000"
+      }
+    ]
+  }
+}

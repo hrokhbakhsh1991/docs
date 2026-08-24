@@ -1,0 +1,25 @@
+{
+  "id": "7e11ed8b-eefb-4b5f-aab8-37982a562639",
+  "tourId": "00000000-0000-4000-8000-000000000901",
+  "tourTitle": "Wave B",
+  "guestLabel": "Receipt Upload",
+  "guestEmail": "Receipt Upload@waveb.local",
+  "guestPhone": "+15550007701",
+  "registrantTarget": "self",
+  "transportKind": null,
+  "personalCarOccupants": null,
+  "partySize": 1,
+  "status": "approved",
+  "paymentStatus": "paid",
+  "departureAt": "2031-09-01T10:00:00.000Z",
+  "submittedAt": "2026-08-24T22:10:20.900Z",
+  "approvedAt": "2026-08-24T22:10:20.911Z",
+  "registrationIntake": {
+    "tourCapacityMax": 12
+  },
+  "paymentDueAt": "2026-08-25T22:10:20.911Z",
+  "capacitySnapshot": {
+    "occupied": 3,
+    "max": 12
+  }
+}
