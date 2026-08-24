@@ -441,8 +441,8 @@ Read-model / projection. **Do not merge Bookings and Finance tables.** SoT remai
 | DP2-08 | Driver + passenger grouping | Intake `personal_car` + occupants; **assignment still absent** | 06 | Transport scalars | — | DEN-TRANS regression | Browser | — | MEDIUM | `[v]` |
 | DP2-09 | Deadline column if DP-1 live | Same dueAt | DP-1 | Compose | — | S17 | Browser | — | MEDIUM | `[v]` |
 | DP2-10 | Export (CSV) optional | Not required for MINIMUM PILOT | — | Web | — | — | — | — | LOW | `[ ]` FUTURE |
-| DP2-11 | Browser cert | Operator 1440; tablet 768 optional | 03 | — | — | — | Required | — | MEDIUM | `[!]` |
-| DP2-12 | Phase closure | `[x]` only with browser | — | — | — | — | — | — | MEDIUM | `[!]` |
+| DP2-11 | Browser cert | Operator 1440; tablet 768 optional | 03 | — | — | — | Required | — | MEDIUM | `[x]` |
+| DP2-12 | Phase closure | `[x]` only with browser | — | — | — | — | — | — | MEDIUM | `[x]` |
 
 ---
 
