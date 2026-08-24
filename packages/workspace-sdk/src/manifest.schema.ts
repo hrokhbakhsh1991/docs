@@ -84,6 +84,8 @@ export const WorkspacePricingBlockSchema = z.object({
   capabilities: z
     .object({
       wizardTourField: z.boolean().optional(),
+      /** CW7-12 — membership discount gate field registration (finance reads canonical path). */
+      allowMembershipDiscount: z.boolean().optional(),
     })
     .optional(),
   fieldModule: workspaceModuleBindingSchema.optional(),

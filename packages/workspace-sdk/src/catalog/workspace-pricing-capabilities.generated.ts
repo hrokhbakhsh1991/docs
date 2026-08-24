@@ -7,12 +7,14 @@
 export type WorkspacePricingCapabilities = {
   readonly supported: true;
   readonly wizardTourField: boolean;
+  readonly allowMembershipDiscount: boolean;
 };
 
 export const WORKSPACE_PRICING_CAPABILITIES = {
   "denali": {
     supported: true as const,
     wizardTourField: true as const,
+    allowMembershipDiscount: true as const,
   },
 } as const satisfies Record<string, WorkspacePricingCapabilities>;
 

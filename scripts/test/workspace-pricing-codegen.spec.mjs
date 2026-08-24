@@ -20,6 +20,7 @@ describe("workspace pricing codegen (CW7-11)", () => {
 
     const generated = generateWorkspacePricingCapabilities(manifests);
     assert.match(generated, /wizardTourField: true as const/);
+    assert.match(generated, /allowMembershipDiscount: true as const/);
     assert.match(generated, /"denali":/);
   });
 

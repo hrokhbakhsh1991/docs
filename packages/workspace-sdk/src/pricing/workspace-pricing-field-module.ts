@@ -7,6 +7,10 @@ import type { WorkspaceFieldRegistry } from "../registry/field-registry";
 /** Neutral base-price canonical path for workspace pricing capability adapters. */
 export const WORKSPACE_PRICING_BASE_PRICE_CANONICAL_PATH = "pricing.basePricePerPerson" as const;
 
+/** CW7-12 — neutral membership-discount gate canonical path (finance reads at freeze). */
+export const WORKSPACE_PRICING_ALLOW_MEMBERSHIP_DISCOUNT_CANONICAL_PATH =
+  "pricing.allowMembershipDiscount" as const;
+
 export type WorkspacePricingFieldRegistryFragment = Pick<WorkspaceFieldRegistry, "version" | "fields">;
 
 export type WorkspacePricingTourFieldConfig<
@@ -38,9 +42,15 @@ export type WorkspacePricingWizardCompositeBinding = {
 export function defineWorkspacePricingFieldFragment<
   TField extends WorkspacePricingTourFieldConfig,
 >(field: TField): WorkspacePricingFieldFragment<TField> {
+  return defineWorkspacePricingFieldsFragment([field]);
+}
+
+export function defineWorkspacePricingFieldsFragment<
+  TField extends WorkspacePricingTourFieldConfig,
+>(fields: readonly TField[]): WorkspacePricingFieldFragment<TField> {
   return Object.freeze({
     moduleId: "workspacePricing.tourField",
-    fields: Object.freeze([Object.freeze(field)]),
+    fields: Object.freeze(fields.map((field) => Object.freeze(field))),
   });
 }
 

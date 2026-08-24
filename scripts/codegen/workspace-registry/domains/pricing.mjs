@@ -1,7 +1,7 @@
 import { BANNER } from "../constants.mjs";
 import { importSpecifier } from "../utils.mjs";
 
-const PRICING_SURFACE_KEYS = ["wizardTourField"];
+const PRICING_SURFACE_KEYS = ["wizardTourField", "allowMembershipDiscount"];
 
 /**
  * @param {Record<string, unknown>} manifest
@@ -91,6 +91,7 @@ export function generateWorkspacePricingCapabilities(manifests) {
       entries.push(`  ${JSON.stringify(workspaceType)}: {
     supported: true as const,
     wizardTourField: ${surfaces.wizardTourField ? "true" : "false"} as const,
+    allowMembershipDiscount: ${surfaces.allowMembershipDiscount ? "true" : "false"} as const,
   },`);
     }
   }
@@ -100,6 +101,7 @@ export function generateWorkspacePricingCapabilities(manifests) {
 export type WorkspacePricingCapabilities = {
   readonly supported: true;
   readonly wizardTourField: boolean;
+  readonly allowMembershipDiscount: boolean;
 };
 
 export const WORKSPACE_PRICING_CAPABILITIES = {} as const;
@@ -116,6 +118,7 @@ export function getWorkspacePricingCapabilities(
 export type WorkspacePricingCapabilities = {
   readonly supported: true;
   readonly wizardTourField: boolean;
+  readonly allowMembershipDiscount: boolean;
 };
 
 export const WORKSPACE_PRICING_CAPABILITIES = {
