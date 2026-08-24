@@ -22,6 +22,10 @@ export const WORKSPACE_CAPABILITY_VALIDATORS: readonly CapabilityValidatorBindin
     run: (_ctx) => null,
   },
   {
+    capabilityId: "workspaceDifficultyFitness",
+    run: (_ctx) => null,
+  },
+  {
     capabilityId: "workspaceEquipment",
     run: (_ctx) => null,
   },

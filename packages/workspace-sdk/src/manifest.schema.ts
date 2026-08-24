@@ -63,6 +63,34 @@ export const WorkspaceTransportBlockSchema = z.object({
   wizardComposite: workspaceModuleBindingSchema.optional(),
 });
 
+/** CW7-09 — difficulty/fitness capability block (top-level manifest extension). */
+export const WorkspaceDifficultyFitnessBlockSchema = z.object({
+  supported: z.boolean(),
+  capabilities: z
+    .object({
+      wizardTourField: z.boolean().optional(),
+      catalogDetailSection: z.boolean().optional(),
+      catalogListFilters: z.boolean().optional(),
+      catalogMarketingFilters: z.boolean().optional(),
+    })
+    .optional(),
+  fieldModule: workspaceModuleBindingSchema.optional(),
+  filterPresentation: workspaceModuleBindingSchema.optional(),
+});
+
+/** CW7-10 — itinerary capability block (top-level manifest extension). */
+export const WorkspaceItineraryBlockSchema = z.object({
+  supported: z.boolean(),
+  capabilities: z
+    .object({
+      wizardTourField: z.boolean().optional(),
+      catalogDetailSection: z.boolean().optional(),
+    })
+    .optional(),
+  fieldModule: workspaceModuleBindingSchema.optional(),
+  wizardComposite: workspaceModuleBindingSchema.optional(),
+});
+
 /** CW7-02 — equipment capability block (top-level manifest extension). */
 export const WorkspaceEquipmentBlockSchema = z.object({
   supported: z.boolean(),
@@ -189,6 +217,8 @@ export const WorkspaceManifestCiSchema = z
     plugin: pluginEntrySchema,
     profile: WorkspaceProfileRefSchema.optional(),
     workspaceEquipment: WorkspaceEquipmentBlockSchema.optional(),
+    workspaceDifficultyFitness: WorkspaceDifficultyFitnessBlockSchema.optional(),
+    workspaceItinerary: WorkspaceItineraryBlockSchema.optional(),
     workspaceTransport: WorkspaceTransportBlockSchema.optional(),
     workspacePolicy: WorkspacePolicyBlockSchema.optional(),
     theme: ManifestThemeBlockSchema.optional(),

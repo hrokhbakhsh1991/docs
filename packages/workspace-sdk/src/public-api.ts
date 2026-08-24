@@ -242,6 +242,7 @@ export type {
 export {
   getWorkspaceRuleCell,
   mergeWorkspaceFieldRegistryWithEquipmentFragments,
+  mergeWorkspaceFieldRegistryWithDifficultyFitnessFragments,
   validateFieldPolicyManifest,
   type WorkspaceFieldPolicyDefinition,
   type WorkspaceFieldPolicyManifest,
@@ -392,6 +393,13 @@ export {
   type WorkspaceTransportCapabilities,
 } from "./catalog/workspace-transport-capabilities.generated";
 export {
+  getWorkspaceDifficultyFitnessCapabilities,
+  type WorkspaceDifficultyFitnessCapabilities,
+} from "./catalog/workspace-difficulty-fitness-capabilities.generated";
+export {
+  resolveWorkspaceDifficultyFitnessFilterPresentation,
+} from "./catalog/workspace-difficulty-fitness-filter-presentation.generated";
+export {
   resolveCatalogTransportSnapshotReader,
   type CatalogTransportSnapshotReaderBinding,
 } from "./catalog/catalog-transport-snapshot-readers.generated";
@@ -406,6 +414,17 @@ export {
   type WorkspaceEquipmentFieldWireProjection,
   type WorkspaceEquipmentTourFieldConfig,
 } from "./equipment";
+export {
+  defineWorkspaceDifficultyFitnessFieldFragment,
+  defineWorkspaceDifficultyFitnessFieldFragments,
+  listWorkspaceDifficultyFitnessCanonicalPaths,
+  type WorkspaceDifficultyFitnessFieldFragment,
+  type WorkspaceDifficultyFitnessFieldRegistryFragment,
+  type WorkspaceDifficultyFitnessFieldWireProjection,
+  type WorkspaceDifficultyFitnessTourFieldConfig,
+  type WorkspaceDifficultyFitnessFilterPresentation,
+  type PublicCatalogDifficultyFitnessFields,
+} from "./difficulty-fitness";
 export {
   resolveGuestSeoForPlugin,
   GuestSeoNotConfiguredError,

@@ -38,6 +38,22 @@
       "types": "./dist/catalog/denali-publish-status.d.ts",
       "default": "./dist/catalog/denali-publish-status.js"
     },
+    "./catalog/read-denali-catalog-transport": {
+      "types": "./dist/catalog/read-denali-catalog-transport.d.ts",
+      "default": "./dist/catalog/read-denali-catalog-transport.js"
+    },
+    "./catalog/denali-catalog-transport-intake": {
+      "types": "./dist/catalog/denali-catalog-transport-intake.d.ts",
+      "default": "./dist/catalog/denali-catalog-transport-intake.js"
+    },
+    "./host/catalog/read-denali-catalog-transport": {
+      "types": "./dist/catalog/read-denali-catalog-transport.d.ts",
+      "default": "./dist/catalog/read-denali-catalog-transport.js"
+    },
+    "./host/catalog/denali-catalog-transport-intake": {
+      "types": "./dist/catalog/denali-catalog-transport-intake.d.ts",
+      "default": "./dist/catalog/denali-catalog-transport-intake.js"
+    },
     "./host/catalog-registration-flow/react": {
       "types": "./dist/catalog/registration-flow/react.d.ts",
       "default": "./dist/catalog/registration-flow/react.js"
@@ -73,6 +89,14 @@
     "./field-registry/denali-equipment-field-module": {
       "types": "./dist/field-registry/denali-equipment-field-module.d.ts",
       "default": "./dist/field-registry/denali-equipment-field-module.js"
+    },
+    "./field-registry/denali-difficulty-fitness-field-module": {
+      "types": "./dist/field-registry/denali-difficulty-fitness-field-module.d.ts",
+      "default": "./dist/field-registry/denali-difficulty-fitness-field-module.js"
+    },
+    "./marketing/denali-difficulty-fitness-filter-presentation": {
+      "types": "./dist/marketing/denali-difficulty-fitness-filter-presentation.d.ts",
+      "default": "./dist/marketing/denali-difficulty-fitness-filter-presentation.js"
     },
     "./settings/equipment-compatible-themes": {
       "types": "./dist/settings/equipment-compatible-themes.d.ts",

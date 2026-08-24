@@ -141,10 +141,18 @@ import {
   generateWorkspaceEquipmentBindings,
 } from "./domains/equipment.mjs";
 import {
+  assertWorkspaceItineraryManifest,
+  generateWorkspaceItineraryBindings,
+} from "./domains/itinerary.mjs";
+import {
   assertWorkspaceTransportManifest,
   generateWorkspaceTransportBindings,
   resolveTransportRegistrationInitializerExport,
 } from "./domains/transport.mjs";
+import {
+  assertWorkspaceDifficultyFitnessManifest,
+  generateWorkspaceDifficultyFitnessBindings,
+} from "./domains/difficulty-fitness.mjs";
 import { generateWorkspaceCapabilityValidationBindings, generateWorkspacePolicyValidationBindings } from "./domains/validation-pipeline.mjs";
 
 /** @type {Record<string, readonly string[]>} */
@@ -209,6 +217,18 @@ export const DOMAIN_OUTPUT_KEYS = {
     "catalogIntakeTransportSurfaces",
     "registrationTransportNormalizers",
     "registrationTransportInitializers",
+    "workspaceTransportFieldModule",
+    "workspaceTransportWizardComposite",
+  ],
+  itinerary: [
+    "workspaceItineraryCapabilities",
+    "workspaceItineraryFieldModule",
+    "workspaceItineraryWizardComposite",
+  ],
+  "difficulty-fitness": [
+    "workspaceDifficultyFitnessCapabilities",
+    "workspaceDifficultyFitnessFieldModule",
+    "workspaceDifficultyFitnessFilterPresentation",
   ],
   "validation-pipeline": ["capabilityValidationBindings", "workspacePolicyBindings"],
 };
@@ -291,6 +311,14 @@ export const OUTPUT_KEYS = Object.freeze([
   "catalogIntakeTransportSurfaces",
   "registrationTransportNormalizers",
   "registrationTransportInitializers",
+  "workspaceTransportFieldModule",
+  "workspaceTransportWizardComposite",
+  "workspaceDifficultyFitnessCapabilities",
+  "workspaceDifficultyFitnessFieldModule",
+  "workspaceDifficultyFitnessFilterPresentation",
+  "workspaceItineraryCapabilities",
+  "workspaceItineraryFieldModule",
+  "workspaceItineraryWizardComposite",
   "capabilityValidationBindings",
   "workspacePolicyBindings",
 ]);
@@ -301,6 +329,7 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     assertHttpRoutesManifest(manifest);
     assertWorkspaceEquipmentManifest(manifest);
     assertWorkspaceTransportManifest(manifest);
+    assertWorkspaceDifficultyFitnessManifest(manifest);
   }
 
   // P3.1.b — validate registration manifests; do not emit legacy monolithic *FromManifest files.
@@ -310,6 +339,7 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
 
   const equipmentOutputs = generateWorkspaceEquipmentBindings(manifests);
   const transportOutputs = generateWorkspaceTransportBindings(manifests);
+  const difficultyFitnessOutputs = generateWorkspaceDifficultyFitnessBindings(manifests);
 
   return {
     ...generatePortalRegisterOutputs(manifests),
@@ -390,6 +420,9 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     catalogIntakeTransportSurfaces: transportOutputs.catalogIntakeTransportSurfaces,
     registrationTransportNormalizers: transportOutputs.registrationTransportNormalizers,
     registrationTransportInitializers: transportOutputs.registrationTransportInitializers,
+    workspaceDifficultyFitnessCapabilities: difficultyFitnessOutputs.capabilities,
+    workspaceDifficultyFitnessFieldModule: difficultyFitnessOutputs.fieldModule,
+    workspaceDifficultyFitnessFilterPresentation: difficultyFitnessOutputs.filterPresentation,
     capabilityValidationBindings: generateWorkspaceCapabilityValidationBindings(manifests),
     workspacePolicyBindings: generateWorkspacePolicyValidationBindings(manifests),
   };
@@ -671,6 +704,18 @@ export const OUTPUT_PATHS = {
   registrationTransportInitializers: join(
     REPO_ROOT,
     "packages/workspace-plugin-host/src/workspace-registration-transport-initializers.generated.ts"
+  ),
+  workspaceDifficultyFitnessCapabilities: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-difficulty-fitness-capabilities.generated.ts"
+  ),
+  workspaceDifficultyFitnessFieldModule: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-difficulty-fitness-field-module-bindings.generated.ts"
+  ),
+  workspaceDifficultyFitnessFilterPresentation: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-difficulty-fitness-filter-presentation.generated.ts"
   ),
   capabilityValidationBindings: join(
     REPO_ROOT,

@@ -1075,6 +1075,9 @@ importers:
       '@app-tour/config':
         specifier: workspace:*
         version: link:../config
+      '@app-tour/workspace-denali':
+        specifier: workspace:*
+        version: link:../workspaces/denali
       '@casl/ability':
         specifier: ^6.7.3
         version: 6.8.1

@@ -66,6 +66,10 @@
       "types": "./dist/equipment/index.d.ts",
       "default": "./dist/equipment/index.js"
     },
+    "./difficulty-fitness": {
+      "types": "./dist/difficulty-fitness/index.d.ts",
+      "default": "./dist/difficulty-fitness/index.js"
+    },
     "./http": {
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"
@@ -105,6 +109,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@app-tour/workspace-denali": "workspace:*",
     "@casl/ability": "^6.7.3",
     "@app-tour/config": "workspace:*",
     "@types/node": "^24.0.0",

@@ -2,6 +2,7 @@ import { BANNER } from "../constants.mjs";
 import { importSpecifier } from "../utils.mjs";
 
 import { resolveWorkspaceEquipmentManifest } from "./equipment.mjs";
+import { resolveWorkspaceDifficultyFitnessManifest } from "./difficulty-fitness.mjs";
 import { resolveWorkspaceTransportManifest } from "./transport.mjs";
 
 /**
@@ -30,6 +31,10 @@ export function listEnabledCapabilityIds(manifest) {
   const transport = resolveWorkspaceTransportManifest(manifest);
   if (transport !== undefined && transport.supported === true) {
     ids.push("workspaceTransport");
+  }
+  const difficultyFitness = resolveWorkspaceDifficultyFitnessManifest(manifest);
+  if (difficultyFitness !== undefined && difficultyFitness.supported === true) {
+    ids.push("workspaceDifficultyFitness");
   }
   const finance = manifest.workspaceFinance;
   if (finance !== undefined && typeof finance === "object" && finance !== null && finance.supported === true) {
