@@ -57,6 +57,7 @@ export const WORKSPACE_SLO_QUERY_DEFINITIONS: readonly WorkspaceSloQueryDefiniti
 
 export function validateWorkspaceSloQueryDefinitions(): readonly string[] {
   const violations: string[] = [];
+  const workspaceScopedAreas = new Set(["registration", "publish_write", "portal_auth", "finance"]);
   for (const query of WORKSPACE_SLO_QUERY_DEFINITIONS) {
     if (query.target <= 0 || query.target >= 1) {
       violations.push(`${query.id}:target-out-of-range`);
@@ -64,7 +65,7 @@ export function validateWorkspaceSloQueryDefinitions(): readonly string[] {
     if (query.expression.trim().length === 0) {
       violations.push(`${query.id}:empty-expression`);
     }
-    if (!query.expression.includes("workspace")) {
+    if (workspaceScopedAreas.has(query.area) && !query.expression.includes("workspace")) {
       violations.push(`${query.id}:missing-workspace-dimension`);
     }
   }
