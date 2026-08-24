@@ -1,0 +1,59 @@
+---
+title: Denali member cancellation policy (DP-4 / DEN-PROD-09)
+doc_id: DENALI-MEMBER-CANCELLATION-POLICY
+version: "2026-08-24-v1"
+workspace: denali
+status: ACTIVE
+authority: DEN-PROD-09 (approved 2026-08-24) · dp-4-execution-plan.md
+---
+
+# Denali member cancellation policy
+
+## Approved semantics (DEN-PROD-09)
+
+Composite **D + B + C**:
+
+| Registration state | Member action | Server mode |
+| ------------------ | ------------- | ----------- |
+| `pending` | Withdraw | `withdraw` — immediate `cancelled`, `cancelSource=member` |
+| `waitlisted` | Withdraw | `withdraw` — immediate cancel; no seat was held |
+| `approved` + `unpaid` | Self-cancel | `self_cancel` — before `min(paymentDueAt, cancellationDeadlineInstant)` |
+| `approved` + `partial` | Request | `request` — creates cancellation request; operator completes via DP-6 |
+| `approved` + `paid` | Request | `request` — same as partial |
+| Terminal (`cancelled`, `rejected`) | Denied | `denied` |
+| After `cancellationDeadlineHours` before `departureAt` | Denied | `denied`, reason `cancellation_cutoff_passed` |
+
+**Cutoff:** `cancellationDeadlineInstant = departureAt − policies.cancellationDeadlineHours` (UTC). When hours omitted, only `paymentDueAt` gates approved-unpaid self-cancel.
+
+**Penalty:** `policies.cancellationPenaltyPercentage` applies at **refund calculation** (DP-6), not at cancel TX.
+
+## Server authority
+
+Eligibility is evaluated **only** on the API (`evaluateDenaliMemberCancellationEligibility`). Portal renders server response; client-side gates are presentation hints only.
+
+## Side effects (approved-unpaid self-cancel / withdraw from approved)
+
+1. Booking `→ cancelled`, `cancelSource=member`
+2. Payment hold `voided` when present
+3. `paymentDueAt` projection cleared
+4. FIFO waitlist promote **one** guest (same as payment-deadline expiry)
+5. Outbox `registration.cancelled` payload `source=member`
+6. Member notification inbox row (DP-4 / DEN-PROD-12)
+
+## Cancellation request (paid / partial)
+
+1. Persist `member_cancellation_requests` row (status `pending`)
+2. Outbox `registration.cancellation_requested`
+3. No seat release until operator approves cancel (DP-6)
+
+## Transport
+
+Registration-level cancel only. No per-passenger cancel until DP-5 assignment SoT. Intake snapshot remains audit trail.
+
+## HTTP surfaces
+
+| Method | Path | Actor |
+| ------ | ---- | ----- |
+| `GET` | `/bookings/:id/member-cancellation` | Member (owner) |
+| `POST` | `/bookings/:id/member-cancellation` | Member (owner) |
+| Portal BFF | `GET/POST /api/me/registrations/:id/cancellation` | Member session |

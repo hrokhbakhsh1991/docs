@@ -270,7 +270,7 @@ Design **must** support configurable policy even if first customer picks a singl
 
 | Field | Content |
 |-------|---------|
-| **Status** | `[!]` |
+| **Status** | `[v]` **Approved 2026-08-24** — see `docs/workspaces/denali/member-cancellation-policy.mdoc` |
 | **Current behavior** | Operator cancel only. Catalog shows `cancellationDeadlineHours` / `cancellationPenaltyPercentage` as **informational**. Penalty **not enforced**. |
 | **Product question** | Can members cancel pending / waitlisted / approved unpaid / paid? Penalty? |
 | **Options** | (A) Pending+waitlisted only (B) Also approved unpaid (C) Also paid with penalty math (D) Never — operator only (signed SOP) |
@@ -321,7 +321,7 @@ Design **must** support configurable policy even if first customer picks a singl
 
 | Field | Content |
 |-------|---------|
-| **Status** | `[!]` |
+| **Status** | `[v]` **Approved 2026-08-24** — portal inbox required; email async optional; see `docs/dev/dp-4-execution-plan.md` |
 | **Current behavior** | `registration.approved` → structured in-app adapter; **no portal inbox UI**. Reject silent. Waitlist/cancel outbox exist without member dispatch. |
 | **Product question** | Email / SMS / portal inbox / operator-told-offline for MINIMUM PAID OPERATIONS? |
 | **Options** | (A) Portal inbox only (B) Email (C) SMS (D) Operator WhatsApp SOP, product shows status only (E) A+B |
