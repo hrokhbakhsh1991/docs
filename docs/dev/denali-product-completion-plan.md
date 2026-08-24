@@ -417,7 +417,7 @@ Design **must** support configurable policy even if first customer picks a singl
 | DP1-15 | Isolation: tenant A expiry cannot touch tenant B | Workspace isolation | — | Worker query `tenantId` | Index `(tenant_id, payment_due_at)` | Cross-tenant negative | — | — | HIGH | `[!]` |
 | DP1-16 | Financial safety: no duplicate obligation, integer minor units | Existing finance invariants | 11 | finance-core | — | Finance regression | — | — | FINANCIAL_HIGH | `[!]` |
 | DP1-17 | Memory driver + Postgres parity | Dev memory API must not lie | — | in-memory bookings repo | — | Dual driver tests | — | — | HIGH | `[!]` |
-| DP1-18 | Automated cert pack for 20 scenarios | Matrix attached | 01,02,04 | `packages/workspaces/denali/test`, `apps/api/test` | — | All 20 | — | — | HIGH | `[!]` |
+| DP1-18 | Automated cert pack for 20 scenarios | Matrix attached | 01,02,04 | `packages/workspaces/denali/test`, `apps/api/test` | — | All 20 | — | — | HIGH | `[v]` |
 | DP1-19 | Browser cert pack | UI+network+domain | 01,02,04 | Playwright + evidence dir | — | — | See browser matrix | — | HIGH | `[!]` |
 | DP1-20 | Phase closure | `[v]` then `[x]` | DP1-18, DP1-19 | — | — | — | RUNTIME_FINDING process | — | HIGH | `[!]` |
 
