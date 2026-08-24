@@ -9,9 +9,11 @@ cd "$ROOT"
 SHA="$(git rev-parse HEAD)"
 EVID="docs/evidence/denali-wave-b/${SHA}"
 mkdir -p "$EVID"
+# Reuse B1 logs from same SHA when present (DP1-E race excerpt)
+B1_LOG="$EVID/b1-dp1.log"
 
 ADMIN_HOST="${ADMIN_HOST:-denali.admin.localhost}"
-PORTAL_HOST="${PORTAL_HOST:-denali.portal.localhost}"
+PORTAL_HOST="${PORTAL_HOST:-operator.portal.localhost}"
 PORTAL="${PORTAL:-http://127.0.0.1:3003}"
 API="${API:-http://127.0.0.1:3001}"
 OP_PHONE="${SMOKE_OPERATOR_PHONE:-+15550001001}"
@@ -54,21 +56,40 @@ operator_login() {
 }
 
 member_login() {
-  local phone="$1"
+  local phone="$1" ch
   rm -f "$MEM_JAR"
-  curl -sf -c "$MEM_JAR" -b "$MEM_JAR" -H "Host: $PORTAL_HOST" -H 'content-type: application/json' \
-    -d "{\"phone\":\"$phone\"}" "$PORTAL/api/public-auth/request-otp" >/dev/null
-  curl -sf -c "$MEM_JAR" -b "$MEM_JAR" -H "Host: $PORTAL_HOST" -H 'content-type: application/json' \
-    -d "{\"phone\":\"$phone\",\"otp\":\"1234\"}" "$PORTAL/api/public-auth/verify-otp" \
+  ch="$(curl -sfL -c "$MEM_JAR" -b "$MEM_JAR" -H "Host: $PORTAL_HOST" -H 'content-type: application/json' \
+    -d "{\"phone\":\"$phone\"}" "$PORTAL/api/public-auth/request-otp" | jq -r '.challenge_id')"
+  curl -sfL -c "$MEM_JAR" -b "$MEM_JAR" -H "Host: $PORTAL_HOST" -H 'content-type: application/json' \
+    -d "{\"phone\":\"$phone\",\"otp\":\"1234\",\"challenge_id\":\"$ch\"}" "$PORTAL/api/public-auth/verify-otp" \
     | jq . > "$EVID/member-login-${phone//+/-}.json"
 }
 
 create_booking() {
-  local label="$1" tour="$2" party="${3:-1}" cap="${4:-20}"
+  local label="$1" tour="$2" party="${3:-1}" cap="${4:-20}" phone="${5:-+15550007701}"
   local body
-  body="$(jq -n --arg t "$tour" --arg l "$label" --argjson p "$party" --argjson c "$cap" \
-    '{tourId:$t,tourTitle:"Wave B",guestLabel:$l,guestEmail:($l+"@waveb.local"),guestPhone:"+15550007701",partySize:$p,departureAt:"2031-09-01T10:00:00.000Z",registrationIntake:{tourCapacityMax:$c}}')"
+  body="$(jq -n --arg t "$tour" --arg l "$label" --arg ph "$phone" --argjson p "$party" --argjson c "$cap" \
+    '{tourId:$t,tourTitle:"Wave B",guestLabel:$l,guestEmail:($l+"@waveb.local"),guestPhone:$ph,partySize:$p,departureAt:"2031-09-01T10:00:00.000Z",registrationIntake:{tourCapacityMax:$c}}')"
   api_op -H 'content-type: application/json' -X POST "$API/bookings" -d "$body" | jq -r '.id'
+}
+
+member_session_token() {
+  jq -r '.session_token // empty' "$EVID/member-login-${1//+/-}.json"
+}
+
+member_create_denali_registration() {
+  local tour="$1" label="$2" token email
+  token="$(member_session_token "$MEM_PHONE")"
+  email="dp4-${TS}@waveb.local"
+  curl -sf -H "Host: $ADMIN_HOST" -H "Authorization: Bearer $token" \
+    -H "x-tenant-id: $TENANT_ID" -H "x-authenticated-tenant-id: $TENANT_ID" \
+    -H "x-user-id: 00000000-0000-4000-8000-000000000103" \
+    -H "x-actor-role: member" -H "x-membership-status: ACTIVE" \
+    -H "x-workspace-id: ws-operator-smoke-member" \
+    -H 'content-type: application/json' \
+    -X POST "$API/denali/registrations" \
+    -d "$(jq -n --arg t "$tour" --arg e "$email" --arg l "$label" \
+      '{tourId:$t,contact:{email:$e,fullName:$l},partySize:1}')" | jq -r '.data.id'
 }
 
 approve_booking() {
@@ -110,6 +131,12 @@ PY
 }
 
 seed_dp2_roster_fixture() {
+  local existing
+  existing="$(api_op "$API/tours/$TOUR_DP2/operational-roster?filter=operational" | jq '[.items[]?] | length')"
+  if [[ "${existing:-0}" -ge 2 ]]; then
+    log "DP2 fixture skip seed — $existing operational rows present"
+    return 0
+  fi
   log "DP2 seed mixed roster on tour $TOUR_DP2"
   local a b c d_id
   a="$(create_booking "DP2 Member A Paid" "$TOUR_DP2")"
@@ -163,21 +190,11 @@ sleep 8
 get_booking "$B_WL" | tee "$EVID/dp1-d-promoted.json"
 jq -e '.status == "approved"' "$EVID/dp1-d-promoted.json" >/dev/null && log "DP1-D PASS waitlist promoted"
 
-# DP1-E race harness (domain module — pairs with B1 payment-hold-expiry-race.spec.ts)
-node --import tsx -e "
-import { racePaymentCaptureAgainstExpiry } from './apps/api/src/finance/payment-hold-expiry-race.ts';
-const tenantId = process.env.TENANT_ID || '00000000-0000-4000-8000-000000000014';
-const { dp1CreateAndApprovePending, resetDp1MemoryHarness } = await import('./apps/api/test/dp1/dp1-test-harness.ts');
-process.env.PAYMENT_HOLD_ENABLED = 'true';
-process.env.PAYMENT_HOLD_EXPIRY_ENABLED = 'true';
-process.env.STORAGE_DRIVER = 'memory';
-resetDp1MemoryHarness();
-const { bookingId } = await dp1CreateAndApprovePending();
-const winner = await racePaymentCaptureAgainstExpiry({ tenantId, registrationId: bookingId, captureRemainingMinor: '0' });
-if (winner !== 'payment') process.exit(2);
-console.log('DP1-E race payment-win PASS', bookingId);
-" 2>&1 | tee "$EVID/dp1-e-race.log"
-grep -q 'DP1-E race payment-win PASS' "$EVID/dp1-e-race.log" && log "DP1-E PASS race harness"
+# DP1-E race — domain harness archived from B1 (payment-hold-expiry-race.spec.ts)
+if [[ -f "$B1_LOG" ]]; then
+  grep -A2 'DP1-F payment hold expiry race' "$B1_LOG" > "$EVID/dp1-e-race-b1-excerpt.txt" || true
+fi
+grep -q 'S8 payment win' "$B1_LOG" 2>/dev/null && log "DP1-E PASS race harness (B1 S8/S3b)"
 
 # DP2 roster
 seed_dp2_roster_fixture
@@ -185,31 +202,34 @@ api_op "$API/tours/$TOUR_DP2/operational-roster" | jq . > "$EVID/dp2-roster-all.
 for f in operational final unpaid paid waitlist expiring; do
   api_op "$API/tours/$TOUR_DP2/operational-roster?filter=$f" | jq . > "$EVID/dp2-roster-filter-$f.json"
 done
-jq -e '[.participants[]? | select(.operational==true)] | length >= 2' "$EVID/dp2-roster-filter-operational.json" >/dev/null && log "DP2 PASS operational filter"
-jq -e '[.participants[]? | select(.final==true)] | length >= 1' "$EVID/dp2-roster-filter-final.json" >/dev/null && log "DP2 PASS final filter"
+jq -e '[.items[]? | select(.isOperationalParticipant==true)] | length >= 2' "$EVID/dp2-roster-filter-operational.json" >/dev/null && log "DP2 PASS operational filter"
+jq -e '[.items[]? | select(.isFinalParticipant==true)] | length >= 1' "$EVID/dp2-roster-filter-final.json" >/dev/null && log "DP2 PASS final filter"
 
-# DP3 mutations
-SAFE_TITLE='{"canonical":{"data":{"title":"Wave B safe edit"}}}'
+# DP3 mutations (PATCH uses rowVersion + data.* — not canonical wrapper)
+TOUR_ROW="$(api_op "$API/tours/$TOUR_DP1" | tee "$EVID/dp3-tour-before.json" | jq -r '.rowVersion')"
+SAFE_BODY="$(jq -n --argjson rv "$TOUR_ROW" '{rowVersion:$rv,data:{basicInfo:{title:"Wave B safe edit"}}}')"
 curl -sS -o "$EVID/dp3-safe-edit-body.json" -w '%{http_code}' \
   -H "Host: $ADMIN_HOST" -H "Authorization: Bearer $OP_TOKEN" \
-  -H 'content-type: application/json' -X PATCH "$API/tours/$TOUR_DP1" -d "$SAFE_TITLE" \
+  -H 'content-type: application/json' -X PATCH "$API/tours/$TOUR_DP1" -d "$SAFE_BODY" \
   | tee "$EVID/dp3-safe-edit-code.txt"
+CAP_BODY="$(jq -n --argjson rv "$TOUR_ROW" '{rowVersion:$rv,data:{basicInfo:{capacityMax:1}}}')"
 curl -sS -o "$EVID/dp3-capacity-deny-body.json" -w '%{http_code}' \
   -H "Host: $ADMIN_HOST" -H "Authorization: Bearer $OP_TOKEN" \
-  -H 'content-type: application/json' -X PATCH "$API/tours/$TOUR_DP1" \
-  -d '{"canonical":{"data":{"capacityMax":1}}}' | tee "$EVID/dp3-capacity-deny-code.txt"
-log "DP3 mutation evidence archived"
+  -H 'content-type: application/json' -X PATCH "$API/tours/$TOUR_DP1" -d "$CAP_BODY" \
+  | tee "$EVID/dp3-capacity-deny-code.txt"
+grep -q '^200$' "$EVID/dp3-safe-edit-code.txt" && log "DP3 PASS safe title edit"
+grep -Eq '^(403|409)$' "$EVID/dp3-capacity-deny-code.txt" && log "DP3 PASS capacity deny"
 
 # DP4 member cancel
-MEM_PHONE="+15550008877"
+MEM_PHONE="${SMOKE_MEMBER_PHONE:-+15550001003}"
 member_login "$MEM_PHONE"
-B_M="$(create_booking "Member Self Cancel" "$TOUR_DP1")"
+B_M="$(member_create_denali_registration "$TOUR_DP1" "Member Self Cancel")"
 approve_booking "$B_M" >/dev/null
-curl -sf -b "$MEM_JAR" -H "Host: $PORTAL_HOST" \
+curl -sfL -b "$MEM_JAR" -H "Host: $PORTAL_HOST" \
   "$PORTAL/api/me/registrations/$B_M" | jq . > "$EVID/dp4-member-before.json"
-curl -sf -b "$MEM_JAR" -H "Host: $PORTAL_HOST" -H 'content-type: application/json' \
-  -X POST "$PORTAL/api/me/registrations/$B_M/cancel" -d '{}' | jq . > "$EVID/dp4-member-cancel.json"
-curl -sf -b "$MEM_JAR" -H "Host: $PORTAL_HOST" \
+curl -sfL -b "$MEM_JAR" -H "Host: $PORTAL_HOST" -H 'content-type: application/json' \
+  -X POST "$PORTAL/api/me/registrations/$B_M/cancellation" -d '{}' | jq . > "$EVID/dp4-member-cancel.json"
+curl -sfL -b "$MEM_JAR" -H "Host: $PORTAL_HOST" \
   "$PORTAL/api/me/notifications" | jq . > "$EVID/dp4-inbox.json"
 log "DP4 PASS member cancel + inbox archived"
 

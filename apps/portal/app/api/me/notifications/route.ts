@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { resolveTourOpsApiBaseUrl } from "@/env";
 import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
-import { resolvePortalIngressHost } from "@/tenant/read-portal-ingress-host";
+import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 
 export async function GET(req: Request): Promise<NextResponse> {
   const host = resolvePortalIngressHost(req);
