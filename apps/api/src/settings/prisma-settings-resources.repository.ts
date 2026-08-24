@@ -23,6 +23,19 @@ import {
 } from "./in-memory-settings-resources.repository";
 import { parseThemeIdsJson } from "./parse-theme-ids";
 
+async function deleteTenantScopedCatalogRow(
+  tenantId: string,
+  itemId: string,
+  runDeleteMany: (
+    tx: Parameters<Parameters<typeof withTenantRls>[1]>[0]
+  ) => Promise<{ count: number }>
+): Promise<void> {
+  const result = await withTenantRls(tenantId, runDeleteMany);
+  if (result.count !== 1) {
+    throw new SettingsResourceNotFoundError(itemId);
+  }
+}
+
 function toEquipment(row: {
   id: string;
   tenantId: string;
@@ -281,7 +294,9 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
     if (current === null) {
       throw new SettingsResourceNotFoundError(itemId);
     }
-    await withTenantRls(tenantId, (tx) => tx.workspaceEquipment.delete({ where: { id: itemId } }));
+    await deleteTenantScopedCatalogRow(tenantId, itemId, (tx) =>
+      tx.workspaceEquipment.deleteMany({ where: { id: itemId, tenantId } })
+    );
   }
 
   async seedEquipment(record: EquipmentResource): Promise<void> {
@@ -398,7 +413,9 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
     if (current === null) {
       throw new SettingsResourceNotFoundError(itemId);
     }
-    await withTenantRls(tenantId, (tx) => tx.workspaceTourTheme.delete({ where: { id: itemId } }));
+    await deleteTenantScopedCatalogRow(tenantId, itemId, (tx) =>
+      tx.workspaceTourTheme.deleteMany({ where: { id: itemId, tenantId } })
+    );
   }
 
   async seedTourTheme(record: TourThemeResource): Promise<void> {
@@ -511,7 +528,9 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
     if (current === null) {
       throw new SettingsResourceNotFoundError(itemId);
     }
-    await withTenantRls(tenantId, (tx) => tx.workspaceGuideLanguage.delete({ where: { id: itemId } }));
+    await deleteTenantScopedCatalogRow(tenantId, itemId, (tx) =>
+      tx.workspaceGuideLanguage.deleteMany({ where: { id: itemId, tenantId } })
+    );
   }
 
   async seedGuideLanguage(record: GuideLanguageResource): Promise<void> {
@@ -633,7 +652,9 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
     if (current === null) {
       throw new SettingsResourceNotFoundError(itemId);
     }
-    await withTenantRls(tenantId, (tx) => tx.workspaceTourPreset.delete({ where: { id: itemId } }));
+    await deleteTenantScopedCatalogRow(tenantId, itemId, (tx) =>
+      tx.workspaceTourPreset.deleteMany({ where: { id: itemId, tenantId } })
+    );
   }
 
   async seedTourPreset(record: TourPresetResource): Promise<void> {
@@ -815,10 +836,12 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
     if (current === null) {
       throw new SettingsResourceNotFoundError(itemId);
     }
-    await withTenantRls(tenantId, (tx) => {
-      return tx.workspaceDestination.deleteMany({ where: { tenantId, regionId: itemId } }).then(() =>
-        tx.workspaceRegion.delete({ where: { id: itemId } })
-      );
+    await withTenantRls(tenantId, async (tx) => {
+      await tx.workspaceDestination.deleteMany({ where: { tenantId, regionId: itemId } });
+      const regionDelete = await tx.workspaceRegion.deleteMany({ where: { id: itemId, tenantId } });
+      if (regionDelete.count !== 1) {
+        throw new SettingsResourceNotFoundError(itemId);
+      }
     });
   }
 
@@ -829,7 +852,9 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
     if (current === null) {
       throw new SettingsResourceNotFoundError(itemId);
     }
-    await withTenantRls(tenantId, (tx) => tx.workspaceDestination.delete({ where: { id: itemId } }));
+    await deleteTenantScopedCatalogRow(tenantId, itemId, (tx) =>
+      tx.workspaceDestination.deleteMany({ where: { id: itemId, tenantId } })
+    );
   }
 
   async patchLocationResource(
