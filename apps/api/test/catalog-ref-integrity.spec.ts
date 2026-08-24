@@ -118,12 +118,18 @@ describe("catalog-ref-integrity (P5-B VAL-03)", () => {
   });
 
   it("VAL-03e canonical-validation-sync wires catalog assert on publish", () => {
-    const source = readFileSync(
+    const syncSource = readFileSync(
       join(apiRoot, "src/tours/canonical-validation-sync.ts"),
       "utf8"
     );
-    assert.match(source, /assertCatalogRefIntegrity/);
-    assert.match(source, /catalogRefAllowlists/);
+    assert.match(syncSource, /runWorkspaceValidationPipeline/);
+    assert.match(syncSource, /catalogRefAllowlists/);
+
+    const pipelineSource = readFileSync(
+      join(apiRoot, "src/tours/run-workspace-validation-pipeline.ts"),
+      "utf8"
+    );
+    assert.match(pipelineSource, /assertCatalogRefIntegrity/);
   });
 
   it("VAL-03f validateCanonicalBeforePersist enriches catalog allowlists via dispatch", () => {

@@ -68,9 +68,9 @@ describe("thin-shell-architecture-purity — Phase 4q DoD locks", () => {
 
   it("generated binders have no ensureDenali* / getDenali*", () => {
     const generated = walkSourceFiles(BOOTSTRAP).filter((p) => p.includes(".generated."));
-    // Exact inventory: 7 *.generated.ts registries + 3 tooling (.mjs / .d.ts) — see
-    // docs/dev/thin-shell-generated-bootstrap-inventory.mdoc (no product binders).
-    assert.equal(generated.length, 10, "expected exact generated bootstrap inventory count");
+    // Exact inventory: 15 *.generated.ts registries + 3 tooling (.mjs / .d.ts) — see
+    // docs/dev/thin-shell-generated-bootstrap-inventory.mdoc (CW7 capability codegen included).
+    assert.equal(generated.length, 18, "expected exact generated bootstrap inventory count");
     const hits: string[] = [];
     for (const abs of generated) {
       const text = readFileSync(abs, "utf8");

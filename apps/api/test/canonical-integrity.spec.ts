@@ -42,6 +42,8 @@ describe("canonical integrity — POST /tours storage", () => {
       "canonical/migrate-canonical-workspace.service.ts",
       "tours/workspace-tour-write-bindings.generated.ts",
       "tours/workspace-tour-write-dispatch.ts",
+      "tours/workspace-tour-list-projection-bindings.generated.ts",
+      "tours/workspace-tour-list-projection-dispatch.ts",
       "tours/operator-tour-list-db-query.ts",
     ]);
     const hits: string[] = [];
