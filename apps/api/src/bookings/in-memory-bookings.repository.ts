@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 
 import {
   canTransitionBookingStatus,
-  listBookingSourceStatusesForTarget,
 } from "@app-tour/booking-http-contracts";
 
 import {

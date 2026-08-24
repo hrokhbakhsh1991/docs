@@ -3,7 +3,6 @@ import {
   type TourListProjection,
   type TourListProjectionFields,
 } from "@app-tour/workspace-sdk";
-import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 
 import type { ApiAbility } from "../casl/api-ability";
 import { ScopedTourRepository } from "../db/scoped-tour.repository";
@@ -13,6 +12,7 @@ import { enrichTourListProjectionsCoverImageUrls } from "./enrich-tour-list-cove
 import type { TourStorageRepository } from "../db/tour.repository";
 import { ensureDevMemoryTourSeedForTenant } from "../storage/create-tour-storage";
 import { getActiveWorkspaceType } from "../tenant/tenant-request-context";
+import { resolveTourListProjectionExtractorForWorkspace } from "./workspace-tour-list-projection-dispatch";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import {
   OperatorListSortBy,
@@ -39,42 +39,6 @@ export type OperatorTourListResult = {
   readonly page: number;
   readonly limit: number;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object";
-}
-
-function readStarterTitle(canonical: CanonicalDocument): string {
-  const data = canonical.data;
-  if (!isRecord(data)) {
-    return "Untitled tour";
-  }
-  const basics = data.basics;
-  if (isRecord(basics) && typeof basics.title === "string" && basics.title.trim().length > 0) {
-    return basics.title.trim();
-  }
-  if (typeof data.title === "string" && data.title.trim().length > 0) {
-    return data.title.trim();
-  }
-  return "Untitled tour";
-}
-
-function defaultExtractTourListProjection(canonical: CanonicalDocument): TourListProjectionFields {
-  return Object.freeze({
-    title: readStarterTitle(canonical),
-    shortDescription: null,
-    listStatus: "draft",
-    uiStatus: "draft",
-    priceAmount: null,
-    priceCurrency: null,
-    totalCapacity: null,
-    acceptedCount: 0,
-    category: null,
-    coverImageUrl: null,
-    coverImageStorageKey: null,
-    departureAt: null,
-  });
-}
 
 function toRowMeta(record: TourRecord) {
   return {

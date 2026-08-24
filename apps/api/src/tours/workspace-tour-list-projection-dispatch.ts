@@ -14,7 +14,7 @@ function buildBindingMap(): Readonly<Record<string, TourListProjectionBinding>> 
 
 const bindingsByWorkspaceType = buildBindingMap();
 
-function defaultExtractTourListProjection(canonical: CanonicalDocument): TourListProjectionFields {
+function defaultExtractTourListProjection(_canonical: CanonicalDocument): TourListProjectionFields {
   return Object.freeze({
     title: "Untitled tour",
     shortDescription: null,
