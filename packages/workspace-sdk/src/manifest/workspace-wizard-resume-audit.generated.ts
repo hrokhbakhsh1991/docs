@@ -14,6 +14,8 @@ export const WORKSPACE_WIZARD_RESUME_AUDIT = {
   "acme": null,
   "alpine": null,
   "booking-ws2": null,
+  "cert-club": { mode: "noop" },
+  "cert-events": null,
   "denali": {
     mode: "module",
     module: "./wizard/resolve-initial-step-index",

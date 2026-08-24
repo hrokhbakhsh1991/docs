@@ -3,6 +3,8 @@ import { importSpecifier } from "../utils.mjs";
 
 import { resolveWorkspaceEquipmentManifest } from "./equipment.mjs";
 import { resolveWorkspaceDifficultyFitnessManifest } from "./difficulty-fitness.mjs";
+import { resolveWorkspaceItineraryManifest } from "./itinerary.mjs";
+import { resolveWorkspacePricingManifest } from "./pricing.mjs";
 import { resolveWorkspaceTransportManifest } from "./transport.mjs";
 
 /**
@@ -35,6 +37,14 @@ export function listEnabledCapabilityIds(manifest) {
   const difficultyFitness = resolveWorkspaceDifficultyFitnessManifest(manifest);
   if (difficultyFitness !== undefined && difficultyFitness.supported === true) {
     ids.push("workspaceDifficultyFitness");
+  }
+  const itinerary = resolveWorkspaceItineraryManifest(manifest);
+  if (itinerary !== undefined && itinerary.supported === true) {
+    ids.push("workspaceItinerary");
+  }
+  const pricing = resolveWorkspacePricingManifest(manifest);
+  if (pricing !== undefined && pricing.supported === true) {
+    ids.push("workspacePricing");
   }
   const finance = manifest.workspaceFinance;
   if (finance !== undefined && typeof finance === "object" && finance !== null && finance.supported === true) {

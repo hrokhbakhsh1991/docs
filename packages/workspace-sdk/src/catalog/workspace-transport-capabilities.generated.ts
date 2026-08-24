@@ -28,7 +28,7 @@ export const WORKSPACE_TRANSPORT_CAPABILITIES = {
   },
   "denali": {
     supported: true as const,
-    wizardTourField: false as const,
+    wizardTourField: true as const,
     catalogSnapshot: true as const,
     catalogDetailSection: true as const,
     registrationIntake: true as const,

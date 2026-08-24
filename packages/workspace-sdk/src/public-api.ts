@@ -244,6 +244,8 @@ export {
   mergeWorkspaceFieldRegistryWithEquipmentFragments,
   mergeWorkspaceFieldRegistryWithDifficultyFitnessFragments,
   mergeWorkspaceFieldRegistryWithTransportFragments,
+  mergeWorkspaceFieldRegistryWithItineraryFragments,
+  mergeWorkspaceFieldRegistryWithPricingFragments,
   validateFieldPolicyManifest,
   type WorkspaceFieldPolicyDefinition,
   type WorkspaceFieldPolicyManifest,
@@ -436,11 +438,32 @@ export {
 } from "./transport";
 export {
   defineWorkspaceItineraryFieldFragment,
+  listWorkspaceItineraryCanonicalPaths,
   type WorkspaceItineraryFieldFragment,
   type WorkspaceItineraryFieldRegistryFragment,
   type WorkspaceItineraryTourFieldConfig,
   type WorkspaceItineraryWizardCompositeBinding,
+  type PublicCatalogItineraryFields,
 } from "./itinerary";
+export {
+  getWorkspaceItineraryCapabilities,
+  type WorkspaceItineraryCapabilities,
+} from "./catalog/workspace-itinerary-capabilities.generated";
+export {
+  WORKSPACE_PRICING_ALLOW_MEMBERSHIP_DISCOUNT_CANONICAL_PATH,
+  WORKSPACE_PRICING_BASE_PRICE_CANONICAL_PATH,
+  defineWorkspacePricingFieldFragment,
+  defineWorkspacePricingFieldsFragment,
+  listWorkspacePricingCanonicalPaths,
+  type WorkspacePricingFieldFragment,
+  type WorkspacePricingFieldRegistryFragment,
+  type WorkspacePricingTourFieldConfig,
+  type WorkspacePricingWizardCompositeBinding,
+} from "./pricing";
+export {
+  getWorkspacePricingCapabilities,
+  type WorkspacePricingCapabilities,
+} from "./catalog/workspace-pricing-capabilities.generated";
 export {
   resolveGuestSeoForPlugin,
   GuestSeoNotConfiguredError,

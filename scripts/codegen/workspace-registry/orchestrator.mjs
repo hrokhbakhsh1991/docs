@@ -153,6 +153,14 @@ import {
   assertWorkspaceDifficultyFitnessManifest,
   generateWorkspaceDifficultyFitnessBindings,
 } from "./domains/difficulty-fitness.mjs";
+import {
+  assertWorkspaceItineraryManifest,
+  generateWorkspaceItineraryBindings,
+} from "./domains/itinerary.mjs";
+import {
+  assertWorkspacePricingManifest,
+  generateWorkspacePricingBindings,
+} from "./domains/pricing.mjs";
 import { generateWorkspaceCapabilityValidationBindings, generateWorkspacePolicyValidationBindings } from "./domains/validation-pipeline.mjs";
 
 /** @type {Record<string, readonly string[]>} */
@@ -218,11 +226,23 @@ export const DOMAIN_OUTPUT_KEYS = {
     "catalogIntakeTransportSurfaces",
     "registrationTransportNormalizers",
     "registrationTransportInitializers",
+    "workspaceTransportFieldModule",
+    "workspaceTransportWizardComposite",
   ],
   "difficulty-fitness": [
     "workspaceDifficultyFitnessCapabilities",
     "workspaceDifficultyFitnessFieldModule",
     "workspaceDifficultyFitnessFilterPresentation",
+  ],
+  itinerary: [
+    "workspaceItineraryCapabilities",
+    "workspaceItineraryFieldModule",
+    "workspaceItineraryWizardComposite",
+  ],
+  pricing: [
+    "workspacePricingCapabilities",
+    "workspacePricingFieldModule",
+    "workspacePricingWizardComposite",
   ],
   "validation-pipeline": ["capabilityValidationBindings", "workspacePolicyBindings"],
 };
@@ -306,9 +326,17 @@ export const OUTPUT_KEYS = Object.freeze([
   "catalogIntakeTransportSurfaces",
   "registrationTransportNormalizers",
   "registrationTransportInitializers",
+  "workspaceTransportFieldModule",
+  "workspaceTransportWizardComposite",
   "workspaceDifficultyFitnessCapabilities",
   "workspaceDifficultyFitnessFieldModule",
   "workspaceDifficultyFitnessFilterPresentation",
+  "workspaceItineraryCapabilities",
+  "workspaceItineraryFieldModule",
+  "workspaceItineraryWizardComposite",
+  "workspacePricingCapabilities",
+  "workspacePricingFieldModule",
+  "workspacePricingWizardComposite",
   "capabilityValidationBindings",
   "workspacePolicyBindings",
 ]);
@@ -321,6 +349,8 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     assertWorkspaceTransportManifest(manifest);
     assertWorkspaceDifficultyFitnessManifest(manifest);
     assertWizardResumeManifest(manifest);
+    assertWorkspaceItineraryManifest(manifest);
+    assertWorkspacePricingManifest(manifest);
   }
 
   // P3.1.b — validate registration manifests; do not emit legacy monolithic *FromManifest files.
@@ -331,6 +361,8 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
   const equipmentOutputs = generateWorkspaceEquipmentBindings(manifests);
   const transportOutputs = generateWorkspaceTransportBindings(manifests);
   const difficultyFitnessOutputs = generateWorkspaceDifficultyFitnessBindings(manifests);
+  const itineraryOutputs = generateWorkspaceItineraryBindings(manifests);
+  const pricingOutputs = generateWorkspacePricingBindings(manifests);
 
   return {
     ...generatePortalRegisterOutputs(manifests),
@@ -412,9 +444,17 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     catalogIntakeTransportSurfaces: transportOutputs.catalogIntakeTransportSurfaces,
     registrationTransportNormalizers: transportOutputs.registrationTransportNormalizers,
     registrationTransportInitializers: transportOutputs.registrationTransportInitializers,
+    workspaceTransportFieldModule: transportOutputs.fieldModule,
+    workspaceTransportWizardComposite: transportOutputs.wizardComposite,
     workspaceDifficultyFitnessCapabilities: difficultyFitnessOutputs.capabilities,
     workspaceDifficultyFitnessFieldModule: difficultyFitnessOutputs.fieldModule,
     workspaceDifficultyFitnessFilterPresentation: difficultyFitnessOutputs.filterPresentation,
+    workspaceItineraryCapabilities: itineraryOutputs.capabilities,
+    workspaceItineraryFieldModule: itineraryOutputs.fieldModule,
+    workspaceItineraryWizardComposite: itineraryOutputs.wizardComposite,
+    workspacePricingCapabilities: pricingOutputs.capabilities,
+    workspacePricingFieldModule: pricingOutputs.fieldModule,
+    workspacePricingWizardComposite: pricingOutputs.wizardComposite,
     capabilityValidationBindings: generateWorkspaceCapabilityValidationBindings(manifests),
     workspacePolicyBindings: generateWorkspacePolicyValidationBindings(manifests),
   };
@@ -701,6 +741,14 @@ export const OUTPUT_PATHS = {
     REPO_ROOT,
     "packages/workspace-plugin-host/src/workspace-registration-transport-initializers.generated.ts"
   ),
+  workspaceTransportFieldModule: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-transport-field-module-bindings.generated.ts"
+  ),
+  workspaceTransportWizardComposite: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-transport-wizard-composite-bindings.generated.ts"
+  ),
   workspaceDifficultyFitnessCapabilities: join(
     REPO_ROOT,
     "packages/workspace-sdk/src/catalog/workspace-difficulty-fitness-capabilities.generated.ts"
@@ -712,6 +760,30 @@ export const OUTPUT_PATHS = {
   workspaceDifficultyFitnessFilterPresentation: join(
     REPO_ROOT,
     "packages/workspace-sdk/src/catalog/workspace-difficulty-fitness-filter-presentation.generated.ts"
+  ),
+  workspaceItineraryCapabilities: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-itinerary-capabilities.generated.ts"
+  ),
+  workspaceItineraryFieldModule: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-itinerary-field-module-bindings.generated.ts"
+  ),
+  workspaceItineraryWizardComposite: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-itinerary-wizard-composite-bindings.generated.ts"
+  ),
+  workspacePricingCapabilities: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-pricing-capabilities.generated.ts"
+  ),
+  workspacePricingFieldModule: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-pricing-field-module-bindings.generated.ts"
+  ),
+  workspacePricingWizardComposite: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-pricing-wizard-composite-bindings.generated.ts"
   ),
   capabilityValidationBindings: join(
     REPO_ROOT,

@@ -5,6 +5,11 @@
 
 import type { DenaliCreateWizardStepId } from "../layout/stepIds";
 import { denaliEquipmentFieldModule } from "./denali-equipment-tour-field-module";
+import { denaliItineraryTourField } from "./denali-itinerary-tour-field-module";
+import {
+  denaliTransportDependentFields,
+  denaliTransportModeField,
+} from "./denali-transport-tour-field-module";
 import type { DenaliMatrixCell, DenaliMatrixTag } from "./denaliRuleMatrixRecipes";
 import type {
   DenaliContextualRule,
@@ -415,36 +420,8 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     wire: { kind: "tripDetails.overview", field: "elevationGainMeters" },
     notes: "Route elevation gain (m); distinct from peak height on basic info.",
   },
-  {
-    canonicalPath: "program.itinerary",
-    stepId: "denali_program",
-    rhfPath: "programNature.itinerary",
-    zodPath: "programNature.itinerary",
-    zodKind: "itinerary",
-    tags: ["itinerary_hidden", "itinerary_visible"] as const,
-    ruleDefaults: { required: false, hidden: true },
-    structuralInvariant: { kind: "clearWhenNotVisible" },
-
-    cellOverrides: {
-      "desert:multi_day": { required: true, hidden: false },
-      "mountain:multi_day": { required: true, hidden: false },
-      "nature:multi_day": { required: true, hidden: false },
-    },
-  },
-  {
-    canonicalPath: "transport.mode",
-    stepId: "denali_logistics",
-    rhfPath: "transport.transportMode",
-    zodPath: "transport.transportMode",
-    zodKind: "transportMode",
-    tags: ["core"] as const,
-    ruleDefaults: { required: true, hidden: false },
-    wire: [
-      { kind: "createTourDto", field: "transportModes" },
-      { kind: "tripDetails.logistics", field: "primaryTransportMode" },
-      { kind: "tripDetails", field: "transport" },
-    ],
-  },
+  denaliItineraryTourField,
+  denaliTransportModeField,
   {
     canonicalPath: "gatheringPoint",
     stepId: "denali_logistics",
@@ -589,94 +566,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     notes:
       "Optional admin note for non-attendance; shown on pricing step after tour kind is selected.",
   },
-  {
-    canonicalPath: "transport.transportCost",
-    stepId: "denali_logistics",
-    rhfPath: "transport.transportCost",
-    zodPath: "transport.transportCost",
-    zodKind: "optionalInt",
-    tags: ["core"] as const,
-    ruleDefaults: { required: false, hidden: false },
-    contextualVisibility: { kind: "transportOrganizedCostVisible" },
-    structuralInvariant: { kind: "clearWhenNotVisible" },
-    wire: { kind: "tripDetails", field: "transport" },
-  },
-  {
-    canonicalPath: "transport.allowPersonalCar",
-    stepId: "denali_logistics",
-    rhfPath: "transport.allowPersonalCar",
-    zodPath: "transport.allowPersonalCar",
-    zodKind: "booleanOptional",
-    tags: ["core"] as const,
-    ruleDefaults: { required: false, hidden: false },
-    contextualVisibility: { kind: "transportPersonalCarOptionVisible" },
-    structuralInvariant: { kind: "clearWhenNotVisible" },
-    wire: [
-      { kind: "tripDetails", field: "transport" },
-      { kind: "derived", description: "May set logistics.privateCarMode." },
-    ],
-  },
-  {
-    canonicalPath: "transport.dongAmount",
-    stepId: "denali_logistics",
-    rhfPath: "transport.dongAmount",
-    zodPath: "transport.dongAmount",
-    zodKind: "optionalInt",
-    tags: ["core"] as const,
-    ruleDefaults: { required: false, hidden: false },
-    contextualVisibility: { kind: "transportDongVisible" },
-    contextualRequired: { kind: "transportDongVisible" },
-    structuralInvariant: { kind: "clearWhenNotVisible" },
-    wire: [
-      { kind: "tripDetails.logistics", field: "fuelShareToman" },
-      { kind: "tripDetails", field: "transport" },
-    ],
-  },
-  {
-    canonicalPath: "transport.transportNotes",
-    stepId: "denali_logistics",
-    rhfPath: "transport.transportNotes",
-    zodPath: "transport.transportNotes",
-    zodKind: "stringOptional",
-    tags: ["core"] as const,
-    ruleDefaults: { required: false, hidden: false },
-    inRuleModel: false,
-    settingsSurface: "implicit",
-    wire: { kind: "tripDetails.logistics", field: "transportationNotes" },
-    notes: "Wire/hydrate only; no create-wizard section input.",
-  },
-  {
-    canonicalPath: "transport.seatPreference",
-    stepId: "denali_logistics",
-    rhfPath: "transport.seatPreference",
-    zodPath: "transport.seatPreference",
-    zodKind: "stringOptional",
-    tags: ["core"] as const,
-    ruleDefaults: { required: false, hidden: false },
-    inRuleModel: false,
-    // INV-WIZ-002 / INV-DENALI-WIZ-016 — Layer C Settings palette exclude only.
-    // Create wizard still owns the leaf inside denali.transport-mode when mode=train.
-    settingsSurface: "deprecated",
-    contextualVisibility: { kind: "transportTrainSeatVisible" },
-    contextualRequired: { kind: "transportTrainSeatVisible" },
-    structuralInvariant: { kind: "clearWhenNotVisible" },
-    wire: { kind: "tripDetails", field: "transport" },
-    notes:
-      "Train seat preference — rendered inside denali.transport-mode (not a standalone Settings overlay leaf). settingsSurface deprecated = wizard_overlay_exclude only (INV-WIZ-002).",
-  },
-  {
-    canonicalPath: "transport.adminCapacityApproval",
-    stepId: "denali_logistics",
-    rhfPath: "transport.adminCapacityApproval",
-    zodPath: "transport.adminCapacityApproval",
-    zodKind: "adminCapacityApproval",
-    tags: ["core"] as const,
-    ruleDefaults: { required: false, hidden: false },
-    contextualVisibility: { kind: "transportAdminCapacityVisible" },
-    structuralInvariant: { kind: "clearWhenNotVisible" },
-    wire: { kind: "tripDetails", field: "transport" },
-    notes: "Separate capacity calculation when personal car is permitted on organized transport.",
-  },
+  ...denaliTransportDependentFields,
   {
     canonicalPath: "photos",
     stepId: "denali_photos",

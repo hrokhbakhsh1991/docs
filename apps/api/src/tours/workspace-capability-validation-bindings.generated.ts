@@ -34,6 +34,14 @@ export const WORKSPACE_CAPABILITY_VALIDATORS: readonly CapabilityValidatorBindin
     run: (_ctx) => null,
   },
   {
+    capabilityId: "workspaceItinerary",
+    run: (_ctx) => null,
+  },
+  {
+    capabilityId: "workspacePricing",
+    run: (_ctx) => null,
+  },
+  {
     capabilityId: "workspaceTransport",
     run: (_ctx) => null,
   },

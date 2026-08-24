@@ -81,6 +81,8 @@
     "@app-tour/workspace-acme": "workspace:*",
     "@app-tour/workspace-alpine": "workspace:*",
     "@app-tour/workspace-booking-ws2": "workspace:*",
+    "@app-tour/workspace-cert-club": "workspace:*",
+    "@app-tour/workspace-cert-events": "workspace:*",
     "@app-tour/workspace-denali": "workspace:*",
     "@app-tour/workspace-finance-ws5": "workspace:*",
     "@app-tour/workspace-guest-club": "workspace:*",

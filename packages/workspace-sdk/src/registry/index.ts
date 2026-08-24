@@ -3,8 +3,16 @@ export {
 } from "./merge-workspace-field-registry-with-equipment-fragments";
 export {
   mergeWorkspaceFieldRegistryWithDifficultyFitnessFragments,
-  mergeWorkspaceFieldRegistryWithTransportFragments,
 } from "./merge-workspace-field-registry-with-difficulty-fitness-fragments";
+export {
+  mergeWorkspaceFieldRegistryWithTransportFragments,
+} from "./merge-workspace-field-registry-with-transport-fragments";
+export {
+  mergeWorkspaceFieldRegistryWithItineraryFragments,
+} from "./merge-workspace-field-registry-with-itinerary-fragments";
+export {
+  mergeWorkspaceFieldRegistryWithPricingFragments,
+} from "./merge-workspace-field-registry-with-pricing-fragments";
 export {
   type WorkspaceFieldKind,
   type WorkspaceFieldRegistry,

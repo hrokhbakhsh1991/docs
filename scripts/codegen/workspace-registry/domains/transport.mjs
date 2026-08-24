@@ -558,6 +558,186 @@ ${body}
 }
 
 /**
+ * CW7-07 — optional field-registry fragment bindings from workspaceTransport.fieldModule.
+ *
+ * @param {readonly Record<string, unknown>[]} manifests
+ */
+export function generateWorkspaceTransportFieldModuleBindings(manifests) {
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const bindingBlocks = [];
+
+  for (const manifest of manifests) {
+    const transport = resolveWorkspaceTransportManifest(manifest);
+    if (transport === undefined || transport.supported !== true) {
+      continue;
+    }
+    const caps = transport.capabilities ?? {};
+    if (caps.wizardTourField !== true) {
+      continue;
+    }
+    const fieldModule = transport.fieldModule;
+    if (fieldModule === undefined) {
+      continue;
+    }
+    const workspaceType = manifest.workspaceTypes?.[0];
+    if (typeof workspaceType !== "string" || workspaceType.trim().length === 0) {
+      throw new Error(
+        `workspace.manifest.json ${manifest.id}: workspaceTransport.fieldModule requires workspaceTypes[0]`
+      );
+    }
+    for (const key of ["module", "export"]) {
+      if (typeof fieldModule[key] !== "string" || fieldModule[key].trim().length === 0) {
+        throw new Error(
+          `workspace.manifest.json ${manifest.id}: workspaceTransport.fieldModule.${key} is required`
+        );
+      }
+    }
+    const alias = `${String(manifest.id).replace(/-/g, "_")}_transport_field_module`;
+    const spec = importSpecifier(manifest.package, fieldModule.module);
+    importLines.add(`import { ${fieldModule.export} as ${alias} } from "${spec}";`);
+    bindingBlocks.push(`  {
+    workspaceType: ${JSON.stringify(workspaceType)},
+    fieldRegistryFragment: ${alias},
+  },`);
+  }
+
+  if (bindingBlocks.length === 0) {
+    return `${BANNER}
+import type { WorkspaceTransportFieldRegistryFragment } from "@app-tour/workspace-sdk/transport";
+
+export type WorkspaceTransportFieldModuleBinding = {
+  readonly workspaceType: string;
+  readonly fieldRegistryFragment: WorkspaceTransportFieldRegistryFragment;
+};
+
+export const WORKSPACE_TRANSPORT_FIELD_MODULE_BINDINGS: readonly WorkspaceTransportFieldModuleBinding[] =
+  [];
+
+export function resolveWorkspaceTransportFieldRegistryFragment(
+  _workspaceType: string
+): WorkspaceTransportFieldRegistryFragment | undefined {
+  return undefined;
+}
+`;
+  }
+
+  return `${BANNER}
+import type { WorkspaceTransportFieldRegistryFragment } from "@app-tour/workspace-sdk/transport";
+${[...importLines].join("\n")}
+
+export type WorkspaceTransportFieldModuleBinding = {
+  readonly workspaceType: string;
+  readonly fieldRegistryFragment: WorkspaceTransportFieldRegistryFragment;
+};
+
+export const WORKSPACE_TRANSPORT_FIELD_MODULE_BINDINGS: readonly WorkspaceTransportFieldModuleBinding[] = [
+${bindingBlocks.join("\n")}
+] as const;
+
+export function resolveWorkspaceTransportFieldRegistryFragment(
+  workspaceType: string
+): WorkspaceTransportFieldRegistryFragment | undefined {
+  const binding = WORKSPACE_TRANSPORT_FIELD_MODULE_BINDINGS.find(
+    (entry) => entry.workspaceType === workspaceType
+  );
+  return binding?.fieldRegistryFragment;
+}
+`;
+}
+
+/**
+ * CW7-07 — wizard composite bindings from workspaceTransport.wizardComposite.
+ *
+ * @param {readonly Record<string, unknown>[]} manifests
+ */
+export function generateWorkspaceTransportWizardCompositeBindings(manifests) {
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const bindingBlocks = [];
+
+  for (const manifest of manifests) {
+    const transport = resolveWorkspaceTransportManifest(manifest);
+    if (transport === undefined || transport.supported !== true) {
+      continue;
+    }
+    const caps = transport.capabilities ?? {};
+    if (caps.wizardTourField !== true) {
+      continue;
+    }
+    const wizardComposite = transport.wizardComposite;
+    if (wizardComposite === undefined) {
+      continue;
+    }
+    const workspaceType = manifest.workspaceTypes?.[0];
+    if (typeof workspaceType !== "string" || workspaceType.trim().length === 0) {
+      throw new Error(
+        `workspace.manifest.json ${manifest.id}: workspaceTransport.wizardComposite requires workspaceTypes[0]`
+      );
+    }
+    for (const key of ["module", "export"]) {
+      if (typeof wizardComposite[key] !== "string" || wizardComposite[key].trim().length === 0) {
+        throw new Error(
+          `workspace.manifest.json ${manifest.id}: workspaceTransport.wizardComposite.${key} is required`
+        );
+      }
+    }
+    const alias = `${String(manifest.id).replace(/-/g, "_")}_transport_wizard_composite`;
+    const spec = importSpecifier(manifest.package, wizardComposite.module);
+    importLines.add(`import { ${wizardComposite.export} as ${alias} } from "${spec}";`);
+    bindingBlocks.push(`  {
+    workspaceType: ${JSON.stringify(workspaceType)},
+    wizardCompositeBinding: ${alias},
+  },`);
+  }
+
+  if (bindingBlocks.length === 0) {
+    return `${BANNER}
+import type { WorkspaceTransportWizardCompositeBinding } from "@app-tour/workspace-sdk/transport";
+
+export type WorkspaceTransportWizardCompositeBindingEntry = {
+  readonly workspaceType: string;
+  readonly wizardCompositeBinding: WorkspaceTransportWizardCompositeBinding;
+};
+
+export const WORKSPACE_TRANSPORT_WIZARD_COMPOSITE_BINDINGS: readonly WorkspaceTransportWizardCompositeBindingEntry[] =
+  [];
+
+export function resolveWorkspaceTransportWizardCompositeBinding(
+  _workspaceType: string
+): WorkspaceTransportWizardCompositeBinding | undefined {
+  return undefined;
+}
+`;
+  }
+
+  return `${BANNER}
+import type { WorkspaceTransportWizardCompositeBinding } from "@app-tour/workspace-sdk/transport";
+${[...importLines].join("\n")}
+
+export type WorkspaceTransportWizardCompositeBindingEntry = {
+  readonly workspaceType: string;
+  readonly wizardCompositeBinding: WorkspaceTransportWizardCompositeBinding;
+};
+
+export const WORKSPACE_TRANSPORT_WIZARD_COMPOSITE_BINDINGS: readonly WorkspaceTransportWizardCompositeBindingEntry[] = [
+${bindingBlocks.join("\n")}
+] as const;
+
+export function resolveWorkspaceTransportWizardCompositeBinding(
+  workspaceType: string
+): WorkspaceTransportWizardCompositeBinding | undefined {
+  const binding = WORKSPACE_TRANSPORT_WIZARD_COMPOSITE_BINDINGS.find(
+    (entry) => entry.workspaceType === workspaceType
+  );
+  return binding?.wizardCompositeBinding;
+}
+`;
+}
+
+/**
  * @param {readonly Record<string, unknown>[]} manifests
  */
 export function generateWorkspaceTransportBindings(manifests) {
@@ -567,6 +747,8 @@ export function generateWorkspaceTransportBindings(manifests) {
     catalogIntakeTransportSurfaces: generateCatalogIntakeTransportSurfaces(manifests),
     registrationTransportNormalizers: generateRegistrationTransportNormalizers(manifests),
     registrationTransportInitializers: generateWorkspaceRegistrationTransportInitializers(manifests),
+    fieldModule: generateWorkspaceTransportFieldModuleBindings(manifests),
+    wizardComposite: generateWorkspaceTransportWizardCompositeBindings(manifests),
   };
 }
 

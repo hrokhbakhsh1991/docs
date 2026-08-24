@@ -27,6 +27,29 @@ export const WORKSPACE_MANIFEST_BINDINGS: readonly {
   },
   { workspaceType: "booking-ws2", pluginId: "booking-ws2" },
   {
+    workspaceType: "cert-club",
+    pluginId: "cert-club",
+    tenantBrandingDefaults: {
+      primaryColor: "#0d9488",
+      cssVariables: {
+        "--color-primary": "#0d9488",
+        "--color-primary-hover": "#0f766e",
+      },
+    } as const,
+  },
+  {
+    workspaceType: "cert-events",
+    pluginId: "cert-events",
+    tenantBrandingDefaults: {
+      primaryColor: "#7c3aed",
+      cssVariables: {
+        "--color-primary": "#7c3aed",
+        "--color-primary-hover": "#6d28d9",
+      },
+      defaultLocale: "en",
+    } as const,
+  },
+  {
     workspaceType: "denali",
     pluginId: "denali",
     tenantBrandingDefaults: {

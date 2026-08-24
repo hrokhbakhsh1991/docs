@@ -40,6 +40,28 @@ export const WORKSPACE_MEMBER_PORTAL_SURFACES: Readonly<
       }),
     ] as const satisfies readonly MemberModuleManifest[]),
   }),
+  "cert-events": Object.freeze({
+    manifestVersion: 1 as const,
+    defaultPrimaryModuleId: "trips",
+    modules: Object.freeze([
+      Object.freeze({
+        id: "trips",
+        routePath: "/me/registrations",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "trips",
+        }),
+      }),
+      Object.freeze({
+        id: "profile",
+        routePath: "/me/profile",
+        nav: Object.freeze({
+          tier: "user_menu",
+          labelKey: "profile",
+        }),
+      }),
+    ] as const satisfies readonly MemberModuleManifest[]),
+  }),
   "denali": Object.freeze({
     manifestVersion: 1 as const,
     defaultPrimaryModuleId: "trips",

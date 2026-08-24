@@ -78,6 +78,10 @@
       "types": "./dist/itinerary/index.d.ts",
       "default": "./dist/itinerary/index.js"
     },
+    "./pricing": {
+      "types": "./dist/pricing/index.d.ts",
+      "default": "./dist/pricing/index.js"
+    },
     "./http": {
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"

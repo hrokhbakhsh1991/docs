@@ -475,6 +475,7 @@
   "workspaceTransport": {
     "supported": true,
     "capabilities": {
+      "wizardTourField": true,
       "catalogSnapshot": true,
       "catalogDetailSection": true,
       "registrationIntake": true,
@@ -497,6 +498,14 @@
     "registrationTransportNormalizer": {
       "module": "./http/resolve-denali-registration-transport",
       "export": "normalizeDenaliRegistrationTransportIntake"
+    },
+    "fieldModule": {
+      "module": "./field-registry/denali-transport-field-module",
+      "export": "denaliTransportFieldRegistryFragment"
+    },
+    "wizardComposite": {
+      "module": "./composites/denali-transport-composite-binding",
+      "export": "denaliTransportModeCompositeBinding"
     }
   },
   "workspaceDifficultyFitness": {
@@ -514,6 +523,36 @@
     "filterPresentation": {
       "module": "./marketing/denali-difficulty-fitness-filter-presentation",
       "export": "denaliDifficultyFitnessFilterPresentation"
+    }
+  },
+  "workspaceItinerary": {
+    "supported": true,
+    "capabilities": {
+      "wizardTourField": true,
+      "catalogDetailSection": true
+    },
+    "fieldModule": {
+      "module": "./field-registry/denali-itinerary-field-module",
+      "export": "denaliItineraryFieldRegistryFragment"
+    },
+    "wizardComposite": {
+      "module": "./composites/denali-itinerary-composite-binding",
+      "export": "denaliItineraryWizardCompositeBinding"
+    }
+  },
+  "workspacePricing": {
+    "supported": true,
+    "capabilities": {
+      "wizardTourField": true,
+      "allowMembershipDiscount": true
+    },
+    "fieldModule": {
+      "module": "./field-registry/denali-pricing-field-module",
+      "export": "denaliPricingFieldRegistryFragment"
+    },
+    "wizardComposite": {
+      "module": "./composites/denali-pricing-composite-binding",
+      "export": "denaliPricingWizardCompositeBinding"
     }
   },
   "devBootstrap": {

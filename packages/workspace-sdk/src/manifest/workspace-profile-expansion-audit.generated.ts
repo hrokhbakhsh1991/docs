@@ -13,6 +13,11 @@ export const WORKSPACE_PROFILE_EXPANSION_AUDIT = {
   "acme": null,
   "alpine": null,
   "booking-ws2": null,
+  "cert-club": {
+    profileId: "starter-outdoor",
+    overriddenPaths: ["catalogRegistrationFlow.steps.components.done","catalogRegistrationFlow.steps.components.intake","catalogRegistrationFlow.surfaceExport","devBootstrap","guestConformance","guestExtensionsVersion","guestLanding","guestSeo","guestThemeStylesheets","http","httpRoutes","memberProfile.editableFields","memberProfile.readOnlyFields","memberProfile.sections","operatorCapabilities","pluginApiVersion","tenantBrandingDefaults.cssVariables","tenantBrandingDefaults.primaryColor","themeStylesheets","web","workspaceBooking.supported","workspaceEquipment","workspaceFinance.supported","workspacePolicy","workspaceTransport"],
+  },
+  "cert-events": null,
   "denali": null,
   "finance-ws2": null,
   "finance-ws3": null,

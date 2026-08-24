@@ -53,6 +53,30 @@ export const WORKSPACE_MEMBER_PORTAL_CONTRACTS: Readonly<
     ] as const satisfies readonly MemberModuleManifest[]),
   }),
   "booking-ws2": Object.freeze({ availability: "off" as const }),
+  "cert-club": Object.freeze({ availability: "off" as const }),
+  "cert-events": Object.freeze({
+    availability: "minimal",
+    includePlatformHome: false,
+    defaultPrimaryModuleId: "trips",
+    modules: Object.freeze([
+      Object.freeze({
+        id: "trips",
+        routePath: "/me/registrations",
+        nav: Object.freeze({
+          tier: "primary",
+          labelKey: "trips",
+        }),
+      }),
+      Object.freeze({
+        id: "profile",
+        routePath: "/me/profile",
+        nav: Object.freeze({
+          tier: "user_menu",
+          labelKey: "profile",
+        }),
+      }),
+    ] as const satisfies readonly MemberModuleManifest[]),
+  }),
   "denali": Object.freeze({
     availability: "full",
     includePlatformHome: true,

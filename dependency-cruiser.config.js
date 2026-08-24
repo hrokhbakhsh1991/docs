@@ -2,7 +2,7 @@
 const monorepoGuardExclude =
   process.env.DEPCRUISE_MONOREPO_GUARD === "1"
     ? {
-        path: "^(packages/workspace-sdk/test/__fixtures__/denali-breach\\.ts|packages/finance-core/test/fixtures/illegal-prisma-import\\.ts)$",
+        path: "^(packages/workspace-sdk/test/__fixtures__/(?:denali-breach|capability-denali-breach)\\.ts|packages/finance-core/test/fixtures/illegal-prisma-import\\.ts)$",
       }
     : undefined;
 

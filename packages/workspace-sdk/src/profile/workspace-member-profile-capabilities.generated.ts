@@ -20,6 +20,27 @@ export type GeneratedMemberProfileCapabilities = Readonly<{
 export const WORKSPACE_MEMBER_PROFILE_CAPABILITIES: Readonly<
   Record<string, GeneratedMemberProfileCapabilities>
 > = Object.freeze({
+  "cert-club": Object.freeze({
+    editableFields: Object.freeze(["displayName"] as const satisfies readonly MemberProfileFieldId[]),
+    readOnlyFields: Object.freeze(["email"] as const satisfies readonly MemberProfileFieldId[]),
+    sections: Object.freeze([
+      Object.freeze({
+        id: "identity",
+        fields: Object.freeze(["displayName","email"] as const satisfies readonly MemberProfileFieldId[]),
+      }),
+    ]),
+    mobileChangeViaOtp: true
+  }),
+  "cert-events": Object.freeze({
+    editableFields: Object.freeze(["displayName"] as const satisfies readonly MemberProfileFieldId[]),
+    readOnlyFields: Object.freeze(["email"] as const satisfies readonly MemberProfileFieldId[]),
+    sections: Object.freeze([
+      Object.freeze({
+        id: "identity",
+        fields: Object.freeze(["displayName","email"] as const satisfies readonly MemberProfileFieldId[]),
+      }),
+    ])
+  }),
   "denali": Object.freeze({
     editableFields: Object.freeze(["displayName","email","gender","nationalId","fatherName","birthDate"] as const satisfies readonly MemberProfileFieldId[]),
     readOnlyFields: Object.freeze(["mobile"] as const satisfies readonly MemberProfileFieldId[]),
