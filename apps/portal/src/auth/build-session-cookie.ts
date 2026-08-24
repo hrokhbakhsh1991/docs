@@ -3,7 +3,7 @@ import {
   SESSION_COOKIE_NAMES,
   type SessionCookieWriteOptions,
 } from "@app-tour/session-client";
-import { resolveMemberSessionCookieDomain } from "@app-tour/tenant-kernel";
+import { resolveMemberSessionCookieDomain } from "@app-tour/tenant-kernel/host-only";
 
 export const SESSION_TOKEN_COOKIE = SESSION_COOKIE_NAMES.member;
 

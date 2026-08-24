@@ -13,6 +13,10 @@ export {
   toCanonicalClubAdminHost,
 } from "./host/canonicalize-club-admin-host";
 export {
+  isLegacyClubPortalHost,
+  toCanonicalClubPortalHost,
+} from "./host/canonicalize-club-portal-host";
+export {
   isClubAdminHost,
   isPlatformAdminHost,
   parseMultiLevelTenantHost,
@@ -25,6 +29,16 @@ export {
 } from "./host/parse-workspace-tenant-label";
 export {
   tryParseCustomApexHost,
+  formatCustomApexSurfaceUrl,
   type CustomApexSurface,
   type ParsedCustomApexHost,
 } from "./host/parse-custom-apex-host";
+export { resolveMemberSessionCookieDomain } from "./host/resolve-member-session-cookie-domain";
+export {
+  buildDevMarketingPublicBaseUrl,
+  type BuildDevMarketingPublicBaseUrlInput,
+} from "./host/build-dev-marketing-public-base-url";
+export {
+  buildDevPortalPublicBaseUrl,
+  type BuildDevPortalPublicBaseUrlInput,
+} from "./host/build-dev-portal-public-base-url";

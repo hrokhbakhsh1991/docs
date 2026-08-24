@@ -82,3 +82,11 @@ export {
   resolveDenaliRegistrationApprovalMode,
   type DenaliRegistrationApprovalMode,
 } from "./resolve-denali-registration-approval-mode";
+
+export {
+  evaluateDenaliMemberCancellationEligibility,
+  type EvaluateDenaliMemberCancellationInput,
+  type MemberCancellationEligibility,
+  type MemberCancellationMode,
+  type MemberCancellationReasonCode,
+} from "./member-cancellation-policy";

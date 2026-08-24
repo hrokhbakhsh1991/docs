@@ -24,6 +24,8 @@ function toOwnedDetail(row: {
   readonly submittedAt: string;
   readonly partySize: number;
   readonly registrationIntake?: Readonly<Record<string, unknown>>;
+  readonly paymentDueAt?: string | null;
+  readonly cancelSource?: string | null;
 }): {
   readonly id: string;
   readonly status: string;
@@ -36,6 +38,8 @@ function toOwnedDetail(row: {
   readonly submittedAt: string;
   readonly partySize: number;
   readonly registrationIntake?: Readonly<Record<string, unknown>>;
+  readonly paymentDueAt?: string | null;
+  readonly cancelSource?: string | null;
 } {
   return {
     id: row.id,
@@ -51,6 +55,10 @@ function toOwnedDetail(row: {
     ...(row.registrationIntake !== undefined
       ? { registrationIntake: row.registrationIntake }
       : {}),
+    ...(row.paymentDueAt !== undefined && row.paymentDueAt !== null
+      ? { paymentDueAt: row.paymentDueAt }
+      : {}),
+    ...(row.cancelSource !== undefined ? { cancelSource: row.cancelSource } : {}),
   };
 }
 

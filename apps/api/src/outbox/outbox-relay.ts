@@ -368,6 +368,10 @@ export async function publishClaimedOutboxRow(row: ClaimedOutboxRow): Promise<vo
     await import("../notifications/dispatch-registration-approved-notification");
   await dispatchRegistrationApprovedNotification(toWorkspaceOutboxPublishedRow(row));
 
+  const { dispatchMemberNotificationFromOutbox } =
+    await import("../notifications/dispatch-member-notification-from-outbox");
+  await dispatchMemberNotificationFromOutbox(toWorkspaceOutboxPublishedRow(row));
+
   await markOutboxDoneWithRetry(row);
 }
 

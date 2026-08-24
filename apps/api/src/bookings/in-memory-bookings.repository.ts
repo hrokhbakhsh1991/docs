@@ -783,6 +783,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
             tourId: updated.tourId,
             status: updated.status,
             approvedAt,
+            guestUserId: updated.submittedByUserId,
             ...(input.correlationId !== undefined ? { correlationId: input.correlationId } : {}),
           },
           domainEventId,
@@ -866,6 +867,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
               tourId: updated.tourId,
               status: updated.status,
               approvedAt,
+              guestUserId: updated.submittedByUserId,
             },
             domainEventId: `registration.approved:${updated.id}:${approvedAt}`,
             createdAt: approvedAt,
@@ -881,12 +883,13 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
   }
 
   /**
-   * pending|waitlisted → rejected. Persist status + optional rejectReason — no outbox (decision B).
+   * pending|waitlisted → rejected. Emits registration.rejected (DP-4).
    */
   async rejectBooking(input: {
     bookingId: string;
     tenantId: string;
     reason?: string;
+    outboxEvent?: string;
   }): Promise<BookingRecord> {
     const current = bookingsStore.get(input.bookingId);
     if (current === undefined || current.tenantId !== input.tenantId) {
@@ -906,6 +909,26 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       ...(rejectReason !== undefined ? { rejectReason } : {}),
     };
     bookingsStore.set(updated.id, updated);
+    const rejectedAt = new Date().toISOString();
+    if (input.outboxEvent !== undefined && input.outboxEvent.length > 0) {
+      outboxStore.push({
+        id: randomUUID(),
+        tenantId: input.tenantId,
+        aggregateType: "registration",
+        aggregateId: updated.id,
+        eventType: input.outboxEvent,
+        payload: {
+          bookingId: updated.id,
+          tourId: updated.tourId,
+          status: updated.status,
+          rejectedAt,
+          guestUserId: updated.submittedByUserId,
+          ...(rejectReason !== undefined ? { reason: rejectReason } : {}),
+        },
+        domainEventId: `registration.rejected:${updated.id}:${rejectedAt}`,
+        createdAt: rejectedAt,
+      });
+    }
     return cloneBooking(updated);
   }
 
@@ -939,6 +962,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
         tourId: updated.tourId,
         status: updated.status,
         waitlistedAt,
+        guestUserId: updated.submittedByUserId,
       },
       domainEventId: `registration.waitlisted:${updated.id}:${waitlistedAt}`,
       createdAt: waitlistedAt,
@@ -980,6 +1004,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
         status: updated.status,
         cancelledAt,
         previousStatus: current.status,
+        guestUserId: updated.submittedByUserId,
         ...(input.cancelSource !== undefined ? { source: input.cancelSource } : {}),
       },
       domainEventId: `registration.cancelled:${updated.id}:${cancelledAt}`,

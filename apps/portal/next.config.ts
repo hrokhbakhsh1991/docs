@@ -43,7 +43,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     if (process.env.NEXT_FONT_OFFLINE === "1") {
       config.resolve ??= {};
       config.resolve.alias ??= {};
@@ -52,6 +52,15 @@ const nextConfig: NextConfig = {
         "src/i18n/app-fonts.offline.ts"
       );
     }
+    
+    // Handle node: protocol imports on client side
+    if (!isServer) {
+      config.resolve = config.resolve || {};
+      config.resolve.fallback = config.resolve.fallback || {};
+      config.resolve.fallback.crypto = false;
+      config.resolve.fallback['node:crypto'] = false;
+    }
+    
     return config;
   },
 };

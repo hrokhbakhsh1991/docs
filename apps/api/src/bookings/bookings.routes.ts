@@ -33,6 +33,11 @@ import {
   rejectBooking,
   waitlistBooking,
 } from "./create-bookings-service";
+import {
+  getMemberCancellationEligibility,
+  submitMemberCancellation,
+} from "./member-cancellation.service";
+import { listMemberNotificationInbox } from "../notifications/member-notification-inbox.repository";
 import { submitBinaryMemberReceiptAfterOwnership } from "./submit-binary-member-receipt-after-ownership";
 
 export async function handleListBookings(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -348,6 +353,87 @@ export async function handleGetBookingReceiptStatus(
         const financeService = await resolveFinanceServiceForTenant(auth.tenantId);
         const status = await financeService.getMemberReceiptStatusForRegistration(auth, bookingId);
         sendJson(res, 200, status);
+      },
+      { rateLimit: "read" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+function mapMemberCancellationError(res: ServerResponse, error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.startsWith("MEMBER_CANCELLATION_DENIED:")) {
+    sendHttpError(res, 409, {
+      error: "member_cancellation_denied",
+      code: message.slice("MEMBER_CANCELLATION_DENIED:".length),
+    });
+    return true;
+  }
+  if (message === "BOOKING_MEMBER_FORBIDDEN") {
+    sendHttpError(res, 403, { error: "forbidden", code: "BOOKING_MEMBER_FORBIDDEN" });
+    return true;
+  }
+  return false;
+}
+
+export async function handleGetMemberCancellation(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await getMemberCancellationEligibility(auth, bookingId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "read" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handlePostMemberCancellation(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await submitMemberCancellation(auth, bookingId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    if (mapMemberCancellationError(res, error)) {
+      return;
+    }
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleGetMemberNotifications(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const items = listMemberNotificationInbox(auth.tenantId, auth.userId);
+        sendJson(res, 200, { items });
       },
       { rateLimit: "read" }
     );

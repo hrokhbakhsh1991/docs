@@ -66,6 +66,8 @@ export type DenaliRegistrationOwnedDetail = {
   readonly dueCurrency?: string;
   readonly dueTotalMinor?: string;
   readonly dueLines?: readonly DenaliRegistrationDueLine[];
+  readonly paymentDueAt?: string | null;
+  readonly cancelSource?: string | null;
 };
 
 /**
@@ -102,6 +104,8 @@ export async function getDenaliRegistrationOwned(params: {
     departureAt: owned.departureAt,
     submittedAt: owned.submittedAt,
     partySize: owned.partySize,
+    ...(owned.paymentDueAt !== undefined ? { paymentDueAt: owned.paymentDueAt } : {}),
+    ...(owned.cancelSource !== undefined ? { cancelSource: owned.cancelSource } : {}),
     ...transportScalars,
   };
 

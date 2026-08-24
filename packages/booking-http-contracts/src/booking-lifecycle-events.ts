@@ -13,3 +13,6 @@ export const BOOKING_WAITLIST_OUTBOX_EVENT_TYPE = "registration.waitlisted" as c
 
 /** Cancel transition outbox event — emitted by Booking on cancel. */
 export const BOOKING_CANCEL_OUTBOX_EVENT_TYPE = "registration.cancelled" as const;
+
+/** Reject transition outbox event — emitted by Booking on reject (DP-4 / DEN-PROD-12). */
+export const BOOKING_REJECT_OUTBOX_EVENT_TYPE = "registration.rejected" as const;

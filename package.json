@@ -53,6 +53,7 @@
     "ci:integrity": "bash scripts/ci-integrity-check.sh",
     "test:changed": "bash scripts/test-changed.sh",
     "test:dp1-payment-deadline": "bash scripts/test-dp1-payment-deadline.sh",
+    "test:dp4-member-self-service": "bash scripts/test-dp4-member-self-service.sh",
     "test:exposure:integration": "pnpm --filter @apps/api run test:exposure:integration",
     "test:full": "bash scripts/test-full.sh",
     "test:nightly": "pnpm --filter @apps/api run test:nightly && pnpm --filter @apps/api run test:nightly:soak",

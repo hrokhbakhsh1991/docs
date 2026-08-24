@@ -8,8 +8,11 @@ import {
   handleGetBooking,
   handleGetBookingReceiptStatus,
   handleGetBookingsSummary,
+  handleGetMemberCancellation,
+  handleGetMemberNotifications,
   handleListBookings,
   handlePostBookingReceipt,
+  handlePostMemberCancellation,
   handleRejectBooking,
   handleWaitlistBooking,
 } from "./bookings/bookings.routes";
@@ -447,6 +450,25 @@ async function dispatchRequest(
   const bookingCancelMatch = url.pathname.match(/^\/bookings\/([^/]+)\/cancel$/);
   if (method === "POST" && bookingCancelMatch) {
     await handleCancelBooking(req, res, bookingCancelMatch[1]!);
+    return;
+  }
+
+  const memberCancellationMatch = url.pathname.match(
+    /^\/bookings\/([^/]+)\/member-cancellation$/
+  );
+  if (memberCancellationMatch) {
+    if (method === "GET") {
+      await handleGetMemberCancellation(req, res, memberCancellationMatch[1]!);
+      return;
+    }
+    if (method === "POST") {
+      await handlePostMemberCancellation(req, res, memberCancellationMatch[1]!);
+      return;
+    }
+  }
+
+  if (method === "GET" && url.pathname === "/member/notifications") {
+    await handleGetMemberNotifications(req, res);
     return;
   }
 

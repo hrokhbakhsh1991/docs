@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { resolvePortalMemberLoginPath, resolvePublicAuthCorsAllowOrigin } from "@app-tour/guest-surface-host";
-import { toCanonicalClubPortalHost } from "@app-tour/tenant-kernel";
+import { toCanonicalClubPortalHost } from "@app-tour/tenant-kernel/host-only";
 import { validateSessionTokenAsync } from "@app-tour/session-client";
 
 import {

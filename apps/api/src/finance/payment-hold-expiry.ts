@@ -7,44 +7,11 @@ import {
   runSerialBookingMutation,
   setBookingPaymentDueAtProjection,
 } from "../bookings/in-memory-bookings.repository.ts";
-import { applyPaymentHoldAfterBookingApprove } from "./apply-payment-hold-after-booking-approve.ts";
+import { promoteOldestWaitlistedGuest } from "../bookings/promote-waitlist-after-seat-release.ts";
 import { isPaymentHoldEnabled, PaymentHoldService } from "./payment-hold.service.ts";
 
 function isPaymentHoldExpiryEnabled(): boolean {
   return process.env.PAYMENT_HOLD_EXPIRY_ENABLED === "true";
-}
-
-async function promoteOldestWaitlistedGuest(input: {
-  readonly tenantId: string;
-  readonly tourId: string;
-}): Promise<string | null> {
-  const repo = getBookingsRepository();
-  const waitlisted = (await repo.listByTenant(input.tenantId))
-    .filter((row) => row.tourId === input.tourId && row.status === "waitlisted")
-    .sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
-  const candidate = waitlisted[0];
-  if (candidate === undefined) {
-    return null;
-  }
-
-  const approved = await repo.approveWithOutbox({
-    bookingId: candidate.id,
-    tenantId: input.tenantId,
-    outboxEvent: "registration.approved",
-  });
-  const sideEffects = await applyPaymentHoldAfterBookingApprove({
-    tenantId: input.tenantId,
-    bookingId: approved.id,
-    approvedAt: approved.approvedAt ?? new Date().toISOString(),
-  });
-  if (sideEffects.paymentDueAt !== undefined) {
-    setBookingPaymentDueAtProjection({
-      tenantId: input.tenantId,
-      bookingId: approved.id,
-      paymentDueAt: sideEffects.paymentDueAt,
-    });
-  }
-  return approved.id;
 }
 
 function isExpirableHoldStatus(status: string): boolean {
@@ -100,6 +67,7 @@ async function expirePaymentHoldForRegistrationImpl(input: {
       holdId: hold.id,
       expiredAt,
       dueAt: hold.dueAt,
+      guestUserId: booking.submittedByUserId,
     },
     domainEventId: `payment.hold.expired:${hold.id}:${expiredAt}`,
   });

@@ -30,6 +30,7 @@ import type {
 import {
   BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
   BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE,
+  BOOKING_REJECT_OUTBOX_EVENT_TYPE,
   BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
   readTourCapacityMaxFromIntake,
 } from "@app-tour/booking-http-contracts";
@@ -724,8 +725,7 @@ export class BookingsService {
   }
 
   /**
-   * Ops reject — status + optional rejectReason. No outbox (decision B: intentionally silent).
-   * Cancel remains the observable terminal path (`registration.cancelled`).
+   * Ops reject — status + optional rejectReason + registration.rejected outbox (DP-4).
    */
   async rejectBooking(
     auth: BookingActorContext,
@@ -737,6 +737,7 @@ export class BookingsService {
     const updated = await this.repository.rejectBooking({
       bookingId,
       tenantId: auth.tenantId,
+      outboxEvent: BOOKING_REJECT_OUTBOX_EVENT_TYPE,
       ...(body.reason !== undefined ? { reason: body.reason } : {}),
     });
     return {

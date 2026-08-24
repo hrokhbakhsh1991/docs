@@ -22,6 +22,7 @@ import { registerWorkspaceIntakeSafe } from "@app-tour/workspace-plugin-host/reg
 import { resolveIntakeSchema } from "@app-tour/workspace-sdk";
 
 import { MemberIntakeAmendForm } from "./member-intake-amend-form";
+import { MemberCancellationPanel } from "./member-cancellation-panel";
 import { MemberReceiptUploadForm } from "./member-receipt-upload-form";
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -182,6 +183,10 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
             {...(personalCarOccupants !== null ? { initialOccupants: personalCarOccupants } : {})}
           />
         ) : null}
+        <MemberCancellationPanel
+          registrationId={row.id}
+          registrationStatus={lifecycleStatus}
+        />
         <MemberReceiptUploadForm
           registrationId={row.id}
           registrationStatus={lifecycleStatus}

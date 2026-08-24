@@ -48,6 +48,10 @@ export type BookingPublicOwnedDetail = {
   readonly submittedAt: string;
   readonly partySize: number;
   readonly registrationIntake?: Readonly<Record<string, unknown>>;
+  /** DP-1 / DP-4 — finance hold due instant when approved-unpaid. */
+  readonly paymentDueAt?: string | null;
+  /** DP-4 — cancel provenance when terminal. */
+  readonly cancelSource?: string | null;
 };
 
 /** Host-injected bookings adapter — Prisma/memory lives in apps/api. */
