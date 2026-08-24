@@ -59,6 +59,7 @@ export const FOUNDATION_GATE_FORBIDDEN_BUILD_PATHS = [
  */
 export const IMPORT_BOUNDARY_DENALI_BREACH_ALLOWLIST = [
   "packages/workspace-sdk/test/__fixtures__/denali-breach.ts",
+  "packages/workspace-sdk/test/__fixtures__/capability-denali-breach.ts",
 ];
 
 export const IMPORT_BOUNDARY_SCAN_ROOTS = [

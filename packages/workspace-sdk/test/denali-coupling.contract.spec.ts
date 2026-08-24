@@ -6,6 +6,11 @@ import { describe, it } from "node:test";
 
 import { FOUNDATION_GATE_DENALI_DIRS } from "../../../scripts/guards/foundation-gate-config.mjs";
 import { cruiseDenaliViolations, findPackageBoundaryViolations } from "./lib/denali-cruise.js";
+import {
+  CAPABILITY_PACKAGE_ROOTS,
+  scanCapabilityCouplingViolations,
+  scanCapabilityCouplingViolationsInFile,
+} from "./lib/capability-coupling-scan.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
@@ -68,5 +73,50 @@ describe("foundation denali coupling contract (H-01)", () => {
       new Set(violations.map((violation) => violation.kind)),
       new Set(["import", "require", "dynamic-import"]),
     );
+  });
+});
+
+describe("capability package denali coupling (CW7-15)", () => {
+  it("depcruise no-denali-product-ids passes for reusable capability package roots", () => {
+    const violations: string[] = [];
+    for (const relRoot of CAPABILITY_PACKAGE_ROOTS) {
+      const errors = cruiseDenaliViolations(REPO_ROOT, relRoot);
+      for (const err of errors) {
+        violations.push(
+          `${relRoot}: ${err.rule?.name ?? "no-denali-product-ids"} ${err.from ?? "?"} → ${err.to ?? "denali"}`,
+        );
+      }
+    }
+    assert.equal(
+      violations.length,
+      0,
+      violations.length
+        ? `capability denali import violations:\n${violations.join("\n")}`
+        : undefined,
+    );
+  });
+
+  it("capability modules have zero workspace-id branch / fallback patterns", () => {
+    const violations = scanCapabilityCouplingViolations(REPO_ROOT, CAPABILITY_PACKAGE_ROOTS);
+    assert.deepEqual(violations, []);
+  });
+
+  it("negative fixture trips capability coupling pattern scan", () => {
+    const breachFile = "packages/workspace-sdk/test/__fixtures__/capability-denali-breach.ts";
+    assert.ok(fs.existsSync(path.join(REPO_ROOT, breachFile)), `missing fixture: ${breachFile}`);
+    const violations = scanCapabilityCouplingViolationsInFile(REPO_ROOT, breachFile);
+    assert.ok(violations.length >= 4, JSON.stringify(violations));
+    const kinds = new Set(violations.map((violation) => violation.kind));
+    assert.ok(kinds.has("workspace-type-branch"));
+    assert.ok(kinds.has("plugin-id-branch"));
+    assert.ok(kinds.has("workspace-type-fallback"));
+    assert.ok(kinds.has("manifest-id-denali-fallback"));
+  });
+
+  it("generated pricing capabilities file is excluded from capability source scan roots", () => {
+    const generated = "packages/workspace-sdk/src/catalog/workspace-pricing-capabilities.generated.ts";
+    assert.ok(fs.existsSync(path.join(REPO_ROOT, generated)));
+    const violations = scanCapabilityCouplingViolationsInFile(REPO_ROOT, generated);
+    assert.deepEqual(violations, []);
   });
 });
