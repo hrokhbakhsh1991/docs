@@ -24,7 +24,8 @@
     { "id": "l3.e2e", "tier": "L3", "owner": "qa", "paths": ["apps/**/tests/**"], "command": "env PHASE_7_SKIP_CI_INTEGRITY=1 pnpm run phase-7:adversarial-gate", "sideEffects": "none", "dependsOn": ["l2.integration"] },
     { "id": "l3.migration", "tier": "L3", "owner": "data", "paths": ["apps/api/prisma/**", "infra/sql/**"], "command": "pnpm run db:migrate:deploy", "sideEffects": "database-schema", "dependsOn": ["l3.postgres"] },
     { "id": "l3.performance", "tier": "L3", "owner": "platform", "paths": ["apps/api/**"], "command": "pnpm run phase-5:guard", "sideEffects": "none", "dependsOn": ["l3.postgres"] },
-    { "id": "l4.staging-smoke", "tier": "L4", "owner": "release", "paths": ["apps/**", "infra/**"], "command": "pnpm run smoke:staging", "sideEffects": "staging-read-only", "dependsOn": ["l3.postgres", "l3.security", "l3.package", "l3.e2e", "l3.migration", "l3.performance"] },
+    { "id": "l3.cw-closure", "tier": "L3", "owner": "platform", "paths": ["packages/workspace-sdk/**", "packages/workspaces/**", "scripts/**", "test/parity/**"], "command": "pnpm run verify:cw-closure", "sideEffects": "none", "dependsOn": ["l2.integration"] },
+    { "id": "l4.staging-smoke", "tier": "L4", "owner": "release", "paths": ["apps/**", "infra/**"], "command": "pnpm run smoke:staging", "sideEffects": "staging-read-only", "dependsOn": ["l3.postgres", "l3.security", "l3.package", "l3.e2e", "l3.migration", "l3.performance", "l3.cw-closure"] },
     { "id": "l5.production-smoke", "tier": "L5", "owner": "operations", "paths": ["apps/**", "infra/**"], "command": "pnpm run smoke:production", "sideEffects": "production-read-only", "dependsOn": ["l4.staging-smoke"] }
   ]
 }
