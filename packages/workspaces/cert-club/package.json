@@ -31,6 +31,10 @@
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"
     },
+    "./http": {
+      "types": "./dist/http/index.d.ts",
+      "default": "./dist/http/index.js"
+    },
     "./host/http/routes": {
       "types": "./dist/http/routes.d.ts",
       "default": "./dist/http/routes.js"
@@ -42,6 +46,10 @@
     "./host/transport/register-transport-initializer": {
       "types": "./dist/transport/register-transport-initializer.d.ts",
       "default": "./dist/transport/register-transport-initializer.js"
+    },
+    "./host/policy/tour-policy": {
+      "types": "./dist/policy/tour-policy.d.ts",
+      "default": "./dist/policy/tour-policy.js"
     },
     "./theme/marketing.css": "./theme/marketing.css"
   },

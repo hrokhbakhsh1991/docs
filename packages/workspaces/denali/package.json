@@ -38,6 +38,10 @@
       "types": "./dist/catalog/denali-publish-status.d.ts",
       "default": "./dist/catalog/denali-publish-status.js"
     },
+    "./catalog/denali-publish-status": {
+      "types": "./dist/catalog/denali-publish-status.d.ts",
+      "default": "./dist/catalog/denali-publish-status.js"
+    },
     "./catalog/read-denali-catalog-transport": {
       "types": "./dist/catalog/read-denali-catalog-transport.d.ts",
       "default": "./dist/catalog/read-denali-catalog-transport.js"
@@ -45,6 +49,14 @@
     "./catalog/denali-catalog-transport-intake": {
       "types": "./dist/catalog/denali-catalog-transport-intake.d.ts",
       "default": "./dist/catalog/denali-catalog-transport-intake.js"
+    },
+    "./catalog/registration-flow/register-transport-initializer": {
+      "types": "./dist/catalog/registration-flow/register-transport-initializer.d.ts",
+      "default": "./dist/catalog/registration-flow/register-transport-initializer.js"
+    },
+    "./marketing/marketing-catalog-surface": {
+      "types": "./dist/marketing/marketing-catalog-surface.d.ts",
+      "default": "./dist/marketing/marketing-catalog-surface.js"
     },
     "./host/catalog/read-denali-catalog-transport": {
       "types": "./dist/catalog/read-denali-catalog-transport.d.ts",
@@ -286,6 +298,10 @@
     "./host/http": {
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"
+    },
+    "./host/http/resolve-denali-registration-transport": {
+      "types": "./dist/http/resolve-denali-registration-transport.d.ts",
+      "default": "./dist/http/resolve-denali-registration-transport.js"
     },
     "./host/exposure": {
       "types": "./dist/exposure/index.d.ts",

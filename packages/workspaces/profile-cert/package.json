@@ -31,6 +31,10 @@
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"
     },
+    "./http": {
+      "types": "./dist/http/index.d.ts",
+      "default": "./dist/http/index.js"
+    },
     "./host/http/routes": {
       "types": "./dist/http/routes.d.ts",
       "default": "./dist/http/routes.js"

@@ -135,7 +135,7 @@ describe("cert-club full behavior certification (CW9-04)", () => {
 
   it("CW9-04-07 transport capability snapshot reader is wired", () => {
     const snapshot = readCertClubCatalogTransportSnapshot({});
-    assert.deepEqual(snapshot, { transportKind: "none", requiresTransport: false });
+    assert.deepEqual(snapshot, { mode: "none" });
   });
 
   it("CW9-04-08 catalog detail sections enabled via manifest", () => {
