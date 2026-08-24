@@ -745,15 +745,15 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
   - Evidence: [`docs/dev/cw7-09-workspace-difficulty-fitness-contract.md`](cw7-09-workspace-difficulty-fitness-contract.md), [`docs/dev/cw7-09-difficulty-fitness-field-module.md`](cw7-09-difficulty-fitness-field-module.md), [`docs/dev/cw7-09-difficulty-fitness-isolation.md`](cw7-09-difficulty-fitness-isolation.md), `workspace-difficulty-fitness-codegen.spec.mjs`, `cw7-09-difficulty-fitness-isolation.spec.mjs`, `denali-difficulty-fitness-field-parity.spec.ts`.
 - **CW7-10** `[x]` Itinerary: capability block (detail-section gate exists); wizard composite stays workspace UI. Deps: CW5-11. Risk: **MEDIUM**.
   - Evidence: [`docs/dev/cw7-10-workspace-itinerary-contract.md`](cw7-10-workspace-itinerary-contract.md), [`docs/dev/cw7-10-itinerary-field-module.md`](cw7-10-itinerary-field-module.md), [`docs/dev/cw7-10-itinerary-isolation.md`](cw7-10-itinerary-isolation.md), `workspace-itinerary-codegen.spec.mjs`, `cw7-10-itinerary-isolation.spec.mjs`, `denali-itinerary-field-parity.spec.ts`.
-- **CW7-11** `[ ]` Pricing fields: base-price field module contract; IRR/toman remains workspace config (DEC-CW-06 Option E approved; CW2-02/03 complete). Deps: CW5-11, CW2-02/03. Risk: **MEDIUM**.
+- **CW7-11** `[x]` Pricing fields: base-price field module contract; IRR/toman remains workspace config (DEC-CW-06 Option E approved; CW2-02/03 complete). Deps: CW5-11, CW2-02/03. Risk: **MEDIUM**.
 - **CW7-12** `[ ]` Membership link: formalize `pricing.allowMembershipDiscount` as capability-declared field consumed by finance gate. Evidence: TRUTH §25; AUDIT §6 SC-small. Deps: CW7-11. Risk: **LOW**.
 - **CW7-13** `[ ]` Capability composition matrix test (enable/disable combinations on synthetic manifest; registry `--check` deterministic). Deps: CW7-04, CW7-08 (min: equipment+transport). Risk: **MEDIUM**.
 - **CW7-14** `[ ]` Denali full regression checkpoint (certified suite + goldens) after each shipped capability — recurring gate task. Risk: **LOW** each run.
 - **CW7-15** `[ ]` Guard: capability modules cannot import Denali product ids (extend `denali-coupling.contract.spec.ts` scope to capability packages). Deps: CW7-02. Risk: **LOW**.
 
-**CW-7 IN PROGRESS** — equipment, transport (CW7-07/08), difficulty/fitness (CW7-09), itinerary (CW7-10) shipped; CW7-11+ remain.
+**CW-7 IN PROGRESS** — equipment, transport (CW7-07/08), difficulty/fitness (CW7-09), itinerary (CW7-10), pricing (CW7-11) shipped; CW7-12+ remain.
 
-**Integration sign-off (CW-WAVE-7B, 2026-08-24):** CW7-07, CW7-08, CW7-10 `[x]` — Denali transport field-module + wizard-composite migration; transport isolation extended; `workspaceItinerary` capability codegen + Denali adapter bindings. Progress **75/91** `[x]`. **Next safe slice:** CW7-11. **Forbidden:** CW9 (until authorized), CW5-10.
+**Integration sign-off (CW-WAVE-7C1, 2026-08-24):** CW7-11 `[x]` — `workspacePricing` capability codegen + Denali base-price adapter bindings; DEC-CW-06 `priceDisplay` boundary preserved. Progress **76/91** `[x]`. **Next safe slice:** CW7-12. **Forbidden:** CW9 (until authorized), CW5-10.
 
 ---
 

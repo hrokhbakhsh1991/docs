@@ -540,6 +540,20 @@
       "export": "denaliItineraryWizardCompositeBinding"
     }
   },
+  "workspacePricing": {
+    "supported": true,
+    "capabilities": {
+      "wizardTourField": true
+    },
+    "fieldModule": {
+      "module": "./field-registry/denali-pricing-field-module",
+      "export": "denaliPricingFieldRegistryFragment"
+    },
+    "wizardComposite": {
+      "module": "./composites/denali-pricing-composite-binding",
+      "export": "denaliPricingWizardCompositeBinding"
+    }
+  },
   "devBootstrap": {
     "pluginTenantIds": [
       "00000000-0000-4000-8000-000000000003",

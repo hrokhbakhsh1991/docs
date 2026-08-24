@@ -245,6 +245,7 @@ export {
   mergeWorkspaceFieldRegistryWithDifficultyFitnessFragments,
   mergeWorkspaceFieldRegistryWithTransportFragments,
   mergeWorkspaceFieldRegistryWithItineraryFragments,
+  mergeWorkspaceFieldRegistryWithPricingFragments,
   validateFieldPolicyManifest,
   type WorkspaceFieldPolicyDefinition,
   type WorkspaceFieldPolicyManifest,
@@ -448,6 +449,19 @@ export {
   getWorkspaceItineraryCapabilities,
   type WorkspaceItineraryCapabilities,
 } from "./catalog/workspace-itinerary-capabilities.generated";
+export {
+  WORKSPACE_PRICING_BASE_PRICE_CANONICAL_PATH,
+  defineWorkspacePricingFieldFragment,
+  listWorkspacePricingCanonicalPaths,
+  type WorkspacePricingFieldFragment,
+  type WorkspacePricingFieldRegistryFragment,
+  type WorkspacePricingTourFieldConfig,
+  type WorkspacePricingWizardCompositeBinding,
+} from "./pricing";
+export {
+  getWorkspacePricingCapabilities,
+  type WorkspacePricingCapabilities,
+} from "./catalog/workspace-pricing-capabilities.generated";
 export {
   resolveGuestSeoForPlugin,
   GuestSeoNotConfiguredError,

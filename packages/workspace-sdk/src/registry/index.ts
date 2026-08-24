@@ -11,6 +11,9 @@ export {
   mergeWorkspaceFieldRegistryWithItineraryFragments,
 } from "./merge-workspace-field-registry-with-itinerary-fragments";
 export {
+  mergeWorkspaceFieldRegistryWithPricingFragments,
+} from "./merge-workspace-field-registry-with-pricing-fragments";
+export {
   type WorkspaceFieldKind,
   type WorkspaceFieldRegistry,
   type WorkspaceFieldRegistryEntry,

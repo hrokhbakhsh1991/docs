@@ -78,6 +78,18 @@ export const WorkspaceDifficultyFitnessBlockSchema = z.object({
   filterPresentation: workspaceModuleBindingSchema.optional(),
 });
 
+/** CW7-11 — pricing capability block (top-level manifest extension). */
+export const WorkspacePricingBlockSchema = z.object({
+  supported: z.boolean(),
+  capabilities: z
+    .object({
+      wizardTourField: z.boolean().optional(),
+    })
+    .optional(),
+  fieldModule: workspaceModuleBindingSchema.optional(),
+  wizardComposite: workspaceModuleBindingSchema.optional(),
+});
+
 /** CW7-10 — itinerary capability block (top-level manifest extension). */
 export const WorkspaceItineraryBlockSchema = z.object({
   supported: z.boolean(),
@@ -219,6 +231,7 @@ export const WorkspaceManifestCiSchema = z
     workspaceEquipment: WorkspaceEquipmentBlockSchema.optional(),
     workspaceDifficultyFitness: WorkspaceDifficultyFitnessBlockSchema.optional(),
     workspaceItinerary: WorkspaceItineraryBlockSchema.optional(),
+    workspacePricing: WorkspacePricingBlockSchema.optional(),
     workspaceTransport: WorkspaceTransportBlockSchema.optional(),
     workspacePolicy: WorkspacePolicyBlockSchema.optional(),
     theme: ManifestThemeBlockSchema.optional(),
