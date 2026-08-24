@@ -259,10 +259,10 @@ export function getWorkspaceTransportCapabilities(
  * @param {readonly Record<string, unknown>[]} manifests
  */
 export function generateCatalogTransportSnapshotReaders(manifests) {
-  /** @type {Set<string>} */
-  const importLines = new Set();
   /** @type {string[]} */
-  const bindingBlocks = [];
+  const workspaceTypes = [];
+  /** @type {string[]} */
+  const switchCases = [];
 
   for (const manifest of manifests) {
     const transport = resolveWorkspaceTransportManifest(manifest);
@@ -290,16 +290,15 @@ export function generateCatalogTransportSnapshotReaders(manifests) {
         );
       }
     }
-    const alias = `${String(manifest.id).replace(/-/g, "_")}_transport_snapshot_reader`;
     const spec = importSpecifier(manifest.package, reader.module);
-    importLines.add(`import { ${reader.export} as ${alias} } from "${spec}";`);
-    bindingBlocks.push(`  {
-    workspaceType: ${JSON.stringify(workspaceType)},
-    readCatalogTransportSnapshot: ${alias},
-  },`);
+    workspaceTypes.push(JSON.stringify(workspaceType));
+    switchCases.push(`    case ${JSON.stringify(workspaceType)}: {
+      const mod = await import("${spec}");
+      return mod.${reader.export};
+    }`);
   }
 
-  if (bindingBlocks.length === 0) {
+  if (switchCases.length === 0) {
     return `${BANNER}
 import type { PublicCatalogTransportSnapshot } from "../tour/public-catalog-transport";
 
@@ -310,12 +309,14 @@ export type CatalogTransportSnapshotReaderBinding = {
   ) => PublicCatalogTransportSnapshot | undefined;
 };
 
-export const CATALOG_TRANSPORT_SNAPSHOT_READER_BINDINGS: readonly CatalogTransportSnapshotReaderBinding[] =
-  [];
+export const CATALOG_TRANSPORT_SNAPSHOT_READER_WORKSPACE_TYPES = new Set<string>([]);
 
-export function resolveCatalogTransportSnapshotReader(
-  _workspaceType: string
-): CatalogTransportSnapshotReaderBinding["readCatalogTransportSnapshot"] | undefined {
+/** Lazy workspace-owned catalog transport snapshot readers — dynamic import only (CW9 closure). */
+export async function resolveCatalogTransportSnapshotReader(
+  workspaceType: string
+): Promise<
+  CatalogTransportSnapshotReaderBinding["readCatalogTransportSnapshot"] | undefined
+> {
   return undefined;
 }
 `;
@@ -323,7 +324,6 @@ export function resolveCatalogTransportSnapshotReader(
 
   return `${BANNER}
 import type { PublicCatalogTransportSnapshot } from "../tour/public-catalog-transport";
-${[...importLines].join("\n")}
 
 export type CatalogTransportSnapshotReaderBinding = {
   readonly workspaceType: string;
@@ -332,17 +332,24 @@ export type CatalogTransportSnapshotReaderBinding = {
   ) => PublicCatalogTransportSnapshot | undefined;
 };
 
-export const CATALOG_TRANSPORT_SNAPSHOT_READER_BINDINGS: readonly CatalogTransportSnapshotReaderBinding[] = [
-${bindingBlocks.join("\n")}
-] as const;
+export const CATALOG_TRANSPORT_SNAPSHOT_READER_WORKSPACE_TYPES = new Set<string>([
+${workspaceTypes.map((t) => `  ${t}`).join(",\n")}
+]);
 
-export function resolveCatalogTransportSnapshotReader(
+/** Lazy workspace-owned catalog transport snapshot readers — dynamic import only (CW9 closure). */
+export async function resolveCatalogTransportSnapshotReader(
   workspaceType: string
-): CatalogTransportSnapshotReaderBinding["readCatalogTransportSnapshot"] | undefined {
-  const binding = CATALOG_TRANSPORT_SNAPSHOT_READER_BINDINGS.find(
-    (entry) => entry.workspaceType === workspaceType
-  );
-  return binding?.readCatalogTransportSnapshot;
+): Promise<
+  CatalogTransportSnapshotReaderBinding["readCatalogTransportSnapshot"] | undefined
+> {
+  if (!CATALOG_TRANSPORT_SNAPSHOT_READER_WORKSPACE_TYPES.has(workspaceType)) {
+    return undefined;
+  }
+  switch (workspaceType) {
+${switchCases.join("\n")}
+    default:
+      return undefined;
+  }
 }
 `;
 }

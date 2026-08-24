@@ -5,8 +5,6 @@
  */
 
 import type { PublicCatalogTransportSnapshot } from "../tour/public-catalog-transport";
-import { readCertClubCatalogTransportSnapshot as cert_club_transport_snapshot_reader } from "@app-tour/workspace-cert-club/host/transport/catalog-transport-snapshot";
-import { readDenaliCatalogTransportSnapshot as denali_transport_snapshot_reader } from "@app-tour/workspace-denali/catalog/read-denali-catalog-transport";
 
 export type CatalogTransportSnapshotReaderBinding = {
   readonly workspaceType: string;
@@ -15,22 +13,30 @@ export type CatalogTransportSnapshotReaderBinding = {
   ) => PublicCatalogTransportSnapshot | undefined;
 };
 
-export const CATALOG_TRANSPORT_SNAPSHOT_READER_BINDINGS: readonly CatalogTransportSnapshotReaderBinding[] = [
-  {
-    workspaceType: "cert-club",
-    readCatalogTransportSnapshot: cert_club_transport_snapshot_reader,
-  },
-  {
-    workspaceType: "denali",
-    readCatalogTransportSnapshot: denali_transport_snapshot_reader,
-  },
-] as const;
+export const CATALOG_TRANSPORT_SNAPSHOT_READER_WORKSPACE_TYPES = new Set<string>([
+  "cert-club",
+  "denali"
+]);
 
-export function resolveCatalogTransportSnapshotReader(
+/** Lazy workspace-owned catalog transport snapshot readers — dynamic import only (CW9 closure). */
+export async function resolveCatalogTransportSnapshotReader(
   workspaceType: string
-): CatalogTransportSnapshotReaderBinding["readCatalogTransportSnapshot"] | undefined {
-  const binding = CATALOG_TRANSPORT_SNAPSHOT_READER_BINDINGS.find(
-    (entry) => entry.workspaceType === workspaceType
-  );
-  return binding?.readCatalogTransportSnapshot;
+): Promise<
+  CatalogTransportSnapshotReaderBinding["readCatalogTransportSnapshot"] | undefined
+> {
+  if (!CATALOG_TRANSPORT_SNAPSHOT_READER_WORKSPACE_TYPES.has(workspaceType)) {
+    return undefined;
+  }
+  switch (workspaceType) {
+    case "cert-club": {
+      const mod = await import("@app-tour/workspace-cert-club/host/transport/catalog-transport-snapshot");
+      return mod.readCertClubCatalogTransportSnapshot;
+    }
+    case "denali": {
+      const mod = await import("@app-tour/workspace-denali/catalog/read-denali-catalog-transport");
+      return mod.readDenaliCatalogTransportSnapshot;
+    }
+    default:
+      return undefined;
+  }
 }

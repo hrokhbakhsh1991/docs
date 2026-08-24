@@ -405,6 +405,7 @@ export {
 export {
   resolveCatalogTransportSnapshotReader,
   type CatalogTransportSnapshotReaderBinding,
+  CATALOG_TRANSPORT_SNAPSHOT_READER_WORKSPACE_TYPES,
 } from "./catalog/catalog-transport-snapshot-readers.generated";
 export {
   resolveCatalogIntakeTransportSurface,
