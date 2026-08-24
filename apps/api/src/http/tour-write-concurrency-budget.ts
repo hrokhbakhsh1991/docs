@@ -1,4 +1,6 @@
 import { metricsRegistry } from "../observability/metrics";
+import { getActiveWorkspaceType } from "../tenant/tenant-request-context";
+import { workspaceWriteConcurrencyKey } from "../middleware/workspace-resource-policy";
 
 export const TOUR_WRITE_CONCURRENCY_EXCEEDED = "TOUR_WRITE_CONCURRENCY_EXCEEDED";
 
@@ -34,25 +36,33 @@ function recordTourWriteConcurrencyShed(tenantId: string): void {
   metricsRegistry.increment("tour_write_concurrency_shed_total", { tenant_id: tenantId });
 }
 
-function acquireTourWriteSlot(tenantId: string): void {
-  const normalized = tenantId.trim();
+function acquireTourWriteSlot(tenantId: string, workspaceType?: string | null): void {
+  const normalizedTenant = tenantId.trim();
+  const slotKey =
+    workspaceType != null && workspaceType.trim().length > 0
+      ? workspaceWriteConcurrencyKey(normalizedTenant, workspaceType)
+      : normalizedTenant;
   const maxWrites = resolveTenantMaxConcurrentTourWrites();
-  const active = activeByTenant.get(normalized) ?? 0;
+  const active = activeByTenant.get(slotKey) ?? 0;
   if (active >= maxWrites) {
-    recordTourWriteConcurrencyShed(normalized);
+    recordTourWriteConcurrencyShed(normalizedTenant);
     throw new TourWriteConcurrencyExceededError(maxWrites);
   }
-  activeByTenant.set(normalized, active + 1);
+  activeByTenant.set(slotKey, active + 1);
 }
 
-function releaseTourWriteSlot(tenantId: string): void {
-  const normalized = tenantId.trim();
-  const active = activeByTenant.get(normalized) ?? 0;
+function releaseTourWriteSlot(tenantId: string, workspaceType?: string | null): void {
+  const normalizedTenant = tenantId.trim();
+  const slotKey =
+    workspaceType != null && workspaceType.trim().length > 0
+      ? workspaceWriteConcurrencyKey(normalizedTenant, workspaceType)
+      : normalizedTenant;
+  const active = activeByTenant.get(slotKey) ?? 0;
   if (active <= 1) {
-    activeByTenant.delete(normalized);
+    activeByTenant.delete(slotKey);
     return;
   }
-  activeByTenant.set(normalized, active - 1);
+  activeByTenant.set(slotKey, active - 1);
 }
 
 /** Test-only — active in-flight POST /tours count for a tenant. */
@@ -88,12 +98,13 @@ export function resetTourWriteConcurrencyBudgetForTests(): void {
  */
 export async function withTourWriteConcurrencyBudget<T>(
   tenantId: string,
-  run: () => Promise<T>
+  run: () => Promise<T>,
+  workspaceType: string | null = getActiveWorkspaceType() ?? null
 ): Promise<T> {
-  acquireTourWriteSlot(tenantId);
+  acquireTourWriteSlot(tenantId, workspaceType);
   try {
     return await run();
   } finally {
-    releaseTourWriteSlot(tenantId);
+    releaseTourWriteSlot(tenantId, workspaceType);
   }
 }

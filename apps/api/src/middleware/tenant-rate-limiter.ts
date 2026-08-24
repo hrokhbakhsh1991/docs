@@ -7,9 +7,14 @@ import { requireActiveTraceId } from "../observability/trace-request-context";
 import { isProductionAuthHarnessActive } from "../test/production-auth-harness";
 import { resolveTenantConnectionTier } from "../tenant/resolve-tenant-connection-tier";
 import { resolveTenantThemeJsonById } from "../tenant/resolve-registered-tenant";
-import { requireActiveTenantId } from "../tenant/tenant-request-context";
+import { requireActiveTenantId, getActiveWorkspaceType } from "../tenant/tenant-request-context";
 import { RedisRateLimiterStore } from "./redis-rate-limiter-store";
 import { resolveTenantRateLimitConfig } from "./tenant-rate-limit-config";
+import {
+  parseWorkspaceResourceQuotaFromTheme,
+  resolveWorkspaceResourcePolicy,
+  workspaceResourceConsumerKey,
+} from "./workspace-resource-policy";
 import type {
   RateLimiterStore,
   TenantRateLimitConfig,
@@ -60,9 +65,18 @@ export function parseRateLimitRpsFromTheme(theme: unknown): number | undefined {
 
 export async function resolveEffectiveRateLimitForTenant(
   tenantId: string,
-  base: TenantRateLimitConfig = resolveTenantRateLimitConfig()
+  base: TenantRateLimitConfig = resolveTenantRateLimitConfig(),
+  workspaceType?: string | null
 ): Promise<{ readonly points: number; readonly durationSec: number }> {
   const theme = await resolveTenantThemeJsonById(tenantId);
+  if (theme !== null && workspaceType != null && workspaceType.trim().length > 0) {
+    const workspaceQuota = parseWorkspaceResourceQuotaFromTheme(theme, workspaceType);
+    const policy = resolveWorkspaceResourcePolicy({ workspaceType, themeQuota: workspaceQuota });
+    const writeRpm = policy?.quota.writeRpm;
+    if (writeRpm !== undefined) {
+      return { points: Math.floor(writeRpm), durationSec: base.durationSec };
+    }
+  }
   if (theme !== null) {
     const rps = parseRateLimitRpsFromTheme(theme);
     if (rps !== undefined) {
@@ -168,14 +182,26 @@ export async function consumeTenantRateLimit(
   config?: TenantRateLimitConfig
 ): Promise<void> {
   const tenantId = requireActiveTenantId();
+  const workspaceType = getActiveWorkspaceType();
   const connectionTier = resolveTenantConnectionTier(tenantId);
   const resolvedConfig = config ?? resolveTenantRateLimitConfig(process.env, tier, connectionTier);
   const store = getTenantRateLimiterStore(resolvedConfig);
   if (store === null) {
     return;
   }
-  const effective = await resolveEffectiveRateLimitForTenant(tenantId, resolvedConfig);
-  await store.consume(rateLimitConsumerKey(tenantId, connectionTier, tier, route), effective);
+  const effective = await resolveEffectiveRateLimitForTenant(tenantId, resolvedConfig, workspaceType);
+  const consumerKey =
+    workspaceType != null && workspaceType.trim().length > 0
+      ? workspaceResourceConsumerKey({
+          tenantId,
+          workspaceType,
+          connectionTier,
+          operationTier: tier,
+          method: route?.method,
+          path: route?.path,
+        })
+      : rateLimitConsumerKey(tenantId, connectionTier, tier, route);
+  await store.consume(consumerKey, effective);
 }
 
 export function sendTenantRateLimitExceeded(
