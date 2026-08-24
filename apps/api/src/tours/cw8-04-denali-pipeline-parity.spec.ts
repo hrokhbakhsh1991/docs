@@ -56,8 +56,6 @@ async function runPersistValidation(
 }
 
 describe("cw8-04-denali-pipeline-parity", () => {
-  const prevPipeline = process.env.WORKSPACE_VALIDATION_PIPELINE;
-  const prevDenaliPolicy = process.env.WORKSPACE_VALIDATION_PIPELINE_DENALI_POLICY;
   const prevWorkers = process.env.P5_VALIDATION_WORKERS_ENABLED;
 
   beforeEach(() => {
@@ -67,16 +65,6 @@ describe("cw8-04-denali-pipeline-parity", () => {
 
   afterEach(() => {
     resetValidationEngineCacheForTests();
-    if (prevPipeline === undefined) {
-      delete process.env.WORKSPACE_VALIDATION_PIPELINE;
-    } else {
-      process.env.WORKSPACE_VALIDATION_PIPELINE = prevPipeline;
-    }
-    if (prevDenaliPolicy === undefined) {
-      delete process.env.WORKSPACE_VALIDATION_PIPELINE_DENALI_POLICY;
-    } else {
-      process.env.WORKSPACE_VALIDATION_PIPELINE_DENALI_POLICY = prevDenaliPolicy;
-    }
     if (prevWorkers === undefined) {
       delete process.env.P5_VALIDATION_WORKERS_ENABLED;
     } else {
@@ -90,47 +78,25 @@ describe("cw8-04-denali-pipeline-parity", () => {
     assert.equal(typeof validator.validate, "function");
   });
 
-  it("legacy and Denali-policy pipeline agree for tour-publish-ready golden (CW0-07)", async () => {
+  it("tour-publish-ready golden passes (CW0-07)", async () => {
     const form = loadGoldenForm("tour-publish-ready.json");
-    const input = {
+    const result = await runPersistValidation({
       tenantId: "cw8-04-denali-tenant",
       workspaceType: "denali",
       body: denaliPublishBody(form),
       validationMode: "publish" as const,
-    };
-
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE;
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE_DENALI_POLICY;
-    const legacy = await runPersistValidation(input);
-
-    process.env.WORKSPACE_VALIDATION_PIPELINE = "1";
-    process.env.WORKSPACE_VALIDATION_PIPELINE_DENALI_POLICY = "1";
-    resetValidationEngineCacheForTests();
-    const pipeline = await runPersistValidation(input);
-
-    assert.deepEqual(pipeline, legacy);
-    assert.equal(legacy.ok, true);
+    });
+    assert.equal(result.ok, true);
   });
 
-  it("legacy and Denali-policy pipeline agree for tour-minimal publish failure (CW0-07)", async () => {
+  it("tour-minimal publish failure (CW0-07)", async () => {
     const form = loadGoldenForm("tour-minimal.json");
-    const input = {
+    const result = await runPersistValidation({
       tenantId: "cw8-04-denali-fail-tenant",
       workspaceType: "denali",
       body: denaliPublishBody(form),
       validationMode: "publish" as const,
-    };
-
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE;
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE_DENALI_POLICY;
-    const legacy = await runPersistValidation(input);
-
-    process.env.WORKSPACE_VALIDATION_PIPELINE = "1";
-    process.env.WORKSPACE_VALIDATION_PIPELINE_DENALI_POLICY = "1";
-    resetValidationEngineCacheForTests();
-    const pipeline = await runPersistValidation(input);
-
-    assert.deepEqual(pipeline, legacy);
-    assert.equal(legacy.ok, false);
+    });
+    assert.equal(result.ok, false);
   });
 });

@@ -29,7 +29,7 @@ function loadGoldenDocument(filename: string) {
   };
 }
 
-function urbanPublishBody(golden: ReturnType<typeof loadGoldenDocument>) {
+function urbanPublishBody(golden: { schemaVersion: number; roots: string[]; data: Record<string, unknown> }) {
   const data = structuredClone(golden.data) as Record<string, unknown>;
   const tour = data.tour as Record<string, unknown>;
   tour.publishStatus = "published";
@@ -56,8 +56,6 @@ async function runPersistValidation(
 }
 
 describe("cw8-05-urban-pipeline-parity", () => {
-  const prevPipeline = process.env.WORKSPACE_VALIDATION_PIPELINE;
-  const prevUrbanPolicy = process.env.WORKSPACE_VALIDATION_PIPELINE_URBAN_POLICY;
   const prevWorkers = process.env.P5_VALIDATION_WORKERS_ENABLED;
 
   beforeEach(() => {
@@ -67,16 +65,6 @@ describe("cw8-05-urban-pipeline-parity", () => {
 
   afterEach(() => {
     resetValidationEngineCacheForTests();
-    if (prevPipeline === undefined) {
-      delete process.env.WORKSPACE_VALIDATION_PIPELINE;
-    } else {
-      process.env.WORKSPACE_VALIDATION_PIPELINE = prevPipeline;
-    }
-    if (prevUrbanPolicy === undefined) {
-      delete process.env.WORKSPACE_VALIDATION_PIPELINE_URBAN_POLICY;
-    } else {
-      process.env.WORKSPACE_VALIDATION_PIPELINE_URBAN_POLICY = prevUrbanPolicy;
-    }
     if (prevWorkers === undefined) {
       delete process.env.P5_VALIDATION_WORKERS_ENABLED;
     } else {
@@ -90,33 +78,22 @@ describe("cw8-05-urban-pipeline-parity", () => {
     assert.equal(typeof validator.validate, "function");
   });
 
-  it("legacy and Urban-policy pipeline agree for urban-tour-publish-ready golden", async () => {
+  it("urban-tour-publish-ready golden passes", async () => {
     const golden = loadGoldenDocument("urban-tour-publish-ready.json");
-    const input = {
+    const result = await runPersistValidation({
       tenantId: "cw8-05-urban-tenant",
       workspaceType: "urban",
       body: urbanPublishBody(golden),
       validationMode: "publish" as const,
-    };
-
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE;
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE_URBAN_POLICY;
-    const legacy = await runPersistValidation(input);
-
-    process.env.WORKSPACE_VALIDATION_PIPELINE = "1";
-    process.env.WORKSPACE_VALIDATION_PIPELINE_URBAN_POLICY = "1";
-    resetValidationEngineCacheForTests();
-    const pipeline = await runPersistValidation(input);
-
-    assert.deepEqual(pipeline, legacy);
-    assert.equal(legacy.ok, true);
+    });
+    assert.equal(result.ok, true);
   });
 
-  it("legacy and Urban-policy pipeline agree for urban capacity violation", async () => {
+  it("urban capacity violation", async () => {
     const golden = loadGoldenDocument("urban-tour-minimal.json");
     const data = structuredClone(golden.data) as Record<string, unknown>;
     (data.tour as Record<string, unknown>).capacity = 99_999;
-    const input = {
+    const result = await runPersistValidation({
       tenantId: "cw8-05-urban-cap-tenant",
       workspaceType: "urban",
       body: {
@@ -124,25 +101,14 @@ describe("cw8-05-urban-pipeline-parity", () => {
         roots: [...golden.roots],
         data,
       },
-    };
-
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE;
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE_URBAN_POLICY;
-    const legacy = await runPersistValidation(input);
-
-    process.env.WORKSPACE_VALIDATION_PIPELINE = "1";
-    process.env.WORKSPACE_VALIDATION_PIPELINE_URBAN_POLICY = "1";
-    resetValidationEngineCacheForTests();
-    const pipeline = await runPersistValidation(input);
-
-    assert.deepEqual(pipeline, legacy);
-    assert.equal(legacy.ok, false);
-    assert.match(legacy.ok ? "" : legacy.message, /URBAN_CAPACITY_OUT_OF_RANGE/);
+    });
+    assert.equal(result.ok, false);
+    assert.match(result.ok ? "" : result.message, /URBAN_CAPACITY_OUT_OF_RANGE/);
   });
 
-  it("legacy and Urban-policy pipeline agree for forbidden itinerary golden", async () => {
+  it("forbidden itinerary golden fails", async () => {
     const golden = loadGoldenDocument("urban-tour-invalid-itinerary.json");
-    const input = {
+    const result = await runPersistValidation({
       tenantId: "cw8-05-urban-itin-tenant",
       workspaceType: "urban",
       body: {
@@ -150,25 +116,14 @@ describe("cw8-05-urban-pipeline-parity", () => {
         roots: [...golden.roots],
         data: golden.data,
       },
-    };
-
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE;
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE_URBAN_POLICY;
-    const legacy = await runPersistValidation(input);
-
-    process.env.WORKSPACE_VALIDATION_PIPELINE = "1";
-    process.env.WORKSPACE_VALIDATION_PIPELINE_URBAN_POLICY = "1";
-    resetValidationEngineCacheForTests();
-    const pipeline = await runPersistValidation(input);
-
-    assert.deepEqual(pipeline, legacy);
-    assert.equal(legacy.ok, false);
-    assert.match(legacy.ok ? "" : legacy.message, /URBAN_FORBIDDEN_ITINERARY/);
+    });
+    assert.equal(result.ok, false);
+    assert.match(result.ok ? "" : result.message, /URBAN_FORBIDDEN_ITINERARY/);
   });
 
-  it("legacy and Urban-policy pipeline agree when transportModes root is unknown (shared stage)", async () => {
+  it("transportModes root unknown fails at shared stage", async () => {
     const plugin = getUrbanWorkspacePlugin();
-    const input = {
+    const result = await runPersistValidation({
       tenantId: "cw8-05-urban-transport-tenant",
       workspaceType: "urban",
       body: {
@@ -188,19 +143,8 @@ describe("cw8-05-urban-pipeline-parity", () => {
           transportModes: ["bus"],
         },
       },
-    };
-
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE;
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE_URBAN_POLICY;
-    const legacy = await runPersistValidation(input);
-
-    process.env.WORKSPACE_VALIDATION_PIPELINE = "1";
-    process.env.WORKSPACE_VALIDATION_PIPELINE_URBAN_POLICY = "1";
-    resetValidationEngineCacheForTests();
-    const pipeline = await runPersistValidation(input);
-
-    assert.deepEqual(pipeline, legacy);
-    assert.equal(legacy.ok, false);
-    assert.match(legacy.ok ? "" : legacy.message, /CANONICAL_ROOT_UNKNOWN/);
+    });
+    assert.equal(result.ok, false);
+    assert.match(result.ok ? "" : result.message, /CANONICAL_ROOT_UNKNOWN/);
   });
 });

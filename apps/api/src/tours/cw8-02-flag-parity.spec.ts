@@ -1,5 +1,5 @@
 /**
- * CW8-02 — flag off/on parity for legacy vs pipeline validation paths.
+ * CW8-02 / CW8-06 — pipeline validation regression (legacy flat persist path retired).
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -78,8 +78,7 @@ async function runPersistValidation(
   }
 }
 
-describe("cw8-02-flag-parity", () => {
-  const prevPipeline = process.env.WORKSPACE_VALIDATION_PIPELINE;
+describe("cw8-02-pipeline-regression", () => {
   const prevWorkers = process.env.P5_VALIDATION_WORKERS_ENABLED;
 
   beforeEach(() => {
@@ -89,11 +88,6 @@ describe("cw8-02-flag-parity", () => {
 
   afterEach(() => {
     resetValidationEngineCacheForTests();
-    if (prevPipeline === undefined) {
-      delete process.env.WORKSPACE_VALIDATION_PIPELINE;
-    } else {
-      process.env.WORKSPACE_VALIDATION_PIPELINE = prevPipeline;
-    }
     if (prevWorkers === undefined) {
       delete process.env.P5_VALIDATION_WORKERS_ENABLED;
     } else {
@@ -101,8 +95,8 @@ describe("cw8-02-flag-parity", () => {
     }
   });
 
-  it("flag off and flag on agree for starter draft create", async () => {
-    const input = {
+  it("starter draft create passes via pipeline", async () => {
+    const result = await runPersistValidation({
       tenantId: "cw8-02-starter-tenant",
       workspaceType: "starter",
       body: {
@@ -110,61 +104,36 @@ describe("cw8-02-flag-parity", () => {
         roots: ["basics", "details"],
         data: { basics: { title: "Starter tour" }, details: { summary: "ok" } },
       },
-    };
-
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE;
-    const legacy = await runPersistValidation(input);
-
-    process.env.WORKSPACE_VALIDATION_PIPELINE = "1";
-    resetValidationEngineCacheForTests();
-    const pipeline = await runPersistValidation(input);
-
-    assert.deepEqual(pipeline, legacy);
+    });
+    assert.equal(result.ok, true);
   });
 
-  it("flag off and flag on agree for Denali publish-ready golden", async () => {
+  it("Denali publish-ready golden passes via pipeline", async () => {
     const form = loadGoldenForm("tour-publish-ready.json");
     (form.basicInfo as Record<string, unknown>).publishStatus = "active";
-    const input = {
+    const result = await runPersistValidation({
       tenantId: "cw8-02-denali-tenant",
       workspaceType: "denali",
       body: denaliCreateBody(form),
       validationMode: "publish" as const,
-    };
-
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE;
-    const legacy = await runPersistValidation(input);
-
-    process.env.WORKSPACE_VALIDATION_PIPELINE = "1";
-    resetValidationEngineCacheForTests();
-    const pipeline = await runPersistValidation(input);
-
-    assert.deepEqual(pipeline, legacy);
+    });
+    assert.equal(result.ok, true);
   });
 
-  it("flag off and flag on agree for Denali publish failure (tour-minimal active)", async () => {
+  it("Denali publish failure (tour-minimal active) via pipeline", async () => {
     const form = loadGoldenForm("tour-minimal.json");
     (form.basicInfo as Record<string, unknown>).publishStatus = "active";
-    const input = {
+    const result = await runPersistValidation({
       tenantId: "cw8-02-denali-fail-tenant",
       workspaceType: "denali",
       body: denaliCreateBody(form),
       validationMode: "publish" as const,
-    };
-
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE;
-    const legacy = await runPersistValidation(input);
-
-    process.env.WORKSPACE_VALIDATION_PIPELINE = "1";
-    resetValidationEngineCacheForTests();
-    const pipeline = await runPersistValidation(input);
-
-    assert.deepEqual(pipeline, legacy);
-    assert.equal(legacy.ok, false);
+    });
+    assert.equal(result.ok, false);
   });
 
-  it("flag off and flag on agree for Urban capacity violation", async () => {
-    const input = {
+  it("Urban capacity violation via pipeline", async () => {
+    const result = await runPersistValidation({
       tenantId: "cw8-02-urban-tenant",
       workspaceType: "urban",
       body: urbanCreateBody({
@@ -179,17 +148,8 @@ describe("cw8-02-flag-parity", () => {
           publishStatus: "draft",
         },
       }),
-    };
-
-    delete process.env.WORKSPACE_VALIDATION_PIPELINE;
-    const legacy = await runPersistValidation(input);
-
-    process.env.WORKSPACE_VALIDATION_PIPELINE = "1";
-    resetValidationEngineCacheForTests();
-    const pipeline = await runPersistValidation(input);
-
-    assert.deepEqual(pipeline, legacy);
-    assert.equal(legacy.ok, false);
-    assert.match(legacy.ok ? "" : legacy.message, /URBAN_CAPACITY_OUT_OF_RANGE/);
+    });
+    assert.equal(result.ok, false);
+    assert.match(result.ok ? "" : result.message, /URBAN_CAPACITY_OUT_OF_RANGE/);
   });
 });
