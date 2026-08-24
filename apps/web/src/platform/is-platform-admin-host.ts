@@ -2,7 +2,7 @@ import {
   isPlatformAdminHost as isPlatformAdminHostKernel,
   isClubAdminHost as isClubAdminHostKernel,
   parseReservedLabelsCsv,
-} from "@app-tour/tenant-kernel";
+} from "@app-tour/tenant-kernel/host";
 
 import {
   normalizeHostHeader,

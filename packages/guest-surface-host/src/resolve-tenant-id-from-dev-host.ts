@@ -2,7 +2,7 @@ import {
   parseMultiLevelTenantHost,
   parseReservedLabelsCsv,
   tryParseCustomApexHost,
-} from "@app-tour/tenant-kernel";
+} from "@app-tour/tenant-kernel/host";
 
 import { isDevGuestHostAllowed } from "./is-dev-guest-host-allowed";
 import { PHASE_43_HOST_TENANT_IDS } from "./phase-43-host-tenant-ids";

@@ -1,4 +1,4 @@
-import { buildDevPortalPublicBaseUrl } from "@app-tour/tenant-kernel";
+import { buildDevPortalPublicBaseUrl } from "@app-tour/tenant-kernel/host";
 
 /** Resolve user portal base URL from any surface ingress host (WRS-URL-01). */
 export function resolvePortalPublicBaseUrl(host: string): string {

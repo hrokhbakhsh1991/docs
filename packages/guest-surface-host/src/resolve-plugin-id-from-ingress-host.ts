@@ -2,7 +2,7 @@ import {
   parseMultiLevelTenantHost,
   parseReservedLabelsCsv,
   tryParseCustomApexHost,
-} from "@app-tour/tenant-kernel";
+} from "@app-tour/tenant-kernel/host";
 
 import { PHASE_43_HOST_TENANT_IDS, resolveTenantIdFromIngressLabel } from "./phase-43-host-tenant-ids";
 import { resolveDevPluginIdForTenantId } from "./resolve-dev-plugin-id";
