@@ -19,6 +19,9 @@ export type MemberRegistrationItem = {
     readonly code: "trip" | "dong" | "transport";
     readonly amountMinor: string;
   }[];
+  /** DP1 — Finance hold dueAt (UTC ISO). */
+  readonly paymentDueAt?: string;
+  readonly cancelSource?: string | null;
 };
 
 type MemberRegistrationsBffResponse = {

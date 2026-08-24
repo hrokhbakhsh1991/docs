@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BookingActionNotice } from "@/features/bookings/booking-action-notice";
+import { OPERATOR_EXTEND_PAYMENT_DEADLINE_MARKER } from "@/features/bookings/booking-payment-deadline-actions";
 import { BookingInboxRow } from "@/features/bookings/booking-inbox-row";
 import { BookingInspectionDetails } from "@/features/bookings/booking-inspection-details";
 import {
@@ -40,6 +41,7 @@ import {
   parseBookingsCommandCenterQuery,
   parseBulkApproveBookingsResponse,
   readBookingIdFromCommandCenterParams,
+  readBookingPaymentDueAt,
   applyDepartureWindow,
   BOOKINGS_UPCOMING_FACET_DAYS,
   resolveBookingsKpiQueryPatch,
@@ -765,8 +767,20 @@ export function BookingsPageClient({
 
   const renderInboxRow = (item: (typeof displayItems)[number]) => {
     const selected = selectedBooking?.id === item.id;
+    const paymentDueAt = readBookingPaymentDueAt(item);
     return (
-      <BookingInboxRow
+      <>
+        {paymentDueAt !== undefined ? (
+          <span className="sr-only" data-operator-booking-payment-due-at>
+            {paymentDueAt}
+          </span>
+        ) : null}
+        {item.status === "cancelled" && item.cancelSource === "payment_deadline" ? (
+          <span className="sr-only" data-operator-booking-cancel-source>
+            payment_deadline
+          </span>
+        ) : null}
+        <BookingInboxRow
         key={item.id}
         item={item}
         selected={selected}
@@ -787,6 +801,7 @@ export function BookingsPageClient({
         onInlineApproveDisarm={clearInlineApproveArm}
         showTourTitle={!isWorkspaceEmbed}
       />
+      </>
     );
   };
 

@@ -25,6 +25,14 @@ const BOOKING_DATE_LOCALE: Record<AppLocale, string> = {
   en: "en-US",
 };
 
+export function readBookingPaymentDueAt(
+  item: Pick<BookingListItem, "paymentDueAt">
+): string | undefined {
+  return typeof item.paymentDueAt === "string" && item.paymentDueAt.length > 0
+    ? item.paymentDueAt
+    : undefined;
+}
+
 export function buildBookingsDetailDeepLinkHref(bookingId: string): string {
   const id = bookingId.trim();
   // status=all so deep links are not masked by the L1 work-queue default.

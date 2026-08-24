@@ -78,6 +78,10 @@ export type BookingListItem = {
   readonly registrationIntake?: Readonly<Record<string, unknown>>;
   readonly rejectReason?: string;
   readonly capacitySnapshot?: BookingCapacitySnapshot;
+  /** DP1 — Finance hold dueAt projection. */
+  readonly paymentDueAt?: string;
+  /** DP1 — cancel provenance when status=cancelled. */
+  readonly cancelSource?: string | null;
 };
 
 export type BookingsListResponse = {

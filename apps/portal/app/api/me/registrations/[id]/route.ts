@@ -62,5 +62,11 @@ export async function GET(req: Request, context: RouteContext): Promise<NextResp
   if (row === undefined || typeof row.id !== "string") {
     return NextResponse.json({ ok: false, code: "NOT_FOUND" }, { status: 404 });
   }
-  return NextResponse.json({ ok: true, data: row }, { status: 200 });
+  const data: MemberRegistrationItem = {
+    ...row,
+    ...(typeof row.paymentDueAt === "string" && row.paymentDueAt.length > 0
+      ? { paymentDueAt: row.paymentDueAt }
+      : {}),
+  };
+  return NextResponse.json({ ok: true, data }, { status: 200 });
 }

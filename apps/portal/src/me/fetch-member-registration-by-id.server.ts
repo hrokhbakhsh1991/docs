@@ -7,7 +7,7 @@ type MemberRegistrationDetailBffResponse = {
   readonly data?: MemberRegistrationItem;
 };
 
-/** SSR — owned registration by id (not mine-list scan). */
+/** SSR — owned registration by id (not mine-list scan). Preserves paymentDueAt from upstream. */
 export async function fetchMemberRegistrationById(
   host: string,
   registrationId: string
@@ -38,7 +38,11 @@ export async function fetchMemberRegistrationById(
     if (payload.ok !== true || payload.data === undefined) {
       return null;
     }
-    return payload.data;
+    const row = payload.data;
+    if (typeof row.paymentDueAt === "string" && row.paymentDueAt.length > 0) {
+      return { ...row, paymentDueAt: row.paymentDueAt };
+    }
+    return row;
   } catch {
     return null;
   }

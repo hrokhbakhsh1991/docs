@@ -29,6 +29,7 @@ type Props = {
   readonly tripsListHref: string;
   readonly tourHref: string | null;
   readonly catalogDue: MemberReceiptDue | null;
+  readonly cancelSource?: string | null;
 };
 
 type ReceiptStateCardProps = {
@@ -118,6 +119,7 @@ export function MemberReceiptUploadForm({
   tripsListHref,
   tourHref,
   catalogDue,
+  cancelSource,
 }: Props) {
   const t = useTranslations("portalMember.receipt");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -217,7 +219,7 @@ export function MemberReceiptUploadForm({
 
   const dueBlock =
     remainingDue !== null && dueCurrency !== null ? (
-      <section data-portal-member-receipt-due>
+      <section data-portal-member-receipt-due data-portal-member-payment-countdown>
         <h2>{t("dueTitle")}</h2>
         <p data-portal-member-receipt-due-remaining>
           <strong>
@@ -254,16 +256,35 @@ export function MemberReceiptUploadForm({
   const eyebrow = t("uploadEyebrow");
 
   if (registrationStatus === "rejected" || registrationStatus === "cancelled") {
-    const closedReason = registrationStatus === "cancelled" ? "cancelled" : "rejected";
+    /** MEM-03 — data-closed-reason="payment_expired" when cancelSource is payment_deadline */
+    const closedReason =
+      registrationStatus === "cancelled" && cancelSource === "payment_deadline"
+        ? "payment_expired"
+        : registrationStatus === "cancelled"
+          ? "cancelled"
+          : "rejected";
     return (
       <ReceiptStateCard
         eyebrow={eyebrow}
         rootProps={{
           "data-portal-member-receipt-closed": "",
-          "data-closed-reason": closedReason,
+          "data-closed-reason":
+            closedReason === "payment_expired" ? ("payment_expired" as const) : closedReason,
         }}
-        title={closedReason === "cancelled" ? t("cancelledTitle") : t("rejectedTitle")}
-        body={closedReason === "cancelled" ? t("cancelledBody") : t("rejectedBody")}
+        title={
+          closedReason === "payment_expired"
+            ? t("paymentExpiredTitle") // portalMember.paymentExpiredTitle
+            : closedReason === "cancelled"
+              ? t("cancelledTitle")
+              : t("rejectedTitle")
+        }
+        body={
+          closedReason === "payment_expired"
+            ? t("paymentExpiredBody")
+            : closedReason === "cancelled"
+              ? t("cancelledBody")
+              : t("rejectedBody")
+        }
       >
         {actionLinks}
       </ReceiptStateCard>

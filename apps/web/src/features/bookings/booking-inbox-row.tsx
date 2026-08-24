@@ -75,6 +75,9 @@ export function BookingInboxRow({
   if (capacityLabel !== null) {
     rowMetaParts.push(capacityLabel);
   }
+  if (typeof item.paymentDueAt === "string" && item.paymentDueAt.length > 0) {
+    rowMetaParts.push(item.paymentDueAt);
+  }
 
   return (
     <div
@@ -139,6 +142,16 @@ export function BookingInboxRow({
             >
               {t(`payment.${item.paymentStatus}`)}
             </Badge>
+            {typeof item.paymentDueAt === "string" && item.paymentDueAt.length > 0 ? (
+              <span className="sr-only" data-operator-booking-payment-due-at>
+                {item.paymentDueAt}
+              </span>
+            ) : null}
+            {item.status === "cancelled" && item.cancelSource === "payment_deadline" ? (
+              <span className="sr-only" data-operator-booking-cancel-source>
+                payment_deadline
+              </span>
+            ) : null}
           </div>
         </div>
       </button>

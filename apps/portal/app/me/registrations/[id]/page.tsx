@@ -6,11 +6,11 @@ import { getTranslations } from "next-intl/server";
 import { fetchMemberReceiptPanel } from "@/me/fetch-member-receipt-status.server";
 import { fetchMemberRegistrationById } from "@/me/fetch-member-registration-by-id.server";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
-import {
-  formatMemberRegistrationDeparture,
+import { formatMemberRegistrationDeparture,
   localizeMemberPaymentStatus,
   localizeMemberRegistrationStatus,
 } from "@/me/format-member-registration-display.server";
+import { formatPaymentDueAtForMemberLocale } from "@/me/format-payment-due-at";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
 import { parseRegistrationLifecycleStatus } from "@/me/registration-lifecycle-status";
 import { resolveMemberPortalTripsListPath } from "@/me/resolve-member-portal-routes.server";
@@ -160,6 +160,14 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                 </p>
               </div>
             ) : null}
+            {typeof row.paymentDueAt === "string" && row.paymentDueAt.length > 0 ? (
+              <div data-portal-member-detail-kpi data-kpi="payment-due">
+                <p data-portal-member-detail-kpi-label>{t("paymentDueLabel")}</p>
+                <p data-portal-member-payment-due-at data-portal-member-payment-countdown>
+                  {formatPaymentDueAtForMemberLocale(row.paymentDueAt)}
+                </p>
+              </div>
+            ) : null}
           </div>
         </section>
         {showIntakeAmend && tour !== null ? (
@@ -192,6 +200,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
                 }
               : null
           }
+          cancelSource={row.cancelSource ?? null}
         />
       </main>
     </MemberModuleEntitlementGate>
