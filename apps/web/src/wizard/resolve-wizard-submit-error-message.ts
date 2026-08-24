@@ -230,6 +230,16 @@ export function resolveWizardSubmitErrorMessage(input: {
     }
   }
 
+  if (
+    payload.code === "DENALI_TOUR_MUTATION_BLOCKED" ||
+    payload.code === "DENALI_TOUR_MUTATION_OVERRIDE_REQUIRED"
+  ) {
+    const reasonKey = `submitEdit.mutation.${payload.code}`;
+    if (input.t.has(reasonKey)) {
+      return { summary: input.t.translate(reasonKey) };
+    }
+  }
+
   return {
     summary: resolveHttpSubmitSummary(payload.status, input.t, input.context),
     details: buildHttpSubmitErrorDetails(payload, input.t, input.context),

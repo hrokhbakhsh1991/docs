@@ -59,7 +59,11 @@
     "lifecycleUnpublishRejected": "لغو انتشار برای تورهای منتشرشده در حال حاضر پشتیبانی نمی‌شود. برای برداشتن از کاتالوگ با پشتیبانی تماس بگیرید.",
     "errorDetailCode": "کد خطا: {code}",
     "errorDetailMessage": "پیام سرور: {message}",
-    "errorDetailCorrelation": "شناسه پیگیری: {correlationId}"
+    "errorDetailCorrelation": "شناسه پیگیری: {correlationId}",
+    "mutation": {
+      "DENALI_TOUR_MUTATION_BLOCKED": "به‌دلیل وجود ثبت‌نام روی تور، این تغییر مجاز نیست.",
+      "DENALI_TOUR_MUTATION_OVERRIDE_REQUIRED": "به‌دلیل وجود ثبت‌نام، این تغییر به تأیید مالک workspace نیاز دارد."
+    }
   },
   "host": {
     "loadError": "بارگذاری ویزارد ناموفق بود: {error}",

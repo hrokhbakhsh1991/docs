@@ -9,6 +9,8 @@ import { isDenaliRegistrationDuplicateError, DENALI_REGISTRATION_DUPLICATE } fro
 import { isDenaliRegistrationInvalidError, DENALI_REGISTRATION_INVALID } from "@app-tour/workspace-denali/host/http";
 import { isDenaliRegistrationNotAmendableError, DENALI_REGISTRATION_NOT_AMENDABLE } from "@app-tour/workspace-denali/host/http";
 import { isDenaliRegistrationNotFoundError, DENALI_REGISTRATION_NOT_FOUND } from "@app-tour/workspace-denali/host/http";
+import { isDenaliTourMutationBlockedError, DENALI_TOUR_MUTATION_BLOCKED } from "@app-tour/workspace-denali/host/http";
+import { isDenaliTourMutationOverrideRequiredError, DENALI_TOUR_MUTATION_OVERRIDE_REQUIRED } from "@app-tour/workspace-denali/host/http";
 import { isHarborRegistrationDuplicateError, HARBOR_REGISTRATION_DUPLICATE } from "@app-tour/workspace-harbor/host/http";
 import { isHarborWorkspaceRequiredError, HARBOR_WORKSPACE_REQUIRED } from "@app-tour/workspace-harbor/host/http";
 import { isUrbanOwnerRequiredError, URBAN_OWNER_REQUIRED } from "@app-tour/workspace-urban/host/http";
@@ -55,6 +57,18 @@ export const WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS: readonly WorkspaceHttpError
     code: DENALI_REGISTRATION_NOT_FOUND,
   },
   {
+    workspaceId: "denali",
+    status: 409,
+    isError: isDenaliTourMutationBlockedError,
+    code: DENALI_TOUR_MUTATION_BLOCKED,
+  },
+  {
+    workspaceId: "denali",
+    status: 409,
+    isError: isDenaliTourMutationOverrideRequiredError,
+    code: DENALI_TOUR_MUTATION_OVERRIDE_REQUIRED,
+  },
+  {
     workspaceId: "harbor",
     status: 409,
     isError: isHarborRegistrationDuplicateError,
@@ -98,6 +112,8 @@ export const WORKSPACE_HTTP_ERROR_CODE_STATUS = {
   [DENALI_REGISTRATION_NOT_AMENDABLE]: 409,
   [DENALI_REGISTRATION_INVALID]: 400,
   [DENALI_REGISTRATION_NOT_FOUND]: 404,
+  [DENALI_TOUR_MUTATION_BLOCKED]: 409,
+  [DENALI_TOUR_MUTATION_OVERRIDE_REQUIRED]: 409,
   [HARBOR_REGISTRATION_DUPLICATE]: 409,
   [HARBOR_WORKSPACE_REQUIRED]: 404,
   [URBAN_OWNER_REQUIRED]: 403,

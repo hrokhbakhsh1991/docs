@@ -607,6 +607,16 @@
       "isErrorExport": "isDenaliRegistrationNotFoundError",
       "codeExport": "DENALI_REGISTRATION_NOT_FOUND",
       "status": 404
+    },
+    {
+      "isErrorExport": "isDenaliTourMutationBlockedError",
+      "codeExport": "DENALI_TOUR_MUTATION_BLOCKED",
+      "status": 409
+    },
+    {
+      "isErrorExport": "isDenaliTourMutationOverrideRequiredError",
+      "codeExport": "DENALI_TOUR_MUTATION_OVERRIDE_REQUIRED",
+      "status": 409
     }
   ],
   "guestCrossSurfaceNav": {
