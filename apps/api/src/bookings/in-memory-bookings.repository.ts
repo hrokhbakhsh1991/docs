@@ -1,8 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import {
-  canTransitionBookingStatus,
-} from "@app-tour/booking-http-contracts";
+import { canTransitionBookingStatus } from "./booking-status-transitions";
 
 import {
   compareBookingsByDepartureAtAsc,
