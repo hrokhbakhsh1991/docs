@@ -603,6 +603,13 @@ async function dispatchRequest(
     }
   }
 
+  const paymentHoldExtendMatch = url.pathname.match(/^\/finance\/payment-holds\/([^/]+)\/extend$/);
+  if (method === "POST" && paymentHoldExtendMatch) {
+    const { handleExtendPaymentHold } = await import("./finance/payment-hold-http.routes.ts");
+    await handleExtendPaymentHold(req, res, paymentHoldExtendMatch[1]!);
+    return;
+  }
+
   if (method === "GET" && url.pathname === "/finance/driver-payables") {
     const { handleListDriverPayables } = await import("./finance/driver-payable.routes.ts");
     await handleListDriverPayables(req, res);

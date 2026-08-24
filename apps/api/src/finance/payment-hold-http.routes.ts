@@ -8,6 +8,30 @@ import { handleHttpError } from "../middleware/error-interceptor.ts";
 import { requireOperatorSession } from "../identity/require-operator-session.ts";
 import { extendPaymentHoldDeadline } from "./payment-hold-extend.ts";
 
+export async function handleExtendPaymentHold(
+  req: IncomingMessage,
+  res: ServerResponse,
+  registrationId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    const body = (await readJsonBody(req)) as { newDueAt?: string };
+    if (typeof body.newDueAt !== "string" || body.newDueAt.trim().length === 0) {
+      sendJson(res, 400, { code: "INVALID_PAYLOAD" });
+      return;
+    }
+    const result = await extendPaymentHoldDeadline({
+      tenantId: auth.tenantId,
+      registrationId,
+      newDueAt: body.newDueAt,
+      actorUserId: auth.userId,
+    });
+    sendJson(res, 200, result);
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
 export function registerPaymentHoldHttpRoutes(
   router: {
     post(
@@ -18,25 +42,7 @@ export function registerPaymentHoldHttpRoutes(
 ): void {
   router.post(
     "/finance/payment-holds/:registrationId/extend",
-    async (req, res, registrationId) => {
-      try {
-        const auth = await requireOperatorSession(req);
-        const body = (await readJsonBody(req)) as { newDueAt?: string };
-        if (typeof body.newDueAt !== "string" || body.newDueAt.trim().length === 0) {
-          sendJson(res, 400, { code: "INVALID_PAYLOAD" });
-          return;
-        }
-        const result = await extendPaymentHoldDeadline({
-          tenantId: auth.tenantId,
-          registrationId,
-          newDueAt: body.newDueAt,
-          actorUserId: auth.userId,
-        });
-        sendJson(res, 200, result);
-      } catch (error) {
-        handleHttpError(res, error);
-      }
-    }
+    (req, res, registrationId) => handleExtendPaymentHold(req, res, registrationId)
   );
 }
 
