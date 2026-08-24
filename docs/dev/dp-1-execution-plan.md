@@ -564,10 +564,37 @@ Same as BR-OP-02 from portal receipt upload flow.
 
 ---
 
+## DPR remediation closure (2026-08-24)
+
+Physical red-team + forensic audits surfaced defects remediated on branch `cursor/dp-final-cert-cd75`:
+
+| DPR | Finding | Fix | Regression |
+|-----|---------|-----|------------|
+| DPR-001 | `ensureFrozenOnApprove` missing at runtime (stale `finance-core` dist) | Rebuild `@app-tour/finance-core`; reset quote cache in DP-1 harness | `scripts/test-dp1-payment-deadline.sh` — 25/25 API |
+| DPR-002 | `resolvePolicyHours()` ignored tour canonical | `resolvePaymentHoldPolicyHoursForBooking()` loads tour + `resolveDenaliPaymentDeadlineHours` | DP1-B unit + approve integration |
+| DPR-003 | `autoApprovePublicBooking` skipped payment hold | Mirror `approveBooking` hold + free-collection hooks | `booking-public-auto-approve.spec.ts` |
+| DPR-004 | Expiry scheduler not bootstrapped | `startPaymentHoldExpiryScheduler()` in `main.ts` warm path | DP1-E scheduler specs |
+| DPR-005 | DP-1 gate script exit 0 on failure | `exit "$FAILED"` in `test-dp1-payment-deadline.sh` | Script itself |
+| DPR-006 | Import boundary violation (deep denali src import) | Export deadline resolver via `@app-tour/workspace-denali/host/finance` | `guard:import-boundary` |
+
+**Policy resolution flow (post-fix):**
+
+```text
+approveBooking / autoApprovePublicBooking
+  → ensureFrozenCommercialQuoteOnApprove (finance-core)
+  → resolvePaymentHoldPolicyHoursForBooking(tour canonical)
+  → scheduleOnApprove(dueAt = approvedAt + policyHours)
+  → setBookingPaymentDueAtProjection
+```
+
+**Scheduler:** when `PAYMENT_HOLD_ENABLED=true` and `PAYMENT_HOLD_EXPIRY_ENABLED=true`, API warm boot starts 60s expiry tick (memory driver).
+
+---
+
 ## Verdict
 
-**DP-1 READY_FOR_TEST_FIRST_IMPLEMENTATION**
+**DP-1 AUTOMATED_CERTIFIED** (25/25 scenarios, `scripts/test-dp1-payment-deadline.sh` green on 2026-08-24)
 
-Approved semantics recorded for DEN-PROD-01, 02, 04, 11. Twenty scenarios fully specified. Task ledger ready. No production code in this run.
+Browser/runtime certification tracked separately in master ledger (`DP1-20`, `DP2-11/12`, `DP3-13`).
 
 Architect, documentation status: **Updated**. Link to docs: `docs/dev/dp-1-execution-plan.md`.

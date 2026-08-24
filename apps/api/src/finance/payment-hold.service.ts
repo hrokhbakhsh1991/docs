@@ -4,7 +4,7 @@
 import {
   computeDenaliPaymentDueAt,
   resolveDenaliPaymentDeadlineHours,
-} from "../../../../packages/workspaces/denali/src/finance/resolve-denali-payment-deadline-hours.ts";
+} from "@app-tour/workspace-denali/host/finance";
 
 import type { PaymentHoldRow } from "./payment-hold.repository.ts";
 import { getPaymentHoldRepository } from "./payment-hold.repository.ts";

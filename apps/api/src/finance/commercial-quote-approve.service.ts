@@ -11,6 +11,10 @@ import { resolveFinanceWorkspaceTypeForTenant } from "../workspace-finance/resol
 
 let cachedByTenant = new Map<string, CommercialQuoteService>();
 
+export function resetCommercialQuoteApproveCacheForTests(): void {
+  cachedByTenant = new Map();
+}
+
 async function resolveCommercialQuoteService(tenantId: string): Promise<CommercialQuoteService> {
   const cached = cachedByTenant.get(tenantId);
   if (cached !== undefined) {

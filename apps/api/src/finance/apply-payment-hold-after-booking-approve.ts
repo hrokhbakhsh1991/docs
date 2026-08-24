@@ -8,6 +8,7 @@ import {
 } from "../bookings/in-memory-bookings.repository.ts";
 import { ensureFrozenCommercialQuoteOnApprove } from "./commercial-quote-approve.service.ts";
 import { isPaymentHoldEnabled, PaymentHoldService } from "./payment-hold.service.ts";
+import { resolvePaymentHoldPolicyHoursForBooking } from "./resolve-payment-hold-policy-for-booking.ts";
 
 export type PaymentHoldApproveSideEffects = {
   readonly paymentDueAt?: string;
@@ -38,8 +39,15 @@ export async function applyPaymentHoldAfterBookingApprove(input: {
     return sideEffects;
   }
 
+  const policyHours = await resolvePaymentHoldPolicyHoursForBooking({
+    tenantId: input.tenantId,
+    bookingId: input.bookingId,
+  });
+  if (policyHours === null) {
+    return sideEffects;
+  }
+
   const holdService = new PaymentHoldService();
-  const policyHours = holdService.resolvePolicyHours();
   const hold = await holdService.scheduleOnApprove({
     tenantId: input.tenantId,
     registrationId: input.bookingId,

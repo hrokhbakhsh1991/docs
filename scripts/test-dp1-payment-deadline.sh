@@ -43,4 +43,4 @@ run_step "operator-web" pnpm --filter @apps/web exec -- env NODE_ENV=test node -
 
 echo ""
 echo "[dp1] finished with $FAILED failing layer(s)"
-exit 0
+exit "$FAILED"

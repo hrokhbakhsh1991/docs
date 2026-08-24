@@ -17,6 +17,7 @@ import {
 import { resetBookingsRepositoryForTests } from "../../src/bookings/create-bookings-repository.ts";
 import { resetLazyFinanceServiceForTests } from "../../src/boot/lazy-finance-service.ts";
 import { resetPaymentHoldRepositoryForTests } from "../../src/finance/payment-hold.repository.ts";
+import { resetCommercialQuoteApproveCacheForTests } from "../../src/finance/commercial-quote-approve.service.ts";
 import { createTourStorageRepository } from "../../src/storage/create-tour-storage.ts";
 import { InMemoryTourRepository } from "../../src/storage/in-memory-tour.repository.ts";
 import type { BookingActorContext } from "../../src/bookings/ports/booking-actor-context.ts";
@@ -102,6 +103,7 @@ export function resetDp1MemoryHarness(): void {
   resetBookingsServiceCompositionForTests();
   resetPaymentHoldRepositoryForTests();
   resetLazyFinanceServiceForTests();
+  resetCommercialQuoteApproveCacheForTests();
   const tourStore = createTourStorageRepository();
   if (tourStore instanceof InMemoryTourRepository) {
     tourStore.ensureDp1PaymentDeadlineTour();

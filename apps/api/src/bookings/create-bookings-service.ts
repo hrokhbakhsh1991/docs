@@ -270,6 +270,16 @@ export async function autoApprovePublicBooking(input: {
     await resolveBookingsServiceForTenant(input.tenantId)
   ).autoApprovePublicBooking(input);
   if (result.status === "approved") {
+    const repo = (await import("./create-bookings-repository.ts")).getBookingsRepository();
+    const approvedRow = await repo.getById(result.id, input.tenantId);
+    const approvedAt = approvedRow?.approvedAt ?? new Date().toISOString();
+    const { applyPaymentHoldAfterBookingApprove } =
+      await import("../finance/apply-payment-hold-after-booking-approve");
+    await applyPaymentHoldAfterBookingApprove({
+      tenantId: input.tenantId,
+      bookingId: result.id,
+      approvedAt,
+    });
     const { applyFreeCollectionAfterBookingApprove } =
       await import("../workspace-finance/apply-free-collection-after-booking-approve");
     await applyFreeCollectionAfterBookingApprove({
