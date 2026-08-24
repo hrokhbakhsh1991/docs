@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # DP-6 live refund orchestration E2E (operator session + Finance refund draft proof)
 set -euo pipefail
-ADMIN_HOST="${ADMIN_HOST:-admin.denali.localhost}"
+ADMIN_HOST="${ADMIN_HOST:-denali.admin.localhost}"
 WEB="${WEB:-http://127.0.0.1:3000}"
 API="${API:-http://127.0.0.1:3001}"
 PHONE="${SMOKE_OPERATOR_PHONE:-+15550001001}"
