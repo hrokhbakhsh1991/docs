@@ -82,6 +82,12 @@ importers:
       '@app-tour/workspace-booking-ws2':
         specifier: workspace:*
         version: link:../../packages/workspaces/booking-ws2
+      '@app-tour/workspace-cert-club':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/cert-club
+      '@app-tour/workspace-cert-events':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/cert-events
       '@app-tour/workspace-denali':
         specifier: workspace:*
         version: link:../../packages/workspaces/denali
@@ -491,6 +497,12 @@ importers:
       '@app-tour/workspace-booking-ws2':
         specifier: workspace:*
         version: link:../../packages/workspaces/booking-ws2
+      '@app-tour/workspace-cert-club':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/cert-club
+      '@app-tour/workspace-cert-events':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/cert-events
       '@app-tour/workspace-denali':
         specifier: workspace:*
         version: link:../../packages/workspaces/denali
@@ -784,6 +796,12 @@ importers:
       '@app-tour/catalog-registration-flow-ui':
         specifier: workspace:*
         version: link:../catalog-registration-flow-ui
+      '@app-tour/workspace-cert-club':
+        specifier: workspace:*
+        version: link:../workspaces/cert-club
+      '@app-tour/workspace-cert-events':
+        specifier: workspace:*
+        version: link:../workspaces/cert-events
       '@app-tour/workspace-denali':
         specifier: workspace:*
         version: link:../workspaces/denali
