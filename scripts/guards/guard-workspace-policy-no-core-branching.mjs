@@ -11,8 +11,19 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 /** @param {string} dir */
 function walkTsFiles(dir, out = []) {
   for (const entry of readdirSync(dir)) {
+    if (entry === "node_modules" || entry === "dist" || entry === ".git") {
+      continue;
+    }
     const full = join(dir, entry);
-    const stat = statSync(full);
+    let stat;
+    try {
+      stat = statSync(full);
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ELOOP") {
+        continue;
+      }
+      throw error;
+    }
     if (stat.isDirectory()) {
       walkTsFiles(full, out);
       continue;

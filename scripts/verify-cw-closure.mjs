@@ -21,6 +21,8 @@ const STEPS = [
     id: "foundation-purity",
     cmd: "node scripts/guards/foundation-import-purity-audit.mjs --production-only",
   },
+  { id: "policy-no-branching", cmd: "pnpm run guard:workspace-policy-no-core-branching" },
+  { id: "validation-pipeline", cmd: "pnpm run guard:validation-pipeline" },
   { id: "cw7-04", cmd: "node --test scripts/test/cw7-04-equipment-isolation.spec.mjs" },
   { id: "cw7-06", cmd: "node --test scripts/test/cw7-06-transport-isolation.spec.mjs" },
   { id: "cw7-08", cmd: "node --test scripts/test/cw7-08-transport-isolation.spec.mjs" },

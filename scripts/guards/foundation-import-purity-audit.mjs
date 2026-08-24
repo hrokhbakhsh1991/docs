@@ -421,6 +421,12 @@ function main() {
     (e) => !isAllowlistedGeneratedDispatch(e.file),
   );
 
+  /** Paths whose foundation hop chain includes codegen dispatch (runtime workspace load). */
+  report.systemicCorruptionPaths = report.systemicCorruptionPaths.filter((finding) => {
+    const foundationSteps = finding.path.filter((step) => step.kind !== "corrupt-target");
+    return !foundationSteps.some((step) => isAllowlistedGeneratedDispatch(step.file));
+  });
+
   const productionOnly = process.argv.includes("--production-only");
   if (productionOnly) {
     const isProd = (rel) =>
