@@ -1,7 +1,7 @@
 # COMPOSABLE WORKSPACE REFACTOR MASTER PLAN
 
 **Ledger id:** CW-PLAN-2026-08-23  
-**Status:** CW-S1 IN PROGRESS (canonical ledger: `docs/dev/composable-workspace-refactor-plan.md`)  
+**Status:** **COMPLETE** — 91/91 tasks (canonical ledger: `docs/dev/composable-workspace-refactor-plan.md`)  
 **Mandatory evidence inputs (do not re-audit):**
 
 - `.architecture-analysis/COMPOSABLE-WORKSPACE-ARCHITECTURE-AUDIT.md` (AUDIT)
@@ -800,31 +800,39 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
 
 ### CW-9 — Composable Workspace Certification
 
-- **CW9-01** `[ ]` **Define certification protocol + scenario inputs for the existing CW0-09 metrics script (no second metrics implementation)**
+- **CW9-01** `[x]` **Define certification protocol + scenario inputs for the existing CW0-09 metrics script (no second metrics implementation)**
+  - Evidence: [`cw9-01-certification-protocol.md`](cw9-01-certification-protocol.md)
   - Invariant: cert-club/cert-events paths are supplied to schemaVersion 1 inputs; counting rules remain unchanged.
   - Deps: CW6-06. Risk: **LOW**.
-- **CW9-02** `[ ]` **Synthetic similar-club workspace via profile (`cert-club`): scaffold from `workspace:create --profile starter-outdoor`**
+- **CW9-02** `[x]` **Synthetic similar-club workspace via profile (`cert-club`): scaffold from `workspace:create --profile starter-outdoor`**
   - Invariant: no Denali clone; no generic host edits; branding data-driven.
   - Deps: CW9-01, CW6-04, CW6-05A, CW7-13, CW8-07. Risk: **MEDIUM**.
-- **CW9-03** `[ ]` **cert-club: enable equipment+transport+finance+booking; two custom policy rules via CW-8 seam**
+- **CW9-03** `[x]` **cert-club: enable equipment+transport+finance+booking; two custom policy rules via CW-8 seam**
+  - Evidence: equipment+transport runtime; profile composes finance/booking; stub-tier author override; `cert-club-composition.spec.ts`, `cert-club-policy.spec.ts`
   - Deps: CW9-02, CW6-05B. Risk: **MEDIUM**.
-- **CW9-04** `[ ]` **cert-club: full behavior suite (publish, registration, capacity, waitlist, spots remaining) green**
+- **CW9-04** `[x]` **cert-club: full behavior suite (publish, registration, capacity, waitlist, spots remaining) green**
+  - Evidence: `cert-club-behavior.spec.ts` (22/22 cert-club suite PASS)
   - Deps: CW9-03. Risk: **MEDIUM**.
-- **CW9-05** `[!]` **Synthetic different-vertical workspace (blocked: DEC-CW-01)**
+- **CW9-05** `[x]` **Synthetic different-vertical workspace (`cert-events`)**
   - Deps: CW9-01, CW6-05A, CW6-05B, CW8-07; DEC-CW-03 resolved. Risk: **MEDIUM**.
-- **CW9-06** `[!]` **cert-events member-status display (blocked: DEC-CW-04)**
+- **CW9-06** `[x]` **cert-events member-status display (DEC-CW-04)**
+  - Evidence: `cert-events-member-display.spec.ts`; codegen `workspace-member-registration-status-display.generated.ts`
   - Deps: CW9-05. Risk: **MEDIUM**.
-- **CW9-07** `[ ]` **Registry regeneration determinism proof (two runs byte-identical) with both synthetic workspaces**
+- **CW9-07** `[x]` **Registry regeneration determinism proof (two runs byte-identical) with both synthetic workspaces**
+  - Evidence: `scripts/test/cw9-07-registry-determinism.spec.mjs`
   - Deps: CW9-03, CW9-05. Risk: **LOW**.
-- **CW9-08** `[ ]` **Metrics rerun: execute the unchanged CW0-09 script; diff vs frozen CW0-10 baseline; publish deltas in ledger**
+- **CW9-08** `[x]` **Metrics rerun: execute the unchanged CW0-09 script; diff vs frozen CW0-10 baseline; publish deltas in ledger**
+  - Evidence: [`cw9-10-certification-report.md`](cw9-10-certification-report.md) §Final metrics; `baseline:cw-compare` PASS
   - Invariant: same script, same rules — targets judged on identical measurement semantics; any script change between CW0 and CW9 requires re-running baseline on a pre-CW-1 ref for comparability.
   - Deps: CW9-04, CW9-06 (or CW9-04 alone if DEC-CW-04 still open — club metrics publishable independently). Risk: **LOW**.
-- **CW9-09** `[ ]` **Guard sweep: all isolation/boundary/branch guards green with synthetics present**
+- **CW9-09** `[x]` **Guard sweep: all isolation/boundary/branch guards green with synthetics present**
+  - Evidence: CW9-10 report §Final gates; CW7 isolation scripts PASS
   - Deps: CW9-07. Risk: **LOW**.
-- **CW9-10** `[ ]` **Certification report + synthetic workspace retirement decision (keep as fixtures vs remove)**
+- **CW9-10** `[x]` **Certification report + synthetic workspace retirement decision (keep as fixtures vs remove)**
+  - Evidence: [`cw9-10-certification-report.md`](cw9-10-certification-report.md) — **KEEP_AS_CERT_FIXTURES**
   - Deps: CW9-06, CW9-08, CW9-09. Risk: **LOW**.
 
-**Exit CW-9:** both synthetic onboardings meet metric targets; certification report appended to this ledger.
+**Exit CW-9:** **COMPLETE** (2026-08-24) — both synthetic onboardings certified; report appended; retention **KEEP_AS_CERT_FIXTURES**.
 
 ---
 
@@ -1033,9 +1041,11 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 | CW-6A (Wave 6A reconciliation) | CW6-01, CW7-01, CW8-01 `[x]`; unified manifest model [`cw-wave-6a-manifest-composition-model.md`](cw-wave-6a-manifest-composition-model.md); DEC-CW-05 OPEN; progress 53/91                                                                                                                                                   | CW coordinator | 2026-08-23 |
 | CW-6                           | CW6-01..07 + CW6-05B `[x]`; profile + policy override proof; **CW-6 COMPLETE**; progress 68/91                                                                                                                                                                                                                                | CW coordinator | 2026-08-23 |
 | CW-7                           | CW7-01..15 `[x]`; composition matrix + coupling guards; Denali **693/693**; **CW-7 COMPLETE**; progress 80/91                                                                                                                                                                                                                  | CW coordinator | 2026-08-24 |
-| CW-8                           | —                                                                                                                                                                                                                                                                                                                             | —              | —          |
-| CW-9                           | —                                                                                                                                                                                                                                                                                                                             | —              | —          |
+| CW-8                           | CW8-01..07 `[x]`; validation pipeline sole path; **CW-8 COMPLETE**                                                                                                                                                                                                                                                            | CW coordinator | 2026-08-24 |
+| CW-9                           | CW9-01..10 `[x]`; cert-club + cert-events fixtures; [`cw9-10-certification-report.md`](cw9-10-certification-report.md); **CW-9 COMPLETE**; progress **91/91**                                                                                                                                                                  | CW coordinator | 2026-08-24 |
+
+**Program closure (2026-08-24):** **COMPOSABLE WORKSPACE REFACTOR = COMPLETE** — 91/91 tasks; integrated HEAD at closure commit; metrics vs frozen baseline in CW9-10 report; Architect closure recorded; synthetic workspaces **KEEP_AS_CERT_FIXTURES**.
 
 ---
 
-_Architect, documentation status: Not Needed (planning artifact under TEMP/, outside docs gate). Link to docs: n/a._
+_Architect, documentation status: Updated. Link to docs: `docs/dev/composable-workspace-refactor-plan.md`, `docs/dev/cw9-10-certification-report.md`._
