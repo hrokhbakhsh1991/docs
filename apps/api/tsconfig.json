@@ -27,6 +27,9 @@
       "@app-tour/workspace-denali/host/finance": [
         "../../packages/workspaces/denali/dist/finance/index"
       ],
+      "@app-tour/workspace-denali/roster": [
+        "../../packages/workspaces/denali/dist/roster/index"
+      ],
       "@app-tour/workspace-denali/host/finance/case-read": [
         "../../packages/workspaces/denali/dist/finance/case-read/index"
       ],

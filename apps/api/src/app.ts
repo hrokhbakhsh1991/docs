@@ -497,6 +497,13 @@ async function dispatchRequest(
     return;
   }
 
+  const tourOperationalRosterMatch = url.pathname?.match(/^\/tours\/([^/]+)\/operational-roster$/);
+  if (method === "GET" && tourOperationalRosterMatch) {
+    const { handleGetTourOperationalRoster } = await import("./roster/operational-roster.routes.ts");
+    await handleGetTourOperationalRoster(req, res, tourOperationalRosterMatch[1]!);
+    return;
+  }
+
   const tourMatch = url.pathname?.match(/^\/tours\/([^/]+)$/);
   if (method === "GET" && tourMatch) {
     await handlers.handleGetTour(req, res, tourDeps, tourMatch[1]!);
