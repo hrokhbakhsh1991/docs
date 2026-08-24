@@ -62,7 +62,7 @@ Denali is **IMPLEMENTED_PAID_OPS_PENDING_RUNTIME_CLOSURE** (reconciled 2026-08-2
 Pre-DP gaps — **addressed in code** (runtime proof pending):
 
 1. Approved-unpaid indefinite hold → **DP-1** payment holds + expiry worker.
-2. Final participant semantics → **DP-2** `isFinalParticipant` in code (**DEN-PROD-03 PROPOSED, not signed**).
+2. Final participant semantics → **DP-2** `isFinalParticipant` in code (**DEN-PROD-03 APPROVED** Wave B 2026-08-24).
 3. Operator single roster surface → **DP-2** tour workspace operational roster API.
 4. Tour mutation after registrations → **DP-3** enforcement + matrix.
 5. Member notifications inbox → **DP-4** portal inbox dispatch.
@@ -168,15 +168,15 @@ Design **must** support configurable policy even if first customer picks a singl
 
 | Field | Content |
 |-------|---------|
-| **Status** | `[!]` **OPEN** — **PROPOSED in DP-2 code** (`isFinalParticipant := approved && remainingMinor===0`); not product-signed |
-| **Current behavior** | DP-2 exposes `operational` (approved) vs `final` (approved + financially settled) filters. Transport default = approved. See `production-closure-ledger.md` § DEN-PROD-03. |
-| **Product question** | Which semantic is “on the trip”? Compare: registration approved / payment complete / operationally confirmed / actually attending. **Do not collapse unless product decides.** |
-| **Options** | (A) Approved = operational roster (current transport tab) (B) Paid or waived = commercial confirmed (C) Operator “confirmed attending” third axis (D) Day-of attendance (DP-7) separate from pre-departure roster |
-| **Consequences** | Drives DP-2 projection filters, exports, DEN-PROD-06 passenger set. |
+| **Status** | `[v]` **APPROVED 2026-08-24** — Wave B product decision lock before runtime closure |
+| **Approved definitions** | `operationalParticipant := status === approved`; `financiallySettled := remainingAmount === 0 OR waived/free`; `finalParticipant := operational AND financiallySettled`; capacity occupancy remains separate (`approved` holds seat) |
+| **Truth table** | approved+unpaid → operational=true, final=false; approved+partial → operational=true, final=false; approved+paid → operational=true, final=true; approved+waived → operational=true, final=true; waitlisted/rejected/cancelled/expired → final=false |
+| **Implementation** | `packages/workspaces/denali/src/roster/operational-roster-semantics.ts` — parity verified Wave B |
+| **Current behavior** | DP-2 exposes `operational` vs `final` filters; transport default = operational (approved) |
+| **Deferred** | Day-of attendance (DP-7) separate from final participant; not collapsed |
+| **Consequences** | Drives DP-2 projection filters, exports, DEN-PROD-06 passenger set |
 | **Affected modules** | Tour workspace tabs, Bookings CC, portal copy, future settlement |
-| **Blocked task IDs** | DP2-01…DP2-12, DP5-02, DP7-02, DP8-05 |
-| **Latest safe execution point** | DP-0; DP-2 design after this gate |
-| **Evidence needed** | Day-of leader question: unpaid approved still boarded today? |
+| **Evidence** | `docs/dev/production-closure-ledger.md` § DEN-PROD-03; Wave B runtime certification |
 | **Decision owner** | Product owner |
 
 ---

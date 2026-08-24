@@ -94,9 +94,9 @@ Severity: **P0** blocks paid-ops / go-live honesty · **P1** should close before
 |-------|-------|
 | **Phase** | DP-2 / roster |
 | **Severity** | P1 (product) |
-| **Status** | **OPEN** — PROPOSED in `operational-roster-semantics.ts`, not APPROVED |
-| **Rule in code** | `final := approved && remainingMinor === 0` |
-| **Required** | Product owner sign or explicit defer; see production-closure-ledger § DEN-PROD-03 |
+| **Status** | **CLOSED** @ Wave B 2026-08-24 — DEN-PROD-03 APPROVED; code parity confirmed |
+| **Rule in code** | `final := approved && remainingMinor === 0` (waived counts settled) |
+| **Evidence** | `docs/dev/production-closure-ledger.md` § DEN-PROD-03 decision lock |
 
 ---
 

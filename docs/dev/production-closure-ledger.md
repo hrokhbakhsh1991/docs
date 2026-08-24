@@ -81,7 +81,7 @@ Historical green (trusted only at cited SHA, not re-run here):
 |------|----------------|----------------------------|
 | **DEN-PROD-01** Payment deadline | **APPROVED** | `docs/dev/dp-1-execution-plan.md` § Approved decisions — 24h default, per-tour override |
 | **DEN-PROD-02** Approved-unpaid holds seat | **APPROVED** | same — paired with expiry |
-| **DEN-PROD-03** Final participant | **OPEN** — **PROPOSED** in code | See § DEN-PROD-03 below; not formally signed |
+| **DEN-PROD-03** Final participant | **APPROVED** 2026-08-24 Wave B | See § DEN-PROD-03 below; parity with `operational-roster-semantics.ts` |
 | **DEN-PROD-04** Expiry representation | **APPROVED** | Hold + `approved→cancelled`, `cancelSource=payment_deadline` |
 | **DEN-PROD-05** Wallet | **DEFERRED_POST_PRODUCTION** | Product direction 2026-08-24; ledger + completion plan |
 | **DEN-PROD-06** Driver compensation basis | **APPROVED** | `docs/workspaces/denali/driver-settlement.mdoc` — min(offered, assigned) at freeze |
@@ -96,42 +96,58 @@ Historical green (trusted only at cited SHA, not re-run here):
 
 ## DEN-PROD-03 — Final participant (decision packet)
 
-**Formal status:** **OPEN** (not APPROVED). Reconciliation does **not** close this gate.
+**Formal status:** **APPROVED** — recorded 2026-08-24 Wave B before runtime closure execution.
 
-### Current implementation truth (DP-2, `main`)
+**Decision owner:** Product owner (Wave B lock).
+
+### Approved definitions
+
+```text
+operationalParticipant :=
+  registration.status === "approved"
+
+financiallySettled :=
+  remainingAmount === 0
+  OR an explicitly supported waived/free obligation state
+
+finalParticipant :=
+  operationalParticipant AND financiallySettled
+
+occupiesCapacity :=
+  separate predicate — approved registrations consume seats (DN-CAT-05)
+```
+
+### Truth table (approved registrations)
+
+| Payment state | operational | final | occupies capacity |
+|---------------|-------------|-------|-------------------|
+| unpaid | true | false | true |
+| partial | true | false | true |
+| paid | true | true | true |
+| waived/free | true | true | true |
+| waitlisted | false | false | false |
+| rejected | false | false | false |
+| cancelled | false | false | false |
+| payment-expired (cancelled hold) | false | false | false |
+
+**Invariant:** `paid` alone does not bypass registration approval — non-approved rows are never final.
+
+### Implementation parity (`main`)
 
 Source: `packages/workspaces/denali/src/roster/operational-roster-semantics.ts`
 
-| Predicate | Rule in code |
-|-----------|--------------|
-| `isOperationalParticipant` | `status === "approved"` |
-| `isFinanciallySettled` | `remainingMinor` parses to `0` |
-| **`isFinalParticipant`** | **`approved` AND `remainingMinor === 0`** (waived counts as settled) |
-| `occupiesCapacity` | `registrationOccupiesSeat("booking", status)` → approved only |
-| Roster filter `operational` | approved rows |
-| Roster filter `final` | `isFinalParticipant` |
-| Roster filter `paid` | approved + financially settled |
-| Roster filter `unpaid` | approved + not financially settled |
+| Predicate | Rule in code | Parity |
+|-----------|--------------|--------|
+| `isOperationalParticipant` | `status === "approved"` | YES |
+| `isFinanciallySettled` | `remainingMinor` parses to `0` (waived counts) | YES |
+| `isFinalParticipant` | approved AND financially settled | YES |
+| Roster filters | `operational`, `final`, `unpaid`, `paid`, `expiring`, `waitlist` | YES |
 
-Transport tab / day-of roster semantics still use **approved** (operational), not **final**, unless UI selects `filter=final`.
+Transport tab / day-of roster defaults to **operational** (approved), not **final**, unless UI selects `filter=final`.
 
-### PROPOSED semantics (engineering — not product-approved)
+### Deferred (not DEN-PROD-03)
 
-```text
-final_participant := booking.status === "approved"
-                  AND invoice.remainingMinor === 0 (paid or waived)
-operational_participant := booking.status === "approved"  (occupies capacity)
-```
-
-Aligns with completion-plan **Option F1 + F2 as filters**, not a collapsed booking enum.
-
-### Product questions still open
-
-1. Is **approved unpaid** “expected to attend” for day-of ops? (today: yes on transport roster)
-2. Does **final** mean commercial closed only, or operational headcount? (today: commercial)
-3. Post-tour **attendance** (DP-7) remains separate — not implemented
-
-**Blocks:** formal DP-2/DP-8 sign-off on participant vocabulary only. Does **not** block ledger reconciliation or Wave B runtime closure.
+Post-tour **attendance** (DP-7) remains separate — not implemented. Day-of “actually attending” is not collapsed into final participant.
 
 ---
 
