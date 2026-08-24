@@ -657,7 +657,9 @@ Refinement vs requested shape (evidence-based):
 
 **Integration sign-off (CW-WAVE-6C, 2026-08-23):** CW6-03, CW7-03, CW8-03 `[x]` — `starter-outdoor` profile catalog, Denali equipment field fragment + codegen bindings, manifest `workspacePolicy` seam with synthetic `policy-cert` proof workspace. Unified composition: profile + `workspaceEquipment` + `workspacePolicy` on effective manifest (spec). Aggregate gates green at integrated HEAD. Progress **59/91** `[x]`. **Next safe wave:** CW6-04, CW6-05A, CW6-06, CW7-04, CW8-04 — CW6-05B unlocked (CW8-03 closed; still needs CW6-04).
 
-**Integration sign-off (CW-WAVE-7A, 2026-08-24):** CW8-06 `[x]` — legacy flat persist branch retired; pipeline sole production path; Denali/Urban policy supersede env gates removed. Progress **69/91** `[x]`. **Next safe slice:** CW8-07 guardrails, CW9. **Forbidden:** CW9, CW5-10, CW7-06+, CW8-07+ unless explicitly scoped.
+**Integration sign-off (CW-WAVE-7A, 2026-08-24):** CW7-06, CW8-06, CW8-07 `[x]` — `workspaceTransport` codegen domain + Denali manifest bindings; legacy flat persist branch retired (CW8-06); pipeline order certification + validation-pipeline guards. Progress **71/91** `[x]`. **CW-8 phase COMPLETE.** **Next safe slice:** CW9. **Forbidden:** CW9 (until authorized), CW5-10, CW7-07+.
+
+**Integration sign-off (CW-WAVE-7A partial, 2026-08-24):** CW8-06 `[x]` — legacy flat persist branch retired; pipeline sole production path; Denali/Urban policy supersede env gates removed. Progress **69/91** `[x]`. Superseded by full CW-WAVE-7A sign-off above.
 
 **Integration sign-off (CW-WAVE-6E, 2026-08-23):** CW6-05B, CW6-07, CW7-05, CW8-05 `[x]` — profile-policy join + authoring guide (prior commits); `workspaceTransport` design contract; Urban validation mapped to pipeline stages with golden parity under `WORKSPACE_VALIDATION_PIPELINE_URBAN_POLICY=1`. Progress **68/91** `[x]`. **Next safe slice:** CW7-06 transport codegen (forbidden until authorized), CW8-06 legacy hook removal, CW9. **Forbidden:** CW9, CW5-10, CW7-06+, CW8-06+ unless explicitly scoped.
 
@@ -733,7 +735,8 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
 - **CW7-04** `[x]` Equipment: isolation test (workspace without module has zero equipment surface). Deps: CW7-03. Risk: **LOW**.
   - Evidence: [`docs/dev/cw7-04-equipment-isolation.md`](cw7-04-equipment-isolation.md), `cw7-04-equipment-isolation.spec.mjs`.
 - **CW7-05** `[x]` Transport: manifest block design (`workspaceTransport`) — generic snapshot contract only; dong/personal-car stays Denali policy. Evidence: TRUTH §24 MUST-NOT. **Design contract:** [`docs/dev/cw7-05-workspace-transport-contract.md`](cw7-05-workspace-transport-contract.md) — **PASS**; top-level `workspaceTransport` block; tour canonical + intake persistence; Denali dong/personal-car boundary; legacy `transportInitializerExport` alias path. CW7-06 implements codegen. Deps: CW5-11. Risk: **MEDIUM** (design only).
-- **CW7-06** `[ ]` Transport: intake initializer + registration snapshot via capability binding (existing `transportInitializerExport` generalized). Deps: CW7-05. Risk: **HIGH**.
+- **CW7-06** `[x]` Transport: intake initializer + registration snapshot via capability binding (existing `transportInitializerExport` generalized). Deps: CW7-05. Risk: **HIGH**.
+  - Evidence: [`docs/dev/cw7-06-workspace-transport-codegen.md`](cw7-06-workspace-transport-codegen.md), `workspace-transport-codegen.spec.mjs`, `cw7-06-transport-isolation.spec.mjs`.
 - **CW7-07** `[ ]` Transport: Denali adapter migration + parity (registration flow goldens, roster projections `transportKind` unchanged). Deps: CW7-06. Risk: **HIGH**.
 - **CW7-08** `[ ]` Transport: isolation test. Deps: CW7-07. Risk: **LOW**.
 - **CW7-09** `[ ]` Difficulty/Fitness: presentation gates already manifest (`catalogPresentation`); add optional field-module contract; Denali fields stay vertical. Deps: CW5-11. Risk: **MEDIUM**.
@@ -744,7 +747,7 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
 - **CW7-14** `[ ]` Denali full regression checkpoint (certified suite + goldens) after each shipped capability — recurring gate task. Risk: **LOW** each run.
 - **CW7-15** `[ ]` Guard: capability modules cannot import Denali product ids (extend `denali-coupling.contract.spec.ts` scope to capability packages). Deps: CW7-02. Risk: **LOW**.
 
-**Exit CW-7 (minimum for CW-9):** Equipment + Transport shipped with all six artifacts each; Denali parity proven. Remaining capabilities may trail.
+**CW-7 IN PROGRESS** — equipment shipped; transport codegen (CW7-06) complete; CW7-07+ (Denali field migration, isolation) remain.
 
 ---
 
@@ -778,11 +781,11 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
   - Evidence: [`docs/dev/cw8-06-legacy-validation-census.md`](cw8-06-legacy-validation-census.md), `cw8-06-consumer-census.spec.ts`.
   - Deps: CW8-05. Risk: **MEDIUM**.
 
-- **CW8-07** `[ ]` **Guardrails: pipeline-order certification + no-core-branching lint for policy modules**
-  - Evidence: AUDIT §15 missing-cert #3.
+- **CW8-07** `[x]` **Guardrails: pipeline-order certification + no-core-branching lint for policy modules**
+  - Evidence: [`docs/dev/cw8-07-pipeline-order-certification.md`](cw8-07-pipeline-order-certification.md), `cw8-07-pipeline-order-cert.spec.ts`, `guard-validation-pipeline.mjs`, `guard-workspace-policy-no-core-branching.mjs`.
   - Deps: CW8-04. Risk: **LOW**.
 
-**Exit CW-8:** ordered pipeline live for both production workspaces; custom rules demonstrably host-edit-free.
+**Exit CW-8:** **COMPLETE** (2026-08-24) — ordered pipeline live for Denali + Urban; custom rules host-edit-free via `workspacePolicy` seam; CW8-06 legacy path retired; CW8-07 guards enforce stage order and policy module boundaries.
 
 ---
 
