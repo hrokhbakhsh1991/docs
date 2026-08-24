@@ -45,6 +45,15 @@ export {
   DENALI_REGISTRATION_NOT_AMENDABLE,
   isDenaliRegistrationNotAmendableError,
 } from "./errors/denali-registration-not-amendable.error";
+export {
+  DenaliTourMutationBlockedError,
+  DenaliTourMutationOverrideRequiredError,
+  DENALI_TOUR_MUTATION_BLOCKED,
+  DENALI_TOUR_MUTATION_OVERRIDE_REQUIRED,
+  isDenaliTourMutationBlockedError,
+  isDenaliTourMutationOverrideRequiredError,
+  isDenaliTourMutationPolicyError,
+} from "./errors/denali-tour-mutation.error";
 
 export {
   handleFinanceSummary,

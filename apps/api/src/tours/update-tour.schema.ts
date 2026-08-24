@@ -8,6 +8,7 @@ export const updateTourBodySchema = z
     schemaVersion: z.number().int().positive().optional(),
     roots: z.array(z.string().min(1)).min(1).optional(),
     data: canonicalDataSchema.optional(),
+    operatorMutationOverride: z.literal(true).optional(),
   })
   .strict();
 

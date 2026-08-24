@@ -51,6 +51,10 @@ import type { TourPublishVisibilityBucket as CanonicalTourWritePublishBucket } f
 import { assertCanonicalTourWritePublishGate } from "./canonical-tour-publish-orchestration";
 import { assertPaidTourOpenCommerceGateOnPublishTransition } from "../registrations/assert-paid-tour-open-gate.ts";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
+import { assertWorkspaceTourMutationPolicy } from "../tours/assert-workspace-tour-mutation-policy";
+import { emitTourMutationSideEffects } from "../tours/emit-tour-mutation-side-effects";
+import { resolveTourMutationFacts } from "../tours/resolve-tour-mutation-facts";
+import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 export type { CanonicalTourWritePublishBucket };
 
@@ -198,6 +202,7 @@ export class CanonicalTourService {
     readonly validationVariant?: "default" | "basic";
     readonly actorId?: string;
     readonly commerce?: Pick<WorkspaceCommerceConfig, "paymentMode">;
+    readonly auth?: TenantAuthContext;
   }): Promise<TourRecord> {
     assertCanonicalWriteTenantAllowed(input.tenantId);
     return runWithTenantContext(input.tenantId, () => this.updateTourInActiveContext(input), {
@@ -214,6 +219,7 @@ export class CanonicalTourService {
     readonly workspaceType: string;
     readonly validationVariant?: "default" | "basic";
     readonly commerce?: Pick<WorkspaceCommerceConfig, "paymentMode">;
+    readonly auth?: TenantAuthContext;
   }): Promise<TourRecord> {
     const activeTenant = requireActiveTenantId();
     if (activeTenant !== input.tenantId.trim()) {
@@ -263,6 +269,26 @@ export class CanonicalTourService {
       });
     }
 
+    let mutationSideEffects: Awaited<
+      ReturnType<typeof assertWorkspaceTourMutationPolicy>
+    >["sideEffects"] = [];
+    if (input.auth !== undefined) {
+      const facts = await resolveTourMutationFacts({
+        tenantId: input.tenantId,
+        tourId: input.tourId,
+        tourData: existing.canonical.data as Record<string, unknown>,
+      });
+      const mutationPolicy = assertWorkspaceTourMutationPolicy({
+        workspaceType: input.workspaceType,
+        auth: input.auth,
+        beforeData: existing.canonical.data as Record<string, unknown>,
+        afterData: canonical.data as Record<string, unknown>,
+        facts,
+        operatorMutationOverride: input.body.operatorMutationOverride,
+      });
+      mutationSideEffects = mutationPolicy.sideEffects;
+    }
+
     try {
       let record: TourRecord;
       if (useAtomicCanonicalPersist()) {
@@ -285,6 +311,15 @@ export class CanonicalTourService {
           id: input.tourId,
           canonical,
           expectedRowVersion: input.body.rowVersion,
+        });
+      }
+
+      if (mutationSideEffects.length > 0) {
+        await emitTourMutationSideEffects({
+          tenantId: input.tenantId,
+          tourId: input.tourId,
+          sideEffects: mutationSideEffects,
+          changedFields: mutationSideEffects.flatMap((effect) => effect.fields),
         });
       }
 

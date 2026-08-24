@@ -59,7 +59,11 @@
     "lifecycleUnpublishRejected": "Unpublishing active tours is not supported yet. Contact support to remove a tour from the catalog.",
     "errorDetailCode": "Error code: {code}",
     "errorDetailMessage": "Server message: {message}",
-    "errorDetailCorrelation": "Correlation id: {correlationId}"
+    "errorDetailCorrelation": "Correlation id: {correlationId}",
+    "mutation": {
+      "DENALI_TOUR_MUTATION_BLOCKED": "This change is blocked because registrations exist on the tour.",
+      "DENALI_TOUR_MUTATION_OVERRIDE_REQUIRED": "This change needs workspace-owner approval because registrations exist."
+    }
   },
   "host": {
     "loadError": "Wizard failed to load: {error}",

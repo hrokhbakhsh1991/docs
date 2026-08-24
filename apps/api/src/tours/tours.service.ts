@@ -133,6 +133,7 @@ export class ToursService {
       validationVariant,
       actorId: auth.userId,
       commerce,
+      auth,
     });
   }
 }

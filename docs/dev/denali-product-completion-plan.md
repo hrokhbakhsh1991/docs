@@ -287,7 +287,7 @@ Design **must** support configurable policy even if first customer picks a singl
 
 | Field | Content |
 |-------|---------|
-| **Status** | `[!]` |
+| **Status** | `[v]` **Approved 2026-08-24** — matrix in `docs/workspaces/denali/tour-mutation-safety.mdoc` |
 | **Current behavior** | Flat-edit PATCH always allowed. Registration intake snapshot frozen when approved (`DN-READ-05`). Price/date/transport on tour can diverge from snapshots. No member notify. |
 | **Product question** | Which fields are SAFE_MUTABLE / MUTABLE_WITH_NOTIFICATION / MUTABLE_WITH_REPRICING / FROZEN_AFTER_REGISTRATION / FROZEN_AFTER_PAYMENT / REQUIRES_OPERATOR_OVERRIDE? |
 | **Consequences** | Repricing touches Finance obligation freeze (today lazy). Date change touches departure/capacity UX. |
@@ -441,8 +441,8 @@ Read-model / projection. **Do not merge Bookings and Finance tables.** SoT remai
 | DP2-08 | Driver + passenger grouping | Intake `personal_car` + occupants; **assignment still absent** | 06 | Transport scalars | — | DEN-TRANS regression | Browser | — | MEDIUM | `[v]` |
 | DP2-09 | Deadline column if DP-1 live | Same dueAt | DP-1 | Compose | — | S17 | Browser | — | MEDIUM | `[v]` |
 | DP2-10 | Export (CSV) optional | Not required for MINIMUM PILOT | — | Web | — | — | — | — | LOW | `[ ]` FUTURE |
-| DP2-11 | Browser cert | Operator 1440; tablet 768 optional | 03 | — | — | — | Required | — | MEDIUM | `[x]` |
-| DP2-12 | Phase closure | `[x]` only with browser | — | — | — | — | — | — | MEDIUM | `[x]` |
+| DP2-11 | Browser cert | Operator 1440; tablet 768 optional | 03 | — | — | — | Required | — | MEDIUM | `[!]` |
+| DP2-12 | Phase closure | `[x]` only with browser | — | — | — | — | — | — | MEDIUM | `[!]` |
 
 ---
 
@@ -454,20 +454,20 @@ Field classes (product fills after DEN-PROD-10). Engineering must not assign cla
 
 | ID | Objective | Invariant | Decision deps | Modules | DB | Automated | Browser | Rollback | Risk | Status |
 |----|-----------|-----------|---------------|---------|-----|-----------|---------|----------|------|--------|
-| DP3-01 | Signed field-class matrix | Every listed field has one class | 10 | Docs | None | Matrix review | — | — | HIGH | `[!]` |
-| DP3-02 | Count existing registrations on PATCH | Occupancy + pending | — | Tour update pipeline | Read bookings | Integration | — | — | MEDIUM | `[ ]` |
-| DP3-03 | Enforce FROZEN_* | 409/422 stable codes | 10 | `apps/api` tours PATCH; flat edit | — | Domain+HTTP | Operator edit | Flag off | HIGH | `[!]` |
-| DP3-04 | SAFE_MUTABLE | No notify | 10 | — | — | Tests | — | — | LOW | `[!]` |
-| DP3-05 | MUTABLE_WITH_NOTIFICATION | Event + DP-4 delivery | 10,12 | Outbox | Outbox | Event test | Member sees if inbox exists | — | MEDIUM | `[!]` |
-| DP3-06 | MUTABLE_WITH_REPRICING | Obligation/invoice policy | 10,11 | Finance | Maybe freeze | Finance tests | — | — | FINANCIAL_HIGH | `[!]` |
-| DP3-07 | Capacity down vs approved occupancy | Reject or waitlist overflow — **product** | 02,10 | Bookings+tours | — | Integration | — | — | HIGH | `[!]` |
+| DP3-01 | Signed field-class matrix | Every listed field has one class | 10 | Docs | None | Matrix review | — | — | HIGH | `[v]` |
+| DP3-02 | Count existing registrations on PATCH | Occupancy + pending | — | Tour update pipeline | Read bookings | Integration | — | — | MEDIUM | `[v]` |
+| DP3-03 | Enforce FROZEN_* | 409/422 stable codes | 10 | `apps/api` tours PATCH; flat edit | — | Domain+HTTP | Operator edit | Flag off | HIGH | `[v]` |
+| DP3-04 | SAFE_MUTABLE | No notify | 10 | — | — | Tests | — | — | LOW | `[v]` |
+| DP3-05 | MUTABLE_WITH_NOTIFICATION | Event + DP-4 delivery | 10,12 | Outbox | Outbox | Event test | Member sees if inbox exists | — | MEDIUM | `[v]` |
+| DP3-06 | MUTABLE_WITH_REPRICING | Obligation/invoice policy | 10,11 | Finance | Maybe freeze | Finance tests | — | — | FINANCIAL_HIGH | `[v]` |
+| DP3-07 | Capacity down vs approved occupancy | Reject or waitlist overflow — **product** | 02,10 | Bookings+tours | — | Integration | — | — | HIGH | `[v]` |
 | DP3-08 | Snapshot vs live tour fields | Intake snapshot preserved | — | registrationIntake | JSON | DN-READ-05 regression | — | — | MEDIUM | `[ ]` |
 | DP3-09 | Refund/cancel impact of date change | Per 08/09 | 08,09,10 | DP-6 | — | — | — | — | HIGH | `[!]` |
-| DP3-10 | Operator override path | Audit trail | 10 | PATCH roots | Audit | Test | UI confirm | — | HIGH | `[!]` |
-| DP3-11 | Isolation | Tenant | — | — | — | Negative | — | — | MEDIUM | `[ ]` |
-| DP3-12 | Automated matrix | All classes | 10 | — | — | Full | — | — | HIGH | `[!]` |
+| DP3-10 | Operator override path | Audit trail | 10 | PATCH roots | Audit | Test | UI confirm | — | HIGH | `[v]` |
+| DP3-11 | Isolation | Tenant | — | — | — | Negative | — | — | MEDIUM | `[v]` |
+| DP3-12 | Automated matrix | All classes | 10 | — | — | Full | — | — | HIGH | `[v]` |
 | DP3-13 | Browser cert | Operator edits published tour with regs | 10 | — | — | — | 1440 | — | HIGH | `[!]` |
-| DP3-14 | Phase closure | — | — | — | — | — | — | — | HIGH | `[!]` |
+| DP3-14 | Phase closure | — | — | — | — | — | — | — | HIGH | `[v]` |
 
 ---
 

@@ -103,6 +103,10 @@ import {
 } from "../integrations/webhooks/webhook.errors.ts";
 import { isPaymentsWebhookEventIdRequiredError } from "../integrations/webhooks/payments-webhook-event-id-required.error.ts";
 import { isPaidTourOpenGateBlockedError } from "../registrations/assert-paid-tour-open-gate.ts";
+import {
+  isDenaliTourMutationBlockedError,
+  isDenaliTourMutationOverrideRequiredError,
+} from "@app-tour/workspace-denali/host/http";
 import { isPublicRegistrationThrottleExceededError } from "../registrations/public-registration-throttle.ts";
 import { isRegistrationCapacityExceededError } from "../registrations/registration-capacity.service.ts";
 import { DbCircuitOpenError } from "../db/transient-db-error";
@@ -707,6 +711,22 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
 
   if (isPaidTourOpenGateBlockedError(error)) {
     sendHttpError(res, error.statusCode, { error: "forbidden", code: error.code }, correlationId);
+    return;
+  }
+
+  if (isDenaliTourMutationBlockedError(error) || isDenaliTourMutationOverrideRequiredError(error)) {
+    sendHttpError(
+      res,
+      409,
+      {
+        error: error.code,
+        code: error.code,
+        reasonCode: error.reasonCode,
+        fields: error.fields,
+        message: error.detailMessage,
+      },
+      correlationId
+    );
     return;
   }
 

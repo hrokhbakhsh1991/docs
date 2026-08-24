@@ -1,0 +1,89 @@
+---
+title: Denali tour mutation safety (DP-3 / DEN-PROD-10)
+doc_id: DENALI-TOUR-MUTATION-SAFETY
+version: "2026-08-24-v1"
+workspace: denali
+status: ACTIVE
+authority: DEN-PROD-10 (approved 2026-08-24) · denali-product-completion-plan DP-3
+---
+
+# Denali tour mutation safety
+
+## Problem
+
+Operator flat-edit `PATCH /tours/:id` historically allowed **any** canonical field change even when registrations existed. Member intake snapshots freeze on approve (`DN-READ-05`), but live tour fields (price, schedule, capacity, transport) could diverge without notify, reprice workflow, or capacity guardrails.
+
+DP-3 centralizes mutation policy so UI disabled controls are **not** the security boundary.
+
+## Evaluator shape
+
+```text
+current tour canonical.data
++ proposed patch (merged preview)
++ operational facts (bookings)
++ optional operatorMutationOverride (owner)
+→ mutation decision
+```
+
+| Decision | Meaning |
+| -------- | ------- |
+| `ALLOW` | Persist patch |
+| `DENY` | Reject with stable HTTP code + reason |
+| `REQUIRE_OVERRIDE` | Reject unless `operatorMutationOverride: true` **and** workspace owner |
+| `ALLOW_WITH_SIDE_EFFECT` | Persist + enqueue outbox side effects (never silent finance mutation) |
+
+Operational facts (host port):
+
+| Fact | Source |
+| ---- | ------ |
+| `activeRegistrationCount` | `pending` + `approved` + `waitlisted` on tour |
+| `approvedRegistrationCount` | `status=approved` |
+| `paidRegistrationCount` | `paymentStatus ∈ {paid, partial}` |
+| `occupiedApprovedPartySize` | sum `partySize` where `approved` |
+| `hasTransportAllocations` | canonical `transport.allocations` non-empty (DP-5 bridge until assignment SoT lands) |
+
+When `activeRegistrationCount === 0`, policy returns `ALLOW` for all fields (no-registration tours remain freely editable).
+
+## Field class matrix (DEN-PROD-10 approved)
+
+Logical canonical path → class. Data paths follow Denali field registry (`zodPath`).
+
+| Canonical path | Class | Notes |
+| -------------- | ----- | ----- |
+| `title`, `program.shortDescription`, `photos`, `program.itinerary`, `participants.gearItems` | `SAFE_MUTABLE` | Content edits after registrations |
+| `destinationId`, `category`, `eventVariant`, `duration` | `FROZEN_AFTER_REGISTRATION` | Any active registration |
+| `pricing.basePricePerPerson`, `pricing.prepaymentPercent`, `pricing.paymentMode`, `pricing.requiresPayment` | `FROZEN_AFTER_APPROVAL` → repricing workflow when unpaid approved exist; `FROZEN_AFTER_PAYMENT` when paid/partial exist |
+| `startDateTime`, `endDateTime`, `tripDetails.logistics.gatheringPoints` | `MUTABLE_WITH_NOTIFICATION` | Emits `tour.mutation.notification_required` |
+| `capacityMax` decrease | `REQUIRES_OPERATOR_OVERRIDE` when regs exist; **DENY** if new max &lt; occupied approved party size |
+| `capacityMax` increase | `ALLOW` | |
+| `transport.*` | `REQUIRES_OPERATOR_OVERRIDE` when `hasTransportAllocations`; else `SAFE_MUTABLE` for mode copy-only before allocations |
+| `publishStatus` | existing publish gate | Not reclassified here |
+
+## HTTP errors
+
+| Code | Status | When |
+| ---- | ------ | ---- |
+| `DENALI_TOUR_MUTATION_BLOCKED` | 409 | `DENY` |
+| `DENALI_TOUR_MUTATION_OVERRIDE_REQUIRED` | 409 | `REQUIRE_OVERRIDE` without owner override |
+
+Response body includes `reasonCode`, `fields[]`, optional `sideEffects[]` for operator UI.
+
+## Side effects (post-persist outbox)
+
+| Event | When |
+| ----- | ---- |
+| `tour.mutation.notification_required` | Schedule / logistics `MUTABLE_WITH_NOTIFICATION` |
+| `tour.mutation.repricing_required` | Price change with approved-unpaid registrations (no ledger mutation) |
+| `tour.mutation.transport_review_required` | Transport change when allocations locked |
+
+Finance obligation / refund flows are **not** mutated silently — DP-1 freeze + DP-6 own money paths.
+
+## Write path
+
+Enforced in `CanonicalTourService.updateTourInActiveContext` **after** merge + pre-TX validation, **before** persist. Denali rules live in `@app-tour/workspace-denali` `tour-mutation-policy`; API supplies facts + override authorization + outbox enqueue.
+
+## Verification
+
+- Domain: `packages/workspaces/denali/test/tour-mutation-policy.spec.ts`
+- API: `apps/api/test/dp3/tour-mutation-enforcement.spec.ts`
+- Gate: `scripts/test-dp3-tour-mutation.sh`
