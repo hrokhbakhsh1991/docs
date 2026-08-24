@@ -1,0 +1,31 @@
+{
+  "defaultRegion": "eu-central",
+  "sharedDefaults": {
+    "poolDatabaseUrlEnv": "DATABASE_URL",
+    "cacheNamespace": "shared",
+    "storageNamespace": "shared",
+    "queueNamespace": "shared",
+    "secretsRef": "shared/platform",
+    "monitoringIdentity": "shared-stamp"
+  },
+  "workspacePlacements": {
+    "denali": {
+      "mode": "SHARED",
+      "region": "eu-central"
+    }
+  },
+  "tenantOverrides": {
+    "tenant-dedicated": {
+      "mode": "DEDICATED_DB",
+      "region": "eu-central",
+      "databaseTargetId": "db-denali-dedicated"
+    }
+  },
+  "databaseTargets": {
+    "db-denali-dedicated": {
+      "region": "eu-central",
+      "databaseUrlEnv": "DEDICATED_DB_DENALI_URL"
+    }
+  },
+  "deploymentStamps": {}
+}

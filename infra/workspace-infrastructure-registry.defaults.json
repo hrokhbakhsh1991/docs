@@ -1,0 +1,55 @@
+{
+  "defaultRegion": "eu-central",
+  "sharedDefaults": {
+    "poolDatabaseUrlEnv": "DATABASE_URL",
+    "cacheNamespace": "shared",
+    "storageNamespace": "shared",
+    "queueNamespace": "shared",
+    "secretsRef": "shared/platform",
+    "monitoringIdentity": "shared-stamp"
+  },
+  "workspacePlacements": {
+    "denali": {
+      "mode": "SHARED",
+      "region": "eu-central"
+    },
+    "urban": {
+      "mode": "SHARED",
+      "region": "eu-central"
+    },
+    "starter": {
+      "mode": "SHARED",
+      "region": "eu-central"
+    }
+  },
+  "tenantOverrides": {},
+  "databaseTargets": {
+    "db-denali-dedicated": {
+      "region": "eu-central",
+      "databaseUrlEnv": "DEDICATED_DB_DENALI_URL"
+    }
+  },
+  "deploymentStamps": {
+    "stamp-denali-dedicated": {
+      "region": "eu-central",
+      "releaseShaEnv": "GIT_SHA",
+      "databaseTargetId": "db-denali-dedicated",
+      "cacheNamespace": "stamp-denali-dedicated:cache",
+      "storageNamespace": "stamp-denali-dedicated:storage",
+      "queueNamespace": "stamp-denali-dedicated:queue",
+      "secretsRef": "stamp-denali-dedicated/secrets",
+      "monitoringIdentity": "stamp-denali-dedicated",
+      "backupRegion": "eu-central"
+    },
+    "stamp-me-central": {
+      "region": "me-central",
+      "releaseShaEnv": "GIT_SHA",
+      "cacheNamespace": "stamp-me-central:cache",
+      "storageNamespace": "stamp-me-central:storage",
+      "queueNamespace": "stamp-me-central:queue",
+      "secretsRef": "stamp-me-central/secrets",
+      "monitoringIdentity": "stamp-me-central",
+      "backupRegion": "me-central"
+    }
+  }
+}
