@@ -5,6 +5,9 @@ import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
 
 import { createRequestListener } from "../../src/app.ts";
+import { resetBookingsRepositoryForTests } from "../../src/bookings/create-bookings-repository.ts";
+import { resetPaymentHoldRepositoryForTests } from "../../src/finance/payment-hold.repository.ts";
+import { getIdentityRepository } from "../../src/identity/create-identity-repository.ts";
 import { OPERATOR_SMOKE } from "../fixtures/operator-smoke-e2e-tenant.ts";
 import {
   operatorAuthHeaders,
@@ -37,8 +40,21 @@ describe("DP1 API contract payment deadline", () => {
   });
 
   before(() => {
+    resetBookingsRepositoryForTests();
+    resetPaymentHoldRepositoryForTests();
     seedOperatorIdentityFixture();
+    const idRepo = getIdentityRepository();
+    idRepo.seedUser({ id: OPERATOR_SMOKE.memberUserId, mobile: OPERATOR_SMOKE.memberMobile });
+    idRepo.seedMembership({
+      userId: OPERATOR_SMOKE.memberUserId,
+      tenantId: OPERATOR_SMOKE.tenantId,
+      role: "member",
+      status: "ACTIVE",
+      sessionVersion: 1,
+      workspaceId: "ws-operator-smoke-member",
+    });
     process.env.PAYMENT_HOLD_ENABLED = "true";
+    process.env.PAYMENT_HOLD_EXPIRY_ENABLED = "true";
   });
 
   it("S17 contract: operator approve and member GET share paymentDueAt", async () => {

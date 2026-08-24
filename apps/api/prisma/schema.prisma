@@ -27,6 +27,7 @@ model Tenant {
   paymentReceipts             PaymentReceipt[]
   financeSchedules            FinanceSchedule[]
   financeCommercialQuotes     FinanceCommercialQuote[]
+  financePaymentHolds         FinancePaymentHold[]
   financeRefunds              FinanceRefund[]
   urbanRegistrations          UrbanRegistration[]
   userTenants                 UserTenant[]
@@ -438,6 +439,26 @@ model FinanceCommercialQuote {
   @@map("finance_commercial_quotes")
 }
 
+/// DP1 — Finance Payment Hold (DEN-PROD-04).
+model FinancePaymentHold {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  registrationId String    @map("registration_id") @db.Uuid
+  status         String
+  dueAt          DateTime  @map("due_at")
+  policyHours    Int       @map("policy_hours")
+  extendedCount  Int       @default(0) @map("extended_count")
+  satisfiedAt    DateTime? @map("satisfied_at")
+  expiredAt      DateTime? @map("expired_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, registrationId])
+  @@index([tenantId, status, dueAt])
+  @@map("finance_payment_holds")
+}
+
 /// Phase 9.1 — global operator identity (mobile login).
 model User {
   id          String       @id @default(uuid()) @db.Uuid
@@ -534,6 +555,8 @@ model OperatorRegistration {
   registrationIntake Json?  @map("registration_intake")
   /// Ops reject reason (optional). Null when never rejected or rejected without reason.
   rejectReason      String?   @map("reject_reason")
+  /// DP1 — terminal cancel provenance (`payment_deadline`, `operator`, …).
+  cancelSource      String?   @map("cancel_source")
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
   tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)

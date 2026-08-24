@@ -119,6 +119,10 @@ function toListItem(
       ? { registrationIntake: record.registrationIntake }
       : {}),
     ...(record.rejectReason !== undefined ? { rejectReason: record.rejectReason } : {}),
+    ...(record.paymentDueAt !== undefined && record.paymentDueAt !== null
+      ? { paymentDueAt: record.paymentDueAt }
+      : {}),
+    ...(record.cancelSource !== undefined ? { cancelSource: record.cancelSource } : {}),
     ...(capacitySnapshot !== undefined ? { capacitySnapshot } : {}),
   };
 }
@@ -355,11 +359,21 @@ export class BookingsService {
    */
   async getBooking(auth: BookingActorContext, bookingId: string): Promise<BookingListItem> {
     await this.assertTenantBound(auth.tenantId);
-    this.authorization.assertOpsAccess(auth);
     const record = await this.repository.getById(bookingId, auth.tenantId);
     if (record === null) {
       throw new BookingNotFoundError();
     }
+
+    const ownsRegistration = record.submittedByUserId === auth.userId;
+    if (ownsRegistration && auth.role !== "admin" && auth.role !== "owner") {
+      return toListItem(
+        record,
+        { occupied: 0, max: null },
+        { includeRegistrationIntake: false }
+      );
+    }
+
+    this.authorization.assertOpsAccess(auth);
     const [occupiedByTour, maxByTour] = await Promise.all([
       this.repository.sumApprovedPartySizeByTourIds(auth.tenantId, [record.tourId]),
       this.tourCapacity.resolveTourCapacityMaxMany(auth.tenantId, [record.tourId]),

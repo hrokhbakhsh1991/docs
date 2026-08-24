@@ -15,6 +15,10 @@ import {
   resetBookingsServiceCompositionForTests,
 } from "../../src/bookings/create-bookings-service.ts";
 import { resetBookingsRepositoryForTests } from "../../src/bookings/create-bookings-repository.ts";
+import { resetLazyFinanceServiceForTests } from "../../src/boot/lazy-finance-service.ts";
+import { resetPaymentHoldRepositoryForTests } from "../../src/finance/payment-hold.repository.ts";
+import { createTourStorageRepository } from "../../src/storage/create-tour-storage.ts";
+import { InMemoryTourRepository } from "../../src/storage/in-memory-tour.repository.ts";
 import type { BookingActorContext } from "../../src/bookings/ports/booking-actor-context.ts";
 
 export const DP1_TENANT_DENALI = "00000000-0000-4000-8000-000000000014";
@@ -96,6 +100,12 @@ export function resetDp1MemoryHarness(): void {
   delete process.env.DATABASE_URL;
   resetBookingsRepositoryForTests();
   resetBookingsServiceCompositionForTests();
+  resetPaymentHoldRepositoryForTests();
+  resetLazyFinanceServiceForTests();
+  const tourStore = createTourStorageRepository();
+  if (tourStore instanceof InMemoryTourRepository) {
+    tourStore.ensureDp1PaymentDeadlineTour();
+  }
   process.env.PAYMENT_HOLD_ENABLED = "true";
   process.env.PAYMENT_HOLD_EXPIRY_ENABLED = "true";
 }

@@ -35,6 +35,7 @@ import { createCommercialQuoteServiceWithMemberDiscount } from "../workspace-fin
 import { CommercialQuoteService } from "@app-tour/finance-core/application";
 import { nullFinanceArObservationPort } from "@app-tour/finance-core/ports";
 import { resolveFinanceWorkspaceTypeForTenant } from "../workspace-finance/resolve-finance-workspace-type-for-tenant";
+import { wrapFinanceServiceWithPaymentHold } from "../finance/wrap-finance-service-payment-hold.ts";
 import { createBookingPaymentPort } from "../bookings/create-booking-payment-port";
 import { getBookingsRepository } from "../bookings/create-bookings-repository";
 import type { FinanceObligationPort } from "@app-tour/finance-http-contracts";
@@ -236,8 +237,10 @@ export async function getOrCreateFinanceServiceForWorkspaceType(
         obligation,
       }) ?? service;
 
-    financeServiceByWorkspaceType.set(normalized, composed);
-    return composed;
+    const withPaymentHold = wrapFinanceServiceWithPaymentHold(composed);
+
+    financeServiceByWorkspaceType.set(normalized, withPaymentHold);
+    return withPaymentHold;
   })();
 
   financeServiceInflightByWorkspaceType.set(normalized, compose);

@@ -243,12 +243,20 @@ export async function approveBooking(
     await resolveBookingsServiceForTenant(auth.tenantId)
   ).approveBooking(auth, bookingId);
   if (result.status === "approved") {
+    const { applyPaymentHoldAfterBookingApprove } =
+      await import("../finance/apply-payment-hold-after-booking-approve");
+    const holdSideEffects = await applyPaymentHoldAfterBookingApprove({
+      tenantId: auth.tenantId,
+      bookingId: result.id,
+      approvedAt: result.approvedAt,
+    });
     const { applyFreeCollectionAfterBookingApprove } =
       await import("../workspace-finance/apply-free-collection-after-booking-approve");
     await applyFreeCollectionAfterBookingApprove({
       tenantId: auth.tenantId,
       bookingId: result.id,
     });
+    return { ...result, ...holdSideEffects };
   }
   return result;
 }
@@ -295,7 +303,16 @@ export async function cancelBooking(
   auth: BookingActorContext,
   bookingId: string
 ): Promise<CancelBookingResponse> {
-  return (await resolveBookingsServiceForTenant(auth.tenantId)).cancelBooking(auth, bookingId);
+  const result = await (
+    await resolveBookingsServiceForTenant(auth.tenantId)
+  ).cancelBooking(auth, bookingId);
+  const { closePaymentHoldOnOperatorCancel } =
+    await import("../finance/apply-payment-hold-after-booking-approve");
+  await closePaymentHoldOnOperatorCancel({
+    tenantId: auth.tenantId,
+    bookingId: result.id,
+  });
+  return result;
 }
 
 export async function bulkApproveBookings(

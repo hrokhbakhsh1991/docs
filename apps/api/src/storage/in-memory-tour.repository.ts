@@ -68,6 +68,8 @@ const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const OPERATOR_SMOKE_SEED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 const OPERATOR_SMOKE_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000211";
 const OPERATOR_SMOKE_PARTICIPANT_TOUR_ID = "00000000-0000-4000-8000-000000000212";
+const DP1_PAYMENT_DEADLINE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
+const DP1_PAYMENT_DEADLINE_TOUR_ID = "00000000-0000-4000-8000-000000000901";
 
 function buildOperatorSmokeDenaliCatalogData(input: {
   readonly title: string;
@@ -260,6 +262,27 @@ export class InMemoryTourRepository implements TourStorageRepository {
       this.indexTour(
         buildOperatorSmokeTransportSharedCarsTour({ tenantId: OPERATOR_SMOKE_TENANT_ID })
       );
+    }
+  }
+
+  /** DP1 — payment deadline tour with offline pricing for obligation + quote freeze tests. */
+  ensureDp1PaymentDeadlineTour(): void {
+    if (!this.hasTour(DP1_PAYMENT_DEADLINE_TENANT_ID, DP1_PAYMENT_DEADLINE_TOUR_ID)) {
+      const published = buildOperatorSmokeDenaliCatalogData({
+        title: "DP1 Payment Deadline Tour",
+        publishStatus: "active",
+      });
+      this.indexTour({
+        id: DP1_PAYMENT_DEADLINE_TOUR_ID,
+        tenantId: DP1_PAYMENT_DEADLINE_TENANT_ID,
+        rowVersion: 1,
+        createdAt: new Date().toISOString(),
+        canonical: {
+          schemaVersion: 1,
+          roots: published.roots,
+          data: published.data,
+        },
+      });
     }
   }
 

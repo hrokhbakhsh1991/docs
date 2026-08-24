@@ -14,6 +14,7 @@ import {
   dp1OpsAuth,
   loadPaymentHoldPort,
   requireCommercialQuoteApprovePort,
+  requirePaymentHoldPort,
   resetDp1MemoryHarness,
 } from "./dp1-test-harness.ts";
 import { approveBooking, createBooking } from "../../src/bookings/create-bookings-service.ts";
@@ -63,7 +64,7 @@ describe("DP1-C booking approve payment hold", { concurrency: false }, () => {
     const { bookingId } = await dp1CreateAndApprovePending();
     await assert.rejects(
       () => approveBooking(dp1OpsAuth(), bookingId),
-      /BOOKING_STATUS_CONFLICT|already approved/i
+      /BOOKING_STATUS_CONFLICT|BOOKING_ALREADY_APPROVED|already approved/i
     );
     const holdPort = await requirePaymentHoldPort();
     const hold = await holdPort.getByRegistrationId(DP1_TENANT_DENALI, bookingId);

@@ -65,6 +65,10 @@ export type BookingRecord = {
   readonly personalCarOccupants?: 1 | 2 | 3 | null;
   /** Ops reject reason when status=rejected; omitted when unset (BC). */
   readonly rejectReason?: string;
+  /** DP1 — payment deadline instant projection (Finance hold SoT). */
+  readonly paymentDueAt?: string | null;
+  /** DP1 — terminal cancel provenance (`payment_deadline` | `operator` | null). */
+  readonly cancelSource?: string | null;
 };
 
 export type BookingOutboxRecord = {

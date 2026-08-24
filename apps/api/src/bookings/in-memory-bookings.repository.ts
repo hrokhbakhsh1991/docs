@@ -68,6 +68,45 @@ async function withMemoryApproveTx<T>(fn: () => Promise<T>): Promise<T> {
   );
   return run;
 }
+
+/** DP1-F — shared serial mutation lock for approve/expiry/capture races. */
+export async function runSerialBookingMutation<T>(fn: () => Promise<T>): Promise<T> {
+  return withMemoryApproveTx(fn);
+}
+
+export function appendBookingOutboxEventIfAbsent(input: {
+  readonly tenantId: string;
+  readonly aggregateId: string;
+  readonly eventType: string;
+  readonly payload: Record<string, unknown>;
+  readonly domainEventId: string;
+}): void {
+  if (outboxStore.some((row) => row.domainEventId === input.domainEventId)) {
+    return;
+  }
+  outboxStore.push({
+    id: randomUUID(),
+    tenantId: input.tenantId,
+    aggregateType: "registration",
+    aggregateId: input.aggregateId,
+    eventType: input.eventType,
+    payload: input.payload,
+    domainEventId: input.domainEventId,
+    createdAt: new Date().toISOString(),
+  });
+}
+
+export function setBookingPaymentDueAtProjection(input: {
+  readonly tenantId: string;
+  readonly bookingId: string;
+  readonly paymentDueAt: string | null;
+}): void {
+  const current = bookingsStore.get(input.bookingId);
+  if (current === undefined || current.tenantId !== input.tenantId) {
+    return;
+  }
+  bookingsStore.set(input.bookingId, { ...current, paymentDueAt: input.paymentDueAt });
+}
 let _devFixtureSeeded = false;
 
 /** Phase 9.8 smoke — mirrors `operator-bookings-fixture.ts` for memory API boot. */
@@ -911,6 +950,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     bookingId: string;
     tenantId: string;
     outboxEvent: string;
+    cancelSource?: string;
   }): Promise<BookingRecord> {
     const current = bookingsStore.get(input.bookingId);
     if (current === undefined || current.tenantId !== input.tenantId) {
@@ -924,6 +964,8 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       ...current,
       status: "cancelled",
       approvedAt: null,
+      paymentDueAt: null,
+      ...(input.cancelSource !== undefined ? { cancelSource: input.cancelSource } : {}),
     };
     bookingsStore.set(updated.id, updated);
     outboxStore.push({
@@ -938,6 +980,7 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
         status: updated.status,
         cancelledAt,
         previousStatus: current.status,
+        ...(input.cancelSource !== undefined ? { source: input.cancelSource } : {}),
       },
       domainEventId: `registration.cancelled:${updated.id}:${cancelledAt}`,
       createdAt: cancelledAt,
