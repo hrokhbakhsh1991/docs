@@ -15,7 +15,7 @@ Denali persist validation routes through `runWorkspaceValidationPipeline` when `
 2. **capabilityValidation** — catalog ref integrity (publish mode)
 3. **workspacePolicyValidation** — flat hooks + `validatePublishReadiness`
 
-Legacy default path unchanged until CW8-06.
+Legacy default path retired in CW8-06 — pipeline is always used.
 
 ## Tests
 

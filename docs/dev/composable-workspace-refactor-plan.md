@@ -657,6 +657,8 @@ Refinement vs requested shape (evidence-based):
 
 **Integration sign-off (CW-WAVE-6C, 2026-08-23):** CW6-03, CW7-03, CW8-03 `[x]` — `starter-outdoor` profile catalog, Denali equipment field fragment + codegen bindings, manifest `workspacePolicy` seam with synthetic `policy-cert` proof workspace. Unified composition: profile + `workspaceEquipment` + `workspacePolicy` on effective manifest (spec). Aggregate gates green at integrated HEAD. Progress **59/91** `[x]`. **Next safe wave:** CW6-04, CW6-05A, CW6-06, CW7-04, CW8-04 — CW6-05B unlocked (CW8-03 closed; still needs CW6-04).
 
+**Integration sign-off (CW-WAVE-7A, 2026-08-24):** CW8-06 `[x]` — legacy flat persist branch retired; pipeline sole production path; Denali/Urban policy supersede env gates removed. Progress **69/91** `[x]`. **Next safe slice:** CW8-07 guardrails, CW9. **Forbidden:** CW9, CW5-10, CW7-06+, CW8-07+ unless explicitly scoped.
+
 **Integration sign-off (CW-WAVE-6E, 2026-08-23):** CW6-05B, CW6-07, CW7-05, CW8-05 `[x]` — profile-policy join + authoring guide (prior commits); `workspaceTransport` design contract; Urban validation mapped to pipeline stages with golden parity under `WORKSPACE_VALIDATION_PIPELINE_URBAN_POLICY=1`. Progress **68/91** `[x]`. **Next safe slice:** CW7-06 transport codegen (forbidden until authorized), CW8-06 legacy hook removal, CW9. **Forbidden:** CW9, CW5-10, CW7-06+, CW8-06+ unless explicitly scoped.
 
 **Integration sign-off (CW-WAVE-6D, 2026-08-23):** CW6-04, CW6-05A, CW6-06, CW7-04, CW8-04 `[x]` — `workspace:create --profile` guest scaffold, `profile-cert` theme/intake/config override proof, profile certification exact capability set, equipment isolation suite (starter/guest-club/urban), Denali pipeline stage parity via CW0-07 goldens. Progress **64/91** `[x]`. **Next safe slice:** CW6-05B (profile + policy join), CW6-07 (profile authoring guide). **Forbidden:** CW9, CW5-10, CW7-05+, CW8-05+.
@@ -755,7 +757,7 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
 
 - **CW8-02** `[x]` **Host runner implementation behind flag; legacy path default**
   - Files: `apps/api/src/tours/run-workspace-validation-pipeline.ts`, `packages/workspace-sdk/src/plugin/workspace-validation-pipeline.ts`.
-  - Flag: `WORKSPACE_VALIDATION_PIPELINE=1` (opt-in); legacy flat path default until CW8-06.
+  - Flag: pipeline default since CW8-06; `WORKSPACE_VALIDATION_PIPELINE=0` documents rollback intent only.
   - Focused validation: pipeline-order unit tests + flag parity specs. Deps: CW8-01. Risk: **MEDIUM**.
   - Evidence: [`docs/dev/cw8-02-validation-pipeline-runner.md`](cw8-02-validation-pipeline-runner.md).
 
@@ -772,7 +774,8 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
   - Evidence: [`docs/dev/cw8-05-urban-pipeline-migration.md`](cw8-05-urban-pipeline-migration.md), `cw8-05-urban-pipeline-parity.spec.ts`.
   - Deps: CW8-04. Risk: **MEDIUM**.
 
-- **CW8-06** `[ ]` **Legacy flat-hook path removal after consumer census zero**
+- **CW8-06** `[x]` **Legacy flat-hook path removal after consumer census zero**
+  - Evidence: [`docs/dev/cw8-06-legacy-validation-census.md`](cw8-06-legacy-validation-census.md), `cw8-06-consumer-census.spec.ts`.
   - Deps: CW8-05. Risk: **MEDIUM**.
 
 - **CW8-07** `[ ]` **Guardrails: pipeline-order certification + no-core-branching lint for policy modules**

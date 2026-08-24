@@ -15,7 +15,7 @@ Urban persist validation routes through `runWorkspaceValidationPipeline` when `W
 2. **capabilityValidation** — no urban capability validators (skip)
 3. **workspacePolicyValidation** — Urban flat hooks via manifest `workspacePolicy` module
 
-Legacy default path unchanged until CW8-06.
+Legacy default path retired in CW8-06 — pipeline is always used.
 
 **Preserved Urban behavior:** confirmed/waitlist registration policy, publish/archive labels, no booking model, no Denali dong/personal-car rules, no itinerary/transportModes on persist.
 
