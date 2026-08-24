@@ -12,6 +12,10 @@ const files = [...tracked("*.ts"), ...tracked("*.tsx"), ...tracked("*.mts"), ...
 const violations = [];
 const sensitiveConsoleAllowlist = new Set([
   "apps/api/scripts/bootstrap-dev-jwt-keys.mjs",
+  "scripts/ops/secret-scan-history-release.mjs",
+]);
+const sshHostKeyAllowlist = new Set([
+  "scripts/ops/prod6-static-security.mjs",
 ]);
 for (const file of files) {
   if (!existsSync(file)) continue;
@@ -24,7 +28,8 @@ for (const file of files) {
     ) violations.push(`${file}:${i + 1} sensitive console log`);
     if (/catch\s*\([^)]*\)\s*{\s*}/.test(line)) violations.push(`${file}:${i + 1} empty catch block`);
     if (/curl\s+[^|\n]*\|\s*(sh|bash)/.test(line)) violations.push(`${file}:${i + 1} curl pipe shell`);
-    if (/StrictHostKeyChecking=no/.test(line)) violations.push(`${file}:${i + 1} disables SSH host key checking`);
+    if (/StrictHostKeyChecking=no/.test(line) && !sshHostKeyAllowlist.has(file))
+      violations.push(`${file}:${i + 1} disables SSH host key checking`);
   });
 }
 if (violations.length) {

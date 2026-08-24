@@ -1,8 +1,10 @@
 # Platform Maturity Roadmap
 
-**Program:** REMEDIATION #1 — deferred from AUDIT #6 (world-class red-team)  
-**Date:** 2026-08-24  
-**Scope:** Items classified **P2_BEFORE_5_CUSTOMERS**, **ENTERPRISE_BEFORE_CONTRACT**, or **LONG_TERM_SCALE**. Not executed in REMEDIATION #1.
+**Program:** REMEDIATION #1 + LOOP #4 final enterprise audit  
+**Date:** 2026-08-24 (LOOP #4 refresh)  
+**Scope:** Items classified **BEFORE_5_CUSTOMERS**, **BEFORE_ENTERPRISE_CONTRACT**, or **LONG_TERM_SCALE**. Not executed unless marked LOOP #4 remediation.
+
+**LOOP #4 verdict:** `GO_WITH_EXTERNAL_BLOCKERS — ENTERPRISE FOUNDATION CERTIFIED`. Gaps below are **safely deferred**; none block next-customer or Denali onboarding.
 
 ---
 
@@ -19,6 +21,9 @@
 | MAT-007 | Urban workspace-definition checksum parity gate | AUDIT #3 BEH-02 | Denali parity certified; Urban divergence intentional but un-gated |
 | MAT-008 | Guest-smoke HTTP stubs → full behavioral coverage | AUDIT #3 BEH-01 | Cert fixtures use smoke-tier paths |
 | MAT-009 | `genericHostEditsForOnboarding` manual list → 0 via env-only dev-host map | CW metrics | Frozen at 5; no new edits since CW0 |
+| MAT-023 | LOOP #4: Registry output count / LOC ratchet per manifest | LOOP #4 Phase A | 91 keys at 17 workspaces; guard budget before 30+ |
+| MAT-024 | LOOP #4: Lazy policy validator imports (mirror plugin pattern) | LOOP #4 Phase A/F | Build-time containment today; runtime deploy risk at scale |
+| MAT-025 | LOOP #4: Member wallet DL-15 closure before `workspaceWallet` v2 | LOOP #4 Phase B/D | Operator/member finance boundary unresolved |
 
 ---
 
@@ -55,6 +60,20 @@
 MAT-001 (semver) → MAT-019 (negotiation) → MAT-020 (live upgrade)
 MAT-010 (stamps) → enterprise contract readiness
 REM-007 (manifest fingerprint) → MAT-010 (per-tenant freeze)
+MAT-002 (capability validators) → safe capability v2 wire changes
+MAT-025 (DL-15) → member Wallet v2
+MAT-014 (deprecation) → transport/equipment alias removal
 ```
+
+## LOOP #4 — evolution readiness summary
+
+| Target | Ready? | Blocker |
+|--------|--------|---------|
+| Additive profile/capability (starter-outdoor v2) | **READY_NOW** | Changelog discipline |
+| Transport/booking validators | **EXTENDABLE_LATER** | MAT-002 |
+| Breaking profile defaults | **EXTENDABLE_LATER** | MAT-001 + profileVersionPin |
+| Member Wallet | **EXTENDABLE_LATER** | MAT-025 (DL-15) |
+| Ticketing / Weather / Driver settlement | Greenfield CW7 capability | Not host rewrite |
+| Refund | **READY_NOW** | Landed under finance |
 
 *Architect, documentation status: Updated. Link to docs: `docs/dev/platform-maturity-roadmap.md`.*

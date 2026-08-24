@@ -14,7 +14,7 @@ test("keeps registered workspaces without a declaration on the neutral contract"
 
 test("fails closed for an unknown workspace", () => {
   assert.throws(
-    () => resolveWorkspaceCurrentSchemaVersion("alpine"),
-    /WORKSPACE_SCHEMA_VERSION_UNAVAILABLE:alpine/
+    () => resolveWorkspaceCurrentSchemaVersion("zz-unknown-workspace"),
+    /WORKSPACE_SCHEMA_VERSION_UNAVAILABLE:zz-unknown-workspace/
   );
 });

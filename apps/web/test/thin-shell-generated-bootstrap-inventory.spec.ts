@@ -11,14 +11,22 @@ import { fileURLToPath } from "node:url";
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const BOOTSTRAP = join(WEB_ROOT, "src/bootstrap");
 
-/** Exact remaining generated bootstrap set after product binder retirement (Phase 4bj). */
+/** Exact remaining generated bootstrap set after product binder retirement (Phase 4bj + CW7 capability codegen). */
 const EXPECTED_GENERATED = Object.freeze([
   "wizard-i18n-translator-hooks.generated.ts",
   "wizard-media-backend-route-bindings.generated.ts",
   "wizard-media-route-bindings.generated.ts",
+  "workspace-difficulty-fitness-field-module-bindings.generated.ts",
+  "workspace-equipment-field-module-bindings.generated.ts",
+  "workspace-itinerary-field-module-bindings.generated.ts",
+  "workspace-itinerary-wizard-composite-bindings.generated.ts",
   "workspace-owner-settings-panel-loaders.generated.ts",
   "workspace-plugin-loaders.generated.ts",
+  "workspace-pricing-field-module-bindings.generated.ts",
+  "workspace-pricing-wizard-composite-bindings.generated.ts",
   "workspace-theme-stylesheets.generated.ts",
+  "workspace-transport-field-module-bindings.generated.ts",
+  "workspace-transport-wizard-composite-bindings.generated.ts",
   "workspace-wizard-message-loads.generated.ts",
 ]);
 

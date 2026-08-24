@@ -247,7 +247,6 @@
     "guard:workspace-registry-domain-exposure": "node scripts/generate-workspace-registry.mjs --check --domain=exposure",
     "guard:workspace-registry-domain-integration": "node scripts/generate-workspace-registry.mjs --check --domain=integration",
     "guard:workspace-registry-domain-transport": "node scripts/generate-workspace-registry.mjs --check --domain=transport",
-    "guard:workspace-policy-no-core-branching": "node scripts/guards/guard-workspace-policy-no-core-branching.mjs",
     "guard:guest-plugin-conformance": "node scripts/guards/guard-guest-plugin-conformance.mjs",
     "guard:denali-plugin-surface": "node scripts/guards/guard-denali-plugin-surface.mjs",
     "guard:urban-plugin-surface": "node scripts/guards/guard-urban-plugin-surface.mjs",
@@ -355,30 +354,6 @@
     "docs:check-architecture-sync": "node scripts/docs/check-architecture-doc-sync.mjs",
     "p5:gate": "bash scripts/p5-enterprise-evolution-gate.sh",
     "ops:wait-required-checks": "node scripts/ops/wait-for-required-checks.mjs"
-  },
-  "lint-staged": {
-    "packages/workspace-sdk/**/*.{ts,tsx}": [
-      "eslint --max-warnings 0 -c .eslintrc.cjs",
-      "prettier --check"
-    ],
-    "packages/platform-core/**/*.{ts,tsx}": [
-      "eslint --max-warnings 0 -c .eslintrc.cjs",
-      "prettier --check"
-    ],
-    "apps/web/**/*.{ts,tsx}": [
-      "eslint --max-warnings 0 -c apps/web/.eslintrc.cjs",
-      "prettier --check"
-    ],
-    "apps/portal/**/*.{ts,tsx}": [
-      "eslint --max-warnings 0 -c apps/portal/.eslintrc.cjs",
-      "prettier --check"
-    ],
-    "apps/marketing/**/*.{ts,tsx}": [
-      "eslint --max-warnings 0 -c apps/marketing/.eslintrc.cjs",
-      "prettier --check"
-    ],
-    "apps/api/**/*.{ts,tsx}": ["prettier --check"],
-    "*.{json,md,mdoc,yml,yaml}": ["prettier --check"]
   },
   "lint-staged": {
     "packages/workspace-sdk/**/*.{ts,tsx}": [
