@@ -129,7 +129,7 @@ describe("runWorkspaceValidationPipeline", () => {
     assert.equal(policyCalled, false);
   });
 
-  it("noop capability bindings do not fail validation", () => {
+  it("capability bindings no-op for workspaces without enabled surfaces", () => {
     assert.ok(WORKSPACE_CAPABILITY_VALIDATORS.length > 0);
     const plugin = starterPlugin();
     const violation = runCapabilityValidationStage({

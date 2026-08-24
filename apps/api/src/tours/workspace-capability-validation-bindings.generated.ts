@@ -5,6 +5,13 @@
  */
 
 import type { WorkspaceValidationPipelineStage } from "@app-tour/workspace-sdk";
+import { validateWorkspaceBookingCapability } from "./capability-validators/workspace-booking-capability-validator.ts";
+import { validateWorkspaceDifficultyFitnessCapability } from "./capability-validators/workspace-difficulty-fitness-capability-validator.ts";
+import { validateWorkspaceEquipmentCapability } from "./capability-validators/workspace-equipment-capability-validator.ts";
+import { validateWorkspaceFinanceCapability } from "./capability-validators/workspace-finance-capability-validator.ts";
+import { validateWorkspaceItineraryCapability } from "./capability-validators/workspace-itinerary-capability-validator.ts";
+import { validateWorkspacePricingCapability } from "./capability-validators/workspace-pricing-capability-validator.ts";
+import { validateWorkspaceTransportCapability } from "./capability-validators/workspace-transport-capability-validator.ts";
 
 export type CapabilityValidatorBinding = {
   readonly capabilityId: string;
@@ -14,35 +21,35 @@ export type CapabilityValidatorBinding = {
 /**
  * Manifest-ordered capability validator registry.
  * Rows are codegen-stable; runner skips empty list (no error).
- * Individual validators wire in CW8-04 (booking publish) / CW7-03 (equipment ids).
+ * Validator bodies: apps/api/src/tours/capability-validators/* (MAT-002).
  */
 export const WORKSPACE_CAPABILITY_VALIDATORS: readonly CapabilityValidatorBinding[] = [
   {
     capabilityId: "workspaceBooking",
-    run: (_ctx) => null,
+    run: validateWorkspaceBookingCapability,
   },
   {
     capabilityId: "workspaceDifficultyFitness",
-    run: (_ctx) => null,
+    run: validateWorkspaceDifficultyFitnessCapability,
   },
   {
     capabilityId: "workspaceEquipment",
-    run: (_ctx) => null,
+    run: validateWorkspaceEquipmentCapability,
   },
   {
     capabilityId: "workspaceFinance",
-    run: (_ctx) => null,
+    run: validateWorkspaceFinanceCapability,
   },
   {
     capabilityId: "workspaceItinerary",
-    run: (_ctx) => null,
+    run: validateWorkspaceItineraryCapability,
   },
   {
     capabilityId: "workspacePricing",
-    run: (_ctx) => null,
+    run: validateWorkspacePricingCapability,
   },
   {
     capabilityId: "workspaceTransport",
-    run: (_ctx) => null,
+    run: validateWorkspaceTransportCapability,
   },
 ];

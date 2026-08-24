@@ -7,6 +7,38 @@ import { resolveWorkspaceItineraryManifest } from "./itinerary.mjs";
 import { resolveWorkspacePricingManifest } from "./pricing.mjs";
 import { resolveWorkspaceTransportManifest } from "./transport.mjs";
 
+/** Hand-written capability validators — MAT-002 (enterprise maturity M1). */
+const CAPABILITY_VALIDATOR_SOURCES = {
+  workspaceBooking: {
+    importPath: "./capability-validators/workspace-booking-capability-validator.ts",
+    exportName: "validateWorkspaceBookingCapability",
+  },
+  workspaceDifficultyFitness: {
+    importPath: "./capability-validators/workspace-difficulty-fitness-capability-validator.ts",
+    exportName: "validateWorkspaceDifficultyFitnessCapability",
+  },
+  workspaceEquipment: {
+    importPath: "./capability-validators/workspace-equipment-capability-validator.ts",
+    exportName: "validateWorkspaceEquipmentCapability",
+  },
+  workspaceFinance: {
+    importPath: "./capability-validators/workspace-finance-capability-validator.ts",
+    exportName: "validateWorkspaceFinanceCapability",
+  },
+  workspaceItinerary: {
+    importPath: "./capability-validators/workspace-itinerary-capability-validator.ts",
+    exportName: "validateWorkspaceItineraryCapability",
+  },
+  workspacePricing: {
+    importPath: "./capability-validators/workspace-pricing-capability-validator.ts",
+    exportName: "validateWorkspacePricingCapability",
+  },
+  workspaceTransport: {
+    importPath: "./capability-validators/workspace-transport-capability-validator.ts",
+    exportName: "validateWorkspaceTransportCapability",
+  },
+};
+
 /**
  * Stable capability ordering for validation pipeline dispatch (CW8-02).
  *
@@ -80,15 +112,27 @@ export const WORKSPACE_CAPABILITY_VALIDATORS: readonly CapabilityValidatorBindin
 `;
   }
 
-  const bindingLines = orderedIds.map(
-    (id) => `  {
+  const importLines = orderedIds.map((id) => {
+    const source = CAPABILITY_VALIDATOR_SOURCES[id];
+    if (source == null) {
+      throw new Error(
+        `validation-pipeline codegen: missing CAPABILITY_VALIDATOR_SOURCES for ${id}`
+      );
+    }
+    return `import { ${source.exportName} } from "${source.importPath}";`;
+  });
+
+  const bindingLines = orderedIds.map((id) => {
+    const source = CAPABILITY_VALIDATOR_SOURCES[id];
+    return `  {
     capabilityId: ${JSON.stringify(id)},
-    run: (_ctx) => null,
-  },`
-  );
+    run: ${source.exportName},
+  },`;
+  });
 
   return `${BANNER}
 import type { WorkspaceValidationPipelineStage } from "@app-tour/workspace-sdk";
+${importLines.join("\n")}
 
 export type CapabilityValidatorBinding = {
   readonly capabilityId: string;
@@ -98,7 +142,7 @@ export type CapabilityValidatorBinding = {
 /**
  * Manifest-ordered capability validator registry.
  * Rows are codegen-stable; runner skips empty list (no error).
- * Individual validators wire in CW8-04 (booking publish) / CW7-03 (equipment ids).
+ * Validator bodies: apps/api/src/tours/capability-validators/* (MAT-002).
  */
 export const WORKSPACE_CAPABILITY_VALIDATORS: readonly CapabilityValidatorBinding[] = [
 ${bindingLines.join("\n")}
