@@ -8,6 +8,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
 pnpm --dir packages/catalog-registration-auth run build
+pnpm --dir packages/tour-core run build
 pnpm --dir packages/workspace-sdk run build
 pnpm --dir packages/workspace-plugin-host run build
 pnpm --dir packages/platform-core run build
