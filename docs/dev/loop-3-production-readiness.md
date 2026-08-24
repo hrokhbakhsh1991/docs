@@ -62,6 +62,10 @@
 | LOOP3-004 | P1 | Refresh `platform_core_tree_digest` (103→105 files) in phase-7/8 baselines |
 | LOOP3-005 | P1 | `schema-version-policy` test — alpine now registered; use `zz-unknown-workspace` |
 | LOOP3-006 | P1 | BK-B1.2 — route repo lifecycle imports via `booking-status-transitions.ts` facade |
+| LOOP3-007 | P1 | API `package-boundary` — add CW workspace deps + `tour-core` |
+| LOOP3-008 | P1 | `canonical-integrity` — allowlist tour-list projection dispatch codegen |
+| LOOP3-009 | P1 | `catalog-ref-integrity` VAL-03e — assert via validation pipeline module |
+| LOOP3-010 | P1 | Web thin-shell bootstrap inventory — CW7 capability codegen files |
 
 ---
 
