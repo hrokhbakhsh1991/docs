@@ -431,15 +431,15 @@ Read-model / projection. **Do not merge Bookings and Finance tables.** SoT remai
 
 | ID | Objective | Invariant | Decision deps | Modules | DB | Automated | Browser | Rollback | Risk | Status |
 |----|-----------|-----------|---------------|---------|-----|-----------|---------|----------|------|--------|
-| DP2-01 | Semantic map: approved / paid / expected-to-attend / waitlist / driver / passengers | No collapsed enum unless 03 says so | 03 | Docs + types | None or view | Contract | — | — | MEDIUM | `[!]` |
-| DP2-02 | Tour-scoped roster projection API | Tenant isolation; no PII leak to catalog | 03 | `apps/api` bookings+finance compose | Optional read table | Isolation tests | — | Drop view | MEDIUM | `[!]` |
-| DP2-03 | Single operator surface (tour workspace) | Answers 8 questions without spreadsheet | 03 | `apps/web` tour workspace | — | Component tests | Desktop 1440 | Hide tab | MEDIUM | `[!]` |
-| DP2-04 | Filter: approved | Matches Bookings | 03 | Projection | — | Golden | Browser | — | LOW | `[!]` |
-| DP2-05 | Filter: paid / owes | Invoice remaining SoT (PAY-FIN-02) | 03 | Finance compose | — | Golden | Browser | — | MEDIUM | `[!]` |
-| DP2-06 | Filter: waitlist | Status waitlisted | — | Bookings | — | H4b regression | Browser | — | LOW | `[ ]` |
-| DP2-07 | Expected to attend | Per 03 | 03 | Projection | — | Golden | Browser | — | HIGH | `[!]` |
-| DP2-08 | Driver + passenger grouping | Intake `personal_car` + occupants; **assignment still absent** | 06 | Transport scalars | — | DEN-TRANS regression | Browser | — | MEDIUM | `[!]` |
-| DP2-09 | Deadline column if DP-1 live | Same dueAt | DP-1 | Compose | — | S17 | Browser | — | MEDIUM | `[!]` |
+| DP2-01 | Semantic map: approved / paid / expected-to-attend / waitlist / driver / passengers | No collapsed enum unless 03 says so | 03 | Docs + types | None or view | Contract | — | — | MEDIUM | `[v]` |
+| DP2-02 | Tour-scoped roster projection API | Tenant isolation; no PII leak to catalog | 03 | `apps/api` bookings+finance compose | Optional read table | Isolation tests | — | Drop view | MEDIUM | `[v]` |
+| DP2-03 | Single operator surface (tour workspace) | Answers 8 questions without spreadsheet | 03 | `apps/web` tour workspace | — | Component tests | Desktop 1440 | Hide tab | MEDIUM | `[v]` |
+| DP2-04 | Filter: approved | Matches Bookings | 03 | Projection | — | Golden | Browser | — | LOW | `[v]` |
+| DP2-05 | Filter: paid / owes | Invoice remaining SoT (PAY-FIN-02) | 03 | Finance compose | — | Golden | Browser | — | MEDIUM | `[v]` |
+| DP2-06 | Filter: waitlist | Status waitlisted | — | Bookings | — | H4b regression | Browser | — | LOW | `[v]` |
+| DP2-07 | Expected to attend | Per 03 | 03 | Projection | — | Golden | Browser | — | HIGH | `[v]` |
+| DP2-08 | Driver + passenger grouping | Intake `personal_car` + occupants; **assignment still absent** | 06 | Transport scalars | — | DEN-TRANS regression | Browser | — | MEDIUM | `[v]` |
+| DP2-09 | Deadline column if DP-1 live | Same dueAt | DP-1 | Compose | — | S17 | Browser | — | MEDIUM | `[v]` |
 | DP2-10 | Export (CSV) optional | Not required for MINIMUM PILOT | — | Web | — | — | — | — | LOW | `[ ]` FUTURE |
 | DP2-11 | Browser cert | Operator 1440; tablet 768 optional | 03 | — | — | — | Required | — | MEDIUM | `[!]` |
 | DP2-12 | Phase closure | `[x]` only with browser | — | — | — | — | — | — | MEDIUM | `[!]` |
