@@ -129,8 +129,8 @@ describe("runWorkspaceValidationPipeline", () => {
     assert.equal(policyCalled, false);
   });
 
-  it("treats empty capability bindings as skip (no error)", () => {
-    assert.equal(WORKSPACE_CAPABILITY_VALIDATORS.length, 0);
+  it("noop capability bindings do not fail validation", () => {
+    assert.ok(WORKSPACE_CAPABILITY_VALIDATORS.length > 0);
     const plugin = starterPlugin();
     const violation = runCapabilityValidationStage({
       plugin,
