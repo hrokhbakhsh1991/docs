@@ -384,9 +384,37 @@
     },
     "transport": {
       "title": "حمل‌ونقل",
-      "description": "فهرست مهمانان تأییدشده — تخصیص وسیله در فاز ۹.۳ فقط خواندنی است.",
-      "empty": "هنوز مهمان تأییدشده‌ای در فهرست حمل‌ونقل نیست.",
-      "unknownIntake": "انتخاب نامشخص"
+      "description": "فهرست عملیاتی یکپارچه — ثبت‌نام، پرداخت، مهلت و انتخاب حمل‌ونقل.",
+      "empty": "مهمانی با این فیلتر یافت نشد.",
+      "unknownIntake": "انتخاب نامشخص",
+      "finalParticipant": "نهایی",
+      "driverOffer": "راننده",
+      "filters": {
+        "operational": "عملیاتی",
+        "final": "نهایی",
+        "unpaid": "پرداخت‌نشده",
+        "paid": "پرداخت‌شده",
+        "expiring": "در حال انقضا",
+        "waitlist": "لیست انتظار"
+      },
+      "financial": {
+        "UNPAID": "پرداخت‌نشده",
+        "PARTIALLY_PAID": "جزئی",
+        "PAID": "پرداخت‌شده",
+        "WAIVED": "معاف",
+        "NOT_APPLICABLE": "—"
+      },
+      "refund": {
+        "none": "",
+        "in_flight": "استرداد در جریان",
+        "completed": "استرداد شده"
+      },
+      "columns": {
+        "financial": "پرداخت",
+        "amountDue": "مبلغ مانده",
+        "deadline": "مهلت",
+        "final": "شرکت‌کننده نهایی"
+      }
     },
     "errors": {
       "TOUR_WORKSPACE_FETCH_FAILED": "بارگذاری ورک‌اسپیس ناموفق بود.",

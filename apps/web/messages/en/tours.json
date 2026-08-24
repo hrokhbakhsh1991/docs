@@ -384,9 +384,37 @@
     },
     "transport": {
       "title": "Transport",
-      "description": "Approved guest roster for this tour — vehicle assignment is read-only in Phase 9.3.",
-      "empty": "No approved guests on the transport roster yet.",
-      "unknownIntake": "Unknown choice"
+      "description": "Unified operational roster — registration, payment, deadline, and transport intake for approved guests.",
+      "empty": "No guests match this roster filter yet.",
+      "unknownIntake": "Unknown choice",
+      "finalParticipant": "Final",
+      "driverOffer": "Driver",
+      "filters": {
+        "operational": "Operational",
+        "final": "Final",
+        "unpaid": "Unpaid",
+        "paid": "Paid",
+        "expiring": "Expiring",
+        "waitlist": "Waitlist"
+      },
+      "financial": {
+        "UNPAID": "Unpaid",
+        "PARTIALLY_PAID": "Partial",
+        "PAID": "Paid",
+        "WAIVED": "Waived",
+        "NOT_APPLICABLE": "—"
+      },
+      "refund": {
+        "none": "",
+        "in_flight": "Refund pending",
+        "completed": "Refunded"
+      },
+      "columns": {
+        "financial": "Payment",
+        "amountDue": "Amount due",
+        "deadline": "Deadline",
+        "final": "Final participant"
+      }
     },
     "errors": {
       "TOUR_WORKSPACE_FETCH_FAILED": "Failed to load workspace.",

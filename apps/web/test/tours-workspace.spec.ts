@@ -164,13 +164,14 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
     assert.equal(sorted[1]?.id, "b-2");
   });
 
-  it("WEB-9.3-W06 transport query scopes approved bookings + canonical modes (CP-9.3-W06)", () => {
+  it("WEB-9.3-W06 transport query scopes operational roster + canonical modes (CP-9.3-W06 / DP-2)", () => {
     const query = buildTourTransportBookingsQuery(TOUR_ID);
     const params = new URLSearchParams(query);
-    assert.equal(params.get("status"), "approved");
-    assert.equal(params.get("tourId"), TOUR_ID);
+    assert.equal(params.get("filter"), "operational");
     assert.equal(params.get("view"), "ops");
-    assert.equal(buildTourTransportCommandCenterHref(TOUR_ID), `/bookings?${query}`);
+    const commandCenter = buildTourTransportCommandCenterHref(TOUR_ID);
+    assert.match(commandCenter, /\/bookings\?/);
+    assert.ok(commandCenter.includes(`tourId=${TOUR_ID}`));
     assert.equal(
       TOUR_WORKSPACE_TRANSPORT_TEST_IDS.table,
       "operator-tour-workspace-transport-table"
@@ -198,34 +199,52 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
   it("WEB-9.3-W07 transport roster sorts by guest then departure", () => {
     const sorted = sortTransportRosterRows([
       {
-        id: "b-2",
+        registrationId: "b-2",
         tourId: TOUR_ID,
-        tourTitle: "Trek",
         guestLabel: "Zara",
         partySize: 1,
-        status: "approved",
-        paymentStatus: "unpaid",
+        registrationStatus: "approved",
+        financialDisplayState: "UNPAID",
+        remainingMinor: null,
+        paidMinor: null,
+        currency: null,
+        paymentDueAt: null,
+        holdStatus: null,
         transportKind: null,
         personalCarOccupants: null,
+        isDriverOffer: false,
+        passengerAssignmentStatus: "not_implemented",
+        refundDisplayState: "none",
+        isFinalParticipant: false,
+        isOperationalParticipant: true,
         departureAt: "2026-07-01T00:00:00.000Z",
         submittedAt: "2026-06-02T00:00:00.000Z",
       },
       {
-        id: "b-1",
+        registrationId: "b-1",
         tourId: TOUR_ID,
-        tourTitle: "Trek",
         guestLabel: "Ali",
         partySize: 2,
-        status: "approved",
-        paymentStatus: "paid",
+        registrationStatus: "approved",
+        financialDisplayState: "PAID",
+        remainingMinor: "0",
+        paidMinor: "1000",
+        currency: "IRR",
+        paymentDueAt: null,
+        holdStatus: null,
         transportKind: null,
         personalCarOccupants: null,
+        isDriverOffer: false,
+        passengerAssignmentStatus: "not_implemented",
+        refundDisplayState: "none",
+        isFinalParticipant: true,
+        isOperationalParticipant: true,
         departureAt: "2026-07-02T00:00:00.000Z",
         submittedAt: "2026-06-01T00:00:00.000Z",
       },
     ]);
-    assert.equal(sorted[0]?.id, "b-1");
-    assert.equal(sorted[1]?.id, "b-2");
+    assert.equal(sorted[0]?.registrationId, "b-1");
+    assert.equal(sorted[1]?.registrationId, "b-2");
   });
 
   it("WEB-9.3-R04 registrations query scopes bookings to tour (CP-9.3-R04 / TW-C-01)", () => {
@@ -742,41 +761,68 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
   it("H5 hardening — transport intake kind counts from list scalars", () => {
     const counts = countTransportRosterByIntakeKind([
       {
-        id: "b-1",
+        registrationId: "b-1",
         tourId: TOUR_ID,
-        tourTitle: "Trek",
         guestLabel: "A",
         partySize: 1,
-        status: "approved",
-        paymentStatus: "paid",
+        registrationStatus: "approved",
+        financialDisplayState: "PAID",
+        remainingMinor: "0",
+        paidMinor: "0",
+        currency: "IRR",
+        paymentDueAt: null,
+        holdStatus: null,
         transportKind: "personal_car",
         personalCarOccupants: 2,
+        isDriverOffer: true,
+        passengerAssignmentStatus: "not_implemented",
+        refundDisplayState: "none",
+        isFinalParticipant: true,
+        isOperationalParticipant: true,
         departureAt: "2026-07-01T00:00:00.000Z",
         submittedAt: "2026-06-01T00:00:00.000Z",
       },
       {
-        id: "b-2",
+        registrationId: "b-2",
         tourId: TOUR_ID,
-        tourTitle: "Trek",
         guestLabel: "B",
         partySize: 1,
-        status: "approved",
-        paymentStatus: "unpaid",
+        registrationStatus: "approved",
+        financialDisplayState: "UNPAID",
+        remainingMinor: "1000",
+        paidMinor: "0",
+        currency: "IRR",
+        paymentDueAt: null,
+        holdStatus: null,
         transportKind: null,
         personalCarOccupants: null,
+        isDriverOffer: false,
+        passengerAssignmentStatus: "not_implemented",
+        refundDisplayState: "none",
+        isFinalParticipant: false,
+        isOperationalParticipant: true,
         departureAt: "2026-07-01T00:00:00.000Z",
         submittedAt: "2026-06-01T00:00:00.000Z",
       },
       {
-        id: "b-3",
+        registrationId: "b-3",
         tourId: TOUR_ID,
-        tourTitle: "Trek",
         guestLabel: "C",
         partySize: 1,
-        status: "approved",
-        paymentStatus: "paid",
+        registrationStatus: "approved",
+        financialDisplayState: "PAID",
+        remainingMinor: "0",
+        paidMinor: "1000",
+        currency: "IRR",
+        paymentDueAt: null,
+        holdStatus: null,
         transportKind: "personal_car",
         personalCarOccupants: 1,
+        isDriverOffer: true,
+        passengerAssignmentStatus: "not_implemented",
+        refundDisplayState: "none",
+        isFinalParticipant: true,
+        isOperationalParticipant: true,
         departureAt: "2026-07-01T00:00:00.000Z",
         submittedAt: "2026-06-01T00:00:00.000Z",
       },
@@ -798,7 +844,7 @@ describe("tours-workspace.spec.ts — Phase 9.3 Web", () => {
       "utf8"
     );
     assert.doesNotMatch(client, /hydrateTransportRosterIntake/);
-    assert.match(client, /H5-T3/);
+    assert.match(client, /buildTourOperationalRosterHref/);
     const logic = readFileSync(
       join(process.cwd(), "src/features/tours/tour-workspace-transport-logic.ts"),
       "utf8"
