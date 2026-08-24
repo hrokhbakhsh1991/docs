@@ -39,6 +39,7 @@ import {
   BookingNotFoundError,
 } from "./bookings.errors";
 import { resolveUtcApprovedWithinDaysWindow } from "./booking-list-query";
+import { recordRegistrationSloEvent } from "../observability/workspace-slo-telemetry.ts";
 
 const BULK_APPROVE_MAX_BATCH = 25;
 
@@ -505,50 +506,67 @@ export class BookingsService {
     body: CreateBookingRequest,
     submittedByUserId: string
   ): Promise<CreateBookingResponse> {
-    this.assertCreatePolicyCapabilityLevels();
-    const tourCapacityMax = await this.resolveEffectiveTourCapacityMax(
-      auth.tenantId,
-      body.tourId,
-      body.registrationIntake
-    );
-    const registrationIntake = this.withServerTourCapacityMax(
-      body.registrationIntake,
-      tourCapacityMax
-    );
-    const securedBody: CreateBookingRequest = {
-      ...body,
-      registrationIntake,
-    };
-    const baseCtx = this.buildCapacityPolicyContext(
-      auth.tenantId,
-      {
-        tourId: securedBody.tourId,
-        tourTitle: securedBody.tourTitle,
-        guestLabel: securedBody.guestLabel,
-        guestEmail: securedBody.guestEmail ?? null,
-        guestPhone: securedBody.guestPhone ?? null,
-        partySize: securedBody.partySize,
-        departureAt: securedBody.departureAt,
+    const started = performance.now();
+    try {
+      this.assertCreatePolicyCapabilityLevels();
+      const tourCapacityMax = await this.resolveEffectiveTourCapacityMax(
+        auth.tenantId,
+        body.tourId,
+        body.registrationIntake
+      );
+      const registrationIntake = this.withServerTourCapacityMax(
+        body.registrationIntake,
+        tourCapacityMax
+      );
+      const securedBody: CreateBookingRequest = {
+        ...body,
         registrationIntake,
-      },
-      0,
-      tourCapacityMax
-    );
-    // Shape validation does not need the tour lock; capacity re-checks under lock in createBooking.
-    this.validationPolicy.assertCreateValid(baseCtx);
+      };
+      const baseCtx = this.buildCapacityPolicyContext(
+        auth.tenantId,
+        {
+          tourId: securedBody.tourId,
+          tourTitle: securedBody.tourTitle,
+          guestLabel: securedBody.guestLabel,
+          guestEmail: securedBody.guestEmail ?? null,
+          guestPhone: securedBody.guestPhone ?? null,
+          partySize: securedBody.partySize,
+          departureAt: securedBody.departureAt,
+          registrationIntake,
+        },
+        0,
+        tourCapacityMax
+      );
+      // Shape validation does not need the tour lock; capacity re-checks under lock in createBooking.
+      this.validationPolicy.assertCreateValid(baseCtx);
 
-    const created = await this.repository.createBooking({
-      tenantId: auth.tenantId,
-      submittedByUserId,
-      body: securedBody,
-      assertCapacityInTx: (ctx) => {
-        this.capacityPolicy.assertCreateCapacity({
-          ...baseCtx,
-          occupiedApprovedPartySize: ctx.occupiedApprovedPartySize,
-        });
-      },
-    });
-    return { id: created.id, status: created.status };
+      const created = await this.repository.createBooking({
+        tenantId: auth.tenantId,
+        submittedByUserId,
+        body: securedBody,
+        assertCapacityInTx: (ctx) => {
+          this.capacityPolicy.assertCreateCapacity({
+            ...baseCtx,
+            occupiedApprovedPartySize: ctx.occupiedApprovedPartySize,
+          });
+        },
+      });
+      recordRegistrationSloEvent({
+        workspaceType: this.workspaceType,
+        tenantId: auth.tenantId,
+        outcome: "success",
+        durationMs: performance.now() - started,
+      });
+      return { id: created.id, status: created.status };
+    } catch (error) {
+      recordRegistrationSloEvent({
+        workspaceType: this.workspaceType,
+        tenantId: auth.tenantId,
+        outcome: "error",
+        durationMs: performance.now() - started,
+      });
+      throw error;
+    }
   }
 
   /** One capacity policy context builder for create + approve (same business fields). */

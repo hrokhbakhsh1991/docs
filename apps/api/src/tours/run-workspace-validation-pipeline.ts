@@ -13,6 +13,7 @@ import { runValidationModePublishGate } from "./resolve-validation-mode.ts";
 import { runWorkspaceValidationHooks } from "./run-workspace-validation-hooks.ts";
 import { WORKSPACE_CAPABILITY_VALIDATORS } from "./workspace-capability-validation-bindings.generated.ts";
 import { resolveWorkspacePolicyValidator } from "./workspace-policy-validation-bindings.generated.ts";
+import { recordValidationPipelineSloEvent } from "../observability/workspace-slo-telemetry.ts";
 
 export type RunWorkspaceValidationPipelineInput = WorkspaceValidationPipelineContext & {
   readonly engine: PlatformWizardEngine;
@@ -124,12 +125,30 @@ const PIPELINE_STAGES: readonly ((
 export function runWorkspaceValidationPipeline(
   input: RunWorkspaceValidationPipelineInput
 ): WorkspaceValidationPipelineViolation | null {
+  const started = performance.now();
   for (const stage of PIPELINE_STAGES) {
     const violation = stage(input);
     if (violation != null) {
+      recordValidationPipelineSloEvent({
+        workspaceType: input.workspaceType,
+        tenantId: input.tenantId,
+        stage: violation.stage,
+        outcome: "error",
+        durationMs: performance.now() - started,
+        ...(violation.stage === "capability"
+          ? { capabilityId: WORKSPACE_CAPABILITY_VALIDATORS[0]?.capabilityId }
+          : {}),
+      });
       return violation;
     }
   }
+  recordValidationPipelineSloEvent({
+    workspaceType: input.workspaceType,
+    tenantId: input.tenantId,
+    stage: "workspacePolicy",
+    outcome: "success",
+    durationMs: performance.now() - started,
+  });
   return null;
 }
 

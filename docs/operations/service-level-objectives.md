@@ -37,33 +37,35 @@ External SLA promises require production evidence from `docs/dev/production-clos
 | **Review** | Weekly ops review |
 | **Gaps** | **IMPLEMENTED_NOT_MEASURABLE** in dev/memory-driver env — needs staging log sink (MAT-012) |
 
+**MAT-012 measurement source:** `workspace_slo_event_total{area="api",...}` + existing `http.request` logs.
+
 ### 2. Critical registration journey
 
 | Field | Value |
 |-------|-------|
 | **SLI** | Successful `POST` registration/booking create (2xx, no `BOOKING_*` / `REGISTRATION_*` 5xx) |
-| **Measurement** | `http.request` filtered by route + `workspaceType` |
+| **Measurement** | `workspace_slo_event_total{area="registration",outcome="success|error",workspace_type}` emitted from `bookings.service.ts` create pipeline |
 | **SLO** | **99.0%** success over 7d (internal) |
 | **Error budget** | **1.0%** failed creates |
-| **Alert threshold** | **> 2%** failure rate in 15m for single `workspaceType` → P1 page |
+| **Alert threshold** | **> 2%** failure rate in 15m for single `workspace_type` → P1 page |
 | **Ticket threshold** | **> 1%** in 1h → P2 ticket |
 | **Owner** | Booking + portal squad |
 | **Review** | Weekly |
-| **Gaps** | Per-journey metric not automated — **dependency MAT-012** (tenant dashboards) |
+| **Gaps** | Live dashboard/alert verification **BLOCKED_EXTERNAL** (no staging Prometheus/Grafana in dev) |
 
 ### 3. Publish / write path
 
 | Field | Value |
 |-------|-------|
 | **SLI** | Tour persist/publish requests completing without `CANONICAL_VALIDATION_FAILED` or 5xx |
-| **Measurement** | API logs on tour write routes + validation pipeline stage tag (future) |
+| **Measurement** | `workspace_slo_event_total{area="publish_write",validation_stage}` from `run-workspace-validation-pipeline.ts` |
 | **SLO** | **99.5%** over 30d |
 | **Error budget** | **0.5%** |
 | **Alert threshold** | Spike in `CANONICAL_VALIDATION_FAILED` **> 3×** 7d baseline in 1h → P2 ticket |
 | **Paging** | Only if paired with 5xx **> 1%** (shared API SLO) |
 | **Owner** | Tour core + workspace adapters |
 | **Review** | Bi-weekly |
-| **Gaps** | Stage-level SLI not in logs today — add `validationStage` field (**MAT-012**) |
+| **Gaps** | Stage burn queries defined in `apps/api/src/observability/workspace-slo-queries.ts`; live alert wiring **BLOCKED_EXTERNAL** |
 
 ### 4. Portal / auth
 
@@ -77,7 +79,7 @@ External SLA promises require production evidence from `docs/dev/production-clos
 | **Ticket** | Elevated 401/403 on portal host → P2 |
 | **Owner** | Portal squad (PCMS-001) |
 | **Review** | Weekly |
-| **Gaps** | No per-tenant auth burn — **MAT-012** |
+| **Gaps** | Per-tenant auth burn via `workspace_slo_event_total{area="portal_auth"}` — live paging **BLOCKED_EXTERNAL** |
 
 ### 5. Finance critical operations
 
@@ -91,7 +93,7 @@ External SLA promises require production evidence from `docs/dev/production-clos
 | **Ticket** | Outbox lag **> 5 min** p95 → P2 |
 | **Owner** | Finance platform |
 | **Review** | Weekly |
-| **Gaps** | Outbox depth metric not exported to alertmanager — **MAT-012** |
+| **Gaps** | Finance journey hooks reuse existing finance counters; SLO burn query in `workspace-slo-queries.ts` — alertmanager wiring **BLOCKED_EXTERNAL** |
 
 ---
 
