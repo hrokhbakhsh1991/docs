@@ -3,7 +3,6 @@ export {
 } from "./merge-workspace-field-registry-with-equipment-fragments";
 export {
   mergeWorkspaceFieldRegistryWithDifficultyFitnessFragments,
-  mergeWorkspaceFieldRegistryWithTransportFragments,
 } from "./merge-workspace-field-registry-with-difficulty-fitness-fragments";
 export {
   type WorkspaceFieldKind,
