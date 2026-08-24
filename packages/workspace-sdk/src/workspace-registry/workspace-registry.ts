@@ -5,6 +5,7 @@ import { createViteWorkspaceManifestDiscoverer } from "./vite-manifest-glob";
 
 export class WorkspaceRegistry {
   private loaded = false;
+  private manifestFingerprint: string | null = null;
   private readonly byId = new Map<string, WorkspaceRegistryEntry>();
   private readonly ordered: WorkspaceRegistryEntry[] = [];
 
@@ -43,6 +44,22 @@ export class WorkspaceRegistry {
 
   isLoaded(): boolean {
     return this.loaded;
+  }
+
+  getManifestFingerprint(): string | null {
+    return this.manifestFingerprint;
+  }
+
+  setManifestFingerprint(fingerprint: string): void {
+    this.manifestFingerprint = fingerprint;
+  }
+
+  /** Clear registry so a subsequent load picks up on-disk manifest changes. */
+  reloadForManifestChange(): void {
+    this.loaded = false;
+    this.manifestFingerprint = null;
+    this.byId.clear();
+    this.ordered.length = 0;
   }
 
   /** @internal test-only reset */

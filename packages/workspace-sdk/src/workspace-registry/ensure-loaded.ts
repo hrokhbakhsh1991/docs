@@ -1,20 +1,34 @@
-import { createNodeWorkspaceManifestDiscoverer } from "./node-manifest-discoverer";
+import { computeWorkspaceManifestFingerprint } from "./manifest-fingerprint";
+import { createNodeWorkspaceManifestDiscoverer, resolveDefaultWorkspacesDir } from "./node-manifest-discoverer";
 import { workspaceRegistry } from "./singleton";
 
 let loadPromise: Promise<void> | null = null;
+let loadedManifestFingerprint: string | null = null;
 
 /** Idempotent server/bootstrap helper — safe to call from layouts and instrumentation. */
 export async function ensureWorkspaceRegistryLoaded(): Promise<void> {
-  if (workspaceRegistry.isLoaded()) {
+  const fingerprint = await computeWorkspaceManifestFingerprint(resolveDefaultWorkspacesDir());
+
+  if (workspaceRegistry.isLoaded() && loadedManifestFingerprint === fingerprint) {
     return;
+  }
+
+  if (workspaceRegistry.isLoaded() && loadedManifestFingerprint !== fingerprint) {
+    workspaceRegistry.reloadForManifestChange();
+    loadPromise = null;
   }
 
   if (loadPromise === null) {
     loadPromise = workspaceRegistry
       .load(createNodeWorkspaceManifestDiscoverer())
-      .then(() => undefined)
+      .then(() => {
+        loadedManifestFingerprint = fingerprint;
+        workspaceRegistry.setManifestFingerprint(fingerprint);
+        return undefined;
+      })
       .catch((error: unknown) => {
         loadPromise = null;
+        loadedManifestFingerprint = null;
         throw error;
       });
   }
@@ -28,5 +42,6 @@ export function resetWorkspaceRegistryLoadStateForTests(): void {
     return;
   }
   loadPromise = null;
+  loadedManifestFingerprint = null;
   workspaceRegistry.resetForTests();
 }

@@ -42,6 +42,20 @@ const CORRUPTION_PACKAGE_PATTERNS = [
   /^@app-tour\/workspace-(?!sdk\b)/, // workspace-starter, workspace-denali, etc.
 ];
 
+/**
+ * Codegen dispatch shims must reference workspace packages at runtime.
+ * REM-006 / CW9-09: allowlist generated files only (not hand-written imports).
+ */
+const GENERATED_DISPATCH_ALLOWLIST_SUFFIXES = [
+  "catalog-intake-transport-surfaces.generated.ts",
+  "catalog-transport-snapshot-readers.generated.ts",
+  "workspace-difficulty-fitness-filter-presentation.generated.ts",
+];
+
+function isAllowlistedGeneratedDispatch(fileRel) {
+  return GENERATED_DISPATCH_ALLOWLIST_SUFFIXES.some((suffix) => fileRel.endsWith(suffix));
+}
+
 function listTsFiles(dir) {
   /** @type {string[]} */
   const out = [];
@@ -403,6 +417,10 @@ function main() {
         : "FAIL",
   };
 
+  report.directIllegalEdges = report.directIllegalEdges.filter(
+    (e) => !isAllowlistedGeneratedDispatch(e.file),
+  );
+
   const productionOnly = process.argv.includes("--production-only");
   if (productionOnly) {
     const isProd = (rel) =>
@@ -416,6 +434,11 @@ function main() {
         ? "PASS"
         : "FAIL";
     report.scope = "production-src-only";
+  } else {
+    report.verdict =
+      report.directIllegalEdges.length === 0 && report.systemicCorruptionPaths.length === 0
+        ? "PASS"
+        : "FAIL";
   }
 
   if (process.argv.includes("--json")) {
