@@ -11,6 +11,8 @@ import {
 import type { WorkspaceHttpMethod } from "./workspace-http-method";
 
 import { CATALOG_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-denali/host/http";
+import { CERT_CLUB_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-cert-club/http";
+import { CERT_EVENTS_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-cert-events/http";
 import { FINANCE_HTTP_ROUTE_MANIFEST } from "@app-tour/finance-http";
 import { GUEST_CLUB_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-guest-club/host/http";
 import { HARBOR_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-harbor/host/http";
@@ -52,6 +54,10 @@ export type WorkspaceHttpHandlerKey =
   | "handleFinanceSubmitReceipt"
   | "handleFinanceSummary"
   | "handleFinanceTourCollections"
+  | "handleGetCertClubCatalog"
+  | "handleGetCertClubCatalogTour"
+  | "handleGetCertEventsCatalog"
+  | "handleGetCertEventsCatalogTour"
   | "handleGetDenaliCatalog"
   | "handleGetDenaliCatalogTour"
   | "handleGetDenaliDashboardTour"
@@ -69,6 +75,8 @@ export type WorkspaceHttpHandlerKey =
   | "handleGetUrbanSettings"
   | "handlePatchDenaliRegistration"
   | "handlePatchUrbanSettings"
+  | "handlePostCertClubRegistration"
+  | "handlePostCertEventsRegistration"
   | "handlePostDenaliRegistration"
   | "handlePostGuestClubRegistration"
   | "handlePostHarborRegistration"
@@ -109,6 +117,16 @@ function paramRoutesFromManifest(
   }
   return routes;
 }
+
+const CERT_CLUB_CERT_CLUB_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
+  "GET /cert-club/catalog": "handleGetCertClubCatalog",
+  "POST /cert-club/registrations": "handlePostCertClubRegistration"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
+const CERT_EVENTS_CERT_EVENTS_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
+  "GET /cert-events/catalog": "handleGetCertEventsCatalog",
+  "POST /cert-events/registrations": "handlePostCertEventsRegistration"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 const DENALI_CATALOG_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "GET /denali/catalog": "handleGetDenaliCatalog",
@@ -162,6 +180,14 @@ const URBAN_URBAN_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "POST /urban/registrations": "handlePostUrbanRegistration"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
+const CERT_CLUB_CERT_CLUB_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
+  "GET /cert-club/catalog/:tourId": "handleGetCertClubCatalogTour"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
+const CERT_EVENTS_CERT_EVENTS_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
+  "GET /cert-events/catalog/:tourId": "handleGetCertEventsCatalogTour"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
 const DENALI_CATALOG_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
   "GET /denali/catalog/:tourId": "handleGetDenaliCatalogTour",
   "GET /denali/dashboard/tours/:tourId": "handleGetDenaliDashboardTour",
@@ -203,6 +229,8 @@ const URBAN_URBAN_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 export const WORKSPACE_HTTP_STATIC_ROUTES: readonly WorkspaceHttpStaticRoute[] = [
+...staticRoutesFromManifest(CERT_CLUB_HTTP_ROUTE_MANIFEST, CERT_CLUB_CERT_CLUB_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
+...staticRoutesFromManifest(CERT_EVENTS_HTTP_ROUTE_MANIFEST, CERT_EVENTS_CERT_EVENTS_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(CATALOG_HTTP_ROUTE_MANIFEST, DENALI_CATALOG_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(FINANCE_HTTP_ROUTE_MANIFEST, DENALI_FINANCE_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(GUEST_CLUB_HTTP_ROUTE_MANIFEST, GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
@@ -212,6 +240,8 @@ export const WORKSPACE_HTTP_STATIC_ROUTES: readonly WorkspaceHttpStaticRoute[] =
 ];
 
 export const WORKSPACE_HTTP_PARAM_ROUTES: readonly WorkspaceHttpParamRoute[] = [
+...paramRoutesFromManifest(CERT_CLUB_HTTP_ROUTE_MANIFEST, CERT_CLUB_CERT_CLUB_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
+...paramRoutesFromManifest(CERT_EVENTS_HTTP_ROUTE_MANIFEST, CERT_EVENTS_CERT_EVENTS_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(CATALOG_HTTP_ROUTE_MANIFEST, DENALI_CATALOG_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(FINANCE_HTTP_ROUTE_MANIFEST, DENALI_FINANCE_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(GUEST_CLUB_HTTP_ROUTE_MANIFEST, GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),

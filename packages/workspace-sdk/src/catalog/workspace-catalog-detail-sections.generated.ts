@@ -16,6 +16,18 @@ export const WORKSPACE_CATALOG_DETAIL_SECTIONS: Readonly<
     }>
   >
 > = Object.freeze({
+  "cert-club": Object.freeze({
+    difficulty: true,
+    fitness: true,
+    itinerary: true,
+    policies: true,
+  }),
+  "cert-events": Object.freeze({
+    difficulty: false,
+    fitness: false,
+    itinerary: false,
+    policies: false,
+  }),
   "denali": Object.freeze({
     difficulty: true,
     fitness: true,

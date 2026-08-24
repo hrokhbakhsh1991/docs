@@ -6,6 +6,8 @@
 
 /** Manifest paths per workspace plugin (private; Phase 4h). */
 const WORKSPACE_ADMIN_THEME_REGISTRY = Object.freeze({
+  "cert-club": Object.freeze(["theme/tokens.css"]),
+  "cert-events": Object.freeze(["theme/tokens.css"]),
   "denali": Object.freeze(["theme/denali-admin.css"]),
   "guest-club": Object.freeze(["theme/tokens.css"]),
   "profile-cert": Object.freeze(["theme/tokens.css"]),
@@ -32,6 +34,14 @@ export function listAdminThemeRegistryPluginIds(): readonly string[] {
 /** Load workspace admin skin CSS for the active plugin only (dynamic import). */
 export async function importAdminThemeForPlugin(pluginId: string): Promise<void> {
   switch (pluginId) {
+    case "cert-club":
+      await import("@app-tour/workspace-cert-club/theme/tokens.css");
+      return;
+
+    case "cert-events":
+      await import("@app-tour/workspace-cert-events/theme/tokens.css");
+      return;
+
     case "denali":
       await import("@app-tour/workspace-denali/theme/denali-admin.css");
       return;

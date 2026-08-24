@@ -11,6 +11,8 @@ export const WORKSPACE_GUEST_CONFORMANCE_LEVELS: Readonly<
   "acme": "L0",
   "alpine": "L0",
   "booking-ws2": "L0",
+  "cert-club": "L3",
+  "cert-events": "L3",
   "denali": "L4",
   "finance-ws2": "L0",
   "finance-ws3": "L0",

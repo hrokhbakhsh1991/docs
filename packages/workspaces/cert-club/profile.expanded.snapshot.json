@@ -1,0 +1,166 @@
+{
+  "workspaceBooking": {
+    "supported": true,
+    "defaultModuleEnabledWhenUnset": true
+  },
+  "workspaceFinance": {
+    "supported": true,
+    "defaultModuleEnabledWhenUnset": true
+  },
+  "catalogRegistrationFlow": {
+    "steps": {
+      "mode": "compose",
+      "reuseAuthStepsFrom": "shared",
+      "components": {
+        "intake": "CertClubIntakeStep",
+        "done": "CertClubDoneStep"
+      }
+    },
+    "surfaceExport": "certClubCatalogRegistrationFlowSurface"
+  },
+  "catalogPresentation": {
+    "listFeatures": {
+      "cityFilter": false
+    },
+    "detailSections": {
+      "difficulty": false,
+      "fitness": false,
+      "itinerary": false,
+      "policies": false
+    }
+  },
+  "memberProfile": {
+    "editableFields": [
+      "displayName"
+    ],
+    "readOnlyFields": [
+      "email"
+    ],
+    "mobileChangeViaOtp": true,
+    "sections": [
+      {
+        "id": "identity",
+        "fields": [
+          "displayName",
+          "email"
+        ]
+      }
+    ]
+  },
+  "tenantBrandingDefaults": {
+    "primaryColor": "#2563eb"
+  },
+  "wizardResume": {
+    "mode": "noop"
+  },
+  "devBootstrap": {
+    "pluginTenantIds": [
+      "83d7dd00-d961-4fe3-ade9-1aaf0a6b84a5"
+    ],
+    "smokeTenant": {
+      "tenantIdExport": "CERT_CLUB_SMOKE_TENANT_ID",
+      "subdomainExport": "CERT_CLUB_SMOKE_SUBDOMAIN"
+    }
+  },
+  "guestConformance": {
+    "productionTier": "stub"
+  },
+  "guestExtensionsVersion": 1,
+  "guestLanding": {
+    "variant": "minimal",
+    "sections": {
+      "hero": false,
+      "latestTours": false,
+      "latestToursLimit": 0,
+      "trust": false,
+      "finalCta": false,
+      "faq": false,
+      "footer": false,
+      "whySection": false,
+      "journey": false,
+      "testimonials": false,
+      "featuredTours": false,
+      "featuredToursLimit": 0,
+      "categories": false,
+      "destinations": false,
+      "heroSearch": false,
+      "gallery": false,
+      "equipment": false,
+      "blogTeaser": false
+    },
+    "i18nProfile": "minimal"
+  },
+  "guestSeo": {
+    "marketing": {
+      "homeTitleKey": "seo.homeTitle",
+      "homeDescriptionKey": "seo.homeDescription",
+      "listTitleKey": "seo.toursTitle",
+      "listDescriptionKey": "seo.toursDescription",
+      "jsonLd": {
+        "required": true,
+        "schemaTypes": [
+          "Event"
+        ],
+        "builderExport": "buildCertClubEventJsonLd",
+        "richResultsProfile": "event-stub-v1"
+      },
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": 0.8
+      },
+      "pagination": {
+        "noindexQueryParams": [
+          "cursor"
+        ]
+      }
+    }
+  },
+  "guestThemeStylesheets": {
+    "marketing": [
+      "theme/marketing.css"
+    ]
+  },
+  "http": {
+    "prefix": "/cert-club",
+    "module": "./http/routes"
+  },
+  "httpRoutes": {
+    "handlerPackage": "@app-tour/workspace-cert-club/http",
+    "loadHandlersFromPackage": true,
+    "groups": [
+      {
+        "manifestExport": "CERT_CLUB_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /cert-club/catalog": "handleGetCertClubCatalog",
+          "POST /cert-club/registrations": "handlePostCertClubRegistration"
+        },
+        "paramHandlers": {
+          "GET /cert-club/catalog/:tourId": "handleGetCertClubCatalogTour"
+        }
+      }
+    ]
+  },
+  "id": "cert-club",
+  "operatorCapabilities": {
+    "usersDirectory": false,
+    "reconciliationTriage": false,
+    "fieldExposureSurfaces": false
+  },
+  "package": "@app-tour/workspace-cert-club",
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  },
+  "pluginApiVersion": 1,
+  "themeStylesheets": [
+    "theme/tokens.css"
+  ],
+  "version": 1,
+  "web": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  },
+  "workspaceTypes": [
+    "cert-club"
+  ]
+}

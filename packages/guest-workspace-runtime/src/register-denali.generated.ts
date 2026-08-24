@@ -37,7 +37,7 @@ export async function registerWorkspacePluginDENALIFromManifest(): Promise<void>
   }
   registerWorkspaceMemberPortalRenderers(plugin.id, plugin.capabilities?.memberPortalRenderers);
   const { registerDenaliCatalogRegistrationTransportInitializer } =
-    await import("@app-tour/workspace-denali/host/catalog/registration-flow/register-transport-initializer");
+    await import("@app-tour/workspace-denali/catalog/registration-flow/register-transport-initializer");
   registerDenaliCatalogRegistrationTransportInitializer();
 
   const { denaliCatalogRegistrationFlowSurface } =

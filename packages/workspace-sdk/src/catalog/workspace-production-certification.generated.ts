@@ -11,6 +11,8 @@ export const WORKSPACE_PRODUCTION_CERTIFICATION: Readonly<
   "acme": "stub",
   "alpine": "stub",
   "booking-ws2": "stub",
+  "cert-club": "stub",
+  "cert-events": "stub",
   "denali": "certified",
   "finance-ws2": "stub",
   "finance-ws3": "stub",

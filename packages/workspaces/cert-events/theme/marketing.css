@@ -1,0 +1,13 @@
+/* CertEvents guest marketing theme — replace before launch. */
+body[data-app-surface="marketing"][data-workspace-plugin="cert-events"] {
+  --color-primary: var(--guest-accent, #2563eb);
+  --color-primary-fg: #ffffff;
+  --color-bg-page: #f8fafc;
+  --color-text-primary: #1a1f26;
+  --color-text-muted: #64748b;
+  --color-border-default: #e2e8f0;
+}
+
+:root {
+  --guest-accent: var(--ws-color-accent, #2563eb);
+}

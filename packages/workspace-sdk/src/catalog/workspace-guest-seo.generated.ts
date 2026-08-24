@@ -45,6 +45,48 @@ export type WorkspaceGuestSeoConfig = Readonly<{
 
 /** Guest marketing SEO policy — derived from workspace.manifest.json guestSeo. */
 export const WORKSPACE_GUEST_SEO: Readonly<Record<string, WorkspaceGuestSeoConfig>> = Object.freeze({
+  "cert-club": Object.freeze({
+    marketing: Object.freeze({
+      listTitleKey: "seo.toursTitle",
+      listDescriptionKey: "seo.toursDescription",
+      homeTitleKey: "seo.homeTitle",
+      homeDescriptionKey: "seo.homeDescription",
+      jsonLd: Object.freeze({
+        required: true,
+        schemaTypes: Object.freeze(["Event"]),
+        builderExport: "buildCertClubEventJsonLd",
+        richResultsProfile: "event-stub-v1",
+      }),
+      sitemap: Object.freeze({
+        changefreq: "weekly",
+        priority: 0.8,
+      }),
+      pagination: Object.freeze({
+        noindexQueryParams: Object.freeze(["cursor"]),
+      }),
+    }),
+  }),
+  "cert-events": Object.freeze({
+    marketing: Object.freeze({
+      listTitleKey: "seo.toursTitle",
+      listDescriptionKey: "seo.toursDescription",
+      homeTitleKey: "seo.homeTitle",
+      homeDescriptionKey: "seo.homeDescription",
+      jsonLd: Object.freeze({
+        required: true,
+        schemaTypes: Object.freeze(["Event"]),
+        builderExport: "buildCertEventsEventJsonLd",
+        richResultsProfile: "event-stub-v1",
+      }),
+      sitemap: Object.freeze({
+        changefreq: "weekly",
+        priority: 0.8,
+      }),
+      pagination: Object.freeze({
+        noindexQueryParams: Object.freeze(["cursor"]),
+      }),
+    }),
+  }),
   "denali": Object.freeze({
     marketing: Object.freeze({
       listTitleKey: "seo.toursTitle",

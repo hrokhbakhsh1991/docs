@@ -12,10 +12,10 @@ import {
 import { assertWorkspacePluginClientBundleEnabled } from "./workspace-plugin-client-bundle-gate";
 
 /** Sorted product trunk plugin ids — cache bust when codegen regen changes membership. */
-export const WORKSPACE_PLUGIN_REGISTRY_REVISION = "acme,alpine,booking-ws2,denali,finance-ws5,guest-club,harbor,policy-cert,profile-cert,starter,urban";
+export const WORKSPACE_PLUGIN_REGISTRY_REVISION = "acme,alpine,booking-ws2,cert-club,cert-events,denali,finance-ws5,guest-club,harbor,policy-cert,profile-cert,starter,urban";
 
 /** Upper bound for per-process plugin load cache (= product trunk plugin count). */
-export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 11;
+export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 13;
 
 export { invalidateWorkspacePluginLoadCache };
 
@@ -36,6 +36,14 @@ export async function loadWorkspacePluginByIdFromRegistry(
         }
         case "booking-ws2": {
           const mod = await import("@app-tour/workspace-booking-ws2/plugin");
+          return mod.getWorkspacePlugin();
+        }
+        case "cert-club": {
+          const mod = await import("@app-tour/workspace-cert-club/plugin");
+          return mod.getWorkspacePlugin();
+        }
+        case "cert-events": {
+          const mod = await import("@app-tour/workspace-cert-events/plugin");
           return mod.getWorkspacePlugin();
         }
         case "denali": {

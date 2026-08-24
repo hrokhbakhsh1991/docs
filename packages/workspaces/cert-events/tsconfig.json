@@ -1,0 +1,17 @@
+{
+  "extends": "../../config/tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "noEmit": false,
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "src/**/*.spec.ts",
+    "test/**/*.spec.ts",
+    "src/catalog/registration-flow/**/*.tsx",
+    "src/catalog/registration-flow/react.ts"
+  ]
+}

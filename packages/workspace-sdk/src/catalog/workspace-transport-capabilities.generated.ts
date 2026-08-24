@@ -16,6 +16,16 @@ export type WorkspaceTransportCapabilities = {
 };
 
 export const WORKSPACE_TRANSPORT_CAPABILITIES = {
+  "cert-club": {
+    supported: true as const,
+    wizardTourField: false as const,
+    catalogSnapshot: true as const,
+    catalogDetailSection: false as const,
+    registrationIntake: false as const,
+    registrationInitializer: true as const,
+    listProjection: false as const,
+    registrationNormalize: false as const,
+  },
   "denali": {
     supported: true as const,
     wizardTourField: false as const,

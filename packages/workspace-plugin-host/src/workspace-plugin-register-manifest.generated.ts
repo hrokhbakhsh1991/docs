@@ -7,10 +7,12 @@
  */
 
 /** Sorted trunk plugin ids — cache bust when codegen regen changes membership. */
-export const WORKSPACE_PLUGIN_REGISTER_REVISION = "alpine,denali,guest-club,harbor,profile-cert,starter,urban";
+export const WORKSPACE_PLUGIN_REGISTER_REVISION = "alpine,cert-club,cert-events,denali,guest-club,harbor,profile-cert,starter,urban";
 
 export const WORKSPACE_PLUGIN_REGISTER_IDS = Object.freeze([
   "alpine",
+  "cert-club",
+  "cert-events",
   "denali",
   "guest-club",
   "harbor",

@@ -5,7 +5,8 @@
  */
 
 import type { PublicCatalogTransportSnapshot } from "../tour/public-catalog-transport";
-import { readDenaliCatalogTransportSnapshot as denali_transport_snapshot_reader } from "@app-tour/workspace-denali/host/catalog/read-denali-catalog-transport";
+import { readCertClubCatalogTransportSnapshot as cert_club_transport_snapshot_reader } from "@app-tour/workspace-cert-club/host/transport/catalog-transport-snapshot";
+import { readDenaliCatalogTransportSnapshot as denali_transport_snapshot_reader } from "@app-tour/workspace-denali/catalog/read-denali-catalog-transport";
 
 export type CatalogTransportSnapshotReaderBinding = {
   readonly workspaceType: string;
@@ -15,6 +16,10 @@ export type CatalogTransportSnapshotReaderBinding = {
 };
 
 export const CATALOG_TRANSPORT_SNAPSHOT_READER_BINDINGS: readonly CatalogTransportSnapshotReaderBinding[] = [
+  {
+    workspaceType: "cert-club",
+    readCatalogTransportSnapshot: cert_club_transport_snapshot_reader,
+  },
   {
     workspaceType: "denali",
     readCatalogTransportSnapshot: denali_transport_snapshot_reader,

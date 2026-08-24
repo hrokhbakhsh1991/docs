@@ -11,6 +11,8 @@ export const API_WORKSPACE_PLUGIN_IDS = [
   "acme",
   "alpine",
   "booking-ws2",
+  "cert-club",
+  "cert-events",
   "denali",
   "finance-ws5",
   "guest-club",
@@ -48,6 +50,14 @@ export async function loadApiWorkspacePluginByIdFromManifest(
     }
     case "booking-ws2": {
       const mod = await import("@app-tour/workspace-booking-ws2/plugin");
+      return mod.getWorkspacePlugin();
+    }
+    case "cert-club": {
+      const mod = await import("@app-tour/workspace-cert-club/plugin");
+      return mod.getWorkspacePlugin();
+    }
+    case "cert-events": {
+      const mod = await import("@app-tour/workspace-cert-events/plugin");
       return mod.getWorkspacePlugin();
     }
     case "denali": {

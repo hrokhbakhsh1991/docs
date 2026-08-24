@@ -8,6 +8,8 @@
 export const WORKSPACE_CATALOG_PRICE_DISPLAY: Readonly<
   Record<string, Readonly<{ readonly irrDisplayUnit?: "toman" }>>
 > = Object.freeze({
+  "cert-club": Object.freeze({}),
+  "cert-events": Object.freeze({}),
   "denali": Object.freeze({ irrDisplayUnit: "toman" }),
   "guest-club": Object.freeze({}),
   "harbor": Object.freeze({}),

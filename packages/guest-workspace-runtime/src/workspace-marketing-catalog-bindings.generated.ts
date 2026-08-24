@@ -21,7 +21,7 @@ export async function resolveMarketingCatalogSurface(
 ): Promise<MarketingCatalogSurface | null> {
   switch (pluginId) {
     case "denali": {
-      const mod = await import("@app-tour/workspace-denali/host/marketing/marketing-catalog-surface");
+      const mod = await import("@app-tour/workspace-denali/marketing/marketing-catalog-surface");
       return mod.denaliMarketingCatalogSurface;
     }
     default:

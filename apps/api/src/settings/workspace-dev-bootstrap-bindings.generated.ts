@@ -4,6 +4,8 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
+import { CERT_CLUB_SMOKE_TENANT_ID, CERT_CLUB_SMOKE_SUBDOMAIN } from "@app-tour/workspace-cert-club";
+import { CERT_EVENTS_SMOKE_TENANT_ID, CERT_EVENTS_SMOKE_SUBDOMAIN } from "@app-tour/workspace-cert-events";
 import { DENALI_SMOKE_TENANT_ID, DENALI_SMOKE_SUBDOMAIN } from "@app-tour/workspace-denali";
 import { GUEST_CLUB_SMOKE_TENANT_ID, GUEST_CLUB_SMOKE_SUBDOMAIN } from "@app-tour/workspace-guest-club";
 import { HARBOR_SMOKE_TENANT_ID, HARBOR_SMOKE_SUBDOMAIN } from "@app-tour/workspace-harbor";
@@ -28,6 +30,16 @@ export const WORKSPACE_DEV_WIZARD_TEMPLATE_BINDINGS = [
 ] as const;
 
 export const WORKSPACE_DEV_SMOKE_TENANT_BINDINGS = [
+  {
+    workspaceId: "cert-club",
+    tenantId: CERT_CLUB_SMOKE_TENANT_ID,
+    subdomain: CERT_CLUB_SMOKE_SUBDOMAIN,
+  },
+  {
+    workspaceId: "cert-events",
+    tenantId: CERT_EVENTS_SMOKE_TENANT_ID,
+    subdomain: CERT_EVENTS_SMOKE_SUBDOMAIN,
+  },
   {
     workspaceId: "denali",
     tenantId: DENALI_SMOKE_TENANT_ID,

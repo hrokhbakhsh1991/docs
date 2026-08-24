@@ -37,6 +37,8 @@
   },
   "dependencies": {
     "@app-tour/catalog-registration-flow-ui": "workspace:*",
+    "@app-tour/workspace-cert-club": "workspace:*",
+    "@app-tour/workspace-cert-events": "workspace:*",
     "@app-tour/workspace-denali": "workspace:*",
     "@app-tour/workspace-guest-club": "workspace:*",
     "@app-tour/workspace-harbor": "workspace:*",

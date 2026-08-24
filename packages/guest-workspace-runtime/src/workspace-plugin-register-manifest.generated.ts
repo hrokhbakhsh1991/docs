@@ -6,10 +6,12 @@
  */
 
 /** Sorted trunk plugin ids — cache bust when codegen regen changes membership. */
-export const WORKSPACE_PLUGIN_REGISTER_REVISION = "alpine,denali,guest-club,harbor,profile-cert,starter,urban";
+export const WORKSPACE_PLUGIN_REGISTER_REVISION = "alpine,cert-club,cert-events,denali,guest-club,harbor,profile-cert,starter,urban";
 
 export const WORKSPACE_PLUGIN_REGISTER_IDS = Object.freeze([
   "alpine",
+  "cert-club",
+  "cert-events",
   "denali",
   "guest-club",
   "harbor",
@@ -24,6 +26,16 @@ export async function invokeWorkspacePluginRegister(pluginId: string): Promise<v
     case "alpine": {
       const mod = await import("./register-alpine.generated");
       await mod.registerWorkspacePluginALPINEFromManifest();
+      return;
+    }
+    case "cert-club": {
+      const mod = await import("./register-cert-club.generated");
+      await mod.registerWorkspacePluginCERT_CLUBFromManifest();
+      return;
+    }
+    case "cert-events": {
+      const mod = await import("./register-cert-events.generated");
+      await mod.registerWorkspacePluginCERT_EVENTSFromManifest();
       return;
     }
     case "denali": {
@@ -67,6 +79,16 @@ export async function invokeWorkspaceIntakeRegister(pluginId: string): Promise<v
     case "alpine": {
       const mod = await import("./register-alpine.generated");
       await mod.registerWorkspaceIntakeALPINEFromManifest();
+      return;
+    }
+    case "cert-club": {
+      const mod = await import("./register-cert-club.generated");
+      await mod.registerWorkspaceIntakeCERT_CLUBFromManifest();
+      return;
+    }
+    case "cert-events": {
+      const mod = await import("./register-cert-events.generated");
+      await mod.registerWorkspaceIntakeCERT_EVENTSFromManifest();
       return;
     }
     case "denali": {

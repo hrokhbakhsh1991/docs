@@ -12,6 +12,8 @@ export const WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN =
 
 /** Manifest paths per workspace plugin (documentation / guards). */
 export const WORKSPACE_GUEST_MARKETING_THEME_REGISTRY = Object.freeze({
+  "cert-club": Object.freeze(["theme/marketing.css"]),
+  "cert-events": Object.freeze(["theme/marketing.css"]),
   "denali": Object.freeze(["theme/denali-marketing.css"]),
   "guest-club": Object.freeze(["theme/marketing/marketing.css"]),
   "profile-cert": Object.freeze(["theme/marketing.css"]),
@@ -22,6 +24,14 @@ export const WORKSPACE_GUEST_MARKETING_THEME_REGISTRY = Object.freeze({
 export async function importGuestMarketingThemeForPlugin(pluginId: string): Promise<void> {
   await import("@app-tour/workspace-starter/theme/starter-marketing.css");
   switch (pluginId) {
+    case "cert-club":
+      await import("@app-tour/workspace-cert-club/theme/marketing.css");
+      return;
+
+    case "cert-events":
+      await import("@app-tour/workspace-cert-events/theme/marketing.css");
+      return;
+
     case "denali":
       await import("@app-tour/workspace-denali/theme/denali-marketing.css");
       return;

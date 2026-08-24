@@ -41,6 +41,10 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handleFinanceSubmitReceipt"
   | "handleFinanceSummary"
   | "handleFinanceTourCollections"
+  | "handleGetCertClubCatalog"
+  | "handleGetCertClubCatalogTour"
+  | "handleGetCertEventsCatalog"
+  | "handleGetCertEventsCatalogTour"
   | "handleGetDenaliCatalog"
   | "handleGetDenaliCatalogTour"
   | "handleGetDenaliDashboardTour"
@@ -58,6 +62,8 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handleGetUrbanSettings"
   | "handlePatchDenaliRegistration"
   | "handlePatchUrbanSettings"
+  | "handlePostCertClubRegistration"
+  | "handlePostCertEventsRegistration"
   | "handlePostDenaliRegistration"
   | "handlePostGuestClubRegistration"
   | "handlePostHarborRegistration"
@@ -104,6 +110,12 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
   handleFinanceSubmitReceipt: "@app-tour/finance-http",
   handleFinanceSummary: "@app-tour/finance-http",
   handleFinanceTourCollections: "@app-tour/finance-http",
+  handleGetCertClubCatalog: "@app-tour/workspace-cert-club/http",
+  handleGetCertClubCatalogTour: "@app-tour/workspace-cert-club/http",
+  handlePostCertClubRegistration: "@app-tour/workspace-cert-club/http",
+  handleGetCertEventsCatalog: "@app-tour/workspace-cert-events/http",
+  handleGetCertEventsCatalogTour: "@app-tour/workspace-cert-events/http",
+  handlePostCertEventsRegistration: "@app-tour/workspace-cert-events/http",
   handleGetDenaliCatalog: "@app-tour/workspace-denali/host/http",
   handleGetDenaliCatalogTour: "@app-tour/workspace-denali/host/http",
   handleGetDenaliDashboardTour: "@app-tour/workspace-denali/host/http",
@@ -130,6 +142,8 @@ const WORKSPACE_HTTP_HANDLER_PACKAGE_BY_KEY = Object.freeze({
 
 const WORKSPACE_HTTP_HANDLER_PACKAGES = Object.freeze([
   "@app-tour/finance-http",
+  "@app-tour/workspace-cert-club/http",
+  "@app-tour/workspace-cert-events/http",
   "@app-tour/workspace-denali/host/http",
   "@app-tour/workspace-guest-club/host/http",
   "@app-tour/workspace-harbor/host/http",
@@ -182,6 +196,22 @@ export async function loadWorkspaceHttpHandlersForPackage(
         handleFinanceSubmitReceipt: mod.handleFinanceSubmitReceipt,
         handleFinanceSummary: mod.handleFinanceSummary,
         handleFinanceTourCollections: mod.handleFinanceTourCollections,
+      };
+    }
+    case "@app-tour/workspace-cert-club/http": {
+      const mod = await import("@app-tour/workspace-cert-club/http");
+      return {
+        handleGetCertClubCatalog: mod.handleGetCertClubCatalog,
+        handleGetCertClubCatalogTour: mod.handleGetCertClubCatalogTour,
+        handlePostCertClubRegistration: mod.handlePostCertClubRegistration,
+      };
+    }
+    case "@app-tour/workspace-cert-events/http": {
+      const mod = await import("@app-tour/workspace-cert-events/http");
+      return {
+        handleGetCertEventsCatalog: mod.handleGetCertEventsCatalog,
+        handleGetCertEventsCatalogTour: mod.handleGetCertEventsCatalogTour,
+        handlePostCertEventsRegistration: mod.handlePostCertEventsRegistration,
       };
     }
     case "@app-tour/workspace-denali/host/http": {

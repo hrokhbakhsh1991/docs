@@ -15,6 +15,15 @@ export type WorkspaceEquipmentCapabilities = {
 };
 
 export const WORKSPACE_EQUIPMENT_CAPABILITIES = {
+  "cert-club": {
+    supported: true as const,
+    defaultModuleEnabledWhenUnset: false as const,
+    operatorSettings: false as const,
+    wizardTourField: false as const,
+    catalogDetailSection: true as const,
+    guestLandingSection: false as const,
+    registrationSnapshot: true as const,
+  },
   "denali": {
     supported: true as const,
     defaultModuleEnabledWhenUnset: true as const,

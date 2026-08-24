@@ -1,0 +1,191 @@
+{
+  "id": "cert-club",
+  "version": 1,
+  "pluginApiVersion": 1,
+  "guestExtensionsVersion": 1,
+  "profile": "starter-outdoor",
+  "package": "@app-tour/workspace-cert-club",
+  "workspaceTypes": [
+    "cert-club"
+  ],
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  },
+  "web": {
+    "entry": "./plugin",
+    "export": "getWorkspacePlugin"
+  },
+  "guestConformance": {
+    "productionTier": "stub"
+  },
+  "http": {
+    "prefix": "/cert-club",
+    "module": "./http/routes"
+  },
+  "httpRoutes": {
+    "handlerPackage": "@app-tour/workspace-cert-club/http",
+    "loadHandlersFromPackage": true,
+    "groups": [
+      {
+        "manifestExport": "CERT_CLUB_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /cert-club/catalog": "handleGetCertClubCatalog",
+          "POST /cert-club/registrations": "handlePostCertClubRegistration"
+        },
+        "paramHandlers": {
+          "GET /cert-club/catalog/:tourId": "handleGetCertClubCatalogTour"
+        }
+      }
+    ]
+  },
+  "devBootstrap": {
+    "pluginTenantIds": [
+      "83d7dd00-d961-4fe3-ade9-1aaf0a6b84a5"
+    ],
+    "smokeTenant": {
+      "tenantIdExport": "CERT_CLUB_SMOKE_TENANT_ID",
+      "subdomainExport": "CERT_CLUB_SMOKE_SUBDOMAIN"
+    }
+  },
+  "themeStylesheets": [
+    "theme/tokens.css"
+  ],
+  "guestThemeStylesheets": {
+    "marketing": [
+      "theme/marketing.css"
+    ]
+  },
+  "catalogRegistrationFlow": {
+    "surfaceExport": "certClubCatalogRegistrationFlowSurface",
+    "steps": {
+      "mode": "compose",
+      "reuseAuthStepsFrom": "shared",
+      "components": {
+        "intake": "CertClubIntakeStep",
+        "done": "CertClubDoneStep"
+      }
+    }
+  },
+  "catalogPresentation": {
+    "listFeatures": {
+      "cityFilter": false
+    },
+    "detailSections": {
+      "difficulty": true,
+      "fitness": true,
+      "itinerary": true,
+      "policies": true
+    }
+  },
+  "tenantBrandingDefaults": {
+    "primaryColor": "#0d9488",
+    "cssVariables": {
+      "--color-primary": "#0d9488",
+      "--color-primary-hover": "#0f766e"
+    }
+  },
+  "workspaceEquipment": {
+    "supported": true,
+    "capabilities": {
+      "catalogDetailSection": true,
+      "registrationSnapshot": true
+    }
+  },
+  "workspaceTransport": {
+    "supported": true,
+    "capabilities": {
+      "catalogSnapshot": true,
+      "registrationInitializer": true
+    },
+    "catalogSnapshotReader": {
+      "module": "./transport/catalog-transport-snapshot",
+      "export": "readCertClubCatalogTransportSnapshot"
+    },
+    "registrationInitializer": {
+      "module": "./transport/register-transport-initializer",
+      "export": "registerCertClubCatalogRegistrationTransportInitializer"
+    }
+  },
+  "workspacePolicy": {
+    "module": "./policy/tour-policy",
+    "export": "createCertClubTourWorkspacePolicyValidator"
+  },
+  "workspaceFinance": {
+    "supported": false
+  },
+  "workspaceBooking": {
+    "supported": false
+  },
+  "guestLanding": {
+    "variant": "minimal",
+    "sections": {
+      "hero": false,
+      "latestTours": false,
+      "latestToursLimit": 0,
+      "trust": false,
+      "finalCta": false,
+      "faq": false,
+      "footer": false,
+      "whySection": false,
+      "journey": false,
+      "testimonials": false,
+      "featuredTours": false,
+      "featuredToursLimit": 0,
+      "categories": false,
+      "destinations": false,
+      "heroSearch": false,
+      "gallery": false,
+      "equipment": false,
+      "blogTeaser": false
+    },
+    "i18nProfile": "minimal"
+  },
+  "memberProfile": {
+    "editableFields": [
+      "displayName"
+    ],
+    "readOnlyFields": [
+      "email"
+    ],
+    "sections": [
+      {
+        "id": "identity",
+        "fields": [
+          "displayName",
+          "email"
+        ]
+      }
+    ]
+  },
+  "guestSeo": {
+    "marketing": {
+      "homeTitleKey": "seo.homeTitle",
+      "homeDescriptionKey": "seo.homeDescription",
+      "listTitleKey": "seo.toursTitle",
+      "listDescriptionKey": "seo.toursDescription",
+      "jsonLd": {
+        "required": true,
+        "schemaTypes": [
+          "Event"
+        ],
+        "builderExport": "buildCertClubEventJsonLd",
+        "richResultsProfile": "event-stub-v1"
+      },
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": 0.8
+      },
+      "pagination": {
+        "noindexQueryParams": [
+          "cursor"
+        ]
+      }
+    }
+  },
+  "operatorCapabilities": {
+    "usersDirectory": false,
+    "reconciliationTriage": false,
+    "fieldExposureSurfaces": false
+  }
+}

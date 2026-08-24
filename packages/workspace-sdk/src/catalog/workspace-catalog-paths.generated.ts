@@ -6,6 +6,8 @@
 
 /** Guest catalog list paths — derived from workspace.manifest.json httpRoutes. */
 export const WORKSPACE_CATALOG_LIST_PATHS: Readonly<Record<string, string>> = Object.freeze({
+  "cert-club": "/cert-club/catalog",
+  "cert-events": "/cert-events/catalog",
   "denali": "/denali/catalog",
   "guest-club": "/guest-club/catalog",
   "harbor": "/harbor/catalog",

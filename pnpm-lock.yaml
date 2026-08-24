@@ -1160,6 +1160,80 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/workspaces/cert-club:
+    dependencies:
+      '@app-tour/catalog-registration-auth':
+        specifier: workspace:*
+        version: link:../../catalog-registration-auth
+      '@app-tour/design-tokens':
+        specifier: workspace:*
+        version: link:../../design-tokens
+      '@app-tour/platform-core':
+        specifier: workspace:*
+        version: link:../../platform-core
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../../workspace-sdk
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.7(react@19.2.7)
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.16
+      react:
+        specifier: ^19.0.0
+        version: 19.2.7
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/workspaces/cert-events:
+    dependencies:
+      '@app-tour/catalog-registration-auth':
+        specifier: workspace:*
+        version: link:../../catalog-registration-auth
+      '@app-tour/design-tokens':
+        specifier: workspace:*
+        version: link:../../design-tokens
+      '@app-tour/platform-core':
+        specifier: workspace:*
+        version: link:../../platform-core
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../../workspace-sdk
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.7(react@19.2.7)
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.16
+      react:
+        specifier: ^19.0.0
+        version: 19.2.7
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/workspaces/denali:
     dependencies:
       '@app-tour/booking-http-contracts':

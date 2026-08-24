@@ -14,6 +14,11 @@ export type WorkspaceMemberRegistrationStatusDisplayMap = Readonly<
 export const WORKSPACE_MEMBER_REGISTRATION_STATUS_DISPLAY: Readonly<
   Record<string, WorkspaceMemberRegistrationStatusDisplayMap>
 > = Object.freeze({
+  "cert-events": Object.freeze({
+      "cancelled": "cancelled",
+      "confirmed": "accepted",
+      "waitlist": "waitlisted",
+    }),
   "denali": Object.freeze({
       "approved": "accepted",
       "cancelled": "cancelled",
