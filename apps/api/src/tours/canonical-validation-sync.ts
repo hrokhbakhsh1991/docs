@@ -10,7 +10,6 @@ import {
 import { resolveWorkspaceCurrentSchemaVersion } from "../canonical/schema-version-policy";
 import { throwSchemaVersionMismatch } from "../canonical/schema-version-mismatch";
 import { isValidationFailure, throwValidationFailure } from "../canonical/validation-failure";
-import { assertCatalogRefIntegrity } from "../canonical/assert-catalog-ref-integrity.ts";
 import {
   stripFormProfileFieldsFromCanonicalData,
   filterRootsAfterProfileStrip,
@@ -28,16 +27,11 @@ import {
   pickStarterCreateDataForValidation,
   shouldUseStarterValidationForDenaliCreate,
 } from "./bridge-denali-operator-create-body";
-import { isWorkspaceValidationPipelineEnabled } from "./is-workspace-validation-pipeline-enabled";
-import { runWorkspaceValidationHooks } from "./run-workspace-validation-hooks";
 import {
   formatPipelineViolationMessage,
   runWorkspaceValidationPipeline,
 } from "./run-workspace-validation-pipeline";
-import {
-  resolveValidationMode,
-  runValidationModePublishGate,
-} from "./resolve-validation-mode";
+import { resolveValidationMode } from "./resolve-validation-mode";
 import { getWizardRulesModuleSyncForWorkspace } from "./workspace-wizard-rules-bindings.generated.ts";
 import type { ValidateBeforePersistInput } from "./canonical-validation-sync.types";
 
@@ -295,67 +289,20 @@ function validateCanonicalDocumentWithEngine(
     rulesModule = undefined;
   }
 
-  if (isWorkspaceValidationPipelineEnabled()) {
-    const pipelineViolation = runWorkspaceValidationPipeline({
-      plugin: validationPlugin,
-      document,
-      workspaceType: input.workspaceType,
-      tenantId: input.tenantId,
-      validationMode,
-      validationVariant,
-      catalogRefAllowlists: input.catalogRefAllowlists,
-      dimensions: validationDimensions,
-      rulesModule,
-      engine,
-    });
-    if (pipelineViolation != null) {
-      throwValidationFailure(formatPipelineViolationMessage(pipelineViolation));
-    }
-  } else {
-    let result = engine.validateCanonical(document, {
-      tenantId: input.tenantId,
-      dimensions: validationDimensions,
-    });
-    const filterResult = validationPlugin.wizardHost?.filterEngineValidationResult;
-    if (filterResult != null) {
-      result = filterResult(
-        result,
-        document.data as Record<string, unknown>
-      ) as typeof result;
-    }
-
-    if (!result.ok) {
-      const message = result.violations.map((v) => v.message).join("; ");
-      throwValidationFailure(`CANONICAL_VALIDATION_FAILED: ${message}`);
-    }
-
-    const hookViolation = runWorkspaceValidationHooks(validationPlugin, document);
-    if (hookViolation != null) {
-      throwValidationFailure(
-        `CANONICAL_VALIDATION_FAILED: ${hookViolation.code}: ${hookViolation.message}`
-      );
-    }
-
-    const publishViolation = runValidationModePublishGate(
-      validationPlugin,
-      document,
-      validationMode,
-      input.workspaceType
-    );
-    if (publishViolation != null) {
-      throwValidationFailure(
-        `CANONICAL_VALIDATION_FAILED: ${publishViolation.code}: ${publishViolation.message}`
-      );
-    }
-
-    if (validationMode === "publish" && input.catalogRefAllowlists != null) {
-      const catalogViolation = assertCatalogRefIntegrity(document, input.catalogRefAllowlists);
-      if (catalogViolation != null) {
-        throwValidationFailure(
-          `CANONICAL_VALIDATION_FAILED: ${catalogViolation.code}: ${catalogViolation.message}`
-        );
-      }
-    }
+  const pipelineViolation = runWorkspaceValidationPipeline({
+    plugin: validationPlugin,
+    document,
+    workspaceType: input.workspaceType,
+    tenantId: input.tenantId,
+    validationMode,
+    validationVariant,
+    catalogRefAllowlists: input.catalogRefAllowlists,
+    dimensions: validationDimensions,
+    rulesModule,
+    engine,
+  });
+  if (pipelineViolation != null) {
+    throwValidationFailure(formatPipelineViolationMessage(pipelineViolation));
   }
 
   if (useStarterValidation) {

@@ -9,7 +9,6 @@ import type {
 } from "@app-tour/workspace-sdk";
 
 import { assertCatalogRefIntegrity } from "../canonical/assert-catalog-ref-integrity.ts";
-import { isWorkspaceValidationPipelinePolicySupersedeEnabled } from "./is-workspace-validation-pipeline-policy-supersede-enabled.ts";
 import { runValidationModePublishGate } from "./resolve-validation-mode.ts";
 import { runWorkspaceValidationHooks } from "./run-workspace-validation-hooks.ts";
 import { WORKSPACE_CAPABILITY_VALIDATORS } from "./workspace-capability-validation-bindings.generated.ts";
@@ -81,9 +80,7 @@ export function runWorkspacePolicyValidationStage(
   ctx: WorkspaceValidationPipelineContext
 ): WorkspaceValidationPipelineViolation | null {
   const policyValidator = resolveWorkspacePolicyValidator(ctx.workspaceType);
-  const supersedesFlatHooks =
-    policyValidator?.supersedesFlatHooks === true &&
-    isWorkspaceValidationPipelinePolicySupersedeEnabled(ctx.workspaceType);
+  const supersedesFlatHooks = policyValidator?.supersedesFlatHooks === true;
 
   if (!supersedesFlatHooks) {
     const hookViolation = runWorkspaceValidationHooks(ctx.plugin, ctx.document);
@@ -103,15 +100,9 @@ export function runWorkspacePolicyValidationStage(
   }
 
   if (policyValidator?.validate != null) {
-    const shouldRunPolicy =
-      policyValidator.supersedesFlatHooks === true
-        ? isWorkspaceValidationPipelinePolicySupersedeEnabled(ctx.workspaceType)
-        : true;
-    if (shouldRunPolicy) {
-      const policyViolation = policyValidator.validate(ctx);
-      if (policyViolation != null) {
-        return withStage("workspacePolicy", policyViolation);
-      }
+    const policyViolation = policyValidator.validate(ctx);
+    if (policyViolation != null) {
+      return withStage("workspacePolicy", policyViolation);
     }
   }
 
