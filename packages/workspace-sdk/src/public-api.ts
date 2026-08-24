@@ -243,6 +243,7 @@ export {
   getWorkspaceRuleCell,
   mergeWorkspaceFieldRegistryWithEquipmentFragments,
   mergeWorkspaceFieldRegistryWithDifficultyFitnessFragments,
+  mergeWorkspaceFieldRegistryWithItineraryFragments,
   validateFieldPolicyManifest,
   type WorkspaceFieldPolicyDefinition,
   type WorkspaceFieldPolicyManifest,
@@ -425,6 +426,19 @@ export {
   type WorkspaceDifficultyFitnessFilterPresentation,
   type PublicCatalogDifficultyFitnessFields,
 } from "./difficulty-fitness";
+export {
+  defineWorkspaceItineraryFieldFragment,
+  listWorkspaceItineraryCanonicalPaths,
+  type WorkspaceItineraryFieldFragment,
+  type WorkspaceItineraryFieldRegistryFragment,
+  type WorkspaceItineraryTourFieldConfig,
+  type WorkspaceItineraryWizardCompositeBinding,
+  type PublicCatalogItineraryFields,
+} from "./itinerary";
+export {
+  getWorkspaceItineraryCapabilities,
+  type WorkspaceItineraryCapabilities,
+} from "./catalog/workspace-itinerary-capabilities.generated";
 export {
   resolveGuestSeoForPlugin,
   GuestSeoNotConfiguredError,

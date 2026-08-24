@@ -5,6 +5,7 @@
 
 import type { DenaliCreateWizardStepId } from "../layout/stepIds";
 import { denaliEquipmentFieldModule } from "./denali-equipment-tour-field-module";
+import { denaliItineraryTourField } from "./denali-itinerary-tour-field-module";
 import type { DenaliMatrixCell, DenaliMatrixTag } from "./denaliRuleMatrixRecipes";
 import type {
   DenaliContextualRule,
@@ -415,22 +416,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     wire: { kind: "tripDetails.overview", field: "elevationGainMeters" },
     notes: "Route elevation gain (m); distinct from peak height on basic info.",
   },
-  {
-    canonicalPath: "program.itinerary",
-    stepId: "denali_program",
-    rhfPath: "programNature.itinerary",
-    zodPath: "programNature.itinerary",
-    zodKind: "itinerary",
-    tags: ["itinerary_hidden", "itinerary_visible"] as const,
-    ruleDefaults: { required: false, hidden: true },
-    structuralInvariant: { kind: "clearWhenNotVisible" },
-
-    cellOverrides: {
-      "desert:multi_day": { required: true, hidden: false },
-      "mountain:multi_day": { required: true, hidden: false },
-      "nature:multi_day": { required: true, hidden: false },
-    },
-  },
+  denaliItineraryTourField,
   {
     canonicalPath: "transport.mode",
     stepId: "denali_logistics",
@@ -654,8 +640,6 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     tags: ["core"] as const,
     ruleDefaults: { required: false, hidden: false },
     inRuleModel: false,
-    // INV-WIZ-002 / INV-DENALI-WIZ-016 — Layer C Settings palette exclude only.
-    // Create wizard still owns the leaf inside denali.transport-mode when mode=train.
     settingsSurface: "deprecated",
     contextualVisibility: { kind: "transportTrainSeatVisible" },
     contextualRequired: { kind: "transportTrainSeatVisible" },

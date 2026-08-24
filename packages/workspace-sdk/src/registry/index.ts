@@ -5,6 +5,9 @@ export {
   mergeWorkspaceFieldRegistryWithDifficultyFitnessFragments,
 } from "./merge-workspace-field-registry-with-difficulty-fitness-fragments";
 export {
+  mergeWorkspaceFieldRegistryWithItineraryFragments,
+} from "./merge-workspace-field-registry-with-itinerary-fragments";
+export {
   type WorkspaceFieldKind,
   type WorkspaceFieldRegistry,
   type WorkspaceFieldRegistryEntry,

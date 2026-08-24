@@ -516,6 +516,21 @@
       "export": "denaliDifficultyFitnessFilterPresentation"
     }
   },
+  "workspaceItinerary": {
+    "supported": true,
+    "capabilities": {
+      "wizardTourField": true,
+      "catalogDetailSection": true
+    },
+    "fieldModule": {
+      "module": "./field-registry/denali-itinerary-field-module",
+      "export": "denaliItineraryFieldRegistryFragment"
+    },
+    "wizardComposite": {
+      "module": "./composites/denali-itinerary-composite-binding",
+      "export": "denaliItineraryWizardCompositeBinding"
+    }
+  },
   "devBootstrap": {
     "pluginTenantIds": [
       "00000000-0000-4000-8000-000000000003",

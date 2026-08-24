@@ -149,6 +149,10 @@ import {
   assertWorkspaceDifficultyFitnessManifest,
   generateWorkspaceDifficultyFitnessBindings,
 } from "./domains/difficulty-fitness.mjs";
+import {
+  assertWorkspaceItineraryManifest,
+  generateWorkspaceItineraryBindings,
+} from "./domains/itinerary.mjs";
 import { generateWorkspaceCapabilityValidationBindings, generateWorkspacePolicyValidationBindings } from "./domains/validation-pipeline.mjs";
 
 /** @type {Record<string, readonly string[]>} */
@@ -218,6 +222,11 @@ export const DOMAIN_OUTPUT_KEYS = {
     "workspaceDifficultyFitnessCapabilities",
     "workspaceDifficultyFitnessFieldModule",
     "workspaceDifficultyFitnessFilterPresentation",
+  ],
+  itinerary: [
+    "workspaceItineraryCapabilities",
+    "workspaceItineraryFieldModule",
+    "workspaceItineraryWizardComposite",
   ],
   "validation-pipeline": ["capabilityValidationBindings", "workspacePolicyBindings"],
 };
@@ -303,6 +312,9 @@ export const OUTPUT_KEYS = Object.freeze([
   "workspaceDifficultyFitnessCapabilities",
   "workspaceDifficultyFitnessFieldModule",
   "workspaceDifficultyFitnessFilterPresentation",
+  "workspaceItineraryCapabilities",
+  "workspaceItineraryFieldModule",
+  "workspaceItineraryWizardComposite",
   "capabilityValidationBindings",
   "workspacePolicyBindings",
 ]);
@@ -314,6 +326,7 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     assertWorkspaceEquipmentManifest(manifest);
     assertWorkspaceTransportManifest(manifest);
     assertWorkspaceDifficultyFitnessManifest(manifest);
+    assertWorkspaceItineraryManifest(manifest);
   }
 
   // P3.1.b — validate registration manifests; do not emit legacy monolithic *FromManifest files.
@@ -324,6 +337,7 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
   const equipmentOutputs = generateWorkspaceEquipmentBindings(manifests);
   const transportOutputs = generateWorkspaceTransportBindings(manifests);
   const difficultyFitnessOutputs = generateWorkspaceDifficultyFitnessBindings(manifests);
+  const itineraryOutputs = generateWorkspaceItineraryBindings(manifests);
 
   return {
     ...generatePortalRegisterOutputs(manifests),
@@ -407,6 +421,9 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     workspaceDifficultyFitnessCapabilities: difficultyFitnessOutputs.capabilities,
     workspaceDifficultyFitnessFieldModule: difficultyFitnessOutputs.fieldModule,
     workspaceDifficultyFitnessFilterPresentation: difficultyFitnessOutputs.filterPresentation,
+    workspaceItineraryCapabilities: itineraryOutputs.capabilities,
+    workspaceItineraryFieldModule: itineraryOutputs.fieldModule,
+    workspaceItineraryWizardComposite: itineraryOutputs.wizardComposite,
     capabilityValidationBindings: generateWorkspaceCapabilityValidationBindings(manifests),
     workspacePolicyBindings: generateWorkspacePolicyValidationBindings(manifests),
   };
@@ -700,6 +717,18 @@ export const OUTPUT_PATHS = {
   workspaceDifficultyFitnessFilterPresentation: join(
     REPO_ROOT,
     "packages/workspace-sdk/src/catalog/workspace-difficulty-fitness-filter-presentation.generated.ts"
+  ),
+  workspaceItineraryCapabilities: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-itinerary-capabilities.generated.ts"
+  ),
+  workspaceItineraryFieldModule: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-itinerary-field-module-bindings.generated.ts"
+  ),
+  workspaceItineraryWizardComposite: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-itinerary-wizard-composite-bindings.generated.ts"
   ),
   capabilityValidationBindings: join(
     REPO_ROOT,
