@@ -294,6 +294,14 @@
       "types": "./dist/finance/case-read/index.d.ts",
       "default": "./dist/finance/case-read/index.js"
     },
+    "./transport": {
+      "types": "./dist/transport/index.d.ts",
+      "default": "./dist/transport/index.js"
+    },
+    "./settlement": {
+      "types": "./dist/settlement/index.d.ts",
+      "default": "./dist/settlement/index.js"
+    },
 
     "./settings/denaliFullWizardTemplate": {
       "types": "./dist/settings/denaliFullWizardTemplate.d.ts",

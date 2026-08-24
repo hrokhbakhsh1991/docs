@@ -1,0 +1,80 @@
+---
+title: Denali refund orchestration (DP-6 / DEN-PROD-08)
+doc_id: DENALI-REFUND-ORCHESTRATION
+version: "2026-08-24-v1"
+workspace: denali
+status: ACTIVE
+authority: DEN-PROD-08 · DEN-PROD-10 · DEN-PROD-11 · dp-6-execution-plan.md
+---
+
+# Denali refund orchestration
+
+## Purpose
+
+Connect **booking cancellation** to existing **`FinanceRefund`** (PR23-E2/E3) without duplicating money semantics.
+
+Finance remains SoT for refund caps and lifecycle. Denali owns **eligibility policy** (penalty, cutoff). Bookings owns **lifecycle cancel** and capacity.
+
+## DEN-PROD-08 — refund destination
+
+**Launch:** manual payout only (`completeRefund` + `completionNote` / evidence). No Wallet, no PSP reversal.
+
+## Eligibility ownership
+
+| Layer | Owns |
+| ----- | ---- |
+| Denali `computeDenaliRefundEligibility` | Penalty %, suggested `eligibleRefundMinor` |
+| Finance `refundable-cap` | Hard ceiling: collected − completed refunds |
+| Orchestrator | `min(eligible, cap)` → `requestRefund` draft (`Requested`) |
+| Operator | Approve + Complete payout in Finance Hub |
+
+Penalty applies at **refund calculation**, not at cancel TX (DEN-PROD-09).
+
+```text
+eligibleRefund = max(0, collected − penaltyMinor − completedRefunds)
+requestAmount  = min(eligibleRefund, financeCap)
+```
+
+## Orchestration trigger
+
+After terminal cancel (`registration.cancelled` fact):
+
+1. `runPostCancelSideEffects` — hold void, waitlist promote, settlement allocation trim
+2. `orchestrateRefundAfterCancellation` — draft `FinanceRefund` when `requestAmount > 0`
+3. Idempotency key: `refund:registration.cancelled:{domainEventId}`
+
+**Never auto-Complete** — operator records offline payout in Finance.
+
+## HTTP surfaces
+
+| Method | Path | Actor |
+| ------ | ---- | ----- |
+| `GET` | `/bookings/:id/refund-eligibility` | Operator |
+| `GET` | `/bookings/:id/member-cancellation` | Member (+ refund preview when paid) |
+| `POST` | `/bookings/:id/member-cancellation/approve` | Operator (paid request path) |
+| `POST` | `/tours/:tourId/cancel` | Operator (batch cancel + refund drafts) |
+| Portal BFF | `GET /api/me/registrations/:id/refund` | Member refund status |
+
+## Side effects matrix
+
+| Cancel source | Capacity | Waitlist | Hold | Refund draft | Settlement |
+| ------------- | -------- | -------- | ---- | ------------ | ---------- |
+| Member withdraw | Freed if was approved | Promote one | Void | No (unpaid) | Trim allocation |
+| Member self-cancel unpaid | Freed | Promote | Void | No | Trim |
+| Member request (paid) | Held until ops approve | After approve | After approve | After approve | After approve |
+| Operator cancel | Freed | Promote | Void | If collected > 0 | Trim |
+| Tour cancel | Per registration | Per registration | Per reg | Per reg (no penalty) | Void tour settlements |
+| Hold expiry | Freed | Promote | Expired | No | — |
+
+## Financial invariants (delegated to Finance)
+
+- `refund ≤ financeCap`
+- No double refund (cap + idempotent request key)
+- Immutable refund row; Complete is sole money gate
+- Settlement/refund independence (DP-5)
+
+## Verification
+
+```bash
+pnpm run test:dp6-refund-orchestration
+```

@@ -30,6 +30,7 @@ import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
 import { fetchTourDetailCached } from "@/features/tours/tour-route-cache";
+import { DriverSettlementPanel } from "./driver-settlement-panel";
 
 type TourWorkspaceTransportClientProps = {
   readonly tourId: string;
@@ -84,6 +85,11 @@ export function TourWorkspaceTransportClient({
   }, [loadTransport]);
 
   const localizedError = resolveTourErrorMessage(tErrors, error);
+
+  const driverRow = items.find((row) => row.transportKind === "personal_car");
+  const passengerRows = items.filter(
+    (row) => row.transportKind !== "personal_car" && row.id !== driverRow?.id
+  );
 
   return (
     <Card data-operator-surface="card" data-testid={TOUR_WORKSPACE_TEST_IDS.transportPanel} className="shadow-sm">
@@ -159,6 +165,14 @@ export function TourWorkspaceTransportClient({
               </OperatorInternalLink>
             </Button>
           </div>
+        ) : null}
+
+        {!loading && driverRow ? (
+          <DriverSettlementPanel
+            tourId={tourId}
+            driverRegistrationId={driverRow.id}
+            passengerIds={passengerRows.slice(0, 2).map((r) => r.id)}
+          />
         ) : null}
 
         {!loading && items.length > 0 ? (

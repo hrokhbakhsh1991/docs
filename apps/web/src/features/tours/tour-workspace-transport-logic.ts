@@ -48,6 +48,11 @@ export const TOUR_WORKSPACE_TRANSPORT_TEST_IDS = {
   amountDue: "operator-tour-workspace-operational-roster-amount-due",
   paymentDeadline: "operator-tour-workspace-operational-roster-deadline",
   driverBadge: "operator-tour-workspace-operational-roster-driver",
+  settlementPanel: "operator-tour-workspace-driver-settlement",
+  settlementTotal: "operator-tour-workspace-driver-settlement-total",
+  settlementStatus: "operator-tour-workspace-driver-settlement-status",
+  freezeButton: "operator-tour-workspace-roster-freeze",
+  approvePayableButton: "operator-tour-workspace-settlement-approve-payable",
 } as const;
 
 export const OPERATIONAL_ROSTER_FILTERS: readonly OperationalRosterFilter[] = [
@@ -80,6 +85,18 @@ export function buildTourOperationalRosterHref(
 ): string {
   return `/api/tours/${encodeURIComponent(tourId)}/operational-roster?${buildTourOperationalRosterQuery(tourId, filter)}`;
 }
+
+export type DriverSettlementRow = {
+  readonly settlementId: string;
+  readonly driverRegistrationId: string;
+  readonly offeredSeats: number;
+  readonly assignedPassengers: number;
+  readonly billableQuantity: number;
+  readonly unitAmountMinor: string;
+  readonly totalMinor: string;
+  readonly status: string;
+  readonly currency: string;
+};
 
 /** @deprecated Use buildTourOperationalRosterQuery — bookings list no longer authoritative for DP-2. */
 export function buildTourTransportBookingsQuery(tourId: string): string {

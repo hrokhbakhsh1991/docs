@@ -1,0 +1,181 @@
+---
+title: Denali driver settlement (DP-5)
+doc_id: DENALI-DRIVER-SETTLEMENT
+version: "2026-08-24-v1"
+workspace: denali
+status: ACTIVE
+authority: DEN-PROD-06 · DEN-PROD-07 · denali-product-completion-plan DP-5
+---
+
+# Denali driver settlement (DP-5)
+
+## Problem
+
+Personal-car drivers offer passenger seats at registration (`personalCarOccupants` 1–3). Clubs compensate drivers per carried/assigned passengers. Today intake exists but **no** allocation, settlement, or payout seam.
+
+## Boundary (non-negotiable)
+
+```text
+Transport  → allocation + roster-freeze facts (no money)
+Settlement → quantity + lifecycle + audit (no Wallet)
+Finance    → driver payable case + manual payout evidence
+Wallet     → NOT REQUIRED (optional future destination via same settlementId)
+```
+
+Transport **must not** mutate Wallet or member ledger balances.
+
+## Product decisions (approved)
+
+### DEN-PROD-06 — compensation basis
+
+| Fact | Source |
+| ---- | ------ |
+| `offeredSeats` | `personalCarOccupants` on driver registration (immutable post-approve) |
+| `assignedPassengers` | count of passenger allocations linked to driver at roster freeze |
+| `carriedPassengers` | operator override / future DP-7 attendance |
+
+**Billable quantity:**
+
+```text
+billableQuantity = min(offeredSeats, assignedPassengers)
+```
+
+v1 until TW-C-06 full assignment UI: operator assigns passengers manually; freeze locks count.
+
+**Scenario:** driver offers **3**, **2** passengers assigned → compensate **2 × unitAmount**, not 3.
+
+### DEN-PROD-07 — payable trigger
+
+| Event | Effect |
+| ----- | ------ |
+| **Roster freeze** | Locks `assignedPassengers`; generates `draft` settlements |
+| **Operator confirm** | `draft` → `confirmed` |
+| **Approve payable** | `confirmed` → `payable`; opens Finance driver-payable case |
+| **Complete payout** | `payable` → `paid`; immutable billable fields |
+
+Freeze alone does **not** create payable. Money moves only after operator approval.
+
+## Domain model
+
+### Transport allocation
+
+```text
+TransportAllocation {
+  allocationId
+  tenantId
+  tourId
+  driverRegistrationId    // personal_car booking
+  passengerRegistrationId // approved operational participant (not driver)
+  createdAt
+  createdByUserId
+}
+```
+
+Rules:
+
+- Driver row must be `transportKind=personal_car`.
+- Passenger cannot be assigned to multiple drivers on same tour.
+- Passenger must be `approved` operational participant.
+- `assignedPassengers` for driver ≤ `offeredSeats`.
+
+### Driver settlement
+
+```text
+DriverSettlement {
+  settlementId
+  tenantId
+  tourId
+  driverRegistrationId
+  offeredSeats
+  assignedPassengers
+  billableQuantity
+  unitAmountMinor        // integer string
+  currency
+  totalMinor             // billableQuantity × unitAmountMinor
+  status                 // draft | confirmed | payable | paid | voided
+  basis                  // assigned_at_freeze
+  payableTrigger         // operator_confirm
+  correctionOfSettlementId?
+  financePayableId?
+  approvedByUserId?
+  rosterFrozenAt?
+  confirmedAt?
+  finalizedAt?           // → payable
+  paidAt?
+  idempotencyKey
+  audit[]                // append-only
+  createdAt
+  updatedAt
+}
+```
+
+### Finance driver payable
+
+Parallel to `FinanceRefund` (member refunds):
+
+```text
+DriverPayable {
+  payableId
+  tenantId
+  settlementId
+  tourId
+  driverRegistrationId
+  amountMinor
+  currency
+  status                 // Requested | Approved | Completed | Cancelled
+  evidenceNote?
+  evidenceFileKey?
+  completedAt?
+  idempotencyKey
+}
+```
+
+## Status machine
+
+```text
+draft → confirmed → payable → paid
+  ↓         ↓          ↓
+voided   voided     correction (new settlement row; original frozen)
+```
+
+- **`paid` rows are immutable.** Corrections insert a new settlement linked via `correctionOfSettlementId`.
+- Duplicate freeze / approve / complete are **idempotent** (same idempotency key → replay).
+
+## Adjustment matrix
+
+| Event | Pre-payable | Payable | Paid |
+| ----- | ----------- | ------- | ---- |
+| Passenger cancel | Remove allocation; recalc draft | Void payable → new draft | Reversal settlement |
+| Passenger reassignment | Update allocations; recalc drafts | Void affected payables | Correction per driver |
+| Driver cancel | Void draft + remove allocations | Void payable | Reversal |
+| Tour cancel | Batch void drafts | Batch void payables | Batch reversals |
+| Operator edits transport | Blocked when allocations exist (DP-3) | Correction only | Correction only |
+
+## HTTP surface (v1)
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| GET | `/tours/:tourId/transport-allocations` | List allocations |
+| PUT | `/tours/:tourId/transport-allocations` | Replace allocation set |
+| POST | `/tours/:tourId/roster/freeze` | Freeze roster + generate draft settlements |
+| GET | `/tours/:tourId/driver-settlements` | List settlements |
+| POST | `/tours/:tourId/driver-settlements/:id/confirm` | Operator confirm |
+| POST | `/tours/:tourId/driver-settlements/:id/approve-payable` | Open Finance payable |
+| GET | `/finance/driver-payables` | Finance hub list |
+| POST | `/finance/driver-payables/:id/complete` | Record manual payout |
+
+Request body for freeze includes `driverCompensationPerSeatMinor` (integer minor units) and `currency`.
+
+## Roster projection
+
+When allocations exist, operational roster `passengerAssignmentStatus` becomes `assigned` or `partial` instead of `not_implemented`.
+
+## Verification
+
+- Domain: `packages/workspaces/denali/test/driver-settlement*.spec.ts`
+- API: `apps/api/test/dp5/*.spec.ts`
+- Gate: `pnpm run test:dp5-driver-settlement`
+
+## DB (future Prisma)
+
+Tables: `transport_allocations`, `driver_settlements`, `driver_settlement_audit_events`, `driver_payables`. v1 uses in-memory driver with `tenant_id` on every query.
