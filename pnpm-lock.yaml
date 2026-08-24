@@ -796,6 +796,9 @@ importers:
       '@app-tour/catalog-registration-flow-ui':
         specifier: workspace:*
         version: link:../catalog-registration-flow-ui
+      '@app-tour/workspace-alpine':
+        specifier: workspace:*
+        version: link:../workspaces/alpine
       '@app-tour/workspace-cert-club':
         specifier: workspace:*
         version: link:../workspaces/cert-club
@@ -1093,6 +1096,9 @@ importers:
       '@app-tour/config':
         specifier: workspace:*
         version: link:../config
+      '@app-tour/workspace-cert-club':
+        specifier: workspace:*
+        version: link:../workspaces/cert-club
       '@app-tour/workspace-denali':
         specifier: workspace:*
         version: link:../workspaces/denali

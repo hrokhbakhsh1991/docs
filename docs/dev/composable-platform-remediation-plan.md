@@ -316,6 +316,25 @@ git diff --check
 
 ---
 
+## LOOP #1 — forensic remediation (2026-08-24)
+
+Independent CW + architecture audit. Material defects remediated in waves:
+
+| ID | Severity | Fix |
+|----|----------|-----|
+| FIND-001 | P0 | workspace-sdk Node16 + codegen ambient shims; isolated build green |
+| FIND-002 | P0 | monorepo-build order: cert-club, cert-events, alpine, profile-cert, policy-cert |
+| FIND-003 | P0 | cert-club transport snapshot returns `PublicCatalogTransportSnapshot` |
+| FIND-004 | P1 | policy-no-core-branching guard skips node_modules/dist (ELOOP) |
+| FIND-005 | P1 | Denali package.json export aliases for codegen dispatch paths |
+| FIND-006 | P1 | cert workspace `./http` + cert-club `./host/policy/tour-policy` export aliases |
+| FIND-007 | P1 | API `workspace-route-registrar` cert handler dispatch kinds |
+| FIND-008 | P1 | `list-tours-operator` missing projection dispatch import |
+| FIND-009 | P1 | P0-GATE-04 root barrel allowlist sync for CW capability exports |
+| FIND-010 | P1 | foundation-import-purity transitive allowlist for codegen dispatch chain |
+
+---
+
 ## Closure evidence log
 
 | REM | Evidence | Date |

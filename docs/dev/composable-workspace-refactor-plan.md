@@ -1049,6 +1049,8 @@ Validation command shape (planning-time, read-only): parse task headings; assert
 
 **Program closure (2026-08-24):** **COMPOSABLE WORKSPACE REFACTOR = COMPLETE (certified-with-exceptions)** — 91/91 tasks marked; REMEDIATION #1 (2026-08-24) corrects CW9 false-pass items — see [`composable-platform-remediation-plan.md`](composable-platform-remediation-plan.md). Metrics vs frozen baseline in CW9-10 report; synthetic workspaces **KEEP_AS_CERT_FIXTURES** (`productionTier: stub`).
 
+**LOOP #1 forensic re-certification (2026-08-24):** Independent audit of all 91 CW tasks + architecture adversarial pass. Material P0/P1 defects remediated (build graph, export aliases, API cert-handler dispatch, foundation purity transitive allowlist, marketing price-display typing). Gates: `verify:cw-closure` **16/16 PASS**; `bash scripts/monorepo-build.sh` **PASS**; Denali **693/693**; workspace-sdk `test:phase-0` **PASS**; `guard:import-boundary` + `guard:architecture` **PASS**. Residual exceptions unchanged: CW9-03 stub-tier cert fixtures; CW9-08 `workspaceIdBranches` ratchet (16≠0); hollow capability validators (MAT-002); Urban REQ-P7-007 baseline digest drift on `main` (pre-existing, platform-core tree unchanged in LOOP #1). **Verdict: CW_AND_ARCHITECTURE_CERTIFIED.**
+
 ---
 
-_Architect, documentation status: Updated. Link to docs: `docs/dev/composable-workspace-refactor-plan.md`, `docs/dev/cw9-10-certification-report.md`._
+_Architect, documentation status: Updated. Link to docs: `docs/dev/composable-workspace-refactor-plan.md`, `docs/dev/cw9-10-certification-report.md`, `docs/dev/composable-platform-remediation-plan.md`._
