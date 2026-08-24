@@ -331,7 +331,6 @@
   },
   "catalogRegistrationFlow": {
     "surfaceExport": "denaliCatalogRegistrationFlowSurface",
-    "transportInitializerExport": "registerDenaliCatalogRegistrationTransportInitializer",
     "steps": {
       "mode": "bundle",
       "export": "denaliRegistrationFlowSteps"
@@ -471,6 +470,33 @@
     "themeFilter": {
       "module": "./settings/equipment-compatible-themes",
       "export": "isEquipmentCompatibleWithTourThemes"
+    }
+  },
+  "workspaceTransport": {
+    "supported": true,
+    "capabilities": {
+      "catalogSnapshot": true,
+      "catalogDetailSection": true,
+      "registrationIntake": true,
+      "registrationInitializer": true,
+      "listProjection": true,
+      "registrationNormalize": true
+    },
+    "catalogSnapshotReader": {
+      "module": "./catalog/read-denali-catalog-transport",
+      "export": "readDenaliCatalogTransportSnapshot"
+    },
+    "registrationInitializer": {
+      "module": "./catalog/registration-flow/register-transport-initializer",
+      "export": "registerDenaliCatalogRegistrationTransportInitializer"
+    },
+    "catalogIntakeTransportSurface": {
+      "module": "./catalog/denali-catalog-transport-intake",
+      "export": "denaliCatalogTransportIntakeSurface"
+    },
+    "registrationTransportNormalizer": {
+      "module": "./http/resolve-denali-registration-transport",
+      "export": "normalizeDenaliRegistrationTransportIntake"
     }
   },
   "devBootstrap": {

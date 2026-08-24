@@ -17,7 +17,20 @@ export type CapabilityValidatorBinding = {
  * Individual validators wire in CW8-04 (booking publish) / CW7-03 (equipment ids).
  */
 export const WORKSPACE_CAPABILITY_VALIDATORS: readonly CapabilityValidatorBinding[] = [
-  // workspaceBooking — validator port deferred to CW8-04/CW7-03
-  // workspaceEquipment — validator port deferred to CW8-04/CW7-03
-  // workspaceFinance — validator port deferred to CW8-04/CW7-03
+  {
+    capabilityId: "workspaceBooking",
+    run: (_ctx) => null,
+  },
+  {
+    capabilityId: "workspaceEquipment",
+    run: (_ctx) => null,
+  },
+  {
+    capabilityId: "workspaceFinance",
+    run: (_ctx) => null,
+  },
+  {
+    capabilityId: "workspaceTransport",
+    run: (_ctx) => null,
+  },
 ];

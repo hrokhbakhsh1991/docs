@@ -86,10 +86,10 @@ import {
   generatePortalRegisterOutputs,
   generateWorkspaceIntakePluginBootstrap,
   generateWorkspaceRegistrationFlowPlugins,
-  generateWorkspaceRegistrationTransportInitializers,
   portalRegisterOutputKey,
   selectPortalRegisterManifests,
 } from "./codegen/workspace-registry/domains/registration.mjs";
+import { generateWorkspaceRegistrationTransportInitializers } from "./codegen/workspace-registry/domains/transport.mjs";
 import {
   generateMarketingCatalogBindings,
   generateOperatorUiComponentsBindings,

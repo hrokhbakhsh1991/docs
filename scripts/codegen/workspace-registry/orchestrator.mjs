@@ -124,7 +124,6 @@ import {
   selectPortalRegisterManifests,
   generateWorkspaceIntakePluginBootstrap,
   generateWorkspaceRegistrationFlowPlugins,
-  generateWorkspaceRegistrationTransportInitializers,
 } from "./domains/registration.mjs";
 import {
   generateMarketingCatalogBindings,
@@ -141,6 +140,11 @@ import {
   generateWorkspaceEquipmentCapabilities,
   generateWorkspaceEquipmentBindings,
 } from "./domains/equipment.mjs";
+import {
+  assertWorkspaceTransportManifest,
+  generateWorkspaceTransportBindings,
+  resolveTransportRegistrationInitializerExport,
+} from "./domains/transport.mjs";
 import { generateWorkspaceCapabilityValidationBindings, generateWorkspacePolicyValidationBindings } from "./domains/validation-pipeline.mjs";
 
 /** @type {Record<string, readonly string[]>} */
@@ -199,6 +203,13 @@ export const DOMAIN_OUTPUT_KEYS = {
   integration: ["integrationCapabilities"],
   "profile-expansion": ["profileExpansionAudit"],
   equipment: ["workspaceEquipmentCapabilities", "equipmentIconKeyValidator", "workspaceEquipmentFieldModule"],
+  transport: [
+    "workspaceTransportCapabilities",
+    "catalogTransportSnapshotReaders",
+    "catalogIntakeTransportSurfaces",
+    "registrationTransportNormalizers",
+    "registrationTransportInitializers",
+  ],
   "validation-pipeline": ["capabilityValidationBindings", "workspacePolicyBindings"],
 };
 
@@ -275,6 +286,11 @@ export const OUTPUT_KEYS = Object.freeze([
   "profileExpansionAudit",
   "workspaceEquipmentCapabilities",
   "workspaceEquipmentFieldModule",
+  "workspaceTransportCapabilities",
+  "catalogTransportSnapshotReaders",
+  "catalogIntakeTransportSurfaces",
+  "registrationTransportNormalizers",
+  "registrationTransportInitializers",
   "capabilityValidationBindings",
   "workspacePolicyBindings",
 ]);
@@ -284,15 +300,16 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     assertGuestExtensionsManifest(manifest);
     assertHttpRoutesManifest(manifest);
     assertWorkspaceEquipmentManifest(manifest);
+    assertWorkspaceTransportManifest(manifest);
   }
 
   // P3.1.b — validate registration manifests; do not emit legacy monolithic *FromManifest files.
   // P5.1 — emit portal register-*.generated.ts + portal/host register manifests.
   generateWorkspaceIntakePluginBootstrap(manifests);
   generateWorkspaceRegistrationFlowPlugins(manifests);
-  generateWorkspaceRegistrationTransportInitializers(manifests);
 
   const equipmentOutputs = generateWorkspaceEquipmentBindings(manifests);
+  const transportOutputs = generateWorkspaceTransportBindings(manifests);
 
   return {
     ...generatePortalRegisterOutputs(manifests),
@@ -368,6 +385,11 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     profileExpansionAudit: generateProfileExpansionAudit(authorManifests),
     workspaceEquipmentCapabilities: equipmentOutputs.capabilities,
     workspaceEquipmentFieldModule: equipmentOutputs.fieldModule,
+    workspaceTransportCapabilities: transportOutputs.capabilities,
+    catalogTransportSnapshotReaders: transportOutputs.catalogSnapshotReaders,
+    catalogIntakeTransportSurfaces: transportOutputs.catalogIntakeTransportSurfaces,
+    registrationTransportNormalizers: transportOutputs.registrationTransportNormalizers,
+    registrationTransportInitializers: transportOutputs.registrationTransportInitializers,
     capabilityValidationBindings: generateWorkspaceCapabilityValidationBindings(manifests),
     workspacePolicyBindings: generateWorkspacePolicyValidationBindings(manifests),
   };
@@ -629,6 +651,26 @@ export const OUTPUT_PATHS = {
   workspaceEquipmentFieldModule: join(
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-equipment-field-module-bindings.generated.ts"
+  ),
+  workspaceTransportCapabilities: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-transport-capabilities.generated.ts"
+  ),
+  catalogTransportSnapshotReaders: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/catalog-transport-snapshot-readers.generated.ts"
+  ),
+  catalogIntakeTransportSurfaces: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/catalog-intake-transport-surfaces.generated.ts"
+  ),
+  registrationTransportNormalizers: join(
+    REPO_ROOT,
+    "apps/api/src/catalog/registration-transport-normalizers.generated.ts"
+  ),
+  registrationTransportInitializers: join(
+    REPO_ROOT,
+    "packages/workspace-plugin-host/src/workspace-registration-transport-initializers.generated.ts"
   ),
   capabilityValidationBindings: join(
     REPO_ROOT,

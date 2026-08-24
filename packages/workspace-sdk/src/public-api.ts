@@ -388,6 +388,17 @@ export {
   type WorkspaceEquipmentCapabilities,
 } from "./catalog/workspace-equipment-capabilities.generated";
 export {
+  getWorkspaceTransportCapabilities,
+  type WorkspaceTransportCapabilities,
+} from "./catalog/workspace-transport-capabilities.generated";
+export {
+  resolveCatalogTransportSnapshotReader,
+  type CatalogTransportSnapshotReaderBinding,
+} from "./catalog/catalog-transport-snapshot-readers.generated";
+export {
+  resolveCatalogIntakeTransportSurface,
+} from "./catalog/catalog-intake-transport-surfaces.generated";
+export {
   defineWorkspaceEquipmentFieldFragment,
   listWorkspaceEquipmentCanonicalPaths,
   type WorkspaceEquipmentFieldFragment,

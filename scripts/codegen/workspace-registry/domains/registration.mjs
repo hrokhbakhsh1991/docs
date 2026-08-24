@@ -1,6 +1,7 @@
 import { BANNER } from "../constants.mjs";
 import { importSpecifier, workspaceManifestConstPrefix } from "../utils.mjs";
 import { filterManifestsByDeployProfile } from "./deploy-profile.mjs";
+import { resolveTransportRegistrationInitializerExport } from "./transport.mjs";
 
 /** Portal/runtime banner — product dynamic imports stay runtime-owned (P3.2.b / P5.1 / P5.3). */
 export const PORTAL_REGISTER_BANNER = `/**
@@ -76,17 +77,18 @@ function generatePortalRegistrationFlowBody(manifest, allManifests) {
     return "";
   }
   assertCatalogRegistrationFlowManifest(manifest, allManifests);
-  assertCatalogRegistrationTransportInitializerManifest(manifest);
 
   const surfaceSpec = importSpecifier(manifest.package, "./catalog-registration-flow");
   const reactSpec = importSpecifier(manifest.package, "./catalog-registration-flow/react");
   /** @type {string[]} */
   const lines = [""];
 
-  if (typeof cfg.transportInitializerExport === "string") {
+  const transportInitializer = resolveTransportRegistrationInitializerExport(manifest);
+  if (transportInitializer !== undefined) {
+    const initSpec = importSpecifier(manifest.package, transportInitializer.module);
     lines.push(
-      awaitNamedImportLine([cfg.transportInitializerExport], surfaceSpec),
-      `  ${cfg.transportInitializerExport}();`,
+      awaitNamedImportLine([transportInitializer.export], initSpec),
+      `  ${transportInitializer.export}();`,
       ""
     );
   }
@@ -274,7 +276,6 @@ export function generatePortalRegisterOutputs(manifests, env = process.env) {
   for (const m of selected) {
     if (m.catalogRegistrationFlow !== undefined) {
       assertCatalogRegistrationFlowManifest(m, manifests);
-      assertCatalogRegistrationTransportInitializerManifest(m);
     }
   }
   /** @type {Record<string, string>} */
@@ -437,56 +438,19 @@ ${registerBlocks.join("\n\n")}
 }
 
 /**
+ * @deprecated CW7-06 — use transport.mjs `resolveTransportRegistrationInitializerExport`.
  * @param {ReturnType<typeof discoverManifests>[number]} manifest
  */
 export function assertCatalogRegistrationTransportInitializerManifest(manifest) {
-  const cfg = manifest.catalogRegistrationFlow;
-  if (cfg === undefined || cfg.transportInitializerExport === undefined) {
+  const initializer = resolveTransportRegistrationInitializerExport(manifest);
+  if (initializer === undefined) {
     return;
   }
-  if (
-    typeof cfg.transportInitializerExport !== "string" ||
-    cfg.transportInitializerExport.length === 0
-  ) {
+  if (typeof initializer.export !== "string" || initializer.export.length === 0) {
     throw new Error(
-      `${manifest.id}: catalogRegistrationFlow.transportInitializerExport must be a non-empty string`
+      `${manifest.id}: workspaceTransport.registrationInitializer.export must be a non-empty string`
     );
   }
-}
-
-/** @param {ReturnType<typeof discoverManifests>} manifests */
-export function generateWorkspaceRegistrationTransportInitializers(manifests) {
-  for (const manifest of manifests) {
-    assertCatalogRegistrationTransportInitializerManifest(manifest);
-  }
-
-  /** @type {Set<string>} */
-  const importLines = new Set();
-  /** @type {string[]} */
-  const callLines = [];
-
-  for (const manifest of manifests) {
-    const exportName = manifest.catalogRegistrationFlow?.transportInitializerExport;
-    if (exportName === undefined) {
-      continue;
-    }
-    const spec = importSpecifier(manifest.package, "./catalog-registration-flow");
-    importLines.add(`import { ${exportName} } from "${spec}";`);
-    callLines.push(`  ${exportName}();`);
-  }
-
-  const body =
-    callLines.length > 0
-      ? callLines.join("\n")
-      : "  // no workspace declares catalogRegistrationFlow.transportInitializerExport";
-
-  return `${BANNER}
-${[...importLines].sort().join("\n")}
-
-export function registerWorkspaceRegistrationTransportInitializersFromManifest(): void {
-${body}
-}
-`;
 }
 
 export function generateWorkspaceIntakePluginBootstrap(manifests) {

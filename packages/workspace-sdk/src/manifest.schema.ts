@@ -41,6 +41,28 @@ const workspaceEquipmentEnricherBindingSchema = workspaceEquipmentModuleBindingS
 /** CW8-03 — manifest-declared workspace policy validator factory. */
 export const WorkspacePolicyBlockSchema = workspaceModuleBindingSchema;
 
+/** CW7-06 — transport capability block (top-level manifest extension). */
+export const WorkspaceTransportBlockSchema = z.object({
+  supported: z.boolean(),
+  capabilities: z
+    .object({
+      wizardTourField: z.boolean().optional(),
+      catalogSnapshot: z.boolean().optional(),
+      catalogDetailSection: z.boolean().optional(),
+      registrationIntake: z.boolean().optional(),
+      registrationInitializer: z.boolean().optional(),
+      listProjection: z.boolean().optional(),
+      registrationNormalize: z.boolean().optional(),
+    })
+    .optional(),
+  catalogSnapshotReader: workspaceModuleBindingSchema.optional(),
+  registrationInitializer: workspaceModuleBindingSchema.optional(),
+  catalogIntakeTransportSurface: workspaceModuleBindingSchema.optional(),
+  registrationTransportNormalizer: workspaceModuleBindingSchema.optional(),
+  fieldModule: workspaceModuleBindingSchema.optional(),
+  wizardComposite: workspaceModuleBindingSchema.optional(),
+});
+
 /** CW7-02 — equipment capability block (top-level manifest extension). */
 export const WorkspaceEquipmentBlockSchema = z.object({
   supported: z.boolean(),
@@ -167,6 +189,7 @@ export const WorkspaceManifestCiSchema = z
     plugin: pluginEntrySchema,
     profile: WorkspaceProfileRefSchema.optional(),
     workspaceEquipment: WorkspaceEquipmentBlockSchema.optional(),
+    workspaceTransport: WorkspaceTransportBlockSchema.optional(),
     workspacePolicy: WorkspacePolicyBlockSchema.optional(),
     theme: ManifestThemeBlockSchema.optional(),
     guestCrossSurfaceNav: guestCrossSurfaceNavSchema.optional(),

@@ -2,6 +2,7 @@ import { BANNER } from "../constants.mjs";
 import { importSpecifier } from "../utils.mjs";
 
 import { resolveWorkspaceEquipmentManifest } from "./equipment.mjs";
+import { resolveWorkspaceTransportManifest } from "./transport.mjs";
 
 /**
  * Stable capability ordering for validation pipeline dispatch (CW8-02).
@@ -25,6 +26,10 @@ export function listEnabledCapabilityIds(manifest) {
   const equipment = resolveWorkspaceEquipmentManifest(manifest);
   if (equipment !== undefined && equipment.supported === true) {
     ids.push("workspaceEquipment");
+  }
+  const transport = resolveWorkspaceTransportManifest(manifest);
+  if (transport !== undefined && transport.supported === true) {
+    ids.push("workspaceTransport");
   }
   const finance = manifest.workspaceFinance;
   if (finance !== undefined && typeof finance === "object" && finance !== null && finance.supported === true) {
@@ -61,7 +66,10 @@ export const WORKSPACE_CAPABILITY_VALIDATORS: readonly CapabilityValidatorBindin
   }
 
   const bindingLines = orderedIds.map(
-    (id) => `  // ${id} — validator port deferred to CW8-04/CW7-03`
+    (id) => `  {
+    capabilityId: ${JSON.stringify(id)},
+    run: (_ctx) => null,
+  },`
   );
 
   return `${BANNER}
