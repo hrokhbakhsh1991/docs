@@ -8,9 +8,14 @@ import {
 } from "../engine/platform-wizard.engine";
 import type { RenderStepPlan } from "../types/render-plan";
 import type { ValidationResult } from "../types/validation-result";
+import { resolveGenericInitialStepIndexFromHostInput } from "../wizard/resolve-generic-initial-step-index";
+
+export type PlatformWizardResumeMode = "noop" | "generic";
 
 export type PlatformWizardHostHooksOptions = {
   readonly dimensions: Readonly<Record<string, string>>;
+  /** DEC-CW-05 Option C — noop omits hook; generic attaches platform resume when stepIds are stable. */
+  readonly wizardResume?: PlatformWizardResumeMode;
 };
 
 function readDraftData(draft: Readonly<Record<string, unknown>>): Record<string, unknown> {
@@ -73,11 +78,19 @@ export function createPlatformWizardHostHooks(
 ): WorkspaceWizardHostHooks {
   const dimensions = Object.freeze({ ...options.dimensions });
 
+  const resumeHooks =
+    options.wizardResume === "generic"
+      ? {
+          resolveInitialStepIndex: resolveGenericInitialStepIndexFromHostInput,
+        }
+      : {};
+
   return Object.freeze({
     usesStepValidation: true,
     validationSurfaceId: "platform",
     wizardMessageNamespace: "wizard",
     resolveMatrixDimensionsFromDraft: () => dimensions,
+    ...resumeHooks,
     validateDraftSync: (input) => {
       const plugin = input.plugin as WorkspacePlugin;
       const engine = PlatformWizardEngine.create(stripWorkspacePluginForWizardEngine(plugin));

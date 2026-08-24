@@ -51,4 +51,26 @@ describe("platform-wizard-host-hooks.spec.ts (SDK-12.8-01)", () => {
     assert.ok(result);
     assert.equal(result.ok, true, JSON.stringify(result.violations));
   });
+
+  it("CW5-10 noop default omits resolveInitialStepIndex", () => {
+    const hooks = createPlatformWizardHostHooks({ dimensions: { variant: "default" } });
+    assert.equal(hooks.resolveInitialStepIndex, undefined);
+  });
+
+  it("CW5-10 generic mode attaches platform resume hook", () => {
+    const hooks = createPlatformWizardHostHooks({
+      dimensions: { variant: "default" },
+      wizardResume: "generic",
+    });
+    assert.equal(typeof hooks.resolveInitialStepIndex, "function");
+    const inferred = hooks.resolveInitialStepIndex?.({
+      draft: { data: { basics: { title: "Tour" }, details: { summary: "Done" } } },
+      visibleSteps: [
+        { stepId: "basics", fields: [{ canonicalPath: "basics.title" }] },
+        { stepId: "details", fields: [{ canonicalPath: "details.summary" }] },
+      ],
+      savedStepIndex: 0,
+    });
+    assert.equal(inferred, 1);
+  });
 });

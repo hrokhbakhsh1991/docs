@@ -136,6 +136,10 @@ import {
 } from "./domains/wizard-admin.mjs";
 import { generateProfileExpansionAudit } from "./domains/profile-expansion.mjs";
 import {
+  assertWizardResumeManifest,
+  generateWorkspaceWizardResumeAudit,
+} from "./domains/wizard-resume.mjs";
+import {
   assertWorkspaceEquipmentManifest,
   generateWorkspaceEquipmentCapabilities,
   generateWorkspaceEquipmentBindings,
@@ -206,6 +210,7 @@ export const DOMAIN_OUTPUT_KEYS = {
   exposure: ["exposureHostBindings"],
   integration: ["integrationCapabilities"],
   "profile-expansion": ["profileExpansionAudit"],
+  "wizard-resume": ["wizardResumeAudit"],
   equipment: ["workspaceEquipmentCapabilities", "equipmentIconKeyValidator", "workspaceEquipmentFieldModule"],
   transport: [
     "workspaceTransportCapabilities",
@@ -293,6 +298,7 @@ export const OUTPUT_KEYS = Object.freeze([
   "httpErrorMap",
   "productHttpHostBindings",
   "profileExpansionAudit",
+  "wizardResumeAudit",
   "workspaceEquipmentCapabilities",
   "workspaceEquipmentFieldModule",
   "workspaceTransportCapabilities",
@@ -314,6 +320,7 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     assertWorkspaceEquipmentManifest(manifest);
     assertWorkspaceTransportManifest(manifest);
     assertWorkspaceDifficultyFitnessManifest(manifest);
+    assertWizardResumeManifest(manifest);
   }
 
   // P3.1.b — validate registration manifests; do not emit legacy monolithic *FromManifest files.
@@ -397,6 +404,7 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     httpHandlerLoaders: generateWorkspaceHttpHandlerLoaders(manifests),
     httpErrorMap: generateWorkspaceHttpErrorMap(manifests),
     profileExpansionAudit: generateProfileExpansionAudit(authorManifests),
+    wizardResumeAudit: generateWorkspaceWizardResumeAudit(authorManifests),
     workspaceEquipmentCapabilities: equipmentOutputs.capabilities,
     workspaceEquipmentFieldModule: equipmentOutputs.fieldModule,
     workspaceTransportCapabilities: transportOutputs.capabilities,
@@ -660,6 +668,10 @@ export const OUTPUT_PATHS = {
   profileExpansionAudit: join(
     REPO_ROOT,
     "packages/workspace-sdk/src/manifest/workspace-profile-expansion-audit.generated.ts"
+  ),
+  wizardResumeAudit: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/manifest/workspace-wizard-resume-audit.generated.ts"
   ),
   workspaceEquipmentCapabilities: join(
     REPO_ROOT,

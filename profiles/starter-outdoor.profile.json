@@ -39,6 +39,9 @@
     },
     "tenantBrandingDefaults": {
       "primaryColor": "#2563eb"
+    },
+    "wizardResume": {
+      "mode": "noop"
     }
   }
 }

@@ -246,7 +246,7 @@ or
 
 ### 11.1 Decision
 
-**RECOMMENDATION: C (primary)** — optional workspace hook with **noop platform default**.
+**APPROVED: Option C (2026-08-24)** — optional workspace hook with **noop platform default** + reusable **generic** platform resume when stable stepIds are available.
 
 **CW5-10 binding layer (inspectability only):** manifest `wizardResume` with `mode: "noop"` or `mode: "module"` (Option D sub-shape). Does **not** change ownership: algorithm stays workspace-owned; codegen only wires the existing hook.
 

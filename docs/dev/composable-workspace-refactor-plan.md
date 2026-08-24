@@ -178,8 +178,9 @@ Cursor must never infer product semantics; each gate lists exactly which tasks s
 
 ### DEC-CW-05 — wizard resume placement
 
+- **Decision:** **APPROVED by Architect (2026-08-24).** **Option C** — optional workspace `resolveInitialStepIndex` hook + reusable generic platform default; manifest `wizardResume` block for inspectability (`noop` | `generic` | `module`). Denali inference stays workspace-owned; numeric `currentStepIndex` persistence unchanged.
 - **Evidence:** TRUTH §20 — `resolveDenaliInitialStepIndex` Denali-only; platform default noop.
-- **Evidence packet:** [`docs/dev/decisions/DEC-CW-05-evidence.md`](decisions/DEC-CW-05-evidence.md) (2026-08-23, Wave 6A) — host/SDK census, Starter/Urban noop vs Denali inference; **§11 RECOMMENDATION Option C** (noop platform default + optional `resolveInitialStepIndex` hook; optional manifest `wizardResume` for inspectability in CW5-10). **Status: OPEN** — Architect approval required before CW5-10.
+- **Evidence packet:** [`docs/dev/decisions/DEC-CW-05-evidence.md`](decisions/DEC-CW-05-evidence.md) (2026-08-23, Wave 6A) — host/SDK census, Starter/Urban noop vs Denali inference; **§11 RECOMMENDATION Option C** (noop platform default + optional `resolveInitialStepIndex` hook; optional manifest `wizardResume` for inspectability in CW5-10). **Status: APPROVED** — CW5-10 authorized.
 - **Blocks directly:** CW5-10 only.
 - **Blocks transitively:** none.
 - **Does NOT block exactly:** CW0-01..10; CW1-01..06; CW2-01..07; CW3-01..09; CW4-01..08; CW5-01..09, CW5-11; CW6-01..04, CW6-05A, CW6-05B, CW6-06..07; CW7-01..15; CW8-01..07; CW9-01..10.
@@ -641,8 +642,10 @@ Refinement vs requested shape (evidence-based):
   - Closure (2026-08-23, Wave 5B): one logical retirement commit; parity CW0-06 unchanged.
   - Deps: CW5-07/08. Risk: **MEDIUM**.
 
-- **CW5-10** `[!]` **Wizard-resume placement (blocked: DEC-CW-05)**
-  - Deps: DEC-CW-05. Risk: **MEDIUM**. **DEFERRED** — do not execute.
+- **CW5-10** `[x]` **Wizard-resume placement (DEC-CW-05 Option C)**
+  - Deps: DEC-CW-05. Risk: **MEDIUM**.
+  - Evidence: `resolve-generic-initial-step-index.ts`, manifest `wizardResume` schema + codegen audit, Denali module binding, `starter-outdoor` noop default.
+  - Closure (2026-08-24): Denali resume goldens unchanged; generic/platform + manifest specs green.
 
 - **CW5-11** `[x]` **tour-core certification spec (no workspace imports; parity suite green; public API snapshot)**
   - Evidence: `cw5-11-certification.spec.ts` — dependency proof + public API snapshot.
@@ -667,7 +670,7 @@ Refinement vs requested shape (evidence-based):
 
 **Integration sign-off (CW-WAVE-6A reconciliation, 2026-08-23):** Coordinator reconciliation complete. CW6-01, CW7-01, CW8-01 `[x]` — design closure checklists satisfied per contract docs. Unified manifest composition model reconciled — **no material conflicts** ([`cw-wave-6a-manifest-composition-model.md`](cw-wave-6a-manifest-composition-model.md)). Profile + top-level capability blocks + `workspacePolicy` aligned; nested `capabilities` namespace **not** adopted. DEC-CW-05 remains **OPEN** (CW5-10 `[!]`). Progress **53/91** `[x]`. **Wave 6B** authorized for CW6-02, CW7-02, CW8-02 coordinator-owned schema/codegen slice.
 
-**CW-5 core exit (unblocks CW-6/7/8):** **COMPLETE** (2026-08-23) — CW5-01..04, CW5-06..09, CW5-11 `[x]`; tour-core owns neutral orchestration; CW5-10 remains `[!]` deferred.
+**CW-5 full exit:** **COMPLETE** (2026-08-24) — CW5-01..11 `[x]` including CW5-10; tour-core owns neutral orchestration; wizard resume per DEC-CW-05 Option C.
 
 **CW-6A contract freeze (unblocks parallel implementation workers):** **COMPLETE** (2026-08-23) — starter profile, equipment capability, validation pipeline contracts frozen in `docs/dev/cw6-01-starter-profile-contract.md`, `docs/dev/cw7-01-workspace-equipment-contract.md`, `docs/dev/cw8-01-validation-pipeline-contract.md`; DEC-CW-05 evidence in `docs/dev/decisions/DEC-CW-05-evidence.md`.
 

@@ -41,6 +41,25 @@ const workspaceEquipmentEnricherBindingSchema = workspaceEquipmentModuleBindingS
 /** CW8-03 — manifest-declared workspace policy validator factory. */
 export const WorkspacePolicyBlockSchema = workspaceModuleBindingSchema;
 
+/** CW5-10 — wizard resume placement (DEC-CW-05 Option C). */
+export const WorkspaceWizardResumeNoopSchema = z.object({
+  mode: z.literal("noop"),
+});
+
+export const WorkspaceWizardResumeGenericSchema = z.object({
+  mode: z.literal("generic"),
+});
+
+export const WorkspaceWizardResumeModuleSchema = workspaceModuleBindingSchema.extend({
+  mode: z.literal("module"),
+});
+
+export const WorkspaceWizardResumeBlockSchema = z.discriminatedUnion("mode", [
+  WorkspaceWizardResumeNoopSchema,
+  WorkspaceWizardResumeGenericSchema,
+  WorkspaceWizardResumeModuleSchema,
+]);
+
 /** CW7-06 — transport capability block (top-level manifest extension). */
 export const WorkspaceTransportBlockSchema = z.object({
   supported: z.boolean(),
@@ -221,6 +240,7 @@ export const WorkspaceManifestCiSchema = z
     workspaceItinerary: WorkspaceItineraryBlockSchema.optional(),
     workspaceTransport: WorkspaceTransportBlockSchema.optional(),
     workspacePolicy: WorkspacePolicyBlockSchema.optional(),
+    wizardResume: WorkspaceWizardResumeBlockSchema.optional(),
     theme: ManifestThemeBlockSchema.optional(),
     guestCrossSurfaceNav: guestCrossSurfaceNavSchema.optional(),
   })

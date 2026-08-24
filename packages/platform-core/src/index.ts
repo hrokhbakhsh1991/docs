@@ -24,7 +24,16 @@ export type { ValidationResult, ValidationViolation } from "./types/validation-r
 export {
   createPlatformWizardHostHooks,
   type PlatformWizardHostHooksOptions,
+  type PlatformWizardResumeMode,
 } from "./host/create-platform-wizard-host-hooks";
+
+export {
+  hasGenericNonEmptyCanonicalValue,
+  resolveGenericInitialStepIndex,
+  resolveGenericInitialStepIndexFromHostInput,
+  stepsHaveStableResumeIdentity,
+  type GenericWizardResumeStepLike,
+} from "./wizard/resolve-generic-initial-step-index";
 
 export {
   resolveWorkspaceThemeTokens,

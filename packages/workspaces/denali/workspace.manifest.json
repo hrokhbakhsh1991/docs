@@ -685,6 +685,11 @@
   "settingsHubFallback": {
     "enabled": true
   },
+  "wizardResume": {
+    "mode": "module",
+    "module": "./wizard/resolve-initial-step-index",
+    "export": "resolveDenaliInitialStepIndexFromHostInput"
+  },
   "workspacePolicy": {
     "module": "./policy/tour-policy",
     "export": "createDenaliTourWorkspacePolicyValidator"
