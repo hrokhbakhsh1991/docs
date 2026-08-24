@@ -1,9 +1,9 @@
 import {
   resolveGuestBootstrapRevalidateSeconds,
   resolveGuestSurfaceBootstrapForHost,
+  assertGuestBffProductionConfig,
+  resolveTourOpsApiBaseUrl,
 } from "@app-tour/guest-surface-host";
-
-import { assertGuestBffProductionConfig, resolveTourOpsApiBaseUrl } from "../env";
 
 export type PortalBootstrap = {
   readonly tenantId: string;

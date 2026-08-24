@@ -2,9 +2,8 @@ import {
   sessionTenantMatchesDevCrossSurfaceHost,
   resolveTenantIdFromDevHost,
   resolveTenantIdFromIngressLabel,
+  isDevWebSessionAllowed,
 } from "@app-tour/guest-surface-host";
-
-import { isDevWebSessionAllowed } from "./auth-env";
 import { resolveProductionIngressLabelFromHost } from "./resolve-production-ingress-label";
 
 export function resolveExpectedTenantIdForHost(host: string): string | null {

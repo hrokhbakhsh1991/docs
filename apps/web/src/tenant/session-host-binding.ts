@@ -1,4 +1,4 @@
-import { parseMultiLevelTenantHost } from "@app-tour/tenant-kernel";
+import { parseMultiLevelTenantHost } from "@app-tour/tenant-kernel/host";
 
 import { isDevWebSessionAllowed } from "./auth-env";
 import { isOperatorAdminHost } from "./operator-admin-host";
@@ -7,7 +7,8 @@ import {
   readPlatformRootDomainWeb,
   readWebReservedHostLabels,
 } from "./platform-host-env";
-import { resolveTenantIdFromDevHost, resolveTenantIdFromIngressLabel } from "./resolve-host-tenant";
+import { resolveTenantIdFromDevHost } from "./resolve-host-tenant";
+import { resolveTenantIdFromIngressLabel } from "@app-tour/guest-surface-host";
 import { resolveProductionIngressLabelFromHost } from "./resolve-production-ingress-label";
 
 /**

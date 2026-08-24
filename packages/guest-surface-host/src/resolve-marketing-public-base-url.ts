@@ -1,4 +1,4 @@
-import { buildDevMarketingPublicBaseUrl } from "@app-tour/tenant-kernel";
+import { buildDevMarketingPublicBaseUrl } from "@app-tour/tenant-kernel/host";
 
 /** Resolve public marketing base URL from any surface ingress host (WRS-URL-01). */
 export function resolveMarketingPublicBaseUrl(host: string): string {
