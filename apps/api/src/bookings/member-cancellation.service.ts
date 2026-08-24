@@ -3,7 +3,6 @@
  */
 import { BOOKING_CANCEL_OUTBOX_EVENT_TYPE } from "@app-tour/booking-http-contracts";
 
-import { closePaymentHoldOnOperatorCancel } from "../finance/apply-payment-hold-after-booking-approve.ts";
 import { buildRefundEligibilitySnapshot } from "../finance/refund-orchestration.service.ts";
 import { resolveCancellationPolicyForBooking } from "../finance/resolve-cancellation-policy-for-booking.ts";
 import type { BookingActorContext } from "./ports/booking-actor-context.ts";

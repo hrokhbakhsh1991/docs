@@ -167,6 +167,7 @@ export interface BookingRepositoryPort {
   rejectBooking(input: {
     bookingId: string;
     tenantId: string;
+    outboxEvent: string;
     reason?: string;
   }): Promise<BookingRecord>;
   /**
@@ -186,6 +187,7 @@ export interface BookingRepositoryPort {
     bookingId: string;
     tenantId: string;
     outboxEvent: string;
+    cancelSource?: string;
   }): Promise<BookingRecord>;
   seedBooking(record: BookingRecord): void;
 }

@@ -35,8 +35,7 @@ export async function applyPaymentHoldAfterBookingApprove(input: {
   };
 
   if (payableMinor === "0" || frozen?.source === "free_collection") {
-    sideEffects.holdStatus = "satisfied";
-    return sideEffects;
+    return { ...sideEffects, holdStatus: "satisfied" };
   }
 
   const policyHours = await resolvePaymentHoldPolicyHoursForBooking({

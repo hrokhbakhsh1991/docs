@@ -5,7 +5,7 @@ import {
   InMemoryPaymentHoldRepository,
   resetInMemoryPaymentHoldRepositoryForTests,
   type PaymentHoldRow,
-} from "../../../../packages/finance-core/test/isolation/in-memory-payment-hold.repository.ts";
+} from "@app-tour/finance-core/infrastructure/in-memory-payment-hold.repository";
 
 export type { PaymentHoldRow };
 

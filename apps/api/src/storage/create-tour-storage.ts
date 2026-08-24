@@ -72,6 +72,7 @@ export function createTourStorageRepository(): TourStorageImplementation {
       operatorSmokeMemoryStore.ensureOperatorSmokeSeedTour();
       if (!isProductionAuthMode()) {
         operatorSmokeMemoryStore.ensureDenaliDevSmokeSeedTour();
+        operatorSmokeMemoryStore.ensureDp1PaymentDeadlineTour();
       }
     }
     return operatorSmokeMemoryStore;
