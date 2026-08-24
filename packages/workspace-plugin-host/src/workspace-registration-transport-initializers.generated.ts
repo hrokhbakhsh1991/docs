@@ -4,7 +4,7 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { registerDenaliCatalogRegistrationTransportInitializer } from "@app-tour/workspace-denali/host/catalog/registration-flow/register-transport-initializer";
+import { registerDenaliCatalogRegistrationTransportInitializer } from "@app-tour/workspace-denali/catalog/registration-flow/register-transport-initializer";
 
 export function registerWorkspaceRegistrationTransportInitializersFromManifest(): void {
   registerDenaliCatalogRegistrationTransportInitializer();

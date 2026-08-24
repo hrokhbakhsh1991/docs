@@ -217,6 +217,8 @@ export const DOMAIN_OUTPUT_KEYS = {
     "catalogIntakeTransportSurfaces",
     "registrationTransportNormalizers",
     "registrationTransportInitializers",
+    "workspaceTransportFieldModule",
+    "workspaceTransportWizardComposite",
   ],
   "difficulty-fitness": [
     "workspaceDifficultyFitnessCapabilities",
@@ -309,6 +311,8 @@ export const OUTPUT_KEYS = Object.freeze([
   "catalogIntakeTransportSurfaces",
   "registrationTransportNormalizers",
   "registrationTransportInitializers",
+  "workspaceTransportFieldModule",
+  "workspaceTransportWizardComposite",
   "workspaceDifficultyFitnessCapabilities",
   "workspaceDifficultyFitnessFieldModule",
   "workspaceDifficultyFitnessFilterPresentation",
@@ -418,6 +422,8 @@ export function generateAllOutputs(manifests, authorManifests = manifests) {
     catalogIntakeTransportSurfaces: transportOutputs.catalogIntakeTransportSurfaces,
     registrationTransportNormalizers: transportOutputs.registrationTransportNormalizers,
     registrationTransportInitializers: transportOutputs.registrationTransportInitializers,
+    workspaceTransportFieldModule: transportOutputs.fieldModule,
+    workspaceTransportWizardComposite: transportOutputs.wizardComposite,
     workspaceDifficultyFitnessCapabilities: difficultyFitnessOutputs.capabilities,
     workspaceDifficultyFitnessFieldModule: difficultyFitnessOutputs.fieldModule,
     workspaceDifficultyFitnessFilterPresentation: difficultyFitnessOutputs.filterPresentation,
@@ -705,6 +711,14 @@ export const OUTPUT_PATHS = {
   registrationTransportInitializers: join(
     REPO_ROOT,
     "packages/workspace-plugin-host/src/workspace-registration-transport-initializers.generated.ts"
+  ),
+  workspaceTransportFieldModule: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-transport-field-module-bindings.generated.ts"
+  ),
+  workspaceTransportWizardComposite: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-transport-wizard-composite-bindings.generated.ts"
   ),
   workspaceDifficultyFitnessCapabilities: join(
     REPO_ROOT,

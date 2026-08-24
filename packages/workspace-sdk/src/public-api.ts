@@ -243,6 +243,7 @@ export {
   getWorkspaceRuleCell,
   mergeWorkspaceFieldRegistryWithEquipmentFragments,
   mergeWorkspaceFieldRegistryWithDifficultyFitnessFragments,
+  mergeWorkspaceFieldRegistryWithTransportFragments,
   mergeWorkspaceFieldRegistryWithItineraryFragments,
   validateFieldPolicyManifest,
   type WorkspaceFieldPolicyDefinition,
@@ -426,6 +427,14 @@ export {
   type WorkspaceDifficultyFitnessFilterPresentation,
   type PublicCatalogDifficultyFitnessFields,
 } from "./difficulty-fitness";
+export {
+  defineWorkspaceTransportFieldFragment,
+  listWorkspaceTransportCanonicalPaths,
+  type WorkspaceTransportFieldFragment,
+  type WorkspaceTransportFieldRegistryFragment,
+  type WorkspaceTransportTourFieldConfig,
+  type WorkspaceTransportWizardCompositeBinding,
+} from "./transport";
 export {
   defineWorkspaceItineraryFieldFragment,
   listWorkspaceItineraryCanonicalPaths,

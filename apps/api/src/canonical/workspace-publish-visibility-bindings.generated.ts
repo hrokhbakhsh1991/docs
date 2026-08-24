@@ -4,7 +4,7 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { isDenaliTourPublished } from "@app-tour/workspace-denali/host/catalog/denali-publish-status";
+import { isDenaliTourPublished } from "@app-tour/workspace-denali/catalog/denali-publish-status";
 import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
 import { isHarborTourPublished } from "@app-tour/workspace-harbor/host/catalog";
 import { HARBOR_WORKSPACE_TYPE } from "@app-tour/workspace-harbor";

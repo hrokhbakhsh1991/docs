@@ -5,7 +5,7 @@
  */
 
 import type { PublicCatalogTransportSnapshot } from "../tour/public-catalog-transport";
-import { readDenaliCatalogTransportSnapshot as denali_transport_snapshot_reader } from "@app-tour/workspace-denali/host/catalog/read-denali-catalog-transport";
+import { readDenaliCatalogTransportSnapshot as denali_transport_snapshot_reader } from "@app-tour/workspace-denali/catalog/read-denali-catalog-transport";
 
 export type CatalogTransportSnapshotReaderBinding = {
   readonly workspaceType: string;

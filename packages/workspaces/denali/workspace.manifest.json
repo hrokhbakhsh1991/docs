@@ -475,6 +475,7 @@
   "workspaceTransport": {
     "supported": true,
     "capabilities": {
+      "wizardTourField": true,
       "catalogSnapshot": true,
       "catalogDetailSection": true,
       "registrationIntake": true,
@@ -497,6 +498,14 @@
     "registrationTransportNormalizer": {
       "module": "./http/resolve-denali-registration-transport",
       "export": "normalizeDenaliRegistrationTransportIntake"
+    },
+    "fieldModule": {
+      "module": "./field-registry/denali-transport-field-module",
+      "export": "denaliTransportFieldRegistryFragment"
+    },
+    "wizardComposite": {
+      "module": "./composites/denali-transport-composite-binding",
+      "export": "denaliTransportModeCompositeBinding"
     }
   },
   "workspaceDifficultyFitness": {

@@ -737,8 +737,10 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
 - **CW7-05** `[x]` Transport: manifest block design (`workspaceTransport`) — generic snapshot contract only; dong/personal-car stays Denali policy. Evidence: TRUTH §24 MUST-NOT. **Design contract:** [`docs/dev/cw7-05-workspace-transport-contract.md`](cw7-05-workspace-transport-contract.md) — **PASS**; top-level `workspaceTransport` block; tour canonical + intake persistence; Denali dong/personal-car boundary; legacy `transportInitializerExport` alias path. CW7-06 implements codegen. Deps: CW5-11. Risk: **MEDIUM** (design only).
 - **CW7-06** `[x]` Transport: intake initializer + registration snapshot via capability binding (existing `transportInitializerExport` generalized). Deps: CW7-05. Risk: **HIGH**.
   - Evidence: [`docs/dev/cw7-06-workspace-transport-codegen.md`](cw7-06-workspace-transport-codegen.md), `workspace-transport-codegen.spec.mjs`, `cw7-06-transport-isolation.spec.mjs`.
-- **CW7-07** `[ ]` Transport: Denali adapter migration + parity (registration flow goldens, roster projections `transportKind` unchanged). Deps: CW7-06. Risk: **HIGH**.
-- **CW7-08** `[ ]` Transport: isolation test. Deps: CW7-07. Risk: **LOW**.
+- **CW7-07** `[x]` Transport: Denali adapter migration + parity (registration flow goldens, roster projections `transportKind` unchanged). Deps: CW7-06. Risk: **HIGH**.
+  - Evidence: [`docs/dev/cw7-07-denali-transport-adapter-migration.md`](cw7-07-denali-transport-adapter-migration.md), `denali-transport-field-parity.spec.ts`, `denali-transport-pipeline-parity.golden.spec.ts`, `workspace-transport-codegen.spec.mjs`.
+- **CW7-08** `[x]` Transport: isolation test. Deps: CW7-07. Risk: **LOW**.
+  - Evidence: [`docs/dev/cw7-08-transport-isolation.md`](cw7-08-transport-isolation.md), `cw7-08-transport-isolation.spec.mjs`.
 - **CW7-09** `[x]` Difficulty/Fitness: presentation gates already manifest (`catalogPresentation`); add optional field-module contract; Denali fields stay vertical. Deps: CW5-11. Risk: **MEDIUM**.
   - Evidence: [`docs/dev/cw7-09-workspace-difficulty-fitness-contract.md`](cw7-09-workspace-difficulty-fitness-contract.md), [`docs/dev/cw7-09-difficulty-fitness-field-module.md`](cw7-09-difficulty-fitness-field-module.md), [`docs/dev/cw7-09-difficulty-fitness-isolation.md`](cw7-09-difficulty-fitness-isolation.md), `workspace-difficulty-fitness-codegen.spec.mjs`, `cw7-09-difficulty-fitness-isolation.spec.mjs`, `denali-difficulty-fitness-field-parity.spec.ts`.
 - **CW7-10** `[x]` Itinerary: capability block (detail-section gate exists); wizard composite stays workspace UI. Deps: CW5-11. Risk: **MEDIUM**.
@@ -749,7 +751,9 @@ Per-capability required artifacts (applies to every CW7 block): configuration co
 - **CW7-14** `[ ]` Denali full regression checkpoint (certified suite + goldens) after each shipped capability — recurring gate task. Risk: **LOW** each run.
 - **CW7-15** `[ ]` Guard: capability modules cannot import Denali product ids (extend `denali-coupling.contract.spec.ts` scope to capability packages). Deps: CW7-02. Risk: **LOW**.
 
-**CW-7 IN PROGRESS** — equipment shipped; transport codegen (CW7-06) complete; CW7-07+ (Denali field migration, isolation) remain.
+**CW-7 IN PROGRESS** — equipment, transport (CW7-07/08), difficulty/fitness (CW7-09), itinerary (CW7-10) shipped; CW7-11+ remain.
+
+**Integration sign-off (CW-WAVE-7B, 2026-08-24):** CW7-07, CW7-08, CW7-10 `[x]` — Denali transport field-module + wizard-composite migration; transport isolation extended; `workspaceItinerary` capability codegen + Denali adapter bindings. Progress **75/91** `[x]`. **Next safe slice:** CW7-11. **Forbidden:** CW9 (until authorized), CW5-10.
 
 ---
 

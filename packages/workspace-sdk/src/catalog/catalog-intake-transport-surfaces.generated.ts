@@ -5,7 +5,7 @@
  */
 
 import type { WorkspaceCatalogIntakeTransportSurface } from "./catalog-intake-transport-surface";
-import { denaliCatalogTransportIntakeSurface as denali_transport_intake_surface } from "@app-tour/workspace-denali/host/catalog/denali-catalog-transport-intake";
+import { denaliCatalogTransportIntakeSurface as denali_transport_intake_surface } from "@app-tour/workspace-denali/catalog/denali-catalog-transport-intake";
 
 export type CatalogIntakeTransportSurfaceBinding = {
   readonly workspaceType: string;
