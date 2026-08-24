@@ -1,0 +1,80 @@
+=== DP-6 API live refund E2E ===
+{
+  "id": "58eff9e8-0b4c-4f94-8e4a-bf1baac45ab6",
+  "status": "approved",
+  "approvedAt": "2026-08-24T22:54:06.146Z",
+  "paymentDueAt": "2026-08-25T22:54:06.146Z",
+  "holdStatus": "open",
+  "commercialQuotePayableMinor": "2500000"
+}
+{
+  "collectedMinor": "2500000",
+  "refundedCompletedMinor": "0",
+  "financeCapMinor": "2500000",
+  "penaltyMinor": "0",
+  "eligibleRefundMinor": "2500000",
+  "currency": "IRR",
+  "hasOpenRefundRequest": false
+}
+{
+  "id": "58eff9e8-0b4c-4f94-8e4a-bf1baac45ab6",
+  "status": "cancelled"
+}
+{
+  "items": [
+    {
+      "id": "cb27318b-1eb5-4c36-bf7f-9a5ef72c9329",
+      "tenantId": "00000000-0000-4000-8000-000000000014",
+      "registrationId": "58eff9e8-0b4c-4f94-8e4a-bf1baac45ab6",
+      "paymentId": "80f9db40-c3a2-4531-a08d-3ee95e2aaec9",
+      "sourceKind": "payment",
+      "amountMinor": "2500000",
+      "currency": "IRR",
+      "reasonCode": "ops_correction",
+      "reasonNote": null,
+      "status": "Requested",
+      "requestedAt": "2026-08-24T22:54:06.197Z",
+      "requestedByUserId": "00000000-0000-4000-8000-000000000101",
+      "approvedAt": null,
+      "approvedByUserId": null,
+      "rejectedAt": null,
+      "rejectedByUserId": null,
+      "rejectNote": null,
+      "cancelledAt": null,
+      "cancelledByUserId": null,
+      "completedAt": null,
+      "completedByUserId": null,
+      "completionNote": null,
+      "evidenceFileKey": null,
+      "evidenceNote": null,
+      "creationIdempotencyKey": "18925d6c94c7ebe190f66643589657bddd7954ccc628f0b5682d1c83243f1d95",
+      "identity": {
+        "memberDisplayName": "DP6 Paid Guest",
+        "tourTitle": "DP6 Refund Live",
+        "tourId": "00000000-0000-4000-8000-000000000901"
+      },
+      "invoice": {
+        "totalMinor": "2500000",
+        "paidMinor": "2500000",
+        "remainingMinor": "0",
+        "refundedMinor": "0",
+        "currency": "IRR"
+      },
+      "href": {
+        "payments": "/finance?tab=payments&registrationId=58eff9e8-0b4c-4f94-8e4a-bf1baac45ab6",
+        "receipts": "/finance?tab=receipts&registrationId=58eff9e8-0b4c-4f94-8e4a-bf1baac45ab6"
+      },
+      "linkedPayment": {
+        "id": "80f9db40-c3a2-4531-a08d-3ee95e2aaec9",
+        "amount": "2500000",
+        "currency": "IRR",
+        "status": "Paid",
+        "method": "Manual"
+      }
+    }
+  ],
+  "nextCursor": null,
+  "hasMore": false
+}
+ASSERT refund draft Requested PASS
+DP6_LIVE_E2E_COMPLETE
