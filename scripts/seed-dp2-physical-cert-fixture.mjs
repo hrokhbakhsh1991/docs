@@ -11,10 +11,12 @@ const headers = {
   "Content-Type": "application/json",
 };
 
-async function api(method, path, body) {
+async function api(method, path, body, idempotencyKey) {
+  const hdrs = { ...headers };
+  if (idempotencyKey) hdrs["Idempotency-Key"] = idempotencyKey;
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers,
+    headers: hdrs,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   const text = await res.text();
@@ -52,7 +54,7 @@ await api("POST", "/finance/payments/manual", {
   registrationId: a.id,
   amount: totalA,
   currency: "IRR",
-});
+}, `dp2-cert-pay-a-${a.id}`);
 log.members.A = { id: a.id, scenario: "approved+paid" };
 
 const b = await createApprove("Member B Unpaid");
@@ -63,7 +65,7 @@ await api("POST", "/finance/payments/manual", {
   registrationId: c.id,
   amount: "1000000",
   currency: "IRR",
-});
+}, `dp2-cert-pay-c-${c.id}`);
 log.members.C = { id: c.id, scenario: "approved+partial" };
 
 const dCreated = await api("POST", "/bookings", {
