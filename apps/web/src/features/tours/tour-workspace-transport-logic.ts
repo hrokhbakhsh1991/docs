@@ -8,7 +8,24 @@ export const TOUR_WORKSPACE_TRANSPORT_TEST_IDS = {
   modeCounts: "operator-tour-workspace-transport-mode-counts",
   table: "operator-tour-workspace-transport-table",
   empty: "operator-tour-workspace-transport-empty",
+  settlementPanel: "operator-tour-workspace-driver-settlement",
+  settlementTotal: "operator-tour-workspace-driver-settlement-total",
+  settlementStatus: "operator-tour-workspace-driver-settlement-status",
+  freezeButton: "operator-tour-workspace-roster-freeze",
+  approvePayableButton: "operator-tour-workspace-settlement-approve-payable",
 } as const;
+
+export type DriverSettlementRow = {
+  readonly settlementId: string;
+  readonly driverRegistrationId: string;
+  readonly offeredSeats: number;
+  readonly assignedPassengers: number;
+  readonly billableQuantity: number;
+  readonly unitAmountMinor: string;
+  readonly totalMinor: string;
+  readonly status: string;
+  readonly currency: string;
+};
 
 export function buildTourTransportBookingsQuery(tourId: string): string {
   const params = new URLSearchParams();

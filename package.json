@@ -52,6 +52,7 @@
     "guard:symlink": "node scripts/guards/symlink-guard.mjs",
     "ci:integrity": "bash scripts/ci-integrity-check.sh",
     "test:changed": "bash scripts/test-changed.sh",
+    "test:dp5-driver-settlement": "bash scripts/test-dp5-driver-settlement.sh",
     "test:exposure:integration": "pnpm --filter @apps/api run test:exposure:integration",
     "test:full": "bash scripts/test-full.sh",
     "test:nightly": "pnpm --filter @apps/api run test:nightly && pnpm --filter @apps/api run test:nightly:soak",

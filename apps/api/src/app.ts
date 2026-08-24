@@ -497,6 +497,75 @@ async function dispatchRequest(
     return;
   }
 
+  const tourTransportAllocationsMatch = url.pathname?.match(
+    /^\/tours\/([^/]+)\/transport-allocations$/
+  );
+  if (tourTransportAllocationsMatch) {
+    const tourId = tourTransportAllocationsMatch[1]!;
+    const { handleGetTransportAllocations, handlePutTransportAllocations } = await import(
+      "./transport/transport-allocation.routes.ts"
+    );
+    if (method === "GET") {
+      await handleGetTransportAllocations(req, res, tourId);
+      return;
+    }
+    if (method === "PUT") {
+      await handlePutTransportAllocations(req, res, tourId);
+      return;
+    }
+  }
+
+  const tourRosterFreezeMatch = url.pathname?.match(/^\/tours\/([^/]+)\/roster\/freeze$/);
+  if (method === "POST" && tourRosterFreezeMatch) {
+    const { handleFreezeTourRoster } = await import("./settlement/driver-settlement.routes.ts");
+    await handleFreezeTourRoster(req, res, tourRosterFreezeMatch[1]!);
+    return;
+  }
+
+  const tourDriverSettlementsMatch = url.pathname?.match(/^\/tours\/([^/]+)\/driver-settlements$/);
+  if (method === "GET" && tourDriverSettlementsMatch) {
+    const { handleListDriverSettlements } = await import("./settlement/driver-settlement.routes.ts");
+    await handleListDriverSettlements(req, res, tourDriverSettlementsMatch[1]!);
+    return;
+  }
+
+  const tourDriverSettlementActionMatch = url.pathname?.match(
+    /^\/tours\/([^/]+)\/driver-settlements\/([^/]+)\/(confirm|approve-payable|correction)$/
+  );
+  if (tourDriverSettlementActionMatch) {
+    const tourId = tourDriverSettlementActionMatch[1]!;
+    const settlementId = tourDriverSettlementActionMatch[2]!;
+    const action = tourDriverSettlementActionMatch[3]!;
+    const routes = await import("./settlement/driver-settlement.routes.ts");
+    if (method === "POST" && action === "confirm") {
+      await routes.handleConfirmDriverSettlement(req, res, tourId, settlementId);
+      return;
+    }
+    if (method === "POST" && action === "approve-payable") {
+      await routes.handleApproveDriverSettlementPayable(req, res, tourId, settlementId);
+      return;
+    }
+    if (method === "POST" && action === "correction") {
+      await routes.handleCreateDriverSettlementCorrection(req, res, tourId, settlementId);
+      return;
+    }
+  }
+
+  if (method === "GET" && url.pathname === "/finance/driver-payables") {
+    const { handleListDriverPayables } = await import("./finance/driver-payable.routes.ts");
+    await handleListDriverPayables(req, res);
+    return;
+  }
+
+  const driverPayableCompleteMatch = url.pathname?.match(
+    /^\/finance\/driver-payables\/([^/]+)\/complete$/
+  );
+  if (method === "POST" && driverPayableCompleteMatch) {
+    const { handleCompleteDriverPayable } = await import("./finance/driver-payable.routes.ts");
+    await handleCompleteDriverPayable(req, res, driverPayableCompleteMatch[1]!);
+    return;
+  }
+
   const tourMatch = url.pathname?.match(/^\/tours\/([^/]+)$/);
   if (method === "GET" && tourMatch) {
     await handlers.handleGetTour(req, res, tourDeps, tourMatch[1]!);
