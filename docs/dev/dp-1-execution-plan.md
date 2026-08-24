@@ -203,16 +203,18 @@ All cells are **normative expected outcomes** for DP-1 automated tests. No TBD.
 
 ## Task ledger
 
-Status: all `[ ]` until test-first implementation begins.
+Status: **DP1-A…K automated implementation `[v]`** (2026-08-24). **DP1-L** contract/integration `[v]`; Playwright E2E still `[ ]`. **DP1-M** browser certification `[ ]` — required for `[x]`, forbidden until then.
+
+Previous: all `[ ]` until test-first implementation begins.
 
 ### DP1-A — persistence / schema
 
 | ID | Invariant | Deps | Modules / files | DB | Migration | Focused tests | Integration | Browser | Rollback | Risk | Status |
 |----|-----------|------|-----------------|-----|-----------|---------------|-------------|---------|----------|------|--------|
-| **DP1-A-01** | `finance_payment_holds` table with tenant isolation | 04,11 | `apps/api/prisma/schema.prisma`, migration SQL | New table: `id`, `tenant_id`, `registration_id` UNIQUE, `status`, `due_at`, `policy_hours`, `extended_count`, `created_at`, `updated_at`, `satisfied_at`, `expired_at` | Expand-only CREATE | Prisma schema test | — | — | Drop table unused | MEDIUM | `[ ]` |
-| **DP1-A-02** | `operator_registrations.cancel_source` nullable string | 04 | Same Prisma | Add `cancel_source` VARCHAR nullable | Expand-only ALTER | — | — | — | Column ignored by old app | LOW | `[ ]` |
-| **DP1-A-03** | Index `(tenant_id, status, due_at)` for worker scan | 04 | Prisma | Index on holds | Same migration | — | — | — | Index drop | LOW | `[ ]` |
-| **DP1-A-04** | Memory driver parity struct | 04 | `in-memory-bookings.repository.ts`, new `in-memory-payment-holds.ts` | None | — | `payment-hold-memory-parity.spec.ts` | memory API | — | — | HIGH | `[ ]` |
+| **DP1-A-01** | `finance_payment_holds` table with tenant isolation | 04,11 | `apps/api/prisma/schema.prisma`, migration SQL | New table: `id`, `tenant_id`, `registration_id` UNIQUE, `status`, `due_at`, `policy_hours`, `extended_count`, `created_at`, `updated_at`, `satisfied_at`, `expired_at` | Expand-only CREATE | Prisma schema test | — | — | Drop table unused | MEDIUM | `[v]` |
+| **DP1-A-02** | `operator_registrations.cancel_source` nullable string | 04 | Same Prisma | Add `cancel_source` VARCHAR nullable | Expand-only ALTER | — | — | — | Column ignored by old app | LOW | `[v]` |
+| **DP1-A-03** | Index `(tenant_id, status, due_at)` for worker scan | 04 | Prisma | Index on holds | Same migration | — | — | — | Index drop | LOW | `[v]` |
+| **DP1-A-04** | Memory driver parity struct | 04 | `in-memory-bookings.repository.ts`, new `in-memory-payment-holds.ts` | None | — | `payment-hold-memory-parity.spec.ts` | memory API | — | — | HIGH | `[v]` |
 
 **Failing test first (A):** `packages/finance-core/test/payment-hold-repository.contract.spec.ts` — insert open hold, read by registrationId.
 

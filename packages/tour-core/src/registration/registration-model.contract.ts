@@ -39,10 +39,16 @@ export const URBAN_REGISTRATION_MODEL: RegistrationModelContract = Object.freeze
 });
 
 export function registrationOccupiesSeat(
-  contract: RegistrationModelContract,
+  contract: RegistrationModelContract | "booking" | "urban",
   status: string,
 ): boolean {
-  return status === contract.capacityConsumingStatus;
+  const resolved =
+    contract === "booking"
+      ? BOOKING_REGISTRATION_MODEL
+      : contract === "urban"
+        ? URBAN_REGISTRATION_MODEL
+        : contract;
+  return status === resolved.capacityConsumingStatus;
 }
 
 export function registrationQueuedWithoutSeat(

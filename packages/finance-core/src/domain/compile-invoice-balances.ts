@@ -4,6 +4,8 @@ export type RegistrationInvoiceReadModel = {
   readonly invoiceTotalMinor: string;
   readonly paidAmountMinor: string;
   readonly balanceDueMinor: string;
+  /** Alias of balanceDueMinor for member/operator surfaces and DP-1 tests. */
+  readonly remainingMinor: string;
   readonly walletNetMinor: string;
   /** Sum of Completed refunds (PR23-E2); always present. */
   readonly refundedMinor: string;
@@ -73,6 +75,7 @@ export function compileRegistrationInvoice(
     invoiceTotalMinor: invoiceTotal.toString(),
     paidAmountMinor: paid.toString(),
     balanceDueMinor: balance.toString(),
+    remainingMinor: balance.toString(),
     walletNetMinor: walletNet.toString(),
     refundedMinor: refunded.toString(),
   };

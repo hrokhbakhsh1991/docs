@@ -103,6 +103,10 @@ export type BookingListItem = {
    * Absent when enrichment skipped (empty page).
    */
   readonly capacitySnapshot?: BookingCapacitySnapshot;
+  /** DP1 — Finance hold dueAt projection for ops/member parity (S17). */
+  readonly paymentDueAt?: string;
+  /** DP1 — cancel provenance when status=cancelled. */
+  readonly cancelSource?: string | null;
 };
 
 export type BookingsListResponse = {
@@ -164,6 +168,10 @@ export type ApproveBookingResponse = {
   readonly id: string;
   readonly status: BookingStatus;
   readonly approvedAt: string;
+  /** DP1 — UTC payment deadline from Finance Payment Hold. */
+  readonly paymentDueAt?: string;
+  readonly holdStatus?: string;
+  readonly commercialQuotePayableMinor?: string;
 };
 
 export type RejectBookingRequest = {

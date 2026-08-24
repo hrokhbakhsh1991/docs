@@ -127,6 +127,48 @@ export class CommercialQuoteService {
    * DEC-CQ-008 — freeze on money path when registration is quotable.
    * Returns null when obligation cannot resolve (legacy path continues).
    */
+  /**
+   * DEC-CQ-001 amend (DP1-D) — freeze commercial quote synchronously on booking approve.
+   * Idempotent when an active FROZEN quote already matches the current obligation snapshot.
+   */
+  async ensureFrozenOnApprove(
+    tenantId: string,
+    registrationId: string
+  ): Promise<CommercialQuoteVersion | null> {
+    const normalizedTenantId = tenantId.trim();
+    const normalizedRegistrationId = registrationId.trim();
+
+    const active = await this.quotes.getActive(normalizedTenantId, normalizedRegistrationId);
+    if (active?.status === "LOCKED") {
+      return active;
+    }
+    if (active?.status === "FROZEN") {
+      return active;
+    }
+
+    const chain = await this.quotes.getChain(normalizedTenantId, normalizedRegistrationId);
+    assertCommercialQuoteChainNotLocked(chain);
+
+    const quoteInput = await this.buildCurrentQuoteInput(
+      normalizedTenantId,
+      normalizedRegistrationId
+    );
+    if (quoteInput === null) {
+      return null;
+    }
+
+    if (active !== null && commercialQuoteMatchesFreezeInput(active, quoteInput)) {
+      return active;
+    }
+    if (active !== null) {
+      return this.supersedeQuote(quoteInput);
+    }
+    if (chain.length === 0) {
+      return this.createQuoteVersion(quoteInput);
+    }
+    return this.supersedeQuote(quoteInput);
+  }
+
   async ensureFrozenForMoneyPath(
     tenantId: string,
     registrationId: string
