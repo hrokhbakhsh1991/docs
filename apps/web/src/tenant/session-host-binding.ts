@@ -1,4 +1,4 @@
-import { parseMultiLevelTenantHost } from "@app-tour/tenant-kernel";
+import { parseMultiLevelTenantHost } from "@app-tour/tenant-kernel/host-only";
 
 import { isDevWebSessionAllowed } from "./auth-env";
 import { isOperatorAdminHost } from "./operator-admin-host";

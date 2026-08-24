@@ -1,4 +1,4 @@
-import { resolveDevPluginIdForTenantId } from "@app-tour/guest-surface-host";
+import { resolveDevPluginIdForTenantId } from "@app-tour/guest-surface-host/host-only";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { listBootstrapWorkspacePlugins } from "@/bootstrap/workspace-plugins";

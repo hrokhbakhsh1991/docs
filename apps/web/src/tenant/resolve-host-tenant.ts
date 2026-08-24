@@ -1,7 +1,7 @@
 import {
   resolveTenantIdFromDevHost as resolveGuestDevHostTenantId,
   resolveTenantIdFromIngressLabel,
-} from "@app-tour/guest-surface-host";
+} from "@app-tour/guest-surface-host/host-only";
 
 import { isDevWebSessionAllowed } from "./auth-env";
 

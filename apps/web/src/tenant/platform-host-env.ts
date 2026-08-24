@@ -1,5 +1,5 @@
-import { resolvePublicBrandingHost } from "@app-tour/guest-surface-host";
-import { parseReservedLabelsCsv } from "@app-tour/tenant-kernel";
+import { resolvePublicBrandingHost } from "@app-tour/guest-surface-host/host-only";
+import { parseReservedLabelsCsv } from "@app-tour/tenant-kernel/host-only";
 
 export function readPlatformRootDomainWeb(): string {
   const fromEnv = process.env.PLATFORM_ROOT_DOMAIN?.trim().toLowerCase();

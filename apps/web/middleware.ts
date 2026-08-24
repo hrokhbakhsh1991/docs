@@ -17,7 +17,7 @@ import {
   validatePlatformSessionToken,
 } from "@/platform/build-platform-session-cookie";
 import { isPlatformAdminHost } from "@/platform/is-platform-admin-host";
-import { parseMultiLevelTenantHost, toCanonicalClubAdminHost } from "@app-tour/tenant-kernel";
+import { parseMultiLevelTenantHost, toCanonicalClubAdminHost } from "@app-tour/tenant-kernel/host-only";
 import { resolveClubApexToAdminRedirect } from "@/tenant/resolve-club-apex-to-admin-redirect";
 import { isOperatorAdminHost } from "@/tenant/operator-admin-host";
 import {

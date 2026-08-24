@@ -2,7 +2,7 @@ import {
   parseMultiLevelTenantHost,
   parseReservedLabelsCsv,
   parseWorkspaceTenantLabelFromHost,
-} from "@app-tour/tenant-kernel";
+} from "@app-tour/tenant-kernel/host-only";
 
 function readRootDomain(): string {
   const fromTenant = process.env.TENANT_ROOT_DOMAIN?.trim();
