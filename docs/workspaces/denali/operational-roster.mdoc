@@ -1,0 +1,75 @@
+---
+title: Denali operational roster (DP-2)
+doc_id: DENALI-OPERATIONAL-ROSTER
+version: "2026-08-24-v1"
+workspace: denali
+status: ACTIVE
+authority: DEN-PROD-03 · registration-payment-orchestration.mdoc · DP-1 payment holds
+---
+
+# Denali operational roster (DP-2)
+
+## Problem
+
+Operator cannot answer from one surface who holds a seat, who has paid, who owes, transport mode, and payment deadline.
+
+## Semantics (DEN-PROD-03 — approved)
+
+| Predicate | Definition |
+| --------- | ---------- |
+| `isOperationalParticipant` | `booking.status === "approved"` |
+| `isFinanciallySettled` | Finance invoice `remainingMinor === "0"` |
+| `isFinalParticipant` | `approved` ∧ `isFinanciallySettled` |
+| `occupiesCapacity` | `registrationOccupiesSeat("booking", status)` — unchanged (DP-1) |
+
+Financial display states (projection only — not persisted on Bookings):
+
+- `UNPAID` — approved, `remainingMinor > 0`, no capture
+- `PARTIALLY_PAID` — approved, `remainingMinor > 0`, `paidMinor > 0`
+- `PAID` — approved, `remainingMinor === 0`, paid receipt path
+- `WAIVED` — approved, `remainingMinor === 0`, free/zero obligation path
+- `NOT_APPLICABLE` — non-approved lifecycle rows
+
+Refund badge is orthogonal (`FinanceRefund` aggregate): `in_flight` \| `completed` \| `none`.
+
+Passenger-to-vehicle assignment is **not implemented** (TW-C-06). Roster exposes `passengerAssignmentStatus: "not_implemented"` until DP-5.
+
+## Read model
+
+**SoT remains split.** `TourOperationalRosterRow` is a **composed projection** at query time:
+
+| Field | Source |
+| ----- | ------ |
+| Lifecycle | Bookings `operator_registrations` |
+| `remainingMinor`, `paidMinor`, `currency` | Finance invoice compile |
+| `paymentDueAt`, `holdStatus` | Finance `finance_payment_holds` |
+| Transport scalars | Bookings list projection (`transportKind`, `personalCarOccupants`) |
+| Refund badge | Finance `FinanceRefund` rows |
+
+No duplicate SoT columns on `operator_registrations`.
+
+## API
+
+```
+GET /tours/:tourId/operational-roster?view=ops&filter=&transportKind=&limit=&cursor=
+```
+
+| Query | Behavior |
+| ----- | -------- |
+| `filter=operational` (default) | Approved seat holders |
+| `filter=final` | `isFinalParticipant` |
+| `filter=unpaid` | Approved with `remainingMinor > 0` |
+| `filter=paid` | Financially settled approved |
+| `filter=expiring` | Approved with `paymentDueAt <= now + 24h` |
+| `filter=waitlist` | `status=waitlisted` |
+| `transportKind` | Narrow to intake kind |
+
+Tenant isolation: `tourId` scoped list; cross-tenant IDs never returned.
+
+## Operator UI
+
+Tour workspace **transport** tab consumes the roster endpoint and renders payment + deadline + final-participant indicator alongside transport columns (no new dashboard).
+
+## Events
+
+Read-only projection — no new outbox types in DP-2.

@@ -270,6 +270,10 @@
       "types": "./dist/finance/index.d.ts",
       "default": "./dist/finance/index.js"
     },
+    "./roster": {
+      "types": "./dist/roster/index.d.ts",
+      "default": "./dist/roster/index.js"
+    },
     "./host/finance/manifest": {
       "types": "./dist/finance/finance-ops-manifest.d.ts",
       "default": "./dist/finance/finance-ops-manifest.js"
