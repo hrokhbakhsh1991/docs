@@ -96,7 +96,7 @@
     }
   },
   "scripts": {
-    "build": "pnpm --dir ../catalog-registration-auth run build && tsc -p tsconfig.json",
+    "build": "pnpm --dir ../catalog-registration-auth run build && pnpm --dir ../tour-core run build && rm -rf dist && tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
     "validate:manifests": "node --import tsx scripts/validate-manifests.ts",
     "test": "NODE_ENV=test node --import ./test/register-server-only-stub.mjs --import tsx --test \"test/**/*.spec.ts\"",
@@ -121,6 +121,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@app-tour/workspace-cert-club": "workspace:*",
     "@app-tour/workspace-denali": "workspace:*",
     "@casl/ability": "^6.7.3",
     "@app-tour/config": "workspace:*",
