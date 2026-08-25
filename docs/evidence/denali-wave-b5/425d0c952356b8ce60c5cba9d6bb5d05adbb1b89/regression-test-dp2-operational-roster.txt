@@ -1,0 +1,88 @@
+
+======== denali-domain ========
+▶ DP-2 compose tour operational roster
+  ✔ approved unpaid row is operational but not final (0.884098ms)
+  ✔ partial payment projection (0.134802ms)
+  ✔ paid final participant (0.102195ms)
+  ✔ waived zero-obligation registration (0.100649ms)
+  ✔ waitlisted row (0.104213ms)
+  ✔ cancelled expired hold row is not operational (0.092767ms)
+  ✔ refund badge orthogonal to payment state (0.103227ms)
+  ✔ driver offer from personal_car transport (0.113751ms)
+  ✔ filters: final, unpaid, paid, expiring, waitlist (0.345064ms)
+  ✔ transportKind post-filter (0.182845ms)
+✔ DP-2 compose tour operational roster (5.445765ms)
+▶ DP-2 operational roster semantics
+  ✔ approved unpaid is operational but not final (0.64041ms)
+  ✔ partial payment display state (0.189581ms)
+  ✔ paid final participant (0.091344ms)
+  ✔ waived free registration (0.078968ms)
+  ✔ waitlisted does not occupy capacity (0.140763ms)
+  ✔ cancelled and expired do not appear operational (0.074577ms)
+  ✔ refund display states (0.149519ms)
+  ✔ driver offer from personal_car transport (0.246392ms)
+  ✔ passenger assignment not implemented (0.594371ms)
+  ✔ expiring deadline within window (1.177654ms)
+✔ DP-2 operational roster semantics (4.378137ms)
+ℹ tests 20
+ℹ suites 2
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 167.169594
+[dp2] PASS pnpm
+
+======== api ========
+▶ DP-2 operational roster API contract
+  ✔ returns composed roster rows with DP-2 fields (131.114175ms)
+  ✔ supports filter query tokens (11.356297ms)
+✔ DP-2 operational roster API contract (149.896204ms)
+{"level":30,"time":"2026-08-25T00:45:48.151Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+▶ DP-2 operational roster isolation
+  ✔ does not return Denali tenant registrations when queried under another tenant header (68.060725ms)
+✔ DP-2 operational roster isolation (75.258692ms)
+{"level":30,"time":"2026-08-25T00:45:49.220Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+▶ DP-2 operational roster projection
+  ✔ matrix: approved unpaid appears in operational + unpaid filters (19.140305ms)
+  ✔ matrix: partial payment stays non-final (6.425129ms)
+  ✔ matrix: full payment yields final + paid filters (5.009795ms)
+  ✔ matrix: waitlisted row appears only in waitlist filter (2.544077ms)
+  ✔ driver offer and passenger assignment honest (3.644144ms)
+✔ DP-2 operational roster projection (38.614788ms)
+{"level":30,"time":"2026-08-25T00:45:49.987Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:50.004Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:50.010Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:50.015Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:50.018Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+ℹ tests 8
+ℹ suites 3
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2887.964622
+[dp2] PASS pnpm
+
+======== operator-web ========
+▶ DP-2 tour workspace operational roster contract
+  ✔ transport tab loads unified operational roster endpoint (0.580534ms)
+  ✔ BFF proxies tour operational roster route (0.140035ms)
+  ✔ renders final participant, amount due, deadline, driver badges (0.158506ms)
+  ✔ exposes approved DP-2 roster filters (0.511997ms)
+  ✔ amount due formatter respects financial display state (0.170211ms)
+  ✔ roster href encodes tour id and filter (0.137844ms)
+✔ DP-2 tour workspace operational roster contract (2.477515ms)
+ℹ tests 6
+ℹ suites 1
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 92.942562
+[dp2] PASS pnpm
+
+[dp2] finished with 0 failing layer(s)

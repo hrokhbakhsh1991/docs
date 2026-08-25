@@ -1,0 +1,24 @@
+{
+  "sha": "425d0c952356b8ce60c5cba9d6bb5d05adbb1b89",
+  "wave": "B.5",
+  "timestamp": "2026-08-25T00:45:00Z",
+  "journeys": [
+    "dp3-flat-edit-partial-ui",
+    "dp6-portal-refund-authenticated",
+    "postgres-discovery",
+    "dp1-dp6-regression-memory"
+  ],
+  "postgres": "BLOCKED_EXTERNAL",
+  "pr109": "not merged — 19 CI failures on PR branch",
+  "operator_host": "admin.operator.localhost:3000",
+  "portal_host": "portal.operator.localhost:3003",
+  "dp3_classifications": {
+    "safe_edit": "PARTIAL_UI + API_ONLY",
+    "capacity_increase": "API_ONLY",
+    "capacity_deny": "API_ONLY",
+    "price_mutation": "API_ONLY",
+    "date_mutation": "API_ONLY",
+    "transport": "NOT_APPLICABLE_UI"
+  },
+  "dp6": "BROWSER_UI_PROVEN — browser/dp6-member-refund-1440.png + 390.png"
+}

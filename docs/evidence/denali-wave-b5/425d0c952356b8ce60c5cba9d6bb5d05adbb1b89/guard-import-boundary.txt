@@ -1,0 +1,5 @@
+
+> app-tour@0.1.0 guard:import-boundary /workspace
+> node scripts/guards/import-boundary-ast.mjs
+
+import-boundary-ast: PASS

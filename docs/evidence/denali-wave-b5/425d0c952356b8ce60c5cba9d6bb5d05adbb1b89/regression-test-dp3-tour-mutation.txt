@@ -1,0 +1,199 @@
+
+======== denali-mutation-policy ========
+▶ tour-mutation-policy — DP-3 matrix
+  ✔ no-registration tour remains freely editable (0.666412ms)
+  ✔ safe content edit after registrations is allowed (0.372477ms)
+  ✔ frozen destination field rejected after registration (0.18119ms)
+  ✔ price change after approval triggers repricing side effect (0.282055ms)
+  ✔ price change after payment is denied (0.127361ms)
+  ✔ date change uses notification-required path (0.128781ms)
+  ✔ capacity below occupied is rejected (0.139808ms)
+  ✔ capacity increase is allowed (0.130371ms)
+  ✔ capacity decrease requires override when above occupied (0.591566ms)
+  ✔ transport mutation with allocations requires override (0.28349ms)
+  ✔ operator override authorizes capacity decrease (0.143531ms)
+✔ tour-mutation-policy — DP-3 matrix (4.044962ms)
+ℹ tests 11
+ℹ suites 1
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 97.646673
+[dp3] PASS pnpm
+
+======== api-mutation-enforcement ========
+▶ dp3/tour-mutation-enforcement
+  ✔ DP3-POLICY-01 blocks frozen destination with stable error (4.616047ms)
+  ✔ DP3-API-02 safe title edit after registrations succeeds on write path (57.386813ms)
+  ✔ DP3-POLICY-03 price change after payment is blocked (0.78572ms)
+  ✔ DP3-API-04 approved-unpaid price change emits repricing side effect (4.209098ms)
+  ✔ DP3-API-05 schedule change emits notification side effect (3.563256ms)
+  ✔ DP3-POLICY-06 capacity below occupied rejected (0.663451ms)
+  ✔ DP3-API-07 capacity increase allowed (3.164626ms)
+  ✔ DP3-POLICY-08 transport mutation with allocations requires override (0.605517ms)
+  ✔ DP3-API-09 owner override allows capacity decrease above occupied (3.549174ms)
+✔ dp3/tour-mutation-enforcement (80.507867ms)
+{"level":30,"time":"2026-08-25T00:45:51.940Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","validationStage":"workspacePolicy","durationMs":5,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:51.946Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","validationStage":"workspacePolicy","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:51.950Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","validationStage":"workspacePolicy","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:51.954Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","validationStage":"workspacePolicy","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:51.958Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","validationStage":"workspacePolicy","durationMs":1,"msg":"workspace slo event"}
+ℹ tests 9
+ℹ suites 1
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 803.441451
+[dp3] PASS pnpm
+
+======== publish-regression ========
+▶ club-catalog-publish-service (P4-A SV)
+  ✔ SV-01 updateTour urban draft→published schedules revalidate POST (50.137366ms)
+  ✔ SV-02 writeTour urban draft create does not schedule (32.099358ms)
+  ✔ SV-03 writeTour then publish schedules exactly one revalidate POST (64.180171ms)
+  ✔ SV-04 fetch failure still persists tour (fail-open side effect) (33.220614ms)
+  ✔ SV-05 starter workspace update does not schedule (67.309917ms)
+  ✔ SV-06 published→draft unpublish still schedules revalidate (63.301835ms)
+✔ club-catalog-publish-service (P4-A SV) (312.1359ms)
+{"level":30,"time":"2026-08-25T00:45:53.228Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":2,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:53.230Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:53.263Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:53.296Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:53.327Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:53.360Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:53.360Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":40,"time":"2026-08-25T00:45:53.361Z","service":"@apps/api","event":"marketing.catalog.revalidate_failed","tenantId":"00000000-0000-4000-8000-000000000004","error":"MARKETING_REVALIDATE_FETCH_REJECTED","msg":"marketing catalog revalidate request failed"}
+{"level":30,"time":"2026-08-25T00:45:53.397Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"starter","tenantId":"ee3c3ba8-5447-4f31-b510-8e20f9dd47c8","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:53.428Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"starter","tenantId":"ee3c3ba8-5447-4f31-b510-8e20f9dd47c8","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:53.460Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:53.460Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:53.491Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:53.524Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:53.524Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+▶ club-catalog-publish-http (P4-A PW)
+  ✔ PW-01 service publish then GET /urban/catalog lists tour (89.087189ms)
+  ✔ PW-DN-01 GET /denali/catalog lists operator smoke published tour (21.258081ms)
+✔ club-catalog-publish-http (P4-A PW) (110.800917ms)
+ℹ tests 8
+ℹ suites 2
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1361.822789
+[dp3] PASS pnpm
+
+======== booking ========
+▶ bookings-create.spec.ts — Phase 9.5 API
+  ✔ API-9.5-04 POST /bookings manual create returns 201 pending (43.95294ms)
+✔ bookings-create.spec.ts — Phase 9.5 API (50.28662ms)
+{"level":30,"time":"2026-08-25T00:45:54.941Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+▶ bookings-safety.spec.ts
+  ✔ BK-SAFE-01 getById returns registrationIntake; listByTenantPage omits it (0.945734ms)
+  ✔ BK-SAFE-01a BOOKING_LIST_SELECT must not select registrationIntake (0.426488ms)
+  ✔ BK-SAFE-02 prisma listByTenantPage uses withTenantRls for paginated query (0.370488ms)
+  ✔ BK-SAFE-03 prisma getById is tenant-scoped under withTenantRls (no admin probe) (0.376303ms)
+  ✔ BK-SAFE-06 getById returns null for cross-tenant id guess (0.118463ms)
+  ✔ BK-SAFE-04 new pagination types stay off package root exports (0.523192ms)
+✔ bookings-safety.spec.ts (4.054205ms)
+ℹ tests 7
+ℹ suites 2
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 990.164727
+[dp3] PASS pnpm
+
+======== finance ========
+▶ finance-registration-context.spec.ts
+  ✔ B-01 filterRowsByRegistrationId keeps only matching rows (0.94137ms)
+  ✔ B-02 attachFinanceRegistrationContext is null when map lacks id (0.146483ms)
+  ✔ B-03 attachFinanceRegistrationContext copies projection fields (0.10837ms)
+  ✔ FIN-P1.6-01 finance-registration-context.ts has no Booking repository imports (0.97475ms)
+  ✔ FIN-P1.6-02 FinanceService loads display via registrationDisplay port (0.502413ms)
+  ✔ FIN-P1.6-03 BookingRegistrationDisplayAdapter maps guestLabel → memberDisplayName (0.57372ms)
+✔ finance-registration-context.spec.ts (4.167419ms)
+ℹ tests 6
+ℹ suites 1
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 188.845822
+[dp3] PASS pnpm
+
+======== transport ========
+▶ tours-workspace.spec.ts — Phase 9.3 Web
+  ✔ WEB-9.3-W01 workspace exposes page landmarks (CP-9.3-W01) (0.701676ms)
+  ✔ WEB-9.3-W02 subnav resolver highlights active tab (CP-9.3-W02) (0.316048ms)
+  ✔ WEB-9.3-W03 list and edit link ids for workspace (CP-9.3-W03) (0.113484ms)
+  ✔ WEB-9.3-W04 waitlist query scopes bookings API to tour + waitlisted (CP-9.3-W05) (0.177571ms)
+  ✔ WEB-9.3-W05 waitlist rows sort by submittedAt ascending (0.154301ms)
+  ✔ WEB-9.3-W06 transport query scopes operational roster + canonical modes (CP-9.3-W06 / DP-2) (5.97863ms)
+  ✔ WEB-9.3-W07 transport roster sorts by guest then departure (0.212481ms)
+  ✔ WEB-9.3-R04 registrations query scopes bookings to tour (CP-9.3-R04 / TW-C-01) (0.244097ms)
+  ✔ TW-C complete — finance tab in subnav when enabled + deep links (0.576409ms)
+  ✔ H1 hardening — ops counts from list totals; fail closed; clickable hrefs (0.386104ms)
+  ✔ H2/H3 hardening — capacity full + receipts N+ (0.170689ms)
+  ✔ H-10 Money Inbox — partition by actionability + remaining sum (0.403741ms)
+  ✔ PAY-FIN-02 Money Inbox — approved unpaid with no receipts still awaits payment (0.098044ms)
+  ✔ H-11 Tour Money Inbox — filters, hub href, focus parse (0.258345ms)
+  ✔ H-11b review feedback stays scoped to the selected workspace row (0.137786ms)
+  ✔ H-11b2 payment action feedback stays scoped to the selected workspace row (0.124658ms)
+  ✔ H-11c workspace finance uses validation-first error localization (0.356558ms)
+  ✔ H-11d workspace finance shows a scoped degraded-data hint when only some reads fail (0.367599ms)
+  ✔ H4b hardening — waitlist command center stays waitlisted+tour scoped (0.075238ms)
+  ✔ H5 hardening — transport intake kind counts from list scalars (0.170322ms)
+  ✔ H5-T4 — transport client uses list scalars (no N+1 hydrate) (0.227569ms)
+  ✔ TW-C remediations — finance tourId query + opsActions defaults + register test id (0.148729ms)
+  ✔ I-07/I-08 — workspace embeds import CC shell from features (not app/bookings) (0.226446ms)
+  ✔ shared finance fetch cache — TTL + invalidate for header/tab reuse (3.96701ms)
+  ✔ finance workspace master-detail stays feature-owned with app re-export (0.755333ms)
+✔ tours-workspace.spec.ts — Phase 9.3 Web (17.801328ms)
+ℹ tests 25
+ℹ suites 1
+ℹ pass 25
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 232.227225
+[dp3] PASS pnpm
+
+======== architecture-isolation ========
+
+> app-tour@0.1.0 guard:import-boundary /workspace
+> node scripts/guards/import-boundary-ast.mjs
+
+import-boundary-ast: PASS
+[dp3] PASS pnpm
+
+======== pre-commit-fast ========
+
+> app-tour@0.1.0 pre-commit:fast /workspace
+> bash scripts/pre-commit-fast.sh
+
+pre-commit-fast: RUN guard-docs
+pre-commit-fast: PASS guard-docs (0s)
+pre-commit-fast: SKIP field-exposure guards (phases 0–11) (no staged path match)
+pre-commit-fast: SKIP guard-wizard-post-submit (no staged path match)
+pre-commit-fast: SKIP guard-css-globals (no staged path match)
+pre-commit-fast: RUN check-node-engine
+check-node-engine: PASS (Node 24.19.0)
+pre-commit-fast: PASS check-node-engine (0s)
+pre-commit-fast: no staged files — skip lint-staged
+pre-commit-fast: RUN test-changed
+test-changed: no staged files (mode=pre-commit) — skip
+pre-commit-fast: PASS test-changed (0s)
+pre-commit-fast: PASS (0s; report: .cache/pre-commit-fast/latest.tsv)
+[dp3] PASS pnpm
+
+[dp3] finished with 0 failing layer(s)

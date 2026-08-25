@@ -3,8 +3,9 @@
 ```yaml
 registry_id: DENALI-RUNTIME-FINDINGS-2026-08-24
 authority: docs/dev/production-closure-ledger.md
-reconciled_commit: ba7b37fa3075fc09651b7d66b47d6e3550d3425e
+reconciled_commit: 425d0c952356b8ce60c5cba9d6bb5d05adbb1b89
 wave_b_evidence: docs/evidence/denali-wave-b/ba7b37fa3075fc09651b7d66b47d6e3550d3425e/
+wave_b5_evidence: docs/evidence/denali-wave-b5/425d0c952356b8ce60c5cba9d6bb5d05adbb1b89/
 ```
 
 Runtime closure gaps discovered during **truth reconciliation** and prior DP certification. Product code changes are **out of scope** for Wave A.
@@ -90,6 +91,30 @@ Severity: **P0** blocks paid-ops / go-live honesty · **P1** should close before
 | **Status** | **CLOSED** @ Wave B 2026-08-24 — DEN-PROD-03 APPROVED; code parity confirmed |
 | **Rule in code** | `final := approved && remainingMinor === 0` (waived counts settled) |
 | **Evidence** | `docs/dev/production-closure-ledger.md` § DEN-PROD-03 decision lock |
+
+---
+
+## DRF-008 — DP-3 flat-edit UI PATCH save harness incomplete (Wave B.5)
+
+| Field | Value |
+|-------|-------|
+| **Phase** | DP-3 |
+| **Severity** | P1 |
+| **Role** | Operator |
+| **Status** | **OPEN** — API mutation matrix PASS; Playwright flat-edit save does not complete PATCH (`admin.operator.localhost`) |
+| **Evidence** | `docs/evidence/denali-wave-b5/425d0c952356b8ce60c5cba9d6bb5d05adbb1b89/` — before screenshot + API classifications; Wave B API `dp3-safe-edit-body.json` |
+
+---
+
+## DRF-009 — DP-6 authenticated portal refund UI (Wave B.5)
+
+| Field | Value |
+|-------|-------|
+| **Phase** | DP-6 |
+| **Severity** | P1 |
+| **Role** | Member |
+| **Status** | **CLOSED** @ `425d0c95` |
+| **Evidence** | `browser/dp6-member-refund-1440.png`, `390.png`; `api/dp6-member-detail.json`; operator parity `dp6-operator-refunds.json` |
 
 ---
 

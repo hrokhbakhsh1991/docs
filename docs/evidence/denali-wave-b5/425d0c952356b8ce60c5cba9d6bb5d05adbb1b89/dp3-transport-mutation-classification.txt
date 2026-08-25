@@ -1,0 +1,1 @@
+NOT_APPLICABLE_UI — transport allocation mutation not in first-launch flat-edit.
