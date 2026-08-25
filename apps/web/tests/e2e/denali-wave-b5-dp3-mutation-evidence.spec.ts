@@ -60,9 +60,7 @@ async function saveFlatEditUi(
   page: import("@playwright/test").Page,
   label: string
 ): Promise<{ status: number; body: string }> {
-  const save = page
-    .getByTestId(TOUR_EDIT_TEST_IDS.flatForm)
-    .getByTestId(TOUR_EDIT_TEST_IDS.save);
+  const save = page.getByTestId(TOUR_EDIT_TEST_IDS.save);
   await expect(save).toBeEnabled({ timeout: 60_000 });
   const [res] = await Promise.all([
     page.waitForResponse(
