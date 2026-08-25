@@ -74,7 +74,13 @@ const results = [];
 for (const node of selected) {
   const start = Date.now();
   const command = node.command.replace(/^pnpm /, "pnpm ");
-  const result = spawnSync("sh", ["-lc", command], { cwd: root, encoding: "utf8", env: process.env, timeout: catalog.tiers[node.tier].timeoutSeconds * 1000 });
+  const result = spawnSync("sh", ["-lc", command], {
+    cwd: root,
+    encoding: "utf8",
+    env: process.env,
+    timeout: catalog.tiers[node.tier].timeoutSeconds * 1000,
+    maxBuffer: 64 * 1024 * 1024,
+  });
   results.push({ id: node.id, tier: node.tier, command, exitCode: result.status ?? 1, timedOut: result.error?.code === "ETIMEDOUT", signal: result.signal ?? null, durationMs: Date.now() - start, stdout: result.stdout ?? "", stderr: result.stderr ?? "" });
   if (result.status !== 0) break;
 }
