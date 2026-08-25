@@ -82,6 +82,8 @@
     "prod6:release-evidence": "node scripts/ops/prod6-release-evidence.mjs",
     "prod6:security-release": "pnpm run prod6:secret-scan:tip && pnpm run prod6:secret-scan:history && pnpm run prod6:supply-chain:audit && pnpm run prod6:security-headers && pnpm run prod6:static-security && pnpm run prod6:action-policy && pnpm run prod6:release-evidence",
     "smoke:staging": "node scripts/ops/smoke-deployment.mjs staging",
+    "deploy:staging:artifact:build": "bash scripts/vps-deploy/build-staging-artifact.sh",
+    "deploy:staging:artifact:remote": "bash scripts/vps-deploy/deploy-staging-artifact-remote.sh",
     "smoke:production": "node scripts/ops/smoke-deployment.mjs production",
     "gate:catalog:check": "node scripts/ops/run-gate-catalog.mjs --check",
     "gate:catalog:test": "node --test scripts/ops/gate-catalog-contract.test.mjs",

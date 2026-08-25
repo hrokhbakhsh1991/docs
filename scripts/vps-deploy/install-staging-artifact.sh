@@ -35,8 +35,14 @@ for u in ${UNIT_PREFIX}-{api,web,marketing,portal}; do
   systemctl disable "$u" 2>/dev/null || true
 done
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 log "extract release ${SHA}"
 mkdir -p "$RELEASES_DIR" "$TOOLING/scripts/vps-deploy"
+for f in start-api-artifact.sh start-next-artifact.sh; do
+  cp -a "${SCRIPT_DIR}/${f}" "${TOOLING}/scripts/vps-deploy/"
+  chmod +x "${TOOLING}/scripts/vps-deploy/${f}"
+done
 rm -rf "${RELEASES_DIR}/${SHA}"
 mkdir -p "${RELEASES_DIR}/${SHA}"
 tar -I zstd -xf "$ARTIFACT" -C "${RELEASES_DIR}/${SHA}" --strip-components=1
