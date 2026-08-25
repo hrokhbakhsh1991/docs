@@ -12,7 +12,7 @@ import {
   __getHttpRequestLogQueueSizeForTests,
   __resetHttpRequestLogQueueForTests,
 } from "../http/request-logging";
-import { logger } from "../observability/logger";
+import { logger, flushLogSink } from "../observability/logger";
 import {
   readHealthProbeP99Ms,
   readHealthProbeSlowTotal,
@@ -173,9 +173,10 @@ describe("health priority ingress (NN-08)", () => {
     }
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     __resetHttpRequestLogQueueForTests();
     resetHealthProbeLatencyMonitorForTests();
+    await flushLogSink();
   });
 
   it("isHealthGetRequest matches GET /health only", async () => {
@@ -266,6 +267,9 @@ describe("health priority ingress (NN-08)", () => {
   });
 
   it("GET /health responds during interleaved sync validation storm", async () => {
+    const priorLogLevel = process.env.LOG_LEVEL;
+    process.env.LOG_LEVEL = "error";
+    try {
     const appListener = createRequestListener({ toursService: createTestToursService() });
     const listener = createHealthAwareServerListener(appListener);
 
@@ -301,5 +305,13 @@ describe("health priority ingress (NN-08)", () => {
       readHealthProbeSlowTotal() >= 0,
       "health_probe_slow_total must be readable after storm"
     );
+    } finally {
+      if (priorLogLevel === undefined) {
+        delete process.env.LOG_LEVEL;
+      } else {
+        process.env.LOG_LEVEL = priorLogLevel;
+      }
+      logger.level = process.env.LOG_LEVEL ?? "info";
+    }
   });
 });

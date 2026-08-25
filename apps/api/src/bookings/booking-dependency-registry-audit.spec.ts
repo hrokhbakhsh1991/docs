@@ -174,6 +174,15 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
       },
       capabilities: toBookingRuntimeCapabilities(caps),
       productionGradeIntegrity: false,
+      postCancelSideEffects: {
+        run: async () => ({
+          refundDrafted: false,
+          refundId: null,
+          eligibleRefundMinor: "0",
+          waitlistPromoted: false,
+        }),
+      },
+      registrationSlo: { record: () => undefined },
     });
 
     await assert.rejects(

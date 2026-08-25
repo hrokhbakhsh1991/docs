@@ -25,6 +25,8 @@ import { toBookingRuntimeCapabilities } from "./map-booking-runtime-capabilities
 import { resolveBookingWorkspaceTypeForTenant } from "./resolve-booking-workspace-type-for-tenant";
 import { resolveWorkspaceBookingEventReaction } from "./booking-event-reaction-registry";
 import { resolveBookingWorkspaceDependencies } from "./booking-dependency-registry";
+import { runPostCancelSideEffects } from "./post-cancel-side-effects.ts";
+import { recordRegistrationSloEvent } from "../observability/workspace-slo-telemetry.ts";
 import { isBookingSupportedWorkspace } from "./workspace-booking-bindings.generated";
 import type {
   ApproveBookingResponse,
@@ -138,6 +140,8 @@ export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string)
     tenantWorkspaceBinding: getSharedTenantWorkspaceBinding(),
     capabilities: toBookingRuntimeCapabilities(capabilities),
     productionGradeIntegrity: requiresProductionGradeIntegrity(),
+    postCancelSideEffects: { run: runPostCancelSideEffects },
+    registrationSlo: { record: recordRegistrationSloEvent },
   });
   const runtime: BookingRuntime = {
     workspaceType: normalized,

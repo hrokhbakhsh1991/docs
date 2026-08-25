@@ -79,6 +79,15 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
       tenantWorkspaceBinding: new HostBookingTenantWorkspaceBindingAdapter(),
       capabilities: toBookingRuntimeCapabilities(capabilities),
       productionGradeIntegrity: false,
+      postCancelSideEffects: {
+        run: async () => ({
+          refundDrafted: false,
+          refundId: null,
+          eligibleRefundMinor: "0",
+          waitlistPromoted: false,
+        }),
+      },
+      registrationSlo: { record: () => undefined },
     });
 
     await assert.rejects(
@@ -159,6 +168,15 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
         tenantWorkspaceBinding: new HostBookingTenantWorkspaceBindingAdapter(),
         capabilities: toBookingRuntimeCapabilities(capabilities),
         productionGradeIntegrity: true,
+        postCancelSideEffects: {
+          run: async () => ({
+            refundDrafted: false,
+            refundId: null,
+            eligibleRefundMinor: "0",
+            waitlistPromoted: false,
+          }),
+        },
+        registrationSlo: { record: () => undefined },
       });
 
       await assert.rejects(

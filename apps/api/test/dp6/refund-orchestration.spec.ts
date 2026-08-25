@@ -216,7 +216,7 @@ describe("DP6 member cancellation eligibility includes refund preview", () => {
     const row = await repo.getById(bookingId, OPERATOR_SMOKE.tenantId);
     assert.ok(row);
     const { getMemberCancellationEligibility } = await import(
-      "../../src/bookings/member-cancellation.service.ts"
+      "../../src/member-cancellation/member-cancellation.service.ts"
     );
     const result = await getMemberCancellationEligibility(
       {

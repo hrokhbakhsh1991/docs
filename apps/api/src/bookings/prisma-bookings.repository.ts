@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import {
   canTransitionBookingStatus,
   listBookingSourceStatusesForTarget,
-} from "@app-tour/booking-http-contracts";
+} from "./booking-status-transitions";
 
 import { withTenantRls } from "../db/with-tenant-rls";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import {
   canTransitionBookingStatus,
-} from "@app-tour/booking-http-contracts";
+} from "./booking-status-transitions";
 
 import {
   compareBookingsByDepartureAtAsc,
@@ -883,13 +883,12 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
   }
 
   /**
-   * pending|waitlisted → rejected. Emits registration.rejected (DP-4).
+   * pending|waitlisted → rejected. Persist status + optional rejectReason — no outbox (decision B).
    */
   async rejectBooking(input: {
     bookingId: string;
     tenantId: string;
     reason?: string;
-    outboxEvent?: string;
   }): Promise<BookingRecord> {
     const current = bookingsStore.get(input.bookingId);
     if (current === undefined || current.tenantId !== input.tenantId) {
@@ -909,26 +908,6 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       ...(rejectReason !== undefined ? { rejectReason } : {}),
     };
     bookingsStore.set(updated.id, updated);
-    const rejectedAt = new Date().toISOString();
-    if (input.outboxEvent !== undefined && input.outboxEvent.length > 0) {
-      outboxStore.push({
-        id: randomUUID(),
-        tenantId: input.tenantId,
-        aggregateType: "registration",
-        aggregateId: updated.id,
-        eventType: input.outboxEvent,
-        payload: {
-          bookingId: updated.id,
-          tourId: updated.tourId,
-          status: updated.status,
-          rejectedAt,
-          guestUserId: updated.submittedByUserId,
-          ...(rejectReason !== undefined ? { reason: rejectReason } : {}),
-        },
-        domainEventId: `registration.rejected:${updated.id}:${rejectedAt}`,
-        createdAt: rejectedAt,
-      });
-    }
     return cloneBooking(updated);
   }
 

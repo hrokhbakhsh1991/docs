@@ -167,7 +167,6 @@ export interface BookingRepositoryPort {
   rejectBooking(input: {
     bookingId: string;
     tenantId: string;
-    outboxEvent: string;
     reason?: string;
   }): Promise<BookingRecord>;
   /**
