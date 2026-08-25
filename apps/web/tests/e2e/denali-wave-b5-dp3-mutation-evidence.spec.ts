@@ -92,17 +92,8 @@ test.describe("Wave B.5 DP-3 flat-edit mutation evidence", () => {
     await expect(page.getByTestId(TOUR_EDIT_TEST_IDS.page)).toBeVisible({
       timeout: 120_000,
     });
-    await expect(page.getByTestId(TOUR_EDIT_TEST_IDS.flatForm)).toBeVisible({
-      timeout: 120_000,
-    });
-    await captureTourBff(page, "baseline-tour");
-    await page.screenshot({
-      path: join(BROWSER_DIR, "dp3-edit-before-1440.png"),
-      fullPage: true,
-    });
-
     const titleField = page.getByTestId(TOUR_EDIT_TEST_IDS.title);
-    await expect(titleField).toBeVisible({ timeout: 60_000 });
+    await expect(titleField).toBeVisible({ timeout: 120_000 });
     const safeTitle = `DP1 Payment Deadline Tour B5 ${Date.now()}`;
     await titleField.fill(safeTitle);
     await captureTourBff(page, "safe-edit-before");

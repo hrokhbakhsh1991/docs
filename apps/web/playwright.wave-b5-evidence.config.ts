@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const operatorBaseUrl =
-  process.env.SMOKE_BASE_URL ?? "http://denali.admin.localhost:3000";
+  process.env.SMOKE_BASE_URL ?? "http://admin.operator.localhost:3000";
 
 export default defineConfig({
   testDir: "./tests/e2e",

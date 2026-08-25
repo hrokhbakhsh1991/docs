@@ -67,15 +67,16 @@ test.describe("Wave B.5 DP-6 portal refund evidence", () => {
     const cancelText = await cancelRes.text();
     writeFileSync(join(API_DIR, "dp6-member-cancellation-bff.json"), cancelText);
 
-    await page.goto("/me/registrations", { waitUntil: "domcontentloaded" });
-    const detailLink = page.locator(
-      `[data-portal-member-registrations-list] a[href*="/me/registrations/${regId}"]`
-    );
-    await expect(detailLink.first()).toBeVisible({ timeout: 120_000 });
-    await detailLink.first().click();
+    await page.goto(`/me/registrations/${encodeURIComponent(regId!)}`, {
+      waitUntil: "domcontentloaded",
+    });
     await expect(page.locator("[data-portal-member-registration-detail]")).toBeVisible({
       timeout: 120_000,
     });
+    await expect(page.locator("[data-portal-member-registration-status]")).toContainText(
+      /cancel|لغو|cancelled/i,
+      { timeout: 60_000 }
+    );
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.screenshot({

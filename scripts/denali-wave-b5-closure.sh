@@ -9,7 +9,7 @@ SHA="$(git rev-parse HEAD)"
 EVID="docs/evidence/denali-wave-b5/${SHA}"
 mkdir -p "$EVID/browser" "$EVID/api"
 
-ADMIN_HOST="${ADMIN_HOST:-denali.admin.localhost}"
+ADMIN_HOST="${ADMIN_HOST:-admin.operator.localhost}"
 PORTAL_HOST="${PORTAL_HOST:-portal.operator.localhost}"
 PORTAL="${PORTAL:-http://127.0.0.1:3003}"
 API="${API:-http://127.0.0.1:3001}"
@@ -184,7 +184,7 @@ jq -n --arg id "$REFUND_REG_ID" '{refundRegistrationId:$id}' > "$EVID/dp6-seed.j
 export WAVE_B_EVIDENCE_DIR="$ROOT/$EVID"
 export WAVE_B5_REFUND_REG_ID="$REFUND_REG_ID"
 export PW_EXTERNAL_SERVERS=1
-export SMOKE_BASE_URL="http://${ADMIN_HOST}:3000"
+export SMOKE_BASE_URL="http://admin.operator.localhost:3000"
 export SMOKE_PORTAL_BASE_URL="http://${PORTAL_HOST}:3003"
 
 log "Running DP-3 flat-edit Playwright..."
