@@ -4,7 +4,10 @@ import type {
   IntakeFlowDefinition,
   RegistrationFlowContext,
 } from "@app-tour/workspace-sdk";
-import { defineCatalogRegistrationFlowSurface } from "@app-tour/workspace-sdk";
+import {
+  applyCatalogRegistrationFlowEvent,
+  defineCatalogRegistrationFlowSurface,
+} from "@app-tour/workspace-sdk";
 
 const STEPS = ["phone", "otp", "profile", "intake", "done"] as const;
 
@@ -19,17 +22,6 @@ export const certClubCatalogRegistrationFlowSurface = defineCatalogRegistrationF
     state: FlowRuntimeState,
     event: FlowEvent,
     _context: RegistrationFlowContext
-  ): FlowRuntimeState => {
-    if (event.type === "merge") {
-      return Object.freeze({
-        currentStep: state.currentStep,
-        data: Object.freeze({ ...state.data, ...event.patch }),
-      });
-    }
-    if (event.type === "transition") {
-      return Object.freeze({ currentStep: event.to, data: state.data });
-    }
-    return state;
-  },
+  ): FlowRuntimeState => applyCatalogRegistrationFlowEvent(state, event),
   successDataAttributes: () => Object.freeze({ "data-cert-club-registration-success": true }),
 });

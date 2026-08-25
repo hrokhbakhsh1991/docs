@@ -72,8 +72,8 @@ describe("portal member login page — PCMS-03-LOGIN + MODAL", () => {
     assert.match(gate, /data-portal-register-auth-gate/);
     assert.match(gate, /PortalRegisterSignInLink/);
     assert.match(gate, /\/api\/me\/profile/);
-    assert.match(page, /registrationResume !== null \?/);
-    assert.match(page, /: \(\s*<>[\s\S]*PortalLoginModalOpener[\s\S]*PortalRegisterGuestAuthGate/);
+    assert.match(page, /resumeAtIntake \?/);
+    assert.match(page, /readPublicCatalogSessionFromCookies/);
     assert.doesNotMatch(page, /initialRuntimeState=\{registrationResume\?\.initialState\}/);
   });
 

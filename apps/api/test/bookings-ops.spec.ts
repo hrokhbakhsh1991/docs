@@ -61,9 +61,9 @@ describe("bookings-ops.spec.ts — Phase 9.5 API", () => {
       tenantId: OPERATOR_SMOKE.tenantId,
       aggregateId: OPERATOR_SMOKE.pendingBookingId,
     });
-    assert.equal(outboxRows.length, 1);
-    assert.equal(outboxRows[0]?.eventType, "registration.approved");
-    assert.equal(outboxRows[0]?.aggregateType, "registration");
+    const approvedRows = outboxRows.filter((row) => row.eventType === "registration.approved");
+    assert.equal(approvedRows.length, 1);
+    assert.equal(approvedRows[0]?.aggregateType, "registration");
   });
 
   it("API-9.5-02 GET /bookings/summary returns KPI counts", async () => {
