@@ -15,7 +15,7 @@ import {
   createMemberCancellationRequest,
   findPendingMemberCancellationRequest,
 } from "./member-cancellation-request.repository.ts";
-import { evaluateDenaliMemberCancellationEligibility } from "@app-tour/workspace-denali/host/booking";
+import { evaluateDenaliMemberCancellationEligibility } from "@app-tour/workspace-denali/booking";
 
 export type MemberCancellationEligibilityResponse = {
   readonly eligible: boolean;

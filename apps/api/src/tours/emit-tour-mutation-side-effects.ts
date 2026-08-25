@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { DenaliTourMutationSideEffect } from "@app-tour/workspace-denali/host/tours";
+import type { DenaliTourMutationSideEffect } from "@app-tour/workspace-denali/tours";
 
 type TourMutationOutboxRow = {
   readonly tenantId: string;

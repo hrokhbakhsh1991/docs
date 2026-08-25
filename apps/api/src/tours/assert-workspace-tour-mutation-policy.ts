@@ -1,14 +1,15 @@
+import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
+import { assertDenaliWorkspaceOwner } from "@app-tour/workspace-denali/workspace-owner";
 import {
-  assertDenaliWorkspaceOwner,
   DenaliTourMutationBlockedError,
   DenaliTourMutationOverrideRequiredError,
-} from "@app-tour/workspace-denali/host/http";
+} from "@app-tour/workspace-denali/errors/tour-mutation";
 import {
   evaluateDenaliTourMutation,
   readDenaliTransportAllocationsLocked,
   type DenaliTourMutationDecision,
   type DenaliTourMutationSideEffect,
-} from "@app-tour/workspace-denali/host/tours";
+} from "@app-tour/workspace-denali/tours";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import type { TourMutationFacts } from "./resolve-tour-mutation-facts";
@@ -30,7 +31,7 @@ export type WorkspaceTourMutationPolicyResult = {
 export function assertWorkspaceTourMutationPolicy(
   input: AssertWorkspaceTourMutationPolicyInput
 ): WorkspaceTourMutationPolicyResult {
-  if (input.workspaceType !== "denali") {
+  if (input.workspaceType !== DENALI_WORKSPACE_TYPE) {
     return { decision: { decision: "ALLOW" }, sideEffects: [] };
   }
 
