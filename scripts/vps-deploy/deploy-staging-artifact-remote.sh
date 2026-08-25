@@ -8,10 +8,11 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/staging-ssh.sh
+source "${SCRIPT_DIR}/lib/staging-ssh.sh"
 
 VPS_HOST="${VPS_HOST:?VPS_HOST required}"
 VPS_USER="${VPS_USER:-root}"
-SSH_OPTS="${SSH_OPTS:--o ConnectTimeout=20 -o StrictHostKeyChecking=no}"
 ARTIFACT="${ARTIFACT:?ARTIFACT path to .tar.zst required}"
 DEPLOY_ROOT="${DEPLOY_ROOT:-/opt/app-tour-staging}"
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
@@ -31,8 +32,7 @@ BASENAME="$(basename "$ARTIFACT")"
 log() { printf '[deploy-remote] %s\n' "$*"; }
 
 ssh_cmd() {
-  # shellcheck disable=SC2086
-  ssh $SSH_OPTS "$REMOTE" "$@"
+  staging_ssh_cmd "$@"
 }
 
 log "preflight SSH"
@@ -40,12 +40,12 @@ ssh_cmd 'echo SSH_OK; uptime; free -h | head -2'
 
 log "transfer artifact + checksum"
 ssh_cmd "mkdir -p /tmp/app-tour-artifacts ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/lib"
-scp $SSH_OPTS "$ARTIFACT" "${ARTIFACT}.sha256" "${REMOTE}:/tmp/app-tour-artifacts/"
+staging_scp_cmd "$ARTIFACT" "${ARTIFACT}.sha256" "${REMOTE}:/tmp/app-tour-artifacts/"
 for f in start-api-artifact.sh start-next-artifact.sh install-staging-artifact.sh \
   start-staging-artifact-stack.sh recover-vps-staging.sh smoke-four-process.sh; do
-  scp $SSH_OPTS "${SCRIPT_DIR}/${f}" "${REMOTE}:${DEPLOY_ROOT}/tooling/scripts/vps-deploy/"
+  staging_scp_cmd "${SCRIPT_DIR}/${f}" "${REMOTE}:${DEPLOY_ROOT}/tooling/scripts/vps-deploy/"
 done
-scp $SSH_OPTS "${SCRIPT_DIR}/lib/ports.sh" "${REMOTE}:${DEPLOY_ROOT}/tooling/scripts/vps-deploy/lib/ports.sh"
+staging_scp_cmd "${SCRIPT_DIR}/lib/ports.sh" "${REMOTE}:${DEPLOY_ROOT}/tooling/scripts/vps-deploy/lib/ports.sh"
 
 log "install artifact (extract, migrate, systemd — no build)"
 ssh_cmd "chmod +x ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/*.sh && \
