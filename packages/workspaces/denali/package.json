@@ -741,7 +741,7 @@
     "design-language"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc -p tsconfig.ui.json",
+    "build": "pnpm --dir ../../workspace-sdk run build && tsc -p tsconfig.json && tsc -p tsconfig.ui.json",
     "denali:codegen": "node --import tsx ./scripts/denali-codegen.mjs",
     "lint": "tsc --noEmit && tsc -p tsconfig.ui.json --noEmit",
     "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
