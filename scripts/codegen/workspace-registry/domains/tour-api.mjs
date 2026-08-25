@@ -429,7 +429,7 @@ const bindingsByWorkspaceType = Object.freeze(
   )
 ) as Readonly<Record<string, (typeof WORKSPACE_TOUR_LIST_PROJECTION_BINDINGS)[number]>>;
 
-function defaultExtractTourListProjection(canonical: CanonicalDocument): TourListProjectionFields {
+function defaultExtractTourListProjection(_canonical: CanonicalDocument): TourListProjectionFields {
   return Object.freeze({
     title: "Untitled tour",
     shortDescription: null,
