@@ -30,6 +30,8 @@ const ALLOWED_RUNTIME_DEPS = new Set([
   "@app-tour/workspace-finance-ws6",
   "@app-tour/workspace-guest-club",
   "@app-tour/workspace-harbor",
+  "@app-tour/workspace-policy-cert",
+  "@app-tour/workspace-profile-cert",
   "@app-tour/workspace-sdk",
   "@app-tour/workspace-starter",
   "@app-tour/workspace-urban",
