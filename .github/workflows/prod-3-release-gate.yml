@@ -34,7 +34,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32
       DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
-      STORAGE_DRIVER: prisma
+      STORAGE_DRIVER: memory
       NODE_ENV: test
       OUTBOX_RELAY_ENABLED: "false"
       PROJECTION_AUTO_RECONCILE_ENABLED: "false"

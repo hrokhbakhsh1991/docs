@@ -34,10 +34,13 @@ phase-chain commands remain compatibility paths and are not nested by L2.
 The L1/L2 budgets are 30/60 minutes; the former 15-minute L1 budget timed out
 before the path-aware mode was enabled.
 Workflow setup is centralized in `.github/actions/setup-platform`. The L3
-release workflow also provisions Postgres 16 on port 5434 (same bootstrap as
-`phase-4-gate.yml`: `app_tour` role, `db:migrate:deploy`, `STORAGE_DRIVER=prisma`)
-because catalog nodes `l2.integration` (`phase-4:guard` RLS specs),
-`l3.postgres` (`phase-5:runtime-proof`), and `l3.migration` fail closed when
-`DATABASE_URL` is unset. Reports from main/release catalog runs are uploaded as
-workflow artifacts. A missing staging or production URL produces an explicit
-`SKIP`, never a production success claim.
+release workflow provisions Postgres 16 on port 5434 (same bootstrap as
+`phase-4-gate.yml`: `app_tour` role, `db:migrate:deploy`) with `DATABASE_URL`
+set for catalog nodes that fail closed without it (`l2.integration` →
+`phase-4:guard` RLS specs; `l3.postgres`; `l3.migration`). Job-level
+`STORAGE_DRIVER` stays `memory` so `l2.integration`’s full `pnpm test` does not
+run the API suite on shared Postgres (finance/idempotency reclaim specs need
+isolated memory stores). Guards and runtime-proof steps override to `prisma`
+where required. Reports from main/release catalog runs are uploaded as workflow
+artifacts. A missing staging or production URL produces an explicit `SKIP`,
+never a production success claim.
