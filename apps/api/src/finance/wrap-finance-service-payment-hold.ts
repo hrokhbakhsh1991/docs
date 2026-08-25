@@ -2,7 +2,6 @@
  * DP1-D-05 — wrap FinanceService to satisfy payment holds on capture and auto-approve operator manual payments.
  */
 import type { FinanceService } from "@app-tour/finance-core/application";
-import type { FinanceActorContext } from "@app-tour/finance-core/ports";
 
 import { satisfyPaymentHoldIfFullyPaid } from "../finance/apply-payment-hold-after-booking-approve.ts";
 

@@ -99,7 +99,20 @@ export function resolveRegistryDatabaseTargets(
 export function resolveRegistryDeploymentStamps(
   registry: WorkspaceInfrastructureRegistryDocument
 ): DeploymentStampCatalog {
-  const stamps: DeploymentStampCatalog = {};
+  const stamps: Record<
+    string,
+    {
+      region: RegionId;
+      releaseSha: string;
+      databaseTargetId?: string;
+      cacheNamespace: string;
+      storageNamespace: string;
+      queueNamespace: string;
+      secretsRef: string;
+      monitoringIdentity: string;
+      backupRegion?: RegionId;
+    }
+  > = {};
   for (const [id, row] of Object.entries(registry.deploymentStamps ?? {})) {
     const envRow = row as DeploymentStampCatalog[string] & { releaseShaEnv?: string };
     const releaseSha =
@@ -108,8 +121,15 @@ export function resolveRegistryDeploymentStamps(
       process.env.GIT_SHA?.trim() ??
       "dev-local";
     stamps[id] = {
-      ...row,
+      region: envRow.region,
       releaseSha,
+      databaseTargetId: envRow.databaseTargetId,
+      cacheNamespace: envRow.cacheNamespace,
+      storageNamespace: envRow.storageNamespace,
+      queueNamespace: envRow.queueNamespace,
+      secretsRef: envRow.secretsRef,
+      monitoringIdentity: envRow.monitoringIdentity,
+      backupRegion: envRow.backupRegion,
     };
   }
   return stamps;
