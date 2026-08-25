@@ -145,8 +145,14 @@ if (!portalMiddleware.includes("OPTIONS") || !portalMiddleware.includes("applyPu
 }
 
 const registerPage = readRepo("apps/portal/app/catalog/[tourId]/register/page.tsx");
-if (!registerPage.includes("buildRegistrationResumeInitialState")) {
-  violations.push("register/page.tsx: missing buildRegistrationResumeInitialState");
+if (
+  !registerPage.includes("buildRegistrationResumeInitialState") &&
+  !registerPage.includes("readPublicCatalogSessionFromCookies") &&
+  !registerPage.includes("resumeAtIntake")
+) {
+  violations.push(
+    "register/page.tsx: missing resume-at-intake wiring (buildRegistrationResumeInitialState or session resume gate)"
+  );
 }
 
 const portalSessionCookie = readRepo("apps/portal/src/auth/build-session-cookie.ts");
