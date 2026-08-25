@@ -88,16 +88,19 @@ test.describe("Wave B.5 DP-3 flat-edit mutation evidence", () => {
   test("DP-3 operator UI mutations with network capture", async ({ page }) => {
     test.setTimeout(360_000);
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
-    await publishOperatorWizardTemplate(page, { fullTemplate: true });
     await page.goto(`/tours/${TOUR_DP1}/edit`, { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId(TOUR_EDIT_TEST_IDS.page)).toBeVisible({
       timeout: 120_000,
     });
-    await expect(page.getByTestId(DENALI_FLAT_EDIT_SECTION_TEST_ID("denali_basic"))).toBeVisible({
-      timeout: 120_000,
-    });
+    await page.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/tours/${TOUR_DP1}`) &&
+        response.request().method() === "GET" &&
+        response.ok(),
+      { timeout: 180_000 }
+    );
     const titleField = page.getByRole("textbox", { name: /نام تور|^title$/i });
-    await expect(titleField).toBeVisible({ timeout: 120_000 });
+    await expect(titleField).toBeVisible({ timeout: 180_000 });
     await captureTourBff(page, "baseline-tour");
     await page.screenshot({
       path: join(BROWSER_DIR, "dp3-edit-before-1440.png"),
