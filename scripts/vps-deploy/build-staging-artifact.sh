@@ -34,6 +34,9 @@ mkdir -p "$ARTIFACT_ROOT" "$OUT_DIR"
 log "pnpm install --frozen-lockfile"
 cd "$REPO_ROOT"
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+PNPM_BIN="$(command -v pnpm)"
+mkdir -p /usr/local/bin
+ln -sf "$PNPM_BIN" /usr/local/bin/pnpm
 pnpm install --frozen-lockfile
 
 log "prisma generate"
