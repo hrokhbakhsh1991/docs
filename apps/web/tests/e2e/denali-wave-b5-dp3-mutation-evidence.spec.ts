@@ -7,9 +7,7 @@ import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 
 import { TOUR_EDIT_TEST_IDS } from "../../src/features/tours/operator-tour-detail-types";
-import { DENALI_FLAT_EDIT_SECTION_TEST_ID } from "../../test/fixtures/denali-itinerary-wizard-fixture";
 import { loginOperatorWithPhone, OPERATOR_OWNER_MOBILE } from "../../test/fixtures/operator-owner-session";
-import { publishOperatorWizardTemplate } from "../../test/fixtures/operator-wizard-template-fixture";
 
 const TOUR_DP1 =
   process.env.DP1_TOUR_ID?.trim() || "00000000-0000-4000-8000-000000000901";
@@ -154,7 +152,7 @@ test.describe("Wave B.5 DP-3 flat-edit mutation evidence", () => {
     );
     await capacityInput.fill("1");
     await captureTourBff(page, "capacity-deny-ui-before");
-    await page.getByTestId(TOUR_EDIT_TEST_IDS.save).click();
+    await page.getByTestId(TOUR_EDIT_TEST_IDS.flatForm).getByTestId(TOUR_EDIT_TEST_IDS.save).click();
     await page
       .getByText(/blocked|مجاز نیست|override|تأیید|خطا|VALIDATION|CAPACITY/i)
       .first()
