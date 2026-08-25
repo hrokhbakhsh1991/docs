@@ -20,10 +20,10 @@ import {
   OPERATIONAL_ROSTER_FILTERS,
   sortTransportRosterRows,
   TOUR_WORKSPACE_TRANSPORT_TEST_IDS,
+  type OperationalRosterFilter,
   type TourOperationalRosterResponse,
   type TourOperationalRosterRow,
 } from "@/features/tours/tour-workspace-transport-logic";
-import type { OperationalRosterFilter } from "@app-tour/workspace-denali/roster";
 import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
 import { resolveWizardTransportModeLabel } from "@/wizard/wizard-label-surface-registry";
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
