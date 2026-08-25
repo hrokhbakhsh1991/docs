@@ -43,6 +43,7 @@ log "migration head preflight"
 pnpm --filter @apps/api run guard:migration-head-preflight
 
 log "production build (standalone Next + API dist)"
+export DEPLOY_PATH="$REPO_ROOT"
 export ARTIFACT_STANDALONE_BUILD=1
 export STAGING_WEB_BUILD=1
 export NODE_ENV=production
