@@ -5,7 +5,7 @@ const operatorBaseUrl =
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: ["denali-wave-b5-dp3-mutation-evidence.spec.ts"],
+  testMatch: ["denali-wave-b5-dp3-mutation-evidence.spec.ts", "denali-waiver-evidence.spec.ts"],
   retries: 0,
   workers: 1,
   timeout: 360_000,

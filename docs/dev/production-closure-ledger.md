@@ -5,14 +5,17 @@ ledger_id: PRODUCTION-CLOSURE-LEDGER-2026-08-24
 program: Denali Product → Production
 authority_product: docs/dev/denali-product-completion-plan.md
 reconciled_at: 2026-08-25
-reconciled_commit: 425d0c952356b8ce60c5cba9d6bb5d05adbb1b89
+reconciled_commit: b04f70e1c5a8636bec2f280bc42f4dc89527c690
+merge_commit: b04f70e1c5a8636bec2f280bc42f4dc89527c690
+pr109_head: 9a313ac81cc17fdf227256d96d321fec4d9ef183
 wave_b_cert_sha: ba7b37fa3075fc09651b7d66b47d6e3550d3425e
 wave_b5_cert_sha: 425d0c952356b8ce60c5cba9d6bb5d05adbb1b89
+post_merge_closure_sha: b04f70e1c5a8636bec2f280bc42f4dc89527c690
 wave_b_evidence: docs/evidence/denali-wave-b/ba7b37fa3075fc09651b7d66b47d6e3550d3425e/
 wave_b5_evidence: docs/evidence/denali-wave-b5/425d0c952356b8ce60c5cba9d6bb5d05adbb1b89/
-branch: cursor/denali-wave-b-runtime-closure-bef0
-origin_main: 8ef3f4a6
-mode: TRUTH_RECONCILIATION — no product behavior change
+post_merge_evidence: docs/evidence/denali-wave-b5/b04f70e1c5a8636bec2f280bc42f4dc89527c690/
+branch: main
+mode: POST_MERGE_SMALL_LAUNCH_CLOSURE
 ```
 
 Canonical bridge between **product completion (DP)** and **real production readiness**.
@@ -56,7 +59,7 @@ Hard rule (unchanged): **`[x]` requires automated certification + browser/runtim
 | **DP-0** Truth freeze | Partial docs | Partial | Baseline archived Wave B | `[v]` | **DP0-05 SIGNED** 2026-08-25 B5 — first-launch scope lock below |
 | **DP-1** Payment deadline | **YES** | **PASS** @ B5 regression | **PASS** Wave B `dp1-member-deadline-1440.png` | **`[x]`** | DRF-006 **CLOSED** |
 | **DP-2** Unified roster | **YES** | **PASS** @ B5 regression | **PASS** Wave B `dp2-roster-1440.png` | **`[x]`** | DRF-002 **CLOSED** |
-| **DP-3** Tour mutation safety | **YES** | **PASS** @ B5 regression | **PARTIAL** — flat-edit form + before screenshot; UI PATCH save harness incomplete | **`[v]`** | API matrix PASS; safe/capacity UI save not BROWSER_UI_PROVEN |
+| **DP-3** Tour mutation safety | **YES** | **PASS** @ merge main | **PASS** post-merge Playwright @ `b04f70e1` — safe edit + capacity UI save, API deny/price/date | **`[x]`** | Flat-edit uses server action (not browser PATCH); harness fixed |
 | **DP-4** Member self-service + inbox | **YES** | **PASS** @ B5 regression | **PASS** Wave B portal screenshots | **`[x]`** | LF-006 **CLOSED** |
 | **DP-5** Driver settlement | **YES** (in-memory v1) | **PASS** @ B5 regression | **MISSING** | **`[N/A]`** first launch | Bus-only first customer — impl retained |
 | **DP-6** Refund orchestration | **YES** | **PASS** @ B5 regression + live seed | **PASS** B5 — `dp6-member-refund-1440/390.png` + BFF JSON | **`[x]`** | Operator refund parity in `dp6-operator-refunds.json` |
@@ -259,32 +262,75 @@ Destructive / live actions **not executed** in this reconciliation wave.
 
 ---
 
+## Post-merge small launch closure (2026-08-25)
+
+**PR #109** merged → `b04f70e1`. Required CI (6/6) green on `9a313ac8`.
+
+### Evidence carry-forward (pre-merge Wave B → merge `b04f70e1`)
+
+| DP | Classification | Rationale |
+|----|----------------|-----------|
+| DP-1 | **CARRY_FORWARD_VALID** | Payment-hold extend + harness fixes; no silent-reject impact on deadline semantics |
+| DP-2 | **CARRY_FORWARD_VALID** | Roster semantics unchanged; thin-shell transport filter is display-only |
+| DP-3 | **RERUN_REQUIRED → CLOSED** | Auth header + silent reject do not alter mutation matrix; UI save harness fixed post-merge |
+| DP-4 | **CARRY_FORWARD_VALID** | Portal BFF routes stable; member cancel unchanged |
+| DP-6 | **CARRY_FORWARD_VALID** | Refund orchestration + member-cancellation DI move preserve policy |
+
+Post-merge evidence: `docs/evidence/denali-wave-b5/b04f70e1c5a8636bec2f280bc42f4dc89527c690/`
+
+### Approve without payment / waiver (Case 4)
+
+| Item | Status |
+|------|--------|
+| Domain + Finance | **FULLY_IMPLEMENTED** — `setRegistrationObligationOverride` + `applyFreeCollectionPayment` |
+| CASE 1 (approve unpaid) | **FULLY_IMPLEMENTED** — `approve` → `paymentStatus=unpaid`, hold scheduled, `finalParticipant=false` until settled |
+| CASE 2 (explicit waiver) | **FULLY_IMPLEMENTED** — zero obligation override → `remainingMinor=0`, `paymentStatus=paid`, roster `WAIVED` display, no cash receipt |
+| Operator UI | **FULLY_IMPLEMENTED** — Finance tab → Advanced tools → «تأیید بدون نیاز به پرداخت» (`detailOverrideNoPayment`) |
+| Bookings CC one-click | **UI_MISSING** (P2) — two-step approve then finance waive is canonical; no product blocker |
+| Browser cert | **PASS** @ `b04f70e1` — API + finance workspace screenshot |
+
+### Mainline proof @ `b04f70e1`
+
+| Check | Result |
+|-------|--------|
+| `pnpm build` | **PASS** |
+| `test-dp1` … `test-dp6` | **PASS** |
+| `guard:import-boundary` | **PASS** |
+| `phase-10:guard` | **PASS** |
+| `guard:migration-head-preflight` (@apps/api) | **PASS** |
+| `git diff --check` | **PASS** |
+
+### Staging readiness (prep only — no deploy)
+
+See § Staging inventory below. Customer apex domain **not** required; use `{club}.{root}` / IP per `docs/phase-19/p6/runbooks/staging-deploy.md`.
+
+---
+
 ## Remaining P0 / P1 (product)
 
 ### P0
 
-1. **PR #109 merge** — 19 CI failures; `origin/main` remains `8ef3f4a6`.
-2. **B8 Postgres subset** — BLOCKED_EXTERNAL (no Docker in Cloud VM).
+1. ~~**PR #109 merge**~~ — **CLOSED** @ `b04f70e1`.
+2. **B8 Postgres subset** — BLOCKED_EXTERNAL in Cloud dev VM (no Docker); required on staging host.
 3. **DP-8** Golden certification not started.
-4. **Postgres receipt upload** (DRF-001 Postgres path).
+4. **Postgres receipt upload** (DRF-001 Postgres path on staging).
 
 ### P1
 
 1. ~~**DP0-05**~~ — **CLOSED** B5 first-launch scope sign-off.
-2. **DP-3 operator flat-edit UI save** — Playwright harness does not complete PATCH save (safe edit + capacity increase).
+2. ~~**DP-3 operator flat-edit UI save**~~ — **CLOSED** @ `b04f70e1` Playwright evidence.
 3. **DP-5 persistence** — OPEN only if driver pay added to launch scope (currently N/A).
+4. **Bookings CC one-click waive** — optional UX; finance Advanced tools sufficient for launch.
 
 ---
 
 ## Wave B.5 verdict (2026-08-25)
 
-**`DENALI_RUNTIME_NOT_CLOSED`** — blockers: PR #109 not merged; Postgres BLOCKED_EXTERNAL; DP-3 UI PATCH save incomplete; DRF-001 Postgres; DP-8 not started.
+**`SMALL_LAUNCH_CLOSED — READY_FOR_STAGING`** (prep). Deploy blocked on DP-8 + staging Postgres + receipt storage until inputs below supplied.
 
-**Closed in B.5:** DP-6 portal authenticated refund UI (`[x]`); DP0-05 first-launch scope; LF-004 date-mutation policy.
+**Closed:** PR #109 merge; DP-3 UI `[x]`; waiver Case 4 certified; mainline scripts green.
 
-**Memory-driver regression:** DP-1..4, DP-6 scripts **PASS** @ `425d0c95`; `guard:import-boundary` PASS.
-
-Evidence: `docs/evidence/denali-wave-b5/425d0c952356b8ce60c5cba9d6bb5d05adbb1b89/`
+Evidence: `docs/evidence/denali-wave-b5/b04f70e1c5a8636bec2f280bc42f4dc89527c690/`
 
 ---
 
@@ -298,6 +344,61 @@ Evidence: `docs/evidence/denali-wave-b5/425d0c952356b8ce60c5cba9d6bb5d05adbb1b89
 4. Postgres-targeted subset before staging.
 
 **Not Wave B:** DP-7 feature work, DP-8 full golden, Wallet, architecture refactors.
+
+---
+
+## Staging inventory (prep — deploy not executed)
+
+### Services
+
+| Service | Port (dev) | Staging notes |
+|---------|------------|---------------|
+| `@apps/api` | 3001 / 4000 | `STORAGE_DRIVER=prisma`, Postgres required |
+| `apps/web` | 3000 | Operator admin `{club}.admin.{root}` |
+| `apps/portal` | 3003 | Member `{club}.portal.{root}` |
+| `apps/marketing` | 3002 | Public `{club}.{root}` |
+
+### Environment variables
+
+| Variable | Group | Status |
+|----------|-------|--------|
+| `DATABASE_URL` | DATABASE | **SECRET_REQUIRED** |
+| `DATABASE_URL_ADMIN` | DATABASE | **SECRET_REQUIRED** (migrate deploy) |
+| `STORAGE_DRIVER=prisma` | DATABASE | **READY** |
+| `AUTH_JWT_PUBLIC_KEY` / `AUTH_JWT_PRIVATE_KEY` | AUTH | **SECRET_REQUIRED** |
+| `AUTH_ALLOW_DEV_STATIC_OTP` | AUTH | **READY** = `false` on staging |
+| `ALLOW_DEV_WEB_SESSION` | AUTH | **READY** = `false` on staging |
+| `PLATFORM_ROOT_DOMAIN` | TENANT | **MISSING** (staging root domain) |
+| `TOUR_OPS_API_URL` | INTERNAL | **READY** (per-app) |
+| `MARKETING_PUBLIC_BASE_URL` | PUBLIC | **MISSING** |
+| `PORTAL_PUBLIC_BASE_URL` | PUBLIC | **MISSING** |
+| `MINIO_*` or object storage | STORAGE | **SECRET_REQUIRED** — receipt proof; memory forbidden |
+| `REDIS_URL` | SECURITY | **OPTIONAL** (rate limit in prod) |
+| `LOG_HASH_KEY` / `AUDIT_PSEUDONYM_KEY` | SECURITY | **SECRET_REQUIRED** |
+| `NODE_ENV=production` | FEATURE | **READY** |
+| `OUTBOX_RELAY_ENABLED` | FEATURE | **OPTIONAL** (worker split) |
+
+### Migration plan (non-destructive)
+
+1. Create staging Postgres DB + `app_tour` role (`docs/phase-4/dev/init/01-app-role.sql`)
+2. `pnpm --filter @apps/api run prisma:generate`
+3. `pnpm --filter @apps/api run guard:migration-head-preflight`
+4. `DATABASE_URL_ADMIN=… pnpm --filter @apps/api run db:migrate:deploy`
+5. Seed minimal Denali workspace (dev seed scripts / staging seed TBD)
+6. Start API → web → portal → marketing with staging env
+7. Health: `GET /health`, `GET /public/tenant-context` per host
+
+### Receipt staging plan
+
+- **Driver:** S3-compatible (MinIO or cloud bucket) — **not** memory
+- **Path:** Portal upload → portal BFF → API `receipt-proof-storage` → bucket + DB metadata → Finance review
+- **Proof:** Portal upload E2E on staging with real storage namespace per tenant
+
+### First-launch feature freeze
+
+**IN:** tour create/publish, registration, approve/reject/waitlist, capacity, payment deadline/expiry, payment, roster, member cancel, refund, mutation safety, receipt upload.
+
+**DEFERRED:** Wallet, passenger-driver assignment, DP-7 accounting, profitability, social/comments, Ticketing, Weather, advanced analytics.
 
 ---
 

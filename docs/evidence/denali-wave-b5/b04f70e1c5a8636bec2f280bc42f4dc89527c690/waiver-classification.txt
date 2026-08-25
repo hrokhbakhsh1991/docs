@@ -1,0 +1,1 @@
+FULLY_IMPLEMENTED — CASE_1 approve leaves unpaid; CASE_4 zero obligation override via finance API; UI control in Advanced tools (detailOverrideNoPayment); roster final + paymentStatus=paid without cash receipt

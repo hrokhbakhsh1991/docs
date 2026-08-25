@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "program": "denali-small-launch-closure",
+  "gitSha": "b04f70e1c5a8636bec2f280bc42f4dc89527c690",
+  "mergeCommit": "b04f70e1c5a8636bec2f280bc42f4dc89527c690",
+  "pr": 109,
+  "capturedAt": "2026-08-25T10:05:00Z",
+  "artifacts": {
+    "dp3": [
+      "browser/dp3-edit-before-1440.png",
+      "browser/dp3-safe-edit-after-1440.png",
+      "browser/dp3-capacity-increase-1440.png",
+      "browser/dp3-capacity-deny-ui-1440.png",
+      "dp3-safe-edit-classification.txt",
+      "dp3-capacity-increase-classification.txt",
+      "api/dp3-safe-edit-after-verify.json"
+    ],
+    "waiver": [
+      "browser/waiver-finance-workspace-1440.png",
+      "api/waiver-obligation-override.json",
+      "api/waiver-roster-final.json",
+      "waiver-classification.txt"
+    ]
+  }
+}

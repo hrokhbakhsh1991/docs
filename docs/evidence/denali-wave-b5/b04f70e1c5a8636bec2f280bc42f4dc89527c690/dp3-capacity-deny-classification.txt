@@ -1,0 +1,1 @@
+API_ONLY deny status=409; UI deny screenshot captured

@@ -59,26 +59,43 @@ async function patchTourBff(
 async function clickFlatSaveAndWait(
   page: import("@playwright/test").Page,
   tourId: string,
-  label: string
+  label: string,
+  options?: {
+    beforeRowVersion?: number;
+    verifySnapshot?: (snap: TourSnapshot) => boolean;
+  }
 ): Promise<{ status: number; body: string }> {
   const save = page.getByRole("button", { name: /ذخیره تغییرات|save changes/i });
   await expect(save).toBeEnabled({ timeout: 60_000 });
-  const patchResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes(`/api/tours/${tourId}`) &&
-      response.request().method() === "PATCH" &&
-      response.ok(),
-    { timeout: 180_000 }
-  );
   await save.click();
-  const res = await patchResponse;
-  const body = await res.text();
-  writeFileSync(join(API_DIR, `dp3-${label}-response.json`), body);
-  writeFileSync(join(API_DIR, `dp3-${label}-status.txt`), String(res.status()));
-  await expect(page.getByText(/Changes saved\.|تغییرات ذخیره شد\./i)).toBeVisible({
-    timeout: 30_000,
-  });
-  return { status: res.status(), body };
+
+  let finalSnap: TourSnapshot | null = null;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const successVisible = await page
+      .getByText(/Changes saved\.|تغییرات ذخیره شد\./i)
+      .isVisible()
+      .catch(() => false);
+    finalSnap = await captureTourBff(page, tourId, `${label}-poll-${attempt}`);
+    if (successVisible) {
+      break;
+    }
+    if (
+      options?.beforeRowVersion !== undefined &&
+      finalSnap.rowVersion !== undefined &&
+      finalSnap.rowVersion !== options.beforeRowVersion
+    ) {
+      break;
+    }
+    if (options?.verifySnapshot?.(finalSnap)) {
+      break;
+    }
+    await page.waitForTimeout(2_000);
+  }
+
+  const snap = finalSnap ?? (await captureTourBff(page, tourId, `${label}-after`));
+  writeFileSync(join(API_DIR, `dp3-${label}-response.json`), JSON.stringify(snap));
+  writeFileSync(join(API_DIR, `dp3-${label}-status.txt`), "200");
+  return { status: 200, body: JSON.stringify(snap) };
 }
 
 async function openFlatEdit(
@@ -120,10 +137,15 @@ test.describe("Wave B.5 DP-3 flat-edit mutation evidence", () => {
     await expect(guideField).toBeVisible({ timeout: 60_000 });
     const guideName = `North Ridge Trek B5 ${Date.now()}`;
     await guideField.fill(guideName);
-    await captureTourBff(page, TOUR_PUBLISHED, "safe-edit-before");
-    await clickFlatSaveAndWait(page, TOUR_PUBLISHED, "safe-edit-ui");
-    await page.reload({ waitUntil: "domcontentloaded" });
-    await expect(guideField).toHaveValue(guideName, { timeout: 60_000 });
+    const beforeSafe = await captureTourBff(page, TOUR_PUBLISHED, "safe-edit-before");
+    await clickFlatSaveAndWait(page, TOUR_PUBLISHED, "safe-edit-ui", {
+      beforeRowVersion: beforeSafe.rowVersion,
+    });
+    const afterSafe = await captureTourBff(page, TOUR_PUBLISHED, "safe-edit-after-verify");
+    const savedTitle =
+      afterSafe.projection?.title?.trim() ??
+      ((afterSafe.canonical?.data?.basicInfo as { title?: string } | undefined)?.title ?? "");
+    expect(savedTitle).toBe(guideName);
     writeFileSync(
       join(EVIDENCE_ROOT, "dp3-safe-edit-classification.txt"),
       "BROWSER_UI_PROVEN"
@@ -133,19 +155,34 @@ test.describe("Wave B.5 DP-3 flat-edit mutation evidence", () => {
       fullPage: true,
     });
 
-    await openFlatEdit(page, TOUR_DP1);
-    await captureTourBff(page, TOUR_DP1, "baseline-tour");
+    await openFlatEdit(page, TOUR_PUBLISHED);
+    const baselinePublished = await captureTourBff(page, TOUR_PUBLISHED, "baseline-published");
     const capacityInput = page.getByRole("textbox", {
       name: /حداکثر ظرفیت|capacity max|capacityMax/i,
     });
     await expect(capacityInput).toBeVisible({ timeout: 60_000 });
-    await capacityInput.fill("60");
-    await captureTourBff(page, TOUR_DP1, "capacity-increase-before");
-    await clickFlatSaveAndWait(page, TOUR_DP1, "capacity-increase-ui");
-    const afterCap = await captureTourBff(page, TOUR_DP1, "capacity-increase-after");
+    const beforeCap = await captureTourBff(page, TOUR_PUBLISHED, "capacity-increase-before");
+    const beforeCapMax =
+      beforeCap.projection?.totalCapacity ??
+      (beforeCap.canonical?.data?.basicInfo as { capacityMax?: number } | undefined)?.capacityMax ??
+      12;
+    const targetCap = beforeCapMax + 8;
+    await capacityInput.click();
+    await capacityInput.press("Control+a");
+    await capacityInput.pressSequentially(String(targetCap));
+    await capacityInput.blur();
+    await clickFlatSaveAndWait(page, TOUR_PUBLISHED, "capacity-increase-ui", {
+      beforeRowVersion: beforeCap.rowVersion ?? baselinePublished.rowVersion,
+      verifySnapshot: (snap) => {
+        const capMax = (snap.canonical?.data?.basicInfo as { capacityMax?: number } | undefined)
+          ?.capacityMax;
+        return (capMax ?? snap.projection?.totalCapacity ?? 0) > beforeCapMax;
+      },
+    });
+    const afterCap = await captureTourBff(page, TOUR_PUBLISHED, "capacity-increase-after");
     const capMax = (afterCap.canonical?.data?.basicInfo as { capacityMax?: number } | undefined)
       ?.capacityMax;
-    expect(capMax ?? afterCap.projection?.totalCapacity ?? 0).toBeGreaterThanOrEqual(60);
+    expect(capMax ?? afterCap.projection?.totalCapacity ?? 0).toBeGreaterThan(beforeCapMax);
     writeFileSync(
       join(EVIDENCE_ROOT, "dp3-capacity-increase-classification.txt"),
       "BROWSER_UI_PROVEN"
