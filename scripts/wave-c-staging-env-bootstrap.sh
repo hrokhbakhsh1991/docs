@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# Wave C — generate /etc/app-tour-staging env files (no secret echo)
+set -euo pipefail
+ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
+DEPLOY_PATH="${DEPLOY_PATH:-/workspace}"
+VPS_IP="${VPS_IP:-$(hostname -I | awk '{print $1}')}"
+PUBLIC_IP="${PUBLIC_IP:-$(curl -fsS --max-time 3 ifconfig.me 2>/dev/null || echo "$VPS_IP")}"
+
+MINIO_ACCESS_KEY="${MINIO_ACCESS_KEY:-staging_minio_access}"
+MINIO_SECRET_KEY="${MINIO_SECRET_KEY:-staging_minio_secret_$(openssl rand -hex 8)}"
+LOG_HASH_KEY="${LOG_HASH_KEY:-$(openssl rand -hex 32)}"
+AUDIT_PSEUDONYM_KEY="${AUDIT_PSEUDONYM_KEY:-$(openssl rand -hex 32)}"
+REVALIDATE_SECRET="${MARKETING_REVALIDATE_SECRET:-$(openssl rand -hex 16)}"
+DB_APP_PASS="${DB_APP_PASS:-staging_app_tour_$(openssl rand -hex 8)}"
+DB_ADMIN_PASS="${DB_ADMIN_PASS:-postgres}"
+
+JWT_OUT="$(cd "$DEPLOY_PATH/apps/api" && pnpm run bootstrap:dev-jwt 2>/dev/null | grep '^AUTH_JWT')"
+eval "$(echo "$JWT_OUT" | sed 's/^/export /')"
+
+sudo mkdir -p "$ENV_DIR"
+sudo chmod 750 "$ENV_DIR"
+
+sudo tee "$ENV_DIR/api.env" >/dev/null <<EOF
+NODE_ENV=production
+APP_INFRA_PROFILE=staging
+PORT=23001
+STORAGE_DRIVER=prisma
+DATABASE_URL=postgresql://app_tour:${DB_APP_PASS}@127.0.0.1:5432/tour_db_staging?connection_limit=32
+DATABASE_URL_ADMIN=postgresql://postgres:${DB_ADMIN_PASS}@127.0.0.1:5432/tour_db_staging?connection_limit=8
+TENANT_RATE_LIMIT_ENABLED=false
+OUTBOX_RELAY_ENABLED=true
+MINIO_ENDPOINT=http://127.0.0.1:9002
+MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+MINIO_BUCKET=app-tour-staging
+AUTH_JWT_ISSUER=${AUTH_JWT_ISSUER:-tour-ops}
+AUTH_JWT_AUDIENCE=${AUTH_JWT_AUDIENCE:-tour-ops-api}
+AUTH_JWT_PUBLIC_KEY="${AUTH_JWT_PUBLIC_KEY}"
+AUTH_JWT_PRIVATE_KEY="${AUTH_JWT_PRIVATE_KEY}"
+AUTH_ALLOW_DEV_STATIC_OTP=true
+OPERATOR_OWNER_MOBILE=+15550001001
+LOG_HASH_KEY=${LOG_HASH_KEY}
+AUDIT_PSEUDONYM_KEY=${AUDIT_PSEUDONYM_KEY}
+PLATFORM_ROOT_DOMAIN=staging.localhost
+PUBLIC_TENANT_FALLBACK_LABEL=operator
+PUBLIC_TENANT_FALLBACK_HOSTS=${PUBLIC_IP},127.0.0.1,${VPS_IP}
+MARKETING_REVALIDATE_URL=http://127.0.0.1:23002
+MARKETING_REVALIDATE_SECRET=${REVALIDATE_SECRET}
+EOF
+
+sudo tee "$ENV_DIR/web.env" >/dev/null <<EOF
+NODE_ENV=production
+PORT=23000
+WEB_BIND_HOST=0.0.0.0
+TOUR_OPS_API_URL=http://127.0.0.1:23001
+API_INTERNAL_URL=http://127.0.0.1:23001
+ALLOW_DENALI_WEB_PLUGIN=true
+ALLOW_URBAN_WEB_PLUGIN=true
+SESSION_COOKIE_SECURE=false
+TOUR_OPS_DEFAULT_TENANT_ID=00000000-0000-4000-8000-000000000014
+TOUR_OPS_PUBLIC_FALLBACK_HOSTS=${PUBLIC_IP},127.0.0.1,${VPS_IP}
+AUTH_JWT_ISSUER=${AUTH_JWT_ISSUER:-tour-ops}
+AUTH_JWT_AUDIENCE=${AUTH_JWT_AUDIENCE:-tour-ops-api}
+AUTH_JWT_PUBLIC_KEY="${AUTH_JWT_PUBLIC_KEY}"
+EOF
+
+sudo tee "$ENV_DIR/marketing.env" >/dev/null <<EOF
+NODE_ENV=production
+PORT=23002
+WEB_BIND_HOST=0.0.0.0
+TOUR_OPS_API_URL=http://127.0.0.1:23001
+PORTAL_PUBLIC_BASE_URL=http://${PUBLIC_IP}:23003
+MARKETING_REVALIDATE_SECRET=${REVALIDATE_SECRET}
+SESSION_COOKIE_SECURE=false
+TOUR_OPS_PUBLIC_FALLBACK_HOSTS=${PUBLIC_IP},127.0.0.1,${VPS_IP}
+EOF
+
+sudo tee "$ENV_DIR/portal.env" >/dev/null <<EOF
+NODE_ENV=production
+PORT=23003
+WEB_BIND_HOST=0.0.0.0
+TOUR_OPS_API_URL=http://127.0.0.1:23001
+SESSION_COOKIE_SECURE=false
+TOUR_OPS_PUBLIC_FALLBACK_HOSTS=${PUBLIC_IP},127.0.0.1,${VPS_IP}
+EOF
+
+sudo chmod 640 "$ENV_DIR"/*.env
+echo "WAVE_C_ENV_OK public_ip=${PUBLIC_IP}"

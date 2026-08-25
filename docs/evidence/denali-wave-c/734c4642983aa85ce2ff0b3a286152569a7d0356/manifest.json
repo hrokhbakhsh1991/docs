@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "program": "denali-wave-c-staging",
+  "gitSha": "734c4642983aa85ce2ff0b3a286152569a7d0356",
+  "capturedAt": "2026-08-25T10:45:00Z",
+  "host": "cloud-agent-vm",
+  "publicIp": "3.130.31.173",
+  "profile": "B",
+  "ports": { "api": 23001, "web": 23000, "marketing": 23002, "portal": 23003 },
+  "postgres": "tour_db_staging@127.0.0.1:5432",
+  "minio": "127.0.0.1:9002/app-tour-staging",
+  "results": {
+    "fourProcessSmoke": "PASS",
+    "dp1PostgresSpecs": "PASS 7/7",
+    "dp2ToDp6PostgresSpecs": "PASS 29/29",
+    "minioPhoto": "PASS 5/5",
+    "backupRestore": "PASS",
+    "dp8GoldenBrowser": "NOT_RUN",
+    "drf001PortalReceipt": "NOT_RUN",
+    "financeOpsT3": "FAIL harness auth"
+  },
+  "verdict": "DENALI_STAGING_NOT_CERTIFIED"
+}

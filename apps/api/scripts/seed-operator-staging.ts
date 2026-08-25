@@ -15,6 +15,7 @@ import { seedOperatorSmokeIdentity } from "./seed-operator-smoke-identity-stagin
 
 async function main(): Promise<void> {
   const service = new ProvisioningService();
+  await service.seedDenaliSmokeTenant();
   const operator = await service.seedOperatorSmokeTenant();
   await seedOperatorSmokeCatalog(getSettingsResourcesRepository());
   await seedOperatorSmokePublishedTour(operator.id);

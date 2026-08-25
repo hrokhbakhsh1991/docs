@@ -306,6 +306,69 @@ See § Staging inventory below. Customer apex domain **not** required; use `{clu
 
 ---
 
+## Wave C — staging deploy / golden certification (2026-08-25)
+
+**SHA:** `734c4642` · **Host:** Cloud Agent VM (substitute staging; canonical VPS `89.45.89.206` unreachable from agent network)
+
+### Deployment status
+
+| Item | Result |
+|------|--------|
+| Postgres `tour_db_staging` @ `:5432` | **PASS** — native PG16, migrations through `20260824120000_dp1_payment_holds` |
+| MinIO @ `:9002` bucket `app-tour-staging` | **PASS** |
+| Env `/etc/app-tour-staging/` | **PASS** — `NODE_ENV=production`, `AUTH_ALLOW_DEV_STATIC_OTP=false`, secrets not in git |
+| Production builds (api dist + next start) | **PASS** |
+| Four-process smoke | **PASS** — ports `23000–23003` |
+| Profile B URLs | `http://3.130.31.173:23000` admin · `:23002` marketing · `:23003` portal · API `:23001` |
+
+### Postgres DP persistence (C8)
+
+| DP | Postgres integration specs | Result |
+|----|---------------------------|--------|
+| DP-1 | `dp1/payment-hold-expiry`, waitlist, idempotency | **PASS** 7/7 |
+| DP-2 | `dp2/operational-roster-*` | **PASS** |
+| DP-3 | `dp3/tour-mutation-enforcement` | **PASS** |
+| DP-4 | `dp4/member-cancellation` | **PASS** |
+| DP-6 | `dp6/refund-orchestration` | **PASS** |
+| **Total** | 29 integration tests `STORAGE_DRIVER=prisma` | **PASS** 29/29 |
+
+Live API restart persistence (C8 manual) | **NOT_RUN** — automated Postgres specs cover lifecycle; live restart matrix deferred to VPS golden.
+
+### Receipt / storage (C9)
+
+| Check | Result |
+|-------|--------|
+| `test:minio-photo` round-trip | **PASS** 5/5 |
+| Portal → BFF → API → MinIO → Finance browser path (DRF-001) | **NOT_RUN** |
+| Storage failure safe error | **NOT_RUN** |
+
+### DP-8 Golden browser (C10)
+
+| Journey | Result |
+|---------|--------|
+| A paid participant | **NOT_RUN** |
+| B expiry/waitlist | **NOT_RUN** |
+| C waived | **NOT_RUN** |
+| D cancel/refund | **NOT_RUN** |
+| E mutation safety | **NOT_RUN** |
+
+**Blocker:** `NODE_ENV=production` + `AUTH_ALLOW_DEV_STATIC_OTP=false` — OTP codes not delivered without `RESEND_API_KEY`/SMS; browser operator/member login cannot complete without external OTP channel.
+
+### Backup / restore (C11)
+
+| Item | Result |
+|------|--------|
+| `pg_dump -Fc tour_db_staging` | **PASS** (~366KB, &lt;1s) |
+| Restore to `tour_db_staging_restore` | **PASS** — tenant row count match (2) |
+
+### Wave C verdict
+
+**`DENALI_STAGING_NOT_CERTIFIED`** — partial staging on Cloud VM; DP-8 golden browser + DRF-001 portal receipt + finance-ops T3 on live stack remain open.
+
+Evidence: `docs/evidence/denali-wave-c/734c4642983aa85ce2ff0b3a286152569a7d0356/`
+
+---
+
 ## Remaining P0 / P1 (product)
 
 ### P0
