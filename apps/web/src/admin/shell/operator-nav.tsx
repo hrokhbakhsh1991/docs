@@ -135,9 +135,6 @@ export function OperatorNav({
             onClick={() => onCollapsedChange(!collapsed)}
           >
             <CollapseIcon aria-hidden="true" data-operator-sidebar-collapse-icon />
-            <span data-operator-sidebar-collapse-label className="sr-only">
-              {collapsed ? tApp("expandNavigation") : tApp("collapseNavigation")}
-            </span>
           </button>
         </div>
       ) : null}

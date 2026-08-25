@@ -96,7 +96,7 @@
     }
   },
   "scripts": {
-    "build": "pnpm --dir ../catalog-registration-auth run build && pnpm --dir ../tour-core run build && rm -rf dist && tsc -p tsconfig.json",
+    "build": "pnpm --dir ../catalog-registration-auth run build && pnpm --dir ../booking-http-contracts run build && pnpm --dir ../tour-core run build && rm -rf dist && tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
     "validate:manifests": "node --import tsx scripts/validate-manifests.ts",
     "test": "NODE_ENV=test node --import ./test/register-server-only-stub.mjs --import tsx --test \"test/**/*.spec.ts\"",
