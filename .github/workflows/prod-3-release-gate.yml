@@ -15,9 +15,30 @@ jobs:
     name: Production readiness L3 release gate
     runs-on: ubuntu-latest
     timeout-minutes: 60
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tour_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     env:
-      STORAGE_DRIVER: memory
+      DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
+      STORAGE_DRIVER: prisma
       NODE_ENV: test
+      OUTBOX_RELAY_ENABLED: "false"
+      PROJECTION_AUTO_RECONCILE_ENABLED: "false"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,6 +47,12 @@ jobs:
           fetch-depth: 0
       - name: Setup platform toolchain
         uses: ./.github/actions/setup-platform
+      - name: Install CI OS packages
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client ripgrep
+      - name: Bootstrap app_tour role
+        run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+      - name: Prisma migrate deploy (DEC-124)
+        run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
       - name: Build workspace dist surfaces for gates
         run: bash scripts/ci/build-api-workspace-deps.sh
       - name: Generate Prisma client for API tests
