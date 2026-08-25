@@ -830,6 +830,9 @@ importers:
       '@app-tour/config':
         specifier: workspace:*
         version: link:../config
+      '@app-tour/workspace-alpine':
+        specifier: workspace:*
+        version: link:../workspaces/alpine
       '@types/node':
         specifier: ^24.0.0
         version: 24.12.4
