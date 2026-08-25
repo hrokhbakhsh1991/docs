@@ -14,7 +14,6 @@ import { TOUR_EDIT_TEST_IDS } from "../../src/features/tours/operator-tour-detai
 const TOUR_DP1 =
   process.env.DP1_TOUR_ID?.trim() || "00000000-0000-4000-8000-000000000901";
 const TOUR_PUBLISHED = "00000000-0000-4000-8000-000000000210";
-const LOCAL_GUIDE_FIELD = /localGuideName|Local guide name|نام راهنمای محلی/i;
 const EVIDENCE_ROOT =
   process.env.WAVE_B_EVIDENCE_DIR?.trim() ||
   join(process.cwd(), "../../docs/evidence/denali-wave-b5/pending");
@@ -119,7 +118,7 @@ test.describe("Wave B.5 DP-3 flat-edit mutation evidence", () => {
     });
     const guideField = page.getByRole("textbox", { name: /نام تور|^title$/i });
     await expect(guideField).toBeVisible({ timeout: 60_000 });
-    const guideName = `B5 Guide ${Date.now()}`;
+    const guideName = `North Ridge Trek B5 ${Date.now()}`;
     await guideField.fill(guideName);
     await captureTourBff(page, TOUR_PUBLISHED, "safe-edit-before");
     await clickFlatSaveAndWait(page, TOUR_PUBLISHED, "safe-edit-ui");
