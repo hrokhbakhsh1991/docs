@@ -62,7 +62,9 @@ async function saveFlatEditUi(
   page: import("@playwright/test").Page,
   label: string
 ): Promise<{ status: number; body: string }> {
-  const save = page.getByTestId(TOUR_EDIT_TEST_IDS.save);
+  const save = page
+    .getByTestId(TOUR_EDIT_TEST_IDS.flatForm)
+    .getByTestId(TOUR_EDIT_TEST_IDS.save);
   await expect(save).toBeEnabled({ timeout: 60_000 });
   const [res] = await Promise.all([
     page.waitForResponse(
@@ -88,11 +90,15 @@ test.describe("Wave B.5 DP-3 flat-edit mutation evidence", () => {
   test("DP-3 operator UI mutations with network capture", async ({ page }) => {
     test.setTimeout(360_000);
     await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE, { skipDashboard: true });
+    await publishOperatorWizardTemplate(page, { fullTemplate: true });
     await page.goto(`/tours/${TOUR_DP1}/edit`, { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId(TOUR_EDIT_TEST_IDS.page)).toBeVisible({
       timeout: 120_000,
     });
-    const titleField = page.getByTestId(TOUR_EDIT_TEST_IDS.title);
+    await expect(page.getByTestId(DENALI_FLAT_EDIT_SECTION_TEST_ID("denali_basic"))).toBeVisible({
+      timeout: 120_000,
+    });
+    const titleField = page.getByRole("textbox", { name: /نام تور|^title$/i });
     await expect(titleField).toBeVisible({ timeout: 120_000 });
     await captureTourBff(page, "baseline-tour");
     await page.screenshot({
