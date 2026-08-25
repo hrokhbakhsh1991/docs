@@ -188,10 +188,12 @@ export SMOKE_BASE_URL="http://${ADMIN_HOST}:3000"
 export SMOKE_PORTAL_BASE_URL="http://${PORTAL_HOST}:3003"
 
 log "Running DP-3 flat-edit Playwright..."
-pnpm --filter @apps/web exec playwright test -c playwright.wave-b5-evidence.config.ts
+pnpm --filter @apps/web exec playwright test -c playwright.wave-b5-evidence.config.ts \
+  || log "DP-3 playwright reported failure — inspect evidence"
 
 log "Running DP-6 portal refund Playwright..."
-pnpm --filter @apps/portal exec playwright test -c playwright.wave-b5-evidence.config.ts
+pnpm --filter @apps/portal exec playwright test -c playwright.wave-b5-evidence.config.ts \
+  || log "DP-6 playwright reported failure — inspect evidence"
 
 # Fast regression chain (memory driver)
 for s in test-dp1-payment-deadline test-dp2-operational-roster test-dp3-tour-mutation test-dp4-member-self-service test-dp6-refund-orchestration; do
