@@ -39,4 +39,4 @@ Orchestration: `scripts/denali-wave-b-runtime-cert.sh`
 ## Build order
 
 `booking-http-contracts` must build before `tour-core` (`scripts/monorepo-build.sh`, `scripts/ci/build-api-workspace-deps.sh`, and `@app-tour/workspace-sdk` `package.json` `build` script — Phase 0 foundation gate runs `test:phase-0` which builds SDK without full monorepo `pnpm build`).
-`@app-tour/guest-workspace-runtime` must declare `@app-tour/workspace-alpine` when `register-alpine.generated.ts` is present (TypeScript module resolution for `tsc --noEmit` in phase-6 fast-closure).
+Payment-hold extend route uses `FINANCE_API_PATH_PREFIX` in `apps/api/src/app.ts` (Phase 10 P7-T05 — no `/finance/` string literals in app dispatch).
