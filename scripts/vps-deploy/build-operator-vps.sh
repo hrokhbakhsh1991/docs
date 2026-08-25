@@ -73,6 +73,8 @@ if [[ ! -f "${DEPLOY_PATH}/apps/api/dist/main.js" ]]; then
   exit 1
 fi
 
+pnpm --dir "${DEPLOY_PATH}/packages/iran-mountain-landmarks" run build
+
 build_web_production
 
 build_next_app() {
