@@ -38,5 +38,5 @@ Orchestration: `scripts/denali-wave-b-runtime-cert.sh`
 
 ## Build order
 
-`booking-http-contracts` must build before `tour-core` (`scripts/monorepo-build.sh`, `scripts/ci/build-api-workspace-deps.sh`, and `@app-tour/workspace-sdk` `package.json` `build` script — Phase 0 foundation gate runs `test:phase-0` which builds SDK without full monorepo `pnpm build`).
+`booking-http-contracts` must build before `tour-core` (`scripts/monorepo-build.sh`, `scripts/ci/build-api-workspace-deps.sh`, and `@app-tour/workspace-sdk` `package.json` `build` script — Phase 0 foundation gate runs `test:phase-0` which builds SDK without full monorepo `pnpm build`). SDK catalog intake transport dispatch uses **dynamic import** so Phase 0 `dist-surface` does not require `@app-tour/workspace-denali/dist` at barrel load.
 Payment-hold extend route uses `FINANCE_API_PATH_PREFIX` in `apps/api/src/app.ts` (Phase 10 P7-T05 — no `/finance/` string literals in app dispatch).

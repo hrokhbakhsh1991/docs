@@ -26,10 +26,14 @@ function listTsFiles(dir) {
   return out;
 }
 
+/** Static import edges only — codegen dispatch shims use dynamic import (CW7/CW9). */
+const STATIC_WORKSPACE_PRODUCT_IMPORT =
+  /(?:import\s+(?:type\s+)?\{[^}]*\}\s+from|export\s+\{[^}]*\}\s+from)\s+["']@app-tour\/workspace-(?:denali|urban|starter)/;
+
 for (const file of listTsFiles(SDK_CATALOG)) {
   const rel = path.relative(REPO_ROOT, file);
   const source = fs.readFileSync(file, "utf8");
-  if (/@app-tour\/workspace-(denali|urban|starter)/.test(source)) {
+  if (STATIC_WORKSPACE_PRODUCT_IMPORT.test(source)) {
     violations.push(`${rel}: imports workspace product package from SDK catalog layer`);
   }
   if (file.endsWith("resolve-intake-schema.ts") && /catalogPresentation/.test(source)) {

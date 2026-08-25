@@ -15,7 +15,7 @@
 | Capability flags | `packages/workspace-sdk/src/catalog/workspace-transport-capabilities.generated.ts` |
 | Snapshot reader dispatch | `packages/workspace-sdk/src/catalog/catalog-transport-snapshot-readers.generated.ts` |
 | Registration initializer dispatch | `packages/workspace-plugin-host/src/workspace-registration-transport-initializers.generated.ts` |
-| Intake transport surface dispatch | `packages/workspace-sdk/src/catalog/catalog-intake-transport-surfaces.generated.ts` |
+| Intake transport surface dispatch | `packages/workspace-sdk/src/catalog/catalog-intake-transport-surfaces.generated.ts` — **lazy `await import()` only** (same as snapshot readers; no static workspace-product edges at SDK barrel load) |
 | Registration normalizer dispatch | `apps/api/src/catalog/registration-transport-normalizers.generated.ts` |
 | Codegen domain | `scripts/codegen/workspace-registry/domains/transport.mjs` |
 | Manifest Zod | `packages/workspace-sdk/src/manifest.schema.ts` — `WorkspaceTransportBlockSchema` |
@@ -24,7 +24,8 @@
 
 - `supported` master switch + per-surface `capabilities.*` flags (default false).
 - Codegen emits bindings only when `supported: true` and the surface flag is true.
-- Legacy Denali-only compat: when `workspaceTransport` absent, synthesize `registrationInitializer` from `catalogRegistrationFlow.transportInitializerExport` (same pattern as equipment aliases). **No fallback for starter/urban/guest-club.**
+- `resolveCatalogIntakeTransportSurface(workspaceType)` is **async**; bindings use `CATALOG_INTAKE_TRANSPORT_INTAKE_WORKSPACE_TYPES` + per-workspace dynamic import (no eager `CATALOG_INTAKE_TRANSPORT_SURFACE_BINDINGS` array).
+- `guard-feature-flag-boundary.mjs` flags **static** `from "@app-tour/workspace-*"` edges in hand-written catalog sources only; codegen dispatch shims use dynamic import strings.
 
 ## Denali adapter (CW7-06)
 
