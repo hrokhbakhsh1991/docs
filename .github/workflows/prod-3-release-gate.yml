@@ -28,6 +28,8 @@ jobs:
         uses: ./.github/actions/setup-platform
       - name: Build workspace dist surfaces for gates
         run: bash scripts/ci/build-api-workspace-deps.sh
+      - name: Generate Prisma client for API tests
+        run: pnpm --filter @apps/api run prisma:generate
       - name: Run catalog L3 gate
         run: pnpm run release:verify
       - name: Upload structured gate reports

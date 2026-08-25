@@ -6,8 +6,7 @@ import { fileURLToPath } from "node:url";
 import { PrismaClient } from "@prisma/client";
 
 /** Must match latest prisma/migrations folder name (DEC-097 / MR-P0-003). */
-export const EXPECTED_PRISMA_MIGRATION_HEAD =
-  "20260821100000_operator_user_role_audit_app_tour_grants";
+export const EXPECTED_PRISMA_MIGRATION_HEAD = "20260824120000_dp1_payment_holds";
 
 /** Required intermediate migrations that must exist even if tip row is present. */
 export const REQUIRED_PRISMA_MIGRATION_NAMES = [
@@ -18,6 +17,7 @@ export const REQUIRED_PRISMA_MIGRATION_NAMES = [
   "20260803120000_http_idempotency_app_tour_grants",
   "20260807120000_operator_registration_departure_keyset_index",
   "20260809120000_finance_refunds",
+  "20260821100000_operator_user_role_audit_app_tour_grants",
   EXPECTED_PRISMA_MIGRATION_HEAD,
 ] as const;
 
