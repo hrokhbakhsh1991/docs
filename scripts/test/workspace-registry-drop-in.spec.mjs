@@ -54,7 +54,10 @@ describe("workspace registry drop-in (P7-T06)", () => {
     const ids = manifests.map((m) => m.id).sort();
     assert.deepEqual(ids, [
       "acme",
+      "alpine",
       "booking-ws2",
+      "cert-club",
+      "cert-events",
       "denali",
       "finance-ws2",
       "finance-ws3",
@@ -63,6 +66,8 @@ describe("workspace registry drop-in (P7-T06)", () => {
       "finance-ws6",
       "guest-club",
       "harbor",
+      "policy-cert",
+      "profile-cert",
       "starter",
       "urban",
     ]);
@@ -565,7 +570,7 @@ describe("workspace registry drop-in (P7-T06)", () => {
     assert.match(generated, /workspace-plugin-load-cache/);
     assert.match(generated, /getOrCreateWorkspacePluginLoad/);
     assert.match(generated, /WORKSPACE_PLUGIN_REGISTRY_REVISION/);
-    assert.match(generated, /WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 8/);
+    assert.match(generated, /WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 13/);
     assert.doesNotMatch(generated, /const pluginLoadCache\s*=\s*new Map/);
   });
 
