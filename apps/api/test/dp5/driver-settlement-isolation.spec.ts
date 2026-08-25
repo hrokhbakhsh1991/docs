@@ -52,7 +52,6 @@ describe("DP-5 driver settlement isolation", () => {
     const otherTenantHeaders = {
       ...operatorAuthHeaders(),
       "x-tenant-id": OTHER_TENANT,
-      "x-authenticated-tenant-id": OTHER_TENANT,
     };
     const response = await client.requestJson<{ settlements?: unknown[] }>(
       "GET",

@@ -41,7 +41,6 @@ describe("DP-2 operational roster isolation", () => {
       headers: {
         ...operatorAuthHeaders(),
         "x-tenant-id": OTHER_TENANT,
-        "x-authenticated-tenant-id": OTHER_TENANT,
       },
     });
 
