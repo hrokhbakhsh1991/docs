@@ -33,6 +33,7 @@ function adminHeaders(tenantId: string, userId: string): Record<string, string> 
 function registeredHeaders(tenantId: string, userId: string): Record<string, string> {
   return {
     "x-tenant-id": tenantId,
+    "x-authenticated-tenant-id": tenantId,
     "x-user-id": userId,
     "x-actor-role": "member",
     "x-membership-status": "ACTIVE",

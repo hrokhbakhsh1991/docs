@@ -1,6 +1,7 @@
 /**
  * MAT-012 — bounded workspace SLO telemetry primitives (no PII / unbounded IDs in labels).
  */
+import { hashTenantIdForLog } from "./log-safety";
 import { logger } from "./logger";
 import { metricsRegistry } from "./metrics";
 
@@ -67,7 +68,9 @@ export function recordWorkspaceSloEvent(event: WorkspaceSloEvent): void {
       area: event.area,
       outcome: event.outcome,
       workspaceType,
-      ...(event.tenantId !== undefined ? { tenantId: event.tenantId } : {}),
+      ...(event.tenantId !== undefined
+        ? { tenant_hash: hashTenantIdForLog(event.tenantId) }
+        : {}),
       ...(event.validationStage !== undefined ? { validationStage: event.validationStage } : {}),
       ...(event.capabilityId !== undefined ? { capabilityId: event.capabilityId } : {}),
       ...(event.durationMs !== undefined ? { durationMs: Math.round(event.durationMs) } : {}),

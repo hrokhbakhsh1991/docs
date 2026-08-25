@@ -55,21 +55,20 @@ export async function emitTourMutationSideEffects(input: {
       changedFields: [...input.changedFields],
     };
 
-    if (process.env.STORAGE_DRIVER === "prisma" && process.env.DATABASE_URL) {
-      const { getPrisma } = await import("../db/prisma");
-      const prisma = getPrisma();
-      await prisma.outboxEvent.create({
-        data: {
-          tenantId: input.tenantId,
-          aggregateType: "tour",
-          aggregateId: input.tourId,
-          eventType,
-          payload,
-          status: "pending",
-          domainEventId,
-          correlationId: null,
-        },
+    const persisted = await (async () => {
+      const { persistStandaloneOutboxRowIfPrismaDriver } = await import(
+        "../outbox/persist-standalone-outbox-row"
+      );
+      return persistStandaloneOutboxRowIfPrismaDriver({
+        tenantId: input.tenantId,
+        aggregateType: "tour",
+        aggregateId: input.tourId,
+        eventType,
+        payload,
+        domainEventId,
       });
+    })();
+    if (persisted) {
       continue;
     }
 

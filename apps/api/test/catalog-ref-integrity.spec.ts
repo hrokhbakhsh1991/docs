@@ -117,9 +117,9 @@ describe("catalog-ref-integrity (P5-B VAL-03)", () => {
     assert.deepEqual(allowlists.selectableLeaderIds, ["leader-valid"]);
   });
 
-  it("VAL-03e canonical-validation-sync wires catalog assert on publish", () => {
+  it("VAL-03e workspace validation pipeline wires catalog assert on publish", () => {
     const source = readFileSync(
-      join(apiRoot, "src/tours/canonical-validation-sync.ts"),
+      join(apiRoot, "src/tours/run-workspace-validation-pipeline.ts"),
       "utf8"
     );
     assert.match(source, /assertCatalogRefIntegrity/);

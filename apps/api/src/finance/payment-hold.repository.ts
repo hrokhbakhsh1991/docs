@@ -1,5 +1,5 @@
 /**
- * DP1-A — Payment Hold repository (memory driver; Prisma parity via schema migration).
+ * DP1-A — Payment Hold repository (memory driver; postgres parity via schema migration).
  */
 import {
   InMemoryPaymentHoldRepository,

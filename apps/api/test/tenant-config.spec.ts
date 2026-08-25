@@ -19,6 +19,7 @@ function listen(handler: ReturnType<typeof createRequestListener>) {
         host: "tenant-a.localhost:3001",
         "x-authenticated-tenant-id": TENANT_A_ID,
         "x-tenant-id": TENANT_A_ID,
+        "x-authenticated-tenant-id": TENANT_A_ID,
         "x-user-id": "u1",
         "x-workspace-id": "ws-1",
         "x-actor-role": "admin",

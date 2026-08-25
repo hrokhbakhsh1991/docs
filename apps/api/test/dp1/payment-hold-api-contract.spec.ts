@@ -26,6 +26,7 @@ function memberHeaders(userId: string, workspaceId: string): Record<string, stri
   return {
     "content-type": "application/json",
     "x-tenant-id": OPERATOR_SMOKE.tenantId,
+    "x-authenticated-tenant-id": OPERATOR_SMOKE.tenantId,
     "x-user-id": userId,
     "x-workspace-id": workspaceId,
     "x-user-role": "member",
