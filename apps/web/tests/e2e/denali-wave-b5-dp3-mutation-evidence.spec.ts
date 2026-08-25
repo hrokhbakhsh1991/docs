@@ -117,7 +117,7 @@ test.describe("Wave B.5 DP-3 flat-edit mutation evidence", () => {
       path: join(BROWSER_DIR, "dp3-edit-before-1440.png"),
       fullPage: true,
     });
-    const guideField = page.getByRole("textbox", { name: LOCAL_GUIDE_FIELD });
+    const guideField = page.getByRole("textbox", { name: /نام تور|^title$/i });
     await expect(guideField).toBeVisible({ timeout: 60_000 });
     const guideName = `B5 Guide ${Date.now()}`;
     await guideField.fill(guideName);
