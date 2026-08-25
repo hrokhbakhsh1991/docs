@@ -26,8 +26,8 @@ jobs:
           fetch-depth: 0
       - name: Setup platform toolchain
         uses: ./.github/actions/setup-platform
-      - name: Build import-boundary dist surfaces
-        run: pnpm --filter @app-tour/workspace-sdk run build && pnpm --filter @app-tour/platform-core run build
+      - name: Build workspace dist surfaces for gates
+        run: bash scripts/ci/build-api-workspace-deps.sh
       - name: Run catalog L3 gate
         run: pnpm run release:verify
       - name: Upload structured gate reports
