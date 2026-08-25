@@ -7,7 +7,11 @@ import { describe, it } from "node:test";
 const SDK_SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../src");
 
 const ALLOWLIST_PATHS = new Set([
+  path.join(SDK_SRC, "codegen/workspace-dispatch-modules.d.ts"),
   path.join(SDK_SRC, "plugin/workspace-manifest-bindings.generated.ts"),
+  path.join(SDK_SRC, "catalog/build-catalog-registration-upstream-request.ts"),
+  path.join(SDK_SRC, "catalog/resolve-catalog-intake-capabilities.ts"),
+  path.join(SDK_SRC, "catalog/resolve-catalog-registration-api-path.ts"),
 ]);
 
 const PRODUCT_PATTERN = /\b(denali|urban)\b/i;

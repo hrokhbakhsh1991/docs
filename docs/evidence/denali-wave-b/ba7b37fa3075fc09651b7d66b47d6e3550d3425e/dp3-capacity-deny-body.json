@@ -1,0 +1,1 @@
+{"error":"DENALI_TOUR_MUTATION_BLOCKED","code":"DENALI_TOUR_MUTATION_BLOCKED","reasonCode":"CAPACITY_BELOW_OCCUPIED","fields":["capacityMax"],"message":"capacityMax 1 is below occupied approved party size 2","correlationId":"515caa76-0e45-4f33-865e-cc9bfc8cfdc9"}

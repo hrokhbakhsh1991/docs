@@ -3,7 +3,7 @@
  */
 import { getBookingsRepository } from "../bookings/create-bookings-repository.ts";
 import { createTourStorageRepository } from "../storage/create-tour-storage.ts";
-import { resolveDenaliPaymentDeadlineHours } from "@app-tour/workspace-denali/host/finance";
+import { resolveDenaliPaymentDeadlineHours } from "@app-tour/workspace-denali/finance";
 
 export async function resolvePaymentHoldPolicyHoursForBooking(input: {
   readonly tenantId: string;

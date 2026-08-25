@@ -1,0 +1,965 @@
+
+======== denali-refund-eligibility ========
+▶ computeDenaliRefundEligibility
+  ✔ full refund when no penalty (0.53671ms)
+  ✔ applies penalty percentage to collected gross (0.102211ms)
+  ✔ subtracts prior completed refunds (0.09158ms)
+  ✔ zero when nothing collected (0.074916ms)
+✔ computeDenaliRefundEligibility (1.551764ms)
+ℹ tests 4
+ℹ suites 1
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 90.355004
+[dp6] PASS pnpm
+
+======== api-dp6 ========
+▶ DP6 refund orchestration
+  ✔ S1 unpaid operator cancel — no refund draft (20.670061ms)
+  ✔ S3 fully-paid cancel drafts refund Requested (6.002367ms)
+  ✔ S10 duplicate cancel does not double refund draft (55.986683ms)
+  ✔ S4 partial-paid cancel drafts partial refund (4.455601ms)
+  ✔ S5 tour cancel drafts refunds for paid registrations (4.274744ms)
+  ✔ S12 waitlist withdraw frees no seat; approved cancel promotes waitlist (4.409016ms)
+  ✔ S5 paid member cancellation request then operator approve drafts refund (18.178351ms)
+  ✔ GET refund-eligibility returns server snapshot (5.110356ms)
+✔ DP6 refund orchestration (128.141198ms)
+▶ DP6 member cancellation eligibility includes refund preview
+  ✔ paid registration exposes refund block on eligibility GET (4.899418ms)
+✔ DP6 member cancellation eligibility includes refund preview (5.125418ms)
+{"level":30,"time":"2026-08-25T00:46:27.190Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:27.208Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:27.214Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:27.270Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:27.275Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:27.279Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:27.282Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:27.293Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:27.302Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:27.308Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+ℹ tests 9
+ℹ suites 2
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1082.165492
+[dp6] PASS pnpm
+
+======== finance-refund-regression ========
+▶ PR23-E2 refund domain
+  ✔ R-01 Paid payment refund request → Requested (2.085336ms)
+  ✔ R-02 Pending payment rejected (0.520347ms)
+  ✔ R-03 Cancelled payment rejected (0.29805ms)
+  ✔ R-04 Over-cap rejected (0.359195ms)
+  ✔ R-05 Partial refund Completes → invoice nets (1.172855ms)
+  ✔ R-06 Multiple refunds within cap (0.68752ms)
+  ✔ R-07 Full refund Completes → paid net 0 (0.450483ms)
+  ✔ R-08 Prepayment-only refund (0.918114ms)
+  ✔ R-09 Requested refund does not change invoice (0.92981ms)
+  ✔ R-10 Completed refund changes invoice (0.458304ms)
+  ✔ R-11 Complete is idempotent (0.383075ms)
+  ✔ R-12 Completed refund reopens AR when remaining 0 → >0 (0.463327ms)
+  ✔ compile unit — total stable with refunds; Requested ignored (0.110643ms)
+✔ PR23-E2 refund domain (9.971682ms)
+ℹ tests 13
+ℹ suites 1
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 127.098866
+[dp6] PASS pnpm
+
+======== dp4-regression ========
+
+======== denali-policy ========
+▶ DP4 member cancellation policy
+  ✔ S1 pending → withdraw eligible (0.560178ms)
+  ✔ S2 waitlisted → withdraw eligible (0.099303ms)
+  ✔ S3 approved unpaid → self_cancel (0.111116ms)
+  ✔ S4 cutoff passed → denied (0.079391ms)
+  ✔ S5 paid → request only (0.083893ms)
+  ✔ S5b partial → request only (0.07144ms)
+  ✔ terminal cancelled → denied (0.065999ms)
+✔ DP4 member cancellation policy (1.839696ms)
+ℹ tests 7
+ℹ suites 1
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 88.0104
+[dp4] PASS pnpm
+
+======== api-dp4 ========
+▶ DP4 member cancellation API
+  ✔ S1 pending withdraw via member-cancellation (67.954408ms)
+  ✔ S3 approved unpaid self-cancel releases seat (13.921257ms)
+  ✔ S5 paid registration → request only (7.070727ms)
+✔ DP4 member cancellation API (96.432958ms)
+▶ DP4 member notification inbox
+  ✔ S8 dispatch writes inbox row idempotently (48.520853ms)
+✔ DP4 member notification inbox (48.638452ms)
+{"level":30,"time":"2026-08-25T00:46:29.499Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:29.515Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:29.528Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+ℹ tests 4
+ℹ suites 2
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1086.79468
+[dp4] PASS pnpm
+
+======== portal-dp4 ========
+▶ DP4 portal member cancellation contract
+  ✔ detail page renders cancel eligibility shell (0.573811ms)
+  ✔ BFF exposes member cancellation route (0.136954ms)
+  ✔ notifications inbox route exists (0.103867ms)
+✔ DP4 portal member cancellation contract (1.509357ms)
+ℹ tests 3
+ℹ suites 1
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 91.642002
+[dp4] PASS pnpm
+
+======== dp1-regression ========
+
+======== finance-core ========
+▶ DP1-D commercial quote freeze on approve
+  ✔ DP1-D-02 S1: ensureFrozenOnApprove exists and creates v1 FROZEN (1.351454ms)
+  ✔ DP1-D-02 S14: tour price mutation after approve does not change frozen payable (0.293901ms)
+  ✔ DP1-D-02 free collection: ensureFrozenOnApprove returns zero payable (0.242463ms)
+  ✔ DP1-D-02 money path still uses ensureFrozenForMoneyPath without duplicate freeze (0.364029ms)
+✔ DP1-D commercial quote freeze on approve (3.21722ms)
+▶ DP1-A payment hold repository contract
+  ✔ DP1-A-01 inserts open hold with unique registrationId per tenant (5.771634ms)
+  ✔ DP1-A-01 tenant isolation on read (1.246422ms)
+  ✔ DP1-D-05 markSatisfied is terminal for open hold (1.189294ms)
+  ✔ DP1-E-02 markExpired is terminal (1.938434ms)
+  ✔ DP1-A-03 listOpenDueBefore scans worker predicate (1.46118ms)
+  ✔ DP1-I-03 extendDueAt increments extended state (1.071014ms)
+✔ DP1-A payment hold repository contract (13.55532ms)
+ℹ tests 10
+ℹ suites 2
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 102.439033
+[dp1] PASS pnpm
+
+======== denali ========
+▶ DP1-G catalog capacity after payment expiry
+  ✔ S5: spotsRemaining increases when approved-unpaid expires to cancelled (0.486845ms)
+✔ DP1-G catalog capacity after payment expiry (1.128396ms)
+▶ DP1-B resolveDenaliPaymentDeadlineHours
+  ✔ DP1-B-01 defaults to 24h workspace policy (5.213915ms)
+  ✔ DP1-B-01 reads tour pricing.paymentDeadlineHours override (1.937825ms)
+  ✔ DP1-B-01 workspace policy hours override root when tour inherits (0.69322ms)
+  ✔ DP1-B-01 manual no-expiry only when tour null hours AND workspace manual flag (0.744339ms)
+  ✔ DP1-B-02 dueAt = approvedAt + hours UTC (DST-safe instant) (0.866623ms)
+  ✔ DP1-B-03 rejects non-positive tour override (1.008239ms)
+✔ DP1-B resolveDenaliPaymentDeadlineHours (11.32203ms)
+ℹ tests 7
+ℹ suites 2
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 105.093533
+[dp1] PASS pnpm
+
+======== tour-core ========
+▶ DP1-G approved-unpaid occupancy
+  ✔ S5 DEN-PROD-02: only approved status occupies seats for booking model (0.467471ms)
+  ✔ S5: cancelled after expiry does not occupy (0.093534ms)
+✔ DP1-G approved-unpaid occupancy (1.210131ms)
+ℹ tests 2
+ℹ suites 1
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 87.336991
+[dp1] PASS pnpm
+
+======== api ========
+▶ DP1-C booking approve payment hold
+  ✔ S1: approve → unpaid → deadline + quote freeze + hold open (19.291506ms)
+  ✔ S1 idempotent: second approve does not duplicate hold (5.341627ms)
+✔ DP1-C booking approve payment hold (26.32328ms)
+{"level":30,"time":"2026-08-25T00:46:32.264Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:32.281Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1 API contract payment deadline
+  ✔ S17 contract: operator approve and member GET share paymentDueAt (68.748973ms)
+  ✔ S11 contract: POST /finance/payment-holds/:id/extend returns new dueAt (48.306444ms)
+✔ DP1 API contract payment deadline (124.087735ms)
+{"level":30,"time":"2026-08-25T00:46:33.252Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-F payment hold expiry idempotency
+  ✔ S9: duplicate expiry execution is no-op (24.628567ms)
+  ✔ S20: at most one waitlist promote per freed seat on double expiry (6.368456ms)
+✔ DP1-F payment hold expiry idempotency (32.711536ms)
+{"level":30,"time":"2026-08-25T00:46:34.024Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:34.046Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:34.046Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-F payment hold expiry race
+  ✔ S8 payment win: remainingMinor=0 keeps approved + satisfied hold (28.334704ms)
+  ✔ S3b/S8 expiry win: remainingMinor>0 at lock → cancelled (5.612194ms)
+✔ DP1-F payment hold expiry race (35.650005ms)
+{"level":30,"time":"2026-08-25T00:46:34.755Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:34.781Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-E payment hold expiry
+  ✔ S4: expiry without payment → cancelled + hold expired (24.459958ms)
+  ✔ S5: expiry releases approved-unpaid occupancy (4.72253ms)
+  ✔ S7: expiry without waitlist does not promote (4.471797ms)
+  ✔ S13: operator cancel before payment closes hold without payment_deadline source (6.183725ms)
+✔ DP1-E payment hold expiry (41.610036ms)
+{"level":30,"time":"2026-08-25T00:46:35.492Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:35.514Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:35.519Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:35.523Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-I payment hold extend
+  ✔ S11: operator extends deadline by +24h (23.741338ms)
+  ✔ S14: tour policy change after approval does not move dueAt (4.110279ms)
+✔ DP1-I payment hold extend (29.555326ms)
+{"level":30,"time":"2026-08-25T00:46:36.235Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:36.256Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1 financial payment hold integration
+  ✔ S2: full payment before deadline satisfies hold and locks quote (21.747673ms)
+  ✔ S10: partial payment keeps hold open with remaining > 0 (5.013073ms)
+  ✔ S10b: partial then expiry cancels without auto-refund (13.15937ms)
+  ✔ duplicate payment idempotency does not double-capture (4.412788ms)
+✔ DP1 financial payment hold integration (46.204089ms)
+{"level":30,"time":"2026-08-25T00:46:36.970Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:36.989Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:36.994Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:37.007Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-K payment hold migration grandfather
+  ✔ grandfather: approved-unpaid without hold is not expired by worker (24.899525ms)
+  ✔ already-paid registration without hold remains approved under worker (6.248845ms)
+  ✔ rollback: PAYMENT_HOLD_EXPIRY_ENABLED=false stops new expiries (1.323978ms)
+✔ DP1-K payment hold migration grandfather (34.235399ms)
+{"level":30,"time":"2026-08-25T00:46:37.727Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+▶ DP1-E payment hold scheduler
+  ✔ S18: worker resumes after restart and expires due holds (27.65166ms)
+  ✔ S19: delayed worker skips already-paid registration (4.815995ms)
+✔ DP1-E payment hold scheduler (34.151347ms)
+{"level":30,"time":"2026-08-25T00:46:38.463Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:38.488Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-G payment deadline waitlist
+  ✔ S6: expiry promotes one waitlisted guest with new hold + quote (26.795644ms)
+✔ DP1-G payment deadline waitlist (28.360955ms)
+{"level":30,"time":"2026-08-25T00:46:39.203Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:39.203Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-L integration scenario map
+  ✔ maps all in-scope scenarios to spec files (S12 excluded — DP-4) (0.599876ms)
+✔ DP1-L integration scenario map (0.994571ms)
+ℹ tests 25
+ℹ suites 11
+ℹ pass 25
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8241.871707
+[dp1] PASS pnpm
+
+======== portal ========
+▶ DP1-H portal payment deadline contract
+  ✔ S1/S16/S17 MEM-01: registration detail exposes paymentDueAt + countdown markers (0.616327ms)
+  ✔ S4/S10b MEM-03: closed state uses data-closed-reason=payment_expired (0.220363ms)
+  ✔ S16 MEM-BFF: member registration fetch preserves paymentDueAt on reload (0.140105ms)
+  ✔ S15: portal formats UTC dueAt for locale display without recomputing policy hours (0.148947ms)
+✔ DP1-H portal payment deadline contract (1.854553ms)
+ℹ tests 4
+ℹ suites 1
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 92.538699
+[dp1] PASS pnpm
+
+======== operator-web ========
+▶ DP1-I operator payment deadline contract
+  ✔ S1 BR-OP-01: bookings command center shows paymentDueAt column (0.714295ms)
+  ✔ S4 BR-OP-03: cancelled payment deadline shows cancelSource (0.282549ms)
+  ✔ S11 BR-OP-04: extend deadline action wired to finance hold API (0.121145ms)
+  ✔ S17: operator list item uses same paymentDueAt field as booking API (0.211473ms)
+✔ DP1-I operator payment deadline contract (2.06415ms)
+ℹ tests 4
+ℹ suites 1
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 91.193422
+[dp1] PASS pnpm
+
+[dp1] finished with 0 failing layer(s)
+[dp4] PASS bash
+
+======== dp2-regression ========
+
+======== denali-domain ========
+▶ DP-2 compose tour operational roster
+  ✔ approved unpaid row is operational but not final (0.841468ms)
+  ✔ partial payment projection (0.144344ms)
+  ✔ paid final participant (0.113541ms)
+  ✔ waived zero-obligation registration (0.103783ms)
+  ✔ waitlisted row (0.101536ms)
+  ✔ cancelled expired hold row is not operational (0.086534ms)
+  ✔ refund badge orthogonal to payment state (0.110201ms)
+  ✔ driver offer from personal_car transport (0.109526ms)
+  ✔ filters: final, unpaid, paid, expiring, waitlist (0.447872ms)
+  ✔ transportKind post-filter (0.212274ms)
+✔ DP-2 compose tour operational roster (3.201663ms)
+▶ DP-2 operational roster semantics
+  ✔ approved unpaid is operational but not final (0.645418ms)
+  ✔ partial payment display state (0.12329ms)
+  ✔ paid final participant (0.080353ms)
+  ✔ waived free registration (0.072807ms)
+  ✔ waitlisted does not occupy capacity (0.083484ms)
+  ✔ cancelled and expired do not appear operational (0.070383ms)
+  ✔ refund display states (0.101806ms)
+  ✔ driver offer from personal_car transport (0.0997ms)
+  ✔ passenger assignment not implemented (0.10226ms)
+  ✔ expiring deadline within window (0.167946ms)
+✔ DP-2 operational roster semantics (2.433852ms)
+ℹ tests 20
+ℹ suites 2
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 115.674012
+[dp2] PASS pnpm
+
+======== api ========
+▶ DP-2 operational roster API contract
+  ✔ returns composed roster rows with DP-2 fields (68.118707ms)
+  ✔ supports filter query tokens (11.049486ms)
+✔ DP-2 operational roster API contract (86.241717ms)
+{"level":30,"time":"2026-08-25T00:46:42.326Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+▶ DP-2 operational roster isolation
+  ✔ does not return Denali tenant registrations when queried under another tenant header (67.610951ms)
+✔ DP-2 operational roster isolation (74.682292ms)
+{"level":30,"time":"2026-08-25T00:46:43.347Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+▶ DP-2 operational roster projection
+  ✔ matrix: approved unpaid appears in operational + unpaid filters (20.035093ms)
+  ✔ matrix: partial payment stays non-final (6.717408ms)
+  ✔ matrix: full payment yields final + paid filters (5.148367ms)
+  ✔ matrix: waitlisted row appears only in waitlist filter (2.656174ms)
+  ✔ driver offer and passenger assignment honest (3.749989ms)
+✔ DP-2 operational roster projection (40.212542ms)
+{"level":30,"time":"2026-08-25T00:46:44.129Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:44.147Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:44.153Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:44.158Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:44.161Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+ℹ tests 8
+ℹ suites 3
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2783.348289
+[dp2] PASS pnpm
+
+======== operator-web ========
+▶ DP-2 tour workspace operational roster contract
+  ✔ transport tab loads unified operational roster endpoint (0.576691ms)
+  ✔ BFF proxies tour operational roster route (0.170478ms)
+  ✔ renders final participant, amount due, deadline, driver badges (0.135469ms)
+  ✔ exposes approved DP-2 roster filters (0.512588ms)
+  ✔ amount due formatter respects financial display state (0.166643ms)
+  ✔ roster href encodes tour id and filter (0.137402ms)
+✔ DP-2 tour workspace operational roster contract (2.487443ms)
+ℹ tests 6
+ℹ suites 1
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 95.535019
+[dp2] PASS pnpm
+
+[dp2] finished with 0 failing layer(s)
+[dp4] PASS bash
+
+======== dp3-regression ========
+
+======== denali-mutation-policy ========
+▶ tour-mutation-policy — DP-3 matrix
+  ✔ no-registration tour remains freely editable (0.670404ms)
+  ✔ safe content edit after registrations is allowed (0.355447ms)
+  ✔ frozen destination field rejected after registration (0.186755ms)
+  ✔ price change after approval triggers repricing side effect (0.28508ms)
+  ✔ price change after payment is denied (0.126154ms)
+  ✔ date change uses notification-required path (0.157057ms)
+  ✔ capacity below occupied is rejected (0.146407ms)
+  ✔ capacity increase is allowed (0.138156ms)
+  ✔ capacity decrease requires override when above occupied (0.166153ms)
+  ✔ transport mutation with allocations requires override (0.1992ms)
+  ✔ operator override authorizes capacity decrease (0.142494ms)
+✔ tour-mutation-policy — DP-3 matrix (3.810835ms)
+ℹ tests 11
+ℹ suites 1
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 95.212719
+[dp3] PASS pnpm
+
+======== api-mutation-enforcement ========
+▶ dp3/tour-mutation-enforcement
+  ✔ DP3-POLICY-01 blocks frozen destination with stable error (4.481282ms)
+  ✔ DP3-API-02 safe title edit after registrations succeeds on write path (54.956694ms)
+  ✔ DP3-POLICY-03 price change after payment is blocked (0.747208ms)
+  ✔ DP3-API-04 approved-unpaid price change emits repricing side effect (4.230585ms)
+  ✔ DP3-API-05 schedule change emits notification side effect (3.546358ms)
+  ✔ DP3-POLICY-06 capacity below occupied rejected (0.776561ms)
+  ✔ DP3-API-07 capacity increase allowed (3.217618ms)
+  ✔ DP3-POLICY-08 transport mutation with allocations requires override (0.638818ms)
+  ✔ DP3-API-09 owner override allows capacity decrease above occupied (3.542233ms)
+✔ dp3/tour-mutation-enforcement (78.070539ms)
+{"level":30,"time":"2026-08-25T00:46:46.115Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","validationStage":"workspacePolicy","durationMs":5,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:46.121Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","validationStage":"workspacePolicy","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:46.125Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","validationStage":"workspacePolicy","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:46.129Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","validationStage":"workspacePolicy","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:46.133Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","validationStage":"workspacePolicy","durationMs":1,"msg":"workspace slo event"}
+ℹ tests 9
+ℹ suites 1
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 801.720201
+[dp3] PASS pnpm
+
+======== publish-regression ========
+▶ club-catalog-publish-service (P4-A SV)
+  ✔ SV-01 updateTour urban draft→published schedules revalidate POST (47.461819ms)
+  ✔ SV-02 writeTour urban draft create does not schedule (32.12292ms)
+  ✔ SV-03 writeTour then publish schedules exactly one revalidate POST (63.434834ms)
+  ✔ SV-04 fetch failure still persists tour (fail-open side effect) (32.977792ms)
+  ✔ SV-05 starter workspace update does not schedule (67.292624ms)
+  ✔ SV-06 published→draft unpublish still schedules revalidate (63.227405ms)
+✔ club-catalog-publish-service (P4-A SV) (308.25613ms)
+{"level":30,"time":"2026-08-25T00:46:47.417Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":2,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:47.419Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:47.452Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:47.484Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:47.515Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:47.548Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:47.548Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":40,"time":"2026-08-25T00:46:47.549Z","service":"@apps/api","event":"marketing.catalog.revalidate_failed","tenantId":"00000000-0000-4000-8000-000000000004","error":"MARKETING_REVALIDATE_FETCH_REJECTED","msg":"marketing catalog revalidate request failed"}
+{"level":30,"time":"2026-08-25T00:46:47.585Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"starter","tenantId":"fe6ada85-75dc-4920-b621-b418f342e3b8","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:47.616Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"starter","tenantId":"fe6ada85-75dc-4920-b621-b418f342e3b8","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:47.648Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:47.648Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:47.679Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:47.712Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:47.712Z","service":"@apps/api","event":"workspace.slo","area":"publish_write","outcome":"success","workspaceType":"urban","tenantId":"00000000-0000-4000-8000-000000000004","validationStage":"workspacePolicy","durationMs":0,"msg":"workspace slo event"}
+▶ club-catalog-publish-http (P4-A PW)
+  ✔ PW-01 service publish then GET /urban/catalog lists tour (90.518347ms)
+  ✔ PW-DN-01 GET /denali/catalog lists operator smoke published tour (20.754094ms)
+✔ club-catalog-publish-http (P4-A PW) (111.789312ms)
+ℹ tests 8
+ℹ suites 2
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1368.320727
+[dp3] PASS pnpm
+
+======== booking ========
+▶ bookings-create.spec.ts — Phase 9.5 API
+  ✔ API-9.5-04 POST /bookings manual create returns 201 pending (42.907589ms)
+✔ bookings-create.spec.ts — Phase 9.5 API (49.152528ms)
+{"level":30,"time":"2026-08-25T00:46:49.120Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+▶ bookings-safety.spec.ts
+  ✔ BK-SAFE-01 getById returns registrationIntake; listByTenantPage omits it (0.8327ms)
+  ✔ BK-SAFE-01a BOOKING_LIST_SELECT must not select registrationIntake (0.457543ms)
+  ✔ BK-SAFE-02 prisma listByTenantPage uses withTenantRls for paginated query (0.365202ms)
+  ✔ BK-SAFE-03 prisma getById is tenant-scoped under withTenantRls (no admin probe) (0.343666ms)
+  ✔ BK-SAFE-06 getById returns null for cross-tenant id guess (0.121674ms)
+  ✔ BK-SAFE-04 new pagination types stay off package root exports (0.478049ms)
+✔ bookings-safety.spec.ts (3.822521ms)
+ℹ tests 7
+ℹ suites 2
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 974.964855
+[dp3] PASS pnpm
+
+======== finance ========
+▶ finance-registration-context.spec.ts
+  ✔ B-01 filterRowsByRegistrationId keeps only matching rows (1.027622ms)
+  ✔ B-02 attachFinanceRegistrationContext is null when map lacks id (0.149872ms)
+  ✔ B-03 attachFinanceRegistrationContext copies projection fields (0.097301ms)
+  ✔ FIN-P1.6-01 finance-registration-context.ts has no Booking repository imports (0.245ms)
+  ✔ FIN-P1.6-02 FinanceService loads display via registrationDisplay port (0.486321ms)
+  ✔ FIN-P1.6-03 BookingRegistrationDisplayAdapter maps guestLabel → memberDisplayName (0.871648ms)
+✔ finance-registration-context.spec.ts (3.822325ms)
+ℹ tests 6
+ℹ suites 1
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 184.965714
+[dp3] PASS pnpm
+
+======== transport ========
+▶ tours-workspace.spec.ts — Phase 9.3 Web
+  ✔ WEB-9.3-W01 workspace exposes page landmarks (CP-9.3-W01) (0.749926ms)
+  ✔ WEB-9.3-W02 subnav resolver highlights active tab (CP-9.3-W02) (0.323556ms)
+  ✔ WEB-9.3-W03 list and edit link ids for workspace (CP-9.3-W03) (0.114381ms)
+  ✔ WEB-9.3-W04 waitlist query scopes bookings API to tour + waitlisted (CP-9.3-W05) (0.188905ms)
+  ✔ WEB-9.3-W05 waitlist rows sort by submittedAt ascending (0.154686ms)
+  ✔ WEB-9.3-W06 transport query scopes operational roster + canonical modes (CP-9.3-W06 / DP-2) (5.978633ms)
+  ✔ WEB-9.3-W07 transport roster sorts by guest then departure (0.216531ms)
+  ✔ WEB-9.3-R04 registrations query scopes bookings to tour (CP-9.3-R04 / TW-C-01) (0.229354ms)
+  ✔ TW-C complete — finance tab in subnav when enabled + deep links (0.561438ms)
+  ✔ H1 hardening — ops counts from list totals; fail closed; clickable hrefs (0.390321ms)
+  ✔ H2/H3 hardening — capacity full + receipts N+ (0.189894ms)
+  ✔ H-10 Money Inbox — partition by actionability + remaining sum (0.428364ms)
+  ✔ PAY-FIN-02 Money Inbox — approved unpaid with no receipts still awaits payment (0.104863ms)
+  ✔ H-11 Tour Money Inbox — filters, hub href, focus parse (0.265582ms)
+  ✔ H-11b review feedback stays scoped to the selected workspace row (0.149089ms)
+  ✔ H-11b2 payment action feedback stays scoped to the selected workspace row (0.119619ms)
+  ✔ H-11c workspace finance uses validation-first error localization (0.390681ms)
+  ✔ H-11d workspace finance shows a scoped degraded-data hint when only some reads fail (0.360811ms)
+  ✔ H4b hardening — waitlist command center stays waitlisted+tour scoped (0.07886ms)
+  ✔ H5 hardening — transport intake kind counts from list scalars (0.173219ms)
+  ✔ H5-T4 — transport client uses list scalars (no N+1 hydrate) (0.228723ms)
+  ✔ TW-C remediations — finance tourId query + opsActions defaults + register test id (0.146072ms)
+  ✔ I-07/I-08 — workspace embeds import CC shell from features (not app/bookings) (0.184333ms)
+  ✔ shared finance fetch cache — TTL + invalidate for header/tab reuse (4.433362ms)
+  ✔ finance workspace master-detail stays feature-owned with app re-export (0.774365ms)
+✔ tours-workspace.spec.ts — Phase 9.3 Web (18.293207ms)
+ℹ tests 25
+ℹ suites 1
+ℹ pass 25
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 223.394911
+[dp3] PASS pnpm
+
+======== architecture-isolation ========
+
+> app-tour@0.1.0 guard:import-boundary /workspace
+> node scripts/guards/import-boundary-ast.mjs
+
+import-boundary-ast: PASS
+[dp3] PASS pnpm
+
+======== pre-commit-fast ========
+
+> app-tour@0.1.0 pre-commit:fast /workspace
+> bash scripts/pre-commit-fast.sh
+
+pre-commit-fast: RUN guard-docs
+pre-commit-fast: PASS guard-docs (0s)
+pre-commit-fast: SKIP field-exposure guards (phases 0–11) (no staged path match)
+pre-commit-fast: SKIP guard-wizard-post-submit (no staged path match)
+pre-commit-fast: SKIP guard-css-globals (no staged path match)
+pre-commit-fast: RUN check-node-engine
+check-node-engine: PASS (Node 24.19.0)
+pre-commit-fast: PASS check-node-engine (0s)
+pre-commit-fast: no staged files — skip lint-staged
+pre-commit-fast: RUN test-changed
+test-changed: no staged files (mode=pre-commit) — skip
+pre-commit-fast: PASS test-changed (0s)
+pre-commit-fast: PASS (0s; report: .cache/pre-commit-fast/latest.tsv)
+[dp3] PASS pnpm
+
+[dp3] finished with 0 failing layer(s)
+[dp4] PASS bash
+
+======== guards ========
+
+> app-tour@0.1.0 pre-commit:fast /workspace
+> bash scripts/pre-commit-fast.sh
+
+pre-commit-fast: RUN guard-docs
+pre-commit-fast: PASS guard-docs (0s)
+pre-commit-fast: SKIP field-exposure guards (phases 0–11) (no staged path match)
+pre-commit-fast: SKIP guard-wizard-post-submit (no staged path match)
+pre-commit-fast: SKIP guard-css-globals (no staged path match)
+pre-commit-fast: RUN check-node-engine
+check-node-engine: PASS (Node 24.19.0)
+pre-commit-fast: PASS check-node-engine (0s)
+pre-commit-fast: no staged files — skip lint-staged
+pre-commit-fast: RUN test-changed
+test-changed: no staged files (mode=pre-commit) — skip
+pre-commit-fast: PASS test-changed (0s)
+pre-commit-fast: PASS (0s; report: .cache/pre-commit-fast/latest.tsv)
+[dp4] PASS pnpm
+
+> app-tour@0.1.0 guard:import-boundary /workspace
+> node scripts/guards/import-boundary-ast.mjs
+
+import-boundary-ast: PASS
+
+[dp4] finished with 0 failing layer(s)
+[dp6] PASS bash
+
+======== dp5-regression ========
+
+======== denali-domain ========
+▶ DP-5 driver settlement calculation
+  ✔ offered 3 / assigned 2 → billable 2, total = 2 × unit (0.518465ms)
+  ✔ assigned 0 → billable 0, total 0 (0.132144ms)
+  ✔ assigned exceeds offered → capped at offered (0.087401ms)
+✔ DP-5 driver settlement calculation (1.404456ms)
+▶ DP-5 transport allocation validation
+  ✔ rejects capacity exceeded (0.281993ms)
+  ✔ rejects duplicate passenger assignment (0.097081ms)
+  ✔ blocks changes when roster frozen (0.090721ms)
+  ✔ counts assigned passengers per driver (0.098852ms)
+✔ DP-5 transport allocation validation (0.749482ms)
+▶ DP-5 settlement lifecycle
+  ✔ draft → confirmed → payable → paid allowed (0.326818ms)
+  ✔ paid is immutable (0.105603ms)
+  ✔ draft can void (0.094334ms)
+  ✔ idempotency key is stable per freeze (0.129265ms)
+✔ DP-5 settlement lifecycle (0.822075ms)
+▶ DP-5 scenario matrix (domain)
+  ✔ passenger cancel before finalization → fewer assigned (0.144174ms)
+  ✔ passenger reassignment moves count between drivers (0.05575ms)
+  ✔ correction uses distinct idempotency key (0.08987ms)
+✔ DP-5 scenario matrix (domain) (0.360841ms)
+ℹ tests 14
+ℹ suites 4
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 93.674486
+[dp5] PASS pnpm
+
+======== api ========
+▶ DP-5 driver settlement isolation
+  ✔ cross-tenant cannot read settlements (72.176834ms)
+✔ DP-5 driver settlement isolation (78.317531ms)
+{"level":30,"time":"2026-08-25T00:46:56.362Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:56.377Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP-5 driver settlement API
+  ✔ offered 3 / assigned 2 → settlement total = 2 × unit (75.000105ms)
+  ✔ assigned 0 → billable 0 (3.856206ms)
+  ✔ passenger cancel before finalization removes allocation impact on recalc path (9.07549ms)
+  ✔ passenger reassignment updates billable driver (7.980858ms)
+  ✔ driver cancellation voids draft settlement (7.86709ms)
+{"level":30,"time":"2026-08-25T00:46:57.373Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.387Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.389Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.389Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.444Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.448Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.448Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.449Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.457Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.458Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.458Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.465Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.466Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.473Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.473Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.479Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.480Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+  ✔ tour cancellation voids settlements (6.567915ms)
+  ✔ duplicate finalization is idempotent (7.154843ms)
+  ✔ duplicate payout complete is idempotent (16.354589ms)
+  ✔ correction before payout creates new draft settlement (11.92862ms)
+  ✔ correction after payout allowed for paid settlement (12.041436ms)
+✔ DP-5 driver settlement API (164.544179ms)
+{"level":30,"time":"2026-08-25T00:46:57.481Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.487Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.487Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.488Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.503Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.504Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.504Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.515Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.516Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:46:57.516Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+ℹ tests 11
+ℹ suites 2
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2098.416834
+[dp5] PASS pnpm
+
+======== import-boundary ========
+
+> app-tour@0.1.0 guard:import-boundary /workspace
+> node scripts/guards/import-boundary-ast.mjs
+
+import-boundary-ast: PASS
+[dp5] PASS pnpm
+
+======== operator-web ========
+▶ DP-5 web contract
+  ✔ transport BFF routes exist (0.548257ms)
+  ✔ settlement panel exposes test ids (0.191475ms)
+✔ DP-5 web contract (1.413692ms)
+ℹ tests 2
+ℹ suites 1
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 93.653396
+[dp5] PASS pnpm
+
+[dp5] finished with 0 failing layer(s)
+[dp6] PASS bash
+
+======== dp1-regression ========
+
+======== finance-core ========
+▶ DP1-D commercial quote freeze on approve
+  ✔ DP1-D-02 S1: ensureFrozenOnApprove exists and creates v1 FROZEN (1.364292ms)
+  ✔ DP1-D-02 S14: tour price mutation after approve does not change frozen payable (0.265597ms)
+  ✔ DP1-D-02 free collection: ensureFrozenOnApprove returns zero payable (1.334747ms)
+  ✔ DP1-D-02 money path still uses ensureFrozenForMoneyPath without duplicate freeze (0.383972ms)
+✔ DP1-D commercial quote freeze on approve (4.727405ms)
+▶ DP1-A payment hold repository contract
+  ✔ DP1-A-01 inserts open hold with unique registrationId per tenant (7.316944ms)
+  ✔ DP1-A-01 tenant isolation on read (1.209344ms)
+  ✔ DP1-D-05 markSatisfied is terminal for open hold (1.216504ms)
+  ✔ DP1-E-02 markExpired is terminal (1.366272ms)
+  ✔ DP1-A-03 listOpenDueBefore scans worker predicate (1.724779ms)
+  ✔ DP1-I-03 extendDueAt increments extended state (1.103967ms)
+✔ DP1-A payment hold repository contract (14.805487ms)
+ℹ tests 10
+ℹ suites 2
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 107.911963
+[dp1] PASS pnpm
+
+======== denali ========
+▶ DP1-G catalog capacity after payment expiry
+  ✔ S5: spotsRemaining increases when approved-unpaid expires to cancelled (0.439515ms)
+✔ DP1-G catalog capacity after payment expiry (1.012691ms)
+▶ DP1-B resolveDenaliPaymentDeadlineHours
+  ✔ DP1-B-01 defaults to 24h workspace policy (3.076181ms)
+  ✔ DP1-B-01 reads tour pricing.paymentDeadlineHours override (0.741401ms)
+  ✔ DP1-B-01 workspace policy hours override root when tour inherits (0.769187ms)
+  ✔ DP1-B-01 manual no-expiry only when tour null hours AND workspace manual flag (0.71445ms)
+  ✔ DP1-B-02 dueAt = approvedAt + hours UTC (DST-safe instant) (0.800991ms)
+  ✔ DP1-B-03 rejects non-positive tour override (1.594421ms)
+✔ DP1-B resolveDenaliPaymentDeadlineHours (8.56253ms)
+ℹ tests 7
+ℹ suites 2
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 99.431499
+[dp1] PASS pnpm
+
+======== tour-core ========
+▶ DP1-G approved-unpaid occupancy
+  ✔ S5 DEN-PROD-02: only approved status occupies seats for booking model (0.444561ms)
+  ✔ S5: cancelled after expiry does not occupy (0.091943ms)
+✔ DP1-G approved-unpaid occupancy (1.210597ms)
+ℹ tests 2
+ℹ suites 1
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 85.025598
+[dp1] PASS pnpm
+
+======== api ========
+▶ DP1-C booking approve payment hold
+  ✔ S1: approve → unpaid → deadline + quote freeze + hold open (19.971599ms)
+  ✔ S1 idempotent: second approve does not duplicate hold (5.119395ms)
+✔ DP1-C booking approve payment hold (26.771532ms)
+{"level":30,"time":"2026-08-25T00:47:02.123Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:47:02.141Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1 API contract payment deadline
+  ✔ S17 contract: operator approve and member GET share paymentDueAt (71.233487ms)
+  ✔ S11 contract: POST /finance/payment-holds/:id/extend returns new dueAt (49.731195ms)
+✔ DP1 API contract payment deadline (128.320159ms)
+{"level":30,"time":"2026-08-25T00:47:03.132Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-F payment hold expiry idempotency
+  ✔ S9: duplicate expiry execution is no-op (24.616653ms)
+  ✔ S20: at most one waitlist promote per freed seat on double expiry (6.377593ms)
+✔ DP1-F payment hold expiry idempotency (32.690623ms)
+{"level":30,"time":"2026-08-25T00:47:03.910Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:47:03.932Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:47:03.933Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-F payment hold expiry race
+  ✔ S8 payment win: remainingMinor=0 keeps approved + satisfied hold (27.594227ms)
+  ✔ S3b/S8 expiry win: remainingMinor>0 at lock → cancelled (5.593857ms)
+✔ DP1-F payment hold expiry race (34.900939ms)
+{"level":30,"time":"2026-08-25T00:47:04.649Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:47:04.674Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-E payment hold expiry
+  ✔ S4: expiry without payment → cancelled + hold expired (24.876293ms)
+  ✔ S5: expiry releases approved-unpaid occupancy (4.540964ms)
+  ✔ S7: expiry without waitlist does not promote (4.596037ms)
+  ✔ S13: operator cancel before payment closes hold without payment_deadline source (6.197656ms)
+✔ DP1-E payment hold expiry (41.999019ms)
+{"level":30,"time":"2026-08-25T00:47:05.394Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:47:05.416Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:47:05.421Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:47:05.425Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-I payment hold extend
+  ✔ S11: operator extends deadline by +24h (23.64044ms)
+  ✔ S14: tour policy change after approval does not move dueAt (4.220625ms)
+✔ DP1-I payment hold extend (29.560793ms)
+{"level":30,"time":"2026-08-25T00:47:06.142Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:47:06.163Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1 financial payment hold integration
+  ✔ S2: full payment before deadline satisfies hold and locks quote (20.577505ms)
+  ✔ S10: partial payment keeps hold open with remaining > 0 (4.939516ms)
+  ✔ S10b: partial then expiry cancels without auto-refund (12.779895ms)
+  ✔ duplicate payment idempotency does not double-capture (4.389777ms)
+✔ DP1 financial payment hold integration (44.451744ms)
+{"level":30,"time":"2026-08-25T00:47:06.870Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:47:06.888Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:47:06.893Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:47:06.906Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-K payment hold migration grandfather
+  ✔ grandfather: approved-unpaid without hold is not expired by worker (25.329417ms)
+  ✔ already-paid registration without hold remains approved under worker (6.891161ms)
+  ✔ rollback: PAYMENT_HOLD_EXPIRY_ENABLED=false stops new expiries (1.28633ms)
+✔ DP1-K payment hold migration grandfather (35.280609ms)
+{"level":30,"time":"2026-08-25T00:47:07.619Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+▶ DP1-E payment hold scheduler
+  ✔ S18: worker resumes after restart and expires due holds (29.289796ms)
+  ✔ S19: delayed worker skips already-paid registration (5.036174ms)
+✔ DP1-E payment hold scheduler (36.025126ms)
+{"level":30,"time":"2026-08-25T00:47:08.367Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:47:08.394Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-G payment deadline waitlist
+  ✔ S6: expiry promotes one waitlisted guest with new hold + quote (27.458132ms)
+✔ DP1-G payment deadline waitlist (29.025036ms)
+{"level":30,"time":"2026-08-25T00:47:09.105Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:47:09.105Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-L integration scenario map
+  ✔ maps all in-scope scenarios to spec files (S12 excluded — DP-4) (0.620018ms)
+✔ DP1-L integration scenario map (1.014522ms)
+ℹ tests 25
+ℹ suites 11
+ℹ pass 25
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8285.675839
+[dp1] PASS pnpm
+
+======== portal ========
+▶ DP1-H portal payment deadline contract
+  ✔ S1/S16/S17 MEM-01: registration detail exposes paymentDueAt + countdown markers (0.616004ms)
+  ✔ S4/S10b MEM-03: closed state uses data-closed-reason=payment_expired (0.229329ms)
+  ✔ S16 MEM-BFF: member registration fetch preserves paymentDueAt on reload (0.148167ms)
+  ✔ S15: portal formats UTC dueAt for locale display without recomputing policy hours (0.153845ms)
+✔ DP1-H portal payment deadline contract (1.887775ms)
+ℹ tests 4
+ℹ suites 1
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 92.514499
+[dp1] PASS pnpm
+
+======== operator-web ========
+▶ DP1-I operator payment deadline contract
+  ✔ S1 BR-OP-01: bookings command center shows paymentDueAt column (0.711043ms)
+  ✔ S4 BR-OP-03: cancelled payment deadline shows cancelSource (0.333413ms)
+  ✔ S11 BR-OP-04: extend deadline action wired to finance hold API (0.117721ms)
+  ✔ S17: operator list item uses same paymentDueAt field as booking API (0.217341ms)
+✔ DP1-I operator payment deadline contract (2.11835ms)
+ℹ tests 4
+ℹ suites 1
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 94.89257
+[dp1] PASS pnpm
+
+[dp1] finished with 0 failing layer(s)
+[dp6] PASS bash
+
+======== guards ========
+
+> app-tour@0.1.0 pre-commit:fast /workspace
+> bash scripts/pre-commit-fast.sh
+
+pre-commit-fast: RUN guard-docs
+pre-commit-fast: PASS guard-docs (0s)
+pre-commit-fast: SKIP field-exposure guards (phases 0–11) (no staged path match)
+pre-commit-fast: SKIP guard-wizard-post-submit (no staged path match)
+pre-commit-fast: SKIP guard-css-globals (no staged path match)
+pre-commit-fast: RUN check-node-engine
+check-node-engine: PASS (Node 24.19.0)
+pre-commit-fast: PASS check-node-engine (0s)
+pre-commit-fast: no staged files — skip lint-staged
+pre-commit-fast: RUN test-changed
+test-changed: no staged files (mode=pre-commit) — skip
+pre-commit-fast: PASS test-changed (0s)
+pre-commit-fast: PASS (0s; report: .cache/pre-commit-fast/latest.tsv)
+[dp6] PASS pnpm
+
+> app-tour@0.1.0 guard:import-boundary /workspace
+> node scripts/guards/import-boundary-ast.mjs
+
+import-boundary-ast: PASS
+
+[dp6] finished with 0 failing layer(s)

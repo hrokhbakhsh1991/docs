@@ -1,0 +1,32 @@
+{
+  "tourId": "00000000-0000-4000-8000-000000000214",
+  "filter": "waitlist",
+  "items": [
+    {
+      "registrationId": "c59e5799-8f32-4dd8-abd9-5b98676f9b04",
+      "tourId": "00000000-0000-4000-8000-000000000214",
+      "guestLabel": "DP2 Member D Waitlist",
+      "partySize": 1,
+      "registrationStatus": "waitlisted",
+      "financialDisplayState": "NOT_APPLICABLE",
+      "remainingMinor": "2500000",
+      "paidMinor": "0",
+      "currency": "",
+      "paymentDueAt": null,
+      "holdStatus": null,
+      "transportKind": null,
+      "personalCarOccupants": null,
+      "isDriverOffer": false,
+      "passengerAssignmentStatus": "not_implemented",
+      "refundDisplayState": "none",
+      "isFinalParticipant": false,
+      "isOperationalParticipant": false,
+      "isFinanciallySettled": false,
+      "occupiesCapacity": false,
+      "departureAt": "2031-09-01T10:00:00.000Z",
+      "submittedAt": "2026-08-24T22:09:16.968Z"
+    }
+  ],
+  "total": 1,
+  "nextCursor": null
+}

@@ -72,6 +72,7 @@ export {
 
 export {
   BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
+  BOOKING_REJECT_OUTBOX_EVENT_TYPE,
   BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
 } from "./booking-lifecycle-events";
 

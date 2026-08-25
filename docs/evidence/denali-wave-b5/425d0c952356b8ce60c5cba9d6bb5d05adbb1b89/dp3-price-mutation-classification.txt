@@ -1,0 +1,1 @@
+API_ONLY — obligation freeze via server matrix (Wave B + test-dp3-tour-mutation.sh PASS); pricing not exposed in flat-edit UI.

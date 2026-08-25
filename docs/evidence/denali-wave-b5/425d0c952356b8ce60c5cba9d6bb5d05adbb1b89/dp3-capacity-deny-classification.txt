@@ -1,0 +1,1 @@
+API_ONLY — PATCH deny 409 api/dp3-capacity-deny-body.json; UI deny attempt screenshot browser/dp3-capacity-deny-ui-1440.png pending harness fix.

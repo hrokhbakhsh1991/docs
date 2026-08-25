@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { resolveTourOpsApiBaseUrl } from "@/env";
 import { buildMemberApiHeaders } from "@/me/build-member-api-headers.server";
-import { resolvePortalIngressHost } from "@/tenant/read-portal-ingress-host";
+import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

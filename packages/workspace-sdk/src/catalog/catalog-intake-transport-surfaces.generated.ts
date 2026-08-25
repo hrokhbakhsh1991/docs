@@ -5,25 +5,29 @@
  */
 
 import type { WorkspaceCatalogIntakeTransportSurface } from "./catalog-intake-transport-surface";
-import { denaliCatalogTransportIntakeSurface as denali_transport_intake_surface } from "@app-tour/workspace-denali/catalog/denali-catalog-transport-intake";
 
 export type CatalogIntakeTransportSurfaceBinding = {
   readonly workspaceType: string;
   readonly transportIntakeSurface: WorkspaceCatalogIntakeTransportSurface;
 };
 
-export const CATALOG_INTAKE_TRANSPORT_SURFACE_BINDINGS: readonly CatalogIntakeTransportSurfaceBinding[] = [
-  {
-    workspaceType: "denali",
-    transportIntakeSurface: denali_transport_intake_surface,
-  },
-] as const;
+export const CATALOG_INTAKE_TRANSPORT_INTAKE_WORKSPACE_TYPES = new Set<string>([
+  "denali"
+]);
 
-export function resolveCatalogIntakeTransportSurface(
+/** Lazy workspace-owned catalog intake transport surfaces — dynamic import only (CW7 closure). */
+export async function resolveCatalogIntakeTransportSurface(
   workspaceType: string
-): WorkspaceCatalogIntakeTransportSurface | undefined {
-  const binding = CATALOG_INTAKE_TRANSPORT_SURFACE_BINDINGS.find(
-    (entry) => entry.workspaceType === workspaceType
-  );
-  return binding?.transportIntakeSurface;
+): Promise<WorkspaceCatalogIntakeTransportSurface | undefined> {
+  if (!CATALOG_INTAKE_TRANSPORT_INTAKE_WORKSPACE_TYPES.has(workspaceType)) {
+    return undefined;
+  }
+  switch (workspaceType) {
+    case "denali": {
+      const mod = await import("@app-tour/workspace-denali/catalog/denali-catalog-transport-intake");
+      return mod.denaliCatalogTransportIntakeSurface;
+    }
+    default:
+      return undefined;
+  }
 }

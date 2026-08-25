@@ -358,10 +358,10 @@ ${switchCases.join("\n")}
  * @param {readonly Record<string, unknown>[]} manifests
  */
 export function generateCatalogIntakeTransportSurfaces(manifests) {
-  /** @type {Set<string>} */
-  const importLines = new Set();
   /** @type {string[]} */
-  const bindingBlocks = [];
+  const workspaceTypes = [];
+  /** @type {string[]} */
+  const switchCases = [];
 
   for (const manifest of manifests) {
     const transport = resolveWorkspaceTransportManifest(manifest);
@@ -389,16 +389,15 @@ export function generateCatalogIntakeTransportSurfaces(manifests) {
         );
       }
     }
-    const alias = `${String(manifest.id).replace(/-/g, "_")}_transport_intake_surface`;
     const spec = importSpecifier(manifest.package, surface.module);
-    importLines.add(`import { ${surface.export} as ${alias} } from "${spec}";`);
-    bindingBlocks.push(`  {
-    workspaceType: ${JSON.stringify(workspaceType)},
-    transportIntakeSurface: ${alias},
-  },`);
+    workspaceTypes.push(JSON.stringify(workspaceType));
+    switchCases.push(`    case ${JSON.stringify(workspaceType)}: {
+      const mod = await import("${spec}");
+      return mod.${surface.export};
+    }`);
   }
 
-  if (bindingBlocks.length === 0) {
+  if (switchCases.length === 0) {
     return `${BANNER}
 import type { WorkspaceCatalogIntakeTransportSurface } from "./catalog-intake-transport-surface";
 
@@ -407,12 +406,12 @@ export type CatalogIntakeTransportSurfaceBinding = {
   readonly transportIntakeSurface: WorkspaceCatalogIntakeTransportSurface;
 };
 
-export const CATALOG_INTAKE_TRANSPORT_SURFACE_BINDINGS: readonly CatalogIntakeTransportSurfaceBinding[] =
-  [];
+export const CATALOG_INTAKE_TRANSPORT_INTAKE_WORKSPACE_TYPES = new Set<string>([]);
 
-export function resolveCatalogIntakeTransportSurface(
-  _workspaceType: string
-): WorkspaceCatalogIntakeTransportSurface | undefined {
+/** Lazy workspace-owned catalog intake transport surfaces — dynamic import only (CW7 closure). */
+export async function resolveCatalogIntakeTransportSurface(
+  workspaceType: string
+): Promise<WorkspaceCatalogIntakeTransportSurface | undefined> {
   return undefined;
 }
 `;
@@ -420,24 +419,28 @@ export function resolveCatalogIntakeTransportSurface(
 
   return `${BANNER}
 import type { WorkspaceCatalogIntakeTransportSurface } from "./catalog-intake-transport-surface";
-${[...importLines].join("\n")}
 
 export type CatalogIntakeTransportSurfaceBinding = {
   readonly workspaceType: string;
   readonly transportIntakeSurface: WorkspaceCatalogIntakeTransportSurface;
 };
 
-export const CATALOG_INTAKE_TRANSPORT_SURFACE_BINDINGS: readonly CatalogIntakeTransportSurfaceBinding[] = [
-${bindingBlocks.join("\n")}
-] as const;
+export const CATALOG_INTAKE_TRANSPORT_INTAKE_WORKSPACE_TYPES = new Set<string>([
+${workspaceTypes.map((t) => `  ${t}`).join(",\n")}
+]);
 
-export function resolveCatalogIntakeTransportSurface(
+/** Lazy workspace-owned catalog intake transport surfaces — dynamic import only (CW7 closure). */
+export async function resolveCatalogIntakeTransportSurface(
   workspaceType: string
-): WorkspaceCatalogIntakeTransportSurface | undefined {
-  const binding = CATALOG_INTAKE_TRANSPORT_SURFACE_BINDINGS.find(
-    (entry) => entry.workspaceType === workspaceType
-  );
-  return binding?.transportIntakeSurface;
+): Promise<WorkspaceCatalogIntakeTransportSurface | undefined> {
+  if (!CATALOG_INTAKE_TRANSPORT_INTAKE_WORKSPACE_TYPES.has(workspaceType)) {
+    return undefined;
+  }
+  switch (workspaceType) {
+${switchCases.join("\n")}
+    default:
+      return undefined;
+  }
 }
 `;
 }

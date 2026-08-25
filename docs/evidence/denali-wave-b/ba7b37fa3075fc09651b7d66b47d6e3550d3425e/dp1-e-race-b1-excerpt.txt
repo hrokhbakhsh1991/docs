@@ -1,0 +1,6 @@
+▶ DP1-F payment hold expiry race
+  ✔ S8 payment win: remainingMinor=0 keeps approved + satisfied hold (30.769838ms)
+  ✔ S3b/S8 expiry win: remainingMinor>0 at lock → cancelled (5.257839ms)
+✔ DP1-F payment hold expiry race (37.803315ms)
+{"level":30,"time":"2026-08-24T21:29:26.047Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-24T21:29:26.075Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}

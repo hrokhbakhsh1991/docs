@@ -46,7 +46,9 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
     const page = readFileSync(pagePath, "utf8");
     assert.match(page, /tourNationalIdRequired=/);
     assert.match(flow, /tourRequirements:/);
-    assert.match(page, /buildRegistrationResumeInitialState/);
+    assert.match(page, /readPublicCatalogSessionFromCookies/);
+    assert.match(page, /resumeAtIntake/);
+    assert.match(page, /data-registration-resume/);
   });
 
   it("PCMS-REG-LINK-01 / PCMS-UX-MODAL-04 register guest opens modal-first auth gate", () => {

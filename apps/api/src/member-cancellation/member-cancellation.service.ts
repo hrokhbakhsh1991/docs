@@ -1,22 +1,23 @@
 /**
  * DP-4 / DP-6 — member cancellation orchestration (DEN-PROD-09).
+ * Lives outside `bookings/` so host workspace eligibility can import Denali without
+ * violating BK-B1.4 BookingPublicPort neutrality scans.
  */
 import { BOOKING_CANCEL_OUTBOX_EVENT_TYPE } from "@app-tour/booking-http-contracts";
 
-import { closePaymentHoldOnOperatorCancel } from "../finance/apply-payment-hold-after-booking-approve.ts";
 import { buildRefundEligibilitySnapshot } from "../finance/refund-orchestration.service.ts";
 import { resolveCancellationPolicyForBooking } from "../finance/resolve-cancellation-policy-for-booking.ts";
-import type { BookingActorContext } from "./ports/booking-actor-context.ts";
-import { BookingNotFoundError } from "./bookings.errors.ts";
-import { getBookingsRepository } from "./create-bookings-repository.ts";
-import { runPostCancelSideEffects } from "./post-cancel-side-effects.ts";
-import type { BookingRecord } from "./bookings.types.ts";
+import type { BookingActorContext } from "../bookings/ports/booking-actor-context.ts";
+import { BookingNotFoundError } from "../bookings/bookings.errors.ts";
+import { getBookingsRepository } from "../bookings/create-bookings-repository.ts";
+import { runPostCancelSideEffects } from "../bookings/post-cancel-side-effects.ts";
+import type { BookingRecord } from "../bookings/bookings.types.ts";
 import {
   approveMemberCancellationRequest,
   createMemberCancellationRequest,
   findPendingMemberCancellationRequest,
-} from "./member-cancellation-request.repository.ts";
-import { evaluateDenaliMemberCancellationEligibility } from "@app-tour/workspace-denali/host/booking";
+} from "../bookings/member-cancellation-request.repository.ts";
+import { evaluateDenaliMemberCancellationEligibility } from "@app-tour/workspace-denali/booking";
 
 export type MemberCancellationEligibilityResponse = {
   readonly eligible: boolean;

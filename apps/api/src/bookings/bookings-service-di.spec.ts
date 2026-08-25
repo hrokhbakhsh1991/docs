@@ -110,6 +110,21 @@ function fakeRepo(): BookingRepositoryPort {
   };
 }
 
+function stubRegistrationSlo(): import("./ports/booking-registration-slo.port.ts").BookingRegistrationSloPort {
+  return { record: () => undefined };
+}
+
+function stubPostCancelSideEffects(): import("./ports/booking-post-cancel-side-effects.port.ts").BookingPostCancelSideEffectsPort {
+  return {
+    run: async () => ({
+      refundDrafted: false,
+      refundId: null,
+      eligibleRefundMinor: "0",
+      waitlistPromoted: false,
+    }),
+  };
+}
+
 describe("bookings-service-di (B0.5)", () => {
   it("BK-DI-01 BookingsService source has no getBookingsRepository / create-bookings-repository", () => {
     const src = read("bookings.service.ts");
@@ -142,7 +157,9 @@ describe("bookings-service-di (B0.5)", () => {
         from === "./ports/booking-assisted-registration-members.port" ||
         from === "./ports/booking-repository.port" ||
         from === "./ports/booking-tenant-workspace-binding.port" ||
-        from === "./ports/booking-tour-capacity.port";
+        from === "./ports/booking-tour-capacity.port" ||
+        from === "./ports/booking-post-cancel-side-effects.port" ||
+        from === "./ports/booking-registration-slo.port";
       assert.ok(allowed, `illegal BookingsService import from ${from}`);
     }
   });
@@ -170,6 +187,8 @@ describe("bookings-service-di (B0.5)", () => {
           tenantWorkspaceBinding: stubTenantBinding(),
           capabilities: denaliCaps(),
       productionGradeIntegrity: false,
+      postCancelSideEffects: stubPostCancelSideEffects(),
+      registrationSlo: stubRegistrationSlo(),
         }),
       /BOOKINGS_SERVICE_DEP_REQUIRED:repository/
     );
@@ -196,6 +215,8 @@ describe("bookings-service-di (B0.5)", () => {
       tenantWorkspaceBinding: stubTenantBinding(),
       capabilities: denaliCaps(),
       productionGradeIntegrity: false,
+      postCancelSideEffects: stubPostCancelSideEffects(),
+      registrationSlo: stubRegistrationSlo(),
     });
     assert.equal(typeof service.listBookings, "function");
     assert.equal(service.boundWorkspaceType, "denali");

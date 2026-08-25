@@ -37,7 +37,7 @@ import {
   getMemberCancellationEligibility,
   submitMemberCancellation,
   approveMemberCancellationRequestForBooking,
-} from "./member-cancellation.service";
+} from "../member-cancellation/member-cancellation.service";
 import { buildRefundEligibilitySnapshot } from "../finance/refund-orchestration.service.ts";
 import { resolveCancellationPolicyForBooking } from "../finance/resolve-cancellation-policy-for-booking.ts";
 import { cancelTourRegistrations } from "./tour-cancellation.service.ts";

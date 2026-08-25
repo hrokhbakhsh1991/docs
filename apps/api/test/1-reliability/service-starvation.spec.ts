@@ -13,13 +13,14 @@
  */
 import assert from "node:assert/strict";
 import { performance } from "node:perf_hooks";
-import { after, before, describe, it } from "node:test";
+import { after, afterEach, before, describe, it } from "node:test";
 
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { resetValidationSchedulerForTests } from "../../src/canonical/validation-scheduler";
 import { runPreTransactionValidation } from "../../src/canonical/pre-transaction-validation";
 import { validateCanonicalBeforePersistSync } from "../../src/tours/canonical-validation";
+import { flushLogSink, logger } from "../../src/observability/logger";
 import { createTestToursService, integrationTenantId } from "../test-helpers";
 
 const VALID_TOUR_BODY = {
@@ -199,6 +200,7 @@ function offloadRemediationHint(): string {
 
 describe("1-reliability — ToursService vs rule validation (event-loop starvation)", () => {
   const priorStorageDriver = process.env.STORAGE_DRIVER;
+  const priorLogLevel = process.env.LOG_LEVEL;
   const priorValidationDepth = process.env.P5_VALIDATION_MAX_QUEUE_DEPTH_PER_TENANT;
   const priorValidationConcurrent = process.env.P5_VALIDATION_MAX_CONCURRENT;
   const priorValidationInFlight = process.env.P5_VALIDATION_MAX_IN_FLIGHT_PER_TENANT;
@@ -206,6 +208,8 @@ describe("1-reliability — ToursService vs rule validation (event-loop starvati
 
   before(() => {
     process.env.STORAGE_DRIVER = "memory";
+    process.env.LOG_LEVEL = "error";
+    logger.level = "error";
     process.env.P5_VALIDATION_MAX_QUEUE_DEPTH_PER_TENANT = String(VALIDATION_BURST);
     process.env.P5_VALIDATION_MAX_CONCURRENT = "16";
     process.env.P5_VALIDATION_MAX_IN_FLIGHT_PER_TENANT = "8";
@@ -213,8 +217,18 @@ describe("1-reliability — ToursService vs rule validation (event-loop starvati
     resetValidationSchedulerForTests();
   });
 
+  afterEach(async () => {
+    await flushLogSink();
+  });
+
   after(() => {
     resetValidationSchedulerForTests();
+    if (priorLogLevel === undefined) {
+      delete process.env.LOG_LEVEL;
+    } else {
+      process.env.LOG_LEVEL = priorLogLevel;
+    }
+    logger.level = process.env.LOG_LEVEL ?? "info";
     if (priorStorageDriver === undefined) {
       delete process.env.STORAGE_DRIVER;
     } else {

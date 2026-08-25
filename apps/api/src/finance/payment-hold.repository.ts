@@ -1,11 +1,11 @@
 /**
- * DP1-A — Payment Hold repository (memory driver; Prisma parity via schema migration).
+ * DP1-A — Payment Hold repository (memory driver; postgres parity via schema migration).
  */
 import {
   InMemoryPaymentHoldRepository,
   resetInMemoryPaymentHoldRepositoryForTests,
   type PaymentHoldRow,
-} from "../../../../packages/finance-core/test/isolation/in-memory-payment-hold.repository.ts";
+} from "@app-tour/finance-core/infrastructure/in-memory-payment-hold.repository";
 
 export type { PaymentHoldRow };
 

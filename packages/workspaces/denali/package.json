@@ -274,6 +274,22 @@
       "types": "./dist/roster/index.d.ts",
       "default": "./dist/roster/index.js"
     },
+    "./booking": {
+      "types": "./dist/booking/index.d.ts",
+      "default": "./dist/booking/index.js"
+    },
+    "./finance": {
+      "types": "./dist/finance/index.d.ts",
+      "default": "./dist/finance/index.js"
+    },
+    "./tours": {
+      "types": "./dist/tours/index.d.ts",
+      "default": "./dist/tours/index.js"
+    },
+    "./workspace-owner": {
+      "types": "./dist/http/require-workspace-owner.d.ts",
+      "default": "./dist/http/require-workspace-owner.js"
+    },
     "./host/finance/manifest": {
       "types": "./dist/finance/finance-ops-manifest.d.ts",
       "default": "./dist/finance/finance-ops-manifest.js"
@@ -310,6 +326,10 @@
     "./host/http": {
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"
+    },
+    "./errors/tour-mutation": {
+      "types": "./dist/http/errors/denali-tour-mutation.error.d.ts",
+      "default": "./dist/http/errors/denali-tour-mutation.error.js"
     },
     "./host/http/resolve-denali-registration-transport": {
       "types": "./dist/http/resolve-denali-registration-transport.d.ts",
@@ -721,7 +741,7 @@
     "design-language"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc -p tsconfig.ui.json",
+    "build": "pnpm --dir ../../workspace-sdk run build && tsc -p tsconfig.json && tsc -p tsconfig.ui.json",
     "denali:codegen": "node --import tsx ./scripts/denali-codegen.mjs",
     "lint": "tsc --noEmit && tsc -p tsconfig.ui.json --noEmit",
     "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""

@@ -1,0 +1,1 @@
+SERVER_ENFORCED — override via API matrix; no launch UI toggle required.

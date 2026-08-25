@@ -12,9 +12,9 @@ describe("portal registration resume — PCMS-REG-01", () => {
       join(repoRoot, "apps/portal/app/catalog/[tourId]/register/page.tsx"),
       "utf8"
     );
-    assert.match(page, /buildRegistrationResumeInitialState/);
+    assert.match(page, /readPublicCatalogSessionFromCookies/);
+    assert.match(page, /resumeAtIntake/);
     assert.match(page, /data-registration-resume/);
-    assert.match(page, /initialRuntimeState/);
     assert.match(page, /intake\.kicker/);
     assert.match(page, /heroKicker/);
     assert.match(page, /sessionBadge/);

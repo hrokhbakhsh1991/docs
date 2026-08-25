@@ -1,0 +1,32 @@
+{
+  "tourId": "00000000-0000-4000-8000-000000000214",
+  "filter": "final",
+  "items": [
+    {
+      "registrationId": "13d167c7-1154-43aa-a29d-30c274bd8fab",
+      "tourId": "00000000-0000-4000-8000-000000000214",
+      "guestLabel": "DP2 Member A Paid",
+      "partySize": 1,
+      "registrationStatus": "approved",
+      "financialDisplayState": "PAID",
+      "remainingMinor": "0",
+      "paidMinor": "2500000",
+      "currency": "IRR",
+      "paymentDueAt": "2026-08-25T22:09:16.918Z",
+      "holdStatus": "satisfied",
+      "transportKind": null,
+      "personalCarOccupants": null,
+      "isDriverOffer": false,
+      "passengerAssignmentStatus": "not_implemented",
+      "refundDisplayState": "none",
+      "isFinalParticipant": true,
+      "isOperationalParticipant": true,
+      "isFinanciallySettled": true,
+      "occupiesCapacity": true,
+      "departureAt": "2031-09-01T10:00:00.000Z",
+      "submittedAt": "2026-08-24T22:09:16.911Z"
+    }
+  ],
+  "total": 1,
+  "nextCursor": null
+}

@@ -186,6 +186,7 @@ export interface BookingRepositoryPort {
     bookingId: string;
     tenantId: string;
     outboxEvent: string;
+    cancelSource?: string;
   }): Promise<BookingRecord>;
   seedBooking(record: BookingRecord): void;
 }

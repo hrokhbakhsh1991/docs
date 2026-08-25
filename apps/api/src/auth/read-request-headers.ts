@@ -6,9 +6,7 @@ import type { RequestAuthHeaders } from "./request-context";
 export function readRequestAuthHeaders(req: IncomingMessage): RequestAuthHeaders {
   return {
     tenantId: headerValue(req.headers["x-tenant-id"]),
-    authenticatedTenantId:
-      headerValue(req.headers["x-authenticated-tenant-id"]) ??
-      headerValue(req.headers["x-tenant-id"]),
+    authenticatedTenantId: headerValue(req.headers["x-authenticated-tenant-id"]),
     userId: headerValue(req.headers["x-user-id"]),
     role:
       headerValue(req.headers["x-actor-role"]) ?? headerValue(req.headers["x-user-role"]),

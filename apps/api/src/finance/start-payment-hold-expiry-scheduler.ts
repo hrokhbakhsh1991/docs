@@ -36,7 +36,7 @@ export function startPaymentHoldExpiryScheduler(): void {
   if (!isPaymentHoldEnabled() || !isPaymentHoldExpiryEnabled()) {
     return;
   }
-  const intervalMs = 60_000;
+  const intervalMs = Number(process.env.PAYMENT_HOLD_EXPIRY_INTERVAL_MS) || 60_000;
   setInterval(() => {
     void runPaymentHoldExpiryTickForTests(new Date().toISOString());
   }, intervalMs).unref?.();

@@ -1,0 +1,179 @@
+
+======== finance-core ========
+▶ DP1-D commercial quote freeze on approve
+  ✔ DP1-D-02 S1: ensureFrozenOnApprove exists and creates v1 FROZEN (1.348422ms)
+  ✔ DP1-D-02 S14: tour price mutation after approve does not change frozen payable (0.258751ms)
+  ✔ DP1-D-02 free collection: ensureFrozenOnApprove returns zero payable (0.245909ms)
+  ✔ DP1-D-02 money path still uses ensureFrozenForMoneyPath without duplicate freeze (0.322048ms)
+✔ DP1-D commercial quote freeze on approve (2.943205ms)
+▶ DP1-A payment hold repository contract
+  ✔ DP1-A-01 inserts open hold with unique registrationId per tenant (5.631314ms)
+  ✔ DP1-A-01 tenant isolation on read (1.252881ms)
+  ✔ DP1-D-05 markSatisfied is terminal for open hold (1.187014ms)
+  ✔ DP1-E-02 markExpired is terminal (1.186658ms)
+  ✔ DP1-A-03 listOpenDueBefore scans worker predicate (2.135758ms)
+  ✔ DP1-I-03 extendDueAt increments extended state (1.79807ms)
+✔ DP1-A payment hold repository contract (14.112671ms)
+ℹ tests 10
+ℹ suites 2
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 101.599656
+[dp1] PASS pnpm
+
+======== denali ========
+▶ DP1-G catalog capacity after payment expiry
+  ✔ S5: spotsRemaining increases when approved-unpaid expires to cancelled (0.438672ms)
+✔ DP1-G catalog capacity after payment expiry (1.02104ms)
+▶ DP1-B resolveDenaliPaymentDeadlineHours
+  ✔ DP1-B-01 defaults to 24h workspace policy (4.06968ms)
+  ✔ DP1-B-01 reads tour pricing.paymentDeadlineHours override (0.67208ms)
+  ✔ DP1-B-01 workspace policy hours override root when tour inherits (0.599052ms)
+  ✔ DP1-B-01 manual no-expiry only when tour null hours AND workspace manual flag (3.670983ms)
+  ✔ DP1-B-02 dueAt = approvedAt + hours UTC (DST-safe instant) (1.041775ms)
+  ✔ DP1-B-03 rejects non-positive tour override (1.48215ms)
+✔ DP1-B resolveDenaliPaymentDeadlineHours (12.456088ms)
+ℹ tests 7
+ℹ suites 2
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 252.605869
+[dp1] PASS pnpm
+
+======== tour-core ========
+▶ DP1-G approved-unpaid occupancy
+  ✔ S5 DEN-PROD-02: only approved status occupies seats for booking model (0.445794ms)
+  ✔ S5: cancelled after expiry does not occupy (0.097912ms)
+✔ DP1-G approved-unpaid occupancy (1.272425ms)
+ℹ tests 2
+ℹ suites 1
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 132.644099
+[dp1] PASS pnpm
+
+======== api ========
+▶ DP1-C booking approve payment hold
+  ✔ S1: approve → unpaid → deadline + quote freeze + hold open (37.333843ms)
+  ✔ S1 idempotent: second approve does not duplicate hold (8.208599ms)
+✔ DP1-C booking approve payment hold (47.679627ms)
+{"level":30,"time":"2026-08-25T00:45:37.723Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:37.757Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1 API contract payment deadline
+  ✔ S17 contract: operator approve and member GET share paymentDueAt (68.70125ms)
+  ✔ S11 contract: POST /finance/payment-holds/:id/extend returns new dueAt (48.054269ms)
+✔ DP1 API contract payment deadline (123.840085ms)
+{"level":30,"time":"2026-08-25T00:45:38.780Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-F payment hold expiry idempotency
+  ✔ S9: duplicate expiry execution is no-op (24.637235ms)
+  ✔ S20: at most one waitlist promote per freed seat on double expiry (6.235068ms)
+✔ DP1-F payment hold expiry idempotency (32.540026ms)
+{"level":30,"time":"2026-08-25T00:45:39.540Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:39.563Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:39.563Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-F payment hold expiry race
+  ✔ S8 payment win: remainingMinor=0 keeps approved + satisfied hold (28.349915ms)
+  ✔ S3b/S8 expiry win: remainingMinor>0 at lock → cancelled (5.442236ms)
+✔ DP1-F payment hold expiry race (35.485892ms)
+{"level":30,"time":"2026-08-25T00:45:40.275Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:40.302Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-E payment hold expiry
+  ✔ S4: expiry without payment → cancelled + hold expired (25.015456ms)
+  ✔ S5: expiry releases approved-unpaid occupancy (4.50408ms)
+  ✔ S7: expiry without waitlist does not promote (4.357459ms)
+  ✔ S13: operator cancel before payment closes hold without payment_deadline source (6.11659ms)
+✔ DP1-E payment hold expiry (41.777826ms)
+{"level":30,"time":"2026-08-25T00:45:41.009Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:41.032Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:41.036Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:41.041Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-I payment hold extend
+  ✔ S11: operator extends deadline by +24h (24.19519ms)
+  ✔ S14: tour policy change after approval does not move dueAt (4.216198ms)
+✔ DP1-I payment hold extend (30.167542ms)
+{"level":30,"time":"2026-08-25T00:45:41.750Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:41.772Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1 financial payment hold integration
+  ✔ S2: full payment before deadline satisfies hold and locks quote (20.726563ms)
+  ✔ S10: partial payment keeps hold open with remaining > 0 (5.001446ms)
+  ✔ S10b: partial then expiry cancels without auto-refund (12.218983ms)
+  ✔ duplicate payment idempotency does not double-capture (4.441151ms)
+✔ DP1 financial payment hold integration (44.181768ms)
+{"level":30,"time":"2026-08-25T00:45:42.484Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:42.502Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:42.507Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:42.519Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-K payment hold migration grandfather
+  ✔ grandfather: approved-unpaid without hold is not expired by worker (24.797445ms)
+  ✔ already-paid registration without hold remains approved under worker (5.629913ms)
+  ✔ rollback: PAYMENT_HOLD_EXPIRY_ENABLED=false stops new expiries (1.302273ms)
+✔ DP1-K payment hold migration grandfather (33.466282ms)
+{"level":30,"time":"2026-08-25T00:45:43.228Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+▶ DP1-E payment hold scheduler
+  ✔ S18: worker resumes after restart and expires due holds (27.830279ms)
+  ✔ S19: delayed worker skips already-paid registration (4.687332ms)
+✔ DP1-E payment hold scheduler (34.193549ms)
+{"level":30,"time":"2026-08-25T00:45:43.959Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:43.985Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-G payment deadline waitlist
+  ✔ S6: expiry promotes one waitlisted guest with new hold + quote (27.621627ms)
+✔ DP1-G payment deadline waitlist (29.150738ms)
+{"level":30,"time":"2026-08-25T00:45:44.690Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":1,"msg":"workspace slo event"}
+{"level":30,"time":"2026-08-25T00:45:44.691Z","service":"@apps/api","event":"workspace.slo","area":"registration","outcome":"success","workspaceType":"denali","tenantId":"00000000-0000-4000-8000-000000000014","durationMs":0,"msg":"workspace slo event"}
+▶ DP1-L integration scenario map
+  ✔ maps all in-scope scenarios to spec files (S12 excluded — DP-4) (0.586718ms)
+✔ DP1-L integration scenario map (0.971783ms)
+ℹ tests 25
+ℹ suites 11
+ℹ pass 25
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8521.594486
+[dp1] PASS pnpm
+
+======== portal ========
+▶ DP1-H portal payment deadline contract
+  ✔ S1/S16/S17 MEM-01: registration detail exposes paymentDueAt + countdown markers (0.613868ms)
+  ✔ S4/S10b MEM-03: closed state uses data-closed-reason=payment_expired (0.237655ms)
+  ✔ S16 MEM-BFF: member registration fetch preserves paymentDueAt on reload (0.142065ms)
+  ✔ S15: portal formats UTC dueAt for locale display without recomputing policy hours (0.145938ms)
+✔ DP1-H portal payment deadline contract (1.894346ms)
+ℹ tests 4
+ℹ suites 1
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 96.756858
+[dp1] PASS pnpm
+
+======== operator-web ========
+▶ DP1-I operator payment deadline contract
+  ✔ S1 BR-OP-01: bookings command center shows paymentDueAt column (0.709066ms)
+  ✔ S4 BR-OP-03: cancelled payment deadline shows cancelSource (0.31751ms)
+  ✔ S11 BR-OP-04: extend deadline action wired to finance hold API (0.121852ms)
+  ✔ S17: operator list item uses same paymentDueAt field as booking API (0.190684ms)
+✔ DP1-I operator payment deadline contract (2.068186ms)
+ℹ tests 4
+ℹ suites 1
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 96.185483
+[dp1] PASS pnpm
+
+[dp1] finished with 0 failing layer(s)

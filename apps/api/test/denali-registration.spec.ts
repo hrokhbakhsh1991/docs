@@ -23,6 +23,7 @@ const DREG_SESSION_MEMBER_B = "00000000-0000-4000-8000-000000000105";
 function publicHeaders(tenantId = OPERATOR_SMOKE_TENANT_ID): Record<string, string> {
   return {
     "x-tenant-id": tenantId,
+    "x-authenticated-tenant-id": tenantId,
     "content-type": "application/json",
   };
 }

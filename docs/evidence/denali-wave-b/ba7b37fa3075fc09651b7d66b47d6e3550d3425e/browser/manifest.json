@@ -1,0 +1,17 @@
+{
+  "sha": "ba7b37fa3075fc09651b7d66b47d6e3550d3425e",
+  "timestamp": "20260824T224700Z",
+  "portalHost": "portal.operator.localhost",
+  "adminHost": "denali.admin.localhost",
+  "seedRegistrationId": "53349143-bc96-4cf5-b832-60820875b780",
+  "refundRegistrationId": null,
+  "screenshots": [
+    "dp4-registrations-1440.png",
+    "dp4-registrations-390.png",
+    "dp1-member-deadline-1440.png",
+    "dp4-member-detail-cancel-1440.png",
+    "dp4-member-detail-cancel-390.png",
+    "dp2-roster-1440.png"
+  ],
+  "notes": "DP-6 portal refund UI omitted — no member-owned cancelled-paid registration seed; see dp6-live.log"
+}

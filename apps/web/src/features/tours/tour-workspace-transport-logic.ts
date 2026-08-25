@@ -1,11 +1,18 @@
 /**
  * DP-2 — tour workspace operational roster logic (transport tab).
  */
-import type { OperationalRosterFilter } from "@app-tour/workspace-denali/roster";
-
 import { extractTransportModesFromTourPayload } from "@/features/tours/tour-canonical-transport-modes";
 
 export { extractTransportModesFromTourPayload };
+
+/** HTTP query filter values for `/tours/:id/operational-roster` (DEN-PROD-03). */
+export type OperationalRosterFilter =
+  | "operational"
+  | "final"
+  | "unpaid"
+  | "paid"
+  | "expiring"
+  | "waitlist";
 
 export type TourOperationalRosterRow = {
   readonly registrationId: string;

@@ -7,6 +7,9 @@ import {
 export const MEMBER_RECEIPT_PROOF_MAX_BYTES = 8 * 1024 * 1024;
 const RECEIPT_PROOF_READ_URL_TTL_SECONDS = 300;
 
+/** Dev memory-driver receipt bytes — not shared across processes. */
+const memoryReceiptProofStore = new Map<string, Buffer>();
+
 const ALLOWED_CONTENT_TYPES = new Set([
   "image/jpeg",
   "image/jpg",
@@ -64,19 +67,25 @@ export async function putMemberReceiptProof(input: {
   }
 
   const config = readTenantBrandLogoMinioConfigFromEnv();
-  if (config === null) {
-    throw new Error("MINIO_NOT_CONFIGURED");
-  }
-
   const storageKey = buildMemberReceiptProofObjectKey({
     tenantId: input.tenantId,
     registrationId: input.registrationId,
     fileName: input.fileName,
   });
   assertMemberReceiptProofKeyScope(storageKey, input.tenantId);
+
+  if (config === null) {
+    if (process.env.STORAGE_DRIVER === "memory" && process.env.NODE_ENV === "development") {
+      memoryReceiptProofStore.set(storageKey, Buffer.from(input.body));
+      return { storageKey };
+    }
+    throw new Error("MINIO_NOT_CONFIGURED");
+  }
+
   await ensureTenantBrandLogoBucket(config);
   const client = createTenantBrandLogoMinioClient(config);
-  const contentType = input.contentType.trim().toLowerCase().split(";")[0]?.trim() ?? "application/octet-stream";
+  const contentType =
+    input.contentType.trim().toLowerCase().split(";")[0]?.trim() ?? "application/octet-stream";
   await client.putObject(config.bucket, storageKey, input.body, input.body.length, {
     "Content-Type": contentType,
   });
@@ -91,6 +100,13 @@ export async function getMemberReceiptProofSignedReadUrl(input: {
   assertMemberReceiptProofKeyScope(input.storageKey, input.tenantId);
   const config = readTenantBrandLogoMinioConfigFromEnv();
   if (config === null) {
+    if (
+      process.env.STORAGE_DRIVER === "memory" &&
+      process.env.NODE_ENV === "development" &&
+      memoryReceiptProofStore.has(input.storageKey)
+    ) {
+      return `memory://receipt-proof/${input.storageKey}`;
+    }
     throw new Error("MINIO_NOT_CONFIGURED");
   }
   const client = createTenantBrandLogoMinioClient(config);

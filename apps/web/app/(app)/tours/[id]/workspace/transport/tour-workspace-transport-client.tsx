@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatBookingDeparture } from "@/features/bookings/bookings-command-center-logic";
-import { formatRegistrationIntakeTransportLabel } from "@app-tour/workspace-sdk";
+import { formatRegistrationIntakeTransportLabel, type PublicCatalogRegistrationTransportKind } from "@app-tour/workspace-sdk";
 import { TOUR_WORKSPACE_TEST_IDS } from "@/features/tours/tour-workspace-types";
 import {
   buildTourOperationalRosterHref,
@@ -20,10 +20,10 @@ import {
   OPERATIONAL_ROSTER_FILTERS,
   sortTransportRosterRows,
   TOUR_WORKSPACE_TRANSPORT_TEST_IDS,
+  type OperationalRosterFilter,
   type TourOperationalRosterResponse,
   type TourOperationalRosterRow,
 } from "@/features/tours/tour-workspace-transport-logic";
-import type { OperationalRosterFilter } from "@app-tour/workspace-denali/roster";
 import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
 import { resolveWizardTransportModeLabel } from "@/wizard/wizard-label-surface-registry";
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
@@ -88,7 +88,7 @@ export function TourWorkspaceTransportClient({
 
   const driverRow = items.find((row) => row.transportKind === "personal_car");
   const passengerRows = items.filter(
-    (row) => row.transportKind !== "personal_car" && row.id !== driverRow?.id
+    (row) => row.transportKind !== "personal_car" && row.registrationId !== driverRow?.registrationId
   );
 
   return (
@@ -170,8 +170,8 @@ export function TourWorkspaceTransportClient({
         {!loading && driverRow ? (
           <DriverSettlementPanel
             tourId={tourId}
-            driverRegistrationId={driverRow.id}
-            passengerIds={passengerRows.slice(0, 2).map((r) => r.id)}
+            driverRegistrationId={driverRow.registrationId}
+            passengerIds={passengerRows.slice(0, 2).map((r) => r.registrationId)}
           />
         ) : null}
 
@@ -198,7 +198,7 @@ export function TourWorkspaceTransportClient({
                   const transportLabel = formatRegistrationIntakeTransportLabel(
                     {
                       registrantTarget: null,
-                      transportKind: row.transportKind,
+                      transportKind: row.transportKind as PublicCatalogRegistrationTransportKind | null,
                       personalCarOccupants: row.personalCarOccupants as 1 | 2 | 3 | null,
                       nationalId: null,
                     },

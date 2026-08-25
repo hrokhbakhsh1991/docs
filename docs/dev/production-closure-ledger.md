@@ -4,9 +4,14 @@
 ledger_id: PRODUCTION-CLOSURE-LEDGER-2026-08-24
 program: Denali Product → Production
 authority_product: docs/dev/denali-product-completion-plan.md
-reconciled_at: 2026-08-24
-reconciled_commit: 09ba2b09906fde8d7104489fa8401ef4d9ab2e99
-branch: main
+reconciled_at: 2026-08-25
+reconciled_commit: 425d0c952356b8ce60c5cba9d6bb5d05adbb1b89
+wave_b_cert_sha: ba7b37fa3075fc09651b7d66b47d6e3550d3425e
+wave_b5_cert_sha: 425d0c952356b8ce60c5cba9d6bb5d05adbb1b89
+wave_b_evidence: docs/evidence/denali-wave-b/ba7b37fa3075fc09651b7d66b47d6e3550d3425e/
+wave_b5_evidence: docs/evidence/denali-wave-b5/425d0c952356b8ce60c5cba9d6bb5d05adbb1b89/
+branch: cursor/denali-wave-b-runtime-closure-bef0
+origin_main: 8ef3f4a6
 mode: TRUTH_RECONCILIATION — no product behavior change
 ```
 
@@ -33,8 +38,9 @@ Status vocabulary:
 | Field | Value |
 |-------|-------|
 | Branch | `main` |
-| HEAD | `09ba2b09906fde8d7104489fa8401ef4d9ab2e99` |
-| `origin/main` | same SHA (synced 2026-08-24 reconciliation) |
+| HEAD | `ba7b37fa3075fc09651b7d66b47d6e3550d3425e` (Wave B branch) |
+| `origin/main` | `8ef3f4a6` baseline |
+| Wave B evidence | `docs/evidence/denali-wave-b/ba7b37fa3075fc09651b7d66b47d6e3550d3425e/` |
 | Working tree | clean |
 
 Recent DP commits on `main`: `09ba2b09` (DP-6 live E2E script) · `14514e9f` (DP-6) · `1d0fd635` (DP-5) · `b6c4fbb2` (DP-4) · `9bbf358e` (DPR remediation) · `5638f48f` (DP-3) · DP-2 roster · DP-1 payment deadline chain.
@@ -47,13 +53,13 @@ Hard rule (unchanged): **`[x]` requires automated certification + browser/runtim
 
 | Phase | Implementation | Automated evidence | Browser/runtime | Final marker | Notes |
 |-------|----------------|-------------------|-----------------|--------------|-------|
-| **DP-0** Truth freeze | Partial docs | Partial | Baseline not archived | `[ ]` | DP0-01/04/06/07/08 open; DP0-05 unsigned |
-| **DP-1** Payment deadline | **YES** `main` | `[v]` — `scripts/test-dp1-payment-deadline.sh`; `dp-1-execution-plan.md` 25/25 @ `9bbf358e` | **MISSING** — DP1-M open | **`[v]`** | NOT_REPRODUCED this run (missing package `dist`) |
-| **DP-2** Unified roster | **YES** `main` | `[v]` — `scripts/test-dp2-operational-roster.sh` + domain specs | **STALE** — prior `[x]` reverted `9126e966`; no artifact on `main` | **`[v]`** | Downgraded from erroneous ledger `[x]` |
-| **DP-3** Tour mutation safety | **YES** `main` | `[v]` — `scripts/test-dp3-tour-mutation.sh` + `dp3/tour-mutation-enforcement.spec.ts` | **MISSING** — DP3-13 | **`[v]`** | DP3-14 closure without browser — stays `[v]` |
-| **DP-4** Member self-service + inbox | **YES** `b6c4fbb2` | `[v]` — `scripts/test-dp4-member-self-service.sh` | **MISSING** — DP4-11 | **`[v]`** | Ledger rows were stale `[!]` |
-| **DP-5** Driver settlement | **YES** `1d0fd635` (in-memory v1) | `[v]` — `scripts/test-dp5-driver-settlement.sh` | **MISSING** — DP5-15; live E2E scripts exist | **`[v]`** or **`[N/A]`** launch scope — see First Customer |
-| **DP-6** Refund orchestration | **YES** `14514e9f` | `[v]` — commit notes 9/9; `scripts/test-dp6-refund-orchestration.sh` | **MISSING** — DP6-11; live E2E script `09ba2b09` | **`[v]`** | |
+| **DP-0** Truth freeze | Partial docs | Partial | Baseline archived Wave B | `[v]` | **DP0-05 SIGNED** 2026-08-25 B5 — first-launch scope lock below |
+| **DP-1** Payment deadline | **YES** | **PASS** @ B5 regression | **PASS** Wave B `dp1-member-deadline-1440.png` | **`[x]`** | DRF-006 **CLOSED** |
+| **DP-2** Unified roster | **YES** | **PASS** @ B5 regression | **PASS** Wave B `dp2-roster-1440.png` | **`[x]`** | DRF-002 **CLOSED** |
+| **DP-3** Tour mutation safety | **YES** | **PASS** @ B5 regression | **PARTIAL** — flat-edit form + before screenshot; UI PATCH save harness incomplete | **`[v]`** | API matrix PASS; safe/capacity UI save not BROWSER_UI_PROVEN |
+| **DP-4** Member self-service + inbox | **YES** | **PASS** @ B5 regression | **PASS** Wave B portal screenshots | **`[x]`** | LF-006 **CLOSED** |
+| **DP-5** Driver settlement | **YES** (in-memory v1) | **PASS** @ B5 regression | **MISSING** | **`[N/A]`** first launch | Bus-only first customer — impl retained |
+| **DP-6** Refund orchestration | **YES** | **PASS** @ B5 regression + live seed | **PASS** B5 — `dp6-member-refund-1440/390.png` + BFF JSON | **`[x]`** | Operator refund parity in `dp6-operator-refunds.json` |
 | **DP-7** Post-tour closure | **NO** | — | — | **`[ ]`** | Not started; minimum slice only at launch |
 | **DP-8** Golden real-club cert | **NO** | — | — | **`[ ]`** | Not started |
 
@@ -61,12 +67,14 @@ Hard rule (unchanged): **`[x]` requires automated certification + browser/runtim
 
 | Script | Layers | Reconciliation run |
 |--------|--------|-------------------|
-| `scripts/test-dp1-payment-deadline.sh` | finance-core, denali, tour-core, api dp1/*, portal, web | **NOT_REPRODUCED** — missing `booking-http-contracts/dist`, API dp1/* module resolution |
-| `scripts/test-dp2-operational-roster.sh` | denali domain, api dp2/*, web roster | **NOT_REPRODUCED** — same dist gap |
-| `scripts/test-dp3-tour-mutation.sh` | denali policy, api dp3, regressions, guards | **NOT_REPRODUCED** — dist + multiple API spec failures in unbuilt env |
-| `scripts/test-dp4-member-self-service.sh` | denali policy, api dp4, portal, dp1–3 regression, guards | **NOT_REPRODUCED** — `guard:import-boundary` needs `workspace-sdk/dist` |
-| `scripts/test-dp5-driver-settlement.sh` | api dp5, web contract, guards | **NOT_REPRODUCED** |
-| `scripts/test-dp6-refund-orchestration.sh` | api dp6, dp4/5/1 regression, guards | **NOT_REPRODUCED** |
+| `scripts/test-dp1-payment-deadline.sh` | finance-core, denali, tour-core, api dp1/*, portal, web | **PASS** @ `7628fcd9` |
+| `scripts/test-dp2-operational-roster.sh` | denali domain, api dp2/*, web roster | **PASS** @ `7628fcd9` |
+| `scripts/test-dp3-tour-mutation.sh` | denali policy, api dp3, regressions, guards | **PASS** @ `7628fcd9` |
+| `scripts/test-dp4-member-self-service.sh` | denali policy, api dp4, portal, dp1–3 regression, guards | **PASS** @ `7628fcd9` |
+| `scripts/test-dp5-driver-settlement.sh` | api dp5, web contract, guards | **PASS** @ `7628fcd9` |
+| `scripts/test-dp6-refund-orchestration.sh` | api dp6, dp4/5/1 regression, guards | **PASS** @ `7628fcd9` |
+| `scripts/denali-wave-b-runtime-cert.sh` | live API + portal BFF memory driver | **PASS** @ `7628fcd9` |
+| `scripts/denali-wave-b-browser-evidence.sh` | portal + operator Playwright screenshots | **PASS** @ Wave B branch |
 
 Historical green (trusted only at cited SHA, not re-run here):
 
@@ -81,7 +89,7 @@ Historical green (trusted only at cited SHA, not re-run here):
 |------|----------------|----------------------------|
 | **DEN-PROD-01** Payment deadline | **APPROVED** | `docs/dev/dp-1-execution-plan.md` § Approved decisions — 24h default, per-tour override |
 | **DEN-PROD-02** Approved-unpaid holds seat | **APPROVED** | same — paired with expiry |
-| **DEN-PROD-03** Final participant | **OPEN** — **PROPOSED** in code | See § DEN-PROD-03 below; not formally signed |
+| **DEN-PROD-03** Final participant | **APPROVED** 2026-08-24 Wave B | See § DEN-PROD-03 below; parity with `operational-roster-semantics.ts` |
 | **DEN-PROD-04** Expiry representation | **APPROVED** | Hold + `approved→cancelled`, `cancelSource=payment_deadline` |
 | **DEN-PROD-05** Wallet | **DEFERRED_POST_PRODUCTION** | Product direction 2026-08-24; ledger + completion plan |
 | **DEN-PROD-06** Driver compensation basis | **APPROVED** | `docs/workspaces/denali/driver-settlement.mdoc` — min(offered, assigned) at freeze |
@@ -96,42 +104,58 @@ Historical green (trusted only at cited SHA, not re-run here):
 
 ## DEN-PROD-03 — Final participant (decision packet)
 
-**Formal status:** **OPEN** (not APPROVED). Reconciliation does **not** close this gate.
+**Formal status:** **APPROVED** — recorded 2026-08-24 Wave B before runtime closure execution.
 
-### Current implementation truth (DP-2, `main`)
+**Decision owner:** Product owner (Wave B lock).
+
+### Approved definitions
+
+```text
+operationalParticipant :=
+  registration.status === "approved"
+
+financiallySettled :=
+  remainingAmount === 0
+  OR an explicitly supported waived/free obligation state
+
+finalParticipant :=
+  operationalParticipant AND financiallySettled
+
+occupiesCapacity :=
+  separate predicate — approved registrations consume seats (DN-CAT-05)
+```
+
+### Truth table (approved registrations)
+
+| Payment state | operational | final | occupies capacity |
+|---------------|-------------|-------|-------------------|
+| unpaid | true | false | true |
+| partial | true | false | true |
+| paid | true | true | true |
+| waived/free | true | true | true |
+| waitlisted | false | false | false |
+| rejected | false | false | false |
+| cancelled | false | false | false |
+| payment-expired (cancelled hold) | false | false | false |
+
+**Invariant:** `paid` alone does not bypass registration approval — non-approved rows are never final.
+
+### Implementation parity (`main`)
 
 Source: `packages/workspaces/denali/src/roster/operational-roster-semantics.ts`
 
-| Predicate | Rule in code |
-|-----------|--------------|
-| `isOperationalParticipant` | `status === "approved"` |
-| `isFinanciallySettled` | `remainingMinor` parses to `0` |
-| **`isFinalParticipant`** | **`approved` AND `remainingMinor === 0`** (waived counts as settled) |
-| `occupiesCapacity` | `registrationOccupiesSeat("booking", status)` → approved only |
-| Roster filter `operational` | approved rows |
-| Roster filter `final` | `isFinalParticipant` |
-| Roster filter `paid` | approved + financially settled |
-| Roster filter `unpaid` | approved + not financially settled |
+| Predicate | Rule in code | Parity |
+|-----------|--------------|--------|
+| `isOperationalParticipant` | `status === "approved"` | YES |
+| `isFinanciallySettled` | `remainingMinor` parses to `0` (waived counts) | YES |
+| `isFinalParticipant` | approved AND financially settled | YES |
+| Roster filters | `operational`, `final`, `unpaid`, `paid`, `expiring`, `waitlist` | YES |
 
-Transport tab / day-of roster semantics still use **approved** (operational), not **final**, unless UI selects `filter=final`.
+Transport tab / day-of roster defaults to **operational** (approved), not **final**, unless UI selects `filter=final`.
 
-### PROPOSED semantics (engineering — not product-approved)
+### Deferred (not DEN-PROD-03)
 
-```text
-final_participant := booking.status === "approved"
-                  AND invoice.remainingMinor === 0 (paid or waived)
-operational_participant := booking.status === "approved"  (occupies capacity)
-```
-
-Aligns with completion-plan **Option F1 + F2 as filters**, not a collapsed booking enum.
-
-### Product questions still open
-
-1. Is **approved unpaid** “expected to attend” for day-of ops? (today: yes on transport roster)
-2. Does **final** mean commercial closed only, or operational headcount? (today: commercial)
-3. Post-tour **attendance** (DP-7) remains separate — not implemented
-
-**Blocks:** formal DP-2/DP-8 sign-off on participant vocabulary only. Does **not** block ledger reconciliation or Wave B runtime closure.
+Post-tour **attendance** (DP-7) remains separate — not implemented. Day-of “actually attending” is not collapsed into final participant.
 
 ---
 
@@ -157,24 +181,26 @@ Aligns with completion-plan **Option F1 + F2 as filters**, not a collapsed booki
 | **DP-8 Golden cert** | **REQUIRED_BEFORE_GO_LIVE** | Not started |
 | Ticketing / Weather | **DEFERRED_POST_PRODUCTION** | Out of scope |
 
-**PRODUCT_DECISION_REQUIRED:** Confirm first club uses **bus-only** (DP-5 `[N/A]`) vs **personal-car driver compensation in-product** (DP-5 required for launch).
+**PRODUCT_DECISION_REQUIRED:** ~~Confirm first club uses bus-only~~ **RESOLVED 2026-08-25 B5** — first customer **bus-only / no in-product driver compensation** → DP-5 **`[N/A]_FIRST_LAUNCH`**.
+
+**DP0-05 sign-off (2026-08-25 Wave B.5):** REQUIRED at go-live: DP-1, DP-2, DP-3, DP-4, DP-6, member receipt upload, **DP-8**. NOT required first launch: Wallet, DP-7, Ticketing, Weather, DP-5 (when bus-only).
 
 ---
 
 ## Browser / runtime evidence census
 
-Evidence store policy: `/opt/cursor/artifacts/` (runtime) · `docs/dev/evidence/denali-dp/` (committed thumbs — **no commits on `main` yet**).
+Evidence store: Wave B `docs/evidence/denali-wave-b/ba7b37fa3075fc09651b7d66b47d6e3550d3425e/` · Wave B.5 `docs/evidence/denali-wave-b5/425d0c952356b8ce60c5cba9d6bb5d05adbb1b89/`
 
-| Phase | Automated script | Historical / commit evidence | Browser journey | Artifact class |
-|-------|------------------|------------------------------|-----------------|----------------|
-| **DP-1** | `test-dp1-payment-deadline.sh` | 25/25 @ `9bbf358e` in `dp-1-execution-plan.md` | BR-OP-01..04, BR-MEM-01..03, BR-WL-01 defined | **AUTOMATED_ONLY** |
-| **DP-2** | `test-dp2-operational-roster.sh` | `6431af73` marked browser `[x]` — **superseded** | Operator roster 1440 — `seed-dp2-physical-cert-fixture.mjs` references `/opt/cursor/artifacts/dp2-cert-*` | **STALE_EVIDENCE** (no files on `main` or artifact store) |
-| **DP-3** | `test-dp3-tour-mutation.sh` | API enforcement spec | Operator edit published tour 1440 | **AUTOMATED_ONLY** |
-| **DP-4** | `test-dp4-member-self-service.sh` | `member-cancellation.spec.ts`, portal specs | Portal cancel + inbox 1440+390 | **AUTOMATED_ONLY** |
-| **DP-5** | `test-dp5-driver-settlement.sh` | `e2e-dp5-settlement-live.sh`, `e2e-dp5-settlement.sh` | Transport → freeze → payable → finance | **AUTOMATED_ONLY** (scripts exist; no archived run) |
-| **DP-6** | `test-dp6-refund-orchestration.sh` | 9/9 @ `14514e9f` | `e2e-dp6-refund-live.sh` | **AUTOMATED_ONLY** |
+| Phase | Automated | Live runtime | Browser | Artifact |
+|-------|-----------|--------------|---------|----------|
+| **DP-1** | PASS B5 | Wave B JSON | Wave B `dp1-member-deadline-1440.png` | regression + Wave B |
+| **DP-2** | PASS B5 | roster filters | Wave B `dp2-roster-1440.png` | regression + Wave B |
+| **DP-3** | PASS B5 | API 200/409 | **PARTIAL** flat-edit before screenshot; classifications `dp3-*-classification.txt` | B5 + Wave B API |
+| **DP-4** | PASS B5 | portal BFF | Wave B portal screenshots | regression + Wave B |
+| **DP-5** | PASS B5 | N/A first launch | — | — |
+| **DP-6** | PASS B5 | live refund seed | **B5** `dp6-member-refund-1440/390.png` + cancellation BFF | `dp6-operator-refunds.json` |
 
-**Reconciliation VM:** `/opt/cursor/artifacts` empty — no screenshots/HAR/video from this run.
+**B8 Postgres subset:** **BLOCKED_EXTERNAL** — no Docker client in Cloud VM; `postgres-environment.json` documents required input (`pnpm run infra:up` + `ensure-p6-finance-postgres.sh`).
 
 ---
 
@@ -184,11 +210,12 @@ Canonical file: `docs/dev/denali-runtime-findings.md`
 
 | ID | Summary | Severity | Fix status |
 |----|---------|----------|------------|
-| DRF-001 | Postgres member receipt upload may 500 (`RECEIPT_UPLOAD_FAILED`) | P1 | **NEEDS_VERIFICATION** on `main` + Postgres |
-| DRF-002 | DP-2 browser cert ledger `[x]` reverted without artifact retention | P1 | **OPEN** — re-run Wave B |
+| DRF-001 | Postgres member receipt upload may 500 (`RECEIPT_UPLOAD_FAILED`) | P1 | **CLOSED** memory @ `7628fcd9`; Postgres **NEEDS_VERIFICATION** |
+| DRF-002 | DP-2 browser cert ledger `[x]` reverted without artifact retention | P1 | **CLOSED** @ `7628fcd9` — `browser/dp2-roster-1440.png` |
 | DRF-003 | Master product ledger stale vs DP-4/5/6 implementation | P0 doc | **CLOSED** this reconciliation |
 | DRF-004 | `denali-product-completeness-audit.md` missing | P1 doc | **OPEN** — superseded by this ledger + updated completion plan |
-| DRF-005 | DP certification scripts NOT_REPRODUCED in unbuilt checkout | P1 env | **OPEN** — CI/build snapshot must precede cert claims |
+| DRF-005 | DP certification scripts NOT_REPRODUCED in unbuilt checkout | P1 env | **CLOSED** @ `7628fcd9` |
+| DRF-006 | Payment expiry live replay not browser-certified | P0 | **CLOSED** @ `7628fcd9` — live extend + scheduler JSON |
 
 DPR-001..006 (payment hold correctness): **CLOSED** @ `9bbf358e` — see `dp-1-execution-plan.md`.
 
@@ -198,10 +225,10 @@ DPR-001..006 (payment hold correctness): **CLOSED** @ `9bbf358e` — see `dp-1-e
 
 | ID | Source | Claim | Reconciled status |
 |----|--------|-------|-------------------|
-| LF-001 | `dp-1-execution-plan.md` DP1-L Playwright E2E | Still `[ ]` | **OPEN** — browser pending |
-| LF-002 | `dp-1-execution-plan.md` DP1-M browser cert | Required for `[x]` | **OPEN** |
-| LF-003 | `6431af73` → `9126e966` | DP2 browser `[x]` then reverted | **OPEN** — treat as never `[x]` without artifacts |
-| LF-004 | `denali-product-completion-plan.md` DP3-09 | Date change vs refund/cancel | **OPEN** — product + DP-6 |
+| LF-001 | `dp-1-execution-plan.md` DP1-L Playwright E2E | **CLOSED** — superseded by Wave B `denali-wave-b-portal-evidence.spec.ts` + runtime cert |
+| LF-002 | DP1-M browser cert | **CLOSED** @ `7628fcd9` live expiry evidence |
+| LF-003 | DP2 browser revert | **CLOSED** @ `7628fcd9` new roster screenshot |
+| LF-004 | `denali-product-completion-plan.md` DP3-09 | Date change vs refund/cancel | **CLOSED** @ B5 — DEN-PROD-10 notification-only matrix sufficient; no invented cancellation/refund rights |
 | LF-005 | `dp-1-execution-plan.md` DP1-K-02 | Grandfather approved-unpaid without hold | **OPEN** — optional backfill |
 | LF-006 | `dp-1-execution-plan.md` DP1-J-03 | Notifications deferred to DP-4 | **CLOSED** — DP-4 inbox shipped `b6c4fbb2` |
 | LF-007 | `p7-staging-e2e.md` | SMK-PTL-04 receipt 500 on Postgres | **NEEDS_VERIFICATION** → DRF-001 |
@@ -217,7 +244,7 @@ Destructive / live actions **not executed** in this reconciliation wave.
 
 | Gate | Status | Evidence / notes |
 |------|--------|----------------|
-| `DATABASE_URL` / Postgres available | **NOT_STARTED** | unset in reconciliation VM |
+| `DATABASE_URL` / Postgres available | **BLOCKED_EXTERNAL** | unset in Wave B VM — B8 not faked PASS |
 | `DATABASE_URL_ADMIN` | **NOT_STARTED** | unset |
 | Phase-4 / DB guards (`phase-4:guard`) | **IMPLEMENTED_NOT_VERIFIED** | `pnpm run phase-4:guard` not run |
 | `release:verify` (`scripts/ops/run-gate-catalog.mjs --tier=L3`) | **NOT_STARTED** | not run |
@@ -236,24 +263,34 @@ Destructive / live actions **not executed** in this reconciliation wave.
 
 ### P0
 
-1. **Browser/runtime closure** for DP-1, DP-2, DP-3, DP-4, DP-6 (Wave B).
-2. **DP-8** Golden certification not started — blocks go-live narrative.
-3. **DEN-PROD-03** unsigned — participant vocabulary not product-closed.
-4. **Postgres parity** for DP money paths not evidenced on `main` closure record.
+1. **PR #109 merge** — 19 CI failures; `origin/main` remains `8ef3f4a6`.
+2. **B8 Postgres subset** — BLOCKED_EXTERNAL (no Docker in Cloud VM).
+3. **DP-8** Golden certification not started.
+4. **Postgres receipt upload** (DRF-001 Postgres path).
 
 ### P1
 
-1. **DRF-001** — receipt upload on Postgres (re-verify).
-2. **DP0-05** — MINIMUM PILOT vs PAID scope sign (Wallet/settlement boundary).
-3. **DP3-09** — tour date change vs refund policy.
-4. **DP-5 persistence** if driver pay in launch scope.
-5. **DP7-03/05** if club closes trips with open AR/refunds.
+1. ~~**DP0-05**~~ — **CLOSED** B5 first-launch scope sign-off.
+2. **DP-3 operator flat-edit UI save** — Playwright harness does not complete PATCH save (safe edit + capacity increase).
+3. **DP-5 persistence** — OPEN only if driver pay added to launch scope (currently N/A).
 
 ---
 
-## Next wave
+## Wave B.5 verdict (2026-08-25)
 
-**WAVE B — RUNTIME / BROWSER CLOSURE** (do not execute in Wave A):
+**`DENALI_RUNTIME_NOT_CLOSED`** — blockers: PR #109 not merged; Postgres BLOCKED_EXTERNAL; DP-3 UI PATCH save incomplete; DRF-001 Postgres; DP-8 not started.
+
+**Closed in B.5:** DP-6 portal authenticated refund UI (`[x]`); DP0-05 first-launch scope; LF-004 date-mutation policy.
+
+**Memory-driver regression:** DP-1..4, DP-6 scripts **PASS** @ `425d0c95`; `guard:import-boundary` PASS.
+
+Evidence: `docs/evidence/denali-wave-b5/425d0c952356b8ce60c5cba9d6bb5d05adbb1b89/`
+
+---
+
+## Wave B verdict (2026-08-24)
+
+**Superseded by Wave B.5** for DP-6 portal UI and scope sign-off. Wave B memory evidence remains valid for DP-1/2/4.
 
 1. Build monorepo (`pnpm build`) then green: `test-dp1` → `test-dp2` → `test-dp3` → `test-dp4` → `test-dp6` (+ `test-dp5` if in scope).
 2. Browser certs: DP-1 (operator+member+waitlist) → DP-2 (roster) → DP-3 (mutation UI) → DP-4 (portal) → DP-6 (paid cancel/refund).

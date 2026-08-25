@@ -3,15 +3,16 @@
 ```yaml
 plan_id: DENALI-PRODUCT-COMPLETION-2026-08-24
 program: Denali Product Completion (DP)
-mode: EXECUTION_IN_PROGRESS — truth reconciled 2026-08-24 @ 09ba2b09
+mode: EXECUTION_IN_PROGRESS — Wave B.5 reconciled 2026-08-25 @ 425d0c95
 authority_audit: docs/dev/production-closure-ledger.md (supersedes missing denali-product-completeness-audit.md)
 closure_ledger: docs/dev/production-closure-ledger.md
 runtime_findings: docs/dev/denali-runtime-findings.md
 status: RUNTIME_CLOSURE_PENDING
-production_code_changed: YES (DP-1..6 on main)
+production_code_changed: YES (DP-1..6 on main + Wave B/B.5 harness)
 tests_changed: YES
 db_changed: YES (payment holds, settlement in-memory, refund hooks)
-reconciled_commit: 09ba2b09906fde8d7104489fa8401ef4d9ab2e99
+reconciled_commit: 425d0c952356b8ce60c5cba9d6bb5d05adbb1b89
+wave_b5_evidence: docs/evidence/denali-wave-b5/425d0c952356b8ce60c5cba9d6bb5d05adbb1b89/
 ```
 
 This is the **canonical execution ledger** for making Denali operationally complete for a real paying club.
@@ -62,7 +63,7 @@ Denali is **IMPLEMENTED_PAID_OPS_PENDING_RUNTIME_CLOSURE** (reconciled 2026-08-2
 Pre-DP gaps — **addressed in code** (runtime proof pending):
 
 1. Approved-unpaid indefinite hold → **DP-1** payment holds + expiry worker.
-2. Final participant semantics → **DP-2** `isFinalParticipant` in code (**DEN-PROD-03 PROPOSED, not signed**).
+2. Final participant semantics → **DP-2** `isFinalParticipant` in code (**DEN-PROD-03 APPROVED** Wave B 2026-08-24).
 3. Operator single roster surface → **DP-2** tour workspace operational roster API.
 4. Tour mutation after registrations → **DP-3** enforcement + matrix.
 5. Member notifications inbox → **DP-4** portal inbox dispatch.
@@ -168,15 +169,15 @@ Design **must** support configurable policy even if first customer picks a singl
 
 | Field | Content |
 |-------|---------|
-| **Status** | `[!]` **OPEN** — **PROPOSED in DP-2 code** (`isFinalParticipant := approved && remainingMinor===0`); not product-signed |
-| **Current behavior** | DP-2 exposes `operational` (approved) vs `final` (approved + financially settled) filters. Transport default = approved. See `production-closure-ledger.md` § DEN-PROD-03. |
-| **Product question** | Which semantic is “on the trip”? Compare: registration approved / payment complete / operationally confirmed / actually attending. **Do not collapse unless product decides.** |
-| **Options** | (A) Approved = operational roster (current transport tab) (B) Paid or waived = commercial confirmed (C) Operator “confirmed attending” third axis (D) Day-of attendance (DP-7) separate from pre-departure roster |
-| **Consequences** | Drives DP-2 projection filters, exports, DEN-PROD-06 passenger set. |
+| **Status** | `[v]` **APPROVED 2026-08-24** — Wave B product decision lock before runtime closure |
+| **Approved definitions** | `operationalParticipant := status === approved`; `financiallySettled := remainingAmount === 0 OR waived/free`; `finalParticipant := operational AND financiallySettled`; capacity occupancy remains separate (`approved` holds seat) |
+| **Truth table** | approved+unpaid → operational=true, final=false; approved+partial → operational=true, final=false; approved+paid → operational=true, final=true; approved+waived → operational=true, final=true; waitlisted/rejected/cancelled/expired → final=false |
+| **Implementation** | `packages/workspaces/denali/src/roster/operational-roster-semantics.ts` — parity verified Wave B |
+| **Current behavior** | DP-2 exposes `operational` vs `final` filters; transport default = operational (approved) |
+| **Deferred** | Day-of attendance (DP-7) separate from final participant; not collapsed |
+| **Consequences** | Drives DP-2 projection filters, exports, DEN-PROD-06 passenger set |
 | **Affected modules** | Tour workspace tabs, Bookings CC, portal copy, future settlement |
-| **Blocked task IDs** | DP2-01…DP2-12, DP5-02, DP7-02, DP8-05 |
-| **Latest safe execution point** | DP-0; DP-2 design after this gate |
-| **Evidence needed** | Day-of leader question: unpaid approved still boarded today? |
+| **Evidence** | `docs/dev/production-closure-ledger.md` § DEN-PROD-03; Wave B runtime certification |
 | **Decision owner** | Product owner |
 
 ---
@@ -365,7 +366,7 @@ Design **must** support configurable policy even if first customer picks a singl
 | DP0-02 | Sign DEN-PROD-01…12 records (or signed DEFER with date) | Unsigned gate remains `[!]` | Product owner | This plan | None | Decision checklist in CI doc-guard (optional later) | — | N/A | LOW | `[~]` 01/02/04/08/09/10/11/12 `[v]`; 03 `[!]` PROPOSED; 05 DEFERRED; 06/07 `[v]` in workspace docs |
 | DP0-03 | Freeze DP-1 20-scenario **expected** columns only after 01/02/04/11 | No expected states invented | DEN-PROD-01,02,04,11 | `docs/dev/dp-1-execution-plan.md` § 20-scenario matrix | None | Matrix review | — | N/A | LOW | `[v]` |
 | DP0-04 | Contract inventory: Booking / Finance / Portal / Transport / Outbox / Scheduler | No silent contract expansion | — | `booking-http-contracts`, `finance-http`, `registration-payment-orchestration.mdoc`, `cw7-05-workspace-transport-contract.md` | None | Inventory appendix | — | N/A | LOW | `[ ]` |
-| DP0-05 | Sign MINIMUM PILOT vs MINIMUM PAID OPERATIONS scope | Pilot must not silently include Wallet/settlement | DEN-PROD-05 | This plan | None | — | — | N/A | LOW | `[!]` — see `production-closure-ledger.md` § FIRST CUSTOMER |
+| DP0-05 | Sign MINIMUM PILOT vs MINIMUM PAID OPERATIONS scope | Pilot must not silently include Wallet/settlement | DEN-PROD-05 | This plan | None | — | — | N/A | LOW | **`[x]`** — B5 2026-08-25 bus-only first launch; see `production-closure-ledger.md` § FIRST CUSTOMER |
 | DP0-06 | Physical baseline: operator login→list; portal registration detail awaiting approval; finance outstanding; transport roster | Evidence of **current** product | — | apps/web, portal, marketing | None | — | Desktop 1440 operator; portal 1440+390 | N/A | LOW | `[ ]` |
 | DP0-07 | Inventory wizard gap `registrationApproval` / `paymentCollection` (no UI) | Do not implement in DP-0 | — | `denali-wizard-template-roadmap.ts` | None | — | Screenshot settings vs wizard | N/A | LOW | `[ ]` |
 | DP0-08 | Phase closure: all freeze artifacts stored; gates signed or deferred | No DP-1 impl until DP0-02 for 01/02/04 | DP0-02 | `docs/dev/` | None | Doc presence | Baseline pack attached | N/A | LOW | `[ ]` |
@@ -467,7 +468,7 @@ Field classes (product fills after DEN-PROD-10). Engineering must not assign cla
 | DP3-06 | MUTABLE_WITH_REPRICING | Obligation/invoice policy | 10,11 | Finance | Maybe freeze | Finance tests | — | — | FINANCIAL_HIGH | `[v]` |
 | DP3-07 | Capacity down vs approved occupancy | Reject or waitlist overflow — **product** | 02,10 | Bookings+tours | — | Integration | — | — | HIGH | `[v]` |
 | DP3-08 | Snapshot vs live tour fields | Intake snapshot preserved | — | registrationIntake | JSON | DN-READ-05 regression | — | — | MEDIUM | `[ ]` |
-| DP3-09 | Refund/cancel impact of date change | Per 08/09 | 08,09,10 | DP-6 | — | — | — | — | HIGH | `[!]` |
+| DP3-09 | Refund/cancel impact of date change | Per 08/09 | 08,09,10 | DP-6 | — | — | — | — | HIGH | **`[x]`** — LF-004 CLOSED B5; DEN-PROD-10 notification-only |
 | DP3-10 | Operator override path | Audit trail | 10 | PATCH roots | Audit | Test | UI confirm | — | HIGH | `[v]` |
 | DP3-11 | Isolation | Tenant | — | — | — | Negative | — | — | MEDIUM | `[v]` |
 | DP3-12 | Automated matrix | All classes | 10 | — | — | Full | — | — | HIGH | `[v]` |

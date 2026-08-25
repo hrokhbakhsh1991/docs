@@ -1,0 +1,42 @@
+# Denali Wave B runtime harness
+
+```yaml
+doc_id: DENALI-WAVE-B-RUNTIME-HARNESS
+status: active
+wave: B
+```
+
+Wave B runtime certification uses **memory driver** dev surfaces (`STORAGE_DRIVER=memory`) with payment-hold flags enabled.
+
+## Operator host
+
+Use **`denali.admin.localhost`** (tenant `00000000-0000-4000-8000-000000000014`, Denali workspace). `admin.denali.localhost` binds a different dev tenant and breaks DP tour fixtures (`000…901` on tenant 014).
+
+Member Portal for tenant 014: **`operator.portal.localhost`** (not `denali.portal.localhost`, which binds tenant `000…003`).
+
+## Payment holds (live dev)
+
+```env
+PAYMENT_HOLD_ENABLED=true
+PAYMENT_HOLD_EXPIRY_ENABLED=true
+PAYMENT_HOLD_EXPIRY_INTERVAL_MS=2000
+```
+
+Expiry journeys: operator `POST /finance/payment-holds/:registrationId/extend` with near-future `newDueAt`, then scheduler tick. Route dispatches from `apps/api/src/app.ts` via `handleExtendPaymentHold` (`payment-hold-http.routes.ts`).
+
+## Receipt upload (memory driver)
+
+When MinIO is not configured and `STORAGE_DRIVER=memory` in development, receipt proof bytes are stored in an **in-process memory map** (`receipt-proof-storage.ts`). Signed read URLs use the `memory://receipt-proof/...` scheme for operator review in dev.
+
+Production and Postgres paths continue to require object storage configuration.
+
+## Evidence
+
+Runtime JSON/network evidence: `docs/evidence/denali-wave-b/<SHA>/`
+
+Orchestration: `scripts/denali-wave-b-runtime-cert.sh`
+
+## Build order
+
+`booking-http-contracts` must build before `tour-core` (`scripts/monorepo-build.sh`, `scripts/ci/build-api-workspace-deps.sh`, and `@app-tour/workspace-sdk` `package.json` `build` script — Phase 0 foundation gate runs `test:phase-0` which builds SDK without full monorepo `pnpm build`). `@app-tour/workspace-denali` `build` runs `workspace-sdk` `build` first so parallel Playwright webServer compiles (Phase 6.6) never start `tsc` before SDK `dist/` exists. SDK catalog intake transport dispatch uses **dynamic import** so Phase 0 `dist-surface` does not require `@app-tour/workspace-denali/dist` at barrel load.
+Payment-hold extend route uses `FINANCE_API_PATH_PREFIX` in `apps/api/src/app.ts` (Phase 10 P7-T05 — no `/finance/` string literals in app dispatch).

@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
   "program": "PROD-READINESS-2026-08",
-  "generatedAt": "2026-08-22T16:20:28.206Z",
+  "generatedAt": "2026-08-25T06:57:16.047Z",
   "counts": {
-    "rootScripts": 329,
-    "apiScripts": 152,
+    "rootScripts": 352,
+    "apiScripts": 153,
     "apiGuards": 97,
-    "workflows": 28,
-    "executableScripts": 474
+    "workflows": 29,
+    "executableScripts": 498
   },
   "scripts": [
     {
@@ -96,6 +96,39 @@
     },
     {
       "package": "root",
+      "name": "test:parity",
+      "executable": true,
+      "command": "NODE_ENV=test node --import ./apps/api/node_modules/tsx/dist/esm/index.mjs --test test/parity/**/*.spec.mjs",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": [
+        "scripts/test-changed.sh",
+        "scripts/verify-cw-closure.mjs"
+      ]
+    },
+    {
+      "package": "root",
+      "name": "cw:architecture-metrics",
+      "executable": true,
+      "command": "node scripts/metrics/cw-architecture-metrics.mjs",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": []
+    },
+    {
+      "package": "root",
+      "name": "test:cw-metrics",
+      "executable": true,
+      "command": "NODE_ENV=test node --test scripts/metrics/cw-architecture-metrics.self.spec.mjs",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": []
+    },
+    {
+      "package": "root",
       "name": "test:adversarial",
       "executable": true,
       "command": "pnpm --filter @app-tour/workspace-sdk exec -- env NODE_ENV=test node --import tsx --test test/adversarial-canonical-ingress.spec.ts test/storage-ingress-immutability.spec.ts && pnpm --filter @app-tour/platform-core exec -- env NODE_ENV=test node --import tsx --test test/adversarial-validation.spec.ts test/adversarial-plugin-ingress.spec.ts test/rule-engine-concurrency.spec.ts test/runtime-isolation.spec.ts",
@@ -131,6 +164,7 @@
       "tier": "migration",
       "sideEffects": "none",
       "consumers": [
+        "scripts/denali-wave-b5-closure.sh",
         "scripts/guards/phase-0-guard.mjs",
         "scripts/guards/phase-1-guard.mjs",
         "scripts/guards/phase-3-guard.mjs",
@@ -138,6 +172,10 @@
         "scripts/p5-enterprise-evolution-gate.sh",
         "scripts/p6-denali-product-gate.sh",
         "scripts/phase-6-defensive-guards.sh",
+        "scripts/test-dp3-tour-mutation.sh",
+        "scripts/test-dp4-member-self-service.sh",
+        "scripts/test-dp5-driver-settlement.sh",
+        "scripts/test-dp6-refund-orchestration.sh",
         "scripts/wave-i0-guard.sh",
         ".github/workflows/phase-8-gate.yml",
         "package.json",
@@ -169,6 +207,42 @@
       "sideEffects": "none",
       "consumers": [
         "package.json"
+      ]
+    },
+    {
+      "package": "root",
+      "name": "guard:tour-core-boundary",
+      "executable": true,
+      "command": "node scripts/guards/guard-tour-core-boundary.mjs",
+      "owner": "platform",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": [
+        "scripts/verify-cw-closure.mjs"
+      ]
+    },
+    {
+      "package": "root",
+      "name": "guard:validation-pipeline",
+      "executable": true,
+      "command": "node scripts/guards/guard-validation-pipeline.mjs",
+      "owner": "platform",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": [
+        "scripts/verify-cw-closure.mjs"
+      ]
+    },
+    {
+      "package": "root",
+      "name": "guard:workspace-policy-no-core-branching",
+      "executable": true,
+      "command": "node scripts/guards/guard-workspace-policy-no-core-branching.mjs",
+      "owner": "platform",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": [
+        "scripts/verify-cw-closure.mjs"
       ]
     },
     {
@@ -478,6 +552,46 @@
     },
     {
       "package": "root",
+      "name": "test:dp1-payment-deadline",
+      "executable": true,
+      "command": "bash scripts/test-dp1-payment-deadline.sh",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": []
+    },
+    {
+      "package": "root",
+      "name": "test:dp4-member-self-service",
+      "executable": true,
+      "command": "bash scripts/test-dp4-member-self-service.sh",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": []
+    },
+    {
+      "package": "root",
+      "name": "test:dp5-driver-settlement",
+      "executable": true,
+      "command": "bash scripts/test-dp5-driver-settlement.sh",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": []
+    },
+    {
+      "package": "root",
+      "name": "test:dp6-refund-orchestration",
+      "executable": true,
+      "command": "bash scripts/test-dp6-refund-orchestration.sh",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": []
+    },
+    {
+      "package": "root",
       "name": "test:exposure:integration",
       "executable": true,
       "command": "pnpm --filter @apps/api run test:exposure:integration",
@@ -576,6 +690,9 @@
       "tier": "L0",
       "sideEffects": "none",
       "consumers": [
+        "scripts/test-dp3-tour-mutation.sh",
+        "scripts/test-dp4-member-self-service.sh",
+        "scripts/test-dp6-refund-orchestration.sh",
         "package.json"
       ]
     },
@@ -608,6 +725,16 @@
       "command": "node scripts/ops/run-gate-catalog.mjs --tier=L2",
       "owner": "tooling",
       "tier": "L2",
+      "sideEffects": "none",
+      "consumers": []
+    },
+    {
+      "package": "root",
+      "name": "gate:l2:integration",
+      "executable": true,
+      "command": "pnpm test && pnpm run guard:architecture && pnpm run guard:import-boundary && pnpm run phase-4:guard && pnpm --filter @apps/api run phase-5:evolution-gate",
+      "owner": "tooling",
+      "tier": "migration",
       "sideEffects": "none",
       "consumers": []
     },
@@ -653,6 +780,102 @@
       "sideEffects": "none",
       "consumers": [
         ".github/workflows/prod-3-release-gate.yml"
+      ]
+    },
+    {
+      "package": "root",
+      "name": "prod6:secret-scan:tip",
+      "executable": true,
+      "command": "node scripts/ops/secret-scan-tracked-baseline.mjs",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": [
+        "package.json"
+      ]
+    },
+    {
+      "package": "root",
+      "name": "prod6:secret-scan:history",
+      "executable": true,
+      "command": "node scripts/ops/secret-scan-history-release.mjs",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": [
+        "package.json"
+      ]
+    },
+    {
+      "package": "root",
+      "name": "prod6:supply-chain:audit",
+      "executable": true,
+      "command": "node scripts/ops/prod6-supply-chain-audit.mjs",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": [
+        "package.json"
+      ]
+    },
+    {
+      "package": "root",
+      "name": "prod6:security-headers",
+      "executable": true,
+      "command": "node scripts/ops/prod6-security-headers.mjs",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": [
+        "package.json"
+      ]
+    },
+    {
+      "package": "root",
+      "name": "prod6:static-security",
+      "executable": true,
+      "command": "node scripts/ops/prod6-static-security.mjs",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": [
+        "package.json"
+      ]
+    },
+    {
+      "package": "root",
+      "name": "prod6:action-policy",
+      "executable": true,
+      "command": "node scripts/ops/prod6-action-policy.mjs",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": [
+        "package.json"
+      ]
+    },
+    {
+      "package": "root",
+      "name": "prod6:release-evidence",
+      "executable": true,
+      "command": "node scripts/ops/prod6-release-evidence.mjs",
+      "owner": "tooling",
+      "tier": "L3",
+      "sideEffects": "none",
+      "consumers": [
+        "package.json"
+      ]
+    },
+    {
+      "package": "root",
+      "name": "prod6:security-release",
+      "executable": true,
+      "command": "pnpm run prod6:secret-scan:tip && pnpm run prod6:secret-scan:history && pnpm run prod6:supply-chain:audit && pnpm run prod6:security-headers && pnpm run prod6:static-security && pnpm run prod6:action-policy && pnpm run prod6:release-evidence",
+      "owner": "tooling",
+      "tier": "L3",
+      "sideEffects": "none",
+      "consumers": [
+        ".github/workflows/prod-6-security-release.yml"
       ]
     },
     {
@@ -810,6 +1033,7 @@
       "tier": "migration",
       "sideEffects": "potential-side-effect",
       "consumers": [
+        "scripts/denali-wave-b5-closure.sh",
         "scripts/ensure-p6-finance-postgres.sh",
         "scripts/ops/dev-front-door.mjs"
       ]
@@ -1061,6 +1285,28 @@
         "scripts/guards/baseline-metrics.mjs",
         "package.json"
       ]
+    },
+    {
+      "package": "root",
+      "name": "baseline:cw-compare",
+      "executable": true,
+      "command": "node scripts/guards/cw-baseline-compare.mjs",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": [
+        "scripts/verify-cw-closure.mjs"
+      ]
+    },
+    {
+      "package": "root",
+      "name": "verify:cw-closure",
+      "executable": true,
+      "command": "node scripts/verify-cw-closure.mjs",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": []
     },
     {
       "package": "root",
@@ -2389,6 +2635,7 @@
       "sideEffects": "potential-side-effect",
       "consumers": [
         "scripts/phase-g-h-fast-track.sh",
+        "scripts/verify-cw-closure.mjs",
         "scripts/wave-i0-guard.sh",
         "scripts/workspace-onboard.mjs"
       ]
@@ -2547,6 +2794,16 @@
     },
     {
       "package": "root",
+      "name": "guard:workspace-registry-domain-transport",
+      "executable": true,
+      "command": "node scripts/generate-workspace-registry.mjs --check --domain=transport",
+      "owner": "platform",
+      "tier": "migration",
+      "sideEffects": "potential-side-effect",
+      "consumers": []
+    },
+    {
+      "package": "root",
       "name": "guard:guest-plugin-conformance",
       "executable": true,
       "command": "node scripts/guards/guard-guest-plugin-conformance.mjs",
@@ -2617,9 +2874,20 @@
       "sideEffects": "none",
       "consumers": [
         "scripts/phase-6-defensive-guards.sh",
+        "scripts/verify-cw-closure.mjs",
         "scripts/wave-i0-guard.sh",
         "package.json"
       ]
+    },
+    {
+      "package": "root",
+      "name": "guard:deprecation-policy",
+      "executable": true,
+      "command": "node scripts/guards/guard-deprecation-policy.mjs",
+      "owner": "platform",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": []
     },
     {
       "package": "root",
@@ -2883,7 +3151,9 @@
       "owner": "platform",
       "tier": "migration",
       "sideEffects": "none",
-      "consumers": []
+      "consumers": [
+        "scripts/verify-cw-closure.mjs"
+      ]
     },
     {
       "package": "root",
@@ -3797,6 +4067,7 @@
       "tier": "migration",
       "sideEffects": "none",
       "consumers": [
+        "scripts/denali-wave-b5-closure.sh",
         "scripts/guards/phase-0-guard.mjs",
         "scripts/guards/phase-1-guard.mjs",
         "scripts/guards/phase-3-guard.mjs",
@@ -3804,6 +4075,10 @@
         "scripts/p5-enterprise-evolution-gate.sh",
         "scripts/p6-denali-product-gate.sh",
         "scripts/phase-6-defensive-guards.sh",
+        "scripts/test-dp3-tour-mutation.sh",
+        "scripts/test-dp4-member-self-service.sh",
+        "scripts/test-dp5-driver-settlement.sh",
+        "scripts/test-dp6-refund-orchestration.sh",
         "scripts/wave-i0-guard.sh",
         ".github/workflows/phase-8-gate.yml",
         "package.json",
@@ -5049,7 +5324,7 @@
       "package": "apps/api",
       "name": "prebuild",
       "executable": true,
-      "command": "bash ../../scripts/ci/build-api-workspace-deps.sh && node ../../scripts/generate-workspace-registry.mjs",
+      "command": "if [ \"${APP_TOUR_SKIP_API_WORKSPACE_DEPS:-0}\" != \"1\" ]; then bash ../../scripts/ci/build-api-workspace-deps.sh; fi && node ../../scripts/generate-workspace-registry.mjs",
       "owner": "tooling",
       "tier": "migration",
       "sideEffects": "potential-side-effect",
@@ -5149,6 +5424,16 @@
       "consumers": [
         ".github/workflows/booking-postgres-gate.yml"
       ]
+    },
+    {
+      "package": "apps/api",
+      "name": "test:performance:login",
+      "executable": true,
+      "command": "env STORAGE_DRIVER=memory NODE_ENV=test APPS_API_TEST_TIER=trunk OUTBOX_RELAY_ENABLED=false PROJECTION_AUTO_RECONCILE_ENABLED=false P5_VALIDATION_WORKERS_ENABLED=false TENANT_RATE_LIMIT_ENABLED=false node --expose-gc --import tsx --import ./test/bootstrap-outbox-test-env.ts --test --test-force-exit --test-concurrency=1 test/identity-login-performance.spec.ts",
+      "owner": "tooling",
+      "tier": "migration",
+      "sideEffects": "none",
+      "consumers": []
     },
     {
       "package": "apps/api",
@@ -5441,6 +5726,12 @@
     "test": [
       "apps/api/package.json"
     ],
+    "test:parity": [
+      "scripts/test-changed.sh",
+      "scripts/verify-cw-closure.mjs"
+    ],
+    "cw:architecture-metrics": [],
+    "test:cw-metrics": [],
     "test:adversarial": [
       "scripts/guards/phase-1-guard.mjs",
       "package.json"
@@ -5452,6 +5743,7 @@
       "package.json"
     ],
     "guard:import-boundary": [
+      "scripts/denali-wave-b5-closure.sh",
       "scripts/guards/phase-0-guard.mjs",
       "scripts/guards/phase-1-guard.mjs",
       "scripts/guards/phase-3-guard.mjs",
@@ -5459,6 +5751,10 @@
       "scripts/p5-enterprise-evolution-gate.sh",
       "scripts/p6-denali-product-gate.sh",
       "scripts/phase-6-defensive-guards.sh",
+      "scripts/test-dp3-tour-mutation.sh",
+      "scripts/test-dp4-member-self-service.sh",
+      "scripts/test-dp5-driver-settlement.sh",
+      "scripts/test-dp6-refund-orchestration.sh",
       "scripts/wave-i0-guard.sh",
       ".github/workflows/phase-8-gate.yml",
       "package.json",
@@ -5472,6 +5768,15 @@
     ],
     "guard:booking-boundary": [
       "package.json"
+    ],
+    "guard:tour-core-boundary": [
+      "scripts/verify-cw-closure.mjs"
+    ],
+    "guard:validation-pipeline": [
+      "scripts/verify-cw-closure.mjs"
+    ],
+    "guard:workspace-policy-no-core-branching": [
+      "scripts/verify-cw-closure.mjs"
     ],
     "guard:finance-golden": [
       ".github/workflows/finance-core-boundary.yml",
@@ -5535,6 +5840,10 @@
     "test:changed": [
       "package.json"
     ],
+    "test:dp1-payment-deadline": [],
+    "test:dp4-member-self-service": [],
+    "test:dp5-driver-settlement": [],
+    "test:dp6-refund-orchestration": [],
     "test:exposure:integration": [],
     "test:full": [
       "scripts/ci-integrity-check.sh",
@@ -5555,6 +5864,9 @@
       ".github/workflows/booking-postgres-gate.yml"
     ],
     "pre-commit:fast": [
+      "scripts/test-dp3-tour-mutation.sh",
+      "scripts/test-dp4-member-self-service.sh",
+      "scripts/test-dp6-refund-orchestration.sh",
       "package.json"
     ],
     "verify:fast": [
@@ -5562,6 +5874,7 @@
     ],
     "verify:pr": [],
     "verify:main": [],
+    "gate:l2:integration": [],
     "test:changed:gate": [],
     "verify:product": [
       "package.json"
@@ -5569,6 +5882,30 @@
     "verify:full": [],
     "release:verify": [
       ".github/workflows/prod-3-release-gate.yml"
+    ],
+    "prod6:secret-scan:tip": [
+      "package.json"
+    ],
+    "prod6:secret-scan:history": [
+      "package.json"
+    ],
+    "prod6:supply-chain:audit": [
+      "package.json"
+    ],
+    "prod6:security-headers": [
+      "package.json"
+    ],
+    "prod6:static-security": [
+      "package.json"
+    ],
+    "prod6:action-policy": [
+      "package.json"
+    ],
+    "prod6:release-evidence": [
+      "package.json"
+    ],
+    "prod6:security-release": [
+      ".github/workflows/prod-6-security-release.yml"
     ],
     "smoke:staging": [],
     "smoke:production": [],
@@ -5591,6 +5928,7 @@
       "package.json"
     ],
     "infra:up": [
+      "scripts/denali-wave-b5-closure.sh",
       "scripts/ensure-p6-finance-postgres.sh",
       "scripts/ops/dev-front-door.mjs"
     ],
@@ -5644,6 +5982,10 @@
       "scripts/guards/baseline-metrics.mjs",
       "package.json"
     ],
+    "baseline:cw-compare": [
+      "scripts/verify-cw-closure.mjs"
+    ],
+    "verify:cw-closure": [],
     "phase-0:gate": [
       "scripts/ci-integrity-check.sh"
     ],
@@ -5937,6 +6279,7 @@
     "test:e2e:urban": [],
     "guard:workspace-registry-fresh": [
       "scripts/phase-g-h-fast-track.sh",
+      "scripts/verify-cw-closure.mjs",
       "scripts/wave-i0-guard.sh",
       "scripts/workspace-onboard.mjs"
     ],
@@ -5957,6 +6300,7 @@
     "guard:workspace-registry-domain-finance": [],
     "guard:workspace-registry-domain-exposure": [],
     "guard:workspace-registry-domain-integration": [],
+    "guard:workspace-registry-domain-transport": [],
     "guard:guest-plugin-conformance": [
       "scripts/phase-6-defensive-guards.sh",
       "scripts/phase-g-h-fast-track.sh",
@@ -5976,9 +6320,11 @@
     "guard:api-workspace-settings-import": [],
     "guard:api-workspace-isolation": [
       "scripts/phase-6-defensive-guards.sh",
+      "scripts/verify-cw-closure.mjs",
       "scripts/wave-i0-guard.sh",
       "package.json"
     ],
+    "guard:deprecation-policy": [],
     "guard:unbounded-list": [
       "scripts/phase-6-defensive-guards.sh"
     ],
@@ -6044,7 +6390,9 @@
       "package.json"
     ],
     "guard:no-workspace-ids-in-codegen": [],
-    "guard:no-workspace-type-branches": [],
+    "guard:no-workspace-type-branches": [
+      "scripts/verify-cw-closure.mjs"
+    ],
     "guard:member-url-builder": [
       "package.json"
     ],
@@ -6422,6 +6770,7 @@
     "test:file": [
       ".github/workflows/booking-postgres-gate.yml"
     ],
+    "test:performance:login": [],
     "test:nightly:soak": [],
     "test:nightly:slow-sink": [],
     "test:nightly:noisy-neighbor-latency": [],
@@ -6459,11 +6808,17 @@
       "lint"
     ],
     "root:test": [],
+    "root:test:parity": [],
+    "root:cw:architecture-metrics": [],
+    "root:test:cw-metrics": [],
     "root:test:adversarial": [],
     "root:guard:architecture": [],
     "root:guard:import-boundary": [],
     "root:guard:finance-core-boundary": [],
     "root:guard:booking-boundary": [],
+    "root:guard:tour-core-boundary": [],
+    "root:guard:validation-pipeline": [],
+    "root:guard:workspace-policy-no-core-branching": [],
     "root:guard:finance-golden": [],
     "root:guard:field-policy-boundary": [],
     "root:guard:field-exposure-phase-0": [],
@@ -6495,6 +6850,10 @@
     "root:guard:symlink": [],
     "root:ci:integrity": [],
     "root:test:changed": [],
+    "root:test:dp1-payment-deadline": [],
+    "root:test:dp4-member-self-service": [],
+    "root:test:dp5-driver-settlement": [],
+    "root:test:dp6-refund-orchestration": [],
     "root:test:exposure:integration": [],
     "root:test:full": [],
     "root:test:nightly": [],
@@ -6507,6 +6866,11 @@
     "root:verify:fast": [],
     "root:verify:pr": [],
     "root:verify:main": [],
+    "root:gate:l2:integration": [
+      "guard:architecture",
+      "guard:import-boundary",
+      "phase-4:guard"
+    ],
     "root:test:changed:gate": [],
     "root:verify:product": [
       "verify:fast",
@@ -6530,6 +6894,22 @@
       "ci:integrity"
     ],
     "root:release:verify": [],
+    "root:prod6:secret-scan:tip": [],
+    "root:prod6:secret-scan:history": [],
+    "root:prod6:supply-chain:audit": [],
+    "root:prod6:security-headers": [],
+    "root:prod6:static-security": [],
+    "root:prod6:action-policy": [],
+    "root:prod6:release-evidence": [],
+    "root:prod6:security-release": [
+      "prod6:secret-scan:tip",
+      "prod6:secret-scan:history",
+      "prod6:supply-chain:audit",
+      "prod6:security-headers",
+      "prod6:static-security",
+      "prod6:action-policy",
+      "prod6:release-evidence"
+    ],
     "root:smoke:staging": [],
     "root:smoke:production": [],
     "root:gate:catalog:check": [],
@@ -6604,6 +6984,8 @@
       "baseline:metrics"
     ],
     "root:baseline:metrics": [],
+    "root:baseline:cw-compare": [],
+    "root:verify:cw-closure": [],
     "root:phase-0:gate": [
       "phase-0:foundation-gate",
       "phase-0:integration-gate"
@@ -6781,12 +7163,14 @@
     "root:guard:workspace-registry-domain-finance": [],
     "root:guard:workspace-registry-domain-exposure": [],
     "root:guard:workspace-registry-domain-integration": [],
+    "root:guard:workspace-registry-domain-transport": [],
     "root:guard:guest-plugin-conformance": [],
     "root:guard:denali-plugin-surface": [],
     "root:guard:urban-plugin-surface": [],
     "root:guard:workspace-export-surface": [],
     "root:guard:api-workspace-settings-import": [],
     "root:guard:api-workspace-isolation": [],
+    "root:guard:deprecation-policy": [],
     "root:guard:unbounded-list": [],
     "root:guard:repository-n-plus-one": [],
     "root:audit:findmany-scan": [],
@@ -7082,6 +7466,7 @@
     "apps/api:lint": [],
     "apps/api:test": [],
     "apps/api:test:file": [],
+    "apps/api:test:performance:login": [],
     "apps/api:test:exposure:integration": [],
     "apps/api:test:nightly": [],
     "apps/api:test:nightly:soak": [],
@@ -7164,6 +7549,8 @@
   "recursion": [],
   "unreachable": [
     "root:postbuild",
+    "root:cw:architecture-metrics",
+    "root:test:cw-metrics",
     "root:guard:field-exposure-phase-0",
     "root:guard:field-exposure-phase-1",
     "root:guard:field-exposure-phase-2",
@@ -7178,9 +7565,14 @@
     "root:guard:field-exposure-phase-11",
     "root:guard:wizard-post-submit",
     "root:doc:markdoc:validate",
+    "root:test:dp1-payment-deadline",
+    "root:test:dp4-member-self-service",
+    "root:test:dp5-driver-settlement",
+    "root:test:dp6-refund-orchestration",
     "root:test:exposure:integration",
     "root:test:nightly",
     "root:test:nightly:cold-start",
+    "root:gate:l2:integration",
     "root:test:changed:gate",
     "root:verify:full",
     "root:gate:catalog:check",
@@ -7201,6 +7593,7 @@
     "root:test:contract",
     "root:phase-0:covenant-gate",
     "root:phase-0:trunk-gate",
+    "root:verify:cw-closure",
     "root:ops:branch-protection:phase-1",
     "root:ops:branch-protection:dry-run",
     "root:ops:branch-protection:print",
@@ -7270,11 +7663,12 @@
     "root:guard:workspace-registry-domain-finance",
     "root:guard:workspace-registry-domain-exposure",
     "root:guard:workspace-registry-domain-integration",
+    "root:guard:workspace-registry-domain-transport",
     "root:guard:api-workspace-settings-import",
+    "root:guard:deprecation-policy",
     "root:guard:css-globals",
     "root:guard:css-bootstrap-integrity",
     "root:guard:no-workspace-ids-in-codegen",
-    "root:guard:no-workspace-type-branches",
     "root:guard:member-portal-shell",
     "root:smoke:wrs-custom-apex",
     "root:smoke:pcms-custom-apex",
@@ -7393,6 +7787,7 @@
     "apps/api:prelint",
     "apps/api:pretest",
     "apps/api:guard:workspace-registry",
+    "apps/api:test:performance:login",
     "apps/api:test:exposure:integration",
     "apps/api:test:nightly",
     "apps/api:test:nightly:soak",
@@ -8656,9 +9051,43 @@
         "Production readiness L3 release gate",
         "Checkout",
         "Setup platform toolchain",
+        "Install CI OS packages",
+        "Bootstrap app_tour role",
+        "Prisma migrate deploy (DEC-124)",
+        "Build workspace dist surfaces for gates",
+        "Generate Prisma client for API tests",
         "Run catalog L3 gate",
         "Upload structured gate reports",
         "prod-3-l3-gate-report"
+      ]
+    },
+    {
+      "path": ".github/workflows/prod-6-security-release.yml",
+      "id": "prod-6-security-release",
+      "classification": "canonical",
+      "jobs": [
+        "pull_request",
+        "workflow_dispatch",
+        "contents",
+        "group",
+        "cancel-in-progress",
+        "security-release"
+      ],
+      "usesSetupPlatform": true,
+      "pathFilters": [
+        "\".github/workflows/**\"",
+        "\"scripts/ops/**\"",
+        "\"apps/**\"",
+        "\"packages/**\""
+      ],
+      "requiredNames": [
+        "prod-6-security-release",
+        "PROD-6 security release checks",
+        "Checkout full history",
+        "Setup platform",
+        "Run PROD-6 security release gate",
+        "Upload PROD-6 release evidence",
+        "prod-6-release-evidence"
       ]
     },
     {

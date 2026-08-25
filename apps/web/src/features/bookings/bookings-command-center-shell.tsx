@@ -15,7 +15,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BookingActionNotice } from "@/features/bookings/booking-action-notice";
-import { OPERATOR_EXTEND_PAYMENT_DEADLINE_MARKER } from "@/features/bookings/booking-payment-deadline-actions";
 import { BookingInboxRow } from "@/features/bookings/booking-inbox-row";
 import { BookingInspectionDetails } from "@/features/bookings/booking-inspection-details";
 import {

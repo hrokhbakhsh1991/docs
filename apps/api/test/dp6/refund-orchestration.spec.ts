@@ -28,6 +28,7 @@ function memberHeaders(userId: string, workspaceId: string): Record<string, stri
   return {
     "content-type": "application/json",
     "x-tenant-id": OPERATOR_SMOKE.tenantId,
+    "x-authenticated-tenant-id": OPERATOR_SMOKE.tenantId,
     "x-user-id": userId,
     "x-workspace-id": workspaceId,
     "x-user-role": "member",
@@ -216,7 +217,7 @@ describe("DP6 member cancellation eligibility includes refund preview", () => {
     const row = await repo.getById(bookingId, OPERATOR_SMOKE.tenantId);
     assert.ok(row);
     const { getMemberCancellationEligibility } = await import(
-      "../../src/bookings/member-cancellation.service.ts"
+      "../../src/member-cancellation/member-cancellation.service.ts"
     );
     const result = await getMemberCancellationEligibility(
       {

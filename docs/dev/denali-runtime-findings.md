@@ -3,7 +3,9 @@
 ```yaml
 registry_id: DENALI-RUNTIME-FINDINGS-2026-08-24
 authority: docs/dev/production-closure-ledger.md
-reconciled_commit: 09ba2b09906fde8d7104489fa8401ef4d9ab2e99
+reconciled_commit: 425d0c952356b8ce60c5cba9d6bb5d05adbb1b89
+wave_b_evidence: docs/evidence/denali-wave-b/ba7b37fa3075fc09651b7d66b47d6e3550d3425e/
+wave_b5_evidence: docs/evidence/denali-wave-b5/425d0c952356b8ce60c5cba9d6bb5d05adbb1b89/
 ```
 
 Runtime closure gaps discovered during **truth reconciliation** and prior DP certification. Product code changes are **out of scope** for Wave A.
@@ -19,12 +21,9 @@ Severity: **P0** blocks paid-ops / go-live honesty · **P1** should close before
 | **Phase** | Receipt upload (P6 / DP-1 member path) |
 | **Severity** | P1 |
 | **Role** | Member |
-| **Status** | **NEEDS_VERIFICATION** on `main` + Postgres |
-| **Source** | `docs/phase-20/p7/runbooks/p7-staging-e2e.md` — SMK-PTL-04 symptom table |
-| **Hypothesis** | `STORAGE_DRIVER=prisma`: booking lookup without admin/RLS path returns null before finance write |
-| **Reproduction** | Member `POST` receipt on approved registration against Postgres API (not memory driver) |
-| **Evidence** | Historical staging notes only — **not reproduced** in reconciliation VM (no Postgres) |
-| **Required rerun** | `SMK-PTL-04` or `p6-member-receipt-flow.spec.ts` on Postgres after `db:migrate:deploy` |
+| **Status** | **CLOSED** @ `7628fcd9` memory driver — root cause `MINIO_NOT_CONFIGURED`; fix: dev memory receipt store in `receipt-proof-storage.ts` |
+| **Reproduction** | Wave B: multipart upload 201 + paid booking; evidence `upload-receipt-e2e.json` |
+| **Required rerun** | Postgres path still **NEEDS_VERIFICATION** (B8 BLOCKED_EXTERNAL) |
 
 ---
 
@@ -35,10 +34,8 @@ Severity: **P0** blocks paid-ops / go-live honesty · **P1** should close before
 | **Phase** | DP-2 |
 | **Severity** | P1 |
 | **Role** | Operator |
-| **Status** | **OPEN** |
-| **Source** | `6431af73` marked DP2-11/12 `[x]`; `9126e966` reverted to `[!]` |
-| **Evidence** | `scripts/seed-dp2-physical-cert-fixture.mjs` expects `/opt/cursor/artifacts/dp2-cert-*` — **no files** on `main` or reconciliation artifact store |
-| **Required rerun** | Operator 1440 roster journey + archive screenshots/HAR/console @ current SHA |
+| **Status** | **CLOSED** @ `7628fcd9` |
+| **Evidence** | `docs/evidence/denali-wave-b/ba7b37fa3075fc09651b7d66b47d6e3550d3425e/browser/dp2-roster-1440.png` |
 
 ---
 
@@ -69,9 +66,7 @@ Severity: **P0** blocks paid-ops / go-live honesty · **P1** should close before
 |-------|-------|
 | **Phase** | DP-1..6 automated gates |
 | **Severity** | P1 (environment) |
-| **Status** | **OPEN** |
-| **Reproduction** | Run `scripts/test-dp*.sh` without `pnpm build` → `MODULE_NOT_FOUND` for package `dist`, `guard:import-boundary` fails without `workspace-sdk/dist` |
-| **Required rerun** | `pnpm build` (or CI snapshot) then full DP script chain; record SHA + exit codes in closure ledger |
+| **Status** | **CLOSED** @ `7628fcd9` — B1 + `denali-wave-b-runtime-cert.sh` PASS |
 
 ---
 
@@ -82,9 +77,8 @@ Severity: **P0** blocks paid-ops / go-live honesty · **P1** should close before
 | **Phase** | DP-1 |
 | **Severity** | P0 (closure) |
 | **Role** | Operator, Member |
-| **Status** | **OPEN** |
-| **Evidence** | Automated 25/25 claimed @ `9bbf358e`; DP1-M journeys not archived |
-| **Required rerun** | BR-OP-03 expiry, BR-MEM-03 closed `payment_expired`, BR-WL-01 with worker tick or test clock |
+| **Status** | **CLOSED** @ `7628fcd9` |
+| **Evidence** | Live `POST /finance/payment-holds/:id/extend` + scheduler tick; `dp1-c-after-expiry.json`, `dp1-d-promoted.json` |
 
 ---
 
@@ -94,9 +88,33 @@ Severity: **P0** blocks paid-ops / go-live honesty · **P1** should close before
 |-------|-------|
 | **Phase** | DP-2 / roster |
 | **Severity** | P1 (product) |
-| **Status** | **OPEN** — PROPOSED in `operational-roster-semantics.ts`, not APPROVED |
-| **Rule in code** | `final := approved && remainingMinor === 0` |
-| **Required** | Product owner sign or explicit defer; see production-closure-ledger § DEN-PROD-03 |
+| **Status** | **CLOSED** @ Wave B 2026-08-24 — DEN-PROD-03 APPROVED; code parity confirmed |
+| **Rule in code** | `final := approved && remainingMinor === 0` (waived counts settled) |
+| **Evidence** | `docs/dev/production-closure-ledger.md` § DEN-PROD-03 decision lock |
+
+---
+
+## DRF-008 — DP-3 flat-edit UI PATCH save harness incomplete (Wave B.5)
+
+| Field | Value |
+|-------|-------|
+| **Phase** | DP-3 |
+| **Severity** | P1 |
+| **Role** | Operator |
+| **Status** | **OPEN** — API mutation matrix PASS; Playwright flat-edit save does not complete PATCH (`admin.operator.localhost`) |
+| **Evidence** | `docs/evidence/denali-wave-b5/425d0c952356b8ce60c5cba9d6bb5d05adbb1b89/` — before screenshot + API classifications; Wave B API `dp3-safe-edit-body.json` |
+
+---
+
+## DRF-009 — DP-6 authenticated portal refund UI (Wave B.5)
+
+| Field | Value |
+|-------|-------|
+| **Phase** | DP-6 |
+| **Severity** | P1 |
+| **Role** | Member |
+| **Status** | **CLOSED** @ `425d0c95` |
+| **Evidence** | `browser/dp6-member-refund-1440.png`, `390.png`; `api/dp6-member-detail.json`; operator parity `dp6-operator-refunds.json` |
 
 ---
 

@@ -28,12 +28,13 @@ export async function handleFreezeTourRoster(
       sendJson(res, 400, { code: "INVALID_BODY", message: "driverCompensationPerSeatMinor required" });
       return;
     }
+    const driverCompensationPerSeatMinor = body.driverCompensationPerSeatMinor;
     await runWithHttpRequestContext(
       req,
       auth,
       async () => {
         const result = await freezeTourRosterAndGenerateSettlements(auth, tourId, {
-          driverCompensationPerSeatMinor: body.driverCompensationPerSeatMinor,
+          driverCompensationPerSeatMinor,
           currency: typeof body.currency === "string" ? body.currency : "IRR",
         });
         sendJson(res, 200, result);
@@ -127,13 +128,15 @@ export async function handleCreateDriverSettlementCorrection(
       sendJson(res, 400, { code: "INVALID_BODY", message: "billableQuantity and unitAmountMinor required" });
       return;
     }
+    const billableQuantity = body.billableQuantity;
+    const unitAmountMinor = body.unitAmountMinor;
     await runWithHttpRequestContext(
       req,
       auth,
       async () => {
         const settlement = await createCorrectionSettlement(auth, tourId, settlementId, {
-          billableQuantity: body.billableQuantity,
-          unitAmountMinor: body.unitAmountMinor,
+          billableQuantity,
+          unitAmountMinor,
           currency: typeof body.currency === "string" ? body.currency : "IRR",
         });
         sendJson(res, 201, { settlement });

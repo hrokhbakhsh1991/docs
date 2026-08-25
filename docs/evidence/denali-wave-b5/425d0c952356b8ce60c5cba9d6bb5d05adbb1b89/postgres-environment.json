@@ -1,0 +1,8 @@
+{
+  "classification": "BLOCKED_EXTERNAL",
+  "docker": false,
+  "DATABASE_URL_set": false,
+  "canonical_workflow": "pnpm run infra:up (infra/docker-compose.yml postgres:16 on port 5434)",
+  "required_input": "Docker + eval \"$(bash scripts/ensure-p6-finance-postgres.sh)\" then prisma migrate deploy",
+  "note": "Cloud VM has no docker client — B5-4/B5-5 not executed"
+}

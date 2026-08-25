@@ -30,7 +30,6 @@ import type {
 import {
   BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
   BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE,
-  BOOKING_REJECT_OUTBOX_EVENT_TYPE,
   BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
   readTourCapacityMaxFromIntake,
 } from "@app-tour/booking-http-contracts";
@@ -40,8 +39,8 @@ import {
   BookingNotFoundError,
 } from "./bookings.errors";
 import { resolveUtcApprovedWithinDaysWindow } from "./booking-list-query";
-import { runPostCancelSideEffects } from "./post-cancel-side-effects.ts";
-import { recordRegistrationSloEvent } from "../observability/workspace-slo-telemetry.ts";
+import type { BookingPostCancelSideEffectsPort } from "./ports/booking-post-cancel-side-effects.port";
+import type { BookingRegistrationSloPort } from "./ports/booking-registration-slo.port";
 
 const BULK_APPROVE_MAX_BATCH = 25;
 
@@ -66,6 +65,8 @@ export type BookingsServiceDeps = {
    * Injected at composition (never import runtime-profile into this service).
    */
   readonly productionGradeIntegrity: boolean;
+  readonly postCancelSideEffects: BookingPostCancelSideEffectsPort;
+  readonly registrationSlo: BookingRegistrationSloPort;
 };
 
 
@@ -149,6 +150,8 @@ export class BookingsService {
   private readonly tenantWorkspaceBinding: BookingTenantWorkspaceBindingPort;
   private readonly capabilities: BookingRuntimeCapabilities;
   private readonly productionGradeIntegrity: boolean;
+  private readonly postCancelSideEffects: BookingPostCancelSideEffectsPort;
+  private readonly registrationSlo: BookingRegistrationSloPort;
 
   constructor(deps: BookingsServiceDeps) {
     if (deps.repository == null) {
@@ -187,6 +190,12 @@ export class BookingsService {
     if (typeof deps.productionGradeIntegrity !== "boolean") {
       throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:productionGradeIntegrity");
     }
+    if (deps.postCancelSideEffects == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:postCancelSideEffects");
+    }
+    if (deps.registrationSlo == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:registrationSlo");
+    }
     const workspaceType = deps.workspaceType.trim().toLowerCase();
     if (workspaceType.length === 0) {
       throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:workspaceType");
@@ -204,6 +213,8 @@ export class BookingsService {
     this.tenantWorkspaceBinding = deps.tenantWorkspaceBinding;
     this.capabilities = deps.capabilities;
     this.productionGradeIntegrity = deps.productionGradeIntegrity;
+    this.postCancelSideEffects = deps.postCancelSideEffects;
+    this.registrationSlo = deps.registrationSlo;
   }
 
   /** Bound workspaceType for this runtime (capability composition key). */
@@ -567,7 +578,7 @@ export class BookingsService {
           });
         },
       });
-      recordRegistrationSloEvent({
+      this.registrationSlo.record({
         workspaceType: this.workspaceType,
         tenantId: auth.tenantId,
         outcome: "success",
@@ -575,7 +586,7 @@ export class BookingsService {
       });
       return { id: created.id, status: created.status };
     } catch (error) {
-      recordRegistrationSloEvent({
+      this.registrationSlo.record({
         workspaceType: this.workspaceType,
         tenantId: auth.tenantId,
         outcome: "error",
@@ -726,7 +737,7 @@ export class BookingsService {
   }
 
   /**
-   * Ops reject — status + optional rejectReason + registration.rejected outbox (DP-4).
+   * Ops reject — status + optional rejectReason; intentionally silent (decision B).
    */
   async rejectBooking(
     auth: BookingActorContext,
@@ -738,7 +749,6 @@ export class BookingsService {
     const updated = await this.repository.rejectBooking({
       bookingId,
       tenantId: auth.tenantId,
-      outboxEvent: BOOKING_REJECT_OUTBOX_EVENT_TYPE,
       ...(body.reason !== undefined ? { reason: body.reason } : {}),
     });
     return {
@@ -779,7 +789,7 @@ export class BookingsService {
       outboxEvent: BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
       cancelSource: "operator",
     });
-    await runPostCancelSideEffects({
+    await this.postCancelSideEffects.run({
       auth,
       booking: { ...before, status: "cancelled", cancelSource: "operator" },
       previousStatus,

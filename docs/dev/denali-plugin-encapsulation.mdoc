@@ -18,6 +18,24 @@ Phase 6 P2 splits workspace **package.json exports** into three layers:
 
 All four workspaces (`denali`, `urban`, `starter`, `guest-club`) follow the same rule; CI enforces it via `guard:workspace-export-surface`.
 
+## API error mapping without `./host/http` (CI isolation ratchet)
+
+`guard-api-workspace-isolation` forbids **non-generated** `apps/api` imports of `@app-tour/workspace-*/host/*`.
+Tour mutation policy errors need **rich 409 bodies** (`reasonCode`, `fields`, `message`) that generic
+`WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS` cannot emit.
+
+**Contract (2026-08-25):** Denali exposes package-owned API contract paths **outside** `./host/*`:
+
+| Export | Purpose |
+| ------ | ------- |
+| `./errors/tour-mutation` | Tour mutation policy error classes + guards (`error-interceptor` rich 409 branch) |
+| `./booking` | Member cancellation + refund eligibility (finance/booking services) |
+| `./finance` | Payment deadline / due-at helpers (payment-hold service) |
+| `./tours` | Tour mutation evaluation + operational facts types |
+| `./workspace-owner` | `assertDenaliWorkspaceOwner` (tour mutation override gate) |
+
+`apps/api` hand-written modules import these paths; `workspace-http-error-map.generated.ts` keeps `./host/http` imports (generated files are exempt).
+
 ## Allowed `./plugin` exports (Denali)
 
 | Symbol | Purpose |

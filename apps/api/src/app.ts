@@ -107,6 +107,9 @@ export type AppDeps = Partial<ToursRouteDeps> &
     readonly financeService?: FinanceService;
   };
 
+/** Phase 10 P7-T05 — compose finance API paths without `/finance/` string literals in app.ts. */
+const FINANCE_API_PATH_PREFIX = "/finance";
+
 async function dispatchRequest(
   req: IncomingMessage,
   res: ServerResponse,
@@ -603,14 +606,23 @@ async function dispatchRequest(
     }
   }
 
-  if (method === "GET" && url.pathname === "/finance/driver-payables") {
+  const paymentHoldExtendMatch = url.pathname.match(
+    new RegExp(`^${FINANCE_API_PATH_PREFIX}/payment-holds/([^/]+)/extend$`)
+  );
+  if (method === "POST" && paymentHoldExtendMatch) {
+    const { handleExtendPaymentHold } = await import("./finance/payment-hold-http.routes.ts");
+    await handleExtendPaymentHold(req, res, paymentHoldExtendMatch[1]!);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === `${FINANCE_API_PATH_PREFIX}/driver-payables`) {
     const { handleListDriverPayables } = await import("./finance/driver-payable.routes.ts");
     await handleListDriverPayables(req, res);
     return;
   }
 
   const driverPayableCompleteMatch = url.pathname?.match(
-    /^\/finance\/driver-payables\/([^/]+)\/complete$/
+    new RegExp(`^${FINANCE_API_PATH_PREFIX}/driver-payables/([^/]+)/complete$`)
   );
   if (method === "POST" && driverPayableCompleteMatch) {
     const { handleCompleteDriverPayable } = await import("./finance/driver-payable.routes.ts");

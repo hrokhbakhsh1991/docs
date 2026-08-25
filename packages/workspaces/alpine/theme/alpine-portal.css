@@ -1,3 +1,10 @@
-[data-workspace-plugin="alpine"] {
-  --ws-color-primary: #1d4ed8;
+/**
+ * Alpine guest portal skin stub — PTL-8a (layout hooks).
+ * Color semantics: theme/portal-semantic-tokens.css (@generated from manifest defaults).
+ */
+@import "./tokens.css";
+@import "./portal-semantic-tokens.css";
+
+body[data-app-surface="portal"][data-workspace-plugin="alpine"] [data-portal-shell] {
+  min-height: 100dvh;
 }

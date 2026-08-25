@@ -32,6 +32,11 @@
       "require": "./dist/case/public-api.js",
       "default": "./dist/case/public-api.js"
     },
+    "./infrastructure/in-memory-payment-hold.repository": {
+      "types": "./dist/infrastructure/in-memory-payment-hold.repository.d.ts",
+      "require": "./dist/infrastructure/in-memory-payment-hold.repository.js",
+      "default": "./dist/infrastructure/in-memory-payment-hold.repository.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

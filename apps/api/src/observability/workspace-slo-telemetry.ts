@@ -1,8 +1,20 @@
 /**
  * MAT-012 — bounded workspace SLO telemetry primitives (no PII / unbounded IDs in labels).
  */
+import { hashTenantIdForLog } from "./log-safety";
 import { logger } from "./logger";
 import { metricsRegistry } from "./metrics";
+
+function safeTenantHashForLog(tenantId: string | undefined): string | undefined {
+  if (tenantId === undefined) {
+    return undefined;
+  }
+  try {
+    return hashTenantIdForLog(tenantId);
+  } catch {
+    return undefined;
+  }
+}
 
 export type WorkspaceSloArea =
   | "api"
@@ -61,13 +73,14 @@ export function recordWorkspaceSloEvent(event: WorkspaceSloEvent): void {
     metricsRegistry.observe("workspace_slo_latency_ms", event.durationMs, labels);
   }
 
+  const tenantHash = safeTenantHashForLog(event.tenantId);
   logger.info(
     {
       event: "workspace.slo",
       area: event.area,
       outcome: event.outcome,
       workspaceType,
-      ...(event.tenantId !== undefined ? { tenantId: event.tenantId } : {}),
+      ...(tenantHash !== undefined ? { tenant_hash: tenantHash } : {}),
       ...(event.validationStage !== undefined ? { validationStage: event.validationStage } : {}),
       ...(event.capabilityId !== undefined ? { capabilityId: event.capabilityId } : {}),
       ...(event.durationMs !== undefined ? { durationMs: Math.round(event.durationMs) } : {}),

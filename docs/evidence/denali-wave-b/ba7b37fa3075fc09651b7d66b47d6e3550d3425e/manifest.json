@@ -1,0 +1,19 @@
+{
+  "sha": "ba7b37fa3075fc09651b7d66b47d6e3550d3425e",
+  "timestamp": "20260824T220900Z",
+  "environment": "memory-driver dev surfaces",
+  "adminHost": "denali.admin.localhost",
+  "portalHost": "operator.portal.localhost",
+  "journeys": [
+    "dp1-a",
+    "dp1-b",
+    "dp1-c",
+    "dp1-d",
+    "dp1-e",
+    "dp2",
+    "dp3",
+    "dp4",
+    "dp6",
+    "receipt-upload"
+  ]
+}

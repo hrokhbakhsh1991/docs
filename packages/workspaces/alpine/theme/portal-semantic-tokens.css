@@ -1,0 +1,9 @@
+/** @generated — do not edit; source: alpine.workspace.manifest tenantBrandingDefaults — stub portal semantic colors */
+/**
+ * alpine portal semantic colors (DTCG authority stub).
+ */
+body[data-app-surface="portal"][data-workspace-plugin="alpine"] {
+  --color-primary: #1d4ed8;
+  --color-primary-fg: #ffffff;
+  --color-primary-hover: #1e40af;
+}
