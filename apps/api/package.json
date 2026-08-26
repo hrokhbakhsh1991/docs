@@ -164,6 +164,7 @@
     "@app-tour/finance-core": "workspace:*",
     "@app-tour/finance-http": "workspace:*",
     "@app-tour/finance-http-contracts": "workspace:*",
+    "@app-tour/iran-mobile": "workspace:*",
     "@app-tour/platform-core": "workspace:*",
     "@app-tour/platform-events": "workspace:*",
     "@app-tour/tenant-kernel": "workspace:*",

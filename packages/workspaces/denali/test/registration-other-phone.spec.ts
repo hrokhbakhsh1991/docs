@@ -25,7 +25,7 @@ describe("denali registration other phone", () => {
   it("DN-OTHER-PHONE-02 other normalizes IR mobile", () => {
     assert.equal(
       resolveDenaliRegistrationContactPhone("other", "09123456789"),
-      "+989123456789"
+      "09123456789"
     );
   });
 

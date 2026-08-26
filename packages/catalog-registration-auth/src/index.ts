@@ -1,3 +1,5 @@
+import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
+
 import { normalizePublicRegistrationMobile } from "./normalize-public-registration-mobile";
 
 export type PublicRegistrationApiError = {
@@ -37,6 +39,8 @@ export {
 } from "./registration-flow-state";
 
 export { normalizePublicRegistrationMobile };
+
+export { formatIranMobileForDisplay };
 
 export function isPublicRegistrationMobileValid(mobile: string): boolean {
   const digits = mobile.replace(/\D/g, "");

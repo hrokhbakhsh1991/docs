@@ -1,5 +1,6 @@
 "use client";
 
+import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 import { Input as PrimitiveInput } from "@app-tour/ui-primitives/input";
 import { useCallback, useEffect, useState } from "react";
@@ -292,7 +293,7 @@ export function UsersMemberDetailSheet({
               <SheetTitle className="truncate">{user.displayName}</SheetTitle>
               <SheetDescription>
                 <span dir="ltr" className="tabular-nums">
-                  {user.phone ?? "—"}
+                  {user.phone ? formatIranMobileForDisplay(user.phone) : "—"}
                 </span>
                 <span className="sr-only">{t("memberDetail.description")}</span>
               </SheetDescription>

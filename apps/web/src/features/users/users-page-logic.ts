@@ -1,6 +1,7 @@
+import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
 import type { ActorRole } from "@app-tour/workspace-sdk";
 
-import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
+import { canonicalizeOperatorLoginPhone } from "@/features/auth/canonicalize-operator-login-phone";
 
 import type {
   InvitableWorkspaceRole,
@@ -22,7 +23,7 @@ export function buildInviteRequestBody(input: {
   readonly role: InvitableWorkspaceRole;
   readonly nameNote?: string;
 }): InviteRequestBody {
-  const phone = normalizeNumericInputValue(input.phone.trim(), "phone");
+  const phone = canonicalizeOperatorLoginPhone(input.phone);
   const body: InviteRequestBody = { phone, role: input.role };
   const nameNote = input.nameNote?.trim();
   if (nameNote && nameNote.length > 0) {
@@ -106,7 +107,7 @@ export function buildUsersCsvContent(rows: readonly UsersCsvRow[]): string {
 export function toUsersCsvRows(items: readonly UsersDirectoryRow[]): readonly UsersCsvRow[] {
   return items.map((row) => ({
     name: row.displayName,
-    phone: row.phone ?? "",
+    phone: row.phone ? formatIranMobileForDisplay(row.phone) : "",
     email: row.email ?? "",
     gender: row.gender ?? "",
     role: row.role,

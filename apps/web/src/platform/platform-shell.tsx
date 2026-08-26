@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
 import React, { type ReactNode } from "react";
 
 import type { PlatformNavItem } from "./platform-nav";
@@ -38,7 +39,9 @@ export function PlatformShell({ session, navItems, children }: PlatformShellProp
             </Link>
           ))}
         </nav>
-        <p className="mt-8 text-xs text-muted-foreground">{session.phone}</p>
+        <p className="mt-8 text-xs text-muted-foreground">
+          {formatIranMobileForDisplay(session.phone)}
+        </p>
         <button
           type="button"
           className="mt-3 text-left text-sm text-muted-foreground hover:text-foreground"

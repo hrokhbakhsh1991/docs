@@ -6,7 +6,7 @@ import type {
   OperatorProfileGender,
 } from "@app-tour/workspace-sdk";
 
-import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
+import { canonicalizeLoginMobile, resolveLoginMobileLookupKeys } from "./canonicalize-login-mobile";
 import {
   computeInviteExpiresAt,
   isOperatorInviteActive,
@@ -239,7 +239,13 @@ export class InMemoryIdentityRepository implements IdentityRepository {
   }
 
   async findUserByMobile(mobile: string): Promise<IdentityUserRecord | null> {
-    return this.usersByMobile.get(normalizeMobile(mobile)) ?? null;
+    for (const key of resolveLoginMobileLookupKeys(mobile)) {
+      const user = this.usersByMobile.get(key);
+      if (user !== undefined) {
+        return user;
+      }
+    }
+    return null;
   }
 
   async findUserById(userId: string): Promise<IdentityUserRecord | null> {

@@ -43,11 +43,13 @@
     "start": "next start --port 3000"
   },
   "dependencies": {
+    "@app-tour/catalog-registration-auth": "workspace:*",
     "@app-tour/design-tokens": "workspace:*",
     "@app-tour/draft-engine": "workspace:*",
     "@app-tour/finance-case-encounter-ui": "workspace:*",
     "@app-tour/guest-surface-host": "workspace:*",
     "@app-tour/iran-mountain-landmarks": "workspace:*",
+    "@app-tour/iran-mobile": "workspace:*",
     "@app-tour/platform-core": "workspace:*",
     "@app-tour/session-client": "workspace:*",
     "@app-tour/tenant-kernel": "workspace:*",

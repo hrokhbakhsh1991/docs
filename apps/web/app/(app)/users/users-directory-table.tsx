@@ -17,6 +17,8 @@ import {
   resolveLoyaltyTierFromBadges,
 } from "@/features/users/users-rewards-logic";
 
+import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
+
 import { UsersDirectoryAvatar } from "./users-directory-avatar";
 
 type UsersDirectoryTableProps = {
@@ -42,7 +44,7 @@ function formatPhoneCell(phone: string | null): ReactNode {
   }
   return (
     <span dir="ltr" className="inline-block tabular-nums text-muted-foreground">
-      {phone}
+      {formatIranMobileForDisplay(phone)}
     </span>
   );
 }

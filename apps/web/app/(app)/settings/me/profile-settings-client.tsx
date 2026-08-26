@@ -1,5 +1,6 @@
 "use client";
 
+import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
@@ -292,7 +293,12 @@ export function ProfileSettingsClient({
 
               <div className="space-y-2">
                 <Label htmlFor="profile-mobile">{t("phone")}</Label>
-                <Input id="profile-mobile" value={profile?.mobile ?? ""} readOnly disabled />
+                <Input
+                  id="profile-mobile"
+                  value={profile?.mobile ? formatIranMobileForDisplay(profile.mobile) : ""}
+                  readOnly
+                  disabled
+                />
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">

@@ -8,6 +8,7 @@ import { Smartphone, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
+import { canonicalizeOperatorLoginPhone } from "@/features/auth/canonicalize-operator-login-phone";
 import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
 import { Label } from "@/components/ui/label";
 import { LoginTenantBrand } from "@/features/auth/login-tenant-brand";
@@ -64,18 +65,18 @@ function readErrorCode(data: ApiErrorPayload): string {
 }
 
 function readPhoneForSubmit(statePhone: string): string {
-  const fromState = normalizeNumericInputValue(statePhone, "phone");
+  const fromState = canonicalizeOperatorLoginPhone(statePhone);
   if (fromState.length > 0) {
     return fromState;
   }
   if (typeof document === "undefined") {
-    return statePhone;
+    return canonicalizeOperatorLoginPhone(statePhone);
   }
   const element = document.getElementById("phone");
   if (!(element instanceof HTMLInputElement)) {
-    return statePhone;
+    return canonicalizeOperatorLoginPhone(statePhone);
   }
-  return normalizeNumericInputValue(element.value, "phone");
+  return canonicalizeOperatorLoginPhone(element.value);
 }
 
 export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: LoginFormProps) {

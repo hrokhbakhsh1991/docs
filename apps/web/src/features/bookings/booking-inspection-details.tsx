@@ -1,5 +1,6 @@
 "use client";
 
+import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
 import { Copy } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -128,7 +129,7 @@ export function BookingInspectionDetails({
           <>
             <dt className="text-muted-foreground">{t("fields.phone")}</dt>
             <dd dir="ltr" className="text-start">
-              {booking.guestPhone}
+              {formatIranMobileForDisplay(booking.guestPhone)}
             </dd>
           </>
         ) : null}

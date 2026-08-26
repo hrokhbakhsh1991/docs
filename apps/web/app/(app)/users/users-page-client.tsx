@@ -1,5 +1,6 @@
 "use client";
 
+import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
 import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Download, Plus, Search, UserPlus } from "lucide-react";
@@ -1073,7 +1074,7 @@ function PendingInviteRowCard({
       <CardContent className="space-y-3 py-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate font-medium">{invite.phone}</p>
+            <p className="truncate font-medium">{formatIranMobileForDisplay(invite.phone)}</p>
             {invite.nameNote ? (
               <p className="truncate text-sm text-muted-foreground">{invite.nameNote}</p>
             ) : null}

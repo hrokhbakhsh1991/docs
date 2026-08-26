@@ -1,5 +1,6 @@
 "use client";
 
+import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 
@@ -288,7 +289,7 @@ export function DenaliLeaderUserIdsField({
                         <span className="denali-leader-picker__name">{user.displayName}</span>
                         {user.phone ? (
                           <span className="denali-leader-picker__phone" dir="ltr">
-                            {user.phone}
+                            {formatIranMobileForDisplay(user.phone)}
                           </span>
                         ) : null}
                         {showLeaderBadge || showAdminBadge ? (

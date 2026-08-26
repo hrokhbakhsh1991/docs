@@ -5,6 +5,7 @@ import type {
   OperatorMembershipAvatar,
   OperatorProfileGender,
 } from "@app-tour/workspace-sdk";
+import { buildIranMobileSearchPatterns } from "@app-tour/iran-mobile";
 import { Prisma } from "@prisma/client";
 import type { InvitableWorkspaceRole } from "./users.types";
 import { getIdentityAdminClient, IDENTITY_ADMIN_REASON } from "./identity-admin-client";
@@ -23,7 +24,7 @@ import type {
   UserRoleAuditInsert,
   UserRoleAuditRecord,
 } from "./in-memory-identity.repository";
-import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
+import { canonicalizeLoginMobile, resolveLoginMobileLookupKeys } from "./canonicalize-login-mobile";
 import {
   computeInviteExpiresAt,
   isOperatorInviteActive,
@@ -184,19 +185,30 @@ function buildDirectorySqlConditions(
   }
   const search = filters.search?.trim();
   if (search !== undefined && search.length > 0) {
-    const pattern = `%${search}%`;
-    conditions.push(
-      Prisma.sql`(u.mobile ILIKE ${pattern} OR ut.membership_metadata->>'displayName' ILIKE ${pattern})`
-    );
+    const mobilePatterns = buildIranMobileSearchPatterns(search);
+    const namePattern = `%${search}%`;
+    if (mobilePatterns.length > 1) {
+      conditions.push(
+        Prisma.sql`(${Prisma.join(
+          mobilePatterns.map((pattern) => Prisma.sql`u.mobile ILIKE ${pattern}`),
+          " OR "
+        )} OR ut.membership_metadata->>'displayName' ILIKE ${namePattern})`
+      );
+    } else {
+      const pattern = `%${search}%`;
+      conditions.push(
+        Prisma.sql`(u.mobile ILIKE ${pattern} OR ut.membership_metadata->>'displayName' ILIKE ${pattern})`
+      );
+    }
   }
   return conditions;
 }
 
 export class PrismaIdentityRepository implements IdentityRepository {
   async findUserByMobile(mobile: string): Promise<IdentityUserRecord | null> {
-    // users: FORCE RLS deny for app_cloud mutations; pre-tenant login has no GUC — identity admin client.
-    const row = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_USER_READ).user.findUnique({
-      where: { mobile: normalizeMobile(mobile) },
+    const lookupKeys = resolveLoginMobileLookupKeys(mobile);
+    const row = await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_USER_READ).user.findFirst({
+      where: { mobile: { in: [...lookupKeys] } },
       select: { id: true, mobile: true },
     });
     return row === null ? null : { id: row.id, mobile: row.mobile };

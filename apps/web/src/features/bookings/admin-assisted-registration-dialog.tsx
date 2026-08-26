@@ -1,5 +1,6 @@
 "use client";
 
+import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -56,6 +57,13 @@ function readErrorCode(payload: unknown, fallback: string): string {
     }
   }
   return fallback;
+}
+
+function formatContactSummary(phone: string | null | undefined, email: string | null | undefined): string {
+  const phoneLabel =
+    (phone ?? "").trim().length > 0 ? formatIranMobileForDisplay(phone ?? "") : "";
+  const emailLabel = (email ?? "").trim();
+  return [phoneLabel, emailLabel].filter((value) => value.length > 0).join(" · ");
 }
 
 function StepRail({
@@ -390,9 +398,7 @@ export function AdminAssistedRegistrationDialog({
                     <div className="rounded-md bg-muted/40 p-3 text-sm">
                       <p className="font-medium">{form.memberDisplayName || form.guestLabel}</p>
                       <p className="text-muted-foreground">
-                        {[form.guestPhone, form.guestEmail]
-                          .filter((value) => value.trim().length > 0)
-                          .join(" · ")}
+                        {formatContactSummary(form.guestPhone, form.guestEmail)}
                       </p>
                     </div>
                   ) : null}
@@ -414,9 +420,7 @@ export function AdminAssistedRegistrationDialog({
                           <span>
                             <span className="block font-medium">{user.displayName}</span>
                             <span className="block text-xs text-muted-foreground">
-                              {[user.phone, user.email]
-                                .filter((value) => (value ?? "").trim().length > 0)
-                                .join(" · ")}
+                              {formatContactSummary(user.phone, user.email)}
                             </span>
                           </span>
                           <span className="text-xs text-muted-foreground">
@@ -614,9 +618,7 @@ export function AdminAssistedRegistrationDialog({
                     : form.guestLabel}
                 </p>
                 <p className="text-muted-foreground">
-                  {[form.guestPhone, form.guestEmail]
-                    .filter((value) => value.trim().length > 0)
-                    .join(" · ")}
+                  {formatContactSummary(form.guestPhone, form.guestEmail)}
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">
                   {t(`registrantMode.${form.registrantMode}`)}

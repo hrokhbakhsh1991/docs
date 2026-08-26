@@ -39,7 +39,7 @@ describe("public-registration-logic.spec.ts — P6-1", () => {
   it("PR-LOGIC-02b normalizePublicRegistrationMobile preserves E.164 for US dev phones", () => {
     assert.equal(normalizePublicRegistrationMobile("+15550001001"), "+15550001001");
     assert.equal(normalizePublicRegistrationMobile("15550001001"), "+15550001001");
-    assert.equal(normalizePublicRegistrationMobile("09123456789"), "+989123456789");
+    assert.equal(normalizePublicRegistrationMobile("09123456789"), "09123456789");
   });
 
   it("PR-LOGIC-03 profile payload omits email when empty", () => {

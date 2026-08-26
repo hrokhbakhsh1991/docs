@@ -7,7 +7,7 @@ import { decodeJwtPayload } from "@app-tour/session-client";
 import { setSessionCookieOnResponse } from "@/auth/build-session-cookie";
 import { setOperatorWelcomeArmedCookieOnResponse } from "@/auth/operator-welcome-cookie";
 import { normalizeOtpDigits } from "@/features/auth/otp-segment-input.logic";
-import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
+import { canonicalizeOperatorLoginPhone } from "@/features/auth/canonicalize-operator-login-phone";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
 type LoginPayload = {
@@ -18,9 +18,8 @@ type LoginPayload = {
 
 export async function POST(req: Request): Promise<NextResponse> {
   const body = (await req.json().catch(() => ({}))) as LoginPayload;
-  const phone = normalizeNumericInputValue(
-    typeof body.phone === "string" ? body.phone.trim() : "",
-    "phone"
+  const phone = canonicalizeOperatorLoginPhone(
+    typeof body.phone === "string" ? body.phone : ""
   );
   const otp = normalizeOtpDigits(typeof body.otp === "string" ? body.otp.trim() : "");
   const challengeId =

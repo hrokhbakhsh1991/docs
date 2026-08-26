@@ -5,6 +5,8 @@
  * (FA عضو / EN Member). Never render the English placeholder `"Member"`,
  * never render the identity mobile substitute, never use club chrome.
  */
+import { normalizeIranMobile } from "@app-tour/iran-mobile";
+
 export function resolveGuestMemberChipLabel(input: {
   readonly displayName?: string | null;
   readonly mobile?: string | null;
@@ -16,8 +18,15 @@ export function resolveGuestMemberChipLabel(input: {
   if (name.length === 0 || name === "Member") {
     return fallback;
   }
-  if (mobile.length > 0 && name === mobile) {
-    return fallback;
+  if (mobile.length > 0) {
+    const nameCanonical = normalizeIranMobile(name);
+    const mobileCanonical = normalizeIranMobile(mobile);
+    if (
+      name === mobile ||
+      (nameCanonical !== null && mobileCanonical !== null && nameCanonical === mobileCanonical)
+    ) {
+      return fallback;
+    }
   }
   return name;
 }
