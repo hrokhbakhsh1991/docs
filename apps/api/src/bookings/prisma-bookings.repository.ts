@@ -6,7 +6,6 @@ import {
   listBookingSourceStatusesForTarget,
 } from "./booking-status-transitions";
 
-import { attachPaymentDueAtProjections } from "../finance/load-payment-due-at-projections";
 import { resolveLoginMobileLookupKeys } from "../identity/canonicalize-login-mobile";
 import { withTenantRls } from "../db/with-tenant-rls";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
@@ -94,7 +93,6 @@ export const BOOKING_LIST_SELECT = {
   submittedByUserId: true,
   approvedAt: true,
   rejectReason: true,
-  cancelSource: true,
 } as const satisfies Prisma.OperatorRegistrationSelect;
 
 type BookingListRow = Prisma.OperatorRegistrationGetPayload<{
@@ -120,9 +118,6 @@ function toBookingListRecord(row: BookingListRow): BookingRecord {
     ...(row.rejectReason !== null && row.rejectReason.length > 0
       ? { rejectReason: row.rejectReason }
       : {}),
-    ...(row.cancelSource !== null && row.cancelSource.length > 0
-      ? { cancelSource: row.cancelSource }
-      : {}),
   };
 }
 
@@ -143,7 +138,6 @@ function toBookingRecord(row: {
   approvedAt: Date | null;
   registrationIntake?: Prisma.JsonValue | null;
   rejectReason?: string | null;
-  cancelSource?: string | null;
 }): BookingRecord {
   const registrationIntake =
     row.registrationIntake !== null &&
@@ -175,11 +169,6 @@ function toBookingRecord(row: {
     row.rejectReason !== undefined &&
     row.rejectReason.length > 0
       ? { rejectReason: row.rejectReason }
-      : {}),
-    ...(row.cancelSource !== null &&
-    row.cancelSource !== undefined &&
-    row.cancelSource.length > 0
-      ? { cancelSource: row.cancelSource }
       : {}),
   };
 }
@@ -503,11 +492,9 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       };
     });
 
-    const itemsWithDueAt = await attachPaymentDueAtProjections(input.tenantId, items);
-
     return {
-      items: itemsWithDueAt,
-      nextCursor: hasMore && itemsWithDueAt.length > 0 ? itemsWithDueAt[itemsWithDueAt.length - 1]!.id : null,
+      items,
+      nextCursor: hasMore && items.length > 0 ? items[items.length - 1]!.id : null,
     };
   }
 
@@ -735,17 +722,12 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
 
   async getById(id: string, tenantId: string): Promise<BookingRecord | null> {
     assertTenantId(tenantId);
-    const record = await withTenantRls(tenantId, async (tx) => {
+    return withTenantRls(tenantId, async (tx) => {
       const row = await tx.operatorRegistration.findFirst({
         where: { id, tenantId },
       });
       return row === null ? null : toBookingRecord(row);
     });
-    if (record === null) {
-      return null;
-    }
-    const [withDueAt] = await attachPaymentDueAtProjections(tenantId, [record]);
-    return withDueAt ?? record;
   }
 
   async getByIds(ids: readonly string[], tenantId: string): Promise<BookingRecord[]> {
@@ -754,14 +736,13 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     if (unique.length === 0) {
       return [];
     }
-    const rows = await withTenantRls(tenantId, async (tx) => {
-      const found = await tx.operatorRegistration.findMany({
+    return withTenantRls(tenantId, async (tx) => {
+      const rows = await tx.operatorRegistration.findMany({
         where: { tenantId, id: { in: unique } },
         select: BOOKING_LIST_SELECT,
       });
-      return found.map(toBookingListRecord);
+      return rows.map(toBookingListRecord);
     });
-    return attachPaymentDueAtProjections(tenantId, rows);
   }
 
   async updatePaymentStatus(input: {
@@ -1288,7 +1269,6 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     bookingId: string;
     tenantId: string;
     outboxEvent: string;
-    cancelSource?: string;
   }): Promise<BookingRecord> {
     return withTenantRls(input.tenantId, async (tx) => {
       const preliminary = await tx.operatorRegistration.findFirst({
@@ -1316,13 +1296,7 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           tenantId: input.tenantId,
           status: { in: [...listBookingSourceStatusesForTarget("cancelled")] },
         },
-        data: {
-          status: "cancelled",
-          approvedAt: null,
-          ...(input.cancelSource !== undefined && input.cancelSource.length > 0
-            ? { cancelSource: input.cancelSource }
-            : {}),
-        },
+        data: { status: "cancelled", approvedAt: null },
       });
       if (transitioned.count !== 1) {
         const again = await tx.operatorRegistration.findFirst({
@@ -1347,9 +1321,6 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
           status: "cancelled",
           cancelledAt: cancelledAt.toISOString(),
           previousStatus,
-          ...(input.cancelSource !== undefined && input.cancelSource.length > 0
-            ? { cancelSource: input.cancelSource }
-            : {}),
         },
         domainEventId: `registration.cancelled:${updated.id}:${cancelledAt.toISOString()}`,
         createdAt: cancelledAt,
