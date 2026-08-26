@@ -42,7 +42,7 @@ function waitForUrl(url, timeoutMs = 240_000) {
 
 async function probeOtp() {
   return new Promise((resolve) => {
-    const body = JSON.stringify({ phone: process.env.OPERATOR_OWNER_MOBILE ?? "+989121000001" });
+    const body = JSON.stringify({ phone: process.env.OPERATOR_OWNER_MOBILE ?? "09174070937" });
     const req = http.request(
       {
         method: "POST",

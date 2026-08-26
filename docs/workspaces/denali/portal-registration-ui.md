@@ -507,7 +507,7 @@ Dev OTP: `1234` when API runs with `AUTH_ALLOW_DEV_STATIC_OTP=true`.
 
 **New member on `/login`:** API may return `requires_registration` — OTP → **profile** step (display name), not immediate redirect. Complete profile then egress runs.
 
-**Phone canonicalization (PCMS-UX-MOBILE):** UI and portal BFF run `normalizePublicRegistrationMobile()` before every public-auth call. Never strip the leading `+` to digits-only — that breaks lookup against seeded E.164 rows (e.g. `15550001001` ≠ `+15550001001` in identity). US 11-digit numbers without `+` are promoted to `+1…`; Iranian `09…` → `+98…`.
+**Phone canonicalization (PCMS-UX-MOBILE):** UI and portal BFF run `normalizePublicRegistrationMobile()` before every public-auth call. Never strip the leading `+` to digits-only — that breaks lookup against seeded E.164 rows (e.g. `15550001001` ≠ `09174070937` in identity). US 11-digit numbers without `+` are promoted to `+1…`; Iranian `09…` → `+98…`.
 
 **Dev origin:** Playwright smokes hit `{club}.portal.localhost:3003` while Next dev serves `localhost:3003`. `apps/portal/next.config.ts` sets `allowedDevOrigins: ["*.portal.localhost"]` (parity with `apps/web` `*.admin.localhost`).
 

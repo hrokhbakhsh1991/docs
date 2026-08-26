@@ -48,7 +48,7 @@ P7_T4_SKIP_GATE=1 pnpm run p7:t4-architect-dry-run
 | Portal | http://89.45.89.206:23003 |
 | API health | http://89.45.89.206:23001/health |
 
-**Operator OTP (staging):** `+15550001001` / `1234`
+**Operator OTP (staging):** `09174070937` / `1234`
 
 **Smoke tour:** North Ridge Trek · id `00000000-0000-4000-8000-000000000210`
 

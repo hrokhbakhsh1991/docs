@@ -261,6 +261,109 @@ describe("dp3/tour-mutation-enforcement", () => {
     assert.equal(capacity, 30);
   });
 
+  it("DP3-POLICY-06b capacity decrease to occupied floor allowed", async () => {
+    resetBookingsRepositoryForTests();
+    const { beforeData } = await loadSmokeTourData();
+    const repo = getBookingsRepository();
+
+    repo.seedBooking({
+      id: "00000000-0000-4000-8000-000000000396",
+      tenantId: OPERATOR_SMOKE.tenantId,
+      tourId: OPERATOR_SMOKE.seedTourId,
+      tourTitle: "North Ridge Trek",
+      guestLabel: "Full Party",
+      partySize: 18,
+      status: "approved",
+      paymentStatus: "unpaid",
+      departureAt: new Date(Date.now() + 86_400_000).toISOString(),
+      submittedAt: new Date().toISOString(),
+      submittedByUserId: OPERATOR_SMOKE.memberUserId,
+      approvedAt: new Date().toISOString(),
+      registrationIntake: { tourCapacityMax: 20 },
+    });
+
+    const facts = await resolveTourMutationFacts({
+      tenantId: OPERATOR_SMOKE.tenantId,
+      tourId: OPERATOR_SMOKE.seedTourId,
+      tourData: beforeData,
+    });
+    assert.equal(facts.occupiedApprovedPartySize, 18);
+
+    const policy = assertWorkspaceTourMutationPolicy({
+      workspaceType: "denali",
+      auth: ownerAuth,
+      beforeData: {
+        ...beforeData,
+        basicInfo: {
+          ...(beforeData.basicInfo as Record<string, unknown>),
+          capacityMax: 20,
+        },
+      },
+      afterData: {
+        ...beforeData,
+        basicInfo: {
+          ...(beforeData.basicInfo as Record<string, unknown>),
+          capacityMax: 18,
+        },
+      },
+      facts,
+    });
+    assert.equal(policy.decision.decision, "ALLOW");
+  });
+
+  it("DP3-POLICY-06c capacity below occupied rejected (20 to 17, occupancy 18)", async () => {
+    resetBookingsRepositoryForTests();
+    const { beforeData } = await loadSmokeTourData();
+    const repo = getBookingsRepository();
+
+    repo.seedBooking({
+      id: "00000000-0000-4000-8000-000000000395",
+      tenantId: OPERATOR_SMOKE.tenantId,
+      tourId: OPERATOR_SMOKE.seedTourId,
+      tourTitle: "North Ridge Trek",
+      guestLabel: "Full Party",
+      partySize: 18,
+      status: "approved",
+      paymentStatus: "unpaid",
+      departureAt: new Date(Date.now() + 86_400_000).toISOString(),
+      submittedAt: new Date().toISOString(),
+      submittedByUserId: OPERATOR_SMOKE.memberUserId,
+      approvedAt: new Date().toISOString(),
+      registrationIntake: { tourCapacityMax: 20 },
+    });
+
+    const facts = await resolveTourMutationFacts({
+      tenantId: OPERATOR_SMOKE.tenantId,
+      tourId: OPERATOR_SMOKE.seedTourId,
+      tourData: beforeData,
+    });
+
+    await expectBlocked(
+      () =>
+        assertWorkspaceTourMutationPolicy({
+          workspaceType: "denali",
+          auth: ownerAuth,
+          beforeData: {
+            ...beforeData,
+            basicInfo: {
+              ...(beforeData.basicInfo as Record<string, unknown>),
+              capacityMax: 20,
+            },
+          },
+          afterData: {
+            ...beforeData,
+            basicInfo: {
+              ...(beforeData.basicInfo as Record<string, unknown>),
+              capacityMax: 17,
+            },
+          },
+          facts,
+        }),
+      DENALI_TOUR_MUTATION_BLOCKED,
+      "CAPACITY_BELOW_OCCUPIED"
+    );
+  });
+
   it("DP3-POLICY-08 transport mutation with allocations requires override", async () => {
     const { beforeData } = await loadSmokeTourData();
     const facts = await resolveTourMutationFacts({

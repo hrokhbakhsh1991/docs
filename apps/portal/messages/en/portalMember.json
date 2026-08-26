@@ -51,7 +51,7 @@
     "paymentStatusLabels": {
       "unpaid": "Unpaid",
       "partial": "Partially paid",
-      "paid": "Paid"
+      "paid": "Payment received"
     }
   },
   "profile": {

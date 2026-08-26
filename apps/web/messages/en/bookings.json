@@ -179,7 +179,17 @@
     "all": "All settlement states",
     "unpaid": "Unpaid (booking)",
     "partial": "Partially paid (booking)",
-    "paid": "Paid (booking)"
+    "paid": "Payment received"
+  },
+  "actionReason": {
+    "terminal_state": "This registration is closed — approve or reject is not available.",
+    "wrong_status": "This status cannot be approved or rejected here.",
+    "approved_use_finance": "Already approved — use the Payment follow-up tab for money actions.",
+    "approvedUseFinance": "Already approved — use the Payment follow-up tab for money actions.",
+    "not_admin": "Only admin or owner can perform this action.",
+    "capacity_full": "Tour is at capacity. Move to waitlist or approve to overbook.",
+    "waitlist_not_applicable": "Only pending registrations can be waitlisted.",
+    "cancel_not_allowed": "Cancellation is not allowed in the current state."
   },
   "metadata": {
     "list": {

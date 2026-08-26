@@ -5,7 +5,7 @@
 import { chromium } from "@playwright/test";
 
 const BASE = process.env.SMOKE_BASE_URL ?? "http://denali.localhost:3000";
-const OWNER_MOBILE = process.env.OPERATOR_OWNER_MOBILE ?? "+989121000001";
+const OWNER_MOBILE = process.env.OPERATOR_OWNER_MOBILE ?? "09174070937";
 const OTP = "1234";
 const DRAFT_TITLE = `ManualVerify ${Date.now()}`;
 

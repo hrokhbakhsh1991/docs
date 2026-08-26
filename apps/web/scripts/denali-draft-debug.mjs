@@ -11,11 +11,11 @@ page.on("request", (r) => {
 });
 
 const otp = await page.request.post("/api/auth/request-otp", {
-  data: { phone: "+989121000001" },
+  data: { phone: "09174070937" },
 });
 const { challenge_id } = await otp.json();
 await page.request.post("/api/auth/login-web-session", {
-  data: { phone: "+989121000001", otp: "1234", challenge_id },
+  data: { phone: "09174070937", otp: "1234", challenge_id },
 });
 
 await page.goto("/tours/new");

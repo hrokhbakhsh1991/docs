@@ -11,13 +11,24 @@ const SheetTrigger = SheetPrimitive.Trigger;
 const SheetClose = SheetPrimitive.Close;
 const SheetPortal = SheetPrimitive.Portal;
 
+type SheetSide = "top" | "right" | "bottom" | "left";
+type SheetEnterFrom = SheetSide;
+
+function resolveSheetEnterFrom(side: SheetSide): SheetEnterFrom {
+  return side;
+}
+
 const SheetOverlay = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay> & {
+    readonly variant?: "default" | "detail";
+  }
+>(({ className, variant = "default", ...props }, ref) => (
   <SheetPrimitive.Overlay
+    data-operator-sheet-overlay=""
+    data-operator-sheet-variant={variant}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80 transition-opacity duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 motion-reduce:animate-none motion-reduce:transition-none",
+      "fixed inset-0 z-50 bg-black/80 motion-reduce:animate-none",
       className
     )}
     {...props}
@@ -29,49 +40,49 @@ SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content> & {
-    side?: "top" | "right" | "bottom" | "left";
+    side?: SheetSide;
     /** Operator member detail — softer overlay + slower slide (reduced-motion respected). */
     detailSheet?: boolean;
   }
->(({ side = "right", className, children, detailSheet = false, ...props }, ref) => (
-  <SheetPortal>
-    <SheetOverlay
-      className={cn(
-        detailSheet &&
-          "bg-black/60 duration-300 data-[state=open]:duration-300 data-[state=closed]:duration-200"
-      )}
-    />
-    <SheetPrimitive.Content
-      ref={ref}
-      data-operator-detail-sheet={detailSheet ? "true" : undefined}
-      className={cn(
-        "fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-out duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out motion-reduce:animate-none motion-reduce:transition-none",
-        detailSheet && "duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-        side === "left" &&
-          "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
-        side === "right" &&
-          "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
-        side === "bottom" &&
-          "inset-x-0 bottom-0 mt-24 h-auto max-h-[90vh] w-full border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-        side === "top" &&
-          "inset-x-0 top-0 mb-24 h-auto max-h-[90vh] w-full border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
-        className
-      )}
-      {...props}
-    >
-      {children}
-      <SheetPrimitive.Close
+>(({ side = "right", className, children, detailSheet = false, ...props }, ref) => {
+  const enterFrom = resolveSheetEnterFrom(side);
+
+  return (
+    <SheetPortal>
+      <SheetOverlay
+        variant={detailSheet ? "detail" : "default"}
+        className={detailSheet ? "bg-black/60" : undefined}
+      />
+      <SheetPrimitive.Content
+        ref={ref}
+        data-operator-sheet-panel=""
+        data-operator-sheet-side={side}
+        data-operator-sheet-enter-from={enterFrom}
+        data-operator-detail-sheet={detailSheet ? "true" : undefined}
         className={cn(
-          "absolute top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring",
-          side === "left" ? "left-4" : "right-4"
+          "fixed z-50 gap-4 bg-background p-6 shadow-lg motion-reduce:animate-none",
+          side === "left" && "h-full w-3/4 sm:max-w-sm",
+          side === "right" && "h-full w-3/4 sm:max-w-sm",
+          side === "bottom" && "mt-24 h-auto max-h-[90vh] w-full",
+          side === "top" && "mb-24 h-auto max-h-[90vh] w-full",
+          className
         )}
+        {...props}
       >
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </SheetPrimitive.Close>
-    </SheetPrimitive.Content>
-  </SheetPortal>
-));
+        {children}
+        <SheetPrimitive.Close
+          className={cn(
+            "absolute top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring",
+            side === "left" ? "right-4" : side === "right" ? "left-4" : "right-4"
+          )}
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </SheetPrimitive.Close>
+      </SheetPrimitive.Content>
+    </SheetPortal>
+  );
+});
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 
 const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (

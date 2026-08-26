@@ -27,7 +27,7 @@ describe("auth-bff-login-codes.spec.ts", () => {
       new Request("http://127.0.0.1/api/auth/login-web-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: "+15550001001", otp: "" }),
+        body: JSON.stringify({ phone: "09174070937", otp: "" }),
       })
     );
     assert.equal(res.status, 400);
@@ -72,7 +72,7 @@ describe("auth-bff-login-codes.spec.ts", () => {
       new Request("http://127.0.0.1/api/auth/login-web-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: "+15550001001", otp: "   ", challenge_id: "challenge" }),
+        body: JSON.stringify({ phone: "09174070937", otp: "   ", challenge_id: "challenge" }),
       })
     );
     assert.equal(res.status, 400);
@@ -97,7 +97,7 @@ describe("auth-bff-login-codes.spec.ts", () => {
         new Request("http://127.0.0.1/api/auth/request-otp", {
           method: "POST",
           headers,
-          body: JSON.stringify({ phone: "+15550001001" }),
+          body: JSON.stringify({ phone: "09174070937" }),
         })
       );
       lastStatus = res.status;
@@ -144,7 +144,7 @@ describe("auth-bff-login-codes.spec.ts", () => {
         new Request("http://denali.localhost:3000/api/auth/login-web-session", {
           method: "POST",
           headers: { "Content-Type": "application/json", host: "denali.localhost:3000" },
-          body: JSON.stringify({ phone: "+15550001001", otp: "1234", challenge_id: "c1" }),
+          body: JSON.stringify({ phone: "09174070937", otp: "1234", challenge_id: "c1" }),
         })
       );
       assert.equal(res.status, 200);

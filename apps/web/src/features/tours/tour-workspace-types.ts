@@ -11,6 +11,8 @@ export const TOUR_WORKSPACE_TEST_IDS = {
   tabTransport: "operator-tour-workspace-tab-transport",
   tabFinance: "operator-tour-workspace-tab-finance",
   tabBadge: "operator-tour-workspace-tab-badge",
+  tabHint: "operator-tour-workspace-tab-hint",
+  registrationsCapacityFullBanner: "operator-tour-workspace-registrations-capacity-full",
   registrationsPanel: "operator-tour-workspace-registrations-panel",
   waitlistPanel: "operator-tour-workspace-waitlist-panel",
   transportPanel: "operator-tour-workspace-transport-panel",

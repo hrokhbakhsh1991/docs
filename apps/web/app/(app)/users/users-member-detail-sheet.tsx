@@ -42,6 +42,8 @@ import {
   type LoyaltyTier,
 } from "@/features/users/users-rewards-logic";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
+import { resolveOperatorDetailSheetSide } from "@/i18n/resolve-operator-sheet-side";
+import { isAppLocale } from "@/i18n/routing";
 
 import { UserMicroBadges } from "./users-directory-user-micro-badges";
 import { UsersDirectoryAvatar } from "./users-directory-avatar";
@@ -148,6 +150,23 @@ export function UsersMemberDetailSheet({
   const [trips, setTrips] = useState<UserBookingSummaryResponse | null>(null);
   const [activityExpanded, setActivityExpanded] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
+  const [heldUser, setHeldUser] = useState<UsersDirectoryRow | null>(null);
+
+  useEffect(() => {
+    if (user !== null) {
+      setHeldUser(user);
+    }
+  }, [user]);
+
+  const activeUser = user ?? heldUser;
+
+  useEffect(() => {
+    if (!open && heldUser !== null) {
+      const timer = window.setTimeout(() => setHeldUser(null), 320);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [open, heldUser]);
 
   const loadMemberDetail = useCallback(async (userId: string, signal: { cancelled: boolean }) => {
     setHistoryLoading(true);
@@ -195,28 +214,28 @@ export function UsersMemberDetailSheet({
   }, []);
 
   useEffect(() => {
-    if (!open || user === null) return;
+    if (!open || activeUser === null) return;
     const signal = { cancelled: false };
     setActivityExpanded(false);
-    void loadMemberDetail(user.userId, signal);
+    void loadMemberDetail(activeUser.userId, signal);
     return () => {
       signal.cancelled = true;
     };
-  }, [open, user, reloadToken, loadMemberDetail]);
+  }, [open, activeUser, reloadToken, loadMemberDetail]);
 
-  if (user === null) {
+  if (activeUser === null) {
     return null;
   }
 
-  const manageable = canManageUserRow(session.role, session.userId, user);
-  const canRewards = canEditUserRewards(session.role, session.userId, user);
-  const roleOptions = assignableRolesForActor(session.role).filter((role) => role !== user.role);
-  const isOwner = user.role === "owner";
-  const isSuspended = user.status === "SUSPENDED";
+  const manageable = canManageUserRow(session.role, session.userId, activeUser);
+  const canRewards = canEditUserRewards(session.role, session.userId, activeUser);
+  const roleOptions = assignableRolesForActor(session.role).filter((role) => role !== activeUser.role);
+  const isOwner = activeUser.role === "owner";
+  const isSuspended = activeUser.status === "SUSPENDED";
   const hasDiscount =
-    user.permanentDiscountPercentage !== null &&
-    user.permanentDiscountPercentage !== undefined &&
-    user.permanentDiscountPercentage > 0;
+    activeUser.permanentDiscountPercentage !== null &&
+    activeUser.permanentDiscountPercentage !== undefined &&
+    activeUser.permanentDiscountPercentage > 0;
   const parsedRewardsDiscount = Number(rewardsDiscount.trim());
   const rewardsDiscountVisible =
     rewardsDiscount.trim().length > 0 &&
@@ -225,7 +244,7 @@ export function UsersMemberDetailSheet({
   const rewardsLoyaltyVisible = rewardsLoyaltyTier !== "none";
   const visibleHistory = activityExpanded ? history?.items : history?.items.slice(0, 4);
   const visibleTrips = activityExpanded ? trips?.trips : trips?.trips.slice(0, 3);
-  const sheetSide = locale === "fa" ? "left" : "right";
+  const sheetSide = resolveOperatorDetailSheetSide(isAppLocale(locale) ? locale : "fa");
 
   const resolveRoleLabel = (raw: string): string => {
     if (raw === "ACTIVE" || raw === "SUSPENDED" || raw === "REMOVED") {
@@ -285,18 +304,18 @@ export function UsersMemberDetailSheet({
           data-testid={USERS_DIRECTORY_TEST_IDS.memberDetailHeader}
         >
           <div className="flex items-start gap-4">
-            <UsersDirectoryAvatar user={user} size="md" />
+            <UsersDirectoryAvatar user={activeUser} size="md" />
             <div className="min-w-0 flex-1 space-y-2">
-              <SheetTitle className="truncate">{user.displayName}</SheetTitle>
+              <SheetTitle className="truncate">{activeUser.displayName}</SheetTitle>
               <SheetDescription>
                 <span dir="ltr" className="tabular-nums">
-                  {user.phone ? formatIranMobileForDisplay(user.phone) : "—"}
+                  {activeUser.phone ? formatIranMobileForDisplay(activeUser.phone) : "—"}
                 </span>
                 <span className="sr-only">{t("memberDetail.description")}</span>
               </SheetDescription>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={isOwner ? "default" : "secondary"}>{t(`roles.${user.role}`)}</Badge>
-                <StatusBadge user={user} />
+                <Badge variant={isOwner ? "default" : "secondary"}>{t(`roles.${activeUser.role}`)}</Badge>
+                <StatusBadge user={activeUser} />
                 {isOwner ? <Badge variant="outline">{t("owner.protectedBadge")}</Badge> : null}
               </div>
               {isOwner ? <p className="text-sm text-muted-foreground">{t("owner.protectedNote")}</p> : null}
@@ -312,7 +331,7 @@ export function UsersMemberDetailSheet({
             <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <div>
                 <dt className="text-muted-foreground">{t("memberDetail.fields.role")}</dt>
-                <dd className="font-medium">{t(`roles.${user.role}`)}</dd>
+                <dd className="font-medium">{t(`roles.${activeUser.role}`)}</dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">{t("memberDetail.fields.status")}</dt>
@@ -324,14 +343,14 @@ export function UsersMemberDetailSheet({
                 <dt className="text-muted-foreground">{t("memberDetail.fields.discount")}</dt>
                 <dd className="font-medium">
                   {hasDiscount
-                    ? t("benefits.discountValue", { value: user.permanentDiscountPercentage })
+                    ? t("benefits.discountValue", { value: activeUser.permanentDiscountPercentage })
                     : t("benefits.none")}
                 </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">{t("memberDetail.fields.badges")}</dt>
                 <dd>
-                  <UserMicroBadges user={user} compact />
+                  <UserMicroBadges user={activeUser} compact />
                 </dd>
               </div>
             </dl>
@@ -350,7 +369,7 @@ export function UsersMemberDetailSheet({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">
-                    {t("memberDetail.currentRole", { role: t(`roles.${user.role}`) })}
+                    {t("memberDetail.currentRole", { role: t(`roles.${activeUser.role}`) })}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {roleOptions.map((role) => (

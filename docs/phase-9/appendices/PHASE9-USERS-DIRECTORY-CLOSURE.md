@@ -40,7 +40,7 @@ When operator smoke boots the API, tenant `…000014` seeds:
 
 | User | Mobile | Role | Display name |
 | ---- | ------ | ---- | ------------ |
-| Owner | `+15550001001` | owner | (phone fallback) |
+| Owner | `09174070937` | owner | (phone fallback) |
 | Admin | `+15550001002` | admin | Smoke Admin |
 | Member | `+15550001003` | member | Smoke Member |
 

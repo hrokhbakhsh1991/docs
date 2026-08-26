@@ -28,9 +28,9 @@ describe("resolve-operator-owner-seed-mobile.spec.ts", () => {
     assert.notEqual(smokeMobile, "+15550001001");
   });
 
-  it("SEED-MOB-03 without env both seeds use canonical US dev smoke mobile", () => {
+  it("SEED-MOB-03 without env both seeds use canonical Denali dev owner mobile", () => {
     delete process.env.OPERATOR_OWNER_MOBILE;
-    assert.equal(resolveOperatorOwnerSeedMobile(), "+15550001001");
-    assert.equal(resolveOperatorSmokeOwnerSeedMobile(), "+15550001001");
+    assert.equal(resolveOperatorOwnerSeedMobile(), "09174070937");
+    assert.equal(resolveOperatorSmokeOwnerSeedMobile(), "09174070937");
   });
 });

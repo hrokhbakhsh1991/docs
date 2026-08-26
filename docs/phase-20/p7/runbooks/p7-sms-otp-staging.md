@@ -31,7 +31,7 @@ Production guard: `auth-env.ts` rejects `AUTH_ALLOW_DEV_STATIC_OTP=true` when `N
 NODE_ENV=production
 # Staging-only bypass (remove before customer Profile C)
 AUTH_ALLOW_DEV_STATIC_OTP=true
-OPERATOR_OWNER_MOBILE=+989121000001
+OPERATOR_OWNER_MOBILE=09174070937
 ```
 
 Portal register test mobile must be whitelisted in tenant config (seed).

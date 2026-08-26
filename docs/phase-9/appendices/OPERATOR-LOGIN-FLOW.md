@@ -197,7 +197,7 @@ Stable codes flow: API `{ code }` → BFF `{ ok:false, error:{ code } }` → `re
 
 **Dev hint:** `devOtpHint` (`رمز توسعه: 1234`) rendered only when `NODE_ENV=development`.
 
-**Production initial state:** `login-form.tsx` initializes `phone` and `otp` to **empty strings** when `NODE_ENV !== "development"` — dev fixtures (`+15550001001` / `1234`) exist only in development bundles.
+**Production initial state:** `login-form.tsx` initializes `phone` and `otp` to **empty strings** when `NODE_ENV !== "development"` — dev fixtures (`09174070937` / `1234`) exist only in development bundles.
 
 ### 5.3 Post-auth client navigation (soft — locked)
 
@@ -234,7 +234,7 @@ Dev fixture (Phase 9, `NODE_ENV=development`):
 | `operator.localhost:3000` | `…000014` | Phase 9 operator smoke |
 | `localhost:3000` | env fallback | `TOUR_OPS_DEV_TENANT_ID` in `apps/web/.env.local` (Denali smoke uses `…000003`) |
 
-Phone `+15550001001` · OTP `1234` · owner membership on **Denali** (`…000003` / `denali.localhost`). When API runs with `OPERATOR_SMOKE_E2E_SEED=1` (Playwright smoke), in-memory identity also seeds owner on **operator smoke** tenant (`…000014`) so bare `127.0.0.1:3000` + `TOUR_OPS_DEV_TENANT_ID=…000014` can complete login. **This dual-tenant seed is dev/smoke-only** — never enabled in production Prisma deployments. Other dev hosts (`urban.localhost`, `tenant-a.localhost`) **must not** accept a Denali-only session.
+Phone `09174070937` · OTP `1234` · owner membership on **Denali** (`…000003` / `denali.localhost`). When API runs with `OPERATOR_SMOKE_E2E_SEED=1` (Playwright smoke), in-memory identity also seeds owner on **operator smoke** tenant (`…000014`) so bare `127.0.0.1:3000` + `TOUR_OPS_DEV_TENANT_ID=…000014` can complete login. **This dual-tenant seed is dev/smoke-only** — never enabled in production Prisma deployments. Other dev hosts (`urban.localhost`, `tenant-a.localhost`) **must not** accept a Denali-only session.
 
 ### Dev bootstrap checklist (root-cause guard)
 

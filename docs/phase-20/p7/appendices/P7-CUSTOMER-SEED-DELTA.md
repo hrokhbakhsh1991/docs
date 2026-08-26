@@ -31,7 +31,7 @@ Authority: [`first-customer-seed.md`](../../phase-19/p6/runbooks/first-customer-
 | Subdomain | `operator` |
 | Tenant ID | `00000000-0000-4000-8000-000000000014` |
 | Published tour | `00000000-0000-4000-8000-000000000210` |
-| Owner mobile | `+15550001001` (dev OTP `1234`) |
+| Owner mobile | `09174070937` (dev OTP `1234`) |
 
 Use for: `p6:gate` · local stack · VPS infra smoke before customer rows exist.
 
@@ -100,7 +100,7 @@ Verify: `pnpm run p7:staging-picker-probe` · wizard HTML contains `توچال`.
 
 ### Operator smoke owner identity (P7-2-N-001)
 
-`seed-operator-smoke-identity-staging.ts` upserts user `…0101` / mobile `+15550001001` with **ACTIVE owner** membership on tenant `…014` (`ws-operator-smoke`). Required for `operator.admin.localhost` OTP in workspace probes — distinct from Denali dev identity on tenant `…003`.
+`seed-operator-smoke-identity-staging.ts` upserts user `…0101` / mobile `09174070937` with **ACTIVE owner** membership on tenant `…014` (`ws-operator-smoke`). Required for `operator.admin.localhost` OTP in workspace probes — distinct from Denali dev identity on tenant `…003`.
 
 ```bash
 # VPS (idempotent — probe runs this automatically)

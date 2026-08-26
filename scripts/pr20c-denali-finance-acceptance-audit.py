@@ -14,7 +14,7 @@ from pathlib import Path
 WEB = os.environ.get("WEB", "http://127.0.0.1:3000")
 API = os.environ.get("API", "http://127.0.0.1:3001")
 ADMIN = os.environ.get("ADMIN_HOST", "denali.admin.localhost")
-PHONE = os.environ.get("SMOKE_OPERATOR_PHONE", "+15550001001")
+PHONE = os.environ.get("SMOKE_OPERATOR_PHONE", "09174070937")
 OTP = os.environ.get("SMOKE_OPERATOR_OTP", "1234")
 JAR = Path(os.environ.get("SMOKE_COOKIE_JAR", "/tmp/pr20c-audit.jar"))
 OUT = Path(os.environ.get("SMOKE_RESULTS", "/tmp/pr20c-acceptance.json"))

@@ -13,7 +13,7 @@ const webDir = path.join(repoRoot, "apps/web");
 
 const denaliSmokeTenantId =
   process.env.DENALI_SMOKE_TENANT_ID?.trim() || "00000000-0000-4000-8000-000000000003";
-const ownerMobile = process.env.OPERATOR_OWNER_MOBILE?.trim() || "+989121000001";
+const ownerMobile = process.env.OPERATOR_OWNER_MOBILE?.trim() || "09174070937";
 
 function waitForUrl(url, timeoutMs = 240_000) {
   const deadline = Date.now() + timeoutMs;

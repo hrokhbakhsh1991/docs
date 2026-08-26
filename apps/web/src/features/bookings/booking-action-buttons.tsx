@@ -16,6 +16,8 @@ type BookingActionButtonsProps = {
   readonly showApproveReject: boolean;
   readonly showWaitlist: boolean;
   readonly showCancel: boolean;
+  readonly actionHint?: string | null;
+  readonly capacityFullHint?: string | null;
   readonly className?: string;
   readonly includeTestIds?: boolean;
 };
@@ -30,12 +32,30 @@ export function BookingActionButtons({
   showApproveReject,
   showWaitlist,
   showCancel,
+  actionHint = null,
+  capacityFullHint = null,
   className,
   includeTestIds = true,
 }: BookingActionButtonsProps) {
   const t = useTranslations("bookings");
   return (
     <div className={`flex flex-col gap-2 ${className ?? ""}`}>
+      {capacityFullHint !== null && capacityFullHint.length > 0 ? (
+        <p
+          className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-950 dark:text-amber-100"
+          data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.capacityFullHint}
+        >
+          {capacityFullHint}
+        </p>
+      ) : null}
+      {actionHint !== null && actionHint.length > 0 ? (
+        <p
+          className="text-xs text-muted-foreground"
+          data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.actionUnavailableHint}
+        >
+          {actionHint}
+        </p>
+      ) : null}
       {showApproveReject ? (
         <div className="flex gap-2">
           <Button

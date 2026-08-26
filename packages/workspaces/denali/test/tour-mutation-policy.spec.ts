@@ -207,6 +207,24 @@ describe("tour-mutation-policy — DP-3 matrix", () => {
     assert.equal(decision.decision, "REQUIRE_OVERRIDE");
   });
 
+  it("capacity decrease to occupied floor allowed without override", () => {
+    const decision = evaluate(
+      {
+        ...BASE_TOUR,
+        basicInfo: {
+          ...(BASE_TOUR.basicInfo as Record<string, unknown>),
+          capacityMax: 18,
+        },
+      },
+      facts({
+        activeRegistrationCount: 18,
+        approvedRegistrationCount: 18,
+        occupiedApprovedPartySize: 18,
+      })
+    );
+    assert.equal(decision.decision, "ALLOW");
+  });
+
   it("transport mutation with allocations requires override", () => {
     const decision = evaluate(
       {

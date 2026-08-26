@@ -153,6 +153,8 @@ export const BOOKINGS_COMMAND_CENTER_TEST_IDS = {
   cancelConfirmDialog: "operator-bookings-cancel-confirm",
   cancelConfirmButton: "operator-bookings-cancel-confirm-button",
   overbookConfirmDialog: "operator-bookings-overbook-confirm",
+  capacityFullHint: "operator-bookings-capacity-full-hint",
+  actionUnavailableHint: "operator-bookings-action-unavailable-hint",
   capacityBar: "operator-bookings-capacity",
   filtersDetails: "operator-bookings-filters-details",
   filtersDirtyBadge: "operator-bookings-filters-dirty",

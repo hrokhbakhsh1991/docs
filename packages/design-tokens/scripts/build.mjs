@@ -70,6 +70,10 @@ fs.copyFileSync(
   path.join(srcDir, "operator-shell-structure.css"),
   path.join(distDir, "operator-shell-structure.css")
 );
+fs.copyFileSync(
+  path.join(srcDir, "operator-sheet-motion.css"),
+  path.join(distDir, "operator-sheet-motion.css")
+);
 fs.copyFileSync(path.join(srcDir, "primitives.css"), path.join(distDir, "primitives.css"));
 fs.copyFileSync(path.join(srcDir, "semantics.css"), path.join(distDir, "semantics.css"));
 copyDir("themes");

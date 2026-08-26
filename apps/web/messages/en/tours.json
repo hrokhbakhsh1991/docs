@@ -171,6 +171,12 @@
       "transport": "Approved roster",
       "finance": "Payment follow-up"
     },
+    "tabsHint": {
+      "registrations": "Review and approve new registrations",
+      "waitlist": "Capacity queue — approve when a seat opens",
+      "transport": "Approved members and transport",
+      "finance": "Payment follow-up, deadlines, receipts"
+    },
     "approvedQuickAccess": {
       "title": "Final approved members",
       "count": "{count, number} members approved",
@@ -224,6 +230,8 @@
       "rowSettled": "No balance due",
       "rowPending": "Awaiting approval",
       "rowFinalParticipant": "Final member",
+      "rowPaidReceived": "Payment received",
+      "rowWaivedNoPayment": "No payment required",
       "guestListItemOpenHint": "Select to review payment details and next actions.",
       "guestListItemSelectedHint": "Currently open in the payment detail panel.",
       "guestListItemRemainingLabel": "Remaining balance",
@@ -373,6 +381,8 @@
     "registrations": {
       "title": "Registrations",
       "description": "Approve, reject, and inspect guest registrations for this tour.",
+      "capacityFullBanner": "At capacity — new registrations do not auto-waitlist. Use Waitlist or approve to overbook.",
+      "capacityFullWaitlistLink": "Open waitlist",
       "adminCreateCta": "Manual registration",
       "empty": "No registrations for this tour yet.",
       "registerFirst": "Register first guest"
@@ -406,8 +416,8 @@
       "financial": {
         "UNPAID": "Unpaid",
         "PARTIALLY_PAID": "Partial",
-        "PAID": "Paid",
-        "WAIVED": "Waived",
+        "PAID": "Payment received",
+        "WAIVED": "No payment required",
         "NOT_APPLICABLE": "—"
       },
       "refund": {

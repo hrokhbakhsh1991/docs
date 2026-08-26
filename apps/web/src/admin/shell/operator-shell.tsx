@@ -8,6 +8,8 @@ import { clearOperatorWelcomeSession } from "@/admin/onboarding/operator-welcome
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { navigateAfterLogout } from "@/auth/navigate-after-auth-session-change";
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
+import { resolveOperatorNavSheetSide } from "@/i18n/resolve-operator-sheet-side";
+import { isAppLocale } from "@/i18n/routing";
 import { TenantBrandingProvider } from "@/tenant/tenant-branding-context";
 
 import { OperatorHeader } from "./operator-header";
@@ -63,7 +65,7 @@ export function OperatorShell({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const locale = useLocale();
   const tApp = useTranslations("app");
-  const drawerSide = locale === "fa" ? "right" : "left";
+  const drawerSide = resolveOperatorNavSheetSide(isAppLocale(locale) ? locale : "fa");
 
   useEffect(() => {
     setSidebarCollapsed(readStoredSidebarCollapsed());

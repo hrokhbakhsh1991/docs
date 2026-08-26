@@ -171,6 +171,12 @@
       "transport": "تاییدشدگان",
       "finance": "پیگیری پرداخت"
     },
+    "tabsHint": {
+      "registrations": "بررسی و تأیید ثبت‌نام‌های جدید",
+      "waitlist": "صف ظرفیت — تأیید پس از آزاد شدن جا",
+      "transport": "اعضای تأییدشده و حمل‌ونقل",
+      "finance": "پیگیری پرداخت، مهلت و رسید"
+    },
     "approvedQuickAccess": {
       "title": "لیست نهایی اعضای تاییدشده",
       "count": "{count, number} نفر تایید شده‌اند",
@@ -224,6 +230,8 @@
       "rowSettled": "بدون مانده",
       "rowPending": "در انتظار تأیید",
       "rowFinalParticipant": "عضو نهایی",
+      "rowPaidReceived": "وجه دریافت شد",
+      "rowWaivedNoPayment": "بدون نیاز به پرداخت",
       "guestListItemOpenHint": "برای دیدن جزئیات پرداخت و اقدام بعدی این مورد را انتخاب کنید.",
       "guestListItemSelectedHint": "این مورد الان در پنل جزئیات پرداخت باز است.",
       "guestListItemRemainingLabel": "مانده بدهی",
@@ -373,6 +381,8 @@
     "registrations": {
       "title": "ثبت‌نام‌ها",
       "description": "تأیید، رد و بررسی ثبت‌نام‌های مهمان برای این تور.",
+      "capacityFullBanner": "ظرفیت پر است — ثبت‌نام جدید خودکار به لیست انتظار نمی‌رود. از «لیست انتظار» یا تأیید با تجاوز از ظرفیت استفاده کنید.",
+      "capacityFullWaitlistLink": "رفتن به لیست انتظار",
       "adminCreateCta": "ثبت‌نام دستی",
       "empty": "هنوز ثبت‌نامی برای این تور نیست.",
       "registerFirst": "ثبت اولین مهمان"
@@ -406,8 +416,8 @@
       "financial": {
         "UNPAID": "پرداخت‌نشده",
         "PARTIALLY_PAID": "جزئی",
-        "PAID": "پرداخت‌شده",
-        "WAIVED": "معاف",
+        "PAID": "وجه دریافت شد",
+        "WAIVED": "بدون نیاز به پرداخت",
         "NOT_APPLICABLE": "—"
       },
       "refund": {

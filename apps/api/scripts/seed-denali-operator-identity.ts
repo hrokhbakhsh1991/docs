@@ -13,7 +13,7 @@ import { logger } from "../src/observability/logger";
 import { resolveOperatorOwnerSeedMobile } from "./resolve-operator-owner-seed-mobile.ts";
 
 export const DENALI_DEV_OWNER_USER_ID = "00000000-0000-4000-8000-000000000101" as const;
-export const DENALI_DEV_OWNER_MOBILE = "+15550001001" as const;
+export const DENALI_DEV_OWNER_MOBILE = "09174070937" as const;
 export const DENALI_DEV_WORKSPACE_ID = "ws-denali-dev" as const;
 
 /** SMK-P9-03 / P1 owner handoff — user row only; no membership until invite accept. */

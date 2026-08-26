@@ -41,8 +41,8 @@ describe("settings-profile.spec.ts — Phase 9.6", () => {
       "PROFILE_AVATAR_EMPTY"
     );
     assert.equal(
-      resolveProfileDisplayName({ displayName: "", mobile: "+15550001001" }),
-      "+15550001001"
+      resolveProfileDisplayName({ displayName: "", mobile: "09174070937" }),
+      "09174070937"
     );
     assert.equal(parseOperatorProfileGender(""), null);
     assert.equal(parseOperatorProfileGender("male"), "male");

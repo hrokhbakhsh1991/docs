@@ -161,11 +161,18 @@ export function TourWorkspacePaymentFollowUpRow({
               variant={bookingPaymentBadgeVariant(paymentStatus)}
               data-testid={TOUR_WORKSPACE_PAYMENT_FOLLOW_UP_ROW_TEST_IDS.paymentBadge}
               data-payment-status={paymentStatus}
+              data-financial-display-state={row.financialDisplayState ?? undefined}
             >
               {paymentBadgeLabel(tBookings, tTransport, row)}
             </OperatorStatusBadge>
             {row.isFinalParticipant ? (
-              <OperatorStatusBadge variant="default">{tFinance("rowFinalParticipant")}</OperatorStatusBadge>
+              <OperatorStatusBadge variant="default">
+                {row.financialDisplayState === "WAIVED"
+                  ? tFinance("rowWaivedNoPayment")
+                  : row.financialDisplayState === "PAID"
+                    ? tFinance("rowPaidReceived")
+                    : tFinance("rowFinalParticipant")}
+              </OperatorStatusBadge>
             ) : null}
           </div>
           {deadlineLabel !== null ? (

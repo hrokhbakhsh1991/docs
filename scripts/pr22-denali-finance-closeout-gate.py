@@ -15,7 +15,7 @@ from typing import Any
 ADMIN_HOST = os.environ.get("ADMIN_HOST", "denali.admin.localhost")
 WEB = os.environ.get("WEB", "http://127.0.0.1:3000")
 API = os.environ.get("API", "http://127.0.0.1:3001")
-PHONE = os.environ.get("SMOKE_OPERATOR_PHONE", "+15550001001")
+PHONE = os.environ.get("SMOKE_OPERATOR_PHONE", "09174070937")
 OTP = os.environ.get("SMOKE_OPERATOR_OTP", "1234")
 TENANT = os.environ.get(
     "FINANCE_CASE_COMMAND_UI_TENANT", "00000000-0000-4000-8000-000000000003"

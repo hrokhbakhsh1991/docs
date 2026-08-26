@@ -22,7 +22,7 @@ resolve_smoke_phone() {
     printf '%s' "$from_api"
     return
   fi
-  printf '%s' "+15550001001"
+  printf '%s' "09174070937"
 }
 
 SMOKE_PHONE="$(resolve_smoke_phone)"

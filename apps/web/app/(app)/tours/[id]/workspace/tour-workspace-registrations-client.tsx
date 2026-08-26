@@ -8,7 +8,10 @@ import type { BookingsOpsActionChrome } from "@/features/bookings/bookings-ops-a
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
 import { useTourWorkspaceChrome } from "@/features/tours/tour-workspace-chrome-context";
+import { hrefForWorkspaceTab } from "@/features/tours/tour-workspace-logic";
+import { isTourCapacityFull } from "@/features/tours/tour-workspace-waitlist-logic";
 import { TOUR_WORKSPACE_TEST_IDS } from "@/features/tours/tour-workspace-types";
+import { TourInternalLink } from "@/features/tours/tour-internal-link";
 
 import { BookingsPageClient } from "@/features/bookings/bookings-command-center-shell";
 
@@ -41,6 +44,12 @@ export function TourWorkspaceRegistrationsClient({
   const t = useTranslations("tours.workspace.registrations");
   const { reloadWorkspaceChrome } = useTourWorkspaceChrome();
   const canManage = isAdminOrOwnerRole(session.role);
+  const capacityFull =
+    detail !== null &&
+    isTourCapacityFull({
+      acceptedCount: detail.projection.acceptedCount,
+      totalCapacity: detail.projection.totalCapacity,
+    });
 
   return (
     <div
@@ -48,6 +57,22 @@ export function TourWorkspaceRegistrationsClient({
       data-testid={TOUR_WORKSPACE_TEST_IDS.registrationsPanel}
       data-operator-surface="card"
     >
+      {capacityFull ? (
+        <div
+          className="flex flex-col gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100 sm:flex-row sm:items-center sm:justify-between"
+          data-testid={TOUR_WORKSPACE_TEST_IDS.registrationsCapacityFullBanner}
+        >
+          <p>{t("capacityFullBanner")}</p>
+          {canManage ? (
+            <TourInternalLink
+              href={hrefForWorkspaceTab(tourId, "waitlist")}
+              className="text-sm font-medium underline underline-offset-2"
+            >
+              {t("capacityFullWaitlistLink")}
+            </TourInternalLink>
+          ) : null}
+        </div>
+      ) : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold">{t("title")}</h2>

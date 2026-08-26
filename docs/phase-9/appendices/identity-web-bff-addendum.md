@@ -39,7 +39,7 @@ decisions: [DEC-P9-012]
 ### POST `/api/auth/request-otp`
 
 ```json
-{ "phone": "+989121000001", "invite_token": "optional" }
+{ "phone": "09174070937", "invite_token": "optional" }
 ```
 
 → `{ "ok": true, "challenge_id": "<uuid>" }`
@@ -58,7 +58,7 @@ Upstream base URL: `resolveTourOpsApiBaseUrl()` (`TOUR_OPS_API_URL`) — neutral
 
 ```json
 {
-  "phone": "+989121000001",
+  "phone": "09174070937",
   "otp": "1234",
   "challenge_id": "optional-uuid",
   "invite_token": "optional"
@@ -74,7 +74,7 @@ OTP failure → `{ "ok": false, "error": { "code": "OTP_INVALID" | "OTP_EXPIRED"
 ### POST `/api/auth/phone-preflight`
 
 ```json
-{ "phone": "+989121000001" }
+{ "phone": "09174070937" }
 ```
 
 → `{ "ok": true, "authorized": true | false }` or `{ "ok": false, "error": { "code": "..." } }`.

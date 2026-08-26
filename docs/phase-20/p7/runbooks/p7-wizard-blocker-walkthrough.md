@@ -19,7 +19,7 @@ staging_profile: B-staging
 | Marketing | `http://89.45.89.206:23002/tours` | `Host: operator.localhost` |
 | Portal | `http://89.45.89.206:23003` | `Host: operator.portal.localhost` |
 
-**OTP:** Profile B uses `AUTH_ALLOW_DEV_STATIC_OTP=true` — code **`1234`** for `+989121000001` ([p7-sms-otp-staging.md](p7-sms-otp-staging.md)).
+**OTP:** Profile B uses `AUTH_ALLOW_DEV_STATIC_OTP=true` — code **`1234`** for `09174070937` ([p7-sms-otp-staging.md](p7-sms-otp-staging.md)).
 
 **Fast infra check before walkthrough:**
 
@@ -92,7 +92,7 @@ Update this table after each staging walkthrough. Add rows for newly discovered 
 walkthrough_status: IN_PROGRESS
 last_run: "2026-06-23"
 staging_profile: B-staging
-operator: agent-probe (+989121000001)
+operator: agent-probe (09174070937)
 probe_command: pnpm run p7:staging-wizard-probe
 probe_host: denali.admin.localhost  # automated; manual customer path uses operator.admin.localhost
 ```

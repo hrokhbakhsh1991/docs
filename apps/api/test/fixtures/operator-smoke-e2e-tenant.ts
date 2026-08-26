@@ -10,7 +10,7 @@ export const OPERATOR_SMOKE = {
   seedTourId: "00000000-0000-4000-8000-000000000210",
   pendingBookingId: "00000000-0000-4000-8000-000000000310",
   templateSeedValue: "SMK-P9-SEED",
-  ownerMobile: "+15550001001",
+  ownerMobile: "09174070937",
   adminMobile: "+15550001002",
   memberMobile: "+15550001003",
   inviteeUserId: "00000000-0000-4000-8000-000000000195",

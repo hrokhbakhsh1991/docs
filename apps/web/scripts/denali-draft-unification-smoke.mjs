@@ -11,7 +11,7 @@ import { chromium } from "@playwright/test";
 const BASE = process.env.SMOKE_BASE_URL ?? "http://127.0.0.1:3000";
 const WORKSPACE = process.env.SMOKE_WORKSPACE_ID ?? "ws-denali-dev";
 const DRAFT_PATH = `/api/workspaces/${WORKSPACE}/drafts/operator.wizard/denali-create`;
-const OWNER_MOBILE = process.env.OPERATOR_OWNER_MOBILE ?? "+989121000001";
+const OWNER_MOBILE = process.env.OPERATOR_OWNER_MOBILE ?? "09174070937";
 const OTP = "1234";
 const EXPECT_ON = process.env.SMOKE_EXPECT_UNIFICATION_ON === "true";
 

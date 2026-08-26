@@ -6,7 +6,7 @@ import { chromium } from "@playwright/test";
 
 const BASE = process.env.SMOKE_BASE_URL ?? "http://denali.localhost:3000";
 /** Sync with Denali seed / `DENALI_DEV_OWNER_MOBILE` (override via env). */
-const OWNER_MOBILE = process.env.OPERATOR_OWNER_MOBILE ?? "+15550001001";
+const OWNER_MOBILE = process.env.OPERATOR_OWNER_MOBILE ?? "09174070937";
 const OTP = "1234";
 const TOUR_TITLE = `تور کوهنوردی یک‌روزه ${Date.now()}`;
 

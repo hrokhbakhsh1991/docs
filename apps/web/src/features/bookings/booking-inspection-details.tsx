@@ -43,6 +43,8 @@ type BookingInspectionDetailsProps = {
   readonly onWaitlist: () => void;
   readonly onCancel: () => void;
   readonly actionClassName: string;
+  readonly actionHint?: string | null;
+  readonly capacityFullHint?: string | null;
   readonly includeActionTestIds?: boolean;
 };
 
@@ -62,6 +64,8 @@ export function BookingInspectionDetails({
   onWaitlist,
   onCancel,
   actionClassName,
+  actionHint = null,
+  capacityFullHint = null,
   includeActionTestIds = true,
 }: BookingInspectionDetailsProps) {
   const t = useTranslations("bookings");
@@ -156,7 +160,8 @@ export function BookingInspectionDetails({
         bookingPaymentStatus={booking.paymentStatus}
         bookingStatus={booking.status}
       />
-      {canManageOps && (canActOnSelected || canWaitlistSelected || canCancelSelected) ? (
+      {canManageOps &&
+      (canActOnSelected || canWaitlistSelected || canCancelSelected || actionHint !== null) ? (
         <BookingActionButtons
           busy={actionBusy}
           showApproveReject={canActOnSelected}
@@ -168,6 +173,8 @@ export function BookingInspectionDetails({
           onWaitlist={onWaitlist}
           onCancel={onCancel}
           className={actionClassName}
+          actionHint={actionHint}
+          capacityFullHint={capacityFullHint}
           includeTestIds={includeActionTestIds}
         />
       ) : null}

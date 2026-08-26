@@ -290,11 +290,11 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     });
     assert.deepEqual(
       buildInviteRequestBody({
-        phone: "+15550001001",
+        phone: "09174070937",
         role: "admin",
         nameNote: "  Tour lead  ",
       }),
-      { phone: "+15550001001", role: "admin", nameNote: "Tour lead" }
+      { phone: "09174070937", role: "admin", nameNote: "Tour lead" }
     );
   });
 

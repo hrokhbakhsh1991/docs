@@ -41,7 +41,7 @@ Runbook: [runbooks/p7-t4-sign-off-session.md](runbooks/p7-t4-sign-off-session.md
 | Admin | http://89.45.89.206:23000/auth/login |
 | Marketing | http://89.45.89.206:23002/tours |
 | Portal | http://89.45.89.206:23003 |
-| OTP | `+15550001001` / `1234` |
+| OTP | `09174070937` / `1234` |
 
 Use a **fresh guest phone** for registration steps if smoke rows are consumed.
 

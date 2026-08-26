@@ -36,7 +36,7 @@ type Step = "phone" | "otp";
 const RESEND_COOLDOWN_SEC = 45;
 /** Dev owner login — ASCII in state/API; LocalizedNumericInput shows Persian digits when locale is fa.
  * Must match the operator smoke owner (`operator-smoke-identity.mjs`). */
-const DEV_LOGIN_PHONE = process.env.NEXT_PUBLIC_DEV_LOGIN_PHONE?.trim() || "+15550001001";
+const DEV_LOGIN_PHONE = process.env.NEXT_PUBLIC_DEV_LOGIN_PHONE?.trim() || "09174070937";
 const DEV_LOGIN_OTP = process.env.NEXT_PUBLIC_DEV_LOGIN_OTP?.trim() || "1234";
 
 function initialLoginPhone(): string {

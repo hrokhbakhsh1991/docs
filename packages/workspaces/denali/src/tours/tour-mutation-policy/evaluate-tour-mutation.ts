@@ -266,6 +266,11 @@ function evaluateCapacityChange(
     };
   }
 
+  // Equal to occupied floor — tighten to actual headcount without owner override.
+  if (after === input.facts.occupiedApprovedPartySize) {
+    return null;
+  }
+
   return {
     decision: "REQUIRE_OVERRIDE",
     reasonCode: "OPERATOR_OVERRIDE_REQUIRED",

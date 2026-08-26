@@ -441,6 +441,13 @@ function TourWorkspaceLayoutInner({
         })}
       </nav>
 
+      <p
+        className="text-xs text-muted-foreground"
+        data-testid={TOUR_WORKSPACE_TEST_IDS.tabHint}
+      >
+        {t(`tabsHint.${visibleActiveTab}`)}
+      </p>
+
       <TourWorkspaceTabPanels
         activeTab={visibleActiveTab}
         session={session}

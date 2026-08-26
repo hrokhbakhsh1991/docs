@@ -26,7 +26,7 @@ describe("operator-ui-consistency.spec.ts", () => {
     assert.doesNotMatch(filter, /tourChips\.map\(\(chip\) => \(\s*<Button/);
   });
 
-  it("WEB-OPUI-02 sidebar collapse lives in header row", () => {
+  it("WEB-OPUI-02 sidebar collapse lives in header row with reserved grid slot", () => {
     const nav = read("src/admin/shell/operator-nav.tsx");
     assert.match(nav, /data-operator-sidebar-header-row/);
     assert.match(nav, /data-operator-sidebar-collapse-wrap/);
@@ -35,6 +35,16 @@ describe("operator-ui-consistency.spec.ts", () => {
     const collapseIndex = nav.indexOf("data-operator-sidebar-collapse");
     assert.ok(headerIndex >= 0 && collapseIndex > headerIndex);
     assert.ok(footerIndex < 0 || collapseIndex < footerIndex);
+
+    const css = readFileSync(
+      resolve(WEB_ROOT, "../../packages/design-tokens/src/operator-shell-structure.css"),
+      "utf8"
+    );
+    assert.match(css, /\[data-operator-sidebar-header-row\][\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto/);
+    assert.match(
+      css,
+      /\[data-operator-sidebar\]\[data-operator-sidebar-collapsed="true"\]\s*\[data-operator-sidebar-header-row\][\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/
+    );
   });
 
   it("WEB-OPUI-02b sidebar collapse visible from tablet breakpoint", () => {
@@ -58,6 +68,18 @@ describe("operator-ui-consistency.spec.ts", () => {
     const sheet = read("app/(app)/users/users-member-detail-sheet.tsx");
     assert.match(sheet, /detailSheet/);
     assert.match(sheet, /sm:max-w-2xl/);
+    assert.match(sheet, /heldUser/);
+
+    const motionCss = readFileSync(
+      resolve(WEB_ROOT, "../../packages/design-tokens/src/operator-sheet-motion.css"),
+      "utf8"
+    );
+    assert.match(motionCss, /\[data-operator-sheet-panel\]\[data-operator-detail-sheet="true"\]/);
+    assert.match(motionCss, /prefers-reduced-motion:\s*reduce/);
+
+    const uiSheet = read("src/components/ui/sheet.tsx");
+    assert.match(uiSheet, /data-operator-sheet-panel/);
+    assert.match(uiSheet, /data-operator-sheet-overlay/);
   });
 
   it("WEB-OPUI-05 header account menu uses icon avatar fallback", () => {

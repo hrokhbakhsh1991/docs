@@ -22,7 +22,7 @@ Authority: `apps/api/test/fixtures/operator-smoke-e2e-tenant.ts` · `OPERATOR_SM
 | Subdomain label | `operator` |
 | Tenant ID | `00000000-0000-4000-8000-000000000014` |
 | Published tour ID | `00000000-0000-4000-8000-000000000210` |
-| Owner mobile | `+15550001001` (dev OTP `1234`) |
+| Owner mobile | `09174070937` (dev OTP `1234`) |
 
 ---
 

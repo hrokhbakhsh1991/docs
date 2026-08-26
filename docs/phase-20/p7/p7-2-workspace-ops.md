@@ -46,7 +46,7 @@ forbidden_until: [P7-1-N-009]
 
 **Verify:** `tour-workspace-registrations-logic.spec.ts` · `pnpm run p7:staging-workspace-registrations-probe`
 
-**Staging auth prerequisite:** Postgres must have `OPERATOR_SMOKE.ownerMobile` (`+15550001001`) with **ACTIVE owner membership** on tenant `…014`. `seed-operator-smoke-identity-staging.ts` upserts that row; the probe runs it idempotently before OTP on `operator.admin.localhost`.
+**Staging auth prerequisite:** Postgres must have `OPERATOR_SMOKE.ownerMobile` (`09174070937`) with **ACTIVE owner membership** on tenant `…014`. `seed-operator-smoke-identity-staging.ts` upserts that row; the probe runs it idempotently before OTP on `operator.admin.localhost`.
 
 **Pass signals:**
 

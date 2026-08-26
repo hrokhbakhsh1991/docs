@@ -346,7 +346,7 @@ Helper: [`scripts/pr15b-denali-finance-stage1-smoke.sh`](../../../../scripts/pr1
 
 ### Operator notes from live run
 
-1. Admin host: `denali.admin.localhost:3000` · OTP `+15550001001` / `1234` · cookie `atour_op_session`.
+1. Admin host: `denali.admin.localhost:3000` · OTP `09174070937` / `1234` · cookie `atour_op_session`.
 2. Approve review needs `Idempotency-Key`; reject may succeed without (SoT rule on approve).
 3. Receipt upload: send **raw image bytes**, not `multipart/form-data`, unless UI already converts (BFF forwards body as-is).
 4. Encounter disabled reason string may read `(emergency_disabled)` when `MODE=disabled` — naming quirk in production decision mapper; still means Case off (not an emergency flag set).

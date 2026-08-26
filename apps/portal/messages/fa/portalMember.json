@@ -51,7 +51,7 @@
     "paymentStatusLabels": {
       "unpaid": "پرداخت نشده",
       "partial": "پرداخت جزئی",
-      "paid": "پرداخت شده"
+      "paid": "وجه دریافت شد"
     }
   },
   "profile": {

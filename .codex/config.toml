@@ -1,0 +1,6 @@
+[mcp_servers.codebase-memory-mcp]
+command = "bash"
+args = [
+    "-lc",
+    "exec codebase-memory-mcp",
+]

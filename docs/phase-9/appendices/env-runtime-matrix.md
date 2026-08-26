@@ -46,7 +46,7 @@ req_ids: [REQ-P9-010, REQ-P9-011, REQ-P9-080]
 | Field  | Value                                          |
 | ------ | ---------------------------------------------- |
 | Host   | `denali.admin.localhost:3000` (canonical; `denali.localhost:3000` on web 308 → admin) |
-| Mobile | `+15550001001` (Denali / operator smoke seed owner) |
+| Mobile | `09174070937` (Denali / operator smoke seed owner) |
 | OTP    | `1234` (when `AUTH_ALLOW_DEV_STATIC_OTP=true`) |
 
 Web login form (dev): `NEXT_PUBLIC_DEV_LOGIN_PHONE` / `NEXT_PUBLIC_DEV_LOGIN_OTP` must match this fixture.

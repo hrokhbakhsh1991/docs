@@ -16,6 +16,10 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BookingActionNotice } from "@/features/bookings/booking-action-notice";
 import { approveBookingWithoutPayment } from "@/features/bookings/booking-approve-actions-logic";
+import {
+  bookingActionUnavailableMessageKey,
+  resolveBookingActionAvailability,
+} from "@/features/bookings/booking-action-availability-logic";
 import { BookingInboxRow } from "@/features/bookings/booking-inbox-row";
 import { BookingInspectionDetails } from "@/features/bookings/booking-inspection-details";
 import {
@@ -84,6 +88,7 @@ import {
 } from "@/features/bookings/bookings-command-center-types";
 import { workspaceBasePath } from "@/features/tours/tour-workspace-logic";
 import { invalidateTourWorkspaceFinanceCache } from "@/features/tours/tour-workspace-finance-fetch-cache";
+import { invalidateFinanceRegistrationCaches } from "@/finance/finance-registration-fetch-cache";
 import { isTourCapacityFull } from "@/features/tours/tour-workspace-waitlist-logic";
 
 import type { AppLocale } from "@/i18n/routing";
@@ -705,6 +710,10 @@ export function BookingsPageClient({
       if (!response.ok) {
         throw new Error(`BOOKINGS_${action.toUpperCase()}_HTTP_${response.status}`);
       }
+      if (action === "approve" && embedded && lockedTour.trim().length > 0) {
+        invalidateFinanceRegistrationCaches(bookingId);
+        invalidateTourWorkspaceFinanceCache(lockedTour);
+      }
       if (snapshot !== null) {
         const notice = buildBookingLifecycleActionNotice({
           action,
@@ -804,6 +813,44 @@ export function BookingsPageClient({
     canManageOps && selectedBooking !== null && isBookingWaitlistable(selectedBooking);
   const canCancelSelected =
     canManageOps && selectedBooking !== null && isBookingCancellable(selectedBooking);
+  const capacityFull =
+    tourCapacityGuard !== undefined && isTourCapacityFull(tourCapacityGuard);
+  const actionAvailability = useMemo(
+    () =>
+      resolveBookingActionAvailability({
+        canManageOps,
+        booking: selectedBooking,
+        isWaitlistable: canWaitlistSelected,
+        isCancellable: canCancelSelected,
+        capacityFull,
+      }),
+    [canCancelSelected, canManageOps, canWaitlistSelected, capacityFull, selectedBooking]
+  );
+  const actionUnavailableHint = useMemo(() => {
+    if (actionAvailability.unavailableReason === "approved_use_finance" && !canActOnSelected) {
+      return t("actionReason.approvedUseFinance");
+    }
+    if (
+      actionAvailability.unavailableReason !== null &&
+      !canActOnSelected &&
+      !canWaitlistSelected &&
+      !canCancelSelected
+    ) {
+      const key = bookingActionUnavailableMessageKey(actionAvailability.unavailableReason);
+      return t.has(key) ? t(key) : null;
+    }
+    return null;
+  }, [
+    actionAvailability.unavailableReason,
+    canActOnSelected,
+    canCancelSelected,
+    canWaitlistSelected,
+    t,
+  ]);
+  const capacityFullHint =
+    actionAvailability.showCapacityFullHint && canActOnSelected
+      ? t("actionReason.capacityFull")
+      : null;
   const hasActiveFilters = bookingsCommandCenterHasActiveFilters(query);
   const advancedFiltersDirty = bookingsAdvancedFiltersDirty(query);
   const showLoadMore = (listData?.nextCursor?.trim().length ?? 0) > 0;
@@ -1257,6 +1304,8 @@ export function BookingsPageClient({
                   onWaitlist={() => void runBookingAction("waitlist", inspectionTarget.id)}
                   onCancel={() => openCancelDialog(inspectionTarget.id)}
                   actionClassName="flex"
+                  actionHint={actionUnavailableHint}
+                  capacityFullHint={capacityFullHint}
                 />
               )}
             </CardContent>
@@ -1303,6 +1352,8 @@ export function BookingsPageClient({
                   onWaitlist={() => void runBookingAction("waitlist", inspectionTarget.id)}
                   onCancel={() => openCancelDialog(inspectionTarget.id)}
                   actionClassName="flex w-full flex-wrap"
+                  actionHint={actionUnavailableHint}
+                  capacityFullHint={capacityFullHint}
                   includeActionTestIds={false}
                 />
               </div>

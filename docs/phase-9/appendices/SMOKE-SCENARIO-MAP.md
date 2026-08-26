@@ -80,7 +80,7 @@ npm_script: test:e2e:operator
 ```bash
 export PLAYWRIGHT_BASE_URL="${PLAYWRIGHT_BASE_URL:-http://127.0.0.1:3000}"
 export OTP_FIXTURE_CODE="${OTP_FIXTURE_CODE:-1234}"
-export OPERATOR_SMOKE_OWNER_MOBILE="+15550001001"
+export OPERATOR_SMOKE_OWNER_MOBILE="09174070937"
 export OPERATOR_INVITEE_MOBILE="+15550008803"
 # Optional Redis for OTP throttle proof:
 # export REDIS_URL=redis://localhost:6379

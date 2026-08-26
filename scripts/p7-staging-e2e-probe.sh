@@ -95,7 +95,7 @@ export TOUR_OPS_API_URL="http://127.0.0.1:${API_PORT}"
 export PLAYWRIGHT_BASE_URL="http://operator.admin.localhost:${WEB_PORT}"
 export SMOKE_MARKETING_BASE_URL="http://operator.localhost:${MKT_PORT}"
 export SMOKE_PORTAL_BASE_URL="http://operator.portal.localhost:${PTL_PORT}"
-export OPERATOR_OWNER_MOBILE="${OPERATOR_OWNER_MOBILE:-+15550001001}"
+export OPERATOR_OWNER_MOBILE="${OPERATOR_OWNER_MOBILE:-09174070937}"
 export OPERATOR_DEV_OTP="${OPERATOR_DEV_OTP:-1234}"
 
 echo "== sync staging seed scripts + hotfix API sources to VPS =="
