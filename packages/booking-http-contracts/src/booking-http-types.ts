@@ -107,6 +107,10 @@ export type BookingListItem = {
   readonly paymentDueAt?: string;
   /** DP1 — cancel provenance when status=cancelled. */
   readonly cancelSource?: string | null;
+  /** Ops list projection — submitter user id for directory avatar parity. */
+  readonly memberUserId?: string;
+  /** Ops list projection — presigned avatar URL when membership has storage key. */
+  readonly memberAvatarUrl?: string | null;
 };
 
 export type BookingsListResponse = {

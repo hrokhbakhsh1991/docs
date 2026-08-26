@@ -39,6 +39,7 @@ import {
   BookingNotFoundError,
 } from "./bookings.errors";
 import { resolveUtcApprovedWithinDaysWindow } from "./booking-list-query";
+import { enrichBookingListItemsWithMemberAvatars } from "./enrich-booking-list-member-avatars";
 import type { BookingPostCancelSideEffectsPort } from "./ports/booking-post-cancel-side-effects.port";
 import type { BookingRegistrationSloPort } from "./ports/booking-registration-slo.port";
 
@@ -354,13 +355,17 @@ export class BookingsService {
         : {};
 
     return {
-      items: page.items.map((row) => {
-        const record = row as BookingRecord;
-        return toListItem(record, {
-          occupied: occupiedByTour[record.tourId] ?? 0,
-          max: maxByTour[record.tourId] ?? null,
-        });
-      }),
+      items: await enrichBookingListItemsWithMemberAvatars(
+        auth.tenantId,
+        page.items as BookingRecord[],
+        page.items.map((row) => {
+          const record = row as BookingRecord;
+          return toListItem(record, {
+            occupied: occupiedByTour[record.tourId] ?? 0,
+            max: maxByTour[record.tourId] ?? null,
+          });
+        })
+      ),
       total,
       nextCursor: page.nextCursor,
     };

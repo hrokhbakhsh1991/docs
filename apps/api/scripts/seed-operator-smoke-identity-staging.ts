@@ -7,19 +7,22 @@ import { withTenantRls } from "../src/db/with-tenant-rls";
 import { logger } from "../src/observability/logger";
 import { OPERATOR_SMOKE } from "../test/fixtures/operator-smoke-e2e-tenant.ts";
 
+import { resolveOperatorSmokeOwnerSeedMobile } from "./resolve-operator-owner-seed-mobile.ts";
+
 const OPERATOR_SMOKE_WORKSPACE_ID = "ws-operator-smoke" as const;
 
 export async function seedOperatorSmokeIdentity(): Promise<void> {
   const prisma = getPrismaAdmin();
+  const ownerMobile = resolveOperatorSmokeOwnerSeedMobile();
 
   await prisma.user.upsert({
     where: { id: OPERATOR_SMOKE.ownerUserId },
     create: {
       id: OPERATOR_SMOKE.ownerUserId,
-      mobile: OPERATOR_SMOKE.ownerMobile,
+      mobile: ownerMobile,
     },
     update: {
-      mobile: OPERATOR_SMOKE.ownerMobile,
+      mobile: ownerMobile,
     },
   });
 
@@ -51,7 +54,7 @@ export async function seedOperatorSmokeIdentity(): Promise<void> {
     {
       event: "db.seed.operator_smoke_identity",
       tenantId: OPERATOR_SMOKE.tenantId,
-      mobile: OPERATOR_SMOKE.ownerMobile,
+      mobile: ownerMobile,
     },
     "operator smoke owner identity seeded"
   );

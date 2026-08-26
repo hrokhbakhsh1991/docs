@@ -84,6 +84,15 @@ describe("member-profile-bff.server (M2)", () => {
     assert.equal(view.profile.fields.nationalId, undefined);
   });
 
+  it("MP-BFF-03c mobile field displays canonical 09 format", () => {
+    const caps = resolveMemberProfileCapabilities("denali");
+    const fields = pickExposedMemberProfileFields(
+      { displayName: "Member", mobile: "+989123456789" },
+      caps
+    );
+    assert.equal(fields.mobile, "09123456789");
+  });
+
   it("MP-BFF-03 pickExposedMemberProfileFields omits non-registry fields", () => {
     const caps = resolveMemberProfileCapabilities("denali");
     const fields = pickExposedMemberProfileFields(denaliIdentity, caps);

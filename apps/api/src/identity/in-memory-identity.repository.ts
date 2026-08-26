@@ -994,7 +994,12 @@ function resolveOperatorSmokeOwnerSeed(): {
   readonly mobile: string;
   readonly displayName: string;
 } {
-  const mobile = process.env.OPERATOR_OWNER_MOBILE?.trim() || DEFAULT_OPERATOR_SMOKE_OWNER_MOBILE;
+  const configured = process.env.OPERATOR_OWNER_MOBILE?.trim();
+  const raw =
+    configured !== undefined && configured.length > 0
+      ? configured
+      : DEFAULT_OPERATOR_SMOKE_OWNER_MOBILE;
+  const mobile = canonicalizeLoginMobile(raw);
   const userId = process.env.OPERATOR_OWNER_USER_ID?.trim() || OPERATOR_SMOKE_OWNER_USER_ID;
   const displayName = process.env.OPERATOR_OWNER_DISPLAY_NAME?.trim() || "Smoke Owner";
   return { userId, mobile, displayName };

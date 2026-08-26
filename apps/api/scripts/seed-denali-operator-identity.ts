@@ -10,6 +10,8 @@ import { getPrismaAdmin } from "../src/db/prisma";
 import { withTenantRls } from "../src/db/with-tenant-rls";
 import { logger } from "../src/observability/logger";
 
+import { resolveOperatorOwnerSeedMobile } from "./resolve-operator-owner-seed-mobile.ts";
+
 export const DENALI_DEV_OWNER_USER_ID = "00000000-0000-4000-8000-000000000101" as const;
 export const DENALI_DEV_OWNER_MOBILE = "+15550001001" as const;
 export const DENALI_DEV_WORKSPACE_ID = "ws-denali-dev" as const;
@@ -23,7 +25,7 @@ function resolveOperatorOwnerSeed(): {
   readonly mobile: string;
   readonly displayName?: string;
 } {
-  const mobile = process.env.OPERATOR_OWNER_MOBILE?.trim() || DENALI_DEV_OWNER_MOBILE;
+  const mobile = resolveOperatorOwnerSeedMobile();
   const userId = process.env.OPERATOR_OWNER_USER_ID?.trim() || DENALI_DEV_OWNER_USER_ID;
   const displayName = process.env.OPERATOR_OWNER_DISPLAY_NAME?.trim();
   return {

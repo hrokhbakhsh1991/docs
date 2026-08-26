@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,13 +9,35 @@ type MemberProfileContractSnapshot = {
   readonly memberProfileFieldIds: readonly string[];
 };
 
-const SNAPSHOT_PATH = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "member-profile-contract-v1.snapshot.json"
-);
+const SNAPSHOT_FILE_NAME = "member-profile-contract-v1.snapshot.json";
+
+/** Resolve snapshot for dev (src sibling), Next bundle, and standalone artifact layouts. */
+export function resolveMemberProfileContractSnapshotPath(): string {
+  const envOverride = process.env.MEMBER_PROFILE_CONTRACT_SNAPSHOT_PATH?.trim();
+  if (envOverride !== undefined && envOverride.length > 0 && existsSync(envOverride)) {
+    return envOverride;
+  }
+
+  const moduleSibling = join(
+    dirname(fileURLToPath(import.meta.url)),
+    SNAPSHOT_FILE_NAME
+  );
+  if (existsSync(moduleSibling)) {
+    return moduleSibling;
+  }
+
+  const artifactRelative = join(process.cwd(), "apps/portal/src/me", SNAPSHOT_FILE_NAME);
+  if (existsSync(artifactRelative)) {
+    return artifactRelative;
+  }
+
+  throw new Error("MEMBER_PROFILE_CONTRACT_SNAPSHOT_MISSING");
+}
 
 function readContractSnapshot(): MemberProfileContractSnapshot {
-  const raw = JSON.parse(readFileSync(SNAPSHOT_PATH, "utf8")) as MemberProfileContractSnapshot;
+  const raw = JSON.parse(
+    readFileSync(resolveMemberProfileContractSnapshotPath(), "utf8")
+  ) as MemberProfileContractSnapshot;
   return raw;
 }
 
