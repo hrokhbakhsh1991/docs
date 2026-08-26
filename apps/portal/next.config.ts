@@ -21,6 +21,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  ...(process.env.ARTIFACT_STANDALONE_BUILD === "1" ? { output: "standalone" as const } : {}),
   /**
    * Playwright + local dev: browser on `portal.{club}.localhost:3003` (canonical) or
    * legacy `{club}.portal.localhost:3003`; Next serves `localhost:3003`.
