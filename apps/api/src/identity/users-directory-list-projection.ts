@@ -1,3 +1,4 @@
+import { buildIranMobileSearchPatterns } from "@app-tour/iran-mobile";
 import type { Prisma } from "@prisma/client";
 
 import type { UsersListQuery } from "./users.types";
@@ -26,8 +27,17 @@ export function buildUserTenantDirectoryWhere(
 
   const search = filters.search?.trim();
   if (search !== undefined && search.length > 0) {
+    const phoneNeedles = new Set<string>([search]);
+    for (const pattern of buildIranMobileSearchPatterns(search)) {
+      const needle = pattern.replace(/^%|%$/g, "");
+      if (needle.length > 0) {
+        phoneNeedles.add(needle);
+      }
+    }
     where.OR = [
-      { user: { mobile: { contains: search, mode: "insensitive" } } },
+      ...[...phoneNeedles].map((needle) => ({
+        user: { mobile: { contains: needle, mode: "insensitive" as const } },
+      })),
       {
         membershipMetadata: {
           path: ["displayName"],
