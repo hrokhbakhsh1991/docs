@@ -4,6 +4,10 @@ set -euo pipefail
 
 DEPLOY_PATH="${DEPLOY_PATH:-/opt/app-tour}"
 WEB_DIR="${DEPLOY_PATH}/apps/web"
+PNPM_BIN="${PNPM_BIN:-/usr/local/bin/pnpm}"
+if [[ ! -x "$PNPM_BIN" ]]; then
+  PNPM_BIN="$(command -v pnpm)"
+fi
 cd "${DEPLOY_PATH}"
 
 build_pkg() {
@@ -25,17 +29,17 @@ build_web_production() {
     if (
       cd "${DEPLOY_PATH}"
       if [[ "${WORKSPACE_DEPLOY_PROFILE_APPLY:-}" == "1" ]]; then
-        /usr/local/bin/pnpm run apply:deploy-profile -- --write
+        ${PNPM_BIN} run apply:deploy-profile -- --write
       fi
       cd "${WEB_DIR}"
       export NODE_ENV=production
       export CI=true
       export NEXT_FONT_OFFLINE=1
-      /usr/local/bin/pnpm exec next build
+      ${PNPM_BIN} exec next build
       status=$?
       if [[ "${WORKSPACE_DEPLOY_PROFILE_APPLY:-}" == "1" ]]; then
         cd "${DEPLOY_PATH}"
-        /usr/local/bin/pnpm run generate:workspace-registry
+        ${PNPM_BIN} run generate:workspace-registry
       fi
       exit $status
     ); then
@@ -83,7 +87,7 @@ build_next_app() {
     export NODE_ENV=production
     export CI=true
     export NEXT_FONT_OFFLINE=1
-    /usr/local/bin/pnpm exec next build
+    ${PNPM_BIN} exec next build
   ) || {
     echo "[vps-build] ERROR: ${label} next build failed" >&2
     return 1
