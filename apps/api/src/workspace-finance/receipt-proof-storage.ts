@@ -1,3 +1,5 @@
+import { resolveMinioPhotoPresignConfig } from "@app-tour/workspace-denali";
+
 import {
   createTenantBrandLogoMinioClient,
   ensureTenantBrandLogoBucket,
@@ -51,6 +53,34 @@ export function assertMemberReceiptProofContentType(contentType: string): void {
   }
 }
 
+function readMinioSdkErrorCode(error: unknown): string | null {
+  if (error !== null && typeof error === "object" && "code" in error) {
+    const code = (error as { code?: unknown }).code;
+    return typeof code === "string" ? code : null;
+  }
+  return null;
+}
+
+/** Stable upload failure codes — map MinIO/network faults to 503 at HTTP boundary. */
+export function rethrowMemberReceiptProofStorageError(error: unknown): never {
+  const minioCode = readMinioSdkErrorCode(error);
+  if (minioCode === "XMinioStorageFull") {
+    throw new Error("RECEIPT_STORAGE_FULL");
+  }
+  if (
+    minioCode === "NoSuchBucket" ||
+    minioCode === "NoSuchKey" ||
+    minioCode === "InvalidBucketName" ||
+    minioCode === "AccessDenied"
+  ) {
+    throw new Error("RECEIPT_STORAGE_UNAVAILABLE");
+  }
+  if (error instanceof Error && /ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ECONNRESET/i.test(error.message)) {
+    throw new Error("RECEIPT_STORAGE_UNAVAILABLE");
+  }
+  throw error;
+}
+
 export async function putMemberReceiptProof(input: {
   readonly tenantId: string;
   readonly registrationId: string;
@@ -82,13 +112,17 @@ export async function putMemberReceiptProof(input: {
     throw new Error("MINIO_NOT_CONFIGURED");
   }
 
-  await ensureTenantBrandLogoBucket(config);
+  await ensureTenantBrandLogoBucket(config).catch(rethrowMemberReceiptProofStorageError);
   const client = createTenantBrandLogoMinioClient(config);
   const contentType =
     input.contentType.trim().toLowerCase().split(";")[0]?.trim() ?? "application/octet-stream";
-  await client.putObject(config.bucket, storageKey, input.body, input.body.length, {
-    "Content-Type": contentType,
-  });
+  try {
+    await client.putObject(config.bucket, storageKey, input.body, input.body.length, {
+      "Content-Type": contentType,
+    });
+  } catch (error) {
+    rethrowMemberReceiptProofStorageError(error);
+  }
   return { storageKey };
 }
 
@@ -109,9 +143,10 @@ export async function getMemberReceiptProofSignedReadUrl(input: {
     }
     throw new Error("MINIO_NOT_CONFIGURED");
   }
-  const client = createTenantBrandLogoMinioClient(config);
+  const presignConfig = resolveMinioPhotoPresignConfig(config);
+  const client = createTenantBrandLogoMinioClient(presignConfig);
   return client.presignedGetObject(
-    config.bucket,
+    presignConfig.bucket,
     input.storageKey,
     input.expiresInSeconds ?? RECEIPT_PROOF_READ_URL_TTL_SECONDS
   );

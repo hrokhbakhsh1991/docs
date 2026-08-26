@@ -6,6 +6,8 @@ import {
   OPERATOR_AVATAR_MAX_BYTES,
 } from "@app-tour/workspace-sdk";
 
+import { resolveMinioPhotoPresignConfig } from "@app-tour/workspace-denali";
+
 import {
   createTenantBrandLogoMinioClient,
   ensureTenantBrandLogoBucket,
@@ -81,9 +83,10 @@ export async function getOperatorAvatarSignedReadUrl(input: {
   if (config === null) {
     throw new Error("MINIO_NOT_CONFIGURED");
   }
-  const client = createTenantBrandLogoMinioClient(config);
+  const presignConfig = resolveMinioPhotoPresignConfig(config);
+  const client = createTenantBrandLogoMinioClient(presignConfig);
   return client.presignedGetObject(
-    config.bucket,
+    presignConfig.bucket,
     input.storageKey,
     input.expiresInSeconds ?? OPERATOR_AVATAR_READ_URL_TTL_SECONDS
   );
@@ -101,7 +104,7 @@ function hasNonEmptyAvatarStorageKey(input: OperatorAvatarMembershipRef): boolea
 
 async function presignOperatorAvatarReadUrl(
   config: MinioPhotoConfig,
-  client: MinioPhotoClient,
+  _client: MinioPhotoClient,
   input: OperatorAvatarMembershipRef,
   expiresInSeconds: number
 ): Promise<string | null> {
@@ -111,7 +114,13 @@ async function presignOperatorAvatarReadUrl(
   }
   try {
     assertOperatorAvatarKeyScope(normalized, input.tenantId, input.userId);
-    return await client.presignedGetObject(config.bucket, normalized, expiresInSeconds);
+    const presignConfig = resolveMinioPhotoPresignConfig(config);
+    const presignClient = createTenantBrandLogoMinioClient(presignConfig);
+    return await presignClient.presignedGetObject(
+      presignConfig.bucket,
+      normalized,
+      expiresInSeconds
+    );
   } catch {
     return null;
   }

@@ -1,3 +1,5 @@
+import { resolveMinioPhotoPresignConfig } from "@app-tour/workspace-denali";
+
 import {
   createTenantBrandLogoMinioClient,
   ensureTenantBrandLogoBucket,
@@ -43,9 +45,10 @@ export class MinioTenantObjectStorageAdapter implements TenantObjectStoragePort 
     if (config === null) {
       throw new Error("MINIO_NOT_CONFIGURED");
     }
-    const client = createTenantBrandLogoMinioClient(config);
+    const presignConfig = resolveMinioPhotoPresignConfig(config);
+    const client = createTenantBrandLogoMinioClient(presignConfig);
     return client.presignedGetObject(
-      config.bucket,
+      presignConfig.bucket,
       input.storageKey,
       input.ttlSeconds ?? DEFAULT_SIGNED_READ_TTL_SECONDS
     );
