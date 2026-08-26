@@ -14,7 +14,16 @@ export type SettingsEquipmentIconPickerProps = {
   readonly previewSubtitle?: string;
 };
 
+export type SettingsTourThemeCatalogAvatarProps = {
+  readonly id: string;
+  readonly name: string;
+  readonly iconKey?: string | null;
+  readonly className?: string;
+  readonly size?: "card" | "chip";
+};
+
 export type SettingsEquipmentUiSurface = {
   readonly EquipmentCatalogAvatar: ComponentType<SettingsEquipmentCatalogAvatarProps>;
   readonly EquipmentIconPicker: ComponentType<SettingsEquipmentIconPickerProps>;
+  readonly TourThemeCatalogAvatar: ComponentType<SettingsTourThemeCatalogAvatarProps>;
 };

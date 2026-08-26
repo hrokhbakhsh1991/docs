@@ -138,6 +138,7 @@ export type TourThemeResource = {
   readonly name: string;
   readonly slug: string;
   readonly formProfile: string | null;
+  readonly iconKey?: string | null;
   /** Workspace wizard tour categories compatible with this theme's formProfile. */
   readonly compatibleCategories?: readonly string[];
   readonly isActive: boolean;
@@ -185,12 +186,14 @@ export type LocationsListResponse = {
 export type CreateTourThemeRequest = {
   readonly name: string;
   readonly slug?: string;
+  readonly iconKey?: string | null;
   readonly isActive?: boolean;
 };
 
 export type PatchTourThemeRequest = {
   readonly name?: string;
   readonly slug?: string;
+  readonly iconKey?: string | null;
   readonly isActive?: boolean;
 };
 

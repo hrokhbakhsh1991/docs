@@ -217,7 +217,8 @@
     "subtitle": "Workspace tour theme catalog (Phase 9.6 R4)",
     "addTitle": "Add theme",
     "listTitle": "Themes ({count})",
-    "empty": "No tour themes yet."
+    "empty": "No tour themes yet.",
+    "iconPreviewSubtitle": "Optional icon shown in wizard and lists"
   },
   "locations": {
     "title": "Locations",

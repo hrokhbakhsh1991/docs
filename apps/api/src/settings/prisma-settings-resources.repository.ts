@@ -66,6 +66,7 @@ function toTourTheme(row: {
   name: string;
   slug: string;
   formProfile: string | null;
+  iconKey?: string | null;
   isActive: boolean;
   sortOrder: number;
   createdAt: Date;
@@ -77,6 +78,7 @@ function toTourTheme(row: {
     name: row.name,
     slug: row.slug,
     formProfile: row.formProfile,
+    iconKey: row.iconKey ?? null,
     isActive: row.isActive,
     sortOrder: row.sortOrder,
     createdAt: row.createdAt.toISOString(),
@@ -349,7 +351,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
 
   async createTourTheme(
     tenantId: string,
-    input: { name: string; slug?: string; isActive?: boolean }
+    input: { name: string; slug?: string; iconKey?: string | null; isActive?: boolean }
   ): Promise<TourThemeResource> {
     const existing = await this.listTourThemes(tenantId);
     const baseSlug = slugifyName(input.slug ?? input.name);
@@ -360,6 +362,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
           tenantId,
           name: input.name,
           slug,
+          iconKey: input.iconKey ?? null,
           isActive: input.isActive ?? true,
           sortOrder: existing.length,
         },
@@ -371,7 +374,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
   async patchTourTheme(
     tenantId: string,
     itemId: string,
-    input: { name?: string; slug?: string; isActive?: boolean }
+    input: { name?: string; slug?: string; iconKey?: string | null; isActive?: boolean }
   ): Promise<TourThemeResource> {
     const current = await this.getTourTheme(tenantId, itemId);
     if (current === null) {
@@ -401,6 +404,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
         data: {
           ...(input.name !== undefined ? { name: input.name } : {}),
           slug: nextSlug,
+          ...(input.iconKey !== undefined ? { iconKey: input.iconKey } : {}),
           ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
         },
       })

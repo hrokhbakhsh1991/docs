@@ -242,9 +242,14 @@ export async function createSettingsResource(
     if (themeBody.name.trim().length === 0) {
       throw new SettingsResourceInvalidError();
     }
+    const validateEquipmentIconKey = await resolveEquipmentIconKeyValidatorForTenant(
+      auth.tenantId
+    );
+    const iconKey = parseEquipmentIconKeyInput(themeBody.iconKey, validateEquipmentIconKey);
     const created = await repo.createTourTheme(auth.tenantId, {
       name: themeBody.name.trim(),
       ...(themeBody.slug !== undefined ? { slug: themeBody.slug.trim() } : {}),
+      ...(iconKey !== undefined ? { iconKey } : {}),
       ...(themeBody.isActive !== undefined ? { isActive: themeBody.isActive } : {}),
     });
     await emitSettingsResourceAudit(
@@ -412,9 +417,14 @@ export async function patchSettingsResource(
 
   if (moduleId === "tour_themes") {
     const themeBody = body as PatchTourThemeRequest;
+    const validateEquipmentIconKey = await resolveEquipmentIconKeyValidatorForTenant(
+      auth.tenantId
+    );
+    const iconKey = parseEquipmentIconKeyInput(themeBody.iconKey, validateEquipmentIconKey);
     const updated = await repo.patchTourTheme(auth.tenantId, itemId, {
       ...(themeBody.name !== undefined ? { name: themeBody.name.trim() } : {}),
       ...(themeBody.slug !== undefined ? { slug: themeBody.slug.trim() } : {}),
+      ...(iconKey !== undefined ? { iconKey } : {}),
       ...(themeBody.isActive !== undefined ? { isActive: themeBody.isActive } : {}),
     });
     await emitSettingsResourceAudit(

@@ -5171,6 +5171,21 @@
             "examples": [
               "capacity"
             ]
+          },
+          "memberUserId": {
+            "type": "string",
+            "description": "Ops list projection — submitter user id for directory avatar parity.",
+            "examples": [
+              "00000000-0000-4000-8000-000000000101"
+            ]
+          },
+          "memberAvatarUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Ops list projection — presigned avatar URL when membership has storage key.",
+            "examples": [
+              null
+            ]
           }
         },
         "examples": [

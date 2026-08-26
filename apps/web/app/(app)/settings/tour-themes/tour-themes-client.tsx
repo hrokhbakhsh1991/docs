@@ -4,6 +4,10 @@ import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import { useTranslations } from "next-intl";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import {
+  ensureSettingsEquipmentUiSurface,
+} from "@/features/settings/settings-equipment-ui-registry";
+import type { SettingsEquipmentUiSurface } from "@/features/settings/settings-equipment-ui-types";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -24,6 +28,43 @@ type TourThemesClientProps = {
 };
 
 export function TourThemesClient({ session }: TourThemesClientProps) {
+  const [equipmentUi, setEquipmentUi] = useState<SettingsEquipmentUiSurface | null>(null);
+  const [surfaceReady, setSurfaceReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void ensureSettingsEquipmentUiSurface(session.pluginId).then((surface) => {
+      if (!cancelled) {
+        setEquipmentUi(surface);
+        setSurfaceReady(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session.pluginId]);
+
+  if (!surfaceReady) {
+    return (
+      <div className="space-y-4" data-testid={SETTINGS_HUB_TEST_IDS.tourThemesPage}>
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    );
+  }
+
+  if (equipmentUi == null) {
+    throw new Error(`No equipment settings UI surface for plugin: ${session.pluginId}`);
+  }
+
+  return <TourThemesClientReady session={session} equipmentUi={equipmentUi} />;
+}
+
+function TourThemesClientReady({
+  session,
+  equipmentUi,
+}: TourThemesClientProps & { readonly equipmentUi: SettingsEquipmentUiSurface }) {
+  const { EquipmentIconPicker, TourThemeCatalogAvatar } = equipmentUi;
   const t = useTranslations("settings.tourThemes");
   const tErrors = useTranslations("settings.errors");
   const tCommon = useTranslations("common");
@@ -34,6 +75,7 @@ export function TourThemesClient({ session }: TourThemesClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [iconKey, setIconKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [fetchNonce, setFetchNonce] = useState(0);
 
@@ -84,6 +126,7 @@ export function TourThemesClient({ session }: TourThemesClientProps) {
         body: JSON.stringify({
           name: name.trim(),
           ...(slug.trim().length > 0 ? { slug: slug.trim() } : {}),
+          ...(iconKey != null ? { iconKey } : {}),
         }),
       });
       if (!response.ok) {
@@ -91,6 +134,7 @@ export function TourThemesClient({ session }: TourThemesClientProps) {
       }
       setName("");
       setSlug("");
+      setIconKey(null);
       refresh();
     } catch (createError: unknown) {
       setError(createError instanceof Error ? createError.message : "TOUR_THEMES_CREATE_FAILED");
@@ -130,31 +174,39 @@ export function TourThemesClient({ session }: TourThemesClientProps) {
             <CardTitle>{t("addTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <form className="grid gap-4 sm:grid-cols-3" onSubmit={(event) => void handleCreate(event)}>
-              <div className="space-y-2 sm:col-span-1">
-                <Label htmlFor="theme-name">{tCommon("name")}</Label>
-                <Input
-                  id="theme-name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  required
-                />
+            <form className="space-y-4" onSubmit={(event) => void handleCreate(event)}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="theme-name">{tCommon("name")}</Label>
+                  <Input
+                    id="theme-name"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="theme-slug">{tCommon("slug")}</Label>
+                  <Input
+                    id="theme-slug"
+                    value={slug}
+                    onChange={(event) => setSlug(event.target.value)}
+                    placeholder={tCommon("optional")}
+                  />
+                </div>
               </div>
-              <div className="space-y-2 sm:col-span-1">
-                <Label htmlFor="theme-slug">{tCommon("slug")}</Label>
-                <Input
-                  id="theme-slug"
-                  value={slug}
-                  onChange={(event) => setSlug(event.target.value)}
-                  placeholder={tCommon("optional")}
-                />
-              </div>
-              <div className="flex items-end sm:col-span-1">
-                <Button type="submit" disabled={saving}>
-                  <Plus className="me-1 size-4" />
-                  {tCommon("add")}
-                </Button>
-              </div>
+
+              <EquipmentIconPicker
+                name={name}
+                value={iconKey}
+                onChange={setIconKey}
+                previewSubtitle={t("iconPreviewSubtitle")}
+              />
+
+              <Button type="submit" disabled={saving}>
+                <Plus className="me-1 size-4" />
+                {tCommon("add")}
+              </Button>
             </form>
           </CardContent>
         </Card>
@@ -177,10 +229,19 @@ export function TourThemesClient({ session }: TourThemesClientProps) {
               <div
                 key={item.id}
                 className="flex items-center justify-between rounded-lg border p-3"
+                data-tour-theme-list-row
               >
-                <div>
-                  <p className="font-medium">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">{item.slug}</p>
+                <div className="flex min-w-0 items-center gap-3">
+                  <TourThemeCatalogAvatar
+                    id={item.id}
+                    name={item.name}
+                    iconKey={item.iconKey}
+                    size="chip"
+                  />
+                  <div className="min-w-0">
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">{item.slug}</p>
+                  </div>
                 </div>
                 {canManage ? (
                   <Button

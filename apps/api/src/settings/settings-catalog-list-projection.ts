@@ -19,6 +19,7 @@ export const TOUR_THEME_LIST_SELECT = {
   name: true,
   slug: true,
   formProfile: true,
+  iconKey: true,
   isActive: true,
   sortOrder: true,
   createdAt: true,

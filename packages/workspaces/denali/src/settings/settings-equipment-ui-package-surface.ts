@@ -13,6 +13,7 @@ export const SETTINGS_EQUIPMENT_UI_SURFACE_KEY = "app-cloud.settingsEquipmentUiS
 export type SettingsEquipmentUiPackageSurface = {
   readonly EquipmentCatalogAvatar: unknown;
   readonly EquipmentIconPicker: unknown;
+  readonly TourThemeCatalogAvatar: unknown;
 };
 
 type GlobalRegistry = typeof globalThis & {
@@ -58,6 +59,7 @@ export async function ensureSettingsEquipmentUiPackageSurface(
   const next = Object.freeze({
     EquipmentCatalogAvatar: mod.denaliSettingsEquipmentUiSurface.EquipmentCatalogAvatar,
     EquipmentIconPicker: mod.denaliSettingsEquipmentUiSurface.EquipmentIconPicker,
+    TourThemeCatalogAvatar: mod.denaliSettingsEquipmentUiSurface.TourThemeCatalogAvatar,
   }) as SettingsEquipmentUiPackageSurface;
 
   getCache().set(id, next);

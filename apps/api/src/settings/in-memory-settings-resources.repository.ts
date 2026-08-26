@@ -56,8 +56,8 @@ export interface SettingsResourcesRepository {
   seedEquipment(record: EquipmentResource): Promise<void>;
   listTourThemes(tenantId: string): Promise<TourThemeResource[]>;
   getTourTheme(tenantId: string, themeId: string): Promise<TourThemeResource | null>;
-  createTourTheme(tenantId: string, input: { name: string; slug?: string; isActive?: boolean }): Promise<TourThemeResource>;
-  patchTourTheme(tenantId: string, itemId: string, input: { name?: string; slug?: string; isActive?: boolean }): Promise<TourThemeResource>;
+  createTourTheme(tenantId: string, input: { name: string; slug?: string; iconKey?: string | null; isActive?: boolean }): Promise<TourThemeResource>;
+  patchTourTheme(tenantId: string, itemId: string, input: { name?: string; slug?: string; iconKey?: string | null; isActive?: boolean }): Promise<TourThemeResource>;
   deleteTourTheme(tenantId: string, itemId: string): Promise<void>;
   seedTourTheme(record: TourThemeResource): Promise<void>;
   listGuideLanguages(tenantId: string): Promise<GuideLanguageResource[]>;
@@ -158,7 +158,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
 
   async createTourTheme(
     tenantId: string,
-    input: { name: string; slug?: string; isActive?: boolean }
+    input: { name: string; slug?: string; iconKey?: string | null; isActive?: boolean }
   ): Promise<TourThemeResource> {
     const now = new Date().toISOString();
     const existing = await this.listTourThemes(tenantId);
@@ -169,6 +169,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
       name: input.name,
       slug: uniqueCatalogSlug(tenantSlugs(tourThemeStore, tenantId), baseSlug, "theme"),
       formProfile: null,
+      iconKey: input.iconKey ?? null,
       isActive: input.isActive ?? true,
       sortOrder: existing.length,
       createdAt: now,
@@ -181,7 +182,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
   async patchTourTheme(
     tenantId: string,
     itemId: string,
-    input: { name?: string; slug?: string; isActive?: boolean }
+    input: { name?: string; slug?: string; iconKey?: string | null; isActive?: boolean }
   ): Promise<TourThemeResource> {
     const current = tourThemeStore.get(resourceKey(tenantId, itemId));
     if (current === undefined) {
@@ -199,6 +200,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
       ...current,
       ...(input.name !== undefined ? { name: input.name } : {}),
       slug: nextSlug,
+      ...(input.iconKey !== undefined ? { iconKey: input.iconKey } : {}),
       ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
       updatedAt: new Date().toISOString(),
     };
