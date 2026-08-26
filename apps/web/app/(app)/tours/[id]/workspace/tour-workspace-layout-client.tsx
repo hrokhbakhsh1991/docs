@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { OperatorStatusBadge } from "@/admin/patterns/operator-status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
@@ -427,17 +428,13 @@ function TourWorkspaceLayoutInner({
             >
               {t(`tabs.${tab}`)}
               {badge !== undefined && badge > 0 ? (
-                <span
-                  className={cn(
-                    "rounded-full px-1.5 text-xs",
-                    isActive
-                      ? "bg-primary-foreground/20"
-                      : "bg-muted-foreground/20"
-                  )}
+                <OperatorStatusBadge
+                  variant={isActive ? "secondary" : "outline"}
+                  className={isActive ? "border-primary-foreground/20 bg-primary-foreground/15 text-primary-foreground" : undefined}
                   data-testid={TOUR_WORKSPACE_TEST_IDS.tabBadge}
                 >
                   {formatLocalizedNumber(badge, locale)}
-                </span>
+                </OperatorStatusBadge>
               ) : null}
             </button>
           );

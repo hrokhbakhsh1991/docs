@@ -18,6 +18,8 @@ export type TourOperationalRosterRow = {
   readonly registrationId: string;
   readonly tourId: string;
   readonly guestLabel: string;
+  readonly memberUserId?: string;
+  readonly memberAvatarUrl?: string | null;
   readonly partySize: number;
   readonly registrationStatus: string;
   readonly financialDisplayState: string;

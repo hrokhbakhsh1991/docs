@@ -28,6 +28,7 @@ export const TOUR_WORKSPACE_FINANCE_TEST_IDS = {
   degraded: "operator-tour-workspace-finance-degraded",
   detailPanel: "operator-tour-workspace-finance-detail-panel",
   detailEmpty: "operator-tour-workspace-finance-detail-empty",
+  detailRecommendation: "operator-tour-workspace-finance-detail-recommendation",
   paymentActionResult: "operator-tour-workspace-finance-payment-action-result",
   openHub: "operator-tour-workspace-finance-open-hub",
   openPayments: "operator-tour-workspace-finance-open-payments",

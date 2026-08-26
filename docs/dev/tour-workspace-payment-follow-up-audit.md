@@ -486,3 +486,50 @@ The best low-debt path is:
 - surface receipt evidence without moving receipt review fully into the workspace card
 
 This keeps the redesign additive and aligned with the existing workspace and finance infrastructure.
+
+## Local Payment Follow-up UX Closure (2026-08-26)
+
+### Operator outcomes (no new finance states)
+
+| Outcome | API path | UI surface |
+| ------- | -------- | ---------- |
+| A. Reject registration | `POST /api/bookings/:id/reject` | Bookings inspection — «رد ثبت‌نام» |
+| B. Approve + payment required | `POST /api/bookings/:id/approve` | Bookings — «تأیید و منتظر پرداخت»; finance tab follow-up |
+| C. Approve + no payment required | approve → `PUT obligation-override` `obligationMinor: "0"` | Bookings — «تأیید بدون نیاز به پرداخت»; finance advanced override (unchanged) |
+
+Case C does **not** record cash; obligation zero is finance SoT for waived payable.
+
+### Clutter reduction
+
+- Finance guest list: compact `TourWorkspacePaymentFollowUpRow` (avatar, name, follow-up badge, payment badge, amount).
+- Detail panel: summary grid + one-line recommendation on surface; requirement block + evidence behind `<details>`; advanced tools remain in existing advanced toggle.
+
+### State sync
+
+After obligation override or approve-without-payment:
+
+1. `invalidateFinanceRegistrationCaches(registrationId)`
+2. `invalidateTourWorkspaceFinanceCache(tourId)` when tour scope known
+3. Parent `refreshWorkspaceFinanceView()` / bookings `refreshData()`
+
+Root cause of slow refresh: override path omitted finance + tour cache invalidation before this batch.
+
+### Tests added
+
+- `apps/web/test/booking-approve-actions-logic.spec.ts`
+- `apps/web/test/tour-workspace-payment-follow-up-row.spec.ts`
+- `apps/web/test/tour-workspace-payment-follow-up-cache.spec.ts`
+- extended `tour-workspace-payment-follow-up-state.spec.ts` (zero-balance settled)
+
+### Invariants
+
+- Primary labels avoid internal finance jargon and do not imply cash received on waiver.
+- No optimistic financial success before server confirms.
+- Finance domain unchanged; workspace web owns composition only.
+
+### 2026-08-26 final pass
+
+- Guest list now uses **operational roster + pending bookings** (`useTourWorkspacePaymentFollowUpList`) — `paymentDueAt` from DP-2 projection (no duplicate Finance SoT).
+- Row: avatar, name, registration + payment badges, amount, deadline, inline primary/secondary actions.
+- Detail flicker fix: keep prior invoice/payments/schedule while refetching.
+- **Local runtime:** port **3000** may be unrelated; run app-tour web with `cd apps/web && pnpm exec next dev --port 3010` (API on **3001**).

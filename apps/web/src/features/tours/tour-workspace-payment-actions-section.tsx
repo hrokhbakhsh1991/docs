@@ -146,6 +146,7 @@ export function TourWorkspacePaymentActionsSection({
         </summary>
         <div className="mt-4 space-y-4">
           <TourWorkspacePaymentOverrideActions
+            tourId={tourId}
             registrationId={registrationId}
             canManage={canManage}
             invoice={invoice}

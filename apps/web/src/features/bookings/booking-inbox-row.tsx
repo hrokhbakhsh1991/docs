@@ -4,12 +4,13 @@ import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 import { Check } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { BookingMemberAvatar } from "@/features/bookings/booking-member-avatar";
 import {
   bookingPaymentBadgeVariant,
   bookingStatusBadgeVariant,
 } from "@/features/bookings/bookings-badge-variants";
+import { OperatorStatusBadge } from "@/admin/patterns/operator-status-badge";
 import { BookingDepartureUrgencyBadge } from "@/features/bookings/booking-overdue-badge";
 import {
   formatBookingDateTime,
@@ -109,15 +110,14 @@ export function BookingInboxRow({
       <button
         type="button"
         onClick={onSelect}
-        className="min-w-0 flex-1 py-2.5 pe-2 text-start outline-none"
+        className="flex min-w-0 flex-1 items-start gap-3 py-2.5 pe-2 text-start outline-none"
       >
-        <div className="flex min-w-0 items-start justify-between gap-3">
+        <BookingMemberAvatar item={item} size="sm" />
+        <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <p className="truncate text-sm font-medium leading-5 text-foreground">{item.guestLabel}</p>
-              <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                {identityLabel}
-              </Badge>
+              <OperatorStatusBadge variant="outline">{identityLabel}</OperatorStatusBadge>
             </div>
             <p className="truncate text-xs leading-4 text-muted-foreground">
               {rowMetaParts.join(" · ")}
@@ -131,17 +131,16 @@ export function BookingInboxRow({
           </div>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 pt-0.5">
             <BookingDepartureUrgencyBadge item={item} />
-            <Badge variant={bookingStatusBadgeVariant(item.status)} className="h-5 px-1.5 text-[10px]">
+            <OperatorStatusBadge variant={bookingStatusBadgeVariant(item.status)}>
               {t(`status.${item.status}`)}
-            </Badge>
-            <Badge
+            </OperatorStatusBadge>
+            <OperatorStatusBadge
               variant={bookingPaymentBadgeVariant(item.paymentStatus)}
-              className="h-5 px-1.5 text-[10px]"
               data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.paymentBadgeInbox}
               data-payment-status={item.paymentStatus}
             >
               {t(`payment.${item.paymentStatus}`)}
-            </Badge>
+            </OperatorStatusBadge>
             {typeof item.paymentDueAt === "string" && item.paymentDueAt.length > 0 ? (
               <span className="sr-only" data-operator-booking-payment-due-at>
                 {item.paymentDueAt}

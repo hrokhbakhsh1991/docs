@@ -10,6 +10,7 @@ type BookingActionButtonsProps = {
   readonly busy: boolean;
   readonly onReject: () => void;
   readonly onApprove: () => void;
+  readonly onApproveWithoutPayment?: () => void;
   readonly onWaitlist: () => void;
   readonly onCancel: () => void;
   readonly showApproveReject: boolean;
@@ -23,6 +24,7 @@ export function BookingActionButtons({
   busy,
   onReject,
   onApprove,
+  onApproveWithoutPayment,
   onWaitlist,
   onCancel,
   showApproveReject,
@@ -33,25 +35,53 @@ export function BookingActionButtons({
 }: BookingActionButtonsProps) {
   const t = useTranslations("bookings");
   return (
-    <div className={`gap-2 ${className ?? "flex"}`}>
+    <div className={`flex flex-col gap-2 ${className ?? ""}`}>
+      {showApproveReject ? (
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="flex-1"
+            disabled={busy}
+            {...(includeTestIds
+              ? { "data-testid": BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectButton }
+              : {})}
+            onClick={onReject}
+          >
+            <X className="me-1 size-4" />
+            {t("rejectRegistration")}
+          </Button>
+          {onApproveWithoutPayment !== undefined ? (
+            <Button
+              variant="outline"
+              className="flex-1"
+              disabled={busy}
+              {...(includeTestIds
+                ? { "data-testid": BOOKINGS_COMMAND_CENTER_TEST_IDS.approveWithoutPaymentButton }
+                : {})}
+              onClick={onApproveWithoutPayment}
+            >
+              {t("approveWithoutPayment")}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
       {showApproveReject ? (
         <Button
-          variant="outline"
-          className="flex-1"
+          className="w-full"
           disabled={busy}
           {...(includeTestIds
-            ? { "data-testid": BOOKINGS_COMMAND_CENTER_TEST_IDS.rejectButton }
+            ? { "data-testid": BOOKINGS_COMMAND_CENTER_TEST_IDS.approveButton }
             : {})}
-          onClick={onReject}
+          onClick={onApprove}
         >
-          <X className="me-1 size-4" />
-          {t("reject")}
+          <Check className="me-1 size-4" />
+          {t("approveAwaitingPayment")}
         </Button>
       ) : null}
       {showWaitlist ? (
         <Button
           variant="outline"
-          className="flex-1"
+          className="w-full"
           disabled={busy}
           aria-label={t("waitlistActionAria")}
           {...(includeTestIds
@@ -62,23 +92,10 @@ export function BookingActionButtons({
           {t("waitlist")}
         </Button>
       ) : null}
-      {showApproveReject ? (
-        <Button
-          className="flex-1"
-          disabled={busy}
-          {...(includeTestIds
-            ? { "data-testid": BOOKINGS_COMMAND_CENTER_TEST_IDS.approveButton }
-            : {})}
-          onClick={onApprove}
-        >
-          <Check className="me-1 size-4" />
-          {t("approve")}
-        </Button>
-      ) : null}
       {showCancel ? (
         <Button
           variant="destructive"
-          className="flex-1"
+          className="w-full"
           disabled={busy}
           {...(includeTestIds
             ? { "data-testid": BOOKINGS_COMMAND_CENTER_TEST_IDS.cancelButton }

@@ -89,9 +89,6 @@ export function useTourWorkspacePaymentDetailData(
     const controller = new AbortController();
     setLoading(true);
     setError(null);
-    setInvoice(null);
-    setPayments([]);
-    setSchedule([]);
 
     void Promise.all([
       fetch(buildInvoiceLookupPath(normalizedRegistrationId), {

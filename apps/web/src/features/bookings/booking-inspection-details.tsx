@@ -39,6 +39,7 @@ type BookingInspectionDetailsProps = {
   readonly onCopyId: () => void;
   readonly onReject: () => void;
   readonly onApprove: () => void;
+  readonly onApproveWithoutPayment?: () => void;
   readonly onWaitlist: () => void;
   readonly onCancel: () => void;
   readonly actionClassName: string;
@@ -57,6 +58,7 @@ export function BookingInspectionDetails({
   onCopyId,
   onReject,
   onApprove,
+  onApproveWithoutPayment,
   onWaitlist,
   onCancel,
   actionClassName,
@@ -162,6 +164,7 @@ export function BookingInspectionDetails({
           showCancel={canCancelSelected}
           onReject={onReject}
           onApprove={onApprove}
+          onApproveWithoutPayment={onApproveWithoutPayment}
           onWaitlist={onWaitlist}
           onCancel={onCancel}
           className={actionClassName}

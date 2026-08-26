@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BookingActionNotice } from "@/features/bookings/booking-action-notice";
+import { approveBookingWithoutPayment } from "@/features/bookings/booking-approve-actions-logic";
 import { BookingInboxRow } from "@/features/bookings/booking-inbox-row";
 import { BookingInspectionDetails } from "@/features/bookings/booking-inspection-details";
 import {
@@ -82,6 +83,7 @@ import {
   type BookingsSummaryResponse,
 } from "@/features/bookings/bookings-command-center-types";
 import { workspaceBasePath } from "@/features/tours/tour-workspace-logic";
+import { invalidateTourWorkspaceFinanceCache } from "@/features/tours/tour-workspace-finance-fetch-cache";
 import { isTourCapacityFull } from "@/features/tours/tour-workspace-waitlist-logic";
 
 import type { AppLocale } from "@/i18n/routing";
@@ -227,6 +229,9 @@ export function BookingsPageClient({
   const [overbookConfirmBookingId, setOverbookConfirmBookingId] = useState<string | null>(
     null
   );
+  const [overbookConfirmMode, setOverbookConfirmMode] = useState<
+    "approve" | "approve_without_payment"
+  >("approve");
   const [armedInlineApproveId, setArmedInlineApproveId] = useState<string | null>(null);
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   const [inspectionBooking, setInspectionBooking] = useState<BookingListItem | null>(null);
@@ -727,6 +732,7 @@ export function BookingsPageClient({
       tourCapacityGuard !== undefined &&
       isTourCapacityFull(tourCapacityGuard)
     ) {
+      setOverbookConfirmMode("approve");
       setOverbookConfirmBookingId(bookingId);
       setOverbookConfirmOpen(true);
       return;
@@ -739,9 +745,54 @@ export function BookingsPageClient({
       return;
     }
     const bookingId = overbookConfirmBookingId;
+    const mode = overbookConfirmMode;
     setOverbookConfirmOpen(false);
     setOverbookConfirmBookingId(null);
+    setOverbookConfirmMode("approve");
+    if (mode === "approve_without_payment") {
+      await runApproveWithoutPayment(bookingId);
+      return;
+    }
     await runBookingAction("approve", bookingId);
+  };
+
+  const runApproveWithoutPayment = async (bookingId: string) => {
+    const snapshot = findSelectedBooking(listDataRef.current?.items ?? [], bookingId);
+    setActionBusy(true);
+    setActionError(null);
+    setActionNotice(null);
+    try {
+      await approveBookingWithoutPayment(bookingId);
+      if (embedded && lockedTour.trim().length > 0) {
+        invalidateTourWorkspaceFinanceCache(lockedTour);
+      }
+      if (snapshot !== null) {
+        setActionNotice(
+          t("approveWithoutPaymentSuccess", { guest: snapshot.guestLabel })
+        );
+      }
+      refreshData();
+      onOpsMutationSuccess?.();
+    } catch (actionErr: unknown) {
+      setActionError(
+        actionErr instanceof Error ? actionErr.message : "BOOKINGS_APPROVE_WITHOUT_PAYMENT_FAILED"
+      );
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const requestApproveWithoutPayment = (bookingId: string) => {
+    if (
+      tourCapacityGuard !== undefined &&
+      isTourCapacityFull(tourCapacityGuard)
+    ) {
+      setOverbookConfirmMode("approve_without_payment");
+      setOverbookConfirmBookingId(bookingId);
+      setOverbookConfirmOpen(true);
+      return;
+    }
+    void runApproveWithoutPayment(bookingId);
   };
 
   const showLeaderBanner = !embedded && (leaderAlias || isLeaderReviewAlias(query.scope));
@@ -1200,6 +1251,9 @@ export function BookingsPageClient({
                   onCopyId={() => void copyBookingId(inspectionTarget.id)}
                   onReject={() => openRejectDialog(inspectionTarget.id)}
                   onApprove={() => requestApprove(inspectionTarget.id)}
+                  onApproveWithoutPayment={() =>
+                    requestApproveWithoutPayment(inspectionTarget.id)
+                  }
                   onWaitlist={() => void runBookingAction("waitlist", inspectionTarget.id)}
                   onCancel={() => openCancelDialog(inspectionTarget.id)}
                   actionClassName="flex"
@@ -1243,6 +1297,9 @@ export function BookingsPageClient({
                   onCopyId={() => void copyBookingId(inspectionTarget.id)}
                   onReject={() => openRejectDialog(inspectionTarget.id)}
                   onApprove={() => requestApprove(inspectionTarget.id)}
+                  onApproveWithoutPayment={() =>
+                    requestApproveWithoutPayment(inspectionTarget.id)
+                  }
                   onWaitlist={() => void runBookingAction("waitlist", inspectionTarget.id)}
                   onCancel={() => openCancelDialog(inspectionTarget.id)}
                   actionClassName="flex w-full flex-wrap"

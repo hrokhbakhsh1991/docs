@@ -22,6 +22,10 @@ export type TourOperationalRosterRow = {
   readonly registrationId: string;
   readonly tourId: string;
   readonly guestLabel: string;
+  /** Ops list projection — submitter user id for avatar parity. */
+  readonly memberUserId?: string;
+  /** Ops list projection — presigned avatar URL when membership has storage key. */
+  readonly memberAvatarUrl?: string | null;
   readonly partySize: number;
   readonly registrationStatus: OperationalRosterLifecycleStatus;
   readonly financialDisplayState: OperationalRosterFinancialDisplayState;

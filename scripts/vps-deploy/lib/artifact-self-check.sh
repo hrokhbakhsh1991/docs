@@ -30,6 +30,10 @@ artifact_self_check() {
       return 1
     }
   done
+  [[ -f "${vroot}/portal/apps/portal/src/me/member-profile-contract-v1.snapshot.json" ]] || {
+    echo "artifact-self-check: missing portal member-profile contract snapshot" >&2
+    return 1
+  }
   local web_server="${vroot}/web/apps/web/server.js"
   [[ -f "$web_server" ]] || {
     echo "artifact-self-check: missing web standalone server.js" >&2

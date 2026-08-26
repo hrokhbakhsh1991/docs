@@ -77,6 +77,12 @@ export function composeTourOperationalRosterRow(
     registrationId: input.booking.id,
     tourId: input.booking.tourId,
     guestLabel: input.booking.guestLabel,
+    ...(input.booking.memberUserId !== undefined
+      ? { memberUserId: input.booking.memberUserId }
+      : {}),
+    ...(input.booking.memberAvatarUrl !== undefined
+      ? { memberAvatarUrl: input.booking.memberAvatarUrl }
+      : {}),
     partySize: input.booking.partySize,
     registrationStatus,
     financialDisplayState: deriveFinancialDisplayState({

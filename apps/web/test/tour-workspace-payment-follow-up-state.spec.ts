@@ -317,4 +317,23 @@ describe("tour-workspace-payment-follow-up-state.spec.ts", () => {
     });
     assert.equal(state.evidence.pendingReceiptsCount, 1);
   });
+
+  it("maps zero-balance obligation override as settled with no current requirement", () => {
+    const state = buildTourWorkspacePaymentDetailState({
+      invoice: invoice({
+        invoiceTotalMinor: "100",
+        paidAmountMinor: "0",
+        balanceDueMinor: "0",
+        walletNetMinor: "0",
+      }),
+      payments: [],
+      receipts: [],
+      schedule: [],
+      now: NOW,
+    });
+
+    assert.equal(state.summaryStatus, "paid_in_full");
+    assert.equal(state.currentRequirement.kind, "none");
+    assert.equal(state.currentRequirement.amountMinor, "0");
+  });
 });

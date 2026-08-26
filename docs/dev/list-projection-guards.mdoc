@@ -34,6 +34,12 @@ Constants: `bookings-member-summary-projection.ts`.
 
 **Static checks:** `test/bookings-member-summary-projection.spec.ts` (BK-MEM-01..03)
 
+### Ops list member avatar (OP-UI batch)
+
+`listBookings` enriches each row with `memberUserId` (submittedByUserId) and optional `memberAvatarUrl` via batch `findMembershipsByUserIds` + `resolveOperatorAvatarUrlsForMemberships` — same presign path as the users directory. No `registrationIntake` on the list wire. Helper: `enrich-booking-list-member-avatars.ts`.
+
+**Static checks:** `test/enrich-booking-list-member-avatars.spec.ts` (API-OPUI-01)
+
 ## Finance registration invoice facts (AP15 — P1)
 
 `getRegistrationInvoiceFacts` must not full-scan payments or prepayment outbox rows per registration.

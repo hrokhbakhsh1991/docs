@@ -11,21 +11,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
+import { approveBookingWithoutPayment } from "@/features/bookings/booking-approve-actions-logic";
+import { invalidateTourWorkspaceFinanceCache } from "@/features/tours/tour-workspace-finance-fetch-cache";
+import { invalidateFinanceRegistrationCaches } from "@/finance/finance-registration-fetch-cache";
 import { buildFinanceCommercialMeaningHref } from "@/finance/finance-commercial-meaning-contract";
 import { type OutstandingBalanceListItem } from "@/finance/finance-outstanding-logic";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import {
   buildTourFinanceHubHref,
   buildTourFinanceMoneyInbox,
-  filterTourFinanceGuestRows,
-  findTourFinanceGuestRow,
   pickTourCollectionRollup,
   resolveSelectedWorkspacePaymentAction,
   shouldShowTourFinanceGuestTools,
   sumOutstandingRemainingMinor,
   TOUR_WORKSPACE_FINANCE_TEST_IDS,
   type TourFinanceGuestKind,
-  type TourFinanceGuestRow,
   type TourFinanceListFilter,
   type TourWorkspacePaymentActionEvent,
 } from "@/features/tours/tour-workspace-finance-logic";
@@ -35,8 +35,17 @@ import { OperatorInternalLink } from "@/features/tours/tour-internal-link";
 import {
   hasActiveTourWorkspacePaymentSchedule,
   resolveTourWorkspaceDetailActionMode,
+  resolveTourWorkspaceDetailActionRecommendation,
 } from "@/features/tours/tour-workspace-payment-follow-up-actions";
 import { TourWorkspacePaymentActionsSection } from "@/features/tours/tour-workspace-payment-actions-section";
+import { TourWorkspacePaymentFollowUpRow } from "@/features/tours/tour-workspace-payment-follow-up-row";
+import {
+  filterPaymentFollowUpParticipants,
+  findPaymentFollowUpParticipant,
+  type PaymentFollowUpPrimaryActionKind,
+  type TourWorkspacePaymentFollowUpParticipantRow,
+} from "@/features/tours/tour-workspace-payment-follow-up-logic";
+import { useTourWorkspacePaymentFollowUpList } from "@/features/tours/use-tour-workspace-payment-follow-up-list";
 import { TourWorkspacePaymentEvidenceList } from "@/features/tours/tour-workspace-payment-evidence-list";
 import { useTourWorkspacePaymentDetailData } from "@/features/tours/use-tour-workspace-payment-detail-data";
 import type { ReceiptReviewResultBanner } from "@/finance/finance-receipt-review-content";
@@ -68,48 +77,41 @@ type TourWorkspaceFinanceClientProps = {
 
 const FILTERS: readonly TourFinanceListFilter[] = ["all", "unpaid", "partial"];
 
-function kindStatusLabel(
-  t: ReturnType<typeof useTranslations>,
-  kind: TourFinanceGuestKind
-): string {
-  if (kind === "partial") {
-    return t("statusPartial");
-  }
-  return t("statusUnpaid");
+function mapFollowUpListKindToFinanceRowKind(
+  kind: TourWorkspacePaymentFollowUpParticipantRow["listKind"]
+): TourFinanceGuestKind {
+  return kind === "partial" ? "partial" : "unpaid";
 }
 
-function kindBadgeClass(kind: TourFinanceGuestKind): string {
+function followUpListKindBadgeClass(
+  kind: TourWorkspacePaymentFollowUpParticipantRow["listKind"]
+): string {
   if (kind === "partial") {
     return "border-sky-500/40 bg-sky-500/10 text-sky-800 dark:text-sky-300";
+  }
+  if (kind === "settled") {
+    return "border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300";
+  }
+  if (kind === "pending") {
+    return "border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-300";
   }
   return "border-orange-500/40 bg-orange-500/10 text-orange-900 dark:text-orange-300";
 }
 
-function kindAccentClass(kind: TourFinanceGuestKind): string {
+function followUpListKindLabel(
+  t: ReturnType<typeof useTranslations>,
+  kind: TourWorkspacePaymentFollowUpParticipantRow["listKind"]
+): string {
   if (kind === "partial") {
-    return "bg-sky-500/80";
+    return t("statusPartial");
   }
-  return "bg-orange-500/80";
-}
-
-function DetailSection({
-  title,
-  description,
-  children,
-}: {
-  readonly title: string;
-  readonly description?: string;
-  readonly children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-lg border bg-muted/10 px-4 py-4">
-      <div className="space-y-1">
-        <p className="text-sm font-medium">{title}</p>
-        {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
-      </div>
-      <div className="mt-3">{children}</div>
-    </section>
-  );
+  if (kind === "settled") {
+    return t("rowSettled");
+  }
+  if (kind === "pending") {
+    return t("rowPending");
+  }
+  return t("statusUnpaid");
 }
 
 function detailStatusLabel(
@@ -208,6 +210,8 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
   const [lastPaymentAction, setLastPaymentAction] =
     useState<TourWorkspacePaymentActionEvent | null>(null);
   const [financeMutationRefreshKey, setFinanceMutationRefreshKey] = useState(0);
+  const [followUpListRefreshKey, setFollowUpListRefreshKey] = useState(0);
+  const [rowActionBusy, setRowActionBusy] = useState(false);
   const [workspaceExitNotice, setWorkspaceExitNotice] = useState<string | null>(null);
   const [receiptReviewNotice, setReceiptReviewNotice] = useState<string | null>(null);
   const [isNarrowViewport, setIsNarrowViewport] = useState(false);
@@ -227,6 +231,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     refresh,
     loadMore,
   } = useTourWorkspaceFinanceData(tourId);
+  const followUpList = useTourWorkspacePaymentFollowUpList(tourId, followUpListRefreshKey);
 
   useEffect(() => {
     setPendingFocusId(focusFromUrl);
@@ -266,10 +271,10 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
   }, [pathname, router, searchParams]);
 
   useEffect(() => {
-    if (panelBlocking || !loadSucceeded || pendingFocusId === null) {
+    if (panelBlocking || !loadSucceeded || followUpList.loading || pendingFocusId === null) {
       return;
     }
-    const found = findTourFinanceGuestRow(inbox.guestRows, pendingFocusId);
+    const found = findPaymentFollowUpParticipant(followUpList.rows, pendingFocusId);
     if (found !== null) {
       setListFilter("all");
       setSearchQuery("");
@@ -287,7 +292,8 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     clearFocusFromUrl();
   }, [
     clearFocusFromUrl,
-    inbox.guestRows,
+    followUpList.loading,
+    followUpList.rows,
     isNarrowViewport,
     loadSucceeded,
     panelBlocking,
@@ -295,8 +301,8 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
   ]);
 
   const visibleRows = useMemo(
-    () => filterTourFinanceGuestRows(inbox.guestRows, listFilter, searchQuery),
-    [inbox.guestRows, listFilter, searchQuery]
+    () => filterPaymentFollowUpParticipants(followUpList.rows, listFilter, searchQuery),
+    [followUpList.rows, listFilter, searchQuery]
   );
 
   useEffect(() => {
@@ -312,7 +318,10 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     );
   }, [visibleRows]);
 
-  const showGuestTools = !panelBlocking && shouldShowTourFinanceGuestTools(inbox);
+  const showGuestTools =
+    !panelBlocking &&
+    !followUpList.loading &&
+    (shouldShowTourFinanceGuestTools(inbox) || followUpList.rows.length > 0);
   const selectedRow = useMemo(
     () => visibleRows.find((row) => row.key === selectedRowKey) ?? null,
     [selectedRowKey, visibleRows]
@@ -324,6 +333,25 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
         : null,
     [outstanding, selectedRow]
   );
+  const selectedPaymentAction = useMemo(
+    () =>
+      resolveSelectedWorkspacePaymentAction({
+        lastPaymentAction,
+        selectedRow:
+          selectedRow === null
+            ? null
+            : {
+                key: selectedRow.key,
+                kind: mapFollowUpListKindToFinanceRowKind(selectedRow.listKind),
+                registrationId: selectedRow.registrationId,
+                displayName: selectedRow.displayName,
+                amountMinor: selectedRow.remainingMinor,
+                currency: selectedRow.currency,
+              },
+        selectedReceiptId: null,
+      }),
+    [lastPaymentAction, selectedRow]
+  );
   const detailAmountRows = useMemo(
     () => buildDetailAmountRows(selectedOutstanding, locale, t),
     [locale, selectedOutstanding, t]
@@ -332,20 +360,48 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
     selectedRow?.registrationId ?? null,
     receipts
   );
-  const selectedPaymentAction = useMemo(
-    () =>
-      resolveSelectedWorkspacePaymentAction({
-        lastPaymentAction,
-        selectedRow,
-        selectedReceiptId: null,
-      }),
-    [lastPaymentAction, selectedRow]
-  );
 
   const refreshWorkspaceFinanceView = useCallback(() => {
     refresh();
+    setFollowUpListRefreshKey((current) => current + 1);
+    followUpList.refresh();
     reloadWorkspaceChrome();
-  }, [refresh, reloadWorkspaceChrome]);
+  }, [followUpList, refresh, reloadWorkspaceChrome]);
+
+  const runFollowUpRowAction = useCallback(
+    async (action: PaymentFollowUpPrimaryActionKind, registrationId: string) => {
+      if (action === "none" || action === "follow_up_payment" || action === "follow_up_partial") {
+        const row = findPaymentFollowUpParticipant(followUpList.rows, registrationId);
+        if (row !== null) {
+          setSelectedRowKey(row.key);
+          if (isNarrowViewport) {
+            setMobileSheetOpen(true);
+          }
+        }
+        return;
+      }
+      setRowActionBusy(true);
+      try {
+        if (action === "approve_awaiting_payment") {
+          const response = await fetch(
+            `/api/bookings/${encodeURIComponent(registrationId)}/approve`,
+            { method: "POST", headers: { "Content-Type": "application/json" } }
+          );
+          if (!response.ok) {
+            throw new Error(`BOOKINGS_APPROVE_HTTP_${response.status}`);
+          }
+          invalidateFinanceRegistrationCaches(registrationId);
+        } else if (action === "approve_without_payment") {
+          await approveBookingWithoutPayment(registrationId);
+        }
+        invalidateTourWorkspaceFinanceCache(tourId);
+        refreshWorkspaceFinanceView();
+      } finally {
+        setRowActionBusy(false);
+      }
+    },
+    [followUpList.rows, isNarrowViewport, refreshWorkspaceFinanceView, tourId]
+  );
 
   const handleRegistrationPaymentChanged = useCallback(
     (event: TourWorkspacePaymentActionEvent) => {
@@ -430,43 +486,6 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           count: formatLocalizedNumber(receipts.length, locale) + (receiptsHasMore ? "+" : ""),
         });
 
-  const renderPrimaryAction = (row: TourFinanceGuestRow) => {
-    const rowSuffix = row.registrationId ?? row.key;
-    if (row.kind === "partial") {
-      return (
-        <Button
-          asChild
-          size="sm"
-          variant="outline"
-          data-testid={`${TOUR_WORKSPACE_FINANCE_TEST_IDS.reviewPartial}-${rowSuffix}`}
-        >
-          <OperatorInternalLink
-            href={buildTourFinanceHubHref(tourId, "payments", row.registrationId)}
-          >
-            {t("ctaReviewPartial")}
-          </OperatorInternalLink>
-        </Button>
-      );
-    }
-    if (row.kind === "unpaid") {
-      return (
-        <Button
-          asChild
-          size="sm"
-          variant="outline"
-          data-testid={`${TOUR_WORKSPACE_FINANCE_TEST_IDS.followUpPayment}-${rowSuffix}`}
-        >
-          <OperatorInternalLink
-            href={buildTourFinanceHubHref(tourId, "payments", row.registrationId)}
-          >
-            {t("ctaFollowUpPayment")}
-          </OperatorInternalLink>
-        </Button>
-      );
-    }
-    return null;
-  };
-
   const renderDetailBody = (mobile = false) => {
     if (selectedRow === null) {
       return (
@@ -500,8 +519,12 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
       ) : null;
 
     const selectedAmountLabel =
-      selectedRow.amountMinor !== null && selectedRow.currency !== null
-        ? formatMinorAmount(selectedRow.amountMinor, selectedRow.currency, locale)
+      selectedRow.remainingMinor !== null && selectedRow.currency !== null
+        ? formatMinorAmount(selectedRow.remainingMinor, selectedRow.currency, locale)
+        : null;
+    const selectedDeadlineLabel =
+      selectedRow.paymentDueAt !== null
+        ? formatDetailDate(locale, selectedRow.paymentDueAt)
         : null;
     const requirementAmountLabel =
       detailData.detailState !== null &&
@@ -544,15 +567,20 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
           </p>
         ) : null}
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className={kindBadgeClass(selectedRow.kind)}>
-            {kindStatusLabel(t, selectedRow.kind)}
+          <Badge variant="outline" className={followUpListKindBadgeClass(selectedRow.listKind)}>
+            {followUpListKindLabel(t, selectedRow.listKind)}
           </Badge>
           {selectedAmountLabel !== null ? (
             <span className="text-sm text-muted-foreground">{selectedAmountLabel}</span>
           ) : null}
+          {selectedDeadlineLabel !== null ? (
+            <span className="text-sm text-muted-foreground">
+              {t("rowDeadline", { date: selectedDeadlineLabel })}
+            </span>
+          ) : null}
         </div>
 
-        {detailData.loading ? (
+        {detailData.loading && detailData.invoice === null ? (
           <div className="space-y-2">
             <OperatorSkeleton size="user-card" />
           </div>
@@ -566,41 +594,51 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
 
         {detailData.detailState !== null ? (
           <>
-            <DetailSection
-              title={t("detailSummaryTitle")}
-              description={t("detailSummaryDescription")}
-            >
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="rounded-md border bg-background/70 px-3 py-3">
-                  <p className="text-xs text-muted-foreground">{t("detailStatusCardTitle")}</p>
-                  <p className="mt-1 text-sm font-medium">
-                    {detailStatusLabel(t, detailData.detailState.summaryStatus)}
-                  </p>
-                </div>
-                <div className="rounded-md border bg-background/70 px-3 py-3">
-                  <p className="text-xs text-muted-foreground">{t("detailRequirementTitle")}</p>
-                  <p className="mt-1 text-sm font-medium">
-                    {requirementAmountLabel ?? t("detailRequirementNone")}
-                  </p>
-                </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-md border bg-background/70 px-3 py-3">
+                <p className="text-xs text-muted-foreground">{t("detailStatusCardTitle")}</p>
+                <p className="mt-1 text-sm font-medium">
+                  {detailStatusLabel(t, detailData.detailState.summaryStatus)}
+                </p>
               </div>
-              {detailAmountRows.length > 0 ? (
-                <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                  {detailAmountRows.map((item) => (
-                    <div key={item.label} className="rounded-md border bg-background/70 px-3 py-3">
-                      <p className="text-xs text-muted-foreground">{item.label}</p>
-                      <p className="mt-1 text-sm font-medium">{item.value}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </DetailSection>
+              <div className="rounded-md border bg-background/70 px-3 py-3">
+                <p className="text-xs text-muted-foreground">{t("detailRequirementTitle")}</p>
+                <p className="mt-1 text-sm font-medium">
+                  {requirementAmountLabel ?? t("detailRequirementNone")}
+                </p>
+              </div>
+            </div>
+            {detailAmountRows.length > 0 ? (
+              <div className="grid gap-2 sm:grid-cols-3">
+                {detailAmountRows.map((item) => (
+                  <div key={item.label} className="rounded-md border bg-background/70 px-3 py-3">
+                    <p className="text-xs text-muted-foreground">{item.label}</p>
+                    <p className="mt-1 text-sm font-medium">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {(() => {
+              const recommendation = resolveTourWorkspaceDetailActionRecommendation({
+                status: detailData.detailState.summaryStatus,
+                hasActiveSchedule,
+              });
+              return (
+                <p
+                  className="text-sm text-muted-foreground"
+                  data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.detailRecommendation}
+                >
+                  {t(recommendation.titleKey)}
+                </p>
+              );
+            })()}
 
-            <DetailSection
-              title={t("detailRequirementBlockTitle")}
-              description={t("detailRequirementBlockDescription")}
-            >
-              <div className="space-y-2 text-xs text-muted-foreground">
+            <details className="rounded-md border border-dashed px-3 py-2">
+              <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+                {t("detailRequirementBlockTitle")}
+              </summary>
+              <div className="mt-3 space-y-2 text-xs text-muted-foreground">
+                <p>{t("detailRequirementBlockDescription")}</p>
                 <p>
                   {t("detailRequirementSource")}:{" "}
                   {detailData.detailState.currentRequirement.source === "schedule"
@@ -627,13 +665,13 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
                   </p>
                 ) : null}
               </div>
-            </DetailSection>
+            </details>
 
-            <DetailSection
-              title={t("detailEvidenceTitle")}
-              description={t("detailEvidenceDescription")}
-            >
-              <div className="grid gap-4 lg:grid-cols-2">
+            <details className="rounded-md border border-dashed px-3 py-2">
+              <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+                {t("detailEvidenceTitle")}
+              </summary>
+              <div className="mt-3 grid gap-4 lg:grid-cols-2">
                 <div className="space-y-2">
                   <p className="text-sm font-medium">
                     {t("detailPendingReceiptsCount", {
@@ -709,11 +747,11 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
                   </div>
                 </div>
               </div>
-            </DetailSection>
+            </details>
           </>
         ) : null}
 
-        {selectedRow.registrationId !== null ? (
+        {selectedRow.listKind !== "pending" && selectedRow.registrationId !== null ? (
           <TourWorkspacePaymentActionsSection
             tourId={tourId}
             pluginId={session.pluginId}
@@ -721,7 +759,7 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
             canManage={canManage}
             actionMode={actionMode}
             hasActiveSchedule={hasActiveSchedule}
-            rowKind={selectedRow.kind}
+            rowKind={mapFollowUpListKindToFinanceRowKind(selectedRow.listKind)}
             invoice={detailData.invoice}
             pendingReceipts={pendingReceiptsForSelected}
             refreshKey={financeMutationRefreshKey}
@@ -756,7 +794,6 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
         ) : null}
 
         <div className={cn("flex flex-wrap gap-2", mobile && "w-full")}>
-          {selectedRow.registrationId === null ? renderPrimaryAction(selectedRow) : null}
           {selectedRow.registrationId !== null ? (
             <Button asChild size="sm" variant="ghost">
               <OperatorInternalLink
@@ -785,7 +822,12 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
   const listPanel = (
     <section className="min-w-0 space-y-3">
       <h3 className="text-sm font-semibold">{t("guestListTitle")}</h3>
-      {visibleRows.length === 0 ? (
+      {followUpList.loading ? (
+        <div className="space-y-2">
+          <OperatorSkeleton size="user-card" />
+          <OperatorSkeleton size="user-card" />
+        </div>
+      ) : visibleRows.length === 0 ? (
         <div
           className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground"
           data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.empty}
@@ -795,83 +837,29 @@ export function TourWorkspaceFinanceClient({ tourId, session }: TourWorkspaceFin
       ) : (
         <ul className="space-y-2" data-testid={TOUR_WORKSPACE_FINANCE_TEST_IDS.guestList}>
           {visibleRows.map((row) => {
-            const amountLabel =
-              row.amountMinor !== null && row.currency !== null
-                ? formatMinorAmount(row.amountMinor, row.currency, locale)
-                : null;
-            const highlighted =
-              row.registrationId !== null && row.registrationId === highlightedRegistrationId;
+            const highlighted = row.registrationId === highlightedRegistrationId;
             const selected = row.key === selectedRowKey;
             return (
-              <li
-                key={row.key}
-                data-finance-registration-id={row.registrationId ?? undefined}
-                data-finance-kind={row.kind}
-              >
-                <button
-                  type="button"
-                  aria-pressed={selected}
-                  className={cn(
-                    "group relative flex w-full items-start gap-3 overflow-hidden rounded-lg border px-3 py-3 text-start transition-colors",
-                    "hover:border-primary/30 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                    highlighted && "ring-2 ring-primary/40 ring-offset-1 ring-offset-background",
-                    selected
-                      ? "border-primary/50 bg-primary/[0.07] shadow-sm"
-                      : "border-border bg-background"
-                  )}
-                  onClick={() => {
+              <li key={row.key}>
+                <TourWorkspacePaymentFollowUpRow
+                  row={row}
+                  locale={locale}
+                  selected={selected}
+                  highlighted={highlighted}
+                  busy={rowActionBusy}
+                  onSelect={() => {
                     setSelectedRowKey(row.key);
                     if (isNarrowViewport) {
                       setMobileSheetOpen(true);
                     }
                   }}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "absolute inset-y-2 left-0 w-1 rounded-full opacity-0 transition-opacity",
-                      kindAccentClass(row.kind),
-                      selected && "opacity-100",
-                      highlighted && !selected && "opacity-70"
-                    )}
-                  />
-                  <div className="min-w-0 flex-1 pl-1">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0 space-y-1">
-                        <p
-                          className={cn(
-                            "truncate text-sm font-medium",
-                            selected && "text-foreground"
-                          )}
-                        >
-                          {row.displayName}
-                        </p>
-                        <Badge variant="outline" className={kindBadgeClass(row.kind)}>
-                          {kindStatusLabel(t, row.kind)}
-                        </Badge>
-                      </div>
-                      {amountLabel !== null ? (
-                        <div className="shrink-0 text-end">
-                          <p
-                            className={cn(
-                              "text-sm font-semibold tabular-nums",
-                              selected ? "text-foreground" : "text-foreground/90"
-                            )}
-                          >
-                            {amountLabel}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {t("guestListItemRemainingLabel")}
-                          </p>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="sr-only">
-                    {row.displayName}
-                    {amountLabel !== null ? ` ${amountLabel}` : ""}
-                  </div>
-                </button>
+                  onPrimaryAction={(action, registrationId) => {
+                    void runFollowUpRowAction(action, registrationId);
+                  }}
+                  onSecondaryAction={(action, registrationId) => {
+                    void runFollowUpRowAction(action, registrationId);
+                  }}
+                />
               </li>
             );
           })}

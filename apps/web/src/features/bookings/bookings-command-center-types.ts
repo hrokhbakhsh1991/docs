@@ -82,6 +82,10 @@ export type BookingListItem = {
   readonly paymentDueAt?: string;
   /** DP1 — cancel provenance when status=cancelled. */
   readonly cancelSource?: string | null;
+  /** Ops list projection — submitter user id for avatar resolution. */
+  readonly memberUserId?: string;
+  /** Ops list projection — presigned avatar URL when membership has storage key. */
+  readonly memberAvatarUrl?: string | null;
 };
 
 export type BookingsListResponse = {
@@ -119,10 +123,12 @@ export const BOOKINGS_COMMAND_CENTER_TEST_IDS = {
   inbox: "operator-bookings-inbox",
   inspection: "operator-bookings-inspection",
   /** PR21-H1 — booking settlement badge (inbox list row). */
+  rowAvatar: "operator-bookings-row-avatar",
   paymentBadgeInbox: "operator-bookings-payment-badge-inbox",
   /** PR21-H1 — booking settlement badge (inspection header). */
   paymentBadgeInspection: "operator-bookings-payment-badge-inspection",
   approveButton: "operator-bookings-approve",
+  approveWithoutPaymentButton: "operator-bookings-approve-without-payment",
   inlineApproveButton: "operator-bookings-inline-approve",
   rejectButton: "operator-bookings-reject",
   waitlistButton: "operator-bookings-waitlist",

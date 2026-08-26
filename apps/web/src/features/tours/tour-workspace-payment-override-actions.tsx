@@ -7,7 +7,9 @@ import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { invalidateFinanceRegistrationCaches } from "@/finance/finance-registration-fetch-cache";
 import { withFinanceRegistrationQuery } from "@/finance/finance-registration-context";
+import { invalidateTourWorkspaceFinanceCache } from "@/features/tours/tour-workspace-finance-fetch-cache";
 import type { RegistrationInvoice } from "@/finance/finance-invoice-logic";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import { OperatorInternalLink } from "@/features/tours/tour-internal-link";
@@ -18,6 +20,7 @@ import {
 } from "@/i18n/resolve-finance-error-message";
 
 type TourWorkspacePaymentOverrideActionsProps = {
+  readonly tourId?: string;
   readonly registrationId: string;
   readonly canManage: boolean;
   readonly invoice: RegistrationInvoice | null;
@@ -33,6 +36,7 @@ function isMinorAmount(value: string): boolean {
 }
 
 export function TourWorkspacePaymentOverrideActions({
+  tourId,
   registrationId,
   canManage,
   invoice,
@@ -93,6 +97,11 @@ export function TourWorkspacePaymentOverrideActions({
       setSavedAmountMinor(nextAmountMinor.trim());
       if (mode === "amount") {
         setAmountMinor("");
+      }
+      invalidateFinanceRegistrationCaches(normalizedRegistrationId);
+      const scopedTourId = tourId?.trim() ?? "";
+      if (scopedTourId.length > 0) {
+        invalidateTourWorkspaceFinanceCache(scopedTourId);
       }
       onChanged?.({
         registrationId: normalizedRegistrationId,
