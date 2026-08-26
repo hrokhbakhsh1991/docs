@@ -4,6 +4,7 @@ import {
 } from "./auth-errors";
 import { isJwtVerifyConfigured } from "./jwt-env";
 import { assertProductionAuthHarnessAbsent } from "../test/production-auth-harness";
+import { isStagingInfraProfile } from "../identity/static-otp-policy";
 
 /**
  * Fail closed: unsigned dev bearer must never be enabled outside automated test runs.
@@ -24,6 +25,9 @@ export function assertAuthEnvironmentIntegrity(): void {
     }
     if (process.env.AUTH_ALLOW_DEV_STATIC_OTP?.trim() === "true") {
       throw new Error("AUTH_ALLOW_DEV_STATIC_OTP_FORBIDDEN_IN_PRODUCTION");
+    }
+    if (process.env.STAGING_ALLOW_STATIC_OTP?.trim() === "true" && !isStagingInfraProfile()) {
+      throw new Error("STAGING_ALLOW_STATIC_OTP_FORBIDDEN_OUTSIDE_STAGING_PROFILE");
     }
   }
 }

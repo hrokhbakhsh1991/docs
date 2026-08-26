@@ -14,15 +14,12 @@ import {
   verifyOtpCodeHash,
 } from "./otp-code";
 import { assertOtpRequestRateLimit } from "./otp-rate-limit";
+import { isStaticOtpEnabled, STAGING_STATIC_OTP_CODE } from "./static-otp-policy";
 
-const DEV_STATIC_OTP = "1234";
+const DEV_STATIC_OTP = STAGING_STATIC_OTP_CODE;
 
 function isDevStaticOtpEnabled(): boolean {
-  const nodeEnv = process.env.NODE_ENV?.trim();
-  return (
-    (nodeEnv === "development" || nodeEnv === "test") &&
-    process.env.AUTH_ALLOW_DEV_STATIC_OTP?.trim() !== "false"
-  );
+  return isStaticOtpEnabled();
 }
 
 export async function createMobileOtpChallenge(
