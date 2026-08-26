@@ -80,3 +80,6 @@ temp/
 apps/web/.tmp-audit/
 apps/portal/.artifacts/
 apps/portal/apps/
+
+# Staging artifact verify workspace (never commit)
+.artifact-build/
