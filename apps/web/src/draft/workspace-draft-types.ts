@@ -1,4 +1,4 @@
-import type { ConflictStrategy, DraftEngineState, DraftSchemaGate, DraftSetDataOptions, DraftSyncPayload } from "@app-tour/draft-engine";
+import type { ConflictStrategy, DraftEngineState, DraftSchemaGate, DraftSetDataOptions, DraftStatus, DraftSyncPayload } from "@app-tour/draft-engine";
 
 export type WorkspaceDraftEnvelope<TForm, TMeta = unknown> = {
   readonly form: TForm;
@@ -63,7 +63,7 @@ export type WorkspaceDraftHookResult<T> = {
   readonly clearDraft: () => Promise<void>;
   readonly clearDraftAndReset: (reset: T) => Promise<void>;
   readonly applyDraft: () => void;
-  readonly flush: () => Promise<void>;
+  readonly flush: () => Promise<DraftStatus | undefined>;
   readonly initialize: () => Promise<void>;
   readonly revertToLastValid: () => void;
 };

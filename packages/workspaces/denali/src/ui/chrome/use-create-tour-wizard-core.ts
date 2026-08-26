@@ -36,6 +36,7 @@ import {
   useDenaliWizardRuleSync,
   useDenaliWizardRules,
 } from "../hooks/use-wizard-rule-sync";
+import { buildDenaliWizardStepChangeFromLatestRef } from "../logic/denali-wizard-step-change";
 
 export type DenaliCreateTourWizardDraftEnvelope = DenaliWizardDraftEnvelope<DenaliTourWizardDraft>;
 
@@ -71,7 +72,7 @@ export type DenaliCreateTourDraftSync = {
   readonly pendingDraft: { readonly data: DenaliCreateTourWizardDraftEnvelope } | null;
   readonly conflictReloadNotice: boolean;
   readonly retry: () => Promise<void>;
-  readonly flush: () => Promise<void>;
+  readonly flush: () => Promise<import("@app-tour/draft-engine").DraftStatus | undefined>;
   readonly applyDraft: () => void;
   readonly canRevertQuarantine: boolean;
   readonly revertToLastValid: () => void;
@@ -316,18 +317,20 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
       : null;
 
   const onActiveStepIndexChange = useCallback(
-    (index: number) => {
-      if (denaliEnvelope === null || denaliEnvelope.meta.currentStepIndex === index) {
-        return;
-      }
-      input.draftSync.setData(
-        input.prepareEnvelope(denaliEnvelope.form, {
-          ...denaliEnvelope.meta,
-          currentStepIndex: index,
-        })
+    async (index: number): Promise<boolean> => {
+      const prepared = buildDenaliWizardStepChangeFromLatestRef(
+        () => denaliEnvelopeRef.current,
+        index,
+        input.prepareEnvelope
       );
+      if (prepared === null) {
+        return true;
+      }
+      input.draftSync.setData(prepared);
+      const status = await input.draftSync.flush();
+      return status !== "ERROR";
     },
-    [denaliEnvelope, input.draftSync, input.prepareEnvelope]
+    [input.draftSync, input.prepareEnvelope]
   );
 
   const onSubmit = useCallback(() => {

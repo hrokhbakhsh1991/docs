@@ -1,7 +1,7 @@
 "use client";
 
 import { readDenaliCanonicalBasics } from "../../adapters/denaliCanonicalBasicsControl";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
 import {
@@ -31,9 +31,36 @@ import {
 import { parseDenaliGearItems, type DenaliGearItem } from "../logic/denali-gear-types";
 import { resolveDenaliOptionalEmptyReason } from "../logic/denali-optional-empty";
 import { filterPickerItemsByQuery } from "../logic/denali-picker-filter-logic";
+import {
+  partitionCatalogChipPreview,
+  resolveDenaliCatalogPickerDefaultExpanded,
+  truncateCatalogChipLabel,
+} from "../logic/denali-catalog-picker-logic";
 import { DENALI_GEAR_TEST_IDS } from "../test-ids/denali-gear-test-ids";
 
 export { DENALI_GEAR_TEST_IDS } from "../test-ids/denali-gear-test-ids";
+
+function ChevronDownIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <path
+        d="M4 6L8 10L12 6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 function parseThemeIds(value: unknown): string[] {
   if (!Array.isArray(value)) {
@@ -77,6 +104,15 @@ export function DenaliGearField({ draft, onDraftChange, invalid = false }: Denal
   const catalog = data?.catalog ?? [];
   const themes = data?.themes ?? [];
   const [searchQuery, setSearchQuery] = useState("");
+  const [pickerExpanded, setPickerExpanded] = useState(() =>
+    resolveDenaliCatalogPickerDefaultExpanded(selected.length)
+  );
+
+  useEffect(() => {
+    if (selected.length === 0) {
+      setPickerExpanded(true);
+    }
+  }, [selected.length]);
 
   const themesById = useMemo(
     () => new Map(themes.map((theme) => [theme.id, theme] as const)),
@@ -166,6 +202,10 @@ export function DenaliGearField({ draft, onDraftChange, invalid = false }: Denal
     writeItems([...current, { equipmentId: item.id, name: item.name, isRequired: true }]);
   };
 
+  const removeSelected = (equipmentId: string) => {
+    writeItems(readSelected().filter((entry) => entry.equipmentId !== equipmentId));
+  };
+
   const setRequirement = (equipmentId: string, isRequired: boolean) => {
     writeItems(
       readSelected().map((entry) =>
@@ -174,23 +214,100 @@ export function DenaliGearField({ draft, onDraftChange, invalid = false }: Denal
     );
   };
 
+  const selectedChipItems = useMemo(
+    () =>
+      selected.map((entry) => ({
+        id: entry.equipmentId,
+        label: entry.name,
+        isRequired: entry.isRequired !== false,
+      })),
+    [selected]
+  );
+  const chipPreview = useMemo(
+    () => partitionCatalogChipPreview(selectedChipItems),
+    [selectedChipItems]
+  );
+  const showCollapsedSummary = selected.length > 0 && !pickerExpanded;
+
   return (
     <div
       className="denali-wizard-composite"
       data-operator-wizard-surface="section"
       data-operator-gear-picker
+      data-operator-gear-picker-expanded={pickerExpanded ? "true" : "false"}
       data-testid={DENALI_GEAR_TEST_IDS.gear}
       aria-invalid={invalid || undefined}
     >
       <div className="denali-wizard-composite__header">
-        <h3 className="denali-wizard-composite__title">{label}</h3>
+        <div className="denali-gear-picker__header-row">
+          <h3 className="denali-wizard-composite__title">{label}</h3>
+          {selected.length > 0 ? (
+            <button
+              type="button"
+              className="denali-gear-picker__toggle"
+              data-testid={DENALI_GEAR_TEST_IDS.toggle}
+              aria-expanded={pickerExpanded}
+              onClick={() => setPickerExpanded((open) => !open)}
+            >
+              <span>
+                {pickerExpanded
+                  ? t("composites.gear.collapsePicker")
+                  : t("composites.gear.expandPicker")}
+              </span>
+              <ChevronDownIcon
+                className={
+                  pickerExpanded
+                    ? "denali-gear-picker__toggle-icon denali-gear-picker__toggle-icon--open"
+                    : "denali-gear-picker__toggle-icon"
+                }
+              />
+            </button>
+          ) : null}
+        </div>
         <p className="denali-wizard-composite__helper">{t("composites.gear.helper")}</p>
-        {selected.length > 0 ? (
+      </div>
+
+      {showCollapsedSummary ? (
+        <div className="denali-gear-picker__collapsed" data-testid={DENALI_GEAR_TEST_IDS.chips}>
+          <div className="denali-gear-picker__chip-row" role="list" aria-label={label}>
+            {chipPreview.visible.map((item) => (
+              <span
+                key={item.id}
+                className="denali-gear-picker__chip"
+                role="listitem"
+                data-testid={DENALI_GEAR_TEST_IDS.chip}
+              >
+                <span className="denali-gear-picker__chip-name">
+                  {truncateCatalogChipLabel(item.label)}
+                </span>
+                <span className="denali-gear-picker__chip-meta">
+                  {item.isRequired ? t("composites.gear.required") : t("composites.gear.optional")}
+                </span>
+                <button
+                  type="button"
+                  className="denali-gear-picker__chip-remove"
+                  aria-label={t("composites.gear.removeItem", { name: item.label })}
+                  onClick={() => removeSelected(item.id)}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            {chipPreview.overflowCount > 0 ? (
+              <button
+                type="button"
+                className="denali-gear-picker__chip denali-gear-picker__chip--overflow"
+                onClick={() => setPickerExpanded(true)}
+              >
+                {t("composites.gear.overflowCount", { count: chipPreview.overflowCount })}
+              </button>
+            ) : null}
+          </div>
           <p className="denali-gear-picker__summary">
             {t("composites.gear.selectedCount", { count: selected.length })}
           </p>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {loading ? <p className="denali-wizard-composite__status">{t("composites.gear.loading")}</p> : null}
       <DenaliCatalogLoadNotice error={error} onRetry={reload} />
@@ -210,8 +327,13 @@ export function DenaliGearField({ draft, onDraftChange, invalid = false }: Denal
         </div>
       ) : null}
 
-      {visibleCatalog.length > 0 ? (
+      {pickerExpanded && visibleCatalog.length > 0 ? (
         <>
+          {selected.length > 0 ? (
+            <p className="denali-gear-picker__summary denali-gear-picker__summary--panel">
+              {t("composites.gear.selectedCount", { count: selected.length })}
+            </p>
+          ) : null}
           <label className="denali-wizard-picker__search">
             <span className="denali-wizard-picker__search-label">{t("composites.gear.searchLabel")}</span>
             <Input

@@ -2,7 +2,7 @@
 
 import { Button } from "@app-tour/ui-primitives/button";
 import { useFormatter, useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
   canNavigateToWizardStepIndex,
@@ -23,7 +23,9 @@ export type WizardStepDescriptor = {
 type WizardStepShellProps = {
   readonly steps: readonly WizardStepDescriptor[];
   readonly activeIndex: number;
-  readonly onActiveIndexChange: (index: number) => void;
+  readonly onActiveIndexChange: (
+    index: number
+  ) => void | boolean | Promise<void | boolean>;
   readonly children: ReactNode;
   readonly lastStepFooter?: ReactNode;
   /** When true, block step navigation while draft sync is in flight (11.3-T5). */
@@ -94,6 +96,26 @@ export function WizardStepShell({
   const progressRailRef = useRef<HTMLDivElement>(null);
   const progressListRef = useRef<HTMLOListElement>(null);
   const activeStepItemRef = useRef<HTMLLIElement>(null);
+  const [stepNavInFlight, setStepNavInFlight] = useState(false);
+  const navBlocked = navLocked || stepNavInFlight;
+
+  const advanceToIndex = useCallback(
+    async (index: number) => {
+      if (navBlocked || index === safeIndex) {
+        return;
+      }
+      setStepNavInFlight(true);
+      try {
+        const result = await onActiveIndexChange(index);
+        if (result === false) {
+          return;
+        }
+      } finally {
+        setStepNavInFlight(false);
+      }
+    },
+    [navBlocked, onActiveIndexChange, safeIndex]
+  );
 
   const syncProgressRailOverflow = useCallback(() => {
     const rail = progressRailRef.current;
@@ -136,10 +158,10 @@ export function WizardStepShell({
   }, [safeIndex, steps.length, syncProgressRailOverflow]);
 
   const jumpToStep = (index: number) => {
-    if (navLocked || !canNavigateToWizardStepIndex(index, safeIndex) || index === safeIndex) {
+    if (navBlocked || !canNavigateToWizardStepIndex(index, safeIndex) || index === safeIndex) {
       return;
     }
-    onActiveIndexChange(index);
+    void advanceToIndex(index);
   };
 
   return (
@@ -193,7 +215,7 @@ export function WizardStepShell({
                     data-testid={WIZARD_STEP_SHELL_TEST_IDS.progressStep(step.stepId)}
                     aria-current={index === safeIndex ? "step" : undefined}
                     aria-label={t("jumpToStep", { label: step.label })}
-                    disabled={navLocked || index === safeIndex}
+                    disabled={navBlocked || index === safeIndex}
                     onClick={() => jumpToStep(index)}
                   >
                     {content}
@@ -233,10 +255,10 @@ export function WizardStepShell({
                 <Button
                   type="button"
                   variant="ghost"
-                  disabled={navLocked}
+                  disabled={navBlocked}
                   data-wizard-nav="back"
                   data-testid={WIZARD_STEP_SHELL_TEST_IDS.back}
-                  onClick={() => onActiveIndexChange(safeIndex - 1)}
+                  onClick={() => void advanceToIndex(safeIndex - 1)}
                 >
                   <WizardNavIcon direction="start" />
                   {t("back")}
@@ -246,7 +268,7 @@ export function WizardStepShell({
                 <Button
                   type="button"
                   variant="primary"
-                  disabled={navLocked || continueDisabled}
+                  disabled={navBlocked || continueDisabled}
                   data-wizard-nav="continue"
                   {...(continueAttention
                     ? { "data-wizard-nav-continue-attention": "" }
@@ -260,7 +282,7 @@ export function WizardStepShell({
                           return;
                         }
                       }
-                      onActiveIndexChange(safeIndex + 1);
+                      await advanceToIndex(safeIndex + 1);
                     })();
                   }}
                 >

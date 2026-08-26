@@ -16,6 +16,7 @@ export type TourThemeResource = {
   readonly name: string;
   readonly slug: string;
   readonly formProfile: string | null;
+  readonly iconKey?: string | null;
   readonly compatibleCategories?: readonly string[];
   readonly isActive: boolean;
   readonly sortOrder: number;

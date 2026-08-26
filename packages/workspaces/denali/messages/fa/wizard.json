@@ -370,7 +370,15 @@
       "helper": "زبان‌هایی را که راهنمایان این تور ارائه می‌دهند انتخاب کنید.",
       "loading": "در حال بارگذاری زبان‌های راهنما…",
       "empty": "هنوز زبان راهنمایی ثبت نشده. از تنظیمات → زبان‌های راهنما اضافه کنید.",
-      "optionalEmpty": "زبان راهنما اختیاری است. می‌توانید بدون انتخاب ادامه دهید و تور را ذخیره کنید."
+      "optionalEmpty": "زبان راهنما اختیاری است. می‌توانید بدون انتخاب ادامه دهید و تور را ذخیره کنید.",
+      "collapsePicker": "بستن فهرست",
+      "expandPicker": "ویرایش انتخاب",
+      "selectedCount": "{count, number} زبان انتخاب شده",
+      "overflowCount": "+{count, number} مورد دیگر",
+      "removeLanguage": "حذف {name}",
+      "searchLabel": "جستجوی زبان راهنما",
+      "searchPlaceholder": "نام زبان…",
+      "searchEmpty": "زبانی با این عبارت پیدا نشد."
     },
     "gear": {
       "helper": "تجهیزات متناسب با تم‌های انتخاب‌شده را مشخص کنید. هر مورد می‌تواند الزامی یا اختیاری باشد.",
@@ -386,6 +394,10 @@
       "searchLabel": "جستجوی تجهیزات",
       "searchPlaceholder": "نام تجهیز…",
       "searchEmpty": "تجهیزی با این عبارت پیدا نشد.",
+      "collapsePicker": "بستن فهرست",
+      "expandPicker": "ویرایش انتخاب",
+      "overflowCount": "+{count, number} مورد دیگر",
+      "removeItem": "حذف {name}",
       "iconPickerLabel": "نماد تجهیزات",
       "iconPickerHelper": "نماد در ویزارد ساخت تور و فهرست تنظیمات همین‌طور نمایش داده می‌شود.",
       "iconPreviewPlaceholder": "نام تجهیز",
@@ -455,7 +467,14 @@
       "loading": "در حال بارگذاری تم‌ها…",
       "empty": "هنوز تمی تعریف نشده. از بخش تنظیمات → تم‌های تور، تم اضافه کنید.",
       "openTourThemes": "رفتن به تم‌های تور",
-      "selectedCount": "{count, number} تم انتخاب شده"
+      "selectedCount": "{count, number} تم انتخاب شده",
+      "collapsePicker": "پنهان کردن فهرست",
+      "expandPicker": "ویرایش انتخاب",
+      "overflowCount": "+{count, number} مورد دیگر",
+      "removeTheme": "حذف {name}",
+      "searchLabel": "جستجوی تم‌های تور",
+      "searchPlaceholder": "نام تم…",
+      "searchEmpty": "هیچ تمی با این جستجو پیدا نشد."
     },
     "pricingParticipants": {
       "sectionTitle": "الزامات شرکت‌کننده",

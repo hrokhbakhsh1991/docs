@@ -2192,3 +2192,196 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-tour-service
   background: var(--color-bg-muted);
   color: var(--color-text-primary);
 }
+
+/* Catalog multi-picker (guide languages + shared searchable multi-select) */
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__header-row,
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 0.5rem);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__toggle,
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 0.25rem);
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm, 0.25rem);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__toggle-icon,
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__toggle-icon {
+  transition: transform 0.15s ease;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__toggle-icon--open,
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__toggle-icon--open {
+  transform: rotate(180deg);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__collapsed,
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__collapsed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+  margin-block-end: var(--space-3, 0.75rem);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__chip-row,
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 0.5rem);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__chip,
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 0.25rem);
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--color-primary) 25%, var(--color-border-subtle));
+  background: color-mix(in oklch, var(--color-primary) 6%, var(--color-bg-surface));
+  font-size: 0.75rem;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__chip--overflow,
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__chip--overflow {
+  cursor: pointer;
+  border-style: dashed;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__chip-remove,
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__chip-remove {
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  line-height: 1;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 0.5rem);
+  width: 100%;
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md, 0.375rem);
+  background: var(--color-bg-surface);
+  text-align: start;
+  cursor: pointer;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__card--selected {
+  border-color: var(--color-primary);
+  background: color-mix(in oklch, var(--color-primary) 8%, var(--color-bg-surface));
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__check {
+  opacity: 0;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__check--visible {
+  opacity: 1;
+  color: var(--color-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__chip-meta {
+  font-size: 0.6875rem;
+  color: var(--color-text-secondary);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__summary--panel,
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__summary--panel {
+  margin-block-end: var(--space-2, 0.5rem);
+}
+
+/* Tour theme catalog avatar — wizard, settings, review */
+body[data-workspace-plugin="denali"] .denali-theme-picker__swatch[data-tour-theme-catalog-avatar] {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md, 0.375rem);
+}
+
+body[data-workspace-plugin="denali"] .denali-theme-picker__swatch[data-tour-theme-catalog-avatar-size="chip"] {
+  width: 2rem;
+  height: 2rem;
+}
+
+body[data-workspace-plugin="denali"] .denali-tour-theme-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+body[data-workspace-plugin="denali"] .denali-tour-theme-icon--fallback {
+  opacity: 0.82;
+}
+
+body[data-workspace-plugin="denali"] .denali-theme-picker__swatch[data-tour-theme-catalog-avatar].denali-theme-picker__swatch--tone-0 {
+  background: color-mix(in oklch, var(--wiz-tone-forest-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-forest-fg);
+}
+
+body[data-workspace-plugin="denali"] .denali-theme-picker__swatch[data-tour-theme-catalog-avatar].denali-theme-picker__swatch--tone-1 {
+  background: color-mix(in oklch, var(--wiz-tone-sky-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-sky-fg);
+}
+
+body[data-workspace-plugin="denali"] .denali-theme-picker__swatch[data-tour-theme-catalog-avatar].denali-theme-picker__swatch--tone-2 {
+  background: color-mix(in oklch, var(--wiz-tone-amber-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-amber-fg);
+}
+
+body[data-workspace-plugin="denali"] .denali-theme-picker__swatch[data-tour-theme-catalog-avatar].denali-theme-picker__swatch--tone-3 {
+  background: color-mix(in oklch, var(--wiz-tone-purple-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-purple-fg);
+}
+
+body[data-workspace-plugin="denali"] .denali-theme-picker__swatch[data-tour-theme-catalog-avatar].denali-theme-picker__swatch--tone-4 {
+  background: color-mix(in oklch, var(--wiz-tone-rose-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-rose-fg);
+}
+
+body[data-workspace-plugin="denali"] .denali-theme-picker__swatch[data-tour-theme-catalog-avatar].denali-theme-picker__swatch--tone-5 {
+  background: color-mix(in oklch, var(--wiz-tone-emerald-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-emerald-fg);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__leading,
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__chip-leading {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-catalog-multi-picker__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}

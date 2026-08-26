@@ -370,7 +370,15 @@
       "helper": "Select languages your guides can offer on this tour.",
       "loading": "Loading guide languages…",
       "empty": "No guide languages yet. Add them under Settings → Guide languages.",
-      "optionalEmpty": "This is optional. You can continue and save without selecting a guide language."
+      "optionalEmpty": "This is optional. You can continue and save without selecting a guide language.",
+      "collapsePicker": "Hide list",
+      "expandPicker": "Edit selection",
+      "selectedCount": "{count, number} languages selected",
+      "overflowCount": "+{count, number} more",
+      "removeLanguage": "Remove {name}",
+      "searchLabel": "Search guide languages",
+      "searchPlaceholder": "Language name…",
+      "searchEmpty": "No languages match this search."
     },
     "gear": {
       "helper": "Choose equipment for your selected themes. Mark each item as required or optional.",
@@ -386,6 +394,10 @@
       "searchLabel": "Search equipment",
       "searchPlaceholder": "Equipment name…",
       "searchEmpty": "No equipment matches this search.",
+      "collapsePicker": "Hide list",
+      "expandPicker": "Edit selection",
+      "overflowCount": "+{count, number} more",
+      "removeItem": "Remove {name}",
       "iconPickerLabel": "Equipment icon",
       "iconPickerHelper": "The same symbol appears in the tour wizard and settings list.",
       "iconPreviewPlaceholder": "Equipment name",
@@ -455,7 +467,14 @@
       "loading": "Loading themes…",
       "empty": "No tour themes yet. Add themes under Settings → Tour themes.",
       "openTourThemes": "Open tour themes",
-      "selectedCount": "{count, number} {count, plural, one {theme} other {themes}} selected"
+      "selectedCount": "{count, number} {count, plural, one {theme} other {themes}} selected",
+      "collapsePicker": "Hide list",
+      "expandPicker": "Edit selection",
+      "overflowCount": "+{count, number} more",
+      "removeTheme": "Remove {name}",
+      "searchLabel": "Search tour themes",
+      "searchPlaceholder": "Theme name…",
+      "searchEmpty": "No themes match this search."
     },
     "pricingParticipants": {
       "sectionTitle": "Participant requirements",

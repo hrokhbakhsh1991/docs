@@ -8,7 +8,7 @@ import { resolveVisibilityFlushAction } from "./draft-visibility-flush-logic";
 export type UseDraftVisibilityFlushOptions = {
   readonly enabled?: boolean;
   readonly status: DraftStatus;
-  readonly flush: () => Promise<void>;
+  readonly flush: () => Promise<DraftStatus | undefined | void>;
   readonly flushKeepalive: () => void;
 };
 

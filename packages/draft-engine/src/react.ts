@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { DraftEngine } from "./engine";
-import type { DraftEngineConfig, DraftEngineState, DraftSetDataOptions } from "./types";
+import type { DraftEngineConfig, DraftEngineState, DraftSetDataOptions, DraftStatus } from "./types";
 
 function createEngineWithLiveConfig<T>(configRef: { current: DraftEngineConfig<T> }): DraftEngine<T> {
   const config: DraftEngineConfig<T> = {
@@ -55,7 +55,7 @@ export function useDraftEngine<T>(config: DraftEngineConfig<T>): {
   state: DraftEngineState<T>;
   setDraftData: (_data: T, _options?: DraftSetDataOptions) => void;
   retry: () => Promise<void>;
-  flush: () => Promise<void>;
+  flush: () => Promise<DraftStatus | undefined>;
   flushKeepalive: () => void;
   initialize: () => Promise<void>;
   applyDraft: () => void;
@@ -93,8 +93,9 @@ export function useDraftEngine<T>(config: DraftEngineConfig<T>): {
     await engineRef.current?.retry();
   }, []);
 
-  const flush = useCallback(async () => {
+  const flush = useCallback(async (): Promise<DraftStatus | undefined> => {
     await engineRef.current?.flush();
+    return engineRef.current?.getState().status;
   }, []);
 
   const flushKeepalive = useCallback(() => {
