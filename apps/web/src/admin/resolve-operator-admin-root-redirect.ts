@@ -1,5 +1,5 @@
 import { OPERATOR_DASHBOARD_PATH } from "@/admin/require-operator-session";
-import { isOperatorAdminHost } from "@/tenant/operator-admin-host";
+import { isOperatorAdminIngressHost } from "@/tenant/operator-admin-host";
 
 /**
  * Club operator admin hosts (`{club}.admin.{root}`) have no public surface —
@@ -12,7 +12,7 @@ export function resolveOperatorAdminRootRedirect(input: {
   if (input.pathname !== "/") {
     return null;
   }
-  if (!isOperatorAdminHost(input.host)) {
+  if (!isOperatorAdminIngressHost(input.host)) {
     return null;
   }
   return OPERATOR_DASHBOARD_PATH;

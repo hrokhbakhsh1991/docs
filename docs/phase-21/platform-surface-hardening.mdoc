@@ -124,7 +124,7 @@ Same bare IP hostname on `:3000` vs `:3003` no longer overwrites the other surfa
 
 #### P8-1-N-002 — JWT↔host fail-closed (G-SES-03/05)
 
-**web:** `resolveExpectedTenantIdForHost` uses `resolveProductionIngressLabelFromHost` in production (multi-level host + `PUBLIC_TENANT_FALLBACK_*`) → mapped tenant UUID. `sessionTenantMatchesHost` rejects JWT when expected tenant is known and mismatched (no fail-open on resolved hosts).
+**web:** `resolveExpectedTenantIdForHost` uses `resolveProductionIngressLabelFromHost` in production (multi-level host + `PUBLIC_TENANT_FALLBACK_*`) → mapped tenant UUID. `sessionTenantMatchesHost` rejects JWT when expected tenant is known and mismatched (no fail-open on resolved hosts). **Middleware:** `blockOperatorOnWrongHost` uses `isOperatorAdminIngressHost` (canonical `{club}.admin.{root}` **or** allowlisted bare IP fallback) so Profile B `/dashboard` is not a plain `404` before session bind.
 
 **portal:** `/me` layout compares `session.tenantId` to `resolvePortalBootstrapForHost(host).tenantId` before rendering member shell.
 
