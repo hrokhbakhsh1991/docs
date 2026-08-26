@@ -1,5 +1,6 @@
 "use client";
 
+import { formatIranMobileForDisplay } from "@app-tour/iran-mobile";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 import { useTranslations } from "next-intl";
 
@@ -58,7 +59,9 @@ export function UsersDirectoryMobileCard({
             <UsersDirectoryAvatar user={user} size="md" />
             <div className="min-w-0">
               <p className="break-words font-medium leading-6">{user.displayName}</p>
-              <p className="truncate text-sm text-muted-foreground">{user.phone ?? "—"}</p>
+              <p className="truncate text-sm text-muted-foreground">
+                {user.phone ? formatIranMobileForDisplay(user.phone) : "—"}
+              </p>
             </div>
           </div>
         </div>

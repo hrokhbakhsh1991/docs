@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
+import { OperatorStatusBadge } from "@/admin/patterns/operator-status-badge";
 import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -76,20 +77,15 @@ function StatusBadge({ user }: { readonly user: UsersDirectoryRow }) {
   const t = useTranslations("users");
   if (user.status === "SUSPENDED") {
     return (
-      <Badge
+      <OperatorStatusBadge
         variant="destructive"
-        className="h-5 px-1.5 text-[10px]"
         data-testid={USERS_DIRECTORY_TEST_IDS.rowStatusSuspended}
       >
         {t("status.suspended")}
-      </Badge>
+      </OperatorStatusBadge>
     );
   }
-  return (
-    <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-      {t("status.active")}
-    </Badge>
-  );
+  return <OperatorStatusBadge variant="success">{t("status.active")}</OperatorStatusBadge>;
 }
 
 function DetailSection({
@@ -280,6 +276,7 @@ export function UsersMemberDetailSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side={sheetSide}
+        detailSheet
         className="flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
         data-testid={USERS_DIRECTORY_TEST_IDS.memberDetail}
       >

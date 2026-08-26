@@ -64,11 +64,28 @@ export function OperatorNav({
       data-testid={OPERATOR_NAV_TEST_IDS.nav}
     >
       <div data-operator-sidebar-header>
-        <OperatorBrand
-          workspaceLabel={workspaceLabel}
-          displayName={displayName}
-          pluginId={pluginId}
-        />
+        <div data-operator-sidebar-header-row>
+          <OperatorBrand
+            workspaceLabel={workspaceLabel}
+            displayName={displayName}
+            pluginId={pluginId}
+          />
+          {onCollapsedChange ? (
+            <div data-operator-sidebar-collapse-wrap>
+              <button
+                type="button"
+                aria-label={collapsed ? tApp("expandNavigation") : tApp("collapseNavigation")}
+                title={collapsed ? tApp("expandNavigation") : tApp("collapseNavigation")}
+                data-operator-sidebar-collapse
+                data-operator-sidebar-collapse-state={collapsed ? "collapsed" : "expanded"}
+                data-testid={OPERATOR_NAV_TEST_IDS.sidebarCollapse}
+                onClick={() => onCollapsedChange(!collapsed)}
+              >
+                <CollapseIcon aria-hidden="true" data-operator-sidebar-collapse-icon />
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <div data-operator-sidebar-content>
@@ -122,22 +139,6 @@ export function OperatorNav({
           </span>
         </Link>
       </div>
-
-      {onCollapsedChange ? (
-        <div data-operator-sidebar-collapse-wrap>
-          <button
-            type="button"
-            aria-label={collapsed ? tApp("expandNavigation") : tApp("collapseNavigation")}
-            title={collapsed ? tApp("expandNavigation") : tApp("collapseNavigation")}
-            data-operator-sidebar-collapse
-            data-operator-sidebar-collapse-state={collapsed ? "collapsed" : "expanded"}
-            data-testid={OPERATOR_NAV_TEST_IDS.sidebarCollapse}
-            onClick={() => onCollapsedChange(!collapsed)}
-          >
-            <CollapseIcon aria-hidden="true" data-operator-sidebar-collapse-icon />
-          </button>
-        </div>
-      ) : null}
     </nav>
   );
 }

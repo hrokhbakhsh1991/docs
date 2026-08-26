@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
-import { Button } from "@/components/ui/button";
+import {
+  OperatorSearchableSelect,
+  type OperatorSearchableSelectOption,
+} from "@/admin/patterns/operator-searchable-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { BookingsSummaryResponse } from "@/features/bookings/bookings-command-center-types";
 
@@ -65,8 +68,6 @@ export function FinanceTourFilter({ className }: FinanceTourFilterProps) {
     let cancelled = false;
     setLoading(true);
     void fetch("/api/bookings/summary", { cache: "no-store" })
-    // P4c: default ops-scoped chips (same API predicate as Bookings CC). Escape hatch
-    // lives on Command Center via ?tourChipScope=all — not duplicated here.
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(`BOOKINGS_SUMMARY_HTTP_${response.status}`);
@@ -93,6 +94,24 @@ export function FinanceTourFilter({ className }: FinanceTourFilterProps) {
     };
   }, []);
 
+  const options = useMemo((): readonly OperatorSearchableSelectOption[] => {
+    const allOption: OperatorSearchableSelectOption = {
+      value: "",
+      label: t("allTours"),
+    };
+    return [
+      allOption,
+      ...tourChips.map((chip) => ({
+        value: chip.tourId,
+        label: chip.tourTitle,
+        description: t("tourFilterChipMeta", {
+          pending: chip.pendingCount,
+          total: chip.totalCount,
+        }),
+      })),
+    ];
+  }, [t, tourChips]);
+
   const replaceTour = (tourId: string) => {
     const next = new URLSearchParams(searchParams.toString());
     if (tourId.length === 0) {
@@ -107,7 +126,7 @@ export function FinanceTourFilter({ className }: FinanceTourFilterProps) {
   if (loading) {
     return (
       <div className={className} data-testid={FINANCE_TOUR_FILTER_TEST_IDS.root}>
-        <Skeleton className="h-9 w-full max-w-xl" />
+        <Skeleton className="h-9 w-full max-w-md" />
       </div>
     );
   }
@@ -120,31 +139,20 @@ export function FinanceTourFilter({ className }: FinanceTourFilterProps) {
     <div
       className={className}
       data-testid={FINANCE_TOUR_FILTER_TEST_IDS.root}
-      aria-label={t("tourFilterAria")}
+      data-operator-finance-tour-filter
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-muted-foreground">{t("tourFilterLabel")}</span>
-        <Button
-          type="button"
-          size="sm"
-          variant={activeTourId.length === 0 ? "default" : "outline"}
-          data-testid={FINANCE_TOUR_FILTER_TEST_IDS.allTours}
-          onClick={() => replaceTour("")}
-        >
-          {t("allTours")}
-        </Button>
-        {tourChips.map((chip) => (
-          <Button
-            key={chip.tourId}
-            type="button"
-            size="sm"
-            variant={activeTourId === chip.tourId ? "default" : "outline"}
-            onClick={() => replaceTour(chip.tourId)}
-          >
-            {chip.tourTitle}
-          </Button>
-        ))}
-      </div>
+      <label className="flex min-w-0 flex-col gap-1.5 sm:max-w-md">
+        <span className="text-xs font-medium text-muted-foreground">{t("tourFilterLabel")}</span>
+        <OperatorSearchableSelect
+          value={activeTourId}
+          options={options}
+          onValueChange={replaceTour}
+          placeholder={t("allTours")}
+          searchPlaceholder={t("tourFilterSearchPlaceholder")}
+          emptyLabel={t("tourFilterNoResults")}
+          ariaLabel={t("tourFilterAria")}
+        />
+      </label>
     </div>
   );
 }

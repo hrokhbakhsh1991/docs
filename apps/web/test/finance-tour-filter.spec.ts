@@ -77,5 +77,7 @@ describe("finance-tour-filter.spec.ts — FC-3", () => {
     assert.match(overview, /formatMinorAmount\(row\.paidMinor, row\.currency, locale\)/);
     assert.doesNotMatch(overview, /formatMinorAmount\(row\.paidMinor, "IRR", locale\)/);
     assert.match(filter, new RegExp(FINANCE_TOUR_FILTER_TEST_IDS.root));
+    assert.match(filter, /OperatorSearchableSelect/);
+    assert.match(filter, /tourFilterSearchPlaceholder/);
   });
 });

@@ -22,7 +22,7 @@ describe("Wave H.e.a — brand fallback neutralization", () => {
     assert.doesNotMatch(source, /DenaliLogoMark|denali-logo-mark|workspace-denali/);
     assert.doesNotMatch(source, /fallbackMark\s*===\s*["']denali["']/);
     assert.doesNotMatch(source, /WORKSPACE_WIZARD_CUSTOM_BRAND_FALLBACK_MARKS/);
-    assert.match(source, /data-tenant-brand-initial/);
+    assert.match(source, /data-tenant-brand-icon-fallback/);
     assert.match(source, /resolveWizardCustomBrandFallbackMark/);
   });
 });

@@ -30,14 +30,23 @@ const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content> & {
     side?: "top" | "right" | "bottom" | "left";
+    /** Operator member detail — softer overlay + slower slide (reduced-motion respected). */
+    detailSheet?: boolean;
   }
->(({ side = "right", className, children, ...props }, ref) => (
+>(({ side = "right", className, children, detailSheet = false, ...props }, ref) => (
   <SheetPortal>
-    <SheetOverlay />
+    <SheetOverlay
+      className={cn(
+        detailSheet &&
+          "bg-black/60 duration-300 data-[state=open]:duration-300 data-[state=closed]:duration-200"
+      )}
+    />
     <SheetPrimitive.Content
       ref={ref}
+      data-operator-detail-sheet={detailSheet ? "true" : undefined}
       className={cn(
         "fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-out duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out motion-reduce:animate-none motion-reduce:transition-none",
+        detailSheet && "duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
         side === "left" &&
           "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
         side === "right" &&

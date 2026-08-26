@@ -49,6 +49,7 @@ export function OperatorAccountMenu({
               userId={session.userId}
               displayName={displayName}
               avatarUrl={avatarUrl}
+              fallbackMode="icon"
               shellChrome="account-menu"
             />
           </span>

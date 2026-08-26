@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 import { useTranslations } from "next-intl";
 
+import { OPERATOR_COMPACT_BADGE_CLASS } from "@/admin/patterns/operator-status-badge";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,7 @@ const HEAD_CELL =
 const BODY_CELL = "px-4 py-3 text-start align-middle";
 const SELECT_HEAD_CELL = "w-11 px-3 py-3 text-start align-middle";
 const SELECT_BODY_CELL = "w-11 px-3 py-3 text-start align-middle";
-const COMPACT_BADGE_CLASS = "h-5 px-1.5 text-[10px]";
+const COMPACT_BADGE_CLASS = OPERATOR_COMPACT_BADGE_CLASS;
 
 function formatPhoneCell(phone: string | null): ReactNode {
   if (phone === null || phone.trim().length === 0) {
