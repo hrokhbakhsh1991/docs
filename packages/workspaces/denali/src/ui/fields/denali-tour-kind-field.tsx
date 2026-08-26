@@ -11,13 +11,13 @@ import {
 } from "../../draft/denali-tour-wizard-draft";
 import {
   DENALI_EVENT_VARIANT_VALUES,
-  DENALI_TOUR_CATEGORY_VALUES,
   DENALI_TOUR_DURATION_VALUES,
   denaliCategoryRequiresEventVariant,
   type DenaliEventVariantSlug,
   type DenaliTourCategorySlug,
   type DenaliTourDurationSlug,
 } from "../logic/denali-tour-kind-labels";
+import { resolveDenaliWizardCategoryChoices } from "../logic/denali-wizard-launch-profile";
 import { DENALI_TOUR_KIND_TEST_IDS } from "../test-ids/denali-tour-kind-test-ids";
 import {
   isDenaliTourKindChoiceActive,
@@ -101,6 +101,8 @@ export function DenaliTourKindField({
     [draftRef, onDraftChange]
   );
 
+  const wizardCategoryChoices = useMemo(() => resolveDenaliWizardCategoryChoices(), []);
+
   const showEventVariant =
     basics != null && denaliCategoryRequiresEventVariant(basics.category);
 
@@ -140,7 +142,7 @@ export function DenaliTourKindField({
             aria-invalid={invalid || undefined}
             aria-required={required || undefined}
           >
-            {DENALI_TOUR_CATEGORY_VALUES.map((category) => (
+            {wizardCategoryChoices.map((category) => (
               <button
                 key={category}
                 type="button"

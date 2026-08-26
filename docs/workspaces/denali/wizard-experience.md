@@ -178,6 +178,19 @@ Pure helpers (no React): `resolveDenaliFlatEditWorkingEnvelope`, `shouldSeedDena
 
 `projection.updatedAt` on the memory storage driver may equal `createdAt` after PATCH even when `rowVersion` increments — do **not** use `updatedAt` to decide draft vs tour freshness; use `rowVersion` / `sourceRowVersion`.
 
+### Create wizard — step navigation draft authority (2026-08)
+
+| Invariant | Contract |
+| --------- | -------- |
+| **INV-DENALI-WIZ-020** | `onActiveStepIndexChange` reads `denaliEnvelopeRef.current` (not render closure) before writing `currentStepIndex` — field edits in the same tick as Continue must not be dropped. |
+| **INV-DENALI-WIZ-021** | Continue/Back await `draftSync.flush()` after step-index `setData`. `flush()` returns post-push `DraftStatus`; navigation aborts when status is `ERROR` (header sync chrome shows retry). |
+| **INV-DENALI-WIZ-022** | `WizardStepShell` sets `stepNavInFlight` while async step navigation runs — blocks double-click Continue and overlapping back/forward. |
+| **INV-DENALI-WIZ-023** | Tour themes (tags) accept optional `iconKey` from the equipment icon registry (`WorkspaceTourTheme.icon_key`). Invalid keys reject; `null` clears. Existing rows without `iconKey` remain valid. |
+| **INV-DENALI-WIZ-024** | `TourThemeCatalogAvatar` is the single tag visual: registry icon when `iconKey` is known, else Lucide `Tag` (never name initials). Used in wizard picker, settings list, and chips. |
+| **INV-DENALI-WIZ-025** | Create wizard and flat edit share `DenaliCatalogMultiPicker` for guide languages and tour themes; gear uses the same collapse/chip/search pattern. No separate edit-only picker implementation. |
+
+Specs: `DN-WIZ-STEP-*`, `DN-WIZ-PICKER-03/04`, `DN-WIZ-PICKER-05/06`, `DN-THEME-ICON-*`.
+
 ## Operator UX closure (v11 — Denali only)
 
 Layer: `packages/workspaces/denali` (+ host **copy** keys). **ED-PEAK-LOCK-01** adds an optional SDK persist hook and a product-blind API enrich — not a Denali branch in `updateTour`. Do not hand-edit `denaliRuleSet.generated.ts`.

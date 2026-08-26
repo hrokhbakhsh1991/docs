@@ -1,16 +1,16 @@
 import {
-  DENALI_TOUR_CATEGORY_VALUES,
   DENALI_TOUR_KIND_VALUES,
   type DenaliTourCategorySlug,
   type DenaliTourDurationSlug,
 } from "../ui/logic/denali-tour-kind-labels";
+import { resolveDenaliLaunchTourListFilterGroupIds } from "../ui/logic/denali-wizard-launch-profile";
 
 export type DenaliTourListCategoryFilterGroup = {
   readonly id: DenaliTourCategorySlug;
   readonly slugs: readonly (typeof DENALI_TOUR_KIND_VALUES)[number][];
 };
 
-const DENALI_TOUR_CATEGORY_FILTER_GROUPS: readonly DenaliTourListCategoryFilterGroup[] = [
+const ALL_DENALI_TOUR_CATEGORY_FILTER_GROUPS: readonly DenaliTourListCategoryFilterGroup[] = [
   {
     id: "mountain",
     slugs: ["mountain_day", "mountain_multi"],
@@ -28,6 +28,12 @@ const DENALI_TOUR_CATEGORY_FILTER_GROUPS: readonly DenaliTourListCategoryFilterG
     slugs: ["event_reading", "event_reading_multi", "event_cinema", "event_cinema_multi"],
   },
 ] as const;
+
+const LAUNCH_FILTER_GROUP_IDS = new Set(resolveDenaliLaunchTourListFilterGroupIds());
+
+const DENALI_TOUR_CATEGORY_FILTER_GROUPS = ALL_DENALI_TOUR_CATEGORY_FILTER_GROUPS.filter((group) =>
+  LAUNCH_FILTER_GROUP_IDS.has(group.id)
+);
 
 export type DenaliTourListCategorySurface = {
   readonly tourKindValues: typeof DENALI_TOUR_KIND_VALUES;
@@ -47,7 +53,7 @@ function isTourKindSlug(
 }
 
 function isTourCategoryGroup(value: string): value is DenaliTourCategorySlug {
-  return (DENALI_TOUR_CATEGORY_VALUES as readonly string[]).includes(value);
+  return (resolveDenaliLaunchTourListFilterGroupIds() as readonly string[]).includes(value);
 }
 
 function resolveTourKindDuration(category: string | null): DenaliTourDurationSlug | null {
