@@ -5,6 +5,7 @@ const OPERATOR_API_FETCH_RETRYABLE_READ_CODES = new Set([
 ]);
 const DEFAULT_RETRYABLE_READ_BACKOFF_MS = 120;
 const MAX_RETRYABLE_READ_BACKOFF_MS = 2_000;
+const DEFAULT_OPERATOR_API_READ_TIMEOUT_MS = 20_000;
 
 type OperatorApiFetchLimiterState = {
   activeFetches: number;
@@ -68,6 +69,36 @@ function isRetryableOperatorApiRead(method: string): boolean {
   return method === "GET" || method === "HEAD";
 }
 
+export function resolveOperatorApiReadTimeoutMs(): number {
+  const raw = process.env.OPERATOR_BFF_READ_TIMEOUT_MS?.trim();
+  if (raw === undefined || raw.length === 0) {
+    return DEFAULT_OPERATOR_API_READ_TIMEOUT_MS;
+  }
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed >= 1
+    ? parsed
+    : DEFAULT_OPERATOR_API_READ_TIMEOUT_MS;
+}
+
+function buildTimeoutSignal(timeoutMs: number): AbortSignal {
+  if (typeof AbortSignal.timeout === "function") {
+    return AbortSignal.timeout(timeoutMs);
+  }
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), timeoutMs);
+  return controller.signal;
+}
+
+function withDefaultOperatorApiReadTimeout(init: RequestInit | undefined, method: string): RequestInit | undefined {
+  if (!isRetryableOperatorApiRead(method) || init?.signal !== undefined) {
+    return init;
+  }
+  return {
+    ...init,
+    signal: buildTimeoutSignal(resolveOperatorApiReadTimeoutMs()),
+  };
+}
+
 function parseRetryAfterMs(response: Response): number {
   const raw = response.headers.get("Retry-After")?.trim() ?? "";
   if (raw.length === 0) {
@@ -123,8 +154,8 @@ export async function operatorApiFetch(
 ): Promise<Response> {
   await acquireOperatorApiFetchSlot();
   try {
-    const response = await fetchImpl(input, init);
     const method = resolveOperatorApiFetchMethod(init);
+    const response = await fetchImpl(input, withDefaultOperatorApiReadTimeout(init, method));
     if (!isRetryableOperatorApiRead(method)) {
       return response;
     }
@@ -133,7 +164,7 @@ export async function operatorApiFetch(
       return response;
     }
     await delay(parseRetryAfterMs(response));
-    return await fetchImpl(input, init);
+    return await fetchImpl(input, withDefaultOperatorApiReadTimeout(init, method));
   } finally {
     releaseOperatorApiFetchSlot();
   }

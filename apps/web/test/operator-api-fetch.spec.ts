@@ -33,6 +33,7 @@ function defer<T>() {
 
 describe("operatorApiFetch", () => {
   const previousLimit = process.env.OPERATOR_BFF_MAX_CONCURRENT_API_FETCHES;
+  const previousReadTimeout = process.env.OPERATOR_BFF_READ_TIMEOUT_MS;
 
   afterEach(() => {
     resetOperatorApiFetchLimiterForTests();
@@ -40,6 +41,11 @@ describe("operatorApiFetch", () => {
       delete process.env.OPERATOR_BFF_MAX_CONCURRENT_API_FETCHES;
     } else {
       process.env.OPERATOR_BFF_MAX_CONCURRENT_API_FETCHES = previousLimit;
+    }
+    if (previousReadTimeout === undefined) {
+      delete process.env.OPERATOR_BFF_READ_TIMEOUT_MS;
+    } else {
+      process.env.OPERATOR_BFF_READ_TIMEOUT_MS = previousReadTimeout;
     }
   });
 
@@ -157,6 +163,26 @@ describe("operatorApiFetch", () => {
     assert.equal(calls, 1);
     assert.equal(response.status, 503);
     assert.deepEqual(await response.json(), { error: "service_unavailable" });
+  });
+
+  it("times out hung read-side upstream requests and releases the limiter slot", async () => {
+    process.env.OPERATOR_BFF_READ_TIMEOUT_MS = "20";
+    const fetchImpl: typeof fetch = async (_input, init) => {
+      await new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("The operation was aborted.", "AbortError"));
+        });
+      });
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    };
+
+    await assert.rejects(
+      operatorApiFetch("http://api.test/dashboard", { method: "GET" }, fetchImpl),
+      /AbortError|aborted/
+    );
+
+    assert.equal(getActiveOperatorApiFetchCountForTests(), 0);
+    assert.equal(getQueuedOperatorApiFetchCountForTests(), 0);
   });
 
   it("keeps internal Admin BFF API proxies on the bounded fetch path", () => {
