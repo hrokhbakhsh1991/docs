@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
@@ -36,7 +37,7 @@ export async function proxyFinanceApiRequest(
     if (idempotencyKey !== null && idempotencyKey.trim().length > 0) {
       headers["Idempotency-Key"] = idempotencyKey.trim();
     }
-    const backendRes = await fetch(`${apiBase}${options.path}`, {
+    const backendRes = await operatorApiFetch(`${apiBase}${options.path}`, {
       method: options.method,
       headers,
       ...(options.body !== undefined ? { body: options.body } : {}),

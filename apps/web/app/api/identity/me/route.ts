@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { proxyBackendJsonResponse } from "@/auth/proxy-backend-json";
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
@@ -22,7 +23,7 @@ async function forwardIdentityMe(
   let backendRes: Response;
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}/identity/me`, {
+    backendRes = await operatorApiFetch(`${apiBase}/identity/me`, {
       method,
       headers: {
         Authorization: `Bearer ${sessionToken}`,

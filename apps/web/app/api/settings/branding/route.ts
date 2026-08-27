@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
@@ -16,7 +17,7 @@ async function proxyBranding(req: Request, method: string, body?: BodyInit): Pro
   let backendRes: Response;
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}/settings/branding`, {
+    backendRes = await operatorApiFetch(`${apiBase}/settings/branding`, {
       method,
       headers: {
         Authorization: `Bearer ${sessionToken}`,

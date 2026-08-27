@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 
@@ -19,7 +20,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
     const path = query.length > 0 ? `/finance/prepayments?${query}` : "/finance/prepayments";
-    backendRes = await fetch(`${apiBase}${path}`, {
+    backendRes = await operatorApiFetch(`${apiBase}${path}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${sessionToken}`,
@@ -54,7 +55,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   let backendRes: Response;
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
-    backendRes = await fetch(`${apiBase}/finance/prepayments`, {
+    backendRes = await operatorApiFetch(`${apiBase}/finance/prepayments`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${sessionToken}`,
