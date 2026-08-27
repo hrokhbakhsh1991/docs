@@ -286,6 +286,7 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
       `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
     );
     try {
+      await admin.tour.deleteMany({ where: { id: { in: [denaliTourId, denaliTourBId] } } });
       for (const tenantId of tenantIds()) {
         await admin.httpIdempotencyRecord.deleteMany({ where: { tenantId } });
         await admin.financeCommercialQuote.deleteMany({ where: { tenantId } });
@@ -295,7 +296,6 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
         await admin.outboxEvent.deleteMany({ where: { tenantId } });
         await admin.tenant.delete({ where: { id: tenantId } });
       }
-      await admin.tour.deleteMany({ where: { id: { in: [denaliTourId, denaliTourBId] } } });
     } finally {
       await admin.$executeRawUnsafe(
         `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
