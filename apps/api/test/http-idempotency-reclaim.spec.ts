@@ -19,7 +19,7 @@ import {
   resolveHttpIdempotencyProcessingReclaimMs,
 } from "../src/http/http-idempotency-reclaim";
 import { buildPrepaymentDomainEventIds } from "../src/workspace-finance/finance.service";
-import { integrationTenantId } from "./test-helpers";
+import { integrationTenantId, postgresFinanceObligationIntake } from "./test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
@@ -445,6 +445,7 @@ describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatab
           paymentStatus: "unpaid",
           departureAt: new Date("2026-08-01T00:00:00.000Z"),
           submittedByUserId: randomUUID(),
+          registrationIntake: postgresFinanceObligationIntake("5000000"),
         },
       });
     });

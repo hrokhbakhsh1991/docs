@@ -2,6 +2,10 @@ import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 import { after, before } from "node:test";
 
+import {
+  buildObligationOverrideIntakeValue,
+  OBLIGATION_OVERRIDE_INTAKE_KEY,
+} from "@app-tour/finance-core";
 import { flushDomainEventDispatch } from "@app-tour/platform-events";
 
 import { reclaimStaleProcessingOutboxRows } from "../src/outbox/outbox-processing-reclaim";
@@ -38,6 +42,23 @@ export function integrationTenantId(): string {
     }
   }
   throw new Error("integrationTenantId: could not generate platform-core-compatible UUID");
+}
+
+/**
+ * Postgres finance HTTP specs — operator obligation without seeding tour pricing.
+ * Matches commercial-quote freeze + manual payment debt gate expectations.
+ */
+export function postgresFinanceObligationIntake(
+  obligationMinor: string,
+  setByUserId = "postgres-finance-test-setter"
+): Record<string, unknown> {
+  return {
+    [OBLIGATION_OVERRIDE_INTAKE_KEY]: buildObligationOverrideIntakeValue({
+      obligationMinor,
+      setAt: "2026-08-01T00:00:00.000Z",
+      setByUserId,
+    }),
+  };
 }
 
 export function createTestToursService(

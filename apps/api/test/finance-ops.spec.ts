@@ -23,7 +23,7 @@ import { resetLazyWorkspaceFinanceHandlersForTests } from "../src/boot/lazy-work
 import { disconnectPrisma } from "../src/db/prisma";
 import { resetHttpIdempotencyMemoryForTests } from "../src/http/http-idempotency";
 import { reclaimStaleProcessingHttpIdempotencyRecords } from "../src/http/http-idempotency-reclaim";
-import { integrationTenantId } from "./test-helpers";
+import { integrationTenantId, postgresFinanceObligationIntake } from "./test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
@@ -315,6 +315,7 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
             paymentStatus: "unpaid",
             departureAt: new Date("2026-08-01T00:00:00.000Z"),
             submittedByUserId: randomUUID(),
+            registrationIntake: postgresFinanceObligationIntake(input.amount ?? "5000000"),
           },
         });
       });
@@ -476,6 +477,7 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
           paymentStatus: "unpaid",
           departureAt: new Date("2026-08-01T00:00:00.000Z"),
           submittedByUserId: ownerUserId,
+          registrationIntake: postgresFinanceObligationIntake("1500000", ownerUserId),
         },
       });
     });
@@ -521,6 +523,7 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
           paymentStatus: "unpaid",
           departureAt: new Date("2026-08-01T00:00:00.000Z"),
           submittedByUserId: ownerUserId,
+          registrationIntake: postgresFinanceObligationIntake("1500000", ownerUserId),
         },
       });
     });

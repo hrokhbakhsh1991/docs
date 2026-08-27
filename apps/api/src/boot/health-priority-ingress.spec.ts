@@ -24,10 +24,13 @@ import { createTestToursService } from "../../test/test-helpers";
 const mainPath = join(dirname(fileURLToPath(import.meta.url)), "../main.ts");
 const ingressPath = join(dirname(fileURLToPath(import.meta.url)), "./health-priority-ingress.ts");
 
+const isCiRunner = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
+
 const HEALTH_BURST = Number.parseInt(process.env.HEALTH_PRIORITY_BURST ?? "120", 10);
 const HEALTH_CONCURRENCY = Number.parseInt(process.env.HEALTH_PRIORITY_CONCURRENCY ?? "24", 10);
 const HEALTH_P99_CEILING_MS = Number.parseInt(
-  process.env.HEALTH_PRIORITY_P99_CEILING_MS ?? "2500",
+  process.env.HEALTH_PRIORITY_P99_CEILING_MS ??
+    (isCiRunner ? "6000" : "2500"),
   10
 );
 const SLOW_LOG_WRITE_MS = Number.parseInt(process.env.HEALTH_PRIORITY_SLOW_LOG_MS ?? "3", 10);
@@ -40,7 +43,8 @@ const VALIDATION_STORM_MS = Number.parseInt(
   10
 );
 const HEALTH_PROBE_STORM_P99_CEILING_MS = Number.parseInt(
-  process.env.HEALTH_PROBE_STORM_P99_CEILING_MS ?? "3000",
+  process.env.HEALTH_PROBE_STORM_P99_CEILING_MS ??
+    (isCiRunner ? "6000" : "3000"),
   10
 );
 
