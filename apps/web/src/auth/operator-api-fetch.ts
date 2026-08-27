@@ -1,7 +1,24 @@
-const DEFAULT_MAX_CONCURRENT_OPERATOR_API_FETCHES = 3;
+const DEFAULT_MAX_CONCURRENT_OPERATOR_API_FETCHES = 2;
 
-let activeFetches = 0;
-const waitQueue: Array<() => void> = [];
+type OperatorApiFetchLimiterState = {
+  activeFetches: number;
+  waitQueue: Array<() => void>;
+};
+
+const OPERATOR_API_FETCH_LIMITER_STATE = Symbol.for(
+  "app-tour.operatorApiFetchLimiterState"
+);
+
+function getLimiterState(): OperatorApiFetchLimiterState {
+  const globalState = globalThis as typeof globalThis & {
+    [OPERATOR_API_FETCH_LIMITER_STATE]?: OperatorApiFetchLimiterState;
+  };
+  globalState[OPERATOR_API_FETCH_LIMITER_STATE] ??= {
+    activeFetches: 0,
+    waitQueue: [],
+  };
+  return globalState[OPERATOR_API_FETCH_LIMITER_STATE];
+}
 
 export function resolveMaxConcurrentOperatorApiFetches(): number {
   const raw = process.env.OPERATOR_BFF_MAX_CONCURRENT_API_FETCHES?.trim();
@@ -15,37 +32,40 @@ export function resolveMaxConcurrentOperatorApiFetches(): number {
 }
 
 async function acquireOperatorApiFetchSlot(): Promise<void> {
+  const state = getLimiterState();
   const maxConcurrent = resolveMaxConcurrentOperatorApiFetches();
-  if (activeFetches < maxConcurrent && waitQueue.length === 0) {
-    activeFetches += 1;
+  if (state.activeFetches < maxConcurrent && state.waitQueue.length === 0) {
+    state.activeFetches += 1;
     return;
   }
 
   await new Promise<void>((resolve) => {
-    waitQueue.push(resolve);
+    state.waitQueue.push(resolve);
   });
 }
 
 function releaseOperatorApiFetchSlot(): void {
-  const next = waitQueue.shift();
+  const state = getLimiterState();
+  const next = state.waitQueue.shift();
   if (next !== undefined) {
     next();
     return;
   }
-  activeFetches = Math.max(0, activeFetches - 1);
+  state.activeFetches = Math.max(0, state.activeFetches - 1);
 }
 
 export function getActiveOperatorApiFetchCountForTests(): number {
-  return activeFetches;
+  return getLimiterState().activeFetches;
 }
 
 export function getQueuedOperatorApiFetchCountForTests(): number {
-  return waitQueue.length;
+  return getLimiterState().waitQueue.length;
 }
 
 export function resetOperatorApiFetchLimiterForTests(): void {
-  activeFetches = 0;
-  waitQueue.length = 0;
+  const state = getLimiterState();
+  state.activeFetches = 0;
+  state.waitQueue.length = 0;
 }
 
 /**
